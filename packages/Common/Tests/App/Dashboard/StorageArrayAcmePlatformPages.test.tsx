@@ -606,11 +606,25 @@ describe("an Acme array's monitors and Resource Usage", () => {
     ).find((field: ResourceFilterField): boolean => {
       return field.key === "volumeName";
     });
-    expect(volume?.storageSystems).toEqual([
-      FLASHARRAY,
-      "netapp.ontap",
-      ACME_STORAGE_SYSTEM,
-    ]);
+    // Every platform that names a volume, in the registry's order.
+    const naming: Array<string> = StorageArrayPlatformRegistry.getPlatforms()
+      .filter(
+        (platform: {
+          resourceFilters: ReadonlyArray<{ key: string }>;
+        }): boolean => {
+          return platform.resourceFilters.some(
+            (filter: { key: string }): boolean => {
+              return filter.key === "volumeName";
+            },
+          );
+        },
+      )
+      .map((platform: { storageSystem: string }): string => {
+        return platform.storageSystem;
+      });
+    expect(naming[0]).toBe(FLASHARRAY);
+    expect(naming[naming.length - 1]).toBe(ACME_STORAGE_SYSTEM);
+    expect(volume?.storageSystems).toEqual(naming);
     // The first platform's words describe it.
     expect(volume?.description).toContain("FlashArray");
   });

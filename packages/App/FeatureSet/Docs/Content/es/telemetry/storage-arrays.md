@@ -18,6 +18,7 @@ Storage Arrays es un producto que funciona igual para cada fabricante. Es compat
 | **Pure Storage FlashArray**, Purity//FA 6.7 y posteriores | `purestorage.flasharray` | El propio endpoint OpenMetrics de la cabina (`https://<array>/metrics/...?namespace=purefa`): no se ejecuta nada junto al colector | `otel-collector-config.yaml` (la predeterminada) |
 | **Pure Storage FlashArray**, Purity//FA anterior | `purestorage.flasharray` | El exportador OpenMetrics de FlashArray de Pure, que el mismo archivo de Compose ejecuta como el servicio `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | El exportador OpenMetrics de FlashBlade de Pure, que el mismo archivo de Compose ejecuta como el servicio `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | El PowerStore Metrics Exporter de Dell, que el mismo archivo Compose construye y ejecuta como el servicio `powerstore-exporter`; las alertas del clúster llegan por syslog a su servicio `powerstore-syslog` | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 y posteriores (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), y **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, que el mismo archivo de Compose ejecuta como el servicio `netapp-harvest`: inicia sesión en la API REST del clúster con un usuario de solo lectura y su contraseña | `otel-collector-config.netapp-ontap.yaml` |
 
 ONTAP no tiene un endpoint de métricas propio, así que el agente ejecuta junto al colector el exportador de código abierto de NetApp, Harvest. Harvest lee la API REST del clúster y sirve lo que ha leído en la red de Compose, con cada serie llamada `netapp_<object>_<counter>`; el colector lo recopila y lo reenvía. Harvest nunca escribe en el clúster, y su informe de AutoSupport a NetApp está desactivado.
@@ -32,6 +33,10 @@ flowchart TB
     collector -->|"ONTAP"| harvest["NetApp Harvest"]
     harvest -->|"usuario de solo lectura,<br/>API REST"| cluster["El clúster,<br/>puerto 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 Un agente supervisa una cabina: ejecuta un agente por cabina (consulta [Supervisar varias cabinas](#supervisar-varias-cabinas)). La cabina se registra con sus primeros datos, con el nombre que el agente marca en cada métrica como `storage.array.name`.
@@ -40,6 +45,7 @@ Un agente supervisa una cabina: ejecuta un agente por cabina (consulta [Supervis
 
 - Docker Engine 20.10 o posterior con el plugin Docker Compose v2, en una máquina que llegue a la interfaz de administración de la cabina por HTTPS (TCP 443).
 - Una cuenta de administrador en la cabina, para crear un usuario con el rol integrado **readonly** y un token de API para él. En ONTAP, un administrador del clúster (en Amazon FSx for NetApp ONTAP, `fsxadmin`), para crear un usuario REST de solo lectura con contraseña.
+- Para un Dell PowerStore, una máquina x86-64 (Dell solo compila su exportador para x86-64) y un usuario de PowerStore para el agente: consulte [Dell PowerStore](#dell-powerstore).
 - Una clave de ingesta. Crea una en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta** y copia su valor.
 
 ### Dónde ejecutar el agente
@@ -138,7 +144,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+Para un Dell PowerStore, descargue también `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` y `powerstore-syslog.yaml`, establezca `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` y `COMPOSE_PROFILES=powerstore`, y rellene `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` y `POWERSTORE_PASSWORD`, la contraseña entre comillas simples.
 
 Para una FlashArray con un Purity//FA anterior, establece `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` y `COMPOSE_PROFILES=flasharray-exporter`. Para una FlashBlade, establece `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` y `COMPOSE_PROFILES=flashblade`, y rellena `PURE_FB_ENDPOINT` y `PURE_FB_API_TOKEN` en lugar del par `PURE_FA_*`.
 
@@ -192,6 +207,16 @@ Everything is ready. Begin running and processing data.
 Abre **Productos → Infraestructura → Cabinas de almacenamiento → Todas las cabinas de almacenamiento**. Tras la primera recopilación (un minuto aproximadamente), la cabina está ahí con su capacidad, rendimiento, alertas abiertas y hardware. Los volúmenes, hosts y pods llegan en menos de 2 minutos, los sistemas de archivos y buckets de una FlashBlade en menos de 5, y los directorios de FlashArray en menos de 30. Un clúster ONTAP aparece en cuanto Harvest lo ha leído, y todo su inventario en unos 3 minutos, el intervalo con el que Harvest consulta su configuración. La página **Topología** de la cabina dibuja sus hosts, volúmenes, sistemas de archivos y hardware en un solo mapa: consulte [Topología](/docs/telemetry/topology#abrir-el-mapa-propio-de-un-recurso).
 :::
 
+## Dell PowerStore
+
+El agente lee un clúster PowerStore a través del PowerStore Metrics Exporter de Dell, versión `powerstore-metrics-exporter_v1.0.3`. Dell lo publica como binario, no como imagen, así que el servicio `powerstore-exporter` construye en su primer arranque la imagen que documenta Dell a partir de `powerstore-exporter.Dockerfile`, comprobando el SHA-256 del binario; esa construcción necesita `quay.io` y `github.com` una vez.
+
+El exportador de Dell inicia sesión con un nombre de usuario y una contraseña, ya que PowerStore no tiene tokens de API. En PowerStore Manager, añada en _Settings → Users_ un usuario local solo para el agente, con el rol **Storage Operator**: el exportador lee el rendimiento del archivo de métricas masivas de cinco minutos de PowerStore, que activa él mismo y que exigen PowerStoreOS 4.1 y posteriores, y el README de Dell dice que el rol Operator no puede activarlo. En un PowerStoreOS más antiguo, basta el rol de solo lectura **Operator** con `POWERSTORE_BULK_METRICS=false`. Solo el exportador lee la contraseña, desde `.env`.
+
+El exportador de Dell no lee alertas, así que el clúster envía las suyas: el servicio `powerstore-syslog` recibe su syslog remoto en el puerto 5514, por TCP y UDP, y archiva cada línea en la página **Registros** de la cabina con el registro de PowerStore en atributos (`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`) y una gravedad tomada de los códigos de evento de Dell (`powerstore.alert.severity`). En PowerStore Manager, abra _Settings → Security → Remote Logging_, añada esta máquina en el puerto 5514 y abra el puerto en su cortafuegos. El syslog sobre TLS en el puerto 6514 se describe en `powerstore-syslog.yaml`.
+
+El exportador de Dell no informa de hosts ni de sesiones de replicación, así que esta versión no los tiene.
+
 ## Variables de entorno
 
 El script de instalación las escribe en `/opt/oneuptime-storage-array-agent/.env`; una instalación con Docker Compose las lee del `.env` que está junto a `docker-compose.yml`. Después de cambiar una, ejecuta `docker compose up -d` en esa carpeta.
@@ -208,6 +233,13 @@ El script de instalación las escribe en `/opt/oneuptime-storage-array-agent/.en
 | `PURE_FA_API_TOKEN` | FlashArray | El token de API del usuario de FlashArray con el rol readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | La dirección de administración de la FlashBlade: un nombre de host o una IP, sin `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | El token de API del usuario de FlashBlade con el rol readonly. |
+| `POWERSTORE_ENDPOINT` | PowerStore | La dirección de gestión del clúster PowerStore: un nombre de host o una IP, sin `https://`. |
+| `POWERSTORE_USERNAME` | PowerStore | El usuario de PowerStore con el que inicia sesión el exportador de Dell. |
+| `POWERSTORE_PASSWORD` | PowerStore | La contraseña de ese usuario. Solo el exportador la lee. |
+| `POWERSTORE_BULK_METRICS` | No | `true` lee el rendimiento del archivo de métricas masivas de PowerStore; `false` lee cada objeto uno por uno. Por defecto, `true`. |
+| `POWERSTORE_API_VERSION` | No | `v3` para PowerStoreOS 3.6 y posteriores, o `v1`. Por defecto, `v3`. |
+| `POWERSTORE_REQUEST_LIMIT` | No | Cuántas solicitudes envía el exportador al clúster a la vez. Por defecto, `16`. |
+| `POWERSTORE_SYSLOG_PORT` | No | El puerto en el que esta máquina recibe el syslog del clúster, por TCP y UDP. Por defecto, `5514`. |
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | La dirección de administración del clúster (en FSx, el endpoint de administración del sistema de archivos): un nombre de host o una IP, sin `https://`. |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | El usuario REST de solo lectura, como `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | Su contraseña. Solo Harvest la lee, exactamente tal como está escrita. |
@@ -219,6 +251,7 @@ El script de instalación las escribe en `/opt/oneuptime-storage-array-agent/.en
 - **Cada job etiqueta sus series con `scrape_endpoint: <endpoint>`.** Cada endpoint también exporta `purefa_info` o `purefb_info`, así que OneUptime sabe de qué familias un lote es la lista completa: así es como un volumen, host, pod, sistema de archivos o bucket eliminado sale del inventario en lugar de quedarse. Mantén las etiquetas tal como vienen.
 - **La latencia por volumen y por host conserva tres dimensiones.** Cada volumen y cada host exporta su latencia en hasta dieciséis `dimension`s. Una regla `metric_relabel_configs` conserva `usec_per_read_op`, `usec_per_write_op` y `usec_per_mirrored_write_op` y descarta el desglose por límite de tasa de QoS, cola, SAN y tiempo de servicio, que multiplica las series de una cabina grande. El desglose de toda la cabina en `purefa_array_performance_latency_usec` se conserva. Elimina la regla para conservar también el desglose por volumen.
 - **El token de API es un token Bearer.** La configuración nativa lo envía a la propia cabina; las configuraciones con exportador lo envían al exportador solo por la red de Compose, y los puertos de los exportadores nunca se publican.
+- **Un PowerStore cada 5 minutos.** El exportador de Dell sirve cada parte del clúster en `/metrics/<cluster>/<part>`: la configuración lee `cluster` cada 60 segundos, su latido, y `appliance`, `capacity`, `hardware`, `port`, `volume`, `volumeGroup`, `nas` y `file` cada 5 minutos, porque PowerStore los calcula en muestras de cinco minutos.
 - **Sin `send_batch_max_size`.** OneUptime reconstruye el inventario a partir de una recopilación entera por solicitud, así que el procesador `batch` incluido nunca reparte una recopilación entre varias exportaciones. Mantén los ajustes de batch tal como vienen.
 - **ONTAP: Harvest consulta el clúster y el colector recopila de Harvest.** Harvest lee la configuración y el estado del clúster cada 3 minutos, su rendimiento cada minuto (latencias en microsegundos por operación, operaciones y bytes por segundo) y sus eventos EMS cada 3 minutos, y sirve lo más reciente de todo en `netapp-harvest:12990`, que el colector recopila cada 60 segundos con la etiqueta `scrape_endpoint: harvest`. Los tres archivos `netapp-harvest-*.yaml` limitan Harvest a lo que lee OneUptime. Las propias series `netapp_metadata_*` de Harvest indican qué objetos ha listado completos, así que un volumen eliminado sale del inventario, mientras que un objeto que Harvest no pudo leer conserva su último recuento. El colector descarta las mediciones que Harvest hace de sí mismo y las series de rendimiento por disco, y convierte la programación de cada relación de SnapMirror en `netapp_snapmirror_schedule_seconds` (una programación horaria es 3600), con la que SnapMirror Behind Schedule compara el retraso.
 
@@ -236,6 +269,9 @@ Las convenciones semánticas de Pure son comunes al endpoint nativo de FlashArra
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | El nombre, la versión de Purity y el ID de sistema de la FlashBlade; capacidad y reducción de datos; número de alertas abiertas; el estado de la cabina; la página **Hardware** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | La página **Sistemas de archivos**: espacio aprovisionado y usado, reducción de datos, latencia, IOPS y ancho de banda por sistema de archivos |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | La página **Buckets**: espacio, cuota, número de objetos y rendimiento por bucket, agrupados por cuenta |
+| PowerStore `cluster`, `appliance`, `capacity` | `powerstore_cluster`, `powerstore_metro_*`, `powerstore_appliance`, `powerstore_perf_*`, `powerstore_cap_*` | El nombre y el estado del clúster; la página **Appliances**: capacidad, reducción de datos, latencia, IOPS y ancho de banda de cada appliance |
+| PowerStore `hardware`, `port` | `powerstore_hardware_*`, `powerstore_wear_metrics_by_drive`, `powerstore_fc_port_*`, `powerstore_eth_port_*`, `powerstore_metricFcPort_*`, `powerstore_metricEthPort_*` | La página **Hardware**: nodos, ventiladores, fuentes de alimentación, baterías, unidades y puertos front-end, cada uno con su appliance |
+| PowerStore `volume`, `volumeGroup`, `nas`, `file` | `powerstore_volume_*`, `powerstore_metricVolume_*`, `powerstore_volumegroup_*`, `powerstore_metricVg_*`, `powerstore_nas_server_operational_status`, `powerstore_metricNas_*`, `powerstore_filesystem_*`, `powerstore_metricFilesystem_*` | Las páginas **Volúmenes**, **Grupos de volúmenes**, **Servidores NAS** y **Sistemas de archivos** |
 | ONTAP, a través de Harvest | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | El nombre, la versión y el UUID del clúster; su capacidad (la suma de la de sus agregados de datos) y su reducción de datos; la página **Volúmenes**; las páginas **Agregados**, **SVM**, **LUN** y **SnapMirror**, con una página por objeto |
 | Hardware de ONTAP, a través de Harvest | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | La página **Hardware**: nodos, discos, bandejas, sus fuentes de alimentación, ventiladores, módulos y sensores, los sensores de los nodos, y los puertos Ethernet y Fibre Channel |
 | Problemas abiertos y eventos de ONTAP | `netapp_health_*`, `netapp_ems_events` | El número de alertas abiertas y la tarjeta **Alertas activas** (discos rotos, fallos de bandejas, toma de control de HA, puertos caídos, alertas de salud del sistema), y las plantillas de EMS |
@@ -243,6 +279,8 @@ Las convenciones semánticas de Pure son comunes al endpoint nativo de FlashArra
 En ONTAP todas las series son de Harvest: un objeto se nombra por sus etiquetas (`volume` dentro de su `svm`, `aggr`, `lun`, `node`, `disk`, `shelf`, `destination_location` para una relación de SnapMirror), un estado es un `netapp_*_new_status` de 1 o 0 o una serie `netapp_*_labels` cuyas etiquetas lo indican, y cada problema abierto es una serie `netapp_health_*_alerts` que existe mientras dura.
 
 La columna **Salud** de **Todas las cabinas de almacenamiento** lee las alertas y el hardware de la propia cabina en sus datos más recientes: **Crítico** mientras informa de una alerta crítica abierta, o de un componente de hardware, disco o controladora en estado crítico, averiado, ausente o no saludable; **Advertencia** mientras informa de una alerta de advertencia abierta, o de un componente degradado o desconocido; **OK** en caso contrario; y **Desconocido** mientras el agente está desconectado. La **Vista general** de la cabina juzga más, como dice la sección siguiente. En los criterios de un monitor, los atributos de la cabina llevan un prefijo `resource.` (`resource.storage.array.name`, `resource.storage.system`), mientras que las etiquetas de punto de datos van sin prefijo (`name`, `host`, `dimension`, `space`).
+
+La salud de un PowerStore es la de su hardware, ya que sus alertas llegan como registros. El agente calcula por sí mismo `powerstore_cap_physical_used_percent` y `powerstore_filesystem_logical_used_percent`, y lee el estado de un nodo como 1 mientras está Healthy.
 
 ## Lo que muestran las páginas de la cabina
 
@@ -257,7 +295,11 @@ La **Vista general** de la cabina indica su salud, **En buen estado**, **Degrada
 
 Las listas **Hosts**, **Replicación** y **Sistemas de archivos** indican el estado de cada parte con las mismas reglas, con el motivo debajo, y también las listas **Volúmenes**, **Agregados**, **SVM**, **LUN** y **SnapMirror** de un clúster ONTAP, en las que cada fila abre una página propia: su estado, lo que necesita atención, lo que está abierto en ella, las alertas del clúster que la vigilan, lo que ONTAP informa sobre ella y sus gráficos. Las páginas de cada plataforma hablan con sus propias palabras: un volumen de ONTAP indica su SVM, su agregado y lo lleno que está, y su página muestra en gráficos las series de ONTAP. En Amazon FSx for NetApp ONTAP, la página **Hardware** muestra los nodos y los puertos e indica por qué no hay discos ni bandejas. La página de un host y la de un sistema de archivos dicen qué necesita atención y qué alertas de la cabina lo vigilan, con un paso para activar el resto, y la página de cada parte, también la de un volumen y la de un bucket, dice qué está abierto en ella. Mientras el agente está desconectado, la salud muestra **Salud desconocida**: el último informe de la cabina ya no es la verdad. Cada umbral de arriba es aquel en el que se dispara su plantilla de alerta, como enumera el [monitor de cabinas de almacenamiento](/docs/monitor/storage-array-monitor).
 
+En un PowerStore, las pestañas **Appliances**, **Grupos de volúmenes** y **Servidores NAS** listan las partes que solo tiene un PowerStore, y la página **Hardware** nombra el appliance de cada parte, porque cada appliance nombra sus partes de la misma manera.
+
 ## Opcional — Enviar el syslog de la cabina
+
+El recolector syslog de un PowerStore funciona tal como se entrega (consulte [Dell PowerStore](#dell-powerstore)): esta sección es para las cabinas de Pure.
 
 Por defecto el agente solo envía métricas, así que la página **Registros** de la cabina queda vacía. Las cabinas reenvían sus alertas y eventos de auditoría como syslog, y cada configuración incluida del colector tiene un par de receptores `syslog` comentados (TCP y UDP en el puerto 5514, RFC 3164), conectados a un pipeline `logs` comentado que marca `storage.array.name` para que los logs lleguen a tu cabina.
 
@@ -300,6 +342,8 @@ El colector lee su configuración solo al iniciarse: ejecuta `docker compose res
 
 Un agente lee una cabina. Para supervisar varias desde la misma máquina, instala cada una en su propia carpeta con su propio `.env`, como `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, y dale a cada una su propio `container_name` en su `docker-compose.yml` (como `oneuptime-storage-array-agent-fa02`): dos contenedores no pueden compartir nombre. Pasa la carpeta al script de diagnóstico con `-d`.
 
+Un segundo agente de PowerStore también necesita su propio puerto syslog: establezca `POWERSTORE_SYSLOG_PORT`, por ejemplo `5515`, en su `.env`.
+
 ## Ejecutar como servicio de systemd
 
 Para iniciar el agente con la máquina y reiniciarlo cuando falle, instala su unidad de systemd. Supone que el agente está en `/opt/oneuptime-storage-array-agent`, donde lo pone el script de instalación:
@@ -332,6 +376,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+Un agente de PowerStore también vuelve a descargar `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` y `powerstore-syslog.yaml`; `docker compose up` vuelve a construir la imagen del exportador cuando una nueva versión mueve su etiqueta.
+
 ## Desinstalar el agente
 
 ```bash
@@ -340,6 +386,8 @@ docker compose down
 ```
 
 Después elimina el usuario de solo lectura y su token de API en la cabina si ya no los necesitas. En ONTAP, ejecuta `security login delete -user-or-group-name oneuptime -application http -authentication-method password` y después `security login rest-role delete -role oneuptime-readonly -api /api`.
+
+En un PowerStore, ejecute `docker compose --profile powerstore down`, para que también se detengan el exportador y el recolector syslog.
 
 ## Solución de problemas
 
@@ -382,6 +430,10 @@ El exportador no se está ejecutando: `COMPOSE_PROFILES` debe coincidir con `STO
 
 :::details ONTAP: Harvest no puede iniciar sesión, o falta un objeto
 Lee el log de Harvest: `docker compose logs netapp-harvest`. Un `401` o `Unauthorized` significa que el clúster rechazó el usuario o su contraseña: comprueba que el usuario tiene el método de inicio de sesión **http** y el rol REST de solo lectura (`security login show -user-or-group-name oneuptime`), corrige `.env` y ejecuta `docker compose up -d`. Un `403` o `not authorized` en un objeto significa que el rol no llega a esa API; el rol de arriba llega a todo `/api`. En Amazon FSx for NetApp ONTAP, FSx responde así sobre los discos, las bandejas y los sensores a quien pregunte: es lo esperado, y la página **Hardware** lo indica. `connection refused` o `no such host` significa un `NETAPP_ONTAP_ENDPOINT` incorrecto: es la dirección de administración del clúster (en FSx, el endpoint de administración), no la de un nodo ni la de una SVM. El script de diagnóstico también comprueba todo esto.
+:::
+
+:::details Un PowerStore no envía nada
+Lea el registro del exportador con `docker compose logs powerstore-exporter`: un `401` significa un nombre de usuario o una contraseña incorrectos, y un `403` en `latest_five_min_metrics` significa que el rol del usuario no puede activar el archivo de métricas masivas (dele **Storage Operator**, o establezca `POWERSTORE_BULK_METRICS=false` en un PowerStoreOS anterior a 4.1). El exportador necesita un minuto tras arrancar antes de responder. Sin alertas en la página **Registros**: revise los ajustes _Remote Logging_ del clúster, el cortafuegos en el puerto 5514 y `docker compose logs powerstore-syslog`.
 :::
 
 :::details Los volúmenes o hosts eliminados siguen en el inventario

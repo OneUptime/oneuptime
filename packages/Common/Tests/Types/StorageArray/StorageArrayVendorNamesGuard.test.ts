@@ -175,7 +175,7 @@ const VENDORS: Array<Vendor> = getVendors();
 const FILES: Array<string> = shippedTextFiles();
 
 describe("a vendor's metric names stay in its own folders", () => {
-  test("Pure Storage's are FlashArray's purefa_ and FlashBlade's purefb_, NetApp's netapp_", () => {
+  test("Pure Storage's are FlashArray's purefa_ and FlashBlade's purefb_, Dell's PowerStore's powerstore_, NetApp's netapp_", () => {
     expect(VENDORS).toEqual([
       {
         name: "Pure Storage",
@@ -183,6 +183,14 @@ describe("a vendor's metric names stay in its own folders", () => {
         own: [
           "packages/Common/Types/StorageArray/Platforms/PureStorage/",
           "packages/Common/Server/Utils/Telemetry/StorageArray/PureStorage/",
+        ],
+      },
+      {
+        name: "Dell",
+        prefixes: ["powerstore_"],
+        own: [
+          "packages/Common/Types/StorageArray/Platforms/Dell/",
+          "packages/Common/Server/Utils/Telemetry/StorageArray/Dell/",
         ],
       },
       {

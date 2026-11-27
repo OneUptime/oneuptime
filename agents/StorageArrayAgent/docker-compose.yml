@@ -6,8 +6,9 @@ services:
     # config reports this pin as the agent's version
     # (oneuptime.agent.version). Bump them together;
     # Tests/Ops/validate-collector-configs.sh validates every config
-    # against this version.
-    image: otel/opentelemetry-collector-contrib:0.165.0
+    # against this version. The PowerStore syslog collector below runs this
+    # same image (*collector-image).
+    image: &collector-image otel/opentelemetry-collector-contrib:0.165.0
     # One agent monitors ONE array. To monitor a second array from the same
     # machine, install it into another directory and give its container
     # another name here (see README.md).
@@ -21,6 +22,9 @@ services:
       #       through the pure-fa-exporter service below
       #   otel-collector-config.flashblade.yaml           FlashBlade, through
       #       the pure-fb-exporter service below
+      #   otel-collector-config.powerstore.yaml           Dell PowerStore,
+      #       through the powerstore-exporter service below (its syslog
+      #       goes to the powerstore-syslog service)
       #   otel-collector-config.netapp-ontap.yaml         NetApp ONTAP or
       #       Amazon FSx for NetApp ONTAP, through the netapp-harvest
       #       service below
@@ -41,7 +45,8 @@ services:
     environment:
       # Defaults for the two optional settings (an empty value in .env
       # counts as unset). The platform, stamped as storage.system:
-      # purestorage.flasharray, purestorage.flashblade or netapp.ontap.
+      # purestorage.flasharray, purestorage.flashblade, dell.powerstore or
+      # netapp.ontap.
       - STORAGE_SYSTEM=${STORAGE_SYSTEM:-purestorage.flasharray}
       # Arrays ship a self-signed certificate, so the collector does not
       # verify the native endpoint's certificate unless this is "false".
@@ -86,6 +91,153 @@ services:
     profiles: ["flashblade"]
     expose:
       - "9491"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Dell's PowerStore Metrics Exporter (Apache-2.0,
+  # github.com/dell/powerstore-metrics-exporter), for a Dell PowerStore
+  # cluster. Started only with COMPOSE_PROFILES=powerstore, and scraped by
+  # otel-collector-config.powerstore.yaml. Dell publishes the exporter as a
+  # release binary, not an image, so Compose builds Dell's documented image
+  # from powerstore-exporter.Dockerfile the first time it starts it (that once
+  # needs quay.io and github.com), and again only when the tag below moves.
+  # Dell releases it for x86-64 only. Unlike Pure's exporters it logs in to
+  # the cluster itself, with the user and password below, the only values of
+  # .env it is given. It reads them from a config file, which this service
+  # writes to a tmpfs each time it starts: nothing with the password is
+  # written to disk.
+  # Its port stays on the compose network: nothing is published.
+  powerstore-exporter:
+    build:
+      context: .
+      dockerfile: powerstore-exporter.Dockerfile
+    # Dell's release, and this image's own revision (-1): Compose builds the
+    # image only when no image has this tag, so the tag moves with either.
+    image: oneuptime-storage-array-agent/powerstore-exporter:1.0.3-1
+    # Built here, never pulled, so `docker compose pull` passes it over.
+    pull_policy: never
+    profiles: ["powerstore"]
+    entrypoint: ["/bin/sh", "-c"]
+    # The exporter's config (Dell's config.yml), from the environment below.
+    # Every value is quoted as a YAML single-quoted string, so a password
+    # with quotes, a colon, a # or a backslash in it reaches PowerStore
+    # exactly as typed. ($$ is a $ that Compose leaves for the shell.)
+    command:
+      - |
+        set -eu
+        umask 077
+        missing=""
+        [ -n "$${POWERSTORE_ENDPOINT:-}" ] || missing="$$missing POWERSTORE_ENDPOINT"
+        [ -n "$${POWERSTORE_USERNAME:-}" ] || missing="$$missing POWERSTORE_USERNAME"
+        [ -n "$${POWERSTORE_PASSWORD:-}" ] || missing="$$missing POWERSTORE_PASSWORD"
+        if [ -n "$$missing" ]; then
+          echo "Not set in .env:$$missing. The exporter cannot log in to the PowerStore without them." >&2
+          exit 1
+        fi
+        quote() { printf "'%s'" "$$(printf '%s' "$$1" | sed "s/'/''/g")"; }
+        case "$${POWERSTORE_BULK_METRICS:-true}" in
+          false | False | FALSE | no | No | NO | 0) bulk=false ;;
+          *) bulk=true ;;
+        esac
+        case "$${POWERSTORE_API_VERSION:-v3}" in
+          v1) version=v1 ;;
+          *) version=v3 ;;
+        esac
+        limit="$${POWERSTORE_REQUEST_LIMIT:-16}"
+        case "$$limit" in
+          *[!0-9]* | 0*) limit=16 ;;
+        esac
+        dir=/tmp/powerstore-exporter
+        mkdir -p "$$dir/bulk"
+        cat > "$$dir/config.yml" <<EOF
+        exporter:
+          port: 9010
+          reqLimit: $$limit
+          bulkDir: $$dir/bulk/
+          bulkCron: "*/5 * * * *"
+          https:
+            enable: false
+        log:
+          type: logfmt
+          path: /dev/null
+          level: info
+        storageList:
+          - ip: $$(quote "$$POWERSTORE_ENDPOINT")
+            user: $$(quote "$$POWERSTORE_USERNAME")
+            password: $$(quote "$$POWERSTORE_PASSWORD")
+            apiVersion: $$version
+            apiLimit: 5000
+            bulkCollector: $$bulk
+        EOF
+        exec /powerstore-exporter/powerstore-metrics-exporter -c "$$dir/config.yml"
+    environment:
+      # The cluster's management address: host name or IP, no https://.
+      - POWERSTORE_ENDPOINT=${POWERSTORE_ENDPOINT:-}
+      # The PowerStore user the exporter logs in as (see README.md for its
+      # role), and its password.
+      - POWERSTORE_USERNAME=${POWERSTORE_USERNAME:-}
+      - POWERSTORE_PASSWORD=${POWERSTORE_PASSWORD:-}
+      # Read performance through PowerStore's five-minute bulk metrics
+      # archive, which Dell's exporter needs on PowerStoreOS 4.1 and later
+      # and which keeps it from asking the cluster once per volume. Set
+      # "false" only for an older PowerStoreOS (see README.md).
+      - POWERSTORE_BULK_METRICS=${POWERSTORE_BULK_METRICS:-true}
+      # v3 for PowerStoreOS 3.6 and later, v1 for older releases.
+      - POWERSTORE_API_VERSION=${POWERSTORE_API_VERSION:-v3}
+      # How many requests the exporter sends the cluster at once. Dell's
+      # default is 200, which can exhaust PowerStore's metrics service on a
+      # large cluster (Dell KB 000195858).
+      - POWERSTORE_REQUEST_LIMIT=${POWERSTORE_REQUEST_LIMIT:-16}
+    expose:
+      - "9010"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # PowerStore's remote syslog: its alerts and its audit log, which open
+  # OneUptime alerts through the PowerStore alert templates. Started only with
+  # COMPOSE_PROFILES=powerstore: the same collector image as the agent, with
+  # powerstore-syslog.yaml, which reads PowerStore's
+  # records and ships them as logs of the array. It publishes port 5514 on this
+  # machine for TCP and UDP (POWERSTORE_SYSLOG_PORT moves it, for a second
+  # agent on the same machine); point the PowerStore's remote logging at it.
+  powerstore-syslog:
+    image: *collector-image
+    profiles: ["powerstore"]
+    volumes:
+      - ./powerstore-syslog.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # Uncomment for syslog over TLS (see the config and README.md).
+      # - ./powerstore-syslog-tls.crt:/etc/otelcol-contrib/powerstore-syslog-tls.crt:ro
+      # - ./powerstore-syslog-tls.key:/etc/otelcol-contrib/powerstore-syslog-tls.key:ro
+    ports:
+      - "${POWERSTORE_SYSLOG_PORT:-5514}:5514/tcp"
+      - "${POWERSTORE_SYSLOG_PORT:-5514}:5514/udp"
+      # Uncomment for syslog over TLS.
+      # - "6514:6514/tcp"
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL:-}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY:-}
+      - STORAGE_ARRAY_NAME=${STORAGE_ARRAY_NAME:-}
+      - STORAGE_SYSTEM=${STORAGE_SYSTEM:-dell.powerstore}
     read_only: true
     cap_drop:
       - ALL

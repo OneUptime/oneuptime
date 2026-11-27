@@ -2,9 +2,11 @@
 
 A storage array monitor watches one storage array and tells you when the array raises an alert of its own, runs out of space, slows down, loses hardware or a host path, or falls behind on replication. It works with Pure Storage FlashArray, Pure Storage FlashBlade and NetApp ONTAP (Amazon FSx for NetApp ONTAP included), and reads the metrics the OneUptime Storage Array Agent collects: Pure's `purefa_*` and `purefb_*` series, and the `netapp_*` series NetApp Harvest reads from an ONTAP cluster.
 
+It also works with Dell PowerStore (`dell.powerstore`), from Dell's `powerstore_*` series.
+
 :::cards
 - [Create the monitor](#create-a-storage-array-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Fifty-one ready-made alerts, one incident per volume, host or component.
+- [Templates](#pre-built-alert-templates): Ready-made alerts, one incident per volume, host, appliance or component.
 - [How Pure's series work](#how-pures-series-are-shaped): One metric name, many figures. ONTAP's [have a section of their own](#how-ontaps-series-are-shaped).
 - [Metrics](#collected-metrics): Every series the monitor can alert on.
 :::
@@ -87,6 +89,8 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 
 The agent reads the array endpoint every 60 seconds, and volumes, hosts and pods every 2 minutes, so a 5-minute window always holds a sample. It reads a FlashBlade's file systems and buckets every 5 minutes, hence 15, and FlashArray directories every 30 minutes: give a directory monitor a 60-minute window. On ONTAP, Harvest reads the cluster's performance every minute and its configuration, state and EMS events every 3 minutes, so a 5-minute window always holds a sample.
 
+It reads a PowerStore every 5 minutes, and its cluster's state every 60 seconds: give a PowerStore monitor a window of 15 minutes.
+
 ## How Pure's series are shaped
 
 Pure puts several figures on **one** metric name and tells them apart with a label:
@@ -107,6 +111,10 @@ A series filtered to a bad state exists only while something is in that state, s
 
 In monitor filters and group-by keys, the agent's attributes start with `resource.` (`resource.storage.array.name`, `resource.storage.system`), while Pure's own labels do not (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 
+## How PowerStore's series are shaped
+
+Dell's exporter writes one figure per metric name, so a PowerStore series needs no label filter. Its labels name the object: `appliance_id` an appliance, `name` a part, volume or file system, and `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id` or `volume_group_id` the object of a performance series. Its state series are 1 while healthy and 0 otherwise, so the templates fire below 1. Its own alerts arrive by syslog, and their templates, Logs monitors, are listed after its table below.
+
 ## How ONTAP's series are shaped
 
 NetApp Harvest names each series `netapp_<object>_<counter>` and names the object by its labels: a volume by `volume` within its `svm`, an aggregate by `aggr`, a LUN by `lun` within its `volume` and `svm`, a node by `node`, a disk by `disk`, a shelf by `shelf`, a SnapMirror relationship by `destination_location`. Latencies are microseconds per operation, `_ops` operations per second, `_data` bytes per second.
@@ -123,7 +131,7 @@ A state as a number fires when every reading of the window is below 1, and recov
 
 ## Pre-built Alert Templates
 
-OneUptime ships 51 templates — 12 for FlashArray, 8 for FlashBlade and 31 for ONTAP — and the **What to alert on** list offers the ones for the array's platform. Each builds a complete monitor: the metric query, its label filters, a group-by on the object's own label, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+OneUptime ships 67 templates — 12 for FlashArray, 8 for FlashBlade, 16 for PowerStore and 31 for ONTAP — and the **What to alert on** list offers the ones for the array's platform. Each builds a complete monitor: the metric query, its label filters, a group-by on the object's own label, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
 A criteria fires only when the condition holds for **every** value in its window, except an ONTAP EMS template's: Harvest exports an event for one poll, so one reading is enough. A monitor that fired on a capacity, latency, lag or ratio threshold recovers only 10% past it, so a value hovering at the threshold does not flap. The alert, hardware and connectivity templates fire once a state has shown for their whole 5-minute window, and recover about 5 minutes after it clears.
 
@@ -156,6 +164,37 @@ A criteria fires only when the condition holds for **every** value in its window
 | Hardware Component Unhealthy | Hardware     | Critical | `purefb_hardware_health`, Min per `name`, past 5 minutes                                                       | < 1 — a blade, fabric module, power supply or fan is not healthy (an unused slot reports 2). One incident per component; recovers at ≥ 1 |
 | High Read Latency            | Performance  | Warning  | `purefb_array_performance_latency_usec` filtered to `dimension=usec_per_read_op` and `protocol=all`, Avg, past 10 minutes | > 10000 µs (10 ms) across all protocols; recovers at ≤ 9000                                            |
 | File System Near Full        | File Systems | Warning  | `purefb_file_systems_space_bytes` filtered to `space=available_ratio`, Min per `name`, past 15 minutes        | < 0.1 — less than 10% of a file system's provisioned size is left. One incident per file system; recovers at ≥ 0.11 |
+
+### PowerStore
+
+| Template | Category | Severity | Watches | Fires when |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Availability | Critical | `powerstore_cluster`, Count, past 10 minutes | No data for the whole window — the agent, Dell's exporter or the cluster stopped answering; recovers when data arrives again |
+| Capacity Above 80% | Capacity | Warning | `powerstore_cap_physical_used_percent`, Max per `appliance_id`, past 15 minutes | > 80 — an appliance's capacity is filling; recovers at ≤ 72 |
+| Capacity Above 90% | Capacity | Critical | `powerstore_cap_physical_used_percent`, Max per `appliance_id`, past 15 minutes | > 90 — an appliance is close to refusing writes; recovers at ≤ 81 |
+| High Read Latency | Performance | Warning | `powerstore_perf_avg_read_latency`, Avg per `appliance_id`, past 15 minutes | > 5000 µs (5 ms); recovers at ≤ 4500 |
+| High Write Latency | Performance | Warning | `powerstore_perf_avg_write_latency`, Avg per `appliance_id`, past 15 minutes | > 5000 µs (5 ms); recovers at ≤ 4500 |
+| Drive Failed | Hardware | Critical | `powerstore_hardware_Drive_state`, Min per `name`, past 10 minutes | < 1 — a drive failed or was removed; recovers at ≥ 1 |
+| Node Unhealthy | Hardware | Critical | `powerstore_hardware_node_state`, Min per `name`, past 10 minutes | < 1 — a node is not Healthy; recovers at ≥ 1 |
+| Power Supply Unhealthy | Hardware | Warning | `powerstore_hardware_Power_Supply_state`, Min per `name`, past 10 minutes | < 1 — a power supply failed or lost power; recovers at ≥ 1 |
+| Fan Unhealthy | Hardware | Warning | `powerstore_hardware_Fan_state`, Min per `name`, past 10 minutes | < 1 — a fan failed; recovers at ≥ 1 |
+| Battery Unhealthy | Hardware | Warning | `powerstore_hardware_Battery_state`, Min per `name`, past 10 minutes | < 1 — a battery backup module faulted; recovers at ≥ 1 |
+| Drive Wearing Out | Hardware | Warning | `powerstore_wear_metrics_by_drive`, Min per `name`, past 15 minutes | < 10 — less than 10% of a drive's endurance is left; recovers at ≥ 11 |
+| NAS Server Not Started | File Systems | Warning | `powerstore_nas_server_operational_status`, Max per `name`, past 10 minutes | < 1 — a NAS server is stopped or degraded; recovers at ≥ 1 |
+| Volume Not Ready | Array Health | Warning | `powerstore_volume_state`, Max per `name`, past 15 minutes | < 1 — a volume is offline; recovers at ≥ 1 |
+| File System Near Full | File Systems | Warning | `powerstore_filesystem_logical_used_percent`, Max per `name`, past 15 minutes | > 90 — a file system is almost full; recovers at ≤ 81 |
+| Cluster Not Configured | Array Health | Warning | `powerstore_cluster`, Max, past 10 minutes | < 1 — the cluster is not Configured; recovers at ≥ 1 |
+| Metro Witness Not Connected | Replication | Warning | `powerstore_metro_witness_status`, Min per `name`, past 10 minutes | > 0 — a Metro witness is not connected; recovers when it is OK again |
+
+### PowerStore alerts, by syslog
+
+A PowerStore's own alerts arrive as logs, so their templates are **Logs** monitors, offered on the array's **Recommendations** page under **Array Alerts**. Each opens one alert per PowerStore alert, grouped by `powerstore.resource.name` and `powerstore.alert.id`, and resolves it when the PowerStore clears that alert:
+
+| Template | Severity | Opens on a line with | Resolves on |
+| --- | --- | --- | --- |
+| Critical Array Alert | Critical | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | Warning | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | Warning | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
 ### ONTAP
 
@@ -213,6 +252,7 @@ The agent sends everything the array exports; the series below are the catalog t
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | One series per alert open on the array (value 1), labeled `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` and `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | One series per alert open on the FlashBlade (value 1), labeled `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` and `kburl` (Pure's knowledge base article) |
+| `powerstore_cluster` | — | PowerStore | `count` | 1 while the PowerStore cluster is Configured (formed and serving), 0 in any other state: Configuring, Expanding, Removing, Clustering_Failed or Unconfigured. |
 | `netapp_cluster_new_status` | — | ONTAP | — | 1 while ONTAP reports the cluster healthy; also what says the agent still reads it |
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | Alerts open in each of ONTAP's health subsystems, by `subsystem` |
 | `netapp_health_support_alerts` | — | ONTAP | `count` | One series per alert ONTAP's system health monitor has open, while it is open |
@@ -230,6 +270,13 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefb_array_space_utilization`          | `type=array`                 | FlashBlade | `%`     | Share of the FlashBlade's usable capacity in use                                                                                      |
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | Unused capacity of the FlashBlade                                                                                                     |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Data reduction across the FlashBlade                                                                                                  |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | Share of each appliance's physical capacity in use, in percent: its physical used over its physical total, from PowerStore's daily space rollup. PowerStore raises its own capacity alerts from 70%. Group by appliance_id. |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | Usable physical capacity of each appliance in bytes. |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | Physical capacity each appliance uses in bytes, after deduplication and compression. Trend it to forecast when an appliance fills up. |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | Logical capacity provisioned on each appliance in bytes: the size of every volume, file system and vVol it holds, which can be far above its physical capacity. |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | Data hosts have written to each appliance in bytes, before deduplication and compression. |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | Deduplication and compression on each appliance, for example 3.4 for 3.4:1. A sustained drop means newly written data reduces poorly: encrypted or already-compressed data. |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | Overall efficiency of each appliance: data reduction together with the savings of snapshots and thin provisioning. |
 | `netapp_aggr_space_used_percent` | — | ONTAP | `%` | Share of each aggregate's usable space in use — group by `aggr` |
 | `netapp_aggr_space_total` | — | ONTAP | `bytes` | Usable space of each aggregate; the cluster's capacity is their sum |
 | `netapp_aggr_space_used` | — | ONTAP | `bytes` | Space each aggregate has in use or reserved |
@@ -259,6 +306,13 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all`     | FlashBlade | `ops/s`   | Write operations per second across all protocols                                                             |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Bytes read per second across all protocols                                                                   |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Bytes written per second across all protocols                                                               |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | Average latency of a read on each appliance, in microseconds, over PowerStore's latest five-minute sample. PowerStore reads typically complete well under 1 ms. |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | Average latency of a write on each appliance, in microseconds. |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | Read operations per second on each appliance. |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | Write operations per second on each appliance. |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Bytes read per second on each appliance. |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Bytes written per second on each appliance. |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | Share of the CPU cores each appliance dedicates to storage I/O that is busy, in percent. Sustained high values mean the appliance is near the load it can serve. |
 | `netapp_cluster_read_latency` | — | ONTAP | `µs` | Average latency of a read across the cluster |
 | `netapp_cluster_write_latency` | — | ONTAP | `µs` | Average latency of a write across the cluster |
 | `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | Read operations per second across the cluster |
@@ -290,6 +344,20 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefa_volume_space_bytes`                 | `space=total_provisioned`        | FlashArray | `bytes`   | Size of each volume as hosts see it                           |
 | `purefa_volume_space_bytes`                 | `space=total_physical`           | FlashArray | `bytes`   | Physical space each volume uses after data reduction          |
 | `purefa_volume_space_data_reduction_ratio`  | —                                | FlashArray | `ratio`   | Data reduction ratio of each volume                           |
+| `powerstore_volume_state` | — | PowerStore | `count` | 1 while a volume is Ready, 0 while it is Initializing, Offline or being destroyed. Group by name to find the volume hosts cannot reach. |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | Size of each volume as hosts see it, in bytes. |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | Data hosts have written to each volume in bytes, before deduplication and compression. |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | Average read latency of each volume in microseconds. Group by volume_id, which holds the volume's name, to find the slow volume. |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | Average write latency of each volume in microseconds. |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | Read operations per second of each volume. |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | Write operations per second of each volume. |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Bytes read per second from each volume. |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Bytes written per second to each volume. |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | Capacity provisioned to each volume group's volumes, in bytes. Group by name. |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | Data hosts have written to each volume group's volumes in bytes, before deduplication and compression. |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | Average read latency across each volume group's volumes, in microseconds. Group by volume_group_id, which holds the group's name. |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | Average write latency across each volume group's volumes, in microseconds. |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | Read and write operations per second across each volume group's volumes. |
 | `netapp_svm_new_status` | — | ONTAP | — | 1 while an SVM is running — group by `svm` |
 | `netapp_svm_labels` | `state=stopped`, `type=data` | ONTAP | — | One series per data SVM that is stopped |
 | `netapp_volume_size_used_percent` | — | ONTAP | `%` | Share of each volume's space in use, as `volume show` reports it — group by `volume` and `svm` |
@@ -335,6 +403,7 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefa_pod_replica_links_lag_average_msec`          | —                                      | FlashArray | `ms`      | Average replication lag of each pod replica link                                                                                                             |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Replication traffic of each pod, labeled `direction` and `dimension`                                                                                         |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Average mirrored write latency of each ActiveCluster pod                                                                                                     |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | State of each Metro witness: 0 OK, 1 partially connected, 2 disconnected, 3 being deleted, 4 initializing. Above 0, a Metro session may not fail over on its own. |
 | `netapp_snapmirror_lag_time` | — | ONTAP | `s` | How far each SnapMirror relationship's destination is behind its source |
 | `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | How often each relationship's schedule transfers; the agent writes it from the schedule's name |
 | `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | How long each relationship's last transfer took |
@@ -351,6 +420,23 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefa_drive_capacity_bytes`                 | —                                | FlashArray | `bytes`    | Raw capacity of each drive, labeled with its `component_status` (`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...) and type                                                            |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Errors per second on each Ethernet and Fibre Channel interface — sustained errors usually mean a bad cable, optic or switch port                                                                              |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Health of each hardware component (blades, fabric modules, power supplies, fans, ...): 1 = healthy, 2 = unused, 0 = unhealthy. Take the minimum per `name`                                                    |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 1 while a node of an appliance is Healthy, 0 in any other state, which its state label names (Failed, Disconnected, Initializing...). Group by name and appliance_id. |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 1 while a drive is Healthy, 0 when it has failed, been removed or is not ready. Group by name to fire one incident per drive. |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | Share of each drive's write endurance left, in percent. A drive near 0 is close to the end of its life: plan its replacement. |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 1 while a node's fan module is Healthy, 0 when it has failed or been removed. |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 1 while a node's power supply is Healthy, 0 when it has failed, lost input power or been disconnected. |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 1 while a node's battery backup module is Healthy, 0 when it has faulted or been disconnected. |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 1 while a Fibre Channel port's link is up, 0 while it is down, which a port nothing is cabled to always is. Group by fc_port_id, which holds the port's name. |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 1 while an Ethernet port's link is up, 0 while it is down. Group by eth_port_id, which holds the port's name. |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | Average latency of a read through each Fibre Channel port, in microseconds. |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | Average latency of a write through each Fibre Channel port, in microseconds. |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | Read and write operations per second through each Fibre Channel port. |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | Bytes read and written per second through each Fibre Channel port. |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | Frames with an invalid CRC received per second on each Fibre Channel port. Sustained errors usually mean a bad cable, optic or switch port. |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | Link failures per second on each Fibre Channel port. Any is worth a look at the port's cable, optic and switch. |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | Bytes received per second on each Ethernet port. |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | Bytes transmitted per second on each Ethernet port. |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | Packets received with a CRC error per second on each Ethernet port. Sustained errors usually mean a bad cable, optic or switch port. |
 | `netapp_node_new_status` | — | ONTAP | — | 1 while ONTAP reports a node healthy — group by `node` |
 | `netapp_node_avg_processor_busy` | — | ONTAP | `%` | How busy each node's processors are |
 | `netapp_node_failed_fan` | — | ONTAP | `count` | Failed fans of each node |
@@ -386,6 +472,17 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs`    | Average write latency of each file system                                                    |
 | `purefb_file_systems_space_bytes`              | `space=total_physical`        | FlashBlade | `bytes` | Physical space each file system uses                                                         |
 | `purefb_file_systems_space_bytes`              | `space=available_ratio`       | FlashBlade | `ratio` | Share of each file system's provisioned size still available, 0 to 1 — near 0 it is about to fill its quota |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | 1 while a NAS server is Started, 0 while it is Stopped, Starting, Stopping, failed over or Degraded (running without its backup node). Group by name. |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | Average latency of a read served by each NAS server, in microseconds. Group by nas_id, which holds the server's name. |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | Average latency of a write served by each NAS server, in microseconds. |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | Read and write operations per second served by each NAS server. |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | Share of each file system's size in use, in percent: its logical used over its provisioned size. Group by name. |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | Size of each file system as clients see it, in bytes. |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | Data clients have written to each file system, in bytes. |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | Average latency of a read from each file system, in microseconds. Group by name. |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | Average latency of a write to each file system, in microseconds. |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | Read operations per second of each file system. |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | Write operations per second of each file system. |
 
 ### Buckets
 

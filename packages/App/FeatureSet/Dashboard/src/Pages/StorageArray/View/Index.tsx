@@ -1657,6 +1657,17 @@ const StorageArrayOverview: FunctionComponent<
         : (translator.translateText("of usable capacity") as string);
 
     const openAlerts: number | undefined = storageArray.openAlertCount;
+    /*
+     * A platform whose arrays send their own alerts as logs (a PowerStore's
+     * syslog, read by its Array Alerts templates) reports no count of them:
+     * the tile says where they are rather than "0 critical, 0 warning".
+     */
+    const alertsAreLogs: boolean =
+      (openAlerts === null || openAlerts === undefined) &&
+      (
+        StorageArrayPlatformRegistry.getPlatform(storageArray.storageSystem)
+          ?.logAlertTemplates || []
+      ).length > 0;
     const hardwareTotal: number | undefined =
       storageArray.hardwareComponentCount;
     const unhealthyHardware: number | undefined =
@@ -1692,13 +1703,17 @@ const StorageArrayOverview: FunctionComponent<
               ? undefined
               : String(openAlerts)
           }
-          sublabel={translator.translateTemplate(
-            "{{critical}} critical, {{warning}} warning",
-            {
-              critical: storageArray.criticalAlertCount || 0,
-              warning: storageArray.warningAlertCount || 0,
-            },
-          )}
+          sublabel={
+            alertsAreLogs
+              ? (translator.translateText("In the logs") as string)
+              : translator.translateTemplate(
+                  "{{critical}} critical, {{warning}} warning",
+                  {
+                    critical: storageArray.criticalAlertCount || 0,
+                    warning: storageArray.warningAlertCount || 0,
+                  },
+                )
+          }
         />
         <GoldenMetricTile
           title="Unhealthy Hardware"

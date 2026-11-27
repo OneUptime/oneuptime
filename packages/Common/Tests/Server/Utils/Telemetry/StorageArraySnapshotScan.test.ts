@@ -23,6 +23,10 @@ import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
 import { JSONObject } from "../../../../Types/JSON";
 import { readOwnValue } from "../../../../Utils/LookupTable";
 import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
+import {
+  getPureSnapshotMetricNames,
+  isLaterMetricName,
+} from "../../../Helpers/StorageArray/PureSlice";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetAppOntapPlatform from "../../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform";
 import { getRecordedSeriesLabels } from "../../../Helpers/StorageArray/NetAppHarvestRecordings";
@@ -548,33 +552,49 @@ describe("StorageArraySnapshotScan - the allow-list (the ingest gate)", () => {
     "netapp_health_license_alerts",
   ];
 
-  test("every allow-listed family is a real Pure exporter series, or one NetApp Harvest serves", () => {
+  test("every allow-listed ONTAP family is one NetApp Harvest serves", () => {
     const recorded: Record<string, unknown> = getRecordedSeriesLabels();
-    for (const metricName of STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES) {
-      if (metricName.startsWith("netapp_")) {
-        expect({
-          metricName,
-          served:
-            recorded[metricName] !== undefined ||
-            ONTAP_NEVER_RAISED.includes(metricName),
-        }).toEqual({ metricName, served: true });
-        continue;
-      }
-      expect(PURE_LABELS[metricName]).toBeDefined();
-      expect(metricName).toMatch(/^pure(fa|fb)_[a-z0-9_]+$/);
+    expect(NetAppOntapPlatform.snapshotMetricNames.length).toBeGreaterThan(0);
+    for (const metricName of NetAppOntapPlatform.snapshotMetricNames) {
+      expect(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)).toBe(true);
+      expect({
+        metricName,
+        served:
+          recorded[metricName] !== undefined ||
+          ONTAP_NEVER_RAISED.includes(metricName),
+      }).toEqual({ metricName, served: true });
     }
   });
 
-  test("allow-lists exactly the families the scan maps", () => {
-    const expected: Array<string> = [
-      ...Object.keys(PURE_LABELS).filter((metricName: string) => {
+  /*
+   * Pure's families. A platform registered since adds its own to the gate
+   * (Dell PowerStore's: PowerStoreIngest.test.ts holds them to what Dell's
+   * exporter sends).
+   */
+  test("every allow-listed Pure family is a real Pure exporter series", () => {
+    const pure: Array<string> = getPureSnapshotMetricNames();
+    expect(pure.length).toBeGreaterThan(0);
+    for (const metricName of pure) {
+      expect(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)).toBe(true);
+      expect(PURE_LABELS[metricName]).toBeDefined();
+      expect(metricName).toMatch(/^pure(fa|fb)_[a-z0-9_]+$/);
+    }
+    // Every other family on the gate is a later platform's own.
+    for (const metricName of STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES) {
+      expect({
+        metricName,
+        pureOrLater: pure.includes(metricName) || isLaterMetricName(metricName),
+      }).toEqual({ metricName, pureOrLater: true });
+    }
+  });
+
+  test("allow-lists exactly the Pure families the scan maps", () => {
+    const expected: Array<string> = Object.keys(PURE_LABELS).filter(
+      (metricName: string) => {
         return !NOT_ALLOW_LISTED.includes(metricName);
-      }),
-      ...NetAppOntapPlatform.snapshotMetricNames,
-    ];
-    expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
-      [...new Set(expected)].sort(),
+      },
     );
+    expect(getPureSnapshotMetricNames()).toEqual([...expected].sort());
   });
 
   test("chart-only performance families stay out of the Postgres mirror", () => {

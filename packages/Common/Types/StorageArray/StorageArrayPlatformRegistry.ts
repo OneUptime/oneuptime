@@ -1,5 +1,6 @@
 import {
   StorageArrayKindDefinition,
+  StorageArrayLogAlertTemplateSpec,
   StorageArrayKindPage,
   StorageArrayManagedDeployment,
   StorageArrayPlatform,
@@ -164,6 +165,34 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
   for (const [id, where] of charted) {
     if (!metricIds.has(id)) {
       return `${where} charts the metric ${id}, which is not in its catalog`;
+    }
+  }
+
+  /*
+   * A log template opens one alert per group and closes it on its resolving
+   * line, so it needs lines to match, a group, a resolving line and a window
+   * (a Logs monitor resolves by a line only when it is grouped).
+   */
+  for (const template of platform.logAlertTemplates || []) {
+    if (Object.keys(template.attributes).length === 0) {
+      return `its log template ${template.id} matches every line`;
+    }
+    if (
+      template.groupByAttributes.length === 0 ||
+      template.groupByAttributes.some((key: string): boolean => {
+        return !key.trim() || key.length > 256;
+      })
+    ) {
+      return `its log template ${template.id} groups by no attribute it can name`;
+    }
+    if (Object.keys(template.resolvedByAttributes).length === 0) {
+      return `its log template ${template.id} has no line that resolves it`;
+    }
+    if (
+      !Number.isInteger(template.windowSeconds) ||
+      template.windowSeconds <= 0
+    ) {
+      return `its log template ${template.id} looks back no time`;
     }
   }
 
@@ -464,6 +493,9 @@ export default class StorageArrayPlatformRegistry {
       for (const template of other.alertTemplates) {
         takenTemplateIds.add(template.id);
       }
+      for (const template of other.logAlertTemplates || []) {
+        takenTemplateIds.add(template.id);
+      }
       for (const config of other.agentConfigs) {
         takenAgentConfigs.add(config.key);
       }
@@ -488,6 +520,11 @@ export default class StorageArrayPlatformRegistry {
       platform.heartbeat.templateId,
       ...platform.alertTemplates.map(
         (template: StorageArrayPlatform["alertTemplates"][number]): string => {
+          return template.id;
+        },
+      ),
+      ...(platform.logAlertTemplates || []).map(
+        (template: StorageArrayLogAlertTemplateSpec): string => {
           return template.id;
         },
       ),

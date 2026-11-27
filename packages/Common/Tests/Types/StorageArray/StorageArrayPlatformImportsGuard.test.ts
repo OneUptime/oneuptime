@@ -279,10 +279,11 @@ describe("whatever loads first, every platform is there", () => {
     "../../../Types/StorageArray/StorageArrayPlatformRegistry",
   );
 
-  test("the registry, loaded first, holds every platform, their catalog, templates and extractors", () => {
+  test("the registry, loaded first, holds every shipped platform, their catalog, templates and extractors", () => {
     expect(expected.systems).toEqual([
       "purestorage.flasharray",
       "purestorage.flashblade",
+      "dell.powerstore",
       "netapp.ontap",
     ]);
     expect(expected.extractors).toEqual(expected.systems);

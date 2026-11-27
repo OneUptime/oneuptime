@@ -3,6 +3,8 @@ import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArr
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayKindDefinition } from "../../../Types/StorageArray/StorageArrayPlatform";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import { OntapKind } from "../../../Types/StorageArray/Platforms/NetApp/NetApp";
 import { describe, expect, test } from "@jest/globals";
 
@@ -29,6 +31,18 @@ const FLASHBLADE_KINDS: Array<StorageArrayResourceKind> = [
   StorageArrayResourceKind.Hardware,
   StorageArrayResourceKind.FileSystem,
   StorageArrayResourceKind.Bucket,
+];
+
+// Dell PowerStore's: three of its own (Appliance, VolumeGroup, NasServer).
+const POWERSTORE_KINDS: Array<string> = [
+  "Appliance",
+  StorageArrayResourceKind.Volume,
+  "VolumeGroup",
+  StorageArrayResourceKind.FileSystem,
+  "NasServer",
+  StorageArrayResourceKind.Hardware,
+  StorageArrayResourceKind.Drive,
+  StorageArrayResourceKind.NetworkInterface,
 ];
 
 // The shared kinds ONTAP has, and the four only it has (#11001).
@@ -111,8 +125,16 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
     ).toEqual(ONTAP_KINDS);
   });
 
-  test("every known platform reports at least one kind, every shared kind belongs to a platform, and any other kind is its platform's own", () => {
-    const covered: Set<string> = new Set();
+  test("a PowerStore reports appliances, volumes, volume groups, file systems, NAS servers, hardware, drives and ports", () => {
+    expect(
+      StorageArrayResourceKindUtil.getKindsForSystem(
+        StorageSystem.DellPowerStore,
+      ),
+    ).toEqual(POWERSTORE_KINDS);
+  });
+
+  test("every known platform reports at least one kind, and every kind belongs to a platform", () => {
+    const covered: Set<StorageArrayResourceKind> = new Set();
     for (const system of StorageSystemUtil.getAllSystems()) {
       const kinds: Array<string> =
         StorageArrayResourceKindUtil.getKindsForSystem(system);
@@ -135,12 +157,26 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
         }
       }
     }
-    for (const kind of StorageArrayResourceKindUtil.getAllKinds()) {
-      expect({ kind, covered: covered.has(kind) }).toEqual({
-        kind,
-        covered: true,
+    /*
+     * Every shared kind, and each kind a platform defines for itself (a
+     * PowerStore's appliances), which no other platform reports.
+     */
+    const own: Array<string> = StorageArrayPlatformRegistry.getPlatforms()
+      .flatMap(
+        (platform: {
+          kindDefinitions?:
+            | ReadonlyArray<StorageArrayKindDefinition>
+            | undefined;
+        }) => {
+          return [...(platform.kindDefinitions || [])];
+        },
+      )
+      .map((definition: StorageArrayKindDefinition): string => {
+        return definition.kind;
       });
-    }
+    expect([...covered].sort()).toEqual(
+      [...StorageArrayResourceKindUtil.getAllKinds(), ...own].sort(),
+    );
   });
 
   test.each([

@@ -1,0 +1,48 @@
+# HELP powerstore_metricNas_avg_latency Average read and write latency in microseconds,unit is ms
+# TYPE powerstore_metricNas_avg_latency gauge
+powerstore_metricNas_avg_latency{IP="fake-powerstore",nas_id="nas-files-02"} 653
+powerstore_metricNas_avg_latency{IP="fake-powerstore",nas_id="nas-prod-01"} 479
+# HELP powerstore_metricNas_avg_read_bandwidth Read rate in bytes per second,unit is bps
+# TYPE powerstore_metricNas_avg_read_bandwidth gauge
+powerstore_metricNas_avg_read_bandwidth{IP="fake-powerstore",nas_id="nas-files-02"} 6.2357504e+07
+powerstore_metricNas_avg_read_bandwidth{IP="fake-powerstore",nas_id="nas-prod-01"} 5.7278464e+07
+# HELP powerstore_metricNas_avg_read_iops Total read operations per second,unit is iops
+# TYPE powerstore_metricNas_avg_read_iops gauge
+powerstore_metricNas_avg_read_iops{IP="fake-powerstore",nas_id="nas-files-02"} 1903
+powerstore_metricNas_avg_read_iops{IP="fake-powerstore",nas_id="nas-prod-01"} 1748
+# HELP powerstore_metricNas_avg_read_latency Average read latency in microseconds,unit is ms
+# TYPE powerstore_metricNas_avg_read_latency gauge
+powerstore_metricNas_avg_read_latency{IP="fake-powerstore",nas_id="nas-files-02"} 614
+powerstore_metricNas_avg_read_latency{IP="fake-powerstore",nas_id="nas-prod-01"} 477
+# HELP powerstore_metricNas_avg_read_size Average read size in bytes.unit is bytes
+# TYPE powerstore_metricNas_avg_read_size gauge
+powerstore_metricNas_avg_read_size{IP="fake-powerstore",nas_id="nas-files-02"} 32768
+powerstore_metricNas_avg_read_size{IP="fake-powerstore",nas_id="nas-prod-01"} 32768
+# HELP powerstore_metricNas_avg_total_bandwidth Total data transfer rate in bytes per second,unit is bps
+# TYPE powerstore_metricNas_avg_total_bandwidth gauge
+powerstore_metricNas_avg_total_bandwidth{IP="fake-powerstore",nas_id="nas-files-02"} 8.454144e+07
+powerstore_metricNas_avg_total_bandwidth{IP="fake-powerstore",nas_id="nas-prod-01"} 7.774208e+07
+# HELP powerstore_metricNas_avg_total_iops Total read and write operations per second,unit is iops
+# TYPE powerstore_metricNas_avg_total_iops gauge
+powerstore_metricNas_avg_total_iops{IP="fake-powerstore",nas_id="nas-files-02"} 3257
+powerstore_metricNas_avg_total_iops{IP="fake-powerstore",nas_id="nas-prod-01"} 2997
+# HELP powerstore_metricNas_avg_write_bandwidth Write rate in bytes per second,unit is bps
+# TYPE powerstore_metricNas_avg_write_bandwidth gauge
+powerstore_metricNas_avg_write_bandwidth{IP="fake-powerstore",nas_id="nas-files-02"} 2.2183936e+07
+powerstore_metricNas_avg_write_bandwidth{IP="fake-powerstore",nas_id="nas-prod-01"} 2.0463616e+07
+# HELP powerstore_metricNas_avg_write_iops Total write operations per second,unit is iops
+# TYPE powerstore_metricNas_avg_write_iops gauge
+powerstore_metricNas_avg_write_iops{IP="fake-powerstore",nas_id="nas-files-02"} 1354
+powerstore_metricNas_avg_write_iops{IP="fake-powerstore",nas_id="nas-prod-01"} 1249
+# HELP powerstore_metricNas_avg_write_latency Average write latency in microseconds,unit is ms
+# TYPE powerstore_metricNas_avg_write_latency gauge
+powerstore_metricNas_avg_write_latency{IP="fake-powerstore",nas_id="nas-files-02"} 692
+powerstore_metricNas_avg_write_latency{IP="fake-powerstore",nas_id="nas-prod-01"} 481
+# HELP powerstore_metricNas_avg_write_size Average write size in bytes.unit is bytes
+# TYPE powerstore_metricNas_avg_write_size gauge
+powerstore_metricNas_avg_write_size{IP="fake-powerstore",nas_id="nas-files-02"} 16384
+powerstore_metricNas_avg_write_size{IP="fake-powerstore",nas_id="nas-prod-01"} 16384
+# HELP powerstore_nas_server_operational_status NAS https operational status,Started is 1 other is 0
+# TYPE powerstore_nas_server_operational_status gauge
+powerstore_nas_server_operational_status{IP="fake-powerstore",name="nas-files-02"} 0
+powerstore_nas_server_operational_status{IP="fake-powerstore",name="nas-prod-01"} 1

@@ -663,8 +663,7 @@ const IncidentCreate: FunctionComponent<
    * decide - under Initial State, under On-Call Policy and on the review.
    * The form waits for it, since it latches where its boxes start.
    */
-  const declareDefaults: DeclareIncidentDefaults =
-    useDeclareIncidentDefaults();
+  const declareDefaults: DeclareIncidentDefaults = useDeclareIncidentDefaults();
 
   /*
    * Whether the template the incident is declared from names a state - even
@@ -2244,6 +2243,36 @@ const IncidentCreate: FunctionComponent<
                           new ObjectID(item.changeMonitorStatusTo.toString()),
                         ]}
                         shouldAnimate={false}
+                      />
+                    );
+                  },
+                },
+                /*
+                 * Whether the incident pauses its monitors' checks (#11141):
+                 * under the monitors and the status it puts them in, and only
+                 * once a monitor is picked, so declaring never pauses a
+                 * monitor without the person seeing it. Ticked, as every
+                 * incident declared by hand always paused them; unticked,
+                 * they keep being checked. A monitor set to keep monitoring
+                 * during incidents is never paused.
+                 */
+                {
+                  field: {
+                    pauseMonitoring: true,
+                  },
+                  title: "Pause Monitoring",
+                  stepId: "resources-affected",
+                  description:
+                    "Stops checking these monitors until the incident is resolved. Monitors set to keep monitoring during incidents keep being checked.",
+                  fieldType: FormFieldSchemaType.Checkbox,
+                  defaultValue: true,
+                  required: false,
+                  showIf: hasMonitors,
+                  getSummaryElement: (item: FormValues<Incident>) => {
+                    return (
+                      <BooleanValue
+                        value={item.pauseMonitoring !== false}
+                        dataTestId="incident-create-pause-monitoring-value"
                       />
                     );
                   },

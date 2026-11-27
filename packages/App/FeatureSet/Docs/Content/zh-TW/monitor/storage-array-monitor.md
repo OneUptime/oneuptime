@@ -2,9 +2,11 @@
 
 儲存陣列監測器會監看一個儲存陣列，並在陣列本身發出警示、空間不足、變慢、遺失硬體或主機路徑，或複寫落後時通知你。它支援 Pure Storage FlashArray、Pure Storage FlashBlade 和 NetApp ONTAP（包括 Amazon FSx for NetApp ONTAP），讀取 OneUptime Storage Array Agent 收集的指標：Pure 的 `purefa_*` 和 `purefb_*` 序列，以及 NetApp Harvest 從 ONTAP 叢集讀取的 `netapp_*` 序列。
 
+它也適用於 Dell PowerStore（`dell.powerstore`），依據 Dell 的 `powerstore_*` 序列。
+
 :::cards
 - [建立監測器](#建立儲存陣列監測器): 在儀表板中的六個步驟。
-- [範本](#預建警示範本): 五十一個現成的警示，每個磁碟區、主機或元件一個事件。
+- [範本](#預建警示範本): 現成的警示，每個磁碟區、主機、專用設備或元件一個事件。
 - [Pure 序列的運作方式](#pure-序列的結構): 一個指標名稱，多個數值。ONTAP 的序列[另有一節專門介紹](#ontap-序列的結構)。
 - [指標](#收集的指標): 監測器可以據以發出警示的每個序列。
 :::
@@ -87,6 +89,8 @@ flowchart TB
 
 代理程式每 60 秒讀取一次陣列端點，每 2 分鐘讀取一次磁碟區、主機和 Pod，因此 5 分鐘的視窗中一定會有樣本。它每 5 分鐘讀取一次 FlashBlade 的檔案系統和儲存貯體(所以用 15 分鐘)，每 30 分鐘讀取一次 FlashArray 目錄：請給目錄監測器設定 60 分鐘的視窗。在 ONTAP 上，Harvest 每分鐘讀取一次叢集的效能，每 3 分鐘讀取一次其設定、狀態和 EMS 事件，因此 5 分鐘的視窗中一定會有樣本。
 
+它每 5 分鐘讀取一次 PowerStore，每 60 秒讀取一次其叢集狀態：請為 PowerStore 監視器設定 15 分鐘的視窗。
+
 ## Pure 序列的結構
 
 Pure 把多個數值放在 **一個** 指標名稱上，並用一個標籤區分它們：
@@ -107,6 +111,10 @@ Pure 把多個數值放在 **一個** 指標名稱上，並用一個標籤區分
 
 在監測器篩選器和分組鍵中，代理程式的屬性以 `resource.` 開頭(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的標籤不以它開頭(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。
 
+## PowerStore 序列的結構
+
+Dell 的匯出器每個指標名稱只寫入一個值，因此 PowerStore 序列不需要標籤篩選。其標籤標示物件：`appliance_id` 是專用設備，`name` 是元件、磁碟區或檔案系統，而 `volume_id`、`fc_port_id`、`eth_port_id`、`nas_id` 或 `volume_group_id` 是效能序列的物件。其狀態序列在健康時為 1，否則為 0，因此範本在低於 1 時觸發。它自己的警示透過 syslog 送達，其範本（日誌監視器）列在下方表格之後。
+
 ## ONTAP 序列的結構
 
 NetApp Harvest 把每個序列命名為 `netapp_<object>_<counter>`，並用標籤命名物件：磁碟區用 `volume`(位於其 `svm` 中)，Aggregate 用 `aggr`，LUN 用 `lun`(位於其 `volume` 和 `svm` 中)，節點用 `node`，磁碟用 `disk`，磁碟櫃用 `shelf`，SnapMirror 關係用 `destination_location`。延遲以每次作業的微秒計，`_ops` 為每秒作業數，`_data` 為每秒位元組數。
@@ -123,7 +131,7 @@ ONTAP 的狀態有三種表示方式：
 
 ## 預建警示範本
 
-OneUptime 提供 51 個範本——12 個用於 FlashArray，8 個用於 FlashBlade，31 個用於 ONTAP——**告警內容** 清單會提供適用於陣列平台的那些範本。每個範本都會建構一個完整的監測器：指標查詢、其標籤篩選器、依物件自身標籤的分組、一個觸發條件和一個復原條件。臨界值是可以編輯的起點。
+OneUptime 提供 67 個範本——12 個用於 FlashArray，8 個用於 FlashBlade，16 個用於 PowerStore，31 個用於 ONTAP——**告警內容** 清單會提供適用於陣列平台的那些範本。每個範本都會建構一個完整的監測器：指標查詢、其標籤篩選器、依物件自身標籤的分組、一個觸發條件和一個復原條件。臨界值是可以編輯的起點。
 
 只有當條件對視窗中的 **每個** 值都成立時，條件才會觸發，但 ONTAP EMS 範本的條件除外：Harvest 只在一次輪詢中匯出某個事件，因此一個讀數就夠了。在容量、延遲、落後或比率臨界值上觸發的監測器，只有超過臨界值 10% 之後才會復原，因此在臨界值附近徘徊的值不會來回切換。警示、硬體和連線範本在某個狀態在其整個 5 分鐘視窗內都出現後才會觸發，並在狀態消失約 5 分鐘後復原。
 
@@ -156,6 +164,37 @@ OneUptime 提供 51 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | Hardware Component Unhealthy | 硬體 | 嚴重 | `purefb_hardware_health`，依 `name` 取 Min，過去 5 分鐘 | < 1 — 某個刀鋒、交換模組、電源供應器或風扇不健康(未使用的插槽回報 2)。每個元件一個事件；≥ 1 時復原 |
 | High Read Latency | 效能 | 警告 | `purefb_array_performance_latency_usec` 篩選到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，過去 10 分鐘 | > 10000 µs (10 ms)，跨所有通訊協定；≤ 9000 時復原 |
 | File System Near Full | 檔案系統 | 警告 | `purefb_file_systems_space_bytes` 篩選到 `space=available_ratio`，依 `name` 取 Min，過去 15 分鐘 | < 0.1 — 檔案系統佈建大小的剩餘不足 10%。每個檔案系統一個事件；≥ 0.11 時復原 |
+
+### PowerStore
+
+| 範本 | 類別 | 嚴重程度 | 監看內容 | 觸發條件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 嚴重 | `powerstore_cluster`，Count，過去 10 分鐘 | 整個視窗內都沒有資料 — 代理程式、Dell 的匯出器或叢集不再回應；資料再次送達時復原 |
+| Capacity Above 80% | 容量 | 警告 | `powerstore_cap_physical_used_percent`，依 `appliance_id` 取 Max，過去 15 分鐘 | > 80 — 某台專用設備的容量正在填滿；≤ 72 時復原 |
+| Capacity Above 90% | 容量 | 嚴重 | `powerstore_cap_physical_used_percent`，依 `appliance_id` 取 Max，過去 15 分鐘 | > 90 — 某台專用設備即將拒絕寫入；≤ 81 時復原 |
+| High Read Latency | 效能 | 警告 | `powerstore_perf_avg_read_latency`，依 `appliance_id` 取 Avg，過去 15 分鐘 | > 5000 µs (5 ms)；≤ 4500 時復原 |
+| High Write Latency | 效能 | 警告 | `powerstore_perf_avg_write_latency`，依 `appliance_id` 取 Avg，過去 15 分鐘 | > 5000 µs (5 ms)；≤ 4500 時復原 |
+| Drive Failed | 硬體 | 嚴重 | `powerstore_hardware_Drive_state`，依 `name` 取 Min，過去 10 分鐘 | < 1 — 某個磁碟機發生故障或遭移除；≥ 1 時復原 |
+| Node Unhealthy | 硬體 | 嚴重 | `powerstore_hardware_node_state`，依 `name` 取 Min，過去 10 分鐘 | < 1 — 某個節點不是 Healthy；≥ 1 時復原 |
+| Power Supply Unhealthy | 硬體 | 警告 | `powerstore_hardware_Power_Supply_state`，依 `name` 取 Min，過去 10 分鐘 | < 1 — 某個電源供應器發生故障或斷電；≥ 1 時復原 |
+| Fan Unhealthy | 硬體 | 警告 | `powerstore_hardware_Fan_state`，依 `name` 取 Min，過去 10 分鐘 | < 1 — 某個風扇發生故障；≥ 1 時復原 |
+| Battery Unhealthy | 硬體 | 警告 | `powerstore_hardware_Battery_state`，依 `name` 取 Min，過去 10 分鐘 | < 1 — 某個電池備援模組發生故障；≥ 1 時復原 |
+| Drive Wearing Out | 硬體 | 警告 | `powerstore_wear_metrics_by_drive`，依 `name` 取 Min，過去 15 分鐘 | < 10 — 某個磁碟機剩餘的耐用度不到 10%；≥ 11 時復原 |
+| NAS Server Not Started | 檔案系統 | 警告 | `powerstore_nas_server_operational_status`，依 `name` 取 Max，過去 10 分鐘 | < 1 — 某個 NAS 伺服器已停止或已降級；≥ 1 時復原 |
+| Volume Not Ready | 陣列健康狀況 | 警告 | `powerstore_volume_state`，依 `name` 取 Max，過去 15 分鐘 | < 1 — 某個磁碟區處於離線狀態；≥ 1 時復原 |
+| File System Near Full | 檔案系統 | 警告 | `powerstore_filesystem_logical_used_percent`，依 `name` 取 Max，過去 15 分鐘 | > 90 — 某個檔案系統快滿了；≤ 81 時復原 |
+| Cluster Not Configured | 陣列健康狀況 | 警告 | `powerstore_cluster`，Max，過去 10 分鐘 | < 1 — 叢集不是 Configured；≥ 1 時復原 |
+| Metro Witness Not Connected | 複寫 | 警告 | `powerstore_metro_witness_status`，依 `name` 取 Min，過去 10 分鐘 | > 0 — 某個 Metro Witness 未連線；再次變為 OK 時復原 |
+
+### 透過 syslog 的 PowerStore 警示
+
+PowerStore 自己的警示以日誌形式送達，因此其範本是 **日誌** 監視器，在陣列的 **建議** 頁面的 **陣列警示** 下提供。每個範本為每則 PowerStore 警示開啟一則警示，依 `powerstore.resource.name` 和 `powerstore.alert.id` 分組，並在 PowerStore 清除該警示時將其解決：
+
+| 範本 | 嚴重性 | 在包含以下內容的行上開啟 | 在以下內容上解決 |
+| --- | --- | --- | --- |
+| Critical Array Alert | 嚴重 | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | 警告 | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | 警告 | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
 ### ONTAP
 
@@ -213,6 +252,7 @@ OneUptime 提供 51 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | 陣列上每個未關閉的警示一個序列(值為 1)，帶有標籤 `severity`(`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type` 和 `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade 上每個未關閉的警示一個序列(值為 1)，帶有標籤 `severity`(`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary` 和 `kburl`(Pure 知識庫文章) |
+| `powerstore_cluster` | — | PowerStore | `count` | PowerStore 叢集為 Configured（已組成並在提供服務）時為 1，處於其他任何狀態時為 0：Configuring、Expanding、Removing、Clustering_Failed 或 Unconfigured。 |
 | `netapp_cluster_new_status` | — | ONTAP | — | ONTAP 回報叢集健康時為 1；也用來表示代理程式仍在讀取叢集 |
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | ONTAP 每個健康子系統中未關閉的警示，依 `subsystem` 區分 |
 | `netapp_health_support_alerts` | — | ONTAP | `count` | ONTAP 系統健康監測器中每個未關閉的警示一個序列，在警示未關閉期間存在 |
@@ -230,6 +270,13 @@ OneUptime 提供 51 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | FlashBlade 可用容量中已使用的比例 |
 | `purefb_array_space_bytes` | `type=array`、`space=empty` | FlashBlade | `bytes` | FlashBlade 未使用的容量 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | 整個 FlashBlade 的資料縮減 |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | 每台專用設備實體容量的使用比例，以百分比表示：實體已使用除以實體總量，來自 PowerStore 的每日空間彙總。PowerStore 從 70% 起發出自己的容量警示。按 appliance_id 分組。 |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | 每台專用設備的可用實體容量，以位元組為單位。 |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | 每台專用設備使用的實體容量，以位元組為單位，為重複資料刪除和壓縮之後的值。觀察其趨勢，預測專用設備何時寫滿。 |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | 每台專用設備上佈建的邏輯容量，以位元組為單位：其所含每個磁碟區、檔案系統和 vVol 的大小，可能遠高於其實體容量。 |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | 主機寫入每台專用設備的資料，以位元組為單位，為重複資料刪除和壓縮之前的值。 |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | 每台專用設備上的重複資料刪除和壓縮效果，例如 3.4:1 記為 3.4。持續下降表示新寫入的資料縮減效果差：加密或已壓縮的資料。 |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | 每台專用設備的整體效率：資料縮減加上快照和精簡佈建節省的空間。 |
 | `netapp_aggr_space_used_percent` | — | ONTAP | `%` | 每個 Aggregate 可用空間中已使用的比例——依 `aggr` 分組 |
 | `netapp_aggr_space_total` | — | ONTAP | `bytes` | 每個 Aggregate 的可用空間；叢集的容量是它們的總和 |
 | `netapp_aggr_space_used` | — | ONTAP | `bytes` | 每個 Aggregate 已使用或已保留的空間 |
@@ -259,6 +306,13 @@ OneUptime 提供 51 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`、`protocol=all` | FlashBlade | `ops/s` | 所有通訊協定的每秒寫入作業數 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有通訊協定的每秒讀取位元組數 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有通訊協定的每秒寫入位元組數 |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | 每台專用設備上讀取的平均延遲，以微秒為單位，依據 PowerStore 最近的五分鐘樣本。PowerStore 的讀取通常遠低於 1 ms 即可完成。 |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | 每台專用設備上寫入的平均延遲，以微秒為單位。 |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | 每台專用設備上每秒的讀取操作數。 |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | 每台專用設備上每秒的寫入操作數。 |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 每台專用設備上每秒讀取的位元組數。 |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 每台專用設備上每秒寫入的位元組數。 |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | 每台專用設備專用於儲存 I/O 的 CPU 核心中處於忙碌狀態的比例，以百分比表示。持續偏高表示該專用設備已接近其能承受的負載。 |
 | `netapp_cluster_read_latency` | — | ONTAP | `µs` | 整個叢集的讀取平均延遲 |
 | `netapp_cluster_write_latency` | — | ONTAP | `µs` | 整個叢集的寫入平均延遲 |
 | `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | 整個叢集的每秒讀取作業數 |
@@ -290,6 +344,20 @@ OneUptime 提供 51 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | 主機看到的每個磁碟區的大小 |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | 每個磁碟區在資料縮減後佔用的實體空間 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 每個磁碟區的資料縮減比 |
+| `powerstore_volume_state` | — | PowerStore | `count` | 磁碟區為 Ready 時為 1，為 Initializing、Offline 或正在銷毀時為 0。按 name 分組，找出主機無法存取的磁碟區。 |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | 主機看到的每個磁碟區的大小，以位元組為單位。 |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | 主機寫入每個磁碟區的資料，以位元組為單位，為重複資料刪除和壓縮之前的值。 |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | 每個磁碟區的平均讀取延遲，以微秒為單位。按 volume_id 分組（它包含磁碟區的名稱），找出慢的磁碟區。 |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | 每個磁碟區的平均寫入延遲，以微秒為單位。 |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | 每個磁碟區每秒的讀取操作數。 |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | 每個磁碟區每秒的寫入操作數。 |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 每秒從每個磁碟區讀取的位元組數。 |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 每秒寫入每個磁碟區的位元組數。 |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | 為每個磁碟區群組中各磁碟區佈建的容量，以位元組為單位。按 name 分組。 |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | 主機寫入每個磁碟區群組中各磁碟區的資料，以位元組為單位，為重複資料刪除和壓縮之前的值。 |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | 每個磁碟區群組中各磁碟區的平均讀取延遲，以微秒為單位。按 volume_group_id 分組，它包含群組的名稱。 |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | 每個磁碟區群組中各磁碟區的平均寫入延遲，以微秒為單位。 |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | 每個磁碟區群組中各磁碟區每秒的讀寫操作數。 |
 | `netapp_svm_new_status` | — | ONTAP | — | SVM 執行中時為 1——依 `svm` 分組 |
 | `netapp_svm_labels` | `state=stopped`、`type=data` | ONTAP | — | 每個已停止的資料 SVM 一個序列 |
 | `netapp_volume_size_used_percent` | — | ONTAP | `%` | 每個磁碟區空間中已使用的比例，以 `volume show` 的回報為準——依 `volume` 和 `svm` 分組 |
@@ -335,6 +403,7 @@ OneUptime 提供 51 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | 每條 Pod 複本連結的平均複寫落後 |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 每個 Pod 的複寫流量，帶有標籤 `direction` 和 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 每個 ActiveCluster Pod 的鏡像寫入平均延遲 |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | 每個 Metro Witness 的狀態：0 OK，1 部分連線，2 已中斷連線，3 正在刪除，4 正在初始化。大於 0 時，Metro 工作階段可能無法自行容錯移轉。 |
 | `netapp_snapmirror_lag_time` | — | ONTAP | `s` | 每個 SnapMirror 關係的目標落後其來源多少 |
 | `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | 每個關係的排程多久傳輸一次；代理程式根據排程的名稱寫入該值 |
 | `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | 每個關係上次傳輸的耗時 |
@@ -351,6 +420,23 @@ OneUptime 提供 51 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | 每個磁碟機的原始容量，帶有其 `component_status`(`healthy`、`failed`、`missing`、`recovering`、`unhealthy`、`empty`……)和類型標籤 |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 每個乙太網路和光纖通道介面上的每秒錯誤數——持續出錯通常表示纜線、光纖模組或交換器連接埠有問題 |
 | `purefb_hardware_health` | — | FlashBlade | — | 每個硬體元件(刀鋒、交換模組、電源供應器、風扇……)的健康狀況：1 = 健康，2 = 未使用，0 = 不健康。依 `name` 取最小值 |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 專用設備的節點為 Healthy 時為 1，處於其他任何狀態時為 0，狀態由其 state 標籤指出（Failed、Disconnected、Initializing...）。按 name 和 appliance_id 分組。 |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 磁碟機為 Healthy 時為 1，發生故障、遭移除或未就緒時為 0。按 name 分組，每個磁碟機觸發一個事件。 |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | 每個磁碟機剩餘的寫入耐用度比例，以百分比表示。接近 0 的磁碟機已接近使用壽命終點：請規劃更換。 |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 節點的風扇模組為 Healthy 時為 1，發生故障或遭移除時為 0。 |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 節點的電源供應器為 Healthy 時為 1，發生故障、失去輸入電源或中斷連線時為 0。 |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 節點的電池備援模組為 Healthy 時為 1，發生故障或中斷連線時為 0。 |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 光纖通道連接埠連結啟動時為 1，中斷時為 0；未接任何纜線的連接埠一律處於中斷狀態。按 fc_port_id 分組，它包含連接埠的名稱。 |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 乙太網路連接埠連結啟動時為 1，中斷時為 0。按 eth_port_id 分組，它包含連接埠的名稱。 |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | 經過每個光纖通道連接埠的讀取的平均延遲，以微秒為單位。 |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | 經過每個光纖通道連接埠的寫入的平均延遲，以微秒為單位。 |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | 每秒經過每個光纖通道連接埠的讀寫操作數。 |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | 每秒經過每個光纖通道連接埠讀取和寫入的位元組數。 |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | 每個光纖通道連接埠每秒收到的 CRC 無效的訊框數。持續出現錯誤通常表示纜線、光學模組或交換器連接埠有問題。 |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | 每個光纖通道連接埠每秒的連結失敗數。出現任何一次都值得檢查該連接埠的纜線、光學模組和交換器。 |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | 每個乙太網路連接埠每秒接收的位元組數。 |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | 每個乙太網路連接埠每秒傳送的位元組數。 |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | 每個乙太網路連接埠每秒收到的含 CRC 錯誤的封包數。持續出現錯誤通常表示纜線、光學模組或交換器連接埠有問題。 |
 | `netapp_node_new_status` | — | ONTAP | — | ONTAP 回報節點健康時為 1——依 `node` 分組 |
 | `netapp_node_avg_processor_busy` | — | ONTAP | `%` | 每個節點處理器的忙碌程度 |
 | `netapp_node_failed_fan` | — | ONTAP | `count` | 每個節點的故障風扇 |
@@ -386,6 +472,17 @@ OneUptime 提供 51 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs` | 每個檔案系統的寫入平均延遲 |
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 每個檔案系統佔用的實體空間 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 每個檔案系統佈建大小中仍然可用的比例，從 0 到 1——接近 0 時它即將用滿配額 |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | NAS 伺服器為 Started 時為 1，為 Stopped、Starting、Stopping、已容錯移轉或 Degraded（在沒有備援節點的情況下執行）時為 0。按 name 分組。 |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | 每個 NAS 伺服器處理的讀取的平均延遲，以微秒為單位。按 nas_id 分組，它包含伺服器的名稱。 |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | 每個 NAS 伺服器處理的寫入的平均延遲，以微秒為單位。 |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | 每個 NAS 伺服器每秒處理的讀寫操作數。 |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | 每個檔案系統大小的使用比例，以百分比表示：邏輯已使用除以佈建大小。按 name 分組。 |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | 用戶端看到的每個檔案系統的大小，以位元組為單位。 |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | 用戶端寫入每個檔案系統的資料，以位元組為單位。 |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | 從每個檔案系統讀取的平均延遲，以微秒為單位。按 name 分組。 |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | 寫入每個檔案系統的平均延遲，以微秒為單位。 |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | 每個檔案系統每秒的讀取操作數。 |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | 每個檔案系統每秒的寫入操作數。 |
 
 ### 儲存貯體
 

@@ -261,6 +261,9 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerstore.yaml",
+      "powerstore-exporter.Dockerfile",
+      "powerstore-syslog.yaml",
       // NetApp ONTAP, through NetApp Harvest: its config and its templates.
       "otel-collector-config.netapp-ontap.yaml",
       "netapp-harvest.yml",

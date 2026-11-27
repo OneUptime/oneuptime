@@ -222,6 +222,7 @@ import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNames
 import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppRequestMonitorTotals";
 import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResourcesThatShowNothing";
 import EndOnCallTimeLogsOfDeletedPolicies from "./EndOnCallTimeLogsOfDeletedPolicies";
+import WorkOutMonitorsPausedByIncidents from "./WorkOutMonitorsPausedByIncidents";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1691,6 +1692,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * kept last.
    */
   new EndOnCallTimeLogsOfDeletedPolicies(),
+  /*
+   * Works out every monitor an incident declared by hand paused, as its
+   * open incidents now say (MonitorIncidentPause, #11141): resumes the ones
+   * a reopened incident left paused for good, and leaves out of uptime,
+   * from now, the time of those paused with no status of their own. After
+   * the schema migration that adds Incident.pauseMonitoring and
+   * Monitor.keepMonitoringDuringIncidents; Postgres; idempotent.
+   */
+  new WorkOutMonitorsPausedByIncidents(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

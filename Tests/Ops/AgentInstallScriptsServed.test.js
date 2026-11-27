@@ -123,10 +123,12 @@ function assignment(block, name) {
  * configs/<engine>.yaml.
  */
 /*
- * The lines of the Storage Array agent's PLATFORMS table (#11000), one per
- * platform, as their |-separated fields.
+ * One |-separated field of each line of the Storage Array agent's PLATFORMS
+ * table (#11000): one line per platform, its collector config the first
+ * field, the other files it runs with the eleventh (space-separated, "-"
+ * for none).
  */
-function platformTableLines(script) {
+function platformTableField(script, index) {
   const table = /^PLATFORMS="\n([\s\S]*?)\n"$/m.exec(script);
   expect(table).not.toBeNull();
   return table[1]
@@ -135,25 +137,17 @@ function platformTableLines(script) {
       return line.trim() !== "";
     })
     .map((line) => {
-      return line.split("|");
+      return line.split("|")[index];
     });
 }
 
-// Each platform's collector config: its line's first field.
 function platformTableConfigs(script) {
-  return platformTableLines(script).map((fields) => {
-    return fields[0];
-  });
+  return platformTableField(script, 0);
 }
 
-/*
- * The files a platform's exporter reads, which install.sh downloads with
- * the configs (#11001: NetApp Harvest's config and templates): its line's
- * eleventh field, comma-separated, or "-".
- */
-function platformTableExtraFiles(script) {
-  return platformTableLines(script).flatMap((fields) => {
-    return fields[10] && fields[10] !== "-" ? fields[10].split(",") : [];
+function platformTableOtherFiles(script) {
+  return platformTableField(script, 10).flatMap((field) => {
+    return field === "-" ? [] : field.split(" ");
   });
 }
 
@@ -172,12 +166,7 @@ function fetchedFiles(entry) {
        */
       const list = /^AGENT_FILES="([^"]+)"$/m.exec(script);
       const names = list
-        ? list[1]
-            .replace(
-              "${PLATFORM_EXTRA_FILES:+ $PLATFORM_EXTRA_FILES}",
-              " $PLATFORM_EXTRA_FILES",
-            )
-            .split(" ")
+        ? list[1].split(" ")
         : [];
 
       for (const file of names) {
@@ -186,9 +175,10 @@ function fetchedFiles(entry) {
           for (const config of platformTableConfigs(script)) {
             files.add(config);
           }
-        } else if (file === "$PLATFORM_EXTRA_FILES") {
-          for (const extra of platformTableExtraFiles(script)) {
-            files.add(extra);
+        } else if (file === "$PLATFORM_FILES") {
+          // The other files a platform runs with: each line's eleventh.
+          for (const other of platformTableOtherFiles(script)) {
+            files.add(other);
           }
         } else {
           files.add(file);

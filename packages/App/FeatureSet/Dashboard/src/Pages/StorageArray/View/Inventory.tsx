@@ -8,11 +8,20 @@ import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResou
 import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
 import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
 import {
+  StorageArrayInventoryColumns,
   StorageArrayKindDefinition,
   StorageArrayKindPage,
 } from "Common/Types/StorageArray/StorageArrayPlatform";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import Columns from "Common/UI/Components/ModelTable/Columns";
+import Column from "Common/UI/Components/ModelTable/Column";
+import {
+  StorageUsage,
+  getStorageUsage,
+} from "Common/Utils/Storage/StorageUsage";
+import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
+import { STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS } from "../Utils/StorageArrayHealth";
 import StorageArrayResourceTable from "../../../Components/StorageArray/StorageArrayResourceTable";
 import StorageArrayResourceColumns from "../../../Components/StorageArray/StorageArrayResourceColumns";
 import { getStorageArrayKindColumns } from "../../../Components/StorageArray/StorageArrayKindView";
@@ -35,10 +44,141 @@ import {
  * A platform that draws the kind itself (StorageArrayPlatform.kindPages,
  * #11122) chooses its columns - an aggregate's node and how full it is, a
  * relationship's lag behind its schedule - and, when it charts the kind's
- * parts, each name opens the part's own page (InventoryPart). Any other
- * kind shows what every object can report: its status, size, data
- * reduction, latest performance and when it was last seen.
+ * parts, each name opens the part's own page (InventoryPart). A platform
+ * that only says what its objects report (StorageArrayKindDefinition.
+ * inventoryColumns, as a PowerStore does) shows those, each under the
+ * kind's own words. Any other kind shows what every object can report:
+ * its status, size, data reduction, latest performance and when it was
+ * last seen.
  */
+
+const USAGE_NOT_REPORTED: string = translationKey("Not reported");
+
+// What an object of a kind no platform describes may report: everything.
+const EVERY_COLUMN: StorageArrayInventoryColumns = {
+  status: true,
+  capacity: true,
+  used: "bytes",
+  dataReduction: true,
+  performance: "all",
+};
+
+/*
+ * How full an object is, as the shared bar reads it: what of its size is
+ * used, amber and red at the array's capacity lines. Null without both.
+ */
+export function getInventoryUsage(
+  item: StorageArrayResource,
+): StorageUsage | null {
+  const capacity: number | null = StorageArrayResourceUtils.freshMetricValue(
+    item,
+    item.capacityBytes,
+  );
+  const used: number | null = StorageArrayResourceUtils.freshMetricValue(
+    item,
+    item.usedBytes,
+  );
+  if (capacity === null || capacity <= 0 || used === null) {
+    return null;
+  }
+  return getStorageUsage(
+    { capacity: capacity, used: used },
+    STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS,
+  );
+}
+
+function hiddenAtFirst(
+  columns: Columns<StorageArrayResource>,
+): Columns<StorageArrayResource> {
+  return columns.map(
+    (column: Column<StorageArrayResource>): Column<StorageArrayResource> => {
+      return { ...column, isHiddenByDefault: true };
+    },
+  );
+}
+
+function getUsedColumns(
+  shown: StorageArrayInventoryColumns,
+): Columns<StorageArrayResource> {
+  if (shown.used === "bar") {
+    return [
+      StorageArrayResourceColumns.getUsageColumn({
+        title: shown.usedTitle || "Used",
+        description:
+          shown.usedDescription ||
+          STORAGE_ARRAY_METRIC_DESCRIPTIONS.physicalColumn,
+        getUsage: getInventoryUsage,
+        getNoUsageText: (): string => {
+          return USAGE_NOT_REPORTED;
+        },
+      }),
+    ];
+  }
+  if (shown.used === "bytes") {
+    return [
+      StorageArrayResourceColumns.getPhysicalColumn({
+        title: shown.usedTitle,
+        description: shown.usedDescription,
+      }),
+    ];
+  }
+  return [];
+}
+
+function getPerformanceColumns(
+  shown: StorageArrayInventoryColumns,
+): Columns<StorageArrayResource> {
+  if (shown.performance === "all") {
+    return StorageArrayResourceColumns.getPerformanceColumns();
+  }
+  if (shown.performance === "latency") {
+    return [
+      ...StorageArrayResourceColumns.getLatencyColumns(),
+      ...hiddenAtFirst([
+        ...StorageArrayResourceColumns.getIopsColumns(),
+        ...StorageArrayResourceColumns.getBandwidthColumns(),
+      ]),
+    ];
+  }
+  return [];
+}
+
+export function getInventoryColumns(
+  definition: StorageArrayKindDefinition | null,
+): Columns<StorageArrayResource> {
+  const shown: StorageArrayInventoryColumns =
+    definition?.inventoryColumns || EVERY_COLUMN;
+  const capacity: Columns<StorageArrayResource> = shown.capacity
+    ? [
+        StorageArrayResourceColumns.getProvisionedColumn({
+          title: shown.capacityTitle,
+          description: shown.capacityDescription,
+        }),
+      ]
+    : [];
+  const used: Columns<StorageArrayResource> = getUsedColumns(shown);
+  return [
+    ...(shown.idTitle
+      ? [
+          StorageArrayResourceColumns.getTextColumn({
+            field: "externalId",
+            title: shown.idTitle,
+          }),
+        ]
+      : []),
+    ...(shown.status
+      ? [StorageArrayResourceColumns.getStatusColumn({ title: "Status" })]
+      : []),
+    // How full it is first, as the file systems and buckets show it.
+    ...(shown.used === "bar" ? [...used, ...capacity] : [...capacity, ...used]),
+    ...(shown.dataReduction
+      ? [StorageArrayResourceColumns.getDataReductionColumn()]
+      : []),
+    ...getPerformanceColumns(shown),
+    StorageArrayResourceColumns.getLastSeenColumn(),
+  ];
+}
+
 
 const NOTHING_HERE_YET: string = translationKey("Nothing here yet.");
 
@@ -105,16 +245,7 @@ const StorageArrayInventory: FunctionComponent<
       columns={
         page?.columns
           ? getStorageArrayKindColumns(page.columns)
-          : [
-              StorageArrayResourceColumns.getStatusColumn({
-                title: "Status",
-              }),
-              StorageArrayResourceColumns.getProvisionedColumn(),
-              StorageArrayResourceColumns.getPhysicalColumn(),
-              StorageArrayResourceColumns.getDataReductionColumn(),
-              ...StorageArrayResourceColumns.getPerformanceColumns(),
-              StorageArrayResourceColumns.getLastSeenColumn(),
-            ]
+          : getInventoryColumns(definition)
       }
     />
   );

@@ -1,11 +1,12 @@
 "use strict";
 
 /**
- * The Storage Array Agent (agents/StorageArrayAgent): four collector
- * configs — a FlashArray's native OpenMetrics endpoint, Pure's FlashArray
- * exporter for an older Purity//FA, Pure's FlashBlade exporter, and NetApp
- * Harvest for an ONTAP cluster (#11001) — the compose file that runs one of
- * them, Harvest's own config, and the scripts and unit that install it.
+ * The Storage Array Agent (agents/StorageArrayAgent): its collector configs
+ * — a FlashArray's native OpenMetrics endpoint, Pure's FlashArray exporter
+ * for an older Purity//FA, Pure's FlashBlade exporter, Dell's PowerStore
+ * exporter (with its syslog collector beside it), and NetApp Harvest for an
+ * ONTAP cluster (#11001) — the compose file that runs one of them, Harvest's
+ * own config, and the scripts and unit that install it.
  *
  * OneUptime registers and inventories an array from what these configs
  * stamp and how they scrape, so their shape is part of the product:
@@ -22,12 +23,15 @@
  *  - the `batch` processor has no `send_batch_max_size`, so a scrape is never
  *    split across exports (ingest rebuilds the inventory per request);
  *  - the native config scrapes https://<array>/metrics/<endpoint> with
- *    `namespace=purefa`, the exporter configs scrape the compose service with
- *    `endpoint=<array>`, all with the read-only user's API token as a Bearer
- *    token; the ONTAP config scrapes Harvest, which logs in to the cluster
- *    with the read-only user and its password, so no credential travels
- *    from the collector, and ingest learns which objects a scrape is the
- *    complete list of from Harvest's own metadata series;
+ *    `namespace=purefa`, Pure's exporter configs scrape the compose service
+ *    with `endpoint=<array>`, all with the read-only user's API token as a
+ *    Bearer token; the PowerStore config scrapes Dell's exporter at
+ *    /metrics/<cluster>/<part> with no credential, since Dell's exporter
+ *    logs in to the cluster itself; the ONTAP config scrapes Harvest, which
+ *    logs in to the cluster with the read-only user and its password, so no
+ *    credential travels from the collector either, and ingest learns which
+ *    objects a scrape is the complete list of from Harvest's own metadata
+ *    series;
  *  - docker-compose.yml mounts the config STORAGE_ARRAY_COLLECTOR_CONFIG
  *    names and starts the exporter that config scrapes only under its
  *    profile, and install.sh writes the two consistently and recreates the
@@ -97,6 +101,70 @@ const CONFIGS = {
       ["purefb-objectstore", "objectstore", "300s"],
     ],
   },
+  "otel-collector-config.powerstore.yaml": {
+    system: "dell.powerstore",
+    profile: "powerstore",
+    exporterService: "powerstore-exporter",
+    scheme: "http",
+    target: "powerstore-exporter:9010",
+    /*
+     * Dell's exporter logs in to the cluster itself, with the user and
+     * password only it is given, and serves each part of the cluster at
+     * /metrics/<cluster>/<part>: the collector sends no credential.
+     */
+    exporterLogsIn: true,
+    pathPrefix: "/metrics/${env:POWERSTORE_ENDPOINT}/",
+    // Its syslog has a collector of its own, which publishes the port.
+    syslogService: "powerstore-syslog",
+    processors: [
+      "batch",
+      "filter/powerstore-space-operands",
+      "filter/powerstore-space-used-percent",
+      "groupbyattrs/powerstore-space-object",
+      "memory_limiter",
+      "metricsgeneration/powerstore-space-used-percent",
+      "resource",
+      "transform/powerstore-node-state",
+      "transform/powerstore-space-object-labels",
+    ],
+    pipelines: {
+      metrics: {
+        receivers: ["prometheus"],
+        processors: [
+          "memory_limiter",
+          "transform/powerstore-node-state",
+          "resource",
+          "batch",
+        ],
+        exporters: ["otlphttp"],
+      },
+      "metrics/space-used-percent": {
+        receivers: ["prometheus"],
+        processors: [
+          "memory_limiter",
+          "filter/powerstore-space-operands",
+          "groupbyattrs/powerstore-space-object",
+          "metricsgeneration/powerstore-space-used-percent",
+          "filter/powerstore-space-used-percent",
+          "transform/powerstore-space-object-labels",
+          "resource",
+          "batch",
+        ],
+        exporters: ["otlphttp"],
+      },
+    },
+    jobs: [
+      ["powerstore-cluster", "cluster", "60s"],
+      ["powerstore-appliance", "appliance", "300s"],
+      ["powerstore-capacity", "capacity", "300s"],
+      ["powerstore-hardware", "hardware", "300s"],
+      ["powerstore-port", "port", "300s"],
+      ["powerstore-volume", "volume", "300s"],
+      ["powerstore-volume-group", "volumeGroup", "300s"],
+      ["powerstore-nas", "nas", "300s"],
+      ["powerstore-file", "file", "300s"],
+    ],
+  },
   "otel-collector-config.netapp-ontap.yaml": {
     system: "netapp.ontap",
     profile: "netapp-ontap",
@@ -107,11 +175,55 @@ const CONFIGS = {
     harvest: true,
     metricsPath: "/metrics",
     // SnapMirror Behind Schedule's divisor: each relationship's schedule in seconds.
-    processors: ["transform/snapmirror-schedule", "filter/snapmirror-schedule"],
+    processors: [
+      "batch",
+      "filter/snapmirror-schedule",
+      "memory_limiter",
+      "resource",
+      "transform/snapmirror-schedule",
+    ],
+    pipelines: {
+      metrics: {
+        receivers: ["prometheus"],
+        processors: [
+          "memory_limiter",
+          "transform/snapmirror-schedule",
+          "filter/snapmirror-schedule",
+          "resource",
+          "batch",
+        ],
+        exporters: ["otlphttp"],
+      },
+    },
     jobs: [["netapp-harvest", "harvest", "60s"]],
   },
 };
 const CONFIG_NAMES = Object.keys(CONFIGS);
+
+/*
+ * The files a platform runs with besides its collector config (install.sh's
+ * table, field 11), and the .env settings only the compose file reads (the
+ * PowerStore exporter's login and options, the syslog port).
+ */
+const OTHER_FILES = ["powerstore-exporter.Dockerfile", "powerstore-syslog.yaml"];
+const PLATFORM_COMPOSE_ENV = [
+  "POWERSTORE_USERNAME",
+  "POWERSTORE_PASSWORD",
+  "POWERSTORE_BULK_METRICS",
+  "POWERSTORE_API_VERSION",
+  "POWERSTORE_REQUEST_LIMIT",
+  "POWERSTORE_SYSLOG_PORT",
+];
+
+/* A job's path after its config's prefix: the part it scrapes. */
+function endpointOf(name, job) {
+  const prefix = CONFIGS[name].pathPrefix || "/metrics/";
+  expect({ path: job.metrics_path, prefixed: job.metrics_path.startsWith(prefix) }).toEqual({
+    path: job.metrics_path,
+    prefixed: true,
+  });
+  return job.metrics_path.slice(prefix.length);
+}
 
 /* Harvest's own config and the templates of its collectors, which install.sh downloads too. */
 const HARVEST_FILES = [
@@ -168,6 +280,7 @@ const CONFIG_ENV = [
   "PURE_FA_API_TOKEN",
   "PURE_FB_ENDPOINT",
   "PURE_FB_API_TOKEN",
+  "POWERSTORE_ENDPOINT",
   "STORAGE_ARRAY_INSECURE_SKIP_VERIFY",
 ];
 /* The compose-level variables .env carries besides those. */
@@ -243,6 +356,9 @@ function installPlatforms() {
     .map((line) => {
       const fields = line.split("|");
       expect({ line, fields: fields.length }).toEqual({ line, fields: 12 });
+      const list = (field) => {
+        return field === "-" ? [] : field.split(" ");
+      };
       return {
         config: fields[0],
         system: fields[1],
@@ -253,12 +369,9 @@ function installPlatforms() {
         noun: fields[6],
         menu: fields[7],
         readHow: fields[8],
-        // A platform whose exporter logs in with a user: its variable.
         userVariable: fields[9] === "-" ? "" : fields[9],
-        // The files its exporter reads, downloaded with the configs.
-        extraFiles: fields[10] === "-" ? [] : fields[10].split(","),
-        // Whether the secret is an API token (no $ allowed) or a password.
-        secretKind: fields[11],
+        otherFiles: list(fields[10]),
+        optionalVariables: list(fields[11]),
       };
     });
 }
@@ -275,15 +388,19 @@ function installMapping() {
   return mapping;
 }
 
-/* Every address, token and user variable of the table, each once, in order. */
+/*
+ * Every address, token, user and optional variable of the table, each once,
+ * in the order install.sh writes them (its fields 4, 5, 10 and 12).
+ */
 function installPlatformVariables() {
   const names = [];
   for (const platform of installPlatforms()) {
     for (const name of [
       platform.endpointVariable,
       platform.tokenVariable,
-      platform.userVariable,
-    ].filter(Boolean)) {
+      ...(platform.userVariable ? [platform.userVariable] : []),
+      ...platform.optionalVariables,
+    ]) {
       if (!names.includes(name)) {
         names.push(name);
       }
@@ -312,8 +429,9 @@ describe("agents/StorageArrayAgent collector configs", () => {
           labels: job.static_configs[0].labels,
         }).toEqual({
           job: job.job_name,
+          // In lower case, as ingest reads it (markScrapedEndpoint).
           labels: {
-            scrape_endpoint: endpointOf(name, job),
+            scrape_endpoint: endpointOf(name, job).toLowerCase(),
           },
         });
       }
@@ -328,10 +446,17 @@ describe("agents/StorageArrayAgent collector configs", () => {
       }
     });
 
-    test("reaches the array the way its platform serves metrics, with the read-only user's credential where the collector holds it", () => {
+    test("reaches the array the way its platform serves metrics, with the credential it needs", () => {
       for (const job of scrapeConfigs(name)) {
         expect(job.scheme).toBe(expected.scheme);
         expect(job.static_configs[0].targets).toEqual([expected.target]);
+        if (expected.exporterLogsIn) {
+          // The exporter holds the credential and names the array in the path.
+          expect(job).not.toHaveProperty("authorization");
+          expect(job).not.toHaveProperty("params");
+          expect(job).not.toHaveProperty("tls_config");
+          continue;
+        }
         if (expected.harvest) {
           // Harvest holds the login to the cluster: the collector sends nothing.
           expect(job.metrics_path).toBe(expected.metricsPath);
@@ -363,7 +488,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
       const lines = text.split("\n").filter((line) => {
         return /insecure_skip_verify:/.test(line) && !/^\s*#/.test(line);
       });
-      if (expected.endpointParam || expected.harvest) {
+      if (expected.endpointParam || expected.exporterLogsIn || expected.harvest) {
         // An exporter's own TLS to the array is its business (Harvest's below).
         expect(lines).toEqual([]);
       } else {
@@ -427,12 +552,11 @@ describe("agents/StorageArrayAgent collector configs", () => {
       expect(configText(name)).toContain("deliberately NO send_batch_max_size");
     });
 
-    test("runs one metrics pipeline into OneUptime, and nothing that would re-identify the batch", () => {
+    test("runs its metrics pipelines into OneUptime, and nothing that would re-identify the batch", () => {
       const parsed = config(name);
-      const extra = expected.processors || [];
       expect(Object.keys(parsed.receivers)).toEqual(["prometheus"]);
       expect(Object.keys(parsed.processors).sort()).toEqual(
-        ["batch", "memory_limiter", "resource", ...extra].sort(),
+        expected.processors || ["batch", "memory_limiter", "resource"],
       );
       expect(parsed.exporters).toEqual({
         otlphttp: {
@@ -442,17 +566,30 @@ describe("agents/StorageArrayAgent collector configs", () => {
           },
         },
       });
-      expect(parsed.service.pipelines).toEqual({
-        metrics: {
-          receivers: ["prometheus"],
-          processors: ["memory_limiter", ...extra, "resource", "batch"],
-          exporters: ["otlphttp"],
+      expect(parsed.service.pipelines).toEqual(
+        expected.pipelines || {
+          metrics: {
+            receivers: ["prometheus"],
+            processors: ["memory_limiter", "resource", "batch"],
+            exporters: ["otlphttp"],
+          },
         },
-      });
+      );
+      // Every pipeline stamps the array and keeps a scrape whole.
+      for (const pipeline of Object.values(parsed.service.pipelines)) {
+        expect(pipeline.processors[0]).toBe("memory_limiter");
+        expect(pipeline.processors.slice(-2)).toEqual(["resource", "batch"]);
+      }
     });
 
     test("ships the syslog option commented out, on the port the compose file publishes", () => {
       const text = configText(name);
+      if (expected.syslogService) {
+        // Its syslog collector publishes the port; this container publishes none.
+        expect(text).not.toContain("syslog/");
+        expect(text).toContain(`\`${expected.syslogService}\` service`);
+        return;
+      }
       for (const line of [
         "  # syslog/tcp:",
         "  # syslog/udp:",
@@ -500,14 +637,17 @@ describe("agents/StorageArrayAgent collector configs", () => {
       'SCRAPE_ENDPOINT_LABEL: string = "scrape_endpoint"',
     );
     expect(extractor).toContain('value === "array"');
-    const platforms = [
-      read(
-        "packages/Common/Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform.ts",
-      ),
-      read(
-        "packages/Common/Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform.ts",
-      ),
-    ];
+    // Every platform's folder: Platforms/<Vendor>/<Product>/<Product>Platform.ts.
+    const platformsDir = "packages/Common/Types/StorageArray/Platforms";
+    const platforms = fs
+      .readdirSync(path.join(REPO_ROOT, platformsDir), { recursive: true })
+      .filter((file) => {
+        return /[\\/][A-Za-z]+Platform\.ts$/.test(file);
+      })
+      .map((file) => {
+        return read(`${platformsDir}/${file}`);
+      });
+    expect(platforms.length).toBeGreaterThanOrEqual(3);
     const endpoints = new Set();
     for (const name of CONFIG_NAMES.filter((config) => {
       return !CONFIGS[config].harvest;
@@ -527,12 +667,15 @@ describe("agents/StorageArrayAgent collector configs", () => {
     expect(ontap).toContain("  scrapeEndpoints: {},\n");
     expect(ontap).toContain("  exporterCompletedKinds: [\n");
     for (const endpoint of endpoints) {
+      // `<endpoint>: [<kinds>]` in scrapeEndpoints (`[]` for an endpoint
+      // that lists no object of a kind), its kinds on the line or, as
+      // prettier wraps a long list, on the lines after it.
       expect({
         endpoint,
         known: platforms.some((platform) => {
-          return platform.includes(
-            `    ${endpoint}: [StorageArrayResourceKind.`,
-          );
+          return new RegExp(
+            `\\n    ${endpoint}: \\[\\s*(\\]|[A-Za-z_]+\\.)`,
+          ).test(platform);
         }),
       }).toEqual({ endpoint, known: true });
     }
@@ -540,13 +683,36 @@ describe("agents/StorageArrayAgent collector configs", () => {
 });
 
 describe("agents/StorageArrayAgent/docker-compose.yml", () => {
-  test("runs the collector and each platform's exporter, nothing else", () => {
+  test("runs the collector, Pure's two exporters, Dell's exporter with PowerStore's syslog collector, and NetApp Harvest, nothing else", () => {
     expect(Object.keys(compose().services)).toEqual([
       COLLECTOR_SERVICE,
       "pure-fa-exporter",
       "pure-fb-exporter",
+      "powerstore-exporter",
+      "powerstore-syslog",
       "netapp-harvest",
     ]);
+  });
+
+  test("reads only variables .env provides", () => {
+    // ${NAME...} is Compose's; $${NAME} is a $ Compose leaves for a shell.
+    const referenced = new Set(
+      [
+        ...read(`${AGENT_DIR}/docker-compose.yml`).matchAll(
+          /(?<!\$)\$\{([A-Z0-9_]+)/g,
+        ),
+      ].map((match) => {
+        return match[1];
+      }),
+    );
+    for (const variable of referenced) {
+      expect({
+        variable,
+        known: [...CONFIG_ENV, ...COMPOSE_ENV, ...PLATFORM_COMPOSE_ENV].includes(
+          variable,
+        ),
+      }).toEqual({ variable, known: true });
+    }
   });
 
   test("mounts the config .env names, and the default is the native FlashArray config", () => {
@@ -569,9 +735,17 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
     ]);
   });
 
+  /*
+   * Dell's exporter logs in itself: StorageArrayAgentPowerStore.test.js holds
+   * its service, its image and what it is given.
+   */
   test.each(
     CONFIG_NAMES.filter((name) => {
-      return CONFIGS[name].exporterService && !CONFIGS[name].harvest;
+      return (
+        CONFIGS[name].exporterService &&
+        !CONFIGS[name].exporterLogsIn &&
+        !CONFIGS[name].harvest
+      );
     }),
   )(
     "starts the exporter %s scrapes, pinned, unpublished and credential-free, only under its profile",
@@ -661,6 +835,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
         return platform.config;
       }),
     ).toEqual(CONFIG_NAMES);
+    const services = compose().services;
     for (const platform of platforms) {
       const expected = CONFIGS[platform.config];
       if (expected.harvest) {
@@ -674,36 +849,69 @@ describe("agents/StorageArrayAgent/install.sh", () => {
           expect(harvest).toContain(`\${${variable}}`);
           expect(configText(platform.config)).not.toContain(variable);
         }
-        expect(platform.secretKind).toBe("password");
-        expect(platform.extraFiles).toEqual(HARVEST_FILES);
+        expect(platform.otherFiles).toEqual(HARVEST_FILES);
         expect(platform.tlsToArray).toBe("yes");
         expect(platform.noun).toBe("ONTAP cluster");
         continue;
       }
-      // The variables the config itself reads its address and token from.
-      expect(expected.token).toBe(`\${env:${platform.tokenVariable}}`);
-      expect([expected.target, expected.endpointParam]).toContain(
-        `\${env:${platform.endpointVariable}}`,
-      );
-      expect(platform.userVariable).toBe("");
-      expect(platform.extraFiles).toEqual([]);
-      expect(platform.secretKind).toBe("token");
+      if (expected.exporterLogsIn) {
+        /*
+         * The exporter logs in with a user and a password: they are the
+         * exporter's alone, and the collector reads neither. The address is
+         * the exporter's too, and names the array in every path.
+         */
+        expect(platform.userVariable).not.toBe("");
+        const exporter = services[expected.exporterService].environment;
+        for (const variable of [
+          platform.endpointVariable,
+          platform.userVariable,
+          platform.tokenVariable,
+        ]) {
+          expect(exporter).toContain(`${variable}=\${${variable}:-}`);
+        }
+        expect(configText(platform.config)).not.toContain(
+          `\${env:${platform.tokenVariable}}`,
+        );
+        expect(configText(platform.config)).not.toContain(
+          `\${env:${platform.userVariable}}`,
+        );
+        expect(expected.pathPrefix).toContain(
+          `\${env:${platform.endpointVariable}}`,
+        );
+      } else {
+        // The variables the config itself reads its address and token from.
+        expect(platform.userVariable).toBe("");
+        expect(expected.token).toBe(`\${env:${platform.tokenVariable}}`);
+        expect([expected.target, expected.endpointParam]).toContain(
+          `\${env:${platform.endpointVariable}}`,
+        );
+      }
       // Only a config whose collector talks TLS to the array asks about it.
-      expect(platform.tlsToArray).toBe(expected.endpointParam ? "no" : "yes");
+      expect(platform.tlsToArray).toBe(expected.exporterService ? "no" : "yes");
       expect(platform.menu).not.toBe("");
       expect(platform.readHow).not.toBe("");
+      // Its other files ship next to install.sh, and its optional settings
+      // are ones the compose file reads.
+      for (const file of platform.otherFiles) {
+        expect(fs.existsSync(path.join(REPO_ROOT, AGENT_DIR, file))).toBe(true);
+      }
+      for (const variable of platform.optionalVariables) {
+        expect(read(`${AGENT_DIR}/docker-compose.yml`)).toContain(
+          `\${${variable}:-`,
+        );
+      }
     }
   });
 
-  test("downloads the compose file, the table's configs and its exporters' files, each once", () => {
+  test("downloads the compose file, the table's configs and their other files, each once", () => {
     expect(script).toMatch(
-      /^AGENT_FILES="docker-compose.yml \$PLATFORM_CONFIGS\$\{PLATFORM_EXTRA_FILES:\+ \$PLATFORM_EXTRA_FILES\}"$/m,
+      /^AGENT_FILES="docker-compose.yml \$PLATFORM_CONFIGS \$PLATFORM_FILES"$/m,
     );
     expect(script).toContain(
       `PLATFORM_CONFIGS="$(platform_lines | cut -d '|' -f 1 | awk '!seen[$0]++' | tr '\\n' ' ')"`,
     );
     expect(script).toContain(
-      `PLATFORM_EXTRA_FILES="$(platform_lines | cut -d '|' -f 11 | tr ',' '\\n' | grep -v '^-$' | grep -v '^$' | awk '!seen[$0]++' | tr '\\n' ' ')"`,
+      `PLATFORM_FILES="$(platform_lines | cut -d '|' -f 11 | tr ' ' '\\n' | grep -v '^-$' | grep -v '^$' | awk '!seen[$0]++' | tr '\\n' ' ')"`,
     );
   });
 
@@ -715,12 +923,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     );
     const files = script.match(/^AGENT_FILES="([^"]+)"$/m);
     expect(files).not.toBeNull();
-    // The table's configs, and its exporters' files, stand in their places.
+    // The table's configs and other files stand in their places.
     const downloaded = files[1]
-      .replace(
-        "${PLATFORM_EXTRA_FILES:+ $PLATFORM_EXTRA_FILES}",
-        " $PLATFORM_EXTRA_FILES",
-      )
       .split(" ")
       .flatMap((file) => {
         if (file === "$PLATFORM_CONFIGS") {
@@ -728,15 +932,19 @@ describe("agents/StorageArrayAgent/install.sh", () => {
             return platform.config;
           });
         }
-        if (file === "$PLATFORM_EXTRA_FILES") {
-          return installPlatforms().flatMap((platform) => {
-            return platform.extraFiles;
-          });
+        if (file === "$PLATFORM_FILES") {
+          return [
+            ...new Set(
+              installPlatforms().flatMap((platform) => {
+                return platform.otherFiles;
+              }),
+            ),
+          ];
         }
         return [file];
       });
     expect([...downloaded].sort()).toEqual(
-      ["docker-compose.yml", ...CONFIG_NAMES, ...HARVEST_FILES].sort(),
+      ["docker-compose.yml", ...CONFIG_NAMES, ...OTHER_FILES, ...HARVEST_FILES].sort(),
     );
     for (const file of downloaded) {
       expect(fs.existsSync(path.join(REPO_ROOT, AGENT_DIR, file))).toBe(true);
@@ -764,7 +972,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
         return line.split("=")[0];
       });
     expect([...written, ...installPlatformVariables()].sort()).toEqual(
-      [...CONFIG_ENV, ...COMPOSE_ENV, ...HARVEST_ENV].sort(),
+      [...CONFIG_ENV, ...COMPOSE_ENV, ...PLATFORM_COMPOSE_ENV, ...HARVEST_ENV].sort(),
     );
 
     for (const name of [
@@ -796,14 +1004,19 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       .split(/\s+/)
       .filter(Boolean)
       .flatMap((name) => {
-        // The table's address and token variables, by name.
+        // The table's address, token, user and optional variables, by name.
         return name === "$PLATFORM_VARIABLES"
           ? installPlatformVariables()
           : [name];
       });
     // COMPOSE_PROFILES always follows from the config, so it is never reused.
     expect(names.sort()).toEqual(
-      [...CONFIG_ENV, "STORAGE_ARRAY_COLLECTOR_CONFIG", ...HARVEST_ENV].sort(),
+      [
+        ...CONFIG_ENV,
+        "STORAGE_ARRAY_COLLECTOR_CONFIG",
+        ...PLATFORM_COMPOSE_ENV,
+        ...HARVEST_ENV,
+      ].sort(),
     );
   });
 
@@ -956,6 +1169,42 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
     expect(script).toContain(
       'PROBE_URL="http://pure-fb-exporter:9491/metrics/array?endpoint=$ENDPOINT"',
     );
+    // Dell's exporter: the cluster in the path, as the powerstore-cluster job.
+    const cluster = scrapeConfigs("otel-collector-config.powerstore.yaml")[0];
+    expect(cluster.job_name).toBe("powerstore-cluster");
+    expect(script).toContain(
+      `PROBE_URL="http://${cluster.static_configs[0].targets[0]}${cluster.metrics_path.replace("${env:POWERSTORE_ENDPOINT}", "$ENDPOINT")}"`,
+    );
+  });
+
+  test("never prints an array's token or password, nor hands it to a probe that does not need it", () => {
+    // Read once, tested for being set and for its shape, and sent once: to
+    // curl's stdin, for Pure's probes. Dell's exporter holds the password.
+    const uses = script
+      .split("\n")
+      .filter((line) => {
+        return /\$\{?ARRAY_TOKEN\b|\bARRAY_TOKEN=/.test(line);
+      })
+      .map((line) => {
+        return line.trim();
+      });
+    expect(uses).toEqual([
+      'ARRAY_TOKEN=$(agent_env "$TOKEN_VAR")',
+      'if [ -z "$(agent_env POWERSTORE_USERNAME)" ] || [ -z "$ARRAY_TOKEN" ]; then',
+      'elif [ -z "$ARRAY_TOKEN" ]; then',
+      'if [[ "$ARRAY_TOKEN" =~ ^T-$TOKEN_UUID$ ]]; then',
+      'if [[ "$ARRAY_TOKEN" =~ ^$TOKEN_UUID$ ]]; then',
+      "PROBE_OUT=$(printf 'Authorization: Bearer %s\\n' \"$ARRAY_TOKEN\" \\",
+    ]);
+    // The PowerStore probe comes before Pure's and carries no credential.
+    const powerstoreProbe = script.slice(
+      script.indexOf('if [ "$ARRAY_VERDICT" = "UNKNOWN" ] && [ "$MODE" = "powerstore" ]; then'),
+      script.indexOf("declare -a PROBE_ARGS=()"),
+    );
+    expect(powerstoreProbe).toContain(
+      `PROBE_OUT=$(agent_netns_curl -sS -m 120 -w $'\\nOUSTATUS:%{http_code}' "$PROBE_URL")`,
+    );
+    expect(powerstoreProbe).not.toMatch(/\$\{?ARRAY_TOKEN|-H |DOCKER_RUN_EXTRA/);
     // Harvest serves the cluster on the compose network, with no credential.
     expect(script).toContain('PROBE_URL="http://netapp-harvest:12990/metrics"');
   });

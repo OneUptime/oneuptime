@@ -44,6 +44,7 @@ import {
   loadStorageArrayLatency,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayReadings";
 import { getStorageArrayPartRoutes } from "../../../../App/FeatureSet/Dashboard/src/Components/StorageArray/Part/StorageArrayPartRoutes";
+import { isLaterSystem } from "../../Helpers/StorageArray/PureSlice";
 
 /*
  * WHAT A PURE STORAGE ARRAY'S PAGES ARE TOLD ABOUT ITS PLATFORM, PINNED
@@ -137,6 +138,32 @@ function asJson(value: unknown): JSONValue {
   return JSON.parse(JSON.stringify(value)) as JSONValue;
 }
 
+/*
+ * Pure's slice of the monitor form's object filters. A filter Pure shares
+ * with a platform registered since (Dell PowerStore names its volumes and
+ * its parts with the same keys) lists that platform among its systems too,
+ * and a filter only a later platform has is not Pure's: both are left out,
+ * as PureSlice leaves the later platforms out of the other goldens. Every
+ * Pure filter, its words, its systems' order and the filters' order are
+ * compared whole.
+ */
+function pureFilterFields(value: JSONValue): JSONValue {
+  return (value as Array<JSONObject>)
+    .map((field: JSONObject): JSONObject => {
+      return {
+        ...field,
+        storageSystems: (field["storageSystems"] as Array<string>).filter(
+          (system: string): boolean => {
+            return !isLaterSystem(system);
+          },
+        ),
+      };
+    })
+    .filter((field: JSONObject): boolean => {
+      return (field["storageSystems"] as Array<string>).length > 0;
+    });
+}
+
 async function computeGolden(): Promise<JSONObject> {
   const bySystem: JSONObject = {};
 
@@ -191,7 +218,9 @@ async function computeGolden(): Promise<JSONObject> {
           });
         }),
       ),
-      resourceFilterFields: asJson(getResourceFilterFields(system)),
+      resourceFilterFields: pureFilterFields(
+        asJson(getResourceFilterFields(system)),
+      ),
       setupGuidePlatform: getStorageArrayPlatformForSystem(system) || null,
       latencyReads,
       health,

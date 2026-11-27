@@ -41,6 +41,11 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayAgentConfig,
+  StorageArrayPlatform as StorageArrayPlatformDefinition,
+} from "../../../Types/StorageArray/StorageArrayPlatform";
 
 /*
  * The Storage Array Agent guide asks which array it is for — a FlashArray
@@ -1018,33 +1023,62 @@ describe("drift guards against agents/StorageArrayAgent", () => {
       }
     }
     /*
-     * What the compose file reads for the guide's platforms: its services
-     * with no profile, or a profile of one of them. A platform the guide has
-     * no steps for yet (NetApp ONTAP's netapp-harvest, #11123) is not its.
+     * The compose services this guide's platforms run: every service no
+     * profile holds back, and each exporter under one of their profiles. A
+     * service only another platform's profile starts (Dell PowerStore's
+     * exporter and syslog collector, under `powerstore`) reads that
+     * platform's variables, which this Pure guide does not document: that
+     * platform's own guide does (#11123).
      */
-    const compose: {
-      services: Record<string, { profiles?: Array<string> | undefined }>;
-    } = yaml.load(readAgentFile("docker-compose.yml")) as never;
     const guideProfiles: Set<string> = new Set(
       PLATFORMS.map((platform: StorageArrayPlatform): string => {
         return STORAGE_ARRAY_PLATFORM_SETTINGS[platform].composeProfile;
+      }).filter((profile: string): boolean => {
+        return profile !== "";
       }),
     );
-    for (const [name, service] of Object.entries(compose.services)) {
+    const otherProfiles: Set<string> = new Set();
+    for (const service of Object.values(
+      compose()["services"] as Record<string, Record<string, unknown>>,
+    )) {
+      const profiles: Array<string> | undefined = service["profiles"] as
+        | Array<string>
+        | undefined;
       if (
-        (service.profiles || []).length > 0 &&
-        !(service.profiles || []).some((profile: string): boolean => {
+        profiles &&
+        !profiles.some((profile: string): boolean => {
           return guideProfiles.has(profile);
         })
       ) {
+        profiles.forEach((profile: string) => {
+          otherProfiles.add(profile);
+        });
         continue;
       }
-      for (const match of yaml
-        .dump(compose.services[name])
-        .matchAll(/\$\{([A-Z0-9_]+)(?::-[^}]*)?\}/g)) {
+      for (const match of JSON.stringify(service).matchAll(
+        /\$\{([A-Z0-9_]+)(?::-[^}]*)?\}/g,
+      )) {
         read.add(match[1]!);
       }
     }
+    // The services left out are each a registered platform's, by its profile.
+    const platformProfiles: Set<string> = new Set(
+      StorageArrayPlatformRegistry.getPlatforms().flatMap(
+        (platform: StorageArrayPlatformDefinition): Array<string> => {
+          return platform.agentConfigs.map(
+            (config: StorageArrayAgentConfig): string => {
+              return config.composeProfile || "";
+            },
+          );
+        },
+      ),
+    );
+    expect(
+      Array.from(otherProfiles).filter((profile: string): boolean => {
+        return !platformProfiles.has(profile);
+      }),
+    ).toEqual([]);
+    expect(otherProfiles.has("powerstore")).toBe(true);
 
     expect(new Set(envTableRows(guideFor("flasharray")).keys())).toEqual(read);
   });

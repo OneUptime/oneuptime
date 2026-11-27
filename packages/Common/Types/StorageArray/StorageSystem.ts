@@ -26,6 +26,7 @@
 enum StorageSystem {
   PureStorageFlashArray = "purestorage.flasharray",
   PureStorageFlashBlade = "purestorage.flashblade",
+  DellPowerStore = "dell.powerstore",
   // NetApp ONTAP, and Amazon FSx for NetApp ONTAP, read through Harvest.
   NetAppOntap = "netapp.ontap",
 }

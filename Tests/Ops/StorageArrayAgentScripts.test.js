@@ -40,11 +40,16 @@ const FB_TOKEN = "T-7d0c2e1b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
 // An ONTAP user's password: only Harvest reads it, so a $ and a space are fine.
 const ONTAP_PASSWORD = "Harvest-r3ad$only pass";
 
-// What install.sh downloads besides the compose file: every config, then Harvest's files.
+/*
+ * What install.sh downloads besides the compose file: every config, then
+ * every platform's other files, in the PLATFORMS table's order (Dell's
+ * exporter and syslog collector, then NetApp Harvest's).
+ */
 const CONFIG_FILES = [
   "otel-collector-config.yaml",
   "otel-collector-config.flasharray-exporter.yaml",
   "otel-collector-config.flashblade.yaml",
+  "otel-collector-config.powerstore.yaml",
   "otel-collector-config.netapp-ontap.yaml",
 ];
 const HARVEST_FILES = [
@@ -53,7 +58,12 @@ const HARVEST_FILES = [
   "netapp-harvest-keyperf.yaml",
   "netapp-harvest-restperf.yaml",
 ];
-const INSTALLED_FILES = ["docker-compose.yml", ...CONFIG_FILES, ...HARVEST_FILES];
+const OTHER_FILES = [
+  "powerstore-exporter.Dockerfile",
+  "powerstore-syslog.yaml",
+  ...HARVEST_FILES,
+];
+const INSTALLED_FILES = ["docker-compose.yml", ...CONFIG_FILES, ...OTHER_FILES];
 
 const scratchDirs = [];
 
@@ -185,6 +195,14 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       PURE_FA_API_TOKEN: `'${FA_TOKEN}'`,
       PURE_FB_ENDPOINT: "''",
       PURE_FB_API_TOKEN: "''",
+      // Every other platform's settings stay empty: switching is an .env edit.
+      POWERSTORE_ENDPOINT: "''",
+      POWERSTORE_PASSWORD: "''",
+      POWERSTORE_USERNAME: "''",
+      POWERSTORE_BULK_METRICS: "''",
+      POWERSTORE_API_VERSION: "''",
+      POWERSTORE_REQUEST_LIMIT: "''",
+      POWERSTORE_SYSLOG_PORT: "''",
       NETAPP_ONTAP_ENDPOINT: "''",
       NETAPP_ONTAP_USERNAME: "''",
       NETAPP_ONTAP_PASSWORD: "''",
@@ -198,7 +216,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect(run.output).not.toContain(FA_TOKEN);
   });
 
-  test("downloads the compose file, every config and Harvest's files, so switching the array type is an .env edit", () => {
+  test("downloads the compose file, every config and every platform's other files, so switching the array type is an .env edit", () => {
     const dir = scratch();
     const run = install(dir, {
       env: {
@@ -313,7 +331,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect(calls).toEqual([
       {
         cwd: installDir,
-        args: "compose --profile flasharray-exporter --profile flashblade --profile netapp-ontap down --remove-orphans",
+        args: "compose --profile flasharray-exporter --profile flashblade --profile powerstore --profile netapp-ontap down --remove-orphans",
       },
       { cwd: installDir, args: "compose up -d --force-recreate" },
     ]);

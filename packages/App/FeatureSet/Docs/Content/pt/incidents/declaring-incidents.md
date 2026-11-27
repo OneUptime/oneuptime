@@ -85,6 +85,7 @@ Os monitores vêm primeiro, sozinhos, porque as páginas de status enxergam um i
 
 - **Monitores** — uma caixa de busca que anexa os monitores afetados pelo incidente; sua aba **Rótulos** adiciona de uma vez todo monitor com um rótulo. Uma página de status mostra um incidente, e avisa seus assinantes sobre ele, quando lista um dos monitores do incidente, então são eles que decidem quais páginas de status ficam sabendo (`monitors` no incidente).
 - **Alterar status do monitor para** — opcional, e mostrado só quando há pelo menos um monitor escolhido. Escolhe um status de monitor que é aplicado a todo monitor anexado a este incidente, para que declarar o incidente e marcar os monitores como degradados seja uma ação só, e não duas. Declarar a partir de um modelo que define um começa com o status do modelo, mostrado assim que você escolhe um monitor. Sem monitor escolhido, nenhum status é salvo, nem o do modelo; remova o último monitor e o campo some até você escolher outro, o que traz sua escolha de volta. O status de um monitor é compartilhado por todas as páginas de status que o listam, então, com páginas de status escolhidas em **Mais campos**, o formulário lembra você de que a mudança também aparece nas páginas que você não escolheu.
+- **Pausar o monitoramento** — mostrado assim que pelo menos um monitor é escolhido, e marcado. Marcado, o incidente pausa as verificações dos seus monitores até ser resolvido, de modo que o status acima permanece neles. Desmarque-o para que continuem sendo verificados enquanto o incidente está aberto: as verificações deles continuam definindo o status deles, e continuam abrindo incidentes e alertas. Um monitor configurado para manter o monitoramento durante incidentes nunca é pausado, marcado ou não (`pauseMonitoring` no incidente). Veja [Monitoramento enquanto um incidente está aberto](#monitoramento-enquanto-um-incidente-está-aberto).
 - **Outros recursos afetados** — uma segunda caixa de busca para todo o resto que o incidente afeta: hosts, dispositivos de rede, clusters Kubernetes, hosts Docker e Podman, clusters Proxmox, Ceph e Docker Swarm, vCenters, storage arrays, frotas IoT, bancos de dados, recursos de nuvem e serviços — tudo, além dos monitores, que o cartão **Recursos afetados** do próprio incidente oferece. Por baixo, essas são relações separadas no incidente (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` e outras), mas o formulário as junta em um único seletor.
 
 **Outros recursos afetados** busca em todos os tipos que oferece de uma vez. Um recurso é encontrado pelo nome ou pela descrição, um dispositivo de rede também pelo endereço em que é sondado ou pelo nome DNS, e um host pelo nome que o agente dele informa ou por um dos seus endereços IP. Os resultados são agrupados pelo tipo, com o endereço de um dispositivo ao lado do nome. Assim que eles têm mais de um tipo, uma linha acima deles reduz a lista a um só tipo e diz quantos de cada um correspondem, e um tipo com mais correspondências do que cabem oferece mostrar mais. Recursos arquivados não são oferecidos. Quando a busca também corresponde a monitores, uma linha abaixo dos resultados diz quantos, e que os monitores são escolhidos em **Monitores**.
@@ -280,7 +281,7 @@ Na ordem:
 9. **Os assinantes entram na fila**, se **Notificar assinantes da página de status** ficou ativado e o incidente está visível na página de status. O envio é feito por uma tarefa em segundo plano, não dentro da sua requisição, e vai para as páginas de status que o incidente alcança: as que listam seus monitores, estreitadas por **Limitar a estas páginas de status**, e sem as páginas que só mostram incidentes limitados a elas quando ele não está limitado. Uma página de status arquivada não envia nada. O progresso aparece como **Status de notificação do assinante** na **Visão geral** do incidente: o que foi enviado e o que falhou em cada página de status, e **Tentar novamente** ou **Reenviar** depois de concluído. Veja [Assinantes e comunicados](/docs/status-pages/subscribers#verificar-o-que-foi-enviado).
 10. **Os workflows disparam.** O gatilho **Ao criar: Incidente** inicia qualquer workflow construído sobre ele. Veja [Visão geral dos workflows](/docs/workflows/index).
 
-A partir daí o incidente está ativo: ele conta para o selo **Incidentes ativos** no menu lateral de Incidentes (qualquer estado acima do seu estado resolvido conta como ativo), aparece nas páginas de status que trazem um dos seus monitores (só nas escolhidas, se você o limitou), e sua **Linha do tempo de estado** começa a registrar.
+A partir daí o incidente está ativo: ele conta para o selo **Incidentes ativos** no menu lateral de Incidentes (qualquer estado acima do seu estado resolvido conta como ativo), aparece nas páginas de status que trazem um dos seus monitores (só nas escolhidas, se você o limitou), e sua **Linha do tempo de estado** começa a registrar. Seus monitores são colocados no status de **Alterar status do monitor para** e, se ele foi declarado manualmente, as verificações deles ficam pausadas até que ele seja resolvido: veja [Monitoramento enquanto um incidente está aberto](#monitoramento-enquanto-um-incidente-está-aberto).
 
 ### Declarado já confirmado ou resolvido
 
@@ -306,10 +307,43 @@ flowchart TB
 
 Alertas, episódios de alertas e episódios de incidentes seguem a mesma regra: o que é criado já confirmado não aciona ninguém, e o que é criado resolvido também não é agrupado, remediado nem investigado pela IA, e não ganha canal próprio. Um incidente ou alerta no estado de criação — o padrão, e o de todo incidente que um monitor abre — desencadeia tudo como antes.
 
+## Monitoramento enquanto um incidente está aberto
+
+Um incidente declarado manualmente pausa as verificações dos monitores que ele lista, até ser resolvido. Assim, a próxima verificação deles não muda o status em que ele os colocou enquanto as pessoas trabalham nele. Declarado manualmente quer dizer qualquer coisa menos o próprio OneUptime: **Declarar incidente** no painel (a partir de um alerta, da aba **Incidentes** de um monitor ou do zero), Slack, Microsoft Teams, a API, Terraform, um workflow, [Ask AI](/docs/ai/ask-ai), o aplicativo móvel e um formulário. Adicionar um monitor a um incidente assim enquanto ele está aberto também pausa esse monitor.
+
+Nada mais pausa as verificações de um monitor dessa forma. Um incidente que os critérios de um monitor declaram, um que a regra de incidentes de um alerta declara e um que um SLO declara deixam seus monitores sendo verificados, assim como todo alerta, criado por um monitor ou manualmente.
+
+```mermaid title="Se um incidente aberto pausa as verificações de um monitor"
+flowchart TB
+    declared{"Declarado manualmente?"} -->|Não| checked["As verificações continuam"]
+    declared -->|Sim| ticked{"Pausar o monitoramento<br/>marcado?"}
+    ticked -->|Não| checked
+    ticked -->|Sim| setting{"Monitor configurado para manter<br/>o monitoramento durante incidentes?"}
+    setting -->|Sim| checked
+    setting -->|Não| paused["Verificações pausadas<br/>até ser resolvido"]
+```
+
+**Manter um monitor sendo verificado.** Duas opções decidem, e qualquer uma delas o mantém sendo verificado:
+
+- **Manter o monitoramento durante incidentes**, na página **Configurações** do monitor, em **Durante incidentes**. Ligue-a para um monitor que recebe eventos, como um [monitor de requisições recebidas](/docs/monitor/incoming-request-monitor) para o qual outro sistema envia seus alertas: um incidente sobre um evento deixa de impedi-lo de ler o próximo. Ela vale na hora, também para incidentes já abertos: ligada enquanto um incidente pausa o monitor, as verificações dele recomeçam imediatamente. Desligada por padrão.
+- **Pausar o monitoramento**, onde o incidente é declarado, em **Alterar status do monitor para**. Desmarque-a para manter todos os monitores do incidente sendo verificados. Ela pode ser alterada enquanto o incidente está aberto, no cartão **Recursos afetados** dele: desmarcada, os monitores voltam a ser verificados na hora.
+
+Um monitor mantido em verificação continua definindo o próprio status: a próxima verificação dele substitui o status em que o incidente o colocou, e os critérios dele continuam abrindo e resolvendo os próprios incidentes e alertas.
+
+**O que um monitor pausado ainda faz.** As verificações dele param: as sondas deixam de verificá-lo, um heartbeat, um e-mail ou um agente que para de enviar não é notado, e um monitor de telemetria não é avaliado. O que é enviado a ele de fora continua sendo recebido: cada requisição que um [monitor de requisições recebidas](/docs/monitor/incoming-request-monitor) recebe, cada e-mail que um monitor de e-mails recebidos recebe e cada relatório que o agente de um monitor de servidor envia é listado nos **Registros de monitoramento** dele, como chegou, com **Não avaliado: o monitoramento está pausado por um incidente**. Nada do que um monitor pausado recebe abre ou resolve um incidente ou um alerta, nem muda o status dele, e o remetente recebe a resposta como de costume. Um banner nas páginas do monitor diz que ele está pausado, e como mantê-lo sendo verificado.
+
+**Como conta o tempo pausado.** Um monitor pausado mantém o status que tem, e a disponibilidade, as páginas de status e os SLOs dele contam esse status quando um incidente colocou o monitor nele com **Alterar status do monitor para**: é o status que alguém declarou. Quando nenhum incidente que o pausa definiu um status, o status é só o que a última verificação do monitor viu antes da pausa, então esse tempo fica de fora da disponibilidade, das páginas de status e dos SLOs dele, como o tempo com o monitoramento desligado. A **Linha do tempo de status** dele marca onde esse tempo começa e termina, e a disponibilidade na **Visão geral** dele diz que exclui o tempo pausado.
+
+**Quando a pausa termina.** Resolver o incidente, tirar o monitor dele ou excluí-lo retoma as verificações do monitor e o devolve ao estado operacional, a menos que outro incidente aberto ainda esteja sobre ele; depois, as verificações dele definem o status dele. Um monitor que outro incidente aberto declarado manualmente ainda pausa continua pausado. Um incidente resolvido e reaberto desde então não retém nada, então não pausa nada e não mantém nada pausado.
+
 ## Solução de problemas
 
 :::details Declarar falha e pede um estado de criação de incidentes
 Se seu projeto não tem nenhum estado com o indicador `isCreatedState`, a chamada de criação falha e pede que você adicione um estado de criação de incidentes nas configurações. Normalmente isso só acontece em um projeto cujos estados foram muito editados — veja [Estados e severidades de incidentes](/docs/incidents/states-and-severities).
+:::
+
+:::details Um monitor parou de abrir alertas depois que um incidente foi declarado nele
+Um incidente declarado manualmente pausa as verificações dos seus monitores até ser resolvido, então o que chega a eles nesse meio-tempo é listado nos **Registros de monitoramento** deles, mas não é avaliado. Ligue **Manter o monitoramento durante incidentes** nas **Configurações** do monitor para mantê-lo sendo verificado durante este incidente e os próximos, ou desmarque **Pausar o monitoramento** no cartão **Recursos afetados** do incidente para os monitores deste incidente. Veja [Monitoramento enquanto um incidente está aberto](#monitoramento-enquanto-um-incidente-está-aberto).
 :::
 
 :::details O incidente foi declarado, mas nenhum assinante da página de status ficou sabendo

@@ -8,6 +8,8 @@ import OneUptimeDate from "Common/Types/Date";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "Common/Types/StorageArray/StorageArrayPlatform";
 import { StatusBadgeType } from "Common/UI/Components/StatusBadge/StatusBadge";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import {
@@ -139,6 +141,27 @@ export function isUnhealthyResourceStatus(
   );
 }
 
+/*
+ * Whether any platform the registry holds writes this status in a list of
+ * its own (StorageArrayPlatform.componentStatuses): a PowerStore node's
+ * prepare_failed is critical, a NAS server not started needs attention
+ * and one started is fine.
+ */
+function isPlatformStatus(
+  normalized: string,
+  list: "critical" | "warning" | "healthy",
+): boolean {
+  return StorageArrayPlatformRegistry.getPlatforms().some(
+    (platform: StorageArrayPlatform): boolean => {
+      return (platform.componentStatuses[list] || []).includes(normalized);
+    },
+  );
+}
+
+/*
+ * A status's pill: the shipped words above first, so Pure's read as they
+ * always did, then the words a platform declares for its parts.
+ */
 export function getResourceStatusBadgeType(
   status: string | null | undefined,
 ): StatusBadgeType {
@@ -159,6 +182,18 @@ export function getResourceStatusBadgeType(
     HEALTHY_RESOURCE_STATUSES.includes(normalized) ||
     StorageArrayStatusUtil.isHealthy(normalized)
   ) {
+    return StatusBadgeType.Success;
+  }
+  if (!normalized) {
+    return StatusBadgeType.Neutral;
+  }
+  if (isPlatformStatus(normalized, "critical")) {
+    return StatusBadgeType.Danger;
+  }
+  if (isPlatformStatus(normalized, "warning")) {
+    return StatusBadgeType.Warning;
+  }
+  if (isPlatformStatus(normalized, "healthy")) {
     return StatusBadgeType.Success;
   }
   return StatusBadgeType.Neutral;

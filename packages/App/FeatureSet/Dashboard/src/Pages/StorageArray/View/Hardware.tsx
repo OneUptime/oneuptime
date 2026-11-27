@@ -47,6 +47,9 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  *     (kind=NetworkInterface);
  *   - a FlashBlade: blades, fabric modules, power supplies and fans
  *     (kind=Hardware), laid out by slot and health;
+ *   - a PowerStore: nodes, fans, power supplies and batteries
+ *     (kind=Hardware), drives (kind=Drive) and front-end ports
+ *     (kind=NetworkInterface), each with the appliance it is in;
  *   - an ONTAP cluster: nodes (kind=Controller), disks (kind=Drive),
  *     shelves, their parts and the nodes' sensors (kind=Hardware, one
  *     table each by componentType) and ports (kind=NetworkInterface), in
@@ -330,7 +333,28 @@ function getHardwareTableWords(
   };
 }
 
+/*
+ * A table whose parts belong to a group of the array (a PowerStore's
+ * appliances, whose parts are named alike on every appliance) shows the
+ * group first, under the platform's word for it.
+ */
 function getHardwareColumns(
+  table: StorageArrayHardwareTable,
+): Columns<StorageArrayResource> {
+  const columns: Columns<StorageArrayResource> = getKindColumns(table);
+  if (!table.groupColumnTitle) {
+    return columns;
+  }
+  return [
+    StorageArrayResourceColumns.getTextColumn({
+      field: "groupName",
+      title: table.groupColumnTitle,
+    }),
+    ...columns,
+  ];
+}
+
+function getKindColumns(
   table: StorageArrayHardwareTable,
 ): Columns<StorageArrayResource> {
   if (table.columns) {

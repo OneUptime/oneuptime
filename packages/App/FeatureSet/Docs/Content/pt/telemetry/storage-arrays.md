@@ -18,6 +18,7 @@ Storage Arrays é um produto que funciona do mesmo jeito para todo fabricante. E
 | **Pure Storage FlashArray**, Purity//FA 6.7 e posteriores | `purestorage.flasharray` | O próprio endpoint OpenMetrics do array (`https://<array>/metrics/...?namespace=purefa`): nada roda ao lado do coletor | `otel-collector-config.yaml` (a padrão) |
 | **Pure Storage FlashArray**, Purity//FA mais antigo | `purestorage.flasharray` | O exportador OpenMetrics de FlashArray da Pure, que o mesmo arquivo do Compose executa como o serviço `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | O exportador OpenMetrics de FlashBlade da Pure, que o mesmo arquivo do Compose executa como o serviço `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | O PowerStore Metrics Exporter da Dell, que o mesmo arquivo Compose constrói e executa como o serviço `powerstore-exporter`; os alertas do cluster chegam por syslog ao seu serviço `powerstore-syslog` | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 e posteriores (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), e **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | O [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, que o mesmo arquivo do Compose executa como o serviço `netapp-harvest`: ele faz login na API REST do cluster com um usuário somente leitura e uma senha | `otel-collector-config.netapp-ontap.yaml` |
 
 O ONTAP não tem um endpoint de métricas próprio, então o agente executa o exportador de código aberto da NetApp, o Harvest, ao lado do coletor. O Harvest lê a API REST do cluster e serve o que leu na rede do Compose, cada série com o nome `netapp_<object>_<counter>`; o coletor o consulta e envia os dados adiante. O Harvest nunca grava no cluster, e o relatório AutoSupport dele para a NetApp fica desativado.
@@ -32,6 +33,10 @@ flowchart TB
     collector -->|"ONTAP"| harvest["NetApp Harvest"]
     harvest -->|"usuário somente leitura,<br/>API REST"| cluster["O cluster,<br/>porta 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 Um agente monitora um array: execute um agente por array (veja [Monitorar vários arrays](#monitorar-vários-arrays)). O array se registra com os primeiros dados, com o nome que o agente marca em cada métrica como `storage.array.name`.
@@ -40,6 +45,7 @@ Um agente monitora um array: execute um agente por array (veja [Monitorar vário
 
 - Docker Engine 20.10 ou mais recente com o plugin Docker Compose v2, em uma máquina que alcance a interface de gerenciamento do array por HTTPS (TCP 443).
 - Uma conta de administrador no array, para criar um usuário com a função integrada **readonly** e um token de API para ele. No ONTAP, um administrador do cluster (no Amazon FSx for NetApp ONTAP, `fsxadmin`), para criar um usuário REST somente leitura com senha.
+- Para um Dell PowerStore, uma máquina x86-64 (a Dell só compila o seu exportador para x86-64) e um usuário do PowerStore para o agente: veja [Dell PowerStore](#dell-powerstore).
 - Uma chave de ingestão. Crie uma em **Configurações do projeto → Telemetria e APM → Chaves de ingestão** e copie o valor.
 
 ### Onde executar o agente
@@ -138,7 +144,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+Para um Dell PowerStore, baixe também `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` e `powerstore-syslog.yaml`, defina `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` e `COMPOSE_PROFILES=powerstore`, e preencha `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` e `POWERSTORE_PASSWORD`, a senha entre aspas simples.
 
 Para um FlashArray com Purity//FA mais antigo, defina `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` e `COMPOSE_PROFILES=flasharray-exporter`. Para um FlashBlade, defina `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` e `COMPOSE_PROFILES=flashblade`, e preencha `PURE_FB_ENDPOINT` e `PURE_FB_API_TOKEN` em vez do par `PURE_FA_*`.
 
@@ -192,6 +207,16 @@ Everything is ready. Begin running and processing data.
 Abra **Produtos → Infraestrutura → Arrays de armazenamento → Todos os arrays de armazenamento**. Depois da primeira coleta (cerca de um minuto), o array está lá com a capacidade, o desempenho, os alertas abertos e o hardware dele. Volumes, hosts e pods vêm em até 2 minutos, os sistemas de arquivos e buckets de um FlashBlade em até 5, e os diretórios do FlashArray em até 30. Um cluster ONTAP aparece assim que o Harvest o lê, e o inventário inteiro dele em cerca de 3 minutos, o intervalo em que o Harvest consulta a configuração dele. A página **Topologia** do array desenha os seus hosts, volumes, sistemas de arquivos e hardware em um único mapa: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
 :::
 
+## Dell PowerStore
+
+O agente lê um cluster PowerStore pelo PowerStore Metrics Exporter da Dell, versão `powerstore-metrics-exporter_v1.0.3`. A Dell o publica como binário, não como imagem, então o serviço `powerstore-exporter` constrói na primeira inicialização a imagem que a Dell documenta a partir de `powerstore-exporter.Dockerfile`, verificando o SHA-256 do binário; essa construção precisa de `quay.io` e `github.com` uma vez.
+
+O exportador da Dell entra com um nome de usuário e uma senha, já que o PowerStore não tem tokens de API. No PowerStore Manager, adicione em _Settings → Users_ um usuário local só para o agente, com o papel **Storage Operator**: o exportador lê o desempenho do arquivo de métricas em massa de cinco minutos do PowerStore, que ele mesmo ativa e que o PowerStoreOS 4.1 e posteriores exigem, e o README da Dell diz que o papel Operator não consegue ativá-lo. Num PowerStoreOS mais antigo, basta o papel somente leitura **Operator** com `POWERSTORE_BULK_METRICS=false`. Só o exportador lê a senha, a partir do `.env`.
+
+O exportador da Dell não lê alertas, então o cluster envia os seus: o serviço `powerstore-syslog` recebe o seu syslog remoto na porta 5514, por TCP e UDP, e guarda cada linha na página **Registros** do array com o registro do PowerStore em atributos (`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`) e uma severidade tirada dos códigos de evento da Dell (`powerstore.alert.severity`). No PowerStore Manager, abra _Settings → Security → Remote Logging_, adicione esta máquina na porta 5514 e abra a porta no seu firewall. O syslog sobre TLS na porta 6514 está descrito em `powerstore-syslog.yaml`.
+
+O exportador da Dell não informa hosts nem sessões de replicação, então esta versão não os tem.
+
 ## Variáveis de ambiente
 
 O script de instalação grava estes valores em `/opt/oneuptime-storage-array-agent/.env`; uma instalação com o Docker Compose os lê do `.env` ao lado de `docker-compose.yml`. Depois de mudar um deles, execute `docker compose up -d` nessa pasta.
@@ -208,6 +233,13 @@ O script de instalação grava estes valores em `/opt/oneuptime-storage-array-ag
 | `PURE_FA_API_TOKEN` | FlashArray | O token de API do usuário do FlashArray com a função readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | O endereço de gerenciamento do FlashBlade: um nome de host ou IP, sem `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | O token de API do usuário do FlashBlade com a função readonly. |
+| `POWERSTORE_ENDPOINT` | PowerStore | O endereço de gerenciamento do cluster PowerStore: um nome de host ou um IP, sem `https://`. |
+| `POWERSTORE_USERNAME` | PowerStore | O usuário do PowerStore com o qual o exportador da Dell entra. |
+| `POWERSTORE_PASSWORD` | PowerStore | A senha desse usuário. Só o exportador a lê. |
+| `POWERSTORE_BULK_METRICS` | Não | `true` lê o desempenho do arquivo de métricas em massa do PowerStore; `false` lê cada objeto um a um. O padrão é `true`. |
+| `POWERSTORE_API_VERSION` | Não | `v3` para o PowerStoreOS 3.6 e posteriores, ou `v1`. O padrão é `v3`. |
+| `POWERSTORE_REQUEST_LIMIT` | Não | Quantas requisições o exportador envia ao cluster de uma vez. O padrão é `16`. |
+| `POWERSTORE_SYSLOG_PORT` | Não | A porta em que esta máquina recebe o syslog do cluster, por TCP e UDP. O padrão é `5514`. |
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | O endereço de gerenciamento do cluster (no FSx, o endpoint de gerenciamento do sistema de arquivos): um nome de host ou IP, sem `https://`. |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | O usuário REST somente leitura, como `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | A senha dele. Só o Harvest a lê, exatamente como está escrita. |
@@ -219,6 +251,7 @@ O script de instalação grava estes valores em `/opt/oneuptime-storage-array-ag
 - **Cada job rotula as séries com `scrape_endpoint: <endpoint>`.** Cada endpoint também exporta `purefa_info` ou `purefb_info`, então o OneUptime sabe de quais famílias um lote é a lista completa: é assim que um volume, host, pod, sistema de arquivos ou bucket excluído sai do inventário em vez de ficar parado lá. Mantenha os rótulos como vêm.
 - **A latência por volume e por host mantém três dimensões.** Cada volume e cada host exporta a latência em até dezesseis `dimension`. Uma regra `metric_relabel_configs` mantém `usec_per_read_op`, `usec_per_write_op` e `usec_per_mirrored_write_op` e descarta o detalhamento por limite de taxa de QoS, fila, SAN e tempo de serviço, que multiplica as séries de um array grande. O detalhamento do array inteiro em `purefa_array_performance_latency_usec` é mantido. Exclua a regra para manter também o detalhamento por volume.
 - **O token de API é um token Bearer.** A configuração nativa o envia ao próprio array; as configurações com exportador o enviam ao exportador só pela rede do Compose, e as portas dos exportadores nunca são publicadas.
+- **Um PowerStore a cada 5 minutos.** O exportador da Dell serve cada parte do cluster em `/metrics/<cluster>/<part>`: a configuração lê `cluster` a cada 60 segundos, o seu heartbeat, e `appliance`, `capacity`, `hardware`, `port`, `volume`, `volumeGroup`, `nas` e `file` a cada 5 minutos, porque o PowerStore os calcula em amostras de cinco minutos.
 - **Sem `send_batch_max_size`.** O OneUptime reconstrói o inventário a partir de uma coleta inteira por requisição, então o processador `batch` incluído nunca divide uma coleta entre exportações. Mantenha as configurações de batch como vêm.
 - **ONTAP: o Harvest consulta o cluster, o coletor coleta o Harvest.** O Harvest lê a configuração e o estado do cluster a cada 3 minutos, o desempenho a cada minuto (latências em microssegundos por operação, operações e bytes por segundo) e os eventos EMS a cada 3 minutos, e serve o mais recente de tudo em `netapp-harvest:12990`, que o coletor coleta a cada 60 segundos com o rótulo `scrape_endpoint: harvest`. Os três arquivos `netapp-harvest-*.yaml` limitam o Harvest ao que o OneUptime lê. As séries `netapp_metadata_*` do próprio Harvest dizem quais objetos ele listou por completo, então um volume excluído sai do inventário, enquanto um objeto que o Harvest não conseguiu ler mantém a última contagem. O coletor descarta as medições que o Harvest faz de si mesmo e as séries de desempenho por disco, e transforma o agendamento de cada relacionamento SnapMirror em `netapp_snapmirror_schedule_seconds` (um agendamento horário é 3600), com o qual o SnapMirror Behind Schedule compara o atraso.
 
@@ -236,6 +269,9 @@ As convenções semânticas da Pure são comuns ao endpoint nativo do FlashArray
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | O nome, a versão do Purity e o ID de sistema do FlashBlade; capacidade e redução de dados; contagem de alertas abertos; a saúde do array; a página **Hardware** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | A página **Sistemas de arquivos**: espaço provisionado e usado, redução de dados, latência, IOPS e largura de banda por sistema de arquivos |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | A página **Buckets**: espaço, cota, contagem de objetos e desempenho por bucket, agrupados por conta |
+| PowerStore `cluster`, `appliance`, `capacity` | `powerstore_cluster`, `powerstore_metro_*`, `powerstore_appliance`, `powerstore_perf_*`, `powerstore_cap_*` | O nome e o estado do cluster; a página **Appliances**: capacidade, redução de dados, latência, IOPS e largura de banda de cada appliance |
+| PowerStore `hardware`, `port` | `powerstore_hardware_*`, `powerstore_wear_metrics_by_drive`, `powerstore_fc_port_*`, `powerstore_eth_port_*`, `powerstore_metricFcPort_*`, `powerstore_metricEthPort_*` | A página **Hardware**: nós, ventiladores, fontes de alimentação, baterias, unidades e portas front-end, cada um com o seu appliance |
+| PowerStore `volume`, `volumeGroup`, `nas`, `file` | `powerstore_volume_*`, `powerstore_metricVolume_*`, `powerstore_volumegroup_*`, `powerstore_metricVg_*`, `powerstore_nas_server_operational_status`, `powerstore_metricNas_*`, `powerstore_filesystem_*`, `powerstore_metricFilesystem_*` | As páginas **Volumes**, **Grupos de volumes**, **Servidores NAS** e **Sistemas de arquivos** |
 | ONTAP, pelo Harvest | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | O nome, a versão e o UUID do cluster; a capacidade dele (a soma dos agregados de dados) e a redução de dados; a página **Volumes**; as páginas **Agregados**, **SVMs**, **LUNs** e **SnapMirror**, uma página por objeto |
 | Hardware do ONTAP, pelo Harvest | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | A página **Hardware**: nós, discos, gavetas e as fontes de alimentação, ventiladores, módulos e sensores delas, os sensores dos nós e as portas Ethernet e Fibre Channel |
 | Problemas abertos e eventos do ONTAP | `netapp_health_*`, `netapp_ems_events` | As contagens de alertas abertos e o cartão **Alertas ativos** (discos quebrados, falhas de gaveta, takeover de HA, portas inoperantes, alertas de integridade do sistema), e os modelos EMS |
@@ -243,6 +279,8 @@ As convenções semânticas da Pure são comuns ao endpoint nativo do FlashArray
 No ONTAP, toda série é do Harvest: um objeto é nomeado pelos rótulos dele (`volume` dentro do seu `svm`, `aggr`, `lun`, `node`, `disk`, `shelf`, `destination_location` para um relacionamento SnapMirror), um estado é um `netapp_*_new_status` de 1 ou 0 ou uma série `netapp_*_labels` cujos rótulos o dizem, e cada problema aberto é uma série `netapp_health_*_alerts` que existe enquanto ele durar.
 
 A coluna **Integridade** de **Todos os arrays de armazenamento** lê os alertas e o hardware do próprio array em seus dados mais recentes: **Crítico** enquanto ele informa um alerta crítico aberto, ou um componente de hardware, unidade ou controladora crítico, com falha, ausente ou não íntegro; **Aviso** enquanto informa um alerta de aviso aberto, ou um componente degradado ou desconhecido; **OK** nos demais casos; e **Desconhecido** enquanto o agente está desconectado. A **Visão geral** do array julga mais, como diz a próxima seção. Nos critérios de monitor, os atributos do array levam um prefixo `resource.` (`resource.storage.array.name`, `resource.storage.system`), enquanto os rótulos de ponto de dados ficam sem prefixo (`name`, `host`, `dimension`, `space`).
+
+A saúde de um PowerStore é a do seu hardware, já que os seus alertas chegam como registros. O agente calcula sozinho `powerstore_cap_physical_used_percent` e `powerstore_filesystem_logical_used_percent`, e lê o estado de um nó como 1 enquanto ele está Healthy.
 
 ## O que as páginas do array mostram
 
@@ -257,7 +295,11 @@ A **Visão geral** do array diz sua integridade, **Íntegro**, **Degradado** ou 
 
 As listas **Hosts**, **Replicação** e **Sistemas de arquivos** dizem o estado de cada parte pelas mesmas regras, com o motivo abaixo, e o mesmo fazem as listas **Volumes**, **Agregados**, **SVMs**, **LUNs** e **SnapMirror** de um cluster ONTAP, em que cada linha abre uma página própria: o estado, o que precisa de atenção, o que está aberto nela, os alertas do cluster que a observam, o que o ONTAP reporta sobre ela e os gráficos. As páginas de cada plataforma falam a língua dela: um volume do ONTAP lista o SVM, o agregado e quão cheio está, e a página dele mostra em gráficos as séries do ONTAP. No Amazon FSx for NetApp ONTAP, a página **Hardware** lista os nós e as portas e explica por que não há discos nem gavetas. A página de um host e a de um sistema de arquivos dizem o que precisa de atenção e quais alertas do array o vigiam, com um passo para ativar os demais, e a página de cada parte, também a de um volume e a de um bucket, diz o que está aberto nela. Enquanto o agente está desconectado, a integridade mostra **Integridade desconhecida**: o último relatório do array não é mais a verdade. Cada limite acima é aquele em que dispara seu modelo de alerta, como lista o [monitor de arrays de armazenamento](/docs/monitor/storage-array-monitor).
 
+Num PowerStore, as abas **Appliances**, **Grupos de volumes** e **Servidores NAS** listam as partes que só um PowerStore tem, e a página **Hardware** nomeia o appliance de cada parte, já que cada appliance dá os mesmos nomes às suas partes.
+
 ## Opcional — Enviar o syslog do array
+
+O coletor de syslog de um PowerStore funciona como é entregue (veja [Dell PowerStore](#dell-powerstore)): esta seção é para os arrays da Pure.
 
 Por padrão, o agente envia só métricas, então a página **Registros** do array fica vazia. Os arrays encaminham seus alertas e eventos de auditoria como syslog, e cada configuração do coletor incluída tem um par de receivers `syslog` comentado (TCP e UDP na porta 5514, RFC 3164), ligado a um pipeline `logs` comentado que marca `storage.array.name` para os logs chegarem ao seu array.
 
@@ -300,6 +342,8 @@ O coletor só lê a configuração quando inicia: execute `docker compose restar
 
 Um agente lê um array. Para monitorar vários a partir da mesma máquina, instale cada um na própria pasta com o próprio `.env`, como `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, e dê a cada um o próprio `container_name` no `docker-compose.yml` dele (como `oneuptime-storage-array-agent-fa02`): dois contêineres não podem compartilhar um nome. Passe a pasta ao script de diagnóstico com `-d`.
 
+Um segundo agente PowerStore também precisa da sua própria porta de syslog: defina `POWERSTORE_SYSLOG_PORT`, por exemplo `5515`, no seu `.env`.
+
 ## Execute como um serviço do systemd
 
 Para iniciar o agente junto com a máquina e reiniciá-lo quando falhar, instale a unidade do systemd dele. Ela supõe que o agente fica em `/opt/oneuptime-storage-array-agent`, onde o script de instalação o coloca:
@@ -332,6 +376,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+Um agente PowerStore também baixa de novo `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` e `powerstore-syslog.yaml`; o `docker compose up` reconstrói a imagem do exportador quando uma nova versão move a sua tag.
+
 ## Desinstalando o agente
 
 ```bash
@@ -340,6 +386,8 @@ docker compose down
 ```
 
 Depois exclua o usuário somente leitura e o token de API dele no array, se não precisar mais deles. No ONTAP, execute `security login delete -user-or-group-name oneuptime -application http -authentication-method password` e depois `security login rest-role delete -role oneuptime-readonly -api /api`.
+
+Num PowerStore, execute `docker compose --profile powerstore down`, para que o exportador e o coletor de syslog também parem.
 
 ## Solução de problemas
 
@@ -382,6 +430,10 @@ O exportador não está rodando: `COMPOSE_PROFILES` precisa corresponder a `STOR
 
 :::details ONTAP: o Harvest não consegue fazer login, ou falta um objeto
 Leia o log do Harvest: `docker compose logs netapp-harvest`. Um `401` ou `Unauthorized` significa que o cluster recusou o usuário ou a senha dele: verifique se o usuário tem o método de login **http** e a função REST somente leitura (`security login show -user-or-group-name oneuptime`), corrija `.env` e execute `docker compose up -d`. Um `403` ou `not authorized` em um objeto significa que a função não alcança aquela API; a função acima alcança toda a `/api`. No Amazon FSx for NetApp ONTAP, o FSx responde assim para discos, gavetas e sensores, seja quem for que pergunte: isso é esperado, e a página **Hardware** explica isso. `connection refused` ou `no such host` significa um `NETAPP_ONTAP_ENDPOINT` errado: ele é o endereço de gerenciamento do cluster (no FSx, o endpoint de gerenciamento), não o de um nó nem o de um SVM. O script de diagnóstico também verifica tudo isso.
+:::
+
+:::details Um PowerStore não envia nada
+Leia o log do exportador com `docker compose logs powerstore-exporter`: um `401` significa um nome de usuário ou uma senha errados, e um `403` em `latest_five_min_metrics` significa que o papel do usuário não consegue ativar o arquivo de métricas em massa (dê-lhe **Storage Operator**, ou defina `POWERSTORE_BULK_METRICS=false` num PowerStoreOS anterior ao 4.1). O exportador precisa de um minuto depois de iniciar antes de responder. Sem alertas na página **Registros**: confira as configurações de _Remote Logging_ do cluster, o firewall na porta 5514 e `docker compose logs powerstore-syslog`.
 :::
 
 :::details Volumes ou hosts excluídos continuam no inventário

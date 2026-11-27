@@ -2,9 +2,11 @@
 
 Ein Speicher-Array-Monitor beobachtet ein Speicher-Array und meldet Ihnen, wenn das Array eine eigene Warnung auslöst, ihm der Platz ausgeht, es langsamer wird, Hardware oder einen Hostpfad verliert oder bei der Replikation zurückfällt. Er funktioniert mit Pure Storage FlashArray, Pure Storage FlashBlade und NetApp ONTAP (Amazon FSx for NetApp ONTAP eingeschlossen) und liest die Metriken, die der OneUptime Storage Array Agent sammelt: Pures Serien `purefa_*` und `purefb_*` sowie die Serien `netapp_*`, die NetApp Harvest von einem ONTAP-Cluster liest.
 
+Er funktioniert auch mit Dell PowerStore (`dell.powerstore`), aus den Serien `powerstore_*` von Dell.
+
 :::cards
 - [Den Monitor erstellen](#einen-speicher-array-monitor-erstellen): Sechs Schritte im Dashboard.
-- [Vorlagen](#fertige-warnungsvorlagen): Einundfünfzig fertige Warnungen, ein Vorfall pro Volume, Host oder Komponente.
+- [Vorlagen](#fertige-warnungsvorlagen): Fertige Warnungen, ein Vorfall pro Volume, Host, Appliance oder Komponente.
 - [Wie Pures Serien funktionieren](#wie-pures-serien-aufgebaut-sind): Ein Metrikname, viele Werte. Die von ONTAP [haben einen eigenen Abschnitt](#wie-ontaps-serien-aufgebaut-sind).
 - [Metriken](#erfasste-metriken): Jede Serie, auf die der Monitor warnen kann.
 :::
@@ -87,6 +89,8 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 
 Der Agent liest den Array-Endpunkt alle 60 Sekunden und Volumes, Hosts und Pods alle 2 Minuten, sodass ein Fenster von 5 Minuten immer eine Stichprobe enthält. Die Dateisysteme und Buckets eines FlashBlade liest er alle 5 Minuten, daher 15, und FlashArray-Verzeichnisse alle 30 Minuten: Geben Sie einem Verzeichnis-Monitor ein Fenster von 60 Minuten. Bei ONTAP liest Harvest die Leistung des Clusters jede Minute und seine Konfiguration, seinen Zustand und seine EMS-Ereignisse alle 3 Minuten, sodass ein Fenster von 5 Minuten immer eine Stichprobe enthält.
 
+Einen PowerStore liest er alle 5 Minuten und den Zustand seines Clusters alle 60 Sekunden: Geben Sie einem PowerStore-Monitor ein Fenster von 15 Minuten.
+
 ## Wie Pures Serien aufgebaut sind
 
 Pure legt mehrere Werte auf **einen** Metriknamen und unterscheidet sie mit einem Label:
@@ -107,6 +111,10 @@ Eine auf einen schlechten Zustand gefilterte Serie existiert nur, solange sich e
 
 In Monitorfiltern und Gruppierungsschlüsseln beginnen die Attribute des Agenten mit `resource.` (`resource.storage.array.name`, `resource.storage.system`), Pures eigene Labels dagegen nicht (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 
+## Wie die Serien von PowerStore aufgebaut sind
+
+Der Exporter von Dell schreibt einen Wert pro Metrikname, daher braucht eine PowerStore-Serie keinen Label-Filter. Ihre Labels benennen das Objekt: `appliance_id` eine Appliance, `name` ein Bauteil, ein Volume oder ein Dateisystem, und `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id` oder `volume_group_id` das Objekt einer Leistungsserie. Ihre Zustandsserien sind 1, solange alles gesund ist, und sonst 0, daher lösen die Vorlagen unter 1 aus. Ihre eigenen Warnungen kommen per Syslog an, und ihre Vorlagen, Protokoll-Monitore, stehen nach ihrer Tabelle unten.
+
 ## Wie ONTAPs Serien aufgebaut sind
 
 NetApp Harvest benennt jede Serie `netapp_<object>_<counter>` und das Objekt über seine Labels: ein Volume über `volume` innerhalb seiner `svm`, ein Aggregat über `aggr`, eine LUN über `lun` innerhalb ihres `volume` und ihrer `svm`, einen Knoten über `node`, einen Datenträger über `disk`, ein Shelf über `shelf`, eine SnapMirror-Beziehung über `destination_location`. Latenzen sind Mikrosekunden pro Operation, `_ops` Operationen pro Sekunde, `_data` Bytes pro Sekunde.
@@ -123,7 +131,7 @@ Ein Zustand als Zahl löst aus, wenn jeder Messwert des Fensters unter 1 liegt, 
 
 ## Fertige Warnungsvorlagen
 
-OneUptime liefert 51 Vorlagen — 12 für FlashArray, 8 für FlashBlade und 31 für ONTAP —, und die Liste unter **Worüber benachrichtigt wird** bietet die für die Plattform des Arrays an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Label-Filter, eine Gruppierung nach dem eigenen Label des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
+OneUptime liefert 67 Vorlagen — 12 für FlashArray, 8 für FlashBlade, 16 für PowerStore und 31 für ONTAP —, und die Liste unter **Worüber benachrichtigt wird** bietet die für die Plattform des Arrays an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Label-Filter, eine Gruppierung nach dem eigenen Label des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
 
 Ein Kriterium löst nur aus, wenn die Bedingung für **jeden** Wert in seinem Fenster gilt, außer bei einer EMS-Vorlage für ONTAP: Harvest exportiert ein Ereignis für eine einzige Abfrage, daher genügt ein Messwert. Ein Monitor, der bei einem Schwellenwert für Kapazität, Latenz, Verzögerung oder Verhältnis ausgelöst hat, erholt sich erst 10 % jenseits davon, sodass ein Wert, der um den Schwellenwert pendelt, nicht flattert. Die Vorlagen für Warnungen, Hardware und Verbindungen lösen aus, sobald ein Zustand ihr ganzes 5-Minuten-Fenster lang zu sehen war, und erholen sich etwa 5 Minuten, nachdem er verschwunden ist.
 
@@ -156,6 +164,37 @@ Ein Kriterium löst nur aus, wenn die Bedingung für **jeden** Wert in seinem Fe
 | Hardware Component Unhealthy | Hardware     | Kritisch | `purefb_hardware_health`, Min pro `name`, letzte 5 Minuten                                                     | < 1 — ein Blade, Fabric-Modul, Netzteil oder Lüfter ist nicht gesund (ein unbenutzter Steckplatz meldet 2). Ein Vorfall pro Komponente; erholt sich bei ≥ 1 |
 | High Read Latency            | Leistung     | Warnung  | `purefb_array_performance_latency_usec` gefiltert auf `dimension=usec_per_read_op` und `protocol=all`, Avg, letzte 10 Minuten | > 10000 µs (10 ms) über alle Protokolle; erholt sich bei ≤ 9000                                        |
 | File System Near Full        | Dateisysteme | Warnung  | `purefb_file_systems_space_bytes` gefiltert auf `space=available_ratio`, Min pro `name`, letzte 15 Minuten     | < 0.1 — weniger als 10 % der bereitgestellten Größe eines Dateisystems sind übrig. Ein Vorfall pro Dateisystem; erholt sich bei ≥ 0.11 |
+
+### PowerStore
+
+| Template                     | Kategorie    | Schweregrad | Beobachtet                                                                                                     | Löst aus, wenn                                                                                                      |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Verfügbarkeit | Kritisch | `powerstore_cluster`, Count, letzte 10 Minuten | Keine Daten im gesamten Fenster — der Agent, der Exporter von Dell oder der Cluster antwortet nicht mehr; erholt sich, sobald wieder Daten eintreffen |
+| Capacity Above 80% | Kapazität | Warnung | `powerstore_cap_physical_used_percent`, Max pro `appliance_id`, letzte 15 Minuten | > 80 — die Kapazität einer Appliance füllt sich; erholt sich bei ≤ 72 |
+| Capacity Above 90% | Kapazität | Kritisch | `powerstore_cap_physical_used_percent`, Max pro `appliance_id`, letzte 15 Minuten | > 90 — eine Appliance weist bald Schreibvorgänge ab; erholt sich bei ≤ 81 |
+| High Read Latency | Leistung | Warnung | `powerstore_perf_avg_read_latency`, Avg pro `appliance_id`, letzte 15 Minuten | > 5000 µs (5 ms); erholt sich bei ≤ 4500 |
+| High Write Latency | Leistung | Warnung | `powerstore_perf_avg_write_latency`, Avg pro `appliance_id`, letzte 15 Minuten | > 5000 µs (5 ms); erholt sich bei ≤ 4500 |
+| Drive Failed | Hardware | Kritisch | `powerstore_hardware_Drive_state`, Min pro `name`, letzte 10 Minuten | < 1 — ein Laufwerk ist ausgefallen oder wurde entfernt; erholt sich bei ≥ 1 |
+| Node Unhealthy | Hardware | Kritisch | `powerstore_hardware_node_state`, Min pro `name`, letzte 10 Minuten | < 1 — ein Knoten ist nicht Healthy; erholt sich bei ≥ 1 |
+| Power Supply Unhealthy | Hardware | Warnung | `powerstore_hardware_Power_Supply_state`, Min pro `name`, letzte 10 Minuten | < 1 — ein Netzteil ist ausgefallen oder ohne Strom; erholt sich bei ≥ 1 |
+| Fan Unhealthy | Hardware | Warnung | `powerstore_hardware_Fan_state`, Min pro `name`, letzte 10 Minuten | < 1 — ein Lüfter ist ausgefallen; erholt sich bei ≥ 1 |
+| Battery Unhealthy | Hardware | Warnung | `powerstore_hardware_Battery_state`, Min pro `name`, letzte 10 Minuten | < 1 — ein Batterie-Backup-Modul ist gestört; erholt sich bei ≥ 1 |
+| Drive Wearing Out | Hardware | Warnung | `powerstore_wear_metrics_by_drive`, Min pro `name`, letzte 15 Minuten | < 10 — einem Laufwerk bleiben weniger als 10 % seiner Ausdauer; erholt sich bei ≥ 11 |
+| NAS Server Not Started | Dateisysteme | Warnung | `powerstore_nas_server_operational_status`, Max pro `name`, letzte 10 Minuten | < 1 — ein NAS-Server ist gestoppt oder beeinträchtigt; erholt sich bei ≥ 1 |
+| Volume Not Ready | Array-Zustand | Warnung | `powerstore_volume_state`, Max pro `name`, letzte 15 Minuten | < 1 — ein Volume ist offline; erholt sich bei ≥ 1 |
+| File System Near Full | Dateisysteme | Warnung | `powerstore_filesystem_logical_used_percent`, Max pro `name`, letzte 15 Minuten | > 90 — ein Dateisystem ist fast voll; erholt sich bei ≤ 81 |
+| Cluster Not Configured | Array-Zustand | Warnung | `powerstore_cluster`, Max, letzte 10 Minuten | < 1 — der Cluster ist nicht Configured; erholt sich bei ≥ 1 |
+| Metro Witness Not Connected | Replikation | Warnung | `powerstore_metro_witness_status`, Min pro `name`, letzte 10 Minuten | > 0 — ein Metro-Witness ist nicht verbunden; erholt sich, sobald er wieder OK ist |
+
+### PowerStore-Warnungen, per Syslog
+
+Die eigenen Warnungen eines PowerStore kommen als Protokolle an, daher sind ihre Vorlagen Monitore vom Typ **Protokolle**, angeboten auf der Seite **Empfehlungen** des Arrays unter **Array-Warnungen**. Jede öffnet eine Warnung pro PowerStore-Warnung, gruppiert nach `powerstore.resource.name` und `powerstore.alert.id`, und löst sie auf, wenn der PowerStore diese Warnung aufhebt:
+
+| Vorlage | Schweregrad | Öffnet bei einer Zeile mit | Löst sich bei |
+| --- | --- | --- | --- |
+| Critical Array Alert | Kritisch | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | Warnung | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | Warnung | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
 ### ONTAP
 
@@ -213,6 +252,7 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Eine Serie pro offener Warnung des Arrays (Wert 1), mit den Labels `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` und `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Eine Serie pro offener Warnung des FlashBlade (Wert 1), mit den Labels `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` und `kburl` (Pures Wissensdatenbankartikel) |
+| `powerstore_cluster` | — | PowerStore | `count` | 1, solange der PowerStore-Cluster Configured ist (gebildet und im Betrieb), 0 in jedem anderen Zustand: Configuring, Expanding, Removing, Clustering_Failed oder Unconfigured. |
 | `netapp_cluster_new_status` | — | ONTAP | — | 1, solange ONTAP den Cluster als fehlerfrei meldet; zeigt zugleich, dass der Agent ihn noch liest |
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | Offene Warnungen in jedem Zustandssubsystem von ONTAP, nach `subsystem` |
 | `netapp_health_support_alerts` | — | ONTAP | `count` | Eine Serie pro Warnung, die die Systemzustandsüberwachung von ONTAP offen hat, solange sie offen ist |
@@ -230,6 +270,13 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `purefb_array_space_utilization`          | `type=array`                 | FlashBlade | `%`     | Anteil der nutzbaren Kapazität des FlashBlade, der belegt ist                                                                         |
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | Ungenutzte Kapazität des FlashBlade                                                                                                   |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Datenreduktion über den ganzen FlashBlade                                                                                             |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | Anteil der belegten physischen Kapazität jeder Appliance, in Prozent: ihr physisch belegter Speicher geteilt durch ihre physische Gesamtkapazität, aus der täglichen Speicherzusammenfassung von PowerStore. PowerStore löst eigene Kapazitätswarnungen ab 70 % aus. Nach appliance_id gruppieren. |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | Nutzbare physische Kapazität jeder Appliance in Bytes. |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | Physische Kapazität, die jede Appliance belegt, in Bytes, nach Deduplizierung und Komprimierung. Verfolgen Sie den Verlauf, um vorherzusagen, wann eine Appliance voll ist. |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | Auf jeder Appliance bereitgestellte logische Kapazität in Bytes: die Größe jedes Volumes, Dateisystems und vVols darauf, die weit über ihrer physischen Kapazität liegen kann. |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | Daten, die Hosts auf jede Appliance geschrieben haben, in Bytes, vor Deduplizierung und Komprimierung. |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | Deduplizierung und Komprimierung auf jeder Appliance, zum Beispiel 3.4 für 3.4:1. Ein anhaltender Rückgang bedeutet, dass neu geschriebene Daten sich schlecht reduzieren lassen: verschlüsselte oder bereits komprimierte Daten. |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | Gesamteffizienz jeder Appliance: die Datenreduktion zusammen mit den Einsparungen durch Snapshots und Thin Provisioning. |
 | `netapp_aggr_space_used_percent` | — | ONTAP | `%` | Belegter Anteil des nutzbaren Speicherplatzes jedes Aggregats — gruppieren Sie nach `aggr` |
 | `netapp_aggr_space_total` | — | ONTAP | `bytes` | Nutzbarer Speicherplatz jedes Aggregats; die Kapazität des Clusters ist ihre Summe |
 | `netapp_aggr_space_used` | — | ONTAP | `bytes` | Speicherplatz, den jedes Aggregat belegt oder reserviert hat |
@@ -259,6 +306,13 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all`     | FlashBlade | `ops/s`   | Schreiboperationen pro Sekunde über alle Protokolle                                                          |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Gelesene Bytes pro Sekunde über alle Protokolle                                                              |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Geschriebene Bytes pro Sekunde über alle Protokolle                                                         |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Lesevorgangs auf jeder Appliance, in Mikrosekunden, über die letzte Fünf-Minuten-Probe von PowerStore. Lesevorgänge auf PowerStore sind meist deutlich unter 1 ms abgeschlossen. |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Schreibvorgangs auf jeder Appliance, in Mikrosekunden. |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | Leseoperationen pro Sekunde auf jeder Appliance. |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | Schreiboperationen pro Sekunde auf jeder Appliance. |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Pro Sekunde auf jeder Appliance gelesene Bytes. |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Pro Sekunde auf jeder Appliance geschriebene Bytes. |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | Anteil der CPU-Kerne, die jede Appliance für Storage-I/O reserviert, die ausgelastet sind, in Prozent. Anhaltend hohe Werte bedeuten, dass die Appliance nahe an der Last ist, die sie bedienen kann. |
 | `netapp_cluster_read_latency` | — | ONTAP | `µs` | Durchschnittliche Latenz eines Lesevorgangs über den ganzen Cluster |
 | `netapp_cluster_write_latency` | — | ONTAP | `µs` | Durchschnittliche Latenz eines Schreibvorgangs über den ganzen Cluster |
 | `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | Leseoperationen pro Sekunde über den ganzen Cluster |
@@ -290,6 +344,20 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `purefa_volume_space_bytes`                 | `space=total_provisioned`        | FlashArray | `bytes`   | Größe jedes Volumes aus Sicht der Hosts                       |
 | `purefa_volume_space_bytes`                 | `space=total_physical`           | FlashArray | `bytes`   | Physischer Platz, den jedes Volume nach der Datenreduktion belegt |
 | `purefa_volume_space_data_reduction_ratio`  | —                                | FlashArray | `ratio`   | Datenreduktionsverhältnis jedes Volumes                       |
+| `powerstore_volume_state` | — | PowerStore | `count` | 1, solange ein Volume Ready ist, 0, solange es Initializing oder Offline ist oder gelöscht wird. Nach name gruppieren, um das Volume zu finden, das Hosts nicht erreichen. |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | Größe jedes Volumes, wie Hosts sie sehen, in Bytes. |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | Daten, die Hosts in jedes Volume geschrieben haben, in Bytes, vor Deduplizierung und Komprimierung. |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | Durchschnittliche Leselatenz jedes Volumes in Mikrosekunden. Nach volume_id gruppieren, das den Namen des Volumes enthält, um das langsame Volume zu finden. |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | Durchschnittliche Schreiblatenz jedes Volumes in Mikrosekunden. |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | Leseoperationen pro Sekunde jedes Volumes. |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | Schreiboperationen pro Sekunde jedes Volumes. |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Pro Sekunde aus jedem Volume gelesene Bytes. |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Pro Sekunde in jedes Volume geschriebene Bytes. |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | Den Volumes jeder Volume-Gruppe bereitgestellte Kapazität, in Bytes. Nach name gruppieren. |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | Daten, die Hosts in die Volumes jeder Volume-Gruppe geschrieben haben, in Bytes, vor Deduplizierung und Komprimierung. |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | Durchschnittliche Leselatenz über die Volumes jeder Volume-Gruppe, in Mikrosekunden. Nach volume_group_id gruppieren, das den Namen der Gruppe enthält. |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | Durchschnittliche Schreiblatenz über die Volumes jeder Volume-Gruppe, in Mikrosekunden. |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | Lese- und Schreiboperationen pro Sekunde über die Volumes jeder Volume-Gruppe. |
 | `netapp_svm_new_status` | — | ONTAP | — | 1, solange eine SVM läuft — gruppieren Sie nach `svm` |
 | `netapp_svm_labels` | `state=stopped`, `type=data` | ONTAP | — | Eine Serie pro Daten-SVM, die gestoppt ist |
 | `netapp_volume_size_used_percent` | — | ONTAP | `%` | Belegter Anteil des Speicherplatzes jedes Volumes, wie `volume show` ihn meldet — gruppieren Sie nach `volume` und `svm` |
@@ -335,6 +403,7 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `purefa_pod_replica_links_lag_average_msec`          | —                                      | FlashArray | `ms`      | Durchschnittliche Replikationsverzögerung jeder Pod-Replikationsverbindung                                                                                   |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Replikationsverkehr jedes Pods, mit den Labels `direction` und `dimension`                                                                                   |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Durchschnittliche Latenz gespiegelter Schreibvorgänge jedes ActiveCluster-Pods                                                                               |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | Zustand jedes Metro-Witness: 0 OK, 1 teilweise verbunden, 2 getrennt, 3 wird gelöscht, 4 wird initialisiert. Über 0 kann eine Metro-Sitzung möglicherweise nicht von selbst umschalten. |
 | `netapp_snapmirror_lag_time` | — | ONTAP | `s` | Wie weit das Ziel jeder SnapMirror-Beziehung hinter seiner Quelle zurückliegt |
 | `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | Wie oft der Zeitplan jeder Beziehung überträgt; der Agent schreibt die Serie aus dem Namen des Zeitplans |
 | `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | Wie lange die letzte Übertragung jeder Beziehung gedauert hat |
@@ -351,6 +420,23 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `purefa_drive_capacity_bytes`                 | —                                | FlashArray | `bytes`    | Rohkapazität jedes Laufwerks, mit dem Label seines `component_status` (`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...) und Typs                                                      |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Fehler pro Sekunde an jeder Ethernet- und Fibre-Channel-Schnittstelle — anhaltende Fehler bedeuten meist ein defektes Kabel, eine defekte Optik oder einen defekten Switch-Port                              |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Zustand jeder Hardwarekomponente (Blades, Fabric-Module, Netzteile, Lüfter, ...): 1 = gesund, 2 = unbenutzt, 0 = nicht gesund. Nehmen Sie das Minimum pro `name`                                              |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 1, solange ein Knoten einer Appliance Healthy ist, 0 in jedem anderen Zustand, den sein Label state nennt (Failed, Disconnected, Initializing ...). Nach name und appliance_id gruppieren. |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 1, solange ein Laufwerk Healthy ist, 0, wenn es ausgefallen, entfernt oder nicht bereit ist. Nach name gruppieren, um einen Vorfall pro Laufwerk auszulösen. |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | Verbleibender Anteil der Schreibausdauer jedes Laufwerks, in Prozent. Ein Laufwerk nahe 0 ist nahe am Ende seiner Lebensdauer: Planen Sie seinen Austausch. |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 1, solange das Lüftermodul eines Knotens Healthy ist, 0, wenn es ausgefallen oder entfernt ist. |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 1, solange das Netzteil eines Knotens Healthy ist, 0, wenn es ausgefallen, ohne Eingangsstrom oder getrennt ist. |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 1, solange das Batterie-Backup-Modul eines Knotens Healthy ist, 0, wenn es gestört oder getrennt ist. |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 1, solange die Verbindung eines Fibre-Channel-Ports besteht, 0, solange sie getrennt ist, was bei einem Port ohne Kabel immer der Fall ist. Nach fc_port_id gruppieren, das den Namen des Ports enthält. |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 1, solange die Verbindung eines Ethernet-Ports besteht, 0, solange sie getrennt ist. Nach eth_port_id gruppieren, das den Namen des Ports enthält. |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Lesevorgangs über jeden Fibre-Channel-Port, in Mikrosekunden. |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Schreibvorgangs über jeden Fibre-Channel-Port, in Mikrosekunden. |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | Lese- und Schreiboperationen pro Sekunde über jeden Fibre-Channel-Port. |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | Pro Sekunde über jeden Fibre-Channel-Port gelesene und geschriebene Bytes. |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | Pro Sekunde an jedem Fibre-Channel-Port empfangene Frames mit ungültiger CRC. Anhaltende Fehler bedeuten meist ein defektes Kabel, eine defekte Optik oder einen defekten Switch-Port. |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | Verbindungsausfälle pro Sekunde an jedem Fibre-Channel-Port. Jeder ist einen Blick auf Kabel, Optik und Switch des Ports wert. |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | Pro Sekunde an jedem Ethernet-Port empfangene Bytes. |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | Pro Sekunde an jedem Ethernet-Port gesendete Bytes. |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | Pro Sekunde an jedem Ethernet-Port mit CRC-Fehler empfangene Pakete. Anhaltende Fehler bedeuten meist ein defektes Kabel, eine defekte Optik oder einen defekten Switch-Port. |
 | `netapp_node_new_status` | — | ONTAP | — | 1, solange ONTAP einen Knoten als fehlerfrei meldet — gruppieren Sie nach `node` |
 | `netapp_node_avg_processor_busy` | — | ONTAP | `%` | Wie ausgelastet die Prozessoren jedes Knotens sind |
 | `netapp_node_failed_fan` | — | ONTAP | `count` | Ausgefallene Lüfter jedes Knotens |
@@ -386,6 +472,17 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs`    | Durchschnittliche Schreiblatenz jedes Dateisystems                                           |
 | `purefb_file_systems_space_bytes`              | `space=total_physical`        | FlashBlade | `bytes` | Physischer Platz, den jedes Dateisystem belegt                                               |
 | `purefb_file_systems_space_bytes`              | `space=available_ratio`       | FlashBlade | `ratio` | Noch verfügbarer Anteil der bereitgestellten Größe jedes Dateisystems, 0 bis 1 — nahe 0 ist sein Kontingent fast erschöpft |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | 1, solange ein NAS-Server Started ist, 0, solange er Stopped, Starting, Stopping, übernommen oder Degraded ist (er läuft ohne seinen Ersatzknoten). Nach name gruppieren. |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Lesevorgangs, den jeder NAS-Server bedient, in Mikrosekunden. Nach nas_id gruppieren, das den Namen des Servers enthält. |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Schreibvorgangs, den jeder NAS-Server bedient, in Mikrosekunden. |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | Lese- und Schreiboperationen pro Sekunde, die jeder NAS-Server bedient. |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | Anteil der belegten Größe jedes Dateisystems, in Prozent: sein logisch belegter Speicher geteilt durch seine bereitgestellte Größe. Nach name gruppieren. |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | Größe jedes Dateisystems, wie Clients sie sehen, in Bytes. |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | Daten, die Clients in jedes Dateisystem geschrieben haben, in Bytes. |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Lesevorgangs aus jedem Dateisystem, in Mikrosekunden. Nach name gruppieren. |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Schreibvorgangs in jedes Dateisystem, in Mikrosekunden. |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | Leseoperationen pro Sekunde jedes Dateisystems. |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | Schreiboperationen pro Sekunde jedes Dateisystems. |
 
 ### Buckets
 

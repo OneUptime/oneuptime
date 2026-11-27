@@ -12,6 +12,7 @@ import {
 import StorageArrayExtractors from "../../../../../Server/Utils/Telemetry/StorageArray/StorageArrayExtractors";
 import FlashArrayExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/PureStorage/FlashArrayExtractor";
 import FlashBladeExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/PureStorage/FlashBladeExtractor";
+import PowerStoreExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/Dell/PowerStoreExtractor";
 import OntapExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/NetApp/OntapExtractor";
 import NetAppOntapPlatform from "../../../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform";
 import {
@@ -21,6 +22,7 @@ import {
 } from "../../../../../Server/Utils/Telemetry/StorageArraySnapshotScan";
 import PureStorageFlashArrayPlatform from "../../../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
 import PureStorageFlashBladePlatform from "../../../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
+import DellPowerStorePlatform from "../../../../../Types/StorageArray/Platforms/Dell/PowerStore/PowerStorePlatform";
 import { StorageArrayPlatform } from "../../../../../Types/StorageArray/StorageArrayPlatform";
 import StorageArrayPlatformRegistry from "../../../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import StorageArrayResourceKind from "../../../../../Types/StorageArray/StorageArrayResourceKind";
@@ -43,6 +45,7 @@ import {
 
 const FLASHARRAY: string = StorageSystem.PureStorageFlashArray;
 const FLASHBLADE: string = StorageSystem.PureStorageFlashBlade;
+const POWERSTORE: string = StorageSystem.DellPowerStore;
 const ONTAP: string = StorageSystem.NetAppOntap;
 
 afterEach(() => {
@@ -78,14 +81,16 @@ function row(
 }
 
 describe("the shipped extractors", () => {
-  test("are FlashArray's, FlashBlade's and ONTAP's, one for each shipped platform", () => {
+  test("are FlashArray's, FlashBlade's, PowerStore's and ONTAP's, one for each shipped platform", () => {
     expect(StorageArrayExtractors.getExtractors()).toEqual([
       FlashArrayExtractor,
       FlashBladeExtractor,
+      PowerStoreExtractor,
       OntapExtractor,
     ]);
     expect(FlashArrayExtractor.storageSystem).toBe(FLASHARRAY);
     expect(FlashBladeExtractor.storageSystem).toBe(FLASHBLADE);
+    expect(PowerStoreExtractor.storageSystem).toBe(POWERSTORE);
     expect(OntapExtractor.storageSystem).toBe(ONTAP);
     // Only ONTAP works out what a batch's series say together.
     expect(FlashArrayExtractor.finishBatch).toBeUndefined();
@@ -123,6 +128,7 @@ describe("the ingest's gate", () => {
     const names: Array<string> = [
       ...PureStorageFlashArrayPlatform.snapshotMetricNames,
       ...PureStorageFlashBladePlatform.snapshotMetricNames,
+      ...DellPowerStorePlatform.snapshotMetricNames,
       ...NetAppOntapPlatform.snapshotMetricNames,
     ];
     expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
@@ -136,6 +142,10 @@ describe("the ingest's gate", () => {
       "purefa_array_performance_latency_usec",
       "purefa_volume_group_space_bytes",
       "purefa_some_series_purity_adds_later",
+      // PowerStore's: the percents the agent divides out, which only chart.
+      "powerstore_cap_physical_used_percent",
+      "powerstore_filesystem_logical_used_percent",
+      "powerstore_metro_witness_status",
       "node_cpu_seconds_total",
       "",
       "acme_volume_used_bytes",

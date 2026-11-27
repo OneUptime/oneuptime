@@ -85,6 +85,7 @@ Les moniteurs viennent en premier, à part, parce que les pages de statut voient
 
 - **Moniteurs** — un champ de recherche qui rattache les moniteurs touchés par l'incident ; son onglet **Étiquettes** ajoute d'un coup tous les moniteurs portant une étiquette. Une page de statut affiche un incident, et en notifie ses abonnés, quand elle liste l'un des moniteurs de l'incident : ce sont donc eux qui décident quelles pages de statut en sont informées (`monitors` sur l'incident).
 - **Changer le statut du moniteur en** — facultatif, et affiché seulement une fois au moins un moniteur choisi. Choisit un statut de moniteur appliqué à chaque moniteur rattaché à cet incident, si bien que déclarer l'incident et marquer les moniteurs comme dégradés se fait en une seule action au lieu de deux. Déclarer à partir d'un modèle qui en définit un démarre avec le statut du modèle, affiché dès que vous choisissez un moniteur. Sans moniteur choisi, aucun statut n'est enregistré, pas même celui du modèle ; retirez le dernier moniteur et le champ disparaît jusqu'à ce que vous en choisissiez un autre, ce qui rétablit votre choix. Le statut d'un moniteur est partagé par toutes les pages de statut qui le listent ; avec des pages de statut choisies sous **Plus de champs**, le formulaire vous rappelle donc que le changement apparaît aussi sur les pages que vous n'avez pas choisies.
+- **Mettre la surveillance en pause** — affiché dès qu'au moins un moniteur est choisi, et coché. Coché, l'incident met en pause les vérifications de ses moniteurs jusqu'à sa résolution, si bien que le statut ci-dessus reste sur eux. Décochez-le pour qu'ils restent vérifiés pendant que l'incident est ouvert : leurs vérifications continuent de définir leur statut, et d'ouvrir des incidents et des alertes. Un moniteur réglé pour continuer la surveillance pendant les incidents n'est jamais mis en pause, coché ou non (`pauseMonitoring` sur l'incident). Voir [Surveillance pendant qu'un incident est ouvert](#surveillance-pendant-quun-incident-est-ouvert).
 - **Autres ressources affectées** — un second champ de recherche pour tout le reste de ce que touche l'incident : hôtes, équipements réseau, clusters Kubernetes, hôtes Docker et Podman, clusters Proxmox, Ceph et Docker Swarm, vCenters, baies de stockage, flottes IoT, bases de données, ressources cloud et services — tout ce que propose, hors moniteurs, la carte **Ressources affectées** de l'incident. En coulisses, ce sont des relations distinctes sur l'incident (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` et d'autres), mais le formulaire les réunit dans un seul sélecteur.
 
 **Autres ressources affectées** cherche dans tous les types qu'il propose à la fois. Une ressource est trouvée par son nom ou sa description, un équipement réseau aussi par l'adresse à laquelle il est interrogé ou par son nom DNS, et un hôte par le nom que son agent signale ou par l'une de ses adresses IP. Les résultats sont regroupés par type, l'adresse d'un équipement à côté de son nom. Dès qu'ils contiennent plus d'un type, une rangée au-dessus d'eux réduit la liste à un seul type et indique combien de chaque type correspondent, et un type qui a plus de résultats que la liste n'en montre propose d'en afficher davantage. Les ressources archivées ne sont pas proposées. Quand la recherche correspond aussi à des moniteurs, une ligne sous les résultats indique combien, et que les moniteurs se choisissent sous **Moniteurs**.
@@ -280,7 +281,7 @@ Dans l'ordre :
 9. **Les abonnés sont mis en file d'attente**, si **Notifier les abonnés de la page de statut** est resté activé et que l'incident est visible sur la page de statut. L'envoi est assuré par une tâche d'arrière-plan, pas pendant votre requête, et va aux pages de statut que l'incident atteint : celles qui listent ses moniteurs, restreintes par **Limiter à ces pages de statut**, et sans les pages qui n'affichent que les incidents qui leur sont limités quand il n'est pas limité. Une page de statut archivée n'envoie rien. Sa progression s'affiche comme **Statut de notification de l'abonné** sur la **Vue d'ensemble** de l'incident : ce qui a été envoyé et ce qui a échoué sur chaque page de statut, et **Réessayer** ou **Renvoyer** une fois l'envoi terminé. Voir [Abonnés et annonces](/docs/status-pages/subscribers#vérifier-ce-qui-a-été-envoyé).
 10. **Les flux de travail se déclenchent.** Le déclencheur **À la création : Incident** lance tout flux de travail construit dessus. Voir [Présentation des flux de travail](/docs/workflows/index).
 
-À partir de là, l'incident est en cours : il compte dans le badge **Incidents actifs** du menu latéral Incidents (tout état situé au-dessus de votre état résolu compte comme actif), il apparaît sur les pages de statut qui portent l'un de ses moniteurs (seulement celles choisies, si vous l'avez limité), et sa **Chronologie d'état** commence à enregistrer.
+À partir de là, l'incident est en cours : il compte dans le badge **Incidents actifs** du menu latéral Incidents (tout état situé au-dessus de votre état résolu compte comme actif), il apparaît sur les pages de statut qui portent l'un de ses moniteurs (seulement celles choisies, si vous l'avez limité), et sa **Chronologie d'état** commence à enregistrer. Ses moniteurs sont mis dans son statut **Changer le statut du moniteur en** et, s'il est déclaré à la main, leurs vérifications sont mises en pause jusqu'à sa résolution : voir [Surveillance pendant qu'un incident est ouvert](#surveillance-pendant-quun-incident-est-ouvert).
 
 ### Déclaré déjà pris en compte ou résolu
 
@@ -306,10 +307,43 @@ flowchart TB
 
 Les alertes, les épisodes d'alerte et les épisodes d'incident suivent la même règle : ce qui est créé déjà pris en compte n'alerte personne, et ce qui est créé résolu n'est en plus ni regroupé, ni remédié, ni examiné par l'IA, et n'a pas de canal à lui. Un incident ou une alerte dans l'état de création — l'état par défaut, et celui de tout incident qu'ouvre un moniteur — déclenche tout comme avant.
 
+## Surveillance pendant qu'un incident est ouvert
+
+Un incident déclaré à la main met en pause les vérifications des moniteurs qu'il liste, jusqu'à sa résolution. Ainsi, le statut dans lequel il les a mis n'est pas changé par leur prochaine vérification pendant que l'on travaille dessus. Déclaré à la main veut dire tout sauf OneUptime lui-même : **Déclarer un incident** dans le tableau de bord (depuis une alerte, depuis l'onglet **Incidents** d'un moniteur, ou de zéro), Slack, Microsoft Teams, l'API, Terraform, un flux de travail, [Ask AI](/docs/ai/ask-ai), l'application mobile et un formulaire. Ajouter un moniteur à un tel incident pendant qu'il est ouvert met aussi ce moniteur en pause.
+
+Rien d'autre ne met en pause les vérifications d'un moniteur de cette façon. Un incident que déclarent les critères d'un moniteur, un incident que déclare la règle d'incident d'une alerte et un incident que déclare un SLO laissent leurs moniteurs vérifiés, tout comme chaque alerte, créée par un moniteur ou à la main.
+
+```mermaid title="Si un incident ouvert met en pause les vérifications d'un moniteur"
+flowchart TB
+    declared{"Déclaré à la main ?"} -->|Non| checked["Les vérifications continuent"]
+    declared -->|Oui| ticked{"Mettre la surveillance en pause<br/>coché ?"}
+    ticked -->|Non| checked
+    ticked -->|Oui| setting{"Moniteur réglé pour continuer<br/>la surveillance pendant les incidents ?"}
+    setting -->|Oui| checked
+    setting -->|Non| paused["Vérifications en pause<br/>jusqu'à sa résolution"]
+```
+
+**Garder un moniteur vérifié.** Deux réglages en décident, et chacun le garde vérifié :
+
+- **Continuer la surveillance pendant les incidents**, sur la page **Paramètres** du moniteur, sous **Pendant les incidents**. Activez-le pour un moniteur qui reçoit des événements, comme un [moniteur de requêtes entrantes](/docs/monitor/incoming-request-monitor) auquel un autre système envoie ses alertes : un incident sur un événement ne l'empêche alors plus de lire le suivant. Il s'applique tout de suite, aux incidents déjà ouverts aussi : activé pendant qu'un incident met le moniteur en pause, ses vérifications reprennent aussitôt. Désactivé par défaut.
+- **Mettre la surveillance en pause**, là où l'incident est déclaré, sous **Changer le statut du moniteur en**. Décochez-le pour garder vérifiés tous les moniteurs de l'incident. Il peut être changé pendant que l'incident est ouvert, sur sa carte **Ressources affectées** : décoché, les moniteurs sont de nouveau vérifiés aussitôt.
+
+Un moniteur gardé vérifié continue de définir son propre statut : sa prochaine vérification remplace le statut dans lequel l'incident l'a mis, et ses critères continuent d'ouvrir et de résoudre leurs propres incidents et alertes.
+
+**Ce que fait encore un moniteur en pause.** Ses vérifications s'arrêtent : les sondes ne le vérifient plus, un heartbeat, un e-mail ou un agent qui cesse d'envoyer n'est pas remarqué, et un moniteur de télémétrie n'est pas évalué. Ce qui lui est envoyé de l'extérieur est toujours reçu : chaque requête que reçoit un [moniteur de requêtes entrantes](/docs/monitor/incoming-request-monitor), chaque e-mail que reçoit un moniteur d'e-mails entrants et chaque rapport qu'envoie l'agent d'un moniteur de serveur est listé dans ses **Journaux de surveillance**, tel qu'il est arrivé, avec **Non évalué : la surveillance est mise en pause par un incident**. Rien de ce que reçoit un moniteur en pause n'ouvre ni ne résout un incident ou une alerte, ni ne change son statut, et l'expéditeur reçoit sa réponse comme d'habitude. Un bandeau sur les pages du moniteur indique qu'il est en pause, et comment le garder vérifié.
+
+**Ce que compte le temps en pause.** Un moniteur en pause garde le statut qu'il a, et sa disponibilité, ses pages de statut et ses SLO comptent ce statut quand un incident y a mis le moniteur avec **Changer le statut du moniteur en** : c'est le statut que quelqu'un a déclaré. Quand aucun incident qui le met en pause n'a défini de statut, le statut n'est que ce que la dernière vérification du moniteur a vu avant la pause, donc ce temps est exclu de sa disponibilité, de ses pages de statut et de ses SLO, comme l'est le temps avec la surveillance désactivée. Sa **Chronologie de statut** marque où ce temps commence et finit, et la disponibilité sur sa **Vue d'ensemble** indique qu'elle exclut le temps en pause.
+
+**Quand la pause prend fin.** Résoudre l'incident, en retirer le moniteur ou le supprimer reprend les vérifications du moniteur et le remet en état opérationnel, sauf si un autre incident ouvert le concerne encore ; ses vérifications définissent ensuite son statut. Un moniteur qu'un autre incident ouvert déclaré à la main met encore en pause reste en pause. Un incident résolu puis rouvert depuis ne retient rien : il ne met donc rien en pause et ne garde rien en pause.
+
 ## Dépannage
 
 :::details La déclaration échoue et demande un état d'incident de création
 Si votre projet n'a aucun état portant l'indicateur `isCreatedState`, l'appel de création échoue et vous demande d'ajouter un état d'incident de création depuis les paramètres. Cela n'arrive normalement que sur un projet dont les états ont été fortement modifiés — voir [États et sévérités des incidents](/docs/incidents/states-and-severities).
+:::
+
+:::details Un moniteur n'ouvre plus d'alertes depuis qu'un incident a été déclaré dessus
+Un incident déclaré à la main met en pause les vérifications de ses moniteurs jusqu'à sa résolution, donc ce qui leur parvient entre-temps est listé dans leurs **Journaux de surveillance** mais pas évalué. Activez **Continuer la surveillance pendant les incidents** dans les **Paramètres** du moniteur pour le garder vérifié pendant cet incident et les suivants, ou décochez **Mettre la surveillance en pause** sur la carte **Ressources affectées** de l'incident pour les moniteurs de cet incident. Voir [Surveillance pendant qu'un incident est ouvert](#surveillance-pendant-quun-incident-est-ouvert).
 :::
 
 :::details L'incident a été déclaré, mais aucun abonné de page de statut n'en a été informé

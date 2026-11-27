@@ -2,9 +2,11 @@
 
 ストレージアレイ モニターは 1 つのストレージアレイを監視し、アレイ自体がアラートを上げたとき、容量が足りなくなったとき、遅くなったとき、ハードウェアやホストのパスを失ったとき、レプリケーションが遅れたときに知らせます。Pure Storage FlashArray、Pure Storage FlashBlade、NetApp ONTAP (Amazon FSx for NetApp ONTAP を含む) に対応し、OneUptime Storage Array Agent が収集するメトリクスを読み取ります。Pure の `purefa_*` と `purefb_*` のシリーズ、そして NetApp Harvest が ONTAP クラスターから読み取る `netapp_*` のシリーズです。
 
+Dell PowerStore (`dell.powerstore`) にも、Dell の `powerstore_*` シリーズから対応します。
+
 :::cards
 - [モニターを作成する](#ストレージアレイ-モニターを作成する): ダッシュボードでの六つのステップ。
-- [テンプレート](#組み込みのアラートテンプレート): 五十一個の組み込みアラート。ボリューム、ホスト、コンポーネントごとに一つのインシデント。
+- [テンプレート](#組み込みのアラートテンプレート): 組み込みのアラート。ボリューム、ホスト、アプライアンス、コンポーネントごとに一つのインシデント。
 - [Pure のシリーズの仕組み](#pure-のシリーズの形): 一つのメトリクス名に、多くの値。ONTAP のシリーズには [専用のセクション](#ontap-のシリーズの形) があります。
 - [メトリクス](#収集されるメトリクス): モニターがアラートを出せるすべてのシリーズ。
 :::
@@ -87,6 +89,8 @@ flowchart TB
 
 エージェントはアレイのエンドポイントを 60 秒ごとに、ボリューム、ホスト、Pod を 2 分ごとに読み取るため、5 分のウィンドウには必ずサンプルがあります。FlashBlade のファイルシステムとバケットは 5 分ごと (そのため 15 分)、FlashArray のディレクトリは 30 分ごとに読み取ります。ディレクトリのモニターには 60 分のウィンドウを指定してください。ONTAP では、Harvest がクラスターのパフォーマンスを毎分、構成、状態、EMS イベントを 3 分ごとに読み取るため、5 分のウィンドウには必ずサンプルがあります。
 
+PowerStore は 5 分ごとに、そのクラスターの状態は 60 秒ごとに読み取ります。PowerStore のモニターには 15 分のウィンドウを設定してください。
+
 ## Pure のシリーズの形
 
 Pure は **1 つの** メトリクス名に複数の値を載せ、ラベルで区別します。
@@ -107,6 +111,10 @@ Pure は **1 つの** メトリクス名に複数の値を載せ、ラベルで�
 
 モニターのフィルターとグループ化のキーでは、エージェントの属性は `resource.` で始まり (`resource.storage.array.name`、`resource.storage.system`)、Pure 自身のラベルはそうではありません (`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。
 
+## PowerStore のシリーズの形
+
+Dell のエクスポーターはメトリクス名ごとに 1 つの値を書き込むため、PowerStore のシリーズにラベルフィルターは不要です。ラベルがオブジェクトを示します。`appliance_id` はアプライアンス、`name` はパーツ、ボリューム、ファイルシステム、`volume_id`、`fc_port_id`、`eth_port_id`、`nas_id`、`volume_group_id` はパフォーマンスシリーズのオブジェクトです。状態シリーズは正常な間は 1、それ以外は 0 なので、テンプレートは 1 未満で発火します。PowerStore 自身のアラートは syslog で届き、そのテンプレート (ログモニター) は下の表の後に記載しています。
+
 ## ONTAP のシリーズの形
 
 NetApp Harvest は各シリーズに `netapp_<object>_<counter>` という名前を付け、オブジェクトをラベルで識別します。ボリュームは `volume` (その `svm` 内で)、アグリゲートは `aggr`、LUN は `lun` (その `volume` と `svm` 内で)、ノードは `node`、ディスクは `disk`、シェルフは `shelf`、SnapMirror 関係は `destination_location` です。レイテンシは 1 操作あたりのマイクロ秒、`_ops` は 1 秒あたりの操作数、`_data` は 1 秒あたりのバイト数です。
@@ -123,7 +131,7 @@ ONTAP の状態は 3 つの形で表されます。
 
 ## 組み込みのアラートテンプレート
 
-OneUptime には 51 個のテンプレートがあり (FlashArray 用が 12 個、FlashBlade 用が 8 個、ONTAP 用が 31 個)、**アラートの対象** の一覧はアレイのプラットフォームに合うものを提示します。各テンプレートは完全なモニターを作ります。メトリクスのクエリ、そのラベルフィルター、オブジェクト自身のラベルによるグループ化、発火する条件と回復する条件です。しきい値は編集できる出発点です。
+OneUptime には 67 個のテンプレートがあり (FlashArray 用が 12 個、FlashBlade 用が 8 個、PowerStore 用が 16 個、ONTAP 用が 31 個)、**アラートの対象** の一覧はアレイのプラットフォームに合うものを提示します。各テンプレートは完全なモニターを作ります。メトリクスのクエリ、そのラベルフィルター、オブジェクト自身のラベルによるグループ化、発火する条件と回復する条件です。しきい値は編集できる出発点です。
 
 条件は、ウィンドウ内の **すべての** 値で条件が成り立つときだけ発火します。ただし ONTAP の EMS テンプレートは例外です。Harvest はイベントを 1 回のポーリングの間しかエクスポートしないため、読み取り値は 1 つで足ります。容量、レイテンシ、遅延、比率のしきい値で発火したモニターは、しきい値から 10% 離れて初めて回復するため、しきい値付近を行き来する値で状態がばたつくことはありません。アラート、ハードウェア、接続のテンプレートは、状態が 5 分間のウィンドウ全体で見えたときに発火し、状態が解消されてから約 5 分後に回復します。
 
@@ -156,6 +164,37 @@ OneUptime には 51 個のテンプレートがあり (FlashArray 用が 12 個�
 | Hardware Component Unhealthy | ハードウェア | 重大 | `purefb_hardware_health`、`name` ごとに Min、過去 5 分 | < 1 — ブレード、ファブリックモジュール、電源、ファンが正常でない (未使用のスロットは 2 を報告する)。コンポーネントごとに一つのインシデント。≥ 1 で回復 |
 | High Read Latency | パフォーマンス | 警告 | `purefb_array_performance_latency_usec` を `dimension=usec_per_read_op` と `protocol=all` に絞り込み、Avg、過去 10 分 | > 10000 µs (10 ms)、全プロトコル。≤ 9000 で回復 |
 | File System Near Full | ファイルシステム | 警告 | `purefb_file_systems_space_bytes` を `space=available_ratio` に絞り込み、`name` ごとに Min、過去 15 分 | < 0.1 — ファイルシステムのプロビジョニング済みサイズの残りが 10% 未満。ファイルシステムごとに一つのインシデント。≥ 0.11 で回復 |
+
+### PowerStore
+
+| テンプレート | カテゴリ | 重大度 | 監視対象 | 発火する条件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 重大 | `powerstore_cluster`、Count、過去 10 分 | ウィンドウ全体でデータがない — エージェント、Dell のエクスポーター、またはクラスターが応答しなくなった。データが再び届くと回復 |
+| Capacity Above 80% | 容量 | 警告 | `powerstore_cap_physical_used_percent`、`appliance_id` ごとに Max、過去 15 分 | > 80 — アプライアンスの容量が埋まりつつある。≤ 72 で回復 |
+| Capacity Above 90% | 容量 | 重大 | `powerstore_cap_physical_used_percent`、`appliance_id` ごとに Max、過去 15 分 | > 90 — アプライアンスが書き込みを拒否する寸前。≤ 81 で回復 |
+| High Read Latency | パフォーマンス | 警告 | `powerstore_perf_avg_read_latency`、`appliance_id` ごとに Avg、過去 15 分 | > 5000 µs (5 ms)。≤ 4500 で回復 |
+| High Write Latency | パフォーマンス | 警告 | `powerstore_perf_avg_write_latency`、`appliance_id` ごとに Avg、過去 15 分 | > 5000 µs (5 ms)。≤ 4500 で回復 |
+| Drive Failed | ハードウェア | 重大 | `powerstore_hardware_Drive_state`、`name` ごとに Min、過去 10 分 | < 1 — ドライブが故障したか取り外された。≥ 1 で回復 |
+| Node Unhealthy | ハードウェア | 重大 | `powerstore_hardware_node_state`、`name` ごとに Min、過去 10 分 | < 1 — ノードが Healthy ではない。≥ 1 で回復 |
+| Power Supply Unhealthy | ハードウェア | 警告 | `powerstore_hardware_Power_Supply_state`、`name` ごとに Min、過去 10 分 | < 1 — 電源装置が故障したか電源を失った。≥ 1 で回復 |
+| Fan Unhealthy | ハードウェア | 警告 | `powerstore_hardware_Fan_state`、`name` ごとに Min、過去 10 分 | < 1 — ファンが故障した。≥ 1 で回復 |
+| Battery Unhealthy | ハードウェア | 警告 | `powerstore_hardware_Battery_state`、`name` ごとに Min、過去 10 分 | < 1 — バッテリーバックアップモジュールに障害が発生した。≥ 1 で回復 |
+| Drive Wearing Out | ハードウェア | 警告 | `powerstore_wear_metrics_by_drive`、`name` ごとに Min、過去 15 分 | < 10 — ドライブの耐久性の残りが 10% 未満。≥ 11 で回復 |
+| NAS Server Not Started | ファイルシステム | 警告 | `powerstore_nas_server_operational_status`、`name` ごとに Max、過去 10 分 | < 1 — NAS サーバーが停止しているか劣化している。≥ 1 で回復 |
+| Volume Not Ready | アレイのヘルス | 警告 | `powerstore_volume_state`、`name` ごとに Max、過去 15 分 | < 1 — ボリュームがオフライン。≥ 1 で回復 |
+| File System Near Full | ファイルシステム | 警告 | `powerstore_filesystem_logical_used_percent`、`name` ごとに Max、過去 15 分 | > 90 — ファイルシステムがほぼ満杯。≤ 81 で回復 |
+| Cluster Not Configured | アレイのヘルス | 警告 | `powerstore_cluster`、Max、過去 10 分 | < 1 — クラスターが Configured ではない。≥ 1 で回復 |
+| Metro Witness Not Connected | レプリケーション | 警告 | `powerstore_metro_witness_status`、`name` ごとに Min、過去 10 分 | > 0 — Metro Witness が接続されていない。再び OK になると回復 |
+
+### syslog による PowerStore のアラート
+
+PowerStore 自身のアラートはログとして届くため、そのテンプレートは **ログ** モニターで、アレイの **推奨事項** ページの **アレイのアラート** に表示されます。それぞれが PowerStore のアラートごとに一つのアラートを開き、`powerstore.resource.name` と `powerstore.alert.id` でグループ化し、PowerStore がそのアラートをクリアすると解決します:
+
+| テンプレート | 重大度 | 開く行の内容 | 解決する行の内容 |
+| --- | --- | --- | --- |
+| Critical Array Alert | 重大 | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | 警告 | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | 警告 | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
 ### ONTAP
 
@@ -213,6 +252,7 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | アレイのオープンなアラートごとに 1 シリーズ (値は 1)。ラベルは `severity` (`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type`、`summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade のオープンなアラートごとに 1 シリーズ (値は 1)。ラベルは `severity` (`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary`、`kburl` (Pure のナレッジベースの記事) |
+| `powerstore_cluster` | — | PowerStore | `count` | PowerStore クラスターが Configured (構成済みでサービス中) の間は 1、それ以外の状態 (Configuring、Expanding、Removing、Clustering_Failed、Unconfigured) では 0 です。 |
 | `netapp_cluster_new_status` | — | ONTAP | — | ONTAP がクラスターを正常と報告している間は 1。エージェントがまだクラスターを読み取っていることを示すシリーズでもあります |
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | ONTAP の各ヘルスサブシステムで開いているアラート (`subsystem` ごと) |
 | `netapp_health_support_alerts` | — | ONTAP | `count` | ONTAP のシステムヘルスモニターが開いているアラートごとに 1 シリーズ (開いている間) |
@@ -230,6 +270,13 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | FlashBlade の使用可能な容量のうち使用中の割合 |
 | `purefb_array_space_bytes` | `type=array`、`space=empty` | FlashBlade | `bytes` | FlashBlade の未使用の容量 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | FlashBlade 全体のデータ削減 |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | 各アプライアンスの物理容量のうち使用中の割合 (パーセント) です。物理使用量を物理容量の合計で割ったもので、PowerStore の日次の容量集計に基づきます。PowerStore は 70% から独自の容量アラートを発生させます。appliance_id でグループ化してください。 |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | 各アプライアンスの使用可能な物理容量 (バイト) です。 |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | 各アプライアンスが使用する物理容量 (バイト) で、重複排除と圧縮の後の値です。傾向を追って、アプライアンスが満杯になる時期を予測してください。 |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | 各アプライアンスでプロビジョニングされた論理容量 (バイト) です。そこにあるすべてのボリューム、ファイルシステム、vVol のサイズの合計で、物理容量を大きく上回ることがあります。 |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | ホストが各アプライアンスに書き込んだデータ (バイト) で、重複排除と圧縮の前の値です。 |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | 各アプライアンスでの重複排除と圧縮の効果で、たとえば 3.4:1 なら 3.4 です。継続的な低下は、新しく書き込まれたデータが削減されにくい (暗号化済みまたは圧縮済みのデータ) ことを意味します。 |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | 各アプライアンスの全体的な効率です。データ削減に、スナップショットとシンプロビジョニングによる節約を合わせたものです。 |
 | `netapp_aggr_space_used_percent` | — | ONTAP | `%` | 各アグリゲートの使用可能な領域のうち使用中の割合。`aggr` でグループ化します |
 | `netapp_aggr_space_total` | — | ONTAP | `bytes` | 各アグリゲートの使用可能な領域。クラスターの容量はその合計です |
 | `netapp_aggr_space_used` | — | ONTAP | `bytes` | 各アグリゲートで使用中または予約済みの領域 |
@@ -259,6 +306,13 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`、`protocol=all` | FlashBlade | `ops/s` | 全プロトコルの 1 秒あたりの書き込み操作数 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 全プロトコルの 1 秒あたりの読み取りバイト数 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 全プロトコルの 1 秒あたりの書き込みバイト数 |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | 各アプライアンスでの読み取りの平均レイテンシ (マイクロ秒) で、PowerStore の最新の 5 分間サンプルに基づきます。PowerStore の読み取りは通常 1 ms を大きく下回って完了します。 |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | 各アプライアンスでの書き込みの平均レイテンシ (マイクロ秒) です。 |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | 各アプライアンスでの 1 秒あたりの読み取り操作数です。 |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | 各アプライアンスでの 1 秒あたりの書き込み操作数です。 |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 各アプライアンスでの 1 秒あたりの読み取りバイト数です。 |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 各アプライアンスでの 1 秒あたりの書き込みバイト数です。 |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | 各アプライアンスがストレージ I/O に割り当てている CPU コアのうち、ビジーな割合 (パーセント) です。高い値が続く場合、アプライアンスは処理できる負荷の上限に近づいています。 |
 | `netapp_cluster_read_latency` | — | ONTAP | `µs` | クラスター全体の読み取りの平均レイテンシ |
 | `netapp_cluster_write_latency` | — | ONTAP | `µs` | クラスター全体の書き込みの平均レイテンシ |
 | `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | クラスター全体の 1 秒あたりの読み取り操作数 |
@@ -290,6 +344,20 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | ホストから見た各ボリュームのサイズ |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | データ削減後に各ボリュームが使う物理容量 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 各ボリュームのデータ削減率 |
+| `powerstore_volume_state` | — | PowerStore | `count` | ボリュームが Ready の間は 1、Initializing、Offline、または破棄中の間は 0 です。ホストが到達できないボリュームを見つけるには name でグループ化してください。 |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | ホストから見た各ボリュームのサイズ (バイト) です。 |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | ホストが各ボリュームに書き込んだデータ (バイト) で、重複排除と圧縮の前の値です。 |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | 各ボリュームの平均読み取りレイテンシ (マイクロ秒) です。遅いボリュームを見つけるには、ボリューム名を持つ volume_id でグループ化してください。 |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | 各ボリュームの平均書き込みレイテンシ (マイクロ秒) です。 |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | 各ボリュームの 1 秒あたりの読み取り操作数です。 |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | 各ボリュームの 1 秒あたりの書き込み操作数です。 |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 各ボリュームからの 1 秒あたりの読み取りバイト数です。 |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 各ボリュームへの 1 秒あたりの書き込みバイト数です。 |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | 各ボリュームグループのボリュームにプロビジョニングされた容量 (バイト) です。name でグループ化してください。 |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | ホストが各ボリュームグループのボリュームに書き込んだデータ (バイト) で、重複排除と圧縮の前の値です。 |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | 各ボリュームグループのボリューム全体での平均読み取りレイテンシ (マイクロ秒) です。グループ名を持つ volume_group_id でグループ化してください。 |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | 各ボリュームグループのボリューム全体での平均書き込みレイテンシ (マイクロ秒) です。 |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | 各ボリュームグループのボリューム全体での 1 秒あたりの読み取り・書き込み操作数です。 |
 | `netapp_svm_new_status` | — | ONTAP | — | SVM が実行中の間は 1。`svm` でグループ化します |
 | `netapp_svm_labels` | `state=stopped`、`type=data` | ONTAP | — | 停止しているデータ SVM ごとに 1 シリーズ |
 | `netapp_volume_size_used_percent` | — | ONTAP | `%` | `volume show` が報告する、各ボリュームの領域のうち使用中の割合。`volume` と `svm` でグループ化します |
@@ -335,6 +403,7 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | 各 Pod レプリカリンクの平均のレプリケーション遅延 |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 各 Pod のレプリケーショントラフィック。ラベルは `direction` と `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 各 ActiveCluster Pod のミラー書き込みの平均レイテンシ |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | 各 Metro Witness の状態です: 0 OK、1 一部接続、2 切断、3 削除中、4 初期化中。0 を超えると、Metro セッションが自動でフェイルオーバーしない可能性があります。 |
 | `netapp_snapmirror_lag_time` | — | ONTAP | `s` | 各 SnapMirror 関係のデスティネーションがソースからどれだけ遅れているか |
 | `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | 各関係のスケジュールが転送する間隔。エージェントがスケジュールの名前から書き込みます |
 | `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | 各関係の前回の転送にかかった時間 |
@@ -351,6 +420,23 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | 各ドライブの物理容量。ラベルは `component_status` (`healthy`、`failed`、`missing`、`recovering`、`unhealthy`、`empty`、...) と種類 |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 各 Ethernet と Fibre Channel のインターフェイスでの 1 秒あたりのエラー数。エラーが続くときは、たいていケーブル、光モジュール、スイッチポートの不良です |
 | `purefb_hardware_health` | — | FlashBlade | — | 各ハードウェアコンポーネント (ブレード、ファブリックモジュール、電源、ファン、...) の状態: 1 = 正常、2 = 未使用、0 = 異常。`name` ごとに最小値を取ります |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | アプライアンスのノードが Healthy の間は 1、それ以外の状態では 0 です。その状態は state ラベルが示します (Failed、Disconnected、Initializing...)。name と appliance_id でグループ化してください。 |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | ドライブが Healthy の間は 1、故障した、取り外された、または準備ができていないときは 0 です。ドライブごとに一つのインシデントを発生させるには name でグループ化してください。 |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | 各ドライブの書き込み耐久性の残りの割合 (パーセント) です。0 に近いドライブは寿命の終わりが近いため、交換を計画してください。 |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | ノードのファンモジュールが Healthy の間は 1、故障したか取り外されたときは 0 です。 |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | ノードの電源装置が Healthy の間は 1、故障した、入力電源を失った、または切断されたときは 0 です。 |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | ノードのバッテリーバックアップモジュールが Healthy の間は 1、障害が発生したか切断されたときは 0 です。 |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | ファイバーチャネルポートのリンクがアップの間は 1、ダウンの間は 0 です。何もケーブル接続されていないポートは常にダウンです。ポート名を持つ fc_port_id でグループ化してください。 |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | Ethernet ポートのリンクがアップの間は 1、ダウンの間は 0 です。ポート名を持つ eth_port_id でグループ化してください。 |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | 各ファイバーチャネルポートを通る読み取りの平均レイテンシ (マイクロ秒) です。 |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | 各ファイバーチャネルポートを通る書き込みの平均レイテンシ (マイクロ秒) です。 |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | 各ファイバーチャネルポートを通る 1 秒あたりの読み取り・書き込み操作数です。 |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | 各ファイバーチャネルポートを通る 1 秒あたりの読み取り・書き込みバイト数です。 |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | 各ファイバーチャネルポートで 1 秒あたりに受信した、CRC が無効なフレームの数です。エラーが続く場合、通常はケーブル、光モジュール、またはスイッチポートの不良です。 |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | 各ファイバーチャネルポートでの 1 秒あたりのリンク障害数です。1 件でもあれば、ポートのケーブル、光モジュール、スイッチを確認する価値があります。 |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | 各 Ethernet ポートでの 1 秒あたりの受信バイト数です。 |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | 各 Ethernet ポートでの 1 秒あたりの送信バイト数です。 |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | 各 Ethernet ポートで 1 秒あたりに受信した、CRC エラーのあるパケットの数です。エラーが続く場合、通常はケーブル、光モジュール、またはスイッチポートの不良です。 |
 | `netapp_node_new_status` | — | ONTAP | — | ONTAP がノードを正常と報告している間は 1。`node` でグループ化します |
 | `netapp_node_avg_processor_busy` | — | ONTAP | `%` | 各ノードのプロセッサーの使用状況 |
 | `netapp_node_failed_fan` | — | ONTAP | `count` | 各ノードの故障したファン |
@@ -386,6 +472,17 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs` | 各ファイルシステムの書き込みの平均レイテンシ |
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 各ファイルシステムが使う物理容量 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 各ファイルシステムのプロビジョニング済みサイズのうち、まだ空いている割合 (0 から 1)。0 に近いときは、クォータがいっぱいになりかけています |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | NAS サーバーが Started の間は 1、Stopped、Starting、Stopping、フェイルオーバー済み、または Degraded (バックアップノードなしで稼働中) の間は 0 です。name でグループ化してください。 |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | 各 NAS サーバーが処理する読み取りの平均レイテンシ (マイクロ秒) です。サーバー名を持つ nas_id でグループ化してください。 |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | 各 NAS サーバーが処理する書き込みの平均レイテンシ (マイクロ秒) です。 |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | 各 NAS サーバーが処理する 1 秒あたりの読み取り・書き込み操作数です。 |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | 各ファイルシステムのサイズのうち使用中の割合 (パーセント) です。論理使用量をプロビジョニング済みサイズで割ったものです。name でグループ化してください。 |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | クライアントから見た各ファイルシステムのサイズ (バイト) です。 |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | クライアントが各ファイルシステムに書き込んだデータ (バイト) です。 |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | 各ファイルシステムからの読み取りの平均レイテンシ (マイクロ秒) です。name でグループ化してください。 |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | 各ファイルシステムへの書き込みの平均レイテンシ (マイクロ秒) です。 |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | 各ファイルシステムの 1 秒あたりの読み取り操作数です。 |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | 各ファイルシステムの 1 秒あたりの書き込み操作数です。 |
 
 ### バケット
 

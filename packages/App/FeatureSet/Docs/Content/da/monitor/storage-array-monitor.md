@@ -2,9 +2,11 @@
 
 En lagerarray-monitor holder øje med ét lagerarray og fortæller dig, når arrayet selv udsender en advarsel, løber tør for plads, bliver langsomt, mister hardware eller en værtssti, eller kommer bagud med replikering. Den virker med Pure Storage FlashArray, Pure Storage FlashBlade og NetApp ONTAP (Amazon FSx for NetApp ONTAP medregnet) og læser de metrikker, som OneUptime Storage Array Agent indsamler: Pures serier `purefa_*` og `purefb_*` og de serier `netapp_*`, som NetApp Harvest læser fra en ONTAP-klynge.
 
+Den fungerer også med Dell PowerStore (`dell.powerstore`), ud fra Dells serier `powerstore_*`.
+
 :::cards
 - [Opret monitoren](#opret-en-lagerarray-monitor): Seks trin i dashboardet.
-- [Skabeloner](#færdige-advarselsskabeloner): Enoghalvtreds færdige advarsler, én hændelse pr. volumen, vært eller komponent.
+- [Skabeloner](#færdige-advarselsskabeloner): Færdige advarsler, én hændelse pr. volumen, vært, appliance eller komponent.
 - [Sådan fungerer Pures serier](#sådan-er-pures-serier-bygget-op): Ét metriknavn, mange værdier. ONTAPs [har deres eget afsnit](#sådan-er-ontaps-serier-bygget-op).
 - [Metrikker](#indsamlede-metrikker): Hver serie, monitoren kan advare på.
 :::
@@ -87,6 +89,8 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 
 Agenten læser arrayets endpoint hvert 60. sekund, og volumener, værter og pods hvert 2. minut, så et vindue på 5 minutter altid indeholder en prøve. Et FlashBlades filsystemer og buckets læser den hvert 5. minut, deraf 15, og FlashArray-mapper hvert 30. minut: giv en mappemonitor et vindue på 60 minutter. På ONTAP læser Harvest klyngens ydeevne hvert minut og dens konfiguration, tilstand og EMS-begivenheder hvert 3. minut, så et vindue på 5 minutter altid indeholder en prøve.
 
+Den læser en PowerStore hvert 5. minut og dens klynges tilstand hvert 60. sekund: giv en PowerStore-monitor et vindue på 15 minutter.
+
 ## Sådan er Pures serier bygget op
 
 Pure lægger flere værdier på **ét** metriknavn og skelner dem med en label:
@@ -107,6 +111,10 @@ En serie, der er filtreret til en dårlig tilstand, findes kun, så længe noget
 
 I monitorfiltre og grupperingsnøgler begynder agentens attributter med `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens Pures egne labels ikke gør (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 
+## Sådan er PowerStores serier opbygget
+
+Dells eksportør skriver én værdi pr. metriknavn, så en PowerStore-serie behøver intet labelfilter. Dens labels navngiver objektet: `appliance_id` en appliance, `name` en del, en diskenhed eller et filsystem, og `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id` eller `volume_group_id` objektet for en ydeevneserie. Dens tilstandsserier er 1, mens alt er sundt, og ellers 0, så skabelonerne udløses under 1. Dens egne advarsler kommer via syslog, og deres skabeloner, protokolmonitorer, står efter dens tabel nedenfor.
+
 ## Sådan er ONTAPs serier bygget op
 
 NetApp Harvest navngiver hver serie `netapp_<object>_<counter>` og navngiver objektet med dets labels: et volumen med `volume` inden for dets `svm`, et aggregat med `aggr`, en LUN med `lun` inden for dens `volume` og `svm`, en node med `node`, en disk med `disk`, en diskhylde med `shelf`, en SnapMirror-relation med `destination_location`. Latenser er mikrosekunder pr. operation, `_ops` operationer pr. sekund, `_data` bytes pr. sekund.
@@ -123,7 +131,7 @@ En tilstand som tal udløser, når hver værdi i vinduet er under 1, og genopret
 
 ## Færdige advarselsskabeloner
 
-OneUptime leverer 51 skabeloner — 12 til FlashArray, 8 til FlashBlade og 31 til ONTAP — og listen under **Hvad der skal advares om** tilbyder dem til arrayets platform. Hver bygger en komplet monitor: metrikforespørgslen, dens labelfiltre, en gruppering på objektets egen label, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
+OneUptime leverer 67 skabeloner — 12 til FlashArray, 8 til FlashBlade, 16 til PowerStore og 31 til ONTAP — og listen under **Hvad der skal advares om** tilbyder dem til arrayets platform. Hver bygger en komplet monitor: metrikforespørgslen, dens labelfiltre, en gruppering på objektets egen label, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
 
 Et kriterium udløser kun, når betingelsen gælder for **hver** værdi i dets vindue, undtagen i en ONTAP-EMS-skabelon: Harvest eksporterer en begivenhed i én indsamling, så én værdi er nok. En monitor, der udløste på en tærskel for kapacitet, latens, forsinkelse eller forhold, genopretter først 10 % forbi den, så en værdi, der svinger omkring tærsklen, ikke skifter frem og tilbage. Skabelonerne for advarsler, hardware og forbindelser udløses, når en tilstand har vist sig i hele deres vindue på 5 minutter, og genopretter cirka 5 minutter efter, at den er forsvundet.
 
@@ -156,6 +164,37 @@ Et kriterium udløser kun, når betingelsen gælder for **hver** værdi i dets v
 | Hardware Component Unhealthy | Hardware     | Kritisk     | `purefb_hardware_health`, Min pr. `name`, seneste 5 minutter                                                   | < 1 — en blade, et fabric-modul, en strømforsyning eller en blæser er ikke sund (en ubrugt plads melder 2). Én hændelse pr. komponent; genopretter ved ≥ 1 |
 | High Read Latency            | Ydeevne      | Advarsel     | `purefb_array_performance_latency_usec` filtreret til `dimension=usec_per_read_op` og `protocol=all`, Avg, seneste 10 minutter | > 10000 µs (10 ms) på tværs af alle protokoller; genopretter ved ≤ 9000                              |
 | File System Near Full        | Filsystemer | Advarsel     | `purefb_file_systems_space_bytes` filtreret til `space=available_ratio`, Min pr. `name`, seneste 15 minutter   | < 0.1 — der er mindre end 10 % tilbage af et filsystems tildelte størrelse. Én hændelse pr. filsystem; genopretter ved ≥ 0.11 |
+
+### PowerStore
+
+| Skabelon                     | Kategori     | Alvorlighed | Overvåger                                                                                                      | Udløser når                                                                                                         |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Tilgængelighed | Kritisk | `powerstore_cluster`, Count, seneste 10 minutter | Ingen data i hele vinduet — agenten, Dells eksportør eller klyngen holdt op med at svare; genopretter, når der igen kommer data |
+| Capacity Above 80% | Kapacitet | Advarsel | `powerstore_cap_physical_used_percent`, Max pr. `appliance_id`, seneste 15 minutter | > 80 — en appliances kapacitet bliver fyldt op; genopretter ved ≤ 72 |
+| Capacity Above 90% | Kapacitet | Kritisk | `powerstore_cap_physical_used_percent`, Max pr. `appliance_id`, seneste 15 minutter | > 90 — en appliance er tæt på at afvise skrivninger; genopretter ved ≤ 81 |
+| High Read Latency | Ydeevne | Advarsel | `powerstore_perf_avg_read_latency`, Avg pr. `appliance_id`, seneste 15 minutter | > 5000 µs (5 ms); genopretter ved ≤ 4500 |
+| High Write Latency | Ydeevne | Advarsel | `powerstore_perf_avg_write_latency`, Avg pr. `appliance_id`, seneste 15 minutter | > 5000 µs (5 ms); genopretter ved ≤ 4500 |
+| Drive Failed | Hardware | Kritisk | `powerstore_hardware_Drive_state`, Min pr. `name`, seneste 10 minutter | < 1 — et drev er fejlet eller fjernet; genopretter ved ≥ 1 |
+| Node Unhealthy | Hardware | Kritisk | `powerstore_hardware_node_state`, Min pr. `name`, seneste 10 minutter | < 1 — en knude er ikke Healthy; genopretter ved ≥ 1 |
+| Power Supply Unhealthy | Hardware | Advarsel | `powerstore_hardware_Power_Supply_state`, Min pr. `name`, seneste 10 minutter | < 1 — en strømforsyning er fejlet eller uden strøm; genopretter ved ≥ 1 |
+| Fan Unhealthy | Hardware | Advarsel | `powerstore_hardware_Fan_state`, Min pr. `name`, seneste 10 minutter | < 1 — en blæser er fejlet; genopretter ved ≥ 1 |
+| Battery Unhealthy | Hardware | Advarsel | `powerstore_hardware_Battery_state`, Min pr. `name`, seneste 10 minutter | < 1 — et batteribackupmodul har fejl; genopretter ved ≥ 1 |
+| Drive Wearing Out | Hardware | Advarsel | `powerstore_wear_metrics_by_drive`, Min pr. `name`, seneste 15 minutter | < 10 — et drev har mindre end 10 % af sin udholdenhed tilbage; genopretter ved ≥ 11 |
+| NAS Server Not Started | Filsystemer | Advarsel | `powerstore_nas_server_operational_status`, Max pr. `name`, seneste 10 minutter | < 1 — en NAS-server er stoppet eller forringet; genopretter ved ≥ 1 |
+| Volume Not Ready | Arrayets sundhed | Advarsel | `powerstore_volume_state`, Max pr. `name`, seneste 15 minutter | < 1 — en diskenhed er offline; genopretter ved ≥ 1 |
+| File System Near Full | Filsystemer | Advarsel | `powerstore_filesystem_logical_used_percent`, Max pr. `name`, seneste 15 minutter | > 90 — et filsystem er næsten fuldt; genopretter ved ≤ 81 |
+| Cluster Not Configured | Arrayets sundhed | Advarsel | `powerstore_cluster`, Max, seneste 10 minutter | < 1 — klyngen er ikke Configured; genopretter ved ≥ 1 |
+| Metro Witness Not Connected | Replikering | Advarsel | `powerstore_metro_witness_status`, Min pr. `name`, seneste 10 minutter | > 0 — et Metro-vidne er ikke forbundet; genopretter, når det igen er OK |
+
+### PowerStore-advarsler via syslog
+
+En PowerStores egne advarsler kommer som protokoller, så deres skabeloner er monitorer af typen **Protokoller**, der tilbydes på arrayets side **Anbefalinger** under **Arrayadvarsler**. Hver åbner én advarsel pr. PowerStore-advarsel, grupperet efter `powerstore.resource.name` og `powerstore.alert.id`, og løser den, når PowerStore rydder advarslen:
+
+| Skabelon | Alvorlighed | Åbner på en linje med | Løses ved |
+| --- | --- | --- | --- |
+| Critical Array Alert | Kritisk | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | Advarsel | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | Advarsel | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
 ### ONTAP
 
@@ -213,6 +252,7 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Én serie pr. åben advarsel på arrayet (værdi 1), med labelerne `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` og `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Én serie pr. åben advarsel på FlashBladen (værdi 1), med labelerne `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` og `kburl` (Pures artikel i vidensbasen) |
+| `powerstore_cluster` | — | PowerStore | `count` | 1, mens PowerStore-klyngen er Configured (dannet og i drift), 0 i enhver anden tilstand: Configuring, Expanding, Removing, Clustering_Failed eller Unconfigured. |
 | `netapp_cluster_new_status` | — | ONTAP | — | 1, mens ONTAP rapporterer klyngen som sund; viser også, at agenten stadig læser den |
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | Åbne advarsler i hvert af ONTAPs sundhedsdelsystemer, efter `subsystem` |
 | `netapp_health_support_alerts` | — | ONTAP | `count` | Én serie pr. advarsel, som ONTAPs overvågning af systemsundhed har åben, så længe den er åben |
@@ -230,6 +270,13 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `purefb_array_space_utilization`          | `type=array`                 | FlashBlade | `%`     | Andelen af FlashBladens brugbare kapacitet, der er i brug                                                                             |
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | FlashBladens ubrugte kapacitet                                                                                                        |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Datareduktion på tværs af FlashBladen                                                                                                 |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | Andel af hver appliances fysiske kapacitet i brug, i procent: dens fysisk brugte plads over dens samlede fysiske kapacitet, fra PowerStores daglige pladsopgørelse. PowerStore udløser sine egne kapacitetsadvarsler fra 70 %. Gruppér efter appliance_id. |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | Brugbar fysisk kapacitet for hver appliance i bytes. |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | Fysisk kapacitet, som hver appliance bruger, i bytes, efter deduplikering og komprimering. Følg tendensen for at forudsige, hvornår en appliance bliver fuld. |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | Logisk kapacitet tildelt på hver appliance i bytes: størrelsen på hver diskenhed, hvert filsystem og hver vVol, den rummer, som kan ligge langt over dens fysiske kapacitet. |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | Data, som værter har skrevet til hver appliance i bytes, før deduplikering og komprimering. |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | Deduplikering og komprimering på hver appliance, for eksempel 3.4 for 3.4:1. Et vedvarende fald betyder, at nyskrevne data reduceres dårligt: krypterede eller allerede komprimerede data. |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | Hver appliances samlede effektivitet: datareduktionen sammen med besparelserne fra snapshots og thin provisioning. |
 | `netapp_aggr_space_used_percent` | — | ONTAP | `%` | Andel af hvert aggregats brugbare plads i brug — gruppér efter `aggr` |
 | `netapp_aggr_space_total` | — | ONTAP | `bytes` | Hvert aggregats brugbare plads; klyngens kapacitet er summen af dem |
 | `netapp_aggr_space_used` | — | ONTAP | `bytes` | Plads, hvert aggregat har i brug eller reserveret |
@@ -259,6 +306,13 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all`     | FlashBlade | `ops/s`   | Skriveoperationer pr. sekund på tværs af alle protokoller                                                    |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Læste bytes pr. sekund på tværs af alle protokoller                                                          |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Skrevne bytes pr. sekund på tværs af alle protokoller                                                       |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | Gennemsnitlig latens for en læsning på hver appliance, i mikrosekunder, over PowerStores seneste femminutters prøve. Læsninger på PowerStore er typisk færdige langt under 1 ms. |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | Gennemsnitlig latens for en skrivning på hver appliance, i mikrosekunder. |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | Læseoperationer pr. sekund på hver appliance. |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | Skriveoperationer pr. sekund på hver appliance. |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Bytes læst pr. sekund på hver appliance. |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Bytes skrevet pr. sekund på hver appliance. |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | Andel af de CPU-kerner, hver appliance afsætter til lager-I/O, der er optaget, i procent. Vedvarende høje værdier betyder, at appliancen er tæt på den belastning, den kan betjene. |
 | `netapp_cluster_read_latency` | — | ONTAP | `µs` | Gennemsnitlig latens for en læsning på tværs af klyngen |
 | `netapp_cluster_write_latency` | — | ONTAP | `µs` | Gennemsnitlig latens for en skrivning på tværs af klyngen |
 | `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | Læseoperationer pr. sekund på tværs af klyngen |
@@ -290,6 +344,20 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `purefa_volume_space_bytes`                 | `space=total_provisioned`        | FlashArray | `bytes`   | Hvert volumens størrelse, som værterne ser den                |
 | `purefa_volume_space_bytes`                 | `space=total_physical`           | FlashArray | `bytes`   | Fysisk plads, hvert volumen bruger efter datareduktion        |
 | `purefa_volume_space_data_reduction_ratio`  | —                                | FlashArray | `ratio`   | Hvert volumens datareduktionsforhold                          |
+| `powerstore_volume_state` | — | PowerStore | `count` | 1, mens en diskenhed er Ready, 0, mens den er Initializing, Offline eller ved at blive slettet. Gruppér efter name for at finde den diskenhed, værter ikke kan nå. |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | Størrelsen på hver diskenhed, som værter ser den, i bytes. |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | Data, som værter har skrevet til hver diskenhed i bytes, før deduplikering og komprimering. |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | Gennemsnitlig læselatens for hver diskenhed i mikrosekunder. Gruppér efter volume_id, som indeholder diskenhedens navn, for at finde den langsomme diskenhed. |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | Gennemsnitlig skrivelatens for hver diskenhed i mikrosekunder. |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | Læseoperationer pr. sekund for hver diskenhed. |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | Skriveoperationer pr. sekund for hver diskenhed. |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Bytes læst pr. sekund fra hver diskenhed. |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Bytes skrevet pr. sekund til hver diskenhed. |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | Kapacitet tildelt hver volumegruppes diskenheder, i bytes. Gruppér efter name. |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | Data, som værter har skrevet til hver volumegruppes diskenheder i bytes, før deduplikering og komprimering. |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | Gennemsnitlig læselatens på tværs af hver volumegruppes diskenheder, i mikrosekunder. Gruppér efter volume_group_id, som indeholder gruppens navn. |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | Gennemsnitlig skrivelatens på tværs af hver volumegruppes diskenheder, i mikrosekunder. |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | Læse- og skriveoperationer pr. sekund på tværs af hver volumegruppes diskenheder. |
 | `netapp_svm_new_status` | — | ONTAP | — | 1, mens en SVM kører — gruppér efter `svm` |
 | `netapp_svm_labels` | `state=stopped`, `type=data` | ONTAP | — | Én serie pr. data-SVM, der er stoppet |
 | `netapp_volume_size_used_percent` | — | ONTAP | `%` | Andel af hvert volumens plads i brug, som `volume show` rapporterer det — gruppér efter `volume` og `svm` |
@@ -335,6 +403,7 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `purefa_pod_replica_links_lag_average_msec`          | —                                      | FlashArray | `ms`      | Gennemsnitlig replikeringsforsinkelse for hvert pod-replikalink                                                                                              |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Hver pods replikeringstrafik, med labelerne `direction` og `dimension`                                                                                       |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Gennemsnitlig latens for spejlede skrivninger for hver ActiveCluster-pod                                                                                     |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | Tilstanden for hvert Metro-vidne: 0 OK, 1 delvist forbundet, 2 afbrudt, 3 ved at blive slettet, 4 ved at blive initialiseret. Over 0 skifter en Metro-session måske ikke over af sig selv. |
 | `netapp_snapmirror_lag_time` | — | ONTAP | `s` | Hvor langt hver SnapMirror-relations destination er bagud for sin kilde |
 | `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | Hvor ofte hver relations tidsplan overfører; agenten skriver den ud fra tidsplanens navn |
 | `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | Hvor lang tid hver relations seneste overførsel tog |
@@ -351,6 +420,23 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `purefa_drive_capacity_bytes`                 | —                                | FlashArray | `bytes`    | Hvert drevs rå kapacitet, med labelen for dets `component_status` (`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...) og type                                                           |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Fejl pr. sekund på hvert Ethernet- og Fibre Channel-interface — vedvarende fejl betyder som regel et dårligt kabel, en dårlig optik eller en dårlig switchport                                                |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Sundheden for hver hardwarekomponent (blades, fabric-moduler, strømforsyninger, blæsere, ...): 1 = sund, 2 = ubrugt, 0 = usund. Tag minimum pr. `name`                                                         |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 1, mens en knude i en appliance er Healthy, 0 i enhver anden tilstand, som dens label state nævner (Failed, Disconnected, Initializing...). Gruppér efter name og appliance_id. |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 1, mens et drev er Healthy, 0, når det er fejlet, fjernet eller ikke klar. Gruppér efter name for at udløse én hændelse pr. drev. |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | Andel af hvert drevs skriveudholdenhed, der er tilbage, i procent. Et drev nær 0 er tæt på slutningen af sin levetid: planlæg udskiftningen. |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 1, mens en knudes blæsermodul er Healthy, 0, når det er fejlet eller fjernet. |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 1, mens en knudes strømforsyning er Healthy, 0, når den er fejlet, har mistet indgangsstrøm eller er frakoblet. |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 1, mens en knudes batteribackupmodul er Healthy, 0, når det har fejl eller er frakoblet. |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 1, mens forbindelsen på en Fibre Channel-port er oppe, 0, mens den er nede, hvilket en port uden kabel altid er. Gruppér efter fc_port_id, som indeholder portens navn. |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 1, mens forbindelsen på en Ethernet-port er oppe, 0, mens den er nede. Gruppér efter eth_port_id, som indeholder portens navn. |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | Gennemsnitlig latens for en læsning gennem hver Fibre Channel-port, i mikrosekunder. |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | Gennemsnitlig latens for en skrivning gennem hver Fibre Channel-port, i mikrosekunder. |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | Læse- og skriveoperationer pr. sekund gennem hver Fibre Channel-port. |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | Bytes læst og skrevet pr. sekund gennem hver Fibre Channel-port. |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | Rammer modtaget med en ugyldig CRC pr. sekund på hver Fibre Channel-port. Vedvarende fejl betyder normalt et dårligt kabel, en dårlig optik eller en dårlig switchport. |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | Forbindelsesfejl pr. sekund på hver Fibre Channel-port. Enhver er et kig værd på portens kabel, optik og switch. |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | Bytes modtaget pr. sekund på hver Ethernet-port. |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | Bytes sendt pr. sekund på hver Ethernet-port. |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | Pakker modtaget med en CRC-fejl pr. sekund på hver Ethernet-port. Vedvarende fejl betyder normalt et dårligt kabel, en dårlig optik eller en dårlig switchport. |
 | `netapp_node_new_status` | — | ONTAP | — | 1, mens ONTAP rapporterer en node som sund — gruppér efter `node` |
 | `netapp_node_avg_processor_busy` | — | ONTAP | `%` | Hvor travle hver nodes processorer er |
 | `netapp_node_failed_fan` | — | ONTAP | `count` | Defekte blæsere i hver node |
@@ -386,6 +472,17 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs`    | Gennemsnitlig skrivelatens for hvert filsystem                                               |
 | `purefb_file_systems_space_bytes`              | `space=total_physical`        | FlashBlade | `bytes` | Fysisk plads, hvert filsystem bruger                                                         |
 | `purefb_file_systems_space_bytes`              | `space=available_ratio`       | FlashBlade | `ratio` | Andelen af hvert filsystems tildelte størrelse, der stadig er ledig, fra 0 til 1 — tæt på 0 er det ved at fylde sin kvote |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | 1, mens en NAS-server er Started, 0, mens den er Stopped, Starting, Stopping, overtaget eller Degraded (kører uden sin reserveknude). Gruppér efter name. |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | Gennemsnitlig latens for en læsning, som hver NAS-server betjener, i mikrosekunder. Gruppér efter nas_id, som indeholder serverens navn. |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | Gennemsnitlig latens for en skrivning, som hver NAS-server betjener, i mikrosekunder. |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | Læse- og skriveoperationer pr. sekund, som hver NAS-server betjener. |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | Andel af hvert filsystems størrelse i brug, i procent: dets logisk brugte plads over dets tildelte størrelse. Gruppér efter name. |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | Størrelsen på hvert filsystem, som klienter ser den, i bytes. |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | Data, som klienter har skrevet til hvert filsystem, i bytes. |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | Gennemsnitlig latens for en læsning fra hvert filsystem, i mikrosekunder. Gruppér efter name. |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | Gennemsnitlig latens for en skrivning til hvert filsystem, i mikrosekunder. |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | Læseoperationer pr. sekund for hvert filsystem. |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | Skriveoperationer pr. sekund for hvert filsystem. |
 
 ### Buckets
 

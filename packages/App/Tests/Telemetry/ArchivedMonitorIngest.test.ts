@@ -9,6 +9,10 @@
  * An email to an archived Incoming Email monitor is still recorded, as it is
  * for a disabled one - the Monitor Summary keeps showing the last email - but
  * it evaluates nothing, so it opens no incident or alert.
+ *
+ * Since #11141 what reaches an archived monitor is not dropped either: each
+ * email and request is listed in the monitor's Logs as not evaluated, because
+ * the monitor is archived (MonitorResourceUtil.listNotEvaluated).
  */
 
 jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
@@ -17,6 +21,10 @@ jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
     default: {
       monitorResource: jest.fn(() => {
         return Promise.resolve({});
+      }),
+      // Lists what a monitor that is not being checked received (#11141).
+      listNotEvaluated: jest.fn(() => {
+        return Promise.resolve();
       }),
     },
   };
@@ -111,6 +119,9 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
+import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import { MonitorPauseReason } from "Common/Utils/Monitor/MonitorPauseState";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -122,6 +133,8 @@ const PROJECT_ID: string = "4c6e0b8a-9c15-4f8b-a1d2-7e5f4c3b2a19";
 
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
+const listNotEvaluated: jest.Mock =
+  MonitorResourceUtil.listNotEvaluated as unknown as jest.Mock;
 const findOneBy: jest.Mock = MonitorService.findOneBy as unknown as jest.Mock;
 const updateColumns: jest.Mock =
   MonitorService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
@@ -170,8 +183,24 @@ function lastSelect(): JSONObject {
   return ((call?.[0] as { select?: JSONObject }) || {}).select || {};
 }
 
+// What the ingest listed as not evaluated, and why (#11141).
+function listed(): {
+  monitor: Monitor;
+  dataToProcess: IncomingEmailMonitorRequest & IncomingMonitorRequest;
+  reason: MonitorPauseReason;
+} {
+  expect(listNotEvaluated).toHaveBeenCalledTimes(1);
+
+  return listNotEvaluated.mock.calls[0]![0] as {
+    monitor: Monitor;
+    dataToProcess: IncomingEmailMonitorRequest & IncomingMonitorRequest;
+    reason: MonitorPauseReason;
+  };
+}
+
 beforeEach(() => {
   monitorResource.mockClear();
+  listNotEvaluated.mockClear();
   updateColumns.mockClear();
   findOneBy.mockReset();
 });
@@ -200,6 +229,30 @@ describe("an email to an archived Incoming Email monitor", () => {
     await processIncomingEmailFromQueue(emailJob());
 
     expect(monitorResource).toHaveBeenCalledTimes(1);
+    expect(listNotEvaluated).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #11141: it used to be dropped but for the latest email the monitor
+   * keeps. Now it is listed in the monitor's Logs as not evaluated, because
+   * the monitor is archived - the email itself, once it was recorded.
+   */
+  it("is listed in the monitor's Logs as not evaluated, because it is archived", async () => {
+    findOneBy.mockResolvedValue(monitor(true) as never);
+
+    await processIncomingEmailFromQueue(emailJob());
+
+    const { monitor: listedFor, dataToProcess, reason } = listed();
+
+    expect(reason).toBe(MonitorPauseReason.Archived);
+    expect(listedFor._id?.toString()).toBe(MONITOR_ID);
+    expect(dataToProcess.monitorId.toString()).toBe(MONITOR_ID);
+    expect(dataToProcess.projectId.toString()).toBe(PROJECT_ID);
+    expect(dataToProcess.emailSubject).toBe("Nightly backup completed");
+    expect(dataToProcess.onlyCheckForIncomingEmailReceivedAt).toBe(false);
+    expect(listNotEvaluated.mock.invocationCallOrder[0]!).toBeGreaterThan(
+      updateColumns.mock.invocationCallOrder[0]!,
+    );
   });
 });
 
@@ -226,6 +279,24 @@ describe("a request to an archived Incoming Request monitor", () => {
     await processIncomingRequestFromQueue(requestJob());
 
     expect(monitorResource).toHaveBeenCalledTimes(1);
+    expect(listNotEvaluated).not.toHaveBeenCalled();
+  });
+
+  // #11141: listed in the monitor's Logs as not evaluated, not dropped.
+  it("is listed in the monitor's Logs as not evaluated, because it is archived", async () => {
+    findOneBy.mockResolvedValue(monitor(true) as never);
+
+    await expect(processIncomingRequestFromQueue(requestJob())).resolves.toBe(
+      false,
+    );
+
+    const { dataToProcess, reason } = listed();
+
+    expect(reason).toBe(MonitorPauseReason.Archived);
+    expect(dataToProcess.monitorId.toString()).toBe(MONITOR_ID);
+    expect(dataToProcess.requestBody).toEqual({ status: "ok" });
+    expect(dataToProcess.onlyCheckForIncomingRequestReceivedAt).toBe(false);
+    expect(dataToProcess.incomingRequestReceivedAt).toBeInstanceOf(Date);
   });
 });
 

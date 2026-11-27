@@ -44,10 +44,9 @@ interface TableLine {
   noun: string;
   menu: string;
   readHow: string;
-  // "" for a platform that authenticates with an API token alone.
   userVariable: string;
-  extraFiles: Array<string>;
-  secret: string;
+  otherFiles: Array<string>;
+  optionalVariables: Array<string>;
 }
 
 interface ComposeFile {
@@ -78,6 +77,11 @@ function installTable(): Array<TableLine> {
     .map((line: string): TableLine => {
       const fields: Array<string> = line.split("|");
       expect({ line, fields: fields.length }).toEqual({ line, fields: 12 });
+      const list: (field: string) => Array<string> = (
+        field: string,
+      ): Array<string> => {
+        return field === "-" ? [] : field.split(" ");
+      };
       return {
         config: fields[0]!,
         system: fields[1]!,
@@ -89,8 +93,8 @@ function installTable(): Array<TableLine> {
         menu: fields[7]!,
         readHow: fields[8]!,
         userVariable: fields[9] === "-" ? "" : fields[9]!,
-        extraFiles: fields[10] === "-" ? [] : fields[10]!.split(","),
-        secret: fields[11]!,
+        otherFiles: list(fields[10]!),
+        optionalVariables: list(fields[11]!),
       };
     });
 }
@@ -151,21 +155,34 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
         noun: entry.config.arrayNoun,
         /*
          * Only an agent that talks to the array itself asks about its TLS:
-         * the collector, or an exporter that logs in to it (Harvest).
+         * the collector, or an exporter that checks the array's certificate
+         * (NetApp Harvest).
          */
         tlsToArray:
-          entry.config.exporterService === null || entry.config.userVariable
+          entry.config.exporterService === null ||
+          entry.config.exporterChecksCertificate
             ? "yes"
             : "no",
+        // An exporter that logs in itself: its user, and the files it runs with.
         userVariable: entry.config.userVariable || "",
-        extraFiles: [...(entry.config.extraFiles || [])],
-        // A user's password is the exporter's alone; a token the collector's.
-        secret: entry.config.userVariable ? "password" : "token",
+        otherFiles: [...(entry.config.otherFiles || [])],
       });
       expect(line!.menu).not.toBe("");
       expect(line!.readHow).not.toBe("");
     },
   );
+
+  test("only an exporter logs in with a user, and the collector never reads its password", () => {
+    for (const entry of REGISTERED) {
+      if (!entry.config.userVariable) {
+        continue;
+      }
+      expect(entry.config.exporterService).not.toBeNull();
+      const config: string = readAgentFile(entry.config.collectorConfigFile);
+      expect(config).not.toContain(`\${env:${entry.config.tokenVariable}}`);
+      expect(config).not.toContain(`\${env:${entry.config.userVariable}}`);
+    }
+  });
 });
 
 describe("each config of the table", () => {
@@ -182,39 +199,48 @@ describe("each config of the table", () => {
       expect(text).toMatch(
         /key: storage\.system\s+value: "?\$\{env:STORAGE_SYSTEM\}"?/,
       );
-      if (line.userVariable) {
-        /*
-         * ...and its exporter logs in with the user and password the line
-         * names, from its own files: the collector never holds them.
-         */
-        const exporterFiles: string = line.extraFiles
+      if (!line.userVariable) {
+        // ...and reads the address and token the line names.
+        expect(text).toContain(`\${env:${line.endpointVariable}}`);
+        expect(text).toContain(`\${env:${line.tokenVariable}}`);
+      } else {
+        // ...the exporter logs in with the line's user and password itself.
+        expect(text).not.toContain(`\${env:${line.tokenVariable}}`);
+        const exporterFiles: string = line.otherFiles
+          .filter((file: string): boolean => {
+            return /\.ya?ml$/.test(file);
+          })
           .map((file: string): string => {
             return readAgentFile(file);
           })
           .join("\n");
-        for (const variable of [
-          line.endpointVariable,
-          line.userVariable,
-          line.tokenVariable,
-        ]) {
-          expect(exporterFiles).toContain(`\${${variable}}`);
-          expect(text).not.toContain(variable);
+        if (exporterFiles.includes(`\${${line.userVariable}}`)) {
+          // NetApp Harvest reads the address, user and password from its own files.
+          for (const variable of [
+            line.endpointVariable,
+            line.userVariable,
+            line.tokenVariable,
+          ]) {
+            expect(exporterFiles).toContain(`\${${variable}}`);
+            expect(text).not.toContain(variable);
+          }
+        } else {
+          // Dell's exporter is asked for the array by its address.
+          expect(text).toContain(`\${env:${line.endpointVariable}}`);
         }
-      } else {
-        // ...and reads the address and token the line names.
-        expect(text).toContain(`\${env:${line.endpointVariable}}`);
-        expect(text).toContain(`\${env:${line.tokenVariable}}`);
       }
 
-      // Every OneUptime serves it at /install/storage-array-agent/<config>.
+      /*
+       * Every OneUptime serves it, and every other file it runs with, at
+       * /install/storage-array-agent/<file>, and each ships next to it.
+       */
       const entry: InstallScriptEntry | null = getInstallScriptEntry(
         InstallScriptName.StorageArrayAgent,
       );
       expect(entry?.files).toContain(config);
-      // And its exporter's own files, which ship beside it.
-      for (const file of line.extraFiles) {
-        expect(fs.existsSync(path.join(AGENT_DIRECTORY, file))).toBe(true);
+      for (const file of line.otherFiles) {
         expect(entry?.files).toContain(file);
+        expect(fs.existsSync(path.join(AGENT_DIRECTORY, file))).toBe(true);
       }
     },
   );
@@ -234,9 +260,10 @@ describe("each config of the table", () => {
           return volume.split(":")[0]!.replace(/^\.\//, "");
         },
       );
-      expect(mounted.sort()).toEqual(
-        [...(entry.config.extraFiles || [])].sort(),
-      );
+      // What it mounts is among the files it runs with (Harvest's, all four).
+      for (const file of mounted) {
+        expect(entry.config.otherFiles || []).toContain(file);
+      }
       const given: Array<string> = (service.environment || []).map(
         (variable: string): string => {
           return variable.split("=")[0]!;

@@ -918,7 +918,8 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
       exporterService: "netapp-harvest",
       // A word the Dashboard puts in its sentences, so translated.
       arrayNoun: translationKey("ONTAP cluster"),
-      extraFiles: [
+      exporterChecksCertificate: true,
+      otherFiles: [
         "netapp-harvest.yml",
         "netapp-harvest-rest.yaml",
         "netapp-harvest-keyperf.yaml",

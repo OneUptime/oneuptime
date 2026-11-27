@@ -18,6 +18,7 @@ Storage Arrays 是一个对每个厂商都以相同方式工作的产品。它�
 | **Pure Storage FlashArray**，Purity//FA 6.7 及更高版本 | `purestorage.flasharray` | 阵列自己的 OpenMetrics 端点（`https://<array>/metrics/...?namespace=purefa`）：Collector 旁边不需要运行任何东西 | `otel-collector-config.yaml`（默认） |
 | **Pure Storage FlashArray**，较旧的 Purity//FA | `purestorage.flasharray` | Pure 的 FlashArray OpenMetrics 导出器，由同一个 Compose 文件作为 `pure-fa-exporter` 服务运行 | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure 的 FlashBlade OpenMetrics 导出器，由同一个 Compose 文件作为 `pure-fb-exporter` 服务运行 | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | Dell 的 PowerStore Metrics Exporter，由同一个 Compose 文件作为 `powerstore-exporter` 服务构建并运行；集群的警报通过 syslog 到达其 `powerstore-syslog` 服务 | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 及更高版本（AFF、FAS、ASA、ONTAP Select、Cloud Volumes ONTAP），以及 **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11，由同一个 Compose 文件作为 `netapp-harvest` 服务运行：它使用只读用户和密码登录集群的 REST API | `otel-collector-config.netapp-ontap.yaml` |
 
 ONTAP 没有自己的指标端点，因此代理会在 Collector 旁边运行 NetApp 的开源导出器 Harvest。Harvest 读取集群的 REST API，并在 Compose 网络上提供它读取到的内容，每个序列都命名为 `netapp_<object>_<counter>`；Collector 抓取它并将其发送出去。Harvest 从不写入集群，其发送给 NetApp 的 AutoSupport 报告也已关闭。
@@ -32,6 +33,10 @@ flowchart TB
     collector -->|"ONTAP"| harvest["NetApp Harvest"]
     harvest -->|"只读用户，<br/>REST API"| cluster["集群，<br/>端口 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 一个代理监控一个阵列：请为每个阵列运行一个代理（参见 [监控多个阵列](#监控多个阵列)）。阵列会随其第一批数据自行注册，名称就是代理作为 `storage.array.name` 打到每个指标上的名称。
@@ -40,6 +45,7 @@ flowchart TB
 
 - Docker Engine 20.10 或更高版本，带 Docker Compose v2 插件，所在机器能通过 HTTPS（TCP 443）访问阵列的管理接口。
 - 阵列上的一个管理员帐户，用于创建具有内置 **readonly** 角色的用户及其 API 令牌。在 ONTAP 上，需要一个集群管理员（在 Amazon FSx for NetApp ONTAP 上为 `fsxadmin`），用于创建带密码的只读 REST 用户。
+- 对于 Dell PowerStore，需要一台 x86-64 机器（Dell 只为 x86-64 构建其导出器）和一个供代理使用的 PowerStore 用户：参见 [Dell PowerStore](#dell-powerstore)。
 - 一个摄取密钥。在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个并复制其值。
 
 ### 在哪里运行代理
@@ -138,7 +144,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+对于 Dell PowerStore，还要下载 `otel-collector-config.powerstore.yaml`、`powerstore-exporter.Dockerfile` 和 `powerstore-syslog.yaml`，设置 `STORAGE_SYSTEM=dell.powerstore`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` 和 `COMPOSE_PROFILES=powerstore`，并填写 `POWERSTORE_ENDPOINT`、`POWERSTORE_USERNAME` 和 `POWERSTORE_PASSWORD`，密码放在单引号中。
 
 对于运行较旧 Purity//FA 的 FlashArray，设置 `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` 和 `COMPOSE_PROFILES=flasharray-exporter`。对于 FlashBlade，设置 `STORAGE_SYSTEM=purestorage.flashblade`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` 和 `COMPOSE_PROFILES=flashblade`，并填写 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`，而不是 `PURE_FA_*` 这一对。
 
@@ -192,6 +207,16 @@ Everything is ready. Begin running and processing data.
 打开 **产品 → 基础设施 → 存储阵列 → 所有存储阵列**。第一次抓取之后（大约一分钟），阵列就会出现，带有它的容量、性能、未关闭的警报和硬件。卷、主机和 Pod 会在 2 分钟内出现，FlashBlade 的文件系统和存储桶在 5 分钟内出现，FlashArray 目录在 30 分钟内出现。ONTAP 集群会在 Harvest 读取它之后出现，其完整清单在大约 3 分钟内出现，即 Harvest 轮询其配置的间隔。阵列的 **拓扑** 页面将其主机、卷、文件系统和硬件绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
+## Dell PowerStore
+
+代理通过 Dell 的 PowerStore Metrics Exporter（版本 `powerstore-metrics-exporter_v1.0.3`）读取 PowerStore 集群。Dell 将它作为二进制文件而不是镜像发布，因此 `powerstore-exporter` 服务在首次启动时根据 `powerstore-exporter.Dockerfile` 构建 Dell 文档中描述的镜像，并校验二进制文件的 SHA-256；这次构建需要访问一次 `quay.io` 和 `github.com`。
+
+PowerStore 没有 API 令牌，因此 Dell 的导出器使用用户名和密码登录。在 PowerStore Manager 的 _Settings → Users_ 下，添加一个仅供代理使用的本地用户，角色为 **Storage Operator**：导出器从 PowerStore 的五分钟批量指标存档读取性能数据，该存档由导出器自行开启，PowerStoreOS 4.1 及更高版本需要它，而据 Dell 的 README，Operator 角色无法开启它。在较旧的 PowerStoreOS 上，只读的 **Operator** 角色配合 `POWERSTORE_BULK_METRICS=false` 就够了。只有导出器会从 `.env` 读取密码。
+
+Dell 的导出器不读取警报，因此由集群自己发送：`powerstore-syslog` 服务在端口 5514 上通过 TCP 和 UDP 接收其远程 syslog，并把每一行记录到阵列的 **日志** 页面，PowerStore 的记录放在属性中（`powerstore.alert.id`、`powerstore.alert.state`、`powerstore.event.code`），严重性取自 Dell 的事件代码（`powerstore.alert.severity`）。在 PowerStore Manager 中打开 _Settings → Security → Remote Logging_，添加这台机器的端口 5514，并在其防火墙中开放该端口。端口 6514 上基于 TLS 的 syslog 在 `powerstore-syslog.yaml` 中有说明。
+
+Dell 的导出器不报告主机和复制会话，因此此版本两者都没有。
+
 ## 环境变量
 
 安装脚本把这些变量写入 `/opt/oneuptime-storage-array-agent/.env`；Docker Compose 安装从 `.env`（位于 `docker-compose.yml` 旁边）中读取它们。更改其中一个后，请在该文件夹中运行 `docker compose up -d`。
@@ -208,6 +233,13 @@ Everything is ready. Begin running and processing data.
 | `PURE_FA_API_TOKEN` | FlashArray | 具有 readonly 角色的 FlashArray 用户的 API 令牌。 |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade 的管理地址：主机名或 IP，不带 `https://`。 |
 | `PURE_FB_API_TOKEN` | FlashBlade | 具有 readonly 角色的 FlashBlade 用户的 API 令牌。 |
+| `POWERSTORE_ENDPOINT` | PowerStore | PowerStore 集群的管理地址：主机名或 IP，不带 `https://`。 |
+| `POWERSTORE_USERNAME` | PowerStore | Dell 的导出器登录时使用的 PowerStore 用户。 |
+| `POWERSTORE_PASSWORD` | PowerStore | 该用户的密码。只有导出器会读取它。 |
+| `POWERSTORE_BULK_METRICS` | 否 | `true` 从 PowerStore 的批量指标存档读取性能数据；`false` 逐个读取每个对象。默认为 `true`。 |
+| `POWERSTORE_API_VERSION` | 否 | PowerStoreOS 3.6 及更高版本用 `v3`，否则用 `v1`。默认为 `v3`。 |
+| `POWERSTORE_REQUEST_LIMIT` | 否 | 导出器同时向集群发送的请求数。默认为 `16`。 |
+| `POWERSTORE_SYSLOG_PORT` | 否 | 这台机器通过 TCP 和 UDP 接收集群 syslog 的端口。默认为 `5514`。 |
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | 集群管理地址（在 FSx 上为文件系统的管理端点）：主机名或 IP，不带 `https://`。 |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | 只读 REST 用户，例如 `oneuptime`。 |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | 该用户的密码。只有 Harvest 会读取它，并完全按原样读取。 |
@@ -219,6 +251,7 @@ Everything is ready. Begin running and processing data.
 - **每个作业都给其序列打上 `scrape_endpoint: <endpoint>` 标签。** 每个端点还会导出 `purefa_info` 或 `purefb_info`，因此 OneUptime 知道一个批次是哪些指标族的完整列表：已删除的卷、主机、Pod、文件系统或存储桶正是这样离开清单，而不是一直滞留。请保持这些标签与随附时一致。
 - **按卷和按主机的延迟保留三个维度。** 每个卷和主机最多按十六个 `dimension` 导出其延迟。一条 `metric_relabel_configs` 规则保留 `usec_per_read_op`、`usec_per_write_op` 和 `usec_per_mirrored_write_op`，丢弃 QoS 速率限制、队列、SAN 和服务时间的细分，这些细分会使大型阵列的序列数成倍增加。`purefa_array_performance_latency_usec` 上的阵列级细分会保留。删除该规则即可同时保留按卷的细分。
 - **API 令牌是 Bearer 令牌。** 原生配置把它发送给阵列本身；导出器配置只通过 Compose 网络把它发送给导出器，导出器的端口从不发布。
+- **PowerStore 每 5 分钟一次。** Dell 的导出器在 `/metrics/<cluster>/<part>` 提供集群的每个部分：配置每 60 秒读取一次 `cluster`（即其心跳），每 5 分钟读取一次 `appliance`、`capacity`、`hardware`、`port`、`volume`、`volumeGroup`、`nas` 和 `file`，因为 PowerStore 以五分钟样本计算它们。
 - **没有 `send_batch_max_size`。** OneUptime 每个请求都根据一次完整的抓取重建清单，因此随附的 `batch` 处理器从不把一次抓取拆分到多次导出中。请保持随附的 batch 设置不变。
 - **ONTAP：Harvest 轮询集群，Collector 抓取 Harvest。** Harvest 每 3 分钟读取一次集群的配置和状态，每分钟读取一次其性能（延迟以每次操作的微秒计，操作数和字节数以每秒计），每 3 分钟读取一次其 EMS 事件，并在 `netapp-harvest:12990` 上提供所有内容的最新值，Collector 每 60 秒抓取一次该端点，并打上 `scrape_endpoint: harvest` 标签。三个 `netapp-harvest-*.yaml` 文件把 Harvest 限制为只读取 OneUptime 需要的内容。Harvest 自己的 `netapp_metadata_*` 序列说明它完整列出了哪些对象，因此已删除的卷会离开清单，而 Harvest 无法读取的对象则保留其最后的计数。Collector 会丢弃 Harvest 对自身的测量以及按磁盘的性能序列，并把每个 SnapMirror 关系的计划转换为 `netapp_snapmirror_schedule_seconds`（每小时一次的计划为 3600），SnapMirror Behind Schedule 用它与滞后进行比较。
 
@@ -236,6 +269,9 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享；ONTAP 
 | FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade 的名称、Purity 版本和系统 ID；容量和数据缩减；未关闭的警报数；阵列的健康状况；**硬件** 页面 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **文件系统** 页面：每个文件系统的预配空间和已用空间、数据缩减、延迟、IOPS 和带宽 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **存储桶** 页面：每个存储桶的空间、配额、对象数和性能，按帐户分组 |
+| PowerStore `cluster`、`appliance`、`capacity` | `powerstore_cluster`、`powerstore_metro_*`、`powerstore_appliance`、`powerstore_perf_*`、`powerstore_cap_*` | 集群的名称和状态；**专用设备** 页面：每台专用设备的容量、数据缩减、延迟、IOPS 和带宽 |
+| PowerStore `hardware`、`port` | `powerstore_hardware_*`、`powerstore_wear_metrics_by_drive`、`powerstore_fc_port_*`、`powerstore_eth_port_*`、`powerstore_metricFcPort_*`、`powerstore_metricEthPort_*` | **硬件** 页面：节点、风扇、电源、电池、驱动器和前端端口，每个都带有其专用设备 |
+| PowerStore `volume`、`volumeGroup`、`nas`、`file` | `powerstore_volume_*`、`powerstore_metricVolume_*`、`powerstore_volumegroup_*`、`powerstore_metricVg_*`、`powerstore_nas_server_operational_status`、`powerstore_metricNas_*`、`powerstore_filesystem_*`、`powerstore_metricFilesystem_*` | **卷**、**卷组**、**NAS 服务器** 和 **文件系统** 页面 |
 | ONTAP，通过 Harvest | `netapp_cluster_*`、`netapp_node_*`、`netapp_aggr_*`、`netapp_svm_*`、`netapp_volume_*`、`netapp_lun_*`、`netapp_snapmirror_*` | 集群的名称、版本和 UUID；其容量（其各数据聚合的总和）和数据缩减；**卷** 页面；**聚合**、**SVM**、**LUN** 和 **SnapMirror** 页面，每个对象一个页面 |
 | ONTAP 硬件，通过 Harvest | `netapp_disk_*`、`netapp_shelf_*`、`netapp_environment_sensor_*`、`netapp_net_port_*`、`netapp_nic_*`、`netapp_fcp_*` | **硬件** 页面：节点、磁盘、磁盘架及其电源、风扇、模块和传感器，节点的传感器，以及以太网和光纤通道端口 |
 | ONTAP 的未解决问题和事件 | `netapp_health_*`、`netapp_ems_events` | 未关闭的警报数和 **活动警报** 卡片（已损坏的磁盘、磁盘架故障、HA 接管、已断开的端口、系统健康警报），以及 EMS 模板 |
@@ -243,6 +279,8 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享；ONTAP 
 在 ONTAP 上，每个序列都来自 Harvest：对象由其标签命名（`volume` 位于其 `svm` 中，以及 `aggr`、`lun`、`node`、`disk`、`shelf`，SnapMirror 关系则用 `destination_location`），状态是一个值为 1 或 0 的 `netapp_*_new_status`，或是由其标签说明状态的 `netapp_*_labels` 序列，而每个未解决的问题都是一个在问题持续期间存在的 `netapp_health_*_alerts` 序列。
 
 **所有存储阵列** 的 **健康状况** 列读取阵列最新数据中阵列自身的警报和硬件：当它报告未关闭的严重警报，或有硬件组件、驱动器或控制器处于严重、故障、缺失或不健康状态时为 **严重**；当它报告未关闭的警告警报，或有降级或状态未知的组件时为 **警告**；否则为 **OK**；代理断开连接期间为 **未知**。阵列的 **概览** 会判断更多内容，如下一节所述。在监控条件中，阵列的属性要加上 `resource.` 前缀（`resource.storage.array.name`、`resource.storage.system`），而数据点标签保持原样（`name`、`host`、`dimension`、`space`）。
+
+PowerStore 的警报以日志形式到达，因此 PowerStore 的健康状况就是其硬件的健康状况。代理自行计算 `powerstore_cap_physical_used_percent` 和 `powerstore_filesystem_logical_used_percent`，并在节点为 Healthy 时将其状态读作 1。
 
 ## 阵列页面显示的内容
 
@@ -257,7 +295,11 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享；ONTAP 
 
 **主机**、**复制** 和 **文件系统** 列表按同样的规则显示每个部分的状态，并在下方说明原因；ONTAP 集群的 **卷**、**聚合**、**SVM**、**LUN** 和 **SnapMirror** 列表也是如此，其中每一行都会打开它自己的页面：其状态、需要关注的内容、其上未解决的事项、监视它的集群警报、ONTAP 报告的有关它的信息以及它的图表。每个平台的页面都使用该平台自己的术语：ONTAP 卷会列出其 SVM、其聚合及其使用程度，其页面绘制 ONTAP 的序列。在 Amazon FSx for NetApp ONTAP 上，**硬件** 页面会列出节点和端口，并说明为什么没有磁盘或磁盘架。主机和文件系统各自的页面会说明其中需要关注的内容以及监视它的阵列警报，只需一步即可开启其余警报；每个部分的页面，包括卷和存储桶的页面，都会说明其上未解决的事项。代理断开连接期间，健康状况显示为 **健康状况未知**：阵列的最后一次报告已不再准确。上面的每条阈值都是其警报模板触发的阈值，[存储阵列监控](/docs/monitor/storage-array-monitor)中列出了它们。
 
+在 PowerStore 上，**专用设备**、**卷组** 和 **NAS 服务器** 选项卡列出只有 PowerStore 才有的部分，**硬件** 页面会标出每个部件所属的专用设备，因为每台专用设备给部件起的名称都相同。
+
 ## 可选 — 发送阵列的 syslog
+
+PowerStore 的 syslog 收集器按随附配置运行（参见 [Dell PowerStore](#dell-powerstore)）：本节适用于 Pure 的阵列。
 
 默认情况下，代理只发送指标，因此阵列的 **日志** 页面保持为空。阵列会把它们的警报和审计事件作为 syslog 转发，每个随附的 Collector 配置中都有一对已注释掉的 `syslog` 接收器（端口 5514 上的 TCP 和 UDP，RFC 3164），连接到一个已注释掉的 `logs` 管道，该管道会打上 `storage.array.name`，使日志落到你的阵列上。
 
@@ -300,6 +342,8 @@ Collector 只在启动时读取其配置：请运行 `docker compose restart one
 
 一个代理读取一个阵列。要从同一台机器监控多个阵列，请把每个代理安装到各自的文件夹中，并使用各自的 `.env`，例如 `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`，并为每个代理设置各自的 `container_name`（位于其 `docker-compose.yml` 中，例如 `oneuptime-storage-array-agent-fa02`）：两个容器不能同名。用 `-d` 把文件夹传给诊断脚本。
 
+第二个 PowerStore 代理也需要自己的 syslog 端口：将 `POWERSTORE_SYSLOG_PORT` 设为例如 `5515`，写在其 `.env` 中。
+
 ## 作为 systemd 服务运行
 
 要让代理随机器启动并在失败时重启，请安装它的 systemd 单元。该单元假定代理位于 `/opt/oneuptime-storage-array-agent`，即安装脚本放置它的位置：
@@ -332,6 +376,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+PowerStore 代理还会重新下载 `otel-collector-config.powerstore.yaml`、`powerstore-exporter.Dockerfile` 和 `powerstore-syslog.yaml`；当新版本移动了标签时，`docker compose up` 会重新构建导出器的镜像。
+
 ## 卸载代理
 
 ```bash
@@ -340,6 +386,8 @@ docker compose down
 ```
 
 然后，如果不再需要，请在阵列上删除只读用户及其 API 令牌。在 ONTAP 上，请运行 `security login delete -user-or-group-name oneuptime -application http -authentication-method password`，然后运行 `security login rest-role delete -role oneuptime-readonly -api /api`。
+
+在 PowerStore 上运行 `docker compose --profile powerstore down`，让导出器和 syslog 收集器也停止。
 
 ## 故障排查
 
@@ -382,6 +430,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-s
 
 :::details ONTAP：Harvest 无法登录，或缺少某个对象
 查看 Harvest 的日志：`docker compose logs netapp-harvest`。出现 `401` 或 `Unauthorized` 表示集群拒绝了该用户或其密码：请检查该用户是否具有 **http** 登录方式和只读 REST 角色（`security login show -user-or-group-name oneuptime`），修正 `.env` 并运行 `docker compose up -d`。某个对象上出现 `403` 或 `not authorized` 表示该角色无法访问那个 API；上面的角色可以访问整个 `/api`。在 Amazon FSx for NetApp ONTAP 上，无论谁询问，FSx 对磁盘、磁盘架和传感器都会这样回答：这是预期行为，**硬件** 页面也会说明这一点。`connection refused` 或 `no such host` 表示 `NETAPP_ONTAP_ENDPOINT` 错误：它应是集群管理地址（在 FSx 上为管理端点），而不是某个节点或 SVM 的地址。诊断脚本也会检查所有这些。
+:::
+
+:::details PowerStore 什么也没有发送
+用 `docker compose logs powerstore-exporter` 查看导出器的日志：`401` 表示用户名或密码错误，`403` 出现在 `latest_five_min_metrics` 上则表示该用户的角色无法开启批量指标存档（授予 **Storage Operator**，或在早于 4.1 的 PowerStoreOS 上设置 `POWERSTORE_BULK_METRICS=false`）。导出器启动后需要一分钟才会响应。**日志** 页面上没有警报：检查集群的 _Remote Logging_ 设置、端口 5514 上的防火墙和 `docker compose logs powerstore-syslog`。
 :::
 
 :::details 已删除的卷或主机仍留在清单中

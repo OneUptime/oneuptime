@@ -134,30 +134,31 @@ reject_dollar() {
 #   2  the platform it stamps as storage.system
 #   3  the compose profile that starts the exporter it scrapes (- for none)
 #   4  the .env variable holding the array's management address
-#   5  the .env variable holding the read-only user's API token, or its
-#      password (field 12)
+#   5  the .env variable holding the read-only user's API token, or the
+#      password of the user field 10 names
 #   6  whether the agent itself talks TLS to the array (yes / no): the
 #      collector, or an exporter that logs in to the array itself (NetApp
 #      Harvest). Only then is the certificate question asked
 #   7  what the array is called in a sentence
 #   8  the menu's line for it
 #   9  how the agent reads it, for the last message
-#  10  the .env variable holding the read-only user's name, for a platform
-#      that logs in with a user and a password (- for an API token alone)
-#  11  the files besides the collector config that its exporter reads,
-#      shipped next to this script, separated by commas (- for none)
-#  12  what field 5 holds: token (an API token, which the collector reads
-#      and expands once more, so it never holds a $) or password (the user's
-#      password, which only the exporter reads, exactly as typed)
+#  10  for an exporter that logs in to the array itself with a user and a
+#      password: the .env variable holding the user's name (- for an API
+#      token, which the collector sends). The collector never reads that
+#      password, so it may hold a $.
+#  11  the files it runs with besides its collector config, shipped next to
+#      this script (- for none)
+#  12  the optional .env settings it reads, which a re-run keeps (- for none)
 #
 # The Dashboard's setup guide offers the same platforms (each platform's
 # StorageArrayPlatform.agentConfigs); StorageArrayAgentPlatforms.test.ts
 # holds the two lists in step.
 PLATFORMS="
-otel-collector-config.yaml|purestorage.flasharray|-|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|yes|FlashArray|Pure Storage FlashArray serving OpenMetrics itself (Purity//FA 6.7 and later)|directly (native OpenMetrics)|-|-|token
-otel-collector-config.flasharray-exporter.yaml|purestorage.flasharray|flasharray-exporter|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|no|FlashArray|Pure Storage FlashArray on an older Purity//FA (through Pure's exporter)|through Pure's exporter (pure-fa-exporter)|-|-|token
-otel-collector-config.flashblade.yaml|purestorage.flashblade|flashblade|PURE_FB_ENDPOINT|PURE_FB_API_TOKEN|no|FlashBlade|Pure Storage FlashBlade (through Pure's exporter)|through Pure's exporter (pure-fb-exporter)|-|-|token
-otel-collector-config.netapp-ontap.yaml|netapp.ontap|netapp-ontap|NETAPP_ONTAP_ENDPOINT|NETAPP_ONTAP_PASSWORD|yes|ONTAP cluster|NetApp ONTAP 9.12.1 or later, or Amazon FSx for NetApp ONTAP (through NetApp Harvest)|through NetApp Harvest (netapp-harvest)|NETAPP_ONTAP_USERNAME|netapp-harvest.yml,netapp-harvest-rest.yaml,netapp-harvest-keyperf.yaml,netapp-harvest-restperf.yaml|password
+otel-collector-config.yaml|purestorage.flasharray|-|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|yes|FlashArray|Pure Storage FlashArray serving OpenMetrics itself (Purity//FA 6.7 and later)|directly (native OpenMetrics)|-|-|-
+otel-collector-config.flasharray-exporter.yaml|purestorage.flasharray|flasharray-exporter|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|no|FlashArray|Pure Storage FlashArray on an older Purity//FA (through Pure's exporter)|through Pure's exporter (pure-fa-exporter)|-|-|-
+otel-collector-config.flashblade.yaml|purestorage.flashblade|flashblade|PURE_FB_ENDPOINT|PURE_FB_API_TOKEN|no|FlashBlade|Pure Storage FlashBlade (through Pure's exporter)|through Pure's exporter (pure-fb-exporter)|-|-|-
+otel-collector-config.powerstore.yaml|dell.powerstore|powerstore|POWERSTORE_ENDPOINT|POWERSTORE_PASSWORD|no|PowerStore|Dell PowerStore (through Dell's exporter, with its alerts by syslog)|through Dell's exporter (powerstore-exporter). Its alerts arrive once the PowerStore's remote logging points at this machine, port 5514 (see README.md)|POWERSTORE_USERNAME|powerstore-exporter.Dockerfile powerstore-syslog.yaml|POWERSTORE_BULK_METRICS POWERSTORE_API_VERSION POWERSTORE_REQUEST_LIMIT POWERSTORE_SYSLOG_PORT
+otel-collector-config.netapp-ontap.yaml|netapp.ontap|netapp-ontap|NETAPP_ONTAP_ENDPOINT|NETAPP_ONTAP_PASSWORD|yes|ONTAP cluster|NetApp ONTAP 9.12.1 or later, or Amazon FSx for NetApp ONTAP (through NetApp Harvest)|through NetApp Harvest (netapp-harvest)|NETAPP_ONTAP_USERNAME|netapp-harvest.yml netapp-harvest-rest.yaml netapp-harvest-keyperf.yaml netapp-harvest-restperf.yaml|-
 "
 
 # The table's lines, without the blank ones.
@@ -170,15 +171,15 @@ platform_field() {
     printf '%s' "$1" | cut -d '|' -f "$2"
 }
 
-# Every collector config, every address, token, password and user
-# variable, every exporter's own file and every exporter's profile, each
-# once, in the table's order.
+# Every collector config, every address, token, user and optional variable,
+# every other file and every exporter's profile, each once, in the table's
+# order.
 PLATFORM_CONFIGS="$(platform_lines | cut -d '|' -f 1 | awk '!seen[$0]++' | tr '\n' ' ')"
 PLATFORM_CONFIGS="${PLATFORM_CONFIGS% }"
-PLATFORM_VARIABLES="$(platform_lines | cut -d '|' -f 4,5,10 | tr '|' '\n' | grep -v '^-$' | awk '!seen[$0]++' | tr '\n' ' ')"
+PLATFORM_VARIABLES="$(platform_lines | cut -d '|' -f 4,5,10,12 | tr '|' '\n' | tr ' ' '\n' | grep -v '^-$' | grep -v '^$' | awk '!seen[$0]++' | tr '\n' ' ')"
 PLATFORM_VARIABLES="${PLATFORM_VARIABLES% }"
-PLATFORM_EXTRA_FILES="$(platform_lines | cut -d '|' -f 11 | tr ',' '\n' | grep -v '^-$' | grep -v '^$' | awk '!seen[$0]++' | tr '\n' ' ')"
-PLATFORM_EXTRA_FILES="${PLATFORM_EXTRA_FILES% }"
+PLATFORM_FILES="$(platform_lines | cut -d '|' -f 11 | tr ' ' '\n' | grep -v '^-$' | grep -v '^$' | awk '!seen[$0]++' | tr '\n' ' ')"
+PLATFORM_FILES="${PLATFORM_FILES% }"
 PLATFORM_PROFILES="$(platform_lines | cut -d '|' -f 3 | grep -v '^-$' | awk '!seen[$0]++' | tr '\n' ' ')"
 PLATFORM_PROFILES="${PLATFORM_PROFILES% }"
 
@@ -267,7 +268,9 @@ TLS_TO_ARRAY="$(platform_field "$PLATFORM_LINE" 6)"
 ARRAY_NOUN="$(platform_field "$PLATFORM_LINE" 7)"
 READ_HOW="$(platform_field "$PLATFORM_LINE" 9)"
 USER_VARIABLE="$(platform_field "$PLATFORM_LINE" 10)"
-SECRET_KIND="$(platform_field "$PLATFORM_LINE" 12)"
+if [ "$USER_VARIABLE" = "-" ]; then
+    USER_VARIABLE=""
+fi
 
 while [ -z "$STORAGE_ARRAY_NAME" ]; do
     read -rp "Array name (shown in OneUptime, keep it stable, e.g. fa-prod-01): " STORAGE_ARRAY_NAME
@@ -281,16 +284,16 @@ while [ -z "${!ENDPOINT_VARIABLE}" ]; do
 done
 printf -v "$ENDPOINT_VARIABLE" '%s' "$(normalize_endpoint "${!ENDPOINT_VARIABLE}")"
 reject_dollar "$ENDPOINT_VARIABLE" "${!ENDPOINT_VARIABLE}"
-if [ "$USER_VARIABLE" != "-" ] && [ -n "$USER_VARIABLE" ]; then
+if [ -n "$USER_VARIABLE" ]; then
+    # The exporter logs in with a user and a password, which only it reads
+    # (from .env, through Compose): the collector never sees them, so they
+    # may hold a $.
     while [ -z "${!USER_VARIABLE}" ]; do
-        read -rp "User name of the $ARRAY_NOUN's read-only user (README.md creates oneuptime): " "$USER_VARIABLE"
+        read -rp "User name the agent logs in to the $ARRAY_NOUN with (see README.md for its role): " "$USER_VARIABLE"
     done
-fi
-if [ "$SECRET_KIND" = "password" ]; then
-    # Only the exporter reads it, exactly as typed: a $ is fine.
     while [ -z "${!TOKEN_VARIABLE}" ]; do
         # -s: never echo the password to the terminal.
-        read -rsp "Password of the $ARRAY_NOUN's read-only user: " "$TOKEN_VARIABLE"
+        read -rsp "That user's password: " "$TOKEN_VARIABLE"
         echo ""
     done
 else
@@ -333,11 +336,11 @@ mkdir -p "$INSTALL_DIR"
 # bump changes every config). Without a record — an agent installed
 # before it was kept, or no sha256 tool — any file that differs from the new
 # download is kept, and said to differ rather than to be edited.
-# The compose file and every collector config of the PLATFORMS table. Every
-# OneUptime serves each of them for this script
-# (Common/Types/InstallScripts/InstallScripts.ts lists them, and
+# The compose file, every collector config of the PLATFORMS table and every
+# other file a platform runs with. Every OneUptime serves each of them for
+# this script (Common/Types/InstallScripts/InstallScripts.ts lists them, and
 # Tests/Ops/AgentInstallScriptsServed.test.js holds the two in step).
-AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS${PLATFORM_EXTRA_FILES:+ $PLATFORM_EXTRA_FILES}"
+AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS $PLATFORM_FILES"
 AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
 EDITED_FILES=()
 DIFFERING_FILES=()
