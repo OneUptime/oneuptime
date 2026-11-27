@@ -243,7 +243,7 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     id: "netapp-aggregate-full",
     name: "Aggregate Above 90%",
     summary:
-      "An aggregate has more than 90% of its space in use. Its volumes may soon stop taking writes.",
+      "An aggregate is over 90% full. Its volumes may soon stop taking writes.",
     description:
       "Alert when an aggregate has more than 90% of its usable space in use (netapp_aggr_space_used_percent), Active IQ Unified Manager's full line, one incident per aggregate. When an aggregate fills, its thin-provisioned volumes stop taking writes.",
     category: "Capacity",
