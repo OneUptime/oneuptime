@@ -48,6 +48,11 @@ import InitJob, {
  * and measures the time between each monitor's checks. It only uses what
  * the probe exported before #11333, so it runs against the old job too,
  * where the gaps were anything from 15 to 105 seconds.
+ *
+ * Its server hands out the monitors due at the same moment in the same
+ * order every minute, so this measures the probe alone. OneUptime's claim
+ * does not keep that order, so a busy probe's checks can still move within
+ * its round (issue #11386; ProbeResultsBurstPostgres measures it).
  */
 
 type CapturedCronJob = {

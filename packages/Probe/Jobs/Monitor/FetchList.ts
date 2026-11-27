@@ -29,13 +29,19 @@ import Sleep from "Common/Types/Sleep";
  * Every minute, each of PROBE_MONITORING_WORKERS workers asks the server
  * for up to PROBE_MONITOR_FETCH_LIMIT of the monitors that are due, and
  * starts checking them. Each asks at its own moment of the minute, the same
- * every minute (ProbeFetchMoments, issue #11333), so a monitor checked every
- * minute is checked about a minute apart; the probe's workers are spread
- * over the first MONITOR_FETCH_STAGGER_MAX_MS of the minute, so they, and
- * the probes of a server, never all ask at once. While the server hands it a full batch, more may be
- * due, so the worker asks again as soon as there is room; once a batch comes
- * back short, everything that was due has been handed out, and the worker
- * waits for the next minute.
+ * every minute (ProbeFetchMoments, issue #11333). The probe's workers are
+ * spread over the first MONITOR_FETCH_STAGGER_MAX_MS of the minute, so they,
+ * and the probes of a server, never all ask at once. While the server hands
+ * it a full batch, more may be due, so the worker asks again as soon as
+ * there is room; once a batch comes back short, everything that was due has
+ * been handed out, and the worker waits for the next minute.
+ *
+ * So a monitor checked every minute is checked a minute apart, give or take
+ * where in the probe's round the server hands it out. The round, from a
+ * minute's first ask to its last, lasts as long as the probe takes to get
+ * through what is due: a few seconds unless it is busy. The server does not
+ * keep the order of monitors due at the same moment from one minute to the
+ * next (issue #11386).
  *
  * It used to ask once a minute and wait for the whole batch to finish, so a
  * probe checked at most PROBE_MONITORING_WORKERS x PROBE_MONITOR_FETCH_LIMIT
