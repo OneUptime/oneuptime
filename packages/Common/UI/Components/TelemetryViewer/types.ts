@@ -31,6 +31,15 @@ export interface ActiveFilter {
    * the chip's tooltip. Display only.
    */
   lockedDetail?: LockedFilterDetail | undefined;
+  /*
+   * The record the chip names is gone - deleted since a link or a saved
+   * view named it, or out of the reader's reach - by every read the
+   * explorer made of it (#11213): drawn "No longer available", never as its
+   * id. `value` still filters as saved. Display only.
+   */
+  isNotFound?: boolean | undefined;
+  // The record the chip names is archived: drawn "{{name}} (archived)".
+  isArchived?: boolean | undefined;
 }
 
 export interface HistogramBucket {

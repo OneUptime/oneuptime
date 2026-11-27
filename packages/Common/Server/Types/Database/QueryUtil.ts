@@ -29,6 +29,12 @@ import OwnedBy, {
   OWNED_BY_QUERY_KEY,
 } from "../../../Types/BaseDatabase/OwnedBy";
 import OwnedByFilter from "./OwnedByFilter";
+import LinkedToLinkTables, { LinkTableRelation } from "./LinkedToLinkTables";
+import FilterGroups, {
+  FILTER_GROUPS_QUERY_KEY,
+  FilterGroup,
+  FilterGroupsMatch,
+} from "../../../Types/BaseDatabase/FilterGroups";
 import LinkedTo, {
   LINKED_TO_QUERY_KEY,
   LinkedToMatch,
@@ -229,7 +235,8 @@ export default class QueryUtil {
       if (
         value instanceof MultiSearch ||
         value instanceof OwnedBy ||
-        value instanceof LinkedTo
+        value instanceof LinkedTo ||
+        value instanceof FilterGroups
       ) {
         throw new BadDataException(
           `The filter on ${key} of a related ${model.singularName || "record"} ${
@@ -237,7 +244,9 @@ export default class QueryUtil {
               ? "searches several fields at once"
               : value instanceof OwnedBy
                 ? "is by owners"
-                : "is by linked records"
+                : value instanceof LinkedTo
+                  ? "is by linked records"
+                  : "is one of several filters"
           }, which a filter on a related record cannot do. Filter the related records with a query of their own.`,
         );
       }
@@ -421,6 +430,32 @@ export default class QueryUtil {
       delete query[key];
 
       conditionsOnId.push(QueryUtil.getLinkedToCondition(modelType, value));
+    }
+
+    /*
+     * The records one of several filters matches (FilterGroups, under
+     * "filterGroups", #11211): one condition on the row, each group's
+     * conditions on the record's own columns ANDed, the groups OR'd - or,
+     * for NoneOf, the records no group is true of. The key is no column,
+     * so TypeORM never sees it. QueryPermission has held the caller to
+     * each column's read first.
+     */
+    for (const key in query) {
+      const value: unknown = query[key];
+
+      if (!(value instanceof FilterGroups)) {
+        continue;
+      }
+
+      if (key !== FILTER_GROUPS_QUERY_KEY) {
+        throw new BadDataException(
+          `A filter of several groups goes under "${FILTER_GROUPS_QUERY_KEY}", not "${key}".`,
+        );
+      }
+
+      delete query[key];
+
+      conditionsOnId.push(QueryUtil.getFilterGroupsCondition(modelType, value));
     }
 
     /*
@@ -1219,6 +1254,31 @@ export default class QueryUtil {
     }> = [];
 
     for (const [relation, ids] of Object.entries(linkedTo.relations)) {
+      /*
+       * A relation kept in a table of its own - a team's members, one
+       * TeamMember row each (LinkedToLinkTables, #11211): a subquery on
+       * that table, through its index on the linked column.
+       */
+      const linkTable: LinkTableRelation | null = LinkedToLinkTables.get(
+        modelType,
+        relation,
+      );
+
+      if (linkTable) {
+        conditions.push({
+          condition: QueryHelper.linkedThroughTable({
+            values: ids,
+            tableName: new linkTable.modelType().tableName as string,
+            recordColumnName: linkTable.recordColumnName,
+            linkedColumnName: linkTable.linkedColumnName,
+            // Every table's rows are soft-deleted (BaseModel.deletedAt).
+            deleteDateColumnName: "deletedAt",
+            isNoneOf: !isAnyOf,
+          }),
+        });
+        continue;
+      }
+
       const column: TableColumnMetadata | undefined =
         model.getTableColumnMetadata(relation);
       const refusal: BadDataException = new BadDataException(
@@ -1285,6 +1345,126 @@ export default class QueryUtil {
         ? QueryHelper.anyOfConditions(conditions)
         : QueryHelper.allOfConditions(conditions)
     ) as FindOperator<unknown>;
+  }
+
+  /*
+   * A FilterGroups filter as one condition on the record's row (#11211):
+   * each group's conditions on the record's own columns ANDed - each one
+   * written as a filter on that column alone is written (serializeQuery: an
+   * id checked as a uuid, a date bound as the instant it is) - and the
+   * groups OR'd for AnyOf. NoneOf is the records the groups together are
+   * not true of: false, or unknown where a condition compares an empty
+   * column, so a record whose column is empty is kept, as a list's "is not"
+   * keeps it (QueryHelper.isNotTrue).
+   *
+   * A group reaches the record's own scalar columns only: a relation, a
+   * list of related records or a JSON column is refused, and so is any
+   * value its column's filter would not write as one condition on the row.
+   * The groups are composed as SQL, so a condition QueryHelper did not
+   * write could not be held with the others.
+   */
+  public static getFilterGroupsCondition<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    filterGroups: FilterGroups,
+  ): FindOperator<unknown> {
+    const model: BaseModel = new modelType();
+
+    const groupConditions: Array<{ condition: FindWhereProperty<any> }> =
+      filterGroups.groups.map(
+        (group: FilterGroup): { condition: FindWhereProperty<any> } => {
+          return {
+            condition: QueryHelper.allOfConditions(
+              Object.keys(group).map(
+                (
+                  columnName: string,
+                ): {
+                  columnName: string;
+                  condition: FindWhereProperty<any>;
+                } => {
+                  return {
+                    columnName: columnName,
+                    condition: QueryUtil.getFilterGroupColumnCondition({
+                      modelType: modelType,
+                      model: model,
+                      columnName: columnName,
+                      value: group[columnName],
+                    }),
+                  };
+                },
+              ),
+            ),
+          };
+        },
+      );
+
+    const anyGroup: FindWhereProperty<any> =
+      QueryHelper.anyOfConditions(groupConditions);
+
+    return (
+      filterGroups.match === FilterGroupsMatch.NoneOf
+        ? QueryHelper.isNotTrue(anyGroup)
+        : anyGroup
+    ) as FindOperator<unknown>;
+  }
+
+  /*
+   * One column's condition in a group, as a filter on that column alone
+   * writes it: a value compared as equal, an operator as serializeQuery
+   * writes it. Refused unless it is one condition on the row.
+   */
+  private static getFilterGroupColumnCondition<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    model: BaseModel;
+    columnName: string;
+    value: unknown;
+  }): FindWhereProperty<any> {
+    const column: TableColumnMetadata | undefined =
+      data.model.getTableColumnMetadata(data.columnName);
+    const recordsName: string = data.model.pluralName || "records";
+
+    if (!column) {
+      throw new BadDataException(
+        `"${data.columnName}" is not a column "${FILTER_GROUPS_QUERY_KEY}" can filter ${recordsName} by.`,
+      );
+    }
+
+    if (
+      column.type === TableColumnType.Entity ||
+      column.type === TableColumnType.EntityArray ||
+      column.type === TableColumnType.JSON
+    ) {
+      throw new BadDataException(
+        `"${data.columnName}" is not a column "${FILTER_GROUPS_QUERY_KEY}" can filter ${recordsName} by: a group compares the record's own columns, never related records or JSON.`,
+      );
+    }
+
+    // A plain value is the column holding it.
+    const value: unknown =
+      typeof data.value === Typeof.Boolean
+        ? new EqualTo(String(data.value))
+        : typeof data.value === Typeof.String ||
+            typeof data.value === Typeof.Number
+          ? new EqualTo(data.value as string | number)
+          : data.value;
+
+    const serialized: unknown = (
+      QueryUtil.serializeQuery(data.modelType, {
+        [data.columnName]: value,
+      } as Query<TBaseModel>) as Record<string, unknown>
+    )[data.columnName];
+
+    if (
+      !(serialized instanceof FindOperator) ||
+      (serialized as FindOperator<unknown>).type !== "raw"
+    ) {
+      throw new BadDataException(
+        `The filter on "${data.columnName}" cannot be one of "${FILTER_GROUPS_QUERY_KEY}": a group compares a column with a value, or with EqualTo, EqualToOrNull, NotEqual, NotEqualOrNull, IsNull, NotNull, Includes or IncludesNoneOrNull.`,
+      );
+    }
+
+    return serialized as FindWhereProperty<any>;
   }
 
   /*

@@ -128,6 +128,9 @@ jest.mock("../../../UI/Utils/Telemetry/UseTelemetryEntityNames", () => {
     default: () => {
       return {};
     },
+    useTelemetryEntityLookup: () => {
+      return { names: {}, notFound: new Set<string>() };
+    },
   };
 });
 

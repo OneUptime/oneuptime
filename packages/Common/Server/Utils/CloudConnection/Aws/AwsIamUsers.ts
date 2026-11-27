@@ -24,11 +24,11 @@ import AwsCloudConnector from "./AwsCloudConnector";
 import { getIamEndpoint } from "./AwsInventory";
 
 /*
- * WHAT AN IAM USER HOLDS, READ FOR A SECURITY CASE (#10900): whether what an
- * attack gave a user - the case's CloudTrail events name each - is still
- * there, asked of IAM through the project's AWS cloud connection with the
- * reads its "Security case checks" setting grants
- * (AWS_SECURITY_CASE_CHECKS_ACTIONS), and nothing else:
+ * WHAT AN IAM USER OR ROLE HOLDS, READ FOR A SECURITY CASE (#10900,
+ * #11038): whether what an attack gave a user or a role - the case's
+ * CloudTrail events name each - is still there, asked of IAM through the
+ * project's AWS cloud connection with the reads its "Security case checks"
+ * setting grants (AWS_SECURITY_CASE_CHECKS_ACTIONS), and nothing else:
  *
  *   GetUser                    the user, or NoSuchEntity once it is deleted
  *   ListAccessKeys             each access key's id and whether it is active
@@ -38,6 +38,10 @@ import { getIamEndpoint } from "./AwsInventory";
  *   ListUserPolicies           the names of the user's inline policies
  *   ListGroupsForUser          the groups the user is in
  *   ListMFADevices             the MFA devices the user has enabled
+ *   GetRole                    the role, its id and its trust policy - who
+ *                              may assume it - or NoSuchEntity once deleted
+ *   ListAttachedRolePolicies   the managed policies attached to the role
+ *   ListRolePolicies           the names of the role's inline policies
  *
  * IAM is global: one endpoint a partition (getIamEndpoint), signed for its
  * Region, through the query protocol, answered in XML. A connection that
@@ -250,25 +254,27 @@ async function iamRead(
  * at: the items of each page, as `read` takes them from its XML. A list
  * longer than AWS_IAM_MAX_LIST_PAGES pages throws, rather than say
  * something is missing that may be on a page not read. Null when the user
- * is not there.
+ * or the role it lists for is not there.
  */
 async function iamList<T>(
   session: AwsIamSession,
   data: {
     action: string;
-    userName: string;
+    // Whose list it is: { UserName } or { RoleName }.
+    of: Dictionary<string>;
     step: string;
     read: (xml: string) => Array<T>;
   },
 ): Promise<Array<T> | null> {
   const items: Array<T> = [];
+  const name: string = Object.values(data.of)[0] || "";
   let marker: string = "";
 
   for (let page: number = 0; page < AWS_IAM_MAX_LIST_PAGES; page++) {
     const text: string | null = await iamRead(session, {
       action: data.action,
       body: {
-        UserName: data.userName,
+        ...data.of,
         MaxItems: String(IAM_PAGE_SIZE),
         ...(marker ? { Marker: marker } : {}),
       },
@@ -296,7 +302,7 @@ async function iamList<T>(
   }
 
   throw new Error(
-    `${AWS_IAM_PROVIDER_TITLE} listed more for ${data.userName} than OneUptime reads, so it could not tell whether the change is still there.`,
+    `${AWS_IAM_PROVIDER_TITLE} listed more for ${name} than OneUptime reads, so it could not tell whether the change is still there.`,
   );
 }
 
@@ -353,7 +359,7 @@ export async function listAwsIamAccessKeys(
 ): Promise<Array<AwsIamAccessKey> | null> {
   return await iamList<AwsIamAccessKey>(session, {
     action: "ListAccessKeys",
-    userName,
+    of: { UserName: userName },
     step: "IAM access key list",
     read: (xml: string): Array<AwsIamAccessKey> => {
       return readMembers(xml, "AccessKeyMetadata").map(
@@ -411,7 +417,7 @@ export async function listAwsIamAttachedUserPolicies(
 ): Promise<Array<AwsIamAttachedPolicy> | null> {
   return await iamList<AwsIamAttachedPolicy>(session, {
     action: "ListAttachedUserPolicies",
-    userName,
+    of: { UserName: userName },
     step: "IAM attached policy list",
     read: (xml: string): Array<AwsIamAttachedPolicy> => {
       return readMembers(xml, "AttachedPolicies").map(
@@ -433,7 +439,7 @@ export async function listAwsIamUserPolicyNames(
 ): Promise<Array<string> | null> {
   return await iamList<string>(session, {
     action: "ListUserPolicies",
-    userName,
+    of: { UserName: userName },
     step: "IAM inline policy list",
     read: (xml: string): Array<string> => {
       return readMembers(xml, "PolicyNames").filter((name: string) => {
@@ -455,7 +461,7 @@ export async function listAwsIamGroupsForUser(
 ): Promise<Array<AwsIamGroup> | null> {
   return await iamList<AwsIamGroup>(session, {
     action: "ListGroupsForUser",
-    userName,
+    of: { UserName: userName },
     step: "IAM group list",
     read: (xml: string): Array<AwsIamGroup> => {
       return readMembers(xml, "Groups").map((member: string): AwsIamGroup => {
@@ -480,7 +486,7 @@ export async function listAwsIamMfaDevices(
 ): Promise<Array<AwsIamMfaDevice> | null> {
   return await iamList<AwsIamMfaDevice>(session, {
     action: "ListMFADevices",
-    userName,
+    of: { UserName: userName },
     step: "IAM MFA device list",
     read: (xml: string): Array<AwsIamMfaDevice> => {
       return readMembers(xml, "MFADevices").map(
@@ -492,6 +498,96 @@ export async function listAwsIamMfaDevices(
   });
 }
 
+// ---------- A role (#11038) ----------
+
+export interface AwsIamRole {
+  roleName: string;
+  // The id IAM gave the role ("AROA..."): one made again under its name has another.
+  roleId: string;
+  arn: string;
+  /*
+   * Its trust policy - who may assume it - as GetRole writes it: URL-encoded
+   * (readAwsPolicyDocument reads it).
+   */
+  trustPolicy: string;
+}
+
+// The role, with its trust policy, or null once IAM has none by that name.
+export async function getAwsIamRole(
+  session: AwsIamSession,
+  roleName: string,
+): Promise<AwsIamRole | null> {
+  const text: string | null = await iamRead(session, {
+    action: "GetRole",
+    body: { RoleName: roleName },
+    step: "IAM role lookup",
+    missingIsNull: true,
+  });
+
+  if (text === null) {
+    return null;
+  }
+
+  const role: string = readXmlTag(text, "Role");
+
+  return {
+    roleName: readXmlTag(role, "RoleName") || roleName,
+    roleId: readXmlTag(role, "RoleId"),
+    arn: readXmlTag(role, "Arn"),
+    trustPolicy: readXmlTag(role, "AssumeRolePolicyDocument"),
+  };
+}
+
+// The managed policies attached to the role, or null when the role is not there.
+export async function listAwsIamAttachedRolePolicies(
+  session: AwsIamSession,
+  roleName: string,
+): Promise<Array<AwsIamAttachedPolicy> | null> {
+  return await iamList<AwsIamAttachedPolicy>(session, {
+    action: "ListAttachedRolePolicies",
+    of: { RoleName: roleName },
+    step: "IAM role attached policy list",
+    read: (xml: string): Array<AwsIamAttachedPolicy> => {
+      return readMembers(xml, "AttachedPolicies").map(
+        (member: string): AwsIamAttachedPolicy => {
+          return {
+            policyName: readXmlTag(member, "PolicyName"),
+            policyArn: readXmlTag(member, "PolicyArn"),
+          };
+        },
+      );
+    },
+  });
+}
+
+// The names of the role's inline policies, or null when the role is not there.
+export async function listAwsIamRolePolicyNames(
+  session: AwsIamSession,
+  roleName: string,
+): Promise<Array<string> | null> {
+  return await iamList<string>(session, {
+    action: "ListRolePolicies",
+    of: { RoleName: roleName },
+    step: "IAM role inline policy list",
+    read: (xml: string): Array<string> => {
+      return readMembers(xml, "PolicyNames").filter((name: string) => {
+        return Boolean(name);
+      });
+    },
+  });
+}
+
+// ---------- Where a person undoes it ----------
+
+// The partition's own console.
+function getAwsConsoleHost(partition: AwsPartition): string {
+  return partition === "aws-us-gov"
+    ? "console.amazonaws-us-gov.com"
+    : partition === "aws-cn"
+      ? "console.amazonaws.cn"
+      : "console.aws.amazon.com";
+}
+
 /*
  * A user's page in the AWS console, in the partition's own console, where a
  * person removes what the attack gave.
@@ -500,12 +596,17 @@ export function getAwsIamUserUrl(
   partition: AwsPartition,
   userName: string,
 ): string {
-  const host: string =
-    partition === "aws-us-gov"
-      ? "console.amazonaws-us-gov.com"
-      : partition === "aws-cn"
-        ? "console.amazonaws.cn"
-        : "console.aws.amazon.com";
+  return `https://${getAwsConsoleHost(partition)}/iam/home#/users/details/${encodeURIComponent(userName)}`;
+}
 
-  return `https://${host}/iam/home#/users/details/${encodeURIComponent(userName)}`;
+/*
+ * A role's page in the AWS console (#11038), where a person deletes the
+ * role the attack made, edits its trust policy, or removes a policy it gave
+ * it.
+ */
+export function getAwsIamRoleUrl(
+  partition: AwsPartition,
+  roleName: string,
+): string {
+  return `https://${getAwsConsoleHost(partition)}/iam/home#/roles/details/${encodeURIComponent(roleName)}`;
 }

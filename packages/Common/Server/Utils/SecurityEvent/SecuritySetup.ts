@@ -58,6 +58,11 @@ import {
   isPlaybookFromTemplate,
   isRuleFromLibraryEntry,
 } from "../../../Utils/SecurityEvent/SecurityTemplateRecords";
+import {
+  SecurityRuleAddedByOneUptime,
+  getRecommendedRulesNotAdded,
+  getRulesAddedByOneUptime,
+} from "../../../Utils/SecurityEvent/RecommendedDetectionRules";
 import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   SETUP_TEST_ATTRIBUTE,
@@ -150,6 +155,19 @@ export interface SecuritySetupStatus {
   enabledRules: number;
   recommendedRules: number;
   recommendedRulesOn: number;
+  /*
+   * The recommended rules the project has no rule of yet (#11037), by their
+   * library ids, in the library's order: what the Overview names, each with
+   * what it catches and Turn On. Empty when the project's rules could not
+   * be read: nothing is said missing that may be there.
+   */
+  recommendedRulesNotAdded: Array<string>;
+  /*
+   * The recommended rules OneUptime added itself, on upgrade, in the last
+   * RULES_ADDED_BY_ONEUPTIME_SHOWN_FOR_IN_DAYS, and still on (#11037): the
+   * Overview says so.
+   */
+  rulesAddedByOneUptime: Array<SecurityRuleAddedByOneUptime>;
   threatIntelFeeds: number;
   // What needs someone.
   openCases: number;
@@ -301,7 +319,7 @@ export default class SecuritySetup {
       telemetrySourcesEnabled,
       eventsLast24Hours,
       lastEventAt,
-      rules,
+      rulesRead,
       threatIntelFeeds,
       openCases,
       enabledPlaybooks,
@@ -354,7 +372,8 @@ export default class SecuritySetup {
 
         return time ? new Date(time).toISOString() : null;
       }, null),
-      this.read(async (): Promise<Array<DetectionRule>> => {
+      // null when they cannot be read: nothing is then said to be missing.
+      this.read(async (): Promise<Array<DetectionRule> | null> => {
         return DetectionRuleService.findBy({
           query: { projectId },
           select: {
@@ -362,12 +381,13 @@ export default class SecuritySetup {
             name: true,
             sigmaRuleYaml: true,
             isEnabled: true,
+            addedByOneUptimeAt: true,
           },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           props,
         });
-      }, []),
+      }, null),
       this.count(async (): Promise<number> => {
         return (
           await ThreatIntelFeedService.countBy({
@@ -473,6 +493,7 @@ export default class SecuritySetup {
         tracesSource,
       });
 
+    const rules: Array<DetectionRule> = rulesRead || [];
     const recommended: Array<DetectionRuleLibraryEntry> =
       getRecommendedDetectionRules();
 
@@ -495,6 +516,19 @@ export default class SecuritySetup {
       }).length,
       recommendedRules: recommended.length,
       recommendedRulesOn,
+      recommendedRulesNotAdded: rulesRead
+        ? getRecommendedRulesNotAdded(rulesRead).map(
+            (entry: DetectionRuleLibraryEntry): string => {
+              return entry.id;
+            },
+          )
+        : [],
+      rulesAddedByOneUptime: rulesRead
+        ? getRulesAddedByOneUptime({
+            rules: rulesRead,
+            now: OneUptimeDate.getCurrentDate(),
+          })
+        : [],
       threatIntelFeeds,
       openCases,
       enabledPlaybooks,

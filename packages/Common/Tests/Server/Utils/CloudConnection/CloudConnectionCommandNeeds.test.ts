@@ -372,7 +372,7 @@ describe("each responder's writes are what Data security response grants, no mor
     expect(getAwsWafBlocklistActions("off")).toEqual([]);
   });
 
-  test("AWS IAM (#10900): the calls a security case makes to read a user back are the OneUptimeSecurityCaseChecks policy's, each a read", () => {
+  test("AWS IAM (#10900, #11038): the calls a security case makes to read a user or a role back are the OneUptimeSecurityCaseChecks policy's, each a read", () => {
     const code: string = source(
       "Server/Utils/CloudConnection/Aws/AwsIamUsers.ts",
     );
@@ -386,7 +386,18 @@ describe("each responder's writes are what Data security response grants, no mor
     );
 
     expect(called).toEqual(unique([...AWS_SECURITY_CASE_CHECKS_ACTIONS]));
-    expect(called).toHaveLength(7);
+    expect(called).toHaveLength(10);
+    // A role's reads (#11038) among them.
+    for (const action of [
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListRolePolicies",
+    ]) {
+      expect({ action, called: called.includes(action) }).toEqual({
+        action,
+        called: true,
+      });
+    }
 
     // Each reads: a Get or a List, nothing that writes, and nothing of the read-only policy's.
     for (const action of called) {

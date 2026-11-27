@@ -275,9 +275,9 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ## セキュリティケースのチェック
 
-AWS では、同じ接続で、攻撃が IAM ユーザーに加えた変更が元に戻されたことを [セキュリティケース](/docs/telemetry/security-cases#oneuptime-によるステップのチェック) がチェックできるようにもできます。攻撃が作成したアクセス キー、設定したコンソールのパスワード、アタッチまたは作成したポリシー、ユーザーを追加したグループ、有効にした MFA デバイス、作成したユーザーです。**その他の項目** の **セキュリティケースのチェック** は、オンにするまで **オフ** で、フォームに表示されるコマンドはその値に合わせて変わります。どのアクションも読み取るだけで、シークレットは読み取りません。アクセス キーの ID と有効かどうかは読み取りますがキーそのものは読み取らず、コンソールのパスワードが設定されていることは読み取りますがパスワードそのものは読み取りません。
+AWS では、同じ接続で、攻撃が IAM ユーザーまたはロールに加えた変更が元に戻されたことを [セキュリティケース](/docs/telemetry/security-cases#oneuptime-によるステップのチェック) がチェックできるようにもできます。攻撃が作成したアクセス キー、設定したコンソールのパスワード、アタッチまたは作成したポリシー、ユーザーを追加したグループ、有効にした MFA デバイス、作成したユーザーまたはロール、ロールに設定した信頼ポリシーです。**その他の項目** の **セキュリティケースのチェック** は、オンにするまで **オフ** で、フォームに表示されるコマンドはその値に合わせて変わります。どのアクションも読み取るだけで、シークレットは読み取りません。アクセス キーの ID と有効かどうかは読み取りますがキーそのものは読み取らず、コンソールのパスワードが設定されていることは読み取りますがパスワードそのものは読み取りません。
 
-| ケースが CloudTrail イベントに挙がった各ユーザーについて読み取るもの | アクション |
+| ケースが CloudTrail イベントに挙がった各ユーザーと各ロールについて読み取るもの | アクション |
 | --- | --- |
 | ユーザー、またはユーザーがもういないこと | `iam:GetUser` |
 | アクセス キーと、それぞれが有効かどうか | `iam:ListAccessKeys` |
@@ -285,11 +285,13 @@ AWS では、同じ接続で、攻撃が IAM ユーザーに加えた変更が�
 | 管理ポリシーと、インラインポリシーの名前 | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | ユーザーが所属するグループ | `iam:ListGroupsForUser` |
 | MFA デバイス | `iam:ListMFADevices` |
+| ロール、その信頼ポリシーが信頼する相手、またはロールがもう存在しないこと | `iam:GetRole` |
+| ロールの管理ポリシーと、インラインポリシーの名前 | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 ロールのコマンドには一行加わり、専用のインラインポリシー `OneUptimeSecurityCaseChecks` を追加します。組織の StackSet は、それを各アカウントのロールに付けます。
 
 ```bash
-aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 ```
 
 **アクセス キー** の場合、ポリシーはユーザーが参加する同名のグループ `OneUptimeSecurityCaseChecks` に付けられます。
@@ -298,12 +300,12 @@ aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseC
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
 aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
-aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-ケースは、変更が行われたアカウントに届く接続からのみ変更を読み取り、**セキュリティケースのチェック** が **オフ** の接続を通じて IAM に問い合わせることはありません。その場合はそうした変更を挙げてあなたが確認し、オンにするよう案内します。**オフ** は何も追加しないため、以前のコマンドが付与したものは、`aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` で削除するまでそのまま残ります。
+ケースは、変更が行われたアカウントに届く接続からのみ変更を読み取り、**セキュリティケースのチェック** が **オフ** の接続を通じて IAM に問い合わせることはありません。その場合はそうした変更を挙げてあなたが確認し、オンにするよう案内します。**オフ** は何も追加しないため、以前のコマンドが付与したものは、`aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` で削除するまでそのまま残ります。設定がロールを読み取るようになる前に実行されたコマンドは、ユーザーの読み取りしか許可しません。接続のコマンドをもう一度実行してください。それまでは、ケースがロールの変更を挙げてあなたが確認し、コマンドを実行するよう案内します。
 
 ## OneUptime が読み取るもの
 
