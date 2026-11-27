@@ -120,7 +120,6 @@ describe("the shipped extractors", () => {
   });
 
   test("a second extractor for a platform is refused", () => {
-    const before: number = StorageArrayExtractors.getExtractors().length;
     expect(() => {
       StorageArrayExtractors.register({
         storageSystem: FLASHARRAY,

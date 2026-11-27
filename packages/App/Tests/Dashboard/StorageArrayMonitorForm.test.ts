@@ -298,6 +298,7 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
       },
     )) {
       expect(offering.description).toContain("`name` on a FlashBlade");
+    }
     // A PowerScale's names its nodes' label, the one its series carry.
     expect(
       getStorageArrayObjectLabel(
@@ -305,7 +306,6 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
         StorageSystem.DellPowerScale,
       ),
     ).toBe("node");
-    }
     // ONTAP: a volume by `volume`, a hardware part by its node (#11001).
     expect(
       getStorageArrayObjectLabel(

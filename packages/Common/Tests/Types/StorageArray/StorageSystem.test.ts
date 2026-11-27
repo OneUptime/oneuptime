@@ -326,9 +326,9 @@ describe("StorageSystemUtil display helpers", () => {
     expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerScale)).toBe(
       "Dell",
     );
-    expect(StorageSystemUtil.getMetricPrefix(StorageSystem.DellPowerScale)).toBe(
-      "powerscale_",
-    );
+    expect(
+      StorageSystemUtil.getMetricPrefix(StorageSystem.DellPowerScale),
+    ).toBe("powerscale_");
   });
 
   test("display, short and vendor names of the launch platforms", () => {

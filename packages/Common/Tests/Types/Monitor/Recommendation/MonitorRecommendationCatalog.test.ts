@@ -46,7 +46,6 @@ import {
   getStorageArrayAlertTemplatesForSystem,
 } from "../../../../Types/Monitor/StorageArrayAlertTemplates";
 import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
-import StorageSystemUtil from "../../../../Types/StorageArray/StorageSystemUtil";
 import {
   StorageArrayLogAlertTemplate,
   getAllStorageArrayLogAlertTemplates,
