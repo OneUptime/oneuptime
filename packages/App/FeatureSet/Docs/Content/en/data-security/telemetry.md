@@ -170,7 +170,7 @@ Before OneUptime AI starts, Data Security reads the records each leak was seen i
 
 - **A span or an AI call**: the file, line and function its `code.*` attributes name, and the span's name.
 - **An exception**: its own top frames, those in the service's code.
-- **A log line**: the file, line and function its attributes name, when it has them, its logger, and the line as a template, each value replaced by its type's name, such as `User <Email address> signed up`, and each word its records don't prove the code wrote, such as a person's name, as `<value>`: `Payment declined for Maria Gonzalez`, read from one record, is `Payment declined for <value>`. A span's name and a metric's name are read the same way.
+- **A log line**: the file, line and function its attributes name, when it has them, its logger, and the line as a template, each value replaced by its type's name, such as `User <Email address> signed up`, and each word that isn't one code writes log lines with, such as a person's name or a username, as `<value>`, however many of its records share the word: `Payment declined for Maria Gonzalez` is `Payment declined for <value>`, and `Ticket assigned to jdoe`, read from every record of the line, is `Ticket assigned to <value>`. A span's name and a metric's name are read the same way.
 - **A metric**: the metric's name.
 - **Any leak**: its attribute key, such as `user.email`, which code usually writes as it is.
 
