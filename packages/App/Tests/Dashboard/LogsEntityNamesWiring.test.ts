@@ -123,10 +123,17 @@ describe("DashboardLogsViewer entity chips", () => {
   });
 
   test("resolves every entity chip id with ONE generic lookup, hinted by the page's type", () => {
-    expect(count(LOGS_VIEWER, "useTelemetryEntityNames(")).toBe(1);
+    /*
+     * One lookup, for the names and the ids every read answered nothing
+     * for: a chip naming a deleted service reads "No longer available"
+     * (#11213).
+     */
+    expect(count(LOGS_VIEWER, "useTelemetryEntityLookup(")).toBe(1);
+    expect(count(LOGS_VIEWER, "useTelemetryEntityNames(")).toBe(0);
     expect(LOGS_VIEWER).toContain(
-      "useTelemetryEntityNames(entityChipIds,{typeHints:entityTypeHints})",
+      "useTelemetryEntityLookup(entityChipIds,{typeHints:entityTypeHints})",
     );
+    expect(LOGS_VIEWER).toContain("notFound:entityLookup.notFound");
     expect(LOGS_VIEWER).toContain(
       "collectLogsEntityIds({scopeIds:props.serviceIds,appliedFacetFilters})",
     );
@@ -176,8 +183,9 @@ describe("DashboardLogsViewer entity chips", () => {
   });
 
   test("user, URL and saved-view entity chips are named before they reach the shared viewer", () => {
+    // And the ids every read answered nothing for (#11213).
     expect(LOGS_VIEWER).toContain(
-      "returnapplyLogsEntityChipDisplay(filters,{nameMap:entityNameMap,scopeIds:props.serviceIds,scopeEntityType:props.scopeEntityType,knownNames:entityFacetDisplayNames})",
+      "returnapplyLogsEntityChipDisplay(filters,{nameMap:entityNameMap,scopeIds:props.serviceIds,scopeEntityType:props.scopeEntityType,knownNames:entityFacetDisplayNames,notFound:entityLookup.notFound})",
     );
     expect(LOGS_VIEWER).toContain(
       'buildFacetDisplayNames(facetData["primaryEntityId"])',
@@ -187,13 +195,14 @@ describe("DashboardLogsViewer entity chips", () => {
       LOGS_VIEWER.split("constactiveFilters:Array<ActiveFilter>=")[1] || "";
     const deps: string =
       activeMemo
-        .split("knownNames:entityFacetDisplayNames});},[")[1]
+        .split("notFound:entityLookup.notFound});},[")[1]
         ?.split("]);")[0] || "";
 
     expect(deps).not.toBe("");
     expect(deps).toContain("appliedFacetFilters");
 
     expect(deps).toContain("entityNameMap");
+    expect(deps).toContain("entityLookup.notFound");
     expect(deps).toContain("entityFacetDisplayNames");
     expect(deps).toContain("props.scopeEntityType");
   });

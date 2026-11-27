@@ -4,6 +4,7 @@ import ProjectUtil from "../Project";
 import { Translator } from "../TranslateTemplate";
 import useTranslator from "../UseTranslator";
 import TelemetryEntityNameResolver, {
+  TelemetryEntityLookupResult,
   TelemetryEntityNameMap,
 } from "./TelemetryEntityNames";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -21,19 +22,42 @@ export type UseTelemetryEntityNamesFunction = (
 ) => TelemetryEntityNameMap;
 
 /*
+ * What a page knows of the entities its chips name: their names, and the
+ * ids every read settled as naming nothing the reader may see - deleted
+ * since a link or a saved view named them, or out of their reach (#11213).
+ * An id is in `notFound` only once its lookup has answered from every table
+ * it was asked of: never while that lookup is in flight, never when a
+ * table failed to answer.
+ */
+export interface TelemetryEntityLookup {
+  names: TelemetryEntityNameMap;
+  notFound: ReadonlySet<string>;
+}
+
+export type UseTelemetryEntityLookupFunction = (
+  ids: Array<ObjectID | string | null | undefined> | undefined,
+  options?: UseTelemetryEntityNamesOptions | undefined,
+) => TelemetryEntityLookup;
+
+const NOTHING_NOT_FOUND: ReadonlySet<string> = new Set<string>();
+
+/*
  * React wrapper around TelemetryEntityNameResolver: resolves the given
  * telemetry entity ids (Service, RUM application, host, cluster, …) to
  * names for chips, columns and legends. Returns an id -> entity map that
- * starts empty and fills in once the lookup lands; ids that never resolve
- * are simply absent, so callers fall back to their own label. The stand-in
- * for unattributed telemetry reads in the reader's language; a name anything
- * else was given stays as written.
+ * starts empty and fills in once the lookup lands, and the ids the lookup
+ * settled as naming nothing; ids that never resolve are simply absent from
+ * the map, so callers fall back to their own label - or, once settled, to
+ * "No longer available". The stand-in for unattributed telemetry reads in
+ * the reader's language; a name anything else was given stays as written.
  */
-const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
+export const useTelemetryEntityLookup: UseTelemetryEntityLookupFunction = (
   ids: Array<ObjectID | string | null | undefined> | undefined,
   options?: UseTelemetryEntityNamesOptions | undefined,
-): TelemetryEntityNameMap => {
+): TelemetryEntityLookup => {
   const [nameMap, setNameMap] = useState<TelemetryEntityNameMap>({});
+  const [notFound, setNotFound] =
+    useState<ReadonlySet<string>>(NOTHING_NOT_FOUND);
   const translator: Translator = useTranslator();
 
   // Names are per project: re-resolve when the current project changes.
@@ -98,6 +122,7 @@ const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
     const idList: Array<string> = idKey ? idKey.split(",") : [];
     if (idList.length === 0 || !projectId) {
       setNameMap({});
+      setNotFound(NOTHING_NOT_FOUND);
       return;
     }
 
@@ -105,13 +130,14 @@ const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
     if (mapScopeRef.current && mapScopeRef.current !== scopeKey) {
       mapScopeRef.current = "";
       setNameMap({});
+      setNotFound(NOTHING_NOT_FOUND);
     }
 
     let isCancelled: boolean = false;
 
     const load: () => Promise<void> = async (): Promise<void> => {
-      const resolved: TelemetryEntityNameMap =
-        await TelemetryEntityNameResolver.resolve({
+      const looked: TelemetryEntityLookupResult =
+        await TelemetryEntityNameResolver.lookup({
           ids: idList,
           projectId: projectId,
           typeHints: options?.typeHints,
@@ -120,6 +146,7 @@ const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
       if (isCancelled) {
         return;
       }
+      const resolved: TelemetryEntityNameMap = looked.names;
       /*
        * Keep a name already on screen for an id that is still requested
        * when this lookup came back without it (a failed refresh after the
@@ -127,6 +154,7 @@ const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
        */
       const isSameScope: boolean = mapScopeRef.current === scopeKey;
       mapScopeRef.current = scopeKey;
+      const requested: Set<string> = new Set<string>(idList);
       setNameMap((previous: TelemetryEntityNameMap) => {
         const next: TelemetryEntityNameMap = {};
         for (const id of idList) {
@@ -137,6 +165,30 @@ const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
           }
         }
         return next;
+      });
+      /*
+       * What this lookup settled, of the ids still asked for: an id it
+       * left unsettled (a table failed) is not said to be gone, even if an
+       * earlier lookup said so.
+       */
+      const settled: Array<string> = looked.notFound.filter(
+        (id: string): boolean => {
+          return requested.has(id) && !resolved[id];
+        },
+      );
+      setNotFound((previous: ReadonlySet<string>): ReadonlySet<string> => {
+        if (
+          settled.length === previous.size &&
+          settled.every((id: string): boolean => {
+            return previous.has(id);
+          })
+        ) {
+          return previous;
+        }
+
+        return settled.length > 0
+          ? new Set<string>(settled)
+          : NOTHING_NOT_FOUND;
       });
     };
 
@@ -150,7 +202,7 @@ const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
     // idKey / optionsKey are the stable projections of ids / options.
   }, [idKey, optionsKey, projectId, scopeKey]);
 
-  return useMemo(() => {
+  const names: TelemetryEntityNameMap = useMemo(() => {
     const drawn: TelemetryEntityNameMap = {};
 
     for (const id of Object.keys(nameMap)) {
@@ -167,6 +219,21 @@ const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
     return drawn;
     // The translator is new on every render; its language is what it adds.
   }, [nameMap, translator.language]);
+
+  return useMemo((): TelemetryEntityLookup => {
+    return { names, notFound };
+  }, [names, notFound]);
+};
+
+/*
+ * The names alone, for a page that draws no chip of an entity gone
+ * (useTelemetryEntityLookup has both).
+ */
+const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
+  ids: Array<ObjectID | string | null | undefined> | undefined,
+  options?: UseTelemetryEntityNamesOptions | undefined,
+): TelemetryEntityNameMap => {
+  return useTelemetryEntityLookup(ids, options).names;
 };
 
 export default useTelemetryEntityNames;
