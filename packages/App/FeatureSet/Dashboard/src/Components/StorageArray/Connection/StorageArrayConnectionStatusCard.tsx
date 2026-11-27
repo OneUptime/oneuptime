@@ -102,7 +102,9 @@ const StorageArrayConnectionStatusCard: FunctionComponent<ComponentProps> = (
           <div className="min-w-0">
             <div className="font-medium text-gray-900">{view.title}</div>
             {view.message ? (
-              <p className="mt-1 break-words text-gray-700">{view.message}</p>
+              <p className="mt-1 break-words text-gray-700" dir="auto">
+                {view.message}
+              </p>
             ) : (
               <></>
             )}
@@ -201,7 +203,7 @@ const StorageArrayConnectionStatusCard: FunctionComponent<ComponentProps> = (
             <ul className="mt-1 list-disc space-y-0.5 ps-5">
               {warnings.map((warning: string) => {
                 return (
-                  <li key={warning} className="break-words">
+                  <li key={warning} className="break-words" dir="auto">
                     {warning}
                   </li>
                 );

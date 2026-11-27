@@ -63,6 +63,12 @@ export interface ComponentProps {
   input: StorageArrayTestInput;
   collector: StorageArrayProbeCollector;
   onTrustCertificate?: ((fingerprint: string) => void) | undefined;
+  /*
+   * Start the test as the panel opens: a saved connection's Test Connection
+   * has already said what to do. The Connect form's panel waits for its
+   * button, as its fields are still being filled in.
+   */
+  startsAtOnce?: boolean | undefined;
 }
 
 function getPerformanceTone(
@@ -138,7 +144,9 @@ const TestedArrays: FunctionComponent<{
                         icon={IconProp.Info}
                         className="mt-0.5 h-3.5 w-3.5 flex-none text-amber-600"
                       />
-                      <span className="break-words">{warning}</span>
+                      <span className="break-words" dir="auto">
+                        {warning}
+                      </span>
                     </li>
                   );
                 })}
@@ -297,6 +305,15 @@ const StorageArrayConnectionTestPanel: FunctionComponent<ComponentProps> = (
     }
   };
 
+  // Opened to test: the test starts at once, once.
+  useEffect(() => {
+    if (props.startsAtOnce && canTest && !blocker) {
+      startTest().catch((err: Error) => {
+        setError(API.getFriendlyErrorMessage(err));
+      });
+    }
+  }, []);
+
   if (!canTest) {
     return <></>;
   }
@@ -409,7 +426,9 @@ const StorageArrayConnectionTestPanel: FunctionComponent<ComponentProps> = (
                           icon={IconProp.Info}
                           className="mt-0.5 h-3.5 w-3.5 flex-none text-amber-600"
                         />
-                        <span className="break-words">{warning}</span>
+                        <span className="break-words" dir="auto">
+                          {warning}
+                        </span>
                       </li>
                     );
                   })}
@@ -432,7 +451,9 @@ const StorageArrayConnectionTestPanel: FunctionComponent<ComponentProps> = (
                 <span className="font-medium">{view.title}</span>
               </div>
               {view.message ? (
-                <p className="mt-1 break-words text-gray-700">{view.message}</p>
+                <p className="mt-1 break-words text-gray-700" dir="auto">
+                  {view.message}
+                </p>
               ) : (
                 <></>
               )}

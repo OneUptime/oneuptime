@@ -231,7 +231,9 @@ const StorageArrayConnectionArraysCard: FunctionComponent<ComponentProps> = (
                             icon={IconProp.Info}
                             className="mt-0.5 h-3.5 w-3.5 flex-none text-amber-600"
                           />
-                          <span className="break-words">{warning}</span>
+                          <span className="break-words" dir="auto">
+                            {warning}
+                          </span>
                         </li>
                       );
                     })}

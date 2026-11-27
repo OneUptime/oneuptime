@@ -424,6 +424,7 @@ const StorageArrayConnectionView: FunctionComponent<
               storageArrayConnectionId: modelId,
             }}
             collector={collector}
+            startsAtOnce={true}
             onTrustCertificate={
               canEdit && !isTrusting
                 ? (fingerprint: string) => {
