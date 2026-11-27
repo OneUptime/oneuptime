@@ -1309,7 +1309,8 @@ describe("the Storage Array page against the form and the agent", () => {
     );
 
     for (const [title, onlyOn] of [
-      ["Volume", "FlashArray only."],
+      // A PowerMax volume too (#11004): by its `volume` label.
+      ["Volume", "FlashArray and PowerMax only."],
       ["Host", "FlashArray only."],
       ["Pod", "FlashArray only."],
       ["Hardware Component", ""],
@@ -1321,26 +1322,37 @@ describe("the Storage Array page against the form and the agent", () => {
         `(\\w+): \\{\\s*title: "${title}",`,
       ).exec(form)?.[1];
       // ...offered on the platforms that declare that filter (#11000).
-      const platforms: Array<string> =
-        StorageArrayPlatformRegistry.getPlatforms()
-          .filter((platform: StorageArrayPlatform): boolean => {
+      const platforms: Array<StorageArrayPlatform> =
+        StorageArrayPlatformRegistry.getPlatforms().filter(
+          (platform: StorageArrayPlatform): boolean => {
             return platform.resourceFilters.some(
               (filter: StorageArrayResourceFilter): boolean => {
                 return filter.key === key;
               },
             );
-          })
-          .map((platform: StorageArrayPlatform): string => {
-            return platform.storageSystem;
-          });
+          },
+        );
+      const names: Array<string> = platforms.map(
+        (platform: StorageArrayPlatform): string => {
+          return platform.shortName;
+        },
+      );
 
       expect(key).toBeDefined();
-      expect(platforms.includes(StorageSystem.PureStorageFlashArray)).toBe(
-        onlyOn !== "FlashBlade only.",
-      );
-      expect(platforms.includes(StorageSystem.PureStorageFlashBlade)).toBe(
-        onlyOn !== "FlashArray only.",
-      );
+      // The row's "only" names exactly the platforms that offer the filter.
+      expect({ title, onlyOn }).toEqual({
+        title,
+        onlyOn:
+          platforms.length ===
+          StorageArrayPlatformRegistry.getPlatforms().length
+            ? ""
+            : `${names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0]} only.`,
+      });
+      expect(
+        platforms.some((platform: StorageArrayPlatform): boolean => {
+          return platform.storageSystem === StorageSystem.PureStorageFlashArray;
+        }),
+      ).toBe(onlyOn.includes("FlashArray") || onlyOn === "");
 
       const row: Array<string> | undefined = rows.find(
         (cells: Array<string>): boolean => {

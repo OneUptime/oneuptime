@@ -13,6 +13,7 @@ import {
 import { StorageArrayNameLabelKeys } from "Common/Server/Utils/Monitor/SeriesResourceLabels";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepStorageArrayMonitor from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import {
@@ -685,12 +686,20 @@ describe("Storage Array docs", (): void => {
         }).length;
       };
 
+      // "12 for FlashArray, 8 for FlashBlade and 13 for PowerMax": every platform's, in order.
+      const perPlatform: Array<string> = StorageSystemUtil.getAllSystems().map(
+        (system: StorageSystem): string => {
+          return `${count(system)} for ${platformName(system)}`;
+        },
+      );
+      const counted: string =
+        perPlatform.length > 1
+          ? `${perPlatform.slice(0, -1).join(", ")} and ${
+              perPlatform[perPlatform.length - 1]
+            }`
+          : perPlatform.join("");
       expect(intro).toContain(
-        `OneUptime ships ${templates.length} templates — ${count(
-          StorageSystem.PureStorageFlashArray,
-        )} for FlashArray and ${count(
-          StorageSystem.PureStorageFlashBlade,
-        )} for FlashBlade`,
+        `OneUptime ships ${templates.length} templates — ${counted}`,
       );
 
       for (const template of templates) {
@@ -989,15 +998,29 @@ describe("Storage Array docs", (): void => {
     });
 
     it("names every catalog metric's family on the what-gets-collected table", (): void => {
-      const collected: string = section(
-        readPage(TELEMETRY_PAGE),
-        "## What the agent collects",
-      );
-      const families: Array<string> = Array.from(
-        collected.matchAll(/`(pure(?:fa|fb)_[a-z_]+)(\*?)`/g),
-      ).map((match: RegExpMatchArray): string => {
-        return `${match[1]}${match[2]}`;
-      });
+      /*
+       * The agent's platforms under What the agent collects; a platform a
+       * probe reads from its management server (#11004), which no agent
+       * reads, under its own section, named after it (## Dell PowerMax).
+       */
+      const families: Array<string> = [];
+      for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+        const collected: string = section(
+          readPage(TELEMETRY_PAGE),
+          platform.agentConfigs.length > 0
+            ? "## What the agent collects"
+            : `## ${platform.displayName}`,
+        );
+        families.push(
+          ...Array.from(collected.matchAll(/`([a-z]+_[a-z_]+)(\*?)`/g))
+            .filter((match: RegExpMatchArray): boolean => {
+              return (match[1] as string).startsWith(platform.metricPrefix);
+            })
+            .map((match: RegExpMatchArray): string => {
+              return `${match[1]}${match[2]}`;
+            }),
+        );
+      }
 
       for (const metric of getAllStorageArrayMetrics()) {
         expect({
