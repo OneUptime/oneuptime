@@ -979,9 +979,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
   protected override async onBeforeCreate(
     createBy: CreateBy<OnCallDutyPolicy>,
   ): Promise<OnCreate<OnCallDutyPolicy>> {
-    const onCreate: OnCreate<OnCallDutyPolicy> = await super.onBeforeCreate(
-      createBy,
-    );
+    await super.onBeforeCreate(createBy);
 
     /*
      * When the policy's feed starts (OnCallDutyPolicyCreateCarryForward):
@@ -992,7 +990,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       feedStartsAt: OneUptimeDate.getCurrentDate(),
     };
 
-    return { createBy: onCreate.createBy, carryForward: carryForward };
+    return { createBy: createBy, carryForward: carryForward };
   }
 
   // When the policy's feed starts, as onBeforeCreate handed it over.
