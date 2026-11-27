@@ -136,7 +136,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     name: "Storage Resource Pool Above 80%",
     summary: "A storage resource pool is more than 80% full.",
     description:
-      "Alert when a storage resource pool's used capacity is above 80% of its usable capacity (powermax_srp_capacity_used_percent), and recover below 75%. One incident per pool.",
+      "Alert when a storage resource pool's used capacity is above 80% of its usable capacity (powermax_srp_capacity_used_percent), and recover at 72% or less. One incident per pool.",
     category: "Capacity",
     severity: "Warning",
     metricAlias: "srp_used_percent",
@@ -145,7 +145,8 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past15Minutes,
     fire: { filterType: FilterType.GreaterThan, value: 80 },
-    recover: { filterType: FilterType.LessThan, value: 75 },
+    // The monitor recovers 10% past it: at 72% or less.
+    recover: { filterType: FilterType.LessThanOrEqualTo, value: 80 },
     incidentTitle: "[Storage Array] Storage Resource Pool Above 80%",
     incidentDescription:
       "A storage resource pool of the PowerMax is more than 80% full (the srp label names it). Every storage group in it stops taking new writes when it fills. Free space (unused snapshots, unmapped volumes), move storage groups to another pool, or add capacity.",
@@ -158,7 +159,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     name: "Storage Resource Pool Above 90%",
     summary: "A storage resource pool is more than 90% full.",
     description:
-      "Alert when a storage resource pool's used capacity is above 90% of its usable capacity, and recover below 85%. One incident per pool.",
+      "Alert when a storage resource pool's used capacity is above 90% of its usable capacity, and recover at 81% or less. One incident per pool.",
     category: "Capacity",
     severity: "Critical",
     metricAlias: "srp_used_percent",
@@ -167,7 +168,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past15Minutes,
     fire: { filterType: FilterType.GreaterThan, value: 90 },
-    recover: { filterType: FilterType.LessThan, value: 85 },
+    recover: { filterType: FilterType.LessThanOrEqualTo, value: 90 },
     incidentTitle: "[Storage Array] CRITICAL: Storage Resource Pool Above 90%",
     incidentDescription:
       "A storage resource pool of the PowerMax is more than 90% full (the srp label names it). Writes to its storage groups fail once it is full. Free space now, or move storage groups off it.",
@@ -204,7 +205,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     summary:
       "An asynchronous SRDF group's remote copy is more than 2 minutes behind.",
     description:
-      "Alert when an asynchronous SRDF group's remote copy averages more than 120 seconds behind over 15 minutes (powermax_srdf_group_lag_seconds), and recover at 60 seconds or less. SRDF/A normally runs about two cycles (around 30 seconds) behind. One incident per SRDF group.",
+      "Alert when an asynchronous SRDF group's remote copy averages more than 120 seconds behind over 15 minutes (powermax_srdf_group_lag_seconds), and recover at 108 seconds or less. SRDF/A normally runs about two cycles (around 30 seconds) behind. One incident per SRDF group.",
     category: "Replication",
     severity: "Warning",
     metricAlias: "srdf_lag_seconds",
@@ -213,7 +214,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     aggregationType: MetricsAggregationType.Avg,
     rollingTime: RollingTime.Past15Minutes,
     fire: { filterType: FilterType.GreaterThan, value: 120 },
-    recover: { filterType: FilterType.LessThanOrEqualTo, value: 60 },
+    recover: { filterType: FilterType.LessThanOrEqualTo, value: 120 },
     incidentTitle: "[Storage Array] SRDF/A Lag Above 2 Minutes",
     incidentDescription:
       "An asynchronous SRDF group's remote copy is more than two minutes behind (the srdf_group label names it), so a failover now would lose more recent writes than planned. Check the SRDF link bandwidth and errors, the SRDF directors' busy, and whether a burst of writes outran the link. Delta Set Extension filling up means the group may soon drop.",
@@ -226,7 +227,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     name: "Storage Group Response Time Above 5 ms",
     summary: "A storage group's I/O takes longer than 5 ms on average.",
     description:
-      "Alert when a storage group's response time averages more than 5 ms over 15 minutes (powermax_storage_group_response_time_usec above 5000), and recover below 3 ms. One incident per storage group. A PowerMax normally answers in well under a millisecond.",
+      "Alert when a storage group's response time averages more than 5 ms over 15 minutes (powermax_storage_group_response_time_usec above 5000), and recover at 4.5 ms or less. One incident per storage group. A PowerMax normally answers in well under a millisecond.",
     category: "Performance",
     severity: "Warning",
     metricAlias: "storage_group_response_time_usec",
@@ -238,7 +239,10 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
       filterType: FilterType.GreaterThan,
       value: POWERMAX_STORAGE_GROUP_RESPONSE_TIME_WARNING_USEC,
     },
-    recover: { filterType: FilterType.LessThan, value: 3000 },
+    recover: {
+      filterType: FilterType.LessThanOrEqualTo,
+      value: POWERMAX_STORAGE_GROUP_RESPONSE_TIME_WARNING_USEC,
+    },
     incidentTitle: "[Storage Array] Storage Group Response Time Above 5 ms",
     incidentDescription:
       "A PowerMax storage group's I/O takes more than 5 ms on average (the storage_group label names it). The applications on it slow down. Check whether it hit its host I/O limit or service level, whether its front end directors or ports are busy, and whether a few volumes carry most of its load.",
@@ -251,7 +255,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     name: "High Read Response Time",
     summary: "Host reads on the array take longer than 3 ms on average.",
     description:
-      "Alert when the array's read response time averages more than 3 ms over 15 minutes (powermax_array_response_time_usec, operation read), and recover below 2 ms.",
+      "Alert when the array's read response time averages more than 3 ms over 15 minutes (powermax_array_response_time_usec, operation read), and recover at 2.7 ms or less.",
     category: "Performance",
     severity: "Warning",
     metricAlias: "read_response_time_usec",
@@ -263,7 +267,10 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
       filterType: FilterType.GreaterThan,
       value: POWERMAX_RESPONSE_TIME_WARNING_USEC,
     },
-    recover: { filterType: FilterType.LessThan, value: 2000 },
+    recover: {
+      filterType: FilterType.LessThanOrEqualTo,
+      value: POWERMAX_RESPONSE_TIME_WARNING_USEC,
+    },
     incidentTitle: "[Storage Array] High Read Response Time",
     incidentDescription:
       "Host reads on the PowerMax average more than 3 ms. Look at the storage groups with the highest response time, the cache hit share, and the back end directors' busy.",
@@ -276,7 +283,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     name: "High Write Response Time",
     summary: "Host writes on the array take longer than 3 ms on average.",
     description:
-      "Alert when the array's write response time averages more than 3 ms over 15 minutes (powermax_array_response_time_usec, operation write), and recover below 2 ms. Synchronous SRDF adds the round trip to the remote array to every write.",
+      "Alert when the array's write response time averages more than 3 ms over 15 minutes (powermax_array_response_time_usec, operation write), and recover at 2.7 ms or less. Synchronous SRDF adds the round trip to the remote array to every write.",
     category: "Performance",
     severity: "Warning",
     metricAlias: "write_response_time_usec",
@@ -288,7 +295,10 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
       filterType: FilterType.GreaterThan,
       value: POWERMAX_RESPONSE_TIME_WARNING_USEC,
     },
-    recover: { filterType: FilterType.LessThan, value: 2000 },
+    recover: {
+      filterType: FilterType.LessThanOrEqualTo,
+      value: POWERMAX_RESPONSE_TIME_WARNING_USEC,
+    },
     incidentTitle: "[Storage Array] High Write Response Time",
     incidentDescription:
       "Host writes on the PowerMax average more than 3 ms. Check the write pending share of the cache, synchronous SRDF response time, and the storage groups with the highest write response time.",
@@ -309,7 +319,12 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     aggregationType: MetricsAggregationType.Min,
     rollingTime: RollingTime.Past15Minutes,
     fire: { filterType: FilterType.LessThan, value: 1 },
-    recover: { filterType: FilterType.GreaterThanOrEqualTo, value: 1 },
+    // 0 or 1: no hysteresis, or it would wait for 1.1, which never comes.
+    recover: {
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 1,
+      isBinaryMetric: true,
+    },
     incidentTitle: "[Storage Array] Performance Collection Off",
     incidentDescription:
       "Unisphere for PowerMax is not collecting performance data for the array, so OneUptime charts and alerts on none. Turn it on in Unisphere at Settings > Performance > System Registrations (Diagnostic), with an account that may change settings.",
