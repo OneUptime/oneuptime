@@ -115,6 +115,13 @@ export interface SnmpTableColumn {
    */
   healthyValues?: Array<string> | undefined;
   /*
+   * Raw values that mean the device has no reading at all: Brocade answers
+   * -2147483648 for a sensor whose value is not available. Such a cell is
+   * shown as no value, and is never charted or compared, so an absent fan
+   * does not draw a line at minus two billion RPM.
+   */
+  noReadingValues?: Array<string> | undefined;
+  /*
    * How the number a cell holds is put into the column's unit: multiplied
    * by `scale`, then `offset` added. For MIBs that keep a value in a unit of
    * their own - ArubaOS reports transmit power in half dBm (scale 0.5),
@@ -165,6 +172,16 @@ export interface SnmpTableDefinition {
    * that no name column names.
    */
   rowIndexIsText?: boolean | undefined;
+  /*
+   * The name columns are read for each walked row by its own index - a GET
+   * of exactly the rows the value columns found - rather than walked. For a
+   * table indexed by entPhysicalIndex and named from ENTITY-MIB's
+   * entPhysicalName, which has a row for every entity in the chassis: a
+   * director's power supplies are a handful of rows among a thousand
+   * entities, and walking the names would read all of them, or stop at the
+   * row limit before reaching the ones this table needs. Off by default.
+   */
+  rowLabelsByIndex?: boolean | undefined;
   columns: Array<SnmpTableColumn>;
   // Rows kept per walk. Defaults to DEFAULT_SNMP_TABLE_MAX_ROWS.
   maxRows?: number | undefined;
@@ -189,6 +206,12 @@ export interface SnmpTableWalkRequest {
   // Every column to walk: the row-label columns and the value columns.
   columnOids: Array<string>;
   maxRows: number;
+  /*
+   * Name columns read with a GET for each row the walked columns found
+   * (SnmpTableDefinition.rowLabelsByIndex), and not walked. A probe from
+   * before them reads none, and the rows are named by their index.
+   */
+  labelOids?: Array<string> | undefined;
 }
 
 export interface SnmpTableResultRow {

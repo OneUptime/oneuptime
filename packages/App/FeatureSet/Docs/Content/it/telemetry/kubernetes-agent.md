@@ -471,14 +471,14 @@ Gli eventi Kubernetes non vengono filtrati per namespace nell'agent: li invia tu
 
 Accetta `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` e `FATAL`. `WARN` mantiene WARN, ERROR e FATAL e scarta INFO, DEBUG e TRACE; il valore predefinito (`""`) mantiene tutto. Si applica in entrambe le modalità dei log (tramite il collector in modalità `daemonset`, dentro il lettore di log in modalità `api`), quindi un preset non lo disattiva mai a tua insaputa.
 
-I runtime dei container non registrano alcuna severità, quindi l'agent la ricava dal testo stesso del log (`[ERROR]`, `WARN:`, `"level":"info"`, …). Cosa succede a una riga senza un livello riconoscibile dipende dalla modalità dei log, perché le due modalità sanno cose diverse:
+I runtime dei container non registrano alcuna severità, quindi l'agent legge il livello che ogni riga indica: una parola di livello (`[ERROR]`, `WARN:`, `"level":"info"`, …), la prima lettera di una riga di klog (`I`, `W`, `E`, `F`), il `LOG:` di PostgreSQL o il `"level":30` di pino. Il traceback di un'eccezione o un panic conta come ERROR. Cosa succede a una riga che non indica alcun livello dipende dalla modalità dei log, perché le due modalità sanno cose diverse:
 
 | Modalità | Una riga senza livello | Perché |
 | --- | --- | --- |
-| `daemonset` | `stderr` conta come ERROR (mantenuta), `stdout` come INFO (scartata da una soglia WARN) | Il runtime dei container registra da quale flusso proviene ogni riga. |
+| `daemonset` | `stdout` conta come INFO (scartata da una soglia WARN); `stderr` non ha severità, appare come Non specificato e viene mantenuta | Il runtime dei container registra da quale flusso proviene ogni riga. stdout è l'output ordinario di un programma, ma i programmi scrivono su stderr la diagnostica di ogni livello, quindi una riga di stderr non dice nulla del suo livello. |
 | `api` | Sempre mantenuta | L'API `pods/log` di Kubernetes unisce stdout e stderr in un unico flusso senza indicazione per riga, quindi invece di tirare a indovinare l'agent mantiene la riga. |
 
-La modalità `api` scarta quindi, di proposito, strettamente meno della modalità `daemonset`: un traceback di Python o un `npm ERR!` non contengono alcuna parola chiave di severità, e cancellarli in silenzio è proprio l'errore da cui una soglia dovrebbe proteggerti. In modalità ibrida (`logs.windowsPods.enabled`) valgono entrambe le righe, in base al sistema operativo del nodo: i pod Linux seguono `daemonset`, i pod Windows `api`.
+La modalità `api` scarta quindi, di proposito, strettamente meno della modalità `daemonset`: non può distinguere una riga di stderr che non indica alcun livello, come un `npm ERR!`, dall'output ordinario, e cancellarla in silenzio è proprio l'errore da cui una soglia dovrebbe proteggerti. In modalità ibrida (`logs.windowsPods.enabled`) valgono entrambe le righe, in base al sistema operativo del nodo: i pod Linux seguono `daemonset`, i pod Windows `api`.
 
 In entrambe le modalità gli eventi su più righe vengono ricomposti prima del filtraggio, quindi uno stack trace Java viene giudicato in base alla sua prima riga e mantenuto o scartato per intero.
 

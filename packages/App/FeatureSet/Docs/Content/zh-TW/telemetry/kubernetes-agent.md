@@ -471,14 +471,14 @@ Kubernetes 事件不會在代理程式端依命名空間篩選：代理程式會
 
 它接受 `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR` 和 `FATAL`。`WARN` 會保留 WARN、ERROR 和 FATAL，捨棄 INFO、DEBUG 和 TRACE；預設值（`""`）會保留所有內容。它在兩種日誌模式下都會生效（`daemonset` 模式下透過 Collector，`api` 模式下在日誌追蹤器內部），因此預設集永遠不會悄悄把它關掉。
 
-容器執行階段不會記錄嚴重性，因此代理程式會從日誌文字本身讀取嚴重性（`[ERROR]`、`WARN:`、`"level":"info"`、…）。沒有可辨識等級的行會如何處理取決於日誌模式，因為兩種模式掌握的資訊不同：
+容器執行階段不會記錄嚴重性，因此代理程式會讀取每一行所寫明的等級：表示等級的字詞（`[ERROR]`、`WARN:`、`"level":"info"`、…）、klog 行的首字母（`I`、`W`、`E`、`F`）、PostgreSQL 的 `LOG:` 或 pino 的 `"level":30`。例外的 traceback 或 panic 視為 ERROR。沒有寫明等級的行會如何處理取決於日誌模式，因為兩種模式掌握的資訊不同：
 
 | 模式 | 沒有等級的行 | 原因 |
 | --- | --- | --- |
-| `daemonset` | `stderr` 視為 ERROR（保留），`stdout` 視為 INFO（被 WARN 臨界值捨棄） | 容器執行階段會記錄每一行來自哪個串流。 |
+| `daemonset` | `stdout` 視為 INFO（被 WARN 臨界值捨棄）；`stderr` 沒有嚴重性，顯示為未指定，並且會保留 | 容器執行階段會記錄每一行來自哪個串流。stdout 是程式的一般輸出，但程式會把各個等級的診斷訊息都寫到 stderr，因此 stderr 行並不能說明它的等級。 |
 | `api` | 一律保留 | Kubernetes 的 `pods/log` API 會將 stdout 和 stderr 合併為一個串流，沒有逐行標記，因此代理程式不去猜測，而是保留該行。 |
 
-所以 `api` 模式刻意比 `daemonset` 模式捨棄得更少：Python traceback 或 `npm ERR!` 不帶嚴重性關鍵字，悄悄刪除它們正是臨界值應該避免的失敗。在混合模式（`logs.windowsPods.enabled`）下，兩列規則都會依節點作業系統套用：Linux Pod 遵循 `daemonset`，Windows Pod 遵循 `api`。
+所以 `api` 模式刻意比 `daemonset` 模式捨棄得更少：它無法把沒有寫明等級的 stderr 行（例如 `npm ERR!`）與一般輸出區分開來，而悄悄刪除這樣的行正是臨界值應該避免的失敗。在混合模式（`logs.windowsPods.enabled`）下，兩列規則都會依節點作業系統套用：Linux Pod 遵循 `daemonset`，Windows Pod 遵循 `api`。
 
 兩種模式在篩選之前都會將多行事件重新組合，因此 Java 堆疊追蹤會依其第一行判斷，整體保留或整體捨棄。
 

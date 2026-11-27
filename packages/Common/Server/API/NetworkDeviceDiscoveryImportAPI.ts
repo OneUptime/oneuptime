@@ -10,7 +10,10 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../Types/JSON";
-import { ACTIVE_DISCOVERY_IMPORT_STATUSES } from "../../Types/NetworkDevice/DiscoveryImport";
+import {
+  ACTIVE_DISCOVERY_IMPORT_STATUSES,
+  DiscoveryImportSource,
+} from "../../Types/NetworkDevice/DiscoveryImport";
 import ObjectID from "../../Types/ObjectID";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import NetworkDeviceDiscoveryImportService from "../Services/NetworkDeviceDiscoveryImportService";
@@ -41,6 +44,11 @@ import ProductKey from "../../Types/Product/ProductKey";
  *        { endpointIds, settings }                ask for an import of
  *                                                 devices from the
  *                                                 Discovered Devices list
+ *   POST /network-device-discovery-import/start-from-devices
+ *        { deviceIds, monitorTemplateId }         Create Monitors: a monitor
+ *                                                 from the template for each
+ *                                                 device already added
+ *                                                 (issue #10990)
  *   GET  /network-device-discovery-import/import/:importId[?results=all]
  *                                                 one import, as it stands
  *   GET  /network-device-discovery-import/scan/:scanId/latest
@@ -126,14 +134,25 @@ function isAllowed(check: () => void): boolean {
 
 /*
  * Refused unless the person may see where this import's hosts came from:
- * its scan, or the Discovered Devices list.
+ * its scan, the Discovered Devices list, or - for Create Monitors (issue
+ * #10990) - the Devices list.
  */
 export function assertCanSeeImport(
   props: DatabaseCommonInteractionProps,
-  row: Pick<NetworkDeviceDiscoveryImport, "networkDeviceDiscoveryScanId">,
+  row: Pick<
+    NetworkDeviceDiscoveryImport,
+    "networkDeviceDiscoveryScanId" | "results"
+  >,
 ): void {
-  if (row.networkDeviceDiscoveryScanId) {
+  const source: DiscoveryImportSource = DiscoveryImportRunner.sourceOf(row);
+
+  if (source === DiscoveryImportSource.Scan) {
     assertCanSeeImports(props);
+    return;
+  }
+
+  if (source === DiscoveryImportSource.Devices) {
+    DiscoveryImportRunner.assertCanReadDevices(props);
     return;
   }
 
@@ -271,6 +290,49 @@ router.post(
   },
 );
 
+/*
+ * CREATE MONITORS FOR DEVICES ALREADY IN THE INVENTORY (issue #10990):
+ * Network > Devices > Bulk Actions > Create Monitors. The same import, with
+ * no device to create: each selected device gets the template's monitor,
+ * unless it has one the template's would duplicate.
+ */
+router.post(
+  "/network-device-discovery-import/start-from-devices",
+  UserMiddleware.getUserMiddleware,
+  ServerProductRoutes.refuseWhileOff(ProductKey.Network),
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { props, projectId } = await getPersonProps(req);
+      const body: JSONObject = readBody(req);
+
+      DiscoveryImportRunner.assertCanReadDevices(props);
+
+      const created: NetworkDeviceDiscoveryImport =
+        await DiscoveryImportRunner.startFromDevices({
+          projectId: projectId,
+          props: props,
+          deviceIds: body["deviceIds"],
+          monitorTemplateId: body["monitorTemplateId"],
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        import: await readImportView({
+          importId: created.id!,
+          projectId: projectId,
+          props: props,
+          allResults: false,
+        }),
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 router.get(
   "/network-device-discovery-import/import/:importId",
   UserMiddleware.getUserMiddleware,
@@ -354,7 +416,8 @@ router.get(
       /*
        * The imports the person may see: a scan's to whoever may see the
        * scans, the Discovered Devices list's to whoever may read the list
-       * (issue #5775), both to whoever may do both.
+       * (issue #5775), Create Monitors' to whoever may read the devices
+       * (issue #10990), and all of them to whoever may do all three.
        */
       const canSeeScans: boolean = isAllowed(() => {
         assertCanSeeImports(props);
@@ -362,17 +425,27 @@ router.get(
       const canSeeList: boolean = isAllowed(() => {
         DiscoveredDevices.assertCanRead(props);
       });
+      const canSeeDevices: boolean = isAllowed(() => {
+        DiscoveryImportRunner.assertCanReadDevices(props);
+      });
 
-      if (!canSeeScans && !canSeeList) {
+      if (!canSeeScans && !canSeeList && !canSeeDevices) {
         assertCanSeeImports(props);
       }
+
+      /*
+       * Read the scans' imports, the scan-less ones, or both: only scans'
+       * imports name a scan. Which scan-less ones the person may see is
+       * told below, by where each one's hosts came from.
+       */
+      const canSeeScanless: boolean = canSeeList || canSeeDevices;
 
       const active: Array<NetworkDeviceDiscoveryImport> =
         await NetworkDeviceDiscoveryImportService.findBy({
           query: {
             projectId: projectId,
             status: new Includes([...ACTIVE_DISCOVERY_IMPORT_STATUSES]),
-            ...(canSeeScans && canSeeList
+            ...(canSeeScans && canSeeScanless
               ? {}
               : {
                   networkDeviceDiscoveryScanId: canSeeScans
@@ -387,13 +460,23 @@ router.get(
           props: { isRoot: true },
         });
 
+      const canSee: Record<DiscoveryImportSource, boolean> = {
+        [DiscoveryImportSource.Scan]: canSeeScans,
+        [DiscoveryImportSource.DiscoveredDevices]: canSeeList,
+        [DiscoveryImportSource.Devices]: canSeeDevices,
+      };
+
       return Response.sendJsonObjectResponse(req, res, {
-        imports: active.map((row: NetworkDeviceDiscoveryImport): JSONObject => {
-          return DiscoveryImportRunner.toView({
-            row: row,
-            userId: props.userId,
-          }) as unknown as JSONObject;
-        }),
+        imports: active
+          .filter((row: NetworkDeviceDiscoveryImport): boolean => {
+            return canSee[DiscoveryImportRunner.sourceOf(row)];
+          })
+          .map((row: NetworkDeviceDiscoveryImport): JSONObject => {
+            return DiscoveryImportRunner.toView({
+              row: row,
+              userId: props.userId,
+            }) as unknown as JSONObject;
+          }),
       });
     } catch (err) {
       next(err);

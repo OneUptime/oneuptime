@@ -495,6 +495,68 @@ export const collectLogsEntityIdsToResolve: (data: {
   };
 };
 
+/*
+ * THE IDS THE LOGS ON SCREEN NAME AS SERVICES, to read by their ids
+ * (#11072, TelemetryServicesOnPage): the rows' primaryEntityId, the
+ * Service facet's values, the `service:` suggestions and the Service
+ * chips - each unless something says it is no Service: a row's
+ * primaryEntityType, a chip's key ("RUM Application"), or a chip its
+ * parent named already. Lower-cased, each once, in order.
+ */
+export const collectLogsServiceIdsToRead: (data: {
+  filters?: Array<ActiveFilter> | undefined;
+  logs?: Array<Log> | undefined;
+  facetData?: FacetData | undefined;
+  suggestionIds?: Array<string> | undefined;
+}) => Array<string> = (data: {
+  filters?: Array<ActiveFilter> | undefined;
+  logs?: Array<Log> | undefined;
+  facetData?: FacetData | undefined;
+  suggestionIds?: Array<string> | undefined;
+}): Array<string> => {
+  const ids: Set<string> = new Set<string>();
+
+  const add: (
+    rawId: unknown,
+    type?: ServiceType | string | undefined,
+  ) => void = (rawId: unknown, type?: ServiceType | string | undefined) => {
+    if (!isLogsEntityIdValue(rawId)) {
+      return;
+    }
+
+    if (type && `${type}` !== ServiceType.OpenTelemetry) {
+      return;
+    }
+
+    ids.add(rawId.trim().toLowerCase());
+  };
+
+  for (const filter of data.filters || []) {
+    if (
+      !isServiceFacetKey(getBaseFacetKey(filter.facetKey)) ||
+      hasParentResolvedDisplay(filter)
+    ) {
+      continue;
+    }
+
+    add(filter.value, getTelemetryEntityTypeForChipKey(filter.displayKey));
+  }
+
+  for (const log of data.logs || []) {
+    add(log.primaryEntityId?.toString(), log.primaryEntityType);
+  }
+
+  for (const facetValue of data.facetData?.["primaryEntityId"] || []) {
+    add(facetValue.value);
+  }
+
+  for (const id of data.suggestionIds || []) {
+    add(id);
+  }
+
+  return Array.from(ids).sort();
+};
+
 export interface LogEntityDisplay {
   // Name to render; undefined when nothing (not even an id) is known.
   name: string | undefined;

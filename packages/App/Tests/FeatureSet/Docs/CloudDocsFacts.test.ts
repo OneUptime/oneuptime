@@ -509,8 +509,9 @@ describe("the menu paths", () => {
       },
       /*
        * What the accounts cost and how it is shared out, how to spend less,
-       * the commitments, the off-hours schedules, the budgets and the
-       * reports that send the costs on a schedule (#11009).
+       * the commitments, the off-hours schedules, the budgets, the tags
+       * the spend is told apart by (#11012), and the reports that send the
+       * costs on a schedule (#11009).
        */
       {
         title: "Spend",
@@ -521,6 +522,7 @@ describe("the menu paths", () => {
           "Commitments",
           "Schedules",
           "Budgets",
+          "Tags",
           "Reports",
         ],
       },
@@ -554,6 +556,7 @@ describe("the menu paths", () => {
     expect(isMenuPath("Cloud", ["Costs"])).toBe(false);
     expect(isMenuPath("Cloud", ["Spend", "Commitments"])).toBe(true);
     expect(isMenuPath("Cloud", ["Settings", "Cost Settings"])).toBe(true);
+    expect(isMenuPath("Cloud", ["Spend", "Tags"])).toBe(true);
     expect(isMenuPath("Cloud", ["Overview"])).toBe(true);
     expect(
       isMenuPath("Project Settings", ["Telemetry & APM", "Ingestion Keys"]),
@@ -626,7 +629,14 @@ describe("a cloud account's own pages", () => {
 
     expect(sections).toContainEqual({
       title: "Basic",
-      items: ["Overview", "Resources", "Topology", "Recommendations", "Costs"],
+      items: [
+        "Overview",
+        "Resources",
+        "Topology",
+        "Recommendations",
+        "Costs",
+        "Tags",
+      ],
     });
     expect(accounts).toContain(
       "with their resources by type and Region, their **Costs**, their **Changes**, and a **Topology**",

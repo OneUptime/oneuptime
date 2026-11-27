@@ -46,7 +46,7 @@ import SnmpTableListUtil, {
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import { getSnmpConfigFormFields } from "../SnmpConfigFormFields";
+import { getNetworkDeviceSnmpFormFields } from "../SnmpConfigFormFields";
 import { getDevicePollingFormFields } from "../DevicePollingFormFields";
 import { getMacAddressFormField } from "../MacAddressFormField";
 import { getOtherAddressesFormField } from "../OtherAddressesFormField";
@@ -505,7 +505,7 @@ const NetworkDeviceSettings: FunctionComponent<
               });
             },
           } as ModelField<NetworkDevice>,
-          ...getSnmpConfigFormFields({ stepId: "snmp" }),
+          ...getNetworkDeviceSnmpFormFields({ stepId: "snmp" }),
         ]}
         modelDetailProps={{
           modelType: NetworkDevice,
@@ -624,6 +624,20 @@ const NetworkDeviceSettings: FunctionComponent<
                   );
                 }
                 return <span>{item.snmpCredentialProfile.name}</span>;
+              },
+            },
+            {
+              /*
+               * Only on a device polled in a context of its own - a Brocade
+               * logical switch's "VF:128": which logical switch this is.
+               */
+              field: {
+                snmpV3ContextName: true,
+              },
+              title: "SNMP v3 Context",
+              fieldType: FieldType.Text,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.snmpV3ContextName?.trim());
               },
             },
             {

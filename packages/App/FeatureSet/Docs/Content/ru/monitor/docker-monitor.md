@@ -203,7 +203,7 @@ flowchart TB
 | `resource.container.id` | Полный ID контейнера. |
 | `resource.container.runtime` | Всегда `docker`. |
 | `attributes["log.iostream"]` | `stdout` или `stderr`. |
-| `severityText` / `severityNumber` | Берётся из ключевого слова уровня, если уровень указан в строке (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). Строка без уровня берёт его из своего потока: `stderr` – это `ERROR`, `stdout` – это `INFO`. |
+| `severityText` / `severityNumber` | Берётся из уровня, который называет строка, если уровень в ней указан (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); трассировка исключения – это `ERROR`. Строка без уровня в `stdout` – это `INFO`, а в `stderr` она не получает важности (Не указано). |
 | `body` | Строка, которую записал контейнер. Строки, начинающиеся с пробела или закрывающей скобки, например строки трассировки стека, присоединяются к предыдущей строке. |
 | `time` | Отметка времени демона Docker для строки. |
 

@@ -105,6 +105,29 @@ function indexOf(varbinds: Array<SnmpTrapVarbind>): number | null {
 }
 
 /*
+ * The interface any trap names through IF-MIB varbinds - a link trap, or a
+ * vendor's own (Cisco's cieLinkDown carries ifIndex and ifName): the name
+ * it carries (ifName, else ifDescr), else the name the caller found for its
+ * index, else "ifIndex N". Empty for a trap that names no interface. What
+ * an alert's title says for {{trapInterface}}.
+ */
+export function getSnmpTrapInterfaceLabel(
+  trap: TrapLike,
+  knownName?: string | null | undefined,
+): string {
+  const varbinds: Array<SnmpTrapVarbind> = varbindsOf(trap);
+  const index: number | null = indexOf(varbinds);
+
+  return (
+    namedInterfaceOf(varbinds) ||
+    (typeof knownName === "string"
+      ? knownName.trim().slice(0, MAX_NETWORK_EVENT_SUBJECT_LENGTH)
+      : "") ||
+    (index !== null ? `ifIndex ${index}` : "")
+  );
+}
+
+/*
  * The index of the interface a link trap is about, when the index is all
  * the trap says of it - what RFC 2863 requires, and all most agents send.
  * The caller that knows the device's interfaces looks its name up, so the

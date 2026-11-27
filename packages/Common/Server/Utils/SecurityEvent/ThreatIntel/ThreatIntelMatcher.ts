@@ -30,7 +30,10 @@ import {
 } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import { resolveTelemetryRetentionInDays } from "../../../../Types/Telemetry/TelemetryRetentionConfig";
-import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
+import DetectionFingerprint, {
+  DetectionFingerprintKind,
+  DetectionFingerprints,
+} from "../DetectionFingerprint";
 import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../../Services/OpenTelemetryIngestService";
@@ -569,10 +572,7 @@ export default class ThreatIntelMatcher {
         return {
           projectId: feed.projectId!,
           source: SecurityDetectionSource.ThreatIntel,
-          fingerprint: this.buildFingerprint(
-            feed.id!,
-            matchGroup.indicatorValue,
-          ),
+          ...this.buildFingerprints(feed, matchGroup.indicatorValue),
           title: `${feed.name || "Threat intel"} — ${matchGroup.indicatorValue}`,
           description: threatIntelMatchMarkdown({
             feedName: feed.name || "Threat intel",
@@ -718,10 +718,9 @@ export default class ThreatIntelMatcher {
           matchGroup.confidence,
         );
 
-        const eventUid: string = `threat-intel:${feed.id!.toString()}:${this.buildFingerprint(
-          feed.id!,
-          matchGroup.indicatorValue,
-        )}:${OneUptimeDate.getCurrentDateAsUnixNano()}`;
+        const eventUid: string = `threat-intel:${feed.id!.toString()}:${
+          this.buildFingerprints(feed, matchGroup.indicatorValue).fingerprint
+        }:${OneUptimeDate.getCurrentDateAsUnixNano()}`;
 
         eventUids.set(matchGroup.indicatorValue, eventUid);
 
@@ -826,7 +825,7 @@ export default class ThreatIntelMatcher {
     const { feed, matchGroup } = data;
 
     return {
-      fingerprint: this.buildFingerprint(feed.id!, matchGroup.indicatorValue),
+      ...this.buildFingerprints(feed, matchGroup.indicatorValue),
       title: `[Threat Intel] ${feed.name} — ${matchGroup.indicatorValue}`,
       description: this.buildMatchDescription(data),
       rootCause:
@@ -906,14 +905,31 @@ export default class ThreatIntelMatcher {
     return severity === OcsfSeverity.Critical || severity === OcsfSeverity.High;
   }
 
-  private static buildFingerprint(
-    feedId: ObjectID,
+  /*
+   * "threat-intel:<feed id>:<fingerprint>", the fingerprint of the
+   * indicator's value keyed in the feed's project (DetectionFingerprint,
+   * #11130), with the unkeyed one the same match had before: what was opened
+   * under it still dedupes.
+   */
+  public static buildFingerprints(
+    feed: ThreatIntelFeed,
     indicatorValue: string,
-  ): string {
-    return `threat-intel:${feedId.toString()}:${MetricSeriesFingerprint.computeFingerprint(
-      {
-        indicatorValue: indicatorValue || "",
-      },
-    )}`;
+  ): DetectionFingerprints {
+    const feedId: ObjectID = feed.id!;
+    const sourced: (fingerprint: string) => string = (
+      fingerprint: string,
+    ): string => {
+      return `threat-intel:${feedId.toString()}:${fingerprint}`;
+    };
+    const [current, ...former] = DetectionFingerprint.allOf({
+      projectId: feed.projectId!,
+      kind: DetectionFingerprintKind.ThreatIntel,
+      value: indicatorValue || "",
+    });
+
+    return {
+      fingerprint: sourced(current!),
+      formerFingerprints: former.map(sourced),
+    };
   }
 }

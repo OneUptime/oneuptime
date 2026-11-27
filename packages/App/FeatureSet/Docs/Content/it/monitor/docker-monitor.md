@@ -203,7 +203,7 @@ L'agente segue anche il file `*-json.log` di ogni container e invia ogni riga co
 | `resource.container.id` | L'ID completo del container. |
 | `resource.container.runtime` | Sempre `docker`. |
 | `attributes["log.iostream"]` | `stdout` o `stderr`. |
-| `severityText` / `severityNumber` | Letti da una parola chiave di livello dove un livello compare nella riga (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). Una riga senza livello ricade sul proprio stream: `stderr` è `ERROR`, `stdout` è `INFO`. |
+| `severityText` / `severityNumber` | Letti dal livello che la riga indica, dove un livello vi compare (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); il traceback di un'eccezione è `ERROR`. Una riga senza livello è `INFO` su `stdout`, e non ha severità (Non specificato) su `stderr`. |
 | `body` | La riga scritta dal container. Le righe che iniziano con uno spazio o una parentesi chiusa, come le righe di uno stack trace, vengono unite alla riga precedente. |
 | `time` | Il timestamp del demone Docker per la riga. |
 

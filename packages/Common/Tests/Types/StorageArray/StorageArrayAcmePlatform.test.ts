@@ -18,8 +18,7 @@ import MonitorCriteriaEvaluator from "../../../Server/Utils/Monitor/MonitorCrite
 import { JSONObject } from "../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
-import {
-  MonitorStepStorageArrayMonitor,
+import MonitorStepStorageArrayMonitor, {
   StorageArrayResourceScope,
 } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorRecommendationCatalog from "../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";

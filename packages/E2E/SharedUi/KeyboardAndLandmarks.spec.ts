@@ -156,8 +156,27 @@ function savedViewsButton(page: Page): Locator {
     .getByRole("button", { name: /^Saved view: |^Saved Views$/ });
 }
 
+/*
+ * Until the focus is on one of the open menu's items. The menu moves it
+ * there itself, to its first item, once it has been placed and holds its
+ * items: a moment after it shows, and, just after a view was renamed or
+ * deleted, once the views have been read again. Until then the focus is
+ * still on the button that opened it, and an arrow key moves nothing.
+ */
+async function focusInMenu(page: Page): Promise<void> {
+  await expect
+    .poll(async (): Promise<string> => {
+      return page.evaluate((): string => {
+        return document.activeElement?.getAttribute("role") || "";
+      });
+    })
+    .toBe("menuitem");
+}
+
 // Down until the focus is on the menu item called `name`.
 async function arrowTo(page: Page, name: string): Promise<void> {
+  await focusInMenu(page);
+
   for (let step: number = 0; step < 12; step++) {
     if ((await focusedName(page)) === name) {
       return;
@@ -313,6 +332,7 @@ for (const width of WIDTHS) {
       const menu: Locator = page.getByRole("menu");
 
       await expect(menu).toBeVisible();
+      await focusInMenu(page);
       expect(await focusedName(page)).toBe("Errors");
       await expect(menu.getByRole("menuitem")).toHaveText([
         "Errors",
@@ -453,6 +473,7 @@ test("on a Persian page the saved views' row reads from the right, and Down walk
   );
 
   // Up and Down do not turn round on a page read from the right.
+  await focusInMenu(page);
   expect(await focusedName(page)).toBe("Errors");
   await page.keyboard.press("ArrowDown");
   expect(await focusedName(page)).toBe(renameName);

@@ -42,6 +42,7 @@ import CloudAccountAiAgent from "../Pages/Cloud/Accounts/View/AI/Agent";
 import CloudAccountAiLogs from "../Pages/Cloud/Accounts/View/AI/Logs";
 import CloudAccountFeed from "../Pages/Cloud/Accounts/View/Feed";
 import CloudAccountCosts from "../Pages/Cloud/Accounts/View/Costs";
+import CloudAccountTags from "../Pages/Cloud/Accounts/View/Tags";
 import CloudAccountRecommendations from "../Pages/Cloud/Accounts/View/Recommendations";
 import CloudOverview from "../Pages/Cloud/Overview";
 import CloudCosts from "../Pages/Cloud/Costs";
@@ -55,6 +56,7 @@ import CloudCostGroupPage from "../Pages/Cloud/CostGroup";
 import CloudSchedules from "../Pages/Cloud/Schedules";
 import CloudReports from "../Pages/Cloud/Reports";
 import CloudSavingsAiRules from "../Pages/Cloud/Settings/SavingsAiRules";
+import CloudTags from "../Pages/Cloud/Tags";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
@@ -172,6 +174,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudBudgets
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_BUDGETS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_TAGS] || ""}
+          element={
+            <CloudTags
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_TAGS] as Route}
             />
           }
         />
@@ -376,6 +387,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudAccountCosts
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_TAGS)}
+          element={
+            <CloudAccountTags
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_TAGS] as Route}
             />
           }
         />

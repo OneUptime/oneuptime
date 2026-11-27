@@ -12,6 +12,7 @@ Ein verbundenes Cloud-Konto sagt auch, was es kostet und wie es weniger kosten k
 - [Abschaltzeitpläne](#abschaltzeitpläne): Nicht-Produktions-Ressourcen nachts und am Wochenende stoppen.
 - [KI-Regeln für Einsparungen](#ki-regeln-für-einsparungen): Vorschläge für Eigentümer, oder Änderungen bis zu einem Limit.
 - [Budgets](#budgets): Eine Warnung, sobald die Ausgaben eines Monats einen Anteil seines Budgets überschreiten.
+- [Erforderliche Tags](#erforderliche-tags): Wie viel Ihrer Ausgaben die vorgeschriebenen Tags trägt, und neue Ressourcen ohne sie.
 :::
 
 ## So funktioniert es
@@ -126,7 +127,15 @@ Eine Ressource, für die kein Empfehlungsdienst spricht, weil er nicht eingescha
 - **Überdimensioniert**, wenn die halb so große Größe oder ein Viertel davon noch Luft hätte: Auf der kleineren Größe läge das 95. Perzentil ihrer CPU bei höchstens 60 %, ihr höchster CPU-Messwert bei höchstens 100 % und die Spitze ihres Speichers bei höchstens 70 %, wenn ihr Speicher gelesen wird.
 - **Unterdimensioniert**, wenn das 95. Perzentil ihrer CPU bei 85 % oder mehr liegt oder die Spitze ihres Speichers bei 90 % oder mehr: dann die doppelt so große Größe.
 
-Eine Ressource wird bemessen, sobald sie 6 Tage an Messwerten hat. Ihre Seite zeigt ihre **Größenanpassung** neben dem, was sie kostet, und eine überdimensionierte steht unter **Cloud → Ausgaben → Einsparungen**, mit OneUptime als Quelle. Was eine Änderung einspart, ist ihr Anteil an dem, was die Ressource in den letzten 30 Tagen gekostet hat; bekannt ist es also, sobald Ihre Cloud die Ressource namentlich abrechnet: Der detaillierte Export von Azure und Google Cloud tut das, AWS ebenfalls, sobald Kosten pro Ressource eingeschaltet ist. Eine EC2-Instanz meldet ihren Speicher nur mit dem CloudWatch-Agent und eine Compute-Engine-VM nur mit dem Ops Agent: Ohne ihn wird sie allein nach ihrer CPU bemessen. Burstable-Größen wie t3, die B-Serie und e2-micro werden nie bemessen.
+Eine Ressource wird bemessen, sobald sie 6 Tage an Messwerten hat. Ihre Seite zeigt ihre **Größenanpassung** neben dem, was sie kostet, und eine überdimensionierte steht unter **Cloud → Ausgaben → Einsparungen**, mit OneUptime als Quelle. Was eine Änderung einspart, ist ihr Anteil an dem, was die Ressource in den letzten 30 Tagen gekostet hat; bekannt ist es also, sobald Ihre Cloud die Ressource namentlich abrechnet: Der detaillierte Export von Azure und Google Cloud tut das, AWS ebenfalls, sobald Kosten pro Ressource eingeschaltet ist. Burstable-Größen wie t3, die B-Serie und e2-micro werden nie bemessen.
+
+Ihre Cloud liest den Arbeitsspeicher einer VM nur mit einem eigenen Agent in der VM: dem CloudWatch-Agent auf einer EC2-Instanz, dem Ops Agent auf einer Compute-Engine-VM und keinem für eine Azure-VM, die den freien statt den belegten Arbeitsspeicher meldet. Eine VM, auf der [der Host-Collector von OneUptime](/docs/telemetry/hosts) läuft, wird stattdessen nach dem Arbeitsspeicher bemessen, den der Host-Collector liest:
+
+- **Die VM und der Host sind eine Maschine**, wenn Anbieter, Konto, Region und Instanz-ID übereinstimmen: die EC2-Instanz-ID, die numerische ID einer Compute-Engine-VM oder die `vmId` einer Azure-VM. Ein Hostname allein ergibt nie eine Übereinstimmung, und eine VM, die zwei Hosts beanspruchen, etwa eine geklonte Maschine, wird mit keinem verknüpft. Die Seite der VM nennt ihren Host und die Seite des Hosts seine VM, jeweils mit einem Link zur anderen.
+- **Arbeitsspeicher ist der belegte Arbeitsspeicher des Hosts, ohne Cache und Puffer**, der Wert, den die Seite des Hosts im Diagramm zeigt, über dieselben 14 Tage. Ein voller Dateicache gilt nie als volle Maschine. Auch der Host braucht 6 Tage an Messwerten.
+- **Wo beide den Arbeitsspeicher lesen**, wie bei einer Compute-Engine-VM mit dem Ops Agent und dem Host-Collector, zählt der mit mehr Messwerten. Die CPU ist immer der Messwert Ihrer Cloud.
+
+Die **Größenanpassung** der VM sagt, woher ihr Arbeitsspeicher kam, ebenso ihre Zeile unter **Cloud → Ausgaben → Einsparungen**. Eine VM, die allein nach ihrer CPU bemessen wird, sagt das, mit einem Link zur Installation des Host-Collectors. Der Host-Collector stempelt die Identität seiner Cloud mit dem Schritt `resourcedetection/cloud`, den [die Konfiguration der Hosts-Anleitung](/docs/telemetry/host-otel-collector) enthält. Ein Host mit der Standardkonfiguration von OneUptime erhält den Schritt mit dem nächsten Release von OneUptime; einer mit eigener Konfiguration braucht ihn ergänzt. Kubernetes-Knoten bleiben der [Kubernetes-Kosten-Observability](/docs/telemetry/kubernetes-cost) überlassen, die die Requests dessen bemisst, was auf ihnen läuft.
 
 ### Zusagen
 
@@ -256,6 +265,54 @@ Nach jedem Lesevorgang wird jeder der letzten 14 vollen Tage eines Kontos an den
 
 Unter der Liste sagt die Karte, worauf sich der Rest belief: was in keiner Umgebung liegt, was einer Umgebung als Ganzes berechnet wird oder was das Tag nicht trägt. Kosten, die gelesen wurden, bevor Tags behalten wurden, werden einmal erneut gelesen, so weit zurück wie ein erster Lesevorgang, damit ihre Tags nachkommen.
 
+## Erforderliche Tags
+
+Ausgaben sind nur so gut zugeordnet wie die Tags, die sie tragen. Legen Sie unter **Cloud → Ausgaben → Tags** fest, welche Tags jede Ressource tragen muss, etwa `team`, `env` und `cost-center`, und sehen Sie, wie viel Ihrer Ausgaben und Ressourcen sie tragen, welche Ressourcen nicht und wer jede neue ohne sie erstellt hat.
+
+:::steps
+### Ein Tag vorschreiben
+
+Wählen Sie **Tag vorschreiben** und geben Sie den **Tag-Schlüssel** ein. Unter **Erlaubte Werte** listen Sie die Werte auf, die es annehmen darf, durch Kommas getrennt, oder lassen Sie das Feld leer, um jeden Wert zuzulassen. Wählen Sie ein **Konto**, um das Tag nur in einem Konto vorzuschreiben. Eine **Beschreibung** unter **Weitere Felder** sagt in den E-Mails dazu, wofür das Tag gedacht ist.
+
+### Die Abdeckung lesen
+
+Die Seite beginnt damit, wie viel der Ausgaben der letzten 30 Tage und Ihrer Ressourcen alle erforderlichen Tags tragen. Darunter stehen die Ressourcen, denen ein Tag fehlt, die teuersten zuerst, dann jedes Tag für sich, der Verlauf der letzten 12 Wochen und jedes Konto.
+
+### Taggen, was fehlt
+
+Jede Ressource, der ein Tag fehlt, zeigt den Wert, den OneUptime vorschlägt, und den Befehl, der ihn in Ihrer Cloud setzt. Eine in Code deklarierte Ressource sagt, welcher Code sie deklariert: Fügen Sie das Tag dort hinzu, sonst entfernt das nächste Deployment es wieder.
+:::
+
+- **Schlüssel gelten unabhängig von Groß- und Kleinschreibung.** `Team`, `team` und `TEAM` sind ein Schlüssel, und eine Ressource trägt das Tag, wenn eine beliebige Schreibweise davon einen erlaubten Wert hat. Auch Werte gelten unabhängig von Groß- und Kleinschreibung, und ein leerer Wert ist kein Wert.
+- **Ein erlaubter Wert kann ein Muster sein.** `*` steht für beliebige Zeichen und `?` für eines, also passt `prod-*` auf `prod-eu` und `prod-us`. Muster sind keine regulären Ausdrücke.
+- **Eigene Tags eines Kontos.** Ein in einem Konto vorgeschriebenes Tag ersetzt dort das Tag des Projekts mit demselben Schlüssel, und ein Konto kann einen eigenen Schlüssel vorschreiben. Die **Tags** eines Kontos zeigen beides.
+- **In Ihrer Cloud wird nichts geändert.** OneUptime stoppt oder taggt nie eine Ressource wegen eines fehlenden Tags. Es informiert Personen und schlägt den Wert vor.
+
+### Abdeckung
+
+- **Ausgaben mit Tags** ist der Anteil der Kosten der letzten 30 Tage, der alle erforderlichen Tags trägt, nach den Tags, mit denen jede Kostenposition gelesen wurde. Er wird bei jedem Öffnen der Seite berechnet, sodass ein heute vorgeschriebenes Tag auch über die vergangenen 30 Tage gemessen wird. AWS-Kosten tragen erst Tags, wenn [Kosten pro Ressource](#kosten-pro-ressource) eingeschaltet ist: Bis dahin zeigen die Ausgaben eines AWS-Kontos **Nicht gemessen** statt 0 %.
+- **Ressourcen mit Tags** ist der Anteil der von Ihren Verbindungen aufgeführten Ressourcen, die alle erforderlichen Tags tragen, so wie sie jetzt getaggt sind.
+- **Abdeckung im Zeitverlauf** zeigt jede der letzten 12 Wochen: Ausgaben aus den Kosten und Ressourcen aus der Zählung, die OneUptime jeden Tag macht.
+
+### Neue Ressourcen
+
+Eine Ressource, die Ihre Verbindung nach der ersten vollständigen Auflistung ihres Kontos aufführt, ist neu. Die Verbindung listet alle 30 Minuten auf, daher wird eine neue Ressource innerhalb der Stunde gefunden, in der sie erstellt wird. Über eine, der ein erforderliches Tag fehlt, wird einmal informiert:
+
+- **Wer informiert wird.** Die Person, die sie erstellt hat, wenn das Änderungsprotokoll des Kontos ein Mitglied Ihres Projekts mit seiner E-Mail-Adresse nennt, und die Eigentümer der Ressource aus Eigentümerregeln und Teams. Kann keiner von beiden informiert werden, werden es die Projektinhaber. Jeder muss Ihre Cloud-Ressourcen lesen dürfen.
+- **Wie oft.** Eine E-Mail pro Stunde listet alles Neue für jede Person auf. Unter **Weitere Einstellungen** sendet **Eine E-Mail pro Ressource** jede einzeln, und **Warnung auslösen** löst zusätzlich für jedes Konto eine Warnung aus, mit dem Schweregrad und den Bereitschaftsrichtlinien unter **Wohin Warnungen gehen**.
+- **Wenn sie getaggt wird.** Eine Ressource, die vor dem Versand der E-Mail getaggt wird, bleibt darin weg, und die Liste **Neue Ressourcen** markiert jede als **Getaggt**, sobald sie ihre Tags trägt.
+
+### Vorgeschlagene Werte
+
+OneUptime schlägt einen Wert nur vor, wenn das Tag ihn erlaubt:
+
+- **Ein teamartiger Schlüssel**, etwa `team`, `owner` oder `squad`: das Team, dem die Ressource gehört.
+- **Ein umgebungsartiger Schlüssel**, etwa `env`, `environment` oder `stage`: die App-Platforms-Umgebung einer App, die als die Ressource läuft, oder bei einer VM die Deployment-Umgebung, die ihr Host meldet.
+- **Jeder Schlüssel**: der Wert, den die meisten Ressourcen daneben tragen, im selben CloudFormation-Stack, in derselben Azure-Ressourcengruppe oder mit demselben Namen vor ihrer Nummer, etwa `web-1` und `web-2`. Mindestens zwei müssen übereinstimmen.
+- **Ein Tag, das einen einzigen Wert erlaubt**: dieser Wert.
+
+Der Befehl setzt das Tag in einem Schritt, aus der eigenen Shell Ihrer Cloud: `aws resourcegroupstaggingapi tag-resources` auf AWS, `az tag update --operation Merge` auf Azure und `gcloud ... add-labels` oder `--update-labels` für Compute-Engine-VMs und -Disks, Cloud-Storage-Buckets und Cloud-SQL-Instanzen auf Google Cloud.
+
 ## Berichte und Exporte
 
 ### Kostenberichte
@@ -330,6 +387,7 @@ Das Widget **Cloud-Kosten** stellt eine Summe, eine Aufschlüsselung oder einen 
 - **Jede Zusage.** **Cloud → Ausgaben → Zusagen** listet jede mit ihrem Ende und wie viel davon genutzt wird auf, die bald endenden mit dem, was zu verlängern ist, und was zu kaufen ist.
 - **Berichte.** **Cloud → Ausgaben → Berichte** listet jeden geplanten Bericht mit dem, was er abdeckt, wann er als Nächstes hinausgeht und wie sein letzter Versand verlief.
 - **Die Kosten eines Kontos.** Die Seite **Kosten** eines Kontos zeigt dasselbe nur für das Konto, mit seinen Zusagen und seinen Wegen, weniger auszugeben.
+- **Erforderliche Tags.** **Cloud → Ausgaben → Tags** zeigt, wie viel der Ausgaben und der Ressourcen Ihre erforderlichen Tags tragen, und die **Tags** eines Kontos zeigen dasselbe für das Konto allein.
 - **Die Kosten einer Ressource.** Die Seite einer Ressource zeigt, was sie in diesem Monat und in den letzten 30 Tagen gekostet hat, wenn ihre Cloud sie namentlich abrechnet, mit ihren Wegen, weniger auszugeben, und ihrer Größenanpassung.
 - **Was eingespart wurde.** **Cloud → Ausgaben → Einsparungen** zeigt zuerst, was die vorgenommenen Änderungen diesen Monat laut Rechnung eingespart haben, die Änderungen, die auf Genehmigung warten, und die vorgenommenen, sowie die Stunden, die Zeitpläne Ressourcen gestoppt haben.
 

@@ -15,6 +15,7 @@ import {
   CloudAccountCostSummary,
   CloudCostState,
   CloudCostTagKey,
+  roundCost,
 } from "./CloudCost";
 import {
   CloudCostAllocationGroupResult,
@@ -638,6 +639,12 @@ function sumOf(shares: Array<{ amount: number }>): number {
  * value (with the costs that do not carry it), or by a cost view's groups
  * (with what no group takes). The shares and the rest add up to the
  * period's spend.
+ *
+ * That spend is rounded as the accounts' summaries round their month
+ * (roundCost), so it is the figure the strip above it shows: added up as
+ * floating point, a month whose cents come to $15,556.50 is
+ * 15556.499999999998, which reads "$15,556" under a strip that says
+ * "$15,557".
  */
 export async function readCloudCostBreakdown(
   reader: CloudCostBreakdownReader,
@@ -681,7 +688,7 @@ export async function readCloudCostBreakdown(
       dimension: data.dimension,
     });
 
-    return { shares, rest: [], total: sumOf(shares) };
+    return { shares, rest: [], total: roundCost(sumOf(shares)) };
   }
 
   if (data.dimension === "tag") {
@@ -714,7 +721,7 @@ export async function readCloudCostBreakdown(
         Math.abs(without) >= CLOUD_COST_SHARE_MIN
           ? [{ kind: "without-tag", amount: without }]
           : [],
-      total: sumOf(shares) + without,
+      total: roundCost(sumOf(shares) + without),
     };
   }
 
@@ -772,7 +779,7 @@ export async function readCloudCostBreakdown(
   return {
     shares: toShares(assigned.shares),
     rest,
-    total: assigned.total,
+    total: roundCost(assigned.total),
   };
 }
 

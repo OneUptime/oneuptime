@@ -232,6 +232,7 @@
   "TypeError, NullReferenceException",
   "URL",
   "UUID",
+  "VF:128",
   "VLAN {{id}}",
   "VMID",
   "VMware",

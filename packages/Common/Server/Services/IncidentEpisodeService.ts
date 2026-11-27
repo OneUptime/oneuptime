@@ -69,6 +69,9 @@ import {
 import ChannelMembersNotAddedNotice, {
   ChannelMembersNotAdded,
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceRuleOwnersOnCreate from "../Utils/Workspace/WorkspaceRuleOwnersOnCreate";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import IncidentService from "./IncidentService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -134,11 +137,20 @@ const GROUPING_RULE_KEYS: Array<string> = [
 
 /*
  * What onBeforeCreate hands to onCreateSuccess: how far along the episode
- * starts (StartingStage), and the incidents it is being created with,
- * checked and each once - empty unless it is created with incidents.
+ * starts (StartingStage), the incidents it is being created with, checked
+ * and each once - empty unless it is created with incidents - and when its
+ * feed starts.
  */
 type IncidentEpisodeCreateCarryForward = StartingStageCarryForward & {
   incidentIdsToAdd: Array<ObjectID>;
+  /*
+   * The moment the episode's create began, taken before it is written - so
+   * before anything about it can be. Its "Episode Created" entry is filed
+   * at it, whenever the step that writes it runs: the first line of its
+   * feed, ahead of its first state, the incidents it was created with and
+   * its owners, which its create now writes first (#11188).
+   */
+  feedStartsAt: Date;
 };
 
 /*
@@ -451,6 +463,13 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * When the episode's feed starts (IncidentEpisodeCreateCarryForward):
+     * now, before the episode is written and so before any entry about it
+     * can be.
+     */
+    const feedStartsAt: Date = OneUptimeDate.getCurrentDate();
+
     if (!createBy.props.tenantId && !createBy.props.isRoot) {
       throw new BadDataException(
         "ProjectId required to create incident episode.",
@@ -679,9 +698,21 @@ export class Service extends ProjectReferencesService<Model> {
     const carryForward: IncidentEpisodeCreateCarryForward = {
       startingStage: startingStage,
       incidentIdsToAdd: incidentsToAdd?.incidentIds || [],
+      feedStartsAt: feedStartsAt,
     };
 
     return { createBy, carryForward: carryForward };
+  }
+
+  // When the episode's feed starts, as onBeforeCreate handed it over.
+  private getFeedStartsAt(onCreate: OnCreate<Model>): Date | undefined {
+    const carryForward: Partial<IncidentEpisodeCreateCarryForward> | null =
+      (onCreate.carryForward as Partial<IncidentEpisodeCreateCarryForward> | null) ||
+      null;
+
+    return carryForward?.feedStartsAt instanceof Date
+      ? carryForward.feedStartsAt
+      : undefined;
   }
 
   // The validated incident ids an episode is being created with, if any.
@@ -843,33 +874,37 @@ export class Service extends ProjectReferencesService<Model> {
     const incidentsAdded: Promise<Array<ObjectID>> =
       this.addIncidentsCreatedWith(onCreate, createdItem, privacyRulesApplied);
 
-    // Create initial state timeline entry
+    /*
+     * When the episode's feed starts (IncidentEpisodeCreateCarryForward): its
+     * "Episode Created" entry is filed at it, whenever the step below writes
+     * it.
+     */
+    const feedStartsAt: Date | undefined = this.getFeedStartsAt(onCreate);
+
+    /*
+     * The episode's Slack, Microsoft Teams and Mattermost messages. Its rules
+     * are matched - its channels opened, its "Episode Created" posted - once
+     * its owners and labels are in, so a rule that asks who owns it or how it
+     * is labelled matches it (#11188): the owners picked on its create form
+     * and its owner rules', its label rules' labels, and the owners the code
+     * that made it adds - a grouping rule's Episode Owners. Every other
+     * message about it - the incidents it was created with, "Added team
+     * Platform to the Episode as the owner" - waits for "Episode Created"
+     * until then, on every App server, and follows it in the order it was
+     * made (WorkspaceCreatedMessageFirst): its channels hear of the episode
+     * first, then of what happened to it, then its pages.
+     */
+    await WorkspaceCreatedMessageFirst.hold({
+      incidentEpisodeId: createdItem.id,
+    });
+
     privacyRulesApplied
       .then(async () => {
         /*
-         * No channel is opened for an episode created resolved. Its created
-         * feed entry still goes to the channels the workspace rules name.
+         * Its first state, which its feed lists right under "Episode
+         * Created", ahead of its owners. Not posted to Slack and Microsoft
+         * Teams: "Episode Created" names it (WorkspaceStateChangePosting).
          */
-        try {
-          if (
-            createdItem.projectId &&
-            createdItem.id &&
-            StartingStageUtil.isOngoing(startingStage)
-          ) {
-            membersNotAddedToNewChannels =
-              await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
-          }
-        } catch (error) {
-          logger.error(
-            `Workspace operations failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentEpisodeId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-        }
-      })
-      .then(async () => {
         try {
           await this.changeEpisodeState({
             projectId: createdItem.projectId!,
@@ -894,30 +929,10 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        try {
-          await this.createEpisodeCreatedFeed(createdItem);
-        } catch (error) {
-          logger.error(
-            `Create episode feed failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentEpisodeId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-        }
-      })
-      .then(async () => {
-        // Under the episode's created message: who could not be added.
-        await ChannelMembersNotAddedNotice.noteAll({
-          projectId: createdItem.projectId,
-          membersNotAdded: membersNotAddedToNewChannels,
-        });
-      })
-      .then(async () => {
         /*
-         * Created with incidents: name them once, here - after "Episode
-         * Created" and after the episode's Slack / Microsoft Teams channels
-         * exist - rather than once per incident as each is added.
+         * Created with incidents: name them once, here, rather than once per
+         * incident as each is added. Its message waits for "Episode Created"
+         * and follows it, ahead of the owners'.
          */
         const addedIncidentIds: Array<ObjectID> = await incidentsAdded;
 
@@ -932,10 +947,11 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         /*
-         * The owners picked on the form, once the episode's Slack and
-         * Microsoft Teams channels exist - so the owners' own hooks can
-         * invite them - and after "Episode Created". Asked about before the
-         * episode was saved (onBeforeCreate).
+         * The owners picked on the form, before its channels are opened and
+         * "Episode Created" is posted: its rules match on them, and the
+         * channels' setup invites them. Their "owner added" messages wait
+         * for "Episode Created". Asked about before the episode was saved
+         * (onBeforeCreate).
          */
         try {
           await OwnerRuleAssignment.addOwnersPickedOnCreate({
@@ -974,7 +990,10 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        // Apply label rules: attach matched labels to the episode.
+        /*
+         * Apply label rules: attach matched labels to the episode, before
+         * its channels are opened so its rules match on them.
+         */
         try {
           await IncidentEpisodeLabelRuleEngineService.applyRulesToEpisode(
             createdItem,
@@ -988,6 +1007,76 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
         }
+      })
+      .then(async () => {
+        /*
+         * Its rules are matched from here on, on what it ends up with: the
+         * owners and labels this chain adds are in. Those the code that made
+         * it adds - a grouping rule's Episode Owners - are waited for a
+         * moment, in a project with a rule that asks who owns an incident
+         * episode (WorkspaceRuleOwnersOnCreate). Never throws.
+         */
+        await WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate({
+          createBy: onCreate.createBy,
+          projectId: createdItem.projectId!,
+          eventType: NotificationRuleEventType.IncidentEpisode,
+          recordId: createdItem.id!,
+        });
+      })
+      .then(async () => {
+        /*
+         * No channel is opened for an episode created resolved. Its created
+         * feed entry still goes to the channels the workspace rules name.
+         */
+        try {
+          if (
+            createdItem.projectId &&
+            createdItem.id &&
+            StartingStageUtil.isOngoing(startingStage)
+          ) {
+            membersNotAddedToNewChannels =
+              await this.handleEpisodeWorkspaceOperationsAsync(createdItem);
+          }
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        try {
+          await this.createEpisodeCreatedFeed(createdItem, feedStartsAt);
+        } catch (error) {
+          logger.error(
+            `Create episode feed failed in IncidentEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        // Under the episode's created message: who could not be added.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
+      })
+      .then(async () => {
+        /*
+         * Then what waited for "Episode Created", in the order it was made:
+         * the incidents it was created with, the owners added above, and
+         * anything else posted about the episode meanwhile, on any App
+         * server. Never throws.
+         */
+        await WorkspaceCreatedMessageFirst.postHeld({
+          incidentEpisodeId: createdItem.id!,
+        });
       })
       .then(async () => {
         /*
@@ -1045,6 +1134,14 @@ export class Service extends ProjectReferencesService<Model> {
             incidentEpisodeId: createdItem.id?.toString(),
           } as LogAttributes,
         );
+
+        /*
+         * Maybe of "Episode Created" too: what waited for it goes out now,
+         * rather than once its hold runs out. Never throws.
+         */
+        void WorkspaceCreatedMessageFirst.postHeld({
+          incidentEpisodeId: createdItem.id!,
+        });
       });
 
     /*
@@ -1103,8 +1200,19 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * The episode's "Episode Created" entry, posted to its Slack, Microsoft
+   * Teams and Mattermost channels as the message that announces it - ahead
+   * of the messages its create held back until it
+   * (WorkspaceCreatedMessageFirst). Filed at `postedAt` when given - when
+   * the episode's feed starts - so it is the first line of the feed whenever
+   * it is written.
+   */
   @CaptureSpan()
-  private async createEpisodeCreatedFeed(episode: Model): Promise<void> {
+  private async createEpisodeCreatedFeed(
+    episode: Model,
+    postedAt?: Date | undefined,
+  ): Promise<void> {
     if (!episode.id || !episode.projectId) {
       return;
     }
@@ -1189,9 +1297,11 @@ export class Service extends ProjectReferencesService<Model> {
       displayColor: Red500,
       feedInfoInMarkdown: feedInfoInMarkdown,
       userId: episode.createdByUserId || undefined,
+      ...(postedAt ? { postedAt: postedAt } : {}),
       workspaceNotification: {
         appendMessageBlocks: episodeCreateMessageBlocks,
         sendWorkspaceNotification: true,
+        announcesRecord: true,
       },
     });
   }

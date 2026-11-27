@@ -156,6 +156,19 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           icon: IconProp.Wallet,
         },
         /*
+         * The tags every resource must carry, how much of the spend carries
+         * them, and the new resources created without them (#11012).
+         */
+        {
+          link: {
+            title: "Tags",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_TAGS] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
+        },
+        /*
          * Scheduled cost reports (#11009): what the clouds cost, emailed
          * weekly or monthly to each team, and posted to Slack and
          * Microsoft Teams.

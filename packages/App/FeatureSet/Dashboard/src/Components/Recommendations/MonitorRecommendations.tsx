@@ -20,9 +20,6 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -35,7 +32,6 @@ import PermissionGate, {
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
@@ -43,8 +39,8 @@ import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import MonitorRecommendationCatalog, {
   MonitorRecommendationResourceTypeDefinition,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
-import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import { MonitorRecommendationSeverityOption } from "Common/Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
+import MonitorRecommendationCoverageApi from "./MonitorRecommendationCoverageApi";
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
@@ -351,48 +347,19 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * Only the monitor types used by this resource's catalog can cover a
-     * recommendation. Most resources have one; RUM deliberately spans metric,
-     * trace and exception monitors. Keep the queries narrow without assuming
-     * a resource maps to exactly one evaluator.
+     * Decided by the server, with a query over every monitor the reader may
+     * read (#11074): each recommendation is asked about with the type of
+     * monitor that can cover it - most resources have one; RUM spans
+     * metric, trace and exception monitors. The page read the first 10,000
+     * monitors of each type, so a monitor past them never covered anything.
      */
-    const monitorLists: Array<ListResult<Monitor>> = await Promise.all(
-      definition.monitorTypes.map(async (monitorType: MonitorType) => {
-        return await ModelAPI.getList({
-          modelType: Monitor,
-          query: { monitorType: monitorType },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true, monitorSteps: true },
-          sort: { name: SortOrder.Ascending },
-        });
-      }),
-    );
-
-    const monitors: Array<Monitor> = monitorLists.flatMap(
-      (monitorList: ListResult<Monitor>) => {
-        return monitorList.data;
-      },
-    );
-
     setCoveredMonitorIds(
-      MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
-        recommendations: recommendations,
-        existingMonitors: monitors
-          .filter((monitor: Monitor) => {
-            return Boolean(monitor.id);
-          })
-          .map((monitor: Monitor) => {
-            return {
-              monitorId: monitor.id!,
-              monitorSteps:
-                MonitorRecommendationCreateUtil.getExistingMonitorSteps([
-                  monitor,
-                ]) as Array<MonitorStep>,
-            };
-          }),
-        args: buildArgs(defaults),
-      }),
+      await MonitorRecommendationCoverageApi.getCoveredRecommendationMonitorIds(
+        {
+          recommendations: recommendations,
+          args: buildArgs(defaults),
+        },
+      ),
     );
   };
 

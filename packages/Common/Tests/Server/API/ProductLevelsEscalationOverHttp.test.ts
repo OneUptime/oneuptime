@@ -557,10 +557,21 @@ const ATTEMPTS: Array<Attempt> = [
 ];
 
 describe("every product's every level at once reaches none of the project's own records", () => {
-  test("the suite holds every level", () => {
-    expect(PRODUCT_LEVEL_PERMISSION_VALUES.length).toBe(75);
+  /*
+   * A product that gains levels grows the count. The newest are XCP-ng's
+   * (#11093), named so the attempts below are known to run with them held.
+   */
+  test("the suite holds every level, XCP-ng's Admin, Member and Viewer among them", () => {
+    expect(PRODUCT_LEVEL_PERMISSION_VALUES.length).toBe(78);
     expect(EVERY_LEVEL).toEqual(
       expect.arrayContaining([...PRODUCT_LEVEL_PERMISSION_VALUES]),
+    );
+    expect(EVERY_LEVEL).toEqual(
+      expect.arrayContaining([
+        Permission.XcpNgAdmin,
+        Permission.XcpNgMember,
+        Permission.XcpNgViewer,
+      ]),
     );
   });
 

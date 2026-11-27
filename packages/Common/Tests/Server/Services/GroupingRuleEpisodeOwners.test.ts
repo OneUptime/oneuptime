@@ -27,6 +27,9 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
 import GroupingRuleEpisodeOwners from "../../../Server/Utils/Rules/GroupingRuleEpisodeOwners";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../../../Server/Utils/Notification/CreatedNotificationHold";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import {
   ProjectDirectoryStub,
@@ -480,6 +483,80 @@ describe.each(ENGINES)("the $label engine", (engine: EngineCase) => {
         return String(call[0]).includes("no team was made an owner");
       }),
     ).toBe(true);
+  });
+
+  /*
+   * The rule's Episode Owners are added once the episode exists, after its
+   * create returns: the episode's create chain waits a moment for them
+   * before its notification rules are matched (WorkspaceRuleOwnersOnCreate),
+   * so a rule that asks who owns the episode posts its "Episode Created"
+   * (#11188). The engine says so to the create - the very object every hook
+   * of it is handed - and says when they are in.
+   */
+  test("REGRESSION (#11188): the episode's create is told the rule's owners come after it, and when they are in", async () => {
+    const rule: IncidentGroupingRule | AlertGroupingRule = engine.newRule();
+    rule.episodeOwnerTeams = [team(PLATFORM)];
+
+    let created: CreateBy<BaseModel> | null = null;
+    const addingOwnersAsCreated: Array<boolean> = [];
+    const addingOwnersAsOwnersWritten: Array<boolean> = [];
+
+    episodeCreate.mockImplementation((async (
+      data: CreateBy<BaseModel>,
+    ): Promise<BaseModel> => {
+      created = data;
+      addingOwnersAsCreated.push(
+        CreatedNotificationHold.isAddingOwners(data, [OwnersAddedBy.Caller]),
+      );
+      data.data.id = EPISODE_ID;
+      return data.data;
+    }) as never);
+
+    jest.spyOn(engine.ownerTeamService, "create").mockImplementation((async (
+      data: CreateBy<BaseModel>,
+    ): Promise<BaseModel> => {
+      addingOwnersAsOwnersWritten.push(
+        CreatedNotificationHold.isAddingOwners(created!, [
+          OwnersAddedBy.Caller,
+        ]),
+      );
+      return data.data;
+    }) as never);
+
+    await engine.createNewEpisode(engine.newRecord(), rule);
+
+    expect(created).not.toBeNull();
+    expect(addingOwnersAsCreated).toEqual([true]);
+    expect(addingOwnersAsOwnersWritten).toEqual([true]);
+    expect(
+      CreatedNotificationHold.isAddingOwners(created!, [OwnersAddedBy.Caller]),
+    ).toBe(false);
+  });
+
+  test("an episode create that fails is told its owners are in all the same: nothing waits for them", async () => {
+    const rule: IncidentGroupingRule | AlertGroupingRule = engine.newRule();
+    rule.episodeOwnerTeams = [team(PLATFORM)];
+
+    let created: CreateBy<BaseModel> | null = null;
+
+    episodeCreate.mockImplementation((async (
+      data: CreateBy<BaseModel>,
+    ): Promise<BaseModel> => {
+      created = data;
+      throw new Error("the database went away");
+    }) as never);
+
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      // read below
+    }) as never);
+
+    await engine.createNewEpisode(engine.newRecord(), rule);
+
+    expect(created).not.toBeNull();
+    expect(writtenTeams).toEqual([]);
+    expect(
+      CreatedNotificationHold.isAddingOwners(created!, [OwnersAddedBy.Caller]),
+    ).toBe(false);
   });
 
   test("a rule that names no owners asks nothing about them", async () => {

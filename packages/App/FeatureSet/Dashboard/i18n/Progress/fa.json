@@ -381,6 +381,7 @@
     "p95",
     "p95 {{latency}}",
     "payment-.*",
+    "payments, search, platform-*",
     "pending\npaid\nrefunded",
     "prod, staging",
     "prod-.*",

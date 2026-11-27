@@ -551,12 +551,15 @@ describe("once the vault names the user, where the token was stays beside what t
       [HASHED_USER_SOURCE_ATTRIBUTES[ScrubbedUserRole.Principal].field]:
         "attributes.user.id",
     });
-    expect(
-      readHashedUserSource(event, ScrubbedUserRole.Principal),
-    ).toEqual<HashedUserSource>({
+    // Typed, as @jest/globals' toEqual takes no type argument.
+    const principalSource: HashedUserSource = {
       signal: "trace",
       field: "attributes.user.id",
-    });
+    };
+
+    expect(readHashedUserSource(event, ScrubbedUserRole.Principal)).toEqual(
+      principalSource,
+    );
     // Who was acted on says nothing it was not told.
     expect(readHashedUserSource(event, ScrubbedUserRole.Target)).toEqual({
       signal: null,

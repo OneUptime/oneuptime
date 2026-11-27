@@ -95,7 +95,7 @@ Pick a **Monitoring Interval**, from **Every Minute** to **Every Week**. Synthet
 
 ### Create the monitor
 
-Click **Create Monitor**. The new monitor's page opens. To change its probes or its interval later, open **Configuration → Probes & Interval** on that page.
+Click **Create Monitor**. The new monitor's page opens. Slack and Microsoft Teams hear of it once its owners and labels are in, so a notification rule that asks who owns a monitor, or how it is labelled, posts its created message, and its first status follows that message. To change its probes or its interval later, open **Configuration → Probes & Interval** on that page.
 :::
 
 Every other type except Manual is created from the **Criteria** step.

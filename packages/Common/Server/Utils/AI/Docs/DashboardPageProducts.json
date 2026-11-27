@@ -1368,6 +1368,9 @@
   "/dashboard/:projectId/cloud/budgets": [
     "cloud"
   ],
+  "/dashboard/:projectId/cloud/tags": [
+    "cloud"
+  ],
   "/dashboard/:projectId/cloud/settings/owner-rules": [
     "cloud"
   ],

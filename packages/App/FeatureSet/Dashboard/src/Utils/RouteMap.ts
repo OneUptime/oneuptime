@@ -804,6 +804,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_COST_GROUPS]: `cost-groups`,
   [PageMap.CLOUD_COST_VIEW]: `cost-groups/${RouteParams.ModelID}`,
   [PageMap.CLOUD_COST_GROUP_VIEW]: `cost-groups/${RouteParams.ModelID}/groups/${RouteParams.SubModelID}`,
+  [PageMap.CLOUD_TAGS]: `tags`,
   [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
@@ -823,6 +824,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: `accounts/${RouteParams.ModelID}/ai/logs`,
   [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: `accounts/${RouteParams.ModelID}/feed`,
   [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: `accounts/${RouteParams.ModelID}/costs`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_TAGS]: `accounts/${RouteParams.ModelID}/tags`,
   [PageMap.CLOUD_ACCOUNT_VIEW_RECOMMENDATIONS]: `accounts/${RouteParams.ModelID}/recommendations`,
 };
 
@@ -7316,6 +7318,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_TAGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_TAGS]
+    }`,
+  ),
+
   [PageMap.CLOUD_MONITORED_RESOURCES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_MONITORED_RESOURCES]
@@ -7534,6 +7542,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_COSTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_TAGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_TAGS]
     }`,
   ),
 

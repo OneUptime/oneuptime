@@ -476,6 +476,8 @@ describe("the write plan: the refresh", () => {
         outRateMbps: 0.8,
         utilizationPercent: 0.25,
         errorsPerSecond: 0,
+        fibreChannelPortType: null,
+        downReason: null,
         lastSeenAt: NOW,
       },
     ]);
@@ -997,6 +999,8 @@ describe("needsWrite", () => {
     outRateMbps: null,
     utilizationPercent: null,
     errorsPerSecond: null,
+    fibreChannelPortType: null,
+    downReason: null,
     lastSeenAt: NOW,
   };
 

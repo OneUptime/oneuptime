@@ -77,6 +77,14 @@ describe("the classes the guard reads", () => {
     expect(isDisabledVariantClass("disabled")).toBe(false);
   });
 
+  test("not a word of a sentence that ends a clause with a colon, though every utility after one still is", () => {
+    // XCP-ng's topology (#10995): "The host is disabled: XAPI starts no VM on it until it is enabled."
+    expect(isDisabledVariantClass("disabled:")).toBe(false);
+    expect(isDisabledVariantClass("md:disabled:")).toBe(false);
+    expect(isDisabledVariantClass("disabled:opacity-60")).toBe(true);
+    expect(isDisabledVariantClass("md:disabled:opacity-50")).toBe(true);
+  });
+
   test("the not-allowed cursor on its own", () => {
     expect(isOwnCursorClass("cursor-not-allowed")).toBe(true);
     expect(isOwnCursorClass("cursor-pointer")).toBe(false);

@@ -12,6 +12,7 @@ Een gekoppeld cloudaccount zegt ook wat het kost en hoe het minder zou kunnen ko
 - [Buiten-kantoortijdschema's](#buiten-kantoortijdschemas): Stop niet-productieresources 's nachts en in het weekend.
 - [AI-regels voor besparingen](#ai-regels-voor-besparingen): Voorstellen voor eigenaren, of wijzigingen binnen een limiet.
 - [Budgetten](#budgetten): Een waarschuwing zodra de uitgaven van een maand een deel van het budget passeren.
+- [Verplichte tags](#verplichte-tags): Hoeveel van je uitgaven de tags draagt die je verplicht stelt, en nieuwe resources zonder die tags.
 :::
 
 ## Hoe het werkt
@@ -126,7 +127,15 @@ Een resource waar geen aanbevelingsdienst iets over zegt, omdat die niet is inge
 - **Overgeprovisioneerd** als het formaat half zo groot, of een kwart, nog ruimte zou hebben: op het kleinere formaat zou het 95e percentiel van de CPU hoogstens 60% zijn, de hoogste CPU-meting hoogstens 100% en de geheugenpiek hoogstens 70%, als het geheugen wordt gelezen.
 - **Ondergeprovisioneerd** als het 95e percentiel van de CPU 85% of meer is, of de geheugenpiek 90% of meer: het formaat twee keer zo groot.
 
-Een resource krijgt een grootte zodra er 6 dagen aan metingen zijn. De pagina toont de **Groottebepaling** naast wat de resource kost, en een overgeprovisioneerde staat onder **Cloud → Uitgaven → Besparingen**, met OneUptime als bron. Wat een wijziging bespaart, is haar deel van wat de resource de afgelopen 30 dagen kostte, dus het is bekend zodra je cloud de resource op naam factureert: de gedetailleerde export van Azure en Google Cloud doet dat, en AWS ook zodra Kosten per resource aan staat. Een EC2-instance meldt haar geheugen alleen met de CloudWatch-agent, en een Compute Engine-VM alleen met de Ops Agent: zonder die agent krijgt ze een grootte op basis van alleen de CPU. Burstable formaten, zoals t3, de B-serie en e2-micro, krijgen nooit een grootte.
+Een resource krijgt een grootte zodra er 6 dagen aan metingen zijn. De pagina toont de **Groottebepaling** naast wat de resource kost, en een overgeprovisioneerde staat onder **Cloud → Uitgaven → Besparingen**, met OneUptime als bron. Wat een wijziging bespaart, is haar deel van wat de resource de afgelopen 30 dagen kostte, dus het is bekend zodra je cloud de resource op naam factureert: de gedetailleerde export van Azure en Google Cloud doet dat, en AWS ook zodra Kosten per resource aan staat. Burstable formaten, zoals t3, de B-serie en e2-micro, krijgen nooit een grootte.
+
+Je cloud leest het geheugen van een VM alleen met een eigen agent in de VM: de CloudWatch-agent op een EC2-instance, de Ops Agent op een Compute Engine-VM, en geen enkele voor een Azure-VM, die het vrije geheugen meldt in plaats van het gebruikte. Een VM waarop [de hostcollector van OneUptime](/docs/telemetry/hosts) draait, krijgt in plaats daarvan een grootte op basis van het geheugen dat de hostcollector leest:
+
+- **De VM en de host zijn één machine** wanneer de provider, het account, de regio en het instance-ID allemaal overeenkomen: het EC2-instance-ID, het numerieke ID van een Compute Engine-VM of de `vmId` van een Azure-VM. Een hostnaam alleen levert nooit een match op, en een VM die twee hosts claimen, zoals een gekloonde machine, wordt aan geen van beide gekoppeld. De pagina van de VM noemt haar host, en de pagina van de host noemt zijn VM, elk met een link naar de ander.
+- **Geheugen is het gebruikte geheugen van de host, zonder cache en buffers**, het cijfer dat de pagina van de host in een grafiek toont, over dezelfde 14 dagen. Een drukke bestandscache leest nooit als een volle machine. Ook de host heeft 6 dagen aan metingen nodig.
+- **Waar beide het geheugen lezen**, zoals bij een Compute Engine-VM met de Ops Agent en de hostcollector, telt degene met de meeste metingen. De CPU is altijd de meting van je cloud.
+
+De **Groottebepaling** van de VM zegt waar haar geheugen vandaan kwam, net als haar regel onder **Cloud → Uitgaven → Besparingen**. Een VM die alleen op haar CPU een grootte krijgt, zegt dat, met een link om de hostcollector te installeren. De hostcollector stempelt de identiteit van zijn cloud met de stap `resourcedetection/cloud` die [de configuratie van de handleiding voor hosts](/docs/telemetry/host-otel-collector) bevat. Een host met de standaardconfiguratie van OneUptime krijgt de stap met de volgende release van OneUptime, en een host met een eigen configuratie moet hem toevoegen. Kubernetes-nodes worden overgelaten aan [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost), die de requests bepaalt van wat erop draait.
 
 ### Toezeggingen
 
@@ -256,6 +265,54 @@ Na elke leesbeurt wordt elk van de laatste 14 volle dagen van een account vergel
 
 Onder de lijst zegt de kaart waar de rest op uitkwam: wat in geen enkele omgeving zit, wat aan een omgeving als geheel wordt gefactureerd, of wat de tag niet heeft. Kosten die zijn gelezen voordat tags werden bewaard, worden één keer opnieuw gelezen, zo ver terug als een eerste leesbeurt, zodat hun tags worden aangevuld.
 
+## Verplichte tags
+
+Uitgaven zijn maar zo goed toegewezen als de tags die ze dragen. Geef onder **Cloud → Uitgaven → Tags** aan welke tags elke resource moet dragen, zoals `team`, `env` en `cost-center`, en zie hoeveel van je uitgaven en resources ze dragen, welke resources niet, en wie elke nieuwe zonder die tags heeft aangemaakt.
+
+:::steps
+### Een tag verplicht stellen
+
+Kies **Een tag verplicht maken** en vul de **Tagsleutel** in. Zet onder **Toegestane waarden** de waarden die hij mag hebben, gescheiden door komma's, of laat het leeg om elke waarde toe te staan. Kies een **Account** om de tag alleen in dat account verplicht te stellen. Een **Beschrijving**, onder **Meer velden**, zegt in de e-mails waarvoor de tag dient.
+
+### De dekking lezen
+
+De pagina opent met hoeveel van de uitgaven van de afgelopen 30 dagen en van je resources alle verplichte tags dragen. Daaronder staan de resources die een tag missen, de duurste eerst, dan elke tag apart, het verloop over de afgelopen 12 weken en elk account.
+
+### Taggen wat ontbreekt
+
+Elke resource die een tag mist, toont de waarde die OneUptime voorstelt en de opdracht die hem in je cloud zet. Een resource die in code is gedeclareerd, zegt welke code hem declareert: voeg de tag daar toe, anders haalt de volgende deploy hem weer weg.
+:::
+
+- **Sleutels komen overeen ongeacht hoofdletters.** `Team`, `team` en `TEAM` zijn één sleutel, en een resource draagt de tag wanneer een willekeurige schrijfwijze ervan een toegestane waarde heeft. Ook waarden komen overeen ongeacht hoofdletters, en een lege waarde is geen waarde.
+- **Een toegestane waarde kan een patroon zijn.** `*` staat voor willekeurige tekens en `?` voor één teken, dus `prod-*` past op `prod-eu` en `prod-us`. Patronen zijn geen reguliere expressies.
+- **Eigen tags van een account.** Een tag die in één account verplicht is, vervangt daar de tag van het project met dezelfde sleutel, en een account kan een eigen sleutel verplicht stellen. De **Tags** van een account tonen beide.
+- **Er verandert niets in je cloud.** OneUptime stopt of tagt nooit een resource om een ontbrekende tag. Het licht mensen in en stelt de waarde voor.
+
+### Dekking
+
+- **Uitgaven met tags** is het aandeel van de kosten van de afgelopen 30 dagen dat alle verplichte tags draagt, volgens de tags waarmee elke kostenpost is gelezen. Het wordt berekend telkens als je de pagina opent, dus een tag die je vandaag verplicht stelt, wordt ook over de afgelopen 30 dagen gemeten. AWS-kosten dragen pas tags zodra [Kosten per resource](#kosten-per-resource) aan staat: tot dan zeggen de uitgaven van een AWS-account **Niet gemeten** in plaats van 0%.
+- **Resources met tags** is het aandeel van de resources die je verbindingen tonen dat alle verplichte tags draagt, zoals ze nu getagd zijn.
+- **Dekking in de tijd** toont elk van de afgelopen 12 weken: uitgaven uit de kosten, en resources uit de telling die OneUptime elke dag maakt.
+
+### Nieuwe resources
+
+Een resource die je verbinding toont na de eerste volledige lijst van zijn account, is nieuw. De verbinding maakt elke 30 minuten een lijst, dus een nieuwe resource wordt gevonden binnen het uur waarin hij is aangemaakt. Over een resource die een verplichte tag mist, wordt één keer ingelicht:
+
+- **Wie wordt ingelicht.** De persoon die hem heeft aangemaakt, wanneer het wijzigingslogboek van het account een lid van je project bij zijn e-mailadres noemt, en de eigenaren van de resource, volgens eigenaarsregels en teams. Kan geen van hen worden ingelicht, dan worden de Projecteigenaren het. Ieder moet je cloudresources kunnen lezen.
+- **Hoe vaak.** Eén e-mail per uur somt voor elke persoon alles op wat nieuw is. Onder **Meer instellingen** stuurt **Eén e-mail per resource** elke resource apart, en **Waarschuwing geven** geeft daarnaast voor elk account een waarschuwing, met de ernst en het bereikbaarheidsbeleid onder **Waar waarschuwingen heen gaan**.
+- **Wanneer hij getagd wordt.** Een resource die getagd is voordat de e-mail verstuurd wordt, staat er niet in, en de lijst **Nieuwe resources** markeert elke resource als **Getagd** zodra hij de tags draagt.
+
+### Voorgestelde waarden
+
+OneUptime stelt alleen een waarde voor als de tag die waarde toestaat:
+
+- **Een sleutel als team**, zoals `team`, `owner` of `squad`: het team dat eigenaar is van de resource.
+- **Een sleutel als omgeving**, zoals `env`, `environment` of `stage`: de App Platforms-omgeving van een app die als de resource draait, of voor een VM de deploymentomgeving die haar host meldt.
+- **Elke sleutel**: de waarde die de meeste resources ernaast dragen, in dezelfde CloudFormation-stack, dezelfde Azure-resourcegroep of met dezelfde naam voor hun nummer, zoals `web-1` en `web-2`. Minstens twee moeten het eens zijn.
+- **Een tag die één waarde toestaat**: die waarde.
+
+De opdracht zet de tag in één stap, vanuit de eigen shell van je cloud: `aws resourcegroupstaggingapi tag-resources` op AWS, `az tag update --operation Merge` op Azure, en `gcloud ... add-labels` of `--update-labels` voor Compute Engine-VM's en -schijven, Cloud Storage-buckets en Cloud SQL-instances op Google Cloud.
+
 ## Rapporten en exports
 
 ### Kostenrapporten
@@ -330,6 +387,7 @@ De widget **Cloudkosten** zet een totaal, een uitsplitsing of een trend van de u
 - **Elke toezegging.** **Cloud → Uitgaven → Toezeggingen** toont elke toezegging met wanneer ze eindigt en hoeveel ervan wordt gebruikt, de binnenkort eindigende met wat te verlengen, en wat te kopen.
 - **Rapporten.** **Cloud → Uitgaven → Rapporten** toont elk gepland rapport met wat het dekt, wanneer het de volgende keer uitgaat en hoe de laatste verzending ging.
 - **De kosten van een account.** De pagina **Kosten** van een account toont hetzelfde voor alleen dat account, met de toezeggingen en de manieren om minder uit te geven.
+- **Verplichte tags.** **Cloud → Uitgaven → Tags** toont hoeveel van de uitgaven en van de resources je verplichte tags dragen, en de **Tags** van een account tonen hetzelfde voor alleen dat account.
 - **De kosten van een resource.** De pagina van een resource toont wat die deze maand en in de laatste 30 dagen heeft gekost als de cloud haar op naam factureert, met de manieren om minder uit te geven en haar groottebepaling.
 - **Wat er is bespaard.** **Cloud → Uitgaven → Besparingen** opent met wat de doorgevoerde wijzigingen deze maand volgens de rekening hebben bespaard, de wijzigingen die op goedkeuring wachten en de doorgevoerde, en de uren dat schema's resources hebben gestopt.
 

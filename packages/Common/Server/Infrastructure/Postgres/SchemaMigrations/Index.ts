@@ -1201,11 +1201,14 @@ import { AddStorageArrayCountsByKind1809187690000 } from "./1809187690000-AddSto
 import { AddSecurityUserErasureRequestNamesToErase1809187691044 } from "./1809187691044-AddSecurityUserErasureRequestNamesToErase";
 import { AddMonitorTestUnansweredIndex1809187700819 } from "./1809187700819-AddMonitorTestUnansweredIndex";
 import { AddCloudCostViewsGroupsAndLineItems1809187711006 } from "./1809187711006-AddCloudCostViewsGroupsAndLineItems";
+import { AddCloudRequiredTags1809187711012 } from "./1809187711012-AddCloudRequiredTags";
 import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeSnmpTrapReceiver";
 import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTables";
 import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSavingsActions";
 import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-AddCloudCostBasesAndCommitments";
-import { AddCloudCostReports1809187721109 } from "./1809187721109-AddCloudCostReports";
+import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
+import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
+import { AddCloudCostReports1809187751009 } from "./1809187751009-AddCloudCostReports";
 
 export default [
   InitialMigration,
@@ -2411,9 +2414,12 @@ export default [
   AddSecurityUserErasureRequestNamesToErase1809187691044,
   AddMonitorTestUnansweredIndex1809187700819,
   AddCloudCostViewsGroupsAndLineItems1809187711006,
+  AddCloudRequiredTags1809187711012,
   AddProbeSnmpTrapReceiver1809187715110,
   AddXcpNgPoolTables1809187720000,
   AddCloudSavingsActions1809187721010,
   AddCloudCostBasesAndCommitments1809187721011,
-  AddCloudCostReports1809187721109,
+  AddSanSwitchFibreChannelColumns1809187731166,
+  AddSecurityUserErasureRequestProgress1809187741160,
+  AddCloudCostReports1809187751009,
 ];
