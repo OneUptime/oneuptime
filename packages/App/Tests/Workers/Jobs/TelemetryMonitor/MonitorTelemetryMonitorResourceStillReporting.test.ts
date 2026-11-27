@@ -326,7 +326,17 @@ const WITH_A_HEARTBEAT: Partial<Record<MonitorType, HeartbeatCase>> = {
         rollingTime: ROLLING_TIME,
       });
     },
-    metricNames: ["purefa_info", "purefb_info"],
+    /*
+     * Each platform's heartbeat series, in the order the platforms are
+     * registered: Pure's FlashArray and FlashBlade, Dell PowerStore's
+     * cluster (#11227) and NetApp ONTAP's cluster status (#11189).
+     */
+    metricNames: [
+      "purefa_info",
+      "purefb_info",
+      "powerstore_cluster",
+      "netapp_cluster_new_status",
+    ],
     scope: { "resource.storage.array.name": "array-01" },
   },
   [MonitorType.XcpNg]: {
