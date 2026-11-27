@@ -566,12 +566,13 @@ describe("agents/StorageArrayAgent collector configs", () => {
     endpoints.delete("array");
     for (const endpoint of endpoints) {
       // `<endpoint>: [<kinds>]` in scrapeEndpoints (`[]` for an endpoint
-      // that lists no object of a kind).
+      // that lists no object of a kind), its kinds on the line or, as
+      // prettier wraps a long list, on the lines after it.
       expect({
         endpoint,
         known: platforms.some((platform) => {
           return new RegExp(
-            `\\n    ${endpoint}: \\[(\\]|[A-Za-z_]+\\.)`,
+            `\\n    ${endpoint}: \\[\\s*(\\]|[A-Za-z_]+\\.)`,
           ).test(platform);
         }),
       }).toEqual({ endpoint, known: true });

@@ -199,11 +199,11 @@ describe("docker-compose.yml: Dell's PowerStore exporter", () => {
       agentText(DOCKERFILE),
     );
     expect(release).not.toBeNull();
-    // A new release is a new tag, so Compose builds it instead of keeping
-    // the old image.
-    expect(service.image).toBe(
-      `oneuptime-storage-array-agent/powerstore-exporter:${release[1]}`,
-    );
+    // A new release, or a new revision of the image, is a new tag, so
+    // Compose builds it instead of keeping the old image.
+    const tag = `oneuptime-storage-array-agent/powerstore-exporter:${release[1]}-`;
+    expect(service.image.slice(0, tag.length)).toBe(tag);
+    expect(service.image.slice(tag.length)).toMatch(/^[1-9][0-9]*$/);
   });
 
   test("starts only under the powerstore profile, unpublished and without privileges", () => {
@@ -254,11 +254,11 @@ function exporterCommand(dir, stub) {
     .services["powerstore-exporter"].command[0].replace(/\$\$/g, "$");
   expect(command).toContain("dir=/tmp/powerstore-exporter\n");
   expect(command).toContain(
-    'exec /powerstore_exporter/powerstore-metrics-exporter -c "$dir/config.yml"',
+    'exec /powerstore-exporter/powerstore-metrics-exporter -c "$dir/config.yml"',
   );
   return command
     .replace("dir=/tmp/powerstore-exporter\n", `dir='${dir}'\n`)
-    .replace("exec /powerstore_exporter/powerstore-metrics-exporter", `exec '${stub}'`);
+    .replace("exec /powerstore-exporter/powerstore-metrics-exporter", `exec '${stub}'`);
 }
 
 /* Run the exporter's command under sh with `env`, as its container does. */
@@ -471,9 +471,9 @@ describe("powerstore-exporter.Dockerfile", () => {
     expect(add[1]).toMatch(
       /^https:\/\/github\.com\/dell\/powerstore-metrics-exporter\/releases\/download\/powerstore-metrics-exporter_v\d+\.\d+\.\d+\/powerstore-metrics-exporter$/,
     );
-    expect(add[2]).toBe("/powerstore_exporter/powerstore-metrics-exporter");
+    expect(add[2]).toBe("/powerstore-exporter/powerstore-metrics-exporter");
     expect(dockerfile).toMatch(
-      /^RUN echo "[0-9a-f]{64} {2}\/powerstore_exporter\/powerstore-metrics-exporter" \| sha256sum -c - \\$/m,
+      /^RUN echo "[0-9a-f]{64} {2}\/powerstore-exporter\/powerstore-metrics-exporter" \| sha256sum -c - \\$/m,
     );
   });
 
@@ -481,7 +481,7 @@ describe("powerstore-exporter.Dockerfile", () => {
     expect(dockerfile).toMatch(/^USER 65534:65534$/m);
     expect(dockerfile).toMatch(/^EXPOSE 9010$/m);
     expect(dockerfile).toContain(
-      'ENTRYPOINT ["/powerstore_exporter/powerstore-metrics-exporter"]',
+      'ENTRYPOINT ["/powerstore-exporter/powerstore-metrics-exporter"]',
     );
     // Its config, which holds the password, is never part of the image.
     expect(dockerfile).not.toMatch(/^(COPY|ADD) .*config/m);
@@ -588,8 +588,8 @@ describe("powerstore-syslog.yaml", () => {
     expect(parsed.receivers["syslog/udp"].operators).toEqual(
       parsed.receivers["syslog/tcp"].operators,
     );
-    expect(text).toContain("operators: &powerstore_operators\n");
-    expect(text.split("*powerstore_operators").length - 1).toBe(2);
+    expect(text).toContain("operators: &powerstore-operators\n");
+    expect(text.split("*powerstore-operators").length - 1).toBe(2);
   });
 
   test("ships syslog over TLS commented out, on 6514 with the certificates the compose file mounts", () => {
@@ -599,7 +599,7 @@ describe("powerstore-syslog.yaml", () => {
       "  #       cert_file: /etc/otelcol-contrib/powerstore-syslog-tls.crt",
       "  #       key_file: /etc/otelcol-contrib/powerstore-syslog-tls.key",
       "  #   protocol: rfc3164",
-      "  #   operators: *powerstore_operators",
+      "  #   operators: *powerstore-operators",
     ]) {
       expect(text).toContain(`${line}\n`);
     }

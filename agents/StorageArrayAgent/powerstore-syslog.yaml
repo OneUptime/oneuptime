@@ -21,7 +21,7 @@ receivers:
       listen_address: "0.0.0.0:5514"
     protocol: rfc3164
     location: UTC
-    operators: &powerstore_operators
+    operators: &powerstore-operators
       - type: regex_parser
         id: powerstore-record
         parse_from: attributes.message
@@ -41,14 +41,15 @@ receivers:
       listen_address: "0.0.0.0:5514"
     protocol: rfc3164
     location: UTC
-    operators: *powerstore_operators
+    operators: *powerstore-operators
 
   # Optional: take the syslog over TLS. PowerStore sends TLS over TCP only, and
   # only to a server whose certificate is signed by a CA you imported into it
   # (Settings > Security > Remote Logging > Import certificate). To enable it:
   #   1. Put the server's certificate and key next to docker-compose.yml as
   #      powerstore-syslog-tls.crt and powerstore-syslog-tls.key (README.md has
-  #      two openssl commands that make both and a CA to import).
+  #      the openssl command that makes both: the certificate is the CA to
+  #      import, too).
   #   2. Uncomment `syslog/tls` below, add it to the pipeline's receivers, and
   #      uncomment the 6514 port and the two certificate mounts in
   #      docker-compose.yml.
@@ -61,7 +62,7 @@ receivers:
   #       key_file: /etc/otelcol-contrib/powerstore-syslog-tls.key
   #   protocol: rfc3164
   #   location: UTC
-  #   operators: *powerstore_operators
+  #   operators: *powerstore-operators
 
 processors:
   # PowerStore's record, as flat attributes the Logs page filters on and the
