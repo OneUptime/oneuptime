@@ -158,16 +158,12 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
       noun: translationKey("VMware vCenter"),
       isFixedByOneUptimeAi: true,
     },
-    /*
-     * Linked for its owners, its page's Incidents and Alerts tabs and the
-     * investigation's context: no AI agent acts on an XCP-ng pool yet
-     * (#10998).
-     */
+    // Fixed through its XCP-ng AI agent (#10998).
     {
       kind: AiAffectedResourceKind.XcpNgPool,
       relation: "xcpNgPools",
       noun: translationKey("XCP-ng pool"),
-      isFixedByOneUptimeAi: false,
+      isFixedByOneUptimeAi: true,
     },
     {
       kind: AiAffectedResourceKind.CephCluster,

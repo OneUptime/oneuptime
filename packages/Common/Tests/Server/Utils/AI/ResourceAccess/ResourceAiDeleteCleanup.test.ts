@@ -570,6 +570,7 @@ describe("ResourceAiDeleteCleanup", () => {
         [AiResourceType.AzureSubscription]: 'the Azure subscription "x"',
         [AiResourceType.GoogleCloudProject]: 'the Google Cloud project "x"',
         [AiResourceType.OpenStackCloud]: 'the OpenStack cloud "x"',
+        [AiResourceType.XcpNgPool]: 'the XCP-ng pool "x"',
       };
 
       for (const resourceType of ALL_AI_RESOURCE_TYPES) {

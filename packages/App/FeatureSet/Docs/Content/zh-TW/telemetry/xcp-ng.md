@@ -197,6 +197,17 @@ key = '/etc/ssl/xo/key.pem'
 | `XO_TLS_FINGERPRINT` | 安裝指令碼 | Xen Orchestra 自己憑證的 SHA-256 指紋，格式與 `openssl x509 -fingerprint -sha256` 的輸出相同，冒號可省略，用於代理程式只信任該憑證的情況。安裝指令碼會拒絕與之不符的憑證。 |
 | `XO_CA_FILE` | 安裝指令碼 | 簽發 Xen Orchestra 憑證的 CA 套件；安裝指令碼會用它驗證憑證，並把它複製到 `xo-ca.pem`。 |
 | `XO_TLS_SERVER_NAME` | 否 | 當 `XO_ADDRESS` 是憑證中未寫明的位址時，用來驗證 Xen Orchestra 憑證的名稱。留空：使用 `XO_ADDRESS` 中的主機。 |
+| `ONEUPTIME_AI_XO_READ_TOKEN` | 否 | 只持有內建 **Read only** 角色副本的 Xen Orchestra 使用者的權杖：設定後 [AI 代理程式](#ai-代理程式) 就會執行，並用它讀取。 |
+| `ONEUPTIME_AI_XO_WRITE_TOKEN` | 否 | 僅用於修正：另一個使用者的權杖，其角色允許這些修正。沒有它，AI 代理程式不會變更任何內容。 |
+| `XCP_NG_POOL_ID` | 否 | AI 代理程式所服務資源池的 XAPI UUID。留空：其讀取權杖能看到的唯一資源池。 |
+| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | 否 | 覆寫 `XCP_NG_POOL_ID`，作為 AI 代理程式註冊時使用的資源池。 |
+| `ONEUPTIME_AI_INVESTIGATION` | 否 | `true` 或 `false`：OneUptime AI 在調查時能否執行 AI 代理程式的唯讀指令。留空：開啟。 |
+| `ONEUPTIME_AI_FIXES` | 否 | `off`、`ask-for-approval`、`automatic` 或 `bypass-approval`：OneUptime AI 可以如何套用修正。留空：允許寫入時為 `ask-for-approval`，否則為 `off`。 |
+| `ONEUPTIME_AI_ALLOW_WRITES` | 否 | `true` 讓 AI 代理程式使用變更權杖套用修正。其他任何值都會讓它維持唯讀。 |
+| `ONEUPTIME_AI_WRITE_TARGETS` | 否 | 修正可以觸及的 `vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>` 或 `schedule/<uuid>`，以逗號分隔，`*` 符合任意字元序列。留空：全部。 |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | 否 | 同上，用於 OneUptime AI 絕不能變更的內容，無論由誰核准：AI 代理程式所在的虛擬機器，以及 Xen Orchestra 自己的虛擬機器。 |
+| `LOG_LEVEL` | 否 | AI 代理程式的日誌層級：`debug`、`info`（預設）、`warn` 或 `error`。 |
+| `COMPOSE_PROFILES` | 否 | `xcp-ng-ai-agent` 會啟動 AI 代理程式。安裝指令碼會在設定了讀取權杖時寫入它，未設定時將其移除。 |
 
 ## 代理程式收集的內容
 
@@ -285,6 +296,19 @@ processors:
 一個代理程式讀取一個 Xen Orchestra 及其管理的每個資源池。若要從同一台機器讀取第二個 Xen Orchestra，請在獨立的資料夾中用獨立的 `.env` 安裝第二個代理程式，例如 `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh`，並為它指定自己的 `container_name`，寫在它的 `docker-compose.yml` 中（例如 `oneuptime-xcp-ng-agent-lab`）：兩個容器不能同名。給每個代理程式指定自己的 `XO_NAME`，這樣每個資源池的 **設定** 會顯示是哪個 Xen Orchestra 在讀取它，並用 `-d` 把資料夾傳給診斷指令碼。
 
 切勿讓兩個代理程式透過同時管理同一資源池的兩個 Xen Orchestra 讀取該資源池：依其 UUID 它在 OneUptime 中是一個資源池，會被重複回報。
+
+## AI 代理程式
+
+代理程式的 `docker-compose.yml` 還包含 **XCP-ng AI 代理程式** `oneuptime-xcp-ng-ai-agent`（映像檔 `oneuptime/resource-ai-agent:release`），位於 `xcp-ng-ai-agent` profile 下。當 OneUptime AI 調查某個資源池上的事件或警示時，它會透過該代理程式執行唯讀的 `xo-cli` REST 指令，例如 `xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted` 或 `xo-cli rest get pbds fields=attached,host,SR filter=!attached?`，而且只有在你允許時才會套用修正，例如啟動虛擬機器或接上儲存庫的 PBD。其中並沒有 `xo-cli` 二進位檔：每個指令都會變成對 Xen Orchestra REST API 的恰好一次呼叫，使用收集器所用的位址和 `xo-ca.pem`。它會出現在 OneUptime 中該資源池的 **AI 代理程式** 頁面上。
+
+- **它需要一個自己的唯讀權杖。** OpenMetrics 密鑰只能讀取指標，因此 AI 代理程式使用 `ONEUPTIME_AI_XO_READ_TOKEN` 讀取 Xen Orchestra 的 REST API（Xen Orchestra 6.9 或更新版本），這是一個只持有內建 **Read only** 角色副本的 Xen Orchestra 使用者的權杖。設定好它後執行 `install.sh`，或在首次安裝詢問時輸入它：指令碼會詢問 Xen Orchestra 是否認得該權杖，把它保存在權限為 600 的 `.env` 中，並啟動 AI 代理程式。在代理程式執行任何內容之前，以及每 5 分鐘，它都會檢查該權杖只能讀取：管理員的權杖，或其角色允許變更的權杖，什麼都不會執行。
+- **每個 AI 代理程式對應一個資源池。** `XCP_NG_POOL_ID` 是它所服務的資源池，即資源池的 **設定** 中顯示的 XAPI UUID。留空時，它會服務其權杖能看到的唯一資源池。對於擁有多個資源池的 Xen Orchestra，代理程式的 README 說明了如何為每個資源池再執行一個。由探測器讀取的資源池不需要 XCP-ng 代理程式：README 也說明了如何從同一個 `docker-compose.yml` 為它單獨執行 AI 代理程式。
+- **AI 調查預設為開啟。** 代理程式連線後，OneUptime AI 會用它來調查該資源池上的事件和警示，資源池的 **概覽** 會顯示代理程式的狀態。若要停止，請在代理程式執行的位置設定 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理程式頁面上 **AI 可以執行的操作** 下的 **變更** 會顯示方法），或不提供權杖。
+- **修正需要第二個權杖。** 除非你設定 `ONEUPTIME_AI_ALLOW_WRITES=true` 和 `ONEUPTIME_AI_XO_WRITE_TOKEN`（另一個使用者的權杖，其角色允許這些修正，即 **VMs power state manager** 角色的副本，並加上代理程式 README 中列出的權限），否則代理程式是唯讀的。它只用於變更本身，別無他用。`ONEUPTIME_AI_WRITE_TARGETS`（`vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>`、`schedule/<uuid>`）會限制修正可以觸及的內容；請把代理程式所在虛擬機器以及 Xen Orchestra 自己虛擬機器的 UUID 放入 `ONEUPTIME_AI_PROTECTED_TARGETS`。`ONEUPTIME_AI_FIXES`（位於同一個 `.env` 中）決定修正如何執行——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[由代理程式設定的 AI 可以執行的操作](/docs/ai/infrastructure-ai-agents#ai-可以做什麼由代理程式設定)）。
+- **它像收集器一樣檢查 Xen Orchestra 的憑證**，依據其 subjectAltName，且只對照 `xo-ca.pem`，因此 Xen Orchestra 為自己產生的憑證在這裡同樣會被拒絕（[Xen Orchestra 的憑證](#xen-orchestra-的憑證)）。它從不透過 `http://` 讀取 Xen Orchestra：否則它的權杖會以未加密的形式在網路上傳輸。
+- 它以 UID 1000 執行，沒有任何 capability，根檔案系統為唯讀，從不讀取 Xen Orchestra 的使用者、角色、伺服器、外掛程式或遠端儲存，從不依保存機密的屬性篩選，也從不編輯、刪除、還原或複製任何東西。
+
+它可以執行什麼、修正如何運作以及如何疑難排解，請參閱 [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#xcp-ng-資源池)。代理程式的 README 中有兩個權杖所需的角色和權限。
 
 ## 以 systemd 服務執行
 
