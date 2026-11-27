@@ -16,6 +16,16 @@ const FIXTURE_PATH: string = path.join(
   "LocalMcpServer.js",
 );
 
+/*
+ * The server that answers tools/list as a recorded one did (#11081):
+ * kAgent's tool server, from Common/Tests/Fixtures/KAgentTools.
+ */
+export const RECORDED_FIXTURE_PATH: string = path.join(
+  __dirname,
+  "Fixtures",
+  "RecordedMcpServer.js",
+);
+
 const APP_DIRECTORY: string = path.join(__dirname, "..", "..");
 
 const READY_PREFIX: string = "MCP_FIXTURE_READY ";
@@ -34,6 +44,10 @@ export interface LocalMcpServerOptions {
   token?: string | undefined;
   // How long slow_query takes to answer.
   slowMs?: number | undefined;
+  // Which fixture runs: LocalMcpServer.js unless a test says.
+  fixture?: string | undefined;
+  // More of the fixture's environment (RecordedMcpServer.js: its recording).
+  env?: Record<string, string> | undefined;
 }
 
 export default class LocalMcpServerProcess {
@@ -58,15 +72,20 @@ export default class LocalMcpServerProcess {
     options: LocalMcpServerOptions = {},
   ): Promise<LocalMcpServerProcess> {
     const calls: Array<McpFixtureCall> = [];
-    const child: ChildProcess = spawn(process.execPath, [FIXTURE_PATH], {
-      cwd: APP_DIRECTORY,
-      env: {
-        ...process.env,
-        MCP_FIXTURE_TOKEN: options.token || "",
-        MCP_FIXTURE_SLOW_MS: String(options.slowMs ?? 30000),
+    const child: ChildProcess = spawn(
+      process.execPath,
+      [options.fixture || FIXTURE_PATH],
+      {
+        cwd: APP_DIRECTORY,
+        env: {
+          ...process.env,
+          MCP_FIXTURE_TOKEN: options.token || "",
+          MCP_FIXTURE_SLOW_MS: String(options.slowMs ?? 30000),
+          ...(options.env || {}),
+        },
+        stdio: ["ignore", "pipe", "pipe"],
       },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    );
 
     const exited: Promise<void> = new Promise<void>((resolve: () => void) => {
       child.once("exit", () => {

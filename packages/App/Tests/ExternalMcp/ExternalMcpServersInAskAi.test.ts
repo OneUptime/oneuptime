@@ -508,7 +508,7 @@ describe("a tool that may change something asks before it runs", () => {
 
     // Asked for with approval, its card says why it asks.
     expect(pendingAction()?.description).toContain(
-      "Kubernetes does not say whether k8s_get_resources changes anything, so OneUptime asks first.",
+      "Kubernetes does not say whether k8s_get_resources changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.",
     );
     expect(callsReceived()).toEqual([]);
   });
