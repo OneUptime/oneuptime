@@ -58,6 +58,10 @@ const KEY_PREFIX: string = `workspace-created-message-first:take-over-test-${Obj
  */
 class FreezableValkey {
   public readonly client: RedisClient;
+
+  // Every script the server sent, with its keys and arguments.
+  public sent: Array<Array<unknown>> = [];
+
   private isFrozen: boolean = false;
   private thawWaiters: Array<() => void> = [];
   private readonly frozenClient: RedisClient;
@@ -68,6 +72,8 @@ class FreezableValkey {
     const evaluate: (...args: Array<unknown>) => Promise<unknown> = async (
       ...args: Array<unknown>
     ): Promise<unknown> => {
+      this.sent.push(args);
+
       while (this.isFrozen) {
         await new Promise<void>((resolve: () => void) => {
           this.thawWaiters.push(resolve);
@@ -586,6 +592,91 @@ describe("each message waits in the line with what it says", () => {
     await channel.waitFor(4);
 
     expect(channel.posts()).toEqual(["A: first", "B: second", "A: third", "B: fourth"]);
+  });
+
+  test("a message about a record nobody is creating sends Valkey its one ask, as before: what it says is not even written", async () => {
+    const posted: Array<string> = [];
+    const stored: Mock<() => JSONObject> = jest.fn<() => JSONObject>(() => {
+      return { name: "B: Changed Incident State to Acknowledged" };
+    });
+
+    serverB.valkey.sent = [];
+
+    expect(
+      await serverB.first.keep({
+        record: newIncident(),
+        post: async (): Promise<void> => {
+          posted.push("posted by its caller");
+        },
+        stored: stored,
+      }),
+    ).toBe(false);
+
+    expect(stored).not.toHaveBeenCalled();
+    expect(serverB.valkey.sent).toHaveLength(1);
+    expect(JSON.stringify(serverB.valkey.sent)).not.toContain(
+      "Changed Incident State",
+    );
+  });
+
+  test("what a message says is stored once it has its ticket, and only with that ticket", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+    const slow: SlowPost = slowPost(channel, "A: second", "A");
+
+    await serverA.first.hold(incident);
+    await channel.keep(serverB, incident, "B: first");
+    await channel.keep(serverA, incident, "A: second", { post: slow.post });
+
+    const line: Record<string, string> = await theLine(incident);
+
+    // Not another message's ticket, and not a ticket that is not taken.
+    expect(
+      await serverB.line.store(recordKeyOf(incident), {
+        ticket: 1,
+        messageId: "00000000-0000-4000-8000-000000000009",
+        stored: JSON.stringify({ name: "another message" }),
+      }),
+    ).toBe(false);
+    expect(
+      await serverB.line.store(recordKeyOf(incident), {
+        ticket: 3,
+        messageId: line["id:1"]!,
+        stored: JSON.stringify({ name: "a ticket nobody took" }),
+      }),
+    ).toBe(false);
+    expect(JSON.parse((await theLine(incident))["message:1"]!)).toEqual({
+      name: "B: first",
+    });
+
+    const letGo: Promise<void> = serverA.first.postHeld(incident);
+    await slow.started;
+
+    // Nor once its ticket is served, while the line goes on.
+    expect((await theLine(incident))["served"]).toBe("1");
+    expect(
+      await serverB.line.store(recordKeyOf(incident), {
+        ticket: 1,
+        messageId: line["id:1"]!,
+        stored: JSON.stringify({ name: "too late" }),
+      }),
+    ).toBe(false);
+    expect((await theLine(incident))["message:1"]).toBeUndefined();
+
+    slow.finish();
+    await letGo;
+    await channel.waitFor(2);
+
+    // Nor once its line is gone.
+    expect(await inspector.exists(lineKeyOf(incident))).toBe(0);
+    expect(
+      await serverA.line.store(recordKeyOf(incident), {
+        ticket: 2,
+        messageId: line["id:2"]!,
+        stored: JSON.stringify({ name: "too late" }),
+      }),
+    ).toBe(false);
+    expect(await inspector.exists(lineKeyOf(incident))).toBe(0);
   });
 
   test("a message with nothing to store waits without it, and its server still posts it", async () => {

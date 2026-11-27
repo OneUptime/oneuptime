@@ -207,9 +207,10 @@ export default class WorkspaceCreatedMessageFirst {
    *
    * `stored` is the message as another App server would post it, should
    * this one stop before its turn: it waits in the line with it, and is
-   * read only when the record has a line in Valkey. Without it - or when it
-   * is larger than MAX_STORED_MESSAGE_BYTES - the message waits on this
-   * server alone.
+   * read only once the message has a place in a line in Valkey - so the
+   * many messages about records nobody is creating cost nothing more.
+   * Without it - or when it is larger than MAX_STORED_MESSAGE_BYTES - the
+   * message waits on this server alone.
    */
   public static async keep(data: {
     record: WorkspaceRecord;
@@ -238,10 +239,7 @@ export default class WorkspaceCreatedMessageFirst {
 
     // The record's line in Valkey, whichever server holds it.
     const ticket: number | null = WorkspaceCreatedMessageLine.isAvailable()
-      ? await WorkspaceCreatedMessageLine.take(key, {
-          messageId: messageId,
-          stored: this.storedText(data.stored),
-        })
+      ? await WorkspaceCreatedMessageLine.take(key, { messageId: messageId })
       : null;
 
     if (ticket === null || (ticket === 0 && hold && !hold.isReleased)) {
@@ -261,6 +259,17 @@ export default class WorkspaceCreatedMessageFirst {
     if (ticket === 0) {
       // Not held anywhere, or no longer.
       return false;
+    }
+
+    // What another App server posts it from, should this one stop before its turn.
+    const stored: string | null = this.storedText(data.stored);
+
+    if (stored) {
+      await WorkspaceCreatedMessageLine.store(key, {
+        ticket: ticket,
+        messageId: messageId,
+        stored: stored,
+      });
     }
 
     WorkspaceCreatedMessageLine.wait({

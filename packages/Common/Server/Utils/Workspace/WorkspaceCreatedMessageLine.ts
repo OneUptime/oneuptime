@@ -33,12 +33,15 @@ import logger from "../Logger";
  *
  * EACH MESSAGE IS POSTED ONCE, EVEN WHEN ITS SERVER STOPS (#11235):
  *
- *   - take stores, with the ticket, what the message says
- *     (message:<ticket>, the JSON WorkspaceCreatedMessageFirst.keep is
- *     handed - the message as its server would post it, nothing more), the
- *     message's own id (id:<ticket>) and the server that made it
- *     (by:<ticket>). It goes with the ticket when the ticket is served, and
- *     with the line at the latest.
+ *   - take keeps, with the ticket, the message's own id (id:<ticket>) and
+ *     the server that made it (by:<ticket>); store adds what the message
+ *     says (message:<ticket>, the JSON WorkspaceCreatedMessageFirst.keep is
+ *     handed - the message as its server would post it, nothing more) once
+ *     the message has a ticket, so a message about a record with no line -
+ *     nearly every one - sends Valkey no more than it did. They go with the
+ *     ticket when the ticket is served, and with the line at the latest. A
+ *     server killed between the two leaves a ticket nothing is stored of,
+ *     passed over as before.
  *   - A message is posted only by the server that claims it first: its
  *     claim is a key of its own, named by the line and the message's id
  *     (claimKeyOf), set once (SET NX). The server that made a message
@@ -209,10 +212,9 @@ const START_SCRIPT: string = [
 ].join("\n");
 
 /*
- * KEYS[1]: the line. ARGV: the message's id; the server's; what the message
- * says, as stored, or '' when nothing is. The next ticket in the line, with
- * what it is kept with, or 0 when there is no line. A server that takes a
- * ticket has not stopped.
+ * KEYS[1]: the line. ARGV: the message's id; the server's. The next ticket
+ * in the line, kept with both, or 0 when there is no line. A server that
+ * takes a ticket has not stopped.
  */
 const TAKE_SCRIPT: string = [
   "if redis.call('EXISTS', KEYS[1]) == 0 then",
@@ -220,11 +222,29 @@ const TAKE_SCRIPT: string = [
   "end",
   "local ticket = redis.call('HINCRBY', KEYS[1], 'tickets', 1)",
   "redis.call('HSET', KEYS[1], 'id:' .. ticket, ARGV[1], 'by:' .. ticket, ARGV[2])",
-  "if ARGV[3] ~= '' then",
-  "  redis.call('HSET', KEYS[1], 'message:' .. ticket, ARGV[3])",
-  "end",
   "redis.call('HDEL', KEYS[1], 'dead:' .. ARGV[2])",
   "return ticket",
+].join("\n");
+
+/*
+ * KEYS[1]: the line. ARGV: a ticket just taken; its message's id; what the
+ * message says, as stored. Kept with the ticket while it waits: 1, or 0
+ * when there is no line, the ticket is served already, or is not that
+ * message's.
+ */
+const STORE_SCRIPT: string = [
+  "if redis.call('EXISTS', KEYS[1]) == 0 then",
+  "  return 0",
+  "end",
+  "local ticket = tonumber(ARGV[1])",
+  "if tonumber(redis.call('HGET', KEYS[1], 'served')) >= ticket then",
+  "  return 0",
+  "end",
+  "if redis.call('HGET', KEYS[1], 'id:' .. ticket) ~= ARGV[2] or redis.call('HEXISTS', KEYS[1], 'gone:' .. ticket) == 1 then",
+  "  return 0",
+  "end",
+  "redis.call('HSET', KEYS[1], 'message:' .. ticket, ARGV[3])",
+  "return 1",
 ].join("\n");
 
 /*
@@ -832,22 +852,41 @@ export default class WorkspaceCreatedMessageLine {
   }
 
   /*
-   * A ticket in the record's line, kept with the message's id and what is
-   * stored of it - what another server posts it from, should this one stop
-   * before its turn (null: nothing is). The next number in the line, 0 when
-   * the record has no line, null when Valkey cannot be asked. Asked at
-   * once, before anything else, so tickets follow the order messages are
-   * made in. Never throws.
+   * A ticket in the record's line, kept with the message's id and this
+   * server's: the next number in the line, 0 when the record has no line,
+   * null when Valkey cannot be asked. Asked at once, before anything else,
+   * so tickets follow the order messages are made in. Never throws.
    */
   public static take(
     recordKey: string,
-    message: { messageId: string; stored: string | null },
+    message: { messageId: string },
   ): Promise<number | null> {
     return this.run(
       TAKE_SCRIPT,
       [this.lineKeyOf(recordKey)],
-      [message.messageId, this.SERVER_ID, message.stored || ""],
+      [message.messageId, this.SERVER_ID],
       null,
+    );
+  }
+
+  /*
+   * What a message that took a ticket says, kept with the ticket: what
+   * another server posts it from, should this one stop before its turn.
+   * Stored once it has a place in a line, so a message about a record that
+   * has none - nearly every one - sends Valkey nothing more than its ask.
+   * True once stored. Never throws.
+   */
+  public static async store(
+    recordKey: string,
+    message: { ticket: number; messageId: string; stored: string },
+  ): Promise<boolean> {
+    return (
+      (await this.run(
+        STORE_SCRIPT,
+        [this.lineKeyOf(recordKey)],
+        [String(message.ticket), message.messageId, message.stored],
+        [0, 1],
+      )) === 1
     );
   }
 
