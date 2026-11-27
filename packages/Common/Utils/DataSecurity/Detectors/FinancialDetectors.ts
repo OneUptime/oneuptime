@@ -6,6 +6,7 @@ import {
   digitsOnly,
   hasDigit,
   isPlaceholderDigits,
+  withEveryReading,
 } from "../Detector";
 import {
   base58Check,
@@ -232,6 +233,14 @@ const groupedCardDetector: DataTypeDetector = {
    * then read the ASCII digits the values make.
    */
   readsDigitsOfEveryScript: true,
+  /*
+   * And in a URL, its groups apart by an escaped space or a "+" as a
+   * query string writes one (#11199): card=4539%201488%200343%206467,
+   * card=4539+1488+0343+6467 - placed on the characters it is written
+   * with, escapes and "+"s and all.
+   */
+  readsPercentEncoded: true,
+  readsPlusAsSpace: true,
 };
 
 const grouped19DigitCardDetector: DataTypeDetector = {
@@ -264,8 +273,10 @@ const contiguousCardDetector: DataTypeDetector = {
   specificity: 3,
   isTestValue: isTestCardNumber,
   fieldValuePattern: /^[0-9][0-9 -]{10,22}[0-9]$/,
-  // In another script's digits too (#10960), as groupedCardDetector.
+  // In another script's digits (#10960) and in a URL (#11199), as groupedCardDetector.
   readsDigitsOfEveryScript: true,
+  readsPercentEncoded: true,
+  readsPlusAsSpace: true,
 };
 
 /*
@@ -666,10 +677,13 @@ const ethereumDetector: DataTypeDetector = {
 };
 
 /*
- * An IBAN and a US routing number in every script's digits too
- * (readsDigitsOfEveryScript, #11033), as a card is (#10960): DE٨٩ ٣٧٠٤ ...
- * is the IBAN its mod 97 proves, and a routing number's ABA check digit
- * proves one beside its word. The card's own detectors read so already.
+ * An IBAN and a US routing number read however they are written
+ * (withEveryReading), as a card is: in every script's digits (#11033) -
+ * DE٨٩ ٣٧٠٤ ... is the IBAN its mod 97 proves, and a routing number's ABA
+ * check digit proves one beside its word - and in a URL (#11199): an IBAN
+ * with %20 or "+" between its groups, iban=DE44+5001+0517+5407+3249+31,
+ * and a routing number after its words written so, routing+number=...
+ * The card's own detectors read so already.
  */
 export const FINANCIAL_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   groupedCardDetector,
@@ -677,10 +691,10 @@ export const FINANCIAL_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   contiguousCardDetector,
   cardSecurityCodeDetector,
   cardExpiryDetector,
-  { ...ibanDetector, readsDigitsOfEveryScript: true },
+  withEveryReading(ibanDetector),
   bankAccountDetector,
   bicDetector,
-  { ...routingNumberDetector, readsDigitsOfEveryScript: true },
+  withEveryReading(routingNumberDetector),
   sortCodeDetector,
   ifscDetector,
   bsbDetector,

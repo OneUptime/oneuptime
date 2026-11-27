@@ -15,7 +15,7 @@ import {
   findQueryStringNames,
   QUERY_NAME_DATA_TYPE_ID,
 } from "./QueryStringNames";
-import { TextReading, TextReadings } from "./TextReadings";
+import { cutsAnEscape, TextReading, TextReadings } from "./TextReadings";
 
 /*
  * FINDING SENSITIVE VALUES IN TEXT.
@@ -35,11 +35,14 @@ import { TextReading, TextReadings } from "./TextReadings";
  *
  * A detector that reads percent-encoded text (readsPercentEncoded - the IP
  * address and email ones, #10467, #10935) also reads each window with its
- * escapes read, and one that reads every script's digits
+ * escapes read, one that reads every script's digits
  * (readsDigitsOfEveryScript - the card ones, #10960) with each script's
- * digits read by their values (TextReadings): a candidate found there is
- * validated as it reads and placed on the characters it is written with, so
- * it is judged by the words around it as written, and kept by the window it
+ * digits read by their values, and one that reads a value written in
+ * groups (readsPlusAsSpace - a card, an IBAN, a national ID, a date of
+ * birth, #11199) as a URL's query string reads it, a "+" for a space
+ * (TextReadings): a candidate found there is validated as it reads and
+ * placed on the characters it is written with, so it is judged by the
+ * words around it as written and as it reads, and kept by the window it
  * starts in like any other.
  *
  * A person's name has no pattern: it is found by the names-and-addresses
@@ -380,9 +383,12 @@ interface WindowCandidate {
 
 /*
  * A detector's candidates in a window: as it is written and in each
- * reading it asks for - with its percent-escapes read, with every script's
- * digits read by their values - placed on the characters they are written
- * with. `readings` reads the window once for every detector that asks.
+ * reading it asks for - with its percent-escapes read, as a URL's query
+ * string reads it, with every script's digits read by their values -
+ * placed on the characters they are written with (detectorReadingsFor).
+ * `readings` reads the window once for every detector that asks. One that
+ * reads the escapes takes no candidate glued to an escape's hex digits as
+ * written (cutsAnEscape, #11199): the escapes' reading holds the value.
  */
 function windowCandidates(
   detector: ScanDetector,
@@ -390,8 +396,9 @@ function windowCandidates(
   lowerOf: (reading: TextReading) => string,
 ): Array<WindowCandidate> {
   const found: Array<WindowCandidate> = [];
+  const window: string = readings.written.text;
 
-  for (const reading of readings.readingsFor(detector)) {
+  for (const reading of readings.detectorReadingsFor(detector)) {
     if (
       !passesQuickCheck(detector, reading.text, (): string => {
         return lowerOf(reading);
@@ -401,9 +408,16 @@ function windowCandidates(
     }
 
     for (const raw of rawCandidates(detector, reading.text)) {
+      const start: number = reading.toWritten(raw.start);
+      const end: number = reading.toWritten(raw.end);
+
+      if (detector.readsPercentEncoded && cutsAnEscape(window, start, end)) {
+        continue;
+      }
+
       found.push({
-        start: reading.toWritten(raw.start),
-        end: reading.toWritten(raw.end),
+        start,
+        end,
         value: raw.value,
         reading,
         readingStart: raw.start,
@@ -482,16 +496,20 @@ function scanWindow(
     const hinted: boolean = Boolean(
       options.hintedDataTypeIds?.has(detector.dataTypeId),
     );
-    const decoded: TextReading | null = detector.readsPercentEncoded
-      ? readings.getPercentDecoded()
-      : null;
 
-    // A type that needs context, in a window holding none of its words, as written or decoded.
+    /*
+     * A type that needs context, in a window holding none of its words -
+     * as written, with its escapes read, or as a query string reads it
+     * (date+of+birth, #11199).
+     */
     if (
       detector.requiresContext &&
       !hinted &&
-      !anyWordIn(lowerWindow, detector.keywords) &&
-      !(decoded && anyWordIn(lowerOf(decoded), detector.keywords))
+      !readings
+        .wordReadingsFor(detector)
+        .some((reading: TextReading): boolean => {
+          return anyWordIn(lowerOf(reading), detector.keywords);
+        })
     ) {
       continue;
     }

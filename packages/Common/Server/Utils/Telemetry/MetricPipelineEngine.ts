@@ -133,21 +133,27 @@ const HIDING_RULE_TYPES: ReadonlySet<MetricPipelineRuleType> = new Set([
 const PATTERN_READINGS: ReadingNeeds = {
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
 };
 
 /*
  * Whether a pattern matches a value in a reading beside the value as
- * written - its percent-escapes read, every script's digits read by their
- * values (Utils/DataSecurity/TextReadings, #11031, #11033) - as a Custom
+ * written - its percent-escapes read, a "+" read as the space a URL's
+ * query string writes it for, every script's digits read by their values
+ * (Utils/DataSecurity/TextReadings, #11031, #11033, #11199) - as a Custom
  * Regex log or trace rule reads one. Asked only of a rule that hides, for
  * Matches Regex: so the metric rule "Scrub it" makes from a data type's
- * patterns (a token, an IBAN) hides a value Data Security finds encoded or
- * in another script's digits, and no rule ever hides less than it did -
- * Does Not Match Regex, and a Filter, Sample or Rename rule, read the value
- * as written alone, as before.
+ * patterns (a token, an IBAN) hides a value Data Security finds encoded,
+ * with "+"s between its groups or in another script's digits, and no rule
+ * ever hides less than it did - Does Not Match Regex, and a Filter, Sample
+ * or Rename rule, read the value as written alone, as before.
  */
 function matchesInOtherReadings(re: LinearRegExp, value: string): boolean {
-  if (value.indexOf("%") === -1 && !hasDigitBeyondAscii(value)) {
+  if (
+    value.indexOf("%") === -1 &&
+    value.indexOf("+") === -1 &&
+    !hasDigitBeyondAscii(value)
+  ) {
     return false;
   }
 

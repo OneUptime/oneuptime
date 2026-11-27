@@ -5,6 +5,7 @@ import {
   digitsOnly,
   hasDigit,
   isPlaceholderDigits,
+  withEveryReading,
 } from "../Detector";
 import { digitAt, luhn, weightedDigitSum } from "../Validators";
 
@@ -296,12 +297,12 @@ const HEALTH_IDENTIFIERS: ReadonlyArray<DataTypeDetector> = [
 ];
 
 /*
- * Each in every script's digits too (readsDigitsOfEveryScript, #11033): an
- * NHS number in Arabic-Indic digits passes the same mod 11.
+ * Each read however it is written (withEveryReading): in every script's
+ * digits (#11033), an NHS number in Arabic-Indic digits passes the same mod
+ * 11, and in a URL (#11199), nhs=943+476+5919 is the NHS number its groups
+ * spell.
  */
 export const HEALTH_IDENTIFIER_DETECTORS: ReadonlyArray<DataTypeDetector> =
-  HEALTH_IDENTIFIERS.map((detector: DataTypeDetector): DataTypeDetector => {
-    return { ...detector, readsDigitsOfEveryScript: true };
-  });
+  HEALTH_IDENTIFIERS.map(withEveryReading);
 
 export default HEALTH_IDENTIFIER_DETECTORS;

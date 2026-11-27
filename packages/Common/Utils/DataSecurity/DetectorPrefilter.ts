@@ -3,7 +3,7 @@ import { getBuiltInDetectorsOf } from "./Detectors/Index";
 import { ScanDetector } from "./TextScanner";
 import CharacterSet from "../LinearRegExp/CharacterSet";
 import { parsePattern, PatternFlags } from "../LinearRegExp/Parser";
-import { SyntaxNode } from "../LinearRegExp/Syntax";
+import { SetNode, SyntaxNode } from "../LinearRegExp/Syntax";
 
 /*
  * A DATA TYPE'S PATTERNS, FOR THE DATABASE TO NARROW A SEARCH BY.
@@ -73,8 +73,25 @@ export const DIGIT_OF_EVERY_SCRIPT_PREFILTER: string = `[${DIGIT_ZEROS.filter(
   })
   .join("")}]`;
 
+/*
+ * What a detector that reads a text as a URL's query string reads it also
+ * finds in (readsPlusAsSpace, #11199): its own pattern with a "+" taken
+ * wherever it takes a space - card=4111+1111+1111+1111 - since the reading
+ * reads a "+" between two characters of a value as one, and nothing else
+ * that is no escape. A text holding an escape too is taken by
+ * PERCENT_ESCAPE_PREFILTER, which every such detector reads. Written from
+ * the pattern itself rather than as any "+", which a timestamp's offset
+ * (+00:00) puts in most records, so the search still narrows.
+ */
+export interface PrefilterReading {
+  plusAsSpace?: boolean | undefined;
+}
+
 // The longest expression handed to the database.
 export const MAX_PREFILTER_LENGTH: number = 32_768;
+
+const SPACE: number = 0x20;
+const PLUS: number = 0x2b;
 
 const HIGH_SURROGATE_FIRST: number = 0xd800;
 const LOW_SURROGATE_FIRST: number = 0xdc00;
@@ -549,10 +566,70 @@ export function expandBackReferences(
 }
 
 /*
- * A JavaScript pattern as an RE2 expression that matches at least what the
- * pattern matches, or null when it cannot be written so.
+ * A class that takes a space taking a "+" too, as a query string writes a
+ * space (PrefilterReading.plusAsSpace): one written [...] gains it, one
+ * written [^...] stops refusing it.
  */
-export function toRe2Prefilter(source: string, flags: string): string | null {
+function setWithPlus(node: SetNode): SetNode {
+  const takesSpace: boolean = node.set.has(SPACE) !== node.negate;
+  const takesPlus: boolean = node.set.has(PLUS) !== node.negate;
+
+  if (!takesSpace || takesPlus) {
+    return node;
+  }
+
+  return {
+    ...node,
+    set: node.negate
+      ? node.set.complement().union(CharacterSet.of(PLUS)).complement()
+      : node.set.union(CharacterSet.of(PLUS)),
+  };
+}
+
+/*
+ * A pattern's tree with a "+" taken wherever it takes a space: the
+ * expression of what it finds in a text as a URL's query string reads it,
+ * each "+" between two characters of a value a space (#11199).
+ */
+function withPlusWhereSpace(node: SyntaxNode): SyntaxNode {
+  switch (node.kind) {
+    case "Character":
+      return node.codeUnit === SPACE
+        ? {
+            kind: "Set",
+            set: CharacterSet.fromCodeUnits([SPACE, PLUS]),
+            negate: false,
+            ignoreCase: node.ignoreCase,
+          }
+        : node;
+    case "Set":
+      return setWithPlus(node);
+    case "Group":
+      return { ...node, body: withPlusWhereSpace(node.body) };
+    case "Repeat":
+      return { ...node, body: withPlusWhereSpace(node.body) };
+    case "Lookaround":
+      return { ...node, body: withPlusWhereSpace(node.body) };
+    case "Alternation":
+      return { ...node, options: node.options.map(withPlusWhereSpace) };
+    case "Sequence":
+      return { ...node, items: node.items.map(withPlusWhereSpace) };
+    default:
+      return node;
+  }
+}
+
+/*
+ * A JavaScript pattern as an RE2 expression that matches at least what the
+ * pattern matches, or null when it cannot be written so. Read as a query
+ * string reads a text (`reading.plusAsSpace`), it takes a "+" wherever the
+ * pattern takes a space.
+ */
+export function toRe2Prefilter(
+  source: string,
+  flags: string,
+  reading: PrefilterReading = {},
+): string | null {
   if (flags.includes("u") || flags.includes("v")) {
     return null;
   }
@@ -567,9 +644,12 @@ export function toRe2Prefilter(source: string, flags: string): string | null {
     // The engine decides what is a pattern at all, as LinearRegExp does.
     new RegExp(source, flags.replace(/[^gimsy]/g, ""));
 
-    const root: SyntaxNode = withEdgeLookaroundsRead(
+    const parsed: SyntaxNode = withEdgeLookaroundsRead(
       parsePattern(expandBackReferences(source), patternFlags).root,
     );
+    const root: SyntaxNode = reading.plusAsSpace
+      ? withPlusWhereSpace(parsed)
+      : parsed;
 
     // An expression that can match the empty text narrows nothing.
     if (canMatchEmpty(root)) {
@@ -607,16 +687,24 @@ function patternOf(
  * One detector's expression: the one it says it narrows by, for a pattern
  * written with Unicode classes this cannot write (the u flag), or else its
  * pattern written for RE2. Null when neither can be had. Not the escapes or
- * the digits its readings add: getDataTypePrefilter adds those.
+ * the digits its readings add: getDataTypePrefilter adds those. Read as a
+ * query string reads a text (`reading.plusAsSpace`), its pattern takes a
+ * "+" wherever it takes a space; a hand-written expression cannot be read
+ * so, and gives none.
  */
-export function getDetectorPrefilter(detector: ScanDetector): string | null {
+export function getDetectorPrefilter(
+  detector: ScanDetector,
+  reading: PrefilterReading = {},
+): string | null {
   if (detector.prefilter) {
-    return detector.prefilter;
+    return reading.plusAsSpace ? null : detector.prefilter;
   }
 
   const pattern: { source: string; flags: string } | null = patternOf(detector);
 
-  return pattern ? toRe2Prefilter(pattern.source, pattern.flags) : null;
+  return pattern
+    ? toRe2Prefilter(pattern.source, pattern.flags, reading)
+    : null;
 }
 
 /*
@@ -657,6 +745,21 @@ export function getDataTypePrefilter(data: {
 
     if (!expressions.includes(expression)) {
       expressions.push(expression);
+    }
+
+    // A value written with "+"s for its spaces, as a query string writes them (#11199).
+    if (detector.readsPlusAsSpace) {
+      const withPlus: string | null = getDetectorPrefilter(detector, {
+        plusAsSpace: true,
+      });
+
+      if (!withPlus) {
+        return null;
+      }
+
+      if (!expressions.includes(withPlus)) {
+        expressions.push(withPlus);
+      }
     }
 
     if (

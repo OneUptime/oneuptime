@@ -397,6 +397,124 @@ const WRITTEN: Array<Written> = [
     mask: maskKeepingEnds(TCKN),
     customRegex: scrubItPatternOf("tr-tckn"),
   },
+  /*
+   * #11199: a value written in groups, in a URL - its groups apart by an
+   * escaped space, by the "+" a form writes a space as, or by that "+"
+   * escaped again in a URL inside a query string - hidden whole, as it is
+   * written, and masked and hashed as the value written plainly.
+   */
+  {
+    label: "a card in a URL with %20 between its groups",
+    patternType: LogScrubPatternType.CreditCard,
+    dataTypeId: "credit-card-number",
+    before: "GET /pay?card=",
+    written: "4532%200151%201283%200366",
+    reads: "4532 0151 1283 0366",
+    mask: "****-****-****-0366",
+  },
+  {
+    label: "a card typed into a form, + between its groups",
+    patternType: LogScrubPatternType.CreditCard,
+    dataTypeId: "credit-card-number",
+    before: "GET /pay?card=",
+    written: "4532+0151+1283+0366",
+    reads: "4532 0151 1283 0366",
+    mask: "****-****-****-0366",
+  },
+  {
+    label: "a card in a URL inside a query string, its +s escaped",
+    patternType: LogScrubPatternType.CreditCard,
+    dataTypeId: "credit-card-number",
+    before: "GET /login?next=%2Fpay%3Fcard%3D",
+    written: "4532%2B0151%2B1283%2B0366",
+    reads: "4532 0151 1283 0366",
+    mask: "****-****-****-0366",
+  },
+  {
+    label: "a card in Arabic-Indic digits typed into a form",
+    patternType: LogScrubPatternType.CreditCard,
+    dataTypeId: "credit-card-number",
+    before: "GET /pay?card=",
+    written: "٤٥٣٢+٠١٥١+١٢٨٣+٠٣٦٦",
+    reads: "4532 0151 1283 0366",
+    mask: "****-****-****-0366",
+  },
+  {
+    label: "a phone number a form wrote, its own + escaped",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "GET /callback?phone=",
+    written: "%2B49+30+81234567",
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "a phone number a form wrote, its own + as it is",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "GET /callback?phone=",
+    written: "+49+30+81234567",
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
+  {
+    label: "a Social Security number with %20 between its groups",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "GET /verify?ssn=",
+    written: "536%2022%208731",
+    reads: "536 22 8731",
+    mask: "***-**-8731",
+  },
+  {
+    label: "a Social Security number typed into a form",
+    patternType: LogScrubPatternType.SSN,
+    dataTypeId: "us-ssn",
+    before: "GET /verify?ssn=",
+    written: "536+22+8731",
+    reads: "536 22 8731",
+    mask: "***-**-8731",
+  },
+  {
+    label: "an IBAN with %20 between its groups (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "iban",
+    before: "GET /payout?iban=",
+    written: "DE47%203704%200044%200532%200130%2077",
+    reads: "DE47 3704 0044 0532 0130 77",
+    mask: maskKeepingEnds("DE47 3704 0044 0532 0130 77"),
+    customRegex: scrubItPatternOf("iban"),
+  },
+  {
+    label: "an IBAN typed into a form (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "iban",
+    before: "GET /payout?iban=",
+    written: "DE47+3704+0044+0532+0130+77",
+    reads: "DE47 3704 0044 0532 0130 77",
+    mask: maskKeepingEnds("DE47 3704 0044 0532 0130 77"),
+    customRegex: scrubItPatternOf("iban"),
+  },
+  {
+    label: "an IBAN in a URL inside a query string (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "iban",
+    before: "GET /login?next=%2Fpayout%3Fiban%3D",
+    written: "DE47%2B3704%2B0044%2B0532%2B0130%2B77",
+    reads: "DE47 3704 0044 0532 0130 77",
+    mask: maskKeepingEnds("DE47 3704 0044 0532 0130 77"),
+    customRegex: scrubItPatternOf("iban"),
+  },
+  {
+    label: "an Aadhaar number typed into a form (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "in-aadhaar",
+    before: "GET /kyc?aadhaar=",
+    written: "2345+6789+0124",
+    reads: "2345 6789 0124",
+    mask: maskKeepingEnds("2345 6789 0124"),
+    customRegex: scrubItPatternOf("in-aadhaar"),
+  },
 ];
 
 const ACTIONS: Array<string> = [
@@ -435,6 +553,12 @@ const KEPT: Array<[string, string]> = [
   [LogScrubPatternType.SSN, "ref 536.22.8731.01"],
   [LogScrubPatternType.SSN, "ssn 666.22.8731"],
   [LogScrubPatternType.SSN, "ref ٥٣٦.٢٢.٨٧٣١.٠١"],
+  // #11199: a form's "+" that spells no value of the rule's - a sum, a near miss.
+  [LogScrubPatternType.CreditCard, "GET /calc?q=1234+5678"],
+  [LogScrubPatternType.PhoneNumber, "GET /contact?tel=%28718%29+487-63058"],
+  [LogScrubPatternType.PhoneNumber, "call ++44 20 7946 0958 failed"],
+  [LogScrubPatternType.SSN, "GET /verify?ssn=666+22+8731"],
+  [LogScrubPatternType.SSN, "GET /verify?ssn=536+22+8731+01"],
 ];
 
 type OtlpAttribute = { key: string; value: { stringValue: string } };
