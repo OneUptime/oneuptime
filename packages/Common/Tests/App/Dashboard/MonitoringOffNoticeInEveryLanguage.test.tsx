@@ -24,6 +24,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * it: a German reader read it in English, under a German title, while the
  * same banner for a maintenance event (#7930) read in German. Every reason
  * the banner gives is worded in every language now.
+ *
+ * #11141 rewrote the incident's: it says an incident declared by hand
+ * paused the checks until it is resolved, that what reaches the monitor
+ * meanwhile is listed in Monitoring Logs, not evaluated, and how to keep it
+ * checked - Keep monitoring during incidents, in Settings.
  */
 
 const getItemMock: MockFunction = getJestMockFunction();
@@ -136,18 +141,38 @@ describe("every reason the banner gives, in every language", () => {
     },
   );
 
-  // The incident's sentence, in the shape of the maintenance one beside it.
+  /*
+   * The incident's sentence: why (an incident declared by hand paused the
+   * checks), and what to do (turn on Keep monitoring during incidents), in
+   * the words the switch has in that language.
+   */
   test.each([
     [
       "de",
-      "wegen eines aktiven Vorfalls deaktiviert",
-      "beheben Sie bitte den Vorfall",
+      "Ein von Hand gemeldeter Vorfall hat die Prüfungen dieses Monitors pausiert",
+      "„Während Vorfällen weiter überwachen“ ein",
     ],
-    ["fr", "en raison d'un incident actif", "veuillez résoudre l'incident"],
-    ["es", "por un incidente activo", "resuelve el incidente"],
-    ["ko", "활성 인시던트 때문에", "인시던트를 해결하세요"],
-    ["zh-CN", "由于存在活动事件", "请解决该事件"],
-    ["ru", "из-за активного инцидента", "устраните инцидент"],
+    [
+      "fr",
+      "Un incident déclaré à la main a mis en pause les vérifications",
+      "« Continuer la surveillance pendant les incidents »",
+    ],
+    [
+      "es",
+      "Un incidente declarado a mano pausó las comprobaciones",
+      "«Mantener el monitoreo durante los incidentes»",
+    ],
+    [
+      "ko",
+      "수동으로 선언한 인시던트로 인해",
+      "'인시던트 중에도 모니터링 유지'를 켜세요",
+    ],
+    ["zh-CN", "手动声明的事件已暂停此监视器的检查", "打开“事件期间保持监控”"],
+    [
+      "ru",
+      "Инцидент, объявленный вручную, приостановил проверки",
+      "включите «Продолжать мониторинг во время инцидентов»",
+    ],
   ])(
     "%s says why, and what to do, in its own words",
     (language: string, why: string, whatToDo: string) => {

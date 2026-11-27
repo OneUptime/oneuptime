@@ -117,7 +117,7 @@ Fullfør bekreftelsen slik e-posten forteller deg.
 Har det kommet en annen e-post siden, viser kortet ikke lenger bekreftelses-e-posten. Åpne **Overvåkingslogger**, finn bekreftelses-e-posten ut fra emnet i kolonnen **E-post**, og klikk på **Vis sammendrag** på den raden.
 
 > [!IMPORTANT]
-> **Kriteriene dine ser den også.** Bekreftelses-e-posten evalueres som enhver annen e-post. En formulering som "if you received this in error" samsvarer med standardkriteriet `error` og markerer monitoren som offline. For å unngå det slår du av **Sjekk denne monitoren** i kortet **Overvåking** på monitorens side **Innstillinger** mens du bekrefter (du blir bedt om å bekrefte). En monitor med overvåking slått av lagrer fortsatt e-posten, og kortet **Monitor-sammendrag** viser den fortsatt. Den evaluerer likevel ingenting, så e-posten får ingen rad i **Overvåkingslogger**: les den før en annen e-post kommer. Når du er ferdig, trykker du på **Slå på overvåking** i banneret øverst på monitorens sider, eller slår bryteren på igjen.
+> **Kriteriene dine ser den også.** Bekreftelses-e-posten evalueres som enhver annen e-post. En formulering som "if you received this in error" samsvarer med standardkriteriet `error` og markerer monitoren som offline. For å unngå det slår du av **Sjekk denne monitoren** i kortet **Overvåking** på monitorens side **Innstillinger** mens du bekrefter (du blir bedt om å bekrefte). En monitor med overvåking slått av lagrer fortsatt e-posten, og kortet **Monitor-sammendrag** viser den fortsatt. Den evaluerer likevel ingenting: raden til e-posten i **Overvåkingslogger** sier at den ikke ble evaluert, og **Vis sammendrag** på den viser hele e-posten. Når du er ferdig, trykker du på **Slå på overvåking** i banneret øverst på monitorens sider, eller slår bryteren på igjen.
 
 **Bekreftelsen hører til adressen.** Hvis du [tilbakestiller eller tilpasser adressen](#tilbakestill-eller-tilpass-e-postadressen), ser tjenesten en ny mottaker, og du må bekrefte på nytt.
 
@@ -186,6 +186,8 @@ Monitorens egen adresse maskeres før noe kriterium leser e-posten, så i **Mott
 Ingen av disse sammenligningene skiller mellom store og små bokstaver. Et filter med tom verdi samsvarer aldri.
 
 ### Tidsbaserte filtre (E-post mottatt)
+
+Det engelske dashbordet staver disse betingelsene "Recieved".
 
 | Filtervilkår | Beskrivelse | Eksempel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -310,7 +312,9 @@ Klikk på **Vis flere detaljer** for å se resten:
 
 ### Tidligere e-poster
 
-Kortet viser bare den nyeste e-posten. Hver e-post monitoren evaluerer, skrives også til **Overvåkingslogger**: kolonnen **E-post** viser emnet og avsenderen, og **Vis sammendrag** på raden viser hele e-posten på samme måte som kortet. En monitor med overvåking slått av evaluerer ingenting, så e-postene den mottar, får ingen rader. Hvis et av kriteriene dine sjekker **E-post mottatt**, skriver monitoren også en rad hver gang den ser etter manglende e-post. Kolonnen **E-post** sier "Scheduled check" på de radene, og **Vis sammendrag** der viser den nyeste e-posten på tidspunktet for kontrollen, eller "No email yet" hvis ingen hadde kommet. Overvåkingslogger beholdes i én dag som standard. På en selvhostet server kan en administrator endre det med **Loggoppbevaring for monitorer (dager)** i innstillingene i Admin Dashboard.
+Kortet viser bare den nyeste e-posten. Hver e-post monitoren evaluerer, skrives også til **Overvåkingslogger**: kolonnen **E-post** viser emnet og avsenderen, og **Vis sammendrag** på raden viser hele e-posten på samme måte som kortet. En monitor som ikke blir sjekket — med overvåking slått av, eller satt på pause av en hendelse eller en vedlikeholdshendelse — evaluerer ingenting, så hver e-post den mottar, får en rad som sier at den ikke ble evaluert, og hvorfor. Hvis et av kriteriene dine sjekker **E-post mottatt**, skriver monitoren også en rad hver gang den ser etter manglende e-post. Kolonnen **E-post** sier "Scheduled check" på de radene, og **Vis sammendrag** der viser den nyeste e-posten på tidspunktet for kontrollen, eller "No email yet" hvis ingen hadde kommet.
+
+Overvåkingslogger beholdes i én dag som standard. På en selvhostet server kan en administrator endre det med **Loggoppbevaring for monitorer (dager)** i innstillingene i Admin Dashboard.
 
 ## Selvhostet oppsett
 

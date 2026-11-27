@@ -85,6 +85,7 @@ The monitors come first, on their own, because status pages see an incident thro
 
 - **Monitors** — a search box that attaches the monitors the incident affects; its **Labels** tab adds every monitor with a label at once. A status page shows an incident, and notifies its subscribers about it, when it lists one of the incident's monitors, so these are what decide which status pages hear about it (`monitors` on the incident).
 - **Change Monitor Status to** — optional, and shown only once at least one monitor is picked. Picks a monitor status that is applied to every monitor attached to this incident, so declaring the incident and marking the monitors degraded is one action rather than two. Declaring from a template that sets one starts with the template's status, shown as soon as you pick a monitor. With no monitor picked no status is saved, the template's included; remove the last monitor and the field goes away until you pick another, which brings your choice back. A monitor's status is shared by every status page that lists it, so with status pages picked under **More fields**, the form reminds you that the change also shows on the pages you did not pick.
+- **Pause Monitoring** — shown once at least one monitor is picked, and ticked. Ticked, the incident pauses its monitors' checks until it is resolved, so the status above stays on them. Untick it to keep them checked while the incident is open: their checks keep setting their status, and keep opening incidents and alerts. A monitor set to keep monitoring during incidents is never paused, ticked or not (`pauseMonitoring` on the incident). See [Monitoring while an incident is open](#monitoring-while-an-incident-is-open).
 - **Other Affected Resources** — a second search box for everything else the incident affects: hosts, network devices, Kubernetes clusters, Docker and Podman hosts, Proxmox, Ceph and Docker Swarm clusters, vCenters, storage arrays, IoT fleets, databases, cloud resources and services — everything besides monitors that the incident's own **Affected Resources** card offers. Under the hood these are separate relations on the incident (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` and more), but the form collapses them into one picker.
 
 **Other Affected Resources** searches every kind it offers at once. A resource is found by its name or description, a network device also by the address it is polled at or its DNS name, and a host by the name its agent reports or one of its IP addresses. The results are grouped under their kind, a device's address beside its name. Once they hold more than one kind, a row above them narrows the list to one kind and says how many of each match, and a kind with more matches than fit offers to show more of them. Archived resources are not offered. When the search matches monitors too, a line under the results says how many, and that monitors are picked under **Monitors**.
@@ -280,7 +281,7 @@ In order:
 9. **Subscribers are queued**, if **Notify Status Page Subscribers** was left on and the incident is visible on the status page. Delivery is handled by a background job, not inline with your request, and goes to the status pages the incident reaches: the ones that list its monitors, narrowed by **Limit to these status pages**, and without the pages that only show incidents limited to them when it is not limited. An archived status page sends nothing. Its progress shows as **Subscriber Notification Status** on the incident's **Overview**: what was sent and what failed on each status page, and **Retry** or **Resend** once it has settled. See [Checking what was sent](/docs/status-pages/subscribers#checking-what-was-sent).
 10. **Workflows fire.** The **On Create Incident** trigger starts any workflow built on it. See [Workflows Overview](/docs/workflows/index).
 
-From there the incident is live: it counts toward the **Active Incidents** badge in the Incidents side menu (any state above your resolved state counts as active), it appears on the status pages that carry one of its monitors (only the picked ones, if you limited it), and its **State Timeline** starts recording.
+From there the incident is live: it counts toward the **Active Incidents** badge in the Incidents side menu (any state above your resolved state counts as active), it appears on the status pages that carry one of its monitors (only the picked ones, if you limited it), and its **State Timeline** starts recording. Its monitors are put in its **Change Monitor Status to** status and, declared by hand, their checks are paused until it is resolved: see [Monitoring while an incident is open](#monitoring-while-an-incident-is-open).
 
 ### Declared already acknowledged or resolved
 
@@ -306,10 +307,43 @@ flowchart TB
 
 Alerts, alert episodes and incident episodes follow the same rule: one created already acknowledged pages no one, and one created resolved is also not grouped, remediated or investigated by AI, and gets no channel of its own. An incident or alert in the created state — the default, and every one a monitor opens — sets off everything as before.
 
+## Monitoring while an incident is open
+
+An incident declared by hand pauses the checks of the monitors it lists, until it is resolved. That keeps the status it put them in from being changed by their next check while people work on it. Declared by hand means anything but OneUptime itself: **Declare Incident** in the dashboard (from an alert, from a monitor's **Incidents** tab, or from scratch), Slack, Microsoft Teams, the API, Terraform, a workflow, [Ask AI](/docs/ai/ask-ai), the mobile app and a form. Adding a monitor to such an incident while it is open pauses that monitor too.
+
+Nothing else pauses a monitor's checks this way. An incident a monitor's criteria declare, one an alert's incident rule declares and one an SLO declares leave their monitors checked, and so does every alert, created by a monitor or by hand.
+
+```mermaid title="Whether an open incident pauses a monitor's checks"
+flowchart TB
+    declared{"Declared by hand?"} -->|No| checked["Checks keep running"]
+    declared -->|Yes| ticked{"Pause Monitoring<br/>ticked?"}
+    ticked -->|No| checked
+    ticked -->|Yes| setting{"Monitor set to keep<br/>monitoring during incidents?"}
+    setting -->|Yes| checked
+    setting -->|No| paused["Checks paused<br/>until it is resolved"]
+```
+
+**Keep a monitor checked.** Two switches decide, and either keeps it checked:
+
+- **Keep monitoring during incidents**, on the monitor's **Settings** page, under **During Incidents**. Turn it on for a monitor that receives events, such as an [Incoming Request monitor](/docs/monitor/incoming-request-monitor) that another system posts its alerts to: an incident about one event then no longer stops it from reading the next. It applies at once, to incidents already open too: turned on while an incident pauses the monitor, its checks start again right away. Off by default.
+- **Pause Monitoring**, where the incident is declared, under **Change Monitor Status to**. Untick it to keep all of the incident's monitors checked. It can be changed while the incident is open, on its **Affected Resources** card: unticked, the monitors are checked again at once.
+
+A monitor kept checked keeps setting its own status: its next check replaces the status the incident put it in, and its criteria keep opening and resolving their own incidents and alerts.
+
+**What a paused monitor still does.** Its checks stop: probes stop checking it, a heartbeat, email or agent that stops sending is not noticed, and a telemetry monitor is not evaluated. What is sent to it from outside is still received: each request an [Incoming Request monitor](/docs/monitor/incoming-request-monitor) gets, each email an Incoming Email monitor gets and each report a Server monitor's agent sends is listed in its **Monitoring Logs**, as it came, with **Not evaluated: monitoring is paused by an incident**. Nothing a paused monitor receives opens or resolves an incident or an alert, or changes its status, and the sender is answered as usual. A banner on the monitor's pages says it is paused, and how to keep it checked.
+
+**What paused time counts as.** A paused monitor keeps the status it holds, and its uptime, status pages and SLOs count that status when an incident put the monitor in it with **Change Monitor Status to**: that is the status someone declared. When no pausing incident set a status, the status is only what the monitor's last check saw before the pause, so that time is left out of its uptime, status pages and SLOs, as time with monitoring turned off is. Its **Status Timeline** marks where that time starts and ends, and the uptime on its **Overview** says it leaves paused time out.
+
+**When the pause ends.** Resolving the incident, taking the monitor off it or deleting it resumes the monitor's checks and returns it to operational, unless another open incident is still on it, whose checks then set its status. A monitor that another open incident declared by hand still pauses stays paused. An incident resolved and reopened since holds nothing, so it pauses nothing and keeps nothing paused.
+
 ## Troubleshooting
 
 :::details Declaring fails and asks for a created incident state
 If your project has no state carrying the `isCreatedState` flag, the create call fails and tells you to add a created incident state from settings. That normally only happens on a project whose states were edited heavily — see [Incident States & Severities](/docs/incidents/states-and-severities).
+:::
+
+:::details A monitor stopped opening alerts once an incident was declared on it
+An incident declared by hand pauses the checks of its monitors until it is resolved, so what reaches them meanwhile is listed in their **Monitoring Logs** but not evaluated. Turn on **Keep monitoring during incidents** in the monitor's **Settings** to keep it checked during this incident and the next ones, or untick **Pause Monitoring** on the incident's **Affected Resources** card for this incident's monitors. See [Monitoring while an incident is open](#monitoring-while-an-incident-is-open).
 :::
 
 :::details The incident was declared, but no status page subscriber heard about it
