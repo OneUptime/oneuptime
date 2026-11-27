@@ -1236,6 +1236,8 @@ describe("what every message says (readContext)", () => {
     expect(await readContext()).toEqual({
       recordKind: OnCallTestPageRecordKind.Incident,
       severityName: "Critical",
+      // As the project wrote it, for the English call (#11066).
+      severityNameAsWritten: "Critical",
       projectName: "Acme",
       isSentBySelf: true,
       senderName: "Ana Lopez",
@@ -1282,6 +1284,7 @@ describe("what every message says (readContext)", () => {
     expect(await readContext()).toEqual({
       recordKind: OnCallTestPageRecordKind.Alert,
       severityName: "High",
+      severityNameAsWritten: "High",
       projectName: "Acme",
       isSentBySelf: false,
       senderName: "Ana Lopez",
@@ -1303,6 +1306,12 @@ describe("what every message says (readContext)", () => {
       });
 
     expect(context.severityName.length).toBeGreaterThan(0);
+    /*
+     * The English call says it as the project wrote it, never in the
+     * person's language: a German severity in an English sentence was what
+     * a test's English call said before its words could be German (#11066).
+     */
+    expect(context.severityNameAsWritten).toBe("Critical");
   });
 
   test("a read that fails leaves the sentences plainer, and the test still goes out", async () => {

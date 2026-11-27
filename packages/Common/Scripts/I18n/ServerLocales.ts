@@ -178,7 +178,6 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Utils/Call/CallKeypad.ts",
   "packages/Common/Utils/Call/CallSpeech.ts",
   "packages/Common/Server/Utils/OnCall/OnCallPageCallAnswers.ts",
-  "packages/Common/Server/Utils/OnCall/OnCallNotificationStatus.ts",
   "packages/App/FeatureSet/Notification/Utils/AnsweredBy.ts",
   /*
    * The email that tells a person their sign-in settings were cleared

@@ -306,11 +306,12 @@ const callTranslators: Map<string, Translator> = new Map<string, Translator>();
  * but a call is heard, not read. So no value goes into a call's sentence
  * between the isolate marks a language read from the right sets it apart
  * with on a page or a phone's screen (see above): a voice meets them as
- * characters, and the call has no layout for them to hold. A number keeps a
- * plain space before its unit, as English written into a record does.
- * English - for any language OneUptime does not write in too - looks
- * nothing up: its templates are filled as they are written, so an English
- * call reads word for word as it always has.
+ * characters, and the call has no layout for them to hold. (A language's
+ * wording holds a number to its unit with a no-break space, as it does on a
+ * page: a voice reads that as the space it is.) English - for any language
+ * OneUptime does not write in too - looks nothing up: its templates are
+ * filled as they are written, with plain spaces, so an English call reads
+ * word for word as it always has.
  */
 export const getCallTranslator: (
   language?: string | null | undefined,

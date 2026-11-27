@@ -16,7 +16,6 @@ import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
 import { translationKey, Translator } from "../../../Types/Translator";
 import { getCallWrongKeySentence } from "../../../Utils/Call/CallKeypad";
 import { getCallTranslator } from "../ServerTranslation";
-import { ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE } from "./OnCallNotificationStatus";
 
 /*
  * WHAT A PAGE'S CALL ANSWERS A KEY WITH, IN THE CALL'S LANGUAGE (#11066).
@@ -32,7 +31,20 @@ import { ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE } from "./OnCallNotificationS
  * (Types/Call/CallVoice), each of one language. A call in English - the
  * account's default voice, an English voice, a call placed before this
  * release - is answered in English, word for word as it always was.
+ *
+ * Imports nothing that reads a database: the keypad route's middleware
+ * (Server/Middleware/NotificationMiddleware) reads it too.
  */
+
+/*
+ * What a call says when its 1 could not acknowledge the page: the
+ * notification kept changing under every try (OnCallNotificationStatus's
+ * ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE, which is this sentence). The
+ * call ends with it, so the person cannot press again there.
+ */
+export const CALL_NOT_ACKNOWLEDGED_SENTENCE: string = translationKey(
+  "This page could not be acknowledged just now. Please acknowledge it from the dashboard. Good bye.",
+);
 
 // The language a call speaks, by the voice it speaks with: English for none.
 export function getCallAnswerLanguage(voice: string | null | undefined): string {
@@ -93,10 +105,7 @@ export function getCallAnswerWrongKeySentence(
 export function getCallAnswerNotAcknowledged(
   voice: string | null | undefined,
 ): string {
-  return say(
-    getCallAnswerTranslator(voice),
-    ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
-  );
+  return say(getCallAnswerTranslator(voice), CALL_NOT_ACKNOWLEDGED_SENTENCE);
 }
 
 /*
