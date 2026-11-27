@@ -266,6 +266,7 @@ import StorageArrayOverview from "../../../../App/FeatureSet/Dashboard/src/Pages
 import StorageArrayHostDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/HostDetail";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Route from "../../../Types/API/Route";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 import ObjectID from "../../../Types/ObjectID";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
@@ -438,6 +439,14 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  /*
+   * Which of the array's alerts watch a part is the server's answer
+   * (POST /monitor/recommendation-coverage, #11074): this project has no
+   * monitors, so none does.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   rowNumber = 0;
   mockLastParam = "";
   arrangeArray();

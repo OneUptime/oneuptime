@@ -65,7 +65,8 @@ export const POWERSCALE_KIND_DEFINITIONS: Array<StorageArrayKindDefinition> = [
       },
       {
         shows: "model",
-        title: translationKey("Model"),
+        // A node's hardware model, never an AI model's (#9838).
+        title: translationKey("Model (hardware model)"),
         description: translationKey("The node's model, from its chassis."),
       },
       {

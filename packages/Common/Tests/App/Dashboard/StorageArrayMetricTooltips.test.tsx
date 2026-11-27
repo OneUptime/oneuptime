@@ -309,6 +309,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
 import {
   expectReadableDescriptionRecord,
@@ -841,6 +842,14 @@ async function renderPage(
 }
 
 beforeEach(() => {
+  /*
+   * Which of the array's alerts watch a part is the server's answer
+   * (POST /monitor/recommendation-coverage, #11074): this project has no
+   * monitors, so none does.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
   mockLastParam = "";

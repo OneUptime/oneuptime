@@ -665,6 +665,7 @@ describe("one meaning per key", () => {
       "packages/Common/Models/DatabaseModels/ManagedDevice.ts",
       "packages/Common/Models/DatabaseModels/NetworkDevice.ts",
       "packages/Common/Models/DatabaseModels/StorageArrayResource.ts",
+      "packages/Common/Types/StorageArray/Platforms/Dell/PowerScale/PowerScalePlatform.ts",
     ]);
     expect(filesLookingUp("Model")).toEqual([
       "Components/AI/LlmCallsTable.tsx",
