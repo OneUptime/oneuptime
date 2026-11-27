@@ -34,16 +34,10 @@ function isIn(range: InBetween<Date>, at: Date): boolean {
   const startMs: number = new Date(range.startValue).getTime();
   const endMs: number = new Date(range.endValue).getTime();
 
-  return (
-    atMs >= startMs && (range.includesEnd ? atMs <= endMs : atMs < endMs)
-  );
+  return atMs >= startMs && (range.includesEnd ? atMs <= endMs : atMs < endMs);
 }
 
-function expectCheckWindow(
-  range: unknown,
-  startsAt: Date,
-  endsAt: Date,
-): void {
+function expectCheckWindow(range: unknown, startsAt: Date, endsAt: Date): void {
   expect(range).toBeInstanceOf(InBetween);
 
   const window: InBetween<Date> = range as InBetween<Date>;
@@ -185,9 +179,7 @@ describe("TelemetryCheckWindow", () => {
     expect(window.includesEnd).toBe(false);
     expect(window.endValue.getTime()).toBeGreaterThanOrEqual(before);
     expect(window.endValue.getTime()).toBeLessThanOrEqual(after);
-    expect(window.endValue.getTime() - window.startValue.getTime()).toBe(
-      60000,
-    );
+    expect(window.endValue.getTime() - window.startValue.getTime()).toBe(60000);
   });
 
   test("a rolling time's window starts where RollingTimeUtil starts it, for every rolling time", () => {

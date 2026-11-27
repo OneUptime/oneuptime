@@ -2469,11 +2469,10 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     });
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -2983,11 +2982,10 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     throw new BadDataException("Kubernetes monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3264,11 +3262,10 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     throw new BadDataException("Docker monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3452,11 +3449,10 @@ export const monitorHost: MonitorHostFunction = async (data: {
     throw new BadDataException("Host monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3647,11 +3643,10 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     throw new BadDataException("Podman monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3842,11 +3837,10 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     throw new BadDataException("Proxmox monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      proxmoxMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    proxmoxMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4080,11 +4074,10 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
     throw new BadDataException("OpenStack monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      openstackMonitorConfig.rollingTime || RollingTime.Past15Minutes,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    openstackMonitorConfig.rollingTime || RollingTime.Past15Minutes,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4326,11 +4319,10 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     throw new BadDataException("VMware monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      vmwareMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    vmwareMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4561,11 +4553,10 @@ export const monitorXcpNg: MonitorXcpNgFunction = async (data: {
     );
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      xcpNgMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    xcpNgMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4784,11 +4775,10 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     throw new BadDataException("IoT monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5045,11 +5035,10 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     throw new BadDataException("Docker Swarm monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5357,11 +5346,10 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     throw new BadDataException("Ceph monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      cephMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    cephMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5588,11 +5576,10 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     throw new BadDataException("Storage Array monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      storageArrayMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    storageArrayMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 

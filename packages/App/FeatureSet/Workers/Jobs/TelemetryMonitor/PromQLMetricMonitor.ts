@@ -273,11 +273,10 @@ export const monitorPromQLMetric: (
     throw new BadDataException(problem);
   }
 
-  const startAndEndDate: InBetween<Date> =
-    TelemetryCheckWindow.ofRollingTime(
-      input.metricMonitor.rollingTime || RollingTime.Past1Minute,
-      input.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    input.metricMonitor.rollingTime || RollingTime.Past1Minute,
+    input.evaluateUntil,
+  );
 
   const serviceIds: Array<ObjectID> =
     input.metricMonitor.telemetryServiceIds || [];

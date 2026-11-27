@@ -44,8 +44,7 @@ function inline(statement: Statement): string {
       at = text.indexOf(marker)
     ) {
       const close: number = text.indexOf("}", at);
-      text =
-        text.slice(0, at) + JSON.stringify(value) + text.slice(close + 1);
+      text = text.slice(0, at) + JSON.stringify(value) + text.slice(close + 1);
     }
   }
 
@@ -121,12 +120,11 @@ describe.each(READS)(
 
 describe("a check's window through the builder's other forms", () => {
   test("qualified by a table's alias, as a dedup subquery's outer WHERE reads it", () => {
-    const generator: StatementGenerator<Metric> = new StatementGenerator<Metric>(
-      {
+    const generator: StatementGenerator<Metric> =
+      new StatementGenerator<Metric>({
         modelType: Metric,
         database: ClickhouseAppInstance,
-      },
-    );
+      });
 
     const statement: Statement = generator.toWhereStatement(
       {

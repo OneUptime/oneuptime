@@ -78,8 +78,7 @@ function inline(statement: Statement): string {
       at = text.indexOf(marker)
     ) {
       const close: number = text.indexOf("}", at);
-      text =
-        text.slice(0, at) + JSON.stringify(value) + text.slice(close + 1);
+      text = text.slice(0, at) + JSON.stringify(value) + text.slice(close + 1);
     }
   }
 
