@@ -37,7 +37,8 @@ import { DataSource } from "typeorm";
  *   - the migrated tables carry the indexes and storage parameters the
  *     #7921 migrations leave (no index names a column every poll moves);
  *   - a probe's result stored over a monitor probe is HOT; the claim, which
- *     moves the indexed nextPingAt, is not and cannot be;
+ *     moves the indexed nextPingAt, is not and cannot be, nor is the real
+ *     next run a schedule new to the process is given right after it;
  *   - a reachable poll's verdict whose state did not change is HOT, and so
  *     is the same statement carrying its rate baseline and its SNMP table
  *     and transceiver snapshots - one UPDATE for all of it (issue #7393);
@@ -345,7 +346,9 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
   });
 
   describe("MonitorProbe", () => {
-    async function insertMonitorProbe(): Promise<{
+    async function insertMonitorProbe(
+      monitoringInterval: string = "* * * * *",
+    ): Promise<{
       id: ObjectID;
       monitorId: ObjectID;
     }> {
@@ -358,8 +361,8 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
             "isArchived", "disableActiveMonitoring",
             "disableActiveMonitoringBecauseOfManualIncident",
             "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent")
-         VALUES ($1, $2, 'Website', 'Website', '* * * * *', false, false, false, false)`,
-        [monitorId.toString(), PROJECT_ID.toString()],
+         VALUES ($1, $2, 'Website', 'Website', $3, false, false, false, false)`,
+        [monitorId.toString(), PROJECT_ID.toString(), monitoringInterval],
       );
       await database.query(
         `INSERT INTO "${schema}"."MonitorProbe"
@@ -400,18 +403,45 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
       ).toEqual({ updates: 1, hot: 1 });
     });
 
+    /*
+     * The claim's statement writes each row the next run of its schedule
+     * (#10819): one update, once the process knows the schedule - every
+     * claim but its first. The first claim of a schedule writes it a minute
+     * on and gives it its real next run right after, a second update.
+     * Every one moves nextPingAt.
+     */
     test("the claim is not, and cannot be: it moves nextPingAt, which the claim's own index orders by", async () => {
-      const { id } = await insertMonitorProbe();
+      // A schedule no claim of this process has handed a monitor out on.
+      const { id } = await insertMonitorProbe("*/13 * * * *");
       let claimed: Array<ObjectID> = [];
 
+      const claim: () => Promise<void> = async (): Promise<void> => {
+        claimed = await MonitorProbeService.claimMonitorProbesForProbing({
+          probeId: PROBE_ID,
+          limit: 10,
+        });
+      };
+
+      expect(await writesOf("MonitorProbe", claim)).toEqual({
+        updates: 2,
+        hot: 0,
+      });
       expect(
-        await writesOf("MonitorProbe", async () => {
-          claimed = await MonitorProbeService.claimMonitorProbesForProbing({
-            probeId: PROBE_ID,
-            limit: 10,
-          });
+        claimed.map((claimedId: ObjectID): string => {
+          return claimedId.toString();
         }),
-      ).toEqual({ updates: 1, hot: 0 });
+      ).toEqual([id.toString()]);
+
+      // Due again: the process knows its schedule now.
+      await database.query(
+        `UPDATE "${schema}"."MonitorProbe" SET "nextPingAt" = $1 WHERE "_id" = $2`,
+        [minutesFromNow(-1), id.toString()],
+      );
+
+      expect(await writesOf("MonitorProbe", claim)).toEqual({
+        updates: 1,
+        hot: 0,
+      });
       expect(
         claimed.map((claimedId: ObjectID): string => {
           return claimedId.toString();
