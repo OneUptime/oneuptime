@@ -297,7 +297,7 @@ describe("Logs explorer: a saved chip whose record is gone", () => {
   });
 
   test("it is taken out by its id, as it was saved", async () => {
-    const onRemoveFilter: jest.Mock = jest.fn();
+    const onRemoveFilter: MockFunction = getJestMockFunction();
 
     renderWithChips(
       [chip("primaryEntityId", DELETED_SERVICE_ID)],

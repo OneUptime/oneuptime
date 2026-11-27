@@ -306,7 +306,13 @@ describe("getTelemetryEntityChipMarks - what a chip naming an entity is drawn as
   };
   const notFound: ReadonlySet<string> = new Set<string>([DELETED_ID]);
 
-  test.each([
+  test.each<
+    [
+      string,
+      Parameters<typeof getTelemetryEntityChipMarks>[0],
+      TelemetryEntityChipMarks,
+    ]
+  >([
     [
       "gone, by every read",
       { id: DELETED_ID, names, notFound },

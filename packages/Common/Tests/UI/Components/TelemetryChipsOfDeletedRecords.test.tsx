@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import ActiveFilterChips from "../../../UI/Components/LogsViewer/components/ActiveFilterChips";
@@ -152,7 +153,7 @@ describe("the traces, exceptions and metrics chip row", () => {
   });
 
   test("it is taken out by its id, as it was saved", () => {
-    const onRemove: jest.Mock = jest.fn();
+    const onRemove: MockFunction = getJestMockFunction();
 
     render(
       <TelemetryActiveFilterChips
@@ -229,7 +230,7 @@ describe("the logs chip row", () => {
   };
 
   test("a chip whose record is gone reads No longer available, and is taken out by its id", () => {
-    const onRemove: jest.Mock = jest.fn();
+    const onRemove: MockFunction = getJestMockFunction();
 
     render(
       <ActiveFilterChips
