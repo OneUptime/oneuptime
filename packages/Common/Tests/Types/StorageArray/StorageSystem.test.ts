@@ -68,6 +68,7 @@ describe("StorageSystem enum", () => {
       ["PureStorageFlashBlade", "purestorage.flashblade"],
       ["DellPowerStore", "dell.powerstore"],
       ["NetAppOntap", "netapp.ontap"],
+      ["DellPowerMax", "dell.powermax"],
       ["DellPowerScale", "dell.powerscale"],
     ]);
   });
@@ -78,6 +79,7 @@ describe("StorageSystem enum", () => {
       StorageSystem.PureStorageFlashBlade,
       StorageSystem.DellPowerStore,
       StorageSystem.NetAppOntap,
+      StorageSystem.DellPowerMax,
       StorageSystem.DellPowerScale,
     ]);
   });
@@ -349,6 +351,15 @@ describe("StorageSystemUtil display helpers", () => {
       "PowerStore",
     );
     expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerStore)).toBe(
+      "Dell",
+    );
+    expect(StorageSystemUtil.getDisplayName(StorageSystem.DellPowerMax)).toBe(
+      "Dell PowerMax",
+    );
+    expect(StorageSystemUtil.getShortName(StorageSystem.DellPowerMax)).toBe(
+      "PowerMax",
+    );
+    expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerMax)).toBe(
       "Dell",
     );
     for (const system of [

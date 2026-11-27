@@ -857,6 +857,7 @@ const MONITOR_STATUS_TEMPLATES: ReadonlyArray<string> = [
   "Status was changed because Incident {{incident}} was updated.",
   "Changed because of maintenance event: {{maintenanceEventId}}",
   "No monitoring criteria met. Change to default status.",
+  "No monitoring criteria that changes the status met. Change to default status.",
   "This status was created when the monitor was created.",
   "This status was changed when the monitor was updated.",
   "Monitoring is off. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",

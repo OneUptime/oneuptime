@@ -7,6 +7,7 @@ El agente de Cabina de almacenamiento de OneUptime supervisa cabinas de almacena
 - [Dell PowerScale](#dell-powerscale): SNMP en el clúster, cada nodo consultado, y lo que muestran sus páginas.
 - [Qué recopila el agente](#qué-recopila-el-agente): Cada endpoint y las páginas que se construyen a partir de él.
 - [Supervisar varias cabinas](#supervisar-varias-cabinas): Un agente por cabina, en una sola máquina.
+- [Dell PowerMax](#dell-powermax): Sin agente: una sonda lee cada cabina detrás de Unisphere.
 - [Solución de problemas](#solución-de-problemas): Un script de diagnóstico y los problemas habituales.
 :::
 
@@ -24,6 +25,8 @@ Storage Arrays es un producto que funciona igual para cada fabricante. Es compat
 | **Dell PowerScale** (Isilon), OneFS 8.0 y posteriores | `dell.powerscale` | Cada nodo por SNMP (la ISILON-MIB de Dell), con el propio receptor SNMP del colector: no se ejecuta nada junto al colector | `otel-collector-config.powerscale.yaml` |
 
 ONTAP no tiene un endpoint de métricas propio, así que el agente ejecuta junto al colector el exportador de código abierto de NetApp, Harvest. Harvest lee la API REST del clúster y sirve lo que ha leído en la red de Compose, con cada serie llamada `netapp_<object>_<counter>`; el colector lo recopila y lo reenvía. Harvest nunca escribe en el clúster, y su informe de AutoSupport a NetApp está desactivado.
+
+**Dell PowerMax** (`dell.powermax`) no necesita agente: una sonda de OneUptime lee, con una cuenta de solo lectura, cada cabina que gestiona un Unisphere for PowerMax. Consulta [Dell PowerMax](#dell-powermax).
 
 Pure Storage pasó a llamarse **Everpure** en febrero de 2026. FlashArray, FlashBlade y Purity conservaron sus nombres, y también las métricas `purefa_*` y `purefb_*`, así que todo lo de esta página se aplica a las cabinas vendidas con cualquiera de los dos nombres.
 
@@ -411,6 +414,54 @@ Después elimina el usuario de solo lectura y su token de API en la cabina si ya
 
 En un PowerStore, ejecute `docker compose --profile powerstore down`, para que también se detengan el exportador y el recolector syslog.
 
+## Dell PowerMax
+
+Un Dell PowerMax no necesita agente. Una sonda de OneUptime inicia sesión en la REST API de Unisphere for PowerMax con una cuenta de solo lectura cada 5 minutos y lee cada cabina que gestiona ese Unisphere. Cada cabina aparece en **Cabinas de almacenamiento** con su Symmetrix ID, como `000220200269`, y puedes cambiarle el nombre. La contraseña se guarda cifrada, nunca se vuelve a mostrar y solo se envía a la sonda que elijas.
+
+- **Unisphere for PowerMax 10.1 o posterior**, que gestione cabinas con PowerMaxOS 10 o 5978. A partir de Unisphere 10.3, una cuenta de solo lectura también ve los puertos y los grupos SRDF.
+- **Una sonda que llegue a Unisphere por TCP 8443**, normalmente una [sonda personalizada](/docs/probe/custom-probe) en la red de Unisphere. En OneUptime Cloud, una sonda compartida nunca recibe una contraseña de almacenamiento, así que elige una propia de tu proyecto.
+- **Un usuario de Unisphere con el rol Monitor** en cada cabina que deba leer, y el rol **PerfMonitor** para el rendimiento. No necesita nada más: OneUptime nunca modifica la cabina.
+
+:::steps
+### Crear el usuario de solo lectura
+
+En Unisphere for PowerMax, en **Settings → Users and Groups**, crea un usuario local o elige un usuario de directorio. Autorízalo con el rol **Monitor** en cada cabina, y con **PerfMonitor** para el rendimiento.
+
+### Comprobar que Unisphere recopila el rendimiento
+
+En **Settings → Performance → System Registrations**, comprueba que la recopilación **Diagnostic** está activada para cada cabina: sin ella, OneUptime muestra el inventario y las alertas de la cabina, pero no grafica ningún rendimiento. Para ver un grupo de almacenamiento cada 5 segundos, regístralo también ahí para **Real Time**, hasta 100 por cabina.
+
+### Conectar Unisphere
+
+Ve a **Productos → Infraestructura → Cabinas de almacenamiento → Conexiones** y haz clic en **Conectar Unisphere**. Introduce la dirección en la que abres Unisphere, como `https://unisphere.example.com:8443`, el nombre de usuario y la contraseña, y elige la sonda.
+
+### Probar la conexión
+
+**Probar conexión** hace que la sonda inicie sesión y lea lo que la cuenta puede ver: cada cabina, sus grupos de almacenamiento y volúmenes, y si Unisphere recopila su rendimiento. De forma predeterminada, Unisphere firma su propio certificado: la prueba lo muestra, y **Confiar en este certificado** pone su huella SHA-256 en el formulario. Compara primero la huella con la del propio Unisphere, por ejemplo con `openssl s_client -connect unisphere.example.com:8443` desde la máquina de la sonda.
+
+### Ponerle nombre y conectar
+
+Ponle un nombre a la conexión, o conserva el nombre de host, y haz clic en **Conectar**. Su página muestra la primera recopilación en pocos minutos y cada cabina que encontró, cada una enlazada a su página en **Cabinas de almacenamiento**.
+:::
+
+La sonda lee los endpoints REST documentados de Unisphere: el clásico `/univmax/restapi` para las cabinas, la capacidad, la salud, las alertas y los pools, y el de consultas masivas `/univmax/rest/v1` para los grupos de almacenamiento, volúmenes, directores, puertos, grupos SRDF y el rendimiento. Cada llamada es una lectura. Envía lo que lee como estas series, con los milisegundos de Unisphere como microsegundos y sus MB por segundo como bytes por segundo:
+
+| Series | Qué contienen |
+| --- | --- |
+| `powermax_array_*` | La cabina: su modelo y microcódigo, la capacidad utilizable, usada y suscrita, la reducción de datos, las puntuaciones de salud, si Unisphere recopila su rendimiento, y sus cifras de 5 minutos de tiempos de respuesta, IOPS, rendimiento, caché y ocupación |
+| `powermax_alert_open` | Una serie por cada alerta que Unisphere tiene abierta para la cabina, de gravedad Minor o superior, hasta que alguien la reconoce o la borra |
+| `powermax_storage_group_*` | Cada grupo de almacenamiento: su capacidad y volúmenes, sus tiempos de respuesta, IOPS y rendimiento de 5 minutos, y sus cifras de 5 segundos cuando está registrado para tiempo real |
+| `powermax_volume_*` | Cada volumen de un grupo de almacenamiento: su capacidad, y sus cifras cuando su grupo de almacenamiento está registrado para tiempo real |
+| `powermax_srp_*` | Cada pool de recursos de almacenamiento: su capacidad y su tiempo de respuesta |
+| `powermax_director_*` | Cada director: su rol, su estado y sus cifras de ocupación, y `powermax_director_offline` mientras no está en línea |
+| `powermax_port_*` | Cada puerto: su protocolo, velocidad, niveles de luz y cifras de ocupación, y `powermax_port_offline` mientras un puerto del que alguien depende está caído |
+| `powermax_srdf_group_*` | Cada grupo SRDF: su cabina remota y sus modos, su retraso y su rendimiento, y `powermax_srdf_group_not_healthy` mientras está suspendido o sin conexión |
+
+- **Cada 5 minutos**, o cada 10 para no sobrecargar un Unisphere ocupado (**Más campos** en el formulario de la conexión): Unisphere calcula el rendimiento cada 5 minutos.
+- **Solo las cabinas que gestiona el propio Unisphere.** Las cabinas remotas que ve a través de SRDF aparecen en la página de la conexión, y las lee el Unisphere de su propio sitio: conecta también ese.
+- **Hasta 5,000 grupos de almacenamiento y 10,000 volúmenes por cabina**, y 200 alertas nuevas por recopilación (el resto llega en las siguientes). Si una lista se queda corta, la página de la conexión lo indica.
+- **Unisphere 10.1 y 10.2** no muestran puertos ni grupos SRDF a una cuenta de solo lectura: la sonda lee los directores uno por uno, toma los grupos SRDF de los grupos de almacenamiento y lo indica.
+
 ## Dell PowerScale
 
 El agente lee un clúster Dell PowerScale (Isilon) por SNMP, a partir de la ISILON-MIB de Dell, con el propio receptor SNMP del colector: sin token de API, y no se ejecuta nada junto al colector. Un clúster es una cabina de almacenamiento, y sus nodos, cuotas, discos, sensores y puertos son su inventario.
@@ -539,6 +590,18 @@ OneUptime registra una cabina de almacenamiento por su `storage.array.name`, que
 
 :::details Enviar métricas sin el agente
 El agente es una única configuración estándar del colector, así que los colectores que ya ejecutas pueden hacer el mismo trabajo: copia los jobs de recopilación y el procesador `resource` de la configuración incluida a la tuya. El atributo de recurso `storage.array.name` es lo que registra la cabina en OneUptime, y las eliminaciones de `service.name` / `service.instance.id` evitan que los datos se archiven bajo un servicio: conserva ambas cosas y conserva las etiquetas `scrape_endpoint`.
+:::
+
+:::details La prueba de conexión dice que el certificado de Unisphere no es de confianza
+Unisphere for PowerMax firma su propio certificado a menos que alguien haya instalado uno de una autoridad de certificación. Compara la huella que muestra la prueba con la del propio Unisphere, luego haz clic en **Confiar en este certificado** y vuelve a probar. Cuando se renueva el certificado de Unisphere, la recopilación se detiene con **El certificado del servidor cambió** hasta que confíes en el nuevo: antes no se le envía nada.
+:::
+
+:::details La prueba de conexión dice que la cuenta no puede leer las cabinas
+Unisphere responde `403` a una cuenta sin rol en la cabina. Autoriza al usuario con el rol **Monitor** en cada cabina en **Settings → Users and Groups**, y con **PerfMonitor** para el rendimiento. Una cabina en la que la cuenta no tiene rol aparece en la página de la conexión con el motivo, y las demás se leen.
+:::
+
+:::details Un PowerMax no muestra tiempos de respuesta ni IOPS
+Unisphere no recopila el rendimiento de la cabina, o a la cuenta le falta **PerfMonitor**: la página de la conexión dice cuál de las dos cosas ocurre. Activa la recopilación **Diagnostic** en **Settings → Performance → System Registrations**. Las cifras de un volumen, y las de un grupo de almacenamiento cada 5 segundos, necesitan que el grupo de almacenamiento esté registrado también ahí para **Real Time**.
 :::
 
 ## Próximos pasos

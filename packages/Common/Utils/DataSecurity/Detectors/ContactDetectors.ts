@@ -6,6 +6,7 @@ import {
   digitsOnly,
   hasDigit,
   isPlaceholderDigits,
+  withEveryReading,
 } from "../Detector";
 import { isRealDate } from "../Validators";
 import { isTestStreetAddress } from "../Model/RecognizedEntity";
@@ -638,11 +639,14 @@ const internationalPhoneDetector: DataTypeDetector = {
   isTestValue: isTestPhoneNumber,
   /*
    * In a percent-encoded URL too - /callback?phone=%2B44%2020%207946%200958
-   * - and in every script's digits (#11030): what a Phone Number rule
-   * hides, it finds in every reading (ScrubBuiltInPatterns).
+   * - and in every script's digits (#11030), and as a query string writes
+   * it, a "+" for each space and its own "+" escaped (#11199):
+   * phone=%2B44+20+7946+0958. What a Phone Number rule hides, it finds in
+   * every reading (ScrubBuiltInPatterns).
    */
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
 };
 
 /*
@@ -682,9 +686,10 @@ const nanpFormattedDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Medium,
   specificity: 2,
   isTestValue: isTestPhoneNumber,
-  // Percent-encoded, and in every script's digits, as internationalPhoneDetector.
+  // In every reading, as internationalPhoneDetector.
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
 };
 
 // A UK mobile: 07 and nine more digits, often as 07xxx xxxxxx.
@@ -703,9 +708,10 @@ const ukMobileDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Low,
   specificity: 1,
   isTestValue: isTestPhoneNumber,
-  // Percent-encoded, and in every script's digits, as internationalPhoneDetector.
+  // In every reading, as internationalPhoneDetector.
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
 };
 
 // Any national number of 9 to 12 digits, only next to phone words.
@@ -728,9 +734,10 @@ const nationalPhoneDetector: DataTypeDetector = {
   specificity: 1,
   isTestValue: isTestPhoneNumber,
   fieldValuePattern: /^\+?[0-9][0-9 ().-]{6,22}[0-9]$/,
-  // Percent-encoded, and in every script's digits, as internationalPhoneDetector.
+  // In every reading, as internationalPhoneDetector: phone+number=... is its words.
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
 };
 
 /*
@@ -1334,6 +1341,15 @@ const vinDetector: DataTypeDetector = {
   specificity: 2,
 };
 
+/*
+ * A postal code and a date of birth read however they are written
+ * (withEveryReading), as a phone number is: in every script's digits
+ * (#11200) - ١٩٨٥-٠٣-١٢ beside "date of birth" is the date it is, a UK
+ * postcode's digits in fullwidth ones its own - and in a URL (#11199):
+ * postcode=SW1A+2AA, dob=12%2F03%2F1985, date+of+birth=... And a street
+ * address, whose words a URL writes apart by %20 or "+" too:
+ * address=10+Downing+Street.
+ */
 export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   emailDetector,
   unicodeEmailDetector,
@@ -1341,12 +1357,16 @@ export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   nanpFormattedDetector,
   ukMobileDetector,
   nationalPhoneDetector,
-  streetAddressDetector,
-  ukPostcodeDetector,
-  canadaPostalCodeDetector,
-  usZipDetector,
-  numericBirthDateDetector,
-  writtenBirthDateDetector,
+  {
+    ...streetAddressDetector,
+    readsPercentEncoded: true,
+    readsPlusAsSpace: true,
+  },
+  withEveryReading(ukPostcodeDetector),
+  withEveryReading(canadaPostalCodeDetector),
+  withEveryReading(usZipDetector),
+  withEveryReading(numericBirthDateDetector),
+  withEveryReading(writtenBirthDateDetector),
   ipv4Detector,
   ipv6Detector,
   macDetector,

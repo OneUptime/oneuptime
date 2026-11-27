@@ -1399,11 +1399,13 @@ describe("MonitorRecommendationCatalog", () => {
     });
 
     it("the platforms' sets partition the whole catalog", () => {
+      // FlashArray, FlashBlade, PowerStore, ONTAP, PowerMax (read by a probe) and PowerScale.
       const sets: Array<Array<string>> = [
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
         StorageSystem.DellPowerStore,
         StorageSystem.NetAppOntap,
+        StorageSystem.DellPowerMax,
         StorageSystem.DellPowerScale,
       ].map((storageSystem: StorageSystem): Array<string> => {
         return storageArrayTemplateIds({ storageSystem });
@@ -1420,6 +1422,14 @@ describe("MonitorRecommendationCatalog", () => {
       expect(ontap[0]).toBe("netapp-cluster-stopped-reporting");
       for (const id of ontap) {
         expect(id.startsWith("netapp-")).toBe(true);
+      }
+      // A PowerMax is offered PowerMax's own (#11004), its heartbeat first.
+      const powerMax: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.DellPowerMax,
+      });
+      expect(powerMax[0]).toBe("powermax-array-stopped-reporting");
+      for (const id of powerMax) {
+        expect(id.startsWith("powermax-")).toBe(true);
       }
     });
 

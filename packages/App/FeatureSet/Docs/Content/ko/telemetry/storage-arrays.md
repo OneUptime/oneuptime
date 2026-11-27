@@ -7,6 +7,7 @@ OneUptime Storage Array 에이전트는 스토리지 어레이를 모니터링�
 - [Dell PowerScale](#dell-powerscale): 클러스터의 SNMP, 모든 노드 폴링, 그리고 페이지에 표시되는 내용.
 - [에이전트가 수집하는 항목](#에이전트가-수집하는-것): 모든 엔드포인트와, 그것으로 만드는 페이지.
 - [여러 어레이 모니터링](#여러-어레이-모니터링): 어레이마다 에이전트 하나, 머신 한 대에서.
+- [Dell PowerMax](#dell-powermax): 에이전트 불필요. 프로브가 Unisphere 뒤의 모든 어레이를 읽습니다.
 - [문제 해결](#문제-해결): 진단 스크립트와 일반적인 문제.
 :::
 
@@ -24,6 +25,8 @@ Storage Arrays는 모든 벤더에서 같은 방식으로 동작하는 제품입
 | **Dell PowerScale** (Isilon), OneFS 8.0 이상 | `dell.powerscale` | 각 노드를 SNMP로(Dell의 ISILON-MIB), Collector 자체의 SNMP 리시버로 읽습니다. Collector 옆에서 실행되는 것은 없습니다 | `otel-collector-config.powerscale.yaml` |
 
 ONTAP에는 자체 메트릭 엔드포인트가 없으므로, 에이전트는 NetApp의 오픈 소스 익스포터인 Harvest를 Collector 옆에서 실행합니다. Harvest는 클러스터의 REST API를 읽고 읽은 내용을 Compose 네트워크에서 제공하며, 모든 시리즈의 이름은 `netapp_<object>_<counter>` 형식입니다. Collector는 이를 스크레이프해 전달합니다. Harvest는 클러스터에 절대 쓰지 않으며, NetApp으로 보내는 AutoSupport 보고는 꺼져 있습니다.
+
+**Dell PowerMax**(`dell.powermax`)에는 에이전트가 필요 없습니다. OneUptime 프로브가 읽기 전용 계정으로 Unisphere for PowerMax가 관리하는 모든 어레이를 읽습니다. [Dell PowerMax](#dell-powermax)를 참고하세요.
 
 Pure Storage는 2026년 2월에 이름을 **Everpure**로 바꿨습니다. FlashArray, FlashBlade, Purity는 이름을 유지했고 `purefa_*` 및 `purefb_*` 메트릭도 그대로이므로, 이 페이지의 모든 내용은 어느 이름으로 판매된 어레이에도 적용됩니다.
 
@@ -411,6 +414,54 @@ docker compose down
 
 PowerStore에서는 `docker compose --profile powerstore down`을 실행해 익스포터와 syslog 수집기도 멈추게 하세요.
 
+## Dell PowerMax
+
+Dell PowerMax에는 에이전트가 필요 없습니다. OneUptime 프로브가 5분마다 읽기 전용 계정으로 Unisphere for PowerMax의 REST API에 로그인하여, 그 Unisphere가 관리하는 모든 어레이를 읽습니다. 각 어레이는 **스토리지 어레이**에 Symmetrix ID(예: `000220200269`)로 표시되며, 이름은 바꿀 수 있습니다. 비밀번호는 암호화되어 저장되고, 다시는 표시되지 않으며, 선택한 프로브에만 전송됩니다.
+
+- **Unisphere for PowerMax 10.1 이상**으로, PowerMaxOS 10 또는 5978을 실행하는 어레이를 관리해야 합니다. Unisphere 10.3부터는 읽기 전용 계정도 포트와 SRDF 그룹을 볼 수 있습니다.
+- **TCP 8443으로 Unisphere에 연결할 수 있는 프로브**. 보통 Unisphere 네트워크에 있는 [사용자 지정 프로브](/docs/probe/custom-probe)입니다. OneUptime Cloud에서는 공유 프로브가 스토리지 비밀번호를 받지 않으므로, 프로젝트 자체의 프로브를 선택하세요.
+- **Monitor 역할을 가진 Unisphere 사용자**: 읽을 각 어레이에서 이 역할이 있어야 하며, 성능을 보려면 **PerfMonitor** 역할도 필요합니다. 그 이상은 필요 없습니다. OneUptime은 어레이를 절대 변경하지 않습니다.
+
+:::steps
+### 읽기 전용 사용자 만들기
+
+Unisphere for PowerMax의 **Settings → Users and Groups**에서 로컬 사용자를 만들거나 디렉터리 사용자를 선택합니다. 각 어레이에서 **Monitor** 역할을, 성능용으로 **PerfMonitor**를 부여합니다.
+
+### Unisphere가 성능을 수집하는지 확인하기
+
+**Settings → Performance → System Registrations**에서 각 어레이에 **Diagnostic** 수집이 켜져 있는지 확인합니다. 꺼져 있으면 OneUptime은 어레이의 인벤토리와 경고는 표시하지만 성능 차트는 그리지 않습니다. 스토리지 그룹을 5초마다 보려면 같은 곳에서 **Real Time**에도 등록하세요(어레이당 최대 100개).
+
+### Unisphere 연결하기
+
+**제품 → 인프라 → 스토리지 어레이 → 연결**로 이동하여 **Unisphere 연결**을 클릭합니다. Unisphere를 여는 주소(예: `https://unisphere.example.com:8443`), 사용자 이름과 비밀번호를 입력하고 프로브를 선택합니다.
+
+### 연결 테스트하기
+
+**연결 테스트**를 누르면 프로브가 로그인하여 계정이 볼 수 있는 것을 읽습니다. 각 어레이, 그 스토리지 그룹과 볼륨, 그리고 Unisphere가 성능을 수집하는지 여부입니다. Unisphere는 기본적으로 자체 서명 인증서를 씁니다. 테스트가 그 인증서를 보여 주고, **이 인증서 신뢰**를 누르면 SHA-256 지문이 양식에 입력됩니다. 먼저 지문을 Unisphere 자체의 지문과 비교하세요. 예를 들어 프로브의 머신에서 `openssl s_client -connect unisphere.example.com:8443`을 실행합니다.
+
+### 이름을 지정하고 연결하기
+
+연결에 이름을 지정하거나 호스트 이름을 그대로 두고 **연결**을 클릭합니다. 연결 페이지에는 몇 분 안에 첫 수집과 찾은 모든 어레이가 표시되며, 각 어레이는 **스토리지 어레이**의 해당 페이지로 연결됩니다.
+:::
+
+프로브는 Unisphere의 문서화된 REST 엔드포인트를 읽습니다. 어레이, 용량, 상태, 경고, 풀에는 기존 `/univmax/restapi`를, 스토리지 그룹, 볼륨, 디렉터, 포트, SRDF 그룹, 성능에는 대량 조회용 `/univmax/rest/v1`을 씁니다. 모든 호출은 읽기입니다. 읽은 내용은 다음 시리즈로 보내며, Unisphere의 밀리초는 마이크로초로, 초당 MB는 초당 바이트로 바꿉니다:
+
+| 시리즈 | 담긴 내용 |
+| --- | --- |
+| `powermax_array_*` | 어레이: 모델과 마이크로코드, 사용 가능·사용 중·구독된 용량, 데이터 절감, 상태 점수, Unisphere의 성능 수집 여부, 그리고 5분 단위 응답 시간, IOPS, 처리량, 캐시, 사용률 |
+| `powermax_alert_open` | Unisphere가 어레이에 대해 열어 둔 Minor 이상 경고마다 시리즈 하나. 누군가 인지하거나 해제할 때까지 유지 |
+| `powermax_storage_group_*` | 각 스토리지 그룹: 용량과 볼륨, 5분 단위 응답 시간, IOPS, 처리량, 그리고 실시간 수집에 등록된 경우 5초 단위 값 |
+| `powermax_volume_*` | 스토리지 그룹의 각 볼륨: 용량, 그리고 해당 스토리지 그룹이 실시간 수집에 등록된 경우의 값 |
+| `powermax_srp_*` | 각 스토리지 리소스 풀: 용량과 응답 시간 |
+| `powermax_director_*` | 각 디렉터: 역할, 상태, 사용률, 그리고 온라인이 아닌 동안의 `powermax_director_offline` |
+| `powermax_port_*` | 각 포트: 프로토콜, 속도, 광 레벨, 사용률, 그리고 누군가 사용하는 포트가 다운된 동안의 `powermax_port_offline` |
+| `powermax_srdf_group_*` | 각 SRDF 그룹: 원격 어레이와 모드, 지연과 처리량, 그리고 일시 중단되거나 오프라인인 동안의 `powermax_srdf_group_not_healthy` |
+
+- **5분마다**, 또는 바쁜 Unisphere의 부담을 줄이려면 10분마다(연결 양식의 **추가 필드**). Unisphere는 5분마다 성능을 계산합니다.
+- **Unisphere가 직접 관리하는 어레이만.** SRDF로 보이는 원격 어레이는 연결 페이지에 나열되며, 해당 사이트의 Unisphere가 읽습니다. 그 Unisphere도 연결하세요.
+- **어레이당 스토리지 그룹 최대 5,000개와 볼륨 최대 10,000개**, 그리고 수집당 새 경고 200개(나머지는 다음 수집에서 들어옵니다). 목록이 잘리면 연결 페이지에 그렇게 표시됩니다.
+- **Unisphere 10.1과 10.2**는 읽기 전용 계정에 포트나 SRDF 그룹을 보여 주지 않습니다. 프로브는 디렉터를 하나씩 읽고, SRDF 그룹은 스토리지 그룹에서 가져오며, 그 사실을 표시합니다.
+
 ## Dell PowerScale
 
 에이전트는 Dell PowerScale(Isilon) 클러스터를 SNMP로, Dell의 ISILON-MIB에서, Collector 자체의 SNMP 리시버로 읽습니다. API 토큰이 필요 없고, Collector 옆에서 실행되는 것도 없습니다. 클러스터 하나가 스토리지 어레이 하나이며, 그 노드, 할당량, 드라이브, 센서, 포트가 인벤토리입니다.
@@ -539,6 +590,18 @@ OneUptime은 스토리지 어레이를 `storage.array.name`으로 등록하며, 
 
 :::details 에이전트 없이 메트릭 보내기
 에이전트는 표준 Collector 구성 하나이므로, 이미 운영 중인 Collector로도 같은 일을 할 수 있습니다. 스크레이프 작업과 `resource` 프로세서를 함께 제공되는 구성에서 자신의 구성으로 복사하세요. `storage.array.name` 리소스 속성이 OneUptime에 어레이를 등록하고, `service.name` / `service.instance.id` 삭제는 데이터가 서비스 아래로 정리되지 않게 합니다. 둘 다 유지하고, `scrape_endpoint` 레이블도 유지하세요.
+:::
+
+:::details 연결 테스트에서 Unisphere의 인증서를 신뢰할 수 없다고 표시됨
+Unisphere for PowerMax는 누군가 인증 기관의 인증서를 설치하지 않는 한 자체 서명 인증서를 씁니다. 테스트에 표시된 지문을 Unisphere 자체의 지문과 비교한 다음 **이 인증서 신뢰**를 클릭하고 다시 테스트하세요. Unisphere의 인증서가 갱신되면 새 인증서를 신뢰할 때까지 수집이 **서버의 인증서가 변경되었습니다** 상태로 멈추며, 그 전에는 Unisphere로 아무것도 보내지 않습니다.
+:::
+
+:::details 연결 테스트에서 계정이 어레이를 읽을 수 없다고 표시됨
+Unisphere는 어레이에 대한 역할이 없는 계정에 `403`을 반환합니다. **Settings → Users and Groups**에서 사용자에게 각 어레이의 **Monitor** 역할을, 성능용으로 **PerfMonitor**를 부여하세요. 계정에 역할이 없는 어레이는 그 이유와 함께 연결 페이지에 나열되고, 나머지 어레이는 읽힙니다.
+:::
+
+:::details PowerMax에 응답 시간이나 IOPS가 표시되지 않음
+Unisphere가 어레이의 성능을 수집하지 않거나, 계정에 **PerfMonitor**가 없습니다. 어느 쪽인지는 연결 페이지에 표시됩니다. **Settings → Performance → System Registrations**에서 **Diagnostic** 수집을 켜세요. 볼륨의 값과 스토리지 그룹의 5초 단위 값을 보려면 그 스토리지 그룹을 같은 곳에서 **Real Time**에도 등록해야 합니다.
 :::
 
 ## 다음 단계

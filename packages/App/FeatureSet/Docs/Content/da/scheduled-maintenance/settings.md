@@ -23,7 +23,7 @@ Konfigurationen af vedligeholdelse findes i **Planlagt vedligeholdelse**, ikke i
 
 Sektionen **Indstillinger** rummer **Vedligeholdelsesstatus**, som er beskrevet på [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states), **Vedligeholdelsesskabeloner**, som er beskrevet på [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates), og derefter **Noteskabeloner**, **Godkendelse af offentlige noter**, **Brugerdefinerede felter**, **Målinger**, **Kalenderindstillinger** og **Nummerering**. **Kalenderindstillinger** er beskrevet på [Vedligeholdelseskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
-Sektionen **Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der poster begivenheder i kanaler. Se [Slack](/docs/workspace-connections/slack#notifikationsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notifikationsregler).
+Sektionen **Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der poster begivenheder i kanaler: hver begivenhed, når den oprettes, og derefter dens tilstandsændringer, noter, tilføjede og fjernede ejere og påmindelser, sådan som hver regel vælger i sit trin **Opdateringer**. Se [Slack](/docs/workspace-connections/slack#notifikationsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#notifikationsregler).
 
 ## Reglerne, en ny begivenhed går igennem
 

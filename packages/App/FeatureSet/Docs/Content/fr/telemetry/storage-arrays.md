@@ -7,6 +7,7 @@ L'agent Baie de stockage de OneUptime surveille les baies de stockage : capacit�
 - [Dell PowerScale](#dell-powerscale): SNMP sur le cluster, chaque nœud interrogé, et ce que montrent ses pages.
 - [Ce que l'agent collecte](#ce-que-collecte-lagent): Chaque endpoint, et les pages construites à partir de lui.
 - [Surveiller plusieurs baies](#surveiller-plusieurs-baies): Un agent par baie, sur une seule machine.
+- [Dell PowerMax](#dell-powermax): Aucun agent : une sonde lit chaque baie derrière Unisphere.
 - [Dépannage](#dépannage): Un script de diagnostic, et les problèmes habituels.
 :::
 
@@ -24,6 +25,8 @@ Storage Arrays est un produit qui fonctionne de la même façon pour chaque fabr
 | **Dell PowerScale** (Isilon), OneFS 8.0 et ultérieur | `dell.powerscale` | Chaque nœud en SNMP (l'ISILON-MIB de Dell), avec le récepteur SNMP propre au collecteur : rien ne tourne à côté du collecteur | `otel-collector-config.powerscale.yaml` |
 
 ONTAP n'a pas d'endpoint de métriques qui lui soit propre : l'agent exécute donc à côté du collecteur l'exporteur open source de NetApp, Harvest. Harvest lit l'API REST du cluster et sert ce qu'il a lu sur le réseau Compose, chaque série étant nommée `netapp_<object>_<counter>` ; le collecteur les collecte et les transmet. Harvest n'écrit jamais sur le cluster, et son rapport AutoSupport à NetApp est désactivé.
+
+**Dell PowerMax** (`dell.powermax`) n'a besoin d'aucun agent : une sonde OneUptime lit, avec un compte en lecture seule, chaque baie que gère un Unisphere for PowerMax. Voir [Dell PowerMax](#dell-powermax).
 
 Pure Storage a pris le nom **Everpure** en février 2026. FlashArray, FlashBlade et Purity ont gardé leur nom, tout comme les métriques `purefa_*` et `purefb_*` : tout ce qui figure sur cette page s'applique donc aux baies vendues sous l'un ou l'autre nom.
 
@@ -411,6 +414,54 @@ Supprimez ensuite l'utilisateur en lecture seule et son jeton d'API sur la baie 
 
 Sur un PowerStore, exécutez `docker compose --profile powerstore down`, pour que l'exportateur et le collecteur syslog s'arrêtent aussi.
 
+## Dell PowerMax
+
+Un Dell PowerMax n'a besoin d'aucun agent. Une sonde OneUptime se connecte toutes les 5 minutes à la REST API d'Unisphere for PowerMax avec un compte en lecture seule, et lit chaque baie que gère cet Unisphere. Chaque baie apparaît dans **Baies de stockage** sous son Symmetrix ID, comme `000220200269`, et vous pouvez la renommer. Le mot de passe est stocké chiffré, n'est plus jamais affiché et n'est envoyé qu'à la sonde que vous choisissez.
+
+- **Unisphere for PowerMax 10.1 ou ultérieur**, qui gère des baies sous PowerMaxOS 10 ou 5978. À partir d'Unisphere 10.3, un compte en lecture seule voit aussi les ports et les groupes SRDF.
+- **Une sonde qui joint Unisphere sur TCP 8443**, généralement une [sonde personnalisée](/docs/probe/custom-probe) dans le réseau d'Unisphere. Sur OneUptime Cloud, une sonde partagée ne reçoit jamais de mot de passe de stockage : choisissez donc l'une des sondes de votre projet.
+- **Un utilisateur Unisphere doté du rôle Monitor** sur chaque baie qu'il doit lire, et du rôle **PerfMonitor** pour les performances. Il n'a besoin de rien de plus : OneUptime ne modifie jamais la baie.
+
+:::steps
+### Créer l'utilisateur en lecture seule
+
+Dans Unisphere for PowerMax, sous **Settings → Users and Groups**, créez un utilisateur local ou choisissez un utilisateur d'annuaire. Autorisez-le avec le rôle **Monitor** sur chaque baie, et **PerfMonitor** pour les performances.
+
+### Vérifier qu'Unisphere collecte les performances
+
+Sous **Settings → Performance → System Registrations**, vérifiez que la collecte **Diagnostic** est activée pour chaque baie : sans elle, OneUptime liste l'inventaire et les alertes de la baie mais ne trace aucune performance. Pour voir un groupe de stockage toutes les 5 secondes, enregistrez-le aussi pour **Real Time** à cet endroit, jusqu'à 100 par baie.
+
+### Connecter Unisphere
+
+Allez dans **Produits → Infrastructure → Baies de stockage → Connexions** et cliquez sur **Connecter Unisphere**. Saisissez l'adresse à laquelle vous ouvrez Unisphere, comme `https://unisphere.example.com:8443`, le nom d'utilisateur et le mot de passe, puis choisissez la sonde.
+
+### Tester la connexion
+
+**Tester la connexion** fait se connecter la sonde et lire ce que le compte peut voir : chaque baie, ses groupes de stockage et ses volumes, et si Unisphere collecte ses performances. Par défaut, Unisphere signe son propre certificat : le test l'affiche, et **Approuver ce certificat** reporte son empreinte SHA-256 dans le formulaire. Comparez d'abord l'empreinte à celle d'Unisphere, par exemple avec `openssl s_client -connect unisphere.example.com:8443` depuis la machine de la sonde.
+
+### Nommer et connecter
+
+Nommez la connexion, ou gardez le nom d'hôte, et cliquez sur **Connecter**. Sa page affiche la première collecte en quelques minutes, et chaque baie trouvée, chacune liée à sa page dans **Baies de stockage**.
+:::
+
+La sonde lit les endpoints REST documentés d'Unisphere : le classique `/univmax/restapi` pour les baies, la capacité, la santé, les alertes et les pools, et l'endpoint groupé `/univmax/rest/v1` pour les groupes de stockage, les volumes, les directeurs, les ports, les groupes SRDF et les performances. Chaque appel est une lecture. Elle envoie ce qu'elle lit sous la forme de ces séries, avec les millisecondes d'Unisphere converties en microsecondes et ses MB par seconde en octets par seconde :
+
+| Séries | Ce qu'elles contiennent |
+| --- | --- |
+| `powermax_array_*` | La baie : son modèle et son microcode, ses capacités utilisable, occupée et souscrite, la réduction de données, les scores de santé, si Unisphere collecte ses performances, et ses temps de réponse, IOPS, débit, cache et taux d'occupation sur 5 minutes |
+| `powermax_alert_open` | Une série par alerte qu'Unisphere a ouverte pour la baie, de gravité Minor ou plus, jusqu'à ce que quelqu'un la prenne en compte ou l'efface |
+| `powermax_storage_group_*` | Chaque groupe de stockage : sa capacité et ses volumes, ses temps de réponse, IOPS et débit sur 5 minutes, et ses valeurs à 5 secondes quand il est enregistré pour le temps réel |
+| `powermax_volume_*` | Chaque volume d'un groupe de stockage : sa capacité, et ses valeurs quand son groupe de stockage est enregistré pour le temps réel |
+| `powermax_srp_*` | Chaque pool de ressources de stockage : sa capacité et son temps de réponse |
+| `powermax_director_*` | Chaque directeur : son rôle, son état et son taux d'occupation, et `powermax_director_offline` tant qu'il n'est pas en ligne |
+| `powermax_port_*` | Chaque port : son protocole, sa vitesse, ses niveaux de lumière et son taux d'occupation, et `powermax_port_offline` tant qu'un port dont quelqu'un dépend est hors service |
+| `powermax_srdf_group_*` | Chaque groupe SRDF : sa baie distante et ses modes, son retard et son débit, et `powermax_srdf_group_not_healthy` tant qu'il est suspendu ou hors ligne |
+
+- **Toutes les 5 minutes**, ou toutes les 10 pour ménager un Unisphere chargé (**Plus de champs** dans le formulaire de la connexion) : Unisphere calcule les performances toutes les 5 minutes.
+- **Uniquement les baies qu'Unisphere gère lui-même.** Les baies distantes qu'il voit via SRDF sont listées sur la page de la connexion, et lues par l'Unisphere de leur propre site : connectez aussi celui-ci.
+- **Jusqu'à 5,000 groupes de stockage et 10,000 volumes par baie**, et 200 nouvelles alertes par collecte (les autres arrivent dans les suivantes). Une liste tronquée est signalée comme telle sur la page de la connexion.
+- **Unisphere 10.1 et 10.2** ne listent ni ports ni groupes SRDF pour un compte en lecture seule : la sonde lit les directeurs un par un, prend les groupes SRDF dans les groupes de stockage, et le signale.
+
 ## Dell PowerScale
 
 L'agent lit un cluster Dell PowerScale (Isilon) en SNMP, à partir de l'ISILON-MIB de Dell, avec le récepteur SNMP propre au collecteur : aucun jeton d'API, et rien ne tourne à côté du collecteur. Un cluster est une baie de stockage, et ses nœuds, quotas, disques, capteurs et ports forment son inventaire.
@@ -539,6 +590,18 @@ OneUptime enregistre une baie de stockage par son `storage.array.name`, que l'ag
 
 :::details Envoyer des métriques sans l'agent
 L'agent n'est qu'une configuration standard du collecteur : les collecteurs que vous exécutez déjà peuvent donc faire le même travail. Copiez les jobs de collecte et le processeur `resource` de la configuration fournie dans la vôtre. L'attribut de ressource `storage.array.name` est ce qui enregistre la baie dans OneUptime, et les suppressions de `service.name` / `service.instance.id` évitent que les données soient rangées sous un service : gardez les deux, et gardez les labels `scrape_endpoint`.
+:::
+
+:::details Le test de connexion indique que le certificat d'Unisphere n'est pas approuvé
+Unisphere for PowerMax signe son propre certificat, sauf si quelqu'un en a installé un émis par une autorité de certification. Comparez l'empreinte affichée par le test à celle d'Unisphere, puis cliquez sur **Approuver ce certificat** et relancez le test. Lorsque le certificat d'Unisphere est renouvelé, la collecte s'arrête avec **Le certificat du serveur a changé** jusqu'à ce que vous approuviez le nouveau : rien ne lui est envoyé avant.
+:::
+
+:::details Le test de connexion indique que le compte n'a pas le droit de lire les baies
+Unisphere répond `403` pour un compte sans rôle sur la baie. Autorisez l'utilisateur avec le rôle **Monitor** sur chaque baie sous **Settings → Users and Groups**, et **PerfMonitor** pour les performances. Une baie sur laquelle le compte n'a aucun rôle est listée sur la page de la connexion avec la raison, et les autres sont lues.
+:::
+
+:::details Un PowerMax n'affiche aucun temps de réponse ni IOPS
+Unisphere ne collecte aucune performance pour la baie, ou il manque **PerfMonitor** au compte : la page de la connexion indique lequel des deux. Activez la collecte **Diagnostic** sous **Settings → Performance → System Registrations**. Les valeurs d'un volume, et celles d'un groupe de stockage toutes les 5 secondes, exigent que le groupe de stockage soit aussi enregistré pour **Real Time** à cet endroit.
 :::
 
 ## Étapes suivantes

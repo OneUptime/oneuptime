@@ -110,6 +110,7 @@ import {
 } from "Common/Types/Telemetry/ScrubRule";
 import { isScrubHashToken } from "Common/Types/Telemetry/ScrubHashTokenFormat";
 import { getScrubRuleFingerprint } from "Common/Types/Telemetry/ScrubRuleProof";
+import { buildScrubPatternForDataType } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import TelemetryIngestionKeyPolicy, {
   DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE,
   DEFAULT_MOBILE_KEY_REQUESTS_PER_MINUTE,
@@ -2476,9 +2477,16 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     };
 
     expect(rowOf("SSN (Social Security Number)")).toContain(
-      "also set apart by dots or spaces and in another script's digits",
+      "also set apart by dots or spaces, in a URL and in another script's digits",
     );
-    for (const value of ["536.22.8731", "536 22 8731", "٥٣٦-٢٢-٨٧٣١"]) {
+    for (const value of [
+      "536.22.8731",
+      "536 22 8731",
+      "٥٣٦-٢٢-٨٧٣١",
+      // In a URL, with %20 or a form's "+" between its groups (#11199).
+      "536%2022%208731",
+      "536+22+8731",
+    ]) {
       expect({ value, left: leftOf(LogScrubPatternType.SSN, value) }).toEqual({
         value,
         left: "",
@@ -2486,12 +2494,14 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     }
 
     expect(rowOf("Phone Number")).toContain(
-      "international ones in the groups people write them in, also in a percent-encoded URL and in another script's digits, but not a decimal, a time zone's offset or a version",
+      "international ones in the groups people write them in, also in a percent-encoded URL, as a form writes one, and in another script's digits, but not a decimal, a time zone's offset or a version",
     );
     for (const value of [
       "+49 30 123456",
       "+44 (0)20 7946 0958",
       "%2B44%2020%207946%200958",
+      // As a form writes one, a "+" for each space (#11199).
+      "%2B44+20+7946+0958",
       "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
     ]) {
       expect({
@@ -2688,6 +2698,8 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       "jane@example.com",
       "jos%C3%A9%40example.com",
       "josé@example.com",
+      "4111+1111+1111+1111",
+      "4111 1111 1111 1111",
       "[HASHED:8c87b489]",
       "ENCRYPTION_SECRET",
     ]);
@@ -2736,6 +2748,15 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(
       scrubbedBody("４１１１ １１１１ １１１１ １１１１", [cardHash]),
     ).toBe(scrubbedBody("4111 1111 1111 1111", [cardHash]));
+    // A card written in a URL and written plainly share one (#11199).
+    for (const written of [
+      "4111+1111+1111+1111",
+      "4111%201111%201111%201111",
+    ]) {
+      expect(scrubbedBody(written, [cardHash])).toBe(
+        scrubbedBody("4111 1111 1111 1111", [cardHash]),
+      );
+    }
     expect(scrubbedBody("::ffff:203.0.113.7", [hashRule()])).toBe(
       scrubbedBody("203.0.113.7", [hashRule()]),
     );
@@ -2805,10 +2826,27 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
       scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Redact),
     ];
 
-    expect(inlineCodes(item)).toEqual(["４１１１ １１１１ １１１１ １１１１"]);
+    expect(inlineCodes(item)).toEqual([
+      "４１１１ １１１１ １１１１ １１１１",
+      "4111%201111%201111%201111",
+      "4111+1111+1111+1111",
+      "/pay?card=4111+1111+1111+1111",
+    ]);
     expect(scrubbedBody("４１１１ １１１１ １１１１ １１１１", redact)).toBe(
       "[REDACTED]",
     );
+    // In a URL, its groups apart by an escaped space or a form's "+", the rest of the URL kept (#11199).
+    expect(scrubbedBody("4111%201111%201111%201111", redact)).toBe(
+      "[REDACTED]",
+    );
+    expect(scrubbedBody("/pay?card=4111+1111+1111+1111", redact)).toBe(
+      "/pay?card=[REDACTED]",
+    );
+    expect(
+      scrubbedBody("4111+1111+1111+1111", [
+        scrubRule(LogScrubPatternType.CreditCard, LogScrubAction.Mask),
+      ]),
+    ).toBe("****-****-****-1111");
     // An American Express number, in groups of four, six and five.
     expect(scrubbedBody("card 3782 822463 10005", redact)).toBe(
       "card [REDACTED]",
@@ -2834,7 +2872,9 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(codes).toEqual([
       "\\+44 \\d{2} \\d{4} \\d{4}",
       "%2B44%2020%207946%200958",
+      "%2B44+20+7946+0958",
       "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
+      "DE44+5001+0517+5407+3249+31",
     ]);
 
     const pattern: string = codes[0]!;
@@ -2857,7 +2897,7 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     expect(checkScrubRuleCustomRegex(pattern)).toBeNull();
 
-    for (const written of codes.slice(1)) {
+    for (const written of codes.slice(1, 4)) {
       expect({
         written,
         stored: scrubbedBody(`GET /callback?to=${written}&step=2`, [
@@ -2874,7 +2914,22 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     }
 
     expect(item).toContain(
-      "The **Custom Regex** rules **Scrub It** makes for other data types, such as a GitHub token or an IBAN, read a value the same ways.",
+      "The **Custom Regex** rules **Scrub It** makes for other data types, such as a GitHub token or an IBAN, read a value the same ways, so an IBAN typed into a form, such as `DE44+5001+0517+5407+3249+31`, is hidden whole.",
+    );
+
+    // Scrub It's IBAN rule hides the IBAN a form wrote whole, the rest of the URL kept (#11199).
+    const ibanPattern: string = buildScrubPatternForDataType("iban")!;
+    const iban: { rule: LogScrubRule; regex: ScrubRegExp } = {
+      rule: scrubRule(LogScrubPatternType.Custom, LogScrubAction.Redact).rule,
+      regex: getRegexForPattern(
+        LogScrubPatternType.Custom,
+        ibanPattern,
+      ) as ScrubRegExp,
+    };
+
+    iban.rule.customRegex = ibanPattern;
+    expect(scrubbedBody(`GET /payout?iban=${codes[4]}&step=2`, [iban])).toBe(
+      "GET /payout?iban=[REDACTED]&step=2",
     );
   });
 

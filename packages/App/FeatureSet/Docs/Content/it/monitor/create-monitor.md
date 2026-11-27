@@ -63,7 +63,7 @@ Fate clic su **Avanti**. Niente su questo passaggio viene segnalato come mancant
 
 ### Come vengono valutati i criteri
 
-Il risultato di ogni controllo passa per i criteri dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Quel criterio può cambiare lo stato del monitor, dichiarare un incidente, creare un avviso o qualsiasi combinazione dei tre. Quando nessuno corrisponde, il monitor mostra il suo **Stato predefinito del monitor**, impostato sotto **Altri campi** sotto i criteri (**Operativo**, a meno che non ne scegliate un altro).
+Il risultato di ogni controllo passa per i criteri dall'alto verso il basso, e il primo che corrisponde decide cosa succede. Quel criterio può cambiare lo stato del monitor, dichiarare un incidente, creare un avviso o qualsiasi combinazione dei tre. Uno che non cambia alcuno stato non ne decide nessuno: lo imposta il primo criterio sottostante che corrisponde e cambia lo stato. Quando nessuno corrisponde, il monitor mostra il suo **Stato predefinito del monitor**, impostato sotto **Altri campi** sotto i criteri (**Operativo**, a meno che non ne scegliate un altro).
 
 ```mermaid title="Da un controllo a uno stato, un incidente o un avviso"
 flowchart TB

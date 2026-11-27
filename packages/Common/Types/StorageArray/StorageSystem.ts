@@ -29,6 +29,7 @@ enum StorageSystem {
   DellPowerStore = "dell.powerstore",
   // NetApp ONTAP, and Amazon FSx for NetApp ONTAP, read through Harvest.
   NetAppOntap = "netapp.ontap",
+  DellPowerMax = "dell.powermax",
   DellPowerScale = "dell.powerscale",
 }
 

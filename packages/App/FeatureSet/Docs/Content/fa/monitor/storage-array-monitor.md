@@ -17,6 +17,8 @@
 
 عامل آرایه ذخیره‌سازی در OneUptime روی ماشینی اجرا می‌شود که به رابط مدیریتی آرایه دسترسی دارد. متریک‌های آرایه را با یک توکن API فقط‌خواندنی می‌خواند (متریک‌های یک PowerScale را از راه SNMP، با یک community فقط‌خواندنی یا کاربر SNMPv3)، روی آن‌ها نام آرایه، `storage.array.name`، و پلتفرم آن، `storage.system`، را برچسب می‌زند و آن‌ها را از راه OTLP به OneUptime می‌فرستد. نخستین داده آرایه را ثبت می‌کند.
 
+برای Dell PowerMax (`dell.powermax`) به عامل نیازی نیست: یک پراب OneUptime هر ۵ دقیقه با یک حساب فقط‌خواندنی به Unisphere for PowerMax وارد می‌شود و هر آرایه‌ای را که آن Unisphere مدیریت می‌کند به همین شیوه می‌فرستد، با نامی برگرفته از Symmetrix ID آن تا وقتی نامش را تغییر دهید ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
+
 مانیتور آرایه ذخیره‌سازی به یک آرایه وابسته است. هر دقیقه پرس‌وجوی خود را روی متریک‌های آن آرایه اجرا می‌کند و نتیجه را با معیارهایش مقایسه می‌کند.
 
 ```mermaid title="از یک آرایه ذخیره‌سازی تا حادثه"
@@ -37,6 +39,7 @@ flowchart TB
 
 - **عامل آرایه ذخیره‌سازی را نصب کنید**، جایی که از راه HTTPS به آرایه دسترسی دارد، با توکن API کاربری که نقش **readonly** آرایه را دارد. [راهنمای عامل آرایه ذخیره‌سازی](/docs/telemetry/storage-arrays) کاربر، توکن و نصب را پوشش می‌دهد، از راه `ONEUPTIME_URL`، `ONEUPTIME_TELEMETRY_INGESTION_KEY`، `STORAGE_ARRAY_NAME`، و نشانی و توکن آرایه (`PURE_FA_ENDPOINT` و `PURE_FA_API_TOKEN`، یا `PURE_FB_ENDPOINT` و `PURE_FB_API_TOKEN`)، یا برای ONTAP نشانی خوشه و یک کاربر REST فقط‌خواندنی (`NETAPP_ONTAP_ENDPOINT`، `NETAPP_ONTAP_USERNAME` و `NETAPP_ONTAP_PASSWORD`).
 - **بررسی کنید آرایه ثبت شده باشد.** حدود یک دقیقه پس از نخستین خراش، با نام `STORAGE_ARRAY_NAME` عامل زیر **محصولات ← زیرساخت ← آرایه‌های ذخیره‌سازی ← همه آرایه‌های ذخیره‌سازی** پدیدار می‌شود.
+- **برای یک Dell PowerMax**، به‌جای آن، Unisphere for PowerMax مدیریت‌کننده آن را زیر **محصولات ← زیرساخت ← آرایه‌های ذخیره‌سازی ← اتصال‌ها** متصل کنید، همان‌طور که [Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax) توضیح می‌دهد.
 
 ## ساخت یک مانیتور آرایه ذخیره‌سازی
 
@@ -78,10 +81,10 @@ flowchart TB
 | فیلد | زبانه | چه می‌کند |
 | --- | --- | --- |
 | **آرایه ذخیره‌سازی** | همه | الزامی. هر پرس‌وجو را به `resource.storage.array.name` محدود می‌کند، پس دو آرایه که هر دو حجمی به نام `vol-01` دارند هرگز با هم قاطی نمی‌شوند. |
-| **حجم** | Custom Metric، پیشرفته | یک حجم: روی FlashArray بر پایه برچسب `name`، مانند `vol-db-01` (حجمی که در یک پاد یا یک گروه حجم است `pod::volume` یا `group/volume` نام دارد)؛ روی ONTAP بر پایه برچسب `volume`، که ممکن است در دو SVM یکسان باشد. |
+| **حجم** | Custom Metric، پیشرفته | یک حجم: روی FlashArray بر پایه برچسب `name`، مانند `vol-db-01` (حجمی که در یک پاد یا یک گروه حجم است `pod::volume` یا `group/volume` نام دارد)؛ روی ONTAP بر پایه برچسب `volume`، که ممکن است در دو SVM یکسان باشد؛ روی PowerMax بر پایه برچسب `volume`، یعنی شناسه دستگاه آن مانند `00847`. |
 | **میزبان** | Custom Metric، پیشرفته | فقط FlashArray. یک میزبان آن‌طور که آرایه می‌شناسدش، بر پایه برچسب `host`، مانند `esxi-01`. |
 | **پاد** | Custom Metric، پیشرفته | فقط FlashArray. یک پاد ActiveCluster یا ActiveDR، بر پایه برچسب `name`، یا `local_pod` روی سری‌های پیوند replica. |
-| **قطعه سخت‌افزاری** | Custom Metric، پیشرفته | یک قطعه سخت‌افزاری، مانند `CH0.BAY1` یا `CT0`: برچسب `component_name` روی FlashArray، `name` روی FlashBlade، و روی ONTAP برچسبی که سری‌هایش آن را با آن نام می‌برند (`node`، `disk`، `shelf` یا `port`). |
+| **قطعه سخت‌افزاری** | Custom Metric، پیشرفته | یک قطعه سخت‌افزاری، مانند `CH0.BAY1` یا `CT0`: برچسب `component_name` روی FlashArray، `name` روی FlashBlade، روی ONTAP برچسبی که سری‌هایش آن را با آن نام می‌برند (`node`، `disk`، `shelf` یا `port`)، و `component` روی PowerMax، یعنی یک دایرکتور مانند `FA-1D` یا یک پورت مانند `FA-1D:4`. روی PowerScale، یک گره با برچسب `node`، مانند `ps-prod-2`. |
 | **سامانه فایل** | Custom Metric، پیشرفته | FlashBlade و PowerScale. یک سیستم فایل بر پایه برچسب `name` روی FlashBlade؛ یک سهمیه بر پایه برچسب `quota` روی PowerScale، مانند `/ifs/data/home`. |
 | **باکت** | Custom Metric، پیشرفته | فقط FlashBlade. یک باکت ذخیره‌سازی شیء، بر پایه برچسب `name`. |
 | **متریک آرایه ذخیره‌سازی** | Custom Metric | یک متریک از [فهرست](#متریکهای-جمعآوریشده). فرم فیلتر برچسبی را که به آن معنا می‌دهد اضافه می‌کند و آن را بر پایه شیئی که توصیف می‌کند گروه‌بندی می‌کند، پس هر حجم، میزبان یا قطعه جداگانه سنجیده می‌شود. |
@@ -109,9 +112,11 @@ Pure چند رقم را روی **یک** نام متریک می‌گذارد و �
 | `purefa_host_connectivity_info` | `status`، همراه با `details` | میزبان |
 | `purefa_drive_capacity_bytes` | `component_status` (مقدار، ظرفیت درایو است) | درایو |
 
-سری‌ای که به یک وضعیت بد فیلتر شده فقط تا وقتی چیزی در آن وضعیت است وجود دارد، پس نبودن سری یعنی سالم. برای همین **فعال شدن با Max بیش از ۰ و بهبود با ۰** شکل درست برای آن‌هاست، و قالب‌ها هم همین‌طور ساخته شده‌اند: معیارهای بهبودشان سری غایب را صفر حساب می‌کنند. وقتی هیچ سری‌ای نماند، چنین قالبی فقط اگر `purefa_info` یا `purefb_info` در همان پنجره رسیده باشد بهبود می‌یابد، پس آرایه‌ای که دیگر گزارش نمی‌دهد چیزی را نمی‌بندد.
+سری‌ای که به یک وضعیت بد فیلتر شده فقط تا وقتی چیزی در آن وضعیت است وجود دارد، پس نبودن سری یعنی سالم. برای همین **فعال شدن با Max بیش از ۰ و بهبود با ۰** شکل درست برای آن‌هاست، و قالب‌ها هم همین‌طور ساخته شده‌اند: معیارهای بهبودشان سری غایب را صفر حساب می‌کنند. وقتی هیچ سری‌ای نماند، چنین قالبی فقط اگر `purefa_info`، `purefb_info` یا `powermax_array_info` در همان پنجره رسیده باشد بهبود می‌یابد، پس آرایه‌ای که دیگر گزارش نمی‌دهد چیزی را نمی‌بندد.
 
-در فیلترها و کلیدهای گروه‌بندی مانیتور، ویژگی‌های عامل با `resource.` شروع می‌شوند (`resource.storage.array.name`، `resource.storage.system`)، در حالی که برچسب‌های خود آرایه‌ها این‌طور نیستند (`name`، `host`، `component_name`، `dimension`، `space`، `severity`، و در PowerScale `node`، `quota`، `drive` و `protocol`).
+هر سری PowerMax فقط یک رقم دارد و به نام همان رقم نام‌گذاری شده است: `powermax_array_response_time_usec` خواندن‌ها را با `operation` از نوشتن‌ها جدا می‌کند. سری‌های وضعیت آن هم به همین شکل فقط تا وقتی چیزی خراب است وجود دارند: `powermax_alert_open` تا وقتی Unisphere هشداری باز دارد، `powermax_director_offline` تا وقتی یک دایرکتور آنلاین نیست، `powermax_port_offline` تا وقتی پورتی که کسی به آن متکی است از کار افتاده است، و `powermax_srdf_group_not_healthy` تا وقتی یک گروه SRDF معلق یا آفلاین است.
+
+در فیلترها و کلیدهای گروه‌بندی مانیتور، ویژگی‌های عامل با `resource.` شروع می‌شوند (`resource.storage.array.name`، `resource.storage.system`)، در حالی که برچسب‌های خود Pure این‌طور نیستند (`name`، `host`، `component_name`، `dimension`، `space`، `severity`)، و برچسب‌های PowerMax هم این‌طور نیستند (`storage_group`، `volume`، `director`، `port_id`، `srdf_group`)، و برچسب‌های PowerScale هم همین‌طور (`node`، `quota`، `drive`، `protocol`).
 
 ## ساختار سری‌های PowerStore
 
@@ -133,7 +138,7 @@ NetApp Harvest هر سری را `netapp_<object>_<counter>` نام می‌گذا
 
 ## قالب‌های هشدار آماده
 
-OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای FlashArray، ۸ قالب برای FlashBlade، ۱۶ قالب برای PowerStore، ۱۳ قالب برای PowerScale و ۳۱ قالب برای ONTAP – و فهرست **هشدار برای چه** قالب‌های پلتفرم آرایه را ارائه می‌دهد. هر کدام یک مانیتور کامل می‌سازد: پرس‌وجوی متریک، فیلترهای برچسب آن، یک گروه‌بندی بر پایه برچسب خود شیء، یک معیار که فعال می‌شود و یکی که بهبود می‌یابد. آستانه‌ها نقطه شروع‌اند و می‌توانید ویرایششان کنید.
+OneUptime در مجموع ۹۳ قالب دارد – ۱۲ قالب برای FlashArray، ۸ قالب برای FlashBlade، ۱۶ قالب برای PowerStore، ۳۱ قالب برای ONTAP، ۱۳ قالب برای PowerMax و ۱۳ قالب برای PowerScale – و فهرست **هشدار برای چه** قالب‌های پلتفرم آرایه را ارائه می‌دهد. هر کدام یک مانیتور کامل می‌سازد: پرس‌وجوی متریک، فیلترهای برچسب آن، یک گروه‌بندی بر پایه برچسب خود شیء، یک معیار که فعال می‌شود و یکی که بهبود می‌یابد. آستانه‌ها نقطه شروع‌اند و می‌توانید ویرایششان کنید.
 
 یک معیار فقط وقتی فعال می‌شود که شرط برای **همه** مقدارهای پنجره‌اش برقرار باشد، جز معیار قالب‌های EMS در ONTAP: Harvest هر رویداد را فقط برای یک پیمایش صادر می‌کند، پس یک خوانش کافی است. مانیتوری که بر پایه آستانه ظرفیت، تأخیر، عقب‌ماندگی یا نسبت فعال شده، فقط ۱۰٪ آن‌سوی آن بهبود می‌یابد، تا مقداری که حول آستانه نوسان دارد مدام جابه‌جا نشود. قالب‌های هشدار، سخت‌افزار و اتصال وقتی فعال می‌شوند که وضعیتی در تمام پنجره ۵ دقیقه‌ای‌شان دیده شده باشد، و حدود ۵ دقیقه پس از برطرف شدن آن بهبود می‌یابند.
 
@@ -234,6 +239,24 @@ OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای Flas
 | LUN Offline | در دسترس بودن | بحرانی | `netapp_lun_new_status`، Max به ازای هر `lun`، `volume` و `svm`، ۱۰ دقیقه گذشته | < ۱ – یک LUN آنلاین نیست، و میزبان‌هایش دیسک را از دست داده‌اند؛ در ≥ ۱ بهبود می‌یابد |
 | SVM Stopped | در دسترس بودن | هشدار | `netapp_svm_labels` با فیلتر `state=stopped` و `type=data`، Max به ازای هر `svm`، ۱۰ دقیقه گذشته | > ۰ – یک SVM داده متوقف شده است؛ وقتی دوباره اجرا شود بهبود می‌یابد. SVMهایی که ONTAP برای خودش نگه می‌دارد هرگز پایش نمی‌شوند |
 
+### PowerMax
+
+| قالب | دسته | شدت | چه چیزی را پایش می‌کند | چه وقت فعال می‌شود |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | در دسترس بودن | بحرانی | `powermax_array_info`، Count، ۱۰ دقیقه گذشته | در تمام پنجره هیچ داده‌ای نیست – پراب دیگر آرایه را جمع‌آوری نمی‌کند: اتصال آن شکست می‌خورد (صفحه آن زیر **اتصال‌ها** دلیلش را می‌گوید)، پراب قطع است، یا Unisphere دیگر آرایه را مدیریت نمی‌کند؛ با رسیدن دوباره داده بهبود می‌یابد |
+| Critical Unisphere Alert | سلامت آرایه | بحرانی | `powermax_alert_open` با فیلتر `severity=critical`، Max به ازای هر `description`، ۱۰ دقیقه گذشته | > ۰ – Unisphere برای آرایه یک هشدار باز با شدت Critical یا Fatal دارد. یک حادثه به ازای هر هشدار؛ وقتی هشدار در Unisphere تأیید یا پاک شود بهبود می‌یابد |
+| Warning Unisphere Alert | سلامت آرایه | هشدار | `powermax_alert_open` با فیلتر `severity=warning`، Max به ازای هر `description`، ۱۰ دقیقه گذشته | > ۰ – Unisphere یک هشدار باز با شدت Warning یا Minor دارد. یک حادثه به ازای هر هشدار؛ وقتی هشدار تأیید یا پاک شود بهبود می‌یابد |
+| Performance Collection Off | سلامت آرایه | هشدار | `powermax_array_performance_collection`، Min، ۱۵ دقیقه گذشته | < ۱ – Unisphere کارایی ۵ دقیقه‌ای آرایه را جمع‌آوری نمی‌کند، پس برای هیچ زمان پاسخ، IOPS یا توان عملیاتی نموداری کشیده نمی‌شود و هشداری داده نمی‌شود؛ در ≥ ۱ بهبود می‌یابد |
+| Storage Resource Pool Above 80% | ظرفیت | هشدار | `powermax_srp_capacity_used_percent`، Max به ازای هر `srp`، ۱۵ دقیقه گذشته | > ۸۰ – وقتی استخر پر شود، گروه‌های ذخیره‌سازی آن دیگر نوشتن تازه نمی‌پذیرند. یک حادثه به ازای هر استخر؛ در ≤ ۷۲ بهبود می‌یابد |
+| Storage Resource Pool Above 90% | ظرفیت | بحرانی | `powermax_srp_capacity_used_percent`، Max به ازای هر `srp`، ۱۵ دقیقه گذشته | > ۹۰ – همین که پر شود، نوشتن در گروه‌های ذخیره‌سازی آن شکست می‌خورد. یک حادثه به ازای هر استخر؛ در ≤ ۸۱ بهبود می‌یابد |
+| Storage Group Response Time Above 5 ms | کارایی | هشدار | `powermax_storage_group_response_time_usec`، Avg به ازای هر `storage_group`، ۱۵ دقیقه گذشته | > ۵۰۰۰ µs (۵ ms) – یک PowerMax معمولاً خیلی کمتر از یک میلی‌ثانیه پاسخ می‌دهد. یک حادثه به ازای هر گروه ذخیره‌سازی؛ در ≤ ۴۵۰۰ بهبود می‌یابد |
+| High Read Response Time | کارایی | هشدار | `powermax_array_response_time_usec` با فیلتر `operation=read`، Avg، ۱۵ دقیقه گذشته | > ۳۰۰۰ µs (۳ ms)؛ در ≤ ۲۷۰۰ بهبود می‌یابد |
+| High Write Response Time | کارایی | هشدار | `powermax_array_response_time_usec` با فیلتر `operation=write`، Avg، ۱۵ دقیقه گذشته | > ۳۰۰۰ µs (۳ ms) – SRDF همگام رفت و برگشت تا آرایه دوردست را به هر نوشتن می‌افزاید؛ در ≤ ۲۷۰۰ بهبود می‌یابد |
+| Director Not Online | سخت‌افزار | بحرانی | `powermax_director_offline`، Max به ازای هر `component`، ۱۰ دقیقه گذشته | > ۰ – یک دایرکتور آنلاین نیست و آرایه با بقیه کار می‌کند. یک حادثه به ازای هر دایرکتور؛ وقتی دوباره آنلاین شود بهبود می‌یابد |
+| Port Down | سخت‌افزار | هشدار | `powermax_port_offline`، Max به ازای هر `component`، ۱۰ دقیقه گذشته | > ۰ – پورتی در یک port group، masking view یا گروه SRDF فعال نیست. یک حادثه به ازای هر پورت؛ وقتی دوباره فعال شود بهبود می‌یابد |
+| SRDF Group Suspended or Offline | تکثیر | بحرانی | `powermax_srdf_group_not_healthy`، Max به ازای هر `srdf_group`، ۱۰ دقیقه گذشته | > ۰ – پیوند گروه آفلاین است یا جفت‌هایش معلق، جداشده یا دچار جابه‌جایی اضطراری‌اند، پس نسخه دوردست به‌روز نگه داشته نمی‌شود. یک حادثه به ازای هر گروه؛ وقتی دوباره همگام شود بهبود می‌یابد |
+| SRDF/A Lag Above 2 Minutes | تکثیر | هشدار | `powermax_srdf_group_lag_seconds`، Avg به ازای هر `srdf_group`، ۱۵ دقیقه گذشته | > ۱۲۰ (۲ دقیقه) – failover در این لحظه نوشتن‌های تازه‌تری از آنچه برنامه‌ریزی شده از دست می‌دهد. یک حادثه به ازای هر گروه؛ در ≤ ۱۰۸ بهبود می‌یابد |
+
 ### PowerScale
 
 | قالب | دسته | شدت | چه چیزی را پایش می‌کند | چه وقت فعال می‌شود |
@@ -254,9 +277,9 @@ OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای Flas
 
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک قالب می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.
 
-- **Array Stopped Reporting** سری هویتی پلتفرم (`purefa_info` یا `purefb_info`) را می‌شمارد، که هر نقطه پایانی‌ای که عامل می‌خراشد در هر خراش صادر می‌کند؛ سری هویتی یک PowerScale، `powerscale_cluster_health` است که پرس‌وجوی عامل از خوشه هر دقیقه می‌فرستد. وقتی داده قطع شود، قالب‌های دیگر چیزی برای مقایسه ندارند و آخرین وضعیت خود را نگه می‌دارند، پس این همان قالبی است که به شما خبر می‌دهد.
+- **Array Stopped Reporting** سری هویتی پلتفرم را می‌شمارد (`purefa_info` یا `purefb_info`، که هر نقطه پایانی‌ای که عامل می‌خراشد در هر خراش صادر می‌کند، یا `powermax_array_info`، که هر جمع‌آوری PowerMax می‌نویسد)؛ سری هویتی یک PowerScale، `powerscale_cluster_health` است که پرس‌وجوی عامل از خوشه هر دقیقه می‌فرستد. وقتی داده قطع شود، قالب‌های دیگر چیزی برای مقایسه ندارند و آخرین وضعیت خود را نگه می‌دارند، پس این همان قالبی است که به شما خبر می‌دهد.
 - **هشدارهای باز و وضعیت‌های سخت‌افزاری از Max استفاده می‌کنند**، روی سری‌ای که فقط تا وقتی هشدار باز است یا قطعه در آن وضعیت است وجود دارد، پس وضعیت وقتی آستانه را رد می‌کند که در تمام پنجره ۵ دقیقه‌ای دیده شده باشد.
-- **هر قالبی که به ازای هر شیء است بر پایه برچسب خود شیء گروه‌بندی می‌کند** (`summary`، `component_name`، `host`، `local_pod`، `name`، و در PowerScale `node`، `drive`، `quota` و `protocol`)، پس به ازای هر شیء آسیب‌دیده یک حادثه فعال می‌شود و حادثه نام آن را می‌برد.
+- **هر قالبی که به ازای هر شیء است بر پایه برچسب خود شیء گروه‌بندی می‌کند** (`summary`، `component_name`، `host`، `local_pod`، `name`، و روی PowerMax `description`، `component`، `srp`، `srdf_group` و `storage_group`، و در PowerScale `node`، `drive`، `quota` و `protocol`)، پس به ازای هر شیء آسیب‌دیده یک حادثه فعال می‌شود و حادثه نام آن را می‌برد.
 - **قالب‌های تأخیر از Avg استفاده می‌کنند**، روی میانگین خود آرایه به ازای هر عملیات، و قالب‌های ظرفیت از **بیشینه** روی درصد استفاده خود آرایه. تأخیرها بر حسب میکروثانیه و ظرفیت بر حسب درصد ثابت شده‌اند.
 - **Hardware Component Unhealthy از Min استفاده می‌کند**، به ازای هر قطعه: سلامت آن وقتی سالم است ۱ است و وقتی نیست به ۰ می‌افتد.
 
@@ -264,7 +287,7 @@ OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای Flas
 
 ## متریک‌های جمع‌آوری‌شده
 
-عامل هر چیزی را که آرایه صادر می‌کند می‌فرستد؛ سری‌های زیر فهرستی است که فرم مانیتور ارائه می‌دهد. هر مقدار یک gauge است که خود آرایه محاسبه می‌کند – تأخیرها میکروثانیه به ازای هر عملیات‌اند و توان عملیاتی بر ثانیه – پس به محاسبه نرخ نیازی نیست. **فیلتر** فیلتر برچسبی است که به سری معنایی را می‌دهد که سطرش می‌گوید؛ فرم آن را برایتان اعمال می‌کند.
+عامل هر چیزی را که آرایه صادر می‌کند می‌فرستد، و یک پراب هر چیزی را که از یک PowerMax می‌خواند، با همان یکاها (میلی‌ثانیه‌های Unisphere به‌صورت میکروثانیه، MB در ثانیه آن به‌صورت بایت در ثانیه)؛ سری‌های زیر فهرستی است که فرم مانیتور ارائه می‌دهد. هر مقدار یک gauge است که خود آرایه محاسبه می‌کند – تأخیرها میکروثانیه به ازای هر عملیات‌اند و توان عملیاتی بر ثانیه – پس به محاسبه نرخ نیازی نیست. **فیلتر** فیلتر برچسبی است که به سری معنایی را می‌دهد که سطرش می‌گوید؛ فرم آن را برایتان اعمال می‌کند.
 
 ### سلامت آرایه
 
@@ -277,6 +300,9 @@ OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای Flas
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | هشدارهای باز در هر یک از زیرسامانه‌های سلامت ONTAP، بر پایه `subsystem` |
 | `netapp_health_support_alerts` | — | ONTAP | `count` | یک سری به ازای هر هشداری که پایشگر سلامت سامانه در ONTAP باز دارد، تا وقتی باز است |
 | `netapp_ems_events` | — | ONTAP | `count` | یک سری به ازای هر رویداد EMS، برای پیمایشی که آن را گردآوری کرد؛ پایان یک رویداد جفت‌شده آن را یک بار دیگر با مقدار ۰ صادر می‌کند |
+| `powermax_alert_open` | — | PowerMax | `count` | یک سری برای هر هشداری که Unisphere برای آرایه باز نگه داشته است (مقدار ۱): تأییدنشده، پاک‌نشده، و Minor یا شدیدتر. برچسب severity آن critical (برای Critical و Fatal) یا warning (برای Warning و Minor) است؛ برچسب‌های alert_type، object و description آن می‌گویند هشدار درباره چیست. هشدار را در Unisphere تأیید کنید تا سری از بین برود |
+| `powermax_array_health_score` | — | PowerMax | `score` | امتیاز سلامت آرایه از دید Unisphere، از ۰ تا ۱۰۰، به ازای هر health_metric: کلی، و هر حوزه‌ای که امتیاز می‌دهد (ظرفیت، پیکربندی، کارایی، انطباق با سطح سرویس) |
+| `powermax_array_performance_collection` | — | PowerMax | `count` | مقدار ۱ یعنی Unisphere داده‌های کارایی ۵ دقیقه‌ای آرایه را جمع‌آوری می‌کند و ۰ یعنی نمی‌کند. وقتی خاموش است، OneUptime همچنان موجودی و هشدارهای آرایه را فهرست می‌کند، اما نموداری از کارایی نمی‌کشد. آن را در Unisphere در Settings > Performance > System Registrations روشن کنید |
 | `powerscale_cluster_health` | — | PowerScale | — | سلامتی که OneFS برای خوشه گزارش می‌دهد: ۰ یعنی OK، ۱ یعنی نیاز به توجه، ۲ یعنی ازکارافتاده و ۳ یعنی نامعتبر. بیشینه را بگیرید تا هر تغییری را ببینید |
 | `powerscale_cluster_offline_nodes` | — | PowerScale | `count` | چند گره از گره‌های خوشه آفلاین‌اند؛ برچسب `offline_nodes` شماره‌های منطقی این گره‌ها را فهرست می‌کند |
 
@@ -307,6 +333,13 @@ OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای Flas
 | `netapp_aggr_new_status` | — | ONTAP | — | ۱ تا وقتی اگریگیت آنلاین است |
 | `netapp_aggr_logical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | فضایی که داده هر اگریگیت بدون بهره‌وری ذخیره‌سازی می‌گرفت، بی‌احتساب snapshotها و FlexCloneها |
 | `netapp_aggr_physical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | فضایی که داده هر اگریگیت پس از بهره‌وری ذخیره‌سازی روی دیسک می‌گیرد |
+| `powermax_array_capacity_used_percent` | — | PowerMax | `%` | سهم ظرفیت قابل استفاده آرایه که در حال استفاده است، به درصد، در همه استخرهای منابع ذخیره‌سازی آن |
+| `powermax_array_capacity_usable_bytes` | — | PowerMax | `bytes` | ظرفیت قابل استفاده آرایه، به بایت، طبق گزارش Unisphere |
+| `powermax_array_capacity_used_bytes` | — | PowerMax | `bytes` | ظرفیت قابل استفاده آرایه که در حال استفاده است، به بایت |
+| `powermax_array_capacity_subscribed_bytes` | — | PowerMax | `bytes` | ظرفیت همه حجم‌های thin روی آرایه، به بایت: آنچه به میزبان‌ها وعده داده شده است، که می‌تواند از ظرفیت قابل استفاده بیشتر باشد |
+| `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | داده‌ای که میزبان‌ها نوشته‌اند چند برابر فضایی است که پس از فشرده‌سازی و یکتاسازی اشغال می‌کند، طبق گزارش Unisphere |
+| `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | سهم ظرفیت قابل استفاده هر استخر منابع ذخیره‌سازی که در حال استفاده است، به درصد، بر پایه برچسب srp آن. استخری که پر شود، دیگر برای هیچ‌یک از گروه‌های ذخیره‌سازی درونش نوشتن تازه نمی‌پذیرد |
+| `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | ظرفیت قابل استفاده هر استخر منابع ذخیره‌سازی که در حال استفاده است، به بایت، بر پایه برچسب srp آن |
 | `powerscale_ifs_used_percent` | — | PowerScale | `%` | سهمی از ظرفیت خوشه که دیگر برای نوشتن در دسترس نیست: آنچه در حال استفاده است، به‌علاوه فضایی که OneFS برای یدک‌های داغ مجازی کنار می‌گذارد |
 | `powerscale_ifs_available_bytes` | — | PowerScale | `bytes` | فضایی که هنوز برای نوشتن روی `/ifs` در دسترس است |
 | `powerscale_ifs_used_bytes` | — | PowerScale | `bytes` | فضای در حال استفاده روی `/ifs`، آن‌طور که OneFS می‌شمارد |
@@ -358,6 +391,18 @@ OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای Flas
 | `netapp_svm_vol_write_ops` | — | ONTAP | `ops/s` | عملیات نوشتن در ثانیه روی حجم‌های هر SVM |
 | `netapp_svm_vol_read_data` | — | ONTAP | `bytes/s` | بایت خوانده‌شده در ثانیه از حجم‌های هر SVM |
 | `netapp_svm_vol_write_data` | — | ONTAP | `bytes/s` | بایت نوشته‌شده در ثانیه روی حجم‌های هر SVM |
+| `powermax_array_response_time_usec` | `operation=read` | PowerMax | `µs` | میانگین زمان یک خواندن میزبان روی آرایه، به میکروثانیه، در آخرین بازه ۵ دقیقه‌ای Unisphere (operation read) |
+| `powermax_array_response_time_usec` | `operation=write` | PowerMax | `µs` | میانگین زمان یک نوشتن میزبان روی آرایه، به میکروثانیه، در آخرین بازه ۵ دقیقه‌ای Unisphere (operation write) |
+| `powermax_array_read_iops` | — | PowerMax | `ops/s` | خواندن‌های میزبان در ثانیه روی آرایه: IOهای میزبان در Unisphere ضرب در سهم خواندن‌ها |
+| `powermax_array_write_iops` | — | PowerMax | `ops/s` | نوشتن‌های میزبان در ثانیه روی آرایه: IOهای میزبان در Unisphere ضرب در سهم نوشتن‌ها |
+| `powermax_array_read_throughput_bytes` | — | PowerMax | `bytes/s` | بایت در ثانیه‌ای که میزبان‌ها از آرایه می‌خوانند |
+| `powermax_array_write_throughput_bytes` | — | PowerMax | `bytes/s` | بایت در ثانیه‌ای که میزبان‌ها روی آرایه می‌نویسند |
+| `powermax_array_cache_hit_percent` | — | PowerMax | `%` | سهمی از I/O میزبان که آرایه از حافظه نهان پاسخ داد، به درصد |
+| `powermax_array_write_pending_percent` | — | PowerMax | `%` | سهمی از حافظه نهان آرایه که نوشتن‌هایی را نگه می‌دارد که هنوز روی درایوهایش نوشته نشده‌اند، به درصد. نزدیک به حد آرایه، نوشتن‌های میزبان را کند می‌کند |
+| `powermax_array_frontend_busy_percent` | — | PowerMax | `%` | میزان مشغولی دایرکتورهایی که به میزبان‌ها سرویس می‌دهند، به درصد |
+| `powermax_array_backend_busy_percent` | — | PowerMax | `%` | میزان مشغولی دایرکتورهایی که به درایوها سرویس می‌دهند، به درصد |
+| `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | میزان مشغولی دایرکتورهایی که به آرایه‌های دیگر تکثیر می‌کنند، به درصد |
+| `powermax_srp_response_time_usec` | — | PowerMax | `µs` | میانگین زمان یک I/O در هر استخر منابع ذخیره‌سازی، به میکروثانیه، بر پایه برچسب srp آن |
 | `powerscale_cluster_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | بایت‌هایی که در هر ثانیه از `/ifs` خوانده می‌شوند، در کل خوشه |
 | `powerscale_cluster_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | بایت‌هایی که در هر ثانیه در `/ifs` نوشته می‌شوند، در کل خوشه |
 | `powerscale_cluster_network_in_bytes_per_second` | — | PowerScale | `bytes/s` | بایت‌هایی که پورت‌های فرانت‌اند خوشه در هر ثانیه دریافت می‌کنند |
@@ -422,6 +467,20 @@ OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای Flas
 | `netapp_lun_write_ops` | — | ONTAP | `ops/s` | عملیات نوشتن در ثانیه روی هر LUN |
 | `netapp_lun_read_data` | — | ONTAP | `bytes/s` | بایت خوانده‌شده در ثانیه از هر LUN |
 | `netapp_lun_write_data` | — | ONTAP | `bytes/s` | بایت نوشته‌شده در ثانیه روی هر LUN |
+| `powermax_storage_group_response_time_usec` | — | PowerMax | `µs` | میانگین زمان یک I/O برای هر گروه ذخیره‌سازی، به میکروثانیه، بر پایه برچسب storage_group آن، در آخرین بازه ۵ دقیقه‌ای Unisphere |
+| `powermax_storage_group_read_response_time_usec` | — | PowerMax | `µs` | میانگین زمان یک خواندن برای هر گروه ذخیره‌سازی، به میکروثانیه، بر پایه برچسب storage_group آن |
+| `powermax_storage_group_write_response_time_usec` | — | PowerMax | `µs` | میانگین زمان یک نوشتن برای هر گروه ذخیره‌سازی، به میکروثانیه، بر پایه برچسب storage_group آن |
+| `powermax_storage_group_iops` | — | PowerMax | `ops/s` | I/Oهای میزبان در ثانیه برای هر گروه ذخیره‌سازی، بر پایه برچسب storage_group آن |
+| `powermax_storage_group_throughput_bytes` | — | PowerMax | `bytes/s` | بایت در ثانیه‌ای که میزبان‌ها برای هر گروه ذخیره‌سازی می‌خوانند و می‌نویسند، بر پایه برچسب storage_group آن |
+| `powermax_storage_group_used_bytes` | — | PowerMax | `bytes` | ظرفیتی که حجم‌های هر گروه ذخیره‌سازی مصرف می‌کنند، به بایت، بر پایه برچسب storage_group آن |
+| `powermax_storage_group_host_io_limit_exceeded_percent` | — | PowerMax | `%` | سهمی از بازه که هر گروه ذخیره‌سازی به‌خاطر حد I/O میزبان خود معطل ماند، به درصد. فقط گروه‌های ذخیره‌سازی که حدی برایشان تعیین شده است آن را گزارش می‌کنند |
+| `powermax_storage_group_realtime_read_response_time_usec` | — | PowerMax | `µs` | زمان پاسخ خواندن گروه‌های ذخیره‌سازی ثبت‌شده برای جمع‌آوری بی‌درنگ در Unisphere، به میکروثانیه، هر ۵ ثانیه. برای هر آرایه حداکثر ۱۰۰ گروه ذخیره‌سازی را می‌توان ثبت کرد |
+| `powermax_storage_group_realtime_write_response_time_usec` | — | PowerMax | `µs` | زمان پاسخ نوشتن گروه‌های ذخیره‌سازی ثبت‌شده برای جمع‌آوری بی‌درنگ در Unisphere، به میکروثانیه، هر ۵ ثانیه |
+| `powermax_storage_group_realtime_iops` | — | PowerMax | `ops/s` | I/Oهای میزبان در ثانیه گروه‌های ذخیره‌سازی ثبت‌شده برای جمع‌آوری بی‌درنگ، هر ۵ ثانیه |
+| `powermax_storage_group_realtime_throughput_bytes` | — | PowerMax | `bytes/s` | بایت در ثانیه گروه‌های ذخیره‌سازی ثبت‌شده برای جمع‌آوری بی‌درنگ، هر ۵ ثانیه |
+| `powermax_volume_response_time_usec` | — | PowerMax | `µs` | میانگین زمان یک I/O برای هر حجم، به میکروثانیه، بر پایه برچسب volume آن. Unisphere آن را فقط برای حجم‌های گروه‌های ذخیره‌سازی گزارش می‌کند که برای جمع‌آوری بی‌درنگ ثبت شده‌اند |
+| `powermax_volume_iops` | — | PowerMax | `ops/s` | I/Oهای میزبان در ثانیه برای هر حجم، بر پایه برچسب volume آن، برای حجم‌های گروه‌های ذخیره‌سازی ثبت‌شده برای جمع‌آوری بی‌درنگ |
+| `powermax_volume_used_bytes` | — | PowerMax | `bytes` | ظرفیتی که هر حجم مصرف می‌کند، به بایت، بر پایه برچسب volume آن |
 
 ### میزبان‌ها
 
@@ -448,6 +507,10 @@ OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای Flas
 | `netapp_snapmirror_last_transfer_size` | — | ONTAP | `bytes` | آخرین انتقال هر رابطه چقدر داده فرستاد |
 | `netapp_snapmirror_update_failed_count` | — | ONTAP | `count` | چند به‌روزرسانی هر رابطه ناموفق بوده است؛ این شمار فقط بالا می‌رود |
 | `netapp_snapmirror_labels` | `healthy=false` | ONTAP | — | یک سری به ازای هر رابطه‌ای که ONTAP آن را ناسالم گزارش می‌کند، با دلیل آن در `unhealthy_reason` |
+| `powermax_srdf_group_not_healthy` | — | PowerMax | `count` | یک سری برای هر گروه SRDF که پیوندش آفلاین است یا جفت‌هایش معلق، تفکیک‌شده، جداشده، دچار جابه‌جایی اضطراری یا نامعتبرند (مقدار ۱)، با برچسب‌های srdf_group، state و remote_symmetrix_id آن. تا وقتی گروه تکثیر می‌کند، این سری وجود ندارد |
+| `powermax_srdf_group_lag_seconds` | — | PowerMax | `s` | میزان عقب بودن نسخه دوردست هر گروه SRDF ناهمگام، به ثانیه، بر پایه برچسب srdf_group آن. یک failover در این لحظه نوشتن‌های همین مدت را از دست می‌دهد |
+| `powermax_srdf_group_throughput_bytes` | — | PowerMax | `bytes/s` | بایت در ثانیه‌ای که هر گروه SRDF به آرایه دوردست خود می‌فرستد، بر پایه برچسب srdf_group آن |
+| `powermax_srdf_group_response_time_usec` | — | PowerMax | `µs` | میانگین زمانی که طول می‌کشد تا یک نوشتن تکثیرشده به آرایه دوردست برسد، برای هر گروه SRDF، به میکروثانیه، بر پایه برچسب srdf_group آن |
 
 ### سخت‌افزار
 
@@ -501,6 +564,12 @@ OneUptime در مجموع ۸۰ قالب دارد – ۱۲ قالب برای Flas
 | `netapp_fcp_write_data` | — | ONTAP | `bytes/s` | بایت نوشته‌شده در ثانیه از راه هر پورت Fibre Channel |
 | `netapp_fcp_util_percent` | — | ONTAP | `%` | چه مقدار از سرعت هر پورت Fibre Channel در حال استفاده است |
 | `netapp_fcp_link_failure` | — | ONTAP | `count` | خرابی‌های لینکی که هر پورت Fibre Channel در دقیقه گذشته شمرده است |
+| `powermax_director_offline` | — | PowerMax | `count` | یک سری برای هر دایرکتور که آنلاین نیست (مقدار ۱)، با برچسب‌های director، role و status آن. تا وقتی همه دایرکتورها آنلاین‌اند، این سری وجود ندارد |
+| `powermax_director_busy_percent` | — | PowerMax | `%` | میزان مشغولی هر دایرکتور، به درصد، بر پایه برچسب component آن (مانند FA-1D) |
+| `powermax_port_offline` | — | PowerMax | `count` | یک سری برای هر پورتی که به میزبان‌ها یا SRDF سرویس می‌دهد (در یک port group، یک masking view یا یک گروه SRDF) اما فعال نیست (مقدار ۱)، با برچسب‌های component، protocol و status آن. پورت‌هایی که کسی از آن‌ها استفاده نمی‌کند کنار گذاشته می‌شوند: ممکن است عمداً خاموش باشند |
+| `powermax_port_busy_percent` | — | PowerMax | `%` | میزان مشغولی هر پورت، به درصد، بر پایه برچسب component آن (مانند FA-1D:4) |
+| `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | بایت در ثانیه‌ای که از طریق هر پورت خوانده می‌شود، بر پایه برچسب component آن |
+| `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | توان نوری که هر پورت نوری دریافت می‌کند، به میلی‌وات، بر پایه برچسب component آن. مقدار رو به کاهش نشانه خراب شدن یک ماژول نوری یا کابل است. به Unisphere 10.3 یا جدیدتر نیاز دارد |
 | `powerscale_node_health` | — | PowerScale | — | سلامتی که هر گره گزارش می‌دهد: ۰ یعنی OK، ۱ یعنی نیاز به توجه، ۲ یعنی ازکارافتاده و ۳ یعنی نامعتبر – بر پایه `node` گروه‌بندی کنید |
 | `powerscale_node_read_only` | — | PowerScale | — | ۱ تا وقتی گره در حالت فقط‌خواندنی است، در غیر این صورت ۰ – بر پایه `node` گروه‌بندی کنید |
 | `powerscale_node_cpu_busy_percent` | — | PowerScale | `%` | سهم زمان CPU در حال استفاده هر گره – بر پایه `node` گروه‌بندی کنید |
@@ -629,8 +698,12 @@ Pure رقم‌های خواندن، نوشتن، نوشتن آینه‌ای، SA
 عامل حجم‌ها، میزبان‌ها و پادها را هر ۲ دقیقه، سیستم‌های فایل و باکت‌های FlashBlade را هر ۵ دقیقه، و پوشه‌های FlashArray را هر ۳۰ دقیقه می‌خواند، پس پنجره ۱ دقیقه‌ای ممکن است نمونه‌ای نداشته باشد. ۵ دقیقه یا بیشتر به کار ببرید: ۱۵ برای سیستم‌های فایل و باکت‌ها، ۶۰ برای پوشه‌ها.
 :::
 
+:::details یک مانیتور PowerMax هیچ داده‌ای نشان نمی‌دهد
+یک پراب هر PowerMax را هر ۵ دقیقه می‌خواند، پس از پنجره‌ای ۱۰ دقیقه‌ای یا بیشتر استفاده کنید. زمان پاسخ، IOPS و توان عملیاتی به جمع‌آوری کارایی Unisphere نیاز دارند، که قالب **Performance Collection Off** آن را پایش می‌کند، و رقم‌های یک حجم نیاز دارند که گروه ذخیره‌سازی آن در Unisphere برای بی‌درنگ ثبت شده باشد. صفحه اتصال زیر **محصولات ← زیرساخت ← آرایه‌های ذخیره‌سازی ← اتصال‌ها** می‌گوید آخرین جمع‌آوری آن چه چیزی را نتوانست بخواند.
+:::
+
 :::details حادثه‌ها یک بار برای کل آرایه فعال می‌شوند، نه یک بار برای هر حجم
-پرس‌وجو را بر پایه برچسب شیء گروه‌بندی کنید: `name` برای حجم‌ها، پادها، پوشه‌ها، سیستم‌های فایل و باکت‌ها، `host` برای میزبان‌ها، و `component_name` برای سخت‌افزار FlashArray. برچسب‌های Pure پیشوند ندارند، پس `resource.name` با هیچ چیز جور نمی‌شود.
+پرس‌وجو را بر پایه برچسب شیء گروه‌بندی کنید: `name` برای حجم‌ها، پادها، پوشه‌ها، سیستم‌های فایل و باکت‌ها، `host` برای میزبان‌ها، و `component_name` برای سخت‌افزار FlashArray؛ روی PowerMax، `storage_group`، `volume`، `component` یا `srdf_group`. برچسب‌های Pure و PowerMax پیشوند ندارند، پس `resource.name` با هیچ چیز جور نمی‌شود.
 :::
 
 ## گام‌های بعدی

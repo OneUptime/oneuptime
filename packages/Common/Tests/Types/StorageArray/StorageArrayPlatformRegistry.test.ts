@@ -7,6 +7,8 @@ import PureStorageFlashBladePlatform from "../../../Types/StorageArray/Platforms
 import DellPowerStorePlatform from "../../../Types/StorageArray/Platforms/Dell/PowerStore/PowerStorePlatform";
 import NetAppOntapPlatform from "../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform";
 import { OntapKind } from "../../../Types/StorageArray/Platforms/NetApp/NetApp";
+import DellPowerMaxPlatform from "../../../Types/StorageArray/Platforms/Dell/PowerMax/PowerMaxPlatform";
+import StorageArrayProbeCollectors from "../../../Types/StorageArray/Collection/StorageArrayProbeCollectors";
 import {
   STORAGE_ARRAY_HARDWARE_KINDS,
   StorageArrayLogAlertTemplateSpec,
@@ -59,12 +61,13 @@ function systemsOf(
 }
 
 describe("the shipped platforms", () => {
-  test("are Pure Storage's FlashArray and FlashBlade, then Dell's PowerStore and NetApp ONTAP, then Dell's PowerScale, in that order", () => {
+  test("are Pure Storage's FlashArray and FlashBlade, then Dell's PowerStore, NetApp ONTAP and Dell PowerMax, then Dell's PowerScale, in that order", () => {
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
       FLASHARRAY,
       FLASHBLADE,
       POWERSTORE,
       ONTAP,
+      StorageSystem.DellPowerMax,
       POWERSCALE,
     ]);
     expect(BUILT_IN_STORAGE_ARRAY_PLATFORMS).toEqual([
@@ -72,6 +75,7 @@ describe("the shipped platforms", () => {
       PureStorageFlashBladePlatform,
       DellPowerStorePlatform,
       NetAppOntapPlatform,
+      DellPowerMaxPlatform,
       DellPowerScalePlatform,
     ]);
   });
@@ -398,18 +402,21 @@ describe.each(
       expect(table.noItemsMessage).not.toBe("");
     }
     /*
-     * The kinds whose status decides its hardware health: the shared
-     * physical parts unless it names its own, which may be a kind of its own
-     * (a PowerScale node), but always one it reports.
+     * A platform's hardware may be a kind of its own (a PowerMax's
+     * directors, a PowerScale's nodes): the inventory summary and the
+     * snapshot read every platform's hardwareKinds
+     * (StorageArrayResourceService.getHardwareKinds).
      */
-    for (const kind of platform.hardwareKinds || STORAGE_ARRAY_HARDWARE_KINDS) {
-      if (!platform.hardwareKinds) {
+    if (platform.hardwareKinds) {
+      for (const kind of platform.hardwareKinds) {
+        expect(platform.kinds).toContain(kind);
+      }
+    } else {
+      for (const kind of STORAGE_ARRAY_HARDWARE_KINDS) {
         expect(
           Object.values(StorageArrayResourceKind) as Array<string>,
         ).toContain(kind);
-        continue;
       }
-      expect(platform.kinds).toContain(kind);
     }
   });
 
@@ -435,8 +442,15 @@ describe.each(
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  test("its agent reads it through configs of its own, each with its exporter's profile", () => {
-    expect(platform.agentConfigs.length).toBeGreaterThan(0);
+  test("its agent reads it through configs of its own, each with its exporter's profile, or a probe reads its management server", () => {
+    /*
+     * A platform a probe collects from its management server (a PowerMax,
+     * through Unisphere) has no agent config; every other one has at least
+     * one.
+     */
+    expect(platform.agentConfigs.length > 0).toBe(
+      !StorageArrayProbeCollectors.isProbeCollected(platform.storageSystem),
+    );
     for (const config of platform.agentConfigs) {
       expect(config.collectorConfigFile).toMatch(
         /^otel-collector-config[a-z0-9.-]*\.yaml$/,
@@ -462,6 +476,7 @@ describe("registering a platform at runtime", () => {
       FLASHBLADE,
       POWERSTORE,
       ONTAP,
+      StorageSystem.DellPowerMax,
       POWERSCALE,
       ACME_STORAGE_SYSTEM,
     ]);
@@ -506,6 +521,7 @@ describe("registering a platform at runtime", () => {
       FLASHBLADE,
       POWERSTORE,
       ONTAP,
+      StorageSystem.DellPowerMax,
       POWERSCALE,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 2);
@@ -987,7 +1003,7 @@ describe("what registration refuses", () => {
     for (const storageSystem of [
       "hitachi.vsp",
       "dell.powerstore_next",
-      "dell.powermax",
+      "emc.vnx2",
       "dell.unity_xt",
       "hpe.3par-primera",
       "ibm.flashsystem9500",

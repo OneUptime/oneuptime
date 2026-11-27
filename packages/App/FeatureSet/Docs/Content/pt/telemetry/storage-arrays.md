@@ -7,6 +7,7 @@ O agente Array de armazenamento do OneUptime monitora arrays de armazenamento: c
 - [Dell PowerScale](#dell-powerscale): SNMP no cluster, cada nó consultado, e o que as páginas dele mostram.
 - [O que o agente coleta](#o-que-o-agente-coleta): Cada endpoint e as páginas construídas a partir dele.
 - [Monitorar vários arrays](#monitorar-vários-arrays): Um agente por array, em uma só máquina.
+- [Dell PowerMax](#dell-powermax): Sem agente: uma sonda lê todos os arrays por trás do Unisphere.
 - [Solução de problemas](#solução-de-problemas): Um script de diagnóstico, e os problemas mais comuns.
 :::
 
@@ -24,6 +25,8 @@ Storage Arrays é um produto que funciona do mesmo jeito para todo fabricante. E
 | **Dell PowerScale** (Isilon), OneFS 8.0 e posteriores | `dell.powerscale` | Cada nó via SNMP (a ISILON-MIB da Dell), com o próprio receptor SNMP do coletor: nada roda ao lado do coletor | `otel-collector-config.powerscale.yaml` |
 
 O ONTAP não tem um endpoint de métricas próprio, então o agente executa o exportador de código aberto da NetApp, o Harvest, ao lado do coletor. O Harvest lê a API REST do cluster e serve o que leu na rede do Compose, cada série com o nome `netapp_<object>_<counter>`; o coletor o consulta e envia os dados adiante. O Harvest nunca grava no cluster, e o relatório AutoSupport dele para a NetApp fica desativado.
+
+**Dell PowerMax** (`dell.powermax`) não precisa de agente: uma sonda do OneUptime lê, com uma conta somente leitura, todos os arrays que um Unisphere for PowerMax gerencia. Veja [Dell PowerMax](#dell-powermax).
 
 A Pure Storage passou a se chamar **Everpure** em fevereiro de 2026. FlashArray, FlashBlade e Purity mantiveram os nomes, assim como as métricas `purefa_*` e `purefb_*`, então tudo nesta página vale para arrays vendidos com qualquer um dos dois nomes.
 
@@ -411,6 +414,54 @@ Depois exclua o usuário somente leitura e o token de API dele no array, se não
 
 Num PowerStore, execute `docker compose --profile powerstore down`, para que o exportador e o coletor de syslog também parem.
 
+## Dell PowerMax
+
+Um Dell PowerMax não precisa de agente. Uma sonda do OneUptime faz login na REST API do Unisphere for PowerMax com uma conta somente leitura a cada 5 minutos e lê todos os arrays que esse Unisphere gerencia. Cada array aparece em **Arrays de armazenamento** com o seu Symmetrix ID, como `000220200269`, e você pode renomeá-lo. A senha é armazenada criptografada, nunca mais é mostrada e só é enviada à sonda que você escolher.
+
+- **Unisphere for PowerMax 10.1 ou posterior**, gerenciando arrays com PowerMaxOS 10 ou 5978. A partir do Unisphere 10.3, uma conta somente leitura também vê as portas e os grupos SRDF.
+- **Uma sonda que alcance o Unisphere pela porta TCP 8443**, normalmente uma [sonda personalizada](/docs/probe/custom-probe) na rede do Unisphere. No OneUptime Cloud, uma sonda compartilhada nunca recebe uma senha de armazenamento, então escolha uma sonda do seu próprio projeto.
+- **Um usuário do Unisphere com a função Monitor** em cada array que ele deve ler, e a função **PerfMonitor** para o desempenho. Ele não precisa de mais nada: o OneUptime nunca altera o array.
+
+:::steps
+### Criar o usuário somente leitura
+
+No Unisphere for PowerMax, em **Settings → Users and Groups**, crie um usuário local ou escolha um usuário de diretório. Autorize-o com a função **Monitor** em cada array, e **PerfMonitor** para o desempenho.
+
+### Verificar se o Unisphere coleta o desempenho
+
+Em **Settings → Performance → System Registrations**, verifique se a coleta **Diagnostic** está ativada para cada array: sem ela, o OneUptime lista o inventário e os alertas do array, mas não exibe gráficos de desempenho. Para ver um grupo de armazenamento a cada 5 segundos, registre-o também para **Real Time** ali, até 100 por array.
+
+### Conectar o Unisphere
+
+Vá em **Produtos → Infraestrutura → Arrays de armazenamento → Conexões** e clique em **Conectar o Unisphere**. Informe o endereço em que você abre o Unisphere, como `https://unisphere.example.com:8443`, o nome de usuário e a senha, e escolha a sonda.
+
+### Testar a conexão
+
+**Testar conexão** faz a sonda entrar e ler o que a conta consegue ver: cada array, os seus grupos de armazenamento e volumes, e se o Unisphere coleta o desempenho dele. Por padrão, o Unisphere assina o próprio certificado: o teste o mostra, e **Confiar neste certificado** coloca a impressão digital SHA-256 dele no formulário. Compare antes a impressão digital com a do próprio Unisphere, por exemplo com `openssl s_client -connect unisphere.example.com:8443` a partir da máquina da sonda.
+
+### Dar um nome e conectar
+
+Dê um nome à conexão, ou mantenha o nome do host, e clique em **Conectar**. A página dela mostra a primeira coleta em poucos minutos e todos os arrays encontrados, cada um com um link para a sua página em **Arrays de armazenamento**.
+:::
+
+A sonda lê os endpoints REST documentados do Unisphere: o clássico `/univmax/restapi` para os arrays, a capacidade, a saúde, os alertas e os pools, e o de consultas em lote `/univmax/rest/v1` para os grupos de armazenamento, volumes, diretores, portas, grupos SRDF e o desempenho. Toda chamada é uma leitura. Ela envia o que lê como estas séries, com os milissegundos do Unisphere como microssegundos e os seus MB por segundo como bytes por segundo:
+
+| Séries | O que contêm |
+| --- | --- |
+| `powermax_array_*` | O array: modelo e microcódigo, capacidade utilizável, usada e subscrita, redução de dados, pontuações de integridade, se o Unisphere coleta o desempenho dele, e os seus números de 5 minutos de tempo de resposta, IOPS, vazão, cache e ocupação |
+| `powermax_alert_open` | Uma série por alerta que o Unisphere mantém aberto para o array, de Minor para cima, até que alguém o confirme ou limpe |
+| `powermax_storage_group_*` | Cada grupo de armazenamento: capacidade e volumes, tempos de resposta, IOPS e vazão de 5 minutos, e os números de 5 segundos quando está registrado para tempo real |
+| `powermax_volume_*` | Cada volume de um grupo de armazenamento: a sua capacidade, e os seus números quando o grupo de armazenamento dele está registrado para tempo real |
+| `powermax_srp_*` | Cada pool de recursos de armazenamento: capacidade e tempo de resposta |
+| `powermax_director_*` | Cada diretor: função, status e ocupação, e `powermax_director_offline` enquanto ele não está online |
+| `powermax_port_*` | Cada porta: protocolo, velocidade, níveis de luz e ocupação, e `powermax_port_offline` enquanto uma porta da qual alguém depende está fora do ar |
+| `powermax_srdf_group_*` | Cada grupo SRDF: array remoto e modos, atraso e vazão, e `powermax_srdf_group_not_healthy` enquanto ele está suspenso ou offline |
+
+- **A cada 5 minutos**, ou a cada 10 para aliviar um Unisphere sobrecarregado (**Mais campos** no formulário da conexão): o Unisphere calcula o desempenho a cada 5 minutos.
+- **Só os arrays que o próprio Unisphere gerencia.** Os arrays remotos que ele vê pelo SRDF aparecem na página da conexão e são lidos pelo Unisphere do próprio site deles: conecte esse também.
+- **Até 5,000 grupos de armazenamento e 10,000 volumes por array**, e 200 alertas novos por coleta (o restante chega nas próximas). Uma lista cortada é indicada como tal na página da conexão.
+- **Unisphere 10.1 e 10.2** não listam portas nem grupos SRDF para uma conta somente leitura: a sonda lê os diretores um a um, obtém os grupos SRDF a partir dos grupos de armazenamento e avisa disso.
+
 ## Dell PowerScale
 
 O agente lê um cluster Dell PowerScale (Isilon) via SNMP, a partir da ISILON-MIB da Dell, com o próprio receptor SNMP do coletor: sem token de API, e nada roda ao lado do coletor. Um cluster é um array de armazenamento, e os seus nós, cotas, unidades, sensores e portas são o seu inventário.
@@ -539,6 +590,18 @@ O OneUptime registra um array de armazenamento pelo `storage.array.name` dele, q
 
 :::details Enviar métricas sem o agente
 O agente é uma única configuração padrão do coletor, então os coletores que você já roda podem fazer o mesmo trabalho: copie os jobs de coleta e o processador `resource` da configuração incluída para a sua. O atributo de recurso `storage.array.name` é o que registra o array no OneUptime, e as remoções de `service.name` / `service.instance.id` evitam que os dados sejam arquivados sob um serviço: mantenha os dois, e mantenha os rótulos `scrape_endpoint`.
+:::
+
+:::details O teste de conexão diz que o certificado do Unisphere não é confiável
+O Unisphere for PowerMax assina o próprio certificado, a menos que alguém tenha instalado um de uma autoridade certificadora. Compare a impressão digital que o teste mostra com a do próprio Unisphere, depois clique em **Confiar neste certificado** e teste de novo. Quando o certificado do Unisphere é renovado, a coleta para com **O certificado do servidor mudou** até que você confie no novo: nada é enviado a ele antes disso.
+:::
+
+:::details O teste de conexão diz que a conta não pode ler os arrays
+O Unisphere responde `403` para uma conta sem função no array. Autorize o usuário com a função **Monitor** em cada array em **Settings → Users and Groups**, e **PerfMonitor** para o desempenho. Um array em que a conta não tem função aparece na página da conexão com o motivo, e os demais são lidos.
+:::
+
+:::details Um PowerMax não mostra tempos de resposta nem IOPS
+O Unisphere não coleta desempenho para o array, ou a conta não tem **PerfMonitor**: a página da conexão diz qual dos dois. Ative a coleta **Diagnostic** em **Settings → Performance → System Registrations**. Os números de um volume, e os de um grupo de armazenamento a cada 5 segundos, exigem que o grupo de armazenamento esteja registrado também para **Real Time** ali.
 :::
 
 ## Próximos passos

@@ -145,6 +145,8 @@ export default class LogScrubEngine {
           patternType: patternType,
           projectId: rule.projectId,
           recorder: recorder,
+          // How a match the pattern found in a reading reads, for Mask and Hash.
+          pattern: compiled.regex,
         });
       },
       // A person may have written a custom pattern against stored escapes.

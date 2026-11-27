@@ -135,6 +135,12 @@ export type ScanWarningKey =
   | "databaseBytesAfterTables"
   | "databaseFailuresInARow"
   | "databaseCouldNotSampleTable"
+  | "searchCouldNotListIndices"
+  | "searchIndicesNotSampled"
+  | "searchTimeLimitAfterIndices"
+  | "searchBytesAfterIndices"
+  | "searchFailuresInARow"
+  | "searchExposureNotChecked"
   | "bigQueryTablesNotListedAtLimit"
   | "bigQueryCouldNotListTables"
   | "bigQueryTablesNotReadAtLimit"
@@ -277,6 +283,46 @@ export const SCAN_WARNINGS: Readonly<
   databaseCouldNotSampleTable: {
     english: translationKey("Could not sample {{table}}: {{error}}"),
     values: { table: NAME, error: TEXT },
+  },
+
+  /*
+   * A search cluster's content scan, on a worker or a probe
+   * (Content/SearchStoreSampler, #11140). An index that could not be read
+   * says so as a table does ("Could not sample {{table}}: ...").
+   */
+  searchCouldNotListIndices: {
+    english: translationKey("Could not list the indices: {{error}}"),
+    values: { error: TEXT },
+  },
+  searchIndicesNotSampled: {
+    english: translationKey(
+      "{{count}} indices were not sampled: the scan reads at most {{max}} indices.",
+    ),
+    values: { count: COUNT, max: COUNT },
+  },
+  searchTimeLimitAfterIndices: {
+    english: translationKey(
+      "The scan reached its time limit after {{read}} of {{total}} indices.",
+    ),
+    values: { read: COUNT, total: COUNT },
+  },
+  searchBytesAfterIndices: {
+    english: translationKey(
+      "The scan read its {{bytes}} bytes after {{read}} of {{total}} indices.",
+    ),
+    values: { bytes: COUNT, read: COUNT, total: COUNT },
+  },
+  searchFailuresInARow: {
+    english: translationKey(
+      "The scan stopped after {{count}} indices in a row could not be read.",
+    ),
+    values: { count: COUNT },
+  },
+  searchExposureNotChecked: {
+    english: translationKey(
+      "Whether it answers without credentials was not checked: {{error}}",
+    ),
+    values: { error: TEXT },
   },
 
   /*

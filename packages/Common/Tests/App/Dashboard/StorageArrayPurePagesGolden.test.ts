@@ -46,7 +46,10 @@ import {
   loadStorageArrayLatency,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayReadings";
 import { getStorageArrayPartRoutes } from "../../../../App/FeatureSet/Dashboard/src/Components/StorageArray/Part/StorageArrayPartRoutes";
-import { isLaterSystem } from "../../Helpers/StorageArray/PureSlice";
+import {
+  isLaterMetricName,
+  isLaterSystem,
+} from "../../Helpers/StorageArray/PureSlice";
 
 /*
  * WHAT A PURE STORAGE ARRAY'S PAGES ARE TOLD ABOUT ITS PLATFORM, PINNED
@@ -220,7 +223,12 @@ async function computeGolden(): Promise<JSONObject> {
           arrayName: "fa-prod-01",
         }),
       ),
-      alertMetricNames: getAlertMetricNames(system),
+      // Pure's own: an unknown platform also gets a later platform's (#11004).
+      alertMetricNames: getAlertMetricNames(system).filter(
+        (metricName: string): boolean => {
+          return !isLaterMetricName(metricName);
+        },
+      ),
       insightsSections: asJson(sections),
       insightsQueries: asJson(
         sections.map((section: InsightsSection): unknown => {

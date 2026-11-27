@@ -12,6 +12,7 @@ import { Redis as RedisClient } from "ioredis";
 import path from "path";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import type {
   ReplicaAnswer,
   ReplicaCommand,
@@ -159,12 +160,26 @@ function describePost(text: string): string {
     return "Incident Created";
   }
 
+  // A maintenance event's and an on-call policy's (#11223, #11224).
+  if (text.includes("Scheduled Maintenance SM-5 Created")) {
+    return "Maintenance Created";
+  }
+
+  if (text.includes("On-Call Policy Created")) {
+    return "Policy Created";
+  }
+
   if (text.includes("Incident Commander")) {
     return "Incident Commander";
   }
 
   if (text.includes("Added team") && text.includes("Platform")) {
     return "Platform added";
+  }
+
+  // A person made an owner: the record's creator, or someone on another server.
+  if (text.includes("Added") && text.includes("as the owner")) {
+    return "owner added";
   }
 
   if (text.includes("Valeria posted a note")) {
@@ -456,10 +471,15 @@ async function deleteTheLines(): Promise<void> {
   }
 }
 
-// The incident's line in Valkey, as its hash holds it: {} once it is gone.
-async function theLine(): Promise<Record<string, string>> {
+/*
+ * A record's line in Valkey, as its hash holds it: {} once it is gone. The
+ * incident's, or another kind's by the field that names it.
+ */
+async function theLine(
+  field: string = "incidentId",
+): Promise<Record<string, string>> {
   const lines: Array<string> = (
-    await inspector.keys(`${KEY_PREFIX}incidentId:*`)
+    await inspector.keys(`${KEY_PREFIX}${field}:*`)
   ).filter((key: string): boolean => {
     return !key.includes(":claim:");
   });
@@ -467,10 +487,10 @@ async function theLine(): Promise<Record<string, string>> {
   return lines[0] ? await inspector.hgetall(lines[0]) : {};
 }
 
-// The claims of the incident's messages: which server posts each.
-async function theClaims(): Promise<Array<string>> {
+// The claims of a record's messages: which server posts each.
+async function theClaims(field: string = "incidentId"): Promise<Array<string>> {
   const claims: Array<string> = await inspector.keys(
-    `${KEY_PREFIX}incidentId:*:claim:*`,
+    `${KEY_PREFIX}${field}:*:claim:*`,
   );
 
   return claims.length > 0
@@ -944,5 +964,169 @@ describe("a server killed outright loses none of the messages it held (#11235)",
     expect(claims).toHaveLength(2);
     expect(claims).toContain(line["by:1"]);
     expect(new Set(claims).size).toBe(2);
+  });
+});
+
+/*
+ * A MAINTENANCE EVENT'S OWNER LINES (#11223) AND A NEW ON-CALL POLICY'S
+ * CREATOR (#11224), ACROSS SERVERS.
+ *
+ * A maintenance event's owner changes are posted now, and an on-call
+ * policy is announced once its create has returned, after its creator is
+ * its owner. Their lines take their place in the same line in Valkey as an
+ * incident's messages: whichever server makes them, they follow the
+ * record's Created message in the order they were made, each once, and a
+ * server killed outright loses none of them (#11198, #11235).
+ */
+describe("a maintenance event's and an on-call policy's owner lines, across servers (#11223, #11224)", () => {
+  const MAINTENANCE_LINE: string = "scheduledMaintenanceId";
+  const POLICY_LINE: string = "onCallDutyPolicyId";
+
+  test("REGRESSION (#11223): an owner added on another server while a maintenance event is created follows Scheduled Maintenance Created, as do the owners its form picked, each once", async () => {
+    const [creating, other] = await startServers(["A", "B"], {
+      eventType: NotificationRuleEventType.ScheduledMaintenance,
+    });
+
+    // A's create chain runs, and waits at its first state.
+    const created: Promise<JSONObject> = creating!.ask(
+      "createScheduledMaintenance",
+      { pauseAtFirstState: true },
+    );
+    await creating!.paused();
+
+    // Ravi is made an owner on the other server, as the event's page opens there.
+    await other!.ask("addOwner", { kind: "scheduledMaintenance" });
+
+    await pause(500);
+    expect(slack.said()).toEqual([]);
+
+    await creating!.ask("resume");
+    await created;
+    await slack.waitFor(3);
+    await other!.ask("drained", { kind: "scheduledMaintenance" });
+    await pause(200);
+
+    expect(slack.said()).toEqual([
+      "A: Maintenance Created",
+      "B: owner added",
+      "A: Platform added",
+    ]);
+    expect(
+      slack.posts.every((post: Post): boolean => {
+        return post.channel === "C0EXIST";
+      }),
+    ).toBe(true);
+    expect(await theLine(MAINTENANCE_LINE)).toEqual({});
+  });
+
+  test("REGRESSION (#11223): the other server is killed while its maintenance owner line waits: the creating server posts it, in its turn, once", async () => {
+    const STALLED_MS: number = 1500;
+    const [creating, other] = await startServers(["A", "B"], {
+      eventType: NotificationRuleEventType.ScheduledMaintenance,
+      stalledAfterMs: STALLED_MS,
+    });
+
+    const created: Promise<JSONObject> = creating!.ask(
+      "createScheduledMaintenance",
+      { pauseAtFirstState: true },
+    );
+    await creating!.paused();
+
+    // Its line takes the first place in the line, with what it says - then it is gone.
+    await other!.ask("addOwner", { kind: "scheduledMaintenance" });
+    expect((await theLine(MAINTENANCE_LINE))["message:1"]).toContain(
+      "as the owner",
+    );
+    await other!.kill();
+
+    await creating!.ask("resume");
+    await created;
+    await slack.waitFor(3, 30_000);
+    await creating!.ask("drained", { kind: "scheduledMaintenance" });
+    await pause(500);
+
+    expect(slack.said()).toEqual([
+      "A: Maintenance Created",
+      "A: owner added",
+      "A: Platform added",
+    ]);
+  });
+
+  test("REGRESSION (#11224): an on-call policy's creator, made its owner as the create returns, and an owner added on another server meanwhile, follow On-Call Policy Created, each once", async () => {
+    const [creating, other] = await startServers(["A", "B"], {
+      eventType: NotificationRuleEventType.OnCallDutyPolicy,
+    });
+
+    /*
+     * A's create returns, and its announcement waits for the owners added
+     * outside its rules: it pauses there, before "On-Call Policy Created".
+     */
+    const created: Promise<JSONObject> = creating!.ask("createOnCallPolicy", {
+      pauseBeforeCreated: true,
+    });
+    await creating!.paused();
+
+    // The create has returned: its creator is its owner, and their line has its place.
+    await waitUntil("the creator's line has its ticket", async () => {
+      return Number((await theLine(POLICY_LINE))["tickets"] || 0) >= 1;
+    });
+
+    // Then Ravi is made an owner on the other server.
+    await other!.ask("addOwner", { kind: "onCallPolicy" });
+
+    await pause(500);
+    expect(slack.said()).toEqual([]);
+
+    await creating!.ask("resume");
+    await created;
+    await slack.waitFor(3);
+    await other!.ask("drained", { kind: "onCallPolicy" });
+    await pause(200);
+
+    expect(slack.said()).toEqual([
+      "A: Policy Created",
+      "A: owner added",
+      "B: owner added",
+    ]);
+    expect(await theLine(POLICY_LINE)).toEqual({});
+  });
+
+  test("REGRESSION (#11224): the server announcing an on-call policy is killed while its creator's line waits: the other server posts it, once the hold has run out", async () => {
+    const HELD_MS: number = 3000;
+    const STALLED_MS: number = 1500;
+    const [creating, other] = await startServers(["A", "B"], {
+      eventType: NotificationRuleEventType.OnCallDutyPolicy,
+      heldForAtMostMs: HELD_MS,
+      releasedForAtMostMs: 30_000,
+      stalledAfterMs: STALLED_MS,
+    });
+
+    void creating!
+      .ask("createOnCallPolicy", { pauseBeforeCreated: true })
+      .catch((): void => {
+        // It is killed below.
+      });
+    await creating!.paused();
+    const heldFrom: number = Date.now();
+
+    // The creator's line has its place in the line, with what it says.
+    await waitUntil(
+      "the creator's line is stored with its ticket",
+      async () => {
+        return Boolean((await theLine(POLICY_LINE))["message:1"]);
+      },
+    );
+
+    // Killed with the policy unannounced: "On-Call Policy Created" never goes out.
+    await creating!.kill();
+
+    await slack.waitFor(1, 40_000);
+    await pause(1000);
+
+    // The other server, with no message of its own in the line, posts it.
+    expect(slack.said()).toEqual(["B: owner added"]);
+    expect(other!.heardAt[0]! - heldFrom).toBeGreaterThanOrEqual(
+      HELD_MS - 1000,
+    );
   });
 });

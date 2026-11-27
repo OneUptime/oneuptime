@@ -120,6 +120,10 @@ const SOURCES: Record<string, string> = {
   summaryTeamsTeam: `${DASHBOARD}/Components/Workspace/WorkspaceSummaryTeamsTeam.ts`,
   ruleTestChannel: `${DASHBOARD}/Components/Workspace/WorkspaceRuleTestChannel.ts`,
   ruleService: "Common/Server/Services/WorkspaceNotificationRuleService.ts",
+  scheduledMaintenanceService:
+    "Common/Server/Services/ScheduledMaintenanceService.ts",
+  monitorService: "Common/Server/Services/MonitorService.ts",
+  onCallPolicyService: "Common/Server/Services/OnCallDutyPolicyService.ts",
   planLeftoverCopy: `${DASHBOARD}/Components/Billing/PlanLeftoverCopy.ts`,
   planLeftoverGate: `${DASHBOARD}/Components/Workspace/WorkspacePlanLeftoverGate.tsx`,
   slackCard: `${DASHBOARD}/Components/Slack/SlackIntegration.tsx`,
@@ -1064,6 +1068,41 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
    * channel and when the channel is created, as the form asks it and the
    * server does it.
    */
+  it("matches a new record on the owners it is created with, its creator's among them, for each kind the pages name (#11188, #11224)", () => {
+    for (const page of CHAT_PAGES) {
+      expect(englishPage(page)).toContain(
+        "A new incident, alert, episode, maintenance event, monitor or on-call policy is matched on the owners and labels it is created with, whoever adds them — its form, its owner and label rules, the person who created it,",
+      );
+    }
+
+    // Each kind whose creator is made its owner as its create returns says so, and is waited for.
+    for (const name of [
+      "scheduledMaintenanceService",
+      "monitorService",
+      "onCallPolicyService",
+    ]) {
+      expect({
+        name,
+        waitsForItsCreator: readSource(name).includes(
+          "CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);",
+        ),
+      }).toEqual({ name, waitsForItsCreator: true });
+    }
+
+    /*
+     * An on-call policy is announced once its create has returned, after
+     * the wait - not inside its create hook, before its creator is its owner.
+     */
+    const policy: string = readSource("onCallPolicyService");
+
+    expect(policy).toContain(
+      "void this.announceCreatedPolicy(onCreate, createdItem);",
+    );
+    expect(policy).toContain(
+      "eventType: NotificationRuleEventType.OnCallDutyPolicy,",
+    );
+  });
+
   it("says who joins a rule's channel, and when the channel is created", () => {
     const copy: string = readSource("ruleCopy");
     const slack: string = englishPage(SLACK);
