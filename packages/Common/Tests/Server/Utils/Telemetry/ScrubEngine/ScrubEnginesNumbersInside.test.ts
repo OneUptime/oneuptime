@@ -31,6 +31,8 @@ import ObjectID from "../../../../../Types/ObjectID";
 import { SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE } from "../../../../../Types/Telemetry/ScrubRuleKeys";
 import TraceScrubField from "../../../../../Types/Trace/TraceScrubField";
 import { findSensitiveValues } from "../../../../../Utils/DataSecurity/TextScanner";
+import PatternWorkScope from "../../../../../Server/Utils/PatternWorkScope";
+import { PatternWorkAllowance } from "../../../../../Utils/LinearRegExp/PatternWork";
 
 /*
  * ---------------------------------------------------------------------------
@@ -551,6 +553,37 @@ describe("a Custom Regex rule reads a list or a map as its JSON text too (#11502
     expect(
       scrubbedAttributes({ map: { token1: "token22", other: "x" } }, rule),
     ).toEqual({ map: { token1: "[REDACTED]", other: "x" } });
+  });
+
+  /*
+   * A pattern that cannot answer for the JSON text - the batch's work
+   * allowance spent - would be taken as holding all of it, numbers and
+   * all: each text is read alone then, as before, and scrubbed whole,
+   * the list's shape and numbers kept.
+   */
+  test("with the batch's work allowance spent, each text is scrubbed whole and the numbers kept, as before", () => {
+    const rule: CompiledScrubRule = logRule(
+      LogScrubPatternType.Custom,
+      LogScrubAction.Redact,
+      { customRegex: "SECRET-[A-Z]+" },
+    );
+    const allowance: PatternWorkAllowance = new PatternWorkAllowance({
+      pool: 0,
+    });
+
+    allowance.charge(1);
+
+    expect(
+      PatternWorkScope.run(allowance, (): JSONObject => {
+        return scrubbedAttributes(
+          { args: ["--key", "SECRET-ABC", 3, ["x"]], map: { pin: 1234 } },
+          rule,
+        );
+      }),
+    ).toEqual({
+      args: ["[REDACTED]", "[REDACTED]", 3, ["[REDACTED]"]],
+      map: { pin: 1234 },
+    });
   });
 });
 

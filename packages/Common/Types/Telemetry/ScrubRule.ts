@@ -37,7 +37,10 @@ import {
   PatternProblemError,
   PatternWorkLimitError,
 } from "../../Utils/LinearRegExp/PatternProblem";
-import { patternWorkRefusesQuestions } from "../../Utils/LinearRegExp/PatternWork";
+import {
+  getStoppedPatternQuestions,
+  patternWorkRefusesQuestions,
+} from "../../Utils/LinearRegExp/PatternWork";
 import {
   SCRUB_HASH_TOKEN_HEX_LENGTH,
   SCRUB_HASH_TOKEN_PREFIX,
@@ -832,17 +835,24 @@ class ReadingsScrubRegExp implements ScrubRegExp {
   public underKey(_key: string, value: unknown): ScrubRegExp {
     const stored: StoredText | null = readStoredText(value);
 
-    if (!stored) {
+    /*
+     * Where the pattern cannot answer for the JSON text - the batch's work
+     * allowance is spent, or the question stops at its limit - it would be
+     * taken as holding the whole text, numbers and all: each text is read
+     * alone then, as before, and scrubbed whole, its numbers kept.
+     */
+    if (!stored || patternWorkRefusesQuestions(stored.text)) {
       return this;
     }
 
+    const stoppedBefore: number = getStoppedPatternQuestions();
     const found: Array<TextRange> = this.matchRanges(stored.text).filter(
       ([start, end]: TextRange): boolean => {
         return end > start;
       },
     );
 
-    if (found.length === 0) {
+    if (found.length === 0 || getStoppedPatternQuestions() !== stoppedBefore) {
       return this;
     }
 
