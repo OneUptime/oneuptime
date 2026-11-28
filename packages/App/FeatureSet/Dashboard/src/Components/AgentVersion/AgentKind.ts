@@ -230,9 +230,9 @@ export const VMWARE_AGENT_VERSION: string = "0.165.0";
  * number raised when the files change on the same collector: 0.165.1, the
  * agent runs Dell's PowerStore exporter and takes PowerStore's syslog
  * (#11002), runs NetApp Harvest for an ONTAP cluster (#11001), and polls a
- * PowerScale cluster's nodes over SNMP (#11003), all in one compose file. An
- * agent on 0.165.0's files can read none of those arrays, so it is told to
- * upgrade.
+ * PowerScale cluster's nodes over SNMP (#11003), all in one compose file,
+ * which reads the collector's container name from .env (#11168). An agent on
+ * 0.165.0's files can read none of those arrays, so it is told to upgrade.
  * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
  * files move on without this.
  */
@@ -246,8 +246,8 @@ export const STORAGE_ARRAY_AGENT_COLLECTOR_VERSION: string = "0.165.0";
  * its last number raised when the files change on the same collector:
  * 0.165.1, the AI agent the compose file can start beside the collector
  * (#10998), and a compose file that no longer warns that XO_ADDRESS is not
- * set. An agent on 0.165.0's files cannot start the AI agent, so it is told
- * to upgrade. AgentKind.test.ts and AgentFilesVersion.test.ts fail when the
+ * set and reads both containers' names from .env (#11168). An agent on
+ * 0.165.0's files cannot start the AI agent, so it is told to upgrade. AgentKind.test.ts and AgentFilesVersion.test.ts fail when the
  * agent's files move on without this.
  */
 export const XCP_NG_AGENT_VERSION: string = "0.165.1";
