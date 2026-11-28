@@ -1206,6 +1206,15 @@ used for needs, the app says - in its log, in Admin Dashboard > Settings >
 Call and SMS and in the server's sending status - and the account sends
 nothing until they are. Values are read through parentheses and defaults, so
 values from before twilio existed (helm upgrade --reuse-values) still render.
+
+twilio.callVoice, the voice the server's calls speak with (#11064), is a
+setting of its own, not one of the account's: rendered as
+GLOBAL_TWILIO_CALL_VOICE whenever it is set, with twilio.accountSid or
+without it - the voice applies whoever sets the account, the values or the
+Admin Dashboard - and never refused for an empty accountSid. Left empty, it
+renders nothing, as before, and the voice is chosen in the Admin Dashboard.
+Only a voice OneUptime offers gets through: values.schema.json lists them,
+as packages/Common/Types/Call/CallVoice.ts writes them.
 */}}
 {{- define "oneuptime.env.twilio" }}
 {{- $twilio := .Values.twilio | default dict }}
@@ -1259,6 +1268,12 @@ values from before twilio existed (helm upgrade --reuse-values) still render.
 
 - name: GLOBAL_TWILIO_SMS_PHONE_NUMBERS
   value: {{ include "oneuptime.envValue" $twilio.smsPhoneNumbers }}
+{{- end }}
+{{- $callVoice := trim (toString (default "" $twilio.callVoice)) }}
+{{- if $callVoice }}
+
+- name: GLOBAL_TWILIO_CALL_VOICE
+  value: {{ include "oneuptime.envValue" $twilio.callVoice }}
 {{- end }}
 {{- end }}
 

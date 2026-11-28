@@ -894,6 +894,40 @@ extraEnv:
     value: "0"
 ```
 
+## SMS and calls (Twilio)
+
+The Twilio account the server sends SMS and makes calls with, for projects that
+have no Twilio account of their own, is set up in Admin Dashboard > Settings >
+Call and SMS. These values set it instead, so a new cluster comes up sending:
+once `twilio.accountSid` is set, the account is the one they describe, and the
+Admin Dashboard shows it read-only. The chart refuses the other account values
+without `twilio.accountSid`. `twilio.callVoice` is a setting of its own, read
+with the account's values or without them: it sets the voice the server's calls
+speak with, whoever sets the account, and the chart's schema takes only one of
+OneUptime's voices. A call to someone who reads OneUptime in another language
+speaks it, in a voice of that language of the same kind. See
+[Twilio Integration](https://oneuptime.com/docs/self-hosted/twilio-integration).
+
+| Parameter                      | Description                                                                                       | Default |
+|--------------------------------|---------------------------------------------------------------------------------------------------|---------|
+| `twilio.accountSid`            | The Account SID (it starts with `AC`). Setting it makes OneUptime read the account's other values.  | `nil`   |
+| `twilio.authToken`             | The account's auth token. Or leave it empty and name a Secret in `twilio.existingSecret.name`.   | `nil`   |
+| `twilio.existingSecret.name`   | A Secret of your own that holds the auth token, under `twilio.existingSecret.authTokenKey`.      | `nil`   |
+| `twilio.usedFor`               | `calls-and-sms` (what empty means), `sms-only` or `calls-only`.                                  | `nil`   |
+| `twilio.primaryPhoneNumber`    | The number calls go out from, with its country code, quoted: `"+14155550100"`.                     | `nil`   |
+| `twilio.secondaryPhoneNumbers` | More numbers, comma-separated, used for recipients in their countries.                            | `nil`   |
+| `twilio.smsPhoneNumbers`       | The numbers every SMS goes out from, comma-separated. Required for `sms-only`.                    | `nil`   |
+| `twilio.callVoice`             | The voice calls speak with: `Polly.Joanna-Neural`, `Polly.Matthew-Neural`, `Polly.Amy-Neural`, `Polly.Brian-Neural`, `Google.en-US-Neural2-F` or `Google.en-US-Neural2-J`. Twilio charges the account extra for them. Empty leaves the voice to the Admin Dashboard. | `nil`   |
+
+```yaml
+twilio:
+  accountSid: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  primaryPhoneNumber: "+14155550100"
+  existingSecret:
+    name: oneuptime-twilio
+  callVoice: Polly.Joanna-Neural
+```
+
 ## Web push notifications
 
 Browsers receive OneUptime's notifications through Web Push, signed with a

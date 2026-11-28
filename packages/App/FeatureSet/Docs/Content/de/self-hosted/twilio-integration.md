@@ -66,6 +66,7 @@ Eine neue Installation kann mit funktionierenden SMS und Anrufen starten, ohne d
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | Die Nummer, von der Anrufe ausgehen, mit Landesvorwahl. Für `sms-only` nicht nötig |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Optional, durch Kommas getrennt: Nummern, die für Empfänger in ihrem Land statt der primären verwendet werden |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Durch Kommas getrennte Nummern, von denen jede SMS ausgeht. Für `sms-only` erforderlich |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Optional: die Stimme, mit der Anrufe sprechen, eine der Stimmen unter [Die Stimme, mit der Anrufe sprechen](#die-stimme-mit-der-anrufe-sprechen). Sie wird mit oder ohne `GLOBAL_TWILIO_ACCOUNT_SID` gelesen, und solange sie gesetzt ist, zeigt **Stimme für Anrufe** im Admin Dashboard sie schreibgeschützt an |
 
 Mit Helm setzen Sie sie unter `twilio` in Ihren Values. Damit das Auth Token nicht in den Values steht, die Helm mit jedem Release speichert, legen Sie es in einem eigenen Secret ab und nennen dieses Secret in `twilio.existingSecret.name`:
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Setzen Sie Telefonnummern in einer Values-Datei in Anführungszeichen und übergeben Sie sie mit `--set-string` statt mit `--set`: Ohne Anführungszeichen ist `+14155550100` eine Zahl, die das Chart ablehnt. Das Chart lehnt außerdem andere `twilio`-Werte ohne `twilio.accountSid` ab, eine Account SID ohne Auth Token und ein Auth Token, das sowohl in `twilio.authToken` als auch in einem Secret angegeben ist. Mit Terraform setzen Sie dieselben Werte an einem `helm_release`, das Auth Token als sensiblen Wert.
+Setzen Sie Telefonnummern in einer Values-Datei in Anführungszeichen und übergeben Sie sie mit `--set-string` statt mit `--set`: Ohne Anführungszeichen ist `+14155550100` eine Zahl, die das Chart ablehnt. Das Chart lehnt außerdem andere `twilio`-Werte ohne `twilio.accountSid` ab (alle außer `twilio.callVoice`, der die Stimme festlegt, gleich, wer das Konto festlegt), eine Account SID ohne Auth Token, ein Auth Token, das sowohl in `twilio.authToken` als auch in einem Secret angegeben ist, und einen `twilio.callVoice`, der keine der Stimmen ist. Mit Terraform setzen Sie dieselben Werte an einem `helm_release`, das Auth Token als sensiblen Wert.
 
 Mit Docker Compose setzen Sie die `GLOBAL_TWILIO_`-Einstellungen in `config.env` und führen dann `npm run start` aus, um die Container neu zu erstellen.
 
-OneUptime liest die Variablen beim Start. Ist eine davon falsch, etwa eine Telefonnummer, die OneUptime nicht lesen kann, oder ein fehlendes Auth Token, sendet das Konto keine SMS und tätigt keine Anrufe, bis das behoben ist; das Log des Servers, **Admin Dashboard > Einstellungen > Anrufe und SMS** und die Checkliste unter `/admin/setup` nennen die Variable. Das Auth Token wird nie angezeigt. Um das Konto zu ändern, ändern Sie die Variablen und starten OneUptime neu: Das Admin Dashboard ändert es nicht.
+OneUptime liest die Variablen beim Start. Ist eine davon falsch, etwa eine Telefonnummer, die OneUptime nicht lesen kann, oder ein fehlendes Auth Token, sendet das Konto keine SMS und tätigt keine Anrufe, bis das behoben ist; das Log des Servers, **Admin Dashboard > Einstellungen > Anrufe und SMS** und die Checkliste unter `/admin/setup` nennen die Variable. Eine `GLOBAL_TWILIO_CALL_VOICE`, die keine Stimme nennt, die OneUptime anbietet, verhindert keinen Anruf: Anrufe sprechen mit der Standardstimme des Kontos, bis sie korrigiert ist, und dieselben drei Stellen nennen sie. Das Auth Token wird nie angezeigt. Um das Konto zu ändern, ändern Sie die Variablen und starten OneUptime neu: Das Admin Dashboard ändert es nicht.
 
 ### Projektkonfigurationen mit Terraform verwalten
 
@@ -149,7 +150,7 @@ Statusseiten bieten nur die Konfigurationen an, die SMS senden, und **Test-SMS s
 
 ### Die Stimme, mit der Anrufe sprechen
 
-Anrufe sprechen mit der Stimme, die Ihr Twilio-Konto standardmäßig verwendet: der kostenlosen Basic-Stimme von Twilio, sofern Sie in der Twilio Console keine andere gewählt haben. Laut Twilio sind die Basic-Stimmen nicht für den Produktiveinsatz gedacht, daher kann jedes Konto stattdessen mit einer dieser neuronalen Stimmen sprechen. Die Stimme des installationsweiten Kontos wählen Sie in der Karte **Stimme für Anrufe** unter **Admin Dashboard > Einstellungen > Anrufe und SMS**, die einer Projektkonfiguration in **Stimme für Anrufe** unter **Weitere Felder**.
+Anrufe sprechen mit der Stimme, die Ihr Twilio-Konto standardmäßig verwendet: der kostenlosen Basic-Stimme von Twilio, sofern Sie in der Twilio Console keine andere gewählt haben. Laut Twilio sind die Basic-Stimmen nicht für den Produktiveinsatz gedacht, daher kann jedes Konto stattdessen mit einer dieser neuronalen Stimmen sprechen. Die Stimme des installationsweiten Kontos wählen Sie in der Karte **Stimme für Anrufe** unter **Admin Dashboard > Einstellungen > Anrufe und SMS**, die einer Projektkonfiguration in **Stimme für Anrufe** unter **Weitere Felder**. Um die Stimme des installationsweiten Kontos per Code festzulegen, verwenden Sie `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` mit Helm): siehe [Das installationsweite Konto über Umgebungsvariablen festlegen](#das-installationsweite-konto-über-umgebungsvariablen-festlegen).
 
 | Stimme | Anbieter | Wie sie klingt |
 | --- | --- | --- |
@@ -160,7 +161,37 @@ Anrufe sprechen mit der Stimme, die Ihr Twilio-Konto standardmäßig verwendet: 
 | `Google.en-US-Neural2-F` | Google | Amerikanisches Englisch, weibliche Stimme |
 | `Google.en-US-Neural2-J` | Google | Amerikanisches Englisch, männliche Stimme |
 
-Jeder Anruf über das Konto spricht mit dieser Stimme: Bereitschaftsanrufe und die Antwort auf die gedrückte Taste, die auf der Mailbox hinterlassene Nachricht, Verifizierungscodes, **Testanruf senden** und die Begrüßungen einer Richtlinie für eingehende Anrufe. Mit diesen Stimmen wird eine Nummer wie `INC-42` per SSML buchstabiert, was natürlicher klingt als die durch Leerzeichen getrennten Buchstaben, die andere Stimmen erhalten. Twilio berechnet diese Stimmen dem Konto, das den Anruf tätigt: $0.0032 pro 100 Zeichen im November 2026, weniger als 2 US-Cent für den Anruf einer Alarmierung. Siehe [Twilios Preise für Sprachanrufe](https://www.twilio.com/en-us/voice/pricing/us). Lassen Sie **Stimme für Anrufe** leer, um die Standardstimme des Kontos zu behalten. Über die API und Terraform ist die Stimme das Feld `twilioCallVoice`, und eine Stimme, die nicht in der Tabelle steht, wird abgelehnt.
+Jeder Anruf über das Konto spricht mit dieser Stimme: Bereitschaftsanrufe und die Antwort auf die gedrückte Taste, die auf der Mailbox hinterlassene Nachricht, Verifizierungscodes, **Testanruf senden** und die Begrüßungen einer Richtlinie für eingehende Anrufe. Mit diesen Stimmen wird eine Nummer wie `INC-42` per SSML buchstabiert, was natürlicher klingt als die durch Leerzeichen getrennten Buchstaben, die andere Stimmen erhalten. Twilio berechnet diese Stimmen dem Konto, das den Anruf tätigt: $0.0032 pro 100 Zeichen im November 2026, weniger als 3 US-Cent für den Anruf einer Alarmierung, in jeder Sprache. Siehe [Twilios Preise für Sprachanrufe](https://www.twilio.com/en-us/voice/pricing/us). Lassen Sie **Stimme für Anrufe** leer, um die Standardstimme des Kontos zu behalten. Über die API und Terraform ist die Stimme das Feld `twilioCallVoice`, und eine Stimme, die nicht in der Tabelle steht, wird abgelehnt.
+
+#### Anrufe in anderen Sprachen
+
+Ein Bereitschaftsanruf an jemanden, der OneUptime in einer anderen Sprache nutzt, ist in dieser Sprache, wenn das Konto mit einer der Stimmen oben spricht: Seine Worte sind in dieser Sprache geschrieben, und eine Stimme dieser Sprache spricht sie, eine Frauenstimme, wenn das Konto mit einer Frauenstimme spricht, und eine Männerstimme, wenn es mit einer Männerstimme spricht. Die Aufforderung, die Angaben, die wiederholt werden, wenn keine Taste gedrückt wird, die Antwort auf eine falsche Taste und die Antworten auf die Tasten sind alle in dieser Sprache, und die Tasten bleiben 1 und 2. Dies sind die Stimmen aus Twilios Liste der neuronalen Stimmen, geprüft am 27. November 2026; sie kosten so viel wie die Stimmen oben:
+
+| Sprache | Frauenstimme | Männerstimme |
+| --- | --- | --- |
+| Deutsch | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| Französisch | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Spanisch | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italienisch | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Portugiesisch | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Niederländisch | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Dänisch | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Norwegisch | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Schwedisch | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Russisch | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Japanisch | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Koreanisch | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Vereinfachtes Chinesisch | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Traditionelles Chinesisch | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Arabisch | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Persisch | Keine: Anrufe sind auf Englisch | Keine: Anrufe sind auf Englisch |
+
+Weder Amazon Polly noch Google hat eine persische Stimme, daher ist ein Anruf an jemanden, der OneUptime auf Persisch nutzt, auf Englisch, wie jeder Anruf über ein Konto, das seine Standardstimme behält, die nur Englisch spricht. Das Log eines Anrufs bewahrt, was der Anruf gesagt hat, in der Sprache, in der er es gesagt hat. Ein Verifizierungscode, **Testanruf senden** und die Begrüßungen einer Richtlinie für eingehende Anrufe sind auf Englisch.
+
+#### Projekte, die ihre eigene Stimme wählen
+
+Auf einer selbst gehosteten Installation kann ein Master-Administrator jedes Projekt die Stimme seiner Anrufe über das installationsweite Konto wählen lassen: Schalten Sie **Projekte ihre Stimme für Anrufe wählen lassen** in der Karte **Stimmen der Projekte** unter **Admin Dashboard > Einstellungen > Anrufe und SMS** ein. Ein **Projektinhaber** oder **Projektadministrator** wählt sie dann in der Karte **Stimme für Anrufe** in **Weitere Einstellungen** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle**, und ein Projekt, das keine wählt, spricht mit der Stimme der Installation. Twilio berechnet die Stimme jedes Projekts dem installationsweiten Konto, daher ist der Schalter anfangs aus, und wer ihn ausschaltet, setzt jedes Projekt wieder auf die Stimme der Installation zurück. OneUptime Cloud bietet das nicht an: Wählen Sie eine Stimme mit einer eigenen Projektkonfiguration. Über die API ist die Stimme das Feld `callVoice` des Projekts, das abgelehnt wird, solange der Schalter aus ist.
 
 ### Mailbox bei Bereitschaftsanrufen
 
@@ -241,7 +272,7 @@ Für die Entwicklung beschreibt Twilios [Anleitung zum Testen von Webhooks](http
 1. Prüfen Sie von außerhalb Ihres Firmennetzes und VPN, dass der Callback-Hostname zum öffentlichen Gateway auflöst und ein gültiges TLS-Zertifikat bereitstellt. Ein GET im Browser testet diese POST-Callbacks nicht.
 2. Verwenden Sie **Test-SMS senden** und **Testanruf senden** an der Twilio-Konfiguration des Projekts. Bestätigen Sie den Empfang auf dem Zieltelefon. Beides erfordert die Berechtigung, Twilio-Konfigurationen hinzuzufügen: **Projektinhaber**, **Projektadministrator** oder **Create Call and SMS** und **Read Call and SMS** in einer benutzerdefinierten Rolle.
 3. Richten Sie für den Benutzer einen verifizierten SMS- bzw. Anrufkontakt und Benachrichtigungsregeln ein und lösen Sie dann einen kontrollierten Bereitschaftsalarm aus. Drücken Sie 1 und prüfen Sie die Bestätigung in OneUptime. Wenn Sie Richtlinien für eingehende Anrufe nutzen, rufen Sie die konfigurierte Nummer an und prüfen Sie deren Weiterleitung und Anrufprotokoll.
-4. Prüfen Sie den Zustellungsstatus der SMS in OneUptime und in den Nachrichtenprotokollen von Twilio. Ein angenommener Versand ist kein Beweis für die Zustellung; [Twilio meldet spätere Statusänderungen über Callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+4. Prüfen Sie den Zustellungsstatus der SMS in OneUptime unter [Benachrichtigungsprotokolle](/docs/notifications/notification-logs) und in den Nachrichtenprotokollen von Twilio. Ein angenommener Versand ist kein Beweis für die Zustellung; [Twilio meldet spätere Statusänderungen über Callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
 | Symptom | Wo Sie nachsehen |

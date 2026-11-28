@@ -34,6 +34,26 @@
 #     new version: the way to mend a version whose assets no longer match
 #     what the registries read.
 #
+# 17.2.0 broke the same way after that fix had merged (#11016): its release
+# branch was cut before it, so both of its release runs ran the old script.
+# So a release is held to it further:
+#
+#   - every asset goes to this run's draft by the draft's id, never by its
+#     tag, and never over another: before each one the draft is read again,
+#     by its id, and ProviderRelease.js upload-plan refuses a release that is
+#     not a draft. `gh release upload <tag> --clobber` picks a published
+#     release of the tag over a draft when there are both, and replaced
+#     published assets when it did.
+#   - the signature is checked against the SHA256SUMS it was made for, by the
+#     key GoReleaser signed with, before anything is pushed.
+#   - the generator's .goreleaser.yml builds the same zips twice: GoReleaser
+#     stamped every file in a zip with when it was built or checked out, so
+#     a second build of the same commit, with the same Go and GoReleaser, made
+#     other zips (Core/TerraformProviderGenerator.ts).
+#   - after the release run and Republish a Terraform provider version
+#     publish, RegistryChecksums.js compares what the registries read with
+#     what the release serves, as `terraform init` does.
+#
 # Tests/Ops/TerraformProviderPublishedRelease.test.js runs this script against
 # a stand-in GitHub, git remote and GoReleaser.
 
@@ -988,7 +1008,34 @@ build_release_assets() {
         exit 1
     fi
 
+    verify_built_signature
+
     print_success "Built and signed ${#RELEASE_ASSETS[@]} release assets (not uploaded yet)"
+}
+
+# The signature GoReleaser made is a good signature of this build's
+# SHA256SUMS, by the key it was told to sign with: a registry refuses a
+# version whose signature does not verify, and the version is never
+# published again. gpg's status lines say it: VALIDSIG names the key's
+# fingerprint, whose last 16 digits are the key id GoReleaser signed with
+# (GPG_FINGERPRINT).
+verify_built_signature() {
+    local sums="$PROVIDER_FRAMEWORK_DIR/dist/terraform-provider-${PROVIDER_NAME}_${VERSION}_SHA256SUMS"
+    local signature="$sums.sig"
+    local status_lines verified=0
+
+    status_lines="$(gpg --batch --status-fd 1 --verify "$signature" "$sums" 2>/dev/null)" || verified=$?
+    if (( verified != 0 )) || ! grep -qE "^\[GNUPG:\] VALIDSIG " <<< "$status_lines"; then
+        print_error "$(basename "$signature") is not a good signature of the SHA256SUMS GoReleaser built with it. gpg said:"
+        print_error "${status_lines:-nothing}"
+        exit 1
+    fi
+    if ! grep -qE "^\[GNUPG:\] VALIDSIG .*${GPG_FINGERPRINT}( |$)" <<< "$status_lines"; then
+        print_error "$(basename "$signature") is signed by another key than $GPG_FINGERPRINT, the one GoReleaser was told to sign with. gpg said:"
+        print_error "$status_lines"
+        exit 1
+    fi
+    print_status "$(basename "$signature") is a good signature of this build's SHA256SUMS, by $GPG_FINGERPRINT"
 }
 
 # Function to push the local commit and tag. Only called after all release
@@ -1005,6 +1052,15 @@ push_repository_changes() {
     fi
 
     cd "$PROVIDER_FRAMEWORK_DIR"
+
+    # One more look before anything is pushed: the build takes most of an
+    # hour, and a version published meanwhile keeps its tag, and its
+    # provider's commit, where they are.
+    read_published_release "v$VERSION"
+    if [[ "$PUBLISHED" == true ]]; then
+        print_error "v$VERSION was published while this run built its assets. A published release is never changed: this run pushes and uploads nothing."
+        exit 1
+    fi
 
     if [[ -n "$REPUBLISH_FROM" ]]; then
         # Only the tag: the provider's main branch stays where it is.
@@ -1029,7 +1085,8 @@ push_repository_changes() {
     print_status "Pushing tag v$VERSION..."
     if [[ "$FORCE" == true ]] && git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
         # Force push the tag if it exists and force mode is enabled. Its
-        # release was never published: a published one stops the run first.
+        # release was never published: a published one stops the run first,
+        # and so does one published while it built (above).
         if ! git push -f "$PUSH_URL" "v$VERSION"; then
             print_error "Failed to force push tag v$VERSION"
             exit 1
@@ -1149,6 +1206,21 @@ list_drafts() {
     done <<< "$GH_STDOUT"
 }
 
+# Whether release $1 is a draft, as GitHub has it now, by its id, in
+# DRAFT_STATE: true, false, or gone (deleted meanwhile).
+read_draft_state() {
+    if gh_retrying "HTTP 404|Not Found" api "repos/$REPOSITORY/releases/$1" --jq '.draft'; then
+        DRAFT_STATE="$(tr -d '[:space:]' <<< "$GH_STDOUT")"
+        return 0
+    fi
+    if grep -qiE "HTTP 404|Not Found" <<< "$GH_STDERR$GH_STDOUT"; then
+        DRAFT_STATE="gone"
+        return 0
+    fi
+    print_error "Could not read release $1 of $REPOSITORY. GitHub said: $(gh_said)"
+    exit 1
+}
+
 # Makes v$VERSION's release as a draft, which no registry sees, in DRAFT_ID.
 # A draft an earlier run left is deleted first: it was never published, so
 # nothing has read it, and its assets may be from another build. They are
@@ -1172,6 +1244,16 @@ create_draft_release() {
     list_drafts
     local id
     for id in "${DRAFT_IDS[@]}"; do
+        # Read again, by its id, right before it goes: only a draft is ever
+        # deleted, and one published since it was listed is left as it is.
+        read_draft_state "$id"
+        if [[ "$DRAFT_STATE" == gone ]]; then
+            continue
+        fi
+        if [[ "$DRAFT_STATE" != true ]]; then
+            print_error "Release $id of v$VERSION was published while this run looked at it. A published release is never changed: this run uploads nothing."
+            exit 1
+        fi
         print_warning "Deleting draft $id of v$VERSION, which an earlier run left unpublished"
         if ! gh_retrying "HTTP 404|Not Found" api -X DELETE "repos/$REPOSITORY/releases/$id" && ! grep -qiE "HTTP 404|Not Found" <<< "$GH_STDERR$GH_STDOUT"; then
             print_error "Could not delete draft $id of v$VERSION. GitHub said: $(gh_said)"
@@ -1204,8 +1286,8 @@ create_draft_release() {
     print_success "Created draft $DRAFT_ID of GitHub release v$VERSION"
 }
 
-# Function to upload the pre-built GoReleaser assets to this run's draft: the
-# only release of the tag, so `gh release upload` finds it by the tag.
+# Function to upload the pre-built GoReleaser assets to this run's draft, by
+# its id, one at a time (upload_asset_to_draft).
 upload_release_assets() {
     if [[ "$DRY_RUN" == true ]]; then
         print_warning "DRY RUN: skipping release asset upload"
@@ -1231,20 +1313,93 @@ upload_release_assets() {
         exit 1
     fi
 
-    local file filename
+    local file
     for file in "${RELEASE_ASSETS[@]}"; do
-        filename=$(basename "$file")
-        print_status "Uploading $filename..."
-        # --clobber replaces only what this run uploaded to its own draft,
-        # when an attempt failed halfway.
-        if ! gh_retrying "" release upload "v$VERSION" "$file" --repo "$REPOSITORY" --clobber; then
-            print_error "Failed to upload $filename. GitHub said: $(gh_said)"
-            exit 1
-        fi
-        print_status "✓ Uploaded $filename"
+        upload_asset_to_draft "$file"
     done
 
     print_success "Uploaded ${#RELEASE_ASSETS[@]} release assets"
+}
+
+# Uploads one asset to this run's draft, never over another asset and never
+# to a release that is not a draft (#11016). Each attempt reads the draft
+# again, by its id, and asks ProviderRelease.js upload-plan what it takes:
+# `keep` (it is there already, the same bytes), `upload <url>`, or `replace
+# <asset id> <url>` for an upload of it that did not finish, which is deleted
+# by its id first. upload-plan refuses a release that is not a draft, and
+# then nothing is uploaded or deleted. The upload goes to the draft's own
+# upload URL, which names it by its id. An attempt that fails is followed by
+# another, 5, 15 and 30 seconds later, planned again from what GitHub holds.
+upload_asset_to_draft() {
+    local file="$1"
+    local filename
+    filename="$(basename "$file")"
+    local -a delays=(5 15 30)
+    local max_attempts=$(( ${#delays[@]} + 1 ))
+    local attempt=1
+    local plan action asset_id url status
+
+    print_status "Uploading $filename..."
+    while true; do
+        if ! gh_retrying "" api "repos/$REPOSITORY/releases/$DRAFT_ID"; then
+            print_error "Could not read draft $DRAFT_ID of v$VERSION. GitHub said: $(gh_said)"
+            exit 1
+        fi
+        printf '%s\n' "$GH_STDOUT" > "$WORK_DIR/draft.json"
+
+        status=0
+        plan="$(node "$RELEASE_HELPER" upload-plan "$WORK_DIR/draft.json" "$file")" || status=$?
+        if (( status == 1 )); then
+            print_error "Not uploading $filename to release $DRAFT_ID of v$VERSION: ${plan#refused }"
+            exit 1
+        fi
+        if (( status != 0 )); then
+            print_error "Could not tell what uploading $filename takes: $plan"
+            exit 1
+        fi
+        # The plan's last word is the file, which is $file.
+        read -r action asset_id url _ <<< "$plan"
+        if [[ "$action" == upload ]]; then
+            url="$asset_id"
+            asset_id=""
+        fi
+
+        status=0
+        case "$action" in
+            keep)
+                print_status "✓ $filename is on draft $DRAFT_ID already"
+                return 0
+                ;;
+            replace)
+                print_warning "Draft $DRAFT_ID holds an upload of $filename that did not finish, or other bytes (asset $asset_id): replacing it"
+                gh api -X DELETE "repos/$REPOSITORY/releases/assets/$asset_id" > "$WORK_DIR/gh.out" 2> "$WORK_DIR/gh.err" || status=$?
+                if (( status == 0 )); then
+                    gh api -X POST "$url" -H "Content-Type: application/octet-stream" --input "$file" > "$WORK_DIR/gh.out" 2> "$WORK_DIR/gh.err" || status=$?
+                fi
+                ;;
+            upload)
+                gh api -X POST "$url" -H "Content-Type: application/octet-stream" --input "$file" > "$WORK_DIR/gh.out" 2> "$WORK_DIR/gh.err" || status=$?
+                ;;
+            *)
+                print_error "Could not tell what uploading $filename takes: $plan"
+                exit 1
+                ;;
+        esac
+        if (( status == 0 )); then
+            print_status "✓ Uploaded $filename"
+            return 0
+        fi
+
+        GH_STDOUT="$(cat "$WORK_DIR/gh.out")"
+        GH_STDERR="$(cat "$WORK_DIR/gh.err")"
+        if (( attempt >= max_attempts )); then
+            print_error "Failed to upload $filename. GitHub said: $(gh_said)"
+            exit 1
+        fi
+        print_warning "Uploading $filename failed (attempt ${attempt} of ${max_attempts}); trying again in ${delays[attempt - 1]}s. GitHub said: $(gh_said)" >&2
+        sleep "${delays[attempt - 1]}"
+        attempt=$(( attempt + 1 ))
+    done
 }
 
 # Checks the draft against what was built, before anyone can see it: every

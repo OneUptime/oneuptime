@@ -27,6 +27,7 @@ import { ExpressRouter } from "../../../Server/Utils/Express";
 import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import {
   SERVER_TWILIO_ENVIRONMENT_ROUTE,
+  SERVER_TWILIO_CALL_VOICE_VARIABLE,
   SERVER_TWILIO_ENVIRONMENT_VARIABLES,
   ServerTwilioEnvironmentVariable,
 } from "../../../Types/CallAndSMS/ServerTwilioEnvironment";
@@ -128,6 +129,12 @@ function session(isMasterAdmin: boolean): JSONWebTokenData {
 
 const before: Record<string, string | undefined> = {};
 
+// The account's variables, and the voice's (#11064), which the route says too.
+const VARIABLES: Array<string> = [
+  ...SERVER_TWILIO_ENVIRONMENT_VARIABLES,
+  SERVER_TWILIO_CALL_VOICE_VARIABLE,
+];
+
 function setEnvironment(
   values: Partial<Record<ServerTwilioEnvironmentVariable, string>>,
 ): void {
@@ -166,7 +173,7 @@ describe("the server's Twilio account from environment variables, over HTTP", ()
   });
 
   beforeEach(() => {
-    for (const variable of SERVER_TWILIO_ENVIRONMENT_VARIABLES) {
+    for (const variable of VARIABLES) {
       before[variable] = process.env[variable];
       delete process.env[variable];
     }
@@ -181,7 +188,7 @@ describe("the server's Twilio account from environment variables, over HTTP", ()
   });
 
   afterEach(() => {
-    for (const variable of SERVER_TWILIO_ENVIRONMENT_VARIABLES) {
+    for (const variable of VARIABLES) {
       if (before[variable] === undefined) {
         delete process.env[variable];
       } else {
@@ -262,6 +269,9 @@ describe("the server's Twilio account from environment variables, over HTTP", ()
         secondaryPhoneNumbers: null,
         smsPhoneNumbers: null,
         problems: [],
+        isCallVoiceSetByEnvironment: false,
+        callVoice: null,
+        callVoiceProblem: null,
       });
       expect(result.raw).not.toContain(TOKEN);
     });
@@ -302,7 +312,54 @@ describe("the server's Twilio account from environment variables, over HTTP", ()
         secondaryPhoneNumbers: null,
         smsPhoneNumbers: null,
         problems: [],
+        isCallVoiceSetByEnvironment: false,
+        callVoice: null,
+        callVoiceProblem: null,
       });
+    });
+
+    test("the call voice GLOBAL_TWILIO_CALL_VOICE sets, beside the account (#11064)", async () => {
+      process.env[SERVER_TWILIO_CALL_VOICE_VARIABLE] = "Polly.Matthew-Neural";
+
+      const result: HttpResult = await request({ port: port });
+
+      expect(result.status).toBe(200);
+      expect(result.body?.["isSetByEnvironment"]).toBe(true);
+      expect(result.body?.["isCallVoiceSetByEnvironment"]).toBe(true);
+      expect(result.body?.["callVoice"]).toBe("Polly.Matthew-Neural");
+      expect(result.body?.["callVoiceProblem"]).toBe(null);
+      expect(result.raw).not.toContain(TOKEN);
+    });
+
+    test("the call voice without the account: no account, and the voice", async () => {
+      for (const variable of SERVER_TWILIO_ENVIRONMENT_VARIABLES) {
+        delete process.env[variable];
+      }
+      process.env[SERVER_TWILIO_CALL_VOICE_VARIABLE] = "Google.en-US-Neural2-J";
+
+      const result: HttpResult = await request({ port: port });
+
+      expect(result.status).toBe(200);
+      expect(result.body?.["isSetByEnvironment"]).toBe(false);
+      expect(result.body?.["problems"]).toEqual([]);
+      expect(result.body?.["isCallVoiceSetByEnvironment"]).toBe(true);
+      expect(result.body?.["callVoice"]).toBe("Google.en-US-Neural2-J");
+    });
+
+    test("a call voice OneUptime does not offer: set, no voice, and the problem by the variable's name - the account's problems untouched", async () => {
+      process.env[SERVER_TWILIO_CALL_VOICE_VARIABLE] = "Polly.Joanna";
+
+      const result: HttpResult = await request({ port: port });
+
+      expect(result.status).toBe(200);
+      expect(result.body?.["problems"]).toEqual([]);
+      expect(result.body?.["isCallVoiceSetByEnvironment"]).toBe(true);
+      expect(result.body?.["callVoice"]).toBe(null);
+      expect(result.body?.["callVoiceProblem"]).toEqual(
+        expect.stringMatching(
+          /^GLOBAL_TWILIO_CALL_VOICE: "Polly\.Joanna" is not a voice OneUptime offers/,
+        ),
+      );
     });
 
     test("variables set without the account SID: no account, and that nothing reads them", async () => {

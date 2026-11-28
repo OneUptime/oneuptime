@@ -37,6 +37,7 @@ Cherchez dans le tableau ci-dessous le message que Terraform a affiché, ou ce q
 | `Not an ID` | Faites référence à l'enregistrement au lieu de le nommer : voir [Un nom à la place d'un ID](#un-nom-à-la-place-dun-id) |
 | Du JSON du tableau de bord dans un fichier `.tf` | Écrivez-le en HCL : voir [Le JSON du tableau de bord](#le-json-du-tableau-de-bord) |
 | `no available releases match the given constraints` | Utilisez une plage de versions, pas une seule version exacte : voir [Une version jamais publiée](#une-version-jamais-publiée) |
+| `checksum list has unexpected SHA-256 hash` | Utilisez une autre version du fournisseur : voir [Une version dont les sommes de contrôle ne correspondent pas](#une-version-dont-les-sommes-de-contrôle-ne-correspondent-pas) |
 | `x509: certificate signed by unknown authority` | Faites confiance à votre autorité de certification : voir [Certificats](#certificats) |
 | `invalid character '<' looking for beginning of value` | Pointez `oneuptime_url` vers votre OneUptime lui-même : voir [Une page web au lieu de l'API](#une-page-web-au-lieu-de-lapi) |
 | `connection refused` ou `Client.Timeout exceeded` | Vérifiez l'adresse, le réseau et tout proxy : voir [Des connexions qui échouent](#des-connexions-qui-échouent) |
@@ -238,6 +239,14 @@ terraform {
 ```
 
 Sur un OneUptime auto-hébergé, plafonnez la plage à la version de votre OneUptime, comme le montre [Configuration auto-hébergée](/docs/terraform/self-hosted#choisir-la-version-du-fournisseur). [Utilisation du registre](/docs/terraform/registry#comment-les-versions-sont-numérotées) explique comment les versions sont numérotées.
+
+### Une version dont les sommes de contrôle ne correspondent pas
+
+`checksum list has unexpected SHA-256 hash` signifie que les fichiers que sert la publication de cette version ne sont pas ceux que le registre a lus quand la version a été publiée. Le registre garde les sommes de contrôle qu'il a lues alors, et `init` vérifie chaque téléchargement par rapport à elles. Les fichiers de 14.3.0, 16.0.0, 17.0.0, 17.1.0 et 17.2.0, et de certaines versions plus anciennes, de 11.x à 14.0.x, ont été construits et téléversés une seconde fois après que les registres les ont lus, donc `init` refuse ces versions sur toutes les plateformes, sous Terraform comme sous OpenTofu. Un fichier de verrouillage ne permet pas de passer outre : `init` compare la somme de contrôle du registre avec celle de la publication avant de lire le fichier de verrouillage.
+
+Utilisez une autre version : 17.3.0 ou plus récente, ou 15.0.0. Une plage qui autorise une version plus récente la prend avec `terraform init -upgrade`. Quand une telle version est publiée de nouveau, c'est comme la version de correctif suivante, par exemple 17.2.1 pour 17.2.0, avec le même fournisseur, et une plage qui autorise ce correctif le prend.
+
+Pour vérifier une version avant de l'utiliser, voir [Vérifier les sommes de contrôle d'une version](/docs/terraform/registry#vérifier-les-sommes-de-contrôle-dune-version).
 
 ## Se connecter à un OneUptime auto-hébergé
 

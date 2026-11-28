@@ -35,6 +35,9 @@ import {
 import CallLogService from "Common/Server/Services/CallLogService";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import ProjectCallVoice from "Common/Types/Call/ProjectCallVoice";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import OnCallKeypadToken, {
@@ -90,10 +93,15 @@ import {
   TRUNCATED_TEXT_NOTE_PLAIN,
 } from "Common/Utils/MessageFit";
 import {
+  SayRecordNumber,
+  getSayRecordNumber,
   getSpeechParts,
   isSsmlVoice,
   renderSpeechAsText,
 } from "Common/Utils/Call/CallSpeech";
+import { SpokenCall, getSpokenCalls } from "Common/Utils/Call/CallLanguage";
+import { getCallTranslator } from "Common/Server/Utils/ServerTranslation";
+import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
 import {
   CALL_KEYPAD_FINISH_ON_KEY,
   CALL_PROMPT_REPEATS,
@@ -105,7 +113,12 @@ import {
   SayParent,
   sayInto,
 } from "Common/Server/Utils/Call/CallTwimlSpeech";
-import { toCallVoiceValue } from "Common/Types/Call/CallVoice";
+import {
+  SpokenCallVoice,
+  getSpokenCallVoice,
+  toCallVoiceValue,
+  toSpokenCallVoiceValue,
+} from "Common/Types/Call/CallVoice";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
@@ -214,11 +227,21 @@ export function getCallGatewayMessage(callRequest: CallRequest): string {
  * prompt is left out, as for a gateway (getCallGatewayMessage).
  */
 export function getCallVoicemailWords(
-  callRequest: CallRequest,
+  // A call request, or the words alone of one way of speaking it (getSpokenCalls).
+  callRequest: CallRequest | CallRequestMessage,
   // The project's own number prefixes (CallService.getRecordNumberPrefixes).
   recordNumberPrefixes: ReadonlyArray<string> = [],
+  /*
+   * The language the words are written in (#11066): "#42" is said in its
+   * words - "Nummer 42". English's "number 42" without one.
+   */
+  language?: string | undefined,
 ): string {
   const sentences: Array<string> = [];
+  const sayNumber: SayRecordNumber | undefined =
+    language && language !== DEFAULT_READER_LANGUAGE
+      ? getSayRecordNumber(getCallTranslator(language))
+      : undefined;
 
   for (const item of callRequest.data || []) {
     if (typeof (item as Say).sayMessage !== "string") {
@@ -226,7 +249,7 @@ export function getCallVoicemailWords(
     }
 
     const sentence: string = renderSpeechAsText(
-      getSpeechParts(item as Say, recordNumberPrefixes),
+      getSpeechParts(item as Say, recordNumberPrefixes, sayNumber),
     ).trim();
 
     if (sentence) {
@@ -238,26 +261,37 @@ export function getCallVoicemailWords(
 }
 
 /*
- * The ways a call's TwiML is built, the first that builds: in the voice
- * chosen, its record numbers in SSML where the voice reads it; in the voice
- * chosen, its record numbers in spaced letters; in the account's default
- * voice, as every call was before voices could be chosen. A voice never
- * stops a call from being placed (#10948).
+ * The ways one version of a call's TwiML is built, the first that builds:
+ * in its voice, its record numbers in SSML where the voice reads it; in its
+ * voice, its record numbers in spaced letters; and - for English, which the
+ * account's default voice speaks - in that default voice, as every call was
+ * before voices could be chosen. A voice never stops a call from being
+ * placed (#10948): a call in another language that cannot be built in its
+ * voice is built in English (getSpokenCalls), never in the default voice,
+ * which would read its words as English (#11066).
  */
 const getSpeechAttempts: (
-  voice: string | undefined,
+  spoken: SpokenCall,
   recordNumberPrefixes: ReadonlyArray<string>,
 ) => Array<CallSpeechOptions> = (
-  voice: string | undefined,
+  spoken: SpokenCall,
   recordNumberPrefixes: ReadonlyArray<string>,
 ): Array<CallSpeechOptions> => {
   const attempts: Array<CallSpeechOptions> = [];
+  const voice: string | undefined = toSpokenCallVoiceValue(spoken.voice);
+  const isEnglish: boolean = spoken.language === DEFAULT_READER_LANGUAGE;
+
+  // "#42" in the words' own language: "number 42", "Nummer 42".
+  const sayNumber: CallSpeechOptions["sayNumber"] = isEnglish
+    ? undefined
+    : getSayRecordNumber(getCallTranslator(spoken.language));
 
   if (voice && isSsmlVoice(voice)) {
     attempts.push({
       voice: voice,
       recordNumberPrefixes: recordNumberPrefixes,
       isSsmlAllowed: true,
+      sayNumber: sayNumber,
     });
   }
 
@@ -266,17 +300,50 @@ const getSpeechAttempts: (
       voice: voice,
       recordNumberPrefixes: recordNumberPrefixes,
       isSsmlAllowed: false,
+      sayNumber: sayNumber,
     });
   }
 
-  attempts.push({
-    voice: undefined,
-    recordNumberPrefixes: recordNumberPrefixes,
-    isSsmlAllowed: false,
-  });
+  if (isEnglish) {
+    attempts.push({
+      voice: undefined,
+      recordNumberPrefixes: recordNumberPrefixes,
+      isSsmlAllowed: false,
+    });
+  }
 
   return attempts;
 };
+
+// A call's TwiML, and which of its words it speaks in which voice.
+export interface SpokenCallTwiml {
+  twiml: string;
+  spoken: SpokenCall;
+}
+
+export interface GenerateTwimlOptions {
+  /*
+   * The on-call notification the call is placed for: its keypad token
+   * names it (OnCallKeypadToken), and the keypad route takes a key only
+   * for that notification.
+   */
+  userOnCallLogTimelineId?: ObjectID | string | undefined;
+  /*
+   * The voice the account the call goes out on chose, from OneUptime's
+   * list (Types/Call/CallVoice): "Polly.Joanna-Neural", say. None - or one
+   * the list does not hold - is the Twilio account's default voice, which
+   * may read no SSML (Utils/Call/CallSpeech) and speaks English only. A
+   * call in its person's language speaks with that language's voice of
+   * the same kind (getSpokenCalls).
+   */
+  voice?: string | undefined;
+  /*
+   * The project's own number prefixes ("INC-", "#"): a number written
+   * with one is spelled wherever the call says it, a title or an
+   * owner's message included (getRecordNumberPrefixes).
+   */
+  recordNumberPrefixes?: ReadonlyArray<string> | undefined;
+}
 
 export default class CallService {
   public static async makeCall(
@@ -564,6 +631,8 @@ export default class CallService {
             notEnabledSmsOrCallNotificationSentToOwners: true,
             // Whether an on-call call asks who answered it (#6594).
             detectVoicemailOnCalls: true,
+            // The voice it chose for calls through the server's account (#11065).
+            callVoice: true,
             /*
              * Its record number prefixes: a number written with one is
              * spelled, wherever a call says it (getRecordNumberPrefixes).
@@ -817,14 +886,49 @@ export default class CallService {
           this.getRecordNumberPrefixes(project);
 
         /*
-         * The voice the call speaks with: the one chosen for the Twilio
-         * account it goes out on - the project's own config, or the
-         * server's (#10948) - or none, the account's default voice, as
-         * every call was before voices could be chosen.
+         * The voice chosen for the Twilio account the call goes out on -
+         * the project's own config, or the server's (#10948) - or, through
+         * the server's account, the project's own voice while the server
+         * lets projects choose one (#11065, getServerAccountCallVoice); or
+         * none, the account's default voice, as every call was before
+         * voices could be chosen.
          */
-        const voice: string | undefined = toCallVoiceValue(
-          twilioConfig?.callVoice,
+        const accountVoice: string | undefined = customTwilioConfig
+          ? toCallVoiceValue(twilioConfig?.callVoice)
+          : await this.getServerAccountCallVoice({
+              serverVoice: twilioConfig?.callVoice,
+              project: project,
+            });
+
+        /*
+         * The call's TwiML: in its person's language, by a voice of that
+         * language of the kind the account chose, when the call carries its
+         * words in one and the account chose a voice - else in English, as
+         * every call was (#11066, getSpokenCalls). A key the person presses
+         * is taken only for the notification this call is placed for
+         * (OnCallKeypadToken).
+         */
+        const built: SpokenCallTwiml = this.generateSpokenTwimlForCall(
+          callRequest,
+          {
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            recordNumberPrefixes: recordNumberPrefixes,
+            voice: accountVoice,
+          },
         );
+        const twiml: string = built.twiml;
+        const voice: string | undefined = built.spoken.voice;
+
+        // The call's log says what the call says: in the language it speaks.
+        if (!options.isSensitive && built.spoken.data !== callRequest.data) {
+          callLog.callData = {
+            ...((callLog.callData as unknown as Record<string, unknown>) || {}),
+            message: extractSayMessagesFromCallRequest({
+              ...callRequest,
+              data: built.spoken.data,
+            }),
+          } as any;
+        }
 
         if (voicemailCallbackUrl) {
           callLog.callData = {
@@ -832,13 +936,19 @@ export default class CallService {
             ...(options.isSensitive
               ? {}
               : {
+                  /*
+                   * What the call said and what to do, in the words and
+                   * the language the call spoke (#11066).
+                   */
                   [VOICEMAIL_MESSAGE_CALL_DATA_KEY]:
                     ProductBrandingText.brandText(
                       getVoicemailMessage(
                         getCallVoicemailWords(
-                          callRequest,
+                          { data: built.spoken.data },
                           recordNumberPrefixes,
+                          built.spoken.language,
                         ),
+                        built.spoken.language,
                       ),
                     ),
                 }),
@@ -846,16 +956,6 @@ export default class CallService {
             ...(voice ? { [VOICEMAIL_VOICE_CALL_DATA_KEY]: voice } : {}),
           } as any;
         }
-
-        /*
-         * A key the person presses is taken only for the notification this
-         * call is placed for (OnCallKeypadToken).
-         */
-        const twiml: string = this.generateTwimlForCall(callRequest, {
-          userOnCallLogTimelineId: options.userOnCallLogTimelineId,
-          recordNumberPrefixes: recordNumberPrefixes,
-          voice: voice,
-        });
 
         // Handed to Twilio from here on.
         hasReachedProvider = true;
@@ -890,7 +990,16 @@ export default class CallService {
           );
         }
 
-        callLog.status = CallStatus.Success;
+        /*
+         * Placed, and still ringing: Calling, until its status callback
+         * says how it ended (#11138) - Success once it is answered, or Missed
+         * Call, Busy, Voicemail, Error. A call Twilio cannot tell the end
+         * of - this server has no public host to be called back on - is
+         * Success already: nothing will move it on.
+         */
+        callLog.status = statusCallbackUrl
+          ? CallStatus.Calling
+          : CallStatus.Success;
         callLog.statusMessage = getCallIdStatusMessage(twillioCall.sid);
 
         logger.debug("Call ID: " + twillioCall.sid);
@@ -961,15 +1070,18 @@ export default class CallService {
 
     if (options.userOnCallLogTimelineId) {
       /*
-       * Placed is "Sent": how the call ended comes later, by its status
-       * callback. Written only while the page's timeline entry still says
-       * Sending (OnCallNotificationStatus): a call not answered or failed
-       * that the callback - which can land first - wrote there, or the
-       * person's acknowledgement, stays.
+       * Placed is "Sent" - Calling, or Success where nothing will say how
+       * it ended: how the call ended comes later, by its status callback.
+       * Written only while the page's timeline entry still says Sending
+       * (OnCallNotificationStatus): a call not answered or failed that the
+       * callback - which can land first - wrote there, or the person's
+       * acknowledgement, stays.
        */
       await recordSendResult({
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
-        isSent: callLog.status === CallStatus.Success,
+        isSent:
+          callLog.status === CallStatus.Calling ||
+          callLog.status === CallStatus.Success,
         statusMessage: callLog.statusMessage!,
       });
     }
@@ -1052,6 +1164,55 @@ export default class CallService {
    * Any other call - a verification code, Send Test Call, an incoming call
    * policy's - is placed as it always was.
    */
+  /*
+   * The voice a call through the server's own Twilio account speaks with
+   * (#11065, Types/Call/ProjectCallVoice): the project's own, while the
+   * server's master admin lets projects choose one
+   * (GlobalConfig.letProjectsChooseCallVoice) - never on OneUptime Cloud,
+   * whose account OneUptime pays for - else the server's (GLOBAL_TWILIO_
+   * CALL_VOICE, or the one chosen in the Admin Dashboard). The switch is
+   * read only for a project that chose a voice. A voice never stops a
+   * call: should the switch not be read, the call speaks with the server's
+   * voice, as it would with the switch off.
+   */
+  public static async getServerAccountCallVoice(data: {
+    serverVoice: unknown;
+    project: { callVoice?: string | null | undefined } | null | undefined;
+  }): Promise<string | undefined> {
+    const projectVoice: string | undefined = toCallVoiceValue(
+      data.project?.callVoice,
+    );
+
+    if (!projectVoice || IsBillingEnabled) {
+      return toCallVoiceValue(data.serverVoice);
+    }
+
+    let letProjectsChooseCallVoice: boolean | undefined = undefined;
+
+    try {
+      const config: GlobalConfig | null = await GlobalConfigService.findOneById(
+        {
+          id: ObjectID.getZeroObjectID(),
+          select: { letProjectsChooseCallVoice: true },
+          props: { isRoot: true },
+        },
+      );
+
+      letProjectsChooseCallVoice = config?.letProjectsChooseCallVoice;
+    } catch (err) {
+      logger.error(err);
+    }
+
+    return ProjectCallVoice.getVoiceOnServerAccount({
+      serverVoice: data.serverVoice,
+      projectVoice: projectVoice,
+      areOffered: ProjectCallVoice.areOffered({
+        isBillingEnabled: IsBillingEnabled,
+        letProjectsChooseCallVoice: letProjectsChooseCallVoice,
+      }),
+    });
+  }
+
   public static shouldDetectVoicemail(data: {
     userOnCallLogTimelineId?: ObjectID | undefined;
     // The project's row as read: its switch, or none - a row from before it.
@@ -1100,16 +1261,26 @@ export default class CallService {
   public static generateVoicemailTwiml(
     message: string,
     options?: {
-      // The voice the call was placed with (VOICEMAIL_VOICE_CALL_DATA_KEY).
+      /*
+       * The voice the call was placed with (VOICEMAIL_VOICE_CALL_DATA_KEY):
+       * one of another language for a call in its person's language
+       * (#11066), whose message is in that language too.
+       */
       voice?: string | undefined;
     },
   ): string {
-    return this.generateTwimlForCall(
-      {
-        data: [{ sayMessage: message }],
-      },
-      { voice: options?.voice },
-    );
+    const voice: SpokenCallVoice | null = getSpokenCallVoice(options?.voice);
+
+    return this.buildFirstSpokenTwiml(
+      [
+        {
+          data: [{ sayMessage: message }],
+          voice: voice?.value,
+          language: voice?.readerLanguage || DEFAULT_READER_LANGUAGE,
+        },
+      ],
+      {},
+    ).twiml;
   }
 
   /*
@@ -1121,60 +1292,94 @@ export default class CallService {
    * TwiML is built again and measured, and the texts cut shorter while it is
    * still over. A call that fits is made whole.
    *
-   * In the voice chosen for the account (#10948), and - should its SSML, or
-   * the voice itself, ever fail to build - in spaced letters, then in the
-   * account's default voice (getSpeechAttempts): a voice never stops a page
-   * from being placed.
+   * In the person's language by a voice of it, when the call carries its
+   * words in one and the account chose a voice with one of its kind there
+   * (#11066, getSpokenCalls); else in English, in the voice chosen for the
+   * account (#10948). Should its SSML, or the voice itself, ever fail to
+   * build, it is built in spaced letters, then in English, and English in
+   * the account's default voice at last (getSpeechAttempts): a voice never
+   * stops a page from being placed.
    */
   public static generateTwimlForCall(
     callRequest: CallRequestMessage,
-    options?: {
-      /*
-       * The on-call notification the call is placed for: its keypad token
-       * names it (OnCallKeypadToken), and the keypad route takes a key only
-       * for that notification.
-       */
+    options?: GenerateTwimlOptions,
+  ): string {
+    return this.generateSpokenTwimlForCall(callRequest, options).twiml;
+  }
+
+  // The same, with which of the call's words it speaks in which voice.
+  public static generateSpokenTwimlForCall(
+    callRequest: CallRequestMessage,
+    options?: GenerateTwimlOptions,
+  ): SpokenCallTwiml {
+    return this.buildFirstSpokenTwiml(
+      getSpokenCalls(callRequest, options?.voice),
+      {
+        userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
+        recordNumberPrefixes: options?.recordNumberPrefixes,
+      },
+    );
+  }
+
+  /*
+   * The TwiML of the first way of speaking a call that builds: each version
+   * of its words in turn (getSpokenCalls), each in its ways of speaking
+   * (getSpeechAttempts). The last way is the one every call was built with,
+   * English in the account's default voice: its error is the call's.
+   */
+  private static buildFirstSpokenTwiml(
+    versions: Array<SpokenCall>,
+    options: {
       userOnCallLogTimelineId?: ObjectID | string | undefined;
-      /*
-       * The Twilio voice the call speaks with, from OneUptime's list
-       * (Types/Call/CallVoice): "Polly.Joanna-Neural", say. None - or one
-       * the list does not hold - is the Twilio account's default voice,
-       * which may read no SSML (Utils/Call/CallSpeech).
-       */
-      voice?: string | undefined;
-      /*
-       * The project's own number prefixes ("INC-", "#"): a number written
-       * with one is spelled wherever the call says it, a title or an
-       * owner's message included (getRecordNumberPrefixes).
-       */
       recordNumberPrefixes?: ReadonlyArray<string> | undefined;
     },
-  ): string {
-    const attempts: Array<CallSpeechOptions> = getSpeechAttempts(
-      toCallVoiceValue(options?.voice),
-      options?.recordNumberPrefixes || [],
-    );
+  ): SpokenCallTwiml {
+    const attempts: Array<{ spoken: SpokenCall; speech: CallSpeechOptions }> =
+      versions.flatMap(
+        (
+          spoken: SpokenCall,
+        ): Array<{ spoken: SpokenCall; speech: CallSpeechOptions }> => {
+          return getSpeechAttempts(
+            spoken,
+            options.recordNumberPrefixes || [],
+          ).map((speech: CallSpeechOptions) => {
+            return { spoken: spoken, speech: speech };
+          });
+        },
+      );
 
     for (let index: number = 0; index < attempts.length; index++) {
-      const speech: CallSpeechOptions = attempts[index]!;
+      const attempt: { spoken: SpokenCall; speech: CallSpeechOptions } =
+        attempts[index]!;
 
       try {
-        return this.generateFittedTwiml(callRequest, speech, {
-          userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
-        });
+        return {
+          twiml: this.generateFittedTwiml(
+            { data: attempt.spoken.data },
+            attempt.speech,
+            {
+              userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+            },
+          ),
+          spoken: attempt.spoken,
+        };
       } catch (error) {
-        // The last way is the one every call was built with: its error is the call's.
         if (index === attempts.length - 1) {
           throw error;
         }
 
+        const next: { spoken: SpokenCall; speech: CallSpeechOptions } =
+          attempts[index + 1]!;
+
         logger.warn(
           `A call's TwiML could not be built in ${
-            speech.voice || "the account's default voice"
-          }${speech.isSsmlAllowed ? " with SSML" : ""}, so it is built ${
-            attempts[index + 1]!.voice
-              ? "with spaced letters instead"
-              : "in the account's default voice instead"
+            attempt.speech.voice || "the account's default voice"
+          }${attempt.speech.isSsmlAllowed ? " with SSML" : ""}, so it is built ${
+            next.spoken !== attempt.spoken
+              ? "in English instead"
+              : next.speech.voice
+                ? "with spaced letters instead"
+                : "in the account's default voice instead"
           }: ${error instanceof Error ? error.message : String(error)}`,
         );
       }

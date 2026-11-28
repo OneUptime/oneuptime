@@ -328,6 +328,140 @@ export default class Recurring extends DatabaseProperty {
     return arrayToReturn;
   }
 
+  public static isIntervalType(value: unknown): value is EventInterval {
+    return (
+      typeof value === "string" &&
+      (Object.values(EventInterval) as Array<string>).includes(value)
+    );
+  }
+
+  /*
+   * A ROTATION AS A WRITE SENDS IT: WHAT IT MEANS, OR WHY NOT.
+   *
+   * fromJSON takes any intervalType and an intervalCount under any key: a
+   * rotation sent as "Weekly" was stored, the engine stepped it as days, and
+   * the roster refresh, which steps rotations through getNextDateInterval,
+   * threw on it every minute - nobody was told who was on call. A count
+   * under another key ("interval": 2) was dropped, and the layer handed off
+   * every period instead of every other. Here each is refused with the key
+   * it is about (#11269). A count left out is 1, as it always was.
+   */
+  public static fromWrittenJSON(
+    json: unknown,
+    options?: { fieldName?: string | undefined } | undefined,
+  ): Recurring {
+    const field: string = options?.fieldName || "rotation";
+    const intervals: string = "Hour, Day, Week, Month or Year";
+
+    let recurring: Recurring;
+
+    if (json instanceof Recurring) {
+      recurring = json;
+    } else {
+      if (
+        !json ||
+        typeof json !== "object" ||
+        Array.isArray(json) ||
+        (json as JSONObject)["_type"] !== ObjectType.Recurring ||
+        !(json as JSONObject)["value"] ||
+        typeof (json as JSONObject)["value"] !== "object"
+      ) {
+        throw new BadDataException(
+          `${field} must be {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}}, with intervalType ${intervals}.`,
+        );
+      }
+
+      const value: JSONObject = (json as JSONObject)["value"] as JSONObject;
+      const unread: Array<string> = Object.keys(value).filter(
+        (key: string): boolean => {
+          return key !== "intervalType" && key !== "intervalCount";
+        },
+      );
+      const unreadKeys: string =
+        unread.length > 0
+          ? ` ${unread
+              .map((key: string): string => {
+                return `"${refusedValue(key)}"`;
+              })
+              .join(", ")} ${
+              unread.length === 1 ? "is not a key" : "are not keys"
+            } OneUptime reads: a rotation's keys are intervalType and intervalCount.`
+          : "";
+
+      const intervalType: unknown = value["intervalType"];
+
+      if (intervalType === undefined || intervalType === null) {
+        throw new BadDataException(
+          `${field}.value.intervalType is missing.${unreadKeys} Set intervalType to ${intervals}.`,
+        );
+      }
+
+      if (!Recurring.isIntervalType(intervalType)) {
+        throw new BadDataException(
+          `${field}.value.intervalType is "${refusedValue(intervalType)}", which is not an interval. Set it to ${intervals}.`,
+        );
+      }
+
+      const writtenCount: unknown = value["intervalCount"];
+      const countRefusal: string = `${field}.value.intervalCount must be a whole number of at least 1, as {"_type": "PositiveNumber", "value": 1}.`;
+
+      if (writtenCount === undefined || writtenCount === null) {
+        if (unread.length > 0) {
+          throw new BadDataException(
+            `${field}.value has no intervalCount.${unreadKeys} Send the number of intervals in each turn as intervalCount, such as {"_type": "PositiveNumber", "value": 2}.`,
+          );
+        }
+      } else {
+        /*
+         * A count written is read here, not by fromJSON, which reads 0 (or
+         * any falsy count) as no count at all - 1 - and so stored a
+         * rotation the write never asked for.
+         */
+        let count: number = NaN;
+
+        try {
+          count = PositiveNumber.fromJSON(
+            writtenCount as JSONObject,
+          ).toNumber();
+        } catch {
+          count = NaN;
+        }
+
+        if (!Number.isFinite(count) || !Number.isInteger(count) || count < 1) {
+          throw new BadDataException(countRefusal);
+        }
+      }
+
+      try {
+        recurring = Recurring.fromJSON(json as JSONObject);
+      } catch {
+        throw new BadDataException(countRefusal);
+      }
+    }
+
+    if (!Recurring.isIntervalType(recurring.intervalType)) {
+      throw new BadDataException(
+        `${field}.value.intervalType is "${refusedValue(recurring.intervalType)}", which is not an interval. Set it to ${intervals}.`,
+      );
+    }
+
+    let count: number = NaN;
+
+    try {
+      count = recurring.intervalCount.toNumber();
+    } catch {
+      count = NaN;
+    }
+
+    if (!Number.isFinite(count) || !Number.isInteger(count) || count < 1) {
+      throw new BadDataException(
+        "Rotation interval must be a whole number greater than or equal to 1.",
+      );
+    }
+
+    return recurring;
+  }
+
   public static override fromJSON(json: JSONObject | Recurring): Recurring {
     if (json instanceof Recurring) {
       return json;

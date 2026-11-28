@@ -18,6 +18,7 @@ import {
   RefusalWithValues,
 } from "../../Types/Exception/RefusalWithValues";
 import {
+  DEVICE_HAS_MONITOR_OF_TEMPLATE_REFUSAL,
   FIELD_NOT_SYNCABLE_REFUSAL,
   MONITOR_TYPE_MISMATCH_REFUSAL,
 } from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
@@ -127,6 +128,11 @@ const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
   MONITOR_TYPE_MISMATCH_REFUSAL,
   // A setting a monitor template does not sync, named by its path (#7711).
   FIELD_NOT_SYNCABLE_REFUSAL,
+  /*
+   * A device's monitor linked to a template the device has a monitor of
+   * already, with that monitor's name (#11260, #11266).
+   */
+  DEVICE_HAS_MONITOR_OF_TEMPLATE_REFUSAL,
   // Why a data check could not be written from a sentence (#7530).
   ...DATA_CHECK_REFUSALS_WITH_VALUES,
   // A team's or a label's name another one of the project has (#9674).

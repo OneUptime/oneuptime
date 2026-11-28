@@ -107,7 +107,8 @@ Je oproepen worden in jouw taal geschreven: de taal die je kiest in het taalmenu
 | --- | --- |
 | E-mail, sms, pushmeldingen en Telegram | Jouw taal |
 | Je eigen berichten in Slack, Microsoft Teams en Mattermost | Jouw taal |
-| Telefoongesprekken en WhatsApp | Engels |
+| Telefoongesprekken | Jouw taal, wanneer het Twilio-account dat belt met een van de stemmen van OneUptime spreekt; anders Engels. Zie [Wat een telefoongesprek zegt](/docs/notifications/on-call-rules#wat-een-telefoongesprek-zegt) |
+| WhatsApp | Engels |
 
 Wat verandert, zijn de woorden van OneUptime: onderwerpen, koppen, knoppen en zinnen, en de namen waarmee elk nieuw project begint, zoals Geïdentificeerd en Kritiek incident. Wat je team schreef, blijft zoals het geschreven is: titels, beschrijvingen, hoofdoorzaken en de namen van projecten, teams en statussen die je project zelf heeft benoemd. Een sms in een taal met een eigen schrift, zoals Russisch, Japans of Perzisch, neemt meer delen in beslag dan een in het Engels.
 
@@ -122,7 +123,7 @@ Je bent eigenaar van het item, direct of via een team, of het item heeft geen ei
 :::
 
 :::details Mijn oproepen zijn in het Engels, maar het dashboard niet
-Het dashboard volgt je browser tot je een taal kiest. Kies die in het taalmenu onderaan elke pagina, of bij **Taal** in **Gebruikersprofiel**. Telefoongesprekken en WhatsApp-berichten blijven in het Engels.
+Het dashboard volgt je browser tot je een taal kiest. Kies die in het taalmenu onderaan elke pagina, of bij **Taal** in **Gebruikersprofiel**. WhatsApp-berichten blijven in het Engels, en telefoongesprekken via een Twilio-account dat zijn standaardstem houdt ook.
 :::
 
 :::details Ik heb een telefoonnummer toegevoegd, maar het staat niet in mijn regels

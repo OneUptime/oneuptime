@@ -19,8 +19,11 @@ import ResourcePartDetailsCard, {
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import {
-  VMWARE_CPU_READY_WARNING_PERCENT,
   VMWARE_HOST_SATURATION_PERCENT,
+  VMwareSwapActivity,
+  formatVMwareReasonRate,
+  getVMwareSwapActivity,
+  getVMwareThresholdLine,
   hasFreshVMwareReadings,
   isVMwareIssueAbout,
   isVMwareVirtualMachineDisconnected,
@@ -37,6 +40,11 @@ import {
   formatPercent,
 } from "../../../Pages/VMware/Utils/VMwareResourceUtils";
 import { VMwarePartRoutes } from "./VMwarePartRoutes";
+import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import {
+  VMwareHealthRules,
+  isPastVMwareHealthThreshold,
+} from "Common/Types/VMware/VMwareHealthRules";
 
 /*
  * A virtual machine's Overview: whether it needs attention, how busy it is
@@ -45,15 +53,49 @@ import { VMwarePartRoutes } from "./VMwarePartRoutes";
  * trouble, and its details. A template never runs: it shows its disk alone.
  */
 
-// A tile's bar turns amber where the VM's alerts and Needs attention do.
-const SATURATION_THRESHOLDS: { warn: number; danger: number } = {
-  warn: VMWARE_HOST_SATURATION_PERCENT,
-  danger: Number.POSITIVE_INFINITY,
-};
-const CPU_READY_THRESHOLDS: { warn: number; danger: number } = {
-  warn: VMWARE_CPU_READY_WARNING_PERCENT,
-  danger: Number.POSITIVE_INFINITY,
-};
+/*
+ * A tile's bar turns amber where Needs attention does, at the project's
+ * rules (VMware > Settings > Health Rules), and never red.
+ */
+function amberAt(threshold: number | null): { warn: number; danger: number } {
+  return {
+    warn: getVMwareThresholdLine(threshold),
+    danger: Number.POSITIVE_INFINITY,
+  };
+}
+
+/*
+ * Which way a running VM's memory moves between it and the host's swap file
+ * now, in the reader's words: out, back in, or nowhere while some is left
+ * from earlier. Nothing until two reports could be compared, or while the
+ * VM has none swapped and none moves.
+ */
+export function getSwappingNowText(
+  activity: VMwareSwapActivity | null,
+  swappedBytes: number | null,
+  translator: Translator,
+): string | null {
+  if (!activity) {
+    return null;
+  }
+  if ((activity.swapOutBytesPerSecond ?? 0) > 0) {
+    return translator.translateTemplate("Out to disk at {{rate}}", {
+      rate: formatVMwareReasonRate(activity.swapOutBytesPerSecond!),
+    });
+  }
+  if ((activity.swapInBytesPerSecond ?? 0) > 0) {
+    return translator.translateTemplate("Back in at {{rate}}", {
+      rate: formatVMwareReasonRate(activity.swapInBytesPerSecond!),
+    });
+  }
+  if (activity.isKnownIdle && swappedBytes !== null && swappedBytes > 0) {
+    return (
+      translator.translateText("None: what is swapped is from earlier") ||
+      "None: what is swapped is from earlier"
+    );
+  }
+  return null;
+}
 
 export interface ComponentProps {
   vcenterId: ObjectID;
@@ -83,6 +125,7 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const rules: VMwareHealthRules = useVMwareHealthRules();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -145,6 +188,10 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
     : null;
   const swapped: number | null = isRunning
     ? toVMwareNumber(row.memorySwappedBytes)
+    : null;
+  // Whether the host is moving its memory to or from its swap file now.
+  const swapActivity: VMwareSwapActivity | null = isRunning
+    ? getVMwareSwapActivity(row)
     : null;
 
   const detailRows: Array<ResourcePartDetailRow> = [
@@ -230,6 +277,23 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
       description: VMWARE_METRIC_DESCRIPTIONS.vmMemorySwapped,
     });
   }
+  /*
+   * Swapped memory is not swapping (#11157): say which way it moves now,
+   * once two reports could be compared.
+   */
+  const swappingNow: string | null = getSwappingNowText(
+    swapActivity,
+    swapped,
+    translator,
+  );
+  if (swappingNow) {
+    detailRows.push({
+      key: "swapping",
+      label: "Swapping Now",
+      value: swappingNow,
+      description: VMWARE_METRIC_DESCRIPTIONS.vmMemorySwapping,
+    });
+  }
   detailRows.push({
     key: "id",
     label: "vCenter ID",
@@ -271,7 +335,7 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
               value={formatPercent(cpuPercent)}
               sublabel={cpuMhz !== null ? formatMhz(cpuMhz) : undefined}
               percent={cpuPercent}
-              thresholds={SATURATION_THRESHOLDS}
+              thresholds={amberAt(rules.hostCpuWarningPercent)}
               description={VMWARE_METRIC_DESCRIPTIONS.vmCpu}
             />
             <GoldenMetricTile
@@ -280,12 +344,15 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
               iconColor="sky"
               value={formatPercent(cpuReady)}
               sublabel={
-                cpuReady !== null && cpuReady > VMWARE_CPU_READY_WARNING_PERCENT
+                isPastVMwareHealthThreshold(
+                  cpuReady,
+                  rules.vmCpuReadyWarningPercent,
+                )
                   ? tx("waits for a free CPU")
                   : undefined
               }
               percent={cpuReady}
-              thresholds={CPU_READY_THRESHOLDS}
+              thresholds={amberAt(rules.vmCpuReadyWarningPercent)}
               description={VMWARE_METRIC_DESCRIPTIONS.vmCpuReady}
             />
             <GoldenMetricTile
@@ -302,7 +369,7 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
                   : undefined
               }
               percent={memoryPercent}
-              thresholds={SATURATION_THRESHOLDS}
+              thresholds={amberAt(rules.hostMemoryWarningPercent)}
               description={VMWARE_METRIC_DESCRIPTIONS.vmMemory}
             />
           </>
@@ -321,7 +388,7 @@ const VMwareVirtualMachineOverview: FunctionComponent<ComponentProps> = (
               : undefined
           }
           percent={diskPercent}
-          thresholds={SATURATION_THRESHOLDS}
+          thresholds={amberAt(VMWARE_HOST_SATURATION_PERCENT)}
           description={VMWARE_METRIC_DESCRIPTIONS.vmDisk}
         />
       </div>

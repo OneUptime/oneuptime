@@ -13,6 +13,7 @@ import {
   ERASE_PERSON,
   ERASE_VERB,
   ERASURE_HELP_DESCRIPTION,
+  ERASURE_PROGRESS_REFRESH_IN_MS,
   ERASURE_REQUESTED,
   ERASURE_REQUESTS_DESCRIPTION,
   ERASURE_REQUESTS_TITLE,
@@ -25,15 +26,21 @@ import {
   USER_FIELD_DESCRIPTION,
   USER_FIELD_TITLE,
   getErasureHelpMarkdown,
+  getProgressById,
+  getShownOpenRequests,
+  hasShownRequestMovedOn,
 } from "../../../Components/SecurityEvents/ErasureRequests/ErasureRequestCopy";
+import { fetchErasureProgress } from "../../../Components/SecurityEvents/ErasureRequests/ErasureProgressApi";
 import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   SECURITY_USER_ERASURE_MAX_REFERENCE_LENGTH,
   SECURITY_USER_ERASURE_MAX_USER_LENGTH,
+  SecurityUserErasureRequestStatus,
   getErasureUserProblem,
 } from "Common/Types/SecurityEvent/SecurityUserErasure";
+import { SecurityUserErasureProgressLine } from "Common/Types/SecurityEvent/SecurityUserErasureProgressLine";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -43,7 +50,14 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Toast from "Common/UI/Utils/Toast";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 /*
  * SECURITY EVENTS > SETTINGS > ERASURE REQUESTS (#10908).
@@ -59,11 +73,74 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * Nobody changes or deletes a request: it is the record that the erasure
  * happened (Models/DatabaseModels/SecurityUserErasureRequest).
+ *
+ * While a request is open, its line says how far it has got (#11232):
+ * "Reading the Detection Findings: pass 1, up to <date>", "The final check
+ * starts in 9 minutes". The page reads the lines from the server's narrow
+ * read of the worker's progress when the list loads, and again every
+ * ERASURE_PROGRESS_REFRESH_IN_MS while a request is open and the page is in
+ * view; when a request has moved on - started, or done - the list is read
+ * again, so its state and what it changed are current too.
  */
 const SecurityErasureRequestsPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const [progress, setProgress] = useState<
+    Map<string, SecurityUserErasureProgressLine>
+  >(new Map<string, SecurityUserErasureProgressLine>());
+  const [refreshToggle, setRefreshToggle] = useState<string>("");
+  // The open requests the list shows, by id, in the state it shows them in.
+  const shownOpen: React.MutableRefObject<
+    Map<string, SecurityUserErasureRequestStatus>
+  > = useRef<Map<string, SecurityUserErasureRequestStatus>>(new Map());
+  const [isAnyOpen, setIsAnyOpen] = useState<boolean>(false);
+
+  /*
+   * The lines, read again. Only the timer's read may read the list again
+   * (`mayReadListAgain`): a list read again reads the lines again, so a
+   * request the server and the list disagree on for good - a state the page
+   * does not know - is read again at most once a tick, never in a loop.
+   */
+  const loadProgress: (data: { mayReadListAgain: boolean }) => Promise<void> =
+    useCallback(async (data: { mayReadListAgain: boolean }): Promise<void> => {
+      let lines: Array<SecurityUserErasureProgressLine> = [];
+
+      try {
+        lines = await fetchErasureProgress();
+      } catch {
+        // The rows say what they said before, without how far they have got.
+        return;
+      }
+
+      const byId: Map<string, SecurityUserErasureProgressLine> =
+        getProgressById(lines);
+
+      setProgress(byId);
+
+      if (
+        data.mayReadListAgain &&
+        hasShownRequestMovedOn(shownOpen.current, byId)
+      ) {
+        setRefreshToggle(String(Date.now()));
+      }
+    }, []);
+
+  useEffect((): (() => void) | void => {
+    if (!isAnyOpen) {
+      return;
+    }
+
+    const timer: ReturnType<typeof setInterval> = setInterval((): void => {
+      if (document.visibilityState !== "hidden") {
+        void loadProgress({ mayReadListAgain: true });
+      }
+    }, ERASURE_PROGRESS_REFRESH_IN_MS);
+
+    return (): void => {
+      clearInterval(timer);
+    };
+  }, [isAnyOpen, loadProgress]);
 
   return (
     <ModelTable<SecurityUserErasureRequest>
@@ -149,6 +226,18 @@ const SecurityErasureRequestsPage: FunctionComponent<
         },
       ]}
       showRefreshButton={true}
+      refreshToggle={refreshToggle}
+      onFetchSuccess={(data: Array<SecurityUserErasureRequest>): void => {
+        const open: Map<string, SecurityUserErasureRequestStatus> =
+          getShownOpenRequests(data);
+
+        shownOpen.current = open;
+        setIsAnyOpen(open.size > 0);
+
+        if (open.size > 0) {
+          void loadProgress({ mayReadListAgain: false });
+        }
+      }}
       filters={[]}
       selectMoreFields={{
         reference: true,
@@ -186,7 +275,14 @@ const SecurityErasureRequestsPage: FunctionComponent<
           wrapMaxWidthClassName: "max-w-[18rem]",
           contentClassName: "min-w-[8rem]",
           getElement: (item: SecurityUserErasureRequest): ReactElement => {
-            return <ErasureStatusCell request={item} />;
+            return (
+              <ErasureStatusCell
+                request={item}
+                progress={
+                  item.id ? progress.get(item.id.toString()) : undefined
+                }
+              />
+            );
           },
         },
         {

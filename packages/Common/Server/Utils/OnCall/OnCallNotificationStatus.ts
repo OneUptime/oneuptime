@@ -4,6 +4,7 @@ import ColumnLength from "../../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import { CALL_NOT_ACKNOWLEDGED_SENTENCE } from "./OnCallPageCallAnswers";
 import {
   getStuckNotificationStatusMessage,
   ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
@@ -88,10 +89,11 @@ export const ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE: string =
 
 /*
  * The same, said by a call whose 1 could not acknowledge the page. The call
- * ends with it, so the person cannot press again there.
+ * ends with it, so the person cannot press again there. Said in the call's
+ * language (#11066): OnCallPageCallAnswers holds it as its key.
  */
 export const ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE: string =
-  "This page could not be acknowledged just now. Please acknowledge it from the dashboard. Good bye.";
+  CALL_NOT_ACKNOWLEDGED_SENTENCE;
 
 /*
  * What a page's webhook notification says while it is sent: "Sending

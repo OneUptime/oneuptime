@@ -257,7 +257,7 @@ Sommige wijzigingen lossen altijd op wat een regel heeft geopend, wat de instell
 
 ## Gepland onderhoud
 
-Terwijl een monitor van de SLO in een lopende onderhoudsgebeurtenis zit, geven zijn regels voor verbruikssnelheid geen waarschuwingen en melden ze geen incidenten: gepland werk mag niemand oproepen. Wat de regels al hadden geopend, wordt nog steeds gewoon opgelost. De tijd telt nog steeds mee voor het foutbudget, volgens de downtime-statussen van de SLO.
+Terwijl een monitor van de SLO in een lopende onderhoudsgebeurtenis zit, geven zijn regels voor verbruikssnelheid geen waarschuwingen en melden ze geen incidenten: gepland werk mag niemand oproepen. Wat de regels al hadden geopend, wordt nog steeds gewoon opgelost. De tijd telt nog steeds mee voor het foutbudget, volgens de downtime-statussen van de SLO, als de gebeurtenis haar monitoren in een eigen status zet (**Monitorstatus wijzigen naar**). Een gebeurtenis die ze in geen enkele status zet, laat hun tijd weg uit de SLO, zoals tijd met bewaking uit: die verbruikt geen budget en telt ook niet als goed.
 
 ## De feed van de SLO
 
@@ -274,7 +274,7 @@ Automatisch oplossen volgt het lange venster: zodra de verbruikssnelheid van het
 :::
 
 :::details Niets ging af tijdens een onderhoudsgebeurtenis
-Regels voor verbruikssnelheid blijven stil terwijl een van de monitoren van de SLO in een lopende onderhoudsgebeurtenis zit. De downtime telt nog steeds mee voor het budget.
+Regels voor verbruikssnelheid blijven stil terwijl een van de monitoren van de SLO in een lopende onderhoudsgebeurtenis zit. De downtime telt nog steeds mee voor het budget als de gebeurtenis haar monitoren in een eigen status zet; zonder status wordt hun tijd uit de SLO weggelaten.
 :::
 
 :::details Is er een minimaal aantal metingen?

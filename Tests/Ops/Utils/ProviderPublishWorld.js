@@ -9,12 +9,16 @@
  *    url.<base>.insteadOf);
  *  - GitHub is a stand-in `gh`, answering from a JSON state file of the
  *    repository's releases and their assets, as GitHub's REST API and gh's
- *    own commands answer, and logging every call;
+ *    own commands answer, and logging every call. It takes an upload to any
+ *    release that is not immutable, published or not, as GitHub does: what
+ *    keeps a published release's assets as they are is the script;
  *  - GoReleaser is a stand-in that writes the release's assets, a zip per
- *    platform that is never the same bytes twice (as GoReleaser's are not),
- *    their SHA256SUMS and its signature;
+ *    platform that is never the same bytes twice (as GoReleaser's were not
+ *    before #11016), their SHA256SUMS and its signature;
+ *  - gpg is a stand-in that lists one key and verifies the stand-in
+ *    GoReleaser's signatures, answering with gpg's status lines;
  *  - the generator (`npm run generate-terraform-provider`) copies a provider
- *    tree the test writes; go, gpg and sleep are stand-ins that only log;
+ *    tree the test writes; go and sleep are stand-ins that only log;
  *  - OneUptime's GitHub, for the release notes, is
  *    Utils/FakeOneUptimeGitHub.js over HTTP (GITHUB_API_URL).
  *
@@ -175,6 +179,7 @@ let key = args.slice(0, 2).join(" ");
 let method = "GET";
 let endpoint = "";
 let filter = "";
+let input = "";
 const headers = [];
 const fields = {};
 if (args[0] === "api") {
@@ -184,6 +189,8 @@ if (args[0] === "api") {
       method = args[++index];
     } else if (arg === "-H" || arg === "--header") {
       headers.push(args[++index]);
+    } else if (arg === "--input") {
+      input = args[++index];
     } else if (arg === "-f" || arg === "--raw-field" || arg === "-F" || arg === "--field") {
       const [name, ...rest] = args[++index].split("=");
       let value = rest.join("=");
@@ -208,7 +215,7 @@ if (args[0] === "api") {
     }
   }
   key = "api " + method + " " + endpoint;
-  logged = { method, endpoint, fields };
+  logged = { method, endpoint, fields, input };
 } else if (args[0] === "release") {
   key = "release " + args[1] + " " + args[2];
 }
@@ -244,19 +251,92 @@ if (args[0] === "repo" && args[1] === "view") {
     finish(0, fs.readFileSync(asset.file, "utf8"));
   } else if (method === "GET" && (match = endpoint.match(/^repos\/[^/]+\/[^/]+\/releases\/(\d+)$/))) {
     const release = state.releases.find((each) => String(each.id) === match[1]);
+    // state.publishOnRead: someone publishes this release just as it is read.
+    if (release && String(state.publishOnRead) === match[1]) {
+      release.draft = false;
+      delete state.publishOnRead;
+    }
     release ? finish(0, jq(filter, publicOf(release))) : notFound();
   } else if (method === "POST" && endpoint === releases) {
+    const id = state.nextId++;
     const release = {
-      id: state.nextId++,
+      id,
       tag_name: fields.tag_name,
       name: fields.name,
       body: fields.body,
       draft: fields.draft === true,
       prerelease: fields.prerelease === true,
+      upload_url: "https://uploads.github.com/repos/" + REPOSITORY + "/releases/" + id + "/assets{?name,label}",
       assets: [],
     };
     state.releases.push(release);
     finish(0, jq(filter, publicOf(release)));
+  } else if (method === "POST" && (match = endpoint.match(/^https:\/\/uploads\.github\.com\/repos\/([^/]+\/[^/]+)\/releases\/(\d+)\/assets\?name=([^&]+)$/))) {
+    // An upload, as GitHub takes it: to the release of that id, draft or
+    // not, unless it is immutable; never over an asset of the same name.
+    const release = match[1] === REPOSITORY && state.releases.find((each) => String(each.id) === match[2]);
+    if (!release) {
+      notFound();
+    }
+    if (!input || !headers.some((header) => /^content-type: /i.test(header))) {
+      finish(2, "", "fake gh: an upload needs --input and a Content-Type");
+    }
+    const name = decodeURIComponent(match[3]);
+    if (release.immutable && !release.draft) {
+      finish(1, JSON.stringify({ message: "Cannot upload assets to an immutable release." }), "gh: Cannot upload assets to an immutable release. (HTTP 422)");
+    }
+    if (release.assets.some((asset) => asset.name === name)) {
+      finish(1, JSON.stringify({ message: "Validation Failed", errors: [{ resource: "ReleaseAsset", code: "already_exists", field: "name" }] }), "gh: Validation Failed (HTTP 422)");
+    }
+    let buffer = fs.readFileSync(input);
+    if ((state.corruptUploads || []).includes(name)) {
+      buffer = Buffer.concat([buffer, Buffer.from("corrupted")]);
+    }
+    const asset = {
+      id: state.nextId++,
+      name,
+      size: buffer.length,
+      digest: "sha256:" + crypto.createHash("sha256").update(buffer).digest("hex"),
+      state: "uploaded",
+      browser_download_url: "https://github.com/" + REPOSITORY + "/releases/download/" + release.tag_name + "/" + name,
+      file: store(release, name, buffer),
+    };
+    release.assets.push(asset);
+    // state.halfUploads: an upload GitHub took the start of, and then lost
+    // the connection: the asset stays, unfinished, as GitHub leaves it.
+    const half = (state.halfUploads || []).indexOf(name);
+    if (half !== -1) {
+      state.halfUploads.splice(half, 1);
+      asset.state = "starter";
+      asset.size = Math.floor(buffer.length / 2);
+      asset.digest = null;
+      finish(1, "", "gh: HTTP 502: Bad Gateway (https://uploads.github.com/)");
+    }
+    // state.publishAfterUpload: someone publishes the release right after
+    // this asset is uploaded to it.
+    if (state.publishAfterUpload === name) {
+      release.draft = false;
+      delete state.publishAfterUpload;
+    }
+    // state.lostAnswers: GitHub took the whole upload, and its answer was
+    // lost on the way back.
+    const lost = (state.lostAnswers || []).indexOf(name);
+    if (lost !== -1) {
+      state.lostAnswers.splice(lost, 1);
+      finish(1, "", "gh: HTTP 502: Bad Gateway (https://uploads.github.com/)");
+    }
+    finish(0, JSON.stringify(publicOf({ assets: [asset] }).assets[0]) + "\n");
+  } else if (method === "DELETE" && (match = endpoint.match(/^repos\/[^/]+\/[^/]+\/releases\/assets\/(\d+)$/))) {
+    // As GitHub deletes an asset: of any release, unless it is immutable.
+    const release = state.releases.find((each) => each.assets.some((asset) => String(asset.id) === match[1]));
+    if (!release) {
+      notFound();
+    }
+    if (release.immutable && !release.draft) {
+      finish(1, "", "gh: Cannot delete assets of an immutable release. (HTTP 422)");
+    }
+    release.assets = release.assets.filter((asset) => String(asset.id) !== match[1]);
+    finish(0, "");
   } else if (method === "PATCH" && (match = endpoint.match(/^repos\/[^/]+\/[^/]+\/releases\/(\d+)$/))) {
     const release = state.releases.find((each) => String(each.id) === match[1]);
     if (!release) {
@@ -311,6 +391,10 @@ if (args[0] === "repo" && args[1] === "view") {
   } else {
     release.assets.push(asset);
   }
+  if (state.publishAfterUpload === name) {
+    release.draft = false;
+    delete state.publishAfterUpload;
+  }
   finish(0, "");
 } else if (args[0] === "release" && args[1] === "list") {
   const listed = [...state.releases].reverse().map((release) => {
@@ -357,9 +441,15 @@ for (const platform of ["darwin_arm64", "linux_amd64"]) {
 // As checksum.extra_files: listed, and not copied into dist/.
 lines.push(sha(fs.readFileSync("terraform-registry-manifest.json")) + "  terraform-provider-oneuptime_" + version + "_manifest.json");
 lines.sort((left, right) => left.split("  ")[1].localeCompare(right.split("  ")[1]));
-fs.writeFileSync(path.join(dist, "terraform-provider-oneuptime_" + version + "_SHA256SUMS"), lines.join("\n") + "\n");
+const sums = lines.join("\n") + "\n";
+fs.writeFileSync(path.join(dist, "terraform-provider-oneuptime_" + version + "_SHA256SUMS"), sums);
+// The signature, as the stand-in gpg reads it: of the SHA256SUMS's SHA-256,
+// by the key GoReleaser is told to sign with. FAKE_GORELEASER_STALE_SIGNATURE
+// signs another SHA256SUMS; FAKE_GORELEASER_SIGNS_WITH, another key.
 if (!process.env.FAKE_GORELEASER_NO_SIGNATURE) {
-  fs.writeFileSync(path.join(dist, "terraform-provider-oneuptime_" + version + "_SHA256SUMS.sig"), crypto.randomBytes(64));
+  const signed = process.env.FAKE_GORELEASER_STALE_SIGNATURE ? sums + "of another build" : sums;
+  const key = process.env.FAKE_GORELEASER_SIGNS_WITH || process.env.GPG_FINGERPRINT;
+  fs.writeFileSync(path.join(dist, "terraform-provider-oneuptime_" + version + "_SHA256SUMS.sig"), "signature of " + sha(Buffer.from(signed)) + " by " + key + "\n");
 }
 // What GoReleaser leaves in dist/ besides, which is never a release asset.
 fs.writeFileSync(path.join(dist, "artifacts.json"), "[]");
@@ -399,10 +489,36 @@ fi
 exit 0
 `;
 
-const FAKE_GPG = `#!/bin/sh
-printf '{"tool":"gpg","args":"%s"}\\n' "$*" >> "$FAKE_LOG"
-echo "sec   rsa4096/83F2C1DDF58A0524 2024-01-01 [SC]"
-echo "      83F2C1DDF58A052464C4A1729D87E494AC016697"
+/*
+ * gpg: lists one secret key, whose id is the last 16 digits of its
+ * fingerprint, as gpg does; and --verify reads the stand-in GoReleaser's
+ * signatures, answering with gpg's status lines: VALIDSIG and the signing
+ * key's fingerprint for one of the document, BADSIG for one of another.
+ */
+const FAKE_GPG = String.raw`#!/usr/bin/env node
+"use strict";
+const crypto = require("crypto");
+const fs = require("fs");
+const args = process.argv.slice(2);
+fs.appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "gpg", args: args.join(" ") }) + "\n");
+const FINGERPRINT = "83F2C1DDF58A052464C4A1729D87E494AC016697";
+const verify = args.indexOf("--verify");
+if (verify === -1) {
+  console.log("sec   rsa4096/" + FINGERPRINT.slice(-16) + " 2024-01-01 [SC]");
+  console.log("      " + FINGERPRINT);
+  process.exit(0);
+}
+const [signatureFile, documentFile] = args.slice(verify + 1);
+const signature = /^signature of ([0-9a-f]{64}) by ([0-9A-F]{16})$/.exec(fs.readFileSync(signatureFile, "utf8").trim());
+const digest = crypto.createHash("sha256").update(fs.readFileSync(documentFile)).digest("hex");
+console.log("[GNUPG:] NEWSIG");
+if (!signature || signature[1] !== digest) {
+  console.log("[GNUPG:] BADSIG " + FINGERPRINT.slice(-16) + " OneUptime <key@oneuptime.com>");
+  process.exit(1);
+}
+const fingerprint = FINGERPRINT.slice(0, 24) + signature[2];
+console.log("[GNUPG:] GOODSIG " + signature[2] + " OneUptime <key@oneuptime.com>");
+console.log("[GNUPG:] VALIDSIG " + fingerprint + " 2026-11-26 1795683685 0 4 0 1 10 00 " + fingerprint);
 `;
 
 // sleep, without the wait: the retries are logged, in order with the calls.
@@ -584,13 +700,15 @@ class ProviderPublishWorld {
   // A published release of `tag` on GitHub, with a whole set of assets.
   publishOnGitHub(tag, { draft = false } = {}) {
     const state = this.state();
+    const id = state.nextId++;
     const release = {
-      id: state.nextId++,
+      id,
       tag_name: tag,
       name: tag,
       body: `The notes of ${tag}.`,
       draft,
       prerelease: false,
+      upload_url: `https://uploads.github.com/repos/${REPOSITORY}/releases/${id}/assets{?name,label}`,
       assets: [],
     };
     const { files } = assetsOf(tag.slice(1));

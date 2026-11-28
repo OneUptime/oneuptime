@@ -303,6 +303,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What escalating a page did, in the reader's language: the Escalate
+   * dialog (Components/OnCallPolicy/PassOn) says it, and a page's call in
+   * its person's language says the same words once 2 is pressed (#11066).
+   * Only the words it marks are read: the server words its English pages
+   * with OnCallPagePassOn's own sentences.
+   */
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/OnCallPassOnWords.ts",
+    kind: "keys",
+  },
+  /*
    * The rest of the Enterprise screens the Dashboard draws (#8634): custom
    * roles, the audit log export, the IP allowlists, the license pages, and
    * the status pages' access controls and branding. Every word they draw

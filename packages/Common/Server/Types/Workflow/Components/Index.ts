@@ -46,6 +46,7 @@ import TextToJSON from "./JSON/TextToJson";
 import JavaScriptCode from "./JavaScript";
 import JavaScriptCheck from "./JavaScriptCheck";
 import Log from "./Log";
+import GetFilesFromMarkdown from "./MarkdownFiles/GetFilesFromMarkdown";
 import ProposeOpenStackFix from "./OpenStack/ProposeFix";
 import MattermostSendMessageToChannel from "./Mattermost/SendMessageToChannel";
 import ManualTrigger from "./Manual";
@@ -106,6 +107,8 @@ const Components: Dictionary<ComponentCode> = {
   [ComponentID.WorkflowRun]: new ExecuteWorkflow(),
   [ComponentID.ZabbixUpdateProblem]: new ZabbixUpdateProblem(),
   [ComponentID.Sleep]: new Sleep(),
+  // Reads the record as the workflow: only the record types a workflow reads.
+  [ComponentID.GetFilesFromMarkdown]: new GetFilesFromMarkdown(Services),
   // One runtime for both, told which records it works with.
   [ComponentID.IncidentFromAnotherTool]: new RecordFromAnotherTool({
     kind: INCIDENT_FROM_ANOTHER_TOOL,

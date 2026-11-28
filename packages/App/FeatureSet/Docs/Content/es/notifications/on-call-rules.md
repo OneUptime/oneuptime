@@ -46,7 +46,9 @@ You did not press a key, so this incident is not acknowledged. Good bye.
 
 Si pulsas una tecla que la llamada no ofrecía, como 3, # o *, la llamada dice «That key does nothing.» y vuelve a pedirte una tecla. Lo hace como mucho dos veces, tantas veces como dice las teclas cuando no pulsas ninguna; después, una tecla equivocada termina la llamada y el aviso queda sin reconocer. Las teclas 1 y 2 funcionan como siempre.
 
-La llamada nombra tu proyecto. Una llamada que no es de un proyecto, como un código de verificación, nombra OneUptime o el nombre que usa tu instalación autoalojada. Un título de más de unos 100 caracteres se corta tras una palabra completa, y OneUptime guarda el título entero. Las letras de un número como `INC-42` se dicen una a una, para que la voz nunca las lea como una palabra. Las llamadas siempre son en inglés, con la voz que tu cuenta de Twilio usa de forma predeterminada, salvo que un administrador elija otra: consulta [La voz con la que hablan las llamadas](/docs/self-hosted/twilio-integration#la-voz-con-la-que-hablan-las-llamadas).
+La llamada nombra tu proyecto. Una llamada que no es de un proyecto, como un código de verificación, nombra OneUptime o el nombre que usa tu instalación autoalojada. Un título de más de unos 100 caracteres se corta tras una palabra completa, y OneUptime guarda el título entero. Las letras de un número como `INC-42` se dicen una a una, para que la voz nunca las lea como una palabra.
+
+Una llamada es en el idioma en que usas OneUptime cuando la cuenta de Twilio por la que sale habla con una de las voces de OneUptime: todo lo que dice, incluidas las respuestas a tus teclas, con una voz de tu idioma, una voz femenina si la voz de la cuenta es femenina y una masculina si es masculina. Las teclas son las mismas: 1 para reconocer, 2 para escalar. Una llamada a través de una cuenta que mantiene su voz predeterminada es en inglés, y también lo es una llamada a alguien que usa OneUptime en persa, que ninguna voz habla: consulta [La voz con la que hablan las llamadas](/docs/self-hosted/twilio-integration#la-voz-con-la-que-hablan-las-llamadas).
 
 ## Una sola secuencia para todo
 

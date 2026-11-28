@@ -330,7 +330,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "A datastore is filling up:",
     "A cluster lost a host:",
     "Fewer VMs run than expected:",
-    "A VM is being host-swapped:",
+    "A VM holds a lot of memory in host swap:",
   ],
   [OPENSTACK]: [
     "Collect the cloud's metrics",

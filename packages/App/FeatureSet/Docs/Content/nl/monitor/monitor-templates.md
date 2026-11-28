@@ -6,6 +6,7 @@ Een monitorsjabloon is een opgeslagen monitorconfiguratie (een type, criteria, e
 - [Een sjabloon maken](#een-sjabloon-maken): Vier stappen, net als Monitor maken.
 - [Monitoren eruit maken](#monitoren-maken-vanuit-een-sjabloon): Eén klik, of koppel monitoren die u al hebt.
 - [Wijzigingen synchroniseren](#wijzigingen-synchroniseren-naar-gekoppelde-monitoren): Wat elke synchronisatieknop kopieert.
+- [Monitoren naar een ander sjabloon verplaatsen](#monitoren-naar-een-ander-sjabloon-verplaatsen): Een beter sjabloon, en elke monitor behoudt zijn geschiedenis.
 - [Waarden per monitor behouden](#waarden-per-monitor-behouden): Een bestemming of headers tegen een synchronisatie beschermen.
 :::
 
@@ -55,7 +56,7 @@ Het sjabloon wordt aan de lijst toegevoegd. Open het om de pagina te zien, met e
 ## Monitoren maken vanuit een sjabloon
 
 - **Nieuwe monitor.** Klik in de lijst op **Monitor maken** in de rij van het sjabloon, of op **Monitor aanmaken vanaf sjabloon** op de pagina ervan. **Monitor maken** opent met het type en de instellingen van het sjabloon ingevuld; wijzig wat nodig is en maak hem. De nieuwe monitor is aan het sjabloon gekoppeld.
-- **Monitoren die u al hebt.** Klik onder **Gekoppelde monitoren** op **Bestaande monitoren koppelen** en kies ze. Ze houden hun instellingen totdat u synchroniseert.
+- **Monitoren die u al hebt.** Klik onder **Gekoppelde monitoren** op **Bestaande monitoren koppelen** en kies ze. Staat **Criteria en interval van het sjabloon gebruiken** aan, dan nemen ze bij het koppelen de criteria, het interval en de sonde-overeenstemming van het sjabloon over; staat het uit, dan houden ze hun instellingen totdat u synchroniseert. Een monitor die aan een ander sjabloon is gekoppeld, gaat over naar dit sjabloon.
 
 Waarden die onder **Standaardwaarden voor aangepaste velden** zijn ingesteld, worden naar elke monitor geschreven die vanuit het sjabloon wordt gemaakt, ook naar monitoren die regels voor automatisch importeren en waarschuwingsbeleid ermee maken.
 
@@ -70,9 +71,60 @@ Een sjabloon bewerken wijzigt alleen het sjabloon. Om een wijziging naar de geko
 | **Labels synchroniseren naar gekoppelde monitoren** | De labels, en verder niets | Al het andere |
 | **Aangepaste velden synchroniseren naar gekoppelde monitors** | De aangepaste velden waarvoor het sjabloon een standaardwaarde heeft, in plaats van wat elke monitor had | Aangepaste velden die het sjabloon leeg laat, en al het andere |
 
-Om één monitor te synchroniseren, klikt u op **Synchroniseren vanuit sjabloon** in de rij ervan onder **Gekoppelde monitoren**. Dat kopieert de criteria en stapinstellingen (behalve beschermde velden), het bewakingsinterval, de minimale sonde-overeenstemming en de labels, en laat de naam, de beschrijving en de waarden van aangepaste velden van de monitor ongemoeid. **Ontkoppelen van sjabloon** koppelt een monitor los; hij houdt zijn instellingen.
+Om één monitor te synchroniseren, klikt u op **Synchroniseren vanuit sjabloon** in de rij ervan onder **Gekoppelde monitoren**. Dat kopieert de criteria en stapinstellingen (behalve beschermde velden), het bewakingsinterval, de minimale sonde-overeenstemming en de labels, en laat de naam, de beschrijving en de waarden van aangepaste velden van de monitor ongemoeid. Om een monitor los te koppelen, zie [Monitoren ontkoppelen van een sjabloon](#monitoren-ontkoppelen-van-een-sjabloon).
 
 Na een synchronisatie meldt een samenvatting hoeveel monitoren zijn bijgewerkt. **Gedeeltelijk gesynchroniseerd** betekent dat sommige gekoppelde monitoren nog de vorige configuratie hebben, meestal omdat uw machtigingen ze niet dekken.
+
+## Monitoren naar een ander sjabloon verplaatsen
+
+Wanneer een beter sjabloon een ander vervangt, verplaats dan de monitoren ervan naar het nieuwe sjabloon in plaats van ze te verwijderen. Elke monitor behoudt zijn naam, statusgeschiedenis, labels, eigenaren en incidenten, en neemt de criteria van het nieuwe sjabloon over.
+
+:::steps
+### De monitoren selecteren
+
+Open het sjabloon waaraan ze nu zijn gekoppeld. Selecteer onder **Gekoppelde monitoren** de monitoren, of allemaal. U kunt ook monitoren selecteren in de lijst Monitoren, gefilterd op elke kolom.
+
+### Ze verplaatsen
+
+Klik onder **Bulkacties** op **Verplaatsen naar ander sjabloon** (in de lijst Monitoren op **Koppelen aan sjabloon**). Kies het sjabloon.
+
+### De instellingen van het sjabloon aan laten
+
+Laat **Criteria en interval van het sjabloon gebruiken** aan staan, zodat elke monitor nu de criteria, stapinstellingen, het interval en de sonde-overeenstemming van het sjabloon overneemt. Staat het uit, dan houdt elke monitor zijn eigen instellingen totdat u synchroniseert. Bevestig daarna.
+:::
+
+Wat het verplaatsen doet:
+
+- De criteria, het interval en de sonde-overeenstemming van de monitoren worden vervangen door die van het sjabloon. Een open incident of open waarschuwing die hun oude criteria automatisch zouden oplossen, wordt opgelost, en de nieuwe criteria openen een nieuw incident of een nieuwe waarschuwing als het probleem er nog is. Elke netwerkapparaatmonitor blijft zijn eigen apparaat bewaken, en elke monitor die een adres of URL controleert, blijft het adres van zijn eigen apparaat controleren.
+- Namen, beschrijvingen, statusgeschiedenis, labels, eigenaren, waarden van aangepaste velden en koppelingen met incidenten blijven zoals ze zijn.
+- Een monitor die een import, een regel voor automatisch importeren of een netwerkwaarschuwingsbeleid heeft gemaakt, behoudt het sjabloon waaruit hij is gemaakt. Die regel maakt hem nooit opnieuw, en een waarschuwingsbeleid laat hem los: het verwijdert of vervangt hem niet meer.
+- Een apparaat heeft één monitor van elk sjabloon. Heeft een apparaat al een monitor die er vanuit het nieuwe sjabloon voor is gemaakt, dan wordt zijn andere monitor weggelaten, en de wijziging noemt de monitor die in de weg staat: verwijder een van de twee en verplaats daarna opnieuw.
+- Een monitor van een ander type dan het sjabloon wordt weggelaten.
+
+De wijziging wordt op de server uitgevoerd, tot 10.000 monitoren tegelijk, en toont de voortgang: wat is verplaatst, wat is weggelaten en waarom, en de open incidenten en waarschuwingen die ze heeft opgelost. Het venster sluiten stopt de wijziging niet, en de pagina van het sjabloon toont een wijziging die nog loopt. **Stoppen** stopt haar vóór de volgende monitor, en **Opnieuw proberen** probeert de monitoren die zijn mislukt of niet zijn bereikt opnieuw.
+
+> [!TIP]
+> Verplaatst u de apparaten van een regel voor automatisch importeren naar een nieuw sjabloon? Verplaats eerst de monitoren en stel daarna de regel in op het nieuwe sjabloon. In de omgekeerde volgorde geeft de regel elk apparaat naast de monitor die het al heeft een tweede monitor, uit het nieuwe sjabloon.
+
+## Monitoren ontkoppelen van een sjabloon
+
+Klik op **Ontkoppelen van sjabloon** in de rij van een monitor onder **Gekoppelde monitoren**, of selecteer daar of in de lijst Monitoren monitoren en gebruik **Ontkoppelen van sjabloon** onder **Bulkacties**. Kies wat de monitoren behouden:
+
+| Keuze | Wat de monitoren daarna doen |
+| --- | --- |
+| **Hun instellingen behouden** | Ze blijven controleren en waarschuwen met de criteria die ze nu hebben, als zelfstandige monitoren, en krijgen geen updates van het sjabloon meer. |
+| **Criteria van het sjabloon wissen** | Ze blijven controleren, maar openen geen incidenten of waarschuwingen en stellen geen status in totdat u ze weer aan een sjabloon koppelt. Een open incident of open waarschuwing die hun criteria automatisch zouden oplossen, wordt opgelost. |
+
+Hoe dan ook behouden ze hun namen, statusgeschiedenis, labels, eigenaren en incidenten, en een regel die ze heeft gemaakt, maakt ze nooit opnieuw.
+
+## Een sjabloon verwijderen
+
+Een sjabloon waaruit een netwerkwaarschuwingsbeleid of een regel voor automatisch importeren monitoren aanmaakt, kan niet worden verwijderd: stel het beleid of de regel eerst in op een ander sjabloon. Zijn er monitoren aan het sjabloon gekoppeld, dan vraagt het verwijderen wat er met ze moet gebeuren:
+
+- **Hun instellingen behouden** (de standaard): het verwijderen ontkoppelt ze, en ze blijven controleren en waarschuwen met de criteria die ze hebben.
+- **Criteria van dit sjabloon wissen**: elke monitor wordt ontkoppeld en zijn criteria worden gewist, zoals hierboven, en daarna wordt het sjabloon verwijderd. Blijft een monitor gekoppeld, zoals een monitor die uw machtigingen niet dekken, dan blijft het sjabloon behouden, en het venster zegt hoeveel.
+
+Om de monitoren in plaats daarvan naar een ander sjabloon te verplaatsen, gebruikt u **Verplaatsen naar ander sjabloon** voordat u het sjabloon verwijdert.
 
 ## Waarden per monitor behouden
 
@@ -174,6 +226,14 @@ Een beschermd veld kon niet aan een stap van een van de monitoren worden gekoppe
 
 :::details De synchronisatieknoppen zijn grijs
 Er is nog geen monitor aan het sjabloon gekoppeld. Maak er een monitor uit, of klik onder **Gekoppelde monitoren** op **Bestaande monitoren koppelen**.
+:::
+
+:::details Een verplaatsing laat een monitor weg: "Het apparaat waarvoor deze monitor is gemaakt, heeft al een monitor die aan dit sjabloon is gekoppeld"
+Het apparaat heeft al een monitor die ervoor is gemaakt vanuit het sjabloon waarnaar u verplaatst, meestal omdat een regel voor automatisch importeren vóór het verplaatsen op dat sjabloon is ingesteld. Verwijder de monitor die u niet nodig hebt, de nieuwere heeft de minste geschiedenis, en verplaats daarna opnieuw.
+:::
+
+:::details Nadat een regel voor automatisch importeren naar een nieuw sjabloon is overgezet, hebben apparaten twee monitoren
+De regel gaf elk apparaat de monitor van het nieuwe sjabloon naast de monitor die het al had. Verwijder de nieuwe monitoren en verplaats daarna de oude naar het nieuwe sjabloon: ze behouden hun geschiedenis, en de regel maakt er geen opnieuw.
 :::
 
 :::details Opslaan mislukt met "Unsupported do not sync field"
