@@ -189,6 +189,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "RepairKubernetesDashboardClusterCpuTile.migrate Dashboard":
         Why.Migration,
     },
+  /*
+   * The schedule layers stored with no restriction type the engine read,
+   * stored with the type they hold, under restrictionType (#11269).
+   */
+  "packages/App/FeatureSet/Workers/DataMigrations/RepairScheduleLayerRestrictionTypes.ts":
+    {
+      "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers.ts":
     {
       "recordNotifiedStatusPagesSoFar Incident": Why.Bookkeeping,

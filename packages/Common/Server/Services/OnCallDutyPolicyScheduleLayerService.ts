@@ -178,17 +178,16 @@ export class Service extends ProjectReferencesService<Model> {
       return null;
     }
 
-    const layers: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    /*
+     * The rows the update writes, and the update held to them: the type is
+     * judged by the very rows it is written to.
+     */
+    const layers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
         restrictionTimes: true,
       },
-      skip: 0,
-      limit: 2,
-      props: {
-        isRoot: true,
-      },
-    });
+    );
 
     const types: Set<RestrictionType> = new Set<RestrictionType>(
       layers.map((layer: Model): RestrictionType => {

@@ -392,7 +392,7 @@ export default class Recurring extends DatabaseProperty {
 
       if (intervalType === undefined || intervalType === null) {
         throw new BadDataException(
-          `${field}.value.intervalType is missing. Set it to ${intervals}.${unreadKeys}`,
+          `${field}.value.intervalType is missing.${unreadKeys} Set intervalType to ${intervals}.`,
         );
       }
 
@@ -408,7 +408,7 @@ export default class Recurring extends DatabaseProperty {
       if (writtenCount === undefined || writtenCount === null) {
         if (unread.length > 0) {
           throw new BadDataException(
-            `${field}.value has no intervalCount.${unreadKeys}`,
+            `${field}.value has no intervalCount.${unreadKeys} Send the number of intervals in each turn as intervalCount, such as {"_type": "PositiveNumber", "value": 2}.`,
           );
         }
       } else {
