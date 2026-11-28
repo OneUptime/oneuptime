@@ -17,7 +17,10 @@
 #   - twilio.callVoice, the voice the server's calls speak with (#11064), is
 #     a setting of its own: GLOBAL_TWILIO_CALL_VOICE whenever it is set, with
 #     the account or without it, never counted among the values nothing
-#     reads, and only one of the voices OneUptime offers.
+#     reads, and only one of the voices OneUptime offers;
+#   - so is twilio.letProjectsChooseCallVoice, whether each project chooses
+#     its own call voice (#11462): GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE
+#     whenever it is true or false - false included - and nothing else.
 suite: Twilio account from the values
 release:
   name: oneuptime
@@ -47,6 +50,8 @@ tests:
           path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_SMS_PHONE_NUMBERS")]
       - notExists:
           path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_CALL_VOICE")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE")]
 
   - it: app treats an account SID of spaces as empty, and a Secret key name alone as nothing set
     templates:
@@ -458,6 +463,186 @@ tests:
     asserts: *refusesCallVoice
 
   # ---------------------------------------------------------------------------
+  # twilio.letProjectsChooseCallVoice: whether projects choose their call voice (#11462)
+  # ---------------------------------------------------------------------------
+  - it: app renders no GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE for an account without it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: *fullAccount
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE")]
+
+  - it: app gets true beside the account, once
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        accountSid: AC00000000000000000000000000000001
+        authToken: twilio-auth-token
+        primaryPhoneNumber: "+14155550100"
+        letProjectsChooseCallVoice: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE
+          any: true
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_ACCOUNT_SID
+            value: AC00000000000000000000000000000001
+
+  - it: app gets false too - as much the switch as true, never dropped as empty
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: &switchOffOnly
+      twilio:
+        letProjectsChooseCallVoice: false
+    asserts: &switchOffOnlyAsserts
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE
+            value: "false"
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_ACCOUNT_SID")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_AUTH_TOKEN")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_CALL_VOICE")]
+
+  - it: app gets the switch without the account, beside the call voice, and none of the account's variables
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        callVoice: Polly.Brian-Neural
+        letProjectsChooseCallVoice: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_CALL_VOICE
+            value: Polly.Brian-Neural
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_ACCOUNT_SID")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_TWILIO_USED_FOR")]
+
+  - it: app takes "true" and "false" quoted, as a values file may write them
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        letProjectsChooseCallVoice: "false"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE
+            value: "false"
+
+  - it: app renders nothing for the switch left empty
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        letProjectsChooseCallVoice: ""
+    asserts: *noTwilioAsserts
+
+  - it: app renders nothing for the switch set to null
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      twilio:
+        letProjectsChooseCallVoice: null
+    asserts: *noTwilioAsserts
+
+  - it: app does not count the switch among the values nothing reads without an account SID
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        usedFor: sms-only
+        letProjectsChooseCallVoice: true
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "twilio.accountSid is empty, so OneUptime reads none of the other twilio values, and these are set: twilio.usedFor. Set twilio.accountSid to send through that Twilio account, or clear them to set the account up in the Admin Dashboard."
+
+  - it: refuses a switch that is neither true nor false
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        letProjectsChooseCallVoice: "yes"
+    asserts: &refusesSwitch
+      - failedTemplate:
+          errorPattern: "letProjectsChooseCallVoice"
+
+  - it: refuses true in another case, which the server would read, at install
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        letProjectsChooseCallVoice: "TRUE"
+    asserts: *refusesSwitch
+
+  - it: refuses a number
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        letProjectsChooseCallVoice: 1
+    asserts: *refusesSwitch
+
+  - it: refuses a list
+    templates:
+      - templates/app.yaml
+    set:
+      twilio:
+        letProjectsChooseCallVoice:
+          - true
+    asserts: *refusesSwitch
+
+  # ---------------------------------------------------------------------------
   # worker: it sends what the queues hold, so it reads the same account
   # ---------------------------------------------------------------------------
   - it: worker renders no GLOBAL_TWILIO_ variable while twilio.accountSid is empty
@@ -494,6 +679,18 @@ tests:
       worker:
         enabled: true
     asserts: *voiceOnlyAsserts
+
+  - it: worker gets the switch without the account, false included
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *switchOffOnly
+      worker:
+        enabled: true
+    asserts: *switchOffOnlyAsserts
 
   - it: worker reads the auth token from the operator's Secret, and never as a plain value too
     templates:
@@ -551,3 +748,12 @@ tests:
       value: Job
     set: *voiceOnly
     asserts: *voiceOnlyAsserts
+
+  - it: the migrate Job gets the switch without the account, false included
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set: *switchOffOnly
+    asserts: *switchOffOnlyAsserts
