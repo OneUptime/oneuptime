@@ -818,8 +818,9 @@ const nationalPhoneDetector: DataTypeDetector = {
  *
  * A national number is written in groups as often as in one run: Tokyo's
  * 03-1234-5678, London's 020 7946 0958, Paris's 06 12 34 56 78 or
- * 06.12.34.56.78, Madrid's 612 34 56 78, Sydney's (02) 1234 5678. Each is
- * two to five groups of two to five digits, set apart by one kind of
+ * 06.12.34.56.78, Madrid's 612 34 56 78, Sydney's (02) 1234 5678, Berlin's
+ * 030 12345678. Each is two to five groups - the first of two to five
+ * digits, each after it of two to eight - set apart by one kind of
  * separator throughout - a space, a hyphen or a dot - or an area code in
  * parentheses first, then a space or a hyphen between the rest. Another
  * dash between two digits reads as a hyphen (readsFullwidthForms, #11385),
@@ -827,7 +828,7 @@ const nationalPhoneDetector: DataTypeDetector = {
  * group is never cut from a longer run.
  */
 const GROUPED_NATIONAL_PHONE_PATTERN: RegExp =
-  /(?<![A-Za-z0-9+./:-])(?:\(0?[1-9][0-9]{0,3}\)[ ]?[0-9]{2,5}(?:[ -][0-9]{2,5}){0,3}|[0-9]{2,5}(?:[ ][0-9]{2,5}){1,4}|[0-9]{2,5}(?:-[0-9]{2,5}){1,4}|[0-9]{2,5}(?:\.[0-9]{2,5}){1,4})(?![0-9]|[ .:/-][0-9])/g;
+  /(?<![A-Za-z0-9+./:-])(?:\(0?[1-9][0-9]{0,3}\)[ ]?[0-9]{2,8}(?:[ -][0-9]{2,8}){0,3}|[0-9]{2,5}(?:[ ][0-9]{2,8}){1,4}|[0-9]{2,5}(?:-[0-9]{2,8}){1,4}|[0-9]{2,5}(?:\.[0-9]{2,8}){1,4})(?![0-9]|[ .:/-][0-9])/g;
 
 // A run of digits of a number written in groups.
 const DIGIT_GROUP: RegExp = /[0-9]+/g;
@@ -952,7 +953,7 @@ const groupedNationalPhoneDetector: DataTypeDetector = {
  * of those words, a run of digits or a number in groups is one only so.
  */
 const TRUNK_NATIONAL_PHONE_PATTERN: RegExp =
-  /(?<![A-Za-z0-9+./:-])(?:0[1-9][0-9]{8,11}|\(0[1-9][0-9]{0,3}\)[ ]?[0-9]{2,5}(?:[ -][0-9]{2,5}){0,3}|0[0-9]{1,4}(?:[ ][0-9]{2,5}){1,4}|0[0-9]{1,4}(?:-[0-9]{2,5}){1,4}|0[0-9]{1,4}(?:\.[0-9]{2,5}){1,4})(?![0-9]|[ .:/-][0-9])/g;
+  /(?<![A-Za-z0-9+./:-])(?:0[1-9][0-9]{8,11}|\(0[1-9][0-9]{0,3}\)[ ]?[0-9]{2,8}(?:[ -][0-9]{2,8}){0,3}|0[0-9]{1,4}(?:[ ][0-9]{2,8}){1,4}|0[0-9]{1,4}(?:-[0-9]{2,8}){1,4}|0[0-9]{1,4}(?:\.[0-9]{2,8}){1,4})(?![0-9]|[ .:/-][0-9])/g;
 
 const trunkNationalPhoneDetector: DataTypeDetector = {
   dataTypeId: "phone-number",
