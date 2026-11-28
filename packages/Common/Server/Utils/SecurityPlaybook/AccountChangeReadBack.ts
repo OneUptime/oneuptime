@@ -8,6 +8,9 @@ import {
 } from "../../../Utils/SecurityCase/AttackAccountChanges";
 import {
   AWS_EVERY_ACCOUNT,
+  AwsTrustedIdentityProvider,
+  getAwsIdentityProviderId,
+  getAwsTrustedIdentityProviders,
   getAwsTrustedOutsideAccounts,
   isSameAwsPolicy,
   readAwsPolicyDocument,
@@ -173,6 +176,14 @@ export interface AccountChangeFacts {
    * ones the attack's policies trusted too.
    */
   trusted?: Array<string> | undefined;
+  /*
+   * An IAM role's (#11378): the identity providers its trust policy lets
+   * in now - an OIDC provider, one built into AWS, a SAML provider - with
+   * what each one's conditions hold it to, that a person is told of. As
+   * for `trusted`, on a trust policy changed since the attack's, only the
+   * ones the attack's policies let in too.
+   */
+  providers?: Array<AwsTrustedIdentityProvider> | undefined;
   // The account's page in the product, https.
   url?: string | undefined;
 }
@@ -1097,13 +1108,21 @@ export default class AccountChangeReadBack {
     const outsideNow: Array<string> = trustsNow
       ? getAwsTrustedOutsideAccounts(trustsNow, change.cloudAccountId)
       : [];
+    // The identity providers it lets in now (#11378).
+    const providersNow: Array<AwsTrustedIdentityProvider> = trustsNow
+      ? getAwsTrustedIdentityProviders(trustsNow)
+      : [];
 
     switch (change.kind) {
       case AccountChangeKind.Account:
-        return facts(AccountChangeState.StillThere, trustedOf(outsideNow));
+        return facts(
+          AccountChangeState.StillThere,
+          trustedOf(outsideNow, providersNow),
+        );
 
       case AccountChangeKind.Trust:
         return AccountChangeReadBack.readIamTrust({
+          providersNow,
           change,
           trustsNow,
           outsideNow,
@@ -1252,43 +1271,49 @@ export default class AccountChangeReadBack {
   /*
    * A role's trust policy the attack set (UpdateAssumeRolePolicy, #11038):
    * reading alone cannot undo it, so the policy now is held to the ones the
-   * case's events set, oldest first.
+   * case's events set, oldest first. What a policy lets in is the outside
+   * accounts it trusts and the identity providers it lets in (#11378),
+   * however their conditions hold them:
    *
    *   still there  it is the last policy the attack set, as IAM reads it -
-   *                however either is written - naming whom it trusts
-   *                outside the account;
-   *   undone       it trusts none of the outside accounts any of the
-   *                attack's policies trusted - each read whole;
-   *   to confirm   anything else: changed since, but still trusting an
-   *                outside account one of them trusted (it may have been
-   *                trusted before the attack), a policy that trusted no
-   *                outside account changed since, or one CloudTrail cut
-   *                short - never undone on what OneUptime could not read.
-   *                It names what the person checks: the outside accounts
-   *                trusted now that the attack's trusted too, or, past
-   *                telling, every one trusted now.
+   *                however either is written - naming whom it lets in;
+   *   undone       it lets in none of the outside accounts or identity
+   *                providers any of the attack's policies let in - each
+   *                read whole;
+   *   to confirm   anything else: changed since, but still letting in one
+   *                of them (it may have been let in before the attack, or
+   *                be held tighter now), a policy that let in neither
+   *                changed since, or one CloudTrail cut short - never
+   *                undone on what OneUptime could not read. It names what
+   *                the person checks: what the attack's let in that is let
+   *                in now, or, past telling, everything let in now.
    */
   private static readIamTrust(data: {
     change: AccountChange;
     trustsNow: JSONObject | null;
     outsideNow: Array<string>;
+    providersNow: Array<AwsTrustedIdentityProvider>;
     facts: (
       state: AccountChangeState,
       extra?: Partial<AccountChangeFacts>,
     ) => AccountChangeFacts;
   }): AccountChangeFacts {
-    const { change, trustsNow, outsideNow, facts } = data;
-    const cannotTell: (trusted: Array<string>) => AccountChangeFacts = (
+    const { change, trustsNow, outsideNow, providersNow, facts } = data;
+    const cannotTell: (
       trusted: Array<string>,
+      providers: Array<AwsTrustedIdentityProvider>,
+    ) => AccountChangeFacts = (
+      trusted: Array<string>,
+      providers: Array<AwsTrustedIdentityProvider>,
     ): AccountChangeFacts => {
       return facts(AccountChangeState.Unknown, {
         reason: AccountChangeUnknownReason.CannotTellWhich,
-        ...trustedOf(trusted),
+        ...trustedOf(trusted, providers),
       });
     };
 
     if (!trustsNow) {
-      return cannotTell([]);
+      return cannotTell([], []);
     }
 
     const set: Array<JSONObject | null> = change.policyDocuments.map(
@@ -1299,7 +1324,10 @@ export default class AccountChangeReadBack {
     const latest: JSONObject | null = set[set.length - 1] || null;
 
     if (latest && isSameAwsPolicy(trustsNow, latest)) {
-      return facts(AccountChangeState.StillThere, trustedOf(outsideNow));
+      return facts(
+        AccountChangeState.StillThere,
+        trustedOf(outsideNow, providersNow),
+      );
     }
 
     const isWhole: boolean =
@@ -1309,36 +1337,62 @@ export default class AccountChangeReadBack {
       });
 
     if (!isWhole) {
-      return cannotTell(outsideNow);
+      return cannotTell(outsideNow, providersNow);
     }
 
+    const attackPolicies: Array<JSONObject> = set as Array<JSONObject>;
     // Each outside account an attack's policy let in: any may be its way back.
     const attackOutside: Array<string> = Array.from(
       new Set(
-        set.flatMap((policy: JSONObject | null): Array<string> => {
-          return getAwsTrustedOutsideAccounts(policy!, change.cloudAccountId);
+        attackPolicies.flatMap((policy: JSONObject): Array<string> => {
+          return getAwsTrustedOutsideAccounts(policy, change.cloudAccountId);
         }),
       ),
     );
+    // And each identity provider one let in (#11378), however it held it.
+    const attackProviders: Set<string> = new Set(
+      attackPolicies.flatMap((policy: JSONObject): Array<string> => {
+        return getAwsTrustedIdentityProviders(policy).map(
+          getAwsIdentityProviderId,
+        );
+      }),
+    );
 
-    if (attackOutside.length === 0) {
-      return cannotTell(outsideNow);
+    if (attackOutside.length === 0 && attackProviders.size === 0) {
+      return cannotTell(outsideNow, providersNow);
     }
 
-    // Every account, now, is each of the attack's too.
+    /*
+     * Every account, now, is each of the attack's too - and lets anyone in
+     * AWS in, whatever the attack let in: never undone.
+     */
     const stillTrusted: Array<string> = outsideNow.includes(AWS_EVERY_ACCOUNT)
       ? [AWS_EVERY_ACCOUNT]
       : outsideNow.filter((account: string): boolean => {
           return attackOutside.includes(account);
         });
+    const stillProviders: Array<AwsTrustedIdentityProvider> =
+      providersNow.filter((provider: AwsTrustedIdentityProvider): boolean => {
+        return attackProviders.has(getAwsIdentityProviderId(provider));
+      });
 
-    return stillTrusted.length === 0
+    return stillTrusted.length === 0 && stillProviders.length === 0
       ? facts(AccountChangeState.Undone)
-      : cannotTell(stillTrusted);
+      : cannotTell(stillTrusted, stillProviders);
   }
 }
 
-// The outside accounts a role trusts, as facts carry them: none said when there are none.
-function trustedOf(accounts: Array<string>): Partial<AccountChangeFacts> {
-  return accounts.length > 0 ? { trusted: accounts } : {};
+/*
+ * Whom a role lets in, as facts carry it: the outside accounts it trusts
+ * and the identity providers it lets in, each said only when there are
+ * some.
+ */
+function trustedOf(
+  accounts: Array<string>,
+  providers: Array<AwsTrustedIdentityProvider> = [],
+): Partial<AccountChangeFacts> {
+  return {
+    ...(accounts.length > 0 ? { trusted: accounts } : {}),
+    ...(providers.length > 0 ? { providers } : {}),
+  };
 }

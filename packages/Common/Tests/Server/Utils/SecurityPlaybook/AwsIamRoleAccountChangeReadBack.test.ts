@@ -29,6 +29,17 @@ import {
   readAccountChange,
 } from "../../../../Utils/SecurityCase/AttackAccountChanges";
 import {
+  AwsIdentityProviderKind,
+  AwsIdentityProviderReach,
+  AwsTrustedIdentityProvider,
+} from "../../../../Utils/SecurityCase/AwsTrustPolicy";
+import {
+  GITHUB_AUDIENCE_ONLY_TRUST,
+  GITHUB_BRANCH_TRUST,
+  GITHUB_ORGANIZATION_TRUST,
+  GOOGLE_TRUST,
+} from "../../../Helpers/AwsTrustPolicyExamples";
+import {
   ATTACH_ROLE_POLICY_RECORD,
   AWS_DOCS_GAP,
   CREATE_ROLE_RECORD,
@@ -1000,6 +1011,174 @@ describe("whatever the role's change", () => {
       expect(form.get("Version")).toBe("2010-05-08");
       expect(form.get("UserName")).toBeNull();
     }
+  });
+});
+
+describe("the identity providers a role lets in (#11378)", () => {
+  const GITHUB: string = "token.actions.githubusercontent.com";
+  // An attack's trust: GitHub Actions with its audience alone - any repository, of any organization.
+  const opened: AccountChange = changeOf(
+    attackTrustRecord({
+      roleName: "Deploy",
+      policy: JSON.parse(GITHUB_AUDIENCE_ONLY_TRUST) as JSONObject,
+      eventID: "attack-oidc-1",
+    }),
+  );
+  const deploy: (trustPolicy: JSONObject | string) => FakeIamOptions = (
+    trustPolicy: JSONObject | string,
+  ): FakeIamOptions => {
+    return {
+      roles: { Deploy: { roleId: "AROADEPLOYEXAMPLE", trustPolicy } },
+    };
+  };
+  const reachOf: (
+    facts: AccountChangeFacts,
+  ) => Array<[string, AwsIdentityProviderReach]> = (
+    facts: AccountChangeFacts,
+  ): Array<[string, AwsIdentityProviderReach]> => {
+    return (facts.providers || []).map(
+      (
+        provider: AwsTrustedIdentityProvider,
+      ): [string, AwsIdentityProviderReach] => {
+        return [provider.name, provider.reach];
+      },
+    );
+  };
+
+  test("a role the attack made names whom its trust policy lets in now: the provider, and how far", async () => {
+    const facts: AccountChangeFacts = await readBack(
+      changeOf(CREATE_ROLE_RECORD),
+      {
+        roles: {
+          TestRole: {
+            roleId: "AROA6ON6E4XEFFEXAMPLE",
+            trustPolicy: GITHUB_AUDIENCE_ONLY_TRUST,
+          },
+        },
+      },
+    );
+
+    expect(facts).toEqual({
+      provider: "AWS",
+      state: AccountChangeState.StillThere,
+      url: rolePage("TestRole"),
+      providers: [
+        {
+          principal: `arn:aws:iam::012345678910:oidc-provider/${GITHUB}`,
+          name: GITHUB,
+          kind: AwsIdentityProviderKind.Oidc,
+          reach: AwsIdentityProviderReach.AnyOrganization,
+          claim: "sub",
+          values: [],
+        },
+      ],
+    });
+  });
+
+  test("a trust policy still as the attack set it names the provider it lets in", async () => {
+    const facts: AccountChangeFacts = await readBack(
+      opened,
+      deploy(GITHUB_AUDIENCE_ONLY_TRUST),
+    );
+
+    expect(facts.state).toBe(AccountChangeState.StillThere);
+    expect(reachOf(facts)).toEqual([
+      [GITHUB, AwsIdentityProviderReach.AnyOrganization],
+    ]);
+  });
+
+  test("undone once the role lets in none of the providers the attack's policy let in - counted as the outside accounts are", async () => {
+    for (const trust of [
+      EC2_TRUST,
+      // Another provider the attack's policy never named is not its way back.
+      GOOGLE_TRUST,
+    ]) {
+      expect(await readBack(opened, deploy(trust))).toEqual({
+        provider: "AWS",
+        state: AccountChangeState.Undone,
+        url: rolePage("Deploy"),
+      });
+    }
+  });
+
+  test("the provider still let in, held to one repository now: a person confirms it, told what it lets in - never undone", async () => {
+    const facts: AccountChangeFacts = await readBack(
+      opened,
+      deploy(GITHUB_BRANCH_TRUST),
+    );
+
+    expect(facts).toMatchObject({
+      state: AccountChangeState.Unknown,
+      reason: AccountChangeUnknownReason.CannotTellWhich,
+    });
+    expect(facts.providers).toEqual([
+      expect.objectContaining({
+        name: GITHUB,
+        reach: AwsIdentityProviderReach.Limited,
+        claim: "sub",
+        values: ["repo:GitHubOrg/GitHubRepo:ref:refs/heads/GitHubBranch"],
+      }),
+    ]);
+    expect(facts.trusted).toBeUndefined();
+  });
+
+  test("an attack that let in an outside account and a provider: undone only once neither is", async () => {
+    const both: AccountChange = changeOf(
+      attackTrustRecord({
+        roleName: "Deploy",
+        policy: {
+          Version: "2012-10-17",
+          Statement: [
+            ...(trusting(ATTACKER)["Statement"] as Array<JSONObject>),
+            ...((JSON.parse(GITHUB_AUDIENCE_ONLY_TRUST) as JSONObject)[
+              "Statement"
+            ] as Array<JSONObject>),
+          ],
+        },
+        eventID: "attack-oidc-2",
+      }),
+    );
+
+    expect(await readBack(both, deploy(trusting(ATTACKER)))).toMatchObject({
+      state: AccountChangeState.Unknown,
+      trusted: [ATTACKER],
+    });
+    expect(
+      reachOf(await readBack(both, deploy(GITHUB_AUDIENCE_ONLY_TRUST))),
+    ).toEqual([[GITHUB, AwsIdentityProviderReach.AnyOrganization]]);
+    expect((await readBack(both, deploy(EC2_TRUST))).state).toBe(
+      AccountChangeState.Undone,
+    );
+  });
+
+  test("a role open to every AWS account now is never undone, whatever the attack let in", async () => {
+    expect(await readBack(opened, deploy(trusting("*")))).toMatchObject({
+      state: AccountChangeState.Unknown,
+      trusted: ["*"],
+    });
+  });
+
+  test("an attack's policy CloudTrail cut short: a person confirms, told every provider the role lets in now", async () => {
+    const cut: AccountChange = changeOf(
+      recordedRoleCall({
+        eventName: "UpdateAssumeRolePolicy",
+        requestParameters: {
+          roleName: "Deploy",
+          policyDocument: `${GITHUB_AUDIENCE_ONLY_TRUST.slice(0, 200)}`,
+        },
+        eventID: "attack-oidc-3",
+      }),
+    );
+
+    const facts: AccountChangeFacts = await readBack(
+      cut,
+      deploy(GITHUB_ORGANIZATION_TRUST),
+    );
+
+    expect(facts.state).toBe(AccountChangeState.Unknown);
+    expect(reachOf(facts)).toEqual([
+      [GITHUB, AwsIdentityProviderReach.Limited],
+    ]);
   });
 });
 
