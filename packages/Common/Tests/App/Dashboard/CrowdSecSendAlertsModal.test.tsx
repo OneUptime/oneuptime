@@ -123,7 +123,9 @@ function renderModal(connection: SecurityEventConnection): {
 function readsBack(lastEventIngestedAt: Date | undefined): void {
   jest
     .spyOn(ModelAPI, "getItem")
-    .mockResolvedValue(crowdsecConnection({ lastEventIngestedAt }));
+    .mockResolvedValue(
+      crowdsecConnection(lastEventIngestedAt ? { lastEventIngestedAt } : {}),
+    );
 }
 
 async function nextWatch(): Promise<void> {
