@@ -148,7 +148,10 @@ export default class MarkdownFiles {
     recordId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<MarkdownFilesResult> {
-    DatabaseCommonInteractionPropsUtil.assertCredentialsPresent(data.props);
+    // OneUptime itself (root) is never a request, so never anonymous.
+    if (!data.props.isRoot) {
+      DatabaseCommonInteractionPropsUtil.assertCredentialsPresent(data.props);
+    }
 
     const model: BaseModel = data.service.getModel();
     const tenantColumn: string | null = model.getTenantColumn();
