@@ -216,6 +216,13 @@ export interface SecurityEventConnectorDefinition {
    * product's own words, for a connection none has arrived through yet.
    */
   howToSendTestAlert?: string | undefined;
+  /*
+   * What the form says of the product's settings, above them, where they
+   * are not values from its console: CrowdSec's are for blocking alone,
+   * and left empty for a connection that only receives alerts. Absent
+   * means "Values from your {{vendor}} console. ...".
+   */
+  settingsDescription?: string | undefined;
 }
 
 /*
@@ -953,12 +960,15 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       alertsArePushed: true,
       howToSendTestAlert:
         "Add the connection's notification to CrowdSec as its Send alerts says, then send a test alert on the CrowdSec host: sudo cscli notifications test oneuptime",
+      settingsDescription: translationKey(
+        "Only to block addresses in CrowdSec. Leave them empty to receive its alerts alone.",
+      ),
       configFields: [
         {
           key: "lapiUrl",
           title: translationKey("Local API URL"),
           description: translationKey(
-            "Only to block addresses in CrowdSec: where OneUptime reaches CrowdSec's Local API, over https wherever it crosses a network.",
+            "Where OneUptime reaches CrowdSec's Local API, over https wherever it crosses a network.",
           ),
           type: "url",
           required: false,
@@ -968,7 +978,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: "machineId",
           title: translationKey("Machine ID"),
           description: translationKey(
-            "Only to block addresses in CrowdSec: the machine OneUptime signs in as. Add one on the CrowdSec host with sudo cscli machines add oneuptime --auto -f -",
+            "The machine OneUptime signs in as. Add one on the CrowdSec host with sudo cscli machines add oneuptime --auto -f -",
           ),
           type: "text",
           required: false,
@@ -978,7 +988,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: BLOCK_INDICATORS_KEY,
           title: translationKey("Block addresses with CrowdSec"),
           description: translationKey(
-            "OneUptime adds a ban decision in CrowdSec for each address and range you block, and lifts it when the block ends. Needs the Local API URL, the machine ID and its password.",
+            "OneUptime bans each address and range you block in CrowdSec, until the block ends. Needs the Local API URL, a machine ID and its password.",
           ),
           type: "toggle",
           required: false,

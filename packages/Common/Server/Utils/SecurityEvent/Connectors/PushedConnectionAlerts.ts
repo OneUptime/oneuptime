@@ -52,10 +52,6 @@ import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
 // How long a connection a request names is remembered, so a busy sender is not a read per request.
 export const PUSHED_CONNECTION_CACHE_TTL_MS: number = 60 * 1000;
 
-// The header a sender may name the connection with, instead of ?connection=.
-export const PUSHED_CONNECTION_HEADER: string =
-  "x-oneuptime-security-connection";
-
 export interface PushedAlertsResult {
   received: number;
   duplicates: number;

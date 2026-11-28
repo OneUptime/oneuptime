@@ -34,9 +34,11 @@ import TelemetryFanInWriter, {
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
-import PushedConnectionAlerts, {
+import PushedConnectionAlerts from "Common/Server/Utils/SecurityEvent/Connectors/PushedConnectionAlerts";
+import {
   PUSHED_CONNECTION_HEADER,
-} from "Common/Server/Utils/SecurityEvent/Connectors/PushedConnectionAlerts";
+  PUSHED_CONNECTION_QUERY_PARAM,
+} from "Common/Types/SecurityEvent/Connectors/PushedConnectionAddress";
 
 class SecurityEventStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -381,7 +383,7 @@ export default class SecurityEventsIngestService extends OtelIngestBaseService {
 
   // The connection a request's alerts belong to: ?connection=, or the header.
   private static getRequestedConnectionId(req: ExpressRequest): string {
-    const fromQuery: unknown = req.query?.["connection"];
+    const fromQuery: unknown = req.query?.[PUSHED_CONNECTION_QUERY_PARAM];
     const fromHeader: unknown = req.headers?.[PUSHED_CONNECTION_HEADER];
 
     return String(
