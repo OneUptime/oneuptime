@@ -7,6 +7,7 @@ De OneUptime-provider wordt gepubliceerd in het [Terraform Registry](https://reg
 - [Hoe versies worden genummerd](#hoe-versies-worden-genummerd): De versie van een provider is de OneUptime-release die hem publiceerde.
 - [Het lockbestand](#het-lockbestand): De versie en checksums die elke machine installeert.
 - [Naar een nieuwere versie overstappen](#naar-een-nieuwere-versie-overstappen): Lees wat er veranderde, download haar en plan.
+- [De checksums van een versie controleren](#de-checksums-van-een-versie-controleren): Controleer een versie met de hand, zoals `init` haar controleert.
 :::
 
 ## Wat er wordt gepubliceerd
@@ -57,6 +58,8 @@ Het bronadres noemt geen register: Terraform leest het uit het Terraform Registr
 
 Een gepubliceerde versie verandert nooit: de registers bewaren de checksums van wat ze het eerst downloadden, en `init` controleert elke download daartegen. Een versie die hersteld moet worden, wordt opnieuw gepubliceerd als de volgende patchversie, die een bereik meeneemt, en de notities van die release zeggen welke versie ze vervangt.
 
+Na elke publicatie van een versie, en daarna elke dag, vergelijkt OneUptime de checksums die beide registers bewaren met de bestanden die de release levert, voor elk platform.
+
 ## Het lockbestand
 
 `terraform init` legt de versie die het koos, en de checksums van zijn downloads, vast in `.terraform.lock.hcl`. Commit dat bestand: elke machine en elke CI-run installeert dan precies die versie, tot je een andere kiest. De checksums dekken elk platform dat het register publiceert, dus één lockbestand werkt voor Linux-, macOS- en Windows-machines tegelijk.
@@ -95,6 +98,29 @@ Voer `terraform plan` uit, en pas alleen toe wanneer het leeg is of de wijziging
 :::
 
 Upgrade op een zelf gehoste OneUptime eerst OneUptime, en verhoog daarna het einde van het bereik van de provider.
+
+## De checksums van een versie controleren
+
+`init` installeert een versie alleen als drie SHA-256-checksums voor je platform overeenkomen: die het register bewaarde toen de versie werd gepubliceerd, de regel van de zip in de `SHA256SUMS` van de release, en de zip zelf. Het controleert ook dat `SHA256SUMS` is ondertekend met de sleutel van OneUptime, waarvan de vingerafdruk eindigt op `9D87 E494 AC01 6697`. Om een versie zelf te controleren, zet je op de eerste regel haar versie, je systeem en je architectuur:
+
+```bash
+VERSION=17.3.0 OS=linux ARCH=amd64
+ZIP=terraform-provider-oneuptime_${VERSION}_${OS}_${ARCH}.zip
+SUMS=terraform-provider-oneuptime_${VERSION}_SHA256SUMS
+curl -s https://registry.terraform.io/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH > registry.json
+jq -r .shasum registry.json
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$ZIP"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS.sig"
+grep "$ZIP" "$SUMS"
+sha256sum "$ZIP"
+jq -r '.signing_keys.gpg_public_keys[0].ascii_armor' registry.json | gpg --import
+gpg --verify "$SUMS.sig" "$SUMS"
+```
+
+De drie checksums die het toont, moeten gelijk zijn, en `gpg` moet `Good signature from "OneUptime <key@oneuptime.com>"` zeggen. Schrijf op macOS `shasum -a 256` in plaats van `sha256sum`. Als de checksum van het register afwijkt van de andere twee, weigert `init` de versie: zie [Een versie waarvan de checksums niet kloppen](/docs/terraform/troubleshooting#een-versie-waarvan-de-checksums-niet-kloppen).
+
+Het register van OpenTofu bewaart dezelfde checksums: lees zijn eigen checksum af bij `https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH`. Het heeft geen sleutel voor de provider, dus `tofu init` controleert de checksums en slaat de handtekening over.
 
 ## Waar de code staat
 
