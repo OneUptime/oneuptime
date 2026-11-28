@@ -4,10 +4,9 @@ import EvaluateOverTime, {
   OverTimeEvaluationStatus,
 } from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
 import MetricService from "../../../../../Server/Services/MetricService";
-import FindBy from "../../../../../Server/Types/AnalyticsDatabase/FindBy";
 import { JSONObject } from "../../../../../Types/JSON";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
-import InBetween from "../../../../../Types/BaseDatabase/InBetween";
+import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import MonitorMetricType from "../../../../../Types/Monitor/MonitorMetricType";
 import {
   CheckOn,
@@ -97,10 +96,13 @@ const BOOLEAN_SERIES_CHECK_ONS: Array<CheckOn> = [
 ];
 
 /*
- * The metric read is stubbed in memory rather than through a typed spy so
- * every query it receives can be asserted on directly.
+ * The window read (MetricService.readMonitorWindowRows) is stubbed in memory
+ * rather than through a typed spy so every read it is asked for can be
+ * asserted on directly.
  */
-let findByCalls: Array<FindBy<Metric>> = [];
+type WindowRead = Parameters<typeof MetricService.readMonitorWindowRows>[0];
+
+let findByCalls: Array<WindowRead> = [];
 let findByResult: Array<Metric> = [];
 let findByError: Error | null = null;
 
@@ -108,12 +110,8 @@ function mockSamples(metrics: Array<Metric>): void {
   findByResult = metrics;
 }
 
-function lastQuery(): JSONObject {
-  return findByCalls[0]!.query as unknown as JSONObject;
-}
-
-function lastSelect(): JSONObject {
-  return findByCalls[0]!.select as unknown as JSONObject;
+function lastRead(): WindowRead {
+  return findByCalls[0]!;
 }
 
 function evaluate(input: {
@@ -140,9 +138,9 @@ describe("EvaluateOverTime", () => {
     findByError = null;
 
     jest
-      .spyOn(MetricService, "findBy")
-      .mockImplementation((findBy: FindBy<Metric>): Promise<Array<Metric>> => {
-        findByCalls.push(findBy);
+      .spyOn(MetricService, "readMonitorWindowRows")
+      .mockImplementation((read: WindowRead): Promise<Array<Metric>> => {
+        findByCalls.push(read);
 
         if (findByError) {
           return Promise.reject(findByError);
@@ -185,29 +183,29 @@ describe("EvaluateOverTime", () => {
 
       expect(findByCalls).toHaveLength(1);
 
-      const query: JSONObject = lastQuery();
+      const read: WindowRead = lastRead();
 
-      expect(query["projectId"]).toBe(PROJECT_ID);
-      expect(query["primaryEntityId"]).toBe(MONITOR_ID);
-      expect(query["name"]).toBe(MonitorMetricType.ResponseStatusCode);
-
-      const time: InBetween<Date> = query["time"] as InBetween<Date>;
-      expect(time).toBeInstanceOf(InBetween);
-      expect((time.startValue as Date).toISOString()).toBe(
-        "2026-08-20T11:55:00.000Z",
-      );
-      expect((time.endValue as Date).toISOString()).toBe(NOW.toISOString());
+      expect(read.projectId).toBe(PROJECT_ID);
+      expect(read.monitorId).toBe(MONITOR_ID);
+      expect(read.metricName).toBe(MonitorMetricType.ResponseStatusCode);
+      expect(read.windowStart.toISOString()).toBe("2026-08-20T11:55:00.000Z");
+      expect(read.windowEnd.toISOString()).toBe(NOW.toISOString());
     });
 
-    test("selects the sample time as well as the value", async () => {
+    /*
+     * Each row's time and value, newest first up to the limit
+     * (MetricService.readMonitorWindowRows): no attribute of a row is read
+     * back, which is what made a window read the whole attributes map.
+     */
+    test("reads each row's time and value alone, up to the row limit", async () => {
       mockSamples(everyMinute([200]));
 
       await evaluate({ criteriaFilter: criteria() });
 
-      const select: JSONObject = lastSelect();
+      const read: WindowRead = lastRead();
 
-      expect(select["value"]).toBe(true);
-      expect(select["time"]).toBe(true);
+      expect(read.readAttributeKeys).toBeUndefined();
+      expect(read.limit).toBe(LIMIT_PER_PROJECT);
     });
 
     test("passes misc data through as an attribute filter", async () => {
@@ -218,9 +216,49 @@ describe("EvaluateOverTime", () => {
         miscData: { diskPath: "/var" },
       });
 
-      const query: JSONObject = lastQuery();
+      expect(lastRead().attributes).toEqual({ diskPath: "/var" });
+    });
 
-      expect(query["attributes"]).toEqual({ diskPath: "/var" });
+    test("reads misc data's numbers and yes-or-no values as their text", async () => {
+      mockSamples(everyMinute([10]));
+
+      await evaluate({
+        criteriaFilter: criteria({ checkOn: CheckOn.DiskUsagePercent }),
+        miscData: { diskPath: "/var", partition: 2, mounted: true },
+      });
+
+      expect(lastRead().attributes).toEqual({
+        diskPath: "/var",
+        partition: "2",
+        mounted: "true",
+      });
+    });
+
+    test("a misc data value of none filters nothing", async () => {
+      mockSamples(everyMinute([10]));
+
+      await evaluate({
+        criteriaFilter: criteria({ checkOn: CheckOn.DiskUsagePercent }),
+        miscData: { diskPath: null, other: undefined } as unknown as JSONObject,
+      });
+
+      expect(lastRead().attributes).toEqual({});
+    });
+
+    /*
+     * A value the read cannot filter by - an object - is refused, never
+     * read as its text ("[object Object]"), which would match no row and
+     * silence the filter.
+     */
+    test("a misc data value that is no attribute value is a read error", async () => {
+      const result: OverTimeEvaluation = await evaluate({
+        criteriaFilter: criteria({ checkOn: CheckOn.DiskUsagePercent }),
+        miscData: { diskPath: { nested: "/var" } } as unknown as JSONObject,
+      });
+
+      expect(findByCalls).toHaveLength(0);
+      expect(result.status).toBe(OverTimeEvaluationStatus.InsufficientData);
+      expect(result.isReadError).toBe(true);
     });
   });
 
@@ -282,7 +320,7 @@ describe("EvaluateOverTime", () => {
           }),
         });
 
-        expect(lastQuery()["name"]).toBe(MonitorMetricType.IsOnline);
+        expect(lastRead().metricName).toBe(MonitorMetricType.IsOnline);
         expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
         // 0 maps to false for online-style series.
         expect(result.value).toEqual([false, false, false, false, false]);
@@ -303,7 +341,7 @@ describe("EvaluateOverTime", () => {
           criteriaFilter: criteria({ checkOn: checkOn }),
         });
 
-        expect(lastQuery()["name"]).toBe(MonitorMetricType.ResponseTime);
+        expect(lastRead().metricName).toBe(MonitorMetricType.ResponseTime);
         expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
         expect(result.value).toEqual([10, 20, 30, 40, 50]);
       });
@@ -354,8 +392,7 @@ describe("EvaluateOverTime", () => {
 
       expect(result.status).toBe(OverTimeEvaluationStatus.Evaluated);
 
-      const time: InBetween<Date> = lastQuery()["time"] as InBetween<Date>;
-      expect((time.startValue as Date).toISOString()).toBe(
+      expect(lastRead().windowStart.toISOString()).toBe(
         "2026-08-20T11:55:00.000Z",
       );
     });

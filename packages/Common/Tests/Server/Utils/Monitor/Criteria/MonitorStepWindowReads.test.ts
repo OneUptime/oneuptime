@@ -11,7 +11,9 @@ import CheckWindowCounts, {
   CheckWindowCountReads,
   CheckWindowSource,
 } from "../../../../../Server/Utils/Monitor/Criteria/CheckWindowCounts";
-import EvaluateOverTime from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
+import EvaluateOverTime, {
+  OverTimeWindowReads,
+} from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
 import PreviousCheckComparison, {
   PreviousCheckReads,
   PreviousCheckSource,
@@ -26,7 +28,6 @@ import { Statement } from "../../../../../Server/Utils/AnalyticsDatabase/Stateme
 import logger from "../../../../../Server/Utils/Logger";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
-import Includes from "../../../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../../../Types/Date";
 import FilterCondition from "../../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -458,17 +459,19 @@ describe("every window of a step reads that step's rows", () => {
   });
 
   describe("a window read whole (Average, Percentile, All Values and the rest)", () => {
-    let queries: Array<JSONObject> = [];
+    let reads: Array<Record<string, string | Array<string>> | undefined> = [];
 
     beforeEach(() => {
-      queries = [];
+      reads = [];
 
-      jest.spyOn(MetricService, "findBy").mockImplementation((async (input: {
-        query: JSONObject;
-      }): Promise<Array<Metric>> => {
-        queries.push(input.query);
-        return [];
-      }) as never);
+      jest
+        .spyOn(MetricService, "readMonitorWindowRows")
+        .mockImplementation((async (input: {
+          attributes?: Record<string, string | Array<string>>;
+        }): Promise<Array<Metric>> => {
+          reads.push(input.attributes);
+          return [];
+        }) as never);
     });
 
     function average(filter: CriteriaFilter): CriteriaFilter {
@@ -491,9 +494,9 @@ describe("every window of a step reads that step's rows", () => {
         stepScope: SEVERAL_STEPS,
       });
 
-      expect(queries[0]!["attributes"]).toEqual({
+      expect(reads[0]).toEqual({
         diskPath: "/data",
-        [MONITOR_STEP_ID_ATTRIBUTE]: STEP_A,
+        [MONITOR_STEP_ID_ATTRIBUTE]: [STEP_A],
       });
     });
 
@@ -505,12 +508,7 @@ describe("every window of a step reads that step's rows", () => {
         stepScope: ONE_STEP,
       });
 
-      const values: unknown = (queries[0]!["attributes"] as JSONObject)[
-        MONITOR_STEP_ID_ATTRIBUTE
-      ];
-
-      expect(values).toBeInstanceOf(Includes);
-      expect((values as Includes).values).toEqual([STEP_A, ""]);
+      expect(reads[0]![MONITOR_STEP_ID_ATTRIBUTE]).toEqual([STEP_A, ""]);
     });
 
     test("with no step the window is read as before, and the disk it names is never changed", async () => {
@@ -522,14 +520,14 @@ describe("every window of a step reads that step's rows", () => {
         criteriaFilter: average(RESPONSE_TIME_ABOVE_300),
       });
 
-      expect(queries[0]!["attributes"]).toBeUndefined();
+      expect(reads[0]).toEqual({});
 
       expect(
         EvaluateOverTime.getWindowAttributes({
           miscData: miscData,
           stepScope: SEVERAL_STEPS,
         }),
-      ).toEqual({ diskPath: "/", [MONITOR_STEP_ID_ATTRIBUTE]: STEP_A });
+      ).toEqual({ diskPath: "/", [MONITOR_STEP_ID_ATTRIBUTE]: [STEP_A] });
       expect(miscData).toEqual({ diskPath: "/" });
     });
   });
@@ -813,17 +811,21 @@ describe("every window of a step reads that step's rows", () => {
     }
 
     let scopes: Array<MonitorStepSeriesScope | undefined> = [];
+    let windowReads: Array<OverTimeWindowReads | undefined> = [];
 
     beforeEach(() => {
       scopes = [];
+      windowReads = [];
 
       jest
         .spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter")
         .mockImplementation(
           async (data: {
             stepScope: MonitorStepSeriesScope | undefined;
+            windowReads?: OverTimeWindowReads | undefined;
           }): Promise<never> => {
             scopes.push(data.stepScope);
+            windowReads.push(data.windowReads);
             return { earlyReturn: { result: null }, value: undefined } as never;
           },
         );
@@ -895,6 +897,16 @@ describe("every window of a step reads that step's rows", () => {
             readsRowsWithoutStep: false,
           });
         }
+
+        /*
+         * And the windows read for the check: one set, handed to every
+         * window the check's evaluation reads, so each is read once.
+         */
+        expect(windowReads[0]).toBeInstanceOf(OverTimeWindowReads);
+
+        for (const reads of windowReads) {
+          expect(reads).toBe(windowReads[0]);
+        }
       },
     );
 
@@ -923,6 +935,12 @@ describe("every window of a step reads that step's rows", () => {
           monitorStepId: judged.id.toString(),
           readsRowsWithoutStep: true,
         });
+      }
+
+      expect(windowReads[0]).toBeInstanceOf(OverTimeWindowReads);
+
+      for (const reads of windowReads) {
+        expect(reads).toBe(windowReads[0]);
       }
     });
   });

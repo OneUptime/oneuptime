@@ -23,7 +23,6 @@ import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService from "../../../../Server/Services/MonitorStatusTimelineService";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
-import FindBy from "../../../../Server/Types/AnalyticsDatabase/FindBy";
 import logger from "../../../../Server/Utils/Logger";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
@@ -32,7 +31,6 @@ import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStat
 import Probe, {
   ProbeConnectionStatus,
 } from "../../../../Models/DatabaseModels/Probe";
-import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../../Types/Date";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../Types/JSON";
@@ -47,6 +45,7 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilterMatchHistory";
 import MonitorCriteria from "../../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
@@ -303,19 +302,16 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
         }
       });
     jest
-      .spyOn(MetricService, "findBy")
+      .spyOn(MetricService, "readMonitorWindowRows")
       .mockImplementation(
-        async (findBy: FindBy<Metric>): Promise<Array<Metric>> => {
-          const query: JSONObject = findBy.query as unknown as JSONObject;
-
-          if (query["name"] !== CRITERIA_FILTER_MATCH_METRIC_NAME) {
+        async (
+          read: Parameters<typeof MetricService.readMonitorWindowRows>[0],
+        ): Promise<Array<Metric>> => {
+          if (read.metricName !== CRITERIA_FILTER_MATCH_METRIC_NAME) {
             return [];
           }
 
-          const time: InBetween<Date> = query[
-            "time"
-          ] as unknown as InBetween<Date>;
-          const filterKey: string = (query["attributes"] as JSONObject)[
+          const filterKey: string = read.attributes![
             CRITERIA_FILTER_KEY_ATTRIBUTE
           ] as string;
 
@@ -323,8 +319,8 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
             .filter((row: StoredRow) => {
               return (
                 row.filterKey === filterKey &&
-                row.time.getTime() >= time.startValue.getTime() &&
-                row.time.getTime() <= time.endValue.getTime()
+                row.time.getTime() >= read.windowStart.getTime() &&
+                row.time.getTime() <= read.windowEnd.getTime()
               );
             })
             .map((row: StoredRow) => {
@@ -552,7 +548,7 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
     atMinute(5);
 
     const findBy: jest.SpyInstance =
-      MetricService.findBy as unknown as jest.SpyInstance;
+      MetricService.readMonitorWindowRows as unknown as jest.SpyInstance;
     findBy.mockClear();
 
     // Its own window, and the two other probes' windows in the agreement pass.
@@ -564,5 +560,111 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
     });
 
     expect(findBy).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A window of a series is the same window whichever probe's check is
+   * judged against it - it holds every probe's checks - and the same for
+   * every filter that reads it. One probe result reads it once: before, its
+   * own evaluation read it for each filter, and the agreement pass read it
+   * again for each filter on each other probe's last check.
+   */
+  test("one probe result reads each over-time window once, for every filter and the agreement pass", async () => {
+    const { monitor, step } = websiteMonitor();
+
+    // Slow, judged first: two filters on one window, one on a longer one.
+    step.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray.unshift(
+      criteria({
+        id: "slow",
+        statusId: OFFLINE_STATUS_ID,
+        createIncidents: false,
+        filterCondition: FilterCondition.Any,
+        filters: [
+          {
+            checkOn: CheckOn.ResponseTime,
+            filterType: FilterType.GreaterThan,
+            value: 1000,
+            evaluateOverTime: true,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: 5,
+              evaluateOverTimeType: EvaluateOverTimeType.AllValues,
+            },
+          },
+          {
+            checkOn: CheckOn.ResponseTime,
+            filterType: FilterType.GreaterThan,
+            value: 5000,
+            evaluateOverTime: true,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: 5,
+              evaluateOverTimeType: EvaluateOverTimeType.Average,
+            },
+          },
+          {
+            checkOn: CheckOn.ResponseTime,
+            filterType: FilterType.GreaterThan,
+            value: 800,
+            evaluateOverTime: true,
+            evaluateOverTimeOptions: {
+              timeValueInMinutes: 15,
+              evaluateOverTimeType: EvaluateOverTimeType.Average,
+            },
+          },
+        ],
+      }),
+    );
+
+    const probeIds: Array<ObjectID> = [addProbe(), addProbe(), addProbe()];
+
+    for (const probeId of probeIds) {
+      await ingest({ monitor, step, probeId, body: HEALTHY_PAGE });
+    }
+
+    atMinute(1);
+
+    const reads: jest.SpyInstance =
+      MetricService.readMonitorWindowRows as unknown as jest.SpyInstance;
+    reads.mockClear();
+
+    const response: ProbeApiIngestResponse = await ingest({
+      monitor,
+      step,
+      probeId: probeIds[0]!,
+      body: HEALTHY_PAGE,
+    });
+
+    // Judged as before: the windows hold nothing, so slow waits.
+    expect(response.criteriaMetId).toBe("online");
+
+    const responseTimeReads: Array<
+      Parameters<typeof MetricService.readMonitorWindowRows>[0]
+    > = reads.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as Parameters<
+          typeof MetricService.readMonitorWindowRows
+        >[0];
+      })
+      .filter(
+        (read: Parameters<typeof MetricService.readMonitorWindowRows>[0]) => {
+          return read.metricName === MonitorMetricType.ResponseTime;
+        },
+      );
+
+    // The five-minute window and the fifteen-minute one, each once.
+    expect(
+      responseTimeReads.map(
+        (read: Parameters<typeof MetricService.readMonitorWindowRows>[0]) => {
+          return (
+            (read.windowEnd.getTime() - read.windowStart.getTime()) /
+            MINUTE_IN_MS
+          );
+        },
+      ),
+    ).toEqual([5, 15]);
+
+    // Both end at the moment the result began to be judged.
+    expect(responseTimeReads[0]!.windowEnd).toEqual(
+      responseTimeReads[1]!.windowEnd,
+    );
   });
 });

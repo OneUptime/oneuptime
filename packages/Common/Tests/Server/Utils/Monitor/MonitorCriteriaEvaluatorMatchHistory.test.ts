@@ -12,12 +12,10 @@ import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCr
 import { CriteriaFilterMatchHistoryReads } from "../../../../Server/Utils/Monitor/Criteria/CriteriaFilterMatchHistory";
 import GlobalConfigService from "../../../../Server/Services/GlobalConfigService";
 import MetricService from "../../../../Server/Services/MetricService";
-import FindBy from "../../../../Server/Types/AnalyticsDatabase/FindBy";
 import VMUtil from "../../../../Server/Utils/VM/VMAPI";
 import logger from "../../../../Server/Utils/Logger";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
-import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../../Types/Date";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import ReturnResult from "../../../../Types/IsolatedVM/ReturnResult";
@@ -54,7 +52,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * MonitorCriteriaEvaluator.processMonitorStep, the way MonitorResource does
  * for every probe result. The only stand-in is the metric store: an
  * in-memory table that MetricService.insertJsonRows writes and
- * MetricService.findBy reads, so the rows the evaluator writes for a filter's
+ * MetricService.readMonitorWindowRows reads, so the rows the evaluator writes for a filter's
  * match history (through the real MonitorMetricUtil) are the rows it reads
  * back on the next check.
  */
@@ -282,31 +280,28 @@ describe("MonitorCriteriaEvaluator: filters judged from their match history", ()
       });
 
     jest
-      .spyOn(MetricService, "findBy")
+      .spyOn(MetricService, "readMonitorWindowRows")
       .mockImplementation(
-        async (findBy: FindBy<Metric>): Promise<Array<Metric>> => {
-          const query: JSONObject = findBy.query as unknown as JSONObject;
-
-          if (query["name"] !== CRITERIA_FILTER_MATCH_METRIC_NAME) {
+        async (
+          read: Parameters<typeof MetricService.readMonitorWindowRows>[0],
+        ): Promise<Array<Metric>> => {
+          if (read.metricName !== CRITERIA_FILTER_MATCH_METRIC_NAME) {
             return [];
           }
 
           matchHistoryReads++;
 
-          const time: InBetween<Date> = query[
-            "time"
-          ] as unknown as InBetween<Date>;
-          const filterKey: string = (query["attributes"] as JSONObject)[
+          const filterKey: string = read.attributes![
             CRITERIA_FILTER_KEY_ATTRIBUTE
           ] as string;
 
           return store
             .filter((row: StoredRow) => {
               return (
-                row.monitorId === query["primaryEntityId"]!.toString() &&
+                row.monitorId === read.monitorId.toString() &&
                 row.filterKey === filterKey &&
-                row.time.getTime() >= time.startValue.getTime() &&
-                row.time.getTime() <= time.endValue.getTime()
+                row.time.getTime() >= read.windowStart.getTime() &&
+                row.time.getTime() <= read.windowEnd.getTime()
               );
             })
             .map((row: StoredRow) => {

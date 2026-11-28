@@ -3,7 +3,6 @@ import EvaluateOverTime, {
   OverTimeCriteriaValue,
 } from "../../../../../Server/Utils/Monitor/Criteria/EvaluateOverTime";
 import MetricService from "../../../../../Server/Services/MetricService";
-import FindBy from "../../../../../Server/Types/AnalyticsDatabase/FindBy";
 import Metric from "../../../../../Models/AnalyticsModels/Metric";
 import {
   CheckOn,
@@ -712,12 +711,10 @@ describe("DatabaseMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       windowSamples = [];
 
       jest
-        .spyOn(MetricService, "findBy")
-        .mockImplementation(
-          (_findBy: FindBy<Metric>): Promise<Array<Metric>> => {
-            return Promise.resolve(windowSamples);
-          },
-        );
+        .spyOn(MetricService, "readMonitorWindowRows")
+        .mockImplementation((): Promise<Array<Metric>> => {
+          return Promise.resolve(windowSamples);
+        });
     });
 
     afterEach(() => {

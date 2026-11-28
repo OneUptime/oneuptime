@@ -1,4 +1,3 @@
-import Query from "../../../Types/AnalyticsDatabase/Query";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
@@ -14,17 +13,21 @@ import Metric from "../../../../Models/AnalyticsModels/Metric";
 import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
 import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
 import MonitorStepSeries, {
+  MONITOR_STEP_ID_ATTRIBUTE,
   MonitorStepSeriesScope,
 } from "../../../../Types/Monitor/MonitorStepSeries";
-import MetricService from "../../../Services/MetricService";
+import MetricService, {
+  MonitorCheckAttributeFilter,
+} from "../../../Services/MetricService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import InBetween from "../../../../Types/BaseDatabase/InBetween";
-import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import Includes from "../../../../Types/BaseDatabase/Includes";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import CronTab from "../../CronTab";
 import MonitoringIntervalUtil from "../../../../Utils/Monitor/MonitoringIntervalUtil";
 import logger from "../../Logger";
 import WindowCoverage from "./WindowCoverage";
 import CompareCriteria from "./CompareCriteria";
+import { CriteriaFilterMatchHistoryReads } from "./CriteriaFilterMatchHistory";
 
 /**
  * Outcome of trying to turn an "evaluate over time" filter into a value the
@@ -110,6 +113,13 @@ export default class EvaluateOverTime {
      * undefined, from a caller judging no step, reads every row.
      */
     stepScope: MonitorStepSeriesScope | undefined;
+    /*
+     * The windows read for the probe result being judged
+     * (OverTimeWindowReads): its own evaluation and the probe agreement
+     * pass read each window once, as of one moment. Read here when not
+     * given.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<OverTimeCriteriaValue> {
     /*
      * Every criteria evaluator calls this for every filter, so the common
@@ -133,6 +143,7 @@ export default class EvaluateOverTime {
       miscData: data.miscData,
       monitoringInterval: data.monitoringInterval,
       stepScope: data.stepScope,
+      windowReads: data.windowReads,
     });
 
     if (
@@ -205,6 +216,11 @@ export default class EvaluateOverTime {
     monitoringInterval?: string | undefined;
     // The step's rows of the series (MonitorStepSeries); every row when not given.
     stepScope?: MonitorStepSeriesScope | undefined;
+    /*
+     * The windows read for the probe result being judged; the window ends at
+     * their moment. Read here, ending now, when not given.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<OverTimeEvaluation> {
     const evaluateOverTimeOptions: EvaluateOverTimeOptions | undefined =
       data.criteriaFilter.evaluateOverTimeOptions;
@@ -262,18 +278,35 @@ export default class EvaluateOverTime {
       };
     }
 
-    const now: Date = OneUptimeDate.getCurrentDate();
-    const windowStart: Date = OneUptimeDate.getSomeMinutesAgo(windowInMinutes);
+    /*
+     * Every window judged for one probe result ends at the same moment: its
+     * own evaluation's and the probe agreement pass's, so they read - and
+     * judge - the same rows.
+     */
+    const windowReads: OverTimeWindowReads =
+      data.windowReads || new OverTimeWindowReads();
+    const now: Date = windowReads.now;
+    const windowStart: Date = OneUptimeDate.addRemoveMinutes(
+      now,
+      -windowInMinutes,
+    );
 
     let metricItems: Array<Metric> = [];
 
     try {
-      metricItems = await this.readWindowRows({
+      /*
+       * Newest first: a window of hours (#10355) can hold more rows than one
+       * read returns - a day of checks every 30 seconds from eight probes -
+       * and a read cut at its limit then leaves out the oldest rows. All
+       * Values waits, as for a window its checks do not reach back over yet,
+       * and an aggregate reads the newest checks. Counting a window's checks
+       * reads them in the database (CheckWindowCounts).
+       */
+      metricItems = await windowReads.getRows({
         projectId: data.projectId,
         monitorId: data.monitorId,
         metricName: metricName,
         windowStart: windowStart,
-        windowEnd: now,
         /*
          * The step's own rows (#10906): a monitor checking a fast page and a
          * slow one averages, and waits on, each page's checks alone.
@@ -282,15 +315,6 @@ export default class EvaluateOverTime {
           miscData: data.miscData,
           stepScope: data.stepScope,
         }),
-        /*
-         * A window of hours (#10355) can hold more rows than one read
-         * returns - a day of checks every 30 seconds from eight probes. Read
-         * newest first, a read cut at its limit leaves out the oldest rows:
-         * All Values then waits, as for a window its checks do not reach
-         * back over yet, and an aggregate reads the newest checks. Counting
-         * a window's checks reads them in the database (CheckWindowCounts).
-         */
-        newestFirst: windowInMinutes > 60,
       });
     } catch (err) {
       logger.error(
@@ -422,33 +446,65 @@ export default class EvaluateOverTime {
   /*
    * The attributes a window's rows are read by: the series' own (a disk's
    * path), and the step's (MonitorStepSeries) - the step's id, or on a
-   * monitor with one step its id or none. Undefined when there are none.
+   * monitor with one step its id or none. Empty when there are none.
+   *
+   * Each is a value, or a list of values (Includes), as the evaluators
+   * hand them; a value of none is no filter. Anything else is refused
+   * rather than read as its text, which would match no row.
    */
   public static getWindowAttributes(data: {
     miscData?: JSONObject | undefined;
     stepScope?: MonitorStepSeriesScope | undefined;
-  }): JSONObject | undefined {
-    if (!data.stepScope) {
-      return data.miscData;
+  }): MonitorCheckAttributeFilter {
+    const attributes: MonitorCheckAttributeFilter = {};
+
+    for (const [key, value] of Object.entries(data.miscData || {})) {
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      if (value instanceof Includes) {
+        attributes[key] = (value.values || []).map(
+          (item: string | ObjectID | number): string => {
+            return String(item);
+          },
+        );
+        continue;
+      }
+
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        attributes[key] = String(value);
+        continue;
+      }
+
+      throw new BadDataException(
+        `A monitor's window is read by attribute values, not by ${key}'s ${typeof value}.`,
+      );
     }
 
-    return {
-      ...(data.miscData || {}),
-      ...MonitorStepSeries.toQueryAttributes(data.stepScope),
-    };
+    if (data.stepScope) {
+      attributes[MONITOR_STEP_ID_ATTRIBUTE] =
+        MonitorStepSeries.getAttributeValues(data.stepScope);
+    }
+
+    return attributes;
   }
 
   /**
-   * The rows one monitor series holds over a window: what an over-time
-   * filter reads. The series filters above read their window through it,
-   * and so do the filters judged from their match history
+   * The rows one monitor series holds over a window, newest first: what an
+   * over-time filter reads. The series filters above read their window
+   * through it, and so do the filters judged from their match history
    * (CriteriaFilterMatchHistory), so the two cannot drift apart in how they
-   * read one.
+   * read one. One lean read of the rows' time and value
+   * (MetricService.readMonitorWindowRows), at most LIMIT_PER_PROJECT of them:
+   * a read cut at that limit leaves out the oldest rows rather than any.
    *
-   * `selectAttributes` also reads each row's attributes, for a caller that
-   * splits one read between the probes that wrote it. `newestFirst` orders
-   * the rows by time, newest first, so a read cut at the row limit leaves
-   * out the oldest rows rather than any.
+   * `readAttributeKeys` also reads those attributes of each row, for a
+   * caller that splits one read between the probes that wrote it.
    */
   public static async readWindowRows(data: {
     projectId: ObjectID;
@@ -456,39 +512,18 @@ export default class EvaluateOverTime {
     metricName: string;
     windowStart: Date;
     windowEnd: Date;
-    attributes?: JSONObject | undefined;
-    selectAttributes?: boolean | undefined;
-    newestFirst?: boolean | undefined;
+    attributes?: MonitorCheckAttributeFilter | undefined;
+    readAttributeKeys?: Array<string> | undefined;
   }): Promise<Array<Metric>> {
-    const query: Query<Metric> = {
+    return await MetricService.readMonitorWindowRows({
       projectId: data.projectId,
-      time: new InBetween(data.windowStart, data.windowEnd),
-      primaryEntityId: data.monitorId,
-      name: data.metricName,
-    };
-
-    if (data.attributes) {
-      query.attributes = data.attributes;
-    }
-
-    return await MetricService.findBy({
-      query: query,
+      monitorId: data.monitorId,
+      metricName: data.metricName,
+      windowStart: data.windowStart,
+      windowEnd: data.windowEnd,
+      attributes: data.attributes,
+      readAttributeKeys: data.readAttributeKeys,
       limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-      select: data.selectAttributes
-        ? {
-            value: true,
-            time: true,
-            attributes: true,
-          }
-        : {
-            value: true,
-            time: true,
-          },
-      ...(data.newestFirst ? { sort: { time: SortOrder.Descending } } : {}),
     });
   }
 
@@ -665,5 +700,91 @@ export default class EvaluateOverTime {
   private static getAverage(values: number[]): number {
     // get average value
     return this.getSum(values) / values.length;
+  }
+}
+
+/**
+ * The over-time windows read while one probe result is judged. Its own
+ * evaluation reads each over-time filter's window, and the probe agreement
+ * pass judges every other probe's last check again (MonitorResource), which
+ * read the same window of the same series once more for each probe: a
+ * monitor checked from five probes with two over-time filters read ten
+ * windows a result, fifty a minute. They are one read each here, handed to
+ * every filter, evaluation and probe that asks for the same window of the
+ * same series and attributes, as of the moment this instance was made - so
+ * every check of the result is judged on the same rows. A read that fails
+ * fails for each of them, and is not sent again.
+ */
+export class OverTimeWindowReads {
+  public readonly now: Date;
+
+  private readonly reads: Map<string, Promise<Array<Metric>>>;
+
+  /*
+   * The over-time windows of each probe result being handled, beside its
+   * match histories: whatever shares those reads - the check's own
+   * evaluation and the probe agreement pass - shares these, as of the same
+   * moment.
+   */
+  private static readonly byMatchHistoryReads: WeakMap<
+    CriteriaFilterMatchHistoryReads,
+    OverTimeWindowReads
+  > = new WeakMap<CriteriaFilterMatchHistoryReads, OverTimeWindowReads>();
+
+  public constructor(now?: Date | undefined) {
+    this.now = now || OneUptimeDate.getCurrentDate();
+    this.reads = new Map<string, Promise<Array<Metric>>>();
+  }
+
+  public static forMatchHistoryReads(
+    matchHistoryReads: CriteriaFilterMatchHistoryReads,
+  ): OverTimeWindowReads {
+    let reads: OverTimeWindowReads | undefined =
+      OverTimeWindowReads.byMatchHistoryReads.get(matchHistoryReads);
+
+    if (!reads) {
+      reads = new OverTimeWindowReads(matchHistoryReads.now);
+      OverTimeWindowReads.byMatchHistoryReads.set(matchHistoryReads, reads);
+    }
+
+    return reads;
+  }
+
+  // One series' rows from windowStart until this instance's now, newest first.
+  public getRows(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    metricName: string;
+    windowStart: Date;
+    attributes: MonitorCheckAttributeFilter;
+  }): Promise<Array<Metric>> {
+    const readKey: string = JSON.stringify([
+      data.projectId.toString(),
+      data.monitorId.toString(),
+      data.metricName,
+      Object.keys(data.attributes)
+        .sort()
+        .map((key: string): [string, string | Array<string>] => {
+          return [key, data.attributes[key]!];
+        }),
+      data.windowStart.getTime(),
+    ]);
+
+    let read: Promise<Array<Metric>> | undefined = this.reads.get(readKey);
+
+    if (!read) {
+      read = EvaluateOverTime.readWindowRows({
+        projectId: data.projectId,
+        monitorId: data.monitorId,
+        metricName: data.metricName,
+        windowStart: data.windowStart,
+        windowEnd: this.now,
+        attributes: data.attributes,
+      });
+
+      this.reads.set(readKey, read);
+    }
+
+    return read;
   }
 }

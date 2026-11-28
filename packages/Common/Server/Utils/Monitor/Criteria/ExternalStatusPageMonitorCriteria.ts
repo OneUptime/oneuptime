@@ -6,7 +6,10 @@ import {
 } from "../../../../Types/Monitor/CriteriaFilter";
 import ExternalStatusPageMonitorResponse from "../../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
-import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import EvaluateOverTime, {
+  OverTimeCriteriaValue,
+  OverTimeWindowReads,
+} from "./EvaluateOverTime";
 import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -27,6 +30,11 @@ export default class ExternalStatusPageMonitorCriteria {
      * (MonitorStepSeries, #10906): never another step's checks.
      */
     stepScope?: MonitorStepSeriesScope | undefined;
+    /*
+     * The over-time windows read for the probe result being judged
+     * (OverTimeWindowReads): each read once, whatever asks for it.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -45,6 +53,7 @@ export default class ExternalStatusPageMonitorCriteria {
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
         stepScope: input.stepScope,
+        windowReads: input.windowReads,
       });
 
     /*

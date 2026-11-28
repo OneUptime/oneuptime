@@ -1,6 +1,9 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
-import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import EvaluateOverTime, {
+  OverTimeCriteriaValue,
+  OverTimeWindowReads,
+} from "./EvaluateOverTime";
 import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import {
   CheckOn,
@@ -47,6 +50,11 @@ export default class NtpMonitorCriteria {
      * (MonitorStepSeries, #10906): never another step's checks.
      */
     stepScope?: MonitorStepSeriesScope | undefined;
+    /*
+     * The over-time windows read for the probe result being judged
+     * (OverTimeWindowReads): each read once, whatever asks for it.
+     */
+    windowReads?: OverTimeWindowReads | undefined;
   }): Promise<string | null> {
     const criteriaFilter: CriteriaFilter = input.criteriaFilter;
 
@@ -66,6 +74,7 @@ export default class NtpMonitorCriteria {
         criteriaFilter: criteriaFilter,
         monitoringInterval: input.monitoringInterval,
         stepScope: input.stepScope,
+        windowReads: input.windowReads,
       });
 
     /*
