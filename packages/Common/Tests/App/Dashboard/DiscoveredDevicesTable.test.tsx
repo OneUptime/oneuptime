@@ -15,6 +15,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   DiscoveryImportDeviceOutcome,
   DiscoveryImportMonitorOutcome,
+  DiscoveryImportSource,
   DiscoveryImportStatus,
 } from "../../../Types/NetworkDevice/DiscoveryImport";
 import ObjectID from "../../../Types/ObjectID";
@@ -1086,6 +1087,7 @@ describe("imports that are still running", () => {
   test("an import from this list is shown over the table, and View reopens it on its progress", async () => {
     importServer.seed({
       scanId: "",
+      source: DiscoveryImportSource.DiscoveredDevices,
       status: DiscoveryImportStatus.Running,
       results: [
         {
@@ -1100,6 +1102,16 @@ describe("imports that are still running", () => {
     // An import of a scan belongs to the scan's row, not this list.
     importServer.seed({
       scanId: "50000000-0000-4000-8000-000000000001",
+      status: DiscoveryImportStatus.Running,
+      results: [],
+    });
+    /*
+     * Create Monitors on the Devices list has no scan either (#10990): its
+     * run belongs to the Devices list, not this one.
+     */
+    importServer.seed({
+      scanId: "",
+      source: DiscoveryImportSource.Devices,
       status: DiscoveryImportStatus.Running,
       results: [],
     });

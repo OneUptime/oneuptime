@@ -64,7 +64,7 @@ import { getEnvironmentTone } from "./CloudSavingsApplyModal";
 
 export const WAITING_TITLE: string = translationKey("Waiting for Approval");
 export const WAITING_DESCRIPTION: string = translationKey(
-  "Changes asked for by people and AI rules. An owner of each resource approves it, or a project admin for one nobody owns.",
+  "Changes asked for by people and AI rules. An owner of each resource approves it, or a Project Admin for one nobody owns.",
 );
 export const WAITING_EMPTY: string = translationKey(
   "No changes are waiting for approval yet.",

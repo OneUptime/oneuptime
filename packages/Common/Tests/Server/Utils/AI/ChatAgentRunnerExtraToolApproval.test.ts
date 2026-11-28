@@ -204,8 +204,9 @@ function installSpies(run?: AIRun | undefined): Spies {
     findRun.mockResolvedValueOnce(run as never);
   }
 
-  const runUpdateOneBy: SpyInstance<typeof AIRunService.updateOneBy> =
-    jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(1 as never);
+  const runUpdateOneBy: SpyInstance<typeof AIRunService.updateOneBy> = jest
+    .spyOn(AIRunService, "updateOneBy")
+    .mockResolvedValue(1 as never);
 
   jest
     .spyOn(AIConversationMessageService, "findBy")
@@ -225,11 +226,10 @@ function installSpies(run?: AIRun | undefined): Spies {
     .spyOn(AIConversationService, "updateOneById")
     .mockResolvedValue(1 as never);
 
-  const executeWithLogging: SpyInstance<
-    typeof AIService.executeWithLogging
-  > = jest
-    .spyOn(AIService, "executeWithLogging")
-    .mockResolvedValue(response({ content: "Done." }) as never);
+  const executeWithLogging: SpyInstance<typeof AIService.executeWithLogging> =
+    jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockResolvedValue(response({ content: "Done." }) as never);
 
   return {
     executeWithLogging,

@@ -72,6 +72,8 @@ const MAX_SUMMARY_WARNINGS: number = 50;
 const MAX_SUMMARY_ARRAYS: number = 200;
 const MAX_REALTIME_OBJECTS: number = 100;
 const MAX_TEXT_LENGTH: number = 1000;
+// A counted kind is letters and digits starting with a letter (#11000).
+const COUNTED_KIND: RegExp = /^[A-Za-z][A-Za-z0-9]{0,63}$/;
 
 export default class StorageArrayProbeCollectionStore {
   public static async claimDueConnections(
@@ -491,11 +493,9 @@ export default class StorageArrayProbeCollectionStore {
 
     const summary: StorageArrayCollectionSummary = {
       arrays: (Array.isArray(raw["arrays"]) ? raw["arrays"] : [])
-        .map(
-          (entry: unknown): StorageArrayCollectionArraySummary | null => {
-            return StorageArrayProbeCollectionStore.sanitizeArraySummary(entry);
-          },
-        )
+        .map((entry: unknown): StorageArrayCollectionArraySummary | null => {
+          return StorageArrayProbeCollectionStore.sanitizeArraySummary(entry);
+        })
         .filter(
           (
             entry: StorageArrayCollectionArraySummary | null,
@@ -504,9 +504,7 @@ export default class StorageArrayProbeCollectionStore {
           },
         )
         .slice(0, MAX_SUMMARY_ARRAYS),
-      warnings: StorageArrayProbeCollectionStore.sanitizeWords(
-        raw["warnings"],
-      ),
+      warnings: StorageArrayProbeCollectionStore.sanitizeWords(raw["warnings"]),
     };
 
     for (const key of [
@@ -549,12 +547,15 @@ export default class StorageArrayProbeCollectionStore {
 
     const counts: Record<string, number> = {};
     const rawCounts: unknown = raw["counts"];
-    if (rawCounts && typeof rawCounts === "object" && !Array.isArray(rawCounts)) {
+    if (
+      rawCounts &&
+      typeof rawCounts === "object" &&
+      !Array.isArray(rawCounts)
+    ) {
       for (const [kind, count] of Object.entries(
         rawCounts as Record<string, unknown>,
       )) {
-        // A kind is letters and digits starting with a letter (#11000).
-        if (/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(kind)) {
+        if (COUNTED_KIND.test(kind)) {
           counts[kind] = StorageArrayProbeCollectionStore.wholeCount(count);
         }
       }

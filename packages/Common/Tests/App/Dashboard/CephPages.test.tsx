@@ -20,6 +20,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * A Ceph cluster's Overview, its OSDs and Pools lists and an OSD's and a
@@ -449,6 +450,13 @@ beforeEach(() => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
+  /*
+   * A part's alerts card asks the server which of its recommended alerts a
+   * monitor covers (#11074): none does yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   window.localStorage.clear();
 });
 

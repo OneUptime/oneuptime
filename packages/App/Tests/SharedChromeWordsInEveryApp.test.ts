@@ -104,6 +104,13 @@ const CHROME_PARTS: ReadonlyArray<ChromePart> = [
     afterAClick: [],
   },
   {
+    // A bar of its own items, as a status page draws its pages (NavBar's too).
+    file: "Navbar/NavBarOfItems.tsx",
+    what: "the top bar's name",
+    words: ["Main menu"],
+    afterAClick: [],
+  },
+  {
     file: "SideMenu/SideMenu.tsx",
     what: "the side menu's name and its phone summary",
     words: ["Pages in this section", "Navigate to", "Navigation"],
@@ -426,7 +433,7 @@ describe("the page's shared words", () => {
       }),
     ).toEqual(
       expect.arrayContaining([
-        "Navbar/NavBar.tsx",
+        "Navbar/NavBarOfItems.tsx",
         "SideMenu/SideMenu.tsx",
         "Breadcrumbs/Breadcrumbs.tsx",
       ]),

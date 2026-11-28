@@ -1,4 +1,5 @@
 import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
+import { getSharedKindLabels } from "../../../Types/StorageArray/StorageArrayResourceKindLabels";
 import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
@@ -318,4 +319,28 @@ describe("StorageArrayResourceKindUtil labels", () => {
       "constructor",
     );
   });
+});
+
+/*
+ * The shared kinds' words without the platform registry, for a reader that
+ * words only those (the dashboard's Storage Array widgets): the same words
+ * StorageArrayResourceKindUtil gives every shared kind.
+ */
+describe("getSharedKindLabels", () => {
+  test.each(StorageArrayResourceKindUtil.getAllKinds())(
+    "%s reads as StorageArrayResourceKindUtil words it",
+    (kind: StorageArrayResourceKind) => {
+      expect(getSharedKindLabels(kind)).toEqual({
+        singular: StorageArrayResourceKindUtil.getSingularLabel(kind),
+        plural: StorageArrayResourceKindUtil.getPluralLabel(kind),
+      });
+    },
+  );
+
+  test.each(["QuotaPolicy", "", "constructor", "toString", "__proto__"])(
+    "%p is no shared kind, and has no words here",
+    (kind: string) => {
+      expect(getSharedKindLabels(kind)).toBeUndefined();
+    },
+  );
 });

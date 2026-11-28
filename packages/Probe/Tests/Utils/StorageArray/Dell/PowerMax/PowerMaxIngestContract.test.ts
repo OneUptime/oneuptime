@@ -26,7 +26,11 @@ import {
 } from "../../../../../Utils/StorageArray/Dell/PowerMax/PowerMaxPoller";
 import DellPowerMaxPlatform from "Common/Types/StorageArray/Platforms/Dell/PowerMax/PowerMaxPlatform";
 import { StorageArrayAlertTemplateSpec } from "Common/Types/StorageArray/StorageArrayPlatform";
-import { OtlpPoint, pointsOf, resourceAttributesOf } from "./Helpers/OtlpPoints";
+import {
+  OtlpPoint,
+  pointsOf,
+  resourceAttributesOf,
+} from "./Helpers/OtlpPoints";
 import {
   ARRAY_V3,
   ARRAY_V4,
@@ -308,9 +312,9 @@ describe("what the PowerMax alert templates watch, the probe writes", () => {
   });
 
   test("the heartbeat is a series every collected array sends", () => {
-    expect(
-      pointsNamed(DellPowerMaxPlatform.heartbeat.metricName),
-    ).toHaveLength(2);
+    expect(pointsNamed(DellPowerMaxPlatform.heartbeat.metricName)).toHaveLength(
+      2,
+    );
   });
 
   test.each(

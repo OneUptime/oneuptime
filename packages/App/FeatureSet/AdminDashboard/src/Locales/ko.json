@@ -2587,6 +2587,7 @@
   "Proxmox": "Proxmox",
   "OpenStack": "OpenStack",
   "VMware": "VMware",
+  "XCP-ng": "XCP-ng",
   "Ceph": "Ceph",
   "Storage Arrays": "스토리지 어레이",
   "Network": "네트워크",

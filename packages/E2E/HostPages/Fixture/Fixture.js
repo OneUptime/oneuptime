@@ -91,6 +91,8 @@ import {
   getOpenStackPlacement,
   getOpenStackPlacementScenario,
 } from "../../SuiteHelpers/OpenStackPlacement";
+import { answerCloudHostLinks } from "../../SuiteHelpers/CloudHostLinkAnswers";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 
 /*
  * ---------------------------------------------------------------------------
@@ -720,6 +722,36 @@ async function handleApi(method, options) {
       isInvestigationReady: false,
       isRemediationReady: false,
     });
+  }
+
+  /*
+   * Which cloud VM the host is (#11013): none, as the server answers for a
+   * host whose collector stamped no cloud identity, in a project that
+   * connects no cloud.
+   */
+  const cloudLink = answerCloudHostLinks({
+    method,
+    url,
+    hosts: store.Host,
+    cloudResources: [],
+  });
+  if (cloudLink) {
+    return cloudLink;
+  }
+
+  /*
+   * Which of Host alerts and Recommendations are on already, from the
+   * project's monitors - refused to a role that may not read monitors.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+    mayReadMonitors: ALERTS !== "denied",
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

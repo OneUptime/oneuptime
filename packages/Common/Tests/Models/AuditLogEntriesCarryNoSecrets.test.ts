@@ -82,6 +82,10 @@ const NOT_SECRETS: Record<string, string> = {
   "AlertEpisode.groupingKey":
     "what the grouping rule grouped the episode's alerts by, worked out from their fields",
   "AlertMeasurement.key": "the name the measurement is charted under",
+  "CloudCostView.tagKey":
+    "the name of the tag a cost view makes one group per value of, such as team",
+  "CloudOffHoursSchedule.tagKey":
+    "the name of the tag that picks the resources an off-hours schedule stops, such as Schedule",
   "CloudRequiredTag.tagKey":
     "the name of a tag every cloud resource must carry, such as team",
   "DataAsset.assetKey": "the table's name in its data store",

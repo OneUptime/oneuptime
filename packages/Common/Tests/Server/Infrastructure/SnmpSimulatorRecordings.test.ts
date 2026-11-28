@@ -61,7 +61,11 @@ function compareOids(a: string, b: string): number {
   const left: Array<number> = a.split(".").map(Number);
   const right: Array<number> = b.split(".").map(Number);
 
-  for (let index: number = 0; index < Math.min(left.length, right.length); index++) {
+  for (
+    let index: number = 0;
+    index < Math.min(left.length, right.length);
+    index++
+  ) {
     if (left[index] !== right[index]) {
       return left[index]! - right[index]!;
     }
@@ -91,35 +95,38 @@ describe("the simulator's recordings", () => {
     ALL.map((recording: Recording): [string, Recording] => {
       return [recording.file, recording];
     }),
-  )("%s: one record a line, a type snmpsim knows, OIDs ascending and unique", (
-    _file: string,
-    recording: Recording,
-  ) => {
-    let previous: string | undefined = undefined;
+  )(
+    "%s: one record a line, a type snmpsim knows, OIDs ascending and unique",
+    (_file: string, recording: Recording) => {
+      let previous: string | undefined = undefined;
 
-    for (const line of recording.lines) {
-      const [oid, type] = line.split("|") as [string, string | undefined];
+      for (const line of recording.lines) {
+        const [oid, type] = line.split("|") as [string, string | undefined];
 
-      expect({ line, oid: OID.test(oid) }).toEqual({ line, oid: true });
-      expect({ line, type: TYPE.test(type || "") }).toEqual({
-        line,
-        type: true,
-      });
-      expect(line.split("|").length).toBeGreaterThanOrEqual(3);
-
-      if (previous !== undefined) {
-        expect({ line, ascending: compareOids(previous, oid) < 0 }).toEqual({
+        expect({ line, oid: OID.test(oid) }).toEqual({ line, oid: true });
+        expect({ line, type: TYPE.test(type || "") }).toEqual({
           line,
-          ascending: true,
+          type: true,
         });
-      }
+        expect(line.split("|").length).toBeGreaterThanOrEqual(3);
 
-      previous = oid;
-    }
-  });
+        if (previous !== undefined) {
+          expect({ line, ascending: compareOids(previous, oid) < 0 }).toEqual({
+            line,
+            ascending: true,
+          });
+        }
+
+        previous = oid;
+      }
+    },
+  );
 
   test("every Fabric OS recording is a switch the Brocade pack is for", () => {
-    for (const file of ["brocade-g620/public.snmprec", "brocade-g620/fid20.snmprec"]) {
+    for (const file of [
+      "brocade-g620/public.snmprec",
+      "brocade-g620/fid20.snmprec",
+    ]) {
       const recording: Recording | undefined = ALL.find(
         (candidate: Recording) => {
           return candidate.file === file;

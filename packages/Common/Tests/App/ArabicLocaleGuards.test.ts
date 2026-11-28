@@ -250,6 +250,8 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "Wasabi",
     "WhatsApp",
     "Windows",
+    // The product's name, from a shared file it draws, as the Dashboard keeps it.
+    "XCP-ng",
     "buyer@acme.com",
     "email@company.com",
     "email@yourcompany.com",

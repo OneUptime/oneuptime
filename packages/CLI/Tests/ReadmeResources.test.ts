@@ -17,6 +17,7 @@ import {
   CLI_ACTIONS,
   CLI_FIELDS_SUBCOMMAND,
   CLI_OPERATIONS,
+  CLI_RESOURCE_OWN_COMMANDS,
   CliAction,
   CliOperation,
 } from "Common/Utils/DeveloperDocs/CliCommands";
@@ -298,6 +299,8 @@ describe("the CLI README's resource operations", () => {
       ...CLI_OPERATIONS,
       CLI_FIELDS_SUBCOMMAND,
       ...CLI_ACTIONS,
+      // A resource's own commands: cloud-cost's breakdown and export (#11009).
+      ...Object.values(CLI_RESOURCE_OWN_COMMANDS).flat(),
     ]);
   });
 
