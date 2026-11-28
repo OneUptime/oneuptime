@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Je naam en het tijdstip worden vastgelegd. Als de server deze tool wijzigt, geldt de markering niet meer totdat iemand de tool opnieuw markeert.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} heeft de tool op {{date}} als alleen-lezen gemarkeerd, maar de server heeft hem sindsdien gewijzigd. Totdat iemand hem opnieuw markeert, telt hij als een tool die dingen kan wijzigen.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} zegt niet of {{tool}} iets wijzigt, en geen projectbeheerder heeft de tool als alleen-lezen gemarkeerd, dus OneUptime vraagt het eerst.",
-  "{{tool}} marked read-only": "{{tool}} gemarkeerd als alleen-lezen"
+  "{{tool}} marked read-only": "{{tool}} gemarkeerd als alleen-lezen",
+  "Checking that nothing is left, up to {{date}}.": "Controleert of er niets over is, tot {{date}}.",
+  "Checking that nothing is left.": "Controleert of er niets over is.",
+  "Its last run failed. It tries again {{time}}.": "De vorige run is mislukt. Nieuwe poging {{time}}.",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "Leest de Detection Finding-events: ronde {{pass}}, tot {{date}}.",
+  "Reading the Detection Findings: pass {{pass}}.": "Leest de Detection Finding-events: ronde {{pass}}.",
+  "Taking them out of cases, detections and events.": "Haalt deze persoon uit zaken, detecties en gebeurtenissen.",
+  "The final check starts {{time}}.": "De eindcontrole begint {{time}}.",
+  "{{reason}} It tries again {{time}}.": "{{reason}} Nieuwe poging {{time}}."
 }

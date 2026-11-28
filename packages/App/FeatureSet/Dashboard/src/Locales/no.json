@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Navnet ditt og tidspunktet registreres. Hvis serveren endrer dette verktøyet, slutter markeringen å gjelde til noen merker det igjen.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} merket det som skrivebeskyttet {{date}}, men serveren har endret det siden. Til noen merker det igjen, regnes det som et verktøy som kan endre ting.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} sier ikke om {{tool}} endrer noe, og ingen prosjektadministrator har merket det som skrivebeskyttet, så OneUptime spør først.",
-  "{{tool}} marked read-only": "{{tool}} merket som skrivebeskyttet"
+  "{{tool}} marked read-only": "{{tool}} merket som skrivebeskyttet",
+  "Checking that nothing is left, up to {{date}}.": "Kontrollerer at ingenting er igjen, frem til {{date}}.",
+  "Checking that nothing is left.": "Kontrollerer at ingenting er igjen.",
+  "Its last run failed. It tries again {{time}}.": "Den forrige kjøringen mislyktes. Den prøver igjen {{time}}.",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "Leser Detection Finding-hendelsene: runde {{pass}}, frem til {{date}}.",
+  "Reading the Detection Findings: pass {{pass}}.": "Leser Detection Finding-hendelsene: runde {{pass}}.",
+  "Taking them out of cases, detections and events.": "Fjerner personen fra saker, deteksjoner og hendelser.",
+  "The final check starts {{time}}.": "Sluttkontrollen starter {{time}}.",
+  "{{reason}} It tries again {{time}}.": "{{reason}} Den prøver igjen {{time}}."
 }

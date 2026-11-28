@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "名前と日時が記録されます。サーバーがこのツールを変更すると、誰かが再びマークするまでマークは適用されなくなります。",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} が {{date}} に読み取り専用としてマークしましたが、その後サーバーがツールを変更しました。誰かが再びマークするまで、変更を加える可能性があるツールとして扱われます。",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} は {{tool}} が何かを変更するかどうかを示しておらず、プロジェクト管理者も読み取り専用としてマークしていないため、OneUptime が先に確認します。",
-  "{{tool}} marked read-only": "{{tool}} を読み取り専用としてマークしました"
+  "{{tool}} marked read-only": "{{tool}} を読み取り専用としてマークしました",
+  "Checking that nothing is left, up to {{date}}.": "何も残っていないことを確認しています: {{date}} まで確認済み。",
+  "Checking that nothing is left.": "何も残っていないことを確認しています。",
+  "Its last run failed. It tries again {{time}}.": "前回の実行は失敗しました。{{time}} に再試行します。",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "Detection Finding イベントを読み取っています: 第 {{pass}} 回、{{date}} まで読み取り済み。",
+  "Reading the Detection Findings: pass {{pass}}.": "Detection Finding イベントを読み取っています: 第 {{pass}} 回。",
+  "Taking them out of cases, detections and events.": "ケース、検出、イベントからこの人物を除外しています。",
+  "The final check starts {{time}}.": "最終確認は {{time}} に始まります。",
+  "{{reason}} It tries again {{time}}.": "{{reason}} {{time}} に再試行します。"
 }

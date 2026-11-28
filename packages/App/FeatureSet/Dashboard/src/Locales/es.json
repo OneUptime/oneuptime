@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Se registran tu nombre y la hora. Si el servidor cambia esta herramienta, la marca deja de aplicarse hasta que alguien vuelva a marcarla.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} la marcó como de solo lectura el {{date}}, pero el servidor la ha cambiado desde entonces. Hasta que alguien vuelva a marcarla, cuenta como una herramienta que puede cambiar cosas.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} no indica si {{tool}} cambia algo, y ningún administrador del proyecto la ha marcado como de solo lectura, así que OneUptime pregunta primero.",
-  "{{tool}} marked read-only": "{{tool}} marcada como de solo lectura"
+  "{{tool}} marked read-only": "{{tool}} marcada como de solo lectura",
+  "Checking that nothing is left, up to {{date}}.": "Comprobando que no quede nada, hasta el {{date}}.",
+  "Checking that nothing is left.": "Comprobando que no quede nada.",
+  "Its last run failed. It tries again {{time}}.": "Su última ejecución falló. Se volverá a intentar {{time}}.",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "Leyendo los eventos Detection Finding: pasada {{pass}}, hasta el {{date}}.",
+  "Reading the Detection Findings: pass {{pass}}.": "Leyendo los eventos Detection Finding: pasada {{pass}}.",
+  "Taking them out of cases, detections and events.": "Sacándola de los casos, las detecciones y los eventos.",
+  "The final check starts {{time}}.": "La comprobación final empieza {{time}}.",
+  "{{reason}} It tries again {{time}}.": "{{reason}} Se volverá a intentar {{time}}."
 }

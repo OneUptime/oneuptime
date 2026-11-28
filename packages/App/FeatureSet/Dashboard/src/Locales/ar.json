@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "يُسجَّل اسمك والوقت. وإذا غيّر الخادم هذه الأداة، لا تعود العلامة سارية إلى أن يضعها أحد مجددًا.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "وضع {{name}} علامة «قراءة فقط» عليها في {{date}}، لكن الخادم غيّرها منذ ذلك الحين. وإلى أن يضع أحد العلامة مجددًا، تُعدّ أداةً قد تغيّر أشياء.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "لا يذكر {{server}} ما إذا كان {{tool}} يغيّر شيئًا، ولم يضع أي مسؤول مشروع علامة «قراءة فقط» عليه، لذلك يسأل OneUptime أولًا.",
-  "{{tool}} marked read-only": "تم وضع علامة «قراءة فقط» على {{tool}}"
+  "{{tool}} marked read-only": "تم وضع علامة «قراءة فقط» على {{tool}}",
+  "Checking that nothing is left, up to {{date}}.": "جارٍ التحقق من عدم بقاء أي شيء، حتى {{date}}.",
+  "Checking that nothing is left.": "جارٍ التحقق من عدم بقاء أي شيء.",
+  "Its last run failed. It tries again {{time}}.": "فشل آخر تشغيل له. ستُعاد المحاولة {{time}}.",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "جارٍ قراءة أحداث Detection Finding: الجولة {{pass}}، حتى {{date}}.",
+  "Reading the Detection Findings: pass {{pass}}.": "جارٍ قراءة أحداث Detection Finding: الجولة {{pass}}.",
+  "Taking them out of cases, detections and events.": "جارٍ إزالته من الحالات والاكتشافات والأحداث.",
+  "The final check starts {{time}}.": "يبدأ التحقق النهائي {{time}}.",
+  "{{reason}} It tries again {{time}}.": "{{reason}} ستُعاد المحاولة {{time}}."
 }

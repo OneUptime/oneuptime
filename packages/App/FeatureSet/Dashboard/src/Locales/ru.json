@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Ваше имя и время записываются. Если сервер изменит этот инструмент, отметка перестанет действовать, пока его снова не отметят.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "Пользователь {{name}} отметил его как только читающий {{date}}, но с тех пор сервер его изменил. Пока его снова не отметят, он считается инструментом, который может вносить изменения.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} не сообщает, изменяет ли {{tool}} что-либо, и ни один администратор проекта не отметил его как только читающий, поэтому OneUptime сначала спрашивает.",
-  "{{tool}} marked read-only": "Инструмент {{tool}} отмечен как только читающий"
+  "{{tool}} marked read-only": "Инструмент {{tool}} отмечен как только читающий",
+  "Checking that nothing is left, up to {{date}}.": "Проверка, что ничего не осталось: проверено до {{date}}.",
+  "Checking that nothing is left.": "Проверка, что ничего не осталось.",
+  "Its last run failed. It tries again {{time}}.": "Последний запуск не удался. Повторная попытка {{time}}.",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "Чтение событий Detection Finding: проход {{pass}}, прочитано до {{date}}.",
+  "Reading the Detection Findings: pass {{pass}}.": "Чтение событий Detection Finding: проход {{pass}}.",
+  "Taking them out of cases, detections and events.": "Удаление человека из кейсов, обнаружений и событий.",
+  "The final check starts {{time}}.": "Итоговая проверка начнётся {{time}}.",
+  "{{reason}} It tries again {{time}}.": "{{reason}} Повторная попытка {{time}}."
 }

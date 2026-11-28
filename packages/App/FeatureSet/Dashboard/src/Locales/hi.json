@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "आपका नाम और समय दर्ज किया जाता है। अगर सर्वर इस टूल को बदलता है, तो यह चिह्न तब तक लागू नहीं रहता जब तक कोई इसे फिर से चिह्नित न करे।",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} ने {{date}} को इसे केवल-पढ़ने वाला चिह्नित किया था, लेकिन सर्वर ने तब से इसे बदल दिया है। जब तक कोई इसे फिर से चिह्नित नहीं करता, इसे बदलाव कर सकने वाला टूल माना जाएगा।",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} नहीं बताता कि {{tool}} कुछ बदलता है या नहीं, और किसी प्रोजेक्ट एडमिन ने इसे केवल-पढ़ने वाला चिह्नित नहीं किया है, इसलिए OneUptime पहले पूछता है।",
-  "{{tool}} marked read-only": "{{tool}} को केवल-पढ़ने वाला चिह्नित किया गया"
+  "{{tool}} marked read-only": "{{tool}} को केवल-पढ़ने वाला चिह्नित किया गया",
+  "Checking that nothing is left, up to {{date}}.": "जाँच की जा रही है कि कुछ भी बचा न हो, {{date}} तक।",
+  "Checking that nothing is left.": "जाँच की जा रही है कि कुछ भी बचा न हो।",
+  "Its last run failed. It tries again {{time}}.": "इसका पिछला रन विफल रहा। {{time}} फिर से प्रयास किया जाएगा।",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "Detection Finding इवेंट पढ़े जा रहे हैं: दौर {{pass}}, {{date}} तक।",
+  "Reading the Detection Findings: pass {{pass}}.": "Detection Finding इवेंट पढ़े जा रहे हैं: दौर {{pass}}।",
+  "Taking them out of cases, detections and events.": "उसे केस, डिटेक्शन और इवेंट से हटाया जा रहा है।",
+  "The final check starts {{time}}.": "अंतिम जाँच {{time}} शुरू होगी।",
+  "{{reason}} It tries again {{time}}.": "{{reason}} {{time}} फिर से प्रयास किया जाएगा।"
 }

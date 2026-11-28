@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "نام شما و زمان ثبت می‌شود. اگر سرور این ابزار را تغییر دهد، علامت دیگر اعمال نمی‌شود تا وقتی کسی دوباره آن را علامت بزند.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} در {{date}} آن را فقط‌خواندنی علامت زد، اما سرور از آن زمان آن را تغییر داده است. تا وقتی کسی دوباره آن را علامت نزند، ابزاری به حساب می‌آید که ممکن است چیزی را تغییر دهد.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} نمی‌گوید که آیا {{tool}} چیزی را تغییر می‌دهد یا نه، و هیچ مدیر پروژه‌ای هم آن را فقط‌خواندنی علامت نزده است، پس OneUptime اول می‌پرسد.",
-  "{{tool}} marked read-only": "{{tool}} به‌عنوان فقط‌خواندنی علامت‌گذاری شد"
+  "{{tool}} marked read-only": "{{tool}} به‌عنوان فقط‌خواندنی علامت‌گذاری شد",
+  "Checking that nothing is left, up to {{date}}.": "در حال بررسی اینکه چیزی باقی نمانده باشد، تا {{date}}.",
+  "Checking that nothing is left.": "در حال بررسی اینکه چیزی باقی نمانده باشد.",
+  "Its last run failed. It tries again {{time}}.": "آخرین اجرای آن ناموفق بود. {{time}} دوباره امتحان می‌شود.",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "در حال خواندن رویدادهای Detection Finding: دور {{pass}}، تا {{date}}.",
+  "Reading the Detection Findings: pass {{pass}}.": "در حال خواندن رویدادهای Detection Finding: دور {{pass}}.",
+  "Taking them out of cases, detections and events.": "در حال بیرون آوردن او از پرونده‌ها، تشخیص‌ها و رویدادها.",
+  "The final check starts {{time}}.": "بررسی پایانی {{time}} آغاز می‌شود.",
+  "{{reason}} It tries again {{time}}.": "{{reason}} {{time}} دوباره امتحان می‌شود."
 }

@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Ditt namn och tidpunkten registreras. Om servern ändrar det här verktyget slutar markeringen att gälla tills någon markerar det igen.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} markerade det som skrivskyddat den {{date}}, men servern har ändrat det sedan dess. Tills någon markerar det igen räknas det som ett verktyg som kan ändra saker.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} anger inte om {{tool}} ändrar något, och ingen projektadministratör har markerat det som skrivskyddat, så OneUptime frågar först.",
-  "{{tool}} marked read-only": "{{tool}} markerat som skrivskyddat"
+  "{{tool}} marked read-only": "{{tool}} markerat som skrivskyddat",
+  "Checking that nothing is left, up to {{date}}.": "Kontrollerar att inget finns kvar, fram till {{date}}.",
+  "Checking that nothing is left.": "Kontrollerar att inget finns kvar.",
+  "Its last run failed. It tries again {{time}}.": "Den senaste körningen misslyckades. Den försöker igen {{time}}.",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "Läser Detection Finding-händelserna: omgång {{pass}}, fram till {{date}}.",
+  "Reading the Detection Findings: pass {{pass}}.": "Läser Detection Finding-händelserna: omgång {{pass}}.",
+  "Taking them out of cases, detections and events.": "Tar bort personen från ärenden, detekteringar och händelser.",
+  "The final check starts {{time}}.": "Slutkontrollen börjar {{time}}.",
+  "{{reason}} It tries again {{time}}.": "{{reason}} Den försöker igen {{time}}."
 }

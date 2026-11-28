@@ -67795,5 +67795,13 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Ihr Name und der Zeitpunkt werden festgehalten. Ändert der Server dieses Werkzeug, gilt die Markierung nicht mehr, bis jemand es erneut markiert.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} hat es am {{date}} als nur lesend markiert, aber der Server hat es seitdem geändert. Bis es jemand erneut markiert, gilt es als Werkzeug, das Änderungen vornehmen kann.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} gibt nicht an, ob {{tool}} etwas ändert, und kein Projektadministrator hat es als nur lesend markiert, daher fragt OneUptime vorher.",
-  "{{tool}} marked read-only": "{{tool}} als nur lesend markiert"
+  "{{tool}} marked read-only": "{{tool}} als nur lesend markiert",
+  "Checking that nothing is left, up to {{date}}.": "Prüft, ob noch etwas übrig ist, bis zum {{date}}.",
+  "Checking that nothing is left.": "Prüft, ob noch etwas übrig ist.",
+  "Its last run failed. It tries again {{time}}.": "Der letzte Lauf ist fehlgeschlagen. Neuer Versuch {{time}}.",
+  "Reading the Detection Findings: pass {{pass}}, up to {{date}}.": "Liest die Detection-Finding-Ereignisse: Durchgang {{pass}}, bis zum {{date}}.",
+  "Reading the Detection Findings: pass {{pass}}.": "Liest die Detection-Finding-Ereignisse: Durchgang {{pass}}.",
+  "Taking them out of cases, detections and events.": "Entfernt sie aus Fällen, Erkennungen und Ereignissen.",
+  "The final check starts {{time}}.": "Die abschließende Prüfung beginnt {{time}}.",
+  "{{reason}} It tries again {{time}}.": "{{reason}} Neuer Versuch {{time}}."
 }
