@@ -59,8 +59,12 @@ import RestrictionTimes, {
  *
  * Paged on the layer's id, PAGE_SIZE layers a read; each layer is written
  * only while it still holds what was read (a layer saved since keeps the
- * save). Idempotent, and safe to run twice at once: a layer repaired once
- * reads as stored the second time.
+ * save, and was told as it was saved). Safe to run again, and two at once:
+ * a second run writes nothing, as every layer reads as stored. Nothing can
+ * tell a layer the engine already read from one it read as no type when
+ * both are stored under restrictionType, so it tells their schedules
+ * again; the roster worked out is the one stored, and nobody hears
+ * anything twice (the refresh's lock, and its "nothing changed").
  */
 
 // How many layers a page reads.
@@ -248,6 +252,24 @@ export function readStoredRotation(raw: unknown): StoredRotationRead | null {
   };
 }
 
+/*
+ * How many rows an UPDATE ... RETURNING wrote. TypeORM answers an UPDATE on
+ * Postgres with [rows, rowCount], never with the rows alone - a bare length
+ * check is 2 even when no row was written.
+ */
+export function countWrittenRows(result: unknown): number {
+  if (
+    Array.isArray(result) &&
+    result.length === 2 &&
+    Array.isArray(result[0]) &&
+    typeof result[1] === "number"
+  ) {
+    return (result[0] as Array<unknown>).length;
+  }
+
+  return Array.isArray(result) ? result.length : 0;
+}
+
 // A layer of a page, as read.
 interface LayerRow {
   id: string;
@@ -290,8 +312,9 @@ export default class RepairScheduleLayerRestrictionTypes extends DataMigrationBa
       }
 
       for (const row of rows) {
-        const restriction: StoredRestrictionRead | null =
-          readStoredRestriction(row.restrictionTimes);
+        const restriction: StoredRestrictionRead | null = readStoredRestriction(
+          row.restrictionTimes,
+        );
         const rotation: StoredRotationRead | null = readStoredRotation(
           row.rotation,
         );
@@ -303,12 +326,9 @@ export default class RepairScheduleLayerRestrictionTypes extends DataMigrationBa
           ? rotation.stored
           : row.rotation;
 
-        if (
-          isSameStoredJson(restrictionStored, row.restrictionTimes) &&
-          isSameStoredJson(rotationStored, row.rotation)
-        ) {
-          continue;
-        }
+        const needsWrite: boolean =
+          !isSameStoredJson(restrictionStored, row.restrictionTimes) ||
+          !isSameStoredJson(rotationStored, row.rotation);
 
         const restrictionPagesOtherwise: boolean = Boolean(
           restriction && restriction.typeBefore !== restriction.typeNow,
@@ -317,28 +337,40 @@ export default class RepairScheduleLayerRestrictionTypes extends DataMigrationBa
           rotation && rotation.intervalNow !== EventInterval.Day,
         );
         /*
-         * A rotation the roster refresh could not step: paging is the same
-         * (as days), but who is on call was never worked out - tell it.
+         * A layer stored under restrictionType already - the customer's,
+         * written by a client with the natural spelling - is stored as it
+         * is now, but paged nobody before: its schedule is told all the
+         * same. So is one with a rotation the roster refresh could not
+         * step: paging is the same (as days), but who is on call was never
+         * worked out.
          */
         const isToldAgain: boolean =
           restrictionPagesOtherwise || Boolean(rotation);
 
-        const written: Array<{ id: string }> = (await repository.manager.query(
-          restrictionPagesOtherwise || rotationPagesOtherwise
-            ? REPAIR_LAYER_SQL
-            : RESPELL_LAYER_SQL,
-          [
-            row.id,
-            JSON.stringify(restrictionStored),
-            JSON.stringify(rotationStored),
-            JSON.stringify(row.restrictionTimes),
-            JSON.stringify(row.rotation),
-          ],
-        )) as Array<{ id: string }>;
-
-        // Saved since it was read: the save stands.
-        if (written.length === 0) {
+        if (!needsWrite && !isToldAgain) {
           continue;
+        }
+
+        if (needsWrite) {
+          const written: number = countWrittenRows(
+            await repository.manager.query(
+              restrictionPagesOtherwise || rotationPagesOtherwise
+                ? REPAIR_LAYER_SQL
+                : RESPELL_LAYER_SQL,
+              [
+                row.id,
+                JSON.stringify(restrictionStored),
+                JSON.stringify(rotationStored),
+                JSON.stringify(row.restrictionTimes),
+                JSON.stringify(row.rotation),
+              ],
+            ),
+          );
+
+          // Saved since it was read: the save stands, and was told as saved.
+          if (written === 0) {
+            continue;
+          }
         }
 
         if (!isToldAgain) {
