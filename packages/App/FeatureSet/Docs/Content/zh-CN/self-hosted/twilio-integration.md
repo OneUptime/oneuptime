@@ -67,6 +67,7 @@
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | 可选，以逗号分隔：对其所在国家的接收者，用这些号码代替主号码 |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | 发送每条短信所用的号码，以逗号分隔。`sms-only` 必填 |
 | `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | 可选：通话使用的语音，为 [通话使用的语音](#通话使用的语音) 中的语音之一。无论是否设置了 `GLOBAL_TWILIO_ACCOUNT_SID` 都会读取它；只要设置了它，Admin Dashboard 中的 **通话语音** 就会以只读方式显示它 |
+| `GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE` | `twilio.letProjectsChooseCallVoice` | 可选：`true` 或 `false`，即每个项目是否自行选择语音，见 [自选语音的项目](#自选语音的项目)。无论是否设置了 `GLOBAL_TWILIO_ACCOUNT_SID` 都会读取它；只要设置了它，Admin Dashboard 中的 **允许项目选择其通话语音** 就会显示为锁定 |
 
 使用 Helm 时，在 values 的 `twilio` 下设置它们。为了不让 auth token 出现在 Helm 随每个 release 保存的 values 中，请把它放进您自己的 Secret，并在 `twilio.existingSecret.name` 中指定该 Secret：
 
@@ -84,11 +85,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-在 values 文件中给电话号码加上引号，并用 `--set-string` 而不是 `--set` 传入：不加引号时，`+14155550100` 是一个数字，Chart 会拒绝它。Chart 还会拒绝没有 `twilio.accountSid` 的其他 `twilio` 值（`twilio.callVoice` 除外，无论由谁设置账户，它都会设置语音）、没有 auth token 的 Account SID、同时在 `twilio.authToken` 和 Secret 中给出的 auth token，以及不是这些语音之一的 `twilio.callVoice`。使用 Terraform 时，在 `helm_release` 上设置相同的值，并将 auth token 作为敏感值。
+在 values 文件中给电话号码加上引号，并用 `--set-string` 而不是 `--set` 传入：不加引号时，`+14155550100` 是一个数字，Chart 会拒绝它。Chart 还会拒绝没有 `twilio.accountSid` 的其他 `twilio` 值（`twilio.callVoice` 和 `twilio.letProjectsChooseCallVoice` 除外，无论由谁设置账户，它们都会生效）、没有 auth token 的 Account SID、同时在 `twilio.authToken` 和 Secret 中给出的 auth token、不是这些语音之一的 `twilio.callVoice`，以及既不是 `true` 也不是 `false` 的 `twilio.letProjectsChooseCallVoice`。使用 Terraform 时，在 `helm_release` 上设置相同的值，并将 auth token 作为敏感值。
 
 使用 Docker Compose 时，在 `config.env` 中填写以 `GLOBAL_TWILIO_` 开头的设置项，然后运行 `npm run start` 重新创建容器。
 
-OneUptime 在启动时读取这些变量。如果其中有错误，例如 OneUptime 无法识别的电话号码或缺少 auth token，在修正之前该账户不会发送短信，也不会拨打电话；服务器日志、**Admin Dashboard > 设置 > 通话和短信** 和 `/admin/setup` 上的检查清单会指出是哪个变量。如果 `GLOBAL_TWILIO_CALL_VOICE` 指定的不是 OneUptime 提供的语音，也不会阻止任何电话：在修正之前，通话使用账户的默认语音，上述三处也会指出它。auth token 永远不会显示。要更改账户，请修改这些变量并重启 OneUptime：Admin Dashboard 不会更改它。
+OneUptime 在启动时读取这些变量。如果其中有错误，例如 OneUptime 无法识别的电话号码或缺少 auth token，在修正之前该账户不会发送短信，也不会拨打电话；服务器日志、**Admin Dashboard > 设置 > 通话和短信** 和 `/admin/setup` 上的检查清单会指出是哪个变量。如果 `GLOBAL_TWILIO_CALL_VOICE` 指定的不是 OneUptime 提供的语音，也不会阻止任何电话：在修正之前，通话使用账户的默认语音，上述三处也会指出它。如果 `GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE` 既不是 `true` 也不是 `false`，在修正之前任何项目都无法选择语音，上述三处同样会指出它。auth token 永远不会显示。要更改账户，请修改这些变量并重启 OneUptime：Admin Dashboard 不会更改它。
 
 ### 使用 Terraform 管理项目配置
 
@@ -187,11 +188,11 @@ Twilio 号码可以同时拨打电话和发送短信，也可以只支持其中�
 | 阿拉伯语 | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
 | 波斯语 | 无：通话使用英语 | 无：通话使用英语 |
 
-Amazon Polly 和 Google 都没有波斯语语音，因此打给以波斯语使用 OneUptime 的人的电话使用英语；通过保留默认语音的账户拨出的每通电话也是如此，因为默认语音只会说英语。通话日志会以电话所用的语言保留电话所说的内容。验证码、**发送测试呼叫** 和来电策略的问候语使用英语。
+Amazon Polly 和 Google 都没有波斯语语音，因此打给以波斯语使用 OneUptime 的人的电话使用英语；通过保留默认语音的账户拨出的每通电话也是如此，因为默认语音只会说英语。通话日志会以电话所用的语言保留电话所说的内容。验证电话号码的电话也使用号码所属之人的语言：它会把验证码逐位读出，数字之间有停顿，共读三遍。**发送测试呼叫** 和 **Admin Dashboard > 设置 > 通话和短信** 中的测试电话也是如此，使用发送者的语言。来电策略的问候语使用英语。通过您自己的 [短信和电话网关](/docs/self-hosted/sms-and-call-gateway)，电话会同时获得英语和对方语言（包括波斯语）的内容，并由您的网关选择语音。
 
 #### 自选语音的项目
 
-在自托管安装中，主管理员可以让每个项目自行选择经由整个安装的账户拨出的通话的语音：在 **Admin Dashboard > 设置 > 通话和短信** 的 **项目通话语音** 卡片中打开 **允许项目选择其通话语音**。之后，**项目所有者** 或 **项目管理员** 在 **项目设置 > 通知 > 通知渠道** 的 **更多设置** 中的 **通话语音** 卡片里选择语音，未选择语音的项目使用安装的语音。Twilio 会向整个安装的账户收取每个项目的语音费用，因此该开关默认关闭，关闭它会让所有项目重新使用安装的语音。OneUptime Cloud 不提供此功能：请使用您自己的项目配置选择语音。在 API 中，语音是项目的 `callVoice` 字段，开关关闭时会被拒绝。
+在自托管安装中，主管理员可以让每个项目自行选择经由整个安装的账户拨出的通话的语音：在 **Admin Dashboard > 设置 > 通话和短信** 的 **项目通话语音** 卡片中打开 **允许项目选择其通话语音**。之后，**项目所有者** 或 **项目管理员** 在 **项目设置 > 通知 > 通知渠道** 的 **更多设置** 中的 **通话语音** 卡片里选择语音，未选择语音的项目使用安装的语音。Twilio 会向整个安装的账户收取每个项目的语音费用，因此该开关默认关闭，关闭它会让所有项目重新使用安装的语音。OneUptime Cloud 不提供此功能：请使用您自己的项目配置选择语音。在 API 中，语音是项目的 `callVoice` 字段，开关关闭时会被拒绝。要通过代码设置该开关，请将 `GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE`（使用 Helm 时为 `twilio.letProjectsChooseCallVoice`）设为 `true` 或 `false`：只要设置了它，该开关就会显示为锁定并附上变量名，且只能在那里更改。
 
 ### 值班电话的语音信箱
 

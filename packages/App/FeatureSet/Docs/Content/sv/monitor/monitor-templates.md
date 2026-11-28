@@ -75,6 +75,8 @@ För att synkronisera en enskild monitor klickar du på **Synkronisera från mal
 
 Efter en synkronisering anger en sammanfattning hur många monitorer som uppdaterades. **Delvis synkroniserad** betyder att några länkade monitorer fortfarande har den tidigare konfigurationen, oftast för att dina behörigheter inte täcker dem.
 
+En synkronisering som tar bort kriterierna som öppnade en öppen incident eller ett öppet larm löser den när den var inställd på att lösas av sig själv, eftersom ingenting kan lösa den när de kriterierna är borta: dess tidslinje säger varför, och sammanfattningen säger hur många som löstes. En incident eller ett larm vars kriterier mallen fortfarande har förblir öppen, och en som ska lösas manuellt lämnas åt dig. Redigerar du själv en monitors kriterier, i instrumentpanelen, via API:t eller med Terraform, händer samma sak.
+
 ## Flytta monitorer till en annan mall
 
 När en bättre mall ersätter en annan flyttar du monitorerna till den i stället för att ta bort dem. Varje monitor behåller sitt namn, sin statushistorik, sina etiketter, ägare och incidenter, och får den nya mallens kriterier.
@@ -101,10 +103,10 @@ Det här gör flytten:
 - En enhet har en monitor från varje mall. När en enhet redan har en monitor som skapats för den från den nya mallen utelämnas dess andra monitor, och ändringen namnger den som står i vägen: ta bort en av de två och flytta sedan igen.
 - En monitor av en annan typ än mallens utelämnas.
 
-Ändringen körs på servern, upp till 10 000 monitorer i taget, och visar sitt förlopp: vad som flyttades, vad som utelämnades och varför, och de öppna incidenter och larm den löste. Att stänga dialogrutan stoppar den inte, och mallens sida visar en ändring som fortfarande pågår. **Stoppa** stoppar den före nästa monitor, och **Försök igen** gör ett nytt försök med de monitorer som misslyckades eller inte nåddes.
+Ändringen körs på servern, upp till 10 000 monitorer i taget, och visar sitt förlopp: vad som flyttades, vad som utelämnades och varför, och de öppna incidenter och larm den löste. Att stänga dialogrutan stoppar den inte: mallens sida och monitorlistan visar en ändring som fortfarande pågår, med hur långt den har kommit, och monitorlistan visar i en timme även en avslutad ändring som utelämnade monitorer eller där monitorer misslyckades. Klicka på dess rad för att öppna den igen, med **Visa förlopp** medan den pågår och **Visa vad som hände** när den är klar. **Stoppa** stoppar den före nästa monitor, och **Försök igen** gör ett nytt försök med de monitorer som misslyckades eller inte nåddes.
 
 > [!TIP]
-> Ska enheterna från en regel för automatisk import flyttas till en ny mall? Flytta monitorerna först och peka sedan regeln mot den nya mallen. I omvänd ordning ger regeln varje enhet en andra monitor, från den nya mallen, bredvid den den redan har.
+> Pekar du en regel för automatisk import mot en annan mall av samma slag erbjuder formuläret att först flytta dess enheters monitorer dit, och regeln använder den nya mallen när de har flyttats, så att ingen enhet får en andra monitor. **Spara utan att flytta** pekar regeln mot den direkt: varje enhet behåller sin monitor och får den nya mallens bredvid.
 
 ## Avlänka monitorer från en mall
 
@@ -119,7 +121,7 @@ Oavsett val behåller de sina namn, sin statushistorik, sina etiketter, ägare o
 
 ## Ta bort en mall
 
-En mall som en larmpolicy för nätverket eller en regel för automatisk import skapar monitorer från kan inte tas bort: peka först policyn eller regeln mot en annan mall. När monitorer är länkade till mallen frågar borttagningen vad som ska hända med dem:
+En mall som en larmpolicy för nätverket eller en regel för automatisk import skapar monitorer från kan inte tas bort: peka först policyn eller regeln mot en annan mall. En policys monitorer följer med, och en regels formulär erbjuder att flytta dess enheters monitorer. När monitorer är länkade till mallen frågar borttagningen vad som ska hända med dem:
 
 - **Behåll deras inställningar** (standard): borttagningen avlänkar dem, och de fortsätter att kontrollera och larma med de kriterier de har.
 - **Rensa den här mallens kriterier från dem**: var och en avlänkas med sina kriterier rensade, som ovan, och sedan tas mallen bort. När en monitor förblir länkad, till exempel en som dina behörigheter inte täcker, behålls mallen, och dialogrutan anger hur många.
@@ -233,7 +235,7 @@ Enheten har en monitor som skapats för den från mallen du flyttar till, oftast
 :::
 
 :::details Efter att en regel för automatisk import flyttats till en ny mall har enheterna två monitorer
-Regeln gav varje enhet den nya mallens monitor bredvid den den hade. Ta bort de nya monitorerna och flytta sedan de gamla till den nya mallen: de behåller sin historik, och regeln skapar inga igen.
+Regeln sparades med **Spara utan att flytta**, eller pekades mot mallen innan dess formulär erbjöd att flytta dem, och gav varje enhet den nya mallens monitor bredvid den den hade. Ta bort de nya monitorerna och flytta sedan de gamla till den nya mallen: de behåller sin historik, och regeln skapar inga igen.
 :::
 
 :::details Sparandet misslyckas med "Unsupported do not sync field"

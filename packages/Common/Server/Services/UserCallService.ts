@@ -12,8 +12,11 @@ import UserNotificationRuleService, {
   NotificationMethodChannel,
 } from "./UserNotificationRuleService";
 import UserSmsService from "./UserSmsService";
-import CallRequest from "../../Types/Call/CallRequest";
-import { ONEUPTIME_PRODUCT_NAME } from "../../Types/Branding/ProductBranding";
+import CallRequest, { CallInLanguage } from "../../Types/Call/CallRequest";
+import { Translator } from "../../Types/Translator";
+import { getVerificationCallData } from "../../Utils/Call/VerificationCodeCall";
+import getCallInLanguage from "../Utils/Call/CallInLanguage";
+import UserLanguage from "../Utils/Notification/UserLanguage";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -522,11 +525,14 @@ export class Service extends DatabaseService<Model> {
    * says whether Twilio took it. It used to be placed fire-and-forget, so a
    * call that never happened - no Twilio account, a number Twilio refused -
    * was still announced as on its way.
+   *
+   * In English as it always was, and - for a person who reads another
+   * language (Types/UserLanguage) - in theirs too (#11461,
+   * Utils/Call/VerificationCodeCall): a voice of their language says it
+   * where the account the call goes out on has one, its code a digit at a
+   * time; a call and SMS gateway is handed both.
    */
   public async sendVerificationCode(item: Model, code: string): Promise<void> {
-    // add space to make it more clear and slow down the message
-    const spokenCode: string = code.split("").join("  ");
-
     /*
      * From the product, as the verification text is: "OneUptime", which an
      * installation that goes by its own name says instead
@@ -535,24 +541,20 @@ export class Service extends DatabaseService<Model> {
      */
     const callRequest: CallRequest = {
       to: item.phone!,
-      data: [
-        {
-          sayMessage: `This is a call from ${ONEUPTIME_PRODUCT_NAME}.`,
-        },
-        {
-          sayMessage: "Your verification code is " + spokenCode,
-        },
-        {
-          sayMessage: "Your verification code is " + spokenCode,
-        },
-        {
-          sayMessage: "Your verification code is " + spokenCode,
-        },
-        {
-          sayMessage: `Thank you for using ${ONEUPTIME_PRODUCT_NAME}. Good bye.`,
-        },
-      ],
+      data: getVerificationCallData(code),
     };
+
+    // Whose number it is: a read that fails is English, and the call goes out.
+    const inLanguage: CallInLanguage | undefined = getCallInLanguage(
+      await UserLanguage.getLanguage(item.userId),
+      (translator: Translator): CallRequest["data"] => {
+        return getVerificationCallData(code, translator);
+      },
+    );
+
+    if (inLanguage) {
+      callRequest.inLanguage = inLanguage;
+    }
 
     /*
      * Through the project's default for calls - or, when it has none, its

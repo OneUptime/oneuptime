@@ -265,7 +265,7 @@ Redigeraren visar varje kriterium utfällt. Klicka på ett kriteriums rubrik fö
 
 ### Spara kriterierna
 
-Klicka på **Spara ändringar**. Nästa kontroll bedöms efter de nya kriterierna.
+Klicka på **Spara ändringar**. Nästa kontroll bedöms efter de nya kriterierna. En öppen incident eller ett öppet larm vars kriterier du tog bort löses när du sparar, när den var inställd på att lösas av sig själv, eftersom ingenting kan lösa den efteråt: dess tidslinje säger varför.
 
 ### Testa monitorn
 
@@ -352,7 +352,7 @@ Larmets kriterium ändrar ingen status, så det håller inte kvar monitorn i den
 :::
 
 :::details Incidenten förblir öppen efter att monitorn har återhämtat sig
-Öppna incidentens kriterium och fäll ut **Fler fält** i dess incident: **Lös incident automatiskt** måste vara påslaget. En incident från ett kriterium som du sedan har tagit bort löses inte av monitorn: lös den manuellt.
+Öppna incidentens kriterium och fäll ut **Fler fält** i dess incident: **Lös incident automatiskt** måste vara påslaget. Tar du bort en incidents kriterium, eller synkroniserar en mall som inte längre har det, löses incidenten när den var inställd på att lösas av sig själv. En som blev kvar öppen efter ett kriterium som togs bort tidigare, eller som ska lösas manuellt, löser du själv.
 :::
 
 :::details Ta bort-knappen för Offline är låst

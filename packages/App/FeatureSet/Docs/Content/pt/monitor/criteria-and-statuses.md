@@ -265,7 +265,7 @@ O editor mostra cada critério aberto. Clique no cabeçalho de um critério para
 
 ### Salvar os critérios
 
-Clique em **Salvar alterações**. A próxima verificação é julgada pelos novos critérios.
+Clique em **Salvar alterações**. A próxima verificação é julgada pelos novos critérios. Um incidente ou alerta aberto cujos critérios você excluiu é resolvido ao salvar quando estava configurado para se resolver sozinho, já que depois nada poderia resolvê-lo: a linha do tempo dele diz por quê.
 
 ### Testar o monitor
 
@@ -352,7 +352,7 @@ O critério do alerta não altera nenhum status, então não segura o monitor no
 :::
 
 :::details O incidente continua aberto depois que o monitor se recuperou
-Abra o critério do incidente e expanda **Mais campos** no incidente dele: **Resolver incidente automaticamente** precisa estar ligado. Um incidente de um critério que você excluiu depois não é resolvido pelo monitor: resolva-o manualmente.
+Abra o critério do incidente e expanda **Mais campos** no incidente dele: **Resolver incidente automaticamente** precisa estar ligado. Excluir o critério de um incidente, ou sincronizar um modelo que não o tem mais, resolve o incidente quando ele estava configurado para se resolver sozinho. Um que ficou aberto por um critério excluído antes, ou configurado para ser resolvido manualmente, você mesmo resolve.
 :::
 
 :::details O botão de excluir de Offline está bloqueado

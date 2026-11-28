@@ -2254,6 +2254,21 @@
                         "Google.en-US-Neural2-F",
                         "Google.en-US-Neural2-J"
                     ]
+                },
+                "letProjectsChooseCallVoice": {
+                    "type": [
+                        "boolean",
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        null,
+                        "",
+                        true,
+                        false,
+                        "true",
+                        "false"
+                    ]
                 }
             },
             "additionalProperties": false

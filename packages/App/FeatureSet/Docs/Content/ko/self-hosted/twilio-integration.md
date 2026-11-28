@@ -67,6 +67,7 @@
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | 선택 사항이며 쉼표로 구분합니다. 해당 국가의 수신자에게 기본 번호 대신 쓰이는 번호입니다 |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | 모든 SMS가 발신되는, 쉼표로 구분한 번호입니다. `sms-only`에는 필수입니다 |
 | `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | 선택 사항이며, 통화가 말하는 음성으로 [통화에 쓰이는 음성](#통화에-쓰이는-음성)의 음성 중 하나입니다. `GLOBAL_TWILIO_ACCOUNT_SID`가 있든 없든 읽히며, 설정되어 있는 동안 Admin Dashboard의 **통화 음성**에 읽기 전용으로 표시됩니다 |
+| `GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE` | `twilio.letProjectsChooseCallVoice` | 선택 사항이며, `true` 또는 `false`로 각 프로젝트가 자체 음성을 고르는지를 정합니다. [자체 음성을 고르는 프로젝트](#자체-음성을-고르는-프로젝트)를 참고하세요. `GLOBAL_TWILIO_ACCOUNT_SID`가 있든 없든 읽히며, 설정되어 있는 동안 Admin Dashboard의 **프로젝트가 통화 음성을 선택하도록 허용**이 잠긴 상태로 표시됩니다 |
 
 Helm에서는 values의 `twilio` 아래에 설정합니다. Helm이 릴리스마다 저장하는 values에 auth token이 남지 않도록, 직접 관리하는 Secret에 넣고 그 Secret을 `twilio.existingSecret.name`에 지정하세요.
 
@@ -84,11 +85,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-values 파일에서는 전화번호를 따옴표로 감싸고, `--set` 대신 `--set-string`으로 전달하세요. 따옴표가 없으면 `+14155550100`은 숫자가 되며 차트가 이를 거부합니다. 차트는 `twilio.accountSid` 없는 다른 `twilio` 값(누가 계정을 설정하든 음성을 설정하는 `twilio.callVoice`는 제외), auth token 없는 Account SID, `twilio.authToken`과 Secret 양쪽에 지정된 auth token, 음성 목록에 없는 `twilio.callVoice`도 거부합니다. Terraform에서는 같은 값을 `helm_release`에 설정하고, auth token은 민감한 값으로 전달하세요.
+values 파일에서는 전화번호를 따옴표로 감싸고, `--set` 대신 `--set-string`으로 전달하세요. 따옴표가 없으면 `+14155550100`은 숫자가 되며 차트가 이를 거부합니다. 차트는 `twilio.accountSid` 없는 다른 `twilio` 값(누가 계정을 설정하든 적용되는 `twilio.callVoice`와 `twilio.letProjectsChooseCallVoice`는 제외), auth token 없는 Account SID, `twilio.authToken`과 Secret 양쪽에 지정된 auth token, 음성 목록에 없는 `twilio.callVoice`, `true`도 `false`도 아닌 `twilio.letProjectsChooseCallVoice`도 거부합니다. Terraform에서는 같은 값을 `helm_release`에 설정하고, auth token은 민감한 값으로 전달하세요.
 
 Docker Compose에서는 `config.env`에서 `GLOBAL_TWILIO_` 설정을 지정한 다음, `npm run start`를 실행해 컨테이너를 다시 만드세요.
 
-OneUptime은 시작할 때 변수를 읽습니다. OneUptime이 읽을 수 없는 전화번호나 누락된 auth token처럼 하나라도 잘못되면, 고칠 때까지 계정은 SMS를 보내지 않고 전화도 걸지 않습니다. 서버 로그, **Admin Dashboard > 설정 > 통화 및 SMS**, `/admin/setup`의 체크리스트가 해당 변수를 알려 줍니다. OneUptime이 제공하는 음성이 아닌 값을 지정한 `GLOBAL_TWILIO_CALL_VOICE`는 전화를 막지 않습니다. 고칠 때까지 통화는 계정의 기본 음성으로 말하며, 같은 세 곳이 이 변수를 알려 줍니다. auth token은 절대 표시되지 않습니다. 계정을 바꾸려면 변수를 바꾸고 OneUptime을 다시 시작하세요. Admin Dashboard에서는 바꿀 수 없습니다.
+OneUptime은 시작할 때 변수를 읽습니다. OneUptime이 읽을 수 없는 전화번호나 누락된 auth token처럼 하나라도 잘못되면, 고칠 때까지 계정은 SMS를 보내지 않고 전화도 걸지 않습니다. 서버 로그, **Admin Dashboard > 설정 > 통화 및 SMS**, `/admin/setup`의 체크리스트가 해당 변수를 알려 줍니다. OneUptime이 제공하는 음성이 아닌 값을 지정한 `GLOBAL_TWILIO_CALL_VOICE`는 전화를 막지 않습니다. 고칠 때까지 통화는 계정의 기본 음성으로 말하며, 같은 세 곳이 이 변수를 알려 줍니다. `true`도 `false`도 아닌 `GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE`는 고칠 때까지 어떤 프로젝트도 음성을 고르지 못하게 하며, 같은 세 곳이 이 변수도 알려 줍니다. auth token은 절대 표시되지 않습니다. 계정을 바꾸려면 변수를 바꾸고 OneUptime을 다시 시작하세요. Admin Dashboard에서는 바꿀 수 없습니다.
 
 ### Terraform으로 프로젝트 구성 관리하기
 
@@ -187,11 +188,11 @@ SMS에만, 또는 통화에만 쓰는 계정에는 다른 쪽을 위한 번호�
 | 아랍어 | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
 | 페르시아어 | 없음: 전화는 영어로 진행됩니다 | 없음: 전화는 영어로 진행됩니다 |
 
-Amazon Polly와 Google 모두 페르시아어 음성이 없으므로, 페르시아어로 OneUptime을 사용하는 사람에게 거는 전화는 영어로 진행됩니다. 기본 음성을 그대로 쓰는 계정을 거치는 모든 전화도 마찬가지인데, 그 음성은 영어만 말하기 때문입니다. 통화 로그에는 전화가 말한 내용이 말한 언어 그대로 남습니다. 인증 코드, **테스트 전화 보내기**, 수신 전화 정책의 인사말은 영어로 진행됩니다.
+Amazon Polly와 Google 모두 페르시아어 음성이 없으므로, 페르시아어로 OneUptime을 사용하는 사람에게 거는 전화는 영어로 진행됩니다. 기본 음성을 그대로 쓰는 계정을 거치는 모든 전화도 마찬가지인데, 그 음성은 영어만 말하기 때문입니다. 통화 로그에는 전화가 말한 내용이 말한 언어 그대로 남습니다. 전화번호를 인증하는 전화도 그 번호 주인의 언어로 진행됩니다. 코드를 한 자리씩, 숫자 사이에 잠깐 쉬면서, 세 번 말합니다. **테스트 전화 보내기**와 **Admin Dashboard > 설정 > 통화 및 SMS**의 테스트 전화도 마찬가지로, 보내는 사람의 언어로 진행됩니다. 수신 전화 정책의 인사말은 영어로 진행됩니다. 직접 운영하는 [SMS 및 통화 게이트웨이](/docs/self-hosted/sms-and-call-gateway)를 거치면 통화에는 영어와 그 사람의 언어(페르시아어 포함)로 된 말이 전달되며, 음성은 게이트웨이가 고릅니다.
 
 #### 자체 음성을 고르는 프로젝트
 
-셀프 호스팅 설치에서는 마스터 관리자가 각 프로젝트가 설치 전체의 계정을 거치는 통화의 음성을 고르도록 할 수 있습니다. **Admin Dashboard > 설정 > 통화 및 SMS**의 **프로젝트 통화 음성** 카드에서 **프로젝트가 통화 음성을 선택하도록 허용**을 켜세요. 그러면 **프로젝트 소유자** 또는 **프로젝트 관리자**가 **프로젝트 설정 > 알림 > 알림 채널**의 **추가 설정**에 있는 **통화 음성** 카드에서 음성을 고르며, 음성을 고르지 않은 프로젝트는 설치의 음성으로 말합니다. Twilio는 각 프로젝트의 음성 요금을 설치 전체의 계정에 청구하므로 이 스위치는 꺼진 상태로 시작하며, 스위치를 끄면 모든 프로젝트가 다시 설치의 음성을 씁니다. OneUptime Cloud에서는 이 기능을 제공하지 않습니다. 프로젝트 자체 구성으로 음성을 고르세요. API에서는 음성이 프로젝트의 `callVoice` 필드이며, 스위치가 꺼져 있는 동안에는 거부됩니다.
+셀프 호스팅 설치에서는 마스터 관리자가 각 프로젝트가 설치 전체의 계정을 거치는 통화의 음성을 고르도록 할 수 있습니다. **Admin Dashboard > 설정 > 통화 및 SMS**의 **프로젝트 통화 음성** 카드에서 **프로젝트가 통화 음성을 선택하도록 허용**을 켜세요. 그러면 **프로젝트 소유자** 또는 **프로젝트 관리자**가 **프로젝트 설정 > 알림 > 알림 채널**의 **추가 설정**에 있는 **통화 음성** 카드에서 음성을 고르며, 음성을 고르지 않은 프로젝트는 설치의 음성으로 말합니다. Twilio는 각 프로젝트의 음성 요금을 설치 전체의 계정에 청구하므로 이 스위치는 꺼진 상태로 시작하며, 스위치를 끄면 모든 프로젝트가 다시 설치의 음성을 씁니다. OneUptime Cloud에서는 이 기능을 제공하지 않습니다. 프로젝트 자체 구성으로 음성을 고르세요. API에서는 음성이 프로젝트의 `callVoice` 필드이며, 스위치가 꺼져 있는 동안에는 거부됩니다. 스위치를 코드로 설정하려면 `GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE`(Helm에서는 `twilio.letProjectsChooseCallVoice`)를 `true` 또는 `false`로 설정하세요. 설정되어 있는 동안 스위치는 변수 이름과 함께 잠긴 상태로 표시되며, 변수에서만 바꿀 수 있습니다.
 
 ### 온콜 전화의 음성사서함
 

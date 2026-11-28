@@ -99,6 +99,76 @@ export const SETTINGS_KEPT: PluralTemplate = {
   other: "They keep their criteria and intervals until you sync the template.",
 };
 
+// ---- Pointing a network alert policy at another template (#11452).
+
+export const POLICY_MOVE_TITLE: string = translationKey(
+  "Move this policy's monitors to {{templateName}}?",
+);
+
+export const POLICY_MOVE_MONITORS: PluralTemplate = {
+  one: "Its {{count}} monitor moves to {{templateName}} on the server, and stays this policy's.",
+  other:
+    "Its {{count}} monitors move to {{templateName}} on the server, and stay this policy's.",
+};
+
+export const POLICY_MOVE_BUTTON: PluralTemplate = {
+  one: "Move {{count}} Monitor and Save",
+  other: "Move {{count}} Monitors and Save",
+};
+
+// The same, when how many monitors the policy has could not be read.
+export const POLICY_MOVE_MONITORS_UNCOUNTED: string = translationKey(
+  "Its monitors move to {{templateName}} on the server, and stay this policy's.",
+);
+
+export const POLICY_MOVE_BUTTON_UNCOUNTED: string = translationKey(
+  "Move Monitors and Save",
+);
+
+// ---- Pointing an auto import rule at another template (#11451).
+
+export enum RuleMoveChoice {
+  // The rule's devices' monitors move to the new template first.
+  MoveFirst = "move",
+  // They stay on the old template; the rule gives each device another.
+  Leave = "leave",
+}
+
+export const RULE_MOVE_TITLE: string = translationKey(
+  "Move this rule's monitors to {{templateName}}?",
+);
+
+export const RULE_MOVE_QUESTION: PluralTemplate = {
+  one: "This rule's devices have {{count}} monitor from {{oldTemplateName}}.",
+  other:
+    "This rule's devices have {{count}} monitors from {{oldTemplateName}}.",
+};
+
+export const RULE_MOVE_CHOICE_TITLES: Record<RuleMoveChoice, string> = {
+  [RuleMoveChoice.MoveFirst]: translationKey(
+    "Move them to {{templateName}} first (recommended)",
+  ),
+  [RuleMoveChoice.Leave]: translationKey("Leave them on {{oldTemplateName}}"),
+};
+
+export const RULE_MOVE_CHOICE_DESCRIPTIONS: Record<RuleMoveChoice, string> = {
+  [RuleMoveChoice.MoveFirst]: translationKey(
+    "Each takes the criteria, interval and probe agreement of {{templateName}}, and keeps its name, history, labels, owners and incidents. The rule uses {{templateName}} once they are moved, and gives a monitor only to devices that have none.",
+  ),
+  [RuleMoveChoice.Leave]: translationKey(
+    "They stay as they are, and the rule gives each of these devices a second monitor, from {{templateName}}.",
+  ),
+};
+
+export const RULE_MOVE_BUTTON: PluralTemplate = {
+  one: "Move {{count}} Monitor First",
+  other: "Move {{count}} Monitors First",
+};
+
+export const RULE_SAVE_WITHOUT_MOVING_BUTTON: string = translationKey(
+  "Save Without Moving",
+);
+
 // ---- A template's delete.
 
 export enum DeleteChoice {
@@ -253,6 +323,23 @@ export function getMonitorTemplateChangeTitle(data: {
         );
       }
 
+      if (view.networkAlertPolicyName) {
+        return translator.translateTemplate(
+          "Moving the monitors of the alert policy {{policyName}} to {{templateName}}…",
+          {
+            policyName: view.networkAlertPolicyName,
+            templateName: templateName,
+          },
+        );
+      }
+
+      if (view.autoImportRuleName) {
+        return translator.translateTemplate(
+          "Moving the monitors of the auto import rule {{ruleName}} to {{templateName}}…",
+          { ruleName: view.autoImportRuleName, templateName: templateName },
+        );
+      }
+
       return isLink
         ? translator.translateTemplate(
             "Linking monitors to {{templateName}}…",
@@ -355,23 +442,71 @@ export function getMonitorTemplateChangeDescription(data: {
 
   if (isMonitorTemplateChangePhaseActive(data.phase)) {
     /*
-     * A change of one template's monitors shows on that template's page; an
-     * unlink from the Monitors list, from each monitor's own template, has
-     * no page to show on.
+     * Every change shows on the Monitors list (#11454), and a change of one
+     * template's monitors on that template's page too; an unlink from the
+     * Monitors list, from each monitor's own template, has no page of its
+     * own.
      */
     return data.view.monitorTemplateId
       ? translated(
           translator,
           translationKey(
-            "The server makes the change. You can close this dialog: it keeps going, and this template's page shows how far it got.",
+            "The server makes the change. You can close this dialog: it keeps going, and the Monitors list and this template's page show how far it got.",
           ),
         )
       : translated(
           translator,
           translationKey(
-            "The server makes the change. You can close this dialog: it keeps going.",
+            "The server makes the change. You can close this dialog: it keeps going, and the Monitors list shows how far it got.",
           ),
         );
+  }
+
+  // An auto import rule's change (#11451): whether the rule uses the template now.
+  if (data.view.autoImportRuleId) {
+    const ruleName: string =
+      data.view.autoImportRuleName ||
+      translated(translator, translationKey("The rule"));
+    const templateName: string =
+      data.view.monitorTemplateName ||
+      translated(translator, translationKey("the template"));
+
+    if (data.view.isAutoImportRulePointed) {
+      return translator.translateTemplate(
+        "Each monitor kept its history, labels, owners and incidents, and {{ruleName}} uses {{templateName}} now.",
+        { ruleName: ruleName, templateName: templateName },
+      );
+    }
+
+    if (data.view.autoImportRuleMonitorsLeftCount) {
+      return translator.translatePlural(
+        {
+          one: "{{ruleName}} still uses its old template: {{count}} of its devices' monitors is not on {{templateName}} yet. Retry it, or move it from its template's page, then save the rule again.",
+          other:
+            "{{ruleName}} still uses its old template: {{count}} of its devices' monitors are not on {{templateName}} yet. Retry them, or move them from their template's page, then save the rule again.",
+        },
+        data.view.autoImportRuleMonitorsLeftCount,
+        {
+          count: translator.formatNumber(
+            data.view.autoImportRuleMonitorsLeftCount,
+          ),
+          ruleName: ruleName,
+          templateName: templateName,
+        },
+      );
+    }
+
+    if (data.view.autoImportRuleError) {
+      return getErrorInSentenceText({
+        message: data.view.autoImportRuleError,
+        translator: translator,
+      });
+    }
+
+    return translator.translateTemplate(
+      "{{ruleName}} still uses its old template. Retry the monitors that were not moved, then save the rule again.",
+      { ruleName: ruleName },
+    );
   }
 
   if (
@@ -401,11 +536,21 @@ export function getMonitorTemplateChangeDescription(data: {
     }
   }
 
-  return data.view.retryableCount > 0
+  if (data.view.retryableCount > 0) {
+    return translated(
+      translator,
+      translationKey(
+        "What changed is kept. Retry changes the monitors that failed or were not reached.",
+      ),
+    );
+  }
+
+  // A network alert policy's change (#11452): its monitors stay its own.
+  return data.view.networkAlertPolicyId
     ? translated(
         translator,
         translationKey(
-          "What changed is kept. Retry changes the monitors that failed or were not reached.",
+          "Each monitor kept its history, labels, owners and incidents, and stays the policy's.",
         ),
       )
     : translated(
@@ -413,6 +558,89 @@ export function getMonitorTemplateChangeDescription(data: {
         translationKey(
           "Each monitor kept its history, labels, owners and incidents.",
         ),
+      );
+}
+
+/*
+ * A change as one line of a list (#11454): the Monitors list's, and the
+ * alert policies' and auto import rules' pages. While it runs, what it does
+ * and how far it got; once it is done, its headline, as its dialog says it.
+ */
+export function getMonitorTemplateChangeLine(data: {
+  translator: Translator;
+  view: MonitorTemplateChangeView;
+  phase: MonitorTemplateChangePhase;
+}): string {
+  const translator: Translator = data.translator;
+  const view: MonitorTemplateChangeView = data.view;
+
+  if (!isMonitorTemplateChangePhaseActive(data.phase)) {
+    return getMonitorTemplateChangeTitle(data);
+  }
+
+  const progress: MonitorTemplateChangeProgress = view.progress;
+  const values: Record<string, string> = {
+    done: translator.formatNumber(getMonitorsReached(progress)),
+    count: translator.formatNumber(progress.total),
+    templateName:
+      view.monitorTemplateName ||
+      translated(translator, translationKey("the template")),
+  };
+
+  if (view.networkAlertPolicyName) {
+    return translator.translatePlural(
+      {
+        one: "Moving the monitors of the alert policy {{policyName}} to {{templateName}}: {{done}} of {{count}} monitor done.",
+        other:
+          "Moving the monitors of the alert policy {{policyName}} to {{templateName}}: {{done}} of {{count}} monitors done.",
+      },
+      progress.total,
+      { ...values, policyName: view.networkAlertPolicyName },
+    );
+  }
+
+  if (view.autoImportRuleName) {
+    return translator.translatePlural(
+      {
+        one: "Moving the monitors of the auto import rule {{ruleName}} to {{templateName}}: {{done}} of {{count}} monitor done.",
+        other:
+          "Moving the monitors of the auto import rule {{ruleName}} to {{templateName}}: {{done}} of {{count}} monitors done.",
+      },
+      progress.total,
+      { ...values, ruleName: view.autoImportRuleName },
+    );
+  }
+
+  if (view.settings.deleteTemplateWhenDone) {
+    return translator.translatePlural(
+      {
+        one: "Clearing {{templateName}}'s criteria from its monitors: {{done}} of {{count}} monitor done.",
+        other:
+          "Clearing {{templateName}}'s criteria from its monitors: {{done}} of {{count}} monitors done.",
+      },
+      progress.total,
+      values,
+    );
+  }
+
+  return view.settings.kind === MonitorTemplateChangeKind.Link
+    ? translator.translatePlural(
+        {
+          one: "Linking monitors to {{templateName}}: {{done}} of {{count}} monitor done.",
+          other:
+            "Linking monitors to {{templateName}}: {{done}} of {{count}} monitors done.",
+        },
+        progress.total,
+        values,
+      )
+    : translator.translatePlural(
+        {
+          one: "Unlinking monitors from their template: {{done}} of {{count}} monitor done.",
+          other:
+            "Unlinking monitors from their template: {{done}} of {{count}} monitors done.",
+        },
+        progress.total,
+        values,
       );
 }
 
@@ -572,6 +800,9 @@ export const MONITOR_TEMPLATE_CHANGE_TRANSLATED_REASONS: ReadonlyArray<string> =
   [
     translationKey("The change was stopped."),
     translationKey("The change stopped before it finished."),
+    translationKey(
+      "Moved to another template or unlinked by someone since, so no longer the policy's.",
+    ),
   ];
 
 export const RETRY_BUTTON: PluralTemplate = {

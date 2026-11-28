@@ -319,6 +319,9 @@ describe("what the Admin Dashboard is told", () => {
       isCallVoiceSetByEnvironment: true,
       callVoice: "Google.en-US-Neural2-J",
       callVoiceProblem: null,
+      isLetProjectsChooseCallVoiceSetByEnvironment: false,
+      letProjectsChooseCallVoice: false,
+      letProjectsChooseCallVoiceProblem: null,
     });
   });
 

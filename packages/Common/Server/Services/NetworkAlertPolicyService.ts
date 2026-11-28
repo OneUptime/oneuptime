@@ -20,6 +20,7 @@ import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
 import Query from "../Types/Database/Query";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import MonitorTemplateChangeRunner from "../Utils/Monitor/MonitorTemplateChangeRunner";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -694,8 +695,9 @@ export class Service extends ProjectReferencesService<Model> {
    * NetworkAlertPolicyEngineService is where a saved policy turns into
    * monitors: provision one per matching device after a create, reconcile
    * the set after an update (a narrower scope removes monitors, a different
-   * template re-clones them, isEnabled off pauses the lot), and tear them
-   * down before a delete. It also owns the four columns the API cannot write
+   * template moves them there - a change on the server, MonitorTemplate
+   * ChangeRunner.startForAlertPolicy, #11452 - and isEnabled off pauses the
+   * lot), and tear them down before a delete. It also owns the four columns the API cannot write
    * — lastSyncAt, lastSyncError, coveredDeviceCount, templateSyncedAt.
    *
    * The create and update hooks hand the engine the work DETACHED, and that
@@ -785,6 +787,40 @@ export class Service extends ProjectReferencesService<Model> {
       ? readMonitorTemplateId(data)
       : null;
 
+    /*
+     * A policy pointed at another template moves its monitors there (issue
+     * #11452), keeping each one's history, labels, owners and incidents: a
+     * change on the server, as OneUptime, recorded here - before the save
+     * returns, so the form can show its progress at once - and run by a
+     * worker. Re-saving a policy whose earlier move was stopped picks the
+     * rest up. The engine's pass below neither deletes them nor gives their
+     * devices others meanwhile. Never fails the save.
+     */
+    if (isTemplateWritten && writtenTemplateId) {
+      for (const policyId of updatedItemIds) {
+        const projectId: ObjectID | undefined =
+          previousById.get(policyId.toString())?.projectId ||
+          onUpdate.updateBy.props.tenantId ||
+          undefined;
+
+        if (!projectId) {
+          continue;
+        }
+
+        try {
+          await MonitorTemplateChangeRunner.startForAlertPolicy({
+            projectId: projectId,
+            policyId: policyId,
+            userId: onUpdate.updateBy.props.userId,
+          });
+        } catch (error) {
+          logger.error(
+            `Error starting the move of network alert policy ${policyId.toString()}'s monitors to its template: ${error}`,
+          );
+        }
+      }
+    }
+
     Promise.resolve()
       .then(async () => {
         for (const policyId of updatedItemIds) {
@@ -832,11 +868,14 @@ export class Service extends ProjectReferencesService<Model> {
           await NetworkAlertPolicyEngineService.syncPolicy({
             policyId: policyId,
             /*
-             * Only a policy pointed at a DIFFERENT template has had its
-             * whole fleet re-cloned from the template it names now. Re-saving
-             * the same template has re-synced nothing, and stamping
-             * "Template Synced" for it would tell an operator their criteria
-             * edit had landed when it had not.
+             * Only a policy pointed at a DIFFERENT template can have its
+             * fleet run the template it names now from this pass on: the
+             * devices it gives a monitor to now get the template's, and its
+             * monitors moving there are counted by the engine - Template
+             * Synced waits for the move to finish (#11452). Re-saving the
+             * same template has re-synced nothing, and stamping "Template
+             * Synced" for it would tell an operator their criteria edit had
+             * landed when it had not.
              */
             stampTemplateSyncedOnCleanPass: isRealTemplateChange,
           });

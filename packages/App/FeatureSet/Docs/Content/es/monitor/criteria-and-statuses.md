@@ -265,7 +265,7 @@ El editor muestra cada criterio desplegado. Haga clic en la cabecera de un crite
 
 ### Guardar los criterios
 
-Haga clic en **Guardar cambios**. La siguiente comprobación se juzga con los nuevos criterios.
+Haga clic en **Guardar cambios**. La siguiente comprobación se juzga con los nuevos criterios. Un incidente o una alerta abiertos cuyos criterios eliminó se resuelven al guardar si estaban configurados para resolverse automáticamente, ya que después nada podría resolverlos: su cronología indica por qué.
 
 ### Probar el monitor
 
@@ -352,7 +352,7 @@ El criterio de la alerta no cambia ningún estado, así que no retiene el monito
 :::
 
 :::details El incidente sigue abierto después de que el monitor se recuperara
-Abra el criterio del incidente y despliegue **Más campos** en su incidente: **Resolver incidente automáticamente** debe estar activado. Un incidente de un criterio que haya eliminado después no lo resuelve el monitor: resuélvalo a mano.
+Abra el criterio del incidente y despliegue **Más campos** en su incidente: **Resolver incidente automáticamente** debe estar activado. Eliminar el criterio de un incidente, o sincronizar una plantilla que ya no lo tiene, resuelve el incidente si estaba configurado para resolverse automáticamente. El que quedó abierto por un criterio eliminado antes, o que debe resolverse a mano, lo resuelve usted.
 :::
 
 :::details El botón de eliminar de Sin conexión está bloqueado

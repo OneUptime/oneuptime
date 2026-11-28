@@ -1495,6 +1495,14 @@ twilio:
   # Call and SMS shows it read-only; leave it empty to choose the voice there.
   # See https://oneuptime.com/docs/self-hosted/twilio-integration#the-voice-calls-speak-with
   callVoice:
+  # Whether each project chooses the voice of its own calls through this
+  # account, with accountSid or without it: true or false. Twilio
+  # charges the account for each project's voice. Set, it is the "Let projects
+  # choose their call voice" switch, and Admin Dashboard > Settings > Call and
+  # SMS shows it locked; leave it empty to flip the switch there. Ignored on
+  # OneUptime Cloud.
+  # See https://oneuptime.com/docs/self-hosted/twilio-integration#projects-that-choose-their-own-voice
+  letProjectsChooseCallVoice:
 
 # How this server sends its own email - what Admin Dashboard > Settings >
 # Emails otherwise sets up. Set serverType, and the settings are the ones these

@@ -265,7 +265,7 @@ L'editor mostra ogni criterio aperto. Fate clic sull'intestazione di un criterio
 
 ### Salvare i criteri
 
-Fate clic su **Salva modifiche**. Il controllo successivo viene giudicato con i nuovi criteri.
+Fate clic su **Salva modifiche**. Il controllo successivo viene giudicato con i nuovi criteri. Un incidente o un avviso aperto i cui criteri avete eliminato viene risolto al salvataggio se era impostato per risolversi automaticamente, perché dopo nient'altro potrebbe risolverlo: la sua cronologia dice perché.
 
 ### Testare il monitor
 
@@ -352,7 +352,7 @@ Il criterio dell'avviso non cambia alcuno stato, quindi non trattiene il monitor
 :::
 
 :::details L'incidente resta aperto dopo che il monitor si è ripreso
-Aprite il criterio dell'incidente ed espandete **Altri campi** nel suo incidente: **Risoluzione automatica dell'incidente** deve essere attivo. Un incidente di un criterio che avete poi eliminato non viene risolto dal monitor: risolvetelo a mano.
+Aprite il criterio dell'incidente ed espandete **Altri campi** nel suo incidente: **Risoluzione automatica dell'incidente** deve essere attivo. Eliminare il criterio di un incidente, o sincronizzare un modello che non lo ha più, risolve l'incidente se era impostato per risolversi automaticamente. Quello rimasto aperto per un criterio eliminato prima, o da risolvere a mano, lo risolvete voi.
 :::
 
 :::details Il pulsante di eliminazione di Offline è bloccato

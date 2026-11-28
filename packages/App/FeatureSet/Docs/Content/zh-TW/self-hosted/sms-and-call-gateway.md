@@ -5,6 +5,7 @@ OneUptime 可以透過你自己營運的閘道傳送簡訊和撥打電話，而�
 :::cards
 - [設定閘道](#設定閘道): 一個 URL，以及為你產生的簽署密鑰。
 - [你的閘道會收到什麼](#你的閘道會收到什麼): 每則簡訊或每通電話對應一個已簽署的 JSON 要求。
+- [其他語言的電話](#其他語言的電話): 用對方使用 OneUptime 的語言說出每通電話。
 - [處理呼叫](#處理呼叫): 透過電話或回覆來確認、升級或解決。
 - [傳遞與重試](#傳遞與重試): 你的閘道停擺時會發生什麼。
 :::
@@ -63,7 +64,8 @@ flowchart TB
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ flowchart TB
 | `sentAt` | OneUptime 傳送它的時間，採用 ISO 8601 格式。 |
 | `to` | 電話號碼，採用 E.164 格式。測試中為 `null`。 |
 | `message` | 簡訊內容，或電話中要說的內容。一則簡訊最多 1,600 個字元，電話的文字最多 16,384 個字元。更長的文字會被截斷，並以一段說明其餘內容在 OneUptime 中的附註結尾。 |
-| `isSensitive` | 驗證碼為 `true`。請勿將該訊息寫入你自己的日誌。 |
+| `isSensitive` | 驗證碼為 `true`。請勿將該訊息以及 `inLanguage` 中的訊息寫入你自己的日誌。 |
 | `project` | 專案的 `id` 和 `name`，如果不是由專案傳送則為 `null`。 |
 | `actions` | 對於待命呼叫，是用於處理該呼叫的連結。其他情況下為 `null`。 |
+| `inLanguage` | 對於打給以英語以外的語言使用 OneUptime 的人的電話，為 `language`（該語言的代碼）和 `message`（電話以該語言要說的內容）。其他情況下為 `null`，所有簡訊也是如此，因為簡訊本來就是以對方的語言撰寫的。請參閱 [其他語言的電話](#其他語言的電話)。 |
 
 電話以描述而非腳本的形式傳送：`message` 是電話中要說的內容，不含 Twilio 的「按 1 確認」。請以你自己的方式提供這些動作，例如按鍵，並呼叫對應的連結。
+
+### 其他語言的電話
+
+打給以其他語言使用 OneUptime 的人的電話會帶有兩份內容：一份是英語，在 `message` 中，每通電話都有；另一份是對方的語言，在 `inLanguage` 中。語音由你的閘道選擇，因此 OneUptime 無法得知它會說哪些語言。如果你的閘道有 `inLanguage.language` 這種語言的語音，就用該語音說出 `inLanguage.message`。如果沒有，就改用英語說出 `message`。絕對不要把一種語言的內容交給另一種語言的語音：那樣沒人聽得懂。只讀取 `message` 的閘道會像以前一樣繼續運作，並說英語。
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+語言代碼是一個 BCP 47 標籤，是 OneUptime 所用的語言之一：`de`、`fr`、`es`、`it`、`pt`、`nl`、`da`、`no`、`sv`、`ru`、`ja`、`ko`、`zh-CN`、`zh-TW`、`hi`、`fa` 和 `ar`。`es` 是西班牙的西班牙語，`pt` 是巴西的葡萄牙語，`no` 是挪威語書面語（Bokmål），`ar` 是現代標準阿拉伯語，兩個中文代碼都是華語（普通話），分別使用簡體字和繁體字。其中也包括波斯語：Twilio 沒有波斯語語音，因此透過 Twilio 打給以波斯語使用 OneUptime 的人的電話使用英語，但你的閘道可能有這種語音。驗證碼逐位書寫，數字之間有兩個空格：請讓你的語音逐一、緩慢地唸出這些數字，而不是當作一個數來唸。
 
 ### 驗證簽章
 
@@ -116,7 +137,7 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
 
 ## 測試要求
 
-**檢查閘道** 會傳送一個 `event` 設為 `test`，且 `to`、`project` 和 `actions` 設為 `null` 的要求。請以 2xx 狀態回應，並且不要傳送任何內容。
+**檢查閘道** 會傳送一個 `event` 設為 `test`，且 `to`、`project`、`actions` 和 `inLanguage` 設為 `null` 的要求。請以 2xx 狀態回應，並且不要傳送任何內容。
 
 ## 後續步驟
 
