@@ -892,7 +892,10 @@ export class Service extends ProjectReferencesService<Model> {
      * Platform to the Episode as the owner" - waits for "Episode Created"
      * until then, on every App server, and follows it in the order it was
      * made (WorkspaceCreatedMessageFirst): its channels hear of the episode
-     * first, then of what happened to it, then its pages.
+     * first, then of what happened to it, then its pages. Held since the
+     * episode was written (DatabaseService.create, before even its creator
+     * is made its owner, #11352): this chain takes the hold over here, and
+     * lets it go below.
      */
     await WorkspaceCreatedMessageFirst.hold({
       incidentEpisodeId: createdItem.id,

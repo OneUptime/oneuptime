@@ -23,6 +23,12 @@ import ProbeSchedulingMetricsInstance, {
   ProbeSchedulingMetricsSnapshot,
 } from "../../../../Server/Utils/Probe/ProbeSchedulingMetrics";
 import logger from "../../../../Server/Utils/Logger";
+import {
+  PROBE_ALARM_ATTRIBUTE_KEY,
+  PROBE_ALARM_LOG_PREFIX,
+  PROBE_ALARM_OVER_LOG_PREFIX,
+  ProbeAlarm,
+} from "../../../../Server/Utils/Probe/ProbeAlarmLog";
 import ExceptionCode from "../../../../Types/Exception/ExceptionCode";
 import TooManyRequestsException from "../../../../Types/Exception/TooManyRequestsException";
 import {
@@ -283,6 +289,110 @@ describe("ProbeSchedulingLimiter", () => {
         "5 probe request(s) answered busy since the last report",
       );
       held();
+    });
+  });
+
+  /*
+   * On 27 November 2026 every replica refused every probe request for
+   * twelve hours, and the busy warning above - a warn line, on servers that
+   * log errors only - was all that said so (ProbeSchedulingRefusalAlarm).
+   */
+  describe("the refusal alarm", () => {
+    beforeEach(() => {
+      jest.useFakeTimers({ doNotFake: ["nextTick"] });
+      jest.setSystemTime(new Date("2026-11-27T04:09:00.000Z"));
+    });
+
+    function alarms(mock: jest.Mock, prefix: string): Array<Array<unknown>> {
+      return mock.mock.calls.filter((call: Array<unknown>): boolean => {
+        return String(call[0]).startsWith(prefix);
+      });
+    }
+
+    test("most requests refused for minutes is an error line every five minutes, never one a request; handed out again, it is over", async () => {
+      const limiter: ProbeSchedulingLimiter = new ProbeSchedulingLimiter({
+        ...probeSchedulingLimits(1),
+        maxWaiting: 0,
+      });
+      // The one slot, held for good: the lane hands out nothing.
+      const held: KeyedConcurrencyRelease = await limiter.acquire("probe-a");
+      const error: jest.Mock = logger.error as unknown as jest.Mock;
+      const warn: jest.Mock = logger.warn as unknown as jest.Mock;
+
+      // Ten minutes of it, a request refused every six seconds.
+      for (let index: number = 0; index < 100; index++) {
+        await limiter.acquire("probe-b").catch((): void => {
+          return undefined;
+        });
+        jest.advanceTimersByTime(6000);
+      }
+
+      // Raised at 04:12, three minutes in, and again at 04:17.
+      const raised: Array<Array<unknown>> = alarms(
+        error,
+        PROBE_ALARM_LOG_PREFIX,
+      );
+      expect(raised).toHaveLength(2);
+      expect(error).toHaveBeenCalledTimes(2);
+      expect(String(raised[0]![0])).toBe(
+        "Probe alarm: this App replica has answered 30 of 31 probe requests busy in its work lane since 2026-11-27T04:09:00.000Z (3 min), so the probes that ask it are refused most of the monitors and other work they ask for, and their checks wait past their time. Now 1 requests are running and 0 waiting for its 1 slots (PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS=1). /metrics/probe-scheduling shows how every App replica hands out probe work.",
+      );
+      expect(raised[0]![1]).toEqual({
+        [PROBE_ALARM_ATTRIBUTE_KEY]: ProbeAlarm.SchedulingRefused,
+      });
+      expect(String(raised[1]![0])).toContain(
+        "has answered 80 of 81 probe requests busy in its work lane since 2026-11-27T04:09:00.000Z (8 min)",
+      );
+
+      // The busy warning goes on beside it, once a minute.
+      expect(warn).toHaveBeenCalledTimes(10);
+
+      // The slot comes back, and a minute of requests is handed out.
+      held();
+      for (let index: number = 0; index < 10; index++) {
+        (await limiter.acquire("probe-b"))();
+        jest.advanceTimersByTime(6000);
+      }
+      (await limiter.acquire("probe-b"))();
+
+      const ended: Array<Array<unknown>> = alarms(
+        warn,
+        PROBE_ALARM_OVER_LOG_PREFIX,
+      );
+      expect(ended).toHaveLength(1);
+      expect(String(ended[0]![0])).toBe(
+        "Probe alarm over: this App replica hands out probe work again in its work lane. It had answered 100 of 101 probe requests busy there from 2026-11-27T04:09:00.000Z to 2026-11-27T04:19:00.000Z (10 min).",
+      );
+      expect(error).toHaveBeenCalledTimes(2);
+    });
+
+    test("a moment of refusals, however many, raises nothing", async () => {
+      const limiter: ProbeSchedulingLimiter = new ProbeSchedulingLimiter({
+        ...probeSchedulingLimits(1),
+        maxWaiting: 0,
+      });
+      const held: KeyedConcurrencyRelease = await limiter.acquire("probe-a");
+
+      for (let index: number = 0; index < 500; index++) {
+        await limiter.acquire("probe-b").catch((): void => {
+          return undefined;
+        });
+      }
+      held();
+
+      // Then a few minutes of work handed out.
+      for (let index: number = 0; index < 30; index++) {
+        jest.advanceTimersByTime(10_000);
+        (await limiter.acquire("probe-b"))();
+      }
+
+      expect(logger.error).not.toHaveBeenCalled();
+      expect(
+        alarms(
+          logger.warn as unknown as jest.Mock,
+          PROBE_ALARM_OVER_LOG_PREFIX,
+        ),
+      ).toEqual([]);
     });
   });
   /*

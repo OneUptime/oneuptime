@@ -104,18 +104,49 @@ echo ""
 echo "Pulling image: $IMAGE"
 podman pull "$IMAGE"
 
-# Remove any existing container
-if podman ps -a --format '{{.Names}}' | grep -q '^oneuptime-podman-agent$'; then
-    echo "Removing existing oneuptime-podman-agent container..."
-    podman rm -f oneuptime-podman-agent
-fi
-
 # The image negotiates the Docker API version with Podman's socket. Set
 # DOCKER_API_VERSION when you run this script to pin one instead, and the
 # collector gets it too.
 COLLECTOR_EXTRA_ENV=()
 if [ -n "${DOCKER_API_VERSION:-}" ]; then
     COLLECTOR_EXTRA_ENV+=(-e "DOCKER_API_VERSION=$DOCKER_API_VERSION")
+fi
+
+# Log operators of your own (ONEUPTIME_LOG_OPERATOR_1 to _5), for a format
+# the agent does not read: one collector (stanza) operator each, as JSON. Only
+# a set one is passed on (an empty one would stop the collector), and they are
+# run through the collector's own validate first, while the agent you have
+# keeps running: a bad one stops this script with the collector's message,
+# rather than leaving the agent to restart forever.
+LOG_OPERATORS=0
+for n in 1 2 3 4 5; do
+    name="ONEUPTIME_LOG_OPERATOR_${n}"
+    if [ -n "${!name:-}" ]; then
+        COLLECTOR_EXTRA_ENV+=(-e "${name}=${!name}")
+        LOG_OPERATORS=$((LOG_OPERATORS + 1))
+    fi
+done
+if [ "$LOG_OPERATORS" -gt 0 ]; then
+    echo ""
+    echo "Checking your log operators..."
+    if ! VALIDATION="$(podman run --rm \
+        -e ONEUPTIME_URL="$ONEUPTIME_URL" \
+        -e ONEUPTIME_SERVICE_TOKEN="$ONEUPTIME_SERVICE_TOKEN" \
+        -e PODMAN_HOST_NAME="$PODMAN_HOST_NAME" \
+        "${COLLECTOR_EXTRA_ENV[@]}" \
+        "$IMAGE" validate --config=/etc/otelcol-contrib/config.yaml 2>&1)"; then
+        echo "Error: the agent's collector refuses your log operators (ONEUPTIME_LOG_OPERATOR_1 to _5):"
+        printf '%s\n' "$VALIDATION" | sed 's/^/  /'
+        echo "Fix or unset them and run this script again. The agent you have was left as it was."
+        exit 1
+    fi
+    echo "The collector accepts your ${LOG_OPERATORS} log operator(s)."
+fi
+
+# Remove any existing container
+if podman ps -a --format '{{.Names}}' | grep -q '^oneuptime-podman-agent$'; then
+    echo "Removing existing oneuptime-podman-agent container..."
+    podman rm -f oneuptime-podman-agent
 fi
 
 echo ""

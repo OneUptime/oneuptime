@@ -1,10 +1,9 @@
 import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
-import InBetween from "../BaseDatabase/InBetween";
 import Includes from "../BaseDatabase/Includes";
 import IncludesNone from "../BaseDatabase/IncludesNone";
 import Query from "../BaseDatabase/Query";
 import Search from "../BaseDatabase/Search";
-import OneUptimeDate from "../Date";
+import TelemetryCheckWindow from "./TelemetryCheckWindow";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
 
@@ -127,13 +126,12 @@ export class MonitorStepExceptionMonitorUtil {
       query.message = new Search(monitorStepExceptionMonitor.message);
     }
 
+    // Its start and not its end, as every check's window (TelemetryCheckWindow).
     if (monitorStepExceptionMonitor.lastXSecondsOfExceptions) {
-      const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveSeconds(
-        endDate,
-        monitorStepExceptionMonitor.lastXSecondsOfExceptions * -1,
+      query.time = TelemetryCheckWindow.ofSeconds(
+        monitorStepExceptionMonitor.lastXSecondsOfExceptions,
+        evaluateUntil,
       );
-      query.time = new InBetween(startDate, endDate);
     }
 
     return query;

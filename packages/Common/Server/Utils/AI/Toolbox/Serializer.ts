@@ -214,7 +214,10 @@ const redactEmailAddresses: (
  * read by its value, as Data Security reads a card (#10960): ４１１１ １１１１
  * １１１１ １１１１ is hidden as written. And in a URL, as Data Security reads a
  * card there (#11199): card=4111%201111%201111%201111, and
- * card=4111+1111+1111+1111 as a query string writes its spaces.
+ * card=4111+1111+1111+1111 as a query string writes its spaces. And typed
+ * wholly in fullwidth, as Data Security reads one too (#11115): its groups
+ * apart by fullwidth hyphens or ideographic spaces,
+ * ４１１１－１１１１－１１１１－１１１１.
  */
 const SERIALIZER_CARD_PATTERN: RegExp = /\b\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}\b/g;
 
@@ -233,6 +236,7 @@ const redactCardNumbers: (
         readsDigitsOfEveryScript: true,
         readsPercentEncoded: true,
         readsPlusAsSpace: true,
+        readsFullwidthForms: true,
       },
       findIn: (reading: string): Array<TextRange> => {
         return scrubRegExpFromBuiltIn(SERIALIZER_CARD_PATTERN).matchRanges(

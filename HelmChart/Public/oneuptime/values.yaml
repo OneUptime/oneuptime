@@ -1128,6 +1128,29 @@ valkey:
       type: ClusterIP
       ports:
         valkey: "6379"
+    # Off by default: Valkey keeps nothing on disk, and a restarted Valkey
+    # starts empty - every queued job, telemetry and probe results included,
+    # is gone. It stays off because of what it would cost every install:
+    #   - every queued telemetry batch is written to Valkey once and deleted
+    #     once it is processed, so the append-only file is written as fast as
+    #     telemetry arrives, and a slow node disk stalls Valkey's single
+    #     thread on fsync, slowing every cache read and queue write with it;
+    #   - rewriting that file forks the server, and the fork's copy-on-write
+    #     pages count against the same memory limit (maxmemory below is
+    #     derived lower with persistence on, to leave room for it).
+    # What emptied Valkey on OneUptime Cloud (2026-11-27) was a liveness probe
+    # killing a busy server and a cache that grew to 35 GB; both are gone (the
+    # liveness probe below is a TCP connect, and Valkey now refuses writes at
+    # maxmemory instead of growing).
+    #
+    # Turn it on for a Valkey whose queued work must survive a restart, on a
+    # fast disk (SSD): the server then writes an append-only file
+    # (appendonly yes, appendfsync everysec - at most a second of writes lost)
+    # to a PersistentVolumeClaim mounted at /data. Turning it on or off on a
+    # release that is already installed changes the StatefulSet's
+    # volumeClaimTemplates, which Kubernetes does not allow, so delete the
+    # StatefulSet first, leaving its pod running, and then upgrade:
+    #   kubectl delete statefulset <release>-valkey --cascade=orphan
     persistence:
       enabled: false
       size: 8Gi
@@ -1138,30 +1161,80 @@ valkey:
     # Optional: override global security contexts just for the Valkey pod/container
     podSecurityContext: {}
     containerSecurityContext: {}
-    resources: {}
-  # Liveness/readiness probes for the Valkey container. Both run
-  # "valkey-cli ping" inside the pod. Under transient disk fsync or CPU
-  # contention (common on slower disks such as GCP pd-standard) a single PING
-  # can take longer than a second, so the defaults below are deliberately
-  # tolerant: a few slow PINGs must not flap readiness or trigger a liveness
-  # kill and restart loop. Raise the timeouts/thresholds further if you run it
-  # on constrained nodes.
+    # The memory limit is the cache's ceiling: Valkey's maxmemory is derived
+    # from it (valkey.maxmemory below), so it refuses writes before the kernel
+    # would kill it. The request reserves room for Valkey on its node. A
+    # Valkey using more than its request is among the first pods the kubelet
+    # evicts under node memory pressure, and an evicted Valkey comes back
+    # empty: where queued work matters, set requests.memory equal to
+    # limits.memory, which makes the pod Guaranteed, the last to be evicted.
+    #
+    # No CPU limit, on purpose. Valkey runs commands on one thread, and a CPU
+    # limit throttles that thread in 100 ms slices: every command and PING
+    # queued behind it waits out the throttle, which is how a CPU-limited
+    # Valkey looks hung while it is only waiting for its quota.
+    #
+    # Helm merges what you set here into these defaults key by key. To run
+    # without a limit (and so without a derived maxmemory), set
+    # `limits.memory: null`. A request above the limit lifts the limit to the
+    # request (Kubernetes refuses a request above its limit).
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        memory: 4Gi
+  # The memory Valkey may use for data, as valkey.conf takes it ("3gb",
+  # "512mb", a number of bytes) or as a Kubernetes quantity ("3Gi"). Reaching
+  # it, Valkey refuses writes with an OOM error (maxmemory-policy noeviction,
+  # which BullMQ needs) and keeps serving reads, deletes and the workers that
+  # drain the queue, so a flood of queued telemetry is answered with a
+  # retryable error instead of growing Valkey until it is killed.
+  #
+  # Empty: maxmemoryPercentOfMemoryLimit of master.resources.limits.memory -
+  # 3 GiB of the 4Gi default. With no memory limit and nothing here, Valkey
+  # has no cap at all and grows until the node runs out of memory.
+  maxmemory: ""
+  # The share of master.resources.limits.memory maxmemory is derived from,
+  # 1-100. Empty: 75, or 60 with persistence on. The rest is headroom for
+  # what maxmemory does not count - allocator fragmentation, client buffers
+  # and, with persistence, the copy-on-write pages of the fork that rewrites
+  # the append-only file. A cap at the limit itself would let the kernel
+  # OOM-kill Valkey before it ever refused a write.
+  maxmemoryPercentOfMemoryLimit:
+  # Liveness and readiness probes for the Valkey container.
+  #
+  # Liveness is a TCP connect to the Valkey port, so it fails only when the
+  # server is not listening at all - the one case a restart fixes. It used to
+  # run "valkey-cli ping", and a PING waits behind every command queued before
+  # it: a server busy draining a deep queue, or loading its append-only file,
+  # missed the timeout while doing its job, and the restart that followed
+  # threw away everything it held. That is what emptied Valkey on OneUptime
+  # Cloud on 2026-11-27.
+  #
+  # Readiness still runs "valkey-cli ping": a server that does not answer in
+  # time stops taking new connections, which loses nothing. Under transient
+  # disk fsync or CPU contention (common on slower disks such as GCP
+  # pd-standard) a single PING can take longer than a second, so its defaults
+  # are deliberately tolerant.
   livenessProbe:
     enabled: true
     initialDelaySeconds: 30
     timeoutSeconds: 5
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 6
   readinessProbe:
     enabled: true
     initialDelaySeconds: 5
     timeoutSeconds: 3
     periodSeconds: 5
     failureThreshold: 3
-  commonConfiguration: |-
-    appendonly no
-    save ""
-    maxmemory-policy noeviction
+  # Extra valkey.conf lines, written after the chart's own, so a setting here
+  # wins over the chart's (maxmemory, maxmemory-policy, appendonly, save). The
+  # chart writes the memory cap and persistence settings itself, from the
+  # values above; keep `maxmemory-policy noeviction` if you set one here, as
+  # BullMQ's queues are corrupted by evicted keys.
+  commonConfiguration: ""
   # Also publish the Service under its pre-13.0.0 name,
   # `<release>-redis-master`, pointing at the same pods.
   #

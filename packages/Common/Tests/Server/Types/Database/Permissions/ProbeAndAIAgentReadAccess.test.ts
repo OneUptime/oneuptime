@@ -110,13 +110,16 @@ const PROBE_PICKERS: Array<Permission> = [
 const PROBE_PICKER_COLUMNS: Array<string> = [
   /*
    * Whether the probe is behind - its monitors checked, or its devices
-   * polled, later than their interval (#9488) - read as its status is.
+   * polled, later than their interval (#9488) - and by how much, read as
+   * its status is.
    */
   "checksLastLateAt",
+  "checksLastLateDueAt",
   "checksLateSince",
   "connectionStatus",
   "description",
   "devicePollsLastLateAt",
+  "devicePollsLastLateDueAt",
   "devicePollsLateSince",
   "iconFile",
   "iconFileId",

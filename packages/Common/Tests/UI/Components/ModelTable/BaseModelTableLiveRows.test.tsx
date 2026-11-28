@@ -135,6 +135,7 @@ import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../../Types/ObjectID";
 import IconProp from "../../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../../Types/JSON";
+import UniqueNamesApi from "../../../../UI/Utils/UniqueNamesApi";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 
@@ -293,6 +294,17 @@ const renderTable: (options?: TableOptions) => Promise<void> = async (
   render(<BaseModelTable<Incident> {...makeProps(options)} />);
   await screen.findByText(CHECKOUT.title);
 };
+
+/*
+ * A list of a kind Require Unique Names holds asks which of its records share
+ * a name, to mark them (#11021): none do here.
+ */
+beforeEach(() => {
+  jest.spyOn(UniqueNamesApi, "readSharedNames").mockResolvedValue({
+    groups: [],
+    createdAt: {},
+  });
+});
 
 beforeEach(() => {
   subscriptions.length = 0;

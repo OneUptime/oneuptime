@@ -1,4 +1,5 @@
 import {
+  ClaimedMonitorProbe,
   MAX_MONITOR_PROBES_PER_CLAIM,
   Service as MonitorProbeServiceType,
 } from "../../../Server/Services/MonitorProbeService";
@@ -91,7 +92,7 @@ async function captureClaim(
 ): Promise<{
   statements: Array<CapturedStatement>;
   select: CapturedStatement;
-  claimed: Array<ObjectID>;
+  claimed: Array<ClaimedMonitorProbe>;
 }> {
   const service: MonitorProbeServiceType = new MonitorProbeServiceType();
   const statements: Array<CapturedStatement> = captureClaimQueries(
@@ -104,10 +105,11 @@ async function captureClaim(
       : undefined,
   );
 
-  const claimed: Array<ObjectID> = await service.claimMonitorProbesForProbing({
-    probeId: PROBE_ID,
-    limit,
-  });
+  const claimed: Array<ClaimedMonitorProbe> =
+    await service.claimMonitorProbesForProbing({
+      probeId: PROBE_ID,
+      limit,
+    });
 
   expect(statements.length).toBeGreaterThanOrEqual(1);
 
@@ -431,8 +433,8 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       ]);
 
       expect(
-        claimed.map((id: ObjectID) => {
-          return id.toString();
+        claimed.map((claimedMonitorProbe: ClaimedMonitorProbe) => {
+          return claimedMonitorProbe.monitorProbeId.toString();
         }),
       ).toEqual([firstId, secondId]);
     });

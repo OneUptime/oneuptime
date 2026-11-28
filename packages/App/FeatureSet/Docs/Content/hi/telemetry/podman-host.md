@@ -140,6 +140,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_SERVICE_TOKEN` | हाँ | **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** से इंजेशन कुंजी। |
 | `PODMAN_HOST_NAME` | नहीं | OneUptime में होस्ट का नाम। डिफ़ॉल्ट `podman-host` है, इसलिए हर होस्ट को उसका अपना नाम दें। |
 | `DOCKER_API_VERSION` | नहीं | Docker API का वह संस्करण जिसमें एजेंट Podman सॉकेट से बात करता है। डिफ़ॉल्ट रूप से खाली: एजेंट इसे सॉकेट के साथ तय करता है। इसे केवल कोई संस्करण पिन करने के लिए सेट करें ([समस्या निवारण](#समस्या-निवारण) देखें)। |
+| `ONEUPTIME_LOG_OPERATOR_1` से `ONEUPTIME_LOG_OPERATOR_5` तक | नहीं | आपके अपने कलेक्टर operators, हर एक अपने वेरिएबल में JSON के रूप में, ऐसे लॉग फ़ॉर्मेट के लिए जिसे एजेंट नहीं पढ़ता। [अपना खुद का लॉग फ़ॉर्मेट पढ़ना](#अपना-खुद-का-लॉग-फ़ॉर्मेट-पढ़ना) देखें। |
 
 कोई मान बदलने के लिए एजेंट हटाएँ और उसका कमांड फिर से चलाएँ (Podman CLI), या `docker-compose.yml` संपादित करें और `podman compose up -d` चलाएँ (Podman Compose)।
 
@@ -200,6 +201,33 @@ log_size_max = 104857600
 ```
 
 फिर कंटेनर दोबारा बनाएँ। कंटेनर वही लॉग ड्राइवर रखता है जिसके साथ वह बना था, इसलिए उसे फिर से शुरू करना काफ़ी नहीं।
+
+## अपना खुद का लॉग फ़ॉर्मेट पढ़ना
+
+एजेंट उन फ़ॉर्मेट के स्तर पढ़ता है जिनमें ज़्यादातर प्रोग्राम लॉग लिखते हैं। जिस फ़ॉर्मेट को वह नहीं पढ़ता, जैसे आपके संगठन में बना कोई फ़ॉर्मेट, उसके लिए उसे अपने खुद के अधिकतम पाँच कलेक्टर operators दें, हर एक को JSON के रूप में `ONEUPTIME_LOG_OPERATOR_1` से `ONEUPTIME_LOG_OPERATOR_5` तक के वेरिएबल में। ये हर कंटेनर लॉग लाइन पर चलते हैं: एजेंट द्वारा उसका कंटेनर और स्ट्रीम पढ़ने के बाद, और लाइन का स्तर पढ़ने से पहले। किसी लाइन का स्तर सेट करने के लिए उसे `attributes.severity_text` में ऐसे शब्द के रूप में लिखें जिसे एजेंट पढ़ता है, जैसे `ERROR`, `warn` या `critical`, और लाइन को `severity-router` को सौंपें, जो एजेंट का पहला चरण है। जो operator गंभीरता खुद सेट करता है, जैसे `severity_parser`, उसका नतीजा ओवरराइट हो जाता है: एजेंट आपके operators के बाद हर लाइन का स्तर पढ़ता है।
+
+`<<E>> payment failed` जैसी लाइनों के लिए, जिनमें अक्षर ही स्तर है:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+जिस operator को कलेक्टर बना नहीं सकता, उसके साथ वह शुरू ही नहीं होता, इसलिए एजेंट के चलाने से पहले operators को जाँचें:
+
+- इन्हें सेट करके चलाया गया `install.sh` आपके मौजूदा एजेंट को छूने से पहले इन्हें कलेक्टर के अपने `validate` से जाँचता है। अगर कलेक्टर इन्हें अस्वीकार करता है, तो स्क्रिप्ट कलेक्टर के संदेश के साथ रुक जाती है, और आपका एजेंट चलता रहता है।
+- Podman Compose के साथ, इन्हें `docker-compose.yml` के बगल की `.env` में रखें, हर मान सिंगल कोट्स में, और `podman compose up -d` चलाएँ। `oneuptime-podman-agent-config-check` सेवा पहले यही जाँच चलाती है। जब `podman compose` Docker Compose चलाता है, तो एजेंट तभी शुरू होता है जब जाँच सफल हो; podman-compose जाँच के नतीजे की परवाह किए बिना एजेंट शुरू कर देता है, इसलिए जाँच का आउटपुट `podman compose logs oneuptime-podman-agent-config-check` से पढ़ें।
+- Podman CLI के साथ, एजेंट के बाकी वेरिएबल देकर जाँच खुद चलाएँ, और फिर एजेंट को उन्हीं `-e` फ़्लैग के साथ शुरू करें:
+
+```bash
+podman run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e PODMAN_HOST_NAME="my-podman-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/podman-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes एजेंट](/docs/telemetry/kubernetes-agent#अपना-खुद-का-लॉग-फ़ॉर्मेट-पढ़ना) उदाहरण के operators को समझाता है, जिन्हें Kubernetes एजेंट भी स्वीकार करता है।
 
 ## एजेंट अपग्रेड करना
 

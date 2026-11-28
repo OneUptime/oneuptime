@@ -172,6 +172,15 @@ export interface FanInWriterOptions {
   retryMaxAttempts: number;
   retryBaseDelayMs: number;
   retryMaxDelayMs: number;
+  /**
+   * ClickHouse settings under every insert this writer makes into ClickHouse
+   * itself (not through a transport): a submission's own settings are laid
+   * over them and win. Production sets the async-insert buffer limits that
+   * keep a table to about one part a second however many writers insert
+   * (readAsyncInsertBufferSettingsFromEnv). Unset: the submission's
+   * settings, untouched.
+   */
+  insertClickhouseSettings?: ClickHouseSettings | undefined;
   /** Injectable for tests. */
   sleep?: (ms: number) => Promise<void>;
 }
@@ -342,8 +351,58 @@ const readPositiveInt: EnvIntReader = (
   return !isNaN(parsed) && parsed > 0 ? parsed : defaultValue;
 };
 
+/*
+ * ONE PART PER FLUSH, NOT ONE PER INSERT (2026-11-27).
+ *
+ * Every insert this writer makes says async_insert=1, so ClickHouse is meant
+ * to gather the inserts of every writer into one buffer per table and write
+ * one part each time the buffer flushes. But an insert that carries more
+ * than async_insert_max_data_size of data (10 MiB by default) is not
+ * buffered at all: ClickHouse runs it as an ordinary insert, which writes a
+ * part of its own. This writer's batches are tens of megabytes, so every one
+ * of them was a part, and the parts written a second grew with the number of
+ * writers. When one project's metrics flood had KEDA scale the workers from
+ * 10 to 139, today's partition of MetricItemV3Local passed
+ * parts_to_throw_insert (3,000 parts), inserts failed with TOO_MANY_PARTS,
+ * and every retry added to the load.
+ *
+ * So every insert raises the limit to 100 MiB, which keeps the batches in
+ * the buffer, and lets the buffer gather for up to a second - ClickHouse
+ * Cloud's defaults for both. A table then gets about one part a second on
+ * each ClickHouse server however many workers insert, or one per 100 MiB at
+ * a higher rate. A batch larger still is written on its own, a part of more
+ * than 100 MiB: the fat part ClickHouse wants anyway.
+ *
+ * The values must be the same on every insert: ClickHouse buffers together
+ * only inserts whose settings are equal (a deduplication token aside), so a
+ * value that changed from one insert to the next would give each its own
+ * buffer again. `async_insert_busy_timeout_ms` is the name every release
+ * knows; from 24.2 it is an alias of async_insert_busy_timeout_max_ms, under
+ * the adaptive timeout that reaches it once inserts arrive often.
+ */
+export const DEFAULT_ASYNC_INSERT_MAX_DATA_SIZE_BYTES: number =
+  100 * 1024 * 1024;
+export const DEFAULT_ASYNC_INSERT_BUSY_TIMEOUT_MS: number = 1000;
+
+export function readAsyncInsertBufferSettingsFromEnv(): ClickHouseSettings {
+  return {
+    // A UInt64 setting, which the client types as a string.
+    async_insert_max_data_size: String(
+      readPositiveInt(
+        "TELEMETRY_ASYNC_INSERT_MAX_DATA_SIZE_BYTES",
+        DEFAULT_ASYNC_INSERT_MAX_DATA_SIZE_BYTES,
+      ),
+    ),
+    async_insert_busy_timeout_ms: readPositiveInt(
+      "TELEMETRY_ASYNC_INSERT_BUSY_TIMEOUT_MS",
+      DEFAULT_ASYNC_INSERT_BUSY_TIMEOUT_MS,
+    ),
+  };
+}
+
 export function readFanInWriterOptionsFromEnv(): FanInWriterOptions {
   return {
+    insertClickhouseSettings: readAsyncInsertBufferSettingsFromEnv(),
     maxBatchRows: readPositiveInt("TELEMETRY_FANIN_MAX_BATCH_ROWS", 100_000),
     /*
      * Session replay is the one signal whose row size makes the global row
@@ -367,9 +426,12 @@ export function readFanInWriterOptionsFromEnv(): FanInWriterOptions {
      * wait on them - a job hands over one or more (its logs, the exceptions
      * in them), so that is at most four fifths of the worker's jobs, and a
      * busy worker never waits out the window - while a quieter one still
-     * sends few, full inserts: ClickHouse writes a part for each (its own
-     * deduplication token keeps it out of the others' async-insert buffer)
-     * and merges every part again. Under the perf kit's steady load (15
+     * sends few, full inserts. Each of those was a part of its own while it
+     * carried more than ClickHouse's default 10 MiB async-insert limit - its
+     * deduplication token never kept it apart, ClickHouse leaves the token
+     * out of what it buffers inserts by - and ClickHouse merges every part
+     * again (insertClickhouseSettings above now keeps them buffered
+     * together). Under the perf kit's steady load (15
      * batches a second) this inserts a quarter more often than the 5 s
      * window did (at half the concurrency: twice as often), where a fixed
      * 200 ms wait made nine times the parts and four times ClickHouse's CPU.
@@ -1006,6 +1068,18 @@ export class TelemetryFanInWriter {
 
     const clickhouseSettings: ClickHouseSettings | undefined =
       group[0]?.clickhouseSettings;
+    /*
+     * A transport hands the submission's own settings on: the writer tier
+     * that receives them inserts through a writer of its own, which adds
+     * its insertClickhouseSettings there.
+     */
+    const directInsertSettings: ClickHouseSettings | undefined = this.options
+      .insertClickhouseSettings
+      ? {
+          ...this.options.insertClickhouseSettings,
+          ...(clickhouseSettings || {}),
+        }
+      : clickhouseSettings;
     const sleep: (ms: number) => Promise<void> =
       this.options.sleep ??
       ((ms: number): Promise<void> => {
@@ -1030,7 +1104,7 @@ export class TelemetryFanInWriter {
         } else {
           await target.insertJsonRows(rows, {
             dedupToken,
-            clickhouseSettings,
+            clickhouseSettings: directInsertSettings,
           });
         }
 

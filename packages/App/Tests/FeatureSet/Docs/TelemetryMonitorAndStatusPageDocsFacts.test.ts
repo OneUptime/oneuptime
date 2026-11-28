@@ -66,6 +66,7 @@ import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import TelemetryCheckWindow from "Common/Types/Monitor/TelemetryCheckWindow";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -2404,6 +2405,55 @@ describe("the Metrics monitor", () => {
   });
 });
 
+/*
+ * #11334: Criteria & Statuses says a check's window includes its start but
+ * not its end, so a record stamped where one window ends and the next
+ * begins is judged once, by the later check. Every check takes its window
+ * from TelemetryCheckWindow, and every read writes its end that way.
+ */
+describe("When telemetry monitors check: the edge between two windows", () => {
+  const CRITERIA: string = readPage("en", "monitor/criteria-and-statuses");
+
+  it("says a window includes its start but not its end, and the later check judges the record on the edge", () => {
+    expect(CRITERIA).toContain(
+      "no data is judged twice, and none is left out. A window includes its start but not its end, so data stamped exactly at the moment one window ends and the next begins is judged once, by the later check.",
+    );
+
+    const dueAt: Date = new Date("2026-11-27T10:01:07.000Z");
+    const first: InBetween<Date> = TelemetryCheckWindow.ofSeconds(60, dueAt);
+    const next: InBetween<Date> = TelemetryCheckWindow.ofSeconds(
+      60,
+      new Date(dueAt.getTime() + 60000),
+    );
+
+    expect(first.includesEnd).toBe(false);
+    expect(next.startValue.getTime()).toBe(first.endValue.getTime());
+  });
+
+  it("every telemetry step and every rolling time builds its window there", () => {
+    expect(TELEMETRY_JOB).not.toContain(
+      "RollingTimeUtil.convertToStartAndEndDate(",
+    );
+    expect(
+      TELEMETRY_JOB.split("TelemetryCheckWindow.ofRollingTime(").length - 1,
+    ).toBe(MonitorTypeHelper.getMetricBackedMonitorTypes().length);
+
+    for (const step of [
+      "MonitorStepLogMonitor",
+      "MonitorStepTraceMonitor",
+      "MonitorStepExceptionMonitor",
+      "MonitorStepProfileMonitor",
+      "MonitorStepSecurityEventsMonitor",
+      "MonitorStepLlmMonitor",
+    ]) {
+      const source: string = readSource(`Common/Types/Monitor/${step}.ts`);
+
+      expect(source).toContain("TelemetryCheckWindow.ofSeconds(");
+      expect(source).not.toContain("new InBetween(startDate, endDate)");
+    }
+  });
+});
+
 describe("the Exceptions monitor", () => {
   /*
    * An infrastructure entity is a property of each occurrence, not of the
@@ -2416,8 +2466,12 @@ describe("the Exceptions monitor", () => {
       readSource("Common/Server/Utils/Monitor/ExceptionMonitorMeasures.ts"),
     );
 
+    // Over the check's own window, its end left out (#11334).
     expect(reader).toContain(
-      "MonitorStepExceptionMonitorUtil.hasEntityFilter(data.config) ? ExceptionMonitorMeasureReader.readOccurrenceFingerprints({ countQuery: data.countQuery, windowStart, windowEnd, })",
+      "MonitorStepExceptionMonitorUtil.hasEntityFilter(data.config) ? ExceptionMonitorMeasureReader.readOccurrenceFingerprints({ countQuery: data.countQuery, window, })",
+    );
+    expect(reader).toContain(
+      "const window: InBetween<Date> = TelemetryCheckWindow.ofSeconds( windowSeconds, data.evaluateUntil, );",
     );
     expect(reader).toContain("groupBy: { fingerprint: true },");
     expect(reader).toContain(

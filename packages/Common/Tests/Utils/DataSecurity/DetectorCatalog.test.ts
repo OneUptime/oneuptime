@@ -363,6 +363,18 @@ describe.each(
     }
   });
 
+  /*
+   * #11115: a detector of a number reads every script's digits, and so a
+   * number typed wholly in fullwidth: its signs and separators are read as
+   * ASCII too, or a fullwidth hyphen between two groups keeps the number
+   * from its pattern.
+   */
+  test("reads a number's fullwidth forms if it reads every script's digits", () => {
+    expect(Boolean(detector.readsFullwidthForms)).toBe(
+      Boolean(detector.readsDigitsOfEveryScript),
+    );
+  });
+
   test("judges a whole field value with an anchored, bounded, stateless pattern", () => {
     const shape: RegExp | undefined = detector.fieldValuePattern;
 

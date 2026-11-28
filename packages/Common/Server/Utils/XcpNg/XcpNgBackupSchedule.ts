@@ -1,4 +1,5 @@
 import { XcpNgBackupSchedule } from "../../../Types/XcpNg/XcpNgPoolEvents";
+import OldestKeyMap from "../../../Utils/OldestKeyMap";
 
 /*
  * ------------------------------------------------------------------
@@ -275,14 +276,19 @@ function makeOffsetReader(
 
   let format: Intl.DateTimeFormat;
   try {
+    /*
+     * Read back as numbers, never shown. The hour is "2-digit" on this
+     * 24-hour clock, as every time OneUptime writes one asks (the 24-hour
+     * clock guard): Number("05") is 5 all the same.
+     */
     format = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
       hourCycle: "h23",
       year: "numeric",
       month: "numeric",
       day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch {
     return null;
@@ -367,8 +373,14 @@ export function listXcpNgScheduleRuns(data: {
   return { runs: runs, reachedEnd: true };
 }
 
-// Each job's interval, for the hour: its schedules seldom change.
-const INTERVAL_CACHE: Map<string, number | null> = new Map();
+/*
+ * Each job's interval, for the hour: its schedules seldom change. Full, it
+ * lets its oldest go (OldestKeyMap), in constant time however it churns.
+ */
+const INTERVAL_CACHE: OldestKeyMap<string, number | null> = new OldestKeyMap<
+  string,
+  number | null
+>();
 const MAX_CACHED_INTERVALS: number = 2000;
 
 /*
@@ -400,7 +412,7 @@ export function getXcpNgBackupJobIntervalSeconds(data: {
   const interval: number | null = computeInterval(enabled, nowMs);
 
   if (INTERVAL_CACHE.size >= MAX_CACHED_INTERVALS) {
-    const oldest: string | undefined = INTERVAL_CACHE.keys().next().value;
+    const oldest: string | undefined = INTERVAL_CACHE.oldestKey();
     if (oldest !== undefined) {
       INTERVAL_CACHE.delete(oldest);
     }

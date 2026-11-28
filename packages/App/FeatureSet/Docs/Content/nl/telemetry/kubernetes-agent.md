@@ -485,6 +485,53 @@ Gebeurtenissen over meerdere regels worden in beide modi vóór het filteren wee
 > [!IMPORTANT]
 > Kubernetes-events en resourcespecificaties worden hier nooit door gefilterd. Ze komen uit de Kubernetes-API zonder eigen severity, dus een drempel zou de hele feed verwijderen, inclusief de waarschuwingen `FailedScheduling`, `BackOff` en `OOMKilling` die je het hardst nodig hebt. Het zijn er weinig en ze zijn waardevol, dus de agent stuurt ze altijd; gebruik **Logboeken → Instellingen → Drop-filters** in OneUptime om ze uit te dunnen.
 
+### Een eigen logformaat lezen
+
+De agent leest de niveaus van de formaten die de meeste programma's schrijven. Voor een formaat dat hij niet leest, zoals een intern formaat, voeg je met `logs.extraOperators` eigen collector-operators toe. Ze draaien in de modus `daemonset` op elke podlogregel, nadat de agent de regel weer heeft samengevoegd en de pod en stream ervan heeft gelezen, en voordat hij het niveau van de regel leest.
+
+Om het niveau van een regel in te stellen, schrijf je het naar `attributes.severity_text` als een woord dat de agent leest, zoals `ERROR`, `warn`, `critical` of een klog-letter. De agent leest dat vóór al zijn eigen lezers en slaat het op zoals OneUptime dat woord overal elders opslaat. Geef de regel daarna door aan `severity-router`, de eerste stap van de agent, of laat hem doorlopen naar je volgende operator.
+
+Voor regels zoals `<<E>> payment failed` en `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+De chart controleert de operators wanneer je installeert of upgradet. Een waarde die de collector zou weigeren, laat `helm install` mislukken met een melding die de operator noemt, in plaats van een DaemonSet achter te laten dat steeds opnieuw start: een type dat de collector van `image.tag` niet heeft, een instelling die het type nodig heeft, een veld, een id dat al in gebruik is, een `output` die naar niets verwijst, een regex of een string in een expressie. In de string van een expressie schrijf je de backslash van een regex dubbel, zoals in `"^\\d+ "`, of zet je de regex in een raw string, tussen backticks. De rest van een expressie compileert de collector pas wanneer hij start.
+
+De chart weigert ook drie soorten operators die de collector wel zou uitvoeren, en zegt waarom:
+
+- Een operator die zelf de severity van de regel instelt, zoals een `severity_parser`, een `syslog_parser` of het `severity`-blok van een parser. De agent leest het niveau van elke regel na je operators en zou die overschrijven, dus schrijf het niveau in plaats daarvan naar `attributes.severity_text`.
+- Een router zonder `default`, of een route zonder `output`. De regels die hij aan geen enkele operator doorgeeft, worden weggelaten.
+- De parser `container`. De agent heeft het formaat van de container-runtime al gelezen, dus je operators zien de eigen regel van het programma.
+
+`logs.extraOperators` vereist de modus `daemonset`. De logtailer van de modus `api` voert geen collector-operators uit, dus de chart weigert de instelling daar, en de Windows-pods van een hybride installatie (`logs.windowsPods.enabled`) krijgen hem niet.
+
 ### Metrics op naam opnemen of uitsluiten
 
 `filters.metrics` bepaalt welke metrics het cluster verlaten, over alle receivers heen.

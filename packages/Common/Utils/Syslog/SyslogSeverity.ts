@@ -1,5 +1,8 @@
 import Dictionary from "../../Types/Dictionary";
-import LogSeverity from "../../Types/Log/LogSeverity";
+import LogSeverity, {
+  LOG_SEVERITY_NUMBER_BY_TEXT,
+  logSeverityFromNumber,
+} from "../../Types/Log/LogSeverity";
 
 /*
  * What a syslog priority says, in words and as a log severity - one copy
@@ -47,28 +50,61 @@ export const SYSLOG_SEVERITY_LABELS: ReadonlyArray<string> = [
   "debug",
 ];
 
+/*
+ * Each severity's keyword, 0 to 7 (RFC 5424, section 6.2.1): the text the
+ * OpenTelemetry Collector's syslog parser and journald keep, and the word the
+ * one table of level words stores a severity under. SYSLOG_SEVERITY_LABELS
+ * above are the names a person reads; the table reads two of them otherwise
+ * (`critical` in full is an application logger's top level there), so a
+ * severity is stored by its keyword.
+ */
+export const SYSLOG_SEVERITY_KEYWORDS: ReadonlyArray<string> = [
+  "emerg",
+  "alert",
+  "crit",
+  "err",
+  "warning",
+  "notice",
+  "info",
+  "debug",
+];
+
 export interface LogSeverityOfSyslog {
   number: number;
   text: LogSeverity;
 }
 
 /*
- * Syslog severity -> log severity: 0-1 Fatal, 2-3 Error, 4 Warning, 5-6
- * Information, 7 Debug. The numbers sit inside the OTLP range of each
- * severity text, so text and number agree.
+ * Syslog severity -> log severity, as the one table of level words stores
+ * each severity's keyword (LOG_SEVERITY_NUMBER_BY_TEXT, issue #11228): 0
+ * Fatal (21), 1-3 Error (19, 18, 17), 4 Warning (13), 5-6 Information (10,
+ * 9), 7 Debug (5). That is Appendix B's syslog column of the OpenTelemetry
+ * Logs Data Model, which the Collector's syslog parser and the host
+ * collector's journald mapping follow too, so a message is stored the same
+ * whether it reaches OneUptime as syslog, through a collector, or as a word
+ * in a Fluent record. Alert (1) is an error that asks for action, not a
+ * crash; it used to be stored as Fatal here alone.
  */
 export const SYSLOG_TO_OTEL_SEVERITY: Readonly<
   Dictionary<LogSeverityOfSyslog>
-> = {
-  "0": { number: 23, text: LogSeverity.Fatal },
-  "1": { number: 23, text: LogSeverity.Fatal },
-  "2": { number: 19, text: LogSeverity.Error },
-  "3": { number: 19, text: LogSeverity.Error },
-  "4": { number: 13, text: LogSeverity.Warning },
-  "5": { number: 9, text: LogSeverity.Information },
-  "6": { number: 9, text: LogSeverity.Information },
-  "7": { number: 5, text: LogSeverity.Debug },
-};
+> = Object.fromEntries(
+  SYSLOG_SEVERITY_KEYWORDS.map(
+    (keyword: string, severity: number): [string, LogSeverityOfSyslog] => {
+      const number: number | undefined = LOG_SEVERITY_NUMBER_BY_TEXT.get(
+        keyword.toUpperCase(),
+      );
+
+      if (number === undefined) {
+        throw new Error(`The level words do not name syslog's ${keyword}`);
+      }
+
+      return [
+        String(severity),
+        { number, text: logSeverityFromNumber(number) },
+      ];
+    },
+  ),
+);
 
 /*
  * What a relay assumes for a message that came without a priority (RFC

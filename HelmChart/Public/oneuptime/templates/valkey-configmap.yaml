@@ -29,6 +29,30 @@ data:
     # Security
     requirepass ${VALKEY_PASSWORD}
 
-    # Custom configuration from values
-{{ $valkey.commonConfiguration | indent 4 }}
+    # Memory. At maxmemory a write is refused with an OOM error - telemetry
+    # the app cannot queue is answered with a retryable 503 - while reads,
+    # deletes and the workers draining the queue keep working. noeviction
+    # because BullMQ needs it: evicting a queue's keys corrupts the queue.
+    # Without a cap, one flood of queued telemetry grows Valkey until the
+    # node is out of memory (values.yaml, valkey.maxmemory).
+{{- with (include "oneuptime.valkey.maxmemory" .) }}
+    maxmemory {{ . }}
+{{- end }}
+    maxmemory-policy noeviction
+
+    # Persistence (values.yaml, valkey.master.persistence)
+{{- if (($valkey.master).persistence).enabled }}
+    appendonly yes
+    appendfsync everysec
+    dir /data
+{{- else }}
+    appendonly no
+{{- end }}
+    save ""
+{{- with $valkey.commonConfiguration }}
+
+    # Custom configuration from values. Last, so a setting here wins over the
+    # same setting above.
+{{ . | indent 4 }}
+{{- end }}
 {{- end }}

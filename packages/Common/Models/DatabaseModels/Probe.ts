@@ -792,6 +792,32 @@ export default class Probe extends BaseModel {
   public checksLastLateAt?: Date = undefined;
 
   /*
+   * How far behind the probe is: when its longest-waiting monitor check was
+   * due, at the latest reading that found one late - so a list can say
+   * "Behind by 15 minutes", not only since when (checksLastLateAt minus
+   * this, Types/Probe/ProbeBehind). Kept and cleared with the two above.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_PICKER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Checks Last Late Due At",
+    description:
+      "When the longest-waiting of this probe's monitor checks was due, at the latest reading that found one waiting more than a minute past its check time: how far behind the probe is. Set by OneUptime.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public checksLastLateDueAt?: Date = undefined;
+
+  /*
    * The same for the network devices the probe polls (OneUptime issue
    * #9499): the first and the latest of the once-a-minute readings that
    * found one of its devices waiting more than a minute past its poll
@@ -837,6 +863,27 @@ export default class Probe extends BaseModel {
     type: ColumnType.Date,
   })
   public devicePollsLastLateAt?: Date = undefined;
+
+  // How far behind its device polls are, as checksLastLateDueAt is.
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_PICKER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Device Polls Last Late Due At",
+    description:
+      "When the longest-waiting of the network device polls this probe does was due, at the latest reading that found one waiting more than a minute past its poll time: how far behind the probe is. Set by OneUptime.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public devicePollsLastLateDueAt?: Date = undefined;
 
   /*
    * What the probe last said about packet capture: whether whoever runs it

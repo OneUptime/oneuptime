@@ -14,6 +14,7 @@ import {
   MAX_FORWARDED_RECORDED_LENGTH,
   MAX_TRUSTED_PROXIES,
   MAX_TRUSTED_PROXIES_TEXT_LENGTH,
+  MIN_TRUSTED_PROXY_PREFIX_LENGTH,
   NO_TRUSTED_PROXIES,
   TrustedProxies,
   TrustedProxyListProblemKind,
@@ -22,6 +23,7 @@ import {
   getTrustedProxyListError,
   getTrustedProxyListProblem,
   isSameAddressSlot,
+  isTooBroadToTrust,
   isTrustedProxy,
   markClientAddressTrust,
   readAddressSlot,
@@ -37,6 +39,7 @@ import {
   toTrustedProxies,
 } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 import { ScrubbedAddressKind } from "../../../Utils/SecurityEvent/ScrubbedAddress";
+import NetworkAddressBlockUtil from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
@@ -646,6 +649,81 @@ describe("the project's trusted proxies", () => {
       kind: TrustedProxyListProblemKind.TooMany,
       max: MAX_TRUSTED_PROXIES,
     });
+  });
+});
+
+/*
+ * #11049: a range wider than any proxy's is refused, and never trusted. With
+ * 0.0.0.0/0 listed, every hop of an X-Forwarded-For was trusted, so its
+ * leftmost - what the sender wrote - was the client.
+ */
+describe("a range too broad to be a proxy's", () => {
+  test("is refused with the reason, in English for the server and by kind for the form", () => {
+    for (const [typed, kept] of [
+      ["0.0.0.0/0", "0.0.0.0/0"],
+      ["128.0.0.0/1", "128.0.0.0/1"],
+      ["203.0.0.0/7", "202.0.0.0/7"],
+      ["::/0", "::/0"],
+      ["2600::/15", "2600::/15"],
+    ]) {
+      expect(getTrustedProxyListProblem(`203.0.113.0/24\n${typed}`)).toEqual({
+        kind: TrustedProxyListProblemKind.TooBroad,
+        entry: kept,
+      });
+      expect(getTrustedProxyListError(typed)).toBe(
+        `${kept} covers too much of the internet to be a proxy. List your proxy's own addresses or ranges, such as 203.0.113.0/24.`,
+      );
+    }
+  });
+
+  test("the widest a proxy's range may be is a /8 of IPv4 and a /16 of IPv6", () => {
+    expect(MIN_TRUSTED_PROXY_PREFIX_LENGTH).toEqual({ 4: 8, 6: 16 });
+
+    for (const range of [
+      "52.0.0.0/8",
+      "104.16.0.0/13",
+      "35.191.0.0/16",
+      "2600::/16",
+      "2a06:98c0::/29",
+    ]) {
+      expect({ range, problem: getTrustedProxyListProblem(range) }).toEqual({
+        range,
+        problem: null,
+      });
+    }
+  });
+
+  test("IPv6's private ranges are never too broad: they are trusted unlisted anyway", () => {
+    for (const range of ["fc00::/7", "fd00::/8", "fe80::/10"]) {
+      expect({ range, problem: getTrustedProxyListProblem(range) }).toEqual({
+        range,
+        problem: null,
+      });
+      expect(isTooBroadToTrust(NetworkAddressBlockUtil.parse(range)!)).toBe(
+        false,
+      );
+    }
+  });
+
+  test("a list saved before is trusted without it, toward trusting less", () => {
+    const proxies: TrustedProxies = toTrustedProxies(
+      "0.0.0.0/0\n203.0.113.0/24\n::/0",
+    );
+
+    expect(
+      proxies.blocks.map((block: { text: string }): string => {
+        return block.text;
+      }),
+    ).toEqual(["203.0.113.0/24"]);
+
+    // A sender's own claim is no longer the client of a request through the internet.
+    const reading: ClientAddressReading = resolveClientAddress(
+      { peer: "198.51.100.200", forwardedFor: "192.0.2.44, 198.51.100.7" },
+      proxies,
+    );
+
+    expect(reading.address).toBe("198.51.100.200");
+    expect(reading.trust).toBe(ClientAddressTrust.Peer);
   });
 });
 
