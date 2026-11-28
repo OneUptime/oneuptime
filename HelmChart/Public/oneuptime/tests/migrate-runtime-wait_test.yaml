@@ -274,7 +274,10 @@ tests:
       migrate.runtimeWaitTimeoutSeconds: -1
     asserts:
       - failedTemplate:
-          errorPattern: "runtimeWaitTimeoutSeconds"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/migrate/runtimeWaitTimeoutSeconds': minimum: got -1, want 0
 
   - it: rejects a wait that is not a whole number of seconds
     templates:
@@ -283,7 +286,10 @@ tests:
       migrate.runtimeWaitTimeoutSeconds: 15m
     asserts:
       - failedTemplate:
-          errorPattern: "runtimeWaitTimeoutSeconds"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/migrate/runtimeWaitTimeoutSeconds': got string, want null or integer
 
   # --- the install notice -----------------------------------------------------
   - it: says nothing about the wait on the defaults

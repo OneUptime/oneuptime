@@ -978,7 +978,8 @@ describe("a re-run, the upgrade", () => {
 });
 
 describe("each project's quotas, without Docker", () => {
-  const QUOTA_UNIT = "systemd/oneuptime-openstack-quota-exporter-native.service";
+  const QUOTA_UNIT =
+    "systemd/oneuptime-openstack-quota-exporter-native.service";
 
   test("are off until asked for, and no unit for them is installed", () => {
     const env = setup();
@@ -1003,9 +1004,9 @@ describe("each project's quotas, without Docker", () => {
     expect(env.log("curl").join("\n")).toContain(QUOTA_UNIT);
     const calls = env.log("systemctl");
     expect(calls).toContain("enable oneuptime-openstack-quota-exporter");
-    expect(calls.indexOf("restart oneuptime-openstack-quota-exporter")).toBeLessThan(
-      calls.indexOf("restart oneuptime-openstack-agent"),
-    );
+    expect(
+      calls.indexOf("restart oneuptime-openstack-quota-exporter"),
+    ).toBeLessThan(calls.indexOf("restart oneuptime-openstack-agent"));
     const settings = systemdRead(run.envFile);
     expect(settings.OPENSTACK_QUOTA_CLOUDS).toBe(
       settings.OPENSTACK_EXPORTER_CLOUDS,
@@ -1018,7 +1019,9 @@ describe("each project's quotas, without Docker", () => {
 
     expect(unit).toContain("--web.listen-address=127.0.0.1:9182");
     expect(unit).toContain("User=oneuptime-openstack");
-    expect(unit).toContain("--os-client-config=/opt/oneuptime-openstack-agent/clouds.yaml");
+    expect(unit).toContain(
+      "--os-client-config=/opt/oneuptime-openstack-agent/clouds.yaml",
+    );
     expect(unit).not.toContain("--disable-metric=nova-limits_vcpus_max");
   });
 });
@@ -1405,10 +1408,12 @@ describe("the README", () => {
     expect(text).toContain("the whole cloud answers `503`");
     expect(text).toContain("If it has already happened, restart the service.");
     expect(section("## Uninstalling")).toContain("Never delete the file.");
-    // As each file's own header says.
-    for (const file of fs.readdirSync(
+    // As each file's own header says: five of them when this was written.
+    const policyFiles = fs.readdirSync(
       path.join(AGENT_DIR, "access", "policy"),
-    )) {
+    );
+    expect(policyFiles.length).toBeGreaterThan(0);
+    for (const file of policyFiles) {
       expect({
         file,
         says: agentFile(path.join("access", "policy", file)).includes(

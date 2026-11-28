@@ -77,4 +77,7 @@ tests:
       microsoftTeamsApp.cloud: gcc high
     asserts:
       - failedTemplate:
-          errorPattern: "microsoftTeamsApp.cloud must be one of the following"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/microsoftTeamsApp/cloud': value must be one of <nil>, '', 'commercial', 'gcc', 'gcc-high', 'dod'
