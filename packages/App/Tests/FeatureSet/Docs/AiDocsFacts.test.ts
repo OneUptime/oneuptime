@@ -3580,7 +3580,15 @@ describe("Production review of pull requests", () => {
       }
 
       expect(row).toContain(
-        "Nor does a session identified by an opaque id, such as the user's id or a hash of their email.",
+        "Nor does a session identified or tagged by an opaque id, such as the user's id or a hash of their email.",
+      );
+
+      // A session's tags too (#11458): setTags() and addTag(), on OneUptime's recorder alone.
+      expect(row).toContain(
+        "So are the tags it gives a session of OneUptime's recorder (`setTags()`, `addTag()`, or the same pushed onto its command queue), which everyone who can list sessions reads.",
+      );
+      expect(rules).toContain(
+        'const SESSION_TAG_METHODS: ReadonlySet<string> = new Set<string>([ "settags", "addtag", ]);',
       );
 
       // A front end's points: its RUM application's session replays.
@@ -3588,8 +3596,10 @@ describe("Production review of pull requests", () => {
         "[SensitiveDataSink.Session]: [DataStoreKind.TelemetrySessionReplays],",
       );
       expect(sensitive).toContain(
-        "For a web or mobile app's code it is where the app's [RUM application](/docs/data-security/telemetry) held it in its session replays: in its browser logs for a log, its browser spans for a span, and its sessions' users for who a session is.",
+        "For a web or mobile app's code it is where the app's [RUM application](/docs/data-security/telemetry) held it in its session replays: in its browser logs for a log, its browser spans for a span, its sessions' users for who a session is, and its sessions' tags for a session's tags.",
       );
+      // A tag's point is told what the sessions' tags held, a user's what their users did.
+      expect(sensitiveData).toContain("getRumSessionPart(");
       // How the repository's application is found, and its code told apart.
       expect(scope).toContain("export async function findRumApplicationsOfRepository(");
       expect(sensitive).toContain(

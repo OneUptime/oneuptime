@@ -2637,6 +2637,25 @@ describe("Sensitive Data in Telemetry", () => {
       expect(source(scanner)).toContain(location);
     }
 
+    // A session's tags (#11458): read from their own column, under their own prefix.
+    expect(what[4]?.[1]).toContain("the tags `setTags()` and `addTag()` gave");
+    expect(what[4]?.[2]).toContain("`sessions.tags.<key>`");
+    expect(source("Common/Types/DataSecurity/RumSessionPlaces.ts")).toContain(
+      'export const RUM_SESSION_TAGS_PREFIX: string = "sessions.tags.";',
+    );
+    expect(source(scanner)).toContain('"tags",\n        "readTags",');
+    expect(source(scanner)).toContain("base: RUM_SESSION_TAGS_PREFIX,");
+    // Scrub It reaches them with log rules, and no rule reaches the session's other details.
+    expect(scrub).toContain(
+      'attributeTarget(\n          location,\n          RUM_SESSION_TAGS_PREFIX,\n          "log",',
+    );
+    expect(section(page, "## Scrub It")).toContain(
+      "A session's tags (`sessions.tags.*`) can be scrubbed: ingest runs log scrub rules over them, as over a log's attributes.",
+    );
+    expect(section(page, "## What counts as scrubbed")).toContain(
+      "Log rules cover logs, a RUM application's logs and its sessions' tags.",
+    );
+
     expect(source(scanner)).toContain(
       'const ONEUPTIME_ATTRIBUTE_PREFIX: string = "oneuptime.";',
     );

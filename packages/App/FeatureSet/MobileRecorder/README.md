@@ -171,7 +171,10 @@ attribute whose key the application lists under **Readable event
 properties** on its Replay Policy page, while its value is a short token
 (letters, digits and `_ . : / -`, at most 32 characters); any other value
 under that key is still masked, and traits always are. Tag values deliberately stay readable and
-searchable, matching the browser contract; do not use tags for secrets. All
+searchable, matching the browser contract; do not use tags for secrets or
+personal data. Data Security reads an app's session tags as it reads a
+browser's, at `sessions.tags.<key>`, and log scrub rules for every service
+hide what they match in new sessions' tags at ingest. All
 maps remain count/length bounded. Routes always drop query strings and
 fragments and are stored as `app://com.example.checkout/checkout`. The
 remaining path stays readable, so pass stable screen templates rather than
