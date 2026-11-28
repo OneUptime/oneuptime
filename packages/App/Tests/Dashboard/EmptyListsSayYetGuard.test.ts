@@ -190,16 +190,47 @@ function listSourceFiles(directory: string): Array<string> {
   return files;
 }
 
+// The constants a file declares, by name: what each holds.
+type FileConstants = ReadonlyMap<string, ts.Expression>;
+
+function readConstants(source: ts.SourceFile): FileConstants {
+  const constants: Map<string, ts.Expression> = new Map();
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclarationList(node) &&
+      (node.flags & ts.NodeFlags.Const) !== 0
+    ) {
+      for (const declaration of node.declarations) {
+        if (ts.isIdentifier(declaration.name) && declaration.initializer) {
+          constants.set(declaration.name.text, declaration.initializer);
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return constants;
+}
+
 /*
  * Every sentence an expression can hand over: a literal, either side of a
- * condition or of `||`/`??`, a parenthesised value, or the words of a
- * template before its first ${...}.
+ * condition or of `||`/`??`, a parenthesised value, the words of a
+ * template before its first ${...}, the key a translationKey() marks, or
+ * what a constant of the same file holds. A page whose platform may say
+ * its own sentence keeps its own in a constant (the storage array lists,
+ * `kindPage?.noItemsMessage || BUCKETS_NO_ITEMS`), and is read through it.
  */
 function collectMessages(
   node: ts.Node,
   source: ts.SourceFile,
   file: string,
   into: Array<FoundMessage>,
+  constants: FileConstants,
+  followed: ReadonlySet<string> = new Set<string>(),
 ): void {
   const line: number =
     source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
@@ -225,18 +256,18 @@ function collectMessages(
   }
 
   if (ts.isJsxExpression(node) && node.expression) {
-    collectMessages(node.expression, source, file, into);
+    collectMessages(node.expression, source, file, into, constants, followed);
     return;
   }
 
   if (ts.isParenthesizedExpression(node)) {
-    collectMessages(node.expression, source, file, into);
+    collectMessages(node.expression, source, file, into, constants, followed);
     return;
   }
 
   if (ts.isConditionalExpression(node)) {
-    collectMessages(node.whenTrue, source, file, into);
-    collectMessages(node.whenFalse, source, file, into);
+    collectMessages(node.whenTrue, source, file, into, constants, followed);
+    collectMessages(node.whenFalse, source, file, into, constants, followed);
     return;
   }
 
@@ -245,8 +276,34 @@ function collectMessages(
     (node.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
       node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken)
   ) {
-    collectMessages(node.left, source, file, into);
-    collectMessages(node.right, source, file, into);
+    collectMessages(node.left, source, file, into, constants, followed);
+    collectMessages(node.right, source, file, into, constants, followed);
+    return;
+  }
+
+  if (
+    ts.isCallExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    node.expression.text === "translationKey" &&
+    node.arguments[0]
+  ) {
+    collectMessages(node.arguments[0], source, file, into, constants, followed);
+    return;
+  }
+
+  if (ts.isIdentifier(node) && !followed.has(node.text)) {
+    const value: ts.Expression | undefined = constants.get(node.text);
+
+    if (value) {
+      collectMessages(
+        value,
+        source,
+        file,
+        into,
+        constants,
+        new Set<string>([...followed, node.text]),
+      );
+    }
   }
 }
 
@@ -265,6 +322,7 @@ function readNoItemsMessages(file: string): Array<FoundMessage> {
     file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
   );
   const found: Array<FoundMessage> = [];
+  const constants: FileConstants = readConstants(source);
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
     if (
@@ -272,14 +330,26 @@ function readNoItemsMessages(file: string): Array<FoundMessage> {
       node.name.getText(source) === PROP_NAME &&
       node.initializer
     ) {
-      collectMessages(node.initializer, source, relative(file), found);
+      collectMessages(
+        node.initializer,
+        source,
+        relative(file),
+        found,
+        constants,
+      );
     }
 
     if (
       ts.isPropertyAssignment(node) &&
       node.name.getText(source) === PROP_NAME
     ) {
-      collectMessages(node.initializer, source, relative(file), found);
+      collectMessages(
+        node.initializer,
+        source,
+        relative(file),
+        found,
+        constants,
+      );
     }
 
     ts.forEachChild(node, visit);
