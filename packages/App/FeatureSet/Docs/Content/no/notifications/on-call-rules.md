@@ -50,6 +50,8 @@ Anropet nevner prosjektet ditt. Et anrop som ikke hører til et prosjekt, for ek
 
 Et anrop er på språket du bruker OneUptime på når Twilio-kontoen det går ut gjennom, bruker en av OneUptimes stemmer: alt det sier, svarene på tastene dine medregnet, med en stemme på språket ditt, en kvinnestemme hvis kontoens stemme er en kvinnestemme, og en mannsstemme hvis den er en mannsstemme. Tastene er de samme: 1 for å bekrefte, 2 for å eskalere. Et anrop gjennom en konto som beholder standardstemmen sin, er på engelsk, og det samme er et anrop til noen som bruker OneUptime på persisk, som ingen stemme snakker: se [Stemmen anropene bruker](/docs/self-hosted/twilio-integration#stemmen-anropene-bruker).
 
+Anropet som verifiserer telefonnummeret ditt, er også på språket ditt: det sier koden sin ett siffer om gangen, med en pause mellom sifrene, tre ganger. Et anrop gjennom installasjonens egen [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway) får ordene sine på språket ditt, og gatewayen velger stemmen.
+
 ## Én rekkefølge for alt
 
 **Brukerinnstillinger → Slik når man meg** åpner med rekkefølgen din: nummererte trinn som hvert oppkall prøver etter tur, for hendelser, varsler og episoder av enhver alvorlighetsgrad. Hvert trinn er et tidspunkt, for eksempel med en gang eller etter 5 minutter, med de verifiserte metodene som sendes samtidig da. Et senere trinn sendes bare hvis ingen har bekreftet oppkallet innen da.

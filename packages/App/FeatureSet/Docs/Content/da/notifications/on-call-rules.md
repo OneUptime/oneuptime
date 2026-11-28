@@ -50,6 +50,8 @@ Opkaldet nævner dit projekt. Et opkald, der ikke hører til et projekt, for eks
 
 Et opkald er på det sprog, du bruger OneUptime på, når den Twilio-konto, det går ud gennem, taler med en af OneUptimes stemmer: alt, hvad det siger, svarene på dine taster medregnet, med en stemme på dit sprog, en kvindestemme, hvis kontoens stemme er en kvindestemme, og en mandsstemme, hvis den er en mandsstemme. Tasterne er de samme: 1 for at bekræfte, 2 for at eskalere. Et opkald gennem en konto, der beholder sin standardstemme, er på engelsk, og det samme er et opkald til en, der bruger OneUptime på persisk, som ingen stemme taler: se [Den stemme, opkaldene taler med](/docs/self-hosted/twilio-integration#den-stemme-opkaldene-taler-med).
 
+Opkaldet, der bekræfter dit telefonnummer, er også på dit sprog: det siger sin kode ét ciffer ad gangen, med en pause mellem cifrene, tre gange. Et opkald gennem din installations egen [SMS- og opkaldsgateway](/docs/self-hosted/sms-and-call-gateway) får sine ord på dit sprog, og gatewayen vælger stemmen.
+
 ## Én rækkefølge til alt
 
 **Brugerindstillinger → Sådan når man mig** åbner med din rækkefølge: nummererede trin, som hvert kald prøver efter tur, for hændelser, advarsler og episoder af enhver alvorlighed. Hvert trin er et tidspunkt, for eksempel med det samme eller efter 5 minutter, med de bekræftede metoder, der sendes samtidig da. Et senere trin sendes kun, hvis ingen har bekræftet kaldet inden da.

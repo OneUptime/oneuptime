@@ -5,6 +5,7 @@ OneUptime può inviare i suoi SMS e le sue chiamate tramite un gateway che gesti
 :::cards
 - [Configurare il gateway](#configurare-il-gateway): Un URL e un segreto di firma creato per te.
 - [Cosa riceve il tuo gateway](#cosa-riceve-il-tuo-gateway): Una richiesta JSON firmata per ogni SMS o chiamata.
+- [Chiamate in altre lingue](#chiamate-in-altre-lingue): Far parlare ogni chiamata nella lingua in cui la persona usa OneUptime.
 - [Agire su un avviso](#agire-su-un-avviso): Riconoscere, escalare o risolvere da una chiamata o da una risposta.
 - [Consegna e nuovi tentativi](#consegna-e-nuovi-tentativi): Cosa succede quando il tuo gateway non è raggiungibile.
 :::
@@ -63,7 +64,8 @@ Ogni SMS e ogni chiamata è una richiesta `POST` con un corpo JSON e queste inte
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ Ogni SMS e ogni chiamata è una richiesta `POST` con un corpo JSON e queste inte
 | `sentAt` | Quando OneUptime l'ha inviato, in ISO 8601. |
 | `to` | Il numero di telefono, in formato E.164. `null` in un test. |
 | `message` | L'SMS, o ciò che dice la chiamata. Un SMS ha al massimo 1.600 caratteri, e il testo di una chiamata al massimo 16.384. Un testo più lungo viene tagliato e termina con una nota che indica che il resto è in OneUptime. |
-| `isSensitive` | `true` per un codice di verifica. Tieni il messaggio fuori dai tuoi log. |
+| `isSensitive` | `true` per un codice di verifica. Tieni il messaggio, e quello in `inLanguage`, fuori dai tuoi log. |
 | `project` | L'`id` e il `name` del progetto, oppure `null` quando nessun progetto l'ha inviato. |
 | `actions` | Per un avviso di reperibilità, i link che agiscono su di esso. `null` negli altri casi. |
+| `inLanguage` | Per una chiamata a chi usa OneUptime in una lingua diversa dall'inglese: `language`, il codice della lingua, e `message`, ciò che la chiamata dice in quella lingua. `null` negli altri casi, e per ogni SMS, che è già nella lingua della persona. Vedi [Chiamate in altre lingue](#chiamate-in-altre-lingue). |
 
 Una chiamata viene descritta invece che sceneggiata: `message` è ciò che dice, senza il «premi 1 per riconoscere» di Twilio. Offri le azioni a modo tuo, ad esempio con la pressione di tasti, e chiama il link corrispondente.
+
+### Chiamate in altre lingue
+
+Una chiamata a chi usa OneUptime in un'altra lingua porta le sue parole due volte: in inglese, in `message`, come ogni chiamata, e nella lingua della persona, in `inLanguage`. È il tuo gateway a scegliere la voce, quindi OneUptime non può sapere quali lingue parla. Quando il tuo gateway ha una voce della lingua `inLanguage.language`, fai pronunciare `inLanguage.message` a quella voce. Quando non ne ha nessuna, fai pronunciare invece `message` in inglese. Non dare mai le parole di una lingua alla voce di un'altra lingua: non verrebbero capite. Un gateway che legge solo `message` continua a funzionare come prima e parla in inglese.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+Il codice della lingua è un tag BCP 47, una delle lingue in cui è scritto OneUptime: `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa` e `ar`. `es` è lo spagnolo di Spagna, `pt` il portoghese del Brasile, `no` il norvegese bokmål, `ar` l'arabo standard moderno, ed entrambi i codici cinesi sono mandarino, in caratteri semplificati e in caratteri tradizionali. Il persiano è tra queste: Twilio non ha nessuna voce persiana, quindi tramite Twilio una chiamata a chi usa OneUptime in persiano è in inglese, ma il tuo gateway potrebbe averne una. Un codice di verifica è scritto cifra per cifra, con due spazi tra le cifre: fai leggere alla tua voce le cifre una alla volta, lentamente, invece che come un numero.
 
 ### Verificare la firma
 
@@ -116,7 +137,7 @@ Il log degli SMS o delle chiamate, e per un avviso di reperibilità il log di re
 
 ## Richieste di test
 
-**Controlla gateway** invia una richiesta con `event` impostato a `test`, e `to`, `project` e `actions` impostati a `null`. Rispondi con uno stato 2xx e non inviare nulla.
+**Controlla gateway** invia una richiesta con `event` impostato a `test`, e `to`, `project`, `actions` e `inLanguage` impostati a `null`. Rispondi con uno stato 2xx e non inviare nulla.
 
 ## Passaggi successivi
 

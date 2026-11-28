@@ -498,3 +498,109 @@ describe("getServerAccountCallVoice", () => {
     ).resolves.toBeUndefined();
   });
 });
+
+/*
+ * #11462: GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE gives the consent
+ * from code. Once it is set it is the switch for every call: true lets the
+ * project's voice speak though the saved switch is off, false keeps the
+ * server's though it is on, and a value that is neither is no - with no
+ * read of the saved row at all. Never on OneUptime Cloud.
+ */
+describe("while GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE sets the switch", () => {
+  const VARIABLE: string = "GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE";
+  let before: string | undefined;
+
+  beforeEach(() => {
+    before = process.env[VARIABLE];
+  });
+
+  afterEach(() => {
+    if (before === undefined) {
+      delete process.env[VARIABLE];
+    } else {
+      process.env[VARIABLE] = before;
+    }
+  });
+
+  test("true: the project's voice names every <Say> and the keypad's answers, though the saved switch is off - and the row is not read", async () => {
+    process.env[VARIABLE] = "true";
+    switchRead = async (): Promise<GlobalConfig | null> => {
+      return serverRow(false);
+    };
+
+    const twiml: string = await placePage();
+
+    expect(voicesOf(twiml)).toEqual([PROJECT_VOICE]);
+    expect(keypadVoiceOf(twiml)).toBe(PROJECT_VOICE);
+    expect(globalConfigReads).not.toHaveBeenCalled();
+  });
+
+  test("false: the server's voice, though the saved switch is on", async () => {
+    process.env[VARIABLE] = "false";
+    switchRead = async (): Promise<GlobalConfig | null> => {
+      return serverRow(true);
+    };
+
+    const twiml: string = await placePage();
+
+    expect(voicesOf(twiml)).toEqual([SERVER_VOICE]);
+    expect(globalConfigReads).not.toHaveBeenCalled();
+  });
+
+  test("neither true nor false: the server's voice - never the saved switch nobody set the variable to", async () => {
+    process.env[VARIABLE] = "yes";
+    switchRead = async (): Promise<GlobalConfig | null> => {
+      return serverRow(true);
+    };
+
+    expect(voicesOf(await placePage())).toEqual([SERVER_VOICE]);
+    expect(globalConfigReads).not.toHaveBeenCalled();
+  });
+
+  test("on OneUptime Cloud: the server's voice, whatever the variable says", async () => {
+    setBillingEnabled(true);
+    process.env[VARIABLE] = "true";
+
+    expect(voicesOf(await placePage())).toEqual([SERVER_VOICE]);
+    expect(globalConfigReads).not.toHaveBeenCalled();
+  });
+
+  test("a project's own Twilio config keeps its own voice: the variable is for the server's account", async () => {
+    process.env[VARIABLE] = "true";
+
+    expect(
+      voicesOf(await placePage({ customTwilioConfig: PROJECT_ACCOUNT })),
+    ).toEqual(["Polly.Amy-Neural"]);
+  });
+
+  test("a project that chose none speaks with the server's voice", async () => {
+    process.env[VARIABLE] = "true";
+    delete project.callVoice;
+
+    expect(voicesOf(await placePage())).toEqual([SERVER_VOICE]);
+  });
+
+  test.each([
+    ["true", PROJECT_VOICE],
+    ["TRUE", PROJECT_VOICE],
+    [" true\n", PROJECT_VOICE],
+    ["false", SERVER_VOICE],
+    ["0", SERVER_VOICE],
+    ["", PROJECT_VOICE],
+  ])(
+    "getServerAccountCallVoice with the variable %j and the saved switch on: %p",
+    async (value: string, voice: string) => {
+      process.env[VARIABLE] = value;
+      switchRead = async (): Promise<GlobalConfig | null> => {
+        return serverRow(true);
+      };
+
+      await expect(
+        CallService.getServerAccountCallVoice({
+          serverVoice: SERVER_VOICE,
+          project: { callVoice: PROJECT_VOICE },
+        }),
+      ).resolves.toBe(voice);
+    },
+  );
+});

@@ -28,7 +28,10 @@ import { describe, expect, test } from "@jest/globals";
  * installation's own gateway - so its shape, its version, its three events
  * and every field the docs list are pinned here, as is the message: held to
  * MAX_CALL_AND_SMS_GATEWAY_MESSAGE_LENGTH however long a template made it,
- * ending with a note in characters every SMS encoding has.
+ * ending with a note in characters every SMS encoding has. A call to a
+ * person who reads another language carries its words in theirs too
+ * (inLanguage, #11459), beside the English message a gateway of before
+ * reads - added last, as fields only ever are.
  */
 
 const SENT_AT: Date = new Date("2026-10-27T09:30:00.000Z");
@@ -114,6 +117,7 @@ describe("buildCallAndSmsGatewayMessagePayload", () => {
         escalate: ACTIONS[CustomChannelAction.Escalate],
         resolve: ACTIONS[CustomChannelAction.Resolve],
       },
+      inLanguage: null,
     });
     expect(Object.keys(payload)).toEqual([
       "version",
@@ -125,6 +129,7 @@ describe("buildCallAndSmsGatewayMessagePayload", () => {
       "isSensitive",
       "project",
       "actions",
+      "inLanguage",
     ]);
   });
 
@@ -140,7 +145,8 @@ describe("buildCallAndSmsGatewayMessagePayload", () => {
     expect(payload["message"]).toBe(
       "A new incident has been created. Incident #7: API is down.",
     );
-    expect(Object.keys(payload)).toHaveLength(9);
+    expect(Object.keys(payload)).toHaveLength(10);
+    expect(payload["inLanguage"]).toBeNull();
   });
 
   test("a message that is not a page has no actions, and says null", () => {
@@ -238,6 +244,172 @@ describe("buildCallAndSmsGatewayMessagePayload", () => {
   test("survives a round trip through JSON unchanged", () => {
     const payload: JSONObject =
       buildCallAndSmsGatewayMessagePayload(messageInput());
+
+    expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
+  });
+});
+
+describe("a call in the person's language (#11459)", () => {
+  // A call to a person who reads `language`, with the English beside it.
+  function callIn(language: string, message: string): JSONObject {
+    return buildCallAndSmsGatewayMessagePayload(
+      messageInput({
+        event: CallAndSmsGatewayEvent.Call,
+        message: "This is a call from Acme. A new incident has been created.",
+        inLanguage: { language: language, message: message },
+      }),
+    );
+  }
+
+  test.each([
+    ["de", "Dies ist ein Anruf von Acme. Ein neuer Vorfall wurde erstellt."],
+    ["ja", "Acme からのお電話です。新しいインシデントが作成されました。"],
+    ["ar", "هذه مكالمة من Acme. تم إنشاء حادثة جديدة."],
+    ["fa", "این تماسی از طرف Acme است. یک حادثهٔ جدید ایجاد شد."],
+    ["zh-TW", "這是來自 Acme 的電話。已建立新的事件。"],
+    ["pt", "Esta é uma ligação de Acme. Um novo incidente foi criado."],
+    ["no", "Dette er en samtale fra Acme. En ny hendelse er opprettet."],
+    ["hi", "यह Acme की ओर से एक कॉल है। एक नई घटना बनाई गई है।"],
+  ])(
+    "%s: its words in the language, with the language's code, and the English message as it always was",
+    (language: string, message: string) => {
+      const payload: JSONObject = callIn(language, message);
+
+      expect(payload["inLanguage"]).toEqual({
+        language: language,
+        message: message,
+      });
+      expect(payload["message"]).toBe(
+        "This is a call from Acme. A new incident has been created.",
+      );
+    },
+  );
+
+  test("is the last field, so the fields a gateway of before reads keep their place", () => {
+    const payload: JSONObject = callIn("de", "Hallo.");
+
+    expect(Object.keys(payload)[Object.keys(payload).length - 1]).toBe(
+      "inLanguage",
+    );
+    expect(payload["version"]).toBe(1);
+  });
+
+  test("a gateway that ignores it reads the very payload it read before, field for field", () => {
+    const before: JSONObject = buildCallAndSmsGatewayMessagePayload(
+      messageInput({ event: CallAndSmsGatewayEvent.Call }),
+    );
+    const now: JSONObject = buildCallAndSmsGatewayMessagePayload(
+      messageInput({
+        event: CallAndSmsGatewayEvent.Call,
+        inLanguage: { language: "de", message: "Ein neuer Vorfall." },
+      }),
+    );
+
+    // What a gateway that reads no inLanguage reads of each.
+    const readNow: JSONObject = { ...now };
+    const readBefore: JSONObject = { ...before };
+
+    delete readNow["inLanguage"];
+    delete readBefore["inLanguage"];
+
+    expect(readNow).toEqual(readBefore);
+    expect(Object.keys(readNow)).toHaveLength(9);
+  });
+
+  test("an SMS carries none: its message is in the person's language already", () => {
+    expect(
+      buildCallAndSmsGatewayMessagePayload(
+        messageInput({
+          event: CallAndSmsGatewayEvent.Sms,
+          inLanguage: { language: "de", message: "Ein neuer Vorfall." },
+        }),
+      )["inLanguage"],
+    ).toBeNull();
+  });
+
+  test.each([
+    ["no words in another language", undefined],
+    ["a language with no code", { language: "", message: "Hallo." }],
+    ["a code of spaces", { language: "   ", message: "Hallo." }],
+    ["words that say nothing", { language: "de", message: "   " }],
+    ["no words", { language: "de", message: "" }],
+    [
+      "a language that is not text",
+      { language: 7 as unknown as string, message: "Hallo." },
+    ],
+    [
+      "words that are not text",
+      { language: "de", message: ["Hallo."] as unknown as string },
+    ],
+  ])(
+    "%s: null, and the English message alone",
+    (
+      _label: string,
+      inLanguage: CallAndSmsGatewayMessageInput["inLanguage"],
+    ) => {
+      const payload: JSONObject = buildCallAndSmsGatewayMessagePayload(
+        messageInput({
+          event: CallAndSmsGatewayEvent.Call,
+          inLanguage: inLanguage,
+        }),
+      );
+
+      expect(payload["inLanguage"]).toBeNull();
+      expect("inLanguage" in payload).toBe(true);
+    },
+  );
+
+  test("the code is carried without the spaces around it", () => {
+    expect(callIn("  zh-CN ", "你好。")["inLanguage"]).toEqual({
+      language: "zh-CN",
+      message: "你好。",
+    });
+  });
+
+  test("its words are held to what a request carries, as the English message is", () => {
+    const message: string = "m".repeat(
+      MAX_CALL_AND_SMS_GATEWAY_MESSAGE_LENGTH + 500,
+    );
+    const carried: JSONObject = callIn("de", message)[
+      "inLanguage"
+    ] as JSONObject;
+    const sent: string = carried["message"] as string;
+
+    expect(sent.length).toBe(MAX_CALL_AND_SMS_GATEWAY_MESSAGE_LENGTH);
+    expect(sent.endsWith(TRUNCATED_TEXT_NOTE_PLAIN)).toBe(true);
+    expect(
+      message.startsWith(sent.slice(0, -TRUNCATED_TEXT_NOTE_PLAIN.length)),
+    ).toBe(true);
+  });
+
+  test("words of exactly the limit are carried whole", () => {
+    const message: string = "m".repeat(MAX_CALL_AND_SMS_GATEWAY_MESSAGE_LENGTH);
+
+    expect((callIn("de", message)["inLanguage"] as JSONObject)["message"]).toBe(
+      message,
+    );
+  });
+
+  test("carries the language and the words and nothing else it was handed", () => {
+    const payload: JSONObject = buildCallAndSmsGatewayMessagePayload(
+      messageInput({
+        event: CallAndSmsGatewayEvent.Call,
+        inLanguage: {
+          language: "de",
+          message: "Hallo.",
+          voice: "Polly.Vicki-Neural",
+        } as unknown as CallAndSmsGatewayMessageInput["inLanguage"],
+      }),
+    );
+
+    expect(Object.keys(payload["inLanguage"] as JSONObject)).toEqual([
+      "language",
+      "message",
+    ]);
+  });
+
+  test("survives a round trip through JSON unchanged", () => {
+    const payload: JSONObject = callIn("ko", "Acme에서 걸려 온 전화입니다.");
 
     expect(JSON.parse(JSON.stringify(payload))).toEqual(payload);
   });
@@ -400,6 +572,7 @@ describe("buildCallAndSmsGatewayTestPayload", () => {
       isSensitive: false,
       project: null,
       actions: null,
+      inLanguage: null,
     });
   });
 

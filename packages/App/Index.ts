@@ -40,10 +40,12 @@ import logger from "Common/Server/Utils/Logger";
 import {
   getServerTwilioCallVoice,
   getServerTwilioEnvironment,
+  getServerTwilioProjectCallVoices,
 } from "Common/Server/Utils/ServerTwilioConfig";
 import ServerTwilioEnvironment, {
   ServerTwilioCallVoiceReading,
   ServerTwilioEnvironmentReading,
+  ServerTwilioProjectCallVoicesReading,
 } from "Common/Types/CallAndSMS/ServerTwilioEnvironment";
 import { getServerEmailEnvironment } from "Common/Server/Utils/ServerEmailSettings";
 import ServerEmailEnvironment, {
@@ -225,6 +227,32 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     if (twilioCallVoiceWarning) {
       logger.warn(twilioCallVoiceWarning);
+    }
+
+    /*
+     * Whether projects choose their call voice, as GLOBAL_TWILIO_LET_
+     * PROJECTS_CHOOSE_CALL_VOICE sets it (#11462), said once - and, by the
+     * variable's name, a value that is neither true nor false (projects
+     * speak with the server's voice until it is fixed), or one set on
+     * OneUptime Cloud, where it is ignored.
+     */
+    const twilioProjectCallVoices: ServerTwilioProjectCallVoicesReading =
+      getServerTwilioProjectCallVoices();
+    const twilioProjectCallVoicesNotice: string | null =
+      ServerTwilioEnvironment.getLetProjectsChooseCallVoiceStartupNotice(
+        twilioProjectCallVoices,
+      );
+    const twilioProjectCallVoicesWarning: string | null =
+      ServerTwilioEnvironment.getLetProjectsChooseCallVoiceStartupWarning(
+        twilioProjectCallVoices,
+      );
+
+    if (twilioProjectCallVoicesNotice) {
+      logger.info(twilioProjectCallVoicesNotice);
+    }
+
+    if (twilioProjectCallVoicesWarning) {
+      logger.warn(twilioProjectCallVoicesWarning);
     }
 
     /*

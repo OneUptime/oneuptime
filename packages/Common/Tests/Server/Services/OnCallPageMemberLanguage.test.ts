@@ -76,6 +76,7 @@ import {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
+import { getSpokenCall } from "../../../Utils/Call/CallLanguage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -1598,7 +1599,7 @@ describe("an observer's page, in the language of the person it pages", () => {
     ]);
   });
 
-  test("a call to a person who reads Persian is English only: no voice speaks Persian", async () => {
+  test("a call to a person who reads Persian carries its Persian beside its English: Twilio speaks the English, a gateway may speak Persian (#11459)", async () => {
     const call: CallRequest =
       await service.generateCallTemplateForIncidentCreated(
         TO_PHONE,
@@ -1613,6 +1614,11 @@ describe("an observer's page, in the language of the person it pages", () => {
     expect(sayMessages(call)[1]).toBe(
       "A new Sev 1 incident has been created: INC-42.",
     );
-    expect(call.inLanguage).toBeUndefined();
+    expect(call.inLanguage?.language).toBe("fa");
+    // Its words in Persian, from the server's Persian locale.
+    expect(sayMessages(call.inLanguage!)[0]).toBe("این تماسی از طرف Acme است.");
+    // No voice of Twilio's speaks Persian: through it, the call is the English one.
+    expect(getSpokenCall(call, "Polly.Joanna-Neural").language).toBe("en");
+    expect(getSpokenCall(call, "Polly.Joanna-Neural").data).toBe(call.data);
   });
 });
