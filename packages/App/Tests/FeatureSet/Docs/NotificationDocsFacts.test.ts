@@ -1839,11 +1839,15 @@ describe("personal on-call rules", () => {
     /*
      * Every page's call is built by one builder, which asks for 1
      * (Utils/Call/OnCallPageCall) - in English, and in the person's
-     * language beside it (#11066).
+     * language beside it (#11066), with their call translator
+     * (Utils/Call/CallInLanguage).
      */
     expect(ruleService).toContain("data: buildOnCallPageCallData(input),");
     expect(ruleService).toContain(
-      "data: buildOnCallPageCallData(input, getCallTranslator(language)),",
+      "return buildOnCallPageCallData(input, callTranslator);",
+    );
+    expect(ruleService).toContain(
+      "const inLanguage: CallInLanguage | undefined = getCallInLanguage(",
     );
     expect(ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT).toBe("1");
     expect(ON_CALL_PAGE_CALL_PROMPT.startsWith("Press 1 to acknowledge")).toBe(

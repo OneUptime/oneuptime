@@ -93,7 +93,6 @@ import {
   toStoredCallVoice,
 } from "../../Types/Call/CallVoice";
 import ProjectCallVoice from "../../Types/Call/ProjectCallVoice";
-import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import GlobalConfigService from "./GlobalConfigService";
 import NameTakenException from "../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -2127,18 +2126,18 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     if (!props?.isRoot && getCallVoice(value)) {
-      const config: GlobalConfig | null = IsBillingEnabled
-        ? null
-        : await GlobalConfigService.findOneById({
-            id: ObjectID.getZeroObjectID(),
-            select: { letProjectsChooseCallVoice: true },
-            props: { isRoot: true },
-          });
+      /*
+       * The master admin's switch, or GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_
+       * CALL_VOICE once it is set (#11462): never read on OneUptime Cloud.
+       */
+      const canChoose: boolean = IsBillingEnabled
+        ? false
+        : await GlobalConfigService.canProjectsChooseCallVoice();
 
       const refusal: string | null = ProjectCallVoice.getWriteError({
         value: value,
         isBillingEnabled: IsBillingEnabled,
-        letProjectsChooseCallVoice: config?.letProjectsChooseCallVoice,
+        letProjectsChooseCallVoice: canChoose,
       });
 
       if (refusal) {

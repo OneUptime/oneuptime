@@ -26,12 +26,10 @@ import {
   translationKey,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { ValueType } from "./DictionaryValueType";
 
-export enum ValueType {
-  Text = "Text",
-  Number = "Number",
-  Boolean = "Boolean",
-}
+// The kinds of value a row holds, read from here as ever.
+export { ValueType };
 
 export interface ComponentProps {
   onChange?: undefined | ((value: Dictionary<DictionaryEntryValue>) => void);

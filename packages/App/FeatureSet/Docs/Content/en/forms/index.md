@@ -8,6 +8,7 @@ Use a form when the people who notice a problem — or who need a change — are
 - [Create your first form](#create-your-first-form): From a blank form to a link you can share.
 - [Building a Form](/docs/forms/building): Questions, answer types, hidden questions, templates and branding.
 - [What a Submission Creates](/docs/forms/on-submit): How the answers and the settings become an incident or a maintenance event.
+- [Following Up on a Submission](/docs/forms/follow-ups): Let submitters follow what they sent, write to your team and add others.
 - [Sharing & Security](/docs/forms/sharing-and-security): The link, the IP allowlist, rate limits and troubleshooting.
 :::
 
@@ -290,6 +291,7 @@ The old dashboard pages redirect to the new ones.
 :::cards
 - [Building a Form](/docs/forms/building): Questions, answer types, linked fields, custom fields and the preview.
 - [What a Submission Creates](/docs/forms/on-submit): How the answers and the On Submit settings become an incident or a maintenance event.
+- [Following Up on a Submission](/docs/forms/follow-ups): Let submitters follow what they sent, write to your team and add others.
 - [Sharing & Security](/docs/forms/sharing-and-security): The link, the IP allowlist, rate limits, captcha and troubleshooting.
 - [Declaring an Incident](/docs/incidents/declaring-incidents): The other ways incidents are declared.
 :::

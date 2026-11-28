@@ -8,6 +8,7 @@ Använd ett formulär när de som märker ett problem, eller behöver en ändrin
 - [Skapa ditt första formulär](#skapa-ditt-första-formulär): Från ett tomt formulär till en länk som du kan dela.
 - [Bygga ett formulär](/docs/forms/building): Frågor, svarstyper, dolda frågor, mallar och varumärke.
 - [Vad en inlämning skapar](/docs/forms/on-submit): Hur svaren och inställningarna blir en incident eller en underhållshändelse.
+- [Följa upp en inlämning](/docs/forms/follow-ups): Den som skickar följer sin förfrågan, skriver till ditt team och lägger till andra.
 - [Delning & säkerhet](/docs/forms/sharing-and-security): Länken, IP-tillåtelselistan, hastighetsgränser och felsökning.
 :::
 
@@ -290,6 +291,7 @@ De gamla sidorna i instrumentpanelen omdirigerar till de nya.
 :::cards
 - [Bygga ett formulär](/docs/forms/building): Frågor, svarstyper, länkade fält, anpassade fält och förhandsgranskningen.
 - [Vad en inlämning skapar](/docs/forms/on-submit): Hur svaren och inställningarna under Vid inlämning blir en incident eller en underhållshändelse.
+- [Följa upp en inlämning](/docs/forms/follow-ups): Den som skickar följer sin förfrågan, skriver till ditt team och lägger till andra.
 - [Delning & säkerhet](/docs/forms/sharing-and-security): Länken, IP-tillåtelselistan, hastighetsgränser, captcha och felsökning.
 - [Deklarera en incident](/docs/incidents/declaring-incidents): De andra sätten att deklarera incidenter.
 :::

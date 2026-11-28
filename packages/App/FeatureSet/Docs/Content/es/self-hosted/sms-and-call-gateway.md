@@ -5,6 +5,7 @@ OneUptime puede enviar sus SMS y llamadas a través de una pasarela que gestiona
 :::cards
 - [Configurar la pasarela](#configurar-la-pasarela): Una URL y un secreto de firma que se crea por ti.
 - [Qué recibe tu pasarela](#qué-recibe-tu-pasarela): Una solicitud JSON firmada por cada SMS o llamada.
+- [Llamadas en otros idiomas](#llamadas-en-otros-idiomas): Cada llamada, en el idioma en que su destinatario usa OneUptime.
 - [Actuar sobre un aviso](#actuar-sobre-un-aviso): Reconocer, escalar o resolver desde una llamada o una respuesta.
 - [Entrega y reintentos](#entrega-y-reintentos): Qué ocurre cuando tu pasarela no responde.
 :::
@@ -63,7 +64,8 @@ Cada SMS y cada llamada es una solicitud `POST` con un cuerpo JSON y estos encab
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ Cada SMS y cada llamada es una solicitud `POST` con un cuerpo JSON y estos encab
 | `sentAt` | Cuándo lo envió OneUptime, en ISO 8601. |
 | `to` | El número de teléfono, en formato E.164. `null` en una prueba. |
 | `message` | El SMS, o lo que dice la llamada. Un SMS tiene como máximo 1600 caracteres, y el texto de una llamada como máximo 16 384. Un texto más largo se corta y termina con una nota que indica que el resto está en OneUptime. |
-| `isSensitive` | `true` para un código de verificación. Mantén el mensaje fuera de tus propios logs. |
+| `isSensitive` | `true` para un código de verificación. Mantén el mensaje, y el de `inLanguage`, fuera de tus propios logs. |
 | `project` | El `id` y el `name` del proyecto, o `null` cuando no lo envió ningún proyecto. |
 | `actions` | Para un aviso de guardia, los enlaces que actúan sobre él. `null` en los demás casos. |
+| `inLanguage` | Para una llamada a alguien que usa OneUptime en un idioma distinto del inglés: `language`, el código del idioma, y `message`, lo que dice la llamada en ese idioma. `null` en los demás casos, y en todo SMS, que ya está en el idioma de la persona. Consulta [Llamadas en otros idiomas](#llamadas-en-otros-idiomas). |
 
 Una llamada se describe en lugar de guionizarse: `message` es lo que dice, sin el «pulse 1 para reconocer» de Twilio. Ofrece las acciones a tu manera, por ejemplo con pulsaciones de teclas, y llama al enlace correspondiente.
+
+### Llamadas en otros idiomas
+
+Una llamada a alguien que usa OneUptime en otro idioma lleva sus palabras dos veces: en inglés, en `message`, como toda llamada, y en su idioma, en `inLanguage`. Tu pasarela elige la voz, así que OneUptime no puede saber qué idiomas habla. Cuando tu pasarela tenga una voz de `inLanguage.language`, haz que esa voz diga `inLanguage.message`. Cuando no tenga ninguna, haz que diga `message` en inglés. Nunca des las palabras de un idioma a la voz de otro idioma: no se entenderían. Una pasarela que solo lee `message` sigue funcionando como antes y habla en inglés.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+El código del idioma es una etiqueta BCP 47, uno de los idiomas en que está escrito OneUptime: `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa` y `ar`. `es` es el español de España, `pt` el portugués de Brasil, `no` el noruego bokmål, `ar` el árabe estándar moderno, y los dos códigos chinos son mandarín, en caracteres simplificados y en caracteres tradicionales. El persa está entre ellos: Twilio no tiene ninguna voz en persa, así que a través de Twilio una llamada a alguien que usa OneUptime en persa es en inglés, pero tu pasarela puede tener una. Un código de verificación se escribe dígito a dígito, con dos espacios entre dígitos: haz que tu voz lea los dígitos uno a uno, despacio, en lugar de como un número.
 
 ### Comprobar la firma
 
@@ -116,7 +137,7 @@ El registro de SMS o de llamadas, y para un aviso de guardia el registro de guar
 
 ## Solicitudes de prueba
 
-**Comprobar puerta de enlace** envía una solicitud con `event` en `test`, y `to`, `project` y `actions` en `null`. Respóndela con un estado 2xx y no envíes nada.
+**Comprobar puerta de enlace** envía una solicitud con `event` en `test`, y `to`, `project`, `actions` e `inLanguage` en `null`. Respóndela con un estado 2xx y no envíes nada.
 
 ## Próximos pasos
 

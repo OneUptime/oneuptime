@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { loadCodeEditor } from "../../../../UI/Components/CodeEditor/LazyCodeEditor";
 import { loadYamlEditor } from "../../../../UI/Components/CodeEditor/LazyYamlEditor";
+import { loadDictionary } from "../../../../UI/Components/Dictionary/LazyDictionary";
 import { loadFilePicker } from "../../../../UI/Components/FilePicker/LazyFilePicker";
 import { loadMarkdownEditor } from "../../../../UI/Components/Markdown.tsx/LazyMarkdownEditor";
 import { loadPeoplePicker } from "../../../../UI/Components/PeoplePicker/LazyPeoplePicker";
+import { loadColorPicker } from "../../../../UI/Components/Forms/Fields/LazyColorPicker";
+import { loadIconPicker } from "../../../../UI/Components/Forms/Fields/LazyIconPicker";
 import {
   getLoadControl,
   loadAllFormFieldControls,
@@ -32,6 +35,9 @@ const FIRST_LOAD_TYPES: Array<FormFieldSchemaType> = Object.values(
     FormFieldSchemaType.ImageFile,
     FormFieldSchemaType.MultipleFiles,
     FormFieldSchemaType.PeoplePicker,
+    FormFieldSchemaType.Color,
+    FormFieldSchemaType.Icon,
+    FormFieldSchemaType.Dictionary,
   ].includes(fieldType);
 });
 
@@ -51,6 +57,9 @@ describe("getLoadControl", () => {
     [FormFieldSchemaType.ImageFile, loadFilePicker],
     [FormFieldSchemaType.MultipleFiles, loadFilePicker],
     [FormFieldSchemaType.PeoplePicker, loadPeoplePicker],
+    [FormFieldSchemaType.Color, loadColorPicker],
+    [FormFieldSchemaType.Icon, loadIconPicker],
+    [FormFieldSchemaType.Dictionary, loadDictionary],
   ] as Array<[FormFieldSchemaType, () => Promise<unknown>]>)(
     "a %s field draws with its own file",
     (fieldType: FormFieldSchemaType, loadControl: () => Promise<unknown>) => {
@@ -154,6 +163,9 @@ describe("loadAllFormFieldControls", () => {
     expect(typeof (await loadMarkdownEditor())).toBe("function");
     expect(typeof (await loadFilePicker())).toBe("function");
     expect(typeof (await loadPeoplePicker())).toBe("function");
+    expect(typeof (await loadColorPicker())).toBe("function");
+    expect(typeof (await loadIconPicker())).toBe("function");
+    expect(typeof (await loadDictionary())).toBe("function");
   });
 
   test("says so when one of them cannot be loaded", async () => {

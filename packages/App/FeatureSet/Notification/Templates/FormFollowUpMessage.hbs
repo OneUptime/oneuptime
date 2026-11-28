@@ -1,0 +1,36 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{!--
+  A new message on a form submission, to everybody following it but the
+  person who wrote it (Common/Server/Utils/Form/FormFollowUp): who wrote it,
+  what they wrote, and the reader's own link to the request. The names and
+  the title are printed through plainInfo or plainText - escaped - and the
+  message as the HTML its Markdown was rendered into for email
+  (Markdown.convertToHTML, which leaves nothing in it that acts on its own).
+--}}
+
+{{> EmailTitle title="New message on your request" }}
+
+{{> InfoBlock plainInfo=(concat authorName " wrote on a request you follow, sent through " formName ".")}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Request" plainText=requestTitle }}
+{{> DetailBoxField title="Message" text=message }}
+{{> DetailBoxField title="Files" plainText=fileNames }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=requestUrl buttonText="Open the Request"}}
+
+{{> LinkBlock linkUrl=requestUrl linkLabel="You can also copy and paste this link:"}}
+
+{{#if isSignInRequired}}
+{{> InfoBlock info="Sign in with this email address to open it."}}
+{{/if}}
+
+{{> InfoBlock info="You get this email because you follow this request. To stop, open it and choose Stop following."}}
+
+{{> VerticalSpace this}}
+
+{{> End this}}

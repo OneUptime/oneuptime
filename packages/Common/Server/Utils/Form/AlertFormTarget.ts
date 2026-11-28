@@ -428,6 +428,11 @@ export default class AlertFormTarget
 
     const result: FormSubmissionCreated = { id: created.id };
 
+    // What the people following the request read it as (FormSubmission.title).
+    if (created.title) {
+      result.title = created.title;
+    }
+
     const reference: string | undefined =
       created.alertNumberWithPrefix ||
       (typeof created.alertNumber === "number"

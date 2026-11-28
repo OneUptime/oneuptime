@@ -442,9 +442,11 @@ const Settings: FunctionComponent = (): ReactElement => {
 
       {/*
        * Whether projects choose their own voice through this account
-       * (#11065): the owner's consent to pay for it. Not on OneUptime Cloud.
+       * (#11065): the owner's consent to pay for it - unless
+       * GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE gives it (#11462), when
+       * the switch is drawn locked. Not on OneUptime Cloud.
        */}
-      <ProjectCallVoicesCard />
+      <ProjectCallVoicesCard environment={twilioEnvironment} />
     </Page>
   );
 };

@@ -3,6 +3,7 @@ import ColorPicker from "../../../../UI/Components/Forms/Fields/ColorPicker";
 import IconPicker from "../../../../UI/Components/Forms/Fields/IconPicker";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { loadAllFormFieldControls } from "../../../../UI/Components/Forms/Fields/FormFieldControls";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import Modal from "../../../../UI/Components/Modal/Modal";
 import Color from "../../../../Types/Color";
@@ -24,7 +25,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 
 /*
  * Fields that open a portalled popup - the compact color field (a custom
@@ -353,6 +354,14 @@ describe("Opening an anchored field popup from the keyboard", () => {
    * Enter is a submit, and inside a modal, where Escape is a dismissal.
    */
   describe("inside the Label form and its modal", () => {
+    /*
+     * A form's color field is a file of its own, which the form loads as it
+     * is drawn (LazyColorPicker): loaded first, so it is there to Tab to.
+     */
+    beforeAll(async () => {
+      await loadAllFormFieldControls();
+    });
+
     const LABEL_FIELDS: Fields<FormValues<Record<string, unknown>>> = [
       {
         field: { name: true },

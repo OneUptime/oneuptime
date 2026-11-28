@@ -2,6 +2,7 @@ import { ExpressRequest } from "../Express";
 import ProductKey from "../../../Types/Product/ProductKey";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import { WorkspaceChannelRecordType } from "../../../Types/Workspace/WorkspaceChannelLink";
+import FormTargetType from "../../../Types/Form/FormTargetType";
 import { isSetupActionRunOutsideChat } from "../../../Types/AI/AISetupActions";
 import { isDataSecurityActionRunOutsideChat } from "../../../Types/AI/AIDataSecurityActions";
 import { getToolProducts } from "../AI/Toolbox/ToolProducts";
@@ -51,6 +52,15 @@ export const PRODUCT_OF_WORKSPACE_CHANNEL_RECORD_TYPE: Readonly<
   [WorkspaceChannelRecordType.AlertEpisode]: ProductKey.Alerts,
   [WorkspaceChannelRecordType.ScheduledMaintenance]:
     ProductKey.ScheduledMaintenance,
+};
+
+// The product of each record a form creates (FormTargetType).
+export const PRODUCT_OF_FORM_TARGET_TYPE: Readonly<
+  Record<FormTargetType, ProductKey>
+> = {
+  [FormTargetType.Incident]: ProductKey.Incidents,
+  [FormTargetType.Alert]: ProductKey.Alerts,
+  [FormTargetType.ScheduledMaintenance]: ProductKey.ScheduledMaintenance,
 };
 
 /*
@@ -104,6 +114,24 @@ export default class ProductsOfRequest {
     }
 
     return products;
+  }
+
+  /*
+   * A form follow-up's record (FormFollowUpRecordAPI): Forms, and the
+   * product of the record type in the path (:recordType, a FormTargetType).
+   */
+  public static formFollowUpRecord(req: RequestParts): Array<ProductKey> {
+    const recordType: string = readText(req.params?.["recordType"]);
+
+    return Object.prototype.hasOwnProperty.call(
+      PRODUCT_OF_FORM_TARGET_TYPE,
+      recordType,
+    )
+      ? [
+          ProductKey.Forms,
+          PRODUCT_OF_FORM_TARGET_TYPE[recordType as FormTargetType],
+        ]
+      : [ProductKey.Forms];
   }
 
   // The product of the record type in the path (:recordType).

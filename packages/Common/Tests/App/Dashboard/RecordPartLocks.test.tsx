@@ -31,7 +31,7 @@ configure({ asyncUtilTimeout: 15000 });
  * labelled Production - monitor B (no labels) showed Add owner and each
  * owner's remove button, and the server refused them after the click. On a
  * record's page every part's gate now takes what the record's labels and
- * owners leave of it (ModelPage's scope, PermissionGate.getPartLock):
+ * owners leave of it (ModelPage's scope, RecordLocks.getPartLock):
  *
  *   - B's Owners card: Add owner locked - "You do not have permission to
  *     add owners. Your permission is limited to monitors labelled

@@ -256,6 +256,7 @@ Une soumission qui dépasse une limite, omet une réponse obligatoire ou donne u
 
 :::cards
 - [Ce que crée une soumission](/docs/forms/on-submit): Comment les réponses et les paramètres À la soumission deviennent un incident ou un événement de maintenance.
+- [Suivre une soumission](/docs/forms/follow-ups): Les personnes qui envoient suivent leur demande, écrivent à votre équipe et ajoutent d'autres personnes.
 - [Partage et sécurité](/docs/forms/sharing-and-security): Partager le lien, un lien pour chaque modèle, et ce qui les protège.
 - [Paramètres et automatisation des incidents](/docs/incidents/settings): Champs personnalisés et modèles d'incident.
 :::

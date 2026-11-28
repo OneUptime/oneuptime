@@ -1232,6 +1232,7 @@ import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "./180918781115
 import { AddProjectSecurityTrustPrivateAddresses1809187811240 } from "./1809187811240-AddProjectSecurityTrustPrivateAddresses";
 import { SwapMonitorProbeClaimIndexForClaimOrder1809187821386 } from "./1809187821386-SwapMonitorProbeClaimIndexForClaimOrder";
 import { AddMonitorTemplateChangePolicyAndRule1809187821500 } from "./1809187821500-AddMonitorTemplateChangePolicyAndRule";
+import { AddFormFollowUps1809188000000 } from "./1809188000000-AddFormFollowUps";
 
 export default [
   InitialMigration,
@@ -2468,4 +2469,5 @@ export default [
   AddProjectSecurityTrustPrivateAddresses1809187811240,
   SwapMonitorProbeClaimIndexForClaimOrder1809187821386,
   AddMonitorTemplateChangePolicyAndRule1809187821500,
+  AddFormFollowUps1809188000000,
 ];

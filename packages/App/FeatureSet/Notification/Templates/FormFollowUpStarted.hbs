@@ -1,0 +1,36 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{!--
+  To the person who submitted a form with follow-ups on
+  (Common/Server/Utils/Form/FormFollowUp): their own link to what they sent,
+  where they read its state and its conversation with the team, write to the
+  team and add others. The form's name and the request's title are written
+  by the form's team and by the submitter, so every line that carries them
+  is printed through plainInfo or plainText - escaped - never the raw `info`.
+--}}
+
+{{> EmailTitle title="We got your request" }}
+
+{{> InfoBlock plainInfo=(concat "Your request was sent through " formName ". Use the link below to follow it: see where it stands, read the team's replies, write to them and add others who should follow it.")}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Request" plainText=requestTitle }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=requestUrl buttonText="Open Your Request"}}
+
+{{> LinkBlock linkUrl=requestUrl linkLabel="You can also copy and paste this link:"}}
+
+{{#if isSignInRequired}}
+{{> InfoBlock info="Sign in with this email address to open it."}}
+{{else}}
+{{> InfoBlock info="Keep this email: the link is yours, and anybody who has it can open the request."}}
+{{/if}}
+
+{{> InfoBlock info="<strong>Did not send this?</strong> Somebody may have typed your address by mistake. You can safely ignore this email."}}
+
+{{> VerticalSpace this}}
+
+{{> End this}}

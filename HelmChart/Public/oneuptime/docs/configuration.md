@@ -905,7 +905,11 @@ without `twilio.accountSid`. `twilio.callVoice` is a setting of its own, read
 with the account's values or without them: it sets the voice the server's calls
 speak with, whoever sets the account, and the chart's schema takes only one of
 OneUptime's voices. A call to someone who reads OneUptime in another language
-speaks it, in a voice of that language of the same kind. See
+speaks it, in a voice of that language of the same kind. So is
+`twilio.letProjectsChooseCallVoice`: `true` or `false`, it is the Admin
+Dashboard's Let projects choose their call voice switch, which the Admin
+Dashboard then shows locked, and the schema takes nothing else. Left empty, the
+switch is flipped in the Admin Dashboard. See
 [Twilio Integration](https://oneuptime.com/docs/self-hosted/twilio-integration).
 
 | Parameter                      | Description                                                                                       | Default |
@@ -918,6 +922,7 @@ speaks it, in a voice of that language of the same kind. See
 | `twilio.secondaryPhoneNumbers` | More numbers, comma-separated, used for recipients in their countries.                            | `nil`   |
 | `twilio.smsPhoneNumbers`       | The numbers every SMS goes out from, comma-separated. Required for `sms-only`.                    | `nil`   |
 | `twilio.callVoice`             | The voice calls speak with: `Polly.Joanna-Neural`, `Polly.Matthew-Neural`, `Polly.Amy-Neural`, `Polly.Brian-Neural`, `Google.en-US-Neural2-F` or `Google.en-US-Neural2-J`. Twilio charges the account extra for them. Empty leaves the voice to the Admin Dashboard. | `nil`   |
+| `twilio.letProjectsChooseCallVoice` | Whether each project chooses the voice of its own calls through this account: `true` or `false`. Twilio charges the account for each project's voice. Empty leaves the switch to the Admin Dashboard. Ignored on OneUptime Cloud. | `nil`   |
 
 ```yaml
 twilio:
@@ -926,6 +931,7 @@ twilio:
   existingSecret:
     name: oneuptime-twilio
   callVoice: Polly.Joanna-Neural
+  letProjectsChooseCallVoice: false
 ```
 
 ## Web push notifications

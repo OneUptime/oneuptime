@@ -1,0 +1,35 @@
+{{> Start this}}
+
+{{> Logo this}}
+
+{{!--
+  To somebody added to the people following a form submission
+  (Common/Server/Utils/Form/FormFollowUp): who added them, the request, and
+  their own link to it. Every name and title here was written by a person -
+  the form's team, the submitter, whoever added them - so each is printed
+  through plainInfo or plainText, escaped.
+--}}
+
+{{> EmailTitle title="You were added to a request" }}
+
+{{> InfoBlock plainInfo=(concat addedBy " added you to the people following a request sent through " formName ". You can see where it stands, read the team's replies and write to them.")}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Request" plainText=requestTitle }}
+{{> DetailBoxEnd this }}
+
+{{> ButtonBlock buttonUrl=requestUrl buttonText="Open the Request"}}
+
+{{> LinkBlock linkUrl=requestUrl linkLabel="You can also copy and paste this link:"}}
+
+{{#if isSignInRequired}}
+{{> InfoBlock info="Sign in with this email address to open it."}}
+{{else}}
+{{> InfoBlock info="The link is yours: anybody who has it can open the request."}}
+{{/if}}
+
+{{> InfoBlock info="<strong>Not expecting this?</strong> Open the request and choose Stop following, and you will get no more emails about it."}}
+
+{{> VerticalSpace this}}
+
+{{> End this}}

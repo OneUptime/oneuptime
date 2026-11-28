@@ -503,7 +503,9 @@ export const getServerSetupRow: (data: {
        * What else the server says of them, as it wrote it, by the
        * variable's name: a voice GLOBAL_TWILIO_CALL_VOICE names that
        * OneUptime does not offer (#11064), which leaves calls in the
-       * account's default voice.
+       * account's default voice, and a GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_
+       * CALL_VOICE that is neither true nor false (#11462), which leaves
+       * every project on the server's voice.
        */
       for (const note of check.notes || []) {
         checked.push({ template: note, values: {} });

@@ -8,6 +8,7 @@ Usa un modulo quando chi nota un problema, o ha bisogno di una modifica, non è 
 - [Creare il primo modulo](#creare-il-primo-modulo): Da un modulo vuoto a un link che puoi condividere.
 - [Creare un modulo](/docs/forms/building): Domande, tipi di risposta, domande nascoste, modelli e branding.
 - [Cosa crea un invio](/docs/forms/on-submit): Come le risposte e le impostazioni diventano un incidente o un evento di manutenzione.
+- [Seguire un invio](/docs/forms/follow-ups): Chi invia segue la propria richiesta, scrive al tuo team e aggiunge altre persone.
 - [Condivisione e sicurezza](/docs/forms/sharing-and-security): Il link, la lista degli IP consentiti, i limiti di frequenza e la risoluzione dei problemi.
 :::
 
@@ -290,6 +291,7 @@ Le vecchie pagine della dashboard reindirizzano a quelle nuove.
 :::cards
 - [Creare un modulo](/docs/forms/building): Domande, tipi di risposta, campi collegati, campi personalizzati e l'anteprima.
 - [Cosa crea un invio](/docs/forms/on-submit): Come le risposte e le impostazioni All'invio diventano un incidente o un evento di manutenzione.
+- [Seguire un invio](/docs/forms/follow-ups): Chi invia segue la propria richiesta, scrive al tuo team e aggiunge altre persone.
 - [Condivisione e sicurezza](/docs/forms/sharing-and-security): Il link, la lista degli IP consentiti, i limiti di frequenza, il captcha e la risoluzione dei problemi.
 - [Dichiarare un incidente](/docs/incidents/declaring-incidents): Gli altri modi di dichiarare gli incidenti.
 :::

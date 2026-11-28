@@ -201,5 +201,6 @@ Et filspørsmål holder filene som en innsender velger, i nettleseren og sender 
 - [Bygg et skjema](/docs/forms/building): Spørsmålene som fyller disse feltene, skjulte spørsmål og maler.
 - [Hendelsesinnstillinger og automatisering](/docs/incidents/settings): Hendelsesmaler og egendefinerte felt.
 - [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed): Private notater, offentlige notater og eiere.
+- [Følge opp en innsending](/docs/forms/follow-ups): Den som sender, følger forespørselen sin, skriver til teamet ditt og legger til andre.
 - [Deling og sikkerhet](/docs/forms/sharing-and-security): Hvem som kan sende inn, og hvor ofte.
 :::

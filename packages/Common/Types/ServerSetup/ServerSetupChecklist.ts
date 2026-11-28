@@ -568,6 +568,14 @@ export interface ServerSetupFacts {
    * is said beside them. None from an older server.
    */
   callVoiceProblem?: string | null | undefined;
+  /*
+   * What is wrong with GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE
+   * (#11462), by the variable's name: a value that is neither true nor
+   * false, while projects speak with the server's voice, or one set where
+   * it is ignored. Calls still go out, so it leaves SMS and calls as they
+   * stand, and is said beside them. None from an older server.
+   */
+  projectCallVoicesProblem?: string | null | undefined;
 }
 
 // One check's answer.
@@ -942,11 +950,16 @@ export default class ServerSetupChecklistUtil {
   ): ServerSetupCheckResult {
     /*
      * A voice GLOBAL_TWILIO_CALL_VOICE names that OneUptime does not offer
-     * (#11064): said beside SMS and calls whatever they stand at.
+     * (#11064), and a GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE that is
+     * neither true nor false (#11462): said beside SMS and calls whatever
+     * they stand at.
      */
-    const notes: Array<string> = facts.callVoiceProblem
-      ? [facts.callVoiceProblem]
-      : [];
+    const notes: Array<string> = [
+      facts.callVoiceProblem,
+      facts.projectCallVoicesProblem,
+    ].filter((note: string | null | undefined): note is string => {
+      return typeof note === "string" && note.length > 0;
+    });
 
     const channels: ServerSetupCheckResult["channels"] = [
       { ...facts.sms, sentThrough: facts.smsSentThrough },

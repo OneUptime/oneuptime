@@ -274,4 +274,5 @@ Der Vorfall eines Formulars führt die Bereitschaftsrichtlinien aus, die seine E
 - [Formulare – Übersicht](/docs/forms/index): Wofür Formulare da sind, Berechtigungen und die API.
 - [Ein Formular erstellen](/docs/forms/building): Die Fragen, ausgeblendete Fragen und Vorlagen.
 - [Was eine Einreichung erstellt](/docs/forms/on-submit): Der Vorfall oder das Ereignis, das jede Einreichung erstellt.
+- [Eine Einreichung nachverfolgen](/docs/forms/follow-ups): Wer sendet, verfolgt die eigene Anfrage, schreibt Ihrem Team und fügt andere hinzu.
 :::

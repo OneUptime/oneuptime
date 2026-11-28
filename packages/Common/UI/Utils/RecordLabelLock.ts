@@ -4,23 +4,22 @@ import LabelAccess, {
   LabelVerdict,
 } from "../../Types/LabelAccess/LabelAccess";
 import { formatNameList } from "./NameList";
-import PermissionGate, {
-  LabelledGateModel,
-  LabelLockAction,
-  ModelAction,
-  ModelLabelLock,
-  ModelPartLock,
-  ModelRecordLock,
-  PartGateModel,
-  PartLockAction,
-  RecordOwnershipFacts,
-} from "./PermissionGate";
+import { LabelledGateModel, ModelAction } from "./PermissionGate";
 import {
   RecordAccessScope,
   RecordGateAccess,
   RecordGateModel,
   RecordGateOperation,
 } from "./RecordAccessScope";
+import RecordLocks, {
+  LabelLockAction,
+  ModelLabelLock,
+  ModelPartLock,
+  ModelRecordLock,
+  PartGateModel,
+  PartLockAction,
+  RecordOwnershipFacts,
+} from "./RecordLocks";
 import {
   getRecordOwnershipFacts,
   RecordOwnershipState,
@@ -44,7 +43,7 @@ import React from "react";
  * "You do not have permission to delete Monitor without any labels." -
  * after the confirmation; the Dashboard offered it. Every lock of a
  * record's Edit and Delete now weighs the record's labels by the rule the
- * server refuses by (PermissionGate.getLabelLock, Types/LabelAccess) and
+ * server refuses by (RecordLocks.getLabelLock, Types/LabelAccess) and
  * says why after the lock's first sentence: "You do not have permission to
  * delete this monitor. Your permission is limited to monitors labelled
  * Payments."
@@ -282,7 +281,7 @@ export function getRecordLabelRefusal(data: {
  * Given the record's model, the scope answers its PARTS' gates too when
  * they ask (#11435, RecordAccessScope.getPartAccess): a monitor's owners'
  * Add and Remove, its probes' - what the record's labels and owners leave
- * the reader of the part's rows (PermissionGate.getPartLock).
+ * the reader of the part's rows (RecordLocks.getPartLock).
  *
  * Given who owns the record (#11436, the server's answer: RecordOwnership),
  * a change a grant scoped to Owned does not reach is refused with why; while
@@ -423,7 +422,7 @@ export function getRecordLabelAccessScope(data: {
 
       if (!parts.has(key)) {
         const lock: ModelPartLock | null = isPartGateModel(model)
-          ? PermissionGate.getPartLock(model, recordModel)
+          ? RecordLocks.getPartLock(model, recordModel)
           : null;
 
         parts.set(

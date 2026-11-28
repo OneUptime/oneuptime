@@ -1,4 +1,5 @@
 import FormMessage from "../../FeatureSet/Accounts/src/Utils/FormMessage";
+import FormFollowUpMessage from "../../FeatureSet/Accounts/src/Utils/FormFollowUpMessage";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
@@ -641,6 +642,8 @@ function docsCalloutNames(code: string): Record<string, string> {
 
 const FLAT_SENTENCES: Array<string> = [
   ...(Object.values(FormMessage) as Array<string>),
+  // A request's own refusals, the server's words (Components/FormFollowUp).
+  ...(Object.values(FormFollowUpMessage) as Array<string>),
   ...SHARED_FORM_SENTENCES,
   ...MARKDOWN_EDITOR_SENTENCES,
   ...MARKDOWN_TOOLBAR_WORDS,

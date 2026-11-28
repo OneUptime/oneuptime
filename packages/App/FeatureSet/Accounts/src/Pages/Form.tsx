@@ -13,6 +13,14 @@ import {
   submitPublicFormOnCustomDomain,
 } from "../Utils/Form";
 import FormSignInView from "../Components/FormSignIn/FormSignInView";
+import FormFollowUpView from "../Components/FormFollowUp/FormFollowUpView";
+import {
+  FormFollowUpView as FollowUpView,
+  getSubmissionFollowUpView,
+  keepFormFollowUpView,
+  takeFormFollowUpView,
+} from "../Utils/FormFollowUp";
+import { getFormDomainPageOrigin } from "../Utils/FormDomainPage";
 import {
   FormSignInTarget,
   describeFormSignInError,
@@ -280,6 +288,30 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
 
   // The template the form was filled in from; null for none.
   const [templateId, setTemplateId] = useState<string | null>(null);
+
+  /*
+   * The form's follow-ups (Components/FormFollowUp): the request or My
+   * requests this page shows in place of the form - opened from a link's
+   * address parameter, the thank-you screen or My requests, and kept for
+   * this tab, so a reload or a single sign-on round trip comes back to it.
+   */
+  const followUpKey: string = shareKey
+    ? shareKey
+    : `custom-domain:${getFormDomainPageOrigin()}`;
+
+  const [followUpView, setFollowUpView] = useState<FollowUpView | null>(
+    (): FollowUpView | null => {
+      return takeFormFollowUpView(followUpKey);
+    },
+  );
+
+  const openFollowUpView: (view: FollowUpView | null) => void = (
+    view: FollowUpView | null,
+  ): void => {
+    keepFormFollowUpView(followUpKey, view);
+    setFollowUpView(view);
+    window.scrollTo(0, 0);
+  };
 
   const [captchaResetSignal, setCaptchaResetSignal] = useState<number>(0);
 
@@ -810,6 +842,28 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
     return <AuthPageSkeleton fields={3} />;
   }
 
+  if (followUpView) {
+    return (
+      <PageShell
+        heading={form.name}
+        logo={form.logo}
+        logoAltText={form.logoAltText}
+        isOnCustomDomain={isOnCustomDomain}
+      >
+        <FormFollowUpView
+          target={{ shareKey: shareKey }}
+          view={followUpView}
+          isSignInForm={Boolean(signIn)}
+          onOpenView={openFollowUpView}
+          onBackToForm={() => {
+            openFollowUpView(null);
+            startAnotherResponse();
+          }}
+        />
+      </PageShell>
+    );
+  }
+
   if (result) {
     return (
       <PageShell
@@ -858,6 +912,39 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
         ) : (
           <></>
         )}
+        {result.followUp ? (
+          <div
+            className="mt-6 border-t border-gray-100 pt-6 text-center"
+            data-testid="form-follow-up"
+          >
+            {result.followUp.emailedTo ? (
+              <p className="text-sm text-gray-700 [overflow-wrap:anywhere]">
+                {t("formFollowUp.emailedLink", {
+                  email: result.followUp.emailedTo,
+                })}
+              </p>
+            ) : (
+              <></>
+            )}
+            <div className="mt-4 flex justify-center">
+              <Button
+                title={t("formFollowUp.openRequest")}
+                isTitleTranslated={true}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                dataTestId="form-open-request"
+                onClick={() => {
+                  if (result.followUp) {
+                    openFollowUpView(
+                      getSubmissionFollowUpView(result.followUp),
+                    );
+                  }
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <></>
+        )}
         <div className="mt-8 flex justify-center">
           <Button
             title={t("form.submitAnother")}
@@ -895,6 +982,20 @@ const FormPage: (props: FormPageProps) => JSX.Element = (
           <span className="[overflow-wrap:anywhere]">
             {t("formSignIn.signedInAs", { email: signIn.signedInAs })}
           </span>
+          {form.isFollowUpOn ? (
+            <button
+              type="button"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+              data-testid="form-my-requests-link"
+              onClick={() => {
+                openFollowUpView({ kind: "mine" });
+              }}
+            >
+              {t("formFollowUp.myRequests")}
+            </button>
+          ) : (
+            <></>
+          )}
           <button
             type="button"
             className="font-medium text-indigo-600 hover:text-indigo-500"

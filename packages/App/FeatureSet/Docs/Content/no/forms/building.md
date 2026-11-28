@@ -256,6 +256,7 @@ En innsending som bryter en grense, utelater et påkrevd svar eller gir et svar 
 
 :::cards
 - [Hva en innsending oppretter](/docs/forms/on-submit): Hvordan svarene og innstillingene Ved innsending blir til en hendelse eller en vedlikeholdshendelse.
+- [Følge opp en innsending](/docs/forms/follow-ups): Den som sender, følger forespørselen sin, skriver til teamet ditt og legger til andre.
 - [Deling og sikkerhet](/docs/forms/sharing-and-security): Del lenken, en lenke for hver mal, og hva som beskytter dem.
 - [Hendelsesinnstillinger og automatisering](/docs/incidents/settings): Egendefinerte felt og maler for hendelser.
 :::

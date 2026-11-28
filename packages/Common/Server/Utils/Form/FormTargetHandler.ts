@@ -65,6 +65,8 @@ export interface FormSubmissionCreated {
   id: ObjectID;
   // The record's number as the project shows it: "INC-42", "#7".
   reference?: string | undefined;
+  // The title it was created with, kept on the submission (FormSubmission.title).
+  title?: string | undefined;
 }
 
 /*

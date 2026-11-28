@@ -207,6 +207,34 @@ export default class FormSubmission extends BaseModel {
   })
   public answers?: JSONArray = undefined;
 
+  /*
+   * The title the record was created with, as the submission made it: the
+   * submitter's answer, the form's default title or its template's. Kept
+   * here, not read from the record, so the people following the request
+   * (FormSubmissionFollower) see what they sent even after a responder
+   * renames the record for the team. Empty for submissions made before it
+   * was kept.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [...READ_PERMISSIONS],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Title",
+    description:
+      "The title the incident, alert or maintenance event was created with, as the submission made it. Empty for submissions made before it was kept.",
+    example: "Checkout fails for orders over 100 items",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public title?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [...READ_PERMISSIONS],
@@ -237,7 +265,7 @@ export default class FormSubmission extends BaseModel {
     type: TableColumnType.Email,
     title: "Submitter Email",
     description:
-      "The email address the submitter gave. It is not verified, and nothing is sent to it. Empty when the form does not ask for it, or lets people leave it out and they did.",
+      "The email address the submitter gave. It is not verified. On a form with follow-ups on it is emailed a private link to the submission; otherwise nothing is sent to it. Empty when the form does not ask for it, or lets people leave it out and they did.",
     example: "jane.doe@example.com",
   })
   @Column({

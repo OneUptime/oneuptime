@@ -17,6 +17,8 @@ import {
   FORM_BRANDING_IMAGES,
   FormBrandingImageDefinition,
   getFormBrandingImageProblem,
+  getPublicFormBranding,
+  PublicFormBranding,
 } from "../../Types/Form/FormBranding";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -60,6 +62,7 @@ import {
   PublicForm,
   PublicFormField,
   PublicFormFieldType,
+  PublicFormSubmissionFollowUp,
   PublicFormSubmissionRequest,
   PublicFormSubmissionResult,
   readFormSubmissionTemplateId,
@@ -127,6 +130,7 @@ import {
 } from "../../Types/Form/FormPrivateUserSignIn";
 
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
+import FormFollowUp from "../Utils/Form/FormFollowUp";
 import Alert from "../../Models/DatabaseModels/Alert";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
@@ -220,6 +224,17 @@ export const FORM_NETWORK_NOT_ALLOWED_MESSAGE: string =
 interface StoredSubmissionFiles {
   answers: ValidatedFormAnswers;
   files: Array<CustomFieldFile>;
+}
+
+/*
+ * One file a stranger sent, to store (storeFormFiles): the question - or
+ * the reply box's field - it was sent for, as the refusal names it, the
+ * file, and what the caller groups it by.
+ */
+export interface FormFileToStore {
+  label: string;
+  file: FormFileAnswer;
+  key?: string | undefined;
 }
 
 /*
@@ -676,6 +691,11 @@ export class Service extends DatabaseService<Model> {
     });
     const built: BuiltPublicForm = await this.buildPublicFormFor(form);
 
+    // Its page offers My requests while its follow-ups are on.
+    if (form.enableFollowUps === true) {
+      built.form.isFollowUpOn = true;
+    }
+
     return built.form;
   }
 
@@ -934,7 +954,7 @@ export class Service extends DatabaseService<Model> {
       );
       logger.error(err, this.getLogAttributes(form));
 
-      await this.deleteSubmissionFiles({ form: form, files: stored.files });
+      await this.deleteStoredFormFiles({ form: form, files: stored.files });
 
       throw new ServerException(FORM_SUBMIT_FAILED_MESSAGE);
     }
@@ -942,7 +962,7 @@ export class Service extends DatabaseService<Model> {
     const sorted: SortedFormAnswers =
       FormTargetHelpers.sortAnswers(safeContext);
 
-    await this.recordSubmission({
+    const submissionId: ObjectID | null = await this.recordSubmission({
       form,
       created,
       context: safeContext,
@@ -967,7 +987,130 @@ export class Service extends DatabaseService<Model> {
       result.successMessage = form.successMessage;
     }
 
+    /*
+     * On a form with follow-ups on, the submitter follows what they sent
+     * (Utils/Form/FormFollowUp): emailed a link to it, and told on the
+     * thank-you screen where to open it. Attempted like the note, never
+     * thrown: the record exists, and the submitter must not send it again.
+     */
+    if (submissionId && form.enableFollowUps) {
+      const followUp: PublicFormSubmissionFollowUp | undefined =
+        await FormFollowUp.startAfterSubmission({
+          form: form,
+          submissionId: submissionId,
+          title: created.title,
+          reference: created.reference,
+          submitterName: sorted.submitterName,
+          submitterEmail: sorted.submitterEmail,
+          signedInEmail: form.requireSignIn
+            ? await this.findSignedInEmail({
+                form: form,
+                formSession: data.formSession,
+              })
+            : null,
+        });
+
+      if (followUp) {
+        result.followUp = followUp;
+      }
+    }
+
     return result;
+  }
+
+  /**
+   * The form a follow-up route names (Utils/Form/FormFollowUp), by its
+   * link's key, held to every check a visit to the form is before its
+   * sign-in: on, on its plan, inside the visitor's network. With what the
+   * follow-up routes read of it: its project and name, whether it asks its
+   * visitors to sign in and how, its follow-ups switch, and its branding.
+   * The sign-in is the follow-up's own to check: the session also says who
+   * the visitor is.
+   */
+  @CaptureSpan()
+  public async getFormForFollowUp(data: {
+    shareKey: string | undefined;
+    clientIp: string | undefined;
+  }): Promise<Model> {
+    return await this.assertPubliclyReachable({
+      form: await this.findFormByShareKey({
+        shareKey: data.shareKey,
+        select: {
+          _id: true,
+          projectId: true,
+          name: true,
+          isEnabled: true,
+          ipWhitelist: true,
+          requireSignIn: true,
+          requireSsoForLogin: true,
+          enableFollowUps: true,
+          logoAltText: true,
+          logoFile: {
+            file: true,
+            fileType: true,
+            projectId: true,
+          },
+          faviconFile: {
+            file: true,
+            fileType: true,
+            projectId: true,
+          },
+        },
+      }),
+      clientIp: data.clientIp,
+    });
+  }
+
+  /*
+   * The key of the form a custom domain answers with, for a follow-up route
+   * on that domain - or the one answer every unavailable form gets.
+   */
+  @CaptureSpan()
+  public async getShareKeyForCustomDomain(
+    hostname: string | null,
+  ): Promise<string> {
+    return await this.getShareKeyOnCustomDomain(hostname);
+  }
+
+  /*
+   * The address of the private user signed in to a form that asks its
+   * visitors to sign in, through the session reader its route handed over -
+   * or null when nobody is.
+   */
+  @CaptureSpan()
+  public async findSignedInEmail(data: {
+    form: Model;
+    formSession: FormSessionReader | undefined;
+  }): Promise<string | null> {
+    if (!data.form.requireSignIn) {
+      return null;
+    }
+
+    const session: FormPrivateUserSession | null =
+      await this.findSignedInSession({
+        formSession: data.formSession,
+        form: data.form,
+        withEmail: true,
+      });
+
+    const email: string = (
+      session?.formPrivateUser?.email?.toString() || ""
+    ).trim();
+
+    return email ? email.toLowerCase() : null;
+  }
+
+  /*
+   * The logo, its alt text and the favicon the form's follow-up pages show,
+   * from a form read with them (getFormForFollowUp) - only files of the
+   * form's own project, as the form's own page shows them.
+   */
+  public getFollowUpBranding(form: Model): PublicFormBranding {
+    return getPublicFormBranding({
+      logoFile: this.getOwnBrandingFile(form, form.logoFile),
+      logoAltText: form.logoAltText,
+      faviconFile: this.getOwnBrandingFile(form, form.faviconFile),
+    });
   }
 
   /*
@@ -1001,49 +1144,94 @@ export class Service extends DatabaseService<Model> {
       return { answers: data.answers, files: [] };
     }
 
-    const decoded: Map<
-      string,
-      Array<{ file: FormFileAnswer; bytes: Buffer }>
-    > = new Map();
-    let totalBytes: number = 0;
+    const entries: Array<FormFileToStore> = [];
 
     for (const field of fileFields) {
-      const files: Array<{ file: FormFileAnswer; bytes: Buffer }> = [];
-
       for (const file of getFormFileAnswerFiles(data.answers[field.id])) {
-        const bytes: Uint8Array | null = decodeBase64(
-          file.data,
-          FORM_FILE_MAX_SIZE_IN_BYTES,
-        );
-
-        // validateFormSubmission read every one of them already.
-        if (!bytes) {
-          throw new BadDataException(
-            `${field.label} takes a file chosen on the form, with its name, its type and its contents.`,
-          );
-        }
-
-        totalBytes += bytes.length;
-        files.push({ file: file, bytes: Buffer.from(bytes) });
+        entries.push({ label: field.label, file: file, key: field.id });
       }
-
-      decoded.set(field.id, files);
     }
 
-    /*
-     * Scanned for malware first, when the installation scans files
-     * (MalwareScanner, #6118): a file ClamAV flags refuses the submission,
-     * saying which (400), and so does ClamAV not answering (503) - nothing
-     * is stored unchecked, and a refused submission spends none of the
-     * form's hourly allowance of files.
-     */
-    await MalwareScanner.assertClean({
-      files: Array.from(decoded.values())
-        .flat()
-        .map((entry: { file: FormFileAnswer; bytes: Buffer }): ScannedFile => {
-          return { name: entry.file.name, bytes: entry.bytes };
-        }),
+    const stored: Array<CustomFieldFile> = await this.storeFormFiles({
+      form: data.form,
+      shareKey: data.shareKey,
+      files: entries,
       context: "a public form's submission",
+    });
+
+    const answers: ValidatedFormAnswers = { ...data.answers };
+
+    for (const field of fileFields) {
+      const fieldFiles: Array<CustomFieldFile> = stored.filter(
+        (_file: CustomFieldFile, index: number): boolean => {
+          return entries[index]!.key === field.id;
+        },
+      );
+
+      Object.defineProperty(answers, field.id, {
+        value: (field.type === PublicFormFieldType.MultipleFiles
+          ? fieldFiles
+          : fieldFiles[0] || null) as unknown as JSONValue,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    return { answers: answers, files: stored };
+  }
+
+  /**
+   * Files a stranger sent through a form - a submission's, or a follow-up
+   * message's (Utils/Form/FormFollowUp) - stored, in the order given:
+   * decoded again from the base64 the answer check read, scanned for malware
+   * when the installation scans files (MalwareScanner, #6118: a file ClamAV
+   * flags is refused, saying which, 400; ClamAV not answering is a 503),
+   * counted against the form's hourly allowance of files
+   * (FormFileAllowance.reserve: a 429 or a 503) - nothing stored until all
+   * of that passed - then written as File rows of the form's project,
+   * private and uploaded by nobody. A file that cannot be stored refuses the
+   * request (500) and takes the ones stored before it away.
+   */
+  @CaptureSpan()
+  public async storeFormFiles(data: {
+    form: Model;
+    shareKey: string | undefined;
+    files: Array<FormFileToStore>;
+    // What sent them, for the scanner's log.
+    context: string;
+  }): Promise<Array<CustomFieldFile>> {
+    if (data.files.length === 0) {
+      return [];
+    }
+
+    const decoded: Array<{ file: FormFileAnswer; bytes: Buffer }> = [];
+    let totalBytes: number = 0;
+
+    for (const entry of data.files) {
+      const bytes: Uint8Array | null = decodeBase64(
+        entry.file.data,
+        FORM_FILE_MAX_SIZE_IN_BYTES,
+      );
+
+      // The answer check read every one of them already.
+      if (!bytes) {
+        throw new BadDataException(
+          `${entry.label} takes a file chosen on the form, with its name, its type and its contents.`,
+        );
+      }
+
+      totalBytes += bytes.length;
+      decoded.push({ file: entry.file, bytes: Buffer.from(bytes) });
+    }
+
+    await MalwareScanner.assertClean({
+      files: decoded.map(
+        (entry: { file: FormFileAnswer; bytes: Buffer }): ScannedFile => {
+          return { name: entry.file.name, bytes: entry.bytes };
+        },
+      ),
+      context: data.context,
       logAttributes: this.getLogAttributes(data.form),
     });
 
@@ -1052,57 +1240,40 @@ export class Service extends DatabaseService<Model> {
       bytes: totalBytes,
     });
 
-    const answers: ValidatedFormAnswers = { ...data.answers };
     const storedFiles: Array<CustomFieldFile> = [];
 
     try {
-      for (const field of fileFields) {
-        const fieldFiles: Array<CustomFieldFile> = [];
+      for (const entry of decoded) {
+        const file: File = new File();
+        file.name = entry.file.name;
+        file.fileType = entry.file.fileType as MimeType;
+        file.file = entry.bytes;
+        // OneUptime's own write says what it means: private.
+        file.isPublic = false;
 
-        for (const entry of decoded.get(field.id) || []) {
-          const file: File = new File();
-          file.name = entry.file.name;
-          file.fileType = entry.file.fileType as MimeType;
-          file.file = entry.bytes;
-          // OneUptime's own write says what it means: private.
-          file.isPublic = false;
+        const created: File = await FileService.create({
+          data: file,
+          props: {
+            isRoot: true,
+            tenantId: data.form.projectId!,
+          },
+        });
 
-          const created: File = await FileService.create({
-            data: file,
-            props: {
-              isRoot: true,
-              tenantId: data.form.projectId!,
-            },
-          });
-
-          const storedFile: CustomFieldFile = {
-            fileId: created.id!.toString().toLowerCase(),
-            name: entry.file.name,
-            fileType: entry.file.fileType,
-            size: entry.bytes.length,
-          };
-
-          storedFiles.push(storedFile);
-          fieldFiles.push(storedFile);
-        }
-
-        Object.defineProperty(answers, field.id, {
-          value: (field.type === PublicFormFieldType.MultipleFiles
-            ? fieldFiles
-            : fieldFiles[0] || null) as unknown as JSONValue,
-          enumerable: true,
-          writable: true,
-          configurable: true,
+        storedFiles.push({
+          fileId: created.id!.toString().toLowerCase(),
+          name: entry.file.name,
+          fileType: entry.file.fileType,
+          size: entry.bytes.length,
         });
       }
     } catch (err) {
       logger.error(
-        `FormService: form ${data.form.id?.toString()} could not store a submission's files.`,
+        `FormService: form ${data.form.id?.toString()} could not store the files of ${data.context}.`,
         this.getLogAttributes(data.form),
       );
       logger.error(err, this.getLogAttributes(data.form));
 
-      await this.deleteSubmissionFiles({
+      await this.deleteStoredFormFiles({
         form: data.form,
         files: storedFiles,
       });
@@ -1110,11 +1281,16 @@ export class Service extends DatabaseService<Model> {
       throw new ServerException(FORM_SUBMIT_FAILED_MESSAGE);
     }
 
-    return { answers: answers, files: storedFiles };
+    return storedFiles;
   }
 
-  // A refused submission's stored files, taken away again. Best-effort.
-  private async deleteSubmissionFiles(data: {
+  /*
+   * Stored files of a request that did not go through - a refused
+   * submission's, a follow-up message that could not be kept - taken away
+   * again. Best-effort.
+   */
+  @CaptureSpan()
+  public async deleteStoredFormFiles(data: {
     form: Model;
     files: Array<CustomFieldFile>;
   }): Promise<void> {
@@ -1137,7 +1313,7 @@ export class Service extends DatabaseService<Model> {
       });
     } catch (err) {
       logger.error(
-        `FormService: could not take away the files of a refused submission to form ${data.form.id?.toString()}.`,
+        `FormService: could not take away the stored files of a request to form ${data.form.id?.toString()} that did not go through.`,
         this.getLogAttributes(data.form),
       );
       logger.error(err, this.getLogAttributes(data.form));
@@ -1449,6 +1625,7 @@ export class Service extends DatabaseService<Model> {
           targetSettings: true,
           templates: true,
           successMessage: true,
+          enableFollowUps: true,
           ipWhitelist: true,
           requireSignIn: true,
           requireSsoForLogin: true,
@@ -1745,18 +1922,26 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  // The record the dashboard lists under the form's Submissions.
+  /*
+   * The record the dashboard lists under the form's Submissions. Its id, or
+   * null when it could not be kept - the submission stands without it, but
+   * nobody can follow it.
+   */
   private async recordSubmission(data: {
     form: Model;
     created: FormSubmissionCreated;
     context: FormSubmissionContext;
     sorted: SortedFormAnswers;
-  }): Promise<void> {
+  }): Promise<ObjectID | null> {
     try {
       const submission: FormSubmission = new FormSubmission();
       submission.projectId = data.form.projectId!;
       submission.formId = data.form.id!;
       submission.targetType = readFormTargetType(data.form.targetType);
+
+      if (data.created.title) {
+        submission.title = data.created.title;
+      }
 
       if (submission.targetType === FormTargetType.ScheduledMaintenance) {
         submission.scheduledMaintenanceId = data.created.id;
@@ -1781,12 +1966,14 @@ export class Service extends DatabaseService<Model> {
         submission.submitterEmail = new Email(data.sorted.submitterEmail);
       }
 
-      await FormSubmissionService.create({
+      const recorded: FormSubmission = await FormSubmissionService.create({
         data: submission,
         props: {
           isRoot: true,
         },
       });
+
+      return recorded.id || null;
     } catch (err) {
       this.logFailureAfterCreate({
         form: data.form,
@@ -1794,6 +1981,8 @@ export class Service extends DatabaseService<Model> {
         step: "record the submission for",
         error: err,
       });
+
+      return null;
     }
   }
 
