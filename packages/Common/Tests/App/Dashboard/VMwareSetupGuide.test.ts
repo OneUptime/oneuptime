@@ -291,6 +291,33 @@ const composeVariables: (serviceName: string) => Map<string, string | null> = (
   return variables;
 };
 
+/*
+ * The containers' names the compose file reads from .env, with their
+ * defaults: each service runs as `container_name: ${NAME:-default}`, so a
+ * second vCenter's agent on the same machine runs under names of its own
+ * (#11434).
+ */
+const containerNameVariables: () => Map<string, string> = (): Map<
+  string,
+  string
+> => {
+  const variables: Map<string, string> = new Map();
+  for (const service of Object.values(
+    composeFile()["services"] as Record<string, Record<string, string>>,
+  )) {
+    const match: RegExpMatchArray | null = (
+      service["container_name"] || ""
+    ).match(/^\$\{([A-Z0-9_]+):-([^}]+)\}$/);
+    if (!match) {
+      throw new Error(
+        `A container whose name is not read from .env: ${service["container_name"]}`,
+      );
+    }
+    variables.set(match[1]!, match[2]!);
+  }
+  return variables;
+};
+
 // The rows of the guide's environment variable table.
 const envTableRows: (
   guide: SetupGuideContent,
@@ -478,7 +505,7 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
     }
   });
 
-  test("has Advanced topics for settings, files, data, power state, syslog, labels, AI and upgrades", () => {
+  test("has Advanced topics for settings, files, data, power state, syslog, labels, AI, several vCenters and upgrades", () => {
     expect(topicTitles(guide.advanced)).toEqual([
       "Environment variables",
       "The agent's configuration files",
@@ -487,6 +514,8 @@ describe.each(METHOD_KEYS)("the %s guide", (method: VMwareInstallMethod) => {
       "Ship ESXi syslog",
       "Tag the vCenter with project labels",
       "OneUptime AI agent",
+      // Without Docker no container runs, so none is named.
+      ...(isDockerMethod(method) ? ["Monitoring several vCenters"] : []),
       "Upgrade or uninstall the agent",
     ]);
   });
@@ -1697,21 +1726,31 @@ describe("drift guards against agents/VMwareAgent", () => {
     });
   });
 
-  test("the environment table documents exactly what the collector reads", () => {
+  test("the environment table documents exactly what the collector reads, and every container's name with Docker", () => {
     const collector: Map<string, string | null> = composeVariables(
       VMWARE_AGENT_CONTAINER,
     );
+    expect(Array.from(containerNameVariables().keys())).toEqual([
+      "VMWARE_AGENT_CONTAINER_NAME",
+      "VMWARE_AI_AGENT_CONTAINER_NAME",
+    ]);
     for (const method of METHOD_KEYS) {
+      // Without Docker no container runs, so none is named.
+      const names: Array<string> =
+        method === "linux-service"
+          ? []
+          : Array.from(containerNameVariables().keys());
       expect(Array.from(envTableRows(guideFor(method)).keys()).sort()).toEqual(
-        Array.from(collector.keys()).sort(),
+        [...Array.from(collector.keys()), ...names].sort(),
       );
     }
   });
 
   test("the defaults the table gives are the compose file's", () => {
-    const collector: Map<string, string | null> = composeVariables(
-      VMWARE_AGENT_CONTAINER,
-    );
+    const collector: Map<string, string | null> = new Map([
+      ...Array.from(composeVariables(VMWARE_AGENT_CONTAINER)),
+      ...Array.from(containerNameVariables()),
+    ]);
     const rows: Map<string, { required: string; description: string }> =
       envTableRows(guideFor("docker-compose"));
     let checked: number = 0;
@@ -1727,7 +1766,8 @@ describe("drift guards against agents/VMwareAgent", () => {
         checked++;
       }
     }
-    expect(checked).toBe(3);
+    // Three settings', and the two containers' names.
+    expect(checked).toBe(5);
   });
 
   test("the .env block sets exactly the variables the collector reads", () => {
@@ -1791,7 +1831,7 @@ describe("drift guards against agents/VMwareAgent", () => {
    */
   test("the install script recreates the containers it starts", () => {
     expect(readAgentFile("install.sh")).toMatch(
-      /^docker compose up -d --force-recreate$/m,
+      /^if ! docker compose up -d --force-recreate; then$/m,
     );
   });
 
@@ -1849,11 +1889,10 @@ describe("drift guards against agents/VMwareAgent", () => {
   });
 
   test("the containers the guide names are the compose file's", () => {
-    const containers: Array<string> = Object.values(
-      composeFile()["services"] as Record<string, Record<string, string>>,
-    ).map((service: Record<string, string>): string => {
-      return service["container_name"]!;
-    });
+    // A first agent's: the default of each name .env may set.
+    const containers: Array<string> = Array.from(
+      containerNameVariables().values(),
+    );
     expect(containers.sort()).toEqual(
       [VMWARE_AGENT_CONTAINER, VMWARE_AI_AGENT_CONTAINER].sort(),
     );

@@ -68150,5 +68150,11 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here."
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.",
+  "Monitoring several clouds": "Monitoring several clouds",
+  "Monitoring several clusters": "Monitoring several clusters",
+  "Monitoring several vCenters": "Monitoring several vCenters",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "One agent per cloud, each in a folder of its own with container names of its own.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "One agent per cluster, each in a folder of its own with container names of its own.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "One agent per vCenter, each in a folder of its own with container names of its own."
 }

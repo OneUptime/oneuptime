@@ -1024,6 +1024,8 @@ describe.each([
     upgrade: getProxmoxAgentUpgradeCommand(URL),
     download: getProxmoxAgentDownloadCommand(URL),
     recreate: PROXMOX_AGENT_RECREATE_COMMAND,
+    // It says what to do when another agent on the machine holds a name (#11434).
+    start: /^if ! docker compose up -d --force-recreate; then$/m,
     setupGuide: (method: string): SetupGuideContent => {
       return getProxmoxSetupGuide({
         oneuptimeUrl: URL,
@@ -1044,6 +1046,8 @@ describe.each([
     upgrade: getCephAgentUpgradeCommand(URL),
     download: getCephAgentDownloadCommand(URL),
     recreate: CEPH_AGENT_RECREATE_COMMAND,
+    // It says what to do when another agent on the machine holds a name (#11434).
+    start: /^if ! docker compose up -d --force-recreate; then$/m,
     setupGuide: (method: string): SetupGuideContent => {
       return getCephSetupGuide({
         oneuptimeUrl: URL,
@@ -1065,6 +1069,8 @@ describe.each([
     download: getVMwareAgentDownloadCommand(URL),
     recreate: VMWARE_AGENT_RECREATE_COMMAND,
     withoutDocker: getVMwareNativeUpgradeCommand(URL),
+    // It says what to do when another agent on the machine holds a name (#11434).
+    start: /^if ! docker compose up -d --force-recreate; then$/m,
     setupGuide: (method: string): SetupGuideContent => {
       return getVMwareSetupGuide({
         oneuptimeUrl: URL,
