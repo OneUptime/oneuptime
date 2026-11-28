@@ -121,9 +121,9 @@ function asTheTemplateMakesItNow(stored: JSONObject): JSONObject {
 
   (expected["variables"] as Array<JSONObject>).forEach(
     (variable: JSONObject, index: number) => {
-      const scope: unknown = (template["variables"] as Array<JSONObject>)[
-        index
-      ]!["resourceScope"];
+      const scope: JSONObject[string] = (
+        template["variables"] as Array<JSONObject>
+      )[index]!["resourceScope"];
 
       if (scope) {
         variable["resourceScope"] = scope;
