@@ -68489,5 +68489,17 @@
   "This server's voice": "Stemmen til denne serveren",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio tar ekstra betalt for disse stemmene: under {{cents}} amerikanske cent per vaktanrop, på alle språk.",
   "Voice": "Stemme",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "Kjør dette i agentens mappe. .env-filen din beholdes; bruk endringene du gjorde i de nedlastede filene på nytt."
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "Kjør dette i agentens mappe. .env-filen din beholdes; bruk endringene du gjorde i de nedlastede filene på nytt.",
+  "Nothing to change on this key: OneUptime takes telemetry again once its queue has room, and senders retry what was refused. If you run this OneUptime server, give its telemetry workers or Valkey more room.": "Ingenting å endre på denne nøkkelen: OneUptime tar imot telemetri igjen så snart køen har plass, og avsenderne prøver på nytt med det som ble avvist. Hvis du drifter denne OneUptime-serveren, gi serverens telemetri-workers eller Valkey mer plass.",
+  "Nothing to change on this key: OneUptime takes this project's telemetry again once it has stored what is waiting, and senders retry what was refused. Sending less at once keeps it from happening again.": "Ingenting å endre på denne nøkkelen: OneUptime tar imot telemetrien til dette prosjektet igjen så snart den har lagret det som venter, og avsenderne prøver på nytt med det som ble avvist. Sender du mindre om gangen, skjer det ikke igjen.",
+  "OneUptime is still storing what this project already sent, so it refuses more for now.": "OneUptime holder fortsatt på å lagre det dette prosjektet allerede har sendt, så ny telemetri avvises foreløpig.",
+  "OneUptime's telemetry queue is nearly full, so it refuses telemetry from every project for now.": "OneUptimes telemetrikø er nesten full, så telemetri fra alle prosjekter avvises foreløpig.",
+  "Refused While OneUptime Catches Up": "Avvist mens OneUptime tar igjen etterslepet",
+  "Refusing now": "Avvises nå",
+  "See what was refused": "Se hva som ble avvist",
+  "Telemetry queue nearly full": "Telemetrikøen er nesten full",
+  "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "Telemetri avvist det siste døgnet fordi for mye av den ventet på å bli lagret, ikke på grunn av et budsjett. Avsendere prøver på nytt med det som avvises, så det kommer sent, med mindre en avsender gir opp først.",
+  "Too much waiting to be stored": "For mye venter på å bli lagret",
+  "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime holder fortsatt på å lagre dataene dette prosjektet allerede har sendt, så nye data avvises foreløpig. Avsendere prøver på nytt med det som avvises, så det kommer sent, med mindre en avsender gir opp først.",
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptimes telemetrikø er nesten full, så nye data fra alle prosjekter avvises foreløpig. Avsendere prøver på nytt med det som avvises, så det kommer sent, med mindre en avsender gir opp først."
 }
