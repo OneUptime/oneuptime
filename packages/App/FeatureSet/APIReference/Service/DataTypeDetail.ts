@@ -1017,7 +1017,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "Array<WeeklyRestriction>",
         required: false,
         description:
-          "For Weekly: the windows of the week the layer is on call, each { startDay, startTime, endDay, endTime }, with startTime and endTime DateTimes dated on the weekdays they name. A window is continuous from its start to its end; an empty list restricts nothing.",
+          "For Weekly: the windows of the week the layer is on call, each { startDay, startTime, endDay, endTime }. OneUptime reads each window's days and times from startTime and endTime, DateTimes read in the schedule's time zone, so date them on the weekdays startDay and endDay name, as the dashboard does. A window is continuous from its start to its end; an empty list restricts nothing.",
       },
     ],
     values: [],
@@ -1358,7 +1358,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "RestrictionTimes (object)",
         required: false,
         description:
-          "The days of the week and the times of day this criteria is judged in, as an on-call rule's working hours are kept: { _type: 'RestrictionTimes', value: { restictionType: 'Weekly', weeklyRestrictionTimes: [{ startDay, endDay, startTime, endTime }] } }, read on the clock of activeHoursTimezone. Outside them the criteria is skipped as a disabled criteria is, so what it opened resolves. Leave it out to judge it on every check.",
+          "The days of the week and the times of day this criteria is judged in, as an on-call rule's working hours are kept: { _type: 'RestrictionTimes', value: { restrictionType: 'Weekly', weeklyRestrictionTimes: [{ startDay, endDay, startTime, endTime }] } }, read on the clock of activeHoursTimezone. Outside them the criteria is skipped as a disabled criteria is, so what it opened resolves. Leave it out to judge it on every check. The type can also be written under restictionType, its older spelling, and a monitor read back carries it under both.",
       },
       {
         name: "activeHoursTimezone",
