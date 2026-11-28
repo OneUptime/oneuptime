@@ -431,7 +431,10 @@ tests:
         callVoice: Polly.Joanna
     asserts: &refusesCallVoice
       - failedTemplate:
-          errorPattern: "twilio.callVoice must be one of the following"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/twilio/callVoice': value must be one of <nil>, '', 'Polly.Joanna-Neural', 'Polly.Matthew-Neural', 'Polly.Amy-Neural', 'Polly.Brian-Neural', 'Google.en-US-Neural2-F', 'Google.en-US-Neural2-J'
 
   - it: refuses a voice written in another case
     templates:
