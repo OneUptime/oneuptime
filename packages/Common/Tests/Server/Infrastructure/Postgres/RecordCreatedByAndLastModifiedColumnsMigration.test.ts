@@ -217,6 +217,12 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     migration:
       "1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds.ts",
   },
+  // A change of many monitors' template, and how far it got (#11260, #11266).
+  {
+    table: "MonitorTemplateChange",
+    migration:
+      "1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(
