@@ -82,6 +82,12 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * which Table's filters still bring here
  * (FormEntityDropdownFirstLoadBuild.test.ts holds a form to all three).
  *
+ * PermissionGate, which every button and form asks, weighed one record's
+ * labels and owners as well (#11259, #11435, #11436): the locks of a
+ * record's list and its page, with the server's answer for who owns it, of
+ * which no sign-in page shows one. Those are a module of their own
+ * (RecordLocks), which only the pages that show records import.
+ *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
  * metafile (Helpers/FirstLoadBuild): the first load is the entry's file and
@@ -402,6 +408,16 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the ciphers crypto-js's index brought (AES, Triple DES, Blowfish, RC4, Rabbit)",
     path: "node_modules/crypto-js/cipher-core.js",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "the locks a record's labels and owners put on it and its parts, which only a page that shows records reads",
+    path: "UI/Utils/RecordLocks.ts",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "the server's answer for who owns a record, which those locks weigh",
+    path: "Types/RecordAccess/RecordOwnership.ts",
     isLoadedWhenNeeded: false,
   },
 ];

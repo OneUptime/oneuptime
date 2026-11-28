@@ -6,7 +6,7 @@ import { subscribeToModelHeaderChanged } from "./ModelHeaderEvents";
 import { nameRecordInTrail } from "./RecordNameInTrail";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
-import PermissionGate, { ModelRecordLock } from "../../Utils/PermissionGate";
+import RecordLocks, { ModelRecordLock } from "../../Utils/RecordLocks";
 import {
   RecordAccessScope,
   RecordAccessScopeContext,
@@ -438,9 +438,9 @@ const ModelPage: <TBaseModel extends BaseModel>(
    */
   const pageModel: TBaseModel = new props.modelType();
   const recordLock: ModelRecordLock | null =
-    PermissionGate.getRecordLock(pageModel);
+    RecordLocks.getRecordLock(pageModel);
   const lockLabelNames: ReadonlyMap<string, string> = useLabelNames(
-    PermissionGate.getSnapshotLabelIds(),
+    RecordLocks.getSnapshotLabelIds(),
   );
   const outerRecordAccess: RecordAccessScope | null = useRecordAccessScope();
 
@@ -488,7 +488,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
         isOwnershipRead: ownership.isRead,
         names: Array.from(lockLabelNames.entries()),
         language: translator.language,
-        permissions: PermissionGate.getSnapshotKey(),
+        permissions: RecordLocks.getSnapshotKey(),
       })
     : "";
 
