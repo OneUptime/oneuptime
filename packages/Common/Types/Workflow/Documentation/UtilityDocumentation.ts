@@ -290,6 +290,58 @@ export const getExecuteWorkflowDocumentation: UtilityDocumentationFunction = (
   };
 };
 
+export const getGetFilesFromMarkdownDocumentation: UtilityDocumentationFunction =
+  (context: ComponentDocumentationContext): ComponentDocumentation => {
+    return {
+      summary:
+        "Reads the images a record's Markdown shows, such as the screenshots in an incident's description, with each image's name, type and data, ready to attach to an email.",
+      steps: [
+        "Pick the **Record Type**: the kind of record whose Markdown shows the images, such as Incident or Incident Public Note.",
+        "Put the record's ID in **Record ID** with { }. Usually it is the ID of the record that started this workflow.",
+        "Connect **Success** to the step that sends the email, and hand it **Files**.",
+      ],
+      examples: [
+        {
+          title: "Every image, for a later step",
+          code: ownReference(context, "files"),
+          description:
+            "Each image has `name`, `mimeType`, `sizeInBytes`, `base64`, `contentId`, `urls` and `fields`.",
+        },
+      ],
+      notes: [
+        {
+          type: ComponentDocumentationNoteType.Tip,
+          text: "To show an image where the Markdown puts it in an HTML email, replace each of its `urls` with `cid:` and its `contentId`, and attach it with the same content ID.",
+        },
+        {
+          type: ComponentDocumentationNoteType.Warning,
+          text: "Only pictures such as PNG, JPEG, GIF and WebP are handed out, up to 20 images and 10 MB in all. An SVG image, or anything past the limits, is listed under **Left Out** with the reason.",
+        },
+      ],
+      learnMore: [
+        {
+          title: "Which images it reads",
+          paragraphs: [
+            "The step reads the record as the workflow, as a Find One step does: a record of another project, a private incident or a record the workflow may not read is not read, and the step takes **Error**.",
+            "It hands out only the images that the record's Markdown fields and Markdown custom fields show, and only images of the record's own project. It cannot list files, or read one by its address.",
+          ],
+        },
+        {
+          title: "Why Files is hidden in the run's log",
+          paragraphs: [
+            "**Files** holds every image's data, so the run's log shows **Count** and **Left Out** instead. A later step that is handed the images writes what it is handed to its own entry in the log.",
+          ],
+        },
+      ],
+      links: [
+        docsLink(
+          "Get Files From Markdown guide",
+          WorkflowDocsPaths.getFilesFromMarkdown,
+        ),
+      ],
+    };
+  };
+
 export const getJavaScriptDocumentation: UtilityDocumentationFunction = (
   context: ComponentDocumentationContext,
 ): ComponentDocumentation => {
