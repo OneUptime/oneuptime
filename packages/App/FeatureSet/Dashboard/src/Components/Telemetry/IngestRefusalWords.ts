@@ -62,6 +62,16 @@ export const REFUSAL_REASON_WORDS: Readonly<
   [TelemetryIngestRefusalReason.ProjectBlocked]: translationKey(
     "An administrator blocked this project, so its telemetry is refused.",
   ),
+  /*
+   * The telemetry queue's (#11440), which the project's Usage page says in
+   * the same words (TelemetryQueueRefusalWords).
+   */
+  [TelemetryIngestRefusalReason.QueueBacklogged]: translationKey(
+    "OneUptime is still storing what this project already sent, so it refuses more for now.",
+  ),
+  [TelemetryIngestRefusalReason.QueueFull]: translationKey(
+    "OneUptime's telemetry queue is nearly full, so it refuses telemetry from every project for now.",
+  ),
 };
 
 /*
@@ -108,6 +118,12 @@ export const REFUSAL_REASON_LABELS: Readonly<
   [TelemetryIngestRefusalReason.ProjectBlocked]: translationKey(
     "Project blocked by an administrator",
   ),
+  [TelemetryIngestRefusalReason.QueueBacklogged]: translationKey(
+    "Too much waiting to be stored",
+  ),
+  [TelemetryIngestRefusalReason.QueueFull]: translationKey(
+    "Telemetry queue nearly full",
+  ),
 };
 
 // What puts a refusal right, as a button names it.
@@ -127,8 +143,9 @@ export const ADD_A_PAYMENT_METHOD: string = translationKey(
  *   budgets   - the project's budgets (Settings > Usage);
  *   billing   - a payment method (Settings > Billing);
  *   null      - nothing here puts it right (a blocked project; a key on an
- *               endpoint that does not take its kind). The key's page still
- *               says the fix in words (KEY_PAGE_REFUSAL_FIX_WORDS).
+ *               endpoint that does not take its kind; OneUptime catching up
+ *               on the telemetry queue, #11440). The key's page still says
+ *               the fix in words (KEY_PAGE_REFUSAL_FIX_WORDS).
  */
 export type IngestRefusalFix = "pick-key" | "open-key" | "budgets" | "billing";
 
@@ -148,6 +165,9 @@ export const INGEST_REFUSAL_FIXES: Readonly<
   [TelemetryIngestRefusalReason.ProjectIngestionRate]: "budgets",
   [TelemetryIngestRefusalReason.PaymentRequired]: "billing",
   [TelemetryIngestRefusalReason.ProjectBlocked]: null,
+  // Nothing to put right: OneUptime takes it again once it has caught up.
+  [TelemetryIngestRefusalReason.QueueBacklogged]: null,
+  [TelemetryIngestRefusalReason.QueueFull]: null,
 };
 
 export const INGEST_REFUSAL_FIX_LABELS: Readonly<
@@ -208,6 +228,12 @@ export const KEY_PAGE_REFUSAL_FIX_WORDS: Readonly<
   ),
   [TelemetryIngestRefusalReason.ProjectBlocked]: translationKey(
     "Ask an administrator of this OneUptime server to unblock the project.",
+  ),
+  [TelemetryIngestRefusalReason.QueueBacklogged]: translationKey(
+    "Nothing to change on this key: OneUptime takes this project's telemetry again once it has stored what is waiting, and senders retry what was refused. Sending less at once keeps it from happening again.",
+  ),
+  [TelemetryIngestRefusalReason.QueueFull]: translationKey(
+    "Nothing to change on this key: OneUptime takes telemetry again once its queue has room, and senders retry what was refused. If you run this OneUptime server, give its telemetry workers or Valkey more room.",
   ),
 };
 

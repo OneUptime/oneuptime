@@ -68354,5 +68354,17 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "Голос, которым говорят звонки вашего проекта, когда они идут через аккаунт Twilio этого сервера. У собственной конфигурации Twilio свой голос.",
   "This server's voice": "Голос этого сервера",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio взимает за эти голоса дополнительную плату: менее {{cents}} центов США за каждый звонок дежурному, на любом языке.",
-  "Voice": "Голос"
+  "Voice": "Голос",
+  "Nothing to change on this key: OneUptime takes telemetry again once its queue has room, and senders retry what was refused. If you run this OneUptime server, give its telemetry workers or Valkey more room.": "В настройках этого ключа ничего менять не нужно: OneUptime снова начнёт принимать телеметрию, как только в его очереди освободится место, а отправители повторят отклонённые запросы. Если вы управляете этим сервером OneUptime, выделите его воркерам телеметрии или Valkey больше ресурсов.",
+  "Nothing to change on this key: OneUptime takes this project's telemetry again once it has stored what is waiting, and senders retry what was refused. Sending less at once keeps it from happening again.": "В настройках этого ключа ничего менять не нужно: OneUptime снова начнёт принимать телеметрию этого проекта, как только сохранит то, что ждёт в очереди, а отправители повторят отклонённые запросы. Если отправлять меньше данных за раз, этого больше не случится.",
+  "OneUptime is still storing what this project already sent, so it refuses more for now.": "OneUptime всё ещё сохраняет то, что этот проект уже отправил, поэтому пока отклоняет новую телеметрию.",
+  "OneUptime's telemetry queue is nearly full, so it refuses telemetry from every project for now.": "Очередь телеметрии OneUptime почти заполнена, поэтому телеметрия от всех проектов пока отклоняется.",
+  "Refused While OneUptime Catches Up": "Отклонено, пока OneUptime разбирает очередь",
+  "Refusing now": "Отклоняется сейчас",
+  "See what was refused": "Посмотреть, что отклонено",
+  "Telemetry queue nearly full": "Очередь телеметрии почти заполнена",
+  "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "Телеметрия, отклонённая за последние сутки из-за того, что слишком много её ожидало сохранения, а не из-за бюджета. Отправители повторяют отклонённые запросы, так что данные приходят с опозданием, если только отправитель раньше не прекратит попытки.",
+  "Too much waiting to be stored": "Слишком много данных ждёт сохранения",
+  "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime всё ещё сохраняет то, что этот проект уже отправил, поэтому пока отклоняет новые данные. Отправители повторяют отклонённые запросы, так что данные приходят с опозданием, если только отправитель раньше не прекратит попытки.",
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: очередь телеметрии OneUptime почти заполнена, поэтому новые данные от всех проектов пока отклоняются. Отправители повторяют отклонённые запросы, так что данные приходят с опозданием, если только отправитель раньше не прекратит попытки."
 }

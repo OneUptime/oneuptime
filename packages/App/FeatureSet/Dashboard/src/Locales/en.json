@@ -68354,5 +68354,17 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.",
   "This server's voice": "This server's voice",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.",
-  "Voice": "Voice"
+  "Voice": "Voice",
+  "Nothing to change on this key: OneUptime takes telemetry again once its queue has room, and senders retry what was refused. If you run this OneUptime server, give its telemetry workers or Valkey more room.": "Nothing to change on this key: OneUptime takes telemetry again once its queue has room, and senders retry what was refused. If you run this OneUptime server, give its telemetry workers or Valkey more room.",
+  "Nothing to change on this key: OneUptime takes this project's telemetry again once it has stored what is waiting, and senders retry what was refused. Sending less at once keeps it from happening again.": "Nothing to change on this key: OneUptime takes this project's telemetry again once it has stored what is waiting, and senders retry what was refused. Sending less at once keeps it from happening again.",
+  "OneUptime is still storing what this project already sent, so it refuses more for now.": "OneUptime is still storing what this project already sent, so it refuses more for now.",
+  "OneUptime's telemetry queue is nearly full, so it refuses telemetry from every project for now.": "OneUptime's telemetry queue is nearly full, so it refuses telemetry from every project for now.",
+  "Refused While OneUptime Catches Up": "Refused While OneUptime Catches Up",
+  "Refusing now": "Refusing now",
+  "See what was refused": "See what was refused",
+  "Telemetry queue nearly full": "Telemetry queue nearly full",
+  "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.",
+  "Too much waiting to be stored": "Too much waiting to be stored",
+  "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.",
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first."
 }

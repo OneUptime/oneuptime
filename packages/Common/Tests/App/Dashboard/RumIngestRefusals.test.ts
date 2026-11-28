@@ -49,6 +49,7 @@ import {
   getIngestRefusalReasonLabel,
   getIngestRefusalReasonText,
   getIngestSurfaceLabel,
+  getKeyPageRefusalFixText,
   isIngestRefusalRecent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/IngestRefusalWords";
 import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
@@ -468,7 +469,80 @@ describe("what a refusal says", () => {
       [TelemetryIngestRefusalReason.ProjectIngestionRate]: "budgets",
       [TelemetryIngestRefusalReason.PaymentRequired]: "billing",
       [TelemetryIngestRefusalReason.ProjectBlocked]: null,
+      // OneUptime takes it again once it has caught up (#11440).
+      [TelemetryIngestRefusalReason.QueueBacklogged]: null,
+      [TelemetryIngestRefusalReason.QueueFull]: null,
     });
+  });
+
+  test("a refusal of the telemetry queue is said as OneUptime catching up, the key's page saying nothing on it needs changing", () => {
+    expect(
+      getIngestRefusalReasonText(
+        fact({ reason: TelemetryIngestRefusalReason.QueueBacklogged }),
+        ENGLISH,
+      ),
+    ).toBe(
+      "OneUptime is still storing what this project already sent, so it refuses more for now.",
+    );
+    expect(
+      getIngestRefusalReasonText(
+        fact({ reason: TelemetryIngestRefusalReason.QueueFull }),
+        ENGLISH,
+      ),
+    ).toBe(
+      "OneUptime's telemetry queue is nearly full, so it refuses telemetry from every project for now.",
+    );
+    expect(
+      getIngestRefusalReasonLabel(
+        TelemetryIngestRefusalReason.QueueBacklogged,
+        ENGLISH,
+      ),
+    ).toBe("Too much waiting to be stored");
+    expect(
+      getIngestRefusalReasonLabel(
+        TelemetryIngestRefusalReason.QueueFull,
+        ENGLISH,
+      ),
+    ).toBe("Telemetry queue nearly full");
+
+    for (const reason of [
+      TelemetryIngestRefusalReason.QueueBacklogged,
+      TelemetryIngestRefusalReason.QueueFull,
+    ]) {
+      expect(getKeyPageRefusalFixText(reason, ENGLISH)).toMatch(
+        /^Nothing to change on this key: .* senders retry what was refused\./,
+      );
+      // No button: nothing on any page puts it right.
+      expect(INGEST_REFUSAL_FIXES[reason]).toBeNull();
+    }
+  });
+
+  test("a refusal of the telemetry queue explains an app's empty kind, whatever key the app sends with", () => {
+    const queued: IngestRefusalFact = fact({
+      reason: TelemetryIngestRefusalReason.QueueBacklogged,
+      keyType: TelemetryIngestionKeyType.Server,
+      surface: TelemetryIngestSurface.OtelLogs,
+    });
+
+    for (const app of [BROWSER_APP, MOBILE_APP]) {
+      expect(
+        refusalOf({
+          refusals: [queued],
+          lastArrivalAt: null,
+          app,
+          kind: "logs",
+        }),
+      ).toEqual({ state: "refused", refusal: queued });
+      // Arriving around it: partly refused, the project's own.
+      expect(
+        refusalOf({
+          refusals: [queued],
+          lastArrivalAt: queued.lastRefusedAt,
+          app,
+          kind: "logs",
+        }),
+      ).toEqual({ state: "partly-refused", refusal: queued });
+    }
   });
 
   test("the reason names the key, by its name or else its id", () => {

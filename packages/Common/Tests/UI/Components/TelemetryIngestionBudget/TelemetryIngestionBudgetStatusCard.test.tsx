@@ -17,6 +17,7 @@ import {
   TelemetryIngestionBudgetLimitSource,
   TelemetryIngestionBudgetState,
   TelemetryIngestionBudgetStatus,
+  TelemetryIngestionBudgetRefusalKind,
 } from "../../../../Types/Telemetry/TelemetryIngestionBudget";
 import {
   budgeted,
@@ -26,12 +27,15 @@ import {
   LABEL_ID,
   LOGS,
   OTHER_KEY_ID,
+  queueRefusal,
   scope,
   status,
   TEAM_ID,
   teamOrLabel,
   TRACES,
 } from "./TelemetryIngestionBudgetFixtures";
+import { TELEMETRY_QUEUE_REFUSALS_TEST_ID } from "../../../../UI/Components/TelemetryIngestionBudget/TelemetryQueueRefusalsCard";
+import OneUptimeDate from "../../../../Types/Date";
 
 /*
  * Today's ingestion budgets (issue #5917), as Project Settings > Telemetry &
@@ -615,5 +619,169 @@ describe("an answer that is not a status", () => {
     }
 
     expect(errorsLogged(consoleErrors)).toEqual([]);
+  });
+});
+
+/*
+ * What the telemetry queue refused of the project in the past day while
+ * OneUptime caught up (#11440): above the budgets on the Usage page, and on
+ * a page with no budget at all, since no budget refused it.
+ */
+describe("what the telemetry queue refused", () => {
+  const NOW: Date = OneUptimeDate.getCurrentDate();
+
+  const REFUSED: TelemetryIngestionBudgetStatus = status({
+    queueRefusals: [
+      queueRefusal({
+        signal: TRACES,
+        refusedRequests: 4210,
+        now: NOW,
+        minutesAgo: 2,
+      }),
+      queueRefusal({
+        signal: LOGS,
+        kind: TelemetryIngestionBudgetRefusalKind.QueueFull,
+        refusedRequests: 1,
+        now: NOW,
+        minutesAgo: 90,
+      }),
+    ],
+  });
+
+  test("a line for each signal, with why, how many and since when, and whether it goes on", async () => {
+    render(
+      <TelemetryIngestionBudgetStatusCard fetchStatus={answering(REFUSED)} />,
+    );
+
+    const card: HTMLElement = await screen.findByTestId(
+      TELEMETRY_QUEUE_REFUSALS_TEST_ID,
+    );
+
+    expect(card).toHaveTextContent("Refused While OneUptime Catches Up");
+    expect(card).toHaveTextContent(
+      "Senders retry what is refused, so it arrives late, unless a sender gives up first.",
+    );
+
+    const traces: HTMLElement = within(card).getByTestId(
+      `telemetry-queue-refusal-${TRACES}:queue-backlogged`,
+    );
+
+    expect(traces).toHaveTextContent("Traces");
+    expect(traces).toHaveTextContent(
+      "OneUptime is still storing what this project already sent, so it refuses more for now.",
+    );
+    expect(traces).toHaveTextContent(
+      /4,210 requests refused since .+, the latest /,
+    );
+    expect(traces).toHaveTextContent("Refusing now");
+
+    const logs: HTMLElement = within(card).getByTestId(
+      `telemetry-queue-refusal-${LOGS}:queue-full`,
+    );
+
+    expect(logs).toHaveTextContent(
+      "OneUptime's telemetry queue is nearly full, so it refuses telemetry from every project for now.",
+    );
+    expect(logs).toHaveTextContent(/^.*One request refused .+\.$/);
+    // Over an hour ago: not refusing now.
+    expect(logs).not.toHaveTextContent("Refusing now");
+
+    // The budgets are drawn under it, as ever.
+    expect(
+      screen.getByTestId("telemetry-ingestion-budget-empty"),
+    ).toBeInTheDocument();
+  });
+
+  test("told on a page that stays quiet without budgets, without the budgets' card", async () => {
+    render(
+      <TelemetryIngestionBudgetStatusCard
+        fetchStatus={answering(REFUSED)}
+        hideWhenUnbudgeted={true}
+      />,
+    );
+
+    expect(
+      await screen.findByTestId(TELEMETRY_QUEUE_REFUSALS_TEST_ID),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(TELEMETRY_INGESTION_BUDGET_STATUS_TEST_ID),
+    ).toBeNull();
+    expect(screen.queryByTestId("telemetry-ingestion-budget-empty")).toBeNull();
+  });
+
+  test("its Refresh reads the status again", async () => {
+    const fetchStatus: FetchStatus = answering(REFUSED);
+
+    render(
+      <TelemetryIngestionBudgetStatusCard
+        fetchStatus={fetchStatus}
+        hideWhenUnbudgeted={true}
+      />,
+    );
+
+    const card: HTMLElement = await screen.findByTestId(
+      TELEMETRY_QUEUE_REFUSALS_TEST_ID,
+    );
+
+    // The card's header Refresh, in its ⋯ menu, as the budgets' card has.
+    fireEvent.click(within(card).getAllByRole("button")[0]!);
+    fireEvent.click(await screen.findByText("Refresh"));
+
+    await waitFor(() => {
+      expect(fetchStatus).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test("nothing of it while nothing was refused, or on one key's own page", async () => {
+    const quiet: FetchStatus = answering(status({}));
+
+    render(
+      <TelemetryIngestionBudgetStatusCard
+        fetchStatus={quiet}
+        hideWhenUnbudgeted={true}
+      />,
+    );
+    await waitFor(() => {
+      expect(quiet).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByTestId(TELEMETRY_QUEUE_REFUSALS_TEST_ID)).toBeNull();
+    cleanup();
+
+    const keyPage: FetchStatus = answering(REFUSED);
+
+    render(
+      <TelemetryIngestionBudgetStatusCard
+        fetchStatus={keyPage}
+        ingestionKeyId={KEY_ID}
+      />,
+    );
+    await waitFor(() => {
+      expect(keyPage).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByTestId(TELEMETRY_QUEUE_REFUSALS_TEST_ID)).toBeNull();
+  });
+
+  test("an answer from an older server, which tells no refusals, draws what it drew before", async () => {
+    const old: Record<string, unknown> = JSON.parse(
+      JSON.stringify(BUSY_DAY),
+    ) as Record<string, unknown>;
+
+    delete old["queueRefusals"];
+
+    render(
+      <TelemetryIngestionBudgetStatusCard
+        fetchStatus={answering(
+          old as unknown as TelemetryIngestionBudgetStatus,
+        )}
+      />,
+    );
+
+    expect(
+      await screen.findByTestId(
+        `telemetry-ingestion-budget-row-project-${LOGS}`,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId(TELEMETRY_QUEUE_REFUSALS_TEST_ID)).toBeNull();
+    expect(readTelemetryIngestionBudgetStatus(old)?.queueRefusals).toEqual([]);
   });
 });
