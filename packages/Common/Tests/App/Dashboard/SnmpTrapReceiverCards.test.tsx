@@ -95,6 +95,8 @@ const PROBE_ID: ObjectID = new ObjectID("30000000-0000-4000-8000-000000000001");
 const DEVICE_ID: ObjectID = new ObjectID(
   "40000000-0000-4000-8000-000000000001",
 );
+// Another device of the project, on the same probe.
+const OTHER_DEVICE_ID: string = "40000000-0000-4000-8000-000000000002";
 
 const ENGINE_ID: string = "8000B98380A1B2C3D4E5F60718293A4B";
 
@@ -691,6 +693,80 @@ describe("a device's refused SNMPv3 traps", () => {
     ).toHaveTextContent("12 SNMPv3 traps from this device were refused");
   });
 
+  test("a device added by its DNS name alone says the refusals OneUptime found came from it, though the page resolves no name (#11406)", async () => {
+    device = { hostname: "san-switch-01.example.com", hasProbe: true };
+    report = {
+      ...listening(),
+      refusals: [
+        // From the address its name resolves to, which OneUptime matched it by.
+        refusal({
+          sourceAddress: "10.20.0.40",
+          userName: "san-switch-01",
+          count: 4,
+          deviceIds: [DEVICE_ID.toString()],
+        }),
+        // Another device's, at its own address.
+        refusal({
+          sourceAddress: "10.20.0.41",
+          userName: "neighbour",
+          count: 9,
+          deviceIds: [OTHER_DEVICE_ID],
+        }),
+        // An address nobody has.
+        refusal({ sourceAddress: "10.20.0.99", userName: "scanner" }),
+      ],
+    };
+
+    await renderDevicePage();
+    const banner: HTMLElement = await screen.findByTestId(
+      "device-snmp-trap-refusals",
+    );
+
+    expect(banner).toHaveTextContent(
+      "4 SNMPv3 traps from this device were refused",
+    );
+
+    const refused: Array<HTMLElement> =
+      within(banner).getAllByTestId("snmp-trap-refusal");
+
+    expect(refused).toHaveLength(1);
+    expect(refused[0]).toHaveTextContent("from 10.20.0.40 failed");
+    expect(refused[0]).toHaveTextContent("unknown user “san-switch-01”");
+    expect(banner).not.toHaveTextContent("10.20.0.41");
+    expect(banner).not.toHaveTextContent("neighbour");
+    expect(banner).not.toHaveTextContent("scanner");
+  });
+
+  test("a DNS-named device that also sends from an Other Address says both, each once", async () => {
+    device = {
+      hostname: "san-switch-01.example.com",
+      otherAddresses: "10.20.0.5",
+      hasProbe: true,
+    };
+    report = {
+      ...listening(),
+      refusals: [
+        refusal({ deviceIds: [DEVICE_ID.toString()] }),
+        refusal({
+          sourceAddress: "10.20.0.40",
+          userName: "san-switch-01",
+          count: 4,
+          deviceIds: [DEVICE_ID.toString()],
+        }),
+      ],
+    };
+
+    await renderDevicePage();
+    const banner: HTMLElement = await screen.findByTestId(
+      "device-snmp-trap-refusals",
+    );
+
+    expect(within(banner).getAllByTestId("snmp-trap-refusal")).toHaveLength(2);
+    expect(banner).toHaveTextContent(
+      "16 SNMPv3 traps from this device were refused",
+    );
+  });
+
   test.each([
     [
       "none of its addresses was refused",
@@ -865,6 +941,66 @@ describe("a device on a global probe's refused SNMPv3 traps", () => {
     expect(refused[1]).toHaveTextContent("from 10.20.0.12 failed");
     expect(banner).not.toHaveTextContent("10.20.0.9");
     expect(banner).not.toHaveTextContent("fabric-monitor");
+  });
+
+  test("a device added by its DNS name says the refusals of its project's share that name it (#11406)", async () => {
+    device = {
+      hostname: "san-switch-01.example.com",
+      hasProbe: true,
+      isGlobalProbe: true,
+    };
+    share = [
+      refusal({
+        sourceAddress: "10.20.0.40",
+        userName: "san-switch-01",
+        count: 6,
+        deviceIds: [DEVICE_ID.toString()],
+      }),
+      refusal({
+        sourceAddress: "10.20.0.41",
+        userName: "neighbour",
+        deviceIds: [OTHER_DEVICE_ID],
+      }),
+    ];
+
+    await renderDevicePage();
+    const banner: HTMLElement = await screen.findByTestId(
+      "device-snmp-trap-refusals",
+    );
+
+    expect(banner).toHaveTextContent(
+      "6 SNMPv3 traps from this device were refused",
+    );
+    expect(within(banner).getAllByTestId("snmp-trap-refusal")).toHaveLength(1);
+    expect(banner).toHaveTextContent("from 10.20.0.40 failed");
+    expect(banner).not.toHaveTextContent("neighbour");
+  });
+
+  test("a device the probe's row names is never shown off it: only its project's share counts (#11406)", async () => {
+    device = {
+      hostname: "san-switch-01.example.com",
+      hasProbe: true,
+      isGlobalProbe: true,
+    };
+    // A row that somehow names the device: never read for a global probe.
+    report = {
+      ...listening(),
+      refusals: [
+        refusal({
+          sourceAddress: "10.20.0.40",
+          deviceIds: [DEVICE_ID.toString()],
+        }),
+      ],
+    };
+    share = [];
+
+    const container: HTMLElement = await renderDevicePage();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   test("an inform sent to another engine ID says the global probe's engine ID, to copy", async () => {

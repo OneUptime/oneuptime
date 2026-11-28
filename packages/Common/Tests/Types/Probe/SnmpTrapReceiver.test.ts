@@ -1,5 +1,6 @@
 import SnmpTrapReceiverUtil, {
   MAX_REPORTED_SNMP_TRAP_REFUSALS,
+  MAX_SNMP_TRAP_REFUSAL_DEVICES,
   MAX_SNMP_TRAP_RECEIVER_USER_ADDRESSES,
   MAX_SNMP_TRAP_RECEIVER_USERS,
   SnmpTrapReceiverReport,
@@ -167,6 +168,170 @@ describe("sanitizeReport", () => {
   test("a stored report reads the same way (parseReport)", () => {
     expect(SnmpTrapReceiverUtil.parseReport(REPORT)).toEqual(REPORT);
     expect(SnmpTrapReceiverUtil.parseReport(null)).toBeNull();
+  });
+});
+
+describe("the devices a refusal came from (#11406)", () => {
+  const CORE: string = "11406000-0000-4000-8000-000000000a01";
+  const EDGE: string = "11406000-0000-4000-8000-000000000a02";
+
+  const named: SnmpTrapReceiverReport = {
+    ...REPORT,
+    refusals: [{ ...REFUSAL, deviceIds: [EDGE, CORE] }],
+  };
+
+  test("are never taken from what a probe posts: the probe knows addresses only", () => {
+    const sanitized: SnmpTrapReceiverReport | null =
+      SnmpTrapReceiverUtil.sanitizeReport(named);
+
+    expect(sanitized!.refusals).toEqual([REFUSAL]);
+    expect(sanitized!.refusals[0]).not.toHaveProperty("deviceIds");
+  });
+
+  test("are read back from a report OneUptime kept, in order", () => {
+    expect(SnmpTrapReceiverUtil.parseReport(named)!.refusals).toEqual([
+      { ...REFUSAL, deviceIds: [CORE, EDGE] },
+    ]);
+  });
+
+  test("read as IDs only: lower case, each once, anything else dropped", () => {
+    expect(
+      SnmpTrapReceiverUtil.parseReport({
+        ...REPORT,
+        refusals: [
+          {
+            ...REFUSAL,
+            deviceIds: [
+              CORE.toUpperCase(),
+              ` ${CORE} `,
+              "not-an-id",
+              42,
+              null,
+              { id: EDGE },
+              EDGE,
+            ],
+          },
+        ],
+      })!.refusals[0]!.deviceIds,
+    ).toEqual([CORE, EDGE]);
+  });
+
+  test("none, empty or nothing readable is no devices at all", () => {
+    for (const deviceIds of [undefined, null, [], ["x"], "a string", {}]) {
+      expect(
+        SnmpTrapReceiverUtil.parseReport({
+          ...REPORT,
+          refusals: [{ ...REFUSAL, deviceIds: deviceIds }],
+        })!.refusals[0],
+      ).toEqual(REFUSAL);
+    }
+  });
+
+  test(`at most ${MAX_SNMP_TRAP_REFUSAL_DEVICES}`, () => {
+    const many: Array<string> = Array.from(
+      { length: MAX_SNMP_TRAP_REFUSAL_DEVICES + 10 },
+      (_: unknown, index: number): string => {
+        return `11406000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+      },
+    );
+
+    expect(SnmpTrapReceiverUtil.sanitizeDeviceIds(many.reverse())).toHaveLength(
+      MAX_SNMP_TRAP_REFUSAL_DEVICES,
+    );
+  });
+
+  test("never travel to a global probe's own row (toSharedReport)", () => {
+    expect(
+      JSON.stringify(
+        SnmpTrapReceiverUtil.toSharedReport(
+          SnmpTrapReceiverUtil.parseReport(named)!,
+        ),
+      ),
+    ).not.toContain(CORE);
+  });
+});
+
+describe("getRefusalsOfDevice: a device's own refusals, as its pages show them (#11406)", () => {
+  const DNS_NAMED: string = "11406000-0000-4000-8000-000000000a01";
+  const NEIGHBOUR: string = "11406000-0000-4000-8000-000000000a02";
+
+  const report: SnmpTrapReceiverReport = {
+    ...REPORT,
+    refusals: [
+      { ...REFUSAL, sourceAddress: "10.20.0.7", deviceIds: [DNS_NAMED] },
+      { ...REFUSAL, sourceAddress: "10.20.0.8", deviceIds: [NEIGHBOUR] },
+      { ...REFUSAL, sourceAddress: "10.20.0.9" },
+      {
+        ...REFUSAL,
+        sourceAddress: "10.20.0.10",
+        deviceIds: [DNS_NAMED, NEIGHBOUR],
+      },
+    ],
+  };
+
+  function sourcesFor(device: {
+    deviceId: string | null | undefined;
+    addresses: Array<string | null | undefined>;
+  }): Array<string> {
+    return SnmpTrapReceiverUtil.getRefusalsOfDevice(report, device).map(
+      (refusal: SnmpTrapRefusal) => {
+        return refusal.sourceAddress;
+      },
+    );
+  }
+
+  test("a device added by its DNS name finds those OneUptime found came from it, though nothing is resolved here", () => {
+    expect(
+      sourcesFor({
+        deviceId: DNS_NAMED,
+        addresses: ["switch-01.example.com"],
+      }),
+    ).toEqual(["10.20.0.7", "10.20.0.10"]);
+  });
+
+  test("its ID however it is written", () => {
+    expect(
+      sourcesFor({
+        deviceId: ` ${DNS_NAMED.toUpperCase()} `,
+        addresses: [],
+      }),
+    ).toEqual(["10.20.0.7", "10.20.0.10"]);
+  });
+
+  test("never another device's", () => {
+    expect(sourcesFor({ deviceId: NEIGHBOUR, addresses: [] })).toEqual([
+      "10.20.0.8",
+      "10.20.0.10",
+    ]);
+  });
+
+  test("and those from its typed addresses, as before: a report kept before OneUptime named devices", () => {
+    expect(
+      sourcesFor({
+        deviceId: DNS_NAMED,
+        addresses: ["switch-01.example.com", "10.20.0.9"],
+      }),
+    ).toEqual(["10.20.0.7", "10.20.0.9", "10.20.0.10"]);
+  });
+
+  test("a refusal both ways is listed once, in the report's order", () => {
+    expect(
+      sourcesFor({
+        deviceId: DNS_NAMED,
+        addresses: ["10.20.0.7", "10.20.0.10"],
+      }),
+    ).toEqual(["10.20.0.7", "10.20.0.10"]);
+  });
+
+  test("no ID and no address finds nothing; no report, nothing", () => {
+    expect(sourcesFor({ deviceId: undefined, addresses: [] })).toEqual([]);
+    expect(sourcesFor({ deviceId: "", addresses: [null] })).toEqual([]);
+    expect(
+      SnmpTrapReceiverUtil.getRefusalsOfDevice(null, {
+        deviceId: DNS_NAMED,
+        addresses: [],
+      }),
+    ).toEqual([]);
   });
 });
 
