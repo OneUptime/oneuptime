@@ -698,6 +698,23 @@ class NetworkAlertPolicyEngineServiceClass {
       return;
     }
 
+    /*
+     * The device's monitor from this template, moved by a person (issues
+     * #11260, #11266): linked to another template since, or unlinked, and
+     * let go by the policy that made it (MonitorTemplateChangeProvenance).
+     * It is the person's now. The policy makes no second one beside it, and
+     * leaves it as the person chose: nothing to adopt, nothing to create.
+     */
+    if (
+      await this.isPolicyMonitorMovedByAPerson({
+        context: context,
+        device: data.device,
+        monitorTemplateId: data.monitorTemplateId,
+      })
+    ) {
+      return;
+    }
+
     const template: MonitorTemplate | null = await this.getMonitorTemplate({
       context: context,
       monitorTemplateId: data.monitorTemplateId,
@@ -784,6 +801,43 @@ class NetworkAlertPolicyEngineServiceClass {
         `Could not provision a monitor for device ${data.device.id?.toString()} from policy "${data.policy.name || data.policy.id?.toString()}": ${error}`,
       );
     }
+  }
+
+  /*
+   * Whether the device has a monitor created from this template that a
+   * person has moved off it - linked to another template, or unlinked - and
+   * so a monitor the policy must neither make again nor take back.
+   */
+  private async isPolicyMonitorMovedByAPerson(data: {
+    context: PolicyRunContext;
+    device: NetworkDevice;
+    monitorTemplateId: ObjectID;
+  }): Promise<boolean> {
+    const moved: Monitor | null = await MonitorService.findOneBy({
+      query: {
+        projectId: data.context.projectId,
+        autoProvisionedNetworkDeviceId: data.device.id!,
+        createdFromMonitorTemplateId: data.monitorTemplateId,
+        // Still on the template, it is the policy's to adopt.
+        monitorTemplateId: QueryHelper.notEqualsOrNull(data.monitorTemplateId),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!moved) {
+      return false;
+    }
+
+    logger.debug(
+      `NetworkAlertPolicy engine: device ${data.device.id?.toString()} keeps monitor ${moved.id?.toString()}, created from template ${data.monitorTemplateId.toString()} and moved off it by a person; no monitor is made beside it.`,
+    );
+
+    return true;
   }
 
   /*
@@ -1153,8 +1207,51 @@ class NetworkAlertPolicyEngineServiceClass {
       }
     }
 
-    return deviceIds.filter((deviceId: ObjectID): boolean => {
-      return !covered.has(deviceId.toString());
+    const notCovered: Array<ObjectID> = deviceIds.filter(
+      (deviceId: ObjectID): boolean => {
+        return !covered.has(deviceId.toString());
+      },
+    );
+
+    if (notCovered.length === 0) {
+      return [];
+    }
+
+    /*
+     * A device whose monitor from this template a person moved off it
+     * (isPolicyMonitorMovedByAPerson) is settled too: the policy makes it no
+     * monitor, so it need not take the device's lock every sweep to find
+     * that out again.
+     */
+    const moved: Array<Monitor> = await MonitorService.findBy({
+      query: {
+        projectId: data.projectId,
+        createdFromMonitorTemplateId: data.monitorTemplateId,
+        // One still on the template is the policy's to adopt: not settled.
+        monitorTemplateId: QueryHelper.notEqualsOrNull(data.monitorTemplateId),
+        autoProvisionedNetworkDeviceId: QueryHelper.any(notCovered),
+      },
+      select: {
+        _id: true,
+        autoProvisionedNetworkDeviceId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const movedDeviceIds: Set<string> = new Set<string>();
+
+    for (const monitor of moved) {
+      if (monitor.autoProvisionedNetworkDeviceId) {
+        movedDeviceIds.add(monitor.autoProvisionedNetworkDeviceId.toString());
+      }
+    }
+
+    return notCovered.filter((deviceId: ObjectID): boolean => {
+      return !movedDeviceIds.has(deviceId.toString());
     });
   }
 

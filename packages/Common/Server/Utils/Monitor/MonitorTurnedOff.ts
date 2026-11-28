@@ -202,6 +202,12 @@ export default class MonitorTurnedOff {
     why: string;
     // Upgrading: what a person has worked on is theirs to close.
     isUpgrade?: boolean | undefined;
+    /*
+     * The criteria to resolve for, when not every criteria of the monitor's
+     * steps: the ones a write took off the monitor, whose records nothing
+     * can resolve once they are gone (MonitorCriteriaReplaced, #11266).
+     */
+    templateIds?: MonitorAutoResolveTemplateIds | undefined;
   }): Promise<MonitorTurnedOffResult> {
     const isUpgrade: boolean = data.isUpgrade === true;
     const monitor: Monitor = data.monitor;
@@ -218,6 +224,7 @@ export default class MonitorTurnedOff {
     }
 
     const templateIds: MonitorAutoResolveTemplateIds =
+      data.templateIds ||
       MonitorAutoResolveTemplates.fromMonitorSteps(monitor.monitorSteps);
 
     // No criteria of the monitor resolves anything on its own.
