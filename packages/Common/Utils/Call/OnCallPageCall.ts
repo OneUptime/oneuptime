@@ -224,9 +224,7 @@ const CALL_KIND_WORDS: Readonly<
       "You have acknowledged this incident. Good bye",
     ),
     created: translationKey("A new incident has been created."),
-    observer: translationKey(
-      "You are paged as an observer about an incident.",
-    ),
+    observer: translationKey("You are paged as an observer about an incident."),
     pagedYou: translationKey("{{pager}} paged you about an incident."),
     pagedTeam: translationKey("{{pager}} paged {{team}} about an incident."),
     pagedSchedule: translationKey(
@@ -464,7 +462,9 @@ const say: (translator: Translator, sentence: string) => string = (
 const isEnglish: (translator: Translator | undefined) => boolean = (
   translator: Translator | undefined,
 ): boolean => {
-  return !translator || getBaseLanguage(translator.language) === DEFAULT_LANGUAGE;
+  return (
+    !translator || getBaseLanguage(translator.language) === DEFAULT_LANGUAGE
+  );
 };
 
 /*

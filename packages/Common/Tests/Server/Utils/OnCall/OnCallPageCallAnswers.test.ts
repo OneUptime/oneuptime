@@ -197,7 +197,7 @@ describe("a 2 that escalated the page", () => {
       noun: "incident",
       result: STILL_PAGED,
       wording: { timezone: "UTC" },
-    }).replace(/ /g, " ");
+    }).replace(/\u00a0/g, " ");
 
     expect(sentence).toContain("Bob Smith und Ana Lopez");
     expect(sentence).toContain("Stufe 3 von 3");

@@ -190,12 +190,16 @@ function twimlOf(index: number = 0): string {
   );
 }
 
+// A <Say>'s voice, and a <Gather>'s action.
+const SAY_VOICE: RegExp = /voice="([^"]+)"/;
+const GATHER_ACTION: RegExp = /<Gather [^>]*action="([^"]+)"/;
+
 // The voice every <Say> of the call names: one, or none.
 function voicesOf(twiml: string): Array<string> {
   return Array.from(
     new Set(
       (twiml.match(/<Say[^>]*>/g) || []).map((say: string): string => {
-        return /voice="([^"]+)"/.exec(say)?.[1] || "";
+        return SAY_VOICE.exec(say)?.[1] || "";
       }),
     ),
   );
@@ -203,9 +207,7 @@ function voicesOf(twiml: string): Array<string> {
 
 // The voice the keypad's answers are said in: the one the call's token carries.
 function keypadVoiceOf(twiml: string): unknown {
-  const action: RegExpExecArray | null = /<Gather [^>]*action="([^"]+)"/.exec(
-    twiml,
-  );
+  const action: RegExpExecArray | null = GATHER_ACTION.exec(twiml);
 
   expect(action).not.toBeNull();
 
@@ -316,9 +318,7 @@ describe("while the server lets projects choose", () => {
   test("and the message left on voicemail", async () => {
     await placePage();
 
-    expect(getVoicemailVoiceOfCall(callLogs[0]!.callData)).toBe(
-      PROJECT_VOICE,
-    );
+    expect(getVoicemailVoiceOfCall(callLogs[0]!.callData)).toBe(PROJECT_VOICE);
   });
 
   test("the switch is read once, as the server's own row, and nothing is written", async () => {
@@ -393,9 +393,7 @@ describe("while the server does not", () => {
 
       expect(voicesOf(twiml)).toEqual([SERVER_VOICE]);
       expect(keypadVoiceOf(twiml)).toBe(SERVER_VOICE);
-      expect(getVoicemailVoiceOfCall(callLogs[0]!.callData)).toBe(
-        SERVER_VOICE,
-      );
+      expect(getVoicemailVoiceOfCall(callLogs[0]!.callData)).toBe(SERVER_VOICE);
     },
   );
 

@@ -35,7 +35,9 @@ const call: (inLanguage?: unknown) => CallRequestMessage = (
   };
 };
 
-const ENGLISH_IN = (voice: string | undefined): SpokenCall => {
+const ENGLISH_IN: (voice: string | undefined) => SpokenCall = (
+  voice: string | undefined,
+): SpokenCall => {
   return { data: ENGLISH, voice: voice, language: "en" };
 };
 
@@ -78,9 +80,9 @@ describe("a call in another language", () => {
     expect(
       getSpokenCalls(call({ language: "de", data: GERMAN }), undefined),
     ).toEqual([ENGLISH_IN(undefined)]);
-    expect(
-      getSpokenCalls(call({ language: "de", data: GERMAN }), ""),
-    ).toEqual([ENGLISH_IN(undefined)]);
+    expect(getSpokenCalls(call({ language: "de", data: GERMAN }), "")).toEqual([
+      ENGLISH_IN(undefined),
+    ]);
   });
 
   test("whose language no provider has a voice for is English (Persian)", () => {
@@ -133,9 +135,9 @@ describe("a call in another language", () => {
       { language: 7, data: GERMAN },
       { data: GERMAN },
     ]) {
-      expect(
-        getSpokenCalls(call(inLanguage), "Polly.Joanna-Neural"),
-      ).toEqual([ENGLISH_IN("Polly.Joanna-Neural")]);
+      expect(getSpokenCalls(call(inLanguage), "Polly.Joanna-Neural")).toEqual([
+        ENGLISH_IN("Polly.Joanna-Neural"),
+      ]);
     }
   });
 });

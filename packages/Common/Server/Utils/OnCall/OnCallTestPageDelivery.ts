@@ -9,7 +9,9 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import ShortLink from "../../../Models/DatabaseModels/ShortLink";
 import URL from "../../../Types/API/URL";
 import { ONEUPTIME_PRODUCT_NAME } from "../../../Types/Branding/ProductBranding";
-import CallRequest, { CallRequestMessage } from "../../../Types/Call/CallRequest";
+import CallRequest, {
+  CallRequestMessage,
+} from "../../../Types/Call/CallRequest";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
 import {
   CustomChannelEvent,
@@ -21,7 +23,10 @@ import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import { JSONObject } from "../../../Types/JSON";
 import { isCriticalPushNotification } from "../../../Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "../../../Types/ObjectID";
-import { getOnCallPageStateName } from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
+import {
+  getEnglishPageTranslator,
+  getOnCallPageStateName,
+} from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
   getOnCallCustomChannelSendFailedMessage,
@@ -57,7 +62,6 @@ import PushNotificationMessage from "../../../Types/PushNotification/PushNotific
 import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
 import { Translator } from "../../../Types/Translator";
 import { hasCallVoiceForLanguage } from "../../../Types/Call/CallVoice";
-import { getEnglishPageTranslator } from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
 import {
@@ -1094,7 +1098,8 @@ export default class OnCallTestPageDelivery {
       }),
     };
 
-    const language: string = data.translator?.language || DEFAULT_READER_LANGUAGE;
+    const language: string =
+      data.translator?.language || DEFAULT_READER_LANGUAGE;
 
     if (
       language !== DEFAULT_READER_LANGUAGE &&

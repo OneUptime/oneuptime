@@ -186,7 +186,12 @@ describe("the voice the server's calls speak with", () => {
     );
   });
 
-  test.each(["Polly.Joanna", "alice", "polly.joanna-neural", "Polly.Vicki-Neural"])(
+  test.each([
+    "Polly.Joanna",
+    "alice",
+    "polly.joanna-neural",
+    "Polly.Vicki-Neural",
+  ])(
     "set to %p, which names no voice OneUptime offers: the account's default voice - never the saved one - and the call still goes out",
     (value: string) => {
       setVoiceVariable(value);

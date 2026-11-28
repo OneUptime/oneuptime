@@ -147,7 +147,9 @@ async function twimlOfCall(data: {
 
 function elementsOf(twiml: string, tag: string): Array<XmlElement> {
   return Array.from(
-    new DOMParser().parseFromString(twiml, "text/xml").getElementsByTagName(tag),
+    new DOMParser()
+      .parseFromString(twiml, "text/xml")
+      .getElementsByTagName(tag),
   );
 }
 

@@ -296,7 +296,11 @@ describe("set by GLOBAL_TWILIO_CALL_VOICE", () => {
       within(card).getByText(SERVER_TWILIO_CALL_VOICE_VARIABLE),
     ).toBeVisible();
     // Nothing here changes it.
-    expect(within(card).queryAllByRole("button", { name: CALL_VOICE_CARD_COPY.button })).toEqual([]);
+    expect(
+      within(card).queryAllByRole("button", {
+        name: CALL_VOICE_CARD_COPY.button,
+      }),
+    ).toEqual([]);
     expect(
       screen.queryByRole("button", { name: CALL_VOICE_CARD_COPY.button }),
     ).toBeNull();
@@ -306,7 +310,9 @@ describe("set by GLOBAL_TWILIO_CALL_VOICE", () => {
     expect(
       within(sample).getByText(CALL_VOICE_LANGUAGES_SENTENCES.male),
     ).toBeVisible();
-    expect(within(sample).getByTestId("call-voice-sample-cost")).toHaveTextContent(
+    expect(
+      within(sample).getByTestId("call-voice-sample-cost"),
+    ).toHaveTextContent(
       "Twilio charges extra for these voices: under 3 US cents for each page's call, in any language.",
     );
     expect(
@@ -314,7 +320,9 @@ describe("set by GLOBAL_TWILIO_CALL_VOICE", () => {
     ).toHaveTextContent(CALL_VOICE_HEAR_IT_NOW_SENTENCE);
     expect(sample).not.toHaveTextContent(CALL_VOICE_HEAR_IT_SENTENCE);
     // No problem to say.
-    expect(within(card).queryByTestId(CALL_VOICE_CARD_PROBLEM_TEST_ID)).toBeNull();
+    expect(
+      within(card).queryByTestId(CALL_VOICE_CARD_PROBLEM_TEST_ID),
+    ).toBeNull();
   });
 
   test("beside the account's variables: both read-only, the token never drawn", async () => {
@@ -365,9 +373,9 @@ describe("set by GLOBAL_TWILIO_CALL_VOICE", () => {
       CALL_VOICE_DEFAULT_LABEL,
     );
     // Not the saved voice, which nobody set the variable to.
-    expect(within(card).getByTestId("call-voice-summary")).not.toHaveTextContent(
-      "Amy",
-    );
+    expect(
+      within(card).getByTestId("call-voice-summary"),
+    ).not.toHaveTextContent("Amy");
     expect(
       within(card).getByTestId("call-voice-sample-voice"),
     ).not.toHaveTextContent("Amy");
@@ -394,11 +402,15 @@ describe("not set by it", () => {
     expect(
       within(card).getByRole("button", { name: CALL_VOICE_CARD_COPY.button }),
     ).toBeEnabled();
-    expect(within(card).getByText(CALL_VOICE_CARD_COPY.description)).toBeVisible();
+    expect(
+      within(card).getByText(CALL_VOICE_CARD_COPY.description),
+    ).toBeVisible();
     expect(
       within(card).queryByText(CALL_VOICE_CARD_COPY.environmentDescription),
     ).toBeNull();
-    expect(within(card).queryByText(SERVER_TWILIO_CALL_VOICE_VARIABLE)).toBeNull();
+    expect(
+      within(card).queryByText(SERVER_TWILIO_CALL_VOICE_VARIABLE),
+    ).toBeNull();
   });
 
   test("the account's variables alone leave the voice to choose here", async () => {
@@ -487,7 +499,9 @@ describe("Project Call Voices", () => {
     const card: HTMLElement = await switchCard();
 
     expect(
-      screen.getByRole("switch", { name: PROJECT_CALL_VOICES_COPY.switchTitle }),
+      screen.getByRole("switch", {
+        name: PROJECT_CALL_VOICES_COPY.switchTitle,
+      }),
     ).not.toBeChecked();
     expect(document.body).toHaveTextContent(PROJECT_CALL_VOICES_COPY.cardTitle);
     expect(document.body).toHaveTextContent(
@@ -508,13 +522,18 @@ describe("Project Call Voices", () => {
   });
 
   test("on: says who chooses, where, and who pays", async () => {
-    savedRow = { twilioCallVoice: SAVED_VOICE, letProjectsChooseCallVoice: true };
+    savedRow = {
+      twilioCallVoice: SAVED_VOICE,
+      letProjectsChooseCallVoice: true,
+    };
 
     await renderPage();
     await switchCard();
 
     expect(
-      screen.getByRole("switch", { name: PROJECT_CALL_VOICES_COPY.switchTitle }),
+      screen.getByRole("switch", {
+        name: PROJECT_CALL_VOICES_COPY.switchTitle,
+      }),
     ).toBeChecked();
     expect(document.body).toHaveTextContent(
       PROJECT_CALL_VOICES_COPY.switchOnDescription,
@@ -528,7 +547,9 @@ describe("Project Call Voices", () => {
     await switchCard();
 
     expect(
-      screen.getByRole("switch", { name: PROJECT_CALL_VOICES_COPY.switchTitle }),
+      screen.getByRole("switch", {
+        name: PROJECT_CALL_VOICES_COPY.switchTitle,
+      }),
     ).toBeEnabled();
   });
 
@@ -536,7 +557,9 @@ describe("Project Call Voices", () => {
     await renderInEnglish(<ProjectCallVoicesCard isBillingEnabled={true} />);
 
     expect(
-      screen.queryByRole("switch", { name: PROJECT_CALL_VOICES_COPY.switchTitle }),
+      screen.queryByRole("switch", {
+        name: PROJECT_CALL_VOICES_COPY.switchTitle,
+      }),
     ).toBeNull();
     expect(document.body).not.toHaveTextContent(
       PROJECT_CALL_VOICES_COPY.cardTitle,

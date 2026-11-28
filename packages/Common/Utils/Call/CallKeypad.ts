@@ -66,7 +66,9 @@ export function getCallWrongKeySentence(translator?: Translator): string {
 
   const sentence: Translator = translator || englishTranslator;
 
-  return sentence.translateText(CALL_WRONG_KEY_SENTENCE) || CALL_WRONG_KEY_SENTENCE;
+  return (
+    sentence.translateText(CALL_WRONG_KEY_SENTENCE) || CALL_WRONG_KEY_SENTENCE
+  );
 }
 
 /*

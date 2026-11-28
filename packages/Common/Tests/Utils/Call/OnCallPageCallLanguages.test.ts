@@ -74,10 +74,7 @@ const ALICE: OnCallPersonPageNotice = { pagedByName: "Alice Kim" };
 const NOTICES: ReadonlyArray<[string, OnCallPersonPageNotice]> = [
   ["by name", ALICE],
   ["through a team", { pagedByName: "Alice Kim", teamName: "Platform" }],
-  [
-    "through a schedule",
-    { pagedByName: "Alice Kim", scheduleName: "Primary" },
-  ],
+  ["through a schedule", { pagedByName: "Alice Kim", scheduleName: "Primary" }],
   [
     "a policy started by hand",
     { pagedByName: "Alice Kim", policyName: "Database escalation" },
@@ -217,7 +214,9 @@ describe("in English", () => {
     expect(getOnCallTestPageCallAcknowledged()).toBe(
       ON_CALL_TEST_PAGE_CALL_ACKNOWLEDGED,
     );
-    expect(getOnCallTestPageCallNoInput()).toBe(ON_CALL_TEST_PAGE_CALL_NO_INPUT);
+    expect(getOnCallTestPageCallNoInput()).toBe(
+      ON_CALL_TEST_PAGE_CALL_NO_INPUT,
+    );
     expect(getOnCallTestPageCallInvalidInput()).toBe(
       ON_CALL_TEST_PAGE_CALL_INVALID_INPUT,
     );
@@ -227,7 +226,9 @@ describe("in English", () => {
         projectName: "Acme",
         severityName: "Critical",
       }),
-    ).toBe("This tests how Acme pages you for an incident of severity Critical.");
+    ).toBe(
+      "This tests how Acme pages you for an incident of severity Critical.",
+    );
     expect(
       getOnCallTestPageCallWhatItTests({
         recordKind: OnCallTestPageRecordKind.Alert,
@@ -357,7 +358,7 @@ describe("in German", () => {
       getOnCallPageCallLeadInLanguage(
         input({ pageAgain: { pageAgainNumber: 1, minutes: 90 } }),
         GERMAN,
-      ).replace(/ /g, " "),
+      ).replace(/\u00a0/g, " "),
     ).toBe(
       "Ein Vorfall ist 1 Stunde 30 Minuten nach der Bestätigung noch immer nicht behoben.",
     );
@@ -372,7 +373,9 @@ describe("in German", () => {
   test("a person's page says who paged, through what, and their message", () => {
     expect(
       getOnCallPageCallLeadInLanguage(
-        input({ personPage: { pagedByName: "Alice Kim", teamName: "Platform" } }),
+        input({
+          personPage: { pagedByName: "Alice Kim", teamName: "Platform" },
+        }),
         GERMAN,
       ),
     ).toBe("Alice Kim hat Platform wegen eines Vorfalls alarmiert.");
@@ -455,7 +458,9 @@ describe("in German", () => {
 
   test("a bare number is said in German: Nummer 42", () => {
     expect(
-      renderSpeechAsText(getRecordNumberSpeech("#42", getSayRecordNumber(GERMAN))),
+      renderSpeechAsText(
+        getRecordNumberSpeech("#42", getSayRecordNumber(GERMAN)),
+      ),
     ).toBe("Nummer 42");
     expect(
       renderSpeechAsText(
@@ -511,9 +516,11 @@ describe("in Japanese", () => {
   });
 });
 
-describe.each(CALL_VOICE_READER_LANGUAGES.map((code: string): [string] => {
-  return [code];
-}))("in %s", (code: string) => {
+describe.each(
+  CALL_VOICE_READER_LANGUAGES.map((code: string): [string] => {
+    return [code];
+  }),
+)("in %s", (code: string) => {
   const translator: Translator = getCallTranslator(code);
 
   test("every page's every word is the language's own: none of the call's English is left", () => {

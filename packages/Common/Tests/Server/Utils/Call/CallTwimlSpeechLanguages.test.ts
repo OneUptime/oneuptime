@@ -17,7 +17,10 @@ import { OnCallInputRequest } from "../../../../Types/Call/CallRequest";
 import { JSONObject } from "../../../../Types/JSON";
 import JSONFunctions from "../../../../Types/JSONFunctions";
 import ObjectID from "../../../../Types/ObjectID";
-import { getSayRecordNumber, isSsmlVoice } from "../../../../Utils/Call/CallSpeech";
+import {
+  getSayRecordNumber,
+  isSsmlVoice,
+} from "../../../../Utils/Call/CallSpeech";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 import { describe, expect, test } from "@jest/globals";
 
@@ -55,13 +58,16 @@ function twimlOf(
 }
 
 describe.each(
-  CALL_LANGUAGE_VOICES.map((voice: SpokenCallVoice): [string, SpokenCallVoice] => {
-    return [voice.value, voice];
-  }),
+  CALL_LANGUAGE_VOICES.map(
+    (voice: SpokenCallVoice): [string, SpokenCallVoice] => {
+      return [voice.value, voice];
+    },
+  ),
 )("%s", (_value: string, voice: SpokenCallVoice) => {
   test("is named on every <Say>, with the language it speaks", () => {
-    expect(getCallSpeechVoice({ voice: voice.value, recordNumberPrefixes: [] }))
-      .toBe(voice);
+    expect(
+      getCallSpeechVoice({ voice: voice.value, recordNumberPrefixes: [] }),
+    ).toBe(voice);
     expect(getSayAttributes(voice)).toEqual({
       voice: voice.value,
       language: voice.language,

@@ -140,9 +140,7 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const [canChooseCallVoice, setCanChooseCallVoice] = useState<boolean>(false);
   // The voice the project chose, once read: none, the server's.
-  const [projectCallVoice, setProjectCallVoice] = useState<string | null>(
-    null,
-  );
+  const [projectCallVoice, setProjectCallVoice] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted: boolean = true;

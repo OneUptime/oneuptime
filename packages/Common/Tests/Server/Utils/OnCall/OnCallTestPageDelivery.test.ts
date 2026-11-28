@@ -850,8 +850,10 @@ describe("call", () => {
       "de",
     );
 
-    const [callRequest] = (CallService.makeCall as jest.Mock).mock
-      .calls[0] as [CallRequest, JSONObject];
+    const [callRequest] = (CallService.makeCall as jest.Mock).mock.calls[0] as [
+      CallRequest,
+      JSONObject,
+    ];
 
     const sentencesOf: (data: CallRequest["data"]) => Array<string> = (
       data: CallRequest["data"],
@@ -913,8 +915,10 @@ describe("call", () => {
       "fa",
     );
 
-    const [callRequest] = (CallService.makeCall as jest.Mock).mock
-      .calls[0] as [CallRequest, JSONObject];
+    const [callRequest] = (CallService.makeCall as jest.Mock).mock.calls[0] as [
+      CallRequest,
+      JSONObject,
+    ];
 
     expect(callRequest.inLanguage).toBeUndefined();
   });

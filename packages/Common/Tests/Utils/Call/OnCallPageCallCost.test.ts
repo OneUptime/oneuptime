@@ -95,22 +95,21 @@ describe("a page's call, in every language a call is spoken in", () => {
     ["en", ...CALL_VOICE_READER_LANGUAGES].map((code: string): [string] => {
       return [code];
     }),
-  )(
-    "%s says no more than the most a call is priced for",
-    (code: string) => {
-      const most: number = Math.max(
-        ...longestPages().map((page: OnCallPageCallInput): number => {
-          return charactersSaid(
-            buildOnCallPageCallData(page, getCallTranslator(code)),
-          );
-        }),
-      );
+  )("%s says no more than the most a call is priced for", (code: string) => {
+    const most: number = Math.max(
+      ...longestPages().map((page: OnCallPageCallInput): number => {
+        return charactersSaid(
+          buildOnCallPageCallData(page, getCallTranslator(code)),
+        );
+      }),
+    );
 
-      expect([code, most, most <= CALL_VOICE_MOST_CHARACTERS_IN_A_PAGE]).toEqual(
-        [code, most, true],
-      );
-    },
-  );
+    expect([code, most, most <= CALL_VOICE_MOST_CHARACTERS_IN_A_PAGE]).toEqual([
+      code,
+      most,
+      true,
+    ]);
+  });
 
   test("in English, about as much as the English figure says", () => {
     const characters: number = charactersSaid(

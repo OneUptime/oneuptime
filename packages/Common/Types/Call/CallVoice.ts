@@ -278,22 +278,127 @@ const LANGUAGE_VOICE_ROWS: ReadonlyArray<
     manName: string,
   ]
 > = [
-  ["de", "de-DE", "Polly.Vicki-Neural", "Vicki", "Polly.Daniel-Neural", "Daniel"],
+  [
+    "de",
+    "de-DE",
+    "Polly.Vicki-Neural",
+    "Vicki",
+    "Polly.Daniel-Neural",
+    "Daniel",
+  ],
   ["fr", "fr-FR", "Polly.Lea-Neural", "Léa", "Polly.Remi-Neural", "Rémi"],
-  ["es", "es-ES", "Polly.Lucia-Neural", "Lucia", "Polly.Sergio-Neural", "Sergio"],
-  ["it", "it-IT", "Polly.Bianca-Neural", "Bianca", "Polly.Adriano-Neural", "Adriano"],
-  ["pt", "pt-BR", "Polly.Camila-Neural", "Camila", "Polly.Thiago-Neural", "Thiago"],
-  ["nl", "nl-NL", "Polly.Laura-Neural", "Laura", "Google.nl-NL-Wavenet-G", "Wavenet-G"],
-  ["da", "da-DK", "Polly.Sofie-Neural", "Sofie", "Google.da-DK-Wavenet-G", "Wavenet-G"],
-  ["no", "nb-NO", "Polly.Ida-Neural", "Ida", "Google.nb-NO-Wavenet-G", "Wavenet-G"],
-  ["sv", "sv-SE", "Polly.Elin-Neural", "Elin", "Google.sv-SE-Wavenet-G", "Wavenet-G"],
-  ["ru", "ru-RU", "Google.ru-RU-Wavenet-A", "Wavenet-A", "Google.ru-RU-Wavenet-B", "Wavenet-B"],
-  ["ja", "ja-JP", "Polly.Kazuha-Neural", "Kazuha", "Polly.Takumi-Neural", "Takumi"],
-  ["ko", "ko-KR", "Polly.Seoyeon-Neural", "Seoyeon", "Google.ko-KR-Neural2-C", "Neural2-C"],
-  ["zh-CN", "cmn-CN", "Polly.Zhiyu-Neural", "Zhiyu", "Google.cmn-CN-Wavenet-B", "Wavenet-B"],
-  ["zh-TW", "cmn-TW", "Google.cmn-TW-Wavenet-A", "Wavenet-A", "Google.cmn-TW-Wavenet-B", "Wavenet-B"],
-  ["hi", "hi-IN", "Polly.Kajal-Neural", "Kajal", "Google.hi-IN-Neural2-B", "Neural2-B"],
-  ["ar", "ar-XA", "Google.ar-XA-Wavenet-A", "Wavenet-A", "Google.ar-XA-Wavenet-B", "Wavenet-B"],
+  [
+    "es",
+    "es-ES",
+    "Polly.Lucia-Neural",
+    "Lucia",
+    "Polly.Sergio-Neural",
+    "Sergio",
+  ],
+  [
+    "it",
+    "it-IT",
+    "Polly.Bianca-Neural",
+    "Bianca",
+    "Polly.Adriano-Neural",
+    "Adriano",
+  ],
+  [
+    "pt",
+    "pt-BR",
+    "Polly.Camila-Neural",
+    "Camila",
+    "Polly.Thiago-Neural",
+    "Thiago",
+  ],
+  [
+    "nl",
+    "nl-NL",
+    "Polly.Laura-Neural",
+    "Laura",
+    "Google.nl-NL-Wavenet-G",
+    "Wavenet-G",
+  ],
+  [
+    "da",
+    "da-DK",
+    "Polly.Sofie-Neural",
+    "Sofie",
+    "Google.da-DK-Wavenet-G",
+    "Wavenet-G",
+  ],
+  [
+    "no",
+    "nb-NO",
+    "Polly.Ida-Neural",
+    "Ida",
+    "Google.nb-NO-Wavenet-G",
+    "Wavenet-G",
+  ],
+  [
+    "sv",
+    "sv-SE",
+    "Polly.Elin-Neural",
+    "Elin",
+    "Google.sv-SE-Wavenet-G",
+    "Wavenet-G",
+  ],
+  [
+    "ru",
+    "ru-RU",
+    "Google.ru-RU-Wavenet-A",
+    "Wavenet-A",
+    "Google.ru-RU-Wavenet-B",
+    "Wavenet-B",
+  ],
+  [
+    "ja",
+    "ja-JP",
+    "Polly.Kazuha-Neural",
+    "Kazuha",
+    "Polly.Takumi-Neural",
+    "Takumi",
+  ],
+  [
+    "ko",
+    "ko-KR",
+    "Polly.Seoyeon-Neural",
+    "Seoyeon",
+    "Google.ko-KR-Neural2-C",
+    "Neural2-C",
+  ],
+  [
+    "zh-CN",
+    "cmn-CN",
+    "Polly.Zhiyu-Neural",
+    "Zhiyu",
+    "Google.cmn-CN-Wavenet-B",
+    "Wavenet-B",
+  ],
+  [
+    "zh-TW",
+    "cmn-TW",
+    "Google.cmn-TW-Wavenet-A",
+    "Wavenet-A",
+    "Google.cmn-TW-Wavenet-B",
+    "Wavenet-B",
+  ],
+  [
+    "hi",
+    "hi-IN",
+    "Polly.Kajal-Neural",
+    "Kajal",
+    "Google.hi-IN-Neural2-B",
+    "Neural2-B",
+  ],
+  [
+    "ar",
+    "ar-XA",
+    "Google.ar-XA-Wavenet-A",
+    "Wavenet-A",
+    "Google.ar-XA-Wavenet-B",
+    "Wavenet-B",
+  ],
 ];
 
 // A voice of the list, its maker read off its name.
@@ -490,12 +595,16 @@ export function getCallVoiceCostOfAPageInUsd(
  * #11066), and so for the English one too. 0 for the account's default
  * voice, which is free.
  */
-export function getCallVoiceCentsOfAPage(voice: SpokenCallVoice | null): number {
+export function getCallVoiceCentsOfAPage(
+  voice: SpokenCallVoice | null,
+): number {
   return Math.ceil(
     Number(
       (
-        getCallVoiceCostOfAPageInUsd(voice, CALL_VOICE_MOST_CHARACTERS_IN_A_PAGE) *
-        100
+        getCallVoiceCostOfAPageInUsd(
+          voice,
+          CALL_VOICE_MOST_CHARACTERS_IN_A_PAGE,
+        ) * 100
       ).toFixed(6),
     ),
   );

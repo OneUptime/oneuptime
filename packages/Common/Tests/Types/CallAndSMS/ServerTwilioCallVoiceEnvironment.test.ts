@@ -109,16 +109,17 @@ describe("unset", () => {
 });
 
 describe("set to one of OneUptime's voices", () => {
-  test.each(CALL_VOICE_VALUES.map((value: string) => [value]))(
-    "%s is the voice, with no problem",
-    (value: string) => {
-      expect(voiceOf(value)).toEqual({
-        isSet: true,
-        voice: value,
-        problem: null,
-      });
-    },
-  );
+  test.each(
+    CALL_VOICE_VALUES.map((value: string) => {
+      return [value];
+    }),
+  )("%s is the voice, with no problem", (value: string) => {
+    expect(voiceOf(value)).toEqual({
+      isSet: true,
+      voice: value,
+      problem: null,
+    });
+  });
 
   test("the whitespace around it is let go, as a value read from a file has it", () => {
     expect(voiceOf("  Polly.Joanna-Neural\n").voice).toBe(
@@ -341,9 +342,7 @@ describe("what the Admin Dashboard is told", () => {
 
   test("an answer made without the voice's reading says it is not set, as before #11064", () => {
     const answer: ServerTwilioEnvironmentAnswer =
-      ServerTwilioEnvironment.toAnswer(
-        ServerTwilioEnvironment.read(account()),
-      );
+      ServerTwilioEnvironment.toAnswer(ServerTwilioEnvironment.read(account()));
 
     expect(answer.isCallVoiceSetByEnvironment).toBe(false);
     expect(answer.callVoice).toBe(null);

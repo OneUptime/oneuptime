@@ -282,24 +282,27 @@ describe("the picker", () => {
     await renderCard();
 
     const dialog: HTMLElement = await openPicker();
-    const sample: HTMLElement = await within(dialog).findByTestId(
-      "call-voice-sample",
-    );
+    const sample: HTMLElement =
+      await within(dialog).findByTestId("call-voice-sample");
 
     expect(
       within(sample).getByTestId("call-voice-sample-sentence"),
     ).toHaveTextContent(`This is a call from ${PROJECT_NAME}.`);
-    expect(within(sample).getByTestId("call-voice-sample-voice")).toHaveTextContent(
-      "Brian",
-    );
-    expect(within(sample).getByTestId("call-voice-sample-cost")).toHaveTextContent(
+    expect(
+      within(sample).getByTestId("call-voice-sample-voice"),
+    ).toHaveTextContent("Brian");
+    expect(
+      within(sample).getByTestId("call-voice-sample-cost"),
+    ).toHaveTextContent(
       "under 3 US cents for each page's call, in any language",
     );
     expect(
       within(sample).getByTestId("call-voice-sample-hear-it"),
     ).toHaveTextContent("Save, then send a test call to hear it.");
     expect(
-      within(dialog).queryByTestId(`${PROJECT_CALL_VOICE_TEST_ID}-server-voice`),
+      within(dialog).queryByTestId(
+        `${PROJECT_CALL_VOICE_TEST_ID}-server-voice`,
+      ),
     ).toBeNull();
   });
 });

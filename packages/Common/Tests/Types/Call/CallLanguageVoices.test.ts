@@ -168,10 +168,14 @@ describe("the list", () => {
       if (each.provider === CallVoiceProvider.AmazonPolly) {
         expect(each.value).toMatch(/^Polly\.[A-Za-z]+-Neural$/);
       } else {
-        expect(each.value).toMatch(/^Google\.[a-z]{2,3}-[A-Z]{2}-(Wavenet|Neural2)-[A-Z]$/);
+        expect(each.value).toMatch(
+          /^Google\.[a-z]{2,3}-[A-Z]{2}-(Wavenet|Neural2)-[A-Z]$/,
+        );
       }
 
-      expect(each.value).not.toMatch(/Standard|Chirp|Generative|Journey|Studio/);
+      expect(each.value).not.toMatch(
+        /Standard|Chirp|Generative|Journey|Studio/,
+      );
       expect(["man", "woman", "alice"]).not.toContain(each.value);
     }
   });
@@ -264,7 +268,10 @@ describe("a voice of another language is spoken, never chosen", () => {
 
 describe("the voice a call speaks with to a person who reads a language", () => {
   test("is none when the account chose none: its default voice speaks English only", () => {
-    for (const language of [DEFAULT_READER_LANGUAGE, ...CALL_VOICE_READER_LANGUAGES]) {
+    for (const language of [
+      DEFAULT_READER_LANGUAGE,
+      ...CALL_VOICE_READER_LANGUAGES,
+    ]) {
       expect(getCallVoiceForLanguage(null, language)).toBeNull();
     }
   });
@@ -323,8 +330,7 @@ describe("the voice a call speaks with to a person who reads a language", () => 
       getCallVoiceForLanguage(chosen("Polly.Joanna-Neural"), "nb")?.value,
     ).toBe("Polly.Ida-Neural");
     expect(
-      getCallVoiceForLanguage(chosen("Polly.Joanna-Neural"), "zh-Hant")
-        ?.value,
+      getCallVoiceForLanguage(chosen("Polly.Joanna-Neural"), "zh-Hant")?.value,
     ).toBe("Google.cmn-TW-Wavenet-A");
   });
 

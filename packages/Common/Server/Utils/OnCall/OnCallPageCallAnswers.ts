@@ -47,7 +47,9 @@ export const CALL_NOT_ACKNOWLEDGED_SENTENCE: string = translationKey(
 );
 
 // The language a call speaks, by the voice it speaks with: English for none.
-export function getCallAnswerLanguage(voice: string | null | undefined): string {
+export function getCallAnswerLanguage(
+  voice: string | null | undefined,
+): string {
   return getSpokenCallVoice(voice)?.readerLanguage || DEFAULT_READER_LANGUAGE;
 }
 

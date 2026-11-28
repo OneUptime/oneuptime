@@ -794,10 +794,7 @@ describe("SMS and calls", () => {
         "untested",
         {
           sms: channel(ServerSendingChannel.SMS, ServerSendingState.Untested),
-          call: channel(
-            ServerSendingChannel.Call,
-            ServerSendingState.Untested,
-          ),
+          call: channel(ServerSendingChannel.Call, ServerSendingState.Untested),
         },
         ServerSetupStatus.Untested,
       ],

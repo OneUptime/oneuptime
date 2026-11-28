@@ -11,10 +11,12 @@ import { translationKey } from "Common/Types/Translator";
 export const CALL_VOICE_CARD_TEST_ID: string = "call-voice-card";
 
 // The card's body while the server says whether a variable sets the voice.
-export const CALL_VOICE_CARD_LOADING_TEST_ID: string = "call-voice-card-loading";
+export const CALL_VOICE_CARD_LOADING_TEST_ID: string =
+  "call-voice-card-loading";
 
 // What is wrong with GLOBAL_TWILIO_CALL_VOICE, above the voice it leaves.
-export const CALL_VOICE_CARD_PROBLEM_TEST_ID: string = "call-voice-card-problem";
+export const CALL_VOICE_CARD_PROBLEM_TEST_ID: string =
+  "call-voice-card-problem";
 
 export const CALL_VOICE_CARD_COPY: {
   title: string;

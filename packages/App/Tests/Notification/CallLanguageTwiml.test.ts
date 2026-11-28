@@ -180,7 +180,9 @@ async function pageCall(
 
 function elementsOf(twiml: string, tag: string): Array<XmlElement> {
   return Array.from(
-    new DOMParser().parseFromString(twiml, "text/xml").getElementsByTagName(tag),
+    new DOMParser()
+      .parseFromString(twiml, "text/xml")
+      .getElementsByTagName(tag),
   );
 }
 
@@ -359,8 +361,8 @@ describe.each(
     const callRequest: CallRequest = await pageCall(language);
     const { log } = await place(callRequest);
     const callData: JSONObject = log.callData as unknown as JSONObject;
-    const said: Array<string> = callRequest.inLanguage!.data
-      .filter((item: unknown): boolean => {
+    const said: Array<string> = callRequest
+      .inLanguage!.data.filter((item: unknown): boolean => {
         return typeof (item as { sayMessage?: string }).sayMessage === "string";
       })
       .map((item: unknown): string => {
