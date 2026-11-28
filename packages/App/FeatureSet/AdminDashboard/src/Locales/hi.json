@@ -4605,7 +4605,7 @@
   "Project Call Voices": "प्रोजेक्ट की कॉल की आवाज़ें",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "क्या हर प्रोजेक्ट इस सर्वर के Twilio खाते से होने वाली अपनी कॉल की आवाज़ चुनता है।",
   "Let projects choose their call voice": "प्रोजेक्ट को अपनी कॉल की आवाज़ चुनने दें",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "प्रोजेक्ट के मालिक और एडमिन इसे प्रोजेक्ट सेटिंग्स > सूचनाएं > सूचना चैनल में चुनते हैं, और इसका भुगतान इस सर्वर का Twilio खाता करता है। जो प्रोजेक्ट कोई आवाज़ नहीं चुनता, वह ऊपर वाली आवाज़ में बोलता है।",
+  "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.": "प्रोजेक्ट स्वामी और प्रोजेक्ट एडमिन इसे प्रोजेक्ट सेटिंग्स > सूचनाएं > सूचना चैनल में चुनते हैं, और इसका भुगतान इस सर्वर का Twilio खाता करता है।",
   "Every project's calls through this server's Twilio account speak with the voice above.": "इस सर्वर के Twilio खाते से होने वाली हर प्रोजेक्ट की कॉल ऊपर वाली आवाज़ में बोलती हैं।",
   "Free. Twilio says its Basic voices are not meant for production.": "मुफ़्त। Twilio के अनुसार उसकी Basic आवाज़ें प्रोडक्शन उपयोग के लिए नहीं हैं।",
   "Save, then send a test call to hear it.": "सहेजें, फिर इसे सुनने के लिए परीक्षण कॉल भेजें।",

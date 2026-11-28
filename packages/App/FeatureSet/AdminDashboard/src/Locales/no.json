@@ -4605,7 +4605,7 @@
   "Project Call Voices": "Prosjektenes stemmer",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Om hvert prosjekt velger stemmen for sine egne anrop gjennom Twilio-kontoen til denne serveren.",
   "Let projects choose their call voice": "La prosjekter velge stemmen for anropene sine",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "Prosjekteiere og -administratorer velger den under Prosjektinnstillinger > Varslinger > Varslingskanaler, og Twilio-kontoen til denne serveren betaler for den. Et prosjekt som ikke velger noen, snakker med stemmen ovenfor.",
+  "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.": "Prosjekteiere og Prosjektadministratorer velger den under Prosjektinnstillinger > Varslinger > Varslingskanaler, og Twilio-kontoen til denne serveren betaler for den.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "Anropene til alle prosjekter gjennom Twilio-kontoen til denne serveren snakker med stemmen ovenfor.",
   "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Ifølge Twilio er Basic-stemmene ikke ment for bruk i produksjon.",
   "Save, then send a test call to hear it.": "Lagre, og send deretter et testanrop for å høre den.",

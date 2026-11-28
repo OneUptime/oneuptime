@@ -4605,7 +4605,7 @@
   "Project Call Voices": "Голоса проектов",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Выбирает ли каждый проект голос своих звонков через аккаунт Twilio этого сервера.",
   "Let projects choose their call voice": "Разрешить проектам выбирать голос своих звонков",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "Владельцы и администраторы проекта выбирают его в разделе Настройки проекта > Уведомления > Каналы уведомлений, а платит за него аккаунт Twilio этого сервера. Проект, не выбравший голос, говорит голосом, указанным выше.",
+  "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.": "Владельцы проекта и Администраторы проекта выбирают его в разделе Настройки проекта > Уведомления > Каналы уведомлений, а платит за него аккаунт Twilio этого сервера.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "Звонки всех проектов через аккаунт Twilio этого сервера говорят голосом, указанным выше.",
   "Free. Twilio says its Basic voices are not meant for production.": "Бесплатно. По словам Twilio, голоса Basic не предназначены для использования в рабочей среде.",
   "Save, then send a test call to hear it.": "Сохраните, затем отправьте тестовый звонок, чтобы его услышать.",

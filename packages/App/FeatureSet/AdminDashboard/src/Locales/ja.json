@@ -4605,7 +4605,7 @@
   "Project Call Voices": "プロジェクトの通話の音声",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "各プロジェクトが、このサーバーの Twilio アカウントを通じた自分の通話の音声を選ぶかどうか。",
   "Let projects choose their call voice": "プロジェクトに通話の音声を選ばせる",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "プロジェクトのオーナーと管理者が プロジェクト設定 > 通知 > 通知チャネル で選び、その料金はこのサーバーの Twilio アカウントが支払います。音声を選ばないプロジェクトは、上の音声で話します。",
+  "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.": "プロジェクト所有者とプロジェクト管理者が プロジェクト設定 > 通知 > 通知チャネル で選び、その料金はこのサーバーの Twilio アカウントが支払います。",
   "Every project's calls through this server's Twilio account speak with the voice above.": "このサーバーの Twilio アカウントを通じたすべてのプロジェクトの通話は、上の音声で話します。",
   "Free. Twilio says its Basic voices are not meant for production.": "無料。Twilio によると、Basic 音声は本番環境での使用を想定していません。",
   "Save, then send a test call to hear it.": "保存してからテスト通話を発信すると、この音声を聞けます。",

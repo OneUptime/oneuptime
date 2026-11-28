@@ -4605,7 +4605,7 @@
   "Project Call Voices": "專案通話語音",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "每個專案是否為經由此伺服器 Twilio 帳戶的自身通話選擇語音。",
   "Let projects choose their call voice": "允許專案選擇其通話語音",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "專案擁有者和管理員在 專案設定 > 通知 > 通知管道 中選擇，費用由此伺服器的 Twilio 帳戶支付。未選擇語音的專案使用上面的語音。",
+  "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.": "專案擁有者和專案管理員在 專案設定 > 通知 > 通知管道 中選擇，費用由此伺服器的 Twilio 帳戶支付。",
   "Every project's calls through this server's Twilio account speak with the voice above.": "所有專案經由此伺服器 Twilio 帳戶的通話都使用上面的語音。",
   "Free. Twilio says its Basic voices are not meant for production.": "免費。Twilio 表示其 Basic 語音不適合用於正式環境。",
   "Save, then send a test call to hear it.": "儲存後，發送測試通話即可試聽。",

@@ -4605,7 +4605,7 @@
   "Project Call Voices": "أصوات مكالمات المشاريع",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "ما إذا كان كل مشروع يختار صوت مكالماته عبر حساب Twilio لهذا الخادم.",
   "Let projects choose their call voice": "السماح للمشاريع باختيار صوت مكالماتها",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "يختاره مالكو المشروع ومسؤولوه في إعدادات المشروع > الإشعارات > قنوات الإشعار، ويدفع حساب Twilio لهذا الخادم تكلفته. والمشروع الذي لا يختار صوتًا يتحدث بالصوت أعلاه.",
+  "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.": "يختاره مالكو المشروع ومسؤولو المشروع في إعدادات المشروع > الإشعارات > قنوات الإشعار، ويدفع حساب Twilio لهذا الخادم تكلفته.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "تتحدث مكالمات كل المشاريع عبر حساب Twilio لهذا الخادم بالصوت أعلاه.",
   "Free. Twilio says its Basic voices are not meant for production.": "مجاني. تقول Twilio إن أصواتها من فئة Basic ليست مخصّصة لبيئة الإنتاج.",
   "Save, then send a test call to hear it.": "احفظ، ثم أجرِ مكالمة تجريبية لسماعه.",

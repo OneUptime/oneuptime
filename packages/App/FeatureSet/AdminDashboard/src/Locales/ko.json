@@ -4605,7 +4605,7 @@
   "Project Call Voices": "프로젝트 통화 음성",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "각 프로젝트가 이 서버의 Twilio 계정을 통한 자체 통화의 음성을 선택하는지 여부입니다.",
   "Let projects choose their call voice": "프로젝트가 통화 음성을 선택하도록 허용",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "프로젝트 소유자와 관리자가 프로젝트 설정 > 알림 > 알림 채널에서 선택하며, 비용은 이 서버의 Twilio 계정이 냅니다. 음성을 선택하지 않은 프로젝트는 위의 음성으로 말합니다.",
+  "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.": "프로젝트 소유자와 프로젝트 관리자가 프로젝트 설정 > 알림 > 알림 채널에서 선택하며, 비용은 이 서버의 Twilio 계정이 냅니다.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "이 서버의 Twilio 계정을 통한 모든 프로젝트의 통화는 위의 음성으로 말합니다.",
   "Free. Twilio says its Basic voices are not meant for production.": "무료입니다. Twilio에 따르면 Basic 음성은 프로덕션용이 아닙니다.",
   "Save, then send a test call to hear it.": "저장한 다음 테스트 전화를 보내 들어 보세요.",

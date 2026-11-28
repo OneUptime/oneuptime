@@ -27,7 +27,7 @@ export const PROJECT_CALL_VOICES_COPY: {
   switchTitle: translationKey("Let projects choose their call voice"),
   // What "on" does, and who pays.
   switchOnDescription: translationKey(
-    "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.",
+    "Project Owners and Project Admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it.",
   ),
   // What "off" does.
   switchOffDescription: translationKey(
