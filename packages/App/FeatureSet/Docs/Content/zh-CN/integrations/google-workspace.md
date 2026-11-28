@@ -45,7 +45,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 1. 在 [Google 管理控制台](https://admin.google.com) 中，以超级管理员身份打开 **Security → Access and data control → API controls → Manage domain-wide delegation**，然后选择 **Add new**。
 2. 把服务账户的 **Unique ID** 填为 **Client ID**，把 `https://www.googleapis.com/auth/admin.reports.audit.readonly` 填为 **OAuth scope**。选择 **Authorize**。Google 可能需要几分钟才能生效。
 3. 要让剧本暂停、解除暂停和注销用户（参见 [遏制](/docs/telemetry/security-cases#遏制)），把 `https://www.googleapis.com/auth/admin.directory.user` 和 `https://www.googleapis.com/auth/admin.directory.user.security` 添加到同一客户端的范围中，用逗号分隔。此时，连接所代表的管理员必须是管理这些用户的管理员。
-4. 要让 [安全案例](/docs/telemetry/security-cases#oneuptime-如何检查一个步骤) 检查攻击添加到组中的账户已被移出该组，请以同样的方式添加 `https://www.googleapis.com/auth/admin.directory.group.member.readonly`。它只读取组的成员，不读取其他任何内容，需要一位可以读取组的管理员。没有它时，案例会列出每一项此类更改，由你来确认，并说明要添加哪个范围。
+4. 要让 [安全案例](/docs/telemetry/security-cases#oneuptime-如何检查一个步骤) 检查攻击添加到组中的账户已被移出该组，请以同样的方式添加 `https://www.googleapis.com/auth/admin.directory.group.member.readonly`。它只读取组的成员，不读取其他任何内容，需要一位可以读取组的管理员。没有它时，案例会列出每一项此类更改，由你来确认，并说明要添加哪个范围，还会为可以更改该连接的人附上指向 **安全事件 → 连接** 中此连接表单的链接。
 
 ### 在 OneUptime 中添加连接
 

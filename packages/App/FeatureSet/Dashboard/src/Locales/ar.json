@@ -68387,5 +68387,19 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "الصوت الذي تتحدث به مكالمات مشروعك عندما تخرج عبر حساب Twilio لهذا الخادم. إعداد Twilio الخاص بك له صوته الخاص.",
   "This server's voice": "صوت هذا الخادم",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "تفرض Twilio رسومًا إضافية على هذه الأصوات: أقل من {{cents}} سنت أمريكي لكل مكالمة استدعاء، بأي لغة.",
-  "Voice": "الصوت"
+  "Voice": "الصوت",
+  "Anyone with a token from {{provider}} may assume the role {{account}}: its trust policy does not limit the token's {{claim}}.": "يمكن لأي أحد يملك رمزًا من {{provider}} تولّي الدور {{account}}: سياسة الثقة الخاصة به لا تقيّد المطالبة {{claim}} في الرمز.",
+  "Anyone with a token from {{provider}}, in any organization, may assume the role {{account}}: its trust policy does not limit the token's {{claim}}.": "يمكن لأي أحد يملك رمزًا من {{provider}}، في أي مؤسسة، تولّي الدور {{account}}: سياسة الثقة الخاصة به لا تقيّد المطالبة {{claim}} في الرمز.",
+  "Confirm the inline policy {{object}} of the role {{account}} in {{provider}} is gone, or no longer has the document the attack wrote.": "تأكّد من أن السياسة المضمّنة {{object}} للدور {{account}} في {{provider}} قد حُذفت أو لم تعد تحتوي على المستند الذي كتبه الهجوم.",
+  "Confirm the inline policy {{object}} of {{account}} in {{provider}} is gone, or no longer has the document the attack wrote.": "تأكّد من أن السياسة المضمّنة {{object}} لـ {{account}} في {{provider}} قد حُذفت أو لم تعد تحتوي على المستند الذي كتبه الهجوم.",
+  "Open Security Event Connections": "فتح اتصالات الأحداث الأمنية",
+  "The SAML provider {{provider}} may sign people in to AWS as the role {{account}}.": "يمكن لموفّر SAML {{provider}} تسجيل دخول الأشخاص إلى AWS بالدور {{account}}.",
+  "The inline policy {{object}} of the role {{account}} in {{provider}} no longer has the document the attack wrote.": "لم تعد السياسة المضمّنة {{object}} للدور {{account}} في {{provider}} تحتوي على المستند الذي كتبه الهجوم.",
+  "The inline policy {{object}} of the role {{account}} in {{provider}} still has the document the attack wrote.": "لا تزال السياسة المضمّنة {{object}} للدور {{account}} في {{provider}} تحتوي على المستند الذي كتبه الهجوم.",
+  "The inline policy {{object}} of {{account}} in {{provider}} no longer has the document the attack wrote.": "لم تعد السياسة المضمّنة {{object}} لـ {{account}} في {{provider}} تحتوي على المستند الذي كتبه الهجوم.",
+  "The inline policy {{object}} of {{account}} in {{provider}} still has the document the attack wrote.": "لا تزال السياسة المضمّنة {{object}} لـ {{account}} في {{provider}} تحتوي على المستند الذي كتبه الهجوم.",
+  "To read Google Workspace groups back, add the scope {{scope}} to the domain-wide delegation of the Google Workspace connection under Security Events → Connections, for an administrator who may read groups.": "لإعادة قراءة مجموعات Google Workspace، أضف النطاق {{scope}} إلى التفويض على مستوى النطاق لاتصال Google Workspace في الأحداث الأمنية ← الاتصالات، لمسؤول يُسمح له بقراءة المجموعات.",
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them.": "يمكن للرموز من {{provider}} تولّي الدور {{account}} عندما تطابق المطالبة {{claim}} فيها إحدى القيم (العدد: {{count}})، ومنها {{value}}.",
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them._one": "يمكن للرموز من {{provider}} تولّي الدور {{account}} عندما تطابق المطالبة {{claim}} فيها {{count}} قيمة: {{value}}.",
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "يمكن للرموز من {{provider}} تولّي الدور {{account}} عندما تطابق المطالبة {{claim}} فيها {{value}}."
 }

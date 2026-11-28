@@ -68387,5 +68387,19 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "Rösten som projektets samtal talar med när de går genom den här serverns Twilio-konto. En egen Twilio-konfiguration har en egen röst.",
   "This server's voice": "Den här serverns röst",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio tar extra betalt för de här rösterna: under {{cents}} amerikanska cent per larmsamtal, på alla språk.",
-  "Voice": "Röst"
+  "Voice": "Röst",
+  "Anyone with a token from {{provider}} may assume the role {{account}}: its trust policy does not limit the token's {{claim}}.": "Vem som helst med en token från {{provider}} kan anta rollen {{account}}: dess förtroendepolicy begränsar inte tokenens anspråk {{claim}}.",
+  "Anyone with a token from {{provider}}, in any organization, may assume the role {{account}}: its trust policy does not limit the token's {{claim}}.": "Vem som helst med en token från {{provider}}, i vilken organisation som helst, kan anta rollen {{account}}: dess förtroendepolicy begränsar inte tokenens anspråk {{claim}}.",
+  "Confirm the inline policy {{object}} of the role {{account}} in {{provider}} is gone, or no longer has the document the attack wrote.": "Bekräfta att den inbäddade policyn {{object}} på rollen {{account}} i {{provider}} är borttagen eller inte längre har dokumentet som attacken skrev.",
+  "Confirm the inline policy {{object}} of {{account}} in {{provider}} is gone, or no longer has the document the attack wrote.": "Bekräfta att den inbäddade policyn {{object}} på {{account}} i {{provider}} är borttagen eller inte längre har dokumentet som attacken skrev.",
+  "Open Security Event Connections": "Öppna anslutningar för säkerhetshändelser",
+  "The SAML provider {{provider}} may sign people in to AWS as the role {{account}}.": "SAML-leverantören {{provider}} kan logga in personer i AWS som rollen {{account}}.",
+  "The inline policy {{object}} of the role {{account}} in {{provider}} no longer has the document the attack wrote.": "Den inbäddade policyn {{object}} på rollen {{account}} i {{provider}} har inte längre dokumentet som attacken skrev.",
+  "The inline policy {{object}} of the role {{account}} in {{provider}} still has the document the attack wrote.": "Den inbäddade policyn {{object}} på rollen {{account}} i {{provider}} har fortfarande dokumentet som attacken skrev.",
+  "The inline policy {{object}} of {{account}} in {{provider}} no longer has the document the attack wrote.": "Den inbäddade policyn {{object}} på {{account}} i {{provider}} har inte längre dokumentet som attacken skrev.",
+  "The inline policy {{object}} of {{account}} in {{provider}} still has the document the attack wrote.": "Den inbäddade policyn {{object}} på {{account}} i {{provider}} har fortfarande dokumentet som attacken skrev.",
+  "To read Google Workspace groups back, add the scope {{scope}} to the domain-wide delegation of the Google Workspace connection under Security Events → Connections, for an administrator who may read groups.": "För att kontrollera grupper i Google Workspace, lägg till omfånget {{scope}} i den domänomfattande delegeringen för Google Workspace-anslutningen under Säkerhetshändelser → Anslutningar, för en administratör som får läsa grupper.",
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them.": "Tokens från {{provider}} kan anta rollen {{account}} när deras anspråk {{claim}} matchar ett av {{count}} värden, bland dem {{value}}.",
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches one of {{count}} values, {{value}} among them._one": "Tokens från {{provider}} kan anta rollen {{account}} när deras anspråk {{claim}} matchar {{count}} värde: {{value}}.",
+  "Tokens from {{provider}} may assume the role {{account}} when their {{claim}} matches {{value}}.": "Tokens från {{provider}} kan anta rollen {{account}} när deras anspråk {{claim}} matchar {{value}}."
 }
