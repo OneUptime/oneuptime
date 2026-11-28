@@ -37,19 +37,25 @@ import {
   getCallVoiceError,
   toStoredCallVoice,
 } from "../../Types/Call/CallVoice";
-import { PROJECT_CALL_VOICES_NOT_ON_CLOUD_MESSAGE } from "../../Types/Call/ProjectCallVoice";
+import ProjectCallVoice, {
+  PROJECT_CALL_VOICES_NOT_ON_CLOUD_MESSAGE,
+} from "../../Types/Call/ProjectCallVoice";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import TwilioConfigWrite, {
   TwilioUseAndNumbers,
 } from "../../Types/CallAndSMS/TwilioConfigWrite";
 import { GLOBAL_TWILIO_CONFIG_USE_SELECT } from "../Utils/TwilioConfigSelect";
 import {
+  getLetProjectsChooseCallVoice,
   getServerTwilioCallVoice,
   getServerTwilioEnvironment,
+  getServerTwilioProjectCallVoices,
 } from "../Utils/ServerTwilioConfig";
 import {
   SERVER_TWILIO_CALL_VOICE_SET_BY_ENVIRONMENT_MESSAGE,
+  SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_SET_BY_ENVIRONMENT_MESSAGE,
   SERVER_TWILIO_SET_BY_ENVIRONMENT_MESSAGE,
+  ServerTwilioProjectCallVoicesReading,
 } from "../../Types/CallAndSMS/ServerTwilioEnvironment";
 import { getServerEmailEnvironment } from "../Utils/ServerEmailSettings";
 import {
@@ -1046,6 +1052,77 @@ export class Service extends DatabaseService<Model> {
     throw new BadDataException(
       SERVER_TWILIO_CALL_VOICE_SET_BY_ENVIRONMENT_MESSAGE,
     );
+  }
+
+  /*
+   * While GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE sets whether projects
+   * choose the voice of their calls (#11462), the switch saved here is not
+   * the one calls and projects read, so a write to it - the Project Call
+   * Voices card, or the API - is refused with where it is changed instead:
+   * one that went through would say "Saved" and change nothing. An explicit
+   * null counts as a write; OneUptime's own writes (props.isRoot) go
+   * through, and change nothing a call says. On OneUptime Cloud the
+   * variable is never the switch, and turning it on there is refused anyway
+   * (assertProjectCallVoicesAreOffered).
+   */
+  public assertProjectCallVoicesNotSetByEnvironment(
+    data: unknown,
+    props: DatabaseCommonInteractionProps | undefined,
+  ): void {
+    if (props?.isRoot) {
+      return;
+    }
+
+    const written: boolean =
+      (data as Record<string, unknown> | null)?.[
+        "letProjectsChooseCallVoice"
+      ] !== undefined;
+
+    if (!written || !getServerTwilioProjectCallVoices().isSet) {
+      return;
+    }
+
+    throw new BadDataException(
+      SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_SET_BY_ENVIRONMENT_MESSAGE,
+    );
+  }
+
+  /*
+   * Whether the server lets projects choose the voice of their calls through
+   * its Twilio account (#11065), as the calls and a project's write of its
+   * voice read it: what GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE says
+   * once it is set (#11462) - with no read of the row - else the switch
+   * saved here. Never on OneUptime Cloud. A read of the row that fails
+   * throws: each caller says what a switch it cannot read means to it.
+   */
+  @CaptureSpan()
+  public async canProjectsChooseCallVoice(): Promise<boolean> {
+    if (IsBillingEnabled) {
+      return false;
+    }
+
+    const environment: ServerTwilioProjectCallVoicesReading =
+      getServerTwilioProjectCallVoices();
+
+    if (environment.isSet) {
+      return ProjectCallVoice.areOffered({
+        isBillingEnabled: IsBillingEnabled,
+        letProjectsChooseCallVoice: environment.letProjectsChoose,
+      });
+    }
+
+    const config: Model | null = await this.findOneById({
+      id: ObjectID.getZeroObjectID(),
+      select: { letProjectsChooseCallVoice: true },
+      props: { isRoot: true },
+    });
+
+    return ProjectCallVoice.areOffered({
+      isBillingEnabled: IsBillingEnabled,
+      letProjectsChooseCallVoice: getLetProjectsChooseCallVoice(
+        config?.letProjectsChooseCallVoice,
+      ),
+    });
   }
 
   /*
@@ -2158,6 +2235,10 @@ export class Service extends DatabaseService<Model> {
       createBy.data,
       createBy.props,
     );
+    this.assertProjectCallVoicesNotSetByEnvironment(
+      createBy.data,
+      createBy.props,
+    );
     this.assertEmailSettingsNotSetByEnvironment(createBy.data, createBy.props);
     await this.assertMasterApiKeyTurnOnIsConfirmed(
       createBy.data,
@@ -2205,6 +2286,10 @@ export class Service extends DatabaseService<Model> {
     this.assertMasterApiKeyWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioAccountNotSetByEnvironment(updateBy.data, updateBy.props);
     this.assertTwilioCallVoiceNotSetByEnvironment(
+      updateBy.data,
+      updateBy.props,
+    );
+    this.assertProjectCallVoicesNotSetByEnvironment(
       updateBy.data,
       updateBy.props,
     );

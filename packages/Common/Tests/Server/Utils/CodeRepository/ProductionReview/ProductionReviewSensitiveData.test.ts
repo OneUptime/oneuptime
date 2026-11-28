@@ -1393,6 +1393,147 @@ describe("what a front end's RUM application already held (#11395)", () => {
     expect(point.production).toBeUndefined();
   });
 
+  /*
+   * A session's tags (#11458): read by everyone who can list sessions, a
+   * wider audience than its user's details, so a tag's point is told what
+   * the sessions' tags held, and a user's point what their users held -
+   * and a rule of every service reaches the tags, now that ingest runs one.
+   */
+  function sessionTag(
+    change: Partial<SensitiveDataCandidate> = {},
+  ): SensitiveDataCandidate {
+    return emailCandidate({
+      sink: SensitiveDataSink.Session,
+      path: SESSION_PATH,
+      lineText: "  OneUptimeReplay.setTags({ customer: customer.email });",
+      subject: "customer.email",
+      where: "OneUptimeReplay.setTags",
+      location: "sessions.tags.customer",
+      text: "Writes an email address to a recorded session's tags: `customer.email`, in `OneUptimeReplay.setTags`. A session's tags are stored as sent, and everyone who can list sessions reads them.",
+      ...change,
+    });
+  }
+
+  test("a tag's point: the sessions' tags held it, its own tag first, then another tag - never the sessions' user (#11458)", () => {
+    const point: ProductionReviewLeakJSON = pointOf(sessionTag(), {
+      telemetry: knowledge({
+        findings: [
+          finding({ location: "sessions.identifiedUserLabel" }),
+          finding({ location: "sessions.identifiedUserTraits.email" }),
+          finding({ location: "logs.attributes.customer" }),
+          finding({ location: "sessions.tags.buyer" }),
+          finding({ location: "sessions.tags.customer" }),
+        ],
+      }),
+    })!;
+
+    expect(
+      point.production!.heldBefore!.map(
+        (place: ProductionReviewLeakHeldBeforeJSON) => {
+          return [place.location, place.serviceName, place.ownerKind];
+        },
+      ),
+    ).toEqual([
+      [
+        "sessions.tags.customer",
+        "storefront-web",
+        TelemetryLeakFixOwnerKind.RumApplication,
+      ],
+      [
+        "sessions.tags.buyer",
+        "storefront-web",
+        TelemetryLeakFixOwnerKind.RumApplication,
+      ],
+    ]);
+  });
+
+  test("a session's user's point is never told of a tag (#11458)", () => {
+    const point: ProductionReviewLeakJSON = pointOf(sessionUser(), {
+      telemetry: knowledge({
+        findings: [finding({ location: "sessions.tags.customer" })],
+      }),
+    })!;
+
+    expect(point.production).toBeUndefined();
+  });
+
+  test("a tag whose key the code does not spell out is told of any tag that held the data (#11458)", () => {
+    const point: ProductionReviewLeakJSON = pointOf(
+      sessionTag({ location: "sessions.tags" }),
+      {
+        telemetry: knowledge({
+          findings: [
+            finding({ location: "sessions.identifiedUserLabel" }),
+            finding({ location: "sessions.tags.buyer" }),
+          ],
+        }),
+      },
+    )!;
+
+    expect(
+      point.production!.heldBefore!.map((place: { location: string }) => {
+        return place.location;
+      }),
+    ).toEqual(["sessions.tags.buyer"]);
+  });
+
+  test("a rule of every service masks a tag's place at ingest (#11458)", () => {
+    const point: ProductionReviewLeakJSON = pointOf(sessionTag(), {
+      telemetry: knowledge({
+        findings: [],
+        rules: [
+          {
+            id: "rule-1",
+            name: "Mask emails",
+            signal: "log",
+            patternType: "email",
+            fieldsToScrub: "both",
+          },
+        ],
+      }),
+    })!;
+
+    expect(point.production!.maskedAtIngestBy).toBe("Mask emails");
+  });
+
+  test("a rule that reads only bodies, or a service's own rule, never reaches a session's tags (#11458)", () => {
+    for (const rule of [
+      {
+        id: "rule-1",
+        name: "Mask emails in bodies",
+        signal: "log" as const,
+        patternType: "email",
+        fieldsToScrub: "body",
+      },
+      {
+        id: "rule-2",
+        name: "Mask checkout-api emails",
+        signal: "log" as const,
+        patternType: "email",
+        fieldsToScrub: "both",
+        serviceId: SERVICE_ID,
+      },
+    ]) {
+      const point: ProductionReviewLeakJSON = pointOf(sessionTag(), {
+        telemetry: knowledge({ findings: [], rules: [rule] }),
+      })!;
+
+      expect(point.production).toBeUndefined();
+    }
+  });
+
+  test("a finding masked at a tag's own place: masked, by no name (#11458)", () => {
+    const point: ProductionReviewLeakJSON = pointOf(sessionTag(), {
+      telemetry: knowledge({
+        findings: [
+          finding({ location: "sessions.tags.customer", isScrubbed: true }),
+        ],
+      }),
+    })!;
+
+    expect(point.production!.maskedAtIngestBy).toBe("");
+  });
+
   test("a finding masked at its own place there: masked, by no name", () => {
     const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
       telemetry: knowledge({

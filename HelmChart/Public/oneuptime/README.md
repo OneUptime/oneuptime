@@ -46,7 +46,8 @@ on a status page. This Helm chart runs all of OneUptime on Kubernetes.
    The [Self-Hosting Guide](https://oneuptime.com/docs/installation/self-hosting-guide)
    walks every step, from here to a test page. Or set them in your values:
    `email`, and `twilio` for SMS and calls, with `twilio.callVoice` for the
-   voice calls speak with (see
+   voice calls speak with and `twilio.letProjectsChooseCallVoice` to let each
+   project choose its own (see
    [SMS and calls](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/configuration.md#sms-and-calls-twilio)).
 
 That's the whole happy path. For details, prerequisites, and upgrades, see the

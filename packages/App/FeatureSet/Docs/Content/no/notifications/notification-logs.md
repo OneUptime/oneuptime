@@ -25,6 +25,8 @@ Hver status er et merke der fargen viser hvor meldingen er:
 
 Pek på en status, trykk på den, eller gå til den med Tab-tasten, så sier den hva den betyr og hva som kommer etterpå. **Vis statusmelding** i radens meny viser hva leverandøren svarte, som meldingens ID eller hvorfor den mislyktes. Filteret **Status** på hver fane viser hver status fanen kan vise, i den rekkefølgen en melding går gjennom dem.
 
+Kortet **Hvem fikk beskjed** i oversikten for en hendelse eller et varsel og resultatet av et testoppkall viser statusen til hver melding på samme måte, i de samme fargene: Et anrop som fortsatt ringer, står også der som **Ringer**, aldri som **Sendt**.
+
 ## SMS
 
 ```mermaid title="Statusene til en SMS, fra OneUptime til telefonen"
@@ -40,7 +42,7 @@ flowchart TB
 | **Sender** | OneUptime har gitt SMS-en til Twilio, som sender den videre til operatøren. |
 | **Sendt** | Operatøren har godtatt SMS-en. Den går til **Levert** eller **Ikke levert** så snart operatøren melder tilbake. |
 | **Levert** | Operatøren har bekreftet at SMS-en nådde telefonen. Det er den siste statusen for en SMS som kom frem. |
-| **Ikke levert** | Operatøren kunne ikke levere den. **Feilkode** forteller hvorfor: `30003` er en telefon som er avslått eller utenfor dekning, `30005` et nummer som ikke finnes, `30006` en fasttelefon, og `30007` en melding som operatøren filtrerte. |
+| **Ikke levert** | Operatøren kunne ikke levere den. **Feilkode** forteller hvorfor, og hva koden betyr. |
 | **Mislyktes** | Twilio kunne ikke sende den. **Feilkode** forteller hvorfor. |
 | **Feil** | Den ble ikke sendt, for eksempel fordi SMS er slått av for prosjektet, eller fordi Twilio avviste nummeret. **Vis statusmelding** forteller hvorfor. |
 | **For lav saldo** | Den ble ikke sendt: Prosjektets saldo var for lav til å betale for den. |
@@ -49,6 +51,33 @@ flowchart TB
 En SMS som serverens egen SMS- og anropsgateway tok imot, blir stående på **Sendt**, i grønt: Gatewayen melder ikke om levering, så det er dens siste status.
 
 Twilio melder hver endring til OneUptime så snart den skjer, signert med auth-tokenet til kontoen SMS-en gikk ut fra, og OneUptime avviser enhver melding som ikke kommer fra Twilio. Derfor må Twilio kunne nå serveren din: se [Twilio-integrasjon](/docs/self-hosted/twilio-integration).
+
+### Feilkoder
+
+Hver kode under **Feilkode** åpner Twilios side om koden, som viser hva som kan forårsake den. Under kodene en SMS oftest mislykkes med, forteller loggen på én linje hva de betyr:
+
+| Kode | Hva det betyr |
+| --- | --- |
+| `20003` | Twilio godtok ikke påloggingsinformasjonen til kontoen. |
+| `21211` | Nummeret er ikke et gyldig telefonnummer. |
+| `21408` | Twilio-kontoen har ikke lov til å sende SMS til dette landet. |
+| `21606` | Avsendernummeret kan ikke sende SMS for denne Twilio-kontoen. |
+| `21608` | En Twilio-prøvekonto kan bare sende til numre som er verifisert i den. |
+| `21610` | Mottakeren svarte STOP, så Twilio sender ikke lenger SMS til vedkommende fra dette nummeret. |
+| `21612` | Avsendernummeret kan ikke nå dette nummeret. |
+| `21614` | Nummeret er ikke et mobilnummer, men for eksempel en fasttelefon. |
+| `30001` | For mange SMS-er ble sendt på én gang, og køen hos Twilio ble overfylt. |
+| `30002` | Twilio-kontoen ble suspendert før SMS-en gikk ut. |
+| `30003` | Telefonen er avslått eller utenfor dekning. |
+| `30004` | Nummeret er blokkert fra å motta SMS-en. |
+| `30005` | Nummeret er ukjent og finnes kanskje ikke lenger. |
+| `30006` | Nummeret kan ikke motta SMS, for eksempel fordi det er en fasttelefon. |
+| `30007` | Twilio eller operatøren filtrerte SMS-en som spam. |
+| `30008` | Operatøren kunne ikke levere SMS-en og sa ikke hvorfor. |
+| `30032` | Det avsendende gratisnummeret er ikke verifisert ennå. |
+| `30034` | Avsendernummeret er ikke registrert for A2P 10DLC, som operatører i USA krever. |
+
+En kode som ikke er Twilios, som HTTP-statusen SMS- og anropsgatewayen din svarte med, vises som den er.
 
 ## Anrop
 

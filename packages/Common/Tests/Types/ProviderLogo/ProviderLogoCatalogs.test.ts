@@ -46,6 +46,7 @@ import {
   getProviderLogoMark,
   getProviderLogoStandInIcon,
 } from "../../../Types/ProviderLogo/ProviderLogoMarks";
+import { getIconBrandMark } from "../../../UI/Components/Icon/IconBrandMarks";
 import { PROVIDER_LOGO_MARK_LOADERS } from "../../../UI/Components/ProviderLogo/ProviderLogoMarkLoader";
 
 /*
@@ -59,7 +60,11 @@ import { PROVIDER_LOGO_MARK_LOADERS } from "../../../UI/Components/ProviderLogo/
  * changed one, has to say which it is.
  */
 
-// The logo is registered and drawn: a mark with its loader and its shapes, or a stand-in icon.
+/*
+ * The logo is registered and drawn: a mark with its shapes - loaded when it
+ * is drawn, or the icon set's own (Icon/IconBrandMarks), drawn at once - or
+ * a stand-in icon.
+ */
 function expectLogoShipped(logo: ProviderLogo): void {
   expect({ logo, isLogo: isProviderLogo(logo) }).toEqual({
     logo,
@@ -78,11 +83,13 @@ function expectLogoShipped(logo: ProviderLogo): void {
 
   expect({
     logo,
-    hasLoader: Boolean(PROVIDER_LOGO_MARK_LOADERS[mark]),
+    isDrawn: Boolean(
+      PROVIDER_LOGO_MARK_LOADERS[mark] || getIconBrandMark(mark),
+    ),
     hasShapes: Boolean(ALL_PROVIDER_LOGO_MARKS[mark]),
   }).toEqual({
     logo,
-    hasLoader: true,
+    isDrawn: true,
     hasShapes: true,
   });
 }

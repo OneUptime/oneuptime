@@ -101,6 +101,8 @@ VCENTER_USERNAME=oneuptime@vsphere.local
 VCENTER_PASSWORD=a-strong-password
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
+VMWARE_AGENT_CONTAINER_NAME=oneuptime-vmware-agent
+VMWARE_AI_AGENT_CONTAINER_NAME=oneuptime-vmware-ai-agent
 ```
 
 `$`, `#`, स्पेस या उद्धरण चिह्नों वाला पासवर्ड सिंगल कोट्स में जाता है ([vCenter लॉगिन अस्वीकार करता है](#समस्या-निवारण) देखें)। एजेंट शुरू करें:
@@ -202,6 +204,8 @@ Docker Compose इन्हें `.env` से पढ़ता है, जो `
 | `VCENTER_PASSWORD` | हाँ | उस उपयोगकर्ता का पासवर्ड। अगर उसमें `$`, `#`, स्पेस या उद्धरण चिह्न हों, तो Docker इंस्टॉल की `.env` में उसे सिंगल कोट्स में रखें (`install.sh` यह आपके लिए करती है), और systemd इंस्टॉल की फ़ाइल में डबल कोट्स में ([समस्या निवारण](#समस्या-निवारण) देखें)। |
 | `VCENTER_INSECURE_SKIP_VERIFY` | नहीं | `true` vCenter का डिफ़ॉल्ट सेल्फ़-साइन्ड (VMCA) सर्टिफ़िकेट स्वीकार करता है; `false` TLS सत्यापन चालू रखता है। डिफ़ॉल्ट `false` है। |
 | `VCENTER_COLLECTION_INTERVAL` | नहीं | पूरी इन्वेंटरी कितनी बार पढ़ी जाती है। बहुत बड़े vCenter के लिए इसे `5m` या `10m` तक बढ़ाएँ। डिफ़ॉल्ट `2m` है। |
+| `VMWARE_AGENT_CONTAINER_NAME` | नहीं | कलेक्टर के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-vmware-agent` है। उसी मशीन पर दूसरे vCenter के एजेंट को अपने अलग नाम चाहिए: देखें [कई vCenter की निगरानी](#कई-vcenter-की-निगरानी)। अगर आप इन्हें सेट नहीं करते, तो इंस्टॉल स्क्रिप्ट नए एजेंट के कंटेनरों के नाम उसके फ़ोल्डर पर रखती है, और स्क्रिप्ट फिर से चलाने पर उन्हें बनाए रखती है। |
+| `VMWARE_AI_AGENT_CONTAINER_NAME` | नहीं | AI एजेंट के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-vmware-ai-agent` है, और दूसरे एजेंट के लिए उसके कलेक्टर के नाम के बगल वाला नाम, जैसे `oneuptime-vmware-ai-agent-vcenter2`। |
 
 AI एजेंट की अपनी सेटिंग्स [AI एजेंट](#ai-एजेंट) के अंतर्गत हैं।
 
@@ -377,6 +381,20 @@ processors:
 
 कलेक्टर अपना कॉन्फ़िगरेशन सिर्फ़ शुरू होते समय पढ़ता है: `docker compose restart oneuptime-vmware-agent` चलाएँ, या systemd के साथ `sudo systemctl restart oneuptime-vmware-agent`। इसके बाद vCenter `team:platform` और `env:production` लेबल दिखाता है। लेबल का मिलान अक्षरों के बड़े-छोटे होने की परवाह किए बिना होता है, इसलिए मौजूदा `Production` लेबल दोहराया नहीं जाता बल्कि फिर से उपयोग होता है, और एजेंट कभी वह लेबल नहीं हटाता जिसे किसी ने OneUptime में जोड़ा हो।
 
+## कई vCenter की निगरानी
+
+एक एजेंट एक vCenter पढ़ता है। एक ही मशीन से कई vCenter की निगरानी के लिए, हर एजेंट को उसकी अपनी `.env` और उसके अपने कंटेनर नामों के साथ उसके अपने फ़ोल्डर में इंस्टॉल करें, क्योंकि दो कंटेनर एक नाम साझा नहीं कर सकते:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-vmware-agent-vcenter2 bash install.sh
+```
+
+स्क्रिप्ट एजेंट के कंटेनरों के नाम फ़ोल्डर पर रखती है: `oneuptime-vmware-agent-vcenter2` और `oneuptime-vmware-ai-agent-vcenter2`। इन्हें ख़ुद चुनने के लिए, स्क्रिप्ट चलाते समय `VMWARE_AGENT_CONTAINER_NAME` और `VMWARE_AI_AGENT_CONTAINER_NAME` सेट करें। स्क्रिप्ट ये नाम उस एजेंट की `.env` में सहेज लेती है, इसलिए एजेंट अपग्रेड करने के लिए स्क्रिप्ट फिर से चलाने पर भी नाम बने रहते हैं, और जिस एजेंट का `container_name` आपने कभी `docker-compose.yml` में बदला था, वह वही नाम रखता है। हर फ़ोल्डर को अपना अलग नाम दें: Docker Compose किसी प्रोजेक्ट का नाम सिर्फ़ उसके फ़ोल्डर पर रखता है, इसलिए स्क्रिप्ट ऐसे फ़ोल्डर को अस्वीकार करती है जिसका नाम उस फ़ोल्डर जैसा हो जो पहले से कहीं और एजेंट चला रहा है। Docker Compose के साथ, इसके बजाय नाम हर एजेंट की `.env` में सेट करें।
+
+systemd यूनिट मानती है कि एजेंट `/opt/oneuptime-vmware-agent` में है: किसी दूसरे फ़ोल्डर के लिए उसे किसी दूसरे नाम से सहेजें, जैसे `oneuptime-vmware-agent-vcenter2.service`, और उसकी `WorkingDirectory` बदलें। फ़ोल्डर को डायग्नोस्टिक स्क्रिप्ट को `-d` से दें।
+
+अगर पहला एजेंट [syslog](#वैकल्पिक-esxi-syslog-भेजें) पोर्ट प्रकाशित करता है, तो दूसरे का पोर्ट किसी दूसरे पोर्ट पर प्रकाशित करें, जैसे `5515:5514`, और उस vCenter के होस्ट को उस पर पॉइंट करें। Docker के बिना वाला इंस्टॉल कोई कंटेनर नहीं चलाता: वहाँ दूसरा एजेंट एक दूसरी यूनिट है, जो दूसरे नाम से सहेजी गई है, जिसकी `EnvironmentFile` और `ExecStart` उसके अपने फ़ोल्डर का नाम देती हैं, और जिसका कलेक्टर अपने मेट्रिक `8890` के बजाय किसी दूसरे पोर्ट पर रिपोर्ट करता है।
+
 ## systemd सेवा के रूप में चलाएँ
 
 Docker इंस्टॉल भी systemd के अंतर्गत चल सकता है, ताकि वह मशीन के साथ शुरू हो और विफल होने पर फिर से शुरू हो। उसकी यूनिट Docker Compose को लपेटती है और मानती है कि एजेंट `/opt/oneuptime-vmware-agent` में है, जहाँ इंस्टॉल स्क्रिप्ट उसे रखती है:
@@ -397,7 +415,7 @@ Docker के बिना वाला इंस्टॉल पहले स�
 
 :::tabs
 @tab install.sh
-`install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml` और `otel-collector-config.yaml` ताज़ा करती है, और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े।
+`install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml` और `otel-collector-config.yaml` ताज़ा करती है, और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े। `/opt/oneuptime-vmware-agent` के बाहर इंस्टॉल किए गए एजेंट को उसका फ़ोल्डर चाहिए, `INSTALL_DIR=<folder> bash install.sh`, और वह अपने कंटेनर नाम बनाए रखता है।
 
 ```bash
 curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh

@@ -80,6 +80,8 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 CEPH_CLUSTER_NAME=my-ceph-cluster
 CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]
+CEPH_AGENT_CONTAINER_NAME=oneuptime-ceph-agent
+CEPH_AI_AGENT_CONTAINER_NAME=oneuptime-ceph-ai-agent
 ```
 
 アクティブなものもスタンバイも含めてすべての mgr デーモンを、カンマ区切りで角かっこに入れて列挙します。角かっこがあると、Collector は値をスクレイプ対象のリストとして読み取ります。エージェントを起動します:
@@ -119,6 +121,8 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | はい | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。 |
 | `CEPH_CLUSTER_NAME` | いいえ | OneUptime でのクラスターの名前で、すべてのメトリクスに `ceph.cluster.name` リソース属性として付与されます。変えないでください。あとで変更すると別のクラスターとして登録されます。既定は `ceph` です。 |
 | `CEPH_MGR_ENDPOINTS` | はい | すべての mgr デーモンを、角かっこで囲んだカンマ区切りの `host:port` リストで指定します。例: `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`。角かっこはインストールスクリプトが付けます。 |
+| `CEPH_AGENT_CONTAINER_NAME` | いいえ | Collector のコンテナ名。既定は `oneuptime-ceph-agent` です。同じマシン上で別のクラスターのエージェントには専用の名前が必要です ([複数のクラスターを監視する](#複数のクラスターを監視する) を参照)。設定しない場合、インストールスクリプトは新しいエージェントのコンテナにそのフォルダーにちなんだ名前を付け、スクリプトを再実行してもその名前を維持します。 |
+| `CEPH_AI_AGENT_CONTAINER_NAME` | いいえ | AI エージェントのコンテナ名。既定は `oneuptime-ceph-ai-agent` で、別のエージェントでは `oneuptime-ceph-ai-agent-cluster2` のように Collector の名前と並ぶ名前になります。 |
 
 AI エージェント自身の設定は [AI エージェント](#ai-エージェント) にあります。
 
@@ -206,6 +210,18 @@ processors:
 
 Collector は起動時にしか設定を読み込みません。`docker compose restart oneuptime-ceph-agent` を実行してください。すると、クラスターに `team:storage` と `env:production` のラベルが表示されます。ラベルは大文字と小文字を区別せずに照合されるため、既存の `Production` ラベルは重複せずに再利用されます。また、OneUptime で誰かが追加したラベルをエージェントが削除することはありません。
 
+## 複数のクラスターを監視する
+
+1 つのエージェントが読み取るのは 1 つのクラスターです。同じマシンから複数を監視するには、2 つのコンテナが同じ名前を持つことはできないため、それぞれを専用の `.env` と専用のコンテナ名を持つ専用のフォルダーにインストールします:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-ceph-agent-cluster2 bash install.sh
+```
+
+スクリプトは、フォルダーにちなんでエージェントのコンテナに `oneuptime-ceph-agent-cluster2` と `oneuptime-ceph-ai-agent-cluster2` という名前を付けます。自分で選ぶには、スクリプトの実行時に `CEPH_AGENT_CONTAINER_NAME` と `CEPH_AI_AGENT_CONTAINER_NAME` を設定します。スクリプトはその名前をそのエージェントの `.env` に保存するため、エージェントをアップグレードするためにスクリプトを再実行しても名前は維持されます。また、`container_name` を以前 `docker-compose.yml` で編集したエージェントも、その名前を維持します。フォルダーにはそれぞれ専用の名前を付けてください。Docker Compose はプロジェクトにフォルダー名だけにちなんだ名前を付けるため、別の場所ですでにエージェントを実行しているフォルダーと同じ名前のフォルダーはスクリプトが拒否します。Docker Compose の場合は、代わりに各エージェントの `.env` で名前を設定します。
+
+systemd ユニットは `/opt/oneuptime-ceph-agent` を前提としています。別のフォルダーの場合は、`oneuptime-ceph-agent-cluster2.service` のような別の名前で保存し、その `WorkingDirectory` を変更します。フォルダーは `-d` で診断スクリプトに渡します。
+
 ## systemd サービスとして実行する
 
 マシンの起動時にエージェントを起動し、失敗したときに再起動するには、その systemd ユニットをインストールします。インストールスクリプトが配置する `/opt/oneuptime-ceph-agent` にエージェントがあることを前提としています:
@@ -220,7 +236,7 @@ sudo systemctl enable --now oneuptime-ceph-agent
 
 エージェントは、そのファイルが固定している Collector のバージョンを **エージェントバージョン** として報告します。それがこの OneUptime のリリースが固定しているバージョンより古い場合、クラスターの **概要** でその横に警告マークが表示されます。マークを選択すると、これらのコマンドが表示されます。ファイルがバージョンを報告するようになる前にインストールしたエージェントは、この方法でアップグレードするまでバージョンが表示されません。
 
-Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と `otel-collector-config.yaml` を更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、イメージをプルしてエージェントを作り直すため、Collector は新しい設定を読み込みます。AI エージェントの `ceph/` フォルダーはそのまま残ります。
+Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と `otel-collector-config.yaml` を更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、イメージをプルしてエージェントを作り直すため、Collector は新しい設定を読み込みます。AI エージェントの `ceph/` フォルダーはそのまま残ります。`/opt/oneuptime-ceph-agent` の外にインストールしたエージェントには、`INSTALL_DIR=<folder> bash install.sh` のようにそのフォルダーを指定する必要があり、コンテナ名はそのまま維持されます。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/ceph-agent -o install.sh

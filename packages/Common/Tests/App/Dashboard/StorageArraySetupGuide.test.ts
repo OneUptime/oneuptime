@@ -1267,7 +1267,7 @@ describe("drift guards against agents/StorageArrayAgent", () => {
     expect(topic).toContain(
       codeBlock(
         "bash",
-        `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02 bash install.sh`,
+        `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 \\\n  ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02 \\\n  bash install.sh`,
       ),
     );
     // Nothing tells anyone to edit docker-compose.yml, which an upgrade replaces.

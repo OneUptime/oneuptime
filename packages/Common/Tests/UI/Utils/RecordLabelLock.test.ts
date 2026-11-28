@@ -23,9 +23,9 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import PermissionGate, {
   ModelAction,
-  ModelLabelLock,
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import RecordLocks, { ModelLabelLock } from "../../../UI/Utils/RecordLocks";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import {
   RecordAccessScope,
@@ -159,11 +159,11 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("PermissionGate.getLabelLock: the reach of the reader's rows", () => {
+describe("RecordLocks.getLabelLock: the reach of the reader's rows", () => {
   test("the customer may change and delete monitor A, labelled X, and neither monitor B nor one labelled Y", () => {
     signInAs(CUSTOMER);
 
-    const lock: ModelLabelLock = PermissionGate.getLabelLock(new Monitor())!;
+    const lock: ModelLabelLock = RecordLocks.getLabelLock(new Monitor())!;
 
     expect(lock).not.toBeNull();
     expect(lock.labelsColumn).toBe("labels");
@@ -181,20 +181,20 @@ describe("PermissionGate.getLabelLock: the reach of the reader's rows", () => {
   });
 
   test("nothing to lock by labels for a Project Member over the project, a Viewer alone, or no snapshot", () => {
-    expect(PermissionGate.getLabelLock(new Monitor())).toBeNull();
+    expect(RecordLocks.getLabelLock(new Monitor())).toBeNull();
 
     signInAs([row(Permission.ProjectMember, { scope: PermissionScope.All })]);
-    expect(PermissionGate.getLabelLock(new Monitor())).toBeNull();
+    expect(RecordLocks.getLabelLock(new Monitor())).toBeNull();
 
     signInAs([row(Permission.Viewer, { scope: PermissionScope.All })]);
-    expect(PermissionGate.getLabelLock(new Monitor())).toBeNull();
+    expect(RecordLocks.getLabelLock(new Monitor())).toBeNull();
   });
 
   test("a model that carries no labels has nothing for its labels to lock", () => {
     signInAs(CUSTOMER);
 
     expect(
-      PermissionGate.getLabelLock({
+      RecordLocks.getLabelLock({
         ...new Monitor(),
         singularName: "Thing",
         getAccessControlColumn: (): null => {
@@ -225,7 +225,7 @@ describe("PermissionGate.getLabelLock: the reach of the reader's rows", () => {
       }),
     ]);
 
-    const lock: ModelLabelLock = PermissionGate.getLabelLock(new Monitor())!;
+    const lock: ModelLabelLock = RecordLocks.getLabelLock(new Monitor())!;
 
     expect(lock.weigh(ModelAction.Delete, [LABEL_Y]).refusal).toBe(
       LabelRefusal.BlockedLabels,
@@ -248,10 +248,8 @@ describe("PermissionGate.getLabelLock: the reach of the reader's rows", () => {
       }),
     ]);
 
-    const runners: ModelLabelLock = PermissionGate.getLabelLock(new Runner())!;
-    const workflows: ModelLabelLock = PermissionGate.getLabelLock(
-      new Workflow(),
-    )!;
+    const runners: ModelLabelLock = RecordLocks.getLabelLock(new Runner())!;
+    const workflows: ModelLabelLock = RecordLocks.getLabelLock(new Workflow())!;
 
     expect(runners.weigh(ModelAction.Delete, []).isAllowed).toBe(false);
     expect(runners.weigh(ModelAction.Delete, [LABEL_X]).isAllowed).toBe(true);
@@ -270,7 +268,7 @@ describe("PermissionGate.getLabelLock: the reach of the reader's rows", () => {
       }),
     ]);
 
-    const verdict: LabelVerdict = PermissionGate.getLabelLock(
+    const verdict: LabelVerdict = RecordLocks.getLabelLock(
       new Monitor(),
     )!.weigh(ModelAction.Delete, []);
 
@@ -279,35 +277,35 @@ describe("PermissionGate.getLabelLock: the reach of the reader's rows", () => {
   });
 });
 
-describe("PermissionGate.mayReadColumnOnRecord: a key read on some labels only", () => {
+describe("RecordLocks.mayReadColumnOnRecord: a key read on some labels only", () => {
   test("the customer sees monitor A's secret key and not monitor B's", () => {
     signInAs(CUSTOMER);
 
     expect(
-      PermissionGate.mayReadColumnOnRecord(
+      RecordLocks.mayReadColumnOnRecord(
         new Monitor(),
         "serverMonitorSecretKey",
         [LABEL_X],
       ),
     ).toBe(true);
     expect(
-      PermissionGate.mayReadColumnOnRecord(
+      RecordLocks.mayReadColumnOnRecord(
         new Monitor(),
         "serverMonitorSecretKey",
         [],
       ),
     ).toBe(false);
     // A column every reader reads is read on every record.
-    expect(
-      PermissionGate.mayReadColumnOnRecord(new Monitor(), "name", []),
-    ).toBe(true);
+    expect(RecordLocks.mayReadColumnOnRecord(new Monitor(), "name", [])).toBe(
+      true,
+    );
   });
 
   test("a Viewer alone sees no key on any monitor; a record read without its labels is left to the server", () => {
     signInAs([row(Permission.Viewer, { scope: PermissionScope.All })]);
 
     expect(
-      PermissionGate.mayReadColumnOnRecord(
+      RecordLocks.mayReadColumnOnRecord(
         new Monitor(),
         "serverMonitorSecretKey",
         [LABEL_X],
@@ -317,7 +315,7 @@ describe("PermissionGate.mayReadColumnOnRecord: a key read on some labels only",
     signInAs(CUSTOMER);
 
     expect(
-      PermissionGate.mayReadColumnOnRecord(
+      RecordLocks.mayReadColumnOnRecord(
         new Monitor(),
         "serverMonitorSecretKey",
         null,
@@ -331,7 +329,7 @@ describe("the reason a lock gives, in the reader's words", () => {
     signInAs(CUSTOMER);
 
     const refusal: string | null = getRecordLabelRefusal({
-      lock: PermissionGate.getLabelLock(new Monitor()),
+      lock: RecordLocks.getLabelLock(new Monitor()),
       action: ModelAction.Delete,
       recordLabelIds: [],
       nouns: NOUNS,
@@ -355,7 +353,7 @@ describe("the reason a lock gives, in the reader's words", () => {
 
     expect(
       getRecordLabelRefusal({
-        lock: PermissionGate.getLabelLock(new Monitor()),
+        lock: RecordLocks.getLabelLock(new Monitor()),
         action: ModelAction.Update,
         recordLabelIds: [LABEL_Z],
         nouns: NOUNS,
@@ -381,7 +379,7 @@ describe("the reason a lock gives, in the reader's words", () => {
 
     expect(
       getRecordLabelRefusal({
-        lock: PermissionGate.getLabelLock(new Monitor()),
+        lock: RecordLocks.getLabelLock(new Monitor()),
         action: ModelAction.Delete,
         recordLabelIds: [LABEL_Y, LABEL_X],
         nouns: NOUNS,
@@ -402,7 +400,7 @@ describe("the reason a lock gives, in the reader's words", () => {
 
     expect(
       getRecordLabelRefusal({
-        lock: PermissionGate.getLabelLock(new Monitor()),
+        lock: RecordLocks.getLabelLock(new Monitor()),
         action: ModelAction.Delete,
         recordLabelIds: [],
         nouns: NOUNS,
@@ -421,7 +419,7 @@ describe("the reason a lock gives, in the reader's words", () => {
 
     expect(
       getRecordLabelRefusal({
-        lock: PermissionGate.getLabelLock(new Monitor()),
+        lock: RecordLocks.getLabelLock(new Monitor()),
         action: ModelAction.Delete,
         recordLabelIds: [],
         nouns: NOUNS,
@@ -433,9 +431,7 @@ describe("the reason a lock gives, in the reader's words", () => {
 
   test("says nothing of a record read without its labels, or one the labels allow", () => {
     signInAs(CUSTOMER);
-    const lock: ModelLabelLock | null = PermissionGate.getLabelLock(
-      new Monitor(),
-    );
+    const lock: ModelLabelLock | null = RecordLocks.getLabelLock(new Monitor());
 
     for (const recordLabelIds of [null, [LABEL_X]]) {
       expect(
@@ -476,7 +472,7 @@ describe("a record's page hands its gates what its labels lock", () => {
     const scope: RecordAccessScope = getRecordLabelAccessScope({
       tableName: "Monitor",
       recordId: MONITOR_B.toUpperCase(),
-      lock: PermissionGate.getLabelLock(new Monitor()),
+      lock: RecordLocks.getLabelLock(new Monitor()),
       recordLabelIds: [],
       nouns: NOUNS,
       labelNames: names([[LABEL_X, "Production"]]),
@@ -525,7 +521,7 @@ describe("a record's page hands its gates what its labels lock", () => {
     const scope: RecordAccessScope = getRecordLabelAccessScope({
       tableName: "Monitor",
       recordId: MONITOR_B,
-      lock: PermissionGate.getLabelLock(new Monitor()),
+      lock: RecordLocks.getLabelLock(new Monitor()),
       recordLabelIds: [LABEL_X],
       nouns: NOUNS,
       labelNames: names([]),
@@ -558,7 +554,7 @@ describe("a record's page hands its gates what its labels lock", () => {
       getRecordLabelAccessScope({
         tableName: "Monitor",
         recordId: MONITOR_B,
-        lock: PermissionGate.getLabelLock(new Monitor()),
+        lock: RecordLocks.getLabelLock(new Monitor()),
         recordLabelIds: null,
         nouns: NOUNS,
         labelNames: names([]),
@@ -668,7 +664,7 @@ describe("label names, read once for the page", () => {
  * of one record (AccessControlPermission.checkRecordByModel, the check an
  * update or a delete by id runs) lets it through - by the table's
  * permissions (PermissionGate.check) and the record's labels
- * (PermissionGate.getLabelLock).
+ * (RecordLocks.getLabelLock).
  */
 describe("the Dashboard and the server decide each record alike", () => {
   const SETS: Array<[string, Array<UserPermission>]> = [
@@ -838,9 +834,7 @@ describe("the Dashboard and the server decide each record alike", () => {
       return false;
     }
 
-    const lock: ModelLabelLock | null = PermissionGate.getLabelLock(
-      new Monitor(),
-    );
+    const lock: ModelLabelLock | null = RecordLocks.getLabelLock(new Monitor());
 
     return lock ? lock.weigh(data.action, data.recordLabelIds).isAllowed : true;
   };

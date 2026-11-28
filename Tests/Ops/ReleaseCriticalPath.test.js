@@ -171,7 +171,9 @@ function writesTheRelease(step) {
   return (
     /^(softprops\/action-gh-release|ncipollo\/release-action)@/.test(
       step.uses || "",
-    ) || /\bgh release (create|upload|edit)\b/.test(stepCommand(step))
+    ) ||
+    /\bgh release (create|upload|edit)\b/.test(stepCommand(step)) ||
+    /\bAttachReleaseAssets\.js\b/.test(stepCommand(step))
   );
 }
 
@@ -798,6 +800,7 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       directory: "release-assets/sboms",
       attach: "Attach SBOMs to release",
       files: "release-assets/sboms/*.cdx.json",
+      whenPublished: "skip",
       required: true,
     },
     {
@@ -806,6 +809,8 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       directory: "release-assets/infrastructure-agent",
       attach: "Attach the infrastructure agent to release",
       files: "release-assets/infrastructure-agent/*",
+      // What the package managers record: the published ones, or this run's.
+      whenPublished: "verify-checksums",
       required: true,
       alsoKeeps: ["infrastructure-agent-package-manifests"],
     },
@@ -820,6 +825,7 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       directory: "release-assets/vulnerabilities",
       attach: "Attach vulnerability reports to release",
       files: "release-assets/vulnerabilities/*",
+      whenPublished: "skip",
       required: false,
     },
     /*
@@ -833,6 +839,7 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       directory: "release-assets/android-agent",
       attach: "Attach the Android agent to release",
       files: "release-assets/android-agent/*",
+      whenPublished: "skip",
       required: false,
     },
     {
@@ -841,6 +848,7 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       directory: "release-assets/android-app",
       attach: "Upload APK to GitHub Release",
       files: "release-assets/android-app/oneuptime-on-call-android-app.apk",
+      whenPublished: "skip",
       required: false,
     },
     {
@@ -849,6 +857,7 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
       directory: "release-assets/ios-app",
       attach: "Upload IPA to GitHub Release",
       files: "release-assets/ios-app/oneuptime-on-call-ios-app.ipa",
+      whenPublished: "skip",
       required: false,
     },
   ];
@@ -866,7 +875,16 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
 
   describe.each(ASSETS)(
     "$job",
-    ({ job, artifact, directory, attach, files, required, alsoKeeps = [] }) => {
+    ({
+      job,
+      artifact,
+      directory,
+      attach,
+      files,
+      whenPublished,
+      required,
+      alsoKeeps = [],
+    }) => {
       const definition = jobs[job];
       const uploads = stepsUsing(definition, "actions/upload-artifact");
       const download = publishSteps.findIndex((step) => {
@@ -945,7 +963,14 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
         }
       });
 
-      test("is downloaded and attached by the publish job, to the draft, at the run's commit, before the publish", () => {
+      /*
+       * To draft-github-release's release, by its id, never by the tag
+       * (#11466): AttachReleaseAssets.js uploads to it only while it is a
+       * draft, and fails on a file the glob did not find. A release that is
+       * published already gets nothing: whenPublished says what the step
+       * does instead.
+       */
+      test("is downloaded and attached by the publish job, to the run's own release by its id, before the publish", () => {
         const attachStep = publishSteps[attachIndex];
 
         expect(download).toBeGreaterThan(-1);
@@ -953,16 +978,14 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
         expect(attachIndex).toBeLessThan(publishIndex);
         expect(publishSteps[download].with.path).toBe(directory);
         expect(files.startsWith(`${directory}/`)).toBe(true);
-        expect(attachStep.uses).toBe("softprops/action-gh-release@v2");
-        expect(attachStep.with).toEqual(
-          expect.objectContaining({
-            files,
-            fail_on_unmatched_files: true,
-            draft: true,
-            prerelease: false,
-            target_commitish: "${{ github.sha }}",
-          }),
+        expect(attachStep.uses).toBeUndefined();
+        expect(attachStep.run).toBe(
+          `node Scripts/Release/AttachReleaseAssets.js --repository "$GITHUB_REPOSITORY" --release-id "$RELEASE_ID" --tag "$VERSION" --when-published ${whenPublished} ${files}`,
         );
+        expect(attachStep.env.RELEASE_ID).toBe(
+          "${{ needs.draft-github-release.outputs.release_id }}",
+        );
+        expect(needsOf(jobs[PUBLISH])).toContain("draft-github-release");
       });
 
       test(
@@ -1009,13 +1032,22 @@ describe(`${RELEASE}: what the release carries is built ahead of it and attached
     ).toBe("${{ runner.temp }}/build/oneuptime-on-call-ios-app.ipa");
   });
 
-  test("the infrastructure agent keeps the files the release always got: the top of dist/, no directories, no dotfiles", () => {
+  /*
+   * The agent's own files at the top of dist/ - no directories, no dotfiles,
+   * and none of GoReleaser's working files (artifacts.json, metadata.json,
+   * config.yaml), which every release had carried, and of which
+   * metadata.json holds the build's time (#11466).
+   */
+  test("the infrastructure agent keeps its own files at the top of dist/, and none of GoReleaser's", () => {
     const collect = (jobs["infrastructure-agent-build"].steps || [])
       .map(stepCommand)
       .join("\n");
 
     expect(collect).toContain(
-      "find agents/InfrastructureAgent/dist -maxdepth 1 -type f ! -name '.*'",
+      "find agents/InfrastructureAgent/dist -maxdepth 1 -type f \\\n",
+    );
+    expect(collect).toContain(
+      "\\( -name 'oneuptime-infrastructure-agent*' -o -name 'oneuptime_*_checksums.txt' \\)",
     );
     expect(
       stepsUsing(

@@ -8,9 +8,11 @@ import {
   InstallScriptName,
   getInstallScriptEntry,
 } from "Common/Types/InstallScripts/InstallScripts";
+import { AgentContainerName } from "../../FeatureSet/Dashboard/src/Components/SetupGuide/AgentContainerNames";
 import {
   OPENSTACK_ACCESS_RULES_FILE,
   OPENSTACK_AGENT_CONTAINER,
+  OPENSTACK_AGENT_CONTAINER_NAMES,
   OPENSTACK_AGENT_IDENTITY_CONFIG,
   OPENSTACK_AGENT_INSTALL_DIR,
   OPENSTACK_CONNECT_METHODS,
@@ -1388,10 +1390,26 @@ describe("the setup guide is true for agents/OpenStackAgent", () => {
   });
 
   test("the containers it names are the shipped compose file's", () => {
-    expect(compose).toContain(`container_name: ${OPENSTACK_AGENT_CONTAINER}`);
-    expect(compose).toContain(
-      `container_name: ${OPENSTACK_EXPORTER_CONTAINER}`,
-    );
+    // Each from .env, so a second cloud's agent runs under names of its own (#11434).
+    for (const name of OPENSTACK_AGENT_CONTAINER_NAMES.names) {
+      expect(compose).toContain(
+        `container_name: \${${name.variable}:-${name.container}}`,
+      );
+    }
+    expect(
+      OPENSTACK_AGENT_CONTAINER_NAMES.names.map(
+        (name: AgentContainerName): string => {
+          return name.container;
+        },
+      ),
+    ).toEqual([
+      OPENSTACK_AGENT_CONTAINER,
+      OPENSTACK_EXPORTER_CONTAINER,
+      "oneuptime-openstack-quota-exporter",
+      "oneuptime-openstack-database-exporter",
+      "oneuptime-openstack-worker-state-exporter",
+      "oneuptime-openstack-ai-agent",
+    ]);
   });
 
   test("the install directory is the install script's", () => {

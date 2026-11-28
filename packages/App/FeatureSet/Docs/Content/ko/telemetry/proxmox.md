@@ -112,6 +112,10 @@ PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
+PROXMOX_AGENT_CONTAINER_NAME=oneuptime-proxmox-agent
+PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME=oneuptime-pve-api-failover
+PROXMOX_PVE_EXPORTER_CONTAINER_NAME=oneuptime-pve-exporter
+PROXMOX_AI_AGENT_CONTAINER_NAME=oneuptime-proxmox-ai-agent
 ```
 
 `PVE_NODES`는 모든 노드를 각자의 주소로 대괄호 안에 나열하고, `COMPOSE_PROFILES=pve-exporter`는 번들 익스포터도 시작합니다. 에이전트를 시작하세요:
@@ -161,6 +165,10 @@ Everything is ready. Begin running and processing data.
 | `PVE_API_TOKEN_SECRET` | 번들 익스포터 또는 AI 에이전트 | Proxmox API 토큰 시크릿. |
 | `PVE_VERIFY_SSL` | 아니요 | Proxmox API의 TLS 인증서를 검증합니다(익스포터와 AI 에이전트). Proxmox가 자체 서명 인증서를 제공하므로 기본값은 `false`입니다. |
 | `COMPOSE_PROFILES` | 아니요 | 번들 익스포터 컨테이너를 시작하려면 `pve-exporter`로 설정하세요. |
+| `PROXMOX_AGENT_CONTAINER_NAME` | 아니요 | Collector의 컨테이너 이름입니다. 기본값은 `oneuptime-proxmox-agent`입니다. 같은 머신에 있는 두 번째 클러스터의 에이전트에는 고유한 이름이 필요합니다. [여러 클러스터 모니터링](#여러-클러스터-모니터링)을 참고하세요. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 컨테이너 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다. |
+| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | 아니요 | API 장애 조치 사이드카의 컨테이너 이름입니다. 기본값은 `oneuptime-pve-api-failover`이고, 두 번째 에이전트에서는 `oneuptime-pve-api-failover-cluster2`처럼 Collector 이름과 나란한 이름이 됩니다. |
+| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | 아니요 | 번들 익스포터의 컨테이너 이름입니다. 기본값은 `oneuptime-pve-exporter`이고, 두 번째 에이전트에서는 `oneuptime-pve-exporter-cluster2`처럼 Collector 이름과 나란한 이름이 됩니다. |
+| `PROXMOX_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름입니다. 기본값은 `oneuptime-proxmox-ai-agent`이고, 두 번째 에이전트에서는 `oneuptime-proxmox-ai-agent-cluster2`처럼 Collector 이름과 나란한 이름이 됩니다. |
 
 ## 에이전트가 수집하는 것
 
@@ -336,6 +344,18 @@ OneUptime 수집이 중단된 뒤에는, 새로 조용해진 노드는 다른 �
 
 백업 결과, 펜싱된 노드, 실패한 복제는 그래도 OneUptime에 도착합니다. [Proxmox VE 통지를 보내세요](#proxmox-ve-통지-보내기). 네이티브 푸시와도 함께 작동합니다.
 
+## 여러 클러스터 모니터링
+
+에이전트 하나는 클러스터 하나를 읽습니다. 같은 머신에서 여러 클러스터를 모니터링하려면 두 컨테이너가 같은 이름을 가질 수는 없으므로 각 에이전트를 전용 `.env`와 고유한 컨테이너 이름을 가진 전용 폴더에 설치하세요:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-proxmox-agent-cluster2 bash install.sh
+```
+
+스크립트는 폴더 이름을 따서 에이전트의 컨테이너 이름을 `oneuptime-proxmox-agent-cluster2`, `oneuptime-pve-api-failover-cluster2`, `oneuptime-pve-exporter-cluster2`, `oneuptime-proxmox-ai-agent-cluster2`로 짓습니다. 직접 정하려면 스크립트를 실행할 때 `PROXMOX_AGENT_CONTAINER_NAME`과 위 표의 나머지 변수를 설정하세요. 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로 에이전트를 업그레이드하려고 스크립트를 다시 실행해도 이름이 유지되며, `container_name`을 예전에 `docker-compose.yml`에서 직접 수정한 에이전트도 그 이름을 유지합니다. 폴더마다 고유한 이름을 붙이세요. Docker Compose는 폴더 이름만으로 프로젝트 이름을 짓기 때문에, 스크립트는 다른 곳에서 이미 에이전트를 실행 중인 폴더와 같은 이름의 폴더를 거부합니다. Docker Compose를 쓴다면 대신 각 에이전트의 `.env`에 이름을 설정하세요.
+
+systemd 유닛은 `/opt/oneuptime-proxmox-agent`를 가정합니다. 다른 폴더라면 `oneuptime-proxmox-agent-cluster2.service`처럼 다른 이름으로 저장하고 `WorkingDirectory`를 바꾸세요. 진단 스크립트에는 `-d`로 폴더를 넘기세요.
+
 ## systemd 서비스로 실행
 
 머신과 함께 에이전트를 시작하고 실패하면 다시 시작하려면 systemd 유닛을 설치하세요. 설치 스크립트가 에이전트를 두는 `/opt/oneuptime-proxmox-agent`에 에이전트가 있다고 가정합니다:
@@ -350,7 +370,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 에이전트는 파일이 고정한 Collector 버전을 **에이전트 버전**으로 보고합니다. 그것이 이 OneUptime 릴리스가 고정한 버전보다 오래되었으면 클러스터의 **개요**에서 그 옆에 경고 표시가 나타납니다. 표시를 선택하면 이 명령들이 보입니다. 파일이 버전을 보고하기 전에 설치된 에이전트는 이 방법으로 업그레이드할 때까지 버전이 표시되지 않습니다.
 
-Collector 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, 가져오기만으로는 에이전트가 새 버전이 되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치며(편집한 파일은 `<file>.bak.<timestamp>`로 보관), 이미지를 가져와 에이전트를 다시 만들므로 Collector가 새 구성을 읽습니다. `PVE_NODES` 이전의 `.env`는 계속 `PVE_HOST`만 읽으며, 스크립트가 추가해야 할 노드를 알려 줍니다.
+Collector 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, 가져오기만으로는 에이전트가 새 버전이 되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치며(편집한 파일은 `<file>.bak.<timestamp>`로 보관), 이미지를 가져와 에이전트를 다시 만들므로 Collector가 새 구성을 읽습니다. `PVE_NODES` 이전의 `.env`는 계속 `PVE_HOST`만 읽으며, 스크립트가 추가해야 할 노드를 알려 줍니다. `/opt/oneuptime-proxmox-agent` 밖에 설치한 에이전트에는 폴더를 지정해야 하며(`INSTALL_DIR=<folder> bash install.sh`), 컨테이너 이름은 유지됩니다.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh

@@ -13,6 +13,7 @@ import {
   TelemetryIngestionBudgetRefusalKind,
   TelemetryIngestionBudgetScope,
   TelemetryIngestionBudgetSignal,
+  TelemetryIngestionQueueRefusalKind,
 } from "../../../Types/Telemetry/TelemetryIngestionBudget";
 
 /*
@@ -395,6 +396,7 @@ export default class TelemetryIngestShedding {
 
     if (state.isValkeyOverMemoryLimit) {
       return this.toRefusal({
+        kind: TelemetryIngestionBudgetRefusalKind.QueueFull,
         signal: data.signal,
         nowMs: nowMs,
         message: `OneUptime's telemetry queue is nearly full, so it is not taking ${words} for now. Retry in ${retryAfterSeconds} seconds.`,
@@ -411,6 +413,7 @@ export default class TelemetryIngestShedding {
     }
 
     return this.toRefusal({
+      kind: TelemetryIngestionBudgetRefusalKind.QueueBacklogged,
       signal: data.signal,
       nowMs: nowMs,
       message: `OneUptime has not yet stored the ${words} this project already sent: about ${formatCount(
@@ -531,6 +534,7 @@ export default class TelemetryIngestShedding {
   }
 
   private static toRefusal(data: {
+    kind: TelemetryIngestionQueueRefusalKind;
     signal: TelemetryIngestionBudgetSignal;
     nowMs: number;
     message: string;
@@ -538,7 +542,7 @@ export default class TelemetryIngestShedding {
     const retryAfterSeconds: number = this.settings.retryAfterSeconds;
 
     return {
-      kind: TelemetryIngestionBudgetRefusalKind.QueueBacklogged,
+      kind: data.kind,
       scope: TelemetryIngestionBudgetScope.Project,
       signal: data.signal,
       message: data.message,

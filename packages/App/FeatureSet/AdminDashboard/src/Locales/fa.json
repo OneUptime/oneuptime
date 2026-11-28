@@ -4605,8 +4605,11 @@
   "Project Call Voices": "صدای تماس پروژه‌ها",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "اینکه هر پروژه صدای تماس‌های خودش از طریق حساب Twilio این سرور را انتخاب کند یا نه.",
   "Let projects choose their call voice": "اجازه دهید پروژه‌ها صدای تماس‌هایشان را انتخاب کنند",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "مالکان و مدیران پروژه آن را در تنظیمات پروژه > اعلان‌ها > کانال‌های اعلان انتخاب می‌کنند و هزینه‌اش را حساب Twilio این سرور می‌پردازد. پروژه‌ای که صدایی انتخاب نکند، با صدای بالا صحبت می‌کند.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "مالکان و مدیران پروژه آن را در تنظیمات پروژه > اعلان‌ها > کانال‌های اعلان انتخاب می‌کنند. پروژه‌ای که صدایی انتخاب نکند، با صدای بالا صحبت می‌کند.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "تماس‌های همهٔ پروژه‌ها از طریق حساب Twilio این سرور با صدای بالا صحبت می‌کنند.",
+  "Set by the GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE environment variable: twilio.letProjectsChooseCallVoice with Helm, or config.env with Docker Compose. Change it there and restart OneUptime.": "با متغیر محیطی GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE تنظیم شده است: twilio.letProjectsChooseCallVoice با Helm، یا config.env با Docker Compose. آن را همان‌جا تغییر دهید و OneUptime را دوباره راه‌اندازی کنید.",
+  "An environment variable sets this switch, so it cannot be changed here.": "یک متغیر محیطی این کلید را تنظیم می‌کند، پس نمی‌توان آن را اینجا تغییر داد.",
+  "Projects speak with the voice above until this environment variable is fixed:": "تا وقتی این متغیر محیطی اصلاح نشود، پروژه‌ها با صدای بالا صحبت می‌کنند:",
   "Free. Twilio says its Basic voices are not meant for production.": "رایگان. به گفتهٔ Twilio، صداهای Basic آن برای استفادهٔ تولیدی در نظر گرفته نشده‌اند.",
   "Save, then send a test call to hear it.": "ذخیره کنید، سپس یک تماس آزمایشی ارسال کنید تا آن را بشنوید.",
   "Call Voice": "صدای تماس‌ها",
@@ -4668,5 +4671,14 @@
   "Your permissions do not reach this {{itemName}}.": "مجوزهای شما به این مورد ({{itemName}}) نمی‌رسد.",
   "Your permission is limited to {{items}} you or your teams own.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که شما یا تیم‌هایتان مالکشان هستید.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که برچسب {{labels}} دارند و به آن دسته از {{items}} که شما یا تیم‌هایتان مالکشان هستید.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که برچسب‌های مشخصی دارند و به آن دسته از {{items}} که شما یا تیم‌هایتان مالکشان هستید."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که برچسب‌های مشخصی دارند و به آن دسته از {{items}} که شما یا تیم‌هایتان مالکشان هستید.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "حذف یک قالب مانیتور پیوند مانیتورهایش را لغو می‌کند. آن‌ها معیارها و تنظیماتی را که قالب به آن‌ها داده است نگه می‌دارند و به بررسی و هشداردادن ادامه می‌دهند.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "دستگاهی که این مانیتور برای آن ساخته شده، از قبل مانیتوری دارد که به این قالب پیوند دارد: {{monitorName}}. یکی از این دو را حذف کنید، یا این یکی را به قالب دیگری پیوند دهید.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "دستگاهی که این مانیتور برای آن ساخته شده، از قبل مانیتوری دارد که به این قالب پیوند دارد. یکی از این دو را حذف کنید، یا این یکی را به قالب دیگری پیوند دهید.",
+  "Behind by {{count}} minutes": "{{count}} دقیقه عقب",
+  "Behind by {{count}} minutes_one": "{{count}} دقیقه عقب",
+  "Behind by {{count}} hours": "{{count}} ساعت عقب",
+  "Behind by {{count}} hours_one": "{{count}} ساعت عقب",
+  "Behind by {{count}} days": "{{count}} روز عقب",
+  "Behind by {{count}} days_one": "{{count}} روز عقب"
 }

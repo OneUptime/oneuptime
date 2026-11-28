@@ -201,5 +201,6 @@ Een bestandsvraag houdt de bestanden die een inzender kiest in diens browser en 
 - [Een formulier bouwen](/docs/forms/building): De vragen die deze velden vullen, verborgen vragen en sjablonen.
 - [Incidentinstellingen en automatisering](/docs/incidents/settings): Incidentsjablonen en aangepaste velden.
 - [Incidentnotities, eigenaren en feed](/docs/incidents/notes-owners-and-feed): Privénotities, openbare notities en eigenaren.
+- [Een inzending opvolgen](/docs/forms/follow-ups): Wie verstuurt, volgt de eigen aanvraag, schrijft uw team en voegt anderen toe.
 - [Delen & beveiliging](/docs/forms/sharing-and-security): Wie er mag inzenden, en hoe vaak.
 :::

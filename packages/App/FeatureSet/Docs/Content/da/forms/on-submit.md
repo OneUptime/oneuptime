@@ -201,5 +201,6 @@ Et filspørgsmål holder de filer, en indsender vælger, i deres browser og send
 - [Byg en formular](/docs/forms/building): De spørgsmål, der fylder disse felter, skjulte spørgsmål og skabeloner.
 - [Hændelsesindstillinger og automatisering](/docs/incidents/settings): Hændelsesskabeloner og brugerdefinerede felter.
 - [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed): Private noter, offentlige noter og ejere.
+- [Opfølgning på en indsendelse](/docs/forms/follow-ups): Den, der sender, følger sin anmodning, skriver til dit team og tilføjer andre.
 - [Deling & sikkerhed](/docs/forms/sharing-and-security): Hvem der kan indsende, og hvor ofte.
 :::

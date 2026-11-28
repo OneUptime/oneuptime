@@ -1,4 +1,5 @@
 import { METRIC_NAME_LOCATION } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
+import { RUM_SESSION_TAGS_PREFIX } from "../../../../Types/DataSecurity/RumSessionPlaces";
 import {
   describeUnplacedField,
   MAX_UNPLACED_FIELDS_PER_SCAN,
@@ -37,14 +38,15 @@ export const MAX_UNPLACED_ATTRIBUTES_PER_SERVICE: number = 50;
 
 /*
  * Where an attribute's key starts in a telemetry location: a record's own
- * attributes, a RUM application's, a session's and its user's traits, and a
- * span event's ("events.<event>.").
+ * attributes, a RUM application's, a session's, its tags (#11458) and its
+ * user's traits, and a span event's ("events.<event>.").
  */
 const ATTRIBUTE_BASES: ReadonlyArray<string> = [
   "attributes.",
   "logs.attributes.",
   "spans.attributes.",
   "sessions.attributes.",
+  RUM_SESSION_TAGS_PREFIX,
   "sessions.identifiedUserTraits.",
 ];
 

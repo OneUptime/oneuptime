@@ -18,6 +18,7 @@ import { readTelemetryDataStoreKeyOwnerId } from "../../../../Types/DataSecurity
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
 import { FindingSampleRecord } from "../../../../Types/DataSecurity/FindingSampleRecord";
 import { METRIC_NAME_LOCATION } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
+import { RUM_SESSION_TAGS_PREFIX } from "../../../../Types/DataSecurity/RumSessionPlaces";
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -282,7 +283,8 @@ type OccurrenceTextColumn =
   // A metric's own name.
   | "name";
 
-type OccurrencePairsColumn = "attributes" | "identifiedUserTraits";
+// A session's tags (#11458) as a map of their own, beside its attributes and traits.
+type OccurrencePairsColumn = "attributes" | "tags" | "identifiedUserTraits";
 
 // What one read takes of each record: the part of it the location names.
 export type OccurrenceRead =
@@ -321,6 +323,7 @@ function textLengthOf(
 
 const PAIRS_ALIASES: Readonly<Record<OccurrencePairsColumn, string>> = {
   attributes: "readAttributes",
+  tags: "readTags",
   identifiedUserTraits: "readTraits",
 };
 
@@ -470,6 +473,12 @@ export function planOccurrenceRead(
           TelemetrySampleSource.RumSessions,
           at,
           "sessions.attributes.",
+        ) ||
+        pairsAfter(
+          TelemetrySampleSource.RumSessions,
+          at,
+          RUM_SESSION_TAGS_PREFIX,
+          "tags",
         ) ||
         pairsAfter(
           TelemetrySampleSource.RumSessions,

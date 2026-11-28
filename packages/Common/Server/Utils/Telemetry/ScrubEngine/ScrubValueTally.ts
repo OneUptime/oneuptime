@@ -58,6 +58,13 @@ export class ScrubValueTally {
   }
 }
 
+// A version as the counter keeps it: trimmed, and none past its length.
+export function toCountedServiceVersion(version: string): string {
+  const trimmed: string = (version || "").trim();
+
+  return trimmed.length <= MAX_SERVICE_VERSION_LENGTH ? trimmed : "";
+}
+
 // The version of the service that wrote a record, as its attributes say: "" when they do not.
 export function readServiceVersion(record: JSONObject): string {
   const attributes: unknown = record["attributes"];
@@ -88,6 +95,11 @@ export function countScrubbedValues(data: {
   signal: ScrubRuleValueSignal;
   projectId: unknown;
   record: JSONObject;
+  /*
+   * The version to count under, for a record that keeps it outside its
+   * attributes (a session's tags, #11458): held to the counter's length.
+   */
+  serviceVersion?: string | undefined;
 }): void {
   if (data.tally.isEmpty) {
     return;
@@ -98,7 +110,10 @@ export function countScrubbedValues(data: {
       projectId: readScopeId(data.projectId),
       signal: data.signal,
       serviceId: readScopeId(data.record["primaryEntityId"]),
-      serviceVersion: readServiceVersion(data.record),
+      serviceVersion:
+        data.serviceVersion !== undefined
+          ? toCountedServiceVersion(data.serviceVersion)
+          : readServiceVersion(data.record),
       counts: data.tally.entries(),
     });
   } catch {

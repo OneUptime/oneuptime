@@ -8,6 +8,7 @@ Usa un formulario cuando quienes detectan un problema, o necesitan un cambio, no
 - [Crear tu primer formulario](#crear-tu-primer-formulario): De un formulario en blanco a un enlace que puedes compartir.
 - [Crear un formulario](/docs/forms/building): Preguntas, tipos de respuesta, preguntas ocultas, plantillas y marca.
 - [Lo que crea un envío](/docs/forms/on-submit): Cómo las respuestas y los ajustes se convierten en un incidente o un evento de mantenimiento.
+- [Seguimiento de un envío](/docs/forms/follow-ups): Quienes envían siguen su solicitud, escriben a tu equipo y añaden a otras personas.
 - [Compartir y seguridad](/docs/forms/sharing-and-security): El enlace, la lista de IP permitidas, los límites de frecuencia y la solución de problemas.
 :::
 
@@ -290,6 +291,7 @@ Las páginas antiguas del panel redirigen a las nuevas.
 :::cards
 - [Crear un formulario](/docs/forms/building): Preguntas, tipos de respuesta, campos vinculados, campos personalizados y la vista previa.
 - [Lo que crea un envío](/docs/forms/on-submit): Cómo las respuestas y los ajustes de Al enviar se convierten en un incidente o un evento de mantenimiento.
+- [Seguimiento de un envío](/docs/forms/follow-ups): Quienes envían siguen su solicitud, escriben a tu equipo y añaden a otras personas.
 - [Compartir y seguridad](/docs/forms/sharing-and-security): El enlace, la lista de IP permitidas, los límites de frecuencia, el captcha y la solución de problemas.
 - [Declarar un incidente](/docs/incidents/declaring-incidents): Las otras formas de declarar incidentes.
 :::

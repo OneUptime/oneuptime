@@ -49,10 +49,10 @@ const TRANSLATION: SetupGuideTranslation = {
     "- `hostmetrics` レシーバーのメトリクス (CPU、メモリ、ディスク、ファイルシステム、ネットワーク、負荷、プロセス)、または",
   "- `process` scraper metrics (per-process CPU/memory/threads), OR":
     "- `process` スクレーパーのメトリクス (プロセスごとの CPU/メモリ/スレッド)、または",
-  "- an `os.type` or `container.runtime` resource attribute, on metrics, logs or traces":
-    "- メトリクス、ログ、トレースのいずれかに付いた、`os.type` または `container.runtime` のリソース属性",
-  "…and starts populating the Overview, Metrics, Processes, and Logs tabs. `host.id` or `host.arch` alone do not register a host, and telemetry that carries a Kubernetes identity (`k8s.cluster.name`, `k8s.node.name`, `k8s.pod.name`, …) is filed under its Kubernetes cluster instead.":
-    "…そして、概要、メトリクス、プロセス、ログの各タブを埋め始めます。`host.id` や `host.arch` だけではホストは登録されません。また、Kubernetes の ID (`k8s.cluster.name`、`k8s.node.name`、`k8s.pod.name`、…) を持つテレメトリは、代わりにその Kubernetes クラスターの下に分類されます。",
+  "- an `os.type` resource attribute, on metrics, logs or traces":
+    "- メトリクス、ログ、トレースのいずれかに付いた、`os.type` のリソース属性",
+  "…and starts populating the Overview, Metrics, Processes, and Logs tabs. `host.id` or `host.arch` alone do not register a host. Telemetry that carries a Kubernetes identity (`k8s.cluster.name`, `k8s.node.name`, `k8s.pod.name`, …) is filed under its Kubernetes cluster instead, and telemetry that names a container runtime (`container.runtime`), a container (`container.id`) or an application's OpenTelemetry SDK (`telemetry.sdk.name`) never registers a host: it is a Docker or Podman host's, a container's or an app's, not the host's own.":
+    "…そして、概要、メトリクス、プロセス、ログの各タブを埋め始めます。`host.id` や `host.arch` だけではホストは登録されません。Kubernetes の ID (`k8s.cluster.name`、`k8s.node.name`、`k8s.pod.name`、…) を持つテレメトリは、代わりにその Kubernetes クラスターの下に分類されます。また、コンテナランタイム (`container.runtime`)、コンテナ (`container.id`)、アプリケーションの OpenTelemetry SDK (`telemetry.sdk.name`) を示すテレメトリがホストを登録することはありません。それは Docker や Podman のホスト、コンテナ、アプリのものであり、ホスト自身のものではないためです。",
   "**Running on OpenStack?** Use `detectors: [nova, system, env]`, so `host.id` is the instance's UUID and OneUptime links this host to its instance, and set `host.name` to `enabled: false` under `nova: resource_attributes:` so its name stays the one `system` reports.":
     "**OpenStack 上で動いていますか？** `detectors: [nova, system, env]` を使うと、`host.id` がインスタンスの UUID になり、OneUptime がこのホストをそのインスタンスに関連付けます。さらに `nova: resource_attributes:` の下で `host.name` を `enabled: false` にすると、名前は `system` が報告するもののままになります。",
   "The same resource attributes become the machine's **Inventory** item, which is what a CMDB export reads. `host.ip`, `host.mac`, `host.arch`, `host.id`, `os.type`, `os.description` and `os.version` all come from the `resourcedetection` processor; serial number, make, model and firmware version have no detector and are stamped on separately (see **Record the serial number, make, model and firmware version**).":

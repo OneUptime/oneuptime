@@ -4605,8 +4605,11 @@
   "Project Call Voices": "أصوات مكالمات المشاريع",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "ما إذا كان كل مشروع يختار صوت مكالماته عبر حساب Twilio لهذا الخادم.",
   "Let projects choose their call voice": "السماح للمشاريع باختيار صوت مكالماتها",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "يختاره مالكو المشروع ومسؤولوه في إعدادات المشروع > الإشعارات > قنوات الإشعار، ويدفع حساب Twilio لهذا الخادم تكلفته. والمشروع الذي لا يختار صوتًا يتحدث بالصوت أعلاه.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "يختاره مالكو المشروع ومسؤولوه في إعدادات المشروع > الإشعارات > قنوات الإشعار. المشروع الذي لا يختار صوتًا يتحدث بالصوت أعلاه.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "تتحدث مكالمات كل المشاريع عبر حساب Twilio لهذا الخادم بالصوت أعلاه.",
+  "Set by the GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE environment variable: twilio.letProjectsChooseCallVoice with Helm, or config.env with Docker Compose. Change it there and restart OneUptime.": "مضبوط بمتغير البيئة GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE: twilio.letProjectsChooseCallVoice مع Helm، أو config.env مع Docker Compose. غيّره هناك وأعد تشغيل OneUptime.",
+  "An environment variable sets this switch, so it cannot be changed here.": "يضبط متغير بيئة هذا المفتاح، لذا لا يمكن تغييره هنا.",
+  "Projects speak with the voice above until this environment variable is fixed:": "تتحدث المشاريع بالصوت أعلاه إلى أن يُصحَّح متغير البيئة هذا:",
   "Free. Twilio says its Basic voices are not meant for production.": "مجاني. تقول Twilio إن أصواتها من فئة Basic ليست مخصّصة لبيئة الإنتاج.",
   "Save, then send a test call to hear it.": "احفظ، ثم أجرِ مكالمة تجريبية لسماعه.",
   "Call Voice": "صوت المكالمات",
@@ -4668,5 +4671,14 @@
   "Your permissions do not reach this {{itemName}}.": "أذوناتك لا تشمل هذا العنصر ({{itemName}}).",
   "Your permission is limited to {{items}} you or your teams own.": "إذنك مقصور على {{items}} التي تملكها أنت أو فرقك.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "إذنك مقصور على {{items}} التي تحمل التسمية {{labels}} وعلى {{items}} التي تملكها أنت أو فرقك.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "إذنك مقصور على {{items}} التي تحمل تسميات معيّنة وعلى {{items}} التي تملكها أنت أو فرقك."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "إذنك مقصور على {{items}} التي تحمل تسميات معيّنة وعلى {{items}} التي تملكها أنت أو فرقك.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "يؤدي حذف قالب مراقبة إلى إلغاء ربط مراقباته. وتحتفظ بالمعايير والإعدادات التي منحها لها، وتواصل الفحص والتنبيه.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "الجهاز الذي أُنشئت له هذه المراقبة لديه بالفعل مراقبة مرتبطة بهذا القالب: {{monitorName}}. احذف إحداهما، أو اربط هذه المراقبة بقالب آخر.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "الجهاز الذي أُنشئت له هذه المراقبة لديه بالفعل مراقبة مرتبطة بهذا القالب. احذف إحداهما، أو اربط هذه المراقبة بقالب آخر.",
+  "Behind by {{count}} minutes": "متأخر بمقدار {{count}} د",
+  "Behind by {{count}} minutes_one": "متأخر بمقدار {{count}} دقيقة",
+  "Behind by {{count}} hours": "متأخر بمقدار {{count}} س",
+  "Behind by {{count}} hours_one": "متأخر بمقدار {{count}} ساعة",
+  "Behind by {{count}} days": "متأخر بمقدار {{count}} ي",
+  "Behind by {{count}} days_one": "متأخر بمقدار {{count}} يوم"
 }

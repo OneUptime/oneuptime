@@ -4605,8 +4605,11 @@
   "Project Call Voices": "Project Call Voices",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Whether each project chooses the voice of its own calls through this server's Twilio account.",
   "Let projects choose their call voice": "Let projects choose their call voice",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "Every project's calls through this server's Twilio account speak with the voice above.",
+  "Set by the GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE environment variable: twilio.letProjectsChooseCallVoice with Helm, or config.env with Docker Compose. Change it there and restart OneUptime.": "Set by the GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE environment variable: twilio.letProjectsChooseCallVoice with Helm, or config.env with Docker Compose. Change it there and restart OneUptime.",
+  "An environment variable sets this switch, so it cannot be changed here.": "An environment variable sets this switch, so it cannot be changed here.",
+  "Projects speak with the voice above until this environment variable is fixed:": "Projects speak with the voice above until this environment variable is fixed:",
   "Free. Twilio says its Basic voices are not meant for production.": "Free. Twilio says its Basic voices are not meant for production.",
   "Save, then send a test call to hear it.": "Save, then send a test call to hear it.",
   "Call Voice": "Call Voice",
@@ -4668,5 +4671,14 @@
   "Your permissions do not reach this {{itemName}}.": "Your permissions do not reach this {{itemName}}.",
   "Your permission is limited to {{items}} you or your teams own.": "Your permission is limited to {{items}} you or your teams own.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.",
+  "Behind by {{count}} minutes": "Behind by {{count}} minutes",
+  "Behind by {{count}} minutes_one": "Behind by {{count}} minute",
+  "Behind by {{count}} hours": "Behind by {{count}} hours",
+  "Behind by {{count}} hours_one": "Behind by {{count}} hour",
+  "Behind by {{count}} days": "Behind by {{count}} days",
+  "Behind by {{count}} days_one": "Behind by {{count}} day"
 }

@@ -43,6 +43,8 @@ I modelli, in base alla categoria sotto cui li elenca il selettore:
 
 **Consigliati** contiene Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard e Metrics Dashboard. Un modello è un punto di partenza, non un collegamento: una volta creata la dashboard, modificala come vuoi. Il modello non la aggiorna più in seguito.
 
+Ogni modello di infrastruttura mostra solo il proprio genere di risorsa, tramite il [Tipo di risorsa](/docs/dashboards/variables#telemetry-attribute) della sua variabile: una Docker Swarm Dashboard in un progetto senza swarm resta vuota, e lo dice, invece di mostrare i container e i log di tutto il resto.
+
 ## Modificare e salvare
 
 Una dashboard si apre in modalità di lettura. Per cambiarla, apri il menu **⋯** nella sua barra degli strumenti e scegli **Modifica dashboard**. La barra degli strumenti mostra **Modifica in corso** accanto al nome, e sostituisce l'intervallo di tempo e gli altri controlli con **Aggiungi widget**, **Variabili**, **Annulla** e **Salva modifiche**, con sotto una riga per l'**Intervallo di tempo predefinito** e l'**Aggiornamento automatico predefinito** della dashboard.

@@ -4605,8 +4605,11 @@
   "Project Call Voices": "Stimmen der Projekte",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Ob jedes Projekt die Stimme seiner eigenen Anrufe über das Twilio-Konto dieses Servers wählt.",
   "Let projects choose their call voice": "Projekte ihre Stimme für Anrufe wählen lassen",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "Projektinhaber und Projektadministratoren wählen sie unter Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle, und das Twilio-Konto dieses Servers bezahlt sie. Ein Projekt, das keine wählt, spricht mit der Stimme oben.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "Projektinhaber und Projektadministratoren wählen sie unter Projekteinstellungen > Benachrichtigungen > Benachrichtigungskanäle. Ein Projekt, das keine wählt, spricht mit der Stimme oben.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "Die Anrufe aller Projekte über das Twilio-Konto dieses Servers sprechen mit der Stimme oben.",
+  "Set by the GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE environment variable: twilio.letProjectsChooseCallVoice with Helm, or config.env with Docker Compose. Change it there and restart OneUptime.": "Durch die Umgebungsvariable GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE festgelegt: twilio.letProjectsChooseCallVoice mit Helm oder config.env mit Docker Compose. Ändern Sie sie dort und starten Sie OneUptime neu.",
+  "An environment variable sets this switch, so it cannot be changed here.": "Eine Umgebungsvariable legt diesen Schalter fest, daher kann er hier nicht geändert werden.",
+  "Projects speak with the voice above until this environment variable is fixed:": "Projekte sprechen mit der Stimme oben, bis diese Umgebungsvariable korrigiert ist:",
   "Free. Twilio says its Basic voices are not meant for production.": "Kostenlos. Laut Twilio sind die Basic-Stimmen nicht für den Produktiveinsatz gedacht.",
   "Save, then send a test call to hear it.": "Speichern Sie und senden Sie dann einen Testanruf, um sie zu hören.",
   "Call Voice": "Stimme für Anrufe",
@@ -4668,5 +4671,14 @@
   "Your permissions do not reach this {{itemName}}.": "Ihre Berechtigungen gelten nicht für diesen Eintrag ({{itemName}}).",
   "Your permission is limited to {{items}} you or your teams own.": "Ihre Berechtigung ist auf {{items}} beschränkt, die Ihnen oder Ihren Teams gehören.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Ihre Berechtigung ist auf {{items}} mit der Beschriftung {{labels}} und auf {{items}} beschränkt, die Ihnen oder Ihren Teams gehören.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Ihre Berechtigung ist auf {{items}} mit bestimmten Beschriftungen und auf {{items}} beschränkt, die Ihnen oder Ihren Teams gehören."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Ihre Berechtigung ist auf {{items}} mit bestimmten Beschriftungen und auf {{items}} beschränkt, die Ihnen oder Ihren Teams gehören.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Das Löschen einer Monitorvorlage hebt die Verknüpfung ihrer Monitore auf. Sie behalten die Kriterien und Einstellungen, die die Vorlage ihnen gegeben hat, und prüfen und warnen weiter.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "Das Gerät, für das dieser Monitor erstellt wurde, hat bereits einen mit dieser Vorlage verknüpften Monitor: {{monitorName}}. Löschen Sie einen der beiden, oder verknüpfen Sie diesen mit einer anderen Vorlage.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Das Gerät, für das dieser Monitor erstellt wurde, hat bereits einen mit dieser Vorlage verknüpften Monitor. Löschen Sie einen der beiden, oder verknüpfen Sie diesen mit einer anderen Vorlage.",
+  "Behind by {{count}} minutes": "{{count}} Minuten im Rückstand",
+  "Behind by {{count}} minutes_one": "{{count}} Minute im Rückstand",
+  "Behind by {{count}} hours": "{{count}} Stunden im Rückstand",
+  "Behind by {{count}} hours_one": "{{count}} Stunde im Rückstand",
+  "Behind by {{count}} days": "{{count}} Tage im Rückstand",
+  "Behind by {{count}} days_one": "{{count}} Tag im Rückstand"
 }

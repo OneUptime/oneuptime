@@ -25,6 +25,8 @@ Hver status er et mærke, hvis farve viser, hvor beskeden er:
 
 Peg på en status, tryk på den, eller gå til den med Tab-tasten, så siger den, hvad den betyder, og hvad der kommer bagefter. **Vis statusbesked** i rækkens menu viser, hvad udbyderen svarede, som beskedens ID eller hvorfor den mislykkedes. Filteret **Status** på hver fane viser hver status, fanen kan vise, i den rækkefølge en besked går igennem dem.
 
+Kortet **Hvem fik besked** i oversigten for en hændelse eller en advarsel og resultatet af et testkald viser hver beskeds status på samme måde, i de samme farver: Et opkald, der stadig ringer, står også der som **Ringer op**, aldrig som **Sendt**.
+
 ## SMS
 
 ```mermaid title="En SMS' statusser, fra OneUptime til telefonen"
@@ -40,7 +42,7 @@ flowchart TB
 | **Sender** | OneUptime har givet SMS'en til Twilio, som sender den videre til operatøren. |
 | **Sendt** | Operatøren har accepteret SMS'en. Den skifter til **Leveret** eller **Ikke leveret**, så snart operatøren melder tilbage. |
 | **Leveret** | Operatøren har bekræftet, at SMS'en nåede telefonen. Det er den sidste status for en SMS, der kom frem. |
-| **Ikke leveret** | Operatøren kunne ikke levere den. **Fejlkode** fortæller hvorfor: `30003` er en telefon, der er slukket eller uden for rækkevidde, `30005` et nummer, der ikke findes, `30006` en fastnettelefon, og `30007` en besked, som operatøren har filtreret. |
+| **Ikke leveret** | Operatøren kunne ikke levere den. **Fejlkode** fortæller hvorfor, og hvad koden betyder. |
 | **Mislykkedes** | Twilio kunne ikke sende den. **Fejlkode** fortæller hvorfor. |
 | **Fejl** | Den blev ikke sendt, for eksempel fordi SMS er slået fra for projektet, eller fordi Twilio afviste nummeret. **Vis statusbesked** fortæller hvorfor. |
 | **For lav saldo** | Den blev ikke sendt: Projektets saldo var for lav til at betale for den. |
@@ -49,6 +51,33 @@ flowchart TB
 En SMS, som serverens egen SMS- og opkaldsgateway har taget imod, bliver stående på **Sendt**, i grønt: Gatewayen melder ikke om levering, så det er dens sidste status.
 
 Twilio melder hver ændring til OneUptime, så snart den sker, signeret med auth-tokenet for den konto, som SMS'en gik ud fra, og OneUptime afviser enhver melding, der ikke kommer fra Twilio. Derfor skal Twilio kunne nå din server: se [Twilio-integration](/docs/self-hosted/twilio-integration).
+
+### Fejlkoder
+
+Hver kode under **Fejlkode** åbner Twilios side om koden, som viser, hvad der kan forårsage den. Under de koder, som en SMS oftest mislykkes med, fortæller loggen på én linje, hvad de betyder:
+
+| Kode | Hvad det betyder |
+| --- | --- |
+| `20003` | Twilio accepterede ikke kontoens loginoplysninger. |
+| `21211` | Nummeret er ikke et gyldigt telefonnummer. |
+| `21408` | Twilio-kontoen må ikke sende SMS til dette land. |
+| `21606` | Afsendernummeret kan ikke sende SMS for denne Twilio-konto. |
+| `21608` | En Twilio-prøvekonto kan kun sende til numre, der er verificeret i den. |
+| `21610` | Modtageren svarede STOP, så Twilio sender ikke længere SMS til vedkommende fra dette nummer. |
+| `21612` | Afsendernummeret kan ikke nå dette nummer. |
+| `21614` | Nummeret er ikke et mobilnummer, men for eksempel en fastnettelefon. |
+| `30001` | Der blev sendt for mange SMS'er på én gang, og Twilios kø løb over. |
+| `30002` | Twilio-kontoen blev suspenderet, før SMS'en gik ud. |
+| `30003` | Telefonen er slukket eller uden for rækkevidde. |
+| `30004` | Nummeret er blokeret for at modtage SMS'en. |
+| `30005` | Nummeret er ukendt og findes måske ikke længere. |
+| `30006` | Nummeret kan ikke modtage SMS, for eksempel fordi det er en fastnettelefon. |
+| `30007` | Twilio eller operatøren filtrerede SMS'en fra som spam. |
+| `30008` | Operatøren kunne ikke levere SMS'en og sagde ikke hvorfor. |
+| `30032` | Det afsendende gratisnummer er ikke verificeret endnu. |
+| `30034` | Afsendernummeret er ikke registreret til A2P 10DLC, som operatører i USA kræver. |
+
+En kode, der ikke er fra Twilio, som den HTTP-status, din SMS- og opkaldsgateway svarede med, vises, som den er.
 
 ## Opkald
 

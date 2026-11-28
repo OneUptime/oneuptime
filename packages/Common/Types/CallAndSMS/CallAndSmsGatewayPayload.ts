@@ -25,6 +25,19 @@ import {
  * 1" is left out of what it says: it is Twilio's keypad, and the gateway
  * has its own.
  *
+ * A CALL IN THE PERSON'S LANGUAGE (#11459). A call to a person who reads
+ * OneUptime in another language says it in theirs (#11066, #11461), but a
+ * gateway speaks with a voice of its own choosing, which OneUptime does not
+ * know. So `message` stays the call's English, as every gateway has read
+ * it - one that reads nothing else speaks English, as before, and never
+ * another language's words in its English voice - and `inLanguage` carries
+ * the same call in the person's language, with the language's code (BCP
+ * 47, as OneUptime names its languages: "de", "pt", "zh-TW"), for a
+ * gateway with a voice of that language to speak instead. Every language
+ * OneUptime writes in, Persian included, which Twilio has no voice for: the
+ * gateway's voices are its own. Null for a person who reads English, for an
+ * SMS - written in the person's language already - and for a test.
+ *
  * The shape is a contract with services OneUptime does not own, so it carries
  * a version, fields are only ever added to it, and the docs
  * (self-hosted/sms-and-call-gateway) describe every one of them.
@@ -45,6 +58,17 @@ export enum CallAndSmsGatewayEvent {
   Sms = "sms",
   Call = "call",
   Test = "test",
+}
+
+/*
+ * What a call says in the language of the person it calls (#11459): the
+ * language as OneUptime names it, and the call's words in it, as `message`
+ * has them in English.
+ */
+export interface CallAndSmsGatewayInLanguage {
+  // A BCP 47 tag, as OneUptime names its languages: "de", "pt", "zh-TW".
+  language: string;
+  message: string;
 }
 
 export interface CallAndSmsGatewayMessageInput {
@@ -68,6 +92,11 @@ export interface CallAndSmsGatewayMessageInput {
   project?: CustomChannelReference | undefined;
   // When the message pages somebody on call (CustomChannelActionToken).
   actions?: CustomChannelActionLinks | undefined;
+  /*
+   * A call to a person who reads another language: what it says in theirs.
+   * `message` stays the English.
+   */
+  inLanguage?: CallAndSmsGatewayInLanguage | undefined;
 }
 
 export interface CallAndSmsGatewayTestInput {
@@ -91,6 +120,42 @@ const toActionsJson: (
   };
 };
 
+// A message as a request carries it: held to what a request carries.
+const fitMessage: (message: string | undefined) => string = (
+  message: string | undefined,
+): string => {
+  return fitTextToLength(
+    message || "",
+    MAX_CALL_AND_SMS_GATEWAY_MESSAGE_LENGTH,
+    TRUNCATED_TEXT_NOTE_PLAIN,
+  );
+};
+
+/*
+ * The call in its person's language, as a request carries it: null for
+ * none, for a language with no code, and for words that say nothing.
+ */
+const toInLanguageJson: (
+  inLanguage: CallAndSmsGatewayInLanguage | undefined,
+) => JSONObject | null = (
+  inLanguage: CallAndSmsGatewayInLanguage | undefined,
+): JSONObject | null => {
+  if (
+    !inLanguage ||
+    typeof inLanguage.language !== "string" ||
+    !inLanguage.language.trim() ||
+    typeof inLanguage.message !== "string" ||
+    !inLanguage.message.trim()
+  ) {
+    return null;
+  }
+
+  return {
+    language: inLanguage.language.trim(),
+    message: fitMessage(inLanguage.message),
+  };
+};
+
 // The body of a request that carries an SMS or a call.
 export const buildCallAndSmsGatewayMessagePayload: (
   input: CallAndSmsGatewayMessageInput,
@@ -101,16 +166,17 @@ export const buildCallAndSmsGatewayMessagePayload: (
     id: input.id,
     sentAt: input.sentAt.toISOString(),
     to: input.to,
-    message: fitTextToLength(
-      input.message || "",
-      MAX_CALL_AND_SMS_GATEWAY_MESSAGE_LENGTH,
-      TRUNCATED_TEXT_NOTE_PLAIN,
-    ),
+    message: fitMessage(input.message),
     isSensitive: input.isSensitive,
     project: input.project
       ? { id: input.project.id, name: input.project.name }
       : null,
     actions: toActionsJson(input.actions),
+    // Last: fields are only ever added to the shape.
+    inLanguage:
+      input.event === CallAndSmsGatewayEvent.Call
+        ? toInLanguageJson(input.inLanguage)
+        : null,
   };
 };
 
@@ -133,5 +199,6 @@ export const buildCallAndSmsGatewayTestPayload: (
     isSensitive: false,
     project: null,
     actions: null,
+    inLanguage: null,
   };
 };

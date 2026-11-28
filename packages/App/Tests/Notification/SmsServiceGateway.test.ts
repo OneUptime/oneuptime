@@ -315,6 +315,8 @@ describe("an SMS through the server's own gateway", () => {
       isSensitive: false,
       project: { id: PROJECT_ID.toString(), name: "Acme" },
       actions: null,
+      // An SMS is in the person's language already: no second wording (#11459).
+      inLanguage: null,
     });
     expect(
       Math.abs(Date.parse(request.data["sentAt"] as string) - Date.now()),

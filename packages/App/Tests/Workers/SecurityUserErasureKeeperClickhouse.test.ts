@@ -92,6 +92,8 @@ import {
   ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE,
   ENRICHMENT_MATCHED_ATTRIBUTE,
   THREAT_CONFIDENCE_ATTRIBUTE,
+  ENRICHMENT_CONFIDENCE_ATTRIBUTE,
+  ERASED_THREAT_INTEL_SEVERITY,
   THREAT_FEED_ID_ATTRIBUTE,
   THREAT_FEED_NAME_ATTRIBUTE,
   THREAT_INDICATOR_ID_ATTRIBUTE,
@@ -780,9 +782,10 @@ integration("an erasure on a replicated cluster", () => {
    * #11230: a threat intel feed lists the person's address. The finding
    * about the match named the feed's indicator, and the enricher stamped
    * the person's event with the address and the indicator. Both are
-   * rewritten ON CLUSTER, and both replicas end up with neither.
+   * rewritten ON CLUSTER, and both replicas end up with neither - nor with
+   * the indicator's score, or the severity it gave the finding (#11447).
    */
-  test("the feed's indicator comes out of the person's finding and the event it stamped, on both replicas; somebody else's stays", async () => {
+  test("the feed's indicator and its score come out of the person's finding and the event it stamped, on both replicas; somebody else's stay", async () => {
     const aliceToken: string = tokenOf(ALICE);
     const bobToken: string = tokenOf(BOB);
     const feedId: string = "11230000-0000-4000-8000-0000000000f4";
@@ -845,6 +848,7 @@ integration("an erasure on a replicated cluster", () => {
       named: string;
       token: string;
       stixId: string;
+      confidence: string;
     }): JSONObject {
       const row: JSONObject = namedEventRow({
         uid: data.uid,
@@ -858,6 +862,7 @@ integration("an erasure on a replicated cluster", () => {
         [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: data.stixId,
         [ENRICHMENT_FEED_ATTRIBUTE]: feedName,
         [ENRICHMENT_FEED_ID_ATTRIBUTE]: feedId,
+        [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: data.confidence,
       };
 
       return {
@@ -877,12 +882,14 @@ integration("an erasure on a replicated cluster", () => {
           named: ALICE,
           token: aliceToken,
           stixId,
+          confidence: "80",
         }),
         stampedEvent({
           uid: "stamped-bob",
           named: BOB,
           token: bobToken,
           stixId: bobStixId,
+          confidence: "60",
         }),
       ],
       {
@@ -893,7 +900,7 @@ integration("an erasure on a replicated cluster", () => {
       },
     );
 
-    const stampedQuery: string = `SELECT hostName() AS replica, eventUid, ruleId, ruleName, attributes, attributeKeys FROM clusterAllReplicas('${CLUSTER}', ${database}.${EVENTS_LOCAL}) WHERE eventUid IN ('stamped-alice', 'stamped-bob') OR ruleId IN ('${stixId}', '${erasedId}') ORDER BY replica, eventUid`;
+    const stampedQuery: string = `SELECT hostName() AS replica, eventUid, ruleId, ruleName, severityName, attributes, attributeKeys FROM clusterAllReplicas('${CLUSTER}', ${database}.${EVENTS_LOCAL}) WHERE eventUid IN ('stamped-alice', 'stamped-bob') OR ruleId IN ('${stixId}', '${erasedId}') ORDER BY replica, eventUid`;
 
     await waitUntil(
       "both replicas hold the finding and the events",
@@ -959,6 +966,7 @@ integration("an erasure on a replicated cluster", () => {
       if (row["eventUid"] === "stamped-bob") {
         expect(attributes[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]).toBe(BOB);
         expect(attributes[ENRICHMENT_INDICATOR_ID_ATTRIBUTE]).toBe(bobStixId);
+        expect(attributes[ENRICHMENT_CONFIDENCE_ATTRIBUTE]).toBe("60");
         continue;
       }
 
@@ -968,6 +976,8 @@ integration("an erasure on a replicated cluster", () => {
         );
         expect(attributes[ENRICHMENT_INDICATOR_ID_ATTRIBUTE]).toBe(erasedId);
         expect(attributes[ENRICHMENT_FEED_ID_ATTRIBUTE]).toBe(feedId);
+        // No score of the feed's on the person's event (#11447).
+        expect(attributes[ENRICHMENT_CONFIDENCE_ATTRIBUTE]).toBeUndefined();
         continue;
       }
 
@@ -978,6 +988,9 @@ integration("an erasure on a replicated cluster", () => {
       expect(attributes[THREAT_INDICATOR_VALUE_ATTRIBUTE]).toBe(aliceToken);
       expect(attributes[THREAT_FEED_ID_ATTRIBUTE]).toBe(feedId);
       expect(attributes[THREAT_INDICATOR_TYPE_ATTRIBUTE]).toBe("email-addr");
+      // Nor its score, nor the severity it gave the finding (#11447).
+      expect(attributes[THREAT_CONFIDENCE_ATTRIBUTE]).toBeUndefined();
+      expect(row["severityName"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
     }
 
     // Done again: nothing left to change on either replica.

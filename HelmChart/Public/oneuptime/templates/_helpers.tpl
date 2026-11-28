@@ -1215,6 +1215,17 @@ Admin Dashboard - and never refused for an empty accountSid. Left empty, it
 renders nothing, as before, and the voice is chosen in the Admin Dashboard.
 Only a voice OneUptime offers gets through: values.schema.json lists them,
 as packages/Common/Types/Call/CallVoice.ts writes them.
+
+twilio.letProjectsChooseCallVoice, whether each project chooses the voice of
+its own calls through the account (#11462), is a setting of its own too:
+rendered as GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE whenever it is true
+or false - false included, which says no as surely as true says yes - with
+twilio.accountSid or without it, and never counted among the values nothing
+reads - and so is "true" or "false" quoted, as a values file may write it.
+Left empty, it renders nothing, and the switch is flipped in the Admin
+Dashboard. It is read as it is, never through default, which would take false
+for empty. values.schema.json takes only those or nothing, so a typo is
+refused at install rather than read by the server as no.
 */}}
 {{- define "oneuptime.env.twilio" }}
 {{- $twilio := .Values.twilio | default dict }}
@@ -1274,6 +1285,12 @@ as packages/Common/Types/Call/CallVoice.ts writes them.
 
 - name: GLOBAL_TWILIO_CALL_VOICE
   value: {{ include "oneuptime.envValue" $twilio.callVoice }}
+{{- end }}
+{{- $letProjectsChooseCallVoice := $twilio.letProjectsChooseCallVoice }}
+{{- if or (kindIs "bool" $letProjectsChooseCallVoice) (has (toString $letProjectsChooseCallVoice) (list "true" "false")) }}
+
+- name: GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE
+  value: {{ include "oneuptime.envValue" $twilio.letProjectsChooseCallVoice }}
 {{- end }}
 {{- end }}
 

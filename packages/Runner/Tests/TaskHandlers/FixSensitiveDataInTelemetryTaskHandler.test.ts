@@ -630,6 +630,30 @@ describe("a RUM application's fix, in its front-end code", () => {
     );
   });
 
+  test("at a session's tags, the tag left out of setTags() and addTag(), or an opaque value instead (#11458)", () => {
+    const prompt: string = handler.buildPrompt(details(applicationFix()), null);
+
+    expect(prompt).toContain(
+      'where a session\'s tags hold it ("recorderCall": "setTags"), leave it out of the tags the page gives the session recorder with setTags() and addTag(), or tag the session with an opaque value instead',
+    );
+
+    const redaction: string = handler.buildPrompt(
+      details(
+        applicationFix({
+          strategy: TelemetryLeakFixStrategy.RedactionStep,
+          placeCount: 9,
+          redactionKeys: ["customer"],
+          redactionDataTypes: [],
+        }),
+      ),
+      "web",
+    );
+
+    expect(redaction).toContain(
+      "where a session's tags hold it, leave it out of setTags() and addTag(), or tag the session with an opaque value instead",
+    );
+  });
+
   test("a redaction step where the browser sets up its telemetry, and the session recorder's mask class", () => {
     const prompt: string = handler.buildPrompt(
       details(
@@ -720,6 +744,7 @@ describe("a RUM application's fix, in its front-end code", () => {
     for (const text of texts) {
       expect(text).not.toContain("browser");
       expect(text).not.toContain("identify()");
+      expect(text).not.toContain("setTags()");
       expect(text).not.toContain("front-end");
     }
   });

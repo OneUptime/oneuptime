@@ -41,13 +41,13 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { RecordOwnershipResult } from "../../../Types/RecordAccess/RecordOwnership";
 import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
-import PermissionGate, {
-  ModelAction,
+import PermissionGate, { ModelAction } from "../../../UI/Utils/PermissionGate";
+import RecordLocks, {
   ModelLabelLock,
   ModelPartLock,
   ModelRecordLock,
   RecordOwnershipFacts,
-} from "../../../UI/Utils/PermissionGate";
+} from "../../../UI/Utils/RecordLocks";
 import {
   getRecordOwnershipFacts,
   readRecordOwnership,
@@ -1064,7 +1064,7 @@ describePostgres(
       let verdict: LabelVerdict | null = null;
 
       if (write.model instanceof Monitor) {
-        const lock: ModelRecordLock | null = PermissionGate.getRecordLock(
+        const lock: ModelRecordLock | null = RecordLocks.getRecordLock(
           new Monitor(),
         );
 
@@ -1076,7 +1076,7 @@ describePostgres(
             )
           : null;
       } else {
-        const lock: ModelPartLock | null = PermissionGate.getPartLock(
+        const lock: ModelPartLock | null = RecordLocks.getPartLock(
           write.model,
           new Monitor(),
         );
@@ -1110,7 +1110,7 @@ describePostgres(
         return true;
       }
 
-      const lock: ModelLabelLock | null = PermissionGate.getLabelLock(
+      const lock: ModelLabelLock | null = RecordLocks.getLabelLock(
         new Monitor(),
       );
 

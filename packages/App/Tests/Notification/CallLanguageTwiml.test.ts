@@ -439,9 +439,18 @@ describe("the English call", () => {
   test("is the call to a person who reads Persian, in the voice the account chose", async () => {
     const callRequest: CallRequest = await pageCall("fa");
 
-    expect(callRequest.inLanguage).toBeUndefined();
+    /*
+     * Its Persian words go with it, for a call and SMS gateway that may
+     * have a Persian voice (#11459) - but no Twilio voice speaks Persian,
+     * so through Twilio the call is the English one.
+     */
+    expect(callRequest.inLanguage?.language).toBe("fa");
 
     const { twiml, log } = await place(callRequest);
+
+    expect(twiml).not.toContain(
+      (callRequest.inLanguage!.data[0] as { sayMessage: string }).sayMessage,
+    );
 
     expectEverySayIn(twiml, JOANNA);
     expect(saidIn(twiml)[0]).toBe("This is a call from Acme Production.");

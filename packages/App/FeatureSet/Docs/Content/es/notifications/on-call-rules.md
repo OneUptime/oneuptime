@@ -50,6 +50,8 @@ La llamada nombra tu proyecto. Una llamada que no es de un proyecto, como un có
 
 Una llamada es en el idioma en que usas OneUptime cuando la cuenta de Twilio por la que sale habla con una de las voces de OneUptime: todo lo que dice, incluidas las respuestas a tus teclas, con una voz de tu idioma, una voz femenina si la voz de la cuenta es femenina y una masculina si es masculina. Las teclas son las mismas: 1 para reconocer, 2 para escalar. Una llamada a través de una cuenta que mantiene su voz predeterminada es en inglés, y también lo es una llamada a alguien que usa OneUptime en persa, que ninguna voz habla: consulta [La voz con la que hablan las llamadas](/docs/self-hosted/twilio-integration#la-voz-con-la-que-hablan-las-llamadas).
 
+La llamada que verifica tu número de teléfono también es en tu idioma: dice su código dígito a dígito, con una pausa entre dígitos, tres veces. Una llamada a través de la propia [Pasarela de SMS y llamadas](/docs/self-hosted/sms-and-call-gateway) de tu instalación recibe sus palabras en tu idioma, y la pasarela elige la voz.
+
 ## Una sola secuencia para todo
 
 **Ajustes de usuario → Cómo contactarme** se abre con tu secuencia: pasos numerados que cada aviso prueba uno tras otro, para incidentes, alertas y episodios de cualquier gravedad. Cada paso es un momento, por ejemplo de inmediato o después de 5 minutos, con los métodos verificados que salen juntos en ese momento. Un paso posterior solo sale si nadie ha reconocido el aviso para entonces.

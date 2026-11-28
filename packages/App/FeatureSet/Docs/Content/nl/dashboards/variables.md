@@ -61,6 +61,10 @@ Stel de **Attribuutsleutel** in, zoals `service.name`, `host.name` of `k8s.names
 
 Dit is de meest gebruikte bron, omdat er geen eigen lijst voor nodig is: de waarden zijn degene die je al verstuurt.
 
+Een Telemetry Attribute-variabele kan ook een **Resourcetype** hebben: **Kubernetes-clusters**, **Hosts**, **Docker Swarm-clusters**, **Proxmox-clusters**, **OpenStack-clouds**, **VMware-vCenters**, **XCP-ng-pools**, **Ceph-clusters** of **Opslagarrays**. Met een type toont elke widget alleen de gegevens van dat type, al voordat er een waarde is gekozen: **Alle** heet dan **Alle hosts**, **Alle clusters** enzovoort en toont ze allemaal, en waarden kiezen beperkt het tot die waarden. De kiezer biedt alleen de namen van dat type, dus een variabele van **Hosts** biedt je hosts, nooit een Docker-host of een pod. Zolang er nog niets van dat type aan OneUptime rapporteert, zegt het dashboard dat boven zijn widgets, met een knop om er een in te stellen, zoals **Kubernetes instellen**.
+
+De infrastructuursjablonen geven hun variabele haar type, en dashboards die vóór het bestaan van typen van die sjablonen zijn gemaakt, kregen het hunne bij de upgrade. Om weer het hele project te lezen, zet je het **Resourcetype** van de variabele op **Elk resourcetype**.
+
 ### Project Labels
 
 Kies bestaande projectlabels om als vervolgkeuzelijst op het dashboard aan te bieden. Maak bijvoorbeeld een variabele met de naam `UNIT`, zet de bron op **Projectlabels**, en kies de labels `0660` en `0661`.
@@ -83,7 +87,7 @@ Een Query-variabele uit een ouder dashboard blijft behouden en toont een tekstva
 
 Met **Meervoudige selectie toestaan** aangevinkt kiezen kijkers een of meer waarden, en tonen de widgets elk daarvan. Een lege selectie betekent **Alle**, en een variabele met meervoudige selectie begint altijd op **Alle**, dus haar **Standaard** is grijs.
 
-Een variabele met enkelvoudige selectie begint op haar **Standaard**, of op **Alle** als ze er geen heeft. **Alle** verwijdert het filter van de variabele, zodat de widgets alles tonen.
+Een variabele met enkelvoudige selectie begint op haar **Standaard**, of op **Alle** als ze er geen heeft. **Alle** verwijdert het filter van de variabele, zodat de widgets alles tonen. Bij een variabele met een **Resourcetype** tonen ze alles van dat type.
 
 Gebruik meervoudige selectie om "checkout en payments samen" te vergelijken zonder het dashboard te verlaten. Vermijd haar als de getallen niet optellen over waarden heen, zoals bij een gemiddelde van gemiddelden.
 

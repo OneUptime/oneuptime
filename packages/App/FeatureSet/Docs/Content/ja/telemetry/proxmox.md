@@ -112,6 +112,10 @@ PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
+PROXMOX_AGENT_CONTAINER_NAME=oneuptime-proxmox-agent
+PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME=oneuptime-pve-api-failover
+PROXMOX_PVE_EXPORTER_CONTAINER_NAME=oneuptime-pve-exporter
+PROXMOX_AI_AGENT_CONTAINER_NAME=oneuptime-proxmox-ai-agent
 ```
 
 `PVE_NODES` は各ノードをそれぞれ自身のアドレスで角かっこ内に列挙し、`COMPOSE_PROFILES=pve-exporter` により、同梱のエクスポーターも起動します。エージェントを起動します:
@@ -161,6 +165,10 @@ Everything is ready. Begin running and processing data.
 | `PVE_API_TOKEN_SECRET` | 同梱のエクスポーターまたは AI エージェント | Proxmox API トークンのシークレット。 |
 | `PVE_VERIFY_SSL` | いいえ | Proxmox API の TLS 証明書を検証します (エクスポーターと AI エージェント)。Proxmox は自己署名証明書を同梱しているため、既定は `false` です。 |
 | `COMPOSE_PROFILES` | いいえ | 同梱のエクスポーターのコンテナを起動するには `pve-exporter` に設定します。 |
+| `PROXMOX_AGENT_CONTAINER_NAME` | いいえ | Collector のコンテナ名。既定は `oneuptime-proxmox-agent` です。同じマシン上で別のクラスターのエージェントには専用の名前が必要です ([複数のクラスターを監視する](#複数のクラスターを監視する) を参照)。設定しない場合、インストールスクリプトは新しいエージェントのコンテナにそのフォルダーにちなんだ名前を付け、スクリプトを再実行してもその名前を維持します。 |
+| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | いいえ | API フェイルオーバーのサイドカーのコンテナ名。既定は `oneuptime-pve-api-failover` で、別のエージェントでは `oneuptime-pve-api-failover-cluster2` のように Collector の名前と並ぶ名前になります。 |
+| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | いいえ | 同梱のエクスポーターのコンテナ名。既定は `oneuptime-pve-exporter` で、別のエージェントでは `oneuptime-pve-exporter-cluster2` のように Collector の名前と並ぶ名前になります。 |
+| `PROXMOX_AI_AGENT_CONTAINER_NAME` | いいえ | AI エージェントのコンテナ名。既定は `oneuptime-proxmox-ai-agent` で、別のエージェントでは `oneuptime-proxmox-ai-agent-cluster2` のように Collector の名前と並ぶ名前になります。 |
 
 ## エージェントが収集するもの
 
@@ -336,6 +344,18 @@ OneUptime の取り込みが停止したあとは、新たに沈黙したノー�
 
 バックアップの結果、フェンシングされたノード、失敗したレプリケーションは、それでも OneUptime に届けられます。[Proxmox VE の通知を送信](#proxmox-ve-の通知を送信する) してください。ネイティブプッシュでも動作します。
 
+## 複数のクラスターを監視する
+
+1 つのエージェントが読み取るのは 1 つのクラスターです。同じマシンから複数を監視するには、2 つのコンテナが同じ名前を持つことはできないため、それぞれを専用の `.env` と専用のコンテナ名を持つ専用のフォルダーにインストールします:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-proxmox-agent-cluster2 bash install.sh
+```
+
+スクリプトは、フォルダーにちなんでエージェントのコンテナに `oneuptime-proxmox-agent-cluster2`、`oneuptime-pve-api-failover-cluster2`、`oneuptime-pve-exporter-cluster2`、`oneuptime-proxmox-ai-agent-cluster2` という名前を付けます。自分で選ぶには、スクリプトの実行時に `PROXMOX_AGENT_CONTAINER_NAME` と、上の表にあるほかの変数を設定します。スクリプトはその名前をそのエージェントの `.env` に保存するため、エージェントをアップグレードするためにスクリプトを再実行しても名前は維持されます。また、`container_name` を以前 `docker-compose.yml` で編集したエージェントも、その名前を維持します。フォルダーにはそれぞれ専用の名前を付けてください。Docker Compose はプロジェクトにフォルダー名だけにちなんだ名前を付けるため、別の場所ですでにエージェントを実行しているフォルダーと同じ名前のフォルダーはスクリプトが拒否します。Docker Compose の場合は、代わりに各エージェントの `.env` で名前を設定します。
+
+systemd ユニットは `/opt/oneuptime-proxmox-agent` を前提としています。別のフォルダーの場合は、`oneuptime-proxmox-agent-cluster2.service` のような別の名前で保存し、その `WorkingDirectory` を変更します。フォルダーは `-d` で診断スクリプトに渡します。
+
 ## systemd サービスとして実行する
 
 マシンの起動時にエージェントを起動し、失敗したときに再起動するには、その systemd ユニットをインストールします。インストールスクリプトが配置する `/opt/oneuptime-proxmox-agent` にエージェントがあることを前提としています:
@@ -350,7 +370,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 エージェントは、そのファイルが固定している Collector のバージョンを **エージェントバージョン** として報告します。それがこの OneUptime のリリースが固定しているバージョンより古い場合、クラスターの **概要** でその横に警告マークが表示されます。マークを選択すると、これらのコマンドが表示されます。ファイルがバージョンを報告するようになる前にインストールしたエージェントは、この方法でアップグレードするまでバージョンが表示されません。
 
-Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と `otel-collector-config.yaml` を更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、イメージをプルしてエージェントを作り直すため、Collector は新しい設定を読み込みます。`PVE_NODES` より前の `.env` は引き続き `PVE_HOST` だけを読み取り、スクリプトが追加すべきノードを示します。
+Collector のイメージは `docker-compose.yml` で固定され、その設定はその横にあるファイルなので、プルするだけではエージェントは新しくなりません。`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と `otel-collector-config.yaml` を更新し (編集したファイルは `<file>.bak.<timestamp>` として残ります)、イメージをプルしてエージェントを作り直すため、Collector は新しい設定を読み込みます。`PVE_NODES` より前の `.env` は引き続き `PVE_HOST` だけを読み取り、スクリプトが追加すべきノードを示します。`/opt/oneuptime-proxmox-agent` の外にインストールしたエージェントには、`INSTALL_DIR=<folder> bash install.sh` のようにそのフォルダーを指定する必要があり、コンテナ名はそのまま維持されます。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh

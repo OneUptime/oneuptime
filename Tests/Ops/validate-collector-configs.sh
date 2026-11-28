@@ -392,6 +392,20 @@ for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
   validate "StorageArrayAgent / ${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
 done
 
+# The configs above that ship the syslog option commented out, for the
+# syslog the array forwards (uncommented and validated once more further
+# down): every one but PowerScale's, which polls the cluster's nodes over
+# SNMP and offers no syslog (#11003). PowerStore's syslog has a collector of
+# its own, below. Tests/Ops/StorageArrayAgentConfigs.test.js holds this list
+# to the configs that carry the option, so a config that gains or drops it
+# is named here.
+STORAGE_ARRAY_AGENT_SYSLOG_CONFIGS=(
+  otel-collector-config.yaml
+  otel-collector-config.flasharray-exporter.yaml
+  otel-collector-config.flashblade.yaml
+  otel-collector-config.netapp-ontap.yaml
+)
+
 # Dell PowerStore (#11002): its collector config, which scrapes Dell's
 # exporter, and the config of its syslog collector (the powerstore-syslog
 # service), which publishes the syslog port itself - so neither carries the
@@ -1122,14 +1136,14 @@ console.log(listed.join(" "));
 validate "VMwareAgent, every optional metric its config lists enabled" \
   "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
 
-# Each Storage Array Agent config ships the syslog option commented out — a
-# `syslog/tcp` / `syslog/udp` receiver pair and a `logs` pipeline — and tells
-# users to uncomment it. Do exactly that (drop the `# ` each of those lines
+# Each Storage Array Agent config of STORAGE_ARRAY_AGENT_SYSLOG_CONFIGS ships
+# the syslog option commented out — a `syslog/tcp` / `syslog/udp` receiver
+# pair and a `logs` pipeline — and tells users to uncomment it. Do exactly that (drop the `# ` each of those lines
 # carries) and validate every config once more, so the option a user turns
 # on is a config that starts. The YAML is checked to really carry both
 # receivers and the pipeline, so an uncomment that matched nothing fails
 # here instead of validating the config as shipped a second time.
-for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
+for config in "${STORAGE_ARRAY_AGENT_SYSLOG_CONFIGS[@]}"; do
   node -e '
 const fs = require("fs");
 const yaml = require("js-yaml");

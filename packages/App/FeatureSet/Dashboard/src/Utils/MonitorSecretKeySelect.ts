@@ -1,6 +1,7 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Select from "Common/Types/BaseDatabase/Select";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
+import RecordLocks from "Common/UI/Utils/RecordLocks";
 import { getRecordLabelIds } from "Common/UI/Utils/RecordLabelLock";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -54,13 +55,13 @@ export const MONITOR_SECRET_KEY_HIDDEN: string = translationKey(
 /*
  * Whether the reader may see `column` on this monitor, read with its labels'
  * ids: the column's read, and the monitor's labels where that read is
- * limited to some (PermissionGate.mayReadColumnOnRecord).
+ * limited to some (RecordLocks.mayReadColumnOnRecord).
  */
 export function canSeeMonitorCredential(
   monitor: Monitor,
   column: keyof Monitor,
 ): boolean {
-  return PermissionGate.mayReadColumnOnRecord(
+  return RecordLocks.mayReadColumnOnRecord(
     new Monitor(),
     column as string,
     getRecordLabelIds(monitor, "labels"),

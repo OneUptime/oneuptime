@@ -1676,6 +1676,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Database/UniqueName.ts",
       // What a picker says of records that share a name: a twin's pill and its day (#10064, #10314).
       "keys packages/Common/Types/Database/SharedNameMarks.ts",
+      // What escalating a page did, as the Escalate dialog and the page's call say it (#11066).
+      "keys packages/Common/Types/OnCallDutyPolicy/OnCallPassOnWords.ts",
       // The rest of the Enterprise screens (#8634).
       "ui ee/Dashboard/CustomRoles",
       "ui ee/Dashboard/AuditLogExport",

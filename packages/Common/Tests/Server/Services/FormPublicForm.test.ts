@@ -401,6 +401,8 @@ describe("FormService.getPublicForm - what a visitor is told", () => {
         "logoAltText",
         "logoFile",
         "faviconFile",
+        // Whether its submitters can follow what they sent (FormFollowUp).
+        "enableFollowUps",
       ].sort(),
     );
     // Each image's bytes, type and project: only its own project's is shown.
@@ -414,6 +416,22 @@ describe("FormService.getPublicForm - what a visitor is told", () => {
       fileType: true,
       projectId: true,
     });
+  });
+
+  test("says when the form's follow-ups are on, so its page can offer My requests", async () => {
+    storedForm = buildForm({ enableFollowUps: true });
+
+    expect((await getPublicForm()).isFollowUpOn).toBe(true);
+  });
+
+  test("says nothing of follow-ups that are off, or were never read back", async () => {
+    storedForm = buildForm({ enableFollowUps: false });
+
+    expect(Object.keys(await getPublicForm())).not.toContain("isFollowUpOn");
+
+    storedForm = buildForm();
+
+    expect(Object.keys(await getPublicForm())).not.toContain("isFollowUpOn");
   });
 
   test("finds the form whatever the case of the key in the link, or stray spaces around it", async () => {

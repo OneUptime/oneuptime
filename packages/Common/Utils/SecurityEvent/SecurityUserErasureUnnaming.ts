@@ -1,7 +1,9 @@
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import {
+  ENRICHMENT_CONFIDENCE_ATTRIBUTE,
   ENRICHMENT_INDICATOR_ID_ATTRIBUTE,
   ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE,
+  ThreatIntelIndicatorType,
 } from "../../Types/SecurityEvent/ThreatIntelConstants";
 import { writeOwnValue } from "../LookupTable";
 import FeedMarkdown from "../Markdown/FeedMarkdown";
@@ -596,6 +598,13 @@ export function getGroupValueCandidates(data: {
  *     (threat.indicator_value, threat.indicator_id) about the person says
  *     the token and the erased indicator id.
  *
+ * AND ITS CONFIDENCE (#11447). Each place drops the score the feed gave the
+ * indicator, which the feed keeps beside the address too: a description's
+ * "(email-addr, confidence 80)" reads "(email-addr)", and a kept event's
+ * stamp loses threat.confidence. In a small feed whose few addresses each
+ * have their own score, the score alone could point back at one. A
+ * description a person rewrote stays as they wrote it.
+ *
  * The erased indicator id is the keyed fingerprint of the match once the
  * person is out, made where the project's key is (`erasedIndicatorIdOf`,
  * Server/Utils/SecurityEvent/DetectionFingerprint.erasedIndicatorIdOf), so
@@ -610,6 +619,51 @@ export const THREAT_INTEL_STIX_INDICATOR_PREFIX: string = "STIX indicator: ";
 
 // Between the paragraphs of a description OneUptime wrote.
 const PARAGRAPH_SEPARATOR: string = "\n\n";
+
+/*
+ * The indicator's type and score, as a match's sentence writes them: an
+ * alert's "Indicator <value> (email-addr, confidence 80) matched ...", a
+ * detection's "Indicator `<value>` (email-addr, confidence 80) from the
+ * threat intel feed ...". The type is captured; "indicator" stands for an
+ * indicator with none (SecurityCaseMarkdown.threatIntelMatchMarkdown).
+ */
+const INDICATOR_CONFIDENCE_PATTERN: RegExp = new RegExp(
+  `\\((${[...Object.values(ThreatIntelIndicatorType), "indicator"]
+    .map((type: string): string => {
+      return escapeRegExp(type);
+    })
+    .join("|")}), confidence [0-9]+\\)`,
+  "g",
+);
+
+/*
+ * A match's text with the indicator's score taken out of it (#11447): its
+ * "(email-addr, confidence 80)" reads "(email-addr)". Any other text stays.
+ */
+export function withoutIndicatorConfidence(
+  text: string | undefined | null,
+): string | undefined | null {
+  if (typeof text !== "string" || !text) {
+    return text;
+  }
+
+  const result: string = text.replace(INDICATOR_CONFIDENCE_PATTERN, "($1)");
+
+  return result === text ? text : result;
+}
+
+// The indicator scores a text states, as written: what a copy of it holds too.
+export function getIndicatorConfidenceTexts(
+  text: string | undefined | null,
+): Array<string> {
+  if (typeof text !== "string" || !text) {
+    return [];
+  }
+
+  return Array.from(
+    new Set<string>(text.match(INDICATOR_CONFIDENCE_PATTERN) || []),
+  );
+}
 
 /*
  * A line that names a STIX indicator by its id, as an alert's description
@@ -644,9 +698,28 @@ function getMatchValueOf(
 }
 
 /*
+ * Whether a description is OneUptime's of a threat intel match on one of
+ * the names: its first paragraph is the match's sentence about one of
+ * them, as it was or as an erasure left it (#11447).
+ */
+export function isThreatIntelMatchOf(
+  description: string | undefined | null,
+  names: ReadonlyArray<ErasedName>,
+): boolean {
+  if (typeof description !== "string" || !description) {
+    return false;
+  }
+
+  return (
+    getMatchValueOf(description.split(PARAGRAPH_SEPARATOR)[0] || "", names) !==
+    null
+  );
+}
+
+/*
  * A threat intel detection's description, or the case's it opened, with the
  * feed's indicator taken out when the match was about one of the names (see
- * above). Any other description stays.
+ * above) - its id, its name and its score. Any other description stays.
  */
 export function unnameThreatIntelDescription(
   description: string | undefined | null,
@@ -668,7 +741,8 @@ export function unnameThreatIntelDescription(
 
   const erasedId: string = data.erasedIndicatorIdOf(value);
   const result: string = [
-    paragraphs[0]!,
+    // The match's sentence, without the indicator's score (#11447).
+    withoutIndicatorConfidence(paragraphs[0]!) || "",
     ...paragraphs
       .slice(1)
       .filter((paragraph: string): boolean => {
@@ -798,7 +872,11 @@ export function unnameKeptEventStamps<T extends JSONObject | undefined | null>(
 
     if (
       record[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE] === name.hashed &&
-      record[ENRICHMENT_INDICATOR_ID_ATTRIBUTE] === indicatorId
+      record[ENRICHMENT_INDICATOR_ID_ATTRIBUTE] === indicatorId &&
+      !Object.prototype.hasOwnProperty.call(
+        record,
+        ENRICHMENT_CONFIDENCE_ATTRIBUTE,
+      )
     ) {
       return event;
     }
@@ -808,6 +886,11 @@ export function unnameKeptEventStamps<T extends JSONObject | undefined | null>(
     const stamped: Record<string, unknown> = {};
 
     for (const [key, inner] of Object.entries(record)) {
+      // The indicator's score goes with it (#11447).
+      if (key === ENRICHMENT_CONFIDENCE_ATTRIBUTE) {
+        continue;
+      }
+
       writeOwnValue(stamped, key, inner);
     }
 

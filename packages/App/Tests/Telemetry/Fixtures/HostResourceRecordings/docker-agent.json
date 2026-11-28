@@ -1,0 +1,334 @@
+{
+ "containerLogs": {
+  "signal": "resourceLogs",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "container.id",
+      "value": {
+       "stringValue": "8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "web-shop-01"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "container.runtime",
+      "value": {
+       "stringValue": "docker"
+      }
+     },
+     {
+      "key": "oneuptime.agent.version",
+      "value": {
+       "stringValue": "18.0.0"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver",
+      "version": "0.165.0"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1795849502716070878",
+       "observedTimeUnixNano": "1795849553276488728",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "[INFO] GET /orders 200 in 12ms (request 1)\n"
+       },
+       "attributes": [
+        {
+         "key": "time",
+         "value": {
+          "stringValue": "2026-11-28T07:05:02.716070878Z"
+         }
+        },
+        {
+         "key": "log.file.path",
+         "value": {
+          "stringValue": "/var/lib/docker/containers/8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e/8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e-json.log"
+         }
+        },
+        {
+         "key": "log.iostream",
+         "value": {
+          "stringValue": "stdout"
+         }
+        }
+       ]
+      },
+      {
+       "timeUnixNano": "1795849504716756851",
+       "observedTimeUnixNano": "1795849553276491522",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "[INFO] GET /orders 200 in 12ms (request 2)\n"
+       },
+       "attributes": [
+        {
+         "key": "log.file.path",
+         "value": {
+          "stringValue": "/var/lib/docker/containers/8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e/8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e-json.log"
+         }
+        },
+        {
+         "key": "log.iostream",
+         "value": {
+          "stringValue": "stdout"
+         }
+        },
+        {
+         "key": "time",
+         "value": {
+          "stringValue": "2026-11-28T07:05:04.716756851Z"
+         }
+        }
+       ]
+      },
+      {
+       "timeUnixNano": "1795849506717291616",
+       "observedTimeUnixNano": "1795849553276492203",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "[INFO] GET /orders 200 in 12ms (request 3)\n"
+       },
+       "attributes": [
+        {
+         "key": "log.file.path",
+         "value": {
+          "stringValue": "/var/lib/docker/containers/8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e/8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e-json.log"
+         }
+        },
+        {
+         "key": "log.iostream",
+         "value": {
+          "stringValue": "stdout"
+         }
+        },
+        {
+         "key": "time",
+         "value": {
+          "stringValue": "2026-11-28T07:05:06.717291616Z"
+         }
+        }
+       ]
+      },
+      {
+       "timeUnixNano": "1795849508717968183",
+       "observedTimeUnixNano": "1795849553276492564",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "[INFO] GET /orders 200 in 12ms (request 4)\n"
+       },
+       "attributes": [
+        {
+         "key": "log.file.path",
+         "value": {
+          "stringValue": "/var/lib/docker/containers/8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e/8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e-json.log"
+         }
+        },
+        {
+         "key": "log.iostream",
+         "value": {
+          "stringValue": "stdout"
+         }
+        },
+        {
+         "key": "time",
+         "value": {
+          "stringValue": "2026-11-28T07:05:08.717968183Z"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "containerMetrics": {
+  "signal": "resourceMetrics",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "container.runtime",
+      "value": {
+       "stringValue": "docker"
+      }
+     },
+     {
+      "key": "container.hostname",
+      "value": {
+       "stringValue": "8cb880203d29"
+      }
+     },
+     {
+      "key": "container.id",
+      "value": {
+       "stringValue": "8cb880203d291c1695939ecf20c30ed34826461b83b47283fba4f98233a4750e"
+      }
+     },
+     {
+      "key": "container.image.name",
+      "value": {
+       "stringValue": "quay.io/prometheus/busybox-linux-amd64:latest"
+      }
+     },
+     {
+      "key": "container.name",
+      "value": {
+       "stringValue": "hosts11257-docker-app"
+      }
+     },
+     {
+      "key": "com.docker.compose.project",
+      "value": {
+       "stringValue": "shop"
+      }
+     },
+     {
+      "key": "com.docker.compose.service",
+      "value": {
+       "stringValue": "web"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "web-shop-01"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "oneuptime.agent.version",
+      "value": {
+       "stringValue": "18.0.0"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/dockerstatsreceiver",
+      "version": "0.165.0"
+     },
+     "metrics": [
+      {
+       "name": "container.memory.percent",
+       "description": "Memory in use as a percent of the container's limit, or of host memory if it has none.",
+       "unit": "%",
+       "gauge": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1795849553072683589",
+          "timeUnixNano": "1795849554145852137",
+          "asDouble": 0.0017196233315218148
+         }
+        ]
+       }
+      },
+      {
+       "name": "container.memory.usage.total",
+       "description": "Memory usage of the container. This excludes the cache.",
+       "unit": "By",
+       "sum": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1795849553072683589",
+          "timeUnixNano": "1795849554145852137",
+          "asInt": "2322432"
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      },
+      {
+       "name": "container.pids.count",
+       "description": "Number of pids in the container's cgroup.",
+       "unit": "{pids}",
+       "sum": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1795849553072683589",
+          "timeUnixNano": "1795849554145852137",
+          "asInt": "2"
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      },
+      {
+       "name": "container.restarts",
+       "description": "Number of restarts for the container.",
+       "unit": "{restarts}",
+       "sum": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1795849553072683589",
+          "timeUnixNano": "1795849554145852137",
+          "asInt": "0"
+         }
+        ],
+        "aggregationTemporality": 2,
+        "isMonotonic": true
+       }
+      },
+      {
+       "name": "container.uptime",
+       "description": "Time elapsed since container start time.",
+       "unit": "s",
+       "gauge": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1795849553072683589",
+          "timeUnixNano": "1795849554145852137",
+          "asDouble": 51.66260808
+         }
+        ]
+       }
+      },
+      {
+       "name": "container.cpu.utilization",
+       "description": "CPU used over each collection interval, where 100% is one full CPU core.",
+       "unit": "%",
+       "gauge": {
+        "dataPoints": [
+         {
+          "startTimeUnixNano": "1795849554145852137",
+          "timeUnixNano": "1795849584146211408",
+          "asDouble": 0.026459683126772778
+         }
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

@@ -162,6 +162,13 @@ export enum PublicMessageKind {
    * yet sends.
    */
   SignUpEmail = "sign-up-email",
+
+  /*
+   * POST /form/public/:shareKey/follow-up/people (and its twin on a form's
+   * own domain): somebody following a form submission adds another person
+   * to it, who is emailed a link of their own (Utils/Form/FormFollowUp).
+   */
+  FormFollowUpInvite = "form-follow-up-invite",
 }
 
 /*
@@ -515,6 +522,16 @@ const CONFIG: PublicMessageRateLimitConfig = {
       perClientLimit: parsePositiveIntFromEnv("SIGN_UP_EMAILS_PER_IP", 60),
       perContactLimit: parsePositiveIntFromEnv("SIGN_UP_EMAILS_PER_CONTACT", 5),
     },
+    [PublicMessageKind.FormFollowUpInvite]: {
+      perClientLimit: parsePositiveIntFromEnv(
+        "FORM_FOLLOW_UP_INVITES_PER_IP",
+        60,
+      ),
+      perContactLimit: parsePositiveIntFromEnv(
+        "FORM_FOLLOW_UP_INVITES_PER_CONTACT",
+        10,
+      ),
+    },
   },
   teamKinds: {
     // One counter with the sign-ups: their counter, their limit.
@@ -560,6 +577,8 @@ const CLIENT_REFUSALS: Record<PublicMessageKind, string> = {
     "Too many sign-in links asked for from your network. Please wait a few minutes and try again.",
   [PublicMessageKind.SignUpEmail]:
     "Too many sign-ups from your network. Please wait a few minutes and try again.",
+  [PublicMessageKind.FormFollowUpInvite]:
+    "Too many people added from your network. Please wait a few minutes and try again.",
 };
 
 // What a caller refused for its text messages is told, by kind.
@@ -581,6 +600,8 @@ const CLIENT_TEXT_MESSAGE_REFUSALS: Record<PublicMessageKind, string> = {
     CLIENT_REFUSALS[PublicMessageKind.SsoSignInLinks],
   [PublicMessageKind.SignUpEmail]:
     CLIENT_REFUSALS[PublicMessageKind.SignUpEmail],
+  [PublicMessageKind.FormFollowUpInvite]:
+    CLIENT_REFUSALS[PublicMessageKind.FormFollowUpInvite],
 };
 
 // How a refusal names a contact.
@@ -631,6 +652,9 @@ const CONTACT_REFUSALS: Record<
   [PublicMessageKind.SignUpEmail]: (contactName: string): string => {
     return `Too many sign-up emails asked for ${contactName} in the last hour. Please use the link in the latest one, or try again later.`;
   },
+  [PublicMessageKind.FormFollowUpInvite]: (contactName: string): string => {
+    return `Too many requests added ${contactName} in the last hour. Please try again later.`;
+  },
 };
 
 /*
@@ -668,6 +692,8 @@ const TEXT_MESSAGE_UNAVAILABLE_REFUSALS: Record<PublicMessageKind, string> = {
   [PublicMessageKind.SsoSignInLinks]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
   [PublicMessageKind.SignUpEmail]:
+    "Text messages cannot be sent right now. Please try again in a few minutes.",
+  [PublicMessageKind.FormFollowUpInvite]:
     "Text messages cannot be sent right now. Please try again in a few minutes.",
 };
 
@@ -747,6 +773,9 @@ export default class PublicMessageRateLimit {
         },
         [PublicMessageKind.SignUpEmail]: {
           ...CONFIG.kinds[PublicMessageKind.SignUpEmail],
+        },
+        [PublicMessageKind.FormFollowUpInvite]: {
+          ...CONFIG.kinds[PublicMessageKind.FormFollowUpInvite],
         },
       },
       teamKinds: {

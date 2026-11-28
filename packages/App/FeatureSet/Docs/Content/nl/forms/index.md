@@ -8,6 +8,7 @@ Gebruik een formulier als de mensen die een probleem opmerken, of een wijziging 
 - [Uw eerste formulier maken](#uw-eerste-formulier-maken): Van een leeg formulier naar een link die u kunt delen.
 - [Een formulier bouwen](/docs/forms/building): Vragen, antwoordtypen, verborgen vragen, sjablonen en huisstijl.
 - [Wat een inzending aanmaakt](/docs/forms/on-submit): Hoe de antwoorden en de instellingen een incident of een onderhoudsgebeurtenis worden.
+- [Een inzending opvolgen](/docs/forms/follow-ups): Wie verstuurt, volgt de eigen aanvraag, schrijft uw team en voegt anderen toe.
 - [Delen & beveiliging](/docs/forms/sharing-and-security): De link, de IP-toelatingslijst, snelheidslimieten en probleemoplossing.
 :::
 
@@ -290,6 +291,7 @@ De oude dashboardpagina's verwijzen door naar de nieuwe.
 :::cards
 - [Een formulier bouwen](/docs/forms/building): Vragen, antwoordtypen, gekoppelde velden, aangepaste velden en het voorbeeld.
 - [Wat een inzending aanmaakt](/docs/forms/on-submit): Hoe de antwoorden en de instellingen onder Bij verzenden een incident of onderhoudsgebeurtenis worden.
+- [Een inzending opvolgen](/docs/forms/follow-ups): Wie verstuurt, volgt de eigen aanvraag, schrijft uw team en voegt anderen toe.
 - [Delen & beveiliging](/docs/forms/sharing-and-security): De link, de IP-toelatingslijst, snelheidslimieten, de captcha en probleemoplossing.
 - [Een incident melden](/docs/incidents/declaring-incidents): De andere manieren om incidenten te melden.
 :::

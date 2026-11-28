@@ -274,4 +274,5 @@ OneUptime に同梱の ClamAV は、起動時に `database.clamav.net` からシ
 - [フォームの概要](/docs/forms/index): フォームの用途、権限、API。
 - [フォームの作成](/docs/forms/building): 質問、非表示の質問、テンプレート。
 - [送信で作成されるもの](/docs/forms/on-submit): 各送信が作成するインシデントまたはイベント。
+- [送信のフォローアップ](/docs/forms/follow-ups): 送信した人が自分のリクエストをフォローし、チームに連絡し、ほかの人を追加できます。
 :::

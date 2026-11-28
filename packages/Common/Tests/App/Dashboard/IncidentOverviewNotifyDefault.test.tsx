@@ -156,6 +156,21 @@ jest.mock(
     return stubModule("MonitorSummary");
   },
 );
+/*
+ * A form submission's follow-up, which reads its own route
+ * (FormFollowUpRecordCard.test.tsx draws it): nothing on these records.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FollowUp/FormFollowUpRecordCard",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/EntityRunbooks",
   () => {

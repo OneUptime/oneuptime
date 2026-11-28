@@ -29,7 +29,10 @@ export enum NotificationLogsTab {
 
 /*
  * Each tab by the name NotificationLogsTabs gives it, which is also its
- * English key, in the order it draws them.
+ * English key, in the order it draws them. The Call and Push tabs are
+ * named by keys that name their meaning, a phone call and a push
+ * notification (Common/Types/MeaningKeys, #11418): English reads them as
+ * "Call" and "Push".
  */
 export const NOTIFICATION_LOGS_TAB_NAMES: Readonly<
   Record<NotificationLogsTab, string>
@@ -39,8 +42,8 @@ export const NOTIFICATION_LOGS_TAB_NAMES: Readonly<
   [NotificationLogsTab.WhatsApp]: "WhatsApp",
   [NotificationLogsTab.Telegram]: "Telegram",
   [NotificationLogsTab.Webhook]: "Webhook",
-  [NotificationLogsTab.Call]: "Call",
-  [NotificationLogsTab.Push]: "Push",
+  [NotificationLogsTab.Call]: "Call (phone call)",
+  [NotificationLogsTab.Push]: "Push (push notification)",
   [NotificationLogsTab.Workspace]: "Workspace",
 };
 

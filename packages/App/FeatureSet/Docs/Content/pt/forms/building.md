@@ -256,6 +256,7 @@ Um envio que passa de um limite, deixa de fora uma resposta obrigatória ou dá 
 
 :::cards
 - [O que um envio cria](/docs/forms/on-submit): Como as respostas e as configurações Ao enviar se tornam um incidente ou um evento de manutenção.
+- [Acompanhar um envio](/docs/forms/follow-ups): Quem envia acompanha a sua solicitação, escreve para a sua equipe e adiciona outras pessoas.
 - [Partilha e segurança](/docs/forms/sharing-and-security): Partilhar o link, um link para cada modelo, e o que os protege.
 - [Configurações e automação de incidentes](/docs/incidents/settings): Campos personalizados e modelos de incidente.
 :::

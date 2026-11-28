@@ -249,11 +249,15 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
           id: "model-detail-team",
           /*
            * When its checks, and its device polls, first and last ran
-           * late: whether it is behind on either.
+           * late: whether it is behind on either. And when the
+           * longest-waiting one was due at the last late reading: how far
+           * behind ("Behind by 15 minutes").
            */
           selectMoreFields: {
             checksLastLateAt: true,
+            checksLastLateDueAt: true,
             devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
           },
           fields: [
             {

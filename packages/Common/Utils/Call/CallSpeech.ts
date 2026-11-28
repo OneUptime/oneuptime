@@ -31,7 +31,16 @@ import { translationKey, Translator } from "../../Types/Translator";
  *     own prefixes, wherever a call says it (getSpeechParts);
  *   - the product's own name, said as two words: "One Uptime". The text says
  *     OneUptime, so an installation that goes by its own name says that
- *     instead (ProductBrandingText), and only then is it spelled for the voice.
+ *     instead (ProductBrandingText), and only then is it spelled for the voice;
+ *   - a code the sentence says (Say.code, #11461): a verification code read
+ *     in another language must stay unmistakable, so its characters are said
+ *     one at a time, with a pause between each - each its own <say-as
+ *     interpret-as="characters">, a <break> of CALL_CODE_PAUSE between them,
+ *     for a voice that reads SSML (every voice a call in another language
+ *     speaks with does), and spaced out as the English call has always
+ *     spaced its code for any other. A number written as one ("482913") is
+ *     read by a voice as a number - "four hundred eighty-two thousand..." -
+ *     and "000123" as 123.
  *
  * SSML is read by Amazon Polly and Google voices only. A call that names no
  * voice is spoken by the Twilio account's default voice - Basic "man"
@@ -86,10 +95,26 @@ export const getSayRecordNumber: (translator: Translator) => SayRecordNumber = (
 export const ONEUPTIME_SPOKEN_NAME: string = "One Uptime";
 
 /*
- * A piece of what a voice is given: text it reads as written, or characters
- * it says one at a time.
+ * The pause between two characters of a code a call says (#11461), as
+ * SSML's <break time="..."> takes it: long enough for each digit to be
+ * heard on its own, and written down, before the next.
  */
-export type SpeechPart = { text: string } | { characters: string };
+export const CALL_CODE_PAUSE: string = "500ms";
+
+/*
+ * What is between two characters of a code a call's words write: two
+ * spaces, as the verification call has always spaced its code - "4  8  2"
+ * - to have it read slower by a voice that reads no SSML.
+ */
+export const CALL_CODE_CHARACTER_SEPARATOR: string = "  ";
+
+/*
+ * A piece of what a voice is given: text it reads as written, or characters
+ * it says one at a time - a code's with a pause between each (isPaced).
+ */
+export type SpeechPart =
+  | { text: string }
+  | { characters: string; isPaced?: boolean | undefined };
 
 // A sentence of a call, as CallRequest carries one (Say).
 export interface SpokenSentence {
@@ -99,6 +124,11 @@ export interface SpokenSentence {
    * letter by letter.
    */
   recordNumber?: string | undefined;
+  /*
+   * A code in the sentence, as the sentence writes it - "4  8  2  9  1  3" -
+   * whose characters are said one at a time, with a pause between each.
+   */
+  code?: string | undefined;
 }
 
 /*
@@ -389,8 +419,28 @@ export const getRecordNumberSpeech: (
   return parts;
 };
 
-// A piece of a sentence: text as written, or a record's number to spell.
-type SentencePiece = { text: string } | { recordNumber: string };
+/*
+ * A code as a call's words write it (Say.code, #11461): its characters,
+ * whitespace left out, separated by CALL_CODE_CHARACTER_SEPARATOR - "4  8  2
+ * 9  1  3" for 482913 - as the verification call has always written its
+ * code.
+ */
+export const writeCodeForCall: (code: string) => string = (
+  code: string,
+): string => {
+  return getSpeechCharacters(
+    (typeof code === "string" ? code : "").replace(WHITESPACE_RUN, ""),
+  ).join(CALL_CODE_CHARACTER_SEPARATOR);
+};
+
+/*
+ * A piece of a sentence: text as written, a record's number to spell, or a
+ * code to say a character at a time.
+ */
+type SentencePiece =
+  | { text: string }
+  | { recordNumber: string }
+  | { code: string };
 
 /*
  * The pattern of a number written with one of `prefixes` - a project's own
@@ -425,6 +475,20 @@ const getPrefixedNumberPattern: (
     `(^|[^\\p{L}\\p{M}\\p{N}])((?:${usable.map(escapeRegExp).join("|")})[0-9]+)(?![\\p{L}\\p{M}\\p{N}])`,
     "gu",
   );
+};
+
+// `text` cut at every place it says `code`.
+const splitOnCode: (text: string, code: string) => Array<SentencePiece> = (
+  text: string,
+  code: string,
+): Array<SentencePiece> => {
+  return text
+    .split(code)
+    .flatMap((between: string, index: number): Array<SentencePiece> => {
+      return index === 0
+        ? [{ text: between }]
+        : [{ code: code }, { text: between }];
+    });
 };
 
 // `text` cut at every place it says `recordNumber`.
@@ -477,13 +541,16 @@ const splitOnPrefixedNumbers: (
 };
 
 /*
- * What a voice is given for a sentence: its text as written, and each
- * record number in it as getRecordNumberSpeech says it - the number the
- * sentence carries (Say.recordNumber), wherever it names it, and every
- * number written with one of `recordNumberPrefixes`, the project's own
- * prefixes, so a title or an owner's message that names "INC-41" says it
- * right too. A sentence that no longer names the number it carries (a cut
- * one) is said as written. No empty text.
+ * What a voice is given for a sentence: its text as written, the code it
+ * carries (Say.code), wherever it writes it, a character at a time with a
+ * pause between each (#11461), and each record number in it as
+ * getRecordNumberSpeech says it - the number the sentence carries
+ * (Say.recordNumber), wherever it names it, and every number written with
+ * one of `recordNumberPrefixes`, the project's own prefixes, so a title or
+ * an owner's message that names "INC-41" says it right too. A sentence
+ * that no longer names the number or the code it carries (a cut one) is
+ * said as written; a code is never taken for a record number. No empty
+ * text.
  */
 export const getSpeechParts: (
   sentence: SpokenSentence,
@@ -500,9 +567,16 @@ export const getSpeechParts: (
     typeof sentence.recordNumber === "string"
       ? sentence.recordNumber.trim()
       : "";
+  const code: string =
+    typeof sentence.code === "string" ? sentence.code.trim() : "";
   const pattern: RegExp | null = getPrefixedNumberPattern(recordNumberPrefixes);
 
   let pieces: Array<SentencePiece> = [{ text: text }];
+
+  // The code first: its digits are no record's number.
+  if (code) {
+    pieces = splitOnCode(text, code);
+  }
 
   if (recordNumber) {
     pieces = pieces.flatMap((piece: SentencePiece): Array<SentencePiece> => {
@@ -522,9 +596,20 @@ export const getSpeechParts: (
 
   return pieces
     .flatMap((piece: SentencePiece): Array<SpeechPart> => {
-      return "text" in piece
-        ? [{ text: piece.text }]
-        : getRecordNumberSpeech(piece.recordNumber, sayNumber);
+      if ("text" in piece) {
+        return [{ text: piece.text }];
+      }
+
+      if ("code" in piece) {
+        return [
+          {
+            characters: piece.code.replace(WHITESPACE_RUN, ""),
+            isPaced: true,
+          },
+        ];
+      }
+
+      return getRecordNumberSpeech(piece.recordNumber, sayNumber);
     })
     .filter((part: SpeechPart): boolean => {
       return "characters" in part ? part.characters !== "" : part.text !== "";
@@ -540,14 +625,21 @@ export const spellOut: (characters: string) => string = (
 
 /*
  * The parts as one text, for a voice that reads no SSML: characters said one
- * at a time are spaced apart - "A new incident: I N C 42.".
+ * at a time are spaced apart - "A new incident: I N C 42." - and a code's
+ * as its sentence writes them, "4  8  2  9  1  3".
  */
 export const renderSpeechAsText: (parts: Array<SpeechPart>) => string = (
   parts: Array<SpeechPart>,
 ): string => {
   return parts
     .map((part: SpeechPart): string => {
-      return "characters" in part ? spellOut(part.characters) : part.text;
+      if (!("characters" in part)) {
+        return part.text;
+      }
+
+      return part.isPaced
+        ? writeCodeForCall(part.characters)
+        : spellOut(part.characters);
     })
     .join("");
 };

@@ -4605,8 +4605,11 @@
   "Project Call Voices": "Vozes dos projetos",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Se cada projeto escolhe a voz das suas próprias chamadas pela conta do Twilio deste servidor.",
   "Let projects choose their call voice": "Deixar os projetos escolherem a voz das suas chamadas",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "Os proprietários e administradores de um projeto a escolhem em Configurações do projeto > Notificações > Canais de notificação, e a conta do Twilio deste servidor paga por ela. Um projeto que não escolhe nenhuma fala com a voz acima.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "Os proprietários e administradores de um projeto a escolhem em Configurações do projeto > Notificações > Canais de notificação. Um projeto que não escolhe nenhuma fala com a voz acima.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "As chamadas de todos os projetos pela conta do Twilio deste servidor falam com a voz acima.",
+  "Set by the GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE environment variable: twilio.letProjectsChooseCallVoice with Helm, or config.env with Docker Compose. Change it there and restart OneUptime.": "Definido pela variável de ambiente GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE: twilio.letProjectsChooseCallVoice com o Helm, ou o config.env com o Docker Compose. Altere-a lá e reinicie o OneUptime.",
+  "An environment variable sets this switch, so it cannot be changed here.": "Uma variável de ambiente define esta chave, então ela não pode ser alterada aqui.",
+  "Projects speak with the voice above until this environment variable is fixed:": "Os projetos falam com a voz acima até que esta variável de ambiente seja corrigida:",
   "Free. Twilio says its Basic voices are not meant for production.": "Grátis. Segundo o Twilio, suas vozes Basic não são indicadas para uso em produção.",
   "Save, then send a test call to hear it.": "Salve e depois envie uma chamada de teste para ouvi-la.",
   "Call Voice": "Voz das chamadas",
@@ -4668,5 +4671,14 @@
   "Your permissions do not reach this {{itemName}}.": "Suas permissões não alcançam este item ({{itemName}}).",
   "Your permission is limited to {{items}} you or your teams own.": "Sua permissão está limitada a {{items}} que pertencem a você ou às suas equipes.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Sua permissão está limitada a {{items}} com o rótulo {{labels}} e a {{items}} que pertencem a você ou às suas equipes.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Sua permissão está limitada a {{items}} com determinados rótulos e a {{items}} que pertencem a você ou às suas equipes."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Sua permissão está limitada a {{items}} com determinados rótulos e a {{items}} que pertencem a você ou às suas equipes.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Excluir um modelo de monitor desvincula os monitores dele. Eles mantêm os critérios e as configurações que o modelo lhes deu e continuam verificando e alertando.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "O dispositivo para o qual este monitor foi criado já tem um monitor vinculado a este modelo: {{monitorName}}. Exclua um dos dois ou vincule este a outro modelo.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "O dispositivo para o qual este monitor foi criado já tem um monitor vinculado a este modelo. Exclua um dos dois ou vincule este a outro modelo.",
+  "Behind by {{count}} minutes": "Com {{count}} minutos de atraso",
+  "Behind by {{count}} minutes_one": "Com {{count}} minuto de atraso",
+  "Behind by {{count}} hours": "Com {{count}} horas de atraso",
+  "Behind by {{count}} hours_one": "Com {{count}} hora de atraso",
+  "Behind by {{count}} days": "Com {{count}} dias de atraso",
+  "Behind by {{count}} days_one": "Com {{count}} dia de atraso"
 }

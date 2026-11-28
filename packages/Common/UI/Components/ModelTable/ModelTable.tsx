@@ -3,12 +3,14 @@ import ModelImportExportUtil, {
   ImportResult,
 } from "../../Utils/ModelImportExport";
 import PermissionGate, {
-  LabelLockAction,
   ModelAction,
-  ModelRecordLock,
   PermissionGateResult,
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import RecordLocks, {
+  LabelLockAction,
+  ModelRecordLock,
+} from "../../Utils/RecordLocks";
 import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import {
   getRecordLabelIds,
@@ -213,8 +215,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
    * your teams own." Until it lands, the rows are offered as before, and
    * the server keeps the last word.
    */
-  const recordLock: ModelRecordLock | null =
-    PermissionGate.getRecordLock(model);
+  const recordLock: ModelRecordLock | null = RecordLocks.getRecordLock(model);
   const rowLabelLock: ModelRecordLock | null =
     recordLock &&
     (!recordLock.labelsColumn ||

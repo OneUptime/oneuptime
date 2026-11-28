@@ -43,6 +43,8 @@
 
 **推薦** 包含 Monitor Dashboard、Incident Dashboard、Alert Dashboard、Kubernetes Dashboard、Hosts Dashboard 和 Metrics Dashboard。範本只是起點，而不是連動：儀表板建立後，你可以隨意修改。之後範本不會再更新它。
 
+每個基礎設施範本都會透過其變數的 [資源類型](/docs/dashboards/variables#telemetry-attribute) 只顯示自己那一類資源：在沒有 swarm 的專案中，Docker Swarm Dashboard 會保持空白並說明這一點，而不是顯示其他所有內容的容器和日誌。
+
 ## 編輯與儲存
 
 儀表板以檢視模式開啟，供閱讀使用。要修改它，請開啟工具列中的 **⋯** 選單並選擇 **編輯儀表板** 。工具列會在名稱旁顯示 **編輯中** ，並把時間範圍和其他控制項換成 **新增小工具** 、 **變數** 、 **取消** 和 **儲存變更** 。下方還有一列，用來設定儀表板的 **預設時間範圍** 和 **預設自動重新整理** 。

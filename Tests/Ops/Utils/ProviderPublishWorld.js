@@ -62,6 +62,11 @@ const SCRIPT_FILES = [
   "Scripts/TerraformProvider/ProviderRelease.js",
   "Scripts/TerraformProvider/GenerateReleaseNotes.js",
   "Scripts/Release/GenerateReleaseNotes.js",
+  // What every upload to a release follows (ProviderRelease.js reads it).
+  "Scripts/Release/ReleaseAssets.js",
+  // The pinned release toolchain the script holds its own to (#11464).
+  "Scripts/Release/ReleaseToolchain.js",
+  ".github/actions/setup-release-toolchain/versions.env",
 ];
 
 const GIT_IDENTITY = {
@@ -419,6 +424,11 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 
+// --version answers as GoReleaser does, and builds nothing: FAKE_GORELEASER_VERSION, else 2.20.3.
+if (process.argv[2] === "--version") {
+  console.log("GitVersion:    " + (process.env.FAKE_GORELEASER_VERSION || "2.20.3"));
+  process.exit(0);
+}
 const tag = process.env.GORELEASER_CURRENT_TAG || "";
 const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 fs.appendFileSync(process.env.FAKE_LOG, JSON.stringify({ tool: "goreleaser", args: process.argv.slice(2), tag, head, fingerprint: process.env.GPG_FINGERPRINT }) + "\n");
@@ -480,7 +490,7 @@ fs.cpSync(process.env.FAKE_PROVIDER_SOURCE, path.join(terraform, "terraform-prov
 const FAKE_GO = `#!/bin/sh
 printf '{"tool":"go","args":"%s"}\\n' "$*" >> "$FAKE_LOG"
 if [ "$1" = "version" ]; then
-  echo "go version go1.25.4 linux/amd64"
+  echo "go version go\${FAKE_GO_VERSION:-1.25.4} linux/amd64"
 fi
 if [ "$1" = "test" ] && [ -n "$FAKE_GO_TEST_FAILS" ]; then
   echo "--- FAIL: TestSomething" >&2
