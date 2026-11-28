@@ -1803,6 +1803,12 @@ export default class Monitor extends BaseModel {
    * recorded that is still linked to the template it was made from - which
    * Monitor Template then says. No foreign key: a deleted template is named
    * by no rule, policy or import, so its id here holds nothing back.
+   *
+   * Read on the monitor itself, by its own read, and never through a record
+   * that names the monitor: the rules, policies and imports read it as
+   * OneUptime, on the monitor, and no page draws it beside an incident,
+   * alert or log. So it is no relation's label
+   * (RelationReadsNoWiderThanTheColumn).
    */
   @ColumnAccessControl({
     create: [],
@@ -1821,7 +1827,6 @@ export default class Monitor extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
-    canReadOnRelationQuery: true,
     title: "Created From Monitor Template ID",
     description:
       "ID of the Monitor Template this monitor was created from, kept when it is linked to another template or unlinked. Imports, auto import rules and alert policies never make that template's monitor again for the device this monitor checks. Empty for a monitor made from no template, and for one made before this was recorded that is still linked to its template.",
