@@ -881,7 +881,7 @@ describe("the index of lines to look after", () => {
     connect(serverB, { heldForAtMostMs: 30_000, stalledAfterMs: 5_000 });
   });
 
-  test("a held line is looked at once its hold could run out; a released one once its turn could stall; one that is over, never", async () => {
+  test("REGRESSION (#11314): a held line is looked at once its holder could have stopped - pushed on each time it says it still holds it - not once its hold could run out; a released one once its turn could stall; one that is over, never", async () => {
     const incident: WorkspaceRecord = newIncident();
     const channel: Channel = new Channel();
     const slow: SlowPost = slowPost(channel, "B: slow", "B");
@@ -893,8 +893,22 @@ describe("the index of lines to look after", () => {
       await inspector.zscore(indexKey(), lineKeyOf(incident)),
     );
 
-    expect(whenHeld).toBeGreaterThanOrEqual(heldAt + 30_000 - 1000);
-    expect(whenHeld).toBeLessThanOrEqual((await valkeyNow()) + 30_000);
+    // STALLED_AFTER_MS (5 s here) from now, long before its hold runs out (30 s).
+    expect(whenHeld).toBeGreaterThanOrEqual(heldAt + 5_000 - 1000);
+    expect(whenHeld).toBeLessThanOrEqual((await valkeyNow()) + 5_000);
+
+    // Its holder says it still holds it: the look is pushed on with it.
+    await pause(200);
+    const saidAt: number = await valkeyNow();
+    await serverA.line.keepHeld();
+
+    const whenSaid: number = Number(
+      await inspector.zscore(indexKey(), lineKeyOf(incident)),
+    );
+
+    expect(whenSaid).toBeGreaterThanOrEqual(saidAt + 5_000 - 1000);
+    expect(whenSaid).toBeGreaterThan(whenHeld);
+    expect(whenSaid).toBeLessThanOrEqual((await valkeyNow()) + 5_000);
 
     await channel.keep(serverB, incident, "B: slow", { post: slow.post });
 
@@ -915,6 +929,24 @@ describe("the index of lines to look after", () => {
     await serverB.line.drained(recordKeyOf(incident));
 
     expect(await inspector.zscore(indexKey(), lineKeyOf(incident))).toBeNull();
+  });
+
+  test("a hold that runs out before its holder could have stopped is looked at once it runs out, as before", async () => {
+    connect(serverA, { heldForAtMostMs: 2_000, stalledAfterMs: 5_000 });
+
+    const incident: WorkspaceRecord = newIncident();
+
+    const heldAt: number = await valkeyNow();
+    await serverA.first.hold(incident);
+
+    const whenHeld: number = Number(
+      await inspector.zscore(indexKey(), lineKeyOf(incident)),
+    );
+
+    expect(whenHeld).toBeGreaterThanOrEqual(heldAt + 2_000 - 1000);
+    expect(whenHeld).toBeLessThanOrEqual((await valkeyNow()) + 2_000);
+
+    await serverA.first.postHeld(incident);
   });
 
   test("the index lives no longer than the lines in it can", async () => {
@@ -1156,17 +1188,17 @@ describe("a server killed before its message's turn", () => {
     ]);
   });
 
-  test("the server holding the record is killed before its Created message: once the hold has run out, another server posts its messages, in order", async () => {
-    const HELD_MS: number = 800;
-    connect(serverA, { heldForAtMostMs: HELD_MS, stalledAfterMs: 400 });
-    connect(serverB, { heldForAtMostMs: HELD_MS, stalledAfterMs: 400 });
+  test("REGRESSION (#11314): the server holding the record is killed before its Created message: once it has said nothing for STALLED_AFTER_MS - long before its hold runs out - another server posts its messages, in order, each once", async () => {
+    const HELD_MS: number = 60_000;
+    const STALLED_MS: number = 400;
+    connect(serverA, { heldForAtMostMs: HELD_MS, stalledAfterMs: STALLED_MS });
+    connect(serverB, { heldForAtMostMs: HELD_MS, stalledAfterMs: STALLED_MS });
 
     const incident: WorkspaceRecord = newIncident();
     const channel: Channel = new Channel();
 
     takesOver(serverB, channel);
 
-    const heldAt: number = Date.now();
     await serverA.first.hold(incident);
     await channel.keep(
       serverA,
@@ -1177,17 +1209,36 @@ describe("a server killed before its message's turn", () => {
 
     // Killed with its chain half way: no "Incident Created", and no word.
     serverA.valkey.freeze();
-
-    await pause(500);
-    expect(channel.posts()).toEqual([]);
+    const killedAt: number = Date.now();
 
     await channel.waitFor(2, 10_000);
+    const postedAfter: number = Date.now() - killedAt;
+    await pause(300);
 
     expect(channel.postedBy()).toEqual([
       "B posted A: Added team Platform as the owner",
       "B posted A: Added Jane as an owner",
     ]);
-    expect(Date.now() - heldAt).toBeGreaterThanOrEqual(HELD_MS);
+
+    /*
+     * Not before it could have stopped saying it holds the line - it said
+     * so KEPT_EVERY_MS (50 ms here) before it was killed at the most - and
+     * nowhere near the hold's longest.
+     */
+    expect(postedAfter).toBeGreaterThanOrEqual(STALLED_MS - 100);
+    expect(postedAfter).toBeLessThan(HELD_MS / 10);
+
+    // The line is over, each message claimed by the take-over that posted it.
+    expect(await theLine(incident)).toEqual({});
+
+    const claims: Array<string> = Object.values(await theClaims(incident));
+
+    expect(claims).toHaveLength(2);
+    expect(
+      claims.every((claim: string): boolean => {
+        return claim.startsWith(`over:${serverB.line.SERVER_ID}:`);
+      }),
+    ).toBe(true);
   });
 
   test("two servers looking after the same line: the message is taken over by one of them, and posted once", async () => {
@@ -1882,6 +1933,520 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     // The one under way is out; the next is not taken over by a server shutting down.
     expect(channel.postedBy()).toEqual(["A posted B: first"]);
     expect((await theLine(incident))["served"]).toBe("1");
+  });
+});
+
+/*
+ * THE SERVER HOLDING A RECORD SAYS IT STILL HOLDS ITS LINE (#11314).
+ *
+ * The server running a record's create chain holds the record's line until
+ * its Created message is out. Killed outright before then, it held every
+ * other message about the record until its hold ran out: five minutes. Now
+ * it says it still holds the line every KEPT_EVERY_MS, on a timer of its
+ * own, and once it has said nothing for STALLED_AFTER_MS the next server to
+ * ask about the line, or to look after it, moves it on, in order, and posts
+ * what the stopped server stored as its turns come, once. A server that is
+ * only slow, or frozen for less than that, keeps its line.
+ */
+describe("the server holding a record says it still holds its line (#11314)", () => {
+  const STALLED_MS: number = 600;
+  const HELD_MS: number = 60_000;
+
+  beforeEach(() => {
+    for (const server of [serverA, serverB, serverC]) {
+      connect(server, { heldForAtMostMs: HELD_MS, stalledAfterMs: STALLED_MS });
+    }
+  });
+
+  // A script this server sent that says it still holds its lines.
+  function saysItHolds(sent: Array<unknown>): boolean {
+    return String(sent[0]).includes("kept[i - 1] = 1");
+  }
+
+  function keepHeldAsks(server: Server): Array<Array<unknown>> {
+    return server.valkey.sent.filter(saysItHolds);
+  }
+
+  test("its line names it as its holder and when it last said so, which it says again every KEPT_EVERY_MS until it lets the line go", async () => {
+    const incident: WorkspaceRecord = newIncident();
+
+    await serverA.first.hold(incident);
+
+    const opened: Record<string, string> = await theLine(incident);
+
+    expect(opened["heldBy"]).toBe(serverA.line.SERVER_ID);
+    expect(Number(opened["heldSince"])).toBeGreaterThan(0);
+    expect(serverA.line.linesHeldHere()).toBe(1);
+
+    // heldSince is the line's lifetime as it was then: each renewal, a lower one.
+    await waitUntil(
+      "its holder says again that it holds the line",
+      async () => {
+        return (
+          Number((await theLine(incident))["heldSince"]) <
+          Number(opened["heldSince"]) - 100
+        );
+      },
+    );
+
+    await serverA.first.postHeld(incident);
+
+    expect(serverA.line.linesHeldHere()).toBe(0);
+
+    // Let go, it says nothing more of the line.
+    const asked: number = keepHeldAsks(serverA).length;
+    await pause(300);
+    expect(keepHeldAsks(serverA).length).toBe(asked);
+  });
+
+  test("REGRESSION (#11314): killed before its Created message, with another server's message waiting between its own: that server moves the line on once the holder has said nothing for STALLED_AFTER_MS, and posts all three, in the order made, each once", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverB, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(
+      serverA,
+      incident,
+      "A: Added team Platform as the owner",
+    );
+    await channel.keep(
+      serverB,
+      incident,
+      "B: Added Valeria as Incident Commander",
+    );
+    await channel.keep(serverA, incident, "A: Added Jane as an owner");
+
+    serverA.valkey.freeze();
+    const killedAt: number = Date.now();
+
+    await channel.waitFor(3);
+    const postedAfter: number = Date.now() - killedAt;
+    await pause(300);
+
+    expect(channel.postedBy()).toEqual([
+      "B posted A: Added team Platform as the owner",
+      "B posted B: Added Valeria as Incident Commander",
+      "B posted A: Added Jane as an owner",
+    ]);
+    expect(postedAfter).toBeGreaterThanOrEqual(STALLED_MS - 100);
+    expect(postedAfter).toBeLessThan(HELD_MS / 10);
+    expect(await theLine(incident)).toEqual({});
+  });
+
+  test("REGRESSION (#11314): its line moved on, the holder is known to have stopped there: what it stored is taken over at once, without another stalled turn", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverB, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(
+      serverA,
+      incident,
+      "A: Added team Platform as the owner",
+    );
+    await channel.keep(serverA, incident, "A: Added Jane as an owner");
+
+    serverA.valkey.freeze();
+    const killedAt: number = Date.now();
+
+    await channel.waitFor(2);
+
+    // Both within one stall of the kill: neither waited for its own turn to stall.
+    expect(Date.now() - killedAt).toBeLessThan(STALLED_MS * 2);
+    expect(channel.postedBy()).toEqual([
+      "B posted A: Added team Platform as the owner",
+      "B posted A: Added Jane as an owner",
+    ]);
+  });
+
+  test("a holder that keeps saying it holds its line is never moved on, however long its chain takes: its Created message comes first", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverB, channel);
+    takesOver(serverC, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(
+      serverB,
+      incident,
+      "B: Added Valeria as Incident Commander",
+    );
+
+    // Three times as long as a holder may say nothing: its chain is only slow.
+    await pause(STALLED_MS * 3);
+
+    const line: Record<string, string> = await theLine(incident);
+
+    expect(channel.posts()).toEqual([]);
+    expect(line["released"]).toBe("0");
+    expect(line[`dead:${serverA.line.SERVER_ID}`]).toBeUndefined();
+
+    channel.hear("A: Incident INC-42 Created", "A");
+    await serverA.first.postHeld(incident);
+    await channel.waitFor(2);
+    await serverB.line.drained(recordKeyOf(incident));
+
+    expect(channel.postedBy()).toEqual([
+      "A posted A: Incident INC-42 Created",
+      "B posted B: Added Valeria as Incident Commander",
+    ]);
+  });
+
+  test("a holder frozen for less than STALLED_AFTER_MS keeps its line: thawed, it says it holds it again, and its Created message comes first", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverB, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(
+      serverB,
+      incident,
+      "B: Added Valeria as Incident Commander",
+    );
+
+    // Frozen - a long pause - for a third of what its line allows, then back.
+    serverA.valkey.freeze();
+    await pause(STALLED_MS / 3);
+    serverA.valkey.thaw();
+
+    // Well past when it would have stopped, had it not said so again.
+    await pause(STALLED_MS * 2);
+
+    const line: Record<string, string> = await theLine(incident);
+
+    expect(channel.posts()).toEqual([]);
+    expect(line["released"]).toBe("0");
+    expect(line[`dead:${serverA.line.SERVER_ID}`]).toBeUndefined();
+
+    channel.hear("A: Incident INC-42 Created", "A");
+    await serverA.first.postHeld(incident);
+    await channel.waitFor(2);
+    await serverB.line.drained(recordKeyOf(incident));
+
+    expect(channel.postedBy()).toEqual([
+      "A posted A: Incident INC-42 Created",
+      "B posted B: Added Valeria as Incident Commander",
+    ]);
+  });
+
+  test("a holder frozen past STALLED_AFTER_MS comes back to find its line moved on: what it stored was posted for it, once, it posts none of it again, and its Created message comes after", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverB, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(
+      serverA,
+      incident,
+      "A: Added team Platform as the owner",
+    );
+    await channel.keep(
+      serverB,
+      incident,
+      "B: Added Valeria as Incident Commander",
+    );
+
+    serverA.valkey.freeze();
+    await channel.waitFor(2);
+
+    expect(channel.postedBy()).toEqual([
+      "B posted A: Added team Platform as the owner",
+      "B posted B: Added Valeria as Incident Commander",
+    ]);
+
+    // It comes back, and its chain goes on to its Created message.
+    serverA.valkey.thaw();
+    channel.hear("A: Incident INC-42 Created", "A");
+    await serverA.first.postHeld(incident);
+    await serverA.line.drained(recordKeyOf(incident));
+    await pause(300);
+
+    expect(channel.postedBy()).toEqual([
+      "B posted A: Added team Platform as the owner",
+      "B posted B: Added Valeria as Incident Commander",
+      "A posted A: Incident INC-42 Created",
+    ]);
+    expect(serverA.line.linesHeldHere()).toBe(0);
+  });
+
+  test("a holder that let its hold go while Valkey could not hear it: its own message, asking, moves the line on at once - not once it has stalled", async () => {
+    const LONG_STALL_MS: number = 30_000;
+    connect(serverA, {
+      heldForAtMostMs: HELD_MS,
+      stalledAfterMs: LONG_STALL_MS,
+    });
+
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    await serverA.first.hold(incident);
+    await channel.keep(
+      serverA,
+      incident,
+      "A: Added team Platform as the owner",
+    );
+
+    // Its Created message goes out; Valkey does not hear it let the hold go.
+    channel.hear("A: Incident INC-42 Created", "A");
+    disconnect(serverA);
+    const letGo: Promise<void> = serverA.first.postHeld(incident);
+    await pause(100);
+
+    expect((await theLine(incident))["released"]).toBe("0");
+
+    // Valkey can be asked again: its message asks, and goes in its turn.
+    connect(serverA, {
+      heldForAtMostMs: HELD_MS,
+      stalledAfterMs: LONG_STALL_MS,
+    });
+    const askedAt: number = Date.now();
+    await letGo;
+    await channel.waitFor(2);
+
+    expect(Date.now() - askedAt).toBeLessThan(LONG_STALL_MS / 10);
+    expect(channel.postedBy()).toEqual([
+      "A posted A: Incident INC-42 Created",
+      "A posted A: Added team Platform as the owner",
+    ]);
+    expect(await theLine(incident)).toEqual({});
+  });
+
+  test("a holder that let its hold go while Valkey could not hear it, with nothing of its own in the line: another server moves the line on once the holder has said nothing for STALLED_AFTER_MS", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverB, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(
+      serverB,
+      incident,
+      "B: Added Valeria as Incident Commander",
+    );
+
+    channel.hear("A: Incident INC-42 Created", "A");
+    disconnect(serverA);
+    await serverA.first.postHeld(incident);
+    connect(serverA, { heldForAtMostMs: HELD_MS, stalledAfterMs: STALLED_MS });
+
+    // It said it holds the line no more as it let it go.
+    expect(serverA.line.linesHeldHere()).toBe(0);
+
+    await channel.waitFor(2);
+
+    expect(channel.postedBy()).toEqual([
+      "A posted A: Incident INC-42 Created",
+      "B posted B: Added Valeria as Incident Commander",
+    ]);
+  });
+
+  test("its line opened though Valkey's answer was lost on its way back: it says it holds the line all the same, so another server's message waits for its Created message, and the line goes with its hold", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverB, channel);
+
+    // The line is opened; the answer never reaches the holder.
+    serverA.valkey.losingAnswerTo = (script: string): boolean => {
+      return script.includes("'heldBy', ARGV[4]");
+    };
+
+    await serverA.first.hold(incident);
+
+    expect((await theLine(incident))["heldBy"]).toBe(serverA.line.SERVER_ID);
+    expect(serverA.line.linesHeldHere()).toBe(1);
+
+    await channel.keep(
+      serverB,
+      incident,
+      "B: Added Valeria as Incident Commander",
+    );
+    await channel.keep(
+      serverA,
+      incident,
+      "A: Added team Platform as the owner",
+    );
+
+    // Long past when a holder that said nothing would have stopped.
+    await pause(STALLED_MS * 3);
+
+    expect(channel.posts()).toEqual([]);
+    expect((await theLine(incident))["released"]).toBe("0");
+
+    channel.hear("A: Incident INC-42 Created", "A");
+    await serverA.first.postHeld(incident);
+    await channel.waitFor(3);
+    await serverB.line.drained(recordKeyOf(incident));
+
+    // Its own message waited on it alone, as with no Valkey: both follow Created.
+    expect(channel.posts()[0]).toBe("A: Incident INC-42 Created");
+    expect(channel.posts().slice(1).sort()).toEqual([
+      "A: Added team Platform as the owner",
+      "B: Added Valeria as Incident Commander",
+    ]);
+    expect(serverA.line.linesHeldHere()).toBe(0);
+    expect(await theLine(incident)).toEqual({});
+  });
+
+  test("the holder, looking after its own line, has not stopped: it leaves the line for the next server that looks", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    // It holds the line, says nothing of it - and looks after the lines.
+    jest.spyOn(serverA.line, "keepHeld").mockResolvedValue(undefined);
+    takesOver(serverA, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(
+      serverA,
+      incident,
+      "A: Added team Platform as the owner",
+    );
+
+    await pause(STALLED_MS * 3);
+
+    const line: Record<string, string> = await theLine(incident);
+
+    expect(line["released"]).toBe("0");
+    expect(line[`dead:${serverA.line.SERVER_ID}`]).toBeUndefined();
+    expect(channel.posts()).toEqual([]);
+
+    // Another server looks after the line: it moves it on, and posts what the holder stored.
+    takesOver(serverB, channel);
+    await channel.waitFor(1);
+
+    expect(channel.postedBy()).toEqual([
+      "B posted A: Added team Platform as the owner",
+    ]);
+  });
+
+  test("a line opened by a server running the code from before - no holder named, never said held - waits as long as its hold lasts, as before", async () => {
+    const SHORT_HOLD_MS: number = 2_000;
+
+    for (const server of [serverA, serverB]) {
+      connect(server, {
+        heldForAtMostMs: SHORT_HOLD_MS,
+        stalledAfterMs: STALLED_MS,
+      });
+    }
+
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverB, channel);
+
+    await serverA.first.hold(incident);
+
+    // As the code from before opened it: no holder, and nothing said.
+    await inspector.hdel(lineKeyOf(incident), "heldBy", "heldSince");
+    const heldAt: number = Date.now();
+
+    await channel.keep(
+      serverB,
+      incident,
+      "B: Added Valeria as Incident Commander",
+    );
+    serverA.valkey.freeze();
+
+    await pause(STALLED_MS * 2);
+    expect(channel.posts()).toEqual([]);
+
+    await channel.waitFor(1, 10_000);
+
+    expect(channel.postedBy()).toEqual([
+      "B posted B: Added Valeria as Incident Commander",
+    ]);
+    expect(Date.now() - heldAt).toBeGreaterThanOrEqual(SHORT_HOLD_MS - 500);
+  });
+
+  test("what it costs Valkey is bounded: one ask for every LINES_KEPT_AT_A_TIME lines held, none while one is unanswered, none once nothing is held", async () => {
+    tune(serverA.line, "LINES_KEPT_AT_A_TIME", 2);
+    // Its timer out of the way: each round here is asked for.
+    tune(serverA.line, "KEPT_EVERY_MS", 60_000);
+
+    const incidents: Array<WorkspaceRecord> = [];
+
+    for (let i: number = 0; i < 5; i++) {
+      const incident: WorkspaceRecord = newIncident();
+      incidents.push(incident);
+      await serverA.first.hold(incident);
+    }
+
+    expect(serverA.line.linesHeldHere()).toBe(5);
+
+    // One round: two lines, two lines, one line - each ask naming the index first.
+    const before: number = keepHeldAsks(serverA).length;
+    await serverA.line.keepHeld();
+
+    expect(
+      keepHeldAsks(serverA)
+        .slice(before)
+        .map((sent: Array<unknown>): unknown => {
+          // eval(script, the number of keys, ...)
+          return sent[1];
+        }),
+    ).toEqual([3, 3, 2]);
+
+    // Unanswered, a round is not asked again.
+    serverA.valkey.freeze();
+    const frozenBefore: number = keepHeldAsks(serverA).length;
+    const first: Promise<void> = serverA.line.keepHeld();
+    const second: Promise<void> = serverA.line.keepHeld();
+    await pause(200);
+
+    expect(keepHeldAsks(serverA).length - frozenBefore).toBe(1);
+
+    serverA.valkey.thaw();
+    await first;
+    await second;
+
+    // Nothing held, nothing asked.
+    for (const incident of incidents) {
+      await serverA.first.postHeld(incident);
+    }
+
+    expect(serverA.line.linesHeldHere()).toBe(0);
+
+    const idleBefore: number = keepHeldAsks(serverA).length;
+    await serverA.line.keepHeld();
+
+    expect(keepHeldAsks(serverA).length).toBe(idleBefore);
+  });
+
+  test("a line Valkey says is no longer its holder's - moved on, held by another, or gone - is said held no more, and nothing of it is renewed", async () => {
+    tune(serverA.line, "KEPT_EVERY_MS", 60_000);
+
+    const moved: WorkspaceRecord = newIncident();
+    const another: WorkspaceRecord = newIncident();
+    const gone: WorkspaceRecord = newIncident();
+
+    for (const incident of [moved, another, gone]) {
+      await serverA.first.hold(incident);
+    }
+
+    await inspector.hset(lineKeyOf(moved), "released", "1");
+    await inspector.hset(lineKeyOf(another), "heldBy", serverB.line.SERVER_ID);
+    await inspector.del(lineKeyOf(gone));
+
+    const heldSince: Array<string | undefined> = [
+      (await theLine(moved))["heldSince"],
+      (await theLine(another))["heldSince"],
+    ];
+
+    await serverA.line.keepHeld();
+
+    expect(serverA.line.linesHeldHere()).toBe(0);
+    expect([
+      (await theLine(moved))["heldSince"],
+      (await theLine(another))["heldSince"],
+    ]).toEqual(heldSince);
+    expect(await theLine(gone)).toEqual({});
   });
 });
 
