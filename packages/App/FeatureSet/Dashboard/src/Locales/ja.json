@@ -68387,5 +68387,16 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "このサーバーの Twilio アカウントを通じて発信されるとき、プロジェクトの通話が話す音声です。独自の Twilio 構成には、それぞれの音声があります。",
   "This server's voice": "このサーバーの音声",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "これらの音声には Twilio の追加料金がかかります。どの言語でも、呼び出しの電話 1 件あたり {{cents}} 米セント未満です。",
-  "Voice": "音声"
+  "Voice": "音声",
+  "Addresses that sent syslog or SNMP traps to one of your probes in this time range and are not a device in OneUptime. What they sent is kept; make each a device to get its own page.": "Addresses that sent syslog or SNMP traps to one of your probes in this time range and are not a device in OneUptime. What they sent is kept; make each a device to get its own page.",
+  "Pick the device that sends from this address.": "Pick the device that sends from this address.",
+  "Pick the device that sends these SNMP traps.": "Pick the device that sends these SNMP traps.",
+  "SNMP traps from {{address}} go to {{device}} from the next minute on.": "SNMP traps from {{address}} go to {{device}} from the next minute on.",
+  "SNMP traps from {{address}} will go to the device you pick. The address is added to the device's Other Addresses, where you can remove it again.": "SNMP traps from {{address}} will go to the device you pick. The address is added to the device's Other Addresses, where you can remove it again.",
+  "Sending syslog or SNMP traps, not a device yet": "Sending syslog or SNMP traps, not a device yet",
+  "Syslog and SNMP traps from {{address}} go to {{device}} from the next minute on.": "Syslog and SNMP traps from {{address}} go to {{device}} from the next minute on.",
+  "Syslog and SNMP traps from {{address}} will go to the device you pick. The address is added to its Other Addresses, where you can remove it again.": "Syslog and SNMP traps from {{address}} will go to the device you pick. The address is added to its Other Addresses, where you can remove it again.",
+  "Which device sends from this address?": "Which device sends from this address?",
+  "Which device sends these SNMP traps?": "Which device sends these SNMP traps?",
+  "last trap {{time}}": "last trap {{time}}"
 }

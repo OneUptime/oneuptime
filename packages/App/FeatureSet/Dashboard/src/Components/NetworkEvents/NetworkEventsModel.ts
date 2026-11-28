@@ -9,7 +9,9 @@ import {
   NetworkEventTypeUtil,
 } from "Common/Types/NetworkEvent/NetworkEventType";
 import SyslogAttribute from "Common/Types/Syslog/SyslogAttribute";
+import SnmpVendorTemplateUtil from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import IpCanonicalUtil from "Common/Utils/IpCanonicalUtil";
 
 /*
  * WHAT THE EVENTS PAGES SHOW, AS DATA.
@@ -486,28 +488,107 @@ export function parseNetworkEventCounts(
   return counts;
 }
 
+// What an address that is not a device yet sends to a probe.
+export enum NetworkEventSourceKind {
+  Syslog = "syslog",
+  SnmpTraps = "snmpTraps",
+}
+
+// The attributes a trap from an address that is no device is kept with (#11174).
+export const SNMP_TRAP_UNMATCHED_ATTRIBUTE: string = "snmpTrap.unmatched";
+export const SNMP_TRAP_SOURCE_IP_ATTRIBUTE: string = "snmpTrap.sourceIp";
+export const SNMP_TRAP_OID_ATTRIBUTE: string = "snmpTrap.oid";
+export const NETWORK_SITE_ID_ATTRIBUTE: string = "networkSite.id";
+
 /*
- * An address that sends syslog to a probe without being a device yet: what
- * the page offers to make a device of.
+ * An address that sends syslog or SNMP traps to a probe without being a
+ * device yet (#11407): what the page offers to make a device of.
  */
 export interface NetworkEventSource {
   address: string;
   // The name the sender gives itself, when it gives one.
   hostname?: string | undefined;
-  // Whose format its messages are in, when a parser knew it.
+  /*
+   * Who makes it, when what it sent says: the vendor whose format its
+   * syslog is in, or the maker whose enterprise arc its traps are under.
+   */
   vendor?: string | undefined;
   // The probe that heard it.
   probeId?: string | undefined;
+  /*
+   * The site whose default SNMPv3 credentials signed its traps, when one
+   * did (#11174): where Add as device files it, with the probe that heard
+   * that trap - the site's own Default Probe.
+   */
+  siteId?: string | undefined;
+  // What it sends: syslog, SNMP traps, or both, in that order.
+  kinds: Array<NetworkEventSourceKind>;
   lastSeenAt: Date | null;
   // How many of the logs read came from it.
   messageCount: number;
 }
 
+// The order a sender's kinds are said in.
+const KIND_ORDER: ReadonlyArray<NetworkEventSourceKind> = [
+  NetworkEventSourceKind.Syslog,
+  NetworkEventSourceKind.SnmpTraps,
+];
+
+// What a log from an address that is no device says of who sent it.
+interface UnmatchedSender {
+  kind: NetworkEventSourceKind;
+  address: string;
+  hostname?: string | undefined;
+  vendor?: string | undefined;
+  probeId?: string | undefined;
+  siteId?: string | undefined;
+}
+
+function toUnmatchedSender(
+  attributes: Dictionary<string>,
+): UnmatchedSender | null {
+  const syslogAddress: string = attributes[SyslogAttribute.SourceIp] || "";
+
+  if (syslogAddress && isOn(attributes[SyslogAttribute.Unmatched])) {
+    return {
+      kind: NetworkEventSourceKind.Syslog,
+      address: syslogAddress,
+      hostname: attributes[SyslogAttribute.Hostname] || undefined,
+      vendor: attributes[SyslogAttribute.Vendor] || undefined,
+      probeId: attributes["probe.id"] || undefined,
+    };
+  }
+
+  const trapAddress: string = attributes[SNMP_TRAP_SOURCE_IP_ATTRIBUTE] || "";
+
+  if (trapAddress && isOn(attributes[SNMP_TRAP_UNMATCHED_ATTRIBUTE])) {
+    return {
+      kind: NetworkEventSourceKind.SnmpTraps,
+      address: trapAddress,
+      // A vendor's own trap is under its enterprise arc; a standard one names no maker.
+      vendor:
+        SnmpVendorTemplateUtil.getVendorNameBySysObjectId(
+          attributes[SNMP_TRAP_OID_ATTRIBUTE],
+        ) || undefined,
+      probeId: attributes["probe.id"] || undefined,
+      siteId: attributes[NETWORK_SITE_ID_ATTRIBUTE] || undefined,
+    };
+  }
+
+  return null;
+}
+
+// One address however it is written: an IPv6 address has many spellings.
+function addressKey(address: string): string {
+  return IpCanonicalUtil.canonicalize(address);
+}
+
 /*
- * Who sent the logs read, newest first: one row per address, with what its
- * newest message says of it. The logs are the newest ones from addresses
- * that are no device, so an address that has been quiet for long is not
- * listed - which is right: it is no longer sending.
+ * Who sent the logs read, newest first: one row per address - syslog and
+ * SNMP traps from one address are one sender - with what its newest message
+ * says of it. The logs are the newest ones from addresses that are no
+ * device, so an address that has been quiet for long is not listed - which
+ * is right: it is no longer sending.
  */
 export function toNetworkEventSources(
   logs: Array<{ time?: unknown; attributes?: unknown }>,
@@ -515,24 +596,40 @@ export function toNetworkEventSources(
 ): Array<NetworkEventSource> {
   const byAddress: Map<string, NetworkEventSource> = new Map();
 
-  for (const log of logs) {
-    const attributes: Dictionary<string> = toAttributes(log.attributes);
-    const address: string = attributes[SyslogAttribute.SourceIp] || "";
+  // The newest first, whichever of the reads each came from.
+  const newestFirst: Array<{
+    time: Date | null;
+    attributes: Dictionary<string>;
+  }> = logs
+    .map((log: { time?: unknown; attributes?: unknown }) => {
+      return {
+        time: toDate(log.time),
+        attributes: toAttributes(log.attributes),
+      };
+    })
+    .sort((a: { time: Date | null }, b: { time: Date | null }): number => {
+      return (b.time?.getTime() || 0) - (a.time?.getTime() || 0);
+    });
 
-    if (!address || !isOn(attributes[SyslogAttribute.Unmatched])) {
+  for (const log of newestFirst) {
+    const sender: UnmatchedSender | null = toUnmatchedSender(log.attributes);
+
+    if (!sender) {
       continue;
     }
 
-    const time: Date | null = toDate(log.time);
-    const known: NetworkEventSource | undefined = byAddress.get(address);
+    const key: string = addressKey(sender.address);
+    const known: NetworkEventSource | undefined = byAddress.get(key);
 
     if (!known) {
-      byAddress.set(address, {
-        address: address,
-        hostname: attributes[SyslogAttribute.Hostname] || undefined,
-        vendor: attributes[SyslogAttribute.Vendor] || undefined,
-        probeId: attributes["probe.id"] || undefined,
-        lastSeenAt: time,
+      byAddress.set(key, {
+        address: sender.address,
+        hostname: sender.hostname,
+        vendor: sender.vendor,
+        probeId: sender.probeId,
+        siteId: sender.siteId,
+        kinds: [sender.kind],
+        lastSeenAt: log.time,
         messageCount: 1,
       });
       continue;
@@ -540,13 +637,27 @@ export function toNetworkEventSources(
 
     known.messageCount++;
 
-    // Whatever an older message adds to what the newest did not say.
-    known.hostname = known.hostname || attributes[SyslogAttribute.Hostname];
-    known.vendor = known.vendor || attributes[SyslogAttribute.Vendor];
-    known.probeId = known.probeId || attributes["probe.id"];
+    if (!known.kinds.includes(sender.kind)) {
+      known.kinds = [...known.kinds, sender.kind].sort(
+        (a: NetworkEventSourceKind, b: NetworkEventSourceKind): number => {
+          return KIND_ORDER.indexOf(a) - KIND_ORDER.indexOf(b);
+        },
+      );
+    }
 
-    if (time && (!known.lastSeenAt || time > known.lastSeenAt)) {
-      known.lastSeenAt = time;
+    // Whatever an older message adds to what the newest did not say.
+    known.hostname = known.hostname || sender.hostname;
+    known.vendor = known.vendor || sender.vendor;
+
+    /*
+     * A site comes with the probe that heard the trap it signed - the
+     * site's own Default Probe - so Add as device files the device there.
+     */
+    if (!known.siteId && sender.siteId) {
+      known.siteId = sender.siteId;
+      known.probeId = sender.probeId || known.probeId;
+    } else if (!known.probeId) {
+      known.probeId = sender.probeId;
     }
   }
 
@@ -560,10 +671,21 @@ export function toNetworkEventSources(
     .slice(0, limit);
 }
 
-// The attribute filter of the logs toNetworkEventSources reads.
+// The attribute filter of the syslog toNetworkEventSources reads.
 export function buildNetworkEventSourcesAttributes(): Dictionary<string> {
   return {
     [SyslogAttribute.Unmatched]: "true",
+  };
+}
+
+/*
+ * The attribute filter of the SNMP traps it reads (#11407): every trap kept
+ * from an address that is no device, an event or not - an enterprise trap
+ * that is no event is in Logs only, and its sender is listed all the same.
+ */
+export function buildNetworkEventTrapSourcesAttributes(): Dictionary<string> {
+  return {
+    [SNMP_TRAP_UNMATCHED_ATTRIBUTE]: "true",
   };
 }
 
