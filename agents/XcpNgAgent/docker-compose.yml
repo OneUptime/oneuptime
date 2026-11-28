@@ -7,10 +7,13 @@ services:
     # together; Tests/Ops/validate-collector-configs.sh validates the config
     # against this version.
     image: otel/opentelemetry-collector-contrib:0.165.0
-    # One agent reads one Xen Orchestra, and every pool it manages. To read a
-    # second Xen Orchestra from the same machine, install into another
-    # directory and give its container another name here (see README.md).
-    container_name: oneuptime-xcp-ng-agent
+    # One agent reads one Xen Orchestra, and every pool it manages. Two
+    # containers cannot share a name, so a second Xen Orchestra's agent on
+    # the same machine, installed into a directory of its own, runs under a
+    # name of its own: XCP_NG_AGENT_CONTAINER_NAME in .env, which install.sh
+    # writes and keeps (see README.md, "Reading several Xen Orchestras").
+    # Leave this line as it is: an upgrade replaces this file, never .env.
+    container_name: ${XCP_NG_AGENT_CONTAINER_NAME:-oneuptime-xcp-ng-agent}
     # It reads Xen Orchestra and talks to OneUptime, and needs nothing else:
     # no capabilities and a read-only root filesystem.
     read_only: true

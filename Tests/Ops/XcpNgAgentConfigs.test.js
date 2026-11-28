@@ -483,7 +483,12 @@ describe("agents/XcpNgAgent/docker-compose.yml", () => {
     expect(service.image).toBe(
       `otel/opentelemetry-collector-contrib:${composePin()}`,
     );
-    expect(service.container_name).toBe(SERVICE);
+    // Named by .env, the default the service's own name: a second Xen
+    // Orchestra's agent on the same machine gets a name of its own there,
+    // which an upgrade (it replaces this file) never takes away.
+    expect(service.container_name).toBe(
+      `\${XCP_NG_AGENT_CONTAINER_NAME:-${SERVICE}}`,
+    );
     expect(service.read_only).toBe(true);
     expect(service.cap_drop).toEqual(["ALL"]);
     expect(service.security_opt).toEqual(["no-new-privileges:true"]);

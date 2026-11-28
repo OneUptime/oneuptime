@@ -283,26 +283,82 @@ exec "$REAL_OPENSSL" "$@"
   );
 
   /*
-   * docker: the installer's compose calls are recorded (with the XO_* and
-   * ONEUPTIME_* variables Compose would see), and the doctor's probes run.
+   * docker: the installer's compose calls are recorded (with the XO_*,
+   * ONEUPTIME_* and XCP_NG_* variables Compose would see), and the doctor's
+   * probes run. It is also the engine's names, in $STUB_DIR/containers (one
+   * line per container: name, the directory whose compose project runs it,
+   * id): `compose up` gives the agent the name Compose would - the
+   * docker-compose.yml's container_name, a ${VAR:-default} read from the
+   * environment, else .env - and refuses, as Docker does, a name another
+   * directory's container holds; `compose ps -a -q` and `inspect -f
+   * {{.Name}}` answer from it. Every directory of $STUB_DIR shares it: one
+   * machine. $STUB_DIR/compose-ps, when there, is what `compose ps` says
+   * instead (the doctor's tests).
    */
   writeExecutable(
     path.join(bin, "docker"),
     `#!/usr/bin/env bash
 printf '%s | %s\\n' "$PWD" "$*" >> "$STUB_DIR/docker.log"
+REGISTRY="$STUB_DIR/containers"
+touch "$REGISTRY"
+id_of() { printf '%s' "$1" | sha256sum | cut -c1-12; }
+# The agent's container name as Compose reads ./docker-compose.yml: written
+# out, or \${VAR:-default} from the environment, else from ./.env.
+agent_container_name() {
+  local value var fallback
+  value="$(grep -m 1 '^    container_name:' docker-compose.yml 2>/dev/null)"
+  value="\${value#*container_name: }"
+  case "$value" in
+    '\${'*':-'*'}')
+      var="\${value#??}"
+      var="\${var%%:-*}"
+      fallback="\${value#*:-}"
+      fallback="\${fallback%\\}}"
+      value="\${!var}"
+      if [ -z "$value" ] && [ -f .env ]; then
+        value="$(sed -n "s/^$var=//p" .env | tail -n 1)"
+        value="\${value#\\'}"
+        value="\${value%\\'}"
+      fi
+      [ -n "$value" ] || value="$fallback"
+      ;;
+  esac
+  printf '%s' "$value"
+}
 case "$1" in
   info) exit 0 ;;
   compose)
     case "$2" in
-      up) printf 'compose up sees: %s\\n' "$(env | grep -E '^(XO_|ONEUPTIME_)' | sort | tr '\\n' ' ')" >> "$STUB_DIR/docker.log" ;;
-      ps) cat "$STUB_DIR/compose-ps" 2>/dev/null ;;
+      up)
+        printf 'compose up sees: %s\\n' "$(env | grep -E '^(XO_|ONEUPTIME_|XCP_NG_)' | sort | tr '\\n' ' ')" >> "$STUB_DIR/docker.log"
+        name="$(agent_container_name)"
+        holder="$(awk -F '\\t' -v name="$name" '$1 == name { print $2 }' "$REGISTRY")"
+        if [ -n "$holder" ] && [ "$holder" != "$PWD" ]; then
+          echo "Error response from daemon: Conflict. The container name \\"/$name\\" is already in use by container \\"$(id_of "$name|$holder")\\". You have to remove (or rename) that container to be able to reuse that name." >&2
+          exit 1
+        fi
+        # --force-recreate: the directory's container, under its new name.
+        awk -F '\\t' -v dir="$PWD" '$2 != dir' "$REGISTRY" > "$REGISTRY.new"
+        mv "$REGISTRY.new" "$REGISTRY"
+        printf '%s\\t%s\\t%s\\n' "$name" "$PWD" "$(id_of "$name|$PWD")" >> "$REGISTRY"
+        ;;
+      ps)
+        if [ -f "$STUB_DIR/compose-ps" ]; then
+          cat "$STUB_DIR/compose-ps"
+        elif [ "$*" = "compose ps -a -q oneuptime-xcp-ng-agent" ]; then
+          awk -F '\\t' -v dir="$PWD" '$2 == dir { print $3 }' "$REGISTRY"
+        fi
+        ;;
     esac
     exit 0 ;;
   inspect)
     case "$*" in
       *Config.Env*) cat "$STUB_DIR/container.env" 2>/dev/null ;;
       *restarting*) cat "$STUB_DIR/container.state" 2>/dev/null || printf 'running restarting=false restarts=0\\n' ;;
-      *.Name*) printf '/oneuptime-xcp-ng-agent\\n' ;;
+      *.Name*)
+        name="$(awk -F '\\t' -v id="\${!#}" '$3 == id { print $1 }' "$REGISTRY")"
+        printf '/%s\\n' "\${name:-oneuptime-xcp-ng-agent}"
+        ;;
     esac
     exit 0 ;;
   logs) cat "$STUB_DIR/collector.log" 2>/dev/null; exit 0 ;;
@@ -394,12 +450,14 @@ async function install({
   input = "",
   dir = null,
   tty = false,
+  // A directory other than the default one, so the agent is named after it.
+  installDirName = "agent",
 }) {
   const work = dir || scratch();
   if (!fs.existsSync(path.join(work, "bin"))) {
     makeStubs(work);
   }
-  const installDir = path.join(work, "agent");
+  const installDir = path.join(work, installDirName);
   const fullEnv = stubEnv(work, port, { INSTALL_DIR: installDir, ...env });
   const result = tty
     ? await run("script", ["-qec", `bash ${INSTALL_SCRIPT}`, "/dev/null"], {
@@ -1205,6 +1263,549 @@ describe("install.sh run again is the upgrade", () => {
   });
 });
 
+/* ---------------------------------------- install.sh: the container name */
+
+/*
+ * Two containers cannot share a name, so a second Xen Orchestra's agent on
+ * the same machine runs under a name of its own: XCP_NG_AGENT_CONTAINER_NAME
+ * in .env, which docker-compose.yml's container_name reads. Re-running
+ * install.sh is the upgrade and replaces docker-compose.yml, never .env, so
+ * the name survives it - and an agent set up before .env held the name, whose
+ * docker-compose.yml was given its name by hand, keeps it too. These run
+ * several installs against one stand-in engine (makeStubs): one machine.
+ */
+const DEFAULT_CONTAINER = "oneuptime-xcp-ng-agent";
+const CONTAINER_VARIABLE = "XCP_NG_AGENT_CONTAINER_NAME";
+
+// The stand-in engine's containers: name -> the directory that runs it.
+function containersOn(dir) {
+  const byName = {};
+  for (const line of readIfExists(path.join(dir, "containers"))
+    .split("\n")
+    .filter(Boolean)) {
+    const [name, project] = line.split("\t");
+    byName[name] = project;
+  }
+  return byName;
+}
+
+// What `docker compose up -d` in `project` leaves: its container under `name`.
+function runContainerAs(dir, project, name) {
+  const registry = path.join(dir, "containers");
+  const kept = readIfExists(registry)
+    .split("\n")
+    .filter((line) => {
+      return line && line.split("\t")[1] !== project;
+    });
+  if (name) {
+    const id = crypto
+      .createHash("sha256")
+      .update(`${name}|${project}`)
+      .digest("hex")
+      .slice(0, 12);
+    kept.push(`${name}\t${project}\t${id}`);
+  }
+  fs.writeFileSync(registry, kept.length ? `${kept.join("\n")}\n` : "");
+}
+
+// What the docker-compose.yml of a release before .env held the name had.
+function shippedBeforeEnvHeldTheName() {
+  const text = fs
+    .readFileSync(path.join(AGENT_DIR, "docker-compose.yml"), "utf8")
+    .replace(
+      /^ {4}container_name: \$\{XCP_NG_AGENT_CONTAINER_NAME:-oneuptime-xcp-ng-agent\}$/m,
+      `    container_name: ${DEFAULT_CONTAINER}`,
+    );
+  expect(text).toContain(`\n    container_name: ${DEFAULT_CONTAINER}\n`);
+  return text;
+}
+
+function renameTo(name) {
+  return (text) => {
+    return text.replace(
+      `\n    container_name: ${DEFAULT_CONTAINER}\n`,
+      `\n    container_name: ${name}\n`,
+    );
+  };
+}
+
+// An agent, pinned to this Xen Orchestra, in <dir>/<installDirName>.
+async function pinnedAgent({ port, dir, installDirName, env = {} }) {
+  const result = await install({
+    port,
+    dir,
+    installDirName,
+    env: freshEnv(port, {
+      XO_TLS_FINGERPRINT: CERTS.selfSigned.fingerprint,
+      ...env,
+    }),
+  });
+  expect(result.status).toBe(0);
+  return result;
+}
+
+/*
+ * An agent install.sh set up before .env held its container name: that
+ * release's docker-compose.yml, recorded in .agent-files.sha256 as installed,
+ * an .env without XCP_NG_AGENT_CONTAINER_NAME; then `edit` made to
+ * docker-compose.yml (the name README.md asked a second agent for) and
+ * `docker compose up -d`, so its container runs under the name it gives.
+ */
+async function agentFromBefore({
+  port,
+  dir,
+  installDirName,
+  edit = (text) => {
+    return text;
+  },
+  running = true,
+}) {
+  const installed = await pinnedAgent({ port, dir, installDirName });
+  const shipped = shippedBeforeEnvHeldTheName();
+  const recordFile = path.join(installed.installDir, ".agent-files.sha256");
+  fs.writeFileSync(
+    recordFile,
+    fs
+      .readFileSync(recordFile, "utf8")
+      .replace(
+        /^[0-9a-f]{64} {2}docker-compose\.yml$/m,
+        `${crypto.createHash("sha256").update(shipped).digest("hex")}  docker-compose.yml`,
+      ),
+  );
+  fs.writeFileSync(
+    installed.envFile,
+    installed.envText
+      .split("\n")
+      .filter((line) => {
+        return !line.startsWith(`${CONTAINER_VARIABLE}=`);
+      })
+      .join("\n"),
+  );
+  const edited = edit(shipped);
+  fs.writeFileSync(path.join(installed.installDir, "docker-compose.yml"), edited);
+  const named = /^ {4}container_name: (\S+)$/m.exec(edited)[1];
+  runContainerAs(dir, installed.installDir, running ? named : null);
+  return { installDir: installed.installDir, shipped, edited };
+}
+
+function backupsIn(installDir) {
+  return fs
+    .readdirSync(installDir)
+    .filter((file) => {
+      return file.includes(".bak.");
+    })
+    .sort();
+}
+
+describe("install.sh gives each agent on a machine its own container name, and keeps it", () => {
+  test("a first agent, in the default directory, is named as it always was", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const result = await pinnedAgent({
+      port,
+      dir,
+      installDirName: DEFAULT_CONTAINER,
+    });
+    await fake.close();
+
+    expect(dotenv(result.envFile, CONTAINER_VARIABLE)).toBe(DEFAULT_CONTAINER);
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: result.installDir,
+    });
+    expect(result.output).not.toContain("The agent's container");
+    expect(
+      fs.readFileSync(path.join(result.installDir, "docker-compose.yml"), "utf8"),
+    ).toBe(fs.readFileSync(path.join(AGENT_DIR, "docker-compose.yml"), "utf8"));
+  });
+
+  test("a second Xen Orchestra's agent is named after its directory, both run, and its upgrade keeps the name", async () => {
+    const production = await startXo({ certificate: CERTS.selfSigned });
+    const lab = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const first = await pinnedAgent({
+      port: production.port,
+      dir,
+      installDirName: DEFAULT_CONTAINER,
+    });
+    const second = await pinnedAgent({
+      port: lab.port,
+      dir,
+      installDirName: `${DEFAULT_CONTAINER}-lab`,
+      env: { XO_NAME: "xo-lab" },
+    });
+
+    expect(dotenv(second.envFile, CONTAINER_VARIABLE)).toBe(
+      `${DEFAULT_CONTAINER}-lab`,
+    );
+    expect(second.output).toContain(
+      `The agent's container is ${DEFAULT_CONTAINER}-lab, named after its directory, so it does\nnot take the name of another Xen Orchestra's agent on this machine.`,
+    );
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+      [`${DEFAULT_CONTAINER}-lab`]: second.installDir,
+    });
+
+    // The upgrade: no input, nothing exported.
+    const again = await install({
+      port: lab.port,
+      dir,
+      installDirName: `${DEFAULT_CONTAINER}-lab`,
+    });
+    await production.fake.close();
+    await lab.fake.close();
+
+    expect(again.status).toBe(0);
+    expect(again.output).toContain("Found an existing configuration in");
+    expect(again.envText).toBe(second.envText);
+    expect(again.output).not.toContain("named after its directory");
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+      [`${DEFAULT_CONTAINER}-lab`]: second.installDir,
+    });
+  });
+
+  test("an exported name is the agent's, written to .env, and never handed to Compose from the shell", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const result = await pinnedAgent({
+      port,
+      dir,
+      installDirName: "lab",
+      env: { [CONTAINER_VARIABLE]: "xo-lab-agent" },
+    });
+
+    expect(result.envText.split("\n")).toContain(
+      `${CONTAINER_VARIABLE}='xo-lab-agent'`,
+    );
+    expect(result.output).toContain(
+      `The agent's container is xo-lab-agent (${CONTAINER_VARIABLE}).`,
+    );
+    expect(containersOn(dir)).toEqual({ "xo-lab-agent": result.installDir });
+    // Compose read it from .env, as every later `docker compose up` will.
+    expect(result.docker).toContain("compose up sees: \n");
+
+    const again = await install({ port, dir, installDirName: "lab" });
+    await fake.close();
+    expect(again.status).toBe(0);
+    expect(again.envText).toBe(result.envText);
+    expect(containersOn(dir)).toEqual({ "xo-lab-agent": result.installDir });
+  });
+
+  test.each(["my agent", "-agent", "x", "agent$1", "agent/2"])(
+    "refuses %j, a name Docker would refuse, before Xen Orchestra is asked anything",
+    async (name) => {
+      const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+      const result = await install({
+        port,
+        env: freshEnv(port, {
+          XO_TLS_FINGERPRINT: CERTS.selfSigned.fingerprint,
+          [CONTAINER_VARIABLE]: name,
+        }),
+      });
+      await fake.close();
+
+      expect(result.status).toBe(1);
+      expect(result.output).toContain(
+        `Error: ${CONTAINER_VARIABLE}="${name}" is not a container name: a letter or a\ndigit, then letters, digits, _, . or - (e.g. ${DEFAULT_CONTAINER}-lab).`,
+      );
+      expect(fake.requests).toHaveLength(0);
+      expectNothingInstalled(result);
+    },
+  );
+
+  test("a name another directory's container holds stops the start, and says how to give this agent its own", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const first = await pinnedAgent({
+      port,
+      dir,
+      installDirName: DEFAULT_CONTAINER,
+    });
+    const clash = await install({
+      port,
+      dir,
+      installDirName: "lab",
+      env: freshEnv(port, {
+        XO_TLS_FINGERPRINT: CERTS.selfSigned.fingerprint,
+        [CONTAINER_VARIABLE]: DEFAULT_CONTAINER,
+      }),
+    });
+    await fake.close();
+
+    expect(clash.status).toBe(1);
+    expect(clash.output).toContain(
+      `"${DEFAULT_CONTAINER}" is already in use, another container on this machine has it (another\nXen Orchestra's agent, say): give this agent a name of its own and run this again, e.g.`,
+    );
+    expect(clash.output).toContain(
+      `  ${CONTAINER_VARIABLE}=${DEFAULT_CONTAINER}-<name> INSTALL_DIR=${clash.installDir} bash install.sh`,
+    );
+    expect(clash.output).not.toContain("container_name in");
+    expect(containersOn(dir)).toEqual({ [DEFAULT_CONTAINER]: first.installDir });
+  });
+});
+
+describe("install.sh keeps the name of an agent set up before .env held it", () => {
+  test("a second agent whose docker-compose.yml was given its own name keeps it on upgrade, and the first is untouched", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const first = await agentFromBefore({
+      port,
+      dir,
+      installDirName: DEFAULT_CONTAINER,
+    });
+    const second = await agentFromBefore({
+      port,
+      dir,
+      installDirName: "xo-lab",
+      edit: renameTo("xen-lab"),
+    });
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+      "xen-lab": second.installDir,
+    });
+
+    const upgraded = await install({ port, dir, installDirName: "xo-lab" });
+
+    expect(upgraded.status).toBe(0);
+    // Its own name, not its directory's (oneuptime-xcp-ng-agent-xo-lab).
+    expect(dotenv(upgraded.envFile, CONTAINER_VARIABLE)).toBe("xen-lab");
+    expect(upgraded.output).toContain(
+      "The agent's container keeps its name, xen-lab, from its docker-compose.yml.",
+    );
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+      "xen-lab": second.installDir,
+    });
+    const backups = backupsIn(second.installDir);
+    expect(backups).toEqual([
+      expect.stringMatching(/^docker-compose\.yml\.bak\.\d{14}$/),
+    ]);
+    expect(
+      fs.readFileSync(path.join(second.installDir, backups[0]), "utf8"),
+    ).toBe(second.edited);
+    expect(upgraded.output).toContain(
+      `Your docker-compose.yml gave the agent's container a name of its own, the one change\nyou had made to it. The new docker-compose.yml reads the name from .env\n(${CONTAINER_VARIABLE}=xen-lab), so there is nothing to make again.\nYour copy is kept: ${path.join(second.installDir, backups[0])}`,
+    );
+    expect(upgraded.output).not.toContain("You had edited these files");
+
+    // The first agent's upgrade: the default name, and nothing to say.
+    const firstUpgraded = await install({
+      port,
+      dir,
+      installDirName: DEFAULT_CONTAINER,
+    });
+    await fake.close();
+    expect(firstUpgraded.status).toBe(0);
+    expect(dotenv(firstUpgraded.envFile, CONTAINER_VARIABLE)).toBe(
+      DEFAULT_CONTAINER,
+    );
+    expect(firstUpgraded.output).not.toContain("The agent's container");
+    expect(backupsIn(first.installDir)).toEqual([]);
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+      "xen-lab": second.installDir,
+    });
+  });
+
+  test("the name and another edit: the other one is named as one to make again, and the name is not", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const second = await agentFromBefore({
+      port,
+      dir,
+      installDirName: "xo-lab",
+      edit: (text) => {
+        const edited = renameTo("xen-lab")(text).replace(
+          'max-size: "10m"',
+          'max-size: "50m"',
+        );
+        expect(edited).toContain('max-size: "50m"');
+        return edited;
+      },
+    });
+
+    const upgraded = await install({ port, dir, installDirName: "xo-lab" });
+    await fake.close();
+
+    expect(upgraded.status).toBe(0);
+    expect(dotenv(upgraded.envFile, CONTAINER_VARIABLE)).toBe("xen-lab");
+    const backups = backupsIn(second.installDir);
+    expect(upgraded.output).toContain(
+      `the current versions; your copies are kept next to them:\n  ${path.join(second.installDir, backups[0])}`,
+    );
+    expect(upgraded.output).toContain(
+      `The new docker-compose.yml reads the agent's container name from .env\n(${CONTAINER_VARIABLE}=xen-lab): leave its container_name line\nas it is when you make your other changes again.`,
+    );
+  });
+
+  test("after an older install.sh's upgrade put the default name back, the name comes back from the copy it kept", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const first = await agentFromBefore({
+      port,
+      dir,
+      installDirName: DEFAULT_CONTAINER,
+    });
+    const second = await agentFromBefore({
+      port,
+      dir,
+      installDirName: "xo-lab",
+      edit: renameTo("xen-lab"),
+    });
+    // What the install.sh before this one did: kept the edited file, put the
+    // default name back, and could not start the agent beside the first.
+    fs.copyFileSync(
+      path.join(second.installDir, "docker-compose.yml"),
+      path.join(second.installDir, "docker-compose.yml.bak.20261101090000"),
+    );
+    fs.writeFileSync(
+      path.join(second.installDir, "docker-compose.yml"),
+      second.shipped,
+    );
+    runContainerAs(dir, second.installDir, null);
+
+    const upgraded = await install({ port, dir, installDirName: "xo-lab" });
+    await fake.close();
+
+    expect(upgraded.status).toBe(0);
+    expect(dotenv(upgraded.envFile, CONTAINER_VARIABLE)).toBe("xen-lab");
+    expect(upgraded.output).toContain(
+      "The agent's container keeps its name, xen-lab, from its docker-compose.yml, kept as a backup by an earlier upgrade.",
+    );
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+      "xen-lab": second.installDir,
+    });
+  });
+
+  test("a container this directory runs under a name of its own keeps it when nothing else says it", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const installed = await pinnedAgent({ port, dir, installDirName: "xo-lab" });
+    fs.writeFileSync(
+      installed.envFile,
+      installed.envText
+        .split("\n")
+        .filter((line) => {
+          return !line.startsWith(`${CONTAINER_VARIABLE}=`);
+        })
+        .join("\n"),
+    );
+    runContainerAs(dir, installed.installDir, "xen-lab");
+
+    const upgraded = await install({ port, dir, installDirName: "xo-lab" });
+    await fake.close();
+
+    expect(upgraded.status).toBe(0);
+    expect(dotenv(upgraded.envFile, CONTAINER_VARIABLE)).toBe("xen-lab");
+    expect(upgraded.output).toContain(
+      "The agent's container keeps its name, xen-lab, from the container it runs as.",
+    );
+  });
+
+  test("an older first agent in a directory of its own keeps the default name it runs under", async () => {
+    const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+    const dir = scratch();
+    const first = await agentFromBefore({
+      port,
+      dir,
+      installDirName: "xcp-ng",
+    });
+
+    const upgraded = await install({ port, dir, installDirName: "xcp-ng" });
+    await fake.close();
+
+    expect(upgraded.status).toBe(0);
+    // Not oneuptime-xcp-ng-agent-xcp-ng: an upgrade renames nothing.
+    expect(dotenv(upgraded.envFile, CONTAINER_VARIABLE)).toBe(
+      DEFAULT_CONTAINER,
+    );
+    expect(upgraded.output).not.toContain("The agent's container");
+    expect(containersOn(dir)).toEqual({ [DEFAULT_CONTAINER]: first.installDir });
+  });
+
+  test("its helpers are the Storage Array agent's, for its own service and name", () => {
+    const helper = (script, name) => {
+      const match = new RegExp(`\\n${name}\\(\\) \\{\\n[\\s\\S]*?\\n\\}\\n`).exec(
+        script,
+      );
+      expect(match).not.toBeNull();
+      return match[0];
+    };
+    const xcpNg = fs.readFileSync(INSTALL_SCRIPT, "utf8");
+    const storageArray = fs.readFileSync(
+      path.join(REPO_ROOT, "agents", "StorageArrayAgent", "install.sh"),
+      "utf8",
+    );
+    for (const name of [
+      "is_container_name",
+      "compose_container_name",
+      "existing_container_name",
+      "backup_container_name",
+      "directory_container_name",
+      "only_container_name_edited",
+    ]) {
+      expect(helper(xcpNg, name)).toBe(helper(storageArray, name));
+    }
+    // choose_container_name sets each agent's own variable.
+    expect(
+      helper(xcpNg, "choose_container_name").replaceAll(
+        CONTAINER_VARIABLE,
+        "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
+      ),
+    ).toBe(helper(storageArray, "choose_container_name"));
+    expect(xcpNg).toContain(`AGENT_SERVICE="${DEFAULT_CONTAINER}"`);
+    expect(xcpNg).toContain(`DEFAULT_CONTAINER_NAME="${DEFAULT_CONTAINER}"`);
+  });
+});
+
+/*
+ * The real Docker Compose, rendering what install.sh wrote (no container is
+ * started): the container_name it reads from .env.
+ */
+const COMPOSE_RENDER_PROBE = spawnSync("docker", ["compose", "version"], {
+  encoding: "utf8",
+});
+const CAN_RENDER =
+  (!COMPOSE_RENDER_PROBE.error && COMPOSE_RENDER_PROBE.status === 0) || IN_CI;
+
+describe("the real Docker Compose names the agent's container as .env says", () => {
+  (CAN_RENDER ? test : test.skip)(
+    "a first agent and a second, each under its own",
+    async () => {
+      const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
+      const dir = scratch();
+      const first = await pinnedAgent({
+        port,
+        dir,
+        installDirName: DEFAULT_CONTAINER,
+      });
+      const second = await pinnedAgent({ port, dir, installDirName: "lab" });
+      await fake.close();
+
+      for (const [installed, expected] of [
+        [first, DEFAULT_CONTAINER],
+        [second, `${DEFAULT_CONTAINER}-lab`],
+      ]) {
+        const rendered = spawnSync(
+          "docker",
+          ["compose", "config", "--format", "json"],
+          {
+            cwd: installed.installDir,
+            env: { PATH: process.env.PATH, HOME: installed.installDir },
+            encoding: "utf8",
+            timeout: 60000,
+          },
+        );
+        expect(rendered.status).toBe(0);
+        expect(
+          JSON.parse(rendered.stdout).services[DEFAULT_CONTAINER].container_name,
+        ).toBe(expected);
+      }
+    },
+  );
+});
+
 /* ------------------------------------------------------------ the doctor */
 
 /*
@@ -1521,6 +2122,52 @@ describe("troubleshoot.sh names the first step that fails", () => {
       `Bearer ${SECRET}`,
     );
     expect(result.output).toContain("✔ Xen Orchestra accepts the secret");
+  });
+});
+
+describe("troubleshoot.sh finds the agent's container whatever it is named", () => {
+  test("a second Xen Orchestra's agent, by the name its .env gives it, when compose cannot tell", async () => {
+    const installed = await installedAgent({
+      env: { XCP_NG_AGENT_CONTAINER_NAME: "xo-lab-agent" },
+    });
+    // The engine knows no container of that directory.
+    fs.rmSync(path.join(installed.dir, "containers"));
+    const result = await doctor(installed);
+
+    expect(result.output).toContain(
+      "✔ Container 'xo-lab-agent' is running (running restarting=false restarts=0)",
+    );
+    // Every probe runs in that container's network, as the collector does.
+    expect(result.docker).toContain("--network container:xo-lab-agent");
+    expect(result.docker).not.toContain(
+      "--network container:oneuptime-xcp-ng-agent ",
+    );
+    expect(result.status).toBe(0);
+  });
+
+  test("the container compose runs for the directory wins over the name in .env", async () => {
+    const installed = await installedAgent({
+      env: { XCP_NG_AGENT_CONTAINER_NAME: "xo-lab-agent" },
+    });
+    runContainerAs(installed.dir, installed.installDir, "xen-lab");
+    const result = await doctor(installed);
+
+    expect(result.output).toContain("✔ Container 'xen-lab' is running");
+    expect(result.docker).toContain("--network container:xen-lab");
+  });
+
+  test("an agent whose container is gone is named as its .env names it", async () => {
+    const installed = await installedAgent({
+      env: { XCP_NG_AGENT_CONTAINER_NAME: "xo-lab-agent" },
+    });
+    fs.rmSync(path.join(installed.dir, "containers"));
+    fs.writeFileSync(path.join(installed.dir, "container.state"), "");
+    const result = await doctor(installed);
+
+    expect(result.output).toContain(
+      "✗ Container 'xo-lab-agent' does not exist.",
+    );
+    expect(result.status).toBe(1);
   });
 });
 
