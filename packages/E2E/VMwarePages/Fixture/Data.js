@@ -10,9 +10,10 @@
  *          counts one host whose power state is unknown), a host past 90%
  *          CPU, a host in maintenance mode (connected, not effective), a
  *          cluster whose hosts could not take the load of its largest one,
- *          a VM the host swaps, one ballooned, one waiting for a CPU, a
- *          datastore 93% full and one 84% full, a resource pool whose
- *          memory is swapped, and the datacenter's own alarm counts;
+ *          a VM the host is swapping out now, one ballooned, one waiting
+ *          for a CPU, a datastore 93% full and one 84% full, a resource
+ *          pool whose memory the host is swapping out, and the
+ *          datacenter's own alarm counts;
  *   calm   the same vCenter with nothing that needs attention;
  *   new    a vCenter that has just connected and reported nothing yet;
  *   large  forty hosts and four hundred VMs, a few of them in trouble;
@@ -373,6 +374,12 @@ function busyEstate(loadedAt, calm) {
         latestMemoryPercent: 90.6,
         cpuReadinessPercent: 6.2,
         memorySwappedBytes: calm ? 0 : 1.5 * GIB,
+        /*
+         * The host swapping its memory out now: the rates the ingest works
+         * out from how much more is swapped than at the last report (#11157).
+         */
+        memorySwapOutBytesPerSecond: calm ? 0 : 3.2 * MIB,
+        memorySwapInBytesPerSecond: 0,
         latestDiskBytes: 410 * GIB,
         maxDiskBytes: 500 * GIB,
         latestDiskPercent: 82,
@@ -638,6 +645,9 @@ function busyEstate(loadedAt, calm) {
         latestCpuMhz: 12000,
         latestMemoryBytes: 60 * GIB,
         memorySwappedBytes: calm ? 0 : 3 * GIB,
+        // And the pool's: the host swaps its memory out now.
+        memorySwapOutBytesPerSecond: calm ? 0 : 1.5 * MIB,
+        memorySwapInBytesPerSecond: 0,
       },
       loadedAt,
     ),
