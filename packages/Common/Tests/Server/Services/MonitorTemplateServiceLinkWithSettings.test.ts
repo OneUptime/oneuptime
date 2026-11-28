@@ -6,7 +6,6 @@ import MonitorTemplateService from "../../../Server/Services/MonitorTemplateServ
 import MonitorCriteriaReplaced, {
   CriteriaReplacedBecause,
 } from "../../../Server/Utils/Monitor/MonitorCriteriaReplaced";
-import logger from "../../../Server/Utils/Logger";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
@@ -39,7 +38,11 @@ import type { SpyInstance } from "jest-mock";
  *     criteria stop firing.
  *
  * Either way the open incidents and alerts the criteria the monitor lost
- * would have resolved on their own are resolved (MonitorCriteriaReplaced).
+ * would have resolved on their own are resolved (MonitorCriteriaReplaced):
+ * by the write's own hook, as for every write of a monitor's steps (#11453),
+ * within a change the link or the unlink runs it in, which says why and
+ * counts what was resolved. Here MonitorService's write is stood in for,
+ * and its hook with it (theWriteResolvesAsItsHookDoes).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -65,6 +68,15 @@ function criteria(id: string): MonitorCriteriaInstance {
   const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
   instance.data!.id = id;
   instance.data!.name = `Criteria ${id}`;
+  // Its incident resolves on its own, as a template's offline criteria does.
+  instance.data!.incidents = [
+    {
+      id: `${id}-incident`,
+      title: `${id} is offline`,
+      description: "",
+      autoResolveIncident: true,
+    },
+  ];
   return instance;
 }
 
@@ -123,6 +135,40 @@ function reads(monitor: Monitor | null): void {
     .spyOn(MonitorTemplateService, "findOneById")
     .mockResolvedValue(betterTemplate());
   jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
+}
+
+/*
+ * The write as MonitorService makes it, with its hook: once a write of the
+ * monitor's steps is written, what it took off is resolved
+ * (MonitorCriteriaReplaced.resolveAfterWrite, from onUpdateSuccess).
+ */
+function theWriteResolvesAsItsHookDoes(stored: Monitor): void {
+  updateSpy.mockImplementation((async (write: {
+    id: ObjectID;
+    data: Record<string, unknown>;
+  }): Promise<number> => {
+    if (!("monitorSteps" in write.data)) {
+      return 1;
+    }
+
+    await MonitorCriteriaReplaced.resolveAfterWrite({
+      monitorId: write.id,
+      projectId: PROJECT_ID,
+      monitorName: stored.name || "",
+      stepsBefore: stored.monitorSteps,
+      stepsAfter: write.data["monitorSteps"] as MonitorSteps | undefined,
+      templateIdBefore: stored.monitorTemplateId,
+      writtenTemplate: {
+        isWritten: "monitorTemplateId" in write.data,
+        id: (write.data["monitorTemplateId"] as ObjectID | null) || null,
+      },
+      readTemplateName: async (): Promise<string> => {
+        return "read by the hook";
+      },
+    });
+
+    return 1;
+  }) as never);
 }
 
 function writtenData(): Record<string, unknown> {
@@ -242,6 +288,7 @@ describe("Link Existing Monitors", () => {
   it("resolves what the monitor's old criteria left open, and counts it", async () => {
     const monitor: Monitor = automaticMonitor();
     reads(monitor);
+    theWriteResolvesAsItsHookDoes(monitor);
 
     const result: Awaited<
       ReturnType<typeof MonitorTemplateService.linkMonitor>
@@ -260,10 +307,36 @@ describe("Link Existing Monitors", () => {
     >[0] = resolveSpy.mock.calls[0]![0];
 
     expect(asked.because).toBe(CriteriaReplacedBecause.LinkedToTemplate);
-    expect(asked.templateName).toBe("WB Ping Monitor Template v2");
+    // The change's own name for the template: none is read again.
+    expect(await asked.getTemplateName()).toBe("WB Ping Monitor Template v2");
     expect(asked.monitorName).toBe("WB1500KSK02");
-    expect(asked.stepsBefore).toBe(monitor.monitorSteps);
-    expect(asked.stepsAfter).toBe(writtenData()["monitorSteps"]);
+    // The template's criteria replaced both of the monitor's.
+    expect(asked.templateIds).toEqual({
+      incidents: {
+        "v1-offline": ["v1-offline-incident"],
+        "v1-online": ["v1-online-incident"],
+      },
+      alerts: {},
+    });
+    expect(writtenData()["monitorSteps"]).toBeDefined();
+  });
+
+  it("says a monitor linked already had its template's criteria synced to it", async () => {
+    const monitor: Monitor = automaticMonitor();
+    monitor.monitorTemplateId = BETTER_TEMPLATE_ID;
+    reads(monitor);
+    theWriteResolvesAsItsHookDoes(monitor);
+
+    await MonitorTemplateService.linkMonitor({
+      monitorTemplateId: BETTER_TEMPLATE_ID,
+      monitorId: MONITOR_ID,
+      props: { isRoot: true },
+      applyTemplateSettings: true,
+    });
+
+    expect(resolveSpy.mock.calls[0]![0].because).toBe(
+      CriteriaReplacedBecause.SyncedFromTemplate,
+    );
   });
 
   it("leaves a monitor linked already as it is, when asked nothing more", async () => {
@@ -321,14 +394,12 @@ describe("Link Existing Monitors", () => {
     expect(updateSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("never fails the link it wrote because a resolve did", async () => {
+  /*
+   * The write's hook never fails the save for a resolve that failed
+   * (MonitorCriteriaRemovedResolvesOnUpdate): the link counts nothing then.
+   */
+  it("counts nothing when the write's hook resolved nothing", async () => {
     reads(automaticMonitor());
-    resolveSpy.mockRejectedValue(new Error("Postgres went away"));
-    const errorSpy: SpyInstance<typeof logger.error> = jest
-      .spyOn(logger, "error")
-      .mockImplementation((() => {
-        return undefined;
-      }) as never);
 
     const result: Awaited<
       ReturnType<typeof MonitorTemplateService.linkMonitor>
@@ -344,7 +415,6 @@ describe("Link Existing Monitors", () => {
       resolvedIncidentCount: 0,
       resolvedAlertCount: 0,
     });
-    expect(errorSpy).toHaveBeenCalled();
   });
 });
 
@@ -370,6 +440,7 @@ describe("Unlink from Template", () => {
   it("clears the template's criteria when asked, keeping what each step checks", async () => {
     const monitor: Monitor = automaticMonitor();
     jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
+    theWriteResolvesAsItsHookDoes(monitor);
     const oldTemplate: MonitorTemplate = new MonitorTemplate(OLD_TEMPLATE_ID);
     oldTemplate.templateName = "WB Ping Monitor Template - No Alert";
     jest
@@ -400,15 +471,20 @@ describe("Unlink from Template", () => {
     >[0] = resolveSpy.mock.calls[0]![0];
 
     expect(asked.because).toBe(CriteriaReplacedBecause.ClearedOnUnlink);
-    expect(asked.templateName).toBe("WB Ping Monitor Template - No Alert");
-    expect(asked.stepsBefore).toBe(monitor.monitorSteps);
+    expect(await asked.getTemplateName()).toBe(
+      "WB Ping Monitor Template - No Alert",
+    );
+    expect(Object.keys(asked.templateIds.incidents).sort()).toEqual([
+      "v1-offline",
+      "v1-online",
+    ]);
     expect(result.resolvedIncidentCount).toBe(2);
   });
 
   it("takes the template's name it is handed, read once by a change of many monitors", async () => {
-    jest
-      .spyOn(MonitorService, "findOneById")
-      .mockResolvedValue(automaticMonitor());
+    const monitor: Monitor = automaticMonitor();
+    jest.spyOn(MonitorService, "findOneById").mockResolvedValue(monitor);
+    theWriteResolvesAsItsHookDoes(monitor);
     const findTemplateSpy: SpyInstance<
       typeof MonitorTemplateService.findOneById
     > = jest.spyOn(MonitorTemplateService, "findOneById");
@@ -422,7 +498,7 @@ describe("Unlink from Template", () => {
     });
 
     expect(findTemplateSpy).not.toHaveBeenCalled();
-    expect(resolveSpy.mock.calls[0]![0].templateName).toBe(
+    expect(await resolveSpy.mock.calls[0]![0].getTemplateName()).toBe(
       "Warehouse switches",
     );
   });
