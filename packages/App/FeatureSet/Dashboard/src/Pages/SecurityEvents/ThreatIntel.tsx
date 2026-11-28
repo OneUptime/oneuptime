@@ -28,13 +28,17 @@ import {
   THREAT_INTEL_MATCH_WORDING,
   getSecurityMatchActionFields,
   getSecurityMatchFindingField,
+  getListSignInChoices,
   getTaxiiSignInChoices,
 } from "../../Components/SecurityEvents/SecurityMatchActionFields";
 import {
+  LIST_SIGN_IN_CLEAR_DESCRIPTION,
+  LIST_SIGN_IN_FIELD_KEY,
   TAXII_SIGN_IN_CLEAR_DESCRIPTION,
   TAXII_SIGN_IN_FIELD_KEY,
   TAXII_SIGN_IN_FIELD_TITLE,
   TaxiiSignIn,
+  getListSignIn,
   getTaxiiSignIn,
 } from "../../Components/SecurityEvents/SecurityMatchRaises";
 import {
@@ -102,6 +106,57 @@ const advancedSection: FormFieldCollapsibleSection<ThreatIntelFeed> =
  */
 const listAdvancedSection: FormFieldCollapsibleSection<ThreatIntelFeed> =
   getAdvancedFormSection<ThreatIntelFeed>();
+
+/*
+ * The sign-in a new feed's form picked, of its own source: a TAXII
+ * server's (none, a token, a username and password) or a list's (none, or
+ * a username and password, #11158). Null where the form asks none.
+ */
+function getFeedSignIn(
+  values: FormValues<ThreatIntelFeed>,
+): TaxiiSignIn | null {
+  const source: ThreatIntelFeedType = getThreatIntelFeedSource(values);
+
+  if (source === ThreatIntelFeedType.Taxii) {
+    return getTaxiiSignIn(values);
+  }
+
+  if (source === ThreatIntelFeedType.List) {
+    return getListSignIn(values);
+  }
+
+  return null;
+}
+
+function isListFeed(
+  feed: ThreatIntelFeed | FormValues<ThreatIntelFeed>,
+): boolean {
+  return getThreatIntelFeedSource(feed) === ThreatIntelFeedType.List;
+}
+
+/*
+ * A new feed keeps only the secrets its sign-in uses. A token or password
+ * typed for one answer, or one source, stays in the form when the reader
+ * moves on: saved, it would sign in where they chose not to - sent with
+ * every download of a list that asks none (#11158).
+ */
+function keepChosenSecrets(
+  feed: ThreatIntelFeed,
+  formValues: FormValues<ThreatIntelFeed>,
+): ThreatIntelFeed {
+  const signIn: TaxiiSignIn | null = getFeedSignIn(formValues);
+
+  if (signIn !== TaxiiSignIn.ApiToken) {
+    delete feed.apiToken;
+  }
+
+  if (signIn !== TaxiiSignIn.BasicAuth) {
+    delete feed.basicAuthUsername;
+    delete feed.basicAuthPassword;
+  }
+
+  return feed;
+}
 
 const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -242,6 +297,16 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           delete item.feedType;
           return item;
         }}
+        onBeforeCreate={async (
+          item: ThreatIntelFeed,
+          _miscDataProps: JSONObject,
+          formValues: JSONObject,
+        ) => {
+          return keepChosenSecrets(
+            item,
+            formValues as FormValues<ThreatIntelFeed>,
+          );
+        }}
         helpContent={{
           title: ThreatIntelGuide.guideTitle,
           description: ThreatIntelGuide.guideDescription,
@@ -308,16 +373,19 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: TAXII_SIGN_IN_FIELD_TITLE,
             id: "sign-in",
             /*
-             * A new TAXII feed's question. An existing feed changes its
-             * secrets with Update Credentials, so its Edit form walks this
-             * step only to show the username it signs in with, when it has
-             * one.
+             * A new TAXII or list feed's question (a list behind a sign-in,
+             * #11158). An existing feed changes its secrets with Update
+             * Credentials, so its Edit form walks this step only to show
+             * the username it signs in with, when it has one.
              */
             showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              const source: ThreatIntelFeedType =
+                getThreatIntelFeedSource(values);
+
               return (
-                getThreatIntelFeedSource(values) ===
-                  ThreatIntelFeedType.Taxii &&
-                (getTaxiiSignIn(values) !== null ||
+                (source === ThreatIntelFeedType.Taxii ||
+                  source === ThreatIntelFeedType.List) &&
+                (getFeedSignIn(values) !== null ||
                   Boolean(values.basicAuthUsername))
               );
             },
@@ -590,6 +658,37 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             doNotShowWhenEditing: true,
             defaultValue: TaxiiSignIn.Anonymous,
             dataTestId: "taxii-sign-in",
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.Taxii
+              );
+            },
+          },
+          /*
+           * A list's: none, or a username and password - CrowdSec's
+           * blocklist integrations ask for one (#11158). A list takes no
+           * bearer token.
+           */
+          {
+            overrideField: {
+              basicAuthUsername: true,
+            },
+            overrideFieldKey: LIST_SIGN_IN_FIELD_KEY,
+            formOnly: true,
+            title: TAXII_SIGN_IN_FIELD_TITLE,
+            stepId: "sign-in",
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: getListSignInChoices(),
+            required: true,
+            hideColumnDescription: true,
+            doNotShowWhenEditing: true,
+            defaultValue: TaxiiSignIn.Anonymous,
+            dataTestId: "list-sign-in",
+            showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
+              return (
+                getThreatIntelFeedSource(values) === ThreatIntelFeedType.List
+              );
+            },
           },
           {
             field: {
@@ -621,7 +720,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             stepId: "sign-in",
             fieldType: FormFieldSchemaType.Text,
             required: (values: FormValues<ThreatIntelFeed>): boolean => {
-              return getTaxiiSignIn(values) === TaxiiSignIn.BasicAuth;
+              return getFeedSignIn(values) === TaxiiSignIn.BasicAuth;
             },
             /*
              * The column's sentence says to leave it empty for anonymous or
@@ -635,7 +734,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
              * feed's only).
              */
             showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
-              const signIn: TaxiiSignIn | null = getTaxiiSignIn(values);
+              const signIn: TaxiiSignIn | null = getFeedSignIn(values);
 
               return signIn === null
                 ? Boolean(values.basicAuthUsername)
@@ -652,11 +751,11 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               "Encrypted at rest and never returned by the API — use the row's Update Credentials action to rotate it later.",
             fieldType: FormFieldSchemaType.Password,
             required: (values: FormValues<ThreatIntelFeed>): boolean => {
-              return getTaxiiSignIn(values) === TaxiiSignIn.BasicAuth;
+              return getFeedSignIn(values) === TaxiiSignIn.BasicAuth;
             },
             doNotShowWhenEditing: true,
             showIf: (values: FormValues<ThreatIntelFeed>): boolean => {
-              return getTaxiiSignIn(values) === TaxiiSignIn.BasicAuth;
+              return getFeedSignIn(values) === TaxiiSignIn.BasicAuth;
             },
           },
           ...getSecurityMatchActionFields<ThreatIntelFeed>(
@@ -718,10 +817,15 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
              * alone.
              */
             placement: ActionButtonPlacement.MoreMenu,
-            // Only a TAXII feed signs in: a list is public, Google SecOps signs in with its connection.
+            /*
+             * A TAXII feed and a list sign in - a list behind a sign-in,
+             * such as a CrowdSec blocklist integration (#11158); Google
+             * SecOps signs in with its connection.
+             */
             isVisible: (item: ThreatIntelFeed): boolean => {
               return (
-                getThreatIntelFeedSource(item) === ThreatIntelFeedType.Taxii
+                getThreatIntelFeedSource(item) === ThreatIntelFeedType.Taxii ||
+                isListFeed(item)
               );
             },
             disabled: !updateGate.isAllowed,
@@ -1135,12 +1239,18 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
                   authenticationMode: true,
                 },
                 title: TAXII_SIGN_IN_FIELD_TITLE,
-                description:
-                  "How OneUptime signs in to the TAXII server. Changing it clears the secret of the other kind.",
+                description: isListFeed(currentlyEditingItem)
+                  ? "How OneUptime signs in to download the list. No sign-in clears what is stored."
+                  : "How OneUptime signs in to the TAXII server. Changing it clears the secret of the other kind.",
                 fieldType: FormFieldSchemaType.RadioButton,
-                radioButtonOptions: getTaxiiSignInChoices({
-                  anonymousDescription: TAXII_SIGN_IN_CLEAR_DESCRIPTION,
-                }),
+                // A list takes no bearer token (#11158).
+                radioButtonOptions: isListFeed(currentlyEditingItem)
+                  ? getListSignInChoices({
+                      anonymousDescription: LIST_SIGN_IN_CLEAR_DESCRIPTION,
+                    })
+                  : getTaxiiSignInChoices({
+                      anonymousDescription: TAXII_SIGN_IN_CLEAR_DESCRIPTION,
+                    }),
                 required: true,
               },
               {

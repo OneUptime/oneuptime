@@ -348,3 +348,45 @@ export function getTaxiiSignIn(values: unknown): TaxiiSignIn | null {
 
   return isTaxiiSignIn(value) ? value : null;
 }
+
+/*
+ * HOW ONEUPTIME SIGNS IN TO A LIST (#11158): most lists anyone may
+ * download; one behind a sign-in - CrowdSec's Console serves the
+ * blocklists a team subscribes to as a "Raw IP List" behind HTTP Basic
+ * Auth - takes a username and password. A list takes no bearer token.
+ */
+export const LIST_SIGN_IN_FIELD_KEY: string = "listSignIn";
+
+export const LIST_SIGN_IN_ANSWERS: ReadonlyArray<TaxiiSignIn> = [
+  TaxiiSignIn.Anonymous,
+  TaxiiSignIn.BasicAuth,
+];
+
+export const LIST_SIGN_IN_COPY: Readonly<
+  Record<TaxiiSignIn.Anonymous | TaxiiSignIn.BasicAuth, SecurityMatchRaisesCopy>
+> = {
+  [TaxiiSignIn.Anonymous]: {
+    title: TAXII_SIGN_IN_COPY[TaxiiSignIn.Anonymous].title,
+    description: translationKey("For lists anyone may download."),
+  },
+  [TaxiiSignIn.BasicAuth]: {
+    title: TAXII_SIGN_IN_COPY[TaxiiSignIn.BasicAuth].title,
+    description: translationKey(
+      "HTTP basic authentication, such as a CrowdSec blocklist integration's.",
+    ),
+  },
+};
+
+// What clearing a list's credentials does, in the Update Credentials dialog.
+export const LIST_SIGN_IN_CLEAR_DESCRIPTION: string = translationKey(
+  "Clears the stored username and password.",
+);
+
+// The sign-in a new list feed's form picked, or null where it asks none.
+export function getListSignIn(values: unknown): TaxiiSignIn | null {
+  const value: unknown = asValues(values)[LIST_SIGN_IN_FIELD_KEY];
+
+  return isTaxiiSignIn(value) && LIST_SIGN_IN_ANSWERS.includes(value)
+    ? value
+    : null;
+}
