@@ -83,7 +83,9 @@ describe("the routes and parameters", () => {
         recordType: FormTargetType.ScheduledMaintenance,
         recordId: FOLLOWER_ID,
       }),
-    ).toBe(`${FORM_FOLLOW_UP_RECORD_ROUTE}/ScheduledMaintenance/${FOLLOWER_ID}`);
+    ).toBe(
+      `${FORM_FOLLOW_UP_RECORD_ROUTE}/ScheduledMaintenance/${FOLLOWER_ID}`,
+    );
 
     expect(
       getFormFollowUpRecordRoute({
@@ -248,18 +250,17 @@ describe("the reply box's questions", () => {
       validateFormAnswer({ field: message, answer: "Still broken" }),
     ).toEqual({ isValid: true, value: "Still broken" });
 
-    const tooLong: ReturnType<typeof validateFormAnswer> = validateFormAnswer(
-      {
-        field: message,
-        answer: "x".repeat(FORM_FOLLOW_UP_MESSAGE_MAX_LENGTH + 1),
-      },
-    );
+    const tooLong: ReturnType<typeof validateFormAnswer> = validateFormAnswer({
+      field: message,
+      answer: "x".repeat(FORM_FOLLOW_UP_MESSAGE_MAX_LENGTH + 1),
+    });
 
     expect(tooLong.isValid).toBe(false);
 
-    const notFiles: ReturnType<typeof validateFormAnswer> = validateFormAnswer(
-      { field: files, answer: [{ name: "x" }] },
-    );
+    const notFiles: ReturnType<typeof validateFormAnswer> = validateFormAnswer({
+      field: files,
+      answer: [{ name: "x" }],
+    });
 
     expect(notFiles.isValid).toBe(false);
   });

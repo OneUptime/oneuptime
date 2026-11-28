@@ -90,6 +90,9 @@ type StateLike = {
   color?: { toString(): string } | undefined;
 };
 
+// A colour the request's page may draw, as a state's colour is kept.
+const STATE_COLOR: RegExp = /^#[0-9a-f]{6}$/i;
+
 // A state as the people following the request read it.
 const toRequestState: (data: {
   state: StateLike | undefined;
@@ -111,7 +114,7 @@ const toRequestState: (data: {
 
   const color: string = data.state?.color ? data.state.color.toString() : "";
 
-  if (/^#[0-9a-f]{6}$/i.test(color)) {
+  if (STATE_COLOR.test(color)) {
     state.color = color.toLowerCase();
   }
 

@@ -118,12 +118,8 @@ export class AddFormFollowUps1809188000000 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "FormSubmissionFollower" DROP CONSTRAINT "FK_457b09f9e07c67a423de220e261"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "FormSubmission" DROP COLUMN "title"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "Form" DROP COLUMN "enableFollowUps"`,
-    );
+    await queryRunner.query(`ALTER TABLE "FormSubmission" DROP COLUMN "title"`);
+    await queryRunner.query(`ALTER TABLE "Form" DROP COLUMN "enableFollowUps"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_31db9fd244bd7a38204bc51238"`,
     );
@@ -139,9 +135,7 @@ export class AddFormFollowUps1809188000000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_3aa5bcd5d50e15f0c398013bad"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "FormSubmissionMessage"`,
-    );
+    await queryRunner.query(`DROP TABLE "FormSubmissionMessage"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_50831f4c3997461da82ae24d85"`,
     );
@@ -157,8 +151,6 @@ export class AddFormFollowUps1809188000000 implements MigrationInterface {
     await queryRunner.query(
       `DROP INDEX "public"."IDX_457b09f9e07c67a423de220e26"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "FormSubmissionFollower"`,
-    );
+    await queryRunner.query(`DROP TABLE "FormSubmissionFollower"`);
   }
 }

@@ -76,9 +76,7 @@ import {
   readFormFollowUpCredential,
   readFormFollowUpEmail,
 } from "../../../Types/Form/FormFollowUp";
-import {
-  FORM_SIGN_IN_REQUIRED_MESSAGE,
-} from "../../../Types/Form/FormPrivateUserSignIn";
+import { FORM_SIGN_IN_REQUIRED_MESSAGE } from "../../../Types/Form/FormPrivateUserSignIn";
 import {
   formatFormSubmissionErrors,
   getFormFileAnswerFiles,
@@ -300,9 +298,11 @@ export default class FormFollowUp {
     }
   }
 
-  // ---------------------------------------------------------------------
-  // The form's page.
-  // ---------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------
+   * The form's page.
+   * ---------------------------------------------------------------------
+   */
 
   // One request, for the person the access names.
   @CaptureSpan()
@@ -574,9 +574,11 @@ export default class FormFollowUp {
     };
   }
 
-  // ---------------------------------------------------------------------
-  // The record's page in the dashboard.
-  // ---------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------
+   * The record's page in the dashboard.
+   * ---------------------------------------------------------------------
+   */
 
   /**
    * The follow-up of the record a submission created, for somebody who may
@@ -817,9 +819,7 @@ export default class FormFollowUp {
       });
 
     if (!follower) {
-      throw new NotFoundException(
-        "That person is not following this request.",
-      );
+      throw new NotFoundException("That person is not following this request.");
     }
 
     await FormSubmissionFollowerService.deleteOneById({
@@ -830,9 +830,11 @@ export default class FormFollowUp {
     return await this.getChangedRecordView(data);
   }
 
-  // ---------------------------------------------------------------------
-  // Reading who is asking.
-  // ---------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------
+   * Reading who is asking.
+   * ---------------------------------------------------------------------
+   */
 
   /*
    * The person following a request the access names, on the form the route
@@ -848,11 +850,10 @@ export default class FormFollowUp {
     if (data.form.requireSignIn) {
       const signedInAs: string = await this.getSignedInEmail(data);
 
-      const submissionId: ObjectID | null =
-        await this.getSubmissionIdOfAccess({
-          form: data.form,
-          access: access,
-        });
+      const submissionId: ObjectID | null = await this.getSubmissionIdOfAccess({
+        form: data.form,
+        access: access,
+      });
 
       if (!submissionId) {
         throw new NotFoundException(FORM_FOLLOW_UP_NOT_AVAILABLE_MESSAGE);
@@ -1072,9 +1073,11 @@ export default class FormFollowUp {
     });
   }
 
-  // ---------------------------------------------------------------------
-  // Reading what is asked for.
-  // ---------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------
+   * Reading what is asked for.
+   * ---------------------------------------------------------------------
+   */
 
   /*
    * A reply's text and files, checked as a form's own Markdown and file
@@ -1180,9 +1183,11 @@ export default class FormFollowUp {
     return name.name ? { email: email, name: name.name } : { email: email };
   }
 
-  // ---------------------------------------------------------------------
-  // Changing who follows.
-  // ---------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------
+   * Changing who follows.
+   * ---------------------------------------------------------------------
+   */
 
   private static async addPersonTo(data: {
     form: Form;
@@ -1271,9 +1276,11 @@ export default class FormFollowUp {
     return created;
   }
 
-  // ---------------------------------------------------------------------
-  // Building what is shown.
-  // ---------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------
+   * Building what is shown.
+   * ---------------------------------------------------------------------
+   */
 
   private static async buildRequest(data: {
     form: Form;
@@ -1448,9 +1455,7 @@ export default class FormFollowUp {
     }
 
     try {
-      return await getFormFollowUpRecordKind(target.type).readFacts(
-        target.id,
-      );
+      return await getFormFollowUpRecordKind(target.type).readFacts(target.id);
     } catch (err) {
       logger.error(
         `FormFollowUp: could not read the state of the record of submission ${submission.id?.toString()}.`,
@@ -1551,9 +1556,11 @@ export default class FormFollowUp {
     return (user?.name?.toString() || "").trim();
   }
 
-  // ---------------------------------------------------------------------
-  // Emails.
-  // ---------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------
+   * Emails.
+   * ---------------------------------------------------------------------
+   */
 
   /*
    * A person's link to the request: on a form anybody can open, the form's

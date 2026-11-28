@@ -143,9 +143,9 @@ describe.each([
   });
 
   test("tells somebody of a form that asks its visitors to sign in to sign in with this address", () => {
-    expect(htmlAsText(render(template, { isSignInRequired: "true" }))).toContain(
-      "Sign in with this email address to open it.",
-    );
+    expect(
+      htmlAsText(render(template, { isSignInRequired: "true" })),
+    ).toContain("Sign in with this email address to open it.");
     expect(htmlAsText(render(template))).not.toContain(
       "Sign in with this email address to open it.",
     );
@@ -232,7 +232,9 @@ describe("FormFollowUpMessage.hbs", () => {
 
 describe("FormFollowUpStarted.hbs", () => {
   test("says the request was received, and what the link does", () => {
-    const text: string = htmlAsText(render(EmailTemplateType.FormFollowUpStarted));
+    const text: string = htmlAsText(
+      render(EmailTemplateType.FormFollowUpStarted),
+    );
 
     expect(text).toContain("We got your request");
     expect(text).toContain("Your request was sent through Support.");

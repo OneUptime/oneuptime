@@ -15,10 +15,7 @@ import {
 } from "../../Utils/FormFollowUp";
 import { isKnownFormFollowUpMessage } from "../../Utils/FormFollowUpMessage";
 import { isKnownFormMessage } from "../../Utils/FormMessage";
-import {
-  formatDateText,
-  getDateLocale,
-} from "Common/Types/DateLanguage";
+import { formatDateText, getDateLocale } from "Common/Types/DateLanguage";
 import {
   FORM_FOLLOW_UP_EMAIL_MAX_LENGTH,
   FORM_FOLLOW_UP_MESSAGE_FIELD_ID,
@@ -175,9 +172,7 @@ const FormFollowUpView: FunctionComponent<ComponentProps> = (
   return (
     <RequestView
       // A fresh view, and fresh boxes, for each request opened.
-      key={
-        props.view.access.credential || props.view.access.submissionId || ""
-      }
+      key={props.view.access.credential || props.view.access.submissionId || ""}
       target={props.target}
       view={props.view}
       isSignInForm={props.isSignInForm}
@@ -382,8 +377,9 @@ const RequestView: FunctionComponent<RequestViewProps> = (
     null,
   );
 
-  const [replyError, setReplyError] =
-    useState<FormFollowUpFailureText | null>(null);
+  const [replyError, setReplyError] = useState<FormFollowUpFailureText | null>(
+    null,
+  );
   const [isSending, setIsSending] = useState<boolean>(false);
   // Bumped after a message is sent: a fresh, empty reply box.
   const [replyInstance, setReplyInstance] = useState<number>(0);

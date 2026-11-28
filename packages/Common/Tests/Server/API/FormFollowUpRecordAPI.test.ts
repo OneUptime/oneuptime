@@ -273,7 +273,8 @@ describe("FormFollowUpRecordAPI", () => {
     });
 
     expect(
-      (Response.sendJsonObjectResponse as unknown as MockedFn).mock.calls[0]![2],
+      (Response.sendJsonObjectResponse as unknown as MockedFn).mock
+        .calls[0]![2],
     ).toBe(view);
     expect(Response.setNoCacheHeaders).toHaveBeenCalled();
   });
@@ -291,7 +292,8 @@ describe("FormFollowUpRecordAPI", () => {
 
     expect(next).not.toHaveBeenCalled();
     expect(
-      (Response.sendJsonObjectResponse as unknown as MockedFn).mock.calls[0]![2],
+      (Response.sendJsonObjectResponse as unknown as MockedFn).mock
+        .calls[0]![2],
     ).toEqual({});
   });
 
@@ -346,7 +348,7 @@ describe("FormFollowUpRecordAPI", () => {
       body: { email: "bob@example.com" },
     });
 
-    expect((next.mock.calls[0]![0] as Exception)).toBeInstanceOf(
+    expect(next.mock.calls[0]![0] as Exception).toBeInstanceOf(
       NotAuthorizedException,
     );
     expect(FormFollowUp.addPersonFromRecord).not.toHaveBeenCalled();

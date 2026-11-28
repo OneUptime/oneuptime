@@ -83,7 +83,9 @@ describe("AddFormFollowUps1809188000000", () => {
     expect(created).toHaveLength(2);
     expect(created[0]).toContain('CREATE TABLE "FormSubmissionFollower"');
     expect(created[0]).toContain('"email" character varying(100) NOT NULL');
-    expect(created[0]).toContain('"isSubmitter" boolean NOT NULL DEFAULT false');
+    expect(created[0]).toContain(
+      '"isSubmitter" boolean NOT NULL DEFAULT false',
+    );
     // The link's secret is kept encrypted, as text.
     expect(created[0]).toContain('"accessToken" text');
     expect(created[1]).toContain('CREATE TABLE "FormSubmissionMessage"');
@@ -188,7 +190,9 @@ describe("AddFormFollowUps1809188000000", () => {
     expect(statements).toContain(
       'ALTER TABLE "FormSubmission" DROP COLUMN "title"',
     );
-    expect(statements.slice(-1)).toEqual(['DROP TABLE "FormSubmissionFollower"']);
+    expect(statements.slice(-1)).toEqual([
+      'DROP TABLE "FormSubmissionFollower"',
+    ]);
     expect(statements).toContain('DROP TABLE "FormSubmissionMessage"');
   });
 });

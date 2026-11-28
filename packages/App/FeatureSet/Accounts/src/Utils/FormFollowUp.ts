@@ -85,21 +85,23 @@ const readView: ReadViewFunction = (
   const credential: unknown = access["credential"];
   const submissionId: unknown = access["submissionId"];
 
-  if (typeof credential === "string" && readFormFollowUpCredential(credential)) {
+  if (
+    typeof credential === "string" &&
+    readFormFollowUpCredential(credential)
+  ) {
     return { kind: "request", access: { credential: credential } };
   }
 
-  if (
-    typeof submissionId === "string" &&
-    ObjectID.isValidUUID(submissionId)
-  ) {
+  if (typeof submissionId === "string" && ObjectID.isValidUUID(submissionId)) {
     return { kind: "request", access: { submissionId: submissionId } };
   }
 
   return null;
 };
 
-export type TakeFormFollowUpViewFunction = (formKey: string) => FormFollowUpView | null;
+export type TakeFormFollowUpViewFunction = (
+  formKey: string,
+) => FormFollowUpView | null;
 
 /**
  * The follow-up view the page was opened for, if any: its address's
@@ -477,7 +479,9 @@ const readBranding: (data: Record<string, unknown>) => {
   return branding;
 };
 
-export type ReadPublicFormRequestFunction = (data: unknown) => PublicFormRequest;
+export type ReadPublicFormRequestFunction = (
+  data: unknown,
+) => PublicFormRequest;
 
 // One request as the server described it, or an error for one it did not.
 export const readPublicFormRequest: ReadPublicFormRequestFunction = (
