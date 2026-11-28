@@ -268,9 +268,9 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
  * (DashboardResourceScope, issue #11258): set by an infrastructure template
  * on its own variable, and chosen here for one of your own. With a kind,
  * every widget shows only that kind's data and "All" means all of them;
- * "Any" filters nothing until a value is picked, as before. Picking a kind
- * for a variable with no attribute key yet fills in the attribute its
- * resources are named by.
+ * "Any resource type" filters nothing until a value is picked, as before.
+ * Picking a kind for a variable with no attribute key yet fills in the
+ * attribute its resources are named by.
  */
 const ResourceTypeChoice: FunctionComponent<{
   variable: DashboardVariable;
@@ -287,7 +287,10 @@ const ResourceTypeChoice: FunctionComponent<{
     : undefined;
 
   const options: Array<DropdownOption> = [
-    getTranslatedDropdownOption("", translator.translateText("Any") || "Any"),
+    getTranslatedDropdownOption(
+      "",
+      translator.translateText("Any resource type") || "Any resource type",
+    ),
     ...DASHBOARD_RESOURCE_SCOPES.map(
       (choice: DashboardResourceScope): DropdownOption => {
         return getTranslatedDropdownOption(
