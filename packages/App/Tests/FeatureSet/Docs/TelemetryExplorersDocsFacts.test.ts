@@ -64,7 +64,7 @@ import {
   WORTH_FIXING_MIN_PERCENT_OF_TRACE,
 } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
-import {
+import MetricPipelineRuleFilterCondition, {
   MetricPipelineRuleFilterCheckOn,
   MetricPipelineRuleFilterConditionType,
 } from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
@@ -1901,8 +1901,10 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
       'An attribute that holds a list or a map is read as the JSON text it is stored as, by **Matches Pattern Type** and by a regular expression, so a phone number sent as a number in `[{"system": "phone", "value": 2012345678}]` is one.',
     );
 
-    const redacted: (filters: MetricPipelineRule["filters"]) => unknown = (
-      filters: MetricPipelineRule["filters"],
+    const redacted: (
+      filters: Array<MetricPipelineRuleFilterCondition>,
+    ) => unknown = (
+      filters: Array<MetricPipelineRuleFilterCondition>,
     ): unknown => {
       const rule: MetricPipelineRule = new MetricPipelineRule();
 

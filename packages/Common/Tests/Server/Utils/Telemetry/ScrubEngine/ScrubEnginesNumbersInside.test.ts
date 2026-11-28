@@ -22,7 +22,7 @@ import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import LogScrubAction from "../../../../../Types/Log/LogScrubAction";
 import LogScrubField from "../../../../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../../../../Types/Log/LogScrubPatternType";
-import {
+import MetricPipelineRuleFilterCondition, {
   MetricPipelineRuleFilterCheckOn,
   MetricPipelineRuleFilterConditionType,
 } from "../../../../../Types/Metrics/MetricPipelineRuleFilterCondition";
@@ -610,7 +610,7 @@ function metricRow(attributes: JSONObject): MutableMetricRow {
 }
 
 function metricRedactRule(
-  filters: MetricPipelineRule["filters"],
+  filters: Array<MetricPipelineRuleFilterCondition>,
   attributeKey: string,
 ): MetricPipelineRule {
   const rule: MetricPipelineRule = new MetricPipelineRule();

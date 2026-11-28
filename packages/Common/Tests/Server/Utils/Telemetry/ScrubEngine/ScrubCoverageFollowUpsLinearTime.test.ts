@@ -17,6 +17,7 @@ import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import LogScrubAction from "../../../../../Types/Log/LogScrubAction";
 import LogScrubField from "../../../../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../../../../Types/Log/LogScrubPatternType";
+import MetricPipelineRuleFilterCondition from "../../../../../Types/Metrics/MetricPipelineRuleFilterCondition";
 import MetricPipelineRuleType from "../../../../../Types/Metrics/MetricPipelineRuleType";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
@@ -423,7 +424,7 @@ describe("the log engine, over a list or a map of 400,000 characters under a key
 
 describe("a metric's pattern filter, over a list or a map of 400,000 characters (#11500)", () => {
   function metricRedactRule(
-    filters: MetricPipelineRule["filters"],
+    filters: Array<MetricPipelineRuleFilterCondition>,
     attributeKey: string,
   ): MetricPipelineRule {
     const rule: MetricPipelineRule = new MetricPipelineRule();
