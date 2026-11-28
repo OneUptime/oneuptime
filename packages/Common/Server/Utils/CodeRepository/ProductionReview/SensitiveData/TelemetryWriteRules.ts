@@ -1539,10 +1539,12 @@ function readWordsBefore(
  * A session SDK's call with its command first (#11395), read from just
  * past its "(": FullStory's `FS('setIdentity', {...})`, Hotjar's
  * `hj('identify', ...)` - or OneUptime's queue, whose entries are arrays
- * with the command first, one of them `["identify", ref, traits]`, as its
- * docs write it over several lines. The call, read from just past the
- * command - so its first value is the user, never a key - or null for a
- * call that is no session command.
+ * with the command first, `["identify", ref, traits]` and the tags'
+ * `["setTags", {...}]` and `["addTag", key, value]` (#11458), as its docs
+ * write them over several lines. Each call, read from just past its
+ * command - so an identity's first value is the user, never a key - and
+ * every entry of one push (`push(["identify", ...], ["setTags", ...])`);
+ * none for a call that is no session command.
  */
 function findSessionCommand(data: {
   // The call's name as written, and what it is called on: a queue's `push` names its queue.
@@ -1552,7 +1554,7 @@ function findSessionCommand(data: {
   language: CodeLanguage;
   line: number;
   column: number;
-}): SinkCall | null {
+}): Array<SinkCall> {
   const method: string = toLower(lastPartOf(data.name));
   const receiverLast: string = withoutLeadingUnderscores(
     toLower(lastPartOf(data.receiver)),
@@ -1562,9 +1564,10 @@ function findSessionCommand(data: {
   const commands: ReadonlyMap<string, SessionCallKind> | undefined = isQueue
     ? SESSION_QUEUE_COMMANDS
     : SESSION_COMMAND_FUNCTIONS.get(method);
+  const calls: Array<SinkCall> = [];
 
   if (!commands) {
-    return null;
+    return calls;
   }
 
   const tokens: Array<CodeToken> = tokenize({
@@ -1597,7 +1600,7 @@ function findSessionCommand(data: {
     ) {
       const comma: CodeToken = tokens[index + 1]!;
 
-      return {
+      calls.push({
         sink: SensitiveDataSink.Session,
         name: (isQueue
           ? `${data.receiver}.push(["${token.text}"])`
@@ -1608,11 +1611,12 @@ function findSessionCommand(data: {
         isParenless: false,
         isIdentity: kind === SessionCallKind.Identity,
         ...(kind === SessionCallKind.Tags ? { isTags: true } : {}),
-      };
+      });
     }
 
+    // A command function has one command, its first argument.
     if (!isQueue) {
-      return null;
+      return calls;
     }
 
     if (token.kind === CodeTokenKind.Punct) {
@@ -1628,7 +1632,7 @@ function findSessionCommand(data: {
     }
   }
 
-  return null;
+  return calls;
 }
 
 /*
@@ -1743,10 +1747,10 @@ export function findSinkCalls(data: {
         continue;
       }
 
-      // A session SDK's command, or OneUptime's queue (#11395).
-      const command: SinkCall | null =
+      // A session SDK's command, or OneUptime's queue's each (#11395, #11458).
+      const commands: Array<SinkCall> =
         isMacro || wordsBefore.isConstructor
-          ? null
+          ? []
           : findSessionCommand({
               name: token.text,
               receiver: isChained
@@ -1758,9 +1762,7 @@ export function findSinkCalls(data: {
               column: open.column + 1,
             });
 
-      if (command) {
-        calls.push(command);
-      }
+      calls.push(...commands);
 
       continue;
     }

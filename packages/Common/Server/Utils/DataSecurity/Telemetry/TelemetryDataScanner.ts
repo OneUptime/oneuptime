@@ -2137,6 +2137,12 @@ function readAttributeValues(
     pairs: Array<[string, string]>;
     caps: TelemetrySampleCaps;
     isConversation: boolean;
+    /*
+     * Whether a key under OneUptime's own prefix is left out: an attribute
+     * it stamps itself is no data of the project's. A session's tags are
+     * all the page's - the recorders add none - so none of them is.
+     */
+    isOneUptimeKeySkipped?: boolean | undefined;
   },
   values: Array<TelemetryRecordValue>,
 ): void {
@@ -2146,7 +2152,10 @@ function readAttributeValues(
   )) {
     const boundedKey: string = key.slice(0, TELEMETRY_SCAN_MAX_KEY_LENGTH);
 
-    if (boundedKey.startsWith(ONEUPTIME_ATTRIBUTE_PREFIX)) {
+    if (
+      data.isOneUptimeKeySkipped !== false &&
+      boundedKey.startsWith(ONEUPTIME_ATTRIBUTE_PREFIX)
+    ) {
       continue;
     }
 
@@ -2309,6 +2318,7 @@ export function readTelemetryRecordValues(
           pairs: readPairs(row["readTags"]),
           caps,
           isConversation: false,
+          isOneUptimeKeySkipped: false,
         },
         values,
       );
