@@ -1,9 +1,11 @@
 import { loadCodeEditor } from "../../CodeEditor/LazyCodeEditor";
 import { loadYamlEditor } from "../../CodeEditor/LazyYamlEditor";
+import { loadDictionary } from "../../Dictionary/LazyDictionary";
 import { loadEntityDropdown } from "../../EntityDropdown/LazyEntityDropdown";
 import { loadFilePicker } from "../../FilePicker/LazyFilePicker";
 import { loadMarkdownEditor } from "../../Markdown.tsx/LazyMarkdownEditor";
 import { loadPeoplePicker } from "../../PeoplePicker/LazyPeoplePicker";
+import { loadColorPicker } from "./LazyColorPicker";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
 
 /*
@@ -27,6 +29,8 @@ const LOAD_CONTROL: Partial<Record<FormFieldSchemaType, LoadControlFunction>> =
     [FormFieldSchemaType.ImageFile]: loadFilePicker,
     [FormFieldSchemaType.MultipleFiles]: loadFilePicker,
     [FormFieldSchemaType.PeoplePicker]: loadPeoplePicker,
+    [FormFieldSchemaType.Color]: loadColorPicker,
+    [FormFieldSchemaType.Dictionary]: loadDictionary,
   };
 
 /*

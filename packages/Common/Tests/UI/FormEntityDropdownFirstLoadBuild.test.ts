@@ -22,6 +22,12 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * which the first form with such a field loads as it is drawn
  * (FormFieldControls).
  *
+ * So are the color field, with its custom color panel and the color math
+ * they read, and the key/value list, with its key suggestions and its
+ * filter operators (LazyColorPicker, LazyDictionary): none of those forms
+ * picks a color or holds a list of keys, and the two were some 38 KB before
+ * gzip of each one's first load.
+ *
  * Built as the status page builds (the shared esbuild config, for
  * production), with what a public page's forms are drawn with as the entry
  * (Helpers/FirstLoadBuild): a form and its fields.
@@ -46,6 +52,18 @@ const LOADED_WHEN_NEEDED: ReadonlyArray<LeftOut> = [
     name: "the search its Labels tab sends to the server (#10646)",
     path: "UI/Components/EntityDropdown/LabelSearch.ts",
   },
+  {
+    name: "the color field",
+    path: "UI/Components/Forms/Fields/ColorPicker.tsx",
+  },
+  {
+    name: "the color field's custom color panel",
+    path: "UI/Components/ColorPicker/CustomColorPanel.tsx",
+  },
+  {
+    name: "the key/value list",
+    path: "UI/Components/Dictionary/Dictionary.tsx",
+  },
 ];
 
 let built: FirstLoadBuild | null = null;
@@ -63,17 +81,18 @@ beforeAll(() => {
 }, 300000);
 
 describe("what a form puts in the first load", () => {
-  test("is the form and its fields, with the entity dropdown's place", () => {
+  test("is the form and its fields, with the places of the controls that load when a form has one", () => {
     for (const module of FORM_MODULES) {
       expect(inputsUnder(built!.firstLoad, `${module}.tsx`).length).toBe(1);
     }
 
-    expect(
-      inputsUnder(
-        built!.firstLoad,
-        "UI/Components/EntityDropdown/LazyEntityDropdown.tsx",
-      ).length,
-    ).toBe(1);
+    for (const place of [
+      "UI/Components/EntityDropdown/LazyEntityDropdown.tsx",
+      "UI/Components/Forms/Fields/LazyColorPicker.tsx",
+      "UI/Components/Dictionary/LazyDictionary.tsx",
+    ]) {
+      expect(inputsUnder(built!.firstLoad, place).length).toBe(1);
+    }
   });
 
   test.each(

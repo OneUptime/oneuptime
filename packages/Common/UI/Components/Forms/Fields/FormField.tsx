@@ -9,7 +9,8 @@ import CheckboxElement, {
 } from "../../Checkbox/Checkbox";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import CodeEditor from "../../CodeEditor/LazyCodeEditor";
-import DictionaryForm, { ValueType } from "../../Dictionary/Dictionary";
+import DictionaryForm from "../../Dictionary/LazyDictionary";
+import { ValueType } from "../../Dictionary/DictionaryValueType";
 import Dropdown, {
   DROPDOWN_NO_MATCHES_MESSAGE,
   DropdownValue,
@@ -30,7 +31,7 @@ import RadioButtons, {
 } from "../../RadioButtons/GroupRadioButtons";
 import TextArea from "../../TextArea/TextArea";
 import Toggle from "../../Toggle/Toggle";
-import ColorPicker from "../Fields/ColorPicker";
+import ColorPicker from "../Fields/LazyColorPicker";
 import IconPicker from "../Fields/IconPicker";
 import FieldLabelElement from "../Fields/FieldLabel";
 import Field, { FormFieldStyleType } from "../Types/Field";

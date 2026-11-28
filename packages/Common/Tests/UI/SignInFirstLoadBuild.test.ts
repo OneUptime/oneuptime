@@ -74,6 +74,13 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * of their own (Types/Product/TablesOfNoProduct), not built from these
  * modules at all.
  *
+ * Through FormField every form brought the color field, with its custom
+ * color panel and the color math they read, though no sign-in page's form
+ * picks a color: it loads with the first form that has a color field
+ * (LazyColorPicker). The key/value list does as well (LazyDictionary), which
+ * Table's filters still bring here (FormEntityDropdownFirstLoadBuild.test.ts
+ * holds a form to both).
+ *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
  * metafile (Helpers/FirstLoadBuild): the first load is the entry's file and
@@ -131,6 +138,16 @@ interface LeftOut {
 }
 
 const LEFT_OUT: ReadonlyArray<LeftOut> = [
+  {
+    name: "the color field, loaded by the first form that picks a color",
+    path: "UI/Components/Forms/Fields/ColorPicker.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the color field's custom color panel",
+    path: "UI/Components/ColorPicker/CustomColorPanel.tsx",
+    isLoadedWhenNeeded: true,
+  },
   {
     name: "posthog-js, which loads once analytics starts",
     path: "node_modules/posthog-js/",

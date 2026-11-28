@@ -198,9 +198,13 @@ interface Source {
   code: string;
 }
 
-// An import of the shared color field, by package path or from beside it.
+/*
+ * An import of the shared color field, by package path or from beside it -
+ * or of the field a form draws it through, which loads it the first time a
+ * form has a color field (LazyColorPicker).
+ */
 const SHARED_FIELD_IMPORT: RegExp =
-  /(^|\/)Forms\/Fields\/ColorPicker$|^\.\.\/Fields\/ColorPicker$/;
+  /(^|\/)Forms\/Fields\/(Lazy)?ColorPicker$|^\.\.\/Fields\/(Lazy)?ColorPicker$|^\.\/ColorPicker$/;
 
 const SOURCES: Array<Source> = SOURCE_ROOTS.flatMap(listSources).map(
   (file: string): Source => {
@@ -272,6 +276,7 @@ describe("one color picker in every frontend", () => {
 
   test.each([
     "packages/Common/UI/Components/Forms/Fields/FormField.tsx",
+    "packages/Common/UI/Components/Forms/Fields/LazyColorPicker.tsx",
     "packages/Common/UI/Components/CustomFields/DropdownOptionsInput.tsx",
     "packages/Common/UI/Components/Workflow/ColumnEditor/ColumnValueInput.tsx",
     "packages/App/FeatureSet/Dashboard/src/Components/Metrics/SeriesColorSelector.tsx",
