@@ -237,7 +237,7 @@ Un solo monitor host copre ogni disco che l'host riporta. I modelli High Filesys
 Ogni criterio viene controllato per ogni disco:
 
 - Finché l'incidente di un disco è aperto, il criterio che l'ha aperto non ne apre altri per quel disco. Un altro disco che lo soddisfa apre il proprio.
-- Un disco che soddisfa due criteri, come uno sopra il 98% e un altro sopra il 90%, riceve un solo incidente, dal primo dei due nell'elenco. Mettete per primo il più restrittivo.
+- Un disco che soddisfa due criteri sulla stessa metrica, come uno sopra il 98% e un altro sopra il 90%, riceve un solo incidente, dal primo dei due nell'elenco. Mettete per primo il più restrittivo. Criteri su metriche diverse aprono ciascuno il proprio incidente per il disco.
 - L'incidente di un disco si risolve quando quel disco smette di soddisfare il criterio che l'ha aperto, qualunque cosa facciano gli altri dischi.
 - Il monitor ha un solo stato. Un criterio che lo porta a un altro stato, come **Offline**, lo imposta non appena un disco lo soddisfa. Il criterio che riporta il monitor al suo **Stato predefinito del monitor** attende i dischi che hanno soddisfatto un criterio del genere, e corrisponde quando ciascuno di essi lo soddisfa, qualunque cosa facciano gli altri dischi. Così un disco che scende dal 96% all'89% tiene il monitor **Offline** finché non è all'81% o sotto, il margine di ripristino del 10%, anche se il suo incidente si risolve non appena non è più sopra il 90%. **Serie** mostra quel disco come **Mantiene lo stato**. Un disco che non viene più riportato smette di mantenere lo stato.
 
