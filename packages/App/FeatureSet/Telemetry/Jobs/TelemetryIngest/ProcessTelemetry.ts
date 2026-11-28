@@ -442,9 +442,10 @@ export async function settleIngestionBudgetCharge(data: {
  * tokened submission INDIVIDUALLY — one ClickHouse statement per submission.
  * That was meant to preserve per-job retry idempotence (a retry re-issues
  * the same tokens, for ClickHouse to drop what a prior attempt already
- * landed - which through a Distributed table it does only for a token that
- * led its flush, see below), and it pins the statement rate to the job
- * arrival rate: a token belongs to the whole INSERT, so cross-job batching
+ * landed - which through a Distributed table it did only for a token that
+ * led its flush, see below, so the tokens no longer reach ClickHouse,
+ * #11536), and it pins the statement rate to the job arrival rate: a token
+ * belongs to the whole INSERT, so cross-job batching
  * can never merge differently-tokened rows, and at high trace/log/metric
  * volume ClickHouse saturates on per-statement overhead (gunzip + parse +
  * async-insert bookkeeping per statement) while the merged-insert machinery
@@ -478,10 +479,12 @@ export async function settleIngestionBudgetCharge(data: {
  *     long, in four slots or one - the one-statement-per-job pattern that
  *     saturated ClickHouse.
  *
- * Profiles / syslog / fluent-logs / Kubernetes-cost stay tokened: their
- * statement rate is negligible, so their statements cost little - though
- * their tokens carry the Distributed-table hazard above until #11536 is
- * fixed.
+ * Profiles / syslog / fluent-logs / Kubernetes-cost still run in the scope,
+ * so the fan-in writer still inserts each of their submissions on its own -
+ * but no longer under its token: every fan-in insert is async, and an
+ * async insert is sent without one (#11536), the hazard above. Their
+ * retries may land twice, as every signal's may; merging their submissions
+ * as well would spare the statements (#11545).
  *
  * The probe / server-monitor / incoming-request types (a request of its
  * own, and a monitor's waiting requests) are excluded

@@ -66,7 +66,6 @@ import {
   ResponseJSON,
   ResultSet,
 } from "@clickhouse/client";
-import { nextInsertDedupToken } from "../Utils/AnalyticsDatabase/InsertDedupContext";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import { WorkflowRoute } from "../../ServiceRoute";
 import Protocol from "../../Types/API/Protocol";
@@ -211,13 +210,10 @@ export const MigrationExecuteOptions: ClickhouseExecuteOptions = {
  * TelemetryFanInWriter can consume deterministic tokens without an import
  * cycle. Re-exported here for existing callers.
  *
- * The ack mode is independent of tokening: TELEMETRY_WAIT_FOR_ASYNC_INSERT
- * (shouldWaitForAsyncInsert below) is applied to EVERY insertJsonRows call,
- * with or without a dedup token. Whether a telemetry queue job's writes
- * carry per-job tokens from this context is a separate policy decided in
- * the worker: the high-volume signals (traces/logs/metrics) run untokened
- * so the fan-in writer can merge them into cross-job INSERTs under minted
- * per-batch tokens — see shouldUseInsertDedup in
+ * TELEMETRY_WAIT_FOR_ASYNC_INSERT (shouldWaitForAsyncInsert below) is the
+ * ack mode of every async insertJsonRows call. The context's tokens shape
+ * only the fan-in writer's groups now: no ClickHouse insert carries them
+ * (getInsertJsonRowsSettings, #11536) - see shouldUseInsertDedup in
  * App/FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry.ts.
  */
 export {
@@ -225,6 +221,55 @@ export {
   nextInsertDedupToken,
   type InsertDedupContextStore,
 } from "../Utils/AnalyticsDatabase/InsertDedupContext";
+
+/*
+ * The settings an insertJsonRows sends (#11536). A dedup token rides only a
+ * SYNCHRONOUS insert: OneUptime inserts into Distributed tables, and
+ * through one an async flush is deduplicated under its first entry's token
+ * alone, so a retry under a token that led an earlier flush drops a later
+ * flush it leads whole - other inserts' rows with it - while a synchronous
+ * insert keeps its own token for its own block, on a local shard and
+ * through a batched background send to a remote one (#11441, App's
+ * InsertDedupTokensAsyncClickhouse). So:
+ *
+ *   - an explicit token makes the insert synchronous, carrying it;
+ *   - a caller that asks for an async insert (async_insert: 1) - the fan-in
+ *     writer always does - is sent without its token: a retry may then land
+ *     twice, and never drops anyone else's rows;
+ *   - with no token, the insert is async as it always was.
+ *
+ * Only an explicit token counts: the ambient runWithInsertDedup context of
+ * a telemetry job shapes the fan-in writer's groups, never a ClickHouse
+ * setting, so a job's direct inserts stay async however much it sends.
+ */
+export function getInsertJsonRowsSettings(data: {
+  dedupToken?: string | undefined;
+  clickhouseSettings?: ClickHouseSettings | undefined;
+  waitsForAsyncInsert: boolean;
+}): ClickHouseSettings {
+  const asked: ClickHouseSettings = data.clickhouseSettings || {};
+  const asksForAsync: boolean = String(asked.async_insert) === "1";
+
+  if (data.dedupToken && !asksForAsync) {
+    return {
+      ...asked,
+      async_insert: 0,
+      insert_deduplication_token: data.dedupToken,
+    };
+  }
+
+  const settings: ClickHouseSettings = {
+    async_insert: 1,
+    wait_for_async_insert: data.waitsForAsyncInsert ? 1 : 0,
+    ...asked,
+  };
+
+  // Never a token on an async insert, whoever asked for one.
+  delete settings.insert_deduplication_token;
+  delete settings.async_insert_deduplicate;
+
+  return settings;
+}
 
 /*
  * Ack mode for telemetry ClickHouse inserts.
@@ -341,10 +386,11 @@ export default class AnalyticsDatabaseService<
     rows: Array<JSONObject>,
     options?: {
       /**
-       * Explicit deduplication token for this insert. Overrides the
-       * ambient runWithInsertDedup context. Callers must guarantee the
-       * token is stable across retries of the same logical insert and
-       * unique otherwise.
+       * Explicit deduplication token for this insert, which makes it
+       * synchronous (getInsertJsonRowsSettings, #11536) - unless the
+       * caller asks for an async insert, which is then sent without it.
+       * Callers must guarantee the token is stable across retries of the
+       * same logical insert and unique otherwise.
        */
       dedupToken?: string | undefined;
       /** Extra per-insert ClickHouse settings, merged last. */
@@ -366,51 +412,11 @@ export default class AnalyticsDatabaseService<
       );
     }
 
-    let dedupToken: string | undefined = options?.dedupToken;
-
-    if (!dedupToken) {
-      dedupToken = nextInsertDedupToken(tableName);
-    }
-
-    const waitForAsyncInsert: 0 | 1 = shouldWaitForAsyncInsert() ? 1 : 0;
-
-    let clickhouseSettings: ClickHouseSettings = {
-      async_insert: 1,
-      wait_for_async_insert: waitForAsyncInsert,
-    };
-
-    if (dedupToken) {
-      /*
-       * Dedup settings ride along in both ack modes. What ClickHouse does
-       * with the token on an async insert (#11441, held on the ClickHouse
-       * OneUptime ships by App's InsertDedupTokensAsyncClickhouse): it
-       * leaves the token out of the key async inserts are buffered by, so
-       * inserts under different tokens share one buffer and one part.
-       * Straight into a MergeTree each entry of a flush keeps its own token.
-       * But OneUptime inserts into a Distributed table, and through one a
-       * flush is deduplicated under its FIRST entry's token alone: another
-       * entry retried under its token lands again, and a flush led by a
-       * retry of a stored token is dropped whole, its other entries' rows
-       * with it (#11536). A token dedups by token, not by content. The ack
-       * mode is a separate, deliberate trade (see shouldWaitForAsyncInsert):
-       * by default ClickHouse owns flushing and an ack means "accepted into
-       * the async-insert buffer"; with TELEMETRY_WAIT_FOR_ASYNC_INSERT=true
-       * the ack waits for the durable flush instead.
-       */
-      clickhouseSettings = {
-        async_insert: 1,
-        wait_for_async_insert: waitForAsyncInsert,
-        async_insert_deduplicate: 1,
-        insert_deduplication_token: dedupToken,
-      };
-    }
-
-    if (options?.clickhouseSettings) {
-      clickhouseSettings = {
-        ...clickhouseSettings,
-        ...options.clickhouseSettings,
-      };
-    }
+    const clickhouseSettings: ClickHouseSettings = getInsertJsonRowsSettings({
+      dedupToken: options?.dedupToken,
+      clickhouseSettings: options?.clickhouseSettings,
+      waitsForAsyncInsert: shouldWaitForAsyncInsert(),
+    });
 
     try {
       /*

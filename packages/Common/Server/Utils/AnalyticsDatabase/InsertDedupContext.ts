@@ -16,16 +16,17 @@ import { AsyncLocalStorage } from "async_hooks";
  * unless non_replicated_deduplication_window is set — no harm either way).
  * Not on an async insert through a Distributed table, which is how OneUptime
  * inserts: there a flush is deduplicated under its first entry's token
- * alone (#11441, #11536).
+ * alone (#11441), which can drop other inserts' rows. So since #11536 these
+ * tokens reach no ClickHouse insert: they group and label the fan-in
+ * writer's inserts, which are async and sent without them.
  * The chunk counter is per table because one job inserts into several tables
  * (e.g. Span + ExceptionInstance) in a deterministic order.
  *
- * Two consumers exist:
- * - AnalyticsDatabaseService.insertJsonRows stamps direct inserts that run
- *   inside the context without an explicit token.
- * - TelemetryFanInWriter captures a token per submission AT SUBMIT TIME
- *   (still inside the job's context) so cross-job batching downstream can
- *   preserve per-job retry idempotence.
+ * One consumer is left: TelemetryFanInWriter captures a token per
+ * submission AT SUBMIT TIME (still inside the job's context), and inserts
+ * each tokened submission on its own. AnalyticsDatabaseService.insertJsonRows
+ * no longer reads the context (#11536): a job's direct inserts stay async,
+ * and only an explicit token makes an insert synchronous.
  */
 export interface InsertDedupContextStore {
   tokenBase: string;
