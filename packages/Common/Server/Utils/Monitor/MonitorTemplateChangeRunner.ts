@@ -2,7 +2,9 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
 import MonitorTemplateChange from "../../../Models/DatabaseModels/MonitorTemplateChange";
 import NetworkAlertPolicy from "../../../Models/DatabaseModels/NetworkAlertPolicy";
+import NetworkDeviceAutoImportRule from "../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import LessThan from "../../../Types/BaseDatabase/LessThan";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -37,6 +39,7 @@ import {
   readMonitorTemplateChangeSettings,
 } from "../../../Types/Monitor/MonitorTemplateChange";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorTemplateChangeProvenance from "../../../Utils/Monitor/MonitorTemplateChangeProvenance";
 import Queue, { QueueName } from "../../Infrastructure/Queue";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import MonitorService from "../../Services/MonitorService";
@@ -44,6 +47,9 @@ import MonitorTemplateChangeService from "../../Services/MonitorTemplateChangeSe
 import MonitorTemplateService from "../../Services/MonitorTemplateService";
 import NetworkAlertPolicyEngineService from "../../Services/NetworkAlertPolicyEngineService";
 import NetworkAlertPolicyService from "../../Services/NetworkAlertPolicyService";
+import NetworkDeviceAutoImportRuleEngineService from "../../Services/NetworkDeviceAutoImportRuleEngineService";
+import NetworkDeviceAutoImportRuleService from "../../Services/NetworkDeviceAutoImportRuleService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../../Types/Database/Permissions/TablePermission";
 import CallerPlan from "../Billing/CallerPlan";
@@ -96,6 +102,14 @@ import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorizat
  * its history, labels, owners and incidents, and stays the policy's. One a
  * person moved or unlinked meanwhile is the person's, and is left out. Once
  * every one is moved, the policy's Template Synced says so.
+ *
+ * FOR AN AUTO IMPORT RULE (issue #11451). Pointing a rule at another template
+ * can move its devices' monitors there first: a person's change of the
+ * monitors the rule's devices have from the template it uses
+ * (readAutoImportRuleMonitorIds), and once every one of them is on the new
+ * template, the rule is pointed at it, as the person - so the rule finds
+ * every device covered, and makes nothing new beside its old monitor. A
+ * monitor the rule made meanwhile is picked up before the rule is pointed.
  */
 
 export const MONITOR_TEMPLATE_CHANGE_JOB: string =
@@ -164,6 +178,41 @@ const PROJECT_LOCK_TIMEOUT_MS: number = 2 * 60 * 1000;
 // How many of the template's monitors one read lists, for a change of them all.
 const LINKED_MONITORS_READ_PAGE: number = LIMIT_MAX;
 
+/*
+ * How many times an auto import rule's change adds the monitors the rule made
+ * while it ran, before it points the rule: a sweep that keeps importing
+ * devices must not keep the change going for ever.
+ */
+export const MAX_AUTO_IMPORT_RULE_APPEND_ROUNDS: number = 3;
+
+// How many of a rule's devices one read of their monitors names.
+const RULE_DEVICES_PER_READ: number = 500;
+
+// What a rule is read with, to tell its devices (AutoImportRuleMatcher).
+const AUTO_IMPORT_RULE_SELECT: { [key: string]: boolean } = {
+  _id: true,
+  projectId: true,
+  name: true,
+  isEnabled: true,
+  isExclusion: true,
+  monitorTemplateId: true,
+  criteria: true,
+  ipMatchTarget: true,
+  sysNamePattern: true,
+  sysDescrPattern: true,
+  sysObjectIdPattern: true,
+  includePingOnlyHosts: true,
+};
+
+/*
+ * How far back a finished change still shows on the Monitors list (#11454),
+ * when monitors were left out, failed or not reached.
+ */
+export const MONITOR_TEMPLATE_CHANGE_SHOWN_FOR_MS: number = 60 * 60 * 1000;
+
+// The most changes the Monitors list shows at once.
+export const MONITOR_TEMPLATE_CHANGES_SHOWN_LIMIT: number = 10;
+
 export type MonitorTemplateChangeFinish = "done" | "stopped" | "handover";
 
 const WHITESPACE_RUNS: RegExp = /\s+/g;
@@ -207,6 +256,10 @@ interface ChangeRunState {
   userId: ObjectID | null;
   // A network alert policy's change: as OneUptime, the monitors its own.
   alertPolicyId: ObjectID | null;
+  // An auto import rule's change: the rule pointed at the template at the end.
+  autoImportRuleId: ObjectID | null;
+  // How many times monitors the rule made meanwhile were added to the change.
+  appendRounds: number;
   props: DatabaseCommonInteractionProps;
   propsReadAt: number;
   settings: MonitorTemplateChangeSettings;
@@ -268,6 +321,12 @@ export default class MonitorTemplateChangeRunner {
     settings: unknown;
     monitorIds: unknown;
     allLinkedToTemplate?: unknown;
+    /*
+     * An auto import rule whose devices' monitors move to the template,
+     * after which the rule is pointed at it (#11451): the monitors are the
+     * rule's, not picked.
+     */
+    autoImportRuleId?: unknown;
   }): Promise<MonitorTemplateChange> {
     const userId: ObjectID | undefined = data.props.userId;
 
@@ -317,6 +376,45 @@ export default class MonitorTemplateChangeRunner {
       await MonitorTemplateService.assertNothingProvisionsFrom(template);
     }
 
+    const autoImportRuleId: ObjectID | null = this.readOptionalId(
+      data.autoImportRuleId,
+      "The auto import rule was not found. Reload the page, then try again.",
+    );
+
+    if (autoImportRuleId) {
+      if (
+        settings.kind !== MonitorTemplateChangeKind.Link ||
+        settings.deleteTemplateWhenDone ||
+        !template
+      ) {
+        throw new BadDataException(
+          "Only a change that links monitors to a template can move an auto import rule's monitors.",
+        );
+      }
+
+      const rule: NetworkDeviceAutoImportRule = await this.readRuleToMove({
+        projectId: data.projectId,
+        ruleId: autoImportRuleId,
+        template: template,
+        props: data.props,
+      });
+
+      return await this.record({
+        projectId: data.projectId,
+        userId: userId,
+        settings: settings,
+        template: template,
+        monitorIds: await this.readAutoImportRuleMonitorIds({
+          projectId: data.projectId,
+          rule: rule,
+          props: data.props,
+          limit: MAX_MONITORS_PER_TEMPLATE_CHANGE,
+        }),
+        retryOfChangeId: null,
+        autoImportRule: { id: rule.id!, name: rule.name || "" },
+      });
+    }
+
     const monitorIds: Array<string> =
       data.allLinkedToTemplate === true && template
         ? await this.readLinkedMonitorIds({
@@ -339,6 +437,270 @@ export default class MonitorTemplateChangeRunner {
       template: template,
       monitorIds: monitorIds,
       retryOfChangeId: null,
+    });
+  }
+
+  /*
+   * The rule a person asks to move the monitors of (#11451): one of the
+   * project's import rules that gives its devices a monitor from another
+   * template of the same kind, with no move of its monitors running. Who
+   * asks may edit rules: the change points the rule at the template.
+   */
+  private static async readRuleToMove(data: {
+    projectId: ObjectID;
+    ruleId: ObjectID;
+    template: MonitorTemplate;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<NetworkDeviceAutoImportRule> {
+    this.assertCanEditAutoImportRules(data.props);
+
+    const rule: NetworkDeviceAutoImportRule | null =
+      await NetworkDeviceAutoImportRuleService.findOneBy({
+        query: {
+          _id: data.ruleId,
+          projectId: data.projectId,
+        },
+        select: AUTO_IMPORT_RULE_SELECT as never,
+        props: data.props,
+      });
+
+    if (!rule?.id) {
+      throw new BadDataException(
+        "The auto import rule was not found. Reload the page, then try again.",
+      );
+    }
+
+    if (rule.isExclusion || !rule.monitorTemplateId) {
+      throw new BadDataException(
+        "This rule gives its devices no monitor, so none of its monitors can move.",
+      );
+    }
+
+    if (
+      MonitorTemplateChangeProvenance.isSameTemplate(
+        rule.monitorTemplateId,
+        data.template.id,
+      )
+    ) {
+      throw new BadDataException(
+        "The rule uses this template already, so its monitors are on it.",
+      );
+    }
+
+    const ruleTemplate: MonitorTemplate | null =
+      await MonitorTemplateService.findOneById({
+        id: rule.monitorTemplateId,
+        select: { _id: true, monitorType: true },
+        props: { isRoot: true },
+      });
+
+    if (
+      ruleTemplate?.monitorType &&
+      ruleTemplate.monitorType !== data.template.monitorType
+    ) {
+      throw new BadDataException(
+        "The rule's monitors are of another type than this template, so they cannot move to it. Save the rule without moving them.",
+      );
+    }
+
+    if (
+      (
+        await this.findActiveChangesOfAutoImportRule({
+          projectId: data.projectId,
+          ruleId: rule.id,
+        })
+      ).length > 0
+    ) {
+      throw new BadDataException(
+        "A move of this rule's monitors is running already. Wait for it to finish, or stop it, then try again.",
+      );
+    }
+
+    return rule;
+  }
+
+  /*
+   * The monitors an auto import rule's devices have from the template the
+   * rule uses (#11451), that `props` may read: made for a device - by the
+   * rule, an import or another rule - from the template (created from it,
+   * or before that was recorded) and still linked to it, no alert policy's,
+   * on a device a run of the rule reaches (NetworkDeviceAutoImportRule
+   * EngineService.findDeviceIdsTheRuleReaches: the hosts it imports in the
+   * project's scans, an exclusion rule vetoing them, found as a run finds
+   * them). Exactly the monitors the rule would give a second monitor beside,
+   * pointed at another template without moving them.
+   */
+  public static async readAutoImportRuleMonitorIds(data: {
+    projectId: ObjectID;
+    rule: NetworkDeviceAutoImportRule;
+    props: DatabaseCommonInteractionProps;
+    limit: number;
+  }): Promise<Array<string>> {
+    const templateId: ObjectID | undefined = data.rule.monitorTemplateId;
+
+    if (!templateId) {
+      return [];
+    }
+
+    const deviceIds: Array<string> = Array.from(
+      await NetworkDeviceAutoImportRuleEngineService.findDeviceIdsTheRuleReaches(
+        {
+          projectId: data.projectId,
+          rule: data.rule,
+        },
+      ),
+    );
+
+    const monitorIds: Array<string> = [];
+
+    for (
+      let offset: number = 0;
+      offset < deviceIds.length;
+      offset += RULE_DEVICES_PER_READ
+    ) {
+      const devicesOfRead: Array<ObjectID> = deviceIds
+        .slice(offset, offset + RULE_DEVICES_PER_READ)
+        .map((id: string): ObjectID => {
+          return new ObjectID(id);
+        });
+      let cursor: ObjectID | null = null;
+
+      for (;;) {
+        const monitors: Array<Monitor> = await MonitorService.findBy({
+          query: {
+            projectId: data.projectId,
+            monitorTemplateId: templateId,
+            autoProvisionedNetworkDeviceId: QueryHelper.any(devicesOfRead),
+            networkAlertPolicyId: QueryHelper.isNull(),
+            ...(cursor ? { _id: QueryHelper.greaterThan(cursor) } : {}),
+          },
+          select: {
+            _id: true,
+            createdFromMonitorTemplateId: true,
+          },
+          sort: { _id: SortOrder.Ascending },
+          limit: LINKED_MONITORS_READ_PAGE,
+          skip: 0,
+          props: data.props,
+        });
+
+        for (const monitor of monitors) {
+          // Made from the template: one a person moved onto it is not the rule's.
+          if (
+            monitor.id &&
+            (!monitor.createdFromMonitorTemplateId ||
+              MonitorTemplateChangeProvenance.isSameTemplate(
+                monitor.createdFromMonitorTemplateId,
+                templateId,
+              ))
+          ) {
+            monitorIds.push(monitor.id.toString());
+
+            if (monitorIds.length >= data.limit) {
+              return monitorIds;
+            }
+          }
+        }
+
+        if (monitors.length < LINKED_MONITORS_READ_PAGE) {
+          break;
+        }
+
+        cursor = monitors[monitors.length - 1]!.id;
+      }
+    }
+
+    return monitorIds;
+  }
+
+  /*
+   * What a move of an auto import rule's monitors would move, before anyone
+   * asks for it (#11451): how many of its devices' monitors are on the
+   * template it uses, which template that is, and whether a move of them is
+   * running already. The rule's form asks it as the person saves the rule.
+   */
+  public static async getAutoImportRuleMonitorsToMove(data: {
+    projectId: ObjectID;
+    ruleId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<{
+    count: number;
+    monitorTemplateId?: string | undefined;
+    monitorTemplateName?: string | undefined;
+    monitorType?: string | undefined;
+    isMoveRunning: boolean;
+  }> {
+    this.assertCanSeeChanges(data.props);
+
+    const rule: NetworkDeviceAutoImportRule | null =
+      await NetworkDeviceAutoImportRuleService.findOneBy({
+        query: {
+          _id: data.ruleId,
+          projectId: data.projectId,
+        },
+        select: AUTO_IMPORT_RULE_SELECT as never,
+        props: data.props,
+      });
+
+    if (!rule?.id) {
+      throw new BadDataException(
+        "The auto import rule was not found. Reload the page, then try again.",
+      );
+    }
+
+    const isMoveRunning: boolean =
+      (
+        await this.findActiveChangesOfAutoImportRule({
+          projectId: data.projectId,
+          ruleId: rule.id,
+        })
+      ).length > 0;
+
+    if (rule.isExclusion || !rule.monitorTemplateId) {
+      return { count: 0, isMoveRunning: isMoveRunning };
+    }
+
+    const template: MonitorTemplate | null =
+      await MonitorTemplateService.findOneById({
+        id: rule.monitorTemplateId,
+        select: { _id: true, templateName: true, monitorType: true },
+        props: { isRoot: true },
+      });
+
+    return {
+      count: (
+        await this.readAutoImportRuleMonitorIds({
+          projectId: data.projectId,
+          rule: rule,
+          props: data.props,
+          limit: MAX_MONITORS_PER_TEMPLATE_CHANGE,
+        })
+      ).length,
+      monitorTemplateId: rule.monitorTemplateId.toString(),
+      ...(template?.templateName
+        ? { monitorTemplateName: template.templateName }
+        : {}),
+      ...(template?.monitorType ? { monitorType: template.monitorType } : {}),
+      isMoveRunning: isMoveRunning,
+    };
+  }
+
+  // An auto import rule's changes that have not finished, oldest first.
+  public static async findActiveChangesOfAutoImportRule(data: {
+    projectId: ObjectID;
+    ruleId: ObjectID;
+  }): Promise<Array<MonitorTemplateChange>> {
+    return await MonitorTemplateChangeService.findBy({
+      query: {
+        projectId: data.projectId,
+        networkDeviceAutoImportRuleId: data.ruleId,
+        status: new Includes([...ACTIVE_MONITOR_TEMPLATE_CHANGE_STATUSES]),
+      },
+      select: CHANGE_SELECT as never,
+      sort: { createdAt: SortOrder.Ascending },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
     });
   }
 
@@ -502,7 +864,11 @@ export default class MonitorTemplateChangeRunner {
         })
       : null;
 
-    if (monitorIds.length === 0 && !settings.deleteTemplateWhenDone) {
+    if (
+      monitorIds.length === 0 &&
+      !settings.deleteTemplateWhenDone &&
+      !row.networkDeviceAutoImportRuleId
+    ) {
       throw new BadDataException(
         "Nothing in this change failed or was left out, so there is nothing to retry.",
       );
@@ -524,6 +890,14 @@ export default class MonitorTemplateChangeRunner {
             alertPolicy: {
               id: row.networkAlertPolicyId,
               name: row.networkAlertPolicyName || "",
+            },
+          }
+        : {}),
+      ...(row.networkDeviceAutoImportRuleId
+        ? {
+            autoImportRule: {
+              id: row.networkDeviceAutoImportRuleId,
+              name: row.networkDeviceAutoImportRuleName || "",
             },
           }
         : {}),
@@ -611,6 +985,8 @@ export default class MonitorTemplateChangeRunner {
     retryOfChangeId: ObjectID | null;
     // A network alert policy's change (#11452).
     alertPolicy?: { id: ObjectID; name: string } | undefined;
+    // An auto import rule's change (#11451).
+    autoImportRule?: { id: ObjectID; name: string } | undefined;
   }): Promise<MonitorTemplateChange> {
     const row: MonitorTemplateChange = new MonitorTemplateChange();
     row.projectId = data.projectId;
@@ -634,6 +1010,14 @@ export default class MonitorTemplateChangeRunner {
     if (data.alertPolicy) {
       row.networkAlertPolicyId = data.alertPolicy.id;
       row.networkAlertPolicyName = data.alertPolicy.name.substring(0, 100);
+    }
+
+    if (data.autoImportRule) {
+      row.networkDeviceAutoImportRuleId = data.autoImportRule.id;
+      row.networkDeviceAutoImportRuleName = data.autoImportRule.name.substring(
+        0,
+        100,
+      );
     }
 
     if (data.template?.id) {
@@ -794,6 +1178,26 @@ export default class MonitorTemplateChangeRunner {
     }
   }
 
+  private static assertCanEditAutoImportRules(
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    try {
+      TablePermission.checkTableLevelPermissions(
+        NetworkDeviceAutoImportRule,
+        props,
+        DatabaseRequestType.Update,
+      );
+    } catch (error) {
+      if (isRefusalOfThePerson(error)) {
+        throw new NotAuthorizedException(
+          "You may not edit auto import rules in this project, so you cannot move a rule's monitors to another template. Ask a Project Owner or Project Admin.",
+        );
+      }
+
+      throw error;
+    }
+  }
+
   private static assertCanDeleteTemplates(
     props: DatabaseCommonInteractionProps,
   ): void {
@@ -919,80 +1323,97 @@ export default class MonitorTemplateChangeRunner {
       projectId: state.projectId.toString(),
     } as LogAttributes;
 
-    while (state.results.processedCount < state.monitorIds.length) {
-      if (this.now() >= data.deadline) {
-        await this.flush(state, true);
-        return "handover";
+    for (;;) {
+      while (state.results.processedCount < state.monitorIds.length) {
+        if (this.now() >= data.deadline) {
+          await this.flush(state, true);
+          return "handover";
+        }
+
+        if (await this.isStopRequested(state)) {
+          this.markNotReached({
+            monitorIds: state.monitorIds,
+            results: state.results,
+            progress: state.progress,
+            reason: MONITOR_NOT_REACHED_STOPPED,
+          });
+          await this.complete(state, MonitorTemplateChangeStatus.Stopped);
+          return "stopped";
+        }
+
+        try {
+          await this.refreshPropsIfDue(state);
+        } catch (error) {
+          this.markNotReached({
+            monitorIds: state.monitorIds,
+            results: state.results,
+            progress: state.progress,
+            reason: MONITOR_NOT_REACHED_FAILED,
+          });
+          await this.failChange(state.row, this.describeStartFailure(error), {
+            results: state.results,
+            progress: state.progress,
+          });
+          return "done";
+        }
+
+        const monitorId: string =
+          state.monitorIds[state.results.processedCount]!;
+
+        try {
+          await this.changeMonitor(state, monitorId);
+        } catch (error) {
+          // changeMonitor settles its own failures; this one is unexpected.
+          logger.error(
+            `Monitor template change ${state.row.id?.toString()}: unexpected failure changing monitor ${monitorId}: ${error}`,
+            logAttributes,
+          );
+
+          this.recordLine(state, {
+            monitorId: monitorId,
+            outcome: MonitorTemplateChangeOutcome.Failed,
+            reason: toText(error),
+          });
+        }
+
+        state.results.processedCount++;
+        state.progress.processed = state.results.processedCount;
+
+        if (this.isSystemicallyFailing(state)) {
+          this.markNotReached({
+            monitorIds: state.monitorIds,
+            results: state.results,
+            progress: state.progress,
+            reason: MONITOR_NOT_REACHED_FAILED,
+          });
+          await this.failChange(
+            state.row,
+            `${MAX_CONSECUTIVE_IDENTICAL_CHANGE_FAILURES} monitors in a row could not be changed, each for the same reason, so the change stopped. Fix it, then retry: ${state.lastFailureReason}`,
+            { results: state.results, progress: state.progress },
+          );
+          return "done";
+        }
+
+        await this.flush(state, false);
       }
 
-      if (await this.isStopRequested(state)) {
-        this.markNotReached({
-          monitorIds: state.monitorIds,
-          results: state.results,
-          progress: state.progress,
-          reason: MONITOR_NOT_REACHED_STOPPED,
-        });
-        await this.complete(state, MonitorTemplateChangeStatus.Stopped);
-        return "stopped";
+      // An auto import rule's change: monitors the rule made meanwhile go too.
+      if (
+        state.autoImportRuleId &&
+        (await this.addMonitorsTheRuleMadeMeanwhile(state))
+      ) {
+        continue;
       }
 
-      try {
-        await this.refreshPropsIfDue(state);
-      } catch (error) {
-        this.markNotReached({
-          monitorIds: state.monitorIds,
-          results: state.results,
-          progress: state.progress,
-          reason: MONITOR_NOT_REACHED_FAILED,
-        });
-        await this.failChange(state.row, this.describeStartFailure(error), {
-          results: state.results,
-          progress: state.progress,
-        });
-        return "done";
-      }
-
-      const monitorId: string = state.monitorIds[state.results.processedCount]!;
-
-      try {
-        await this.changeMonitor(state, monitorId);
-      } catch (error) {
-        // changeMonitor settles its own failures; this one is unexpected.
-        logger.error(
-          `Monitor template change ${state.row.id?.toString()}: unexpected failure changing monitor ${monitorId}: ${error}`,
-          logAttributes,
-        );
-
-        this.recordLine(state, {
-          monitorId: monitorId,
-          outcome: MonitorTemplateChangeOutcome.Failed,
-          reason: toText(error),
-        });
-      }
-
-      state.results.processedCount++;
-      state.progress.processed = state.results.processedCount;
-
-      if (this.isSystemicallyFailing(state)) {
-        this.markNotReached({
-          monitorIds: state.monitorIds,
-          results: state.results,
-          progress: state.progress,
-          reason: MONITOR_NOT_REACHED_FAILED,
-        });
-        await this.failChange(
-          state.row,
-          `${MAX_CONSECUTIVE_IDENTICAL_CHANGE_FAILURES} monitors in a row could not be changed, each for the same reason, so the change stopped. Fix it, then retry: ${state.lastFailureReason}`,
-          { results: state.results, progress: state.progress },
-        );
-        return "done";
-      }
-
-      await this.flush(state, false);
+      break;
     }
 
     if (state.settings.deleteTemplateWhenDone) {
       await this.deleteTemplateIfUnlinked(state);
+    }
+
+    if (state.autoImportRuleId) {
+      await this.pointAutoImportRule(state);
     }
 
     if (state.alertPolicyId) {
@@ -1002,6 +1423,157 @@ export default class MonitorTemplateChangeRunner {
     await this.complete(state, MonitorTemplateChangeStatus.Completed);
 
     return "done";
+  }
+
+  /*
+   * An auto import rule's change, its monitors dealt with (#11451): the
+   * monitors the rule's devices have from its template that the change has
+   * not dealt with - made by the rule while the change ran - are added to it,
+   * up to MAX_AUTO_IMPORT_RULE_APPEND_ROUNDS times, so none is left behind
+   * when the rule is pointed. True when some were added.
+   */
+  private static async addMonitorsTheRuleMadeMeanwhile(
+    state: ChangeRunState,
+  ): Promise<boolean> {
+    if (state.appendRounds >= MAX_AUTO_IMPORT_RULE_APPEND_ROUNDS) {
+      return false;
+    }
+
+    const rule: NetworkDeviceAutoImportRule | null =
+      await this.readRuleOfChange(state);
+
+    if (
+      !rule?.monitorTemplateId ||
+      MonitorTemplateChangeProvenance.isSameTemplate(
+        rule.monitorTemplateId,
+        state.row.monitorTemplateId,
+      )
+    ) {
+      return false;
+    }
+
+    const known: Set<string> = new Set<string>(
+      state.monitorIds.map((id: string): string => {
+        return id.toLowerCase();
+      }),
+    );
+
+    const fresh: Array<string> = (
+      await this.readAutoImportRuleMonitorIds({
+        projectId: state.projectId,
+        rule: rule,
+        props: state.props,
+        limit: MAX_MONITORS_PER_TEMPLATE_CHANGE,
+      })
+    ).filter((id: string): boolean => {
+      return !known.has(id.toLowerCase());
+    });
+
+    state.appendRounds++;
+
+    if (
+      fresh.length === 0 ||
+      state.monitorIds.length + fresh.length > MAX_MONITORS_PER_TEMPLATE_CHANGE
+    ) {
+      return false;
+    }
+
+    state.monitorIds.push(...fresh);
+    state.progress.total = state.monitorIds.length;
+
+    await MonitorTemplateChangeService.updateOneById({
+      id: state.row.id!,
+      data: {
+        monitorIds: state.monitorIds as never,
+        results: state.results as never,
+        progress: state.progress as never,
+      },
+      props: { isRoot: true },
+    });
+
+    return true;
+  }
+
+  // The rule a change moves the monitors of, as OneUptime reads it.
+  private static async readRuleOfChange(
+    state: ChangeRunState,
+  ): Promise<NetworkDeviceAutoImportRule | null> {
+    if (!state.autoImportRuleId) {
+      return null;
+    }
+
+    return await NetworkDeviceAutoImportRuleService.findOneBy({
+      query: {
+        _id: state.autoImportRuleId,
+        projectId: state.projectId,
+      },
+      select: AUTO_IMPORT_RULE_SELECT as never,
+      props: { isRoot: true },
+    });
+  }
+
+  /*
+   * An auto import rule's change, done (#11451): the rule is pointed at the
+   * template, as the person, once every monitor its devices have from its
+   * template is on the new one - as OneUptime sees them, so one the person
+   * may not see keeps the rule where it is, as it keeps a template a Delete
+   * would delete. Otherwise the summary says how many are left, or why the
+   * rule could not be pointed. A rule pointed at it meanwhile is as asked.
+   */
+  private static async pointAutoImportRule(
+    state: ChangeRunState,
+  ): Promise<void> {
+    const templateId: ObjectID | undefined = state.row.monitorTemplateId;
+    const rule: NetworkDeviceAutoImportRule | null =
+      await this.readRuleOfChange(state);
+
+    if (!rule || !templateId) {
+      state.results.autoImportRuleError =
+        "The rule was deleted while its monitors moved, so no rule was pointed at the template.";
+      return;
+    }
+
+    if (
+      MonitorTemplateChangeProvenance.isSameTemplate(
+        rule.monitorTemplateId,
+        templateId,
+      )
+    ) {
+      state.results.isAutoImportRulePointed = true;
+      return;
+    }
+
+    if (!rule.monitorTemplateId) {
+      state.results.autoImportRuleError =
+        "The rule's monitor template was cleared while its monitors moved, so it was left as it is.";
+      return;
+    }
+
+    const left: number = (
+      await this.readAutoImportRuleMonitorIds({
+        projectId: state.projectId,
+        rule: rule,
+        props: { isRoot: true },
+        limit: MAX_MONITORS_PER_TEMPLATE_CHANGE,
+      })
+    ).length;
+
+    if (left > 0) {
+      state.results.autoImportRuleMonitorsLeftCount = left;
+      return;
+    }
+
+    try {
+      await NetworkDeviceAutoImportRuleService.updateOneById({
+        id: rule.id!,
+        data: { monitorTemplateId: templateId },
+        props: state.props,
+      });
+
+      state.results.isAutoImportRulePointed = true;
+    } catch (error) {
+      state.results.autoImportRuleError = toText(error);
+    }
   }
 
   /*
@@ -1383,6 +1955,69 @@ export default class MonitorTemplateChangeRunner {
     return row;
   }
 
+  /*
+   * The project's changes the Monitors list shows (#11454): those still
+   * running, then those that finished in the last hour with monitors left
+   * out, failed or not reached - or failed as a whole - newest first. A
+   * change that went well is done with once it is.
+   */
+  public static async findChangesToShowOfProject(data: {
+    projectId: ObjectID;
+    now?: Date | undefined;
+  }): Promise<Array<MonitorTemplateChange>> {
+    const now: Date = data.now || new Date();
+
+    const active: Array<MonitorTemplateChange> =
+      await MonitorTemplateChangeService.findBy({
+        query: {
+          projectId: data.projectId,
+          status: new Includes([...ACTIVE_MONITOR_TEMPLATE_CHANGE_STATUSES]),
+        },
+        select: CHANGE_SELECT as never,
+        sort: { createdAt: SortOrder.Descending },
+        limit: MONITOR_TEMPLATE_CHANGES_SHOWN_LIMIT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const finished: Array<MonitorTemplateChange> =
+      await MonitorTemplateChangeService.findBy({
+        query: {
+          projectId: data.projectId,
+          status: new Includes([
+            MonitorTemplateChangeStatus.Completed,
+            MonitorTemplateChangeStatus.Stopped,
+            MonitorTemplateChangeStatus.Failed,
+          ]),
+          completedAt: new GreaterThan(
+            new Date(now.getTime() - MONITOR_TEMPLATE_CHANGE_SHOWN_FOR_MS),
+          ),
+        },
+        select: CHANGE_SELECT as never,
+        sort: { completedAt: SortOrder.Descending },
+        limit: MONITOR_TEMPLATE_CHANGES_SHOWN_LIMIT * 2,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const worthShowing: Array<MonitorTemplateChange> = finished.filter(
+      (row: MonitorTemplateChange): boolean => {
+        const progress: MonitorTemplateChangeProgress =
+          readMonitorTemplateChangeProgress(row.progress);
+
+        return (
+          row.status === MonitorTemplateChangeStatus.Failed ||
+          progress.skipped + progress.failed + progress.notReached > 0
+        );
+      },
+    );
+
+    return [...active, ...worthShowing].slice(
+      0,
+      MONITOR_TEMPLATE_CHANGES_SHOWN_LIMIT,
+    );
+  }
+
   // The template's changes that have not finished, newest first.
   public static async findActiveChangesOfTemplate(data: {
     projectId: ObjectID;
@@ -1597,6 +2232,8 @@ export default class MonitorTemplateChangeRunner {
       projectId: projectId,
       userId: row.createdByUserId || null,
       alertPolicyId: alertPolicyId,
+      autoImportRuleId: row.networkDeviceAutoImportRuleId || null,
+      appendRounds: 0,
       props: props,
       propsReadAt: this.now(),
       settings: settings,
