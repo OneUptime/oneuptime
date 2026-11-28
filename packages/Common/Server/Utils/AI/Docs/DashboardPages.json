@@ -8666,6 +8666,21 @@
     "kind": "page"
   },
   {
+    "title": "Connections",
+    "where": [
+      "Storage Arrays"
+    ],
+    "keywords": [
+      "unisphere",
+      "powermax",
+      "dell",
+      "connect unisphere",
+      "storage connections"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/connections",
+    "kind": "page"
+  },
+  {
     "title": "Documentation",
     "where": [
       "Storage Arrays"
