@@ -63,7 +63,9 @@ flowchart LR
 
 Den er slått på i et nytt prosjekt. Et prosjekt som fantes fra før, beholder den slått av, fordi prosjektets API-klienter og Terraform-konfigurasjoner kan regne med navn som gjentar seg: slå den på når du er klar.
 
-Under bryteren viser kortet hvert navn prosjektet allerede har mer enn én gang, slag for slag, med en lenke til hver post og dagen den ble laget. Å slå bryteren på avviser ingenting som finnes: de postene fortsetter å virke til noen gir dem nytt navn, og bare en ny post eller en navneendring trenger et eget navn. Å lagre en post med sitt eget navn igjen, uansett store og små bokstaver, er ingen navneendring.
+Under bryteren viser kortet hvert navn prosjektet allerede har mer enn én gang, slag for slag, med en lenke til hver post og dagen den ble laget. Et OpenStack-budsjett åpnes på skyens **Forbruk**-side, og et sammendrag for et arbeidsområde på fanen **Sammendrag** på Slack-, Microsoft Teams- eller Mattermost-siden det hører til. AI-agenter har ingen side i dashbordet, så kortet nevner dem uten lenke og sier det. Å slå bryteren på avviser ingenting som finnes: de postene fortsetter å virke til noen gir dem nytt navn, og bare en ny post eller en navneendring trenger et eget navn. Å lagre en post med sitt eget navn igjen, uansett store og små bokstaver, er ingen navneendring.
+
+Listen til hvert slag merker også de postene, med **Samme navn som en annen post av typen monitor** (eller mal, nøkkel og så videre) og dagen hver ble laget, og sier over listen hvor mange det er. En liste merker bare postene du kan åpne.
 
 Uansett hva bryteren sier, varsler et skjema mens du skriver et navn som en annen post av samme slag allerede har, og lenker til den posten. Så lenge bryteren er slått på, sier varselet også at lagringen ville blitt avvist.
 

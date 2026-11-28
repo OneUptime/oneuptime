@@ -1,4 +1,10 @@
 import PageComponentProps from "../PageComponentProps";
+import {
+  getCloudCostFileName,
+  toCloudCostGroupSpendCsv,
+} from "Common/Types/Cloud/CloudCostCsv";
+import downloadFile from "Common/UI/Utils/DownloadFile";
+import { DOWNLOAD_CSV } from "../../Components/Cloud/CloudCostBreakdownCard";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
@@ -68,6 +74,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -360,6 +368,12 @@ const CloudCostGroupPage: FunctionComponent<
             <></>
           )}
         </div>
+        {/* The group's line: its ID, who created it and who last changed it. */}
+        <RecordActivityLine
+          modelType={CloudCostGroup}
+          recordId={groupId}
+          className="mt-4 border-t border-gray-100 pt-3"
+        />
       </Card>
       <CloudCostBasisSwitch
         basis={basisChoice.basis}
@@ -419,6 +433,35 @@ const CloudCostGroupPage: FunctionComponent<
             rightElement={
               <CloudCostBasisPill basis={spend.basis || basisChoice.basis} />
             }
+            buttons={[
+              {
+                title: DOWNLOAD_CSV,
+                icon: IconProp.Download,
+                // Its days, its services, resources and accounts, in one file.
+                onClick: () => {
+                  downloadFile({
+                    content: toCloudCostGroupSpendCsv({
+                      group: spend.group,
+                      buckets: spend.buckets,
+                      start: spend.start,
+                      lastDay: spend.lastDay,
+                      currency: spend.currency,
+                      basis: spend.basis || basisChoice.basis,
+                      accountNames,
+                    }),
+                    filename: getCloudCostFileName({
+                      what: "cloud-costs",
+                      dimension: "group",
+                      viewName: spend.group.name,
+                      basis: spend.basis || basisChoice.basis,
+                      start: spend.start,
+                      lastDay: spend.lastDay,
+                    }),
+                    mimeType: "text/csv;charset=utf-8;",
+                  });
+                },
+              },
+            ]}
           >
             <div data-testid="cloud-cost-group-chart">
               <CloudDailySpendChart
@@ -432,26 +475,30 @@ const CloudCostGroupPage: FunctionComponent<
               />
             </div>
           </Card>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <Card title={GROUP_TOP_SERVICES} fillHeight={true}>
+          <CardGrid
+            columns={3}
+            cardWidth="narrow"
+            dataTestId="cloud-cost-group-top"
+          >
+            <Card title={GROUP_TOP_SERVICES}>
               <RankedBars
                 emptyText={GROUP_TOP_EMPTY}
                 items={toItems(spend.group.topServices, "service")}
               />
             </Card>
-            <Card title={GROUP_TOP_RESOURCES} fillHeight={true}>
+            <Card title={GROUP_TOP_RESOURCES}>
               <RankedBars
                 emptyText={GROUP_TOP_EMPTY}
                 items={toItems(spend.group.topResources, "resourceId")}
               />
             </Card>
-            <Card title={GROUP_TOP_ACCOUNTS} fillHeight={true}>
+            <Card title={GROUP_TOP_ACCOUNTS}>
               <RankedBars
                 emptyText={GROUP_TOP_EMPTY}
                 items={toItems(spend.group.topAccounts, "cloudAccountId")}
               />
             </Card>
-          </div>
+          </CardGrid>
         </Fragment>
       )}
       <Card

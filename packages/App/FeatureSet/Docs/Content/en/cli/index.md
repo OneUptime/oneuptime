@@ -107,6 +107,7 @@ The list shows every kind of record you can work with, and its command, such as 
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Works with one kind of record | [Resource Operations](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Lists a resource's fields, and the flags that set them | [Resource Operations](/docs/cli/resource-operations#see-a-resources-fields) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Does what the dashboard's buttons do on incidents, alerts and scheduled maintenance | [Resource Operations](/docs/cli/resource-operations#acknowledge-resolve-and-add-notes) |
+| `oneuptime <resource> breakdown`, `export` | Breaks a period's cloud spend down, or exports it as a FOCUS 1.2 file, for `cloud-cost` | [Reports and exports](/docs/telemetry/cloud-costs#reports-and-exports) |
 | `oneuptime resources` | Lists the kinds of record, with their commands | [Command Reference](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Prints the CLI's version | [Command Reference](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Shows the help of a command | [Get help](#get-help) |

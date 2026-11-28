@@ -425,6 +425,7 @@
     "Podman Agent": "Podman-agent",
     "Proxmox Agent": "Proxmox-agent",
     "XCP-ng Agent": "XCP-ng-agent",
+    "XCP-ng Without an Agent": "XCP-ng uden agent",
     "Ceph Agent": "Ceph-agent",
     "Storage Array Agent": "Lagerarray-agent",
     "Docker Swarm Agent": "Docker Swarm-agent",

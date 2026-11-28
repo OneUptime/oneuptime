@@ -66,6 +66,8 @@ export default class DataObservabilityRunner {
         kind: new Includes([...DATA_OBSERVABILITY_KINDS]),
         connectionString: QueryHelper.notNull(),
         scanProbeId: QueryHelper.isNull(),
+        // Read by its Database Agent (#11148), however Data Security samples it.
+        tableHealthDatabaseServerId: QueryHelper.isNull(),
         nextTableHealthCollectionAt: QueryHelper.lessThanEqualToOrNull(now),
       },
       select: { _id: true, projectId: true },
@@ -151,6 +153,7 @@ export default class DataObservabilityRunner {
         connectionString: true,
         scanExclusions: true,
         scanProbeId: true,
+        tableHealthDatabaseServerId: true,
         isTableHealthEnabled: true,
         isArchived: true,
         cloudConnectionId: true,
@@ -171,8 +174,8 @@ export default class DataObservabilityRunner {
       return null;
     }
 
-    // A probe's store is collected by its probe.
-    if (store.scanProbeId) {
+    // A probe's store is collected by its probe, and a Database Agent's by its agent (#11148).
+    if (store.scanProbeId || store.tableHealthDatabaseServerId) {
       return null;
     }
 

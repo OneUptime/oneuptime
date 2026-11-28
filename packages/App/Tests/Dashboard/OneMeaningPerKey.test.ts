@@ -665,6 +665,9 @@ describe("one meaning per key", () => {
       "packages/Common/Models/DatabaseModels/ManagedDevice.ts",
       "packages/Common/Models/DatabaseModels/NetworkDevice.ts",
       "packages/Common/Models/DatabaseModels/StorageArrayResource.ts",
+      "packages/Common/Types/StorageArray/Platforms/Dell/PowerScale/PowerScalePlatform.ts",
+      // An ONTAP node's, disk's and shelf's model (#11001).
+      "packages/Common/Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform.ts",
     ]);
     expect(filesLookingUp("Model")).toEqual([
       "Components/AI/LlmCallsTable.tsx",
@@ -681,6 +684,110 @@ describe("one meaning per key", () => {
       "packages/Common/UI/Components/Workflow/Utils.ts",
     ]);
     expect(MEANING_KEYS).toContain("Model (hardware model)");
+  });
+
+  /*
+   * #11001: an ONTAP aggregate is a group of disks, and the bare Aggregate
+   * OpenStack's host aggregate - Traditional Chinese 主機集合, Arabic
+   * تجميع المضيفين - so ONTAP's tab, its parts' kind and a volume's
+   * aggregate read "host aggregate" there. ONTAP's take keys of their own,
+   * and no ONTAP file looks up the bare words.
+   */
+  test("an ONTAP aggregate is its own key, and ONTAP never looks up OpenStack's bare Aggregate", () => {
+    for (const key of [
+      "Aggregate (disk aggregate)",
+      "Aggregates (disk aggregates)",
+    ]) {
+      expect(MEANING_KEYS).toContain(key);
+      expect({
+        key,
+        ontap: filesLookingUp(key).every((file: string): boolean => {
+          return file.includes("/StorageArray/Platforms/NetApp/ONTAP/");
+        }),
+        lookedUp: filesLookingUp(key).length > 0,
+      }).toEqual({ key, ontap: true, lookedUp: true });
+    }
+    for (const word of ["Aggregate", "Aggregates"]) {
+      expect({
+        word,
+        ontap: filesLookingUp(word).filter((file: string): boolean => {
+          return file.includes("/StorageArray/Platforms/NetApp/");
+        }),
+      }).toEqual({ word, ontap: [] });
+    }
+    // Every language words them; English reads the bare words.
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+      for (const key of [
+        "Aggregate (disk aggregate)",
+        "Aggregates (disk aggregates)",
+      ]) {
+        expect({
+          language,
+          key,
+          worded: Boolean(locale[key]) && locale[key] !== key,
+        }).toEqual({ language, key, worded: true });
+      }
+    }
+    // Where the bare words are host aggregates, a group of disks is not.
+    for (const language of ["zh-TW", "ar"]) {
+      const locale: Record<string, string> = readLocale(language);
+      expect({
+        language,
+        one: locale["Aggregate (disk aggregate)"] === locale["Aggregate"],
+        many: locale["Aggregates (disk aggregates)"] === locale["Aggregates"],
+      }).toEqual({ language, one: false, many: false });
+    }
+  });
+
+  /*
+   * #11001: an ONTAP disk no node owns is "Unassigned", which the bare key
+   * words as a case or an exception nobody has taken - "no one in charge"
+   * in Japanese, Chinese and Persian; a port's link is "Up" or "Down",
+   * which the bare keys word as a machine that crashed (宕机, "Ausgefallen").
+   */
+  test("an unassigned ONTAP disk and a port's link are keys of their own, worded for a disk and a link", () => {
+    for (const [key, word, differIn] of [
+      [
+        "Unassigned (disk not owned by a node)",
+        "Unassigned",
+        ["ja", "zh-CN", "zh-TW", "fa"],
+      ],
+      ["Up (port link)", "Up", ["zh-CN", "zh-TW", "de"]],
+      ["Down (port link)", "Down", ["zh-CN", "zh-TW", "de"]],
+    ] as Array<[string, string, Array<string>]>) {
+      expect(MEANING_KEYS).toContain(key);
+      expect({ key, files: filesLookingUp(key) }).toEqual({
+        key,
+        files: ["Pages/StorageArray/Utils/StorageArrayHealth.ts"],
+      });
+      expect({
+        word,
+        storage: filesLookingUp(word).filter((file: string): boolean => {
+          return file.includes("StorageArray");
+        }),
+      }).toEqual({ word, storage: [] });
+      for (const language of LANGUAGES.filter((code: string): boolean => {
+        return code !== "en";
+      })) {
+        const locale: Record<string, string> = readLocale(language);
+        expect({
+          language,
+          key,
+          worded: Boolean(locale[key]) && locale[key] !== key,
+        }).toEqual({ language, key, worded: true });
+      }
+      for (const language of differIn) {
+        const locale: Record<string, string> = readLocale(language);
+        expect({
+          language,
+          key,
+          same: locale[key] === locale[word],
+        }).toEqual({ language, key, same: false });
+      }
+    }
   });
 
   /*

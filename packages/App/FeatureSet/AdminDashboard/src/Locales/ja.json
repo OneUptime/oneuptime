@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "IoT フリートを削除すると、そのデバイスレジストリも削除され、登録済みのデバイスはサインインできなくなります。",
   "Deleting a database also deletes the endpoints it is reached at.": "データベースを削除すると、そのデータベースに接続するエンドポイントも削除されます。",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "クラウド接続を削除すると、OneUptime はそのアカウントの読み取りを停止します。リソースはメトリクスとともに残ります。",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "ストレージアレイ接続を削除すると、OneUptime はその背後のアレイの読み取りを停止し、保存済みのパスワードと接続テストも削除されます。アレイはメトリクスとともに残ります。",
   "True": "真",
   "False": "偽",
   "Key": "キー",
@@ -4622,5 +4623,19 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "このモニターテンプレートにはモニターの種類がないため、そのモニターを同期できません。モニターの種類を指定してテンプレートを作り直してください。",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "テンプレートの同期設定には、テンプレートのモニターの種類が必要です。先にモニターの種類を選んでから、同期設定を選び直してください。",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "モニターテンプレートは「{{field}}」を同期できません。テンプレートが提供する同期設定から選んでから、もう一度保存してください。",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "まだ新しいユーザーはサインインできません。「関連付けたプロジェクト」で、参加するチームとともにプロジェクトを関連付けてください。"
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "まだ新しいユーザーはサインインできません。「関連付けたプロジェクト」で、参加するチームとともにプロジェクトを関連付けてください。",
+  "This issue does not exist, or you cannot read it.": "この問題は存在しないか、読み取る権限がありません。",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "この問題にはすでに 10 件のプルリクエストがリンクされています。別のものをリンクするには、先に 1 件のリンクを解除してください。",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "この問題は保留されています。リスクが受け入れられたか、問題ではないとされました。修正するプルリクエストをリンクするには、問題を再度開いてください。",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} はすでにこの問題にリンクされています。",
+  "All XCP-ng pools": "すべての XCP-ng プール",
+  "Only XCP-ng pools that match conditions": "条件に一致する XCP-ng プールのみ",
+  "All savings": "すべての節約",
+  "Only savings that match conditions": "条件に一致する節約のみ",
+  "XCP-ng Pool": "XCP-ng プール",
+  "Same name as another {{kind}}": "ほかの {{kind}} と同じ名前",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "このプロジェクトには同じ名前のほかの {{kind}} があるため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} 件の {{kinds}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。"
 }

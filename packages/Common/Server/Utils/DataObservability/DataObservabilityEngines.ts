@@ -1,9 +1,9 @@
-import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
-import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
 import {
-  getDatabaseEngineOfKind,
-  PROBE_SCANNABLE_KINDS,
-} from "../DataSecurity/DataSecurityProbeScan";
+  DataStoreKind,
+  PROBE_SCANNABLE_DATABASE_KINDS,
+} from "../../../Types/DataSecurity/DataStoreKind";
+import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
+import { getDatabaseEngineOfKind } from "../DataSecurity/DataSecurityProbeScan";
 
 /*
  * THE DATABASES DATA OBSERVABILITY COLLECTS, AND WITH WHICH ENGINE.
@@ -18,11 +18,13 @@ import {
  * (AthenaApi); and Microsoft Dataverse, an environment at a time, over its
  * Web API and its read-only SQL endpoint (DataverseApi). Data Security's
  * own list and engine mapping are left as they are: it does not sample a
- * warehouse.
+ * warehouse. Nor does Data Observability collect the search clusters Data
+ * Security samples (#11140): an index has no tables to watch, so the
+ * databases are the probe's database kinds only.
  */
 
 export const DATA_OBSERVABILITY_KINDS: ReadonlyArray<DataStoreKind> = [
-  ...PROBE_SCANNABLE_KINDS,
+  ...PROBE_SCANNABLE_DATABASE_KINDS,
   DataStoreKind.AwsRedshiftCluster,
   DataStoreKind.Snowflake,
   DataStoreKind.GcpBigQueryDataset,

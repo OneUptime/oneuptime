@@ -241,6 +241,12 @@ const bigNumberTransformer: {
 @Index(["scanProbeId", "nextTableHealthCollectionAt"])
 @Index(["scanProbeId", "nextContentScanAt"])
 /*
+ * A Database Agent asks for the databases it reads for Data Observability
+ * every minute (DataObservabilityAgentClaim): a range of its database
+ * server's, oldest first, that stops at the claim's limit.
+ */
+@Index(["tableHealthDatabaseServerId", "nextTableHealthCollectionAt"])
+/*
  * OneUptime's workers ask for the due stores no probe scans, of the kinds
  * they sample, every five minutes (DataSecurityWorkerClaim): a range of
  * each of those kinds, due ones only, so the stores of every other kind -
@@ -1449,6 +1455,91 @@ export default class DataStore extends BaseModel {
     nullable: true,
   })
   public nextTableHealthCollectionAt?: Date = undefined;
+
+  /*
+   * When someone removed the database from Data Observability (#11147).
+   * While it is set, Data Observability neither reads nor lists the
+   * database, and offers it again among the databases the project knows
+   * of; Data Security keeps the store, its connection and what its scans
+   * found. Connecting the database again from Data Observability clears
+   * it. Only Data Observability's own routes write it, as OneUptime.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    computed: true,
+    title: "Removed From Data Observability At",
+    description:
+      "When the database was removed from Data Observability. Data Security keeps it, with its connection and what its scans found.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public tableHealthRemovedAt?: Date = undefined;
+
+  /*
+   * A Database Agent that already reaches the database (#11148): the
+   * database server it reports as, whose agent reads this database's
+   * catalog and runs its checks for Data Observability with the logins of
+   * its own environment. Data Security's scans never use it: they keep the
+   * store's connection string or probe. Only Data Observability's own
+   * routes write it, as OneUptime; a server deleted leaves the database
+   * with no way in, which its page says.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    manyToOneRelationColumn: "tableHealthDatabaseServerId",
+    type: TableColumnType.Entity,
+    modelType: DatabaseServer,
+    title: "Database Agent's Database Server",
+    description:
+      "The database server whose Database Agent reads this database for Data Observability.",
+  })
+  @ManyToOne(
+    () => {
+      return DatabaseServer;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "tableHealthDatabaseServerId" })
+  public tableHealthDatabaseServer?: DatabaseServer = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Database Agent's Database Server ID",
+    description:
+      "The database server whose Database Agent reads this database for Data Observability.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public tableHealthDatabaseServerId?: ObjectID = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Database Agent's Database",
+    description:
+      "The database on that server the Database Agent reads for Data Observability.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public tableHealthDatabaseName?: string = undefined;
 
   @ColumnAccessControl(hiddenColumnAccess)
   @TableColumn({

@@ -11,6 +11,7 @@ import SecurityCaseTaskService from "../../../../Server/Services/SecurityCaseTas
 import SecurityCaseStepCheckService from "../../../../Server/Services/SecurityCaseStepCheckService";
 import SecurityCaseAiActionService from "../../../../Server/Services/SecurityCaseAiActionService";
 import SecurityCasePullRequestService from "../../../../Server/Services/SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService from "../../../../Server/Services/DataSecurityIssuePullRequestService";
 import IncidentPostmortemActionItemService from "../../../../Server/Services/IncidentPostmortemActionItemService";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
@@ -425,6 +426,8 @@ describe("every model that sends live updates is read the way its service reads 
      */
     SecurityCaseAiActionService,
     SecurityCasePullRequestService,
+    // And one a person linked to a Data Security issue (#10831): on the issue at once.
+    DataSecurityIssuePullRequestService,
     // A colleague ticking a postmortem's action item off shows on the postmortem at once.
     IncidentPostmortemActionItemService,
     SecurityPlaybookRunService,

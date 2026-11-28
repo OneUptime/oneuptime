@@ -63,7 +63,9 @@ flowchart LR
 
 Il est activé dans un nouveau projet. Un projet qui existait avant son arrivée le garde désactivé, car les clients de l'API et les configurations Terraform du projet peuvent compter sur des noms qui se répètent : activez-le quand vous êtes prêt.
 
-Sous l'interrupteur, la carte liste chaque nom que le projet porte déjà plusieurs fois, type par type, avec un lien vers chaque enregistrement et le jour de sa création. Activer l'interrupteur ne refuse rien de ce qui existe : ces enregistrements continuent de fonctionner jusqu'à ce que quelqu'un les renomme, et seuls un nouvel enregistrement ou un renommage ont besoin d'un nom qui leur est propre. Enregistrer de nouveau un enregistrement avec son propre nom, quelle que soit la casse, n'est pas un renommage.
+Sous l'interrupteur, la carte liste chaque nom que le projet porte déjà plusieurs fois, type par type, avec un lien vers chaque enregistrement et le jour de sa création. Un budget OpenStack s'ouvre sur la page **Dépenses** de son cloud, et un résumé d'espace de travail dans l'onglet **Résumé** de sa page Slack, Microsoft Teams ou Mattermost. Les agents IA n'ont pas de page dans le tableau de bord : la carte les nomme donc sans lien, en le précisant. Activer l'interrupteur ne refuse rien de ce qui existe : ces enregistrements continuent de fonctionner jusqu'à ce que quelqu'un les renomme, et seuls un nouvel enregistrement ou un renommage ont besoin d'un nom qui leur est propre. Enregistrer de nouveau un enregistrement avec son propre nom, quelle que soit la casse, n'est pas un renommage.
+
+La liste propre à chaque type signale aussi ces enregistrements, avec **Même nom qu'un autre élément de type moniteur** (ou modèle, clé, etc.) et le jour de création de chacun, et indique au-dessus de la liste combien il y en a. Une liste ne signale que les enregistrements que vous pouvez ouvrir.
 
 Quel que soit l'état de l'interrupteur, un formulaire prévient pendant que vous saisissez un nom qu'un autre enregistrement de son type porte déjà, et propose un lien vers cet enregistrement. Tant que l'interrupteur est activé, l'avertissement dit aussi que l'enregistrement serait refusé.
 

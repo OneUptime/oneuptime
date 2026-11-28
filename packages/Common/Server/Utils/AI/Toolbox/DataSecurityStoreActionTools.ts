@@ -1,6 +1,11 @@
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreOwnerTeam from "../../../../Models/DatabaseModels/DataStoreOwnerTeam";
 import DataStoreOwnerUser from "../../../../Models/DatabaseModels/DataStoreOwnerUser";
+import { actionAlwaysAsks } from "../../../../Types/AI/AIAlwaysAskChanges";
+import {
+  RESPOND_ON_DATA_STORE_TOOL_NAME,
+  SET_DATA_STORE_OWNERS_TOOL_NAME,
+} from "../../../../Types/AI/AIDataSecurityActions";
 import {
   AIChatCitationTarget,
   AIChatCitationTargetType,
@@ -326,9 +331,13 @@ export const SetDataStoreOwnersTool: ObservabilityTool = {
   buildActionTitle: (): AIActionSentence => {
     return buildOwnersTitle(null);
   },
-  // Owners are told of the store's issues, whatever they may read: it always asks.
+  /*
+   * Owners are told of the store's issues, whatever they may read: it
+   * always asks (Types/AI/AIAlwaysAskChanges, where the owners' rows a
+   * record tool would write are refused on the MCP server too).
+   */
   asksInEveryMode: (): boolean => {
-    return true;
+    return actionAlwaysAsks(SET_DATA_STORE_OWNERS_TOOL_NAME);
   },
   prepareMutation: async (
     args: JSONObject,
@@ -478,7 +487,7 @@ export const SetDataStoreOwnersTool: ObservabilityTool = {
 
     if (!dataStoreId) {
       throw new BadDataException(
-        "dataStoreId must be a data store's ID. List stores with query_data_stores first.",
+        "The dataStoreId given is not a data store's ID. List stores with query_data_stores first.",
       );
     }
 
@@ -787,9 +796,9 @@ export const RespondOnDataStoreTool: ObservabilityTool = {
   buildActionTitle: (args: JSONObject): AIActionSentence => {
     return buildRespondTitle(readResponseAction(args), null);
   },
-  // It changes the store in its cloud: it always asks.
+  // It changes the store in its cloud: it always asks (Types/AI/AIAlwaysAskChanges).
   asksInEveryMode: (): boolean => {
-    return true;
+    return actionAlwaysAsks(RESPOND_ON_DATA_STORE_TOOL_NAME);
   },
   prepareMutation: async (
     args: JSONObject,

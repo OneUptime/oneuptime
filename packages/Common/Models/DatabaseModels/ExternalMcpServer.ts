@@ -85,7 +85,13 @@ export const getHeaderNamesSql: (tableAlias: string) => string = (
  *     the way the auto remediation rule's Approval says;
  *   - in Ask AI and an incident's or alert's conversation, for the person
  *     asking: the tools that only read at once, any other once that person
- *     approves the call (ChatMcpAccess, issue #10879).
+ *     approves the call (ChatMcpAccess, issue #10879);
+ *   - in its answers in Slack and Microsoft Teams, for the person who
+ *     asked: the tools that only read (issue #11082).
+ *
+ * A tool "only reads" by its server's word (readOnlyHint), or by a Project
+ * Admin's mark on a tool its server says nothing about, while the server
+ * has not changed it (ExternalMcpToolReadOnlyMark, issue #11081).
  *
  * An investigation rule and an auto remediation rule may name the servers
  * OneUptime AI may use for what they match; none named is all of them
@@ -509,7 +515,7 @@ export default class ExternalMcpServer extends BaseModel {
     type: TableColumnType.JSON,
     title: "Tools",
     description:
-      "The tools the server offered when OneUptime last connected: each one's name, description and whether the server marks it read-only.",
+      "The tools the server offered when OneUptime last connected: each one's name, description and argument names, whether the server marks it read-only or as a change, and the fingerprint of its definition that a Project Admin's read-only mark holds.",
   })
   @Column({
     nullable: true,

@@ -3,7 +3,7 @@
 Les critères d'un moniteur décident de ce que signifie chaque vérification : si le moniteur est disponible ou en panne, et si OneUptime déclare un incident ou crée une alerte. Les statuts sont la liste, propre à votre projet, de ce qu'un moniteur peut être, de **Opérationnel** à **Hors ligne**. Cette page explique les deux pour chaque type de moniteur ; la page de chaque type liste les filtres qu'il propose.
 
 :::cards
-- [Comment les critères décident](#comment-les-critères-décident): De haut en bas, et la première correspondance l'emporte.
+- [Comment les critères décident](#comment-les-critères-décident): De haut en bas : la première correspondance agit, et la première qui change le statut le fixe.
 - [Ce que contient un critère](#ce-que-contient-un-critère): Des filtres, une condition de correspondance, des actions et des paramètres.
 - [Juger une fenêtre de vérifications](#juger-une-fenêtre-de-vérifications): Compter les vérifications échouées, repérer l'instabilité, lire un centile.
 - [Modifier les critères d'un moniteur](#modifier-les-critères-dun-moniteur): Modifier, ajouter, réordonner et tester des critères.
@@ -12,28 +12,31 @@ Les critères d'un moniteur décident de ce que signifie chaque vérification : 
 
 ## Comment les critères décident
 
-À chaque vérification d'un moniteur, ses critères jugent le résultat du haut de la liste vers le bas. Le premier critère dont les filtres correspondent décide de ce qui se passe, et les critères en dessous ne sont pas examinés pour cette vérification. Si aucun ne correspond, le moniteur passe à son **État du moniteur par défaut**. Il garde plutôt son état tant qu'un critère qui le ramène n'a pas encore correspondu : voir [Quand un critère se rétablit](#quand-un-critère-se-rétablit).
+À chaque vérification d'un moniteur, ses critères jugent le résultat du haut de la liste vers le bas. Le premier critère dont les filtres correspondent décide de ce qui se passe : il déclare ses incidents, crée ses alertes et, s'il est réglé pour cela, change le statut du moniteur. Les critères en dessous ne sont examinés que s'il ne change aucun statut, et alors seulement pour le statut. Si aucun ne correspond, le moniteur passe à son **État du moniteur par défaut**. Il garde plutôt son état tant qu'un critère qui le ramène n'a pas encore correspondu : voir [Quand un critère se rétablit](#quand-un-critère-se-rétablit).
 
 ```mermaid title="Comment chaque vérification est jugée"
 flowchart TB
     R["Le résultat<br/>d'une vérification"] --> C1{"Premier<br/>critère :<br/>ses filtres<br/>concordent ?"}
-    C1 -->|"Oui"| A["Ce critère agit"]
+    C1 -->|"Oui"| A["Ce critère agit :<br/>il déclare ses incidents<br/>et crée ses alertes"]
     C1 -->|"Non"| C2{"Critère<br/>suivant :<br/>ses filtres<br/>concordent ?"}
     C2 -->|"Oui"| A
     C2 -->|"Aucun n'a<br/>correspondu"| D["Le moniteur<br/>passe à son<br/>état par<br/>défaut"]
-    A --> S["Change<br/>le statut"]
-    A --> I["Déclare un<br/>incident"]
-    A --> L["Crée une<br/>alerte"]
+    A --> Q{"Change-t-il<br/>le statut ?"}
+    Q -->|"Oui"| S["Il fixe<br/>le statut"]
+    Q -->|"Non"| N["Le premier critère<br/>en dessous qui correspond<br/>et change le statut<br/>le fixe, sinon le<br/>moniteur passe à son<br/>état par défaut"]
 ```
 
 L'ordre fait partie de la règle. Un nouveau moniteur liste ses critères du pire au meilleur : hors ligne, puis un avertissement quand son type en a un (un certificat ou un domaine qui expire bientôt), puis en ligne. Un critère sain et large, comme **En ligne** réglé sur **Vrai**, correspond à presque toutes les vérifications ; il vient donc en dernier : placé au-dessus des autres, il correspondrait le premier à chaque fois et les autres n'agiraient jamais.
 
-Un critère qui correspond sans changer de statut décide quand même de la vérification : le moniteur garde son statut, et les critères en dessous attendent la vérification suivante. L'**État du moniteur par défaut** ne s'applique que si aucun critère ne correspond. Pour un nouveau moniteur, c'est **Opérationnel** ; modifiez-le sous **Plus de champs**, sous les critères.
+Un critère qui correspond sans changer de statut, comme un avertissement qui crée seulement une alerte, ne décide d'aucun statut. Son alerte s'ouvre et se résout comme celle de tout critère, et les critères en dessous qui changent le statut sont jugés pour le statut seul, dans leur ordre : le premier d'entre eux qui correspond fixe le statut, et n'ouvre rien à cette vérification. Si aucun d'eux ne correspond, le moniteur passe à son **État du moniteur par défaut**, comme quand aucun critère ne correspond. Un site de nouveau joignable mais lent est donc **Opérationnel**, avec son alerte ouverte, quel que soit le statut laissé par une vérification précédente. Pour un nouveau moniteur, c'est **Opérationnel** ; modifiez-le sous **Plus de champs**, sous les critères.
+
+> [!NOTE]
+> Un critère qui correspondait en premier sans changer de statut laissait auparavant le moniteur dans le statut qu'il avait, tant qu'il continuait de correspondre : un commutateur surveillé par le pack d'alertes recommandé manquait une interrogation, revenait avec un port au-dessus de 80 % et restait **Hors ligne**, sa page de statut au rouge, tant que le port restait chargé. Désormais, seuls les critères qui changent le statut en décident. Un moniteur dont tous les critères changent le statut est jugé exactement comme avant. De même pour le critère qui déclare les incidents d'une vérification et crée ses alertes : sur un moniteur qui s'arrête à la première correspondance, c'est toujours le premier critère qui correspond.
 
 > [!NOTE]
 > Un moniteur qui ouvre un incident ou une alerte par hôte, conteneur, disque ou interface juge tous les critères à chaque vérification, de sorte que deux hôtes peuvent correspondre à deux critères différents en même temps. C'est le cas d'un moniteur dont la requête a un **Regrouper par**, comme un moniteur de métriques ou de journaux, ou d'un critère qui indique `*` pour chaque disque ou interface. C'est aussi le cas d'un moniteur de métriques qui surveille une expression PromQL : chaque série que renvoie l'expression est jugée à part. Un moniteur de requêtes entrantes qui regroupe les incidents par un champ de la charge utile s'arrête quand même à la première correspondance.
 >
-> Un tel moniteur a tout de même un seul statut, fixé par le premier critère qui correspond. Un critère qui le ramène seulement à son **État du moniteur par défaut**, sans ouvrir d'incident ni d'alerte, attend les hôtes qui ont satisfait un critère fixant un autre statut : il correspond une fois que chacun d'eux le satisfait, quoi que fassent les autres hôtes. D'ici là, le moniteur conserve son statut, même quand aucun critère ne correspond, tandis que les incidents et les alertes de chaque hôte se résolvent toujours chacun de leur côté.
+> Un tel moniteur a tout de même un seul statut, fixé par le premier critère qui correspond parmi ceux qui changent le statut. Un critère qui le ramène seulement à son **État du moniteur par défaut**, sans ouvrir d'incident ni d'alerte, attend les hôtes qui ont satisfait un critère fixant un autre statut : il correspond une fois que chacun d'eux le satisfait, quoi que fassent les autres hôtes. D'ici là, le moniteur conserve son statut, même quand aucun critère qui change le statut ne correspond, tandis que les incidents et les alertes de chaque hôte se résolvent toujours chacun de leur côté.
 
 ## Ce que contient un critère
 
@@ -125,11 +128,11 @@ La phrase sous les réglages de la fenêtre le relit : « Vérifier si "Temps de
 
 ## Quand un critère se rétablit
 
-Un critère cesse d'agir dès que ses filtres ne correspondent plus : à cette vérification, son incident et son alerte se résolvent, quand **Résoudre automatiquement l'incident** et **Résoudre automatiquement l'alerte** sont activés, et le moniteur passe au critère suivant qui correspond.
+Un critère cesse d'agir dès que ses filtres ne correspondent plus : à cette vérification, son incident et son alerte se résolvent, quand **Résoudre automatiquement l'incident** et **Résoudre automatiquement l'alerte** sont activés, et le statut du moniteur suit les critères qui correspondent alors.
 
 **Se rétablir uniquement quand une condition propre est remplie** maintient le critère en vigueur après que ses filtres ne correspondent plus, jusqu'à ce que les filtres sous **Rétabli quand** correspondent. Ils partent de l'inverse des filtres du critère, sur les 10 dernières minutes, et peuvent utiliser tout ce qu'offre un filtre, comme une fenêtre qui compte les vérifications. Un critère est en vigueur tant que le moniteur a l'état qu'il définit ou qu'un incident ou une alerte qu'il a déclaré est ouvert. Tant qu'il tient, il compte comme une correspondance à sa place dans la liste : un critère au-dessus de lui qui correspond prend quand même le relais.
 
-Quand aucun critère ne correspond, un moniteur qu'un critère a fait quitter son **État du moniteur par défaut** garde l'état qu'il a, tant qu'il a aussi un critère qui le ramène seulement à cet état sans rien ouvrir. C'est la marge de rétablissement : les modèles se déclenchent au-dessus de 90 % et reviennent à 81 % ou moins, donc à 89 % le moniteur reste où il est. Ses incidents et alertes se résolvent quand même lorsque leur propre critère ne correspond plus. Un moniteur sans un tel critère passe à son **État du moniteur par défaut**, comme toujours.
+Quand aucun critère qui change le statut ne correspond, un moniteur qu'un critère a fait quitter son **État du moniteur par défaut** garde l'état qu'il a, tant qu'il a aussi un critère qui le ramène seulement à cet état sans rien ouvrir. C'est la marge de rétablissement : les modèles se déclenchent au-dessus de 90 % et reviennent à 81 % ou moins, donc à 89 % le moniteur reste où il est. Ses incidents et alertes se résolvent quand même lorsque leur propre critère ne correspond plus. Un moniteur sans un tel critère passe à son **État du moniteur par défaut**, comme toujours.
 
 ## Seulement certains jours et à certaines heures
 
@@ -153,6 +156,7 @@ flowchart TB
 
 - **Un à la fois.** Tant qu'un incident déclaré par un critère est encore ouvert, le même critère qui correspond à nouveau n'en déclare pas d'autre. Les alertes fonctionnent de la même façon. Un moniteur qui regroupe par hôte ou par champ de la charge utile en garde un ouvert par hôte ou par valeur, et un critère de moniteur d'e-mails entrants avec **Ouvrir un nouvel incident pour chaque e-mail** en ouvre un par e-mail.
 - **La fermeture.** Lors d'une vérification suivante où un autre critère correspond, ou aucun, un incident dont le critère a **Résoudre automatiquement l'incident** activé est résolu, de même qu'une alerte avec **Résoudre automatiquement l'alerte**. Les deux se trouvent sous **Plus de champs** dans l'incident ou l'alerte, et les critères avec lesquels démarre un nouveau moniteur les ont activés.
+- **Le critère qui agit.** Sur un moniteur qui s'arrête à la première correspondance, le premier critère qui correspond déclare les incidents de la vérification et crée ses alertes, même s'il ne change aucun statut et qu'un critère en dessous fixe le statut. Celui-ci n'ouvre rien à cette vérification : placez les critères qui changent le statut au-dessus de ceux qui ne font qu'alerter, le pire d'abord, comme ceux d'un nouveau moniteur, et le statut d'une vérification et son incident viennent du même critère.
 - **Plusieurs sondes.** Un moniteur vérifié par plus d'une sonde ne change que lorsque ses sondes sont d'accord. Voir [Comment les critères sont évalués](/docs/monitor/create-monitor#comment-les-critères-sont-évalués).
 - **Un moniteur parent en panne.** Sur la page **Configuration → Dépendances** d'un moniteur, **Dépend des moniteurs** nomme les moniteurs dont il dépend. Tant que l'un d'eux est dans un statut listé dans **Suspendre quand le statut du parent est** (n'importe quel statut hors ligne, si ce champ reste vide), le moniteur n'ouvre ni incident ni alerte. Son statut change toujours, et ce qui est ouvert se résout toujours.
 - **La maintenance planifiée.** Un moniteur pris dans un événement de maintenance en cours n'est pas vérifié, donc ses critères ne s'exécutent pas. Voir [Vue d'ensemble de la maintenance planifiée](/docs/scheduled-maintenance/index).
@@ -231,6 +235,16 @@ Quand une évaluation prend trop de temps pour son moniteur, son résumé vous a
 | À l'arrivée de ses résultats, comme les requêtes et e-mails entrants | 5 secondes |
 
 Un dixième laisse à un moniteur la place de grandir dix fois avant que ses vérifications ne se chevauchent et prennent du retard : vous en êtes averti tôt. Sous 5 secondes, une vérification est correcte quelle que soit sa taille : évaluer 16 000 séries prend environ 2,5 secondes. Au-delà d'une minute, elle occupe un worker et les bases de données qu'elle lit pendant tout ce temps, quel que soit son intervalle. Pour l'accélérer, affinez les filtres de ses requêtes, regroupez par moins d'attributs ou vérifiez-la moins souvent.
+
+## Quand les moniteurs de télémétrie vérifient
+
+Les moniteurs qui lisent la télémétrie, comme les moniteurs de journaux, de métriques, de traces, Kubernetes, d'hôte et Docker, ne sont pas tous vérifiés au même moment. Chacun a son propre moment dans son intervalle, calculé à partir de l'ID du moniteur : un moniteur vérifié chaque minute s'exécute à la même seconde de chaque minute, un moniteur vérifié toutes les 5 minutes au même moment de chaque période de 5 minutes, et un moniteur vérifié toutes les heures ou moins souvent dans les 5 premières minutes de l'heure ou du jour que donne son intervalle. Ce moment reste le même quand OneUptime redémarre et sur chaque serveur, si bien que le stockage de télémétrie est lu un peu à la fois au fil de la minute plutôt que par tous les moniteurs en même temps.
+
+Chaque moniteur garde son intervalle : ses vérifications sont exactement aussi espacées qu'avant. Chaque vérification juge la fenêtre qui se termine à son moment, même quand elle s'exécute plus tard, par exemple pendant que OneUptime est occupé, ou quand une vérification qui a échoué est réessayée quelques secondes plus tard. Une fenêtre aussi longue que l'intervalle couvre donc exactement le temps écoulé depuis la vérification précédente : aucune donnée n'est jugée deux fois, et aucune n'est laissée de côté. Une fenêtre inclut son début mais pas sa fin : une donnée horodatée exactement au moment où une fenêtre se termine et où la suivante commence est donc jugée une seule fois, par la vérification suivante. Le résumé d'évaluation d'une vérification, sous **Voir le résumé** dans les **Journaux de surveillance** du moniteur, indique quelle fenêtre elle a jugée, tout comme la cause racine d'un incident ou d'une alerte qu'elle ouvre. Tant que OneUptime a plus d'une minute de retard dans la lecture de la télémétrie qu'il a reçue, la fenêtre d'une vérification se termine plutôt à l'endroit où OneUptime en est de sa lecture, si bien qu'une vérification ne juge jamais de données qui attendent encore d'être lues. Si OneUptime prend tant de retard que la prochaine vérification d'un moniteur est prévue avant que la précédente n'ait commencé, seule la précédente s'exécute, pour sa propre fenêtre, et la fenêtre suivante n'est pas vérifiée.
+
+Ce qui change, c'est le moment de l'intervalle où une vérification s'exécute : jusqu'à un intervalle plus tard, et jamais plus de 5 minutes plus tard. Un incident ou une alerte peut s'ouvrir jusqu'à ce délai plus tard que si chaque vérification s'exécutait au début de son intervalle, et parfois plus tôt. La **Vue d'ensemble** du moniteur indique quand sa prochaine vérification est prévue.
+
+Un nouveau moniteur est vérifié quelques secondes après sa création, pour la fenêtre qui se termine alors, puis à son propre moment. Il en va de même pour un moniteur qui a manqué des vérifications pendant qu'il était désactivé ou pendant que OneUptime était arrêté. Quand vous modifiez l'intervalle d'un moniteur, sa prochaine vérification passe au nouvel intervalle. Juste après la mise à niveau vers une version de OneUptime qui répartit les vérifications, chaque moniteur est vérifié une fois encore à l'heure que lui donnait l'ancien calendrier, puis à son propre moment.
 
 ## Modifier les critères d'un moniteur
 
@@ -327,6 +341,12 @@ Un critère plus haut dans la liste a correspondu en premier. Ouvrez **Configura
 
 :::details Aucun incident ne s'est ouvert quand le moniteur est tombé
 Vérifiez le critère qui a correspondu : **Lorsque les filtres correspondent, déclarer un incident.** doit être activé. Un incident n'est pas déclaré tant que l'incident du même critère est encore ouvert, tant qu'un moniteur parent de **Dépend des moniteurs** est en panne, ou tant que le moniteur est en maintenance planifiée. La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur indique lequel.
+
+Un critère au-dessus qui ne change aucun statut, comme une alerte de réponse lente, peut correspondre en premier : il crée son alerte, le critère en dessous fixe le statut et ne déclare son incident qu'à une vérification où il est la première correspondance. Faites glisser les critères qui changent le statut au-dessus de ceux qui ne font qu'alerter.
+:::
+
+:::details Le moniteur est revenu à son statut par défaut alors qu'une alerte restait ouverte
+Le critère de l'alerte ne change aucun statut : il ne retient donc pas le moniteur dans le statut fixé par une vérification précédente. Le premier critère qui correspond et change le statut le fixe, et quand aucun ne le fait, le moniteur passe à son **État du moniteur par défaut**. Pour garder un statut tant qu'un problème dure, donnez au critère qui le fixe une condition de rétablissement qui lui est propre : voir [Quand un critère se rétablit](#quand-un-critère-se-rétablit).
 :::
 
 :::details L'incident reste ouvert après le rétablissement du moniteur

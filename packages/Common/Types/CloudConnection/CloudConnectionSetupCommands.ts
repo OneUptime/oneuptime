@@ -1024,11 +1024,11 @@ export function getAwsWafBlocklistPolicyDocument(
 }
 
 /*
- * SECURITY CASE CHECKS (#10900): what a connection whose "Security case
- * checks" is on may read, on a setting of its own (securityCaseChecks) -
- * exactly the reads the Fix step "Undo what changed on the account" makes
- * of an IAM user its case's CloudTrail events name, each a change an
- * attack can make (AttackAccountChanges):
+ * SECURITY CASE CHECKS (#10900, #11038): what a connection whose "Security
+ * case checks" is on may read, on a setting of its own (securityCaseChecks)
+ * - exactly the reads the Fix step "Undo what changed on the account" makes
+ * of an IAM user or role its case's CloudTrail events name, each a change
+ * an attack can make (AttackAccountChanges):
  *
  *   iam:GetUser                    the user is still there (CreateUser)
  *   iam:ListAccessKeys             the key is still there and active
@@ -1045,13 +1045,26 @@ export function getAwsWafBlocklistPolicyDocument(
  *                                  (AddUserToGroup)
  *   iam:ListMFADevices             the MFA device is still the user's
  *                                  (EnableMFADevice)
+ *   iam:GetRole                    the role is still there (CreateRole),
+ *                                  and whom its trust policy trusts now
+ *                                  (UpdateAssumeRolePolicy)
+ *   iam:ListAttachedRolePolicies   a managed policy is still attached to
+ *                                  the role (AttachRolePolicy)
+ *   iam:ListRolePolicies           the role's inline policy is still
+ *                                  there, by its name (PutRolePolicy)
  *
  * A fifth inline policy, OneUptimeSecurityCaseChecks, on every resource:
- * each action acts on an IAM user and nothing else, so "*" grants no more
- * than every user's ARN would, in every partition. Nothing reads a role,
- * a group's or a policy's own settings, or anything IAM writes. The access
- * key's user, whose inline policies are full, takes it through a group of
- * the same name, as it takes Data Security's.
+ * each action acts on an IAM user or role and nothing else, so "*" grants
+ * no more than every user's and role's ARN would, in every partition.
+ * Nothing reads a policy's own document, a group's settings, or anything
+ * IAM writes, and OneUptime never deletes or edits a user or a role: the
+ * undoing is a person's. The access key's user, whose inline policies are
+ * full, takes it through a group of the same name, as it takes Data
+ * Security's.
+ *
+ * A connection set up before the role reads were added grants only the
+ * user's: its command, run again, grants them, and until it is the step
+ * says to run it (CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN).
  *
  * "off" adds nothing, so it leaves what an earlier command granted until
  * it is removed (aws iam delete-role-policy --policy-name
@@ -1072,6 +1085,9 @@ export const AWS_SECURITY_CASE_CHECKS_ACTIONS: ReadonlyArray<string> = [
   "iam:ListUserPolicies",
   "iam:ListGroupsForUser",
   "iam:ListMFADevices",
+  "iam:GetRole",
+  "iam:ListAttachedRolePolicies",
+  "iam:ListRolePolicies",
 ];
 
 // The policy, or null when Security case checks are off.
@@ -1284,7 +1300,7 @@ export function getAwsReadOnlyRoleTemplate(data: {
         : "";
   // Which of each, never a key's secret or a password.
   const iamUsers: string = caseChecks
-    ? "which keys, console passwords, policies, groups and MFA devices its IAM users have"
+    ? "which keys, console passwords, policies, groups and MFA devices its IAM users have, and which policies its IAM roles have and whom they trust"
     : "";
   const reads: string = [dataStores, iamUsers]
     .filter((what: string): boolean => {

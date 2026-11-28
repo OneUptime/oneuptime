@@ -15,6 +15,8 @@ import {
   RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
   RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
+  RESOURCE_AI_XO_READ_TOKEN_ENV,
+  RESOURCE_AI_XO_WRITE_TOKEN_ENV,
 } from "Common/Types/ResourceAiAgent/ResourceAiAccess";
 import {
   AGENT_AI_FIXES_SETTING_VALUES,
@@ -624,6 +626,91 @@ const INSTALL_SPECS: Readonly<
     installScript: null,
     isStandalone: false,
   },
+  /*
+   * The XCP-ng Agent's docker-compose.yml ships the AI agent under the
+   * xcp-ng-ai-agent profile, which its install.sh turns on when it is given
+   * a read token: it reads Xen Orchestra where the collector does, trusting
+   * the collector's xo-ca.pem, with tokens of its own.
+   */
+  [AiResourceType.XcpNgPool]: {
+    directory: "/opt/oneuptime-xcp-ng-agent",
+    collectorName: translationKey("XCP-ng agent"),
+    collectorShipsAgent: true,
+    runtime: "docker",
+    hasContainerName: true,
+    keyVariable: "ONEUPTIME_TELEMETRY_INGESTION_KEY",
+    keyComposeValue: "${ONEUPTIME_TELEMETRY_INGESTION_KEY}",
+    user: "1000:1000",
+    extraServiceLines: [
+      '    profiles: ["xcp-ng-ai-agent"]',
+      "    cap_drop:",
+      "      - ALL",
+      "    security_opt:",
+      "      - no-new-privileges:true",
+      "    volumes:",
+      "      # The certificates the collector trusts for Xen Orchestra, never created",
+      "      - type: bind",
+      "        source: ./xo-ca.pem",
+      "        target: /etc/oneuptime/xo-ca.pem",
+      "        read_only: true",
+      "        bind:",
+      "          create_host_path: false",
+    ],
+    connectionVariables: [
+      {
+        name: "XO_SCHEME",
+        composeValue: "${XO_SCHEME:-https}",
+        description:
+          "Xen Orchestra's scheme, as the collector reads it. The agent reads https only: over http it runs nothing.",
+      },
+      {
+        name: "XO_ADDRESS",
+        composeValue: "${XO_ADDRESS}",
+        description: "Xen Orchestra's host:port, as the collector reads it.",
+      },
+      {
+        name: "XO_TLS_SERVER_NAME",
+        composeValue: "${XO_TLS_SERVER_NAME:-}",
+        description:
+          "Optional: the name Xen Orchestra's certificate is checked against when XO_ADDRESS is an address the certificate does not list. The XCP-ng agent's install.sh fills it.",
+      },
+      {
+        name: RESOURCE_AI_XO_READ_TOKEN_ENV,
+        composeValue: `\${${RESOURCE_AI_XO_READ_TOKEN_ENV}:-}`,
+        description:
+          "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.",
+      },
+      {
+        name: RESOURCE_AI_XO_WRITE_TOKEN_ENV,
+        composeValue: `\${${RESOURCE_AI_XO_WRITE_TOKEN_ENV}:-}`,
+        description:
+          "Only for fixes: a token of another user, whose role allows the fixes the XCP-ng agent's README lists. Without it the agent stays read-only, whatever else is set. It may not be the read token.",
+      },
+    ],
+    prerequisites: [
+      translationKey(
+        "The tokens' Xen Orchestra roles are the hard limit: a user holding a copy of the built-in Read only role lets AI read and nothing else, and the agent refuses an administrator's token. Fixes need a token of another user, whose role allows them. The XCP-ng agent's README says how to make both.",
+      ),
+      translationKey(
+        "One agent serves one pool: set XCP_NG_POOL_ID to this pool's UUID when its Xen Orchestra manages several. The agent trusts the xo-ca.pem the collector trusts, and reads Xen Orchestra over https only.",
+      ),
+      translationKey(
+        "The agent protects no VM of its own accord: put the UUIDs of the VM it runs in, and of Xen Orchestra's own VM, in ONEUPTIME_AI_PROTECTED_TARGETS.",
+      ),
+    ],
+    writeTargetNoun: translationKey(
+      "VM, host, PBD and schedule UUIDs (vm/<uuid>, host/<uuid>, …)",
+    ),
+    writeTargetsExample: "vm/613f541c-4bed-fc77-7ca8-2db6b68f079c,host/*",
+    protectedTargetsDescription: translationKey(
+      "What OneUptime AI never changes, whatever else is set and whoever approves it: vm/<uuid>, host/<uuid>, pbd/<uuid> or schedule/<uuid> (or a bare UUID), separated by commas, each of which may hold a *. The agent protects nothing of its own accord: put the UUIDs of the VM it runs in, and of Xen Orchestra's own VM, here.",
+    ),
+    writeDisclosure: translationKey(
+      "Write access lets the agent start, resume, unpause, reboot, shut down, suspend, pause, snapshot and migrate VMs, plug a storage repository's PBD, run a backup schedule, enable a host and restart a host's toolstack, through Xen Orchestra's REST API with a second token you give it — as far as that token's role allows, which is the hard limit. OneUptime still holds the line: it never edits, deletes, reverts or clones anything, never acts on a pool or a storage repository, migrating a VM and restarting a toolstack always wait for a person, and with ONEUPTIME_AI_WRITE_TARGETS set it only touches what it names.",
+    ),
+    installScript: null,
+    isStandalone: false,
+  },
   [AiResourceType.DatabaseServer]: {
     directory: "/opt/oneuptime-database-agent",
     collectorName: translationKey("database agent"),
@@ -714,6 +801,49 @@ const INSTALL_SPECS: Readonly<
         composeValue: "${ONEUPTIME_AI_DATABASE_CA_FILE:-}",
         description:
           "Optional: a PEM CA bundle, mounted into the container, to verify the server's certificate against when DATABASE_TLS_INSECURE=false.",
+      },
+      /*
+       * Data Observability through the agent (#11148), as the database
+       * agent's docker-compose.yml passes it: off unless exactly "true".
+       */
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY:-}",
+        description:
+          "true lets the agent read the databases you connect through it in Data Observability, read-only. Anything else leaves it off.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME:-}",
+        description:
+          "Optional: the login that reads the catalog. Empty: the collector's. Written as it is (no $$).",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD:-}",
+        description: "That login's password.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_CHECKS",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_CHECKS:-}",
+        description: "false runs no check at all: the catalog alone.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME:-}",
+        description:
+          "Optional: the login that runs checks, which read rows. Empty: the catalog's.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD:-}",
+        description: "That login's password.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL:-}",
+        description:
+          "true runs Custom SQL and Failing Rows checks, still read-only. Empty: off.",
       },
     ],
     prerequisites: [
@@ -1079,18 +1209,28 @@ export function getResourceAiAgentInstall(data: {
           {
             name: info.identityEnvVars[0] || "",
             value: identity || "from .env",
-            description: identity
-              ? translateTemplate(
-                  "The name this {{noun}} reports. The agent must register with exactly this name, or it serves a different {{noun}}.",
-                  { noun: translatableTerm(noun) },
-                )
-              : translateTemplate(
-                  "Must be the name the {{collectorName}} reports, so the agent serves this {{noun}}.",
-                  {
-                    collectorName: translatableTerm(spec.collectorName),
-                    noun: translatableTerm(noun),
-                  },
-                ),
+            // A pool is known by its XAPI UUID, not by a name.
+            description:
+              data.resourceType === AiResourceType.XcpNgPool
+                ? identity
+                  ? translateTemplate(
+                      "This pool's UUID, as Xen Orchestra reports it. The agent serves the pool with exactly this UUID.",
+                    )
+                  : translateTemplate(
+                      "Optional: the UUID of the pool the agent serves. Empty: the one pool its read token can see.",
+                    )
+                : identity
+                  ? translateTemplate(
+                      "The name this {{noun}} reports. The agent must register with exactly this name, or it serves a different {{noun}}.",
+                      { noun: translatableTerm(noun) },
+                    )
+                  : translateTemplate(
+                      "Must be the name the {{collectorName}} reports, so the agent serves this {{noun}}.",
+                      {
+                        collectorName: translatableTerm(spec.collectorName),
+                        noun: translatableTerm(noun),
+                      },
+                    ),
           },
           ...(isIdentityPinned({ resourceType: data.resourceType, identity })
             ? []
@@ -1139,6 +1279,12 @@ export function getResourceAiAgentInstall(data: {
           "Add this service to the {{collectorName}}'s docker-compose.yml — it takes every variable below from the same .env.",
           { collectorName: collectorName },
         );
+  } else if (data.resourceType === AiResourceType.XcpNgPool) {
+    // Shipped under a profile: it starts only once it has a token to read with.
+    whereText = translateTemplate(
+      "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.",
+      { collectorName: collectorName, directory: spec.directory || "" },
+    );
   } else if (!spec.directory) {
     // Usually installed with install.sh (plain containers): that comes first.
     whereText = translateTemplate(
@@ -1286,7 +1432,10 @@ export function getResourceAiAgentWriteAccessCommands(
       ? `
 ${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV}=<the credential's ID>
 ${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV}=<the credential's secret>`
-      : "";
+      : resourceType === AiResourceType.XcpNgPool
+        ? `
+${RESOURCE_AI_XO_WRITE_TOKEN_ENV}=<a token of the user whose role allows the fixes>`
+        : "";
   // Whole sentences: with or without targets, in the collector's directory or not.
   let envIntro: string;
 

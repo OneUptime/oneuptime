@@ -13,6 +13,7 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -891,10 +892,14 @@ export default class Probe extends BaseModel {
       "What the probe last reported about its SNMP trap receiver: whether it is on and its UDP port, its SNMPv3 engine ID, how many SNMPv3 users it accepts traps from, and the SNMPv3 traps it refused in the last day, by source address, reason and user name. Managed by the probe.",
     /*
      * A network device's Overview reads its probe's report through the
-     * device (NetworkDevice.probe), held to the read list above, to say
-     * when the device's own SNMPv3 traps are refused.
+     * device (NetworkDevice.probe), to say when the device's own SNMPv3
+     * traps are refused. Every relation holds it to the read list above
+     * (#11234): who reads an alert, an incident, a data store or a monitor
+     * test reads which probe it came from, not the addresses and user names
+     * that probe refused.
      */
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
   })
   @Column({
     type: ColumnType.JSON,

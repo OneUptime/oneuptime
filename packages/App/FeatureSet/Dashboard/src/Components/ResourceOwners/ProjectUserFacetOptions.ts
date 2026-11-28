@@ -1,9 +1,11 @@
-import { FilterChipDropdownOption } from "./FilterChipDropdown";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "./FilterChipDropdownTypes";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
-import Includes from "Common/Types/BaseDatabase/Includes";
+import LinkedTo, { LinkedToMatch } from "Common/Types/BaseDatabase/LinkedTo";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -21,6 +23,15 @@ import { getNameInitials } from "Common/Utils/NameInitials";
  */
 
 const PROJECT_USER_PICKER_LIMIT: number = 50;
+
+// How many picked people are named at once.
+const USER_RESOLVE_CONCURRENCY: number = 10;
+
+/*
+ * What the server calls a team's members in a LinkedTo: its TeamMember
+ * rows (Common/Server/Types/Database/LinkedToLinkTables).
+ */
+export const TEAM_MEMBERS_RELATION: string = "members";
 
 const toUserOptions: (
   results: Array<ListResult<TeamMember>>,
@@ -117,6 +128,10 @@ export const loadProjectUserOptions: (
 /**
  * Resolve previously-selected userIds (e.g. from a saved view or the URL)
  * back into labeled options so the chip shows proper names rather than ids.
+ *
+ * One membership is read for each person, by their id: a read of every
+ * membership of the people picked at once took the first 10,000, so beside
+ * someone on that many teams the others read as ids (#11211).
  */
 export const resolveProjectUserOptions: (
   projectId: ObjectID,
@@ -125,71 +140,82 @@ export const resolveProjectUserOptions: (
   projectId: ObjectID,
   values: Array<string>,
 ): Promise<Array<FilterChipDropdownOption>> => {
-  if (values.length === 0) {
-    return [];
-  }
+  const userIds: Array<string> = Array.from(
+    new Set(
+      values.filter((value: string): boolean => {
+        return ObjectID.isValidUUID(value);
+      }),
+    ),
+  );
 
-  const result: ListResult<TeamMember> = await ModelAPI.getList<TeamMember>({
-    modelType: TeamMember,
-    query: {
-      projectId: projectId,
-      userId: new Includes(values),
-    } as Query<TeamMember>,
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    select: {
-      _id: true,
-      user: {
-        _id: true,
-        name: true,
-        email: true,
-      },
-    },
-    sort: {},
-  });
-
-  return toUserOptions([result]);
-};
-
-/**
- * Resolve the set of team ids the selected user(s) belong to. Wired into a
- * Teams "Member" facet via `computeMatchingResourceIds`; the hook intersects
- * the returned ids into the table's `_id` filter. Multiple selected users
- * union (teams containing any of them).
- */
-export const computeTeamIdsForMembers: (
-  projectId: ObjectID,
-  userIds: Array<string>,
-) => Promise<Array<string>> = async (
-  projectId: ObjectID,
-  userIds: Array<string>,
-): Promise<Array<string>> => {
   if (userIds.length === 0) {
     return [];
   }
 
-  const result: ListResult<TeamMember> = await ModelAPI.getList<TeamMember>({
-    modelType: TeamMember,
-    query: {
-      projectId: projectId,
-      userId: new Includes(userIds),
-    } as Query<TeamMember>,
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    select: {
-      _id: true,
-      teamId: true,
-    },
-    sort: {},
-  });
+  const results: Array<ListResult<TeamMember>> = [];
 
-  const teamIds: Set<string> = new Set<string>();
-  for (const teamMember of result.data) {
-    const teamId: string | undefined = teamMember.teamId?.toString();
-    if (teamId) {
-      teamIds.add(teamId);
-    }
+  for (
+    let start: number = 0;
+    start < userIds.length;
+    start += USER_RESOLVE_CONCURRENCY
+  ) {
+    results.push(
+      ...(await Promise.all(
+        userIds
+          .slice(start, start + USER_RESOLVE_CONCURRENCY)
+          .map((userId: string): Promise<ListResult<TeamMember>> => {
+            return ModelAPI.getList<TeamMember>({
+              modelType: TeamMember,
+              query: {
+                projectId: projectId,
+                userId: new ObjectID(userId),
+              } as Query<TeamMember>,
+              limit: 1,
+              skip: 0,
+              select: {
+                _id: true,
+                user: {
+                  _id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              sort: {},
+            });
+          }),
+      )),
+    );
   }
 
-  return Array.from(teamIds);
+  return toUserOptions(results);
+};
+
+/**
+ * The Teams list's "Member" chip as one filter for the list's own query: the
+ * teams one of the people picked is in ("is"), or none of them is
+ * ("is not"), through their TeamMember rows - `members` of a LinkedTo,
+ * which the server answers with a subquery on TeamMember and holds to its
+ * read (LinkedToLinkTables, #11211). It read the teams of the people picked
+ * first - the first 10,000 memberships - and filtered the list by those
+ * ids. Null when nobody is picked, and the chip filters nothing.
+ */
+export const buildTeamMemberFilter: (
+  userIds: Array<string>,
+  operator: FilterOperator,
+) => LinkedTo | null = (
+  userIds: Array<string>,
+  operator: FilterOperator,
+): LinkedTo | null => {
+  const ids: Array<string> = userIds.filter((userId: string): boolean => {
+    return ObjectID.isValidUUID(userId);
+  });
+
+  if (ids.length === 0) {
+    return null;
+  }
+
+  return new LinkedTo({
+    match: operator === "is_not" ? LinkedToMatch.NoneOf : LinkedToMatch.AnyOf,
+    relations: { [TEAM_MEMBERS_RELATION]: ids },
+  });
 };

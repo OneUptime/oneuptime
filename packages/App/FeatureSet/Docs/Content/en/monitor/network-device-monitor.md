@@ -147,11 +147,14 @@ A discovery scan of a customer's network brings in dozens of devices that belong
 | --- | --- |
 | **Set Site** / **Clear Site** | Moves every selected device into the site you pick, where it counts towards the site's health; a device without a probe of its own picks up the site's default probe. **Clear Site** takes them out of their sites. A device that a site assignment rule matches goes back to the rule's site on its next poll, so for devices discovery keeps finding, add a rule under **Network → Rules → Site Assignment Rules** instead; the **Set Site** dialog links to it. |
 | **Set Device Role** / **Clear Device Role** | Gives every selected device one role, such as the twenty switches that are all "Access Switch". Roles are the project's own, under **Network → Settings → Device Roles**, which the dialog links to. **Clear Device Role** works each device's role out from its SNMP identity again. |
+| **Create Monitors** | Gives every selected device a monitor from the template you pick, as an import does: a Network Device template's monitor reads the device's polls, and a Ping, IP, Port or NTP template's monitor checks the device's own address. A device that already has a monitor from that template, or one of the same kind checking the same thing, keeps it and gets no second one. |
 | **Apply Vendor Template** | Adds a [vendor template](#vendor-health-templates)'s health OIDs and SNMP tables to every selected device. **Match each device's vendor**, the dialog's first choice, picks each device's own template from what its SNMP walk reports, so a mixed selection gets the right one everywhere; or pick one template for all of them. |
 
 Each action is one dialog and one save for the whole selection, and every device goes through the same checks as an edit on its own Settings page: permissions, the label and owner scope of your role, and the limits on what a device may collect.
 
 **Apply Vendor Template** shows what it will do before it does anything: how many devices get which template, and how many it leaves alone and why. It adds to what each device already collects and removes nothing, and a device that already has everything in the template is not written again. It leaves alone a monitor-backed device (nothing polls it), a device linked to an [OID Collection Template](#oid-collection-templates) (the template decides what it collects, so add the vendor's OIDs there), and, when matching, a device not walked over SNMP yet or whose vendor has no template.
+
+**Create Monitors** runs on the server, up to 5,000 devices at a time, and closing its dialog does not stop it. The dialog counts the monitors as each is created, found there already, or fails, and **Stop** stops the run after the device being given its monitor. **Retry** tries again only the devices that failed, and running it again on the same devices creates nothing twice. A device that takes its status from a monitor bound to it gets no Network Device monitor, because nothing polls it. Each monitor counts towards your plan: a plan with no room left refuses to start, and when it fills up partway, the devices left are listed as given no monitor, with the reason, to try again once there is room.
 
 When an action finishes, it lists how many devices changed, which failed and why — a device your role may not edit, a list over its limit — and which it did not change and why: a device already in that site or role, or one the vendor template leaves alone.
 
@@ -182,6 +185,8 @@ A device that answers ping but whose walk fails is **Up**, tagged **SNMP failing
 - It is SNMP failing because its interfaces, inventory and health OIDs have stopped refreshing, almost always because of credentials, a disabled SNMP agent or an ACL. Nothing else on the page would tell you that the numbers are frozen.
 
 A device whose ping and walk both fail is simply **Down**, so the tag only ever sits beside a green pill.
+
+Monitors tell the two apart the same way. **Device Is Reachable (ICMP)** judges the poll's ping on its own, and a new Network Device monitor raises an alert, not an incident, and stays online when SNMP fails on a device that answers ping: see [A new monitor's criteria](#a-new-monitors-criteria).
 
 ### Reading a device's status
 
@@ -741,7 +746,7 @@ To bring the devices you already have into line, press **Apply to existing devic
 
 ### Importing Automatically with Auto Import Rules
 
-Reviewing every scan by hand does not scale past the first few subnets. **Network → Rules → Auto Import Rules** is where you write the import down once: a rule says which discovered hosts to claim (an IP range, and optional system name, description and `sysObjectID` patterns) and, optionally, which monitor template and [OID Collection Template](#oid-collection-templates) the devices it imports get. A Network Device template's monitor reads each device's polls, a Ping, IP, Port or NTP template's monitor checks each device's own address, and a Website, API or SSL Certificate template's monitor checks the template's URL with each device's address as its host. A device never gets a second monitor of the same kind. A rule marked as an exclusion claims nothing and vetoes the others: that is how printers and phones are carved out of a broad subnet rule.
+Reviewing every scan by hand does not scale past the first few subnets. **Network → Rules → Auto Import Rules** is where you write the import down once: a rule says which discovered hosts to claim (an IP range, and optional system name, description and `sysObjectID` patterns) and, optionally, which monitor template and [OID Collection Template](#oid-collection-templates) the devices it imports get. A Network Device template's monitor reads each device's polls, a Ping, IP, Port or NTP template's monitor checks each device's own address, and a Website, API or SSL Certificate template's monitor checks the template's URL with each device's address as its host. A device the project already has gets the template's monitor too, unless it has one already: a monitor from the same template, or of the same kind checking the same thing, made for it, tied to it, bound to it or watching it. A monitor of another kind, or a Network Device monitor from another template or none, never stops it, so a device never gets the same monitor twice, and never misses the one the rule gives. A rule marked as an exclusion claims nothing and vetoes the others: that is how printers and phones are carved out of a broad subnet rule.
 
 A rule's **Check every** sets how often the scan's probe polls each device the rule imports, as **Check every** does when you import from **Review Results**; left empty, it is every 5 minutes. A rule with **Include Ping-Only Hosts** on also imports the hosts that answered ping only, every host an [ICMP scan](#icmp-scans) finds among them, and gives them its monitor template too: the probe pings them, so the template's checks on whether a device is up, and on the traps it sends, work for them at once, and its checks that read an SNMP walk start once the device has credentials.
 
@@ -825,7 +830,7 @@ To create one from **Monitors** instead:
 
 A Network Device monitor has no interval of its own: it is evaluated every time the device's poll results arrive, and every time a trap from the device arrives.
 
-When the polls stop, the monitor is still evaluated. Once a device has gone three polling intervals, and at least ten minutes, without a poll, its monitors are evaluated as a poll that could not reach it, once each time the polls stop (a check looks every five minutes): a criteria that matches **SNMP Device Is Online** being False, such as **Device unreachable**, fires, and the incident says why no poll came, for example that the probe is down or that the device has no probe. A device with polling turned off, or on the [bound-monitor override](#the-bound-monitor-override), is left alone. The next poll evaluates the monitor as usual.
+When the polls stop, the monitor is still evaluated. Once a device has gone three polling intervals, and at least ten minutes, without a poll, its monitors are evaluated as a poll that could not reach it, once each time the polls stop (a check looks every five minutes): a criteria that matches **SNMP Device Is Online** or **Device Is Reachable (ICMP)** being False, such as **Device unreachable**, fires, and the incident says why no poll came, for example that the probe is down or that the device has no probe. A device with polling turned off, or on the [bound-monitor override](#the-bound-monitor-override), is left alone. The next poll evaluates the monitor as usual.
 
 A monitor you make for a device is tied to it: one you create from the card, and one you create from **Monitors** on the address of a device its probes know, found as a scan's hosts are: a device they poll, or else the one at that address in a site where they poll devices or are the default probe. Probes that poll nothing and are no site's default probe tie it only to a device in no site that is the only one in the project at the address, so a monitor is never tied to another site's device by guesswork. In any other case, pick the device under **Network Device** in the form's **More fields**, or change it later on the monitor's **Details** card. **Add Existing Monitor**, on the device's card, ties one you made before. A tied monitor is listed on the device's pages, what it raises is linked to the device, and an import or an auto import rule counts it, so the device never gets a second monitor like it. **Remove**, on a tied monitor's row, unties it once you confirm: it is no longer listed on the device, what it raises from then on is not linked to the device, and imports and auto import rules stop counting it. The monitor itself keeps checking, unchanged. A monitor the device lists for another reason, such as one an import made for it or the monitor it is bound to, has no **Remove**. When a monitor's probes change, OneUptime works its tie out again the same way. A monitor tied to no device is tied to the device its probes now see. A tie OneUptime made moves to that device, or comes off when they see none or cannot tell two apart. A tie you set or took off stays as you left it, and so does one made before OneUptime began to record who set it. Each change is written on the monitor's feed. Under the device's own monitors, its card lists the monitors that check its address but are tied to no device. **Add** ties one whose probes see this device. One whose probes cannot tell it from another device at the address, or poll no device and are no site's default probe, says why and names the other devices: if it checks this device, tie it with **Add Existing Monitor**.
 
@@ -854,7 +859,10 @@ Criteria check each poll result and trap, and open incidents or alerts.
 
 | Filter type | What it checks | On a ping-only poll |
 | --- | --- | --- |
-| SNMP Device Is Online | Whether the device is reachable, by ping or SNMP: the same verdict as its status. | Evaluated |
+| SNMP Device Is Online | Whether the device is reachable, by ping or SNMP: the same verdict as its status. Despite its name, a device that answers ping is online while its SNMP fails. | Evaluated |
+| Device Is Reachable (ICMP) | Whether the device answered its probe's ping on this poll, whatever SNMP did. | Evaluated |
+| ICMP Response Time (in ms) | The average round trip of the poll's ping. No verdict on a poll whose ping got no echo back. | Evaluated |
+| ICMP Packet Loss (in %) | The share of the ping's echoes the device did not answer. | Evaluated |
 | SNMP Walk Is Succeeding | Whether the last SNMP walk succeeded. False is the "SNMP failing" state: reachable, but interfaces and inventory have stopped refreshing. | Not evaluated |
 | SNMP Response Time (in ms) | The walk's response time in milliseconds, never the ping's. | Not evaluated |
 | SNMP OID Value | The value one OID returned. | Not evaluated |
@@ -877,6 +885,8 @@ Criteria check each poll result and trap, and open incidents or alerts.
 
 On a poll where no walk ran, the criteria marked "Not evaluated" return no verdict rather than a failing one. A criteria that opens an incident when the SNMP response time is too high cannot fire on a device that is only pinged, so a ping-only device watched by walk-based criteria never raises a false alarm.
 
+The ICMP checks read the ping every poll already sends from the device's probe, beside its SNMP walk, so they need no Ping monitor and no probe update. They can be judged over a stretch of time, like the response time checks. A poll from a probe too old to ping has no verdict on them.
+
 The interface checks need **Walk Interfaces** on in the device's polling settings, which it is by default. The OID checks read the device's configured health OIDs. Administratively disabled interfaces are down on purpose and never count as failures.
 
 **SNMP Interface Utilization (in %)** also takes **Anomalously High**, **Anomalously Low** and **Anomalous**, with a **Sensitivity** and a **Baseline Window** as on a [Metrics monitor](/docs/monitor/metrics-monitor). Each interface in scope is compared with its own utilization at the same hour of the week on earlier days, as this step of the monitor polled it, so a backup link that runs full every night is judged by its own nights, not by the quiet ports beside it. The incident or alert names the interface furthest outside its range, and how many more are outside theirs. An interface is still learning, and raises nothing, until that hour of the week has two weeks of its history.
@@ -887,6 +897,24 @@ SNMP table criteria pick a table, a column (for SNMP Table Value) and a row scop
 
 Transceiver criteria are scoped like the interface checks: empty judges every optic as one combined alert, `*` raises a separate alert for every port with an optic (each resolving on its own and named after its port), and anything else names one port by its name or alias. They judge the device's [transceivers](#transceivers) as of this poll, which already carry their history — how many polls an optic has been missing, a month of received power — so they are not evaluated over a stretch of time either. A poll whose transceiver read failed leaves them judging the last good read, so an open alert does not resolve on a poll that could not look.
 
+### A new monitor's criteria
+
+A new Network Device monitor starts with three criteria. They are checked in order, and the first that matches sets the monitor's status:
+
+| Criteria | Matches when | Status | Raises |
+| --- | --- | --- | --- |
+| Offline | The device answers neither ping nor SNMP: **SNMP Device Is Online** is False. | Offline | An incident |
+| SNMP is failing | The device answers ping, **Device Is Reachable (ICMP)** is True, while its walk fails, **SNMP Walk Is Succeeding** is False. | Online | An alert, at the project's warning severity |
+| Online | The device answers ping or SNMP. | Online | Nothing |
+
+SNMP failing is not offline. A changed community string, a stopped SNMP agent or an ACL stops the walk on every device it touches, while each of them still answers ping and forwards traffic. One credential problem across 3,000 switches is 3,000 alerts that say SNMP is failing, with one thing to fix, rather than 3,000 devices down on your status pages. The alert resolves on the first poll whose walk succeeds.
+
+The SNMP is failing criteria sets the status to Online itself, so a device that was offline for a poll and came back with SNMP still failing reads Online on that poll, with the alert.
+
+Offline asks for both to fail, not for the ping alone, because gear behind an ACL that drops ICMP from the probe still answers SNMP, and is up. If every device you watch answers ping, you can make **Device Is Reachable (ICMP)** being False your Offline instead, and add **ICMP Response Time (in ms)** or **ICMP Packet Loss (in %)** criteria for a slow or lossy link. A device that is only pinged is never told its SNMP is failing: with no walk, that criteria is not evaluated.
+
+Monitors made before this keep the criteria they have. To give one the new criteria, add it on the monitor's criteria form, or on the template its monitors are made from and use **Sync from Template**.
+
 ### Recommended Alert Pack
 
 Click **Add Recommended Alerts** on the criteria form to add a prebuilt set of criteria: the alerts most network operators want, without building them by hand each time. The pack is filled in when you create a monitor from the device's page, and it is what the recommended alert policy's template carries.
@@ -894,7 +922,7 @@ Click **Add Recommended Alerts** on the criteria form to add a prebuilt set of c
 | Criteria | Fires when | Creates |
 | --- | --- | --- |
 | Device unreachable | The device stops answering ping and SNMP. | Incident |
-| SNMP walk failing | The device answers ping but its SNMP walk is failing. | Alert |
+| SNMP walk failing | The device answers ping but its SNMP walk is failing. It keeps the monitor online. | Alert |
 | Interface down | An administratively enabled interface goes operationally down. | Incident |
 | Interface saturated | An interface runs above 80% utilization. | Alert |
 | Interface errors | An interface logs more than 1 error per second. | Alert |
@@ -904,7 +932,11 @@ Click **Add Recommended Alerts** on the criteria form to add a prebuilt set of c
 
 When the device walks [SNMP tables](#snmp-tables) that declare healthy values, the pack also adds one **SNMP Table Row Is Unhealthy** criteria per such table, with Row `*`: an incident per row for tunnels, routing neighbours and a controller's access points ("IPsec Tunnels: row unhealthy", or "Access Points: row unhealthy" for an access point gone from its controller), and an alert per row for hardware tables and radios.
 
-SNMP walk failing is an alert rather than an incident on purpose: the device is not down, so waking somebody at 2am for it would be wrong, but its inventory has stopped refreshing and somebody should fix the credentials. It never fires on a ping-only device, because the criteria is not evaluated when no walk ran.
+SNMP walk failing is an alert rather than an incident on purpose: the device is not down, so waking somebody at 2am for it would be wrong, but its inventory has stopped refreshing and somebody should fix the credentials. It never fires on a ping-only device, because the criteria is not evaluated when no walk ran, nor on a device that answers nothing, which is **Device unreachable**: it checks **Device Is Reachable (ICMP)** too.
+
+It also sets the monitor's status to online when it matches. Its alert resolves on the first poll whose walk succeeds.
+
+The pack's other alerts change no status, and a criteria that changes no status decides none: the status comes from the criteria that change it, Device unreachable, Interface down and the tables' incidents, and when none of them matches the monitor is on its default status, online. So a device that missed a poll and came back with a port above 80%, a port logging errors, an optic past its threshold or a fan failed is online on that poll, with the alert open. It used to stay offline for as long as any of those alerts kept matching, its incident resolved and its status page red: only the first criteria that matched decided the status. Monitors made from the pack before need no change for this. To keep **SNMP walk failing** quiet on a device that answers nothing, add **Device Is Reachable (ICMP)** is True to that criteria on a template or monitor made from the pack before, then use **Sync from Template** on the template's monitors; an alert policy's monitors follow its template on their own.
 
 The three transceiver criteria raise one alert per port (`*`), and are alerts rather than incidents for the same reason: a dark optic already takes its interface down, and Interface down pages for that, while these say why, or warn before it happens. 2 dB is about a third of the light gone: well past the few tenths of a dB a healthy link wobbles by from day to day, and early enough to clean a connector before the link loses its margin. None of them can fire on a device that reports no optics.
 

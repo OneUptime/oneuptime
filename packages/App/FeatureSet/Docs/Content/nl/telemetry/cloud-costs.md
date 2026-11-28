@@ -1,6 +1,6 @@
 # Cloudkosten en besparingen
 
-Een gekoppeld cloudaccount zegt ook wat het kost en hoe het minder zou kunnen kosten. OneUptime leest de kosten van elke dag uit de eigen facturering van je cloud en de aanbevelingen van de eigen aanbevelingsdienst van je cloud, toont ze onder **Cloud → Uitgaven → Kosten** en **Cloud → Uitgaven → Besparingen**, toont je Savings Plans, reserveringen en kortingen voor toegezegd gebruik onder **Cloud → Uitgaven → Toezeggingen**, en waarschuwt voordat een maand meer kost dan het budget onder **Cloud → Uitgaven → Budgetten**. Als je het toestaat, voert het ook de besparingen door die een eigenaar goedkeurt, stopt het niet-productieresources buiten werktijd en controleert het elke wijziging aan de hand van de rekening.
+Een gekoppeld cloudaccount zegt ook wat het kost en hoe het minder zou kunnen kosten. OneUptime leest de kosten van elke dag uit de eigen facturering van je cloud en de aanbevelingen van de eigen aanbevelingsdienst van je cloud, toont ze onder **Cloud → Uitgaven → Kosten** en **Cloud → Uitgaven → Besparingen**, toont je Savings Plans, reserveringen en kortingen voor toegezegd gebruik onder **Cloud → Uitgaven → Toezeggingen**, laat je onder **Cloud → Uitgaven → Budgetten** weten wanneer een maand, een kwartaal of een jaar meer dreigt te kosten dan het budget, en voorspelt onder **Cloud → Uitgaven → Prognose** de komende maanden. Als je het toestaat, voert het ook de besparingen door die een eigenaar goedkeurt, stopt het niet-productieresources buiten werktijd en controleert het elke wijziging aan de hand van de rekening.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer en Cost Optimization Hub, elk één keer aangezet.
@@ -11,7 +11,8 @@ Een gekoppeld cloudaccount zegt ook wat het kost en hoe het minder zou kunnen ko
 - [Besparingen doorvoeren](#besparingen-doorvoeren): Pas een besparing toe met goedkeuring van de eigenaar, en maak haar ongedaan.
 - [Buiten-kantoortijdschema's](#buiten-kantoortijdschemas): Stop niet-productieresources 's nachts en in het weekend.
 - [AI-regels voor besparingen](#ai-regels-voor-besparingen): Voorstellen voor eigenaren, of wijzigingen binnen een limiet.
-- [Budgetten](#budgetten): Een waarschuwing zodra de uitgaven van een maand een deel van het budget passeren.
+- [Budgetten](#budgetten): Het budget van een maand, een kwartaal of een jaar voor elk account, elke kostengroep of elke service.
+- [Prognoses](#prognoses): Wat de komende 12 maanden naar verwachting kosten, en hoe zeker dat is.
 - [Verplichte tags](#verplichte-tags): Hoeveel van je uitgaven de tags draagt die je verplicht stelt, en nieuwe resources zonder die tags.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Facturering van je cloud,<br/>twee keer per dag gelezen"] --> costs["Kosten"]
     rec["Cloudaanbevelingen,<br/>één keer per dag gelezen"] --> savings["Besparingen"]
     costs --> budgets["Budgetten die waarschuwen"]
+    costs --> forecast["Prognoses"]
+    forecast --> budgets
     costs --> overview["Overzicht van Cloud"]
     savings --> overview
 ```
@@ -222,30 +225,41 @@ Als de werktijd eindigt, stopt een schema via de verbinding van zijn account elk
 Een schema stopt nooit productie, en nooit een resource waarvan niets de omgeving zegt. Van een resource is bekend dat ze geen productie is als:
 
 - een van haar tags dat zegt, onder een sleutel zoals `environment`, `env`, `stage`, `tier` of `deployment.environment`, met een woord zoals `dev`, `test`, `qa`, `staging` of `sandbox`;
-- haar account als **Niet-productie** is gemarkeerd onder **Omgeving** in de **Instellingen** van het account;
-- of een van haar labels dat zegt, bijvoorbeeld `Staging` of `env: dev`.
+- of haar account als **Niet-productie** is gemarkeerd onder **Omgeving** in de **Instellingen** van het account.
 
-Productie wint: een tag die `prod`, `production` of `live` zegt, of een account dat als **Productie** is gemarkeerd, houdt een resource draaiend, wat de rest ook zegt. De naam van een resource wordt daarvoor nooit gelezen. Zet je een schema uit, dan stopt het niets meer en start het wat het heeft gestopt zodra de werktijd begint; verwijder je het, dan wordt wat het heeft gestopt meteen gestart.
+Een OneUptime-label maakt een resource nooit niet-productie voor een schema. Een label hernoemen verandert in één keer elke resource die het draagt, dus een label zoals `Staging` of `env: dev` wordt alleen gelezen waar een persoon de wijziging goedkeurt, zoals bij **Toepassen**. Productie wint: een tag die `prod`, `production` of `live` zegt, een account dat als **Productie** is gemarkeerd, of een label zoals `Production` of `env: prod` houdt een resource draaiend, wat de rest ook zegt. De naam van een resource wordt daarvoor nooit gelezen. Elke stop leest de resource opnieuw vlak voordat hij wordt doorgevoerd. Zet je een schema uit, dan stopt het niets meer en start het wat het heeft gestopt zodra de werktijd begint; verwijder je het, dan wordt wat het heeft gestopt meteen gestart.
 
 ## AI-regels voor besparingen
 
 Met **AI inschakelen** aan stelt OneUptime AI na elke lezing van de besparingen van het account elke besparing die het kan doorvoeren voor aan de eigenaren van de resource, en zij keuren haar goed of wijzen haar af onder **Wacht op goedkeuring**. Onder **Cloud → Instellingen → AI-regels voor besparingen** zegt een regel wat OneUptime AI doet met de besparingen waarop ze past, naar het soort wijziging, de omgeving van de resource en de cloud: **Uit**, **Aan de eigenaar voorstellen** of **Zonder te vragen handelen**, tot een maandlimiet. Zonder regel wordt elke besparing voorgesteld en geen enkele doorgevoerd; met regels alleen waarop een regel past, en tussen passende regels wint de voorzichtigste.
 
-Een regel handelt alleen zonder te vragen bij een resource waarvan bekend is dat ze geen productie is, alleen voor een wijziging die ongedaan kan worden gemaakt, alleen tot de kleinste limiet van de passende regels, en hoogstens 10 keer per uur in een project: al het andere wordt voorgesteld. Een wijziging die zonder te vragen is doorgevoerd, staat in de tijdlijnen met de regel die haar doorvoerde, en de eigenaren kunnen haar ongedaan maken. Een afgewezen of ongedaan gemaakte besparing wordt 30 dagen niet opnieuw voorgesteld.
+Een regel handelt alleen zonder te vragen bij een resource waarvan bekend is dat ze geen productie is zoals een schema dat leest, aan haar tags of haar account en nooit aan haar labels alleen, alleen voor een wijziging die ongedaan kan worden gemaakt, alleen tot de kleinste limiet van de passende regels, en hoogstens 10 keer per uur in een project: al het andere wordt voorgesteld. De resource wordt opnieuw gelezen vlak voordat de wijziging wordt doorgevoerd, en een resource waarvan dan niet meer bekend is dat ze geen productie is, wordt in plaats daarvan voorgesteld. Een wijziging die zonder te vragen is doorgevoerd, staat in de tijdlijnen met de regel die haar doorvoerde, en de eigenaren kunnen haar ongedaan maken. Een afgewezen of ongedaan gemaakte besparing wordt 30 dagen niet opnieuw voorgesteld.
 
 ## Budgetten
 
 :::steps
 ### Een budget maken
 
-Maak onder **Cloud → Uitgaven → Budgetten** een budget: het **Maandbedrag**, het **Account** waarvoor het geldt, of geen voor alle accounts, en de **Kostenbasis** die het telt, of geen voor die van het project.
+Maak onder **Cloud → Uitgaven → Budgetten** een budget en kies waarvoor het **Geldt voor**: elk account, één **Account**, een **Kostengroep** zoals zijn regels de uitgaven indelen, of de services, regio's en tags die een **Filter** noemt, geschreven zoals de regels van een kostengroep. Laat de **Kostenbasis** leeg om die van het project te tellen.
+
+### Zeg wat het mag kosten
+
+De **Periode** is een maand, een kwartaal of een jaar, en het **Bedrag** is wat één periode mag kosten. Kwartalen en jaren beginnen in de **Eerste maand van het jaar**: vanaf april loopt een jaar van april tot maart. Het **Budgetplan** van een jaar kan het bedrag gelijk over de maanden verdelen, of elke maand een eigen bedrag geven in een **Maandplan**. Elke maand wordt dan aan zijn eigen aandeel gehouden, zodat een rustige maand nooit een waarschuwing krijgt voor de uitgaven van een drukke maand.
 
 ### Kiezen wanneer het waarschuwt
 
-**Waarschuwen bij** neemt de delen van het budget waarbij gewaarschuwd wordt, in procenten: om te beginnen 80 en 100. **Waarschuwen bij dreigende overschrijding** waarschuwt ook, één keer per maand, als het tempo van de laatste week de maand boven het budget zou brengen. **Waarschuwen bij ongewone dagen** waarschuwt ook op de dag na een dag die veel meer kostte dan gewoonlijk: zie [Ongewone dagen](#ongewone-dagen). **Ernst van waarschuwing** en **Bereikbaarheidsbeleid** bepalen hoe ernstig de waarschuwingen zijn en wie er wordt opgeroepen.
+**Waarschuwen bij** neemt de aandelen van het budget waarbij iets gebeurt, in procenten: 80 en 100 om mee te beginnen. **Waarschuwen bij dreigende overschrijding** waarschuwt ook, eens per periode, wanneer de periode op koers ligt om meer te kosten dan het budget. **Waarschuwen bij ongewone dagen** waarschuwt ook de dag na een dag die veel meer kostte dan gebruikelijk: zie [Ongewone dagen](#ongewone-dagen). **Ernst van waarschuwing** zegt hoe ernstig de waarschuwingen zijn.
+
+### Kies wie het hoort
+
+De mensen en teams onder **Op de hoogte stellen** worden per e-mail en chat ingelicht zodra de uitgaven een aandeel onder 100% passeren, zonder waarschuwing, zodat niemand wordt opgeroepen voor uitgaven binnen het budget. **Het team van de kostengroep inlichten** licht ook het team in waartoe de kostengroep behoort. Vanaf 100% wordt een waarschuwing gemaakt, zijn zij de eigenaar en worden de **Bereikbaarheidsbeleid** opgeroepen. Een budget zonder iemand om in te lichten maakt bij elk aandeel een waarschuwing.
 :::
 
-Een budget wordt gecontroleerd na elke leesbeurt van de kosten en elk uur. Zodra de uitgaven van de maand een drempel passeren, wordt er een waarschuwing voor gemaakt, voor de hoogste als een leesbeurt er meerdere tegelijk passeert, en een nieuwe maand lost de waarschuwingen van de vorige op. Een budget telt alleen de accounts die in zijn valuta worden gefactureerd, op zijn basis: een geamortiseerd budget gaat niet af door een vooraf gekochte toezegging, die een gefactureerd budget op de dag van aankoop telt.
+Een budget wordt gecontroleerd na elke uitlezing van de kosten en elk uur. Zodra de uitgaven van de periode een aandeel passeren, worden de in te lichten mensen ingelicht, of vanaf 100% wordt een waarschuwing gemaakt, één voor de hoogste als een uitlezing er meerdere tegelijk passeert, en een nieuwe periode lost de waarschuwingen van de vorige periode op. Een jaar dat per maand is verdeeld, wordt maand voor maand gecontroleerd, tegen het aandeel van die maand. Een budget telt alleen de accounts die in zijn valuta worden gefactureerd, op zijn basis: een afgeschreven budget slaat niet aan op een vooruitbetaalde toezegging, die een gefactureerd budget meetelt op de dag van aankoop.
+
+Een periode ligt op koers om het budget te overschrijden wanneer wat ze tot nu toe kostte, de rest van deze maand in het tempo van de laatste volle week en de latere maanden van een kwartaal of jaar volgens de [prognose](#prognoses) samen meer zijn dan het budget.
+
+De rij van elk budget toont wat het meetelt, de periode en de periode tot nu toe: bij een jaar dat per maand is verdeeld deze maand tegen zijn aandeel, met het jaar ernaast. De pagina toont de periode maand voor maand tegen het aandeel van elke maand, deze maand dag voor dag, wat het meest kostte en wie het hoort. De pagina van een jaarbudget kan de prognose als plan opslaan.
 
 AI-agents kunnen budgetten maken en wijzigen via de [MCP-server](/docs/ai/mcp-server), en scripts met het commando `oneuptime cloud-budget` van de CLI: zie [Bewerkingen op bronnen](/docs/cli/resource-operations).
 
@@ -253,7 +267,41 @@ AI-agents kunnen budgetten maken en wijzigen via de [MCP-server](/docs/ai/mcp-se
 
 Na elke leesbeurt wordt elk van de laatste 14 volle dagen van een account vergeleken met de 14 dagen ervoor. Een dag is ongewoon als een service het dubbele van zijn gewone dag of meer kostte, of het hele account anderhalf keer zijn gewone dag of meer. In beide gevallen moet het minstens 10 meer zijn dan gewoonlijk, in de valuta van het account, en minstens 5% van de gewone dag van het account, zodat een paar cent nooit als piek telt. De gewone waarde van een dag is de mediaan van de 14 dagen ervoor, dus één piek verschuift die weinig, en een account wordt pas beoordeeld als het een week aan kosten heeft.
 
-**Cloud → Uitgaven → Kosten** markeert de ongewone dagen in de dagelijkse uitgaven, boven hun balken, en toont ze eronder. Over alle accounts opent elke markering de **Kosten** van haar account. Een budget dat het account meetelt, maakt één waarschuwing voor elk account en elke dag, de dag erna, en noemt elke service die hoog uitkwam. Een piek die dagen aanhoudt, wordt gemeld op de dag dat hij begon, en een dag van meer dan een week geleden wordt niet gemeld. Een budget dat is gemaakt voordat deze waarschuwingen bestonden, maakt ze pas als u het bewerkt en ze aanzet.
+**Cloud → Uitgaven → Kosten** markeert de ongewone dagen in de dagelijkse uitgaven, boven hun balken, en toont ze eronder. Over alle accounts opent elke markering de **Kosten** van het account. Een maandbudget voor elk account of één account maakt één waarschuwing per account en dag, de dag erna, met elke service die hoog uitkwam. Elk ander budget houdt wat het meetelt op dezelfde manier tegen zijn eigen gebruikelijke dag. Een piek die dagen aanhoudt, wordt gemeld op de dag dat hij begon, en een dag van meer dan een week geleden wordt niet gemeld. Een budget dat vóór deze waarschuwingen is gemaakt, maakt ze pas als je het bewerkt en ze aanzet.
+
+## Prognoses
+
+**Cloud → Uitgaven → Prognose** zegt wat de uitgaven naar verwachting kosten in elk van de komende 12 maanden, voor alles, een account, een kostengroep of een service, op de kostenbasis die je kiest. Het zegt hoe elke prognose wordt gemaakt, uit de volle maanden aan kosten die OneUptime bewaart, een jaar of iets meer:
+
+- **Deze maand** is wat hij tot nu toe kostte, met elke dag die nog komt tegen het gemiddelde van de laatste zeven volle dagen, zoals een budget hem doorrekent.
+- **Met minder dan 3 volle maanden** trekt elke komende maand dat tempo door, zonder waarschijnlijk bereik: er is te weinig gelezen om een trend van een uitschieter te onderscheiden.
+- **Vanaf 3 volle maanden** loopt een trend door de gemiddelde dag van elke maand: de mediaan van de hellingen tussen elk paar maanden, zodat één afwijkende maand hem nauwelijks verschuift.
+- **Vanaf 12 volle maanden** houdt elke kalendermaand ook bij hoe ver hij vorig jaar boven of onder de trend lag, zodat een decemberpiek ook voor de volgende december wordt voorspeld.
+
+Elke komende maand heeft een waarschijnlijk bereik, waar hij 8 van de 10 keer zou moeten uitkomen, afgeleid van hoe ver eerdere maanden van hun trend afweken, en nooit smaller dan 5% naar beide kanten. Het wordt breder naarmate een maand verder weg ligt en de prognose op minder maanden rust. Vanaf 12 volle maanden is elk bereik nog breder, omdat een jaar elke kalendermaand maar één keer toont. Een prognose is geen belofte: een nieuwe service, een migratie of een prijswijziging verschuift de komende maanden op een manier die geen eerdere maand laat zien.
+
+**Wat als** laat elke komende maand vanaf de gekozen maand groeien of krimpen met het aandeel dat je typt, zoals 20% vanaf januari. **Opslaan als budgetplan** maakt van de komende twaalf maanden het plan van een jaarbudget, in een nieuw budget of een bestaand, met elke maand gehouden aan zijn voorspelde aandeel.
+
+## Budgetten en prognoses in de API
+
+Budgetten zijn een API-resource (`cloud-budget`), met CLI-opdrachten en MCP-tools zoals elke resource. De `scope` van een budget is `allAccounts`, `account` (met `cloudAccountId`), `costGroup` (met `cloudCostGroupId`) of `filter` (met `filterRules`, geschreven zoals de regels van een kostengroep). De `period` is `month`, `quarter` of `year`, vanaf `fiscalYearStartMonth`, 1 tot 12. De `planSplit` van een jaar is `none`, `equal` of `byMonth`, met de twaalf maanden in `monthlyPlan`, in de volgorde van het boekjaar.
+
+Zo lees je de periode van een budget maand voor maand, de dagen van deze maand en wat het meest kostte, zoals de pagina dat doet:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+Zo voorspel je een bereik voor 1 tot 24 maanden vooruit, met een optionele wat-als:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+De `forecast` van het antwoord bevat de `method` (`pace`, `trend` of `trendAndSeason`), de maanden waaruit hij is gemaakt en elke maand met zijn `amount` en, voor de komende maanden, zijn `low` en `high`. Stuur `basis` als `billed`, `amortized` of `net` om op die basis te voorspellen; zonder staat de prognose op die van het project, en de `basis` van het antwoord zegt welke. De uitgaven van een budget staan op zijn eigen basis.
 
 ## Waar het geld naartoe gaat
 
@@ -313,14 +361,84 @@ OneUptime stelt alleen een waarde voor als de tag die waarde toestaat:
 
 De opdracht zet de tag in één stap, vanuit de eigen shell van je cloud: `aws resourcegroupstaggingapi tag-resources` op AWS, `az tag update --operation Merge` op Azure, en `gcloud ... add-labels` of `--update-labels` voor Compute Engine-VM's en -schijven, Cloud Storage-buckets en Cloud SQL-instances op Google Cloud.
 
+## Rapporten en exports
+
+### Kostenrapporten
+
+**Cloud → Uitgaven → Rapporten** stuurt volgens een schema wat de clouds kosten, per e-mail en naar Slack- of Microsoft Teams-kanalen, zodat wie de cijfers nodig heeft ze krijgt zonder OneUptime te openen. Een rapport heeft:
+
+- **Dekt**: alle accounts, één account, een kostengroep of een kostenweergave met al haar groepen.
+- **Periode**: vorige week (maandag tot zondag), vorige maand of de maand tot nu toe. Elke periode wordt vergeleken met de periode ervoor: de week ervoor, de maand ervoor of vorige maand tot dezelfde dag.
+- **Kostenbasis**: gefactureerd, geamortiseerd of netto. Leeg is het die van het project, waarmee Kosten opent. Het rapport zegt altijd op welke basis het staat.
+- **Schema**: elke week of elke maand, op een dag en tijd in een tijdzone, volgens dezelfde regels als de samenvattingen in Slack en Microsoft Teams. Een nieuw wekelijks rapport gaat volgende maandag om 09:00 in uw tijdzone uit, een maandelijks op de 1e, en latere rapporten houden die dag en tijd het hele jaar.
+
+De e-mail zegt wat de periode kostte tegenover de periode ervoor, de budgetten waarop ze telt (elke maand tot nu toe, op de eigen basis van het budget), de services die het sterkst stegen en daalden, de groepen van een kostenweergave en wat geen groep opneemt, de ongewone dagen, de grootste openstaande besparingen en hoeveel van de uitgaven toezeggingen dekken. De cijfers zijn als CSV bijgevoegd. **Kosten openen** opent **Kosten** op precies de dagen, de basis en de weergave van het rapport, zodat de cijfers van het rapport en die van de pagina dezelfde zijn. Accounts die in een andere valuta worden gefactureerd, blijven buiten de cijfers, en het rapport noemt ze.
+
+Een Slack- of Microsoft Teams-kanaal krijgt een kort bericht: het totaal en de verandering, het budget, de eerste regels van de lijsten van het rapport en **Kosten openen**.
+
+### Wie een rapport krijgt
+
+- Mensen en teams van het project krijgen het per e-mail, via hun meldingsinstellingen, waar ieder cloudkostenrapporten kan uitzetten. Ieder krijgt de cijfers die hij mag lezen: wie alleen via labels toegang heeft, krijgt alleen zijn accounts, en wie de cloudkosten van het project niet meer mag lezen, wordt weggelaten.
+- **E-mailadressen** buiten het project, zoals dat van uw accountant, en Slack- en Microsoft Teams-kanalen vereisen de machtiging Cloudbeheerder, of Projectbeheerder of Projecteigenaar, omdat OneUptime niet kan weten wie ze leest. Ze krijgen het rapport zoals de persoon die ze toevoegde het mag lezen, en krijgen het niet meer als die persoon de machtiging verliest. Een API-sleutel kan ze niet instellen.
+- Wie de andere Cloud-records mag maken, vanaf Cloudlid, kan rapporten maken, wijzigen en verwijderen. Wie Cloud op het niveau Kijker heeft, kan ze lezen.
+
+Een rapport gaat naar hoogstens 200 mensen, 25 adressen en 10 kanalen van elk soort. **Laatste verzending** zegt wanneer het voor het laatst uitging, en wie het wegliet en waarom.
+
+### Een deel voor elk team
+
+Een rapport van een kostenweergave kan elke groep haar eigen deel sturen met **Het team van elke groep zijn deel sturen**. De leden van het team van elke groep, dat op de groep staat, krijgen de uitgaven van hun groep tegenover de periode ervoor, de services daarin die het sterkst stegen en daalden, en haar ongewone dagen. Een gedeelde groep heeft geen eigen deel: haar kosten zitten in de groepen waarover ze wordt verdeeld. De eigen mensen, teams en adressen van het rapport krijgen alle groepen. Wie in de teams van twee groepen zit, krijgt beide delen. Eén maandelijks rapport van een kostenweergave op deze manier is de showback van de maand.
+
+### Voorbeeld en Stuur mij een kopie
+
+**Voorbeeld** toont wat een rapport nu zegt, zoals u het mag lezen en zoals de e-mail het weergeeft, en wie de laatste verzending wegliet en waarom. **Stuur mij een kopie** mailt het u nu.
+
+### CSV downloaden
+
+**CSV downloaden** bewaart wat een kaart toont: **Waar het geld naartoe gaat** op **Kosten**, in elke uitsplitsing en tegenover de periode ervoor, de uitgaven per dag, de aanbevelingen van **Besparingen** en de pagina van een kostengroep. De bestandsnaam zegt wat erin staat, waarnaar het is uitgesplitst, de weergave en het account, de kostenbasis en de dagen, zoals `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Cijfers zijn gewone getallen, en een tekst die een spreadsheet als formule zou lezen, begint met een apostrof.
+
+### FOCUS
+
+**FOCUS exporteren** op **Kosten** downloadt alle kosten van de periode als een FOCUS 1.2-bestand, de FinOps Open Cost and Usage Specification in versie 1.2, die financiële tools lezen. Eén bestand bevat hoogstens 93 dagen, en elke valuta waarin de accounts worden gefactureerd, elke regel in die van zichzelf.
+
+Het bestand heeft elke kolom die FOCUS 1.2 verplicht stelt, en de voorwaardelijke waarvoor OneUptime de gegevens heeft: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` en `Tags`. Het heeft een regel voor elke kostenpost die OneUptime bijhoudt: een dag, een account, een service, een regio en, waar de cloud die noemt, een resource.
+
+- `BilledCost` is wat de cloud factureerde, en `EffectiveCost` wat het kostte met toezeggingen verdeeld over wat ze dekken.
+- Wat de cloud aftrok, zijn tegoeden, terugbetalingen en kortingen, is een eigen regel, met een `ChargeCategory` van `Credit`. De `EffectiveCost` van het bestand, opgeteld, is de nettokost.
+- `ChargeCategory` is `Tax` voor de kosten die AWS onder zijn Tax-service factureert, en `Usage` voor de rest.
+- `BillingAccountId` is het account waaruit de verbinding de factuur leest: het beheeraccount van een AWS-organisatie, een Google Cloud-factureringsaccount of het Azure-abonnement, omdat het Azure-factureringsaccount niet wordt gelezen. `SubAccountId` is het AWS-account, het Azure-abonnement of het Google Cloud-project.
+- Datums zijn hele UTC-dagen, waarbij het einde van de kostenperiode en van de factureringsperiode niet is inbegrepen. De factureringsperiode is de kalendermaand.
+
+Wat FOCUS 1.2 vraagt maar OneUptime niet leest, blijft leeg of wordt gelijkgesteld zoals de specificatie toestaat. `PricingQuantity` en `PricingUnit` zijn leeg, omdat de kosten worden gelezen per dag, service, regio en resource, niet per gebruikstype. `ListCost` en `ContractedCost` zijn gelijk aan `BilledCost`, zoals FOCUS vraagt als eenheidsprijzen niet bekend zijn. Een aankoop, zoals de vooruitbetaling van een reservering, is het gebruik van de service waarvoor ze is gekocht. Er zijn geen kolommen voor SKU's, toezeggingskortingen, capaciteitsreserveringen of facturen. FOCUS 1.3 en 1.4 voegen kolommen toe waar een lezer van 1.2 zonder kan.
+
+### Vanuit de API en de CLI
+
+De API geeft een uitsplitsing, niet alleen de regels van de kosten, zodat een financieel systeem de doorbelasting van de maand kan ophalen:
+
+- `POST /api/cloud-cost/breakdown` met `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` met een `tagKey`, of `group` met een `cloudCostViewId`), een `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) of een `startDate` en een `endDate`, en eventueel `cloudAccountIds`, `currency`, `basis` en `compareWithPrevious`. Het antwoord is het totaal van de periode en elk aandeel, met de periode ervoor ernaast, of met `"format": "csv"` de CSV die **CSV downloaden** geeft.
+- `POST /api/cloud-cost/export` met een `period`, of een `startDate` en een `endDate`, geeft het FOCUS-bestand.
+
+Beide lezen zoals de sleutel de kosten mag lezen. Vanuit de [CLI](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### Op een dashboard
+
+De widget **Cloudkosten** zet een totaal, een uitsplitsing of een trend van de uitgaven naast de services die ze maken. Zie [Dashboardwidgets](/docs/dashboards/widgets#kosten-van-de-cloud).
+
 ## Wat je in OneUptime ziet
 
 - **Het overzicht van Cloud.** **Cloud → Overzicht** toont de uitgaven van de maand tegenover die van vorige maand op dezelfde dag, de duurste diensten en de grootste manieren om minder uit te geven, naast wat aandacht nodig heeft.
 - **De uitgaven van elke dag.** **Cloud → Uitgaven → Kosten** tekent elk van de laatste 30 dagen en markeert de dagen die veel meer kostten dan gewoonlijk, toont die dagen en splitst een periode uit per dienst, regio, account, resource, omgeving van de app-platforms, app of tag, gefactureerd, geamortiseerd of netto. De accounts waarvan de kosten niet worden gelezen, staan eronder, elk met de reden.
 - **Elke toezegging.** **Cloud → Uitgaven → Toezeggingen** toont elke toezegging met wanneer ze eindigt en hoeveel ervan wordt gebruikt, de binnenkort eindigende met wat te verlengen, en wat te kopen.
+- **Rapporten.** **Cloud → Uitgaven → Rapporten** toont elk gepland rapport met wat het dekt, wanneer het de volgende keer uitgaat en hoe de laatste verzending ging.
 - **De kosten van een account.** De pagina **Kosten** van een account toont hetzelfde voor alleen dat account, met de toezeggingen en de manieren om minder uit te geven.
 - **Verplichte tags.** **Cloud → Uitgaven → Tags** toont hoeveel van de uitgaven en van de resources je verplichte tags dragen, en de **Tags** van een account tonen hetzelfde voor alleen dat account.
 - **De kosten van een resource.** De pagina van een resource toont wat die deze maand en in de laatste 30 dagen heeft gekost als de cloud haar op naam factureert, met de manieren om minder uit te geven en haar groottebepaling.
+- **Elk budget.** **Cloud → Uitgaven → Budgetten** toont elk budget met wat het meetelt, de periode en de periode tot nu toe, en elk opent zijn pagina.
+- **De komende maanden.** **Cloud → Uitgaven → Prognose** tekent de maanden waaruit een prognose is gemaakt, deze maand op koers en de komende 12, met hoe hij is gemaakt.
 - **Wat er is bespaard.** **Cloud → Uitgaven → Besparingen** opent met wat de doorgevoerde wijzigingen deze maand volgens de rekening hebben bespaard, de wijzigingen die op goedkeuring wachten en de doorgevoerde, en de uren dat schema's resources hebben gestopt.
 
 ## Problemen oplossen
@@ -362,7 +480,19 @@ OneUptime voert alleen wijzigingen van één stap door: een toezegging, of een a
 :::
 
 :::details Een schema laat een resource draaien
-**Resources bekijken** zegt waarom: ze is productie, niets zegt dat ze geen productie is, of de verbinding van haar account staat geen besparingsacties toe. Tag haar, bijvoorbeeld `environment` = `dev`, of markeer haar account als **Niet-productie**.
+**Resources bekijken** zegt waarom: ze is productie, niets zegt dat ze geen productie is, alleen haar labels zeggen dat, of de verbinding van haar account staat geen besparingsacties toe. Tag haar in je cloud, bijvoorbeeld `environment` = `dev`, of markeer haar account als **Niet-productie**.
+:::
+
+:::details Een regel stelt een wijziging voor die hij vroeger zonder te vragen doorvoerde
+De kaart zegt waarom. Een regel voert een wijziging alleen zonder te vragen door bij een resource waarvan haar tags of haar account zeggen dat ze geen productie is: een resource die alleen haar labels niet-productie noemen, wordt in plaats daarvan aan de eigenaren voorgesteld. Tag haar in je cloud, bijvoorbeeld `environment` = `dev`, of markeer haar account als **Niet-productie**.
+:::
+
+:::details Een prognose heeft geen waarschijnlijk bereik
+Hij is gemaakt uit minder dan 3 volle maanden aan kosten, dus elke komende maand trekt het tempo van de laatste volle week door en er wordt geen bereik gegeven. Het bereik komt zodra de derde volle maand is gelezen. De eerste uitlezing van een verbinding gaat terug tot het begin van de maand voor vorige maand.
+:::
+
+:::details Iemand werd over een budget ingelicht, maar er kwam geen waarschuwing
+Onder 100% licht een budget dat in te lichten mensen of teams noemt hen in en maakt het geen waarschuwing, zodat niemand wordt opgeroepen. Vanaf 100% maakt het een waarschuwing en wordt het bereikbaarheidsbeleid opgeroepen. Een budget zonder iemand om in te lichten maakt bij elk aandeel een waarschuwing.
 :::
 
 :::details Deze maand is lager dan in de console van je cloud

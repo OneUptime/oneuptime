@@ -99,7 +99,7 @@ Xen Orchestra 用 `uuid` 標籤識別主機或虛擬機器，用 `sr_uuid` 識�
 
 ## 現成的警示範本
 
-**告警內容** 清單提供 10 個範本。每個範本都會建立一個完整的監測器：查詢、屬性篩選器、分組、一個觸發的條件和一個恢復的條件。大多數依 `xcp_ng.id` 分組，所以每台主機、每台虛擬機器或每個儲存庫都有自己的事件和警示。閾值只是起點，你可以編輯。
+**告警內容** 清單提供 12 個範本。每個範本都會建立一個完整的監測器：查詢、屬性篩選器、分組、一個觸發的條件和一個恢復的條件。大多數依 `xcp_ng.id` 分組，所以每台主機、每台虛擬機器或每個儲存庫都有自己的事件和警示。閾值只是起點，你可以編輯。
 
 條件只有在其視窗的每一分鐘都成立時才會觸發，閾值條件會在越過閾值 10% 處恢復，這樣在邊界附近徘徊的值就不會來回跳動。0/1 序列會在另一個值處恢復。
 
@@ -107,7 +107,9 @@ Xen Orchestra 用 `uuid` 標籤識別主機或虛擬機器，用 `sr_uuid` 識�
 | --- | --- | --- | --- | --- | --- |
 | Pool Disconnected | 可用性 | 嚴重 | `xcp_pool_connected`，對整個資源池取 Count，最近 10 分鐘 | 整個視窗內都沒有資料 | 資料再次送達 |
 | Host Offline | 可用性 | 嚴重 | `xcp_ng.host.running`（`xcp_ng.scope = host`），依 `xcp_ng.id` 取 Min，最近 5 分鐘 | 低於 1 | 等於 1 |
+| HA Cannot Tolerate a Host Failure | 可用性 | 嚴重 | `xcp_ng.pool.ha.can_tolerate_host_failure`（`xcp_ng.scope = pool`），對整個資源池取 Max，最近 5 分鐘 | 低於 1 | 等於 1 |
 | VM Stopped | 虛擬機器 | 警告 | `xcp_ng.vm.stopped_after_running`（`xcp_ng.scope = vm`），依 `xcp_ng.id` 取 Min，最近 5 分鐘 | 高於 0 | 等於 0 |
+| VM Not Backed Up | 虛擬機器 | 警告 | `xcp_ng.vm.backup_overdue`（`xcp_ng.scope = vm`），依 `xcp_ng.id` 取 Min，最近 10 分鐘 | 高於 0 | 等於 0 |
 | Storage Repository Near Full | 儲存空間 | 嚴重 | `xcp_sr_physical_usage_bytes` ÷ `xcp_sr_physical_size_bytes` × 100（`xcp_ng.scope = sr`，兩者都取總和），依 `xcp_ng.id`，最近 5 分鐘 | 高於 90% | 不高於 81% |
 | Host Disabled | 主機 | 警告 | `xcp_ng.host.enabled`（`xcp_ng.scope = host`），依 `xcp_ng.id` 取 Max，最近 30 分鐘 | 低於 1 | 等於 1 |
 | Host Restarted | 主機 | 警告 | `xcp_host_uptime_seconds` 和 `xcp_ng.host.running`（`xcp_ng.scope = host`），依 `xcp_ng.id` 取 Min，最近 5 分鐘 | `xcp_host_uptime_seconds` 低於 900（15 分鐘），同時 `xcp_ng.host.running` 為 1 | `xcp_host_uptime_seconds` 達到 990 或以上，或 `xcp_ng.host.running` 為 0 |
@@ -120,18 +122,20 @@ Xen Orchestra 用 `uuid` 標籤識別主機或虛擬機器，用 `sr_uuid` 識�
 
 - **Pool Disconnected** 範本會在 `xcp_pool_connected` 連續十分鐘沒有送達時觸發。Xen Orchestra 在連線到資源池期間每次擷取都會傳送它，而在失去資源池的主節點時會停止傳送，而不是傳送 0；當 Xen Orchestra、其外掛程式或 XCP-ng 代理程式停止，或代理程式失去通往 OneUptime 的路由時，它也會停止。序列恢復後即會解決。資料停止時，其他範本沒有可比較的東西，會保持其最後的狀態，因此由這個範本來告訴你。
 - **Host Offline** 範本讀取 `xcp_ng.host.running`，它由 OneUptime 從 `xcp_host_status` 衍生：當 Xen Orchestra 回報主機為 Halted，或因資源池主節點與其失去聯繫而狀態為 Unknown 時為 0。除非 HA 在別處重新啟動了它們，否則在該主機上執行的虛擬機器也已停機。
+- **HA Cannot Tolerate a Host Failure** 讀取 `xcp_ng.pool.ha.can_tolerate_host_failure`。直接從 XAPI 讀取時，它就是 HA 自己的計畫：已過度承諾，或涵蓋的主機故障數少於它設定要承受的數量。透過 Xen Orchestra 讀取時（其 REST API 不回報該計畫），它表示可用來重新啟動虛擬機器的已啟動且已啟用的主機少於兩台，因此在兩台主機的 HA 資源池中停用一台主機就足以觸發。HA 關閉期間它從不觸發。
 - **VM Stopped** 範本讀取 `xcp_ng.vm.stopped_after_running`：當過去 24 小時內執行過的虛擬機器為 Halted 或 Paused 時為 1。關機超過一天的虛擬機器會被視為刻意關機，不再發出警示；暫停的虛擬機器從不發出警示；控制網域和虛擬機器範本不計入。
+- **VM Not Backed Up** 讀取 `xcp_ng.vm.backup_overdue`，它來自 Xen Orchestra 的備份日誌：排程備份工作所包含的虛擬機器在其間隔（其工作排程中兩次執行之間最長的間隔）再加上四分之一（至少一小時）內沒有成功備份時為 1。每晚工作中的虛擬機器在 30 小時後觸發，任何排程工作都不包含的虛擬機器從不觸發。
 - **Host Disabled** 範本會在主機連續 30 分鐘處於停用狀態時觸發：處於維護模式，或在撤離後一直處於停用狀態。XAPI 不會在其上啟動任何虛擬機器，HA 也無法容錯移轉到它。三十分鐘可以讓計畫內的重新開機或更新過去而不呼叫任何人。
 - **Host Restarted** 範本會在主機上線但執行不到 15 分鐘時觸發：它重新開機了，或者當機後又恢復了。主機執行滿 16.5 分鐘（越過閾值 10%）後即會解決；停機的主機則會觸發 **Host Offline**。
 - **比率公式** 對兩邊都取 **總和**。兩邊來自同一次擷取，所以結果是真正的百分比。回報大小為 0 的儲存庫（某些 ISO 媒體櫃和卸除式媒體就是這樣）永遠不會觸發。
 - **VM Starved of CPU** 範本讀取完全爭用：虛擬機器的所有 vCPU 都已準備好執行、卻在等待實體 CPU 的時間占比。它的主機上可執行的 vCPU 多於 CPU 執行緒，因此虛擬機器執行得比其自身 CPU 使用率所顯示的更慢。
 - **Storage Repository Slow** 範本依 `sr` 分組，這是每台主機的磁碟序列上 Xen Orchestra 為儲存庫使用的短 ID，因此每個儲存庫只有一個事件，其延遲是對讀寫它的各台主機取平均。
 
-外掛程式不回報 XOSTOR 以外的警報、HA 狀態、資源池主節點、缺少的修補程式和備份，因此還沒有範本監控它們：請參閱 [外掛程式尚未涵蓋的內容](/docs/telemetry/xcp-ng#外掛程式尚未涵蓋的內容)。
+**HA Cannot Tolerate a Host Failure** 和 **VM Not Backed Up** 讀取的是探測器讀取資源池時加入的序列，因此需要從探測器連線資源池：XCP-ng 代理程式讀取的外掛程式不回報 HA 狀態，也不回報備份。由探測器讀取的資源池也可以針對其 XAPI 訊息和警報（例如當機的虛擬機器或 HA 失去的主機）以及失敗的備份工作發出警示：依[免代理程式的 XCP-ng](/docs/telemetry/xcp-ng-agentless)中的說明，在資源池的 **建議** 中開啟這些範本。
 
 ## 收集的指標
 
-代理程式每 60 秒讀取一次 Xen Orchestra OpenMetrics 外掛程式的每個序列；下面的序列是監測器表單提供的目錄。Xen Orchestra 已經把 XAPI 的 KiB、MiB/s 和微秒轉換為位元組、每秒位元組數和秒。它命名為 `_total` 並宣告為計數器的八個序列存放的是每秒速率，OneUptime 會照它們本來的樣子把它們存為速率，正如 [XCP-ng 代理程式指南](/docs/telemetry/xcp-ng#代理程式收集的內容) 所說明的。四個 `xcp_ng.*` 序列是 OneUptime 自己的，在 Xen Orchestra 的狀態序列送達時由其衍生。
+代理程式每 60 秒讀取一次 Xen Orchestra OpenMetrics 外掛程式的每個序列；下面的序列是監測器表單提供的目錄。Xen Orchestra 已經把 XAPI 的 KiB、MiB/s 和微秒轉換為位元組、每秒位元組數和秒。它命名為 `_total` 並宣告為計數器的八個序列存放的是每秒速率，OneUptime 會照它們本來的樣子把它們存為速率，正如 [XCP-ng 代理程式指南](/docs/telemetry/xcp-ng#代理程式收集的內容) 所說明的。`xcp_ng.*` 序列是 OneUptime 自己的：四個在 Xen Orchestra 的狀態序列送達時由其推導，六個由探測器在指標之外讀取的內容推導；僅由 XCP-ng 代理程式讀取的資源池沒有後者。
 
 ### 可用性
 
@@ -142,6 +146,10 @@ Xen Orchestra 用 `uuid` 標籤識別主機或虛擬機器，用 `sr_uuid` 識�
 | `xcp_ng.host.enabled` | — | 當主機已啟用時為 1，處於維護模式或正在撤離、XAPI 不會在其上啟動任何虛擬機器時為 0。由 OneUptime 從主機的狀態衍生。 |
 | `xcp_ng.vm.running` | — | 當虛擬機器為 Running 時為 1，為 Halted、Paused 或 Suspended 時為 0。控制網域不計入。由 OneUptime 從虛擬機器的狀態衍生。 |
 | `xcp_ng.vm.stopped_after_running` | — | 當過去 24 小時內執行過的虛擬機器為 Halted 或 Paused 時為 1，否則為 0。一天內沒人看過執行的虛擬機器會被視為刻意關機，暫停的虛擬機器從不計入。由 OneUptime 衍生。 |
+| `xcp_ng.pool.ha.enabled` | — | 資源池的高可用性開啟時為 1，否則為 0。由探測器透過 Xen Orchestra 的 REST API 或直接從 XAPI 讀取；XCP-ng 代理程式不會讀取。 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | — | HA 開啟期間：仍能承受主機故障時為 1，一旦不能則為 0。直接從 XAPI 讀取時，這是 HA 自己的計畫；透過不回報計畫的 Xen Orchestra 時，表示除故障主機外是否還有處於執行並已啟用狀態的主機。由 OneUptime 推導。 |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | — | HA 設定為可承受的主機故障數。僅在直接從 XAPI 讀取時提供：Xen Orchestra 的 REST API 不會回報此項。 |
+| `xcp_ng.pool.ha.plan_exists_for` | — | 在重新啟動每台受保護虛擬機器的情況下，HA 計畫還能承受的主機故障數。僅在直接從 XAPI 讀取時提供。 |
 | `xcp_host_status` | count | 每台主機無論是否執行都始終為 1；主機的狀態在 `power_state`（Running、Halted、Unknown）和 `enabled` 標籤中。 |
 | `xcp_vm_status` | count | 除控制網域和虛擬機器範本外，每台虛擬機器都始終為 1；虛擬機器的狀態在 `power_state` 標籤（Running、Halted、Paused、Suspended）中。 |
 | `xcp_host_uptime_seconds` | seconds | 主機自開機以來的執行時間。 |
@@ -151,6 +159,7 @@ Xen Orchestra 用 `uuid` 標籤識別主機或虛擬機器，用 `sr_uuid` 識�
 
 | 指標 | 單位 | 說明 |
 | --- | --- | --- |
+| `xcp_ng.host.missing_patches` | — | 主機缺少的修補程式數量，以 Xen Orchestra 最近一次列出的為準（每六小時檢查一次）。 |
 | `xcp_host_cpu_average` | ratio | 主機在其各核心上平均的 CPU 使用率，為 0 到 1 的比率。 |
 | `xcp_host_cpu_core_usage` | ratio | 主機上一個 CPU 執行緒的使用率，為 0 到 1 的比率；`core` 標籤說明是哪一個。 |
 | `xcp_host_load` | — | 主機上正在執行或等待執行的 vCPU，依每個實體 CPU 計算。高於 1 時虛擬機器在等待 CPU。 |
@@ -166,6 +175,7 @@ Xen Orchestra 用 `uuid` 標籤識別主機或虛擬機器，用 `sr_uuid` 識�
 
 | 指標 | 單位 | 說明 |
 | --- | --- | --- |
+| `xcp_ng.vm.backup_overdue` | — | 對於 Xen Orchestra 排程備份工作中的虛擬機器：在其工作間隔加上該間隔的四分之一（至少一小時）內沒有成功備份時為 1，否則為 0。由 OneUptime 根據備份記錄推導。 |
 | `xcp_vm_cpu_usage` | ratio | 虛擬機器在其各 vCPU 上平均的 CPU 使用率，為 0 到 1 的比率。 |
 | `xcp_vm_cpu_core_usage` | ratio | 一個 vCPU 的使用率，為 0 到 1 的比率；`core` 標籤說明是哪一個。 |
 | `xcp_vm_runstate_full_contention` | ratio | 虛擬機器的所有 vCPU 都已準備好執行、卻在等待實體 CPU 的時間占比，從 0 到 1。值高表示虛擬機器的 CPU 被其鄰居擠占。 |

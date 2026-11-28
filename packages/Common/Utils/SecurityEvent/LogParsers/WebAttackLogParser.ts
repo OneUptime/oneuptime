@@ -34,6 +34,11 @@ import {
   readScrubbedAddress,
 } from "../ScrubbedAddress";
 import {
+  ACCESS_LOG_VARIABLES,
+  AccessLogFormat,
+  readAccessLogFields,
+} from "./AccessLogFormat";
+import {
   MAX_JSON_LINE_LENGTH,
   MAX_TEXT_LINE_LENGTH,
   SecurityLogLine,
@@ -301,6 +306,14 @@ export interface AccessLogRequest {
    */
   forwardedFor?: string | undefined;
   forwarded?: string | undefined;
+  /*
+   * The client a web server worked out for itself, when the line logs it
+   * beside the address that really connected (#11048): nginx's realip
+   * module's $remote_addr, beside $realip_remote_addr. A claim, as an
+   * instrumentation's client.address is: OneUptime decides by its own trust.
+   */
+  forwardedClient?: string | undefined;
+  forwardedClientFrom?: string | undefined;
   /*
    * The X-Forwarded-For a combined log line ends with, as written
    * (readTrailingForwardedFor, #10548): read only when the project says its
@@ -704,6 +717,103 @@ export function readCommonLogFormat(
     userAgent,
     bodySize,
     ...(trailingForwardedFor ? { trailingForwardedFor } : {}),
+  };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * A line in the project's own log format (#11048)
+ * ---------------------------------------------------------------------------
+ *
+ * When the project gave its nginx log_format, a line in it is read field by
+ * field (LogParsers/AccessLogFormat): the address that connected from
+ * $remote_addr - or from $realip_remote_addr, when the format logs it, the
+ * realip module's $remote_addr being only a claim - and X-Forwarded-For from
+ * $http_x_forwarded_for, wherever it is, read as a forwarding header always
+ * is: only behind a proxy the project trusts, from the right. Nothing else
+ * of the line is ever taken for either. The request, the status, the
+ * answer's size and type and the user agent are read from their own fields.
+ * A line not in the format is read as it always was (readCommonLogFormat).
+ */
+export function readAccessLogByFormat(
+  text: string,
+  format: AccessLogFormat,
+): AccessLogRequest | null {
+  const fields: Map<string, string> | null = readAccessLogFields(text, format);
+
+  if (!fields) {
+    return null;
+  }
+
+  // A field as written, "-" (nginx's empty value) as nothing.
+  const value: (name: string) => string = (name: string): string => {
+    const written: string | undefined = fields.get(name);
+
+    return written === undefined || written === "-" ? "" : written;
+  };
+
+  const connection: string = value(format.connectionVariable);
+  const client: ClientField = readClientField(connection);
+  const workedOut: string =
+    format.connectionVariable === ACCESS_LOG_VARIABLES.realConnection
+      ? value(ACCESS_LOG_VARIABLES.connection)
+      : "";
+
+  let method: string = "";
+  let target: string = "";
+  const requestLine: string = value(ACCESS_LOG_VARIABLES.request);
+
+  if (requestLine) {
+    const firstSpace: number = requestLine.indexOf(" ");
+    const lastSpace: number = requestLine.lastIndexOf(" ");
+    const candidate: string =
+      firstSpace === -1 ? "" : requestLine.slice(0, firstSpace);
+
+    if (HTTP_METHODS.includes(candidate)) {
+      method = candidate;
+      target =
+        lastSpace > firstSpace
+          ? requestLine.slice(firstSpace + 1, lastSpace)
+          : requestLine.slice(firstSpace + 1);
+    }
+  } else {
+    const candidate: string = value(ACCESS_LOG_VARIABLES.method).toUpperCase();
+
+    if (HTTP_METHODS.includes(candidate)) {
+      method = candidate;
+    }
+
+    target = value(ACCESS_LOG_VARIABLES.target);
+  }
+
+  /*
+   * A connection's address a scrub rule hid cannot be told to be a proxy
+   * (#10548): its line is the hidden client's, whatever it forwarded.
+   */
+  const isConnectionRead: boolean = Boolean(client.clientIp);
+  const forwardedFor: string = isConnectionRead
+    ? value(ACCESS_LOG_VARIABLES.forwardedFor)
+    : "";
+  const status: number = readStatus(value(ACCESS_LOG_VARIABLES.status));
+  const bodySize: number | null = fields.has(ACCESS_LOG_VARIABLES.bodySize)
+    ? readBodySize(fields.get(ACCESS_LOG_VARIABLES.bodySize)!)
+    : null;
+
+  return {
+    ...client,
+    method,
+    target,
+    status,
+    userAgent: value(ACCESS_LOG_VARIABLES.userAgent),
+    bodySize,
+    contentType: value(ACCESS_LOG_VARIABLES.contentType),
+    ...(forwardedFor ? { forwardedFor } : {}),
+    ...(isConnectionRead && workedOut && workedOut !== connection
+      ? {
+          forwardedClient: workedOut,
+          forwardedClientFrom: ACCESS_LOG_VARIABLES.connection,
+        }
+      : {}),
   };
 }
 
@@ -1346,6 +1456,8 @@ function readAccessLogClient(
   return resolveClientAddress(
     {
       peer,
+      forwardedClient: accessLog.forwardedClient,
+      forwardedClientFrom: accessLog.forwardedClientFrom,
       forwardedFor:
         accessLog.forwardedFor ??
         readTrailingForwardedForBehindTrustedProxy(accessLog, trustedProxies),
@@ -1871,12 +1983,18 @@ export default class WebAttackLogParser {
     }
 
     /*
-     * The request: from an access log line, else from the line's
-     * attributes. A line cut to be read never says what it ended with.
+     * The request: from an access log line - JSON, the project's own log
+     * format (#11048), the common or combined format - else from the line's
+     * attributes. A line cut to be read never says what it ended with, so
+     * it is no line of a format.
      */
+    const isCut: boolean = text.length < body.length;
+    const format: AccessLogFormat | null | undefined =
+      line.trustedProxies?.accessLogFormat;
     const accessLog: AccessLogRequest | null =
       readJsonAccessLog(text) ||
-      readCommonLogFormat(text, { isCut: text.length < body.length });
+      (format && !isCut ? readAccessLogByFormat(text, format) : null) ||
+      readCommonLogFormat(text, { isCut });
     const fromAttributes: AccessLogRequest = readRequestFromAttributes(
       line.attributes || {},
       line.trustedProxies,

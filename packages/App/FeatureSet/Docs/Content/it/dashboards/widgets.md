@@ -27,6 +27,7 @@ Parti dalla domanda a cui deve rispondere il riquadro:
 | Le persone completano un percorso, e tornano? | **Funnel** o **Fidelizzazione degli utenti** |
 | In che stato sono i nostri cluster e i nostri host? | Un widget del gruppo Infrastruttura |
 | Dove si trova nel mondo la nostra rete, e che cosa è inattivo? | **Mappa di rete** |
+| Quanto costano i nostri cloud, e quale team spende? | **Costo cloud** |
 | Un titolo, una nota, l'ora in un altro ufficio? | **Testo** o **Orologio** |
 | Dati conservati fuori da OneUptime? | Un widget del gruppo Fonti di dati esterne |
 | Qualcosa che nessun widget copre? | **HTML**, una volta sicuro che nessun altro widget lo faccia |
@@ -200,8 +201,9 @@ Ognuno di questi widget elenca le risorse che un agent o un collector comunica a
 | **XCP-ng** | **Host**, **VM** | L'agent XCP-ng |
 | **Ceph** | **OSD**, come un muro colorato per stato, e **Pools** | L'agent Ceph |
 | **Array di storage** | **Volumi**, e **Hardware** come un muro colorato per stato | L'agent per array di storage |
+| **Costi cloud** | **Costo cloud**, un totale, un dettaglio o una tendenza della spesa | I costi che riportano i tuoi [account cloud](/docs/telemetry/cloud-accounts) |
 
-Usali per una pagina che unisca lo stato della tua infrastruttura alla telemetria dei carichi di lavoro che ci girano sopra.
+Usali per una pagina che unisca lo stato della tua infrastruttura alla telemetria dei carichi di lavoro che ci girano sopra. Il widget Costo cloud non è un elenco: vedi [Costi cloud](#costi-cloud).
 
 ### Network Map
 
@@ -214,6 +216,19 @@ Sopra la mappa indica quanti siti sono inattivi, perché un puntino rosso di due
 **Impostazioni**: titolo, vista mappa o elenco, numero massimo di siti disegnati, se stampare i nomi dei siti, e filtri per tipo di sito e per stato. I nomi dei siti si nascondono automaticamente quando la mappa diventa troppo affollata per leggerli; il tooltip continua a nominare ogni indicatore.
 
 Un sito compare solo se ha delle coordinate. Aggiungi latitudine e longitudine sul sito (o importale da un CSV) per fissarlo.
+
+## Costi cloud
+
+### Costo cloud
+
+Quanto costano i tuoi cloud, accanto ai servizi che spendono, per l'intervallo di tempo della dashboard. Legge le stesse cifre di **Cloud → Spesa → Costi** e della pagina di un gruppo di costi, sugli stessi giorni.
+
+- **Copre**: tutti gli account, un **Account**, un **Gruppo di costi** o una **Vista dei costi**. Scegli l'account, il gruppo o la vista nell'impostazione sottostante.
+- **Mostra**: un totale rispetto al periodo precedente, un dettaglio delle sue parti più grandi o una tendenza della spesa di ogni giorno.
+- **Dettaglia per**: servizi, regioni, account o risorse. Il dettaglio di una vista dei costi elenca i suoi gruppi, e ciò che nessun gruppo prende.
+- **Base di costo**: fatturato, ammortizzato o netto. Se vuota, è quella del progetto, con cui si apre Costi.
+
+Le cifre sono nella valuta in cui è fatturata la maggior parte dei tuoi account. Vederlo richiede ciò che richiede vedere Costi: ogni utente vede ciò che può leggere. Una dashboard pubblica mostra solo il titolo. Vedi [Costi e risparmi del cloud](/docs/telemetry/cloud-costs#report-ed-esportazioni) per i report e le esportazioni delle stesse cifre.
 
 ## Fonti di dati esterne
 
@@ -250,7 +265,7 @@ Tramite l'API e Terraform, l'ordine è l'`arguments.sort` del widget: una colonn
 
 Una [dashboard pubblica](/docs/dashboards/sharing) disegna la maggior parte dei widget per i suoi visitatori, e ciascuno mostra solo ciò per cui è stato configurato. Alcuni non possono essere mostrati senza una sessione con accesso:
 
-- **Grafico dei log**, **Grafico delle tracce**, **Tabella delle tracce**, **Eventi di sicurezza**, **Flusso degli eventi di sicurezza**, **Funnel** e **Fidelizzazione degli utenti** indicano al loro posto che non sono disponibili sulle dashboard pubbliche.
+- **Grafico dei log**, **Grafico delle tracce**, **Tabella delle tracce**, **Eventi di sicurezza**, **Flusso degli eventi di sicurezza**, **Funnel**, **Fidelizzazione degli utenti** e **Costo cloud** indicano al loro posto che non sono disponibili sulle dashboard pubbliche.
 - I widget di Fonti di dati esterne mostrano i loro dati quando leggono **Metriche di questo progetto (PromQL)**, mai le loro query. Un widget con un'origine dati esterna viene escluso del tutto da una dashboard pubblica.
 
 ## Quando un widget non può essere mostrato

@@ -16,6 +16,7 @@ import SpanService from "../../../../Server/Services/SpanService";
 import ModelPermission from "../../../../Server/Types/AnalyticsDatabase/ModelPermission";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import TelemetryCheckWindow from "../../../../Types/Monitor/TelemetryCheckWindow";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import QueryTimeoutException from "../../../../Types/Exception/QueryTimeoutException";
 import {
@@ -406,8 +407,12 @@ describe("the installs a share is taken of", () => {
     expect(spanReads[0]!.query["primaryEntityId"]).toEqual(
       new Includes([APP_ID]),
     );
+    // The check's window, its end left out (#11334).
     expect(spanReads[0]!.query["startTime"]).toEqual(
-      new InBetween(new Date(UNTIL.getTime() - DAY_SECONDS * 1000), UNTIL),
+      TelemetryCheckWindow.from(
+        new Date(UNTIL.getTime() - DAY_SECONDS * 1000),
+        UNTIL,
+      ),
     );
     // An install with no session.id is still an install.
     expect(spanReads[0]!.query).not.toHaveProperty("sessionId");
@@ -421,7 +426,10 @@ describe("the installs a share is taken of", () => {
     expect(exceptionReads[0]!.expression).toBe(STORED_APP_INSTALL_SQL);
     expect(exceptionReads[0]!.query["escaped"]).toBe(true);
     expect(exceptionReads[0]!.query["time"]).toEqual(
-      new InBetween(new Date(UNTIL.getTime() - DAY_SECONDS * 1000), UNTIL),
+      TelemetryCheckWindow.from(
+        new Date(UNTIL.getTime() - DAY_SECONDS * 1000),
+        UNTIL,
+      ),
     );
   });
 

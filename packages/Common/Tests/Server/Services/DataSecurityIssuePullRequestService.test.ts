@@ -628,10 +628,13 @@ describe("linked and taken off, on the issue's timeline", () => {
       .spyOn(DataSecurityIssuePullRequestService, "findRowsAndHoldDeleteToThem")
       .mockResolvedValue([row] as never);
 
+    // What deleteOneById sends: one row, by its id.
     const deleteBy: DeleteBy<DataSecurityIssuePullRequest> = {
       query: { _id: LINK_ID },
       props: MAYA,
-    } as DeleteBy<DataSecurityIssuePullRequest>;
+      limit: 1,
+      skip: 0,
+    };
     const onDelete: OnDelete<DataSecurityIssuePullRequest> =
       await hooks.onBeforeDelete(deleteBy);
 

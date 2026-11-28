@@ -67,7 +67,7 @@ import {
 } from "./Utils/DatabaseHealthPresentation";
 import useDatabaseWideTable from "./Utils/useDatabaseWideTable";
 import OneUptimeDate from "Common/Types/Date";
-import { computeDatabaseServerIdsForEngineMetricsStatuses } from "./Utils/DatabaseEngineMetricsFilter";
+import { buildDatabaseEngineMetricsStatusFilter } from "./Utils/DatabaseEngineMetricsFilter";
 import { isDatabaseFleetSummaryStale } from "./Utils/DatabaseServerSummary";
 import {
   DATABASE_SERVER_ADDRESS_DESCRIPTION,
@@ -235,7 +235,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * connected (none ever did). The last two differ by collectorLastSeenAt,
        * not by the status column — a never-connected row stores no status
        * (NULL), and one written before the column's default was dropped
-       * reads "disconnected" — so the chip resolves row ids.
+       * reads "disconnected" — so each status is a group of conditions on
+       * both, which the server answers in the list's own query (#11211).
        */
       key: "otelCollectorStatus",
       label: "Engine Metrics",
@@ -243,15 +244,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
       isMultiSelect: true,
       options: engineMetricsStatusOptions,
       supportedOperators: ["is", "is_not"],
-      computeMatchingResourceIds: (
-        projectId: ObjectID,
-        values: Array<string>,
-      ): Promise<Array<string>> => {
-        return computeDatabaseServerIdsForEngineMetricsStatuses(
-          projectId,
-          values,
-        );
-      },
+      toFilterGroups: buildDatabaseEngineMetricsStatusFilter,
     },
   ];
 

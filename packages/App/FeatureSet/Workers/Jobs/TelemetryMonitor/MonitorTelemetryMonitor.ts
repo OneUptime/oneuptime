@@ -33,7 +33,12 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
 } from "Common/Utils/Monitor/MonitorPauseState";
-import { Service as MonitorProbeService } from "Common/Server/Services/MonitorProbeService";
+import TelemetryMonitorSchedule from "Common/Server/Utils/Monitor/TelemetryMonitorSchedule";
+import {
+  TelemetryMonitorStamp,
+  returnTelemetryMonitorsNotQueued,
+  stampTelemetryMonitorsScheduled,
+} from "Common/Server/Utils/Monitor/TelemetryMonitorStamps";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "Common/Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
@@ -120,7 +125,7 @@ import MonitorStepMetricMonitor, {
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import MetricWholeWindow from "Common/Utils/Metrics/MetricWholeWindow";
 import MetricLatestReading from "Common/Utils/Metrics/MetricLatestReading";
-import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
+import TelemetryCheckWindow from "Common/Types/Monitor/TelemetryCheckWindow";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -275,33 +280,52 @@ type TelemetryMonitorResponse =
   | ProfileMonitorResponse;
 
 /*
- * How many due telemetry monitors one page of the scheduler reads, stamps
- * with one UPDATE and queues; and how many of a page's evaluation jobs are
- * queued at once.
+ * How many due telemetry monitors one page of the scheduler reads, and how
+ * many of a step's evaluation jobs are queued at once.
  */
 export const TELEMETRY_SCHEDULE_PAGE_SIZE: number = 500;
 export const TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY: number = 25;
 
-// When a telemetry monitor is next due, from the moment it was scheduled.
+/*
+ * How often the scheduler runs (ScheduleTelemetryMonitorEvaluations,
+ * EVERY_TEN_SECONDS): each run queues the evaluations due before the next
+ * one, each at the moment it is due.
+ */
+export const TELEMETRY_SCHEDULE_TICK_MS: number = 10 * 1000;
+
+/*
+ * How long before the next run's tick a run stops queueing, so it has
+ * finished and let go of its lock (CronLock) when the next run starts:
+ * what is due in that last half second, the next run queues as it starts.
+ */
+export const TELEMETRY_SCHEDULE_DISPATCH_MARGIN_MS: number = 500;
+
+/*
+ * How close together due times are queued as one step: one UPDATE stamps a
+ * step, and its jobs are queued together, at the latest due time in it -
+ * never before any of them is due.
+ */
+export const TELEMETRY_SCHEDULE_DISPATCH_STEP_MS: number = 100;
+
+/*
+ * When a telemetry monitor is next due: its first run after `after`, at its
+ * own moment of its interval (TelemetryMonitorSchedule) - the same moment
+ * of every interval, on every replica and after every restart.
+ */
 export const getTelemetryMonitorNextMonitorAt: (data: {
   monitor: Monitor;
-  now: Date;
-}) => Date = (data: { monitor: Monitor; now: Date }): Date => {
-  const oneMinuteLater: Date = OneUptimeDate.addRemoveMinutes(data.now, 1);
-
-  /*
-   * Same reading of the column as the probe scheduler uses, so a telemetry
-   * monitor storing a human cadence ("5m") is not quietly pinned to a
-   * 1-minute poll the way probe monitors were.
-   */
-  if (!data.monitor.monitoringInterval) {
-    return oneMinuteLater;
-  }
-
-  return MonitorProbeService.resolveNextPingAt({
-    monitoringInterval: data.monitor.monitoringInterval as string,
-    fallback: oneMinuteLater,
-    onUnreadable: () => {
+  after: Date;
+}) => Date = (data: { monitor: Monitor; after: Date }): Date => {
+  return TelemetryMonitorSchedule.getNextRunAt({
+    monitorId: data.monitor.id!,
+    monitoringInterval: data.monitor.monitoringInterval,
+    after: data.after,
+    /*
+     * Same reading of the column as the probe scheduler uses, so a
+     * telemetry monitor storing a human cadence ("5m") is not quietly
+     * pinned to a 1-minute poll the way probe monitors were.
+     */
+    onUnreadable: (): void => {
       logger.error(
         `MonitorTelemetryMonitor: monitoringInterval "${data.monitor.monitoringInterval}" cannot be read as a schedule; falling back to a 1-minute cadence.`,
         {
@@ -314,53 +338,245 @@ export const getTelemetryMonitorNextMonitorAt: (data: {
 };
 
 /*
- * Stamps a page of due telemetry monitors as scheduled: when they were last
- * scheduled (now) and when each is next due. One UPDATE per next-due time -
- * nearly always one for the whole page, as most monitors check every minute
- * - where the scheduler used to send one UPDATE per monitor, every minute,
- * all at once.
- *
- * Scheduler bookkeeping, so a single statement with no hooks: the full
- * update pipeline would cost ~4 statements per monitor and - because
- * Monitor has @EnableWorkflow + @EnableAuditLog - an on-update workflow
- * trigger and an audit entry per monitor per minute. updatedAt is refreshed,
- * as the write it replaces refreshed it.
+ * Where a run that started at `runStartedAt` stops queueing: just before
+ * the next run's tick. Never before the run started, so a run that starts
+ * late still queues what is due by then.
  */
-export const stampTelemetryMonitorsScheduled: (data: {
-  lastMonitorAt: Date;
-  monitors: Array<{ id: ObjectID; nextMonitorAt: Date }>;
-}) => Promise<void> = async (data: {
-  lastMonitorAt: Date;
-  monitors: Array<{ id: ObjectID; nextMonitorAt: Date }>;
-}): Promise<void> => {
-  const idsByNextMonitorAt: Map<number, Array<string>> = new Map();
+export const getTelemetryDispatchWindowEnd: (runStartedAt: Date) => Date = (
+  runStartedAt: Date,
+): Date => {
+  const startedAtMs: number = runStartedAt.getTime();
+  const nextTickMs: number =
+    (Math.floor(startedAtMs / TELEMETRY_SCHEDULE_TICK_MS) + 1) *
+    TELEMETRY_SCHEDULE_TICK_MS;
 
-  for (const monitor of data.monitors) {
-    const nextMonitorAtMs: number = monitor.nextMonitorAt.getTime();
-    const ids: Array<string> = idsByNextMonitorAt.get(nextMonitorAtMs) || [];
-    ids.push(monitor.id.toString());
-    idsByNextMonitorAt.set(nextMonitorAtMs, ids);
+  return new Date(
+    Math.max(startedAtMs, nextTickMs - TELEMETRY_SCHEDULE_DISPATCH_MARGIN_MS),
+  );
+};
+
+// A due monitor, and when its evaluation is to be queued.
+interface TelemetryDispatch {
+  monitor: Monitor;
+  /*
+   * When its evaluation is queued: its next due time; the run's start for
+   * one never scheduled, or due before the run started (the scheduler was
+   * stopped, a run died, the queue refused its job).
+   */
+  queueAtMs: number;
+  // Its next due time as it was read; null when it was never scheduled.
+  nextMonitorAtMs: number | null;
+}
+
+/*
+ * When a due monitor's evaluation was due (issue #11248): the end of the
+ * window it judges, carried on its job, so the window is the same however
+ * late the job runs and a monitor's windows follow on from one another
+ * exactly. Also the time it is stamped against (still due by then) and made
+ * due again at when the queue refuses its job.
+ *
+ *   - Its next due time, as it was read, while that is still its latest
+ *     run: on time, or late by less than its interval - a run that died
+ *     before queueing it, a job the queue refused (made due again at that
+ *     time), a run that started late.
+ *   - Otherwise the run's start (`queueAtMs`): a monitor never scheduled (a
+ *     new one), or one whose runs went by while it was not checked (it was
+ *     turned off, or the scheduler was stopped). Its check judges the window
+ *     that ends as it is queued, and its next is at its own moment after
+ *     that.
+ *
+ * `runAfterNextMonitorAtMs` is the run after its next due time
+ * (getTelemetryMonitorNextMonitorAt), which says whether another has gone
+ * by since.
+ */
+export const getTelemetryEvaluationDueAt: (data: {
+  nextMonitorAtMs: number | null;
+  queueAtMs: number;
+  runAfterNextMonitorAtMs: number | null;
+  dispatchedAt: Date;
+}) => number = (data: {
+  nextMonitorAtMs: number | null;
+  queueAtMs: number;
+  runAfterNextMonitorAtMs: number | null;
+  dispatchedAt: Date;
+}): number => {
+  if (
+    data.nextMonitorAtMs === null ||
+    data.runAfterNextMonitorAtMs === null ||
+    data.runAfterNextMonitorAtMs <= data.dispatchedAt.getTime()
+  ) {
+    return data.queueAtMs;
   }
 
-  for (const [nextMonitorAtMs, ids] of idsByNextMonitorAt) {
-    await MonitorService.getRepository().manager.query(
-      `UPDATE "Monitor" SET "telemetryMonitorLastMonitorAt" = $1, "telemetryMonitorNextMonitorAt" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE "_id" = ANY($3::uuid[])`,
-      [data.lastMonitorAt, new Date(nextMonitorAtMs), ids],
-    );
-  }
+  return data.nextMonitorAtMs;
 };
 
 /*
- * THE TELEMETRY MONITOR SCHEDULER, every minute: every telemetry monitor
- * that is due is stamped with when it is next due and has its evaluation
- * queued (processTelemetryMonitorEvaluationFromQueue).
+ * Waits until `atMs`, or until the deadline passes, whichever is first.
+ * Returns at once for a time already past.
+ */
+const waitUntil: (data: {
+  atMs: number;
+  deadline: JobDeadline;
+}) => Promise<void> = async (data: {
+  atMs: number;
+  deadline: JobDeadline;
+}): Promise<void> => {
+  const waitMs: number = data.atMs - OneUptimeDate.getCurrentDate().getTime();
+
+  if (waitMs <= 0 || data.deadline.hasPassed()) {
+    return;
+  }
+
+  await new Promise<void>((resolve: () => void) => {
+    let stopListening: () => void = (): void => {
+      // Replaced once the deadline is listened to, below.
+    };
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      stopListening();
+      resolve();
+    }, waitMs);
+
+    stopListening = data.deadline.onPassed((): void => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+};
+
+/*
+ * Queues one step's evaluations: stamps its monitors (those another run
+ * has queued since are left out), queues the evaluation of each one
+ * stamped, and makes due again any whose job the queue refused.
+ */
+const dispatchTelemetryStep: (
+  step: Array<TelemetryDispatch>,
+) => Promise<number> = async (
+  step: Array<TelemetryDispatch>,
+): Promise<number> => {
+  const dispatchedAt: Date = OneUptimeDate.getCurrentDate();
+
+  const stamps: Map<string, TelemetryMonitorStamp> = new Map();
+
+  for (const entry of step) {
+    const runAfterNextMonitorAtMs: number | null =
+      entry.nextMonitorAtMs === null
+        ? null
+        : getTelemetryMonitorNextMonitorAt({
+            monitor: entry.monitor,
+            after: new Date(entry.nextMonitorAtMs),
+          }).getTime();
+
+    const dueAtMs: number = getTelemetryEvaluationDueAt({
+      nextMonitorAtMs: entry.nextMonitorAtMs,
+      queueAtMs: entry.queueAtMs,
+      runAfterNextMonitorAtMs: runAfterNextMonitorAtMs,
+      dispatchedAt: dispatchedAt,
+    });
+
+    stamps.set(entry.monitor.id!.toString().toLowerCase(), {
+      id: entry.monitor.id!,
+      dueAt: new Date(dueAtMs),
+      /*
+       * The run after the one being queued, so the window it judges next
+       * starts where this one ends - and never a time already past: when
+       * that run has gone by, the run after now.
+       */
+      nextMonitorAt:
+        dueAtMs === entry.nextMonitorAtMs && runAfterNextMonitorAtMs !== null
+          ? new Date(runAfterNextMonitorAtMs)
+          : getTelemetryMonitorNextMonitorAt({
+              monitor: entry.monitor,
+              after: new Date(Math.max(dispatchedAt.getTime(), dueAtMs)),
+            }),
+    });
+  }
+
+  const stamped: Set<string> = await stampTelemetryMonitorsScheduled({
+    lastMonitorAt: dispatchedAt,
+    monitors: Array.from(stamps.values()),
+  });
+
+  const toQueue: Array<TelemetryDispatch> = step.filter(
+    (entry: TelemetryDispatch): boolean => {
+      return stamped.has(entry.monitor.id!.toString().toLowerCase());
+    },
+  );
+
+  const notQueued: Array<TelemetryMonitorStamp> = [];
+
+  // The evaluation job skips a monitor without steps (see the select below).
+  await forEachWithConcurrency<TelemetryDispatch>({
+    items: toQueue,
+    concurrency: TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY,
+    work: (entry: TelemetryDispatch): Promise<void> => {
+      return TelemetryQueueService.addTelemetryMonitorEvaluationJob({
+        monitorId: entry.monitor.id!,
+        projectId: entry.monitor.projectId!,
+        // The end of the window it judges, however late it runs.
+        dueAt: stamps.get(entry.monitor.id!.toString().toLowerCase())!.dueAt,
+      });
+    },
+    onError: (entry: TelemetryDispatch, error: unknown): void => {
+      const attrs: LogAttributes = {
+        projectId: entry.monitor.projectId?.toString(),
+      };
+      logger.error(
+        `Error while enqueueing telemetry monitor evaluation: ${entry.monitor.id?.toString()}`,
+        attrs,
+      );
+      logger.error(error, attrs);
+
+      const stamp: TelemetryMonitorStamp | undefined = stamps.get(
+        entry.monitor.id!.toString().toLowerCase(),
+      );
+
+      if (stamp) {
+        notQueued.push(stamp);
+      }
+    },
+  });
+
+  if (notQueued.length > 0) {
+    try {
+      await returnTelemetryMonitorsNotQueued(notQueued);
+    } catch (error) {
+      logger.error(
+        `Could not make ${notQueued.length} telemetry monitors due again after their evaluations could not be queued; each is evaluated at its next due time.`,
+        { service: "workers" },
+      );
+      logger.error(error, { service: "workers" });
+    }
+  }
+
+  return toQueue.length - notQueued.length;
+};
+
+/*
+ * THE TELEMETRY MONITOR SCHEDULER, every 10 seconds: every telemetry
+ * monitor due before the next run has its evaluation queued
+ * (processTelemetryMonitorEvaluationFromQueue) at the moment it is due -
+ * its own moment of its interval (TelemetryMonitorSchedule), so the
+ * evaluations of an installation start spread over each minute instead of
+ * all in its first seconds (issue #11060) - and is stamped with when it is
+ * next due as it is queued. The job carries when the evaluation was due
+ * (getTelemetryEvaluationDueAt): the end of the window it judges, however
+ * late it runs (issue #11248).
  *
- * A page at a time, in _id order (forEachKeysetPage): each page is read,
- * stamped with one UPDATE, and its jobs queued a few at a time, before the
- * next is read. The scheduler used to read every due monitor, then send one
- * UPDATE per monitor and queue every job, all at the same moment. It stops
- * between pages at its deadline: the monitors it did not reach are still
- * due, and the next run starts with them.
+ * The due monitors are read a page at a time, in _id order
+ * (forEachKeysetPage), then queued in the order they are due, a step at a
+ * time (TELEMETRY_SCHEDULE_DISPATCH_STEP_MS): each step stamped with one
+ * UPDATE and its jobs queued a few at a time, at the latest due time in it.
+ * A monitor never scheduled, or due before the run started, is queued at
+ * once. The run stops before the next run's tick, and at its deadline: the
+ * monitors it did not reach are still due, and the next run starts with
+ * them.
+ *
+ * Nothing waits in the queue for its time: a job is added when its
+ * evaluation is due, so the queue's backlog - which KEDA scales workers on
+ * and which says how far behind ingest is (TelemetryIngestBacklog) - holds
+ * no evaluation that is merely waiting for its moment.
  */
 export const enqueueDueTelemetryMonitorEvaluationJobs: (
   deadline?: JobDeadline,
@@ -371,7 +587,9 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
     service: "workers",
   });
 
-  const now: Date = OneUptimeDate.getCurrentDate();
+  const runStartedAt: Date = OneUptimeDate.getCurrentDate();
+  const dispatchUntil: Date = getTelemetryDispatchWindowEnd(runStartedAt);
+  const due: Array<TelemetryDispatch> = [];
 
   const result: KeysetPagesResult = await forEachKeysetPage<Monitor>({
     jobName: "TelemetryMonitor:MonitorTelemetryMonitor",
@@ -388,8 +606,9 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
           monitorType: DatabaseQueryHelper.any(
             MonitorTypeHelper.getTelemetryMonitorTypes(),
           ),
+          // Due before this run stops queueing, or never scheduled.
           telemetryMonitorNextMonitorAt:
-            DatabaseQueryHelper.lessThanEqualToOrNull(now),
+            DatabaseQueryHelper.lessThanEqualToOrNull(dispatchUntil),
           /*
            * Not a project a master admin blocked: its monitors wait, due,
            * until it is unblocked (MonitorResource refuses any that slip
@@ -412,15 +631,15 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
          * skips such a monitor itself
          * (processTelemetryMonitorEvaluationFromQueue). So every due monitor
          * is queued, and a monitor without steps (made through the API
-         * without any, as the Dashboard never makes one) costs one job a
-         * minute that ends at its first check.
+         * without any, as the Dashboard never makes one) costs one job an
+         * interval that ends at its first check.
          */
         select: {
           _id: true,
-          createdAt: true,
           monitoringInterval: true,
           monitorType: true,
           projectId: true,
+          telemetryMonitorNextMonitorAt: true,
         },
         sort: {
           _id: SortOrder.Ascending,
@@ -430,51 +649,114 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
       });
     },
     onPage: async (telemetryMonitors: Array<Monitor>): Promise<void> => {
-      await stampTelemetryMonitorsScheduled({
-        lastMonitorAt: now,
-        monitors: telemetryMonitors.map(
-          (monitor: Monitor): { id: ObjectID; nextMonitorAt: Date } => {
-            return {
-              id: monitor.id!,
-              nextMonitorAt: getTelemetryMonitorNextMonitorAt({
-                monitor: monitor,
-                now: now,
-              }),
-            };
-          },
-        ),
-      });
+      for (const monitor of telemetryMonitors) {
+        const nextMonitorAtMs: number = monitor.telemetryMonitorNextMonitorAt
+          ? new Date(monitor.telemetryMonitorNextMonitorAt).getTime()
+          : Number.NaN;
 
-      // The evaluation job skips a monitor without steps (see the select above).
-      await forEachWithConcurrency<Monitor>({
-        items: telemetryMonitors,
-        concurrency: TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY,
-        work: (monitor: Monitor): Promise<void> => {
-          return TelemetryQueueService.addTelemetryMonitorEvaluationJob({
-            monitorId: monitor.id!,
-            projectId: monitor.projectId!,
-          });
-        },
-        onError: (monitor: Monitor, error: unknown): void => {
-          const attrs: LogAttributes = {
-            projectId: monitor.projectId?.toString(),
-          };
-          logger.error(
-            `Error while enqueueing telemetry monitor evaluation: ${monitor.id?.toString()}`,
-            attrs,
-          );
-          logger.error(error, attrs);
-        },
-      });
+        due.push({
+          monitor: monitor,
+          queueAtMs: Number.isFinite(nextMonitorAtMs)
+            ? Math.max(nextMonitorAtMs, runStartedAt.getTime())
+            : runStartedAt.getTime(),
+          nextMonitorAtMs: Number.isFinite(nextMonitorAtMs)
+            ? nextMonitorAtMs
+            : null,
+        });
+      }
     },
   });
 
+  // A run whose deadline passed may have lost its lock to another: it stops.
+  if (result.stoppedAtDeadline || deadline.hasPassed()) {
+    logger.debug(
+      `Read ${result.rows} due telemetry monitors in ${result.pages} pages, and stopped at the job's deadline before queueing them.`,
+      { service: "workers" },
+    );
+    return;
+  }
+
+  due.sort((a: TelemetryDispatch, b: TelemetryDispatch): number => {
+    return a.queueAtMs - b.queueAtMs;
+  });
+
+  let queued: number = 0;
+  let steps: number = 0;
+  let index: number = 0;
+
+  while (index < due.length) {
+    const stepStartsAtMs: number = due[index]!.queueAtMs;
+    const step: Array<TelemetryDispatch> = [];
+
+    /*
+     * At most a page of monitors a step, so a step's UPDATE stays the size
+     * of a page's however many are due at once (a run after the scheduler
+     * was stopped, the first run after an upgrade).
+     */
+    while (
+      index < due.length &&
+      step.length < TELEMETRY_SCHEDULE_PAGE_SIZE &&
+      due[index]!.queueAtMs <
+        stepStartsAtMs + TELEMETRY_SCHEDULE_DISPATCH_STEP_MS
+    ) {
+      step.push(due[index]!);
+      index++;
+    }
+
+    // Never before any monitor of the step is due.
+    await waitUntil({
+      atMs: step[step.length - 1]!.queueAtMs,
+      deadline: deadline,
+    });
+
+    if (deadline.hasPassed()) {
+      break;
+    }
+
+    queued += await dispatchTelemetryStep(step);
+    steps++;
+  }
+
   logger.debug(
-    `Scheduled ${result.rows} telemetry monitors in ${result.pages} pages${
-      result.stoppedAtDeadline ? ", stopped at the job's deadline" : ""
+    `Queued ${queued} of ${due.length} due telemetry monitor evaluations in ${steps} steps (read in ${result.pages} pages)${
+      deadline.hasPassed() ? ", stopped at the job's deadline" : ""
     }`,
     { service: "workers" },
   );
+};
+
+/*
+ * Where a queued check's window ends (issue #11248): when the check was due,
+ * as the scheduler carried it on the job, however late the job runs - its
+ * workers were busy, the queue refused it and the next run queued it, it
+ * failed and was tried again - so a monitor's windows follow on from one
+ * another exactly. Never later than now: a due time to come is another
+ * server's clock running ahead.
+ *
+ * A job queued before the due time was carried has none: its window ends
+ * when it was queued (queuedAt), which the scheduler does at the moment the
+ * check is due (#11060), and a job with neither ends now, as every check
+ * once did. A date that cannot be read is not one.
+ */
+export const getTelemetryEvaluationWindowEnd: (data: {
+  job: TelemetryMonitorEvaluationJobData;
+  now: Date;
+}) => Date = (data: {
+  job: TelemetryMonitorEvaluationJobData;
+  now: Date;
+}): Date => {
+  for (const value of [data.job.dueAt, data.job.queuedAt]) {
+    const atMs: number =
+      value === undefined || value === null || value === ""
+        ? Number.NaN
+        : new Date(value).getTime();
+
+    if (Number.isFinite(atMs) && atMs > 0) {
+      return new Date(Math.min(atMs, data.now.getTime()));
+    }
+  }
+
+  return data.now;
 };
 
 export const processTelemetryMonitorEvaluationFromQueue: (
@@ -537,19 +819,29 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     });
 
   /*
+   * The window this check judges ends when it was due, however late it runs
+   * (issue #11248): its windows follow on from one another exactly.
+   *
    * OneUptime's own downtime is never a resource's silence (issue #2825).
    * While the window this check judges holds time OneUptime was not
    * receiving - it was restarting, upgrading or its datastores were
    * unreachable, or it had only just come back - the check waits: no status
-   * change, nothing opened, nothing resolved. While the ingest queue is
-   * behind, the window ends where the queue is, so the check judges data
-   * that has been read rather than data still waiting to be.
+   * change, nothing opened, nothing resolved. While the ingest queue is more
+   * than a minute behind the window's end, the window ends where the queue
+   * is, so the check judges data that has been read rather than data still
+   * waiting to be.
    */
+  const windowInMs: number = TelemetryMonitorWindow.getWindowInMs({
+    monitorType: monitor.monitorType!,
+    monitorStep,
+  });
+
   const plan: TelemetryEvaluationPlan =
     await ReceivingCoverage.planTelemetryEvaluation({
-      windowInMs: TelemetryMonitorWindow.getWindowInMs({
-        monitorType: monitor.monitorType!,
-        monitorStep,
+      windowInMs: windowInMs,
+      windowEndsAt: getTelemetryEvaluationWindowEnd({
+        job: data,
+        now: OneUptimeDate.getCurrentDate(),
       }),
     });
 
@@ -569,7 +861,7 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     monitorType: monitor.monitorType!,
     monitorId: monitor.id,
     projectId: monitor.projectId!,
-    evaluateUntil: plan.isIngestBehind ? plan.evaluateUntil : undefined,
+    evaluateUntil: plan.evaluateUntil,
   });
 
   /*
@@ -595,8 +887,23 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     });
   }
 
+  /*
+   * Its log entry and the root cause of what it opens say which window it
+   * judged, and that it held its start and not its end, as every read of
+   * the check did (TelemetryCheckWindow, #11334).
+   */
+  const judgedWindow: InBetween<Date> = TelemetryCheckWindow.from(
+    new Date(plan.evaluateUntil.getTime() - Math.max(0, windowInMs)),
+    plan.evaluateUntil,
+  );
+
   await MonitorResourceUtil.monitorResource(response, {
     evaluationStartedAtMs: evaluationStartedAtMs,
+    judgedWindow: {
+      startsAt: judgedWindow.startValue,
+      endsAt: judgedWindow.endValue,
+      includesEnd: judgedWindow.includesEnd,
+    },
   });
 };
 
@@ -1875,6 +2182,8 @@ export const monitorLlm: MonitorLlmFunction = async (data: {
     projectId: data.projectId,
     startTime: window.startValue,
     endTime: window.endValue,
+    // Its start and not its end, as every check's window (TelemetryCheckWindow).
+    includesEnd: window.includesEnd,
     serviceIds:
       config.telemetryServiceIds.length > 0
         ? config.telemetryServiceIds
@@ -2160,11 +2469,10 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
     });
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -2674,11 +2982,10 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
     throw new BadDataException("Kubernetes monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -2955,11 +3262,10 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
     throw new BadDataException("Docker monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3143,11 +3449,10 @@ export const monitorHost: MonitorHostFunction = async (data: {
     throw new BadDataException("Host monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3338,11 +3643,10 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
     throw new BadDataException("Podman monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3533,11 +3837,10 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
     throw new BadDataException("Proxmox monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      proxmoxMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    proxmoxMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -3771,11 +4074,10 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
     throw new BadDataException("OpenStack monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      openstackMonitorConfig.rollingTime || RollingTime.Past15Minutes,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    openstackMonitorConfig.rollingTime || RollingTime.Past15Minutes,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4017,11 +4319,10 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     throw new BadDataException("VMware monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      vmwareMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    vmwareMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4252,11 +4553,10 @@ export const monitorXcpNg: MonitorXcpNgFunction = async (data: {
     );
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      xcpNgMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    xcpNgMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4475,11 +4775,10 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
     throw new BadDataException("IoT monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -4736,11 +5035,10 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
     throw new BadDataException("Docker Swarm monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5048,11 +5346,10 @@ export const monitorCeph: MonitorCephFunction = async (data: {
     throw new BadDataException("Ceph monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      cephMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    cephMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5279,11 +5576,10 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
     throw new BadDataException("Storage Array monitor config is missing");
   }
 
-  const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
-      storageArrayMonitorConfig.rollingTime || RollingTime.Past1Minute,
-      data.evaluateUntil,
-    );
+  const startAndEndDate: InBetween<Date> = TelemetryCheckWindow.ofRollingTime(
+    storageArrayMonitorConfig.rollingTime || RollingTime.Past1Minute,
+    data.evaluateUntil,
+  );
 
   const finalResult: Array<AggregatedResult> = [];
 
@@ -5545,11 +5841,9 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
      * groups still open, and told which ones a log has closed.
      */
     if (MonitorStepLogMonitorUtil.isResolvedByLog(logQuery)) {
+      // The same window as the logs it counts: the same clock read.
       const resolvedByQuery: Query<Log> =
-        MonitorStepLogMonitorUtil.toResolvedByQuery(
-          logQuery,
-          data.evaluateUntil,
-        );
+        MonitorStepLogMonitorUtil.toResolvedByQuery(logQuery, evaluateUntil);
       resolvedByQuery.projectId = data.projectId;
 
       return monitorUnresolvedLogGroups({

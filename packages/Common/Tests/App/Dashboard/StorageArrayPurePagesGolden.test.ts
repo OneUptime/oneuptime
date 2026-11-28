@@ -10,6 +10,10 @@ import fs from "fs";
 import path from "path";
 import ObjectID from "../../../Types/ObjectID";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+// A registered platform; the setup guide's StorageArrayPlatform is a key.
+import { StorageArrayPlatform as RegisteredPlatform } from "../../../Types/StorageArray/StorageArrayPlatform";
+import { SetupGuideOption } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { getInventoryMenuItems } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/SideMenu";
 import {
@@ -29,6 +33,7 @@ import {
   STORAGE_ARRAY_PLATFORMS,
   STORAGE_ARRAY_PLATFORM_SETTINGS,
   StorageArrayPlatform,
+  StorageArrayWholeConfigPlatform,
   getStorageArrayEnvFile,
   getStorageArrayInstallScriptCommand,
   getStorageArrayPlatformForSystem,
@@ -41,6 +46,10 @@ import {
   loadStorageArrayLatency,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayReadings";
 import { getStorageArrayPartRoutes } from "../../../../App/FeatureSet/Dashboard/src/Components/StorageArray/Part/StorageArrayPartRoutes";
+import {
+  isLaterMetricName,
+  isLaterSystem,
+} from "../../Helpers/StorageArray/PureSlice";
 
 /*
  * WHAT A PURE STORAGE ARRAY'S PAGES ARE TOLD ABOUT ITS PLATFORM, PINNED
@@ -78,7 +87,7 @@ const ARRAY_ID: ObjectID = new ObjectID("58000000-0000-4000-8000-0000000011a0");
 const SYSTEMS: Array<string | null | undefined> = [
   StorageSystem.PureStorageFlashArray,
   StorageSystem.PureStorageFlashBlade,
-  "netapp.ontap",
+  "hitachi.vsp",
   "",
   null,
   undefined,
@@ -134,6 +143,43 @@ function asJson(value: unknown): JSONValue {
   return JSON.parse(JSON.stringify(value)) as JSONValue;
 }
 
+/*
+ * Pure's slice of the monitor form's object filters. A filter Pure shares
+ * with a platform registered since (Dell PowerStore names its volumes and
+ * its parts with the same keys) lists that platform among its systems too,
+ * and a filter only a later platform has is not Pure's: both are left out,
+ * as PureSlice leaves the later platforms out of the other goldens. Every
+ * Pure filter, its words, its systems' order and the filters' order are
+ * compared whole.
+ */
+function pureFilterFields(value: JSONValue): JSONValue {
+  return (value as Array<JSONObject>)
+    .map((field: JSONObject): JSONObject => {
+      return {
+        ...field,
+        storageSystems: (field["storageSystems"] as Array<string>).filter(
+          (system: string): boolean => {
+            return !isLaterSystem(system);
+          },
+        ),
+      };
+    })
+    .filter((field: JSONObject): boolean => {
+      return (field["storageSystems"] as Array<string>).length > 0;
+    });
+}
+
+/*
+ * Pure Storage's picker options. The picker also offers a Dell PowerScale
+ * since #11003, whose guide is its own (PowerScaleSetupGuide.test.ts).
+ */
+const PURE_OPTIONS: Array<SetupGuideOption<StorageArrayPlatform>> =
+  STORAGE_ARRAY_PLATFORMS.filter(
+    (option: SetupGuideOption<StorageArrayPlatform>): boolean => {
+      return option.key !== "powerscale";
+    },
+  );
+
 async function computeGolden(): Promise<JSONObject> {
   const bySystem: JSONObject = {};
 
@@ -177,7 +223,12 @@ async function computeGolden(): Promise<JSONObject> {
           arrayName: "fa-prod-01",
         }),
       ),
-      alertMetricNames: getAlertMetricNames(system),
+      // Pure's own: an unknown platform also gets a later platform's (#11004).
+      alertMetricNames: getAlertMetricNames(system).filter(
+        (metricName: string): boolean => {
+          return !isLaterMetricName(metricName);
+        },
+      ),
       insightsSections: asJson(sections),
       insightsQueries: asJson(
         sections.map((section: InsightsSection): unknown => {
@@ -188,7 +239,9 @@ async function computeGolden(): Promise<JSONObject> {
           });
         }),
       ),
-      resourceFilterFields: asJson(getResourceFilterFields(system)),
+      resourceFilterFields: pureFilterFields(
+        asJson(getResourceFilterFields(system)),
+      ),
       setupGuidePlatform: getStorageArrayPlatformForSystem(system) || null,
       latencyReads,
       health,
@@ -200,11 +253,14 @@ async function computeGolden(): Promise<JSONObject> {
   const fileSystemReads: JSONValue = asJson(mockReadings);
 
   const guides: JSONObject = {};
-  for (const option of STORAGE_ARRAY_PLATFORMS) {
+  for (const option of PURE_OPTIONS) {
     const platform: StorageArrayPlatform = option.key;
     guides[platform] = {
       settings: asJson(STORAGE_ARRAY_PLATFORM_SETTINGS[platform]),
-      collectorConfigLength: STORAGE_ARRAY_COLLECTOR_CONFIGS[platform].length,
+      collectorConfigLength:
+        STORAGE_ARRAY_COLLECTOR_CONFIGS[
+          platform as StorageArrayWholeConfigPlatform
+        ].length,
       guideForAnArray: asJson(
         getStorageArraySetupGuide({
           oneuptimeUrl: "https://oneuptime.example.com",
@@ -243,7 +299,7 @@ async function computeGolden(): Promise<JSONObject> {
     "flasharray",
     "flasharray-exporter",
     "flashblade",
-    "netapp",
+    "hitachi",
     "",
     null,
     undefined,
@@ -274,7 +330,7 @@ async function computeGolden(): Promise<JSONObject> {
     projectId: PROJECT_ID,
     bySystem,
     fileSystemReads,
-    picker: asJson(STORAGE_ARRAY_PLATFORMS),
+    picker: asJson(PURE_OPTIONS),
     defaultPlatform: DEFAULT_STORAGE_ARRAY_PLATFORM,
     resolved,
     agentFiles: STORAGE_ARRAY_AGENT_FILES,
@@ -287,9 +343,35 @@ function readGolden(): JSONObject {
   return JSON.parse(fs.readFileSync(GOLDEN_PATH, "utf8")) as JSONObject;
 }
 
+/*
+ * The golden is what the pages answered when Pure's were the only
+ * platforms. A filter another platform shares (an ONTAP volume's, #11001)
+ * lists that platform too, so the golden is computed with Pure's alone.
+ */
+async function withPurePlatformsAlone<T>(
+  compute: () => Promise<T>,
+): Promise<T> {
+  const others: Array<RegisteredPlatform> =
+    StorageArrayPlatformRegistry.getPlatforms().filter(
+      (platform: RegisteredPlatform): boolean => {
+        return platform.vendorName !== "Pure Storage";
+      },
+    );
+  for (const platform of others) {
+    StorageArrayPlatformRegistry.unregister(platform.storageSystem);
+  }
+  try {
+    return await compute();
+  } finally {
+    for (const platform of others) {
+      StorageArrayPlatformRegistry.register(platform);
+    }
+  }
+}
+
 describe("a Pure Storage array's pages are told about its platform as before #11000", () => {
   test("every switch the pages make on the platform answers as it did", async () => {
-    const computed: JSONObject = await computeGolden();
+    const computed: JSONObject = await withPurePlatformsAlone(computeGolden);
 
     if (process.env["UPDATE_PURE_STORAGE_GOLDEN"] === "1") {
       fs.writeFileSync(
@@ -329,5 +411,62 @@ describe("a Pure Storage array's pages are told about its platform as before #11
       });
     }
     expect(computed).toEqual(golden);
+  });
+
+  /*
+   * And with ONTAP and PowerStore registered beside them, as they are in
+   * the product: a Pure array's every page answers as it did.
+   */
+  test("beside ONTAP and PowerStore, a Pure array's pages answer as they did", async () => {
+    const withoutOntap: (value: JSONValue) => JSONValue = (
+      value: JSONValue,
+    ): JSONValue => {
+      if (Array.isArray(value)) {
+        return value.map(withoutOntap);
+      }
+      if (value && typeof value === "object") {
+        const result: JSONObject = {};
+        for (const [key, inner] of Object.entries(value as JSONObject)) {
+          result[key] =
+            key === "storageSystems" && Array.isArray(inner)
+              ? inner.filter((system: JSONValue): boolean => {
+                  return system !== "netapp.ontap";
+                })
+              : withoutOntap(inner as JSONValue);
+        }
+        return result;
+      }
+      return value;
+    };
+
+    const computedBySystem: JSONObject = (await computeGolden())[
+      "bySystem"
+    ] as JSONObject;
+    const goldenBySystem: JSONObject = readGolden()["bySystem"] as JSONObject;
+    const pure: Array<string> = Object.keys(goldenBySystem).filter(
+      (system: string): boolean => {
+        return system.includes("purestorage.");
+      },
+    );
+    expect(pure.length).toBeGreaterThanOrEqual(2);
+    for (const system of pure) {
+      const actual: JSONObject = computedBySystem[system] as JSONObject;
+      const expected: JSONObject = goldenBySystem[system] as JSONObject;
+      for (const part of Object.keys(expected)) {
+        if (part === "resourceFilterFields") {
+          expect({ system, part, value: withoutOntap(actual[part]!) }).toEqual({
+            system,
+            part,
+            value: expected[part],
+          });
+          continue;
+        }
+        expect({ system, part, value: actual[part] }).toEqual({
+          system,
+          part,
+          value: expected[part],
+        });
+      }
+    }
   });
 });

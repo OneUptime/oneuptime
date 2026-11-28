@@ -3,7 +3,7 @@
 Die Kriterien eines Monitors entscheiden, was jede Prüfung bedeutet: ob der Monitor erreichbar ist oder ausgefallen, und ob OneUptime einen Vorfall deklariert oder eine Warnung erstellt. Status sind die Liste Ihres Projekts, in der ein Monitor sein kann, von **Betriebsbereit** bis **Offline**. Diese Seite erklärt beides für jeden Monitortyp; die eigene Seite jedes Typs nennt die Filter, die er anbietet.
 
 :::cards
-- [Wie Kriterien entscheiden](#wie-kriterien-entscheiden): Von oben nach unten, und der erste Treffer gewinnt.
+- [Wie Kriterien entscheiden](#wie-kriterien-entscheiden): Von oben nach unten: Der erste Treffer handelt, und der erste, der den Status ändert, setzt ihn.
 - [Was ein Kriterium enthält](#was-ein-kriterium-enthält): Filter, eine Abgleichsbedingung, Aktionen und Einstellungen.
 - [Ein Fenster von Prüfungen bewerten](#ein-fenster-von-prüfungen-bewerten): Fehlgeschlagene Prüfungen zählen, Flattern erkennen, ein Perzentil lesen.
 - [Die Kriterien eines Monitors ändern](#die-kriterien-eines-monitors-ändern): Kriterien bearbeiten, hinzufügen, umsortieren und testen.
@@ -12,28 +12,31 @@ Die Kriterien eines Monitors entscheiden, was jede Prüfung bedeutet: ob der Mon
 
 ## Wie Kriterien entscheiden
 
-Bei jeder Prüfung eines Monitors bewerten seine Kriterien das Ergebnis von oben nach unten. Das erste Kriterium, dessen Filter zutreffen, entscheidet, was passiert, und die Kriterien darunter werden für diese Prüfung nicht mehr betrachtet. Trifft keines zu, geht der Monitor in seinen **Standard-Überwachungsstatus**. Hat ein Kriterium, das ihn zurückbringt, noch nicht zugetroffen, behält er stattdessen seinen Status: siehe [Wann sich ein Kriterium erholt](#wann-sich-ein-kriterium-erholt).
+Bei jeder Prüfung eines Monitors bewerten seine Kriterien das Ergebnis von oben nach unten. Das erste Kriterium, dessen Filter zutreffen, entscheidet, was passiert: Es deklariert seine Vorfälle, erstellt seine Warnungen und ändert, wenn es dafür eingestellt ist, den Status des Monitors. Die Kriterien darunter werden nur betrachtet, wenn es keinen Status ändert, und dann nur für den Status. Trifft keines zu, geht der Monitor in seinen **Standard-Überwachungsstatus**. Hat ein Kriterium, das ihn zurückbringt, noch nicht zugetroffen, behält er stattdessen seinen Status: siehe [Wann sich ein Kriterium erholt](#wann-sich-ein-kriterium-erholt).
 
 ```mermaid title="Wie jede Prüfung bewertet wird"
 flowchart TB
     R["Das Ergebnis<br/>einer Prüfung"] --> C1{"Erstes<br/>Kriterium:<br/>treffen seine<br/>Filter zu?"}
-    C1 -->|"Ja"| A["Dieses Kriterium<br/>handelt"]
+    C1 -->|"Ja"| A["Dieses Kriterium handelt:<br/>Es deklariert Vorfälle<br/>und erstellt Warnungen"]
     C1 -->|"Nein"| C2{"Nächstes<br/>Kriterium:<br/>treffen seine<br/>Filter zu?"}
     C2 -->|"Ja"| A
     C2 -->|"Keines traf zu"| D["Der Monitor<br/>geht in<br/>seinen<br/>Standardstatus"]
-    A --> S["Ändert<br/>den Status"]
-    A --> I["Deklariert<br/>einen Vorfall"]
-    A --> L["Erstellt<br/>eine Warnung"]
+    A --> Q{"Ändert es<br/>den Status?"}
+    Q -->|"Ja"| S["Es setzt<br/>den Status"]
+    Q -->|"Nein"| N["Das erste Kriterium<br/>darunter, das zutrifft<br/>und den Status ändert,<br/>setzt ihn, oder der<br/>Monitor geht in seinen<br/>Standardstatus"]
 ```
 
 Die Reihenfolge gehört zur Regel. Ein neuer Monitor listet seine Kriterien vom schlimmsten Fall an: offline, dann eine Warnung, wo sein Typ eine hat (ein Zertifikat oder eine Domäne, die bald abläuft), dann online. Ein breites gesundes Kriterium wie **Ist online** auf **Wahr** trifft auf fast jede Prüfung zu, deshalb kommt es zuletzt: über den anderen würde es jedes Mal zuerst zutreffen, und sie würden nie handeln.
 
-Ein Kriterium, das zutrifft, aber keinen Status ändert, entscheidet die Prüfung trotzdem: Der Monitor behält seinen Status, und die Kriterien darunter warten auf die nächste Prüfung. Der **Standard-Überwachungsstatus** gilt nur, wenn kein Kriterium zutrifft. Bei einem neuen Monitor ist er **Betriebsbereit**; ändern Sie ihn unter **Weitere Felder** unterhalb der Kriterien.
+Ein Kriterium, das zutrifft, aber keinen Status ändert, etwa eines, das nur eine Warnung erstellt, entscheidet keinen Status. Seine Warnung wird geöffnet und behoben wie die jedes Kriteriums, und die Kriterien darunter, die den Status ändern, werden allein für den Status bewertet, in ihrer Reihenfolge: Das erste von ihnen, das zutrifft, setzt den Status und öffnet bei dieser Prüfung nichts. Trifft keines von ihnen zu, geht der Monitor in seinen **Standard-Überwachungsstatus**, wie wenn kein Kriterium zutrifft. Eine Website, die wieder erreichbar, aber langsam ist, steht also auf **Betriebsbereit**, mit offener Warnung, welchen Status auch immer eine frühere Prüfung hinterlassen hat. Bei einem neuen Monitor ist der Standard **Betriebsbereit**; ändern Sie ihn unter **Weitere Felder** unterhalb der Kriterien.
+
+> [!NOTE]
+> Ein Kriterium, das zuerst zutraf und keinen Status änderte, ließ den Monitor früher in dem Status, den er hatte, solange es weiter zutraf: Ein Switch, den das empfohlene Warnungspaket überwacht, verpasste eine Abfrage, kam mit einem Port über 80 % zurück und blieb **Offline**, seine Statusseite rot, solange der Port ausgelastet war. Jetzt entscheiden nur die Kriterien, die den Status ändern, über ihn. Ein Monitor, dessen Kriterien alle den Status ändern, wird genau wie zuvor bewertet. Ebenso, welches Kriterium die Vorfälle einer Prüfung deklariert und ihre Warnungen erstellt: Bei einem Monitor, der beim ersten Treffer stoppt, ist es weiterhin das erste Kriterium, das zutrifft.
 
 > [!NOTE]
 > Ein Monitor, der pro Host, Container, Festplatte oder Schnittstelle einen eigenen Vorfall oder eine eigene Warnung auslöst, bewertet bei jeder Prüfung alle Kriterien, sodass zwei Hosts gleichzeitig zwei verschiedene Kriterien treffen können. Das ist ein Monitor, dessen Abfrage ein **Gruppieren nach** hat, etwa ein Metrik- oder Log-Monitor, oder ein Kriterium, das `*` für jede Festplatte oder Schnittstelle nennt. Das gilt auch für einen Metrik-Monitor, der einen PromQL-Ausdruck überwacht: Jede Reihe, die der Ausdruck liefert, wird für sich beurteilt. Ein Monitor für eingehende Anfragen, der Vorfälle nach einem Payload-Feld gruppiert, hält trotzdem beim ersten Treffer an.
 >
-> Ein solcher Monitor hat trotzdem einen einzigen Status, den das erste passende Kriterium festlegt. Ein Kriterium, das ihn nur auf seinen **Standard-Überwachungsstatus** zurückbringt und keinen Vorfall und keine Warnung eröffnet, wartet auf die Hosts, die ein Kriterium erfüllt haben, das einen anderen Status setzt: Es greift, sobald jeder von ihnen es erfüllt, egal was die anderen Hosts tun. Bis dahin behält der Monitor seinen Status, auch wenn kein Kriterium passt, während die Vorfälle und Warnungen jedes Hosts weiterhin für sich aufgelöst werden.
+> Ein solcher Monitor hat trotzdem einen einzigen Status, den das erste passende Kriterium unter denen festlegt, die den Status ändern. Ein Kriterium, das ihn nur auf seinen **Standard-Überwachungsstatus** zurückbringt und keinen Vorfall und keine Warnung eröffnet, wartet auf die Hosts, die ein Kriterium erfüllt haben, das einen anderen Status setzt: Es greift, sobald jeder von ihnen es erfüllt, egal was die anderen Hosts tun. Bis dahin behält der Monitor seinen Status, auch wenn kein Kriterium passt, das den Status ändert, während die Vorfälle und Warnungen jedes Hosts weiterhin für sich aufgelöst werden.
 
 ## Was ein Kriterium enthält
 
@@ -125,11 +128,11 @@ Der Satz unter den Einstellungen des Fensters gibt es wieder: „Prüfen: "Antwo
 
 ## Wann sich ein Kriterium erholt
 
-Ein Kriterium hört auf zu wirken, sobald seine Filter nicht mehr zutreffen: Bei dieser Prüfung werden sein Vorfall und seine Warnung behoben, wenn **Vorfall automatisch beheben** und **Warnung automatisch beheben** eingeschaltet sind, und der Monitor geht zum nächsten Kriterium über, das zutrifft.
+Ein Kriterium hört auf zu wirken, sobald seine Filter nicht mehr zutreffen: Bei dieser Prüfung werden sein Vorfall und seine Warnung behoben, wenn **Vorfall automatisch beheben** und **Warnung automatisch beheben** eingeschaltet sind, und der Status des Monitors folgt den Kriterien, die dann zutreffen.
 
 **Nur erholen, wenn eine eigene Bedingung erfüllt ist** hält das Kriterium wirksam, nachdem seine Filter nicht mehr zutreffen, bis die Filter unter **Erholt, wenn** zutreffen. Sie beginnen als Gegenteil der Filter des Kriteriums, über die letzten 10 Minuten, und können alles nutzen, was ein Filter bietet, etwa ein Fenster, das Prüfungen zählt. Ein Kriterium ist wirksam, solange der Monitor den Status hat, den es setzt, oder ein Vorfall oder eine Warnung offen ist, die es gemeldet hat. Solange es hält, ist es ein Treffer an seiner Stelle in der Liste: Ein Kriterium darüber, das zutrifft, übernimmt trotzdem.
 
-Trifft kein Kriterium zu, behält ein Monitor, den ein Kriterium von seinem **Standard-Überwachungsstatus** weggebracht hat, seinen Status, solange er auch ein Kriterium hat, das ihn nur in diesen Status zurückbringt und nichts öffnet. Das ist der Erholungsabstand: Die Vorlagen lösen über 90 % aus und kommen bei höchstens 81 % zurück, sodass der Monitor bei 89 % bleibt, wo er ist. Seine Vorfälle und Warnungen werden trotzdem behoben, wenn ihr eigenes Kriterium nicht mehr zutrifft. Ein Monitor ohne ein solches Kriterium geht wie immer in seinen **Standard-Überwachungsstatus**.
+Trifft kein Kriterium zu, das den Status ändert, behält ein Monitor, den ein Kriterium von seinem **Standard-Überwachungsstatus** weggebracht hat, seinen Status, solange er auch ein Kriterium hat, das ihn nur in diesen Status zurückbringt und nichts öffnet. Das ist der Erholungsabstand: Die Vorlagen lösen über 90 % aus und kommen bei höchstens 81 % zurück, sodass der Monitor bei 89 % bleibt, wo er ist. Seine Vorfälle und Warnungen werden trotzdem behoben, wenn ihr eigenes Kriterium nicht mehr zutrifft. Ein Monitor ohne ein solches Kriterium geht wie immer in seinen **Standard-Überwachungsstatus**.
 
 ## Nur an bestimmten Tagen und zu bestimmten Zeiten
 
@@ -153,6 +156,7 @@ flowchart TB
 
 - **Einer nach dem anderen.** Solange ein Vorfall, den ein Kriterium deklariert hat, noch offen ist, deklariert dasselbe Kriterium bei einem erneuten Treffer keinen weiteren. Warnungen funktionieren genauso. Ein Monitor, der nach Host oder Payload-Feld gruppiert, hält einen pro Host oder Wert offen, und ein Kriterium eines Monitors für eingehende E-Mails mit **Für jede E-Mail einen neuen Vorfall eröffnen** öffnet einen pro E-Mail.
 - **Schließen.** Bei einer späteren Prüfung, bei der ein anderes Kriterium zutrifft oder keines, wird ein Vorfall behoben, dessen Kriterium **Vorfall automatisch beheben** eingeschaltet hat, und ebenso eine Warnung mit **Warnung automatisch beheben**. Beide stehen unter **Weitere Felder** im Vorfall oder in der Warnung, und die Kriterien, mit denen ein neuer Monitor beginnt, haben sie eingeschaltet.
+- **Das Kriterium, das handelt.** Bei einem Monitor, der beim ersten Treffer stoppt, deklariert das erste zutreffende Kriterium die Vorfälle der Prüfung und erstellt ihre Warnungen, auch wenn es keinen Status ändert und ein Kriterium darunter den Status setzt. Dieses öffnet bei der Prüfung nichts: Stellen Sie die Kriterien, die den Status ändern, über die, die nur warnen, das Schlimmste zuerst, wie bei einem neuen Monitor, dann kommen der Status einer Prüfung und ihr Vorfall vom selben Kriterium.
 - **Mehrere Sonden.** Ein Monitor, den mehr als eine Sonde prüft, ändert sich nur, wenn seine Sonden übereinstimmen. Siehe [Wie Kriterien ausgewertet werden](/docs/monitor/create-monitor#wie-kriterien-ausgewertet-werden).
 - **Ein übergeordneter Monitor, der ausgefallen ist.** Auf der Seite **Konfiguration → Abhängigkeiten** eines Monitors nennt **Hängt von Monitoren ab** die Monitore, auf die er angewiesen ist. Solange einer davon in einem Status ist, der unter **Unterdrücken, wenn der übergeordnete Status ist** steht (jeder Offline-Status, wenn das leer bleibt), öffnet der Monitor keine Vorfälle oder Warnungen. Sein Status ändert sich weiterhin, und was offen ist, wird weiterhin behoben.
 - **Geplante Wartung.** Ein Monitor in einem laufenden Wartungsereignis wird nicht geprüft, daher laufen seine Kriterien nicht. Siehe [Geplante Wartung – Übersicht](/docs/scheduled-maintenance/index).
@@ -231,6 +235,16 @@ Wenn eine Auswertung für ihren Monitor zu lange dauert, warnt Sie ihre Zusammen
 | Wenn seine Ergebnisse eintreffen, etwa bei eingehenden Anfragen und E-Mails | 5 Sekunden |
 
 Ein Zehntel lässt einem Monitor Raum, um das Zehnfache zu wachsen, bevor seine Prüfungen einander in die Quere kommen und in Rückstand geraten, sodass Sie es früh erfahren. Unter 5 Sekunden ist eine Prüfung in Ordnung, wie groß sie auch ist: 16.000 Reihen zu beurteilen dauert etwa 2,5 Sekunden. Über eine Minute belegt sie so lange einen Worker und die Datenbanken, die sie liest, unabhängig von ihrem Intervall. Um sie zu beschleunigen, grenzen Sie die Filter ihrer Abfragen ein, gruppieren Sie nach weniger Attributen oder prüfen Sie seltener.
+
+## Wann Telemetrie-Monitore prüfen
+
+Monitore, die Telemetrie lesen, etwa Logs-, Metriken-, Traces-, Kubernetes-, Host- und Docker-Monitore, werden nicht alle im selben Moment geprüft. Jeder hat seinen eigenen Moment in seinem Intervall, berechnet aus der ID des Monitors: Ein Monitor, der jede Minute geprüft wird, läuft in derselben Sekunde jeder Minute, einer, der alle 5 Minuten geprüft wird, im selben Moment jedes 5-Minuten-Abschnitts, und einer, der stündlich oder seltener geprüft wird, in den ersten 5 Minuten der Stunde oder des Tages, die sein Intervall nennt. Der Moment bleibt derselbe, wenn OneUptime neu startet, und auf jedem Server, sodass der Telemetriespeicher über die Minute verteilt nach und nach gelesen wird statt von allen Monitoren gleichzeitig.
+
+Jeder Monitor behält sein Intervall: Seine Prüfungen liegen genau so weit auseinander wie zuvor. Jede Prüfung beurteilt das Zeitfenster, das in ihrem Moment endet, auch wenn sie später läuft, etwa während OneUptime ausgelastet ist oder wenn eine fehlgeschlagene Prüfung einige Sekunden später wiederholt wird. So deckt ein Fenster, das so lang ist wie das Intervall, genau die Zeit seit der vorigen Prüfung ab: Keine Daten werden zweimal beurteilt, und keine werden ausgelassen. Ein Fenster schließt seinen Anfang ein, aber nicht sein Ende, sodass Daten mit einem Zeitstempel genau in dem Moment, in dem ein Fenster endet und das nächste beginnt, einmal beurteilt werden, von der späteren Prüfung. Die Auswertungszusammenfassung einer Prüfung, unter **Zusammenfassung anzeigen** auf der Seite **Überwachungsprotokolle** des Monitors, sagt, welches Fenster sie beurteilt hat, und das sagt auch die Grundursache eines Vorfalls oder einer Warnung, die sie öffnet. Solange OneUptime beim Lesen der empfangenen Telemetrie mehr als eine Minute im Rückstand ist, endet das Fenster einer Prüfung stattdessen dort, wo OneUptime mit dem Lesen steht, sodass eine Prüfung nie Daten beurteilt, die noch darauf warten, gelesen zu werden. Wenn OneUptime so weit in Rückstand gerät, dass die nächste Prüfung eines Monitors fällig ist, bevor die vorige begonnen hat, läuft nur die vorige, für ihr eigenes Fenster, und das Fenster danach wird nicht geprüft.
+
+Was sich verschiebt, ist, wann in seinem Intervall eine Prüfung läuft: bis zu ein Intervall später und nie mehr als 5 Minuten später. Ein Vorfall oder eine Warnung kann bis zu so viel später geöffnet werden, als wenn jede Prüfung zu Beginn ihres Intervalls liefe, und manchmal früher. Die **Übersicht** des Monitors zeigt, wann seine nächste Prüfung fällig ist.
+
+Ein neuer Monitor wird wenige Sekunden nach dem Erstellen geprüft, für das Fenster, das dann endet, und danach in seinem eigenen Moment. Das gilt auch für einen Monitor, der Prüfungen verpasst hat, während er ausgeschaltet war oder während OneUptime gestoppt war. Wenn Sie das Intervall eines Monitors ändern, wechselt seine nächste Prüfung auf das neue Intervall. Direkt nach dem Upgrade auf eine Version von OneUptime, die Prüfungen verteilt, wird jeder Monitor noch einmal zu der Zeit geprüft, zu der ihn der alte Zeitplan fällig hatte, und von da an in seinem eigenen Moment.
 
 ## Die Kriterien eines Monitors ändern
 
@@ -327,6 +341,12 @@ Ein Kriterium weiter oben in der Liste hat zuerst zugetroffen. Öffnen Sie **Kon
 
 :::details Kein Vorfall wurde geöffnet, als der Monitor ausfiel
 Prüfen Sie das Kriterium, das zutraf: **Wenn Filter übereinstimmen, einen Vorfall deklarieren.** muss eingeschaltet sein. Ein Vorfall wird nicht deklariert, solange der Vorfall desselben Kriteriums noch offen ist, solange ein übergeordneter Monitor in **Hängt von Monitoren ab** ausgefallen ist oder solange der Monitor in geplanter Wartung ist. Die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors sagt, was davon zutraf.
+
+Ein Kriterium darüber, das keinen Status ändert, etwa eine Warnung bei langsamen Antworten, kann zuerst zutreffen: Es erstellt seine Warnung, das Kriterium darunter setzt den Status und deklariert seinen Vorfall nur bei einer Prüfung, bei der es der erste Treffer ist. Ziehen Sie die Kriterien, die den Status ändern, über die, die nur warnen.
+:::
+
+:::details Der Monitor ging in seinen Standardstatus zurück, während eine Warnung offen blieb
+Das Kriterium der Warnung ändert keinen Status, also hält es den Monitor nicht in dem Status, den eine frühere Prüfung gesetzt hat. Das erste Kriterium, das zutrifft und den Status ändert, setzt ihn, und wenn keines das tut, geht der Monitor in seinen **Standard-Überwachungsstatus**. Um einen Status zu halten, solange ein Problem andauert, geben Sie dem Kriterium, das ihn setzt, eine eigene Erholungsbedingung: siehe [Wann sich ein Kriterium erholt](#wann-sich-ein-kriterium-erholt).
 :::
 
 :::details Der Vorfall bleibt offen, nachdem sich der Monitor erholt hat

@@ -16,7 +16,11 @@
  *                     connected; GitHub, which can't connect; Azure, not
  *                     checked yet; Internal runbooks, off); servers=many
  *                     adds one with a long name, a long address and 14
- *                     tools, and one that offers none
+ *                     tools, and one that offers none; servers=kagent is
+ *                     one kAgent server alone, whose tools say nothing
+ *                     about themselves, one of them marked read-only by a
+ *                     Project Admin and one whose mark lapsed (#11081) -
+ *                     open it with page=view&server=kagent
  *   - layout=page     the page inside the Dashboard's real Project Settings
  *                     layout - the side menu, the breadcrumbs - so widths
  *                     are the product's (a 938px card at 1280px)
@@ -58,7 +62,9 @@ import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
+import ExternalMcpToolReadOnlyMark from "Common/Models/DatabaseModels/ExternalMcpToolReadOnlyMark";
 import Project from "Common/Models/DatabaseModels/Project";
+import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
@@ -83,6 +89,7 @@ const role = ["member", "viewer", "loading"].includes(params.get("role"))
 const language = params.get("lang") === "de" ? "de" : "en";
 const hasServers = params.get("servers") !== "0";
 const hasManyServers = params.get("servers") === "many";
+const isKAgentOnly = params.get("servers") === "kagent";
 const isInSettingsLayout = params.get("layout") === "page";
 const isAiOff = params.get("ai") === "off";
 
@@ -158,6 +165,58 @@ const SERVER_IDS = {
   internal: "c0000000-0000-4000-8000-000000000e04",
   platform: "c0000000-0000-4000-8000-000000000e05",
   checker: "c0000000-0000-4000-8000-000000000e06",
+  kagent: "c0000000-0000-4000-8000-000000000e07",
+};
+
+/*
+ * kAgent's tool server as Test connection stores it (#11081): its tools say
+ * nothing about themselves, so each counts as one that may change
+ * something until a Project Admin marks it read-only. Each keeps the
+ * fingerprint of its definition and its arguments; k8s_delete_resource can
+ * never be marked, as its name says it deletes.
+ */
+const KAGENT_TOOLS = [
+  {
+    name: "k8s_get_resources",
+    description:
+      "List Kubernetes resources with kubectl. Set all_namespaces to survey the cluster.",
+    readsOnly: false,
+    fingerprint: "1".repeat(64),
+    argumentNames: [
+      "resource_type",
+      "resource_name",
+      "namespace",
+      "all_namespaces",
+      "output",
+    ],
+  },
+  {
+    name: "k8s_get_pod_logs",
+    description: "Get logs from a Kubernetes pod",
+    readsOnly: false,
+    fingerprint: "2".repeat(64),
+    argumentNames: ["pod_name", "namespace", "container", "tail_lines"],
+  },
+  {
+    name: "k8s_get_events",
+    description: "Get events from a Kubernetes namespace",
+    readsOnly: false,
+    fingerprint: "3".repeat(64),
+    argumentNames: ["namespace"],
+  },
+  {
+    name: "k8s_delete_resource",
+    description: "Delete a Kubernetes resource",
+    readsOnly: false,
+    fingerprint: "4".repeat(64),
+    markRefusal: { kind: "NameSaysItChanges", word: "delete" },
+    argumentNames: ["resource_type", "resource_name", "namespace"],
+  },
+];
+
+const MARK_IDS = {
+  podLogs: "d0000000-0000-4000-8000-000000000f01",
+  events: "d0000000-0000-4000-8000-000000000f02",
 };
 
 /*
@@ -199,7 +258,7 @@ const AWS_TOOLS = [
   },
 ];
 
-const SERVERS = hasServers
+const DEFAULT_SERVERS = hasServers
   ? [
       record(ExternalMcpServer, {
         _id: SERVER_IDS.aws,
@@ -294,8 +353,61 @@ const SERVERS = hasServers
     ]
   : [];
 
+// servers=kagent: the kAgent server alone, its tools saying nothing about themselves (#11081).
+const KAGENT_SERVER = record(ExternalMcpServer, {
+  _id: SERVER_IDS.kagent,
+  projectId: new ObjectID(PROJECT_ID),
+  name: "Kubernetes (kAgent)",
+  description: "The production cluster's kAgent tools.",
+  url: "https://kagent.example.com/mcp",
+  authType: "BearerToken",
+  isEnabled: true,
+  transport: "StreamableHttp",
+  serverName: "kagent-tools-server",
+  serverVersion: "0.3.2",
+  protocolVersion: "2025-11-25",
+  tools: KAGENT_TOOLS,
+  lastConnectedAt: new Date("2026-11-27T08:00:00Z"),
+  lastCheckedAt: new Date("2026-11-27T08:00:00Z"),
+});
+
+const SERVERS = isKAgentOnly ? [KAGENT_SERVER] : DEFAULT_SERVERS;
+
+// Who marked a kAgent tool read-only (#11081): a person of the project.
+function markedBy(name) {
+  const user = new User();
+  user.name = name;
+  return user;
+}
+
+/*
+ * The kAgent server's read-only marks: k8s_get_pod_logs as it is now, and
+ * k8s_get_events as it was before kAgent changed it (another fingerprint).
+ */
+const MARKS = isKAgentOnly
+  ? [
+      record(ExternalMcpToolReadOnlyMark, {
+        _id: MARK_IDS.podLogs,
+        projectId: new ObjectID(PROJECT_ID),
+        externalMcpServerId: new ObjectID(SERVER_IDS.kagent),
+        toolName: "k8s_get_pod_logs",
+        toolFingerprint: "2".repeat(64),
+        createdByUser: markedBy("Jane Doe"),
+      }),
+      record(ExternalMcpToolReadOnlyMark, {
+        _id: MARK_IDS.events,
+        projectId: new ObjectID(PROJECT_ID),
+        externalMcpServerId: new ObjectID(SERVER_IDS.kagent),
+        toolName: "k8s_get_events",
+        toolFingerprint: "9".repeat(64),
+        createdByUser: markedBy("Ravi Shah"),
+      }),
+    ]
+  : [];
+
 const TABLES = {
   ExternalMcpServer: SERVERS,
+  ExternalMcpToolReadOnlyMark: MARKS,
   Project: [project],
 };
 
@@ -343,6 +455,8 @@ const VERDICTS = {
 
 const state = {
   creates: [],
+  // Each read-only mark made, as sent (#11081).
+  marks: [],
   edits: [],
   updates: [],
   deletes: [],
@@ -387,13 +501,20 @@ function sorted(items, sort) {
   });
 }
 
-// The query's plain values: a switch or a word. Ids and searches are the project's.
+/*
+ * The query's plain values: a switch or a word, and an id another record is
+ * named by (a mark's server). Searches are the project's.
+ */
 function matchesQuery(item, query) {
   for (const [key, value] of Object.entries(query || {})) {
     if (
       (typeof value === "boolean" || typeof value === "string") &&
       item[key] !== value
     ) {
+      return false;
+    }
+
+    if (value instanceof ObjectID && idOf(item[key]) !== idOf(value)) {
       return false;
     }
   }
@@ -463,12 +584,75 @@ function keep(item, json) {
   }
 }
 
+/*
+ * A read-only mark, made as the server makes one (#11081): recorded as sent
+ * - the server and the tool, nothing else - and kept with the fingerprint
+ * of the tool as the server last read it, who made it and when; the tool's
+ * earlier marks are taken away.
+ */
+function markReadOnly(model, json) {
+  state.marks.push(json);
+
+  // Read from the model: in its JSON an id is wrapped ({ _type, value }).
+  const serverId = idOf(model.externalMcpServerId);
+  const server = SERVERS.find((item) => idOf(item._id) === serverId);
+  const tool = ((server && server.tools) || []).find(
+    (candidate) => candidate.name === model.toolName,
+  );
+
+  // A refused create throws, as ModelAPI.create does for a refused request.
+  if (!tool) {
+    throw new HTTPErrorResponse(
+      400,
+      {
+        message: `OneUptime has not read a tool named "${json.toolName}" on this server. Test the connection to read its tools again.`,
+      },
+      {},
+    );
+  }
+
+  for (let index = MARKS.length - 1; index >= 0; index--) {
+    if (
+      idOf(MARKS[index].externalMcpServerId) === serverId &&
+      MARKS[index].toolName === tool.name
+    ) {
+      MARKS.splice(index, 1);
+    }
+  }
+
+  const created = record(ExternalMcpToolReadOnlyMark, {
+    _id: `d0000000-0000-4000-8000-0000000000${String(
+      10 + state.marks.length,
+    ).padStart(2, "0")}`,
+    projectId: new ObjectID(PROJECT_ID),
+    externalMcpServerId: new ObjectID(serverId),
+    toolName: tool.name,
+    toolFingerprint: tool.fingerprint,
+    createdByUser: markedBy("Fixture Owner"),
+  });
+  created.createdAt = new Date();
+  MARKS.push(created);
+
+  return new HTTPResponse(
+    200,
+    BaseModel.toJSON(created, ExternalMcpToolReadOnlyMark),
+    {},
+  );
+}
+
 // A create or an edit through the form: kept, and recorded as sent.
 ModelAPI.createOrUpdate = async (options) => {
   const table = TABLES[tableName(options.modelType)] || [];
   // What the API is sent: the model as the Dashboard serialises it.
   const json = BaseModel.toJSON(options.model, options.modelType);
   const isCreate = !options.model._id;
+
+  if (
+    isCreate &&
+    tableName(options.modelType) === "ExternalMcpToolReadOnlyMark"
+  ) {
+    return markReadOnly(options.model, json);
+  }
 
   if (isCreate) {
     state.creates.push(json);

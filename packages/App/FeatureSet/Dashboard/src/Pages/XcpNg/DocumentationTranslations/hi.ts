@@ -60,6 +60,28 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_TLS_FINGERPRINT` | इंस्टॉल स्क्रिप्ट | Xen Orchestra के अपने प्रमाणपत्र का SHA-256 फ़िंगरप्रिंट, जब एजेंट सिर्फ़ उसी प्रमाणपत्र पर भरोसा करता है |",
   "| `XO_CA_FILE` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to `xo-ca.pem` |":
     "| `XO_CA_FILE` | इंस्टॉल स्क्रिप्ट | Xen Orchestra का प्रमाणपत्र जारी करने वाला CA बंडल, जिसे स्क्रिप्ट `xo-ca.pem` में कॉपी करती है |",
+  "| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the XCP-ng AI agent runs when it is set, and reads with it |":
+    "| `ONEUPTIME_AI_XO_READ_TOKEN` | नहीं | ऐसे Xen Orchestra उपयोगकर्ता का टोकन जिसके पास बिल्ट-इन **Read only** भूमिका की एक कॉपी हो और कुछ नहीं: इसके सेट होने पर XCP-ng AI एजेंट चलता है, और इसी से पढ़ता है |",
+  "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it |":
+    "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | नहीं | केवल सुधारों के लिए: किसी दूसरे उपयोगकर्ता का टोकन, जिसकी भूमिका उनकी अनुमति देती है। इसके बिना AI एजेंट कुछ नहीं बदलता |",
+  "| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool its read token can see) |":
+    "| `XCP_NG_POOL_ID` | नहीं | उस पूल का XAPI UUID जिसे AI एजेंट सेवा देता है (डिफ़ॉल्ट: वह एकमात्र पूल जिसे उसका पढ़ने वाला टोकन देख सकता है) |",
+  "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Overrides `XCP_NG_POOL_ID` as the pool the AI agent registers as |":
+    "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | नहीं | `XCP_NG_POOL_ID` को उस पूल के रूप में ओवरराइड करता है जिसके रूप में AI एजेंट रजिस्टर होता है |",
+  "| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run the AI agent's read-only commands while it investigates (default: on) |":
+    "| `ONEUPTIME_AI_INVESTIGATION` | नहीं | `true` या `false`: क्या OneUptime AI जाँच के दौरान AI एजेंट के केवल-पढ़ने वाले कमांड चला सकता है (डिफ़ॉल्ट: चालू) |",
+  "| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval`: how OneUptime AI may apply a fix |":
+    "| `ONEUPTIME_AI_FIXES` | नहीं | `off`, `ask-for-approval`, `automatic` या `bypass-approval`: OneUptime AI कोई सुधार कैसे लागू कर सकता है |",
+  "| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only |":
+    "| `ONEUPTIME_AI_ALLOW_WRITES` | नहीं | `true` AI एजेंट को बदलावों वाले टोकन के साथ सुधार लागू करने देता है। कोई भी दूसरा मान उसे केवल-पढ़ने वाला रखता है |",
+  "| `ONEUPTIME_AI_WRITE_TARGETS` | No | The `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` a fix may touch, comma-separated (default: all) |":
+    "| `ONEUPTIME_AI_WRITE_TARGETS` | नहीं | वे `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` या `schedule/<uuid>` जिन्हें कोई सुधार छू सकता है, कॉमा से अलग (डिफ़ॉल्ट: सभी) |",
+  "| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |":
+    "| `ONEUPTIME_AI_PROTECTED_TARGETS` | नहीं | वही, उसके लिए जिसे OneUptime AI को कभी नहीं बदलना चाहिए: वह VM जिसमें AI एजेंट चलता है, और Xen Orchestra का अपना VM |",
+  "| `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (default), `warn` or `error` |":
+    "| `LOG_LEVEL` | नहीं | AI एजेंट का लॉग स्तर: `debug`, `info` (डिफ़ॉल्ट), `warn` या `error` |",
+  "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
+    "| `COMPOSE_PROFILES` | नहीं | `xcp-ng-ai-agent` AI एजेंट को शुरू करता है; इंस्टॉल स्क्रिप्ट पढ़ने वाला टोकन सेट होने पर इसे लिखती है |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "एजेंट Xen Orchestra के प्रमाणपत्र को `docker-compose.yml` के बगल वाली `xo-ca.pem` से जाँचता है।",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

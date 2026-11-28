@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "Wenn Sie eine IoT-Flotte löschen, wird auch ihr Geräteregister gelöscht, sodass sich registrierte Geräte nicht mehr anmelden können.",
   "Deleting a database also deletes the endpoints it is reached at.": "Wenn Sie eine Datenbank löschen, werden auch die Endpunkte gelöscht, unter denen sie erreichbar ist.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Wenn du eine Cloud-Verbindung löschst, liest OneUptime das Konto nicht mehr. Die Ressourcen bleiben erhalten, mit ihren Metriken.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "Wenn Sie eine Speicher-Array-Verbindung löschen, liest OneUptime die Arrays dahinter nicht mehr, und ihr gespeichertes Passwort und ihre Verbindungstests werden gelöscht. Ihre Arrays bleiben mit ihren Metriken erhalten.",
   "True": "Wahr",
   "False": "Falsch",
   "Key": "Schlüssel",
@@ -4622,5 +4623,19 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Diese Monitorvorlage hat keinen Monitortyp, daher können ihre Monitore nicht synchronisiert werden. Erstellen Sie die Vorlage mit einem Monitortyp neu.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Die Einstellungen für die Vorlagensynchronisierung brauchen den Monitortyp der Vorlage. Wählen Sie zuerst den Monitortyp und dann die Synchronisierungseinstellungen erneut.",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Eine Monitorvorlage kann „{{field}}“ nicht synchronisieren. Wählen Sie aus den Einstellungen für die Vorlagensynchronisierung, die die Vorlage anbietet, und speichern Sie dann erneut.",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Neue Personen können sich noch nicht anmelden. Verknüpfen Sie unter „Verknüpfte Projekte“ ein Projekt mit den Teams, denen sie beitreten."
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Neue Personen können sich noch nicht anmelden. Verknüpfen Sie unter „Verknüpfte Projekte“ ein Projekt mit den Teams, denen sie beitreten.",
+  "This issue does not exist, or you cannot read it.": "Dieses Problem existiert nicht, oder Sie können es nicht lesen.",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "Mit diesem Problem sind bereits 10 Pull Requests verknüpft. Entfernen Sie einen, bevor Sie einen weiteren verknüpfen.",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Dieses Problem wurde zurückgestellt: Sein Risiko wurde akzeptiert, oder es ist kein Problem. Öffnen Sie es erneut, um den Pull Request zu verknüpfen, der es behebt.",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} ist bereits mit diesem Problem verknüpft.",
+  "All XCP-ng pools": "Alle XCP-ng-Pools",
+  "Only XCP-ng pools that match conditions": "Nur XCP-ng-Pools, die den Bedingungen entsprechen",
+  "All savings": "Alle Einsparungen",
+  "Only savings that match conditions": "Nur Einsparungen, die den Bedingungen entsprechen",
+  "XCP-ng Pool": "XCP-ng-Pool",
+  "Same name as another {{kind}}": "Gleicher Name wie ein anderer Datensatz vom Typ {{kind}}",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Ein anderer Datensatz vom Typ {{kind}} in diesem Projekt hat diesen Namen, daher sind die beiden in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} hat denselben Namen wie ein anderer Datensatz vom Typ {{kind}}, und die beiden sind in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden Datensatz, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} haben denselben Namen wie ein anderer Datensatz vom Typ {{kind}} und sind in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden Datensatz, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} hat denselben Namen wie ein anderer Datensatz vom Typ {{kind}}, und die beiden sind in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden Datensatz, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um."
 }

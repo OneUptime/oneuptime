@@ -406,6 +406,16 @@ app:
     probeSchedulingQueueDepthThreshold: 5
 ```
 
+Probes keep their connections to the `app` pods open, and so does the
+ingress, and Kubernetes sends each connection, not each request, to a pod. So
+that the pods KEDA adds get probe requests, an `app` pod with probe requests
+waiting for a slot answers a few of them a second with `Connection: close`
+(at most one every 100 ms in each lane), and the next request on each of
+those connections goes to whichever pod Kubernetes picks. With two pods
+backed up and two added, the added pods ran most of their slots within 10
+seconds and the queue on the others fell to about 1. Before, through the
+ingress, they were sent under 1% of the requests for two minutes.
+
 | Field | What it says | Act when |
 | --- | --- | --- |
 | `queueDepth` | Probe requests waiting for a slot now, on every `app` pod | It stays above 0: add `app` pods (the trigger above) |

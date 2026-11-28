@@ -1,9 +1,8 @@
 import SecurityEvent from "../../Models/AnalyticsModels/SecurityEvent";
-import InBetween from "../BaseDatabase/InBetween";
 import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
 import Search from "../BaseDatabase/Search";
-import OneUptimeDate from "../Date";
+import TelemetryCheckWindow from "./TelemetryCheckWindow";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import ObjectID from "../ObjectID";
@@ -69,13 +68,12 @@ export class MonitorStepSecurityEventsMonitorUtil {
       query.message = new Search(monitorStep.messageContains);
     }
 
+    // Its start and not its end, as every check's window (TelemetryCheckWindow).
     if (monitorStep.lastXSecondsOfEvents) {
-      const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveSeconds(
-        endDate,
-        monitorStep.lastXSecondsOfEvents * -1,
+      query.time = TelemetryCheckWindow.ofSeconds(
+        monitorStep.lastXSecondsOfEvents,
+        evaluateUntil,
       );
-      query.time = new InBetween(startDate, endDate);
     }
 
     return applySecurityWatchlistFiltersToQuery(

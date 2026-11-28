@@ -63,7 +63,7 @@ Klikk på **Neste**. Ingenting på dette trinnet merkes som manglende før du kl
 
 ### Slik evalueres kriterier
 
-Resultatet av hver sjekk går gjennom kriteriene fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Det kriteriet kan endre monitorens status, erklære en hendelse, opprette et varsel eller en hvilken som helst kombinasjon av de tre. Når ingenting samsvarer, viser monitoren sin **Standard monitorstatus**, som settes under **Flere felt** under kriteriene (**I drift**, med mindre du velger en annen).
+Resultatet av hver sjekk går gjennom kriteriene fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Det kriteriet kan endre monitorens status, erklære en hendelse, opprette et varsel eller en hvilken som helst kombinasjon av de tre. Et som ikke endrer noen status, avgjør ingen: det første kriteriet under det som samsvarer og endrer statusen, setter den. Når ingenting samsvarer, viser monitoren sin **Standard monitorstatus**, som settes under **Flere felt** under kriteriene (**I drift**, med mindre du velger en annen).
 
 ```mermaid title="Fra en sjekk til en status, en hendelse eller et varsel"
 flowchart TB

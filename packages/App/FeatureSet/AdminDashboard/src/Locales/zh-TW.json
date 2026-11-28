@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "刪除 IoT 裝置群也會刪除其裝置登錄，已登錄的裝置將無法再登入。",
   "Deleting a database also deletes the endpoints it is reached at.": "刪除資料庫也會刪除連線到它所用的端點。",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "刪除雲端連線後，OneUptime 會停止讀取該帳戶。其資源及指標會保留。",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "刪除儲存陣列連線後，OneUptime 將停止讀取其背後的陣列，並刪除其已儲存的密碼和連線測試。其陣列及指標會保留。",
   "True": "是",
   "False": "否",
   "Key": "鍵",
@@ -4622,5 +4623,19 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "此監測器範本沒有監測器類型，因此無法同步其監測器。請使用監測器類型重新建立該範本。",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "範本同步設定需要範本的監測器類型。請先選擇監測器類型，然後重新選擇同步設定。",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "監測器範本無法同步「{{field}}」。請從範本提供的範本同步設定中選擇，然後重新儲存。",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "目前還沒有新使用者可以登入。請在「已連結的專案」中連結一個專案，並選擇他們加入的團隊。"
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "目前還沒有新使用者可以登入。請在「已連結的專案」中連結一個專案，並選擇他們加入的團隊。",
+  "This issue does not exist, or you cannot read it.": "此問題不存在，或你無權讀取。",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "此問題已連結 10 個拉取請求。請先移除一個，再連結新的。",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "此問題已被擱置：其風險已被接受，或它不是問題。重新開啟它，才能連結修正它的拉取請求。",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} 已連結到此問題。",
+  "All XCP-ng pools": "所有 XCP-ng 資源池",
+  "Only XCP-ng pools that match conditions": "僅符合條件的 XCP-ng 資源池",
+  "All savings": "所有節省",
+  "Only savings that match conditions": "僅符合條件的節省",
+  "XCP-ng Pool": "XCP-ng 資源池",
+  "Same name as another {{kind}}": "與另一個 {{kind}} 同名",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "此專案中另有一個 {{kind}} 使用此名稱，因此在選擇器中無法區分它們。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 個 {{kinds}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。"
 }

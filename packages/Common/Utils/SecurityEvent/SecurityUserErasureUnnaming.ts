@@ -1,4 +1,5 @@
 import { JSONValue } from "../../Types/JSON";
+import { writeOwnValue } from "../LookupTable";
 import FeedMarkdown from "../Markdown/FeedMarkdown";
 import { escapeRegExp } from "../RegExpEscape";
 import {
@@ -383,10 +384,14 @@ export function unnameJson<T extends JSONValue | undefined | null>(
     if (item && typeof item === "object") {
       const result: Record<string, unknown> = {};
 
+      /*
+       * The keys are what an event's sender wrote: a "__proto__" one is
+       * kept as the copy's own, never dropped or made its prototype.
+       */
       for (const [key, inner] of Object.entries(
         item as Record<string, unknown>,
       )) {
-        result[key] = visit(inner);
+        writeOwnValue(result, key, visit(inner));
       }
 
       return result;

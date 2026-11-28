@@ -1,5 +1,11 @@
 import escapeRegExp from "../../Utils/RegExpEscape";
 import { formatUnitAmount } from "../DateLanguage";
+import { withDurationWordsHeld } from "../NoBreakSpaces";
+import {
+  describeScanDuration,
+  readScanDuration,
+  SCAN_DURATION_PATTERN,
+} from "./ScanWarningDuration";
 import {
   composedValue,
   TemplateValue,
@@ -129,6 +135,12 @@ export type ScanWarningKey =
   | "databaseBytesAfterTables"
   | "databaseFailuresInARow"
   | "databaseCouldNotSampleTable"
+  | "searchCouldNotListIndices"
+  | "searchIndicesNotSampled"
+  | "searchTimeLimitAfterIndices"
+  | "searchBytesAfterIndices"
+  | "searchFailuresInARow"
+  | "searchExposureNotChecked"
   | "bigQueryTablesNotListedAtLimit"
   | "bigQueryCouldNotListTables"
   | "bigQueryTablesNotReadAtLimit"
@@ -271,6 +283,46 @@ export const SCAN_WARNINGS: Readonly<
   databaseCouldNotSampleTable: {
     english: translationKey("Could not sample {{table}}: {{error}}"),
     values: { table: NAME, error: TEXT },
+  },
+
+  /*
+   * A search cluster's content scan, on a worker or a probe
+   * (Content/SearchStoreSampler, #11140). An index that could not be read
+   * says so as a table does ("Could not sample {{table}}: ...").
+   */
+  searchCouldNotListIndices: {
+    english: translationKey("Could not list the indices: {{error}}"),
+    values: { error: TEXT },
+  },
+  searchIndicesNotSampled: {
+    english: translationKey(
+      "{{count}} indices were not sampled: the scan reads at most {{max}} indices.",
+    ),
+    values: { count: COUNT, max: COUNT },
+  },
+  searchTimeLimitAfterIndices: {
+    english: translationKey(
+      "The scan reached its time limit after {{read}} of {{total}} indices.",
+    ),
+    values: { read: COUNT, total: COUNT },
+  },
+  searchBytesAfterIndices: {
+    english: translationKey(
+      "The scan read its {{bytes}} bytes after {{read}} of {{total}} indices.",
+    ),
+    values: { bytes: COUNT, read: COUNT, total: COUNT },
+  },
+  searchFailuresInARow: {
+    english: translationKey(
+      "The scan stopped after {{count}} indices in a row could not be read.",
+    ),
+    values: { count: COUNT },
+  },
+  searchExposureNotChecked: {
+    english: translationKey(
+      "Whether it answers without credentials was not checked: {{error}}",
+    ),
+    values: { error: TEXT },
   },
 
   /*
@@ -517,37 +569,6 @@ export const SCAN_WARNINGS: Readonly<
 // A warning's values as it is written: a count or a duration in milliseconds as a number, the rest as text.
 export type ScanWarningValues = Readonly<Record<string, string | number>>;
 
-/*
- * "2 minutes", "6 seconds": a duration as a warning writes it in English,
- * whole minutes as minutes and anything else as seconds, at least one.
- */
-export function describeScanDuration(milliseconds: number): string {
-  const seconds: number = Math.max(1, Math.round(milliseconds / 1000));
-
-  if (seconds % 60 === 0) {
-    const minutes: number = seconds / 60;
-
-    return minutes === 1 ? "1 minute" : `${minutes} minutes`;
-  }
-
-  return seconds === 1 ? "1 second" : `${seconds} seconds`;
-}
-
-// A duration as describeScanDuration wrote it, back in milliseconds; null for anything else.
-export function readScanDuration(text: string): number | null {
-  const match: RegExpMatchArray | null = text.match(
-    /^([0-9]{1,9}) (second|seconds|minute|minutes)$/,
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const amount: number = Number(match[1]);
-
-  return match[2]!.startsWith("minute") ? amount * 60_000 : amount * 1000;
-}
-
 function writeValue(
   kind: ScanWarningValueKind,
   value: string | number,
@@ -617,7 +638,7 @@ function valuePattern(kind: ScanWarningValueKind, isLast: boolean): string {
     case ScanWarningValueKind.Count:
       return "([0-9]{1,15})";
     case ScanWarningValueKind.Duration:
-      return "([0-9]{1,9} (?:seconds|second|minutes|minute))";
+      return SCAN_DURATION_PATTERN;
     case ScanWarningValueKind.Format:
       return `(${FORMAT_ALTERNATIVES})`;
     default:
@@ -714,7 +735,9 @@ export function readScanWarning(text: unknown): ReadScanWarning | null {
 
 /*
  * A duration in the words of `language` - "6 Sekunden", "2 minutes" -
- * whole minutes as minutes, as the English writes it.
+ * whole minutes as minutes, as the English writes it, the number held to
+ * its unit. Where Intl cannot write the unit, the English a scan stores,
+ * held the same way: a page draws it.
  */
 export function formatScanDuration(
   milliseconds: number,
@@ -730,7 +753,7 @@ export function formatScanDuration(
       unitDisplay: "long",
       maximumFractionDigits: 0,
       locale: language,
-    }) || describeScanDuration(milliseconds)
+    }) || withDurationWordsHeld(describeScanDuration(milliseconds))
   );
 }
 

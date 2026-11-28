@@ -95,6 +95,13 @@ const ENTRIES: Record<
     broad: "openstack server reboot --hard *",
     read: "openstack server list",
   },
+  // The object is inside the path, as on a Proxmox cluster: no broad entry.
+  [AiResourceType.XcpNgPool]: {
+    valid:
+      "xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot",
+    broad: null,
+    read: "xo-cli rest get vms",
+  },
   [AiResourceType.DockerHost]: {
     valid: "docker stop web",
     broad: "docker stop *",

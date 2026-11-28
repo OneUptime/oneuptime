@@ -91,7 +91,10 @@ import useViewerTimeRangeZoom, {
 } from "../TelemetryViewer/useViewerTimeRangeZoom";
 import { hasLockedTelemetryScope } from "../TelemetryViewer/FacetVisibility";
 import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
-import useTelemetryEntityNames from "../../Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  TelemetryEntityLookup,
+  useTelemetryEntityLookup,
+} from "../../Utils/Telemetry/UseTelemetryEntityNames";
 import ResultTotalUtil, {
   ResultTotal,
 } from "../../Utils/Telemetry/ResultTotal";
@@ -1057,10 +1060,17 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     unansweredServiceIds,
   ]);
 
-  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+  /*
+   * The names, and the ids every read answered nothing for: a chip naming
+   * one reads "No longer available" (#11213). An id read as a service is
+   * only asked of the resolver once that read answered without it, so it
+   * is never said to be gone while a read of it is in flight.
+   */
+  const entityLookup: TelemetryEntityLookup = useTelemetryEntityLookup(
     entityResolutionRequest.ids,
     { typeHints: entityResolutionRequest.typeHints },
   );
+  const entityNameMap: TelemetryEntityNameMap = entityLookup.names;
 
   const primaryEntitySuggestions: PrimaryEntitySuggestions = useMemo(() => {
     return resolvePrimaryEntitySuggestions({
@@ -1347,16 +1357,28 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       props.activeFilters,
       entityLookupMaps,
       entityNameMap,
+      entityLookup.notFound,
     );
-  }, [props.activeFilters, entityLookupMaps, entityNameMap]);
+  }, [
+    props.activeFilters,
+    entityLookupMaps,
+    entityNameMap,
+    entityLookup.notFound,
+  ]);
 
   const enrichedBaseActiveFilters: Array<ActiveFilter> = useMemo(() => {
     return enrichLogsActiveFilters(
       props.baseActiveFilters,
       entityLookupMaps,
       entityNameMap,
+      entityLookup.notFound,
     );
-  }, [props.baseActiveFilters, entityLookupMaps, entityNameMap]);
+  }, [
+    props.baseActiveFilters,
+    entityLookupMaps,
+    entityNameMap,
+    entityLookup.notFound,
+  ]);
 
   /*
    * Replace primaryEntityId UUIDs with human-readable names in value suggestions,

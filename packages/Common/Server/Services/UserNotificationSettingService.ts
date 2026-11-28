@@ -181,6 +181,17 @@ export const SLA_BREACH_CHANNELS: ReadonlyArray<NotificationSettingChannel> = [
 ];
 
 /*
+ * The channels a cloud budget's early threshold
+ * (SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION) starts on for a person who has
+ * no setting for it yet, besides email: the chat accounts - Slack, Microsoft
+ * Teams, Mattermost - they have on for "Alert created", where a budget's
+ * alerts reach them. Never SMS, a call or WhatsApp: a threshold below the
+ * budget pages nobody (addCloudBudgetNotificationSettings, #11008).
+ */
+export const CLOUD_BUDGET_NOTICE_CHANNELS: ReadonlyArray<NotificationSettingChannel> =
+  ["alertBySlack", "alertByMicrosoftTeams", "alertByMattermost"];
+
+/*
  * Which of the channels a person turned on for an event one notification
  * goes to (sendUserNotification's `channels`): every one of them, or one
  * side alone of their chat accounts - Slack, Microsoft Teams, Mattermost -
@@ -1291,6 +1302,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
     await this.addIncomingCallNotificationSettings(userId, projectId);
     await this.addSecurityCaseNotificationSettings(userId, projectId);
     await this.addSecurityHuntNotificationSettings(userId, projectId);
+    await this.addNewMemberCloudBudgetNotificationSettings(userId, projectId);
     await this.addExceptionNotificationSettings(userId, projectId);
     await this.addPublicNoteApprovalNotificationSettings(userId, projectId);
   }
@@ -1352,6 +1364,22 @@ export class Service extends DatabaseService<UserNotificationSetting> {
    * seed it too before sending.
    */
   @CaptureSpan()
+  /*
+   * A cloud budget's early threshold (#11008), by email: what a member who
+   * joins now starts with. One who joined before is given theirs the first
+   * time a budget tells them (addCloudBudgetNotificationSettings).
+   */
+  public async addNewMemberCloudBudgetNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION,
+    );
+  }
+
   public async addSecurityHuntNotificationSettings(
     userId: ObjectID,
     projectId: ObjectID,
@@ -1361,6 +1389,24 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       projectId,
       NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION,
       { alertByPush: true },
+    );
+  }
+
+  /*
+   * Scheduled cloud cost reports (CloudCostReportSender, #11009), by email
+   * only: a report is read, never paged. Idempotent - the sender seeds it
+   * before each send, so a member who joined before the event existed gets
+   * it then.
+   */
+  @CaptureSpan()
+  public async addCloudCostReportNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_CLOUD_COST_REPORT_NOTIFICATION,
     );
   }
 
@@ -1704,6 +1750,74 @@ export class Service extends DatabaseService<UserNotificationSetting> {
 
     for (const channel of SLA_BREACH_CHANNELS) {
       if (incidentCreated?.[channel] === true) {
+        item[channel] = true;
+      }
+    }
+
+    item.alertByEmail = true;
+
+    await this.create({
+      data: item,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * Gives a person their cloud budget setting when they have none (see
+   * CLOUD_BUDGET_NOTICE_CHANNELS for what it starts with); one they have is
+   * never touched. Idempotent. CloudBudgetNotices makes sure of it before
+   * it tells anyone - sendUserNotification sends nothing for an event a
+   * person has no setting for - so a member who joined before the event
+   * existed is told too.
+   */
+  @CaptureSpan()
+  public async addCloudBudgetNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    const existing: PositiveNumber = await this.countBy({
+      query: {
+        userId,
+        projectId,
+        eventType:
+          NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (existing.toNumber() > 0) {
+      return;
+    }
+
+    const alertCreated: UserNotificationSetting | null = await this.findOneBy({
+      query: {
+        userId,
+        projectId,
+        eventType:
+          NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+      },
+      select: {
+        alertBySlack: true,
+        alertByMicrosoftTeams: true,
+        alertByMattermost: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const item: UserNotificationSetting = new UserNotificationSetting();
+    item.userId = userId;
+    item.projectId = projectId;
+    item.eventType =
+      NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION;
+
+    for (const channel of CLOUD_BUDGET_NOTICE_CHANNELS) {
+      if (alertCreated?.[channel] === true) {
         item[channel] = true;
       }
     }

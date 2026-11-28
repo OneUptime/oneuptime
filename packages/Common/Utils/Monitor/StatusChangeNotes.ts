@@ -168,6 +168,16 @@ export const STATUS_CHANGED_BY_MAINTENANCE: string = translationKey(
 export const STATUS_CHANGED_TO_DEFAULT: string = translationKey(
   "No criteria matched, so the monitor changed to its default status.",
 );
+/*
+ * Criteria matched, and none of them changes the status - an alert-only
+ * criteria decides none (#11238) - so the monitor went to its default
+ * status, as when none matches. Stored as "No monitoring criteria that
+ * changes the status met. Change to default status."
+ */
+export const STATUS_CHANGED_TO_DEFAULT_NO_STATUS_CRITERIA: string =
+  translationKey(
+    "No criteria that changes the status matched, so the monitor changed to its default status.",
+  );
 export const STATUS_CREATED_WITH_MONITOR: string = translationKey(
   "This status was created when the monitor was created.",
 );
@@ -228,6 +238,11 @@ const MONITOR_STATUS_NOTES: ReadonlyArray<StatusChangeNote> = [
   {
     written: "No monitoring criteria met. Change to default status.",
     said: STATUS_CHANGED_TO_DEFAULT,
+  },
+  {
+    written:
+      "No monitoring criteria that changes the status met. Change to default status.",
+    said: STATUS_CHANGED_TO_DEFAULT_NO_STATUS_CRITERIA,
   },
   // MonitorService.
   { written: STATUS_CREATED_WITH_MONITOR },
@@ -662,11 +677,24 @@ const SLO_NOTES: ReadonlyArray<StatusChangeNote> = [
   },
 ];
 
-// The budgets' alerts, resolved when their month ends.
+/*
+ * The budgets' alerts, resolved when their window ends: a cloud budget's
+ * month, quarter or year (#11008), an OpenStack budget's month.
+ */
 const BUDGET_NOTES: ReadonlyArray<StatusChangeNote> = [
   {
     written: translationKey(
       "Resolved by OneUptime: the month this cloud budget alert was raised in is over.",
+    ),
+  },
+  {
+    written: translationKey(
+      "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.",
+    ),
+  },
+  {
+    written: translationKey(
+      "Resolved by OneUptime: the year this cloud budget alert was raised in is over.",
     ),
   },
   {

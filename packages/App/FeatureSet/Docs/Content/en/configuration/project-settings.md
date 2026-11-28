@@ -63,7 +63,9 @@ flowchart LR
 
 It is on in a new project. A project that existed before it came keeps it off, because the project's API clients and Terraform configurations may rely on names that repeat: turn it on when you are ready.
 
-Under the switch, the card lists each name the project already holds more than once, kind by kind, with a link to each record and the day it was made. Turning the switch on refuses nothing that exists: those records keep working until someone renames them, and only a new record or a rename needs a name of its own. Saving a record with its own name again, in any case, is no rename.
+Under the switch, the card lists each name the project already holds more than once, kind by kind, with a link to each record and the day it was made. An OpenStack budget opens on its cloud's **Spend** page, and a workspace summary on the **Summary** tab of its Slack, Microsoft Teams or Mattermost page. AI agents have no page in the dashboard, so the card names them without a link and says so. Turning the switch on refuses nothing that exists: those records keep working until someone renames them, and only a new record or a rename needs a name of its own. Saving a record with its own name again, in any case, is no rename.
+
+Each kind's own list marks those records too, with **Same name as another monitor** (or template, key and so on) and the day each was made, and says above the list how many there are. A list marks only the records you can open.
 
 Whatever the switch says, a form warns as you type a name another record of its kind has, and links to that record. While the switch is on, the warning also says that saving would be refused.
 

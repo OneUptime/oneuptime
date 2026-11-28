@@ -38,6 +38,12 @@ import PlatformMetricUnitUtil from "../../../Utils/Monitor/PlatformMetricUnitUti
 import { StorageArrayAffectedResource } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
+import {
+  isLaterKind,
+  isLaterMetricId,
+  isLaterSystem,
+  isLaterTemplateId,
+} from "../../Helpers/StorageArray/PureSlice";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -66,6 +72,11 @@ import path from "path";
  * compared with since. Ids a monitor step generates fresh each time are
  * written as <id:N>, by first appearance, so a step reads the same on
  * every run.
+ *
+ * Platforms registered since (Dell PowerStore, ...) are left out of each
+ * answer that lists every platform's entries, and an input that names one
+ * of them is left out of both sides (Helpers/StorageArray/PureSlice): this
+ * pins Pure's slice, whole.
  */
 
 const GOLDEN_PATH: string = path.join(
@@ -82,7 +93,7 @@ const SYSTEM_INPUTS: Array<string | null | undefined> = [
   "purefa",
   " FlashBlade ",
   "everpure.flasharray",
-  "netapp.ontap",
+  "hitachi.vsp",
   "dell.powerstore",
   "constructor",
   "__proto__",
@@ -98,7 +109,7 @@ const METRIC_NAMES_FOR_PLATFORM: Array<string> = [
   "purefa_volume_space_bytes",
   "purefb_buckets_object_count",
   "pure_something",
-  "netapp_volume_size",
+  "hitachi_volume_size",
   "",
 ];
 
@@ -172,7 +183,11 @@ const Evaluator: EvaluatorPrivate =
 
 function computeGolden(): JSONObject {
   const systems: JSONObject = {};
-  for (const input of SYSTEM_INPUTS) {
+  for (const input of SYSTEM_INPUTS.filter(
+    (candidate: string | null | undefined): boolean => {
+      return !isLaterSystem(candidate);
+    },
+  )) {
     systems[labelOf(input)] = {
       normalize: StorageSystemUtil.normalize(input),
       isKnownSystem: StorageSystemUtil.isKnownSystem(input),
@@ -181,44 +196,60 @@ function computeGolden(): JSONObject {
       vendorName: StorageSystemUtil.getVendorName(input),
       isFlashArray: StorageSystemUtil.isFlashArray(input),
       isFlashBlade: StorageSystemUtil.isFlashBlade(input),
-      kinds: StorageArrayResourceKindUtil.getKindsForSystem(input),
-      metricCount: getStorageArrayMetricsForSystem(input).length,
-      metricIds: getStorageArrayMetricsForSystem(input).map(
-        (metric: StorageArrayMetricDefinition): string => {
-          return metric.id;
+      kinds: StorageArrayResourceKindUtil.getKindsForSystem(input).filter(
+        (kind: string): boolean => {
+          return !isLaterKind(kind);
         },
       ),
-      templates: getStorageArrayAlertTemplatesForSystem(input).map(
-        (template: StorageArrayAlertTemplate): JSONObject => {
+      metricCount: getStorageArrayMetricsForSystem(input).filter(
+        (metric: StorageArrayMetricDefinition): boolean => {
+          return !isLaterMetricId(metric.id);
+        },
+      ).length,
+      metricIds: getStorageArrayMetricsForSystem(input)
+        .filter((metric: StorageArrayMetricDefinition): boolean => {
+          return !isLaterMetricId(metric.id);
+        })
+        .map((metric: StorageArrayMetricDefinition): string => {
+          return metric.id;
+        }),
+      templates: getStorageArrayAlertTemplatesForSystem(input)
+        .filter((template: StorageArrayAlertTemplate): boolean => {
+          return !isLaterTemplateId(template.id);
+        })
+        .map((template: StorageArrayAlertTemplate): JSONObject => {
           return {
             id: template.id,
             name: template.name,
             storageSystems: template.storageSystems,
           };
-        },
-      ),
+        }),
       defaultTemplateId: getStorageArrayDefaultAlertTemplateId(input),
       recommendations: MonitorRecommendationCatalog.getRecommendations(
         MonitorRecommendationResourceType.StorageArray,
         { storageSystem: input },
-      ).map((recommendation: MonitorRecommendation): JSONObject => {
-        const template: StorageArrayAlertTemplate | undefined =
-          getStorageArrayAlertTemplateById(recommendation.templateId);
-        return {
-          recommendationId: recommendation.recommendationId,
-          templateId: recommendation.templateId,
-          name: recommendation.name,
-          summary: recommendation.summary || null,
-          category: recommendation.category,
-          severity: recommendation.severity,
-          // The step itself is pinned once, on its template, below.
-          buildsItsTemplatesStep: template
-            ? JSON.stringify(
-                stepJson(recommendation.getMonitorStep(RECOMMENDATION_ARGS)),
-              ) === JSON.stringify(stepJson(template.getMonitorStep(ARGS)))
-            : false,
-        };
-      }),
+      )
+        .filter((recommendation: MonitorRecommendation): boolean => {
+          return !isLaterTemplateId(recommendation.templateId);
+        })
+        .map((recommendation: MonitorRecommendation): JSONObject => {
+          const template: StorageArrayAlertTemplate | undefined =
+            getStorageArrayAlertTemplateById(recommendation.templateId);
+          return {
+            recommendationId: recommendation.recommendationId,
+            templateId: recommendation.templateId,
+            name: recommendation.name,
+            summary: recommendation.summary || null,
+            category: recommendation.category,
+            severity: recommendation.severity,
+            // The step itself is pinned once, on its template, below.
+            buildsItsTemplatesStep: template
+              ? JSON.stringify(
+                  stepJson(recommendation.getMonitorStep(RECOMMENDATION_ARGS)),
+                ) === JSON.stringify(stepJson(template.getMonitorStep(ARGS)))
+              : false,
+          };
+        }),
       recommendationCategories: MonitorRecommendationCatalog.getCategories(
         MonitorRecommendationResourceType.StorageArray,
         { storageSystem: input },
@@ -226,8 +257,21 @@ function computeGolden(): JSONObject {
     };
   }
 
+  const pureSystems: Array<StorageSystem> =
+    StorageSystemUtil.getAllSystems().filter(
+      (system: StorageSystem): boolean => {
+        return !isLaterSystem(system);
+      },
+    );
+  const pureKinds: Array<StorageArrayResourceKind> =
+    StorageArrayResourceKindUtil.getAllKinds().filter(
+      (kind: StorageArrayResourceKind): boolean => {
+        return !isLaterKind(kind);
+      },
+    );
+
   const prefixes: JSONObject = {};
-  for (const system of StorageSystemUtil.getAllSystems()) {
+  for (const system of pureSystems) {
     prefixes[system] = StorageSystemUtil.getMetricPrefix(system);
   }
 
@@ -237,11 +281,11 @@ function computeGolden(): JSONObject {
   }
 
   const kindLabels: JSONObject = {};
-  for (const kind of [
-    ...StorageArrayResourceKindUtil.getAllKinds(),
-    "Aggregate",
-    "constructor",
-  ]) {
+  for (const kind of [...pureKinds, "Aggregate", "constructor"].filter(
+    (candidate: string): boolean => {
+      return !isLaterKind(candidate);
+    },
+  )) {
     kindLabels[kind] = {
       singular: StorageArrayResourceKindUtil.getSingularLabel(
         kind as StorageArrayResourceKind,
@@ -253,7 +297,11 @@ function computeGolden(): JSONObject {
   }
 
   const metrics: Array<StorageArrayMetricDefinition> =
-    getAllStorageArrayMetrics();
+    getAllStorageArrayMetrics().filter(
+      (metric: StorageArrayMetricDefinition): boolean => {
+        return !isLaterMetricId(metric.id);
+      },
+    );
 
   const metricNames: Array<string> = Array.from(
     new Set(
@@ -287,21 +335,28 @@ function computeGolden(): JSONObject {
 
   const categories: JSONObject = {};
   for (const category of getAllStorageArrayMetricCategories()) {
+    const metricIds: Array<string> = getStorageArrayMetricsByCategory(category)
+      .filter((metric: StorageArrayMetricDefinition): boolean => {
+        return !isLaterMetricId(metric.id);
+      })
+      .map((metric: StorageArrayMetricDefinition): string => {
+        return metric.id;
+      });
+    // A category only later platforms' metrics are in.
+    if (metricIds.length === 0) {
+      continue;
+    }
     categories[category] = {
       label: getStorageArrayMetricCategoryLabel(
         category as StorageArrayMetricCategory,
       ),
-      metricIds: getStorageArrayMetricsByCategory(category).map(
-        (metric: StorageArrayMetricDefinition): string => {
-          return metric.id;
-        },
-      ),
+      metricIds,
     };
   }
 
   const objectLabels: JSONObject = {};
   for (const scope of Object.values(StorageArrayResourceScope)) {
-    for (const system of [FA, FB, "netapp.ontap", null]) {
+    for (const system of [FA, FB, "hitachi.vsp", null]) {
       for (const metricName of [undefined, ...metricNames]) {
         const label: string | null = getStorageArrayObjectLabel(
           scope,
@@ -314,8 +369,11 @@ function computeGolden(): JSONObject {
     }
   }
 
-  const templates: Array<JSONObject> = getAllStorageArrayAlertTemplates().map(
-    (template: StorageArrayAlertTemplate): JSONObject => {
+  const templates: Array<JSONObject> = getAllStorageArrayAlertTemplates()
+    .filter((template: StorageArrayAlertTemplate): boolean => {
+      return !isLaterTemplateId(template.id);
+    })
+    .map((template: StorageArrayAlertTemplate): JSONObject => {
       return {
         id: template.id,
         name: template.name,
@@ -327,8 +385,7 @@ function computeGolden(): JSONObject {
         byId: getStorageArrayAlertTemplateById(template.id)?.id || null,
         monitorStep: stepJson(template.getMonitorStep(ARGS)),
       };
-    },
-  );
+    });
 
   const templateCategories: JSONObject = {};
   for (const category of [
@@ -343,17 +400,25 @@ function computeGolden(): JSONObject {
   ] as Array<StorageArrayAlertTemplateCategory>) {
     templateCategories[category] = getStorageArrayAlertTemplatesByCategory(
       category,
-    ).map((template: StorageArrayAlertTemplate): string => {
-      return template.id;
-    });
+    )
+      .filter((template: StorageArrayAlertTemplate): boolean => {
+        return !isLaterTemplateId(template.id);
+      })
+      .map((template: StorageArrayAlertTemplate): string => {
+        return template.id;
+      });
   }
 
   const allRecommendations: Array<string> =
     MonitorRecommendationCatalog.getAllPossibleRecommendations(
       MonitorRecommendationResourceType.StorageArray,
-    ).map((recommendation: MonitorRecommendation): string => {
-      return recommendation.recommendationId;
-    });
+    )
+      .filter((recommendation: MonitorRecommendation): boolean => {
+        return !isLaterTemplateId(recommendation.templateId);
+      })
+      .map((recommendation: MonitorRecommendation): string => {
+        return recommendation.recommendationId;
+      });
 
   const objectKinds: JSONObject = {};
   for (const name of [
@@ -369,7 +434,7 @@ function computeGolden(): JSONObject {
     "purefb_hardware_health",
     "purefb_buckets_space_bytes",
     "purefa_array_space_bytes",
-    "netapp_volume_size",
+    "hitachi_volume_size",
     "",
   ]) {
     objectKinds[name] = Evaluator.getStorageArrayObjectKind(name);
@@ -393,7 +458,7 @@ function computeGolden(): JSONObject {
       "purefb_buckets_object_count",
       "purefb_hardware_health",
       "purefa_volume_group_performance_latency_usec",
-      "netapp_volume_size",
+      "hitachi_volume_size",
     ]) {
       const entry: { kind: string; name: unknown; details: unknown } =
         Evaluator.getStorageArrayAffectedResourceEntry({
@@ -417,11 +482,11 @@ function computeGolden(): JSONObject {
   }
 
   return {
-    allSystems: StorageSystemUtil.getAllSystems(),
+    allSystems: pureSystems,
     systems,
     prefixes,
     platformOfMetric,
-    allKinds: StorageArrayResourceKindUtil.getAllKinds(),
+    allKinds: pureKinds,
     kindLabels,
     metrics: JSON.parse(JSON.stringify(metrics)) as JSONValue,
     categories,
@@ -452,8 +517,28 @@ if (process.env["UPDATE_PURE_STORAGE_GOLDEN"] === "1") {
   );
 }
 
+/*
+ * The golden, less the inputs that name a platform registered since: on
+ * #11000's day they named no platform, and today they name that one.
+ */
 function readGolden(): JSONObject {
-  return JSON.parse(fs.readFileSync(GOLDEN_PATH, "utf8")) as JSONObject;
+  const golden: JSONObject = JSON.parse(
+    fs.readFileSync(GOLDEN_PATH, "utf8"),
+  ) as JSONObject;
+  const systems: JSONObject = golden["systems"] as JSONObject;
+  for (const input of SYSTEM_INPUTS) {
+    if (isLaterSystem(input)) {
+      delete systems[labelOf(input)];
+    }
+  }
+  // And the kinds a platform registered since owns (ONTAP's Aggregate).
+  const kindLabels: JSONObject = golden["kindLabels"] as JSONObject;
+  for (const kind of Object.keys(kindLabels)) {
+    if (isLaterKind(kind)) {
+      delete kindLabels[kind];
+    }
+  }
+  return golden;
 }
 
 describe("a Pure Storage array is watched as it was before #11000", () => {

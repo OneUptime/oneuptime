@@ -1,6 +1,9 @@
 import { TranslateFn, makeT } from "./I18n";
 import { toTableCell } from "./PermissionsTable";
-import { CLI_FIELDS_SUBCOMMAND } from "Common/Utils/DeveloperDocs/CliCommands";
+import {
+  CLI_FIELDS_SUBCOMMAND,
+  getCliResourceOwnCommands,
+} from "Common/Utils/DeveloperDocs/CliCommands";
 import {
   CliResource,
   getCliResources,
@@ -33,7 +36,12 @@ const tablesByLanguage: Map<string, string> = new Map();
 export function getCliResourceSubcommands(
   resource: CliResource,
 ): Array<string> {
-  return [...resource.operations, CLI_FIELDS_SUBCOMMAND, ...resource.actions];
+  return [
+    ...resource.operations,
+    CLI_FIELDS_SUBCOMMAND,
+    ...resource.actions,
+    ...getCliResourceOwnCommands(resource.name),
+  ];
 }
 
 // Every resource, by its command, as `oneuptime resources` lists them.

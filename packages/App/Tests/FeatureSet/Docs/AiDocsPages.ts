@@ -116,6 +116,8 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *   - the namespaces Kubernetes names kube-system, kube-public and
  *     kube-node-lease;
  *   - the command policy's SafeWrite and RiskyWrite tiers;
+ *   - Xen Orchestra's VMs power state manager role, which Xen Orchestra
+ *     names in English whatever its users' language;
  *   - the section OneUptime AI writes what it ruled out under, and the
  *     buttons of a fix's Slack and Microsoft Teams message, which the
  *     server writes in English (REMEDIATION_CHAT_WORDS).
@@ -133,7 +135,12 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Checked again",
       "View in OneUptime",
     ],
-    [INFRASTRUCTURE_AI_AGENTS]: ["⋯", "SafeWrite", "RiskyWrite"],
+    [INFRASTRUCTURE_AI_AGENTS]: [
+      "⋯",
+      "SafeWrite",
+      "RiskyWrite",
+      "VMs power state manager",
+    ],
     /*
      * The check a production review adds on GitHub: its name and titles,
      * written by the server in English (ProductionReviewRunner,
@@ -161,7 +168,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
  * for something else, so every language keeps them as written: what
  * another product draws (GitHub's permissions and webhook events, Claude's
  * menus and the name Claude Code gives the server, LM Studio's setting,
- * vSphere's Read-Only role), the command
+ * vSphere's Read-Only role, Xen Orchestra's Read only role), the command
  * policy's Read and Denied tiers, the sections OneUptime AI writes its
  * report under, and the buttons of a fix's chat message that are a
  * Dashboard label too (REMEDIATION_CHAT_WORDS).
@@ -180,7 +187,7 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Approve and run",
     "Dismiss",
   ],
-  [INFRASTRUCTURE_AI_AGENTS]: ["Read", "Denied", "Read-Only"],
+  [INFRASTRUCTURE_AI_AGENTS]: ["Read", "Denied", "Read-Only", "Read only"],
   // The GitHub App's permission a production review's check needs.
   [CODE_PAGE]: ["Checks", "Read & write"],
   [GITHUB_APP]: [
@@ -396,6 +403,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Hosts:",
     "Proxmox:",
     "OpenStack clouds:",
+    "XCP-ng pools:",
     "Cloud accounts:",
     // What running the Cloud AI agent somewhere else needs, cloud by cloud.
     "AWS:",
@@ -492,6 +500,17 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Your permissions decide.",
     "A tool gets only what it takes.",
     "Enable AI stops every call.",
+    // A Project Admin marks a tool read-only (#11081).
+    "One tool at a time.",
+    "Only a tool its server says nothing about.",
+    "Never a tool that plainly changes things.",
+    "A mark stops applying when the server changes the tool.",
+    "Who and when are recorded.",
+    // In Slack and Microsoft Teams (#11082).
+    "Slack and Microsoft Teams",
+    "Only the tools that read.",
+    "As the person who asked.",
+    "Everyone in the conversation reads the answer",
   ],
   [MCP_SERVER]: [
     "OneUptime Cloud",
@@ -532,6 +551,12 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "OneUptime Cloud",
   // A record's model, as the MCP Server page's table names it in every language.
   "Cloud Budget",
+  // And the cost groups' models beside it, in Cloud's row (#11006).
+  "Cloud Cost Group",
+  "Cloud Cost Line Item",
+  // And the cost reports' model (#11229).
+  "Cloud Cost Report",
+  "Cloud Cost View",
   "OneUptime AI",
   "OneUptime",
   "OpenTelemetry",

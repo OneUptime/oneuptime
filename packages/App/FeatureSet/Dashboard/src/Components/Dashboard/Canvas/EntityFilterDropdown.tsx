@@ -39,6 +39,9 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
+import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
+import CloudCostGroup from "Common/Models/DatabaseModels/CloudCostGroup";
+import CloudCostView from "Common/Models/DatabaseModels/CloudCostView";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -339,6 +342,28 @@ export function getEntityModelDef(
     case EntityFilterModelType.XcpNgPool:
       return {
         modelType: XcpNgPool as unknown as ModelTypeOf<BaseModel>,
+        sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
+      };
+    // What a Cloud Cost widget is over (#11009): searched by name.
+    case EntityFilterModelType.CloudAccount:
+      return {
+        modelType: CloudAccount as unknown as ModelTypeOf<BaseModel>,
+        sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
+      };
+    case EntityFilterModelType.CloudCostGroup:
+      return {
+        modelType: CloudCostGroup as unknown as ModelTypeOf<BaseModel>,
+        sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+        isSearchedOnServer: true,
+      };
+    case EntityFilterModelType.CloudCostView:
+      return {
+        modelType: CloudCostView as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
         isSearchedOnServer: true,

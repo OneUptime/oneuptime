@@ -8,6 +8,8 @@ import OneUptimeDate from "Common/Types/Date";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "Common/Types/StorageArray/StorageArrayPlatform";
 import { StatusBadgeType } from "Common/UI/Components/StatusBadge/StatusBadge";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import {
@@ -31,6 +33,7 @@ import {
   getReadingDirection,
   setApartInSentence,
 } from "Common/Types/ReadingDirection";
+import StorageArrayStatusUtil from "Common/Types/StorageArray/StorageArrayStatusUtil";
 
 /*
  * Shared helpers for the Storage Array list/detail pages. The pages read
@@ -107,35 +110,92 @@ export const HEALTHY_RESOURCE_STATUSES: ReadonlyArray<string> = [
   "enabled",
   "online",
   "replicating",
+  // A network port that is up (a PowerScale node's).
+  "up",
 ];
 
 function normalizeStatus(status: string | null | undefined): string {
   return (status || "").trim().toLowerCase();
 }
 
+/*
+ * The lists above are the words every platform shares. A platform whose
+ * parts report in other words (a NetApp aggregate offline, a port down)
+ * adds its own (StorageArrayPlatform.componentStatuses), and a status is
+ * read against every platform's (StorageArrayStatusUtil).
+ */
 export function isCriticalResourceStatus(
   status: string | null | undefined,
 ): boolean {
-  return CRITICAL_RESOURCE_STATUSES.includes(normalizeStatus(status));
+  return (
+    CRITICAL_RESOURCE_STATUSES.includes(normalizeStatus(status)) ||
+    StorageArrayStatusUtil.isCritical(status)
+  );
 }
 
 export function isUnhealthyResourceStatus(
   status: string | null | undefined,
 ): boolean {
-  return UNHEALTHY_RESOURCE_STATUSES.includes(normalizeStatus(status));
+  return (
+    UNHEALTHY_RESOURCE_STATUSES.includes(normalizeStatus(status)) ||
+    StorageArrayStatusUtil.isCritical(status) ||
+    StorageArrayStatusUtil.isWarning(status)
+  );
 }
 
+/*
+ * Whether any platform the registry holds writes this status in a list of
+ * its own (StorageArrayPlatform.componentStatuses): a PowerStore node's
+ * prepare_failed is critical, a NAS server not started needs attention
+ * and one started is fine.
+ */
+function isPlatformStatus(
+  normalized: string,
+  list: "critical" | "warning" | "healthy",
+): boolean {
+  return StorageArrayPlatformRegistry.getPlatforms().some(
+    (platform: StorageArrayPlatform): boolean => {
+      return (platform.componentStatuses[list] || []).includes(normalized);
+    },
+  );
+}
+
+/*
+ * A status's pill: the shipped words above first, so Pure's read as they
+ * always did, then the words a platform declares for its parts.
+ */
 export function getResourceStatusBadgeType(
   status: string | null | undefined,
 ): StatusBadgeType {
   const normalized: string = normalizeStatus(status);
-  if (CRITICAL_RESOURCE_STATUSES.includes(normalized)) {
+  if (
+    CRITICAL_RESOURCE_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isCritical(normalized)
+  ) {
     return StatusBadgeType.Danger;
   }
-  if (WARNING_RESOURCE_STATUSES.includes(normalized)) {
+  if (
+    WARNING_RESOURCE_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isWarning(normalized)
+  ) {
     return StatusBadgeType.Warning;
   }
-  if (HEALTHY_RESOURCE_STATUSES.includes(normalized)) {
+  if (
+    HEALTHY_RESOURCE_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isHealthy(normalized)
+  ) {
+    return StatusBadgeType.Success;
+  }
+  if (!normalized) {
+    return StatusBadgeType.Neutral;
+  }
+  if (isPlatformStatus(normalized, "critical")) {
+    return StatusBadgeType.Danger;
+  }
+  if (isPlatformStatus(normalized, "warning")) {
+    return StatusBadgeType.Warning;
+  }
+  if (isPlatformStatus(normalized, "healthy")) {
     return StatusBadgeType.Success;
   }
   return StatusBadgeType.Neutral;
@@ -345,6 +405,24 @@ export function formatTemperature(
     return EMPTY_VALUE_MARK;
   }
   return writeInLanguage(`${Math.round(value)}\u00A0°C`, translator);
+}
+
+/*
+ * A sensor's reading in its unit, as the sensor gives it: 230 -> "230 V",
+ * 11.5 -> "11.5 A", 9130 -> "9130 rpm".
+ */
+export function formatReading(
+  value: number | null | undefined,
+  unit: string,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return EMPTY_VALUE_MARK;
+  }
+  const figure: string = Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(1);
+  return writeInLanguage(`${figure}\u00A0${unit}`, translator);
 }
 
 export function formatLastSeen(date: Date | undefined | null): string {
@@ -674,6 +752,7 @@ export default {
   formatDurationMs,
   formatRatio,
   formatTemperature,
+  formatReading,
   joinFiguresOfACell,
   formatLastSeen,
   routeParamFromExternalId,

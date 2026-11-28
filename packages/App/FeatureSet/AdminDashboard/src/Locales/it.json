@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "Eliminando una flotta IoT si elimina anche il suo registro dei dispositivi, quindi i dispositivi registrati non possono più accedere.",
   "Deleting a database also deletes the endpoints it is reached at.": "Eliminando un database si eliminano anche gli endpoint a cui è raggiungibile.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Eliminando una connessione cloud, OneUptime smette di leggere l'account. Le sue risorse restano, con le loro metriche.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "L'eliminazione di una connessione di array di storage fa sì che OneUptime smetta di leggere gli array che stanno dietro di essa, ed elimina la password salvata e i test di connessione. I suoi array restano, con le loro metriche.",
   "True": "Vero",
   "False": "Falso",
   "Key": "Chiave",
@@ -4622,5 +4623,19 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Questo modello di monitor non ha un tipo di monitor, quindi i suoi monitor non possono essere sincronizzati. Crea di nuovo il modello con un tipo di monitor.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Le impostazioni di sincronizzazione del modello richiedono il tipo di monitor del modello. Scegli prima il tipo di monitor, poi scegli di nuovo le impostazioni di sincronizzazione.",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Un modello di monitor non può sincronizzare \"{{field}}\". Scegli tra le impostazioni di sincronizzazione offerte dal modello, poi salva di nuovo.",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Nessuna nuova persona può ancora accedere. Collega un progetto, con i team in cui entrano, in «Progetti collegati»."
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Nessuna nuova persona può ancora accedere. Collega un progetto, con i team in cui entrano, in «Progetti collegati».",
+  "This issue does not exist, or you cannot read it.": "Questo problema non esiste, oppure non puoi leggerlo.",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "Questo problema ha già 10 pull request collegate. Rimuovine una prima di collegarne un'altra.",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Questo problema è stato messo da parte: il suo rischio è stato accettato, oppure non è un problema. Riaprilo per collegare la pull request che lo corregge.",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} è già collegata a questo problema.",
+  "All XCP-ng pools": "Tutti i pool XCP-ng",
+  "Only XCP-ng pools that match conditions": "Solo i pool XCP-ng che soddisfano le condizioni",
+  "All savings": "Tutti i risparmi",
+  "Only savings that match conditions": "Solo i risparmi che soddisfano le condizioni",
+  "XCP-ng Pool": "Pool XCP-ng",
+  "Same name as another {{kind}}": "Stesso nome di un altro elemento di tipo {{kind}}",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Un altro elemento di tipo {{kind}} di questo progetto ha questo nome, quindi i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} ha lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} hanno lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} ha lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno."
 }

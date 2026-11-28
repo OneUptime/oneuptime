@@ -107,6 +107,7 @@ L'elenco mostra ogni tipo di record con cui puoi lavorare, e il suo comando, com
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Lavora con un tipo di record | [Operazioni sulle risorse](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Elenca i campi di una risorsa e i flag che li impostano | [Operazioni sulle risorse](/docs/cli/resource-operations#vedere-i-campi-di-una-risorsa) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Fa ciò che fanno i pulsanti della dashboard su incidenti, avvisi e manutenzioni programmate | [Operazioni sulle risorse](/docs/cli/resource-operations#riconoscere-risolvere-e-aggiungere-note) |
+| `oneuptime <resource> breakdown`, `export` | Dettaglia la spesa cloud di un periodo, o la esporta come file FOCUS 1.2, per `cloud-cost` | [Report ed esportazioni](/docs/telemetry/cloud-costs#report-ed-esportazioni) |
 | `oneuptime resources` | Elenca i tipi di record, con i loro comandi | [Riferimento dei comandi](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Stampa la versione della CLI | [Riferimento dei comandi](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Mostra la guida di un comando | [Ottenere aiuto](#ottenere-aiuto) |

@@ -41,8 +41,10 @@ export interface ComponentProps {
  * here, with what to change and the way to change it. Nothing shows while
  * the device's traps are taken: a banner is for something to act on.
  *
- * Read through the device's probe, held to the probe's readers; a viewer
- * who may not read the probe's report sees nothing here.
+ * Read through the device's probe, which holds the report to the probe's
+ * own readers (#11234): the select is sent for each reader without what
+ * they may not read, and a viewer who may not read the probe's report sees
+ * nothing here.
  */
 const DeviceSnmpTrapRefusals: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -66,15 +68,18 @@ const DeviceSnmpTrapRefusals: FunctionComponent<ComponentProps> = (
         await ModelAPI.getItem<NetworkDevice>({
           modelType: NetworkDevice,
           id: props.modelId,
-          select: {
-            hostname: true,
-            otherAddresses: true,
-            probeId: true,
-            probe: {
-              _id: true,
-              snmpTrapReceiver: true,
+          select: PermissionGate.getSelectReadableThroughRelations(
+            NetworkDevice,
+            {
+              hostname: true,
+              otherAddresses: true,
+              probeId: true,
+              probe: {
+                _id: true,
+                snmpTrapReceiver: true,
+              },
             },
-          },
+          ),
         });
 
       if (!device) {

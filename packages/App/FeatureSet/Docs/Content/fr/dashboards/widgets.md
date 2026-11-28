@@ -27,6 +27,7 @@ Partez de la question à laquelle la tuile doit répondre :
 | Les gens vont-ils au bout d'un parcours, et reviennent-ils ? | **Entonnoir** ou **Rétention des utilisateurs** |
 | Dans quel état sont nos clusters et nos hôtes ? | Un widget du groupe Infrastructure |
 | Où est notre réseau dans le monde, et qu'est-ce qui est en panne ? | **Carte du réseau** |
+| Que coûtent nos clouds, et quelle équipe les dépense ? | **Coût cloud** |
 | Un titre, une note, l'heure dans un autre bureau ? | **Texte** ou **Horloge** |
 | Des données conservées hors de OneUptime ? | Un widget du groupe External Data Sources |
 | Quelque chose qu'aucun widget ne couvre ? | **HTML**, une fois sûr qu'aucun autre widget ne le fait |
@@ -200,8 +201,9 @@ Chacun de ces widgets liste les ressources qu'un agent ou un collecteur signale 
 | **XCP-ng** | **Hôtes**, **VM** | L'agent XCP-ng |
 | **Ceph** | **OSDs**, en mur coloré selon l'état, et **Pools** | L'agent Ceph |
 | **Baies de stockage** | **Volumes**, et **Matériel** en mur coloré selon le statut | L'agent Baie de stockage |
+| **Coûts cloud** | **Coût cloud**, un total, une répartition ou une tendance des dépenses | Les coûts que déclarent vos [comptes cloud](/docs/telemetry/cloud-accounts) |
 
-Utilisez-les pour une page qui réunit l'état de votre infrastructure et la télémétrie des charges de travail qui tournent dessus.
+Utilisez-les pour une page qui réunit l'état de votre infrastructure et la télémétrie des charges de travail qui tournent dessus. Le widget Coût cloud n'est pas une liste : voir [Coûts cloud](#coûts-cloud).
 
 ### Carte du réseau
 
@@ -214,6 +216,19 @@ Au-dessus de la carte s'affiche le nombre de sites en panne, car un point rouge 
 **Paramètres** : titre, vue carte ou liste, nombre maximal de sites dessinés, affichage ou non des noms de sites, et filtres par type de site et par statut. Les noms de sites disparaissent automatiquement quand la carte devient trop chargée pour qu'on les lise ; l'infobulle nomme toujours chaque marqueur.
 
 Un site n'apparaît que s'il a des coordonnées. Ajoutez une latitude et une longitude sur le site (ou importez-les par CSV) pour l'épingler.
+
+## Coûts cloud
+
+### Coût cloud
+
+Ce que coûtent vos clouds, à côté des services qui les dépensent, pour la période du tableau de bord. Il lit les mêmes chiffres que **Cloud → Dépenses → Coûts** et la page d'un groupe de coûts, sur les mêmes jours.
+
+- **Couvre** : tous les comptes, un **Compte**, un **Groupe de coûts** ou une **Vue de coûts**. Choisissez le compte, le groupe ou la vue dans le paramètre en dessous.
+- **Afficher** : un total face à la période précédente, une répartition de ses plus grandes parts, ou une tendance des dépenses de chaque jour.
+- **Répartir par** : services, régions, comptes ou ressources. La répartition d'une vue de coûts liste ses groupes, et ce qu'aucun groupe ne prend.
+- **Base de coût** : facturé, amorti ou net. Vide, c'est celle du projet, sur laquelle Coûts s'ouvre.
+
+Les chiffres sont dans la devise dans laquelle la plupart de vos comptes sont facturés. Le voir demande ce que demande de voir Coûts : chaque lecteur voit ce qu'il peut lire. Un tableau de bord public n'affiche que son titre. Voir [Coûts cloud et économies](/docs/telemetry/cloud-costs#rapports-et-exports) pour les rapports et exports des mêmes chiffres.
 
 ## Sources de données externes
 
@@ -250,7 +265,7 @@ Par l'API et Terraform, l'ordre est le `arguments.sort` du widget : une colonne 
 
 Un [tableau de bord public](/docs/dashboards/sharing) dessine la plupart des widgets pour ses visiteurs, chacun ne montrant que ce pour quoi il a été configuré. Quelques-uns ne peuvent pas s'afficher sans session connectée :
 
-- **Graphique de journaux**, **Graphique de traces**, **Tableau des traces**, **Événements de sécurité**, **Flux des événements de sécurité**, **Entonnoir** et **Rétention des utilisateurs** indiquent à leur place qu'ils ne sont pas disponibles sur les tableaux de bord publics.
+- **Graphique de journaux**, **Graphique de traces**, **Tableau des traces**, **Événements de sécurité**, **Flux des événements de sécurité**, **Entonnoir**, **Rétention des utilisateurs** et **Coût cloud** indiquent à leur place qu'ils ne sont pas disponibles sur les tableaux de bord publics.
 - Les widgets du groupe External Data Sources montrent leurs données quand ils lisent **Métriques de ce projet (PromQL)**, jamais leurs requêtes. Un widget à source de données externe est entièrement retiré d'un tableau de bord public.
 
 ## Quand un widget ne peut pas être affiché

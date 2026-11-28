@@ -43,6 +43,7 @@ import {
   getSlowEvaluationWords,
   SlowEvaluationWords,
 } from "./SlowEvaluationWords";
+import { getJudgedWindowEnds } from "./JudgedWindowWords";
 
 interface FilterGroup {
   message: string;
@@ -66,6 +67,39 @@ const earlierCriteriaMatchedReasonPattern: RegExp =
   /\b(?:earlier|previous)\b.*\bcriteri(?:a|on)\b.*\bmatched\b/i;
 const stoppedAtFirstMatchReasonPattern: RegExp =
   /\bstopped at the first match\b/i;
+
+/*
+ * Why a criteria was not evaluated once an earlier one matched, by why the
+ * server passed it over (MonitorEvaluationCriteriaSkipCause), and the line
+ * under it that says how the monitor judges its criteria. A first match that
+ * changes no status decides no status (#11238): the criteria after it that
+ * change the status are evaluated until one matches, so the monitor stops at
+ * the first match that changes its status, and the criteria between that
+ * change none are passed over.
+ */
+export const NOT_EVALUATED_AFTER_MATCH_WORDS: Readonly<{
+  earlierMatched: string;
+  statusAlreadySet: string;
+  changesNoStatus: string;
+  stopsAfterFirstMatch: string;
+  stopsAtFirstStatusMatch: string;
+}> = {
+  earlierMatched: translationKey(
+    "Not evaluated because {{criteria}} matched first.",
+  ),
+  statusAlreadySet: translationKey(
+    "Not evaluated because {{criteria}} matched and set the monitor's status.",
+  ),
+  changesNoStatus: translationKey(
+    "Not evaluated because {{criteria}} matched first, and this criteria changes no status.",
+  ),
+  stopsAfterFirstMatch: translationKey(
+    "Criteria are evaluated in order; this monitor stops after the first match.",
+  ),
+  stopsAtFirstStatusMatch: translationKey(
+    "Criteria are evaluated in order; this monitor stops at the first match that changes its status.",
+  ),
+};
 
 // Group identical filter messages so we can surface helpful metadata once per row.
 const groupFiltersByMessage: (
@@ -131,6 +165,17 @@ export const isSkippedRequestsEvent: (
   return event.type === "requests-skipped";
 };
 
+/*
+ * A request, an email or an agent's report that reached the monitor while
+ * it was not being checked (#11141): listed, not evaluated, and why - drawn
+ * apart from the evaluation's own actions, since there was none.
+ */
+export const isNotEvaluatedEvent: (event: MonitorEvaluationEvent) => boolean = (
+  event: MonitorEvaluationEvent,
+): boolean => {
+  return event.type === "not-evaluated";
+};
+
 const EvaluationLogList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -150,20 +195,26 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     evaluationSummary.events || []
   ).filter(isSkippedRequestsEvent);
 
+  const notEvaluatedEvents: Array<MonitorEvaluationEvent> = (
+    evaluationSummary.events || []
+  ).filter(isNotEvaluatedEvent);
+
   const actionEvents: Array<MonitorEvaluationEvent> = (
     evaluationSummary.events || []
   ).filter((event: MonitorEvaluationEvent) => {
     return (
       event.type !== "criteria-met" &&
       event.type !== "criteria-not-met" &&
-      !isSkippedRequestsEvent(event)
+      !isSkippedRequestsEvent(event) &&
+      !isNotEvaluatedEvent(event)
     );
   });
 
   if (
     !hasCriteriaResults &&
     actionEvents.length === 0 &&
-    skippedRequestsEvents.length === 0
+    skippedRequestsEvents.length === 0 &&
+    notEvaluatedEvents.length === 0
   ) {
     return <></>;
   }
@@ -224,9 +275,23 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         (!criteria.skipCause && disabledCriteriaReasonPattern.test(skipReason));
       const isEarlierCriterionMatch: boolean =
         criteria.skipCause === "earlier-criterion-matched" ||
+        criteria.skipCause === "status-already-set" ||
+        criteria.skipCause === "changes-no-status" ||
         (!criteria.skipCause &&
           (earlierCriteriaMatchedReasonPattern.test(skipReason) ||
             stoppedAtFirstMatchReasonPattern.test(skipReason)));
+
+      // The evaluation went on past a first match that changes no status.
+      const isJudgedPastFirstMatch: boolean =
+        criteria.skipCause === "status-already-set" ||
+        criteria.skipCause === "changes-no-status";
+
+      const notEvaluatedSentence: string =
+        criteria.skipCause === "status-already-set"
+          ? NOT_EVALUATED_AFTER_MATCH_WORDS.statusAlreadySet
+          : criteria.skipCause === "changes-no-status"
+            ? NOT_EVALUATED_AFTER_MATCH_WORDS.changesNoStatus
+            : NOT_EVALUATED_AFTER_MATCH_WORDS.earlierMatched;
 
       let previousMatchingCriteriaName: string | undefined = undefined;
 
@@ -300,7 +365,7 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 <div className="text-sm text-gray-600">
                   {previousMatchingCriteriaName ? (
                     <TranslatedSentence
-                      template="Not evaluated because {{criteria}} matched first."
+                      template={notEvaluatedSentence}
                       slots={{
                         criteria: (
                           <span className="font-medium text-gray-800">
@@ -316,7 +381,9 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
                 {previousMatchingCriteriaName && (
                   <div className="mt-1 text-xs text-gray-500">
                     {translator.translateText(
-                      "Criteria are evaluated in order; this monitor stops after the first match.",
+                      isJudgedPastFirstMatch
+                        ? NOT_EVALUATED_AFTER_MATCH_WORDS.stopsAtFirstStatusMatch
+                        : NOT_EVALUATED_AFTER_MATCH_WORDS.stopsAfterFirstMatch,
                     )}
                   </div>
                 )}
@@ -807,8 +874,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
   /*
    * What the evaluation was, set apart by " · ": when it ran, how long it
-   * took and how many series it judged (#10317). An evaluation logged
-   * before it said how long it took says when it ran only.
+   * took, how many series it judged (#10317) and, for a telemetry check,
+   * the window of data it judged - the one it was due to, however late it
+   * ran (#11248). An evaluation logged before it said how long it took says
+   * when it ran only.
    */
   const durationInMs: number | undefined =
     typeof evaluationSummary.durationInMs === "number" &&
@@ -848,6 +917,35 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         { one: "Judged {{count}} series", other: "Judged {{count}} series" },
         seriesJudged,
       ),
+    });
+  }
+
+  /*
+   * A check's window holds its start and not its end (#11334), and says so:
+   * a record stamped on its end was judged by the next check. One judged
+   * before then held both ends.
+   */
+  const judgedWindow: {
+    start: string;
+    end: string;
+    includesEnd: boolean;
+  } | null = getJudgedWindowEnds(evaluationSummary);
+
+  if (judgedWindow) {
+    evaluationFacts.push({
+      key: "judged-window",
+      text: judgedWindow.includesEnd
+        ? translator.translateTemplate("Data from {{start}} to {{end}}", {
+            start: judgedWindow.start,
+            end: judgedWindow.end,
+          })
+        : translator.translateTemplate(
+            "Data from {{start}} up to, but not including, {{end}}",
+            {
+              start: judgedWindow.start,
+              end: judgedWindow.end,
+            },
+          ),
     });
   }
 
@@ -947,11 +1045,84 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * What reached the monitor while it was not being checked, as a notice:
+   * not evaluated, why, and - paused by an incident declared by hand, when
+   * the page knows the monitor - the way to the switch that keeps it
+   * checked during incidents (#11141).
+   */
+  const renderNotEvaluated: (
+    event: MonitorEvaluationEvent,
+    index: number,
+  ) => ReactElement = (
+    event: MonitorEvaluationEvent,
+    index: number,
+  ): ReactElement => {
+    const monitorId: ObjectID | undefined = props.monitorId;
+
+    return (
+      <Alert
+        key={`not-evaluated-${index}`}
+        type={AlertType.INFO}
+        icon={IconProp.PauseCircle}
+        dataTestId="not-evaluated"
+        title={
+          <span className="block space-y-1">
+            <span
+              dir="auto"
+              className="block font-semibold"
+              data-testid="not-evaluated-title"
+            >
+              {wordEvaluationText(translator, event.title, event.titleSentence)}
+            </span>
+            {event.message && (
+              <span
+                dir="auto"
+                className="block"
+                data-testid="not-evaluated-message"
+              >
+                {wordEvaluationText(
+                  translator,
+                  event.message,
+                  event.messageSentence,
+                )}
+              </span>
+            )}
+            {monitorId && event.notEvaluatedReason === "ManualIncident" && (
+              <span className="flex flex-wrap gap-2 pt-2">
+                <Button
+                  title="Open Settings"
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  icon={IconProp.Settings}
+                  dataTestId="not-evaluated-open-settings"
+                  onClick={() => {
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITOR_VIEW_SETTINGS] as Route,
+                        { modelId: monitorId },
+                      ),
+                    );
+                  }}
+                />
+              </span>
+            )}
+          </span>
+        }
+      />
+    );
+  };
+
   return (
     <div className="mt-6 space-y-4">
       <div className="text-base font-semibold text-gray-900">
         {getSummaryTitle}
       </div>
+      {notEvaluatedEvents.length > 0 && (
+        <div className="space-y-3">
+          {notEvaluatedEvents.map(renderNotEvaluated)}
+        </div>
+      )}
       {evaluationFacts.length > 0 && (
         <div
           className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500"

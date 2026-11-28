@@ -63,7 +63,9 @@ flowchart LR
 
 Den er slået til i et nyt projekt. Et projekt, der fandtes i forvejen, beholder den slået fra, fordi projektets API-klienter og Terraform-konfigurationer kan regne med navne, der gentager sig: slå den til, når du er klar.
 
-Under kontakten viser kortet hvert navn, projektet allerede har mere end én gang, slags for slags, med et link til hver post og den dag, den blev oprettet. At slå kontakten til afviser intet, der allerede findes: de poster virker fortsat, indtil nogen omdøber dem, og kun en ny post eller en omdøbning skal have sit eget navn. At gemme en post med dens eget navn igen, uanset store og små bogstaver, er ingen omdøbning.
+Under kontakten viser kortet hvert navn, projektet allerede har mere end én gang, slags for slags, med et link til hver post og den dag, den blev oprettet. Et OpenStack-budget åbner på sin clouds side **Forbrug**, og en opsummering for et arbejdsområde på fanen **Oversigt** på dens Slack-, Microsoft Teams- eller Mattermost-side. AI-agenter har ingen side i dashboardet, så kortet nævner dem uden et link og siger det. At slå kontakten til afviser intet, der allerede findes: de poster virker fortsat, indtil nogen omdøber dem, og kun en ny post eller en omdøbning skal have sit eget navn. At gemme en post med dens eget navn igen, uanset store og små bogstaver, er ingen omdøbning.
+
+Listen for hver slags markerer også de poster, med **Samme navn som en anden post af typen monitor** (eller skabelon, nøgle og så videre) og den dag, hver blev oprettet, og siger over listen, hvor mange der er. En liste markerer kun de poster, du kan åbne.
 
 Uanset hvad kontakten siger, advarer en formular, mens du skriver et navn, som en anden post af samme slags allerede har, og linker til den post. Så længe kontakten er slået til, siger advarslen også, at det ville blive afvist at gemme.
 

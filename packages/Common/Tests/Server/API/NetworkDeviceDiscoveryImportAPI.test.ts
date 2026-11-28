@@ -77,7 +77,11 @@ jest.mock(
   "../../../Server/Utils/NetworkDiscovery/DiscoveryImportRunner",
   () => {
     const actual: {
-      default: { toView: unknown };
+      default: {
+        toView: unknown;
+        sourceOf: unknown;
+        assertCanReadDevices: unknown;
+      };
       DISCOVERY_IMPORT_VIEW_SELECT: unknown;
     } = jest.requireActual(
       "../../../Server/Utils/NetworkDiscovery/DiscoveryImportRunner",
@@ -89,6 +93,8 @@ jest.mock(
       default: {
         start: jest.fn(),
         startFromDiscoveredDevices: jest.fn(),
+        // Create Monitors on the Devices list (issue #10990).
+        startFromDevices: jest.fn(),
         stop: jest.fn(),
         retry: jest.fn(),
         findImport: jest.fn(),
@@ -97,6 +103,9 @@ jest.mock(
         isWorthListing: (
           actual.default as unknown as { isWorthListing: unknown }
         ).isWorthListing,
+        // Where an import's hosts came from, and who may see them: the real rules.
+        sourceOf: actual.default.sourceOf,
+        assertCanReadDevices: actual.default.assertCanReadDevices,
       },
     };
   },
@@ -256,6 +265,7 @@ const SCAN_READER: Array<Permission> = [
 
 const ROUTES: Array<[string, string]> = [
   ["POST", "/network-device-discovery-import/start"],
+  ["POST", "/network-device-discovery-import/start-from-devices"],
   ["GET", "/network-device-discovery-import/import/:importId"],
   ["GET", "/network-device-discovery-import/scan/:scanId/latest"],
   ["GET", "/network-device-discovery-import/active"],
@@ -325,7 +335,19 @@ describe("who may call the discovery import API", () => {
     },
   );
 
-  test.each(ROUTES)(
+  /*
+   * Every route of a scan's import. Create Monitors (issue #10990) is the
+   * Devices list's, and the list of running imports answers whoever may see
+   * any kind of import: both are held to their own rules below.
+   */
+  test.each(
+    ROUTES.filter((routeOf: [string, string]): boolean => {
+      return (
+        routeOf[1] !== "/network-device-discovery-import/start-from-devices" &&
+        routeOf[1] !== "/network-device-discovery-import/active"
+      );
+    }),
+  )(
     "%s %s refuses a member who may not see discovery scans",
     async (method: string, uri: string) => {
       callerProps = propsWith([Permission.ReadNetworkDevice]);
@@ -338,6 +360,21 @@ describe("who may call the discovery import API", () => {
       );
     },
   );
+
+  test("the running imports refuse a member who may see no kind of import", async () => {
+    callerProps = propsWith([Permission.CreateNetworkDevice]);
+
+    const { thrown } = await call(
+      "GET",
+      "/network-device-discovery-import/active",
+    );
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((thrown as Error).message).toContain(
+      "may not see this project's discovery scans",
+    );
+    expect(NetworkDeviceDiscoveryImportService.findBy).not.toHaveBeenCalled();
+  });
 
   test("seeing imports is the right to read discovery scans, nothing more", () => {
     expect(() => {
@@ -693,9 +730,18 @@ describe("an import from the Discovered Devices list", () => {
       kind: typeof IsNull | typeof NotNull,
     ) => {
       callerProps = propsWith(permissions);
+      // As the database answers the query: a scan's imports name a scan.
       (
         NetworkDeviceDiscoveryImportService.findBy as jest.Mock
-      ).mockResolvedValue([listImport()]);
+      ).mockImplementation(
+        async (data: {
+          query: Record<string, unknown>;
+        }): Promise<Array<NetworkDeviceDiscoveryImport>> => {
+          return data.query["networkDeviceDiscoveryScanId"] instanceof NotNull
+            ? [importRow()]
+            : [listImport()];
+        },
+      );
 
       const { thrown, payload } = await call(
         "GET",
@@ -766,5 +812,175 @@ describe("an import from the Discovered Devices list", () => {
     expect(retried.thrown).toBeInstanceOf(NotAuthorizedException);
     expect(DiscoveryImportRunner.stop).not.toHaveBeenCalled();
     expect(DiscoveryImportRunner.retry).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * CREATE MONITORS FROM THE DEVICES LIST (issue #10990). The devices exist:
+ * asking for it, reading it, stopping it and retrying it take the right to
+ * read network devices, never the right to read scans or the Discovered
+ * Devices list. Creating the monitors is the runner's to check.
+ */
+describe("Create Monitors from the Devices list (#10990)", () => {
+  const START: string = "/network-device-discovery-import/start-from-devices";
+  const DEVICE_ID: string = "ee000000-0000-4000-8000-000000000021";
+  const DEVICE_READER: Array<Permission> = [Permission.ReadNetworkDevice];
+
+  function devicesImport(): NetworkDeviceDiscoveryImport {
+    const row: NetworkDeviceDiscoveryImport = importRow({
+      settings: {
+        pollingIntervalInMinutes: 5,
+        applyVendorTemplates: false,
+        alerting: DiscoveryImportAlerting.MonitorTemplate,
+        monitorTemplateId: "ff000000-0000-4000-8000-000000000021",
+      },
+      results: [
+        {
+          ipAddress: "10.20.0.1",
+          existingDeviceId: DEVICE_ID,
+          name: "RRKLCRLANSWI01",
+          isPingOnly: false,
+          device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+          deviceId: DEVICE_ID,
+          monitor: DiscoveryImportMonitorOutcome.Pending,
+        },
+      ],
+    });
+    delete row.networkDeviceDiscoveryScanId;
+    return row;
+  }
+
+  test("is asked for through the user middleware", () => {
+    expect(route("POST", START).middleware).toBe(
+      UserMiddleware.getUserMiddleware,
+    );
+  });
+
+  test("is refused to a member who may read scans and the Discovered Devices list but not devices", async () => {
+    callerProps = propsWith([...SCAN_READER, Permission.ReadNetworkEndpoint]);
+
+    const { thrown } = await call("POST", START, {
+      body: { deviceIds: [DEVICE_ID], monitorTemplateId: DEVICE_ID },
+    });
+
+    expect(thrown).toEqual(
+      new NotAuthorizedException(
+        "You may not read this project's network devices, so you cannot give them monitors.",
+      ),
+    );
+    expect(DiscoveryImportRunner.startFromDevices).not.toHaveBeenCalled();
+  });
+
+  test("hands the devices and the template to the runner, as the person, and answers with the import", async () => {
+    callerProps = propsWith(DEVICE_READER);
+    (DiscoveryImportRunner.startFromDevices as jest.Mock).mockResolvedValue(
+      devicesImport(),
+    );
+    (DiscoveryImportRunner.findImport as jest.Mock).mockResolvedValue(
+      devicesImport(),
+    );
+
+    const templateId: string = "ff000000-0000-4000-8000-000000000021";
+    const { thrown, payload } = await call("POST", START, {
+      body: { deviceIds: [DEVICE_ID], monitorTemplateId: templateId },
+    });
+
+    expect(thrown).toBeUndefined();
+    expect(DiscoveryImportRunner.startFromDevices).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      props: callerProps,
+      deviceIds: [DEVICE_ID],
+      monitorTemplateId: templateId,
+    });
+
+    const view: JSONObject = payload!["import"] as JSONObject;
+
+    expect(view["scanId"]).toBe("");
+    expect(view["source"]).toBe(DiscoveryImportSource.Devices);
+  });
+
+  test("a refusal from the runner is the answer", async () => {
+    callerProps = propsWith(DEVICE_READER);
+    (DiscoveryImportRunner.startFromDevices as jest.Mock).mockRejectedValue(
+      new BadDataException("Select the devices to create monitors for."),
+    );
+
+    const { thrown } = await call("POST", START, { body: {} });
+
+    expect(thrown).toEqual(
+      new BadDataException("Select the devices to create monitors for."),
+    );
+  });
+
+  test("is read, stopped and retried with the right to read devices; scans and the list are not enough", async () => {
+    (DiscoveryImportRunner.findImport as jest.Mock).mockResolvedValue(
+      devicesImport(),
+    );
+
+    callerProps = propsWith(DEVICE_READER);
+    const allowed: { thrown: unknown } = await call(
+      "GET",
+      "/network-device-discovery-import/import/:importId",
+      { params: IDS },
+    );
+
+    expect(allowed.thrown).toBeUndefined();
+
+    callerProps = propsWith([...SCAN_READER, Permission.ReadNetworkEndpoint]);
+
+    for (const [method, uri] of [
+      ["GET", "/network-device-discovery-import/import/:importId"],
+      ["POST", "/network-device-discovery-import/import/:importId/stop"],
+      ["POST", "/network-device-discovery-import/import/:importId/retry"],
+    ] as Array<[string, string]>) {
+      const refused: { thrown: unknown } = await call(method, uri, {
+        params: IDS,
+      });
+
+      expect(refused.thrown).toBeInstanceOf(NotAuthorizedException);
+    }
+
+    expect(DiscoveryImportRunner.stop).not.toHaveBeenCalled();
+    expect(DiscoveryImportRunner.retry).not.toHaveBeenCalled();
+  });
+
+  test("the imports still running show Create Monitors to a person who may read devices, and only to them", async () => {
+    const listImport: NetworkDeviceDiscoveryImport = importRow();
+    delete listImport.networkDeviceDiscoveryScanId;
+
+    (NetworkDeviceDiscoveryImportService.findBy as jest.Mock).mockResolvedValue(
+      [devicesImport(), listImport],
+    );
+
+    callerProps = propsWith(DEVICE_READER);
+    const deviceReader: { payload: Record<string, unknown> | undefined } =
+      await call("GET", "/network-device-discovery-import/active");
+
+    expect(
+      (deviceReader.payload!["imports"] as Array<JSONObject>).map(
+        (view: JSONObject): unknown => {
+          return view["source"];
+        },
+      ),
+    ).toEqual([DiscoveryImportSource.Devices]);
+
+    const query: Record<string, unknown> = (
+      (NetworkDeviceDiscoveryImportService.findBy as jest.Mock).mock
+        .calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(query["networkDeviceDiscoveryScanId"]).toBeInstanceOf(IsNull);
+
+    callerProps = propsWith([Permission.ReadNetworkEndpoint]);
+    const listReader: { payload: Record<string, unknown> | undefined } =
+      await call("GET", "/network-device-discovery-import/active");
+
+    expect(
+      (listReader.payload!["imports"] as Array<JSONObject>).map(
+        (view: JSONObject): unknown => {
+          return view["source"];
+        },
+      ),
+    ).toEqual([DiscoveryImportSource.DiscoveredDevices]);
   });
 });

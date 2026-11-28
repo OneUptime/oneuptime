@@ -275,9 +275,9 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ## 보안 케이스 확인
 
-AWS에서는 같은 연결로, 공격이 IAM 사용자에게서 바꾼 것이 되돌려졌는지 [보안 케이스](/docs/telemetry/security-cases#oneuptime이-단계를-확인하는-방법)가 확인하게 할 수도 있습니다. 공격이 만든 액세스 키, 설정한 콘솔 비밀번호, 연결하거나 작성한 정책, 사용자를 추가한 그룹, 활성화한 MFA 기기, 만든 사용자입니다. **추가 필드** 아래의 **보안 케이스 확인** 은 켜기 전까지 **꺼짐** 이며, 양식에 표시되는 명령도 이에 따라 바뀝니다. 각 작업은 읽기만 하며 비밀은 읽지 않습니다. 액세스 키의 ID와 활성 여부는 읽지만 키 자체는 읽지 않고, 콘솔 비밀번호가 설정되어 있다는 것은 읽지만 비밀번호 자체는 읽지 않습니다.
+AWS에서는 같은 연결로, 공격이 IAM 사용자나 역할에서 바꾼 것이 되돌려졌는지 [보안 케이스](/docs/telemetry/security-cases#oneuptime이-단계를-확인하는-방법)가 확인하게 할 수도 있습니다. 공격이 만든 액세스 키, 설정한 콘솔 비밀번호, 연결하거나 작성한 정책, 사용자를 추가한 그룹, 활성화한 MFA 기기, 만든 사용자나 역할, 역할에 설정한 신뢰 정책입니다. **추가 필드** 아래의 **보안 케이스 확인** 은 켜기 전까지 **꺼짐** 이며, 양식에 표시되는 명령도 이에 따라 바뀝니다. 각 작업은 읽기만 하며 비밀은 읽지 않습니다. 액세스 키의 ID와 활성 여부는 읽지만 키 자체는 읽지 않고, 콘솔 비밀번호가 설정되어 있다는 것은 읽지만 비밀번호 자체는 읽지 않습니다.
 
-| 케이스가 CloudTrail 이벤트에 나온 각 사용자에 대해 읽는 것 | 작업 |
+| 케이스가 CloudTrail 이벤트에 나온 각 사용자와 역할에 대해 읽는 것 | 작업 |
 | --- | --- |
 | 사용자, 또는 사용자가 더 이상 없다는 것 | `iam:GetUser` |
 | 액세스 키와 각 키의 활성 여부 | `iam:ListAccessKeys` |
@@ -285,11 +285,13 @@ AWS에서는 같은 연결로, 공격이 IAM 사용자에게서 바꾼 것이 �
 | 관리형 정책과 인라인 정책의 이름 | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | 사용자가 속한 그룹 | `iam:ListGroupsForUser` |
 | MFA 기기 | `iam:ListMFADevices` |
+| 역할, 그 신뢰 정책이 신뢰하는 대상, 또는 역할이 사라졌는지 | `iam:GetRole` |
+| 역할의 관리형 정책과 인라인 정책 이름 | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 역할용 명령에는 한 줄이 더해져 전용 인라인 정책 `OneUptimeSecurityCaseChecks` 가 추가되고, 조직의 StackSet은 이를 모든 계정의 역할에 넣습니다.
 
 ```bash
-aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 ```
 
 **액세스 키** 를 쓰면 정책은 사용자가 가입하는 같은 이름의 그룹 `OneUptimeSecurityCaseChecks` 에 들어갑니다.
@@ -298,12 +300,12 @@ aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseC
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
 aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
-aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-케이스는 변경이 이루어진 계정에 닿는 연결을 통해서만 변경을 읽고, **보안 케이스 확인** 이 **꺼짐** 인 연결을 통해서는 IAM에 아무것도 묻지 않습니다. 그런 변경은 나열해 직접 확인하게 하고, 이 설정을 켜라고 안내합니다. **꺼짐** 은 아무것도 추가하지 않으므로, 이전 명령이 부여한 것은 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 로 삭제할 때까지 그대로 남습니다.
+케이스는 변경이 이루어진 계정에 닿는 연결을 통해서만 변경을 읽고, **보안 케이스 확인** 이 **꺼짐** 인 연결을 통해서는 IAM에 아무것도 묻지 않습니다. 그런 변경은 나열해 직접 확인하게 하고, 이 설정을 켜라고 안내합니다. **꺼짐** 은 아무것도 추가하지 않으므로, 이전 명령이 부여한 것은 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 로 삭제할 때까지 그대로 남습니다. 설정이 역할을 읽기 전에 실행한 명령은 사용자 읽기만 허용합니다. 연결의 명령을 다시 실행하세요. 그때까지 케이스는 역할 변경을 나열해 직접 확인하게 하고, 명령을 실행하라고 안내합니다.
 
 ## OneUptime이 읽는 것
 
@@ -352,7 +354,7 @@ Compute Engine VM의 메모리와 디스크 사용률은 Google Cloud 자체 메
 - **인시던트와 경고.** 모니터, 인시던트 또는 경고의 연결된 리소스에서 클라우드 리소스를 연결하면 그 인시던트와 경고가 리소스 페이지에 나열됩니다. 호스트가 직접 또는 DNS를 통해 리소스의 엔드포인트로 이어지는 웹사이트, API, SSL, ping 또는 포트 모니터는 **연결된 리소스** 카드의 **추천 클라우드 리소스**에 그 리소스를 표시합니다. 연결하려면 **리소스 연결**을 선택합니다.
 - **리소스의 상태.** 각 읽기는 리소스 주요 메트릭의 최신 값을 보관하고 판단합니다. 리소스에는 **정상**, **저하됨** 또는 **비정상**이 상태 확인 실패나 거의 찬 스토리지 같은 이유와 함께 표시되며, 메트릭이 멈추면 **보고 없음**이 표시됩니다. **클라우드 → 개요**와 계정의 개요에는 주의가 필요한 항목이 가장 급한 것부터 나열됩니다. 리소스 페이지는 가상 머신의 CPU, 메모리, 네트워크, 디스크처럼 그 종류를 읽는 수치로 시작하며, 마지막 읽기에서 가져오지 못한 수치는 **보고되지 않음**으로 표시됩니다.
 - **권장 모니터.** 계정의 **권장 사항**에는 OneUptime이 그 리소스에 권장하는 모니터가 리소스 유형별로, 각각의 대상 리소스와 이미 설정된 수와 함께 나열됩니다. 리소스 하나에 추가하거나 같은 유형의 모든 리소스에 한 번에 추가할 수 있으며, 사이드 메뉴는 아직 설정해야 하는 것을 셉니다. 리소스의 **권장 사항** 탭에는 그 리소스용 모니터가 제공됩니다. 각 모니터는 연결이 읽는 주요 메트릭을 5분마다, AWS에서는 최근 30분, Azure와 Google Cloud에서는 최근 15분에 걸쳐 읽으며, 해당 리소스에 연결됩니다. 더 드물게 읽는 연결에서는 각 모니터가 한 번의 읽기로 들어오는 모든 값을 판단할 수 있도록 더 긴 기간을 읽습니다. 1시간마다 읽으면 최근 2시간입니다. 간격을 바꾸기 전에 만든 모니터는 그 기간을 그대로 유지합니다. 오류나 제한된 요청 같은 개수는 그 기간 전체에 걸쳐 합산되므로, [메트릭을 스트리밍하는](/docs/telemetry/cloud-streaming) 계정과 읽히는 계정은 똑같이 경고하며, 스트리밍하는 계정이 더 빨리 경고합니다. ACM이 하루에 두 번 게시하는 인증서의 만료까지 남은 일수는 1시간마다 읽힙니다. 그 모니터는 최근 2일을 읽고, 인증서의 남은 기간이 30일 이하가 되거나 인증서가 만료되어 ACM이 게시를 멈추면 경고합니다. RDS 인스턴스의 연결 수는 그 클래스와 엔진의 연결 한도의 90%와 비교됩니다. [유지 관리 이벤트](/docs/scheduled-maintenance/creating-events)가 리소스를 포함하는 동안에는 그 모니터가 인시던트나 경고를 열지 않습니다. 상태 확인이 설정된 App Service 앱에는 두 가지가 더 제안되며, Azure Monitor가 그 메트릭을 5분 단위로 보관하므로 최근 30분을 읽습니다: 인스턴스가 상태 확인에 실패할 때와 인스턴스의 절반 미만만 통과할 때입니다. 각 인시던트에는 실패한 인스턴스를 알려 주는 Azure Cloud Shell용 명령이 함께 나옵니다.
-- **계정의 비용.** **클라우드 → 지출 → 비용**은 매일의 지출과 그 쓰임을 그리고, **클라우드 → 지출 → 절감**은 지출을 줄이는 방법을 나열하며, **클라우드 → 지출 → 예산**은 한 달 비용이 예상보다 커지기 전에 경고를 보냅니다. [클라우드 비용과 절감](/docs/telemetry/cloud-costs)을 참고하세요.
+- **계정의 비용.** **클라우드 → 지출 → 비용**은 매일의 지출과 그 쓰임을 그리고, **클라우드 → 지출 → 절감**은 지출을 줄이는 방법을 나열하며, **클라우드 → 지출 → 예산**은 한 달, 분기 또는 한 해의 비용이 예상보다 커지기 전에 알리고, **클라우드 → 지출 → 예측**은 앞으로의 달 비용이 얼마로 예상되는지 알려 줍니다. [클라우드 비용과 절감](/docs/telemetry/cloud-costs)을 참고하세요.
 
 ## 절감 작업
 

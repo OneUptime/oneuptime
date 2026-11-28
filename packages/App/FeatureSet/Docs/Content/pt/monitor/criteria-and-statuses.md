@@ -3,7 +3,7 @@
 Os critérios de um monitor decidem o que cada verificação significa: se o monitor está no ar ou fora do ar, e se o OneUptime declara um incidente ou cria um alerta. Os status são a lista do seu projeto com o que um monitor pode ser, de **Operacional** a **Offline**. Esta página explica os dois para todo tipo de monitor; a página de cada tipo lista os filtros que ele oferece.
 
 :::cards
-- [Como os critérios decidem](#como-os-critérios-decidem): De cima para baixo, e a primeira correspondência vence.
+- [Como os critérios decidem](#como-os-critérios-decidem): De cima para baixo: a primeira correspondência age, e a primeira que altera o status o define.
 - [O que um critério contém](#o-que-um-critério-contém): Filtros, uma condição de correspondência, ações e configurações.
 - [Julgar uma janela de verificações](#julgar-uma-janela-de-verificações): Contar verificações com falha, detectar instabilidade, ler um percentil.
 - [Alterar os critérios de um monitor](#alterar-os-critérios-de-um-monitor): Editar, adicionar, reordenar e testar critérios.
@@ -12,28 +12,31 @@ Os critérios de um monitor decidem o que cada verificação significa: se o mon
 
 ## Como os critérios decidem
 
-Sempre que um monitor é verificado, seus critérios julgam o resultado do topo da lista para baixo. O primeiro critério cujos filtros correspondem decide o que acontece, e os critérios abaixo dele não são examinados nessa verificação. Quando nenhum corresponde, o monitor vai para o seu **Status Padrão do Monitor**. Em vez disso, ele mantém seu status enquanto um critério que o traz de volta ainda não correspondeu: veja [Quando um critério se recupera](#quando-um-critério-se-recupera).
+Sempre que um monitor é verificado, seus critérios julgam o resultado do topo da lista para baixo. O primeiro critério cujos filtros correspondem decide o que acontece: ele declara seus incidentes, cria seus alertas e, quando configurado para isso, altera o status do monitor. Os critérios abaixo dele só são examinados quando ele não altera nenhum status, e então só para o status. Quando nenhum corresponde, o monitor vai para o seu **Status Padrão do Monitor**. Em vez disso, ele mantém seu status enquanto um critério que o traz de volta ainda não correspondeu: veja [Quando um critério se recupera](#quando-um-critério-se-recupera).
 
 ```mermaid title="Como cada verificação é julgada"
 flowchart TB
     R["O resultado de<br/>uma verificação"] --> C1{"Primeiro<br/>critério:<br/>os filtros<br/>correspondem?"}
-    C1 -->|"Sim"| A["Esse critério age"]
+    C1 -->|"Sim"| A["Esse critério age:<br/>declara seus incidentes<br/>e cria seus alertas"]
     C1 -->|"Não"| C2{"Próximo<br/>critério:<br/>os filtros<br/>correspondem?"}
     C2 -->|"Sim"| A
     C2 -->|"Nenhum<br/>correspondeu"| D["O monitor<br/>vai para seu<br/>status padrão"]
-    A --> S["Altera<br/>o status"]
-    A --> I["Declara um<br/>incidente"]
-    A --> L["Cria um alerta"]
+    A --> Q{"Ele altera<br/>o status?"}
+    Q -->|"Sim"| S["Ele define<br/>o status"]
+    Q -->|"Não"| N["O primeiro critério<br/>abaixo que corresponde<br/>e altera o status<br/>o define, ou o monitor<br/>vai para o seu<br/>status padrão"]
 ```
 
 A ordem faz parte da regra. Um novo monitor lista seus critérios do pior caso para o melhor: offline, depois um aviso quando o tipo tem um (um certificado ou um domínio que expira em breve), depois online. Um critério saudável e amplo, como **Online** definido como **Verdadeiro**, corresponde a quase toda verificação, então ele fica por último: acima dos outros, corresponderia primeiro todas as vezes e os outros nunca agiriam.
 
-Um critério que corresponde mas não altera nenhum status ainda decide a verificação: o monitor mantém o status que tem, e os critérios abaixo esperam a próxima verificação. O **Status Padrão do Monitor** só se aplica quando nenhum critério corresponde. Em um novo monitor ele é **Operacional**; altere-o em **Mais campos**, abaixo dos critérios.
+Um critério que corresponde mas não altera nenhum status, como um aviso que só cria um alerta, não decide nenhum status. O alerta dele abre e se resolve como o de qualquer critério, e os critérios abaixo dele que alteram o status são julgados só para o status, na ordem deles: o primeiro deles que corresponde define o status e não abre nada nessa verificação. Quando nenhum deles corresponde, o monitor vai para o seu **Status Padrão do Monitor**, como quando nenhum critério corresponde. Assim, um site que voltou a responder mas está lento fica **Operacional** com o alerta aberto, qualquer que seja o status em que uma verificação anterior o deixou. Em um novo monitor o padrão é **Operacional**; altere-o em **Mais campos**, abaixo dos critérios.
+
+> [!NOTE]
+> Um critério que correspondia primeiro e não alterava nenhum status deixava antes o monitor no status que ele tinha, enquanto continuasse correspondendo: um switch vigiado pelo pacote de alertas recomendado perdia uma sondagem, voltava com uma porta acima de 80% e ficava **Offline**, com a página de status vermelha, enquanto a porta continuasse ocupada. Agora só os critérios que alteram o status decidem sobre ele. Um monitor cujos critérios alteram todos o status é julgado exatamente como antes. O mesmo vale para qual critério declara os incidentes de uma verificação e cria seus alertas: em um monitor que para na primeira correspondência, continua sendo o primeiro critério que corresponde.
 
 > [!NOTE]
 > Um monitor que abre um incidente ou alerta por host, contêiner, disco ou interface julga todos os critérios a cada verificação, de modo que dois hosts podem corresponder a dois critérios diferentes ao mesmo tempo. É um monitor cuja consulta tem um **Agrupar Por**, como um monitor de métricas ou de logs, ou um critério que indica `*` para cada disco ou interface. O mesmo vale para um monitor de métricas que observa uma expressão PromQL: cada série que a expressão retorna é julgada por si. Um monitor de requisições recebidas que agrupa incidentes por um campo do payload ainda para na primeira correspondência.
 >
-> Um monitor assim ainda tem um único status, definido pelo primeiro critério que corresponde. Um critério que apenas o traz de volta ao seu **Status Padrão do Monitor**, sem abrir incidente nem alerta, espera pelos hosts que atenderam a um critério que define outro status: corresponde quando cada um deles o atende, faça o que fizerem os outros hosts. Até lá, o monitor mantém seu status, mesmo quando nenhum critério corresponde, enquanto os incidentes e alertas de cada host continuam se resolvendo cada um por conta própria.
+> Um monitor assim ainda tem um único status, definido pelo primeiro critério que corresponde entre os que alteram o status. Um critério que apenas o traz de volta ao seu **Status Padrão do Monitor**, sem abrir incidente nem alerta, espera pelos hosts que atenderam a um critério que define outro status: corresponde quando cada um deles o atende, faça o que fizerem os outros hosts. Até lá, o monitor mantém seu status, mesmo quando nenhum critério que altera o status corresponde, enquanto os incidentes e alertas de cada host continuam se resolvendo cada um por conta própria.
 
 ## O que um critério contém
 
@@ -125,11 +128,11 @@ A frase abaixo das configurações da janela repete isso: “Verificar se "Tempo
 
 ## Quando um critério se recupera
 
-Um critério para de agir assim que seus filtros deixam de corresponder: nessa verificação, seu incidente e seu alerta são resolvidos, quando **Resolver incidente automaticamente** e **Resolver alerta automaticamente** estão ativados, e o monitor passa para o próximo critério que corresponder.
+Um critério para de agir assim que seus filtros deixam de corresponder: nessa verificação, seu incidente e seu alerta são resolvidos, quando **Resolver incidente automaticamente** e **Resolver alerta automaticamente** estão ativados, e o status do monitor segue os critérios que correspondem então.
 
 **Recuperar apenas quando uma condição própria for atendida** mantém o critério em vigor depois que seus filtros deixam de corresponder, até que os filtros em **Recupera quando** correspondam. Eles começam como o oposto dos filtros do critério, nos últimos 10 minutos, e podem usar tudo o que um filtro oferece, como uma janela que conta verificações. Um critério está em vigor enquanto o monitor tem o status que ele define ou está aberto um incidente ou alerta que ele declarou. Enquanto se mantém, ele conta como uma correspondência no seu lugar da lista: um critério acima dele que corresponda ainda assume.
 
-Quando nenhum critério corresponde, um monitor que um critério tirou do seu **Status Padrão do Monitor** mantém o status que tem, desde que também tenha um critério que apenas o traz de volta a esse status e não abre nada. Essa é a margem de recuperação: os modelos disparam acima de 90% e voltam em 81% ou menos, então em 89% o monitor fica onde está. Seus incidentes e alertas ainda são resolvidos quando o próprio critério deles deixa de corresponder. Um monitor sem um critério assim vai para o seu **Status Padrão do Monitor**, como sempre.
+Quando nenhum critério que altera o status corresponde, um monitor que um critério tirou do seu **Status Padrão do Monitor** mantém o status que tem, desde que também tenha um critério que apenas o traz de volta a esse status e não abre nada. Essa é a margem de recuperação: os modelos disparam acima de 90% e voltam em 81% ou menos, então em 89% o monitor fica onde está. Seus incidentes e alertas ainda são resolvidos quando o próprio critério deles deixa de corresponder. Um monitor sem um critério assim vai para o seu **Status Padrão do Monitor**, como sempre.
 
 ## Apenas em certos dias e horários
 
@@ -153,6 +156,7 @@ flowchart TB
 
 - **Um de cada vez.** Enquanto um incidente que um critério declarou ainda estiver aberto, o mesmo critério, ao corresponder de novo, não declara outro. Os alertas funcionam da mesma forma. Um monitor que agrupa por host ou por campo do payload mantém um aberto por host ou por valor, e um critério de monitor de e-mail recebido com **Abrir um novo incidente para cada e-mail** abre um por e-mail.
 - **O fechamento.** Em uma verificação posterior em que outro critério corresponde, ou nenhum, é resolvido um incidente cujo critério tem **Resolver incidente automaticamente** ligado, e também um alerta com **Resolver alerta automaticamente**. Ambos ficam em **Mais campos** dentro do incidente ou do alerta, e os critérios com que um novo monitor começa os têm ligados.
+- **O critério que age.** Em um monitor que para na primeira correspondência, o primeiro critério que corresponde declara os incidentes da verificação e cria seus alertas, mesmo quando não altera nenhum status e um critério abaixo dele define o status. Esse outro não abre nada na verificação: coloque os critérios que alteram o status acima dos que só alertam, o pior primeiro, como os de um novo monitor, e o status de uma verificação e o incidente dela virão do mesmo critério.
 - **Várias sondas.** Um monitor verificado por mais de uma sonda só muda quando suas sondas concordam. Veja [Como os critérios são avaliados](/docs/monitor/create-monitor#como-os-critérios-são-avaliados).
 - **Um monitor pai fora do ar.** Na página **Configuração → Dependências** de um monitor, **Depende dos monitores** indica os monitores dos quais ele depende. Enquanto um deles estiver em um status listado em **Suprimir quando o status do pai for** (qualquer status offline, se ficar vazio), o monitor não abre incidentes nem alertas. Seu status continua mudando, e o que está aberto continua sendo resolvido.
 - **A manutenção programada.** Um monitor em um evento de manutenção em andamento não é verificado, então seus critérios não são executados. Veja [Visão geral da manutenção programada](/docs/scheduled-maintenance/index).
@@ -231,6 +235,16 @@ Quando uma avaliação demora demais para o seu monitor, o seu resumo avisa voc�
 | À medida que os resultados chegam, como solicitações e e-mails recebidos | 5 segundos |
 
 Um décimo deixa a um monitor espaço para crescer dez vezes antes que as suas verificações se sobreponham e fiquem para trás, então você fica sabendo cedo. Abaixo de 5 segundos, uma verificação está bem, por maior que seja: avaliar 16.000 séries leva cerca de 2,5 segundos. Acima de um minuto, ela ocupa um worker e os bancos de dados que lê durante todo esse tempo, seja qual for o seu intervalo. Para acelerá-la, restrinja os filtros das suas consultas, agrupe por menos atributos ou verifique-a com menos frequência.
+
+## Quando os monitores de telemetria verificam
+
+Os monitores que leem telemetria, como os monitores de logs, de métricas, de traces, de Kubernetes, de host e de Docker, não são todos verificados no mesmo momento. Cada um tem seu próprio momento no seu intervalo, calculado a partir do ID do monitor: um monitor verificado a cada minuto é executado no mesmo segundo de cada minuto, um verificado a cada 5 minutos no mesmo momento de cada 5 minutos, e um verificado a cada hora ou com menos frequência dentro dos primeiros 5 minutos da hora ou do dia que seu intervalo indica. O momento continua o mesmo quando o OneUptime reinicia e em cada servidor, de modo que o armazenamento de telemetria é lido aos poucos ao longo do minuto, em vez de por todos os monitores ao mesmo tempo.
+
+Cada monitor mantém seu intervalo: suas verificações ficam exatamente tão espaçadas quanto antes. Cada verificação avalia a janela que termina no seu momento, mesmo quando é executada mais tarde, por exemplo enquanto o OneUptime está ocupado, ou quando uma verificação que falhou é repetida alguns segundos depois. Assim, uma janela tão longa quanto o intervalo cobre exatamente o tempo decorrido desde a verificação anterior: nenhum dado é avaliado duas vezes, e nenhum fica de fora. Uma janela inclui o seu início, mas não o seu fim, então um dado com carimbo de data e hora exatamente no momento em que uma janela termina e a seguinte começa é avaliado uma única vez, pela verificação posterior. O resumo de avaliação de uma verificação, em **Ver resumo** nos **Registros de monitoramento** do monitor, diz qual janela ela avaliou, assim como a causa raiz de um incidente ou de um alerta que ela abre. Enquanto o OneUptime está mais de um minuto atrasado na leitura da telemetria que recebeu, a janela de uma verificação termina, em vez disso, no ponto até onde o OneUptime já leu, de modo que uma verificação nunca avalia dados que ainda aguardam leitura. Se o OneUptime ficar tão atrasado que a próxima verificação de um monitor esteja prevista antes de a anterior ter começado, só a anterior é executada, para a sua própria janela, e a janela seguinte não é verificada.
+
+O que muda é em que momento do intervalo uma verificação é executada: até um intervalo mais tarde, e nunca mais de 5 minutos mais tarde. Um incidente ou um alerta pode abrir até esse tempo mais tarde do que se cada verificação fosse executada no início do seu intervalo, e às vezes mais cedo. A **Visão geral** do monitor mostra quando sua próxima verificação está prevista.
+
+Um monitor novo é verificado poucos segundos depois de ser criado, para a janela que termina então, e depois no seu próprio momento. O mesmo vale para um monitor que perdeu verificações enquanto estava desligado ou enquanto o OneUptime estava parado. Quando você altera o intervalo de um monitor, a próxima verificação passa para o novo intervalo. Logo depois de atualizar para uma versão do OneUptime que distribui as verificações, cada monitor é verificado mais uma vez no horário que o agendamento antigo previa para ele, e a partir daí no seu próprio momento.
 
 ## Alterar os critérios de um monitor
 
@@ -327,6 +341,12 @@ Um critério mais acima na lista correspondeu primeiro. Abra **Configuração �
 
 :::details Nenhum incidente foi aberto quando o monitor caiu
 Verifique o critério que correspondeu: **Quando os filtros corresponderem, declarar um incidente.** precisa estar ligado. Um incidente não é declarado enquanto o incidente do mesmo critério ainda estiver aberto, enquanto um monitor pai em **Depende dos monitores** estiver fora do ar, ou enquanto o monitor estiver em manutenção programada. O cartão **Resumo do monitor** na **Visão geral** do monitor diz qual foi.
+
+Um critério acima dele que não altera nenhum status, como um alerta de resposta lenta, pode corresponder primeiro: ele cria seu alerta, o critério abaixo define o status e só declara seu incidente em uma verificação em que é a primeira correspondência. Arraste os critérios que alteram o status para cima dos que só alertam.
+:::
+
+:::details O monitor voltou ao status padrão enquanto um alerta continuava aberto
+O critério do alerta não altera nenhum status, então não segura o monitor no status que uma verificação anterior definiu. O primeiro critério que corresponde e altera o status o define, e quando nenhum faz isso, o monitor vai para o seu **Status Padrão do Monitor**. Para manter um status enquanto um problema durar, dê ao critério que o define uma condição de recuperação própria: veja [Quando um critério se recupera](#quando-um-critério-se-recupera).
 :::
 
 :::details O incidente continua aberto depois que o monitor se recuperou

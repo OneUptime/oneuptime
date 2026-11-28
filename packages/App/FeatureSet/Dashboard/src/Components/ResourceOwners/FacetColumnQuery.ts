@@ -1,6 +1,9 @@
 import { FilterOperator } from "./FilterChipDropdownTypes";
 import { ResourceFacet } from "./ResourceFacet";
 import { buildFacetDateRangeQuery } from "./FacetDateRange";
+import FilterGroups, {
+  FILTER_GROUPS_QUERY_KEY,
+} from "Common/Types/BaseDatabase/FilterGroups";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
@@ -223,6 +226,27 @@ export const buildFacetColumnQuery: BuildFacetColumnQueryFunction = (data: {
     const linkedTo: LinkedTo | null = facet.toLinkedTo(values, operator);
 
     return linkedTo ? { field: LINKED_TO_QUERY_KEY, value: linkedTo } : null;
+  }
+
+  /*
+   * A facet whose values each stand for a condition on several of the
+   * record's own columns (a database's engine-metrics status) writes one
+   * FilterGroups under "filterGroups", which the server answers in the
+   * list's own query (#11211). It too takes picks.
+   */
+  if (facet.toFilterGroups) {
+    if (isValueless || values.length === 0) {
+      return null;
+    }
+
+    const filterGroups: FilterGroups | null = facet.toFilterGroups(
+      values,
+      operator,
+    );
+
+    return filterGroups
+      ? { field: FILTER_GROUPS_QUERY_KEY, value: filterGroups }
+      : null;
   }
 
   if (isValueless && !facet.handlesValuelessOperators) {

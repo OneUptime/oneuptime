@@ -63,7 +63,9 @@ flowchart LR
 
 È attivo in un nuovo progetto. Un progetto che esisteva già prima lo tiene disattivato, perché i client dell'API e le configurazioni Terraform del progetto possono contare su nomi che si ripetono: attivalo quando sei pronto.
 
-Sotto l'interruttore, la scheda elenca ogni nome che il progetto ha già più di una volta, tipo per tipo, con un link a ogni record e il giorno in cui è stato creato. Attivare l'interruttore non rifiuta nulla di ciò che esiste: quei record continuano a funzionare finché qualcuno non li rinomina, e solo un nuovo record o una rinomina hanno bisogno di un nome proprio. Salvare di nuovo un record con il suo stesso nome, con qualunque maiuscola, non è una rinomina.
+Sotto l'interruttore, la scheda elenca ogni nome che il progetto ha già più di una volta, tipo per tipo, con un link a ogni record e il giorno in cui è stato creato. Un budget OpenStack si apre sulla pagina **Spesa** del suo cloud, e un riepilogo di un'area di lavoro nella scheda **Riepilogo** della sua pagina Slack, Microsoft Teams o Mattermost. Gli agenti IA non hanno una pagina nella dashboard, quindi la scheda li nomina senza link e lo segnala. Attivare l'interruttore non rifiuta nulla di ciò che esiste: quei record continuano a funzionare finché qualcuno non li rinomina, e solo un nuovo record o una rinomina hanno bisogno di un nome proprio. Salvare di nuovo un record con il suo stesso nome, con qualunque maiuscola, non è una rinomina.
+
+Anche l'elenco di ogni tipo contrassegna quei record, con **Stesso nome di un altro elemento di tipo monitor** (o modello, chiave e così via) e il giorno in cui ciascuno è stato creato, e dice sopra l'elenco quanti sono. Un elenco contrassegna solo i record che puoi aprire.
 
 Qualunque cosa dica l'interruttore, un modulo avvisa mentre digiti un nome che un altro record del suo tipo ha già, con un link a quel record. Finché l'interruttore è attivo, l'avviso dice anche che il salvataggio verrebbe rifiutato.
 

@@ -140,6 +140,12 @@ import PermissionGate, {
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
 import { PAGE_ANCHOR_LANDED_ATTRIBUTE } from "../../../UI/Utils/PageAnchor";
+import {
+  TWIN_MARKS_NOTE_TEST_ID,
+  TWIN_MARK_CREATED_TEST_ID,
+  TWIN_MARK_PILL_TEST_ID,
+} from "../../../UI/Components/ModelTable/TwinMarkWords";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 
 function connection(
   id: string,
@@ -1829,5 +1835,90 @@ describe("the organization's devices that are not network devices here", () => {
     expect(lines(rows()[0]!)).toEqual([
       { state: "adding", text: "Adding devices from Meraki…" },
     ]);
+  });
+});
+
+/*
+ * Connections that share a name (#11021): the card draws its list itself,
+ * not through the shared list, so it marks them itself - a pill beside the
+ * name in the card's own word for a connection, the day it was made, and
+ * one note above the list - from the twins the server names. A read's
+ * status, polled while it runs, renames nothing, so the twins are not
+ * asked for again.
+ */
+describe("connections that share a name", () => {
+  let readSharedNames: jest.SpyInstance;
+
+  beforeEach(() => {
+    readSharedNames = getJestSpyOn(
+      UniqueNamesApi,
+      "readSharedNames",
+    ).mockResolvedValue({
+      groups: [[FIRST_ID, SECOND_ID]],
+      createdAt: {
+        [FIRST_ID]: "2026-10-01T00:00:00.000Z",
+        [SECOND_ID]: "2026-10-20T00:00:00.000Z",
+      },
+    });
+  });
+
+  test("each is marked beside its name, with the day it was made; the note above counts them", async () => {
+    connections = [
+      connection(FIRST_ID),
+      connection(SECOND_ID),
+      connection(THIRD_ID, { name: "Acme Campus" }),
+    ];
+
+    await renderCard();
+
+    expect(readSharedNames).toHaveBeenCalledTimes(1);
+    expect(readSharedNames).toHaveBeenCalledWith("NetworkControllerConnection");
+
+    const [first, second, third] = rows();
+
+    for (const row of [first!, second!]) {
+      expect(within(row).getByTestId(TWIN_MARK_PILL_TEST_ID)).toHaveTextContent(
+        "Same name as another Meraki connection",
+      );
+      expect(
+        within(row).getByTestId(TWIN_MARK_CREATED_TEST_ID),
+      ).toHaveTextContent("Created");
+    }
+    expect(within(third!).queryByTestId(TWIN_MARK_PILL_TEST_ID)).toBeNull();
+    // The name is still the row's first words, its status pill beside it.
+    expect(within(first!).getByTestId("meraki-connection-status")).toBeTruthy();
+
+    expect(screen.getByTestId(TWIN_MARKS_NOTE_TEST_ID)).toHaveTextContent(
+      "2 Meraki connections have the same name as another Meraki connection",
+    );
+  });
+
+  test("a read's status, polled while it runs, does not ask for the twins again", async () => {
+    connections = [connection(FIRST_ID), connection(SECOND_ID)];
+
+    await renderCard();
+    expect(readSharedNames).toHaveBeenCalledTimes(1);
+
+    getItemMock.mockImplementation(async () => {
+      return connection(FIRST_ID, {
+        lastPulledAt: new Date("2026-10-24T11:59:00.000Z"),
+      });
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(READ_NOW_POLL_MS * 2);
+    });
+    await flush();
+
+    expect(readSharedNames).toHaveBeenCalledTimes(1);
+  });
+
+  test("no twins: nothing marked, nothing said", async () => {
+    readSharedNames.mockResolvedValue({ groups: [], createdAt: {} });
+    connections = [connection(FIRST_ID)];
+
+    await renderCard();
+
+    expect(screen.queryByTestId(TWIN_MARK_PILL_TEST_ID)).toBeNull();
+    expect(screen.queryByTestId(TWIN_MARKS_NOTE_TEST_ID)).toBeNull();
   });
 });

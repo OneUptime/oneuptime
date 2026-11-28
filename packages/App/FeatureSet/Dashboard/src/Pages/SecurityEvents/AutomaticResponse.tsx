@@ -59,6 +59,9 @@ import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
 import { DELETE_QUESTION_TEMPLATE } from "Common/UI/Components/DeleteConfirmation/DeleteConfirmationMessage";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import useTwinMarks, {
+  TwinMarks,
+} from "Common/UI/Components/ModelTable/TwinMarks";
 import API from "Common/UI/Utils/API/API";
 import PermissionGate, {
   ModelAction,
@@ -70,6 +73,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useState,
 } from "react";
@@ -138,6 +142,29 @@ const SecurityAutomaticResponsePage: FunctionComponent<PageComponentProps> = (
       isCurrent = false;
     };
   }, [refreshCount]);
+
+  /*
+   * A policy whose name another policy has is marked beside its name, and
+   * the page says how many there are (TwinMarks, #11021): drawn here, not
+   * by the shared list, so marked here.
+   */
+  const twinMarks: TwinMarks = useTwinMarks({
+    modelType: SecurityAutomaticResponsePolicy,
+  });
+
+  useEffect(() => {
+    if (overview) {
+      twinMarks.onRowsRead(
+        overview.policies.map(
+          (
+            policy: SecurityAutomaticResponseOverviewPolicy,
+          ): { _id: string; name: string } => {
+            return { _id: policy.id, name: policy.name };
+          },
+        ),
+      );
+    }
+  }, [overview, twinMarks.onRowsRead]);
 
   // Same reseller-telemetry gate as every other Security Events page.
   if (props.currentProject?.reseller?.enableTelemetryFeatures === false) {
@@ -262,6 +289,8 @@ const SecurityAutomaticResponsePage: FunctionComponent<PageComponentProps> = (
           <></>
         )}
 
+        {twinMarks.note}
+
         <div className="space-y-5">
           {overview.policies.map(
             (policy: SecurityAutomaticResponseOverviewPolicy): ReactElement => {
@@ -272,6 +301,9 @@ const SecurityAutomaticResponsePage: FunctionComponent<PageComponentProps> = (
                 <AutomaticResponsePolicyCard
                   key={policy.id}
                   policy={policy}
+                  markName={(name: ReactNode): ReactNode => {
+                    return twinMarks.drawName({ id: policy.id, name: name });
+                  }}
                   destinations={overview.destinations}
                   maxBlocksPerHour={overview.maxBlocksPerHour}
                   canChange={gate.isAllowed}

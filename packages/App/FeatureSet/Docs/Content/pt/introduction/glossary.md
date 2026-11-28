@@ -40,7 +40,7 @@ Veja [Criar um monitor](/docs/monitor/create-monitor).
 
 ### Critérios
 
-As regras de um monitor: o que cada resultado de verificação significa. Elas são avaliadas em ordem, e a primeira que corresponde pode mudar o status do monitor, declarar um incidente, criar um alerta ou as três coisas.
+As regras de um monitor: o que cada resultado de verificação significa. Elas são avaliadas em ordem, e a primeira que corresponde pode mudar o status do monitor, declarar um incidente, criar um alerta ou as três coisas. Uma que não altera nenhum status deixa o status para a próxima que corresponde e o altera.
 
 Também chamado: **Critérios de Monitoramento**, **Critérios do monitor**, **Monitor Steps**. Veja [Critérios e status](/docs/monitor/criteria-and-statuses).
 

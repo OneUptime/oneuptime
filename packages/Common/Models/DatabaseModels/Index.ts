@@ -78,10 +78,14 @@ import StorageArray from "./StorageArray";
 import StorageArrayOwnerTeam from "./StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "./StorageArrayOwnerUser";
 import StorageArrayResource from "./StorageArrayResource";
+import StorageArrayConnection from "./StorageArrayConnection";
+import StorageArrayConnectionTest from "./StorageArrayConnectionTest";
 import XcpNgPool from "./XcpNgPool";
 import XcpNgPoolOwnerTeam from "./XcpNgPoolOwnerTeam";
 import XcpNgPoolOwnerUser from "./XcpNgPoolOwnerUser";
 import XcpNgResource from "./XcpNgResource";
+import XcpNgConnection from "./XcpNgConnection";
+import XcpNgConnectionTest from "./XcpNgConnectionTest";
 import VMwareVCenter from "./VMwareVCenter";
 import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
 import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
@@ -111,6 +115,7 @@ import CloudTagCoverageDay from "./CloudTagCoverageDay";
 import CloudTagFinding from "./CloudTagFinding";
 import CloudTagSetting from "./CloudTagSetting";
 import CloudCostRecommendation from "./CloudCostRecommendation";
+import CloudCostReport from "./CloudCostReport";
 import CloudCostSetting from "./CloudCostSetting";
 import CloudOffHoursSchedule from "./CloudOffHoursSchedule";
 import CloudSavingsAction from "./CloudSavingsAction";
@@ -522,6 +527,7 @@ import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
 import AIPostmortemRule from "./AIPostmortemRule";
 import ExternalMcpServer from "./ExternalMcpServer";
+import ExternalMcpToolReadOnlyMark from "./ExternalMcpToolReadOnlyMark";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -1066,6 +1072,7 @@ const AllModelTypes: Array<{
   AutoRemediationDecision,
   AIPostmortemRule,
   ExternalMcpServer,
+  ExternalMcpToolReadOnlyMark,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,
@@ -1371,10 +1378,14 @@ const AllModelTypes: Array<{
   StorageArrayOwnerTeam,
   StorageArrayOwnerUser,
   StorageArrayResource,
+  StorageArrayConnection,
+  StorageArrayConnectionTest,
   XcpNgPool,
   XcpNgPoolOwnerTeam,
   XcpNgPoolOwnerUser,
   XcpNgResource,
+  XcpNgConnection,
+  XcpNgConnectionTest,
   VMwareVCenter,
   VMwareVCenterOwnerTeam,
   VMwareVCenterOwnerUser,
@@ -1403,6 +1414,7 @@ const AllModelTypes: Array<{
   CloudTagFinding,
   CloudTagSetting,
   CloudCostRecommendation,
+  CloudCostReport,
   CloudCostSetting,
   CloudOffHoursSchedule,
   CloudSavingsAction,

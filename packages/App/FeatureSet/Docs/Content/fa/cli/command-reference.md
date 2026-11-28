@@ -261,6 +261,44 @@ oneuptime <resource> add-note <id> --note <markdown> [--public]
 | `--note <markdown>` | بله | یادداشت، به Markdown |
 | `--public` | خیر | آن را روی صفحه‌های وضعیت رکورد منتشر می‌کند، جایی که مشترکانش باخبر می‌شوند. فقط حادثه‌ها، اپیزودهایشان و تعمیر و نگهداری زمان‌بندی‌شده |
 
+### `oneuptime <resource> breakdown`
+
+فقط `cloud-cost`. هزینهٔ ابرها در یک دوره، تفکیک‌شده همان‌طور که **ابر** > **مخارج** > **هزینه‌ها** تفکیکش می‌کند، با دورهٔ قبل کنار هر سطر: بر اساس سرویس، منطقه، حساب، منبع، محیط بسترهای برنامه، برنامه، مقدار یک تگ یا گروه‌های یک نمای هزینه. همان‌طور می‌خواند که کلید اجازهٔ خواندن هزینه‌ها را دارد. [گزارش‌ها و خروجی‌ها](/docs/telemetry/cloud-costs#گزارشها-و-خروجیها) را ببینید.
+
+```bash
+oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
+```
+
+| گزینه | الزامی | چیست | پیش‌فرض |
+| --- | --- | --- | --- |
+| `--by <dimension>` | خیر | بر چه اساسی مخارج تفکیک شود: `service`، `region`، `account`، `resource`، `environment`، `app`، `tag` یا `group` | `service` |
+| `--tag-key <key>` | با `--by tag` | تگی که مخارج بر اساس مقدارهایش تفکیک می‌شود، مانند `team` | |
+| `--view <id>` | با `--by group` | نمای هزینه‌ای که مخارج بر اساس گروه‌هایش تفکیک می‌شود | |
+| `--period <period>` | خیر | روزهایی که خوانده می‌شوند: `this-month`، `last-month`، `last-week` یا `last-30-days`، بر پایهٔ تقویم UTC | `this-month` |
+| `--start-date <date>` | خیر | روز نخست، مانند `2026-11-01`، به جای `--period` | |
+| `--end-date <date>` | خیر | روز آخر، مانند `2026-11-30`، همراه با `--start-date` | |
+| `--account <id...>` | خیر | فقط هزینه‌های این حساب ابری؛ برای چند حساب تکرارش کنید | همهٔ حساب‌ها |
+| `--currency <code>` | خیر | ارز، مانند `USD` | ارزی که بیشتر حساب‌های شما با آن صورت‌حساب می‌شوند |
+| `--basis <basis>` | خیر | مبنای هزینه: `billed`، `amortized` یا `net` | مبنای پروژه |
+| `--no-compare` | خیر | دورهٔ قبل را کنار می‌گذارد | |
+| `--csv` | خیر | همان CSV را چاپ می‌کند که **دانلود CSV** در صفحهٔ «هزینه‌ها» می‌دهد | |
+
+### `oneuptime <resource> export`
+
+فقط `cloud-cost`. همهٔ هزینه‌های یک دوره به‌صورت یک فایل FOCUS 1.2، برای ابزارهای مالی‌ای که FOCUS می‌خوانند. هر بار حداکثر ۹۳ روز. [FOCUS](/docs/telemetry/cloud-costs#focus) را ببینید.
+
+```bash
+oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--file <path>]
+```
+
+| گزینه | الزامی | چیست | پیش‌فرض |
+| --- | --- | --- | --- |
+| `--period <period>` | خیر | روزهایی که خروجی گرفته می‌شوند: `this-month`، `last-month`، `last-week` یا `last-30-days` | `last-month` |
+| `--start-date <date>` | خیر | روز نخست، مانند `2026-10-01`، به جای `--period` | |
+| `--end-date <date>` | خیر | روز آخر، مانند `2026-12-31`، همراه با `--start-date` | |
+| `--account <id...>` | خیر | فقط هزینه‌های این حساب ابری؛ برای چند حساب تکرارش کنید | همهٔ حساب‌ها |
+| `--file <path>` | خیر | فایل را اینجا می‌نویسد | خروجی استاندارد |
+
 ### منابع
 
 هر منبع API OneUptime یک دستور است، با عملیاتی که API برای آن می‌پذیرد، `fields`، و کنش‌های رکوردهایی که کنش دارند:

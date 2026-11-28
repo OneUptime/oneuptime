@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "IoT फ़्लीट हटाने से उसकी डिवाइस रजिस्ट्री भी हट जाती है, इसलिए पंजीकृत डिवाइस अब साइन इन नहीं कर सकते।",
   "Deleting a database also deletes the endpoints it is reached at.": "डेटाबेस हटाने से वे एंडपॉइंट भी हट जाते हैं जिन पर वह उपलब्ध है।",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "क्लाउड कनेक्शन हटाने पर OneUptime उस खाते को पढ़ना बंद कर देता है। उसके संसाधन अपने मेट्रिक्स के साथ बने रहते हैं।",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "स्टोरेज ऐरे कनेक्शन हटाने से OneUptime उसके पीछे के ऐरे पढ़ना बंद कर देता है, और उसका सहेजा गया पासवर्ड और कनेक्शन परीक्षण हटा देता है। उसके ऐरे अपने मेट्रिक के साथ बने रहते हैं।",
   "True": "सही",
   "False": "गलत",
   "Key": "कुंजी",
@@ -4622,5 +4623,19 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "इस मॉनिटर टेम्पलेट का कोई मॉनिटर प्रकार नहीं है, इसलिए इसके मॉनिटर सिंक नहीं किए जा सकते। मॉनिटर प्रकार के साथ टेम्पलेट फिर से बनाएं।",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "टेम्पलेट सिंक सेटिंग्स के लिए टेम्पलेट का मॉनिटर प्रकार चाहिए। पहले मॉनिटर प्रकार चुनें, फिर सिंक सेटिंग्स दोबारा चुनें।",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "मॉनिटर टेम्पलेट \"{{field}}\" को सिंक नहीं कर सकता। टेम्पलेट जो टेम्पलेट सिंक सेटिंग्स देता है, उनमें से चुनें, फिर दोबारा सहेजें।",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "अभी कोई नया व्यक्ति साइन इन नहीं कर सकता। जुड़े हुए प्रोजेक्ट में एक प्रोजेक्ट जोड़ें, उन टीमों के साथ जिनमें वे शामिल होंगे।"
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "अभी कोई नया व्यक्ति साइन इन नहीं कर सकता। जुड़े हुए प्रोजेक्ट में एक प्रोजेक्ट जोड़ें, उन टीमों के साथ जिनमें वे शामिल होंगे।",
+  "This issue does not exist, or you cannot read it.": "यह इश्यू मौजूद नहीं है, या आप इसे नहीं पढ़ सकते।",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "इस इश्यू से पहले ही 10 पुल रिक्वेस्ट लिंक हैं। दूसरा लिंक करने से पहले एक हटाएँ।",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "यह इश्यू अलग रखा गया है: इसका जोखिम स्वीकार किया गया, या यह इश्यू नहीं है। इसे ठीक करने वाला पुल रिक्वेस्ट लिंक करने के लिए इसे फिर से खोलें।",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} पहले से इस इश्यू से लिंक है।",
+  "All XCP-ng pools": "सभी XCP-ng पूल",
+  "Only XCP-ng pools that match conditions": "केवल शर्तों से मेल खाने वाले XCP-ng पूल",
+  "All savings": "सभी बचतें",
+  "Only savings that match conditions": "केवल शर्तों से मेल खाने वाली बचतें",
+  "XCP-ng Pool": "XCP-ng पूल",
+  "Same name as another {{kind}}": "किसी दूसरे रिकॉर्ड ({{kind}}) जैसा नाम",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "इस प्रोजेक्ट में किसी दूसरे रिकॉर्ड ({{kind}}) का भी यही नाम है, इसलिए चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। हर एक को खोलकर देखें कि कौन-सा कौन है, फिर किसी एक का नाम बदलें।",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} रिकॉर्ड ({{kind}}) का नाम किसी दूसरे रिकॉर्ड ({{kind}}) जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। हर एक को खोलकर देखें कि कौन-सा कौन है, फिर किसी एक का नाम बदलें।",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} रिकॉर्ड ({{kinds}}) का नाम किसी दूसरे रिकॉर्ड ({{kind}}) जैसा ही है, और चयनकर्ताओं में उन्हें अलग-अलग नहीं पहचाना जा सकता। हर एक को खोलकर देखें कि कौन-सा कौन है, फिर किसी एक का नाम बदलें।",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} रिकॉर्ड ({{kind}}) का नाम किसी दूसरे रिकॉर्ड ({{kind}}) जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। हर एक को खोलकर देखें कि कौन-सा कौन है, फिर किसी एक का नाम बदलें।"
 }

@@ -23,7 +23,7 @@ Open **Gepland onderhoud** via het menu **Producten** in de bovenste balk. De se
 
 De sectie **Instellingen** bevat **Onderhoudsstatus**, behandeld in [Onderhoudsstatussen](/docs/scheduled-maintenance/states), **Onderhoudssjablonen**, behandeld in [Sjablonen en terugkerende gebeurtenissen](/docs/scheduled-maintenance/templates), en daarna **Notitie-sjablonen**, **Goedkeuring van openbare notities**, **Aangepaste velden**, **Metingen**, **Agenda-instellingen** en **Nummering**. **Agenda-instellingen** wordt behandeld in [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#externe-agendas), de rest hieronder.
 
-De sectie **Werkruimte** bevat de Slack- en Microsoft Teams-regels die gebeurtenissen in kanalen plaatsen. Zie [Slack](/docs/workspace-connections/slack#meldingsregels) en [Microsoft Teams](/docs/workspace-connections/microsoft-teams#meldingsregels).
+De sectie **Werkruimte** bevat de Slack- en Microsoft Teams-regels die gebeurtenissen in kanalen plaatsen: elke gebeurtenis zodra die is aangemaakt, daarna de statuswijzigingen, notities, toegevoegde en verwijderde eigenaren en herinneringen ervan, zoals elke regel kiest in zijn stap **Updates**. Zie [Slack](/docs/workspace-connections/slack#meldingsregels) en [Microsoft Teams](/docs/workspace-connections/microsoft-teams#meldingsregels).
 
 ## De regels die een nieuwe gebeurtenis doorloopt
 

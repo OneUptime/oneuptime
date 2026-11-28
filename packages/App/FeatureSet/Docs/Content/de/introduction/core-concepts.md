@@ -44,7 +44,7 @@ Personen gehören über **Teams** zu einem Projekt, und die Berechtigungen eines
 
 Ein **Monitor** prüft eine Sache, die Sie betreiben, und entscheidet, ob sie funktioniert. Die meisten Monitore werden von **Sonden** geprüft: Rechnern, die die Prüfung nach Zeitplan ausführen, etwa eine Seite abrufen, eine API aufrufen, einen Host anpingen oder eine Datenbank abfragen. OneUptime Cloud betreibt Sonden in mehreren Regionen, eine selbst gehostete Installation betreibt ihre eigenen, und Sie können benutzerdefinierte Sonden in Ihrem Netzwerk hinzufügen. Andere Monitore lesen stattdessen, was Sie senden: die Telemetrie Ihrer Anwendungen oder die Daten, die ein Agent auf Ihren Servern, Kubernetes-Clustern und anderer Infrastruktur meldet.
 
-Die **Kriterien** eines Monitors entscheiden, was jedes Ergebnis bedeutet. Sie werden der Reihe nach geprüft, und das erste zutreffende kann den Status des Monitors ändern, einen Vorfall melden, eine Warnung erstellen oder alles drei. Jedes neue Projekt hat drei Monitorstatus: **Betriebsbereit**, **Beeinträchtigt** und **Offline**.
+Die **Kriterien** eines Monitors entscheiden, was jedes Ergebnis bedeutet. Sie werden der Reihe nach geprüft, und das erste zutreffende kann den Status des Monitors ändern, einen Vorfall melden, eine Warnung erstellen oder alles drei. Eines, das keinen Status ändert, überlässt den Status dem nächsten Kriterium, das zutrifft und ihn ändert. Jedes neue Projekt hat drei Monitorstatus: **Betriebsbereit**, **Beeinträchtigt** und **Offline**.
 
 :::cards
 - [Einen Monitor erstellen](/docs/monitor/create-monitor): Einen Typ wählen, festlegen, was geprüft wird, und wie oft.

@@ -1,6 +1,6 @@
 # Cloud Costs and Savings
 
-A connected cloud account also says what it costs and how it could cost less. OneUptime reads each day's costs from your cloud's own billing and the recommendations of your cloud's own recommender, shows them under **Cloud → Spend → Costs** and **Cloud → Spend → Savings**, lists your Savings Plans, reservations and committed use discounts under **Cloud → Spend → Commitments**, and alerts before a month costs more than its budget under **Cloud → Spend → Budgets**. Once you let it, it also makes the savings an owner approves, stops non-production resources outside working hours, and checks each change against the bill.
+A connected cloud account also says what it costs and how it could cost less. OneUptime reads each day's costs from your cloud's own billing and the recommendations of your cloud's own recommender, shows them under **Cloud → Spend → Costs** and **Cloud → Spend → Savings**, lists your Savings Plans, reservations and committed use discounts under **Cloud → Spend → Commitments**, tells you before a month, a quarter or a year costs more than its budget under **Cloud → Spend → Budgets**, and forecasts the months ahead under **Cloud → Spend → Forecast**. Once you let it, it also makes the savings an owner approves, stops non-production resources outside working hours, and checks each change against the bill.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer and Cost Optimization Hub, each turned on once.
@@ -11,7 +11,8 @@ A connected cloud account also says what it costs and how it could cost less. On
 - [Act on savings](#act-on-savings): Apply a saving with its owner's approval, and undo it.
 - [Off-hours schedules](#off-hours-schedules): Stop non-production resources at night and on weekends.
 - [AI rules for savings](#ai-rules-for-savings): Proposals for owners, or changes within a limit.
-- [Budgets](#budgets): An alert as a month's spend passes a share of its budget.
+- [Budgets](#budgets): A month's, a quarter's or a year's budget for any account, cost group or service.
+- [Forecasts](#forecasts): What the next 12 months are on course to cost, and how sure that is.
 - [Required tags](#required-tags): How much of your spend carries the tags you require, and new resources without them.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Your cloud's billing,<br/>read twice a day"] --> costs["Costs"]
     rec["Your cloud's recommender,<br/>read once a day"] --> savings["Savings"]
     costs --> budgets["Budgets that alert"]
+    costs --> forecast["Forecasts"]
+    forecast --> budgets
     costs --> overview["Cloud's Overview"]
     savings --> overview
 ```
@@ -222,30 +225,41 @@ When working hours end, a schedule stops every running resource its tag picks th
 A schedule never stops production, or a resource whose environment nothing says. A resource is known not to be production when:
 
 - one of its tags says so, under a key such as `environment`, `env`, `stage`, `tier` or `deployment.environment`, with a word such as `dev`, `test`, `qa`, `staging` or `sandbox`;
-- its account is marked **Non-production** under **Environment** on the account's **Settings**;
-- or one of its labels says so, such as `Staging` or `env: dev`.
+- or its account is marked **Non-production** under **Environment** on the account's **Settings**.
 
-Production wins: a tag that says `prod`, `production` or `live`, or an account marked **Production**, keeps a resource running whatever else says. A resource's name is never read for it. Turn a schedule off and it stops nothing more, and starts what it stopped when its working hours begin; delete it and what it stopped is started at once.
+A OneUptime label never makes a resource non-production for a schedule. Renaming a label changes every resource that carries it at once, so a label such as `Staging` or `env: dev` is read only where a person approves the change, as **Apply** does. Production wins: a tag that says `prod`, `production` or `live`, an account marked **Production**, or a label such as `Production` or `env: prod` keeps a resource running whatever else says. A resource's name is never read for it. Each stop reads the resource again just before it is made. Turn a schedule off and it stops nothing more, and starts what it stopped when its working hours begin; delete it and what it stopped is started at once.
 
 ## AI rules for savings
 
 With **Enable AI** on, OneUptime AI proposes each saving it can make to the resource's owners after each read of the account's savings, and they approve or dismiss it under **Waiting for Approval**. Under **Cloud → Settings → Savings AI Rules**, a rule says what OneUptime AI does with the savings it matches, by the kind of change, the resource's environment and its cloud: **Off**, **Propose to the owner**, or **Act without asking**, up to a monthly limit. With no rule, every saving is proposed and none is made; with rules, only what a rule matches, and between rules that match, the more careful one wins.
 
-A rule acts without asking only on a resource known not to be production, only for a change that can be undone, only up to the smallest limit of the rules that match, and at most 10 times an hour in a project: everything else is proposed. A change made without asking is on the timelines with the rule that made it, and its owners can undo it. A saving dismissed or undone is not proposed again for 30 days.
+A rule acts without asking only on a resource known not to be production as a schedule reads it, by its tags or its account and never by its labels alone, only for a change that can be undone, only up to the smallest limit of the rules that match, and at most 10 times an hour in a project: everything else is proposed. The resource is read again just before the change is made, and one that is no longer known not to be production by then is proposed instead. A change made without asking is on the timelines with the rule that made it, and its owners can undo it. A saving dismissed or undone is not proposed again for 30 days.
 
 ## Budgets
 
 :::steps
 ### Create a budget
 
-Under **Cloud → Spend → Budgets**, create a budget: its **Monthly Amount**, the **Account** it is for, or none for every account, and the **Cost Basis** it counts, or none for the project's.
+Under **Cloud → Spend → Budgets**, create a budget and choose what it **Applies To**: every account, one **Account**, a **Cost Group** as its rules sort the spend, or the services, Regions and tags a **Filter** names, written as a cost group's rules are. Leave its **Cost Basis** empty to count the project's.
+
+### Say what it may cost
+
+Its **Period** is a month, a quarter or a year, and its **Amount** is what one period may cost. Quarters and years start in the **First Month of the Year**: from April, a year runs from April to March. A year's **Budget Plan** can split its amount equally over its months, or give each month its own in a **Monthly Plan**. Each month is then held to its own share, so a quiet month is never warned for a busy month's spend.
 
 ### Choose when it alerts
 
-**Alert At** takes the shares of the budget to alert at, in percent: 80 and 100 to start with. **Alert When On Course To Pass** also alerts, once a month, when the last week's pace would take the month past the budget. **Alert On Unusual Days** also alerts the day after a day that cost far more than usual: see [Unusual days](#unusual-days). **Alert Severity** and **On-Call Policies** say how severe the alerts are and who is paged.
+**Alert At** takes the shares of the budget to act at, in percent: 80 and 100 to start with. **Alert When On Course To Pass** also alerts, once a period, when the period is on course to cost more than the budget. **Alert On Unusual Days** also alerts the day after a day that cost far more than usual: see [Unusual days](#unusual-days). **Alert Severity** says how severe its alerts are.
+
+### Choose who hears
+
+The people and teams to **Notify** are told by email and chat as the spend passes a share below 100%, with no alert, so nobody is paged for spend within the budget. **Notify the Cost Group's Team** tells the team the cost group belongs to as well. From 100%, an alert is raised, they own it, and the **On-Call Policies** are paged. A budget with nobody to tell raises an alert at every share.
 :::
 
-A budget is checked after every read of the costs and every hour. As the month's spend passes a threshold, one alert is raised for it, the highest when a read passes several at once, and a new month resolves the last month's alerts. A budget counts only the accounts billed in its currency, on its basis: an amortized budget is not set off by a commitment bought up front, which a billed one counts on the day it was bought.
+A budget is checked after every read of the costs and every hour. As the period's spend passes a share, the people to notify are told, or from 100% an alert is raised, once for the highest when a read passes several at once, and a new period resolves the last period's alerts. A year split by month is checked a month at a time, against that month's share. A budget counts only the accounts billed in its currency, on its basis: an amortized budget is not set off by a commitment bought up front, which a billed one counts on the day it was bought.
+
+A period is on course to pass when what it cost so far, the rest of this month at the last full week's pace, and a quarter's or a year's later months as [forecast](#forecasts) come to more than the budget.
+
+Each budget's row says what it counts, its period and the period so far: for a year split by month, this month against its share, with the year beside it. Its page shows the period month by month against each month's share, this month day by day, what cost the most, and who hears. A yearly budget's page can save its forecast as its plan.
 
 AI agents can create and change budgets through the [MCP server](/docs/ai/mcp-server), and scripts with the CLI's `oneuptime cloud-budget` command: see [Resource Operations](/docs/cli/resource-operations).
 
@@ -253,7 +267,41 @@ AI agents can create and change budgets through the [MCP server](/docs/ai/mcp-se
 
 After every read, each of an account's last 14 full days is held to the 14 days before it. A day is unusual when a service cost twice its usual day or more, or the whole account one and a half times its usual day or more. Either must be at least 10 more than usual, in the account's currency, and at least 5% of the account's usual day, so a few cents are never a spike. A day's usual is the median of the 14 days before it, so one spike moves it little, and an account is judged only once it has a week of costs.
 
-**Cloud → Spend → Costs** marks the unusual days on the daily spend, above their bars, and lists them under it. Over every account, each mark opens its account's **Costs**. A budget that counts the account raises one alert for each account and day, the day after, naming every service that ran high. A spike that goes on for days is reported on the day it began, and a day more than a week old is not reported. A budget made before these alerts existed does not raise them until you edit it and turn them on.
+**Cloud → Spend → Costs** marks the unusual days on the daily spend, above their bars, and lists them under it. Over every account, each mark opens its account's **Costs**. A monthly budget for every account or one raises one alert for each account and day, the day after, naming every service that ran high. Any other budget holds what it counts to its own usual day the same way. A spike that goes on for days is reported on the day it began, and a day more than a week old is not reported. A budget made before these alerts existed does not raise them until you edit it and turn them on.
+
+## Forecasts
+
+**Cloud → Spend → Forecast** says what the spend is on course to cost in each of the next 12 months, for everything, an account, a cost group or a service, on the cost basis you pick. It says how each forecast is made, from the full months of costs OneUptime keeps, a year or a little more:
+
+- **This month** is what it cost so far, with each day still to come at the average of the last seven full days, as a budget projects it.
+- **With fewer than 3 full months**, each month ahead is that pace carried forward, with no likely range: too little has been read to tell a trend from a blip.
+- **From 3 full months**, a trend runs through each month's average day: the median of the slopes between every two months, so one odd month barely moves it.
+- **From 12 full months**, each calendar month also keeps how far it ran above or below the trend last year, so a December peak is forecast for the next December too.
+
+Each month ahead has a likely range, where it should land 8 times in 10, from how far the past months fell from their trend and never narrower than 5% either side. It widens the further ahead a month is, and the fewer months the forecast was made from. From 12 full months, every range is wider still, because a year shows each calendar month only once. A forecast is no promise: a new service, a migration or a price change moves the months ahead in ways no past month shows.
+
+**What If** grows or shrinks every month ahead from the month you choose, by the share you type, such as 20% from January. **Save as Budget Plan** makes the next twelve months a yearly budget's plan, in a new budget or one you have, each month held to its forecast share.
+
+## Budgets and forecasts in the API
+
+Budgets are an API resource (`cloud-budget`), with CLI commands and MCP tools as every resource has. A budget's `scope` is `allAccounts`, `account` (with `cloudAccountId`), `costGroup` (with `cloudCostGroupId`) or `filter` (with `filterRules`, written as a cost group's rules are). Its `period` is `month`, `quarter` or `year`, from `fiscalYearStartMonth`, 1 to 12. A year's `planSplit` is `none`, `equal` or `byMonth`, with its twelve months in `monthlyPlan`, in the fiscal year's order.
+
+To read a budget's period month by month, this month's days and what cost the most, as its page does:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+To forecast a scope, for 1 to 24 months ahead, with an optional what-if:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+The answer's `forecast` has its `method` (`pace`, `trend` or `trendAndSeason`), the months it was made from, and each month with its `amount` and, ahead, its `low` and `high`. Send `basis` as `billed`, `amortized` or `net` to forecast on that basis; without it the forecast is on the project's, and the answer's `basis` says which. A budget's spend is on its own basis.
 
 ## Where the money goes
 
@@ -313,14 +361,84 @@ OneUptime suggests a value only when it is one the tag allows:
 
 The command sets the tag in one step, from your cloud's own shell: `aws resourcegroupstaggingapi tag-resources` on AWS, `az tag update --operation Merge` on Azure, and `gcloud ... add-labels` or `--update-labels` for Compute Engine VMs and disks, Cloud Storage buckets and Cloud SQL instances on Google Cloud.
 
+## Reports and exports
+
+### Cost reports
+
+**Cloud → Spend → Reports** sends what the clouds cost on a schedule, by email and to Slack or Microsoft Teams channels, so the people who need the figures get them without opening OneUptime. A report has:
+
+- **Covers**: every account, one account, a cost group, or a cost view with all its groups.
+- **Period**: last week (Monday to Sunday), last month, or the month so far. Each is compared with the period before: the week before, the month before, or last month by the same day.
+- **Cost Basis**: billed, amortized or net. Empty, it is the project's, as Costs opens on. The report always says which basis it is on.
+- **Schedule**: every week or every month, at a day and time in a time zone, by the same rules as Slack and Microsoft Teams summaries. A new weekly report goes out next Monday at 09:00 in your time zone, a monthly one on the 1st, and later reports keep that day and time all year.
+
+The email says what the period cost against the period before, the budgets it counts towards (each month so far, on the budget's own basis), the services that rose and fell the most, a cost view's groups and what no group takes, the unusual days, the largest savings waiting and how much of the spend commitments cover. Its figures are attached as a CSV. **Open Costs** opens **Costs** on exactly the report's days, basis and view, so the report's numbers and the page's are the same. Accounts billed in another currency are left out of the figures, and the report names them.
+
+A Slack or Microsoft Teams channel gets a short message: the total and its change, the budget, the first lines of the report's lists, and **Open Costs**.
+
+### Who gets a report
+
+- People and teams of the project get it by email, through their notification settings, where each person can turn cloud cost reports off. Each person gets the figures they may read: someone whose access is limited by labels gets their accounts only, and someone who may no longer read the project's cloud costs is left out.
+- **Email Addresses** outside the project, such as your accountant's, and Slack and Microsoft Teams channels need the Cloud Admin permission, or Project Admin or Owner, because OneUptime can't tell who reads them. They get the report as the person who added them may read it, and stop getting it if that person loses the permission. An API key can't set them.
+- Anyone who may make the other Cloud records, Cloud Member and up, can make, change and delete reports. A Cloud Viewer can read them.
+
+A report goes to at most 200 people, 25 addresses and 10 channels of each kind. **Last Send** says when it last went out, and who it left out and why.
+
+### A section for each team
+
+A report of a cost view can send each group its own section with **Send Each Group's Team Its Section**. The members of each group's team, given on the group, get their group's spend against the period before, the services in it that rose and fell the most, and its unusual days. A shared group has no section of its own: its costs are in the groups it is split between. The report's own people, teams and addresses get every group. Someone on two groups' teams gets both sections. One monthly report of a cost view this way is the month's showback.
+
+### Preview and Send Me a Copy
+
+**Preview** shows what a report says now, as you may read it, the way the email lays it out, and who its last send left out and why. **Send Me a Copy** emails it to you now.
+
+### Download CSV
+
+**Download CSV** saves what a card shows: **Where the money goes** on **Costs**, in any breakdown and against the period before, each day's spend, **Savings**' recommendations, and a cost group's page. The file's name says what it holds, what it is broken down by, the view and the account, the cost basis and the days, such as `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Figures are plain numbers, and a text that a spreadsheet would read as a formula starts with an apostrophe.
+
+### FOCUS
+
+**Export FOCUS** on **Costs** downloads every cost of the period as a FOCUS 1.2 file, the FinOps Open Cost and Usage Specification, version 1.2, which finance tools read. One file holds at most 93 days, and every currency the accounts are billed in, each row in its own.
+
+The file has every column FOCUS 1.2 makes mandatory, and the conditional ones OneUptime has the data for: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` and `Tags`. It has a row for each cost OneUptime keeps: a day, an account, a service, a Region and, where the cloud names it, a resource.
+
+- `BilledCost` is what the cloud billed, and `EffectiveCost` what it cost with commitments spread over what they cover.
+- What the cloud took off, its credits, refunds and discounts, is a row of its own, with a `ChargeCategory` of `Credit`. The file's `EffectiveCost` added up is the net cost.
+- `ChargeCategory` is `Tax` for the costs AWS bills under its Tax service, and `Usage` for the rest.
+- `BillingAccountId` is the account the connection reads the bill from: an AWS organization's management account, a Google Cloud billing account, or the Azure subscription, as the Azure billing account isn't read. `SubAccountId` is the AWS account, the Azure subscription or the Google Cloud project.
+- Dates are whole UTC days, with the charge period's and the billing period's end not included. The billing period is the calendar month.
+
+What FOCUS 1.2 asks for that OneUptime doesn't read is left empty or matched as the specification allows. `PricingQuantity` and `PricingUnit` are empty, because the costs are read by day, service, Region and resource, not by usage type. `ListCost` and `ContractedCost` equal `BilledCost`, as FOCUS asks when unit prices aren't known. A purchase, such as a reservation's upfront fee, is the usage of the service it was bought for. There are no SKU, commitment discount, capacity reservation or invoice columns. FOCUS 1.3 and 1.4 add columns that a reader of 1.2 does without.
+
+### From the API and the CLI
+
+The API answers a breakdown, not only the costs' rows, so a finance system can pull the month's chargeback:
+
+- `POST /api/cloud-cost/breakdown` with `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` with a `tagKey`, or `group` with a `cloudCostViewId`), a `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) or a `startDate` and an `endDate`, and optionally `cloudAccountIds`, `currency`, `basis` and `compareWithPrevious`. It answers the period's total and each share, with the period before beside them, or with `"format": "csv"` the CSV that **Download CSV** gives.
+- `POST /api/cloud-cost/export` with a `period`, or a `startDate` and an `endDate`, answers the FOCUS file.
+
+Both read as the key may read the costs. From the [CLI](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### On a dashboard
+
+The **Cloud Cost** widget puts a total, a breakdown or a trend of the spend beside the services that spend it. See [Dashboard Widgets](/docs/dashboards/widgets#cloud-costs).
+
 ## What you see in OneUptime
 
 - **Cloud's Overview.** **Cloud → Overview** shows the month's spend against last month's by the same day, the services that cost the most and the largest ways to spend less, beside what needs attention.
 - **Every day's spend.** **Cloud → Spend → Costs** draws each of the last 30 days with the days that cost far more than usual marked, lists those days and breaks a period down by service, Region, account, resource, App Platforms environment, app or tag, billed, amortized or net. The accounts whose costs are not read are listed under it, each with why.
 - **Every commitment.** **Cloud → Spend → Commitments** lists each one with when it ends and how much of it is used, the ones ending soon with what to renew, and what to buy.
+- **Reports.** **Cloud → Spend → Reports** lists each scheduled report with what it covers, when it goes out next and how its last send went.
 - **An account's costs.** An account's **Costs** shows the same for the account alone, with its commitments and its ways to spend less.
 - **Required tags.** **Cloud → Spend → Tags** shows how much of the spend and of the resources carry your required tags, and an account's **Tags** shows the same for the account alone.
 - **A resource's cost.** A resource's page shows what it cost this month and in the last 30 days when its cloud bills it by name, with its ways to spend less and its right-sizing.
+- **Every budget.** **Cloud → Spend → Budgets** lists each budget with what it counts, its period and the period so far, and each opens its page.
+- **The months ahead.** **Cloud → Spend → Forecast** draws the months a forecast was made from, this month on course and the next 12, with how it was made.
 - **What was saved.** **Cloud → Spend → Savings** opens on what the changes made saved this month, as the bill shows it, the changes waiting for approval and those made, and the hours schedules stopped resources for.
 
 ## Troubleshooting
@@ -362,7 +480,19 @@ OneUptime makes only a change of one step: a commitment, or a recommendation tha
 :::
 
 :::details A schedule leaves a resource running
-**See Resources** says why: it is production, nothing says it is not production, or its account's connection does not allow Savings actions. Tag it, for example `environment` = `dev`, or mark its account **Non-production**.
+**See Resources** says why: it is production, nothing says it is not production, only its labels say so, or its account's connection does not allow Savings actions. Tag it in your cloud, for example `environment` = `dev`, or mark its account **Non-production**.
+:::
+
+:::details A rule proposes a change it used to make without asking
+Its card says why. A rule makes a change without asking only on a resource that its tags or its account say is not production: one that only its labels call non-production is proposed to its owners instead. Tag it in your cloud, for example `environment` = `dev`, or mark its account **Non-production**.
+:::
+
+:::details A forecast has no likely range
+It was made from fewer than 3 full months of costs, so each month ahead is the last full week's pace carried forward, and no range is claimed. The range comes once the third full month is read. A connection's first read goes back to the start of the month before last.
+:::
+
+:::details Someone was told of a budget but no alert came
+Below 100%, a budget that names people or teams to notify tells them, and raises no alert, so nobody is paged. From 100% it raises an alert, and its on-call policies are paged. A budget with nobody to tell raises an alert at every share.
 :::
 
 :::details This month is lower than in your cloud's console

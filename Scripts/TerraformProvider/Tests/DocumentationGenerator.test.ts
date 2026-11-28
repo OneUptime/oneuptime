@@ -222,6 +222,10 @@ describe("curation", () => {
       })}\``,
     );
     expect(providerDoc).toContain("`terraform import` the record that has it");
+    // The error names that record, with the line to run (#11019).
+    expect(providerDoc).toContain(
+      "when your API key may read that record, the error names it, with the `terraform import` line to run.",
+    );
     expect(providerDoc).toContain(
       "https://oneuptime.com/docs/terraform/troubleshooting#names-another-record-has",
     );

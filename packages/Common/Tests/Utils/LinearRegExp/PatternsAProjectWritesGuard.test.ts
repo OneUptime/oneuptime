@@ -149,6 +149,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "a random slot marker of letters and digits",
   },
   {
+    file: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    count: 1,
+    builtFrom:
+      "a scan warning's own template (SCAN_WARNINGS, written in code): its English escaped, each value a pattern of this file's, to read a stored warning back (#10930): no project writes them",
+  },
+  {
     file: "packages/Common/Types/Host/AndroidAgentPermissions.ts",
     count: 1,
     builtFrom:
@@ -170,6 +176,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "the record kinds ON_CALL_POLICY_RUN_RECORD_KINDS lists (incident, alert and their episodes), letters and spaces only, to read back the observer line getOnCallObserverPageSeenMessage writes",
+  },
+  {
+    file: "packages/Common/Types/StorageArray/StorageArrayMetricUnitUtil.ts",
+    count: 1,
+    builtFrom:
+      "the unit rules of the storage platforms OneUptime ships (StorageArrayPlatform.unitRules, such as NetApp ONTAP's ONTAP_UNIT_RULES, pattern strings written in code), run only on a metric name that starts with that platform's own prefix (#11001): no project writes them",
   },
   {
     file: "packages/Common/Types/Telemetry/ScrubRule.ts",
@@ -208,6 +220,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     count: 7,
     builtFrom:
       "the file's JSON string forms, quote marks, tool names and flag letters",
+  },
+  {
+    file: "packages/Common/Utils/AiRemediation/Resource/XcpNgCommandPolicy.ts",
+    count: 1,
+    builtFrom:
+      "a /regular expression/ in an xo-cli filter OneUptime AI writes, at most MAX_XO_FILTER_REGEX_CHARS long and refused by describeUnsafeRegex when a repeated group repeats itself or it holds a back-reference, whose syntax JavaScript checks; it is never run here, and Xen Orchestra runs the filter",
   },
   {
     file: "packages/Common/Utils/Call/CallSpeech.ts",
@@ -336,6 +354,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "the law names a draft's text is read for (LAW_NAMES_IN_TEXT), each a pattern literal of words and section numbers (#10377)",
+  },
+  {
+    file: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    count: 1,
+    builtFrom:
+      "a scan warning's own templates' patterns (SCAN_WARNINGS, written in code), handed a stored warning of at most MAX_READ_SCAN_WARNING_LENGTH characters (#10930)",
   },
   {
     file: "packages/Common/Types/NoBreakSpaces.ts",

@@ -685,7 +685,8 @@ describe("which check follows a merged pull request", () => {
     expect((taskRead.mock.calls[0]![0] as { query: JSONObject }).query).toEqual(
       { _id: TASK_ID.toString(), projectId: PROJECT_ID },
     );
-    expect(target?.taskId.toString()).toBe(TASK_ID.toString());
+    // A task's run has one; only a person's linked pull request has none.
+    expect(target?.taskId?.toString()).toBe(TASK_ID.toString());
     expect(target?.check).toBe(FixProductionCheck.TelemetryLeak);
   });
 
