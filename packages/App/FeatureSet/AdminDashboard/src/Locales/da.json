@@ -4668,5 +4668,8 @@
   "Your permissions do not reach this {{itemName}}.": "Dine tilladelser rækker ikke til dette element ({{itemName}}).",
   "Your permission is limited to {{items}} you or your teams own.": "Din tilladelse er begrænset til {{items}}, som du eller dine teams ejer.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Din tilladelse er begrænset til {{items}} med etiketten {{labels}} og til {{items}}, som du eller dine teams ejer.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Din tilladelse er begrænset til {{items}} med bestemte etiketter og til {{items}}, som du eller dine teams ejer."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Din tilladelse er begrænset til {{items}} med bestemte etiketter og til {{items}}, som du eller dine teams ejer.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Når du sletter en monitorskabelon, frakobles dens monitorer. De beholder de kriterier og indstillinger, skabelonen gav dem, og bliver ved med at tjekke og advare.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "Den enhed, som denne monitor blev oprettet til, har allerede en monitor, der er tilknyttet denne skabelon: {{monitorName}}. Slet en af de to, eller tilknyt denne til en anden skabelon.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Den enhed, som denne monitor blev oprettet til, har allerede en monitor, der er tilknyttet denne skabelon. Slet en af de to, eller tilknyt denne til en anden skabelon."
 }

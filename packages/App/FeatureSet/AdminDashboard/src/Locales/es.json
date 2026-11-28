@@ -4668,5 +4668,8 @@
   "Your permissions do not reach this {{itemName}}.": "Tus permisos no llegan a este elemento ({{itemName}}).",
   "Your permission is limited to {{items}} you or your teams own.": "Tu permiso está limitado a {{items}} que pertenecen a ti o a tus equipos.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Tu permiso está limitado a {{items}} con la etiqueta {{labels}} y a {{items}} que pertenecen a ti o a tus equipos.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Tu permiso está limitado a {{items}} con ciertas etiquetas y a {{items}} que pertenecen a ti o a tus equipos."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Tu permiso está limitado a {{items}} con ciertas etiquetas y a {{items}} que pertenecen a ti o a tus equipos.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Eliminar una plantilla de monitor desvincula sus monitores. Conservan los criterios y la configuración que les dio, y siguen comprobando y generando alertas.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "El dispositivo para el que se creó este monitor ya tiene un monitor vinculado a esta plantilla: {{monitorName}}. Elimina uno de los dos o vincula este a otra plantilla.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "El dispositivo para el que se creó este monitor ya tiene un monitor vinculado a esta plantilla. Elimina uno de los dos o vincula este a otra plantilla."
 }

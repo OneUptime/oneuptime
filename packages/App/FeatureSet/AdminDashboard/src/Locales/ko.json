@@ -4668,5 +4668,8 @@
   "Your permissions do not reach this {{itemName}}.": "권한이 이 {{itemName}}에는 미치지 않습니다.",
   "Your permission is limited to {{items}} you or your teams own.": "권한이 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "권한이 {{labels}} 레이블이 붙은 {{items}} 및 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "권한이 특정 레이블이 붙은 {{items}} 및 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "권한이 특정 레이블이 붙은 {{items}} 및 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "모니터 템플릿을 삭제하면 해당 모니터의 연결이 해제됩니다. 모니터는 템플릿에서 받은 기준과 설정을 유지하며 계속 확인하고 경고를 보냅니다.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "이 모니터가 만들어진 디바이스에 이미 이 템플릿에 연결된 모니터가 있습니다: {{monitorName}}. 둘 중 하나를 삭제하거나 이 모니터를 다른 템플릿에 연결하세요.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "이 모니터가 만들어진 디바이스에 이미 이 템플릿에 연결된 모니터가 있습니다. 둘 중 하나를 삭제하거나 이 모니터를 다른 템플릿에 연결하세요."
 }

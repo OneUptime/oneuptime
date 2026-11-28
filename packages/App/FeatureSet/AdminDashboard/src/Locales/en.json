@@ -4668,5 +4668,8 @@
   "Your permissions do not reach this {{itemName}}.": "Your permissions do not reach this {{itemName}}.",
   "Your permission is limited to {{items}} you or your teams own.": "Your permission is limited to {{items}} you or your teams own.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template."
 }

@@ -4668,5 +4668,8 @@
   "Your permissions do not reach this {{itemName}}.": "あなたの権限はこの{{itemName}}には及びません。",
   "Your permission is limited to {{items}} you or your teams own.": "あなたの権限は、あなたまたはあなたのチームが所有する{{items}}に限られています。",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "あなたの権限は、ラベル {{labels}} の付いた{{items}}と、あなたまたはあなたのチームが所有する{{items}}に限られています。",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "あなたの権限は、特定のラベルの付いた{{items}}と、あなたまたはあなたのチームが所有する{{items}}に限られています。"
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "あなたの権限は、特定のラベルの付いた{{items}}と、あなたまたはあなたのチームが所有する{{items}}に限られています。",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "モニターテンプレートを削除すると、そのモニターのリンクが解除されます。モニターはテンプレートから受け取った条件と設定を保持し、チェックとアラートを続けます。",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "このモニターの作成対象のデバイスには、このテンプレートにリンクされたモニターがすでにあります: {{monitorName}}。どちらかを削除するか、このモニターを別のテンプレートにリンクしてください。",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "このモニターの作成対象のデバイスには、このテンプレートにリンクされたモニターがすでにあります。どちらかを削除するか、このモニターを別のテンプレートにリンクしてください。"
 }

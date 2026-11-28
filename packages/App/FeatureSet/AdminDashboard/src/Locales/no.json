@@ -4668,5 +4668,8 @@
   "Your permissions do not reach this {{itemName}}.": "Tillatelsene dine når ikke dette elementet ({{itemName}}).",
   "Your permission is limited to {{items}} you or your teams own.": "Tillatelsen din er begrenset til {{items}} som du eller teamene dine eier.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Tillatelsen din er begrenset til {{items}} med etiketten {{labels}} og til {{items}} som du eller teamene dine eier.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Tillatelsen din er begrenset til {{items}} med bestemte etiketter og til {{items}} som du eller teamene dine eier."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Tillatelsen din er begrenset til {{items}} med bestemte etiketter og til {{items}} som du eller teamene dine eier.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Når du sletter en monitormal, kobles monitorene fra den. De beholder kriteriene og innstillingene den ga dem, og fortsetter å sjekke og varsle.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "Enheten denne monitoren ble opprettet for, har allerede en monitor koblet til denne malen: {{monitorName}}. Slett én av de to, eller koble denne til en annen mal.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Enheten denne monitoren ble opprettet for, har allerede en monitor koblet til denne malen. Slett én av de to, eller koble denne til en annen mal."
 }
