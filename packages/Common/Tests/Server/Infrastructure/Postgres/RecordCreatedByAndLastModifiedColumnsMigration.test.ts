@@ -222,6 +222,12 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "VMwareHealthSetting",
     migration: "1809187811157-AddVMwareHealthSettingsAndSwapRates.ts",
   },
+  // A change of many monitors' template, run by a worker (#11260, #11266).
+  {
+    table: "MonitorTemplateChange",
+    migration:
+      "1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(
