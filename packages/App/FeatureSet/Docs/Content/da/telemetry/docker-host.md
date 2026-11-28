@@ -140,6 +140,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Indtagelsesnøglen fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
 | `DOCKER_HOST_NAME` | Nej | Værtens navn i OneUptime. Standard er `docker-host`, så giv hver vært sit eget. |
 | `DOCKER_API_VERSION` | Nej | Den Docker Engine API-version, agenten taler. Tom som standard: agenten forhandler den med daemonen, så enhver Docker Engine fra 20.10 og frem virker. Sæt den kun for at fastlåse en version (se [Fejlfinding](#fejlfinding)). |
+| `ONEUPTIME_LOG_OPERATOR_1` til `ONEUPTIME_LOG_OPERATOR_5` | Nej | Dine egne collector-operatorer, én pr. variabel som JSON, til et logformat, agenten ikke læser. Se [Læsning af dit eget logformat](#læsning-af-dit-eget-logformat). |
 
 For at ændre en værdi skal du fjerne agenten og køre dens kommando igen (Docker CLI) eller redigere `docker-compose.yml` og køre `docker compose up -d` (Docker Compose).
 
@@ -201,6 +202,33 @@ Eller gør den til standard for hver container, der oprettes bagefter, i `/etc/d
 ```
 
 Genstart derefter Docker, og genopret containerne. En container beholder den logdriver, den blev oprettet med, så det er ikke nok at genstarte den.
+
+## Læsning af dit eget logformat
+
+Agenten læser niveauerne i de formater, de fleste programmer skriver. Til et format, den ikke læser, såsom et internt, kan du give den op til fem af dine egne collector-operatorer, hver som JSON i `ONEUPTIME_LOG_OPERATOR_1` til `ONEUPTIME_LOG_OPERATOR_5`. De kører på hver loglinje fra en container, efter at agenten har læst dens container og strøm, og før den læser linjens niveau. For at sætte en linjes niveau skal du skrive det til `attributes.severity_text` som et ord, agenten læser, såsom `ERROR`, `warn` eller `critical`, og sende linjen videre til `severity-router`, agentens første trin. En operator, der selv sætter alvorligheden, såsom en `severity_parser`, bliver overskrevet: agenten læser hver linjes niveau efter dine operatorer.
+
+Til linjer som `<<E>> payment failed`, hvor bogstavet er niveauet:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+Collectoren starter ikke med en operator, den ikke kan bygge, så kontrollér operatorerne, før agenten kører dem:
+
+- `install.sh` kontrollerer dem, når du kører det med variablerne sat, med collectorens egen `validate`, før det rører den agent, du har. Hvis collectoren afviser dem, stopper scriptet med collectorens meddelelse, og din agent kører videre.
+- Med Docker Compose skal du sætte dem i `.env` ved siden af `docker-compose.yml`, hver værdi i enkelte anførselstegn, og køre `docker compose up -d`. Tjenesten `oneuptime-docker-agent-config-check` kører den samme kontrol først, og agenten starter kun, hvis den består.
+- Med Docker CLI skal du selv køre kontrollen med agentens øvrige variabler og derefter starte agenten med de samme `-e`-flag:
+
+```bash
+docker run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/docker-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes-agent](/docs/telemetry/kubernetes-agent#læsning-af-dit-eget-logformat) forklarer operatorerne i eksemplet, som Kubernetes-agenten også tager imod.
 
 ## Opgradering af agenten
 

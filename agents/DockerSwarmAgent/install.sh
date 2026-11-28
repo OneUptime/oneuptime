@@ -188,10 +188,39 @@ fetch_agent_file otel-collector-config.yaml otel-collector-config.yaml
 fetch_agent_file inventory-snapshot.sh inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 
-# The .env holds the ingestion key: readable by its owner only.
+# Log operators of your own (ONEUPTIME_LOG_OPERATOR_1 to _5), for a format
+# the agent does not read: one collector (stanza) operator each, as JSON,
+# kept in .env like the rest. Unset here, the .env's value is kept, as for the
+# AI agent's settings; only a set one is written (an empty one would stop the
+# collector), single-quoted, so Compose takes it as written.
+LOG_OPERATOR_LINES=""
+LOG_OPERATORS=0
+for n in 1 2 3 4 5; do
+    name="ONEUPTIME_LOG_OPERATOR_${n}"
+    # POSIX sh has no ${!name}: this expands the variable the name names,
+    # and its value is never itself evaluated.
+    eval "value=\${${name}:-}"
+    if [ -z "$value" ] && [ -f "${INSTALL_DIR}/.env" ]; then
+        value="$(sed -n "s/^${name}='\(.*\)'\$/\1/p" "${INSTALL_DIR}/.env" | tail -n 1)"
+    fi
+    if [ -n "$value" ]; then
+        case "$value" in
+            *"'"*)
+                echo "Error: ${name} holds a single quote, which .env cannot keep. Write the operator without one (JSON needs none)."
+                exit 1
+                ;;
+        esac
+        LOG_OPERATOR_LINES="${LOG_OPERATOR_LINES}${name}='${value}'
+"
+        LOG_OPERATORS=$((LOG_OPERATORS + 1))
+    fi
+done
+
+# The .env holds the ingestion key: readable by its owner only. Written new
+# beside the old one, which it replaces once the collector accepts it.
 (
     umask 077
-    cat > .env <<EOF
+    cat > .env.new <<EOF
 ONEUPTIME_URL=${ONEUPTIME_URL}
 ONEUPTIME_SERVICE_TOKEN=${ONEUPTIME_SERVICE_TOKEN}
 DOCKER_SWARM_CLUSTER_NAME=${DOCKER_SWARM_CLUSTER_NAME}
@@ -202,8 +231,26 @@ ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES}
 ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS}
 ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS}
 EOF
+    printf '%s' "$LOG_OPERATOR_LINES" >> .env.new
 )
-chmod 600 .env
+chmod 600 .env.new
+
+# Your log operators, run through the collector's own validate (the Compose
+# file's config check) before anything is replaced: a bad one stops this
+# script with the collector's message, and the agent you have keeps running,
+# rather than starting one that restarts forever.
+if [ "$LOG_OPERATORS" -gt 0 ]; then
+    echo "Checking your log operators..."
+    if ! VALIDATION="$(docker compose --env-file .env.new run --rm oneuptime-docker-swarm-agent-config-check 2>&1)"; then
+        rm -f .env.new
+        echo "Error: the agent's collector refuses your log operators (ONEUPTIME_LOG_OPERATOR_1 to _5):"
+        printf '%s\n' "$VALIDATION" | sed 's/^/  /'
+        echo "Fix or unset them and run this script again. The agent you have was left as it was."
+        exit 1
+    fi
+    echo "The collector accepts your ${LOG_OPERATORS} log operator(s)."
+fi
+mv -f .env.new .env
 
 # --no-ai-agent (or a node that is not a manager): a compose override that
 # puts the AI agent in a profile nothing enables, so neither this script nor

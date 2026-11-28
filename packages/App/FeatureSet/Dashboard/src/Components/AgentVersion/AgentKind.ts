@@ -160,10 +160,14 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.165.0";
  * reachability, each service's rolling update and recent task failures, and
  * the swarm's state as metrics (Node Not Ready, Service Replicas Mismatch);
  * and 0.161.4, each local volume's size and the disk it lives on (#9648).
+ * On collector 0.165.0, 0.165.1: each log line's level stored as
+ * OneUptime's ingest stores its word, the levels of more programs read,
+ * and log operators of your own, checked before the agent starts
+ * (#11228, #11226, #11225).
  * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
  * files move on without this.
  */
-export const DOCKER_SWARM_AGENT_VERSION: string = "0.165.0";
+export const DOCKER_SWARM_AGENT_VERSION: string = "0.165.1";
 
 /*
  * The version the Database agent reports: the oneuptime.agent.version every

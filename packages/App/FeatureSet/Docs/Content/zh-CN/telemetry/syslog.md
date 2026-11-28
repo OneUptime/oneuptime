@@ -206,8 +206,8 @@ OneUptime 会自动为每条日志添加以下属性：
 
 | syslog 严重级别 | 代码 | OneUptime 严重级别 |
 | --- | --- | --- |
-| Emergency、Alert | `0`、`1` | `Fatal` |
-| Critical、Error | `2`、`3` | `Error` |
+| Emergency | `0` | `Fatal` |
+| Alert、Critical、Error | `1`、`2`、`3` | `Error` |
 | Warning | `4` | `Warning` |
 | Notice、Informational | `5`、`6` | `Information` |
 | Debug | `7` | `Debug` |
