@@ -309,7 +309,13 @@ Manche Felder enthalten einen JSON-Wert mit eigener Form, etwa `rotation` und `r
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Ein umbenannter Schlüssel wird weiterhin unter seinem alten Namen gelesen: Die Art der Einschränkung einer Ebene wird unter `restrictionType` geschrieben oder unter der älteren Schreibweise `restictionType`, und eine Antwort enthält beide.
+Ein umbenannter Schlüssel wird weiterhin unter seinem alten Namen gelesen: Die Art der Einschränkung einer Ebene wird unter `restrictionType` geschrieben oder unter der älteren Schreibweise `restictionType`, und eine Antwort enthält beide. Die ältere Schreibweise ist in Antworten veraltet: Antworten enthalten sie bis zur ersten Hauptversion, die am oder nach dem 1. Juni 2027 erscheint. Schreibvorgänge lesen sie immer.
+
+Ein Wert wird außerdem beim Wort genommen. Das wöchentliche Zeitfenster einer Ebene hat an den Tagen Bereitschaft, die es nennt, daher müssen seine `startTime` und `endTime` in der Zeitzone des Plans auf seinen `startDay` und `endDay` fallen. Ein Fenster, das auf andere Tage datiert ist, wird mit einem `400` abgelehnt, der das Fenster nennt und eine Zeit am genannten Tag angibt, die stattdessen gesendet werden kann:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Wo ein Projekt gekauft wurde
 

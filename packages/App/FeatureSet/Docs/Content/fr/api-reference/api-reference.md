@@ -309,7 +309,13 @@ Certains champs contiennent une valeur JSON à la forme propre, comme `rotation`
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Une clé renommée reste lue sous son ancien nom : le type de restriction d'une couche s'écrit sous `restrictionType`, ou sous son ancienne orthographe `restictionType`, et une réponse porte les deux.
+Une clé renommée reste lue sous son ancien nom : le type de restriction d'une couche s'écrit sous `restrictionType`, ou sous son ancienne orthographe `restictionType`, et une réponse porte les deux. L'ancienne orthographe est obsolète dans les réponses : elles la portent jusqu'à la première version majeure publiée le 1er juin 2027 ou après. Les écritures la lisent toujours.
+
+Une valeur est aussi prise au mot. La plage hebdomadaire d'une couche est d'astreinte les jours qu'elle nomme, donc ses `startTime` et `endTime` doivent tomber sur ses `startDay` et `endDay` dans le fuseau horaire du planning. Une plage datée d'autres jours est refusée avec un `400` qui nomme la plage et donne une heure du jour nommé à envoyer à la place :
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Où un projet a été acheté
 

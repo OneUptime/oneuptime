@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-改名的鍵仍會依舊名讀取：層的限制類型寫在 `restrictionType` 下，或寫在其舊拼法 `restictionType` 下，回應中兩者都有。
+改名的鍵仍會依舊名讀取：層的限制類型寫在 `restrictionType` 下，或寫在其舊拼法 `restictionType` 下，回應中兩者都有。舊拼法在回應中已淘汰：回應會一直帶有它，直到 2027 年 6 月 1 日當天或之後發布的第一個主要版本。寫入時一律會讀取它。
+
+值也必須與其所述相符。層的每週時段在其指定的星期幾待命，因此依排程的時區，其 `startTime` 和 `endTime` 必須分別落在 `startDay` 和 `endDay` 上。日期落在其他日子的時段會被拒絕，回傳的 `400` 會指明該時段，並提供可改為傳送的、落在指定那天的時間：
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### 專案的購買管道
 

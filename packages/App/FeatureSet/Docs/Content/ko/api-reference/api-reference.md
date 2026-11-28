@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-이름이 바뀐 키는 예전 이름으로도 계속 읽힙니다. 레이어의 제한 종류는 `restrictionType` 이나 예전 철자 `restictionType` 에 쓰며, 응답에는 둘 다 담깁니다.
+이름이 바뀐 키는 예전 이름으로도 계속 읽힙니다. 레이어의 제한 종류는 `restrictionType` 이나 예전 철자 `restictionType` 에 쓰며, 응답에는 둘 다 담깁니다. 예전 철자는 응답에서 더 이상 사용되지 않습니다. 응답에는 2027년 6월 1일 또는 그 이후에 처음 출시되는 메이저 버전이 나올 때까지 담깁니다. 쓰기에서는 항상 읽습니다.
+
+값은 그 값이 말하는 내용과도 맞아야 합니다. 레이어의 주간 시간대는 지정한 요일에 온콜이므로, 그 `startTime` 과 `endTime` 은 스케줄의 시간대 기준으로 각각 `startDay` 와 `endDay` 에 걸려야 합니다. 다른 요일로 날짜가 잡힌 시간대는 그 시간대를 밝히고 대신 보낼 수 있는 지정 요일의 시각을 알려 주는 `400` 으로 거부됩니다:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### 프로젝트를 구매한 곳
 

@@ -309,7 +309,13 @@ Nogle felter indeholder en JSON-værdi med sin egen form, såsom et vagtplanlags
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-En nøgle, der omdøbes, læses fortsat under sit gamle navn: et lags begrænsningstype skrives under `restrictionType` eller under den ældre stavemåde `restictionType`, og et svar angiver begge.
+En nøgle, der omdøbes, læses fortsat under sit gamle navn: et lags begrænsningstype skrives under `restrictionType` eller under den ældre stavemåde `restictionType`, og et svar angiver begge. Den ældre stavemåde er forældet i svar: de angiver den indtil den første hovedversion, der udgives den 1. juni 2027 eller senere. Skrivninger læser den altid.
+
+En værdi bliver også taget på ordet. Et lags ugentlige tidsrum har vagt de dage, det nævner, så dets `startTime` og `endTime` skal falde på dets `startDay` og `endDay` i vagtplanens tidszone. Et tidsrum, der er dateret på andre dage, afvises med en `400`, der nævner tidsrummet og giver et tidspunkt på den nævnte dag, der kan sendes i stedet:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Hvor et projekt blev købt
 

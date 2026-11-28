@@ -309,7 +309,13 @@ Alcuni campi contengono un valore JSON con una forma propria, come `rotation` e 
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Una chiave rinominata continua a essere letta con il suo vecchio nome: il tipo di restrizione di un livello si scrive sotto `restrictionType`, o sotto la grafia precedente `restictionType`, e una risposta le riporta entrambe.
+Una chiave rinominata continua a essere letta con il suo vecchio nome: il tipo di restrizione di un livello si scrive sotto `restrictionType`, o sotto la grafia precedente `restictionType`, e una risposta le riporta entrambe. La grafia precedente è deprecata nelle risposte: la riportano fino alla prima versione principale rilasciata il 1° giugno 2027 o dopo. Le scritture la leggono sempre.
+
+Un valore viene anche preso in parola. La fascia settimanale di un livello è reperibile nei giorni che indica, quindi i suoi `startTime` e `endTime` devono cadere nei suoi `startDay` e `endDay` nel fuso orario della pianificazione. Una fascia datata in altri giorni viene rifiutata con un `400` che indica la fascia e dà un orario nel giorno indicato da inviare al suo posto:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Dove è stato acquistato un progetto
 
