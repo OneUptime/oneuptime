@@ -16,8 +16,10 @@ import {
   DEFAULT_TELEMETRY_ENTITY_LABEL,
   ResolvedTelemetryEntity,
   TelemetryEntityNameMap,
+  getTelemetryEntityChipMarks,
   getTelemetryEntityDisplay,
   getTelemetryEntityTypeLabel,
+  withTelemetryEntityChipMarks,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import { ATTRIBUTE_FACET_PREFIX } from "../Components/Metrics/MetricsSearchQuery";
 import {
@@ -368,6 +370,9 @@ export const buildMetricsIncludedFacetChip: (data: {
  *   page knows what it is scoped to, so the key is right before any lookup.
  * - Typed resource chips (every ResourceFacetCatalog key: hostId … iotFleetId)
  *   get a friendly key and a resolved name.
+ * - An entity chip whose id every read answered nothing for is marked gone,
+ *   and reads "No longer available"; one naming an archived record is
+ *   marked archived (#11213). It keeps its id, and still filters by it.
  * - Everything else is unchanged: facet title and value display map.
  */
 export const resolveMetricsChipDisplay: (data: {
@@ -375,11 +380,13 @@ export const resolveMetricsChipDisplay: (data: {
   facetConfigs: Array<FacetConfig> | undefined;
   nameMap: TelemetryEntityNameMap | undefined;
   scopeEntityType?: ServiceType | undefined;
+  notFound?: ReadonlySet<string> | undefined;
 }) => ActiveFilter = (data: {
   chip: ActiveFilter;
   facetConfigs: Array<FacetConfig> | undefined;
   nameMap: TelemetryEntityNameMap | undefined;
   scopeEntityType?: ServiceType | undefined;
+  notFound?: ReadonlySet<string> | undefined;
 }): ActiveFilter => {
   const chip: ActiveFilter = data.chip;
 
@@ -438,11 +445,19 @@ export const resolveMetricsChipDisplay: (data: {
     const displayKey: string = data.scopeEntityType
       ? getTelemetryEntityTypeLabel(data.scopeEntityType)
       : entityDisplay.key;
-    return {
-      ...chip,
-      displayKey,
-      displayValue: knownName || entityDisplay.value,
-    };
+    return withTelemetryEntityChipMarks(
+      {
+        ...chip,
+        displayKey,
+        displayValue: knownName || entityDisplay.value,
+      },
+      getTelemetryEntityChipMarks({
+        id: chip.value,
+        knownName: knownName,
+        names: data.nameMap,
+        notFound: data.notFound,
+      }),
+    );
   }
 
   const typedFacetType: ServiceType | undefined =
@@ -450,11 +465,19 @@ export const resolveMetricsChipDisplay: (data: {
   if (typedFacetType) {
     const resolved: ResolvedTelemetryEntity | undefined =
       data.nameMap?.[chip.value];
-    return {
-      ...chip,
-      displayKey: getTelemetryEntityTypeLabel(typedFacetType),
-      displayValue: knownName || resolved?.name || chip.value,
-    };
+    return withTelemetryEntityChipMarks(
+      {
+        ...chip,
+        displayKey: getTelemetryEntityTypeLabel(typedFacetType),
+        displayValue: knownName || resolved?.name || chip.value,
+      },
+      getTelemetryEntityChipMarks({
+        id: chip.value,
+        knownName: knownName,
+        names: data.nameMap,
+        notFound: data.notFound,
+      }),
+    );
   }
 
   return {
@@ -584,6 +607,8 @@ export const buildMetricsActiveFilterChips: (data: {
   activeFilters: Array<ActiveFilter>;
   facetConfigs: Array<FacetConfig> | undefined;
   nameMap: TelemetryEntityNameMap | undefined;
+  // The ids every read answered nothing for (#11213).
+  notFound?: ReadonlySet<string> | undefined;
 }) => Array<ActiveFilter> = (data: {
   scopeIds: Array<ObjectID | string> | undefined;
   scopeEntityType: ServiceType | undefined;
@@ -595,6 +620,7 @@ export const buildMetricsActiveFilterChips: (data: {
   activeFilters: Array<ActiveFilter>;
   facetConfigs: Array<FacetConfig> | undefined;
   nameMap: TelemetryEntityNameMap | undefined;
+  notFound?: ReadonlySet<string> | undefined;
 }): Array<ActiveFilter> => {
   return [
     ...buildMetricsLockedScopeChips({
@@ -618,6 +644,7 @@ export const buildMetricsActiveFilterChips: (data: {
         chip,
         facetConfigs: data.facetConfigs,
         nameMap: data.nameMap,
+        notFound: data.notFound,
       });
     }),
   ];

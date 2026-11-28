@@ -1003,10 +1003,17 @@ describe("useResourceOwners exposes the chips a tile moves", () => {
       'setOwnerOperator("is");',
       'setLabelOperator("is");',
       "setFacetOperators({});",
-      "setFacetMatchingIds({});",
     ]) {
       expect(body).toContain(reset);
     }
+
+    /*
+     * No chip's matches are read ahead of the list any more: every chip is
+     * answered in the list's own query (#11211), so there is no cache of
+     * matching ids left to clear.
+     */
+    expect(HOOK).not.toContain("setFacetMatchingIds");
+    expect(HOOK).not.toContain("computeMatchingResourceIds");
   });
 
   /*

@@ -2799,6 +2799,7 @@ router.post(
           projectId: databaseProps.tenantId,
           startTime: window.startValue,
           endTime: window.endValue,
+          includesEnd: window.includesEnd,
           serviceIds: serviceFilter.serviceIds,
           excludedServiceIds: serviceFilter.excludedServiceIds,
           issues: rule.issues,

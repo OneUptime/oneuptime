@@ -50,6 +50,17 @@ export interface RecordAccessScope {
   isHeldBack: boolean;
   // The record's own table, answered for while it is read: "Incident".
   tableNames: ReadonlyArray<string>;
+  /*
+   * The table of the record the page is open on: "Monitor". A list of that
+   * kind on the page lists other records, which the answer is not about
+   * (useListGateOptions).
+   */
+  recordTableName?: string | undefined;
+  /*
+   * The id of that record, in lower case: a gate about one record of the
+   * kind (useRecordGateOptions) takes the answer only for this one.
+   */
+  recordId?: string | undefined;
 }
 
 export const RecordAccessScopeContext: React.Context<RecordAccessScope | null> =

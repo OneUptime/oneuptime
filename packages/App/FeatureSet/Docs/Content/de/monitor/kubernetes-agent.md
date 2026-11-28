@@ -384,6 +384,7 @@ Profiling braucht **Linux 5.10** oder neuer und einen privilegierten Pod mit den
 | `logs.mode` | (aus `preset`) | `daemonset`, `api` oder `disabled`. Überschreibt das Preset. |
 | `logs.windowsPods.enabled` | `false` | Liest auch Pods auf Windows-Knoten mit. Siehe [Gemischte Cluster](#gemischte-cluster-windows-knotenpools). |
 | `logs.api.replicas` | `1` | Replikate des Log-Tailers, im Modus `api`. |
+| `logs.extraOperators` | `[]` | Eigene Collector-Operators für ein Log-Format, das der Agent nicht liest, im Modus `daemonset`. Siehe [Ein eigenes Log-Format lesen](/docs/telemetry/kubernetes-agent#ein-eigenes-log-format-lesen). |
 | `ebpf.enabled` | `true` | eBPF-Traces und Anfragemetriken. Siehe [Anwendungs-Traces mit eBPF](#anwendungs-traces-mit-ebpf). |
 | `profiling.enabled` | `false` | CPU-Flammengrafiken. Siehe [Fortlaufendes CPU-Profiling](#fortlaufendes-cpu-profiling). |
 | `kubeStateMetrics.enabled` | `false` | Cluster-Zustand aus kube-state-metrics. |

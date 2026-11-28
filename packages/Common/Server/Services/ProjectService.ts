@@ -159,6 +159,10 @@ import {
   getTrustedProxyListError,
   readTrustedProxyList,
 } from "../../Utils/SecurityEvent/ClientAddressTrust";
+import {
+  MAX_ACCESS_LOG_FORMAT_LENGTH,
+  getAccessLogFormatError,
+} from "../../Utils/SecurityEvent/LogParsers/AccessLogFormat";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
   NumberPrefixColumn,
@@ -1015,6 +1019,52 @@ export class ProjectService extends ProjectReferencesService<Model> {
     data.securityTrustedProxies = blocks.length > 0 ? blocks.join("\n") : null;
   }
 
+  /*
+   * The format the project's access logs are written in (#11048, Security
+   * Events > Connections > Access Logs): an nginx log_format OneUptime can
+   * read a line by, kept as given. Refused with the reason when it is not
+   * one - no field, a quote that never closes, no address that connected,
+   * an X-Forwarded-For whose end cannot be told - never stored and read
+   * later as no format. A blank one is none.
+   */
+  public applySecurityAccessLogFormatRules(data: {
+    securityAccessLogFormat?: unknown;
+  }): void {
+    if (
+      data.securityAccessLogFormat === undefined ||
+      data.securityAccessLogFormat === null
+    ) {
+      return;
+    }
+
+    if (typeof data.securityAccessLogFormat !== "string") {
+      throw new BadDataException(
+        "Your access log format must be text: an nginx log_format.",
+      );
+    }
+
+    const format: string = data.securityAccessLogFormat.trim();
+
+    if (!format) {
+      data.securityAccessLogFormat = null;
+      return;
+    }
+
+    if (format.length > MAX_ACCESS_LOG_FORMAT_LENGTH) {
+      throw new BadDataException(
+        getAccessLogFormatError(format) || "Your log format is too long.",
+      );
+    }
+
+    const error: string | null = getAccessLogFormatError(format);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    data.securityAccessLogFormat = format;
+  }
+
   public applyAiContextRules(data: { aiContext?: unknown }): void {
     if (data.aiContext === undefined) {
       return;
@@ -1274,6 +1324,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applySecurityTrustedProxyRules(
       data.data as { securityTrustedProxies?: unknown },
+    );
+    this.applySecurityAccessLogFormatRules(
+      data.data as { securityAccessLogFormat?: unknown },
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       data.data as { defaultNetworkTopologyLayout?: unknown },
@@ -2130,6 +2183,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applySecurityTrustedProxyRules(
       updateBy.data as { securityTrustedProxies?: unknown },
+    );
+    this.applySecurityAccessLogFormatRules(
+      updateBy.data as { securityAccessLogFormat?: unknown },
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       updateBy.data as { defaultNetworkTopologyLayout?: unknown },

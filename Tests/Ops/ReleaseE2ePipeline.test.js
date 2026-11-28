@@ -1114,7 +1114,10 @@ describe(`${TERRAFORM_E2E}: each release run's suite is its own`, () => {
  * terraform-provider-e2e.yml does, so release.yml passes it the run id with
  * "-crossplane"; docs-screens.yml's group names the workflow itself (#7510).
  * Nor may a gate share a group with a run of the same workflow on main, or
- * with the gate of another release run.
+ * with the gate of another release run. The check of the registries after
+ * the provider is published (terraform-provider-registry-checksums.yml,
+ * #11016) holds nothing back, and its group names the workflow and the run,
+ * cancelling none.
  */
 describe(`${RELEASE}: no gate it calls cancels another`, () => {
   const release = readYaml(RELEASE);
@@ -1171,6 +1174,7 @@ describe(`${RELEASE}: no gate it calls cancels another`, () => {
         })
         .sort(),
     ).toEqual([
+      "check-terraform-provider-registries",
       "crossplane-provider-e2e",
       "docs-screens",
       "terraform-provider-e2e",

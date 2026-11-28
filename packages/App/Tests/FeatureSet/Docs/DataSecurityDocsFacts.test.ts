@@ -14,14 +14,22 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
 import {
   BREACH_LAW_RULES,
+  BREACH_PLACE_CHOICES,
   BreachLawFamily,
   BreachLawRule,
+  BreachPlace,
+  COVERED_US_STATES,
+  UNCOVERED_US_STATES,
+  isUsStateRule,
 } from "Common/Types/DataSecurity/BreachLaws";
 import {
   ASSESSED_ON_ITS_OWN_SENSITIVITIES,
   EXPOSING_CHANGE_LOOKBACK_IN_DAYS,
 } from "Common/Types/DataSecurity/ExposureAssessment";
-import { nameScrubItRule } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  METRIC_PATTERN_TYPE_OF_DATA_TYPE,
+  nameScrubItRule,
+} from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import {
   ModelBudget,
   ModelStoreBudget,
@@ -3838,21 +3846,22 @@ describe("Data Security Integrations", () => {
     // The reads line, word for word as the card draws it.
     expect(breach).toContain(`"${READS_NOT_LOGGED}"`);
 
-    // Every family of the table is named, and nothing the table does not hold.
-    const named: Record<BreachLawFamily, string> = {
+    /*
+     * Every family of the table is named, and nothing the table does not
+     * hold: each law by its name, and the US states' together, as every
+     * state but those the table leaves out (#10952).
+     */
+    const named: Partial<Record<BreachLawFamily, string>> = {
       [BreachLawFamily.Gdpr]: "GDPR Articles 33 and 34",
       [BreachLawFamily.UkGdpr]: "UK GDPR Articles 33 and 34",
       [BreachLawFamily.Hipaa]: "HIPAA's Breach Notification Rule",
       [BreachLawFamily.PciDss]: "PCI DSS requirement 12.10.1",
+      [BreachLawFamily.Visa]: "Visa's",
+      [BreachLawFamily.Mastercard]: "Mastercard's",
+      [BreachLawFamily.AmericanExpress]: "American Express's",
       [BreachLawFamily.Lgpd]: "Brazil's LGPD",
       [BreachLawFamily.Dpdp]: "India's DPDP Rules",
       [BreachLawFamily.CertIn]: "CERT-In directions",
-      [BreachLawFamily.California]: "California",
-      [BreachLawFamily.Colorado]: "Colorado",
-      [BreachLawFamily.Florida]: "Florida",
-      [BreachLawFamily.NewYork]: "New York",
-      [BreachLawFamily.Texas]: "Texas",
-      [BreachLawFamily.Washington]: "Washington",
     };
     const families: Array<string> = [
       ...new Set(
@@ -3861,8 +3870,15 @@ describe("Data Security Integrations", () => {
         }),
       ),
     ].sort();
+    const stateFamilies: Array<string> = families.filter(
+      (family: string): boolean => {
+        return BREACH_LAW_RULES.filter((rule: BreachLawRule): boolean => {
+          return rule.family === family;
+        }).every(isUsStateRule);
+      },
+    );
 
-    expect(Object.keys(named).sort()).toEqual(families);
+    expect([...Object.keys(named), ...stateFamilies].sort()).toEqual(families);
 
     for (const words of Object.values(named)) {
       expect({ words, said: breach.includes(words) }).toEqual({
@@ -3870,6 +3886,28 @@ describe("Data Security Integrations", () => {
         said: true,
       });
     }
+
+    // The states the table leaves out, by the names a person picks them by; Puerto Rico is no state.
+    const statesLeftOut: Array<string> = UNCOVERED_US_STATES.filter(
+      (place: BreachPlace): boolean => {
+        return place !== BreachPlace.PuertoRico;
+      },
+    ).map((place: BreachPlace): string => {
+      return BREACH_PLACE_CHOICES[place];
+    });
+
+    expect(statesLeftOut).toEqual(["West Virginia"]);
+    expect(COVERED_US_STATES).toContain(BreachPlace.DistrictOfColumbia);
+    expect(COVERED_US_STATES).not.toContain(BreachPlace.PuertoRico);
+    expect(breach).toContain(
+      `the breach laws of every US state but ${statesLeftOut.join(" and ")}, and of the District of Columbia`,
+    );
+    expect(breach).toContain(
+      "West Virginia and Puerto Rico, whose statutes could not be read from an official source",
+    );
+    expect(breach).toContain(
+      "its notices to the attorney general or another state office and to the consumer reporting agencies",
+    );
 
     expect(breach).toContain("Nothing is sent anywhere");
     expect(breach).toContain("not legal advice");
@@ -3964,10 +4002,18 @@ describe("Data Security Integrations", () => {
     expect(pullRequests).toContain(
       "For a migration, in a private repository only, it names the store the table is in, what that store holds",
     );
-    // An exception's message is telemetry too (#10778).
+    // An exception's message is telemetry too (#10778), and so is a recorded session's user (#11395).
     expect(types).toContain('Exception = "Exception",');
+    expect(types).toContain('Session = "Session",');
     expect(pullRequests).toContain(
-      "in a log, a span, a metric, an exception's message or an error tracker's report",
+      "in a log, a span, a metric, an exception's message, an error tracker's report or a recorded session's user",
+    );
+    // A web or mobile app's code: its RUM application's session replays (#11395).
+    expect(sensitiveData).toContain(
+      "[SensitiveDataSink.Session]: [DataStoreKind.TelemetrySessionReplays],",
+    );
+    expect(pullRequests).toContain(
+      "or, for a web or mobile app's code, its RUM application's session replays",
     );
   });
 
@@ -4264,6 +4310,9 @@ describe("What a value is read as, and what a leak's template keeps", () => {
       ["DE44%205001%200517%205407%203249%2031", "iban"],
       ["SW1A+2AA", "postal-code"],
       ["10+Downing+Street", "postal-address"],
+      // #11115: a number typed wholly in fullwidth, its signs and separators too.
+      ["＋８１ ３－１２３４－５６７８", "phone-number"],
+      ["５３６－２２－８７３１", "us-ssn"],
     ] as Array<[string, string]>) {
       expect(paragraph).toContain(`\`${value}\``);
       expect({ value, found: foundWhole(value, dataTypeId) }).toEqual({
@@ -4316,9 +4365,15 @@ describe("What a value is read as, and what a leak's template keeps", () => {
           dataTypeId,
           digits: detector.readsDigitsOfEveryScript,
           url: detector.readsPlusAsSpace && detector.readsPercentEncoded,
-        }).toEqual({ dataTypeId, digits: true, url: true });
+          // And typed wholly in fullwidth, its signs and separators too (#11115).
+          fullwidth: detector.readsFullwidthForms,
+        }).toEqual({ dataTypeId, digits: true, url: true, fullwidth: true });
       }
     }
+
+    expect(paragraph).toContain(
+      "Such a number typed wholly in fullwidth, as Japanese and Chinese text writes one, is read with its plus sign, hyphens, parentheses, full stops, slashes and ideographic spaces as ASCII ones too",
+    );
 
     // A street address is words, read in a URL as a form writes them.
     expect(
@@ -4328,6 +4383,45 @@ describe("What a value is read as, and what a leak's template keeps", () => {
         },
       ),
     ).toBe(true);
+  });
+
+  /*
+   * #11112: Scrub It's metric rule for a phone or a Social Security number
+   * matches the type's Pattern Type, as its rule for the three types before
+   * them does, and a rule made with the frozen pattern before is moved to
+   * it when OneUptime is upgraded.
+   */
+  it("says which types Scrub It's metric rule matches by Pattern Type, as the code maps them, and that rules made before are moved", () => {
+    const row: string = lineOf(
+      TELEMETRY,
+      "| Any data type in a metric's attribute |",
+    );
+    const item: string = lineOf(TELEMETRY, "- **A metric's attribute.**");
+
+    expect(Array.from(METRIC_PATTERN_TYPE_OF_DATA_TYPE.keys()).sort()).toEqual([
+      "credit-card-number",
+      "email-address",
+      "ip-address",
+      "phone-number",
+      "us-ssn",
+    ]);
+    expect(row).toContain(
+      "For an IP address, an email address, a card number, a phone number or a US Social Security number, its filter is **Matches Pattern Type** of that type",
+    );
+    expect(item).toContain(
+      "A rule **Scrub It** made for an IP address, an email address, a card number, a phone number or a US Social Security number before its filter was **Matches Pattern Type** is moved to that filter when you upgrade",
+    );
+
+    const migrations: string = source(
+      "App/FeatureSet/Workers/DataMigrations/Index.ts",
+    );
+
+    for (const migration of [
+      "MetricScrubRulesMatchTheirPatternType",
+      "MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType",
+    ]) {
+      expect(migrations).toContain(`new ${migration}()`);
+    }
   });
 
   it("finds a person's name under a URL's query parameter named for one, High, and leaves one named name to the model (#11034)", () => {

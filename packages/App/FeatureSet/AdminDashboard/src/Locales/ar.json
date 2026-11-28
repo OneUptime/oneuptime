@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "يؤدي حذف أسطول IoT إلى حذف سجل أجهزته أيضًا، فلا تستطيع الأجهزة المسجلة تسجيل الدخول بعد ذلك.",
   "Deleting a database also deletes the endpoints it is reached at.": "يؤدي حذف قاعدة بيانات إلى حذف نقاط النهاية التي يُوصل إليها من خلالها أيضًا.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "يؤدي حذف اتصال سحابي إلى توقف OneUptime عن قراءة الحساب. تبقى موارده، مع مقاييسها.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "يؤدي حذف اتصال مصفوفة تخزين إلى توقف OneUptime عن قراءة المصفوفات التي خلفه، ويحذف كلمة المرور المحفوظة واختبارات الاتصال الخاصة به. وتبقى مصفوفاته مع مقاييسها.",
   "True": "صحيح",
   "False": "خطأ",
   "Key": "المفتاح",
@@ -4646,5 +4647,10 @@
   "Only XCP-ng pools that match conditions": "تجمّعات XCP-ng التي تطابق الشروط فقط",
   "All savings": "كل التوفير",
   "Only savings that match conditions": "التوفير الذي يطابق الشروط فقط",
-  "XCP-ng Pool": "تجمّع XCP-ng"
+  "XCP-ng Pool": "تجمّع XCP-ng",
+  "Same name as another {{kind}}": "مطابق لاسم سجل آخر ({{kind}})",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "يحمل سجل آخر ({{kind}}) في هذا المشروع هذا الاسم، لذا لا يمكن التمييز بينهما في أدوات الاختيار. افتح كلًّا منهما لتعرف الفرق بينهما، ثم غيّر اسم أحدهما.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} سجل ({{kind}}) يحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينهما في أدوات الاختيار. افتح كلًّا منهما لتعرف الفرق بينهما، ثم غيّر اسم أحدهما.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} من {{kinds}} تحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينها في أدوات الاختيار. افتح كلًّا منها لتعرف الفرق بينها، ثم غيّر اسم أحدها.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} سجل ({{kind}}) يحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينهما في أدوات الاختيار. افتح كلًّا منهما لتعرف الفرق بينهما، ثم غيّر اسم أحدهما."
 }

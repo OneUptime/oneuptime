@@ -1,4 +1,7 @@
-import { Service as MonitorProbeServiceType } from "../../../Server/Services/MonitorProbeService";
+import {
+  ClaimedMonitorProbe,
+  Service as MonitorProbeServiceType,
+} from "../../../Server/Services/MonitorProbeService";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../../../Server/Utils/Logger";
 import {
@@ -384,7 +387,7 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
         ],
       );
 
-      const claimed: Array<ObjectID> =
+      const claimed: Array<ClaimedMonitorProbe> =
         await service.claimMonitorProbesForProbing({
           probeId: PROBE_ID,
           limit: 25,

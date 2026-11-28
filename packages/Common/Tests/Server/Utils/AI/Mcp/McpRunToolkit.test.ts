@@ -8,6 +8,7 @@ import McpRunToolkit, {
 import ExternalMcpServerConnection from "../../../../../Server/Utils/AI/Mcp/ExternalMcpServerConnection";
 import ExternalMcpServerCheck from "../../../../../Server/Utils/AI/Mcp/ExternalMcpServerCheck";
 import AiCommandKillSwitch from "../../../../../Server/Utils/AI/AiCommandKillSwitch";
+import ExternalMcpToolReadOnlyMarkService from "../../../../../Server/Services/ExternalMcpToolReadOnlyMarkService";
 import { clearMcpSignInCachesForTests } from "../../../../../Server/Utils/AI/Mcp/McpSignIn";
 import { ObservabilityAssistantExtraTool } from "../../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import ToolOutputPager from "../../../../../Server/Utils/AI/Chat/ToolOutputPager";
@@ -108,6 +109,9 @@ const fakes: Array<FakeMcpServer> = [];
 let recordSpy: SpyInstance<typeof ExternalMcpServerCheck.recordConnection>;
 // Enable AI, read before every connection and call: on, unless a test says.
 let aiOffSpy: SpyInstance<typeof AiCommandKillSwitch.isAiOff>;
+let marksSpy: SpyInstance<
+  typeof ExternalMcpToolReadOnlyMarkService.findMarksOfServer
+>;
 
 beforeEach(() => {
   clearMcpSignInCachesForTests();
@@ -117,11 +121,16 @@ beforeEach(() => {
   aiOffSpy = jest
     .spyOn(AiCommandKillSwitch, "isAiOff")
     .mockResolvedValue(false);
+  // No Project Admin has marked a tool read-only (#11081: McpRunToolkitMarks).
+  marksSpy = jest
+    .spyOn(ExternalMcpToolReadOnlyMarkService, "findMarksOfServer")
+    .mockResolvedValue([]);
 });
 
 afterEach(async () => {
   recordSpy.mockRestore();
   aiOffSpy.mockRestore();
+  marksSpy.mockRestore();
 
   for (const fake of fakes.splice(0)) {
     await fake.stop();
@@ -898,7 +907,7 @@ describe("McpRunToolkit: what every run holds its calls to (#10879)", () => {
     await kit.close();
 
     expect(outcome.textForLlm).toContain(
-      "(A tool counts as one that only reads when its server marks it read-only (readOnlyHint); one its server says nothing about may change something.)",
+      "(A tool counts as one that only reads when its server marks it read-only (readOnlyHint), or when a Project Admin marked it read-only and its server has not changed it since; any other may change something.)",
     );
   });
 

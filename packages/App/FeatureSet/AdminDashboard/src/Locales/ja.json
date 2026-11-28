@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "IoT フリートを削除すると、そのデバイスレジストリも削除され、登録済みのデバイスはサインインできなくなります。",
   "Deleting a database also deletes the endpoints it is reached at.": "データベースを削除すると、そのデータベースに接続するエンドポイントも削除されます。",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "クラウド接続を削除すると、OneUptime はそのアカウントの読み取りを停止します。リソースはメトリクスとともに残ります。",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "ストレージアレイ接続を削除すると、OneUptime はその背後のアレイの読み取りを停止し、保存済みのパスワードと接続テストも削除されます。アレイはメトリクスとともに残ります。",
   "True": "真",
   "False": "偽",
   "Key": "キー",
@@ -4646,5 +4647,10 @@
   "Only XCP-ng pools that match conditions": "条件に一致する XCP-ng プールのみ",
   "All savings": "すべての節約",
   "Only savings that match conditions": "条件に一致する節約のみ",
-  "XCP-ng Pool": "XCP-ng プール"
+  "XCP-ng Pool": "XCP-ng プール",
+  "Same name as another {{kind}}": "ほかの {{kind}} と同じ名前",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "このプロジェクトには同じ名前のほかの {{kind}} があるため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} 件の {{kinds}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。"
 }

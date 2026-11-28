@@ -131,7 +131,7 @@ export interface TelemetryExceptionPayload {
  * as the read gives them, when the exception was made and what it is merged
  * into: how a duplicate a failed lookup made is told apart (#11027).
  */
-interface KnownGroup {
+export interface KnownGroup {
   exists: boolean;
   movedTo?: string | undefined;
   // When the exception was made, in ms: the moved one's, for a former fingerprint.
@@ -263,11 +263,41 @@ export const GROUP_FINGERPRINT_LOOKUP_RETRY_DELAYS_MS: ReadonlyArray<number> = [
 export const GROUP_FINGERPRINT_LOOKUP_RETRY_BUDGET_MS: number = 5000;
 
 // One row of GROUP_FINGERPRINT_LOOKUP_SQL.
-interface GroupLookupRow {
+export interface GroupLookupRow {
   fingerprint: string;
   movedTo?: string | null;
   createdAt?: Date | string | null;
   mergedInto?: string | null;
+}
+
+/*
+ * What the rows of GROUP_FINGERPRINT_LOOKUP_SQL say of each fingerprint
+ * they name, by fingerprint: an exception exists under it, where it moved,
+ * when it was made (in ms) and what it is merged into. A fingerprint no row
+ * names is not in the map. The ingest's lookup reads them so
+ * (readKnownGroups), and so does the sweep that merges back the duplicates
+ * a failed lookup made before #11027 (MergeBackExceptionsSplitByFailedLookups,
+ * #11113), which must tell a duplicate apart exactly as an occurrence does.
+ */
+export function knownGroupsOfLookupRows(
+  rows: ReadonlyArray<GroupLookupRow> | null | undefined,
+): Map<string, KnownGroup> {
+  const existing: Map<string, KnownGroup> = new Map();
+
+  for (const row of rows || []) {
+    const createdAt: number = row.createdAt
+      ? new Date(row.createdAt).getTime()
+      : NaN;
+
+    existing.set(row.fingerprint, {
+      exists: true,
+      ...(row.movedTo ? { movedTo: row.movedTo } : {}),
+      ...(Number.isFinite(createdAt) ? { createdAt } : {}),
+      ...(row.mergedInto ? { mergedInto: row.mergedInto } : {}),
+    });
+  }
+
+  return existing;
 }
 
 /*
@@ -1252,22 +1282,8 @@ export default class ExceptionUtil {
             GROUP_FINGERPRINT_LOOKUP_SQL,
             [projectId, fingerprints],
           );
-        const existing: Map<string, KnownGroup> = new Map();
 
-        for (const row of rows || []) {
-          const createdAt: number = row.createdAt
-            ? new Date(row.createdAt).getTime()
-            : NaN;
-
-          existing.set(row.fingerprint, {
-            exists: true,
-            ...(row.movedTo ? { movedTo: row.movedTo } : {}),
-            ...(Number.isFinite(createdAt) ? { createdAt } : {}),
-            ...(row.mergedInto ? { mergedInto: row.mergedInto } : {}),
-          });
-        }
-
-        return existing;
+        return knownGroupsOfLookupRows(rows);
       } catch (err) {
         const pause: number | undefined =
           GROUP_FINGERPRINT_LOOKUP_RETRY_DELAYS_MS[attempt];

@@ -25,12 +25,13 @@ import {
 } from "./ObservabilityChatPrompt";
 import { stripFabricatedCitationMarkers } from "./ChatAgentRunner";
 import {
+  AnswerPart,
   compactAgentContext,
   CompactionResult,
   CONTINUE_ANSWER_INSTRUCTION,
   frameToolResult,
   getToolResultLoopCall,
-  joinAnswerContinuation,
+  joinAnswerParts,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
 import AIAgentRunLimitsHelper, {
@@ -49,6 +50,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { AiContextActivity } from "../../../../Types/AI/AiContext";
 import AiContextReader from "../AiContext/AiContextReader";
 import { withAiContext } from "../AiContext/AiContextPrompt";
+import ChatMcpAccess, { ChatMcpServers } from "./ChatMcpAccess";
+import ToolOutputPager from "./ToolOutputPager";
 
 /*
  * A synchronous, self-contained runner for the observability assistant used by
@@ -127,6 +130,15 @@ export interface ObservabilityAssistantRequest {
    * Left out, the run is an autonomous one, with nobody to tell.
    */
   chatApp?: ObservabilityChatApp | undefined;
+  /*
+   * For an answer posted to a chat app (chatApp): offer the project's
+   * external MCP servers too, for the person asking (issue #11082) - only
+   * their tools that read, held to what reading the project's External MCP
+   * Servers takes (ChatMcpAccess.buildForChatAppAnswer). Slack and
+   * Microsoft Teams set it. Ignored without chatApp: an autonomous run
+   * brings the servers its rules allow as its own extra tools.
+   */
+  offersExternalMcpServers?: boolean | undefined;
   /*
    * What the question is about: the incident or alert of the chat channel
    * it was asked in (WorkspacePageAbout.findChannelRecord), read as the
@@ -258,9 +270,12 @@ export interface ObservabilityAssistantModelCall {
 
 // What a transport's model call answered.
 export interface ObservabilityAssistantModelReply {
+  // The model's answer, its reasoning left out (LLMService).
   content: string;
   toolCalls?: Array<LLMToolCall> | undefined;
   stopReason?: LLMCompletionResponse["stopReason"];
+  // Set when the reply carried the model's reasoning (joinAnswerParts).
+  reasoning?: LLMCompletionResponse["reasoning"];
   // The call's tokens, as OneUptime counts them (AiTokenCount).
   tokenCount: number;
   providerName?: string | undefined;
@@ -361,6 +376,49 @@ const TEMPERATURE: number = 0.2;
 export default class ObservabilityAssistant {
   @CaptureSpan()
   public static async answerQuestion(
+    request: ObservabilityAssistantRequest,
+  ): Promise<ObservabilityAssistantResult> {
+    /*
+     * An answer posted to Slack or Microsoft Teams may read with the
+     * project's external MCP servers too, for the person who asked (issue
+     * #11082): their tools that read, and the prompt's section about them.
+     * Their sessions are closed however the answer ends. A chat app's
+     * request brings no extra tools of its own, so the servers' tools and
+     * their pager's read_tool_output are the only ones.
+     */
+    const mcpServers: ChatMcpServers | null =
+      request.chatApp && request.offersExternalMcpServers
+        ? await ChatMcpAccess.buildForChatAppAnswer({
+            projectId: request.projectId,
+            props: request.props,
+            chatApp: request.chatApp,
+            outputPager: new ToolOutputPager(),
+          })
+        : null;
+
+    if (!mcpServers) {
+      return await this.runAnswerLoop(request);
+    }
+
+    try {
+      return await this.runAnswerLoop({
+        ...request,
+        extraTools: [...(request.extraTools || []), ...mcpServers.extraTools],
+        systemInstructions: [
+          request.systemInstructions,
+          mcpServers.instructions,
+        ]
+          .filter((section: string | undefined): section is string => {
+            return Boolean(section && section.trim());
+          })
+          .join("\n\n"),
+      });
+    } finally {
+      await mcpServers.close();
+    }
+  }
+
+  private static async runAnswerLoop(
     request: ObservabilityAssistantRequest,
   ): Promise<ObservabilityAssistantResult> {
     const startedAtMs: number = Date.now();
@@ -504,6 +562,8 @@ export default class ObservabilityAssistant {
     let modelName: string | undefined = undefined;
     let providerType: string | undefined = undefined;
     let finalContent: string = "";
+    // The final answer's reply and its continuations (joinAnswerParts).
+    const answerParts: Array<AnswerPart> = [];
     // The tokens of the latest call: the least the next one adds.
     let lastCallTokens: number = 0;
     /*
@@ -931,7 +991,11 @@ export default class ObservabilityAssistant {
         continue;
       }
 
-      finalContent = joinAnswerContinuation(finalContent, response.content);
+      answerParts.push({
+        content: response.content,
+        reasoning: response.reasoning,
+      });
+      finalContent = joinAnswerParts(answerParts);
 
       /*
        * An answer the output-token limit cut off is finished with follow-up
@@ -1017,6 +1081,7 @@ export default class ObservabilityAssistant {
       content: response.content,
       toolCalls: response.toolCalls,
       stopReason: response.stopReason,
+      ...(response.reasoning ? { reasoning: response.reasoning } : {}),
       // As OneUptime counts them: cached tokens weigh what they cost.
       tokenCount: AiTokenCount.count(response.llmLog),
       providerName: response.llmLog.llmProviderName,

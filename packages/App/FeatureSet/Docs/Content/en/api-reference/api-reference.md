@@ -274,7 +274,7 @@ A project that requires unique names, as a new project does, holds most other ki
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-Such a refusal also carries `takenById`, the ID of the record that has the name, when your key may read it. Records that shared a name before the project required unique names keep it until they are renamed, and one update cannot give several records of one kind the same name. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` answers whether a name is taken before you send it, and `GET /api/unique-names/duplicates` lists the names the project holds more than once, kind by kind.
+Such a refusal also carries `takenById`, the ID of the record that has the name, when your key may read it. Records that shared a name before the project required unique names keep it until they are renamed, and one update cannot give several records of one kind the same name. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` answers whether a name is taken before you send it, and `GET /api/unique-names/duplicates` lists the names the project holds more than once, kind by kind. `GET /api/shared-names/Monitor`, or any kind the setting holds by its table's name, answers which of its records share a name, as the dashboard's lists mark them: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, each group two or more records your key may read, with when each was made. Archived records are grouped apart from the records in service.
 
 #### Values another record has
 
@@ -300,6 +300,16 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 An update that writes a record's values as they already are changes nothing: it does not start the record's **On Update** workflows, send live updates or add an audit log entry. `false` written over `false` counts as the same value, and so do `"false"` written over `false`, a number written as its text, a time written as the same instant in another format, and labels written as the same labels in any order. When an update changes some values and writes others back as they are, its audit log entry lists only the values that changed, and a workflow's **Fields to watch** hears only those.
+
+### Values written as JSON
+
+Some fields hold a JSON value with a shape of its own, such as an on-call schedule layer's `rotation` and `restrictionTimes`; the API reference lists each shape under its data types. OneUptime reads only the keys of that shape, so a value that leaves out the key that says what it means, spells that key another way, or gives it a value OneUptime does not know is refused with a `400` that names the key, rather than stored as a value that does nothing:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+A key that is renamed keeps being read under its old name: a layer's restriction type is written under `restrictionType`, or under its older spelling `restictionType`, and an answer carries both.
 
 ### Where a project was bought
 

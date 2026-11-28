@@ -55,7 +55,7 @@ import PermissionGate, {
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
 import {
-  usePrivateRecordGateOptions,
+  useListGateOptions,
   withPrivateRecordGateOptions,
 } from "../../Utils/PrivateRecordScope";
 import { HeldPermissions } from "../../../Types/HeldPermissions";
@@ -208,6 +208,7 @@ import {
   isLiveRowsHeld,
 } from "./LiveRows";
 import useLiveRows from "./UseLiveRows";
+import useTwinMarks, { TwinMarks, markTwinsInColumn } from "./TwinMarks";
 import {
   EMPTY_LIST_COUNT,
   ListCountState,
@@ -222,6 +223,7 @@ import {
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { getUniqueNameWhenRequiredColumn } from "../../../Types/Database/UniqueNameWhenRequired";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -1460,10 +1462,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * On a private incident, alert or episode's page, what the reader holds
    * on it: its changes are offered only when a team of theirs that owns it
-   * may make them (PrivateRecordScope).
+   * may make them (PrivateRecordScope). A list of the page's own kind lists
+   * other records, which the page's answer is not about: each row is
+   * weighed by its own labels instead (ModelTable, #11259).
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
-    usePrivateRecordGateOptions(model);
+    useListGateOptions(model);
 
   type GetItemLabelFunction = (item: unknown) => string;
 
@@ -1832,6 +1836,31 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     return [...declaredColumns, ...attributeColumns];
   }, [declaredColumns, attributeColumns]);
+
+  /*
+   * A kind Require Unique Names holds marks the records whose name another
+   * of its kind has, beside their name, and says how many above the list
+   * (TwinMarks, #11021): every such list, so a kind marked tomorrow is
+   * marked here too. Only a list that shows the kind's name column reads
+   * them; every other kind reads nothing.
+   */
+  const twinMarks: TwinMarks = useTwinMarks({
+    modelType: props.modelType as unknown as { new (): BaseModel },
+    isShown: allColumns.some(
+      (column: ModelTableColumn<TBaseModel>): boolean => {
+        const twinColumn: string | null =
+          model instanceof BaseModel
+            ? getUniqueNameWhenRequiredColumn(model)
+            : null;
+
+        return Boolean(
+          twinColumn &&
+            column.field &&
+            Object.keys(column.field)[0] === twinColumn,
+        );
+      },
+    ),
+  });
 
   /*
    * Ids are derived over the *whole* declared set, so a column dropping out
@@ -2961,6 +2990,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       },
     );
 
+    // The first column on the kind's name draws its twins' marks (TwinMarks).
+    let isTwinColumnMarked: boolean = false;
+
     for (const column of columnsToRender) {
       const hasPermission: boolean =
         hasPermissionToReadColumn(column) || User.isMasterAdmin();
@@ -3002,7 +3034,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ? relationColumnSorts.get(String(columnKey))
           : undefined;
 
-        columns.push({
+        const isTwinColumn: boolean =
+          !isTwinColumnMarked &&
+          Boolean(twinMarks.column) &&
+          columnKey === twinMarks.column;
+
+        if (isTwinColumn) {
+          isTwinColumnMarked = true;
+        }
+
+        const tableColumn: TableColumn<TBaseModel> = {
           ...column,
           id: columnIdByColumn.get(column),
           /*
@@ -3032,7 +3073,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           }),
           tooltipText,
           getElement: column.getElement,
-        });
+        };
+
+        columns.push(
+          isTwinColumn
+            ? markTwinsInColumn<TBaseModel>({
+                column: tableColumn,
+                marks: twinMarks,
+              })
+            : tableColumn,
+        );
 
         if (key) {
           selectFields[key] = true;
@@ -3695,6 +3745,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       );
       setData(listResult.data);
 
+      // Which of the kind's records share a name, read with the rows (TwinMarks).
+      twinMarks.onRowsRead(listResult.data, { isBackground: isBackground });
+
       /*
        * A live read tints the rows it brought in; a read the reader asked
        * for (another page, a search) draws the rows they asked for, none
@@ -3891,9 +3944,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         model.hasColumn(moreField as string) &&
         model.isEntityColumn(moreField as string)
       ) {
-        (selectFields as Dictionary<boolean>)[moreField as string] = (
-          props.selectMoreFields as any
-        )[moreField];
+        /*
+         * A relation a column selects already keeps what that column reads:
+         * the fields asked for here are added to it. It was replaced, so a
+         * list that also asked for its rows' label ids drew its Labels
+         * column without names.
+         */
+        const selected: unknown = (selectFields as Dictionary<unknown>)[
+          moreField as string
+        ];
+        const more: unknown = (props.selectMoreFields as any)[moreField];
+
+        (selectFields as Dictionary<unknown>)[moreField as string] =
+          selected &&
+          typeof selected === "object" &&
+          more &&
+          typeof more === "object"
+            ? {
+                ...(selected as Dictionary<unknown>),
+                ...(more as Dictionary<unknown>),
+              }
+            : more;
       } else if (model.hasColumn(moreField as string)) {
         (selectFields as Dictionary<boolean>)[moreField as string] = true;
       } else {
@@ -4329,6 +4400,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   useEffect(() => {
     serializeToTableColumns();
   }, [data]);
+
+  // Which records share a name arrived, or changed: their cells draw it.
+  useEffect(() => {
+    if (twinMarks.version > 0) {
+      serializeToTableColumns();
+    }
+  }, [twinMarks.version]);
 
   /*
    * Re-serialize whenever the parent passes a new `columns` reference. The
@@ -5553,13 +5631,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       );
     };
 
-  // A reorderable list with its messages - saving, failed, paused - above it.
+  /*
+   * A list with its messages above it: a reorderable list's - saving,
+   * failed, paused - and how many of its records share a name with another
+   * of their kind (TwinMarks).
+   */
   const withReorderMessages: (element: ReactElement) => ReactElement = (
     element: ReactElement,
   ): ReactElement => {
     return (
       <>
         {getReorderMessages()}
+        {twinMarks.note}
         {element}
       </>
     );

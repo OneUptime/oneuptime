@@ -15,8 +15,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * project has a voice, and the switch is off, so every call speaks exactly
  * as it did until a master admin lets projects choose.
  */
-export class AddProjectCallVoice1809187791100 implements MigrationInterface {
-  public name: string = "AddProjectCallVoice1809187791100";
+export class AddProjectCallVoice1809187791300 implements MigrationInterface {
+  public name: string = "AddProjectCallVoice1809187791300";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

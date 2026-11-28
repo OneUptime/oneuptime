@@ -140,6 +140,9 @@ collector_env_unescape() {
 # non-root user).
 EDITED_FILES=()
 DIFFERING_FILES=()
+# The old docker-compose.yml, when the one change made to it was the agent's
+# container name, which .env carries now (only_container_name_edited).
+RENAMED_COMPOSE_BACKUP=""
 
 file_sha256() {
     if command -v sha256sum >/dev/null 2>&1; then
@@ -331,6 +334,255 @@ reject_dollar() {
 }
 
 # ----------------------------------------------------------------------------
+# The agent's container name
+# ----------------------------------------------------------------------------
+# Two containers cannot share a name, so a second Xen Orchestra's agent on
+# this machine, in a directory of its own, needs a container name of its own.
+# docker-compose.yml reads it from .env (container_name:
+# ${XCP_NG_AGENT_CONTAINER_NAME:-oneuptime-xcp-ng-agent}), and nothing asks
+# for it. It is, in this order:
+#   - XCP_NG_AGENT_CONTAINER_NAME exported, or in .env on a re-run, like
+#     every other value;
+#   - for an agent set up before .env held it, the name its docker-compose.yml
+#     was given by hand (what README.md said to do): read from that file
+#     before this run replaces it, else from the container this directory
+#     runs, else from the newest docker-compose.yml.bak.<timestamp> an
+#     earlier upgrade kept; and an agent that runs under the default name
+#     keeps it. An upgrade never renames an agent;
+#   - otherwise the directory's: oneuptime-xcp-ng-agent-<project>, <project>
+#     being the name Compose gives the directory's project (see "The agent's
+#     Compose project" below: lab for /opt/lab), or the project's name itself
+#     when it starts with oneuptime-xcp-ng-agent. One directory is one
+#     project, and one name. The default directory's is the default name, so
+#     a first agent is named as it always was.
+# A name install.sh gives always starts with oneuptime-xcp-ng-agent, and
+# the compose service is always
+# oneuptime-xcp-ng-agent: `docker compose ps` / `logs` in the directory find
+# the container whatever its name.
+AGENT_SERVICE="oneuptime-xcp-ng-agent"
+DEFAULT_CONTAINER_NAME="oneuptime-xcp-ng-agent"
+# The XCP-ng AI agent's container's, when its profile runs it.
+DEFAULT_AI_AGENT_CONTAINER_NAME="oneuptime-xcp-ng-ai-agent"
+
+# Whether $1 is a name Docker gives a container: a letter or a digit, then at
+# least one more letter, digit, _, . or -.
+is_container_name() {
+    case "$1" in
+        "" | ? | [!a-zA-Z0-9]* | *[!a-zA-Z0-9_.-]*) return 1 ;;
+    esac
+    return 0
+}
+
+# compose_container_name <compose file>: the container_name the agent's
+# service sets there, when it is a name written out (not ${...}), or nothing.
+compose_container_name() {
+    local value=""
+    [ -f "$1" ] || return 0
+    value="$(awk -v service="$AGENT_SERVICE" '
+        /^[[:space:]]*(#.*)?$/ { next }
+        {
+            match($0, /^[[:space:]]*/)
+            indent = RLENGTH
+            if (inside && indent <= service_indent) { inside = 0 }
+            if (!inside && $0 ~ ("^[[:space:]]+" service ":[[:space:]]*(#.*)?$")) {
+                inside = 1
+                service_indent = indent
+                next
+            }
+            if (inside && $0 ~ /^[[:space:]]+container_name:/) {
+                sub(/^[[:space:]]+container_name:[[:space:]]*/, "")
+                sub(/[[:space:]]+#.*$/, "")
+                sub(/[[:space:]]+$/, "")
+                print
+                exit
+            }
+        }' "$1" 2>/dev/null)" || true
+    case "$value" in
+        \"*\") value="${value#\"}"; value="${value%\"}" ;;
+        \'*\') value="${value#\'}"; value="${value%\'}" ;;
+    esac
+    if is_container_name "$value"; then
+        printf '%s' "$value"
+    fi
+}
+
+# The name of the agent's container this directory's compose project runs
+# (running or not), or nothing.
+existing_container_name() {
+    local id="" name=""
+    [ -f "$INSTALL_DIR/docker-compose.yml" ] || return 0
+    id="$(cd "$INSTALL_DIR" 2>/dev/null && docker compose ps -a -q "$AGENT_SERVICE" 2>/dev/null | head -n 1)" || true
+    [ -n "$id" ] || return 0
+    name="$(docker inspect -f '{{.Name}}' "$id" 2>/dev/null | head -n 1)" || true
+    name="${name#/}"
+    if is_container_name "$name"; then
+        printf '%s' "$name"
+    fi
+}
+
+# The name the newest docker-compose.yml.bak.<timestamp> gave the agent,
+# when it is not the default one, or nothing.
+backup_container_name() {
+    local backup="" name="" found=""
+    for backup in "$INSTALL_DIR"/docker-compose.yml.bak.*; do
+        [ -f "$backup" ] || continue
+        name="$(compose_container_name "$backup")"
+        if [ -n "$name" ] && [ "$name" != "$DEFAULT_CONTAINER_NAME" ]; then
+            found="$name"
+        fi
+    done
+    printf '%s' "$found"
+}
+
+# The installation directory's container name for this agent: after the
+# Compose project the directory runs (a-z 0-9 _ - only, so a container name
+# too, once it starts with this agent's name).
+directory_container_name() {
+    local project=""
+    project="$(compose_project_name)"
+    case "$project" in
+        "") printf '%s' "$DEFAULT_CONTAINER_NAME" ;;
+        "$DEFAULT_CONTAINER_NAME"*) printf '%s' "$project" ;;
+        *) printf '%s-%s' "$DEFAULT_CONTAINER_NAME" "$project" ;;
+    esac
+}
+
+# Sets XCP_NG_AGENT_CONTAINER_NAME when neither the shell nor .env gave it,
+# as the block above says, and CONTAINER_NAME_SOURCE to where it came from.
+choose_container_name() {
+    local edited="" existing="" backed_up=""
+    edited="$(compose_container_name "$INSTALL_DIR/docker-compose.yml")"
+    existing="$(existing_container_name)"
+    if [ -n "$edited" ] && [ "$edited" != "$DEFAULT_CONTAINER_NAME" ]; then
+        XCP_NG_AGENT_CONTAINER_NAME="$edited"
+        CONTAINER_NAME_SOURCE="its docker-compose.yml"
+    elif [ -n "$existing" ] && [ "$existing" != "$DEFAULT_CONTAINER_NAME" ]; then
+        XCP_NG_AGENT_CONTAINER_NAME="$existing"
+        CONTAINER_NAME_SOURCE="the container it runs as"
+    else
+        backed_up="$(backup_container_name)"
+        if [ -n "$backed_up" ]; then
+            XCP_NG_AGENT_CONTAINER_NAME="$backed_up"
+            CONTAINER_NAME_SOURCE="its docker-compose.yml, kept as a backup by an earlier upgrade"
+        elif [ -n "$existing" ]; then
+            XCP_NG_AGENT_CONTAINER_NAME="$existing"
+            CONTAINER_NAME_SOURCE="the container it runs as"
+        else
+            XCP_NG_AGENT_CONTAINER_NAME="$(directory_container_name)"
+            CONTAINER_NAME_SOURCE="its directory"
+        fi
+    fi
+}
+
+# ----------------------------------------------------------------------------
+# The agent's Compose project
+# ----------------------------------------------------------------------------
+# Compose names the project of a directory after the directory: lower case,
+# only a-z 0-9 _ and -, no leading _ or - ("Xen Lab (2)" is xenlab2), unless
+# COMPOSE_PROJECT_NAME says otherwise. Two directories of the same name are one
+# project to Compose, whatever their parents: the `up --force-recreate` below
+# would recreate the other directory's agent from this directory's files,
+# without a word. So an install whose project another directory runs stops
+# before it changes anything, and asks for a directory of another name.
+
+# The installation directory as Compose records it (an absolute path, with
+# no trailing /).
+absolute_install_dir() {
+    local dir="$INSTALL_DIR"
+    case "$dir" in
+        /*) ;;
+        *) dir="$(pwd)/$dir" ;;
+    esac
+    while [ "${dir%/}" != "$dir" ] && [ -n "${dir%/}" ]; do
+        dir="${dir%/}"
+    done
+    printf '%s' "$dir"
+}
+
+# The name of the Compose project the installation directory runs as.
+compose_project_name() {
+    local name="${COMPOSE_PROJECT_NAME:-}" dir=""
+    if [ -z "$name" ] && [ -f "$ENV_FILE" ]; then
+        name="$(dotenv_get COMPOSE_PROJECT_NAME "$ENV_FILE")"
+    fi
+    if [ -z "$name" ]; then
+        dir="$(absolute_install_dir)"
+        name="${dir##*/}"
+    fi
+    printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-' | sed 's/^[-_]*//'
+}
+
+# Whether $1 and $2 are one directory on this machine, however each is
+# spelled (a symlink, a trailing /).
+same_directory() {
+    local first="" second=""
+    first="$(cd "$1" 2>/dev/null && pwd -P)" || return 1
+    second="$(cd "$2" 2>/dev/null && pwd -P)" || return 1
+    [ "$first" = "$second" ]
+}
+
+# Another directory, still on this machine, whose containers run in the
+# Compose project this one would run in, or nothing. A directory that is
+# gone (the agent was moved) holds no agent but those containers, which are
+# this one's to replace.
+other_project_directory() {
+    local project="" here="" dir=""
+    project="$(compose_project_name)"
+    [ -n "$project" ] || return 0
+    here="$(absolute_install_dir)"
+    while IFS= read -r dir; do
+        dir="${dir%/}"
+        [ -n "$dir" ] && [ "$dir" != "$here" ] && [ -d "$dir" ] || continue
+        same_directory "$dir" "$here" && continue
+        printf '%s' "$dir"
+        return 0
+    done <<PROJECT_DIRECTORIES_EOF
+$(docker ps -a --filter "label=com.docker.compose.project=$project" \
+    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | sort -u)
+PROJECT_DIRECTORIES_EOF
+}
+
+# ai_agent_container_name_for <collector's container name>: the XCP-ng AI
+# agent's beside it - the default beside the default,
+# oneuptime-xcp-ng-ai-agent-lab beside oneuptime-xcp-ng-agent-lab, and
+# <name>-ai beside any other.
+ai_agent_container_name_for() {
+    case "$1" in
+        "$DEFAULT_CONTAINER_NAME") printf '%s' "$DEFAULT_AI_AGENT_CONTAINER_NAME" ;;
+        "$DEFAULT_CONTAINER_NAME"-*) printf '%s%s' "$DEFAULT_AI_AGENT_CONTAINER_NAME" "${1#"$DEFAULT_CONTAINER_NAME"}" ;;
+        *) printf '%s-ai' "$1" ;;
+    esac
+}
+
+# Whether the compose file $1 differs from the one install.sh installed
+# (sha256 $2) in the agent's container name alone: the edit README.md asked
+# for, which .env carries now, so nothing needs making again.
+only_container_name_edited() {
+    local file="$1" recorded="$2" restored="" restored_sha=""
+    [ -n "$recorded" ] || return 1
+    restored="$(mktemp)" || return 1
+    awk -v service="$AGENT_SERVICE" -v name="$DEFAULT_CONTAINER_NAME" '
+        done_once || /^[[:space:]]*(#.*)?$/ { print; next }
+        {
+            match($0, /^[[:space:]]*/)
+            indent = RLENGTH
+            if (inside && indent <= service_indent) { inside = 0 }
+            if (!inside && $0 ~ ("^[[:space:]]+" service ":[[:space:]]*(#.*)?$")) {
+                inside = 1
+                service_indent = indent
+            } else if (inside && $0 ~ /^[[:space:]]+container_name:/) {
+                print "    container_name: " name
+                done_once = 1
+                next
+            }
+            print
+        }' "$file" > "$restored" 2>/dev/null || true
+    restored_sha="$(file_sha256 "$restored")"
+    rm -f "$restored"
+    [ -n "$restored_sha" ] && [ "$restored_sha" = "$recorded" ]
+}
+
+# ----------------------------------------------------------------------------
 # Xen Orchestra's certificate
 # ----------------------------------------------------------------------------
 # The collector checks Xen Orchestra's certificate against xo-ca.pem and
@@ -480,17 +732,19 @@ AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
 # The certificates the collector trusts for Xen Orchestra.
 CA_PEM="$INSTALL_DIR/xo-ca.pem"
 
-# Every variable docker-compose.yml reads, the XCP-ng AI agent's included,
-# and the four this script reads again on a re-run: XO_URL (XO_SCHEME and
-# XO_ADDRESS come from it), how Xen Orchestra's certificate is trusted
-# (XO_TLS_FINGERPRINT, XO_CA_FILE), so an upgrade checks the certificate the
-# same way, and COMPOSE_PROFILES, which starts the AI agent.
+# Every variable docker-compose.yml reads, the XCP-ng AI agent's and the two
+# containers' names included, and the four this script reads again on a
+# re-run: XO_URL (XO_SCHEME and XO_ADDRESS come from it), how Xen Orchestra's
+# certificate is trusted (XO_TLS_FINGERPRINT, XO_CA_FILE), so an upgrade
+# checks the certificate the same way, and COMPOSE_PROFILES, which starts the
+# AI agent.
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY XO_URL XO_SCHEME XO_ADDRESS \
 XO_OPENMETRICS_SECRET XO_NAME XO_TLS_FINGERPRINT XO_CA_FILE XO_TLS_SERVER_NAME \
 COMPOSE_PROFILES XCP_NG_POOL_ID ONEUPTIME_AI_AGENT_RESOURCE_NAME \
 ONEUPTIME_AI_XO_READ_TOKEN ONEUPTIME_AI_XO_WRITE_TOKEN \
 ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES ONEUPTIME_AI_ALLOW_WRITES \
-ONEUPTIME_AI_WRITE_TARGETS ONEUPTIME_AI_PROTECTED_TARGETS LOG_LEVEL"
+ONEUPTIME_AI_WRITE_TARGETS ONEUPTIME_AI_PROTECTED_TARGETS LOG_LEVEL \
+XCP_NG_AGENT_CONTAINER_NAME XCP_NG_AI_AGENT_CONTAINER_NAME"
 
 # The Compose profile that starts the XCP-ng AI agent (docker-compose.yml).
 AI_AGENT_PROFILE="xcp-ng-ai-agent"
@@ -501,6 +755,13 @@ AI_AGENT_SERVICE="oneuptime-xcp-ng-ai-agent"
 # variable is exported in the shell, and nothing is prompted for again.
 # Edit .env directly, export the variable, or delete the file to change one.
 REUSED_ENV=0
+# The AI agent's container name as the shell gives it, and the collector's as
+# .env does (see "The XCP-ng AI agent's container" below).
+EXPORTED_AI_AGENT_CONTAINER_NAME="${XCP_NG_AI_AGENT_CONTAINER_NAME:-}"
+KEPT_CONTAINER_NAME=""
+if [ -f "$ENV_FILE" ]; then
+    KEPT_CONTAINER_NAME="$(dotenv_get XCP_NG_AGENT_CONTAINER_NAME "$ENV_FILE")"
+fi
 if [ -f "$ENV_FILE" ]; then
     REUSED_ENV=1
     echo "Found an existing configuration in $ENV_FILE — reusing it."
@@ -576,6 +837,67 @@ case "$XO_TLS_SERVER_NAME" in
         ;;
 esac
 XO_TLS_SERVER_NAME="$(printf '%s' "$XO_TLS_SERVER_NAME" | tr '[:upper:]' '[:lower:]')"
+
+# The agent's container name (see "The agent's container name" above): the
+# one exported or in .env, checked, or else the one this directory's agent
+# already has, or its directory's.
+CONTAINER_NAME_SOURCE=""
+if [ -n "$XCP_NG_AGENT_CONTAINER_NAME" ]; then
+    if ! is_container_name "$XCP_NG_AGENT_CONTAINER_NAME"; then
+        echo "Error: XCP_NG_AGENT_CONTAINER_NAME=\"$XCP_NG_AGENT_CONTAINER_NAME\" is not a container name: a letter or a"
+        echo "digit, then letters, digits, _, . or - (e.g. $DEFAULT_CONTAINER_NAME-lab)."
+        exit 1
+    fi
+else
+    choose_container_name
+fi
+if [ "$XCP_NG_AGENT_CONTAINER_NAME" != "$DEFAULT_CONTAINER_NAME" ]; then
+    case "$CONTAINER_NAME_SOURCE" in
+        "its directory")
+            echo "The agent's container is $XCP_NG_AGENT_CONTAINER_NAME, named after its directory, so it does"
+            echo "not take the name of another Xen Orchestra's agent on this machine."
+            ;;
+        "")
+            echo "The agent's container is $XCP_NG_AGENT_CONTAINER_NAME (XCP_NG_AGENT_CONTAINER_NAME)."
+            ;;
+        *)
+            echo "The agent's container keeps its name, $XCP_NG_AGENT_CONTAINER_NAME, from $CONTAINER_NAME_SOURCE."
+            ;;
+    esac
+    echo ""
+fi
+
+# The XCP-ng AI agent's container (oneuptime-xcp-ng-ai-agent in
+# docker-compose.yml, which its profile starts): XCP_NG_AI_AGENT_CONTAINER_NAME
+# exported or in .env, else the collector's name with the AI agent's in it -
+# oneuptime-xcp-ng-ai-agent-lab beside oneuptime-xcp-ng-agent-lab - so a
+# second Xen Orchestra's agent runs its AI agent beside the first one's too.
+# A name .env holds that was the collector's own, before someone gave the
+# collector another, follows the collector's new one.
+if [ -z "$EXPORTED_AI_AGENT_CONTAINER_NAME" ] && [ -n "$KEPT_CONTAINER_NAME" ] \
+    && [ "$XCP_NG_AI_AGENT_CONTAINER_NAME" = "$(ai_agent_container_name_for "$KEPT_CONTAINER_NAME")" ]; then
+    XCP_NG_AI_AGENT_CONTAINER_NAME=""
+fi
+if [ -n "$XCP_NG_AI_AGENT_CONTAINER_NAME" ]; then
+    if ! is_container_name "$XCP_NG_AI_AGENT_CONTAINER_NAME"; then
+        echo "Error: XCP_NG_AI_AGENT_CONTAINER_NAME=\"$XCP_NG_AI_AGENT_CONTAINER_NAME\" is not a container name: a letter"
+        echo "or a digit, then letters, digits, _, . or - (e.g. $DEFAULT_AI_AGENT_CONTAINER_NAME-lab)."
+        exit 1
+    fi
+else
+    XCP_NG_AI_AGENT_CONTAINER_NAME="$(ai_agent_container_name_for "$XCP_NG_AGENT_CONTAINER_NAME")"
+fi
+
+# Another directory of the same name runs this directory's Compose project
+# (see "The agent's Compose project" above): stop before anything changes.
+OTHER_PROJECT_DIR="$(other_project_directory)"
+if [ -n "$OTHER_PROJECT_DIR" ]; then
+    echo "Error: $OTHER_PROJECT_DIR already runs containers in the Docker Compose project"
+    echo "\"$(compose_project_name)\": Compose names a project after its directory, and gives $INSTALL_DIR"
+    echo "that name too. Installing here would recreate them and run this agent in their place. Install"
+    echo "it into a directory of another name instead, e.g. INSTALL_DIR=$(absolute_install_dir)-2 bash install.sh"
+    exit 1
+fi
 
 # The collector runs in a container on Docker's bridge network: there,
 # localhost is the container itself, never this machine.
@@ -967,6 +1289,13 @@ fetch_agent_file() {
     exit 1
 }
 
+# What install.sh had installed as docker-compose.yml, for
+# only_container_name_edited once the download has replaced it.
+INSTALLED_COMPOSE_SHA=""
+if [ -f "$AGENT_FILES_RECORD" ]; then
+    INSTALLED_COMPOSE_SHA="$(awk '$2 == "docker-compose.yml" { sha = $1 } END { print sha }' "$AGENT_FILES_RECORD")"
+fi
+
 # Download configuration files
 echo "Downloading configuration files..."
 rm -f "$AGENT_FILES_RECORD.new"
@@ -979,6 +1308,21 @@ if [ -f "$AGENT_FILES_RECORD.new" ]; then
 else
     rm -f "$AGENT_FILES_RECORD"
 fi
+# A docker-compose.yml whose one change was the agent's container name is
+# not a change to make again: .env carries the name now.
+KEPT_EDITS=()
+for backup in "${EDITED_FILES[@]}"; do
+    case "${backup##*/}" in
+        docker-compose.yml.bak.*)
+            if only_container_name_edited "$backup" "$INSTALLED_COMPOSE_SHA"; then
+                RENAMED_COMPOSE_BACKUP="$backup"
+                continue
+            fi
+            ;;
+    esac
+    KEPT_EDITS+=("$backup")
+done
+EDITED_FILES=("${KEPT_EDITS[@]}")
 
 # The certificates the collector trusts for Xen Orchestra. Public
 # certificates only, so readable by the collector's non-root user.
@@ -990,9 +1334,9 @@ fi
 
 # Create .env file. It holds the OpenMetrics secret, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
-# value is quoted for Compose (see compose_env_quote), and the secret also
-# escaped for the collector (see collector_env_escape); the scheme is a
-# validated shape and stays bare.
+# value is quoted for Compose (see compose_env_quote), the container name
+# too, and the secret also escaped for the collector (see
+# collector_env_escape); the scheme is a validated shape and stays bare.
 touch "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 cat > "$ENV_FILE" <<ENVEOF
@@ -1018,6 +1362,8 @@ ONEUPTIME_AI_ALLOW_WRITES=$(compose_env_quote "$ONEUPTIME_AI_ALLOW_WRITES")
 ONEUPTIME_AI_WRITE_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_WRITE_TARGETS")
 ONEUPTIME_AI_PROTECTED_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_PROTECTED_TARGETS")
 LOG_LEVEL=$(compose_env_quote "$LOG_LEVEL")
+XCP_NG_AGENT_CONTAINER_NAME=$(compose_env_quote "$XCP_NG_AGENT_CONTAINER_NAME")
+XCP_NG_AI_AGENT_CONTAINER_NAME=$(compose_env_quote "$XCP_NG_AI_AGENT_CONTAINER_NAME")
 ENVEOF
 chmod 600 "$ENV_FILE"
 
@@ -1052,9 +1398,12 @@ fi
 if ! docker compose up -d --force-recreate; then
     echo ""
     echo "Error: the agent did not start. If Docker reports that the container name"
-    echo "\"oneuptime-xcp-ng-agent\" is already in use, another Xen Orchestra's agent runs on"
-    echo "this machine: give this one its own container_name in $INSTALL_DIR/docker-compose.yml"
-    echo "(see README.md, \"Reading several Xen Orchestras\") and run: cd $INSTALL_DIR && docker compose up -d"
+    echo "\"$XCP_NG_AGENT_CONTAINER_NAME\" is already in use, another container on this machine has it (another"
+    echo "Xen Orchestra's agent, say): give this agent a name of its own and run this again, e.g."
+    echo "  XCP_NG_AGENT_CONTAINER_NAME=$DEFAULT_CONTAINER_NAME-<name> INSTALL_DIR=$INSTALL_DIR bash install.sh"
+    echo "Its AI agent, \"$XCP_NG_AI_AGENT_CONTAINER_NAME\", takes a name of its own the same way"
+    echo "(XCP_NG_AI_AGENT_CONTAINER_NAME). Both are kept in $ENV_FILE from then on (see README.md,"
+    echo "\"Reading several Xen Orchestras\")."
     exit 1
 fi
 
@@ -1096,6 +1445,18 @@ if [ "${#DIFFERING_FILES[@]}" -gt 0 ]; then
         echo "  $backup"
     done
     echo "If they do, re-apply your changes to the new files, then: cd $INSTALL_DIR && docker compose up -d --force-recreate"
+fi
+if [ -n "$RENAMED_COMPOSE_BACKUP" ]; then
+    echo ""
+    echo "Your docker-compose.yml gave the agent's container a name of its own, the one change"
+    echo "you had made to it. The new docker-compose.yml reads the name from .env"
+    echo "(XCP_NG_AGENT_CONTAINER_NAME=$XCP_NG_AGENT_CONTAINER_NAME), so there is nothing to make again."
+    echo "Your copy is kept: $RENAMED_COMPOSE_BACKUP"
+elif [ "$CONTAINER_NAME_SOURCE" = "its docker-compose.yml" ]; then
+    echo ""
+    echo "The new docker-compose.yml reads the agent's container name from .env"
+    echo "(XCP_NG_AGENT_CONTAINER_NAME=$XCP_NG_AGENT_CONTAINER_NAME): leave its container_name line"
+    echo "as it is when you make your other changes again."
 fi
 echo ""
 echo "To check status:  cd $INSTALL_DIR && docker compose ps"

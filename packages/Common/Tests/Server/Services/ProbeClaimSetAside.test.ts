@@ -1,4 +1,5 @@
 import MonitorProbeService, {
+  ClaimedMonitorProbe,
   PENDING_MONITOR_PROBE_COUNT_CAP,
   Service as MonitorProbeServiceType,
 } from "../../../Server/Services/MonitorProbeService";
@@ -158,9 +159,14 @@ describe("the monitor claim reads only what it hands out", () => {
       laterRows,
     );
 
-    const claimed: Array<ObjectID> = await service.claimMonitorProbesForProbing(
-      { probeId: PROBE_ID, limit: 10 },
-    );
+    const claimed: Array<ObjectID> = (
+      await service.claimMonitorProbesForProbing({
+        probeId: PROBE_ID,
+        limit: 10,
+      })
+    ).map((claimedMonitorProbe: ClaimedMonitorProbe): ObjectID => {
+      return claimedMonitorProbe.monitorProbeId;
+    });
 
     return { statements, claimed };
   }
@@ -205,8 +211,9 @@ describe("the monitor claim reads only what it hands out", () => {
     expect(sql).toContain(
       'RETURNING mp."_id", c."dueAt", c."monitoringInterval"',
     );
+    // With each claimed row's monitor, as the probe is handed it (#11120).
     expect(sql).toMatch(
-      /SELECT c\."_id", c\."dueAt", c\."monitoringInterval", c\."scheduled", f\."steppedOver" FROM "flags" f LEFT JOIN "claimed" c ON true ORDER BY c\."dueAt" ASC NULLS FIRST$/,
+      /SELECT c\."_id", c\."dueAt", c\."monitoringInterval", c\."scheduled", c\."monitorId", c\."monitorProjectId", c\."monitorType", c\."monitorSteps", f\."steppedOver" FROM "flags" f LEFT JOIN "claimed" c ON true ORDER BY c\."dueAt" ASC NULLS FIRST$/,
     );
   });
 

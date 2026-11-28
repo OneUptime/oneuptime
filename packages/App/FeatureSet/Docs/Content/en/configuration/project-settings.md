@@ -63,7 +63,9 @@ flowchart LR
 
 It is on in a new project. A project that existed before it came keeps it off, because the project's API clients and Terraform configurations may rely on names that repeat: turn it on when you are ready.
 
-Under the switch, the card lists each name the project already holds more than once, kind by kind, with a link to each record and the day it was made. Turning the switch on refuses nothing that exists: those records keep working until someone renames them, and only a new record or a rename needs a name of its own. Saving a record with its own name again, in any case, is no rename.
+Under the switch, the card lists each name the project already holds more than once, kind by kind, with a link to each record and the day it was made. An OpenStack budget opens on its cloud's **Spend** page, and a workspace summary on the **Summary** tab of its Slack, Microsoft Teams or Mattermost page. AI agents have no page in the dashboard, so the card names them without a link and says so. Turning the switch on refuses nothing that exists: those records keep working until someone renames them, and only a new record or a rename needs a name of its own. Saving a record with its own name again, in any case, is no rename.
+
+Each kind's own list marks those records too, with **Same name as another monitor** (or template, key and so on) and the day each was made, and says above the list how many there are. A list marks only the records you can open.
 
 Whatever the switch says, a form warns as you type a name another record of its kind has, and links to that record. While the switch is on, the warning also says that saving would be refused.
 
@@ -118,7 +120,7 @@ A label that has the same name as another label, from before names had to differ
 **Project Settings → Notifications** holds how the project sends notifications:
 
 - **Notification Channels**: its **Notification Channels** card turns SMS, phone calls, WhatsApp and Telegram on or off for the project. All four start off. A Project Owner, a **Billing Admin** or someone with **Manage Billing** switches them. The page also holds, folded under **More settings**, how members are paged by default, under **Default Ladder for New Members** and **Phone for People on Call** (see [The default ladder](/docs/notifications/on-call-rules#the-default-ladder)), whether on-call calls tell voicemail from a person, under **Voicemail on On-Call Calls** (see [Voicemail on on-call calls](/docs/self-hosted/twilio-integration#voicemail-on-on-call-calls)), the project's own mail servers, under **Custom SMTP Configs** (see [SMTP](/docs/emails/smtp)), and its own Twilio account (see [Twilio Integration](/docs/self-hosted/twilio-integration)). On OneUptime Cloud, it holds the balance these messages are paid from: see [Prepaid balances](/docs/configuration/billing#prepaid-balances).
-- **Notification Logs**: every notification the project sent, with one tab for each channel: **Email**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Call**, **Push** and **Workspace**. The **Webhook** tab keeps each address by its scheme and host alone: the rest of it is the webhook's secret.
+- **Notification Logs**: every notification the project sent, with one tab for each channel: **Email**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Call**, **Push** and **Workspace**. The **Webhook** tab keeps each address by its scheme and host alone: the rest of it is the webhook's secret. What each status means: [Notification Logs](/docs/notifications/notification-logs).
 - **Mobile Apps**: where to get the iOS and Android apps. See [Apps Overview](/docs/mobile-desktop-apps/index).
 
 ## Delete the project

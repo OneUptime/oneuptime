@@ -218,8 +218,12 @@ pass "Docker daemon reachable"
 if [ -d "$DIR" ] && [ -f "$DIR/docker-compose.yml" ]; then
   pass "Install dir '$DIR' exists (compose install)"
   # A second array's agent on this machine has its own container name
-  # (README.md, "Monitoring several arrays"): ask compose which container
-  # this directory runs, and keep the default name when it cannot tell.
+  # (README.md, "Monitoring several arrays"): the one install.sh writes to
+  # .env as STORAGE_ARRAY_AGENT_CONTAINER_NAME, which docker-compose.yml
+  # reads. Ask compose which container this directory runs, then, and keep
+  # the name .env gives (else the default) when it cannot tell.
+  ENV_CONTAINER=$(dotenv_get STORAGE_ARRAY_AGENT_CONTAINER_NAME "$ENV_FILE")
+  [ -n "$ENV_CONTAINER" ] && AGENT_CONTAINER="$ENV_CONTAINER"
   CID=$(cd "$DIR" 2>/dev/null && docker compose ps -a -q oneuptime-storage-array-agent 2>/dev/null | head -1)
   if [ -n "$CID" ]; then
     NAME=$(docker inspect -f '{{.Name}}' "$CID" 2>/dev/null | sed 's#^/##')

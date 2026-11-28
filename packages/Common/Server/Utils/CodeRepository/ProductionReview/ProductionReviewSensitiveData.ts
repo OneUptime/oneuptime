@@ -16,7 +16,9 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { CodeHostChangedFile } from "../CodeHost/CodeHostTypes";
 import { ChangedCode } from "./ProductionReviewDiff";
-import ProductionReviewScope from "./ProductionReviewScope";
+import ProductionReviewScope, {
+  ProductionReviewRumApplication,
+} from "./ProductionReviewScope";
 import {
   SensitiveDataCandidate,
   toLeakPoint,
@@ -50,6 +52,10 @@ import {
 import { customDataTypeId } from "../../../../Types/DataSecurity/CustomDataTypeId";
 import DataCategory from "../../../../Types/DataSecurity/DataCategory";
 import {
+  readTelemetryDataStoreKeyOwnerId,
+  telemetryDataStoreKey,
+} from "../../../../Types/DataSecurity/DataStoreKey";
+import {
   getDataSecurityCheck,
   isFindingCounted,
 } from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
@@ -65,6 +71,11 @@ import {
   getDataStoreKindInfo,
 } from "../../../../Types/DataSecurity/DataStoreKind";
 import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
+import {
+  getRumTelemetryLeakSignal,
+  TelemetryLeakFixOwnerKind,
+  TelemetryLeakSignal,
+} from "../../../../Types/DataSecurity/TelemetryLeakFix";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import ObjectID from "../../../../Types/ObjectID";
 import SecuritySeverity from "../../../../Types/SecuritySeverity";
@@ -79,10 +90,15 @@ import SecuritySeverity from "../../../../Types/SecuritySeverity";
  *   - telemetry: where the service's own telemetry held the same kind of
  *     data in the last SENSITIVE_DATA_LIMITS.heldBeforeDays days - its
  *     logs' `attributes.email`, its spans' `user.ssn` - from Data
- *     Security's findings on the service's telemetry stores; and whether a
- *     scrub rule already masks it at ingest, which is still a point: the
- *     code writes it, and every place that reads it before ingest - the
- *     collector, a log file, another vendor - reads it whole;
+ *     Security's findings on the service's telemetry stores, and, for a
+ *     web or mobile app's front-end code (#11395), on its RUM
+ *     application's session replays - a browser log's
+ *     `logs.attributes.user.email`, a session's user
+ *     `sessions.identifiedUserLabel` (ProductionReviewScope says which
+ *     code is a front end's); and whether a scrub rule already masks it
+ *     at ingest, which is still a point: the code writes it, and every
+ *     place that reads it before ingest - the collector, a log file,
+ *     another vendor - reads it whole;
  *   - infrastructure: the project's store the resource is, found by the
  *     names the diff knows it by - its sensitivity says how bad the point
  *     is, and a store marked Public By Design makes no point for being
@@ -103,19 +119,57 @@ import SecuritySeverity from "../../../../Types/SecuritySeverity";
  * where the review is read (ProductionReviewReadFilter).
  */
 
-// How each sink's writes reach the service's telemetry: the store kinds that hold them.
-const STORE_KINDS_OF_SINK: Readonly<
+/*
+ * How each sink's writes reach production's telemetry: the store kinds
+ * that hold them - a service's, and a RUM application's session replays
+ * for what a web or mobile app's front end writes (#11395): its browser
+ * logs, its browser spans and its sessions' users.
+ */
+export const STORE_KINDS_OF_SINK: Readonly<
   Record<SensitiveDataSink, ReadonlyArray<DataStoreKind>>
 > = {
-  [SensitiveDataSink.Log]: [DataStoreKind.TelemetryLogs],
+  [SensitiveDataSink.Log]: [
+    DataStoreKind.TelemetryLogs,
+    DataStoreKind.TelemetrySessionReplays,
+  ],
   [SensitiveDataSink.Span]: [
     DataStoreKind.TelemetryTraces,
     DataStoreKind.TelemetryExceptions,
+    DataStoreKind.TelemetrySessionReplays,
   ],
   [SensitiveDataSink.Metric]: [DataStoreKind.TelemetryMetrics],
   [SensitiveDataSink.AiPrompt]: [DataStoreKind.TelemetryAiConversations],
   // An exception's message and what reports it: the service's exceptions (#10778).
   [SensitiveDataSink.Exception]: [DataStoreKind.TelemetryExceptions],
+  // Who a recorded session is: a RUM application's sessions, never a service's.
+  [SensitiveDataSink.Session]: [DataStoreKind.TelemetrySessionReplays],
+};
+
+/*
+ * Where in a RUM application's session replays a sink's write lands
+ * (#11395): the store holds three kinds of record, so a point is matched
+ * only to findings of its own kind - a browser log's attribute to a Log
+ * point, a session's user to a Session point - at its place with that
+ * kind's prefix (`attributes.user.email` is `logs.attributes.user.email`;
+ * a session's place, `sessions.identifiedUserLabel`, is its own).
+ */
+export const SESSION_REPLAY_PLACE_OF_SINK: Readonly<
+  Partial<
+    Record<SensitiveDataSink, { signal: TelemetryLeakSignal; prefix: string }>
+  >
+> = {
+  [SensitiveDataSink.Log]: {
+    signal: TelemetryLeakSignal.RumLogs,
+    prefix: "logs.",
+  },
+  [SensitiveDataSink.Span]: {
+    signal: TelemetryLeakSignal.RumSpans,
+    prefix: "spans.",
+  },
+  [SensitiveDataSink.Session]: {
+    signal: TelemetryLeakSignal.RumSessions,
+    prefix: "",
+  },
 };
 
 // The places of production one point names: the nearest few.
@@ -202,6 +256,15 @@ export default class ProductionReviewSensitiveData {
      * not private.
      */
     isRepositoryPrivate?: (() => Promise<boolean>) | undefined;
+    /*
+     * The RUM applications the repository is the front end of
+     * (ProductionReviewScope.getRumApplications) - asked only when a
+     * telemetry point could have been written by a web or mobile app's
+     * code (#11395). Unset: none.
+     */
+    rumApplications?:
+      | (() => Promise<Array<ProductionReviewRumApplication>>)
+      | undefined;
   }): Promise<ProductionReviewSensitiveDataJSON> {
     const projectTypes: Array<ProjectDataTypeHints> =
       await ProductionReviewSensitiveData.readProjectTypes(data.projectId);
@@ -239,6 +302,7 @@ export default class ProductionReviewSensitiveData {
         candidates: rules.candidates,
         services: data.services,
         now: data.now,
+        rumApplications: data.rumApplications,
       });
 
     // A migration's table, for a private repository alone (#10779).
@@ -395,16 +459,25 @@ export default class ProductionReviewSensitiveData {
   /*
    * What the services' telemetry already holds of the kinds of data the
    * telemetry points write - Data Security's findings of the last days on
-   * their telemetry stores - and the project's scrub rules.
+   * their telemetry stores, and on the session replays of the RUM
+   * applications whose front end a point's file may be (#11395) - and the
+   * project's scrub rules.
    */
   public static async readTelemetryKnowledge(data: {
     projectId: ObjectID;
     candidates: Array<SensitiveDataCandidate>;
     services: Array<CodeAgentScopedService>;
     now: Date;
+    rumApplications?:
+      | (() => Promise<Array<ProductionReviewRumApplication>>)
+      | undefined;
   }): Promise<TelemetryKnowledge> {
     const none: TelemetryKnowledge = {
       servicesByPath: new Map<string, Array<CodeAgentScopedService>>(),
+      applicationsByPath: new Map<
+        string,
+        Array<ProductionReviewRumApplication>
+      >(),
       stores: [],
       findings: [],
       coverage: { rules: [] },
@@ -414,7 +487,7 @@ export default class ProductionReviewSensitiveData {
         return candidate.kind === SensitiveDataLeakKind.Telemetry;
       });
 
-    if (telemetryCandidates.length === 0 || data.services.length === 0) {
+    if (telemetryCandidates.length === 0) {
       return none;
     }
 
@@ -425,7 +498,7 @@ export default class ProductionReviewSensitiveData {
     >();
 
     for (const candidate of telemetryCandidates) {
-      if (servicesByPath.has(candidate.path)) {
+      if (data.services.length === 0 || servicesByPath.has(candidate.path)) {
         continue;
       }
 
@@ -454,12 +527,30 @@ export default class ProductionReviewSensitiveData {
       );
     }
 
+    const applicationsByPath: Map<
+      string,
+      Array<ProductionReviewRumApplication>
+    > = await ProductionReviewSensitiveData.readApplicationsByPath({
+      candidates: telemetryCandidates,
+      rumApplications: data.rumApplications,
+    });
+
     const serviceIds: Array<string> = [];
 
     for (const services of servicesByPath.values()) {
       for (const service of services) {
         if (!serviceIds.includes(service.id)) {
           serviceIds.push(service.id);
+        }
+      }
+    }
+
+    const applicationIds: Array<string> = [];
+
+    for (const applications of applicationsByPath.values()) {
+      for (const application of applications) {
+        if (!applicationIds.includes(application.id)) {
+          applicationIds.push(application.id);
         }
       }
     }
@@ -474,28 +565,55 @@ export default class ProductionReviewSensitiveData {
       }
     }
 
-    if (serviceIds.length === 0) {
-      return { ...none, servicesByPath };
+    if (serviceIds.length === 0 && applicationIds.length === 0) {
+      return { ...none, servicesByPath, applicationsByPath };
     }
 
     try {
-      const stores: Array<DataStore> = await DataStoreService.findBy({
-        query: {
-          projectId: data.projectId,
-          serviceId: QueryHelper.any(serviceIds),
-          kind: QueryHelper.any([
-            DataStoreKind.TelemetryLogs,
-            DataStoreKind.TelemetryTraces,
-            DataStoreKind.TelemetryExceptions,
-            DataStoreKind.TelemetryMetrics,
-            DataStoreKind.TelemetryAiConversations,
-          ]),
-        },
-        select: { _id: true, kind: true, serviceId: true },
-        skip: 0,
-        limit: MAX_STORES_READ,
-        props: { isRoot: true },
-      });
+      const stores: Array<DataStore> =
+        serviceIds.length > 0
+          ? await DataStoreService.findBy({
+              query: {
+                projectId: data.projectId,
+                serviceId: QueryHelper.any(serviceIds),
+                kind: QueryHelper.any([
+                  DataStoreKind.TelemetryLogs,
+                  DataStoreKind.TelemetryTraces,
+                  DataStoreKind.TelemetryExceptions,
+                  DataStoreKind.TelemetryMetrics,
+                  DataStoreKind.TelemetryAiConversations,
+                ]),
+              },
+              select: { _id: true, kind: true, serviceId: true },
+              skip: 0,
+              limit: MAX_STORES_READ,
+              props: { isRoot: true },
+            })
+          : [];
+
+      // A RUM application's session replays: no service's, keyed by the application (#11395).
+      if (applicationIds.length > 0) {
+        stores.push(
+          ...(await DataStoreService.findBy({
+            query: {
+              projectId: data.projectId,
+              kind: DataStoreKind.TelemetrySessionReplays,
+              storeKey: QueryHelper.any(
+                applicationIds.map((id: string): string => {
+                  return telemetryDataStoreKey({
+                    serviceId: id,
+                    kind: DataStoreKind.TelemetrySessionReplays,
+                  });
+                }),
+              ),
+            },
+            select: { _id: true, kind: true, storeKey: true },
+            skip: 0,
+            limit: MAX_STORES_READ,
+            props: { isRoot: true },
+          })),
+        );
+      }
 
       const storeIds: Array<string> = stores
         .map((store: DataStore): string => {
@@ -544,14 +662,74 @@ export default class ProductionReviewSensitiveData {
         );
       }
 
-      return { servicesByPath, stores, findings, coverage };
+      return { servicesByPath, applicationsByPath, stores, findings, coverage };
     } catch (error) {
       logger.warn(
         `Production review: what production's telemetry holds could not be read: ${error instanceof Error ? error.message : String(error)}`,
       );
 
-      return { ...none, servicesByPath };
+      return { ...none, servicesByPath, applicationsByPath };
     }
+  }
+
+  /*
+   * The RUM applications each telemetry point's file may be the front end
+   * of (#11395, ProductionReviewScope.getFrontEndApplications): asked of
+   * the repository only when a point writes where a front end can - a
+   * log, a span or a session's user - from a file a browser or a mobile
+   * app may run. None when they cannot be read: the points stand.
+   */
+  public static async readApplicationsByPath(data: {
+    candidates: Array<SensitiveDataCandidate>;
+    rumApplications?:
+      | (() => Promise<Array<ProductionReviewRumApplication>>)
+      | undefined;
+  }): Promise<Map<string, Array<ProductionReviewRumApplication>>> {
+    const byPath: Map<string, Array<ProductionReviewRumApplication>> = new Map<
+      string,
+      Array<ProductionReviewRumApplication>
+    >();
+    const frontEndCandidates: Array<SensitiveDataCandidate> =
+      data.candidates.filter((candidate: SensitiveDataCandidate): boolean => {
+        return (
+          candidate.kind === SensitiveDataLeakKind.Telemetry &&
+          candidate.sink !== undefined &&
+          SESSION_REPLAY_PLACE_OF_SINK[candidate.sink] !== undefined &&
+          ProductionReviewScope.mayBeFrontEnd(candidate.path)
+        );
+      });
+
+    if (frontEndCandidates.length === 0 || !data.rumApplications) {
+      return byPath;
+    }
+
+    let applications: Array<ProductionReviewRumApplication> = [];
+
+    try {
+      applications = await data.rumApplications();
+    } catch (error) {
+      logger.debug(
+        `Production review: the RUM applications could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    if (applications.length === 0) {
+      return byPath;
+    }
+
+    for (const candidate of frontEndCandidates) {
+      if (!byPath.has(candidate.path)) {
+        byPath.set(
+          candidate.path,
+          ProductionReviewScope.getFrontEndApplications({
+            path: candidate.path,
+            applications,
+          }),
+        );
+      }
+    }
+
+    return byPath;
   }
 
   /*
@@ -1089,9 +1267,13 @@ export default class ProductionReviewSensitiveData {
   }
 
   /*
-   * Where the services' telemetry held what a telemetry candidate writes,
+   * Where production's telemetry held what a telemetry candidate writes,
    * the nearest places first - its own location before another of the same
-   * kind of data - and the scrub rule that masks it at ingest, if one does.
+   * kind of data - and the scrub rule that masks it at ingest, if one does:
+   * the services' telemetry, and the session replays of the RUM
+   * applications whose front end the candidate's file may be (#11395) -
+   * there, only the findings of the candidate's own kind of record, at its
+   * place with that record's prefix (SESSION_REPLAY_PLACE_OF_SINK).
    */
   public static readHeldBefore(
     candidate: SensitiveDataCandidate,
@@ -1102,44 +1284,103 @@ export default class ProductionReviewSensitiveData {
   } {
     const services: Array<CodeAgentScopedService> =
       telemetry.servicesByPath.get(candidate.path) || [];
+    const applications: Array<ProductionReviewRumApplication> =
+      telemetry.applicationsByPath?.get(candidate.path) || [];
     const kinds: ReadonlyArray<DataStoreKind> = candidate.sink
       ? STORE_KINDS_OF_SINK[candidate.sink]
       : [];
+    const replayPlace: { signal: TelemetryLeakSignal; prefix: string } | null =
+      (candidate.sink && SESSION_REPLAY_PLACE_OF_SINK[candidate.sink]) || null;
+    const replayLocation: string = replayPlace
+      ? `${replayPlace.prefix}${candidate.location || "body"}`
+      : "";
     const typeIds: Set<string> = new Set<string>(
       candidate.dataTypes.map((type: { id: string }): string => {
         return type.id;
       }),
     );
-    const storesById: Map<string, DataStore> = new Map<string, DataStore>();
+    const placesByStore: Map<string, HeldPlace> = new Map<string, HeldPlace>();
 
     for (const store of telemetry.stores) {
-      const serviceId: string = store.serviceId?.toString().toLowerCase() || "";
+      const storeId: string = store.id?.toString() || "";
 
-      if (
-        kinds.includes(store.kind as DataStoreKind) &&
-        services.some((service: CodeAgentScopedService): boolean => {
-          return service.id === serviceId;
-        })
-      ) {
-        storesById.set(store.id?.toString() || "", store);
+      if (!storeId || !kinds.includes(store.kind as DataStoreKind)) {
+        continue;
+      }
+
+      // A RUM application's session replays: the application its key names.
+      if (store.kind === DataStoreKind.TelemetrySessionReplays) {
+        const ownerId: string = (
+          readTelemetryDataStoreKeyOwnerId(store.storeKey) || ""
+        ).toLowerCase();
+        const application: ProductionReviewRumApplication | undefined =
+          applications.find((each: ProductionReviewRumApplication): boolean => {
+            return each.id === ownerId;
+          });
+
+        if (application && replayPlace) {
+          placesByStore.set(storeId, {
+            store,
+            ownerId: application.id,
+            ownerName: application.name,
+            ownerKind: TelemetryLeakFixOwnerKind.RumApplication,
+            location: replayLocation.toLowerCase(),
+            signal: replayPlace.signal,
+          });
+        }
+
+        continue;
+      }
+
+      const serviceId: string = store.serviceId?.toString().toLowerCase() || "";
+      const service: CodeAgentScopedService | undefined = services.find(
+        (each: CodeAgentScopedService): boolean => {
+          return each.id === serviceId;
+        },
+      );
+
+      if (service) {
+        placesByStore.set(storeId, {
+          store,
+          ownerId: service.id,
+          ownerName: service.name,
+          ownerKind: null,
+          location: (candidate.location || "").toLowerCase(),
+          signal: null,
+        });
       }
     }
 
-    const location: string = (candidate.location || "").toLowerCase();
+    const placeOf: (finding: DataStoreFinding) => HeldPlace | undefined = (
+      finding: DataStoreFinding,
+    ): HeldPlace | undefined => {
+      return placesByStore.get(finding.dataStoreId?.toString() || "");
+    };
+    const isAtItsPlace: (finding: DataStoreFinding) => boolean = (
+      finding: DataStoreFinding,
+    ): boolean => {
+      return (
+        (finding.location || "").toLowerCase() === placeOf(finding)?.location
+      );
+    };
     const matching: Array<DataStoreFinding> = telemetry.findings.filter(
       (finding: DataStoreFinding): boolean => {
-        return (
-          storesById.has(finding.dataStoreId?.toString() || "") &&
-          typeIds.has(finding.dataTypeId || "")
+        const place: HeldPlace | undefined = placeOf(finding);
+
+        return Boolean(
+          place &&
+            typeIds.has(finding.dataTypeId || "") &&
+            // A session replay's finding of the candidate's own kind of record alone.
+            (place.signal === null ||
+              getRumTelemetryLeakSignal(place.store.kind, finding.location) ===
+                place.signal),
         );
       },
     );
     const sameLocationFirst: Array<DataStoreFinding> = [
+      ...matching.filter(isAtItsPlace),
       ...matching.filter((finding: DataStoreFinding): boolean => {
-        return (finding.location || "").toLowerCase() === location;
-      }),
-      ...matching.filter((finding: DataStoreFinding): boolean => {
-        return (finding.location || "").toLowerCase() !== location;
+        return !isAtItsPlace(finding);
       }),
     ];
 
@@ -1151,25 +1392,17 @@ export default class ProductionReviewSensitiveData {
         break;
       }
 
-      const store: DataStore | undefined = storesById.get(
-        finding.dataStoreId?.toString() || "",
-      );
-      const serviceId: string =
-        store?.serviceId?.toString().toLowerCase() || "";
-      const service: CodeAgentScopedService | undefined = services.find(
-        (each: CodeAgentScopedService): boolean => {
-          return each.id === serviceId;
-        },
-      );
+      const place: HeldPlace | undefined = placeOf(finding);
 
-      if (!store || !service || !finding.location) {
+      if (!place || !finding.location) {
         continue;
       }
 
       heldBefore.push({
-        serviceId: service.id,
-        serviceName: service.name,
-        storeKind: store.kind || "",
+        serviceId: place.ownerId,
+        serviceName: place.ownerName,
+        ...(place.ownerKind ? { ownerKind: place.ownerKind } : {}),
+        storeKind: place.store.kind || "",
         location: finding.location.slice(0, 300),
         dataTypeName: (finding.dataTypeName || "").slice(0, 100),
         lastSeenAt: finding.lastSeenAt
@@ -1177,11 +1410,7 @@ export default class ProductionReviewSensitiveData {
           : "",
       });
 
-      if (
-        finding.isScrubbed &&
-        maskedBy === null &&
-        (finding.location || "").toLowerCase() === location
-      ) {
+      if (finding.isScrubbed && maskedBy === null && isAtItsPlace(finding)) {
         maskedBy = "";
       }
     }
@@ -1189,6 +1418,10 @@ export default class ProductionReviewSensitiveData {
     // A scrub rule of the service, or of every service, that reaches the place.
     for (const service of services) {
       for (const kind of kinds) {
+        if (kind === DataStoreKind.TelemetrySessionReplays) {
+          continue;
+        }
+
         for (const type of candidate.dataTypes) {
           const rule: CoveringScrubRule | null = findCoveringScrubRule(
             telemetry.coverage,
@@ -1207,13 +1440,59 @@ export default class ProductionReviewSensitiveData {
       }
     }
 
+    /*
+     * A front end's records are no service's: only a rule of every
+     * service reaches its browser logs and spans (#11395), and none a
+     * session's user.
+     */
+    if (
+      replayPlace &&
+      applications.length > 0 &&
+      kinds.includes(DataStoreKind.TelemetrySessionReplays)
+    ) {
+      for (const type of candidate.dataTypes) {
+        const rule: CoveringScrubRule | null = findCoveringScrubRule(
+          telemetry.coverage,
+          {
+            kind: DataStoreKind.TelemetrySessionReplays,
+            dataTypeId: type.id,
+            location: replayLocation,
+          },
+        );
+
+        if (rule) {
+          return { heldBefore, maskedBy: rule.name.slice(0, 200) };
+        }
+      }
+    }
+
     return { heldBefore, maskedBy };
   }
+}
+
+// One store a telemetry candidate's writes reach: whose it is, and where in it they land.
+interface HeldPlace {
+  store: DataStore;
+  // A service's, or a RUM application's (ownerKind).
+  ownerId: string;
+  ownerName: string;
+  ownerKind: TelemetryLeakFixOwnerKind | null;
+  // Where in the store, lower case: `attributes.email`, `logs.attributes.email`.
+  location: string;
+  // A session replay store's kind of record the write is; null for a service's store.
+  signal: TelemetryLeakSignal | null;
 }
 
 // What a review reads of production's telemetry for its telemetry points.
 export interface TelemetryKnowledge {
   servicesByPath: Map<string, Array<CodeAgentScopedService>>;
+  /*
+   * The RUM applications each file may be the front end of (#11395), whose
+   * session replays `stores` holds too. Unset: none.
+   */
+  applicationsByPath?:
+    | Map<string, Array<ProductionReviewRumApplication>>
+    | undefined;
   stores: Array<DataStore>;
   findings: Array<DataStoreFinding>;
   coverage: ScrubCoverage;

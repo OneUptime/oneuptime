@@ -37,6 +37,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | `Not an ID` | Henvis til posten i stedet for at nævne den: se [Et navn, hvor et ID hører hjemme](#et-navn-hvor-et-id-hører-hjemme) |
 | JSON fra dashboardet i en `.tf`-fil | Skriv det som HCL: se [JSON fra dashboardet](#json-fra-dashboardet) |
 | `no available releases match the given constraints` | Brug et versionsinterval, ikke én præcis version: se [En version, der aldrig blev udgivet](#en-version-der-aldrig-blev-udgivet) |
+| `checksum list has unexpected SHA-256 hash` | Brug en anden version af provideren: se [En version, hvis checksums ikke passer](#en-version-hvis-checksums-ikke-passer) |
 | `x509: certificate signed by unknown authority` | Stol på din certifikatudsteder: se [Certifikater](#certifikater) |
 | `invalid character '<' looking for beginning of value` | Lad `oneuptime_url` pege på selve din OneUptime: se [En webside i stedet for API'et](#en-webside-i-stedet-for-apiet) |
 | `connection refused` eller `Client.Timeout exceeded` | Kontrollér adressen, netværket og en eventuel proxy: se [Forbindelser, der fejler](#forbindelser-der-fejler) |
@@ -111,9 +112,9 @@ En datakilde finder præcis én post, eller den stopper planen. `Not Found` sige
 
 Teams, etiketter, vagtpolitikker og vagtplaner har hver deres eget navn i et projekt, uanset store og små bogstaver og mellemrum, og det har mange andre slags også, fx hændelsesalvorligheder, monitorstatusser og statussider. En oprettelse eller en omdøbning til et navn, som en anden post af samme slags allerede har, besvares med `400`, fx `There is already an on-call policy called Primary in this project. Pick another name.` eller `Incident Severity with the same name already exists.` Poster, der allerede delte et navn, beholder det, og dashboardets lister over teams, etiketter, vagtpolitikker og vagtplaner markerer dem.
 
-Et projekt, der kræver unikke navne, som et nyt projekt gør, under **Projektindstillinger → Grundlæggende → Projekt → Unikke navne**, holder monitorer, skabeloner, API-nøgler og de fleste andre slags, du navngiver, til samme regel: `Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` Poster, der delte et navn, før projektet krævede det, beholder det, indtil de omdøbes, og det kort viser dem.
+Et projekt, der kræver unikke navne, som et nyt projekt gør, under **Projektindstillinger → Grundlæggende → Projekt → Unikke navne**, holder monitorer, skabeloner, API-nøgler og de fleste andre slags, du navngiver, til samme regel: `Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.` Poster, der delte et navn, før projektet krævede det, beholder det, indtil de omdøbes: det kort viser dem, og deres egne lister markerer dem.
 
-Terraform foretager ændringerne i én apply side om side, så en oprettelse eller en omdøbning til et navn, som en anden ressource opgiver i samme apply ved en omdøbning eller en sletning, kan blive afvist, mens den anden stadig har det. Provideren spørger så igen i op til 30 sekunder, så en kæde af omdøbninger, fx A til B, mens B bliver til C, går igennem i én apply, og det gør en ressource, der tager navnet fra en ressource, som applyen sletter, også. Et bytte, A til B og B til A, eller en hvilken som helst kæde af omdøbninger, der ender, hvor den begyndte, går aldrig igennem, og det gør et navn, som en post uden for konfigurationen har, heller ikke, fx en alvorlighed, som OneUptime oprettede sammen med projektet: efter 30 sekunder mislykkes applyen med `The name was still taken after asking again for 30 seconds.` Giv ressourcen et navn, som ingen har, eller importér den post, der har navnet, med `terraform import`. Ved et bytte omdøber du én af dem til et navn, som ingen har, anvender og laver så resten af ændringen.
+Terraform foretager ændringerne i én apply side om side, så en oprettelse eller en omdøbning til et navn, som en anden ressource opgiver i samme apply ved en omdøbning eller en sletning, kan blive afvist, mens den anden stadig har det. Provideren spørger så igen i op til 30 sekunder, så en kæde af omdøbninger, fx A til B, mens B bliver til C, går igennem i én apply, og det gør en ressource, der tager navnet fra en ressource, som applyen sletter, også. Et bytte, A til B og B til A, eller en hvilken som helst kæde af omdøbninger, der ender, hvor den begyndte, går aldrig igennem, og det gør et navn, som en post uden for konfigurationen har, heller ikke, fx en alvorlighed, som OneUptime oprettede sammen med projektet: efter 30 sekunder mislykkes applyen med `The name was still taken after asking again for 30 seconds.` Giv ressourcen et navn, som ingen har, eller importér den post, der har navnet, med `terraform import`. Når din API-nøgle må læse den post, nævner fejlen den og giver linjen, du skal køre, fx `terraform import oneuptime_monitor.<name> <id>`: ind i den ressource, applyen var ved at oprette, eller ind i en ressource for sig, når applyen var ved at omdøbe en. Ved et bytte omdøber du én af dem til et navn, som ingen har, anvender og laver så resten af ændringen.
 
 En arkiveret post beholder sit navn, og intet, en apply gør ved posterne i drift, får den til at opgive det. En oprettelse eller en omdøbning til det navn mislykkes med det samme, og fejlen siger, hvor posten fjernes fra arkivet: fjern den fra arkivet, eller vælg et andet navn.
 
@@ -238,6 +239,14 @@ terraform {
 ```
 
 På en selv-hostet OneUptime skal intervallet stoppe ved din OneUptimes version, som [Selv-hostet opsætning](/docs/terraform/self-hosted#vælg-providerversionen) viser. [Registerbrug](/docs/terraform/registry#hvordan-versioner-nummereres) forklarer, hvordan versioner nummereres.
+
+### En version, hvis checksums ikke passer
+
+`checksum list has unexpected SHA-256 hash` betyder, at de filer, releasen leverer for den version, ikke er dem, registret læste, da versionen blev udgivet. Registret gemmer de checksums, det læste dengang, og `init` tjekker hver download mod dem. Filerne til 14.3.0, 16.0.0, 17.0.0, 17.1.0 og 17.2.0, og til nogle ældre versioner fra 11.x til 14.0.x, blev bygget og uploadet en gang til, efter registrene havde læst dem, så `init` afviser de versioner på alle platforme, under både Terraform og OpenTofu. En låsefil kommer ikke uden om det: `init` sammenligner registrets checksum med releasens, før den læser låsefilen.
+
+Brug en anden version: 17.3.0 eller nyere, eller 15.0.0. Et interval, der tillader en nyere version, tager den med `terraform init -upgrade`. Når sådan en version udgives igen, er det som den næste patchversion, for eksempel 17.2.1 for 17.2.0, med den samme provider i, og et interval, der tillader den patch, tager den.
+
+For at tjekke en version, før du bruger den, se [Kontrollér en versions checksums](/docs/terraform/registry#kontrollér-en-versions-checksums).
 
 ## Forbind til en selv-hostet OneUptime
 

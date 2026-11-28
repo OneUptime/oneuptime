@@ -1322,7 +1322,8 @@ describe("SplunkHec.eventsToOtlp: severity", () => {
     // The level words every log ingest reads (issue #8536).
     { event: { message: "m", level: "critical" }, number: 21, text: "FATAL" },
     { event: { message: "m", level: "verbose" }, number: 5, text: "DEBUG" },
-    { event: { message: "m", level: "panic" }, number: 19, text: "ERROR3" },
+    // A panic is a crash: Fatal, as everywhere (issue #11228).
+    { event: { message: "m", level: "panic" }, number: 21, text: "FATAL" },
     { event: { message: "m", level: "severe" }, number: 17, text: "ERROR" },
     { event: { message: "m", level: "WARN3" }, number: 15, text: "WARN3" },
     { event: { message: "m", level: "INF" }, number: 9, text: "INFO" },

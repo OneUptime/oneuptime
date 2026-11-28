@@ -109,7 +109,10 @@ import SecurityUserErasureRequestService, {
   readErasureRequestNames,
   toStoredErasureNames,
 } from "Common/Server/Services/SecurityUserErasureRequestService";
-import { IndicatorMatchGroup } from "Common/Server/Services/ThreatIntelIndicatorService";
+import ThreatIntelIndicatorService, {
+  ActiveIndicator,
+  IndicatorMatchGroup,
+} from "Common/Server/Services/ThreatIntelIndicatorService";
 import DetectionRuleEvaluator, {
   getDetectionFiringKey,
 } from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
@@ -140,7 +143,22 @@ import {
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import { SigmaCorrelationType } from "Common/Types/SecurityEvent/SigmaCorrelation";
 import SigmaRule, { SigmaLevel } from "Common/Types/SecurityEvent/SigmaRule";
-import { THREAT_INDICATOR_VALUE_ATTRIBUTE } from "Common/Types/SecurityEvent/ThreatIntelConstants";
+import {
+  ENRICHMENT_CONFIDENCE_ATTRIBUTE,
+  ENRICHMENT_FEED_ATTRIBUTE,
+  ENRICHMENT_FEED_ID_ATTRIBUTE,
+  ENRICHMENT_INDICATOR_ID_ATTRIBUTE,
+  ENRICHMENT_INDICATOR_TYPE_ATTRIBUTE,
+  ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE,
+  ENRICHMENT_MATCHED_ATTRIBUTE,
+  THREAT_CONFIDENCE_ATTRIBUTE,
+  THREAT_FEED_ID_ATTRIBUTE,
+  THREAT_FEED_NAME_ATTRIBUTE,
+  THREAT_INDICATOR_ID_ATTRIBUTE,
+  THREAT_INDICATOR_TYPE_ATTRIBUTE,
+  THREAT_INDICATOR_VALUE_ATTRIBUTE,
+} from "Common/Types/SecurityEvent/ThreatIntelConstants";
+import ThreatIntelEnricher from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
 import SecurityUserVaultService, {
   SecurityUserVaultService as SecurityUserVaultServiceClass,
 } from "Common/Server/Services/SecurityUserVaultService";
@@ -150,6 +168,7 @@ import SecurityEventsReadTelemetry from "Common/Server/Utils/SecurityEvent/Secur
 import SecurityUserErasedTokens from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasedTokens";
 import SecurityUserErasure, {
   DETECTION_TURN_SETTLE_MS,
+  RESUBMIT_AFTER_MS,
   SUPPRESSION_SETTLE_MS,
 } from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasure";
 import JobDeadline from "Common/Server/Utils/JobDeadline";
@@ -185,6 +204,7 @@ import {
   ScrubbedUserRole,
   USER_ERASED_ON_REQUEST,
   USER_HIDDEN_BY_SCRUB_RULE,
+  nameHashedEventUser,
 } from "Common/Utils/SecurityEvent/ScrubbedUser";
 import { ErasedName } from "Common/Utils/SecurityEvent/SecurityUserErasureUnnaming";
 
@@ -3628,6 +3648,672 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
       // Somebody else is still found: only the person was taken out.
       expect(after).toContain(BOB);
+    });
+
+    /*
+     * #11230: a threat intel feed lists the person's email address. The
+     * matcher wrote a finding about the match that named the feed's
+     * indicator (its STIX id in ruleId and oneuptime.threat.indicator_id,
+     * its name in ruleName), and the ingest-time enricher stamped the
+     * person's own events with the address and the indicator
+     * (threat.indicator_value, threat.indicator_id). The feed keeps the
+     * address beside its STIX id in clear: following either one named the
+     * person. Written here by the real writers, and erased by the real
+     * worker; Postgres's half is SecurityUserErasurePostgres.
+     */
+    describe("the feed's indicator, once the person a feed listed is erased (#11230)", () => {
+      const STIX_ID: string = "indicator--8e2e2d2b-17d4-4cbf-938f-98ee46b3cd3f";
+      const BOB_STIX_ID: string =
+        "indicator--0b0b0b0b-0000-4000-8000-00000000b0b0";
+      const ADDRESS_STIX_ID: string =
+        "indicator--1d1d1d1d-0000-4000-8000-0000000011d1";
+      // A feed can name an indicator by its value: the address itself.
+      const INDICATOR_NAME: string = `Phishing sender ${ALICE}`;
+      const FEED_NAME: string = "Acme Phishing Senders";
+      const BAD_ADDRESS: string = "198.51.100.66";
+      const FEED_ID: ObjectID = new ObjectID(
+        "11230000-0000-4000-8000-0000000000f1",
+      );
+
+      // What stands for the feed's indicator once the person is out: the match's keyed fingerprint.
+      function erasedIdOf(token: string): string {
+        return `[INDICATOR:${DetectionFingerprint.of({
+          projectId: PROJECT_ID,
+          kind: DetectionFingerprintKind.ThreatIntel,
+          value: token,
+        })}]`;
+      }
+
+      function feed(): ThreatIntelFeed {
+        const threatIntelFeed: ThreatIntelFeed = new ThreatIntelFeed();
+
+        threatIntelFeed.id = FEED_ID;
+        threatIntelFeed.projectId = PROJECT_ID;
+        threatIntelFeed.name = FEED_NAME;
+
+        return threatIntelFeed;
+      }
+
+      // The feed's findings about the person's address and somebody else's, as the matcher writes them.
+      async function writeFeedFindings(
+        aboutAlice: string = ALICE,
+      ): Promise<void> {
+        await matcher.writeThreatIntelFindings({
+          feed: feed(),
+          matchedGroups: [
+            {
+              indicatorValue: aboutAlice,
+              stixId: STIX_ID,
+              indicatorType: "email-addr",
+              indicatorName: INDICATOR_NAME,
+              confidence: 80,
+              matchCount: 2,
+              sampleMessage: "Sign-in",
+              sampleObservables: [aboutAlice, ADDRESS],
+            },
+            {
+              indicatorValue: BOB,
+              stixId: BOB_STIX_ID,
+              indicatorType: "email-addr",
+              indicatorName: "Phishing sender",
+              confidence: 60,
+              matchCount: 1,
+              sampleMessage: "Sign-in",
+              sampleObservables: [BOB],
+            },
+          ],
+        });
+      }
+
+      /*
+       * An event as a scan stores it: the vault names the user behind the
+       * token (ScrubbedUser.nameHashedEventUser), then the enricher matches
+       * the event's observables against the feed's active indicators
+       * (ThreatIntelEnricher), here stood in for the feed's table.
+       */
+      async function writeStampedEvents(
+        events: Array<{
+          uid: string;
+          role: ScrubbedUserRole;
+          named: string;
+          hashed: string;
+          alsoObserved?: Array<string> | undefined;
+        }>,
+      ): Promise<void> {
+        jest
+          .spyOn(ThreatIntelIndicatorService, "hasIndicatorsForProject")
+          .mockResolvedValue(true);
+        jest
+          .spyOn(ThreatIntelIndicatorService, "findActiveIndicatorsByValues")
+          .mockImplementation(
+            async (data: {
+              values: Array<string>;
+            }): Promise<Array<ActiveIndicator>> => {
+              return [
+                {
+                  indicatorValue: ALICE,
+                  stixId: STIX_ID,
+                  indicatorType: "email-addr",
+                  indicatorName: INDICATOR_NAME,
+                  confidence: 80,
+                },
+                {
+                  indicatorValue: BOB,
+                  stixId: BOB_STIX_ID,
+                  indicatorType: "email-addr",
+                  indicatorName: "Phishing sender",
+                  confidence: 60,
+                },
+                {
+                  indicatorValue: BAD_ADDRESS,
+                  stixId: ADDRESS_STIX_ID,
+                  indicatorType: "ipv4-addr",
+                  indicatorName: "Botnet node",
+                  confidence: 90,
+                },
+              ]
+                .filter((indicator: { indicatorValue: string }): boolean => {
+                  return data.values.includes(indicator.indicatorValue);
+                })
+                .map(
+                  (indicator: Omit<ActiveIndicator, "feedId" | "feedName">) => {
+                    return {
+                      ...indicator,
+                      feedId: FEED_ID.toString(),
+                      feedName: FEED_NAME,
+                    };
+                  },
+                );
+            },
+          );
+        ThreatIntelEnricher.clearCaches();
+
+        const normalized: Array<NormalizedSecurityEvent> = events.map(
+          (event: {
+            role: ScrubbedUserRole;
+            named: string;
+            hashed: string;
+            alsoObserved?: Array<string> | undefined;
+          }): NormalizedSecurityEvent => {
+            // As the log held it: the token, and the marker that a scrub rule hid the user.
+            const stored: {
+              principalUser?: string;
+              targetUser?: string;
+              observables: Array<string>;
+              attributes: JSONObject;
+            } = {
+              ...(event.role === ScrubbedUserRole.Principal
+                ? { principalUser: event.hashed }
+                : { targetUser: event.hashed }),
+              observables: [
+                event.hashed,
+                ADDRESS,
+                ...(event.alsoObserved || []),
+              ],
+              attributes: {
+                [SCRUBBED_USER_ATTRIBUTES[event.role].hidden]:
+                  USER_HIDDEN_BY_SCRUB_RULE,
+                [SCRUBBED_USER_ATTRIBUTES[event.role].scrubbed]: event.hashed,
+                [SCRUBBED_USER_ATTRIBUTES[event.role].in]: "log",
+              },
+            };
+
+            nameHashedEventUser(stored, {
+              role: event.role,
+              hashed: event.hashed,
+              named: event.named,
+            });
+
+            return stored as unknown as NormalizedSecurityEvent;
+          },
+        );
+
+        await ThreatIntelEnricher.enrichNormalizedEvents({
+          projectId: PROJECT_ID,
+          events: normalized,
+        });
+
+        await writeEvents(
+          normalized.map(
+            (event: NormalizedSecurityEvent, index: number): EventSeed => {
+              return {
+                uid: events[index]!.uid,
+                principalUser: event.principalUser,
+                targetUser: event.targetUser,
+                observables: event.observables,
+                attributes: event.attributes as Record<string, string>,
+              };
+            },
+          ),
+        );
+      }
+
+      async function seedFeedAboutPerson(): Promise<void> {
+        await seedPerson();
+        await writeStampedEvents([
+          // The vault's own spelling, which the enricher lower-cased to match the feed.
+          {
+            uid: "alice-stamped",
+            role: ScrubbedUserRole.Principal,
+            named: ALICE_TYPED,
+            hashed: ALICE_TYPED_TOKEN,
+          },
+          {
+            uid: "alice-acted-on-stamped",
+            role: ScrubbedUserRole.Target,
+            named: ALICE,
+            hashed: ALICE_TOKEN,
+          },
+          // The feed knows a worse address in the same event: the stamp is the address's.
+          {
+            uid: "alice-from-a-bad-address",
+            role: ScrubbedUserRole.Principal,
+            named: ALICE,
+            hashed: ALICE_TOKEN,
+            alsoObserved: [BAD_ADDRESS],
+          },
+          {
+            uid: "bob-stamped",
+            role: ScrubbedUserRole.Principal,
+            named: BOB,
+            hashed: BOB_TOKEN,
+          },
+        ]);
+        await writeFeedFindings();
+        await findingsWritten(2);
+      }
+
+      async function stampedEventOf(uid: string): Promise<JSONObject> {
+        const rows: Array<JSONObject> = await rowsOf(
+          `SELECT principalUser, targetUser, observables, attributes FROM ${eventsTable} WHERE eventUid = '${uid}'`,
+        );
+
+        expect(rows).toHaveLength(1);
+
+        return rows[0]!;
+      }
+
+      async function feedFindingOf(value: string): Promise<JSONObject> {
+        const rows: Array<JSONObject> = await rowsOf(
+          `SELECT ruleId, ruleName, eventUid, message, observables, attributes FROM ${eventsTable} WHERE className = '${DETECTION_FINDING_CLASS_NAME}' AND attributes['${THREAT_FEED_ID_ATTRIBUTE}'] = '${FEED_ID.toString()}' AND has(observables, '${value}')`,
+        );
+
+        expect(rows).toHaveLength(1);
+
+        return rows[0]!;
+      }
+
+      // Every row the project holds, every column of it, as text.
+      async function everything(): Promise<string> {
+        return JSON.stringify(
+          await rowsOf(
+            `SELECT * FROM ${eventsTable} WHERE projectId = '${PROJECT_ID.toString()}' ORDER BY _id`,
+          ),
+        );
+      }
+
+      async function eraseAlice(): Promise<SecurityUserErasureRequest> {
+        const filedAt: Date = new Date();
+        const request: SecurityUserErasureRequest = fileRequest({
+          user: ALICE_TYPED,
+          requestedAt: filedAt,
+        });
+
+        await SecurityUserErasure.processOpenRequests(
+          new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 1000),
+        );
+        await mutationsApplied();
+        await runUntilChecked(
+          filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000,
+        );
+
+        return request;
+      }
+
+      test("before the erasure, the person's records name the feed's indicator, and the events the address in clear", async () => {
+        await seedFeedAboutPerson();
+
+        const finding: JSONObject = await feedFindingOf(ALICE);
+
+        expect(finding["ruleId"]).toBe(STIX_ID);
+        expect(finding["ruleName"]).toBe(INDICATOR_NAME);
+        expect(attributesOf(finding)[THREAT_INDICATOR_ID_ATTRIBUTE]).toBe(
+          STIX_ID,
+        );
+
+        const event: JSONObject = await stampedEventOf("alice-stamped");
+
+        expect(attributesOf(event)[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]).toBe(
+          ALICE,
+        );
+        expect(attributesOf(event)[ENRICHMENT_INDICATOR_ID_ATTRIBUTE]).toBe(
+          STIX_ID,
+        );
+      });
+
+      test("after it, nothing stored links the person to the feed's indicator: its id, its name and the address are out of every record of theirs", async () => {
+        await seedFeedAboutPerson();
+
+        const request: SecurityUserErasureRequest = await eraseAlice();
+
+        expect(stored(request).status).toBe(
+          SecurityUserErasureRequestStatus.Completed,
+        );
+
+        // The finding: the feed and the fact one of its indicators matched, not which.
+        const finding: JSONObject = await feedFindingOf(ALICE_TOKEN);
+
+        expect(finding["ruleId"]).toBe(erasedIdOf(ALICE_TOKEN));
+        expect(finding["ruleName"]).toBe(FEED_NAME);
+        expect(attributesOf(finding)).toEqual(
+          expect.objectContaining({
+            [THREAT_INDICATOR_ID_ATTRIBUTE]: erasedIdOf(ALICE_TOKEN),
+            [THREAT_INDICATOR_VALUE_ATTRIBUTE]: ALICE_TOKEN,
+            [THREAT_FEED_ID_ATTRIBUTE]: FEED_ID.toString(),
+            [THREAT_FEED_NAME_ATTRIBUTE]: FEED_NAME,
+            [THREAT_INDICATOR_TYPE_ATTRIBUTE]: "email-addr",
+            [THREAT_CONFIDENCE_ATTRIBUTE]: "80",
+            [FINDING_USER_ERASED_ATTRIBUTE]: USER_ERASED_ON_REQUEST,
+          }),
+        );
+        // The same token its id's fingerprint is: the finding still points at its alert.
+        expect(String(finding["eventUid"])).toContain(
+          erasedIdOf(ALICE_TOKEN).slice("[INDICATOR:".length, -1),
+        );
+
+        // The events the feed stamped: the token for the address, the same id for the indicator.
+        const named: JSONObject = await stampedEventOf("alice-stamped");
+
+        expect(named["principalUser"]).toBe(ALICE_TYPED_TOKEN);
+        expect(attributesOf(named)).toEqual(
+          expect.objectContaining({
+            [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: ALICE_TYPED_TOKEN,
+            [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: erasedIdOf(ALICE_TYPED_TOKEN),
+            [ENRICHMENT_FEED_ATTRIBUTE]: FEED_NAME,
+            [ENRICHMENT_FEED_ID_ATTRIBUTE]: FEED_ID.toString(),
+            [ENRICHMENT_INDICATOR_TYPE_ATTRIBUTE]: "email-addr",
+            [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "80",
+          }),
+        );
+
+        const actedOn: JSONObject = await stampedEventOf(
+          "alice-acted-on-stamped",
+        );
+
+        expect(actedOn["targetUser"]).toBe(ALICE_TOKEN);
+        expect(
+          attributesOf(actedOn)[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE],
+        ).toBe(ALICE_TOKEN);
+        expect(attributesOf(actedOn)[ENRICHMENT_INDICATOR_ID_ATTRIBUTE]).toBe(
+          erasedIdOf(ALICE_TOKEN),
+        );
+
+        // A stamp about the worse address the person's event named is the address's, and stays.
+        const fromBadAddress: JSONObject = await stampedEventOf(
+          "alice-from-a-bad-address",
+        );
+
+        expect(attributesOf(fromBadAddress)).toEqual(
+          expect.objectContaining({
+            [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: BAD_ADDRESS,
+            [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: ADDRESS_STIX_ID,
+          }),
+        );
+
+        // Somebody else's finding and stamp keep the feed's indicator.
+        const bobFinding: JSONObject = await feedFindingOf(BOB);
+
+        expect(bobFinding["ruleId"]).toBe(BOB_STIX_ID);
+        expect(attributesOf(await stampedEventOf("bob-stamped"))).toEqual(
+          expect.objectContaining({
+            [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: BOB,
+            [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: BOB_STIX_ID,
+          }),
+        );
+
+        // Nowhere: the person's indicator, its name, the address.
+        const after: string = await everything();
+
+        expect(after).not.toContain(STIX_ID);
+        expect(after).not.toContain(STIX_ID.slice("indicator--".length));
+        expect(after.toLowerCase()).not.toContain(ALICE);
+        expect(after).not.toContain(INDICATOR_NAME);
+      });
+
+      test("nothing the erasure sends holds the indicator, its name or the person, and ClickHouse keeps nothing that does", async () => {
+        await seedFeedAboutPerson();
+
+        const sent: Array<string> = [];
+
+        for (const method of ["query", "command", "exec", "insert"] as const) {
+          const original: (params: never) => Promise<unknown> = (
+            client[method] as unknown as (params: never) => Promise<unknown>
+          ).bind(client);
+
+          jest.spyOn(client, method).mockImplementation(((
+            params: never,
+          ): Promise<unknown> => {
+            const statement: {
+              query?: unknown;
+              query_params?: unknown;
+              table?: unknown;
+            } = (params || {}) as {
+              query?: unknown;
+              query_params?: unknown;
+              table?: unknown;
+            };
+
+            sent.push(
+              `${String(statement.query ?? statement.table ?? "")} ${JSON.stringify(statement.query_params ?? {})}`,
+            );
+
+            return original(params);
+          }) as never);
+        }
+
+        const windowStart: Date = new Date();
+        const request: SecurityUserErasureRequest = await eraseAlice();
+
+        expect(stored(request).status).toBe(
+          SecurityUserErasureRequestStatus.Completed,
+        );
+
+        jest.restoreAllMocks();
+
+        // The stamps were read and rewritten.
+        expect(
+          sent.some((text: string): boolean => {
+            return text.includes("stampedValue");
+          }),
+        ).toBe(true);
+
+        const uuid: string = STIX_ID.slice("indicator--".length);
+
+        for (const text of sent) {
+          expect(text).not.toContain(uuid);
+          expect(text.toLowerCase()).not.toContain("alice");
+          expect(text.toLowerCase()).not.toContain("example.com");
+          expect(text.toLowerCase()).not.toContain("phishing sender");
+        }
+
+        await client.command({ query: "SYSTEM FLUSH LOGS" });
+
+        const logged: Array<JSONObject> = await rowsOf(
+          `SELECT query FROM system.query_log WHERE event_time_microseconds >= fromUnixTimestamp64Micro(toInt64(${windowStart.getTime() * 1000})) AND has(databases, '${database}')`,
+        );
+        const mutations: Array<JSONObject> = await rowsOf(
+          `SELECT command FROM system.mutations WHERE database = '${database}'`,
+        );
+
+        expect(logged.length).toBeGreaterThan(0);
+        expect(mutations.length).toBeGreaterThan(0);
+
+        for (const row of [...logged, ...mutations]) {
+          const text: string = String(
+            row["query"] ?? row["command"],
+          ).toLowerCase();
+
+          expect(text).not.toContain(uuid);
+          expect(text).not.toContain("alice");
+          expect(text).not.toContain("example.com");
+          expect(text).not.toContain("phishing sender");
+        }
+      });
+
+      test("erasing the person again changes nothing more", async () => {
+        await seedFeedAboutPerson();
+        await eraseAlice();
+
+        const once: string = await everything();
+        // The mutations that rewrote a finding's indicator or an event's stamp.
+        const indicatorMutations: () => Promise<number> =
+          async (): Promise<number> => {
+            return (
+              await rowsOf(
+                `SELECT command FROM system.mutations WHERE database = '${database}'`,
+              )
+            ).filter((row: JSONObject): boolean => {
+              const command: string = String(row["command"]);
+
+              return (
+                command.includes("ruleId =") ||
+                command.startsWith(
+                  "UPDATE attributes = mapUpdate(attributes, map(",
+                )
+              );
+            }).length;
+          };
+        const rewritesOnce: number = await indicatorMutations();
+
+        expect(rewritesOnce).toBeGreaterThan(0);
+
+        await eraseAlice();
+
+        expect(await everything()).toBe(once);
+        // Nothing of the indicator left to rewrite: no mutation of it is sent again.
+        expect(await indicatorMutations()).toBe(rewritesOnce);
+      });
+
+      test("filed again for a person an earlier erasure took out with the indicator left, it takes the indicator out", async () => {
+        // A finding and an event as an erasure before #11230 left them: un-named, the indicator kept.
+        await writeFeedFindings(ALICE_TOKEN);
+        await findingsWritten(2);
+        await client.command({
+          query: `ALTER TABLE ${eventsTable} UPDATE attributes = mapUpdate(attributes, map('${FINDING_USER_ERASED_ATTRIBUTE}', '${USER_ERASED_ON_REQUEST}')), attributeKeys = mapKeys(mapUpdate(attributes, map('${FINDING_USER_ERASED_ATTRIBUTE}', '${USER_ERASED_ON_REQUEST}'))) WHERE ruleId = '${STIX_ID}'`,
+        });
+
+        const erasedAttributes: Record<string, string> = {
+          [SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal].hidden]:
+            USER_HIDDEN_BY_SCRUB_RULE,
+          [SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal].scrubbed]:
+            ALICE_TOKEN,
+          [ERASED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]:
+            USER_ERASED_ON_REQUEST,
+          [ENRICHMENT_MATCHED_ATTRIBUTE]: "true",
+          [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: ALICE,
+          [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: STIX_ID,
+          [ENRICHMENT_FEED_ATTRIBUTE]: FEED_NAME,
+          [ENRICHMENT_FEED_ID_ATTRIBUTE]: FEED_ID.toString(),
+        };
+
+        await writeEvents([
+          {
+            uid: "alice-erased-before",
+            principalUser: ALICE_TOKEN,
+            observables: [ALICE_TOKEN, ADDRESS],
+            attributes: erasedAttributes,
+          },
+          // A stamp about an address the event still names is the address's.
+          {
+            uid: "alice-erased-before-address",
+            principalUser: ALICE_TOKEN,
+            observables: [ALICE_TOKEN, BAD_ADDRESS],
+            attributes: {
+              ...erasedAttributes,
+              [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: BAD_ADDRESS,
+              [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: ADDRESS_STIX_ID,
+            },
+          },
+        ]);
+        await mutationsApplied();
+
+        const request: SecurityUserErasureRequest = await eraseAlice();
+
+        expect(stored(request).status).toBe(
+          SecurityUserErasureRequestStatus.Completed,
+        );
+
+        const finding: JSONObject = await feedFindingOf(ALICE_TOKEN);
+
+        expect(finding["ruleId"]).toBe(erasedIdOf(ALICE_TOKEN));
+        expect(finding["ruleName"]).toBe(FEED_NAME);
+        expect(attributesOf(finding)[THREAT_INDICATOR_ID_ATTRIBUTE]).toBe(
+          erasedIdOf(ALICE_TOKEN),
+        );
+
+        expect(
+          attributesOf(await stampedEventOf("alice-erased-before")),
+        ).toEqual(
+          expect.objectContaining({
+            [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: ALICE_TOKEN,
+            [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: erasedIdOf(ALICE_TOKEN),
+          }),
+        );
+        expect(
+          attributesOf(await stampedEventOf("alice-erased-before-address")),
+        ).toEqual(
+          expect.objectContaining({
+            [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: BAD_ADDRESS,
+            [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: ADDRESS_STIX_ID,
+          }),
+        );
+
+        const after: string = await everything();
+
+        expect(after).not.toContain(STIX_ID);
+        expect(after.toLowerCase()).not.toContain(ALICE);
+      });
+
+      test("a request stays Erasing while a stamp of theirs is left: a rewrite lost on the way is made when it is told again", async () => {
+        await seedFeedAboutPerson();
+
+        // The first tell's rewrites of the stamps are lost on the way to ClickHouse.
+        const losing: { isOn: boolean; lost: number } = { isOn: true, lost: 0 };
+
+        for (const method of ["command", "exec"] as const) {
+          const original: (params: never) => Promise<unknown> = (
+            client[method] as unknown as (params: never) => Promise<unknown>
+          ).bind(client);
+
+          jest.spyOn(client, method).mockImplementation(((
+            params: never,
+          ): Promise<unknown> => {
+            const query: string = String(
+              (params as { query?: unknown } | undefined)?.query ?? "",
+            );
+
+            if (
+              losing.isOn &&
+              query.startsWith("ALTER TABLE") &&
+              query.includes(
+                "UPDATE attributes = mapUpdate(attributes, map(",
+              ) &&
+              query.includes(" _id IN ") &&
+              !query.includes("className")
+            ) {
+              losing.lost++;
+
+              return Promise.resolve({ query_id: "lost" });
+            }
+
+            return original(params);
+          }) as never);
+        }
+
+        const filedAt: Date = new Date();
+        const request: SecurityUserErasureRequest = fileRequest({
+          user: ALICE_TYPED,
+          requestedAt: filedAt,
+        });
+        const told: number = filedAt.getTime() + SUPPRESSION_SETTLE_MS + 1000;
+
+        await SecurityUserErasure.processOpenRequests(new Date(told));
+        losing.isOn = false;
+        await mutationsApplied();
+        await runUntilChecked(told + 60000);
+
+        // One for each spelling's token the stamps take.
+        expect(losing.lost).toBe(2);
+        // The vault and the events are done; a stamp still holds the address.
+        expect(await vaultUsersOf(PROJECT_ID)).toEqual([BOB]);
+        expect(
+          attributesOf(await stampedEventOf("alice-stamped"))[
+            ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE
+          ],
+        ).toBe(ALICE);
+        expect(
+          await SecurityUserErasure.isVaultAndEventsClean(stored(request)),
+        ).toBe(false);
+        expect(stored(request).status).toBe(
+          SecurityUserErasureRequestStatus.InProgress,
+        );
+
+        // Told again once it has had long enough: the stamps are rewritten, and it is done.
+        await SecurityUserErasure.processOpenRequests(
+          new Date(told + RESUBMIT_AFTER_MS),
+        );
+        await mutationsApplied();
+        await runUntilChecked(told + RESUBMIT_AFTER_MS + 60000);
+
+        expect(stored(request).status).toBe(
+          SecurityUserErasureRequestStatus.Completed,
+        );
+        expect(
+          attributesOf(await stampedEventOf("alice-stamped"))[
+            ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE
+          ],
+        ).toBe(ALICE_TYPED_TOKEN);
+      });
     });
   });
 });

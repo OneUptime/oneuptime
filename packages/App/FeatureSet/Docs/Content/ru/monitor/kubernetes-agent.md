@@ -384,6 +384,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `logs.mode` | (из `preset`) | `daemonset`, `api` или `disabled`. Переопределяет пресет. |
 | `logs.windowsPods.enabled` | `false` | Также читает поды на узлах Windows. См. [Кластеры со смешанными ОС](#кластеры-со-смешанными-ос-пулы-узлов-windows). |
 | `logs.api.replicas` | `1` | Реплики считывателя логов в режиме `api`. |
+| `logs.extraOperators` | `[]` | Собственные операторы коллектора для формата логов, который агент не читает, в режиме `daemonset`. См. [Чтение собственного формата логов](/docs/telemetry/kubernetes-agent#чтение-собственного-формата-логов). |
 | `ebpf.enabled` | `true` | Трассировки eBPF и метрики запросов. См. [Трассировки приложений с eBPF](#трассировки-приложений-с-ebpf). |
 | `profiling.enabled` | `false` | Flame-графы CPU. См. [Непрерывное профилирование CPU](#непрерывное-профилирование-cpu). |
 | `kubeStateMetrics.enabled` | `false` | Состояние кластера из kube-state-metrics. |

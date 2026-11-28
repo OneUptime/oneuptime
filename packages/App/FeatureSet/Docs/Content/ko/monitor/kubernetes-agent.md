@@ -384,6 +384,7 @@ eBPF 계측도 켜져 있으면(기본값), 각 샘플이 속한 트레이스를
 | `logs.mode` | (`preset` 에서) | `daemonset`, `api`, `disabled` 중 하나. 프리셋보다 우선합니다. |
 | `logs.windowsPods.enabled` | `false` | Windows 노드의 파드도 읽습니다. [혼합 OS 클러스터](#혼합-os-클러스터windows-노드-풀)를 참고하세요. |
 | `logs.api.replicas` | `1` | `api` 모드에서 로그 테일러의 복제본 수. |
+| `logs.extraOperators` | `[]` | 에이전트가 읽지 못하는 로그 형식을 위해 직접 만든 Collector 오퍼레이터(`daemonset` 모드). [자체 로그 형식 읽기](/docs/telemetry/kubernetes-agent#자체-로그-형식-읽기)를 참고하세요. |
 | `ebpf.enabled` | `true` | eBPF 트레이스와 요청 메트릭. [eBPF로 수집하는 애플리케이션 트레이스](#ebpf로-수집하는-애플리케이션-트레이스)를 참고하세요. |
 | `profiling.enabled` | `false` | CPU 플레임 그래프. [지속적인 CPU 프로파일링](#지속적인-cpu-프로파일링)을 참고하세요. |
 | `kubeStateMetrics.enabled` | `false` | kube-state-metrics에서 가져오는 클러스터 상태. |

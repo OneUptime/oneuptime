@@ -1,6 +1,8 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Select from "Common/Types/BaseDatabase/Select";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
+import { getRecordLabelIds } from "Common/UI/Utils/RecordLabelLock";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The monitor secret-key columns, and whether the signed-in user may ask for
@@ -38,6 +40,32 @@ export const MONITOR_CREDENTIAL_COLUMNS: Array<keyof Monitor> = [
   ...MONITOR_SECRET_KEY_COLUMNS,
   "incomingEmailCustomLocalPart",
 ];
+
+/*
+ * Said where a key would be shown to someone who may not see it on this
+ * monitor: a Viewer, or a role that reads keys only on the monitors
+ * carrying some labels (#11259) - the server leaves the key out of the
+ * others, and "No key generated" would say the monitor has none.
+ */
+export const MONITOR_SECRET_KEY_HIDDEN: string = translationKey(
+  "Only people who may change this monitor can see its secret key.",
+);
+
+/*
+ * Whether the reader may see `column` on this monitor, read with its labels'
+ * ids: the column's read, and the monitor's labels where that read is
+ * limited to some (PermissionGate.mayReadColumnOnRecord).
+ */
+export function canSeeMonitorCredential(
+  monitor: Monitor,
+  column: keyof Monitor,
+): boolean {
+  return PermissionGate.mayReadColumnOnRecord(
+    new Monitor(),
+    column as string,
+    getRecordLabelIds(monitor, "labels"),
+  );
+}
 
 export type GetReadableMonitorSecretKeySelectFunction = () => Select<Monitor>;
 

@@ -28,7 +28,12 @@ import {
   DETECTION_GROUP_VALUE_ATTRIBUTE,
   DETECTION_SUMMARY_ATTRIBUTE,
 } from "../../../../../Types/SecurityEvent/DetectionFindingConstants";
-import { THREAT_INDICATOR_VALUE_ATTRIBUTE } from "../../../../../Types/SecurityEvent/ThreatIntelConstants";
+import {
+  THREAT_FEED_NAME_ATTRIBUTE,
+  THREAT_INDICATOR_ID_ATTRIBUTE,
+  THREAT_INDICATOR_VALUE_ATTRIBUTE,
+  isErasedIndicatorId,
+} from "../../../../../Types/SecurityEvent/ThreatIntelConstants";
 import {
   getFindingUidPlaces,
   putFingerprintAt,
@@ -423,6 +428,381 @@ describe("a finding's id: the fingerprint of what it holds once the names are ou
   });
 });
 
+/*
+ * #11230: a feed can list the person's email address, and a finding about the
+ * match named the feed's indicator - its id in ruleId and
+ * oneuptime.threat.indicator_id, its name in ruleName - beside which the feed
+ * keeps the address in clear.
+ */
+describe("the feed's indicator, out of a threat intel finding about the person (#11230)", () => {
+  const STIX_ID: string = "indicator--8e2e2d2b-17d4-4cbf-938f-98ee46b3cd3f";
+  const FEED_NAME: string = "Acme Phishing Senders";
+  // A feed can name an indicator by its value: the address itself.
+  const INDICATOR_NAME: string = `Phishing sender ${ALICE}`;
+  const ERASED_ID: string = DetectionFingerprint.erasedIndicatorIdOf({
+    projectId: PROJECT_ID,
+    value: TOKEN,
+  });
+
+  function feedFinding(
+    overrides: Partial<ErasureFindingRow> = {},
+  ): ErasureFindingRow {
+    return {
+      id: "a",
+      time: "1764000000000000001",
+      observables: [ALICE, "203.0.113.7"],
+      eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(ALICE, DetectionFingerprintKind.ThreatIntel)}:1764000000123456789`,
+      groupValue: "",
+      indicatorValue: ALICE,
+      ruleId: STIX_ID,
+      ruleName: INDICATOR_NAME,
+      indicatorId: STIX_ID,
+      feedName: FEED_NAME,
+      ...overrides,
+    };
+  }
+
+  test("the erased indicator id: the keyed fingerprint of the token, as the feed's alert and case detection carry it", () => {
+    expect(ERASED_ID).toBe(
+      `[INDICATOR:${keyed(TOKEN, DetectionFingerprintKind.ThreatIntel)}]`,
+    );
+    expect(isErasedIndicatorId(ERASED_ID)).toBe(true);
+    expect(ERASED_ID).not.toMatch(/\[INDICATOR:[0-9]{16}\]/);
+  });
+
+  test("a finding about the person gets it in its id places, beside the names out and its id's new fingerprint", () => {
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      feedFinding(),
+      NAMES,
+      CONTEXT,
+    );
+
+    expect(rewrite?.replacements).toEqual([
+      { position: 1, prefixBytes: 0, token: TOKEN, suffixBytes: 0 },
+    ]);
+    expect(rewrite?.uid?.fingerprint).toBe(
+      keyed(TOKEN, DetectionFingerprintKind.ThreatIntel),
+    );
+    expect(rewrite?.indicator).toEqual({ id: ERASED_ID });
+    // The same token the id's new fingerprint is: the match, without the indicator.
+    expect(rewrite?.indicator?.id).toBe(
+      `[INDICATOR:${rewrite?.uid?.fingerprint}]`,
+    );
+  });
+
+  test("whichever feed it came from: a list's or Google SecOps's marker goes too", () => {
+    for (const marker of ["list", "google-secops", ""]) {
+      expect(
+        planFindingRewrite(
+          feedFinding({
+            ruleId: marker,
+            indicatorId: marker,
+            ruleName: FEED_NAME,
+          }),
+          NAMES,
+          CONTEXT,
+        )?.indicator,
+      ).toEqual({ id: ERASED_ID });
+    }
+  });
+
+  test("an indicator's own name goes even where its id already went", () => {
+    expect(
+      planFindingRewrite(
+        feedFinding({ ruleId: ERASED_ID, indicatorId: ERASED_ID }),
+        NAMES,
+        CONTEXT,
+      )?.indicator,
+    ).toEqual({ id: ERASED_ID });
+  });
+
+  test("one an earlier erasure un-named with the indicator left: the indicator alone", () => {
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      feedFinding({
+        observables: [TOKEN, "203.0.113.7"],
+        eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(TOKEN, DetectionFingerprintKind.ThreatIntel)}:1764000000123456789`,
+        indicatorValue: TOKEN,
+        isMarkedErased: true,
+      }),
+      NAMES,
+      CONTEXT,
+    );
+
+    expect(rewrite).toEqual({
+      id: "a",
+      time: "1764000000000000001",
+      replacements: [],
+      indicator: { id: ERASED_ID },
+    });
+  });
+
+  test("and its id too, when that was left as it was", () => {
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      feedFinding({
+        observables: [TOKEN],
+        eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${DetectionFingerprint.legacyOf({ kind: DetectionFingerprintKind.ThreatIntel, value: ALICE })}:1764000000123456789`,
+        indicatorValue: TOKEN,
+        isMarkedErased: true,
+      }),
+      NAMES,
+      CONTEXT,
+    );
+
+    expect(rewrite?.uid?.fingerprint).toBe(
+      keyed(TOKEN, DetectionFingerprintKind.ThreatIntel),
+    );
+    expect(rewrite?.indicator).toEqual({ id: ERASED_ID });
+  });
+
+  test("a finding already without its indicator is left: a run again changes nothing", () => {
+    expect(
+      planFindingRewrite(
+        feedFinding({
+          observables: [TOKEN],
+          eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(TOKEN, DetectionFingerprintKind.ThreatIntel)}:1764000000123456789`,
+          indicatorValue: TOKEN,
+          isMarkedErased: true,
+          ruleId: ERASED_ID,
+          indicatorId: ERASED_ID,
+          ruleName: FEED_NAME,
+        }),
+        NAMES,
+        CONTEXT,
+      ),
+    ).toBeNull();
+  });
+
+  test("the feed's finding about anything else, or about another person, keeps its indicator", () => {
+    for (const row of [
+      // An address the feed lists: nobody's name.
+      feedFinding({
+        observables: ["198.51.100.4"],
+        indicatorValue: "198.51.100.4",
+        eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed("198.51.100.4", DetectionFingerprintKind.ThreatIntel)}:1`,
+      }),
+      // Another person's erasure.
+      feedFinding({
+        observables: [BOB_TOKEN],
+        indicatorValue: BOB_TOKEN,
+        isMarkedErased: true,
+        eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(BOB_TOKEN, DetectionFingerprintKind.ThreatIntel)}:1`,
+      }),
+      // The token, which no erasure touched.
+      feedFinding({
+        observables: [TOKEN],
+        indicatorValue: TOKEN,
+        isMarkedErased: false,
+        eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(TOKEN, DetectionFingerprintKind.ThreatIntel)}:1`,
+      }),
+    ]) {
+      expect(planFindingRewrite(row, NAMES, CONTEXT)).toBeNull();
+    }
+  });
+
+  test("a feed's finding about another indicator keeps it, though its sample events named the person", () => {
+    const address: string = "198.51.100.4";
+    const aboutAddress: ErasureFindingRow = feedFinding({
+      observables: [address, ALICE],
+      indicatorValue: address,
+      eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(address, DetectionFingerprintKind.ThreatIntel)}:1`,
+      ruleName: "Botnet node",
+    });
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      aboutAddress,
+      NAMES,
+      CONTEXT,
+    );
+
+    // The person comes out of its observables; the address's indicator stays.
+    expect(rewrite?.replacements).toEqual([
+      { position: 2, prefixBytes: 0, token: TOKEN, suffixBytes: 0 },
+    ]);
+    expect(rewrite?.indicator).toBeUndefined();
+
+    // Un-named by an earlier erasure, it is no more the person's.
+    expect(
+      planFindingRewrite(
+        {
+          ...aboutAddress,
+          observables: [address, TOKEN],
+          isMarkedErased: true,
+        },
+        NAMES,
+        CONTEXT,
+      ),
+    ).toBeNull();
+  });
+
+  test("a rule's finding names no feed's indicator: its rule is left as it is", () => {
+    const rewrite: FindingRewrite | null = planFindingRewrite(
+      {
+        id: "a",
+        time: "1",
+        observables: [ALICE],
+        eventUid: runUid(unkeyed(ALICE)),
+        groupValue: ALICE,
+        ruleId: "sigma-rule-1",
+        ruleName: "Brute force",
+      },
+      NAMES,
+      CONTEXT,
+    );
+
+    expect(rewrite?.replacements).toHaveLength(1);
+    expect(rewrite?.indicator).toBeUndefined();
+  });
+
+  test("a feed's finding whose id is of another shape is still told by the indicator it names", () => {
+    expect(
+      planFindingRewrite(
+        feedFinding({ eventUid: "threat-intel:older-shape" }),
+        NAMES,
+        CONTEXT,
+      )?.indicator,
+    ).toEqual({ id: ERASED_ID });
+  });
+
+  test("findings that take the same indicator share a mutation; another indicator, another mutation", () => {
+    const rewrites: Array<FindingRewrite> = [
+      planFindingRewrite(feedFinding({ id: "a" }), NAMES, CONTEXT)!,
+      planFindingRewrite(
+        feedFinding({ id: "b", time: "1764000000000000002" }),
+        NAMES,
+        CONTEXT,
+      )!,
+      {
+        ...planFindingRewrite(feedFinding({ id: "c" }), NAMES, CONTEXT)!,
+        indicator: { id: "[INDICATOR:0123456789abcdef]" },
+      },
+    ];
+    const mutations: Array<FindingsMutation> = batchFindingRewrites(rewrites);
+
+    expect(mutations).toHaveLength(2);
+    expect(mutations[0]!.indicator).toEqual({ id: ERASED_ID });
+    expect(mutations[0]!.ids).toEqual(["a", "b"]);
+    expect(mutations[1]!.indicator).toEqual({
+      id: "[INDICATOR:0123456789abcdef]",
+    });
+  });
+
+  test("the update sets both id places and the feed's own name, from the finding's own attribute", () => {
+    const statement: Statement =
+      SecurityUserErasureFindings.toUnnameFindingsStatement({
+        projectId: PROJECT_ID,
+        mutation: batchFindingRewrites([
+          planFindingRewrite(feedFinding(), NAMES, CONTEXT)!,
+        ])[0]!,
+      });
+
+    expect(statement.query).toMatch(
+      /, attributes = mapUpdate\(mapApply\(.*\), attributes\), map\(\{p\d+:String\}, \{p\d+:String\}, \{p\d+:String\}, \{p\d+:String\}\)\), attributeKeys = mapKeys\(mapUpdate\(/,
+    );
+    expect(statement.query).toMatch(
+      /, ruleId = \{p\d+:String\}, ruleName = attributes\[\{p\d+:String\}\], eventUid = arrayStringConcat\(/,
+    );
+    expect(parameterValues(statement)).toEqual(
+      expect.arrayContaining([
+        THREAT_INDICATOR_ID_ATTRIBUTE,
+        THREAT_FEED_NAME_ATTRIBUTE,
+        ERASED_ID,
+      ]),
+    );
+  });
+
+  test("the indicator alone: its attributes and provenance, nothing else of the finding", () => {
+    const statement: Statement =
+      SecurityUserErasureFindings.toUnnameFindingsStatement({
+        projectId: PROJECT_ID,
+        mutation: {
+          replacements: [],
+          indicator: { id: ERASED_ID },
+          ids: ["finding-a"],
+          fromTime: "1",
+          toTime: "1",
+        },
+      });
+
+    expect(statement.query).toMatch(
+      new RegExp(
+        `^ALTER TABLE \\S+\\.${EVENTS}Local ON CLUSTER '[^']+' UPDATE attributes = mapUpdate\\(attributes, map\\(\\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}\\)\\), attributeKeys = mapKeys\\(mapUpdate\\(attributes, map\\(`,
+      ),
+    );
+    expect(statement.query).not.toContain("observables =");
+    expect(statement.query).not.toContain("message =");
+    expect(statement.query).not.toContain("eventUid =");
+    expect(statement.query).toContain("ruleId = ");
+    expect(statement.query).toContain("ruleName = attributes[");
+  });
+
+  test("never the indicator's id, its name, nor the person in what is sent", () => {
+    const rewrite: FindingRewrite = planFindingRewrite(
+      feedFinding(),
+      NAMES,
+      CONTEXT,
+    )!;
+
+    for (const statement of [
+      SecurityUserErasureFindings.toFindingsPageStatement({
+        projectId: PROJECT_ID,
+        after: { time: rewrite.time, id: rewrite.id },
+        limit: 10,
+      }),
+      SecurityUserErasureFindings.toUnnameFindingsStatement({
+        projectId: PROJECT_ID,
+        mutation: batchFindingRewrites([rewrite])[0]!,
+      }),
+    ]) {
+      const sent: string = sentText(statement).toLowerCase();
+
+      expect(sent).not.toContain("indicator--");
+      expect(sent).not.toContain(STIX_ID.slice("indicator--".length));
+      expect(sent).not.toContain("phishing sender");
+      expect(sent).not.toContain("alice");
+      expect(sent).not.toContain("example.com");
+      expect(statement.query).not.toContain("oneuptime.threat");
+    }
+  });
+
+  test("the read hands each finding's indicator, rule name and feed name to the plan", async () => {
+    jest.spyOn(SecurityEventService, "executeQuery").mockResolvedValue({
+      json: async () => {
+        return {
+          data: [
+            {
+              findingId: "f1",
+              findingTime: "1764000000000000001",
+              observables: [ALICE],
+              findingUid: "threat-intel:x",
+              findingGroupValue: "",
+              findingIndicatorValue: ALICE,
+              findingErased: "",
+              findingRuleId: STIX_ID,
+              findingRuleName: INDICATOR_NAME,
+              findingIndicatorId: STIX_ID,
+              findingFeedName: FEED_NAME,
+            },
+          ],
+        };
+      },
+    } as never);
+
+    const rows: Array<ErasureFindingRow> =
+      await SecurityUserErasureFindings.readFindingsPage({
+        projectId: PROJECT_ID,
+        limit: 10,
+      });
+
+    expect(rows[0]).toMatchObject({
+      ruleId: STIX_ID,
+      ruleName: INDICATOR_NAME,
+      indicatorId: STIX_ID,
+      feedName: FEED_NAME,
+    });
+
+    jest.restoreAllMocks();
+  });
+});
+
 describe("the mutations that make the changes", () => {
   function rewrite(
     id: string,
@@ -552,7 +932,7 @@ describe("what the erasure sends ClickHouse about the findings", () => {
 
     expect(first.query).toMatch(
       new RegExp(
-        `^SELECT _id AS findingId, toString\\(toUnixTimestamp64Nano\\(time\\)\\) AS findingTime, observables, eventUid AS findingUid, attributes\\[\\{p\\d+:String\\}\\] AS findingGroupValue, attributes\\[\\{p\\d+:String\\}\\] AS findingIndicatorValue, attributes\\[\\{p\\d+:String\\}\\] AS findingErased FROM \\S+\\.${EVENTS} WHERE projectId = \\{p\\d+:String\\} AND className = \\{p\\d+:String\\} AND vendorName = \\{p\\d+:String\\} ORDER BY time, _id LIMIT \\{p\\d+:Int32\\}$`,
+        `^SELECT _id AS findingId, toString\\(toUnixTimestamp64Nano\\(time\\)\\) AS findingTime, observables, eventUid AS findingUid, attributes\\[\\{p\\d+:String\\}\\] AS findingGroupValue, attributes\\[\\{p\\d+:String\\}\\] AS findingIndicatorValue, attributes\\[\\{p\\d+:String\\}\\] AS findingErased, ruleId AS findingRuleId, ruleName AS findingRuleName, attributes\\[\\{p\\d+:String\\}\\] AS findingIndicatorId, attributes\\[\\{p\\d+:String\\}\\] AS findingFeedName FROM \\S+\\.${EVENTS} WHERE projectId = \\{p\\d+:String\\} AND className = \\{p\\d+:String\\} AND vendorName = \\{p\\d+:String\\} ORDER BY time, _id LIMIT \\{p\\d+:Int32\\}$`,
       ),
     );
     expect(first.query).not.toContain(`${EVENTS}Local`);
@@ -564,6 +944,9 @@ describe("what the erasure sends ClickHouse about the findings", () => {
         DETECTION_GROUP_VALUE_ATTRIBUTE,
         THREAT_INDICATOR_VALUE_ATTRIBUTE,
         FINDING_USER_ERASED_ATTRIBUTE,
+        // What a feed's finding names its indicator by (#11230).
+        THREAT_INDICATOR_ID_ATTRIBUTE,
+        THREAT_FEED_NAME_ATTRIBUTE,
         5000,
       ]),
     );

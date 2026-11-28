@@ -272,7 +272,7 @@ Voor ontwikkeling beschrijft de [handleiding voor het testen van webhooks](https
 1. Controleer van buiten uw bedrijfsnetwerk en VPN dat de callback-hostnaam naar de openbare gateway oplost en een geldig TLS-certificaat aanbiedt. Een GET vanuit de browser test deze POST-callbacks niet.
 2. Gebruik **Test-sms verzenden** en **Testoproep verzenden** op de Twilio-configuratie van het project. Bevestig de ontvangst op de bestemmingstelefoon. Beide vereisen toestemming om Twilio-configuraties toe te voegen: **Projecteigenaar**, **Projectbeheerder**, of **Create Call and SMS** en **Read Call and SMS** in een aangepaste rol.
 3. Stel voor de gebruiker een geverifieerd sms- of oproepcontact en meldingsregels in en activeer daarna een gecontroleerde on-call-melding. Druk op 1 en controleer de bevestiging in OneUptime. Gebruikt u beleid voor inkomende oproepen, bel dan het geconfigureerde nummer en controleer de routering en het oproeplogboek.
-4. Controleer de bezorgstatus van de sms in OneUptime en in de berichtlogboeken van Twilio. Een geaccepteerde verzending bewijst geen bezorging; [Twilio meldt latere statuswijzigingen via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+4. Controleer de bezorgstatus van de sms in OneUptime, onder [Meldingslogboeken](/docs/notifications/notification-logs), en in de berichtlogboeken van Twilio. Een geaccepteerde verzending bewijst geen bezorging; [Twilio meldt latere statuswijzigingen via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
 | Symptoom | Waar u kijkt |

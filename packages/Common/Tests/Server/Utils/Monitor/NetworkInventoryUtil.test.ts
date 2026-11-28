@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import NetworkInventoryUtil from "../../../../Server/Utils/Monitor/NetworkInventoryUtil";
+import NetworkInventoryUtil, {
+  INVENTORY_COMPARED_COLUMNS,
+} from "../../../../Server/Utils/Monitor/NetworkInventoryUtil";
 import NetworkDeviceMacLearningUtil from "../../../../Server/Utils/Monitor/NetworkDeviceMacLearningUtil";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
@@ -337,6 +339,73 @@ describe("NetworkInventoryUtil.updateFromWalk — system group enrichment", () =
     await runWalk();
 
     expect(deviceUpdatePayload()["lastSeenAt"]).toEqual(NOW);
+  });
+
+  /*
+   * The engine ID the device's agent answered its SNMPv3 poll as (#11172):
+   * what its SNMPv3 traps are sent as, which tells it apart from devices
+   * that send from the same address.
+   */
+  test("the agent's SNMPv3 engine ID is kept, as hex in capitals", async () => {
+    mockServices();
+
+    await runWalk({
+      systemInfo: {
+        sysName: "core-sw-01",
+        snmpEngineId: "80000009030000c0ffee01",
+      },
+    });
+
+    expect(deviceUpdatePayload()["snmpEngineId"]).toBe(
+      "80000009030000C0FFEE01",
+    );
+  });
+
+  test("a poll that read no engine ID (v1, v2c, an older probe) leaves the last one as it was", async () => {
+    mockServices();
+
+    await runWalk({ systemInfo: { sysName: "core-sw-01" } });
+
+    expect(deviceUpdatePayload()).not.toHaveProperty("snmpEngineId");
+  });
+
+  test("what is not an engine ID is never written", async () => {
+    for (const snmpEngineId of ["", "8000", "zz".repeat(8), "AB".repeat(33)]) {
+      jest.restoreAllMocks();
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+      mockServices();
+
+      await runWalk({
+        systemInfo: { sysName: "core-sw-01", snmpEngineId: snmpEngineId },
+      });
+
+      expect(deviceUpdatePayload()).not.toHaveProperty("snmpEngineId");
+    }
+  });
+});
+
+describe("NetworkInventoryUtil.withoutUnchangedInventory — the SNMP engine ID", () => {
+  test("is written only when it changed", () => {
+    const stored: NetworkDevice = new NetworkDevice();
+    stored.snmpEngineId = "80000009030000C0FFEE01";
+
+    expect(
+      NetworkInventoryUtil.withoutUnchangedInventory({
+        update: { snmpEngineId: "80000009030000C0FFEE01" },
+        stored: stored,
+      }),
+    ).toEqual({});
+
+    expect(
+      NetworkInventoryUtil.withoutUnchangedInventory({
+        update: { snmpEngineId: "80000009030000C0FFEE02" },
+        stored: stored,
+      }),
+    ).toEqual({ snmpEngineId: "80000009030000C0FFEE02" });
+  });
+
+  test("is one of the columns compared before a write", () => {
+    expect(INVENTORY_COMPARED_COLUMNS).toContain("snmpEngineId");
   });
 });
 

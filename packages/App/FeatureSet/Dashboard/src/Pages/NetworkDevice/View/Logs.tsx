@@ -2,6 +2,8 @@ import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
 import DeviceSnmpTrapRefusals from "../../../Components/NetworkDevice/DeviceSnmpTrapRefusals";
+import DeviceProbeSnmpEngineId from "../../../Components/NetworkDevice/DeviceProbeSnmpEngineId";
+import { DEVICE_SNMPV3_TRAPS_HELP } from "../../../Components/Probe/SnmpTrapReceiverCopy";
 import {
   buildSavedViewScope,
   SavedViewScopeKind,
@@ -158,10 +160,13 @@ const NetworkDeviceLogs: FunctionComponent<
               )}
             </p>
             <p className="text-gray-500">
-              {translator.translateText(
-                "SNMPv3 traps and informs are taken when they are signed with the SNMPv3 credentials this device has in OneUptime: its own, its credential profile's or its site's default. A device that sends SNMPv3 informs may also need the probe's SNMPv3 engine ID, shown on the probe's page.",
-              )}
+              {translator.translateText(DEVICE_SNMPV3_TRAPS_HELP)}
             </p>
+            {/*
+             * The engine ID SNMPv3 informs are sent to: the one place a
+             * device on a global probe can read it (#11173).
+             */}
+            <DeviceProbeSnmpEngineId modelId={modelId} />
             <p className="text-gray-500">
               <TranslatedSentence
                 template="What OneUptime reads out of these messages as events - a link going down, a tunnel, a restart - is on this device's {{events}} page, with each vendor's set-up steps."

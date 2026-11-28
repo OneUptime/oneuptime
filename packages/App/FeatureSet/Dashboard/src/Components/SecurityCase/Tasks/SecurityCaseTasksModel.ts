@@ -11,10 +11,15 @@ import ColumnLength from "Common/Types/Database/ColumnLength";
 // The most tasks a case's page reads at once: far more than a checklist has.
 export const SECURITY_CASE_TASKS_LIMIT: number = 200;
 
-// What the page reads of each task.
+/*
+ * What the page reads of each task - its key too, the line of a playbook's
+ * checklist it was made from, so a task of the Close a Data Exposure
+ * checklist draws the exposure assessment's answer under it (#10954).
+ */
 export const SECURITY_CASE_TASK_SELECT: Select<SecurityCaseTask> = {
   _id: true,
   title: true,
+  responseStepKey: true,
   isDone: true,
   doneAt: true,
   createdAt: true,

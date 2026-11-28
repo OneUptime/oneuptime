@@ -533,7 +533,7 @@ export function buildRestrictionTimes(data: {
       return restrictionTimes;
     }
 
-    restrictionTimes.restictionType = RestrictionType.Daily;
+    restrictionTimes.restrictionType = RestrictionType.Daily;
     restrictionTimes.dayRestrictionTimes = {
       startTime: atWallClock({
         reference: data.reference,
@@ -569,7 +569,7 @@ export function buildRestrictionTimes(data: {
     return restrictionTimes;
   }
 
-  restrictionTimes.restictionType = RestrictionType.Weekly;
+  restrictionTimes.restrictionType = RestrictionType.Weekly;
   restrictionTimes.dayRestrictionTimes = null;
   restrictionTimes.weeklyRestrictionTimes = windows;
 

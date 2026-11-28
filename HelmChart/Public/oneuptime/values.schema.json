@@ -1460,6 +1460,23 @@
                 "commonConfiguration": {
                     "type": "string"
                 },
+                "maxmemory": {
+                    "type": [
+                        "string",
+                        "integer",
+                        "null"
+                    ],
+                    "description": "The memory Valkey may use for data, as valkey.conf takes it (\"3gb\", \"512mb\", a number of bytes) or as a Kubernetes quantity (\"3Gi\"). Reaching it, Valkey refuses writes (maxmemory-policy noeviction). Empty: maxmemoryPercentOfMemoryLimit of master.resources.limits.memory."
+                },
+                "maxmemoryPercentOfMemoryLimit": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "The share of master.resources.limits.memory that maxmemory is derived from when maxmemory is empty. Empty: 75, or 60 with persistence on, leaving headroom for fragmentation, client buffers and the append-only file rewrite's fork."
+                },
                 "ipFamily": {
                     "type": [
                         "string",
@@ -1651,6 +1668,23 @@
                 },
                 "commonConfiguration": {
                     "type": "string"
+                },
+                "maxmemory": {
+                    "type": [
+                        "string",
+                        "integer",
+                        "null"
+                    ],
+                    "description": "The memory Valkey may use for data, as valkey.conf takes it (\"3gb\", \"512mb\", a number of bytes) or as a Kubernetes quantity (\"3Gi\"). Reaching it, Valkey refuses writes (maxmemory-policy noeviction). Empty: maxmemoryPercentOfMemoryLimit of master.resources.limits.memory."
+                },
+                "maxmemoryPercentOfMemoryLimit": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "The share of master.resources.limits.memory that maxmemory is derived from when maxmemory is empty. Empty: 75, or 60 with persistence on, leaving headroom for fragmentation, client buffers and the append-only file rewrite's fork."
                 },
                 "ipFamily": {
                     "type": [
@@ -2530,6 +2564,17 @@
             "properties": {
                 "disableIngestion": {
                     "type": "boolean"
+                },
+                "projectQueueLimit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Batches of one signal a project may have waiting in the telemetry queue before more of that signal are answered 429 with a Retry-After. 0 turns it off."
+                },
+                "valkeyMemoryLimitPercent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "description": "Share of Valkey's maxmemory above which every project's bulk telemetry is answered 429 with a Retry-After. 0 turns it off."
                 }
             },
             "additionalProperties": false

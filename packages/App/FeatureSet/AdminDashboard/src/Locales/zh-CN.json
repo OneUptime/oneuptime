@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "删除 IoT 设备群也会删除其设备注册表，已注册的设备将无法再登录。",
   "Deleting a database also deletes the endpoints it is reached at.": "删除数据库也会删除访问它所用的端点。",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "删除云连接后，OneUptime 将停止读取该账户。其资源及指标会保留。",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "删除存储阵列连接后，OneUptime 将停止读取其背后的阵列，并删除其已保存的密码和连接测试。其阵列及指标会保留。",
   "True": "是",
   "False": "否",
   "Key": "键",
@@ -4646,5 +4647,10 @@
   "Only XCP-ng pools that match conditions": "仅符合条件的 XCP-ng 资源池",
   "All savings": "所有节省",
   "Only savings that match conditions": "仅符合条件的节省",
-  "XCP-ng Pool": "XCP-ng 资源池"
+  "XCP-ng Pool": "XCP-ng 资源池",
+  "Same name as another {{kind}}": "与另一个 {{kind}} 同名",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "此项目中另有一个 {{kind}} 使用此名称，因此在选择器中无法区分它们。请逐个打开，查看哪个是哪个，然后重命名其中一个。",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 个 {{kind}} 与另一个 {{kind}} 同名，在选择器中无法区分。请逐个打开，查看哪个是哪个，然后重命名其中一个。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 个 {{kinds}} 与另一个 {{kind}} 同名，在选择器中无法区分。请逐个打开，查看哪个是哪个，然后重命名其中一个。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "有 {{count}} 个 {{kind}} 与另一个 {{kind}} 同名，在选择器中无法区分。请逐个打开，查看哪个是哪个，然后重命名其中一个。"
 }

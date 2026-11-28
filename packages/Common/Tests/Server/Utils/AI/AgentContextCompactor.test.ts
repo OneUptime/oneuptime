@@ -1,5 +1,6 @@
 import * as AgentContextCompactor from "../../../../Server/Utils/AI/Chat/AgentContextCompactor";
 import {
+  AnswerPart,
   buildElidedToolResult,
   compactAgentContext,
   COMPACTED_CONTEXT_SHARE,
@@ -8,6 +9,7 @@ import {
   DEFAULT_MAX_CONTEXT_CHARS,
   ELIDED_TOOL_RESULT_PREFIX,
   joinAnswerContinuation,
+  joinAnswerParts,
   MAX_ANSWER_CONTINUATIONS,
   MIN_KEEP_RECENT_TOOL_RESULTS,
   measureContextChars,
@@ -496,6 +498,114 @@ describe("answer continuation", () => {
   test("does not treat a short coincidental overlap as a repeat", () => {
     expect(joinAnswerContinuation("pods in the", " the cluster")).toBe(
       "pods in the the cluster",
+    );
+  });
+});
+
+/*
+ * Issue #11255: a model whose chat template opens its reasoning
+ * (DeepSeek-R1, QwQ, Qwen3's thinking models) writes no opening tag, so a
+ * reply the output limit cut off before its "</think>" reads as text. The
+ * continuation that closes the reasoning shows what that text was.
+ */
+describe("the parts of one answer, with the model's reasoning", () => {
+  const STARTED_INSIDE: AnswerPart["reasoning"] = {
+    startedInsideReasoning: true,
+  };
+
+  test("parts with no reasoning join as they always did", () => {
+    expect(
+      joinAnswerParts([
+        { content: "The root cause is" },
+        { content: " memory." },
+      ]),
+    ).toBe("The root cause is memory.");
+    expect(joinAnswerParts([])).toBe("");
+    expect(joinAnswerParts([{ content: "whole answer" }])).toBe("whole answer");
+  });
+
+  test("a reply cut off inside reasoning its template opened is left out once the next closes it", () => {
+    expect(
+      joinAnswerParts([
+        { content: "Okay, so the user wants the root cause. Let me" },
+        { content: "The deploy is the cause.", reasoning: STARTED_INSIDE },
+      ]),
+    ).toBe("The deploy is the cause.");
+  });
+
+  test("every reply cut off before the reasoning closed is left out", () => {
+    expect(
+      joinAnswerParts([
+        { content: "Okay, so the user wants" },
+        { content: " the root cause. The deploy" },
+        { content: "The deploy is the cause.", reasoning: STARTED_INSIDE },
+      ]),
+    ).toBe("The deploy is the cause.");
+  });
+
+  test("a part whose reasoning was found keeps its answer", () => {
+    expect(
+      joinAnswerParts([
+        { content: "The deploy at 02:38", reasoning: STARTED_INSIDE },
+        { content: " exhausted the pool.", reasoning: STARTED_INSIDE },
+      ]),
+    ).toBe("The deploy at 02:38 exhausted the pool.");
+  });
+
+  test("only the parts since the last answer that was found are reasoning", () => {
+    expect(
+      joinAnswerParts([
+        { content: "The deploy at 02:38", reasoning: STARTED_INSIDE },
+        { content: "Hmm, let me re-check the pool. It" },
+        { content: " exhausted the pool.", reasoning: STARTED_INSIDE },
+      ]),
+    ).toBe("The deploy at 02:38 exhausted the pool.");
+  });
+
+  test("a model that opens its own block, or sends its reasoning apart, keeps every part", () => {
+    const OWN_BLOCK: AnswerPart["reasoning"] = {
+      startedInsideReasoning: false,
+    };
+
+    expect(
+      joinAnswerParts([
+        { content: "The deploy at 02:38", reasoning: OWN_BLOCK },
+        { content: " exhausted the pool." },
+      ]),
+    ).toBe("The deploy at 02:38 exhausted the pool.");
+    expect(
+      joinAnswerParts([
+        { content: "", reasoning: OWN_BLOCK },
+        { content: "The deploy is the cause.", reasoning: STARTED_INSIDE },
+      ]),
+    ).toBe("The deploy is the cause.");
+  });
+
+  test("a last part that never closed its reasoning is kept: nothing says what it was", () => {
+    expect(
+      joinAnswerParts([
+        { content: "The deploy at 02:38", reasoning: STARTED_INSIDE },
+        { content: " exhausted the pool." },
+      ]),
+    ).toBe("The deploy at 02:38 exhausted the pool.");
+  });
+
+  test("the seams are joined as joinAnswerContinuation joins them", () => {
+    expect(
+      joinAnswerParts([
+        { content: "Okay, thinking" },
+        {
+          content:
+            "**Summary** — node memory is at 93% because ClickHouse holds",
+          reasoning: STARTED_INSIDE,
+        },
+        {
+          content: "because ClickHouse holds a large working set.",
+          reasoning: STARTED_INSIDE,
+        },
+      ]),
+    ).toBe(
+      "**Summary** — node memory is at 93% because ClickHouse holds a large working set.",
     );
   });
 });

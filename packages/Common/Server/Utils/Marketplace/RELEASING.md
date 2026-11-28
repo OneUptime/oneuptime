@@ -329,20 +329,27 @@ The URLs each marketplace asks for (production):
 approved OneUptime Cloud; on 11 November the decision had been not to list it):
 see the hosting rule under
 [Before you start](#before-you-start-decisions-and-facts-that-are-the-businesss).
-**Where it stands** (24 November 2026): the SaaS product `oneuptime-cloud`
-("OneUptime") is in Producer Portal next to the self-hosted Kubernetes app
+**Where it stands** (28 November 2026): the SaaS product `oneuptime-cloud`
+("OneUptime") is in Producer Portal next to OneUptime Enterprise's
+Kubernetes app
 ([SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md#google-cloud-marketplace-kubernetes-app)),
-with steps 2 to 8 done: its product details were approved on 20 November,
-and its pricing has been in Google's review since 19 November (both
-submitted that day with the maintainer's go-ahead); production has the
-settings (step 7); and the Pub/Sub subscription pushes to it (step 6). A
-test purchase made an `Active` subscription (step 9), whose first usage
-report waits for its trial to end. Google approved OneUptime Cloud (case
-77068529) with an adjusted revenue share, which the maintainer accepted on
-the case on 19 November; Google's approval letter of that day sets it.
-Nothing is waiting on us. **Left**: the pricing's approval; the technical
-integration's review (step 10); then **Publish** once all three reviews are
-approved (the maintainer's go-ahead).
+with steps 2 to 8 done: its product details were approved on 20 November
+and its pricing on 26 November (both submitted on 19 November with the
+maintainer's go-ahead); production has the settings (step 7); and the
+Pub/Sub subscription pushes to it (step 6). Google asked on case 77498377
+for the technical integration next, and it went in for review on 28
+November with the maintainer's go-ahead (step 10), before usage billing
+could be tested: the test purchase (step 9) is in its trial until 3
+December. Checking it on 28 November found it moved onto the Kubernetes
+app's test order, which the same billing account had bought;
+[#11472](https://github.com/OneUptime/oneuptime/pull/11472) makes OneUptime
+Cloud leave other products' orders alone. Google approved OneUptime Cloud
+(case 77068529) with an adjusted revenue share, which the maintainer
+accepted on the case on 19 November; Google's approval letter of that day
+sets it. **Left**: production running #11472, and the test purchase back on
+its own order (step 9); usage billing tested once the trial ends (step 9);
+the technical integration's review (step 10); then **Publish** once all
+three reviews are approved (the maintainer's go-ahead).
 
 The listing, its service account, its Pub/Sub subscription and its Service
 Control service live in a Google Cloud project made for the listings,
@@ -529,20 +536,42 @@ rules do.
    Portal's **Test Billing Accounts** page lists) made an `Active` row in
    production. Its account is in a trial until 3 December, and trial hours
    are not billed, so it has no `MarketplaceUsageReport` yet; changing plan
-   and cancelling are still to test.
+   and cancelling are still to test. The Admin Dashboard's **Extend Trial**
+   cannot end that trial sooner: it moves the trial in Stripe first, and a
+   project billed through a marketplace has no Stripe subscription, so it
+   refuses.
+
+   A buyer's procurement account holds their orders of all of the
+   provider's products. The test billing account also bought OneUptime
+   Enterprise's Kubernetes app (20 November), and OneUptime Cloud took the
+   account's newest order in force, whatever its product: by 27 November
+   the test purchase had plan `enterprise`, the Kubernetes app's
+   ([#11472](https://github.com/OneUptime/oneuptime/pull/11472) fixes it).
+   Once production runs the fix, the daily sync puts the purchase back on
+   its own order: plan `pay-as-you-go`, product `oneuptime-cloud.endpoints.…`.
+   Until then, do not cancel the Kubernetes app's test order: OneUptime
+   Cloud would take the cancellation as its own and end the test purchase.
+
 10. **Submit for review** - a maintainer's decision. Product details and
     pricing went in on 19 November 2026. The technical integration's
     **Submit** (on its **Frontend integration** tab) is open before the
     pricing is approved (seen on 24 November), but Producer Portal asks for
     the integration to be tested first, usage billing included, and usage
     billing can be tested only once the pricing is approved: submit after
-    that. Then **Publish** (maintainer).
+    that. Then **Publish** (maintainer). The technical integration went in
+    on 28 November 2026, with the maintainer's go-ahead, while the test
+    purchase was still in its trial; the tab then shows "The Marketplace team
+    is reviewing this section", and changing a field cancels the review.
+    That day Producer Portal still said "usage based pricing is not yet
+    ready for testing", two days after the pricing's approval.
 
 What OneUptime does with Google's events:
 [GoogleCloudMarketplaceInbound.ts](../../../../../ee/Server/CloudMarketplace/GoogleCloud/GoogleCloudMarketplaceInbound.ts).
 New orders and plan changes are approved automatically (every plan bills the
 same units); an order made before the buyer signed up is approved when they
-finish the purchase page.
+finish the purchase page. Orders of the provider's other products, on the
+same procurement account (OneUptime Enterprise's Kubernetes app), are left
+alone.
 
 ## AWS Marketplace
 
@@ -794,6 +823,11 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-19 | Google Cloud | Test purchase with the test billing account: production's row is Active, in its trial                                 | Maintainer |
 | 2026-11-20 | Google Cloud | Product details review of `oneuptime-cloud` approved                                                                  | Google     |
 | 2026-11-24 | Google Cloud | Pricing still in review (since 19 November); the integration review waits for usage billing tests                     | Agent      |
+| 2026-11-26 | Google Cloud | Pricing approved; Google asks on case 77498377 (27 November) for the technical integration next                       | Google     |
+| 2026-11-28 | Google Cloud | Told on the case: the integration goes in once the test's first usage report reaches billing                          | Agent      |
+| 2026-11-28 | Google Cloud | Technical integration submitted for review, with the go-ahead, before usage billing could be tested                   | Agent      |
+| 2026-11-28 | Google Cloud | Test purchase found on the Kubernetes app's order (same account); other products' orders now ignored (#11472)         | Agent      |
+| 2026-11-28 | Google Cloud | Told on the case: the integration is in review; the first usage report is confirmed there after 3 December            | Agent      |
 
 ## Notes for agents driving the browser
 

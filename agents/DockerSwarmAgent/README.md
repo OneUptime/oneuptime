@@ -80,6 +80,7 @@ The cluster auto-registers in OneUptime on first telemetry (keyed by `DOCKER_SWA
 | `DOCKER_SWARM_NODE_NAME`            | no       | empty                   | This node's name, stamped as `docker.swarm.node.name`; `install.sh` writes the node's hostname |
 | `DOCKER_INVENTORY_INTERVAL_SECONDS` | no       | `300`                   | How often the poller refreshes the inventory snapshot                                        |
 | `DOCKER_API_VERSION`                | no       | empty (negotiated)      | Docker Engine API version the collector and the inventory poller speak (see Troubleshooting) |
+| `ONEUPTIME_LOG_OPERATOR_1` to `_5`  | no       | unset (none)            | Collector (stanza) operators of your own, one each as JSON, for a log format the agent does not read: see Log formats of your own|
 
 ## What each task's metrics carry
 
@@ -88,6 +89,17 @@ The `docker_stats` receiver puts each container's identity on its metrics as res
 ## How it differs from the Docker Host agent
 
 The Docker Host agent models a single host and stamps `host.name` on everything. The Swarm agent stamps `docker.swarm.cluster.name` and never `host.name` (the `docker_stats` receiver adds `container.runtime=docker` to both), so OneUptime attributes the telemetry to the swarm cluster instead of auto-registering each node as a standalone Host or Docker Host.
+
+## Log formats of your own
+
+For a log format the agent does not read, give it up to five collector (stanza) operators of your own, each as JSON in `ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5`. They run on every container log line after the agent has read its container and stream, and before it reads the line's level. To set a level, write it to `attributes.severity_text` as a word the agent reads (`ERROR`, `warn`, `critical`, ...), and hand the line on to `severity-router`: the agent reads that first, through the one severity parser. An operator that sets the severity itself (a `severity_parser`) is overwritten. An unset variable is a `noop`.
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+sh install.sh
+```
+
+`install.sh` writes each set operator into `.env`, single-quoted (one holding a `'` is refused, as `.env` cannot keep it), keeps the ones `.env` has when you run it again without them, and checks the new `.env` with the Compose file's `oneuptime-docker-swarm-agent-config-check` service, the collector's own `validate`, before it replaces the old one: a refused operator stops the script with the collector's message, and the agent keeps running on what it had. With Docker Compose alone, the same check runs first on `docker compose up -d`, and the agent starts only if it passes.
 
 ## AI agent
 

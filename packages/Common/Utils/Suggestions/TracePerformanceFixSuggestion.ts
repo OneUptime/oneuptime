@@ -5,6 +5,12 @@ import {
 } from "../../Types/AI/CodeFixTaskContext";
 import { JSONObject } from "../../Types/JSON";
 import {
+  CodeFixRepositoryChoice,
+  codeFixRepositoryChoicesToJSON,
+  MAX_CODE_FIX_REPOSITORY_CHOICES,
+  parseCodeFixRepositoryChoices,
+} from "./CodeFixRepositoryPick";
+import {
   FinishedFixOutcome,
   getCodeFixOffer,
   parseFinishedFixOutcome,
@@ -220,20 +226,16 @@ export function getFindingOperationName(finding: PerformanceFinding): string {
   return finding.normalizedSpanName;
 }
 
-// A connected repository the person can ask the fix in.
-export interface TracePerformanceFixRepository {
-  id: string;
-  name: string;
-}
-
 /*
- * The most repositories one suggestion lists: a bound on what one answer
- * carries. The list says a pick is asked for (more than one); the page's
- * picker searches, on the server, every connected repository the person
- * may ask OneUptime AI to work in (#11075), and the server takes a pick
- * past these too (#10921).
+ * A connected repository the person can ask the fix in. Who may start a
+ * trace's fix, and in which repository, is the rule every Fix with AI holds
+ * to, in the words of CodeFixRepositoryPick (#11075, #11209).
  */
-export const MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES: number = 200;
+export type TracePerformanceFixRepository = CodeFixRepositoryChoice;
+
+// The most repositories one trace's suggestion lists (CodeFixRepositoryPick).
+export const MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES: number =
+  MAX_CODE_FIX_REPOSITORY_CHOICES;
 
 /*
  * The server's refusal of a fix the person did not pick a repository for,
@@ -245,48 +247,6 @@ export const MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES: number = 200;
  */
 export const PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE: string =
   "Several repositories are connected, and none could be matched to this trace's service or code. Pick the one that holds this code.";
-
-/*
- * The server's refusal of a pick that is not one of the project's connected
- * repositories AI can work in.
- */
-export const PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE: string =
-  "That repository is not one of this project's connected repositories OneUptime AI can work in. Pick another, or connect it in Code.";
-
-/*
- * WHO MAY START A TRACE'S FIX, AND IN WHICH REPOSITORY (#11075).
- *
- * The rule every Fix with AI holds to: the person reads the trace, and may
- * use the repository the fix works in, in Code - read it, and ask OneUptime
- * AI to work in it (Code's own rule, CodeTaskAccess). The create route
- * enforces it whatever the page offered, in these words.
- */
-
-// A pick the person may not read: not found, or not theirs to see.
-export const PICKED_REPOSITORY_NOT_FOUND_MESSAGE: string =
-  "That repository was not found, or you do not have access to it in Code. Pick another.";
-
-// A pick the person may read, but may not ask OneUptime AI to work in.
-export const PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE: string =
-  "You can read that repository, but asking OneUptime AI to work in it takes permission to edit it in Code. Pick another, or ask a Project Admin for that permission.";
-
-/*
- * Repositories are connected, but none the person may use in Code: no
- * repository the fix could work in is theirs to ask in.
- */
-export const NO_REPOSITORY_YOU_MAY_USE_MESSAGE: string =
-  "None of this project's connected repositories is one you may ask OneUptime AI to work in. Asking it to work in a repository takes permission to edit that repository in Code - ask a Project Admin for it.";
-
-/*
- * The refusals that leave a pick the person cannot make again: the page
- * clears the pick, and its search - held to the repositories the person
- * may use - no longer offers it.
- */
-export const PICK_REFUSAL_MESSAGES: ReadonlyArray<string> = [
-  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
-  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
-  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
-];
 
 /*
  * What POST /ai-investigation/performance-fix-suggestion answers, and the
@@ -323,60 +283,16 @@ export const NO_TRACE_PERFORMANCE_FIX_SUGGESTION: TracePerformanceFixSuggestion 
     repositories: [],
   };
 
-function parseRepository(value: unknown): TracePerformanceFixRepository | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const record: JSONObject = value as JSONObject;
-  const id: unknown = record["id"];
-  const name: unknown = record["name"];
-
-  if (
-    typeof id !== "string" ||
-    !id.trim() ||
-    typeof name !== "string" ||
-    !name.trim()
-  ) {
-    return null;
-  }
-
-  return { id: id.trim(), name: name.trim() };
-}
-
 /*
- * The repositories off the wire: whole entries only, each once, at most
- * MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES, in the order the server sent.
- * One repository is no choice (the fix would work in it anyway), so a list
- * of fewer than two reads as none.
+ * The repositories off the wire, as every Fix with AI's choices are read
+ * (parseCodeFixRepositoryChoices): whole entries only, each once, at most
+ * MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES, and a list of fewer than two
+ * read as none.
  */
 export function parseTracePerformanceFixRepositories(
   value: unknown,
 ): Array<TracePerformanceFixRepository> {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const seen: Set<string> = new Set();
-  const repositories: Array<TracePerformanceFixRepository> = [];
-
-  for (const entry of value as Array<unknown>) {
-    const repository: TracePerformanceFixRepository | null =
-      parseRepository(entry);
-
-    if (!repository || seen.has(repository.id.toLowerCase())) {
-      continue;
-    }
-
-    seen.add(repository.id.toLowerCase());
-    repositories.push(repository);
-
-    if (repositories.length >= MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES) {
-      break;
-    }
-  }
-
-  return repositories.length > 1 ? repositories : [];
+  return parseCodeFixRepositoryChoices(value);
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -598,10 +514,6 @@ export function tracePerformanceFixSuggestionToJSON(
       ? suggestionBlockerToJSON(suggestion.blocker)
       : null,
     aiRunId: suggestion.aiRunId,
-    repositories: suggestion.repositories.map(
-      (repository: TracePerformanceFixRepository): JSONObject => {
-        return { id: repository.id, name: repository.name };
-      },
-    ),
+    repositories: codeFixRepositoryChoicesToJSON(suggestion.repositories),
   };
 }

@@ -990,7 +990,16 @@ export default class CallService {
           );
         }
 
-        callLog.status = CallStatus.Success;
+        /*
+         * Placed, and still ringing: Calling, until its status callback
+         * says how it ended (#11138) - Success once it is answered, or Missed
+         * Call, Busy, Voicemail, Error. A call Twilio cannot tell the end
+         * of - this server has no public host to be called back on - is
+         * Success already: nothing will move it on.
+         */
+        callLog.status = statusCallbackUrl
+          ? CallStatus.Calling
+          : CallStatus.Success;
         callLog.statusMessage = getCallIdStatusMessage(twillioCall.sid);
 
         logger.debug("Call ID: " + twillioCall.sid);
@@ -1061,15 +1070,18 @@ export default class CallService {
 
     if (options.userOnCallLogTimelineId) {
       /*
-       * Placed is "Sent": how the call ended comes later, by its status
-       * callback. Written only while the page's timeline entry still says
-       * Sending (OnCallNotificationStatus): a call not answered or failed
-       * that the callback - which can land first - wrote there, or the
-       * person's acknowledgement, stays.
+       * Placed is "Sent" - Calling, or Success where nothing will say how
+       * it ended: how the call ended comes later, by its status callback.
+       * Written only while the page's timeline entry still says Sending
+       * (OnCallNotificationStatus): a call not answered or failed that the
+       * callback - which can land first - wrote there, or the person's
+       * acknowledgement, stays.
        */
       await recordSendResult({
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
-        isSent: callLog.status === CallStatus.Success,
+        isSent:
+          callLog.status === CallStatus.Calling ||
+          callLog.status === CallStatus.Success,
         statusMessage: callLog.statusMessage!,
       });
     }

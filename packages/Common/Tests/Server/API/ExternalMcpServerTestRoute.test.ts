@@ -336,9 +336,26 @@ describe("Test connection, by whoever may change the server", () => {
       expect(answer["serverName"]).toBe("aws-mcp");
       expect(answer["serverVersion"]).toBe("1.4.0");
       expect(answer["transport"]).toBe("StreamableHttp");
+      /*
+       * And what a Project Admin's read-only mark needs (#11081): each
+       * tool's fingerprint, the server's word, and why one can never be
+       * marked.
+       */
       expect(answer["tools"]).toEqual([
-        { name: "describe_instances", readsOnly: true },
-        { name: "reboot_instance", readsOnly: false },
+        {
+          name: "describe_instances",
+          readsOnly: true,
+          fingerprint: expect.stringMatching(/^[0-9a-f]{64}$/),
+          argumentNames: [],
+        },
+        {
+          name: "reboot_instance",
+          readsOnly: false,
+          serverMarksAsChange: true,
+          fingerprint: expect.stringMatching(/^[0-9a-f]{64}$/),
+          markRefusal: { kind: "NameSaysItChanges", word: "reboot" },
+          argumentNames: [],
+        },
       ]);
       expect(answer["message"]).toBe(
         'Connected to "aws-mcp" over Streamable HTTP. It offers 2 tools, 1 of them only reads.',

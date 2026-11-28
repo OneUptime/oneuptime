@@ -39,6 +39,21 @@
  *    before, from both releases' pages, and OneUptime's changes to the
  *    provider between the commits they were generated from, which each
  *    release's commit names.
+ *
+ * 17.2.0 broke as #20's versions did after that fix merged, from a release
+ * branch cut before it (#11016). Since:
+ *
+ *  - Every asset goes to the run's own draft, by the draft's upload URL,
+ *    which names it by its id: never by its tag, which can name a published
+ *    release too, and never with --clobber. Before each one the draft is
+ *    read again, by its id, and ProviderRelease.js upload-plan refuses a
+ *    release that is not a draft: one published meanwhile gets nothing more.
+ *    An upload that did not finish is deleted, by its id, from the draft,
+ *    and made again; one that did is kept.
+ *  - A draft an earlier run left is read again, by its id, before it is
+ *    deleted, and so is the version before anything is pushed.
+ *  - The signature is a good one of the SHA256SUMS built with it, by the key
+ *    GoReleaser was told to sign with, before anything is pushed.
  */
 
 const fs = require("fs");
@@ -56,6 +71,7 @@ const {
   previousRelease,
   problemsOfBuiltAssets,
   problemsOfPublishedRelease,
+  uploadPlan,
 } = require("../../Scripts/TerraformProvider/ProviderRelease");
 const { pagePath, providerPage } = require("./Utils/ProviderDocsPages");
 const { commitNamed, shaOf } = require("./Utils/FakeOneUptimeGitHub");
@@ -72,6 +88,8 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const SCRIPT = "Scripts/TerraformProvider/publish-terraform-provider.sh";
 const REPUBLISH_WORKFLOW = ".github/workflows/terraform-provider-republish.yml";
 const RELEASES = "repos/OneUptime/terraform-provider-oneuptime/releases";
+const UPLOADS =
+  "https://uploads.github.com/repos/OneUptime/terraform-provider-oneuptime/releases";
 
 const RUN_TIMEOUT = 60000;
 
@@ -361,6 +379,120 @@ describe("ProviderRelease.js: what a release holds, against what it must", () =>
     });
   });
 
+  describe("uploading to a draft, never to a published release (#11016)", () => {
+    const UPLOAD_URL = `${UPLOADS}/5/assets`;
+    const files = [
+      {
+        name: ZIPS[0],
+        size: 10,
+        sha256: sha("zip 0"),
+        path: `/dist/${ZIPS[0]}`,
+      },
+      { name: SUMS, size: 10, sha256: sha("sums"), path: `/dist/${SUMS}` },
+    ];
+    const release = (assets, extra = {}) => {
+      return {
+        id: 5,
+        draft: true,
+        upload_url: `${UPLOAD_URL}{?name,label}`,
+        assets,
+        ...extra,
+      };
+    };
+
+    test("a file the draft does not hold is uploaded to the draft's own upload URL", () => {
+      expect(uploadPlan(release([]), files)).toEqual({
+        refused: null,
+        steps: [
+          {
+            action: "upload",
+            name: ZIPS[0],
+            path: `/dist/${ZIPS[0]}`,
+            url: `${UPLOAD_URL}?name=${ZIPS[0]}`,
+          },
+          {
+            action: "upload",
+            name: SUMS,
+            path: `/dist/${SUMS}`,
+            url: `${UPLOAD_URL}?name=${SUMS}`,
+          },
+        ],
+      });
+    });
+
+    test("one it holds whole, the same bytes, is kept", () => {
+      expect(
+        uploadPlan(release([asset(ZIPS[0], sha("zip 0"))]), files).steps[0],
+      ).toEqual({ action: "keep", name: ZIPS[0] });
+    });
+
+    test.each([
+      ["did not finish uploading", { state: "starter" }],
+      ["is other bytes", { digest: `sha256:${sha("other bytes")}` }],
+      ["is cut short", { size: 4 }],
+      ["has no SHA-256 GitHub keeps", { digest: null }],
+    ])("one whose upload %s is replaced, by its asset's id", (_why, extra) => {
+      const held = asset(ZIPS[0], sha("zip 0"), { id: 77, ...extra });
+      expect(uploadPlan(release([held]), files).steps[0]).toEqual({
+        action: "replace",
+        name: ZIPS[0],
+        path: `/dist/${ZIPS[0]}`,
+        url: `${UPLOAD_URL}?name=${ZIPS[0]}`,
+        assetId: "77",
+      });
+    });
+
+    test("a published release gets no step at all, whatever it holds", () => {
+      for (const published of [
+        release([], { draft: false }),
+        release([asset(ZIPS[0], sha("other bytes"), { state: "starter" })], {
+          draft: false,
+        }),
+        // gh's own answer says isDraft.
+        {
+          isDraft: false,
+          upload_url: `${UPLOAD_URL}{?name,label}`,
+          assets: [],
+        },
+      ]) {
+        expect(uploadPlan(published, files)).toEqual({
+          refused:
+            "it is published, and a published release is never changed: the registries have read its assets",
+          steps: [],
+        });
+      }
+    });
+
+    test("nor does no release, or one GitHub gives no upload URL for", () => {
+      expect(uploadPlan(null, files)).toEqual({
+        refused: "there is no release",
+        steps: [],
+      });
+      for (const uploadUrl of [
+        undefined,
+        "",
+        "https://uploads.github.com/repos/OneUptime/terraform-provider-oneuptime/releases/tags/v1.1.0/assets{?name,label}",
+        "https://uploads.github.com/elsewhere",
+      ]) {
+        expect(
+          uploadPlan(release([], { upload_url: uploadUrl }), files).refused,
+        ).toBe(`GitHub gives no upload URL for it (${uploadUrl || "none"})`);
+      }
+    });
+
+    test("a file's name goes into the URL encoded", () => {
+      const [step] = uploadPlan(release([]), [
+        {
+          name: "a b&c.zip",
+          size: 1,
+          sha256: sha("x"),
+          path: "/dist/a b&c.zip",
+        },
+      ]).steps;
+      expect(step.url).toBe(`${UPLOAD_URL}?name=a%20b%26c.zip`);
+    });
+  });
+
   describe("the release a version follows, and whether it is the latest", () => {
     const listed = (tag, extra = {}) => {
       return { tagName: tag, isDraft: false, isPrerelease: false, ...extra };
@@ -497,6 +629,57 @@ describe("ProviderRelease.js: what a release holds, against what it must", () =>
       });
     });
 
+    test("plans an upload a line a file, and refuses a published release with exit 1 and no step", () => {
+      const zip = file(ZIPS[0], "zip 0");
+      const sumsFile = file(SUMS, "sums");
+      const uploadUrl = `${UPLOADS}/5/assets`;
+      const draft = file(
+        "draft-to-fill.json",
+        JSON.stringify({
+          id: 5,
+          draft: true,
+          upload_url: `${uploadUrl}{?name,label}`,
+          assets: [
+            asset(ZIPS[0], sha("zip 0"), { size: 5 }),
+            asset(SUMS, sha("sums"), { id: 31, size: 4, state: "starter" }),
+          ],
+        }),
+      );
+      expect(cli("upload-plan", draft, zip, sumsFile)).toEqual({
+        status: 0,
+        out: `keep ${ZIPS[0]}\nreplace 31 ${uploadUrl}?name=${SUMS} ${sumsFile}\n`,
+        err: "",
+      });
+
+      const empty = file(
+        "empty-draft.json",
+        JSON.stringify({
+          id: 5,
+          draft: true,
+          upload_url: `${uploadUrl}{?name,label}`,
+          assets: [],
+        }),
+      );
+      expect(cli("upload-plan", empty, zip).out).toBe(
+        `upload ${uploadUrl}?name=${ZIPS[0]} ${zip}\n`,
+      );
+
+      const published = file(
+        "published.json",
+        JSON.stringify({
+          id: 5,
+          draft: false,
+          upload_url: `${uploadUrl}{?name,label}`,
+          assets: [],
+        }),
+      );
+      expect(cli("upload-plan", published, zip)).toEqual({
+        status: 1,
+        out: "refused it is published, and a published release is never changed: the registries have read its assets\n",
+        err: "",
+      });
+    });
+
     test("a command it does not know, or one short of its arguments, exits 2 with its usage", () => {
       for (const argv of [
         ["nope"],
@@ -504,6 +687,7 @@ describe("ProviderRelease.js: what a release holds, against what it must", () =>
         ["state", "release.json"],
         ["asset-id", "release.json"],
         ["check-uploaded", "x"],
+        ["upload-plan", "x"],
       ]) {
         const result = cli(...argv);
         expect(result.status).toBe(2);
@@ -557,13 +741,17 @@ function expectRan(result, status = 0) {
   }
 }
 
+// An upload: a POST to a release's upload URL.
+function isUpload(call) {
+  return call.method === "POST" && String(call.endpoint).startsWith(UPLOADS);
+}
+
+// The uploads a run made, by asset name, the failed ones too.
 function uploadsOf(result) {
   return callsOf(result, "gh")
-    .filter((call) => {
-      return call.args[0] === "release" && call.args[1] === "upload";
-    })
+    .filter(isUpload)
     .map((call) => {
-      return path.basename(call.args[3]);
+      return new URL(call.endpoint).searchParams.get("name");
     });
 }
 
@@ -639,19 +827,34 @@ describe(`${SCRIPT}, end to end`, () => {
         });
         expect(writes).toHaveLength(2 + built.size);
 
-        // The draft was read back, and checked, before it was published.
+        // Every asset went to the draft by its upload URL, which names it by
+        // its id, each after the draft was read again by its id (#11016).
         const draftId = last.endpoint.split("/").pop();
         const calls = callsOf(result, "gh");
-        const check = calls.findIndex((call) => {
+        const readsDraft = (call) => {
           return (
             call.method === "GET" && call.endpoint === `${RELEASES}/${draftId}`
           );
-        });
-        expect(check).toBeGreaterThan(
-          calls.findLastIndex((call) => {
-            return call.args[1] === "upload";
+        };
+        const uploads = calls.filter(isUpload);
+        expect(uploads).toHaveLength(built.size);
+        for (const upload of uploads) {
+          const name = new URL(upload.endpoint).searchParams.get("name");
+          expect(upload.endpoint).toBe(
+            `${UPLOADS}/${draftId}/assets?name=${name}`,
+          );
+          expect(path.basename(upload.input)).toBe(name);
+          expect(readsDraft(calls[calls.indexOf(upload) - 1])).toBe(true);
+        }
+        expect(
+          calls.filter((call) => {
+            return call.args[0] === "release" && call.args[1] === "upload";
           }),
-        );
+        ).toEqual([]);
+
+        // The draft was read back, and checked, before it was published.
+        const check = calls.findLastIndex(readsDraft);
+        expect(check).toBeGreaterThan(calls.findLastIndex(isUpload));
         expect(check).toBeLessThan(
           calls.indexOf(
             calls.find((call) => {
@@ -759,7 +962,7 @@ describe(`${SCRIPT}, end to end`, () => {
       "what GitHub fails for a moment is asked again",
       async () => {
         world.changeState((state) => {
-          state.failures = [{ match: `release upload v${VERSION}`, times: 1 }];
+          state.failures = [{ match: `api POST ${UPLOADS}`, times: 1 }];
         });
         const result = await world.run(["--version", VERSION], {
           env: AS_A_RELEASE_RUN,
@@ -926,19 +1129,23 @@ describe(`${SCRIPT}, end to end`, () => {
     );
 
     test(
-      "while this run built its assets: nothing is uploaded",
+      "while this run built its assets: nothing is pushed or uploaded",
       async () => {
+        const master = world.remoteRef("master");
         const result = await world.run(["--version", VERSION], {
           env: { ...AS_A_RELEASE_RUN, FAKE_GORELEASER_PUBLISH_MEANWHILE: "1" },
         });
         expectRan(result, 1);
         expect(result.output).toContain(
-          "v1.1.0 was published while this run built its assets. A published release is never changed: this run uploads nothing.",
+          "v1.1.0 was published while this run built its assets. A published release is never changed: this run pushes and uploads nothing.",
         );
         expect(writesToGitHub(result)).toEqual([]);
         expect(world.releasesOf(`v${VERSION}`)).toEqual([
           expect.objectContaining({ draft: false, assets: [] }),
         ]);
+        // Its tag, and the provider's master, are where they were.
+        expect(world.remoteRefOrNull(`v${VERSION}`)).toBeNull();
+        expect(world.remoteRef("master")).toBe(master);
       },
       RUN_TIMEOUT,
     );
@@ -1025,6 +1232,239 @@ describe(`${SCRIPT}, end to end`, () => {
         expect(releases[0].id).not.toBe(left.id);
         expect(releases[0].draft).toBe(false);
         expect(namesAndDigests(releases[0])).toEqual(world.built());
+      },
+      RUN_TIMEOUT,
+    );
+  });
+
+  describe("uploads, which never change a published release (#11016)", () => {
+    test(
+      "a draft published by someone while the run uploads gets nothing more, and the run stops",
+      async () => {
+        world.changeState((state) => {
+          state.publishAfterUpload = ZIPS[0];
+        });
+        const result = await world.run(["--version", VERSION], {
+          env: AS_A_RELEASE_RUN,
+        });
+        expectRan(result, 1);
+
+        expect(result.output).toMatch(
+          new RegExp(
+            `Not uploading ${ZIPS[1]} to release \\d+ of v1\\.1\\.0: it is published, and a published release is never changed`,
+          ),
+        );
+        // GitHub would have taken the rest: the run sent none of it.
+        expect(uploadsOf(result)).toEqual([ZIPS[0]]);
+        const [release] = world.releasesOf(`v${VERSION}`);
+        expect(release.draft).toBe(false);
+        expect(
+          release.assets.map((each) => {
+            return each.name;
+          }),
+        ).toEqual([ZIPS[0]]);
+        expect(
+          writesToGitHub(result).map((call) => {
+            return call.method;
+          }),
+        ).toEqual(["POST", "POST"]);
+      },
+      RUN_TIMEOUT,
+    );
+
+    test(
+      "an upload GitHub lost halfway is deleted, by its id, from the draft, and made again",
+      async () => {
+        world.changeState((state) => {
+          state.halfUploads = [ZIPS[1]];
+        });
+        const result = await world.run(["--version", VERSION], {
+          env: AS_A_RELEASE_RUN,
+        });
+        expectRan(result);
+
+        expect(result.output).toMatch(
+          new RegExp(
+            `Draft \\d+ holds an upload of ${ZIPS[1]} that did not finish, or other bytes \\(asset \\d+\\): replacing it`,
+          ),
+        );
+        const writes = writesToGitHub(result);
+        const deletes = writes.filter((call) => {
+          return call.method === "DELETE";
+        });
+        expect(deletes).toHaveLength(1);
+        expect(deletes[0].endpoint).toMatch(
+          /^repos\/OneUptime\/terraform-provider-oneuptime\/releases\/assets\/\d+$/,
+        );
+        // Between the two uploads of that zip, and after the draft was read.
+        const tries = writes.filter((call) => {
+          return (
+            isUpload(call) &&
+            new URL(call.endpoint).searchParams.get("name") === ZIPS[1]
+          );
+        });
+        expect(tries).toHaveLength(2);
+        expect(writes.indexOf(deletes[0])).toBeGreaterThan(
+          writes.indexOf(tries[0]),
+        );
+        expect(writes.indexOf(deletes[0])).toBeLessThan(
+          writes.indexOf(tries[1]),
+        );
+        expect(
+          callsOf(result, "sleep").map((call) => {
+            return call.seconds;
+          }),
+        ).toEqual(["5"]);
+        const [release] = world.releasesOf(`v${VERSION}`);
+        expect(release.draft).toBe(false);
+        expect(namesAndDigests(release)).toEqual(world.built());
+      },
+      RUN_TIMEOUT,
+    );
+
+    test(
+      "an upload GitHub took whole, whose answer was lost, is kept, not sent twice",
+      async () => {
+        world.changeState((state) => {
+          state.lostAnswers = [SUMS];
+        });
+        const result = await world.run(["--version", VERSION], {
+          env: AS_A_RELEASE_RUN,
+        });
+        expectRan(result);
+
+        expect(
+          uploadsOf(result).filter((name) => {
+            return name === SUMS;
+          }),
+        ).toHaveLength(1);
+        expect(result.output).toMatch(
+          new RegExp(`✓ ${SUMS} is on draft \\d+ already`),
+        );
+        expect(
+          writesToGitHub(result).filter((call) => {
+            return call.method === "DELETE";
+          }),
+        ).toEqual([]);
+        const [release] = world.releasesOf(`v${VERSION}`);
+        expect(release.draft).toBe(false);
+        expect(namesAndDigests(release)).toEqual(world.built());
+      },
+      RUN_TIMEOUT,
+    );
+
+    test(
+      "an upload that fails every time leaves the draft unpublished",
+      async () => {
+        world.changeState((state) => {
+          state.failures = [{ match: `api POST ${UPLOADS}`, times: 4 }];
+        });
+        const result = await world.run(["--version", VERSION], {
+          env: AS_A_RELEASE_RUN,
+        });
+        expectRan(result, 1);
+
+        expect(result.output).toContain(
+          `Failed to upload ${ZIPS[0]}. GitHub said: gh: Bad Gateway (HTTP 502)`,
+        );
+        expect(
+          callsOf(result, "sleep").map((call) => {
+            return call.seconds;
+          }),
+        ).toEqual(["5", "15", "30"]);
+        const [release] = world.releasesOf(`v${VERSION}`);
+        expect(release).toMatchObject({ draft: true, assets: [] });
+      },
+      RUN_TIMEOUT,
+    );
+
+    test(
+      "a draft an earlier run left, published before this run deletes it, is left as it is",
+      async () => {
+        world.changeState((state) => {
+          state.failures = [{ match: "api PATCH", times: 4 }];
+        });
+        expectRan(
+          await world.run(["--version", VERSION], { env: AS_A_RELEASE_RUN }),
+          1,
+        );
+        const [left] = world.releasesOf(`v${VERSION}`);
+        expect(left.draft).toBe(true);
+        world.changeState((state) => {
+          state.publishOnRead = left.id;
+        });
+
+        const result = await world.run(["--version", VERSION], {
+          env: AS_A_RELEASE_RUN,
+        });
+        expectRan(result, 1);
+
+        expect(result.output).toContain(
+          `Release ${left.id} of v1.1.0 was published while this run looked at it. A published release is never changed: this run uploads nothing.`,
+        );
+        expect(writesToGitHub(result)).toEqual([]);
+        const releases = world.releasesOf(`v${VERSION}`);
+        expect(releases).toHaveLength(1);
+        expect(releases[0]).toMatchObject({ id: left.id, draft: false });
+        expect(namesAndDigests(releases[0])).toEqual(namesAndDigests(left));
+      },
+      RUN_TIMEOUT,
+    );
+  });
+
+  describe("a signature that is not this build's", () => {
+    test.each([
+      [
+        "of another SHA256SUMS",
+        { FAKE_GORELEASER_STALE_SIGNATURE: "1" },
+        `${SIGNATURE} is not a good signature of the SHA256SUMS GoReleaser built with it.`,
+      ],
+      [
+        "by another key",
+        { FAKE_GORELEASER_SIGNS_WITH: "AAAABBBBCCCCDDDD" },
+        `${SIGNATURE} is signed by another key than 9D87E494AC016697, the one GoReleaser was told to sign with.`,
+      ],
+    ])(
+      "%s pushes nothing",
+      async (_name, env, said) => {
+        const master = world.remoteRef("master");
+        const result = await world.run(["--version", VERSION], {
+          env: { ...AS_A_RELEASE_RUN, ...env },
+        });
+        expectRan(result, 1);
+
+        expect(result.output).toContain(said);
+        expect(world.remoteRefOrNull(`v${VERSION}`)).toBeNull();
+        expect(world.remoteRef("master")).toBe(master);
+        expect(writesToGitHub(result)).toEqual([]);
+      },
+      RUN_TIMEOUT,
+    );
+
+    test(
+      "a good one is checked, by the key GoReleaser signed with, before anything is pushed",
+      async () => {
+        const result = await world.run(["--version", VERSION], {
+          env: AS_A_RELEASE_RUN,
+        });
+        expectRan(result);
+
+        expect(result.output).toContain(
+          `${SIGNATURE} is a good signature of this build's SHA256SUMS, by 9D87E494AC016697`,
+        );
+        const verified = result.output.indexOf("is a good signature of");
+        expect(verified).toBeGreaterThan(-1);
+        expect(verified).toBeLessThan(
+          result.output.indexOf("Pushing commit and tag"),
+        );
+        const verify = callsOf(result, "gpg").find((call) => {
+          return call.args.includes("--verify");
+        });
+        expect(verify.args).toMatch(
+          new RegExp(
+            `--status-fd 1 --verify \\S+/dist/${SIGNATURE} \\S+/dist/${SUMS}$`,
+          ),
+        );
       },
       RUN_TIMEOUT,
     );
@@ -1340,7 +1780,7 @@ describe(`${SCRIPT}'s order`, () => {
     expect([...order].sort((left, right) => left - right)).toEqual(order);
   });
 
-  test("makes and publishes a release by its id, and replaces an asset only on its own draft", () => {
+  test("makes, fills and publishes a release by its id, and never uploads over an asset (#11016)", () => {
     // The script's code, without its comments.
     const code = read(SCRIPT)
       .split("\n")
@@ -1350,17 +1790,35 @@ describe(`${SCRIPT}'s order`, () => {
       .join("\n");
 
     // gh finds a release by its tag as a published one or a draft, whichever
-    // it finds first: `release create` and `release edit` are not used.
-    expect(code).not.toMatch(/release (create|edit|delete)\b/);
-    // --clobber goes with the one upload, to this run's own draft.
-    expect(code.match(/--clobber/g)).toHaveLength(1);
-    expect(code).toMatch(
-      /release upload "v\$VERSION" "\$file" --repo "\$REPOSITORY" --clobber/,
+    // it finds first: none of its release commands that take a tag is used,
+    // `release upload <tag> --clobber` least of all.
+    expect(code).not.toMatch(/release (create|edit|delete|upload)\b/);
+    expect(code).not.toContain("--clobber");
+    // Each upload goes to the URL upload-plan gives from the draft, read
+    // again by its id right before.
+    expect(code).toContain(
+      'gh_retrying "" api "repos/$REPOSITORY/releases/$DRAFT_ID"',
     );
-    // Every DELETE names a draft listed by id.
-    expect(code.match(/api -X DELETE/g)).toHaveLength(1);
+    expect(code).toContain(
+      'plan="$(node "$RELEASE_HELPER" upload-plan "$WORK_DIR/draft.json" "$file")"',
+    );
+    expect(
+      code.match(
+        /gh api -X POST "\$url" -H "Content-Type: application\/octet-stream" --input "\$file"/g,
+      ),
+    ).toHaveLength(2);
+    expect(code.match(/api -X POST/g)).toHaveLength(3);
+    // Every DELETE names a draft listed by id and read again by its id, or
+    // an asset upload-plan found on the draft.
+    expect(code.match(/api -X DELETE/g)).toHaveLength(2);
     expect(code).toContain(
       'select(.draft and .tag_name == \\"v$VERSION\\") | .id',
+    );
+    expect(code).toContain(
+      'gh_retrying "HTTP 404|Not Found" api -X DELETE "repos/$REPOSITORY/releases/$id"',
+    );
+    expect(code).toContain(
+      'gh api -X DELETE "repos/$REPOSITORY/releases/assets/$asset_id"',
     );
   });
 });

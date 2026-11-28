@@ -7,6 +7,7 @@ OneUptime 프로바이더는 [Terraform Registry](https://registry.terraform.io/
 - [버전 번호를 매기는 방식](#버전-번호를-매기는-방식): 프로바이더의 버전은 그것을 게시한 OneUptime 릴리스입니다.
 - [잠금 파일](#잠금-파일): 모든 머신이 설치하는 버전과 체크섬.
 - [더 새로운 버전으로 옮기기](#더-새로운-버전으로-옮기기): 바뀐 점을 읽고, 다운로드하고, 플랜을 실행합니다.
+- [버전의 체크섬 확인하기](#버전의-체크섬-확인하기): `init`이 확인하는 방식대로 버전을 직접 확인합니다.
 :::
 
 ## 게시되는 것
@@ -57,6 +58,8 @@ terraform {
 
 게시된 버전은 바뀌지 않습니다. 레지스트리는 처음 다운로드한 것의 체크섬을 보관하고, `init`은 모든 다운로드를 그것과 대조합니다. 고쳐야 하는 버전은 다음 패치 버전으로 다시 게시되고, 범위는 그 버전을 받아들이며, 그 릴리스의 노트에는 어떤 버전을 대신하는지가 나와 있습니다.
 
+OneUptime은 각 버전을 게시한 뒤와 그 뒤로 매일, 두 레지스트리가 보관하는 체크섬을 릴리스가 제공하는 파일과 모든 플랫폼에 대해 비교합니다.
+
 ## 잠금 파일
 
 `terraform init`은 선택한 버전과 다운로드의 체크섬을 `.terraform.lock.hcl`에 기록합니다. 이 파일을 커밋하세요. 그러면 다른 버전을 고를 때까지 모든 머신과 모든 CI 실행이 정확히 그 버전을 설치합니다. 체크섬은 레지스트리가 게시하는 모든 플랫폼을 다루므로, 잠금 파일 하나로 Linux, macOS, Windows 머신을 모두 지원합니다.
@@ -95,6 +98,29 @@ terraform init -upgrade
 :::
 
 자체 호스팅 OneUptime에서는 OneUptime을 먼저 업그레이드한 다음 프로바이더 범위의 상한을 올리세요.
+
+## 버전의 체크섬 확인하기
+
+`init`은 사용하는 플랫폼에 대해 세 SHA-256 체크섬이 일치할 때만 버전을 설치합니다. 버전이 게시될 때 레지스트리가 보관한 것, 릴리스의 `SHA256SUMS`에 있는 zip의 줄, 그리고 zip 자체입니다. 또한 `SHA256SUMS`가 OneUptime의 키로 서명되었는지도 확인하며, 이 키의 지문은 `9D87 E494 AC01 6697`로 끝납니다. 버전을 직접 확인하려면 첫 줄에 그 버전, 사용하는 시스템과 아키텍처를 설정하세요:
+
+```bash
+VERSION=17.3.0 OS=linux ARCH=amd64
+ZIP=terraform-provider-oneuptime_${VERSION}_${OS}_${ARCH}.zip
+SUMS=terraform-provider-oneuptime_${VERSION}_SHA256SUMS
+curl -s https://registry.terraform.io/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH > registry.json
+jq -r .shasum registry.json
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$ZIP"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS.sig"
+grep "$ZIP" "$SUMS"
+sha256sum "$ZIP"
+jq -r '.signing_keys.gpg_public_keys[0].ascii_armor' registry.json | gpg --import
+gpg --verify "$SUMS.sig" "$SUMS"
+```
+
+출력되는 세 체크섬은 같아야 하고, `gpg`는 `Good signature from "OneUptime <key@oneuptime.com>"`라고 말해야 합니다. macOS에서는 `shasum -a 256`을 `sha256sum` 대신 쓰세요. 레지스트리의 체크섬이 다른 둘과 다르면 `init`은 그 버전을 거부합니다: [체크섬이 맞지 않는 버전](/docs/terraform/troubleshooting#체크섬이-맞지-않는-버전) 참고.
+
+OpenTofu의 레지스트리도 같은 체크섬을 보관합니다. 그 체크섬은 `https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH`에서 읽을 수 있습니다. 이 레지스트리에는 프로바이더의 키가 없으므로 `tofu init`은 체크섬을 확인하고 서명은 건너뜁니다.
 
 ## 코드의 위치
 

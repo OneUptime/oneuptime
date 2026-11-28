@@ -272,7 +272,7 @@ Twilio 一般 webhook 的來源位址會變化，因此不要把 SIP 或媒體 I
 1. 在公司網路和 VPN 之外，確認回呼主機名稱解析到公開閘道並提供有效的 TLS 憑證。瀏覽器發出的 GET 無法測試這些 POST 回呼。
 2. 在專案的 Twilio 設定上使用 **發送測試簡訊** 和 **發送測試通話**，並在目的地電話上確認收到。兩者都需要新增 Twilio 設定的權限：**專案擁有者**、**專案管理員**，或自訂角色中的 **Create Call and SMS** 和 **Read Call and SMS**。
 3. 為使用者設定已驗證的簡訊或電話聯絡方式和通知規則，然後觸發一次受控的值班警示。按 1，並在 OneUptime 中確認已被確認。如果您使用來電原則，請撥打設定的號碼，並檢查其路由和通話記錄。
-4. 在 OneUptime 和 Twilio 的訊息記錄中確認簡訊的傳送狀態。傳送被接受並不代表已送達；[Twilio 會透過回呼回報之後的狀態變化](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
+4. 在 OneUptime 的[通知日誌](/docs/notifications/notification-logs)和 Twilio 的訊息記錄中確認簡訊的傳送狀態。傳送被接受並不代表已送達；[Twilio 會透過回呼回報之後的狀態變化](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
 :::
 
 | 症狀 | 排查位置 |

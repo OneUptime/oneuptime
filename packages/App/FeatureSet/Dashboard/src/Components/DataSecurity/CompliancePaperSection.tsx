@@ -164,14 +164,14 @@ export const CompliancePaperSection: FunctionComponent<
             {props.heading}
           </h3>
           {byline ? (
-            <p className="inline-flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="inline-flex items-center gap-1.5 text-xs text-gray-500">
               {props.isEdited ? (
                 <></>
               ) : (
                 <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
               )}
               <span>{byline}</span>
-            </p>
+            </div>
           ) : (
             <></>
           )}
@@ -228,7 +228,7 @@ export const CompliancePaperSection: FunctionComponent<
             <></>
           )}
           {props.isStale && hasWords && !isEditing ? (
-            <p
+            <div
               className="flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900"
               data-testid={`${props.id}-stale`}
             >
@@ -237,7 +237,7 @@ export const CompliancePaperSection: FunctionComponent<
                 className="mt-0.5 h-4 w-4 flex-none"
               />
               <span>{translator.translateText(FACTS_CHANGED)}</span>
-            </p>
+            </div>
           ) : (
             <></>
           )}

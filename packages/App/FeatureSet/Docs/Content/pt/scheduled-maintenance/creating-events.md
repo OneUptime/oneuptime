@@ -63,7 +63,7 @@ Nada é enviado até você escolher uma página de status: um evento que não ap
 | **Proprietários**                    | **Detalhes da manutenção**         | Ninguém                         | Pessoas e equipes donas do evento, que são avisadas sobre ele.                   |
 | **Rótulos**                          | **Detalhes da manutenção**         | Nenhum                          | Rótulos que regras e filtros podem usar.                                         |
 | **Monitores**                        | **Recursos afetados** | Nenhum                       | Os monitores que não são verificados enquanto o evento está em andamento.        |
-| **Alterar status do monitor para**   | **Recursos afetados** | Sem alteração                | O status que esses monitores mostram durante o evento. Perguntado assim que um monitor é escolhido. |
+| **Alterar status do monitor para**   | **Recursos afetados** | Sem alteração                | O status que esses monitores mostram durante o evento, e que o tempo de atividade deles conta. Sem nenhum, eles mantêm o seu status e o tempo de atividade deles deixa esse tempo de fora. Perguntado assim que um monitor é escolhido. |
 | **Outros recursos afetados**         | **Recursos afetados** | Nenhum                       | Hosts, clusters, bancos de dados, sites de rede, serviços e mais.                |
 | **Mostrar evento nestas páginas de status** | **Recursos afetados** | Nenhuma            | As únicas páginas de status que podem mostrar o evento ou avisar seus assinantes. |
 | **Notificações aos assinantes**      | **Recursos afetados** | Publicado imediatamente, os três momentos ativados, sem lembretes | Quando o evento aparece nessas páginas, e quando os assinantes delas são avisados. |

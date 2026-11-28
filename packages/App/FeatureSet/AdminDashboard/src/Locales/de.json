@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "Wenn Sie eine IoT-Flotte löschen, wird auch ihr Geräteregister gelöscht, sodass sich registrierte Geräte nicht mehr anmelden können.",
   "Deleting a database also deletes the endpoints it is reached at.": "Wenn Sie eine Datenbank löschen, werden auch die Endpunkte gelöscht, unter denen sie erreichbar ist.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Wenn du eine Cloud-Verbindung löschst, liest OneUptime das Konto nicht mehr. Die Ressourcen bleiben erhalten, mit ihren Metriken.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "Wenn Sie eine Speicher-Array-Verbindung löschen, liest OneUptime die Arrays dahinter nicht mehr, und ihr gespeichertes Passwort und ihre Verbindungstests werden gelöscht. Ihre Arrays bleiben mit ihren Metriken erhalten.",
   "True": "Wahr",
   "False": "Falsch",
   "Key": "Schlüssel",
@@ -4646,5 +4647,10 @@
   "Only XCP-ng pools that match conditions": "Nur XCP-ng-Pools, die den Bedingungen entsprechen",
   "All savings": "Alle Einsparungen",
   "Only savings that match conditions": "Nur Einsparungen, die den Bedingungen entsprechen",
-  "XCP-ng Pool": "XCP-ng-Pool"
+  "XCP-ng Pool": "XCP-ng-Pool",
+  "Same name as another {{kind}}": "Gleicher Name wie ein anderer Datensatz vom Typ {{kind}}",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Ein anderer Datensatz vom Typ {{kind}} in diesem Projekt hat diesen Namen, daher sind die beiden in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} hat denselben Namen wie ein anderer Datensatz vom Typ {{kind}}, und die beiden sind in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden Datensatz, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} haben denselben Namen wie ein anderer Datensatz vom Typ {{kind}} und sind in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden Datensatz, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} hat denselben Namen wie ein anderer Datensatz vom Typ {{kind}}, und die beiden sind in Auswahllisten nicht zu unterscheiden. Öffnen Sie jeden Datensatz, um zu sehen, welcher welcher ist, und benennen Sie dann einen davon um."
 }

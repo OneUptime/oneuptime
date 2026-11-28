@@ -382,6 +382,7 @@ import IncomingCallLogItem from "./IncomingCallLogItem";
 
 import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
+import GlobalProbeSnmpTrapReport from "./GlobalProbeSnmpTrapReport";
 import ProbeOwnerUser from "./ProbeOwnerUser";
 import AIAgent from "./AIAgent";
 import AIAgentOwnerTeam from "./AIAgentOwnerTeam";
@@ -527,6 +528,7 @@ import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
 import AIPostmortemRule from "./AIPostmortemRule";
 import ExternalMcpServer from "./ExternalMcpServer";
+import ExternalMcpToolReadOnlyMark from "./ExternalMcpToolReadOnlyMark";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -1071,6 +1073,7 @@ const AllModelTypes: Array<{
   AutoRemediationDecision,
   AIPostmortemRule,
   ExternalMcpServer,
+  ExternalMcpToolReadOnlyMark,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,
@@ -1212,6 +1215,7 @@ const AllModelTypes: Array<{
   CodeRepositoryMintedToken,
 
   ProbeOwnerTeam,
+  GlobalProbeSnmpTrapReport,
   ProbeOwnerUser,
 
   AIAgent,

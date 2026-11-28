@@ -1,6 +1,8 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
-import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
+import MonitorProbeService, {
+  ClaimedMonitorProbe,
+} from "../../../../Server/Services/MonitorProbeService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import logger from "../../../../Server/Utils/Logger";
 import MonitorProbeLastResults from "../../../../Server/Utils/Monitor/MonitorProbeLastResults";
@@ -401,8 +403,21 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
     });
 
     test("the claim is not, and cannot be: it moves nextPingAt, which the claim's own index orders by", async () => {
+      /*
+       * A claim this process made before, so the monitor's schedule is one
+       * it knows, as a server's is from its first claim of it on: the
+       * claim's statement alone writes the row's next run. The first claim
+       * of a schedule new to the process writes it again right after
+       * (MonitorProbeSchedules), a second update of its own.
+       */
+      await insertMonitorProbe();
+      await MonitorProbeService.claimMonitorProbesForProbing({
+        probeId: PROBE_ID,
+        limit: 10,
+      });
+
       const { id } = await insertMonitorProbe();
-      let claimed: Array<ObjectID> = [];
+      let claimed: Array<ClaimedMonitorProbe> = [];
 
       expect(
         await writesOf("MonitorProbe", async () => {
@@ -413,8 +428,8 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
         }),
       ).toEqual({ updates: 1, hot: 0 });
       expect(
-        claimed.map((claimedId: ObjectID): string => {
-          return claimedId.toString();
+        claimed.map((claimedMonitorProbe: ClaimedMonitorProbe): string => {
+          return claimedMonitorProbe.monitorProbeId.toString();
         }),
       ).toEqual([id.toString()]);
     });

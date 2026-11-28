@@ -80,7 +80,11 @@ export function getRequestOutcomeRank(value: string | undefined): number {
  * project trusts) or "claimed" (nothing is verified), and the address the
  * request claimed beside it - X-Forwarded-For's or client.address's, which
  * whoever sent it wrote - with where it was read. A claimed address is
- * never the event's principalIp.
+ * never the event's principalIp. With "trusted-proxy", the proxies the
+ * project trusts that the address came through (#11046): in the order
+ * X-Forwarded-For lists them, the connection's own address last, so a
+ * person reads why the event names the client it forwarded and not the
+ * proxy.
  */
 export const SECURITY_REQUEST_ATTRIBUTES: {
   method: string;
@@ -107,6 +111,7 @@ export const SECURITY_REQUEST_ATTRIBUTES: {
   clientAddressTrust: string;
   claimedClientAddress: string;
   claimedClientAddressFrom: string;
+  forwardedBy: string;
   responseBodySize: string;
   responseContentType: string;
 } = {
@@ -134,6 +139,7 @@ export const SECURITY_REQUEST_ATTRIBUTES: {
   clientAddressTrust: "oneuptime.request.client_address_trust",
   claimedClientAddress: "oneuptime.request.claimed_client_address",
   claimedClientAddressFrom: "oneuptime.request.claimed_client_address_from",
+  forwardedBy: "oneuptime.request.forwarded_by",
   /*
    * What the answer carried, when the source recorded it (#10912): its
    * body's size in bytes and its Content-Type - what tells a sensitive

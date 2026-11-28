@@ -155,17 +155,55 @@ describe("the entry's log name", () => {
 });
 
 describe("the entry's severity", () => {
-  test("Cloud Logging's words in OpenTelemetry's numbers, as the Collector maps them", () => {
+  test("Cloud Logging's words in OpenTelemetry's numbers, as Google's exporter maps them", () => {
     expect(Object.fromEntries(CLOUD_LOGGING_SEVERITIES)).toEqual({
       DEBUG: { number: 5, text: "DEBUG" },
       INFO: { number: 9, text: "INFO" },
-      NOTICE: { number: 10, text: "INFO" },
+      NOTICE: { number: 11, text: "INFO" },
       WARNING: { number: 13, text: "WARN" },
       ERROR: { number: 17, text: "ERROR" },
-      CRITICAL: { number: 18, text: "ERROR" },
-      ALERT: { number: 21, text: "FATAL" },
-      EMERGENCY: { number: 22, text: "FATAL" },
+      CRITICAL: { number: 21, text: "FATAL" },
+      ALERT: { number: 23, text: "FATAL" },
+      EMERGENCY: { number: 24, text: "FATAL" },
     });
+  });
+
+  /*
+   * Google's exporter writes each OpenTelemetry number as one Cloud Logging
+   * severity (opentelemetry-operations-go, exporter/collector/logs.go's
+   * severityMapping). Read back, each severity lands in the range Google
+   * writes it from, so a record OneUptime sends to Cloud Logging and reads
+   * back comes home at the level it left with.
+   */
+  test("each lands in the range of numbers Google's exporter writes it from", () => {
+    const RANGES: Record<string, [number, number]> = {
+      DEBUG: [1, 8],
+      INFO: [9, 10],
+      NOTICE: [11, 12],
+      WARNING: [13, 16],
+      ERROR: [17, 20],
+      CRITICAL: [21, 22],
+      ALERT: [23, 23],
+      EMERGENCY: [24, 24],
+    };
+
+    for (const [severity, { number }] of CLOUD_LOGGING_SEVERITIES) {
+      const [low, high] = RANGES[severity]!;
+
+      expect({ severity, inRange: number >= low && number <= high }).toEqual({
+        severity,
+        inRange: true,
+      });
+    }
+  });
+
+  test("CRITICAL is stored as a Fatal, as the word critical is wherever OneUptime reads it", () => {
+    const record: JSONObject = recordOf(
+      build(computeSyslogEntry({ severity: "CRITICAL" })).resourceLogs,
+    );
+
+    expect(record["severityNumber"]).toBe(21);
+    expect(record["severityText"]).toBe("FATAL");
   });
 
   test("DEFAULT, or none, says nothing", () => {

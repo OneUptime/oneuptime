@@ -384,6 +384,7 @@ eBPF इंस्ट्रूमेंटेशन भी चालू होन
 | `logs.mode` | (`preset` से) | `daemonset`, `api` या `disabled`। प्रीसेट को ओवरराइड करता है। |
 | `logs.windowsPods.enabled` | `false` | Windows नोड पर पॉड को भी टेल करता है। देखें [मिश्रित OS क्लस्टर](#मिश्रित-os-क्लस्टर-windows-नोड-पूल)। |
 | `logs.api.replicas` | `1` | `api` मोड में लॉग टेलर की रेप्लिका। |
+| `logs.extraOperators` | `[]` | आपके अपने कलेक्टर operators, ऐसे लॉग फ़ॉर्मेट के लिए जिसे एजेंट नहीं पढ़ता, `daemonset` मोड में। देखें [अपना खुद का लॉग फ़ॉर्मेट पढ़ना](/docs/telemetry/kubernetes-agent#अपना-खुद-का-लॉग-फ़ॉर्मेट-पढ़ना)। |
 | `ebpf.enabled` | `true` | eBPF ट्रेस और अनुरोध मेट्रिक्स। देखें [eBPF के साथ एप्लिकेशन ट्रेस](#ebpf-के-साथ-एप्लिकेशन-ट्रेस)। |
 | `profiling.enabled` | `false` | CPU फ़्लेम ग्राफ़। देखें [निरंतर CPU प्रोफ़ाइलिंग](#निरंतर-cpu-प्रोफ़ाइलिंग)। |
 | `kubeStateMetrics.enabled` | `false` | kube-state-metrics से क्लस्टर की स्थिति। |

@@ -274,7 +274,7 @@ Incident Severity with the same name already exists.
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-このような拒否には、キーがそのレコードを読み取れる場合、その名前を持つレコードの ID である `takenById` も含まれます。プロジェクトが一意の名前を必要とする前から名前を共有していたレコードは、名前が変更されるまでその名前を保ちます。また、一度の更新で同じ種類の複数のレコードに同じ名前を付けることはできません。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` は名前を送る前にその名前が使われているかどうかを答え、`GET /api/unique-names/duplicates` はプロジェクト内で二回以上使われている名前を種類ごとに一覧表示します。
+このような拒否には、キーがそのレコードを読み取れる場合、その名前を持つレコードの ID である `takenById` も含まれます。プロジェクトが一意の名前を必要とする前から名前を共有していたレコードは、名前が変更されるまでその名前を保ちます。また、一度の更新で同じ種類の複数のレコードに同じ名前を付けることはできません。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` は名前を送る前にその名前が使われているかどうかを答え、`GET /api/unique-names/duplicates` はプロジェクト内で二回以上使われている名前を種類ごとに一覧表示します。`GET /api/shared-names/Monitor` (または、この設定の対象となるほかの種類のテーブル名) は、ダッシュボードの一覧で印が付くのと同じように、その種類のどのレコードが名前を共有しているかを `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}` の形で答えます。各グループは、キーが読み取れる 2 件以上のレコードで、それぞれの作成日時が付きます。アーカイブ済みのレコードは、運用中のレコードとは別にグループ化されます。
 
 #### ほかのレコードがすでに持つ値
 
@@ -300,6 +300,16 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 レコードの値を今と同じ値で書き込む更新は、何も変更しません。レコードの **On Update** ワークフローを開始せず、ライブ更新も送らず、監査ログにエントリーも追加しません。`false` の上に書き込んだ `false` は同じ値とみなされ、`false` の上に書き込んだ `"false"`、テキストとして書き込んだ数値、別の形式で書き込んだ同じ時点、順序の異なる同じラベルも同じです。更新が一部の値を変更し、ほかの値をそのまま書き戻した場合、その監査ログのエントリーには変更された値だけが記載され、ワークフローの **監視するフィールド** もその値だけを受け取ります。
+
+### JSON で書く値
+
+一部のフィールドは、オンコールスケジュールのレイヤーの `rotation` や `restrictionTimes` のように、独自の形を持つ JSON の値を保持します。API リファレンスはそれぞれの形をデータ型の中で示しています。OneUptime はその形のキーだけを読み取るので、意味を示すキーを省いた値、そのキーを別の綴りで書いた値、OneUptime の知らない値を与えた値は、何もしない値として保存されるのではなく、キーを示す `400` で拒否されます:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+名前が変わったキーは、以前の名前でも引き続き読み取られます。レイヤーの制限の種類は `restrictionType` 、または以前の綴り `restictionType` に書き、応答には両方が含まれます。
 
 ### プロジェクトの購入元
 

@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddProjectCallVoice1809187791100 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187791100-AddProjectCallVoice";
+import { AddProjectCallVoice1809187791300 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187791300-AddProjectCallVoice";
 import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
 import Project from "../../../../Models/DatabaseModels/Project";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
@@ -57,11 +57,11 @@ function typeOrmColumn(
   return column!;
 }
 
-describe("AddProjectCallVoice1809187791100", () => {
+describe("AddProjectCallVoice1809187791300", () => {
   test("adds the project's voice and the server's switch, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddProjectCallVoice1809187791100().up(runner);
+        return new AddProjectCallVoice1809187791300().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "Project" ADD "callVoice" character varying(100)`,
@@ -72,7 +72,7 @@ describe("AddProjectCallVoice1809187791100", () => {
   test("no NOT NULL, no index, no key, no row rewritten: the switch's only default is the constant false", async () => {
     const statements: Array<string> = await statementsOf(
       (runner: QueryRunner) => {
-        return new AddProjectCallVoice1809187791100().up(runner);
+        return new AddProjectCallVoice1809187791300().up(runner);
       },
     );
 
@@ -110,7 +110,7 @@ describe("AddProjectCallVoice1809187791100", () => {
   test("down drops what up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddProjectCallVoice1809187791100().down(runner);
+        return new AddProjectCallVoice1809187791300().down(runner);
       }),
     ).toEqual([
       `ALTER TABLE "GlobalConfig" DROP COLUMN "letProjectsChooseCallVoice"`,
@@ -123,19 +123,19 @@ describe("AddProjectCallVoice1809187791100", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddProjectCallVoice1809187791100;
+        return candidate === AddProjectCallVoice1809187791300;
       }),
     ).toHaveLength(1);
 
     const position: number = registered.indexOf(
-      AddProjectCallVoice1809187791100,
+      AddProjectCallVoice1809187791300,
     );
 
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
-    ).toBeLessThan(timestampOf(AddProjectCallVoice1809187791100));
-    expect(new AddProjectCallVoice1809187791100().name).toBe(
-      "AddProjectCallVoice1809187791100",
+    ).toBeLessThan(timestampOf(AddProjectCallVoice1809187791300));
+    expect(new AddProjectCallVoice1809187791300().name).toBe(
+      "AddProjectCallVoice1809187791300",
     );
   });
 });

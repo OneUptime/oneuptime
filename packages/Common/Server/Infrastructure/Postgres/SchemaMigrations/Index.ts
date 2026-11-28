@@ -1220,7 +1220,13 @@ import { AddXcpNgPoolAiAccess1809187772000 } from "./1809187772000-AddXcpNgPoolA
 import { AddXcpNgPoolEventsAndBackups1809187780997 } from "./1809187780997-AddXcpNgPoolEventsAndBackups";
 import { AddStorageArrayConnections1809187781104 } from "./1809187781104-AddStorageArrayConnections";
 import { AddDetectionRuleAddedByOneUptimeAt1809187791037 } from "./1809187791037-AddDetectionRuleAddedByOneUptimeAt";
-import { AddProjectCallVoice1809187791100 } from "./1809187791100-AddProjectCallVoice";
+import { AddExternalMcpToolReadOnlyMarks1809187791081 } from "./1809187791081-AddExternalMcpToolReadOnlyMarks";
+import { AddMonitorProbeableIndex1809187791119 } from "./1809187791119-AddMonitorProbeableIndex";
+import { AddProjectSecurityAccessLogFormat1809187791129 } from "./1809187791129-AddProjectSecurityAccessLogFormat";
+import { AddProbeLastLateDueAt1809187791200 } from "./1809187791200-AddProbeLastLateDueAt";
+import { AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201 } from "./1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds";
+import { AddScheduleRosterTurnAndRestrictionTypeKey1809187791269 } from "./1809187791269-AddScheduleRosterTurnAndRestrictionTypeKey";
+import { AddProjectCallVoice1809187791300 } from "./1809187791300-AddProjectCallVoice";
 
 export default [
   InitialMigration,
@@ -2445,5 +2451,11 @@ export default [
   AddXcpNgPoolEventsAndBackups1809187780997,
   AddStorageArrayConnections1809187781104,
   AddDetectionRuleAddedByOneUptimeAt1809187791037,
-  AddProjectCallVoice1809187791100,
+  AddExternalMcpToolReadOnlyMarks1809187791081,
+  AddMonitorProbeableIndex1809187791119,
+  AddProjectSecurityAccessLogFormat1809187791129,
+  AddProbeLastLateDueAt1809187791200,
+  AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201,
+  AddScheduleRosterTurnAndRestrictionTypeKey1809187791269,
+  AddProjectCallVoice1809187791300,
 ];

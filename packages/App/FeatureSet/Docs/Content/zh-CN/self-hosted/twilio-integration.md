@@ -272,7 +272,7 @@ Twilio 普通 webhook 的来源地址会变化，因此不要把 SIP 或媒体 I
 1. 在公司网络和 VPN 之外，确认回调主机名解析到公共网关并提供有效的 TLS 证书。浏览器发起的 GET 无法测试这些 POST 回调。
 2. 在项目的 Twilio 配置上使用 **发送测试短信** 和 **发送测试呼叫**，并在目标电话上确认收到。两者都需要添加 Twilio 配置的权限：**项目所有者**、**项目管理员**，或自定义角色中的 **Create Call and SMS** 和 **Read Call and SMS**。
 3. 为用户配置已验证的短信或电话联系方式和通知规则，然后触发一次受控的值班警报。按 1，并在 OneUptime 中确认已被确认。如果您使用来电策略，请拨打配置的号码，并检查其路由和通话日志。
-4. 在 OneUptime 和 Twilio 的消息日志中确认短信的投递状态。发送被接受并不代表已送达；[Twilio 会通过回调报告之后的状态变化](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
+4. 在 OneUptime 的[通知日志](/docs/notifications/notification-logs)和 Twilio 的消息日志中确认短信的投递状态。发送被接受并不代表已送达；[Twilio 会通过回调报告之后的状态变化](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status)。
 :::
 
 | 症状 | 排查位置 |

@@ -158,8 +158,10 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { useRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
@@ -725,6 +727,10 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const translator: Translator = useTranslator();
   const modelId: ObjectID = useClusterId();
 
+  // On the cluster's page, what its labels leave the reader (#11259).
+  const clusterOptions: PermissionGateOptions | undefined =
+    useRecordGateOptions(new KubernetesCluster(), modelId);
+
   const [status, setStatus] = useState<KubernetesClusterAiAccessStatus | null>(
     null,
   );
@@ -975,8 +981,10 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
   const settingsGate: PermissionGateResult = PermissionGate.check(
     new KubernetesCluster(),
     ModelAction.Update,
+    clusterOptions,
   );
-  const testGate: PermissionGateResult = getAccessTestPermissionGate();
+  const testGate: PermissionGateResult =
+    getAccessTestPermissionGate(clusterOptions);
   const canConfigureUnattended: boolean =
     canConfigureUnattendedKubernetesAiAccess();
   const canChangeProjectSettings: boolean = canChangeProjectAiSettings();
@@ -1187,7 +1195,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
       },
     },
     resetAgent: {
-      isOffered: aiAgent !== null && canResetKubernetesAiAgent(),
+      isOffered: aiAgent !== null && canResetKubernetesAiAgent(clusterOptions),
       onClick: (): void => {
         setConfirmationError("");
         setPendingConfirmation("reset");

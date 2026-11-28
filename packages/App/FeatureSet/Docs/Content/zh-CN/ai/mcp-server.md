@@ -376,9 +376,9 @@ curl https://oneuptime.com/mcp/tools
 
 对于其中一些操作，询问 AI 会在每种模式下先用卡片询问人，卡片说明会更改什么、什么会停止工作以及成本是什么：对数据存储执行响应、**不敏感**、**接受风险**、**不是问题**、更改数据存储的所有者、保存规则、决定提议、有内容读取的清除，以及在会因严重问题呼叫某人的项目中执行 **确认**。此服务器无法向你显示这张卡片，因此会拒绝这些操作，说明原因，并指出你在 OneUptime 中进行更改的页面。没有卡片就绝不会执行。
 
-创建、更新和删除工具也遵循同样的规定，无论是通过 OAuth 登录的客户端还是 API 密钥，也无论其权限如何：进行其中任一更改的写入都会以相同的措辞被拒绝，并指出同一个页面。`update_data_security_issue` 不会将 `status` 设为 `Accepted` 或 `Not an issue`，`update_data_store_finding` 不会开启 `isSuppressed`，在会因严重问题呼叫某人的项目中也不会开启 `isConfirmed`，`create_residency_rule` 也不会保存任何规则。对于 OneUptime AI 无论其规则如何规定都会先询问人的更改，这些工具同样不会进行：在 `disabledDataTypeIds` 中关闭的数据类型、在 `scanExclusions` 中排除在数据存储扫描之外的位置，或无需任何人批准就遏制威胁或对数据存储执行响应的安全剧本步骤。
+创建、更新和删除工具也遵循同样的规定，无论是通过 OAuth 登录的客户端还是 API 密钥，也无论其权限如何：进行其中任一更改的写入都会以相同的措辞被拒绝，并指出同一个页面。`update_data_security_issue` 不会将 `status` 设为 `Accepted` 或 `Not an issue`，`update_data_store_finding` 不会开启 `isSuppressed`，在会因严重问题呼叫某人的项目中也不会开启 `isConfirmed`，`create_residency_rule` 也不会保存任何规则。对于 OneUptime AI 无论其规则如何规定都会先询问人的更改，这些工具同样不会进行：在 `disabledDataTypeIds` 中关闭的数据类型、在 `scanExclusions` 中排除在数据存储扫描之外的位置，或无需任何人批准就遏制威胁或对数据存储执行响应的安全剧本步骤。此外，`update_label` 不会把表明生产的标签（例如 `Production` 或 `env: prod`）重命名为不表明生产的名称，`delete_label` 也不会删除这样的标签：这样的标签会让带有它的云资源不受非工作时间计划和无需询问即执行的 AI 规则影响，拒绝时会指出进行更改的 **项目设置 → 基础 → 标签**。
 
-其他所有写入都照常进行：重新打开、分配或解决问题，将发现重新标记为敏感，重命名或关闭规则，重新开启数据类型。`oneuptime_describe_resource` 会说明资源的哪些写入会被拒绝，并告诉代理不要重试被拒绝的写入，也不要换一种方式进行。
+其他所有写入都照常进行：重新打开、分配或解决问题，将发现重新标记为敏感，重命名或关闭规则，重新开启数据类型，重命名或删除其他任何标签。`oneuptime_describe_resource` 会说明资源的哪些写入会被拒绝，并告诉代理不要重试被拒绝的写入，也不要换一种方式进行。
 
 其他操作以你通过 OAuth 登录的身份执行：项目 API 密钥不能使用它们，只能使用不更改任何内容的那两个。在自托管服务器上，`MCP_READ_ONLY=true` 只保留不更改任何内容的工具，而 `MCP_ALLOW_DESTRUCTIVE=false` 会拒绝移除数据存储的所有者，因为这会删除他们。
 

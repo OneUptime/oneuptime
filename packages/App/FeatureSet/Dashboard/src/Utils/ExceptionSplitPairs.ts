@@ -5,6 +5,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { MAX_SCOPED_FINGERPRINTS } from "./ExceptionsAttributeScope";
 
@@ -206,7 +207,8 @@ export async function readSplitPairExceptionIds(
  * projects whose scrub rules split exceptions before #10434 have one: the
  * list counts them once as it opens, by the column's partial index, and
  * offers the filter while there are any, or while a link or a saved view
- * asks for it.
+ * asks for it. The number the toggle shows is the list's own: how many of
+ * what it shows turning the filter on keeps (countSplitExceptionsInList).
  */
 
 // The URL's word for the filter: `split=scrub-rule`, as `assigned=me`.
@@ -248,6 +250,127 @@ export async function countSplitExceptions(): Promise<number | null> {
 }
 
 /*
+ * WHAT THE TOGGLE COUNTS: WHAT TURNING IT ON LISTS (#11116).
+ *
+ * The toggle narrows the list under it, which keeps its status, its time
+ * window and whatever else narrows it (a search, a facet, Assigned to me,
+ * the class lens). Counted over the whole project, it could say 3 while the
+ * list it narrows showed fewer. So it counts with the list's own query,
+ * the split ones of it - as the Error Class counts read the list's own
+ * rows - and its number changes with the list's filters: pressed, it is
+ * the list's own total. The project's count above still says whether the
+ * project has a pair at all, which is when the toggle is offered.
+ */
+export function getSplitExceptionsInListQuery(
+  listQuery: Query<TelemetryException>,
+): Query<TelemetryException> {
+  const query: Query<TelemetryException> = { ...listQuery };
+
+  (query as Record<string, unknown>)["splitFromTelemetryExceptionId"] =
+    new NotNull();
+
+  return query;
+}
+
+// How many the list's query keeps with the filter on. Null when the count fails.
+export async function countSplitExceptionsInList(
+  listQuery: Query<TelemetryException>,
+): Promise<number | null> {
+  try {
+    return await ModelAPI.count<TelemetryException>({
+      modelType: TelemetryException,
+      query: getSplitExceptionsInListQuery(listQuery),
+    });
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * WHETHER THE PROJECT HAS A PAIR, REMEMBERED (#11116).
+ *
+ * The toggle is offered while the project has a split exception, which the
+ * list counts as it opens. Drawn only once that count was in, it appeared a
+ * moment after the toolbar did and pushed what came after it along (the
+ * Sort menu, the time range). So what the last count said is kept for each
+ * project - in the page for the visit, in the browser's storage for the
+ * next one - and the toolbar draws the toggle at once when it said there
+ * were some. The count still decides: one that finds none takes the toggle
+ * away and is remembered so. A browser that keeps nothing (a private
+ * window, blocked storage) remembers for the visit, as the page does.
+ */
+const SPLIT_EXCEPTIONS_HINT_KEY_PREFIX: string =
+  "exceptions-split-by-scrub-rule-";
+
+const rememberedSplitExceptions: Map<string, boolean> = new Map<
+  string,
+  boolean
+>();
+
+export function getSplitExceptionsHintKey(projectId: string): string {
+  return `${SPLIT_EXCEPTIONS_HINT_KEY_PREFIX}${projectId.toLowerCase()}`;
+}
+
+/*
+ * What the project's last count said: whether it had split exceptions.
+ * Null when nothing is remembered.
+ */
+export function recallSplitExceptions(
+  projectId: ObjectID | null | undefined,
+): boolean | null {
+  if (!projectId) {
+    return null;
+  }
+
+  const key: string = getSplitExceptionsHintKey(projectId.toString());
+
+  if (rememberedSplitExceptions.has(key)) {
+    return rememberedSplitExceptions.get(key) as boolean;
+  }
+
+  try {
+    const value: unknown = LocalStorage.getItem(key);
+
+    if (value === true || value === "true") {
+      return true;
+    }
+
+    if (value === false || value === "false") {
+      return false;
+    }
+  } catch {
+    // A browser that keeps nothing: nothing is remembered.
+  }
+
+  return null;
+}
+
+// Keeps what a count of the project's split exceptions said.
+export function rememberSplitExceptions(
+  projectId: ObjectID | null | undefined,
+  hasSome: boolean,
+): void {
+  if (!projectId) {
+    return;
+  }
+
+  const key: string = getSplitExceptionsHintKey(projectId.toString());
+
+  rememberedSplitExceptions.set(key, hasSome);
+
+  try {
+    LocalStorage.setItem(key, hasSome ? "true" : "false");
+  } catch {
+    // A browser that keeps nothing still remembers for this visit.
+  }
+}
+
+// Forgets what this page remembered (tests: one page load each).
+export function forgetRememberedSplitExceptions(): void {
+  rememberedSplitExceptions.clear();
+}
+
+/*
  * What the chart's narrowing reads of the split ones, and of the exceptions
  * merged into them.
  */
@@ -275,56 +398,54 @@ function fingerprintOf(exception: TelemetryException): string {
  * once: the split ones by their column's partial index, the exceptions
  * merged into them by the merge column's index. The split ones are few
  * (only rules from before #10434 split exceptions), and at most
- * MAX_SCOPED_FINGERPRINTS are read. Empty when a read fails: the chart then
- * counts nothing, rather than every exception under a filter that says
- * otherwise.
+ * MAX_SCOPED_FINGERPRINTS are read. Throws when a read fails: the chart and
+ * the facet counts then say they could not load, never counting every
+ * exception under a filter that says otherwise, and the list reads them
+ * again on its next change, or on Try again (#11116). Read as empty, a
+ * failure left the chart counting nothing until the page was loaded again.
  */
 export async function readSplitExceptionFingerprints(): Promise<Array<string>> {
-  try {
-    const splitOnes: ListResult<TelemetryException> =
-      await ModelAPI.getList<TelemetryException>({
-        modelType: TelemetryException,
-        query: getSplitExceptionsQuery(),
-        select: SPLIT_FINGERPRINT_SELECT,
-        limit: MAX_SCOPED_FINGERPRINTS,
-        skip: 0,
-        sort: { _id: SortOrder.Ascending },
-      });
+  const splitOnes: ListResult<TelemetryException> =
+    await ModelAPI.getList<TelemetryException>({
+      modelType: TelemetryException,
+      query: getSplitExceptionsQuery(),
+      select: SPLIT_FINGERPRINT_SELECT,
+      limit: MAX_SCOPED_FINGERPRINTS,
+      skip: 0,
+      sort: { _id: SortOrder.Ascending },
+    });
 
-    const splitIds: Array<string> = Array.from(
-      new Set<string>(
-        (splitOnes.data || []).map(idOf).filter((id: string): boolean => {
-          return id.length > 0;
+  const splitIds: Array<string> = Array.from(
+    new Set<string>(
+      (splitOnes.data || []).map(idOf).filter((id: string): boolean => {
+        return id.length > 0;
+      }),
+    ),
+  );
+
+  const mergedIn: ListResult<TelemetryException> | null =
+    splitIds.length > 0
+      ? await ModelAPI.getList<TelemetryException>({
+          modelType: TelemetryException,
+          query: {
+            mergedIntoTelemetryExceptionId: new Includes(splitIds),
+          },
+          select: SPLIT_FINGERPRINT_SELECT,
+          limit: MAX_SCOPED_FINGERPRINTS,
+          skip: 0,
+          sort: { _id: SortOrder.Ascending },
+        })
+      : null;
+
+  return Array.from(
+    new Set<string>(
+      [...(splitOnes.data || []), ...(mergedIn?.data || [])]
+        .map(fingerprintOf)
+        .filter((fingerprint: string): boolean => {
+          return fingerprint.length > 0;
         }),
-      ),
-    );
-
-    const mergedIn: ListResult<TelemetryException> | null =
-      splitIds.length > 0
-        ? await ModelAPI.getList<TelemetryException>({
-            modelType: TelemetryException,
-            query: {
-              mergedIntoTelemetryExceptionId: new Includes(splitIds),
-            },
-            select: SPLIT_FINGERPRINT_SELECT,
-            limit: MAX_SCOPED_FINGERPRINTS,
-            skip: 0,
-            sort: { _id: SortOrder.Ascending },
-          })
-        : null;
-
-    return Array.from(
-      new Set<string>(
-        [...(splitOnes.data || []), ...(mergedIn?.data || [])]
-          .map(fingerprintOf)
-          .filter((fingerprint: string): boolean => {
-            return fingerprint.length > 0;
-          }),
-      ),
-    );
-  } catch {
-    return [];
-  }
+    ),
+  );
 }
 
 /*

@@ -427,6 +427,8 @@ Uma decisão é tomada uma vez, com as configurações do projeto naquele moment
 
 Quando a investigação encontra a causa no código, a etapa diz o que resultou disso: o pull request de correção que a OneUptime AI está escrevendo ou abriu, com um link para ele no Code; a única etapa de configuração que falta, como **Conectar um repositório**; ou **Abrir pull request de correção**, com o motivo de a OneUptime AI não o ter aberto sozinha (veja [Correções automáticas de código](#correções-automáticas-de-código)).
 
+**Abrir pull request de correção** só trabalha em um repositório que você pode usar no Code: um que você pode ler e no qual pode pedir à OneUptime AI que trabalhe, o que exige permissão para editá-lo. Com vários dos seus conectados e nenhum com o nome do monitor do incidente ou do alerta, a etapa primeiro pergunta qual repositório contém o código, e oferece só os seus. Se você não pode usar nenhum dos repositórios conectados, a etapa não o oferece. Veja [Onde as tarefas de correção começam](/docs/ai/ai-agent#onde-as-tarefas-de-correção-começam).
+
 A linha do tempo do incidente ou do alerta guarda um registro de cada alteração. Depois que um plano aprovado é executado, sua entrada lista cada comando na ordem em que foi executado, com onde foi executado e como terminou, e a entrada de um rollback lista cada ação de desfazer da mesma forma, com o comando que ela desfez. A lista fica em **Mostrar detalhes** da entrada, somente na linha do tempo: os canais do Slack e do Microsoft Teams do incidente ou do alerta recebem no máximo a linha da entrada, nunca a lista.
 
 ### Por que a OneUptime AI não encontrou nenhuma correção, ou parou
