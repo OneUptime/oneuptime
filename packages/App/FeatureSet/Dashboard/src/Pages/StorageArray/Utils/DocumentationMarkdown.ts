@@ -1515,7 +1515,13 @@ function getSeveralArraysTopic(): SetupGuideTopic {
 
 ${codeBlock(
   "bash",
-  `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02 bash install.sh`,
+  getInstallScriptRunCommand(
+    [
+      `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02`,
+      `${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02`,
+    ],
+    "bash install.sh",
+  ),
 )}
 
 Without \`${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}\`, the script names the container after the folder. It keeps the name in that agent's \`.env\`, so running the script again to upgrade the agent keeps it, and an agent whose \`container_name\` you once edited in \`docker-compose.yml\` keeps that name. With Docker Compose, set \`${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}\` in each agent's \`.env\` instead.`,

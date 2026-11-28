@@ -469,7 +469,16 @@ function getSeveralXenOrchestrasTopic(): SetupGuideTopic {
       "One agent per Xen Orchestra; each pool belongs to the one that reads it.",
     markdown: `One agent reads one Xen Orchestra and every pool it manages. For a second Xen Orchestra, install a second agent in a folder of its own, with a container name of its own — two containers cannot share one:
 
-${codeBlock("bash", `INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab ${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=${XCP_NG_AGENT_CONTAINER}-lab bash install.sh`)}
+${codeBlock(
+  "bash",
+  getInstallScriptRunCommand(
+    [
+      `INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab`,
+      `${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=${XCP_NG_AGENT_CONTAINER}-lab`,
+    ],
+    "bash install.sh",
+  ),
+)}
 
 Without \`${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}\`, the script names the container after the folder. It keeps the name in that agent's \`.env\`, so running the script again to upgrade the agent keeps it, and an agent whose \`container_name\` you once edited in \`docker-compose.yml\` keeps that name. With Docker Compose, set \`${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}\` in each agent's \`.env\` instead.
 

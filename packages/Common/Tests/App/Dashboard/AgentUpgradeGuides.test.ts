@@ -1402,9 +1402,13 @@ describe("Storage Array agent: the install script again, or every file again", (
     expect(script.noteValues).toEqual({
       directory: STORAGE_ARRAY_AGENT_INSTALL_DIR,
     });
-    // The setup guide installs a second array's agent the same way.
+    // The setup guide installs a second array's agent the same way, a value a line.
     expect(getSetupGuideMarkdown(setupGuideFor("flasharray"))).toContain(
-      `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`,
+      [
+        `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 \\`,
+        "  STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 \\",
+        "  bash install.sh",
+      ].join("\n"),
     );
   });
 

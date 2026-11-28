@@ -1264,10 +1264,15 @@ describe("drift guards against agents/StorageArrayAgent", () => {
       guideFor("flasharray").advanced,
       "Monitor several arrays",
     ).markdown;
+    // Each value on a line of its own, so it reads whole where it is shown (AgentInstallCommandsServed).
     expect(topic).toContain(
       codeBlock(
         "bash",
-        `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02 bash install.sh`,
+        [
+          `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 \\`,
+          `  ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02 \\`,
+          "  bash install.sh",
+        ].join("\n"),
       ),
     );
     // Nothing tells anyone to edit docker-compose.yml, which an upgrade replaces.
