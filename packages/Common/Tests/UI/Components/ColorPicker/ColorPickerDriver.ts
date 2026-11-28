@@ -24,6 +24,25 @@ export const getColorField: (
   return scope ? within(scope).getByTestId(testId) : screen.getByTestId(testId);
 };
 
+/*
+ * The one color field in scope, once it is there. A form draws a color
+ * field's place - its row of choices, which cannot be pressed yet - until
+ * the field's own file has arrived (LazyColorPicker), so a person picks a
+ * color once the field is drawn, and so does a test that picks one through
+ * a form.
+ */
+export const findColorField: (
+  testId?: string,
+  scope?: ColorFieldScope,
+) => Promise<HTMLElement> = (
+  testId: string = "color-picker",
+  scope?: ColorFieldScope,
+): Promise<HTMLElement> => {
+  return scope
+    ? within(scope).findByTestId(testId)
+    : screen.findByTestId(testId);
+};
+
 // What the field holds: lowercase #rrggbb, or "" for no color.
 export const colorOf: (field: HTMLElement) => string = (
   field: HTMLElement,
