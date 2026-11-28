@@ -120,6 +120,7 @@ function monitorWith(data: {
   isPausedByIncident?: boolean | undefined;
   isPausedForMaintenance?: boolean | undefined;
   isTurnedOff?: boolean | undefined;
+  isArchived?: boolean | undefined;
 }): Monitor {
   const monitor: Monitor = new Monitor(MONITOR_ID);
   monitor.projectId = PROJECT_ID;
@@ -129,6 +130,7 @@ function monitorWith(data: {
   monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent =
     data.isPausedForMaintenance ?? false;
   monitor.disableActiveMonitoring = data.isTurnedOff ?? false;
+  monitor.isArchived = data.isArchived ?? false;
   return monitor;
 }
 
@@ -172,6 +174,7 @@ let eventsHolding: Array<ScheduledMaintenance>;
 let eventsRead: ReturnType<typeof getJestSpyOn>;
 let latest: MonitorStatusTimeline | null;
 let switches: ReturnType<typeof getJestSpyOn>;
+let monitorReads: ReturnType<typeof getJestSpyOn>;
 
 beforeEach(() => {
   monitorRead = monitorWith({});
@@ -188,9 +191,11 @@ beforeEach(() => {
   getJestSpyOn(IncidentService, "findBy").mockImplementation((async () => {
     return incidentsFound;
   }) as never);
-  getJestSpyOn(MonitorService, "findOneById").mockImplementation((async () => {
-    return monitorRead;
-  }) as never);
+  monitorReads = getJestSpyOn(MonitorService, "findOneById").mockImplementation(
+    (async () => {
+      return monitorRead;
+    }) as never,
+  );
   getJestSpyOn(MonitorService, "updateOneById").mockResolvedValue(
     undefined as never,
   );
@@ -507,6 +512,46 @@ describe("markUptime for a monitor scheduled maintenance pauses", () => {
     });
 
     expect(switches).not.toHaveBeenCalled();
+  });
+
+  test("an archived monitor is worked out as any other: archiving marks nothing on its timeline", async () => {
+    monitorRead = monitorWith({
+      isPausedForMaintenance: true,
+      isArchived: true,
+    });
+    eventsHolding = [eventWith({ id: EVENT_ONE, prefixed: "SM-3" })];
+
+    await MonitorIncidentPause.syncMonitors({
+      projectId: PROJECT_ID,
+      monitorIds: [MONITOR_ID],
+    });
+
+    expect(switches).toHaveBeenCalledTimes(1);
+    expect(
+      (switches.mock.calls[0]![0] as { isMonitoringOff: boolean })
+        .isMonitoringOff,
+    ).toBe(true);
+  });
+
+  test("the monitor is read with every flag that stops it being checked, archiving with them", async () => {
+    monitorRead = monitorWith({ isPausedForMaintenance: true });
+
+    await MonitorIncidentPause.syncPause({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+    });
+
+    const read: { select: Record<string, boolean> } = monitorReads.mock
+      .calls[0]![0] as { select: Record<string, boolean> };
+
+    expect(read.select).toEqual(
+      expect.objectContaining({
+        isArchived: true,
+        disableActiveMonitoring: true,
+        disableActiveMonitoringBecauseOfManualIncident: true,
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      }),
+    );
   });
 
   test("nothing is written while monitoring is turned off: the switch speaks for the time", async () => {

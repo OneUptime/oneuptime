@@ -17,6 +17,7 @@ import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceServ
 import ScheduledMaintenanceStateTimelineService from "../../Services/ScheduledMaintenanceStateTimelineService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
+import { MONITOR_PAUSE_FLAGS_SELECT } from "../../../Utils/Monitor/MonitorPauseState";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
@@ -78,21 +79,22 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * (ScheduledMaintenanceStateTimelineService, ScheduledMaintenanceService).
  */
 
-// What a monitor is read with before it can be worked out.
+/*
+ * What a monitor is read with before it can be worked out: every flag that
+ * stops it being checked (MonitorPauseState). An archived monitor is worked
+ * out as any other - archiving marks nothing on its status timeline, so
+ * what pauses it still says what its time counts as - and only monitoring
+ * turned off by hand is left to the switch's own marks (markUptime).
+ */
 const MONITOR_SELECT: {
   _id: true;
   projectId: true;
   keepMonitoringDuringIncidents: true;
-  disableActiveMonitoring: true;
-  disableActiveMonitoringBecauseOfManualIncident: true;
-  disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true;
-} = {
+} & typeof MONITOR_PAUSE_FLAGS_SELECT = {
   _id: true,
   projectId: true,
   keepMonitoringDuringIncidents: true,
-  disableActiveMonitoring: true,
-  disableActiveMonitoringBecauseOfManualIncident: true,
-  disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+  ...MONITOR_PAUSE_FLAGS_SELECT,
 };
 
 // How a monitor stands, once worked out (syncPause).
