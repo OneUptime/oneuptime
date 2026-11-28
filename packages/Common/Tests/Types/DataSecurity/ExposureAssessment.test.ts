@@ -1776,6 +1776,46 @@ describe("OneUptime AI's drafts, held to the facts", () => {
     ).toEqual(["Washington, D.C."]);
   });
 
+  test("West Virginia is a place, never Virginia's law, and its own sections are a law no fact holds (#10952)", () => {
+    const virginia: Array<ComplianceFact> = [
+      HOLDS,
+      obligationFact({
+        id: "F3",
+        family: BreachLawFamily.Virginia,
+        ruleId: BreachLawId.VirginiaResidents,
+        law: "Code of Virginia 18.2-186.6(B)",
+      }),
+    ];
+
+    // Virginia's law, by its name and its section, rests on its fact.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell each Virginia resident, under Code of Virginia 18.2-186.6.",
+        facts: virginia,
+      }),
+    ).toEqual([]);
+    // West Virginia named as a place is not Virginia's law, whatever the facts.
+    expect(
+      getUnfoundedLaws({
+        text: "Some of the people live in West Virginia.",
+        facts: [HOLDS],
+      }),
+    ).toEqual([]);
+    expect(
+      getUnfoundedLaws({
+        text: "Some of the people live in West Virginia and Virginia.",
+        facts: [HOLDS],
+      }),
+    ).toEqual(["Virginia"]);
+    // West Virginia's own sections are a law the table does not hold.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell them under W. Va. Code 46A-2A-102.",
+        facts: virginia,
+      }),
+    ).toEqual(["46A-2A-102"]);
+  });
+
   test("a draft that cites no fact, or says too little, is dropped", () => {
     expect(
       hold(

@@ -1822,6 +1822,8 @@ export function startExposureAssessment(data: {
 const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   pattern: RegExp;
   family: BreachLawFamily | null;
+  // A place a person may name, read past so it is no other law's name.
+  isPlace?: boolean | undefined;
 }> = [
   { pattern: /\bUK[ -]GDPR\b/gi, family: BreachLawFamily.UkGdpr },
   {
@@ -1967,6 +1969,13 @@ const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   },
   { pattern: /\bUtah\b|\b13-44-\d+\b/gi, family: BreachLawFamily.Utah },
   { pattern: /\bVermont\b|\bV\.S\.A\./gi, family: BreachLawFamily.Vermont },
+  /*
+   * West Virginia before Virginia, so it is never read as Virginia's law.
+   * The table does not hold its law (#10952): its name is a place a person
+   * may have named, its sections' numbers a law no fact holds.
+   */
+  { pattern: /\bWest Virginia\b/gi, family: null, isPlace: true },
+  { pattern: /\b46A-2A-\d+\b/gi, family: null },
   {
     pattern: /\bVirginia\b|\b18\.2-186\.6\b/gi,
     family: BreachLawFamily.Virginia,
@@ -2052,6 +2061,10 @@ export function getUnfoundedLaws(data: {
     const found: Array<string> = text.match(entry.pattern) || [];
 
     for (const name of found) {
+      if (entry.isPlace) {
+        continue;
+      }
+
       if (entry.family === null || !families.has(entry.family)) {
         if (!unfounded.includes(name)) {
           unfounded.push(name);
