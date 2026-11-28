@@ -10,6 +10,7 @@ import {
   MonitorTemplateChangeOutcome,
   readMonitorTemplateChangeView,
 } from "Common/Types/Monitor/MonitorTemplateChange";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import { APP_API_URL } from "Common/UI/Config";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import API from "Common/UI/Utils/API/API";
@@ -28,6 +29,8 @@ export const MONITOR_TEMPLATE_CHANGE_ROUTES: {
   start: string;
   change: (changeId: string) => string;
   activeOfTemplate: (monitorTemplateId: string) => string;
+  ofProject: string;
+  autoImportRuleMonitors: (ruleId: string) => string;
   stop: (changeId: string) => string;
   retry: (changeId: string) => string;
   linkOne: (monitorTemplateId: string, monitorId: string) => string;
@@ -39,6 +42,10 @@ export const MONITOR_TEMPLATE_CHANGE_ROUTES: {
   },
   activeOfTemplate: (monitorTemplateId: string): string => {
     return `/monitor-template-change/template/${encodeURIComponent(monitorTemplateId)}/active`;
+  },
+  ofProject: "/monitor-template-change/project/active",
+  autoImportRuleMonitors: (ruleId: string): string => {
+    return `/monitor-template-change/auto-import-rule/${encodeURIComponent(ruleId)}/monitors`;
   },
   stop: (changeId: string): string => {
     return `/monitor-template-change/change/${encodeURIComponent(changeId)}/stop`;
@@ -116,6 +123,11 @@ export interface MonitorTemplateChangeRequest {
   // The monitors picked; or every one linked to the template.
   monitorIds?: Array<string> | undefined;
   allLinkedToTemplate?: boolean | undefined;
+  /*
+   * An auto import rule's devices' monitors, from the template it uses,
+   * moved to `monitorTemplateId` - then the rule pointed at it (#11451).
+   */
+  autoImportRuleId?: string | undefined;
 }
 
 export async function startMonitorTemplateChange(
@@ -131,6 +143,9 @@ export async function startMonitorTemplateChange(
         ? { monitorIds: request.monitorIds as unknown as JSONValue }
         : {}),
       ...(request.allLinkedToTemplate ? { allLinkedToTemplate: true } : {}),
+      ...(request.autoImportRuleId
+        ? { autoImportRuleId: request.autoImportRuleId }
+        : {}),
     }),
   );
 }
@@ -164,20 +179,68 @@ export async function retryMonitorTemplateChange(
   );
 }
 
-// The template's changes that have not finished, newest first.
-export async function getActiveMonitorTemplateChanges(
-  monitorTemplateId: string,
-): Promise<Array<MonitorTemplateChangeView>> {
-  const body: JSONObject = await getJson(
-    MONITOR_TEMPLATE_CHANGE_ROUTES.activeOfTemplate(monitorTemplateId),
-  );
-
+function readChanges(body: JSONObject): Array<MonitorTemplateChangeView> {
   return (Array.isArray(body["changes"]) ? body["changes"] : []).flatMap(
     (change: unknown): Array<MonitorTemplateChangeView> => {
       const view: MonitorTemplateChangeView | null =
         readMonitorTemplateChangeView(change);
       return view ? [view] : [];
     },
+  );
+}
+
+/*
+ * The project's changes the Monitors list shows (#11454): still running, or
+ * finished in the last hour with monitors left out or failed - newest first.
+ */
+export async function getProjectMonitorTemplateChanges(): Promise<
+  Array<MonitorTemplateChangeView>
+> {
+  return readChanges(await getJson(MONITOR_TEMPLATE_CHANGE_ROUTES.ofProject));
+}
+
+// What an auto import rule's move would move (#11451), before it is asked for.
+export interface AutoImportRuleMonitorsToMove {
+  // The rule's devices' monitors on the template it uses now.
+  count: number;
+  monitorTemplateId?: string | undefined;
+  monitorTemplateName?: string | undefined;
+  monitorType?: MonitorType | undefined;
+  // A move of the rule's monitors is running already.
+  isMoveRunning: boolean;
+}
+
+export async function getAutoImportRuleMonitorsToMove(
+  ruleId: string,
+): Promise<AutoImportRuleMonitorsToMove> {
+  const body: JSONObject = await getJson(
+    MONITOR_TEMPLATE_CHANGE_ROUTES.autoImportRuleMonitors(ruleId),
+  );
+  const count: number = Number(body["count"]);
+  const text: (key: string) => string | undefined = (
+    key: string,
+  ): string | undefined => {
+    const value: unknown = body[key];
+    return typeof value === "string" && value ? value : undefined;
+  };
+
+  return {
+    count: Number.isFinite(count) && count > 0 ? Math.floor(count) : 0,
+    monitorTemplateId: text("monitorTemplateId"),
+    monitorTemplateName: text("monitorTemplateName"),
+    monitorType: text("monitorType") as MonitorType | undefined,
+    isMoveRunning: body["isMoveRunning"] === true,
+  };
+}
+
+// The template's changes that have not finished, newest first.
+export async function getActiveMonitorTemplateChanges(
+  monitorTemplateId: string,
+): Promise<Array<MonitorTemplateChangeView>> {
+  return readChanges(
+    await getJson(
+      MONITOR_TEMPLATE_CHANGE_ROUTES.activeOfTemplate(monitorTemplateId),
+    ),
   );
 }
 

@@ -125,6 +125,11 @@ const EXPECTED_PRODUCTS: Array<{
     category: "Cloud security",
   },
   {
+    provider: SecurityEventConnectorProvider.CrowdSec,
+    title: "CrowdSec",
+    category: "Network security",
+  },
+  {
     provider: SecurityEventConnectorProvider.GoogleSecOps,
     title: "Google SecOps",
     category: "SIEM",
@@ -330,7 +335,7 @@ describe("SecurityEventConnectionsEmptyState", () => {
       expect(title.tagName).toBe("H3");
       expect(hero()).toContainElement(title);
       expect(screen.getByTestId(`${ID}-description`)).toHaveTextContent(
-        "Connect a SIEM, EDR / XDR, cloud security or identity product and OneUptime polls it on a schedule, importing each new alert, finding or log event as an OCSF security event.",
+        "Connect a SIEM, EDR / XDR, cloud security, network security or identity product, and OneUptime imports each new alert, finding or log event as an OCSF security event.",
       );
       expect(hero()).toContainElement(screen.getByTestId(`${ID}-description`));
     });
@@ -550,15 +555,15 @@ describe("SecurityEventConnectionsEmptyState", () => {
         ).not.toBeInTheDocument();
         expect(root().querySelectorAll("svg")).toHaveLength(
           /*
-           * Badge, Add icon, 11 external-link icons, 2 requirements, and the
-           * 11 products' marks: each drawn inline, in one colour, as an icon
+           * Badge, Add icon, 12 external-link icons, 2 requirements, and the
+           * 12 products' marks: each drawn inline, in one colour, as an icon
            * is (the brands that allow no logo here by an icon of OneUptime's).
            */
-          1 + 1 + 11 + 2 + 11,
+          1 + 1 + 12 + 2 + 12,
         );
         expect(root().querySelectorAll("img")).toHaveLength(0);
         expect(root().querySelectorAll("[data-provider-logo]")).toHaveLength(
-          11,
+          12,
         );
       },
     );
@@ -682,10 +687,10 @@ describe("SecurityEventConnectionsEmptyState", () => {
       ).not.toBeInTheDocument();
     });
 
-    test("show all eleven products, in catalog order", () => {
+    test("show all twelve products, in catalog order", () => {
       renderEmptyState();
 
-      expect(SecurityEventConnectorCatalog).toHaveLength(11);
+      expect(SecurityEventConnectorCatalog).toHaveLength(12);
       expect(tiles()).toHaveLength(EXPECTED_PRODUCTS.length);
       tiles().forEach((tile: HTMLElement, index: number): void => {
         const expected: {
@@ -994,7 +999,7 @@ describe("SecurityEventConnectionsEmptyState", () => {
     });
 
     test.each([true, false])(
-      "the only links are the eleven setup guides, one per tile (canCreate: %s)",
+      "the only links are the twelve setup guides, one per tile (canCreate: %s)",
       (canCreate: boolean) => {
         renderEmptyState({ canCreate });
 

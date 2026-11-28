@@ -265,7 +265,7 @@ Redigeringsprogrammet viser hvert kriterium utvidet. Klikk på overskriften til 
 
 ### Lagre kriteriene
 
-Klikk på **Lagre endringer**. Neste kontroll vurderes etter de nye kriteriene.
+Klikk på **Lagre endringer**. Neste kontroll vurderes etter de nye kriteriene. En åpen hendelse eller et åpent varsel som du slettet kriteriene til, løses når du lagrer, når den var satt til å løses av seg selv, for etterpå kan ingenting løse den: tidslinjen sier hvorfor.
 
 ### Test monitoren
 
@@ -352,7 +352,7 @@ Kriteriet til varselet endrer ingen status, så det holder ikke monitoren i stat
 :::
 
 :::details Hendelsen forblir åpen etter at monitoren har kommet seg
-Åpne kriteriet til hendelsen og utvid **Flere felt** i hendelsen: **Løs hendelse automatisk** må være slått på. En hendelse fra et kriterium du senere har slettet, løses ikke av monitoren: løs den manuelt.
+Åpne kriteriet til hendelsen og utvid **Flere felt** i hendelsen: **Løs hendelse automatisk** må være slått på. Sletter du kriteriet til en hendelse, eller synkroniserer en mal som ikke lenger har det, løses hendelsen når den var satt til å løses av seg selv. En som ble stående åpen etter et kriterium som ble slettet tidligere, eller som skal løses manuelt, løser du selv.
 :::
 
 :::details Slett-knappen for Offline er låst

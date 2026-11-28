@@ -156,6 +156,10 @@ import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorSteps
 import MonitorStepsValuesUtil from "../../Utils/Monitor/MonitorStepsValuesUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import MonitorTurnedOff from "../Utils/Monitor/MonitorTurnedOff";
+import MonitorCriteriaReplaced, {
+  WrittenMonitorTemplate,
+} from "../Utils/Monitor/MonitorCriteriaReplaced";
+import MonitorAutoResolveTemplates from "../../Utils/Monitor/MonitorAutoResolveTemplates";
 import MonitorIncidentPause from "../Utils/Monitor/MonitorIncidentPause";
 import LatestIncomingRequest, {
   ReadersCopyRewrite,
@@ -243,6 +247,25 @@ type MonitorUpdateCarryForward = {
   valuesBeforeUpdate?: Dictionary<EventValuesBeforeUpdate> | undefined;
   monitorIdsTurnedOff?: Array<string> | undefined;
   monitorIdsTurnedOn?: Array<string> | undefined;
+  /*
+   * A write of steps: what it wrote, and the criteria each monitor it
+   * writes held before - only those with a criteria that resolves its own
+   * records - for what the write takes off them (MonitorCriteriaReplaced,
+   * #11453).
+   */
+  criteriaChange?: MonitorCriteriaChangeCarry | undefined;
+};
+
+// What a write of steps hands onUpdateSuccess, read before the write.
+type MonitorCriteriaChangeCarry = {
+  stepsWritten: MonitorSteps | null;
+  writtenTemplate: WrittenMonitorTemplate;
+  // By monitor id: its name, its steps and its template before the write.
+  before: Dictionary<{
+    name: string;
+    monitorSteps: MonitorSteps | null;
+    monitorTemplateId: string | null;
+  }>;
 };
 
 // What onBeforeCreate hands to onCreateSuccess.
@@ -974,6 +997,9 @@ export class Service extends ProjectReferencesService<Model> {
       MONITOR_TEMPLATE_RELATION_KEYS,
     );
 
+    // A write of steps: what each monitor's criteria were before it.
+    let criteriaChange: MonitorCriteriaChangeCarry | null = null;
+
     if (
       isMonitorStepsWritten ||
       isSyntheticTypeWritten ||
@@ -990,6 +1016,7 @@ export class Service extends ProjectReferencesService<Model> {
         updateBy,
         {
           projectId: true,
+          name: true,
           monitorType: true,
           monitorSteps: true,
           monitorTemplateId: true,
@@ -1057,6 +1084,29 @@ export class Service extends ProjectReferencesService<Model> {
 
         (updateBy.data as unknown as Record<string, unknown>)["monitorSteps"] =
           writtenMonitorSteps;
+      }
+
+      /*
+       * What each monitor's criteria were before a write of its steps, for
+       * what the write takes off it (MonitorCriteriaReplaced, #11453): the
+       * incidents and alerts a criteria opened and would have resolved on
+       * its own are resolved once it is gone, whoever took it off - a
+       * template's sync, a link, an unlink, a person's edit, the API,
+       * Terraform. Only a monitor with such a criteria is kept.
+       */
+      if (isMonitorStepsWritten) {
+        criteriaChange = this.getCriteriaChangeCarry({
+          monitors: monitors,
+          stepsWritten: updateBy.data.monitorSteps as
+            | MonitorSteps
+            | JSONObject
+            | null
+            | undefined,
+          writtenTemplate: {
+            isWritten: isMonitorTemplateWritten,
+            id: writtenMonitorTemplateId,
+          },
+        });
       }
 
       for (const monitor of monitors) {
@@ -1402,6 +1452,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (
       !valuesBeforeUpdate &&
+      !criteriaChange &&
       switched.monitorIdsTurnedOff.length === 0 &&
       switched.monitorIdsTurnedOn.length === 0
     ) {
@@ -1414,6 +1465,10 @@ export class Service extends ProjectReferencesService<Model> {
       carryForward.valuesBeforeUpdate = valuesBeforeUpdate;
     }
 
+    if (criteriaChange) {
+      carryForward.criteriaChange = criteriaChange;
+    }
+
     if (switched.monitorIdsTurnedOff.length > 0) {
       carryForward.monitorIdsTurnedOff = switched.monitorIdsTurnedOff;
     }
@@ -1423,6 +1478,142 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward: carryForward };
+  }
+
+  /*
+   * What a write of steps hands onUpdateSuccess (MonitorCriteriaReplaced,
+   * #11453): the steps it writes, the template it writes, and - for each
+   * monitor it writes that holds a criteria resolving its own incidents or
+   * alerts - its name, its steps and its template before the write. Null
+   * when no monitor it writes holds one: nothing it takes off could be
+   * left open then, and nothing is resolved or read after the write.
+   */
+  private getCriteriaChangeCarry(data: {
+    monitors: Array<Model>;
+    stepsWritten: MonitorSteps | JSONObject | null | undefined;
+    writtenTemplate: WrittenMonitorTemplate;
+  }): MonitorCriteriaChangeCarry | null {
+    const before: MonitorCriteriaChangeCarry["before"] = {};
+
+    for (const monitor of data.monitors) {
+      if (!monitor.id || !monitor.monitorSteps) {
+        continue;
+      }
+
+      const storedSteps: MonitorSteps = MonitorSteps.fromJSON(
+        monitor.monitorSteps as MonitorSteps | JSONObject,
+      );
+
+      if (
+        MonitorAutoResolveTemplates.isEmpty(
+          MonitorAutoResolveTemplates.fromMonitorSteps(storedSteps),
+        )
+      ) {
+        continue;
+      }
+
+      before[monitor.id.toString()] = {
+        name: monitor.name || "",
+        monitorSteps: storedSteps,
+        monitorTemplateId: monitor.monitorTemplateId?.toString() || null,
+      };
+    }
+
+    if (Object.keys(before).length === 0) {
+      return null;
+    }
+
+    return {
+      stepsWritten: data.stepsWritten
+        ? MonitorSteps.fromJSON(data.stepsWritten as MonitorSteps | JSONObject)
+        : null,
+      writtenTemplate: data.writtenTemplate,
+      before: before,
+    };
+  }
+
+  /*
+   * Once a write of steps is written: what each monitor's old criteria
+   * opened and would have resolved on their own, resolved, with why
+   * (MonitorCriteriaReplaced.resolveAfterWrite) - a criteria the write keeps,
+   * by its id, goes on resolving its own records. Each monitor on its own,
+   * and a failure never fails the save. A template's name is read once.
+   */
+  private async resolveWhatTheWriteTookOff(data: {
+    criteriaChange: MonitorCriteriaChangeCarry;
+    updatedItemIds: Array<ObjectID>;
+    changedByUserId: ObjectID | null | undefined;
+  }): Promise<void> {
+    const templateNames: Map<string, Promise<string>> = new Map<
+      string,
+      Promise<string>
+    >();
+
+    const readTemplateName: (templateId: ObjectID) => Promise<string> = (
+      templateId: ObjectID,
+    ): Promise<string> => {
+      const key: string = templateId.toString();
+      let name: Promise<string> | undefined = templateNames.get(key);
+
+      if (!name) {
+        name = MonitorTemplateService.findOneById({
+          id: templateId,
+          select: { _id: true, templateName: true },
+          props: { isRoot: true },
+        })
+          .then((template: MonitorTemplate | null): string => {
+            return template?.templateName || "";
+          })
+          .catch((): string => {
+            return "";
+          });
+        templateNames.set(key, name);
+      }
+
+      return name;
+    };
+
+    for (const monitorId of data.updatedItemIds) {
+      const before:
+        | MonitorCriteriaChangeCarry["before"][keyof MonitorCriteriaChangeCarry["before"]]
+        | undefined = data.criteriaChange.before[monitorId.toString()];
+
+      if (!before) {
+        continue;
+      }
+
+      try {
+        const monitor: Model | null = await this.findOneById({
+          id: monitorId,
+          select: { _id: true, projectId: true },
+          props: { isRoot: true },
+        });
+
+        if (!monitor?.projectId) {
+          continue;
+        }
+
+        await MonitorCriteriaReplaced.resolveAfterWrite({
+          monitorId: monitorId,
+          projectId: monitor.projectId,
+          monitorName: before.name,
+          stepsBefore: before.monitorSteps,
+          stepsAfter: data.criteriaChange.stepsWritten,
+          templateIdBefore: before.monitorTemplateId,
+          writtenTemplate: data.criteriaChange.writtenTemplate,
+          changedByUserId: data.changedByUserId,
+          readTemplateName: readTemplateName,
+        });
+      } catch (error) {
+        logger.error(
+          "Resolving what a monitor's removed criteria left open failed in MonitorService.onUpdateSuccess",
+          {
+            monitorId: monitorId.toString(),
+          } as LogAttributes,
+        );
+        logger.error(error as Error);
+      }
+    }
   }
 
   /*
@@ -2539,6 +2730,28 @@ export class Service extends ProjectReferencesService<Model> {
         );
         logger.error(error as Error);
       }
+    }
+
+    /*
+     * Criteria taken off a monitor: nothing can resolve what they opened
+     * once they are gone, so what they would have resolved on their own is
+     * resolved now, with why (MonitorCriteriaReplaced, #11453) - for every
+     * write of steps, a template's sync, a link or an unlink, a person's
+     * edit, the API and Terraform alike. Awaited, so the sync's summary
+     * counts them and a page that reloads after the save shows them
+     * resolved; before MonitorTurnedOff, which resolves what the criteria
+     * the write kept would have, when it turns monitoring off too.
+     */
+    const criteriaChange: MonitorCriteriaChangeCarry | undefined = (
+      onUpdate.carryForward as MonitorUpdateCarryForward | null | undefined
+    )?.criteriaChange;
+
+    if (criteriaChange && updatedItemIds.length > 0) {
+      await this.resolveWhatTheWriteTookOff({
+        criteriaChange: criteriaChange,
+        updatedItemIds: updatedItemIds,
+        changedByUserId: onUpdate.updateBy.props.userId,
+      });
     }
 
     /*

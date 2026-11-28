@@ -41,9 +41,14 @@ import {
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
 import {
+  CONNECTOR_HEALTH_CASES_PAUSED,
   CONNECTOR_HEALTH_NO_EVENTS_YET,
+  CONNECTOR_HEALTH_RECEIVING_ALERTS,
   CONNECTOR_HEALTH_SUCCEEDED,
+  CONNECTOR_HEALTH_WAITING_FOR_ALERTS,
   connectorHealth,
+  connectorHealthTone,
+  connectorHealthTooltip,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionDiagnosticsUtil";
 import SecurityEventsConnectionsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Connections";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -89,6 +94,7 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import Navigation from "../../../UI/Utils/Navigation";
 import {
   PROVIDER_LOGO_COLOR_CLASS_NAME,
   PROVIDER_LOGO_TILE_CLASS_NAME,
@@ -274,6 +280,11 @@ const EXPECTED_TILES: Array<ExpectedTile> = [
     provider: SecurityEventConnectorProvider.Cloudflare,
     title: "Cloudflare",
     docsSlug: "cloudflare",
+  },
+  {
+    provider: SecurityEventConnectorProvider.CrowdSec,
+    title: "CrowdSec",
+    docsSlug: "crowdsec",
   },
   {
     provider: SecurityEventConnectorProvider.GoogleSecOps,
@@ -847,7 +858,7 @@ describe("SecurityEventConnectionsTable", () => {
     const description: string = props.cardProps?.description as string;
     expect(props.cardProps?.title).toBe("Your security tools");
     expect(description).toBe(
-      "Bring in alerts and events from the SIEM, EDR / XDR, cloud security and identity tools you already use, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub and Microsoft Entra ID.",
+      "Bring in alerts and events from your SIEM, EDR / XDR, cloud security, identity and network security tools, such as Microsoft Sentinel, CrowdStrike Falcon, AWS Security Hub, Microsoft Entra ID and CrowdSec.",
     );
 
     for (const category of SecurityEventConnectorCategories) {
@@ -2562,5 +2573,240 @@ describe("connection health vocabulary", () => {
     expect(connectorHealth(item, NOW)).toBe("Poll overdue");
     item.isEnabled = false;
     expect(connectorHealth(item, NOW)).toBe("Schedule paused");
+  });
+});
+
+/*
+ * A CrowdSec connection (#11158) is sent its alerts, and never polled: its
+ * row says whether alerts arrive, offers Send alerts and View alerts where
+ * a polled connection offers Run now and Diagnostics, and draws the quiet
+ * dash where a poll's values would be. Made from the table, it opens its
+ * Send alerts at once: what comes next is pointing CrowdSec at it.
+ */
+describe("a CrowdSec connection's row (#11158)", () => {
+  const CROWDSEC_ID: string = "66666666-6666-4666-8666-666666666666";
+  const NOT_POLLED: string =
+    "This connection's alerts are sent to OneUptime, so it is never polled.";
+
+  function crowdsecConnection(
+    overrides: SecurityEventConnectionOverrides = {},
+  ): SecurityEventConnection {
+    return connection({
+      _id: CROWDSEC_ID,
+      name: "Edge CrowdSec",
+      provider: SecurityEventConnectorProvider.CrowdSec,
+      config: { blockIndicators: false },
+      createdAt: new Date(NOW - 24 * 60 * 60_000),
+      lastPolledAt: undefined,
+      lastSuccessfulPollAt: undefined,
+      lastPollResult: undefined,
+      ...overrides,
+    });
+  }
+
+  beforeAll(async (): Promise<void> => {
+    await preloadProviderLogoMarks();
+  });
+
+  beforeEach((): void => {
+    jest.useFakeTimers();
+    jest.setSystemTime(NOW);
+    mockRows.clear();
+    mockTableProps.clear();
+    mockIsMobile = false;
+    mockTransport();
+  });
+
+  afterEach((): void => {
+    cleanup();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  test("offers Send alerts and View alerts, never Run now or Diagnostics", (): void => {
+    renderTable([crowdsecConnection(), connection()]);
+
+    const actions: HTMLElement = within(row("Edge CrowdSec")).getByTestId(
+      "row-actions",
+    );
+    expect(within(actions).getAllByRole("button")).toEqual([
+      within(actions).getByRole("button", { name: "Test connection" }),
+      within(actions).getByRole("button", { name: "More actions" }),
+    ]);
+    expect(menuItemTitles(openRowMenu(row("Edge CrowdSec")))).toEqual([
+      "Send alerts",
+      "View alerts",
+      "Edit",
+      "Update credentials",
+    ]);
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+
+    // A polled connection beside it keeps its own.
+    expect(menuItemTitles(openRowMenu(row()))).toEqual([
+      "Run now",
+      "Diagnostics",
+      "Edit",
+      "Update credentials",
+    ]);
+  });
+
+  test("its Health says whether alerts arrive, never that a poll is overdue", (): void => {
+    renderTable([
+      crowdsecConnection(),
+      crowdsecConnection({
+        _id: "77777777-7777-4777-8777-777777777777",
+        name: "Busy CrowdSec",
+        lastEventIngestedAt: new Date(NOW - 3 * 24 * 60 * 60_000),
+      }),
+      crowdsecConnection({
+        _id: "88888888-8888-4888-8888-888888888888",
+        name: "Paused CrowdSec",
+        isEnabled: false,
+      }),
+    ]);
+
+    expect(
+      within(row("Edge CrowdSec")).getByText("Waiting for alerts"),
+    ).toBeVisible();
+    expect(
+      within(row("Busy CrowdSec")).getByText("Receiving alerts"),
+    ).toBeVisible();
+    expect(
+      within(row("Paused CrowdSec")).getByText("Cases paused"),
+    ).toBeVisible();
+    expect(screen.queryByText("Poll overdue")).not.toBeInTheDocument();
+  });
+
+  test("a poll's values are the quiet dash, saying why", (): void => {
+    renderTable([crowdsecConnection()]);
+
+    const dashes: Array<HTMLElement> = within(
+      row("Edge CrowdSec"),
+    ).getAllByTestId("table-empty-value");
+
+    // Its interval, when it last polled and when it last polled well.
+    expect(dashes).toHaveLength(3);
+
+    for (const dash of dashes) {
+      expect(dash).toHaveAttribute("title", NOT_POLLED);
+      expect(dash).toHaveTextContent("Not polled");
+    }
+  });
+
+  test("Send alerts opens the notification for this connection", async (): Promise<void> => {
+    renderTable([crowdsecConnection()]);
+
+    clickRowMenuItem(row("Edge CrowdSec"), "Send alerts");
+    const sendAlerts: HTMLElement = await screen.findByRole("dialog", {
+      name: "Send alerts: Edge CrowdSec",
+    });
+
+    expect(sendAlerts.textContent).toContain(
+      `security-events/v1/ingest?connection=${CROWDSEC_ID}&format=crowdsec`,
+    );
+    expect(sendAlerts.textContent).toContain(
+      "sudo cscli notifications test oneuptime",
+    );
+  });
+
+  test("View alerts opens Security Events on what the connection received", (): void => {
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+    renderTable([crowdsecConnection()]);
+
+    clickRowMenuItem(row("Edge CrowdSec"), "View alerts");
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    const to: string = String(
+      (navigate.mock.calls[0] as Array<unknown>)[0] as Route,
+    );
+    expect(to).toContain("security-events");
+    expect(decodeURIComponent(to)).toContain(CROWDSEC_ID);
+  });
+
+  test("made from the table, it opens its Send alerts at once", async (): Promise<void> => {
+    jest
+      .spyOn(ModelAPI, "create")
+      .mockResolvedValue(
+        new HTTPResponse(200, { _id: CROWDSEC_ID } as JSONObject, {}),
+      );
+    renderTable([]);
+    renderEmptyState();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("button", { name: "Connect CrowdSec" }));
+    });
+    const add: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+
+    for (let step: number = 0; step < 3; step++) {
+      await act(async (): Promise<void> => {
+        fireEvent.click(within(add).getByRole("button", { name: "Next" }));
+      });
+    }
+
+    fireEvent.change(within(add).getByLabelText(/^Name/), {
+      target: { value: "Edge CrowdSec" },
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(add).getByRole("button", { name: "Create connection" }),
+      );
+    });
+
+    expect(
+      await screen.findByRole("dialog", {
+        name: "Send alerts: Edge CrowdSec",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("dialog", { name: "Add connection" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("the health of a connection that is sent its alerts", () => {
+  test("says whether they arrive, however long ago the last one did, and that cases pause when it is off", (): void => {
+    const item: SecurityEventConnection = connection({
+      provider: SecurityEventConnectorProvider.CrowdSec,
+      lastPolledAt: undefined,
+      lastSuccessfulPollAt: undefined,
+      lastPollResult: undefined,
+      createdAt: new Date(NOW - 7 * 24 * 60 * 60_000),
+    });
+
+    expect(connectorHealth(item, NOW)).toBe(
+      CONNECTOR_HEALTH_WAITING_FOR_ALERTS,
+    );
+    expect(connectorHealthTone(CONNECTOR_HEALTH_WAITING_FOR_ALERTS)).toBe(
+      "neutral",
+    );
+
+    item.lastEventIngestedAt = new Date(NOW - 5 * 24 * 60 * 60_000);
+    expect(connectorHealth(item, NOW)).toBe(CONNECTOR_HEALTH_RECEIVING_ALERTS);
+    expect(connectorHealthTone(CONNECTOR_HEALTH_RECEIVING_ALERTS)).toBe("good");
+
+    // An error a poll would have written says nothing of alerts sent.
+    item.lastError = "Permission denied";
+    expect(connectorHealth(item, NOW)).toBe(CONNECTOR_HEALTH_RECEIVING_ALERTS);
+
+    item.isEnabled = false;
+    expect(connectorHealth(item, NOW)).toBe(CONNECTOR_HEALTH_CASES_PAUSED);
+    expect(connectorHealthTone(CONNECTOR_HEALTH_CASES_PAUSED)).toBe("neutral");
+  });
+
+  test("each state says what it means under the pointer", (): void => {
+    expect(connectorHealthTooltip(CONNECTOR_HEALTH_WAITING_FOR_ALERTS)).toBe(
+      "No alert has arrived through this connection yet. Send alerts says how to send them, and how to send a test alert.",
+    );
+    expect(connectorHealthTooltip(CONNECTOR_HEALTH_RECEIVING_ALERTS)).toBe(
+      "Alerts arrive as the product raises them. Last Event Imported says when the latest one did.",
+    );
+    expect(connectorHealthTooltip(CONNECTOR_HEALTH_CASES_PAUSED)).toBe(
+      "The connection is disabled: the alerts it receives are kept as events, and open no cases.",
+    );
   });
 });

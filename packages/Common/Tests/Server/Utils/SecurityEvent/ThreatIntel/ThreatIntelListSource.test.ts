@@ -545,3 +545,93 @@ describe("what the feed's Last poll says", () => {
     expect(summary.length).toBeLessThan(500);
   });
 });
+
+/*
+ * A LIST BEHIND A SIGN-IN (#11158): CrowdSec's Console serves the
+ * blocklists a team subscribes to as a "Raw IP List" integration, one
+ * address a line - ranges too, with IP aggregation on - behind HTTP Basic
+ * Auth (https://admin.api.crowdsec.net/v1/integrations/<id>/content). The
+ * feed keeps the integration's user name and password, never in the
+ * address, and asks with them.
+ */
+describe("a list behind a sign-in (CrowdSec's Raw IP List)", () => {
+  const CROWDSEC_LIST_URL: string =
+    "https://admin.api.crowdsec.net/v1/integrations/65f1c0b2a1d4c8e9f0123456/content";
+  // The Raw IP List's own shape: an address a line, ranges where aggregated.
+  const CROWDSEC_RAW_IP_LIST: string = [
+    "192.0.2.10",
+    "198.51.100.0/24",
+    "203.0.113.77",
+    "2001:db8::/48",
+  ].join("\n");
+
+  function crowdsecFeed(): ThreatIntelFeed {
+    const feed: ThreatIntelFeed = buildFeed();
+    feed.name = "CrowdSec blocklists";
+    feed.listUrl = CROWDSEC_LIST_URL;
+    feed.basicAuthUsername = "integration-user";
+    feed.basicAuthPassword = "Kp9-integration-password";
+    return feed;
+  }
+
+  test("asks with the integration's user name and password, as HTTP Basic Auth", async () => {
+    const download: FakeDownload = serving(CROWDSEC_RAW_IP_LIST);
+
+    await ThreatIntelListSource.poll(crowdsecFeed(), {
+      fetchImplementation: download.fetch,
+      now: NOW,
+    });
+
+    expect(download.requests).toHaveLength(1);
+    expect(download.requests[0]!.url).toBe(CROWDSEC_LIST_URL);
+    expect(download.requests[0]!.headers!["Authorization"]).toBe(
+      `Basic ${Buffer.from("integration-user:Kp9-integration-password").toString("base64")}`,
+    );
+  });
+
+  test("reads its addresses as the list's indicators; a range IP aggregation made is counted as unsupported, as any range is", async () => {
+    const result: ListFeedPollResult = await ThreatIntelListSource.poll(
+      crowdsecFeed(),
+      { fetchImplementation: serving(CROWDSEC_RAW_IP_LIST).fetch, now: NOW },
+    );
+
+    // Threat intel matches one address at a time: the docs say to turn IP aggregation off.
+    expect(result).toMatchObject({
+      lines: 4,
+      indicators: 2,
+      unsupported: 2,
+    });
+    expect(
+      insertedRows()
+        .map((row: JSONObject): string => {
+          return String(row["indicatorValue"]);
+        })
+        .sort(),
+    ).toEqual(["192.0.2.10", "203.0.113.77"]);
+  });
+
+  test("a list without a sign-in is asked for with no credential at all", async () => {
+    const download: FakeDownload = serving(FEODO_LIST);
+
+    await ThreatIntelListSource.poll(buildFeed(), {
+      fetchImplementation: download.fetch,
+      now: NOW,
+    });
+
+    expect(download.requests[0]!.headers!["Authorization"]).toBeUndefined();
+  });
+
+  test("a pull its plan allows no more often than daily is refused as CrowdSec refuses it, and nothing is written", async () => {
+    await expect(
+      ThreatIntelListSource.poll(crowdsecFeed(), {
+        fetchImplementation: async (): Promise<DataSourceHttpResponse> => {
+          throw new Error(
+            "Data source responded with HTTP 429: rate limit exceeded",
+          );
+        },
+        now: NOW,
+      }),
+    ).rejects.toThrow("HTTP 429");
+    expect(insertedRows()).toEqual([]);
+  });
+});

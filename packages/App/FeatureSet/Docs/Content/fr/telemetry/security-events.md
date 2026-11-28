@@ -129,6 +129,7 @@ Ouvrez **Produits → Événements de sécurité → Événements**. Les événe
 | `ocsf` | JSON d'événement OCSF (`class_uid`, `severity_id` et ainsi de suite) | Aucun |
 | `udm` | Événements UDM de Google SecOps (Chronicle) (`metadata.event_type` et ainsi de suite) | `chronicle`, `google-secops` |
 | `google-secops-alert` | Détections et alertes de Google SecOps : webhooks SOAR et flux de détections | `secops-alert`, `detection` |
+| `crowdsec` | Alertes de CrowdSec, telles que son plugin de notification `http` les envoie (voir [CrowdSec](/docs/integrations/crowdsec)) | `crowdsec-alert` |
 | `generic` | Tout autre JSON, lu d'après des noms de champs courants | Aucun |
 
 Indiquez le format avec `?format=`, avec l'en-tête `x-oneuptime-security-event-format` ou avec un champ `"format"` de premier niveau. Si vous l'omettez, le format de chaque événement est déterminé séparément, si bien qu'un même webhook peut mêler détections et événements bruts.
@@ -266,10 +267,12 @@ Il est conservé comme un événement informatif, `oneuptime-probe-traffic`, qui
 | Microsoft Entra ID | Connexions, modifications d'annuaire et détections de risque, si vous le choisissez les connexions en arrière-plan et d'applications qui ont échoué, et, du journal d'audit Microsoft 365, les transferts de courrier, les partages et les verdicts d'hameçonnage | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Connexions, détections propres à Google, modifications d'administration et accès accordés aux applications, et partages Drive | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | Ce que son pare-feu a bloqué, soumis à un challenge et journalisé en périphérie, en HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | Les alertes que son plugin de notification envoie, comme Detection Findings, et le bannissement des adresses que vous bloquez | [CrowdSec](/docs/integrations/crowdsec) |
 
 - Les alertes propres au produit d'un niveau égal ou supérieur à **Ouvrir des dossiers à partir de** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
 - Une connexion lit les enregistrements selon le moment où le produit les a créés, pas selon le moment de l'activité qu'ils décrivent. Une règle SIEM qui s'exécute toutes les heures crée des détections bien après les événements correspondants, et elles sont tout de même importées.
 - La première interrogation remonte 24 heures en arrière, donc une nouvelle connexion montre tout de suite des enregistrements récents.
+- Une connexion CrowdSec n'est jamais interrogée : CrowdSec envoie chaque alerte dès qu'il la déclenche, par la notification que donne **Envoyer les alertes**, dans la ligne de la connexion.
 - **Tester la connexion**, dans la ligne de la connexion, vérifie l'accès au produit et que les workers de OneUptime tournent, sans rien importer. **Exécuter maintenant** interroge immédiatement.
 
 ## Ce que contient un événement

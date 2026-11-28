@@ -75,6 +75,8 @@ Pour synchroniser un seul moniteur, cliquez sur **Synchroniser depuis le modèle
 
 Après une synchronisation, un résumé indique combien de moniteurs ont été mis à jour. **Synchronisé partiellement** signifie que certains moniteurs liés ont encore la configuration précédente, généralement parce que vos autorisations ne les couvrent pas.
 
+Une synchronisation qui retire les critères à l'origine d'un incident ou d'une alerte ouverts les résout s'ils étaient configurés pour se résoudre automatiquement, car plus rien ne pourrait les résoudre une fois ces critères disparus : leur chronologie indique pourquoi, et le résumé indique combien ont été résolus. Un incident ou une alerte dont le modèle a toujours les critères reste ouvert, et celui qui doit être résolu à la main vous est laissé. Modifier vous-même les critères d'un moniteur, dans le tableau de bord, par l'API ou avec Terraform, fait de même.
+
 ## Déplacer des moniteurs vers un autre modèle
 
 Quand un meilleur modèle en remplace un autre, déplacez les moniteurs de l'ancien vers le nouveau au lieu de les supprimer. Chaque moniteur garde son nom, son historique de statut, ses étiquettes, ses propriétaires et ses incidents, et prend les critères du nouveau modèle.
@@ -101,10 +103,10 @@ Ce que fait le déplacement :
 - Un équipement a un seul moniteur par modèle. Quand un équipement a déjà un moniteur créé pour lui à partir du nouveau modèle, son autre moniteur est exclu, et le changement nomme celui qui gêne : supprimez l'un des deux, puis déplacez de nouveau.
 - Un moniteur d'un autre type que celui du modèle est exclu.
 
-Le changement s'exécute sur le serveur, jusqu'à 10 000 moniteurs à la fois, et affiche sa progression : ce qui a été déplacé, ce qui a été exclu et pourquoi, et les incidents et alertes ouverts qu'il a résolus. Fermer la boîte de dialogue ne l'arrête pas, et la page du modèle affiche un changement encore en cours. **Arrêter** l'arrête avant le moniteur suivant, et **Réessayer** retente les moniteurs en échec ou non atteints.
+Le changement s'exécute sur le serveur, jusqu'à 10 000 moniteurs à la fois, et affiche sa progression : ce qui a été déplacé, ce qui a été exclu et pourquoi, et les incidents et alertes ouverts qu'il a résolus. Fermer la boîte de dialogue ne l'arrête pas : la page du modèle et la liste des moniteurs affichent un changement encore en cours, avec son avancement, et la liste des moniteurs garde pendant une heure un changement terminé qui a exclu des moniteurs ou en a vu échouer. Cliquez sur sa ligne pour le rouvrir, avec **Afficher la progression** tant qu'il s'exécute et **Voir ce qui s'est passé** une fois terminé. **Arrêter** l'arrête avant le moniteur suivant, et **Réessayer** retente les moniteurs en échec ou non atteints.
 
 > [!TIP]
-> Vous déplacez les équipements d'une règle d'import automatique vers un nouveau modèle ? Déplacez d'abord les moniteurs, puis faites pointer la règle vers le nouveau modèle. Dans l'autre ordre, la règle donne à chaque équipement un second moniteur, issu du nouveau modèle, à côté de celui qu'il a.
+> Faire pointer une règle d'import automatique vers un autre modèle du même type propose d'abord d'y déplacer les moniteurs de ses équipements, et la règle utilise le nouveau modèle une fois qu'ils sont déplacés, si bien qu'aucun équipement ne reçoit un second moniteur. **Enregistrer sans déplacer** fait pointer la règle vers lui tout de suite : chaque équipement garde son moniteur et reçoit celui du nouveau modèle à côté.
 
 ## Dissocier des moniteurs d'un modèle
 
@@ -119,7 +121,7 @@ Dans les deux cas, ils gardent leurs noms, leur historique de statut, leurs éti
 
 ## Supprimer un modèle
 
-Un modèle à partir duquel une politique d'alerte réseau ou une règle d'import automatique provisionne des moniteurs ne peut pas être supprimé : faites d'abord pointer la politique ou la règle vers un autre modèle. Quand des moniteurs sont liés au modèle, sa suppression demande ce qu'il advient d'eux :
+Un modèle à partir duquel une politique d'alerte réseau ou une règle d'import automatique provisionne des moniteurs ne peut pas être supprimé : faites d'abord pointer la politique ou la règle vers un autre modèle. Les moniteurs d'une politique la suivent, et le formulaire d'une règle propose de déplacer les moniteurs de ses équipements. Quand des moniteurs sont liés au modèle, sa suppression demande ce qu'il advient d'eux :
 
 - **Garder leurs réglages** (par défaut) : la suppression les dissocie, et ils continuent de vérifier et d'alerter avec les critères qu'ils ont.
 - **Leur retirer les critères de ce modèle** : chacun est dissocié et ses critères sont retirés, comme ci-dessus, puis le modèle est supprimé. Quand un moniteur reste lié, par exemple un moniteur que vos autorisations ne couvrent pas, le modèle est conservé, et la boîte de dialogue indique combien.
@@ -233,7 +235,7 @@ L'équipement a un moniteur créé pour lui à partir du modèle vers lequel vou
 :::
 
 :::details Après le passage d'une règle d'import automatique à un nouveau modèle, les équipements ont deux moniteurs
-La règle a donné à chaque équipement le moniteur du nouveau modèle à côté de celui qu'il avait. Supprimez les nouveaux moniteurs, puis déplacez les anciens vers le nouveau modèle : ils gardent leur historique, et la règle n'en recrée aucun.
+La règle a été enregistrée avec **Enregistrer sans déplacer**, ou pointée vers le modèle avant que son formulaire ne propose de les déplacer, et a donné à chaque équipement le moniteur du nouveau modèle à côté de celui qu'il avait. Supprimez les nouveaux moniteurs, puis déplacez les anciens vers le nouveau modèle : ils gardent leur historique, et la règle n'en recrée aucun.
 :::
 
 :::details L'enregistrement échoue avec « Unsupported do not sync field »

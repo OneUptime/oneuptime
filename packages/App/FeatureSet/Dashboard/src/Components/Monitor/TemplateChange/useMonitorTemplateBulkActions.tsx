@@ -44,6 +44,11 @@ export default function useMonitorTemplateBulkActions(data: {
   template?: MonitorTemplateChangeDialogTemplate | undefined;
   // A change finished: the list is read again.
   onChanged: () => void;
+  /*
+   * The dialog closed, a change it started perhaps still running: the
+   * Monitors list shows it from then on (#11454).
+   */
+  onDialogClosed?: (() => void) | undefined;
 }): MonitorTemplateBulkActions {
   const [open, setOpen] = useState<{
     mode: MonitorTemplateChangeDialogMode;
@@ -122,6 +127,7 @@ export default function useMonitorTemplateBulkActions(data: {
         onChanged={data.onChanged}
         onClose={(): void => {
           setOpen(null);
+          data.onDialogClosed?.();
         }}
       />
     ) : (

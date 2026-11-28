@@ -1196,7 +1196,12 @@ describe("what a move to another template keeps", () => {
     expect("createdFromMonitorTemplateId" in updateBy.data).toBe(false);
   });
 
-  it("keeps the policy on OneUptime's own write", async () => {
+  /*
+   * OneUptime's own move of a policy's monitor: the policy moving it to the
+   * template it was pointed at (#11452). It stays the policy's, as the
+   * policy's monitor from that template.
+   */
+  it("keeps the policy on OneUptime's own write, as the policy's monitor from the template it moves to", async () => {
     const monitor: Monitor = automaticMonitor();
     monitor.networkAlertPolicyId = POLICY_ID;
     jest.spyOn(MonitorService, "findBy").mockResolvedValue([monitor]);
@@ -1210,7 +1215,7 @@ describe("what a move to another template keeps", () => {
     await (MonitorService as any).onUpdatePermitted(updateBy);
 
     expect(String(updateBy.data["createdFromMonitorTemplateId"])).toBe(
-      TEMPLATE_ID.toString(),
+      OTHER_TEMPLATE_ID.toString(),
     );
     expect("networkAlertPolicyId" in updateBy.data).toBe(false);
   });

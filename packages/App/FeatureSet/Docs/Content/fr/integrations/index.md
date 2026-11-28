@@ -62,6 +62,7 @@ Commencez par le haut du tableau : plus une façon est haute, moins il y a à ma
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Entrant | Amène les connexions et les modifications d'annuaire de Microsoft Entra ID, et le journal d'audit Microsoft 365, dans les Événements de sécurité. |
 | [Google Workspace](/docs/integrations/google-workspace) | Entrant | Amène les connexions, les modifications d'administration et les détections de Google Workspace dans les Événements de sécurité. |
 | [Cloudflare](/docs/integrations/cloudflare) | Entrant | Amène ce que le pare-feu de Cloudflare a bloqué, soumis à un challenge et journalisé dans les Événements de sécurité, à côté de ce qui a atteint votre application. |
+| [CrowdSec](/docs/integrations/crowdsec) | Entrant | Amène les alertes de CrowdSec dans les Événements de sécurité, et bannit dans CrowdSec les adresses que vous bloquez. |
 
 ### Outils de tickets et de gestion des services informatiques
 

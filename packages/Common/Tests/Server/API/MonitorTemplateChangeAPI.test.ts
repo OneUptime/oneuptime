@@ -74,6 +74,8 @@ jest.mock("../../../Server/Utils/Monitor/MonitorTemplateChangeRunner", () => {
       retry: jest.fn(),
       findChange: jest.fn(),
       findActiveChangesOfTemplate: jest.fn(),
+      findChangesToShowOfProject: jest.fn(),
+      getAutoImportRuleMonitorsToMove: jest.fn(),
       // What the Dashboard is told is the real view, and who may see it.
       toView: actual.default.toView,
       assertCanSeeChanges: actual.default.assertCanSeeChanges,
@@ -105,6 +107,7 @@ const CHANGE_ID: ObjectID = new ObjectID(
 const TEMPLATE_ID: ObjectID = new ObjectID(
   "dd000000-0000-4000-8000-000000000021",
 );
+const RULE_ID: ObjectID = new ObjectID("ee000000-0000-4000-8000-000000000021");
 
 function propsWith(
   permissions: Array<Permission>,
@@ -237,6 +240,8 @@ const ROUTES: Array<[string, string]> = [
   ["POST", "/monitor-template-change/start"],
   ["GET", "/monitor-template-change/change/:changeId"],
   ["GET", "/monitor-template-change/template/:monitorTemplateId/active"],
+  ["GET", "/monitor-template-change/project/active"],
+  ["GET", "/monitor-template-change/auto-import-rule/:ruleId/monitors"],
   ["POST", "/monitor-template-change/change/:changeId/stop"],
   ["POST", "/monitor-template-change/change/:changeId/retry"],
 ];
@@ -244,6 +249,7 @@ const ROUTES: Array<[string, string]> = [
 const IDS: Dictionary<string> = {
   changeId: CHANGE_ID.toString(),
   monitorTemplateId: TEMPLATE_ID.toString(),
+  ruleId: RULE_ID.toString(),
 };
 
 beforeEach(() => {
@@ -268,6 +274,18 @@ beforeEach(() => {
   (
     MonitorTemplateChangeRunner.findActiveChangesOfTemplate as jest.Mock
   ).mockResolvedValue([changeRow()]);
+  (
+    MonitorTemplateChangeRunner.findChangesToShowOfProject as jest.Mock
+  ).mockResolvedValue([changeRow()]);
+  (
+    MonitorTemplateChangeRunner.getAutoImportRuleMonitorsToMove as jest.Mock
+  ).mockResolvedValue({
+    count: 851,
+    monitorTemplateId: TEMPLATE_ID.toString(),
+    monitorTemplateName: "WB Ping Monitor Template",
+    monitorType: "Network Device",
+    isMoveRunning: false,
+  });
 });
 
 afterEach(() => {
@@ -322,6 +340,7 @@ describe("who may call the change API", () => {
     for (const uri of [
       "/monitor-template-change/change/:changeId",
       "/monitor-template-change/template/:monitorTemplateId/active",
+      "/monitor-template-change/project/active",
     ]) {
       const { thrown } = await call("GET", uri, { params: IDS });
 
@@ -368,6 +387,7 @@ describe("what the change API does", () => {
       settings: body["settings"],
       monitorIds: body["monitorIds"],
       allLinkedToTemplate: undefined,
+      autoImportRuleId: undefined,
     });
 
     const change: Record<string, unknown> = payload!["change"] as Record<
@@ -446,6 +466,149 @@ describe("what the change API does", () => {
         },
       ),
     ).toEqual([CHANGE_ID.toString()]);
+  });
+
+  test("start hands on the auto import rule whose devices' monitors move (#11451)", async () => {
+    await call("POST", "/monitor-template-change/start", {
+      body: {
+        monitorTemplateId: TEMPLATE_ID.toString(),
+        settings: {
+          kind: MonitorTemplateChangeKind.Link,
+          applyTemplateSettings: true,
+        },
+        autoImportRuleId: RULE_ID.toString(),
+      },
+    });
+
+    expect(MonitorTemplateChangeRunner.start).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autoImportRuleId: RULE_ID.toString(),
+        monitorIds: undefined,
+      }),
+    );
+  });
+
+  test("the project's changes the Monitors list shows are listed as views (#11454)", async () => {
+    (
+      MonitorTemplateChangeRunner.findChangesToShowOfProject as jest.Mock
+    ).mockResolvedValue([
+      changeRow(),
+      changeRow({
+        id: ObjectID.generate(),
+        monitorTemplateId: undefined as never,
+        monitorTemplateName: undefined as never,
+        status: MonitorTemplateChangeStatus.Completed,
+        settings: { kind: MonitorTemplateChangeKind.Unlink },
+      }),
+    ]);
+
+    const { thrown, payload } = await call(
+      "GET",
+      "/monitor-template-change/project/active",
+    );
+
+    expect(thrown).toBeUndefined();
+    expect(
+      MonitorTemplateChangeRunner.findChangesToShowOfProject,
+    ).toHaveBeenCalledWith({ projectId: PROJECT_ID });
+
+    const changes: Array<Record<string, unknown>> = payload![
+      "changes"
+    ] as Array<Record<string, unknown>>;
+
+    expect(
+      changes.map((change: Record<string, unknown>) => {
+        return change["status"];
+      }),
+    ).toEqual([
+      MonitorTemplateChangeStatus.Running,
+      MonitorTemplateChangeStatus.Completed,
+    ]);
+    expect(changes[1]!["monitorTemplateId"]).toBeUndefined();
+    expect(changes[1]!["settings"]).toMatchObject({
+      kind: MonitorTemplateChangeKind.Unlink,
+    });
+  });
+
+  test("a change for an alert policy or an auto import rule says whose it is", async () => {
+    (
+      MonitorTemplateChangeRunner.findChangesToShowOfProject as jest.Mock
+    ).mockResolvedValue([
+      changeRow({
+        networkAlertPolicyId: RULE_ID,
+        networkAlertPolicyName: "Warehouse switches",
+      }),
+      changeRow({
+        id: ObjectID.generate(),
+        networkDeviceAutoImportRuleId: RULE_ID,
+        networkDeviceAutoImportRuleName: "Import core switches",
+        results: {
+          processedCount: 3,
+          lines: [],
+          isAutoImportRulePointed: true,
+        },
+      }),
+    ]);
+
+    const { payload } = await call(
+      "GET",
+      "/monitor-template-change/project/active",
+    );
+
+    const changes: Array<Record<string, unknown>> = payload![
+      "changes"
+    ] as Array<Record<string, unknown>>;
+
+    expect(changes[0]).toMatchObject({
+      networkAlertPolicyId: RULE_ID.toString(),
+      networkAlertPolicyName: "Warehouse switches",
+      isAutoImportRulePointed: false,
+    });
+    expect(changes[1]).toMatchObject({
+      autoImportRuleId: RULE_ID.toString(),
+      autoImportRuleName: "Import core switches",
+      isAutoImportRulePointed: true,
+    });
+  });
+
+  test("what a move of an auto import rule's monitors would move is asked of the runner as the person (#11451)", async () => {
+    const { thrown, payload } = await call(
+      "GET",
+      "/monitor-template-change/auto-import-rule/:ruleId/monitors",
+      { params: IDS },
+    );
+
+    expect(thrown).toBeUndefined();
+    expect(
+      MonitorTemplateChangeRunner.getAutoImportRuleMonitorsToMove,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      props: callerProps,
+      ruleId: RULE_ID,
+    });
+    expect(payload).toEqual({
+      count: 851,
+      monitorTemplateId: TEMPLATE_ID.toString(),
+      monitorTemplateName: "WB Ping Monitor Template",
+      monitorType: "Network Device",
+      isMoveRunning: false,
+    });
+  });
+
+  test("a rule named by something that is no id is refused with what was not found, and nothing is read", async () => {
+    const { thrown } = await call(
+      "GET",
+      "/monitor-template-change/auto-import-rule/:ruleId/monitors",
+      { params: { ruleId: "not-a-rule" } },
+    );
+
+    expect(thrown).toBeInstanceOf(BadDataException);
+    expect((thrown as Error).message).toBe(
+      "The auto import rule was not found. Reload the page, then try again.",
+    );
+    expect(
+      MonitorTemplateChangeRunner.getAutoImportRuleMonitorsToMove,
+    ).not.toHaveBeenCalled();
   });
 
   test("stop and retry act as the person, on the change named", async () => {

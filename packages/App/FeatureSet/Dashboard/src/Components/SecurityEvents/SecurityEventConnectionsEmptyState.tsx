@@ -101,7 +101,7 @@ const SecurityEventConnectionsEmptyState: FunctionComponent<ComponentProps> = (
           className="mt-1.5 max-w-xl text-sm leading-6 text-gray-500"
         >
           {translateString(
-            "Connect a SIEM, EDR / XDR, cloud security or identity product and OneUptime polls it on a schedule, importing each new alert, finding or log event as an OCSF security event.",
+            "Connect a SIEM, EDR / XDR, cloud security, network security or identity product, and OneUptime imports each new alert, finding or log event as an OCSF security event.",
           )}
         </p>
         <div className="mt-5">

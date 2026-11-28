@@ -75,6 +75,8 @@ Per sincronizzare un solo monitor, fate clic su **Sincronizza dal modello** nell
 
 Dopo una sincronizzazione, un riepilogo indica quanti monitor sono stati aggiornati. **Sincronizzato parzialmente** significa che alcuni monitor collegati hanno ancora la configurazione precedente, di solito perché i vostri permessi non li coprono.
 
+Una sincronizzazione che toglie i criteri che hanno aperto un incidente o un avviso ancora aperto lo risolve se era impostato per risolversi automaticamente, perché nient'altro potrebbe risolverlo una volta spariti quei criteri: la sua cronologia dice perché, e il riepilogo dice quanti ne sono stati risolti. Un incidente o un avviso i cui criteri il modello ha ancora resta aperto, e quello da risolvere a mano resta a voi. Modificare voi stessi i criteri di un monitor, nella dashboard, tramite l'API o con Terraform, fa lo stesso.
+
 ## Spostare monitor in un altro modello
 
 Quando un modello migliore ne sostituisce un altro, spostate i suoi monitor nel nuovo invece di eliminarli. Ogni monitor mantiene il suo nome, la cronologia di stato, le etichette, i proprietari e gli incidenti, e prende i criteri del nuovo modello.
@@ -101,10 +103,10 @@ Cosa fa lo spostamento:
 - Un dispositivo ha un monitor per ogni modello. Quando un dispositivo ha già un monitor creato per lui dal nuovo modello, il suo altro monitor viene escluso, e la modifica indica quello che ostacola: eliminate uno dei due, poi spostate di nuovo.
 - Un monitor di un tipo diverso da quello del modello viene escluso.
 
-La modifica viene eseguita sul server, fino a 10.000 monitor alla volta, e mostra il suo avanzamento: cosa è stato spostato, cosa è stato escluso e perché, e gli incidenti e gli avvisi aperti che ha risolto. Chiudere la finestra non la ferma, e la pagina del modello mostra una modifica ancora in corso. **Ferma** la ferma prima del monitor successivo, e **Riprova** ritenta i monitor che non sono riusciti o non sono stati raggiunti.
+La modifica viene eseguita sul server, fino a 10.000 monitor alla volta, e mostra il suo avanzamento: cosa è stato spostato, cosa è stato escluso e perché, e gli incidenti e gli avvisi aperti che ha risolto. Chiudere la finestra non la ferma: la pagina del modello e l'elenco dei monitor mostrano una modifica ancora in corso, con il suo avanzamento, e l'elenco dei monitor mostra per un'ora anche una conclusa che ha escluso monitor o in cui alcuni non sono riusciti. Fate clic sulla sua riga per riaprirla, con **Mostra avanzamento** mentre è in corso e **Mostra cosa è successo** quando è finita. **Ferma** la ferma prima del monitor successivo, e **Riprova** ritenta i monitor che non sono riusciti o non sono stati raggiunti.
 
 > [!TIP]
-> Spostate i dispositivi di una regola di importazione automatica in un nuovo modello? Spostate prima i monitor, poi puntate la regola sul nuovo modello. Nell'ordine inverso, la regola dà a ogni dispositivo un secondo monitor, dal nuovo modello, accanto a quello che ha già.
+> Puntare una regola di importazione automatica su un altro modello dello stesso tipo propone di spostarvi prima i monitor dei suoi dispositivi, e la regola usa il nuovo modello una volta spostati, così nessun dispositivo riceve un secondo monitor. **Salva senza spostare** punta subito la regola sul modello: ogni dispositivo mantiene il suo monitor e riceve accanto quello del nuovo modello.
 
 ## Scollegare monitor da un modello
 
@@ -119,7 +121,7 @@ In entrambi i casi mantengono i loro nomi, la cronologia di stato, le etichette,
 
 ## Eliminare un modello
 
-Un modello da cui una politica di avviso di rete o una regola di importazione automatica crea i monitor non può essere eliminato: prima puntate la politica o la regola su un altro modello. Quando ci sono monitor collegati al modello, la sua eliminazione chiede cosa succede a loro:
+Un modello da cui una politica di avviso di rete o una regola di importazione automatica crea i monitor non può essere eliminato: prima puntate la politica o la regola su un altro modello. I monitor di una politica la seguono, e il modulo di una regola propone di spostare i monitor dei suoi dispositivi. Quando ci sono monitor collegati al modello, la sua eliminazione chiede cosa succede a loro:
 
 - **Mantieni le loro impostazioni** (l'opzione predefinita): l'eliminazione li scollega, e continuano a controllare e a generare avvisi con i criteri che hanno.
 - **Rimuovi da essi i criteri di questo modello**: ognuno viene scollegato con i suoi criteri rimossi, come sopra, e poi il modello viene eliminato. Quando un monitor resta collegato, ad esempio uno che i vostri permessi non coprono, il modello viene mantenuto, e la finestra indica quanti.
@@ -233,7 +235,7 @@ Il dispositivo ha un monitor creato per lui dal modello verso cui state spostand
 :::
 
 :::details Dopo che una regola di importazione automatica è passata a un nuovo modello, i dispositivi hanno due monitor
-La regola ha dato a ogni dispositivo il monitor del nuovo modello accanto a quello che aveva. Eliminate i nuovi monitor, poi spostate quelli vecchi nel nuovo modello: mantengono la loro cronologia, e la regola non ne ricrea nessuno.
+La regola è stata salvata con **Salva senza spostare**, o puntata sul modello prima che il suo modulo proponesse di spostarli, e ha dato a ogni dispositivo il monitor del nuovo modello accanto a quello che aveva. Eliminate i nuovi monitor, poi spostate quelli vecchi nel nuovo modello: mantengono la loro cronologia, e la regola non ne ricrea nessuno.
 :::
 
 :::details Il salvataggio fallisce con «Unsupported do not sync field»

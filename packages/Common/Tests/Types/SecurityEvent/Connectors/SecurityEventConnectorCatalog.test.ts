@@ -259,6 +259,21 @@ describe.each(DEFINITION_CASES)(
         return;
       }
 
+      /*
+       * CrowdSec sends its alerts with the project's ingestion key (#11158):
+       * its machine password is only needed to block through its Local
+       * API, and its connector's validateSettings asks for it then, with
+       * the URL and the machine ID.
+       */
+      if (definition.provider === SecurityEventConnectorProvider.CrowdSec) {
+        expect(
+          definition.secretFields.map((field: ConnectorField): string => {
+            return `${field.key}:${field.type}:${field.required}`;
+          }),
+        ).toEqual(["password:password:false"]);
+        return;
+      }
+
       expect(
         definition.secretFields.some((field: ConnectorField): boolean => {
           return field.required;
