@@ -497,6 +497,19 @@ export default class DataSecurityApi {
     )) as unknown as DataSecurityExposureAssessmentResponse;
   }
 
+  // Whether the organization holds the data for another (#11427); null takes the answer back.
+  public static async setExposureDataHeldFor(data: {
+    securityCaseId: ObjectID;
+    forAnother: boolean | null;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.exposureDataHeldFor(
+        data.securityCaseId.toString(),
+      ),
+      { forAnother: data.forAnother },
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
   // ...who read the store in the window, from its own access logs (#10951).
   public static async readExposureLogs(
     securityCaseId: ObjectID,
