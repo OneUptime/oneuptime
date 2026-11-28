@@ -84,6 +84,23 @@ function composePin() {
 }
 
 /*
+ * The agent's own version, which its config stamps as
+ * oneuptime.agent.version: the collector release the compose file pins, its
+ * last number raised each time the agent's files change on that collector
+ * (Common's AgentFilesVersion.test.ts pins which, and AgentKind.ts names
+ * it).
+ */
+function filesVersion() {
+  const stamp = /- key: oneuptime\.agent\.version\n\s+value: "(\d+\.\d+\.\d+)"/.exec(configText());
+  expect(stamp).not.toBeNull();
+  const [pinMajor, pinMinor, pinPatch] = composePin().split(".").map(Number);
+  const [major, minor, patch] = stamp[1].split(".").map(Number);
+  expect([major, minor]).toEqual([pinMajor, pinMinor]);
+  expect(patch).toBeGreaterThanOrEqual(pinPatch);
+  return stamp[1];
+}
+
+/*
  * packages/Common/Types/XcpNg/XcpNgTelemetry.ts, loaded as the module it is
  * (it imports nothing): the names OneUptime's ingest reads, so the agent is
  * held to them rather than to a copy.
@@ -315,7 +332,7 @@ describe("agents/XcpNgAgent/otel-collector-config.yaml", () => {
         { key: "pool_name", action: "delete" },
         {
           key: "oneuptime.agent.version",
-          value: composePin(),
+          value: filesVersion(),
           action: "upsert",
         },
         { key: "service.name", action: "delete" },
@@ -324,7 +341,7 @@ describe("agents/XcpNgAgent/otel-collector-config.yaml", () => {
     });
     // Quoted, so YAML keeps it the version string the page compares.
     expect(configText()).toContain(
-      `      - key: oneuptime.agent.version\n        value: "${composePin()}"\n        action: upsert\n`,
+      `      - key: oneuptime.agent.version\n        value: "${filesVersion()}"\n        action: upsert\n`,
     );
     // The Xen Orchestra's name, from inside an OTTL string (the next test).
     expect(config().processors["transform/xen-orchestra"]).toEqual({

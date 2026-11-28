@@ -22,7 +22,10 @@ import {
   getXcpNgSetupGuide,
   resolveXcpNgConnectMethod,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
-import { XCP_NG_AGENT_VERSION } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import {
+  XCP_NG_AGENT_COLLECTOR_VERSION,
+  XCP_NG_AGENT_VERSION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SETUP_GUIDE_URL_PLACEHOLDER,
@@ -1347,11 +1350,11 @@ describe("drift guards against agents/XcpNgAgent", () => {
     expect(services[AI_AGENT_SERVICE]!["profiles"]).toEqual([AI_AGENT_PROFILE]);
   });
 
-  test("runs the pinned collector, and its config reports that version as the agent's", () => {
+  test("runs the pinned collector, and its config reports its files' version as the agent's", () => {
     const image: string =
       composeFile()["services"][XCP_NG_AGENT_CONTAINER]["image"];
     expect(image).toBe(
-      `otel/opentelemetry-collector-contrib:${XCP_NG_AGENT_VERSION}`,
+      `otel/opentelemetry-collector-contrib:${XCP_NG_AGENT_COLLECTOR_VERSION}`,
     );
     const config: string = readAgentFile("otel-collector-config.yaml");
     expect(config).toContain(

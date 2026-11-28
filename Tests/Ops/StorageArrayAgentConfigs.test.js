@@ -339,6 +339,25 @@ function composePin() {
   return pins[0][1];
 }
 
+/*
+ * The agent's own version, which every collector config stamps as
+ * oneuptime.agent.version: the collector release the compose file pins, its
+ * last number raised each time the agent's files change on that collector
+ * (Common's AgentFilesVersion.test.ts pins which, and AgentKind.ts names
+ * it). Read from the default config; every other config is held to it.
+ */
+function filesVersion() {
+  const stamp = /- key: oneuptime\.agent\.version\n\s+value: "(\d+\.\d+\.\d+)"/.exec(
+    read(`${AGENT_DIR}/otel-collector-config.yaml`),
+  );
+  expect(stamp).not.toBeNull();
+  const [pinMajor, pinMinor, pinPatch] = composePin().split(".").map(Number);
+  const [major, minor, patch] = stamp[1].split(".").map(Number);
+  expect([major, minor]).toEqual([pinMajor, pinMinor]);
+  expect(patch).toBeGreaterThanOrEqual(pinPatch);
+  return stamp[1];
+}
+
 /* A Prometheus duration ("60s", "2m", "30m") in seconds. */
 function seconds(duration) {
   const match = /^(\d+)(s|m|h)$/.exec(duration);
@@ -560,7 +579,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
           },
           {
             key: "oneuptime.agent.version",
-            value: composePin(),
+            value: filesVersion(),
             action: "upsert",
           },
           { key: "service.name", action: "delete" },
@@ -569,7 +588,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
       });
       // Quoted, so YAML keeps it the version string the page compares.
       expect(configText(name)).toContain(
-        `      - key: oneuptime.agent.version\n        value: "${composePin()}"\n        action: upsert\n`,
+        `      - key: oneuptime.agent.version\n        value: "${filesVersion()}"\n        action: upsert\n`,
       );
     });
 

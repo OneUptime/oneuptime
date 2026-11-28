@@ -300,6 +300,18 @@ describe("agents/StorageArrayAgent/otel-collector-config.powerscale.yaml", () =>
     const pin = compose.match(
       /otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/,
     )[1];
+    /*
+     * The agent's own version, as the default config stamps it: the pin, its
+     * last number raised each time the agent's files change on that
+     * collector (Common's AgentFilesVersion.test.ts pins which).
+     */
+    const version = /- key: oneuptime\.agent\.version\n\s+value: "(\d+\.\d+\.\d+)"/.exec(
+      fs.readFileSync(path.join(AGENT_DIR, "otel-collector-config.yaml"), "utf8"),
+    )[1];
+    expect(version.split(".").slice(0, 2)).toEqual(pin.split(".").slice(0, 2));
+    expect(Number(version.split(".")[2])).toBeGreaterThanOrEqual(
+      Number(pin.split(".")[2]),
+    );
     expect(CONFIG.processors.resource.attributes).toEqual([
       {
         key: "storage.array.name",
@@ -311,7 +323,7 @@ describe("agents/StorageArrayAgent/otel-collector-config.powerscale.yaml", () =>
         value: "${env:STORAGE_SYSTEM}",
         action: "upsert",
       },
-      { key: "oneuptime.agent.version", value: pin, action: "upsert" },
+      { key: "oneuptime.agent.version", value: version, action: "upsert" },
       { key: "service.name", action: "delete" },
       { key: "service.instance.id", action: "delete" },
     ]);
