@@ -116,13 +116,22 @@ export default class TelemetryUtil {
   }): Promise<void> {
     const { projectId, metricName, metricTypeInMap, servicesInMap } = data;
 
+    /*
+     * Scalars only. Selecting `services` here loaded every service that has
+     * ever emitted the metric, on every pass through the fence — and the
+     * fence keys on the batch's service set, so every new combination of
+     * services re-opens it. Where services churn (a host that starts a
+     * uniquely named container per cron run turns every run into a service)
+     * that is tens of thousands of entities materialised per reconcile.
+     * Membership is checked for the batch's own services in
+     * updateExistingMetricType instead.
+     */
     const metricType: MetricType | null = await MetricTypeService.findOneBy({
       query: {
         projectId: projectId,
         name: metricName,
       },
       select: {
-        services: true,
         name: true,
         description: true,
         unit: true,
@@ -162,7 +171,6 @@ export default class TelemetryUtil {
       const winner: MetricType | null = await MetricTypeService.findOneBy({
         query: { projectId: projectId, name: metricName },
         select: {
-          services: true,
           name: true,
           description: true,
           unit: true,
@@ -196,16 +204,6 @@ export default class TelemetryUtil {
     servicesInMap: Array<ObjectID>;
   }): Promise<void> {
     const { metricName, metricType, metricTypeInMap, servicesInMap } = data;
-
-    if (!metricType.services) {
-      metricType.services = [];
-    }
-
-    const existingServiceIds: Set<string> = new Set<string>(
-      metricType.services.map((service: Service) => {
-        return service.id!.toString();
-      }),
-    );
 
     /*
      * Two flags, not one. A scalar edit and a new association need completely
@@ -275,9 +273,16 @@ export default class TelemetryUtil {
         metricTypeInMap.aggregationTemporality;
     }
 
+    // THIS batch's services only — see findAttachedServiceIds.
+    const attachedServiceIds: Set<string> =
+      await MetricTypeService.findAttachedServiceIds({
+        metricTypeId: metricType.id!,
+        serviceIds: servicesInMap,
+      });
+
     const servicesToAttach: Array<ObjectID> = servicesInMap.filter(
       (serviceId: ObjectID) => {
-        return !existingServiceIds.has(serviceId.toString());
+        return !attachedServiceIds.has(serviceId.toString());
       },
     );
 
