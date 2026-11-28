@@ -534,6 +534,18 @@ describe("how often a backed-up App pod asks its probes' connections to reconnec
     return new ProbeSchedulingMetrics({ replica: "app-under-test" });
   }
 
+  /*
+   * A reconnect of its own, so each test's lane asks as a lane that has not
+   * asked yet. The process's remembers each lane's last ask for
+   * PROBE_SCHEDULING_RECONNECT_EVERY_MS, and an earlier test's ask on the
+   * same lane can be less than that before: on a fast runner the first
+   * answer of a backed-up lane then keeps its connection, and nothing is
+   * counted.
+   */
+  function freshReconnect(): ProbeSchedulingReconnect {
+    return new ProbeSchedulingReconnect();
+  }
+
   function reconnectsAsked(
     metrics: ProbeSchedulingMetrics,
     lane: ProbeSchedulingLane,
@@ -619,7 +631,10 @@ describe("how often a backed-up App pod asks its probes' connections to reconnec
 
   test("each answer that says Connection: close is counted once, in the work lane", async () => {
     const metrics: ProbeSchedulingMetrics = freshMetrics();
-    const served: Served = await serve({ metrics });
+    const served: Served = await serve({
+      metrics,
+      reconnect: freshReconnect(),
+    });
 
     const answers: Array<Answer> = await backedUp({
       served,
@@ -674,6 +689,7 @@ describe("how often a backed-up App pod asks its probes' connections to reconnec
     const metrics: ProbeSchedulingMetrics = freshMetrics();
     const served: Served = await serve({
       metrics,
+      reconnect: freshReconnect(),
       lane: ProbeSchedulingLane.MonitorTests,
     });
 
@@ -720,7 +736,7 @@ describe("how often a backed-up App pod asks its probes' connections to reconnec
         recorded.push(lane);
       });
 
-    const served: Served = await serve({});
+    const served: Served = await serve({ reconnect: freshReconnect() });
     const answers: Array<Answer> = await backedUp({
       served,
       agent: probeAgent(),
