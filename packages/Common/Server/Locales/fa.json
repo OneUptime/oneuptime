@@ -319,7 +319,7 @@
   "No root cause identified for this incident": "علت ریشه‌ای این حادثه شناسایی نشده است",
   "No root cause identified for this incident episode": "علت ریشه‌ای این اپیزود حادثه شناسایی نشده است",
   "No signed-in user used it: {{values}}": "هیچ کاربر واردشده‌ای از آن استفاده نکرد: {{values}}",
-  "None": "هیچ‌کدام",
+  "None": "هیچ",
   "Not monitored": "پایش نشده",
   "Not monitored yet": "هنوز پایش نشده",
   "Not one of your addresses: {{values}}": "هیچ‌کدام از نشانی‌های شما نیست: {{values}}",
