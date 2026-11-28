@@ -14,8 +14,13 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
 import {
   BREACH_LAW_RULES,
+  BREACH_PLACE_CHOICES,
   BreachLawFamily,
   BreachLawRule,
+  BreachPlace,
+  COVERED_US_STATES,
+  UNCOVERED_US_STATES,
+  isUsStateRule,
 } from "Common/Types/DataSecurity/BreachLaws";
 import {
   ASSESSED_ON_ITS_OWN_SENSITIVITIES,
@@ -3734,21 +3739,22 @@ describe("Data Security Integrations", () => {
     // The reads line, word for word as the card draws it.
     expect(breach).toContain(`"${READS_NOT_LOGGED}"`);
 
-    // Every family of the table is named, and nothing the table does not hold.
-    const named: Record<BreachLawFamily, string> = {
+    /*
+     * Every family of the table is named, and nothing the table does not
+     * hold: each law by its name, and the US states' together, as every
+     * state but those the table leaves out (#10952).
+     */
+    const named: Partial<Record<BreachLawFamily, string>> = {
       [BreachLawFamily.Gdpr]: "GDPR Articles 33 and 34",
       [BreachLawFamily.UkGdpr]: "UK GDPR Articles 33 and 34",
       [BreachLawFamily.Hipaa]: "HIPAA's Breach Notification Rule",
       [BreachLawFamily.PciDss]: "PCI DSS requirement 12.10.1",
+      [BreachLawFamily.Visa]: "Visa's",
+      [BreachLawFamily.Mastercard]: "Mastercard's",
+      [BreachLawFamily.AmericanExpress]: "American Express's",
       [BreachLawFamily.Lgpd]: "Brazil's LGPD",
       [BreachLawFamily.Dpdp]: "India's DPDP Rules",
       [BreachLawFamily.CertIn]: "CERT-In directions",
-      [BreachLawFamily.California]: "California",
-      [BreachLawFamily.Colorado]: "Colorado",
-      [BreachLawFamily.Florida]: "Florida",
-      [BreachLawFamily.NewYork]: "New York",
-      [BreachLawFamily.Texas]: "Texas",
-      [BreachLawFamily.Washington]: "Washington",
     };
     const families: Array<string> = [
       ...new Set(
@@ -3757,8 +3763,15 @@ describe("Data Security Integrations", () => {
         }),
       ),
     ].sort();
+    const stateFamilies: Array<string> = families.filter(
+      (family: string): boolean => {
+        return BREACH_LAW_RULES.filter((rule: BreachLawRule): boolean => {
+          return rule.family === family;
+        }).every(isUsStateRule);
+      },
+    );
 
-    expect(Object.keys(named).sort()).toEqual(families);
+    expect([...Object.keys(named), ...stateFamilies].sort()).toEqual(families);
 
     for (const words of Object.values(named)) {
       expect({ words, said: breach.includes(words) }).toEqual({
@@ -3766,6 +3779,28 @@ describe("Data Security Integrations", () => {
         said: true,
       });
     }
+
+    // The states the table leaves out, by the names a person picks them by; Puerto Rico is no state.
+    const statesLeftOut: Array<string> = UNCOVERED_US_STATES.filter(
+      (place: BreachPlace): boolean => {
+        return place !== BreachPlace.PuertoRico;
+      },
+    ).map((place: BreachPlace): string => {
+      return BREACH_PLACE_CHOICES[place];
+    });
+
+    expect(statesLeftOut).toEqual(["West Virginia"]);
+    expect(COVERED_US_STATES).toContain(BreachPlace.DistrictOfColumbia);
+    expect(COVERED_US_STATES).not.toContain(BreachPlace.PuertoRico);
+    expect(breach).toContain(
+      `the breach laws of every US state but ${statesLeftOut.join(" and ")}, and of the District of Columbia`,
+    );
+    expect(breach).toContain(
+      "West Virginia and Puerto Rico, whose statutes could not be read from an official source",
+    );
+    expect(breach).toContain(
+      "its notices to the attorney general or another state office and to the consumer reporting agencies",
+    );
 
     expect(breach).toContain("Nothing is sent anywhere");
     expect(breach).toContain("not legal advice");
