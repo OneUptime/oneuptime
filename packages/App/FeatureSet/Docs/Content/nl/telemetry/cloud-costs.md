@@ -225,16 +225,15 @@ Als de werktijd eindigt, stopt een schema via de verbinding van zijn account elk
 Een schema stopt nooit productie, en nooit een resource waarvan niets de omgeving zegt. Van een resource is bekend dat ze geen productie is als:
 
 - een van haar tags dat zegt, onder een sleutel zoals `environment`, `env`, `stage`, `tier` of `deployment.environment`, met een woord zoals `dev`, `test`, `qa`, `staging` of `sandbox`;
-- haar account als **Niet-productie** is gemarkeerd onder **Omgeving** in de **Instellingen** van het account;
-- of een van haar labels dat zegt, bijvoorbeeld `Staging` of `env: dev`.
+- of haar account als **Niet-productie** is gemarkeerd onder **Omgeving** in de **Instellingen** van het account.
 
-Productie wint: een tag die `prod`, `production` of `live` zegt, of een account dat als **Productie** is gemarkeerd, houdt een resource draaiend, wat de rest ook zegt. De naam van een resource wordt daarvoor nooit gelezen. Zet je een schema uit, dan stopt het niets meer en start het wat het heeft gestopt zodra de werktijd begint; verwijder je het, dan wordt wat het heeft gestopt meteen gestart.
+Een OneUptime-label maakt een resource nooit niet-productie voor een schema. Een label hernoemen verandert in één keer elke resource die het draagt, dus een label zoals `Staging` of `env: dev` wordt alleen gelezen waar een persoon de wijziging goedkeurt, zoals bij **Toepassen**. Productie wint: een tag die `prod`, `production` of `live` zegt, een account dat als **Productie** is gemarkeerd, of een label zoals `Production` of `env: prod` houdt een resource draaiend, wat de rest ook zegt. De naam van een resource wordt daarvoor nooit gelezen. Elke stop leest de resource opnieuw vlak voordat hij wordt doorgevoerd. Zet je een schema uit, dan stopt het niets meer en start het wat het heeft gestopt zodra de werktijd begint; verwijder je het, dan wordt wat het heeft gestopt meteen gestart.
 
 ## AI-regels voor besparingen
 
 Met **AI inschakelen** aan stelt OneUptime AI na elke lezing van de besparingen van het account elke besparing die het kan doorvoeren voor aan de eigenaren van de resource, en zij keuren haar goed of wijzen haar af onder **Wacht op goedkeuring**. Onder **Cloud → Instellingen → AI-regels voor besparingen** zegt een regel wat OneUptime AI doet met de besparingen waarop ze past, naar het soort wijziging, de omgeving van de resource en de cloud: **Uit**, **Aan de eigenaar voorstellen** of **Zonder te vragen handelen**, tot een maandlimiet. Zonder regel wordt elke besparing voorgesteld en geen enkele doorgevoerd; met regels alleen waarop een regel past, en tussen passende regels wint de voorzichtigste.
 
-Een regel handelt alleen zonder te vragen bij een resource waarvan bekend is dat ze geen productie is, alleen voor een wijziging die ongedaan kan worden gemaakt, alleen tot de kleinste limiet van de passende regels, en hoogstens 10 keer per uur in een project: al het andere wordt voorgesteld. Een wijziging die zonder te vragen is doorgevoerd, staat in de tijdlijnen met de regel die haar doorvoerde, en de eigenaren kunnen haar ongedaan maken. Een afgewezen of ongedaan gemaakte besparing wordt 30 dagen niet opnieuw voorgesteld.
+Een regel handelt alleen zonder te vragen bij een resource waarvan bekend is dat ze geen productie is zoals een schema dat leest, aan haar tags of haar account en nooit aan haar labels alleen, alleen voor een wijziging die ongedaan kan worden gemaakt, alleen tot de kleinste limiet van de passende regels, en hoogstens 10 keer per uur in een project: al het andere wordt voorgesteld. De resource wordt opnieuw gelezen vlak voordat de wijziging wordt doorgevoerd, en een resource waarvan dan niet meer bekend is dat ze geen productie is, wordt in plaats daarvan voorgesteld. Een wijziging die zonder te vragen is doorgevoerd, staat in de tijdlijnen met de regel die haar doorvoerde, en de eigenaren kunnen haar ongedaan maken. Een afgewezen of ongedaan gemaakte besparing wordt 30 dagen niet opnieuw voorgesteld.
 
 ## Budgetten
 
@@ -481,7 +480,11 @@ OneUptime voert alleen wijzigingen van één stap door: een toezegging, of een a
 :::
 
 :::details Een schema laat een resource draaien
-**Resources bekijken** zegt waarom: ze is productie, niets zegt dat ze geen productie is, of de verbinding van haar account staat geen besparingsacties toe. Tag haar, bijvoorbeeld `environment` = `dev`, of markeer haar account als **Niet-productie**.
+**Resources bekijken** zegt waarom: ze is productie, niets zegt dat ze geen productie is, alleen haar labels zeggen dat, of de verbinding van haar account staat geen besparingsacties toe. Tag haar in je cloud, bijvoorbeeld `environment` = `dev`, of markeer haar account als **Niet-productie**.
+:::
+
+:::details Een regel stelt een wijziging voor die hij vroeger zonder te vragen doorvoerde
+De kaart zegt waarom. Een regel voert een wijziging alleen zonder te vragen door bij een resource waarvan haar tags of haar account zeggen dat ze geen productie is: een resource die alleen haar labels niet-productie noemen, wordt in plaats daarvan aan de eigenaren voorgesteld. Tag haar in je cloud, bijvoorbeeld `environment` = `dev`, of markeer haar account als **Niet-productie**.
 :::
 
 :::details Een prognose heeft geen waarschijnlijk bereik

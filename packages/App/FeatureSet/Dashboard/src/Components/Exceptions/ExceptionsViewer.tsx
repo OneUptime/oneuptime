@@ -212,10 +212,13 @@ import {
   SPLIT_BY_SCRUB_RULE_PARAM,
   SPLIT_BY_SCRUB_RULE_PARAM_VALUE,
   countSplitExceptions,
+  countSplitExceptionsInList,
   getOccurrenceFingerprints,
   idOf,
   readSplitExceptionFingerprints,
   readSplitPairExceptionIds,
+  recallSplitExceptions,
+  rememberSplitExceptions,
 } from "../../Utils/ExceptionSplitPairs";
 import { EveryMatch } from "Common/UI/Components/BulkUpdate/BulkSelectAll";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
@@ -766,13 +769,35 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     offersSplitFilter && initialUrlState.splitByScrubRule,
   );
   /*
-   * How many exceptions a scrub rule split the project has, counted once as
-   * the list opens: the filter is offered while there are any. Null while
-   * it is counted, and when the count failed.
+   * Whether the project has an exception a scrub rule split, in any state,
+   * at any time: the filter is offered while it has (#11026). Counted once
+   * as the list opens; until that count is in, what it said the last time
+   * the project's list opened, in this tab or before (recallSplitExceptions),
+   * so the toolbar draws the toggle at once rather than a moment later,
+   * pushing what comes after it along (#11116). Null when nothing says.
+   */
+  const [projectHasSplitExceptions, setProjectHasSplitExceptions] = useState<
+    boolean | null
+  >(() => {
+    return offersSplitFilter
+      ? recallSplitExceptions(ProjectUtil.getCurrentProjectId())
+      : null;
+  });
+  /*
+   * How many of the exceptions the list shows - in its status, its time
+   * window and whatever else narrows it - a scrub rule split: what turning
+   * the filter on lists (countSplitExceptionsInList, #11116). Null until the
+   * first count is in, and when one failed; the last one stays while the
+   * next is counted.
    */
   const [splitExceptionCount, setSplitExceptionCount] = useState<number | null>(
     null,
   );
+  const [isCountingSplitExceptions, setIsCountingSplitExceptions] =
+    useState<boolean>(false);
+  // The last count failed: the toggle shows no figure, nor a place for one.
+  const [hasSplitExceptionCountFailed, setHasSplitExceptionCountFailed] =
+    useState<boolean>(false);
   const [sort, setSort] = useState<ExceptionListSort>(initialUrlState.sort);
   /*
    * The saved view picked in the toolbar, mirrored into the address bar so
@@ -1024,8 +1049,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   ]);
 
   /*
-   * The project's split exceptions, counted once (countSplitExceptions).
-   * Best effort: a count that fails offers no filter, as none does.
+   * Whether the project has split exceptions, counted once
+   * (countSplitExceptions), and remembered for the next time its list opens.
+   * Best effort: a count that fails leaves what was remembered, and with
+   * nothing remembered offers no filter, as none does.
    */
   useEffect(() => {
     if (!offersSplitFilter) {
@@ -1035,9 +1062,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     let isCancelled: boolean = false;
 
     void countSplitExceptions().then((count: number | null): void => {
-      if (!isCancelled) {
-        setSplitExceptionCount(count);
+      if (isCancelled || count === null) {
+        return;
       }
+
+      rememberSplitExceptions(ProjectUtil.getCurrentProjectId(), count > 0);
+      setProjectHasSplitExceptions(count > 0);
     });
 
     return () => {
@@ -1611,91 +1641,6 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     instanceScopeKey && scopeResolution?.key !== instanceScopeKey,
   );
 
-  /*
-   * With Split by a scrub rule on, the chart and the facet counts read the
-   * split exceptions' occurrences only, by their fingerprints
-   * (readSplitExceptionFingerprints): read once, the first time it is on.
-   * Null until they are in.
-   */
-  const [splitFingerprints, setSplitFingerprints] =
-    useState<Array<string> | null>(null);
-
-  useEffect(() => {
-    if (!splitByScrubRule || splitFingerprints !== null) {
-      return;
-    }
-
-    let isCancelled: boolean = false;
-
-    void readSplitExceptionFingerprints().then(
-      (fingerprints: Array<string>): void => {
-        if (!isCancelled) {
-          setSplitFingerprints(fingerprints);
-        }
-      },
-    );
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [splitByScrubRule, splitFingerprints]);
-
-  const isResolvingSplitScope: boolean =
-    splitByScrubRule && splitFingerprints === null;
-
-  /*
-   * The fingerprints the chart and the facet counts read occurrences of
-   * (getOccurrenceFingerprints): the instance scope's, within the split
-   * exceptions' while Split by a scrub rule is on. Null when neither
-   * narrows them.
-   */
-  const occurrenceFingerprints: Array<string> | null = useMemo(() => {
-    return getOccurrenceFingerprints({
-      scopeFingerprints: instanceScopeKey
-        ? resolvedScopeFingerprints || []
-        : null,
-      splitFingerprints: splitByScrubRule ? splitFingerprints || [] : null,
-    });
-  }, [
-    instanceScopeKey,
-    resolvedScopeFingerprints,
-    splitByScrubRule,
-    splitFingerprints,
-  ]);
-
-  /*
-   * Whether the reads below wait (issue #4709): for the service names a
-   * `@service:` token resolves against, for the fingerprints of the
-   * instance scope, or for the split exceptions'. Read before, the list,
-   * the chart, the facets and the error-class counts each went out once
-   * with a stand-in (every service, the no-match sentinel) and once more a
-   * moment later with the answer. Now each goes out once, with it.
-   */
-  const holdsReads: boolean =
-    isWaitingForServiceNames || isResolvingScope || isResolvingSplitScope;
-
-  /*
-   * The Exceptions pages' first steps: shown while the list is empty, nothing
-   * the reader set narrows it, and the project has no exception at all
-   * (asked once, useProjectHasExceptions). Empty means a read came back with
-   * no rows: judged before the first one, every page load asked, rows or not.
-   */
-  const isUnnarrowedEmptyList: boolean = showsTelemetryFirstSteps({
-    hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
-    isEmpty:
-      hasListAnswered &&
-      !isLoading &&
-      !holdsReads &&
-      !error &&
-      exceptions.length === 0,
-    filterCount: activeFilters.length,
-    searchText: submittedSearch,
-  });
-
-  const projectHasExceptions: boolean | null = useProjectHasExceptions(
-    isUnnarrowedEmptyList,
-  );
-
   const query: Query<TelemetryException> = useMemo(() => {
     const q: Query<TelemetryException> = {};
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -1851,6 +1796,182 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     resolvedScopeFingerprints,
     exclusions,
   ]);
+
+  /*
+   * With Split by a scrub rule on, the chart and the facet counts read the
+   * split exceptions' occurrences only, by their fingerprints
+   * (readSplitExceptionFingerprints): read once, the first time it is on.
+   * Null until they are in.
+   */
+  const [splitFingerprints, setSplitFingerprints] =
+    useState<Array<string> | null>(null);
+  /*
+   * Why they could not be read, and for which list (its query): the chart
+   * and the facet counts say so in their own places, with Try again, and
+   * they are read again on the list's next change - a filter, the status,
+   * the time range, the toggle off and on - or on Try again (#11116). They
+   * were read once a page load: a failure left the chart counting nothing
+   * until the page was loaded again.
+   */
+  const [splitFingerprintsFailure, setSplitFingerprintsFailure] = useState<{
+    error: TelemetryLoadError;
+    query: Query<TelemetryException>;
+  } | null>(null);
+  /*
+   * Try again asked for them while the list is the one they failed for:
+   * read again without holding the list, which needs them not - the chart
+   * and the facet counts wait meanwhile, and follow them.
+   */
+  const [isRetryingSplitFingerprints, setIsRetryingSplitFingerprints] =
+    useState<boolean>(false);
+
+  // That failure, while the list it was for is the one shown.
+  const splitScopeError: TelemetryLoadError | undefined =
+    splitByScrubRule &&
+    splitFingerprintsFailure &&
+    splitFingerprintsFailure.query === query
+      ? splitFingerprintsFailure.error
+      : undefined;
+
+  useEffect(() => {
+    if (!splitByScrubRule || splitFingerprints !== null) {
+      return;
+    }
+
+    // Failed for this list: read again only when asked (Try again).
+    if (splitScopeError && !isRetryingSplitFingerprints) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    void readSplitExceptionFingerprints()
+      .then((fingerprints: Array<string>): void => {
+        if (!isCancelled) {
+          setSplitFingerprintsFailure(null);
+          setIsRetryingSplitFingerprints(false);
+          setSplitFingerprints(fingerprints);
+        }
+      })
+      .catch((err: unknown): void => {
+        if (!isCancelled) {
+          setSplitFingerprintsFailure({
+            error: TelemetryLoadErrorUtil.fromError(err),
+            query,
+          });
+          setIsRetryingSplitFingerprints(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    splitByScrubRule,
+    splitFingerprints,
+    splitScopeError,
+    isRetryingSplitFingerprints,
+    query,
+  ]);
+
+  /*
+   * The reads wait for them - but not while the list shown is the one they
+   * failed for: the list goes out (it is narrowed by its own column), and
+   * the chart and the facets say why they have nothing. A change of the
+   * list reads them again, and holds its reads until they are in.
+   */
+  const isResolvingSplitScope: boolean =
+    splitByScrubRule && splitFingerprints === null && !splitScopeError;
+
+  /*
+   * The fingerprints the chart and the facet counts read occurrences of
+   * (getOccurrenceFingerprints): the instance scope's, within the split
+   * exceptions' while Split by a scrub rule is on. Null when neither
+   * narrows them.
+   */
+  const occurrenceFingerprints: Array<string> | null = useMemo(() => {
+    return getOccurrenceFingerprints({
+      scopeFingerprints: instanceScopeKey
+        ? resolvedScopeFingerprints || []
+        : null,
+      splitFingerprints: splitByScrubRule ? splitFingerprints || [] : null,
+    });
+  }, [
+    instanceScopeKey,
+    resolvedScopeFingerprints,
+    splitByScrubRule,
+    splitFingerprints,
+  ]);
+
+  /*
+   * Whether the reads below wait (issue #4709): for the service names a
+   * `@service:` token resolves against, for the fingerprints of the
+   * instance scope, or for the split exceptions'. Read before, the list,
+   * the chart, the facets and the error-class counts each went out once
+   * with a stand-in (every service, the no-match sentinel) and once more a
+   * moment later with the answer. Now each goes out once, with it.
+   */
+  const holdsReads: boolean =
+    isWaitingForServiceNames || isResolvingScope || isResolvingSplitScope;
+
+  /*
+   * How many of the list's exceptions a scrub rule split - the list's own
+   * query with the filter on (countSplitExceptionsInList) - counted again
+   * whenever that query changes, once the list's read goes out, as the
+   * Error Class counts are: the toggle says what turning it on lists
+   * (#11116). Only while the toggle is offered - the project has a pair,
+   * or a link or a view turned it on - so a project with none, nearly
+   * every one, is never counted again as its list changes.
+   */
+  const countsSplitExceptionsInList: boolean =
+    offersSplitFilter &&
+    (splitByScrubRule || projectHasSplitExceptions === true);
+
+  useEffect(() => {
+    if (!countsSplitExceptionsInList || holdsReads) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    setIsCountingSplitExceptions(true);
+
+    void countSplitExceptionsInList(query).then(
+      (count: number | null): void => {
+        if (!isCancelled) {
+          setSplitExceptionCount(count);
+          setHasSplitExceptionCountFailed(count === null);
+          setIsCountingSplitExceptions(false);
+        }
+      },
+    );
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [countsSplitExceptionsInList, holdsReads, query]);
+
+  /*
+   * The Exceptions pages' first steps: shown while the list is empty, nothing
+   * the reader set narrows it, and the project has no exception at all
+   * (asked once, useProjectHasExceptions). Empty means a read came back with
+   * no rows: judged before the first one, every page load asked, rows or not.
+   */
+  const isUnnarrowedEmptyList: boolean = showsTelemetryFirstSteps({
+    hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
+    isEmpty:
+      hasListAnswered &&
+      !isLoading &&
+      !holdsReads &&
+      !error &&
+      exceptions.length === 0,
+    filterCount: activeFilters.length,
+    searchText: submittedSearch,
+  });
+
+  const projectHasExceptions: boolean | null = useProjectHasExceptions(
+    isUnnarrowedEmptyList,
+  );
 
   /*
    * The addresses the search also matched by the project's IP Address Hash
@@ -2100,8 +2221,29 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       return;
     }
 
+    /*
+     * The split exceptions' fingerprints could not be read for this list:
+     * the chart's card says so, with Try again, rather than counting
+     * nothing as if there were nothing (#11116).
+     */
+    if (splitScopeError) {
+      setHistogramBuckets([]);
+      setHistogramBucketIntervalMs(undefined);
+      setHistogramBucketTimezone(undefined);
+      setHistogramError(
+        isRetryingSplitFingerprints ? undefined : splitScopeError,
+      );
+      setHistogramLoading(isRetryingSplitFingerprints);
+      return;
+    }
+
     void fetchHistogram();
-  }, [fetchHistogram, holdsReads]);
+  }, [
+    fetchHistogram,
+    holdsReads,
+    splitScopeError,
+    isRetryingSplitFingerprints,
+  ]);
 
   // Histogram series (handled/unhandled) — colored per level
   const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {
@@ -2323,8 +2465,18 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       return;
     }
 
+    // As the chart: the sidebar says its counts could not load (#11116).
+    if (splitScopeError) {
+      setFacetData({});
+      setTimedOutFacets([]);
+      setFacetError(isRetryingSplitFingerprints ? undefined : splitScopeError);
+      setFacetLoading(isRetryingSplitFingerprints);
+      setHaveFacetsAnswered(true);
+      return;
+    }
+
     void fetchFacets();
-  }, [fetchFacets, holdsReads]);
+  }, [fetchFacets, holdsReads, splitScopeError, isRetryingSplitFingerprints]);
 
   const [errorClassFacetValues, setErrorClassFacetValues] = useState<
     Array<FacetValue>
@@ -2824,17 +2976,27 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   );
 
   /*
-   * Split by a scrub rule, beside Assigned to me and drawn as it is, with
-   * how many the project has (ExceptionSplitPairs, #11026). Only a project
-   * whose scrub rules split exceptions before #10434 has any, so it shows
-   * only while the count says there are some: never while it is counted,
-   * nor when the count failed. Or while it is on, which a link or a saved
-   * view can ask for when there are none: the list is then never narrowed
-   * to nothing by a filter nobody can see, and the toggle, pressed, with
-   * its 0, says why and is the one control that widens it again.
+   * Split by a scrub rule, beside Assigned to me and drawn as it is
+   * (ExceptionSplitPairs, #11026). Only a project whose scrub rules split
+   * exceptions before #10434 has any, so it shows only while the project
+   * has some: as its count says, or, until that count is in, as the last
+   * one did (#11116) - so it is drawn with the toolbar, and nothing after
+   * it moves when the count lands. Never with nothing to say so, nor when
+   * the count failed with nothing remembered. Or while it is on, which a
+   * link or a saved view can ask for when there are none: the list is then
+   * never narrowed to nothing by a filter nobody can see, and the toggle,
+   * pressed, with its 0, says why and is the one control that widens it
+   * again. A filter that leaves none of the project's pairs in the list
+   * keeps it where it is, saying 0.
+   *
+   * Its figure is the list's: how many turning it on lists, in the list's
+   * status, time window and filters (countSplitExceptionsInList). Until
+   * the first count is in, a figure's room is kept for it; while the next
+   * is counted, the last one stays, dimmed.
    */
   const showsSplitToggle: boolean =
-    offersSplitFilter && (splitByScrubRule || (splitExceptionCount || 0) > 0);
+    offersSplitFilter &&
+    (splitByScrubRule || projectHasSplitExceptions === true);
 
   const splitByScrubRuleToggle: ReactElement = showsSplitToggle ? (
     <button
@@ -2858,9 +3020,20 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       {splitExceptionCount !== null ? (
         <span
           data-testid="exceptions-split-by-scrub-rule-count"
-          className="font-semibold tabular-nums"
+          className={`font-semibold tabular-nums transition-opacity${
+            isCountingSplitExceptions ? " opacity-60" : ""
+          }`}
         >
           {translator.formatNumber(splitExceptionCount)}
+        </span>
+      ) : !hasSplitExceptionCountFailed ? (
+        <span
+          aria-hidden="true"
+          data-testid="exceptions-split-by-scrub-rule-count-pending"
+          className="relative font-semibold tabular-nums"
+        >
+          <span className="invisible">{translator.formatNumber(0)}</span>
+          <span className="absolute inset-x-0 top-1/2 h-2.5 -translate-y-1/2 rounded-sm bg-current opacity-25 motion-safe:animate-pulse" />
         </span>
       ) : (
         <></>
@@ -3305,6 +3478,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       timedOutFacets={timedOutFacets}
       facetError={facetError}
       onRetryFacets={() => {
+        // The split exceptions' fingerprints first: the facets follow them.
+        if (splitScopeError) {
+          setIsRetryingSplitFingerprints(true);
+          return;
+        }
+
         // A held read goes out by itself once what it waits for is in.
         if (!holdsReads) {
           void fetchFacets();
@@ -3339,6 +3518,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       histogramLoading={histogramLoading || holdsReads}
       histogramError={histogramError}
       onRetryHistogram={() => {
+        // The split exceptions' fingerprints first: the chart follows them.
+        if (splitScopeError) {
+          setIsRetryingSplitFingerprints(true);
+          return;
+        }
+
         if (!holdsReads) {
           void fetchHistogram();
         }

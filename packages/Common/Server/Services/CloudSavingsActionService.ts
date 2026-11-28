@@ -1,4 +1,5 @@
 import CloudSavingsAction from "../../Models/DatabaseModels/CloudSavingsAction";
+import { CloudResourceEnvironment } from "../../Types/Cloud/CloudResourceEnvironment";
 import { CloudSavingsActionStatus } from "../../Types/Cloud/CloudSavingsAction";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -33,6 +34,8 @@ export interface CloudSavingsActionTransitionSet {
   progress?: JSONObject | undefined;
   undoProgress?: JSONObject | undefined;
   summary?: string | undefined;
+  // The environment read again as a change nobody approves was about to be made (#11347).
+  environment?: CloudResourceEnvironment | undefined;
   measurement?: string | null | undefined;
   costBeforeDaily?: number | null | undefined;
   costAfterDaily?: number | null | undefined;

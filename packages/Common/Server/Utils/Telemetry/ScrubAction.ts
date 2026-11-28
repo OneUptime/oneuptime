@@ -9,6 +9,7 @@ import {
 } from "../../../Types/Telemetry/ScrubRule";
 import { digitsOnly } from "../../../Utils/DataSecurity/Detector";
 import { foldDigits } from "../../../Utils/DataSecurity/DigitReadings";
+import { foldFullwidthForms } from "../../../Utils/DataSecurity/FullwidthForms";
 import PercentDecodedText from "../../../Utils/DataSecurity/PercentDecodedText";
 import PlusAsSpaceText from "../../../Utils/DataSecurity/PlusAsSpaceText";
 import ScrubIpAddress from "../../../Utils/Telemetry/ScrubIpAddress";
@@ -38,8 +39,9 @@ import ScrubHashToken from "./ScrubHashToken";
  *    Social Security number with "+"s for its spaces as a URL's query
  *    string writes them (#11199), and a card, a phone number, a Social
  *    Security number or a custom pattern's match in another script's
- *    digits, as the value it reads as (asItReads), so each has the token of
- *    the value written plainly; Mask reads them so too. A custom pattern's
+ *    digits or typed wholly in fullwidth (#11115), as the value it reads as
+ *    (asItReads), so each has the token of the value written plainly; Mask
+ *    reads them so too. A custom pattern's
  *    match found only with its "+"s read as spaces is read so as well, by
  *    the reading that found it (ScrubRule's readScrubMatch). An IP
  *    Address rule's token and address are also told to the recorder a
@@ -204,7 +206,10 @@ export default class ScrubAction {
    * card=4539+1488+0343+6467 and card=4539%201488%200343%206467 are
    * 4539 1488 0343 6467, phone=%2B44+20+7946+0958 is +44 20 7946 0958 -
    * none holds a "+" of its own between two of its digits, nor an escape.
-   * Anything else, and a value written plainly, as it is.
+   * And one typed wholly in fullwidth, its signs and separators read as
+   * ASCII too (#11115): ＋８１ ３－１２３４－５６７８ is +81 3-1234-5678, and
+   * ５３６－２２－８７３１ is 536-22-8731. Anything else, and a value written
+   * plainly, as it is.
    */
   public static asItReads(match: string, patternType: string): string {
     switch (patternType) {
@@ -213,18 +218,23 @@ export default class ScrubAction {
       case LogScrubPatternType.CreditCard:
       case LogScrubPatternType.SSN:
       case LogScrubPatternType.PhoneNumber:
-        return foldDigits(PlusAsSpaceText.readableOf(match));
+        return foldFullwidthForms(
+          foldDigits(PlusAsSpaceText.readableOf(match)),
+        );
       /*
-       * A Custom Regex rule finds its pattern with a value's escapes read
-       * and in every script's digits too (ScrubRule's ReadingsScrubRegExp,
-       * #11031, #11033): a token after %3D, an IBAN in Arabic-Indic digits
+       * A Custom Regex rule finds its pattern with a value's escapes read,
+       * in every script's digits and with its fullwidth forms read too
+       * (ScrubRule's ReadingsScrubRegExp, #11031, #11033, #11115): a token
+       * after %3D, an IBAN in Arabic-Indic digits, a CPF typed in fullwidth
        * has the token of the one written plainly. Its match found only
        * with its "+"s read as spaces reaches here read so already
        * (readScrubMatch, #11199): a "+" in a custom pattern's match may be
        * the value's own (jane+news@example.com), so it is not read here.
        */
       case LogScrubPatternType.Custom:
-        return foldDigits(PercentDecodedText.readableOf(match));
+        return foldFullwidthForms(
+          foldDigits(PercentDecodedText.readableOf(match)),
+        );
       default:
         return match;
     }

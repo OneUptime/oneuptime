@@ -51,6 +51,15 @@ import {
 } from "./McpClient";
 import McpClientError from "./McpClientError";
 import { McpToolResultText, readMcpToolResult } from "./McpToolResult";
+import { describeMcpToolForStatus } from "./McpToolFingerprint";
+import ExternalMcpToolReadOnlyMarkService from "../../../Services/ExternalMcpToolReadOnlyMarkService";
+import {
+  ExternalMcpToolMarkFingerprint,
+  ExternalMcpToolReadOnlyStatus,
+  getExternalMcpToolReadOnlyStatus,
+  isExternalMcpToolReadOnly,
+} from "../../../../Types/AI/ExternalMcpServer/ExternalMcpToolReadOnlyMark";
+import { ExternalMcpServerTool } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpServerTool";
 
 import { AI_TOOLKIT_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
 import { citationSentence, ToolCitation } from "../Toolbox/ReadTableWords";
@@ -70,6 +79,11 @@ import { citationSentence, ToolCitation } from "../Toolbox/ReadTableWords";
  *   - call_mcp_tool_with_approval: call a tool that may change something,
  *     once the person approves the call on a card (issue #10879).
  *
+ * An answer posted to Slack or Microsoft Teams (purpose "chatApp", issue
+ * #11082) has the two, for the person who asked, and only the tools that
+ * read: a chat app shows no card to approve anything else on, so it never
+ * has the third.
+ *
  * Two tools rather than one per server tool, because servers offer dozens
  * of tools (Azure's and GitHub's, a hundred and more) and every tool
  * offered to the model is sent with every one of its calls: the model
@@ -84,10 +98,15 @@ import { citationSentence, ToolCitation } from "../Toolbox/ReadTableWords";
  *     and allowed by the rules that matched (ExternalMcpServerAllowance) -
  *     a server named any other way is not one;
  *   - a tool counts as one that only reads when its server marks it so
- *     (annotations.readOnlyHint). Any other tool may change something: the
- *     protocol's own default for a tool its server says nothing about, as
- *     kAgent's tool server says nothing about any of its tools. An
- *     investigation never calls one. A fix hands each such call to its
+ *     (annotations.readOnlyHint), or when a Project Admin marked it
+ *     read-only and it is, as the run reads it from the server, the tool
+ *     that was marked (issue #11081: ExternalMcpToolReadOnlyMark - a mark
+ *     holds the fingerprint of the tool's name, description and input
+ *     schema, and a tool the server has changed since holds it no more).
+ *     Any other tool may change something: the protocol's own default for
+ *     a tool its server says nothing about, as kAgent's tool server says
+ *     nothing about any of its tools. An investigation, and an answer
+ *     posted to a chat app, never call one. A fix hands each such call to its
  *     change handler, which makes it now (a rule that fixes without asking
  *     and names its servers) or records it for approval - the rule's
  *     Approval, never the model, decides. A chat calls one only once a
@@ -96,7 +115,8 @@ import { citationSentence, ToolCitation } from "../Toolbox/ReadTableWords";
  *     conversation: OneUptime cannot see or undo what a tool changes in a
  *     system outside it, and a server's word on its own tools is a hint
  *     from outside OneUptime;
- *   - in a chat, the person's permissions: reading through a server takes
+ *   - in a chat, and in an answer posted to a chat app, the person's
+ *     permissions: reading through a server takes
  *     what reading the project's External MCP Servers takes (ChatMcpAccess),
  *     and a change through one takes what starting a runbook takes, as
  *     approving a fix through MCP servers does (RemediationApproval) -
@@ -161,14 +181,41 @@ export interface McpChangeHandler {
   decide(call: McpToolCallRequest): Promise<McpChangeDecision>;
 }
 
-export type McpRunPurpose = "investigation" | "remediation" | "chat";
+/*
+ * What the run is: an investigation (reads only, nobody to ask), a fix (a
+ * change goes to its change handler), a chat in the Dashboard - Ask AI or
+ * an incident's or alert's conversation (a change asks the person on a
+ * card) - or an answer posted to Slack or Microsoft Teams (reads only for
+ * the person who asked: a chat app shows no card, issue #11082).
+ */
+export type McpRunPurpose =
+  | "investigation"
+  | "remediation"
+  | "chat"
+  | "chatApp";
+
+// The chat app an answer is posted to, as its prompt names it.
+export interface McpRunChatApp {
+  // "Slack", "Microsoft Teams".
+  name: string;
+  // Ask AI in the Dashboard, where a call that may change something is approved.
+  askAiUrl?: string | undefined;
+}
+
+// A Project Admin's read-only mark on one tool, as a run reads it.
+export interface McpRunToolMark extends ExternalMcpToolMarkFingerprint {
+  toolName?: string | undefined;
+}
 
 export interface McpRunToolkitOptions {
   projectId: ObjectID;
-  aiRunId: ObjectID;
+  // The run, when there is one: an answer posted to a chat app has none.
+  aiRunId?: ObjectID | undefined;
   // The servers this run may use: the project's own, on, allowed.
   servers: Array<ExternalMcpServer>;
   purpose: McpRunPurpose;
+  // For an answer posted to a chat app: which one.
+  chatApp?: McpRunChatApp | undefined;
   // For a fix: what happens to a call that may change something.
   changeHandler?: McpChangeHandler | undefined;
   /*
@@ -191,6 +238,13 @@ export interface McpRunToolkitOptions {
   createConnection?:
     | ((server: ExternalMcpServer) => ExternalMcpServerConnection)
     | undefined;
+  /*
+   * Tests: how a server's read-only marks are read. A run reads them as
+   * OneUptime (ExternalMcpToolReadOnlyMarkService.findMarksOfServer).
+   */
+  readMarks?:
+    | ((server: ExternalMcpServer) => Promise<Array<McpRunToolMark>>)
+    | undefined;
 }
 
 interface ServerState {
@@ -201,6 +255,12 @@ interface ServerState {
   tools: Array<McpToolDescription> | null;
   toolsLeftOut: number;
   handshake: McpServerHandshake | null;
+  /*
+   * Each tool's status as this run read it (issue #11081): read-only by
+   * the server's word or a Project Admin's mark that holds, or not -
+   * worked out once the tools are read, from what the server sent now.
+   */
+  statuses: Map<string, ExternalMcpToolReadOnlyStatus>;
   // Why the server could not be used in this run, once it failed.
   failure: string | null;
   isFailureRecorded: boolean;
@@ -322,6 +382,7 @@ export default class McpRunToolkit {
         tools: null,
         toolsLeftOut: 0,
         handshake: null,
+        statuses: new Map<string, ExternalMcpToolReadOnlyStatus>(),
         failure: null,
         isFailureRecorded: false,
       };
@@ -340,6 +401,40 @@ export default class McpRunToolkit {
 
   private isChat(): boolean {
     return this.options.purpose === "chat";
+  }
+
+  // An answer posted to Slack or Microsoft Teams (issue #11082).
+  private isChatApp(): boolean {
+    return this.options.purpose === "chatApp";
+  }
+
+  /*
+   * A run for a person asking - in the Dashboard or in a chat app - whose
+   * permissions decide what it may do through the servers.
+   */
+  private isForPerson(): boolean {
+    return this.isChat() || this.isChatApp();
+  }
+
+  /*
+   * A run that uses only the tools that read, with nobody to ask about any
+   * other: an investigation, and an answer posted to a chat app.
+   */
+  private usesOnlyReadOnlyTools(): boolean {
+    return this.options.purpose === "investigation" || this.isChatApp();
+  }
+
+  private getChatAppName(): string {
+    return (this.options.chatApp?.name || "").trim() || "a chat app";
+  }
+
+  // Where a person approves a call that may change something, for a chat app's answer.
+  private describeWhereToApprove(): string {
+    const url: string = (this.options.chatApp?.askAiUrl || "").trim();
+
+    return url
+      ? `Ask AI in the OneUptime Dashboard (${url}), where they approve each call`
+      : "Ask AI in the OneUptime Dashboard, where they approve each call";
   }
 
   private canAskToChange(): boolean {
@@ -361,7 +456,9 @@ export default class McpRunToolkit {
     lines.push(
       this.isChat()
         ? "This project's admins connected these MCP servers outside OneUptime, and you can use their tools for the person asking:"
-        : `You can also use the tools of these MCP servers outside OneUptime, set up by this project's admins:`,
+        : this.isChatApp()
+          ? `This project's admins connected these MCP servers outside OneUptime, and you can read with their tools for the person asking in ${this.getChatAppName()}:`
+          : `You can also use the tools of these MCP servers outside OneUptime, set up by this project's admins:`,
     );
 
     for (const state of this.states) {
@@ -376,6 +473,8 @@ export default class McpRunToolkit {
 
     if (this.isChat()) {
       lines.push(...this.buildChatRules());
+    } else if (this.isChatApp()) {
+      lines.push(...this.buildChatAppRules());
     } else {
       lines.push(
         `Call ${LIST_MCP_TOOLS_TOOL_NAME} to see a server's tools and their arguments, then ${CALL_MCP_TOOL_TOOL_NAME} to use one. Use them when they can answer what OneUptime's own data cannot - the cloud resources, deployments or services behind the signal.`,
@@ -428,6 +527,22 @@ export default class McpRunToolkit {
     );
 
     return rules;
+  }
+
+  /*
+   * What an answer posted to a chat app may do with the servers' tools: read,
+   * for the person who asked, and only with the tools that read - a chat
+   * app shows no card to approve anything else on - and say where the
+   * person can use any other.
+   */
+  private buildChatAppRules(): Array<string> {
+    const app: string = this.getChatAppName();
+
+    return [
+      `Call ${LIST_MCP_TOOLS_TOOL_NAME} to see a server's tools that read - each one's name, what it does and its arguments - and answer any question about them from what it returns: never say you cannot see a server's tools before you have listed them. Then call ${CALL_MCP_TOOL_TOOL_NAME} to use one. When the person names a server and a tool, use that tool.`,
+      `You are answering in ${app}, where OneUptime AI only reads: use only the tools ${LIST_MCP_TOOLS_TOOL_NAME} shows, the ones marked [reads only]. Any other may change something, and is used only from ${this.describeWhereToApprove()}: when the person asks for one, say so in one sentence, and never say it ran.`,
+      `Your answer is posted where everyone in the ${app} conversation reads it: use a server's tools only for what the person asked, and never repeat a password, a token, a key or anyone's personal data a tool returns.`,
+    ];
   }
 
   public buildTools(): Array<ObservabilityAssistantExtraTool> {
@@ -516,7 +631,7 @@ export default class McpRunToolkit {
     return {
       definition: {
         name: CALL_MCP_TOOL_TOOL_NAME,
-        description: this.isChat()
+        description: this.isForPerson()
           ? `Call one tool marked [reads only] of one of the project's external MCP servers (${this.getServerLabels().join(
               ", ",
             )}). Pass the server's name, the tool's name exactly as ${LIST_MCP_TOOLS_TOOL_NAME} gives it, and its arguments as a JSON object that follows the tool's schema.`
@@ -628,12 +743,11 @@ export default class McpRunToolkit {
         continue;
       }
 
-      const shown: Array<McpToolDescription> =
-        this.options.purpose === "investigation"
-          ? state.tools.filter((tool: McpToolDescription): boolean => {
-              return tool.readsOnly;
-            })
-          : state.tools;
+      const shown: Array<McpToolDescription> = this.usesOnlyReadOnlyTools()
+        ? state.tools.filter((tool: McpToolDescription): boolean => {
+            return this.readsOnly(state, tool);
+          })
+        : state.tools;
       const hidden: number = state.tools.length - shown.length;
 
       toolCount += shown.length;
@@ -644,18 +758,32 @@ export default class McpRunToolkit {
         lines.push(
           state.tools.length === 0
             ? "It offers no tools."
-            : "It offers no tool marked read-only, so none can be used while investigating.",
+            : `It offers no tool marked read-only, so none can be used ${this.describeWhereOnlyReads()}.`,
         );
       }
 
       for (const tool of shown) {
-        lines.push(this.describeTool(tool));
+        lines.push(this.describeTool(state, tool));
       }
 
       if (hidden > 0) {
         lines.push(
-          `(${hidden} more ${hidden === 1 ? "tool" : "tools"} may change something, and cannot be used while investigating.)`,
-          "(A tool counts as one that only reads when its server marks it read-only (readOnlyHint); one its server says nothing about may change something.)",
+          this.isChatApp()
+            ? `(${hidden} more ${hidden === 1 ? "tool" : "tools"} may change something: they are used only from ${this.describeWhereToApprove()}.)`
+            : `(${hidden} more ${hidden === 1 ? "tool" : "tools"} may change something, and cannot be used while investigating.)`,
+          "(A tool counts as one that only reads when its server marks it read-only (readOnlyHint), or when a Project Admin marked it read-only and its server has not changed it since; any other may change something.)",
+        );
+      }
+
+      const lapsed: Array<string> = this.getLapsedMarkToolNames(state);
+
+      if (lapsed.length > 0) {
+        lines.push(
+          `(Marked read-only by a Project Admin, but changed by its server since, so not read-only until someone marks it again: ${lapsed
+            .map((name: string): string => {
+              return describeMcpToolName(name);
+            })
+            .join(", ")}.)`,
         );
       }
 
@@ -694,8 +822,8 @@ export default class McpRunToolkit {
     };
   }
 
-  private describeTool(tool: McpToolDescription): string {
-    const marker: string = this.getToolMarker(tool);
+  private describeTool(state: ServerState, tool: McpToolDescription): string {
+    const marker: string = this.getToolMarker(state, tool);
     /*
      * Cut to its length first, then on one line: the description is the
      * server's text, so the pattern only ever reads a short one.
@@ -712,16 +840,19 @@ export default class McpRunToolkit {
   }
 
   /*
-   * How the list marks a tool: whether it only reads, and in a chat, the
-   * tool that calls it - a change, or a tool its server says nothing
-   * about, is called with approval (or not at all in a Read-only one).
+   * How the list marks a tool: whether it only reads - by its server's word
+   * or a Project Admin's mark that holds - and in a chat, the tool that
+   * calls it: a change, or a tool its server says nothing about, is called
+   * with approval (or not at all in a Read-only one).
    */
-  private getToolMarker(tool: McpToolDescription): string {
+  private getToolMarker(state: ServerState, tool: McpToolDescription): string {
+    const readsOnly: boolean = this.readsOnly(state, tool);
+
     if (!this.isChat()) {
-      return tool.readsOnly ? "[reads only]" : "[may change something]";
+      return readsOnly ? "[reads only]" : "[may change something]";
     }
 
-    if (tool.readsOnly) {
+    if (readsOnly) {
       return `[reads only: ${CALL_MCP_TOOL_TOOL_NAME}]`;
     }
 
@@ -896,9 +1027,15 @@ export default class McpRunToolkit {
     let onFinished: ((outcome: McpChangeOutcome) => Promise<void>) | undefined =
       undefined;
 
-    if (!tool.readsOnly) {
+    if (!this.readsOnly(state, tool)) {
       if (this.isChat()) {
         return this.failure(this.describeChangeRefusedAsRead(tool, state));
+      }
+
+      if (this.isChatApp()) {
+        return this.failure(
+          `Refused: ${tool.name} on ${state.label} may change something, and an answer in ${this.getChatAppName()} only reads. Nothing was sent. It can be used only from ${this.describeWhereToApprove()}: say so.`,
+        );
       }
 
       if (
@@ -906,7 +1043,10 @@ export default class McpRunToolkit {
         !this.options.changeHandler
       ) {
         return this.failure(
-          `Refused: ${tool.name} on ${state.label} may change something, and an investigation only reads. Nothing was sent. Use a tool marked [reads only].`,
+          state.statuses.get(tool.name) ===
+            ExternalMcpToolReadOnlyStatus.MarkLapsed
+            ? `Refused: ${tool.name} on ${state.label} was marked read-only by a Project Admin, but its server has changed it since, so it may change something, and an investigation only reads. Nothing was sent. Use a tool marked [reads only].`
+            : `Refused: ${tool.name} on ${state.label} may change something, and an investigation only reads. Nothing was sent. Use a tool marked [reads only].`,
         );
       }
 
@@ -944,9 +1084,12 @@ export default class McpRunToolkit {
     tool: McpToolDescription,
     state: ServerState,
   ): string {
-    const what: string = tool.saysWhetherItReads
-      ? "may change something"
-      : "is not marked read-only by its server, so it may change something";
+    const what: string =
+      state.statuses.get(tool.name) === ExternalMcpToolReadOnlyStatus.MarkLapsed
+        ? "was marked read-only by a Project Admin, but its server has changed it since, so it may change something"
+        : tool.saysWhetherItReads
+          ? "may change something"
+          : "is not marked read-only by its server, so it may change something";
     const how: string = this.canAskToChange()
       ? `To use it, call ${CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME}: the person approves the call before anything is sent.`
       : "This conversation is Read-only, so it cannot be used here.";
@@ -1079,7 +1222,7 @@ export default class McpRunToolkit {
     const tool: McpToolDescription = found;
     const state: ServerState = parsed.state;
 
-    if (tool.readsOnly) {
+    if (this.readsOnly(state, tool)) {
       return {
         refused: this.failure(
           `Not asked: ${tool.name} on ${state.label} only reads, so it needs no approval. Call ${CALL_MCP_TOOL_TOOL_NAME} with the same arguments instead.`,
@@ -1103,7 +1246,14 @@ export default class McpRunToolkit {
 
     const description: Array<AIActionSentence> = [];
 
-    if (!tool.saysWhetherItReads) {
+    if (
+      state.statuses.get(tool.name) === ExternalMcpToolReadOnlyStatus.MarkLapsed
+    ) {
+      description.push({
+        template: AI_ACTION_LINES.mcpToolMarkLapsed,
+        values: { server: state.label, tool: tool.name },
+      });
+    } else if (!tool.saysWhetherItReads) {
       description.push({
         template: AI_ACTION_LINES.mcpToolDoesNotSay,
         values: { server: state.label, tool: tool.name },
@@ -1182,11 +1332,12 @@ export default class McpRunToolkit {
 
   /*
    * Whether the person may read through the project's servers: what reading
-   * its External MCP Servers takes. Only a chat has a person to ask about;
-   * a run of OneUptime's own reads the servers its rules allow.
+   * its External MCP Servers takes. Only a chat - in the Dashboard or in a
+   * chat app - has a person to ask about; a run of OneUptime's own reads
+   * the servers its rules allow.
    */
   private refuseReadToPerson(): ToolCallOutcome | null {
-    if (!this.isChat()) {
+    if (!this.isForPerson()) {
       return null;
     }
 
@@ -1355,11 +1506,167 @@ export default class McpRunToolkit {
       state.tools = list.tools;
       state.toolsLeftOut = list.leftOut;
 
+      await this.readStatuses(state, list);
+
       return true;
     } catch (error) {
       state.failure = this.describeError(state, error);
       await this.recordFailure(state, error);
       return false;
+    }
+  }
+
+  // ---- read-only marks (issue #11081) -----------------------------------------
+
+  /*
+   * Whether a tool counts as one that only reads in this run: its server
+   * marks it read-only, or a Project Admin marked it and it is as it was
+   * when marked - held to what the server sent this run, never to what
+   * the server's page last showed.
+   */
+  private readsOnly(state: ServerState, tool: McpToolDescription): boolean {
+    const status: ExternalMcpToolReadOnlyStatus | undefined =
+      state.statuses.get(tool.name);
+
+    return status === undefined
+      ? tool.readsOnly
+      : isExternalMcpToolReadOnly(status);
+  }
+
+  // The tools whose mark no longer holds, in the server's order.
+  private getLapsedMarkToolNames(state: ServerState): Array<string> {
+    return (state.tools || [])
+      .filter((tool: McpToolDescription): boolean => {
+        return (
+          state.statuses.get(tool.name) ===
+          ExternalMcpToolReadOnlyStatus.MarkLapsed
+        );
+      })
+      .map((tool: McpToolDescription): string => {
+        return tool.name;
+      });
+  }
+
+  // Where only the tools that read are used, as the list says it.
+  private describeWhereOnlyReads(): string {
+    return this.isChatApp()
+      ? `in an answer in ${this.getChatAppName()}`
+      : "while investigating";
+  }
+
+  /*
+   * Each tool's status, from the server's own word and the project's marks
+   * on its tools, read once a run. Marks that cannot be read count as none:
+   * nothing is called with nobody asking on a word OneUptime could not
+   * read. A mark whose tool changed since it was made is kept on the
+   * server's page as lapsed: the run records what it read, once.
+   */
+  private async readStatuses(
+    state: ServerState,
+    list: McpToolList,
+  ): Promise<void> {
+    const marks: Array<McpRunToolMark> = await this.readMarks(state);
+    const marksByTool: Map<string, Array<McpRunToolMark>> = new Map<
+      string,
+      Array<McpRunToolMark>
+    >();
+
+    for (const mark of marks) {
+      if (!mark.toolName) {
+        continue;
+      }
+
+      const forTool: Array<McpRunToolMark> =
+        marksByTool.get(mark.toolName) || [];
+      forTool.push(mark);
+      marksByTool.set(mark.toolName, forTool);
+    }
+
+    let hasLapsed: boolean = false;
+
+    for (const tool of list.tools) {
+      const status: ExternalMcpToolReadOnlyStatus =
+        getExternalMcpToolReadOnlyStatus({
+          tool: describeMcpToolForStatus(tool),
+          marks: marksByTool.get(tool.name),
+        });
+
+      state.statuses.set(tool.name, status);
+
+      if (status === ExternalMcpToolReadOnlyStatus.MarkLapsed) {
+        hasLapsed = true;
+      }
+    }
+
+    if (hasLapsed) {
+      await this.recordToolsRead(state, list);
+    }
+  }
+
+  private async readMarks(state: ServerState): Promise<Array<McpRunToolMark>> {
+    const serverId: ObjectID | undefined = state.server.id || undefined;
+
+    if (!serverId) {
+      return [];
+    }
+
+    try {
+      if (this.options.readMarks) {
+        return await this.options.readMarks(state.server);
+      }
+
+      return await ExternalMcpToolReadOnlyMarkService.findMarksOfServer({
+        projectId: this.options.projectId,
+        externalMcpServerId: serverId,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not read the read-only marks of MCP server ${serverId.toString()}; treating none of its tools as marked: ${error}`,
+      );
+
+      return [];
+    }
+  }
+
+  /*
+   * What the run read of a server whose marked tool changed, kept on its
+   * record as a connection test keeps it, so its page says which mark no
+   * longer holds. Once a run, and never a failure of the run's own.
+   */
+  private async recordToolsRead(
+    state: ServerState,
+    list: McpToolList,
+  ): Promise<void> {
+    if (!state.server.id || !state.handshake) {
+      return;
+    }
+
+    const handshake: McpServerHandshake = state.handshake;
+    const tools: Array<ExternalMcpServerTool> =
+      ExternalMcpServerCheck.toStoredTools(list.tools);
+
+    try {
+      await ExternalMcpServerCheck.recordConnection({
+        serverId: state.server.id,
+        check: {
+          isConnected: true,
+          message: ExternalMcpServerCheck.describeConnected({
+            handshake,
+            tools,
+          }),
+          transport: handshake.transport,
+          serverName: handshake.serverTitle || handshake.serverName,
+          serverVersion: handshake.serverVersion,
+          protocolVersion: handshake.protocolVersion,
+          tools,
+          toolsLeftOut: list.leftOut,
+          durationInMs: 0,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not record the tools read of MCP server ${state.server.id.toString()}: ${error}`,
+      );
     }
   }
 

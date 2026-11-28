@@ -225,16 +225,15 @@ Når arbeidstiden slutter, stopper en tidsplan gjennom kontoens tilkobling hver 
 En tidsplan stopper aldri produksjon, og aldri en ressurs der ingenting sier hvilket miljø den er i. En ressurs er kjent for ikke å være produksjon når:
 
 - en av taggene sier det, under en nøkkel som `environment`, `env`, `stage`, `tier` eller `deployment.environment`, med et ord som `dev`, `test`, `qa`, `staging` eller `sandbox`;
-- kontoen er merket som **Ikke-produksjon** under **Miljø** i kontoens **Innstillinger**;
-- eller en av etikettene sier det, for eksempel `Staging` eller `env: dev`.
+- eller kontoen er merket som **Ikke-produksjon** under **Miljø** i kontoens **Innstillinger**.
 
-Produksjon vinner: En tagg som sier `prod`, `production` eller `live`, eller en konto merket som **Produksjon**, holder en ressurs kjørende uansett hva annet sier. Navnet på en ressurs leses aldri for dette. Slår du av en tidsplan, stopper den ingenting mer og starter det den stoppet når arbeidstiden begynner; sletter du den, startes det den stoppet, med en gang.
+En OneUptime-etikett gjør aldri en ressurs til ikke-produksjon for en tidsplan. Får en etikett nytt navn, endres hver ressurs som har den, på én gang, så en etikett som `Staging` eller `env: dev` leses bare der en person godkjenner endringen, slik som ved **Bruk**. Produksjon vinner: En tagg som sier `prod`, `production` eller `live`, en konto merket som **Produksjon**, eller en etikett som `Production` eller `env: prod` holder en ressurs kjørende uansett hva annet sier. Navnet på en ressurs leses aldri for dette. Hvert stopp leser ressursen på nytt rett før det gjøres. Slår du av en tidsplan, stopper den ingenting mer og starter det den stoppet når arbeidstiden begynner; sletter du den, startes det den stoppet, med en gang.
 
 ## AI-regler for besparelser
 
 Med **Aktiver AI** slått på foreslår OneUptime AI etter hver lesing av kontoens besparelser hver besparelse den kan gjennomføre, for ressursens eiere, og de godkjenner eller avviser den under **Venter på godkjenning**. Under **Sky → Innstillinger → AI-regler for besparelser** sier en regel hva OneUptime AI gjør med besparelsene den passer på, etter type endring, ressursens miljø og skyen: **Av**, **Foreslå for eieren** eller **Handle uten å spørre**, opp til en månedlig grense. Uten regel foreslås hver besparelse, og ingen gjennomføres; med regler bare det en regel passer på, og mellom regler som passer, vinner den mest forsiktige.
 
-En regel handler bare uten å spørre på en ressurs som er kjent for ikke å være produksjon, bare for en endring som kan angres, bare opp til den laveste grensen blant reglene som passer, og høyst 10 ganger i timen i et prosjekt: Alt annet foreslås. En endring gjort uten å spørre står på tidslinjene med regelen som gjorde den, og eierne kan angre den. En avvist eller angret besparelse foreslås ikke igjen på 30 dager.
+En regel handler bare uten å spørre på en ressurs som er kjent for ikke å være produksjon slik en tidsplan leser det, ut fra taggene eller kontoen og aldri ut fra etikettene alene, bare for en endring som kan angres, bare opp til den laveste grensen blant reglene som passer, og høyst 10 ganger i timen i et prosjekt: Alt annet foreslås. Ressursen leses på nytt rett før endringen gjøres, og en som innen da ikke lenger er kjent for ikke å være produksjon, foreslås i stedet. En endring gjort uten å spørre står på tidslinjene med regelen som gjorde den, og eierne kan angre den. En avvist eller angret besparelse foreslås ikke igjen på 30 dager.
 
 ## Budsjetter
 
@@ -381,7 +380,7 @@ En Slack- eller Microsoft Teams-kanal får en kort melding: summen og endringen,
 
 - Personer og team i prosjektet får den på e-post, gjennom varslingsinnstillingene sine, der hver person kan slå av skykostnadsrapporter. Hver person får tallene de kan lese: den som har tilgang begrenset av etiketter, får bare sine kontoer, og den som ikke lenger kan lese prosjektets skykostnader, utelates.
 - **E-postadresser** utenfor prosjektet, for eksempel regnskapsførerens, og Slack- og Microsoft Teams-kanaler krever tillatelsen Skyadministrator, eller Prosjektadministrator eller Prosjekteier, fordi OneUptime ikke kan vite hvem som leser dem. De får rapporten slik personen som la dem til, kan lese den, og slutter å få den hvis personen mister tillatelsen. En API-nøkkel kan ikke angi dem.
-- Den som kan opprette de andre Sky-postene, fra Skymedlem og opp, kan opprette, endre og slette rapporter. En Skyleser kan lese dem.
+- Den som kan opprette de andre Sky-postene, fra Skymedlem og opp, kan opprette, endre og slette rapporter. Den som har Sky på nivået Leser, kan lese dem.
 
 En rapport går til høyst 200 personer, 25 adresser og 10 kanaler av hvert slag. **Siste utsendelse** viser når den sist ble sendt, og hvem den utelot og hvorfor.
 
@@ -481,7 +480,11 @@ OneUptime gjør bare endringer i ett trinn: En forpliktelse, eller en anbefaling
 :::
 
 :::details En tidsplan lar en ressurs kjøre
-**Se ressurser** sier hvorfor: Den er produksjon, ingenting sier at den ikke er produksjon, eller kontoens tilkobling tillater ikke besparelseshandlinger. Tagg den, for eksempel `environment` = `dev`, eller merk kontoen som **Ikke-produksjon**.
+**Se ressurser** sier hvorfor: Den er produksjon, ingenting sier at den ikke er produksjon, bare etikettene sier det, eller kontoens tilkobling tillater ikke besparelseshandlinger. Tagg den i skyen din, for eksempel `environment` = `dev`, eller merk kontoen som **Ikke-produksjon**.
+:::
+
+:::details En regel foreslår en endring den tidligere gjorde uten å spørre
+Kortet sier hvorfor. En regel gjør bare en endring uten å spørre på en ressurs som taggene eller kontoen sier ikke er produksjon: En som bare etikettene kaller ikke-produksjon, foreslås for eierne i stedet. Tagg den i skyen din, for eksempel `environment` = `dev`, eller merk kontoen som **Ikke-produksjon**.
 :::
 
 :::details En prognose har ikke noe sannsynlig spenn

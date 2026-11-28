@@ -148,6 +148,12 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   [PROJECT_SETTINGS]: [
     "A role that changes the project.",
     "On OneUptime Cloud, the plan that includes a setting.",
+    /*
+     * A list's pill for a monitor (#11021), drawn from "Same name as another
+     * {{kind}}" (TwinMarkWords): no key of its own, so each translation
+     * writes it as its Dashboard draws it for a monitor.
+     */
+    "Same name as another monitor",
   ],
   [BILLING]: [
     "OneUptime Cloud.",

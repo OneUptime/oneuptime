@@ -376,9 +376,9 @@ curl https://oneuptime.com/mcp/tools
 
 對其中一些操作，詢問 AI 會在每種模式下先以卡片詢問人，卡片會說明會變更什麼、什麼會停止運作，以及成本是什麼：對資料儲存區執行回應、**不敏感**、**接受風險**、**不是問題**、變更資料儲存區的擁有者、儲存規則、決定提議、有項目在讀取的清除，以及在會因嚴重問題呼叫某人的專案中執行 **確認**。此伺服器無法向你顯示這張卡片，因此會拒絕這些操作、說明原因，並指出你在 OneUptime 中進行變更的頁面。沒有卡片就絕不會執行。
 
-建立、更新和刪除工具也遵循相同的規定，無論是透過 OAuth 登入的用戶端還是 API 金鑰，也無論其權限為何：進行其中任一變更的寫入都會以相同的措辭被拒絕，並指出同一個頁面。`update_data_security_issue` 不會將 `status` 設為 `Accepted` 或 `Not an issue`，`update_data_store_finding` 不會開啟 `isSuppressed`，在會因嚴重問題呼叫某人的專案中也不會開啟 `isConfirmed`，而 `create_residency_rule` 不會儲存任何規則。對於 OneUptime AI 無論其規則為何都會先詢問人的變更，這些工具同樣不會進行：在 `disabledDataTypeIds` 中關閉的資料類型、在 `scanExclusions` 中排除在資料儲存區掃描之外的位置，或無需任何人核准就遏制威脅或對資料儲存區執行回應的安全劇本步驟。
+建立、更新和刪除工具也遵循相同的規定，無論是透過 OAuth 登入的用戶端還是 API 金鑰，也無論其權限為何：進行其中任一變更的寫入都會以相同的措辭被拒絕，並指出同一個頁面。`update_data_security_issue` 不會將 `status` 設為 `Accepted` 或 `Not an issue`，`update_data_store_finding` 不會開啟 `isSuppressed`，在會因嚴重問題呼叫某人的專案中也不會開啟 `isConfirmed`，而 `create_residency_rule` 不會儲存任何規則。對於 OneUptime AI 無論其規則為何都會先詢問人的變更，這些工具同樣不會進行：在 `disabledDataTypeIds` 中關閉的資料類型、在 `scanExclusions` 中排除在資料儲存區掃描之外的位置，或無需任何人核准就遏制威脅或對資料儲存區執行回應的安全劇本步驟。此外，`update_label` 不會把表示正式環境的標籤（例如 `Production` 或 `env: prod`）重新命名為不表示正式環境的名稱，`delete_label` 也不會刪除這樣的標籤：這樣的標籤會讓帶有它的雲端資源不受非上班時間排程和不經詢問即執行的 AI 規則影響，拒絕時會指出進行變更的 **專案設定 → 基礎 → 標籤**。
 
-其他所有寫入都照常進行：重新開啟、指派或解決問題，將發現重新標記為敏感，重新命名或關閉規則，重新啟用資料類型。`oneuptime_describe_resource` 會說明資源的哪些寫入會被拒絕，並告訴代理程式不要重試被拒絕的寫入，也不要換一種方式進行。
+其他所有寫入都照常進行：重新開啟、指派或解決問題，將發現重新標記為敏感，重新命名或關閉規則，重新啟用資料類型，重新命名或刪除其他任何標籤。`oneuptime_describe_resource` 會說明資源的哪些寫入會被拒絕，並告訴代理程式不要重試被拒絕的寫入，也不要換一種方式進行。
 
 其他操作會以你透過 OAuth 登入的身分執行：專案 API 金鑰無法使用它們，只能使用不會變更任何內容的那兩個。在自架伺服器上，`MCP_READ_ONLY=true` 只會保留不會變更任何內容的工具，而 `MCP_ALLOW_DESTRUCTIVE=false` 會拒絕移除資料儲存區的擁有者，因為這會刪除他們。
 

@@ -21,7 +21,6 @@ import StorageArrayResourceService, {
   CRITICAL_HARDWARE_STATUSES,
   HARDWARE_KINDS,
   getHardwareKinds,
-  getUnhealthyHardwareStatuses,
   ParsedStorageArrayResource,
   StorageArrayInventorySummary,
   UNHEALTHY_HARDWARE_STATUSES,

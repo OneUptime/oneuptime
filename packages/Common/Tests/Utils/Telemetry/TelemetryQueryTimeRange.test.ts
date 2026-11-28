@@ -288,12 +288,14 @@ describe("TelemetryQueryTimeRange", () => {
        * Pin the on-disk shape. It is FLAT — `{_type, startValue, endValue}`,
        * with no `value` wrapper and no `{_type:"DateTime"}` tagging of the
        * bounds. Any fixture that models it otherwise deserializes to an empty
-       * InBetween and silently asserts nothing.
+       * InBetween and silently asserts nothing. A check's window leaves out
+       * its end (#11334), and says so beside them.
        */
       expect(stored["time"]).toEqual({
         _type: "InBetween",
         startValue: evaluated.startValue.toISOString(),
         endValue: evaluated.endValue.toISOString(),
+        includesEnd: false,
       });
 
       const restored: JSONObject = JSONFunctions.deserialize(stored);
@@ -313,6 +315,39 @@ describe("TelemetryQueryTimeRange", () => {
         evaluated.startValue.getTime(),
       );
       expect(recovered!.endValue.getTime()).toBe(evaluated.endValue.getTime());
+      // Still the check's window: its end left out, as the check read it.
+      expect(recovered!.includesEnd).toBe(false);
+    });
+
+    test("a window that holds both ends, stored or plain, is recovered holding both", () => {
+      const start: Date = new Date("2026-11-27T10:00:07.000Z");
+      const end: Date = new Date("2026-11-27T10:01:07.000Z");
+
+      for (const value of [
+        new InBetween<string>(start.toISOString(), end.toISOString()),
+        {
+          _type: "InBetween",
+          startValue: start.toISOString(),
+          endValue: end.toISOString(),
+        },
+      ]) {
+        const recovered: InBetween<Date> | null =
+          TelemetryQueryTimeRange.toDateWindow(value);
+
+        expect(recovered!.includesEnd).toBe(true);
+        expect(recovered!.endValue.getTime()).toBe(end.getTime());
+      }
+
+      const plainCheckWindow: InBetween<Date> | null =
+        TelemetryQueryTimeRange.toDateWindow({
+          _type: "InBetween",
+          startValue: start.toISOString(),
+          endValue: end.toISOString(),
+          includesEnd: false,
+        });
+
+      expect(plainCheckWindow!.includesEnd).toBe(false);
+      expect(plainCheckWindow!.startValue).toBeInstanceOf(Date);
     });
 
     test("log monitor: the window is exactly lastXSecondsOfLogs wide", () => {

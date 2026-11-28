@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.",
   "Deleting a database also deletes the endpoints it is reached at.": "Deleting a database also deletes the endpoints it is reached at.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.",
   "True": "True",
   "False": "False",
   "Key": "Key",
@@ -4631,5 +4632,10 @@
   "Only XCP-ng pools that match conditions": "Only XCP-ng pools that match conditions",
   "All savings": "All savings",
   "Only savings that match conditions": "Only savings that match conditions",
-  "XCP-ng Pool": "XCP-ng Pool"
+  "XCP-ng Pool": "XCP-ng Pool",
+  "Same name as another {{kind}}": "Same name as another {{kind}}",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one."
 }

@@ -225,16 +225,15 @@ Choisissez les jours ouvrés, l'heure à laquelle elles démarrent et celle à l
 Un planning n'arrête jamais la production, ni une ressource dont rien n'indique l'environnement. Une ressource est connue comme hors production quand :
 
 - l'une de ses balises le dit, sous une clé comme `environment`, `env`, `stage`, `tier` ou `deployment.environment`, avec un mot comme `dev`, `test`, `qa`, `staging` ou `sandbox` ;
-- son compte est marqué **Hors production** dans **Environnement** des **Paramètres** du compte ;
-- ou l'une de ses étiquettes le dit, par exemple `Staging` ou `env: dev`.
+- ou son compte est marqué **Hors production** dans **Environnement** des **Paramètres** du compte.
 
-La production l'emporte : une balise qui dit `prod`, `production` ou `live`, ou un compte marqué **Production**, garde une ressource en marche, quoi que dise le reste. Le nom d'une ressource n'est jamais lu pour cela. Désactivez un planning et il n'arrête plus rien, et redémarre ce qu'il a arrêté au début de ses heures de travail ; supprimez-le et ce qu'il a arrêté est redémarré aussitôt.
+Une étiquette OneUptime ne rend jamais une ressource hors production pour un planning. Renommer une étiquette change d'un coup chaque ressource qui la porte, donc une étiquette comme `Staging` ou `env: dev` n'est lue que là où une personne approuve la modification, comme avec **Appliquer**. La production l'emporte : une balise qui dit `prod`, `production` ou `live`, un compte marqué **Production**, ou une étiquette comme `Production` ou `env: prod` garde une ressource en marche, quoi que dise le reste. Le nom d'une ressource n'est jamais lu pour cela. Chaque arrêt relit la ressource juste avant d'être effectué. Désactivez un planning et il n'arrête plus rien, et redémarre ce qu'il a arrêté au début de ses heures de travail ; supprimez-le et ce qu'il a arrêté est redémarré aussitôt.
 
 ## Règles IA d'économies
 
 Avec **Activer l'IA** activé, OneUptime AI propose aux propriétaires de la ressource chaque économie qu'il peut réaliser, après chaque lecture des économies du compte, et ils l'approuvent ou la refusent dans **En attente d'approbation**. Dans **Cloud → Paramètres → Règles IA d'économies**, une règle dit ce que OneUptime AI fait des économies auxquelles elle correspond, selon le type de modification, l'environnement de la ressource et son cloud : **Désactivé**, **Proposer au propriétaire** ou **Agir sans demander**, jusqu'à une limite mensuelle. Sans règle, chaque économie est proposée et aucune n'est effectuée ; avec des règles, seulement ce à quoi une règle correspond, et entre les règles qui correspondent, la plus prudente l'emporte.
 
-Une règle n'agit sans demander que sur une ressource connue comme hors production, que pour une modification qui peut être annulée, que jusqu'à la plus petite limite des règles qui correspondent, et au plus 10 fois par heure dans un projet : tout le reste est proposé. Une modification effectuée sans demander figure dans les chronologies avec la règle qui l'a effectuée, et ses propriétaires peuvent l'annuler. Une économie refusée ou annulée n'est plus proposée pendant 30 jours.
+Une règle n'agit sans demander que sur une ressource connue comme hors production telle qu'un planning la lit, d'après ses balises ou son compte et jamais d'après ses seules étiquettes, que pour une modification qui peut être annulée, que jusqu'à la plus petite limite des règles qui correspondent, et au plus 10 fois par heure dans un projet : tout le reste est proposé. La ressource est relue juste avant que la modification soit effectuée, et une ressource qui n'est plus connue comme hors production d'ici là est proposée à la place. Une modification effectuée sans demander figure dans les chronologies avec la règle qui l'a effectuée, et ses propriétaires peuvent l'annuler. Une économie refusée ou annulée n'est plus proposée pendant 30 jours.
 
 ## Budgets
 
@@ -481,7 +480,11 @@ OneUptime ne fait que des modifications en une étape : un engagement, ou une re
 :::
 
 :::details Un planning laisse une ressource en marche
-**Voir les ressources** dit pourquoi : c'est de la production, rien n'indique que ce n'est pas de la production, ou la connexion de son compte ne permet pas les actions d'économie. Balisez-la, par exemple `environment` = `dev`, ou marquez son compte **Hors production**.
+**Voir les ressources** dit pourquoi : c'est de la production, rien n'indique que ce n'est pas de la production, seules ses étiquettes l'indiquent, ou la connexion de son compte ne permet pas les actions d'économie. Balisez-la dans votre cloud, par exemple `environment` = `dev`, ou marquez son compte **Hors production**.
+:::
+
+:::details Une règle propose une modification qu'elle effectuait sans demander
+Sa carte dit pourquoi. Une règle n'effectue une modification sans demander que sur une ressource que ses balises ou son compte disent hors production : une ressource que seules ses étiquettes disent hors production est proposée à ses propriétaires à la place. Balisez-la dans votre cloud, par exemple `environment` = `dev`, ou marquez son compte **Hors production**.
 :::
 
 :::details Une prévision n'a pas de fourchette probable

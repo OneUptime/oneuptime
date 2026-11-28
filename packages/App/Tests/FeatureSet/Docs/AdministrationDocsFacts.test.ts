@@ -1957,6 +1957,60 @@ describe("Project Settings", () => {
     );
   });
 
+  /*
+   * #11020 and #11021: the card links an OpenStack budget to its cloud's
+   * Spend page and a workspace summary to its Summary tab, and says AI
+   * agents have no page; every list of a kind the setting holds marks its
+   * twins, with the day each was made - each as the product does it.
+   */
+  it("says where the card opens a budget and a summary, that AI agents have none, and that every list marks its twins, as the product does", () => {
+    const unique: string = section(page, "## Unique names");
+    const recordPages: string = readDashboardSource(
+      "Components/UniqueNames/RecordPages.ts",
+    );
+    const words: string = readCommonSource(
+      "UI/Components/ModelTable/TwinMarkWords.ts",
+    );
+
+    // A budget opens on its cloud's Spend page.
+    expect(recordPages).toContain(
+      "return { page: PageMap.OPENSTACK_CLOUD_VIEW_SPEND, modelId: cloudId };",
+    );
+    expect(readDashboardSource("Pages/OpenStack/View/Spend.tsx")).toContain(
+      "<OpenStackBudgetsCard",
+    );
+    expect(unique).toContain(
+      "An OpenStack budget opens on its cloud's **Spend** page",
+    );
+
+    // A summary on the Summary tab of its workspace's page.
+    expect(
+      readDashboardSource("Components/Workspace/WorkspaceSummaryTab.ts"),
+    ).toContain('WORKSPACE_SUMMARY_TAB_NAME: string = "Summary"');
+    expect(unique).toContain(
+      "a workspace summary on the **Summary** tab of its Slack, Microsoft Teams or Mattermost page",
+    );
+
+    // AI agents have no page, and the card says so.
+    expect(recordPages).toContain(
+      "AIAgent: { noPage: AI_AGENTS_HAVE_NO_PAGE }",
+    );
+    expect(unique).toContain(
+      "AI agents have no page in the dashboard, so the card names them without a link and says so.",
+    );
+
+    // Every list marks its twins, keyed off the decorator, with the day each was made.
+    expect(words).toContain('"Same name as another {{kind}}"');
+    expect(
+      readCommonSource("UI/Components/ModelTable/BaseModelTable.tsx"),
+    ).toContain("const twinMarks: TwinMarks = useTwinMarks({");
+    expect(unique).toContain(
+      "Each kind's own list marks those records too, with **Same name as another monitor**",
+    );
+    expect(unique).toContain("and the day each was made");
+    expect(unique).toContain("A list marks only the records you can open.");
+  });
+
   it("names the label form's fields, and the plan labels need", () => {
     const labels: string = readDashboardSource("Pages/Settings/Labels.tsx");
 

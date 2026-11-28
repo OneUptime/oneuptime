@@ -63,7 +63,9 @@ flowchart LR
 
 Den är påslagen i ett nytt projekt. Ett projekt som fanns sedan tidigare behåller den avslagen, eftersom projektets API-klienter och Terraform-konfigurationer kan räkna med namn som upprepas: slå på den när du är redo.
 
-Under brytaren listar kortet varje namn som projektet redan har mer än en gång, slag för slag, med en länk till varje post och dagen den skapades. Att slå på brytaren avvisar inget som redan finns: de posterna fortsätter att fungera tills någon byter namn på dem, och bara en ny post eller ett namnbyte behöver ett eget namn. Att spara en post med sitt eget namn igen, oavsett versaler, är inget namnbyte.
+Under brytaren listar kortet varje namn som projektet redan har mer än en gång, slag för slag, med en länk till varje post och dagen den skapades. En OpenStack-budget öppnas på sitt molns sida **Utgifter**, och en sammanfattning för en arbetsyta på fliken **Sammanfattning** på dess Slack-, Microsoft Teams- eller Mattermost-sida. AI-agenter har ingen sida i instrumentpanelen, så kortet nämner dem utan länk och säger det. Att slå på brytaren avvisar inget som redan finns: de posterna fortsätter att fungera tills någon byter namn på dem, och bara en ny post eller ett namnbyte behöver ett eget namn. Att spara en post med sitt eget namn igen, oavsett versaler, är inget namnbyte.
+
+Listan för varje slag märker också de posterna, med **Samma namn som en annan post av typen monitor** (eller mall, nyckel och så vidare) och dagen var och en skapades, och säger ovanför listan hur många de är. En lista märker bara de poster som du kan öppna.
 
 Vad brytaren än säger varnar ett formulär medan du skriver ett namn som en annan post av samma slag redan har, och länkar till den posten. Så länge brytaren är påslagen säger varningen också att det skulle avvisas att spara.
 

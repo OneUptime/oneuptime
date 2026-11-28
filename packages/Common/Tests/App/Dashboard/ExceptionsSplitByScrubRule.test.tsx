@@ -15,6 +15,7 @@ import {
   fireEvent,
   render,
   RenderResult,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -27,7 +28,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * split one, whose page offers Merge Exceptions. Only projects whose scrub
  * rules split exceptions have any, so the list counts them once as it opens
  * and shows the toggle beside Assigned to me only while there are some, or
- * while a link or a saved view asks for it.
+ * while a link or a saved view asks for it. Its figure is the list's own
+ * (#11116): how many of what the list shows - in its status, its time
+ * window and its filters - turning it on lists.
  *
  * The real ExceptionsViewer runs with TelemetryViewer and the saved-views
  * control captured and the data layer mocked: the toolbar is drawn on its
@@ -127,7 +130,12 @@ jest.mock("../../../UI/Utils/Telemetry/UseTelemetryEntityNames", () => {
 
 import ExceptionsViewer from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionsViewer";
 import { EXCEPTION_LIST_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionListRead";
-import { SPLIT_FINGERPRINT_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionSplitPairs";
+import {
+  SPLIT_FINGERPRINT_SELECT,
+  forgetRememberedSplitExceptions,
+  getSplitExceptionsHintKey,
+  rememberSplitExceptions,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionSplitPairs";
 import { NO_MATCH_FINGERPRINT } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionsAttributeScope";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
@@ -136,12 +144,16 @@ import NotNull from "../../../Types/BaseDatabase/NotNull";
 import ObjectID from "../../../Types/ObjectID";
 import TelemetrySavedViewState from "../../../Types/Telemetry/TelemetrySavedViewState";
 import TimeRange from "../../../Types/Time/TimeRange";
+import LocalStorage from "../../../UI/Utils/LocalStorage";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 
 const NOW: Date = new Date("2026-11-24T12:00:00.000Z");
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
+);
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "33333333-3333-4333-8333-333333333333",
 );
 const ME: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
 const SERVICE_ID: ObjectID = new ObjectID(
@@ -161,6 +173,7 @@ const SPLIT_FINGERPRINTS: Array<string> = [
 const SPLIT_FILTER: string = "split=scrub-rule";
 const TOGGLE_TEST_ID: string = "exceptions-split-by-scrub-rule";
 const COUNT_TEST_ID: string = "exceptions-split-by-scrub-rule-count";
+const PENDING_TEST_ID: string = "exceptions-split-by-scrub-rule-count-pending";
 const ASSIGNED_TEST_ID: string = "exceptions-assigned-to-me";
 
 interface Deferred {
@@ -182,6 +195,16 @@ function defer(): Deferred {
  */
 let splitCount: number | Error = 3;
 let splitCountGate: Deferred | null = null;
+/*
+ * How many of the list's own exceptions a scrub rule split - the toggle's
+ * figure (#11116): a number, a failure, or worked out from the list's
+ * query. When the gate is set, each such count waits for it.
+ */
+let listSplitCount:
+  | number
+  | Error
+  | ((query: Record<string, unknown>) => number) = 2;
+let listSplitCountGate: Deferred | null = null;
 // When set, the fingerprints of the split ones wait for it.
 let fingerprintGate: Deferred | null = null;
 let fingerprintReadFails: boolean = false;
@@ -265,10 +288,34 @@ function splitCounts(): Array<Record<string, unknown>> {
   return countQueries().filter(isSplitCount);
 }
 
-// The Error Class facet's counts: one per class, from the list's query.
+/*
+ * The toggle's figure: the list's own query with the split filter on - not
+ * the project's count, nor an Error Class count (one class, as a word).
+ */
+function isListSplitCount(query: Record<string, unknown>): boolean {
+  return (
+    !isSplitCount(query) &&
+    query["splitFromTelemetryExceptionId"] instanceof NotNull &&
+    typeof query["errorClass"] !== "string"
+  );
+}
+
+function listSplitCounts(): Array<Record<string, unknown>> {
+  return countQueries().filter(isListSplitCount);
+}
+
+function lastListSplitCount(): Record<string, unknown> {
+  const counts: Array<Record<string, unknown>> = listSplitCounts();
+  return counts[counts.length - 1]!;
+}
+
+/*
+ * The Error Class facet's counts: one per class, from the list's query, each
+ * naming its class as a word (the list's own carries the lens's clause).
+ */
 function errorClassCounts(): Array<Record<string, unknown>> {
   return countQueries().filter((query: Record<string, unknown>): boolean => {
-    return "errorClass" in query;
+    return typeof query["errorClass"] === "string";
   });
 }
 
@@ -384,6 +431,19 @@ async function drawnToggle(): Promise<DrawnToggle> {
   });
 }
 
+// The toggle as the toolbar draws it now, kept apart from the page.
+async function toggleElement(): Promise<HTMLElement | null> {
+  return await inToolbar((toolbar: HTMLElement): HTMLElement | null => {
+    const toggle: HTMLElement | null = byTestId(toolbar, TOGGLE_TEST_ID);
+    return toggle ? (toggle.cloneNode(true) as HTMLElement) : null;
+  });
+}
+
+// Whether the toggle holds a figure's room while its figure is counted.
+function isFigurePending(toggle: HTMLElement | null): boolean {
+  return Boolean(toggle?.querySelector(`[data-testid="${PENDING_TEST_ID}"]`));
+}
+
 async function pressSplitToggle(): Promise<void> {
   await inToolbar(async (toolbar: HTMLElement): Promise<void> => {
     const toggle: HTMLElement | null = byTestId(toolbar, TOGGLE_TEST_ID);
@@ -410,6 +470,11 @@ beforeEach(() => {
   controlProps = null;
   splitCount = 3;
   splitCountGate = null;
+  listSplitCount = 2;
+  listSplitCountGate = null;
+  // Each test is a page load in a browser that has seen no project before.
+  forgetRememberedSplitExceptions();
+  window.localStorage.clear();
   fingerprintGate = null;
   fingerprintReadFails = false;
   scopeFingerprints = [];
@@ -463,6 +528,18 @@ beforeEach(() => {
       return splitCount;
     }
 
+    if (isListSplitCount(query)) {
+      if (listSplitCountGate) {
+        await listSplitCountGate.promise;
+      }
+      if (listSplitCount instanceof Error) {
+        throw listSplitCount;
+      }
+      return typeof listSplitCount === "function"
+        ? listSplitCount(query)
+        : listSplitCount;
+    }
+
     return 0;
   });
 
@@ -493,14 +570,14 @@ afterEach(() => {
 });
 
 describe("Split by a scrub rule shows only for a project with split pairs", () => {
-  test("a project with some: the toggle, off, with how many it has", async () => {
+  test("a project with some: the toggle, off, with how many of the list's it narrows to", async () => {
     await openAt("");
 
     const toggle: DrawnToggle = await drawnToggle();
     expect(toggle.isShown).toBe(true);
     expect(toggle.isPressed).toBe(false);
-    expect(toggle.count).toBe("3");
-    expect(toggle.text).toBe("Split by a scrub rule3");
+    expect(toggle.count).toBe("2");
+    expect(toggle.text).toBe("Split by a scrub rule2");
     // Off, the list is every exception, as it always was.
     expect(isNarrowedToSplitOnes(lastListRead())).toBe(false);
   });
@@ -544,14 +621,14 @@ describe("Split by a scrub rule shows only for a project with split pairs", () =
     expect(await drawnToggle()).toEqual({
       isShown: true,
       isPressed: false,
-      count: "3",
-      text: "Split by a scrub rule3",
+      count: "2",
+      text: "Split by a scrub rule2",
     });
     // The count landing reads nothing again.
     expect(listReads()).toHaveLength(1);
   });
 
-  test("it is counted once, by the split column, for the project", async () => {
+  test("whether the project has any is counted once, by the split column, for the project", async () => {
     await openAt("");
 
     expect(splitCounts()).toHaveLength(1);
@@ -620,7 +697,7 @@ describe("pressing it", () => {
 
     const toggle: DrawnToggle = await drawnToggle();
     expect(toggle.isPressed).toBe(true);
-    expect(toggle.count).toBe("3");
+    expect(toggle.count).toBe("2");
   });
 
   test("pressing it again widens the list again, and the address bar forgets it", async () => {
@@ -756,17 +833,33 @@ describe("the chart and the facet counts count what the list lists", () => {
     expect(lastHistogramRead()["fingerprints"]).toEqual(SPLIT_FINGERPRINTS);
   });
 
-  test("a fingerprint read that fails counts nothing, never every exception under the filter", async () => {
+  test("a fingerprint read that fails counts nothing, never every exception under the filter: the chart and the sidebar say why", async () => {
     fingerprintReadFails = true;
 
     await openAt("");
+    const histogramBefore: number = histogramReads().length;
+    const facetsBefore: number = facetReads().length;
     await pressSplitToggle();
 
-    expect(lastHistogramRead()["fingerprints"]).toEqual([NO_MATCH_FINGERPRINT]);
-    expect(lastFacetRead()["fingerprints"]).toEqual([NO_MATCH_FINGERPRINT]);
+    // No chart or facet read with a stand-in for the fingerprints: none at all.
+    expect(histogramReads()).toHaveLength(histogramBefore);
+    expect(facetReads()).toHaveLength(facetsBefore);
+    expect(JSON.stringify(postMock.mock.calls)).not.toContain(
+      NO_MATCH_FINGERPRINT,
+    );
+    // Each says so in its own place, in the server's words, with Try again.
+    expect(viewerProps.histogramError).toEqual({
+      kind: "failed",
+      message: "The split exceptions could not be read",
+    });
+    expect(viewerProps.facetError).toEqual(viewerProps.histogramError);
+    expect(viewerProps.histogramLoading).toBe(false);
+    expect(viewerProps.facetLoading).toBe(false);
+    expect(viewerProps.histogramBuckets).toEqual([]);
     // The list needs none: it is narrowed by its own column, and read once.
     expect(listReads()).toHaveLength(2);
     expect(isNarrowedToSplitOnes(lastListRead())).toBe(true);
+    expect(viewerProps.isLoading).toBe(false);
   });
 
   test("with an attribute filter too, they count what both keep", async () => {
@@ -810,8 +903,8 @@ describe("the address bar", () => {
     expect(await drawnToggle()).toEqual({
       isShown: true,
       isPressed: true,
-      count: "3",
-      text: "Split by a scrub rule3",
+      count: "2",
+      text: "Split by a scrub rule2",
     });
   });
 
@@ -841,6 +934,7 @@ describe("the address bar", () => {
 
   test("a link that asks for it where no pair is left keeps it on, and shows the toggle pressed with 0", async () => {
     splitCount = 0;
+    listSplitCount = 0;
 
     await openAt(`?${SPLIT_FILTER}`);
 
@@ -861,8 +955,9 @@ describe("the address bar", () => {
     expect((await drawnToggle()).isShown).toBe(false);
   });
 
-  test("a link that asks for it while the count fails or runs shows it pressed, without a count", async () => {
+  test("a link that asks for it while the counts fail shows it pressed, without a figure", async () => {
     splitCount = new Error("Server Error");
+    listSplitCount = new Error("Server Error");
 
     await openAt(`?${SPLIT_FILTER}`);
 
@@ -872,21 +967,28 @@ describe("the address bar", () => {
       count: null,
       text: "Split by a scrub rule",
     });
+    expect(isFigurePending(await toggleElement())).toBe(false);
+  });
 
-    cleanup();
-    splitCount = 4;
-    splitCountGate = defer();
+  test("a link that asks for it while the counts run keeps a figure's room, then shows the list's figure", async () => {
+    splitCount = new Error("Server Error");
+    listSplitCount = 4;
+    listSplitCountGate = defer();
+
     await openAt(`?${SPLIT_FILTER}`);
 
     expect((await drawnToggle()).count).toBeNull();
     expect((await drawnToggle()).isPressed).toBe(true);
+    expect(isFigurePending(await toggleElement())).toBe(true);
 
     await act(async () => {
-      splitCountGate!.resolve();
+      listSplitCountGate!.resolve();
     });
     await settle();
 
+    // The project's count failed; the list's figure is the list's.
     expect((await drawnToggle()).count).toBe("4");
+    expect(isFigurePending(await toggleElement())).toBe(false);
   });
 });
 
@@ -1024,5 +1126,544 @@ describe("saved views keep it as they keep Assigned to me", () => {
     cleanup();
     await openAt("?savedView=view-split-pairs");
     expect((await drawnControl()).initialStateOverrides).toBeUndefined();
+  });
+});
+
+// Picks a status pill (Unresolved, Resolved, Archived), as a reader does.
+async function pickStatus(label: string): Promise<void> {
+  await inToolbar(async (toolbar: HTMLElement): Promise<void> => {
+    const pill: HTMLButtonElement | undefined = Array.from(
+      toolbar.querySelectorAll("button"),
+    ).find((button: HTMLButtonElement): boolean => {
+      return button.textContent === label;
+    });
+    expect(pill).toBeDefined();
+    await act(async () => {
+      fireEvent.click(pill!);
+    });
+  });
+  await settle();
+}
+
+// Where the toggle sits: right after Assigned to me, with the Sort menu after it.
+async function expectInItsPlace(): Promise<void> {
+  await inToolbar((toolbar: HTMLElement): void => {
+    const assigned: HTMLElement = byTestId(toolbar, ASSIGNED_TEST_ID)!;
+    const split: HTMLElement | null = byTestId(toolbar, TOGGLE_TEST_ID);
+    const sort: HTMLElement = byTestId(toolbar, "exceptions-sort")!;
+
+    expect(split).not.toBeNull();
+    expect(assigned.nextElementSibling).toBe(split);
+    const next: Element = split!.nextElementSibling!;
+    expect(next === sort || next.contains(sort)).toBe(true);
+  });
+}
+
+function toggleFigure(toggle: HTMLElement | null): HTMLElement | null {
+  return toggle?.querySelector(`[data-testid="${COUNT_TEST_ID}"]`) || null;
+}
+
+describe("its figure is what turning it on lists (#11116)", () => {
+  test("counted with the list's own query - its status, its time window, its search, Assigned to me - and the filter on", async () => {
+    await openAt(
+      `?status=resolved&assigned=me&search=${encodeURIComponent("cart")}`,
+    );
+
+    const count: Record<string, unknown> = lastListSplitCount();
+    const read: Record<string, unknown> = lastListRead().query;
+
+    expect(count["splitFromTelemetryExceptionId"]).toBeInstanceOf(NotNull);
+    // Off, the list has no split filter; everything else is the list's.
+    expect(read).not.toHaveProperty("splitFromTelemetryExceptionId");
+    const rest: Record<string, unknown> = { ...count };
+    delete rest["splitFromTelemetryExceptionId"];
+    expect(rest).toEqual(read);
+    expect(count["isResolved"]).toBe(true);
+    expect(count["isArchived"]).toBe(false);
+    expect(count["lastSeenAt"]).toBeDefined();
+    expect(String(count["assignToUserId"])).toBe(ME.toString());
+    expect(count["message"]).toBeDefined();
+  });
+
+  test("its figure follows the status and the time range, as the list under it does", async () => {
+    listSplitCount = (query: Record<string, unknown>): number => {
+      if (query["isResolved"] === true) {
+        return 1;
+      }
+      if (query["isArchived"] === true) {
+        return 0;
+      }
+      return "isResolved" in query ? 2 : 3;
+    };
+
+    await openAt("");
+    expect((await drawnToggle()).count).toBe("2");
+
+    await pickStatus("Resolved");
+    expect((await drawnToggle()).count).toBe("1");
+
+    await pickStatus("Unresolved");
+    expect((await drawnToggle()).count).toBe("2");
+
+    // A wider window: counted again, with the list's new window.
+    const before: unknown = lastListSplitCount()["lastSeenAt"];
+    await act(async () => {
+      viewerProps.onTimeRangeChange({ range: TimeRange.PAST_ONE_WEEK });
+    });
+    await settle();
+    expect(lastListSplitCount()["lastSeenAt"]).not.toEqual(before);
+    expect(lastListSplitCount()["lastSeenAt"]).toEqual(
+      lastListRead().query["lastSeenAt"],
+    );
+  });
+
+  test("a status that holds none of the project's pairs keeps the toggle where it is, saying 0", async () => {
+    listSplitCount = (query: Record<string, unknown>): number => {
+      return query["isArchived"] === true ? 0 : 2;
+    };
+
+    await openAt("");
+    await expectInItsPlace();
+
+    await pickStatus("Archived");
+
+    expect(await drawnToggle()).toEqual({
+      isShown: true,
+      isPressed: false,
+      count: "0",
+      text: "Split by a scrub rule0",
+    });
+    await expectInItsPlace();
+  });
+
+  test("pressed, its figure is the list's own total: the count asks what the list reads", async () => {
+    await openAt("");
+
+    await pressSplitToggle();
+
+    const count: Record<string, unknown> = lastListSplitCount();
+    const read: Record<string, unknown> = lastListRead().query;
+
+    expect(read["splitFromTelemetryExceptionId"]).toBeInstanceOf(NotNull);
+    expect(count).toEqual(read);
+  });
+
+  test("while the next figure is counted, the last one stays, dimmed - nothing flickers or moves - then the new one", async () => {
+    listSplitCount = (query: Record<string, unknown>): number => {
+      return query["isResolved"] === true ? 7 : 2;
+    };
+
+    await openAt("");
+    expect((await drawnToggle()).count).toBe("2");
+
+    listSplitCountGate = defer();
+    await pickStatus("Resolved");
+
+    const counting: HTMLElement | null = toggleFigure(await toggleElement());
+    expect(counting?.textContent).toBe("2");
+    expect(counting?.className).toContain("opacity-60");
+    await expectInItsPlace();
+
+    await act(async () => {
+      listSplitCountGate!.resolve();
+    });
+    await settle();
+
+    const counted: HTMLElement | null = toggleFigure(await toggleElement());
+    expect(counted?.textContent).toBe("7");
+    expect(counted?.className).not.toContain("opacity-60");
+  });
+
+  test("counted once for each list the reader asks for, and only once that list's read goes out", async () => {
+    await openAt("");
+    expect(listSplitCounts()).toHaveLength(1);
+
+    await act(async () => {
+      viewerProps.onTimeRangeChange({ range: TimeRange.PAST_ONE_WEEK });
+    });
+    await settle();
+    expect(listSplitCounts()).toHaveLength(2);
+
+    // Pressed: held with the list while the split ones' fingerprints are read.
+    fingerprintGate = defer();
+    await pressSplitToggle();
+    expect(listSplitCounts()).toHaveLength(2);
+
+    await act(async () => {
+      fingerprintGate!.resolve();
+    });
+    await settle();
+    expect(listSplitCounts()).toHaveLength(3);
+    expect(lastListSplitCount()).toEqual(lastListRead().query);
+  });
+
+  test("a project with none is never counted again as its list changes", async () => {
+    splitCount = 0;
+
+    await openAt("");
+    await act(async () => {
+      viewerProps.onTimeRangeChange({ range: TimeRange.PAST_ONE_WEEK });
+    });
+    await settle();
+    await pickStatus("Resolved");
+
+    expect(listSplitCounts()).toHaveLength(0);
+    expect((await drawnToggle()).isShown).toBe(false);
+  });
+
+  test("a figure that cannot be counted is left out, the toggle kept", async () => {
+    listSplitCount = new Error("Server Error");
+
+    await openAt("");
+
+    expect(await drawnToggle()).toEqual({
+      isShown: true,
+      isPressed: false,
+      count: null,
+      text: "Split by a scrub rule",
+    });
+    expect(isFigurePending(await toggleElement())).toBe(false);
+  });
+});
+
+describe("the toggle is drawn with the toolbar, and nothing after it moves (#11116)", () => {
+  test("a project whose toggle showed before is drawn with it at once, its figure's room kept, before any count is in", async () => {
+    rememberSplitExceptions(PROJECT_ID, true);
+    splitCountGate = defer();
+    listSplitCountGate = defer();
+
+    await openAt("");
+
+    expect(isFigurePending(await toggleElement())).toBe(true);
+    await expectInItsPlace();
+
+    await act(async () => {
+      splitCountGate!.resolve();
+      listSplitCountGate!.resolve();
+    });
+    await settle();
+
+    // Where it was, its figure in its room.
+    await expectInItsPlace();
+    expect((await drawnToggle()).count).toBe("2");
+    expect(isFigurePending(await toggleElement())).toBe(false);
+  });
+
+  test("the figure's room is a figure's: the figure itself, unseen and unread, under a quiet bar in the toggle's own colour", async () => {
+    rememberSplitExceptions(PROJECT_ID, true);
+    listSplitCountGate = defer();
+
+    await openAt("");
+
+    await inToolbar((toolbar: HTMLElement): void => {
+      const toggle: HTMLElement = byTestId(toolbar, TOGGLE_TEST_ID)!;
+      const pending: HTMLElement = byTestId(toggle, PENDING_TEST_ID)!;
+
+      expect(pending).toHaveAttribute("aria-hidden", "true");
+      // As wide as a figure: one, in the figure's own font, unseen.
+      expect(pending.className).toContain("font-semibold");
+      expect(pending.className).toContain("tabular-nums");
+      const room: HTMLElement = pending.children[0] as HTMLElement;
+      expect(room).toHaveClass("invisible");
+      expect(room.textContent).toBe("0");
+      const bar: HTMLElement = pending.children[1] as HTMLElement;
+      expect(bar.className).toContain("bg-current");
+      expect(bar.className).toContain("motion-safe:animate-pulse");
+      // Its name is its words alone while it is counted.
+      expect(
+        within(toolbar).getByRole("button", { name: "Split by a scrub rule" }),
+      ).toBe(toggle);
+    });
+  });
+
+  test("remembered for the project's next page load, in the browser, and for that project alone", async () => {
+    await openAt("");
+    expect((await drawnToggle()).isShown).toBe(true);
+    expect(
+      LocalStorage.getItem(getSplitExceptionsHintKey(PROJECT_ID.toString())),
+    ).toBe(true);
+
+    // A new page load: what the page remembered is gone, the browser's is not.
+    cleanup();
+    forgetRememberedSplitExceptions();
+    splitCountGate = defer();
+    listSplitCountGate = defer();
+    await openAt("");
+    expect(isFigurePending(await toggleElement())).toBe(true);
+
+    // Another project: nothing is remembered for it.
+    cleanup();
+    forgetRememberedSplitExceptions();
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(OTHER_PROJECT_ID);
+    await openAt("");
+    expect(await toggleElement()).toBeNull();
+  });
+
+  test("remembered for the visit when the browser keeps nothing, and nothing fails", async () => {
+    // A browser whose storage refuses this list's key, as a private window may.
+    const hintKey: string = getSplitExceptionsHintKey(PROJECT_ID.toString());
+    const getItem: typeof LocalStorage.getItem = LocalStorage.getItem;
+    const setItem: typeof LocalStorage.setItem = LocalStorage.setItem;
+    jest
+      .spyOn(LocalStorage, "getItem")
+      .mockImplementation((key: string): ReturnType<typeof getItem> => {
+        if (key === hintKey) {
+          throw new Error("SecurityError");
+        }
+        return getItem.call(LocalStorage, key);
+      });
+    jest
+      .spyOn(LocalStorage, "setItem")
+      .mockImplementation(
+        (key: string, value: Parameters<typeof setItem>[1]): void => {
+          if (key === hintKey) {
+            throw new Error("QuotaExceededError");
+          }
+          setItem.call(LocalStorage, key, value);
+        },
+      );
+
+    await openAt("");
+    expect((await drawnToggle()).isShown).toBe(true);
+    expect(viewerProps.error).toBeUndefined();
+
+    // Back to the list in the same visit: drawn at once.
+    cleanup();
+    splitCountGate = defer();
+    listSplitCountGate = defer();
+    await openAt("");
+    expect(isFigurePending(await toggleElement())).toBe(true);
+  });
+
+  test("a count that finds none takes it away, and is remembered so", async () => {
+    rememberSplitExceptions(PROJECT_ID, true);
+    splitCount = 0;
+
+    await openAt("");
+    expect((await drawnToggle()).isShown).toBe(false);
+    expect(
+      LocalStorage.getItem(getSplitExceptionsHintKey(PROJECT_ID.toString())),
+    ).toBe(false);
+
+    cleanup();
+    forgetRememberedSplitExceptions();
+    countMock.mockClear();
+    splitCountGate = defer();
+    await openAt("");
+
+    expect(await toggleElement()).toBeNull();
+    expect(listSplitCounts()).toHaveLength(0);
+  });
+
+  test("a count that fails keeps what was remembered", async () => {
+    rememberSplitExceptions(PROJECT_ID, true);
+    splitCount = new Error("Server Error");
+
+    await openAt("");
+
+    expect(await drawnToggle()).toMatchObject({ isShown: true, count: "2" });
+  });
+
+  test("a project never seen draws it once its count says there are some, its figure's room kept until the list's count is in", async () => {
+    splitCountGate = defer();
+    listSplitCountGate = defer();
+
+    await openAt("");
+    expect(await toggleElement()).toBeNull();
+
+    await act(async () => {
+      splitCountGate!.resolve();
+    });
+    await settle();
+    expect(isFigurePending(await toggleElement())).toBe(true);
+    await expectInItsPlace();
+
+    await act(async () => {
+      listSplitCountGate!.resolve();
+    });
+    await settle();
+    expect((await drawnToggle()).count).toBe("2");
+  });
+});
+
+describe("a read of the split ones' fingerprints that fails is read again (#11116)", () => {
+  async function pressedWithAFailedRead(): Promise<void> {
+    fingerprintReadFails = true;
+    await openAt("");
+    await pressSplitToggle();
+    expect(splitFingerprintReads()).toHaveLength(1);
+    expect(viewerProps.histogramError).toBeDefined();
+    fingerprintReadFails = false;
+  }
+
+  test("on the list's next change: each read goes out once, with the fingerprints, and the chart and the sidebar count again", async () => {
+    await pressedWithAFailedRead();
+    const lists: number = listReads().length;
+    const histograms: number = histogramReads().length;
+    const facets: number = facetReads().length;
+
+    await act(async () => {
+      viewerProps.onTimeRangeChange({ range: TimeRange.PAST_ONE_WEEK });
+    });
+    await settle();
+
+    expect(splitFingerprintReads()).toHaveLength(2);
+    expect(viewerProps.histogramError).toBeUndefined();
+    expect(viewerProps.facetError).toBeUndefined();
+    expect(lastHistogramRead()["fingerprints"]).toEqual(SPLIT_FINGERPRINTS);
+    expect(lastFacetRead()["fingerprints"]).toEqual(SPLIT_FINGERPRINTS);
+    expect(listReads()).toHaveLength(lists + 1);
+    expect(histogramReads()).toHaveLength(histograms + 1);
+    expect(facetReads()).toHaveLength(facets + 1);
+  });
+
+  test("on a change of status too", async () => {
+    await pressedWithAFailedRead();
+
+    await pickStatus("Resolved");
+
+    expect(splitFingerprintReads()).toHaveLength(2);
+    expect(lastHistogramRead()["fingerprints"]).toEqual(SPLIT_FINGERPRINTS);
+  });
+
+  test("on Try again in the chart's card", async () => {
+    await pressedWithAFailedRead();
+    const lists: number = listReads().length;
+
+    await act(async () => {
+      viewerProps.onRetryHistogram();
+    });
+    await settle();
+
+    expect(splitFingerprintReads()).toHaveLength(2);
+    expect(viewerProps.histogramError).toBeUndefined();
+    expect(viewerProps.facetError).toBeUndefined();
+    expect(lastHistogramRead()["fingerprints"]).toEqual(SPLIT_FINGERPRINTS);
+    // The list needed none: it is not read again for them.
+    expect(listReads()).toHaveLength(lists);
+  });
+
+  test("on Try again in the sidebar's note", async () => {
+    await pressedWithAFailedRead();
+
+    await act(async () => {
+      viewerProps.onRetryFacets();
+    });
+    await settle();
+
+    expect(splitFingerprintReads()).toHaveLength(2);
+    expect(viewerProps.facetError).toBeUndefined();
+    expect(lastFacetRead()["fingerprints"]).toEqual(SPLIT_FINGERPRINTS);
+  });
+
+  test("when it is turned off and on again", async () => {
+    await pressedWithAFailedRead();
+
+    // Off: the chart counts every exception again, and says nothing of it.
+    await pressSplitToggle();
+    expect(viewerProps.histogramError).toBeUndefined();
+    expect(viewerProps.facetError).toBeUndefined();
+    expect(lastHistogramRead()).not.toHaveProperty("fingerprints");
+
+    await pressSplitToggle();
+    expect(splitFingerprintReads()).toHaveLength(2);
+    expect(lastHistogramRead()["fingerprints"]).toEqual(SPLIT_FINGERPRINTS);
+  });
+
+  test("never again for the same list on its own: a failure is said once, not read in a loop", async () => {
+    await pressedWithAFailedRead();
+
+    await settle();
+    await settle();
+
+    expect(splitFingerprintReads()).toHaveLength(1);
+    expect(viewerProps.histogramError).toBeDefined();
+  });
+
+  test("one that fails again says so again, for the new list, and nothing is read with a stand-in", async () => {
+    await pressedWithAFailedRead();
+    fingerprintReadFails = true;
+
+    await act(async () => {
+      viewerProps.onTimeRangeChange({ range: TimeRange.PAST_ONE_WEEK });
+    });
+    await settle();
+
+    expect(splitFingerprintReads()).toHaveLength(2);
+    expect(viewerProps.histogramError).toEqual({
+      kind: "failed",
+      message: "The split exceptions could not be read",
+    });
+    expect(JSON.stringify(postMock.mock.calls)).not.toContain(
+      NO_MATCH_FINGERPRINT,
+    );
+  });
+
+  test("once they are in, they are kept: the list's next change reads none", async () => {
+    await pressedWithAFailedRead();
+
+    await act(async () => {
+      viewerProps.onTimeRangeChange({ range: TimeRange.PAST_ONE_WEEK });
+    });
+    await settle();
+    await pickStatus("Resolved");
+
+    expect(splitFingerprintReads()).toHaveLength(2);
+  });
+});
+
+describe("Try again, for the list they failed for (#11116)", () => {
+  test("while it reads them, the chart and the sidebar wait for them, and the list is not held or read again", async () => {
+    fingerprintReadFails = true;
+    await openAt("");
+    await pressSplitToggle();
+    fingerprintReadFails = false;
+    const lists: number = listReads().length;
+    fingerprintGate = defer();
+
+    await act(async () => {
+      viewerProps.onRetryHistogram();
+    });
+    await settle();
+
+    expect(viewerProps.histogramLoading).toBe(true);
+    expect(viewerProps.histogramError).toBeUndefined();
+    expect(viewerProps.facetLoading).toBe(true);
+    expect(viewerProps.facetError).toBeUndefined();
+    expect(viewerProps.isLoading).toBe(false);
+
+    await act(async () => {
+      fingerprintGate!.resolve();
+    });
+    await settle();
+
+    expect(viewerProps.histogramLoading).toBe(false);
+    expect(lastHistogramRead()["fingerprints"]).toEqual(SPLIT_FINGERPRINTS);
+    expect(listReads()).toHaveLength(lists);
+  });
+
+  test("one that fails again says so again, and Try again is still there", async () => {
+    fingerprintReadFails = true;
+    await openAt("");
+    await pressSplitToggle();
+
+    await act(async () => {
+      viewerProps.onRetryFacets();
+    });
+    await settle();
+
+    expect(splitFingerprintReads()).toHaveLength(2);
+    expect(viewerProps.facetError).toEqual({
+      kind: "failed",
+      message: "The split exceptions could not be read",
+    });
+    expect(viewerProps.histogramError).toEqual(viewerProps.facetError);
+    expect(viewerProps.facetLoading).toBe(false);
+    expect(typeof viewerProps.onRetryFacets).toBe("function");
+    expect(JSON.stringify(postMock.mock.calls)).not.toContain(
+      NO_MATCH_FINGERPRINT,
+    );
   });
 });

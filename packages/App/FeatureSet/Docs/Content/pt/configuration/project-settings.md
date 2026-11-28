@@ -63,7 +63,9 @@ flowchart LR
 
 Ele vem ativado em um projeto novo. Um projeto que já existia antes o mantém desativado, porque os clientes da API e as configurações do Terraform do projeto podem depender de nomes que se repetem: ative-o quando estiver pronto.
 
-Abaixo do botão, o cartão lista cada nome que o projeto já tem mais de uma vez, tipo por tipo, com um link para cada registro e o dia em que ele foi criado. Ativar o botão não recusa nada do que existe: esses registros continuam funcionando até que alguém os renomeie, e só um registro novo ou uma renomeação precisa de um nome próprio. Salvar um registro de novo com o próprio nome, com quaisquer maiúsculas, não é uma renomeação.
+Abaixo do botão, o cartão lista cada nome que o projeto já tem mais de uma vez, tipo por tipo, com um link para cada registro e o dia em que ele foi criado. Um orçamento do OpenStack abre na página **Gastos** da sua nuvem, e um resumo de espaço de trabalho na aba **Resumo** da sua página do Slack, do Microsoft Teams ou do Mattermost. Os agentes de IA não têm página no painel, então o cartão os nomeia sem link e avisa isso. Ativar o botão não recusa nada do que existe: esses registros continuam funcionando até que alguém os renomeie, e só um registro novo ou uma renomeação precisa de um nome próprio. Salvar um registro de novo com o próprio nome, com quaisquer maiúsculas, não é uma renomeação.
+
+A própria lista de cada tipo também marca esses registros, com **Mesmo nome que outro item do tipo monitor** (ou modelo, chave etc.) e o dia em que cada um foi criado, e diz acima da lista quantos são. Uma lista marca só os registros que você pode abrir.
 
 Seja qual for a posição do botão, um formulário avisa enquanto você digita um nome que outro registro do mesmo tipo já tem, com um link para esse registro. Enquanto o botão está ativado, o aviso também diz que salvar seria recusado.
 
