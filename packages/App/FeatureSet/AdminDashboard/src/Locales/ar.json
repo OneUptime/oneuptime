@@ -4637,5 +4637,14 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "يحمل سجل آخر ({{kind}}) في هذا المشروع هذا الاسم، لذا لا يمكن التمييز بينهما في أدوات الاختيار. افتح كلًّا منهما لتعرف الفرق بينهما، ثم غيّر اسم أحدهما.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} سجل ({{kind}}) يحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينهما في أدوات الاختيار. افتح كلًّا منهما لتعرف الفرق بينهما، ثم غيّر اسم أحدهما.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} من {{kinds}} تحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينها في أدوات الاختيار. افتح كلًّا منها لتعرف الفرق بينها، ثم غيّر اسم أحدها.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} سجل ({{kind}}) يحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينهما في أدوات الاختيار. افتح كلًّا منهما لتعرف الفرق بينهما، ثم غيّر اسم أحدهما."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} سجل ({{kind}}) يحمل اسم سجل آخر ({{kind}})، ولا يمكن التمييز بينهما في أدوات الاختيار. افتح كلًّا منهما لتعرف الفرق بينهما، ثم غيّر اسم أحدهما.",
+  "{{first}} and {{second}}": "{{first}} و{{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}، {{second}} و{{third}}",
+  "{{first}} or {{second}}": "{{first}} أو {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}} أو {{second}} أو {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "إذنك مقصور على {{items}} التي تحمل التسمية {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "إذنك مقصور على {{items}} التي تحمل تسميات معيّنة.",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "يحظر فريق أنت عضو فيه هذا الإجراء على {{items}} التي تحمل التسمية {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "يحظر فريق أنت عضو فيه هذا الإجراء على {{items}} التي تحمل تسميات معيّنة.",
+  "Your permissions do not reach this {{itemName}}.": "أذوناتك لا تشمل هذا العنصر ({{itemName}})."
 }

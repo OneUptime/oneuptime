@@ -4637,5 +4637,14 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Un altro elemento di tipo {{kind}} di questo progetto ha questo nome, quindi i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} ha lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} hanno lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} ha lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} ha lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
+  "{{first}} and {{second}}": "{{first}} e {{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}, {{second}} e {{third}}",
+  "{{first}} or {{second}}": "{{first}} o {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}}, {{second}} o {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "La tua autorizzazione è limitata a {{items}} con l'etichetta {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "La tua autorizzazione è limitata a {{items}} con determinate etichette.",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "Un team di cui fai parte blocca questa azione su {{items}} con l'etichetta {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "Un team di cui fai parte blocca questa azione su {{items}} con determinate etichette.",
+  "Your permissions do not reach this {{itemName}}.": "Le tue autorizzazioni non arrivano a questo elemento ({{itemName}})."
 }

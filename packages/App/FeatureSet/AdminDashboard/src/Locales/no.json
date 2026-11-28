@@ -4637,5 +4637,14 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "En annen post av typen {{kind}} i dette prosjektet har dette navnet, så de to kan ikke skilles fra hverandre i velgere. Åpne hver av dem for å se hvilken som er hvilken, og gi så den ene nytt navn.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} har samme navn som en annen post av typen {{kind}}, og de to kan ikke skilles fra hverandre i velgere. Åpne hver av dem for å se hvilken som er hvilken, og gi så den ene nytt navn.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} har samme navn som en annen post av typen {{kind}} og kan ikke skilles fra hverandre i velgere. Åpne hver av dem for å se hvilken som er hvilken, og gi så én av dem nytt navn.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} har samme navn som en annen post av typen {{kind}}, og de to kan ikke skilles fra hverandre i velgere. Åpne hver av dem for å se hvilken som er hvilken, og gi så den ene nytt navn."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} har samme navn som en annen post av typen {{kind}}, og de to kan ikke skilles fra hverandre i velgere. Åpne hver av dem for å se hvilken som er hvilken, og gi så den ene nytt navn.",
+  "{{first}} and {{second}}": "{{first}} og {{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}, {{second}} og {{third}}",
+  "{{first}} or {{second}}": "{{first}} eller {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}}, {{second}} eller {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "Tillatelsen din er begrenset til {{items}} med etiketten {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "Tillatelsen din er begrenset til {{items}} med bestemte etiketter.",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "Et team du er med i, blokkerer dette på {{items}} med etiketten {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "Et team du er med i, blokkerer dette på {{items}} med bestemte etiketter.",
+  "Your permissions do not reach this {{itemName}}.": "Tillatelsene dine når ikke dette elementet ({{itemName}})."
 }
