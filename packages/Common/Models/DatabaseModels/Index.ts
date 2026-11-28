@@ -194,6 +194,8 @@ import IncidentState from "./IncidentState";
 import IncidentStateTimeline from "./IncidentStateTimeline";
 import Form from "./Form";
 import FormSubmission from "./FormSubmission";
+import FormSubmissionFollower from "./FormSubmissionFollower";
+import FormSubmissionMessage from "./FormSubmissionMessage";
 import FormDomain from "./FormDomain";
 import FormPrivateUser from "./FormPrivateUser";
 import FormPrivateUserSession from "./FormPrivateUserSession";
@@ -902,6 +904,8 @@ const AllModelTypes: Array<{
   IncidentPostmortemActionItem,
   Form,
   FormSubmission,
+  FormSubmissionFollower,
+  FormSubmissionMessage,
   FormDomain,
   FormPrivateUser,
   FormPrivateUserSession,

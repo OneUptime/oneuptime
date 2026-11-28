@@ -1225,6 +1225,7 @@ import { AddMonitorProbeableIndex1809187791119 } from "./1809187791119-AddMonito
 import { AddProjectSecurityAccessLogFormat1809187791129 } from "./1809187791129-AddProjectSecurityAccessLogFormat";
 import { AddProbeLastLateDueAt1809187791200 } from "./1809187791200-AddProbeLastLateDueAt";
 import { AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201 } from "./1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds";
+import { AddFormFollowUps1809188000000 } from "./1809188000000-AddFormFollowUps";
 
 export default [
   InitialMigration,
@@ -2454,4 +2455,5 @@ export default [
   AddProjectSecurityAccessLogFormat1809187791129,
   AddProbeLastLateDueAt1809187791200,
   AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201,
+  AddFormFollowUps1809188000000,
 ];

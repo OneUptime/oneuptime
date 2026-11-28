@@ -722,6 +722,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "FormPrivateUserSession",
     "FormSSO",
     "FormSubmission",
+    "FormSubmissionFollower",
+    "FormSubmissionMessage",
   ],
 };
 
