@@ -42,6 +42,15 @@ const ProviderNotes = require("../../Scripts/TerraformProvider/GenerateReleaseNo
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const ACTION = ".github/actions/setup-release-toolchain/action.yml";
 
+/*
+ * Text as a RegExp literal: every character a pattern reads as syntax,
+ * backslashes included, as Common's escapeRegExp does: these plain
+ * JavaScript tests cannot import it.
+ */
+function escapeRegExp(text) {
+  return text.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+}
+
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
 }
@@ -708,7 +717,7 @@ describe("the command line", () => {
       await main(["check"], { out: out.stream, fetchImpl, gh, env: {} }),
     ).toBe(0);
     expect(out.text()).toMatch(
-      new RegExp(`^Go: ${pins.go.replace(/\./g, "\\.")} -> `),
+      new RegExp(`^Go: ${escapeRegExp(pins.go)} -> `),
     );
     expect(calls).toEqual([]);
 

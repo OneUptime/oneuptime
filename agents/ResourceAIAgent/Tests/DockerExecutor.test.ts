@@ -620,6 +620,14 @@ function request(
   };
 }
 
+/*
+ * Test data as a RegExp literal: every metacharacter escaped, the backslash
+ * included, so a container name or glob is matched exactly as written.
+ */
+function escapeRegExp(text: string): string {
+  return text.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+}
+
 function expectRefused(prepared: PrepareResult, pattern: RegExp): string {
   assert.notStrictEqual(prepared.refusal, null, "the command was refused");
   const refusal: string = String(prepared.refusal);
@@ -1660,10 +1668,7 @@ describe("run: a protected object named by its id is still protected", () => {
         responder: engine(RENAMED_AGENTS),
       });
       // The name or glob of the list that protects the service.
-      const protectedBy: string = (protectingPattern || service).replace(
-        /\*/g,
-        "\\*",
-      );
+      const protectedBy: string = escapeRegExp(protectingPattern || service);
 
       // The words name nothing protected: only the engine can tell.
       expectPrepared(built.executor.prepare(request(command)));
@@ -1671,7 +1676,7 @@ describe("run: a protected object named by its id is still protected", () => {
         built,
         await runCommand(built, command),
         new RegExp(
-          `^Refused by the Docker AI agent: docker resolves \\S+ to ${shown}\\. .*would change ${service}, which the Docker AI agent protects \\(${protectedBy}\\)`,
+          `^Refused by the Docker AI agent: docker resolves \\S+ to ${shown}\\. .*would change ${escapeRegExp(service)}, which the Docker AI agent protects \\(${protectedBy}\\)`,
         ),
       );
     }
