@@ -1340,6 +1340,152 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       expect(monitorFindByMock).toHaveBeenCalledTimes(1);
     });
 
+    /*
+     * Issues #11260 and #11266: a person moved the rule's monitor to a
+     * better template, or unlinked it, and the rule must never make the old
+     * template's monitor for the device again - nor fight the person's
+     * choice by putting it back. The monitor keeps the template it was
+     * created from (Monitor.createdFromMonitorTemplateId), which the
+     * snapshot and the shared duplicate rule read.
+     */
+    function movedMonitor(data: {
+      deviceId: ObjectID;
+      linkedTo?: ObjectID | undefined;
+      createdFrom: ObjectID;
+    }): Monitor {
+      const monitor: Monitor = new Monitor();
+      monitor.id = ObjectID.generate();
+      monitor.name = "core-switch-01";
+      monitor.monitorType = MonitorType.NetworkDevice;
+      monitor.autoProvisionedNetworkDeviceId = data.deviceId;
+      monitor.createdFromMonitorTemplateId = data.createdFrom;
+      monitor.monitorSteps = makeMonitorSteps(data.deviceId.toString());
+
+      if (data.linkedTo) {
+        monitor.monitorTemplateId = data.linkedTo;
+      }
+
+      return monitor;
+    }
+
+    const BETTER_TEMPLATE_ID: ObjectID = new ObjectID(
+      "abababab-abab-4bab-8bab-abababababab",
+    );
+
+    it("never makes the rule's template's monitor again for a device whose monitor a person moved to a better template (#11260)", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      monitorFindByMock.mockResolvedValue([
+        movedMonitor({
+          deviceId: existingDevice.id!,
+          linkedTo: BETTER_TEMPLATE_ID,
+          createdFrom: TEMPLATE_ID,
+        }),
+      ]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 1,
+        monitorsFailed: 0,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+      // Settled by the project's snapshot: no read of the device's own.
+      expect(monitorFindByMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("never puts back a monitor a person unlinked from the rule's template (#11266)", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      monitorFindByMock.mockResolvedValue([
+        movedMonitor({
+          deviceId: existingDevice.id!,
+          createdFrom: TEMPLATE_ID,
+        }),
+      ]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+    });
+
+    it("finds the moved monitor among the device's own when the snapshot does not settle it, on a dry run too", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      const moved: Monitor = movedMonitor({
+        deviceId: existingDevice.id!,
+        linkedTo: BETTER_TEMPLATE_ID,
+        createdFrom: TEMPLATE_ID,
+      });
+      // A person moved it to watch another device as well: no snapshot key.
+      moved.monitorSteps = makeMonitorSteps("99999999-9999-4999-8999-999999999999");
+
+      mockRunNowScans([makeScan({ discoveredDevices: [makeHost()] })]);
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      answerMonitorReads({ madeFor: [moved] });
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult = await runRule(true);
+
+      expect(result).toMatchObject({
+        isDryRun: true,
+        monitorsWouldCreate: 0,
+        monitorsSkippedAlreadyExisting: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+    });
+
+    it("still gives the device the rule's template's monitor when the one a person moved was created from another", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      monitorFindByMock.mockResolvedValue([
+        movedMonitor({
+          deviceId: existingDevice.id!,
+          linkedTo: BETTER_TEMPLATE_ID,
+          createdFrom: new ObjectID("cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd"),
+        }),
+      ]);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 1,
+        monitorsSkippedAlreadyExisting: 0,
+      });
+    });
+
     it("deduplicates two matching rules that select the same template", async () => {
       scanFindOneByMock.mockResolvedValue(
         makeScan({ discoveredDevices: [makeHost()] }),
