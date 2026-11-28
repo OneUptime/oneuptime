@@ -53,7 +53,7 @@ Klikk på **Start oppgave**, eller trykk Enter. Oppgavens side åpnes, og arbeid
 | **Logger** | De siste 20 logglinjene som inneholder søket ditt, fra den siste timen, dagen eller uken. |
 | **Ytelsesprofil** | Hvor tiden til en funksjon går i profilene til tjenesten dens: hvem som kaller den, hva den kaller og de varmeste linjene. |
 
-En forespørsel bærer høyst 10 kontekstelementer. Tokener, nøkler, passord og e-postadresser i det OneUptime leser, sladdes før AI ser dem, som overalt der OneUptime AI leser dataene dine.
+En forespørsel bærer høyst 10 kontekstelementer. Tokener, nøkler, passord, e-postadresser, telefonnumre og Social Security-numre i det OneUptime leser, sladdes før AI ser dem, som overalt der OneUptime AI leser dataene dine.
 
 ## Samtalen til en oppgave
 
@@ -151,7 +151,7 @@ Hva agenten kan lese, bestemmes av OneUptime-serveren, ut fra selve oppgaven:
 
 - **Bare lesing.** Spørringene kjører på OneUptime-serveren, aldri på Runneren, som ikke har noen påloggingsdetaljer som kan lese telemetri. Ingenting de gjør, kan endre prosjektet ditt.
 - **Dette prosjektet, og bare tjenestene dette repositoriet hører til.** Du knytter dem ikke til repositoriet selv: det er tjenestene OneUptime finner dette repositoriet for, slik den finner repositoriet til en retting - stack tracene til unntakene deres går gjennom filene i det, de heter det samme som det, eller det er prosjektets eneste repositorium. Telemetrien til en annen tjeneste kan ikke leses.
-- **Ingen private hendelser**, og tokener, nøkler, passord og e-postadresser sladdes før agenten ser et resultat, som overalt der OneUptime AI leser dataene dine.
+- **Ingen private hendelser**, og tokener, nøkler, passord, e-postadresser, telefonnumre og Social Security-numre sladdes før agenten ser et resultat, som overalt der OneUptime AI leser dataene dine.
 - **Det alle kan lese.** Det agenten finner, havner i en pull request, som folk utenfor OneUptime-rollene deres kan lese. Der et team, en egendefinert rolle eller en API-nøkkel leser tjenester eller hendelser bare etter eier eller etikett, holder agenten utenfor dem som en eier eller en etikett skiller ut, med mindre oppgaven gjelder dem.
 - **Avgrenset.** Av kjøringens tidsgrense, og av **Verktøykall per kjøring** når prosjektet setter den: hver spørring er ett verktøykall.
 

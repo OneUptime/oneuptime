@@ -35,12 +35,12 @@ Storage Arrays — это продукт, который работает оди
 ```mermaid title="От массива до OneUptime"
 flowchart TB
     collector["Коллектор"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["Массив,<br/>порт 443"]
-    collector -->|"более старый FlashArray,<br/>FlashBlade"| exporter["Экспортёр Pure"]
+    collector -->|"более старый FlashArray,<br/>FlashBlade"| exporter["Экспортёр<br/>Pure"]
     exporter -->|"API-токен"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"пользователь только<br/>для чтения, REST API"| cluster["Кластер,<br/>порт 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime

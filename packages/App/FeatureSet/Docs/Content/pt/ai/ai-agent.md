@@ -53,7 +53,7 @@ Clique em **Iniciar tarefa** ou pressione Enter. A página da tarefa abre, e o t
 | **Registros** | As 20 linhas de log mais recentes que contêm a sua busca, da última hora, do último dia ou da última semana. |
 | **Perfil de desempenho** | Para onde vai o tempo de uma função nos perfis do serviço dela: quem a chama, o que ela chama e as linhas mais quentes dela. |
 
-Um pedido leva no máximo 10 itens de contexto. Tokens, chaves, senhas e endereços de e-mail no que o OneUptime lê são ocultados antes que a IA os veja, como em todo lugar em que a OneUptime AI lê os seus dados.
+Um pedido leva no máximo 10 itens de contexto. Tokens, chaves, senhas, endereços de e-mail, números de telefone e números do Seguro Social no que o OneUptime lê são ocultados antes que a IA os veja, como em todo lugar em que a OneUptime AI lê os seus dados.
 
 ## A conversa de uma tarefa
 
@@ -151,7 +151,7 @@ O que o agente pode ler é decidido pelo servidor do OneUptime, a partir da pró
 
 - **Somente leitura.** As consultas rodam no servidor do OneUptime, nunca no Runner, que não tem nenhuma credencial capaz de ler telemetria. Nada do que elas fazem pode mudar o seu projeto.
 - **Este projeto, e apenas os serviços deste repositório.** Você não os associa: são os serviços para os quais o OneUptime encontra este repositório, do mesmo jeito que encontra o repositório de uma correção - os stack traces das exceções deles passam pelos arquivos dele, eles têm o mesmo nome que ele, ou ele é o único repositório do projeto. A telemetria de outro serviço não pode ser lida.
-- **Nenhum incidente privado**, e tokens, chaves, senhas e endereços de e-mail são ocultados antes que o agente veja um resultado, como em todo lugar em que a OneUptime AI lê os seus dados.
+- **Nenhum incidente privado**, e tokens, chaves, senhas, endereços de e-mail, números de telefone e números do Seguro Social são ocultados antes que o agente veja um resultado, como em todo lugar em que a OneUptime AI lê os seus dados.
 - **O que todos podem ler.** O que o agente encontra vai parar em um pull request, que pessoas fora das suas funções do OneUptime podem ler. Onde uma equipe, uma função personalizada ou uma chave de API lê serviços ou incidentes apenas pelo proprietário ou pelo rótulo, o agente deixa de fora os que um proprietário ou um rótulo separa, a menos que a tarefa dele trate deles.
 - **Limitado.** Pelo tempo limite da execução, e por **Chamadas de ferramentas por execução** quando o projeto o define: cada consulta é uma chamada de ferramenta.
 

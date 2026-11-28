@@ -717,10 +717,7 @@ export function toCloudCostFocusDecimal(value: number): string {
    */
   const shortest: string = String(number);
 
-  if (
-    !EXPONENT.test(shortest) &&
-    (shortest.split(".")[1] || "").length <= 10
-  ) {
+  if (!EXPONENT.test(shortest) && (shortest.split(".")[1] || "").length <= 10) {
     return shortest;
   }
 

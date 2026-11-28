@@ -338,7 +338,7 @@
   "Nobody else is being paged: paging stops, and somebody needs to take it.": "Personne d'autre n'est alerté : les alertes s'arrêtent, et quelqu'un doit s'en charger.",
   "Nobody else is left to page, so paging stopped. Somebody needs to take it.": "Il ne reste personne à alerter, les alertes se sont donc arrêtées. Quelqu'un doit s'en charger.",
   "Nobody else is left to page: paging stops, and somebody needs to take it.": "Il ne reste personne à alerter : les alertes s'arrêtent, et quelqu'un doit s'en charger.",
-  "None": "Aucun",
+  "None": "Aucune",
   "Not monitored": "Non surveillé",
   "Not monitored yet": "Pas encore surveillé",
   "Not one of your addresses: {{values}}": "Aucune de vos adresses : {{values}}",

@@ -375,17 +375,20 @@ describe("TelemetryExceptionSplitHeal", () => {
     ["the duplicate", [V2]],
     ["the one it was split from", [V1]],
     ["both", []],
-  ])("gone: %s - nothing is merged", async (_case: string, left: Array<string>) => {
-    rows = [
-      row({ id: DUPLICATE_ID, fingerprint: V1, createdAt: AFTER }),
-      row({ id: ORIGINAL_ID, fingerprint: V2, createdAt: BEFORE }),
-    ].filter((each: Row) => {
-      return left.includes(each.fingerprint);
-    });
+  ])(
+    "gone: %s - nothing is merged",
+    async (_case: string, left: Array<string>) => {
+      rows = [
+        row({ id: DUPLICATE_ID, fingerprint: V1, createdAt: AFTER }),
+        row({ id: ORIGINAL_ID, fingerprint: V2, createdAt: BEFORE }),
+      ].filter((each: Row) => {
+        return left.includes(each.fingerprint);
+      });
 
-    expect(await heal()).toBe(ExceptionSplitHealOutcome.NotFound);
-    expect(mergeCalls).toEqual([]);
-  });
+      expect(await heal()).toBe(ExceptionSplitHealOutcome.NotFound);
+      expect(mergeCalls).toEqual([]);
+    },
+  );
 
   test("the one it was split from moved, and that one gone: nothing is merged", async () => {
     rows = [

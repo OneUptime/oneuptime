@@ -338,7 +338,7 @@
   "Nobody else is being paged: paging stops, and somebody needs to take it.": "Nessun altro viene avvisato: gli avvisi si fermano e qualcuno deve occuparsene.",
   "Nobody else is left to page, so paging stopped. Somebody needs to take it.": "Non è rimasto nessun altro da avvisare, quindi gli avvisi si sono fermati. Qualcuno deve occuparsene.",
   "Nobody else is left to page: paging stops, and somebody needs to take it.": "Non è rimasto nessun altro da avvisare: gli avvisi si fermano e qualcuno deve occuparsene.",
-  "None": "Nessuno",
+  "None": "Nessuna",
   "Not monitored": "Non monitorato",
   "Not monitored yet": "Non ancora monitorato",
   "Not one of your addresses: {{values}}": "Nessuno dei suoi indirizzi: {{values}}",

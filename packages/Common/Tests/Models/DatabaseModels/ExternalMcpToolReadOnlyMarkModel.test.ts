@@ -15,6 +15,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { ON_HIGHEST_PLAN } from "../../Server/TestingUtils/RequestPlan";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -81,7 +82,12 @@ function propsOf(
     };
   };
 
+  /*
+   * On the highest plan, as a request on a server with billing carries it
+   * (ON_HIGHEST_PLAN): who may mark is not a plan's question here.
+   */
   return {
+    ...ON_HIGHEST_PLAN,
     tenantId: PROJECT_ID,
     userId: ObjectID.generate(),
     userType: UserType.User,

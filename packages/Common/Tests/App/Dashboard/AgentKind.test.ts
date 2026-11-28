@@ -17,7 +17,6 @@ import {
   PROXMOX_AGENT_VERSION,
   STORAGE_ARRAY_AGENT_VERSION,
   VMWARE_AGENT_VERSION,
-  XCP_NG_AGENT_COLLECTOR_VERSION,
   XCP_NG_AGENT_VERSION,
   getAgentLatestVersion,
   getAgentVersionState,
@@ -531,13 +530,11 @@ describe("the Storage Array agent's collector configs", () => {
 /*
  * The Proxmox, Ceph, VMware and Storage Array agents are the stock collector
  * plus a config: the compose file pins the collector, and the config reports
- * the files' version as oneuptime.agent.version - that pin, its last number
- * raised each time the files change on it (the Storage Array agent's 0.165.1,
- * AgentFilesVersion.test.ts). Both files, the Dashboard's embedded copy of
- * the config and the kind's pin must agree, or the sign compares the wrong
- * number.
+ * that pin as oneuptime.agent.version. Both files, the Dashboard's embedded
+ * copy of the config and the kind's pin must agree, or the sign compares the
+ * wrong number.
  */
-describe("the Proxmox, Ceph, VMware and Storage Array agents run the collector their compose file pins, and report their files' version", () => {
+describe("the Proxmox, Ceph, VMware and Storage Array agents report the collector their compose file pins", () => {
   // The agent's folder, its kind, its pin, and its configs by file name.
   const AGENTS: Array<[string, AgentKind, string, Record<string, string>]> = [
     [
@@ -734,11 +731,10 @@ describe("the Proxmox, Ceph, VMware and Storage Array agents run the collector t
 /*
  * The XCP-ng agent is the stock collector plus a config too, which the
  * Dashboard does not embed (its guide downloads the file): the compose file
- * pins the collector, and the config stamps the files' version - that pin,
- * its last number raised each time the files change on it (0.165.1) - on
- * every pool of the Xen Orchestra it reads.
+ * pins the collector, and the config stamps that pin on every pool of the
+ * Xen Orchestra it reads.
  */
-describe("the XCP-ng agent runs the collector its compose file pins, and reports its files' version", () => {
+describe("the XCP-ng agent reports the collector its compose file pins", () => {
   const config: string = readRepoFile(
     "agents",
     "XcpNgAgent",
@@ -806,7 +802,7 @@ describe("the XCP-ng agent runs the collector its compose file pins, and reports
       name: "OneUptime XCP-ng Agent",
       latestVersionSource: AgentLatestVersionSource.PinnedCollector,
       pinnedVersion: XCP_NG_AGENT_VERSION,
-      collectorVersion: XCP_NG_AGENT_COLLECTOR_VERSION,
+      collectorVersion: XCP_NG_AGENT_VERSION,
     });
   });
 });

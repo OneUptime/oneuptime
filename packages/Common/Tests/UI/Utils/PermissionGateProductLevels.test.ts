@@ -67,6 +67,7 @@ import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelOb
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import Permission, { PermissionHelper } from "../../../Types/Permission";
 import ProductKey from "../../../Types/Product/ProductKey";
 import {
@@ -108,6 +109,8 @@ const MAIN_RECORDS: Array<[ProductKey, ModelType]> = [
   [ProductKey.Proxmox, ProxmoxCluster],
   [ProductKey.OpenStack, OpenStackCloud],
   [ProductKey.VMware, VMwareVCenter],
+  // XCP-ng's levels (#11093) are kept to its pools, as VMware's are to vCenters.
+  [ProductKey.XcpNg, XcpNgPool],
   [ProductKey.Ceph, CephCluster],
   [ProductKey.StorageArrays, StorageArray],
   [ProductKey.Network, NetworkDevice],
@@ -143,12 +146,27 @@ beforeEach(() => {
 });
 
 describe("a page offers a product's level what it offers the role the level follows", () => {
-  test("every product with levels is here", () => {
+  /*
+   * The newest product with levels is XCP-ng (#11093): its Viewer, Member
+   * and Admin are checked below against its pools.
+   */
+  test("every product with levels is here, XCP-ng's Viewer, Member and Admin among them", () => {
     expect(
       MAIN_RECORDS.map(([product]: [ProductKey, ModelType]): ProductKey => {
         return product;
       }),
     ).toEqual([...PRODUCTS_WITH_LEVELS]);
+    expect(
+      getLevelsOfProduct(ProductKey.XcpNg).map(
+        (level: ProductLevel): Permission | null => {
+          return getProductLevelPermission(ProductKey.XcpNg, level);
+        },
+      ),
+    ).toEqual([
+      Permission.XcpNgViewer,
+      Permission.XcpNgMember,
+      Permission.XcpNgAdmin,
+    ]);
   });
 
   test.each(

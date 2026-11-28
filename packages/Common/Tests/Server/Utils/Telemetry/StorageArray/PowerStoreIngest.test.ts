@@ -759,7 +759,8 @@ describe("what the shipped collector sent OneUptime", () => {
       expect(one.resource).toMatchObject({
         "storage.array.name": "ps-prod-01",
         "storage.system": StorageSystem.DellPowerStore,
-        "oneuptime.agent.version": "0.165.0",
+        // The agent's files' version in the recording (its README says why 0.165.1).
+        "oneuptime.agent.version": "0.165.1",
       });
       expect(one.resource).not.toHaveProperty("service.name");
       expect(one.resource).not.toHaveProperty("service.instance.id");

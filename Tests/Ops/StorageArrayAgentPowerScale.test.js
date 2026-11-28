@@ -24,6 +24,7 @@ const path = require("path");
 const yaml = require("js-yaml");
 const { spawnSync } = require("child_process");
 const { agentFilesCurlStub } = require("./Utils/AgentFilesCurlStub");
+const { agentKindVersion } = require("./Utils/AgentKindVersion");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = path.join(REPO_ROOT, "agents", "StorageArrayAgent");
@@ -293,25 +294,8 @@ describe("agents/StorageArrayAgent/otel-collector-config.powerscale.yaml", () =>
   });
 
   test("stamps the array identity and the agent's version as every agent config does, and never splits a poll", () => {
-    const compose = fs.readFileSync(
-      path.join(AGENT_DIR, "docker-compose.yml"),
-      "utf8",
-    );
-    const pin = compose.match(
-      /otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/,
-    )[1];
-    /*
-     * The agent's own version, as the default config stamps it: the pin, its
-     * last number raised each time the agent's files change on that
-     * collector (Common's AgentFilesVersion.test.ts pins which).
-     */
-    const version = /- key: oneuptime\.agent\.version\n\s+value: "(\d+\.\d+\.\d+)"/.exec(
-      fs.readFileSync(path.join(AGENT_DIR, "otel-collector-config.yaml"), "utf8"),
-    )[1];
-    expect(version.split(".").slice(0, 2)).toEqual(pin.split(".").slice(0, 2));
-    expect(Number(version.split(".")[2])).toBeGreaterThanOrEqual(
-      Number(pin.split(".")[2]),
-    );
+    // The agent's files' version, not the collector's (AgentFilesVersion.test.ts).
+    const version = agentKindVersion("STORAGE_ARRAY_AGENT_VERSION");
     expect(CONFIG.processors.resource.attributes).toEqual([
       {
         key: "storage.array.name",

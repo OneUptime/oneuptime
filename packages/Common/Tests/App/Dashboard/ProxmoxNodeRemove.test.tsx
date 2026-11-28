@@ -18,6 +18,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * "Remove Node" on the Proxmox node detail page, rendered for real with
@@ -220,7 +221,7 @@ function withMetrics(ageMs: number | null, overrides: Row = {}): Row {
 
 /*
  * The node's row for the inventory reads; nothing for the rest of the page
- * (its open incidents and alerts, the monitors behind its alerts card).
+ * (its open incidents and alerts).
  */
 function arrange(row: Row | null): void {
   modelGetItemMock.mockImplementation(async () => {
@@ -298,6 +299,14 @@ beforeEach(() => {
   }
   apiPostMock.mockImplementation(async () => {
     return new HTTPResponse<JSONObject>(200, { removed: true }, {});
+  });
+  /*
+   * The node's alerts card asks the server which of its recommended alerts
+   * a monitor covers (#11074): none does yet. Answered here, the question
+   * is not one of the posts this suite counts.
+   */
+  serveCoverageFrom(() => {
+    return [];
   });
 });
 

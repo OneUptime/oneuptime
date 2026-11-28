@@ -367,7 +367,7 @@ describe("when there is nothing to mark", () => {
   });
 
   test("a kind the setting does not hold has none, and nothing is read", async () => {
-    const query: Mock<() => Promise<Array<unknown>>> = jest.fn();
+    const query: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
     getJestSpyOn(IncidentService, "getRepository").mockReturnValue({
       metadata: { tableName: "Incident" },
       query: query,

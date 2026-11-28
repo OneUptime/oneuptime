@@ -66,7 +66,6 @@ import {
   DOCKER_SWARM_AGENT_VERSION,
   PROXMOX_AGENT_VERSION,
   STORAGE_ARRAY_AGENT_VERSION,
-  XCP_NG_AGENT_VERSION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
   getKubernetesAgentChartUpgradeCommand,
@@ -732,10 +731,11 @@ describe("the hero chip", () => {
  * the release their files pin, so an older one gets the sign, compared with
  * the pin whatever the server's own version is, and the dialog shows that
  * agent's own upgrade, taken from its setup guide. The pin is the collector's
- * release, except where the files changed on the same collector: Proxmox's
- * (#5428), and the Storage Array and XCP-ng agents' (0.165.1, #11422), so
- * they report a release of their own, as the Docker Swarm agent's do -
- * AgentFilesVersion tells an agent on the older files to upgrade.
+ * release, except Proxmox's and the Storage Array agent's: their files
+ * changed on the same collector (#5428; NetApp ONTAP, Dell PowerStore and
+ * Dell PowerScale, #11189, #11227, #11233), so they report a release of
+ * their own, as the Docker Swarm agent's do - AgentFilesVersion tells an
+ * agent on the older files to upgrade.
  */
 describe("the agents that report the collector they pin", () => {
   // The collector every agent runs since #9828.
@@ -753,15 +753,8 @@ describe("the agents that report the collector they pin", () => {
     [AgentKind.CephAgent, COLLECTOR_RELEASE],
     [AgentKind.VMwareAgent, COLLECTOR_RELEASE],
     [AgentKind.StorageArrayAgent, STORAGE_ARRAY_AGENT_VERSION],
-    [AgentKind.XcpNgAgent, XCP_NG_AGENT_VERSION],
+    [AgentKind.XcpNgAgent, COLLECTOR_RELEASE],
   ];
-
-  test("the Storage Array and XCP-ng agents' files moved on the collector: 0.165.1", () => {
-    expect([STORAGE_ARRAY_AGENT_VERSION, XCP_NG_AGENT_VERSION]).toEqual([
-      "0.165.1",
-      "0.165.1",
-    ]);
-  });
 
   test.each(PINS)(
     "%s: an older collector shows the sign, compared with the pin even when the server knows no version",
@@ -838,7 +831,7 @@ describe("the agents that report the collector they pin", () => {
     ],
     [
       AgentKind.XcpNgAgent,
-      XCP_NG_AGENT_VERSION,
+      COLLECTOR_RELEASE,
       "Upgrade the OneUptime XCP-ng Agent",
       getXcpNgAgentUpgradeCommand(READER_URL),
       getXcpNgAgentDownloadCommand(READER_URL),
@@ -1042,7 +1035,7 @@ describe("the agents that report the collector they pin", () => {
     ).toBeInTheDocument();
     expect(
       within(dialog).getByText(
-        "This agent runs version 0.154.0. Version 0.165.1 is available.",
+        `This agent runs version 0.154.0. Version ${STORAGE_ARRAY_AGENT_VERSION} is available.`,
       ),
     ).toBeInTheDocument();
     expect(

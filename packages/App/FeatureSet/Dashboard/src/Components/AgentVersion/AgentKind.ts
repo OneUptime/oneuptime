@@ -160,10 +160,13 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.165.0";
  * reachability, each service's rolling update and recent task failures, and
  * the swarm's state as metrics (Node Not Ready, Service Replicas Mismatch);
  * and 0.161.4, each local volume's size and the disk it lives on (#9648).
- * On collector 0.165.0, 0.165.1: each log line's level stored as
- * OneUptime's ingest stores its word, the levels of more programs read,
- * and log operators of your own, checked before the agent starts
- * (#11228, #11226, #11225).
+ * Then collector 0.165.0 (#9828) started it again at the collector's, and
+ * the files changed on it once more - 0.165.1, each container line's level
+ * read in the formats programs write it in, and a stderr line nothing reads
+ * left Unspecified rather than called an Error (#10972); each log line's
+ * level stored as OneUptime's ingest stores its word, the levels of more
+ * programs read, and log operators of your own, checked before the agent
+ * starts (#11228, #11226, #11225).
  * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
  * files move on without this.
  */
@@ -176,12 +179,12 @@ export const DOCKER_SWARM_AGENT_VERSION: string = "0.165.1";
  * number raised when the files change on the same collector: 0.161.1, the
  * PostgreSQL config's own SQL checks (a restart, transaction ID wraparound,
  * long transactions, lock waits); 0.161.2, the MySQL config's own readings of
- * Galera. On collector 0.165.0, 0.165.1: the compose file hands the AI agent
- * beside the collector its Data Observability settings (#11147), which an
- * agent on 0.165.0's files never passes on, so Data Observability stays off
- * there whatever its .env says. So an agent still running the old files
- * reports its older number and is told to upgrade. AgentKind.test.ts and
- * AgentFilesVersion.test.ts fail when the agent's files move on without this.
+ * Galera. Then collector 0.165.0 started it again at the collector's, and
+ * the files changed on it once more - 0.165.1, the compose file passing
+ * Data Observability's seven settings to the AI agent (#11251). So an agent
+ * still running the old files reports its older number and is told to
+ * upgrade. AgentKind.test.ts and AgentFilesVersion.test.ts fail when the
+ * agent's files move on without this.
  */
 export const DATABASE_AGENT_VERSION: string = "0.165.1";
 
@@ -189,13 +192,14 @@ export const DATABASE_AGENT_VERSION: string = "0.165.1";
 export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 
 /*
- * The versions the Proxmox, Ceph and VMware agents report: the
- * oneuptime.agent.version each agents/<Agent>/otel-collector-config.yaml
- * stamps (and the Dashboard's embedded copy of that config), the collector
- * image its docker-compose.yml pins until the files change on that
- * collector. The Storage Array and XCP-ng agents' are below.
- * AgentKind.test.ts fails when an agent's files move on without its
- * constant.
+ * The versions the Proxmox, Ceph, VMware, Storage Array and XCP-ng agents
+ * report: the oneuptime.agent.version each
+ * agents/<Agent>/otel-collector-config.yaml stamps (each of the Storage
+ * Array agent's configs does), and the Dashboard's embedded copy of that
+ * config. The collector image its docker-compose.yml pins, until the files
+ * change on that collector (PROXMOX_AGENT_COLLECTOR_VERSION,
+ * STORAGE_ARRAY_AGENT_COLLECTOR_VERSION). AgentKind.test.ts fails when an
+ * agent's files move on without its constant.
  */
 export const PROXMOX_AGENT_VERSION: string = "0.165.0";
 
@@ -223,36 +227,21 @@ export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 export const CEPH_AGENT_VERSION: string = "0.165.0";
 export const VMWARE_AGENT_VERSION: string = "0.165.0";
 /*
- * The version the Storage Array agent reports: the oneuptime.agent.version
- * every collector config in agents/StorageArrayAgent stamps (each
- * platform's, and PowerStore's syslog collector's). The collector its
- * docker-compose.yml pins (STORAGE_ARRAY_AGENT_COLLECTOR_VERSION), its last
- * number raised when the files change on the same collector: 0.165.1, the
- * agent runs Dell's PowerStore exporter and takes PowerStore's syslog
- * (#11002), runs NetApp Harvest for an ONTAP cluster (#11001), and polls a
- * PowerScale cluster's nodes over SNMP (#11003), all in one compose file,
- * which reads the collector's container name from .env (#11168). An agent on
- * 0.165.0's files can read none of those arrays, so it is told to upgrade.
- * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
- * files move on without this.
+ * The version the Storage Array agent reports. Its files changed on
+ * collector 0.165.0 - 0.165.1, NetApp ONTAP read through Harvest (#11189),
+ * Dell PowerStore through Dell's exporter and its syslog (#11227) and Dell
+ * PowerScale over SNMP (#11233) - so an agent still running the Pure
+ * Storage files reports 0.165.0 and is told to upgrade.
  */
 export const STORAGE_ARRAY_AGENT_VERSION: string = "0.165.1";
-// The collector the Storage Array agent runs: the image its compose file pins.
+// The collector the Storage Array agent runs: the image its docker-compose.yml pins.
 export const STORAGE_ARRAY_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 /*
  * The version the XCP-ng agent reports, on every pool it reads: the
- * oneuptime.agent.version its otel-collector-config.yaml stamps. The
- * collector its docker-compose.yml pins (XCP_NG_AGENT_COLLECTOR_VERSION),
- * its last number raised when the files change on the same collector:
- * 0.165.1, the AI agent the compose file can start beside the collector
- * (#10998), and a compose file that no longer warns that XO_ADDRESS is not
- * set and reads both containers' names from .env (#11168). An agent on
- * 0.165.0's files cannot start the AI agent, so it is told to upgrade. AgentKind.test.ts and AgentFilesVersion.test.ts fail when the
- * agent's files move on without this.
+ * collector its docker-compose.yml pins, until its files change on that
+ * collector.
  */
-export const XCP_NG_AGENT_VERSION: string = "0.165.1";
-// The collector the XCP-ng agent runs: the image its compose file pins.
-export const XCP_NG_AGENT_COLLECTOR_VERSION: string = "0.165.0";
+export const XCP_NG_AGENT_VERSION: string = "0.165.0";
 
 /*
  * The otelcol-contrib release the host guide installs (every install method:
@@ -309,10 +298,10 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
   },
   /*
    * The Proxmox, Ceph, VMware and Storage Array agents run the collector
-   * their compose file pins, and their config stamps their files' version:
-   * that pin, its last number raised each time the files change on it. A
-   * Proxmox cluster that pushes its own metrics (Proxmox VE 9's metric
-   * server) runs no agent and reports no version.
+   * their compose file pins, and their config stamps the version of their
+   * files: that pin, until the files change on it. A Proxmox
+   * cluster that pushes its own metrics (Proxmox VE 9's metric server) runs
+   * no agent and reports no version.
    */
   [AgentKind.ProxmoxAgent]: {
     name: "OneUptime Proxmox Agent",
@@ -346,14 +335,13 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
   },
   /*
    * The XCP-ng agent, too: the collector its compose file pins, with a
-   * config that stamps its files' version on every pool of its Xen
-   * Orchestra.
+   * config that stamps the pin on every pool of its Xen Orchestra.
    */
   [AgentKind.XcpNgAgent]: {
     name: "OneUptime XCP-ng Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: XCP_NG_AGENT_VERSION,
-    collectorVersion: XCP_NG_AGENT_COLLECTOR_VERSION,
+    collectorVersion: XCP_NG_AGENT_VERSION,
   },
   /*
    * IoT, serverless and RUM versions come from the customer's own

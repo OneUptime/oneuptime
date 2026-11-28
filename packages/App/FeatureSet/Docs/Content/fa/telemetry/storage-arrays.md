@@ -35,12 +35,12 @@ Pure Storage در فوریه ۲۰۲۶ نام خود را به **Everpure** تغ�
 ```mermaid title="از آرایه تا OneUptime"
 flowchart TB
     collector["کالکتور"] -->|"FlashArray<br/>با Purity//FA 6.7+"| array["آرایه،<br/>پورت ۴۴۳"]
-    collector -->|"نسخه قدیمی‌تر FlashArray،<br/>FlashBlade"| exporter["صادرکننده Pure"]
+    collector -->|"نسخه قدیمی‌تر FlashArray،<br/>FlashBlade"| exporter["صادرکننده<br/>Pure"]
     exporter -->|"توکن API"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"کاربر فقط‌خواندنی،<br/>REST API"| cluster["خوشه،<br/>پورت ۴۴۳"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime

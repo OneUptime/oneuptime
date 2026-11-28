@@ -276,6 +276,7 @@ describe("the pure view-model", () => {
       "../../Types/Billing/PlanRequiredRefusal",
       "../../Types/CloudConnection/AwsRoleExternalIdRefusal",
       "../../Types/DataObservability/DataCheckRefusals",
+      "../../Types/DataSecurity/DataSecurityIssuePullRequestLink",
       "../../Types/Database/UniqueName",
       "../../Types/Database/UniqueValueTaken",
       "../../Types/Exception/RefusalWithValues",
@@ -380,6 +381,36 @@ describe("the pure view-model", () => {
           "Utils",
           "NetworkDiscovery",
           "DiscoveryScanStatus.ts",
+        ),
+      ),
+    ).toEqual([]);
+    /*
+     * A pull request a Data Security issue cannot link (#10831): the
+     * refusals it shares with a security case's links, and the issue's
+     * statuses it names, which import nothing.
+     */
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Types",
+          "DataSecurity",
+          "DataSecurityIssuePullRequestLink.ts",
+        ),
+      ),
+    ).toEqual([
+      "../Exception/RefusalWithValues",
+      "../SecurityCase/SecurityCasePullRequestLink",
+      "../Translator",
+      "./DataSecurityIssueStatus",
+    ]);
+    expect(
+      importsOf(
+        readRaw(
+          COMMON_ROOT,
+          "Types",
+          "DataSecurity",
+          "DataSecurityIssueStatus.ts",
         ),
       ),
     ).toEqual([]);

@@ -45,6 +45,10 @@ import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Email from "../../../../../Types/Email";
+import {
+  HelpAndSupportSettings,
+  getDefaultHelpAndSupportSettings,
+} from "../../../../../Types/HelpAndSupport/HelpAndSupport";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
@@ -99,13 +103,9 @@ import StatusPageService from "../../../../Services/StatusPageService";
 import TeamMemberService from "../../../../Services/TeamMemberService";
 import TeamService from "../../../../Services/TeamService";
 import ActiveMonitorLimit from "../../../Billing/ActiveMonitorLimit";
+import HelpAndSupportServerSettings from "../../../HelpAndSupport/HelpAndSupportServerSettings";
 import UserLanguage from "../../../Notification/UserLanguage";
 import ServerProducts from "../../../ServerProducts/ServerProducts";
-import HelpAndSupportServerSettings from "../../../HelpAndSupport/HelpAndSupportServerSettings";
-import {
-  HelpAndSupportSettings,
-  getDefaultHelpAndSupportSettings,
-} from "../../../../../Types/HelpAndSupport/HelpAndSupport";
 import {
   answerDataSecurityFromProject,
   readDataSecurityProject,
@@ -758,10 +758,9 @@ export default class AskAiEvalTurnRunner {
       return null;
     });
     /*
-     * No admin changed Help and Support either: a new install's links, the
-     * mobile app offered among them. A setup that pages the person asking
-     * says how a page reaches them, and names the app only where it is
-     * offered (#11117), which it reads here, never from the database.
+     * No admin hid the mobile app either (Help and Support, #10945): every
+     * item as a new server starts, which set_up_paging reads to say how a
+     * push reaches the person.
      */
     patches.set(
       HelpAndSupportServerSettings,

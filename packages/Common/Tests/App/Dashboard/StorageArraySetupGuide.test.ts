@@ -43,8 +43,7 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import {
-  AGENT_KINDS,
-  AgentKind,
+  STORAGE_ARRAY_AGENT_COLLECTOR_VERSION,
   STORAGE_ARRAY_AGENT_VERSION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
@@ -1195,26 +1194,23 @@ describe("drift guards against agents/StorageArrayAgent", () => {
   });
 
   /*
-   * The agent reports its files' version (oneuptime.agent.version): the
-   * collector the compose file pins, its last number raised each time the
-   * files change on it (AgentFilesVersion.test.ts). The compose file must
-   * run exactly the collector the kind pins, and every config the guide
-   * shows must stamp the kind's version, or the sign compares the wrong
-   * number.
+   * The agent reports the version of its files (oneuptime.agent.version):
+   * the collector it pins, until the files change on that collector
+   * (AgentFilesVersion.test.ts) - 0.165.1 on collector 0.165.0, with NetApp
+   * ONTAP, Dell PowerStore and Dell PowerScale. The compose file must run
+   * exactly the kind's collector, and every config the guide shows must
+   * stamp the kind's version, or the sign compares the wrong number.
    */
   test.each(PLATFORMS)(
-    "the compose file runs the pinned collector, and the %s config reports the files' version",
+    "the compose file runs the pinned collector, and the %s config reports the agent's version",
     (platform: StorageArrayWholeConfigPlatform) => {
-      const image: string =
-        compose()["services"][STORAGE_ARRAY_AGENT_CONTAINER]["image"];
-      expect(image).toBe(
-        `otel/opentelemetry-collector-contrib:${AGENT_KINDS[AgentKind.StorageArrayAgent].collectorVersion}`,
+      expect(
+        compose()["services"][STORAGE_ARRAY_AGENT_CONTAINER]["image"],
+      ).toBe(
+        `otel/opentelemetry-collector-contrib:${STORAGE_ARRAY_AGENT_COLLECTOR_VERSION}`,
       );
       expect(STORAGE_ARRAY_COLLECTOR_CONFIGS[platform]).toContain(
         `      - key: oneuptime.agent.version\n        value: "${STORAGE_ARRAY_AGENT_VERSION}"\n        action: upsert\n`,
-      );
-      expect(AGENT_KINDS[AgentKind.StorageArrayAgent].pinnedVersion).toBe(
-        STORAGE_ARRAY_AGENT_VERSION,
       );
     },
   );
