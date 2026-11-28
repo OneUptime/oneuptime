@@ -397,7 +397,14 @@ export interface BurstMeasured {
   claims: number;
   claimsMeasured: ClaimsMeasured;
   placeInRound: PlaceInRound;
+  // Minutes missed by when each result reached the server.
   skips: SkipsMeasured;
+  /*
+   * Minutes missed by when each monitor probe was handed out: who the claim
+   * made wait. A check handed out just before a minute whose result lands
+   * just after it misses that minute by its result alone.
+   */
+  skipsHandedOut: SkipsMeasured;
   // Minutes a worker's round ran past, so the cron's next tick was skipped.
   ticksSkipped: number;
 }
@@ -1123,7 +1130,26 @@ describePostgres(
         }),
         claimsMeasured: measureClaims(claimTimes),
         placeInRound: measurePlaceInRound(handedOut, rounds),
-        skips: measureSkips({ times, startAt, stopAt }),
+        skips: measureSkips({
+          events: times.map((time: ResultTimes) => {
+            return {
+              monitorProbeId: time.monitorProbeId,
+              atMs: time.checkedAt,
+            };
+          }),
+          startAt,
+          stopAt,
+        }),
+        skipsHandedOut: measureSkips({
+          events: handedOut.map((handOut: HandedOut) => {
+            return {
+              monitorProbeId: handOut.monitorProbeId,
+              atMs: handOut.claimedAt,
+            };
+          }),
+          startAt,
+          stopAt,
+        }),
         ticksSkipped: ticksSkipped,
       };
 
@@ -1227,20 +1253,21 @@ describePostgres(
      * not reached all its monitors yet, through no fault of the order.
      */
     function measureSkips(data: {
-      times: Array<ResultTimes>;
+      // When each monitor probe was checked (or handed out).
+      events: Array<{ monitorProbeId: string; atMs: number }>;
       startAt: number;
       stopAt: number;
     }): SkipsMeasured {
       const checkedMinutesOf: Map<string, Set<number>> = new Map();
 
-      for (const time of data.times) {
+      for (const event of data.events) {
         const minute: number = Math.floor(
-          (time.checkedAt - data.startAt) / MINUTE_MS,
+          (event.atMs - data.startAt) / MINUTE_MS,
         );
         const minutes: Set<number> =
-          checkedMinutesOf.get(time.monitorProbeId) || new Set<number>();
+          checkedMinutesOf.get(event.monitorProbeId) || new Set<number>();
         minutes.add(minute);
-        checkedMinutesOf.set(time.monitorProbeId, minutes);
+        checkedMinutesOf.set(event.monitorProbeId, minutes);
       }
 
       const minutesInRun: number = Math.floor(
@@ -1309,7 +1336,11 @@ describePostgres(
       rounds: Array<{ firstMs: number; lastMs: number }>;
     }): Omit<
       BurstMeasured,
-      "claimsMeasured" | "placeInRound" | "skips" | "ticksSkipped"
+      | "claimsMeasured"
+      | "placeInRound"
+      | "skips"
+      | "skipsHandedOut"
+      | "ticksSkipped"
     > {
       const seconds: number = (data.stopAt - data.startAt) / SECOND_MS;
       const perSecond: Array<number> = new Array<number>(seconds).fill(0);
@@ -1568,11 +1599,10 @@ describePostgres(
         /*
          * A minute apart, give or take the probe's round: one worker with 10
          * check slots takes about 15 s to get through 300 monitors. Where in
-         * it a monitor is checked can move from one minute to the next. The
-         * claim orders the monitors due at the same moment by that moment
-         * alone, so Postgres hands them out in the order its index holds
-         * them, and each claim's rewrite of their rows moves that order.
-         * The probe's moment no longer moves (follow-up: #11386).
+         * it a monitor is checked could move from one minute to the next
+         * while the claim ordered the monitors due at the same moment by
+         * that moment alone; since #11386 it hands them out as the round
+         * before did (the #11386 runs below).
          */
         expect(report.betweenChecks.farthestFromAMinuteMs).toBeLessThanOrEqual(
           report.longestRoundMs + GAP_SLACK_MS,
@@ -1720,10 +1750,16 @@ describePostgres(
         expect(report.placeInRound.moves).toBeGreaterThan(
           MONITORS * PROBES * 3,
         );
-        expect(report.placeInRound.p95Ms).toBeLessThanOrEqual(PLACE_SLACK_MS);
+        /*
+         * A round of about 5 s: its checks before a monitor's hardly vary,
+         * so its place holds to well under a second. Handed out anywhere
+         * in the round, it moved up to the round's length (5.3 s measured).
+         */
+        expect(report.placeInRound.maxMs).toBeLessThanOrEqual(2 * SECOND_MS);
         expect(report.betweenChecks.farthestFromAMinuteMs).toBeLessThanOrEqual(
-          report.longestRoundMs + GAP_SLACK_MS,
+          GAP_SLACK_MS,
         );
+        expect(report.betweenChecks.withinASecondShare).toBeGreaterThan(0.95);
       },
       CLAIM_ORDER_RUN_TIMEOUT_MS,
     );
@@ -1758,10 +1794,26 @@ describePostgres(
 
         // It falls behind: rounds run past the minute, and monitors miss one.
         expect(report.ticksSkipped).toBeGreaterThan(0);
-        expect(report.skips.total).toBeGreaterThan(MONITORS / 10);
+        expect(report.skipsHandedOut.total).toBeGreaterThan(MONITORS / 10);
 
-        // The ones that miss one take turns.
-        expect(report.skips.againBeforeOthersOnce).toBe(0);
+        /*
+         * The ones the claim makes wait take turns: none waits a second
+         * time before every one of its probe's has waited once, and none
+         * two minutes running.
+         */
+        expect(report.skipsHandedOut.againBeforeOthersOnce).toBe(0);
+        expect(report.skipsHandedOut.inARow).toBe(0);
+        expect(report.skipsHandedOut.monitorProbes).toBe(MONITORS * PROBES);
+
+        /*
+         * By when their results land, the same, but for a check handed out
+         * just before a minute that finishes after it: it misses that
+         * minute by its result alone. So never one monitor more than once
+         * beyond its turns, and never two minutes running.
+         */
+        expect(report.skips.mostOfOne).toBeLessThanOrEqual(
+          report.skipsHandedOut.mostOfOne + 1,
+        );
         expect(report.skips.inARow).toBe(0);
       },
       CLAIM_ORDER_RUN_TIMEOUT_MS * 2,
