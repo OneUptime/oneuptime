@@ -87,9 +87,13 @@ ID'et under hvert trins titel er præcis det, der skal stå i en `{{local.compon
 
 De viste værdier er det, blokken modtog, efter at variablerne blev udfyldt, og før blokken gjorde noget med dem, med to undtagelser: hemmeligheder og felter, som blokken markerer som følsomme, skjules, og en værdi på mere end 4.000 tegn afkortes med "… (truncated)". En kørsel beholder sine seneste 100 trin; en lang eller ofte genoptaget kørsel viser en orange note dér, hvor de tidligere blev droppet. Kørsler, der blev registreret, før udgangenes navne blev gemt, viser udgangen ved sit ID, uden hvor den førte hen.
 
+En værdi, som en blok markerer som følsom, som de billeder, **Hent filer fra Markdown** returnerer, forbliver skjult i hver blok efter den, også efter en **Pause**. En senere blok, der får den, viser den skjult i det, den modtog, og i det, den returnerede, og dens tekst skjules overalt, hvor den optræder i det, kørslen registrerer: en besked, der indeholder den, eller en fejl, der citerer den. Korte dele af den, der siger, hvad der blev givet videre, som en fils navn eller type, bevares. Blokkene selv får stadig den rigtige værdi.
+
 ### Fanen Full Log
 
 Den rå log linje for linje, som afvikleren skrev, inklusive alt, hvad blokkene selv logede, som en **Log**-bloks værdi eller et scripts `console.log`. Brug den, når fanen Trin ikke forklarer fejlen.
+
+Hver værdi, loggen skriver, hvad enten det er det, en blok modtog, det, den returnerede, eller det, den logede, afkortes til sine første 65.536 tegn og slutter med, hvor mange der blev udeladt, som `… (10,420,113 more characters left out)`. En bloks modtagne værdier og returnerede værdier afkortes hver for sig, så én lang værdi ikke skjuler de andre. Hemmeligheder og følsomme værdier skjules, før en værdi afkortes, så en værdi, som afkortningen ville dele, stadig skjules helt.
 
 ## Kopiér og download en kørsel
 

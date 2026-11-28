@@ -12,6 +12,7 @@ import FileViewerAccess, {
   ViewableFile,
 } from "../../../../Server/Utils/File/FileViewerAccess";
 import PublishedImages from "../../../../Server/Utils/File/PublishedImages";
+import ShownImageAccess from "../../../../Server/Utils/File/ShownImageAccess";
 import File from "../../../../Models/DatabaseModels/File";
 import MimeType from "../../../../Types/File/MimeType";
 import JSONWebToken from "../../../../Server/Utils/JsonWebToken";
@@ -34,10 +35,12 @@ jest.mock("../../../../Server/Utils/Logger");
 /*
  * Who may read a stored file through the image routes (FileViewerAccess):
  * a public file anyone; a private file of a project the people who can open
- * that project; a private file with no project its uploader; server admins
- * every file. The routes themselves are driven end to end in
- * Tests/Server/API/FileImageRouteViewers.test.ts; this pins each rule on
- * its own, and the edges a route never shows.
+ * that project and uploaded it, or may read a record of it that shows it
+ * (#11478, ShownImageAccess); a private file with no project its uploader;
+ * server admins every file. The routes themselves are driven end to end in
+ * Tests/Server/API/FileImageRouteViewers.test.ts, and against Postgres in
+ * Tests/Server/API/FileImageRecordAccessPostgres.test.ts; this pins each
+ * rule on its own, and the edges a route never shows.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -80,6 +83,24 @@ function canOpenProject(
           } as unknown as UserTenantAccessPermission)
         : null;
     }) as PermissionLookup);
+}
+
+/*
+ * Whether a record of the project shows the image to the person, as
+ * ShownImageAccess would answer after reading the records as them.
+ */
+function shownByARecord(
+  answer: boolean | Error,
+): ReturnType<typeof jest.spyOn> {
+  return jest
+    .spyOn(ShownImageAccess, "isShownTo")
+    .mockImplementation(async (): Promise<boolean> => {
+      if (answer instanceof Error) {
+        throw answer;
+      }
+
+      return answer;
+    });
 }
 
 function signedInAs(decoded: Partial<JSONWebTokenData> | Error | null): void {
@@ -198,14 +219,19 @@ describe("FileViewerAccess.getViewer: the signed-in person an image request come
 });
 
 describe("FileViewerAccess.mayViewPrivateFile", () => {
-  test("a member who can open the file's project may; asked about that project", async () => {
+  test("a member who can open the file's project and uploaded it may; asked about that project", async () => {
     const lookup: ReturnType<typeof jest.spyOn> = canOpenProject(true);
+    const shown: ReturnType<typeof jest.spyOn> = shownByARecord(false);
 
     expect(
       await FileViewerAccess.mayViewPrivateFile({
         req: REQUEST,
         viewer: MEMBER,
-        file: file({ isPublic: false, projectId: PROJECT_ID }),
+        file: file({
+          isPublic: false,
+          projectId: PROJECT_ID,
+          createdByUserId: USER_ID,
+        }),
       }),
     ).toBe(true);
 
@@ -214,18 +240,120 @@ describe("FileViewerAccess.mayViewPrivateFile", () => {
       tenantId: PROJECT_ID,
       userId: USER_ID,
     });
+    // Their own image: no record is read for it.
+    expect(shown).not.toHaveBeenCalled();
   });
 
-  test("someone who cannot open the project may not", async () => {
-    canOpenProject(false);
+  test("a member who can open the project but did not upload it may only when a record of it shows them the image", async () => {
+    canOpenProject(true);
+    const image: ViewableFile = file({
+      _id: "f0000000-0000-4000-8000-000000000009",
+      isPublic: false,
+      projectId: PROJECT_ID,
+      createdByUserId: OTHER_USER_ID,
+      imageAccessToken: "c4".repeat(32),
+    });
+
+    shownByARecord(false);
+    expect(
+      await FileViewerAccess.mayViewPrivateFile({
+        req: REQUEST,
+        viewer: MEMBER,
+        file: image,
+      }),
+    ).toBe(false);
+
+    jest.restoreAllMocks();
+    canOpenProject(true);
+    const shown: ReturnType<typeof jest.spyOn> = shownByARecord(true);
 
     expect(
       await FileViewerAccess.mayViewPrivateFile({
         req: REQUEST,
         viewer: MEMBER,
-        file: file({ isPublic: false, projectId: PROJECT_ID }),
+        file: image,
+      }),
+    ).toBe(true);
+
+    // Asked as the person, in the file's project, with what they hold there.
+    expect(shown).toHaveBeenCalledTimes(1);
+    expect(shown).toHaveBeenCalledWith({
+      userId: USER_ID,
+      projectId: PROJECT_ID,
+      permission: { projectId: PROJECT_ID, permissions: [] },
+      file: {
+        fileId: "f0000000-0000-4000-8000-000000000009",
+        token: "c4".repeat(32),
+      },
+    });
+  });
+
+  test("an image with no id or no token is no one's but its uploader's: no record is asked about", async () => {
+    canOpenProject(true);
+    const shown: ReturnType<typeof jest.spyOn> = shownByARecord(true);
+
+    for (const image of [
+      file({ isPublic: false, projectId: PROJECT_ID, imageAccessToken: "ab" }),
+      file({
+        _id: "f0000000-0000-4000-8000-000000000009",
+        isPublic: false,
+        projectId: PROJECT_ID,
+      }),
+      file({
+        _id: "not-an-id",
+        isPublic: false,
+        projectId: PROJECT_ID,
+        imageAccessToken: "ab",
+      }),
+    ]) {
+      expect(
+        await FileViewerAccess.mayViewPrivateFile({
+          req: REQUEST,
+          viewer: MEMBER,
+          file: image,
+        }),
+      ).toBe(false);
+    }
+
+    expect(shown).not.toHaveBeenCalled();
+  });
+
+  test("a record lookup that fails is an error, not a decision", async () => {
+    canOpenProject(true);
+    shownByARecord(new Error("the records could not be read"));
+
+    await expect(
+      FileViewerAccess.mayViewPrivateFile({
+        req: REQUEST,
+        viewer: MEMBER,
+        file: file({
+          _id: "f0000000-0000-4000-8000-000000000009",
+          isPublic: false,
+          projectId: PROJECT_ID,
+          imageAccessToken: "ab",
+        }),
+      }),
+    ).rejects.toThrow("the records could not be read");
+  });
+
+  test("someone who cannot open the project may not, and no record is asked about", async () => {
+    canOpenProject(false);
+    const shown: ReturnType<typeof jest.spyOn> = shownByARecord(true);
+
+    expect(
+      await FileViewerAccess.mayViewPrivateFile({
+        req: REQUEST,
+        viewer: MEMBER,
+        file: file({
+          _id: "f0000000-0000-4000-8000-000000000009",
+          isPublic: false,
+          projectId: PROJECT_ID,
+          imageAccessToken: "ab",
+        }),
       }),
     ).toBe(false);
+
+    expect(shown).not.toHaveBeenCalled();
   });
 
   test("a project that requires SSO the request has not signed in with, or one that is gone, is a no", async () => {
@@ -320,8 +448,9 @@ describe("FileViewerAccess.mayViewPrivateFile", () => {
     ).toBe(false);
   });
 
-  test("a server admin may see every file, without a membership lookup", async () => {
+  test("a server admin may see every file, without a membership lookup or a record read", async () => {
     const lookup: ReturnType<typeof jest.spyOn> = canOpenProject(false);
+    const shown: ReturnType<typeof jest.spyOn> = shownByARecord(false);
 
     for (const owned of [
       file({ isPublic: false, projectId: PROJECT_ID }),
@@ -337,6 +466,82 @@ describe("FileViewerAccess.mayViewPrivateFile", () => {
     }
 
     expect(lookup).not.toHaveBeenCalled();
+    expect(shown).not.toHaveBeenCalled();
+  });
+});
+
+describe("FileViewerAccess.mayViewInProject: a member who can open the file's project", () => {
+  const PERMISSION: UserTenantAccessPermission = {
+    projectId: PROJECT_ID,
+    permissions: [],
+  } as unknown as UserTenantAccessPermission;
+
+  const IMAGE: ViewableFile = file({
+    _id: "f0000000-0000-4000-8000-000000000009",
+    isPublic: false,
+    projectId: PROJECT_ID,
+    createdByUserId: OTHER_USER_ID,
+    imageAccessToken: "c4".repeat(32),
+  });
+
+  test("its uploader sees it whatever records show it, as in a draft not saved to one yet", async () => {
+    const shown: ReturnType<typeof jest.spyOn> = shownByARecord(false);
+
+    expect(
+      await FileViewerAccess.mayViewInProject({
+        viewer: { userId: OTHER_USER_ID, isMasterAdmin: false },
+        file: IMAGE,
+        projectId: PROJECT_ID,
+        permission: PERMISSION,
+      }),
+    ).toBe(true);
+    expect(shown).not.toHaveBeenCalled();
+  });
+
+  test("anyone else as a record shows it to them", async () => {
+    for (const answer of [true, false]) {
+      shownByARecord(answer);
+
+      expect(
+        await FileViewerAccess.mayViewInProject({
+          viewer: MEMBER,
+          file: IMAGE,
+          projectId: PROJECT_ID,
+          permission: PERMISSION,
+        }),
+      ).toBe(answer);
+
+      jest.restoreAllMocks();
+    }
+  });
+
+  test("an image with no uploader recorded is decided by its records alone", async () => {
+    const shown: ReturnType<typeof jest.spyOn> = shownByARecord(false);
+
+    expect(
+      await FileViewerAccess.mayViewInProject({
+        viewer: MEMBER,
+        file: { ...IMAGE, createdByUserId: null },
+        projectId: PROJECT_ID,
+        permission: PERMISSION,
+      }),
+    ).toBe(false);
+    expect(shown).toHaveBeenCalledTimes(1);
+  });
+
+  test("the file's id is read in lower case, however the read wrote it", async () => {
+    const shown: ReturnType<typeof jest.spyOn> = shownByARecord(true);
+
+    await FileViewerAccess.mayViewInProject({
+      viewer: MEMBER,
+      file: { ...IMAGE, _id: "F0000000-0000-4000-8000-000000000009" },
+      projectId: PROJECT_ID,
+      permission: PERMISSION,
+    });
+
+    expect(
+      (shown.mock.calls[0]![0] as { file: { fileId: string } }).file.fileId,
+    ).toBe("f0000000-0000-4000-8000-000000000009");
   });
 });
 
@@ -354,8 +559,10 @@ describe("FileViewerAccess.keepReadableFile: the access-token image route", () =
 
   test("a private file is kept only for someone who may see it", async () => {
     const image: ViewableFile = file({
+      _id: "f0000000-0000-4000-8000-000000000009",
       isPublic: false,
       projectId: PROJECT_ID,
+      imageAccessToken: "c4".repeat(32),
     });
 
     signedInAs(null);
@@ -369,13 +576,43 @@ describe("FileViewerAccess.keepReadableFile: the access-token image route", () =
       await FileViewerAccess.keepReadableFile({ req: REQUEST, file: image }),
     ).toBeUndefined();
 
+    // A member no record shows it to.
     jest.restoreAllMocks();
     jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
     signedInAs({ userId: USER_ID });
     canOpenProject(true);
+    shownByARecord(false);
+    expect(
+      await FileViewerAccess.keepReadableFile({ req: REQUEST, file: image }),
+    ).toBeUndefined();
+
+    // A member a record shows it to.
+    jest.restoreAllMocks();
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+    signedInAs({ userId: USER_ID });
+    canOpenProject(true);
+    shownByARecord(true);
     expect(
       await FileViewerAccess.keepReadableFile({ req: REQUEST, file: image }),
     ).toBe(image);
+  });
+
+  test("a record read that fails keeps nothing, and is logged rather than thrown", async () => {
+    signedInAs({ userId: USER_ID });
+    canOpenProject(true);
+    shownByARecord(new Error("the records could not be read"));
+
+    await expect(
+      FileViewerAccess.keepReadableFile({
+        req: REQUEST,
+        file: file({
+          _id: "f0000000-0000-4000-8000-000000000009",
+          isPublic: false,
+          projectId: PROJECT_ID,
+          imageAccessToken: "c4".repeat(32),
+        }),
+      }),
+    ).resolves.toBeUndefined();
   });
 
   test("no file, nothing kept", async () => {
@@ -465,6 +702,7 @@ describe("FileViewerAccess's reads: a public file whole at once, a private one o
       row._id = FILE_ID;
       row.projectId = PROJECT_ID;
       row.isPublic = isPublic;
+      row.imageAccessToken = TOKEN;
       row.fileType = MimeType.png;
 
       if (find.select["file"]) {
@@ -540,6 +778,7 @@ describe("FileViewerAccess's reads: a public file whole at once, a private one o
   test("a private file a member may see: read whole, by its id, after the decision", async () => {
     signedInAs({ userId: USER_ID });
     canOpenProject(true);
+    shownByARecord(true);
     const reads: Array<Read> = database({ isPublic: false });
 
     const served: File | undefined = await FileViewerAccess.findReadableFile({
@@ -781,6 +1020,7 @@ describe("FileViewerAccess.findReadableFile: an image a record has started showi
   test("a member who may see the private image is served it as it is: nothing is made public for them", async () => {
     signedInAs({ userId: USER_ID });
     canOpenProject(true);
+    shownByARecord(true);
 
     const served: File | undefined = await FileViewerAccess.findReadableFile({
       req: REQUEST,
@@ -790,6 +1030,31 @@ describe("FileViewerAccess.findReadableFile: an image a record has started showi
     expect(served?.file?.toString()).toBe("image-bytes");
     expect(publishWhenShown).not.toHaveBeenCalled();
     expect(stored.isPublic).toBe(false);
+  });
+
+  test("a member no record shows it to is refused, then asked about as anyone is: an announcement may show it now", async () => {
+    signedInAs({ userId: USER_ID });
+    canOpenProject(true);
+    shownByARecord(false);
+
+    const served: File | undefined = await FileViewerAccess.findReadableFile({
+      req: REQUEST,
+      query: { imageAccessToken: TOKEN },
+    });
+
+    expect(publishWhenShown).toHaveBeenCalledTimes(1);
+    expect(served?.file?.toString()).toBe("image-bytes");
+
+    // Shown by nothing at all: refused.
+    stored.isPublic = false;
+    publishWhenShown.mockResolvedValue(false);
+
+    expect(
+      await FileViewerAccess.findReadableFile({
+        req: REQUEST,
+        query: { imageAccessToken: TOKEN },
+      }),
+    ).toBeUndefined();
   });
 
   test("a public image, or no image, asks nothing", async () => {

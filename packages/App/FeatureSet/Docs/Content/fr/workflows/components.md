@@ -27,6 +27,7 @@ Vous aurez rarement besoin de l'ouvrir pendant la construction. Les paramètres 
 | Attendre avant le bloc suivant                                | [Sleep](#sleep)                                                   |
 | Démarrer un autre flux de travail                                    | [Execute Workflow](#execute-workflow)                             |
 | Joindre à un e-mail les images que montre le Markdown d'un enregistrement | [Récupérer les fichiers du Markdown](#get-files-from-markdown) |
+| Joindre à un e-mail les pièces jointes d'une note, ou les champs personnalisés de type fichier d'un enregistrement | [Récupérer les pièces jointes de l'enregistrement](#get-attachments-from-record) |
 | Lire ou modifier des incidents, des moniteurs et d'autres enregistrements | [Composants de données OneUptime](#composants-de-données-oneuptime) |
 | Ouvrir, prendre en compte et résoudre des incidents ou des alertes pour les problèmes d'un autre outil | [Incidents et alertes d'autres outils](#incidents-et-alertes-dautres-outils) |
 | Prendre en compte ou fermer un problème Zabbix | [Zabbix](#zabbix) |
@@ -420,7 +421,7 @@ Il renvoie :
 - **Comptage** : combien d'images contient **Fichiers**.
 - **Laissés de côté** : les fichiers que montre le Markdown et qui ne sont pas dans **Fichiers**, chacun avec son `name`, ses `urls`, ses `fields`, une `reason` et un `message` qui dit pourquoi.
 
-**Fichiers** contient les données des images : le journal de l'exécution le masque et montre **Comptage** et **Laissés de côté** à la place. Un bloc suivant à qui l'on passe les images écrit ce qu'il reçoit dans sa propre entrée du journal.
+**Fichiers** contient les données des images : le journal de l'exécution le masque et montre **Comptage** et **Laissés de côté** à la place. Un bloc suivant à qui l'on passe les images les montre masquées lui aussi, dans ce qu'il a reçu et dans ce qu'il a renvoyé (voir [Exécutions](/docs/workflows/runs-and-logs#longlet-étapes)).
 
 ### Quelles images il remet
 
@@ -525,6 +526,61 @@ Microsoft Graph répond `202 Accepted`, et le bloc prend **Succès**.
 :::
 
 Microsoft Graph accepte une pièce jointe de 3 Mo au plus dans un message qu'on lui envoie de cette façon. Une image plus grande demande une session de téléversement, ou un lien à la place de l'image. Les images d'un enregistrement se lisent aussi avec une clé d'API, en dehors d'un flux de travail : voir [Images dans le Markdown d'un enregistrement](/docs/api-reference/api-reference#images-dans-le-markdown-dun-enregistrement).
+
+## Get Attachments From Record
+
+Lit les fichiers que contient un enregistrement, avec le nom, le type et les données de chaque fichier : les pièces jointes d'une note, les pièces jointes du post-mortem d'un incident, les pièces jointes d'une annonce, et les fichiers des champs personnalisés **Fichier** et **Plusieurs fichiers** de l'enregistrement. Servez-vous-en pour les joindre à un e-mail. Pour joindre aussi les images que montre le Markdown d'un enregistrement, ajoutez [Récupérer les fichiers du Markdown](#get-files-from-markdown) pour le même enregistrement.
+
+| Paramètre | Ce qu'il fait |
+| --- | --- |
+| **Type d'enregistrement** | Le type d'enregistrement qui contient les fichiers : un incident, une note interne ou publique d'un incident, une alerte, une maintenance planifiée, et d'autres. |
+| **ID de l'enregistrement** | L'enregistrement à lire, en général celui qui a lancé le flux de travail, comme `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`. |
+
+| Sortie | Quand |
+| --- | --- |
+| **Succès** | L'enregistrement a été lu, qu'il contienne des fichiers ou non. |
+| **Erreur** | L'enregistrement n'a pas pu être lu : il n'existe pas, ou le flux de travail n'a pas le droit de le lire. **Erreur** dit pourquoi. |
+
+Il renvoie :
+
+- **Fichiers** : chaque fichier, d'abord les pièces jointes de l'enregistrement lui-même, puis ses champs personnalisés de type fichier dans l'ordre où ils ont été créés, avec :
+  - `name` : le nom du fichier, tel qu'il a été téléversé ;
+  - `mimeType` : son type, comme `application/pdf` ou `image/png` ;
+  - `sizeInBytes` : sa taille en octets ;
+  - `base64` : les données du fichier ;
+  - `contentId` : un ID pour le fichier dans un e-mail, le même pour le même fichier quel que soit l'enregistrement qui le contient ;
+  - `fields` : l'endroit où l'enregistrement le contient : `attachments`, `postmortemAttachments`, ou le nom d'un champ personnalisé.
+- **Comptage** : combien de fichiers contient **Fichiers**.
+- **Laissés de côté** : les fichiers que contient l'enregistrement et qui ne sont pas dans **Fichiers**, chacun avec son `name`, ses `fields`, une `reason` et un `message` qui dit pourquoi.
+
+**Fichiers** contient les données des fichiers : le journal de l'exécution le masque et montre **Comptage** et **Laissés de côté** à la place, et un bloc suivant à qui l'on passe les fichiers les montre masqués lui aussi.
+
+### Quels fichiers il remet
+
+Le bloc lit l'enregistrement comme le fait un bloc Find One, en tant que flux de travail : dans le projet du flux de travail, jamais un incident, une alerte ou un épisode privé, et seulement ce que les autorisations du flux de travail lui permettent de lire. Un enregistrement qu'il n'a pas le droit de lire prend **Erreur**, comme un enregistrement qui n'existe pas. Un rôle « Exécuter en tant que » qui peut lire les incidents mais pas leurs notes internes ne peut pas lire les pièces jointes d'une note.
+
+Il ne remet que :
+
+- les fichiers que l'enregistrement contient maintenant : ses propres pièces jointes, et les fichiers de ses champs personnalisés **Fichier** et **Plusieurs fichiers**. Un champ personnalisé Texte n'est pas lu. Pour joindre les fichiers des notes d'un incident, lisez chaque note : le bloc ne lit pas les enregistrements rattachés à un autre ;
+- les fichiers du projet de l'enregistrement. Un fichier d'un autre projet figure sous **Laissés de côté** comme introuvable ;
+- documents, feuilles de calcul, présentations, images, fichiers texte et de données, archives et captures de paquets : les types de fichier qu'accepte un champ personnalisé **Fichier**, chacun vérifié d'après ce que contient le fichier autant que d'après son type. Un SVG peut contenir du script : il est laissé de côté, comme un fichier qui prétend seulement être ce que dit son type ;
+- jusqu'à 20 fichiers, et 10 Mo au total, comme **Récupérer les fichiers du Markdown**. Ce qui dépasse une limite figure sous **Laissés de côté**, avec la raison.
+
+Il ne peut pas lister les fichiers, ni en lire un par son ID : il ne lit que ce que contient l'enregistrement.
+
+Pour joindre les fichiers à l'e-mail envoyé avec Microsoft Graph de l'[exemple ci-dessus](#exemple-des-images-intégrées-dans-un-e-mail-envoyé-avec-microsoft-graph), ajoutez **Récupérer les pièces jointes de l'enregistrement** après **Récupérer les fichiers du Markdown**, ajoutez `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}` aux **Arguments** du code, et ajoutez chacun d'eux avec `isInline: false` :
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## Incidents et alertes d'autres outils
 

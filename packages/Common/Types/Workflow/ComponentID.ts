@@ -35,6 +35,12 @@ enum ComponentID {
    * to an email (Components/MarkdownFiles, #11256).
    */
   GetFilesFromMarkdown = "get-files-from-markdown",
+  /*
+   * The files a record holds - its File custom fields, a note's or a
+   * postmortem's attachments - with their bytes, ready to attach to an
+   * email (Components/RecordAttachments, #11477).
+   */
+  GetAttachmentsFromRecord = "get-attachments-from-record",
   AIGenerateText = "ai-generate-text",
   OpenStackProposeFix = "openstack-propose-fix",
   /*

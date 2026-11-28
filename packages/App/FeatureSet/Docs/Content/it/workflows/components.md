@@ -27,6 +27,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Attendere prima del blocco successivo                         | [Sleep](#sleep)                                                   |
 | Avviare un altro flusso di lavoro                                     | [Execute Workflow](#execute-workflow)                             |
 | Allegare a un'e-mail le immagini che il Markdown di un record mostra | [Ottieni i file dal Markdown](#get-files-from-markdown) |
+| Allegare a un'e-mail gli allegati di una nota, o i campi personalizzati di tipo file di un record | [Ottieni gli allegati dal record](#get-attachments-from-record) |
 | Leggere o modificare incidenti, monitor e altri record        | [Componenti dati di OneUptime](#componenti-dati-di-oneuptime)        |
 | Aprire, prendere in carico e risolvere incidenti o avvisi per i problemi di un altro strumento | [Incidenti e avvisi da altri strumenti](#incidenti-e-avvisi-da-altri-strumenti) |
 | Prendere in carico o chiudere un problema di Zabbix | [Zabbix](#zabbix) |
@@ -420,7 +421,7 @@ Restituisce:
 - **Conteggio**: quante immagini contiene **File**.
 - **Esclusi**: i file che il Markdown mostra ma che non sono in **File**, ciascuno con il suo `name`, i suoi `urls`, i suoi `fields`, un `reason` e un `message` che dice perché.
 
-**File** contiene i dati delle immagini, quindi il log dell'esecuzione lo nasconde e mostra invece **Conteggio** e **Esclusi**. Un blocco successivo a cui vengono passate le immagini scrive ciò che riceve nella propria voce del log.
+**File** contiene i dati delle immagini, quindi il log dell'esecuzione lo nasconde e mostra invece **Conteggio** e **Esclusi**. Anche un blocco successivo a cui vengono passate le immagini le mostra nascoste, in ciò che ha ricevuto e in ciò che ha restituito (vedi [Esecuzioni](/docs/workflows/runs-and-logs#la-scheda-passaggi)).
 
 ### Quali immagini consegna
 
@@ -525,6 +526,61 @@ Microsoft Graph risponde `202 Accepted` e il blocco prende **Successo**.
 :::
 
 Microsoft Graph accetta un allegato fino a 3 MB in un messaggio inviato in questo modo. Un'immagine più grande richiede una sessione di caricamento, o un link al posto dell'immagine. Le immagini di un record si possono leggere anche con una chiave API, fuori da un flusso di lavoro: vedi [Immagini nel Markdown di un record](/docs/api-reference/api-reference#immagini-nel-markdown-di-un-record).
+
+## Get Attachments From Record
+
+Legge i file che un record contiene, con nome, tipo e dati di ogni file: gli allegati di una nota, gli allegati del postmortem di un incidente, gli allegati di un annuncio e i file nei campi personalizzati **File** e **Più file** del record. Usalo per allegarli a un'e-mail. Per allegare anche le immagini che il Markdown di un record mostra, aggiungi [Ottieni i file dal Markdown](#get-files-from-markdown) per lo stesso record.
+
+| Impostazione | Cosa fa |
+| --- | --- |
+| **Tipo di record** | Il tipo di record che contiene i file: un incidente, una nota interna o pubblica di un incidente, un avviso, una manutenzione pianificata e altro. |
+| **ID record** | Il record da leggere, di solito quello che ha avviato il flusso di lavoro, come `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`. |
+
+| Uscita | Quando |
+| --- | --- |
+| **Successo** | Il record è stato letto, che contenga file o no. |
+| **Errore** | Non è stato possibile leggere il record: non esiste, oppure il flusso di lavoro non può leggerlo. **Errore** dice perché. |
+
+Restituisce:
+
+- **File**: ogni file, prima gli allegati del record stesso, poi i suoi campi personalizzati di tipo file nell'ordine in cui sono stati creati, con:
+  - `name`: il nome del file, come è stato caricato;
+  - `mimeType`: il suo tipo, come `application/pdf` o `image/png`;
+  - `sizeInBytes`: la sua dimensione in byte;
+  - `base64`: i dati del file;
+  - `contentId`: un ID per il file in un'e-mail, lo stesso per lo stesso file qualunque record lo contenga;
+  - `fields`: dove il record lo contiene: `attachments`, `postmortemAttachments` o il nome di un campo personalizzato.
+- **Conteggio**: quanti file contiene **File**.
+- **Esclusi**: i file che il record contiene ma che non sono in **File**, ciascuno con il suo `name`, i suoi `fields`, un `reason` e un `message` che dice perché.
+
+**File** contiene i dati dei file, quindi il log dell'esecuzione lo nasconde e mostra invece **Conteggio** e **Esclusi**, e anche un blocco successivo a cui vengono passati i file li mostra nascosti.
+
+### Quali file consegna
+
+Il blocco legge il record come fa un blocco Find One, come il flusso di lavoro: nel progetto del flusso di lavoro, mai un incidente, un avviso o un episodio privato, e solo ciò che i permessi del flusso di lavoro gli lasciano leggere. Un record che non può leggere prende **Errore**, proprio come uno che non esiste. Un ruolo di «Esegui come» che può leggere gli incidenti ma non le loro note interne non può leggere gli allegati di una nota.
+
+Consegna solo:
+
+- i file che il record contiene ora: i suoi allegati e i file dei suoi campi personalizzati **File** e **Più file**. Un campo personalizzato di testo non viene letto. Per allegare i file delle note di un incidente, leggi ogni nota: il blocco non legge i record che dipendono da un altro;
+- i file del progetto del record stesso. Un file di un altro progetto compare in **Esclusi** come non trovato;
+- documenti, fogli di calcolo, presentazioni, immagini, file di testo e di dati, archivi e catture di pacchetti: i tipi di file che un campo personalizzato **File** accetta, ciascuno controllato in base a ciò che il file contiene oltre che al suo tipo. Un SVG può contenere script, quindi viene escluso, come un file che dice soltanto di essere ciò che indica il suo tipo;
+- fino a 20 file, e 10 MB in tutto, come fa **Ottieni i file dal Markdown**. Ciò che supera un limite compare in **Esclusi**, con il motivo.
+
+Non può elencare i file né leggerne uno dal suo ID: legge solo ciò che il record contiene.
+
+Per allegare i file all'e-mail inviata con Microsoft Graph dell'[esempio sopra](#esempio-immagini-incorporate-in-une-mail-inviata-con-microsoft-graph), aggiungi **Ottieni gli allegati dal record** dopo **Ottieni i file dal Markdown**, aggiungi `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}` agli **Argomenti** del codice e aggiungi ciascuno con `isInline: false`:
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## Incidenti e avvisi da altri strumenti
 

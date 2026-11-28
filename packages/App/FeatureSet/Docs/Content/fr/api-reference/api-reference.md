@@ -431,7 +431,7 @@ Elle répondait autrefois `200` avec un corps vide. Une liste (`get-list`) et un
 
 ### Images dans le Markdown d'un enregistrement
 
-Une image collée dans du Markdown, comme une capture d'écran dans la description d'un incident, dans un champ personnalisé Markdown ou dans une note, est un fichier privé. Son adresse (`/file/image/access-token/...`) ne l'ouvre que pour une personne connectée au projet ; une clé d'API la lit donc plutôt par l'enregistrement qui la montre :
+Une image collée dans du Markdown, comme une capture d'écran dans la description d'un incident, dans un champ personnalisé Markdown ou dans une note, est un fichier privé. Son adresse (`/file/image/access-token/...`) ne l'ouvre que pour une personne connectée au projet qui peut lire un enregistrement qui la montre, ou qui l'a ajoutée ; une clé d'API la lit donc plutôt par l'enregistrement qui la montre :
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -465,7 +465,7 @@ L'enregistrement est lu en tant que clé, comme le lit `get-item` : la clé a be
 }
 ```
 
-Seules sont remises les images téléversées dans le projet de l'enregistrement, jusqu'à 20 et 10 Mo au total, et jamais un SVG. Chaque type d'enregistrement avec du Markdown a la même requête, comme `/api/incident-public-note/<id>/markdown-files` ou `/api/alert/<id>/markdown-files`. Un enregistrement qui n'existe pas, ou que la clé n'a pas le droit de lire, répond `404` comme le fait `get-item`, et `422` quand la clé ne peut pas du tout lire ce type d'enregistrement. Un flux de travail lit les mêmes images avec [Récupérer les fichiers du Markdown](/docs/workflows/components#get-files-from-markdown).
+Seules sont remises les images téléversées dans le projet de l'enregistrement, jusqu'à 20 et 10 Mo au total, et jamais un SVG. Chaque type d'enregistrement avec du Markdown a la même requête, comme `/api/incident-public-note/<id>/markdown-files` ou `/api/alert/<id>/markdown-files`. Un enregistrement qui n'existe pas, ou que la clé n'a pas le droit de lire, répond `404` comme le fait `get-item`, et `422` quand la clé ne peut pas du tout lire ce type d'enregistrement. Un flux de travail lit les mêmes images avec [Récupérer les fichiers du Markdown](/docs/workflows/components#get-files-from-markdown), et les fichiers que contient un enregistrement, comme les pièces jointes d'une note et ses champs personnalisés de type fichier, avec [Récupérer les pièces jointes de l'enregistrement](/docs/workflows/components#get-attachments-from-record).
 
 ## La référence complète des points de terminaison
 

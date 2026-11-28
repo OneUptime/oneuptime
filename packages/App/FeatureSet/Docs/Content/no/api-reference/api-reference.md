@@ -431,7 +431,7 @@ Tidligere svarte den `200` med en tom body. En liste (`get-list`) og en telling 
 
 ### Bilder i en posts Markdown
 
-Et bilde som er limt inn i Markdown, som et skjermbilde i beskrivelsen av en hendelse, et egendefinert Markdown-felt eller et notat, er en privat fil. Adressen (`/file/image/access-token/...`) åpner det bare for en person som er logget inn i prosjektet, så en API-nøkkel leser det i stedet gjennom posten som viser det:
+Et bilde som er limt inn i Markdown, som et skjermbilde i beskrivelsen av en hendelse, et egendefinert Markdown-felt eller et notat, er en privat fil. Adressen (`/file/image/access-token/...`) åpner det bare for en person som er logget inn i prosjektet og har lov til å lese en post som viser det, eller som la det til, så en API-nøkkel leser det i stedet gjennom posten som viser det:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -465,7 +465,7 @@ Posten leses som nøkkelen, slik `get-item` leser den: Nøkkelen trenger tillate
 }
 ```
 
-Bare bilder som er lastet opp til postens eget prosjekt, gis ut, opptil 20 og 10 MB totalt, og aldri en SVG. Hver slags post med Markdown har den samme forespørselen, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post som ikke finnes, eller som nøkkelen ikke har lov til å lese, svarer `404` slik `get-item` gjør, og `422` når nøkkelen ikke har lov til å lese den slags post i det hele tatt. En arbeidsflyt leser de samme bildene med [Hent filer fra Markdown](/docs/workflows/components#get-files-from-markdown).
+Bare bilder som er lastet opp til postens eget prosjekt, gis ut, opptil 20 og 10 MB totalt, og aldri en SVG. Hver slags post med Markdown har den samme forespørselen, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post som ikke finnes, eller som nøkkelen ikke har lov til å lese, svarer `404` slik `get-item` gjør, og `422` når nøkkelen ikke har lov til å lese den slags post i det hele tatt. En arbeidsflyt leser de samme bildene med [Hent filer fra Markdown](/docs/workflows/components#get-files-from-markdown), og filene en post inneholder, som vedleggene til et notat og dens egendefinerte filfelt, med [Hent vedlegg fra post](/docs/workflows/components#get-attachments-from-record).
 
 ## Den fullstendige endepunktreferansen
 

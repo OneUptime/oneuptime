@@ -27,6 +27,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | Te wachten vóór het volgende blok                             | [Sleep](#sleep)                                                   |
 | Een andere workflow te starten                                | [Execute Workflow](#execute-workflow)                             |
 | De afbeeldingen die de Markdown van een record toont aan een e-mail toe te voegen | [Bestanden uit Markdown ophalen](#get-files-from-markdown) |
+| De bijlagen van een notitie, of de aangepaste bestandsvelden van een record, aan een e-mail toe te voegen | [Bijlagen uit record ophalen](#get-attachments-from-record) |
 | Incidenten, monitoren en andere records te lezen of te wijzigen | [OneUptime-datacomponenten](#oneuptime-datacomponenten)         |
 | Incidenten of waarschuwingen voor de problemen van een ander hulpmiddel te openen, te bevestigen en op te lossen | [Incidenten en waarschuwingen uit andere hulpmiddelen](#incidenten-en-waarschuwingen-uit-andere-hulpmiddelen) |
 | Een Zabbix-probleem te bevestigen of te sluiten | [Zabbix](#zabbix) |
@@ -420,7 +421,7 @@ Het geeft terug:
 - **Aantal**: hoeveel afbeeldingen **Bestanden** bevat.
 - **Weggelaten**: de bestanden die de Markdown toont maar die niet in **Bestanden** staan, elk met zijn `name`, `urls`, `fields`, een `reason` en een `message` die zegt waarom.
 
-**Bestanden** bevat de gegevens van de afbeeldingen, dus het logboek van de run verbergt het en toont in plaats daarvan **Aantal** en **Weggelaten**. Een later blok dat de afbeeldingen krijgt, schrijft wat het krijgt in zijn eigen regel in het logboek.
+**Bestanden** bevat de gegevens van de afbeeldingen, dus het logboek van de run verbergt het en toont in plaats daarvan **Aantal** en **Weggelaten**. Een later blok dat de afbeeldingen krijgt, toont ze ook verborgen, in wat het ontving en in wat het teruggaf (zie [Uitvoeringen](/docs/workflows/runs-and-logs#het-tabblad-stappen)).
 
 ### Welke afbeeldingen het afgeeft
 
@@ -525,6 +526,61 @@ Microsoft Graph antwoordt `202 Accepted`, en het blok neemt **Succes**.
 :::
 
 Microsoft Graph neemt in een bericht dat het zo krijgt een bijlage van hoogstens 3 MB aan. Een grotere afbeelding heeft een uploadsessie nodig, of een link in plaats van de afbeelding. De afbeeldingen van een record zijn ook met een API-sleutel te lezen, buiten een workflow om: zie [Afbeeldingen in de Markdown van een record](/docs/api-reference/api-reference#afbeeldingen-in-de-markdown-van-een-record).
+
+## Get Attachments From Record
+
+Leest de bestanden die een record bevat, met de naam, het type en de gegevens van elk bestand: de bijlagen van een notitie, de postmortem-bijlagen van een incident, de bijlagen van een aankondiging en de bestanden in de aangepaste velden **Bestand** en **Meerdere bestanden** van het record. Gebruik het om ze aan een e-mail toe te voegen. Om ook de afbeeldingen toe te voegen die de Markdown van een record toont, voegt u voor hetzelfde record [Bestanden uit Markdown ophalen](#get-files-from-markdown) toe.
+
+| Instelling | Wat het doet |
+| --- | --- |
+| **Recordtype** | Het soort record dat de bestanden bevat: een incident, een interne of openbare notitie van een incident, een waarschuwing, gepland onderhoud en meer. |
+| **Record-ID** | Het record dat gelezen wordt, meestal het record waarmee de workflow begon, zoals `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`. |
+
+| Uitgang | Wanneer |
+| --- | --- |
+| **Succes** | Het record is gelezen, of het nu bestanden bevat of niet. |
+| **Fout** | Het record kon niet gelezen worden: het bestaat niet, of de workflow mag het niet lezen. **Fout** zegt waarom. |
+
+Het geeft terug:
+
+- **Bestanden**: elk bestand, eerst de eigen bijlagen van het record, dan zijn aangepaste bestandsvelden in de volgorde waarin ze zijn aangemaakt, met:
+  - `name`: de naam van het bestand, zoals het is geüpload;
+  - `mimeType`: het type, zoals `application/pdf` of `image/png`;
+  - `sizeInBytes`: de grootte in bytes;
+  - `base64`: de gegevens van het bestand;
+  - `contentId`: een ID voor het bestand in een e-mail, hetzelfde voor hetzelfde bestand, welk record het ook bevat;
+  - `fields`: waar het record het bewaart: `attachments`, `postmortemAttachments` of de naam van een aangepast veld.
+- **Aantal**: hoeveel bestanden **Bestanden** bevat.
+- **Weggelaten**: de bestanden die het record bevat maar die niet in **Bestanden** staan, elk met zijn `name`, `fields`, een `reason` en een `message` die zegt waarom.
+
+**Bestanden** bevat de gegevens van de bestanden, dus het logboek van de run verbergt het en toont in plaats daarvan **Aantal** en **Weggelaten**, en een later blok dat de bestanden krijgt, toont ze ook verborgen.
+
+### Welke bestanden het afgeeft
+
+Het blok leest het record zoals een Find One-blok dat doet, als de workflow: in het eigen project van de workflow, nooit een privé-incident, -waarschuwing of -episode, en alleen wat de rechten van de workflow laten lezen. Een record dat het niet mag lezen neemt **Fout**, net als een record dat niet bestaat. Een rol voor “Uitvoeren als” die incidenten mag lezen maar hun interne notities niet, kan de bijlagen van een notitie niet lezen.
+
+Het geeft alleen af:
+
+- bestanden die het record nu bevat: zijn eigen bijlagen en de bestanden van zijn aangepaste velden **Bestand** en **Meerdere bestanden**. Een aangepast tekstveld wordt niet gelezen. Om de bestanden van de notities van een incident toe te voegen, leest u elke notitie: het blok leest de records onder een ander record niet;
+- bestanden van het eigen project van het record. Een bestand van een ander project staat onder **Weggelaten** als niet gevonden;
+- documenten, spreadsheets, presentaties, afbeeldingen, tekst- en gegevensbestanden, archieven en pakketopnamen: de soorten bestanden die een aangepast veld **Bestand** accepteert, elk gecontroleerd op wat het bestand bevat en op het type. Een SVG kan script bevatten, dus die wordt weggelaten, net als een bestand dat alleen beweert te zijn wat het type zegt;
+- tot 20 bestanden, en 10 MB in totaal, net als bij **Bestanden uit Markdown ophalen**. Wat over een grens gaat, staat onder **Weggelaten**, met de reden.
+
+Het kan geen bestanden opsommen en er geen via het ID lezen: het leest alleen wat het record bevat.
+
+Om de bestanden toe te voegen aan de e-mail via Microsoft Graph uit het [voorbeeld hierboven](#voorbeeld-ingesloten-afbeeldingen-in-een-e-mail-via-microsoft-graph), voegt u **Bijlagen uit record ophalen** toe na **Bestanden uit Markdown ophalen**, voegt u `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}` toe aan de **Argumenten** van de code en voegt u elk bestand toe met `isInline: false`:
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## Incidenten en waarschuwingen uit andere hulpmiddelen
 

@@ -169,6 +169,7 @@ import Domain from "./Domain";
 import EmailLog from "./EmailLog";
 import EmailVerificationToken from "./EmailVerificationToken";
 import File from "./File";
+import ShownImage from "./ShownImage";
 import GlobalConfig from "./GlobalConfig";
 import InstanceHealthLog from "./InstanceHealthLog";
 import ServerEmailLog from "./ServerEmailLog";
@@ -1034,6 +1035,8 @@ const AllModelTypes: Array<{
   MonitorStatusTimeline,
 
   File,
+  // Which records show each inline image (#11478).
+  ShownImage,
   Domain,
 
   StatusPageGroup,
