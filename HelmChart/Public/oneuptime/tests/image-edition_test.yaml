@@ -315,4 +315,7 @@ tests:
       image.type: hardened-edition
     asserts:
       - failedTemplate:
-          errorPattern: "image.type"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/image/type': value must be one of 'community-edition', 'enterprise-edition'

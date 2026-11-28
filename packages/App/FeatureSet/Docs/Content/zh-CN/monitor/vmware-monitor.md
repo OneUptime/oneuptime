@@ -123,7 +123,7 @@ OneUptime 为常见的 VMware 问题提供 25 个模板，**警报内容** 列�
 | VM CPU Ready Contention | 虚拟机 | 警告 | `vcenter.vm.cpu.readiness`，按 VM 取 Avg | 高于 10%：VM 已准备好运行，但主机没有物理内核分配给它。在客户机内部看不到 | 达到或低于 9% |
 | VM Memory Saturation | 虚拟机 | 警告 | `vcenter.vm.memory.utilization`，按 VM 取 Avg | 高于其内存的 90%：客户机即将开始换页 | 达到或低于 81% |
 | VM Memory Ballooning | 虚拟机 | 警告 | `vcenter.vm.memory.ballooned`，按 VM 取 Max | 高于 0：主机内存不足，正在从这个客户机收回内存 | 恢复为 0 |
-| VM Memory Swapping | 虚拟机 | 严重 | `vcenter.vm.memory.swapped`，按 VM 取 Max | 高于 0：主机正在交换 VM 的内存，这是在气球回收和压缩之后的最后手段 | 恢复为 0 |
+| VM Memory Swapping | 虚拟机 | 严重 | `vcenter.vm.memory.swapped`，按 VM 取 Max | 高于 0：VM 的部分内存位于主机交换文件中，可能是现在换出的，也可能是之前内存压力遗留的，ESXi 会一直保留它，直到 VM 访问它。vCenter 的概览会区分这两种情况：请参阅 [已换出的内存不等于正在交换](/docs/telemetry/vmware#已换出的内存不等于正在交换) | 恢复为 0 |
 | VM Disk Latency High | 虚拟机 | 警告 | `vcenter.vm.disk.latency.max`，按 VM 取 Max | 高于 50 ms：客户机中的应用程序 I/O 超时 | 达到或低于 45 ms |
 | VM Disk Usage High | 虚拟机 | 警告 | `vcenter.vm.disk.utilization`，按 VM 取 Avg | 已占用其预配存储的 90% 以上：精简置备的 VM 即将占满其全部大小 | 达到或低于 81% |
 | Datastore Capacity Warning | 数据存储 | 警告 | `vcenter.datastore.disk.utilization`，按 `resource.vcenter.datastore.name` 取 Avg | 高于 80%：一个提前的警告，因为精简磁盘和快照会很快用完剩余空间 | 达到或低于 72% |
@@ -214,7 +214,7 @@ OneUptime 为常见的 VMware 问题提供 25 个模板，**警报内容** 列�
 | `vcenter.vm.disk.utilization` | `%` | VM 的预配存储中已在数据存储上占用的百分比(0–100)——接近 100% 的精简置备 VM 即将占满其全部大小 |
 | `vcenter.vm.memory.ballooned` | `MiBy` | 气球驱动程序(VMware Tools)从 VM 回收的客户机内存。高于 0 表示 ESXi 主机内存不足 |
 | `vcenter.vm.memory.granted` | `MiBy` | 主机分配给 VM 的机器内存。_默认关闭_——开启 `vcenter.vm.memory.granted` |
-| `vcenter.vm.memory.swapped` | `MiBy` | 从主机交换文件分配给 VM 的内存——气球回收和压缩之后的最后手段；任何高于 0 的值都意味着 VM 正在用磁盘延迟换取 RAM |
+| `vcenter.vm.memory.swapped` | `MiBy` | 从主机交换文件分配给 VM 的内存——气球回收和压缩之后的最后手段。ESXi 会保留已换出的页面，直到 VM 访问它，因此高于 0 的值可能是之前内存压力遗留的 |
 | `vcenter.vm.memory.swapped_ssd` | `KiBy` | VM 被交换到主机闪存交换缓存中的内存——比交换文件的影响小，但仍然是内存压力 |
 | `vcenter.vm.memory.usage` | `MiBy` | VM 的客户机正在活跃使用的内存。已开机和已关机的 VM 都会发送(关机时为 0) |
 | `vcenter.vm.memory.utilization` | `%` | VM 的内存利用率，占其配置内存的百分比(0–100) |
@@ -241,7 +241,7 @@ OneUptime 为常见的 VMware 问题提供 25 个模板，**警报内容** 列�
 | `vcenter.resource_pool.memory.ballooned` | `MiBy` | 气球驱动程序从资源池中所有 VM 回收的内存 |
 | `vcenter.resource_pool.memory.granted` | `MiBy` | 分配给资源池 VM 的主机内存，按 `type`(`private` / `shared`——共享页面由透明页面共享去重)细分 |
 | `vcenter.resource_pool.memory.shares` | `{shares}` | 资源池上配置的内存份额 |
-| `vcenter.resource_pool.memory.swapped` | `MiBy` | 从 ESXi 主机交换空间分配给资源池 VM 的内存——任何高于 0 的值都意味着资源池中至少有一个 VM 正在被主机交换 |
+| `vcenter.resource_pool.memory.swapped` | `MiBy` | 从 ESXi 主机交换空间分配给资源池 VM 的内存——高于 0 的值意味着资源池中至少有一个 VM 在主机交换空间中有内存，可能是现在的，也可能是之前遗留的 |
 | `vcenter.resource_pool.memory.usage` | `MiBy` | 资源池使用的内存，在较新的采集器构建中按 `type`(`guest` / `host` / `overhead`)细分；较旧的构建发送一个不带类型的序列。过滤 `type = guest` |
 
 ### vSAN
@@ -288,7 +288,7 @@ OneUptime 为常见的 VMware 问题提供 25 个模板，**警报内容** 列�
 - **某个数据存储即将写满：** `vcenter.datastore.disk.utilization`，平均值，按 `resource.vcenter.datastore.name` 分组，**大于** `80`。
 - **某个集群失去了一台主机：** `vcenter.cluster.host.count` 过滤到 `effective = false`，最大值，按 `resource.vcenter.cluster.name` 分组，**大于** `0`。
 - **运行的 VM 少于预期：** `vcenter.cluster.vm.count` 过滤到 `power_state = on` 和 `resource.vcenter.cluster.name = Production`，总和，**小于** 你预期的数量。
-- **某个 VM 正在被主机交换：** `vcenter.vm.memory.swapped`，最大值，按 `resource.vcenter.vm.name` 分组，**大于** `0`。
+- **某个 VM 在主机交换空间中保留了大量内存：** `vcenter.vm.memory.swapped`，最大值，按 `resource.vcenter.vm.name` 分组，**大于** `1024`。内存压力消失很久之后，几 MiB 仍可能留在那里，因此高于 0 的阈值可以避免之前遗留的内存触发该条件。
 
 ### 默认条件
 

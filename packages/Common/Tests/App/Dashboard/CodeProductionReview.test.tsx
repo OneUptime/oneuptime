@@ -54,6 +54,7 @@ import {
 } from "../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { DataStoreExposure } from "../../../Types/DataSecurity/DataStorePosture";
+import { TelemetryLeakFixOwnerKind } from "../../../Types/DataSecurity/TelemetryLeakFix";
 import SecuritySeverity from "../../../Types/SecuritySeverity";
 import Link from "../../../Types/Link";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -1160,6 +1161,69 @@ describe("the Sensitive data section (#10376)", () => {
     ).toHaveTextContent(
       "Found by OneUptime's rules, and worded by OneUptime AI.",
     );
+  });
+
+  /*
+   * A web or mobile app's code (#11395): where its RUM application's
+   * session replays held the data, linked to the application's page - a
+   * service's place to the service's.
+   */
+  test("a front end's place: its RUM application's session replays, linked to the application's page, beside a service's", () => {
+    const rumApplicationId: string = "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f";
+
+    drawReview(
+      report({
+        sensitiveData: {
+          points: [
+            leak({
+              path: "web/src/checkout/payment.js",
+              production: {
+                heldBefore: [
+                  {
+                    serviceId: rumApplicationId,
+                    serviceName: "storefront-web",
+                    ownerKind: TelemetryLeakFixOwnerKind.RumApplication,
+                    storeKind: "Session Replays",
+                    location: "logs.attributes.user.email",
+                    dataTypeName: "Email address",
+                    lastSeenAt: minutesAgo(30),
+                  },
+                  {
+                    serviceId: SERVICE_ID,
+                    serviceName: "checkout-api",
+                    storeKind: "Logs",
+                    location: "attributes.user.email",
+                    dataTypeName: "Email address",
+                    lastSeenAt: minutesAgo(60),
+                  },
+                ],
+              },
+            }),
+          ],
+          moreCount: 0,
+          droppedCount: 0,
+          isFailOn: false,
+          isAiRead: false,
+        },
+      }),
+    );
+
+    const known: HTMLElement = screen.getByTestId(
+      "production-review-sensitive-data-production",
+    );
+
+    expect(known).toHaveTextContent("Production has held this before");
+    expect(known).toHaveTextContent("Session Replays");
+    expect(known).toHaveTextContent("logs.attributes.user.email");
+    expect(
+      within(known).getByRole("link", { name: "storefront-web" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/rum/${rumApplicationId}`,
+    );
+    expect(
+      within(known).getByRole("link", { name: "checkout-api" }),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/service/${SERVICE_ID}`);
   });
 
   test("a point without what production knows - a reader who may not read Data Security - shows none of it", () => {

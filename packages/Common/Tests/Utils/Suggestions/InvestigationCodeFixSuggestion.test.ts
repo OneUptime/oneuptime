@@ -14,7 +14,9 @@ import {
   NO_INVESTIGATION_CODE_FIX_SUGGESTION,
   parseAutomaticCodeFixBlocker,
   parseInvestigationCodeFixSuggestion,
+  PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES,
 } from "../../../Utils/Suggestions/InvestigationCodeFixSuggestion";
+import { CodeFixRepositoryChoice } from "../../../Utils/Suggestions/CodeFixRepositoryPick";
 import { SuggestionBlocker } from "../../../Utils/Suggestions/SuggestionBlocker";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 
@@ -41,6 +43,15 @@ const OTHER_RUN_ID: string = "10000000-0000-4000-8000-000000000002";
 const NO_CREDITS: SuggestionBlocker = {
   type: CodeTaskBlockerType.NoAiCredits,
   message: "This project's AI credits are used up.",
+};
+
+const CHECKOUT: CodeFixRepositoryChoice = {
+  id: "11209000-0000-4000-8000-0000000000a2",
+  name: "checkout",
+};
+const LEDGER: CodeFixRepositoryChoice = {
+  id: "11209000-0000-4000-8000-0000000000a3",
+  name: "ledger",
 };
 
 function input(
@@ -90,6 +101,7 @@ describe("what the Remediation step offers for an investigation's code fix", () 
       aiRunId: RUN_ID,
       isAutomatic: true,
       automaticBlocker: null,
+      repositories: [],
     });
 
     expect(
@@ -114,6 +126,7 @@ describe("what the Remediation step offers for an investigation's code fix", () 
         aiRunId: RUN_ID,
         isAutomatic: false,
         automaticBlocker: null,
+        repositories: [],
       });
     }
   });
@@ -132,6 +145,7 @@ describe("what the Remediation step offers for an investigation's code fix", () 
       aiRunId: RUN_ID,
       isAutomatic: true,
       automaticBlocker: null,
+      repositories: [],
     });
   });
 
@@ -169,6 +183,7 @@ describe("what the Remediation step offers for an investigation's code fix", () 
       aiRunId: null,
       isAutomatic: false,
       automaticBlocker: AutomaticCodeFixBlocker.NoRepository,
+      repositories: [],
     });
   });
 
@@ -187,6 +202,7 @@ describe("what the Remediation step offers for an investigation's code fix", () 
       aiRunId: null,
       isAutomatic: false,
       automaticBlocker: AutomaticCodeFixBlocker.ChangedSince,
+      repositories: [],
     });
   });
 
@@ -201,8 +217,67 @@ describe("what the Remediation step offers for an investigation's code fix", () 
         aiRunId: null,
         isAutomatic: false,
         automaticBlocker,
+        repositories: [],
       });
     }
+  });
+
+  /*
+   * THE REPOSITORIES TO PICK FROM (#11209): a person opens the pull request
+   * only in a repository they may use in Code; when several are theirs and
+   * none is named like the record's monitor, the step asks which first.
+   */
+  test("ready to open, with the repositories theirs to pick from", () => {
+    expect(
+      getInvestigationCodeFixSuggestion(
+        input({ repositories: [CHECKOUT, LEDGER] }),
+      ),
+    ).toEqual({
+      offer: SuggestionOffer.Act,
+      fixOutcome: null,
+      blocker: null,
+      aiRunId: null,
+      isAutomatic: false,
+      automaticBlocker: AutomaticCodeFixBlocker.FixOff,
+      repositories: [CHECKOUT, LEDGER],
+    });
+  });
+
+  test("one repository is no choice: the pull request opens in it", () => {
+    expect(
+      getInvestigationCodeFixSuggestion(input({ repositories: [CHECKOUT] }))
+        .repositories,
+    ).toEqual([]);
+  });
+
+  test("a pick is the opening's own step: a set-up step, a fix being written or done carries none", () => {
+    for (const overrides of [
+      { hasConnectedRepository: false },
+      { blocker: NO_CREDITS },
+      { activeFix: { aiRunId: RUN_ID, isAutomatic: false } },
+      {
+        finishedFix: {
+          aiRunId: RUN_ID,
+          isAutomatic: false,
+          outcome: FinishedFixOutcome.Fixed,
+        },
+      },
+    ] as Array<Partial<InvestigationCodeFixSuggestionInput>>) {
+      expect(
+        getInvestigationCodeFixSuggestion(
+          input({ ...overrides, repositories: [CHECKOUT, LEDGER] }),
+        ).repositories,
+      ).toEqual([]);
+    }
+  });
+
+  test("the sentence that asks for the pick names the record's monitor, by kind of record", () => {
+    expect(PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES).toEqual({
+      incident:
+        "Several repositories are connected, and none could be matched to this incident's monitor. Pick the one that holds the code to fix.",
+      alert:
+        "Several repositories are connected, and none could be matched to this alert's monitor. Pick the one that holds the code to fix.",
+    });
   });
 
   test("the fixing rule's blockers each have the step's name", () => {
@@ -315,6 +390,7 @@ describe("the code fix suggestion on the wire", () => {
       aiRunId: null,
       isAutomatic: false,
       automaticBlocker: null,
+      repositories: [],
     });
   });
 
@@ -359,6 +435,7 @@ describe("the code fix suggestion on the wire", () => {
       aiRunId: RUN_ID,
       isAutomatic: true,
       automaticBlocker: null,
+      repositories: [],
     });
 
     expect(
@@ -376,7 +453,64 @@ describe("the code fix suggestion on the wire", () => {
       aiRunId: null,
       isAutomatic: false,
       automaticBlocker: AutomaticCodeFixBlocker.PullRequestOff,
+      repositories: [],
     });
+  });
+
+  test("an offer to open it round-trips the repositories to pick from", () => {
+    const suggestion: InvestigationCodeFixSuggestion =
+      getInvestigationCodeFixSuggestion(
+        input({ repositories: [CHECKOUT, LEDGER] }),
+      );
+
+    expect(
+      parseInvestigationCodeFixSuggestion(
+        JSON.parse(
+          JSON.stringify(investigationCodeFixSuggestionToJSON(suggestion)),
+        ),
+      ),
+    ).toEqual(suggestion);
+    expect(suggestion.repositories).toEqual([CHECKOUT, LEDGER]);
+  });
+
+  test("only an offer to open it carries repositories off the wire", () => {
+    for (const offer of [
+      SuggestionOffer.SetUp,
+      SuggestionOffer.InProgress,
+      SuggestionOffer.Done,
+    ]) {
+      expect(
+        parseInvestigationCodeFixSuggestion({
+          offer,
+          aiRunId: RUN_ID,
+          fixOutcome: FinishedFixOutcome.Fixed,
+          repositories: [CHECKOUT, LEDGER],
+        }).repositories,
+      ).toEqual([]);
+    }
+
+    expect(
+      parseInvestigationCodeFixSuggestion({
+        offer: SuggestionOffer.Act,
+        repositories: [CHECKOUT, LEDGER],
+      }).repositories,
+    ).toEqual([CHECKOUT, LEDGER]);
+  });
+
+  test("one repository off the wire is no choice, and a broken entry is left out", () => {
+    expect(
+      parseInvestigationCodeFixSuggestion({
+        offer: SuggestionOffer.Act,
+        repositories: [CHECKOUT],
+      }).repositories,
+    ).toEqual([]);
+
+    expect(
+      parseInvestigationCodeFixSuggestion({
+        offer: SuggestionOffer.Act,
+        repositories: [{ id: "", name: "x" }, CHECKOUT, { name: "y" }, LEDGER],
+      }).repositories,
+    ).toEqual([CHECKOUT, LEDGER]);
   });
 
   test("a reason this build does not know reads as none", () => {

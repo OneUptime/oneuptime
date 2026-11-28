@@ -1201,8 +1201,8 @@ describe("a rule's field, in the reader's language", () => {
     );
 
     // As it reads, without the marks that set a value apart.
-    expect((container.textContent || "").replace(/[\u2066-\u2069]/g, "")).toMatch(
-      /^Kubernetes cluster is .*prod-eu/,
-    );
+    expect(
+      (container.textContent || "").replace(/[\u2066-\u2069]/g, ""),
+    ).toMatch(/^Kubernetes cluster is .*prod-eu/);
   });
 });

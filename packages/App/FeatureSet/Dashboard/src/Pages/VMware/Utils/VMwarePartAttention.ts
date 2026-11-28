@@ -2,6 +2,7 @@ import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
   VMwareListRouteFor,
   VMwareRouteFor,
@@ -80,6 +81,8 @@ export function getVMwarePartAttention(data: {
   now: Date;
   routeFor: VMwareRouteFor;
   listRouteFor?: VMwareListRouteFor | undefined;
+  // The project's health rules (VMware > Settings > Health Rules).
+  rules?: VMwareHealthRules | undefined;
 }): ResourcePartAttention {
   const words: { description: string; current: string } =
     VMWARE_PART_ATTENTION_WORDS[data.kind];
@@ -131,6 +134,7 @@ export function getVMwarePartAttention(data: {
     now: data.now,
     routeFor: data.routeFor,
     listRouteFor: data.listRouteFor,
+    rules: data.rules,
   });
 
   return attention;

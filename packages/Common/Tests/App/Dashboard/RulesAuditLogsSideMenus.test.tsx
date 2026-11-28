@@ -190,6 +190,8 @@ const MENUS: Array<ProductMenu> = [
     Menu: VMwareSideMenu,
     landing: PageMap.VMWARE_VCENTERS,
     before: [
+      // Where every vCenter's Needs attention turns amber and red (#11157).
+      ["Health Rules", PageMap.VMWARE_SETTINGS_HEALTH_RULES],
       ["Owner Rules", PageMap.VMWARE_SETTINGS_OWNER_RULES],
       ["Label Rules", PageMap.VMWARE_SETTINGS_LABEL_RULES],
     ],

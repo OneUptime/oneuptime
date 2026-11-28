@@ -3,6 +3,7 @@ import {
   SECURITY_PROTECTED_ADDRESS_SENTENCES,
   SECURITY_PROTECTED_CLOUD_RESOURCE_WITHOUT_ACCOUNT,
   SECURITY_PROTECTED_DOMAIN_HOLDS,
+  SECURITY_PROTECTED_GOOGLE_FRONT_END_WITHOUT_LOAD_BALANCER,
   SECURITY_PROTECTED_INSIDE_RANGE,
   SECURITY_PROTECTED_OWN_ADDRESS,
   SECURITY_PROTECTED_OWN_DOMAIN,
@@ -232,6 +233,7 @@ describe("describeSecurityAddressProtection", () => {
       SecurityProtectedAddressSource.OneUptimeCloud,
       SecurityProtectedAddressSource.Edge,
       SecurityProtectedAddressSource.GlobalProbe,
+      SecurityProtectedAddressSource.GoogleFrontEnd,
     ]) {
       expect(SECURITY_PROTECTED_RECORD_SOURCES).not.toContain(source);
       expect(
@@ -272,6 +274,70 @@ describe("describeSecurityAddressProtection", () => {
         protection: host,
       }),
     ).toBe("35.205.11.131 is the address of host web-3.");
+  });
+
+  /*
+   * #11388: Google Cloud's front ends and health checks, which nobody but
+   * Google connects from - said with one of the project's Google Cloud load
+   * balancers they reach, or without one when it has none to name.
+   */
+  test("Google Cloud's front ends and health checks say whose visitors a block would cut off", () => {
+    expect(
+      describeSecurityAddressProtection({
+        value: "35.191.4.8",
+        protection: {
+          source: SecurityProtectedAddressSource.GoogleFrontEnd,
+          protectedValue: "35.191.0.0/16",
+          name: "web-https",
+          where: "Google Cloud shop",
+        },
+      }),
+    ).toBe(
+      "35.191.4.8 is inside 35.191.0.0/16. 35.191.0.0/16 is where Google Cloud's front ends and health checks reach the backends of your load balancer web-https from: blocking it would cut off its visitors and fail its health checks.",
+    );
+    expect(
+      describeSecurityAddressProtection({
+        value: "130.211.0.0/22",
+        protection: {
+          source: SecurityProtectedAddressSource.GoogleFrontEnd,
+          protectedValue: "130.211.0.0/22",
+        },
+      }),
+    ).toBe(
+      "130.211.0.0/22 is where Google Cloud's front ends and health checks connect from, and nobody else does: blocking it would cut off the visitors of a Google Cloud load balancer in front of your app and fail its health checks.",
+    );
+    expect(
+      getSecurityProtectionSentence({
+        source: SecurityProtectedAddressSource.GoogleFrontEnd,
+        protectedValue: "130.211.0.0/22",
+        name: "",
+      }),
+    ).toBe(SECURITY_PROTECTED_GOOGLE_FRONT_END_WITHOUT_LOAD_BALANCER);
+    expect(
+      getSecurityProtectionSentence({
+        source: SecurityProtectedAddressSource.GoogleFrontEnd,
+        protectedValue: "130.211.0.0/22",
+        name: "web-https",
+      }),
+    ).toBe(
+      SECURITY_PROTECTED_ADDRESS_SENTENCES[
+        SecurityProtectedAddressSource.GoogleFrontEnd
+      ],
+    );
+  });
+
+  test("a range wider than a front end's range says it holds it first", () => {
+    expect(
+      describeSecurityAddressProtection({
+        value: "35.0.0.0/8",
+        protection: {
+          source: SecurityProtectedAddressSource.GoogleFrontEnd,
+          protectedValue: "35.191.0.0/16",
+        },
+      }),
+    ).toBe(
+      "35.0.0.0/8 holds 35.191.0.0/16. 35.191.0.0/16 is where Google Cloud's front ends and health checks connect from, and nobody else does: blocking it would cut off the visitors of a Google Cloud load balancer in front of your app and fail its health checks.",
+    );
   });
 });
 

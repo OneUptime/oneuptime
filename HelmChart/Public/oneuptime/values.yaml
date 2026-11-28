@@ -1486,6 +1486,15 @@ twilio:
     name:
     # The key of that Secret that holds the auth token.
     authTokenKey: authToken
+  # The voice the server's calls speak with, with accountSid or without it:
+  # one of Polly.Joanna-Neural, Polly.Matthew-Neural, Polly.Amy-Neural,
+  # Polly.Brian-Neural, Google.en-US-Neural2-F or Google.en-US-Neural2-J. A
+  # call to someone who reads OneUptime in another language speaks it, in a
+  # voice of that language of the same kind. Twilio charges the account extra
+  # for these voices. Set, it is the voice, and Admin Dashboard > Settings >
+  # Call and SMS shows it read-only; leave it empty to choose the voice there.
+  # See https://oneuptime.com/docs/self-hosted/twilio-integration#the-voice-calls-speak-with
+  callVoice:
 
 # How this server sends its own email - what Admin Dashboard > Settings >
 # Emails otherwise sets up. Set serverType, and the settings are the ones these

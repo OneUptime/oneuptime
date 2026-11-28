@@ -61,8 +61,8 @@ import {
  * The words a person's page sends the people it pages are written in each
  * one's language (Types/UserLanguage): each function that writes one takes
  * the translator of their language, and writes English - exactly as it
- * always has - without one. A call's words stay English: a call is spoken
- * by a voice that speaks English.
+ * always has - without one. So do a call's, which a voice of that language
+ * speaks where the call has one (Utils/Call/OnCallPageCall, #11066).
  */
 
 // The translator of what nobody asked to read in another language: English.
@@ -446,14 +446,21 @@ export function getOnCallPersonPageCallSentence(data: {
 
 /*
  * What a call says after the record, when the page has a message: "Alice
- * Kim says: Can you check the database?". Empty for none.
+ * Kim says: Can you check the database?" - in the call's language (#11066),
+ * the message as its writer wrote it. Empty for none.
  */
 export function getOnCallPersonPageCallMessage(
   notice: OnCallPersonPageNotice,
+  translator: Translator = getEnglishTranslator(),
 ): string {
   const message: string = getOnCallPersonPageMessage(notice);
 
-  return message ? `${pager(notice)} says: ${message}` : "";
+  return message
+    ? translator.translateTemplate("{{pager}} says: {{message}}", {
+        pager: getOnCallPersonPagePager(notice),
+        message: message,
+      })
+    : "";
 }
 
 /*

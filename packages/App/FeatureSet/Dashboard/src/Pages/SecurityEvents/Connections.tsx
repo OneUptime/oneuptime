@@ -11,6 +11,7 @@ import {
   ACCESS_LOG_FORMAT_GIVEN,
   ACCESS_LOGS_TITLE,
   CONNECTIONS_MORE_SETTINGS_DESCRIPTION,
+  PRIVATE_ADDRESSES_CHIP,
   TRUSTED_AUTOMATICALLY_TITLE,
   TRUSTED_PROXIES_TEST_IDS,
   TRUSTED_PROXIES_TITLE,
@@ -48,8 +49,9 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *   More settings         Trusted Proxies: the proxies the project's apps
  *                         sit behind, whose forwarded client address the
  *                         scans trust (#10416); Trusted Automatically: what
- *                         they trust without being listed, and the switch
- *                         for the project's own load balancers (#10546);
+ *                         they trust without being listed, and the switches
+ *                         for the project's own load balancers (#10546) and
+ *                         private addresses (#11389);
  *                         Access Logs: whether its access logs end with
  *                         X-Forwarded-For (#10548), and the format they
  *                         are written in (#11048) - optional, and about
@@ -71,6 +73,9 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
    */
   const [isTrustingOwnLoadBalancers, setIsTrustingOwnLoadBalancers] =
     useState<boolean>(true);
+  // Whether private addresses are trusted unlisted (#11389): off where a new project starts.
+  const [isTrustingPrivateAddresses, setIsTrustingPrivateAddresses] =
+    useState<boolean>(false);
   const [isReadingAccessLogHeader, setIsReadingAccessLogHeader] =
     useState<boolean>(false);
   // Whether the project gave its access logs' own format (#11048).
@@ -108,10 +113,17 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
             isSet: trustedProxyCount > 0,
             value: translator.formatNumber(trustedProxyCount),
           }),
+          /*
+           * Named while it trusts private addresses (#11389), which a
+           * project from before the switch still does, or while its own
+           * load balancers are not trusted.
+           */
           foldedSectionItem(TRUSTED_AUTOMATICALLY_TITLE, {
             key: TRUSTED_AUTOMATICALLY_CARD_KEY,
-            isSet: !isTrustingOwnLoadBalancers,
-            value: FOLDED_SECTION_OFF,
+            isSet: isTrustingPrivateAddresses || !isTrustingOwnLoadBalancers,
+            value: isTrustingPrivateAddresses
+              ? PRIVATE_ADDRESSES_CHIP
+              : FOLDED_SECTION_OFF,
             translateValue: true,
           }),
           // On, or reading the project's own format: what a project starts without.
@@ -129,6 +141,7 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
         <SecurityTrustedProxiesCard onLoaded={setTrustedProxyCount} />
         <SecurityTrustedAutomaticallyCard
           onChange={setIsTrustingOwnLoadBalancers}
+          onPrivateAddressesChange={setIsTrustingPrivateAddresses}
         />
         <SecurityAccessLogsCard
           onChange={setIsReadingAccessLogHeader}

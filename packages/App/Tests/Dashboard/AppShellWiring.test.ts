@@ -156,7 +156,12 @@ describe("payment gate: the count fetch no longer blanks the app", () => {
     // Header renders its add-card nag only once the count arrives; the fetch must survive.
     expect(APP_SOURCE).toMatch(/BillingPaymentMethod/);
     expect(APP_SOURCE).toMatch(/ModelAPI\.count/);
-    expect(APP_SOURCE).toMatch(/setPaymentMethodsCount\(/);
+    /*
+     * Kept where every page reads it, and read back from there (#11053):
+     * Add to Balance asks for a payment method first on a project with none.
+     */
+    expect(APP_SOURCE).toMatch(/ProjectPaymentMethods\.setCount\(/);
+    expect(APP_SOURCE).toMatch(/useProjectPaymentMethodCount\(/);
   });
 });
 

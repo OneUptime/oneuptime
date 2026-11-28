@@ -4,6 +4,7 @@ import ObjectID from "../../../Types/ObjectID";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
 import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import { EncryptionSecret } from "../../EnvironmentConfig";
+import { toErasedIndicatorId } from "../../../Types/SecurityEvent/ThreatIntelConstants";
 import { DetectionFingerprintKind } from "../../../Utils/SecurityEvent/DetectionFingerprintPlaces";
 
 /*
@@ -210,6 +211,26 @@ export default class DetectionFingerprint {
     value: string | undefined | null;
   }): Array<string> {
     return Array.from(new Set<string>([this.of(data), this.legacyOf(data)]));
+  }
+
+  /*
+   * What takes the place of a feed's indicator id once the person a match
+   * was about is erased (#11230, Types/SecurityEvent/ThreatIntelConstants):
+   * "[INDICATOR:<fingerprint>]", the keyed fingerprint of `value` - the
+   * indicator's value once the names are out of it, the token - that the
+   * feed's alert, case detection and finding id carry for the same match.
+   */
+  public static erasedIndicatorIdOf(data: {
+    projectId: ObjectID | string;
+    value: string;
+  }): string {
+    return toErasedIndicatorId(
+      this.of({
+        projectId: data.projectId,
+        kind: DetectionFingerprintKind.ThreatIntel,
+        value: data.value,
+      }),
+    );
   }
 
   /*

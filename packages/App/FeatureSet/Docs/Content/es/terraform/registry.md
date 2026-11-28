@@ -7,6 +7,7 @@ El proveedor de OneUptime se publica en el [Terraform Registry](https://registry
 - [Cómo se numeran las versiones](#cómo-se-numeran-las-versiones): La versión de un proveedor es la versión de OneUptime que lo publicó.
 - [El archivo de bloqueo](#el-archivo-de-bloqueo): La versión y las sumas de comprobación que instala cada máquina.
 - [Pasar a una versión más nueva](#pasar-a-una-versión-más-nueva): Lea qué cambió, descárguela y planifique.
+- [Verificar las sumas de comprobación de una versión](#verificar-las-sumas-de-comprobación-de-una-versión): Compruebe una versión a mano, como la comprueba `init`.
 :::
 
 ## Qué se publica
@@ -57,6 +58,8 @@ La dirección de origen no nombra ningún registro: Terraform la lee del Terrafo
 
 Una versión publicada nunca cambia: los registros guardan las sumas de comprobación de lo que descargaron primero, y `init` comprueba cada descarga con ellas. Una versión que hay que reparar se publica de nuevo como la siguiente versión de parche, que un rango incluye, y las notas de esa versión dicen qué versión reemplaza.
 
+Después de publicar cada versión, y de nuevo cada día, OneUptime compara las sumas de comprobación que guardan ambos registros con los archivos que sirve la versión publicada, para cada plataforma.
+
 ## El archivo de bloqueo
 
 `terraform init` registra la versión que eligió, y las sumas de comprobación de sus descargas, en `.terraform.lock.hcl`. Confirme ese archivo: cada máquina y cada ejecución de CI instalan entonces exactamente esa versión, hasta que elija otra. Las sumas de comprobación cubren cada plataforma que publica el registro, así que un archivo de bloqueo sirve igual a las máquinas con Linux, macOS y Windows.
@@ -95,6 +98,29 @@ Ejecute `terraform plan`, y aplique solo cuando esté vacío o muestre los cambi
 :::
 
 En un OneUptime autoalojado, actualice primero OneUptime, y luego suba el final del rango del proveedor.
+
+## Verificar las sumas de comprobación de una versión
+
+`init` instala una versión solo cuando tres sumas de comprobación SHA-256 coinciden para su plataforma: la que el registro guardó cuando se publicó la versión, la línea del zip en el `SHA256SUMS` de la versión publicada, y el propio zip. También comprueba que `SHA256SUMS` está firmado con la clave de OneUptime, cuya huella termina en `9D87 E494 AC01 6697`. Para comprobar una versión usted mismo, ponga su versión, su sistema y su arquitectura en la primera línea:
+
+```bash
+VERSION=17.3.0 OS=linux ARCH=amd64
+ZIP=terraform-provider-oneuptime_${VERSION}_${OS}_${ARCH}.zip
+SUMS=terraform-provider-oneuptime_${VERSION}_SHA256SUMS
+curl -s https://registry.terraform.io/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH > registry.json
+jq -r .shasum registry.json
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$ZIP"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS.sig"
+grep "$ZIP" "$SUMS"
+sha256sum "$ZIP"
+jq -r '.signing_keys.gpg_public_keys[0].ascii_armor' registry.json | gpg --import
+gpg --verify "$SUMS.sig" "$SUMS"
+```
+
+Las tres sumas de comprobación que imprime deben ser iguales, y `gpg` debe decir `Good signature from "OneUptime <key@oneuptime.com>"`. En macOS, escriba `shasum -a 256` en lugar de `sha256sum`. Cuando la suma de comprobación del registro difiere de las otras dos, `init` rechaza la versión: consulte [Una versión cuyas sumas de comprobación no coinciden](/docs/terraform/troubleshooting#una-versión-cuyas-sumas-de-comprobación-no-coinciden).
+
+El registro de OpenTofu guarda las mismas sumas de comprobación: lea la suya en `https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH`. No tiene ninguna clave para el proveedor, así que `tofu init` comprueba las sumas de comprobación y omite la firma.
 
 ## Dónde está el código
 

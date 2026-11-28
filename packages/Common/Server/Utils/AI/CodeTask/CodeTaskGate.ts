@@ -56,10 +56,12 @@ import ObjectID from "../../../../Types/ObjectID";
  * The repository page asks first, so the request box says what is missing
  * before anyone types; the create, reply and retry routes ask again and
  * refuse with the same sentence. A code-fix run a person asks for outside
- * Code - a trace's Fix performance with AI, a service's Improve logging or
- * tracing - is asked about the repository it will be queued on
- * (CodeFixStartGate), or, when none is known yet, about everything that
- * does not depend on one. The LLM call itself (executeWithLogging)
+ * Code - a trace's Fix performance with AI, an incident's or alert's Open
+ * fix pull request, a service's Improve logging or tracing - is held to the
+ * repositories that person may use (CodeFixPersonRepository) and asked
+ * about the repository it will be queued on (CodeFixStartGate), or, when
+ * none is known yet, about everything that does not depend on one. The
+ * LLM call itself (executeWithLogging)
  * still enforces the switch, the credits and the limits for every completion
  * the Runner asks for, so a task that starts and then crosses one of them
  * fails honestly rather than running on.

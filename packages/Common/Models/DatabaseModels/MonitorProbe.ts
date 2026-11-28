@@ -35,10 +35,17 @@ export type MonitorStepProbeResponse = Dictionary<ProbeMonitorResponse>;
  * also serve every read by `monitorId` or `probeId` alone, and the ON
  * DELETE CASCADE of a monitor or a probe; the bare `monitorId` and
  * `probeId` indexes went for that reason (OneUptime issue #7921).
+ *
+ * The scheduler's hot path, the probe claim
+ * (MonitorProbeService.claimMonitorProbesForProbing), reads a probe's due
+ * rows from ("probeId", "isEnabled", "nextPingAt", "lastPingAt") in its
+ * order: oldest due first, and of rows due at the same moment the one
+ * handed out longest ago first (OneUptime issue #11386). Both columns are
+ * written by every claim already, so the wider key costs no write.
  */
 @Index(["monitorId", "probeId"]) // Composite index for efficient monitor-probe relationship queries
 @Index(["monitorId", "projectId"]) // Alternative index for monitor queries within project
-@Index(["probeId", "isEnabled", "nextPingAt"]) // Scheduler hot path: pick due probes per probeId
+@Index(["probeId", "isEnabled", "nextPingAt", "lastPingAt"]) // Scheduler hot path: a probe's due rows, in the order the claim hands them out
 @TableAccessControl({
   create: [
     Permission.ProjectOwner,
@@ -213,8 +220,8 @@ export default class MonitorProbe extends BaseModel {
     update: [],
   })
   /*
-   * No bare @Index() here on purpose: ("probeId", "isEnabled", "nextPingAt")
-   * declared on the class leads with this column.
+   * No bare @Index() here on purpose: ("probeId", "isEnabled", "nextPingAt",
+   * "lastPingAt") declared on the class leads with this column.
    */
   @TableColumn({
     type: TableColumnType.ObjectID,

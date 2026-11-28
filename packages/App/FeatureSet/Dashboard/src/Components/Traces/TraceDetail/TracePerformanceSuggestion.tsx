@@ -13,10 +13,10 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import {
-  PICK_REFUSAL_MESSAGES,
   TracePerformanceFixRepository,
   TracePerformanceFixSuggestion,
 } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
+import { PICK_REFUSAL_MESSAGES } from "Common/Utils/Suggestions/CodeFixRepositoryPick";
 import React, {
   FunctionComponent,
   ReactElement,

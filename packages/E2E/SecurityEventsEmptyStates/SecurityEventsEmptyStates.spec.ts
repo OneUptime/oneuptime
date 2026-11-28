@@ -13,6 +13,7 @@ import {
   SecurityEventDestinationCatalog,
   SecurityEventDestinationDefinition,
 } from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationCatalog";
+import { SECURITY_LOG_LINE_CHECK_PATH } from "Common/Types/SecurityEvent/SecurityLogLineCheck";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
@@ -3481,13 +3482,14 @@ test.describe("connections: your logs and your SIEM", () => {
   }
 
   /*
-   * Check a log line runs the scan's own parsers in the browser. Its
-   * examples are one menu at the end of the box's label row, as a form
-   * field keeps its setup guide link there; a pick fills the box and checks
-   * it at once. Nothing is saved or sent: the page asks the server for
-   * nothing while a line is checked.
+   * Check a log line has the server read a line as the scans read the
+   * project's logs, with its trusted proxies (#11046), so the client it
+   * names is the one a stored event names. Its examples are one menu at the
+   * end of the box's label row, as a form field keeps its setup guide link
+   * there; a pick fills the box and checks it at once. Nothing is saved:
+   * each check asks the server to read its line, and for nothing else.
    */
-  test("Check a log line: Try an example checks a line of each kind in the browser, and sends nothing", async ({
+  test("Check a log line: Try an example checks a line of each kind as the scans read it, and saves nothing", async ({
     page,
   }: {
     page: Page;
@@ -3499,7 +3501,7 @@ test.describe("connections: your logs and your SIEM", () => {
       name: "Log line",
     });
     await expect(input).toHaveAccessibleDescription(
-      "The line is read here, in your browser: nothing is saved or sent.",
+      "OneUptime reads it as its scans read your logs, with your trusted proxies, and saves nothing.",
     );
     await expect(
       lineCheck(page).getByTestId("security-log-line-check-run"),
@@ -3543,11 +3545,15 @@ test.describe("connections: your logs and your SIEM", () => {
       clip: lineCheck(page),
     });
 
+    // Each line a pick checked, in the order they were checked.
+    const checkedLines: Array<string> = [];
+
     await menu.getByRole("menuitem", { name: "CEF", exact: true }).click();
     await expect(menu).toBeHidden();
     await expect(input).toHaveValue(
       "CEF:0|Imperva Inc.|SecureSphere|15.0|Protocol|SQL injection|High|act=block src=203.0.113.7 dst=10.0.0.5 dpt=443 request=/item?id\\=1' or 1\\=1",
     );
+    checkedLines.push(await input.inputValue());
 
     const result: Locator = lineCheck(page).getByTestId(
       "security-log-line-check-result",
@@ -3596,11 +3602,34 @@ test.describe("connections: your logs and your SIEM", () => {
       await expect(
         result.getByTestId("security-log-line-check-format"),
       ).toHaveText(title);
+      checkedLines.push(await input.inputValue());
     }
 
-    // The checks asked the server for nothing.
+    /*
+     * Each check asked the server to read its line - the line as the box
+     * holds it - and for nothing else: no list read, nothing saved.
+     */
     const after: FixtureState = await fixture(page);
-    expect(after.apiRequests).toEqual(before.apiRequests);
+    expect(after.apiRequests.slice(0, before.apiRequests.length)).toEqual(
+      before.apiRequests,
+    );
+    expect(
+      after.apiRequests
+        .slice(before.apiRequests.length)
+        .map((request: RecordedApiRequest): Array<unknown> => {
+          return [
+            request.method,
+            new URL(request.url).pathname.endsWith(
+              SECURITY_LOG_LINE_CHECK_PATH,
+            ),
+            request.body?.["text"],
+          ];
+        }),
+    ).toEqual(
+      checkedLines.map((line: string): Array<unknown> => {
+        return ["POST", true, line];
+      }),
+    );
     expect(after.listRequests).toEqual(before.listRequests);
     expect(after.creates).toEqual([]);
 

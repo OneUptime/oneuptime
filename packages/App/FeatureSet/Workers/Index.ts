@@ -112,6 +112,8 @@ import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
 import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
 import "./Jobs/NetworkDeviceDiscovery/RunDiscoveryImports";
 import "./Jobs/NetworkDeviceDiscovery/SweepDiscoveryImports";
+import "./Jobs/MonitorTemplate/RunTemplateChanges";
+import "./Jobs/MonitorTemplate/SweepTemplateChanges";
 import "./Jobs/NetworkDeviceDiscovery/AgeOutDiscoveredDevices";
 import "./Jobs/NetworkDeviceDiscovery/SyncDiscoveredDeviceInventory";
 

@@ -46,6 +46,7 @@ import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelO
 import ServiceService from "../../../Server/Services/ServiceService";
 import StorageArrayService from "../../../Server/Services/StorageArrayService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
+import XcpNgPoolService from "../../../Server/Services/XcpNgPoolService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -204,6 +205,12 @@ const PRODUCT_RECORDS: Array<ProductRecords> = [
     product: ProductKey.VMware,
     path: "/vmware-vcenter",
     service: asService(VMwareVCenterService),
+  },
+  // XCP-ng's levels (#11093) are kept to its pools, as VMware's are to vCenters.
+  {
+    product: ProductKey.XcpNg,
+    path: "/xcp-ng-pool",
+    service: asService(XcpNgPoolService),
   },
   {
     product: ProductKey.Ceph,
@@ -404,12 +411,18 @@ afterEach(() => {
 });
 
 describe("the products this suite reaches", () => {
-  test("are every product with levels, each through its main record's own route", () => {
+  // The newest product with levels is XCP-ng (#11093), reached through its pools.
+  test("are every product with levels, XCP-ng among them, each through its main record's own route", () => {
     expect(
       PRODUCT_RECORDS.map((records: ProductRecords): ProductKey => {
         return records.product;
       }),
     ).toEqual([...PRODUCTS_WITH_LEVELS]);
+    expect(
+      PRODUCT_RECORDS.find((records: ProductRecords): boolean => {
+        return records.product === ProductKey.XcpNg;
+      })?.path,
+    ).toBe("/xcp-ng-pool");
 
     for (const records of PRODUCT_RECORDS) {
       expect(records.service.getModel().getCrudApiPath()?.toString()).toBe(

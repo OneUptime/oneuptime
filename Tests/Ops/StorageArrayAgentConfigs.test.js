@@ -44,6 +44,7 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
+const { agentKindVersion } = require("./Utils/AgentKindVersion");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = "agents/StorageArrayAgent";
@@ -305,8 +306,15 @@ const CONFIG_ENV = [
   "POWERSCALE_SNMP_COMMUNITY",
   "STORAGE_ARRAY_INSECURE_SKIP_VERIFY",
 ];
-/* The compose-level variables .env carries besides those. */
-const COMPOSE_ENV = ["STORAGE_ARRAY_COLLECTOR_CONFIG", "COMPOSE_PROFILES"];
+/*
+ * The compose-level variables .env carries besides those: the config to
+ * mount, the profile to start, and the agent's container name.
+ */
+const COMPOSE_ENV = [
+  "STORAGE_ARRAY_COLLECTOR_CONFIG",
+  "COMPOSE_PROFILES",
+  "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
+];
 /* What the compose file hands Harvest besides: the cluster and its read-only user. */
 const HARVEST_ENV = [
   "NETAPP_ONTAP_ENDPOINT",
@@ -331,6 +339,14 @@ function compose() {
 }
 
 const COLLECTOR = /otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/g;
+
+/*
+ * The version the agent's files report as oneuptime.agent.version: the
+ * collector docker-compose.yml pins, its last number raised each time the
+ * files change on that collector - 0.165.1 on 0.165.0, with NetApp ONTAP,
+ * Dell PowerStore and Dell PowerScale (AgentFilesVersion.test.ts).
+ */
+const AGENT_VERSION = agentKindVersion("STORAGE_ARRAY_AGENT_VERSION");
 
 /* The collector image docker-compose.yml pins — the one collector it runs. */
 function composePin() {
@@ -560,7 +576,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
           },
           {
             key: "oneuptime.agent.version",
-            value: composePin(),
+            value: AGENT_VERSION,
             action: "upsert",
           },
           { key: "service.name", action: "delete" },
@@ -569,7 +585,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
       });
       // Quoted, so YAML keeps it the version string the page compares.
       expect(configText(name)).toContain(
-        `      - key: oneuptime.agent.version\n        value: "${composePin()}"\n        action: upsert\n`,
+        `      - key: oneuptime.agent.version\n        value: "${AGENT_VERSION}"\n        action: upsert\n`,
       );
     });
 
@@ -711,6 +727,13 @@ describe("agents/StorageArrayAgent collector configs", () => {
 });
 
 describe("agents/StorageArrayAgent/docker-compose.yml", () => {
+  test("runs the collector release the agent's version is on: its major and minor number, and a patch number no lower", () => {
+    const [pinMajor, pinMinor, pinPatch] = composePin().split(".").map(Number);
+    const [major, minor, patch] = AGENT_VERSION.split(".").map(Number);
+    expect({ major, minor }).toEqual({ major: pinMajor, minor: pinMinor });
+    expect(patch).toBeGreaterThanOrEqual(pinPatch);
+  });
+
   test("runs the collector, Pure's two exporters, Dell's exporter with PowerStore's syslog collector, and NetApp Harvest, nothing else", () => {
     expect(Object.keys(compose().services)).toEqual([
       COLLECTOR_SERVICE,
@@ -748,7 +771,12 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
 
   test("mounts the config .env names, and the default is the native FlashArray config", () => {
     const collector = compose().services[COLLECTOR_SERVICE];
-    expect(collector.container_name).toBe(COLLECTOR_SERVICE);
+    // Named by .env, the default the service's own name: a second array's
+    // agent on the same machine gets a name of its own there, which an
+    // upgrade (it replaces this file) never takes away.
+    expect(collector.container_name).toBe(
+      `\${STORAGE_ARRAY_AGENT_CONTAINER_NAME:-${COLLECTOR_SERVICE}}`,
+    );
     expect(collector.volumes).toEqual([
       "./${STORAGE_ARRAY_COLLECTOR_CONFIG:-otel-collector-config.yaml}:/etc/otelcol-contrib/config.yaml:ro",
     ]);
@@ -1032,6 +1060,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       "ONEUPTIME_URL",
       "ONEUPTIME_TELEMETRY_INGESTION_KEY",
       "STORAGE_ARRAY_NAME",
+      // A name someone may export, so quoted like the others.
+      "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
     ]) {
       expect(heredoc[1]).toContain(`${name}=$(compose_env_quote "$${name}")`);
     }
@@ -1067,6 +1097,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       [
         ...CONFIG_ENV,
         "STORAGE_ARRAY_COLLECTOR_CONFIG",
+        "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
         ...PLATFORM_COMPOSE_ENV,
         ...HARVEST_ENV,
       ].sort(),

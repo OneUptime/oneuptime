@@ -213,6 +213,7 @@ import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerSharedNames } from "../../SuiteHelpers/SharedNameAnswers";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -1858,6 +1859,29 @@ function sharedTeamNames() {
   };
 }
 
+/*
+ * The kinds a project can require unique names for that these pages list:
+ * each list of them asks which of its records share a name after each read
+ * of its rows (GET /shared-names/Monitor, #11021; ModelTable's TwinMarks),
+ * answered as the server finds them, from the rows the list reads
+ * (tableReadAs; SuiteHelpers/SharedNameAnswers). None here: every record
+ * has its own name.
+ */
+const SHARED_NAME_KINDS = [
+  {
+    modelType: Monitor,
+    records: () => {
+      return RECORDS[tableReadAs("Monitor")];
+    },
+  },
+  {
+    modelType: DataReconciliation,
+    records: () => {
+      return RECORDS.DataReconciliation;
+    },
+  },
+];
+
 API.get = async (options) => {
   const address = options && options.url ? options.url.toString() : "";
 
@@ -1868,6 +1892,11 @@ API.get = async (options) => {
 
   if (address.endsWith(getSharedNamesRoute(SharedNameKind.Team))) {
     return { data: sharedTeamNames() };
+  }
+
+  const twins = answerSharedNames({ url: address, kinds: SHARED_NAME_KINDS });
+  if (twins) {
+    return { data: twins };
   }
 
   window.__fixture.unmodelled.push(`API.get ${address}`);
@@ -2388,37 +2417,40 @@ const GALLERY = {
 };
 
 /*
- * The gallery's kinds table reads monitors through its own name so its rows
- * can leave values unset without changing the Monitors page's.
+ * The gallery's kinds and give tables read monitors through names of their
+ * own, so their rows can leave values unset without changing the Monitors
+ * page's: the table a read of <tableName> is answered from on this page,
+ * for its rows and for which of them share a name (SHARED_NAME_KINDS).
  */
+function tableReadAs(tableName) {
+  if (
+    tableName !== "Monitor" ||
+    !window.location.pathname.endsWith("/tables")
+  ) {
+    return tableName;
+  }
+  if (galleryTable === "kinds") {
+    return "GalleryMonitor";
+  }
+  if (galleryTable === "give") {
+    return "GiveMonitor";
+  }
+  return tableName;
+}
+
 const galleryGetList = ModelAPI.getList;
 ModelAPI.getList = async (options) => {
   const tableName = new options.modelType().tableName;
-  if (
-    tableName === "Monitor" &&
-    window.location.pathname.endsWith("/tables") &&
-    galleryTable === "kinds"
-  ) {
-    return galleryGetList({
-      ...options,
-      modelType: function GalleryMonitor() {
-        return { tableName: "GalleryMonitor" };
-      },
-    });
+  const readAs = tableReadAs(tableName);
+  if (readAs === tableName) {
+    return galleryGetList(options);
   }
-  if (
-    tableName === "Monitor" &&
-    window.location.pathname.endsWith("/tables") &&
-    galleryTable === "give"
-  ) {
-    return galleryGetList({
-      ...options,
-      modelType: function GiveMonitor() {
-        return { tableName: "GiveMonitor" };
-      },
-    });
-  }
-  return galleryGetList(options);
+  return galleryGetList({
+    ...options,
+    modelType: function GalleryRows() {
+      return { tableName: readAs };
+    },
+  });
 };
 
 /*

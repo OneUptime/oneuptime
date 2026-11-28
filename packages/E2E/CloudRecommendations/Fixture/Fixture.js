@@ -19,7 +19,7 @@
  *   ?maintenance=  none (default) | held (an event in progress holds
  *                  orders-db, another is scheduled for next week)
  *   ?fail=         monitors: the read of what covers a recommendation
- *                  answers 500
+ *                  (POST /monitor/recommendation-coverage) answers 500
  *                  | create: every monitor create answers 400
  *   ?lang=         de or fa reads the German or Persian locale file
  *                  (Persian lays the page out right to left)
@@ -43,6 +43,10 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import {
+  answerRecommendationCoverage,
+  isRecommendationCoverageRequest,
+} from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import CloudAccountViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Layout";
 import CloudAccountRecommendations from "../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Recommendations";
@@ -666,10 +670,6 @@ ModelAPI.getList = async (options) => {
     limit: options.limit,
   });
 
-  if (FAIL === "monitors" && modelName === "Monitor") {
-    throw new Error(SERVER_ERROR);
-  }
-
   const data = rows(options.modelType, options.query, options.sort);
   if (!data) {
     fixture.unhandled.push({ kind: "getList", modelName });
@@ -803,6 +803,25 @@ async function handleApi(method, options) {
   // When OneUptime itself was not receiving: never, here.
   if (method === "POST" && parsed.pathname.endsWith("/receiving-gaps")) {
     return ok({ gaps: [] });
+  }
+
+  /*
+   * Which monitor covers each recommendation asked about, for the account's
+   * and a resource's Recommendations and their menu counts (#11074):
+   * answered from the project's monitors, those the page made included -
+   * both of the fixture's roles may read them. ?fail=monitors answers 500.
+   */
+  if (FAIL === "monitors" && isRecommendationCoverageRequest(method, url)) {
+    return new HTTPErrorResponse(500, { message: SERVER_ERROR }, {});
+  }
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

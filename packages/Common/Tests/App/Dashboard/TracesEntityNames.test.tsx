@@ -132,10 +132,13 @@ import Service from "../../../Models/DatabaseModels/Service";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
-import { ActiveFilter } from "../../../UI/Components/TelemetryViewer/types";
+import {
+  ActiveFilter,
+  FacetConfig,
+} from "../../../UI/Components/TelemetryViewer/types";
 import TelemetryEntityNameResolver, {
   ResolvedTelemetryEntity,
-  TelemetryEntityNameMap,
+  TelemetryEntityLookupResult,
 } from "../../../UI/Utils/Telemetry/TelemetryEntityNames";
 import Host from "../../../Models/DatabaseModels/Host";
 
@@ -190,6 +193,25 @@ const chipTexts: ChipTextsFunction = (): Array<string> => {
       return `${filter.displayKey}: ${filter.displayValue}`;
     },
   );
+};
+
+type ServiceFacetNamesFunction = () => Record<string, string>;
+
+/*
+ * The names the Service facet holds, by id: the services the page has read,
+ * from the same render as the rows' services.
+ */
+const serviceFacetNames: ServiceFacetNamesFunction = (): Record<
+  string,
+  string
+> => {
+  const serviceFacet: FacetConfig | undefined = (
+    lastViewerProps().facetConfigs as Array<FacetConfig>
+  ).find((config: FacetConfig): boolean => {
+    return config.key === "primaryEntityId";
+  });
+
+  return serviceFacet?.valueDisplayMap || {};
 };
 
 type FirstChipFunction = () => ActiveFilter;
@@ -367,17 +389,19 @@ describe("TracesViewer names non-Service entities", () => {
      * ALL of them have settled. Asserting as soon as the hinted RumApplication
      * request went out would pass even if a later step of the resolution (the
      * fall-through across the other tables) put a wrong name on the chip.
+     * The viewer looks its entities up with lookup(): the names, and the ids
+     * it settled as naming nothing (#11213).
      */
-    const lookups: Array<Promise<TelemetryEntityNameMap>> = [];
-    const originalResolve: typeof TelemetryEntityNameResolver.resolve =
-      TelemetryEntityNameResolver.resolve.bind(TelemetryEntityNameResolver);
-    const resolveSpy: { mockRestore: () => void } = jest
-      .spyOn(TelemetryEntityNameResolver, "resolve")
+    const lookups: Array<Promise<TelemetryEntityLookupResult>> = [];
+    const originalLookup: typeof TelemetryEntityNameResolver.lookup =
+      TelemetryEntityNameResolver.lookup.bind(TelemetryEntityNameResolver);
+    const lookupSpy: { mockRestore: () => void } = jest
+      .spyOn(TelemetryEntityNameResolver, "lookup")
       .mockImplementation(
         (
-          ...args: Parameters<typeof TelemetryEntityNameResolver.resolve>
-        ): Promise<TelemetryEntityNameMap> => {
-          const lookup: Promise<TelemetryEntityNameMap> = originalResolve(
+          ...args: Parameters<typeof TelemetryEntityNameResolver.lookup>
+        ): Promise<TelemetryEntityLookupResult> => {
+          const lookup: Promise<TelemetryEntityLookupResult> = originalLookup(
             ...args,
           );
           lookups.push(lookup);
@@ -402,14 +426,16 @@ describe("TracesViewer names non-Service entities", () => {
       // Drain: settling one lookup can re-render and start another.
       let settled: number = 0;
       while (settled < lookups.length) {
-        const pending: Array<Promise<TelemetryEntityNameMap>> =
+        const pending: Array<Promise<TelemetryEntityLookupResult>> =
           lookups.slice(settled);
         settled = lookups.length;
         await act(async () => {
-          const results: Array<TelemetryEntityNameMap> =
+          const results: Array<TelemetryEntityLookupResult> =
             await Promise.all(pending);
           for (const result of results) {
-            expect(result[RUM_ID]).toBeUndefined();
+            expect(result.names[RUM_ID]).toBeUndefined();
+            // A table that failed to answer never settles the id as gone.
+            expect(result.notFound).not.toContain(RUM_ID);
           }
         });
       }
@@ -427,11 +453,13 @@ describe("TracesViewer names non-Service entities", () => {
       ).toBe(true);
 
       expect(chipTexts()[0]).toBe(`RUM Application: ${RUM_ID}`);
+      // Nor is the chip drawn "No longer available": its read failed.
+      expect(firstChip().isNotFound).toBeUndefined();
       expect(firstChip().lockedDetail).toEqual({
         searchToken: `service:${RUM_ID}`,
       });
     } finally {
-      resolveSpy.mockRestore();
+      lookupSpy.mockRestore();
     }
   });
 
@@ -496,6 +524,12 @@ describe("TracesViewer names non-Service entities", () => {
     await waitFor(() => {
       expect((lastViewerProps().items as Array<Span>).length).toBe(2);
       expect(chipTexts()).toContain("RUM Application: checkout-web");
+      /*
+       * The rows' services are read by the ids the spans hold, once the
+       * spans have landed: until that read is in, the Service row has no
+       * name to draw.
+       */
+      expect(serviceFacetNames()[SERVICE_ID]).toBe("checkout-api");
     });
 
     const renderRow: (span: Span) => React.ReactElement =

@@ -684,16 +684,36 @@ describe("a number typed wholly in fullwidth, as the number it reads as (#11115)
     ).toBe("****-****-****-0366");
   });
 
-  test("an email address, an IP address and a key's whole value read as they are written", () => {
+  test("an IP address and a key's whole value read as they are written", () => {
+    expect(
+      ScrubAction.asItReads("（８１）", LogScrubPatternType.SensitiveKeys),
+    ).toBe("（８１）");
+    expect(
+      ScrubAction.asItReads(
+        "２００１：ｄｂ８：：１",
+        LogScrubPatternType.IPAddress,
+      ),
+    ).toBe("２００１：ｄｂ８：：１");
+  });
+
+  /*
+   * #11385: an email address typed in fullwidth reads as the address it
+   * is, its fullwidth "+" too - ＋ is NFKC's +, so jane＋news@example.com is
+   * jane+news@example.com - and the token is the plain address's.
+   */
+  test("an email address typed in fullwidth reads as ASCII, a fullwidth plus sign too (#11385)", () => {
     expect(
       ScrubAction.asItReads(
         "jane＋news@example.com",
         LogScrubPatternType.Email,
       ),
-    ).toBe("jane＋news@example.com");
+    ).toBe("jane+news@example.com");
     expect(
-      ScrubAction.asItReads("（８１）", LogScrubPatternType.SensitiveKeys),
-    ).toBe("（８１）");
+      ScrubAction.asItReads(
+        "ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ",
+        LogScrubPatternType.Email,
+      ),
+    ).toBe("jane@example.com");
   });
 
   test("a number written plainly reads as it is, so its token is what it always was", () => {

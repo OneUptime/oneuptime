@@ -107,7 +107,8 @@ Tus avisos se escriben en tu idioma: el que eliges en el menú de idiomas al pie
 | --- | --- |
 | Correo, SMS, notificaciones push y Telegram | Tu idioma |
 | Tus propios mensajes de Slack, Microsoft Teams y Mattermost | Tu idioma |
-| Llamadas telefónicas y WhatsApp | Inglés |
+| Llamadas telefónicas | Tu idioma, cuando la cuenta de Twilio que llama habla con una de las voces de OneUptime; si no, inglés. Consulta [Qué dice una llamada](/docs/notifications/on-call-rules#qué-dice-una-llamada) |
+| WhatsApp | Inglés |
 
 Lo que cambia son las palabras de OneUptime: asuntos, encabezados, botones y frases, y los nombres con los que empieza cada proyecto nuevo, como Identificado e Incidente crítico. Lo que escribió tu equipo se queda como está: títulos, descripciones, causas raíz y los nombres de proyectos, equipos y estados que tu proyecto nombró. Un SMS en un idioma con su propio alfabeto, como el ruso, el japonés o el persa, ocupa más partes que uno en inglés.
 
@@ -122,7 +123,7 @@ Eres propietario del registro, directamente o a través de un equipo, o el regis
 :::
 
 :::details Mis avisos están en inglés, aunque el panel no
-El panel sigue a tu navegador hasta que eliges un idioma. Elígelo en el menú de idiomas al pie de cualquier página, o en **Idioma** en **Perfil de usuario**. Las llamadas telefónicas y los mensajes de WhatsApp se quedan en inglés.
+El panel sigue a tu navegador hasta que eliges un idioma. Elígelo en el menú de idiomas al pie de cualquier página, o en **Idioma** en **Perfil de usuario**. Los mensajes de WhatsApp se quedan en inglés, y también las llamadas telefónicas a través de una cuenta de Twilio que mantiene su voz predeterminada.
 :::
 
 :::details Añadí un número de teléfono, pero no está en mis reglas

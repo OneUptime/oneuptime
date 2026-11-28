@@ -49,6 +49,7 @@ import TelemetryEntityNameResolver, {
   TelemetryEntityNameMap,
 } from "../../../../UI/Utils/Telemetry/TelemetryEntityNames";
 import { UNKNOWN_SERVICE_NAME } from "../../../../UI/Utils/TelemetryService";
+import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
@@ -241,6 +242,12 @@ beforeEach(() => {
   getListMock.mockImplementation((...args: Array<unknown>) => {
     return fakeGetList(args[0] as GetListArgs);
   });
+  /*
+   * A member who reads the project's services reads their archive switch
+   * too, so each read asks for it where the table has one
+   * (TelemetryEntityLookup's tests take it away).
+   */
+  jest.spyOn(PermissionGate, "canReadColumn").mockReturnValue(true);
 });
 
 afterEach(() => {

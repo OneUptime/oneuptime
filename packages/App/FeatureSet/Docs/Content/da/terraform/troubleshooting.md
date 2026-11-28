@@ -37,6 +37,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | `Not an ID` | Henvis til posten i stedet for at nævne den: se [Et navn, hvor et ID hører hjemme](#et-navn-hvor-et-id-hører-hjemme) |
 | JSON fra dashboardet i en `.tf`-fil | Skriv det som HCL: se [JSON fra dashboardet](#json-fra-dashboardet) |
 | `no available releases match the given constraints` | Brug et versionsinterval, ikke én præcis version: se [En version, der aldrig blev udgivet](#en-version-der-aldrig-blev-udgivet) |
+| `checksum list has unexpected SHA-256 hash` | Brug en anden version af provideren: se [En version, hvis checksums ikke passer](#en-version-hvis-checksums-ikke-passer) |
 | `x509: certificate signed by unknown authority` | Stol på din certifikatudsteder: se [Certifikater](#certifikater) |
 | `invalid character '<' looking for beginning of value` | Lad `oneuptime_url` pege på selve din OneUptime: se [En webside i stedet for API'et](#en-webside-i-stedet-for-apiet) |
 | `connection refused` eller `Client.Timeout exceeded` | Kontrollér adressen, netværket og en eventuel proxy: se [Forbindelser, der fejler](#forbindelser-der-fejler) |
@@ -238,6 +239,14 @@ terraform {
 ```
 
 På en selv-hostet OneUptime skal intervallet stoppe ved din OneUptimes version, som [Selv-hostet opsætning](/docs/terraform/self-hosted#vælg-providerversionen) viser. [Registerbrug](/docs/terraform/registry#hvordan-versioner-nummereres) forklarer, hvordan versioner nummereres.
+
+### En version, hvis checksums ikke passer
+
+`checksum list has unexpected SHA-256 hash` betyder, at de filer, releasen leverer for den version, ikke er dem, registret læste, da versionen blev udgivet. Registret gemmer de checksums, det læste dengang, og `init` tjekker hver download mod dem. Filerne til 14.3.0, 16.0.0, 17.0.0, 17.1.0 og 17.2.0, og til nogle ældre versioner fra 11.x til 14.0.x, blev bygget og uploadet en gang til, efter registrene havde læst dem, så `init` afviser de versioner på alle platforme, under både Terraform og OpenTofu. En låsefil kommer ikke uden om det: `init` sammenligner registrets checksum med releasens, før den læser låsefilen.
+
+Brug en anden version: 17.3.0 eller nyere, eller 15.0.0. Et interval, der tillader en nyere version, tager den med `terraform init -upgrade`. Når sådan en version udgives igen, er det som den næste patchversion, for eksempel 17.2.1 for 17.2.0, med den samme provider i, og et interval, der tillader den patch, tager den.
+
+For at tjekke en version, før du bruger den, se [Kontrollér en versions checksums](/docs/terraform/registry#kontrollér-en-versions-checksums).
 
 ## Forbind til en selv-hostet OneUptime
 

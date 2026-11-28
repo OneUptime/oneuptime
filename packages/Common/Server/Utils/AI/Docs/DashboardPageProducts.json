@@ -1578,6 +1578,9 @@
   "/dashboard/:projectId/storage-arrays": [
     "storage-arrays"
   ],
+  "/dashboard/:projectId/storage-arrays/connections": [
+    "storage-arrays"
+  ],
   "/dashboard/:projectId/storage-arrays/documentation": [
     "storage-arrays"
   ],

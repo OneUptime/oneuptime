@@ -761,7 +761,7 @@ describe("one meaning per key", () => {
       expect(MEANING_KEYS).toContain(key);
       expect({ key, files: filesLookingUp(key) }).toEqual({
         key,
-        files: ["Pages/StorageArray/Utils/StorageArrayHealth.ts"],
+        files: ["Pages/StorageArray/Utils/StorageArrayStatusWords.ts"],
       });
       expect({
         word,
@@ -874,6 +874,33 @@ describe("one meaning per key", () => {
     expect(filesLookingUp("To")).toContain(
       "Components/NotificationLogs/EmailLogsTable.tsx",
     );
+  });
+
+  /*
+   * #11138: a WhatsApp or Telegram message the person has read, in the
+   * notification logs' pills and Status filters. The bare "Read" is the
+   * Read buttons' and the permissions' verb - German "Lesen", Russian
+   * "Чтение" - so a German WhatsApp log said "Lesen" of a message that had
+   * been read. The logs look up a key of their own, and never the bare one.
+   */
+  test("a message's Read is its own key in the notification logs, which never look up the verb", () => {
+    const WORDS: string =
+      "Components/NotificationLogs/NotificationLogStatus.ts";
+
+    expect(filesLookingUp("Read (message status)")).toEqual([WORDS]);
+    expect(MEANING_KEYS).toContain("Read (message status)");
+    expect(filesLookingUp("Read").includes(WORDS)).toBe(false);
+
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        sameAsTheVerb: locale["Read (message status)"] === locale["Read"],
+      }).toEqual({ language, sameAsTheVerb: false });
+    }
   });
 
   /*

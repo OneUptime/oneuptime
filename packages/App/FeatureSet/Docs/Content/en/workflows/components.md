@@ -26,6 +26,7 @@ You rarely need it open while you build. Every block's settings end with **How t
 | Reshape data between two blocks                       | [JSON](#json) or [Custom Code](#custom-code)                      |
 | Wait before the next block                            | [Sleep](#sleep)                                                   |
 | Start another workflow                                | [Execute Workflow](#execute-workflow)                             |
+| Attach the images a record's Markdown shows to an email | [Get Files From Markdown](#get-files-from-markdown)             |
 | Read or change incidents, monitors and other records  | [OneUptime data components](#oneuptime-data-components)          |
 | Open, acknowledge and resolve incidents or alerts for another tool's problems | [Incidents and alerts from other tools](#incidents-and-alerts-from-other-tools) |
 | Acknowledge or close a Zabbix problem                 | [Zabbix](#zabbix)                                                 |
@@ -391,6 +392,139 @@ Start another workflow of the same project. Your workflow carries on without wai
 **Out** fires once the other workflow is queued. **Error** fires when it can't be: it isn't found, is turned off or archived, or starting it would loop.
 
 Use it to share common logic: build a "post to the incident channel" workflow once, and start it from every workflow that needs it. A chain of workflows that start each other can't loop back on itself and is at most 10 deep. See [Configuration & Safety](/docs/workflows/configuration#limit-on-calling-other-workflows).
+
+## Get Files From Markdown
+
+Read the images a record's Markdown shows, such as the screenshots someone pasted into an incident's description, a Markdown custom field or a note, with each image's name, type and data. Use it to attach the images to an email, so they show where the Markdown puts them.
+
+| Setting         | What it does                                                                                                                                              |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Record Type** | The kind of record whose Markdown shows the images: an incident, an incident's public or internal note, an alert, a maintenance event and more. |
+| **Record ID**   | The record to read, usually the one that started the workflow, as in `{{local.components.incident-on-create-1.returnValues.model._id}}`.                  |
+
+| Output      | When                                                                                                |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| **Success** | The record was read, whether or not it shows any images.                                            |
+| **Error**   | The record couldn't be read: it doesn't exist, or the workflow may not read it. **Error** says why. |
+
+It returns:
+
+- **Files**: each image, in the order the record shows it, with:
+  - `name`: the file's name, as it was uploaded;
+  - `mimeType`: its type, such as `image/png` or `image/jpeg`;
+  - `sizeInBytes`;
+  - `base64`: the image's data;
+  - `contentId`: an ID for the image in an HTML email (`<img src="cid:...">`), the same for the same image whichever record shows it;
+  - `urls`: every address the Markdown shows it by;
+  - `fields`: the fields that show it, such as `description` or a custom field's name.
+- **Count**: how many images **Files** holds.
+- **Left Out**: the files the Markdown shows that aren't in **Files**, each with its `name`, `urls`, `fields`, a `reason` and a `message` that says why.
+
+**Files** holds the images' data, so the run's log hides it and shows **Count** and **Left Out** instead. A later block that is handed the images writes what it is handed to its own entry in the log.
+
+### Which images it hands out
+
+The block reads the record the way a Find One block does, as the workflow: in the workflow's own project, never a private incident, alert or episode, and only what the workflow's permissions let it read. A record it may not read takes **Error**, just as one that doesn't exist does.
+
+It hands out only:
+
+- images the record's Markdown fields show, such as an incident's description, root cause, postmortem and remediation notes, and its Markdown custom fields. A Text custom field isn't Markdown, so an address written in one isn't read;
+- images uploaded to the record's own project. An address copied from another project's record is listed under **Left Out** as not found;
+- pictures: PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC and ICO, each checked by what the file holds as well as by its type. An SVG can carry script, so it's left out, and so is a file that only claims to be a picture;
+- up to 20 images, and 10 MB in all. Whatever goes past a limit is listed under **Left Out**, with the reason.
+
+It can't list files, or read one by its address: it reads only what the record shows.
+
+### Example: inline images in a Microsoft Graph email
+
+This workflow emails each new incident through Microsoft Graph, with the screenshots in its description shown where the description puts them.
+
+:::steps
+### Get a token for Microsoft Graph
+
+Register an application in Microsoft Entra ID, give it the `Mail.Send` application permission and grant admin consent. Then create an [OAuth 2.0 variable](/docs/workflows/variables#oauth-20-variables-tokens-that-refresh-themselves) named `GRAPH_TOKEN` for Microsoft, with the **Client Credentials** grant type and the scope `https://graph.microsoft.com/.default`.
+
+### Start on a new incident
+
+Add the **On Create Incident** trigger, and pass on its **Title** and **Description**.
+
+### Read the incident's images
+
+Add **Get Files From Markdown** after the trigger. Set **Record Type** to **Incident**, and **Record ID** to `{{local.components.incident-on-create-1.returnValues.model._id}}`.
+
+### Build the message
+
+Add **Run Custom JavaScript** to its **Success** output, with these **Arguments**:
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+The code points every address of an image at its attachment (`cid:` and its `contentId`), and attaches the image inline under the same ID:
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### Send it with Microsoft Graph
+
+Add **API Post (JSON)** to the code's **Success** output:
+
+| Setting             | Value                                                                  |
+| ------------------- | ---------------------------------------------------------------------- |
+| **URL**             | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail`   |
+| **Request Headers** | `Authorization`: `Bearer {{global.variables.GRAPH_TOKEN}}`             |
+| **Request Body**    | `{{local.components.javascript-1.returnValues.returnValue}}`           |
+
+Microsoft Graph answers `202 Accepted`, and the block takes **Success**.
+:::
+
+Microsoft Graph takes an attachment of up to 3 MB in a message it is sent this way. A larger image needs an upload session, or a link in place of the image. A record's images can also be read with an API key, from outside a workflow: see [Images in a record's Markdown](/docs/api-reference/api-reference#images-in-a-records-markdown).
 
 ## Incidents and alerts from other tools
 

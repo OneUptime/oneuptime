@@ -12,6 +12,7 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { getColumnSortLock, SortLockModel } from "../../Utils/ColumnSortLock";
 import { HeldPermissions } from "../../../Types/HeldPermissions";
 import User from "../../Utils/User";
 import { ButtonStyleType } from "../Button/Button";
@@ -525,8 +526,66 @@ const ModelForm: <TBaseModel extends BaseModel>(
       return false;
     }
 
-    return !PermissionGate.canReadColumn(model, fieldName, {
-      held: heldPermissions,
+    if (
+      !PermissionGate.canReadColumn(model, fieldName, {
+        held: heldPermissions,
+      })
+    ) {
+      return true;
+    }
+
+    return isWithheldOnRecord(fieldName);
+  };
+
+  /*
+   * A FIELD THE READER READS ON SOME RECORDS ONLY (#11437): a column they
+   * may read where their grant to read it reaches - the records carrying
+   * some labels, or that they or their teams own - and that the server
+   * leaves out of every other record (getColumnSortLock: kept to labels or
+   * to owners). Read with the record like any field; withheld, it comes
+   * back empty, and a reader who may save the record through another grant
+   * would send that blank over what is stored. On such a record it is drawn
+   * as a write-only field: blank keeps the stored value.
+   */
+  const isKeptPerRecordField: (fieldName: string) => boolean = (
+    fieldName: string,
+  ): boolean => {
+    return (
+      props.formType === FormType.Update &&
+      !props.fetchItemApiUrl &&
+      model.hasColumn(fieldName) &&
+      Boolean(getColumnSortLock(model as unknown as SortLockModel, fieldName))
+    );
+  };
+
+  // Whether the record was read without the value of such a field.
+  const isWithheldOnRecord: (fieldName: string) => boolean = (
+    fieldName: string,
+  ): boolean => {
+    const stored: Record<string, unknown> | null =
+      storedValues.current as unknown as Record<string, unknown> | null;
+
+    if (!stored || !isKeptPerRecordField(fieldName)) {
+      return false;
+    }
+
+    const value: unknown = stored[fieldName];
+
+    return (
+      value === undefined ||
+      value === null ||
+      (typeof value === "string" && value.trim().length === 0)
+    );
+  };
+
+  // Whether a field of the form is read on some records only.
+  const hasKeptPerRecordFields: () => boolean = (): boolean => {
+    return props.fields.some((field: ModelField<TBaseModel>): boolean => {
+      const key: string | undefined = field.field
+        ? Object.keys(field.field)[0]
+        : undefined;
+
+      return Boolean(key && isKeptPerRecordField(key));
     });
   };
 
@@ -537,8 +596,14 @@ const ModelForm: <TBaseModel extends BaseModel>(
       ...getRelationSelect(),
     } as Dictionary<unknown>;
 
+    /*
+     * A field the reader may not read at all is left out; one they read on
+     * some records only (isKeptPerRecordField) is read - the server leaves
+     * it out of the records it is not read on - and drawn by what comes
+     * back.
+     */
     for (const key of Object.keys(select)) {
-      if (isWriteOnlyField(key)) {
+      if (isWriteOnlyField(key) && !isKeptPerRecordField(key)) {
         delete select[key];
       }
     }
@@ -1582,11 +1647,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
       /*
        * A field drawn by what the record holds - a custom domain's private
-       * key, asked for only while none is stored - is drawn again now the
-       * record is read, while the form still shows its loader: it never
-       * opens drawn for a record it is not.
+       * key, asked for only while none is stored, a key read on some
+       * records only (#11437) - is drawn again now the record is read,
+       * while the form still shows its loader: it never opens drawn for a
+       * record it is not.
        */
-      if (isAnyFieldDrawnByStoredValues()) {
+      if (isAnyFieldDrawnByStoredValues() || hasKeptPerRecordFields()) {
         await latestSetFormFields.current();
       }
     } catch (err) {

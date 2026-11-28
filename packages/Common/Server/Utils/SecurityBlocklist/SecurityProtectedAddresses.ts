@@ -51,11 +51,12 @@ import { readSecurityAddress } from "../../../Types/SecurityBlocklist/SecurityAd
 import NetworkAddressBlockUtil, {
   NetworkAddressBlock,
 } from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
+import {
+  GCP_FORWARDING_RULE_TYPE,
+  GOOGLE_LOAD_BALANCER_SOURCE_RANGES,
+} from "../../../Utils/SecurityEvent/OwnLoadBalancers";
 import Project from "../../../Models/DatabaseModels/Project";
 import ProjectService from "../../Services/ProjectService";
-import SecurityOwnLoadBalancers, {
-  SecurityOwnLoadBalancerBlocks,
-} from "../SecurityEvent/SecurityOwnLoadBalancers";
 import { toTrustedProxies } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 
 /*
@@ -83,9 +84,10 @@ import { toTrustedProxies } from "../../../Utils/SecurityEvent/ClientAddressTrus
  *     its network endpoints';
  *   - the published ranges of the edge in front of the app, when the project
  *     has connected one (SecurityEdgeRanges);
- *   - what the project trusts as its own proxies (#11158): its Trusted
- *     Proxies, and Google's front ends while Your Load Balancers trusts
- *     them (#11047). A block of one cuts off everyone it forwards, at
+ *   - Google Cloud's load balancers' front ends and health checks (#11388),
+ *     in every project: nobody but Google connects from them;
+ *   - the project's Trusted Proxies (#11158): it trusts each as one of its
+ *     own proxies, so a block of one cuts off everyone it forwards, at
  *     every destination - Cloudflare, a WAF, CrowdSec - and an event that
  *     names one names the proxy, not the client.
  *
@@ -113,6 +115,9 @@ const DNS_NAMES_RESOLVED_AT_ONCE: number = 10;
 
 // How long a load balancer's name that could not be resolved waits to be asked again.
 export const DNS_FAILURE_RETRY_IN_MS: number = 30 * 1000;
+
+// The most Google Cloud forwarding rules read to name one that Google's front ends reach (#11388).
+export const GOOGLE_LOAD_BALANCERS_NAMED: number = 20;
 
 /*
  * The cloud resource types listed by a DNS name and no address: AWS's
@@ -393,6 +398,15 @@ export default class SecurityProtectedAddresses {
       return { protection: cloud, unreadSources };
     }
 
+    // Google Cloud's front ends and health checks (#11388): no read needed.
+    const google: SecurityAddressProtection | null = found(
+      this.getGoogleFrontEndProtections(),
+    );
+
+    if (google) {
+      return { protection: google, unreadSources };
+    }
+
     // Read as OneUptime: an address is protected whoever asks.
     const scan: SourceScan = {
       contains: getProtectedAddressPrefilter(data.block),
@@ -517,6 +531,7 @@ export default class SecurityProtectedAddresses {
       protections: [
         ...this.getLocalRangeProtections(),
         ...this.getOneUptimeCloudProtections(),
+        ...this.getGoogleFrontEndProtections(),
       ],
       unreadSources: [],
       incompleteSources: [],
@@ -684,6 +699,17 @@ export default class SecurityProtectedAddresses {
       return this.readEdges(data.projectId);
     });
 
+    // Google Cloud's front ends and health checks, with a load balancer of the project's that they reach (#11388).
+    await add(SecurityProtectedAddressSource.GoogleFrontEnd, async () => {
+      const loadBalancer: { name: string; where: string } =
+        await this.readGoogleLoadBalancerName(data.projectId, data.props);
+
+      return {
+        protections: this.getGoogleFrontEndProtections(loadBalancer),
+        isComplete: true,
+      };
+    });
+
     for (const reader of this.getTrustedProxyReaders(data.projectId)) {
       await add(reader.source, reader.read);
     }
@@ -692,12 +718,13 @@ export default class SecurityProtectedAddresses {
   }
 
   /*
-   * What the project trusts as its own proxies, each its own source so a
-   * refusal says which (#11158): its Trusted Proxies, and Google's front
-   * ends while Your Load Balancers trusts them (#11047). Both are ranges,
-   * read whole, as OneUptime, the way the scans read them
+   * What the project trusts as its own proxies (#11158): its Trusted
+   * Proxies, a source of their own so a refusal says so. Its addresses
+   * and ranges are read whole, as OneUptime, the way the scans read them
    * (SecurityTrustedProxies): a range holds a block's address without
-   * sharing its text.
+   * sharing its text. (Google's front ends, which the scans trust too
+   * while Your Load Balancers does, are protected in every project:
+   * getGoogleFrontEndProtections.)
    */
   public static getTrustedProxyReaders(projectId: ObjectID): Array<{
     source: SecurityProtectedAddressSource;
@@ -708,12 +735,6 @@ export default class SecurityProtectedAddresses {
         source: SecurityProtectedAddressSource.TrustedProxy,
         read: () => {
           return this.readTrustedProxies(projectId);
-        },
-      },
-      {
-        source: SecurityProtectedAddressSource.GoogleFrontEnd,
-        read: () => {
-          return this.readGoogleFrontEnds(projectId);
         },
       },
     ];
@@ -747,44 +768,6 @@ export default class SecurityProtectedAddresses {
           };
         },
       ),
-      isComplete: true,
-    };
-  }
-
-  /*
-   * Google's front ends, while a connected Google Cloud project's
-   * Application Load Balancer brings them and Your Load Balancers is on:
-   * the scans trust them then, and believe the client each forwards. When
-   * they are not trusted (a TCP or SSL proxy load balancer connects from
-   * them too, #11388) they are not protected here.
-   */
-  public static async readGoogleFrontEnds(
-    projectId: ObjectID,
-  ): Promise<SourceReading> {
-    const project: Project | null = await ProjectService.findOneById({
-      id: projectId,
-      select: { securityTrustOwnLoadBalancers: true },
-      props: ROOT,
-    });
-
-    // On unless the project turned it off, as the scans read it.
-    if (project?.securityTrustOwnLoadBalancers === false) {
-      return { protections: [], isComplete: true };
-    }
-
-    const own: SecurityOwnLoadBalancerBlocks =
-      await SecurityOwnLoadBalancers.getTrusted(projectId);
-
-    return {
-      protections: protectionsOf({
-        values: own.googleFrontEnds.map(
-          (block: NetworkAddressBlock): string => {
-            return block.text;
-          },
-        ),
-        source: SecurityProtectedAddressSource.GoogleFrontEnd,
-        name: "Google Cloud",
-      }),
       isComplete: true,
     };
   }
@@ -829,6 +812,77 @@ export default class SecurityProtectedAddresses {
           name: cloud.name,
         })
       : [];
+  }
+
+  /*
+   * Google Cloud's load balancers' front ends and health checks (#11388):
+   * protected in every project, read from nothing - nobody but Google
+   * connects from them, so a block of one could only cut off the visitors
+   * of a Google Cloud load balancer in front of the project's app and fail
+   * its health checks, whether or not its Google Cloud project is
+   * connected. Named by one of the project's own load balancers when the
+   * page that lists them knows one.
+   */
+  public static getGoogleFrontEndProtections(
+    loadBalancer?: { name: string; where: string } | undefined,
+  ): Array<SecurityAddressProtection> {
+    return protectionsOf({
+      values: [...GOOGLE_LOAD_BALANCER_SOURCE_RANGES],
+      source: SecurityProtectedAddressSource.GoogleFrontEnd,
+      name: loadBalancer?.name || "",
+      where: loadBalancer?.where || undefined,
+    });
+  }
+
+  /*
+   * One of the project's Google Cloud load balancers that Google's front
+   * ends or health checks reach, read as `props` reads, by its forwarding
+   * rule's name and the cloud account it is in: '' for a project with none
+   * the reader can read. Every load balancer's rule has a load balancing
+   * scheme, and its health checks come from these ranges; a rule with none
+   * is a Private Service Connect endpoint, which no health check reaches.
+   */
+  public static async readGoogleLoadBalancerName(
+    projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<{ name: string; where: string }> {
+    try {
+      const rules: Array<CloudResource> = await CloudResourceService.findBy({
+        query: {
+          projectId,
+          isArchived: false,
+          cloudResourceType: GCP_FORWARDING_RULE_TYPE,
+        },
+        select: {
+          _id: true,
+          name: true,
+          cloudProperties: true,
+          cloudConnection: { name: true },
+        },
+        skip: 0,
+        limit: GOOGLE_LOAD_BALANCERS_NAMED,
+        props,
+      });
+
+      for (const rule of rules) {
+        const scheme: string = String(
+          (rule.cloudProperties as Record<string, unknown> | undefined)?.[
+            "loadBalancingScheme"
+          ] || "",
+        ).trim();
+        const name: string = (rule.name || "").trim();
+
+        if (name && scheme) {
+          return { name, where: rule.cloudConnection?.name || "" };
+        }
+      }
+    } catch (error) {
+      logger.debug(
+        `SecurityProtectedAddresses: could not name a Google Cloud load balancer of project ${projectId.toString()} for this reader. ${String(error)}`,
+      );
+    }
+
+    return { name: "", where: "" };
   }
 
   // The address entries of the project's Protected Entities list, by their descriptions.

@@ -846,8 +846,11 @@ describe("the results and the answers written on a notification", () => {
       },
     );
 
+    // Placed: Calling, or Success where nothing will say how it ended (#11138).
     expect(results).toEqual([
-      expect.stringContaining("isSent:callLog.status===CallStatus.Success"),
+      expect.stringContaining(
+        "isSent:callLog.status===CallStatus.Calling||callLog.status===CallStatus.Success",
+      ),
     ]);
   });
 

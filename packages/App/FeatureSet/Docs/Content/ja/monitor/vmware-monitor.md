@@ -123,7 +123,7 @@ OneUptime には VMware のよくある問題向けに 25 個のテンプレー�
 | VM CPU Ready Contention | 仮想マシン | 警告 | `vcenter.vm.cpu.readiness`、VM ごとに Avg | 10% を超える: VM は実行可能だったが、ホストに割り当てられる物理コアがなかった。ゲストの内部からは見えない | 9% 以下 |
 | VM Memory Saturation | 仮想マシン | 警告 | `vcenter.vm.memory.utilization`、VM ごとに Avg | メモリの 90% を超える: ゲストがページングを始める寸前 | 81% 以下 |
 | VM Memory Ballooning | 仮想マシン | 警告 | `vcenter.vm.memory.ballooned`、VM ごとに Max | 0 を超える: ホストのメモリが不足し、このゲストからメモリを取り戻している | 0 に戻る |
-| VM Memory Swapping | 仮想マシン | 重大 | `vcenter.vm.memory.swapped`、VM ごとに Max | 0 を超える: ホストが VM のメモリをスワップしている。バルーニングと圧縮の後の最後の手段 | 0 に戻る |
+| VM Memory Swapping | 仮想マシン | 重大 | `vcenter.vm.memory.swapped`、VM ごとに Max | 0 を超える: VM のメモリの一部がホストのスワップファイルにある。今スワップアウトされたものか、以前のメモリの逼迫から残ったもので、ESXi は VM がアクセスするまでそれを保持する。vCenter の概要は両者を区別する。[スワップ済みのメモリはスワップ中ではない](/docs/telemetry/vmware#スワップ済みのメモリはスワップ中ではない) を参照 | 0 に戻る |
 | VM Disk Latency High | 仮想マシン | 警告 | `vcenter.vm.disk.latency.max`、VM ごとに Max | 50 ms を超える: ゲスト内のアプリケーションで I/O がタイムアウトする | 45 ms 以下 |
 | VM Disk Usage High | 仮想マシン | 警告 | `vcenter.vm.disk.utilization`、VM ごとに Avg | プロビジョニングしたストレージの 90% を超えて使用: シンプロビジョニングの VM が全サイズを確保しようとしている | 81% 以下 |
 | Datastore Capacity Warning | データストア | 警告 | `vcenter.datastore.disk.utilization`、`resource.vcenter.datastore.name` ごとに Avg | 80% を超える: シンディスクとスナップショットが残りをすぐに使い切るため、早めの警告 | 72% 以下 |
@@ -214,7 +214,7 @@ OneUptime には VMware のよくある問題向けに 25 個のテンプレー�
 | `vcenter.vm.disk.utilization` | `%` | VM のプロビジョニングしたストレージのうち、データストア上で使用済みの割合 (0–100)。100% に近づいたシンプロビジョニングの VM は、全サイズを確保しようとしています |
 | `vcenter.vm.memory.ballooned` | `MiBy` | バルーンドライバー (VMware Tools) が VM から回収したゲストメモリ。0 を超えると、ESXi ホストのメモリが不足しています |
 | `vcenter.vm.memory.granted` | `MiBy` | ホストが VM に割り当てたマシンメモリ。_デフォルトでオフ_: `vcenter.vm.memory.granted` をオンにしてください |
-| `vcenter.vm.memory.swapped` | `MiBy` | ホストのスワップファイルから VM に割り当てられたメモリ。バルーニングと圧縮の後の最後の手段で、0 を超える値は、VM が RAM の代わりにディスクのレイテンシを払っていることを意味します |
+| `vcenter.vm.memory.swapped` | `MiBy` | ホストのスワップファイルから VM に割り当てられたメモリ。バルーニングと圧縮の後の最後の手段です。ESXi はスワップしたページを VM がアクセスするまで保持するため、0 を超える値は以前のメモリの逼迫から残っているだけのこともあります |
 | `vcenter.vm.memory.swapped_ssd` | `KiBy` | ホストのフラッシュのスワップキャッシュにスワップされた VM のメモリ。スワップファイルほど痛手ではありませんが、メモリの逼迫に変わりはありません |
 | `vcenter.vm.memory.usage` | `MiBy` | VM のゲストが実際に使っているメモリ。電源オンと電源オフの VM の両方で送信されます (オフのときは 0) |
 | `vcenter.vm.memory.utilization` | `%` | VM のメモリ使用率。設定されたメモリに対するパーセンテージ (0–100) |
@@ -241,7 +241,7 @@ OneUptime には VMware のよくある問題向けに 25 個のテンプレー�
 | `vcenter.resource_pool.memory.ballooned` | `MiBy` | プール内のすべての VM からバルーンドライバーが回収したメモリ |
 | `vcenter.resource_pool.memory.granted` | `MiBy` | プールの VM に割り当てられたホストのメモリ。`type` (`private` / `shared`。共有ページは透過的ページ共有で重複排除されます) ごとに分かれます |
 | `vcenter.resource_pool.memory.shares` | `{shares}` | プールに設定されたメモリのシェア |
-| `vcenter.resource_pool.memory.swapped` | `MiBy` | ESXi ホストのスワップ領域からプールの VM に割り当てられたメモリ。0 を超える値は、プール内の少なくとも 1 つの VM がホストによってスワップされていることを意味します |
+| `vcenter.resource_pool.memory.swapped` | `MiBy` | ESXi ホストのスワップ領域からプールの VM に割り当てられたメモリ。0 を超える値は、プール内の少なくとも 1 つの VM のメモリが、今または以前からホストのスワップにあることを意味します |
 | `vcenter.resource_pool.memory.usage` | `MiBy` | プールが使うメモリ。最近のコレクターのビルドでは `type` (`guest` / `host` / `overhead`) ごとに分かれ、古いビルドは種類のない 1 つのシリーズを送信します。`type = guest` で絞り込みます |
 
 ### vSAN
@@ -288,7 +288,7 @@ vSAN のあるクラスター、その中のホスト、vSAN データストア�
 - **データストアがいっぱいになりつつある:** `vcenter.datastore.disk.utilization`、平均、`resource.vcenter.datastore.name` でグループ化、**より大きい** `80`。
 - **クラスターがホストを失った:** `vcenter.cluster.host.count` を `effective = false` に絞り込み、最大、`resource.vcenter.cluster.name` でグループ化、**より大きい** `0`。
 - **実行中の VM が想定より少ない:** `vcenter.cluster.vm.count` を `power_state = on` と `resource.vcenter.cluster.name = Production` に絞り込み、合計、**より小さい** 想定している数。
-- **VM がホストにスワップされている:** `vcenter.vm.memory.swapped`、最大、`resource.vcenter.vm.name` でグループ化、**より大きい** `0`。
+- **VM がホストのスワップに多くのメモリを抱えている:** `vcenter.vm.memory.swapped`、最大、`resource.vcenter.vm.name` でグループ化、**より大きい** `1024`。メモリの逼迫が解消してからも数 MiB が長く残ることがあるため、0 より大きいしきい値にしておくと、以前から残っているメモリで発報しません。
 
 ### デフォルトの条件
 

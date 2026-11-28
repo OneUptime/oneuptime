@@ -1,6 +1,10 @@
 import { Say } from "../../../Types/Call/CallRequest";
-import { CallVoice, getCallVoice } from "../../../Types/Call/CallVoice";
 import {
+  SpokenCallVoice,
+  getSpokenCallVoice,
+} from "../../../Types/Call/CallVoice";
+import {
+  SayRecordNumber,
   SpeechPart,
   getSpeechParts,
   isSsmlVoice,
@@ -19,8 +23,9 @@ import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
  * here, so one call speaks with one voice and spells a record's number one
  * way:
  *
- *   - the voice, when the call names one of OneUptime's list
- *     (Types/Call/CallVoice), with the language it speaks: Twilio may fail a
+ *   - the voice, when the call names one of OneUptime's lists
+ *     (Types/Call/CallVoice) - another language's too, for a call in the
+ *     person's language (#11066) - with the language it speaks: Twilio may fail a
  *     <Say> whose voice and language do not go together, and <Say>'s
  *     language is en-US unless it says otherwise. A voice the list does not
  *     hold is never written: the account's default voice speaks, as it did
@@ -57,6 +62,12 @@ export interface CallSpeechOptions {
    * built again without it (CallService), in spaced letters.
    */
   isSsmlAllowed?: boolean | undefined;
+  /*
+   * How "#42", a number without a prefix, is said: in the words of the
+   * call's language (Utils/Call/CallSpeech getSayRecordNumber). English's
+   * "number 42" when left out.
+   */
+  sayNumber?: SayRecordNumber | undefined;
 }
 
 // A text as it is: what a call says, when nothing measures it.
@@ -64,11 +75,11 @@ const AS_IT_IS: (text: string) => string = (text: string): string => {
   return text;
 };
 
-// The voice a call names, from OneUptime's list, or null for the account's default.
+// The voice a call names, from OneUptime's lists, or null for the account's default.
 export function getCallSpeechVoice(
   speech: CallSpeechOptions,
-): CallVoice | null {
-  return getCallVoice(speech.voice);
+): SpokenCallVoice | null {
+  return getSpokenCallVoice(speech.voice);
 }
 
 /*
@@ -76,7 +87,7 @@ export function getCallSpeechVoice(
  * speaks, for a voice of OneUptime's list; none for the account's default.
  */
 export function getSayAttributes(
-  voice: CallVoice | null,
+  voice: SpokenCallVoice | null,
 ): VoiceResponse.SayAttributes {
   if (!voice) {
     return {};
@@ -105,10 +116,11 @@ export function sayInto(
   speech: CallSpeechOptions,
   say: (text: string) => string = AS_IT_IS,
 ): void {
-  const voice: CallVoice | null = getCallSpeechVoice(speech);
+  const voice: SpokenCallVoice | null = getCallSpeechVoice(speech);
   const parts: Array<SpeechPart> = getSpeechParts(
     typeof sentence === "string" ? { sayMessage: sentence } : sentence,
     speech.recordNumberPrefixes,
+    speech.sayNumber,
   );
 
   const attributes: VoiceResponse.SayAttributes = getSayAttributes(voice);

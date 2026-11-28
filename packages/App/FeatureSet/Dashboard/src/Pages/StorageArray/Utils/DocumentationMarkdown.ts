@@ -187,6 +187,14 @@ export const STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE: string = `systemd/${STORAGE_
 // The containers docker-compose.yml runs (their container_name / service).
 export const STORAGE_ARRAY_AGENT_CONTAINER: string =
   "oneuptime-storage-array-agent";
+/*
+ * The .env variable docker-compose.yml reads the collector's container name
+ * from (its default, STORAGE_ARRAY_AGENT_CONTAINER): a second array's agent
+ * on the same machine has a name of its own there, which install.sh writes
+ * and keeps on every upgrade.
+ */
+export const STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE: string =
+  "STORAGE_ARRAY_AGENT_CONTAINER_NAME";
 export const STORAGE_ARRAY_FA_EXPORTER_SERVICE: string = "pure-fa-exporter";
 export const STORAGE_ARRAY_FB_EXPORTER_SERVICE: string = "pure-fb-exporter";
 
@@ -464,7 +472,7 @@ processors:
       # a newer one is out. Keep it in step with the collector image
       # docker-compose.yml pins.
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
@@ -692,7 +700,7 @@ processors:
       # a newer one is out. Keep it in step with the collector image
       # docker-compose.yml pins.
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
@@ -870,7 +878,7 @@ processors:
       # a newer one is out. Keep it in step with the collector image
       # docker-compose.yml pins.
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label
@@ -1373,7 +1381,8 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`PURE_FA_API_TOKEN\` | FlashArray | API token of the FlashArray user with the readonly role |
 | \`PURE_FB_ENDPOINT\` | FlashBlade | The FlashBlade's management address — host name or IP, no \`https://\` |
 | \`PURE_FB_API_TOKEN\` | FlashBlade | API token of the FlashBlade user with the readonly role |
-| \`STORAGE_ARRAY_INSECURE_SKIP_VERIFY\` | No | \`true\` accepts the array's self-signed certificate on the native endpoint; \`false\` verifies it (default: \`true\`). Pure's exporters never verify the array's certificate, so it does not apply to them |`,
+| \`STORAGE_ARRAY_INSECURE_SKIP_VERIFY\` | No | \`true\` accepts the array's self-signed certificate on the native endpoint; \`false\` verifies it (default: \`true\`). Pure's exporters never verify the array's certificate, so it does not apply to them |
+| \`${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}\` | No | The agent's container name (default: \`${STORAGE_ARRAY_AGENT_CONTAINER}\`). A second array's agent on the same machine needs one of its own: the install script names a new agent after its folder unless you set it, and keeps it when you run the script again |`,
   };
 }
 
@@ -1502,12 +1511,14 @@ function getSeveralArraysTopic(): SetupGuideTopic {
   return {
     title: "Monitor several arrays",
     summary: "One agent per array, each in its own folder with its own name.",
-    markdown: `One agent reads one array. To monitor several from the same machine, install each into its own folder with its own \`.env\`, and give each its own \`container_name\` in its \`docker-compose.yml\` (for example \`${STORAGE_ARRAY_AGENT_CONTAINER}-fa02\`) — two containers cannot share a name:
+    markdown: `One agent reads one array. To monitor several from the same machine, install each into its own folder with its own \`.env\` and its own container name — two containers cannot share one:
 
 ${codeBlock(
   "bash",
-  `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 bash install.sh`,
-)}`,
+  `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 ${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}=${STORAGE_ARRAY_AGENT_CONTAINER}-fa02 bash install.sh`,
+)}
+
+Without \`${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}\`, the script names the container after the folder. It keeps the name in that agent's \`.env\`, so running the script again to upgrade the agent keeps it, and an agent whose \`container_name\` you once edited in \`docker-compose.yml\` keeps that name. With Docker Compose, set \`${STORAGE_ARRAY_AGENT_CONTAINER_NAME_VARIABLE}\` in each agent's \`.env\` instead.`,
   };
 }
 

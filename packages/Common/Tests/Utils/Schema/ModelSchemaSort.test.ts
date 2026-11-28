@@ -14,6 +14,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import SortNulls from "../../../Types/BaseDatabase/SortNulls";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { isOwnerOnlyColumn } from "../../../Types/Database/AccessControl/OwnerOnlyColumn";
+import RelationReadersUtil from "../../../Types/Database/RelationReadersUtil";
 import {
   ACCOUNT_DATE_COLUMNS,
   isAccountDateColumn,
@@ -648,7 +649,8 @@ describe("what the API takes beyond the spec", () => {
  * Who may sort by what is SortValidator.checkSortPermission's (#8839): a
  * sort is held to the read of each column it names. A relation sort names
  * only fields any reader of the relation may read - the ids and times, and
- * those marked canReadOnRelationQuery - so whoever may read the relation
+ * those marked canReadOnRelationQuery and not held to their own read
+ * (RelationReaders.ColumnReaders) - so whoever may read the relation
  * may sort by every field the spec offers through it, whatever they hold of
  * the related model.
  */
@@ -872,6 +874,7 @@ describe("a relation's sort", () => {
             !column.encrypted &&
             !column.secret &&
             !isOwnerOnlyColumn(model, key) &&
+            !RelationReadersUtil.isHeldToItsOwnRead(column) &&
             !isAccountDateColumn(model.tableName, key)
           );
         })
@@ -986,6 +989,28 @@ describe("a relation's sort", () => {
       expect(person).not.toContain(column);
       expect(refusal).not.toContain(column);
     }
+  });
+
+  /*
+   * An on-call policy's incident role is read through a relation only by who
+   * may read the policy (RelationReaders.ColumnReaders, #11234). A relation
+   * to a policy (an on-call log's, say) is read by others too, so its sort
+   * leaves the role out, while its select still names it for the policy's
+   * readers, whose reads the server answers it in.
+   */
+  test("of an on-call policy leaves out its incident role, which only the policy's readers read through a relation", () => {
+    const policy: Array<string> = Object.keys(
+      propertiesOf(SCHEMAS["OnCallDutyPolicyRelationSortSchema"] as JSONObject),
+    );
+    const select: Array<string> = Object.keys(
+      propertiesOf(
+        SCHEMAS["OnCallDutyPolicyRelationSelectSchema"] as JSONObject,
+      ),
+    );
+
+    expect(policy).toEqual(expect.arrayContaining(["_id", "name"]));
+    expect(policy).not.toContain("incidentRoleId");
+    expect(select).toContain("incidentRoleId");
   });
 
   /*

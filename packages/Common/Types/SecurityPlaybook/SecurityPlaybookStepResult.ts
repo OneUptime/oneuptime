@@ -75,6 +75,14 @@ export interface SecurityPlaybookTarget {
   // For an undone one: who released it, and when (ISO 8601).
   undoneByUserId?: string | undefined;
   undoneAt?: string | undefined;
+  /*
+   * For an address (#11389): the case's requests named it as a client that
+   * came through a proxy the project does not vouch for - this private
+   * address, or '' when they cannot say which - so the client may have
+   * written it. A block of it is never made with nobody's approval: the
+   * step waits for a person, who sees why.
+   */
+  unvouchedProxy?: string | undefined;
 }
 
 /*
@@ -202,6 +210,8 @@ export function readStepTargets(
       continue;
     }
 
+    const unvouchedProxy: JSONValue | undefined = record["unvouchedProxy"];
+
     targets.push({
       type,
       value: entityValue,
@@ -211,6 +221,10 @@ export function readStepTargets(
       protectedBy: readText(record["protectedBy"]),
       undoneByUserId: readText(record["undoneByUserId"]),
       undoneAt: readText(record["undoneAt"]),
+      // Kept when it says nothing of which proxy (''): it still came through one.
+      ...(typeof unvouchedProxy === "string"
+        ? { unvouchedProxy: unvouchedProxy.trim().slice(0, 64) }
+        : {}),
     });
 
     if (targets.length >= SECURITY_ENTITY_LIMIT) {

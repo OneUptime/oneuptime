@@ -4,8 +4,27 @@ import LabelAccess, {
   LabelVerdict,
 } from "../../Types/LabelAccess/LabelAccess";
 import { formatNameList } from "./NameList";
-import { LabelLockAction, ModelAction, ModelLabelLock } from "./PermissionGate";
-import { RecordAccessScope, RecordGateOperation } from "./RecordAccessScope";
+import PermissionGate, {
+  LabelledGateModel,
+  LabelLockAction,
+  ModelAction,
+  ModelLabelLock,
+  ModelPartLock,
+  ModelRecordLock,
+  PartGateModel,
+  PartLockAction,
+  RecordOwnershipFacts,
+} from "./PermissionGate";
+import {
+  RecordAccessScope,
+  RecordGateAccess,
+  RecordGateModel,
+  RecordGateOperation,
+} from "./RecordAccessScope";
+import {
+  getRecordOwnershipFacts,
+  RecordOwnershipState,
+} from "./RecordOwnershipRead";
 import RecordsById from "./RecordsById";
 import {
   composedValue,
@@ -46,6 +65,11 @@ export const RECORD_LABEL_LOCK_REASONS: Readonly<{
   blockedLabelsUnnamed: string;
   // {{itemName}}: the record is outside the reader's read itself.
   notReadable: string;
+  // Every grant is scoped to Owned, and neither the reader nor their teams own it (#11436).
+  owned: string;
+  // Grants limited to labels beside grants scoped to Owned, and it is neither (#11436).
+  labelsOrOwned: string;
+  labelsOrOwnedUnnamed: string;
 }> = {
   labels: translationKey(
     "Your permission is limited to {{items}} labelled {{labels}}.",
@@ -61,6 +85,15 @@ export const RECORD_LABEL_LOCK_REASONS: Readonly<{
   ),
   notReadable: translationKey(
     "Your permissions do not reach this {{itemName}}.",
+  ),
+  owned: translationKey(
+    "Your permission is limited to {{items}} you or your teams own.",
+  ),
+  labelsOrOwned: translationKey(
+    "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.",
+  ),
+  labelsOrOwnedUnnamed: translationKey(
+    "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.",
   ),
 };
 
@@ -83,6 +116,12 @@ export function getLabelRefusalSentence(data: {
   nouns: RecordLabelLockNouns;
   labelNames: ReadonlyMap<string, string>;
   translator: Translator;
+  /*
+   * A record's part (#11435): a read it is not one the reader may read says
+   * why, by the record's labels or owners - "Your permission is limited to
+   * monitors labelled Production." - since the record itself is on screen.
+   */
+  saysWhyNotReadable?: boolean | undefined;
 }): string {
   const translator: Translator = data.translator;
   const items: ReturnType<typeof translatableTerm> = translatableTerm(
@@ -118,7 +157,14 @@ export function getLabelRefusalSentence(data: {
     });
   };
 
-  switch (data.verdict.refusal) {
+  const refusal: LabelRefusal | null =
+    data.verdict.refusal === LabelRefusal.NotReadable &&
+    data.saysWhyNotReadable &&
+    data.verdict.cause
+      ? data.verdict.cause
+      : data.verdict.refusal;
+
+  switch (refusal) {
     case LabelRefusal.BlockedLabels:
       return named(
         RECORD_LABEL_LOCK_REASONS.blockedLabels,
@@ -132,6 +178,15 @@ export function getLabelRefusalSentence(data: {
             inSentence: true,
           }),
         },
+      );
+    case LabelRefusal.Owned:
+      return translator.translateTemplate(RECORD_LABEL_LOCK_REASONS.owned, {
+        items: items,
+      });
+    case LabelRefusal.LabelsOrOwned:
+      return named(
+        RECORD_LABEL_LOCK_REASONS.labelsOrOwned,
+        RECORD_LABEL_LOCK_REASONS.labelsOrOwnedUnnamed,
       );
     case LabelRefusal.Labels:
     default:
@@ -181,25 +236,28 @@ export function getRecordLabelIds(
 }
 
 /*
- * Why the labels of one record lock `action`, in the reader's language, or
- * null when they do not: the labels allow it, leave it to the record's
- * owners, or were not read with the record.
+ * Why the labels of one record - and who owns it, when that is known
+ * (#11436) - lock `action`, in the reader's language, or null when they do
+ * not: the labels allow it, leave it to owners not known yet, or were not
+ * read with the record.
  */
 export function getRecordLabelRefusal(data: {
-  lock: ModelLabelLock | null;
+  lock: ModelLabelLock | ModelRecordLock | null;
   action: LabelLockAction;
   recordLabelIds: ReadonlyArray<unknown> | null;
   nouns: RecordLabelLockNouns;
   labelNames: ReadonlyMap<string, string>;
   translator: Translator;
+  ownership?: RecordOwnershipFacts | null | undefined;
 }): string | null {
   if (!data.lock || !data.recordLabelIds) {
     return null;
   }
 
-  const verdict: LabelVerdict = data.lock.weigh(
+  const verdict: LabelVerdict = (data.lock as ModelRecordLock).weigh(
     data.action,
     data.recordLabelIds,
+    data.ownership || null,
   );
 
   if (verdict.isAllowed) {
@@ -215,54 +273,198 @@ export function getRecordLabelRefusal(data: {
 }
 
 /*
- * WHAT A RECORD'S LABELS LOCK ON ITS PAGE (ModelPage), for every gate there
- * that asks about the record's own model (RecordAccessScope, read by
- * usePrivateRecordGateOptions): its update and delete, each with why. Null
- * when they lock nothing, or the record was read without its labels.
+ * WHAT A RECORD'S LABELS - AND WHO OWNS IT - LOCK ON ITS PAGE (ModelPage),
+ * for every gate there that asks about the record's own model
+ * (RecordAccessScope, read by usePrivateRecordGateOptions): its update and
+ * delete, each with why. Null when nothing can be locked, or the record was
+ * read without its labels.
+ *
+ * Given the record's model, the scope answers its PARTS' gates too when
+ * they ask (#11435, RecordAccessScope.getPartAccess): a monitor's owners'
+ * Add and Remove, its probes' - what the record's labels and owners leave
+ * the reader of the part's rows (PermissionGate.getPartLock).
+ *
+ * Given who owns the record (#11436, the server's answer: RecordOwnership),
+ * a change a grant scoped to Owned does not reach is refused with why; while
+ * the page is still reading it, what the owners decide is held back - not
+ * offered, nothing said - and with no answer it is left to the server.
  */
 export function getRecordLabelAccessScope(data: {
   tableName: string | null | undefined;
   // The record the page is open on.
   recordId: string;
-  lock: ModelLabelLock | null;
+  lock: ModelLabelLock | ModelRecordLock | null;
   recordLabelIds: ReadonlyArray<unknown> | null;
   nouns: RecordLabelLockNouns;
   labelNames: ReadonlyMap<string, string>;
   translator: Translator;
+  // The record's model, whose parts' gates the scope answers too (#11435).
+  recordModel?: LabelledGateModel | undefined;
+  // Who owns the record, as the server answered it (#11436).
+  ownership?: RecordOwnershipState | undefined;
 }): RecordAccessScope | null {
-  if (!data.tableName || !data.lock || !data.recordLabelIds) {
+  if (
+    !data.tableName ||
+    !data.recordLabelIds ||
+    (!data.lock && !data.recordModel)
+  ) {
     return null;
   }
 
-  const refusals: Partial<Record<RecordGateOperation, string>> = {};
+  const tableName: string = data.tableName;
+  const recordLabelIds: ReadonlyArray<unknown> = data.recordLabelIds;
+  const recordId: string = data.recordId.toLowerCase();
+  const facts: RecordOwnershipFacts | null = getRecordOwnershipFacts(
+    data.ownership?.result || null,
+    recordId,
+  );
+  const isOwnershipPending: boolean = Boolean(
+    data.ownership && !data.ownership.isRead,
+  );
 
-  const operations: Array<[LabelLockAction, RecordGateOperation]> = [
-    [ModelAction.Update, "update"],
-    [ModelAction.Delete, "delete"],
-  ];
+  // What a lock's verdicts leave of each operation, for the page's gates.
+  const getAccess: (
+    weigh: (action: PartLockAction) => LabelVerdict,
+    operations: Array<[PartLockAction, RecordGateOperation]>,
+    isPart: boolean,
+  ) => RecordGateAccess = (
+    weigh: (action: PartLockAction) => LabelVerdict,
+    operations: Array<[PartLockAction, RecordGateOperation]>,
+    isPart: boolean,
+  ): RecordGateAccess => {
+    const refusals: Partial<Record<RecordGateOperation, string>> = {};
+    const heldBack: Array<RecordGateOperation> = [];
 
-  for (const [action, operation] of operations) {
-    const refusal: string | null = getRecordLabelRefusal({
-      lock: data.lock,
-      action: action,
-      recordLabelIds: data.recordLabelIds,
-      nouns: data.nouns,
-      labelNames: data.labelNames,
-      translator: data.translator,
-    });
+    for (const [action, operation] of operations) {
+      const verdict: LabelVerdict = weigh(action);
 
-    if (refusal) {
-      refusals[operation] = refusal;
+      if (!verdict.isAllowed) {
+        refusals[operation] = getLabelRefusalSentence({
+          verdict: verdict,
+          nouns: data.nouns,
+          labelNames: data.labelNames,
+          translator: data.translator,
+          saysWhyNotReadable: isPart,
+        });
+        continue;
+      }
+
+      if (verdict.isDecidedByOwners && isOwnershipPending) {
+        heldBack.push(operation);
+      }
     }
+
+    return {
+      isHeldBack: false,
+      refusals: refusals,
+      ...(heldBack.length > 0 ? { heldBackOperations: heldBack } : {}),
+    };
+  };
+
+  const tables: Record<string, RecordGateAccess> = {};
+  const tableNames: Array<string> = [];
+
+  if (data.lock) {
+    const lock: ModelRecordLock = data.lock as ModelRecordLock;
+
+    tables[tableName] = getAccess(
+      (action: PartLockAction): LabelVerdict => {
+        return lock.weigh(action as LabelLockAction, recordLabelIds, facts);
+      },
+      [
+        [ModelAction.Update, "update"],
+        [ModelAction.Delete, "delete"],
+      ],
+      false,
+    );
+    tableNames.push(tableName);
   }
 
-  return {
-    tables: { [data.tableName]: { isHeldBack: false, refusals: refusals } },
-    tableNames: [data.tableName],
+  const scope: RecordAccessScope = {
+    tables: tables,
+    tableNames: tableNames,
     isHeldBack: false,
-    recordTableName: data.tableName,
-    recordId: data.recordId.toLowerCase(),
+    recordTableName: tableName,
+    recordId: recordId,
   };
+
+  const recordModel: LabelledGateModel | undefined = data.recordModel;
+
+  if (recordModel) {
+    // Each part's answer, worked out once for the page.
+    const parts: Map<string, RecordGateAccess | null> = new Map<
+      string,
+      RecordGateAccess | null
+    >();
+
+    scope.getPartAccess = (
+      model: RecordGateModel,
+    ): RecordGateAccess | undefined => {
+      const partTableName: string = model.tableName || "";
+
+      if (!partTableName || partTableName === tableName) {
+        return undefined;
+      }
+
+      /*
+       * By table and the permissions the model asks with: a gate may ask
+       * with a model of its own lists (the Owners card's people and teams
+       * as one, AddOwners.getEitherOwnerTable).
+       */
+      const key: string = isPartGateModel(model)
+        ? JSON.stringify([
+            partTableName,
+            model.getCreatePermissions(),
+            model.getReadPermissions(),
+            model.getUpdatePermissions(),
+            model.getDeletePermissions(),
+          ])
+        : partTableName;
+
+      if (!parts.has(key)) {
+        const lock: ModelPartLock | null = isPartGateModel(model)
+          ? PermissionGate.getPartLock(model, recordModel)
+          : null;
+
+        parts.set(
+          key,
+          lock
+            ? getAccess(
+                (action: PartLockAction): LabelVerdict => {
+                  return lock.weigh(action, recordLabelIds, facts);
+                },
+                [
+                  [ModelAction.Create, "create"],
+                  [ModelAction.Update, "update"],
+                  [ModelAction.Delete, "delete"],
+                ],
+                true,
+              )
+            : null,
+        );
+      }
+
+      return parts.get(key) || undefined;
+    };
+  }
+
+  return scope;
+}
+
+/*
+ * Whether a model a gate asks about can be weighed as a part: a database
+ * model, with its permissions and what it is read through.
+ */
+function isPartGateModel(model: RecordGateModel): model is PartGateModel {
+  const candidate: Partial<PartGateModel> = model as Partial<PartGateModel>;
+
+  return (
+    typeof candidate.getCreatePermissions === "function" &&
+    typeof candidate.getReadPermissions === "function" &&
+    typeof candidate.getUpdatePermissions === "function" &&
+    typeof candidate.getDeletePermissions === "function" &&
+    typeof candidate.getTableColumnMetadata === "function"
+  );
 }
 
 /*
@@ -297,6 +499,10 @@ export function mergeRecordAccessScopes(
     isHeldBack: outer.isHeldBack,
     recordTableName: outer.recordTableName || own.recordTableName,
     recordId: outer.recordId || own.recordId,
+    // The parts the server's answer names are its; the labels' answer the rest.
+    ...(own.getPartAccess || outer.getPartAccess
+      ? { getPartAccess: own.getPartAccess || outer.getPartAccess }
+      : {}),
   };
 }
 

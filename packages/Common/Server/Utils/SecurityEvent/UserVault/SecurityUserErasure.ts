@@ -38,6 +38,7 @@ import {
 import SecurityUserErasureRecords, {
   SecurityUserErasureRecordCounts,
 } from "./SecurityUserErasureRecords";
+import SecurityUserErasureThreatStamps from "./SecurityUserErasureThreatStamps";
 
 /*
  * THE ERASURE WORKER (#10908): carries out the erasure requests filed to
@@ -67,10 +68,12 @@ import SecurityUserErasureRecords, {
  *        kept on the request with them, encrypted (namesToErase): the
  *        vault's rows and the events that hold them go with this run, and
  *        later runs need them (#11044);
- *     3. ClickHouse: the events the vault named counted and the token put
- *        back in them (SecurityUserErasureEvents), the vault's rows of the
- *        tokens counted and deleted. Queued mutations, durable from then
- *        on.
+ *     3. ClickHouse: the threat intel stamps on the person's events - the
+ *        address a feed lists, and the feed's indicator - rewritten
+ *        (SecurityUserErasureThreatStamps, #11230), the events the vault
+ *        named counted and the token put back in them
+ *        (SecurityUserErasureEvents), the vault's rows of the tokens counted
+ *        and deleted. Queued mutations, durable from then on.
  *     Then, this run and every one after it, the project's Detection
  *     Findings are read and changed (SecurityUserErasureFindings: they
  *     carry no token to be found by), in passes from the first to the last,
@@ -506,6 +509,18 @@ export default class SecurityUserErasure {
     });
 
     /*
+     * The threat intel stamps on the person's events first (#11230): the
+     * address a feed lists, and the feed's indicator, where the enricher
+     * stamped an event the vault named them in. Read while the events still
+     * name their users, so each stamp is matched to its own event's user.
+     */
+    const stamps: number = await SecurityUserErasureThreatStamps.rewriteStamps({
+      projectId,
+      tokens,
+      names,
+    });
+
+    /*
      * Counted before each is queued, as ClickHouse answers a mutation with
      * no count. A run again after one that queued them counts what is still
      * there, so the larger of the two is kept, never their sum.
@@ -542,7 +557,7 @@ export default class SecurityUserErasure {
     });
 
     logger.info(
-      `SecurityUserErasure: erasure request ${requestId.toString()} took the person out of ${records.cases} case(s) and ${records.proposals} proposal(s), and queued the token back into ${events} event(s) and the delete of ${vaultRows} vault row(s); its Detection Findings are read next.`,
+      `SecurityUserErasure: erasure request ${requestId.toString()} took the person out of ${records.cases} case(s) and ${records.proposals} proposal(s), and queued the token back into ${events} event(s), into the threat intel stamps of ${stamps} event(s), and the delete of ${vaultRows} vault row(s); its Detection Findings are read next.`,
     );
 
     // Nothing named the person here before it was told: nothing does now.
@@ -551,7 +566,7 @@ export default class SecurityUserErasure {
       names,
       progress,
       counts,
-      isClean: events === 0 && vaultRows === 0,
+      isClean: events === 0 && vaultRows === 0 && stamps === 0,
       now,
       deadline,
     });
@@ -561,8 +576,9 @@ export default class SecurityUserErasure {
 
   /*
    * Whether nothing in the user vault or the events names the person any
-   * more: no vault row of its tokens, at any age, and no event the vault
-   * named through them. Two counts by the tokens alone.
+   * more: no vault row of its tokens, at any age, no event the vault named
+   * through them, and no threat intel stamp of theirs on an event (#11230).
+   * Read by the tokens alone; a stamp is matched to the names in the worker.
    */
   public static async isVaultAndEventsClean(
     request: SecurityUserErasureRequest,
@@ -583,12 +599,20 @@ export default class SecurityUserErasure {
       return false;
     }
 
-    return (
+    if (
       (await SecurityUserErasureEvents.countNamedEvents({
         projectId,
         tokens,
-      })) === 0
-    );
+      })) > 0
+    ) {
+      return false;
+    }
+
+    return !(await SecurityUserErasureThreatStamps.hasStampsLeft({
+      projectId,
+      tokens,
+      names: this.getKeptNames(request),
+    }));
   }
 
   /*

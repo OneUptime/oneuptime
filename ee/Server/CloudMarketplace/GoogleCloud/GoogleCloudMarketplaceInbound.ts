@@ -1,7 +1,10 @@
 import MarketplaceSubscription from "Common/Models/DatabaseModels/MarketplaceSubscription";
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import MarketplaceSubscriptionStatus from "Common/Types/Marketplace/MarketplaceSubscriptionStatus";
-import { GoogleCloudMarketplaceProviderId } from "Common/Server/EnvironmentConfig";
+import {
+  GoogleCloudMarketplaceProviderId,
+  GoogleCloudMarketplaceServiceName,
+} from "Common/Server/EnvironmentConfig";
 import MarketplaceSubscriptionService from "Common/Server/Services/MarketplaceSubscriptionService";
 import logger from "Common/Server/Utils/Logger";
 import MarketplaceConfig from "../MarketplaceConfig";
@@ -233,6 +236,23 @@ export default class GoogleCloudMarketplaceInbound {
     if (!entitlement) {
       // ENTITLEMENT_DELETED: Google has removed it. The purchase that billed it has ended.
       await this.handleEntitlementGone(event.entitlementId);
+      return;
+    }
+
+    if (
+      !GoogleCloudEntitlementState.isForProduct(
+        entitlement,
+        GoogleCloudMarketplaceServiceName,
+      )
+    ) {
+      /*
+       * An order of another of the provider's products on the same account -
+       * OneUptime Enterprise's Kubernetes app, which Google bills on its own.
+       * Not this product's to approve, bill or end.
+       */
+      logger.info(
+        `Google Cloud Marketplace ${event.eventType} for entitlement ${entitlement.id} is for product ${entitlement.product}, not this one. Ignored.`,
+      );
       return;
     }
 

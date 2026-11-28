@@ -26,7 +26,9 @@ import {
   formatStorageBytes,
   getStorageUsage,
 } from "Common/Utils/Storage/StorageUsage";
-import { VMWARE_DATASTORE_USAGE_THRESHOLDS } from "../Utils/VMwareHealth";
+import { getVMwareDatastoreUsageThresholds } from "../Utils/VMwareHealth";
+import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
@@ -39,6 +41,7 @@ const DATASTORE_NOT_REPORTED: string = translationKey("Not reported");
  */
 function withDatastoreUsage(
   resource: InfrastructureResource,
+  rules: VMwareHealthRules,
 ): InfrastructureResource {
   return {
     ...resource,
@@ -48,7 +51,7 @@ function withDatastoreUsage(
           capacity: resource.additionalAttributes["maxDiskBytes"],
           used: resource.additionalAttributes["diskBytes"],
         },
-        VMWARE_DATASTORE_USAGE_THRESHOLDS,
+        getVMwareDatastoreUsageThresholds(rules),
       ),
       noUsageText: DATASTORE_NOT_REPORTED,
     },
@@ -60,6 +63,8 @@ const VMwareVCenterDatastores: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  // Where each bar turns amber and red: the project's datastore rules.
+  const rules: VMwareHealthRules = useVMwareHealthRules();
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -81,7 +86,7 @@ const VMwareVCenterDatastores: FunctionComponent<
           kind: VMwareResourceKind.Datastore,
         });
 
-      setResources(datastoreList.map(withDatastoreUsage));
+      setResources(datastoreList);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -106,7 +111,9 @@ const VMwareVCenterDatastores: FunctionComponent<
       }}
       title="Datastores"
       description="Datastores (VMFS, NFS, vSAN, vVols) visible to this vCenter with their current usage against capacity."
-      resources={resources}
+      resources={resources.map((resource: InfrastructureResource) => {
+        return withDatastoreUsage(resource, rules);
+      })}
       showGroupColumn={true}
       groupColumnTitle="Datacenter"
       showStatus={false}

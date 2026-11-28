@@ -377,6 +377,518 @@ describe("rewriteFingerprints", () => {
     expect(sent).toEqual([]);
   });
 
+  /*
+   * #11230: an alert or an incident a threat intel match on the person
+   * opened says the feed's indicator in its description - "STIX indicator:
+   * indicator--..." - and in the feed item that announced it.
+   */
+  describe("the feed's indicator, out of the alerts and incidents a match opened (#11230)", () => {
+    const STIX_ID: string = "indicator--8e2e2d2b-17d4-4cbf-938f-98ee46b3cd3f";
+    const FEED_ID: string = "11230000-0000-4000-8000-0000000000f1";
+    const keyedAliceIntel: string = keyed(
+      ALICE,
+      DetectionFingerprintKind.ThreatIntel,
+    );
+    const unkeyedAliceIntel: string =
+      MetricSeriesFingerprint.computeFingerprint({ indicatorValue: ALICE });
+    const keyedTokenIntel: string = keyed(
+      TOKEN,
+      DetectionFingerprintKind.ThreatIntel,
+    );
+    const ERASED_ID: string = `[INDICATOR:${keyedTokenIntel}]`;
+
+    function description(stixId: string = STIX_ID): string {
+      return [
+        "Phishing sender",
+        `Indicator ${ALICE} (email-addr, confidence 80) matched 2 security events between A and B.`,
+        `STIX indicator: ${stixId}`,
+        `Observables: ${ALICE}`,
+      ].join("\n\n");
+    }
+
+    function answerRecords(
+      table: "Alert" | "Incident",
+      rows: Array<Record<string, unknown>>,
+    ): Array<Sent> {
+      let read: boolean = false;
+
+      return standIn((one: Sent): unknown => {
+        if (
+          one.sql.startsWith(
+            `SELECT "_id", "description", "seriesFingerprint" FROM "${table}"`,
+          )
+        ) {
+          if (read) {
+            return [];
+          }
+
+          read = true;
+
+          return rows;
+        }
+
+        if (one.sql.startsWith("UPDATE")) {
+          return [[{ _id: one.parameters[0] }], 1];
+        }
+
+        return [];
+      });
+    }
+
+    test("an alert of the match: its feed item first, then its description, written only if unchanged since read", async () => {
+      for (const fingerprint of [
+        keyedAliceIntel,
+        unkeyedAliceIntel,
+        keyedTokenIntel,
+      ]) {
+        jest.restoreAllMocks();
+
+        const sent: Array<Sent> = answerRecords("Alert", [
+          {
+            _id: "a1",
+            description: description(),
+            seriesFingerprint: `threat-intel:${FEED_ID}:${fingerprint}`,
+          },
+        ]);
+
+        await SecurityUserErasureRecords.rewriteFingerprints({
+          projectId: PROJECT_ID,
+          groupValues: [{ named: ALICE, hashed: TOKEN }],
+        });
+
+        const read: Sent = sent.find((one: Sent): boolean => {
+          return one.sql.startsWith(
+            'SELECT "_id", "description", "seriesFingerprint" FROM "Alert"',
+          );
+        })!;
+
+        expect(read.parameters.slice(0, 2)).toEqual([
+          PROJECT_ID.toString(),
+          DetectionFingerprintKind.ThreatIntel,
+        ]);
+        expect(read.parameters[2]).toEqual(
+          expect.arrayContaining([
+            keyedAliceIntel,
+            unkeyedAliceIntel,
+            keyedTokenIntel,
+          ]),
+        );
+        expect(read.parameters[3]).toBe("STIX indicator: indicator--");
+
+        const feed: number = sent.findIndex((one: Sent): boolean => {
+          return one.sql.startsWith('UPDATE "AlertFeed"');
+        });
+        const own: number = sent.findIndex((one: Sent): boolean => {
+          return one.sql.startsWith('UPDATE "Alert" SET "description"');
+        });
+
+        expect(feed).toBeGreaterThan(-1);
+        expect(own).toBeGreaterThan(feed);
+        expect(sent[feed]!.parameters).toEqual([
+          PROJECT_ID.toString(),
+          "a1",
+          `STIX indicator: ${STIX_ID}`,
+          `STIX indicator: ${ERASED_ID}`,
+        ]);
+        expect(sent[feed]!.sql).toContain('"alertId" = $2');
+        expect(sent[own]!.parameters).toEqual([
+          "a1",
+          PROJECT_ID.toString(),
+          description(ERASED_ID),
+          description(),
+        ]);
+        expect(sent[own]!.sql).toContain(
+          '"description" IS NOT DISTINCT FROM $4',
+        );
+        // Nothing else about the alert changes.
+        expect(sent[own]!.sql).not.toContain("updatedAt");
+      }
+    });
+
+    test("an incident of the match the same, through its own feed", async () => {
+      const sent: Array<Sent> = answerRecords("Incident", [
+        {
+          _id: "i1",
+          description: description(),
+          seriesFingerprint: `threat-intel:${FEED_ID}:${keyedAliceIntel}`,
+        },
+      ]);
+
+      await SecurityUserErasureRecords.rewriteFingerprints({
+        projectId: PROJECT_ID,
+        groupValues: [{ named: ALICE, hashed: TOKEN }],
+      });
+
+      const feed: Sent = sent.find((one: Sent): boolean => {
+        return one.sql.startsWith('UPDATE "IncidentFeed"');
+      })!;
+
+      expect(feed.sql).toContain('"incidentId" = $2');
+      expect(feed.parameters[3]).toBe(`STIX indicator: ${ERASED_ID}`);
+      expect(
+        sent.find((one: Sent): boolean => {
+          return one.sql.startsWith('UPDATE "Incident" SET "description"');
+        })?.parameters[2],
+      ).toBe(description(ERASED_ID));
+    });
+
+    test("a record whose fingerprint is another match's, or whose description names no STIX indicator, is left", async () => {
+      const sent: Array<Sent> = answerRecords("Alert", [
+        {
+          _id: "a1",
+          description: description(),
+          seriesFingerprint: `threat-intel:${FEED_ID}:0123456789abcdef`,
+        },
+        {
+          _id: "a2",
+          description: "A person rewrote it.",
+          seriesFingerprint: `threat-intel:${FEED_ID}:${keyedAliceIntel}`,
+        },
+        {
+          _id: "a3",
+          description: description(ERASED_ID),
+          seriesFingerprint: `threat-intel:${FEED_ID}:${keyedTokenIntel}`,
+        },
+      ]);
+
+      await SecurityUserErasureRecords.rewriteFingerprints({
+        projectId: PROJECT_ID,
+        groupValues: [{ named: ALICE, hashed: TOKEN }],
+      });
+
+      expect(
+        sent.filter((one: Sent): boolean => {
+          return (
+            one.sql.startsWith('UPDATE "AlertFeed"') ||
+            one.sql.startsWith('UPDATE "Alert" SET "description"')
+          );
+        }),
+      ).toEqual([]);
+    });
+
+    test("a rule's values alone: no alert is read for an indicator", async () => {
+      const sent: Array<Sent> = standIn((one: Sent): unknown => {
+        return one.sql.startsWith("SELECT") ? [] : [[], 0];
+      });
+
+      await SecurityUserErasureRecords.cutIndicatorFromSeries({
+        projectId: PROJECT_ID,
+        table: "Alert",
+        changes: getFingerprintChanges({
+          projectId: PROJECT_ID,
+          groupValues: [{ named: ALICE, hashed: TOKEN }],
+        }).filter((change: DetectionFingerprintChange): boolean => {
+          return change.kind === DetectionFingerprintKind.DetectionRule;
+        }),
+      });
+
+      expect(sent).toEqual([]);
+    });
+
+    test("never the person or the STIX id in a statement's text, only as a parameter", async () => {
+      const sent: Array<Sent> = answerRecords("Alert", [
+        {
+          _id: "a1",
+          description: description(),
+          seriesFingerprint: `threat-intel:${FEED_ID}:${keyedAliceIntel}`,
+        },
+      ]);
+
+      await SecurityUserErasureRecords.rewriteFingerprints({
+        projectId: PROJECT_ID,
+        groupValues: [{ named: ALICE, hashed: TOKEN }],
+      });
+
+      for (const one of sent) {
+        expect(one.sql).not.toContain("alice");
+        expect(one.sql).not.toContain("indicator--8e2e");
+      }
+    });
+  });
+
+  /*
+   * #11231: a correlation that writes no Detection Findings and opens no
+   * cases leaves no case detection to read its group value from.
+   */
+  describe("a correlation's values, when it opens no cases and writes no findings (#11231)", () => {
+    const GROUP: string = `${ALICE} / 203.0.113.7`;
+    const HOST_FIRST: string = `web-01 / ${ALICE}`;
+    const unkeyedOf: (value: string) => string = (value: string): string => {
+      return MetricSeriesFingerprint.computeFingerprint({ groupValue: value });
+    };
+    const keyedOf: (value: string) => string = (value: string): string => {
+      return keyed(value, DetectionFingerprintKind.DetectionRule);
+    };
+
+    function answer(data: {
+      alerts?: Array<Record<string, unknown>>;
+      incidents?: Array<Record<string, unknown>>;
+      ownRisk?: Array<Record<string, unknown>>;
+      otherRisk?: Array<Record<string, unknown>>;
+    }): Array<Sent> {
+      return standIn((one: Sent): unknown => {
+        if (
+          one.sql.startsWith('SELECT "title", "seriesFingerprint" FROM "Alert"')
+        ) {
+          return data.alerts || [];
+        }
+
+        if (
+          one.sql.startsWith(
+            'SELECT "title", "seriesFingerprint" FROM "Incident"',
+          )
+        ) {
+          return data.incidents || [];
+        }
+
+        if (
+          one.sql.startsWith(
+            'SELECT "_id", "contributions" FROM "SecurityEntityRisk" WHERE "projectId" = $1 AND "entityKey" = ANY',
+          )
+        ) {
+          return data.ownRisk || [];
+        }
+
+        if (one.sql.startsWith('SELECT "entityValue", "contributions"')) {
+          return data.otherRisk || [];
+        }
+
+        return [];
+      });
+    }
+
+    test("from an alert's title, kept only when the alert's own fingerprint proves it - keyed or as it was before", async () => {
+      for (const fingerprint of [unkeyedOf(GROUP), keyedOf(GROUP)]) {
+        jest.restoreAllMocks();
+        answer({
+          alerts: [
+            {
+              title: `[Detection] Sign-in burst — ${GROUP}`,
+              seriesFingerprint: `detection-rule:${RULE_ID}:${fingerprint}`,
+            },
+          ],
+        });
+
+        expect(
+          await SecurityUserErasureRecords.findCorrelationValues({
+            projectId: PROJECT_ID,
+            names: [{ named: ALICE, hashed: TOKEN }],
+          }),
+        ).toEqual([{ named: GROUP, hashed: `${TOKEN} / 203.0.113.7` }]);
+      }
+    });
+
+    test("an incident's too, its event count after the value or not", async () => {
+      answer({
+        incidents: [
+          {
+            title: `[Detection] Sign-in burst — ${GROUP} (4 events)`,
+            seriesFingerprint: `detection-rule:${RULE_ID}:${keyedOf(GROUP)}`,
+          },
+        ],
+      });
+
+      expect(
+        await SecurityUserErasureRecords.findCorrelationValues({
+          projectId: PROJECT_ID,
+          names: [{ named: ALICE, hashed: TOKEN }],
+        }),
+      ).toEqual([{ named: GROUP, hashed: `${TOKEN} / 203.0.113.7` }]);
+    });
+
+    test("a title the fingerprint does not prove, a feed's or an overflow's, a single value, or one already rewritten, offers nothing", async () => {
+      answer({
+        alerts: [
+          // A person edited the title, or the rule's group was another value.
+          {
+            title: `[Detection] Sign-in burst — ${ALICE} / 198.51.100.4`,
+            seriesFingerprint: `detection-rule:${RULE_ID}:${keyedOf(GROUP)}`,
+          },
+          // A feed's alert: its value is the indicator, a name already known.
+          {
+            title: `[Threat Intel] Feed — ${GROUP}`,
+            seriesFingerprint: `threat-intel:${RULE_ID}:${keyedOf(GROUP)}`,
+          },
+          {
+            title: `[Detection] Sign-in burst — more matches`,
+            seriesFingerprint: `detection-rule:${RULE_ID}:overflow`,
+          },
+          // A rule that groups on one value: the name, which the names cover.
+          {
+            title: `[Detection] Sign-in burst — ${ALICE}`,
+            seriesFingerprint: `detection-rule:${RULE_ID}:${keyedOf(ALICE)}`,
+          },
+          // Rewritten by an erasure already: the token's.
+          {
+            title: `[Detection] Sign-in burst — ${GROUP}`,
+            seriesFingerprint: `detection-rule:${RULE_ID}:${keyedOf(`${TOKEN} / 203.0.113.7`)}`,
+          },
+        ],
+      });
+
+      expect(
+        await SecurityUserErasureRecords.findCorrelationValues({
+          projectId: PROJECT_ID,
+          names: [{ named: ALICE, hashed: TOKEN }],
+        }),
+      ).toEqual([]);
+    });
+
+    test("from the person's risk: a firing of theirs another entity also counted, proven by its fingerprint", async () => {
+      const sent: Array<Sent> = answer({
+        ownRisk: [
+          {
+            _id: "own",
+            contributions: [
+              {
+                sourceKey: `rule:${RULE_ID}`,
+                firingKeys: [
+                  `run:1:each:${unkeyedOf(HOST_FIRST)}`,
+                  // Their own value's firing: the names explain it.
+                  `run:2:each:${keyedOf(ALICE)}`,
+                ],
+              },
+              // A feed's contribution counts no firing of a rule.
+              {
+                sourceKey: "intel:feed",
+                firingKeys: ["run:3:each:0123456789abcdef"],
+              },
+            ],
+          },
+        ],
+        otherRisk: [
+          {
+            entityValue: "web-01",
+            contributions: [
+              {
+                sourceKey: `rule:${RULE_ID}`,
+                firingKeys: [`run:1:each:${unkeyedOf(HOST_FIRST)}`],
+              },
+            ],
+          },
+          // Another firing altogether.
+          {
+            entityValue: "db-02",
+            contributions: [
+              {
+                sourceKey: `rule:${RULE_ID}`,
+                firingKeys: ["run:9:each:fedcba9876543210"],
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(
+        await SecurityUserErasureRecords.findCorrelationValues({
+          projectId: PROJECT_ID,
+          names: [{ named: ALICE, hashed: TOKEN }],
+        }),
+      ).toEqual([{ named: HOST_FIRST, hashed: `web-01 / ${TOKEN}` }]);
+
+      const others: Sent = sent.find((one: Sent): boolean => {
+        return one.sql.startsWith('SELECT "entityValue", "contributions"');
+      })!;
+
+      // Only the person's firings nothing explains are looked for.
+      expect(others.parameters[2]).toEqual([unkeyedOf(HOST_FIRST)]);
+      expect(others.sql).toContain('NOT ("entityKey" = ANY($2::text[]))');
+    });
+
+    test("three values: the name and both others that counted the firing", async () => {
+      const three: string = `web-01 / ${ALICE} / 203.0.113.7`;
+
+      answer({
+        ownRisk: [
+          {
+            _id: "own",
+            contributions: [
+              {
+                sourceKey: `rule:${RULE_ID}`,
+                firingKeys: [`run:1:each:${keyedOf(three)}`],
+              },
+            ],
+          },
+        ],
+        otherRisk: ["web-01", "203.0.113.7"].map(
+          (entityValue: string): Record<string, unknown> => {
+            return {
+              entityValue,
+              contributions: [
+                {
+                  sourceKey: `rule:${RULE_ID}`,
+                  firingKeys: [`run:1:each:${keyedOf(three)}`],
+                },
+              ],
+            };
+          },
+        ),
+      });
+
+      expect(
+        await SecurityUserErasureRecords.findCorrelationValues({
+          projectId: PROJECT_ID,
+          names: [{ named: ALICE, hashed: TOKEN }],
+        }),
+      ).toEqual([{ named: three, hashed: `web-01 / ${TOKEN} / 203.0.113.7` }]);
+    });
+
+    test("firings a value already known explains need no other entity read", async () => {
+      const sent: Array<Sent> = answer({
+        alerts: [
+          {
+            title: `[Detection] Sign-in burst — ${GROUP}`,
+            seriesFingerprint: `detection-rule:${RULE_ID}:${keyedOf(GROUP)}`,
+          },
+        ],
+        ownRisk: [
+          {
+            _id: "own",
+            contributions: [
+              {
+                sourceKey: `rule:${RULE_ID}`,
+                firingKeys: [`run:1:each:${keyedOf(GROUP)}`],
+              },
+            ],
+          },
+        ],
+      });
+
+      await SecurityUserErasureRecords.findCorrelationValues({
+        projectId: PROJECT_ID,
+        names: [{ named: ALICE, hashed: TOKEN }],
+      });
+
+      expect(
+        sent.some((one: Sent): boolean => {
+          return one.sql.startsWith('SELECT "entityValue", "contributions"');
+        }),
+      ).toBe(false);
+    });
+
+    test("reads the person's own risk by its keys, and hands every name to Postgres only as a parameter", async () => {
+      const sent: Array<Sent> = answer({});
+
+      await SecurityUserErasureRecords.findCorrelationValues({
+        projectId: PROJECT_ID,
+        names: [{ named: ALICE, hashed: TOKEN }],
+      });
+
+      const own: Sent = sent.find((one: Sent): boolean => {
+        return one.sql.startsWith(
+          'SELECT "_id", "contributions" FROM "SecurityEntityRisk"',
+        );
+      })!;
+
+      expect(own.parameters).toEqual([PROJECT_ID.toString(), [ALICE]]);
+
+      for (const one of sent) {
+        expect(one.sql).not.toContain("alice");
+        expect(one.sql).not.toContain(PROJECT_ID.toString());
+      }
+    });
+  });
+
   test("every statement hands the name to Postgres only as a parameter, never in its text", async () => {
     const sent: Array<Sent> = standIn((one: Sent): unknown => {
       return one.sql.startsWith("SELECT") ? [] : [[], 0];
