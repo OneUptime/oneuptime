@@ -1163,8 +1163,11 @@ valkey:
     containerSecurityContext: {}
     # The memory limit is the cache's ceiling: Valkey's maxmemory is derived
     # from it (valkey.maxmemory below), so it refuses writes before the kernel
-    # would kill it. The request keeps Valkey scheduled on a node with room
-    # and out of the first pods evicted under node memory pressure.
+    # would kill it. The request reserves room for Valkey on its node. A
+    # Valkey using more than its request is among the first pods the kubelet
+    # evicts under node memory pressure, and an evicted Valkey comes back
+    # empty: where queued work matters, set requests.memory equal to
+    # limits.memory, which makes the pod Guaranteed, the last to be evicted.
     #
     # No CPU limit, on purpose. Valkey runs commands on one thread, and a CPU
     # limit throttles that thread in 100 ms slices: every command and PING
