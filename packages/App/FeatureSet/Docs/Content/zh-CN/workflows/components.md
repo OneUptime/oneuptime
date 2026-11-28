@@ -399,7 +399,7 @@ return { proceed: true, title: args.title.toUpperCase() };
 
 | 设置 | 作用 |
 | --- | --- |
-| **记录类型** | 其 Markdown 显示这些图片的记录类型：事件、事件的公开备注或内部备注、警报、计划维护等。 |
+| **记录类型** | 其 Markdown 显示这些图片的记录类型：事件、事件的公开备注或内部备注、警报、维护事件等。 |
 | **记录 ID** | 要读取的记录，通常是启动工作流的那条记录，例如 `{{local.components.incident-on-create-1.returnValues.model._id}}`。 |
 
 | 输出 | 何时 |

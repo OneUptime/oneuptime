@@ -399,7 +399,7 @@ return { proceed: true, title: args.title.toUpperCase() };
 
 | 設定 | 作用 |
 | --- | --- |
-| **記錄類型** | 其 Markdown 顯示這些圖片的記錄類型：事件、事件的公開備註或內部備註、警示、排定維護等。 |
+| **記錄類型** | 其 Markdown 顯示這些圖片的記錄類型：事件、事件的公開備註或內部備註、警示、維護事件等。 |
 | **記錄 ID** | 要讀取的記錄，通常是啟動工作流程的那筆記錄，例如 `{{local.components.incident-on-create-1.returnValues.model._id}}`。 |
 
 | 輸出 | 何時 |

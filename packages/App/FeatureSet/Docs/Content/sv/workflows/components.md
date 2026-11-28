@@ -399,7 +399,7 @@ Läser bilderna som en posts Markdown visar, som skärmbilderna någon klistrat 
 
 | Inställning | Vad den gör |
 | --- | --- |
-| **Posttyp** | Den sortens post vars Markdown visar bilderna: en incident, en incidents offentliga eller interna anteckning, ett larm, ett planerat underhåll med mera. |
+| **Posttyp** | Den sortens post vars Markdown visar bilderna: en incident, en incidents offentliga eller interna anteckning, ett larm, en underhållshändelse med mera. |
 | **Post-ID** | Posten som läses, oftast den som startade arbetsflödet, som i `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 
 | Utgång | När |

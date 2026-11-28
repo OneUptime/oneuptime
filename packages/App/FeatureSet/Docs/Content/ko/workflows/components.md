@@ -399,7 +399,7 @@ return { proceed: true, title: args.title.toUpperCase() };
 
 | 설정 | 하는 일 |
 | --- | --- |
-| **레코드 유형** | 이미지를 보여 주는 Markdown이 있는 레코드의 종류입니다. 인시던트, 인시던트의 공개 노트나 내부 노트, 경고, 예정된 유지 보수 등이 있습니다. |
+| **레코드 유형** | 이미지를 보여 주는 Markdown이 있는 레코드의 종류입니다. 인시던트, 인시던트의 공개 노트나 내부 노트, 경고, 유지 관리 이벤트 등이 있습니다. |
 | **레코드 ID** | 읽을 레코드입니다. 보통 워크플로를 시작한 레코드이며, `{{local.components.incident-on-create-1.returnValues.model._id}}`처럼 씁니다. |
 
 | 출력 | 시점 |
@@ -450,11 +450,11 @@ Microsoft Entra ID에 애플리케이션을 등록하고, 애플리케이션 권
 
 ### 인시던트의 이미지 읽기
 
-트리거 다음에 **Markdown에서 파일 가져오기**을 추가합니다. **레코드 유형**을 **인시던트**로, **레코드 ID**를 `{{local.components.incident-on-create-1.returnValues.model._id}}`로 설정합니다.
+트리거 다음에 **Markdown에서 파일 가져오기**를 추가합니다. **레코드 유형**을 **인시던트**로, **레코드 ID**를 `{{local.components.incident-on-create-1.returnValues.model._id}}`로 설정합니다.
 
 ### 메시지 만들기
 
-그 **성공** 출력에 **사용자 지정 JavaScript 실행**를 추가하고, **인수**를 다음과 같이 씁니다.
+그 **성공** 출력에 **사용자 지정 JavaScript 실행**을 추가하고, **인수**를 다음과 같이 씁니다.
 
 ```json title="Arguments"
 {
@@ -521,7 +521,7 @@ return {
 | **요청 헤더** | `Authorization`: `Bearer {{global.variables.GRAPH_TOKEN}}` |
 | **요청 본문** | `{{local.components.javascript-1.returnValues.returnValue}}` |
 
-Microsoft Graph는 `202 Accepted`로 응답하고, 블록은 **성공**로 이어집니다.
+Microsoft Graph는 `202 Accepted`로 응답하고, 블록은 **성공**으로 이어집니다.
 :::
 
 이렇게 보내는 메시지에서 Microsoft Graph가 받는 첨부 파일은 3 MB까지입니다. 더 큰 이미지는 업로드 세션이 필요하거나, 이미지 대신 링크를 넣어야 합니다. 레코드의 이미지는 워크플로 밖에서 API 키로도 읽을 수 있습니다. [레코드의 Markdown에 있는 이미지](/docs/api-reference/api-reference#레코드의-markdown에-있는-이미지)를 참조하세요.

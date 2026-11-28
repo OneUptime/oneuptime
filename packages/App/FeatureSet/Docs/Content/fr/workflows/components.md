@@ -399,7 +399,7 @@ Lit les images que montre le Markdown d'un enregistrement, comme les captures d'
 
 | Paramètre | Ce qu'il fait |
 | --- | --- |
-| **Type d'enregistrement** | Le type d'enregistrement dont le Markdown montre les images : un incident, une note publique ou interne d'un incident, une alerte, une maintenance planifiée, et d'autres. |
+| **Type d'enregistrement** | Le type d'enregistrement dont le Markdown montre les images : un incident, une note publique ou interne d'un incident, une alerte, un événement de maintenance, et d'autres. |
 | **ID de l'enregistrement** | L'enregistrement à lire, en général celui qui a lancé le flux de travail, comme `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 
 | Sortie | Quand |

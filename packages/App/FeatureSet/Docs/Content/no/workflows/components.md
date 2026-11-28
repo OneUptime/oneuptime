@@ -399,7 +399,7 @@ Leser bildene en posts Markdown viser, som skjermbildene noen har limt inn i bes
 
 | Innstilling | Hva den gjør |
 | --- | --- |
-| **Posttype** | Hva slags post Markdown-en som viser bildene hører til: en hendelse, et offentlig eller internt notat for en hendelse, et varsel, et planlagt vedlikehold og mer. |
+| **Posttype** | Hva slags post Markdown-en som viser bildene hører til: en hendelse, et offentlig eller internt notat for en hendelse, et varsel, en vedlikeholdshendelse og mer. |
 | **Post-ID** | Posten som leses, som regel den som startet arbeidsflyten, som i `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 
 | Utgang | Når |
