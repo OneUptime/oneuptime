@@ -437,7 +437,10 @@ function mixedProjectBlocks(): Array<RecordedBlock> {
     }),
     ...kindBlocks({
       template: DashboardTemplateType.XcpNg,
-      attributes: { "xcp_ng.pool.id": XCP_NG_POOL_ID, "xcp_ng.pool.name": "Lab" },
+      attributes: {
+        "xcp_ng.pool.id": XCP_NG_POOL_ID,
+        "xcp_ng.pool.name": "Lab",
+      },
     }),
     ...kindBlocks({
       template: DashboardTemplateType.OpenStack,
@@ -514,7 +517,9 @@ async function ingestRows(data: {
       return ObjectID.generate().toString();
     }) as never);
   jest.spyOn(baseService, "shouldRunMaintenance").mockResolvedValue(false);
-  jest.spyOn(HostService, "findOrCreateByHostIdentifier").mockResolvedValue(host);
+  jest
+    .spyOn(HostService, "findOrCreateByHostIdentifier")
+    .mockResolvedValue(host);
   jest
     .spyOn(HostService, "updateLastSeen")
     .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
@@ -1124,9 +1129,7 @@ integration("template dashboards read their own kind of resource", () => {
       });
 
       expect(points).toHaveLength(1);
-      expect(Math.abs(points[0]! - ownAverage) / ownAverage).toBeLessThan(
-        1e-6,
-      );
+      expect(Math.abs(points[0]! - ownAverage) / ownAverage).toBeLessThan(1e-6);
     });
 
     test("Hosts' picker offers db-01 alone - no Docker host, no pod, no node VM an app's SDK named", async () => {
@@ -1200,7 +1203,11 @@ integration("template dashboards read their own kind of resource", () => {
     });
 
     test.each([
-      [DashboardTemplateType.Proxmox, "resource.proxmox.cluster.name", "lab-pve"],
+      [
+        DashboardTemplateType.Proxmox,
+        "resource.proxmox.cluster.name",
+        "lab-pve",
+      ],
       [DashboardTemplateType.VMware, "resource.vmware.vcenter.name", "vc-lab"],
       [DashboardTemplateType.XcpNg, "resource.xcp_ng.pool.id", XCP_NG_POOL_ID],
       [

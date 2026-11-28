@@ -152,9 +152,9 @@ describe("getNotAHostReasonOfAttributes", () => {
   });
 
   test("a container engine is reported before a container, a container before an application", () => {
-    expect(
-      getNotAHostReasonOfAttributes({ ...POD_APP, ...DOCKER_AGENT }),
-    ).toBe(NotAHostReason.ContainerEngine);
+    expect(getNotAHostReasonOfAttributes({ ...POD_APP, ...DOCKER_AGENT })).toBe(
+      NotAHostReason.ContainerEngine,
+    );
     expect(
       getNotAHostReasonOfAttributes({
         ...POD_APP,

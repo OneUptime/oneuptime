@@ -106,9 +106,7 @@ export default class PublicDashboardResourceScopes {
         getDashboardResourceScopeAttributes(scope);
 
       for (const key of Object.keys(attributes)) {
-        const type: ScopeOperatorType | null = getOperatorType(
-          attributes[key],
-        );
+        const type: ScopeOperatorType | null = getOperatorType(attributes[key]);
 
         if (!type) {
           continue;
@@ -140,8 +138,12 @@ export default class PublicDashboardResourceScopes {
     allowedFilterAttributeKeys: Set<string>;
     variables: Array<DashboardVariable> | undefined;
   }): Record<string, unknown> {
-    const declared: Map<string, Array<ScopeOperatorType>> =
-      PublicDashboardResourceScopes.getDeclaredScopeAttributes(data.variables);
+    const declared: Map<
+      string,
+      Array<ScopeOperatorType>
+    > = PublicDashboardResourceScopes.getDeclaredScopeAttributes(
+      data.variables,
+    );
     const attributes: Record<string, unknown> = {};
 
     for (const key of Object.keys(data.requestedAttributes)) {

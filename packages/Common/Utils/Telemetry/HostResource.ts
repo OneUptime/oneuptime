@@ -75,9 +75,7 @@ export const CONTAINER_ENGINE_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
 ];
 
 // A container's own id: from inside it (SDK detectors) or about it.
-export const CONTAINER_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
-  "container.id",
-];
+export const CONTAINER_ATTRIBUTE_KEYS: ReadonlyArray<string> = ["container.id"];
 
 // Required on every OpenTelemetry SDK's resource; no collector sets them.
 export const APPLICATION_SDK_ATTRIBUTE_KEYS: ReadonlyArray<string> = [

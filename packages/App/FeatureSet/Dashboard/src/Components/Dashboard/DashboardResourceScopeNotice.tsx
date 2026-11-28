@@ -120,9 +120,7 @@ export function getDashboardResourceScopes(
 export function getDashboardResourceScopeSetUpRoute(
   scope: DashboardResourceScope,
 ): Route {
-  return RouteUtil.populateRouteParams(
-    RouteMap[PRODUCTS[scope].page] as Route,
-  );
+  return RouteUtil.populateRouteParams(RouteMap[PRODUCTS[scope].page] as Route);
 }
 
 async function hasNoneOfKind(

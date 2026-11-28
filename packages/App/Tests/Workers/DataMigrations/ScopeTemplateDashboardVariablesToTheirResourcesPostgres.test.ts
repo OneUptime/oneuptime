@@ -72,7 +72,8 @@ const describePostgres: typeof describe.skip =
     ? describe
     : describe.skip;
 
-const MIGRATION_NAME: string = "ScopeTemplateDashboardVariablesToTheirResources";
+const MIGRATION_NAME: string =
+  "ScopeTemplateDashboardVariablesToTheirResources";
 
 const DATA_MIGRATIONS_DIR: string = path.join(
   __dirname,
@@ -96,7 +97,10 @@ function id(suffix: number): string {
 // The templates whose variables name a kind, and the kinds they name.
 const SCOPED_TEMPLATES: Array<[DashboardTemplateType, DashboardResourceScope]> =
   [
-    [DashboardTemplateType.Kubernetes, DashboardResourceScope.KubernetesCluster],
+    [
+      DashboardTemplateType.Kubernetes,
+      DashboardResourceScope.KubernetesCluster,
+    ],
     [
       DashboardTemplateType.KubernetesCost,
       DashboardResourceScope.KubernetesCluster,
@@ -428,10 +432,10 @@ describePostgres(
       const after: Map<string, StoredDashboard> = await readDashboards();
 
       for (const board of boards) {
-        expect([
+        expect([board.type, after.get(board.id)!.dashboardViewConfig]).toEqual([
           board.type,
-          after.get(board.id)!.dashboardViewConfig,
-        ]).toEqual([board.type, afterTheUpgrade(board.stored, board.type)]);
+          afterTheUpgrade(board.stored, board.type),
+        ]);
       }
 
       // Each named the kind its template names.
@@ -485,8 +489,9 @@ describePostgres(
 
       await new ScopeTemplateDashboardVariablesToTheirResources().migrate();
 
-      const after: JSONObject = (await readDashboards()).get(id(301))!
-        .dashboardViewConfig;
+      const after: JSONObject = (await readDashboards()).get(
+        id(301),
+      )!.dashboardViewConfig;
 
       expect(after).toEqual(
         afterTheUpgrade(stored, DashboardTemplateType.Kubernetes),

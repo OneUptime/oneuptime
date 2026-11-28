@@ -343,9 +343,13 @@ export default class NonHostTelemetryHostRepair {
 
     // The row's own facts decide first; no lookup when they do.
     const decidedWithout: NonHostTelemetryRepairVerdict =
-      getNonHostTelemetryRepair(NonHostTelemetryHostRepair.getFacts(host, false));
+      getNonHostTelemetryRepair(
+        NonHostTelemetryHostRepair.getFacts(host, false),
+      );
     const decidedWith: NonHostTelemetryRepairVerdict =
-      getNonHostTelemetryRepair(NonHostTelemetryHostRepair.getFacts(host, true));
+      getNonHostTelemetryRepair(
+        NonHostTelemetryHostRepair.getFacts(host, true),
+      );
 
     if (decidedWithout.repair === decidedWith.repair) {
       return false;

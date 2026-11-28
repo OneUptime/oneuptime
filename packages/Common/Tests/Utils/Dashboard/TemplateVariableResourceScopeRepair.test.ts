@@ -41,7 +41,10 @@ function scopesOf(config: JSONObject): Array<unknown> {
 
 const SCOPED_TEMPLATES: Array<[DashboardTemplateType, DashboardResourceScope]> =
   [
-    [DashboardTemplateType.Kubernetes, DashboardResourceScope.KubernetesCluster],
+    [
+      DashboardTemplateType.Kubernetes,
+      DashboardResourceScope.KubernetesCluster,
+    ],
     [
       DashboardTemplateType.KubernetesCost,
       DashboardResourceScope.KubernetesCluster,
@@ -80,7 +83,9 @@ describe("TemplateVariableResourceScopeRepair.repair", () => {
 
   test("only the variable is named: picks, labels and every widget stay as they were", () => {
     const stored: JSONObject = boardMadeBefore(DashboardTemplateType.Host);
-    const variables: Array<JSONObject> = stored["variables"] as Array<JSONObject>;
+    const variables: Array<JSONObject> = stored[
+      "variables"
+    ] as Array<JSONObject>;
     variables[0]!["selectedValues"] = ["db-01"];
     variables[0]!["label"] = "Server";
 
@@ -96,7 +101,9 @@ describe("TemplateVariableResourceScopeRepair.repair", () => {
   });
 
   test("a board that lost all the template's widgets is not the template's", () => {
-    const stored: JSONObject = boardMadeBefore(DashboardTemplateType.DockerSwarm);
+    const stored: JSONObject = boardMadeBefore(
+      DashboardTemplateType.DockerSwarm,
+    );
     stored["components"] = [];
 
     expect(TemplateVariableResourceScopeRepair.repair(stored)).toBeNull();
@@ -133,7 +140,9 @@ describe("TemplateVariableResourceScopeRepair.repair", () => {
   });
 
   test("a template widget renamed or set to another metric no longer proves the board", () => {
-    const stored: JSONObject = boardMadeBefore(DashboardTemplateType.DockerSwarm);
+    const stored: JSONObject = boardMadeBefore(
+      DashboardTemplateType.DockerSwarm,
+    );
 
     for (const component of stored["components"] as Array<JSONObject>) {
       const args: JSONObject = (component["arguments"] || {}) as JSONObject;
@@ -148,25 +157,33 @@ describe("TemplateVariableResourceScopeRepair.repair", () => {
   });
 
   test("a variable that already names a kind keeps it, so a second run changes nothing", () => {
-    const stored: JSONObject = boardMadeBefore(DashboardTemplateType.Kubernetes);
+    const stored: JSONObject = boardMadeBefore(
+      DashboardTemplateType.Kubernetes,
+    );
     const once: TemplateVariableResourceScopeRepairResult =
       TemplateVariableResourceScopeRepair.repair(stored)!;
 
     expect(TemplateVariableResourceScopeRepair.repair(once.config)).toBeNull();
 
-    const chosen: JSONObject = boardMadeBefore(DashboardTemplateType.Kubernetes);
+    const chosen: JSONObject = boardMadeBefore(
+      DashboardTemplateType.Kubernetes,
+    );
     (chosen["variables"] as Array<JSONObject>)[0]!["resourceScope"] =
       DashboardResourceScope.Host;
     expect(TemplateVariableResourceScopeRepair.repair(chosen)).toBeNull();
   });
 
   test("a variable the user renamed or rebound is theirs", () => {
-    const renamed: JSONObject = boardMadeBefore(DashboardTemplateType.Kubernetes);
+    const renamed: JSONObject = boardMadeBefore(
+      DashboardTemplateType.Kubernetes,
+    );
     (renamed["variables"] as Array<JSONObject>)[0]!["name"] = "k8s";
     // Its namespace variable names no kind in the template either.
     expect(TemplateVariableResourceScopeRepair.repair(renamed)).toBeNull();
 
-    const rebound: JSONObject = boardMadeBefore(DashboardTemplateType.Kubernetes);
+    const rebound: JSONObject = boardMadeBefore(
+      DashboardTemplateType.Kubernetes,
+    );
     (rebound["variables"] as Array<JSONObject>)[0]!["attributeKey"] =
       "resource.k8s.namespace.name";
     expect(TemplateVariableResourceScopeRepair.repair(rebound)).toBeNull();

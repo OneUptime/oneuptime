@@ -480,7 +480,8 @@ describePostgres(
               hostId: seed.id,
               projectId: PROJECT,
               hostFeedEventType: HostFeedEventType.HostArchived,
-              feedInfoInMarkdown: getNonHostTelemetryArchiveFeedMarkdown(source),
+              feedInfoInMarkdown:
+                getNonHostTelemetryArchiveFeedMarkdown(source),
               displayColor: Yellow500.toString(),
             };
           },

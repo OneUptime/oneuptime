@@ -93,7 +93,9 @@ function readTitle(argumentsObject: JSONObject | undefined): string | null {
   return null;
 }
 
-function readMetricName(argumentsObject: JSONObject | undefined): string | null {
+function readMetricName(
+  argumentsObject: JSONObject | undefined,
+): string | null {
   const metricQueryConfig: JSONObject | undefined = asObject(
     argumentsObject?.["metricQueryConfig"],
   );
@@ -345,7 +347,9 @@ export default class TemplateVariableResourceScopeRepair {
 
     // A stored config is plain jsonb, so a JSON round trip is a full copy.
     const config: JSONObject = JSON.parse(JSON.stringify(configObject));
-    const copiedVariables: Array<unknown> = config["variables"] as Array<unknown>;
+    const copiedVariables: Array<unknown> = config[
+      "variables"
+    ] as Array<unknown>;
 
     for (const [index, scope] of scopes) {
       const variable: JSONObject = copiedVariables[index] as JSONObject;

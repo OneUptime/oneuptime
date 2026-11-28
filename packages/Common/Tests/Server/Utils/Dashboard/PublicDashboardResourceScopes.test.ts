@@ -93,7 +93,9 @@ describe("getMetricQueryAttributes", () => {
         allowedFilterAttributeKeys: WIDGET_KEYS,
         variables: [HOST],
       });
-    }).toThrow(new BadDataException(PUBLIC_DASHBOARD_FOREIGN_ATTRIBUTE_MESSAGE));
+    }).toThrow(
+      new BadDataException(PUBLIC_DASHBOARD_FOREIGN_ATTRIBUTE_MESSAGE),
+    );
 
     // Nor the opposite of the kind: "is not empty" where it says "is empty".
     expect(() => {
@@ -134,7 +136,9 @@ describe("getMetricQueryAttributes", () => {
         allowedFilterAttributeKeys: WIDGET_KEYS,
         variables: [HOST],
       });
-    }).toThrow(new BadDataException(PUBLIC_DASHBOARD_FOREIGN_ATTRIBUTE_MESSAGE));
+    }).toThrow(
+      new BadDataException(PUBLIC_DASHBOARD_FOREIGN_ATTRIBUTE_MESSAGE),
+    );
   });
 
   test("a board whose variables name no kind adds nothing", () => {
@@ -148,11 +152,13 @@ describe("getMetricQueryAttributes", () => {
   });
 
   test("two kinds on one board: each key keeps the first variable's operator unless the request sends the other's", () => {
-    const declared: Map<string, Array<string>> =
-      PublicDashboardResourceScopes.getDeclaredScopeAttributes([
-        CLUSTER,
-        HOST,
-      ]) as Map<string, Array<string>>;
+    const declared: Map<
+      string,
+      Array<string>
+    > = PublicDashboardResourceScopes.getDeclaredScopeAttributes([
+      CLUSTER,
+      HOST,
+    ]) as Map<string, Array<string>>;
 
     expect(declared.get("resource.k8s.cluster.name")).toEqual([
       "NotNull",

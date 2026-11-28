@@ -66,11 +66,9 @@ beforeEach(() => {
   jest
     .spyOn(InventoryItemService, "reconcileEntities")
     .mockResolvedValue(undefined);
-  jest
-    .spyOn(InventoryItemService, "findBy")
-    .mockImplementation((async () => {
-      return registeredKeys;
-    }) as never);
+  jest.spyOn(InventoryItemService, "findBy").mockImplementation((async () => {
+    return registeredKeys;
+  }) as never);
   jest
     .spyOn(InventoryItemRelationshipService, "reconcileRelationships")
     .mockResolvedValue(undefined);
@@ -96,9 +94,11 @@ function reconciledEdges(): Array<EntityRelationshipEdge> {
     InventoryItemRelationshipService.reconcileRelationships as jest.Mock
   ).mock.calls;
 
-  return calls.flatMap((call: Array<unknown>): Array<EntityRelationshipEdge> => {
-    return (call[0] as { edges: Array<EntityRelationshipEdge> }).edges;
-  });
+  return calls.flatMap(
+    (call: Array<unknown>): Array<EntityRelationshipEdge> => {
+      return (call[0] as { edges: Array<EntityRelationshipEdge> }).edges;
+    },
+  );
 }
 
 describe("reconcileEntityRegistryThrottled with a link-only Host", () => {
@@ -126,7 +126,9 @@ describe("reconcileEntityRegistryThrottled with a link-only Host", () => {
         return entity.entityType === EntityType.Host;
       },
     )!;
-    registeredKeys = [{ entityType: EntityType.Host, entityKey: host.entityKey }];
+    registeredKeys = [
+      { entityType: EntityType.Host, entityKey: host.entityKey },
+    ];
 
     await reconcileEntityRegistryThrottled({
       projectId: PROJECT,
@@ -172,11 +174,9 @@ describe("reconcileEntityRegistryThrottled with a link-only Host", () => {
   });
 
   test("a failed registry read links nothing, and fails nothing", async () => {
-    (InventoryItemService.findBy as jest.Mock).mockImplementation(
-      (async () => {
-        throw new Error("registry unavailable");
-      }) as never,
-    );
+    (InventoryItemService.findBy as jest.Mock).mockImplementation((async () => {
+      throw new Error("registry unavailable");
+    }) as never);
 
     const result: EntityExtractionResult = extract(APP_ON_MACHINE);
 

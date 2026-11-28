@@ -146,9 +146,9 @@ let dockerHostAnswer: ObjectID | null = null;
 function stubService(service: Record<string, unknown>): void {
   for (const method of OTHER_DISCOVERIES) {
     if (typeof service[method] === "function") {
-      jest.spyOn(service as never, method as never).mockResolvedValue(
-        null as never,
-      );
+      jest
+        .spyOn(service as never, method as never)
+        .mockResolvedValue(null as never);
     }
   }
 
@@ -232,9 +232,9 @@ beforeEach(() => {
   jest
     .spyOn(LogPipelineService, "loadPipelines")
     .mockResolvedValue([] as never);
-  jest.spyOn(DockerResourceService, "bulkUpsert").mockResolvedValue(
-    undefined as never,
-  );
+  jest
+    .spyOn(DockerResourceService, "bulkUpsert")
+    .mockResolvedValue(undefined as never);
 
   jest.spyOn(tracesService, "submitSpansBuffer").mockImplementation(drain);
   jest.spyOn(tracesService, "submitExceptionsBuffer").mockImplementation(drain);
@@ -279,9 +279,9 @@ function request(
 
 // Sends each recorded block through the ingest of its own signal.
 async function ingest(blocks: Array<RecordedBlock>): Promise<void> {
-  const of: (
+  const of: (signal: RecordedBlock["signal"]) => Array<RecordedBlock> = (
     signal: RecordedBlock["signal"],
-  ) => Array<RecordedBlock> = (signal: RecordedBlock["signal"]) => {
+  ) => {
     return blocks.filter((block: RecordedBlock) => {
       return block.signal === signal;
     });

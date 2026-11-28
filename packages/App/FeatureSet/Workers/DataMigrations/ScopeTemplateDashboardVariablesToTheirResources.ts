@@ -44,7 +44,8 @@ export default class ScopeTemplateDashboardVariablesToTheirResources extends Dat
   }
 
   public override async migrate(): Promise<void> {
-    const dashboardIds: Array<ObjectID> = await this.findCandidateDashboardIds();
+    const dashboardIds: Array<ObjectID> =
+      await this.findCandidateDashboardIds();
     let repairedDashboardCount: number = 0;
 
     for (const dashboardId of dashboardIds) {

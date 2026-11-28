@@ -55,13 +55,9 @@ export function getDashboardResourceScopeName(
         "Docker Swarm clusters"
       );
     case DashboardResourceScope.ProxmoxCluster:
-      return (
-        translator.translateText("Proxmox clusters") || "Proxmox clusters"
-      );
+      return translator.translateText("Proxmox clusters") || "Proxmox clusters";
     case DashboardResourceScope.OpenStackCloud:
-      return (
-        translator.translateText("OpenStack clouds") || "OpenStack clouds"
-      );
+      return translator.translateText("OpenStack clouds") || "OpenStack clouds";
     case DashboardResourceScope.VMwareVCenter:
       return translator.translateText("VMware vCenters") || "VMware vCenters";
     case DashboardResourceScope.XcpNgPool:
@@ -102,13 +98,10 @@ export function getDashboardResourceScopeNoneTitle(
         "No OpenStack clouds yet"
       );
     case DashboardResourceScope.VMwareVCenter:
-      return (
-        translator.translateText("No vCenters yet") || "No vCenters yet"
-      );
+      return translator.translateText("No vCenters yet") || "No vCenters yet";
     case DashboardResourceScope.XcpNgPool:
       return (
-        translator.translateText("No XCP-ng pools yet") ||
-        "No XCP-ng pools yet"
+        translator.translateText("No XCP-ng pools yet") || "No XCP-ng pools yet"
       );
     case DashboardResourceScope.CephCluster:
       return (
@@ -137,15 +130,12 @@ export function getDashboardResourceScopeSetUpLabel(
       return translator.translateText("Add Host") || "Add Host";
     case DashboardResourceScope.DockerSwarmCluster:
       return (
-        translator.translateText("Set Up Docker Swarm") ||
-        "Set Up Docker Swarm"
+        translator.translateText("Set Up Docker Swarm") || "Set Up Docker Swarm"
       );
     case DashboardResourceScope.ProxmoxCluster:
       return translator.translateText("Set Up Proxmox") || "Set Up Proxmox";
     case DashboardResourceScope.OpenStackCloud:
-      return (
-        translator.translateText("Set Up OpenStack") || "Set Up OpenStack"
-      );
+      return translator.translateText("Set Up OpenStack") || "Set Up OpenStack";
     case DashboardResourceScope.VMwareVCenter:
       return translator.translateText("Set Up VMware") || "Set Up VMware";
     case DashboardResourceScope.XcpNgPool:

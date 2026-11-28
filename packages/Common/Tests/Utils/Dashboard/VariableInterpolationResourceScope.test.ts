@@ -96,9 +96,10 @@ describe("applyToAttributes with a variable that names its kind", () => {
       ]);
 
     expect(attributes["resource.host.name"]).toBeInstanceOf(Includes);
-    expect(
-      (attributes["resource.host.name"] as Includes).values,
-    ).toEqual(["db-01", "db-02"]);
+    expect((attributes["resource.host.name"] as Includes).values).toEqual([
+      "db-01",
+      "db-02",
+    ]);
     expect(attributes["resource.container.runtime"]).toBeInstanceOf(IsNull);
     expect(attributes["resource.telemetry.sdk.name"]).toBeInstanceOf(IsNull);
   });
@@ -174,9 +175,9 @@ describe("applyToAttributes with a variable that names its kind", () => {
         { ...namespace, selectedValues: ["shop"] },
       ]);
     expect(picked["resource.k8s.cluster.name"]).toBeInstanceOf(NotNull);
-    expect(
-      (picked["resource.k8s.namespace.name"] as Includes).values,
-    ).toEqual(["shop"]);
+    expect((picked["resource.k8s.namespace.name"] as Includes).values).toEqual([
+      "shop",
+    ]);
   });
 });
 
@@ -244,8 +245,8 @@ describe("applyToQueryConfig with a variable that names its kind", () => {
         [HOST],
       );
 
-    const attributes: Record<string, unknown> = query.metricQueryData
-      .filterData.attributes as unknown as Record<string, unknown>;
+    const attributes: Record<string, unknown> = query.metricQueryData.filterData
+      .attributes as unknown as Record<string, unknown>;
 
     expect(attributes["resource.host.name"]).toBeInstanceOf(NotNull);
     expect(attributes["resource.k8s.cluster.name"]).toBeInstanceOf(IsNull);

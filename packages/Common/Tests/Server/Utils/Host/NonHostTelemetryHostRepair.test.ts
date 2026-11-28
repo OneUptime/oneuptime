@@ -23,11 +23,11 @@ function verdictOf(
   });
 }
 
-const ARCHIVE_AS = (
+function archivedAs(
   source: NonHostTelemetrySource,
-): NonHostTelemetryRepairVerdict => {
+): NonHostTelemetryRepairVerdict {
   return { repair: NonHostTelemetryRepair.Archive, source: source };
-};
+}
 
 const KEEP: NonHostTelemetryRepairVerdict = {
   repair: NonHostTelemetryRepair.Keep,
@@ -36,31 +36,31 @@ const KEEP: NonHostTelemetryRepairVerdict = {
 describe("getNonHostTelemetryRepair", () => {
   test("a Docker host registered as a Host - the runtime its agent wrote - is archived", () => {
     expect(verdictOf({ containerRuntime: "docker" })).toEqual(
-      ARCHIVE_AS(NonHostTelemetrySource.ContainerEngine),
+      archivedAs(NonHostTelemetrySource.ContainerEngine),
     );
     expect(verdictOf({ containerRuntime: "podman" })).toEqual(
-      ARCHIVE_AS(NonHostTelemetrySource.ContainerEngine),
+      archivedAs(NonHostTelemetrySource.ContainerEngine),
     );
     expect(verdictOf({ dockerHostId: "6f1c0b7e" })).toEqual(
-      ARCHIVE_AS(NonHostTelemetrySource.ContainerEngine),
+      archivedAs(NonHostTelemetrySource.ContainerEngine),
     );
   });
 
   test("a Host with a Docker or Podman host of its name, and nothing else, is archived", () => {
     expect(verdictOf({ hasContainerHostOfSameName: true })).toEqual(
-      ARCHIVE_AS(NonHostTelemetrySource.ContainerEngine),
+      archivedAs(NonHostTelemetrySource.ContainerEngine),
     );
   });
 
   test("a Host registered from an app in a pod - its runtime is an application's - is archived", () => {
     expect(verdictOf({ runtimeName: "nodejs" })).toEqual(
-      ARCHIVE_AS(NonHostTelemetrySource.Application),
+      archivedAs(NonHostTelemetrySource.Application),
     );
   });
 
   test("a Kubernetes node or pod registered as a Host is archived, host metrics or not", () => {
     expect(verdictOf({ kubernetesClusterId: "c1" })).toEqual(
-      ARCHIVE_AS(NonHostTelemetrySource.Kubernetes),
+      archivedAs(NonHostTelemetrySource.Kubernetes),
     );
     expect(
       verdictOf({
@@ -68,7 +68,7 @@ describe("getNonHostTelemetryRepair", () => {
         readingsUpdatedAt: new Date(),
         cpuCores: 8,
       }),
-    ).toEqual(ARCHIVE_AS(NonHostTelemetrySource.Kubernetes));
+    ).toEqual(archivedAs(NonHostTelemetrySource.Kubernetes));
   });
 
   test("a Host a person made, or whose collector OneUptime manages, is kept whatever else", () => {
@@ -83,9 +83,9 @@ describe("getNonHostTelemetryRepair", () => {
     expect(verdictOf({ ...wrong, collectorInstanceUid: "uid-1" })).toEqual(
       KEEP,
     );
-    expect(
-      verdictOf({ ...wrong, collectorRegisteredAt: new Date() }),
-    ).toEqual(KEEP);
+    expect(verdictOf({ ...wrong, collectorRegisteredAt: new Date() })).toEqual(
+      KEEP,
+    );
   });
 
   test("a Host that reported host metrics is kept: it may be a real machine an app also named", () => {
@@ -110,7 +110,11 @@ describe("getNonHostTelemetryRepair", () => {
   test("a Host with nothing that says what it was is kept: an OS and logs make a host", () => {
     expect(verdictOf({})).toEqual(KEEP);
     expect(
-      verdictOf({ containerRuntime: "  ", runtimeName: "", dockerHostId: null }),
+      verdictOf({
+        containerRuntime: "  ",
+        runtimeName: "",
+        dockerHostId: null,
+      }),
     ).toEqual(KEEP);
   });
 });

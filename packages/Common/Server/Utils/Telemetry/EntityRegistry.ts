@@ -326,11 +326,12 @@ export async function reconcileEntityRegistryThrottled(data: {
      * After the retirement above, so a legacy row this observation just
      * proved obsolete is never linked to.
      */
-    const linked: Array<ExtractedEntity> =
-      await findRegisteredLinkOnlyEntities({
+    const linked: Array<ExtractedEntity> = await findRegisteredLinkOnlyEntities(
+      {
         projectId: data.projectId,
         entities: linkOnly,
-      });
+      },
+    );
 
     /*
      * Topology (phase 5): the co-occurrence edges derive from the same
