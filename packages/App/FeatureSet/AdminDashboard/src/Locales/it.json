@@ -4637,5 +4637,11 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Un altro elemento di tipo {{kind}} di questo progetto ha questo nome, quindi i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} ha lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} hanno lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} ha lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} ha lo stesso nome di un altro elemento di tipo {{kind}} e i selettori non permettono di distinguerli. Aprili uno alla volta per capire qual è quale, poi rinominane uno.",
+  "Behind by {{count}} minutes": "In ritardo di {{count}} minuti",
+  "Behind by {{count}} minutes_one": "In ritardo di {{count}} minuto",
+  "Behind by {{count}} hours": "In ritardo di {{count}} ore",
+  "Behind by {{count}} hours_one": "In ritardo di {{count}} ora",
+  "Behind by {{count}} days": "In ritardo di {{count}} giorni",
+  "Behind by {{count}} days_one": "In ritardo di {{count}} giorno"
 }

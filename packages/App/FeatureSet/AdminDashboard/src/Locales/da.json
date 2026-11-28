@@ -4637,5 +4637,11 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "En anden post af typen {{kind}} i dette projekt har dette navn, så de to kan ikke skelnes fra hinanden i vælgere. Åbn hver af dem for at se, hvilken der er hvilken, og omdøb så den ene.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} har samme navn som en anden post af typen {{kind}}, og de to kan ikke skelnes fra hinanden i vælgere. Åbn hver af dem for at se, hvilken der er hvilken, og omdøb så den ene.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} har samme navn som en anden post af typen {{kind}} og kan ikke skelnes fra hinanden i vælgere. Åbn hver af dem for at se, hvilken der er hvilken, og omdøb så én af dem.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} har samme navn som en anden post af typen {{kind}}, og de to kan ikke skelnes fra hinanden i vælgere. Åbn hver af dem for at se, hvilken der er hvilken, og omdøb så den ene."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} har samme navn som en anden post af typen {{kind}}, og de to kan ikke skelnes fra hinanden i vælgere. Åbn hver af dem for at se, hvilken der er hvilken, og omdøb så den ene.",
+  "Behind by {{count}} minutes": "{{count}} minutter bagud",
+  "Behind by {{count}} minutes_one": "{{count}} minut bagud",
+  "Behind by {{count}} hours": "{{count}} timer bagud",
+  "Behind by {{count}} hours_one": "{{count}} time bagud",
+  "Behind by {{count}} days": "{{count}} dage bagud",
+  "Behind by {{count}} days_one": "{{count}} dag bagud"
 }
