@@ -528,9 +528,10 @@ describe("the passwords of the datastores Docker Compose runs", () => {
     );
 
     // Valkey takes it on its command line, from either name, keeps nothing on
-    // disk, and answers to "redis" as well.
+    // disk, and answers to "redis" as well. The memory cap after it is
+    // #11439's (Common's ValkeyDeploymentConfig holds it).
     expect(base.services.valkey.command).toBe(
-      'valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}" --save "" --appendonly no',
+      'valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}" --save "" --appendonly no --maxmemory "${VALKEY_MAX_MEMORY:-2gb}" --maxmemory-policy noeviction',
     );
     expect(base.services.valkey.networks.oneuptime.aliases).toEqual(["redis"]);
 
