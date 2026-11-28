@@ -232,8 +232,7 @@ export default class DataSecurityCustomDataType extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Sensitivity",
-    description:
-      "How sensitive it is: Restricted, Confidential, Internal or Public.",
+    description: "How sensitive it is.",
   })
   @Column({
     type: ColumnType.ShortText,

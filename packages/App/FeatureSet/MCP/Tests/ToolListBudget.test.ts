@@ -125,7 +125,14 @@ import ModelType from "../Types/ModelType";
  * says, and a compliance setting's kind of resource and framework listed
  * the values their enums list (the framework's list had missed NSA/CISA
  * Hardening, which the enum has). That took the answer to 319,767; the
- * budget is that and a small margin.
+ * budget is that and a small margin. Kept at 320,250 on 2026-11-28: a cost
+ * report's scope, period and cost basis, a cost group's split, a line
+ * item's kind and repeat and a view's grouping now list their values
+ * (6fd66defbef, e67ba4095bc), and a data store may be OpenSearch
+ * (6e799311ccb), which took the answer to 320,346. Those enums are what
+ * the API accepts, so the cut was where a description said them again: a
+ * reconciliation's two measures, a custom data type's sensitivity and
+ * oneuptime_help's topic, by 215 bytes, to 320,131.
  */
 const MAX_TOOLS_LIST_BYTES: number = 320_250;
 
