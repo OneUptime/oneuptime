@@ -323,7 +323,7 @@ describe("ProbeAPI", () => {
   describe("the SNMP trap receiver report", () => {
     function probeWith(report: unknown): Probe {
       const probe: Probe = new Probe();
-      probe.snmpTrapReceiver = report as Probe["snmpTrapReceiver"];
+      probe.snmpTrapReceiver = report as NonNullable<Probe["snmpTrapReceiver"]>;
       return probe;
     }
 

@@ -146,7 +146,7 @@ describe("both ways an address is a device's, read together", () => {
       ],
     });
 
-    expect((await tiersAt("203.0.113.7")).otherAddress).toEqual(["the-one"]);
+    expect((await tiersAt("203.0.113.7"))["otherAddress"]).toEqual(["the-one"]);
   });
 
   test("a device with the address as its hostname and in its Other Addresses is listed once, by its hostname", async () => {
@@ -277,7 +277,7 @@ describe("cached, as the address lookup is", () => {
 
     probeHas({ byHostname: [device("switch", { hostname: "203.0.113.7" })] });
 
-    expect((await tiersAt("203.0.113.7")).hostname).toEqual(["switch"]);
+    expect((await tiersAt("203.0.113.7"))["hostname"]).toEqual(["switch"]);
   });
 
   test("concurrent traps from one address share one lookup", async () => {
