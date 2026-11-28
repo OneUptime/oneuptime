@@ -878,6 +878,8 @@ beforeEach(() => {
       scrubRuleId: "88888888-8888-4888-8888-888888888888",
       scrubRuleName: "Data Security: Email address in attributes.user.email",
       isProven: true,
+      // It hides what the finding found (#11502).
+      hidesFinding: true,
     });
   dropSpy = jest
     .spyOn(TelemetryScrubCoverage, "createDropRuleForFinding")
@@ -1629,6 +1631,43 @@ describe("Scrub It", () => {
       scrubRuleId: "88888888-8888-4888-8888-888888888888",
       scrubRuleName: "Data Security: Email address in attributes.user.email",
       isProven: true,
+      hidesFinding: true,
+    });
+  });
+
+  /*
+   * A rule made where nothing could be proven, of the type's shapes, keeps
+   * a ZIP code found beside "zip" (#11502): the finding is not marked
+   * scrubbed, the answer says so, and the project is checked again.
+   */
+  test("a rule that keeps what the finding found leaves it unscrubbed, and says so", async () => {
+    scrubSpy.mockResolvedValue({
+      signal: "log",
+      scrubRuleId: "88888888-8888-4888-8888-888888888888",
+      scrubRuleName: "Data Security: US ITIN in attributes.tax.ref",
+      isProven: false,
+      hidesFinding: false,
+    });
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+      { id: STORE_ID.toString() },
+    );
+
+    expect(result.thrown).toBeUndefined();
+    expect(findingUpdateSpy).toHaveBeenCalledWith({
+      id: STORE_ID,
+      data: { isScrubbed: false },
+    });
+    expect(queuedJobs()).toEqual([
+      {
+        jobName: DATA_SECURITY_EVALUATE_PROJECT_JOB,
+        payload: { projectId: PROJECT_ID.toString() },
+      },
+    ]);
+    expect(result.answer).toMatchObject({
+      isProven: false,
+      hidesFinding: false,
     });
   });
 
@@ -1767,6 +1806,13 @@ describe("Drop This Metric", () => {
       dataTypeId: "email-address",
       location: "name",
       serviceId: SERVICE_ID,
+      /*
+       * How the finding was found, which says whether a drop rule's pattern
+       * tells its metrics apart (#11502): a finding written before it was
+       * kept says nothing of its context.
+       */
+      isFoundByContext: null,
+      isFoundByModel: false,
     });
     expect(findingUpdateSpy).toHaveBeenCalledWith({
       id: STORE_ID,

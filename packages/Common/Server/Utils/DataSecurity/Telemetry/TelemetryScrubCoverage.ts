@@ -2052,6 +2052,9 @@ async function createMetricScrubRule(data: {
   dataTypeName?: string | null | undefined;
   location: string;
   target: ScrubTarget;
+  // How the finding was found: what the rule's filter is made from (#11502).
+  isFoundByContext?: boolean | null | undefined;
+  isFoundByModel?: boolean | null | undefined;
 }): Promise<CreatedScrubRule> {
   // Refused before anything is read for a rule that cannot be made.
   let rule: MetricPipelineRule = buildMetricScrubRule({

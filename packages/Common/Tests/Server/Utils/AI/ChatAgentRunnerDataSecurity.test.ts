@@ -496,6 +496,7 @@ function install(data?: {
       scrubRuleId: "10378000-0000-4000-8000-0000000000a2",
       scrubRuleName: "Data Security: Email address in attributes.user.email",
       isProven: true,
+      hidesFinding: true,
     } as never);
 
   // Fix it from here: Block Public Access can run through the connection.

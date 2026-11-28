@@ -405,6 +405,19 @@ export async function saveProvenScrubItRule(data: {
 }
 
 /*
+ * What Scrub It did: the rule, whether it was proven on the finding's
+ * records, and whether it hides what the finding found (#11502) - the
+ * rule that already hid it, or one proven on its records, does; one made
+ * where nothing could be proven does as Data Security's coverage reads it,
+ * so a Custom Regex rule of a type's shapes made for values found only
+ * beside their words does not, and the finding is not marked scrubbed.
+ */
+export interface ScrubItOutcome extends CreatedScrubRule {
+  isProven: boolean;
+  hidesFinding: boolean;
+}
+
+/*
  * Scrub It on a telemetry finding: the enabled rule that already hides it,
  * or the proven, narrow rule for it, made as the person who pressed - or,
  * for a metric's attribute, its service's pipeline rule, as always.
@@ -426,7 +439,7 @@ export async function scrubFindingWithProvenRule(data: {
   location: string;
   serviceId?: ObjectID | string | null | undefined;
   storeKey?: string | null | undefined;
-}): Promise<CreatedScrubRule & { isProven: boolean }> {
+}): Promise<ScrubItOutcome> {
   const scrubbable: {
     location: string;
     dataTypeId: string;
@@ -443,18 +456,25 @@ export async function scrubFindingWithProvenRule(data: {
     return {
       ...(await createScrubRuleForFinding({ ...data, ...foundBy })),
       isProven: false,
+      /*
+       * The rule that already hid it, or the one made from how it was
+       * found: its type's pattern where its shapes found every value, and
+       * every value under its key where they did not (buildMetricScrubFilters).
+       */
+      hidesFinding: true,
     };
   }
 
+  const reference: TelemetryFindingReference = {
+    kind: data.kind,
+    dataTypeId: scrubbable.dataTypeId,
+    location: scrubbable.location,
+    serviceId: readFindingServiceId(data) || data.serviceId,
+    ...foundBy,
+  };
   const existing: CoveringScrubRule | null = findCoveringScrubRule(
     await getScrubCoverage(data.projectId),
-    {
-      kind: data.kind,
-      dataTypeId: scrubbable.dataTypeId,
-      location: scrubbable.location,
-      serviceId: readFindingServiceId(data) || data.serviceId,
-      ...foundBy,
-    },
+    reference,
   );
 
   if (existing) {
@@ -463,6 +483,7 @@ export async function scrubFindingWithProvenRule(data: {
       scrubRuleId: existing.id,
       scrubRuleName: existing.name,
       isProven: Boolean(existing.provenPlaces?.length),
+      hidesFinding: true,
     };
   }
 
@@ -481,5 +502,9 @@ export async function scrubFindingWithProvenRule(data: {
       planned,
     })),
     isProven: Boolean(planned.proof),
+    // Proven on its records it hides them; unproven, as coverage reads it.
+    hidesFinding:
+      Boolean(planned.proof) ||
+      doesScrubRuleCover({ signal: planned.signal, ...planned.plan }, reference),
   };
 }

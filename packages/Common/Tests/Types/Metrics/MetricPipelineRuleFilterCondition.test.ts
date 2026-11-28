@@ -234,13 +234,16 @@ describe("Matches Pattern Type", () => {
     ).toBe(true);
   });
 
-  test("names the five pattern types that find a value's own shape", () => {
+  test("names the seven pattern types that find a value's own shape", () => {
     expect(METRIC_FILTER_PATTERN_TYPES).toEqual([
       "email",
       "creditCard",
       "ssn",
       "phoneNumber",
       "ipAddress",
+      // Scrub It's filters for postal codes and coordinates (#11502).
+      "postalCode",
+      "coordinates",
     ]);
 
     for (const patternType of METRIC_FILTER_PATTERN_TYPES) {

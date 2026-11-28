@@ -24,6 +24,7 @@ import { AddDataSecurityComplianceDrafts1809187530375 } from "../../../../Server
 import { AddDataSecurityNamesAndAddressesModel1809187540373 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187540373-AddDataSecurityNamesAndAddressesModel";
 import { AddDataStoreFindingAiScrubRules1809187570752 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187570752-AddDataStoreFindingAiScrubRules";
 import { AddDataSecurityIssueCodeFixTask1809187580367 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187580367-AddDataSecurityIssueCodeFixTask";
+import { AddDataStoreFindingIsFoundByContext1809187821502 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187821502-AddDataStoreFindingIsFoundByContext";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -304,6 +305,12 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
     "DataSecurityIssue",
     "codeFixTaskId",
     AddDataSecurityIssueCodeFixTask1809187580367,
+  ],
+  // Some of a finding's values found only beside their words or under their key (#11502).
+  [
+    "DataStoreFinding",
+    "isFoundByContext",
+    AddDataStoreFindingIsFoundByContext1809187821502,
   ],
 ];
 

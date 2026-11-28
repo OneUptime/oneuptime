@@ -35,15 +35,11 @@ import ProjectDataTypeNames from "./ProjectDataTypeNames";
 import DataSecurityResponse from "./DataSecurityResponse";
 import { queueDataSecurityEvaluation } from "./DataSecurityJobs";
 import TelemetryLeakFix from "./TelemetryLeakFix";
-import {
-  CreatedScrubRule,
-  getScrubCoverage,
-  isFindingScrubbed,
-  readFindingServiceId,
-  readFoundByOf,
-} from "./Telemetry/TelemetryScrubCoverage";
 import { getScrubItImpact } from "./Telemetry/TelemetryScrubImpact";
-import { scrubFindingWithProvenRule } from "./Telemetry/TelemetryScrubIt";
+import {
+  ScrubItOutcome,
+  scrubFindingWithProvenRule,
+} from "./Telemetry/TelemetryScrubIt";
 
 /*
  * WHAT DATA SECURITY'S BUTTONS DO ON THE SERVER, IN ONE PLACE (#10378).
@@ -259,10 +255,10 @@ export default class DataSecurityButtons {
     projectId: ObjectID;
     findingId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<CreatedScrubRule & { isProven: boolean }> {
+  }): Promise<ScrubItOutcome> {
     const finding: DataStoreFinding = await readTelemetryFindingForCaller(data);
 
-    const created: CreatedScrubRule & { isProven: boolean } =
+    const created: ScrubItOutcome =
       await scrubFindingWithProvenRule({
         projectId: data.projectId,
         userId: data.props.userId || undefined,
@@ -279,27 +275,14 @@ export default class DataSecurityButtons {
       });
 
     /*
-     * Scrubbed when a rule now hides what it found: the one made, or the
-     * one that already did. A rule of the type's shapes, made where nothing
+     * Scrubbed when the rule hides what it found: the one that already did,
+     * or the one made. A rule of the type's shapes, made where nothing
      * could be proven, keeps what was found only beside its words (#11502),
      * and the finding says so.
      */
     await DataStoreFindingService.updateColumnsByIdWithoutHooks({
       id: finding.id!,
-      data: {
-        isScrubbed: isFindingScrubbed(await getScrubCoverage(data.projectId), {
-          kind: finding.dataStore!.kind as DataStoreKind,
-          dataTypeId: finding.dataTypeId!,
-          location: finding.location!,
-          serviceId:
-            readFindingServiceId({
-              kind: finding.dataStore!.kind,
-              serviceId: finding.dataStore!.serviceId || null,
-              storeKey: finding.dataStore!.storeKey || null,
-            }) || finding.dataStore!.serviceId,
-          ...readFoundByOf(finding),
-        }),
-      },
+      data: { isScrubbed: created.hidesFinding },
     });
     await queueDataSecurityEvaluation(data.projectId);
 
