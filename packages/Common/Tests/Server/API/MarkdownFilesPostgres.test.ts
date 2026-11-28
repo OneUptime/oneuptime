@@ -257,8 +257,8 @@ const imageMarkdown: (image: {
 function send(data: {
   port: number;
   path: string;
-  headers?: Dictionary<string>;
-  method?: "GET" | "POST";
+  headers?: Dictionary<string> | undefined;
+  method?: "GET" | "POST" | undefined;
 }): Promise<HttpAnswer> {
   return new Promise<HttpAnswer>(
     (resolve: (answer: HttpAnswer) => void, reject: (e: Error) => void) => {

@@ -24,6 +24,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
+import { getJestSpyOn } from "../../../Spy";
 import {
   afterEach,
   beforeEach,
@@ -626,9 +627,10 @@ describe("MarkdownFiles.readRecordFiles", () => {
   });
 
   test("OneUptime itself reads every Markdown column, and is not held to a project in the query", async () => {
-    const spy: jest.SpiedFunction<
-      typeof ColumnPermissions.getModelColumnsByPermissions
-    > = jest.spyOn(ColumnPermissions, "getModelColumnsByPermissions");
+    const spy: jest.SpyInstance<any, any> = getJestSpyOn(
+      ColumnPermissions,
+      "getModelColumnsByPermissions",
+    );
 
     const fake: FakeService = fakeService({
       model: new Incident(),

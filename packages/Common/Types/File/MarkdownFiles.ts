@@ -49,8 +49,9 @@ export const MARKDOWN_FILE_MAX_SIZE_IN_BYTES: number = 10 * 1024 * 1024;
  * The most bytes one read hands out, every file together. A run keeps its
  * steps' values while it runs, and writes them to its record while it waits;
  * the steps after this one write what they are handed to the run's log; and
- * Microsoft Graph takes a message of 4 MB at most, SMTP servers commonly 10
- * to 25 MB.
+ * Microsoft Graph takes an attachment of up to 3 MB in the message it is
+ * sent (a larger one needs an upload session), SMTP servers commonly a
+ * message of 10 to 25 MB.
  */
 export const MARKDOWN_FILES_MAX_TOTAL_SIZE_IN_BYTES: number = 10 * 1024 * 1024;
 

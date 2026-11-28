@@ -294,7 +294,7 @@ export const getGetFilesFromMarkdownDocumentation: UtilityDocumentationFunction 
   (context: ComponentDocumentationContext): ComponentDocumentation => {
     return {
       summary:
-        "Reads the images a record's Markdown shows, such as the screenshots in an incident's description, with each image's name, type and data, ready to attach to an email.",
+        "Reads the images a record's Markdown shows, with each one's name, type and data, ready to attach to an email.",
       steps: [
         "Pick the **Record Type**: the kind of record whose Markdown shows the images, such as Incident or Incident Public Note.",
         "Put the record's ID in **Record ID** with { }. Usually it is the ID of the record that started this workflow.",
