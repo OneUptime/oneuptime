@@ -15,6 +15,8 @@ import {
 import { readPage } from "./DocsContentSupport";
 import { CUSTOM_CHANNEL_ACTION_TOKEN_EXPIRES_IN_SECONDS } from "Common/Server/Utils/OnCall/CustomChannelActionToken";
 import { getSentToCallAndSmsGatewayMessage } from "Common/Types/CallAndSMS/CallAndSmsGatewayLine";
+import { SERVER_LOCALES } from "Common/Server/Utils/ServerTranslation";
+import { writeCodeForCall } from "Common/Utils/Call/CallSpeech";
 import {
   CALL_AND_SMS_GATEWAY_PAYLOAD_VERSION,
   CallAndSmsGatewayEvent,
@@ -615,8 +617,9 @@ describe("What Your Gateway Receives", () => {
     expect(test["event"]).toBe("test");
     expect(test["project"]).toBeNull();
     expect(test["actions"]).toBeNull();
+    expect(test["inLanguage"]).toBeNull();
     expect(testRequests).toContain(
-      "**Check Gateway** sends a request with `event` set to `test`, and `to`, `project` and `actions` set to `null`.",
+      "**Check Gateway** sends a request with `event` set to `test`, and `to`, `project`, `actions` and `inLanguage` set to `null`.",
     );
   });
 
@@ -625,11 +628,138 @@ describe("What Your Gateway Receives", () => {
       "App/FeatureSet/Notification/Services/CallService.ts",
     );
 
+    expect(callService).toContain("export function getCallGatewayMessage(");
     expect(callService).toContain(
-      "export function getCallGatewayMessage(callRequest: CallRequest): string {",
+      "export function getCallGatewayMessageInLanguage(",
     );
     expect(receives).toContain(
       'A call is described rather than scripted: `message` is what it says, without Twilio\'s "press 1 to acknowledge".',
+    );
+  });
+});
+
+/*
+ * #11459: a call to someone who reads another language carries its words
+ * in theirs, beside the English message a gateway always read, and the
+ * page says what a gateway must do with the language.
+ */
+describe("Calls in Other Languages", () => {
+  const receives: string = section("What Your Gateway Receives");
+  const start: number = receives.indexOf("### Calls in Other Languages\n");
+  const calls: string = receives.slice(start);
+
+  it("sits under What Your Gateway Receives, and the cards link it", () => {
+    expect(start).toBeGreaterThan(0);
+    expect(page).toContain(
+      "- [Calls in other languages](#calls-in-other-languages): Speak each call in the language its person reads.",
+    );
+  });
+
+  it("describes inLanguage as the builder sends it: the language's code and the call's words, null for an SMS", () => {
+    const rows: Array<Array<string>> = tableRows(
+      receives,
+      "| Field | What it is |",
+    );
+    const inLanguage: string = (rows.find((cells: Array<string>): boolean => {
+      return cells[0] === "`inLanguage`";
+    }) || [])[1] as string;
+
+    expect(inLanguage).toContain(
+      "`language`, its code, and `message`, what the call says in it.",
+    );
+    expect(inLanguage).toContain(
+      "`null` otherwise, and for every SMS, which is already in their language.",
+    );
+
+    const call: JSONObject = buildCallAndSmsGatewayMessagePayload({
+      event: CallAndSmsGatewayEvent.Call,
+      id: "id",
+      sentAt: new Date(),
+      to: "+15551234567",
+      message: "message",
+      isSensitive: false,
+      inLanguage: { language: "de", message: "Nachricht" },
+    });
+
+    expect(Object.keys(call["inLanguage"] as JSONObject)).toEqual([
+      "language",
+      "message",
+    ]);
+    expect(
+      buildCallAndSmsGatewayMessagePayload({
+        event: CallAndSmsGatewayEvent.Sms,
+        id: "id",
+        sentAt: new Date(),
+        to: "+15551234567",
+        message: "message",
+        isSensitive: false,
+        inLanguage: { language: "de", message: "Nachricht" },
+      })["inLanguage"],
+    ).toBeNull();
+  });
+
+  it("shows a call in another language with the fields the builder sends, by their names", () => {
+    const example: JSONObject = JSON.parse(
+      codeBlocks(calls, "json")[0] as string,
+    ) as JSONObject;
+    const built: JSONObject = buildCallAndSmsGatewayMessagePayload({
+      event: CallAndSmsGatewayEvent.Call,
+      id: "id",
+      sentAt: new Date(),
+      to: "+15551234567",
+      message: "message",
+      isSensitive: true,
+      inLanguage: { language: "de", message: "Nachricht" },
+    });
+
+    for (const key of Object.keys(example)) {
+      expect(Object.keys(built)).toContain(key);
+    }
+
+    expect(example["event"]).toBe(CallAndSmsGatewayEvent.Call);
+    expect(Object.keys(example["inLanguage"] as JSONObject)).toEqual(
+      Object.keys(built["inLanguage"] as JSONObject),
+    );
+    // The code written as the verification call writes it.
+    expect(String(example["message"])).toContain(
+      `Your verification code is ${writeCodeForCall("482913")}.`,
+    );
+  });
+
+  it("says what a gateway must do with the language: speak it with a voice of it, else the English, never one language's words in another's voice", () => {
+    expect(calls).toContain(
+      "When your gateway has a voice of `inLanguage.language`, speak `inLanguage.message` with it. When it has none, speak `message` in English instead. Never give one language's words to another language's voice: they would not be understood. A gateway that reads only `message` keeps working as before and speaks English.",
+    );
+  });
+
+  it("lists exactly the languages OneUptime writes in but English, by the codes a call carries", () => {
+    const listed: Array<string> = Array.from(
+      (calls.split("\n").find((line: string): boolean => {
+        return line.startsWith("The language's code is a BCP 47 tag");
+      }) || "").matchAll(/`([a-zA-Z-]+)`/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+    const written: Array<string> = Object.keys(SERVER_LOCALES).filter(
+      (language: string): boolean => {
+        return language !== "en";
+      },
+    );
+
+    expect(listed.slice(0, written.length).sort()).toEqual(
+      written.slice().sort(),
+    );
+    // Persian among them, which no Twilio voice speaks.
+    expect(listed).toContain("fa");
+    expect(calls).toContain(
+      "Persian is among them: Twilio has no Persian voice, so its calls are in English, but your gateway may have one.",
+    );
+  });
+
+  it("says how the code is written, as the verification call writes it", () => {
+    expect(writeCodeForCall("482913")).toBe("4  8  2  9  1  3");
+    expect(calls).toContain(
+      "A verification code is written digit by digit, with two spaces between digits",
     );
   });
 });

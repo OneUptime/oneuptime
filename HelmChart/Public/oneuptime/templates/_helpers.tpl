@@ -1290,7 +1290,7 @@ refused at install rather than read by the server as no.
 {{- if or (kindIs "bool" $letProjectsChooseCallVoice) (has (toString $letProjectsChooseCallVoice) (list "true" "false")) }}
 
 - name: GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE
-  value: {{ include "oneuptime.envValue" $letProjectsChooseCallVoice }}
+  value: {{ include "oneuptime.envValue" $twilio.letProjectsChooseCallVoice }}
 {{- end }}
 {{- end }}
 
