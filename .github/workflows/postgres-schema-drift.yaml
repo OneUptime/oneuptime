@@ -41,6 +41,9 @@ jobs:
   # PostgreSQL client tools the backup suite needs are shard 3's. Put a new
   # suite in the shard with the least time, and add a shard rather than
   # raise the cap. Tests/Ops/PostgresSchemaDriftShards holds these rules.
+  # Shard 6 runs one suite: ProbeResultsBurstPostgres (#11369) drives two
+  # probes and the ingest queue for six runs of three minutes each, some 20
+  # minutes, more than any other shard has to spare.
   postgres-schema-drift:
     name: postgres-schema-drift (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
@@ -49,7 +52,7 @@ jobs:
       # One shard's failure should not hide the others' results.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2, 3, 4, 5, 6]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       # LocalMigrationGenerationDataSource defaults to localhost:5400, which is
@@ -1156,6 +1159,25 @@ jobs:
           Tests/Server/Utils/Monitor/MonitorProbeLastResultsPostgres.test.ts
           Tests/Server/Utils/Monitor/MonitorResultStatementsPostgres.test.ts
           --forceExit
+
+      # #11247, #11333: how bursty probe results are where they are
+      # evaluated. Two probes check 300 monitors a minute through the real
+      # claim, and the Telemetry queue's workers evaluate each result
+      # against the migrated tables, cloned into an isolated schema: results
+      # a second, evaluations at once, checks skipped, and how far apart each
+      # monitor's checks are, for the probes' ways of asking. Wall-clock
+      # bound (six three-minute runs), so it has shard 6 to itself.
+      - name: Test how bursty probe results are where they are evaluated
+        if: matrix.shard == 6
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_RESULTS_BURST_TESTS: "true"
+          PROBE_RESULTS_BURST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_RESULTS_BURST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_RESULTS_BURST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Monitor/ProbeResultsBurstPostgres.test.ts --forceExit
 
       # Clones the migrated Workflow table (its unique key included) into an
       # isolated schema: the incoming email key's compare-and-set must write
