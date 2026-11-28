@@ -338,7 +338,58 @@ describe("a trap from an address that is no device", () => {
     // Known by its address until it is added.
     expect(attributes["event.device"]).toBe("10.0.0.2");
     expect(Object.keys(attributes)).not.toContain("networkDevice.id");
+    expect(Object.keys(attributes)).not.toContain("networkSite.id");
     expect(findInterface).not.toHaveBeenCalled();
+  });
+
+  test("names the site whose default credentials signed it, for Add as device to file it there (#11174)", async () => {
+    const site: ObjectID = ObjectID.generate();
+
+    await SnmpTrapLogWriter.writeUnmatchedTrapLogRow({
+      snmpTrap: {
+        ...trap(COLD_START),
+        snmpVersion: "3",
+        securityName: "site-default",
+        securityLevel: SnmpSecurityLevel.AuthPriv,
+      },
+      probeId: PROBE,
+      projectId: PROJECT,
+      siteId: site,
+    });
+
+    const attributes: Record<string, unknown> = (insertedRows[0] as JSONObject)[
+      "attributes"
+    ] as Record<string, unknown>;
+
+    expect(attributes["networkSite.id"]).toBe(site.toString());
+    expect(attributes["snmpTrap.unmatched"]).toBe(true);
+    expect(attributes["event.name"]).toBe("device.reboot");
+  });
+
+  test("never names a site on a device's own row", async () => {
+    const attributes: Record<string, unknown> = await write(trap(COLD_START));
+
+    expect(Object.keys(attributes)).not.toContain("networkSite.id");
+  });
+});
+
+describe("who holds the credential that signed it is how it was matched, never what is kept", () => {
+  test("no attribute and no word of the row says it, not even another project's ID", async () => {
+    const otherProject: string = "11720000-0000-4000-8000-000000060be8";
+    const attributes: Record<string, unknown> = await write({
+      ...trap(LINK_DOWN, linkVarbinds(10101)),
+      snmpVersion: "3",
+      securityName: "san-monitor",
+      securityLevel: SnmpSecurityLevel.AuthPriv,
+      signedBy: {
+        projectIds: [PROJECT.toString(), otherProject],
+        deviceIds: [SWITCH.toString()],
+        siteIds: [],
+      },
+    });
+
+    expect(JSON.stringify(insertedRows[0])).not.toContain(otherProject);
+    expect(Object.keys(attributes).join(" ")).not.toContain("signedBy");
   });
 });
 

@@ -257,7 +257,7 @@ Nogle ændringer løser altid det, en regel har åbnet, uanset hvad dens indstil
 
 ## Planlagt vedligeholdelse
 
-Mens en af SLO'ets monitorer er i en igangværende vedligeholdelseshændelse, udløser dets forbrugsrateregler ikke advarsler og erklærer ikke hændelser: planlagt arbejde skal ikke tilkalde nogen. Det, reglerne allerede havde åbnet, løses stadig som normalt. Tiden tæller stadig med i fejlbudgettet, efter SLO'ets nedetidsstatusser.
+Mens en af SLO'ets monitorer er i en igangværende vedligeholdelseshændelse, udløser dets forbrugsrateregler ikke advarsler og erklærer ikke hændelser: planlagt arbejde skal ikke tilkalde nogen. Det, reglerne allerede havde åbnet, løses stadig som normalt. Tiden tæller stadig med i fejlbudgettet, efter SLO'ets nedetidsstatusser, når vedligeholdelseshændelsen sætter sine monitorer i sin egen status (**Skift monitorstatus til**). En vedligeholdelseshændelse, der ikke sætter dem i nogen, udelader deres tid af SLO'et, som tid med overvågning slået fra er: den bruger hverken af budgettet eller tæller som god.
 
 ## SLO'ets feed
 
@@ -274,7 +274,7 @@ Automatisk løsning følger det lange vindue: så snart det lange vindues forbru
 :::
 
 :::details Intet udløste under en vedligeholdelseshændelse
-Forbrugsrateregler er tavse, mens en af SLO'ets monitorer er i en igangværende vedligeholdelseshændelse. Nedetiden tæller stadig med i budgettet.
+Forbrugsrateregler er tavse, mens en af SLO'ets monitorer er i en igangværende vedligeholdelseshændelse. Nedetiden tæller stadig med i budgettet, når vedligeholdelseshændelsen sætter sine monitorer i sin egen status; uden en udelades deres tid af SLO'et.
 :::
 
 :::details Er der et minimumsantal målinger?

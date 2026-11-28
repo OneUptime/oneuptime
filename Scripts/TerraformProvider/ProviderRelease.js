@@ -34,6 +34,13 @@
  *       its signature, and every file it lists, as it lists them. The script
  *       checks this before it pushes anything. Exits 1 and says what is
  *       wrong when they are not.
+ *   upload-plan <release.json> <file>...
+ *       What uploading the files to a draft takes, a line a file:
+ *       `keep <name>`, `upload <url> <file>` or `replace <asset id> <url>
+ *       <file>`, each URL the draft's own, by its id. Exits 1 with
+ *       `refused <why>`, and no step, for a release that is not a draft: the
+ *       guard that a published release's assets are never uploaded over
+ *       (#11016).
  *   check-uploaded <release.json> <file>...
  *       Whether a draft holds exactly the files built for it: their names,
  *       sizes and SHA-256s, and nothing else. Exits 1 and says what differs
@@ -281,6 +288,72 @@ function differencesFromBuilt(release, files) {
   return differences;
 }
 
+/*
+ * What uploading the files built for a release to its draft takes, one step
+ * a file, without ever changing a published release (#11016):
+ *
+ *   keep     the draft holds it already, whole, the same bytes;
+ *   upload   the draft does not hold it;
+ *   replace  the draft holds an upload of it that did not finish, or other
+ *            bytes: that asset is deleted, by its id, and the file uploaded
+ *            again. Only ever on a draft, which no registry has read.
+ *
+ * A release that is not a draft gets no step at all: `refused` says why.
+ * Neither does one GitHub gives no upload URL for. Each upload goes to the
+ * draft's own upload URL, by its id, never by its tag: a tag can name a
+ * published release too, and gh's `release upload <tag> --clobber` replaced
+ * the assets of one when it did (OneUptime/terraform-provider-oneuptime#20).
+ * `files` are describeFile's, each with its `path`.
+ */
+function uploadPlan(release, files) {
+  if (!release) {
+    return { refused: "there is no release", steps: [] };
+  }
+  if (!isDraft(release)) {
+    return {
+      refused:
+        "it is published, and a published release is never changed: the registries have read its assets",
+      steps: [],
+    };
+  }
+  const uploadUrl = String(release.upload_url || "").replace(/\{[^}]*\}$/, "");
+  if (
+    !/^https:\/\/[^/]+\/repos\/[^/]+\/[^/]+\/releases\/\d+\/assets$/.test(
+      uploadUrl,
+    )
+  ) {
+    return {
+      refused: `GitHub gives no upload URL for it (${release.upload_url || "none"})`,
+      steps: [],
+    };
+  }
+
+  const assets = assetsByName(release);
+  const steps = files.map((file) => {
+    const url = `${uploadUrl}?name=${encodeURIComponent(file.name)}`;
+    const asset = assets.get(file.name);
+    if (!asset) {
+      return { action: "upload", name: file.name, path: file.path, url };
+    }
+    const whole = !asset.state || asset.state === "uploaded";
+    if (
+      whole &&
+      asset.size === file.size &&
+      sha256OfAsset(asset) === file.sha256
+    ) {
+      return { action: "keep", name: file.name };
+    }
+    return {
+      action: "replace",
+      name: file.name,
+      path: file.path,
+      url,
+      assetId: String(asset.id),
+    };
+  });
+  return { refused: null, steps };
+}
+
 function versionParts(version) {
   const match = VERSION_WITH_SUFFIX.exec(String(version));
   if (!match) {
@@ -340,6 +413,7 @@ const USAGE = `Usage:
   ProviderRelease.js asset-id <release.json> <name>
   ProviderRelease.js check-published <version> <release.json> <SHA256SUMS>
   ProviderRelease.js check-built <version> <file>...
+  ProviderRelease.js upload-plan <release.json> <file>...
   ProviderRelease.js check-uploaded <release.json> <file>...
   ProviderRelease.js previous <version> <releases.json>
   ProviderRelease.js latest <version> <releases.json>`;
@@ -389,6 +463,32 @@ function main(argv, out = process.stdout, err = process.stderr) {
       );
       problems.forEach(say);
       return problems.length > 0 ? 1 : 0;
+    }
+    case "upload-plan": {
+      if (args.length < 2) {
+        break;
+      }
+      const [releaseFile, ...files] = args;
+      const plan = uploadPlan(
+        readJson(releaseFile),
+        files.map((file) => {
+          return { ...describeFile(file), path: file };
+        }),
+      );
+      if (plan.refused) {
+        say(`refused ${plan.refused}`);
+        return 1;
+      }
+      for (const step of plan.steps) {
+        if (step.action === "keep") {
+          say(`keep ${step.name}`);
+        } else if (step.action === "upload") {
+          say(`upload ${step.url} ${step.path}`);
+        } else {
+          say(`replace ${step.assetId} ${step.url} ${step.path}`);
+        }
+      }
+      return 0;
     }
     case "check-uploaded": {
       if (args.length < 2) {
@@ -444,4 +544,5 @@ module.exports = {
   sha256OfAsset,
   signatureName,
   sumsName,
+  uploadPlan,
 };

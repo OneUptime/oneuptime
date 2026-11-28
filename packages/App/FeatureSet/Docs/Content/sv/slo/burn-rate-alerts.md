@@ -257,7 +257,7 @@ Vissa ändringar löser alltid det som en regel har öppnat, oavsett vad dess in
 
 ## Schemalagt underhåll
 
-Medan en av SLO:ets monitorer ingår i en pågående underhållshändelse utlöser dess regler för förbrukningstakt inga larm och deklarerar inga incidenter: planerat arbete ska inte larma någon. Det som reglerna redan hade öppnat löses fortfarande som vanligt. Tiden räknas fortfarande in i felbudgeten, enligt SLO:ets driftstoppsstatusar.
+Medan en av SLO:ets monitorer ingår i en pågående underhållshändelse utlöser dess regler för förbrukningstakt inga larm och deklarerar inga incidenter: planerat arbete ska inte larma någon. Det som reglerna redan hade öppnat löses fortfarande som vanligt. Tiden räknas fortfarande in i felbudgeten, enligt SLO:ets driftstoppsstatusar, när händelsen sätter sina monitorer i en egen status (**Ändra övervakningsstatus till**). En händelse som inte sätter dem i någon utesluter deras tid ur SLO:et, som tid med avstängd övervakning utesluts: den förbrukar varken budgeten eller räknas som bra.
 
 ## SLO:ets flöde
 
@@ -274,7 +274,7 @@ Den automatiska lösningen följer det långa fönstret: så snart det långa f�
 :::
 
 :::details Inget utlöstes under en underhållshändelse
-Regler för förbrukningstakt är tysta medan någon av SLO:ets monitorer ingår i en pågående underhållshändelse. Driftstoppet räknas fortfarande in i budgeten.
+Regler för förbrukningstakt är tysta medan någon av SLO:ets monitorer ingår i en pågående underhållshändelse. Driftstoppet räknas fortfarande in i budgeten när händelsen sätter sina monitorer i en egen status; utan en utesluts deras tid ur SLO:et.
 :::
 
 :::details Finns det ett minsta antal mätningar?

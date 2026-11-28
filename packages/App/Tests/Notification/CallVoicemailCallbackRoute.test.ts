@@ -536,7 +536,8 @@ beforeEach(() => {
   jest.setSystemTime(NOW);
 
   storedLog = {
-    status: CallStatus.Success,
+    // Placed, and ringing: what CallService writes until Twilio says how it ended (#11138).
+    status: CallStatus.Calling,
     statusMessage: PLACED_MESSAGE,
     callData: {
       message:
@@ -878,7 +879,7 @@ describe("a person answered, or Twilio could not tell", () => {
       expectNothingWritten();
       expect(storedLog).toEqual(
         expect.objectContaining({
-          status: CallStatus.Success,
+          status: CallStatus.Calling,
           statusMessage: PLACED_MESSAGE,
         }),
       );
@@ -1112,7 +1113,7 @@ describe("once, and never over a person's answer", () => {
 
       expectAccepted(answer);
       expectNothingWritten();
-      expect(storedLog!.status).toBe(CallStatus.Success);
+      expect(storedLog!.status).toBe(CallStatus.Calling);
       expect(timeline.get(NOTIFICATION_ID)!.status).toBe(status);
     },
   );
@@ -1214,6 +1215,8 @@ describe("in either order with the call's status callback", () => {
 
   test("the status callback landing between this route's read and its write: read again, and written over", async () => {
     onNextLogRead = (log: StoredLog): void => {
+      // What the status callback writes of an answered call: Success, and how long it lasted.
+      log.status = CallStatus.Success;
       log.statusMessage = `Call ID: ${CALL_SID}. The call was answered and lasted 9 seconds.`;
     };
 
@@ -1242,5 +1245,29 @@ describe("in either order with the call's status callback", () => {
     expect(storedLog!.status).toBe(CallStatus.MissedCall);
     expect(timeline.writes).toEqual([]);
     expect(deliveryCounterCalls).toEqual([]);
+  });
+
+  /*
+   * A call a server from before Calling was written placed (#11138) - its
+   * log says Success while it rings - that voicemail answers once the
+   * server is updated: written over the Success it was placed with.
+   */
+  test("a call placed as Success, before Calling was written: voicemail is still written over it", async () => {
+    storedLog!.status = CallStatus.Success;
+
+    const answer: Answer = await answeredBy("machine_end_beep");
+
+    expectAccepted(answer);
+    expect(storedLog).toEqual(
+      expect.objectContaining({
+        status: CallStatus.Voicemail,
+        statusMessage: LEFT,
+      }),
+    );
+    expect(timeline.get(NOTIFICATION_ID)).toMatchObject({
+      status: UserNotificationStatus.NotAnswered,
+      statusMessage: LEFT,
+    });
+    expect(onlyDelivery()["outcome"]).toBe("not_answered");
   });
 });

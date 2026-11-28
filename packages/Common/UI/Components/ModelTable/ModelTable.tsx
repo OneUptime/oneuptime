@@ -3,11 +3,18 @@ import ModelImportExportUtil, {
   ImportResult,
 } from "../../Utils/ModelImportExport";
 import PermissionGate, {
+  LabelLockAction,
   ModelAction,
+  ModelLabelLock,
   PermissionGateResult,
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
 import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
+import {
+  getRecordLabelIds,
+  getRecordLabelRefusal,
+  useLabelNames,
+} from "../../Utils/RecordLabelLock";
 import {
   FormType,
   ModelField,
@@ -180,6 +187,92 @@ const ModelTable: <TBaseModel extends BaseModel>(
     usePrivateRecordGateOptions(model);
   const translator: Translator = useTranslator();
 
+  /*
+   * WHAT EACH ROW'S LABELS LOCK (#11259). A reader whose permission to
+   * change or delete records of this kind is limited to some labels, or
+   * blocked on some, sees each row's Edit, Delete and switch locked where
+   * the server would refuse it on that row, with why: "You do not have
+   * permission to delete this monitor. Your permission is limited to
+   * monitors labelled Payments." Bulk Delete leaves such a row out and says
+   * why (BaseModelTable's runBulkAction reads the same reason). The rows
+   * are read with their labels' ids for it - nothing more for anyone else -
+   * and a row read without them is left to the server.
+   */
+  const labelLock: ModelLabelLock | null = PermissionGate.getLabelLock(model);
+  const rowLabelLock: ModelLabelLock | null =
+    labelLock && PermissionGate.canReadColumn(model, labelLock.labelsColumn)
+      ? labelLock
+      : null;
+  const rowLabelNames: ReadonlyMap<string, string> = useLabelNames(
+    rowLabelLock ? rowLabelLock.labelIds : [],
+  );
+
+  const getRowLabelLock: (
+    item: TBaseModel,
+    action: LabelLockAction,
+  ) => string | undefined = (
+    item: TBaseModel,
+    action: LabelLockAction,
+  ): string | undefined => {
+    if (!rowLabelLock) {
+      return undefined;
+    }
+
+    const reason: string | null = getRecordLabelRefusal({
+      lock: rowLabelLock,
+      action: action,
+      recordLabelIds: getRecordLabelIds(item, rowLabelLock.labelsColumn),
+      nouns: {
+        singularName: props.singularName || model.singularName || "",
+        pluralName: props.pluralName || model.pluralName || "",
+      },
+      labelNames: rowLabelNames,
+      translator: translator,
+    });
+
+    if (!reason) {
+      return undefined;
+    }
+
+    return PermissionGate.getRefusedOnRecordReason({
+      model: model,
+      action: action,
+      reason: reason,
+      options: {
+        singularName: props.singularName || undefined,
+        verb:
+          action === ModelAction.Delete
+            ? props.bulkActions?.deleteVerb?.trim() || undefined
+            : undefined,
+      },
+    });
+  };
+
+  // The list's own reason first, then the row's labels'.
+  const getEditDisabledReason:
+    | ((item: TBaseModel) => string | undefined)
+    | undefined =
+    rowLabelLock || props.getEditDisabledReason
+      ? (item: TBaseModel): string | undefined => {
+          return (
+            props.getEditDisabledReason?.(item) ||
+            getRowLabelLock(item, ModelAction.Update)
+          );
+        }
+      : undefined;
+
+  const getDeleteDisabledReason:
+    | ((item: TBaseModel) => string | undefined)
+    | undefined =
+    rowLabelLock || props.getDeleteDisabledReason
+      ? (item: TBaseModel): string | undefined => {
+          return (
+            props.getDeleteDisabledReason?.(item) ||
+            getRowLabelLock(item, ModelAction.Delete)
+          );
+        }
+      : undefined;
+
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
   const [importRefreshCounter, setImportRefreshCounter] = useState<number>(0);
 
@@ -286,13 +379,10 @@ const ModelTable: <TBaseModel extends BaseModel>(
             action: ActionButtonSchema<TBaseModel>,
           ): ActionButtonSchema<TBaseModel> => {
             /*
-             * A row the reader may not change (getEditDisabledReason) keeps
-             * its switch locked, with the same reason as its Edit.
+             * A row the reader may not change (getEditDisabledReason, its
+             * labels' lock among it) keeps its switch locked, with the same
+             * reason as its Edit.
              */
-            const getEditDisabledReason:
-              | ((item: TBaseModel) => string | undefined)
-              | undefined = props.getEditDisabledReason;
-
             if (!getEditDisabledReason) {
               return action;
             }
@@ -345,6 +435,41 @@ const ModelTable: <TBaseModel extends BaseModel>(
         [RULE_EMPTIED_LIMITS_COLUMN]: true,
       } as Select<TBaseModel>)
     : ruleCriteriaTable.selectMoreFields;
+
+  /*
+   * What the rows are read with beyond their columns: the row switch's
+   * column, and - for a reader whose changes the rows' labels may lock - the
+   * ids of each row's labels, beside whatever a Labels column reads of them.
+   */
+  let rowSelectMoreFields: Select<TBaseModel> | undefined =
+    baseSelectMoreFields;
+
+  if (props.rowSwitch) {
+    rowSelectMoreFields = {
+      ...((baseSelectMoreFields ||
+        props.selectMoreFields ||
+        {}) as Select<TBaseModel>),
+      [props.rowSwitch.column]: true,
+    } as Select<TBaseModel>;
+  }
+
+  if (rowLabelLock) {
+    const selected: Dictionary<unknown> =
+      ((rowSelectMoreFields ||
+        props.selectMoreFields ||
+        {}) as Dictionary<unknown>) || {};
+    const labelsSelect: unknown = selected[rowLabelLock.labelsColumn];
+
+    rowSelectMoreFields = {
+      ...selected,
+      [rowLabelLock.labelsColumn]: {
+        ...(labelsSelect && typeof labelsSelect === "object"
+          ? (labelsSelect as Dictionary<unknown>)
+          : {}),
+        _id: true,
+      },
+    } as Select<TBaseModel>;
+  }
 
   if (props.enableJsonImportExport) {
     bulkActions = {
@@ -407,23 +532,19 @@ const ModelTable: <TBaseModel extends BaseModel>(
         {...props}
         columns={columns}
         filters={ruleCriteriaTable.filters}
-        {...(baseSelectMoreFields
-          ? { selectMoreFields: baseSelectMoreFields }
+        {...(rowSelectMoreFields
+          ? { selectMoreFields: rowSelectMoreFields }
           : {})}
         {...(props.rowSwitch
           ? {
-              selectMoreFields: {
-                ...((baseSelectMoreFields ||
-                  props.selectMoreFields ||
-                  {}) as Select<TBaseModel>),
-                [props.rowSwitch.column]: true,
-              } as Select<TBaseModel>,
               actionButtons: [
                 ...rowSwitchActions,
                 ...(props.actionButtons || []),
               ],
             }
           : {})}
+        getEditDisabledReason={getEditDisabledReason}
+        getDeleteDisabledReason={getDeleteDisabledReason}
         helpContent={ruleCriteriaTable.helpContent}
         bulkActions={bulkActions}
         cardProps={cardProps}

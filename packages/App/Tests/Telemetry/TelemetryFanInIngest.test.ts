@@ -15,7 +15,9 @@ import SpanService from "Common/Server/Services/SpanService";
 import LogService from "Common/Server/Services/LogService";
 import MetricService from "Common/Server/Services/MetricService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
-import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import TelemetryFanInWriter, {
+  readAsyncInsertBufferSettingsFromEnv,
+} from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import { runWithInsertDedup } from "Common/Server/Services/AnalyticsDatabaseService";
 import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
@@ -511,6 +513,17 @@ const METRICS_CLICKHOUSE_SETTINGS: JSONObject = {
   distributed_foreground_insert: 1,
 };
 
+/*
+ * What a metrics insert reaches ClickHouse with: the async-insert buffer
+ * limits the writer puts under every insert it makes (so a table gets about
+ * one part a second however many workers insert), the metrics-only
+ * settings over them.
+ */
+const METRICS_INSERT_CLICKHOUSE_SETTINGS: Record<string, unknown> = {
+  ...readAsyncInsertBufferSettingsFromEnv(),
+  ...METRICS_CLICKHOUSE_SETTINGS,
+};
+
 function setupMetricsIngestMocks(): void {
   const service: Record<string, any> = OtelMetricsIngestService as unknown as {
     [key: string]: any;
@@ -667,7 +680,9 @@ describe("Telemetry fan-in ingest — metrics end to end through the writer", ()
      */
     for (const call of metricInsertSpy.mock.calls) {
       const options: InsertOptions = call[1] as InsertOptions;
-      expect(options?.clickhouseSettings).toEqual(METRICS_CLICKHOUSE_SETTINGS);
+      expect(options?.clickhouseSettings).toEqual(
+        METRICS_INSERT_CLICKHOUSE_SETTINGS,
+      );
     }
   });
 
@@ -715,6 +730,8 @@ describe("Telemetry fan-in ingest — metrics end to end through the writer", ()
       `job-x:${MetricService.model.tableName}:0`,
     );
     expect(options?.dedupToken).not.toMatch(/^fanin:/);
-    expect(options?.clickhouseSettings).toEqual(METRICS_CLICKHOUSE_SETTINGS);
+    expect(options?.clickhouseSettings).toEqual(
+      METRICS_INSERT_CLICKHOUSE_SETTINGS,
+    );
   });
 });

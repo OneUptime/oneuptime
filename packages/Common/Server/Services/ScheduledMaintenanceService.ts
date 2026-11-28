@@ -3305,6 +3305,11 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
         await this.changeAttachedMonitorStates(eventWithAddedMonitor, {
           isRoot: true,
         });
+
+        // Its time counts as the events holding it say from here (#11301).
+        await ScheduledMaintenanceStateTimelineService.markUptimeOfMonitors(
+          eventWithAddedMonitor,
+        );
       } catch (err) {
         const logAttributes: LogAttributes = {
           projectId: data.projectId.toString(),
@@ -3428,10 +3433,12 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
    * as it is, so a monitor the move did reach in the new status is not
    * written twice.
    *
-   * A status cleared changes nothing: the monitors keep the status they
-   * have until the event ends and puts them back to operational. An event
-   * that does not hold its monitors (still scheduled, or over) has nothing
-   * to apply it to.
+   * A status cleared changes no status: the monitors keep the one they have
+   * until the event ends and puts them back to operational - but that status
+   * is now only what the event left them in, so their time is left out of
+   * uptime from here, unless something else pausing them sets one (#11301).
+   * An event that does not hold its monitors (still scheduled, or over) has
+   * nothing to apply it to.
    *
    * The write has committed: whatever fails here is logged, never turned
    * into an error.
@@ -3441,7 +3448,7 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
     projectId: ObjectID | undefined;
     monitorStatusId: string | null;
   }): Promise<void> {
-    if (!data.monitorStatusId || !data.projectId) {
+    if (!data.projectId) {
       return;
     }
 
@@ -3490,18 +3497,26 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
 
       const eventWithStatus: Model = new Model(data.scheduledMaintenanceId);
       eventWithStatus.projectId = data.projectId;
-      eventWithStatus.changeMonitorStatusToId = new ObjectID(
-        data.monitorStatusId,
-      );
       eventWithStatus.monitors = monitorIds.map(
         (monitorId: ObjectID): Monitor => {
           return new Monitor(monitorId);
         },
       );
 
-      await this.changeAttachedMonitorStates(eventWithStatus, {
-        isRoot: true,
-      });
+      if (data.monitorStatusId) {
+        eventWithStatus.changeMonitorStatusToId = new ObjectID(
+          data.monitorStatusId,
+        );
+
+        await this.changeAttachedMonitorStates(eventWithStatus, {
+          isRoot: true,
+        });
+      }
+
+      // Their time counts as the event now says, from here (#11301).
+      await ScheduledMaintenanceStateTimelineService.markUptimeOfMonitors(
+        eventWithStatus,
+      );
     } catch (err) {
       logger.error(
         `ScheduledMaintenanceService.applyMonitorStatusToStartedEvent: could not put the monitors of scheduled maintenance ${data.scheduledMaintenanceId.toString()} in the status it changes them to; the update itself is saved.`,

@@ -427,6 +427,8 @@ Eine Entscheidung fällt einmal, mit den Einstellungen des Projekts in diesem Mo
 
 Findet die Untersuchung die Ursache im Code, sagt der Schritt, was daraus wurde: den Korrektur-Pull-Request, den OneUptime AI schreibt oder geöffnet hat, mit einem Link dorthin in Code; den einen Einrichtungsschritt, der im Weg steht, etwa **Repository verbinden**; oder **Korrektur-Pull-Request öffnen**, mit dem Grund, warum OneUptime AI ihn nicht von selbst geöffnet hat (siehe [Automatische Code-Korrekturen](#automatische-code-korrekturen)).
 
+**Korrektur-Pull-Request öffnen** arbeitet nur in einem Repository, das Sie in Code nutzen dürfen: einem, das Sie lesen können und in dem Sie OneUptime AI arbeiten lassen dürfen, wofür Sie die Berechtigung brauchen, es zu bearbeiten. Sind mehrere Ihrer Repositorys verbunden und heißt keines wie der Monitor des Vorfalls oder der Warnung, fragt der Schritt zuerst, in welchem Repository der Code liegt, und bietet nur Ihre an. Dürfen Sie keines der verbundenen Repositorys nutzen, bietet der Schritt die Aktion nicht an. Siehe [Wo Korrekturaufgaben starten](/docs/ai/ai-agent#wo-korrekturaufgaben-starten).
+
 Die Zeitleiste des Vorfalls oder der Warnung hält jede Änderung fest. Ist ein genehmigter Plan gelaufen, listet sein Eintrag jeden Befehl in der Reihenfolge auf, in der er lief, mit dem Ort, an dem er lief, und wie er endete, und der Eintrag eines Rollbacks listet jede Rücknahme ebenso auf, mit dem Befehl, den sie zurücknahm. Die Liste steht unter **Details anzeigen** des Eintrags, nur auf der Zeitleiste: Die Slack- und Microsoft-Teams-Kanäle des Vorfalls oder der Warnung erhalten höchstens die eine Zeile des Eintrags, nie die Liste.
 
 ### Warum OneUptime AI keine Korrektur gefunden oder angehalten hat

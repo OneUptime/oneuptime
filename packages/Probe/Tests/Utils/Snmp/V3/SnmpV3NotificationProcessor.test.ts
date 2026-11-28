@@ -39,6 +39,7 @@ import {
   SnmpTrapReceiverUser,
   SnmpTrapRefusalReason,
 } from "Common/Types/Probe/SnmpTrapReceiver";
+import { SnmpV3CredentialHolders } from "Common/Types/Probe/SnmpV3CredentialHolders";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -1037,6 +1038,125 @@ describe("one user name, several keys", () => {
         ),
       ),
     ).toBe(SnmpTrapRefusalReason.WrongDigest);
+  });
+});
+
+describe("who signed it is sent back with it (#11172)", () => {
+  const BLADE_1: TestCredential = {
+    userName: "blade-monitor",
+    authProtocol: SnmpAuthProtocol.SHA,
+    authPassphrase: "blade-1-auth-passphrase",
+    privProtocol: SnmpPrivProtocol.AES,
+    privPassphrase: "blade-1-priv-passphrase",
+  };
+  const BLADE_2: TestCredential = {
+    ...BLADE_1,
+    authPassphrase: "blade-2-auth-passphrase",
+    privPassphrase: "blade-2-priv-passphrase",
+  };
+  const OPEN: TestCredential = { userName: "open-traps" };
+
+  function holders(deviceId: string): SnmpV3CredentialHolders {
+    return {
+      projectIds: ["11720000-0000-4000-8000-0000000000a1"],
+      deviceIds: [deviceId],
+      siteIds: [],
+    };
+  }
+
+  const HELD_BY_BLADE_1: SnmpV3CredentialHolders = holders(
+    "11720000-0000-4000-8000-000000000b01",
+  );
+  const HELD_BY_BLADE_2: SnmpV3CredentialHolders = holders(
+    "11720000-0000-4000-8000-000000000b02",
+  );
+
+  beforeEach(() => {
+    // Two blades behind one chassis address: one user name, their own keys.
+    users.replace([
+      {
+        ...user(BLADE_1, SnmpSecurityLevel.AuthPriv),
+        heldBy: HELD_BY_BLADE_1,
+      },
+      {
+        ...user(BLADE_2, SnmpSecurityLevel.AuthPriv),
+        heldBy: HELD_BY_BLADE_2,
+      },
+      {
+        ...user(OPEN, SnmpSecurityLevel.NoAuthNoPriv),
+        heldBy: holders("11720000-0000-4000-8000-000000000b03"),
+      },
+      user(SAN_MONITOR, SnmpSecurityLevel.AuthPriv),
+    ]);
+  });
+
+  test("a trap carries the holders of the key that verified it, not of the name it came as", () => {
+    expect(
+      accepted(
+        processor.process(
+          buildTestV3Message({
+            credential: BLADE_1,
+            engineId: DEVICE_ENGINE_ID,
+          }),
+          DEVICE,
+        ),
+      ).signedBy,
+    ).toEqual(HELD_BY_BLADE_1);
+
+    expect(
+      accepted(
+        processor.process(
+          buildTestV3Message({
+            credential: BLADE_2,
+            engineId: OTHER_DEVICE_ENGINE_ID,
+          }),
+          DEVICE,
+        ),
+      ).signedBy,
+    ).toEqual(HELD_BY_BLADE_2);
+  });
+
+  test("an inform carries them too", () => {
+    expect(
+      accepted(
+        processor.process(
+          buildTestV3Message({
+            credential: BLADE_2,
+            engineId: PROBE_ENGINE_ID,
+            engineBoots: SNMP_ENGINE_BOOTS,
+            engineTime: probeTime(),
+            pduType: BerTag.InformRequestPdu,
+          }),
+          DEVICE,
+        ),
+      ).signedBy,
+    ).toEqual(HELD_BY_BLADE_2);
+  });
+
+  test("a noAuthNoPriv trap carries none: its user name is anyone's to send", () => {
+    const notification: SnmpV3Notification = accepted(
+      processor.process(
+        buildTestV3Message({ credential: OPEN, engineId: DEVICE_ENGINE_ID }),
+        DEVICE,
+      ),
+    );
+
+    expect(notification.userName).toBe("open-traps");
+    expect(notification).not.toHaveProperty("signedBy");
+  });
+
+  test("a user OneUptime handed with no holders (a server older than #11172) sends none", () => {
+    expect(
+      accepted(
+        processor.process(
+          buildTestV3Message({
+            credential: SAN_MONITOR,
+            engineId: DEVICE_ENGINE_ID,
+          }),
+          DEVICE,
+        ),
+      ),
+    ).not.toHaveProperty("signedBy");
   });
 });
 

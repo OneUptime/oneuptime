@@ -1347,14 +1347,72 @@ describe("toPresentationInput: paused time left out of uptime", () => {
     ).toBe("monitoring-off");
   });
 
-  test("not paused by an incident: nothing of the kind, whatever the newest row says", () => {
+  test("not paused: nothing of the kind, whatever the newest row says", () => {
     expect(
       inputFor({ pause: {}, isNewestRowOff: true }).pause.isLeftOutOfUptime,
     ).toBe(false);
+  });
+
+  /*
+   * Scheduled maintenance that sets no status leaves its paused time out as
+   * an incident declared by hand does (#11301); one that sets a status counts
+   * it as that status, as before.
+   */
+  test("paused by scheduled maintenance with no status, its newest status event marking the time left out", () => {
+    const input: MonitorOverviewPresentationInput = inputFor({
+      pause: {
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      },
+      isNewestRowOff: true,
+    });
+
+    expect(input.pause.isLeftOutOfUptime).toBe(true);
+    expect(
+      MonitorOverviewPresentationUtil.getUptimeCaveat(
+        MonitorOverviewPresentationUtil.build(input),
+      ),
+    ).toBe("paused-left-out");
+  });
+
+  test("paused by scheduled maintenance that puts it in a status: its time counts, and the windows say they include it", () => {
+    const input: MonitorOverviewPresentationInput = inputFor({
+      pause: {
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      },
+      isNewestRowOff: false,
+    });
+
+    expect(input.pause.isLeftOutOfUptime).toBe(false);
+    expect(
+      MonitorOverviewPresentationUtil.getUptimeCaveat(
+        MonitorOverviewPresentationUtil.build(input),
+      ),
+    ).toBe("paused");
+  });
+
+  test("paused by both, its newest status event marking the time left out", () => {
+    const input: MonitorOverviewPresentationInput = inputFor({
+      pause: {
+        disableActiveMonitoringBecauseOfManualIncident: true,
+        disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+      },
+      isNewestRowOff: true,
+    });
+
+    expect(input.pause.isLeftOutOfUptime).toBe(true);
+    expect(
+      MonitorOverviewPresentationUtil.getUptimeCaveat(
+        MonitorOverviewPresentationUtil.build(input),
+      ),
+    ).toBe("paused-left-out");
+  });
+
+  test("turned off while maintenance pauses it: the switch speaks for the time, not the pause", () => {
     expect(
       inputFor({
         pause: {
           disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+          disableActiveMonitoring: true,
         },
         isNewestRowOff: true,
       }).pause.isLeftOutOfUptime,

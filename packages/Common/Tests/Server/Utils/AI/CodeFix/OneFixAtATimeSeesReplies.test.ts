@@ -9,7 +9,11 @@ import CodeRepositoryService from "../../../../../Server/Services/CodeRepository
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import CodeFixAutoRetry from "../../../../../Server/Utils/AI/CodeFix/CodeFixAutoRetry";
+import CodeFixPersonRepository from "../../../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
 import CodeFixRunRepository from "../../../../../Server/Utils/AI/CodeFix/CodeFixRunRepository";
+import CodeFixStartGate from "../../../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { EVERY_CODE_REPOSITORY } from "../../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import FixRunBudget from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeTaskGate from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
@@ -100,6 +104,11 @@ const REPOSITORY_ID: ObjectID = new ObjectID(
   "9882aaaa-0000-4000-8000-0000000000f1",
 );
 const USER_ID: ObjectID = new ObjectID("9882aaaa-0000-4000-8000-0000000000aa");
+// Who asks for the fix, as their request reads.
+const PERSON: DatabaseCommonInteractionProps = {
+  userId: USER_ID,
+  tenantId: PROJECT_ID,
+};
 const TRACE_ID: string = "4bf92f3577b34da6a3ce929d0e0e4736";
 const ANALYSIS: string =
   "## Root cause\n\nThe pool is exhausted under load; size it to the workers.";
@@ -169,6 +178,30 @@ beforeEach(() => {
     .mockResolvedValue({ release: jest.fn() } as unknown as SemaphoreMutex);
   jest.spyOn(Semaphore, "release").mockResolvedValue();
   jest.spyOn(CodeFixRunRepository, "resolveForNewRun").mockResolvedValue(null);
+  /*
+   * The person may use the project's one repository, and Code's gate says
+   * nothing: in which repository a person's fix is made has its own suites
+   * (FixWithAiRepositoryYouMayUseOverHttp, #11209).
+   */
+  jest
+    .spyOn(CodeFixPersonRepository, "getUsableRepositories")
+    .mockResolvedValue({
+      connectedCount: 1,
+      usable: [
+        {
+          id: REPOSITORY_ID.toString(),
+          name: "checkout",
+          organizationName: "acme",
+          repositoryName: "checkout",
+          mainBranchName: "main",
+          gitHubAppInstallationId: "1234",
+        },
+      ],
+      allowance: EVERY_CODE_REPOSITORY,
+    });
+  jest
+    .spyOn(CodeFixStartGate, "check")
+    .mockResolvedValue({ codeRepositoryId: REPOSITORY_ID, blocker: null });
 });
 
 afterEach(() => {
@@ -343,6 +376,7 @@ describe.each([
         projectId: PROJECT_ID,
         investigationRunId: new ObjectID(investigation._id),
         userId: USER_ID,
+        props: PERSON,
         ...subject,
       });
     }
@@ -488,6 +522,7 @@ describe.each([CodeFixTaskType.ImproveLogging, CodeFixTaskType.ImproveTracing])(
           telemetryServiceId: SERVICE_ID,
           taskType: recipe,
           userId: USER_ID,
+          props: PERSON,
         },
       );
     }

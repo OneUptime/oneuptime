@@ -206,8 +206,8 @@ OneUptime 會自動為每筆日誌加上下列屬性：
 
 | syslog 嚴重性 | 代碼 | OneUptime 嚴重性 |
 | --- | --- | --- |
-| Emergency、Alert | `0`、`1` | `Fatal` |
-| Critical、Error | `2`、`3` | `Error` |
+| Emergency | `0` | `Fatal` |
+| Alert、Critical、Error | `1`、`2`、`3` | `Error` |
 | Warning | `4` | `Warning` |
 | Notice、Informational | `5`、`6` | `Information` |
 | Debug | `7` | `Debug` |

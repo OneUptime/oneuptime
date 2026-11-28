@@ -140,6 +140,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Intagningsnyckeln från **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
 | `PODMAN_HOST_NAME` | Nej | Värdens namn i OneUptime. Standard är `podman-host`, så ge varje värd ett eget. |
 | `DOCKER_API_VERSION` | Nej | Den Docker API-version som agenten talar med Podman-socketen. Tom som standard: agenten förhandlar fram den med socketen. Sätt den bara för att låsa en version (se [Felsökning](#felsökning)). |
+| `ONEUPTIME_LOG_OPERATOR_1` till `ONEUPTIME_LOG_OPERATOR_5` | Nej | Egna collector-operatorer, en per variabel som JSON, för ett loggformat som agenten inte läser. Se [Läsa ditt eget loggformat](#läsa-ditt-eget-loggformat). |
 
 För att ändra ett värde tar du bort agenten och kör dess kommando igen (Podman CLI), eller redigerar `docker-compose.yml` och kör `podman compose up -d` (Podman Compose).
 
@@ -200,6 +201,33 @@ log_size_max = 104857600
 ```
 
 Återskapa sedan containrarna. En container behåller den loggdrivrutin den skapades med, så det räcker inte att starta om den.
+
+## Läsa ditt eget loggformat
+
+Agenten läser nivåerna i de format som de flesta program skriver. För ett format som den inte läser, till exempel ett internt, kan du ge den upp till fem egna collector-operatorer, var och en som JSON i `ONEUPTIME_LOG_OPERATOR_1` till `ONEUPTIME_LOG_OPERATOR_5`. De körs på varje loggrad från en container efter att agenten har läst dess container och ström, och innan den läser radens nivå. För att sätta en rads nivå skriver du den till `attributes.severity_text` som ett ord agenten läser, till exempel `ERROR`, `warn` eller `critical`, och skickar raden vidare till `severity-router`, agentens första steg. En operator som själv sätter allvarlighetsgraden, till exempel en `severity_parser`, skrivs över: agenten läser varje rads nivå efter dina operatorer.
+
+För rader som `<<E>> payment failed`, där bokstaven är nivån:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+Collectorn startar inte med en operator som den inte kan bygga, så kontrollera operatorerna innan agenten kör dem:
+
+- `install.sh` kontrollerar dem, när du kör det med variablerna satta, med collectorns egen `validate` innan det rör agenten du har. Om collectorn avvisar dem stoppar skriptet med collectorns meddelande, och din agent fortsätter att köra.
+- Med Podman Compose lägger du dem i `.env` bredvid `docker-compose.yml`, varje värde inom enkla citattecken, och kör `podman compose up -d`. Tjänsten `oneuptime-podman-agent-config-check` kör samma kontroll först. När `podman compose` kör Docker Compose startar agenten bara om den går igenom; podman-compose startar agenten oavsett vad kontrollen säger, så läs kontrollens utdata med `podman compose logs oneuptime-podman-agent-config-check`.
+- Med Podman CLI kör du kontrollen själv, med agentens övriga variabler, och startar sedan agenten med samma `-e`-flaggor:
+
+```bash
+podman run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e PODMAN_HOST_NAME="my-podman-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/podman-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes-agent](/docs/telemetry/kubernetes-agent#läsa-ditt-eget-loggformat) förklarar operatorerna i exemplet, som Kubernetes-agenten också tar emot.
 
 ## Uppgradera agenten
 

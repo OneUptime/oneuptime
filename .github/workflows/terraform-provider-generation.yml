@@ -71,6 +71,17 @@ jobs:
         with:
           working-directory: Scripts/TerraformProvider
 
+      # The unit tests build a provider twice with the generator's
+      # .goreleaser.yml and hold the zips to being the same bytes
+      # (Tests/GoReleaserConfig.test.ts, #11016), with the GoReleaser the
+      # release builds with: release.yml's publish-terraform-provider
+      # installs the same, and the Go set up above is its too.
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6.1.0
+        with:
+          install-only: true
+          version: '~> v2'
+
       # Type-checks the generator - Core/, Tests/, GenerateProvider.ts - and
       # all it imports: ../OpenAPI/GenerateSpec.ts and, through the Common/*
       # alias, Common's sources, with Common's own compiler options (its

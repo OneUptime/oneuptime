@@ -568,7 +568,11 @@ describe("a line without a priority", () => {
     const row: JSONObject = onlyRow();
 
     expect(row["severityText"]).toBe(LogSeverity.Error);
-    expect(row["severityNumber"]).toBe(19);
+    /*
+     * RouterOS sends 3 for its error topics: syslog's err, ERROR (17), as
+     * the word is stored (issue #11228).
+     */
+    expect(row["severityNumber"]).toBe(17);
     // Nothing is invented about a priority the line never had.
     expect(Object.keys(attributesOf(row))).not.toContain(
       "syslog.severity.code",
