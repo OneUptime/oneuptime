@@ -6042,3 +6042,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MaintenancePausedTimeUptimePostgres.test.ts
           --forceExit
+
+      # Which status a monitor several pauses hold is in (#11432): the most
+      # severe of what its incidents declared by hand and its maintenance
+      # events set, through every start, edit and release in the services'
+      # own paths - every combination of two pauses let go in each order,
+      # and drawn sequences of three and four, held to a model of the rule -
+      # on structure-only copies of the migrated tables.
+      - name: Test which status a monitor several pauses hold is in on Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_PAUSE_HELD_STATUS_TESTS: "true"
+          MONITOR_PAUSE_HELD_STATUS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_PAUSE_HELD_STATUS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_PAUSE_HELD_STATUS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorPauseHeldStatusPostgres.test.ts
+          --forceExit

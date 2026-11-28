@@ -9,8 +9,13 @@ import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
+import MonitorPausedBy, {
+  MonitorPausedByUtil,
+} from "../../../Types/Monitor/MonitorPausedBy";
 import DayUptimeGraphUtil, {
+  DayLeftOutReading,
   DaySpan,
+  PausedDaySpan,
   UptimeGraphDay,
 } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeMaintenanceUtil from "../../../Utils/Uptime/UptimeMaintenanceUtil";
@@ -62,6 +67,12 @@ export interface UptimeBarDaySummary {
    * what the tooltip says: a day monitoring was off, or for how long.
    */
   monitoringOffSeconds: number;
+  /*
+   * Of it, what a pause left out, and what paused the monitor (#11433), so
+   * the dialog says "paused" and why, as the tooltip does.
+   */
+  pausedSeconds: number;
+  pausedBy: MonitorPausedBy | null;
 }
 
 /*
@@ -90,6 +101,12 @@ export interface DayReading {
    * coveredSeconds: with no coverage, the day was off, not without data.
    */
   monitoringOffSeconds?: number | undefined;
+  /*
+   * Of it, the time a pause left out (UptimeDayBucket.pausedSeconds,
+   * #11433), and what paused the monitor.
+   */
+  pausedSeconds?: number | undefined;
+  pausedBy?: MonitorPausedBy | null | undefined;
 }
 
 /*
@@ -158,9 +175,10 @@ export interface ComponentProps {
    * The time monitoring was off, from the timeline rows (UptimeUtil
    * .getMonitoringOffSpans), for a day the events decide: a day with a
    * reading takes its monitoringOffSeconds instead. A day nothing was
-   * checked on, but monitoring was off for, says so (issue #7112).
+   * checked on, but monitoring was off for, says so (issue #7112). Each
+   * span says what paused the monitor, when a pause left it out (#11433).
    */
-  monitoringOffSpans?: Array<DaySpan> | undefined;
+  monitoringOffSpans?: Array<PausedDaySpan> | undefined;
   /*
    * Wording for the accessible names. Defaults to English, matching the
    * tooltip; the status page passes translated strings.
@@ -622,19 +640,51 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
      * someone turned monitoring off, and the bar, its name and its tooltip
      * say so. A day with data keeps its uptime, of the time that was checked.
      */
+    const checkedSpansOfTheDay: Array<DaySpan> = todaysReading
+      ? []
+      : todaysEvents.map((event: Event): DaySpan => {
+          return {
+            startDate: OneUptimeDate.fromString(event.startDate),
+            endDate: OneUptimeDate.fromString(event.endDate),
+          };
+        });
+
     const monitoringOffSeconds: number = todaysReading
       ? Math.max(Number(todaysReading.monitoringOffSeconds) || 0, 0)
       : DayUptimeGraphUtil.getMonitoringOffSecondsOfDay({
           monitoringOffSpans: props.monitoringOffSpans || [],
-          checkedSpans: todaysEvents.map((event: Event): DaySpan => {
-            return {
-              startDate: OneUptimeDate.fromString(event.startDate),
-              endDate: OneUptimeDate.fromString(event.endDate),
-            };
-          }),
+          checkedSpans: checkedSpansOfTheDay,
           dayStart: startOfTheDay,
           dayEnd: new Date(dayEndTime),
         });
+
+    /*
+     * Of it, what a pause left out and what paused the monitor (#11433):
+     * the reading's, or the paused spans' less what was checked.
+     */
+    const pausedTime: {
+      pausedSeconds: number;
+      pausedBy: MonitorPausedBy | null;
+    } = todaysReading
+        ? {
+            pausedSeconds: Math.max(
+              Number(todaysReading.pausedSeconds) || 0,
+              0,
+            ),
+            pausedBy: MonitorPausedByUtil.fromValue(todaysReading.pausedBy),
+          }
+        : DayUptimeGraphUtil.getPausedTimeOfDay({
+            monitoringOffSpans: props.monitoringOffSpans || [],
+            checkedSpans: checkedSpansOfTheDay,
+            dayStart: startOfTheDay,
+            dayEnd: new Date(dayEndTime),
+          });
+
+    const leftOut: DayLeftOutReading = DayUptimeGraphUtil.readLeftOutTime({
+      monitoringOffSeconds: monitoringOffSeconds,
+      pausedSeconds: pausedTime.pausedSeconds,
+      pausedBy: pausedTime.pausedBy,
+    });
 
     const isMonitoringOffDay: boolean = DayUptimeGraphUtil.isMonitoringOffDay({
       hasEvents: hasDataForTheDay,
@@ -719,6 +769,8 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       incidents: dayIncidents,
       maintenanceEvents: dayMaintenance,
       monitoringOffSeconds: monitoringOffSeconds,
+      pausedSeconds: leftOut.pausedSeconds,
+      pausedBy: leftOut.pausedBy,
     };
 
     const ariaLabel: string = DayUptimeGraphUtil.getDayAriaLabel({
@@ -731,6 +783,8 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       incidentCount: dayIncidents.length,
       maintenanceCount: dayMaintenance.length,
       monitoringOffSeconds: monitoringOffSeconds,
+      pausedSeconds: leftOut.pausedSeconds,
+      pausedBy: leftOut.pausedBy,
       labels: props.labels,
     });
 
@@ -746,6 +800,8 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             hasEvents={hasEvents}
             statusDurations={statusDurations}
             monitoringOffSeconds={monitoringOffSeconds}
+            pausedSeconds={leftOut.pausedSeconds}
+            pausedBy={leftOut.pausedBy}
             incidents={dayIncidents}
             onIncidentClick={props.onIncidentClick}
             maintenanceEvents={dayMaintenance}
@@ -787,6 +843,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
           }`}
           data-has-data={hasDataForTheDay ? "true" : "false"}
           data-monitoring-off={isMonitoringOffDay ? "true" : "false"}
+          data-paused-by={
+            isMonitoringOffDay && leftOut.isNamedPaused && leftOut.pausedBy
+              ? leftOut.pausedBy
+              : undefined
+          }
           data-has-maintenance={hasMaintenance ? "true" : "false"}
           /*
            * The bar's colour exactly as picked, in both themes. On the dark

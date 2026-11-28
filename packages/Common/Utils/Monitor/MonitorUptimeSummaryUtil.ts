@@ -1,6 +1,9 @@
 import { Moment } from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
+import MonitorPausedBy, {
+  MonitorPausedByUtil,
+} from "../../Types/Monitor/MonitorPausedBy";
 import {
   MonitorUptimeSummary,
   MonitorUptimeSummaryStatus,
@@ -422,6 +425,16 @@ export default class MonitorUptimeSummaryUtil {
           json["monitoringOffSeconds"] = bucket.monitoringOffSeconds;
         }
 
+        // And, of it, the time a pause left out, with what paused it (#11433).
+        if (
+          bucket.pausedSeconds &&
+          bucket.pausedSeconds > 0 &&
+          bucket.pausedBy
+        ) {
+          json["pausedSeconds"] = bucket.pausedSeconds;
+          json["pausedBy"] = bucket.pausedBy;
+        }
+
         return json;
       }),
       windows: summary.windows.map(
@@ -517,6 +530,20 @@ export default class MonitorUptimeSummaryUtil {
 
       if (monitoringOffSeconds > 0) {
         parsed.monitoringOffSeconds = monitoringOffSeconds;
+
+        // Of it, the time a pause left out, never more (#11433).
+        const pausedSeconds: number = Math.min(
+          toSeconds(bucket["pausedSeconds"]),
+          monitoringOffSeconds,
+        );
+        const pausedBy: MonitorPausedBy | null = MonitorPausedByUtil.fromValue(
+          bucket["pausedBy"],
+        );
+
+        if (pausedSeconds > 0 && pausedBy) {
+          parsed.pausedSeconds = pausedSeconds;
+          parsed.pausedBy = pausedBy;
+        }
       }
 
       buckets.push(parsed);

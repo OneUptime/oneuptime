@@ -3,6 +3,9 @@ import MonitorEvent from "./MonitorEvent";
 import { Green } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
+import MonitorPausedBy, {
+  MonitorPausedByUtil,
+} from "../../Types/Monitor/MonitorPausedBy";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
@@ -42,6 +45,12 @@ export interface MonitoringOffSpan {
   monitorId: ObjectID;
   startDate: Date;
   endDate: Date;
+  /*
+   * What paused the monitor for the span, when a pause rather than its
+   * monitoring switch left the time out (MonitorStatusTimeline.pausedBy,
+   * #11433); null for monitoring turned off.
+   */
+  pausedBy?: MonitorPausedBy | null | undefined;
 }
 
 // An interval in epoch milliseconds, start before end.
@@ -178,6 +187,7 @@ export default class UptimeUtil {
           monitorId: monitorId,
           startDate: OneUptimeDate.fromString(span.startDate),
           endDate: OneUptimeDate.fromString(span.endDate),
+          pausedBy: MonitorPausedByUtil.fromValue(span.row.pausedBy),
         });
       }
     }

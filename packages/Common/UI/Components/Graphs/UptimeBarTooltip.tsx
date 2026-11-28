@@ -1,4 +1,5 @@
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
+import MonitorPausedBy from "../../../Types/Monitor/MonitorPausedBy";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
 import { MAINTENANCE_MARK_COLOR } from "../../../Utils/StatusPage/HistoryChartBarColors";
@@ -76,6 +77,9 @@ export interface ComponentProps {
    * part says for how long under its uptime.
    */
   monitoringOffSeconds?: number | undefined;
+  // Of it, what a pause left out, and what paused the monitor (#11433).
+  pausedSeconds?: number | undefined;
+  pausedBy?: MonitorPausedBy | null | undefined;
   incidents: Array<UptimeBarTooltipIncident>;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
   /*
@@ -180,6 +184,8 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
         hasEvents={props.hasEvents}
         statusDurations={props.statusDurations}
         monitoringOffSeconds={props.monitoringOffSeconds}
+        pausedSeconds={props.pausedSeconds}
+        pausedBy={props.pausedBy}
         hasFollowingContent={hasIncidents || hasMaintenance}
         labels={props.labels}
       />

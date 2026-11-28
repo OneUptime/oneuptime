@@ -2,6 +2,10 @@ import { Translator } from "../../../Types/Translator";
 import {
   BACK_IN_STATUS_OF_INCIDENT,
   BACK_IN_STATUS_OF_MAINTENANCE,
+  IN_MOST_SEVERE_STATUS_OF_PAUSING_INCIDENT,
+  IN_MOST_SEVERE_STATUS_OF_PAUSING_MAINTENANCE,
+  IN_STATUS_OF_PAUSING_INCIDENT,
+  IN_STATUS_OF_PAUSING_MAINTENANCE,
   MONITORING_PAUSED_BY_INCIDENTS,
   MONITORING_PAUSED_BY_INCIDENTS_AND_MAINTENANCE,
   MONITORING_PAUSED_FOR_MAINTENANCE,
@@ -24,7 +28,7 @@ import { describe, expect, test } from "@jest/globals";
 
 /*
  * THE NOTES A PAUSE WRITES, AND THE BAND NOTES OF THE EVALUATION LOG, IN
- * EVERY LANGUAGE THE DASHBOARD SHIPS (issues #11141, #11301, #11349).
+ * EVERY LANGUAGE THE DASHBOARD SHIPS (issues #11141, #11301, #11349, #11432).
  *
  * A monitor's Status Timeline marks where a pause by an incident declared
  * by hand or by scheduled maintenance starts leaving its time out of uptime,
@@ -56,6 +60,11 @@ const PAUSE_NOTES: ReadonlyArray<[string, Record<string, string>]> = [
   [MONITORING_RESUMED, {}],
   [BACK_IN_STATUS_OF_INCIDENT, { incident: INCIDENT_LINK }],
   [BACK_IN_STATUS_OF_MAINTENANCE, { event: EVENT_LINK }],
+  // A monitor in the most severe status of what still pauses it (#11432).
+  [IN_STATUS_OF_PAUSING_INCIDENT, { incident: INCIDENT_LINK }],
+  [IN_STATUS_OF_PAUSING_MAINTENANCE, { event: EVENT_LINK }],
+  [IN_MOST_SEVERE_STATUS_OF_PAUSING_INCIDENT, { incident: INCIDENT_LINK }],
+  [IN_MOST_SEVERE_STATUS_OF_PAUSING_MAINTENANCE, { event: EVENT_LINK }],
 ];
 
 // The evaluation log's sentences for a series left to an earlier band.

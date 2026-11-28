@@ -108,6 +108,8 @@ export const MONITOR_OVERVIEW_STATUS_ROW_SELECT: Select<MonitorStatusTimeline> =
     monitorStatusId: true,
     // "Recent status changes" marks a status held with monitoring off.
     isMonitoringOff: true,
+    // Or paused, and by what (#11433).
+    pausedBy: true,
     monitorStatus: {
       _id: true,
       name: true,

@@ -6,6 +6,8 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import MonitorPausedBy from "../../Types/Monitor/MonitorPausedBy";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnType from "../../Types/Database/ColumnType";
@@ -494,6 +496,48 @@ export default class MonitorStatusTimeline extends BaseModel {
     default: false,
   })
   public isMonitoringOff?: boolean = undefined;
+
+  /*
+   * What paused the monitor's checks for the time this status event covers,
+   * when that time is left out of uptime (isMonitoringOff) because of a
+   * pause rather than the monitor's monitoring switch (issue #11433): an
+   * incident declared by hand, scheduled maintenance, or both, with no status
+   * set for the monitor (MonitorIncidentPause). Empty for time with
+   * monitoring turned off, and for time that counts. The day bars, their
+   * dialog and the Status Timeline say "paused" and why for such time, and
+   * "monitoring off" only for monitoring turned off. OneUptime decides it,
+   * never a write (MonitorStatusTimelineService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadMonitorStatusTimeline,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    computed: true,
+    required: false,
+    allowedValues: Object.values(MonitorPausedBy),
+    title: "Paused By",
+    description:
+      "What paused the monitor's checks for this status event, when an incident declared by hand or scheduled maintenance paused it with no status set for it, so uptime, status pages and SLOs leave the time out: Incident, ScheduledMaintenance or IncidentAndScheduledMaintenance. Empty when monitoring was turned off, and when the time counts.",
+    example: MonitorPausedBy.ScheduledMaintenance,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public pausedBy?: MonitorPausedBy = undefined;
 
   @ColumnAccessControl({
     create: [],

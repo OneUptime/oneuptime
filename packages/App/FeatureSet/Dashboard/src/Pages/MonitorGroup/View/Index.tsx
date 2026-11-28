@@ -14,6 +14,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
+import { getUptimeHistoryLabels } from "Common/Types/Monitor/UptimeHistoryLabels";
 import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import {
@@ -644,6 +645,8 @@ const MonitorGroupView: FunctionComponent<
             <MonitorUptimeGraph
               error={error}
               items={[]}
+              // In the reader's language, paused days named as paused (#11433).
+              labels={getUptimeHistoryLabels(translator)}
               uptimeBuckets={uptimeSummary.buckets}
               monitorStatuses={monitorStatuses}
               startDate={uptimeSummary.startDate}
@@ -665,6 +668,7 @@ const MonitorGroupView: FunctionComponent<
             <MonitorUptimeGraph
               error={error}
               items={statusTimelines}
+              labels={getUptimeHistoryLabels(translator)}
               startDate={OneUptimeDate.getSomeDaysAgo(90)}
               endDate={OneUptimeDate.getCurrentDate()}
               uptimeTimezone={OneUptimeDate.getCurrentTimezone()}

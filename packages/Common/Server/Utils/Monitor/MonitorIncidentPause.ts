@@ -4,6 +4,9 @@ import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import MonitorPausedBy, {
+  MonitorPausedByUtil,
+} from "../../../Types/Monitor/MonitorPausedBy";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import { compareListOrderItems, ListOrderItem } from "../../../Utils/ListOrder";
@@ -417,6 +420,12 @@ export default class MonitorIncidentPause {
    * status event already says so, nor while the monitor's monitoring is
    * turned off - its own switch then speaks for the time (MonitorService),
    * and it is left out anyway.
+   *
+   * Time left out is marked with what paused the monitor
+   * (MonitorStatusTimeline.pausedBy, #11433), so it reads "paused" and why,
+   * apart from monitoring turned off, and marked again when that changes
+   * while it stays left out: an event that joins an incident pausing the
+   * monitor, or an incident resolved while the event runs on.
    */
   @CaptureSpan()
   public static async markUptime(
@@ -429,6 +438,9 @@ export default class MonitorIncidentPause {
     }
 
     const isLeftOut: boolean = MonitorIncidentPause.isLeftOutOfUptime(state);
+    const pausedBy: MonitorPausedBy | null = isLeftOut
+      ? MonitorIncidentPause.getPausedBy(state)
+      : null;
 
     const latest: MonitorStatusTimeline | null =
       await MonitorStatusTimelineService.findOneBy({
@@ -441,13 +453,19 @@ export default class MonitorIncidentPause {
         select: {
           _id: true,
           isMonitoringOff: true,
+          pausedBy: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-    if (!latest || (latest.isMonitoringOff === true) === isLeftOut) {
+    if (
+      !latest ||
+      ((latest.isMonitoringOff === true) === isLeftOut &&
+        (!isLeftOut ||
+          MonitorPausedByUtil.fromValue(latest.pausedBy) === pausedBy))
+    ) {
       return;
     }
 
@@ -455,6 +473,21 @@ export default class MonitorIncidentPause {
       monitorId: monitorId,
       isMonitoringOff: isLeftOut,
       rootCause: await MonitorIncidentPause.getUptimeRootCause(state),
+      pausedBy: pausedBy,
+    });
+  }
+
+  /*
+   * What pauses the monitor, for its time left out (MonitorPausedBy): the
+   * incidents declared by hand pausing it, the maintenance holding it, or
+   * both. Null when nothing pauses it.
+   */
+  public static getPausedBy(
+    state: MonitorPauseUptimeState,
+  ): MonitorPausedBy | null {
+    return MonitorPausedByUtil.of({
+      isByIncident: state.isPaused,
+      isForMaintenance: MonitorIncidentPause.isPausedForMaintenance(state),
     });
   }
 

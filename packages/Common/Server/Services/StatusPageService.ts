@@ -1752,6 +1752,11 @@ export class Service extends ProjectReferencesService<StatusPage> {
            */
           isMonitoringOff: true,
           /*
+           * And what paused it, when a pause left the time out rather than
+           * monitoring turned off (#11433): the bars say "paused" and why.
+           */
+          pausedBy: true,
+          /*
            * `_id` is selected explicitly because UptimeUtil reads `monitorStatus.id` (a getter
            * over `_id`) to match events against the downtime statuses. It works today only
            * because SelectUtil.sanitizeSelect force injects `_id: true` into every relation

@@ -150,7 +150,11 @@ const MonitorStatusChangesCard: FunctionComponent<ComponentProps> = (
                         row.statusName,
                       )}
                     </span>
-                    {row.isMonitoringOff ? <MonitoringOffIndicator /> : <></>}
+                    {row.isMonitoringOff ? (
+                      <MonitoringOffIndicator pausedBy={row.pausedBy} />
+                    ) : (
+                      <></>
+                    )}
                     {row.isOngoing ? <CurrentlyActiveIndicator /> : <></>}
                   </div>
                   <p className="mt-0.5 text-xs text-gray-500">

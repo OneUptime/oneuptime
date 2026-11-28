@@ -14,7 +14,7 @@ import {
 } from "../../../Types/StatusPage/UptimeDailyAggregate";
 import UptimeUtil from "./UptimeUtil";
 import { MonitoringOffSpan } from "../../../Utils/Uptime/UptimeUtil";
-import { DaySpan } from "../../../Utils/Uptime/DayUptimeGraphUtil";
+import { PausedDaySpan } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import Color from "../../../Types/Color";
 import CommonMonitorEvent from "../../../Utils/Uptime/MonitorEvent";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
@@ -98,16 +98,21 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
   /*
    * Painted from the rows, a day's time with monitoring off is what the rows
    * that mark it cover (issue #7112): a day nothing was checked on, but
-   * monitoring was off for, says so. With buckets, each day's reading says.
+   * monitoring was off for, says so - or, for a pause, that it was paused,
+   * and why (#11433). With buckets, each day's reading says.
    */
-  const monitoringOffSpans: Array<DaySpan> | undefined = useMemo(() => {
+  const monitoringOffSpans: Array<PausedDaySpan> | undefined = useMemo(() => {
     if (props.uptimeBuckets) {
       return undefined;
     }
 
     return UptimeUtil.getMonitoringOffSpans(props.items).map(
-      (span: MonitoringOffSpan): DaySpan => {
-        return { startDate: span.startDate, endDate: span.endDate };
+      (span: MonitoringOffSpan): PausedDaySpan => {
+        return {
+          startDate: span.startDate,
+          endDate: span.endDate,
+          pausedBy: span.pausedBy,
+        };
       },
     );
   }, [props.items, props.uptimeBuckets]);
@@ -154,6 +159,9 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
         coveredSeconds: bucket.coveredSeconds,
         // The day's time with monitoring off, which no status holds (#7112).
         monitoringOffSeconds: bucket.monitoringOffSeconds,
+        // Of it, what a pause left out, and what paused the monitor (#11433).
+        pausedSeconds: bucket.pausedSeconds,
+        pausedBy: bucket.pausedBy,
         statusDurations: bucket.statusDurations.map(
           (duration: UptimeStatusDuration): StatusDuration => {
             const statusId: string = duration.monitorStatusId.toString();
