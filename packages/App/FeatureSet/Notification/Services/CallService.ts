@@ -12,6 +12,7 @@ import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
 import {
   buildCallAndSmsGatewayMessagePayload,
   CallAndSmsGatewayEvent,
+  CallAndSmsGatewayInLanguage,
 } from "Common/Types/CallAndSMS/CallAndSmsGatewayPayload";
 import CustomChannelActionToken from "Common/Server/Utils/OnCall/CustomChannelActionToken";
 import CallRequest, {
@@ -100,7 +101,10 @@ import {
 } from "Common/Utils/Call/CallSpeech";
 import { SpokenCall, getSpokenCalls } from "Common/Utils/Call/CallLanguage";
 import { getCallTranslator } from "Common/Server/Utils/ServerTranslation";
-import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import {
+  DEFAULT_READER_LANGUAGE,
+  toReaderLanguage,
+} from "Common/Types/ReaderLanguage";
 import {
   CALL_KEYPAD_FINISH_ON_KEY,
   CALL_PROMPT_REPEATS,
@@ -199,9 +203,12 @@ const SENTENCE_END: RegExp = new RegExp("[.!?…]$");
  * What a call says, for a gateway that makes it (CallAndSmsGatewayPayload):
  * its spoken sentences in order. The "press 1" a call asks for is left out -
  * it is Twilio's keypad, and the gateway offers the page's actions its own
- * way - as are the answers to a key press.
+ * way - as are the answers to a key press. Of a call request, its English
+ * words; of one way of speaking it, those words.
  */
-export function getCallGatewayMessage(callRequest: CallRequest): string {
+export function getCallGatewayMessage(
+  callRequest: CallRequest | CallRequestMessage,
+): string {
   const sentences: Array<string> = [];
 
   for (const item of callRequest.data || []) {
@@ -217,6 +224,45 @@ export function getCallGatewayMessage(callRequest: CallRequest): string {
   }
 
   return sentences.join(" ");
+}
+
+/*
+ * What a call says in the language of the person it calls, for a gateway
+ * that makes it (#11459): the language - as OneUptime names it, a BCP 47
+ * tag - and the call's sentences in it, as getCallGatewayMessage says the
+ * English ones. Every language the call carries words in, Persian among
+ * them: the gateway picks its own voice, and may have one that Twilio has
+ * not (Utils/Call/CallInLanguage). Undefined for a call in English only, a
+ * language OneUptime does not write in, and words that say nothing: the
+ * gateway then has the English alone, as it always had.
+ */
+export function getCallGatewayMessageInLanguage(
+  callRequest: CallRequestMessage,
+): CallAndSmsGatewayInLanguage | undefined {
+  const inLanguage: CallRequestMessage["inLanguage"] = callRequest.inLanguage;
+
+  if (
+    !inLanguage ||
+    typeof inLanguage !== "object" ||
+    !Array.isArray(inLanguage.data) ||
+    typeof inLanguage.language !== "string"
+  ) {
+    return undefined;
+  }
+
+  const language: string = toReaderLanguage(inLanguage.language);
+
+  if (language === DEFAULT_READER_LANGUAGE) {
+    return undefined;
+  }
+
+  const message: string = getCallGatewayMessage({ data: inLanguage.data });
+
+  if (!message) {
+    return undefined;
+  }
+
+  return { language: language, message: message };
 }
 
 /*
@@ -793,7 +839,10 @@ export default class CallService {
         /*
          * The gateway is told what the call says, and - for an on-call
          * page - given the links that act on it (CustomChannelActionToken),
-         * which it can offer as key presses of its own.
+         * which it can offer as key presses of its own. What it says is in
+         * English, as every gateway has read it, and - for a person who
+         * reads another language - in theirs too, with the language's code,
+         * for a gateway with a voice of it to speak instead (#11459).
          */
         const payload: ReturnType<typeof buildCallAndSmsGatewayMessagePayload> =
           buildCallAndSmsGatewayMessagePayload({
@@ -812,6 +861,7 @@ export default class CallService {
                   options.userOnCallLogTimelineId,
                 )
               : undefined,
+            inLanguage: getCallGatewayMessageInLanguage(callRequest),
           });
 
         // Handed to the gateway from here on.
