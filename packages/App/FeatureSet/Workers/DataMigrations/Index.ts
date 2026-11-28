@@ -166,6 +166,7 @@ import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirP
 import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
 import ArchiveHostsRegisteredFromNonHostTelemetry from "./ArchiveHostsRegisteredFromNonHostTelemetry";
 import ScopeTemplateDashboardVariablesToTheirResources from "./ScopeTemplateDashboardVariablesToTheirResources";
+import GroupHostsDashboardChartsByHost from "./GroupHostsDashboardChartsByHost";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1755,6 +1756,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * the two slots kept last.
    */
   new ScopeTemplateDashboardVariablesToTheirResources(),
+  /*
+   * The Hosts Dashboard's six charts by host, on a dashboard made before
+   * they grouped by resource.host.name, which every host's row carries:
+   * each drew every host as one line (#11258). Postgres only, idempotent;
+   * no ordering requirement of its own; before the two slots kept last.
+   */
+  new GroupHostsDashboardChartsByHost(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

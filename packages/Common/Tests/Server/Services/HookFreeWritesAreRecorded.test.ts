@@ -164,6 +164,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "(module) SecurityCase": Why.Migration,
     },
+  // The Hosts Dashboard's charts by host, grouped by the key hosts carry (#11258).
+  "packages/App/FeatureSet/Workers/DataMigrations/GroupHostsDashboardChartsByHost.ts":
+    {
+      "GroupHostsDashboardChartsByHost.migrate Dashboard": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/DataMigrations/MoveGoogleSecOpsConnectionsToSecurityEventConnections.ts":
     {
       "MoveGoogleSecOpsConnectionsToSecurityEventConnections.moveConnection SecurityEventConnection":

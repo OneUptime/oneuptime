@@ -5211,6 +5211,27 @@ jobs:
           Tests/Workers/DataMigrations/ScopeTemplateDashboardVariablesToTheirResourcesPostgres.test.ts
           --forceExit
 
+      # #11258: the Hosts Dashboards made before the template's charts by
+      # host grouped by resource.host.name get that grouping on upgrade, so
+      # each draws a line per host - and comes out as the template makes it
+      # now, after the variable's kind; a person's own chart grouped by
+      # host.name and every other dashboard are left as they are; a second
+      # run, or two at once, changes nothing more. Clones the migrated
+      # Dashboard table into an isolated schema. An App suite, so in shard 3,
+      # which installs App.
+      - name: Test grouping the Hosts Dashboards' charts by host on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_HOSTS_DASHBOARD_GROUPING_TESTS: "true"
+          HOSTS_DASHBOARD_GROUPING_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          HOSTS_DASHBOARD_GROUPING_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          HOSTS_DASHBOARD_GROUPING_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/GroupHostsDashboardChartsByHostPostgres.test.ts
+          --forceExit
+
       # #11037: Sensitive file served, added on upgrade to each project that
       # runs every other recommended rule and has none of it - on, opening
       # cases, created by nobody and marked as added by OneUptime, which the
