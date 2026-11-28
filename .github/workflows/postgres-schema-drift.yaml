@@ -114,6 +114,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AIInvestigationDecisionPostgres.test.ts --forceExit
 
+      # #11157: whether the host is swapping a VM's memory now, or only holds
+      # what it swapped before. No collector sends a swap rate, so the
+      # latest-metric UPDATE works both out from the swapped amount in the
+      # same statement, on a copy of the migrated VMwareResource table: growth
+      # is swapping out, shrinking is reading back, the same amount is memory
+      # left from earlier, and reports too far apart, delivered twice or late
+      # say nothing new.
+      - name: Test VMware swap rates on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_VMWARE_SWAP_RATE_TESTS: "true"
+          VMWARE_SWAP_RATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          VMWARE_SWAP_RATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          VMWARE_SWAP_RATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/VMwareResourceSwapRatesPostgres.test.ts --forceExit
+
       # #7571: the owners' Created notification's hold is written on the
       # incident or alert, and let go or taken by the Created job in one
       # compare-and-set each. The real services run both on copies of the
@@ -4664,24 +4683,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
 
-      # #11254: what Inventory calls a vCenter's VMs, ESXi hosts, clusters
-      # and datastores. The vcenter receiver's recorded export goes through
-      # the real metrics ingest, entity registry and InventoryItemService
-      # into clones of the migrated InventoryItem, InventoryItemRelationship
-      # and VMwareResource tables: each item by its own name (not the
-      # vCenter's, not the datacenter's), rows the old rule named renamed on
-      # their next report, and a name a person typed kept.
-      - name: Test what Inventory calls a vCenter's objects, on migrated Postgres
+      # #11254 and #11157: the vcenter receiver's recorded export goes
+      # through the real metrics ingest, entity registry and
+      # InventoryItemService into clones of the migrated InventoryItem,
+      # InventoryItemRelationship and VMwareResource tables. Inventory calls
+      # each VM, ESXi host, cluster and datastore by its own name (not the
+      # vCenter's, not the datacenter's), renames rows the old rule named on
+      # their next report and keeps a name a person typed; and two reports
+      # tell a VM the host is swapping out from one holding 4 MiB left from
+      # earlier, as the Overview's rules then judge them.
+      - name: Test a vCenter's ingest into Inventory and its swap rates, on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/App
         env:
-          RUN_POSTGRES_VMWARE_INVENTORY_TESTS: "true"
-          VMWARE_INVENTORY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
-          VMWARE_INVENTORY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
-          VMWARE_INVENTORY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+          RUN_POSTGRES_VMWARE_INGEST_TESTS: "true"
+          VMWARE_INGEST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          VMWARE_INGEST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          VMWARE_INGEST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Telemetry/VMwareInventoryNamesPostgres.test.ts --forceExit
+          Tests/Telemetry/VMwareIngestPostgres.test.ts --forceExit
 
       # The episode auto-resolve aggregate query (EpisodeAutoResolve) on the
       # migrated AlertEpisodeMember / Alert / AlertState and incident tables'

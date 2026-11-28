@@ -6,7 +6,15 @@ import PostgresAppInstance from "Common/Server/Infrastructure/PostgresDatabase";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import InventoryItemService from "Common/Server/Services/InventoryItemService";
+import VMwareResourceService from "Common/Server/Services/VMwareResourceService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
+import VMwareResource from "Common/Models/DatabaseModels/VMwareResource";
+import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
+import {
+  VMwareAssessment,
+  assessVMwareVirtualMachine,
+} from "../../FeatureSet/Dashboard/src/Pages/VMware/Utils/VMwareHealth";
+import { ResourceAttentionSeverity } from "../../FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 import logger from "Common/Server/Utils/Logger";
 import TelemetryChangeDetector from "Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector";
 import * as EntityRegistry from "Common/Server/Utils/Telemetry/EntityRegistry";
@@ -53,16 +61,22 @@ import path from "path";
  * ingest). A row stored by the old rule takes its own name on its next
  * report, and a name a person typed is kept.
  *
- * Opt in with RUN_POSTGRES_VMWARE_INVENTORY_TESTS=true against a Postgres
+ * And whether a VM's swapped memory is swapping (#11157): no collector sends
+ * a swap rate, so ingest works it out from how the swapped amount moves
+ * between two reports of the same export, and the Overview's rules judge
+ * the rows as a page reads them - the issue's 4 MiB left from earlier is
+ * no finding, a VM the host swaps out is critical.
+ *
+ * Opt in with RUN_POSTGRES_VMWARE_INGEST_TESTS=true against a Postgres
  * migrated to the current head (the Postgres Schema Drift workflow's
  * database right after its drift check). The tables' STRUCTURE is cloned
  * into a unique schema, dropped afterwards. Credentials from
  * DATABASE_USERNAME / DATABASE_PASSWORD, database from
- * VMWARE_INVENTORY_TEST_DATABASE_NAME or DATABASE_NAME, endpoint from
- * VMWARE_INVENTORY_TEST_DATABASE_HOST / _PORT (default localhost:5400).
+ * VMWARE_INGEST_TEST_DATABASE_NAME or DATABASE_NAME, endpoint from
+ * VMWARE_INGEST_TEST_DATABASE_HOST / _PORT (default localhost:5400).
  */
 const describePostgres: typeof describe =
-  process.env["RUN_POSTGRES_VMWARE_INVENTORY_TESTS"] === "true"
+  process.env["RUN_POSTGRES_VMWARE_INGEST_TESTS"] === "true"
     ? describe
     : describe.skip;
 
@@ -202,14 +216,12 @@ describePostgres(
     beforeAll(async () => {
       database = new DataSource({
         type: "postgres",
-        host: process.env["VMWARE_INVENTORY_TEST_DATABASE_HOST"] || "localhost",
-        port: Number(
-          process.env["VMWARE_INVENTORY_TEST_DATABASE_PORT"] || "5400",
-        ),
+        host: process.env["VMWARE_INGEST_TEST_DATABASE_HOST"] || "localhost",
+        port: Number(process.env["VMWARE_INGEST_TEST_DATABASE_PORT"] || "5400"),
         username: process.env["DATABASE_USERNAME"] || "postgres",
         password: process.env["DATABASE_PASSWORD"] || "password",
         database:
-          process.env["VMWARE_INVENTORY_TEST_DATABASE_NAME"] ||
+          process.env["VMWARE_INGEST_TEST_DATABASE_NAME"] ||
           process.env["DATABASE_NAME"] ||
           "oneuptimedb",
         entities: Entities,
@@ -619,6 +631,164 @@ describePostgres(
           "vcenter.datacenter.name": "DC-NORTH",
         }),
       );
+    });
+
+    /*
+     * #11157: the same recorded export, reported twice two minutes apart.
+     * The simulator's VMs report no swapped memory, so two of them are
+     * given some: DC0_H0_VM0 the issue's 4 MiB both times - memory left
+     * from earlier - and DC0_H0_VM1 4 MiB, then 12 MiB - the host swapping
+     * it out.
+     */
+    function recordedExportWith(data: {
+      secondsLater: number;
+      swappedMiB: Record<string, number>;
+    }): JSONObject {
+      const body: JSONObject = recordedExport();
+      const shift: bigint = BigInt(data.secondsLater) * BigInt(1000000000);
+      for (const resourceMetrics of body[
+        "resourceMetrics"
+      ] as Array<JSONObject>) {
+        const vmName: string | null =
+          attributesOf(resourceMetrics)["vcenter.vm.name"] || null;
+        for (const scopeMetrics of resourceMetrics[
+          "scopeMetrics"
+        ] as Array<JSONObject>) {
+          for (const metric of scopeMetrics["metrics"] as Array<JSONObject>) {
+            const series: JSONObject = (metric["sum"] ||
+              metric["gauge"]) as JSONObject;
+            for (const point of series["dataPoints"] as Array<JSONObject>) {
+              for (const key of ["timeUnixNano", "startTimeUnixNano"]) {
+                if (typeof point[key] === "string") {
+                  point[key] = String(BigInt(point[key] as string) + shift);
+                }
+              }
+              if (
+                metric["name"] === "vcenter.vm.memory.swapped" &&
+                vmName &&
+                data.swappedMiB[vmName] !== undefined
+              ) {
+                point["asInt"] = String(data.swappedMiB[vmName]);
+              }
+            }
+          }
+        }
+      }
+      return body;
+    }
+
+    async function virtualMachines(): Promise<Map<string, VMwareResource>> {
+      const rows: Array<VMwareResource> = await VMwareResourceService.findBy({
+        query: {
+          projectId,
+          vmwareVCenterId: vcenterId,
+          kind: VMwareResourceKind.VirtualMachine,
+        },
+        select: {
+          name: true,
+          kind: true,
+          externalId: true,
+          hostName: true,
+          datacenterName: true,
+          isTemplate: true,
+          isPoweredOn: true,
+          memorySwappedBytes: true,
+          memorySwapOutBytesPerSecond: true,
+          memorySwapInBytesPerSecond: true,
+          memoryBalloonedBytes: true,
+          cpuReadinessPercent: true,
+          metricsUpdatedAt: true,
+        },
+        limit: 100,
+        skip: 0,
+        props: { isRoot: true },
+      });
+      return new Map<string, VMwareResource>(
+        rows.map((row: VMwareResource): [string, VMwareResource] => {
+          return [row.name || "", row];
+        }),
+      );
+    }
+
+    test("#11157: two reports tell memory left from earlier from a VM the host is swapping out", async () => {
+      await ingest(
+        recordedExportWith({
+          secondsLater: 0,
+          swappedMiB: { DC0_H0_VM0: 4, DC0_H0_VM1: 4 },
+        }),
+      );
+      // One report alone cannot say which way memory moves.
+      let vms: Map<string, VMwareResource> = await virtualMachines();
+      expect(vms.get("DC0_H0_VM1")!.memorySwapOutBytesPerSecond).toBeNull();
+
+      await ingest(
+        recordedExportWith({
+          secondsLater: 120,
+          swappedMiB: { DC0_H0_VM0: 4, DC0_H0_VM1: 12 },
+        }),
+      );
+      vms = await virtualMachines();
+
+      const residual: VMwareResource = vms.get("DC0_H0_VM0")!;
+      expect(residual.memorySwappedBytes).toBe(4 * 1024 * 1024);
+      expect(residual.memorySwapOutBytesPerSecond).toBe(0);
+      expect(residual.memorySwapInBytesPerSecond).toBe(0);
+
+      const swapping: VMwareResource = vms.get("DC0_H0_VM1")!;
+      expect(swapping.memorySwappedBytes).toBe(12 * 1024 * 1024);
+      expect(swapping.memorySwapOutBytesPerSecond).toBeCloseTo(
+        (8 * 1024 * 1024) / 120,
+        3,
+      );
+      expect(swapping.memorySwapInBytesPerSecond).toBe(0);
+
+      // A VM that reported no swapped memory either time moves none.
+      expect(vms.get("DC0_C0_RP1_VM0")!.memorySwapOutBytesPerSecond).toBe(0);
+
+      // As the Overview judges the rows it reads: the issue's VM is fine.
+      const now: Date = new Date(
+        new Date(swapping.metricsUpdatedAt!).getTime() + 60 * 1000,
+      );
+      expect(residual.isPoweredOn).toBe(true);
+      expect(assessVMwareVirtualMachine({ vm: residual, now })).toEqual({
+        severity: null,
+        reasons: [],
+      });
+      const swappingNow: VMwareAssessment = assessVMwareVirtualMachine({
+        vm: swapping,
+        now,
+      });
+      expect(swappingNow.severity).toBe(ResourceAttentionSeverity.Critical);
+      expect(
+        swappingNow.reasons.map((reason: { text: string }) => {
+          return reason.text;
+        }),
+      ).toEqual(["Host swapping memory out at {{rate}}"]);
+    });
+
+    test("#11157: the old rule called the issue's 4 MiB critical; the amount alone still reads 4 MiB", async () => {
+      await ingest(
+        recordedExportWith({ secondsLater: 0, swappedMiB: { DC0_H0_VM0: 4 } }),
+      );
+      await ingest(
+        recordedExportWith({
+          secondsLater: 120,
+          swappedMiB: { DC0_H0_VM0: 4 },
+        }),
+      );
+      const residual: VMwareResource = (await virtualMachines()).get(
+        "DC0_H0_VM0",
+      )!;
+      // What the old rule read: any swapped memory, critical.
+      expect(Number(residual.memorySwappedBytes)).toBeGreaterThan(0);
+      expect(
+        assessVMwareVirtualMachine({
+          vm: residual,
+          now: new Date(
+            new Date(residual.metricsUpdatedAt!).getTime() + 60 * 1000,
+          ),
+        }).severity,
+      ).toBeNull();
     });
 
     test("the extractor's entities for the recorded export are what Inventory holds", async () => {
