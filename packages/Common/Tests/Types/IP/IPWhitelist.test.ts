@@ -60,6 +60,49 @@ describe("IP.isInWhitelist", () => {
       ).toBe(false);
     });
 
+    /*
+     * Status pages and public dashboards hand the stored list straight to
+     * this matcher, and Node reports an IPv6 visitor in its lowercase,
+     * compressed form. An entry written any other way - in capitals, with
+     * its zero groups written out, with leading zeros - is the same address
+     * and has to let that visitor in.
+     */
+    it.each([
+      ["2001:DB8::1", "2001:db8::1"],
+      ["2001:db8:0:0:0:0:0:1", "2001:db8::1"],
+      ["2001:0db8:0000:0000:0000:0000:0000:0001", "2001:db8::1"],
+      ["2001:db8::1", "2001:DB8:0:0::1"],
+      ["  2001:DB8::1\r", "2001:db8::1"],
+    ])(
+      "matches IPv6 entry %j for the same address %j",
+      (entry: string, address: string) => {
+        expect(IP.isInWhitelist({ ip: address, whitelist: [entry] })).toBe(
+          true,
+        );
+      },
+    );
+
+    it("does not match a different IPv6 address however it is written", () => {
+      expect(
+        IP.isInWhitelist({ ip: "2001:db8::2", whitelist: ["2001:DB8::1"] }),
+      ).toBe(false);
+      expect(
+        IP.isInWhitelist({
+          ip: "2001:db8::1",
+          whitelist: ["2001:db8:0:0:0:0:1:0"],
+        }),
+      ).toBe(false);
+    });
+
+    it("still does not match an IPv4-mapped entry for an IPv4 visitor", () => {
+      expect(
+        IP.isInWhitelist({
+          ip: "203.0.113.7",
+          whitelist: ["::ffff:203.0.113.7"],
+        }),
+      ).toBe(false);
+    });
+
     it("finds the entry wherever it sits in the list", () => {
       expect(
         IP.isInWhitelist({
