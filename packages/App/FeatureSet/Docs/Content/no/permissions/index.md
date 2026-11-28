@@ -90,7 +90,7 @@ Opprett så mange ekstra team du vil — «Frontend-vakt», «Support», «Skriv
 | --- | --- |
 | Prosjektadministrator | Opprette, endre og slette alt i prosjektet, også innstillingene. Ikke fakturering, og ikke sletting av prosjektet. |
 | Prosjektmedlem | Opprette, endre og slette monitorer, hendelser, statussider og prosjektets andre ressurser. |
-| Viser | Lese alt i prosjektet og ikke endre noe. |
+| Leser | Lese alt i prosjektet og ikke endre noe. |
 | Velg tillatelser senere | Ingenting ennå. Valgt fra start. |
 
 :::steps
@@ -297,7 +297,7 @@ API-nøkler får tillatelser direkte, på selve nøkkelen, eller gjennom de egen
 | --- | --- |
 | Prosjektadministrator | Opprette, endre og slette alt i prosjektet, også innstillingene. Ikke fakturering, og ikke sletting av prosjektet. |
 | Prosjektmedlem | Opprette, endre og slette monitorer, hendelser, statussider og prosjektets andre ressurser, slik et prosjektmedlem kan. |
-| Viser | Lese alt i prosjektet og ikke endre noe. |
+| Leser | Lese alt i prosjektet og ikke endre noe. |
 | En egendefinert rolle | Alt rollen tillater, unntatt det den begrenser til ressurser noen eier. Vises når prosjektet ditt har en du kunne gitt. |
 | Velg tillatelser senere | Ingenting ennå. Valgt fra start. |
 
@@ -406,7 +406,7 @@ Hvert teams tillatelse rekker til reglene som teamet eier. Den som er med i to t
 
 ## Oppskrifter
 
-**Et team som bare ser på.** Opprett teamet med **Viser** under **Tilgang**. For bare noen områder velger du **Velg tillatelser senere** og legger til de områdevise `*Viewer`-rollene teamet skal se.
+**Et team som bare ser på.** Opprett teamet med **Leser** under **Tilgang**. For bare noen områder velger du **Velg tillatelser senere** og legger til de områdevise `*Viewer`-rollene teamet skal se.
 
 **Vaktingeniører som drifter sine egne tjenester.** Gi teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Eide**, og legg så til teamet som eier av monitorene, vaktpolicyene og vaktplanene det drifter. Det personene dets oppretter med disse tillatelsene, eier de allerede.
 
