@@ -100,9 +100,23 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
        */
       StartupGate.assertOpen();
 
-      // Ready only while Postgres, Valkey and ClickHouse are all reachable.
+      /*
+       * Ready while Postgres and Valkey are reachable: almost every request
+       * needs them. Not ClickHouse. Only some routes read it (the telemetry
+       * explorers and charts, the monitors that judge a window from it), and
+       * every pod shares it, so when it restarts it is away for all of them
+       * at once. A readiness that waited for it took every app, worker and
+       * telemetry-writer pod out of its Service together, with no pod left
+       * to send traffic to: on 2026-11-28 each of six ClickHouse restarts in
+       * an hour took the whole product down with it. While it is away those
+       * routes fail on their own and its client reconnects, and everything
+       * else keeps being served. A pod that cannot reach it still never
+       * starts (ClickhouseAppInstance.connect below fails init, which exits),
+       * so a release that cannot reach ClickHouse still never becomes ready.
+       * GET /status/analytics-database reports it.
+       */
       return await InfrastructureStatus.checkStatusWithRetry({
-        checkClickhouseStatus: true,
+        checkClickhouseStatus: false,
         checkPostgresStatus: true,
         checkRedisStatus: true,
         retryCount: 3,

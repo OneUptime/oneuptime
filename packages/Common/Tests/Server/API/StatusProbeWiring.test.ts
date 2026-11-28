@@ -173,6 +173,26 @@ describe.each(SERVICES)("$name", ({ file }: { file: string }) => {
   });
 });
 
+/*
+ * Which datastores the App's readiness waits for. ClickHouse is read by
+ * only some of its routes and shared by every pod: a readiness that waited
+ * for it took every app, worker and telemetry-writer pod out of its Service
+ * each time ClickHouse restarted, six times in an hour on 2026-11-28, and
+ * the whole product with them. Postgres and Valkey stay: almost every
+ * request needs them.
+ */
+describe("App's readiness", () => {
+  const source: ts.SourceFile = parse(
+    fs.readFileSync(path.join(REPO_ROOT, "packages/App/Index.ts"), "utf8"),
+  );
+
+  test("checks Postgres and Valkey, and not ClickHouse", () => {
+    expect(
+      datastoresCheckedBy(probeCheck(source, "readyCheck")).sort(),
+    ).toEqual(["checkPostgresStatus", "checkRedisStatus"]);
+  });
+});
+
 describe("the wiring checks themselves", () => {
   const SHARED_CHECK: string = `
     const statusCheck = async () => {

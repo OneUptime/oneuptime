@@ -21,10 +21,18 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export interface StatusAPIOptions {
   /**
    * Readiness: can this pod serve its traffic right now? Check the datastores
-   * the service needs (InfrastructureStatus.checkStatusWithRetry) and throw
-   * while one is unreachable. Kubernetes then stops routing to the pod until
-   * the datastore is back, and a rolling update does not replace working pods
+   * the service needs for almost every request
+   * (InfrastructureStatus.checkStatusWithRetry) and throw while one is
+   * unreachable. Kubernetes then stops routing to the pod until the
+   * datastore is back, and a rolling update does not replace working pods
    * with ones that cannot reach it.
+   *
+   * Leave out a datastore only some routes read, as the App leaves out
+   * ClickHouse. Every pod shares it, so when it is away it is away for all
+   * of them: readiness then takes every pod out of the Service at once, with
+   * none left to route to, and the routes that never read it go down with
+   * the ones that do. Those routes fail on their own instead, and the pod
+   * keeps serving the rest.
    */
   readyCheck: () => Promise<void>;
   /**
