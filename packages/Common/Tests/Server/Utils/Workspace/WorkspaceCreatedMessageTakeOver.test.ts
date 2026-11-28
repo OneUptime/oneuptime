@@ -109,8 +109,26 @@ class FreezableValkey {
     return this.frozenClient;
   }
 
-  public freeze(): void {
+  /*
+   * Settles once Valkey has run every command the server sent so far. Each
+   * server has a connection of its own, and Valkey runs whichever command
+   * reaches it first, so one the server sent just before a test stopped it
+   * - an ask for its turn, say - could run after a command another server
+   * sends next: told it is its turn once the other server has let the line
+   * go, it would post the message the test stopped it before.
+   */
+  public async landed(): Promise<void> {
+    // Valkey runs one connection's commands in order: once this is answered, so is every one sent before it.
+    await this.client.ping();
+  }
+
+  /*
+   * From now on every command the server sends waits, unanswered, until it
+   * is thawed. Settles once what it sent before has landed.
+   */
+  public async freeze(): Promise<void> {
     this.isFrozen = true;
+    await this.landed();
   }
 
   public thaw(): void {
@@ -404,10 +422,11 @@ function connect(server: Server, times: Times = {}): void {
   tune(server.line, "KEY_PREFIX", KEY_PREFIX);
 }
 
-// A server that can no longer reach Valkey at all.
-function disconnect(server: Server): void {
+// A server that can no longer reach Valkey at all, once what it sent has landed.
+async function disconnect(server: Server): Promise<void> {
   jest.spyOn(server.redis, "getClient").mockReturnValue(null);
   jest.spyOn(server.redis, "isConnected").mockReturnValue(false);
+  await server.valkey.landed();
 }
 
 /*
@@ -1011,7 +1030,7 @@ describe("a server killed before its message's turn", () => {
     );
 
     // Killed outright: it never says anything again.
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     channel.hear("A: Incident INC-42 Created", "A");
     await serverA.first.postHeld(incident);
@@ -1053,7 +1072,7 @@ describe("a server killed before its message's turn", () => {
 
     const messageId: string = (await theLine(incident))["id:1"]!;
 
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
     await serverA.first.postHeld(incident);
     await channel.waitFor(1);
 
@@ -1086,7 +1105,7 @@ describe("a server killed before its message's turn", () => {
 
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: kept");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     const releasedAt: number = Date.now();
     await serverA.first.postHeld(incident);
@@ -1115,7 +1134,7 @@ describe("a server killed before its message's turn", () => {
     await channel.keep(serverB, incident, "3: B");
     await channel.keep(serverA, incident, "4: A");
     await channel.keep(serverB, incident, "5: B");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     await serverA.first.postHeld(incident);
     await channel.waitFor(5);
@@ -1150,7 +1169,7 @@ describe("a server killed before its message's turn", () => {
       await channel.keep(serverB, incident, name);
     }
 
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     const releasedAt: number = Date.now();
     await serverA.first.postHeld(incident);
@@ -1174,7 +1193,7 @@ describe("a server killed before its message's turn", () => {
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: first");
     await channel.keep(serverB, incident, "B: second");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     // Nothing of its own waits: the holder goes on at once.
     await serverA.first.postHeld(incident);
@@ -1208,7 +1227,7 @@ describe("a server killed before its message's turn", () => {
     await channel.keep(serverA, incident, "A: Added Jane as an owner");
 
     // Killed with its chain half way: no "Incident Created", and no word.
-    serverA.valkey.freeze();
+    await serverA.valkey.freeze();
     const killedAt: number = Date.now();
 
     await channel.waitFor(2, 10_000);
@@ -1256,7 +1275,7 @@ describe("a server killed before its message's turn", () => {
     await channel.keep(serverB, incident, "B: first");
     await channel.keep(serverA, incident, "A: second");
     await channel.keep(serverB, incident, "B: third");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     await serverA.first.postHeld(incident);
     await channel.waitFor(3);
@@ -1284,7 +1303,7 @@ describe("a server killed before its message's turn", () => {
 
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: kept");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     await serverA.first.postHeld(incident);
     await slow.slack.started;
@@ -1315,7 +1334,7 @@ describe("a server killed before its message's turn", () => {
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: lost to Slack");
     await channel.keep(serverA, incident, "A: after it");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     await serverA.first.postHeld(incident);
     await channel.waitFor(1);
@@ -1377,7 +1396,7 @@ describe("a server passed over as stopped, that comes back", () => {
     await channel.keep(serverA, incident, "A: after it");
 
     // Alive, but frozen for longer than a turn may stall.
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     const letGo: Promise<void> = serverA.first.postHeld(incident);
     await slow.slack.started;
@@ -1409,7 +1428,7 @@ describe("a server passed over as stopped, that comes back", () => {
 
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: kept");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     await serverA.first.postHeld(incident);
     await channel.waitFor(1);
@@ -1439,7 +1458,7 @@ describe("a server passed over as stopped, that comes back", () => {
     await channel.keep(serverB, incident, "B: first");
     await channel.keep(serverA, incident, "A: slow", { post: slow.post });
     await channel.keep(serverB, incident, "B: third");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     const letGo: Promise<void> = serverA.first.postHeld(incident);
     await slow.started;
@@ -1518,7 +1537,7 @@ describe("a server passed over as stopped, that comes back", () => {
 
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: kept");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     await serverA.first.postHeld(incident);
     await channel.waitFor(1);
@@ -1546,7 +1565,7 @@ describe("a server passed over as stopped, that comes back", () => {
 
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: kept");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     await serverA.first.postHeld(incident);
     await channel.waitFor(1);
@@ -1583,7 +1602,7 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     await slow.started;
 
     // Killed half way through posting it: it says it still is no more.
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     await letGo;
     await channel.waitFor(1, 10_000);
@@ -1604,7 +1623,7 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: not stored", { stored: false });
     await channel.keep(serverA, incident, "A: after it");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     await serverA.first.postHeld(incident);
     await channel.waitFor(1);
@@ -1643,7 +1662,7 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     await channel.keep(serverB, incident, "B: not stored", { stored: false });
     await channel.keep(serverB, incident, "B: stored");
     await channel.keep(serverA, incident, "A: after them");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     // A server shutting down, say: it takes nothing over.
     const letGo: Promise<void> = serverA.first.postHeld(incident);
@@ -1681,7 +1700,7 @@ describe("what is never posted twice, nor posted where it should not be", () => 
 
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: kept");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
     await serverA.first.hold(another);
 
     await serverA.first.postHeld(incident);
@@ -1712,7 +1731,7 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     expect((await theLine(incident))["message:1"]).toBeDefined();
 
     // It shuts down just as Valkey stops answering it.
-    disconnect(serverB);
+    await disconnect(serverB);
     const leaving: Promise<void> = shutDown(serverB);
 
     await serverA.first.postHeld(incident);
@@ -1822,7 +1841,7 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: kept");
     await channel.keep(serverA, incident, "A: after it");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     // The take-over runs in Valkey, and its answer never reaches the server that asked.
     serverA.valkey.losingAnswerTo = (script: string): boolean => {
@@ -1918,7 +1937,7 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: first");
     await channel.keep(serverB, incident, "B: second");
-    serverB.valkey.freeze();
+    await serverB.valkey.freeze();
 
     // A has nothing of its own waiting: what it takes over, it takes over looking after the line.
     await serverA.first.postHeld(incident);
@@ -2018,7 +2037,7 @@ describe("the server holding a record says it still holds its line (#11314)", ()
     );
     await channel.keep(serverA, incident, "A: Added Jane as an owner");
 
-    serverA.valkey.freeze();
+    await serverA.valkey.freeze();
     const killedAt: number = Date.now();
 
     await channel.waitFor(3);
@@ -2049,7 +2068,7 @@ describe("the server holding a record says it still holds its line (#11314)", ()
     );
     await channel.keep(serverA, incident, "A: Added Jane as an owner");
 
-    serverA.valkey.freeze();
+    await serverA.valkey.freeze();
     const killedAt: number = Date.now();
 
     await channel.waitFor(2);
@@ -2110,7 +2129,7 @@ describe("the server holding a record says it still holds its line (#11314)", ()
     );
 
     // Frozen - a long pause - for a third of what its line allows, then back.
-    serverA.valkey.freeze();
+    await serverA.valkey.freeze();
     await pause(STALLED_MS / 3);
     serverA.valkey.thaw();
 
@@ -2152,7 +2171,7 @@ describe("the server holding a record says it still holds its line (#11314)", ()
       "B: Added Valeria as Incident Commander",
     );
 
-    serverA.valkey.freeze();
+    await serverA.valkey.freeze();
     await channel.waitFor(2);
 
     expect(channel.postedBy()).toEqual([
@@ -2194,7 +2213,7 @@ describe("the server holding a record says it still holds its line (#11314)", ()
 
     // Its Created message goes out; Valkey does not hear it let the hold go.
     channel.hear("A: Incident INC-42 Created", "A");
-    disconnect(serverA);
+    await disconnect(serverA);
     const letGo: Promise<void> = serverA.first.postHeld(incident);
     await pause(100);
 
@@ -2231,7 +2250,7 @@ describe("the server holding a record says it still holds its line (#11314)", ()
     );
 
     channel.hear("A: Incident INC-42 Created", "A");
-    disconnect(serverA);
+    await disconnect(serverA);
     await serverA.first.postHeld(incident);
     connect(serverA, { heldForAtMostMs: HELD_MS, stalledAfterMs: STALLED_MS });
 
@@ -2352,7 +2371,7 @@ describe("the server holding a record says it still holds its line (#11314)", ()
       incident,
       "B: Added Valeria as Incident Commander",
     );
-    serverA.valkey.freeze();
+    await serverA.valkey.freeze();
 
     await pause(STALLED_MS * 2);
     expect(channel.posts()).toEqual([]);
@@ -2394,7 +2413,7 @@ describe("the server holding a record says it still holds its line (#11314)", ()
     ).toEqual([3, 3, 2]);
 
     // Unanswered, a round is not asked again.
-    serverA.valkey.freeze();
+    await serverA.valkey.freeze();
     const frozenBefore: number = keepHeldAsks(serverA).length;
     const first: Promise<void> = serverA.line.keepHeld();
     const second: Promise<void> = serverA.line.keepHeld();
@@ -2462,8 +2481,8 @@ describe("when Valkey cannot be asked", () => {
     await channel.keep(serverB, incident, "B: kept");
 
     // Valkey is gone, for every server: nobody could have taken it over.
-    disconnect(serverA);
-    disconnect(serverB);
+    await disconnect(serverA);
+    await disconnect(serverB);
 
     await channel.waitFor(1, 5000);
     await pause(200);
@@ -2472,7 +2491,7 @@ describe("when Valkey cannot be asked", () => {
   });
 
   test("takeOverForStoppedServers on a server with no Valkey looks after nothing, and holds still work", async () => {
-    disconnect(serverA);
+    await disconnect(serverA);
 
     const incident: WorkspaceRecord = newIncident();
     const channel: Channel = new Channel();
