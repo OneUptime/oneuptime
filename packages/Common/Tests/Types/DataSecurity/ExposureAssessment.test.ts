@@ -1,8 +1,10 @@
 import {
+  BREACH_LAW_RULES,
   BreachDeadlineStart,
   BreachDeadlineUnit,
   BreachLawFamily,
   BreachLawId,
+  BreachLawRule,
   BreachPlace,
   CARD_BRAND_RULE_IDS,
   getBreachLawRule,
@@ -77,12 +79,15 @@ import {
   HeldExposureDrafts,
   holdExposureDraftsToFacts,
   isAssessedOnItsOwn,
+  isBreachLawForFacts,
   isBreachLawInForce,
+  isBreachLawReplacedOn,
   isExposureCheck,
   isExposureDraftPart,
   mergeExposureDrafts,
   readStoredExposureAssessment,
   roundRecords,
+  setExposureDataHeldFor,
   setExposurePeoplePlaces,
   startExposureAssessment,
   StoredExposureAssessment,
@@ -1026,6 +1031,91 @@ describe("deadlines, in their units, counted from when it was found", () => {
     expect(isBreachLawInForce({} as never, new Date())).toBe(true);
   });
 
+  test("a row a newer text replaced is in force up to the day before its end, in UTC (#11425)", () => {
+    const old: never = { inForceUntil: "2027-01-01" } as never;
+    const between: never = {
+      inForceFrom: "2026-01-01",
+      inForceUntil: "2027-01-01",
+    } as never;
+
+    expect(isBreachLawInForce(old, new Date("2026-12-31T23:59:59.999Z"))).toBe(
+      true,
+    );
+    expect(isBreachLawInForce(old, new Date("2027-01-01T00:00:00.000Z"))).toBe(
+      false,
+    );
+    expect(isBreachLawReplacedOn(old, new Date("2026-12-31T23:59:59Z"))).toBe(
+      false,
+    );
+    expect(isBreachLawReplacedOn(old, new Date("2027-01-01T00:00:00Z"))).toBe(
+      true,
+    );
+    expect(isBreachLawReplacedOn({} as never, new Date("2099-01-01"))).toBe(
+      false,
+    );
+    // From one day to another: in force only between them.
+    expect(
+      isBreachLawInForce(between, new Date("2025-12-31T23:59:59Z")),
+    ).toBe(false);
+    expect(isBreachLawInForce(between, new Date("2026-06-01T00:00:00Z"))).toBe(
+      true,
+    );
+    expect(isBreachLawInForce(between, new Date("2027-01-01T00:00:00Z"))).toBe(
+      false,
+    );
+  });
+
+  test("an exposure's rows: none a newer text replaced before it was found, and the owner's notices only when the data is held for another (#11425, #11427)", () => {
+    const found: Date = new Date("2027-01-04T09:00:00Z");
+    const replaced: never = { inForceUntil: "2027-01-01" } as never;
+    const replacing: never = { inForceFrom: "2027-01-01" } as never;
+    const forOwner: never = { forDataHolders: true } as never;
+
+    expect(isBreachLawForFacts(replaced, { foundAt: found })).toBe(false);
+    expect(
+      isBreachLawForFacts(replaced, {
+        foundAt: new Date("2026-12-31T09:00:00Z"),
+      }),
+    ).toBe(true);
+    expect(isBreachLawForFacts(replacing, { foundAt: found })).toBe(true);
+    // A row that takes effect later stays: it says when it does.
+    expect(
+      isBreachLawForFacts(replacing, {
+        foundAt: new Date("2026-12-31T09:00:00Z"),
+      }),
+    ).toBe(true);
+    expect(isBreachLawForFacts(forOwner, { foundAt: found })).toBe(false);
+    expect(
+      isBreachLawForFacts(forOwner, { foundAt: found, holdsForAnother: false }),
+    ).toBe(false);
+    expect(
+      isBreachLawForFacts(forOwner, { foundAt: found, holdsForAnother: true }),
+    ).toBe(true);
+  });
+
+  test("the owner's notices' deadlines in English: immediately, and as soon as practicable (#11427)", () => {
+    expect(
+      describeBreachDeadlineInEnglish(
+        getBreachLawRule(BreachLawId.CaliforniaDataOwner),
+      ),
+    ).toBe("immediately");
+    expect(
+      describeBreachDeadlineInEnglish(
+        getBreachLawRule(BreachLawId.MassachusettsDataOwner),
+      ),
+    ).toBe("as soon as practicable");
+    expect(
+      describeBreachDeadlineInEnglish(
+        getBreachLawRule(BreachLawId.GeorgiaDataOwner),
+      ),
+    ).toBe("24 hours from when it was found");
+    expect(
+      describeBreachDeadlineInEnglish(
+        getBreachLawRule(BreachLawId.PuertoRicoDataOwner),
+      ),
+    ).toBe("no fixed time");
+  });
+
   test("each deadline in English, for OneUptime AI and an export", () => {
     const words: Array<string> = applyBreachLaws({
       whose: whose({ dataTypeIds: ["us-ssn"] }),
@@ -1069,7 +1159,12 @@ describe("what the law may ask", () => {
       now: NOW,
     });
 
-    expect(obligations).toHaveLength(Object.values(BreachLawId).length);
+    // Every row but the notices to the data's owner, which wait on a person's answer (#11427).
+    expect(obligations).toHaveLength(
+      BREACH_LAW_RULES.filter((rule: BreachLawRule): boolean => {
+        return !rule.forDataHolders;
+      }).length,
+    );
     expect(obligations[0]!.ruleId).toBe(BreachLawId.GdprAuthority);
     expect(obligations[0]!.dueAt).toBe(iso("2026-11-05T09:00:00Z"));
     // What may apply comes first, then what is not in force, then what is not triggered.
@@ -1192,12 +1287,16 @@ describe("what the law may ask", () => {
         }),
       ),
     ).toContain(UncoveredLawKind.PeopleElsewhere);
-    // Nobody said where they live: the states left out and the territories may matter.
+    /*
+     * Nobody said where they live: the states left out may matter - Guam and
+     * the US Virgin Islands no longer, as the table holds their laws (#11426)
+     * - and nobody said whether the data is held for another (#11427).
+     */
     expect(kinds(whose({ dataTypeIds: ["email-address"] }))).toEqual([
       ...(UNCOVERED_US_STATES.length > 0
         ? [UncoveredLawKind.OtherUsStates]
         : []),
-      UncoveredLawKind.UsTerritories,
+      UncoveredLawKind.DataHeldForAnother,
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
@@ -1207,9 +1306,49 @@ describe("what the law may ask", () => {
         whose({ dataTypeIds: ["email-address"], places: [BreachPlace.Eea] }),
       ),
     ).toEqual([
+      UncoveredLawKind.DataHeldForAnother,
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
+  });
+
+  test("while nobody says whether the data is held for another, the notices to its owner are said to be left out; once someone says, they are not (#11427)", () => {
+    const kindsOf: (
+      data: ExposureWhoseData,
+      holdsForAnother?: boolean,
+    ) => Array<UncoveredLawKind> = (
+      data: ExposureWhoseData,
+      holdsForAnother?: boolean,
+    ): Array<UncoveredLawKind> => {
+      return getUncoveredLaws(data, [], holdsForAnother).map(
+        (uncovered: UncoveredLaw): UncoveredLawKind => {
+          return uncovered.kind;
+        },
+      );
+    };
+    const ssn: ExposureWhoseData = whose({
+      dataTypeIds: ["us-ssn", "person-name"],
+      places: [BreachPlace.California],
+    });
+
+    expect(kindsOf(ssn)).toContain(UncoveredLawKind.DataHeldForAnother);
+    expect(kindsOf(ssn, true)).not.toContain(
+      UncoveredLawKind.DataHeldForAnother,
+    );
+    expect(kindsOf(ssn, false)).not.toContain(
+      UncoveredLawKind.DataHeldForAnother,
+    );
+    // Data no breach law covers owes no notice to anyone: no line.
+    expect(
+      kindsOf(whose({ dataTypeIds: ["aws-secret-access-key"] })),
+    ).not.toContain(UncoveredLawKind.DataHeldForAnother);
+    // The line says what to do, and where.
+    expect(UNCOVERED_LAW_WORDS[UncoveredLawKind.DataHeldForAnother]).toContain(
+      "tell the data's owner",
+    );
+    expect(UNCOVERED_LAW_WORDS[UncoveredLawKind.DataHeldForAnother]).toContain(
+      "Was It a Breach? card",
+    );
   });
 
   test("the US states the table leaves out are named: every one while nobody said which, else those a person named (#10952)", () => {
@@ -1270,6 +1409,7 @@ describe("what the law may ask", () => {
     });
 
     expect(named).toEqual([
+      UncoveredLawKind.DataHeldForAnother,
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
@@ -1291,19 +1431,29 @@ describe("what the law may ask", () => {
     expect(UNCOVERED_LAW_WORDS[UncoveredLawKind.OtherUsStates]).toContain(
       "{{states}}",
     );
-    expect(UNCOVERED_LAW_WORDS[UncoveredLawKind.UsTerritories]).toContain(
-      "Guam",
-    );
+    // Guam and the US Virgin Islands are rows of the table now (#11426): no line leaves them out.
+    expect(Object.values(UncoveredLawKind)).not.toContain("UsTerritories");
+    for (const words of Object.values(UNCOVERED_LAW_WORDS)) {
+      expect(words).not.toContain("Guam");
+      expect(words).not.toContain("Virgin Islands");
+    }
     // Each state's notice to the consumer reporting agencies is a row: no line says it is left out.
     for (const words of Object.values(UNCOVERED_LAW_WORDS)) {
       expect(words).not.toContain("consumer reporting agencies");
     }
   });
 
-  test("the table leaves out West Virginia and Puerto Rico only, whose official sources could not be read (#10952)", () => {
-    expect([...UNCOVERED_US_STATES].sort()).toEqual(
-      [BreachPlace.PuertoRico, BreachPlace.WestVirginia].sort(),
-    );
+  test("the table leaves out West Virginia only, whose code could not be read from its official site (#10952, #11424)", () => {
+    // Puerto Rico's law was read from the Legislative Assembly's own copies (#11424).
+    expect([...UNCOVERED_US_STATES]).toEqual([BreachPlace.WestVirginia]);
+
+    const line: UncoveredLaw | undefined = getUncoveredLaws(
+      whose({ dataTypeIds: ["us-ssn"] }),
+    ).find((uncovered: UncoveredLaw): boolean => {
+      return uncovered.kind === UncoveredLawKind.OtherUsStates;
+    });
+
+    expect(line?.states).toEqual([BreachPlace.WestVirginia]);
   });
 
   test("card data says which card brands the table does not cover, and names those it does (#10953)", () => {
@@ -1318,6 +1468,7 @@ describe("what the law may ask", () => {
 
     expect(kinds).toEqual([
       UncoveredLawKind.OtherCardBrands,
+      UncoveredLawKind.DataHeldForAnother,
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
@@ -1776,6 +1927,59 @@ describe("OneUptime AI's drafts, held to the facts", () => {
     ).toEqual(["Washington, D.C."]);
   });
 
+  test("Puerto Rico, Guam and the US Virgin Islands are laws of their own, and the British Virgin Islands only a place (#11424, #11426)", () => {
+    const territories: Array<ComplianceFact> = [
+      HOLDS,
+      obligationFact({
+        id: "F4",
+        family: BreachLawFamily.PuertoRico,
+        ruleId: BreachLawId.PuertoRicoResidents,
+        law: "Puerto Rico Citizen Information on Data Banks Security Act Section 3",
+      }),
+      obligationFact({
+        id: "F5",
+        family: BreachLawFamily.Guam,
+        ruleId: BreachLawId.GuamResidents,
+        law: "Guam Code Annotated, Title 9 48.30(a)",
+      }),
+      obligationFact({
+        id: "F6",
+        family: BreachLawFamily.UsVirginIslands,
+        ruleId: BreachLawId.UsVirginIslandsResidents,
+        law: "Virgin Islands Code, Title 14 2209(a)",
+      }),
+    ];
+
+    // Each by its name, or its act's or section's number, rests on its fact.
+    expect(
+      getUnfoundedLaws({
+        text: "Under Puerto Rico's Act 111-2005, Guam's law (9 GCA Chapter 48) and the U.S. Virgin Islands' (14 V.I.C. 2209), tell each resident.",
+        facts: territories,
+      }),
+    ).toEqual([]);
+    // With no fact of theirs, each is a law no fact holds.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell the people in Puerto Rico, Guam and the US Virgin Islands.",
+        facts: [HOLDS],
+      }),
+    ).toEqual(["Puerto Rico", "Guam", "US Virgin Islands"]);
+    // The British Virgin Islands are another country: a place, never the US territory's law.
+    expect(
+      getUnfoundedLaws({
+        text: "Some of the people live in the British Virgin Islands.",
+        facts: [HOLDS],
+      }),
+    ).toEqual([]);
+    // "Virgin Islands" is never read as Virginia's.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell the people in the Virgin Islands.",
+        facts: territories.slice(0, 1),
+      }),
+    ).toEqual(["Virgin Islands"]);
+  });
+
   test("West Virginia is a place, never Virginia's law, and its own sections are a law no fact holds (#10952)", () => {
     const virginia: Array<ComplianceFact> = [
       HOLDS,
@@ -2104,6 +2308,88 @@ describe("the assessment a case keeps", () => {
     ).toBeUndefined();
   });
 
+  test("whether the data is held for another: said as true or false, with who said it and when, and taken back with anything else (#11427)", () => {
+    const held: StoredExposureAssessment = setExposureDataHeldFor({
+      assessment: started,
+      forAnother: true,
+      userId: "user-3",
+      now: NOW,
+    });
+
+    expect(held.dataHeldFor).toEqual({
+      forAnother: true,
+      saidAt: NOW.toISOString(),
+      saidByUserId: "user-3",
+    });
+    // Nothing else of the assessment changes.
+    expect({ ...held, dataHeldFor: undefined }).toEqual({
+      ...started,
+      dataHeldFor: undefined,
+    });
+
+    const own: StoredExposureAssessment = setExposureDataHeldFor({
+      assessment: held,
+      forAnother: false,
+      now: NOW,
+    });
+
+    expect(own.dataHeldFor).toEqual({
+      forAnother: false,
+      saidAt: NOW.toISOString(),
+      saidByUserId: undefined,
+    });
+
+    for (const takenBack of [null, undefined, "yes", 1, {}]) {
+      expect(
+        setExposureDataHeldFor({
+          assessment: held,
+          forAnother: takenBack,
+          now: NOW,
+        }).dataHeldFor,
+      ).toBeUndefined();
+    }
+  });
+
+  test("whether the data is held for another reads back as it was kept, and anything but true or false reads as unsaid (#11427)", () => {
+    const kept: StoredExposureAssessment = readStoredExposureAssessment(
+      toStoredExposureAssessmentJson(
+        setExposureDataHeldFor({
+          assessment: started,
+          forAnother: true,
+          userId: "22222222-2222-4222-8222-222222222222",
+          now: NOW,
+        }),
+      ),
+    )!;
+
+    expect(kept.dataHeldFor).toEqual({
+      forAnother: true,
+      saidAt: NOW.toISOString(),
+      saidByUserId: "22222222-2222-4222-8222-222222222222",
+    });
+
+    for (const junk of [
+      "true",
+      { forAnother: "yes" },
+      { forAnother: 1 },
+      [],
+      7,
+    ]) {
+      expect(
+        readStoredExposureAssessment({
+          ...toStoredExposureAssessmentJson(started),
+          dataHeldFor: junk,
+        })!.dataHeldFor,
+      ).toBeUndefined();
+    }
+
+    // An assessment kept before #11427 has no answer: it reads as unsaid.
+    expect(
+      readStoredExposureAssessment(toStoredExposureAssessmentJson(started))!
+        .dataHeldFor,
+    ).toBeUndefined();
+  });
+
   test("every part has its title and its ask, and the notices are the three a person edits", () => {
     for (const part of EXPOSURE_DRAFT_PARTS) {
       expect(EXPOSURE_DRAFT_PART_TITLES[part].length).toBeGreaterThan(5);
@@ -2183,6 +2469,77 @@ describe("the assessment plain code works out", () => {
     );
     expect(view.isPlaceUnknown).toBe(false);
     expect(view.now).toBe(now.toISOString());
+  });
+
+  test("whether the data is held for another is on the view, and only then are the notices to its owner among the laws (#11427)", () => {
+    const now: Date = new Date("2026-11-11T12:00:00.000Z");
+    const viewOf: (holdsForAnother?: boolean) => ExposureAssessmentView = (
+      holdsForAnother?: boolean,
+    ): ExposureAssessmentView => {
+      return buildExposureAssessmentView({
+        store: {
+          id: "s",
+          name: "customer-records",
+          kind: "AWS S3 Bucket",
+          sensitivity: DataSensitivity.Restricted,
+          exposure: "Public",
+        },
+        exposureIssues: [],
+        window: null,
+        reads: readsOf(ExposureReadsLogged.NotLogged),
+        whose: whose({
+          dataTypeIds: ["us-ssn", "person-name"],
+          places: [BreachPlace.California],
+        }),
+        secretsToRotate: [],
+        hasMoreSecrets: false,
+        holdsForAnother,
+        now,
+      });
+    };
+    const ruleIds: (view: ExposureAssessmentView) => Array<BreachLawId> = (
+      view: ExposureAssessmentView,
+    ): Array<BreachLawId> => {
+      return view.obligations.map((obligation: BreachObligation): BreachLawId => {
+        return obligation.ruleId;
+      });
+    };
+    const uncovered: (view: ExposureAssessmentView) => Array<UncoveredLawKind> =
+      (view: ExposureAssessmentView): Array<UncoveredLawKind> => {
+        return view.uncovered.map((law: UncoveredLaw): UncoveredLawKind => {
+          return law.kind;
+        });
+      };
+
+    const unsaid: ExposureAssessmentView = viewOf();
+
+    expect(unsaid.holdsForAnother).toBeUndefined();
+    expect(ruleIds(unsaid)).not.toContain(BreachLawId.CaliforniaDataOwner);
+    expect(uncovered(unsaid)).toContain(UncoveredLawKind.DataHeldForAnother);
+
+    const own: ExposureAssessmentView = viewOf(false);
+
+    expect(own.holdsForAnother).toBe(false);
+    expect(ruleIds(own)).not.toContain(BreachLawId.CaliforniaDataOwner);
+    expect(uncovered(own)).not.toContain(UncoveredLawKind.DataHeldForAnother);
+
+    const held: ExposureAssessmentView = viewOf(true);
+
+    expect(held.holdsForAnother).toBe(true);
+    expect(ruleIds(held)).toContain(BreachLawId.CaliforniaDataOwner);
+    expect(uncovered(held)).not.toContain(UncoveredLawKind.DataHeldForAnother);
+    // The owner's notice may apply where the people are known to live, with no due moment: "immediately".
+    const owners: BreachObligation = held.obligations.find(
+      (obligation: BreachObligation): boolean => {
+        return obligation.ruleId === BreachLawId.CaliforniaDataOwner;
+      },
+    )!;
+
+    expect(owners.status).toBe(BreachObligationStatus.MayApply);
+    expect(owners.isPlaceKnown).toBe(true);
+    expect(owners.dueAt).toBeUndefined();
+    // The people's own notice is still there: who sends it is between the owner and the law.
+    expect(ruleIds(held)).toContain(BreachLawId.CaliforniaResidents);
   });
 
   test("a store with no exposure window counts its deadlines from now", () => {
