@@ -988,7 +988,7 @@ snmp-server host <probe-ip> traps version 2c <community>
 
 ### SNMPv3 Traps and Informs
 
-An SNMPv3 trap is signed, and usually encrypted, with a user's keys, so a probe takes one only from a user it knows: the SNMPv3 credentials of the devices assigned to it. Each device's own SNMP credentials, its credential profile and its site's default all count, so a device polled over v2c can still send its traps as the site's SNMPv3 user. Nothing is set up on the probe:
+An SNMPv3 trap is signed, and usually encrypted, with a user's keys, so a probe takes one only from a user it knows: the SNMPv3 credentials of the devices assigned to it, and the default credential profile of each site whose **Default Probe** it is. Each device's own SNMP credentials, its credential profile and its site's default all count, so a device polled over v2c can still send its traps as the site's SNMPv3 user, and a device not added yet can send its traps as its site's. Nothing is set up on the probe:
 
 1. Give the device, its credential profile or its site the SNMPv3 user the device sends its traps as: user name, security level, and the authentication and privacy protocols and passphrases (see [SNMP Credentials and Credential Profiles](#snmp-credentials-and-credential-profiles)).
 2. Point the device's SNMPv3 traps at the probe. On Cisco IOS, for example:
@@ -999,17 +999,29 @@ An SNMPv3 trap is signed, and usually encrypted, with a user's keys, so a probe 
    snmp-server host <probe-ip> traps version 3 priv san-monitor
    ```
 
-OneUptime hands each probe the SNMPv3 users of its own devices every thirty seconds, so a credential changed, a profile changed or a device moved to another probe is taken within a minute, while the receiver keeps listening. The credentials stay encrypted at rest, as they do for polling, and the probe keeps them in memory only and never logs them. One project's users never reach another project's probe.
+OneUptime hands each probe its SNMPv3 users every thirty seconds, so a credential changed, a profile changed or a device moved to another probe is taken within a minute, while the receiver keeps listening. The credentials stay encrypted at rest, as they do for polling, and the probe keeps them in memory only and never logs them.
+
+**Which keys reach which probe.** A probe is handed exactly these SNMPv3 users, and no others:
+
+| Credentials | Handed to |
+| --- | --- |
+| A device's own SNMPv3 credentials | The probe the device is assigned to. |
+| The credential profile a device names | The probe the device is assigned to. |
+| A site's default credential profile | The probe of each device at the site, and the site's own **Default Probe**, even before a device at the site is added. |
+
+A project's other credential profiles, another site's default, and the default of a site that only inherits its probe from a parent site reach no probe. One project's users never reach another project's probe. A global probe is handed the users of every project that uses it, each with the projects that hold it, and a trap signed with one is kept only in a project whose own credentials signed it: one project's devices never get another project's traps, whatever address they send from.
 
 The receiver takes the protocols polling uses: MD5, SHA-1, SHA-256 and SHA-512 authentication, and DES, AES-128 and AES-256 privacy. A trap must come with at least the security its user is set up for: an authPriv user's traps are refused if they arrive unauthenticated or unencrypted.
 
-**Traps, informs and the probe's engine ID.** A trap is authenticated with the device's own SNMP engine ID, so there is nothing to set up. An inform is authenticated with the probe's engine ID, which most devices discover by themselves. Some need it typed in: on Cisco IOS, enter `snmp-server engineID remote <probe-ip> <engine-id>` before you create the user. Open **Monitors → Settings → Probes** and pick the probe: its **SNMP Traps** card shows the engine ID to copy. It is derived from the probe's ID, so it stays the same across restarts, upgrades and replicas of the probe; set `PROBE_SNMP_ENGINE_ID` to choose another.
+**Traps, informs and the probe's engine ID.** A trap is authenticated with the device's own SNMP engine ID, so there is nothing to set up. An inform is authenticated with the probe's engine ID, which most devices discover by themselves. Some need it typed in: on Cisco IOS, enter `snmp-server engineID remote <probe-ip> <engine-id>` before you create the user. Open **Monitors → Settings → Probes** and pick the probe: its **SNMP Traps** card shows the engine ID to copy. A global probe's is in the **SNMPv3 Engine ID** column of the **Global Probes** list there, and on the **Logs** page of each device on it. It is derived from the probe's ID, so it stays the same across restarts, upgrades and replicas of the probe; set `PROBE_SNMP_ENGINE_ID` to choose another.
 
 Informs are acknowledged, v2c and v3 alike. An inform sent again because its acknowledgement was lost is acknowledged again, and recorded once.
 
 **The time window.** Like Net-SNMP's `snmptrapd`, the receiver refuses a trap whose engine boots and time go back past the device's last trap by more than 150 seconds: a replayed or delayed copy, or a device that restarted without counting the restart in its engine boots. An inform must be within 150 seconds of the probe's own time.
 
-**Refused SNMPv3 traps** are never forwarded, and nothing they carried is kept or logged: only where they came from, the user they were sent as and why. The probe's **SNMP Traps** card lists the last day's, such as "12 SNMPv3 traps from 10.20.0.5 failed: unknown user “san-monitor”", each with what to change. A device's **Overview** and **Logs** pages say the same when the address is one of the device's own. A trap taken from that address as that user clears it.
+**Refused SNMPv3 traps** are never forwarded, and nothing they carried is kept or logged: only where they came from, the user they were sent as and why. The probe's **SNMP Traps** card lists the last day's, such as "12 SNMPv3 traps from 10.20.0.5 failed: unknown user “san-monitor”", each with what to change. A device's **Overview** and **Logs** pages say the same when the address is one of the device's own: its hostname, when that is an address, or one of its **Other Addresses**. There, an inform sent to another engine ID shows the probe's engine ID with it, to copy. A trap taken from that address as that user clears it.
+
+A global probe serves many projects, so it has no such card. What it refuses is split by project as it arrives, and each project sees only the refusals from its own devices' addresses, on those devices' pages. A refusal from an address no device on the probe has, or that devices of more than one project have, is shown to no project. A trap sent as a user name your project does not have reads as an unknown user, whatever else the probe found, as that is what your project would change.
 
 | Reason | What to change |
 | --- | --- |
@@ -1030,7 +1042,11 @@ Traps are matched through the device inventory:
 2. OneUptime looks for the network devices assigned to that probe whose hostname, or one of whose **Other Addresses**, is the trap's source IP address.
 3. The trap is logged in the device's trap history, and every Network Device monitor on a matching device evaluates it against its criteria, typically an **SNMP Trap Received (Trap OID)** filter.
 
-Matching is by address, not by credentials, so a ping-only device can still receive v1 and v2c traps: a device you hold no read credentials for can still send them. An SNMPv3 trap also needs the user it is signed with (see [SNMPv3 Traps and Informs](#snmpv3-traps-and-informs)), and is then matched by its address in the same way. Register the device with the address it sends traps from, or add that address to its **Other Addresses** on its **Settings** page. SNMPv1 generic traps (coldStart, linkDown, linkUp and so on) are turned into their standard SNMPv2 notification OIDs, so linkDown matches trap OID `1.3.6.1.6.3.1.1.5.3` whatever the SNMP version.
+Matching is by address, not by credentials, so a ping-only device can still receive v1 and v2c traps: a device you hold no read credentials for can still send them. An SNMPv3 trap also needs the user it is signed with (see [SNMPv3 Traps and Informs](#snmpv3-traps-and-informs)), and is then matched by its address too, and by who signed it when devices share the address. Register the device with the address it sends traps from, or add that address to its **Other Addresses** on its **Settings** page. SNMPv1 generic traps (coldStart, linkDown, linkUp and so on) are turned into their standard SNMPv2 notification OIDs, so linkDown matches trap OID `1.3.6.1.6.3.1.1.5.3` whatever the SNMP version.
+
+**Devices that send from one address.** Some devices send their traps from an address they share: blades from their chassis's management address, cluster members from a virtual address, devices behind a NAT. A v1 or v2c trap carries nothing but that address, and goes to the first device that has it. An SNMPv3 trap is signed, and goes to the device it came from. Of the devices that have its address, it goes only to those of a project whose credentials signed it, then to the one whose SNMPv3 polls read the engine ID it was sent from, then to the one that carries the credentials that signed it. A device's **Overview** shows its own **SNMPv3 Engine ID** once an SNMPv3 poll reads it. So give each device its own SNMPv3 user, or poll each one over SNMPv3: devices that share a site's default user are told apart once all but one of them are polled over SNMPv3. A trap nothing tells apart goes to the first device that has the address, as a v2c trap does.
+
+**A device not added yet.** A trap from an address that is no device's is kept as from an unknown source, and its event on the **Events** page offers **Add as device**, with the address and the probe filled in. On a project's own probe every such trap is kept. On a global probe only an SNMPv3 trap signed with one project's credentials is kept, in that project, while it has a device on the probe or a site whose Default Probe it is: a v1, v2c or unauthenticated trap could be anyone's, and is kept nowhere. A trap signed with a site's default credential profile fills in that site too, so the new device is polled by the site's Default Probe with that profile, as its neighbours are.
 
 #### Example: raise an incident on linkDown
 

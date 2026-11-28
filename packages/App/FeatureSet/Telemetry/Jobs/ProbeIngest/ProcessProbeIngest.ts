@@ -38,6 +38,12 @@ import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorPr
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import SnmpTrapInterfaceName from "Common/Server/Utils/Monitor/SnmpTrapInterfaceName";
 import SnmpTrapContextRouting from "Common/Server/Utils/Monitor/SnmpTrapContextRouting";
+import SnmpTrapDeviceSelection, {
+  SnmpTrapSourceTiers,
+} from "Common/Server/Utils/Monitor/SnmpTrapDeviceSelection";
+import SnmpTrapUnmatchedHome, {
+  SnmpTrapUnmatchedHomeResult,
+} from "Common/Server/Utils/Monitor/SnmpTrapUnmatchedHome";
 import NetworkDeviceHydrationUtil, {
   NetworkDevicePollMode,
 } from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
@@ -45,8 +51,6 @@ import NetworkDeviceWalkUtil, {
   NetworkDevicePingResult,
 } from "Common/Server/Utils/Monitor/NetworkDeviceWalkUtil";
 import SnmpMonitorResponse from "Common/Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
-import Probe from "Common/Models/DatabaseModels/Probe";
-import ProbeService from "Common/Server/Services/ProbeService";
 import SnmpTrapLogWriter from "../../Services/SnmpTrapLogWriter";
 import { JSONObject } from "Common/Types/JSON";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
@@ -379,13 +383,21 @@ export async function processSnmpTrapFromQueue(
     throw new BadDataException("SNMP trap data not found");
   }
 
-  const snmpTrap: SnmpTrap = JSONFunctions.deserialize(
+  const receivedTrap: SnmpTrap = JSONFunctions.deserialize(
     requestBody["snmpTrap"] as JSONObject,
   ) as unknown as SnmpTrap;
 
-  if (!snmpTrap || !snmpTrap.sourceIpAddress || !snmpTrap.trapOid) {
+  if (!receivedTrap || !receivedTrap.sourceIpAddress || !receivedTrap.trapOid) {
     throw new BadDataException("SNMP trap is missing source or trap OID");
   }
+
+  /*
+   * The trap as it is kept - in trap history, monitor logs and criteria -
+   * without the records that hold its credential, which only matching reads
+   * (receivedTrap).
+   */
+  const snmpTrap: SnmpTrap =
+    SnmpTrapDeviceSelection.withoutSigners(receivedTrap);
 
   /*
    * The probe that received the trap, as it authenticated: the route writes
@@ -409,30 +421,52 @@ export async function processSnmpTrapFromQueue(
 
   /*
    * Traps are matched through the NetworkDevice inventory: devices polled
-   * by this probe whose hostname matches the trap source IP. Monitors then
-   * match by referencing one of those devices. Resolved before the monitor
-   * lookup so trap persistence happens even when the probe has no monitors.
+   * by this probe that have the trap's source address. Monitors then match
+   * by referencing one of those devices. Resolved before the monitor lookup
+   * so trap persistence happens even when the probe has no monitors.
+   *
+   * An SNMPv3 trap the probe authenticated says more than its address
+   * (#11172): which projects' credential signed it, which devices carry
+   * that credential, and the engine it was sent as. It is matched by all of
+   * it among every device that has the address, so devices that share one -
+   * behind a NAT, blades behind their chassis - are told apart, and it is
+   * kept in no project whose credential did not sign it
+   * (SnmpTrapDeviceSelection). Any other trap goes by its address, and by
+   * the SNMPv3 context it names: the logical switches of one Brocade
+   * chassis share its address.
    */
-  const devicesAtSource: Array<NetworkDevice> =
-    await NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
-      probeId: probeId,
-      sourceIpAddress: snmpTrap.sourceIpAddress,
-      select: {
-        name: true,
-        snmpV3ContextName: true,
-      },
-    });
+  let devicesAtSourceCount: number;
+  let matchingDevices: Array<NetworkDevice>;
 
-  /*
-   * Devices that share an address - the logical switches of one Brocade
-   * chassis - are told apart by the SNMPv3 context the trap names. A trap
-   * that names none goes to every device at the address.
-   */
-  const matchingDevices: Array<NetworkDevice> =
-    SnmpTrapContextRouting.devicesForTrap({
+  if (SnmpTrapDeviceSelection.isAuthenticatedSnmpV3(receivedTrap)) {
+    const tiers: SnmpTrapSourceTiers =
+      await NetworkDeviceHydrationUtil.findDeviceTiersByProbeAndSource({
+        probeId: probeId,
+        sourceIpAddress: receivedTrap.sourceIpAddress,
+      });
+
+    devicesAtSourceCount = SnmpTrapDeviceSelection.countDevices(tiers);
+    matchingDevices = SnmpTrapDeviceSelection.select({
+      tiers: tiers,
+      trap: receivedTrap,
+    });
+  } else {
+    const devicesAtSource: Array<NetworkDevice> =
+      await NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
+        probeId: probeId,
+        sourceIpAddress: snmpTrap.sourceIpAddress,
+        select: {
+          name: true,
+          snmpV3ContextName: true,
+        },
+      });
+
+    devicesAtSourceCount = devicesAtSource.length;
+    matchingDevices = SnmpTrapContextRouting.devicesForTrap({
       devices: devicesAtSource,
       contextName: snmpTrap.contextName,
     });
+  }
 
   // Persist trap history first — it must not depend on monitor matching.
   if (matchingDevices.length > 0) {
@@ -442,21 +476,25 @@ export async function processSnmpTrapFromQueue(
       devices: matchingDevices,
     });
   } else {
-    const probe: Probe | null = await ProbeService.findOneById({
-      id: probeId,
-      select: {
-        projectId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    /*
+     * From an address no device of it has: kept as from an unknown source,
+     * so its event offers Add as device, where it can be told whose it is
+     * - a project probe's own project, or the one project whose credential
+     * signed it on a global probe, with the site whose default signed it
+     * (#11174, SnmpTrapUnmatchedHome).
+     */
+    const home: SnmpTrapUnmatchedHomeResult | null =
+      await SnmpTrapUnmatchedHome.find({
+        probeId: probeId,
+        trap: receivedTrap,
+      });
 
-    if (probe?.projectId) {
+    if (home) {
       await SnmpTrapLogWriter.writeUnmatchedTrapLogRow({
         snmpTrap: snmpTrap,
         probeId: probeId,
-        projectId: probe.projectId,
+        projectId: home.projectId,
+        siteId: home.siteId,
       });
     }
   }
@@ -471,8 +509,8 @@ export async function processSnmpTrapFromQueue(
 
   if (matchingDeviceIds.size === 0) {
     logger.debug(
-      devicesAtSource.length > 0
-        ? `SNMP trap from ${snmpTrap.sourceIpAddress} in SNMPv3 context "${snmpTrap.contextName}": none of the ${devicesAtSource.length} NetworkDevice(s) at this address on probe ${probeId.toString()} is polled in that context. Trap logged as unmatched where possible.`
+      devicesAtSourceCount > 0
+        ? `SNMP trap from ${snmpTrap.sourceIpAddress}: none of the ${devicesAtSourceCount} NetworkDevice(s) at this address on probe ${probeId.toString()} is polled in its SNMPv3 context "${snmpTrap.contextName || ""}" or belongs to a project whose SNMPv3 credentials signed it. Trap logged as unmatched where possible.`
         : `SNMP trap from ${snmpTrap.sourceIpAddress}: no NetworkDevice on probe ${probeId.toString()} matches this source. Trap logged as unmatched where possible.`,
     );
     return;

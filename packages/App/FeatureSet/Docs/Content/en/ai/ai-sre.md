@@ -427,6 +427,8 @@ A decision is made once, with the project's settings of that moment: a switch tu
 
 When the investigation finds the cause in the code, the step says what came of it: the fix pull request OneUptime AI is writing or opened, with a link to it in Code; the one setup step in the way, such as **Connect a repository**; or **Open fix pull request**, with why OneUptime AI did not open it on its own (see [Automatic code fixes](#automatic-code-fixes)).
 
+**Open fix pull request** works only in a repository you may use in Code: one you can read and may ask OneUptime AI to work in, which takes permission to edit it. With several of yours connected and none named like the incident's or alert's monitor, the step first asks which repository holds the code, and offers only yours. If you may use none of the connected repositories, the step does not offer it. See [Where fix tasks start](/docs/ai/ai-agent#where-fix-tasks-start).
+
 The incident's or alert's timeline keeps a record of every change. Once an approved plan has run, its entry lists each command in the order it ran, with where it ran and how it ended, and a rollback's entry lists each undo the same way, with the command it undid. The list is under the entry's **Show details**, on the timeline only: the incident's or alert's Slack and Microsoft Teams channels get at most the entry's one line, never the list.
 
 ### Why OneUptime AI found no fix, or stopped

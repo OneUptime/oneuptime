@@ -314,6 +314,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/DockerSwarmClusterService.ts": {
     "Service.attachLabels DockerSwarmCluster": Why.Reported,
   },
+  "packages/Common/Server/Services/GlobalProbeSnmpTrapReportService.ts": {
+    /*
+     * Each project's share of the SNMPv3 traps a global probe refused, as
+     * the probe reports every thirty seconds (#11173): nobody made it.
+     */
+    "Service.recordShares GlobalProbeSnmpTrapReport": Why.Reported,
+  },
   "packages/Common/Server/Services/HostService.ts": {
     "Service.attachLabels Host": Why.Reported,
   },

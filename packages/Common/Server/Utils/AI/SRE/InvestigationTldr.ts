@@ -533,6 +533,19 @@ export default class InvestigationTldr {
         deadline,
       ]);
 
+      /*
+       * Two sentences never fill the cap: a reply that did is a model
+       * thinking out loud - one whose template opened its reasoning and
+       * which never reached its "</think>", so nothing in the text says it
+       * was reasoning (issue #11255) - or a summary cut off mid-sentence.
+       */
+      if (response.stopReason === "length") {
+        logger.warn(
+          `AI TL;DR: the summary reply for run ${data.aiRunId.toString()} hit its output limit; the report is published without a TL;DR.`,
+        );
+        return null;
+      }
+
       const tldr: string | null = this.sanitizeTldr(response.content);
 
       if (!tldr) {

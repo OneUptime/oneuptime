@@ -102,6 +102,7 @@ export const DATA_SECURITY_API_ROUTES: {
   draftExposureAssessment: (securityCaseId: string) => string;
   editExposureAssessment: (securityCaseId: string) => string;
   exposurePeoplePlaces: (securityCaseId: string) => string;
+  readExposureLogs: (securityCaseId: string) => string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -299,6 +300,10 @@ export const DATA_SECURITY_API_ROUTES: {
   },
   exposurePeoplePlaces: (securityCaseId: string): string => {
     return `/security-case/${securityCaseId}/exposure-assessment/people`;
+  },
+  // Who read the store in the window, from its access logs (#10951).
+  readExposureLogs: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/read-logs`;
   },
 };
 

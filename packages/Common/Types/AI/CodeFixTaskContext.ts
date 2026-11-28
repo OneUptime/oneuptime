@@ -716,16 +716,17 @@ export interface CodeFixTaskContext {
    */
   allowedCodeRepositoryIds?: Array<string> | undefined;
   /*
-   * A FixPerformance run a person asked for from a trace: the repository it
-   * works in, decided when it was queued - the one they picked
-   * (TracePerformanceFixSuggestion.repositories) when no connected
-   * repository was found to hold the trace's code for certain, or the one
-   * the trace's facts resolved to among the repositories the person may use
-   * in Code (#11075). The run works in it, when it is queued and again when
-   * it starts (getRunRepositoryAllowance), so it is never made in one the
-   * person may not use. Absent - on an automatic run, and on runs queued
-   * before - the repository is resolved from the run's facts, as for every
-   * other run.
+   * A fix a person asked for outside Code - a trace's FixPerformance
+   * (#11075), an incident's or alert's FixFromIncident, a service's
+   * ImproveLogging or ImproveTracing (#11209): the repository it works in,
+   * decided when it was queued (CodeFixPersonRepository) - the one they
+   * picked (the suggestion's `repositories`) when no connected repository
+   * was found to hold the code for certain, or the one the run's facts
+   * resolved to among the repositories the person may use in Code. The run
+   * works in it, when it is queued and again when it starts
+   * (getRunRepositoryAllowance), so it is never made in one the person may
+   * not use. Absent - on an automatic run, and on runs queued before - the
+   * repository is resolved from the run's facts, as for every other run.
    */
   pickedCodeRepositoryId?: string | undefined;
 }

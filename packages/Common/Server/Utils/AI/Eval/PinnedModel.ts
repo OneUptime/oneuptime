@@ -85,6 +85,7 @@ export default class PinnedModel {
         content: response.content || "",
         toolCalls: response.toolCalls,
         stopReason: response.stopReason,
+        ...(response.reasoning ? { reasoning: response.reasoning } : {}),
         tokenCount: AiTokenCount.count({
           totalTokens: response.usage?.totalTokens,
           cachedInputTokens: response.usage?.cachedInputTokens,

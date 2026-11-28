@@ -841,6 +841,23 @@ export default class DataSecurityAPI extends BaseAPI<
       },
     );
 
+    // ...who read the store in the window, from its own access logs (#10951): no body.
+    this.post(
+      DATA_SECURITY_API_ROUTES.readExposureLogs(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ExposureAssessmentDrafter.readLogsForPerson({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
     this.post(
       DATA_SECURITY_API_ROUTES.declaredStore(":id"),
       READ_PERMISSIONS,

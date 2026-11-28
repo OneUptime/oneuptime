@@ -7,6 +7,7 @@ import {
   NETWORK_QUICK_ACTION_ADDRESS_PARAM,
   NETWORK_QUICK_ACTION_PROBE_PARAM,
   NETWORK_QUICK_ACTION_QUERY_PARAM,
+  NETWORK_QUICK_ACTION_SITE_PARAM,
   NetworkQuickAction,
   isNetworkQuickActionInSearch,
   readAddDevicePrefill,
@@ -57,6 +58,10 @@ export function getNetworkQuickActionRoute(
     params[NETWORK_QUICK_ACTION_PROBE_PARAM] = prefill.probeId;
   }
 
+  if (action === NetworkQuickAction.AddDevice && prefill?.siteId) {
+    params[NETWORK_QUICK_ACTION_SITE_PARAM] = prefill.siteId;
+  }
+
   return RouteUtil.populateRouteParams(
     RouteMap[ACTION_PAGES[action]] as Route,
   ).addQueryParams(params);
@@ -89,5 +94,6 @@ export function clearNetworkQuickAction(): void {
     [NETWORK_QUICK_ACTION_QUERY_PARAM]: null,
     [NETWORK_QUICK_ACTION_ADDRESS_PARAM]: null,
     [NETWORK_QUICK_ACTION_PROBE_PARAM]: null,
+    [NETWORK_QUICK_ACTION_SITE_PARAM]: null,
   });
 }

@@ -1,6 +1,9 @@
 import {
+  BREACH_LAW_RULES,
   BreachLawId,
+  BreachLawRule,
   BreachPlace,
+  isUsStateRule,
 } from "../../../../../Types/DataSecurity/BreachLaws";
 import { getCloudRegionLocation } from "../../../../../Types/DataSecurity/CloudRegionCountry";
 import { getBuiltInDataType } from "../../../../../Types/DataSecurity/DataTypeCatalog";
@@ -148,7 +151,7 @@ const PERSONAL_DATA_IF_PLACE: Array<BreachLawId> = [
   BreachLawId.CertIn,
 ];
 
-// The states whose laws cover another government's ID number: California, Colorado, Florida, Texas.
+// The states whose laws cover another government's ID number, as each statute lists it.
 const OTHER_GOVERNMENT_ID_STATES: Array<BreachLawId> = [
   BreachLawId.CaliforniaResidents,
   BreachLawId.CaliforniaAttorneyGeneral,
@@ -158,7 +161,73 @@ const OTHER_GOVERNMENT_ID_STATES: Array<BreachLawId> = [
   BreachLawId.FloridaDepartment,
   BreachLawId.TexasIndividuals,
   BreachLawId.TexasAttorneyGeneral,
+  // #10952's, each as its statute lists another government ID number.
+  BreachLawId.ColoradoConsumerReportingAgencies,
+  BreachLawId.TexasConsumerReportingAgencies,
+  BreachLawId.WyomingResidents,
+  BreachLawId.AlabamaResidents,
+  BreachLawId.AlabamaAttorneyGeneral,
+  BreachLawId.ConnecticutResidents,
+  BreachLawId.ConnecticutAttorneyGeneral,
+  BreachLawId.DelawareResidents,
+  BreachLawId.DelawareAttorneyGeneral,
+  BreachLawId.DistrictOfColumbiaResidents,
+  BreachLawId.DistrictOfColumbiaAttorneyGeneral,
+  BreachLawId.IowaResidents,
+  BreachLawId.IowaAttorneyGeneral,
+  BreachLawId.MarylandResidents,
+  BreachLawId.MarylandAttorneyGeneral,
+  BreachLawId.MississippiResidents,
+  BreachLawId.MissouriResidents,
+  BreachLawId.MissouriAttorneyGeneral,
+  BreachLawId.MontanaResidents,
+  BreachLawId.MontanaAttorneyGeneral,
+  BreachLawId.NewHampshireResidents,
+  BreachLawId.NewHampshireAttorneyGeneral,
+  BreachLawId.NewMexicoResidents,
+  BreachLawId.NewMexicoAttorneyGeneral,
+  // Their notices to the consumer reporting agencies, which cover the same data.
+  BreachLawId.AlabamaConsumerReportingAgencies,
+  BreachLawId.DistrictOfColumbiaConsumerReportingAgencies,
+  BreachLawId.FloridaConsumerReportingAgencies,
+  BreachLawId.MarylandConsumerReportingAgencies,
+  BreachLawId.MissouriConsumerReportingAgencies,
+  BreachLawId.NewHampshireConsumerReportingAgencies,
+  BreachLawId.NewMexicoConsumerReportingAgencies,
+  BreachLawId.OklahomaResidents,
+  BreachLawId.OklahomaAttorneyGeneral,
+  BreachLawId.OregonResidents,
+  BreachLawId.OregonAttorneyGeneral,
+  BreachLawId.OregonConsumerReportingAgencies,
+  BreachLawId.RhodeIslandResidents,
+  BreachLawId.RhodeIslandAttorneyGeneral,
+  BreachLawId.RhodeIslandConsumerReportingAgencies,
+  BreachLawId.SouthCarolinaResidents,
+  BreachLawId.SouthCarolinaConsumerAffairs,
+  BreachLawId.SouthCarolinaConsumerReportingAgencies,
+  BreachLawId.SouthDakotaResidents,
+  BreachLawId.SouthDakotaAttorneyGeneral,
+  BreachLawId.SouthDakotaConsumerReportingAgencies,
+  BreachLawId.VermontResidents,
+  BreachLawId.VermontAttorneyGeneral,
+  BreachLawId.VermontConsumerReportingAgencies,
+  BreachLawId.VirginiaResidents,
+  BreachLawId.VirginiaAttorneyGeneral,
+  BreachLawId.VirginiaConsumerReportingAgencies,
 ];
+
+/*
+ * Every US state's notices: each state's law covers a Social Security
+ * number held with a name (UsStateBreachLaws.test.ts holds each row to its
+ * statute), so they all wait on which states the people live in.
+ */
+const EVERY_US_STATE_ROW: Array<BreachLawId> = BREACH_LAW_RULES.filter(
+  (rule: BreachLawRule): boolean => {
+    return isUsStateRule(rule);
+  },
+).map((rule: BreachLawRule): BreachLawId => {
+  return rule.id;
+});
 
 export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
   {
@@ -280,6 +349,7 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
         BreachLawId.HipaaBusinessAssociate,
         BreachLawId.TexasIndividuals,
         BreachLawId.HipaaSecretarySmall,
+        BreachLawId.TexasConsumerReportingAgencies,
       ],
       mayApplyIfPlace: [],
       notYetInForce: NOT_YET,
@@ -450,11 +520,15 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
         BreachLawId.CaliforniaResidents,
         BreachLawId.CaliforniaAttorneyGeneral,
         BreachLawId.PciDss,
+        // The card brands' own rules (#10953): Mastercard's 24 hours first.
+        BreachLawId.VisaCompromise,
+        BreachLawId.MastercardAdcEvent,
+        BreachLawId.AmericanExpressDataIncident,
       ],
       mayApplyIfPlace: [],
       notYetInForce: NOT_YET,
-      mostUrgent: BreachLawId.CaliforniaResidents,
-      mostUrgentDueAt: "2026-12-10T12:00:00.000Z",
+      mostUrgent: BreachLawId.MastercardAdcEvent,
+      mostUrgentDueAt: "2026-11-11T12:00:00.000Z",
       readsTreatedAsRead: false,
       isPlaceUnknown: false,
     },
@@ -492,18 +566,8 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
         BreachLawId.LgpdAuthority,
         BreachLawId.LgpdPeople,
         BreachLawId.CertIn,
-        BreachLawId.CaliforniaResidents,
-        BreachLawId.CaliforniaAttorneyGeneral,
-        BreachLawId.ColoradoResidents,
-        BreachLawId.ColoradoAttorneyGeneral,
-        BreachLawId.FloridaIndividuals,
-        BreachLawId.FloridaDepartment,
-        BreachLawId.NewYorkResidents,
-        BreachLawId.NewYorkAgencies,
-        BreachLawId.TexasIndividuals,
-        BreachLawId.TexasAttorneyGeneral,
-        BreachLawId.WashingtonConsumers,
-        BreachLawId.WashingtonAttorneyGeneral,
+        // A bank account number held with a name: every state's law covers it.
+        ...EVERY_US_STATE_ROW,
       ],
       notYetInForce: NOT_YET,
       mostUrgent: BreachLawId.UkGdprAuthority,
@@ -586,6 +650,8 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
       mayApplyKnown: [
         BreachLawId.NewYorkResidents,
         BreachLawId.NewYorkAgencies,
+        // More than 5,000 New Yorkers: a person counts them.
+        BreachLawId.NewYorkConsumerReportingAgencies,
       ],
       mayApplyIfPlace: [],
       notYetInForce: NOT_YET,
@@ -625,6 +691,8 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
         BreachLawId.ColoradoAttorneyGeneral,
         BreachLawId.FloridaIndividuals,
         BreachLawId.FloridaDepartment,
+        BreachLawId.FloridaConsumerReportingAgencies,
+        BreachLawId.ColoradoConsumerReportingAgencies,
       ],
       mayApplyIfPlace: [],
       notYetInForce: NOT_YET,
@@ -785,6 +853,82 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
       mostUrgentDueAt: "2026-11-12T10:15:00.000Z",
       readsTreatedAsRead: true,
       windowDays: 0,
+      isPlaceUnknown: false,
+    },
+  },
+  {
+    id: "us-ssn-state-not-said",
+    title:
+      "Payroll Social Security numbers with names, about people in the US, and nobody said which states",
+    store: store({
+      name: "payroll-export-2026",
+      region: "us-east-2",
+      sensitivity: DataSensitivity.Restricted,
+      dataTypeIds: ["us-ssn", "person-name"],
+      estimatedRecords: 1800,
+      subjectCountries: ["US"],
+      accessLogging: false,
+    }),
+    issues: [
+      issue({
+        id: "a1b2c3d4-0016-4000-8000-000000000016",
+        checkId: "public-read",
+        title: "Anyone on the internet can read it",
+        foundAt: "2026-11-25T10:00:00.000Z",
+      }),
+    ],
+    placesNamed: [BreachPlace.UnitedStates],
+    now: "2026-11-25T12:00:00.000Z",
+    expect: {
+      isAssessedOnItsOwn: true,
+      mayApplyKnown: [],
+      // Every state's, until a person says which states the people live in.
+      mayApplyIfPlace: EVERY_US_STATE_ROW,
+      notYetInForce: NOT_YET,
+      mostUrgent: null,
+      readsTreatedAsRead: true,
+      isPlaceUnknown: false,
+    },
+  },
+  {
+    id: "indiana-and-hawaii-ssn",
+    title:
+      "Members' Social Security numbers with names, about people in Indiana and Hawaii",
+    store: store({
+      name: "member-benefits",
+      region: "us-east-2",
+      sensitivity: DataSensitivity.Restricted,
+      dataTypeIds: ["us-ssn", "person-name"],
+      estimatedRecords: 2400,
+      subjectCountries: ["US"],
+      accessLogging: false,
+    }),
+    issues: [
+      issue({
+        id: "a1b2c3d4-0017-4000-8000-000000000017",
+        checkId: "public-read",
+        title: "Anyone on the internet can read it",
+        foundAt: "2026-11-26T09:00:00.000Z",
+      }),
+    ],
+    placesNamed: [BreachPlace.Indiana, BreachPlace.Hawaii],
+    now: "2026-11-26T15:00:00.000Z",
+    expect: {
+      isAssessedOnItsOwn: true,
+      mayApplyKnown: [
+        BreachLawId.HawaiiResidents,
+        BreachLawId.HawaiiConsumerProtection,
+        BreachLawId.HawaiiConsumerReportingAgencies,
+        BreachLawId.IndianaResidents,
+        BreachLawId.IndianaAttorneyGeneral,
+        BreachLawId.IndianaConsumerReportingAgencies,
+      ],
+      mayApplyIfPlace: [],
+      notYetInForce: NOT_YET,
+      // Indiana's 45 days; Hawaii's notices have no length of time.
+      mostUrgent: BreachLawId.IndianaResidents,
+      mostUrgentDueAt: "2027-01-10T09:00:00.000Z",
+      readsTreatedAsRead: true,
       isPlaceUnknown: false,
     },
   },

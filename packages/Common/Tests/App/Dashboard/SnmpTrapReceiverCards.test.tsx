@@ -24,10 +24,14 @@ import path from "path";
 import * as React from "react";
 import { initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
+import DeviceProbeSnmpEngineId from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceProbeSnmpEngineId";
 import DeviceSnmpTrapRefusals from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceSnmpTrapRefusals";
 import ProbeSnmpTraps from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeSnmpTraps";
 import {
+  DEVICE_PROBE_ENGINE_ID_LABEL,
+  DEVICE_PROBE_ENGINE_ID_NOT_REPORTED,
   DEVICE_SNMP_TRAP_REFUSALS_DESCRIPTION,
+  SNMP_TRAP_REFUSAL_ENGINE_ID_FIX,
   SNMP_TRAP_REFUSAL_FIXES,
   SNMP_TRAP_REFUSAL_HEADLINE,
   SNMP_TRAP_REFUSAL_REASONS,
@@ -42,6 +46,7 @@ import {
   SNMP_TRAPS_REFUSED_TITLE,
   SNMP_TRAPS_TURNED_OFF,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/SnmpTrapReceiverCopy";
+import GlobalProbeSnmpTrapReport from "../../../Models/DatabaseModels/GlobalProbeSnmpTrapReport";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -144,8 +149,16 @@ let device: {
   hostname: string;
   otherAddresses?: string | undefined;
   hasProbe: boolean;
+  // On one of OneUptime's global probes, which many projects share.
+  isGlobalProbe?: boolean | undefined;
 };
 let readError: Error | HTTPErrorResponse | null;
+/*
+ * This project's share of a global probe's refusals, as its row holds them:
+ * null is no row yet.
+ */
+let share: Array<SnmpTrapRefusal> | null;
+let shareError: Error | null;
 
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
@@ -171,8 +184,37 @@ beforeEach(() => {
     hasProbe: true,
   };
   readError = null;
+  share = null;
+  shareError = null;
 
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  jest.spyOn(ModelAPI, "getList").mockImplementation(((data: {
+    modelType: unknown;
+  }): Promise<unknown> => {
+    if (data.modelType !== GlobalProbeSnmpTrapReport) {
+      return Promise.reject(new Error("not asked for in these tests"));
+    }
+
+    if (shareError) {
+      return Promise.reject(shareError);
+    }
+
+    const rows: Array<GlobalProbeSnmpTrapReport> = [];
+
+    if (share) {
+      const row: GlobalProbeSnmpTrapReport = new GlobalProbeSnmpTrapReport();
+      row._id = "50000000-0000-4000-8000-000000000001";
+      row.refusals = share;
+      rows.push(row);
+    }
+
+    return Promise.resolve({
+      data: rows,
+      count: rows.length,
+      skip: 0,
+      limit: 1,
+    });
+  }) as never);
   jest.spyOn(ModelAPI, "getItem").mockImplementation(((data: {
     modelType: unknown;
   }): Promise<unknown> => {
@@ -182,6 +224,7 @@ beforeEach(() => {
 
     const probe: Probe = new Probe();
     probe._id = PROBE_ID.toString();
+    probe.isGlobalProbe = Boolean(device.isGlobalProbe);
 
     if (report) {
       probe.snmpTrapReceiver = report;
@@ -308,7 +351,7 @@ describe("a probe's SNMP Traps card", () => {
     ).toBeInTheDocument();
     expect(card).toHaveTextContent(SNMP_TRAPS_ENGINE_ID_HINT);
     expect(within(card).getByTestId("probe-snmp-users")).toHaveTextContent(
-      "14 users, from the devices on this probe",
+      "14 users, from the devices and sites that use this probe",
     );
     expect(card).toHaveTextContent("Last Trap");
     expect(card).not.toHaveTextContent(SNMP_TRAPS_NONE_RECEIVED);
@@ -329,7 +372,7 @@ describe("a probe's SNMP Traps card", () => {
     await findCardBody("probe-snmp-traps");
 
     expect(screen.getByTestId("probe-snmp-users")).toHaveTextContent(
-      "1 user, from the devices on this probe",
+      "1 user, from the devices and sites that use this probe",
     );
   });
 
@@ -580,10 +623,12 @@ describe("a device's refused SNMPv3 traps", () => {
           hostname: true,
           otherAddresses: true,
           probeId: true,
-          probe: { _id: true, snmpTrapReceiver: true },
+          probe: { _id: true, isGlobalProbe: true, snmpTrapReceiver: true },
         },
       }),
     );
+    // A project probe keeps its whole report: no share is asked for.
+    expect(ModelAPI.getList).not.toHaveBeenCalled();
   });
 
   test("says how many of its own traps were refused, which, what to change, and the way to change it", async () => {
@@ -714,5 +759,362 @@ describe("a device's refused SNMPv3 traps", () => {
 
     expect(container).toBeEmptyDOMElement();
     expect(ModelAPI.getItem).not.toHaveBeenCalled();
+  });
+
+  test("an inform sent to another engine ID says the probe's engine ID there, to copy, beside View Probe", async () => {
+    await renderDevicePage();
+    const banner: HTMLElement = await screen.findByTestId(
+      "device-snmp-trap-refusals",
+    );
+    const refused: Array<HTMLElement> =
+      within(banner).getAllByTestId("snmp-trap-refusal");
+
+    // 10.20.0.12, its management address, sent informs to another engine ID.
+    const fix: HTMLElement = within(refused[1]!).getByTestId(
+      "snmp-trap-refusal-engine-id-fix",
+    );
+
+    expect(fix).toHaveTextContent(SNMP_TRAP_REFUSAL_ENGINE_ID_FIX);
+    expect(
+      within(fix).getByTestId("snmp-trap-refusal-probe-engine-id"),
+    ).toHaveTextContent(ENGINE_ID);
+    expect(within(fix).getByRole("button", { name: /Copy/ })).toBeVisible();
+    expect(refused[1]).not.toHaveTextContent(
+      SNMP_TRAP_REFUSAL_FIXES[SnmpTrapRefusalReason.UnknownEngineId],
+    );
+
+    // Every other reason keeps its own fix, with no engine ID.
+    expect(refused[0]).toHaveTextContent(
+      SNMP_TRAP_REFUSAL_FIXES[SnmpTrapRefusalReason.UnknownUser],
+    );
+    expect(
+      within(refused[0]!).queryByTestId("snmp-trap-refusal-engine-id-fix"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(banner).getByRole("link", { name: "View Probe" }),
+    ).toBeVisible();
+  });
+});
+
+/*
+ * A DEVICE ON A GLOBAL PROBE (#11173).
+ *
+ * OneUptime's global probes serve many projects, so what one refuses is
+ * split by the project whose devices sent it, and a project reads only its
+ * own share (GlobalProbeSnmpTrapReport). The probe's own row says only what
+ * belongs to no project: whether it listens, where, and its engine ID. A
+ * device's pages read the refusals from the share - never from the probe's
+ * row - and say the probe's engine ID where a link to the probe's page
+ * would be: a global probe has no page a project opens.
+ */
+describe("a device on a global probe's refused SNMPv3 traps", () => {
+  beforeEach(() => {
+    device = { ...device, isGlobalProbe: true };
+    // What a global probe's row holds: what belongs to no project.
+    report = { isEnabled: true, port: 162, engineId: ENGINE_ID, refusals: [] };
+    share = [
+      refusal({}),
+      // Another device of this project, at an address of its own.
+      refusal({
+        sourceAddress: "10.20.0.9",
+        reason: SnmpTrapRefusalReason.WrongDigest,
+        userName: "fabric-monitor",
+        count: 3,
+      }),
+      refusal({
+        sourceAddress: "10.20.0.12",
+        reason: SnmpTrapRefusalReason.UnknownEngineId,
+        userName: "san-informs",
+        count: 1,
+      }),
+    ];
+  });
+
+  test("asks for this project's share of the probe's refusals, by the probe, and nothing else of it", async () => {
+    await renderDevicePage();
+    await screen.findByTestId("device-snmp-trap-refusals");
+
+    expect(ModelAPI.getList).toHaveBeenCalledTimes(1);
+    expect(ModelAPI.getList).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: GlobalProbeSnmpTrapReport,
+        query: { probeId: PROBE_ID },
+        select: { _id: true, refusals: true },
+        limit: 1,
+        skip: 0,
+      }),
+    );
+  });
+
+  test("says the refused traps from its own addresses, out of its project's share", async () => {
+    await renderDevicePage();
+    const banner: HTMLElement = await screen.findByTestId(
+      "device-snmp-trap-refusals",
+    );
+
+    expect(banner).toHaveTextContent(
+      "13 SNMPv3 traps from this device were refused",
+    );
+
+    const refused: Array<HTMLElement> =
+      within(banner).getAllByTestId("snmp-trap-refusal");
+
+    expect(refused).toHaveLength(2);
+    expect(refused[0]).toHaveTextContent("from 10.20.0.5 failed");
+    expect(refused[0]).toHaveTextContent("unknown user “san-monitor”");
+    expect(refused[1]).toHaveTextContent("from 10.20.0.12 failed");
+    expect(banner).not.toHaveTextContent("10.20.0.9");
+    expect(banner).not.toHaveTextContent("fabric-monitor");
+  });
+
+  test("an inform sent to another engine ID says the global probe's engine ID, to copy", async () => {
+    await renderDevicePage();
+    const banner: HTMLElement = await screen.findByTestId(
+      "device-snmp-trap-refusals",
+    );
+    const fix: HTMLElement = within(banner).getByTestId(
+      "snmp-trap-refusal-engine-id-fix",
+    );
+
+    expect(fix).toHaveTextContent(SNMP_TRAP_REFUSAL_ENGINE_ID_FIX);
+    expect(
+      within(fix).getByTestId("snmp-trap-refusal-probe-engine-id"),
+    ).toHaveTextContent(ENGINE_ID);
+    // Not "shown on the probe's page": there is no such page here.
+    expect(banner).not.toHaveTextContent(
+      SNMP_TRAP_REFUSAL_FIXES[SnmpTrapRefusalReason.UnknownEngineId],
+    );
+  });
+
+  test("links to the device's credentials, and to no probe page", async () => {
+    await renderDevicePage();
+    const banner: HTMLElement = await screen.findByTestId(
+      "device-snmp-trap-refusals",
+    );
+
+    expect(
+      within(banner).getByRole("link", { name: "Edit SNMP Credentials" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/network-devices/${DEVICE_ID.toString()}/settings`,
+    );
+    expect(
+      within(banner).queryByRole("link", { name: "View Probe" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("never reads refusals off the probe's own row: only its project's share", async () => {
+    // A row written before the split, holding every project's refusals.
+    report = listening();
+    share = [];
+
+    const container: HTMLElement = await renderDevicePage();
+
+    await waitFor(() => {
+      expect(ModelAPI.getList).toHaveBeenCalled();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test.each([
+    [
+      "its project has no share yet",
+      (): void => {
+        share = null;
+      },
+    ],
+    [
+      "its project's share refused nothing",
+      (): void => {
+        share = [];
+      },
+    ],
+    [
+      "its project's share refused only other addresses",
+      (): void => {
+        share = [refusal({ sourceAddress: "10.20.0.9" })];
+      },
+    ],
+    [
+      "its project's share cannot be read",
+      (): void => {
+        shareError = new Error("offline");
+      },
+    ],
+  ])("says nothing when %s", async (_case: string, arrange: () => void) => {
+    arrange();
+    const container: HTMLElement = await renderDevicePage();
+
+    await waitFor(() => {
+      expect(ModelAPI.getList).toHaveBeenCalled();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test("a reader who may not read the probe's report sees nothing, and neither the device nor a share is asked for", async () => {
+    jest.spyOn(PermissionGate, "hasPermissionSnapshot").mockReturnValue(true);
+    jest.spyOn(PermissionGate, "canReadColumn").mockReturnValue(false);
+
+    const { container } = render(
+      <MemoryRouter>
+        <DeviceSnmpTrapRefusals modelId={DEVICE_ID} />
+      </MemoryRouter>,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(ModelAPI.getItem).not.toHaveBeenCalled();
+    expect(ModelAPI.getList).not.toHaveBeenCalled();
+  });
+});
+
+async function renderProbeEngineId(
+  language: string = "en",
+): Promise<HTMLElement> {
+  await act(async () => {
+    await i18next.changeLanguage(language);
+  });
+
+  const { container } = render(
+    <MemoryRouter>
+      <DeviceProbeSnmpEngineId modelId={DEVICE_ID} />
+    </MemoryRouter>,
+  );
+
+  await waitFor(() => {
+    expect(ModelAPI.getItem).toHaveBeenCalled();
+  });
+
+  return container;
+}
+
+/*
+ * ITS PROBE'S ENGINE ID, ON A DEVICE'S LOGS PAGE (#11173).
+ *
+ * A device that sends SNMPv3 informs authenticates them with its probe's
+ * engine ID, and some must be given it. A project probe's page shows it; a
+ * device on a global probe has nowhere else to read it.
+ */
+describe("a device's probe's SNMPv3 engine ID, on its Logs page", () => {
+  test("asks for its probe's report through the device, and nothing else", async () => {
+    await renderProbeEngineId();
+    await screen.findByTestId("device-probe-snmp-engine-id");
+
+    expect(ModelAPI.getItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: NetworkDevice,
+        id: DEVICE_ID,
+        select: {
+          probeId: true,
+          probe: { _id: true, snmpTrapReceiver: true },
+        },
+      }),
+    );
+    expect(ModelAPI.getList).not.toHaveBeenCalled();
+  });
+
+  test("says the engine ID, to copy, and what a device does with it", async () => {
+    await renderProbeEngineId();
+    const block: HTMLElement = await screen.findByTestId(
+      "device-probe-snmp-engine-id",
+    );
+
+    // The probe's, said as the probe's: not the device's own engine ID.
+    expect(block).toHaveTextContent(DEVICE_PROBE_ENGINE_ID_LABEL);
+    expect(DEVICE_PROBE_ENGINE_ID_LABEL).toBe("Probe's SNMPv3 Engine ID");
+    expect(
+      within(block).getByTestId("device-probe-snmp-engine-id-value"),
+    ).toHaveTextContent(ENGINE_ID);
+    expect(within(block).getByRole("button", { name: /Copy/ })).toBeVisible();
+    expect(block).toHaveTextContent(SNMP_TRAPS_ENGINE_ID_HINT);
+  });
+
+  test("a global probe's too, from what it says of itself to every project", async () => {
+    device = { ...device, isGlobalProbe: true };
+    report = { isEnabled: true, port: 162, engineId: ENGINE_ID, refusals: [] };
+
+    await renderProbeEngineId();
+
+    expect(
+      await screen.findByTestId("device-probe-snmp-engine-id-value"),
+    ).toHaveTextContent(ENGINE_ID);
+  });
+
+  test("a probe that has not reported its receiver yet says the engine ID will be here", async () => {
+    report = undefined;
+    await renderProbeEngineId();
+
+    expect(
+      await screen.findByTestId("device-probe-snmp-engine-id-not-reported"),
+    ).toHaveTextContent(DEVICE_PROBE_ENGINE_ID_NOT_REPORTED);
+    expect(
+      screen.queryByTestId("device-probe-snmp-engine-id"),
+    ).not.toBeInTheDocument();
+  });
+
+  test.each([
+    [
+      "it has no probe",
+      (): void => {
+        device = { ...device, hasProbe: false };
+      },
+    ],
+    [
+      "its probe's receiver is off",
+      (): void => {
+        report = { isEnabled: false, refusals: [] };
+      },
+    ],
+    [
+      "its probe could not be read",
+      (): void => {
+        readError = new Error("offline");
+      },
+    ],
+  ])("says nothing when %s", async (_case: string, arrange: () => void) => {
+    arrange();
+    const container: HTMLElement = await renderProbeEngineId();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  test("a reader who may not read the probe's report sees nothing, and nothing is asked", async () => {
+    jest.spyOn(PermissionGate, "hasPermissionSnapshot").mockReturnValue(true);
+    jest.spyOn(PermissionGate, "canReadColumn").mockReturnValue(false);
+
+    const { container } = render(
+      <MemoryRouter>
+        <DeviceProbeSnmpEngineId modelId={DEVICE_ID} />
+      </MemoryRouter>,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(ModelAPI.getItem).not.toHaveBeenCalled();
+  });
+
+  test("in German, the hint is German, and the engine ID reads as it is", async () => {
+    await renderProbeEngineId("de");
+    const block: HTMLElement = await screen.findByTestId(
+      "device-probe-snmp-engine-id",
+    );
+
+    expect(block).toHaveTextContent(DE[SNMP_TRAPS_ENGINE_ID_HINT] as string);
+    expect(
+      within(block).getByTestId("device-probe-snmp-engine-id-value"),
+    ).toHaveTextContent(ENGINE_ID);
+    expect(
+      within(block).getByTestId("device-probe-snmp-engine-id-value"),
+    ).toHaveAttribute("dir", "ltr");
   });
 });

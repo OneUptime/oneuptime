@@ -1,4 +1,5 @@
 import SnmpSecurityLevel from "./SnmpSecurityLevel";
+import { SnmpV3CredentialHolders } from "../../Probe/SnmpV3CredentialHolders";
 
 export interface SnmpTrapVarbind {
   oid: string;
@@ -36,10 +37,22 @@ export default interface SnmpTrap {
   // SNMPv3 only: whether it was authenticated, and encrypted.
   securityLevel?: SnmpSecurityLevel | undefined;
   /*
-   * SNMPv3 only: the sending SNMP engine (the scoped PDU's contextEngineID),
-   * as hex. Tells apart devices that share one address behind NAT.
+   * SNMPv3 only: the sending SNMP engine, as hex - the engine a trap was
+   * authenticated as, or an inform's contextEngineID. Tells apart devices
+   * that share one address behind NAT, by the engine ID each one's polls
+   * report (NetworkDevice.snmpEngineId, #11172).
    */
   engineId?: string | undefined;
+  /*
+   * SNMPv3 only, and only for a trap the probe authenticated: the records
+   * that hold the credential it was signed with, as OneUptime handed them
+   * to the probe (SnmpV3CredentialHolders). Says which projects may keep
+   * the trap, which of the devices at its address carry that credential
+   * (#11172), and which site a device not added yet belongs to (#11174).
+   * Absent from probes older than #11172, and for a noAuthNoPriv trap,
+   * whose user name proves nothing.
+   */
+  signedBy?: SnmpV3CredentialHolders | undefined;
   /*
    * SNMPv3 only, when not empty: the context the notification names. For a
    * logical switch of a Brocade Virtual Fabric it is "VF:<fabric ID>", and

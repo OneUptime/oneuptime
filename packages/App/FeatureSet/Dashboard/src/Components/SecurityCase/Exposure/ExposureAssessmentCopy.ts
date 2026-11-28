@@ -12,6 +12,13 @@ import {
  * fact a draft rests on the compliance facts' (ComplianceDraftsCopy).
  */
 
+/*
+ * The Was It a Breach? card's place on the case's Overview (Card's id,
+ * Utils/PageAnchor): a link that names it after its "#" - each checklist
+ * task's answer on the Tasks page - lands on the card.
+ */
+export const EXPOSURE_CARD_PLACE: string = "was-it-a-breach";
+
 export const EXPOSURE_TEST_IDS: {
   card: string;
   notAssessed: string;
@@ -36,6 +43,11 @@ export const EXPOSURE_TEST_IDS: {
   draft: string;
   part: string;
   partToggle: string;
+  taskAnswer: string;
+  readLogs: string;
+  placeStates: string;
+  stateLaws: string;
+  statesNotApplying: string;
 } = {
   card: "security-case-exposure-assessment",
   notAssessed: "security-case-exposure-not-assessed",
@@ -60,6 +72,14 @@ export const EXPOSURE_TEST_IDS: {
   draft: "security-case-exposure-draft",
   part: "security-case-exposure-part",
   partToggle: "security-case-exposure-part-toggle",
+  // A checklist task's answer, under the task on the case's Tasks page (#10954).
+  taskAnswer: "security-case-task-exposure-answer",
+  // Read the Access Logs, on the reads line (#10951).
+  readLogs: "security-case-exposure-read-logs",
+  // The US states picker, and the states' laws drawn together (#10952).
+  placeStates: "security-case-exposure-place-states",
+  stateLaws: "security-case-exposure-state-laws",
+  statesNotApplying: "security-case-exposure-states-not-applying",
 };
 
 // The card.
@@ -127,6 +147,11 @@ export const WITHIN_DAYS_OF_PEOPLE: PluralTemplate = {
   one: "Within {{count}} day of telling the people",
   other: "Within {{count}} days of telling the people",
 };
+// Iowa's notice to its attorney general (#10952).
+export const WITHIN_BUSINESS_DAYS_OF_PEOPLE: PluralTemplate = {
+  one: "Within {{count}} business day of telling the people",
+  other: "Within {{count}} business days of telling the people",
+};
 export const WHEN_PEOPLE_TOLD: string = translationKey(
   "When the people are told",
 );
@@ -136,6 +161,10 @@ export const WITHIN_DAYS_OF_YEAR_END: PluralTemplate = {
 };
 export const WITHOUT_UNDUE_DELAY: string = translationKey(
   "Without undue delay",
+);
+// Most US states' words: "in the most expedient time possible and without unreasonable delay".
+export const WITHOUT_UNREASONABLE_DELAY: string = translationKey(
+  "As soon as possible, without unreasonable delay",
 );
 export const NO_FIXED_TIME: string = translationKey("No fixed deadline");
 
@@ -149,6 +178,82 @@ export const READS_UNKNOWN: string = translationKey(
 export const READS_LOGGED: string = translationKey(
   "Reads were logged. The store's access logs say who read it.",
 );
+
+// What the store's own access logs say, once OneUptime read them (#10951).
+export const LOGS_FROM_OUTSIDE: PluralTemplate = {
+  one: "OneUptime read the store's access logs for this window: {{count}} read from outside your accounts.",
+  other:
+    "OneUptime read the store's access logs for this window: {{count}} reads from outside your accounts.",
+};
+export const LOGS_NONE_FROM_OUTSIDE: string = translationKey(
+  "OneUptime read the store's access logs for this window: no read from outside your accounts.",
+);
+export const LOGS_NONE_SO_FAR: string = translationKey(
+  "OneUptime read part of the store's access logs for this window: no read from outside your accounts so far.",
+);
+// Who made the reads from outside, each "{{reads}} by ...": counted by its own plural.
+export const LOGS_BY_ANYONE: PluralTemplate = {
+  one: "{{reads}} by anyone on the internet, from {{count}} address",
+  other: "{{reads}} by anyone on the internet, from {{count}} addresses",
+};
+export const LOGS_BY_ACCOUNTS: PluralTemplate = {
+  one: "{{reads}} by {{count}} account outside your company",
+  other: "{{reads}} by {{count}} accounts outside your company",
+};
+export const LOGS_BY_UNPLACED: string = translationKey(
+  "{{reads}} by requesters OneUptime cannot place",
+);
+export const LOGS_OBJECTS_SENT: PluralTemplate = {
+  one: "{{count}} object read, {{size}} sent.",
+  other: "{{count}} objects read, {{size}} sent.",
+};
+export const LOGS_LISTINGS: PluralTemplate = {
+  one: "{{count}} listing of its objects from outside, which names them without sending them.",
+  other:
+    "{{count}} listings of its objects from outside, which name them without sending them.",
+};
+export const LOGS_FILES_READ: PluralTemplate = {
+  one: "It read {{count}} log file of the window.",
+  other: "It read {{count}} log files of the window.",
+};
+export const LOGS_PART_READ: PluralTemplate = {
+  one: "It read {{count}} log file, to {{date}}, within the time a read takes: the counts are those so far.",
+  other:
+    "It read {{count}} log files, to {{date}}, within the time a read takes: the counts are those so far.",
+};
+export const LOGS_BEST_EFFORT: string = translationKey(
+  "S3 delivers its access logs on a best effort basis, so a person still checks.",
+);
+export const LOGS_OLDER_WINDOW: string = translationKey(
+  "Read {{date}}, for the window as it was then. Read them again for the window as it is now.",
+);
+export const LOGS_NO_CONTENT_ACCESS: string = translationKey(
+  "OneUptime cannot read these logs: the store's cloud connection may not read objects. Give it content access in its data security settings, or read the logs where they are.",
+);
+export const LOGS_LOGGING_OFF: string = translationKey(
+  "The store logs no reads now, so OneUptime found no logs to read.",
+);
+export const LOGS_UNREADABLE: string = translationKey(
+  "OneUptime could not read the bucket the logs are written to, {{location}}.",
+);
+export const LOGS_UNREADABLE_SOMEWHERE: string = translationKey(
+  "OneUptime could not read the bucket the logs are written to.",
+);
+export const LOGS_NOT_SUPPORTED: string = translationKey(
+  "OneUptime reads an S3 bucket's access logs. This store's are for you to read where they are.",
+);
+export const READ_ACCESS_LOGS: string = translationKey("Read the Access Logs");
+export const READ_LOGS_AGAIN: string = translationKey("Read the Logs Again");
+export const LOGS_READ_TOAST: string = translationKey(
+  "The store's access logs were read.",
+);
+export const WHO_READ_FROM_OUTSIDE: string = translationKey(
+  "Who Read It From Outside",
+);
+export const LOGS_PRINCIPAL_LINE: PluralTemplate = {
+  one: "{{count}} read, {{size}}, from {{first}} to {{last}}",
+  other: "{{count}} reads, {{size}}, from {{first}} to {{last}}",
+};
 export const ANYONE_COULD_READ: string = translationKey(
   "Anyone on the internet could read it.",
 );
@@ -251,6 +356,23 @@ export const SHOW_MORE_LAWS: PluralTemplate = {
   other: "Show {{count}} more laws",
 };
 export const SHOW_FEWER_LAWS: string = translationKey("Show fewer laws");
+// The US states' laws, drawn together while nobody said which states (#10952).
+export const US_STATE_LAWS: string = translationKey("US state laws");
+export const US_STATE_LAWS_MAY_APPLY: PluralTemplate = {
+  one: "The breach law of {{count}} US state may apply if any of the people live there.",
+  other:
+    "The breach laws of {{count}} US states may apply if any of the people live there.",
+};
+export const US_STATE_LAWS_SAY_WHICH: string = translationKey(
+  "Say which states they live in, and only those states' laws stay.",
+);
+export const SHOW_STATE_LAWS: string = translationKey("Show the states' laws");
+export const HIDE_STATE_LAWS: string = translationKey("Hide the states' laws");
+export const STATES_NOT_APPLYING: PluralTemplate = {
+  one: "The breach law of {{count}} more US state does not apply on these facts.",
+  other:
+    "The breach laws of {{count}} more US states do not apply on these facts.",
+};
 export const SHOW_DETAILS: string = translationKey("Show details");
 export const HIDE_DETAILS: string = translationKey("Hide details");
 export const WHO_IS_TOLD: string = translationKey("Who is told");
@@ -308,6 +430,15 @@ export const PLACES_SAID: string = translationKey(
 export const PLACES_SAID_BY_SOMEONE: string = translationKey(
   "Someone said the people live in {{places}}.",
 );
+// The US states, the District of Columbia and Puerto Rico, picked from a list of their own (#10952).
+export const US_STATES: string = translationKey("US states");
+export const SEARCH_US_STATES: string = translationKey("Search for a state");
+export const US_STATES_HINT: string = translationKey(
+  "Pick each state where some of them live, the District of Columbia and Puerto Rico among them: each has a breach law of its own.",
+);
+export const STATE_NOT_IN_TABLE: string = translationKey(
+  "Its breach law is not in OneUptime's table",
+);
 export const CHANGE_PLACES: string = translationKey("Change Places");
 export const SAVE_PLACES: string = translationKey("Save Places");
 export const CANCEL: string = translationKey("Cancel");
@@ -351,6 +482,13 @@ export const ANSWER_SUMMARY_DRAFTED: string = translationKey(
 export const ANSWER_SUMMARY_TO_WRITE: string = translationKey(
   "Write the internal summary below, or have OneUptime AI draft it.",
 );
+// The same, under the task on the case's Tasks page, where the summary is not below (#10954).
+export const ANSWER_SUMMARY_DRAFTED_ON_NOTICES: string = translationKey(
+  "The internal summary in Breach Notices says what was exposed, for how long and to whom.",
+);
+export const ANSWER_SUMMARY_TO_WRITE_ON_NOTICES: string = translationKey(
+  "Write the internal summary in Breach Notices, or have OneUptime AI draft it.",
+);
 
 // The notices.
 export const BREACH_NOTICES: string = translationKey("Breach Notices");
@@ -373,4 +511,8 @@ export const SHOW_TEXT: string = translationKey("Show Text");
 export const HIDE_TEXT: string = translationKey("Hide Text");
 export const UNSAVED_NOTICES: string = translationKey(
   "Your edits to a notice are not saved yet.",
+);
+// Why Export PDF and Export Markdown wait while a part is edited (#10955).
+export const EXPORT_WAITS_FOR_SAVE: string = translationKey(
+  "Save or cancel your edit first: the export holds each part as it was last saved.",
 );
