@@ -4653,5 +4653,20 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kind}} دیگری در این پروژه همین نام را دارد، پس در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. هر کدام را باز کنید تا ببینید کدام کدام است، سپس نام یکی را تغییر دهید.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} با {{kind}} دیگری هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. هر کدام را باز کنید تا ببینید کدام کدام است، سپس نام یکی را تغییر دهید.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} مورد ({{kinds}}) با {{kind}} دیگری هم‌نام‌اند و در انتخابگرها نمی‌توان آن‌ها را از هم تشخیص داد. هر کدام را باز کنید تا ببینید کدام کدام است، سپس نام یکی را تغییر دهید.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} با {{kind}} دیگری هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. هر کدام را باز کنید تا ببینید کدام کدام است، سپس نام یکی را تغییر دهید."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} با {{kind}} دیگری هم‌نام است و در انتخابگرها نمی‌توان آن دو را از هم تشخیص داد. هر کدام را باز کنید تا ببینید کدام کدام است، سپس نام یکی را تغییر دهید.",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "این را فقط در آن دسته از {{items}} می‌توانید بخوانید که برچسب {{labels}} دارند، پس فهرست را نمی‌توان بر اساس آن مرتب کرد.",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "این را فقط در آن دسته از {{items}} می‌توانید بخوانید که برچسب‌های مشخصی دارند، پس فهرست را نمی‌توان بر اساس آن مرتب کرد.",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "این را فقط در آن دسته از {{items}} می‌توانید بخوانید که شما یا تیم‌هایتان مالکشان هستید، پس فهرست را نمی‌توان بر اساس آن مرتب کرد.",
+  "{{first}} and {{second}}": "{{first}} و {{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}، {{second}} و {{third}}",
+  "{{first}} or {{second}}": "{{first}} یا {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}}، {{second}} یا {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که برچسب {{labels}} دارند.",
+  "Your permission is limited to {{items}} with certain labels.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که برچسب‌های مشخصی دارند.",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "تیمی که عضو آن هستید این کار را روی آن دسته از {{items}} که برچسب {{labels}} دارند مسدود می‌کند.",
+  "A team you are on blocks this on {{items}} with certain labels.": "تیمی که عضو آن هستید این کار را روی آن دسته از {{items}} که برچسب‌های مشخصی دارند مسدود می‌کند.",
+  "Your permissions do not reach this {{itemName}}.": "مجوزهای شما به این مورد ({{itemName}}) نمی‌رسد.",
+  "Your permission is limited to {{items}} you or your teams own.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که شما یا تیم‌هایتان مالکشان هستید.",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که برچسب {{labels}} دارند و به آن دسته از {{items}} که شما یا تیم‌هایتان مالکشان هستید.",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "مجوز شما فقط به آن دسته از {{items}} می‌رسد که برچسب‌های مشخصی دارند و به آن دسته از {{items}} که شما یا تیم‌هایتان مالکشان هستید."
 }

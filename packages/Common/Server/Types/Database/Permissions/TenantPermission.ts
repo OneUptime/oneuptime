@@ -1,7 +1,10 @@
 import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import Select from "../Select";
-import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
+import BasePermission, {
+  CheckPermissionBaseInterface,
+  RecordScopeOptions,
+} from "./BasePermission";
 import TablePermission from "./TablePermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import EqualTo from "../../../../Types/BaseDatabase/EqualTo";
@@ -164,7 +167,12 @@ export default class TenantPermission {
    * permission check in a multi-tenant request: below a table's update plan
    * only an update that switches records off passes (BillingPermission).
    */
-  // `sort`: a read's order, held in each project as its select is (#8839).
+  /*
+   * `sort`: a read's order, held in each project as its select is (#8839).
+   * `options`: how each project's record rule treats the select
+   * (RecordScopeOptions) - a read across projects that leaves its columns
+   * kept to labels out of the rows their grants do not reach (#11438).
+   */
   @CaptureSpan()
   public static async addTenantScopeToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -174,6 +182,7 @@ export default class TenantPermission {
     type: DatabaseRequestType,
     updateData?: unknown,
     sort?: unknown,
+    options?: RecordScopeOptions,
   ): Promise<Query<TBaseModel>> {
     const model: BaseModel = new modelType();
 
@@ -337,6 +346,7 @@ export default class TenantPermission {
                     type,
                     updateData,
                     sort,
+                    options,
                   );
 
                 return { ...checkBasePermissions.query };

@@ -4653,5 +4653,20 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "このプロジェクトには同じ名前のほかの {{kind}} があるため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} 件の {{kinds}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。"
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} 件の {{kind}} がほかの {{kind}} と同じ名前のため、選択欄では区別できません。それぞれを開いてどれがどれかを確認してから、どちらかの名前を変更してください。",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "この項目を読み取れるのはラベル {{labels}} の付いた{{items}}だけなので、一覧をこの項目で並べ替えることはできません。",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "この項目を読み取れるのは特定のラベルの付いた{{items}}だけなので、一覧をこの項目で並べ替えることはできません。",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "この項目を読み取れるのはあなたまたはあなたのチームが所有する{{items}}だけなので、一覧をこの項目で並べ替えることはできません。",
+  "{{first}} and {{second}}": "{{first}}、{{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}、{{second}}、{{third}}",
+  "{{first}} or {{second}}": "{{first}} または {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}}、{{second}}、または {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "あなたの権限は、ラベル {{labels}} の付いた{{items}}に限られています。",
+  "Your permission is limited to {{items}} with certain labels.": "あなたの権限は、特定のラベルの付いた{{items}}に限られています。",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "所属しているチームが、ラベル {{labels}} の付いた{{items}}ではこの操作をブロックしています。",
+  "A team you are on blocks this on {{items}} with certain labels.": "所属しているチームが、特定のラベルの付いた{{items}}ではこの操作をブロックしています。",
+  "Your permissions do not reach this {{itemName}}.": "あなたの権限はこの{{itemName}}には及びません。",
+  "Your permission is limited to {{items}} you or your teams own.": "あなたの権限は、あなたまたはあなたのチームが所有する{{items}}に限られています。",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "あなたの権限は、ラベル {{labels}} の付いた{{items}}と、あなたまたはあなたのチームが所有する{{items}}に限られています。",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "あなたの権限は、特定のラベルの付いた{{items}}と、あなたまたはあなたのチームが所有する{{items}}に限られています。"
 }

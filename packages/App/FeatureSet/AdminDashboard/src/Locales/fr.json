@@ -4653,5 +4653,20 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Un autre élément de type {{kind}} de ce projet porte ce nom, si bien que les sélecteurs ne permettent pas de les distinguer. Ouvrez chacun d'eux pour voir lequel est lequel, puis renommez-en un.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} portent le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "Vous ne pouvez lire ce champ que sur les {{items}} portant l'étiquette {{labels}}, il ne peut donc pas servir à trier la liste.",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "Vous ne pouvez lire ce champ que sur les {{items}} portant certaines étiquettes, il ne peut donc pas servir à trier la liste.",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "Vous ne pouvez lire ce champ que sur les {{items}} dont vous ou vos équipes êtes propriétaires, il ne peut donc pas servir à trier la liste.",
+  "{{first}} and {{second}}": "{{first}} et {{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}, {{second}} et {{third}}",
+  "{{first}} or {{second}}": "{{first}} ou {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}}, {{second}} ou {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "Votre autorisation est limitée aux {{items}} portant l'étiquette {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "Votre autorisation est limitée aux {{items}} portant certaines étiquettes.",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "Une équipe dont vous faites partie bloque cette action sur les {{items}} portant l'étiquette {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "Une équipe dont vous faites partie bloque cette action sur les {{items}} portant certaines étiquettes.",
+  "Your permissions do not reach this {{itemName}}.": "Vos autorisations ne s'étendent pas à cet élément ({{itemName}}).",
+  "Your permission is limited to {{items}} you or your teams own.": "Votre autorisation est limitée aux {{items}} dont vous ou vos équipes êtes propriétaires.",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Votre autorisation est limitée aux {{items}} portant l'étiquette {{labels}} et aux {{items}} dont vous ou vos équipes êtes propriétaires.",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Votre autorisation est limitée aux {{items}} portant certaines étiquettes et aux {{items}} dont vous ou vos équipes êtes propriétaires."
 }
