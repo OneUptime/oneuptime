@@ -1330,7 +1330,7 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
 
     const data: BaseModel = created.model();
     // A create names no id of its own: its INSERT gives the record one.
-    data._id = undefined;
+    delete data._id;
 
     const props: DatabaseCommonInteractionProps = ownedScopeCreator(
       data.constructor as { new (): BaseModel },
