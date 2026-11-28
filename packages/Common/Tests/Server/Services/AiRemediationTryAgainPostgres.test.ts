@@ -715,6 +715,8 @@ describePostgres("why AI remediation did not run, on migrated Postgres", () => {
         aiRunId: fixId.toString(),
         isAutomatic: true,
         automaticBlocker: null,
+        // Only an offer of the fix carries repositories to pick from (#11209).
+        repositories: [],
       });
     });
 
