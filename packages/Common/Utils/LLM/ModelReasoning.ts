@@ -306,10 +306,7 @@ const findCode: (text: string) => Array<CodeRange> = (
     } else if (
       fence &&
       // A backtick fence's info string has no backtick in it.
-      !(
-        fence[1]!.startsWith("`") &&
-        line.slice(fence[0].length).includes("`")
-      )
+      !(fence[1]!.startsWith("`") && line.slice(fence[0].length).includes("`"))
     ) {
       openFence = fence[1]!;
       fenceStart = lineStart;
@@ -334,26 +331,28 @@ const findCode: (text: string) => Array<CodeRange> = (
 };
 
 // Whether the offset is inside one of the ranges, which are in order.
-const isInCode: (ranges: ReadonlyArray<CodeRange>, offset: number) => boolean =
-  (ranges: ReadonlyArray<CodeRange>, offset: number): boolean => {
-    let low: number = 0;
-    let high: number = ranges.length - 1;
+const isInCode: (
+  ranges: ReadonlyArray<CodeRange>,
+  offset: number,
+) => boolean = (ranges: ReadonlyArray<CodeRange>, offset: number): boolean => {
+  let low: number = 0;
+  let high: number = ranges.length - 1;
 
-    while (low <= high) {
-      const middle: number = Math.floor((low + high) / 2);
-      const range: CodeRange = ranges[middle]!;
+  while (low <= high) {
+    const middle: number = Math.floor((low + high) / 2);
+    const range: CodeRange = ranges[middle]!;
 
-      if (offset < range[0]) {
-        high = middle - 1;
-      } else if (offset >= range[1]) {
-        low = middle + 1;
-      } else {
-        return true;
-      }
+    if (offset < range[0]) {
+      high = middle - 1;
+    } else if (offset >= range[1]) {
+      low = middle + 1;
+    } else {
+      return true;
     }
+  }
 
-    return false;
-  };
+  return false;
+};
 
 /*
  * The text the tags are looked for in: as written for tags that match as
@@ -418,10 +417,7 @@ const findUnopenedClose: (
       return -1;
     }
 
-    if (
-      !isEscaped(texts.asWritten, closeAt) &&
-      !isInCode(getCode(), closeAt)
-    ) {
+    if (!isEscaped(texts.asWritten, closeAt) && !isInCode(getCode(), closeAt)) {
       // An opening tag outside code before it makes it a block's close.
       for (
         let openAt: number = searchText.indexOf(tags.open);

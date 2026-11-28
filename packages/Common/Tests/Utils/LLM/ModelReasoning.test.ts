@@ -121,9 +121,9 @@ describe("the stray </think> of issue #11255", () => {
   });
 
   test("a block right after the template's closing tag is reasoning too", () => {
-    expect(read("reasoning</think>\n\n<think>\n\n</think>\n\nAnswer").answer).toBe(
-      "Answer",
-    );
+    expect(
+      read("reasoning</think>\n\n<think>\n\n</think>\n\nAnswer").answer,
+    ).toBe("Answer");
   });
 });
 
@@ -134,7 +134,9 @@ describe("a reasoning block the reply opens with", () => {
     );
 
     expect(reading.answer).toBe("The incident started at 02:38.");
-    expect(reading.reasoning).toBe("Okay, let me analyze the incident timeline.");
+    expect(reading.reasoning).toBe(
+      "Okay, let me analyze the incident timeline.",
+    );
     expect(reading.hadReasoning).toBe(true);
     expect(reading.closedBlockItNeverOpened).toBe(false);
     expect(reading.endedInsideReasoning).toBe(false);
@@ -170,9 +172,9 @@ describe("a reasoning block the reply opens with", () => {
   });
 
   test("the first closing tag ends the block, as a model cannot write one inside its reasoning", () => {
-    expect(
-      read("<think>a tag `</think>` here</think> rest").answer,
-    ).toBe("` here</think> rest");
+    expect(read("<think>a tag `</think>` here</think> rest").answer).toBe(
+      "` here</think> rest",
+    );
   });
 
   test("an opening tag inside the block is part of the reasoning", () => {
@@ -274,7 +276,9 @@ describe("the reasoning wrappers of other model families", () => {
   });
 
   test("only </think> closes a block a template opened: other closing tags in an answer are text", () => {
-    expectUntouched("The model output ends with </thinking> and then the answer.");
+    expectUntouched(
+      "The model output ends with </thinking> and then the answer.",
+    );
     expectUntouched("A stray </reasoning> tag shows in the widget.");
     expectUntouched("Look for [/THINK] in the logs.");
   });
@@ -285,7 +289,7 @@ describe("what is not the model's reasoning stays exactly as written", () => {
     expectUntouched("I think the root cause is the database.");
     expectUntouched("Think step by step: first the deploy, then the pool.");
     expectUntouched("thinking, thinks, rethink, overthinking");
-    expectUntouched("The user asked: \"Do you think it's the cache?\"");
+    expectUntouched('The user asked: "Do you think it\'s the cache?"');
   });
 
   test("tag-like text that is no tag", () => {
@@ -497,8 +501,14 @@ describe("linear time", () => {
   test.each([
     ["closing tags cut short", repeat("</think")],
     ["closing tags in code spans", `${repeat("`</think>` ")}</think>x`],
-    ["opening tags in code before a closing tag", `${repeat("`<think>` ")}</think>x`],
-    ["opening tags in prose before a closing tag", `${repeat("a <think> ")}</think>`],
+    [
+      "opening tags in code before a closing tag",
+      `${repeat("`<think>` ")}</think>x`,
+    ],
+    [
+      "opening tags in prose before a closing tag",
+      `${repeat("a <think> ")}</think>`,
+    ],
     ["empty blocks on one line", repeat("<think></think>")],
     ["blocks that open and never close", `<think>${repeat("<think>")}`],
     ["backtick runs of every length", `${repeat("` `` ``` ")}</think>`],
@@ -506,8 +516,10 @@ describe("linear time", () => {
     ["indented lines", `${repeat("    </think>\n")}`],
     ["one long line of white space", `${repeat(" ")}</think>x`],
   ])("%s", (_shape: string, text: string) => {
-    expect(timeOf(() => {
-      return ModelReasoning.read(text);
-    })).toBeLessThan(2000);
+    expect(
+      timeOf(() => {
+        return ModelReasoning.read(text);
+      }),
+    ).toBeLessThan(2000);
   });
 });
