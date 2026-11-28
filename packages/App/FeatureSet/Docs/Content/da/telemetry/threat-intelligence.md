@@ -92,7 +92,7 @@ Et deaktiveret feed hentes ikke og matches ikke. De indikatorer, det allerede ha
 - En værdi forbliver en aktiv indikator i 2 dage efter den hentning, der sidst læste den, og en værdi, listen fjerner, holder op med at matche ved næste hentning. En liste, der ikke er ændret, skrives igen én gang om dagen.
 - En liste rummer højst 50.000 indikatorer. **Oversigt over seneste hentning** fortæller, hvor mange der blev læst, hvor mange linjer der blev sprunget over, og hvor mange der blev udeladt.
 - Adressen skal bruge `https` og er underlagt de samme udgående regler som en forbindelse: på OneUptime Cloud afvises en privat adresse.
-- En liste bag et login hentes med **Brugernavn og adgangskode** som HTTP Basic-godkendelse, aldrig i adressen. CrowdSec Console leverer på den måde de blokeringslister, du abonnerer på: se [Læs CrowdSecs blokeringslister](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
+- En liste bag et login hentes med **Brugernavn og adgangskode** som HTTP Basic-godkendelse, aldrig i adressen. CrowdSec Console leverer på den måde de blokeringslister, du abonnerer på: se [Læs CrowdSecs blokeringslister](/docs/integrations/crowdsec#læs-crowdsecs-blokeringslister).
 
 ### Sådan læses Google SecOps
 

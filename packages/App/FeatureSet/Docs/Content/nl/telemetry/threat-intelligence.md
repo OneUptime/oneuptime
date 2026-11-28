@@ -92,7 +92,7 @@ Een uitgeschakelde feed wordt niet opgehaald en niet vergeleken. De indicatoren 
 - Een waarde blijft 2 dagen na de ophaalronde die haar het laatst las een actieve indicator, en een waarde die de lijst laat vallen, matcht vanaf de volgende ophaalronde niet meer. Een lijst die niet is veranderd, wordt eens per dag opnieuw geschreven.
 - Een lijst bevat hooguit 50.000 indicatoren. **Samenvatting van de laatste opvraging** vertelt hoeveel er zijn gelezen, hoeveel regels zijn overgeslagen en hoeveel er zijn weggelaten.
 - Het adres moet `https` gebruiken en valt onder dezelfde uitgaande regels als een verbinding: op OneUptime Cloud wordt een privéadres geweigerd.
-- Een lijst achter een aanmelding wordt opgevraagd met **Gebruikersnaam en wachtwoord**, als HTTP Basic-authenticatie, nooit in het adres. Zo levert de CrowdSec Console de blokkeerlijsten waarop je je abonneert: zie [De blokkeerlijsten van CrowdSec lezen](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
+- Een lijst achter een aanmelding wordt opgevraagd met **Gebruikersnaam en wachtwoord**, als HTTP Basic-authenticatie, nooit in het adres. Zo levert de CrowdSec Console de blokkeerlijsten waarop je je abonneert: zie [De blokkeerlijsten van CrowdSec lezen](/docs/integrations/crowdsec#de-blokkeerlijsten-van-crowdsec-lezen).
 
 ### Hoe Google SecOps wordt gelezen
 

@@ -92,7 +92,7 @@ Ein deaktivierter Feed wird weder abgefragt noch abgeglichen. Die Indikatoren, d
 - Ein Wert bleibt 2 Tage nach der Abfrage, die ihn zuletzt gelesen hat, ein aktiver Indikator, und ein Wert, den die Liste entfernt, trifft ab der nächsten Abfrage nicht mehr. Eine Liste, die sich nicht geändert hat, wird einmal am Tag neu geschrieben.
 - Eine Liste umfasst höchstens 50.000 Indikatoren. **Zusammenfassung der letzten Abfrage** sagt, wie viele gelesen, wie viele Zeilen übersprungen und wie viele ausgelassen wurden.
 - Die Adresse muss `https` verwenden und unterliegt denselben ausgehenden Regeln wie eine Verbindung: In OneUptime Cloud wird eine private Adresse abgelehnt.
-- Eine Liste hinter einer Anmeldung wird mit **Benutzername und Passwort** abgerufen, per HTTP-Basic-Auth, nie in ihrer Adresse. So stellt die CrowdSec Console die Sperrlisten bereit, die Sie abonnieren: siehe [Die Sperrlisten von CrowdSec lesen](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
+- Eine Liste hinter einer Anmeldung wird mit **Benutzername und Passwort** abgerufen, per HTTP-Basic-Auth, nie in ihrer Adresse. So stellt die CrowdSec Console die Sperrlisten bereit, die Sie abonnieren: siehe [Die Sperrlisten von CrowdSec lesen](/docs/integrations/crowdsec#die-sperrlisten-von-crowdsec-lesen).
 
 ### Wie Google SecOps gelesen wird
 

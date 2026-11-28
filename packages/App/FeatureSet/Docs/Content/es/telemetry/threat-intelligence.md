@@ -92,7 +92,7 @@ Un feed desactivado no se consulta ni se coteja. Los indicadores que ya tiene si
 - Un valor sigue siendo un indicador activo durante 2 días después del sondeo que lo leyó por última vez, y un valor que la lista quita deja de coincidir en el siguiente sondeo. Una lista que no ha cambiado se vuelve a escribir una vez al día.
 - Una lista tiene como máximo 50.000 indicadores. **Resumen del último sondeo** dice cuántos se leyeron, cuántas líneas se omitieron y cuántos se dejaron fuera.
 - La dirección debe usar `https` y sigue las mismas reglas de salida que una conexión: en OneUptime Cloud se rechaza una dirección privada.
-- Una lista protegida con inicio de sesión se pide con **Usuario y contraseña**, como autenticación básica HTTP, nunca en su dirección. Así sirve la CrowdSec Console las listas de bloqueo a las que te suscribes: consulta [Leer las listas de bloqueo de CrowdSec](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
+- Una lista protegida con inicio de sesión se pide con **Usuario y contraseña**, como autenticación básica HTTP, nunca en su dirección. Así sirve la CrowdSec Console las listas de bloqueo a las que te suscribes: consulta [Leer las listas de bloqueo de CrowdSec](/docs/integrations/crowdsec#leer-las-listas-de-bloqueo-de-crowdsec).
 
 ### Cómo se lee Google SecOps
 

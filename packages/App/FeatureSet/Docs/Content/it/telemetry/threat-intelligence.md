@@ -92,7 +92,7 @@ Un feed disattivato non viene né interrogato né confrontato. Gli indicatori ch
 - Un valore resta un indicatore attivo per 2 giorni dopo l'interrogazione che l'ha letto per ultima, e un valore che l'elenco toglie smette di corrispondere all'interrogazione successiva. Un elenco che non è cambiato viene riscritto una volta al giorno.
 - Un elenco contiene al massimo 50.000 indicatori. **Riepilogo dell'ultima interrogazione** dice quanti ne sono stati letti, quante righe sono state saltate e quanti sono stati lasciati fuori.
 - L'indirizzo deve usare `https` e segue le stesse regole in uscita di una connessione: su OneUptime Cloud un indirizzo privato viene rifiutato.
-- Un elenco protetto da accesso viene richiesto con **Nome utente e password**, come autenticazione HTTP basic, mai nel suo indirizzo. La CrowdSec Console serve così le blocklist a cui ti abboni: vedi [Leggere le blocklist di CrowdSec](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
+- Un elenco protetto da accesso viene richiesto con **Nome utente e password**, come autenticazione HTTP basic, mai nel suo indirizzo. La CrowdSec Console serve così le blocklist a cui ti abboni: vedi [Leggere le blocklist di CrowdSec](/docs/integrations/crowdsec#leggere-le-blocklist-di-crowdsec).
 
 ### Come viene letto Google SecOps
 

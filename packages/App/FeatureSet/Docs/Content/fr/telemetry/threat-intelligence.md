@@ -92,7 +92,7 @@ Un flux désactivé n'est ni interrogé ni confronté. Les indicateurs qu'il pos
 - Une valeur reste un indicateur actif pendant 2 jours après l'interrogation qui l'a lue en dernier, et une valeur que la liste retire cesse de correspondre à l'interrogation suivante. Une liste qui n'a pas changé est réécrite une fois par jour.
 - Une liste contient au plus 50 000 indicateurs. **Résumé de la dernière interrogation** indique combien ont été lus, combien de lignes ont été ignorées et combien ont été laissés de côté.
 - L'adresse doit utiliser `https` et suit les mêmes règles sortantes qu'une connexion : sur OneUptime Cloud, une adresse privée est refusée.
-- Une liste protégée par un identifiant est demandée avec son **Nom d'utilisateur et mot de passe**, en authentification HTTP basique, jamais dans son adresse. La CrowdSec Console sert ainsi les listes de blocage auxquelles vous vous abonnez : voir [Lire les listes de blocage de CrowdSec](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
+- Une liste protégée par un identifiant est demandée avec son **Nom d'utilisateur et mot de passe**, en authentification HTTP basique, jamais dans son adresse. La CrowdSec Console sert ainsi les listes de blocage auxquelles vous vous abonnez : voir [Lire les listes de blocage de CrowdSec](/docs/integrations/crowdsec#lire-les-listes-de-blocage-de-crowdsec).
 
 ### Comment Google SecOps est lu
 
