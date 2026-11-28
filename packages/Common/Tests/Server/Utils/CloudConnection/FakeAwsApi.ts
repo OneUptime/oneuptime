@@ -2005,8 +2005,10 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
             return candidate.toLowerCase() === arn.toLowerCase();
           },
         );
-        const answer: Array<{ Key: string; Value: string }> | FakeResponse | undefined =
-          key === undefined ? undefined : answers[key];
+        const answer:
+          | Array<{ Key: string; Value: string }>
+          | FakeResponse
+          | undefined = key === undefined ? undefined : answers[key];
 
         if (answer === undefined) {
           return {

@@ -50,8 +50,6 @@ import {
   test,
 } from "@jest/globals";
 
-type SpyInstance = ReturnType<typeof getJestSpyOn>;
-
 /*
  * #11388, #11389: WHAT THE SCANS NEVER TRUST OF THE PROJECT'S OWN LOAD
  * BALANCERS, AND THE PROXY-ONLY SUBNETS THEY DO.
@@ -198,7 +196,11 @@ function nlb(
       IpAddressType: "ipv4",
       [AWS_PASS_ON_PROPERTIES.clientIpPreservation]: preservation,
       ...(preservation === AwsClientIpPreservation.Off
-        ? { [AWS_PASS_ON_PROPERTIES.targetGroupsWithoutClientIp]: [`${name}-ip`] }
+        ? {
+            [AWS_PASS_ON_PROPERTIES.targetGroupsWithoutClientIp]: [
+              `${name}-ip`,
+            ],
+          }
         : {}),
       [AWS_PASS_ON_PROPERTIES.subnetCidrBlocks]: subnets,
     },
@@ -206,8 +208,6 @@ function nlb(
     where: "Production AWS",
   });
 }
-
-let findResources: SpyInstance;
 
 /*
  * The project's cloud inventory: its load balancers and forwarding rules by
@@ -218,7 +218,7 @@ function useInventory(data: {
   loadBalancers: Array<CloudResource>;
   subnets?: Array<CloudResource>;
 }): void {
-  findResources = getJestSpyOn(CloudResourceService, "findBy").mockImplementation(
+  getJestSpyOn(CloudResourceService, "findBy").mockImplementation(
     (async (args: { query: Record<string, unknown> }) => {
       if (args.query["cloudResourceType"] === GCP_SUBNETWORK_TYPE) {
         return data.subnets || [];
@@ -326,14 +326,19 @@ afterEach(() => {
 
 describe("a Google Cloud proxy-only subnet", () => {
   test("only an Application Load Balancer uses: listed among the project's load balancers, and trusted as its own", async () => {
-    useInventory({ loadBalancers: [ORDERS_RULE], subnets: [PROXY_ONLY_SUBNET] });
+    useInventory({
+      loadBalancers: [ORDERS_RULE],
+      subnets: [PROXY_ONLY_SUBNET],
+    });
 
     const read: SecurityOwnLoadBalancersRead = await readAll();
 
     expect(
       read.loadBalancers.find(
         (loadBalancer: SecurityOwnLoadBalancersRead["loadBalancers"][0]) => {
-          return loadBalancer.kind === OwnLoadBalancerKind.GoogleCloudProxyOnlySubnet;
+          return (
+            loadBalancer.kind === OwnLoadBalancerKind.GoogleCloudProxyOnlySubnet
+          );
         },
       ),
     ).toEqual(
@@ -353,7 +358,10 @@ describe("a Google Cloud proxy-only subnet", () => {
   });
 
   test("so a project that stopped trusting private addresses still verifies the client the load balancer forwarded", async () => {
-    useInventory({ loadBalancers: [ORDERS_RULE], subnets: [PROXY_ONLY_SUBNET] });
+    useInventory({
+      loadBalancers: [ORDERS_RULE],
+      subnets: [PROXY_ONLY_SUBNET],
+    });
 
     const { event } = await readSpan(
       PROXY_ONLY_PEER,
@@ -434,7 +442,9 @@ describe("a Google Cloud proxy-only subnet", () => {
     expect(
       read.loadBalancers.filter(
         (loadBalancer: SecurityOwnLoadBalancersRead["loadBalancers"][0]) => {
-          return loadBalancer.kind === OwnLoadBalancerKind.GoogleCloudProxyOnlySubnet;
+          return (
+            loadBalancer.kind === OwnLoadBalancerKind.GoogleCloudProxyOnlySubnet
+          );
         },
       ),
     ).toHaveLength(1);
@@ -505,7 +515,10 @@ describe("an AWS Network Load Balancer", () => {
   test("that drops the client's address: never trusted from its subnets", async () => {
     useInventory({
       loadBalancers: [
-        nlb("tcp-ingress", AwsClientIpPreservation.Off, ["10.0.1.0/24", "10.0.2.0/24"]),
+        nlb("tcp-ingress", AwsClientIpPreservation.Off, [
+          "10.0.1.0/24",
+          "10.0.2.0/24",
+        ]),
       ],
     });
     useProject({
@@ -537,9 +550,7 @@ describe("an AWS Network Load Balancer", () => {
 
   test("that keeps it: nothing untrusted, and its client's own connection is the address", async () => {
     useInventory({
-      loadBalancers: [
-        nlb("game", AwsClientIpPreservation.On, ["10.0.3.0/24"]),
-      ],
+      loadBalancers: [nlb("game", AwsClientIpPreservation.On, ["10.0.3.0/24"])],
     });
 
     const blocks: SecurityOwnLoadBalancerBlocks =

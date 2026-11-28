@@ -126,6 +126,17 @@ function DetailRow(props: {
   );
 }
 
+// Each reason's sentence, but the one that names target groups.
+const PASS_ON_REASON_SENTENCES: Readonly<
+  Record<Exclude<PassOnReason, PassOnReason.ClientIpNotPreserved>, string>
+> = {
+  [PassOnReason.ProxyOnlySubnet]: PASS_ON_PROXY_ONLY_SUBNET,
+  [PassOnReason.GoogleFrontEnds]: PASS_ON_GOOGLE_FRONT_ENDS,
+  [PassOnReason.Dualstack]: PASS_ON_DUALSTACK,
+  [PassOnReason.ClientIpUnknown]: PASS_ON_CLIENT_IP_UNKNOWN,
+  [PassOnReason.TcpListener]: PASS_ON_TCP_LISTENER,
+};
+
 // Why a load balancer passes on what a client wrote, one sentence a reason.
 export function describePassOnReasons(
   loadBalancer: AutomaticPassOnLoadBalancer,
@@ -133,40 +144,19 @@ export function describePassOnReasons(
 ): Array<string> {
   const said: Array<string> = loadBalancer.reasons.map(
     (reason: PassOnReason): string => {
-      switch (reason) {
-        case PassOnReason.ProxyOnlySubnet:
-          return (
-            translator.translateText(PASS_ON_PROXY_ONLY_SUBNET) ||
-            PASS_ON_PROXY_ONLY_SUBNET
-          );
-        case PassOnReason.GoogleFrontEnds:
-          return (
-            translator.translateText(PASS_ON_GOOGLE_FRONT_ENDS) ||
-            PASS_ON_GOOGLE_FRONT_ENDS
-          );
-        case PassOnReason.ClientIpNotPreserved:
-          return translator.translatePlural(
-            PASS_ON_CLIENT_IP_NOT_PRESERVED,
-            Math.max(1, loadBalancer.targetGroups.length),
-            {
-              targetGroups: formatList(loadBalancer.targetGroups, translator),
-            },
-          );
-        case PassOnReason.Dualstack:
-          return (
-            translator.translateText(PASS_ON_DUALSTACK) || PASS_ON_DUALSTACK
-          );
-        case PassOnReason.ClientIpUnknown:
-          return (
-            translator.translateText(PASS_ON_CLIENT_IP_UNKNOWN) ||
-            PASS_ON_CLIENT_IP_UNKNOWN
-          );
-        case PassOnReason.TcpListener:
-          return (
-            translator.translateText(PASS_ON_TCP_LISTENER) ||
-            PASS_ON_TCP_LISTENER
-          );
+      if (reason === PassOnReason.ClientIpNotPreserved) {
+        return translator.translatePlural(
+          PASS_ON_CLIENT_IP_NOT_PRESERVED,
+          Math.max(1, loadBalancer.targetGroups.length),
+          {
+            targetGroups: formatList(loadBalancer.targetGroups, translator),
+          },
+        );
       }
+
+      const sentence: string = PASS_ON_REASON_SENTENCES[reason];
+
+      return translator.translateText(sentence) || sentence;
     },
   );
 
@@ -185,8 +175,9 @@ const AutomaticTrustedProxiesDetails: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [proxies, setProxies] = useState<AutomaticTrustedProxies | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [trustsPrivateAddresses, setTrustsPrivateAddresses] =
-    useState<boolean>(props.trustsPrivateAddresses);
+  const [trustsPrivateAddresses, setTrustsPrivateAddresses] = useState<boolean>(
+    props.trustsPrivateAddresses,
+  );
 
   useEffect(() => {
     let isCurrent: boolean = true;

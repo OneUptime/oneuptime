@@ -1006,9 +1006,9 @@ describe("Trusted Automatically", () => {
     const control: HTMLElement = await privateAddressesSwitch();
     const ranges: HTMLElement = privateAddressRanges();
 
-    expect(
-      screen.getByRole("switch", { name: PRIVATE_ADDRESSES_TITLE }),
-    ).toBe(control);
+    expect(screen.getByRole("switch", { name: PRIVATE_ADDRESSES_TITLE })).toBe(
+      control,
+    );
     for (const range of PRIVATE_PROXY_RANGES) {
       expect(within(ranges).getByText(range)).toBeInTheDocument();
     }
@@ -1363,31 +1363,34 @@ describe("Trusted Automatically: Private Addresses", () => {
     Permission.ProjectMember,
     Permission.SecurityMember,
     Permission.SecurityViewer,
-  ])("%s sees it locked, and what it is set to", async (permission: Permission) => {
-    grant([...BASE_PERMISSIONS, permission]);
-    trustsPrivateAddresses = true;
+  ])(
+    "%s sees it locked, and what it is set to",
+    async (permission: Permission) => {
+      grant([...BASE_PERMISSIONS, permission]);
+      trustsPrivateAddresses = true;
 
-    await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+      await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
 
-    const control: HTMLElement = await privateAddressesSwitch();
+      const control: HTMLElement = await privateAddressesSwitch();
 
-    expect(control).toHaveAttribute("aria-disabled", "true");
-    await waitFor(() => {
-      expect(control).toHaveAttribute("aria-checked", "true");
-    });
+      expect(control).toHaveAttribute("aria-disabled", "true");
+      await waitFor(() => {
+        expect(control).toHaveAttribute("aria-checked", "true");
+      });
 
-    fireEvent.click(control);
-    await settle();
+      fireEvent.click(control);
+      await settle();
 
-    expect(switchSaves).toEqual([]);
-    expect(
-      getProjectColumnsUpdatePermissions(["securityTrustPrivateAddresses"]),
-    ).toEqual([
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.SecurityAdmin,
-    ]);
-  });
+      expect(switchSaves).toEqual([]);
+      expect(
+        getProjectColumnsUpdatePermissions(["securityTrustPrivateAddresses"]),
+      ).toEqual([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.SecurityAdmin,
+      ]);
+    },
+  );
 
   test("flipping one switch leaves the other as it is", async () => {
     await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
@@ -1430,7 +1433,9 @@ describe("Trusted Automatically: Private Addresses", () => {
  */
 describe("Trusted Automatically: not trusted, even if listed", () => {
   async function passOnRows(): Promise<Array<HTMLElement>> {
-    return await screen.findAllByTestId(`${TRUSTED_PROXIES_TEST_IDS.passOn}-row`);
+    return await screen.findAllByTestId(
+      `${TRUSTED_PROXIES_TEST_IDS.passOn}-row`,
+    );
   }
 
   test("each with the ranges it connects from, its name, kind, cloud account and why", async () => {
@@ -1607,9 +1612,8 @@ describe("Trusted Proxies: a listed range a load balancer that passes on connect
       expect(warnings()).toBeInTheDocument();
     });
 
-    const lines: Array<HTMLElement> = within(warnings()).getAllByRole(
-      "listitem",
-    );
+    const lines: Array<HTMLElement> =
+      within(warnings()).getAllByRole("listitem");
 
     expect(lines).toHaveLength(2);
     expect(lines[0]).toHaveTextContent(
@@ -1638,9 +1642,8 @@ describe("Trusted Proxies: a listed range a load balancer that passes on connect
       expect(warnings()).toBeInTheDocument();
     });
 
-    const lines: Array<HTMLElement> = within(warnings()).getAllByRole(
-      "listitem",
-    );
+    const lines: Array<HTMLElement> =
+      within(warnings()).getAllByRole("listitem");
 
     expect(lines).toHaveLength(2);
     expect(lines[0]).toHaveTextContent(
@@ -1666,7 +1669,9 @@ describe("Trusted Proxies: a listed range a load balancer that passes on connect
     await settle();
 
     expect(
-      within(card()).queryByTestId(TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning),
+      within(card()).queryByTestId(
+        TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning,
+      ),
     ).toBeNull();
 
     cleanup();
@@ -1683,7 +1688,9 @@ describe("Trusted Proxies: a listed range a load balancer that passes on connect
     await settle();
 
     expect(
-      within(card()).queryByTestId(TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning),
+      within(card()).queryByTestId(
+        TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning,
+      ),
     ).toBeNull();
   });
 
@@ -1695,7 +1702,9 @@ describe("Trusted Proxies: a listed range a load balancer that passes on connect
     await settle();
 
     expect(
-      within(card()).queryByTestId(TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning),
+      within(card()).queryByTestId(
+        TRUSTED_PROXIES_TEST_IDS.listedPassOnWarning,
+      ),
     ).toBeNull();
   });
 

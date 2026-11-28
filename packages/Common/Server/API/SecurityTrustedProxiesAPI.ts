@@ -179,7 +179,9 @@ router.post(
           : null;
         // The ones that pass on what a client wrote, never trusted (#11389).
         passOnLoadBalancers = read.passOnLoadBalancers.map(
-          (loadBalancer: PassOnLoadBalancerReading): AutomaticPassOnLoadBalancer => {
+          (
+            loadBalancer: PassOnLoadBalancerReading,
+          ): AutomaticPassOnLoadBalancer => {
             return {
               kind: loadBalancer.kind,
               name: loadBalancer.name,

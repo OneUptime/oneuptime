@@ -449,7 +449,10 @@ describe("each source of trust, and why it is trusted", () => {
     ).toBe(TrustedProxySource.Listed);
 
     // The issue's line then names the proxy, and why: nothing trusts it.
-    const result: SecurityLogLineCheckResult = check(issueLine(), sayingSo(off));
+    const result: SecurityLogLineCheckResult = check(
+      issueLine(),
+      sayingSo(off),
+    );
 
     expect(onlyEvent(result).principalIp).toBe(PRIVATE_PROXY);
     expect(result.trustedProxies).toEqual([]);

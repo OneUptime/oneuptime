@@ -1553,7 +1553,9 @@ describe("Google Cloud's front ends and health checks", () => {
     expect(GOOGLE_HEALTH_CHECK_RANGES_SOURCE).toMatch(
       /^https:\/\/cloud\.google\.com\//,
     );
-    expect(GOOGLE_HEALTH_CHECK_RANGES_CHECKED_ON).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(GOOGLE_HEALTH_CHECK_RANGES_CHECKED_ON).toMatch(
+      /^\d{4}-\d{2}-\d{2}$/,
+    );
   });
 
   test("a feed's snapshot of what is protected holds them, so a feed never serves one", async () => {
@@ -1589,9 +1591,7 @@ describe("Google Cloud's front ends and health checks", () => {
         name: data.name,
         type: GCP_FORWARDING_RULE_TYPE,
         properties:
-          data.scheme === undefined
-            ? {}
-            : { loadBalancingScheme: data.scheme },
+          data.scheme === undefined ? {} : { loadBalancingScheme: data.scheme },
         account: data.account,
       });
     }
@@ -1680,7 +1680,9 @@ describe("Google Cloud's front ends and health checks", () => {
         Permission.SecurityViewer,
       ]);
       const reads: Reads = install({
-        cloudResources: [rule({ name: "web-https", scheme: "EXTERNAL_MANAGED" })],
+        cloudResources: [
+          rule({ name: "web-https", scheme: "EXTERNAL_MANAGED" }),
+        ],
       });
 
       await list(props);

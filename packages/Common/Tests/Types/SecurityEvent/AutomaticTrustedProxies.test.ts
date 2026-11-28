@@ -234,8 +234,8 @@ describe("the load balancers that pass on what a client wrote, in the answer", (
     }
 
     expect(
-      readPassOn([{ ...ONE, areRangesIncomplete: "yes" }]).passOnLoadBalancers[0]
-        ?.areRangesIncomplete,
+      readPassOn([{ ...ONE, areRangesIncomplete: "yes" }])
+        .passOnLoadBalancers[0]?.areRangesIncomplete,
     ).toBe(false);
     expect(
       readPassOn([{ ...ONE, areRangesIncomplete: true }]).passOnLoadBalancers[0]
@@ -281,7 +281,11 @@ describe("a listed range that holds where one connects from", () => {
         passOnLoadBalancers: [GOOGLE_FRONT_END_PASS_ON],
       }),
     ).toEqual([
-      { range: "35.191.0.0/16", loadBalancer: "db-tcp", isGoogleFrontEnds: true },
+      {
+        range: "35.191.0.0/16",
+        loadBalancer: "db-tcp",
+        isGoogleFrontEnds: true,
+      },
       {
         range: "130.211.0.0/22",
         loadBalancer: "db-tcp",
@@ -450,7 +454,10 @@ describe("the private ranges", () => {
         "::1",
       ]) {
         expect(
-          isTrustedProxy(address, { blocks: [], trustsPrivateAddresses: false }),
+          isTrustedProxy(address, {
+            blocks: [],
+            trustsPrivateAddresses: false,
+          }),
         ).toBe(false);
       }
     }

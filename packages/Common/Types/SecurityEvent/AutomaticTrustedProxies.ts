@@ -410,7 +410,9 @@ export function findListedPassOnOverlaps(data: {
           const block: NetworkAddressBlock | null =
             NetworkAddressBlockUtil.parse(range);
 
-          return Boolean(block && NetworkAddressBlockUtil.overlaps(listed, block));
+          return Boolean(
+            block && NetworkAddressBlockUtil.overlaps(listed, block),
+          );
         },
       );
       const key: string = `${listed.text}|${loadBalancer.kind}|${loadBalancer.name}`;

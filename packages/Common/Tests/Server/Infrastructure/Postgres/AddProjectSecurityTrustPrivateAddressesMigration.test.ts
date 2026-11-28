@@ -42,7 +42,9 @@ function timestampOf(migration: unknown): number {
 
 function up(): Promise<Array<string>> {
   return statementsOf((runner: QueryRunner) => {
-    return new AddProjectSecurityTrustPrivateAddresses1809187791240().up(runner);
+    return new AddProjectSecurityTrustPrivateAddresses1809187791240().up(
+      runner,
+    );
   });
 }
 
@@ -91,7 +93,9 @@ describe("AddProjectSecurityTrustPrivateAddresses1809187791240", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddProjectSecurityTrustPrivateAddresses1809187791240;
+        return (
+          candidate === AddProjectSecurityTrustPrivateAddresses1809187791240
+        );
       }),
     ).toHaveLength(1);
 
@@ -101,9 +105,11 @@ describe("AddProjectSecurityTrustPrivateAddresses1809187791240", () => {
 
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
-    ).toBeLessThan(timestampOf(AddProjectSecurityTrustPrivateAddresses1809187791240));
-    expect(new AddProjectSecurityTrustPrivateAddresses1809187791240().name).toBe(
-      "AddProjectSecurityTrustPrivateAddresses1809187791240",
+    ).toBeLessThan(
+      timestampOf(AddProjectSecurityTrustPrivateAddresses1809187791240),
     );
+    expect(
+      new AddProjectSecurityTrustPrivateAddresses1809187791240().name,
+    ).toBe("AddProjectSecurityTrustPrivateAddresses1809187791240");
   });
 });

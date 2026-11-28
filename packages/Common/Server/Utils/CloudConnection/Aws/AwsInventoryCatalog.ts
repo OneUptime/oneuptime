@@ -2008,7 +2008,8 @@ export function doesAwsTargetGroupKeepClientIp(
     if (
       attribute &&
       typeof attribute === "object" &&
-      textAt(attribute as JSONObject, "Key") === AWS_PRESERVE_CLIENT_IP_ATTRIBUTE
+      textAt(attribute as JSONObject, "Key") ===
+        AWS_PRESERVE_CLIENT_IP_ATTRIBUTE
     ) {
       return textAt(attribute as JSONObject, "Value").toLowerCase() === "true";
     }
@@ -2087,7 +2088,10 @@ export function addAwsPassOnLoadBalancerFacts(data: {
       continue;
     }
 
-    const declaredType: string = textAt(listed.properties, "Type").toLowerCase();
+    const declaredType: string = textAt(
+      listed.properties,
+      "Type",
+    ).toLowerCase();
     const isNetwork: boolean =
       type === "AWS::ElasticLoadBalancingV2::LoadBalancer" &&
       (declaredType === "network" ||

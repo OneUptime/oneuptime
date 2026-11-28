@@ -104,9 +104,9 @@ describe("the gap, as every project trusted every private address", () => {
       through("10.0.1.57", VICTIM, NO_TRUSTED_PROXIES),
     );
 
-    expect(
-      readUnvouchedForwarding({ attributes }, NO_TRUSTED_PROXIES),
-    ).toEqual({ hop: "10.0.1.57" });
+    expect(readUnvouchedForwarding({ attributes }, NO_TRUSTED_PROXIES)).toEqual(
+      { hop: "10.0.1.57" },
+    );
   });
 });
 
@@ -184,11 +184,7 @@ describe("a TCP proxy the project's clouds list", () => {
         blocks: blocks(...proxy.listed),
         untrustedBlocks: blocks(...proxy.untrusted),
       });
-      const reading: ClientAddressReading = through(
-        proxy.peer,
-        VICTIM,
-        trust,
-      );
+      const reading: ClientAddressReading = through(proxy.peer, VICTIM, trust);
 
       expect(isUntrustedProxyAddress(proxy.peer, trust)).toBe(true);
       expect(isTrustedProxy(proxy.peer, trust)).toBe(false);
@@ -326,7 +322,12 @@ describe("which proxies the project vouches for", () => {
   });
 
   test("never a private address only its scope trusts: it may be a TCP proxy", () => {
-    for (const address of ["10.99.0.4", "127.0.0.1", "192.168.0.10", "fe80::1"]) {
+    for (const address of [
+      "10.99.0.4",
+      "127.0.0.1",
+      "192.168.0.10",
+      "fe80::1",
+    ]) {
       expect(isTrustedProxy(address, TRUST)).toBe(true);
       expect(isVouchedProxy(address, TRUST)).toBe(false);
     }
@@ -338,7 +339,12 @@ describe("which proxies the project vouches for", () => {
   });
 
   test("never a public address nothing lists, nor what is no address", () => {
-    for (const address of ["198.51.100.20", "not an address", "", "10.0.0.256"]) {
+    for (const address of [
+      "198.51.100.20",
+      "not an address",
+      "",
+      "10.0.0.256",
+    ]) {
       expect(isVouchedProxy(address, TRUST)).toBe(false);
     }
 
@@ -414,9 +420,9 @@ describe("whether an event's address came through a proxy nothing vouches for", 
       through("10.50.0.3", VICTIM, NO_TRUSTED_PROXIES),
     );
 
-    expect(
-      readUnvouchedForwarding(recorded, NO_TRUSTED_PROXIES),
-    ).toEqual({ hop: "10.50.0.3" });
+    expect(readUnvouchedForwarding(recorded, NO_TRUSTED_PROXIES)).toEqual({
+      hop: "10.50.0.3",
+    });
     expect(
       readUnvouchedForwarding(
         recorded,
@@ -525,7 +531,9 @@ describe("the sources of trust", () => {
   test("the most particular reason first: listed, an edge, a load balancer of the project's, Google's front ends, then private", () => {
     const all: TrustedProxySources = sources({
       listed: blocks("10.1.0.0/16"),
-      edges: [{ name: "Cloudflare", blocks: blocks("10.1.0.0/17", "10.2.0.0/16") }],
+      edges: [
+        { name: "Cloudflare", blocks: blocks("10.1.0.0/17", "10.2.0.0/16") },
+      ],
       ownLoadBalancers: blocks("10.1.0.5/32", "10.2.0.5/32", "10.3.0.5/32"),
       googleFrontEnds: blocks("10.1.0.0/24", "10.4.0.0/16"),
       trustsPrivateAddresses: true,

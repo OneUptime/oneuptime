@@ -210,7 +210,8 @@ export default class SecurityTrustedProxies {
        */
       const own: SecurityOwnLoadBalancerBlocks =
         await SecurityOwnLoadBalancers.getTrusted(projectId);
-      const trustsOwn: boolean = project?.securityTrustOwnLoadBalancers !== false;
+      const trustsOwn: boolean =
+        project?.securityTrustOwnLoadBalancers !== false;
 
       return {
         sources: {

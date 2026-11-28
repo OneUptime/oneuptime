@@ -352,9 +352,19 @@ export default class SecurityPlaybookTargets {
           ? unvouched.get(address)
           : undefined;
 
-        return forwarding
-          ? { ...target, unvouchedProxy: forwarding.hop }
-          : target;
+        if (forwarding) {
+          return { ...target, unvouchedProxy: forwarding.hop };
+        }
+
+        // Vouched for now - its proxy listed since it was marked: no mark is kept.
+        if (target.unvouchedProxy === undefined) {
+          return target;
+        }
+
+        const cleared: SecurityPlaybookTarget = { ...target };
+        delete cleared.unvouchedProxy;
+
+        return cleared;
       },
     );
   }

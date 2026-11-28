@@ -82,7 +82,10 @@ describe("an address whose block waits for a person, on the run card", () => {
     for (const language of DASHBOARD_LANGUAGES) {
       const words: Record<string, string> = readDashboardLocale(language);
 
-      for (const key of [UNVOUCHED_PROXY_TARGET, UNVOUCHED_PROXY_TARGET_UNKNOWN]) {
+      for (const key of [
+        UNVOUCHED_PROXY_TARGET,
+        UNVOUCHED_PROXY_TARGET_UNKNOWN,
+      ]) {
         expect({ language, key, has: Boolean(words[key]) }).toEqual({
           language,
           key,

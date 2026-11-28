@@ -89,7 +89,9 @@ const VERIFIED: string = "198.51.100.20";
 const PRIVATE_PROXY: string = "10.0.1.57";
 
 // The case's requests: one address forwarded through a private proxy, one its connection's own.
-function caseMatches(forwardedBy: string = PRIVATE_PROXY): SecurityCaseMatchesJson {
+function caseMatches(
+  forwardedBy: string = PRIVATE_PROXY,
+): SecurityCaseMatchesJson {
   return {
     detections: [
       {
@@ -156,19 +158,20 @@ let matches: SecurityCaseMatchesJson | Error;
 let proxies: TrustedProxies;
 
 function useCaseReads(): void {
-  getJestSpyOn(SecurityCaseMatches, "build").mockImplementation(
-    (async (data: { props: unknown; securityCaseId: ObjectID }) => {
-      // Read as OneUptime: what protects an address is what the case's requests say, whoever runs the step.
-      expect(data.props).toEqual({ isRoot: true });
-      expect(data.securityCaseId.toString()).toBe(CASE_ID.toString());
+  getJestSpyOn(SecurityCaseMatches, "build").mockImplementation((async (data: {
+    props: unknown;
+    securityCaseId: ObjectID;
+  }) => {
+    // Read as OneUptime: what protects an address is what the case's requests say, whoever runs the step.
+    expect(data.props).toEqual({ isRoot: true });
+    expect(data.securityCaseId.toString()).toBe(CASE_ID.toString());
 
-      if (matches instanceof Error) {
-        throw matches;
-      }
+    if (matches instanceof Error) {
+      throw matches;
+    }
 
-      return matches;
-    }) as never,
-  );
+    return matches;
+  }) as never);
   getJestSpyOn(SecurityTrustedProxies, "getForProject").mockImplementation(
     (async () => {
       return proxies;
@@ -210,15 +213,26 @@ describe("marking the addresses a block would act on", () => {
     expect(await mark([ipTarget(FORWARDED)])).toEqual([ipTarget(FORWARDED)]);
   });
 
+  test("a mark from before the proxy was listed is taken off, and the target is otherwise as it was", async () => {
+    proxies = proxiesListing("10.0.1.0/24");
+
+    const marked: Array<SecurityPlaybookTarget> = await mark([
+      { ...ipTarget(FORWARDED), unvouchedProxy: PRIVATE_PROXY },
+    ]);
+
+    expect(marked).toEqual([ipTarget(FORWARDED)]);
+    expect(Object.keys(marked[0]!)).not.toContain("unvouchedProxy");
+  });
+
   test("an address written another way is the same address", async () => {
     matches = caseMatches();
     (
       matches.detections[0]!.events[0] as unknown as { principalIp: string }
     ).principalIp = "2001:db8::70";
 
-    expect(
-      await mark([ipTarget("2001:DB8:0:0:0:0:0:70")]),
-    ).toEqual([{ ...ipTarget("2001:DB8:0:0:0:0:0:70"), unvouchedProxy: PRIVATE_PROXY }]);
+    expect(await mark([ipTarget("2001:DB8:0:0:0:0:0:70")])).toEqual([
+      { ...ipTarget("2001:DB8:0:0:0:0:0:70"), unvouchedProxy: PRIVATE_PROXY },
+    ]);
   });
 
   test("a case whose requests cannot be read marks every address it would block: a person decides", async () => {
@@ -311,7 +325,9 @@ describe("the addresses a case's requests named through a proxy nothing vouches 
 });
 
 // The engine, with the run, its case and its steps' effects stubbed, and the marking real.
-function blockStep(extra: Partial<SecurityPlaybookStep> = {}): SecurityPlaybookStep {
+function blockStep(
+  extra: Partial<SecurityPlaybookStep> = {},
+): SecurityPlaybookStep {
   return {
     id: "block-step",
     action: SecurityPlaybookActionType.BlockAddress,
@@ -409,23 +425,24 @@ describe("a Block Address step that needs no approval", () => {
         return runModel();
       }) as never,
     );
-    getJestSpyOn(SecurityPlaybookRunService, "updateOneById").mockImplementation(
-      (async (input: unknown) => {
-        const data: JSONObject = (input as { data: JSONObject }).data;
+    getJestSpyOn(
+      SecurityPlaybookRunService,
+      "updateOneById",
+    ).mockImplementation((async (input: unknown) => {
+      const data: JSONObject = (input as { data: JSONObject }).data;
 
-        if (data["stepResults"]) {
-          state.stepResults = data[
-            "stepResults"
-          ] as unknown as Array<SecurityPlaybookStepResult>;
-        }
+      if (data["stepResults"]) {
+        state.stepResults = data[
+          "stepResults"
+        ] as unknown as Array<SecurityPlaybookStepResult>;
+      }
 
-        if (typeof data["currentStepIndex"] === "number") {
-          state.currentStepIndex = data["currentStepIndex"] as number;
-        }
+      if (typeof data["currentStepIndex"] === "number") {
+        state.currentStepIndex = data["currentStepIndex"] as number;
+      }
 
-        return 1;
-      }) as never,
-    );
+      return 1;
+    }) as never);
     getJestSpyOn(
       SecurityPlaybookRunService,
       "updateColumnsByIdWithoutHooks",
@@ -447,15 +464,15 @@ describe("a Block Address step that needs no approval", () => {
       SecurityCaseFeedService,
       "createSecurityCaseFeedItem",
     ).mockResolvedValue(undefined as never);
-    getJestSpyOn(SecurityPlaybookActions, "execute").mockImplementation(
-      (async (context: PlaybookStepContext) => {
-        executed.push(context);
-        return {
-          status: SecurityPlaybookStepStatus.Succeeded,
-          summary: mdText`Blocked.`,
-        };
-      }) as never,
-    );
+    getJestSpyOn(SecurityPlaybookActions, "execute").mockImplementation((async (
+      context: PlaybookStepContext,
+    ) => {
+      executed.push(context);
+      return {
+        status: SecurityPlaybookStepStatus.Succeeded,
+        summary: mdText`Blocked.`,
+      };
+    }) as never);
   });
 
   afterEach(() => {
@@ -524,7 +541,10 @@ describe("a Block Address step that needs no approval", () => {
   });
 
   test("the person who picked the address and started the block themselves decides for themselves", async () => {
-    runIs = { triggeredByUserId: PERSON_ID, trigger: SecurityPlaybookTrigger.Manual };
+    runIs = {
+      triggeredByUserId: PERSON_ID,
+      trigger: SecurityPlaybookTrigger.Manual,
+    };
 
     await run();
 
@@ -570,7 +590,9 @@ describe("a Block Address step that needs no approval", () => {
   });
 
   test("a step that needs approval anyway waits as it always did, and its targets say why too", async () => {
-    state.steps = [blockStep({ requiresApproval: true, approvalTurnedOff: undefined })];
+    state.steps = [
+      blockStep({ requiresApproval: true, approvalTurnedOff: undefined }),
+    ];
     state.stepResults = buildPendingStepResults(state.steps);
 
     await run();

@@ -88,11 +88,9 @@ const KEYS: ReadonlyArray<string> = [
         return named.plural;
       },
     ),
-  ].flatMap(
-    (plural: PluralTemplate): Array<string> => {
-      return [plural.other, `${plural.other}_one`];
-    },
-  ),
+  ].flatMap((plural: PluralTemplate): Array<string> => {
+    return [plural.other, `${plural.other}_one`];
+  }),
 ];
 
 describe("the words for where a request came from, and what a rule could not count", () => {

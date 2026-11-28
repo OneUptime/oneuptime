@@ -218,15 +218,14 @@ export const PASS_ON_GOOGLE_FRONT_ENDS: string = translationKey(
   "Connects from Google's front ends",
 );
 
-export const PASS_ON_CLIENT_IP_NOT_PRESERVED: { one: string; other: string } =
-  {
-    one: translationKey(
-      "Client IP preservation is off for target group {{targetGroups}}",
-    ),
-    other: translationKey(
-      "Client IP preservation is off for target groups {{targetGroups}}",
-    ),
-  };
+export const PASS_ON_CLIENT_IP_NOT_PRESERVED: { one: string; other: string } = {
+  one: translationKey(
+    "Client IP preservation is off for target group {{targetGroups}}",
+  ),
+  other: translationKey(
+    "Client IP preservation is off for target groups {{targetGroups}}",
+  ),
+};
 
 export const PASS_ON_DUALSTACK: string = translationKey(
   "Dualstack: an IPv6 client reaches IPv4 targets from its own address",

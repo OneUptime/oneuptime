@@ -33,7 +33,8 @@ import {
 import { addTargetGroupAttributes } from "./AwsTargetGroupAttributes";
 
 // The Region's target groups and subnets, which load balancers' facts are read from.
-const AWS_TARGET_GROUP_TYPE: string = "AWS::ElasticLoadBalancingV2::TargetGroup";
+const AWS_TARGET_GROUP_TYPE: string =
+  "AWS::ElasticLoadBalancingV2::TargetGroup";
 const AWS_SUBNET_TYPE: string = "AWS::EC2::Subnet";
 
 /*

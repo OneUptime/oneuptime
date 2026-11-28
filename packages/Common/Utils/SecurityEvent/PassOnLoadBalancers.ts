@@ -321,7 +321,9 @@ export function readAwsPassOnLoadBalancer(
     }
 
     if (
-      readText(properties["IpAddressType"]).toLowerCase().startsWith("dualstack")
+      readText(properties["IpAddressType"])
+        .toLowerCase()
+        .startsWith("dualstack")
     ) {
       reasons.push(PassOnReason.Dualstack);
     }

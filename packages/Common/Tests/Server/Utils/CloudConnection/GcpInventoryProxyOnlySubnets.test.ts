@@ -207,7 +207,10 @@ function readProject(assets: Array<GcpAsset>): Array<CloudInventoryItem> {
   const byItem: Map<CloudInventoryItem, GcpAsset> = new Map();
 
   for (const entry of assets) {
-    const item: CloudInventoryItem | null = buildGcpInventoryItem(entry, context);
+    const item: CloudInventoryItem | null = buildGcpInventoryItem(
+      entry,
+      context,
+    );
 
     if (item) {
       items.push(item);
@@ -254,7 +257,11 @@ const APPLICATION_LOAD_BALANCER: Array<GcpAsset> = [
   ordersProxy,
   ordersRule,
 ];
-const PROXY_NETWORK_LOAD_BALANCER: Array<GcpAsset> = [dbService, dbProxy, dbRule];
+const PROXY_NETWORK_LOAD_BALANCER: Array<GcpAsset> = [
+  dbService,
+  dbProxy,
+  dbRule,
+];
 
 describe("as the inventory stores them", () => {
   test("a proxy-only subnet keeps its purpose and its range, in its region and network", () => {
@@ -330,7 +337,11 @@ describe("which proxy-only subnets pass on what a client wrote", () => {
   test("with only an Application Load Balancer, the subnet is theirs, and nothing passes on", () => {
     const reading: GoogleProxyOnlyReading = readGoogleProxyOnlySubnetUses({
       records: stored(
-        readProject([proxyOnlySubnet, defaultSubnet, ...APPLICATION_LOAD_BALANCER]),
+        readProject([
+          proxyOnlySubnet,
+          defaultSubnet,
+          ...APPLICATION_LOAD_BALANCER,
+        ]),
       ),
     });
 

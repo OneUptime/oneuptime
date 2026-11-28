@@ -1813,8 +1813,7 @@ describe("Protected Entities' Protected Automatically", () => {
 
       expect(
         Boolean(
-          host.compareDocumentPosition(line) &
-            Node.DOCUMENT_POSITION_FOLLOWING,
+          host.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING,
         ),
       ).toBe(true);
     });

@@ -199,7 +199,10 @@ describe("whether a target group keeps the client's address", () => {
   test("as its preserve_client_ip.enabled says", () => {
     expect(
       doesAwsTargetGroupKeepClientIp(
-        targetGroup("ingress", { targetType: "ip", attributes: preserve("true") }),
+        targetGroup("ingress", {
+          targetType: "ip",
+          attributes: preserve("true"),
+        }),
       ),
     ).toBe(true);
     expect(
@@ -212,7 +215,10 @@ describe("whether a target group keeps the client's address", () => {
     ).toBe(false);
     expect(
       doesAwsTargetGroupKeepClientIp(
-        targetGroup("ingress", { targetType: "ip", attributes: preserve("TRUE") }),
+        targetGroup("ingress", {
+          targetType: "ip",
+          attributes: preserve("TRUE"),
+        }),
       ),
     ).toBe(true);
   });
@@ -347,13 +353,18 @@ function factsOf(item: CloudInventoryItem): JSONObject {
 
 describe("the facts kept on a load balancer's record", () => {
   test("a Network Load Balancer one of whose target groups drops the client's address: Off, naming it, and its subnets' ranges", () => {
-    const { items, listedByItem } = loadBalancers([nlb(NLB_ARN, "tcp-ingress")]);
+    const { items, listedByItem } = loadBalancers([
+      nlb(NLB_ARN, "tcp-ingress"),
+    ]);
 
     addAwsPassOnLoadBalancerFacts({
       items,
       listedByItem,
       targetGroups: [
-        targetGroup("ingress-ip", { targetType: "ip", attributes: preserve("false") }),
+        targetGroup("ingress-ip", {
+          targetType: "ip",
+          attributes: preserve("false"),
+        }),
         targetGroup("ingress-instances", {
           targetType: "instance",
           attributes: preserve("true"),
@@ -365,7 +376,8 @@ describe("the facts kept on a load balancer's record", () => {
     });
 
     expect(factsOf(items[0]!)).toEqual({
-      [AWS_PASS_ON_PROPERTIES.clientIpPreservation]: AwsClientIpPreservation.Off,
+      [AWS_PASS_ON_PROPERTIES.clientIpPreservation]:
+        AwsClientIpPreservation.Off,
       [AWS_PASS_ON_PROPERTIES.targetGroupsWithoutClientIp]: ["ingress-ip"],
       [AWS_PASS_ON_PROPERTIES.subnetCidrBlocks]: [
         "10.0.1.0/24",
@@ -378,7 +390,9 @@ describe("the facts kept on a load balancer's record", () => {
   });
 
   test("one whose every target group keeps it: On", () => {
-    const { items, listedByItem } = loadBalancers([nlb(NLB_ARN, "tcp-ingress")]);
+    const { items, listedByItem } = loadBalancers([
+      nlb(NLB_ARN, "tcp-ingress"),
+    ]);
 
     addAwsPassOnLoadBalancerFacts({
       items,
@@ -388,7 +402,10 @@ describe("the facts kept on a load balancer's record", () => {
           targetType: "instance",
           attributes: preserve("true"),
         }),
-        targetGroup("ingress-ip", { targetType: "ip", attributes: preserve("true") }),
+        targetGroup("ingress-ip", {
+          targetType: "ip",
+          attributes: preserve("true"),
+        }),
         targetGroup("ingress-alb", { targetType: "alb" }),
       ],
       areTargetGroupsListed: true,
@@ -419,7 +436,9 @@ describe("the facts kept on a load balancer's record", () => {
         areTargetGroupsListed: false,
       },
     ]) {
-      const { items, listedByItem } = loadBalancers([nlb(NLB_ARN, "tcp-ingress")]);
+      const { items, listedByItem } = loadBalancers([
+        nlb(NLB_ARN, "tcp-ingress"),
+      ]);
 
       addAwsPassOnLoadBalancerFacts({
         items,
@@ -435,14 +454,19 @@ describe("the facts kept on a load balancer's record", () => {
   });
 
   test("one that drops it in one target group and is unread in another: Off, which says more", () => {
-    const { items, listedByItem } = loadBalancers([nlb(NLB_ARN, "tcp-ingress")]);
+    const { items, listedByItem } = loadBalancers([
+      nlb(NLB_ARN, "tcp-ingress"),
+    ]);
 
     addAwsPassOnLoadBalancerFacts({
       items,
       listedByItem,
       targetGroups: [
         targetGroup("pods", { targetType: "ip" }),
-        targetGroup("ingress-ip", { targetType: "ip", attributes: preserve("false") }),
+        targetGroup("ingress-ip", {
+          targetType: "ip",
+          attributes: preserve("false"),
+        }),
       ],
       areTargetGroupsListed: true,
       subnets: SUBNETS,
@@ -467,7 +491,10 @@ describe("the facts kept on a load balancer's record", () => {
       items,
       listedByItem,
       targetGroups: [
-        targetGroup("ingress-ip", { targetType: "ip", attributes: preserve("false") }),
+        targetGroup("ingress-ip", {
+          targetType: "ip",
+          attributes: preserve("false"),
+        }),
         targetGroup("game-instances", {
           targetType: "instance",
           loadBalancers: [PRESERVING_NLB_ARN],
@@ -549,7 +576,10 @@ describe("the facts kept on a load balancer's record", () => {
 });
 
 // The fake answers as AWS does; keys AWS no longer takes are refused as it refuses them.
-function options(fake: FakeAws, budget?: CloudReadBudget): AwsCloudControlOptions {
+function options(
+  fake: FakeAws,
+  budget?: CloudReadBudget,
+): AwsCloudControlOptions {
   return {
     transport: fake.transport,
     credentials: {
@@ -611,7 +641,10 @@ describe("asking Elastic Load Balancing", () => {
     ];
 
     await expect(
-      addTargetGroupAttributes({ options: options(fake), targetGroups: groups }),
+      addTargetGroupAttributes({
+        options: options(fake),
+        targetGroups: groups,
+      }),
     ).resolves.toEqual({ budgetSpent: false });
 
     expect(
@@ -620,7 +653,10 @@ describe("asking Elastic Load Balancing", () => {
           return call.targetGroupArn;
         },
       ),
-    ).toEqual([targetGroupArn("ingress-ip"), targetGroupArn("ingress-instances")]);
+    ).toEqual([
+      targetGroupArn("ingress-ip"),
+      targetGroupArn("ingress-instances"),
+    ]);
     expect(groups[0]!.properties["TargetGroupAttributes"]).toEqual(
       preserve("false"),
     );
@@ -696,7 +732,11 @@ describe("asking Elastic Load Balancing", () => {
     const answers: Record<string, Array<{ Key: string; Value: string }>> = {};
     const groups: Array<AwsListedResource> = [];
 
-    for (let index: number = 0; index < AWS_TARGET_GROUP_ATTRIBUTES_READ_PER_REGION + 3; index++) {
+    for (
+      let index: number = 0;
+      index < AWS_TARGET_GROUP_ATTRIBUTES_READ_PER_REGION + 3;
+      index++
+    ) {
       const group: AwsListedResource = targetGroup(`group-${index}`, {
         targetType: "ip",
       });
@@ -709,7 +749,10 @@ describe("asking Elastic Load Balancing", () => {
       regions: { [REGION]: { metrics: [], targetGroupAttributes: answers } },
     });
 
-    await addTargetGroupAttributes({ options: options(fake), targetGroups: groups });
+    await addTargetGroupAttributes({
+      options: options(fake),
+      targetGroups: groups,
+    });
 
     expect(fake.targetGroupAttributeCalls).toHaveLength(
       AWS_TARGET_GROUP_ATTRIBUTES_READ_PER_REGION,
@@ -776,7 +819,9 @@ function cloudControl(resource: AwsListedResource): {
 }
 
 // What Security Events reads of an item, as it is stored.
-function readStored(item: CloudInventoryItem): PassOnLoadBalancerReading | null {
+function readStored(
+  item: CloudInventoryItem,
+): PassOnLoadBalancerReading | null {
   return readAwsPassOnLoadBalancer({
     cloudResourceType: item.resource.resourceType,
     providerResourceId: item.resource.providerResourceId,
@@ -802,8 +847,9 @@ describe("an account's inventory, against a fake AWS", () => {
               cloudControl(nlb(NLB_ARN, "tcp-ingress").resource),
               cloudControl(nlb(PRESERVING_NLB_ARN, "game").resource),
               cloudControl(
-                nlb(DUALSTACK_NLB_ARN, "edge-v6", { IpAddressType: "dualstack" })
-                  .resource,
+                nlb(DUALSTACK_NLB_ARN, "edge-v6", {
+                  IpAddressType: "dualstack",
+                }).resource,
               ),
               cloudControl(
                 listed(ALB_ARN, {
@@ -870,14 +916,20 @@ describe("an account's inventory, against a fake AWS", () => {
           activePairs: [`${REGION}|AWS/EC2`],
         },
         connectionId: "33333333-3333-4333-8333-333333333333",
-        budget: new CloudReadBudget({ maxRequests: 1500, maxDurationMs: 60000 }),
+        budget: new CloudReadBudget({
+          maxRequests: 1500,
+          maxDurationMs: 60000,
+        }),
       },
     );
 
     const loadBalancers: Map<string, CloudInventoryItem> = new Map();
 
     for (const item of result.items) {
-      if (item.resource.resourceType === "AWS::ElasticLoadBalancingV2::LoadBalancer") {
+      if (
+        item.resource.resourceType ===
+        "AWS::ElasticLoadBalancingV2::LoadBalancer"
+      ) {
         loadBalancers.set(item.displayName || item.resource.name, item);
       }
     }
