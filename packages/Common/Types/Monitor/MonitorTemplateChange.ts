@@ -148,6 +148,15 @@ export interface MonitorTemplateChangeResults {
   // How many of `monitorIds` were dealt with, in order.
   processedCount: number;
   lines: Array<MonitorTemplateChangeLine>;
+  // deleteTemplateWhenDone: the template was deleted at the end.
+  isTemplateDeleted?: boolean | undefined;
+  /*
+   * deleteTemplateWhenDone, when the template was kept: how many monitors
+   * were still linked to it (ones the person may not read or change, or
+   * linked meanwhile), or why its delete was refused.
+   */
+  templateStillLinkedCount?: number | undefined;
+  templateDeleteError?: string | undefined;
 }
 
 // The counts the progress bar and the summary are drawn from.
@@ -183,6 +192,9 @@ export interface MonitorTemplateChangeView {
   retryableCount: number;
   // The template was deleted at the end (deleteTemplateWhenDone).
   isTemplateDeleted: boolean;
+  // deleteTemplateWhenDone, when the template was kept: why (see the results).
+  templateStillLinkedCount?: number | undefined;
+  templateDeleteError?: string | undefined;
   createdAt?: string | undefined;
   startedAt?: string | undefined;
   completedAt?: string | undefined;
@@ -278,6 +290,20 @@ export function readMonitorTemplateChangeResults(
   return {
     processedCount: toCount(results["processedCount"]),
     lines: lines,
+    ...(results["isTemplateDeleted"] === true
+      ? { isTemplateDeleted: true }
+      : {}),
+    ...(toCount(results["templateStillLinkedCount"]) > 0
+      ? {
+          templateStillLinkedCount: toCount(
+            results["templateStillLinkedCount"],
+          ),
+        }
+      : {}),
+    ...(typeof results["templateDeleteError"] === "string" &&
+    results["templateDeleteError"]
+      ? { templateDeleteError: results["templateDeleteError"] as string }
+      : {}),
   };
 }
 

@@ -390,79 +390,92 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
     for (const template of templatesToDelete) {
-      if (!template.id || !template.projectId) {
-        continue;
-      }
-
-      const templateName: string =
-        template.templateName || "This monitor template";
-
-      const policies: Array<NetworkAlertPolicy> =
-        await NetworkAlertPolicyService.findBy({
-          query: {
-            projectId: template.projectId,
-            monitorTemplateId: template.id,
-          },
-          select: {
-            _id: true,
-            name: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (policies.length > 0) {
-        throw new BadDataException(
-          `${templateName} is used by ${policies.length} network alert ${
-            policies.length === 1 ? "policy" : "policies"
-          } (${this.describeNames(
-            policies.map((policy: NetworkAlertPolicy): string => {
-              return policy.name || policy.id?.toString() || "unnamed";
-            }),
-          )}). Point ${
-            policies.length === 1 ? "it" : "them"
-          } at another template, or delete ${
-            policies.length === 1 ? "it" : "them"
-          }, before deleting this template.`,
-        );
-      }
-
-      const rules: Array<NetworkDeviceAutoImportRule> =
-        await NetworkDeviceAutoImportRuleService.findBy({
-          query: {
-            projectId: template.projectId,
-            monitorTemplateId: template.id,
-          },
-          select: {
-            _id: true,
-            name: true,
-          },
-          limit: LIMIT_MAX,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      if (rules.length > 0) {
-        throw new BadDataException(
-          `${templateName} is used by ${rules.length} network device auto-import ${
-            rules.length === 1 ? "rule" : "rules"
-          } (${this.describeNames(
-            rules.map((rule: NetworkDeviceAutoImportRule): string => {
-              return rule.name || rule.id?.toString() || "unnamed";
-            }),
-          )}). Clear it from ${
-            rules.length === 1 ? "that rule" : "those rules"
-          } before deleting this template, or devices they import will have no monitor.`,
-        );
-      }
+      await this.assertNothingProvisionsFrom(template);
     }
 
     return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * Refuses, naming them, when a network alert policy or an auto import
+   * rule provisions from the template: what a delete of it is refused for
+   * (onBeforeDelete). A change that clears the template's criteria from its
+   * monitors and then deletes it asks this first, so it never clears them
+   * for a delete that would be refused (MonitorTemplateChangeRunner).
+   */
+  public async assertNothingProvisionsFrom(
+    template: Pick<Model, "id" | "projectId" | "templateName">,
+  ): Promise<void> {
+    if (!template.id || !template.projectId) {
+      return;
+    }
+
+    const templateName: string =
+      template.templateName || "This monitor template";
+
+    const policies: Array<NetworkAlertPolicy> =
+      await NetworkAlertPolicyService.findBy({
+        query: {
+          projectId: template.projectId,
+          monitorTemplateId: template.id,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (policies.length > 0) {
+      throw new BadDataException(
+        `${templateName} is used by ${policies.length} network alert ${
+          policies.length === 1 ? "policy" : "policies"
+        } (${this.describeNames(
+          policies.map((policy: NetworkAlertPolicy): string => {
+            return policy.name || policy.id?.toString() || "unnamed";
+          }),
+        )}). Point ${
+          policies.length === 1 ? "it" : "them"
+        } at another template, or delete ${
+          policies.length === 1 ? "it" : "them"
+        }, before deleting this template.`,
+      );
+    }
+
+    const rules: Array<NetworkDeviceAutoImportRule> =
+      await NetworkDeviceAutoImportRuleService.findBy({
+        query: {
+          projectId: template.projectId,
+          monitorTemplateId: template.id,
+        },
+        select: {
+          _id: true,
+          name: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (rules.length > 0) {
+      throw new BadDataException(
+        `${templateName} is used by ${rules.length} network device auto-import ${
+          rules.length === 1 ? "rule" : "rules"
+        } (${this.describeNames(
+          rules.map((rule: NetworkDeviceAutoImportRule): string => {
+            return rule.name || rule.id?.toString() || "unnamed";
+          }),
+        )}). Clear it from ${
+          rules.length === 1 ? "that rule" : "those rules"
+        } before deleting this template, or devices they import will have no monitor.`,
+      );
+    }
   }
 
   /*

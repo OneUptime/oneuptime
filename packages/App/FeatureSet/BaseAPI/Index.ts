@@ -2278,6 +2278,7 @@ import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import MonitorTemplateChangeAPI from "Common/Server/API/MonitorTemplateChangeAPI";
 import NetworkDeviceDiscoveryScanRunAPI from "Common/Server/API/NetworkDeviceDiscoveryScanRunAPI";
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
@@ -7399,6 +7400,16 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
     );
+
+    /*
+     * Changing many monitors' template (a template's Linked Monitors, the
+     * Monitors list's Link to Template, a template's Delete that clears its
+     * criteria first: issues #11260, #11266). A bare router for the same
+     * reason as the discovery import's: its changes are internal rows with
+     * no CRUD API, so the router's own checks are the whole gate, and the
+     * change itself acts as the person who asked for it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, MonitorTemplateChangeAPI);
 
     /*
      * Running a discovery scan again, on demand (Network > Discovery > Run

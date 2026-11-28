@@ -236,6 +236,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Monitors],
     leftAlone: {},
   },
+  // Changing many monitors' template at once (#11260, #11266): writes.
+  "packages/Common/Server/API/MonitorTemplateChangeAPI.ts": {
+    products: [ProductKey.Monitors],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/IncidentAPI.ts": {
     products: [ProductKey.Incidents],
     leftAlone: {
