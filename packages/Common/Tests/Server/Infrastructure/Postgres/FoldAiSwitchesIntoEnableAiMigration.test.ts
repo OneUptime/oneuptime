@@ -74,6 +74,10 @@ const FIXES_MODES_ADDED_LATER: Array<FixesModeAddedLater> = [
     table: "OpenStackCloud",
     migrationFile: "1808993574600-AddOpenStackCloudAiAccess.ts",
   },
+  {
+    table: "XcpNgPool",
+    migrationFile: "1809187772000-AddXcpNgPoolAiAccess.ts",
+  },
 ];
 
 // Exactly what `npm run generate-postgres-migration` produced.
