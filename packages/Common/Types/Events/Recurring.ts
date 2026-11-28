@@ -402,22 +402,40 @@ export default class Recurring extends DatabaseProperty {
         );
       }
 
-      if (
-        (value["intervalCount"] === undefined ||
-          value["intervalCount"] === null) &&
-        unread.length > 0
-      ) {
-        throw new BadDataException(
-          `${field}.value has no intervalCount.${unreadKeys}`,
-        );
+      const writtenCount: unknown = value["intervalCount"];
+      const countRefusal: string = `${field}.value.intervalCount must be a whole number of at least 1, as {"_type": "PositiveNumber", "value": 1}.`;
+
+      if (writtenCount === undefined || writtenCount === null) {
+        if (unread.length > 0) {
+          throw new BadDataException(
+            `${field}.value has no intervalCount.${unreadKeys}`,
+          );
+        }
+      } else {
+        /*
+         * A count written is read here, not by fromJSON, which reads 0 (or
+         * any falsy count) as no count at all - 1 - and so stored a
+         * rotation the write never asked for.
+         */
+        let count: number = NaN;
+
+        try {
+          count = PositiveNumber.fromJSON(
+            writtenCount as JSONObject,
+          ).toNumber();
+        } catch {
+          count = NaN;
+        }
+
+        if (!Number.isFinite(count) || !Number.isInteger(count) || count < 1) {
+          throw new BadDataException(countRefusal);
+        }
       }
 
       try {
         recurring = Recurring.fromJSON(json as JSONObject);
       } catch {
-        throw new BadDataException(
-          `${field}.value.intervalCount must be a whole number of at least 1, as {"_type": "PositiveNumber", "value": 1}.`,
-        );
+        throw new BadDataException(countRefusal);
       }
     }
 

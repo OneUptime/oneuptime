@@ -86,7 +86,7 @@ describe("RestrictionTimes (exhaustive)", () => {
       const data: RestrictionTimesData =
         RestrictionTimes.getDefaultRestrictonTimeData();
 
-      expect(data.restictionType).toBe(RestrictionType.None);
+      expect(data.restrictionType).toBe(RestrictionType.None);
       expect(data.dayRestrictionTimes).toBeNull();
       expect(Array.isArray(data.weeklyRestrictionTimes)).toBe(true);
       expect(data.weeklyRestrictionTimes).toEqual([]);
@@ -104,10 +104,10 @@ describe("RestrictionTimes (exhaustive)", () => {
       a.weeklyRestrictionTimes.push(
         RestrictionTimes.getDefaultWeeklyRestrictionTIme(),
       );
-      a.restictionType = RestrictionType.Daily;
+      a.restrictionType = RestrictionType.Daily;
 
       expect(b.weeklyRestrictionTimes).toEqual([]);
-      expect(b.restictionType).toBe(RestrictionType.None);
+      expect(b.restrictionType).toBe(RestrictionType.None);
     });
   });
 
@@ -589,33 +589,40 @@ describe("RestrictionTimes (exhaustive)", () => {
       }).toThrowError(BadDataException);
     });
 
-    test("a present-but-empty value object does NOT throw (only truthiness checked)", () => {
+    /*
+     * Read, a restriction that names no type is read for the hours it holds
+     * (#11269): with none, around the clock - not "no type", which the
+     * engine read as never on call. A write of one is refused
+     * (fromWrittenJSON, RestrictionTimesSpelling).
+     */
+    test("a present-but-empty value object does NOT throw, and reads as no restriction", () => {
       const restored: RestrictionTimes = RestrictionTimes.fromJSON({
         _type: ObjectType.RestrictionTimes,
         value: {},
       });
       expect(restored).toBeInstanceOf(RestrictionTimes);
-      expect(restored.restictionType).toBeUndefined();
+      expect(restored.restictionType).toBe(RestrictionType.None);
       expect(restored.weeklyRestrictionTimes).toEqual([]);
     });
 
-    test(
-      "NOTE current behavior: an invalid restictionType string is passed " +
-        "through unvalidated",
-      () => {
-        const restored: RestrictionTimes = RestrictionTimes.fromJSON({
+    test("an invalid restictionType string is not passed through: it reads as the hours the value holds", () => {
+      const restored: RestrictionTimes = RestrictionTimes.fromJSON({
+        _type: ObjectType.RestrictionTimes,
+        value: {
+          restictionType: "TotallyInvalid",
+          dayRestrictionTimes: null,
+          weeklyRestrictionTimes: [],
+        },
+      });
+      expect(restored.restictionType).toBe(RestrictionType.None);
+
+      expect(() => {
+        RestrictionTimes.fromWrittenJSON({
           _type: ObjectType.RestrictionTimes,
-          value: {
-            restictionType: "TotallyInvalid",
-            dayRestrictionTimes: null,
-            weeklyRestrictionTimes: [],
-          },
+          value: { restictionType: "TotallyInvalid" },
         });
-        expect(restored.restictionType).toBe(
-          "TotallyInvalid" as unknown as RestrictionType,
-        );
-      },
-    );
+      }).toThrowError(BadDataException);
+    });
   });
 
   describe("round-trip: None / Daily / Weekly", () => {
@@ -744,7 +751,7 @@ describe("RestrictionTimes (exhaustive)", () => {
   });
 
   describe("toDatabase / fromDatabase", () => {
-    test("toDatabase(instance) equals its toJSON()", () => {
+    test("toDatabase(instance) equals its toDatabaseJSON(), which drops the older spelling toJSON still sends (#11269)", () => {
       const r: RestrictionTimes = new RestrictionTimes();
       r.addDefaultWeeklyRestriction();
 
@@ -752,7 +759,11 @@ describe("RestrictionTimes (exhaustive)", () => {
 
       expect(db).not.toBeNull();
       expect(db!["_type"]).toBe(ObjectType.RestrictionTimes);
-      expect(db).toEqual(r.toJSON());
+      expect(db).toEqual(r.toDatabaseJSON());
+
+      const sent: JSONObject = r.toJSON()["value"] as JSONObject;
+      const kept: JSONObject = db!["value"] as JSONObject;
+      expect({ ...kept, restictionType: sent["restictionType"] }).toEqual(sent);
     });
 
     test("toDatabase(plain value object) serializes without instanceof", () => {
