@@ -147,7 +147,7 @@ export const STEP_CHECK_FACT_MARK_STYLES: Record<
  * own, so it reads as part of the change above, never as a change of its
  * own.
  */
-export function isStepCheckFactUnderLine(
+export function isMarkedFactUnderLine(
   fact: Pick<SecurityCaseStepCheckSentence, "mark">,
 ): boolean {
   return fact.mark === StepCheckFactMark.Exposed;

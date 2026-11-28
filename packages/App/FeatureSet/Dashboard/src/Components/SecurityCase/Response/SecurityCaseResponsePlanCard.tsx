@@ -96,7 +96,7 @@ import {
   isCheckExplainedInline,
   isDoneAnyway,
   isDoneByCheckOnly,
-  isStepCheckFactUnderLine,
+  isMarkedFactUnderLine,
   readCheckSentence,
 } from "./SecurityCaseResponseChecks";
 import {
@@ -1252,7 +1252,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
                * (#11378) - starts where the change's words do, its mark
                * there, so it reads as part of the change above.
                */
-              const isUnderLine: boolean = isStepCheckFactUnderLine(fact);
+              const isMarkedUnderLine: boolean = isMarkedFactUnderLine(fact);
 
               return (
                 <li
@@ -1261,7 +1261,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
                   data-testid={SECURITY_CASE_RESPONSE_TEST_IDS.checkFact}
                   data-fact-mark={fact.mark || ""}
                 >
-                  {isUnderLine ? (
+                  {isMarkedUnderLine ? (
                     <span className="h-4 w-4 flex-none" aria-hidden="true" />
                   ) : (
                     <></>
