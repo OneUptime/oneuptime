@@ -81,6 +81,8 @@ const useTranslateValue: () => UseTranslateValueResult =
         defaultValue: key,
         keySeparator: false,
         nsSeparator: false,
+        // A key naming a section of keys comes back as the section: no wording.
+        returnObjects: true,
       });
 
       return typeof wording === "string" ? wording : undefined;
@@ -101,6 +103,13 @@ const useTranslateValue: () => UseTranslateValueResult =
         defaultValue: value,
         keySeparator: false,
         nsSeparator: false,
+        /*
+         * A text that is also the name of a section of keys - a label named
+         * "common" - comes back as the section, which the check below reads
+         * as no wording. Without it i18next answers with a sentence of its
+         * own: "key 'common (en)' returned an object instead of string."
+         */
+        returnObjects: true,
       });
       if (typeof translated !== "string") {
         return value;
