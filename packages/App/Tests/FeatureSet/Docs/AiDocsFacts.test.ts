@@ -1312,7 +1312,9 @@ describe("Code", () => {
     const rule: string = readRepoFile(
       "Common/Server/Utils/AI/CodeFix/CodeFixPersonRepository.ts",
     );
-    const routes: string = readRepoFile("Common/Server/API/AIInvestigationAPI.ts");
+    const routes: string = readRepoFile(
+      "Common/Server/API/AIInvestigationAPI.ts",
+    );
 
     // One rule, for each of the four buttons' triggers.
     for (const trigger of [
@@ -1351,9 +1353,9 @@ describe("Code", () => {
       '"/ai-investigation/create-telemetry-improvement-task"',
     ]) {
       const handler: string = routes.slice(routes.indexOf(route));
-      expect(
-        handler.slice(0, handler.indexOf("router.post(", 1)),
-      ).toContain("readPickedRepositoryId(");
+      expect(handler.slice(0, handler.indexOf("router.post(", 1))).toContain(
+        "readPickedRepositoryId(",
+      );
     }
 
     // Each page asks which repository holds the code, in one question.
@@ -1371,7 +1373,12 @@ describe("Code", () => {
       `${bold("Open fix pull request")}, ${bold("Fix performance with AI")}, ${bold("Improve Logging")} and ${bold("Improve Tracing")} start a task in your name, so each works only in a repository you may use in Code: one you can read and may ask OneUptime AI to work in, which takes permission to edit it. If you may use none of the connected repositories, you are not offered them. With several of yours connected and none matched to the incident's or alert's monitor, the trace's service or code, or the service, the button first asks which repository holds the code, and offers only yours. The task stays in that repository, even if the repositories change before it starts. The fix pull requests OneUptime AI opens on its own (see below) work in the repositories their AI rules allow instead.`,
     );
     expect(
-      flat(englishSection(CODE_PAGE, "## Automatic code fixes from investigations")),
+      flat(
+        englishSection(
+          CODE_PAGE,
+          "## Automatic code fixes from investigations",
+        ),
+      ),
     ).toContain(
       `A fix that opens on its own works in the repositories the matching rules name, or any connected one when they name none. ${bold("Open fix pull request")} works only in a repository the person who presses it may use in Code, and asks which one first when several are theirs and none is named like the monitor (see [Where fix tasks start](#where-fix-tasks-start)).`,
     );

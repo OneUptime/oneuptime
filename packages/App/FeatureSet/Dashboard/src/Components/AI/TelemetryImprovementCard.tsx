@@ -356,7 +356,9 @@ const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
                         placeholder={
                           TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder
                         }
-                        emptyListText={TELEMETRY_AI_FIX_COPY.noAskableRepository}
+                        emptyListText={
+                          TELEMETRY_AI_FIX_COPY.noAskableRepository
+                        }
                         ariaLabelledby={repositoryLabelId}
                         dataTestId="telemetry-improvement-repository-picker"
                         onChange={(repositoryId: string | null) => {

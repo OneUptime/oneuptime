@@ -16,9 +16,7 @@ import {
   TracePerformanceFixRepository,
   TracePerformanceFixSuggestion,
 } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
-import {
-  PICK_REFUSAL_MESSAGES,
-} from "Common/Utils/Suggestions/CodeFixRepositoryPick";
+import { PICK_REFUSAL_MESSAGES } from "Common/Utils/Suggestions/CodeFixRepositoryPick";
 import React, {
   FunctionComponent,
   ReactElement,

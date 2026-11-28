@@ -181,7 +181,9 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
             subjectId: props.subjectId,
             investigationRunId: props.investigationRunId,
             // In the repository the person picked, when the step asked.
-            ...(needsRepositoryPick ? { repositoryId: pickedRepositoryId } : {}),
+            ...(needsRepositoryPick
+              ? { repositoryId: pickedRepositoryId }
+              : {}),
           },
           headers: ModelAPI.getCommonHeaders(),
         });
@@ -211,7 +213,11 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
        * was connected after it read the choices. It reads them again, so
        * the picker is drawn beside why.
        */
-      if (reason.includes(PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES[props.signal])) {
+      if (
+        reason.includes(
+          PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES[props.signal],
+        )
+      ) {
         props.onChanged();
       }
     } finally {
@@ -306,7 +312,10 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
           testId="remediation-code-fix-locked"
         />
       );
-    } else if (suggestion.offer === SuggestionOffer.Act && needsRepositoryPick) {
+    } else if (
+      suggestion.offer === SuggestionOffer.Act &&
+      needsRepositoryPick
+    ) {
       // Which repository holds the code, then the pull request.
       action = (
         <div className={REMEDIATION_CODE_FIX_PICK_CLASS_NAME}>
