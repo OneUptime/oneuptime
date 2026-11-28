@@ -482,12 +482,13 @@ describe("a chat action or a tool import acting as a member", () => {
 });
 
 describe("a private file of a blocked project", () => {
+  // What the person holds in the project, or null when they cannot open it.
   interface FileViewerInternals {
-    canOpenProject: (data: {
+    getProjectPermission: (data: {
       req: OneUptimeRequest;
       userId: ObjectID;
       projectId: ObjectID;
-    }) => Promise<boolean>;
+    }) => Promise<UserTenantAccessPermission | null>;
   }
 
   const internals: FileViewerInternals =
@@ -514,21 +515,21 @@ describe("a private file of a blocked project", () => {
 
   test("is not shown to its members", async () => {
     await expect(
-      internals.canOpenProject({
+      internals.getProjectPermission({
         req: request,
         userId: USER_ID,
         projectId: BLOCKED_PROJECT_ID,
       }),
-    ).resolves.toBe(false);
+    ).resolves.toBeNull();
   });
 
   test("a file of a project that is not blocked is shown as before", async () => {
     await expect(
-      internals.canOpenProject({
+      internals.getProjectPermission({
         req: request,
         userId: USER_ID,
         projectId: LIVE_PROJECT_ID,
       }),
-    ).resolves.toBe(true);
+    ).resolves.toEqual(tenantPermission);
   });
 });

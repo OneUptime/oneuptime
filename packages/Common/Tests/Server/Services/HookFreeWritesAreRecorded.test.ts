@@ -714,6 +714,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/Database/ListOrderMaintainer.ts": {
     "ListOrderMaintainer.writeChanges *": Why.Derived,
   },
+  /*
+   * Which records show each inline image (#11478), kept in step with what
+   * each write of a record put in it: the write itself is the change, and
+   * the audit log records it already.
+   */
+  "packages/Common/Server/Utils/File/ShownImages.ts": {
+    "(module) ShownImage": Why.Derived,
+  },
   "packages/Common/Server/Utils/HostCollector/HostCollectorAgent.ts": {
     "HostCollectorAgent.respondToMessage Host": Why.Reported,
   },

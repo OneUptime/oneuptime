@@ -2,6 +2,7 @@ import {
   collectMarkdownFileReferences,
   getMarkdownFileLeftOutReason,
   getMarkdownFileType,
+  IMAGE_ADDRESS_SEGMENT,
   MARKDOWN_FILE_HEAD_LENGTH,
   MARKDOWN_FILE_LEFT_OUT_MESSAGES,
   MARKDOWN_FILE_MAX_SIZE_IN_BYTES,
@@ -14,6 +15,7 @@ import {
   MarkdownFileLeftOutReason,
   MarkdownFileReference,
   MarkdownImageReference,
+  readImageTokens,
   readMarkdownImageReferences,
 } from "../../../Types/File/MarkdownFiles";
 import { FILE_CONTENT_HEAD_LENGTH } from "../../../Types/File/FileContentCheck";
@@ -504,5 +506,83 @@ describe("getMarkdownFileLeftOutReason", () => {
         },
       }),
     ).toBe(MarkdownFileLeftOutReason.NotAPicture);
+  });
+});
+
+/*
+ * The image tokens a stored value names (#11478): what records are kept as
+ * showing (ShownImages) and read for (MarkdownFiles.readShownTokens) -
+ * Markdown, or JSON holding it.
+ */
+describe("readImageTokens", () => {
+  const first: string = "ab".repeat(32);
+  const second: string = "cd".repeat(32);
+  const addressOf: (token: string) => string = (token: string): string => {
+    return `https://oneuptime.example.com${IMAGE_ADDRESS_SEGMENT}${token}`;
+  };
+
+  test("the address every image carries", () => {
+    expect(IMAGE_ADDRESS_SEGMENT).toBe("/file/image/access-token/");
+  });
+
+  test("each token of a piece of Markdown once, in the order written", () => {
+    expect(
+      readImageTokens(
+        `![a](${addressOf(first)}) ![b](${addressOf(second)}) ![a again](${addressOf(first)})`,
+      ),
+    ).toEqual([first, second]);
+  });
+
+  test("the same token by an absolute address and by its path alone is one token", () => {
+    expect(
+      readImageTokens(
+        `![a](${addressOf(first)}) <img src="${IMAGE_ADDRESS_SEGMENT}${first}">`,
+      ),
+    ).toEqual([first]);
+  });
+
+  test("JSON is read as its text: a custom field's values, a monitor's criteria", () => {
+    expect(
+      readImageTokens({
+        "Customer impact": `![a](${addressOf(first)})`,
+        nested: { incidents: [{ description: `![b](${addressOf(second)})` }] },
+        score: 3,
+      }),
+    ).toEqual([first, second]);
+    expect(readImageTokens([`![a](${addressOf(second)})`])).toEqual([second]);
+  });
+
+  test("an object that writes itself as JSON is read as it writes itself", () => {
+    const steps: { toJSON: () => Record<string, unknown> } = {
+      toJSON: (): Record<string, unknown> => {
+        return { description: `![a](${addressOf(first)})` };
+      },
+    };
+
+    expect(readImageTokens(steps)).toEqual([first]);
+  });
+
+  test("nothing from a value with no address, an empty value, or none", () => {
+    for (const value of [
+      "No pictures here.",
+      "",
+      null,
+      undefined,
+      42,
+      true,
+      {},
+      [],
+      `${IMAGE_ADDRESS_SEGMENT}`,
+      `${IMAGE_ADDRESS_SEGMENT}not-hex`,
+    ]) {
+      expect([value, readImageTokens(value)]).toEqual([value, []]);
+    }
+  });
+
+  test("a value that cannot be written as JSON names none, and does not throw", () => {
+    const loop: Record<string, unknown> = {};
+    loop["self"] = loop;
+
+    expect(readImageTokens(loop)).toEqual([]);
   });
 });
