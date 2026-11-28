@@ -2,6 +2,7 @@ import ModelPermission from "../../../../../Server/Types/Database/Permissions/In
 import CreatePermission from "../../../../../Server/Types/Database/Permissions/CreatePermission";
 import DeletePermission from "../../../../../Server/Types/Database/Permissions/DeletePermission";
 import ReadPermission from "../../../../../Server/Types/Database/Permissions/ReadPermission";
+import { RecordScopeOptions } from "../../../../../Server/Types/Database/Permissions/BasePermission";
 import UpdatePermission from "../../../../../Server/Types/Database/Permissions/UpdatePermission";
 import Probe from "../../../../../Models/DatabaseModels/Probe";
 import Reseller from "../../../../../Models/DatabaseModels/Reseller";
@@ -433,8 +434,15 @@ describe("ModelPermission: anonymous refusals become 401 (stubbed underlying che
 
     await ModelPermission.checkReadQueryPermission(Probe, query, select, props);
 
-    // No sort asked for: none is handed on.
-    expect(spy).toHaveBeenCalledWith(Probe, query, select, props, undefined);
+    // No sort and no record scope options asked for: none is handed on.
+    expect(spy).toHaveBeenCalledWith(
+      Probe,
+      query,
+      select,
+      props,
+      undefined,
+      undefined,
+    );
 
     // The sort a read asked for, which the check holds to the caller's read (#8839).
     const sort: Record<string, string> = { name: "ASC" };
@@ -447,7 +455,41 @@ describe("ModelPermission: anonymous refusals become 401 (stubbed underlying che
       sort,
     );
 
-    expect(spy).toHaveBeenLastCalledWith(Probe, query, select, props, sort);
+    expect(spy).toHaveBeenLastCalledWith(
+      Probe,
+      query,
+      select,
+      props,
+      sort,
+      undefined,
+    );
+
+    /*
+     * How the record rule treats the select (#11259): DatabaseService's
+     * read withholds a column kept to labels per row, and asks the check
+     * not to narrow the read by it.
+     */
+    const options: RecordScopeOptions = {
+      columnsWithheldPerRecord: ["name"],
+    };
+
+    await ModelPermission.checkReadQueryPermission(
+      Probe,
+      query,
+      select,
+      props,
+      sort,
+      options,
+    );
+
+    expect(spy).toHaveBeenLastCalledWith(
+      Probe,
+      query,
+      select,
+      props,
+      sort,
+      options,
+    );
   });
 });
 
