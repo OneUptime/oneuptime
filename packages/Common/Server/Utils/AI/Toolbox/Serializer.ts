@@ -14,6 +14,7 @@ import {
   findInEveryReading,
   mergeRanges,
   TextRange,
+  TextReadings,
 } from "../../../../Utils/DataSecurity/TextReadings";
 import { replacePrivateKeyBlocks } from "../../../../Utils/PrivateKeyBlocks";
 import { getHintsOfKey } from "../../../../Utils/Telemetry/ScrubBuiltInPatterns";
@@ -70,16 +71,40 @@ type RedactionRule =
   | {
       name: string;
       placeholder: string;
-      /*
-       * `field`: the name of the field the text is the value of, when it
-       * is one - a row's column (RedactionOptions.field).
-       */
       redact: (
         text: string,
         placeholder: string,
-        field?: string | undefined,
+        context: RedactionContext,
       ) => { text: string; count: number };
     };
+
+/*
+ * What a rule that reads the text itself is handed beside it: the name of
+ * the field the text is the value of, when it is one - a row's column
+ * (RedactionOptions.field) - and the text's readings (TextReadings), made
+ * once for the rules that read one text in turn: a rule that hides
+ * nothing leaves the very text the next one reads, and a card, a phone
+ * number and a Social Security number are read in the same readings.
+ */
+interface RedactionContext {
+  field?: string | undefined;
+  readingsOf: (text: string) => TextReadings;
+}
+
+// The readings of the last text a rule read, handed on while the text is the same.
+class SharedReadings {
+  private text: string | null = null;
+  private readings: TextReadings | null = null;
+
+  public of(text: string): TextReadings {
+    if (this.readings === null || this.text !== text) {
+      this.text = text;
+      this.readings = new TextReadings(text);
+    }
+
+    return this.readings;
+  }
+}
 
 const PRIVATE_KEY_PLACEHOLDER: string = "[redacted-private-key]";
 
@@ -187,9 +212,11 @@ function holdsCharacterBeyondAscii(text: string): boolean {
 const redactEmailAddresses: (
   text: string,
   placeholder: string,
+  context: RedactionContext,
 ) => { text: string; count: number } = (
   text: string,
   placeholder: string,
+  context: RedactionContext,
 ): { text: string; count: number } => {
   if (
     text.indexOf("@") === -1 &&
@@ -199,9 +226,11 @@ const redactEmailAddresses: (
     return { text, count: 0 };
   }
 
+  const readings: TextReadings = context.readingsOf(text);
   const inScripts: Array<TextRange> = findDetectorRanges(
     EMAIL_ADDRESS_DETECTORS,
     text,
+    readings,
   ).filter(([start, end]: TextRange): boolean => {
     return holdsCharacterBeyondAscii(text.slice(start, end));
   });
@@ -217,6 +246,7 @@ const redactEmailAddresses: (
             reading,
           );
         },
+        readings,
       }),
       ...inScripts,
     ]),
@@ -243,9 +273,11 @@ const SERIALIZER_CARD_PATTERN: RegExp = /\b\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}\b/g;
 const redactCardNumbers: (
   text: string,
   placeholder: string,
+  context: RedactionContext,
 ) => { text: string; count: number } = (
   text: string,
   placeholder: string,
+  context: RedactionContext,
 ): { text: string; count: number } => {
   return replaceRanges(
     text,
@@ -263,6 +295,7 @@ const redactCardNumbers: (
           reading,
         );
       },
+      readings: context.readingsOf(text),
     }),
     placeholder,
   );
@@ -304,12 +337,12 @@ function redactFoundBy(
 ): (
   text: string,
   placeholder: string,
-  field?: string | undefined,
+  context: RedactionContext,
 ) => { text: string; count: number } {
   return (
     text: string,
     placeholder: string,
-    field?: string | undefined,
+    context: RedactionContext,
   ): { text: string; count: number } => {
     if (!hasAnyDigit(text)) {
       return { text, count: 0 };
@@ -317,8 +350,10 @@ function redactFoundBy(
 
     return replaceRanges(
       text,
-      findDetectorRanges(detectors, text, undefined, {
-        hintedDataTypeIds: field ? getHintsOfKey(field) : undefined,
+      findDetectorRanges(detectors, text, context.readingsOf(text), {
+        hintedDataTypeIds: context.field
+          ? getHintsOfKey(context.field)
+          : undefined,
       }),
       placeholder,
     );
@@ -530,16 +565,16 @@ export interface RedactionOptions {
 export default class ToolResultSerializer {
   /*
    * Single pass per rule: count and substitute ($1/$2 groups) together.
-   * `field`: the name of the field the text is the value of
-   * (RedactionOptions.field).
+   * `context`: the name of the field the text is the value of
+   * (RedactionOptions.field), and the readings the rules share.
    */
   private static applyRedactionRule(
     text: string,
     rule: RedactionRule,
-    field?: string | undefined,
+    context: RedactionContext,
   ): { text: string; count: number } {
     if ("redact" in rule) {
-      return rule.redact(text, rule.placeholder, field);
+      return rule.redact(text, rule.placeholder, context);
     }
 
     let count: number = 0;
@@ -612,6 +647,13 @@ export default class ToolResultSerializer {
   ): { text: string; count: number } {
     let redacted: string = text;
     let count: number = 0;
+    const shared: SharedReadings = new SharedReadings();
+    const context: RedactionContext = {
+      field: options?.field,
+      readingsOf: (read: string): TextReadings => {
+        return shared.of(read);
+      },
+    };
 
     for (const rule of REDACTION_RULES) {
       if (
@@ -624,7 +666,7 @@ export default class ToolResultSerializer {
       const applied: { text: string; count: number } = this.applyRedactionRule(
         redacted,
         rule,
-        options?.field,
+        context,
       );
       redacted = applied.text;
       count += applied.count;
