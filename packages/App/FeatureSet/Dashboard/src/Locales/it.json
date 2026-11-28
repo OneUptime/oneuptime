@@ -67795,5 +67795,11 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Il tuo nome e l'ora vengono registrati. Se il server modifica questo strumento, il contrassegno smette di valere finché qualcuno non lo contrassegna di nuovo.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} lo ha contrassegnato come di sola lettura il {{date}}, ma da allora il server lo ha modificato. Finché qualcuno non lo contrassegna di nuovo, conta come uno strumento che può modificare qualcosa.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} non indica se {{tool}} modifica qualcosa, e nessun amministratore del progetto lo ha contrassegnato come di sola lettura, quindi OneUptime chiede prima.",
-  "{{tool}} marked read-only": "{{tool}} contrassegnato come di sola lettura"
+  "{{tool}} marked read-only": "{{tool}} contrassegnato come di sola lettura",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "Un team di cui fai parte blocca questa azione su {{items}} con l'etichetta {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "Un team di cui fai parte blocca questa azione su {{items}} con determinate etichette.",
+  "Only people who may change this monitor can see its secret key.": "Solo chi può modificare questo monitor può vederne la chiave segreta.",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "La tua autorizzazione è limitata a {{items}} con l'etichetta {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "La tua autorizzazione è limitata a {{items}} con determinate etichette.",
+  "Your permissions do not reach this {{itemName}}.": "Le tue autorizzazioni non arrivano a questo elemento ({{itemName}})."
 }

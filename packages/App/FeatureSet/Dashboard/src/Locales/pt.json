@@ -67795,5 +67795,11 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Seu nome e o horário são registrados. Se o servidor alterar esta ferramenta, a marcação deixa de valer até que alguém a marque novamente.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} a marcou como somente leitura em {{date}}, mas o servidor a alterou desde então. Até que alguém a marque novamente, ela conta como uma ferramenta que pode alterar coisas.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} não diz se {{tool}} altera algo, e nenhum administrador do projeto a marcou como somente leitura, então o OneUptime pergunta antes.",
-  "{{tool}} marked read-only": "{{tool}} marcada como somente leitura"
+  "{{tool}} marked read-only": "{{tool}} marcada como somente leitura",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "Uma equipe da qual você faz parte bloqueia isso em {{items}} com o rótulo {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "Uma equipe da qual você faz parte bloqueia isso em {{items}} com determinados rótulos.",
+  "Only people who may change this monitor can see its secret key.": "Somente quem pode alterar este monitor pode ver a chave secreta dele.",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "Sua permissão está limitada a {{items}} com o rótulo {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "Sua permissão está limitada a {{items}} com determinados rótulos.",
+  "Your permissions do not reach this {{itemName}}.": "Suas permissões não alcançam este item ({{itemName}})."
 }

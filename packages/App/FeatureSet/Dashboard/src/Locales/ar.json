@@ -67795,5 +67795,11 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "يُسجَّل اسمك والوقت. وإذا غيّر الخادم هذه الأداة، لا تعود العلامة سارية إلى أن يضعها أحد مجددًا.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "وضع {{name}} علامة «قراءة فقط» عليها في {{date}}، لكن الخادم غيّرها منذ ذلك الحين. وإلى أن يضع أحد العلامة مجددًا، تُعدّ أداةً قد تغيّر أشياء.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "لا يذكر {{server}} ما إذا كان {{tool}} يغيّر شيئًا، ولم يضع أي مسؤول مشروع علامة «قراءة فقط» عليه، لذلك يسأل OneUptime أولًا.",
-  "{{tool}} marked read-only": "تم وضع علامة «قراءة فقط» على {{tool}}"
+  "{{tool}} marked read-only": "تم وضع علامة «قراءة فقط» على {{tool}}",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "يحظر فريق أنت عضو فيه هذا الإجراء على {{items}} التي تحمل التسمية {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "يحظر فريق أنت عضو فيه هذا الإجراء على {{items}} التي تحمل تسميات معيّنة.",
+  "Only people who may change this monitor can see its secret key.": "لا يرى المفتاح السري لهذه المراقبة إلا من يمكنه تغييرها.",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "إذنك مقصور على {{items}} التي تحمل التسمية {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "إذنك مقصور على {{items}} التي تحمل تسميات معيّنة.",
+  "Your permissions do not reach this {{itemName}}.": "أذوناتك لا تشمل هذا العنصر ({{itemName}})."
 }

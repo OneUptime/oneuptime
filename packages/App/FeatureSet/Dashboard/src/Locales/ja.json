@@ -67795,5 +67795,11 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "名前と日時が記録されます。サーバーがこのツールを変更すると、誰かが再びマークするまでマークは適用されなくなります。",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} が {{date}} に読み取り専用としてマークしましたが、その後サーバーがツールを変更しました。誰かが再びマークするまで、変更を加える可能性があるツールとして扱われます。",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} は {{tool}} が何かを変更するかどうかを示しておらず、プロジェクト管理者も読み取り専用としてマークしていないため、OneUptime が先に確認します。",
-  "{{tool}} marked read-only": "{{tool}} を読み取り専用としてマークしました"
+  "{{tool}} marked read-only": "{{tool}} を読み取り専用としてマークしました",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "所属しているチームが、ラベル {{labels}} の付いた{{items}}ではこの操作をブロックしています。",
+  "A team you are on blocks this on {{items}} with certain labels.": "所属しているチームが、特定のラベルの付いた{{items}}ではこの操作をブロックしています。",
+  "Only people who may change this monitor can see its secret key.": "このモニターのシークレットキーは、このモニターを変更できる人だけが見られます。",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "あなたの権限は、ラベル {{labels}} の付いた{{items}}に限られています。",
+  "Your permission is limited to {{items}} with certain labels.": "あなたの権限は、特定のラベルの付いた{{items}}に限られています。",
+  "Your permissions do not reach this {{itemName}}.": "あなたの権限はこの{{itemName}}には及びません。"
 }

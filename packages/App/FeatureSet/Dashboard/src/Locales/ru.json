@@ -67795,5 +67795,11 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Ваше имя и время записываются. Если сервер изменит этот инструмент, отметка перестанет действовать, пока его снова не отметят.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "Пользователь {{name}} отметил его как только читающий {{date}}, но с тех пор сервер его изменил. Пока его снова не отметят, он считается инструментом, который может вносить изменения.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} не сообщает, изменяет ли {{tool}} что-либо, и ни один администратор проекта не отметил его как только читающий, поэтому OneUptime сначала спрашивает.",
-  "{{tool}} marked read-only": "Инструмент {{tool}} отмечен как только читающий"
+  "{{tool}} marked read-only": "Инструмент {{tool}} отмечен как только читающий",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "Команда, в которую вы входите, блокирует это там, где {{items}} помечены меткой {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "Команда, в которую вы входите, блокирует это там, где {{items}} помечены определёнными метками.",
+  "Only people who may change this monitor can see its secret key.": "Секретный ключ этого монитора видят только те, кто может изменять этот монитор.",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "Ваши права распространяются только на {{items}} с меткой {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "Ваши права распространяются только на {{items}} с определёнными метками.",
+  "Your permissions do not reach this {{itemName}}.": "Ваши права не распространяются на этот элемент ({{itemName}})."
 }

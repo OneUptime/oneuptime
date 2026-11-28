@@ -67795,5 +67795,11 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "이름과 시간이 기록됩니다. 서버가 이 도구를 변경하면 누군가 다시 표시할 때까지 표시가 적용되지 않습니다.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}}님이 {{date}}에 읽기 전용으로 표시했지만 그 후 서버가 도구를 변경했습니다. 누군가 다시 표시할 때까지 변경할 수 있는 도구로 취급됩니다.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}}이(가) {{tool}}이(가) 무언가를 변경하는지 알려 주지 않고, 읽기 전용으로 표시한 프로젝트 관리자도 없으므로 OneUptime이 먼저 확인합니다.",
-  "{{tool}} marked read-only": "{{tool}}을(를) 읽기 전용으로 표시했습니다"
+  "{{tool}} marked read-only": "{{tool}}을(를) 읽기 전용으로 표시했습니다",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "소속된 팀 중 하나가 {{labels}} 레이블이 붙은 {{items}}에서 이 작업을 차단합니다.",
+  "A team you are on blocks this on {{items}} with certain labels.": "소속된 팀 중 하나가 특정 레이블이 붙은 {{items}}에서 이 작업을 차단합니다.",
+  "Only people who may change this monitor can see its secret key.": "이 모니터의 비밀 키는 이 모니터를 변경할 수 있는 사람만 볼 수 있습니다.",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "권한이 {{labels}} 레이블이 붙은 {{items}}(으)로 제한되어 있습니다.",
+  "Your permission is limited to {{items}} with certain labels.": "권한이 특정 레이블이 붙은 {{items}}(으)로 제한되어 있습니다.",
+  "Your permissions do not reach this {{itemName}}.": "권한이 이 {{itemName}}에는 미치지 않습니다."
 }
