@@ -28,6 +28,7 @@ import {
   toStoredErasureProgress,
 } from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasureProgress";
 import SecurityUserErasureRecords from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasureRecords";
+import SecurityUserErasureThreatStamps from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasureThreatStamps";
 import ScrubHashToken from "../../../../../Server/Utils/Telemetry/ScrubHashToken";
 import ObjectID from "../../../../../Types/ObjectID";
 import { SecurityUserErasureRequestStatus } from "../../../../../Types/SecurityEvent/SecurityUserErasure";
@@ -98,6 +99,10 @@ interface FindingsWorld {
 interface World {
   vaultRows: number;
   namedEvents: number;
+  // The person's threat intel stamps on events, until ClickHouse applies their rewrite (#11230).
+  stamps: number;
+  // The names each look for stamps was handed.
+  stampNames: Array<Array<ErasedName>>;
   findings: FindingsWorld;
   claimed: boolean;
   calls: Array<string>;
@@ -200,6 +205,8 @@ beforeEach(() => {
   world = {
     vaultRows: 1,
     namedEvents: 2,
+    stamps: 0,
+    stampNames: [],
     findings: findingsWorld(3, 3),
     claimed: true,
     calls: [],
@@ -401,6 +408,23 @@ beforeEach(() => {
       world.calls.push("unnameEvents");
     });
   jest
+    .spyOn(SecurityUserErasureThreatStamps, "rewriteStamps")
+    .mockImplementation(
+      async (data: { names: ReadonlyArray<ErasedName> }): Promise<number> => {
+        world.calls.push(`rewriteStamps ${world.stamps}`);
+        world.stampNames.push([...data.names]);
+        return world.stamps;
+      },
+    );
+  jest
+    .spyOn(SecurityUserErasureThreatStamps, "hasStampsLeft")
+    .mockImplementation(
+      async (data: { names: ReadonlyArray<ErasedName> }): Promise<boolean> => {
+        world.stampNames.push([...data.names]);
+        return world.stamps > 0;
+      },
+    );
+  jest
     .spyOn(SecurityUserErasureRecords, "unnameRecords")
     .mockImplementation(async (data: { names: ReadonlyArray<ErasedName> }) => {
       world.names.push([...data.names]);
@@ -471,7 +495,7 @@ describe("a Pending request", () => {
     expect(world.calls).toEqual([]);
   });
 
-  test("is claimed, its names kept, then Postgres and ClickHouse after - the events, the vault, then the findings' first pass - its counts kept at each step", async () => {
+  test("is claimed, its names kept, then Postgres and ClickHouse after - the threat intel stamps, the events, the vault, then the findings' first pass - its counts kept at each step", async () => {
     await SecurityUserErasure.processRequest({
       request: request(),
       now: at(STARTED_AT),
@@ -493,6 +517,8 @@ describe("a Pending request", () => {
         casesUnnamed: 2,
         proposalsWithdrawn: 1,
       })}`,
+      // While the events still name their users, so each stamp is matched to its own (#11230).
+      "rewriteStamps 0",
       "unnameEvents",
       "eraseVault",
       `inProgress ${JSON.stringify({
@@ -1267,5 +1293,122 @@ describe("what the worker leaves alone", () => {
     await SecurityUserErasure.processOpenRequests(at(STARTED_AT));
 
     expect(order).toEqual([first.id!.toString(), second.id!.toString()]);
+  });
+});
+
+/*
+ * #11230: the enricher stamped the person's events with the address a feed
+ * lists and the feed's indicator. The tell rewrites those stamps, and the
+ * request is not done while one is left.
+ */
+describe("the threat intel stamps on the person's events (#11230)", () => {
+  test("are rewritten by every name the run found, before the events lose them", async () => {
+    world.stamps = 3;
+
+    await SecurityUserErasure.processRequest({
+      request: request({ userToErase: "Alice@Example.com" }),
+      now: at(STARTED_AT),
+    });
+
+    expect(world.calls.indexOf("rewriteStamps 3")).toBeGreaterThan(
+      world.calls.indexOf("unnameRecords"),
+    );
+    expect(world.calls.indexOf("rewriteStamps 3")).toBeLessThan(
+      world.calls.indexOf("unnameEvents"),
+    );
+    expect(describeNames(world.stampNames[0]!)).toEqual(
+      [
+        `Alice@Example.com -> ${tokenOf("Alice@Example.com")}`,
+        `${ALICE} -> ${tokenOf(ALICE)}`,
+        `auth0|${ALICE} -> auth0|${tokenOf(ALICE)}`,
+      ].sort(),
+    );
+  });
+
+  test("a run that rewrote some is no proof nothing is left: its pass is not the final check", async () => {
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+    world.stamps = 1;
+
+    await SecurityUserErasure.processRequest({
+      request: request(),
+      now: at(STARTED_AT),
+    });
+
+    expect(world.progress?.cleanSince).toBeNull();
+    expect(world.progress?.findings?.isFinal).toBe(false);
+  });
+
+  test("the request stays Erasing while a stamp is left, however clean the vault and the events are", async () => {
+    const model: SecurityUserErasureRequest = request();
+
+    await SecurityUserErasure.processRequest({
+      request: model,
+      now: at(STARTED_AT),
+    });
+
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+    // ClickHouse has not applied the stamps' rewrite yet.
+    world.stamps = 1;
+
+    for (let minute: number = 1; minute <= 40; minute++) {
+      await runAt(model, STARTED_AT + minute * MINUTE);
+    }
+
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("completed");
+      }),
+    ).toBe(false);
+    expect(world.progress?.cleanSince).toBeNull();
+
+    // Applied: clean from the next run on, and Erased after the final check.
+    world.stamps = 0;
+
+    for (let minute: number = 41; minute <= 80; minute++) {
+      await runAt(model, STARTED_AT + minute * MINUTE);
+    }
+
+    expect(world.calls[world.calls.length - 1]).toMatch(/^completed/);
+  });
+
+  test("the check reads the stamps by the names the request kept", async () => {
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+    world.stamps = 1;
+
+    const names: Array<ErasedName> = [
+      { named: "Alice@Example.com", hashed: tokenOf("Alice@Example.com") },
+    ];
+
+    expect(
+      await SecurityUserErasure.isVaultAndEventsClean(
+        request({
+          status: SecurityUserErasureRequestStatus.InProgress,
+          userToErase: undefined,
+          namesToErase: toStoredErasureNames(names),
+        }),
+      ),
+    ).toBe(false);
+    expect(describeNames(world.stampNames[0]!)).toEqual(describeNames(names));
+
+    world.stamps = 0;
+
+    expect(
+      await SecurityUserErasure.isVaultAndEventsClean(
+        request({ status: SecurityUserErasureRequestStatus.InProgress }),
+      ),
+    ).toBe(true);
+  });
+
+  test("the vault or the events still naming the person are found first, and no stamp is read for it", async () => {
+    world.stamps = 1;
+    world.stampNames = [];
+
+    expect(await SecurityUserErasure.isVaultAndEventsClean(request())).toBe(
+      false,
+    );
+    expect(world.stampNames).toHaveLength(0);
   });
 });
