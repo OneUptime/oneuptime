@@ -399,7 +399,7 @@ Read the images a record's Markdown shows, such as the screenshots someone paste
 
 | Setting         | What it does                                                                                                                                              |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Record Type** | The kind of record whose Markdown shows the images: an incident, an incident's public or internal note, an alert, a scheduled maintenance event and more. |
+| **Record Type** | The kind of record whose Markdown shows the images: an incident, an incident's public or internal note, an alert, a maintenance event and more. |
 | **Record ID**   | The record to read, usually the one that started the workflow, as in `{{local.components.incident-on-create-1.returnValues.model._id}}`.                  |
 
 | Output      | When                                                                                                |
