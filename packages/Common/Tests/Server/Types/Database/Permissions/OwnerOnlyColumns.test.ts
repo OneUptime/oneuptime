@@ -1560,7 +1560,7 @@ describe("route 4 - a marked column a multi-field search reads (#11381)", () => 
       checkRead(
         AdminReadableUserSMS,
         {
-          userId: new NotEqual(adminUserId),
+          userId: new NotEqual(adminUserId.toString()),
           search: searchOf(["phone"]),
         },
         { _id: true },
