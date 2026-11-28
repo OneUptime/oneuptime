@@ -38,7 +38,9 @@ import {
   MonitorTemplateChangeStatus,
   MonitorTemplateChangeView,
 } from "../../../Types/Monitor/MonitorTemplateChange";
-import MonitorTemplatesView from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView";
+import MonitorTemplatesView, {
+  ACTIVE_CHANGE_REFRESH_MS,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView";
 import {
   LINKED_MONITORS_TITLE,
   SYNC_TO_LINKED_MONITORS_TITLES,
@@ -1276,5 +1278,70 @@ describe("Link Existing Monitors, Unlink from Template and Delete change the tem
       mode: MonitorTemplateChangeDialogMode.Progress,
       changeId: "change-running",
     });
+  });
+
+  test("while its dialog is closed, the line follows the change, and once it is done the page reads its monitors again", async () => {
+    jest.useFakeTimers();
+
+    try {
+      activeChanges.mockResolvedValue([
+        changeView({
+          id: "change-running",
+          status: MonitorTemplateChangeStatus.Running,
+          progress: {
+            ...emptyMonitorTemplateChangeProgress(2000),
+            processed: 400,
+            changed: 400,
+          },
+        }),
+      ]);
+
+      await openPage("de");
+      await screen.findByTestId("monitor-template-active-change");
+
+      const counted: Mock<AnyFunction> =
+        ModelAPI.count as unknown as Mock<AnyFunction>;
+      const countsBefore: number = counted.mock.calls.length;
+
+      // Further on.
+      activeChanges.mockResolvedValue([
+        changeView({
+          id: "change-running",
+          status: MonitorTemplateChangeStatus.Running,
+          progress: {
+            ...emptyMonitorTemplateChangeProgress(2000),
+            processed: 1500,
+            changed: 1500,
+          },
+        }),
+      ]);
+
+      await act(async () => {
+        jest.advanceTimersByTime(ACTIVE_CHANGE_REFRESH_MS);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("monitor-template-active-change").textContent,
+        ).toContain("1.500");
+      });
+      expect(counted.mock.calls.length).toBe(countsBefore);
+
+      // Done.
+      activeChanges.mockResolvedValue([]);
+
+      await act(async () => {
+        jest.advanceTimersByTime(ACTIVE_CHANGE_REFRESH_MS);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId("monitor-template-active-change"),
+        ).toBeNull();
+      });
+      expect(counted.mock.calls.length).toBeGreaterThan(countsBefore);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

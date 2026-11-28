@@ -100,12 +100,14 @@ import {
   startMonitorTemplateChange,
 } from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangeApi";
 
+// How often the line about a change still running is read again.
+export const ACTIVE_CHANGE_REFRESH_MS: number = 10 * 1000;
+
 /*
  * A sentence about one monitor, in the reader's language, with the
  * monitor's name in it as it was written, set apart (IsolatedText) so a
  * name in another script keeps its own reading inside the sentence: what
- * Sync from Template and Unlink from Template say when they are done
- * (#7678), and what Unlink from Template asks first (#7710).
+ * Sync from Template says when it is done (#7678).
  */
 const SentenceWithMonitorName: FunctionComponent<{
   template: string;
@@ -319,11 +321,28 @@ const MonitorTemplatesView: FunctionComponent<
       }
     };
 
+  // The running change the page shows, to tell when it has finished.
+  const shownActiveChangeId: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
   const fetchActiveChange: () => Promise<void> = async (): Promise<void> => {
     try {
       const changes: Array<MonitorTemplateChangeView> =
         await getActiveMonitorTemplateChanges(modelId.toString());
-      setActiveChange(changes[0] || null);
+      const next: MonitorTemplateChangeView | null = changes[0] || null;
+
+      // A change that was running has finished: what it changed is read again.
+      if (
+        shownActiveChangeId.current &&
+        shownActiveChangeId.current !== next?.id
+      ) {
+        fetchLinkedMonitorCount();
+        setTableRefreshToggle(Math.random().toString());
+      }
+
+      shownActiveChangeId.current = next?.id || null;
+      setActiveChange(next);
     } catch {
       // Nothing to show: the change, if any, still runs on the server.
       setActiveChange(null);
@@ -344,6 +363,29 @@ const MonitorTemplatesView: FunctionComponent<
       ),
     );
   };
+
+  /*
+   * A change running while its dialog is closed: the line about it is read
+   * again every few seconds, so its count moves, and it goes - the page
+   * reading its monitors again - once the change is done. The dialog, when
+   * open, follows the change itself.
+   */
+  const activeChangeId: string | null = activeChange?.id || null;
+  const isTemplateChangeDialogOpen: boolean = Boolean(templateChangeDialog);
+
+  useEffect(() => {
+    if (!activeChangeId || isTemplateChangeDialogOpen) {
+      return;
+    }
+
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      void fetchActiveChange();
+    }, ACTIVE_CHANGE_REFRESH_MS);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [activeChangeId, isTemplateChangeDialogOpen]);
 
   useEffect(() => {
     fetchLinkedMonitorCount();
