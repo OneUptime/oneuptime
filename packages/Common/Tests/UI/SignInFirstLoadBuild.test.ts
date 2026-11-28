@@ -77,9 +77,10 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * Through FormField every form brought the color field, with its custom
  * color panel and the color math they read, though no sign-in page's form
  * picks a color: it loads with the first form that has a color field
- * (LazyColorPicker). The key/value list does as well (LazyDictionary), which
- * Table's filters still bring here (FormEntityDropdownFirstLoadBuild.test.ts
- * holds a form to both).
+ * (LazyColorPicker), and so does the icon field, with its grid of every
+ * icon (LazyIconPicker). The key/value list does as well (LazyDictionary),
+ * which Table's filters still bring here
+ * (FormEntityDropdownFirstLoadBuild.test.ts holds a form to all three).
  *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
@@ -146,6 +147,11 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the color field's custom color panel",
     path: "UI/Components/ColorPicker/CustomColorPanel.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the icon field, loaded by the first form that picks an icon",
+    path: "UI/Components/Forms/Fields/IconPicker.tsx",
     isLoadedWhenNeeded: true,
   },
   {

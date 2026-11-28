@@ -32,7 +32,7 @@ import RadioButtons, {
 import TextArea from "../../TextArea/TextArea";
 import Toggle from "../../Toggle/Toggle";
 import ColorPicker from "../Fields/LazyColorPicker";
-import IconPicker from "../Fields/IconPicker";
+import IconPicker from "../Fields/LazyIconPicker";
 import FieldLabelElement from "../Fields/FieldLabel";
 import Field, { FormFieldStyleType } from "../Types/Field";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";

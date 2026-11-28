@@ -26,7 +26,8 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * they read, and the key/value list, with its key suggestions and its
  * filter operators (LazyColorPicker, LazyDictionary): none of those forms
  * picks a color or holds a list of keys, and the two were some 38 KB before
- * gzip of each one's first load.
+ * gzip of each one's first load. So is the icon field, with its grid of
+ * every icon (LazyIconPicker): none of them picks an icon.
  *
  * Built as the status page builds (the shared esbuild config, for
  * production), with what a public page's forms are drawn with as the entry
@@ -64,6 +65,10 @@ const LOADED_WHEN_NEEDED: ReadonlyArray<LeftOut> = [
     name: "the key/value list",
     path: "UI/Components/Dictionary/Dictionary.tsx",
   },
+  {
+    name: "the icon field",
+    path: "UI/Components/Forms/Fields/IconPicker.tsx",
+  },
 ];
 
 let built: FirstLoadBuild | null = null;
@@ -90,6 +95,7 @@ describe("what a form puts in the first load", () => {
       "UI/Components/EntityDropdown/LazyEntityDropdown.tsx",
       "UI/Components/Forms/Fields/LazyColorPicker.tsx",
       "UI/Components/Dictionary/LazyDictionary.tsx",
+      "UI/Components/Forms/Fields/LazyIconPicker.tsx",
     ]) {
       expect(inputsUnder(built!.firstLoad, place).length).toBe(1);
     }

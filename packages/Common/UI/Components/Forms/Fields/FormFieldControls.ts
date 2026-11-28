@@ -6,6 +6,7 @@ import { loadFilePicker } from "../../FilePicker/LazyFilePicker";
 import { loadMarkdownEditor } from "../../Markdown.tsx/LazyMarkdownEditor";
 import { loadPeoplePicker } from "../../PeoplePicker/LazyPeoplePicker";
 import { loadColorPicker } from "./LazyColorPicker";
+import { loadIconPicker } from "./LazyIconPicker";
 import FormFieldSchemaType from "../Types/FormFieldSchemaType";
 
 /*
@@ -30,6 +31,7 @@ const LOAD_CONTROL: Partial<Record<FormFieldSchemaType, LoadControlFunction>> =
     [FormFieldSchemaType.MultipleFiles]: loadFilePicker,
     [FormFieldSchemaType.PeoplePicker]: loadPeoplePicker,
     [FormFieldSchemaType.Color]: loadColorPicker,
+    [FormFieldSchemaType.Icon]: loadIconPicker,
     [FormFieldSchemaType.Dictionary]: loadDictionary,
   };
 

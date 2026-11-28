@@ -6,6 +6,7 @@ import { loadFilePicker } from "../../../../UI/Components/FilePicker/LazyFilePic
 import { loadMarkdownEditor } from "../../../../UI/Components/Markdown.tsx/LazyMarkdownEditor";
 import { loadPeoplePicker } from "../../../../UI/Components/PeoplePicker/LazyPeoplePicker";
 import { loadColorPicker } from "../../../../UI/Components/Forms/Fields/LazyColorPicker";
+import { loadIconPicker } from "../../../../UI/Components/Forms/Fields/LazyIconPicker";
 import {
   getLoadControl,
   loadAllFormFieldControls,
@@ -35,6 +36,7 @@ const FIRST_LOAD_TYPES: Array<FormFieldSchemaType> = Object.values(
     FormFieldSchemaType.MultipleFiles,
     FormFieldSchemaType.PeoplePicker,
     FormFieldSchemaType.Color,
+    FormFieldSchemaType.Icon,
     FormFieldSchemaType.Dictionary,
   ].includes(fieldType);
 });
@@ -56,6 +58,7 @@ describe("getLoadControl", () => {
     [FormFieldSchemaType.MultipleFiles, loadFilePicker],
     [FormFieldSchemaType.PeoplePicker, loadPeoplePicker],
     [FormFieldSchemaType.Color, loadColorPicker],
+    [FormFieldSchemaType.Icon, loadIconPicker],
     [FormFieldSchemaType.Dictionary, loadDictionary],
   ] as Array<[FormFieldSchemaType, () => Promise<unknown>]>)(
     "a %s field draws with its own file",
@@ -161,6 +164,7 @@ describe("loadAllFormFieldControls", () => {
     expect(typeof (await loadFilePicker())).toBe("function");
     expect(typeof (await loadPeoplePicker())).toBe("function");
     expect(typeof (await loadColorPicker())).toBe("function");
+    expect(typeof (await loadIconPicker())).toBe("function");
     expect(typeof (await loadDictionary())).toBe("function");
   });
 
