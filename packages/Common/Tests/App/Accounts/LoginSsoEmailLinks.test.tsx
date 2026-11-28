@@ -202,6 +202,7 @@ describe("Email me my sign-in links", () => {
           disableUserProjectCreation: false,
           disablePushNotifications: false,
           canSendEmail: canSendEmail,
+          canProjectsChooseCallVoice: false,
         };
       });
 

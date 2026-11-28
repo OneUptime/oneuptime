@@ -85,6 +85,7 @@ export const WorkflowDocsPaths: {
   readonly sleep: string;
   readonly log: string;
   readonly executeWorkflow: string;
+  readonly getFilesFromMarkdown: string;
   readonly records: string;
   readonly componentOutputs: string;
   readonly loops: string;
@@ -123,6 +124,7 @@ export const WorkflowDocsPaths: {
   sleep: "/workflows/components#sleep",
   log: "/workflows/components#log",
   executeWorkflow: "/workflows/components#execute-workflow",
+  getFilesFromMarkdown: "/workflows/components#get-files-from-markdown",
   records: "/workflows/components#working-with-records",
   componentOutputs:
     "/workflows/variables#component-outputs-data-from-earlier-blocks",

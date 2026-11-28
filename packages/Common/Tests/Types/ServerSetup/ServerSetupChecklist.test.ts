@@ -767,6 +767,102 @@ describe("SMS and calls", () => {
       [ServerSendingChannel.Call, "Twilio", EARLIER],
     ]);
   });
+
+  /*
+   * GLOBAL_TWILIO_CALL_VOICE naming a voice OneUptime does not offer
+   * (#11064): calls still go out, in the account's default voice, so SMS
+   * and calls stand where they stood, and the problem is said beside them,
+   * whatever that is.
+   */
+  describe("a call voice the environment variable names wrongly", () => {
+    const PROBLEM: string =
+      'GLOBAL_TWILIO_CALL_VOICE: "alice" is not a voice OneUptime offers, so calls speak with your Twilio account\'s default voice.';
+
+    test.each([
+      ["nothing set up", {}, ServerSetupStatus.NotSetUp],
+      [
+        "email and push only, chosen",
+        {
+          choices: chose(
+            ServerSetupCheckId.SmsAndCalls,
+            ServerSetupChoiceKind.Skipped,
+          ),
+        },
+        ServerSetupStatus.Skipped,
+      ],
+      [
+        "untested",
+        {
+          sms: channel(ServerSendingChannel.SMS, ServerSendingState.Untested),
+          call: channel(ServerSendingChannel.Call, ServerSendingState.Untested),
+        },
+        ServerSetupStatus.Untested,
+      ],
+      [
+        "failing",
+        {
+          sms: channel(ServerSendingChannel.SMS, ServerSendingState.Working),
+          call: channel(ServerSendingChannel.Call, ServerSendingState.Failing),
+        },
+        ServerSetupStatus.Failing,
+      ],
+      [
+        "working",
+        {
+          sms: channel(ServerSendingChannel.SMS, ServerSendingState.Working),
+          call: channel(ServerSendingChannel.Call, ServerSendingState.Working),
+        },
+        ServerSetupStatus.Done,
+      ],
+    ] as Array<[string, Partial<ServerSetupFacts>, ServerSetupStatus]>)(
+      "%s: stands as it does, and says the problem",
+      (
+        _label: string,
+        overrides: Partial<ServerSetupFacts>,
+        status: ServerSetupStatus,
+      ) => {
+        const without: ServerSetupCheckResult = check(
+          freshFacts(overrides),
+          ServerSetupCheckId.SmsAndCalls,
+        );
+        const withProblem: ServerSetupCheckResult = check(
+          freshFacts({ ...overrides, callVoiceProblem: PROBLEM }),
+          ServerSetupCheckId.SmsAndCalls,
+        );
+
+        expect(withProblem.status).toBe(status);
+        expect(withProblem.notes).toEqual([PROBLEM]);
+        // Everything else as it was without it.
+        expect({ ...withProblem, notes: undefined }).toEqual({
+          ...without,
+          notes: undefined,
+        });
+        expect(without.notes).toBeUndefined();
+      },
+    );
+
+    test("no problem, or an older server that says nothing of one: no notes at all", () => {
+      for (const callVoiceProblem of [null, undefined, ""]) {
+        const result: ServerSetupCheckResult = check(
+          freshFacts({ callVoiceProblem: callVoiceProblem }),
+          ServerSetupCheckId.SmsAndCalls,
+        );
+
+        expect(Object.keys(result)).not.toContain("notes");
+      }
+    });
+
+    test("said beside SMS and calls only", () => {
+      for (const result of ServerSetupChecklistUtil.evaluate(
+        freshFacts({ callVoiceProblem: PROBLEM }),
+        NOW,
+      )) {
+        if (result.id !== ServerSetupCheckId.SmsAndCalls) {
+          expect(result.notes).toBeUndefined();
+        }
+      }
+    });
+  });
 });
 
 describe("probes, backups and update checks", () => {

@@ -19,6 +19,7 @@ import JavaScriptComponents from "./Components/JavaScript";
 import JavaScriptCheckComponents from "./Components/JavaScriptCheck";
 import LogComponents from "./Components/Log";
 import ManualComponents from "./Components/Manual";
+import MarkdownFilesComponents from "./Components/MarkdownFiles";
 import MattermostComponents from "./Components/Mattermost";
 import MicrosoftTeamsComponents from "./Components/MicrosoftTeams";
 import OpenStackComponents, {
@@ -66,6 +67,7 @@ const components: Array<ComponentMetadata> = [
   ...ManualComponents,
   ...MicrosoftTeamsComponents,
   ...SleepComponents,
+  ...MarkdownFilesComponents,
 ];
 
 export default components;

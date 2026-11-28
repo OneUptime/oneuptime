@@ -243,7 +243,7 @@ export const translationKey: <T extends string>(text: T) => T = <
 export const DEFAULT_LANGUAGE: string = "en";
 
 // The language part of a code: "zh-CN" -> "zh", "pt" -> "pt".
-const getBaseLanguage: (language: string | undefined) => string = (
+export const getBaseLanguage: (language: string | undefined) => string = (
   language: string | undefined,
 ): string => {
   return (language || DEFAULT_LANGUAGE).split(/[-_]/)[0]!.toLowerCase();
