@@ -3941,7 +3941,11 @@ describe("Data Security Integrations", () => {
         ),
       ].sort(),
     ).toEqual(
-      [BreachLawFamily.Gdpr, BreachLawFamily.Hipaa, BreachLawFamily.UkGdpr].sort(),
+      [
+        BreachLawFamily.Gdpr,
+        BreachLawFamily.Hipaa,
+        BreachLawFamily.UkGdpr,
+      ].sort(),
     );
     expect(breach).toContain(
       "A person also says whether your organization holds the data for another organization, as its vendor, service provider or processor: only then are the notices the law asks a holder to send the data's owner added.",
@@ -3970,17 +3974,15 @@ describe("Data Security Integrations", () => {
       },
     );
 
-    expect(
-      [
-        ...new Set(
-          vermont
-            .map((rule: BreachLawRule): string => {
-              return rule.inForceFrom || rule.inForceUntil || "";
-            })
-            .filter(Boolean),
-        ),
-      ],
-    ).toEqual(["2027-01-01"]);
+    expect([
+      ...new Set(
+        vermont
+          .map((rule: BreachLawRule): string => {
+            return rule.inForceFrom || rule.inForceUntil || "";
+          })
+          .filter(Boolean),
+      ),
+    ]).toEqual(["2027-01-01"]);
     expect(breach).toContain(
       "the day Data Security found the exposure decides which one applies: Vermont's text from 1 January 2027 applies to an exposure found from that day, and the text before it to one found earlier",
     );

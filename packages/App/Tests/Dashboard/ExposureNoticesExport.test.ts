@@ -697,8 +697,7 @@ describe("a case's breach notices, exported", () => {
       laws.indexOf(`### ${getBreachLawName(BreachLawId.TexasDataOwner)}`),
       laws.indexOf(
         "\n### ",
-        laws.indexOf(`### ${getBreachLawName(BreachLawId.TexasDataOwner)}`) +
-          4,
+        laws.indexOf(`### ${getBreachLawName(BreachLawId.TexasDataOwner)}`) + 4,
       ),
     );
 
@@ -758,7 +757,9 @@ describe("a case's breach notices, exported", () => {
     );
     const laws: string = sectionOf(markdown, "Breach Laws That May Apply");
 
-    expect(laws).toContain(`### ${getBreachLawName(BreachLawId.GdprProcessor)}`);
+    expect(laws).toContain(
+      `### ${getBreachLawName(BreachLawId.GdprProcessor)}`,
+    );
     expect(laws).toContain(
       `### ${getBreachLawName(BreachLawId.GdprAuthority)} (due first)`,
     );
