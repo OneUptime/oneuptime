@@ -5,6 +5,7 @@ OneUptime は、SMS と通話を Twilio の代わりに、あなたが運用す�
 :::cards
 - [ゲートウェイを設定する](#ゲートウェイを設定する): URL と、自動で作成される署名シークレット。
 - [ゲートウェイが受け取るもの](#ゲートウェイが受け取るもの): SMS や通話 1 件ごとに、署名付きの JSON リクエストが 1 つ。
+- [ほかの言語での通話](#ほかの言語での通話): 各通話を、相手が OneUptime を使っている言語で話します。
 - [呼び出しに対応する](#呼び出しに対応する): 通話や返信から、確認、エスカレーション、解決を行います。
 - [配信と再試行](#配信と再試行): ゲートウェイが停止しているときに起こること。
 :::
@@ -63,7 +64,8 @@ SMS と通話はそれぞれ 1 件の `POST` リクエストで、JSON の本文
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ SMS と通話はそれぞれ 1 件の `POST` リクエストで、JSON の本文
 | `sentAt` | OneUptime が送信した日時 (ISO 8601)。 |
 | `to` | E.164 形式の電話番号。テストでは `null`。 |
 | `message` | SMS の本文、または通話で伝える内容。SMS は最大 1,600 文字、通話のテキストは最大 16,384 文字です。それより長いテキストは切り詰められ、残りは OneUptime にあるという注記で終わります。 |
-| `isSensitive` | 確認コードでは `true`。メッセージを自社のログに残さないでください。 |
+| `isSensitive` | 確認コードでは `true`。メッセージも `inLanguage` 内のメッセージも、自社のログに残さないでください。 |
 | `project` | プロジェクトの `id` と `name`。プロジェクトから送信されたものでない場合は `null`。 |
 | `actions` | オンコールの呼び出しでは、それに対応するためのリンク。それ以外では `null`。 |
+| `inLanguage` | OneUptime を英語以外の言語で使っている人への通話では、`language` (その言語のコード) と `message` (通話がその言語で伝える内容)。それ以外では `null` です。SMS はすでにその人の言語で書かれているため、SMS では常に `null` です。[ほかの言語での通話](#ほかの言語での通話) を参照してください。 |
 
 通話はスクリプトではなく、内容として渡されます。`message` は通話で伝える内容で、Twilio の「確認するには 1 を押してください」は含まれません。キー入力など独自の方法でアクションを提示し、対応するリンクを呼び出してください。
+
+### ほかの言語での通話
+
+OneUptime をほかの言語で使っている人への通話には、その言葉が 2 回含まれます。すべての通話と同じく英語で `message` に、そしてその人の言語で `inLanguage` に含まれます。音声を選ぶのはゲートウェイなので、OneUptime はゲートウェイがどの言語を話せるかを知ることができません。ゲートウェイに `inLanguage.language` の言語の音声がある場合は、その音声で `inLanguage.message` を読み上げてください。ない場合は、代わりに `message` を英語で読み上げてください。ある言語の言葉を別の言語の音声に渡さないでください。聞き取ってもらえません。`message` だけを読むゲートウェイは、これまでどおり動作し、英語で話します。
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+言語のコードは BCP 47 のタグで、OneUptime が書かれている言語のいずれかです。`de`、`fr`、`es`、`it`、`pt`、`nl`、`da`、`no`、`sv`、`ru`、`ja`、`ko`、`zh-CN`、`zh-TW`、`hi`、`fa`、`ar` があります。`es` はスペインのスペイン語、`pt` はブラジルのポルトガル語、`no` はノルウェー語のブークモール、`ar` は現代標準アラビア語です。中国語の 2 つのコードはどちらも標準中国語で、それぞれ簡体字と繁体字で書かれます。ペルシア語もこれに含まれます。Twilio にはペルシア語の音声がないため、ペルシア語で OneUptime を使っている人への通話は Twilio では英語になりますが、ゲートウェイにはペルシア語の音声があるかもしれません。確認コードは 1 桁ずつ、桁の間に 2 つのスペースを入れて書かれます。数としてではなく、1 桁ずつゆっくり読み上げるように音声を設定してください。
 
 ### 署名を確認する
 
@@ -116,7 +137,7 @@ SMS または通話のログ、およびオンコールの呼び出しではそ�
 
 ## テストリクエスト
 
-**ゲートウェイを確認** は、`event` を `test` に、`to`、`project`、`actions` を `null` にしたリクエストを送信します。2xx ステータスで応答し、何も送信しないでください。
+**ゲートウェイを確認** は、`event` を `test` に、`to`、`project`、`actions`、`inLanguage` を `null` にしたリクエストを送信します。2xx ステータスで応答し、何も送信しないでください。
 
 ## 次のステップ
 

@@ -5,6 +5,7 @@ OneUptime은 SMS와 통화를 Twilio 대신 직접 운영하는 게이트웨이�
 :::cards
 - [게이트웨이 설정하기](#게이트웨이-설정하기): URL 하나와 자동으로 만들어지는 서명 시크릿.
 - [게이트웨이가 받는 내용](#게이트웨이가-받는-내용): SMS나 통화마다 서명된 JSON 요청 하나.
+- [다른 언어로 하는 통화](#다른-언어로-하는-통화): 각 통화를, 받는 사람이 OneUptime을 사용하는 언어로 말합니다.
 - [호출에 대응하기](#호출에-대응하기): 통화나 답장에서 인지, 에스컬레이션, 해결을 합니다.
 - [전송과 재시도](#전송과-재시도): 게이트웨이가 다운되었을 때 일어나는 일.
 :::
@@ -63,7 +64,8 @@ flowchart TB
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ flowchart TB
 | `sentAt` | OneUptime이 보낸 시각으로, ISO 8601 형식입니다. |
 | `to` | E.164 형식의 전화번호입니다. 테스트에서는 `null`입니다. |
 | `message` | SMS 또는 통화에서 말하는 내용입니다. SMS는 최대 1,600자, 통화 텍스트는 최대 16,384자입니다. 더 긴 텍스트는 잘리고, 나머지는 OneUptime에 있다는 안내로 끝납니다. |
-| `isSensitive` | 인증 코드에서는 `true`입니다. 메시지를 자체 로그에 남기지 마세요. |
+| `isSensitive` | 인증 코드에서는 `true`입니다. 메시지와 `inLanguage`의 메시지를 자체 로그에 남기지 마세요. |
 | `project` | 프로젝트의 `id`와 `name`이며, 프로젝트가 보낸 것이 아니면 `null`입니다. |
 | `actions` | 온콜 호출에서는 호출에 대응하는 링크입니다. 그 외에는 `null`입니다. |
+| `inLanguage` | OneUptime을 영어가 아닌 다른 언어로 사용하는 사람에게 거는 통화에서는 `language`(그 언어의 코드)와 `message`(통화가 그 언어로 말하는 내용)입니다. 그 외에는 `null`이며, SMS는 이미 그 사람의 언어로 되어 있으므로 모든 SMS에서도 `null`입니다. [다른 언어로 하는 통화](#다른-언어로-하는-통화)를 참고하세요. |
 
 통화는 스크립트가 아니라 내용으로 전달됩니다. `message`는 통화에서 말할 내용이며, Twilio의 "인지하려면 1을 누르세요"는 포함되지 않습니다. 키 입력 등 원하는 방식으로 동작을 제공하고, 해당하는 링크를 호출하세요.
+
+### 다른 언어로 하는 통화
+
+OneUptime을 다른 언어로 사용하는 사람에게 거는 통화에는 말이 두 번 들어 있습니다. 모든 통화와 마찬가지로 영어로 `message`에, 그리고 그 사람의 언어로 `inLanguage`에 들어 있습니다. 음성은 게이트웨이가 고르므로, OneUptime은 게이트웨이가 어떤 언어를 말하는지 알 수 없습니다. 게이트웨이에 `inLanguage.language` 언어의 음성이 있으면 그 음성으로 `inLanguage.message`를 말하세요. 없으면 대신 `message`를 영어로 말하세요. 한 언어의 말을 다른 언어의 음성에 맡기지 마세요. 알아들을 수 없습니다. `message`만 읽는 게이트웨이는 전처럼 계속 작동하며 영어로 말합니다.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+언어 코드는 BCP 47 태그로, OneUptime이 작성된 언어 중 하나입니다. `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa`, `ar`입니다. `es`는 스페인의 스페인어, `pt`는 브라질의 포르투갈어, `no`는 노르웨이어 보크몰, `ar`은 현대 표준 아랍어이며, 두 중국어 코드는 모두 표준 중국어(만다린)로, 각각 간체자와 번체자로 씁니다. 페르시아어도 여기에 포함됩니다. Twilio에는 페르시아어 음성이 없으므로 Twilio를 거치면 페르시아어로 OneUptime을 사용하는 사람에게 거는 통화가 영어로 진행되지만, 게이트웨이에는 그런 음성이 있을 수 있습니다. 인증 코드는 숫자 사이에 공백 두 개를 넣어 한 자리씩 씁니다. 음성이 숫자를 하나의 수가 아니라 한 자리씩 천천히 읽게 하세요.
 
 ### 서명 확인하기
 
@@ -116,7 +137,7 @@ SMS 또는 통화 로그와, 온콜 호출의 경우 그 사람의 온콜 로그
 
 ## 테스트 요청
 
-**게이트웨이 확인**은 `event`를 `test`로, `to`, `project`, `actions`를 `null`로 설정한 요청을 보냅니다. 2xx 상태로 응답하고 아무것도 보내지 마세요.
+**게이트웨이 확인**은 `event`를 `test`로, `to`, `project`, `actions`, `inLanguage`를 `null`로 설정한 요청을 보냅니다. 2xx 상태로 응답하고 아무것도 보내지 마세요.
 
 ## 다음 단계
 
