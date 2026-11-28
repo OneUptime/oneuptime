@@ -92,7 +92,7 @@ flowchart TB
 - 값은 마지막으로 그 값을 읽은 폴링 후 2일 동안 활성 지표로 남고, 목록에서 빠진 값은 다음 폴링부터 일치하지 않습니다. 바뀌지 않은 목록도 하루에 한 번 다시 기록됩니다.
 - 목록 하나에는 지표가 최대 50,000개 들어갑니다. **마지막 폴링 요약** 이 읽은 개수, 건너뛴 줄 수, 제외된 개수를 알려 줍니다.
 - 주소는 `https` 를 써야 하며 연결과 같은 아웃바운드 규칙을 따릅니다. OneUptime Cloud에서는 사설 주소가 거부됩니다.
-- 로그인이 필요한 목록은 주소에 넣지 않고, HTTP Basic 인증으로 **사용자 이름과 비밀번호** 를 써서 요청합니다. CrowdSec Console은 구독한 차단 목록을 이 방식으로 제공합니다. [CrowdSec 차단 목록 읽기](/docs/integrations/crowdsec#read-crowdsecs-blocklists)를 참고하세요.
+- 로그인이 필요한 목록은 주소에 넣지 않고, HTTP Basic 인증으로 **사용자 이름과 비밀번호** 를 써서 요청합니다. CrowdSec Console은 구독한 차단 목록을 이 방식으로 제공합니다. [CrowdSec 차단 목록 읽기](/docs/integrations/crowdsec#crowdsec-차단-목록-읽기)를 참고하세요.
 
 ### Google SecOps를 읽는 방식
 

@@ -92,7 +92,7 @@ Ett inaktiverat flöde varken hämtas eller matchas. Indikatorerna som det redan
 - Ett värde förblir en aktiv indikator i 2 dagar efter hämtningen som senast läste det, och ett värde som listan tar bort slutar träffa vid nästa hämtning. En lista som inte har ändrats skrivs om en gång per dag.
 - En lista rymmer högst 50 000 indikatorer. **Sammanfattning av senaste hämtning** berättar hur många som lästes, hur många rader som hoppades över och hur många som lämnades utanför.
 - Adressen måste använda `https` och följer samma utgående regler som en anslutning: i OneUptime Cloud avvisas en privat adress.
-- En lista bakom en inloggning hämtas med **Användarnamn och lösenord**, som HTTP Basic-autentisering, aldrig i adressen. Det är så CrowdSec Console levererar blocklistorna du prenumererar på: se [Läs CrowdSecs blocklistor](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
+- En lista bakom en inloggning hämtas med **Användarnamn och lösenord**, som HTTP Basic-autentisering, aldrig i adressen. Det är så CrowdSec Console levererar blocklistorna du prenumererar på: se [Läs CrowdSecs blocklistor](/docs/integrations/crowdsec#läs-crowdsecs-blocklistor).
 
 ### Så läses Google SecOps
 

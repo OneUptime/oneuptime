@@ -92,7 +92,7 @@ flowchart TB
 - 一個值在最後一次讀到它的輪詢之後 2 天內保持為作用中的指標，清單刪除的值從下一次輪詢起不再符合。沒有變化的清單每天也會重新寫入一次。
 - 一份清單最多包含 50,000 個指標。**最近一次輪詢摘要** 會說明讀取了多少個、略過了多少行、遺漏了多少個。
 - 位址必須使用 `https`，並遵守與連線相同的輸出規則：在 OneUptime Cloud 上，私人位址會被拒絕。
-- 需要登入的清單會以 HTTP 基本驗證的方式用 **使用者名稱與密碼** 請求，憑證絕不會寫進它的位址。CrowdSec Console 正是這樣提供你訂閱的封鎖清單：請參閱[讀取 CrowdSec 的封鎖清單](/docs/integrations/crowdsec#read-crowdsecs-blocklists)。
+- 需要登入的清單會以 HTTP 基本驗證的方式用 **使用者名稱與密碼** 請求，憑證絕不會寫進它的位址。CrowdSec Console 正是這樣提供你訂閱的封鎖清單：請參閱[讀取 CrowdSec 的封鎖清單](/docs/integrations/crowdsec#讀取-crowdsec-的封鎖清單)。
 
 ### 如何讀取 Google SecOps
 

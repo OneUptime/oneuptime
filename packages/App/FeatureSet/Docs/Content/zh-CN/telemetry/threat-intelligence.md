@@ -92,7 +92,7 @@ flowchart TB
 - 一个值在最后一次读到它的轮询之后的 2 天内保持为活动指标，列表删除的值从下一次轮询起不再匹配。没有变化的列表每天也会重写一次。
 - 一个列表最多包含 50,000 个指标。**最近一次轮询摘要** 会说明读取了多少个、跳过了多少行、遗漏了多少个。
 - 地址必须使用 `https`，并遵守与连接相同的出站规则：在 OneUptime Cloud 上，私有地址会被拒绝。
-- 需要登录的列表会以 HTTP 基本身份验证的方式用 **用户名和密码** 请求，凭据绝不会写进它的地址。CrowdSec Console 正是这样提供你订阅的封禁列表：请参阅[读取 CrowdSec 的封禁列表](/docs/integrations/crowdsec#read-crowdsecs-blocklists)。
+- 需要登录的列表会以 HTTP 基本身份验证的方式用 **用户名和密码** 请求，凭据绝不会写进它的地址。CrowdSec Console 正是这样提供你订阅的封禁列表：请参阅[读取 CrowdSec 的封禁列表](/docs/integrations/crowdsec#读取-crowdsec-的封禁列表)。
 
 ### 如何读取 Google SecOps
 
