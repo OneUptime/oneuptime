@@ -16,17 +16,23 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 describe("buildResourceFacetConfigs", () => {
-  test("returns one config per catalog entry, in catalog order", () => {
+  /*
+   * A resource type that joins the catalog grows the count. The newest is
+   * XCP-ng's pool (#11093), listed right after VMware's vCenter.
+   */
+  test("returns one config per catalog entry, in catalog order: sixteen, XCP-ng's pool after the vCenter", () => {
     const configs: Array<FacetConfig> = buildResourceFacetConfigs({
       basePriority: 2,
     });
+    const keys: Array<string> = configs.map((config: FacetConfig): string => {
+      return config.key;
+    });
 
-    expect(
-      configs.map((config: FacetConfig): string => {
-        return config.key;
-      }),
-    ).toEqual([...RESOURCE_FACET_CATALOG_KEYS]);
-    expect(configs).toHaveLength(15);
+    expect(keys).toEqual([...RESOURCE_FACET_CATALOG_KEYS]);
+    expect(configs).toHaveLength(16);
+    expect(keys.indexOf("xcpNgPoolId")).toBe(
+      keys.indexOf("vmwareVCenterId") + 1,
+    );
   });
 
   test("covers every resource type, not only the original four", () => {
@@ -45,6 +51,7 @@ describe("buildResourceFacetConfigs", () => {
       "proxmoxClusterId",
       "openStackCloudId",
       "vmwareVCenterId",
+      "xcpNgPoolId",
       "cephClusterId",
       "storageArrayId",
       "serverlessFunctionId",

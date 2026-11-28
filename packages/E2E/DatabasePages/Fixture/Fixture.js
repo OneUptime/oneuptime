@@ -40,6 +40,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import DatabasesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Layout";
 import DatabasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Databases";
@@ -755,6 +756,17 @@ async function handleApi(method, options) {
       isInvestigationReady: false,
       isRemediationReady: false,
     });
+  }
+
+  // Which of Database alerts and Recommendations are on already, from the project's monitors.
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

@@ -2,7 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
-import NavBar from "Common/UI/Components/Navbar/NavBar";
+import NavBarOfItems from "Common/UI/Components/Navbar/NavBarOfItems";
 import NavBarItem from "Common/UI/Components/Navbar/NavBarItem";
 import Navigation from "Common/UI/Utils/Navigation";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -232,7 +232,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   return (
     <>
       <div className="relative md:hidden" ref={mobileNavRef}>
-        <NavBar className="mt-5 justify-between rounded-lg bg-white px-5 py-2 text-center shadow">
+        <NavBarOfItems className="mt-5 justify-between rounded-lg bg-white px-5 py-2 text-center shadow">
           <div className="flex w-full items-center justify-between">
             {/*
              * A fixed id, not the active item's: the open dropdown below
@@ -265,11 +265,11 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
               ariaExpanded={isMobileMenuOpen}
             />
           </div>
-        </NavBar>
+        </NavBarOfItems>
 
         {isMobileMenuOpen && (
           <div className="animate-slide-down absolute left-0 right-0 top-full z-50 mt-1">
-            <NavBar className="space-y-1 rounded-lg border border-gray-200 bg-white px-5 py-2 shadow-lg">
+            <NavBarOfItems className="space-y-1 rounded-lg border border-gray-200 bg-white px-5 py-2 shadow-lg">
               {navItems.map((item: NavItem) => {
                 return (
                   <div key={item.id} className="block">
@@ -288,12 +288,12 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                   </div>
                 );
               })}
-            </NavBar>
+            </NavBarOfItems>
           </div>
         )}
       </div>
 
-      <NavBar className="mt-5 max-md:hidden justify-between rounded-lg bg-white px-5 py-2 text-center shadow md:flex">
+      <NavBarOfItems className="mt-5 max-md:hidden justify-between rounded-lg bg-white px-5 py-2 text-center shadow md:flex">
         {navItems.map((item: NavItem) => {
           return (
             <NavBarItem
@@ -307,7 +307,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             />
           );
         })}
-      </NavBar>
+      </NavBarOfItems>
     </>
   );
 };

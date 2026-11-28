@@ -108,8 +108,10 @@ export default class StorageArrayProbeMetrics {
       return identifiers;
     }
     for (const entry of data.resourceMetrics as JSONArray) {
-      const identifier: string | null =
-        StorageArrayProbeMetrics.readIdentifier(entry, data.collector);
+      const identifier: string | null = StorageArrayProbeMetrics.readIdentifier(
+        entry,
+        data.collector,
+      );
       if (identifier && !identifiers.includes(identifier)) {
         identifiers.push(identifier);
       }

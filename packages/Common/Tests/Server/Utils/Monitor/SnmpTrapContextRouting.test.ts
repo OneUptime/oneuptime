@@ -65,9 +65,7 @@ describe("SnmpTrapContextRouting.devicesForTrap", () => {
   });
 
   test("a trap from a logical switch nobody registered is no neighbour's: it goes nowhere, to be logged as unmatched", () => {
-    expect(route([LOGICAL_SWITCH_20, LOGICAL_SWITCH_30], "VF:128")).toEqual(
-      [],
-    );
+    expect(route([LOGICAL_SWITCH_20, LOGICAL_SWITCH_30], "VF:128")).toEqual([]);
   });
 
   test("a single device at the address keeps its traps when they name its context or none", () => {

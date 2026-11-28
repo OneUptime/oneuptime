@@ -35,12 +35,12 @@ En **Dell PowerScale**-klynge læses på en anden måde: agenten aflæser hver a
 ```mermaid title="Fra arrayet til OneUptime"
 flowchart TB
     collector["Collector"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["Arrayet,<br/>port 443"]
-    collector -->|"ældre FlashArray,<br/>FlashBlade"| exporter["Pures exporter"]
+    collector -->|"ældre FlashArray,<br/>FlashBlade"| exporter["Pures<br/>exporter"]
     exporter -->|"API-token"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"skrivebeskyttet bruger,<br/>REST-API"| cluster["Klyngen,<br/>port 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime

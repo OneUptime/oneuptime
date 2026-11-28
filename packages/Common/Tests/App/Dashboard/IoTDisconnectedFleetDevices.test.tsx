@@ -20,6 +20,7 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { goTo } from "./SideMenuHarness";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * A DISCONNECTED IOT FLEET BLAMES NO DEVICE, ON ANY PAGE (#10014).
@@ -339,6 +340,13 @@ beforeEach(() => {
       navigated.push(String(to));
     },
   );
+  /*
+   * The side menu's Recommendations badge asks the server which of the
+   * fleet's recommended monitors are made (#11074): none is yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   try {
     window.localStorage.clear();
   } catch {

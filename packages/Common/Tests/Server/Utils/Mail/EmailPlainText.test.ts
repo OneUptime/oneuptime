@@ -173,6 +173,23 @@ describe("EmailPlainText.fromHtml", () => {
     expect(text(tile("Downtime:", "21m"))).toBe("Downtime: 21m");
   });
 
+  test("a label with nothing to read joins nothing: the line before it stays its own", () => {
+    /*
+     * A cloud cost report's total under the header, its label and heading
+     * empty: the total read "OneUptime $1,200", on the header's line.
+     */
+    expect(
+      text(
+        '<table><tr><td><img alt="OneUptime"></td></tr></table><h1></h1><p class="st-Stat-label"></p><p>$1,200</p><p>It was $1,000 the week before.</p>',
+      ),
+    ).toBe("OneUptime\n\n$1,200\n\nIt was $1,000 the week before.");
+    expect(
+      text(
+        '<p>Before</p><div class="st-DetailCard-field"><p class="st-DetailCard-label"></p><div class="st-DetailCard-value">Critical</div></div><p>After</p>',
+      ),
+    ).toBe("Before\n\nCritical\n\nAfter");
+  });
+
   test("a data table is a row a line, its cells parted; a layout table's cells by a space", () => {
     expect(
       text(

@@ -109,6 +109,7 @@ import {
   filterInsights,
   saveProjectSwitches,
 } from "./AiSection";
+import { answerCodeRepositoryChoices } from "../../SuiteHelpers/CodeRepositoryChoiceAnswers";
 
 const params = new URLSearchParams(window.location.search);
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -928,6 +929,22 @@ const REPOSITORIES = {
   },
 };
 
+/*
+ * The project's repositories in Code, as its routes read them for the
+ * reader (#10921): both on GitHub and connected, so OneUptime reads their
+ * code and the reader may ask in them - none with ?repo=none. Fix with AI's
+ * picker searches them.
+ */
+function codeRepositories() {
+  if (repoMode === "none") {
+    return [];
+  }
+  return [REPOSITORIES.checkout, REPOSITORIES.platform].map((repository) => {
+    const [organizationName, repositoryName] = repository.name.split("/");
+    return { ...repository, organizationName, repositoryName };
+  });
+}
+
 function sourceLinks(body) {
   return (body.frames || [])
     .filter((frame) => {
@@ -1167,6 +1184,17 @@ async function handleApi(method, options) {
    */
   if (url.includes("/telemetry-ingestion-budget")) {
     return new HTTPErrorResponse(404, { message: "Not modelled" }, {});
+  }
+
+  // Fix with AI's picker: the repositories the fix may be asked in, searched.
+  const choices = answerCodeRepositoryChoices({
+    method,
+    url,
+    body,
+    repositories: codeRepositories(),
+  });
+  if (choices) {
+    return choices;
   }
 
   return ok({});

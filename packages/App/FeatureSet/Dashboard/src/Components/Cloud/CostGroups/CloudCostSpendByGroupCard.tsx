@@ -10,6 +10,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import downloadFile from "Common/UI/Utils/DownloadFile";
 import { getCloudCostFileName } from "Common/Types/Cloud/CloudCostCsv";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -205,7 +206,7 @@ const CloudCostSpendByGroupCard: FunctionComponent<ComponentProps> = (
                       <bdi className="font-medium text-gray-700">
                         {group.name}
                       </bdi>
-                      {" · "}
+                      <InlineSeparator />
                       {translator.translateTemplate(SPLIT_ACROSS, {
                         amount: money(group.sharedOut),
                       })}

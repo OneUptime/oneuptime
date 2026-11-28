@@ -49,6 +49,7 @@ import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import KubernetesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Layout";
 import KubernetesOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Index";
@@ -1360,6 +1361,21 @@ async function handleApi(method, options) {
       openCases: null,
       risk: null,
     });
+  }
+
+  /*
+   * Which of the cluster's recommended monitors a monitor covers already,
+   * for its Recommendations page and the menu's count (#11074): none, as
+   * the project has no monitors.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });
