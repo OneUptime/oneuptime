@@ -540,6 +540,9 @@ describe("install.sh for a PowerScale cluster", () => {
       // An IPv6 address in brackets, as udp://[...]:161 needs it.
       POWERSCALE_NODE_4: "'[fd00::14]'",
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
+      // Named after its directory, <scratch>/agent, as every second array's agent is (#11168).
+      STORAGE_ARRAY_AGENT_CONTAINER_NAME:
+        "'oneuptime-storage-array-agent-agent'",
     });
     // The community was read without echo, and no TLS question was asked.
     expect(run.output).not.toContain(COMMUNITY);
