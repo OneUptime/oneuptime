@@ -2769,6 +2769,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "Supprimer une flotte IoT supprime aussi son registre des appareils : les appareils enregistrés ne peuvent plus se connecter.",
   "Deleting a database also deletes the endpoints it is reached at.": "Supprimer une base de données supprime aussi les points de terminaison par lesquels on la joint.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "Supprimer une connexion cloud arrête la lecture du compte par OneUptime. Ses ressources restent, avec leurs métriques.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "Supprimer une connexion de baie de stockage empêche OneUptime de lire les baies qu'elle dessert, et supprime son mot de passe enregistré et ses tests de connexion. Ses baies restent, avec leurs métriques.",
   "True": "Vrai",
   "False": "Faux",
   "Key": "Clé",

@@ -2769,6 +2769,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "IoT 플릿을 삭제하면 해당 장치 레지스트리도 삭제되어 등록된 장치가 더 이상 로그인할 수 없습니다.",
   "Deleting a database also deletes the endpoints it is reached at.": "데이터베이스를 삭제하면 해당 데이터베이스에 연결하는 엔드포인트도 삭제됩니다.",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "클라우드 연결을 삭제하면 OneUptime이 해당 계정 읽기를 중지합니다. 리소스는 메트릭과 함께 유지됩니다.",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "스토리지 어레이 연결을 삭제하면 OneUptime이 그 뒤의 어레이를 더 이상 읽지 않으며, 저장된 비밀번호와 연결 테스트도 삭제됩니다. 어레이와 해당 메트릭은 그대로 유지됩니다.",
   "True": "참",
   "False": "거짓",
   "Key": "키",

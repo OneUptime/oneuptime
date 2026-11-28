@@ -455,7 +455,7 @@ Sonden leser Unispheres dokumenterte REST-endepunkter: det klassiske `/univmax/r
 | `powermax_srp_*` | Hver lagringsressurspool: kapasitet og svartid |
 | `powermax_director_*` | Hver director: rolle, status og belastningstall, og `powermax_director_offline` så lenge den ikke er online |
 | `powermax_port_*` | Hver port: protokoll, hastighet, lysnivåer og belastningstall, og `powermax_port_offline` så lenge en port noen er avhengig av, er nede |
-| `powermax_srdf_group_*` | Hver SRDF-gruppe: eksternt array og moduser, etterslep og gjennomstrømning, og `powermax_srdf_group_not_healthy` så lenge den er suspendert eller frakoblet |
+| `powermax_srdf_group_*` | Hver SRDF-gruppe: eksternt array og moduser, etterslep og gjennomstrømning, og `powermax_srdf_group_not_healthy` så lenge den er suspendert eller offline |
 
 - **Hvert 5. minutt**, eller hvert 10. for å skåne en travel Unisphere (**Flere felt** i tilkoblingens skjema): Unisphere beregner ytelse hvert 5. minutt.
 - **Bare arrayene Unisphere selv administrerer.** De eksterne arrayene den ser via SRDF, vises på tilkoblingens side og leses av Unisphere-en på deres egen lokasjon: koble til den også.
