@@ -1700,8 +1700,11 @@ If your identity provider manages your people over SCIM, let it: while SCIM Push
    * What a layer's rotation and restriction times look like. Both are JSON,
    * and the API's schema says nothing of their shape, so readers worked them
    * out by trial and error - and one key is spelled restictionType
-   * (OneUptime/terraform-provider-oneuptime#11). The fragments here are not
-   * validated, so each repeats a shape the page's example applies.
+   * (OneUptime/terraform-provider-oneuptime#11). OneUptime 18.0.0 reads
+   * restrictionType too and returns both (OneUptime/oneuptime#11269); the
+   * examples keep restictionType, which every server reads. The fragments
+   * here are not validated, so each repeats a shape the page's example
+   * applies.
    */
   private getOnCallScheduleLayerGuide(): string {
     return `<a id="${ON_CALL_SCHEDULE_LAYER_GUIDE.anchor}"></a>
@@ -1725,11 +1728,11 @@ rotation = jsonencode({
 })
 \`\`\`
 
-\`intervalCount\` is a whole number, 1 or more: with \`value = 2\` and \`intervalType = "Week"\`, the duty hands off every two weeks.
+\`intervalCount\` is a whole number, 1 or more: with \`value = 2\` and \`intervalType = "Week"\`, the duty hands off every two weeks. OneUptime 18.0.0 and later refuse an interval spelled any other way (\`"Weekly"\`, \`"week"\`), and a count under another key; earlier versions handed such a layer off every day.
 
 ### Restriction times
 
-When the layer is on call. \`restictionType\` is the key's real name, without the second "r": the server ignores a key spelled any other way.
+When the layer is on call. The examples write its type under \`restictionType\`, without the second "r": every OneUptime server reads that spelling. OneUptime 18.0.0 and later also read \`restrictionType\`, send the type back under both, and refuse a restriction whose type is missing, is not one of the three below, or is named differently under each spelling, rather than storing a layer that is never on call. Earlier versions ignore a key spelled any other way, so on one of them keep \`restictionType\`.
 
 - \`None\`: around the clock.
 
