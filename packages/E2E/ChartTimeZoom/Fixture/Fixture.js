@@ -173,6 +173,8 @@ import {
   ingestionBudgetStatus,
   isIngestionBudgetRead,
 } from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
+import { answerCloudHostLinks } from "../../SuiteHelpers/CloudHostLinkAnswers";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
@@ -3660,6 +3662,35 @@ async function handleApi(method, options) {
    */
   if (isIngestionBudgetRead(method, parsed.pathname)) {
     return ok(ingestionBudgetStatus(NOW));
+  }
+
+  /*
+   * Which cloud VM the host is (#11013): none, as the server answers for a
+   * host whose collector stamped no cloud identity, in a project that
+   * connects no cloud.
+   */
+  const cloudLink = answerCloudHostLinks({
+    method,
+    url,
+    hosts: table(Host),
+    cloudResources: [],
+  });
+  if (cloudLink) {
+    return cloudLink;
+  }
+
+  /*
+   * Which of the host's and the cluster's recommended monitors exist, for
+   * the Recommendations badge in their side menus: none yet.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: table(Monitor),
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

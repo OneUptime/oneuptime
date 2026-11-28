@@ -57,6 +57,7 @@ import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import KubernetesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Layout";
 import KubernetesOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Index";
@@ -78,6 +79,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import StartsWith from "Common/Types/BaseDatabase/StartsWith";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import API from "Common/UI/Utils/API/API";
@@ -835,29 +837,30 @@ const alertStates = [
 
 /*
  * The Logs monitor the cluster's Warning Events recommendation creates
- * (KubernetesEventAlertTemplates), as a monitor list returns it: what
- * ?alerting=on puts on the project, and ?alerting=disabled turns off.
+ * (KubernetesEventAlertTemplates), its steps as the server reads them (a
+ * MonitorSteps): what ?alerting=on puts on the project, and
+ * ?alerting=disabled turns off.
  */
+const warningEventsSteps = new MonitorSteps();
+warningEventsSteps.data = {
+  monitorStepsInstanceArray: [
+    getKubernetesWarningEventsTemplate().getMonitorStep({
+      clusterIdentifier: CLUSTER_IDENTIFIER,
+      onlineMonitorStatusId: new ObjectID(uuid("55000000", 1)),
+      offlineMonitorStatusId: new ObjectID(uuid("55000000", 2)),
+      defaultIncidentSeverityId: new ObjectID(uuid("56000000", 2)),
+      defaultAlertSeverityId: new ObjectID(uuid("57000000", 2)),
+      monitorName: CLUSTER_NAME,
+    }),
+  ],
+  defaultMonitorStatusId: new ObjectID(uuid("55000000", 1)),
+};
 const warningEventsMonitor = {
   _id: uuid("58000000", 1),
   name: `${CLUSTER_NAME} - Warning Events`,
   monitorType: "Logs",
   disableActiveMonitoring: ALERTING === "disabled",
-  monitorSteps: {
-    data: {
-      monitorStepsInstanceArray: [
-        getKubernetesWarningEventsTemplate().getMonitorStep({
-          clusterIdentifier: CLUSTER_IDENTIFIER,
-          onlineMonitorStatusId: new ObjectID(uuid("55000000", 1)),
-          offlineMonitorStatusId: new ObjectID(uuid("55000000", 2)),
-          defaultIncidentSeverityId: new ObjectID(uuid("56000000", 2)),
-          defaultAlertSeverityId: new ObjectID(uuid("57000000", 2)),
-          monitorName: CLUSTER_NAME,
-        }),
-      ],
-      defaultMonitorStatusId: new ObjectID(uuid("55000000", 1)),
-    },
-  },
+  monitorSteps: warningEventsSteps,
 };
 
 /*
@@ -884,9 +887,11 @@ const store = {
   Alert: [],
   ScheduledMaintenance: [],
   /*
-   * What the Recommendations menu item and page, and the Events page's last
-   * line, read: no monitors - or, with ?alerting=, the Warning Events
-   * recommendation's Logs monitor - and nothing dismissed.
+   * The project's monitors - none, or with ?alerting= the Warning Events
+   * recommendation's Logs monitor - which the Events page's last line
+   * reads, and the Recommendations menu item and page ask the server covers
+   * their recommendations (POST /monitor/recommendation-coverage); and
+   * nothing dismissed.
    */
   Monitor: ALERTING === "off" ? [] : [warningEventsMonitor],
   RecommendationDismissal: [],
@@ -1581,6 +1586,21 @@ async function handleApi(method, options) {
       openCases: null,
       risk: null,
     });
+  }
+
+  /*
+   * Which of the cluster's recommended monitors a monitor covers already,
+   * for its Recommendations page and the menu's count (#11074): answered
+   * from the project's monitors - with ?alerting=, the Warning Events one.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

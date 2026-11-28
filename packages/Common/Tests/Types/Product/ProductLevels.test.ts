@@ -209,6 +209,8 @@ const LEVELS_ON_TABLES_OF_NO_PRODUCT: Readonly<
       ProductKey.Databases,
       ProductKey.Hosts,
       ProductKey.Cloud,
+      // An XCP-ng pool's AI agent (#11246).
+      ProductKey.XcpNg,
     ],
   },
 };

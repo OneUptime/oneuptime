@@ -92,10 +92,7 @@ export const TELEMETRY_USAGE_RESOURCE_NAME_SOURCES: Partial<
     "name",
   ]),
   [ServiceType.VMwareVCenter]: asSource(VMwareVCenterService, ["name"]),
-  [ServiceType.XcpNgPool]: asSource(XcpNgPoolService, [
-    "name",
-    "poolIdentifier",
-  ]),
+  [ServiceType.XcpNgPool]: asSource(XcpNgPoolService, ["name"]),
   // An IoTDevice row carries its fleet's id (OtelIngestBaseService).
   [ServiceType.IoTDevice]: asSource(IoTFleetService, ["name"]),
   [ServiceType.ServerlessFunction]: asSource(ServerlessFunctionService, [

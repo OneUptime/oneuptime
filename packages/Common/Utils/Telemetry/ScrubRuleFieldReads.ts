@@ -6,6 +6,7 @@ import {
   DATA_TYPE_OF_SCRUB_PATTERN_TYPE,
   SCRUB_RULE_SENSITIVE_KEY_REGEX,
   ScrubRegExp,
+  scrubRegExpUnderKey,
 } from "../../Types/Telemetry/ScrubRule";
 import { doScrubScopesMeet } from "../../Types/Telemetry/ScrubRuleScope";
 import {
@@ -359,10 +360,18 @@ export function doesScrubRuleTakeFrom(
   const values: Array<string> = reference.values || [];
   const regex: ScrubRegExp = compiled.regex;
 
-  // It looks for a value the rule hides: no record holds that value now.
+  /*
+   * It looks for a value the rule hides: no record holds that value now -
+   * read under the attribute's key, as the rule reads it there (#11383): a
+   * filter for 02012345678 under `user.phone` finds nothing once a Phone
+   * Number rule runs.
+   */
   if (
     values.some((value: string): boolean => {
-      return doesPatternFind(regex, value);
+      return doesPatternFind(
+        scrubRegExpUnderKey(regex, reference.key, value),
+        value,
+      );
     })
   ) {
     return true;

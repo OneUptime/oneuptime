@@ -423,6 +423,44 @@ Incident not found.
 
 It used to answer `200` with an empty body. A list (`get-list`) and a count still answer `200` with the records you may read, none when there are none. The Terraform provider reads a `404` on refresh as a resource that is gone and removes it from the state, so the next plan creates it again: give the API key it uses the permissions, and the labels, to read every resource it manages. The MCP tools answer a `404` with an error that points to the matching list tool, and the CLI exits with code `3`.
 
+### Images in a record's Markdown
+
+An image pasted into Markdown, such as a screenshot in an incident's description, a Markdown custom field or a note, is a private file. Its address (`/file/image/access-token/...`) opens it only for a person signed in to the project, so an API key reads it through the record that shows it instead:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+The record is read as the key, as `get-item` reads it: the key needs the permission to read it, and its labels. The answer holds each image the record's Markdown shows, in the order it shows them: its `name`, `mimeType`, `sizeInBytes`, its data in `base64`, a `contentId` for an inline email attachment, the `urls` the Markdown shows it by and the `fields` it is in. Under `leftOut` are the files the Markdown shows that aren't handed out, each with a `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Only pictures uploaded to the record's own project are handed out, up to 20 of them and 10 MB in all, and never an SVG. Every kind of record with Markdown has the same request, such as `/api/incident-public-note/<id>/markdown-files` or `/api/alert/<id>/markdown-files`. A record that doesn't exist, or that the key may not read, answers `404` as `get-item` does, and `422` when the key may not read that kind of record at all. A workflow reads the same images with [Get Files From Markdown](/docs/workflows/components#get-files-from-markdown).
+
 ## The full endpoint reference
 
 Every resource, endpoint and field is listed in the [OneUptime API reference](/reference). It is available in several languages: your language is picked from your browser, and you can switch at any time with the selector at the top of the page.

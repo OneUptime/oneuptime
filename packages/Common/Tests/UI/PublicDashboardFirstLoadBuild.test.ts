@@ -172,4 +172,52 @@ describe("a public dashboard's first load", () => {
   ])("leaves out %s, which no widget draws", (_name: string, file: string) => {
     expect(inputsUnder(built!.firstLoad, file)).toEqual([]);
   });
+
+  /*
+   * The Storage Array widgets name a hardware component, a drive and a
+   * controller, and word a component's status as the Storage Array pages
+   * do. They read those words from StorageArrayResourceKindLabels and
+   * StorageArrayStatusWords: read from StorageArrayResourceKindUtil and the
+   * pages' health rules (StorageArrayHealth), they brought the storage
+   * platforms' registry with them, and with it every platform's metrics and
+   * alert templates - some 60 KB before gzip that no widget reads.
+   */
+  test("has the Storage Array widgets' words, which their rows write", () => {
+    expect(
+      inputsUnder(
+        built!.firstLoad,
+        "Types/StorageArray/StorageArrayResourceKindLabels.ts",
+      ).length,
+    ).toBe(1);
+    expect(
+      inputsUnder(
+        built!.firstLoad,
+        "Dashboard/src/Pages/StorageArray/Utils/StorageArrayStatusWords.ts",
+      ).length,
+    ).toBe(1);
+  });
+
+  test.each([
+    [
+      "the storage platforms' registry",
+      "Types/StorageArray/StorageArrayPlatformRegistry.ts",
+    ],
+    [
+      "every storage platform, with its metrics and alert templates",
+      "Types/StorageArray/Platforms/",
+    ],
+    [
+      "the words of every platform's kinds",
+      "Types/StorageArray/StorageArrayResourceKindUtil.ts",
+    ],
+    [
+      "the Storage Array pages' health rules",
+      "Dashboard/src/Pages/StorageArray/Utils/StorageArrayHealth.ts",
+    ],
+  ])(
+    "leaves out %s, which no Storage Array widget reads",
+    (_name: string, file: string) => {
+      expect(inputsUnder(built!.firstLoad, file)).toEqual([]);
+    },
+  );
 });

@@ -75,6 +75,9 @@ const SAMPLES: Array<[string, string, string]> = [
   ["email", "to ops@acme.com", "to [redacted-email]"],
   ["ip-address", "host 203.0.113.12", "host [redacted-ip]"],
   ["credit-card", "card 4111 1111 1111 1111", "card [redacted-card]"],
+  // #11384: as Data Security's phone and SSN detectors find them.
+  ["phone-number", "call +44 20 7123 4567", "call [redacted-phone]"],
+  ["us-ssn", "SSN 536221234", "SSN [redacted-ssn]"],
   [
     "hex-secret",
     "digest 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
@@ -126,6 +129,8 @@ describe("the placeholders a code change is held to", () => {
       "[redacted-email]",
       "[redacted-ip]",
       "[redacted-card]",
+      "[redacted-phone]",
+      "[redacted-ssn]",
       "[redacted-hex]",
       "[redacted]",
     ]);
@@ -160,11 +165,17 @@ describe("each rule writes its placeholder, and the model reads what it always r
     expect(SECURITY_OBSERVABLE_RULE_NAMES).toEqual([
       "email",
       "ip-address",
+      "phone-number",
       "hex-secret",
     ]);
     expect(kept).toContain("ops@acme.com");
     expect(kept).toContain("203.0.113.12");
     expect(kept).toContain("[redacted-github-token]");
     expect(kept).not.toContain("[redacted-ip]");
+    // A phone number names an account, as an email does; an SSN, Restricted, is hidden (#11384).
+    expect(kept).toContain("+44 20 7123 4567");
+    expect(kept).not.toContain("[redacted-phone]");
+    expect(kept).toContain("SSN [redacted-ssn]");
+    expect(kept).not.toContain("536221234");
   });
 });

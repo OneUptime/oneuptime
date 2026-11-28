@@ -182,6 +182,19 @@ describe("the old name is gone from the source tree", () => {
     "getTelemetryEntityDisplay",
     "getTelemetryEntityTypeForChipKey",
     "getTelemetryEntityTypeLabel",
+    /*
+     * The same resolver's lookup (the names, and the ids that name nothing)
+     * and the marks an explorer's chip takes from it when the entity it
+     * names is deleted or archived (#11213). Display values as well: none
+     * of them reads the Inventory tables.
+     */
+    "TelemetryEntityLookup",
+    "TelemetryEntityLookupResult",
+    "UseTelemetryEntityLookupFunction",
+    "useTelemetryEntityLookup",
+    "TelemetryEntityChipMarks",
+    "getTelemetryEntityChipMarks",
+    "withTelemetryEntityChipMarks",
   ]);
 
   const IDENTIFIER_PATTERN: RegExp = /[$A-Za-z_][$A-Za-z0-9_]*/g;
@@ -312,6 +325,18 @@ describe("the old name is gone from the source tree", () => {
       hasStaleTelemetryEntityReference(
         uiFile,
         "const value: ResolvedTelemetryEntity = legacy as TelemetryEntity;",
+      ),
+    ).toBe(true);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        "const lookup: TelemetryEntityLookup = useTelemetryEntityLookup(ids);",
+      ),
+    ).toBe(false);
+    expect(
+      hasStaleTelemetryEntityReference(
+        uiFile,
+        "const marks: TelemetryEntityChipMarks = getTelemetryEntityChipMarks(legacy as TelemetryEntity);",
       ),
     ).toBe(true);
     expect(

@@ -1,6 +1,7 @@
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import { toCallVoiceValue } from "../../Types/Call/CallVoice";
 import ServerTwilioEnvironment, {
+  ServerTwilioCallVoiceReading,
   ServerTwilioEnvironmentReading,
 } from "../../Types/CallAndSMS/ServerTwilioEnvironment";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
@@ -104,11 +105,37 @@ const toTwilioConfig: (
 };
 
 /*
- * The account, with the voice its calls speak with: the one chosen in the
- * Admin Dashboard (GlobalConfig.twilioCallVoice, #10948), from OneUptime's
- * list, whoever set the account - the row, or the GLOBAL_TWILIO_ variables,
- * which say nothing of a voice. None is the account's default voice.
+ * The voice GLOBAL_TWILIO_CALL_VOICE sets (#11064), read again on every
+ * call, as the account's variables are.
  */
+export const getServerTwilioCallVoice: () => ServerTwilioCallVoiceReading =
+  (): ServerTwilioCallVoiceReading => {
+    return ServerTwilioEnvironment.readCallVoice(process.env);
+  };
+
+/*
+ * The voice the server's calls speak with, whoever set the account - the
+ * row, or the GLOBAL_TWILIO_ variables: the one GLOBAL_TWILIO_CALL_VOICE
+ * names once it is set (#11064) - none, the account's default, while it
+ * names a voice OneUptime does not offer - else the one chosen in the Admin
+ * Dashboard (GlobalConfig.twilioCallVoice, #10948), from OneUptime's list.
+ * None is the account's default voice.
+ */
+export const getServerCallVoice: (
+  globalConfig: GlobalConfig | null | undefined,
+) => string | undefined = (
+  globalConfig: GlobalConfig | null | undefined,
+): string | undefined => {
+  const environment: ServerTwilioCallVoiceReading = getServerTwilioCallVoice();
+
+  if (environment.isSet) {
+    return environment.voice;
+  }
+
+  return toCallVoiceValue(globalConfig?.twilioCallVoice);
+};
+
+// The account, with the voice its calls speak with (getServerCallVoice).
 const withCallVoice: (
   config: TwilioConfig | null,
   globalConfig: GlobalConfig | null | undefined,
@@ -116,9 +143,7 @@ const withCallVoice: (
   config: TwilioConfig | null,
   globalConfig: GlobalConfig | null | undefined,
 ): TwilioConfig | null => {
-  const callVoice: string | undefined = toCallVoiceValue(
-    globalConfig?.twilioCallVoice,
-  );
+  const callVoice: string | undefined = getServerCallVoice(globalConfig);
 
   if (!config || !callVoice) {
     return config;

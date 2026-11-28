@@ -13,6 +13,7 @@ import OutboundProxy from "Common/Server/Utils/OutboundProxy";
 import EgressGuardException, {
   EgressFailureReason,
 } from "Common/Types/Exception/EgressGuardException";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import MonitorEgressGuardOptions, {
   MONITOR_TARGET_LABEL,
   MonitorEgressPolicy,
@@ -366,10 +367,11 @@ export default class SyntheticEgressProxy {
   private port: number = 0;
   private isClosed: boolean = false;
   private readonly sockets: Set<Duplex> = new Set<Duplex>();
-  private readonly approvals: Map<
+  // Bounded: oldestKey() finds the approval to let go of in constant time.
+  private readonly approvals: OldestKeyMap<
     string,
     { addresses: Promise<Array<ResolvedAddress>>; expiresAtInMs: number }
-  > = new Map();
+  > = new OldestKeyMap();
   // Each axios request's tag, and how many of its requests came here.
   private readonly requestTags: Map<string, number> = new Map<string, number>();
   private readonly requestFailures: Map<string, string> = new Map<
@@ -1122,7 +1124,7 @@ export default class SyntheticEgressProxy {
       DataSourceEgressGuard.assertHostnameAllowed(hostname, this.guardOptions);
 
     if (this.approvals.size >= MAX_CACHED_APPROVALS) {
-      const oldest: string | undefined = this.approvals.keys().next().value;
+      const oldest: string | undefined = this.approvals.oldestKey();
       if (oldest !== undefined) {
         this.approvals.delete(oldest);
       }

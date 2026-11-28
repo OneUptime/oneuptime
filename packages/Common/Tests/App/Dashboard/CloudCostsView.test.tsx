@@ -19,6 +19,7 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import CloudCost from "../../../Models/AnalyticsModels/CloudCost";
+import CloudCostSetting from "../../../Models/DatabaseModels/CloudCostSetting";
 import AggregateBy from "../../../Types/BaseDatabase/AggregateBy";
 import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval";
 import Route from "../../../Types/API/Route";
@@ -30,6 +31,7 @@ import {
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { writeReaderMoment } from "../../../UI/Utils/ReaderMoments";
 import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
@@ -207,6 +209,19 @@ beforeEach(() => {
         throw sharesForTest;
       }
       return { data: sharesForTest };
+    },
+  );
+
+  /*
+   * The project's cost basis, which Costs opens on (#11007): the project
+   * has no cloud cost settings yet, so it opens on the default, amortized.
+   */
+  getJestSpyOn(ModelAPI, "getList").mockImplementation(
+    async (request: { modelType: unknown }): Promise<unknown> => {
+      if (request.modelType === CloudCostSetting) {
+        return { data: [], count: 0 };
+      }
+      throw new Error("Not stubbed");
     },
   );
 });

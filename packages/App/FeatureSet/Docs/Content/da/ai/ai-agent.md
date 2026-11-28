@@ -53,7 +53,7 @@ Klik på **Start opgave**, eller tryk på Enter. Opgavens side åbner, og AI's a
 | **Protokoller** | De seneste 20 loglinjer, der indeholder din søgning, fra den seneste time, dag eller uge. |
 | **Ydeevneprofil** | Hvor en funktions tid går hen i dens tjenestes profiler: hvem der kalder den, hvad den kalder, og dens varmeste linjer. |
 
-En anmodning bærer højst 10 stykker kontekst. Tokens, nøgler, adgangskoder og e-mailadresser i det, OneUptime læser, sløres, før AI ser dem, som overalt, hvor OneUptime AI læser dine data.
+En anmodning bærer højst 10 stykker kontekst. Tokens, nøgler, adgangskoder, e-mailadresser, telefonnumre og socialsikringsnumre i det, OneUptime læser, sløres, før AI ser dem, som overalt, hvor OneUptime AI læser dine data.
 
 ## En opgaves samtale
 
@@ -151,7 +151,7 @@ Hvad agenten kan læse, afgøres af OneUptime-serveren ud fra selve opgaven:
 
 - **Kun læsning.** Forespørgslerne kører på OneUptime-serveren, aldrig på Runneren, som ikke har nogen legitimationsoplysninger, der kan læse telemetri. Intet, de gør, kan ændre dit projekt.
 - **Dette projekt, og kun de tjenester, der hører til dette repositorie.** Du tilknytter dem ikke: det er de tjenester, som OneUptime finder dette repositorie for, på samme måde som den finder repositoriet til en rettelse - deres undtagelsers stack traces går gennem dets filer, de hedder som det, eller det er projektets eneste repositorie. En anden tjenestes telemetri kan ikke læses.
-- **Ingen private hændelser**, og tokens, nøgler, adgangskoder og e-mailadresser sløres, før agenten ser et resultat, som overalt, hvor OneUptime AI læser dine data.
+- **Ingen private hændelser**, og tokens, nøgler, adgangskoder, e-mailadresser, telefonnumre og socialsikringsnumre sløres, før agenten ser et resultat, som overalt, hvor OneUptime AI læser dine data.
 - **Det, alle må læse.** Det, agenten finder, havner i en pull request, som folk uden for dine OneUptime-roller kan læse. Hvor et team, en brugerdefineret rolle eller en API-nøgle kun læser tjenester eller hændelser ud fra ejer eller etiket, udelader agenten dem, som en ejer eller en etiket sætter til side, medmindre dens opgave handler om dem.
 - **Begrænset.** Af kørslens tidsgrænse og af **Værktøjskald pr. kørsel**, når projektet sætter den: hver forespørgsel er ét værktøjskald.
 

@@ -81,6 +81,7 @@ const AccessLogFormatField: FunctionComponent<ComponentProps> = (
                 <MoreMenuItem
                   key={known.key}
                   text={known.name}
+                  icon={IconProp.Logs}
                   dataTestId={`${TRUSTED_PROXIES_TEST_IDS.accessLogFormatField}-known-${known.key}`}
                   onClick={() => {
                     props.onChange(known.text);

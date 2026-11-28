@@ -5,9 +5,11 @@ import {
   ConnectionShares,
   computeConnectionShares,
 } from "../../../../Server/Utils/Database/ConnectionShares";
+import ProbeSchedulingLane from "../../../../Server/Utils/Probe/ProbeSchedulingLane";
 import {
   ProbeSchedulingBusyError,
   ProbeSchedulingLimiter,
+  monitorTestLaneLimits,
   probeSchedulingLimits,
 } from "../../../../Server/Utils/Probe/ProbeSchedulingLimiter";
 
@@ -22,13 +24,15 @@ import {
  * down a sign-in waited behind all of them until the acquire timeout ran
  * out.
  *
- * Here a pool of 10 serves 60 queue jobs and 20 probe workers that each run
- * a slow statement (pg_sleep) back to back, as fast as they are let: far
- * more than the pool can serve, as in that report. With the shares the
- * process runs with in production - queue jobs at most 6 connections
- * (QueueJobConnections), probe scheduling at most 2 requests at once
- * (ProbeSchedulingLimiter), the rest kept for requests - every sign-in's
- * statement gets a connection and its answer well within SIGN_IN_BOUND_MS.
+ * Here a pool of 10 serves 60 queue jobs, 20 probe workers and 4 probes'
+ * Test Monitor fetches that each run a slow statement (pg_sleep) back to
+ * back, as fast as they are let: far more than the pool can serve, as in
+ * that report. With the shares the process runs with in production - queue
+ * jobs at most 5 connections (QueueJobConnections), probe scheduling at
+ * most 2 requests at once and its Test Monitor runs 1 more, in a lane of
+ * their own (ProbeSchedulingLimiter, #10819), the rest kept for requests -
+ * every sign-in's statement gets a connection and its answer well within
+ * SIGN_IN_BOUND_MS.
  * Without them, the same load makes the same sign-in wait behind all the
  * background work in the pool's queue, up to the pool's acquire timeout:
  * the failure the shares exist to stop, shown so this test can tell the
@@ -59,6 +63,8 @@ const POOL_SIZE: number = 10;
 const ACQUIRE_TIMEOUT_MS: number = 2000;
 const QUEUE_JOBS: number = 60;
 const PROBE_WORKERS: number = 20;
+// One Test Monitor fetch in flight a probe: FetchMonitorTest is single flight.
+const MONITOR_TEST_FETCHERS: number = 4;
 // One statement of background work, held on its connection.
 const BACKGROUND_STATEMENT: string = "SELECT pg_sleep(0.5)";
 // How long a sign-in's statement may take, connection included.
@@ -124,12 +130,14 @@ interface BackgroundLoad {
 }
 
 /*
- * QUEUE_JOBS queue jobs and PROBE_WORKERS probe workers running the
- * background statement back to back until stopped. With `limits`, they run
- * as production runs them: the jobs inside QueueWorker's queue-job scope,
- * the probe workers' requests under the probe scheduling limit (a refused
- * request waits for its next tick, here a moment). Without, both go
- * straight to the pool, as they did before.
+ * QUEUE_JOBS queue jobs, PROBE_WORKERS probe workers and
+ * MONITOR_TEST_FETCHERS probes' Test Monitor fetches running the background
+ * statement back to back until stopped. With `limits`, they run as
+ * production runs them: the jobs inside QueueWorker's queue-job scope, the
+ * probe workers' requests under the probe scheduling limit and the Test
+ * Monitor fetches in its lane of their own (a refused request waits for its
+ * next tick, here a moment). Without, all of them go straight to the pool,
+ * as they did before.
  */
 function startBackgroundLoad(
   dataSource: DataSource,
@@ -158,8 +166,12 @@ function startBackgroundLoad(
     }
   };
 
-  const probeWorker: (probe: number) => Promise<void> = async (
+  const probeWorker: (
     probe: number,
+    lane: ProbeSchedulingLane,
+  ) => Promise<void> = async (
+    probe: number,
+    lane: ProbeSchedulingLane,
   ): Promise<void> => {
     while (running) {
       if (!limiter) {
@@ -167,7 +179,7 @@ function startBackgroundLoad(
         continue;
       }
       try {
-        await limiter.run(`probe-${probe % 4}`, statement);
+        await limiter.run(`probe-${probe % 4}`, statement, { lane: lane });
       } catch (error) {
         if (!(error instanceof ProbeSchedulingBusyError)) {
           throw error;
@@ -185,7 +197,13 @@ function startBackgroundLoad(
     ...Array.from(
       { length: PROBE_WORKERS },
       (_value: unknown, index: number): Promise<void> => {
-        return probeWorker(index);
+        return probeWorker(index, ProbeSchedulingLane.Work);
+      },
+    ),
+    ...Array.from(
+      { length: MONITOR_TEST_FETCHERS },
+      (_value: unknown, index: number): Promise<void> => {
+        return probeWorker(index, ProbeSchedulingLane.MonitorTests);
       },
     ),
   ];
@@ -240,9 +258,14 @@ describePostgres(
         poolSize: POOL_SIZE,
         receivesIngressTraffic: true,
       });
+      /*
+       * The Test Monitor lane (#10819) is 1 on a pool this small, and comes
+       * out of the queue jobs' share: requests keep their 2.
+       */
       expect(shares).toMatchObject({
         probeSchedulingMaxConcurrentRequests: 2,
-        maxQueueJobConnections: 6,
+        probeSchedulingMaxConcurrentMonitorTestRequests: 1,
+        maxQueueJobConnections: 5,
         connectionsKeptForRequests: 2,
       });
 
@@ -255,15 +278,24 @@ describePostgres(
       const probeScheduling: ProbeSchedulingLimiter =
         new ProbeSchedulingLimiter(
           probeSchedulingLimits(shares.probeSchedulingMaxConcurrentRequests),
+          monitorTestLaneLimits(
+            shares.probeSchedulingMaxConcurrentMonitorTestRequests,
+          ),
         );
 
       load = startBackgroundLoad(dataSource, probeScheduling);
       await pause(1500);
 
-      // Saturated: both kinds of work at their limits, with more waiting.
-      expect(jobConnections.runningCount()).toBe(6);
+      // Saturated: every kind of work at its limits, with more waiting.
+      expect(jobConnections.runningCount()).toBe(5);
       expect(jobConnections.waitingCount()).toBeGreaterThan(0);
       expect(probeScheduling.runningCount()).toBe(2);
+      expect(
+        probeScheduling.runningCount(
+          undefined,
+          ProbeSchedulingLane.MonitorTests,
+        ),
+      ).toBe(1);
 
       const signIns: Array<SignIn> = [];
       for (let index: number = 0; index < SIGN_INS; index++) {
@@ -409,7 +441,7 @@ describePostgres(
       const attempt: SignIn = await signIn(dataSource);
 
       /*
-       * 80 workers on 10 connections, half a second a statement: a sign-in
+       * 84 workers on 10 connections, half a second a statement: a sign-in
        * joins the back of the pool's queue and waits behind all of them -
        * here about 1.6 s, the queue held just short of the 2 s acquire
        * timeout by the background checkouts that run out of it first; past

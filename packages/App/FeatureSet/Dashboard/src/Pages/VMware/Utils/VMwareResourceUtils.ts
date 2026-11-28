@@ -6,6 +6,11 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import {
+  KIBIBYTE,
+  MEBIBYTE,
+  VMwareHealthRules,
+} from "Common/Types/VMware/VMwareHealthRules";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
 import URL from "Common/Types/API/URL";
@@ -268,6 +273,8 @@ const INVENTORY_SELECT: Record<string, boolean> = {
   cpuReadinessPercent: true,
   memoryBalloonedBytes: true,
   memorySwappedBytes: true,
+  memorySwapOutBytesPerSecond: true,
+  memorySwapInBytesPerSecond: true,
   hostCount: true,
   effectiveHostCount: true,
   poweredOnHostCount: true,
@@ -354,11 +361,53 @@ export async function fetchVMwareInventoryRows(options: {
 export const VMWARE_ATTENTION_READ_LIMIT: number = 500;
 
 /*
+ * What to read for each of VMwareHealth's rules for a VM that is on: its
+ * swapped memory (any, which covers swapping out and what is left from
+ * earlier), reading swapped memory back (a VM that has read all of it back
+ * holds none), ballooning and CPU ready past their thresholds. A rule
+ * turned off reads nothing.
+ */
+export function getVMwareAttentionConditions(
+  rules: VMwareHealthRules,
+): Array<Record<string, unknown>> {
+  const conditions: Array<Record<string, unknown>> = [];
+  if (
+    rules.vmSwapOutCriticalKibPerSecond !== null ||
+    rules.vmSwappedWarningMebibytes !== null
+  ) {
+    conditions.push({ memorySwappedBytes: new GreaterThan<number>(0) });
+  }
+  if (rules.vmSwapInWarningKibPerSecond !== null) {
+    conditions.push({
+      memorySwapInBytesPerSecond: new GreaterThan<number>(
+        rules.vmSwapInWarningKibPerSecond * KIBIBYTE,
+      ),
+    });
+  }
+  if (rules.vmBalloonedWarningMebibytes !== null) {
+    conditions.push({
+      memoryBalloonedBytes: new GreaterThan<number>(
+        rules.vmBalloonedWarningMebibytes * MEBIBYTE,
+      ),
+    });
+  }
+  if (rules.vmCpuReadyWarningPercent !== null) {
+    conditions.push({
+      cpuReadinessPercent: new GreaterThan<number>(
+        rules.vmCpuReadyWarningPercent,
+      ),
+    });
+  }
+  return conditions;
+}
+
+/*
  * The virtual machines that may need attention (VMwareHealth's rules for a
  * VM): powered on, with a reading of the last 15 minutes, and swapped,
- * ballooned or waiting for a CPU. One read per condition, each by the
- * vCenter's own rows, so a vCenter of thousands of VMs is never read whole
- * for the few that need a look; the rules then judge what came back.
+ * reading swapped memory back, ballooned or waiting for a CPU. One read per
+ * condition, each by the vCenter's own rows, so a vCenter of thousands of
+ * VMs is never read whole for the few that need a look; the rules then
+ * judge what came back.
  */
 export async function fetchVMwareVirtualMachinesThatMayNeedAttention(options: {
   vmwareVCenterId: ObjectID;
@@ -367,7 +416,7 @@ export async function fetchVMwareVirtualMachinesThatMayNeedAttention(options: {
   hostName?: string | undefined;
   clusterName?: string | undefined;
   datacenterName?: string | undefined;
-  cpuReadyWarningPercent: number;
+  rules: VMwareHealthRules;
 }): Promise<Array<VMwareResourceModel>> {
   const base: Record<string, unknown> = {
     vmwareVCenterId: options.vmwareVCenterId,
@@ -387,15 +436,8 @@ export async function fetchVMwareVirtualMachinesThatMayNeedAttention(options: {
     base["datacenterName"] = options.datacenterName;
   }
 
-  const conditions: Array<Record<string, unknown>> = [
-    { memorySwappedBytes: new GreaterThan<number>(0) },
-    { memoryBalloonedBytes: new GreaterThan<number>(0) },
-    {
-      cpuReadinessPercent: new GreaterThan<number>(
-        options.cpuReadyWarningPercent,
-      ),
-    },
-  ];
+  const conditions: Array<Record<string, unknown>> =
+    getVMwareAttentionConditions(options.rules);
 
   const results: Array<ListResult<VMwareResourceModel>> = await Promise.all(
     conditions.map(
@@ -644,6 +686,22 @@ export function toInfrastructureResource(
   }
   if (row.memorySwappedBytes !== null && row.memorySwappedBytes !== undefined) {
     additionalAttributes["memorySwappedBytes"] = String(row.memorySwappedBytes);
+  }
+  if (
+    row.memorySwapOutBytesPerSecond !== null &&
+    row.memorySwapOutBytesPerSecond !== undefined
+  ) {
+    additionalAttributes["memorySwapOutBytesPerSecond"] = String(
+      row.memorySwapOutBytesPerSecond,
+    );
+  }
+  if (
+    row.memorySwapInBytesPerSecond !== null &&
+    row.memorySwapInBytesPerSecond !== undefined
+  ) {
+    additionalAttributes["memorySwapInBytesPerSecond"] = String(
+      row.memorySwapInBytesPerSecond,
+    );
   }
   const countColumns: Array<[keyof VMwareResourceModel & string, string]> = [
     ["hostCount", "hostCount"],

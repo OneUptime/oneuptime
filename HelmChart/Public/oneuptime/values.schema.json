@@ -2238,6 +2238,22 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "callVoice": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        null,
+                        "",
+                        "Polly.Joanna-Neural",
+                        "Polly.Matthew-Neural",
+                        "Polly.Amy-Neural",
+                        "Polly.Brian-Neural",
+                        "Google.en-US-Neural2-F",
+                        "Google.en-US-Neural2-J"
+                    ]
                 }
             },
             "additionalProperties": false

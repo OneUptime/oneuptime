@@ -84,6 +84,13 @@ the whole suite at another hour, start the page's clock there:
 suite's own "at any hour of the UTC day" tests run at 00:30 and 12:00 UTC on a
 month's first day.
 
+Budgets asks which budgets share a name with every read of its rows
+(`GET /shared-names/CloudBudget`, #11021), answered from the budgets as the
+server finds them (`../SuiteHelpers/SharedNameAnswers.js`): none, each has a
+name of its own. Its form reads the cost groups a budget can count and the
+names a filter's rules can hold, a Kubernetes cluster's among them (#11008):
+the workspace has made no cost group and runs no cluster.
+
 Every read is recorded on `window.__cloudSpendFixture` (`listRequests`,
 `countRequests`, `itemRequests`, `aggregateRequests`, `creates`, `updates`
 and `unhandled`); the spec fails on anything in `unhandled`.

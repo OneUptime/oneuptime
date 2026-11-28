@@ -26,6 +26,7 @@ Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque
 | Transformar datos entre dos bloques                           | [JSON](#json) o [Custom Code](#custom-code)                       |
 | Esperar antes del bloque siguiente                            | [Sleep](#sleep)                                                   |
 | Iniciar otro flujo de trabajo                                 | [Execute Workflow](#execute-workflow)                             |
+| Adjuntar a un correo electrónico las imágenes que muestra el Markdown de un registro | [Obtener archivos del Markdown](#get-files-from-markdown) |
 | Leer o cambiar incidentes, monitores y otros registros        | [Componentes de datos de OneUptime](#componentes-de-datos-de-oneuptime)  |
 | Abrir, reconocer y resolver incidentes o alertas por los problemas de otra herramienta | [Incidentes y alertas de otras herramientas](#incidentes-y-alertas-de-otras-herramientas) |
 | Reconocer o cerrar un problema de Zabbix | [Zabbix](#zabbix) |
@@ -391,6 +392,139 @@ Inicia otro flujo de trabajo del mismo proyecto. Tu flujo de trabajo continúa s
 **Salida** salta en cuanto el otro flujo de trabajo queda en cola. **Error** salta cuando no puede: no se encuentra, está desactivado o archivado, o iniciarlo crearía un bucle.
 
 Úsalo para compartir lógica común: construye una vez un flujo de trabajo «publicar en el canal del incidente» e inícialo desde todos los flujos de trabajo que lo necesiten. Una cadena de flujos de trabajo que se inician unos a otros no puede volver sobre sí misma y tiene como máximo 10 niveles. Consulta [Configuración y seguridad](/docs/workflows/configuration#límite-al-llamar-a-otros-flujos-de-trabajo).
+
+## Get Files From Markdown
+
+Lee las imágenes que muestra el Markdown de un registro, como las capturas de pantalla que alguien pegó en la descripción de un incidente, en un campo personalizado de Markdown o en una nota, con el nombre, el tipo y los datos de cada imagen. Úselo para adjuntar las imágenes a un correo electrónico, de modo que aparezcan donde el Markdown las pone.
+
+| Ajuste | Qué hace |
+| --- | --- |
+| **Tipo de registro** | El tipo de registro cuyo Markdown muestra las imágenes: un incidente, una nota pública o interna de un incidente, una alerta, un mantenimiento programado y más. |
+| **ID del registro** | El registro que se lee, normalmente el que inició el flujo de trabajo, como `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+
+| Salida | Cuándo |
+| --- | --- |
+| **Éxito** | Se leyó el registro, muestre imágenes o no. |
+| **Error** | No se pudo leer el registro: no existe, o el flujo de trabajo no puede leerlo. **Error** dice por qué. |
+
+Devuelve:
+
+- **Archivos**: cada imagen, en el orden en que la muestra el registro, con:
+  - `name`: el nombre del archivo, tal como se subió;
+  - `mimeType`: su tipo, como `image/png` o `image/jpeg`;
+  - `sizeInBytes`: su tamaño en bytes;
+  - `base64`: los datos de la imagen;
+  - `contentId`: un ID para la imagen en un correo HTML (`<img src="cid:...">`), el mismo para la misma imagen sea cual sea el registro que la muestra;
+  - `urls`: cada dirección con la que la muestra el Markdown;
+  - `fields`: los campos que la muestran, como `description` o el nombre de un campo personalizado.
+- **Recuento**: cuántas imágenes contiene **Archivos**.
+- **Excluidos**: los archivos que muestra el Markdown y que no están en **Archivos**, cada uno con su `name`, sus `urls`, sus `fields`, un `reason` y un `message` que dice por qué.
+
+**Archivos** contiene los datos de las imágenes, así que el registro de la ejecución lo oculta y muestra **Recuento** y **Excluidos** en su lugar. Un bloque posterior al que se le pasan las imágenes escribe lo que recibe en su propia entrada del registro.
+
+### Qué imágenes entrega
+
+El bloque lee el registro como lo hace un bloque Find One, como el flujo de trabajo: en el proyecto del flujo de trabajo, nunca un incidente, una alerta o un episodio privados, y solo lo que los permisos del flujo de trabajo le dejan leer. Un registro que no puede leer toma **Error**, igual que uno que no existe.
+
+Solo entrega:
+
+- imágenes que muestran los campos de Markdown del registro, como la descripción de un incidente, la causa raíz, el postmortem y las notas de remediación, y sus campos personalizados de Markdown. Un campo personalizado de texto no es Markdown, así que una dirección escrita en él no se lee;
+- imágenes subidas al proyecto del propio registro. Una dirección copiada del registro de otro proyecto aparece en **Excluidos** como no encontrada;
+- imágenes: PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC e ICO, cada una comprobada por lo que contiene el archivo además de por su tipo. Un SVG puede llevar script, así que se excluye, igual que un archivo que solo dice ser una imagen;
+- hasta 20 imágenes, y 10 MB en total. Lo que supera un límite aparece en **Excluidos**, con el motivo.
+
+No puede listar archivos ni leer uno por su dirección: solo lee lo que muestra el registro.
+
+### Ejemplo: imágenes incrustadas en un correo enviado con Microsoft Graph
+
+Este flujo de trabajo envía cada incidente nuevo por correo con Microsoft Graph, con las capturas de pantalla de su descripción donde la descripción las pone.
+
+:::steps
+### Obtener un token para Microsoft Graph
+
+Registre una aplicación en Microsoft Entra ID, dele el permiso de aplicación `Mail.Send` y conceda el consentimiento del administrador. Después cree una [variable OAuth 2.0](/docs/workflows/variables#variables-oauth-20-tokens-que-se-renuevan-solos) llamada `GRAPH_TOKEN` para Microsoft, con el tipo de concesión **Client Credentials** y el ámbito `https://graph.microsoft.com/.default`.
+
+### Empezar con un incidente nuevo
+
+Añada el disparador **Al crear Incidente** y pase su **Título** y su **Descripción**.
+
+### Leer las imágenes del incidente
+
+Añada **Obtener archivos del Markdown** después del disparador. Ponga **Tipo de registro** en **Incidente** y **ID del registro** en `{{local.components.incident-on-create-1.returnValues.model._id}}`.
+
+### Montar el mensaje
+
+Añada **Ejecutar JavaScript personalizado** a su salida **Éxito**, con estos **Argumentos**:
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+El código hace que cada dirección de una imagen apunte a su adjunto (`cid:` y su `contentId`) y adjunta la imagen incrustada con el mismo ID:
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### Enviarlo con Microsoft Graph
+
+Añada **Llamada a API POST (JSON)** a la salida **Éxito** del código:
+
+| Ajuste | Valor |
+| --- | --- |
+| **URL** | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail` |
+| **Encabezados de la solicitud** | `Authorization`: `Bearer {{global.variables.GRAPH_TOKEN}}` |
+| **Cuerpo de la solicitud** | `{{local.components.javascript-1.returnValues.returnValue}}` |
+
+Microsoft Graph responde `202 Accepted` y el bloque toma **Éxito**.
+:::
+
+Microsoft Graph acepta un adjunto de hasta 3 MB en un mensaje que se le envía así. Una imagen más grande necesita una sesión de carga, o un enlace en lugar de la imagen. Las imágenes de un registro también se pueden leer con una clave de API, fuera de un flujo de trabajo: vea [Imágenes en el Markdown de un registro](/docs/api-reference/api-reference#imágenes-en-el-markdown-de-un-registro).
 
 ## Incidentes y alertas de otras herramientas
 

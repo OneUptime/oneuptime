@@ -9,8 +9,15 @@ import {
 import { ResourcePartStatus } from "../ResourcePart/ResourcePartTypes";
 import { ResourceAttentionText } from "../ResourcePart/ResourceAttention";
 import {
+  DEFAULT_VMWARE_HEALTH_RULES,
+  KIBIBYTE,
+  VMwareHealthRules,
+  isPastVMwareHealthThreshold,
+} from "Common/Types/VMware/VMwareHealthRules";
+import {
   VMWARE_HOST_SATURATION_PERCENT,
   VMwareAssessment,
+  getVMwareThresholdLine,
   assessVMwareClusterWithHosts,
   assessVMwareHost,
   assessVMwareResourcePool,
@@ -48,12 +55,30 @@ export interface VMwareListContext {
   datacenters: Array<VMwareResource>;
   hosts: Array<VMwareResource>;
   now: Date;
+  // The project's health rules (VMware > Settings > Health Rules).
+  rules?: VMwareHealthRules | undefined;
 }
 
 // The lines a host's and a VM's CPU and memory bars change colour at.
 export const VMWARE_USAGE_BAR_THRESHOLDS: ResourceMetricThresholds = {
   warning: VMWARE_HOST_SATURATION_PERCENT,
 };
+
+/*
+ * The same lines at the project's rules: a CPU bar turns amber where a busy
+ * host's CPU is a finding, a memory bar where its memory is.
+ */
+export function getVMwareUsageBarThresholds(
+  rules: VMwareHealthRules | undefined,
+): { cpu: ResourceMetricThresholds; memory: ResourceMetricThresholds } {
+  const resolved: VMwareHealthRules = rules || DEFAULT_VMWARE_HEALTH_RULES;
+  return {
+    cpu: { warning: getVMwareThresholdLine(resolved.hostCpuWarningPercent) },
+    memory: {
+      warning: getVMwareThresholdLine(resolved.hostMemoryWarningPercent),
+    },
+  };
+}
 
 function toReasons(
   reasons: Array<ResourceAttentionText>,
@@ -115,12 +140,14 @@ export function toVMwareListResource(
           host: row,
           datacenter: datacenter,
           now: context.now,
+          rules: context.rules,
         }),
         isRunning
           ? assessVMwareHost({
               host: row,
               datacenter: datacenter,
               now: context.now,
+              rules: context.rules,
             })
           : null,
       );
@@ -135,11 +162,13 @@ export function toVMwareListResource(
         now: Date;
         hosts: Array<VMwareResource>;
         datacenters: Array<VMwareResource>;
+        rules: VMwareHealthRules | undefined;
       } = {
         vm: row,
         now: context.now,
         hosts: context.hosts,
         datacenters: context.datacenters,
+        rules: context.rules,
       };
       const shown: InfrastructureResource = isVMwareVirtualMachineDisconnected(
         vmContext,
@@ -197,6 +226,7 @@ export function toVMwareListResource(
       const assessment: VMwareAssessment = assessVMwareResourcePool({
         pool: row,
         now: context.now,
+        rules: context.rules,
       });
       return {
         ...resource,
@@ -217,14 +247,15 @@ export function toVMwareListResources(
   });
 }
 
-// A VM's CPU Ready cell: amber past 10%, as its alert and Needs attention.
+// A VM's CPU Ready cell: amber past its rule (10%), as Needs attention.
 export function getVMwareCpuReadyTone(
   resource: InfrastructureResource,
+  rules?: VMwareHealthRules | undefined,
 ): ResourceColumnTone | undefined {
   const ready: number | null = toVMwareNumber(
     resource.additionalAttributes["cpuReadinessPercent"],
   );
-  return getVMwareCpuReadyPercentTone(ready) === "warning"
+  return getVMwareCpuReadyPercentTone(ready, rules) === "warning"
     ? "warning"
     : undefined;
 }
@@ -244,12 +275,24 @@ export function getVMwareClusterHostsTone(
     : undefined;
 }
 
-// A resource pool's Ballooned / Swapped cell: amber once the host swaps it.
+/*
+ * A resource pool's Ballooned / Swapped cell: amber while the host swaps the
+ * pool's memory out, past its rule - not for memory left in the swap file
+ * from earlier (#11157).
+ */
 export function getVMwareResourcePoolMemoryTone(
   resource: InfrastructureResource,
+  rules?: VMwareHealthRules | undefined,
 ): ResourceColumnTone | undefined {
-  const swapped: number | null = toVMwareNumber(
-    resource.additionalAttributes["memorySwappedBytes"],
+  const threshold: number | null = (rules || DEFAULT_VMWARE_HEALTH_RULES)
+    .resourcePoolSwapOutWarningKibPerSecond;
+  const swapOut: number | null = toVMwareNumber(
+    resource.additionalAttributes["memorySwapOutBytesPerSecond"],
   );
-  return swapped !== null && swapped > 0 ? "warning" : undefined;
+  return isPastVMwareHealthThreshold(
+    swapOut,
+    threshold === null ? null : threshold * KIBIBYTE,
+  )
+    ? "warning"
+    : undefined;
 }

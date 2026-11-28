@@ -41,6 +41,9 @@ jobs:
   # PostgreSQL client tools the backup suite needs are shard 3's. Put a new
   # suite in the shard with the least time, and add a shard rather than
   # raise the cap. Tests/Ops/PostgresSchemaDriftShards holds these rules.
+  # Shard 6 runs one suite: ProbeResultsBurstPostgres (#11369) drives two
+  # probes and the ingest queue for six runs of three minutes each, some 20
+  # minutes, more than any other shard has to spare.
   postgres-schema-drift:
     name: postgres-schema-drift (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
@@ -49,7 +52,7 @@ jobs:
       # One shard's failure should not hide the others' results.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2, 3, 4, 5, 6]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       # LocalMigrationGenerationDataSource defaults to localhost:5400, which is
@@ -113,6 +116,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/AIInvestigationDecisionPostgres.test.ts --forceExit
+
+      # #11157: whether the host is swapping a VM's memory now, or only holds
+      # what it swapped before. No collector sends a swap rate, so the
+      # latest-metric UPDATE works both out from the swapped amount in the
+      # same statement, on a copy of the migrated VMwareResource table: growth
+      # is swapping out, shrinking is reading back, the same amount is memory
+      # left from earlier, and reports too far apart, delivered twice or late
+      # say nothing new.
+      - name: Test VMware swap rates on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_VMWARE_SWAP_RATE_TESTS: "true"
+          VMWARE_SWAP_RATE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          VMWARE_SWAP_RATE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          VMWARE_SWAP_RATE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/VMwareResourceSwapRatesPostgres.test.ts --forceExit
 
       # #7571: the owners' Created notification's hold is written on the
       # incident or alert, and let go or taken by the Created job in one
@@ -1156,6 +1178,25 @@ jobs:
           Tests/Server/Utils/Monitor/MonitorProbeLastResultsPostgres.test.ts
           Tests/Server/Utils/Monitor/MonitorResultStatementsPostgres.test.ts
           --forceExit
+
+      # #11247, #11333: how bursty probe results are where they are
+      # evaluated. Two probes check 300 monitors a minute through the real
+      # claim, and the Telemetry queue's workers evaluate each result
+      # against the migrated tables, cloned into an isolated schema: results
+      # a second, evaluations at once, checks skipped, and how far apart each
+      # monitor's checks are, for the probes' ways of asking. Wall-clock
+      # bound (six three-minute runs), so it has shard 6 to itself.
+      - name: Test how bursty probe results are where they are evaluated
+        if: matrix.shard == 6
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_RESULTS_BURST_TESTS: "true"
+          PROBE_RESULTS_BURST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_RESULTS_BURST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_RESULTS_BURST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Monitor/ProbeResultsBurstPostgres.test.ts --forceExit
 
       # Clones the migrated Workflow table (its unique key included) into an
       # isolated schema: the incoming email key's compare-and-set must write
@@ -4540,6 +4581,34 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddCustomFieldsAndRemindersToUpdatesToPostPostgres.test.ts
           --forceExit
 
+      # The markdown files a workflow reads, through their API on the migrated
+      # tables (df53e546db8).
+      - name: Test the markdown files API against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MARKDOWN_FILES_TESTS: "true"
+          MARKDOWN_FILES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MARKDOWN_FILES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MARKDOWN_FILES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/MarkdownFilesPostgres.test.ts --forceExit
+
+      # An on-call roster's active hours, from layers written with either
+      # spelling of their restriction type (0d27ac34175).
+      - name: Test the on-call roster's active hours against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ON_CALL_ROSTER_TESTS: "true"
+          ON_CALL_ROSTER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ON_CALL_ROSTER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ON_CALL_ROSTER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/OnCallRosterActiveHoursPostgres.test.ts --forceExit
+
       # App installs serve the suites below: the probe ones (App) and the
       # Enterprise one, whose jest resolves Common and App from their own
       # installs.
@@ -4568,6 +4637,34 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeIngestReportsAsItselfPostgres.test.ts --forceExit
+
+      # Get Files From Markdown, end to end: a workflow's component run by the
+      # real runner against the migrated tables (df53e546db8).
+      - name: Test a workflow's Get Files From Markdown against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_WORKFLOW_MARKDOWN_FILES_TESTS: "true"
+          WORKFLOW_MARKDOWN_FILES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKFLOW_MARKDOWN_FILES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKFLOW_MARKDOWN_FILES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/FeatureSet/Workflow/RunWorkflowGetFilesFromMarkdownPostgres.test.ts --forceExit
+
+      # The data migration that tells the schedules of on-call layers already
+      # stored under restrictionType (aa67ad78c04), on the migrated tables.
+      - name: Test the on-call layer restriction type repair against Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_LAYER_RESTRICTION_REPAIR_TESTS: "true"
+          LAYER_RESTRICTION_REPAIR_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LAYER_RESTRICTION_REPAIR_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LAYER_RESTRICTION_REPAIR_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/RepairScheduleLayerRestrictionTypesPostgres.test.ts --forceExit
 
       # #11138: an SMS moves from Sent to Delivered, Undelivered or Failed as
       # Twilio reports it, end to end: the real SmsService sends on a
@@ -4704,6 +4801,27 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
+
+      # #11254 and #11157: the vcenter receiver's recorded export goes
+      # through the real metrics ingest, entity registry and
+      # InventoryItemService into clones of the migrated InventoryItem,
+      # InventoryItemRelationship and VMwareResource tables. Inventory calls
+      # each VM, ESXi host, cluster and datastore by its own name (not the
+      # vCenter's, not the datacenter's), renames rows the old rule named on
+      # their next report and keeps a name a person typed; and two reports
+      # tell a VM the host is swapping out from one holding 4 MiB left from
+      # earlier, as the Overview's rules then judge them.
+      - name: Test a vCenter's ingest into Inventory and its swap rates, on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_VMWARE_INGEST_TESTS: "true"
+          VMWARE_INGEST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          VMWARE_INGEST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          VMWARE_INGEST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/VMwareIngestPostgres.test.ts --forceExit
 
       # The episode auto-resolve aggregate query (EpisodeAutoResolve) on the
       # migrated AlertEpisodeMember / Alert / AlertState and incident tables'
@@ -5679,6 +5797,29 @@ jobs:
           Tests/Server/Services/ExistingDeviceMonitorsPostgres.test.ts
           --forceExit
 
+      # #11260, #11266: a fleet an auto import rule made moves to a better
+      # template, or off its template, as one change run by the worker as a
+      # person - 2,000 monitors keep their ids, labels, owners, status history
+      # and incident links, take the template's criteria on their own device,
+      # and keep the template they were created from, so the rule and the
+      # alert policy that made them make none again. Unlinking with the
+      # criteria cleared resolves what they left open; a device that has the
+      # target template's monitor already keeps both, named; a template's
+      # delete clears its monitors first. On copies of every migrated table,
+      # with MonitorNetworkDevice's triggers installed.
+      - name: Test moving a fleet's monitors to another template, on migrated Postgres
+        if: matrix.shard == 5
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_TEMPLATE_CHANGE_TESTS: "true"
+          MONITOR_TEMPLATE_CHANGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_TEMPLATE_CHANGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_TEMPLATE_CHANGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorTemplateChangePostgres.test.ts
+          --forceExit
+
       # Entity risk on copies of the migrated User, Project,
       # SecurityEntityRisk and SecurityEntityCriticality tables, through the
       # real services: a finding writes one row and the next about the same
@@ -5755,23 +5896,6 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/SnmpTrapReceiverPostgres.test.ts
-          --forceExit
-
-      # XCP-ng's inventory (#10995) on a copy of the migrated XcpNgResource
-      # table: the recorded Xen Orchestra scrapes land as rows, the pool's
-      # counts and capacity read back, a late batch regresses nothing, the
-      # prune takes only what stopped being reported, and the stopped VMs
-      # that ran in the last day - the service's hand-written SQL, run.
-      - name: Test XCP-ng's inventory writes on migrated Postgres
-        if: matrix.shard == 5
-        working-directory: packages/Common
-        env:
-          RUN_POSTGRES_XCP_NG_RESOURCE_TESTS: "true"
-          XCP_NG_RESOURCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
-          XCP_NG_RESOURCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
-        run: >-
-          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Services/XcpNgResourceWritesPostgres.test.ts
           --forceExit
 
       # Which incidents pause a monitor (#11141), on copies of the migrated

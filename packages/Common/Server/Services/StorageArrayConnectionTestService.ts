@@ -199,21 +199,19 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     if (connectionId) {
-      const savedPassword: string | null = await this.readUsableSavedPassword(
-        {
-          storageArrayConnectionId: connectionId,
-          projectId: projectId,
-          needsPassword: !isPasswordGiven,
-          collector: collector,
-          next: {
-            address: address.address.url,
-            probeId: probeId,
-            trustedCertificateFingerprint: data[
-              "trustedCertificateFingerprint"
-            ] as string | null,
-          },
+      const savedPassword: string | null = await this.readUsableSavedPassword({
+        storageArrayConnectionId: connectionId,
+        projectId: projectId,
+        needsPassword: !isPasswordGiven,
+        collector: collector,
+        next: {
+          address: address.address.url,
+          probeId: probeId,
+          trustedCertificateFingerprint: data[
+            "trustedCertificateFingerprint"
+          ] as string | null,
         },
-      );
+      });
       if (!isPasswordGiven) {
         data["password"] = savedPassword;
       }
@@ -328,7 +326,8 @@ export class Service extends ProjectReferencesService<Model> {
         next: StorageArrayConnectionRules.getBinding({
           address: data.next.address,
           probeId: data.next.probeId,
-          trustedCertificateFingerprint: data.next.trustedCertificateFingerprint,
+          trustedCertificateFingerprint:
+            data.next.trustedCertificateFingerprint,
           collector: data.collector,
         }),
         presentedFingerprint: connection.presentedCertificate?.fingerprint256,

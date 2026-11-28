@@ -90,11 +90,25 @@ const NOT_THE_ROLES: ReadonlyArray<KeptEnglish> = [
     text: "no master admin or admin notification email",
     why: "the instance's master admins and its admin notification email, in a log line",
   },
+  {
+    text: "owners and owner rules",
+    why: "the owners and owner rules OneUptime AI proposes for Data Security's stores, in its tool's description, not the Project Owner role",
+  },
 ];
 
-// A string literal: double or single quoted on one line, or a template.
-const STRING_LITERAL: RegExp =
-  /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`/g;
+/*
+ * A string literal - double or single quoted on one line, or a template -
+ * or a comment, which the scan reads past whole. A comment's own quotes and
+ * backticks would otherwise open a literal: ForgejoApi's doc comment names
+ * a ```suggestion block, and its third backtick paired with the next
+ * template's, so the code between them read as a message. A // after a
+ * colon (a URL in a JSX text) or an escaped slash (a regex) opens none.
+ */
+const STRING_LITERAL_OR_COMMENT: RegExp =
+  /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`|(?<![\\:])\/\/[^\n]*|\/\*[\s\S]*?\*\//g;
+
+// What the scan read past: a comment starts with its slash, a literal never does.
+const COMMENT: RegExp = /^\//;
 
 // A message has a space in it; an identifier or a key does not.
 const HAS_A_SPACE: RegExp = /\s/;
@@ -106,12 +120,13 @@ const COMMENT_LINE: RegExp = /^\s*(?:\*|\/\/|\/\*)/;
 
 // The string literals of a source text with a space in them, past comments.
 function messagesIn(source: string): Array<string> {
-  return Array.from(source.matchAll(STRING_LITERAL))
+  return Array.from(source.matchAll(STRING_LITERAL_OR_COMMENT))
     .filter((match: RegExpMatchArray): boolean => {
       const start: number = match.index || 0;
       const lineStart: number = source.lastIndexOf("\n", start) + 1;
 
       return (
+        !COMMENT.test(match[0]) &&
         HAS_A_SPACE.test(match[0]) &&
         !COMMENT_LINE.test(source.slice(lineStart, start))
       );
@@ -213,15 +228,21 @@ describe("the product's English names the built-in roles it means", () => {
           "// Only a project owner may do this.",
           "/*",
           ' * "the project\'s owners" are told.',
+          // A comment's backticks open no template: the code below is no message.
+          " * Its review comments apply a ```suggestion block.",
           " */",
           'const words: string = "Ask a project admin for access.";',
           'const key: string = "projectOwner";',
           "const line: string = `${count} owners and admins`;",
+          "const path: string = `${base}/pulls`; // write, admin or owner",
+          // A URL in a JSX text is no comment: the literal after it is read.
+          'const link = <a>See https://example.com</a>; const ask: string = "Ask a project admin first";',
         ].join("\n"),
       ),
     ).toEqual([
       '"Ask a project admin for access."',
       "`${count} owners and admins`",
+      '"Ask a project admin first"',
     ]);
   });
 
