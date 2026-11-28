@@ -541,6 +541,45 @@ describe("InvestigationTldr.generateTldr", () => {
     );
   });
 
+  /*
+   * Issue #11255: a model whose chat template opens its reasoning
+   * (DeepSeek-R1, QwQ) spends the TL;DR's output limit thinking, and its
+   * cut-off reply has no tag that says it was reasoning. Two sentences never
+   * fill the limit, so a reply that did is no TL;DR - nor a summary cut off
+   * mid-sentence.
+   */
+  test("a reply the output limit cut off is no TL;DR", async () => {
+    jest.spyOn(AIService, "executeWithLogging").mockResolvedValue({
+      content:
+        "Okay, so I need to summarize this investigation in two sentences. The analysis says the pool",
+      stopReason: "length",
+    } as unknown as AILogResponse);
+
+    await expect(
+      InvestigationTldr.generateTldr({
+        projectId,
+        aiRunId,
+        analysisMarkdown: "The connection pool ran dry [C1].",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("a reply that finished is the TL;DR, its reasoning already left out", async () => {
+    jest.spyOn(AIService, "executeWithLogging").mockResolvedValue({
+      content: REAL_TLDR,
+      stopReason: "stop",
+      reasoning: { startedInsideReasoning: true },
+    } as unknown as AILogResponse);
+
+    await expect(
+      InvestigationTldr.generateTldr({
+        projectId,
+        aiRunId,
+        analysisMarkdown: "The connection pool ran dry [C1].",
+      }),
+    ).resolves.toBe(REAL_TLDR);
+  });
+
   test("the feature label is inside the daily autonomous budget", () => {
     expect(AUTONOMOUS_AI_FEATURES).toContain(INVESTIGATION_TLDR_FEATURE);
   });

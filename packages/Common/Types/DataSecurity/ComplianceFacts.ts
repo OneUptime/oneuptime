@@ -89,6 +89,11 @@ export enum ComplianceFactKind {
   SecretFound = "SecretFound",
   PeopleLiveIn = "PeopleLiveIn",
   BreachObligation = "BreachObligation",
+  /*
+   * The US states' notices that may apply if any of the people live in a
+   * state nobody named (#10952), counted as one fact rather than one each.
+   */
+  UsStateLaws = "UsStateLaws",
 }
 
 export const COMPLIANCE_FACT_KINDS: ReadonlyArray<ComplianceFactKind> =
@@ -336,6 +341,31 @@ export interface ExposureReadsFact
   outsideAccounts: number;
   outsideAccountsUsedInWindow: number;
   isTreatedAsRead: boolean;
+  /*
+   * What the store's own access logs say, when OneUptime read them for the
+   * window as it is now (#10951): counted, never named.
+   */
+  logsRead?: boolean | undefined;
+  // Every log file of the window was read.
+  logsComplete?: boolean | undefined;
+  logFilesRead?: number | undefined;
+  // Read only in part: how far the log files read reach.
+  logsReadThrough?: string | undefined;
+  // Reads of the store's objects from outside the company, and of those...
+  readsFromOutside?: number | undefined;
+  // ...by anyone on the internet, from how many addresses...
+  anonymousReads?: number | undefined;
+  anonymousAddresses?: number | undefined;
+  // ...by accounts outside the company, and how many accounts...
+  outsideAccountReads?: number | undefined;
+  outsideAccountsThatRead?: number | undefined;
+  // ...and by requesters OneUptime cannot place.
+  unplacedReads?: number | undefined;
+  // Distinct objects read from outside, and how much was sent: "2.1 GB".
+  objectsReadFromOutside?: number | undefined;
+  sentToOutside?: string | undefined;
+  // Listings of the store's objects from outside: names, not content.
+  listingsFromOutside?: number | undefined;
 }
 
 // A secret found in the store: its type and where, never its value.
@@ -380,6 +410,20 @@ export interface BreachObligationFact
   checks: Array<string>;
 }
 
+/*
+ * The US states' notices that may apply if any of the people live in a
+ * state nobody named (#10952): counted, not one fact each. Fifty states'
+ * notices would crowd every other fact out of a draft's facts, and a draft
+ * names a state's law only once a person says the people live there.
+ */
+export interface UsStateLawsFact
+  extends FactBase<ComplianceFactKind.UsStateLaws> {
+  // The states, the District of Columbia and Puerto Rico they are of.
+  states: number;
+  // The notices that may apply if the people live there.
+  notices: number;
+}
+
 export type ComplianceFact =
   | ExposureIssueFact
   | ExposureWindowFact
@@ -387,6 +431,7 @@ export type ComplianceFact =
   | SecretFoundFact
   | PeopleLiveInFact
   | BreachObligationFact
+  | UsStateLawsFact
   | StoreHoldsFact
   | StoreIdentityFact
   | StoreTagsFact
@@ -451,6 +496,8 @@ export const COMPLIANCE_FACT_KIND_WORDS: Readonly<
     "where a person said the people the data is about live",
   [ComplianceFactKind.BreachObligation]:
     "a notice a breach law may ask for, as plain code applied the law to these facts",
+  [ComplianceFactKind.UsStateLaws]:
+    "how many US states' breach notices may apply if any of the people live in those states - nobody has said which states they live in",
 };
 
 // What a reader is told each kind of fact is, in the Dashboard: a key the reader's language words.
@@ -489,6 +536,7 @@ export const COMPLIANCE_FACT_KIND_TITLES: Readonly<
   [ComplianceFactKind.SecretFound]: translationKey("Secret found"),
   [ComplianceFactKind.PeopleLiveIn]: translationKey("Where the people live"),
   [ComplianceFactKind.BreachObligation]: translationKey("Breach law"),
+  [ComplianceFactKind.UsStateLaws]: translationKey("US state laws"),
 };
 
 /*
@@ -867,6 +915,23 @@ export function readComplianceFact(value: unknown): ComplianceFact | null {
           value["outsideAccountsUsedInWindow"],
         ),
         isTreatedAsRead: value["isTreatedAsRead"] === true,
+        ...(value["logsRead"] === true
+          ? {
+              logsRead: true,
+              logsComplete: value["logsComplete"] === true,
+              logFilesRead: count(value["logFilesRead"]),
+              logsReadThrough: text(value["logsReadThrough"]) || undefined,
+              readsFromOutside: count(value["readsFromOutside"]),
+              anonymousReads: count(value["anonymousReads"]),
+              anonymousAddresses: count(value["anonymousAddresses"]),
+              outsideAccountReads: count(value["outsideAccountReads"]),
+              outsideAccountsThatRead: count(value["outsideAccountsThatRead"]),
+              unplacedReads: count(value["unplacedReads"]),
+              objectsReadFromOutside: count(value["objectsReadFromOutside"]),
+              sentToOutside: text(value["sentToOutside"]) || undefined,
+              listingsFromOutside: count(value["listingsFromOutside"]),
+            }
+          : {}),
       };
     case ComplianceFactKind.SecretFound:
       return {
@@ -897,6 +962,14 @@ export function readComplianceFact(value: unknown): ComplianceFact | null {
         dueAt: optionalText(value["dueAt"]),
         countsFrom: text(value["countsFrom"]),
         checks: texts(value["checks"]),
+      };
+    case ComplianceFactKind.UsStateLaws:
+      return {
+        id,
+        key,
+        kind,
+        states: count(value["states"]),
+        notices: count(value["notices"]),
       };
     default:
       return null;
@@ -1146,6 +1219,43 @@ function days(value: number): string {
  * A fact as one English line, as an export and an auditor read it. The
  * Dashboard words the same in the reader's language (ComplianceFactLine).
  */
+// What the store's access logs say, in English, when OneUptime read them (#10951).
+function describeLogReads(fact: ExposureReadsFact): string {
+  if (!fact.logsRead) {
+    return "";
+  }
+
+  const files: string = `${fact.logFilesRead || 0} log ${
+    fact.logFilesRead === 1 ? "file" : "files"
+  }`;
+  const read: string = fact.logsComplete
+    ? `OneUptime read the store's access logs for the window (${files})`
+    : `OneUptime read the store's access logs for part of the window (${files}${
+        fact.logsReadThrough ? `, to ${fact.logsReadThrough}` : ""
+      })`;
+  const outside: number = fact.readsFromOutside || 0;
+
+  if (outside === 0) {
+    return `${read}: they show no read from outside the company`;
+  }
+
+  const who: Array<string> = [
+    fact.anonymousReads
+      ? `${fact.anonymousReads} by anyone on the internet, from ${fact.anonymousAddresses || 0} addresses`
+      : "",
+    fact.outsideAccountReads
+      ? `${fact.outsideAccountReads} by ${fact.outsideAccountsThatRead || 0} accounts outside the company`
+      : "",
+    fact.unplacedReads
+      ? `${fact.unplacedReads} by requesters OneUptime cannot place`
+      : "",
+  ].filter(Boolean);
+
+  return `${read}: ${outside} reads from outside the company (${who.join(", ")}) of ${
+    fact.objectsReadFromOutside || 0
+  } objects${fact.sentToOutside ? `, ${fact.sentToOutside} sent` : ""}`;
+}
+
 export function describeComplianceFact(fact: ComplianceFact): string {
   switch (fact.kind) {
     case ComplianceFactKind.StoreHolds:
@@ -1319,6 +1429,7 @@ export function describeComplianceFact(fact: ComplianceFact): string {
         fact.outsideAccounts > 0
           ? `${fact.outsideAccounts} accounts outside the company could read it`
           : "",
+        describeLogReads(fact),
       ]
         .filter(Boolean)
         .join("; ");
@@ -1332,6 +1443,8 @@ export function describeComplianceFact(fact: ComplianceFact): string {
       return `${fact.law}: ${fact.action}, ${fact.recipient}. Deadline: ${fact.deadline}${
         fact.dueAt ? `, due ${fact.dueAt}` : ""
       } (${fact.status})`;
+    case ComplianceFactKind.UsStateLaws:
+      return `${fact.notices} notices of ${fact.states} US states' breach laws may apply if any of the people live in those states; nobody has said which states`;
     default:
       return "";
   }

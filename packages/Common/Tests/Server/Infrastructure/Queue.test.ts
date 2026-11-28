@@ -602,4 +602,36 @@ describe("Queue.getQueueBacklogSize", () => {
       delete withPrioritized.getPrioritizedCount;
     }
   });
+
+  /*
+   * The Telemetry queue's bulk telemetry waits with a priority, and the
+   * autoscaler leaves it out while ClickHouse is refusing its inserts
+   * (TelemetryInsertBackpressure, 2026-11-27): more workers cannot store
+   * it faster. Everything else still counts.
+   */
+  it("leaves the jobs waiting with a priority out when asked, without reading their count", async () => {
+    queue.getWaitingCount.mockResolvedValue(7);
+    queue.getDelayedCount.mockResolvedValue(3);
+
+    const withPrioritized: MockBullQueue & { getPrioritizedCount?: jest.Mock } =
+      queue;
+    withPrioritized.getPrioritizedCount = jest.fn().mockResolvedValue(700_000);
+
+    try {
+      await expect(
+        Queue.getQueueBacklogSize(QueueName.Worker, {
+          withoutPrioritized: true,
+        }),
+      ).resolves.toBe(10);
+      expect(withPrioritized.getPrioritizedCount).not.toHaveBeenCalled();
+
+      await expect(
+        Queue.getQueueBacklogSize(QueueName.Worker, {
+          withoutPrioritized: false,
+        }),
+      ).resolves.toBe(700_010);
+    } finally {
+      delete withPrioritized.getPrioritizedCount;
+    }
+  });
 });

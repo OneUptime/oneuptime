@@ -135,8 +135,10 @@ interface FakeProbe {
   connectionStatus: ProbeConnectionStatus | null;
   checksLateSince: Date | null;
   checksLastLateAt: Date | null;
+  checksLastLateDueAt: Date | null;
   devicePollsLateSince: Date | null;
   devicePollsLastLateAt: Date | null;
+  devicePollsLastLateDueAt: Date | null;
   // When its longest-waiting check was due, or null when none waits.
   oldestDueAt: Date | null;
   // When its longest-waiting device poll was due, or null when none waits.
@@ -151,8 +153,10 @@ function addProbe(data: Partial<FakeProbe>): FakeProbe {
     connectionStatus: ProbeConnectionStatus.Connected,
     checksLateSince: null,
     checksLastLateAt: null,
+    checksLastLateDueAt: null,
     devicePollsLateSince: null,
     devicePollsLastLateAt: null,
+    devicePollsLastLateDueAt: null,
     oldestDueAt: null,
     oldestPollDueAt: null,
     ...data,
@@ -184,6 +188,14 @@ function asProbe(probe: FakeProbe): Probe {
 
   if (probe.devicePollsLastLateAt) {
     model.devicePollsLastLateAt = probe.devicePollsLastLateAt;
+  }
+
+  if (probe.checksLastLateDueAt) {
+    model.checksLastLateDueAt = probe.checksLastLateDueAt;
+  }
+
+  if (probe.devicePollsLastLateDueAt) {
+    model.devicePollsLastLateDueAt = probe.devicePollsLastLateDueAt;
   }
 
   return model;
@@ -297,8 +309,10 @@ beforeEach(() => {
     for (const column of [
       "checksLateSince",
       "checksLastLateAt",
+      "checksLastLateDueAt",
       "devicePollsLateSince",
       "devicePollsLastLateAt",
+      "devicePollsLastLateDueAt",
     ] as const) {
       if (column in input.data) {
         probe[column] = (input.data[column] as Date) || null;
@@ -315,6 +329,7 @@ function lateChecksOf(probe: FakeProbe): ProbeLateChecks {
   return {
     checksLateSince: probe.checksLateSince,
     checksLastLateAt: probe.checksLastLateAt,
+    checksLastLateDueAt: probe.checksLastLateDueAt,
   };
 }
 
@@ -322,6 +337,7 @@ function latePollsOf(probe: FakeProbe): ProbeLateDevicePolls {
   return {
     devicePollsLateSince: probe.devicePollsLateSince,
     devicePollsLastLateAt: probe.devicePollsLastLateAt,
+    devicePollsLastLateDueAt: probe.devicePollsLastLateDueAt,
   };
 }
 
@@ -351,6 +367,7 @@ describe("Probe:UpdateBehind", () => {
     expect(lateChecksOf(probe)).toEqual({
       checksLateSince: START,
       checksLastLateAt: START,
+      checksLastLateDueAt: at(-5 * MINUTE),
     });
     expect(ProbeBehindUtil.isBehind(lateChecksOf(probe))).toBe(false);
 
@@ -450,7 +467,7 @@ describe("Probe:UpdateBehind", () => {
     );
   });
 
-  test("writes only the two times that changed, without hooks, and leaves the probe's updatedAt", async () => {
+  test("writes only the checks' times that changed, without hooks, and leaves the probe's updatedAt", async () => {
     const probe: FakeProbe = addProbe({ oldestDueAt: at(-2 * MINUTE) });
 
     await updateProbesBehind({ now: START });
@@ -458,9 +475,45 @@ describe("Probe:UpdateBehind", () => {
     expect(ProbeService.updateOneById).not.toHaveBeenCalled();
     expect(write).toHaveBeenCalledWith({
       id: probe.id,
-      data: { checksLateSince: START, checksLastLateAt: START },
+      data: {
+        checksLateSince: START,
+        checksLastLateAt: START,
+        checksLastLateDueAt: at(-2 * MINUTE),
+      },
       skipUpdateDateColumn: true,
     });
+  });
+
+  test("keeps when the longest-waiting check was due, so a list can say how far behind the probe is", async () => {
+    // Handed nothing to check (2026-11-27): the same check waits on and on.
+    const probe: FakeProbe = addProbe({ oldestDueAt: at(-5 * MINUTE) });
+
+    for (let reading: number = 0; reading < 3; reading++) {
+      await updateProbesBehind({ now: at(reading * MINUTE) });
+    }
+
+    expect(lateChecksOf(probe).checksLastLateDueAt).toEqual(at(-5 * MINUTE));
+    // Late by five minutes at the first reading, seven at the third.
+    expect(ProbeBehindUtil.getBehindByMs(lateChecksOf(probe))).toBe(7 * MINUTE);
+    expect(
+      ProbeBehindUtil.getBehindByAmount(
+        ProbeBehindUtil.getBehindByMs(lateChecksOf(probe))!,
+      ),
+    ).toEqual({ unit: "minute", count: 7 });
+
+    // Handed its checks again: on time, the last lateness kept, nothing written.
+    write.mockClear();
+    probe.oldestDueAt = null;
+    await updateProbesBehind({ now: at(3 * MINUTE) });
+
+    expect(write).not.toHaveBeenCalled();
+    expect(ProbeBehindUtil.getBehindByMs(lateChecksOf(probe))).toBe(7 * MINUTE);
+
+    // On time for two minutes: nothing kept, how late included.
+    await updateProbesBehind({ now: at(4 * MINUTE) });
+
+    expect(lateChecksOf(probe)).toEqual(ProbeBehindUtil.cleared());
+    expect(ProbeBehindUtil.getBehindByMs(lateChecksOf(probe))).toBeNull();
   });
 
   test("one probe's failed write does not stop the others, and is said", async () => {
@@ -548,6 +601,7 @@ describe("Probe:UpdateBehind, for the network devices a probe polls (#9499)", ()
     expect(latePollsOf(probe)).toEqual({
       devicePollsLateSince: START,
       devicePollsLastLateAt: START,
+      devicePollsLastLateDueAt: at(-4 * MINUTE),
     });
     expect(ProbeBehindUtil.isDevicePollsBehind(probe)).toBe(false);
 
@@ -556,6 +610,9 @@ describe("Probe:UpdateBehind, for the network devices a probe polls (#9499)", ()
 
     expect(ProbeBehindUtil.isDevicePollsBehind(probe)).toBe(true);
     expect(ProbeBehindUtil.getDevicePollsBehindSince(probe)).toEqual(START);
+    // Its longest-waiting poll, due at -3 minutes, read a minute in: 4 late.
+    expect(ProbeBehindUtil.getDevicePollsBehindByMs(probe)).toBe(4 * MINUTE);
+    expect(ProbeBehindUtil.getProbeBehindByMs(probe)).toBe(4 * MINUTE);
     expect(ProbeBehindUtil.isProbeBehind(probe)).toBe(true);
     // Its monitors are on time, and say so.
     expect(lateChecksOf(probe)).toEqual(ProbeBehindUtil.cleared());
@@ -577,7 +634,11 @@ describe("Probe:UpdateBehind, for the network devices a probe polls (#9499)", ()
 
     expect(write).toHaveBeenCalledWith({
       id: probe.id,
-      data: { devicePollsLateSince: START, devicePollsLastLateAt: START },
+      data: {
+        devicePollsLateSince: START,
+        devicePollsLastLateAt: START,
+        devicePollsLastLateDueAt: at(-2 * MINUTE),
+      },
       skipUpdateDateColumn: true,
     });
   });
@@ -596,8 +657,10 @@ describe("Probe:UpdateBehind, for the network devices a probe polls (#9499)", ()
       data: {
         checksLateSince: START,
         checksLastLateAt: START,
+        checksLastLateDueAt: at(-2 * MINUTE),
         devicePollsLateSince: START,
         devicePollsLastLateAt: START,
+        devicePollsLastLateDueAt: at(-3 * MINUTE),
       },
       skipUpdateDateColumn: true,
     });
@@ -658,6 +721,7 @@ describe("Probe:UpdateBehind, for the network devices a probe polls (#9499)", ()
     expect(latePollsOf(probe)).toEqual({
       devicePollsLateSince: at(-5 * MINUTE),
       devicePollsLastLateAt: at(-MINUTE),
+      devicePollsLastLateDueAt: null,
     });
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -680,6 +744,7 @@ describe("Probe:UpdateBehind, for the network devices a probe polls (#9499)", ()
     expect(lateChecksOf(probe)).toEqual({
       checksLateSince: at(-5 * MINUTE),
       checksLastLateAt: at(-MINUTE),
+      checksLastLateDueAt: null,
     });
   });
 });

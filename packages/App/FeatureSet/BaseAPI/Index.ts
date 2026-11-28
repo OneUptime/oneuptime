@@ -756,6 +756,7 @@ import SecurityPlaybookService, {
   Service as SecurityPlaybookServiceType,
 } from "Common/Server/Services/SecurityPlaybookService";
 import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
+import SecurityUserErasureRequestAPI from "Common/Server/API/SecurityUserErasureRequestAPI";
 import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
 import SecurityAutomaticResponsePolicyAPI from "Common/Server/API/SecurityAutomaticResponsePolicyAPI";
 import SecurityAutomaticResponseActionService, {
@@ -1045,9 +1046,6 @@ import RumSessionReplayViewService, {
 import RumSessionErasureRequestService, {
   Service as RumSessionErasureRequestServiceType,
 } from "Common/Server/Services/RumSessionErasureRequestService";
-import SecurityUserErasureRequestService, {
-  Service as SecurityUserErasureRequestServiceType,
-} from "Common/Server/Services/SecurityUserErasureRequestService";
 import RumSessionPinService, {
   Service as RumSessionPinServiceType,
 } from "Common/Server/Services/RumSessionPinService";
@@ -1627,6 +1625,9 @@ import RunbookVariableService, {
 import ProbeOwnerTeamService, {
   Service as ProbeOwnerTeamServiceType,
 } from "Common/Server/Services/ProbeOwnerTeamService";
+import GlobalProbeSnmpTrapReportService, {
+  Service as GlobalProbeSnmpTrapReportServiceType,
+} from "Common/Server/Services/GlobalProbeSnmpTrapReportService";
 
 import ProbeOwnerUserService, {
   Service as ProbeOwnerUserServiceType,
@@ -1833,7 +1834,6 @@ import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
-import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
@@ -2010,6 +2010,7 @@ import TeamOwnerTeam from "Common/Models/DatabaseModels/TeamOwnerTeam";
 import TeamOwnerUser from "Common/Models/DatabaseModels/TeamOwnerUser";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
+import GlobalProbeSnmpTrapReport from "Common/Models/DatabaseModels/GlobalProbeSnmpTrapReport";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
@@ -4645,6 +4646,21 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    /*
+     * A project's share of a global probe's SNMP trap receiver report
+     * (#11173): read on its devices' pages, written only by OneUptime.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        GlobalProbeSnmpTrapReport,
+        GlobalProbeSnmpTrapReportServiceType
+      >(
+        GlobalProbeSnmpTrapReport,
+        GlobalProbeSnmpTrapReportService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<MonitorSecret, MonitorSecretServiceType>(
@@ -6500,16 +6516,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(RumSessionErasureRequest, RumSessionErasureRequestService).getRouter(),
     );
 
-    // Erasing one person from Security Events' user vault (#10908).
+    /*
+     * Erasing one person from Security Events' user vault (#10908), and how
+     * far each open request has got (#11232).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        SecurityUserErasureRequest,
-        SecurityUserErasureRequestServiceType
-      >(
-        SecurityUserErasureRequest,
-        SecurityUserErasureRequestService,
-      ).getRouter(),
+      new SecurityUserErasureRequestAPI().getRouter(),
     );
 
     app.use(

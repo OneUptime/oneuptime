@@ -6,6 +6,7 @@ import {
   DRAFT_NOT_LEGAL_ADVICE,
   DRAFT_WITH_AI,
   DRAFTED_TOAST,
+  EXPORT_WAITS_FOR_SAVE,
   EXPOSURE_TEST_IDS,
   HIDE_TEXT,
   NOT_LEGAL_ADVICE,
@@ -14,8 +15,21 @@ import {
   UNSAVED_NOTICES,
 } from "./ExposureAssessmentCopy";
 import { say } from "./ExposureAssessmentModel";
+import {
+  getExposureNoticesExportNames,
+  getExposureNoticesMarkdown,
+} from "./ExposureNoticesExport";
+import {
+  EXPORT_MARKDOWN,
+  EXPORT_PDF,
+} from "../../DataSecurity/ComplianceDraftsCopy";
 import { getFactsByKeys } from "../../DataSecurity/ComplianceFacts";
 import CompliancePaperSection from "../../DataSecurity/CompliancePaperSection";
+import {
+  PaperworkExportNames,
+  downloadMarkdown,
+} from "../../DataSecurity/CompliancePaperworkExport";
+import { downloadMarkdownPdf } from "../../DataSecurity/CompliancePaperworkPdfDownload";
 import DataSecurityApi from "../../DataSecurity/DataSecurityApi";
 import LeaveWithoutSavingQuestion from "../../UnsavedChanges/LeaveWithoutSavingQuestion";
 import usePendingEdits, {
@@ -32,7 +46,8 @@ import { ImpactAssessmentSectionSource } from "Common/Types/DataSecurity/ImpactA
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorLine from "Common/UI/Components/ErrorMessage/ErrorLine";
 import API from "Common/UI/Utils/API/API";
@@ -58,6 +73,13 @@ import React, {
  * every part no person edited; Edit makes a part the person's own, never
  * drafted again. Nothing is sent anywhere: a notice is text a person sends
  * themselves.
+ *
+ * Export PDF and Export Markdown (#10955) download the notices as one
+ * document - still drafts, "not legal advice" at its top - with the law due
+ * first, the window, whose data, the secrets to rotate, each law that may
+ * apply with its source and checked date, and each part as a person last
+ * saved it (ExposureNoticesExport). While a part is being edited they wait:
+ * the document holds what was saved.
  */
 
 export interface ComponentProps {
@@ -71,6 +93,7 @@ const ExposureNoticesCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isDrafting, setIsDrafting] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const [draftError, setDraftError] = useState<string>("");
   // The parts a person is mid-edit on, with their words not saved yet.
   const pending: PendingEdits<string> = usePendingEdits<string>();
@@ -114,9 +137,74 @@ const ExposureNoticesCard: FunctionComponent<ComponentProps> = (
     }
   };
 
+  // The notices as one document, each part as it was last saved.
+  const exportAs: (kind: "md" | "pdf") => Promise<void> = async (
+    kind: "md" | "pdf",
+  ): Promise<void> => {
+    const exportedAt: Date = new Date();
+    const markdown: string = getExposureNoticesMarkdown({
+      answer: props.answer,
+      exportedAt,
+    });
+    const names: PaperworkExportNames = getExposureNoticesExportNames(
+      props.answer.view?.store.name || "",
+    );
+
+    if (kind === "md") {
+      downloadMarkdown({ markdown, label: names.fileLabel, exportedAt });
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      await downloadMarkdownPdf({
+        title: names.pdfTitle,
+        markdown,
+        label: names.fileLabel,
+        exportedAt,
+      });
+    } catch (err) {
+      Toast.error(API.getFriendlyMessage(err));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // The PDF in sight - what is handed on - the Markdown in the ⋯.
+  const exportButtons: Array<CardButtonSchema> = props.answer.view
+    ? [
+        {
+          title: EXPORT_PDF,
+          icon: IconProp.Download,
+          buttonStyle: ButtonStyleType.NORMAL,
+          isLoading: isExporting,
+          disabled: hasUnsaved,
+          tooltip: hasUnsaved ? EXPORT_WAITS_FOR_SAVE : undefined,
+          onClick: () => {
+            void exportAs("pdf");
+          },
+        },
+        {
+          title: EXPORT_MARKDOWN,
+          icon: IconProp.Download,
+          buttonStyle: ButtonStyleType.OUTLINE,
+          disabled: hasUnsaved,
+          tooltip: hasUnsaved ? EXPORT_WAITS_FOR_SAVE : undefined,
+          onClick: () => {
+            void exportAs("md");
+          },
+        },
+      ]
+    : [];
+
   return (
     <Fragment>
-      <Card title={BREACH_NOTICES} description={BREACH_NOTICES_DESCRIPTION}>
+      <Card
+        title={BREACH_NOTICES}
+        description={BREACH_NOTICES_DESCRIPTION}
+        buttons={getTableHeaderButtons(exportButtons)}
+      >
         <div className="space-y-4" data-testid={EXPOSURE_TEST_IDS.notices}>
           <p className="text-xs text-gray-600">
             {say(translator, NOT_LEGAL_ADVICE)}

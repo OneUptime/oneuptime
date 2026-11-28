@@ -563,9 +563,9 @@ describe("the recommended alert pack: a switch back from one unreachable poll is
   });
 
   /*
-   * A whole-device alert, a per-port one and a per-row one at once. (Two of
-   * the pack's whole-device alerts on one poll open one alert, as two bands
-   * of one host do: the first claims the device - unchanged here.)
+   * Two whole-device alerts, a per-port one and a per-row one at once. The
+   * two whole-device alerts check different things, so each opens: they
+   * used to open one, the first claiming the device (#11349).
    */
   it("back with everything that only alerts at once: Online, with each alert", async () => {
     await poll(HEALTHY);
@@ -573,6 +573,7 @@ describe("the recommended alert pack: a switch back from one unreachable poll is
     await poll(
       devicePoll({
         uplinkUtilizationPercent: 92,
+        uplinkErrorsPerSecond: 40,
         optic: optic({ isPastAlarm: true }),
         fanStates: [4, 1],
       }),
@@ -582,6 +583,7 @@ describe("the recommended alert pack: a switch back from one unreachable poll is
     expect(openIncidents()).toEqual([]);
     expect(openAlerts()).toEqual([
       "Fans: row unhealthy - Row: Fan 1 | Row Index: 1",
+      "Interface errors",
       "Interface saturated",
       "Transceiver past its alarm threshold - Interface: Te1/1/1",
     ]);

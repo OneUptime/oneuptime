@@ -5,6 +5,7 @@ import {
   NETWORK_QUICK_ACTION_ADDRESS_PARAM,
   NETWORK_QUICK_ACTION_PROBE_PARAM,
   NETWORK_QUICK_ACTION_QUERY_PARAM,
+  NETWORK_QUICK_ACTION_SITE_PARAM,
   NetworkQuickAction,
   isNetworkQuickActionInSearch,
   readAddDevicePrefill,
@@ -162,6 +163,43 @@ describe("readAddDevicePrefill", () => {
     });
   });
 
+  /*
+   * An event's "Add as device", for an address whose SNMPv3 traps were
+   * signed with a site's default credentials before it was a device
+   * (#11174): the site is filled in too, so the new device is polled with
+   * those credentials and its traps are taken as its neighbours' are.
+   */
+  describe("the site whose default credentials signed its traps", () => {
+    const SITE_ID: string = "8c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f";
+
+    test("is carried in its own parameter", () => {
+      expect(NETWORK_QUICK_ACTION_SITE_PARAM).toBe("site");
+    });
+
+    test("is read beside the address and the probe", () => {
+      expect(
+        readAddDevicePrefill(
+          `?open=add-device&address=10.20.0.5&probe=${PROBE_ID}&site=${SITE_ID}`,
+        ),
+      ).toEqual({ address: "10.20.0.5", probeId: PROBE_ID, siteId: SITE_ID });
+    });
+
+    test("is read in lower case, as ids are compared", () => {
+      expect(readAddDevicePrefill(`?site=${SITE_ID.toUpperCase()}`)).toEqual({
+        siteId: SITE_ID,
+      });
+    });
+
+    test.each([
+      ["a site that is not an id", "?site=branch-office"],
+      ["a site id with more after it", `?site=${SITE_ID}x`],
+      ["markup in the site", "?site=%3Cimg%20src%3Dx%3E"],
+      ["an empty site", "?site="],
+    ])("%s fills in nothing", (_label: string, search: string): void => {
+      expect(readAddDevicePrefill(search)).toEqual({});
+    });
+  });
+
   test.each([
     ["no query string", ""],
     ["null", null],
@@ -233,9 +271,33 @@ describe("the wiring", () => {
     expect(actions).toContain(
       "if (action === NetworkQuickAction.AddDevice && prefill?.probeId) { params[NETWORK_QUICK_ACTION_PROBE_PARAM] = prefill.probeId; }",
     );
+    // An event's, for an address a site's default credentials signed (#11174).
+    expect(actions).toContain(
+      "if (action === NetworkQuickAction.AddDevice && prefill?.siteId) { params[NETWORK_QUICK_ACTION_SITE_PARAM] = prefill.siteId; }",
+    );
     // Clearing the action clears what it filled in too.
     expect(actions).toContain(
-      "[NETWORK_QUICK_ACTION_QUERY_PARAM]: null, [NETWORK_QUICK_ACTION_ADDRESS_PARAM]: null, [NETWORK_QUICK_ACTION_PROBE_PARAM]: null,",
+      "[NETWORK_QUICK_ACTION_QUERY_PARAM]: null, [NETWORK_QUICK_ACTION_ADDRESS_PARAM]: null, [NETWORK_QUICK_ACTION_PROBE_PARAM]: null, [NETWORK_QUICK_ACTION_SITE_PARAM]: null,",
+    );
+  });
+
+  test("an event's Add as device carries its address, its probe and the site that signed it", () => {
+    const details: string = readCode(
+      "Components",
+      "NetworkEvents",
+      "NetworkEventDetails.tsx",
+    );
+
+    expect(details).toContain(
+      'getNetworkQuickActionRoute(NetworkQuickAction.AddDevice, { address: row.sourceIp || "", probeId: row.probeId, siteId: row.siteId, })',
+    );
+  });
+
+  test("the Devices page files the device in the site that signed its traps", () => {
+    const page: string = readCode("Pages", "NetworkDevice", "Devices.tsx");
+
+    expect(page).toContain(
+      'if (addDevicePrefill.siteId) { (values as Record<string, unknown>)["site"] = addDevicePrefill.siteId; }',
     );
   });
 

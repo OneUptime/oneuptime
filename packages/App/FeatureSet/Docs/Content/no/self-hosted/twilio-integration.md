@@ -241,7 +241,7 @@ For utvikling beskriver Twilios [veiledning for testing av webhooker](https://ww
 1. Kontroller fra utsiden av bedriftsnettverket og VPN at vertsnavnet for tilbakekall slås opp til den offentlige gatewayen og leverer et gyldig TLS-sertifikat. En GET fra nettleseren tester ikke disse POST-tilbakekallene.
 2. Bruk **Send test-SMS** og **Send testanrop** på prosjektets Twilio-konfigurasjon. Bekreft at meldingen kommer fram på mottakertelefonen. Begge krever tillatelse til å legge til Twilio-konfigurasjoner: **Prosjekteier**, **Prosjektadministrator** eller **Create Call and SMS** og **Read Call and SMS** i en egendefinert rolle.
 3. Sett opp brukerens bekreftede SMS- eller anropskontakt og varslingsregler, og utløs så et kontrollert vaktvarsel. Trykk 1, og bekreft kvitteringen i OneUptime. Hvis du bruker policyer for innkommende anrop, ringer du det konfigurerte nummeret og sjekker rutingen og anropsloggen.
-4. Bekreft leveringsstatusen for SMS i OneUptime og i Twilios meldingslogger. En godtatt sending beviser ikke levering; [Twilio rapporterer senere statusendringer gjennom tilbakekall](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+4. Bekreft leveringsstatusen for SMS i OneUptime, under [Varslingslogger](/docs/notifications/notification-logs), og i Twilios meldingslogger. En godtatt sending beviser ikke levering; [Twilio rapporterer senere statusendringer gjennom tilbakekall](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
 | Symptom | Hvor du ser |

@@ -4,8 +4,10 @@ import FixPerformanceTaskTrigger, {
   NO_CONNECTED_REPOSITORY_FOR_PERFORMANCE_FIX_MESSAGE,
   PERFORMANCE_FIX_ALREADY_DONE_MESSAGE,
   PerformanceTraceSpans,
-  TracePerformanceFixRepositoryUse,
 } from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import CodeFixPersonRepository, {
+  CodeFixRepositoryUse,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
 import CodeTaskAccess from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import { ResolvableRepository } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
@@ -58,15 +60,17 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
   MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES,
-  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
   NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
   PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE,
-  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
-  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
-  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
   TRACE_NOT_WORTH_FIXING_MESSAGE,
   TracePerformanceFixSuggestion,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import {
+  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
 import {
   FAST_REQUEST_WITH_N_PLUS_ONE,
   HEALTH_CHECK,
@@ -157,7 +161,7 @@ function personMayUse(
     };
   }
 
-  const use: TracePerformanceFixRepositoryUse = {
+  const use: CodeFixRepositoryUse = {
     connectedCount,
     usable: usable.map((id: string): ResolvableRepository => {
       return resolvable(id);
@@ -166,7 +170,7 @@ function personMayUse(
   };
 
   return jest
-    .spyOn(FixPerformanceTaskTrigger, "getUsableRepositories")
+    .spyOn(CodeFixPersonRepository, "getUsableRepositories")
     .mockResolvedValue(use);
 }
 
@@ -2212,13 +2216,13 @@ describe("a repository to pick for a fix no repository was found for", () => {
       connectedRepositories();
 
       expect(
-        await FixPerformanceTaskTrigger.isRepositoryChoice({
+        await CodeFixPersonRepository.isRepositoryChoice({
           projectId,
           props: READER,
         }),
       ).toBe(false);
       expect(
-        await FixPerformanceTaskTrigger.isRepositoryChoice({
+        await CodeFixPersonRepository.isRepositoryChoice({
           projectId,
           pickedRepositoryId: new ObjectID("not-an-id"),
           props: READER,
@@ -2228,7 +2232,7 @@ describe("a repository to pick for a fix no repository was found for", () => {
       expect(reachableAsked).toEqual([]);
       expect(person.asked).toEqual([]);
       expect(
-        await FixPerformanceTaskTrigger.isRepositoryChoice({
+        await CodeFixPersonRepository.isRepositoryChoice({
           projectId,
           pickedRepositoryId: new ObjectID(REPOSITORIES[0]!.id),
           props: READER,
@@ -2446,15 +2450,15 @@ describe("who may start a trace's fix, and in which repository (#11075)", () => 
   });
 
   describe("the repositories a person may use", () => {
-    async function useOf(): Promise<TracePerformanceFixRepositoryUse> {
-      return await FixPerformanceTaskTrigger.getUsableRepositories({
+    async function useOf(): Promise<CodeFixRepositoryUse> {
+      return await CodeFixPersonRepository.getUsableRepositories({
         projectId,
         props: READER,
       });
     }
 
     test("of the connected ones, those the person may read and ask OneUptime AI to work in - in the list's order", async () => {
-      const use: TracePerformanceFixRepositoryUse = await useOf();
+      const use: CodeFixRepositoryUse = await useOf();
 
       expect(
         use.usable.map((repository: ResolvableRepository): string => {
@@ -2496,7 +2500,7 @@ describe("who may start a trace's fix, and in which repository (#11075)", () => 
       person.unreadable.clear();
       person.notAskable.clear();
 
-      const use: TracePerformanceFixRepositoryUse = await useOf();
+      const use: CodeFixRepositoryUse = await useOf();
 
       expect(use.usable).toHaveLength(4);
       expect(use.allowance).toEqual(EVERY_CODE_REPOSITORY);
@@ -2506,7 +2510,7 @@ describe("who may start a trace's fix, and in which repository (#11075)", () => 
       person.notAskable.add(CHECKOUT);
       person.notAskable.add(BILLING);
 
-      const use: TracePerformanceFixRepositoryUse = await useOf();
+      const use: CodeFixRepositoryUse = await useOf();
 
       expect(use.usable).toEqual([]);
       expect(use.connectedCount).toBe(4);
@@ -2516,7 +2520,7 @@ describe("who may start a trace's fix, and in which repository (#11075)", () => 
     test("no repository OneUptime AI can work in: nothing is weighed under the person's permissions", async () => {
       connect([]);
 
-      const use: TracePerformanceFixRepositoryUse = await useOf();
+      const use: CodeFixRepositoryUse = await useOf();
 
       expect(use).toEqual({
         connectedCount: 0,
@@ -2543,7 +2547,7 @@ describe("who may start a trace's fix, and in which repository (#11075)", () => 
       }
       connect(ids);
 
-      const use: TracePerformanceFixRepositoryUse = await useOf();
+      const use: CodeFixRepositoryUse = await useOf();
 
       expect(
         use.usable.map((repository: ResolvableRepository): string => {
@@ -2602,7 +2606,7 @@ describe("who may start a trace's fix, and in which repository (#11075)", () => 
         message: string,
       ) => {
         const refusal: Error | null =
-          (await FixPerformanceTaskTrigger.checkRepositoryPick({
+          (await CodeFixPersonRepository.checkRepositoryPick({
             projectId,
             pickedRepositoryId: new ObjectID(repositoryId),
             props: READER,
@@ -2619,7 +2623,7 @@ describe("who may start a trace's fix, and in which repository (#11075)", () => 
     );
 
     test("one they may not read is refused as not found, and nothing more is asked of it - not whether it is connected", async () => {
-      await FixPerformanceTaskTrigger.checkRepositoryPick({
+      await CodeFixPersonRepository.checkRepositoryPick({
         projectId,
         pickedRepositoryId: new ObjectID(VAULT),
         props: READER,
@@ -2630,7 +2634,7 @@ describe("who may start a trace's fix, and in which repository (#11075)", () => 
     });
 
     test("asked under the person's own permissions, in the letter case the database writes", async () => {
-      await FixPerformanceTaskTrigger.checkRepositoryPick({
+      await CodeFixPersonRepository.checkRepositoryPick({
         projectId,
         pickedRepositoryId: new ObjectID(CHECKOUT.toUpperCase()),
         props: READER,
@@ -2909,7 +2913,7 @@ describe("who may start a trace's fix, and in which repository (#11075)", () => 
     test("the automatic routing is OneUptime's own: never held to a person, never asked whose permissions", async () => {
       const gate: jest.SpyInstance = gateSays(null, null);
       const usable: jest.SpyInstance = jest.spyOn(
-        FixPerformanceTaskTrigger,
+        CodeFixPersonRepository,
         "getUsableRepositories",
       );
       const enqueue: jest.SpyInstance = jest

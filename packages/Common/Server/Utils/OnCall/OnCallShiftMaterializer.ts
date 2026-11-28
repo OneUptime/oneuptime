@@ -31,8 +31,8 @@ import MaterializedShiftUtil, {
 import OnCallCalendarFeedUtil from "../../../Types/OnCallDutyPolicy/OnCallCalendarFeedUtil";
 import ScheduleShiftUtil, {
   OnCallShift,
+  TimelineShift,
 } from "../../../Types/OnCallDutyPolicy/ScheduleShiftUtil";
-import ShiftSeamUtil from "../../../Types/OnCallDutyPolicy/ShiftSeamUtil";
 import { UserOverrideRecord } from "../../../Types/OnCallDutyPolicy/UserOverrideUtil";
 
 /*
@@ -650,33 +650,18 @@ export default class OnCallShiftMaterializer {
    * the coverage-gap logic can reproduce exactly what the feed sees.
    */
   public static toShifts(segments: Array<CalendarEvent>): Array<OnCallShift> {
-    const grouped: Array<OnCallShift> = ScheduleShiftUtil.groupEventsIntoShifts(
-      segments,
-      {
-        mergeAcrossGaps: false,
-        groupKey: ScheduleShiftUtil.groupKeyByUserOverrideAndLayer,
+    /*
+     * The one calculation the timeline and the roster share
+     * (ScheduleShiftUtil.getTimelineShifts, #11268). A feed's shift does not
+     * carry the turn key the roster reads.
+     */
+    return ScheduleShiftUtil.getTimelineShifts(segments).map(
+      (shift: TimelineShift): OnCallShift => {
+        const onCallShift: OnCallShift & { turnKey?: string } = { ...shift };
+        delete onCallShift.turnKey;
+        return onCallShift;
       },
     );
-
-    /*
-     * Seam normalisation widens a shift by the engine's one-second seams;
-     * with mergeAcrossGaps = false every shift is one contiguous block, so
-     * its honest active time is exactly its span. Recompute rather than
-     * carry the pre-normalisation sum, which would read 28799 for an 8-hour
-     * block.
-     */
-    return ShiftSeamUtil.normalizeSeams(grouped)
-      .filter((shift: OnCallShift) => {
-        return shift.end.getTime() > shift.start.getTime();
-      })
-      .map((shift: OnCallShift) => {
-        return {
-          ...shift,
-          coverageSeconds: Math.round(
-            (shift.end.getTime() - shift.start.getTime()) / 1000,
-          ),
-        };
-      });
   }
 
   /*

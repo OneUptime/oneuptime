@@ -3,7 +3,6 @@ import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArr
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
-import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import { StorageArrayKindDefinition } from "../../../Types/StorageArray/StorageArrayPlatform";
 import { OntapKind } from "../../../Types/StorageArray/Platforms/NetApp/NetApp";
 import { describe, expect, test } from "@jest/globals";

@@ -69,7 +69,9 @@ flowchart TB
 | **La rotación empieza el** | La fecha y hora en que empieza la rotación de la capa. |
 | **Rotar cada** | Cada cuánto pasa la guardia a la siguiente persona de la capa. |
 | **Hora del primer relevo** | El primer relevo a la siguiente persona, en el inicio o después. Los relevos posteriores siguen cada intervalo de rotación. |
-| **Restricciones** | Las horas en que la capa está de guardia: **Sin restricciones**, **Horas específicas del día** u **Horas específicas de la semana**, en la zona horaria de la programación. Fuera de ellas, toman el relevo las capas inferiores. |
+| **Restricciones** | Las horas en que la capa está de guardia (**Horas activas**): **Sin restricciones**, **Horas específicas del día** u **Horas específicas de la semana**, en la zona horaria de la programación. Fuera de ellas, toman el relevo las capas inferiores. |
+
+Con horas activas, cada franja es un turno propio. De 17:00 a 07:00 es un turno, que termina a las 07:00 de la mañana siguiente: en la **Cronología de la programación**, en los correos, en la aplicación móvil y en Slack y Microsoft Teams por igual, en la zona horaria de la programación y también las noches en que cambia la hora. El turno de una persona son todas sus franjas hasta el siguiente relevo, y se le avisa una vez en cada sentido: "You are now on-call" cuando empieza la primera franja de su turno, con cuándo termina esa franja y cuándo termina su turno, y "You are no longer on-call" cuando termina su última franja, no en cada franja. Para que te lo recuerden antes de cada franja, elige una hora en **Recordarme antes de los turnos**, como describe [Feeds de calendario](/docs/on-call/calendar-feeds#recordatorios-y-avisos-de-reasignación). Cuando otra persona está de guardia entre dos de sus franjas, por una sustitución o una capa inferior, o un cambio en las capas da la franja siguiente a otra persona, eso es un relevo y se avisa como tal. Su tiempo de guardia se sigue registrando franja a franja, y los canales y el feed de la política de guardia siguen diciendo cada vez quién está de guardia.
 
 Para cambiar qué capa va primero, usa las flechas de la tarjeta de una capa: **Subir capa (mayor prioridad)** o **Bajar capa (menor prioridad)**.
 
@@ -111,7 +113,10 @@ Las programaciones de guardia son el recurso `/api/on-call-duty-policy-schedule`
 
 - Crear una programación con `firstLayerUsers` (una lista de identificadores de usuario, en el orden en que se turnan) en sus `miscDataProps` le da su primera capa, como hace el panel: **Layer 1**, de guardia desde ahora, las 24 horas. `firstLayerRotation` indica cuánto dura cada turno, como una rotación del tipo `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; sin ella, una semana. Cada usuario debe ser miembro del proyecto y quien llama debe poder crear capas; si no, la programación no se crea.
 - Una programación creada sin ellos no tiene capas, como antes; el recurso de programaciones de Terraform no los envía.
-- Una capa creada sin `rotation` hace el relevo a diario, como siempre.
+- Una capa creada sin `rotation` hace el relevo cada semana, y una sin `restrictionTimes` está de guardia a todas horas, como empieza una capa nueva en el panel.
+- Los `restrictionTimes` de una capa, sus horas activas, nombran su tipo en `restrictionType`: `None` (de guardia a todas horas), `Daily` o `Weekly`. También se lee `restictionType`, su grafía antigua sin la segunda "r", y cada respuesta lleva el tipo en ambas, así que un cliente o una configuración de Terraform escritos con cualquiera de ellas siguen funcionando; la capa se guarda con `restrictionType`.
+- Una escritura que dejaría una capa de guardia en ningún momento se rechaza con un `400` que nombra la clave: un tipo que falta, desconocido o distinto en las dos grafías (una actualización toma el que difiere del tipo actual de la capa); una franja `Daily` cuyos `startTime` y `endTime` no son fechas y horas (`"09:00"` solo se rechaza); una restricción `Weekly` sin `weeklyRestrictionTimes`; o una franja que empieza y termina a la misma hora. Una `rotation` cuyo `intervalType` no es `Hour`, `Day`, `Week`, `Month` ni `Year` se rechaza del mismo modo.
+- Una capa guardada antes de que se rechazaran estas escrituras, sin un tipo que se leyera, nunca estaba de guardia. Al actualizar OneUptime, cada una de esas capas se lee según las horas que contiene, se guarda así y se vuelve a calcular quién está de guardia en su programación, de modo que a sus personas se les avisa desde entonces y se les informa de ello.
 - Un cambio en las capas de una programación y en las personas que contienen, hecho con la API o Terraform, se avisa como un solo cambio: quién está de guardia se calcula cuando las capas llevan medio minuto sin cambios, y quien entra o sale de guardia, o es el siguiente, recibe el aviso una vez, no una por cada capa o persona escrita. Las alertas van a quien las capas ponen de guardia en cuanto se guarda cada cambio.
 - Para cambiar de una vez quién hace turnos en las capas de una programación, como hace **Guardar cambios** en la página **Capas**, lee las capas con `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` y devuélvelas, cambiadas, a `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers`. Enumeran cada capa que la programación conserva, la de mayor prioridad primero, cada una con sus personas en el orden de sus turnos: quien ya está en una capa, por su `layerUserId`; quien se añade, solo por su `userId`. `deletedLayerIds` enumera las capas que se eliminan.
 - Un guardado se escribe entero o no se escribe, y quién está de guardia se calcula una sola vez, en el acto. Uno hecho después de que otra persona cambiara las capas se rechaza con 409, porque su `basedOnVersion` ya no es el de las capas: vuelve a leer las capas y haz el cambio sobre lo que hay ahora. El recurso de Terraform `oneuptime_on_call_schedule_layers` guarda así las capas de una programación.
@@ -129,6 +134,28 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
     }
   }'
 ```

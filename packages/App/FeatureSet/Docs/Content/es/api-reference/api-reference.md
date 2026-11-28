@@ -274,7 +274,7 @@ Un proyecto que exige nombres únicos, como lo hace un proyecto nuevo, aplica la
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-Un rechazo así también incluye `takenById`, el ID del registro que tiene el nombre, cuando su clave puede leerlo. Los registros que compartían un nombre antes de que el proyecto exigiera nombres únicos lo conservan hasta que se les cambie el nombre, y una sola actualización no puede dar el mismo nombre a varios registros del mismo tipo. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` responde si un nombre está ocupado antes de enviarlo, y `GET /api/unique-names/duplicates` enumera los nombres que el proyecto tiene más de una vez, tipo por tipo.
+Un rechazo así también incluye `takenById`, el ID del registro que tiene el nombre, cuando su clave puede leerlo. Los registros que compartían un nombre antes de que el proyecto exigiera nombres únicos lo conservan hasta que se les cambie el nombre, y una sola actualización no puede dar el mismo nombre a varios registros del mismo tipo. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` responde si un nombre está ocupado antes de enviarlo, y `GET /api/unique-names/duplicates` enumera los nombres que el proyecto tiene más de una vez, tipo por tipo. `GET /api/shared-names/Monitor`, o el nombre de la tabla de cualquier otro tipo que abarque el ajuste, responde cuáles de sus registros comparten un nombre, tal como los marcan las listas del panel: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, cada grupo con dos o más registros que su clave puede leer, con el momento en que se creó cada uno. Los registros archivados se agrupan aparte de los registros en servicio.
 
 #### Valores que ya tiene otro registro
 
@@ -300,6 +300,16 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 Una actualización que escribe los valores de un registro tal como ya están no cambia nada: no inicia los workflows **On Update** del registro, no envía actualizaciones en vivo ni añade una entrada al registro de auditoría. `false` escrito sobre `false` cuenta como el mismo valor, igual que `"false"` escrito sobre `false`, un número escrito como texto, una hora escrita como el mismo instante en otro formato y unas etiquetas escritas como las mismas etiquetas en cualquier orden. Cuando una actualización cambia unos valores y vuelve a escribir otros tal como están, su entrada del registro de auditoría solo enumera los valores que cambiaron, y el **Campos que vigilar** de un workflow solo oye esos.
+
+### Valores escritos como JSON
+
+Algunos campos contienen un valor JSON con una forma propia, como `rotation` y `restrictionTimes` de una capa de una programación de guardia; la referencia de la API muestra cada forma en sus tipos de datos. OneUptime solo lee las claves de esa forma, así que un valor que omite la clave que dice lo que significa, escribe esa clave de otra manera o le da un valor que OneUptime no conoce se rechaza con un `400` que nombra la clave, en lugar de guardarse como un valor que no hace nada:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+Una clave que se renombra se sigue leyendo con su nombre antiguo: el tipo de restricción de una capa se escribe en `restrictionType` o en su grafía antigua `restictionType`, y una respuesta lleva ambas.
 
 ### Dónde se compró un proyecto
 

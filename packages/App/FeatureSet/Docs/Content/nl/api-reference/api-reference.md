@@ -274,7 +274,7 @@ Een project dat unieke namen vereist, zoals een nieuw project doet, houdt de mee
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-Zo'n weigering bevat ook `takenById`, de ID van het record dat de naam heeft, als uw sleutel het mag lezen. Records die een naam deelden voordat het project unieke namen vereiste, houden die tot ze worden hernoemd, en één update kan meerdere records van hetzelfde soort niet dezelfde naam geven. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` beantwoordt of een naam bezet is voordat u hem verstuurt, en `GET /api/unique-names/duplicates` toont de namen die het project meer dan eens heeft, soort voor soort.
+Zo'n weigering bevat ook `takenById`, de ID van het record dat de naam heeft, als uw sleutel het mag lezen. Records die een naam deelden voordat het project unieke namen vereiste, houden die tot ze worden hernoemd, en één update kan meerdere records van hetzelfde soort niet dezelfde naam geven. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` beantwoordt of een naam bezet is voordat u hem verstuurt, en `GET /api/unique-names/duplicates` toont de namen die het project meer dan eens heeft, soort voor soort. `GET /api/shared-names/Monitor`, of de tabelnaam van elke andere soort waarvoor de instelling geldt, antwoordt welke van zijn records een naam delen, zoals de lijsten in het dashboard ze markeren: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, elke groep twee of meer records die uw sleutel mag lezen, met het moment waarop elk is gemaakt. Gearchiveerde records worden apart gegroepeerd van de records in dienst.
 
 #### Waarden die een ander record al heeft
 
@@ -300,6 +300,16 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 Een update die de waarden van een record schrijft zoals ze al zijn, verandert niets: ze start de workflows **On Update** van het record niet, stuurt geen live-updates en voegt geen auditlogregel toe. `false` geschreven over `false` telt als dezelfde waarde, net als `"false"` geschreven over `false`, een getal geschreven als tekst, een tijd geschreven als hetzelfde moment in een ander formaat, en labels geschreven als dezelfde labels in willekeurige volgorde. Als een update sommige waarden wijzigt en andere terugschrijft zoals ze zijn, noemt haar auditlogregel alleen de gewijzigde waarden, en hoort de **Velden om te volgen** van een workflow alleen die.
+
+### Waarden die als JSON worden geschreven
+
+Sommige velden bevatten een JSON-waarde met een eigen vorm, zoals `rotation` en `restrictionTimes` van een laag van een bereikbaarheidsschema; de API-referentie toont elke vorm bij haar gegevenstypen. OneUptime leest alleen de sleutels van die vorm, dus een waarde die de sleutel weglaat die zegt wat ze betekent, die sleutel anders spelt of er een waarde aan geeft die OneUptime niet kent, wordt geweigerd met een `400` die de sleutel noemt, in plaats van te worden opgeslagen als een waarde die niets doet:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+Een sleutel die een andere naam krijgt, wordt ook onder zijn oude naam gelezen: het beperkingstype van een laag wordt geschreven onder `restrictionType` of onder de oudere spelling `restictionType`, en een antwoord bevat beide.
 
 ### Waar een project is gekocht
 

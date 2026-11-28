@@ -72,7 +72,7 @@ Die Schaltflächen der Kopfzeile sind nach Ihren Status benannt. Solange das Ere
 
 Ein Ereignis startet, wenn es aus einem Status, in dem es wartet, nach **Laufend** wechselt oder direkt in einen eigenen Status zwischen **Laufend** und **Beendet**. Dann:
 
-- **Seine Monitore werden nicht mehr geprüft** und wechseln zu seinem **Monitor-Status ändern in**, falls es einen hat. Ein Monitor, den Sie dem Ereignis während der Arbeit hinzufügen, wechselt ebenfalls.
+- **Seine Monitore werden nicht mehr geprüft** und wechseln zu seinem **Monitor-Status ändern in**, falls es einen hat. Ein Monitor, den Sie dem Ereignis während der Arbeit hinzufügen, wechselt ebenfalls. Ohne einen solchen behalten sie ihren Status, und ihre Verfügbarkeit, ihre Statusseiten und SLOs lassen die Zeit bis zum Ende des Ereignisses heraus.
 - **Seine Statusseiten führen es als laufend**, und seine Abonnenten werden informiert: zur geplanten Zeit, wenn **Wenn das Ereignis beginnt** eingeschaltet ist, und von Hand so, wie es **Statusseiten-Abonnenten benachrichtigen** im Dialog sagt.
 - **Seine Eigentümer werden informiert**, wenn sie die Benachrichtigung über Statusänderungen eingeschaltet haben, und das Ereignis erscheint unter **Laufende Wartungsereignisse**.
 

@@ -384,6 +384,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `logs.mode` | (از `preset`) | `daemonset`، `api` یا `disabled`. بر پیش‌تنظیم مقدم است. |
 | `logs.windowsPods.enabled` | `false` | پادهای روی گره‌های Windows را هم دنبال می‌کند. [خوشه‌های با سیستم‌عامل‌های مختلف](#خوشههای-با-سیستمعاملهای-مختلف-استخرهای-گره-windows) را ببینید. |
 | `logs.api.replicas` | `1` | شمار replicaهای دنبال‌کننده لاگ، در حالت `api`. |
+| `logs.extraOperators` | `[]` | عملگرهای کالکتور خودتان، برای قالب لاگی که عامل نمی‌خواند، در حالت `daemonset`. [خواندن قالب لاگ خودتان](/docs/telemetry/kubernetes-agent#خواندن-قالب-لاگ-خودتان) را ببینید. |
 | `ebpf.enabled` | `true` | ترِیس‌ها و متریک‌های درخواست eBPF. [ترِیس‌های برنامه با eBPF](#ترِیسهای-برنامه-با-ebpf) را ببینید. |
 | `profiling.enabled` | `false` | نمودارهای شعله‌ای CPU. [پروفایل‌گیری پیوسته CPU](#پروفایلگیری-پیوسته-cpu) را ببینید. |
 | `kubeStateMetrics.enabled` | `false` | وضعیت خوشه از kube-state-metrics. |

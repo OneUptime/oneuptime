@@ -269,6 +269,7 @@ let eventFindBy: jest.SpyInstance;
 let eventFindOneById: jest.SpyInstance;
 let statesRead: jest.SpyInstance;
 let changeMonitorStatus: jest.SpyInstance;
+let uptimeMarks: jest.SpyInstance;
 let monitorStatusFindOneBy: jest.SpyInstance;
 let feedItem: jest.SpyInstance;
 
@@ -362,6 +363,11 @@ beforeEach(() => {
 
   changeMonitorStatus = jest
     .spyOn(MonitorService, "changeMonitorStatus")
+    .mockResolvedValue(undefined as never);
+
+  // What the monitors' time counts as once the status changed (#11301).
+  uptimeMarks = jest
+    .spyOn(ScheduledMaintenanceStateTimelineService, "markUptimeOfMonitors")
     .mockResolvedValue(undefined as never);
 
   // Names only the project's own statuses, as the project-held read would.
@@ -924,6 +930,12 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: a real change to Change M
     ).toEqual([MONITOR_A, MONITOR_B].sort());
     expect(statusId.toString()).toBe(MAINTENANCE_STATUS_ID);
     expect(notifyOwners).toBe(true);
+
+    // Then their time counts as the status, from here.
+    expect(uptimeMarks).toHaveBeenCalledTimes(1);
+    expect(changeMonitorStatus.mock.invocationCallOrder[0]!).toBeLessThan(
+      uptimeMarks.mock.invocationCallOrder[0]!,
+    );
   });
 
   test("so does one in a state of the project's own after Ongoing, which still holds them", async () => {
@@ -957,6 +969,7 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: a real change to Change M
     await edit({ changeMonitorStatusToId: MAINTENANCE_STATUS_ID });
 
     expect(changeMonitorStatus).not.toHaveBeenCalled();
+    expect(uptimeMarks).not.toHaveBeenCalled();
   });
 
   test("a status cleared puts nothing on the monitors, even of an event that started", async () => {
@@ -970,6 +983,34 @@ describe("ScheduledMaintenanceService.onUpdateSuccess: a real change to Change M
     await edit({ changeMonitorStatusTo: null });
 
     expect(changeMonitorStatus).not.toHaveBeenCalled();
+
+    /*
+     * But the status they keep is only what the event left them in: their
+     * time is worked out again, and left out from here (#11301).
+     */
+    expect(uptimeMarks).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (uptimeMarks.mock.calls[0]![0] as { monitors: Array<Monitor> })
+          .monitors || []
+      ).map((item: Monitor): string => {
+        return item.id!.toString();
+      }),
+    ).toEqual([MONITOR_A]);
+  });
+
+  test("a status cleared on an event still waiting to start leaves its monitors' time alone", async () => {
+    afterWrite(
+      maintenanceEvent({
+        state: "scheduled",
+        monitors: [MONITOR_A],
+      }),
+    );
+
+    await edit({ changeMonitorStatusTo: null });
+
+    expect(changeMonitorStatus).not.toHaveBeenCalled();
+    expect(uptimeMarks).not.toHaveBeenCalled();
   });
 
   test("an event with no monitors has nothing to put in the status", async () => {

@@ -16,8 +16,10 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { useRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import IncomingEmailMonitorAddress, {
   CUSTOM_LOCAL_PART_MAX_LENGTH,
   CUSTOM_LOCAL_PART_MIN_LENGTH,
@@ -115,9 +117,16 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
     props.secretKey || props.customLocalPart,
   );
 
+  // On the monitor's page, what its labels leave the reader (#11259).
+  const recordOptions: PermissionGateOptions | undefined = useRecordGateOptions(
+    new Monitor(),
+    props.monitorId,
+  );
+
   const updateGate: PermissionGateResult = PermissionGate.check(
     new Monitor(),
     ModelAction.Update,
+    recordOptions,
   );
 
   const closeModal: () => void = (): void => {

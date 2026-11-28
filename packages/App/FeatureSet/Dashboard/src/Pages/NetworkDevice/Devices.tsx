@@ -874,6 +874,15 @@ const NetworkDevices: FunctionComponent<
         (values as Record<string, unknown>)["probe"] = addDevicePrefill.probeId;
       }
 
+      /*
+       * The site whose default SNMPv3 credentials signed the traps it sent
+       * before it was a device (#11174): added there, it is polled with
+       * them and its traps are taken as its neighbours' are.
+       */
+      if (addDevicePrefill.siteId) {
+        (values as Record<string, unknown>)["site"] = addDevicePrefill.siteId;
+      }
+
       return values;
     }, [addDevicePrefill, probeOptions]);
 

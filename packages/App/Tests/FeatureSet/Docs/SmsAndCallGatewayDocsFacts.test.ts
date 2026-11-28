@@ -14,6 +14,7 @@ import {
 } from "../../../FeatureSet/Notification/Utils/SignedWebhookPost";
 import { readPage } from "./DocsContentSupport";
 import { CUSTOM_CHANNEL_ACTION_TOKEN_EXPIRES_IN_SECONDS } from "Common/Server/Utils/OnCall/CustomChannelActionToken";
+import { getSentToCallAndSmsGatewayMessage } from "Common/Types/CallAndSMS/CallAndSmsGatewayLine";
 import {
   CALL_AND_SMS_GATEWAY_PAYLOAD_VERSION,
   CallAndSmsGatewayEvent,
@@ -758,12 +759,17 @@ describe("Delivery and Retries", () => {
       `says \`Sent to ${CALL_AND_SMS_GATEWAY_NAME} (HTTP 200).\` or why it was not delivered, never the URL.`,
     );
 
+    // The line the sender writes, from the builder the logs read it back with.
+    expect(getSentToCallAndSmsGatewayMessage(200)).toBe(
+      `Sent to ${CALL_AND_SMS_GATEWAY_NAME} (HTTP 200).`,
+    );
+
     const sender: string = readPackageFile(
       "App/FeatureSet/Notification/Services/CallAndSmsGatewayService.ts",
     );
 
     expect(sender).toContain(
-      "message: `Sent to ${CALL_AND_SMS_GATEWAY_NAME} (HTTP ${outcome.statusCode}).`,",
+      "message: getSentToCallAndSmsGatewayMessage(outcome.statusCode!),",
     );
   });
 

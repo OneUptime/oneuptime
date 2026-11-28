@@ -21,15 +21,26 @@ import {
   CORRELATION_SENTENCE_PREFIX,
   ErasedName,
   GROUP_VALUE_PART_SEPARATOR,
+  THREAT_INTEL_INDICATOR_NAME_PREFIX,
+  THREAT_INTEL_STIX_INDICATOR_PREFIX,
   getDescriptionNameTexts,
   getErasedRiskKeys,
+  getGroupValueCandidates,
+  getStixIndicatorIdOf,
+  getTitleValueCandidates,
   unnameDescription,
   unnameGroupValue,
   unnameGroupingKey,
   unnameJson,
+  unnameJsonMarkdown,
+  unnameKeptEventStamps,
+  unnameThreatIntelDescription,
   unnameTitle,
   unnameValue,
+  withErasedStixIndicator,
 } from "../../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
+import { toErasedIndicatorId } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
+import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 import {
   DetectionFingerprintKind,
   DetectionFingerprintPlaces,
@@ -76,11 +87,21 @@ import logger from "../../Logger";
  * token, so an open alert, incident or case detection goes on taking its
  * group's firings, and nothing stored is a fingerprint of the person.
  *
+ * And a threat intel feed's indicator (#11230): a feed can list the
+ * person's email address, and keeps it beside the indicator's id and name
+ * in clear. Where a match on the person named the indicator - a detection's
+ * description and its case's ("STIX indicator: `indicator--...`",
+ * "Indicator: <its name>"), the events a detection kept (their threat intel
+ * stamp), and the description of an alert or an incident the match opened
+ * with the feed items that copied it - it says the erased indicator id
+ * instead (Types/SecurityEvent/ThreatIntelConstants), and the indicator's
+ * name goes. The feed stays named.
+ *
  * What it does not change: what people wrote (notes, closing notes,
  * tasks, evidence, custom fields, watchlists, protected entities),
  * OneUptime AI's written reports, a case's feed, the titles and
- * descriptions of incidents and alerts a detection opened, and
- * notifications already sent.
+ * descriptions of incidents and alerts a detection opened (but a feed's
+ * indicator id in them), and notifications already sent.
  *
  * WRITTEN WITHOUT THE AUDIT LOG KEEPING THE NAME. An audited update records
  * the values it replaced, and an audited delete the whole row: through the
@@ -342,6 +363,68 @@ interface EntityRiskContributionsRow {
   contributions: unknown;
 }
 
+/*
+ * The most other entities of one firing a correlation's value is read
+ * from (#11231): a correlation groups on one to three values, so a firing
+ * is counted by at most two others; a few more are allowed for.
+ */
+const MAX_RISK_CO_ENTITIES: number = 4;
+
+// The rule source's prefix of a risk contribution's key: "rule:<id>".
+const RULE_CONTRIBUTION_PREFIX: string = "rule:";
+
+/*
+ * The fingerprints a risk's contributions from detection rules hold in the
+ * firings they counted (#11231), each once.
+ */
+function ruleFiringFingerprintsOf(contributions: unknown): Array<string> {
+  if (!Array.isArray(contributions)) {
+    return [];
+  }
+
+  const fingerprints: Set<string> = new Set<string>();
+
+  for (const contribution of contributions) {
+    if (!contribution || typeof contribution !== "object") {
+      continue;
+    }
+
+    const record: Record<string, unknown> = contribution as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      typeof record["sourceKey"] !== "string" ||
+      !record["sourceKey"].startsWith(RULE_CONTRIBUTION_PREFIX) ||
+      !Array.isArray(record["firingKeys"])
+    ) {
+      continue;
+    }
+
+    for (const firingKey of record["firingKeys"] as Array<unknown>) {
+      const places: DetectionFingerprintPlaces | null =
+        typeof firingKey === "string" ? getFiringKeyPlaces(firingKey) : null;
+
+      if (places) {
+        fingerprints.add(places.fingerprint);
+      }
+    }
+  }
+
+  return Array.from(fingerprints);
+}
+
+// An alert or an incident as the cut of a feed's indicator reads it (#11230).
+interface SeriesDescriptionRow {
+  _id: string;
+  description: string | null;
+  seriesFingerprint: string | null;
+}
+
+// How an alert's description names a STIX indicator, as the read finds it.
+const STIX_INDICATOR_STATED: string = `${THREAT_INTEL_STIX_INDICATOR_PREFIX}indicator--`;
+
 // The most batches of rows one rewrite of the fingerprints goes through, so it always ends.
 const MAX_FINGERPRINT_BATCHES: number = 20;
 
@@ -373,6 +456,113 @@ function jsonNamesOf(names: ReadonlyArray<ErasedName>): Array<string> {
 }
 
 /*
+ * Each name as inline code, as a JSON column's text holds it: inside a JSON
+ * string, so a name with a backslash or a quote - a Windows account,
+ * CORP\alice - is found as well.
+ */
+function jsonCodesOf(names: ReadonlyArray<ErasedName>): Array<string> {
+  return getDescriptionNameTexts(names).code.map((code: string): string => {
+    return JSON.stringify(code).slice(1, -1);
+  });
+}
+
+/*
+ * The names a playbook run's results are searched for and un-named by:
+ * each as the vault holds it, and lower-cased. A threat intel lookup writes
+ * the value it matched, which it matched lower-cased - "1 entity is
+ * known-bad in threat intel: `alice.smith@contoso.com`." for
+ * Alice.Smith@Contoso.com (SecurityPlaybookActions, Check threat intel). A
+ * lower-cased name the vault holds of its own keeps its own token.
+ */
+function withLowerCasedNames(
+  names: ReadonlyArray<ErasedName>,
+): Array<ErasedName> {
+  const byNamed: Map<string, ErasedName> = new Map<string, ErasedName>();
+
+  for (const name of names) {
+    byNamed.set(name.named, name);
+  }
+
+  for (const name of names) {
+    const lowerCased: string = name.named.trim().toLowerCase();
+
+    if (lowerCased && !byNamed.has(lowerCased)) {
+      byNamed.set(lowerCased, { named: lowerCased, hashed: name.hashed });
+    }
+  }
+
+  return Array.from(byNamed.values());
+}
+
+/*
+ * Each name as a JSON column's text holds it, and in lower case too: a
+ * threat intel stamp on an event a detection kept holds the value it
+ * matched lower-cased (#11230).
+ */
+function jsonSearchNamesOf(names: ReadonlyArray<ErasedName>): Array<string> {
+  return Array.from(
+    new Set<string>(
+      names.flatMap((name: ErasedName): Array<string> => {
+        return [
+          JSON.stringify(name.named),
+          JSON.stringify(name.named.trim().toLowerCase()),
+        ];
+      }),
+    ),
+  );
+}
+
+/*
+ * The lines of a threat intel match's description that name the feed's
+ * indicator (#11230), as the read finds them: a STIX indicator's id, and the
+ * indicator's own name.
+ */
+const INDICATOR_DESCRIPTION_LINES: ReadonlyArray<string> = [
+  `\n\n${THREAT_INTEL_STIX_INDICATOR_PREFIX}\`indicator--`,
+  `\n\n${THREAT_INTEL_INDICATOR_NAME_PREFIX}`,
+];
+
+// What the rule left of each name, as a JSON column's text holds it.
+function jsonHashedOf(names: ReadonlyArray<ErasedName>): Array<string> {
+  return Array.from(
+    new Set<string>(
+      names.map((name: ErasedName): string => {
+        return JSON.stringify(name.hashed);
+      }),
+    ),
+  );
+}
+
+/*
+ * A STIX indicator's id as a kept event's stamp holds it in a JSON column's
+ * text (#11230): the start of a string value.
+ */
+const KEPT_STIX_INDICATOR_TEXT: string = '"indicator--';
+
+// What the rule left of each name, as a description writes it as inline code.
+function hashedCodesOf(names: ReadonlyArray<ErasedName>): Array<string> {
+  return Array.from(
+    new Set<string>(
+      names.map((name: ErasedName): string => {
+        return FeedMarkdown.code(name.hashed).toString();
+      }),
+    ),
+  );
+}
+
+/*
+ * The part of a query that finds a description an earlier erasure un-named
+ * while it still names the feed's indicator (#11230): one of its lines
+ * ($lines), beside what the rule left of a name as inline code ($hashed).
+ */
+function indicatorLinesCondition(placeholders: {
+  lines: string;
+  hashed: string;
+}): string {
+  return `(EXISTS (SELECT 1 FROM unnest(${placeholders.lines}::text[]) AS line(text) WHERE strpos(COALESCE("description", ''), line.text) > 0) AND EXISTS (SELECT 1 FROM unnest(${placeholders.hashed}::text[]) AS hashed(code) WHERE strpos(COALESCE("description", ''), hashed.code) > 0))`;
+}
+
+/*
  * The part of a query that finds a description naming one of the names, as
  * unnameDescription changes it: a name as inline code ($codes), or as text in
  * a correlation's sentence ($texts, on a description that has one, $prefix).
@@ -399,6 +589,19 @@ function idsOf(rows: Array<IdRow>): Array<ObjectID> {
 }
 
 export default class SecurityUserErasureRecords {
+  /*
+   * What stands in place of a feed's indicator in the project once the
+   * match it was about is out of the person's name (#11230): the keyed
+   * fingerprint of the match's value, as the feed's alert carries it.
+   */
+  public static erasedIndicatorIdOf(
+    projectId: ObjectID,
+  ): (value: string) => string {
+    return (value: string): string => {
+      return DetectionFingerprint.erasedIndicatorIdOf({ projectId, value });
+    };
+  }
+
   private static async query(
     sql: string,
     parameters: Array<unknown>,
@@ -497,6 +700,12 @@ export default class SecurityUserErasureRecords {
    * and the alerts, incidents and risk that carry its fingerprint are found
    * by it. The erasure keeps them with the names, encrypted, and wipes them
    * with them.
+   *
+   * From the correlations' case detections, and - for a correlation that
+   * opens no cases and writes no Detection Findings (#11231) - from the
+   * titles of the alerts and incidents it opened and the firings its
+   * group's other entities' risk counted, each proven by its fingerprint.
+   * The findings scan hands over the values of the findings it changes.
    */
   public static async findCorrelationValues(data: {
     projectId: ObjectID;
@@ -532,7 +741,246 @@ export default class SecurityUserErasureRecords {
       }
     }
 
+    /*
+     * And a correlation that writes no Detection Findings and opens no
+     * cases (#11231): its values from the alerts and incidents it opened,
+     * and from the firings its group's other entities' risk counted.
+     */
+    for (const value of await this.findSeriesCorrelationValues({
+      projectId: data.projectId,
+      names,
+    })) {
+      values.set(value.named, value);
+    }
+
+    for (const value of await this.findRiskCorrelationValues({
+      projectId: data.projectId,
+      names,
+      known: Array.from(values.values()),
+    })) {
+      values.set(value.named, value);
+    }
+
     return Array.from(values.values());
+  }
+
+  /*
+   * A correlation's group values that name the person, from the titles of
+   * the alerts and incidents its rule opened (#11231): "[Detection] <rule>
+   * — alice@example.com / 203.0.113.7". A title holding one of the names
+   * offers what follows each " — " (getTitleValueCandidates), and a
+   * candidate is kept only when the record's own fingerprint - keyed, or
+   * as it was before the key - is the candidate's: the hash proves it, so
+   * a rule renamed since, a title a person edited, or a name that only
+   * appears in it, finds nothing. A record whose fingerprint an erasure
+   * already rewrote is the token's, and proves nothing more.
+   */
+  public static async findSeriesCorrelationValues(data: {
+    projectId: ObjectID;
+    names: ReadonlyArray<ErasedName>;
+  }): Promise<Array<ErasedName>> {
+    const values: Map<string, ErasedName> = new Map<string, ErasedName>();
+
+    if (data.names.length === 0) {
+      return [];
+    }
+
+    // Each table's statement in full.
+    for (const read of [
+      `SELECT "title", "seriesFingerprint" FROM "Alert" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 4) = '' AND strpos(COALESCE("title", ''), $3) > 0 AND EXISTS (SELECT 1 FROM unnest($4::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
+      `SELECT "title", "seriesFingerprint" FROM "Incident" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 4) = '' AND strpos(COALESCE("title", ''), $3) > 0 AND EXISTS (SELECT 1 FROM unnest($4::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
+    ]) {
+      const rows: Array<{
+        title: string | null;
+        seriesFingerprint: string | null;
+      }> = (await this.query(read, [
+        data.projectId.toString(),
+        DetectionFingerprintKind.DetectionRule,
+        GROUP_VALUE_PART_SEPARATOR,
+        namesOf(data.names),
+      ])) as unknown as Array<{
+        title: string | null;
+        seriesFingerprint: string | null;
+      }>;
+
+      for (const row of rows) {
+        const places: DetectionFingerprintPlaces | null =
+          getSourceFingerprintPlaces(row.seriesFingerprint);
+
+        if (
+          !places ||
+          places.source !== DetectionFingerprintKind.DetectionRule
+        ) {
+          continue;
+        }
+
+        for (const candidate of getTitleValueCandidates(row.title)) {
+          const value: ErasedName | null = this.provenCorrelationValue({
+            projectId: data.projectId,
+            candidate,
+            fingerprint: places.fingerprint,
+            names: data.names,
+          });
+
+          if (value) {
+            values.set(value.named, value);
+          }
+        }
+      }
+    }
+
+    return Array.from(values.values());
+  }
+
+  /*
+   * A correlation's group values that name the person, from the firings
+   * its group's entities' risk counted (#11231): a rule's firing is
+   * counted by every entity of its group under the same name, which holds
+   * the fingerprint of the group's value. The person's own risk - read
+   * before the erasure deletes it - says which firings were theirs; the
+   * other entities that counted the same firing are the group's other
+   * values. Each order of the name and them (getGroupValueCandidates) is a
+   * candidate, kept only when its fingerprint is the firing's. A value
+   * `known` already explains needs no reading. What the group grouped on
+   * that carries no risk (a process, a port) is in no risk row, and such a
+   * group's other entities keep its fingerprint: nothing here holds what
+   * would rebuild it.
+   */
+  public static async findRiskCorrelationValues(data: {
+    projectId: ObjectID;
+    names: ReadonlyArray<ErasedName>;
+    known?: ReadonlyArray<ErasedName> | undefined;
+  }): Promise<Array<ErasedName>> {
+    const keys: Array<string> = getErasedRiskKeys(data.names);
+
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const own: Array<EntityRiskContributionsRow> = (await this.query(
+      `SELECT "_id", "contributions" FROM "SecurityEntityRisk" WHERE "projectId" = $1 AND "entityKey" = ANY($2::text[]) LIMIT ${MAX_ROWS_PER_KIND}`,
+      [data.projectId.toString(), keys],
+    )) as unknown as Array<EntityRiskContributionsRow>;
+
+    // The fingerprints of the person's firings that no value already known explains.
+    const explained: Set<string> = new Set<string>();
+
+    for (const value of [...data.names, ...(data.known || [])]) {
+      for (const fingerprint of DetectionFingerprint.allOf({
+        projectId: data.projectId,
+        kind: DetectionFingerprintKind.DetectionRule,
+        value: value.named,
+      })) {
+        explained.add(fingerprint);
+      }
+    }
+
+    const unexplained: Set<string> = new Set<string>();
+
+    for (const row of own) {
+      for (const fingerprint of ruleFiringFingerprintsOf(row.contributions)) {
+        if (!explained.has(fingerprint)) {
+          unexplained.add(fingerprint);
+        }
+      }
+    }
+
+    if (unexplained.size === 0) {
+      return [];
+    }
+
+    // The other entities that counted each of those firings.
+    const others: Array<{
+      entityValue: string | null;
+      contributions: unknown;
+    }> = (await this.query(
+      `SELECT "entityValue", "contributions" FROM "SecurityEntityRisk" WHERE "projectId" = $1 AND NOT ("entityKey" = ANY($2::text[])) AND EXISTS (SELECT 1 FROM unnest($3::text[]) AS previous(fingerprint) WHERE strpos(COALESCE("contributions"::text, ''), ':' || previous.fingerprint || '"') > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
+      [data.projectId.toString(), keys, Array.from(unexplained)],
+    )) as unknown as Array<{
+      entityValue: string | null;
+      contributions: unknown;
+    }>;
+    const entitiesOf: Map<string, Set<string>> = new Map<string, Set<string>>();
+
+    for (const row of others) {
+      const entity: string = (row.entityValue || "").trim();
+
+      if (!entity) {
+        continue;
+      }
+
+      for (const fingerprint of ruleFiringFingerprintsOf(row.contributions)) {
+        if (unexplained.has(fingerprint)) {
+          const entities: Set<string> =
+            entitiesOf.get(fingerprint) || new Set<string>();
+
+          entities.add(entity);
+          entitiesOf.set(fingerprint, entities);
+        }
+      }
+    }
+
+    const values: Map<string, ErasedName> = new Map<string, ErasedName>();
+
+    for (const [fingerprint, entities] of entitiesOf) {
+      const co: Array<string> = Array.from(entities).slice(
+        0,
+        MAX_RISK_CO_ENTITIES,
+      );
+
+      for (const name of data.names) {
+        for (const candidate of getGroupValueCandidates({
+          name: name.named,
+          others: co,
+        })) {
+          const value: ErasedName | null = this.provenCorrelationValue({
+            projectId: data.projectId,
+            candidate,
+            fingerprint,
+            names: data.names,
+          });
+
+          if (value) {
+            values.set(value.named, value);
+          }
+        }
+      }
+    }
+
+    return Array.from(values.values());
+  }
+
+  /*
+   * A candidate group value, kept with what it is once the names are out,
+   * when it holds several values one of which is a name and `fingerprint`
+   * is its own - keyed, or as it was before the key; null otherwise.
+   */
+  private static provenCorrelationValue(data: {
+    projectId: ObjectID;
+    candidate: string;
+    fingerprint: string;
+    names: ReadonlyArray<ErasedName>;
+  }): ErasedName | null {
+    if (!data.candidate.includes(GROUP_VALUE_PART_SEPARATOR)) {
+      return null;
+    }
+
+    const unnamed: string | undefined | null = unnameGroupValue(
+      data.candidate,
+      data.names,
+    );
+
+    if (!unnamed || unnamed === data.candidate) {
+      return null;
+    }
+
+    return DetectionFingerprint.allOf({
+      projectId: data.projectId,
+      kind: DetectionFingerprintKind.DetectionRule,
+      value: data.candidate,
+    }).includes(data.fingerprint)
+      ? { named: data.candidate, hashed: unnamed }
+      : null;
   }
 
   /*
@@ -548,14 +996,18 @@ export default class SecurityUserErasureRecords {
   }): Promise<UnnamedDetections> {
     const ids: Array<ObjectID> = idsOf(
       await this.query(
-        `SELECT "_id" FROM "SecurityDetection" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupValue" = ANY($2::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0 OR strpos(COALESCE("matchedEvents"::text, ''), erased.name) > 0) OR ${descriptionNamesCondition({ codes: "$4", texts: "$5", prefix: "$6" })}) LIMIT ${MAX_ROWS_PER_KIND}`,
+        `SELECT "_id" FROM "SecurityDetection" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupValue" = ANY($2::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0 OR strpos(COALESCE("matchedEvents"::text, ''), erased.name) > 0) OR ${descriptionNamesCondition({ codes: "$4", texts: "$5", prefix: "$6" })} OR ${indicatorLinesCondition({ lines: "$7", hashed: "$8" })} OR (strpos(COALESCE("matchedEvents"::text, ''), $10) > 0 AND EXISTS (SELECT 1 FROM unnest($9::text[]) AS hashed(value) WHERE strpos("matchedEvents"::text, hashed.value) > 0))) LIMIT ${MAX_ROWS_PER_KIND}`,
         [
           data.projectId.toString(),
           namesOf(data.names),
-          jsonNamesOf(data.names),
+          jsonSearchNamesOf(data.names),
           getDescriptionNameTexts(data.names).code,
           getDescriptionNameTexts(data.names).text,
           CORRELATION_SENTENCE_PREFIX,
+          INDICATOR_DESCRIPTION_LINES,
+          hashedCodesOf(data.names),
+          jsonHashedOf(data.names),
+          KEPT_STIX_INDICATOR_TEXT,
         ],
       ),
     );
@@ -583,6 +1035,8 @@ export default class SecurityUserErasureRecords {
 
     const caseIds: Array<string> = [];
     const groupValues: Map<string, ErasedName> = new Map<string, ErasedName>();
+    const erasedIndicatorIdOf: (value: string) => string =
+      this.erasedIndicatorIdOf(data.projectId);
 
     for (const detection of detections) {
       const changes: Record<string, unknown> = {};
@@ -590,10 +1044,12 @@ export default class SecurityUserErasureRecords {
         detection.title,
         data.names,
       );
-      const description: string | undefined | null = unnameDescription(
-        detection.description,
-        data.names,
-      );
+      // The names, and a threat intel match's indicator with them (#11230).
+      const description: string | undefined | null =
+        unnameThreatIntelDescription(
+          unnameDescription(detection.description, data.names),
+          { names: data.names, erasedIndicatorIdOf },
+        );
       // A correlation's values each, as its findings get them (#11130).
       const groupValue: string | undefined | null = unnameGroupValue(
         detection.groupValue,
@@ -613,10 +1069,25 @@ export default class SecurityUserErasureRecords {
       }
       const entities: { value: JSONArray | undefined; changed: boolean } =
         unnameJson(detection.entities, data.names);
-      const matchedEvents: {
+      const keptEvents: {
         value: JSONObject | undefined;
         changed: boolean;
       } = unnameJson(detection.matchedEvents, data.names);
+      // And their threat intel stamps about the person (#11230).
+      const keptStamps: {
+        value: JSONObject | undefined;
+        changed: boolean;
+      } = unnameKeptEventStamps(keptEvents.value, {
+        names: data.names,
+        erasedIndicatorIdOf,
+      });
+      const matchedEvents: {
+        value: JSONObject | undefined;
+        changed: boolean;
+      } = {
+        value: keptStamps.value,
+        changed: keptEvents.changed || keptStamps.changed,
+      };
 
       if (title !== detection.title) {
         changes["title"] = title;
@@ -676,7 +1147,7 @@ export default class SecurityUserErasureRecords {
 
     const ids: Array<ObjectID> = idsOf(
       await this.query(
-        `SELECT "_id" FROM "SecurityCase" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupingKey" = ANY($4::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0) OR ${descriptionNamesCondition({ codes: "$5", texts: "$6", prefix: "$7" })}) LIMIT ${MAX_ROWS_PER_KIND}`,
+        `SELECT "_id" FROM "SecurityCase" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupingKey" = ANY($4::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0) OR ${descriptionNamesCondition({ codes: "$5", texts: "$6", prefix: "$7" })} OR ${indicatorLinesCondition({ lines: "$8", hashed: "$9" })}) LIMIT ${MAX_ROWS_PER_KIND}`,
         [
           data.projectId.toString(),
           namesOf(data.names),
@@ -685,6 +1156,8 @@ export default class SecurityUserErasureRecords {
           getDescriptionNameTexts(data.names).code,
           getDescriptionNameTexts(data.names).text,
           CORRELATION_SENTENCE_PREFIX,
+          INDICATOR_DESCRIPTION_LINES,
+          hashedCodesOf(data.names),
         ],
       ),
     );
@@ -708,16 +1181,20 @@ export default class SecurityUserErasureRecords {
     });
 
     const changedIds: Array<string> = [];
+    const erasedIndicatorIdOf: (value: string) => string =
+      this.erasedIndicatorIdOf(data.projectId);
 
     for (const securityCase of cases) {
       const title: string | undefined | null = unnameTitle(
         securityCase.title,
         data.names,
       );
-      const description: string | undefined | null = unnameDescription(
-        securityCase.description,
-        data.names,
-      );
+      // The names, and the indicator of the threat intel match that opened it (#11230).
+      const description: string | undefined | null =
+        unnameThreatIntelDescription(
+          unnameDescription(securityCase.description, data.names),
+          { names: data.names, erasedIndicatorIdOf },
+        );
       const entities: { value: JSONArray | undefined; changed: boolean } =
         unnameJson(securityCase.entities, data.names);
       const groupingKey: string | undefined | null = unnameGroupingKey(
@@ -897,10 +1374,16 @@ export default class SecurityUserErasureRecords {
     projectId: ObjectID;
     names: ReadonlyArray<ErasedName>;
   }): Promise<number> {
+    const names: Array<ErasedName> = withLowerCasedNames(data.names);
+
+    // A name as a whole value of the results, or as inline code in a step's message.
     const ids: Array<ObjectID> = idsOf(
       await this.query(
         `SELECT "_id" FROM "SecurityPlaybookRun" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos(COALESCE("stepResults"::text, ''), erased.name) > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
-        [data.projectId.toString(), jsonNamesOf(data.names)],
+        [
+          data.projectId.toString(),
+          [...jsonNamesOf(names), ...jsonCodesOf(names)],
+        ],
       ),
     );
 
@@ -924,8 +1407,13 @@ export default class SecurityUserErasureRecords {
         continue;
       }
 
+      /*
+       * Each whole value, and each name a step wrote as inline code in its
+       * message: "1 entity is known-bad in threat intel:
+       * `alice@example.com`." kept the address (#11230).
+       */
       const results: { value: JSONArray | undefined; changed: boolean } =
-        unnameJson(run.stepResults, data.names);
+        unnameJsonMarkdown(run.stepResults, names);
 
       if (!results.changed) {
         continue;
@@ -1027,6 +1515,16 @@ export default class SecurityUserErasureRecords {
       changes,
     });
 
+    // And the feed's indicator, out of what a threat intel match opened (#11230).
+    for (const table of ["Alert", "Incident"] as const) {
+      await this.cutIndicatorFromSeries({
+        projectId: data.projectId,
+        table,
+        changes,
+        deadline: data.deadline,
+      });
+    }
+
     const entityRisks: number = await this.rewriteEntityRiskFiringKeys({
       projectId: data.projectId,
       changes,
@@ -1034,6 +1532,124 @@ export default class SecurityUserErasureRecords {
     });
 
     return { detections, alerts, incidents, entityRisks };
+  }
+
+  /*
+   * The feed's indicator, out of the alerts or incidents a threat intel
+   * match on the person opened (#11230): each is found by its fingerprint,
+   * the person's or the token's (an alert keeps its title and description,
+   * as an erasure leaves them, and its fingerprint is rewritten first), and
+   * where its description says "STIX indicator: indicator--...", it says the
+   * erased indicator id instead - the token in the fingerprint it now has,
+   * the same as the finding's and the case detection's. So does every item
+   * of its feed that copied the description (the one that announced it).
+   * The feed items first: a run that stops in between still finds the id
+   * in the description. With SQL of its own, as the fingerprints are, and
+   * nothing else about the record changes. Returns how many records.
+   */
+  public static async cutIndicatorFromSeries(data: {
+    projectId: ObjectID;
+    table: "Alert" | "Incident";
+    changes: ReadonlyArray<DetectionFingerprintChange>;
+    deadline?: JobDeadline | undefined;
+  }): Promise<number> {
+    // The fingerprint each record of the match carries once rewritten, by any it may carry.
+    const nextOf: Map<string, string> = new Map<string, string>();
+
+    for (const change of data.changes) {
+      if (change.kind === DetectionFingerprintKind.ThreatIntel) {
+        nextOf.set(change.previous, change.next);
+        nextOf.set(change.next, change.next);
+      }
+    }
+
+    if (nextOf.size === 0) {
+      return 0;
+    }
+
+    // Each table's statements in full, so the audit guard reads what they write.
+    const read: string =
+      data.table === "Alert"
+        ? `SELECT "_id", "description", "seriesFingerprint" FROM "Alert" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 3) = ANY($3::text[]) AND split_part("seriesFingerprint", ':', 4) = '' AND strpos(COALESCE("description", ''), $4) > 0 LIMIT ${MAX_ROWS_PER_KIND}`
+        : `SELECT "_id", "description", "seriesFingerprint" FROM "Incident" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 3) = ANY($3::text[]) AND split_part("seriesFingerprint", ':', 4) = '' AND strpos(COALESCE("description", ''), $4) > 0 LIMIT ${MAX_ROWS_PER_KIND}`;
+    const feedWrite: string =
+      data.table === "Alert"
+        ? `UPDATE "AlertFeed" SET "feedInfoInMarkdown" = replace("feedInfoInMarkdown", $3, $4) WHERE "projectId" = $1 AND "alertId" = $2 AND strpos(COALESCE("feedInfoInMarkdown", ''), $3) > 0 RETURNING "_id"`
+        : `UPDATE "IncidentFeed" SET "feedInfoInMarkdown" = replace("feedInfoInMarkdown", $3, $4) WHERE "projectId" = $1 AND "incidentId" = $2 AND strpos(COALESCE("feedInfoInMarkdown", ''), $3) > 0 RETURNING "_id"`;
+    const descriptionWrite: string =
+      data.table === "Alert"
+        ? `UPDATE "Alert" SET "description" = $3 WHERE "_id" = $1 AND "projectId" = $2 AND "description" IS NOT DISTINCT FROM $4 RETURNING "_id"`
+        : `UPDATE "Incident" SET "description" = $3 WHERE "_id" = $1 AND "projectId" = $2 AND "description" IS NOT DISTINCT FROM $4 RETURNING "_id"`;
+
+    const seen: Set<string> = new Set<string>();
+    let cut: number = 0;
+
+    for (let batch: number = 0; batch < MAX_FINGERPRINT_BATCHES; batch++) {
+      if (data.deadline?.hasPassed()) {
+        break;
+      }
+
+      const rows: Array<SeriesDescriptionRow> = (await this.query(read, [
+        data.projectId.toString(),
+        DetectionFingerprintKind.ThreatIntel,
+        Array.from(nextOf.keys()),
+        STIX_INDICATOR_STATED,
+      ])) as unknown as Array<SeriesDescriptionRow>;
+      let fresh: number = 0;
+
+      for (const row of rows) {
+        const id: string = String(row._id);
+
+        if (seen.has(id)) {
+          continue;
+        }
+
+        seen.add(id);
+        fresh++;
+
+        const next: string | undefined = nextOf.get(
+          String(row.seriesFingerprint || "").split(":")[2] || "",
+        );
+        const stixId: string | null = getStixIndicatorIdOf(row.description);
+
+        if (!next || !stixId) {
+          continue;
+        }
+
+        const erasedId: string = toErasedIndicatorId(next);
+        const description: string | undefined | null = withErasedStixIndicator(
+          row.description,
+          { stixId, erasedId },
+        );
+
+        await this.write(feedWrite, [
+          data.projectId.toString(),
+          id,
+          `${THREAT_INTEL_STIX_INDICATOR_PREFIX}${stixId}`,
+          `${THREAT_INTEL_STIX_INDICATOR_PREFIX}${erasedId}`,
+        ]);
+
+        if (description === row.description) {
+          continue;
+        }
+
+        cut +=
+          (await this.write(descriptionWrite, [
+            id,
+            data.projectId.toString(),
+            description ?? null,
+            row.description,
+          ])) > 0
+            ? 1
+            : 0;
+      }
+
+      if (rows.length < MAX_ROWS_PER_KIND || fresh === 0) {
+        break;
+      }
+    }
+
+    return cut;
   }
 
   /*

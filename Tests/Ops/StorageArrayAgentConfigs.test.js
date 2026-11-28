@@ -305,8 +305,15 @@ const CONFIG_ENV = [
   "POWERSCALE_SNMP_COMMUNITY",
   "STORAGE_ARRAY_INSECURE_SKIP_VERIFY",
 ];
-/* The compose-level variables .env carries besides those. */
-const COMPOSE_ENV = ["STORAGE_ARRAY_COLLECTOR_CONFIG", "COMPOSE_PROFILES"];
+/*
+ * The compose-level variables .env carries besides those: the config to
+ * mount, the profile to start, and the agent's container name.
+ */
+const COMPOSE_ENV = [
+  "STORAGE_ARRAY_COLLECTOR_CONFIG",
+  "COMPOSE_PROFILES",
+  "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
+];
 /* What the compose file hands Harvest besides: the cluster and its read-only user. */
 const HARVEST_ENV = [
   "NETAPP_ONTAP_ENDPOINT",
@@ -748,7 +755,12 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
 
   test("mounts the config .env names, and the default is the native FlashArray config", () => {
     const collector = compose().services[COLLECTOR_SERVICE];
-    expect(collector.container_name).toBe(COLLECTOR_SERVICE);
+    // Named by .env, the default the service's own name: a second array's
+    // agent on the same machine gets a name of its own there, which an
+    // upgrade (it replaces this file) never takes away.
+    expect(collector.container_name).toBe(
+      `\${STORAGE_ARRAY_AGENT_CONTAINER_NAME:-${COLLECTOR_SERVICE}}`,
+    );
     expect(collector.volumes).toEqual([
       "./${STORAGE_ARRAY_COLLECTOR_CONFIG:-otel-collector-config.yaml}:/etc/otelcol-contrib/config.yaml:ro",
     ]);
@@ -1032,6 +1044,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       "ONEUPTIME_URL",
       "ONEUPTIME_TELEMETRY_INGESTION_KEY",
       "STORAGE_ARRAY_NAME",
+      // A name someone may export, so quoted like the others.
+      "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
     ]) {
       expect(heredoc[1]).toContain(`${name}=$(compose_env_quote "$${name}")`);
     }
@@ -1067,6 +1081,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       [
         ...CONFIG_ENV,
         "STORAGE_ARRAY_COLLECTOR_CONFIG",
+        "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
         ...PLATFORM_COMPOSE_ENV,
         ...HARVEST_ENV,
       ].sort(),

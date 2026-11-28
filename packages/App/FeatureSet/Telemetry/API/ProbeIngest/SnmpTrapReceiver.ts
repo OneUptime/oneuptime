@@ -1,11 +1,11 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { ProbeExpressRequest } from "../../Types/Request";
-import ProbeService from "Common/Server/Services/ProbeService";
 import Express, {
   ExpressResponse,
   ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import SnmpTrapReceiverReports from "Common/Server/Utils/Monitor/SnmpTrapReceiverReports";
 import SnmpTrapReceiverUsers from "Common/Server/Utils/Monitor/SnmpTrapReceiverUsers";
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -27,13 +27,16 @@ import ProbeConnectionRefusals from "Common/Types/Probe/ProbeConnectionRefusals"
  *
  * The probe says how its receiver is - its engine ID, how many SNMPv3 users
  * it has, the SNMPv3 traps it refused - and is handed back the SNMPv3 users
- * of the devices assigned to it, which replace the ones it had. The probe is
- * the AUTHENTICATED one, never one named in the body: a probe only ever
- * hears its own devices' users, and only ever writes its own report.
+ * it may take traps from, which replace the ones it had: those of the
+ * devices assigned to it, and the default credential profiles of the sites
+ * whose Default Probe it is (SnmpTrapReceiverUsers). The probe is the
+ * AUTHENTICATED one, never one named in the body: a probe only ever hears
+ * its own devices' and sites' users, and only ever writes its own report.
  *
- * A receiver that is off is handed no users. A report is kept for a
- * project's own probes only (ProbeService.recordSnmpTrapReceiverReport); a
- * global probe still gets the users of the devices assigned to it.
+ * A receiver that is off is handed no users. A project's own probe keeps
+ * its report whole; a global probe keeps on itself only what belongs to no
+ * project, and each project's refused traps are kept for that project alone
+ * (SnmpTrapReceiverReports, #11173).
  */
 
 const router: ExpressRouter = Express.getRouter();
@@ -78,15 +81,19 @@ router.post(
         );
       }
 
-      const isReportKept: boolean =
-        await ProbeService.recordSnmpTrapReceiverReport({
-          probeId: probeId,
-          report: report,
-        });
-
+      /*
+       * The users first: a global probe's refusals are split by project
+       * against the user names each project handed it (#11173).
+       */
       const users: Array<SnmpTrapReceiverUser> = report.isEnabled
         ? await SnmpTrapReceiverUsers.getUsersForProbe(probeId)
         : [];
+
+      const isReportKept: boolean = await SnmpTrapReceiverReports.record({
+        probeId: probeId,
+        report: report,
+        users: users,
+      });
 
       return Response.sendJsonObjectResponse(req, res, {
         users: users as unknown as JSONArray,

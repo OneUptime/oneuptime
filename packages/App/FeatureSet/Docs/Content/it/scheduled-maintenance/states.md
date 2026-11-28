@@ -72,7 +72,7 @@ I pulsanti dell'intestazione prendono il nome dai vostri stati. Finché l'evento
 
 Un evento si avvia quando passa da uno stato in cui è in attesa a **In corso**, oppure direttamente a uno stato vostro posto tra **In corso** e **Terminato**. Allora:
 
-- **I suoi monitor smettono di essere controllati** e passano al suo **Cambia lo stato del monitor in**, se ne ha uno. Anche un monitor che aggiungete all'evento mentre è in corso cambia.
+- **I suoi monitor smettono di essere controllati** e passano al suo **Cambia lo stato del monitor in**, se ne ha uno. Anche un monitor che aggiungete all'evento mentre è in corso cambia. Se non ne ha uno, mantengono il loro stato, e il loro tempo di attività, le loro pagine di stato e i loro SLO escludono quel tempo fino alla fine dell'evento.
 - **Le sue pagine di stato lo elencano come in corso**, e i suoi iscritti vengono avvisati: alla sua ora se **Quando l'evento inizia** è attivo, e a mano come dice **Notifica gli iscritti alla pagina di stato** nella finestra di dialogo.
 - **I suoi proprietari vengono avvisati**, se hanno attivato la notifica di cambio di stato, e l'evento compare in **Eventi di manutenzione in corso**.
 

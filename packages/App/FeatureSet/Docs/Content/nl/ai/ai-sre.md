@@ -427,6 +427,8 @@ Een beslissing wordt één keer genomen, met de instellingen van het project op 
 
 Als het onderzoek de oorzaak in de code vindt, zegt de stap wat ervan terechtkwam: de pull request met de fix die OneUptime AI schrijft of opende, met een link ernaar in Code; de ene instellingsstap die in de weg staat, zoals **Een repository verbinden**; of **Herstel-pull-request openen**, met de reden waarom OneUptime AI die niet zelf opende (zie [Automatische codefixes](#automatische-codefixes)).
 
+**Herstel-pull-request openen** werkt alleen in een repository die je in Code mag gebruiken: een die je kunt lezen en waarin je OneUptime AI mag laten werken, waarvoor je het recht nodig hebt om hem te bewerken. Zijn er meerdere van jou verbonden en heet geen ervan zo als de monitor van het incident of de waarschuwing, dan vraagt de stap eerst in welke repository de code staat, en biedt hij alleen die van jou aan. Mag je geen van de verbonden repository's gebruiken, dan biedt de stap deze knop niet aan. Zie [Waar hersteltaken starten](/docs/ai/ai-agent#waar-hersteltaken-starten).
+
 De tijdlijn van het incident of de waarschuwing legt elke wijziging vast. Zodra een goedgekeurd plan is uitgevoerd, somt het item ervan elke opdracht op in de volgorde waarin die werd uitgevoerd, met waar die werd uitgevoerd en hoe die afliep, en het item van een rollback somt elke opdracht die een wijziging ongedaan maakt op dezelfde manier op, met de opdracht die werd teruggedraaid. De lijst staat onder **Details tonen** van het item, alleen op de tijdlijn: de Slack- en Microsoft Teams-kanalen van het incident of de waarschuwing krijgen hooguit de ene regel van het item, nooit de lijst.
 
 ### Waarom OneUptime AI geen fix vond, of stopte

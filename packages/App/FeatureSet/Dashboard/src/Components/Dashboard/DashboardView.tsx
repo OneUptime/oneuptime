@@ -122,8 +122,10 @@ import DashboardVariable, {
 import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { useRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import { PAGE_DOCK_END_CLASS_NAME } from "Common/UI/Utils/PageDock";
@@ -239,9 +241,20 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
    * TablePermission either way; what was broken is that the UI never said so,
    * and the work was lost when it finally did.
    */
+  /*
+   * On the dashboard's page, what its labels leave the reader (#11259): a
+   * role limited to some labels edits only the dashboards carrying one.
+   */
+  const dashboardOptions: PermissionGateOptions | undefined =
+    useRecordGateOptions(new Dashboard(), props.dashboardId);
+
   const editGate: PermissionGateResult = useMemo(() => {
-    return PermissionGate.check(new Dashboard(), ModelAction.Update);
-  }, []);
+    return PermissionGate.check(
+      new Dashboard(),
+      ModelAction.Update,
+      dashboardOptions,
+    );
+  }, [dashboardOptions]);
 
   // A playlist's turn is read only, whoever watches it.
   const canEditDashboard: boolean = editGate.isAllowed && !isPlayback;

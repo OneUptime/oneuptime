@@ -70,6 +70,7 @@ import {
   DataSecurityCheckInfo,
   getDataSecurityCheck,
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
+import { TelemetryLeakFixOwnerKind } from "Common/Types/DataSecurity/TelemetryLeakFix";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { toTracesExplorerQueryParams } from "Common/Utils/Telemetry/CrossSignalScope";
@@ -1552,7 +1553,11 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                             "service",
                             <RowName
                               route={recordRoute(
-                                PageMap.SERVICE_VIEW,
+                                // A web or mobile app's session replays: its RUM application's page (#11395).
+                                place.ownerKind ===
+                                  TelemetryLeakFixOwnerKind.RumApplication
+                                  ? PageMap.RUM_APPLICATION_VIEW
+                                  : PageMap.SERVICE_VIEW,
                                 place.serviceId,
                               )}
                             >
