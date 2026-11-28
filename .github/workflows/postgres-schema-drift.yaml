@@ -41,9 +41,14 @@ jobs:
   # PostgreSQL client tools the backup suite needs are shard 3's. Put a new
   # suite in the shard with the least time, and add a shard rather than
   # raise the cap. Tests/Ops/PostgresSchemaDriftShards holds these rules.
-  # Shard 6 runs one suite: ProbeResultsBurstPostgres (#11369) drives two
-  # probes and the ingest queue for six runs of three minutes each, some 20
-  # minutes, more than any other shard has to spare.
+  # Shards 6, 7 and 8 run one suite between them: ProbeResultsBurstPostgres
+  # (#11369) drives two probes and the ingest queue for nine runs of real
+  # time - six of three minutes (#11247, #11333) and #11386's of five, five
+  # and nine - some 37 minutes, more than any shard holds: with all of it,
+  # shard 6 ran out of its 30 (2026-11-28). Each runs a share of its tests
+  # (jest's -t), a run another compares with in the same shard, every test
+  # in exactly one: about 12, 11 and 14 minutes of runs, and the monitors
+  # seeded again in each.
   postgres-schema-drift:
     name: postgres-schema-drift (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
@@ -52,7 +57,7 @@ jobs:
       # One shard's failure should not hide the others' results.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       # LocalMigrationGenerationDataSource defaults to localhost:5400, which is
@@ -1198,14 +1203,21 @@ jobs:
           Tests/Server/Utils/Monitor/MonitorResultStatementsPostgres.test.ts
           --forceExit
 
-      # #11247, #11333: how bursty probe results are where they are
+      # #11247, #11333, #11386: how bursty probe results are where they are
       # evaluated. Two probes check 300 monitors a minute through the real
       # claim, and the Telemetry queue's workers evaluate each result
       # against the migrated tables, cloned into an isolated schema: results
-      # a second, evaluations at once, checks skipped, and how far apart each
-      # monitor's checks are, for the probes' ways of asking. Wall-clock
-      # bound (six three-minute runs), so it has shard 6 to itself.
-      - name: Test how bursty probe results are where they are evaluated
+      # a second, evaluations at once, checks skipped, how far apart each
+      # monitor's checks are and where in its probe's round each is handed
+      # out, for the probes' ways of asking. Its nine runs are bound by the
+      # clock, 37 minutes, so shards 6, 7 and 8 share them out by name
+      # (jest's -t, matched against each test's whole name, any case), and
+      # each seeds the monitors again. A run whose report another reads is
+      # in that run's shard: "own moments" and #11333's one worker compare
+      # with "today", #11333's three workers at their own moments with
+      # theirs before. Shard 6: the probes asking as they did before #11333
+      # ("today") and the runs compared with it, four runs, 12 minutes.
+      - name: Test how bursty probe results are where they are evaluated, against how probes asked before
         if: matrix.shard == 6
         working-directory: packages/Common
         env:
@@ -1215,7 +1227,38 @@ jobs:
           PROBE_RESULTS_BURST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Utils/Monitor/ProbeResultsBurstPostgres.test.ts --forceExit
+          Tests/Server/Utils/Monitor/ProbeResultsBurstPostgres.test.ts
+          -t "today" --forceExit
+
+      # Shard 7: the Helm chart's three workers a probe - #11333's runs
+      # before and at their own moments, and #11386's - 11 minutes.
+      - name: Test how bursty probe results are where they are evaluated, with the Helm chart's three workers a probe
+        if: matrix.shard == 7
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_RESULTS_BURST_TESTS: "true"
+          PROBE_RESULTS_BURST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_RESULTS_BURST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_RESULTS_BURST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Monitor/ProbeResultsBurstPostgres.test.ts
+          -t "Helm chart's three workers" --forceExit
+
+      # Shard 8: #11386's probes of one worker - a busy one, and one whose
+      # round passes the next minute - 14 minutes.
+      - name: Test where a busy probe of one worker hands out its monitors, and who waits when it falls behind
+        if: matrix.shard == 8
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_RESULTS_BURST_TESTS: "true"
+          PROBE_RESULTS_BURST_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_RESULTS_BURST_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_RESULTS_BURST_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Monitor/ProbeResultsBurstPostgres.test.ts
+          -t "#11386: (one worker a probe|a probe whose round passes)" --forceExit
 
       # Clones the migrated Workflow table (its unique key included) into an
       # isolated schema: the incoming email key's compare-and-set must write

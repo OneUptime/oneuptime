@@ -81,7 +81,10 @@
  *   PROBE_RESULTS_BURST_TEST_DATABASE_PORT=5400 \
  *   DATABASE_PASSWORD=... npx jest Tests/Server/Utils/Monitor/ProbeResultsBurstPostgres.test.ts
  *
- * It runs about twenty minutes of real time. PROBE_RESULTS_BURST_REPORT_FILE,
+ * It runs about 37 minutes of real time, more than a CI job has: the
+ * Postgres Schema Drift workflow shares its tests out between three shards
+ * by name (jest's -t), a test that reads another's report (measured) in
+ * that test's shard. PROBE_RESULTS_BURST_REPORT_FILE,
  * when set, is where the measurements are written as JSON. The tables'
  * STRUCTURE is cloned into a unique schema (search_path holds only that
  * schema), dropped afterwards; every row is synthetic.
