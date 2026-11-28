@@ -76,6 +76,58 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownEditor", () => {
   };
 });
 
+// What Export Markdown and Export PDF hand the browser to download (#10955).
+const mockDownloads: Array<{
+  content: unknown;
+  filename: string;
+  mimeType?: string;
+}> = [];
+const mockPdfDownloads: Array<{
+  title: string;
+  markdown: string;
+  label: string;
+  exportedAt: Date;
+}> = [];
+let mockPdfFailure: Error | null = null;
+
+jest.mock("../../../UI/Utils/DownloadFile", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Utils/DownloadFile",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    __esModule: true,
+    default: (file: {
+      content: unknown;
+      filename: string;
+      mimeType?: string;
+    }): void => {
+      mockDownloads.push(file);
+    },
+  };
+});
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/CompliancePaperworkPdfDownload",
+  () => {
+    return {
+      downloadMarkdownPdf: async (file: {
+        title: string;
+        markdown: string;
+        label: string;
+        exportedAt: Date;
+      }): Promise<void> => {
+        if (mockPdfFailure) {
+          throw mockPdfFailure;
+        }
+
+        mockPdfDownloads.push(file);
+      },
+    };
+  },
+);
+
 import DataSecurityApi, {
   DataSecurityApiError,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
@@ -84,13 +136,36 @@ import SecurityCaseExposureAssessment, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/SecurityCaseExposureAssessment";
 import {
   DRAFT_NOT_LEGAL_ADVICE,
+  EXPOSURE_CARD_PLACE,
+  LOGS_BEST_EFFORT,
+  LOGS_NO_CONTENT_ACCESS,
+  LOGS_NONE_FROM_OUTSIDE,
+  LOGS_NONE_SO_FAR,
   NOT_LEGAL_ADVICE,
+  READS_LOGGED,
   READS_NOT_LOGGED,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
 import {
+  ExposureLogUnreadReason,
+  getUnreadLogs,
+} from "../../../Types/DataSecurity/AccessLogReads";
+import {
+  EXPOSURE_NOW,
+  exposureAnswerOf,
+  exposureAssessmentOf,
+  exposureLogReadOf,
+  exposureViewOf,
+} from "../../Helpers/ExposureAssessmentAnswers";
+import {
+  BREACH_PLACE_CHOICES,
+  BREACH_PLACE_REGION_CHOICES,
   BreachLawId,
   BreachPlace,
+  COVERED_US_STATES,
+  UNCOVERED_US_STATES,
+  US_JURISDICTION_PLACES,
 } from "../../../Types/DataSecurity/BreachLaws";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import { DataSecurityExposureAssessmentResponse } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { getBuiltInDataType } from "../../../Types/DataSecurity/DataTypeCatalog";
@@ -116,6 +191,7 @@ import { ImpactAssessmentSectionSource } from "../../../Types/DataSecurity/Impac
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { getDataStoreEntityValue } from "../../../Types/SecurityCase/SecurityEntity";
+import Toast from "../../../UI/Utils/Toast";
 
 const CASE_ID: ObjectID = new ObjectID("10377000-0000-4000-8000-0000000000c1");
 const STORE_ID: string = "10377000-0000-4000-8000-0000000000b1";
@@ -320,6 +396,28 @@ describe("which cases have it", () => {
     expect(isCaseAboutAStore(undefined)).toBe(false);
   });
 
+  test("the card is the Overview's place was-it-a-breach, assessed or not, so a link to it lands on it (#10954)", async () => {
+    await renderCards();
+
+    expect(EXPOSURE_CARD_PLACE).toBe("was-it-a-breach");
+    expect(document.getElementById(EXPOSURE_CARD_PLACE)).toHaveTextContent(
+      "Was It a Breach?",
+    );
+    expect(
+      document
+        .getElementById(EXPOSURE_CARD_PLACE)!
+        .querySelector('[data-testid="security-case-exposure-assessment"]'),
+    ).not.toBeNull();
+
+    cleanup();
+    reads.mockResolvedValue(answerOf(NOT_ASSESSED));
+    await renderCards();
+
+    expect(document.getElementById(EXPOSURE_CARD_PLACE)).toHaveTextContent(
+      "Not assessed yet",
+    );
+  });
+
   test("a reader the server refuses - one who may not read the store's findings - sees nothing", async () => {
     reads.mockRejectedValue(
       new DataSecurityApiError("Ask a project admin for a role.", 422),
@@ -502,7 +600,7 @@ describe("the EU emails bucket, open nine days with reads not logged", () => {
     // Not triggered: folded until asked for.
     expect(
       within(laws).queryByTestId(
-        `security-case-exposure-law-${BreachLawId.TexasIndividuals}`,
+        `security-case-exposure-law-${BreachLawId.HipaaPeople}`,
       ),
     ).not.toBeInTheDocument();
 
@@ -520,9 +618,18 @@ describe("the EU emails bucket, open nine days with reads not logged", () => {
     expect(more).toHaveTextContent("Show fewer laws");
     expect(
       within(laws).getByTestId(
-        `security-case-exposure-law-${BreachLawId.TexasIndividuals}`,
+        `security-case-exposure-law-${BreachLawId.HipaaPeople}`,
       ),
     ).toHaveAttribute("data-status", "NotTriggered");
+    // The US states' laws none of the data brings in are counted, never fifty rows (#10952).
+    expect(
+      within(laws).queryByTestId(
+        `security-case-exposure-law-${BreachLawId.TexasIndividuals}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(laws).getByTestId("security-case-exposure-states-not-applying"),
+    ).toBeInTheDocument();
     // What the table does not cover, in plain words.
     expect(
       screen.getByTestId("security-case-exposure-uncovered"),
@@ -811,5 +918,814 @@ describe("the notices OneUptime AI drafted", () => {
     expect(
       screen.queryByTestId("security-case-exposure-places-change"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * THE NOTICES AS ONE DOCUMENT (#10955): Export PDF in the Breach Notices
+ * card's header, Export Markdown in its ⋯, as the impact assessment's page
+ * has them. Each downloads the same document - drafts, "not legal advice"
+ * at its top - made only from what the cards show. Nothing is sent.
+ */
+describe("exporting the notices", () => {
+  const SAVED: Partial<StoredExposureAssessment> = {
+    sections: {
+      [ExposureDraftPart.Explanation]: {
+        part: ExposureDraftPart.Explanation,
+        markdown:
+          "Anyone on the internet could read the bucket, and reads were not logged, so treat the data as read.",
+        source: ImpactAssessmentSectionSource.Drafted,
+        factKeys: [],
+        draftedAt: DRAFTED_AT,
+      },
+      [ExposureDraftPart.PeopleNotice]: {
+        part: ExposureDraftPart.PeopleNotice,
+        markdown:
+          "We are writing to tell you that a list holding your email address was readable on the internet.",
+        source: ImpactAssessmentSectionSource.Edited,
+        factKeys: [],
+        editedAt: DRAFTED_AT,
+        editedByUserId: USER_ID,
+      },
+    },
+  };
+
+  function noticesCard(): HTMLElement {
+    // The card the notices sit in: its header holds the export buttons.
+    let node: HTMLElement | null = screen.getByTestId(
+      "security-case-exposure-notices",
+    );
+
+    while (
+      node &&
+      !within(node).queryByRole("button", { name: "Export PDF" })
+    ) {
+      node = node.parentElement;
+    }
+
+    expect(node).not.toBeNull();
+    return node!;
+  }
+
+  beforeEach(() => {
+    mockDownloads.length = 0;
+    mockPdfDownloads.length = 0;
+    mockPdfFailure = null;
+    reads.mockResolvedValue(
+      answerOf({
+        assessment: assessmentOf(SAVED),
+        editors: { [USER_ID]: "Ana Ortiz" },
+      }),
+    );
+  });
+
+  test("Export PDF is in the Breach Notices card's header, and downloads the drafts as one document, not legal advice at its top", async () => {
+    await renderCards();
+
+    const card: HTMLElement = noticesCard();
+    const exportPdf: HTMLElement = within(card).getByRole("button", {
+      name: "Export PDF",
+    });
+
+    // Not on the Was It a Breach? card: the notices are what is exported.
+    expect(
+      within(
+        screen.getByTestId("security-case-exposure-assessment"),
+      ).queryByRole("button", { name: "Export PDF" }),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(exportPdf);
+    });
+    await flush();
+
+    expect(mockPdfDownloads).toHaveLength(1);
+
+    const pdf: (typeof mockPdfDownloads)[number] = mockPdfDownloads[0]!;
+
+    expect(pdf.title).toBe("Draft Breach Notices: eu-customer-exports");
+    expect(pdf.label).toBe("eu-customer-exports breach notices");
+    expect(pdf.exportedAt).toBeInstanceOf(Date);
+    expect(
+      pdf.markdown.startsWith("# Draft Breach Notices: eu-customer-exports"),
+    ).toBe(true);
+    expect(pdf.markdown.split("\n")[4]).toContain("not legal advice");
+    expect(pdf.markdown).toContain("Nothing was sent");
+    expect(pdf.markdown).toContain(
+      "**GDPR Article 33: Notify the supervisory authority.**",
+    );
+    // Each part as a person last saved it.
+    expect(pdf.markdown).toContain(
+      "Anyone on the internet could read the bucket, and reads were not logged",
+    );
+    expect(pdf.markdown).toContain(
+      "We are writing to tell you that a list holding your email address",
+    );
+    expect(pdf.markdown).toContain("_Edited by Ana Ortiz on 2026-11-11._");
+    expect(mockDownloads).toHaveLength(0);
+  });
+
+  test("Export Markdown is in the card's ⋯, and downloads the same document as a Markdown file", async () => {
+    await renderCards();
+
+    const card: HTMLElement = noticesCard();
+
+    await act(async () => {
+      fireEvent.click(
+        within(card).getByRole("button", { name: "More options" }),
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("menuitem", { name: "Export Markdown" }),
+      );
+    });
+
+    expect(mockDownloads).toHaveLength(1);
+
+    const file: (typeof mockDownloads)[number] = mockDownloads[0]!;
+
+    expect(file.filename.endsWith(".md")).toBe(true);
+    expect(file.filename).toContain("eu-customer-exports");
+    expect(file.mimeType).toBe("text/markdown;charset=utf-8;");
+    expect(String(file.content)).toContain(
+      "# Draft Breach Notices: eu-customer-exports",
+    );
+    expect(String(file.content)).toContain("not legal advice");
+    expect(mockPdfDownloads).toHaveLength(0);
+  });
+
+  test("while a part is being edited, both wait - the document holds what was saved - and say why", async () => {
+    await renderCards();
+
+    const id: string = `security-case-exposure-part-${ExposureDraftPart.Explanation}`;
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`${id}-edit`));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId(`${id}-editor`), {
+        target: { value: "Words not saved yet, which no export may hold." },
+      });
+    });
+
+    const exportPdf: HTMLElement = within(noticesCard()).getByRole("button", {
+      name: "Export PDF",
+    });
+
+    expect(exportPdf).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(exportPdf);
+    });
+
+    expect(mockPdfDownloads).toHaveLength(0);
+  });
+
+  test("a PDF that cannot be made says why, and nothing is downloaded", async () => {
+    const shown: Array<string> = [];
+
+    jest.spyOn(Toast, "error").mockImplementation(((message: string): void => {
+      shown.push(message);
+    }) as never);
+    mockPdfFailure = new Error("The PDF engine could not load.");
+
+    await renderCards();
+
+    await act(async () => {
+      fireEvent.click(
+        within(noticesCard()).getByRole("button", { name: "Export PDF" }),
+      );
+    });
+    await flush();
+
+    expect(mockPdfDownloads).toHaveLength(0);
+    expect(shown.join(" ")).toContain("The PDF engine could not load.");
+  });
+
+  test("a case not assessed yet has no notices to export", async () => {
+    reads.mockResolvedValue(answerOf(NOT_ASSESSED));
+
+    await renderCards();
+
+    expect(screen.queryByRole("button", { name: "Export PDF" })).toBeNull();
+  });
+});
+
+/*
+ * WHO READ IT, FROM THE STORE'S OWN ACCESS LOGS (#10951): where reads were
+ * logged, the reads line says what OneUptime read of the logs - reads from
+ * outside, by whom, what was read and sent, how far the read went - or why
+ * it could not; Read the Access Logs reads them; and who read it from
+ * outside is named only when the server sent the names. "Reads were not
+ * logged. Treat the data as read." stays where they were not.
+ */
+describe("who read it, from the store's access logs", () => {
+  function readsLine(): HTMLElement {
+    return screen.getByTestId("security-case-exposure-reads");
+  }
+
+  function logged(
+    logRead?: Parameters<typeof exposureLogReadOf>[0] | "none",
+    data: Partial<DataSecurityExposureAssessmentResponse> = {},
+  ): DataSecurityExposureAssessmentResponse {
+    return exposureAnswerOf({
+      view: exposureViewOf({
+        accessLogging: true,
+        logRead:
+          logRead === "none" || logRead === undefined
+            ? undefined
+            : exposureLogReadOf(logRead),
+      }),
+      ...data,
+    });
+  }
+
+  test("logged and not read yet: the logs say who read it, and Read the Access Logs reads them", async () => {
+    reads.mockResolvedValue(logged("none"));
+
+    const readLogs: SpyInstance<typeof DataSecurityApi.readExposureLogs> = jest
+      .spyOn(DataSecurityApi, "readExposureLogs")
+      .mockResolvedValue(logged({ anonymous: 3, outside: 2 }));
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(READS_LOGGED);
+    expect(readsLine()).toHaveAttribute("data-from-logs", "false");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-exposure-read-logs"));
+    });
+    await flush();
+
+    expect(readLogs).toHaveBeenCalledWith(CASE_ID);
+    expect(readsLine()).toHaveAttribute("data-from-logs", "true");
+    expect(readsLine()).toHaveTextContent(
+      "OneUptime read the store's access logs for this window: 5 reads from outside your accounts.",
+    );
+    // The data counts as read: drawn as the brief's warning is.
+    expect(readsLine().className).toContain("bg-amber-50");
+    // Read again, for a window that changed.
+    expect(
+      within(readsLine()).getByRole("button", { name: "Read the Logs Again" }),
+    ).toBeInTheDocument();
+  });
+
+  test("reads from outside: by whom, what was read and sent, and how far the read went", async () => {
+    reads.mockResolvedValue(logged({ anonymous: 3, outside: 2, unknown: 1 }));
+
+    await renderCards();
+
+    const line: HTMLElement = readsLine();
+
+    expect(line).toHaveTextContent(
+      "OneUptime read the store's access logs for this window: 6 reads from outside your accounts.",
+    );
+    expect(line).toHaveTextContent(
+      "3 by anyone on the internet, from 3 addresses",
+    );
+    expect(line).toHaveTextContent("2 by 1 account outside your company");
+    expect(line).toHaveTextContent("1 by requesters OneUptime cannot place");
+    expect(line).toHaveTextContent("6 objects read, 6 MB sent.");
+    expect(line).toHaveTextContent("It read 240 log files of the window.");
+    // No reads from outside to doubt: no best-effort warning.
+    expect(line).not.toHaveTextContent(LOGS_BEST_EFFORT);
+  });
+
+  test("who read it from outside is named only when the server sent the names", async () => {
+    reads.mockResolvedValue(logged({ outside: 2, principals: true }));
+
+    await renderCards();
+
+    const named: HTMLElement = within(readsLine()).getByTestId(
+      "security-case-exposure-reads-principals",
+    );
+
+    expect(named).toHaveTextContent("Who Read It From Outside");
+    expect(named).toHaveTextContent(
+      "arn:aws:sts::999999999999:assumed-role/partner-reader/s1",
+    );
+    // The principal is code, read from the left on any page.
+    expect(
+      within(named).getByText(
+        "arn:aws:sts::999999999999:assumed-role/partner-reader/s1",
+      ).tagName,
+    ).toBe("CODE");
+    expect(named).toHaveTextContent("2 reads, 2 MB, from");
+
+    cleanup();
+    reads.mockResolvedValue(logged({ outside: 2, principals: false }));
+    await renderCards();
+
+    expect(
+      within(readsLine()).queryByTestId(
+        "security-case-exposure-reads-principals",
+      ),
+    ).toBeNull();
+    expect(readsLine()).toHaveTextContent(
+      "2 by 1 account outside your company",
+    );
+  });
+
+  test("every log file read and none from outside: says so, and that a person still checks", async () => {
+    reads.mockResolvedValue(logged({}));
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(LOGS_NONE_FROM_OUTSIDE);
+    expect(readsLine()).toHaveTextContent(LOGS_BEST_EFFORT);
+    expect(readsLine().className).toContain("bg-gray-50");
+  });
+
+  test("part of the logs read: how far, and that the counts are those so far", async () => {
+    reads.mockResolvedValue(logged({ isComplete: false }));
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(LOGS_NONE_SO_FAR);
+    expect(readsLine()).toHaveTextContent("It read 240 log files, to");
+    expect(readsLine()).toHaveTextContent("the counts are those so far");
+  });
+
+  test("logs the store's connection may not read say so, under the brief's line", async () => {
+    reads.mockResolvedValue(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          accessLogging: true,
+          logRead: getUnreadLogs({
+            reason: ExposureLogUnreadReason.NoContentAccess,
+            now: EXPOSURE_NOW,
+          }),
+        }),
+      }),
+    );
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(READS_LOGGED);
+    expect(
+      within(readsLine()).getByTestId("security-case-exposure-reads-logs-note"),
+    ).toHaveTextContent(LOGS_NO_CONTENT_ACCESS);
+  });
+
+  test("logs that could not be read name where they are, as code", async () => {
+    reads.mockResolvedValue(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          accessLogging: true,
+          logRead: getUnreadLogs({
+            reason: ExposureLogUnreadReason.LogsUnreadable,
+            now: EXPOSURE_NOW,
+            logLocation: "s3://acme-logs/logs/",
+          }),
+        }),
+      }),
+    );
+
+    await renderCards();
+
+    const note: HTMLElement = within(readsLine()).getByTestId(
+      "security-case-exposure-reads-logs-note",
+    );
+
+    expect(note).toHaveTextContent(
+      "OneUptime could not read the bucket the logs are written to, s3://acme-logs/logs/.",
+    );
+    expect(within(note).getByText("s3://acme-logs/logs/").tagName).toBe("CODE");
+  });
+
+  test("a read for the window as it was is said to be, and its counts are not drawn", async () => {
+    reads.mockResolvedValue(
+      logged({ outside: 9, windowStart: "2026-10-30T09:00:00.000Z" }),
+    );
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(READS_LOGGED);
+    expect(readsLine()).toHaveTextContent("for the window as it was then");
+    expect(readsLine()).not.toHaveTextContent("9 reads from outside");
+  });
+
+  test("no button where the logs cannot be read here: reads not logged, a reader who may not change it, a store other than an S3 bucket", async () => {
+    reads.mockResolvedValue(exposureAnswerOf());
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(READS_NOT_LOGGED);
+    expect(screen.queryByTestId("security-case-exposure-read-logs")).toBeNull();
+
+    cleanup();
+    reads.mockResolvedValue(
+      logged("none", { canChange: false, canDraft: false }),
+    );
+    await renderCards();
+
+    expect(screen.queryByTestId("security-case-exposure-read-logs")).toBeNull();
+
+    cleanup();
+    reads.mockResolvedValue(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          accessLogging: true,
+          storeKind: "AWS Redshift Cluster",
+        }),
+      }),
+    );
+    await renderCards();
+
+    expect(screen.queryByTestId("security-case-exposure-read-logs")).toBeNull();
+  });
+
+  test("a read that fails says why, and the line stays as it was", async () => {
+    reads.mockResolvedValue(logged("none"));
+    jest
+      .spyOn(DataSecurityApi, "readExposureLogs")
+      .mockRejectedValue(
+        new DataSecurityApiError("The log bucket is in another account.", 400),
+      );
+
+    await renderCards();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-exposure-read-logs"));
+    });
+    await flush();
+
+    expect(readsLine()).toHaveTextContent(
+      "The log bucket is in another account.",
+    );
+    expect(readsLine()).toHaveTextContent(READS_LOGGED);
+  });
+
+  test("the checklist's who-read-it line answers from the logs", async () => {
+    reads.mockResolvedValue(logged({ anonymous: 3, outside: 2 }));
+
+    await renderCards();
+
+    expect(
+      screen.getByTestId(
+        `security-case-exposure-checklist-${ExposureChecklistItem.WhoReadIt}`,
+      ),
+    ).toHaveTextContent(
+      "OneUptime read the store's access logs for this window: 5 reads from outside your accounts.",
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Every US state (#10952)
+ * ---------------------------------------------------------------------------
+ */
+
+// A store of Social Security numbers with names, about people in the US: every state's law covers it.
+function ssnAnswer(
+  places?: Array<BreachPlace>,
+): DataSecurityExposureAssessmentResponse {
+  return exposureAnswerOf({
+    view: exposureViewOf({
+      dataTypeIds: ["us-ssn", "person-name"],
+      countries: ["US"],
+      places,
+    }),
+    assessment: exposureAssessmentOf(
+      places
+        ? {
+            peopleLiveIn: {
+              places,
+              saidAt: EXPOSURE_NOW.toISOString(),
+              saidByUserId: USER_ID,
+            },
+          }
+        : {},
+    ),
+    editors: { [USER_ID]: "Alice Example" },
+  });
+}
+
+async function openStatesPicker(): Promise<HTMLElement> {
+  const combobox: HTMLElement = screen.getByRole("combobox", {
+    name: "US states",
+  });
+
+  await act(async () => {
+    fireEvent.focus(combobox);
+    fireEvent.keyDown(combobox, { key: "ArrowDown", keyCode: 40 });
+  });
+
+  return combobox;
+}
+
+async function pickState(name: string): Promise<void> {
+  await openStatesPicker();
+
+  const option: HTMLElement = await screen.findByRole("option", {
+    name: new RegExp(`^${name}`),
+  });
+
+  await act(async () => {
+    fireEvent.click(option);
+  });
+}
+
+describe("every US state is a place a person can name (#10952)", () => {
+  test("the regions are chips and the states a list of their own: picking two states and the EU saves all three", async () => {
+    reads.mockResolvedValue(answerOf({ view: viewOf({ countries: [] }) }));
+    const saved: SpyInstance<typeof DataSecurityApi.setExposurePeoplePlaces> =
+      jest
+        .spyOn(DataSecurityApi, "setExposurePeoplePlaces")
+        .mockResolvedValue(
+          ssnAnswer([
+            BreachPlace.Eea,
+            BreachPlace.Illinois,
+            BreachPlace.Georgia,
+          ]),
+        );
+
+    await renderCards();
+
+    // The chips are the regions; no state is a chip, and "Another US state" is no longer offered.
+    for (const place of BREACH_PLACE_REGION_CHOICES) {
+      expect(
+        screen.getByTestId(`security-case-exposure-place-${place}`),
+      ).toBeInTheDocument();
+    }
+
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-place-${BreachPlace.Illinois}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-place-${BreachPlace.OtherUsState}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Pick each state where some of them live, the District of Columbia and Puerto Rico among them: each has a breach law of its own.",
+      ),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`security-case-exposure-place-${BreachPlace.Eea}`),
+      );
+    });
+    await pickState("Illinois");
+    // Georgia the state reads "Georgia", never the country's words.
+    await pickState("Georgia");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-exposure-save-places"));
+    });
+    await flush();
+
+    // The regions as picked, then the states in their own order.
+    expect(saved).toHaveBeenCalledWith({
+      securityCaseId: CASE_ID,
+      places: [BreachPlace.Eea, BreachPlace.Georgia, BreachPlace.Illinois],
+    });
+  });
+
+  test("the states are listed in alphabetical order, the District of Columbia and Puerto Rico among them", async () => {
+    reads.mockResolvedValue(answerOf({ view: viewOf({ countries: [] }) }));
+
+    await renderCards();
+    await openStatesPicker();
+
+    const names: Array<string> = screen
+      .getAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return (option.textContent || "").trim();
+      });
+
+    expect(names).toHaveLength(US_JURISDICTION_PLACES.length);
+    expect(names[0]).toMatch(/^Alabama/);
+    expect(names[names.length - 1]).toMatch(/^Wyoming/);
+    expect(
+      names.some((name: string): boolean => {
+        return name.startsWith("District of Columbia");
+      }),
+    ).toBe(true);
+    expect(
+      names.some((name: string): boolean => {
+        return name.startsWith("Puerto Rico");
+      }),
+    ).toBe(true);
+    expect(
+      names.some((name: string): boolean => {
+        return name.startsWith("Georgia (US state)");
+      }),
+    ).toBe(false);
+
+    // A state whose law the table does not hold says so, beside its name; one it holds does not.
+    for (const place of US_JURISDICTION_PLACES) {
+      const name: string = withMeaningKeyAsItsWord(BREACH_PLACE_CHOICES[place]);
+      const option: HTMLElement = screen
+        .getAllByRole("option")
+        .find((each: HTMLElement): boolean => {
+          return (each.textContent || "").trim().startsWith(name);
+        })!;
+
+      expect({
+        place,
+        saysNotInTable: (option.textContent || "").includes(
+          "Its breach law is not in OneUptime's table",
+        ),
+      }).toEqual({
+        place,
+        saysNotInTable: UNCOVERED_US_STATES.includes(place),
+      });
+    }
+  });
+
+  test("an answer saved before every state was named keeps its Another US state, as a chip to take back", async () => {
+    reads.mockResolvedValue(
+      answerOf({
+        view: viewOf({ countries: [], places: [BreachPlace.OtherUsState] }),
+        assessment: assessmentOf({
+          peopleLiveIn: {
+            places: [BreachPlace.OtherUsState],
+            saidAt: NOW.toISOString(),
+            saidByUserId: USER_ID,
+          },
+        }),
+        editors: { [USER_ID]: "Alice Example" },
+      }),
+    );
+
+    await renderCards();
+
+    expect(
+      screen.getByText(
+        "Alice Example said the people live in another US state.",
+      ),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("security-case-exposure-places-change"),
+      );
+    });
+
+    const chip: HTMLElement = screen.getByTestId(
+      `security-case-exposure-place-${BreachPlace.OtherUsState}`,
+    );
+
+    expect(chip).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("the US states' laws, while nobody said which states (#10952)", () => {
+  test("are one block saying how many states' laws may apply, folded, each state's notices under its name in alphabetical order", async () => {
+    reads.mockResolvedValue(ssnAnswer([BreachPlace.UnitedStates]));
+
+    await renderCards();
+
+    const block: HTMLElement = screen.getByTestId(
+      "security-case-exposure-state-laws",
+    );
+
+    expect(block).toHaveTextContent("US state laws");
+    expect(block).toHaveTextContent(
+      `The breach laws of ${COVERED_US_STATES.length} US states may apply if any of the people live there.`,
+    );
+    expect(block).toHaveTextContent(
+      "Say which states they live in, and only those states' laws stay.",
+    );
+    // Folded: no state's row is drawn until asked for.
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-law-${BreachLawId.AlabamaResidents}`,
+      ),
+    ).not.toBeInTheDocument();
+
+    const toggle: HTMLElement = within(block).getByRole("button", {
+      name: "Show the states' laws",
+    });
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveTextContent("Hide the states' laws");
+
+    const sections: Array<HTMLElement> = within(block).getAllByTestId(
+      /^security-case-exposure-state-laws-US-/,
+    );
+
+    expect(sections).toHaveLength(COVERED_US_STATES.length);
+    expect(sections[0]).toHaveTextContent("Alabama");
+
+    const alabama: HTMLElement = within(block).getByTestId(
+      `security-case-exposure-state-laws-${BreachPlace.Alabama}`,
+    );
+
+    expect(
+      within(alabama).getByTestId(
+        `security-case-exposure-law-${BreachLawId.AlabamaResidents}`,
+      ),
+    ).toHaveAttribute("data-status", "MayApply");
+    expect(
+      within(alabama).getByTestId(
+        `security-case-exposure-law-${BreachLawId.AlabamaAttorneyGeneral}`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(block).getByTestId(
+        `security-case-exposure-state-laws-${BreachPlace.Georgia}`,
+      ),
+    ).toHaveTextContent("Georgia");
+    expect(block).not.toHaveTextContent("Georgia (US state)");
+  });
+
+  test("a state a person named is drawn on its own with its deadline, and the others' laws are counted as not applying", async () => {
+    reads.mockResolvedValue(ssnAnswer([BreachPlace.Indiana]));
+
+    await renderCards();
+
+    // Indiana's 45 days are due first.
+    expect(
+      screen.getByTestId("security-case-exposure-headline"),
+    ).toHaveAttribute("data-rule", BreachLawId.IndianaResidents);
+    expect(
+      screen.getByTestId(
+        `security-case-exposure-law-${BreachLawId.IndianaAttorneyGeneral}`,
+      ),
+    ).toHaveAttribute("data-status", "MayApply");
+    expect(
+      screen.queryByTestId("security-case-exposure-state-laws"),
+    ).not.toBeInTheDocument();
+
+    const more: HTMLElement = screen.getByTestId(
+      "security-case-exposure-more-laws",
+    );
+
+    await act(async () => {
+      fireEvent.click(more);
+    });
+
+    expect(
+      screen.getByTestId("security-case-exposure-states-not-applying"),
+    ).toHaveTextContent(
+      `The breach laws of ${COVERED_US_STATES.length - 1} more US states do not apply on these facts.`,
+    );
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-law-${BreachLawId.AlabamaResidents}`,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a store none of whose data a state's law covers counts every state as not applying, folded", async () => {
+    await renderCards();
+
+    const more: HTMLElement = screen.getByTestId(
+      "security-case-exposure-more-laws",
+    );
+
+    await act(async () => {
+      fireEvent.click(more);
+    });
+
+    expect(
+      screen.getByTestId("security-case-exposure-states-not-applying"),
+    ).toHaveTextContent(
+      `The breach laws of ${COVERED_US_STATES.length} more US states do not apply on these facts.`,
+    );
+  });
+
+  test("what the table does not cover names the territories and every state it leaves out, and never the agencies' notices, which are rows", async () => {
+    reads.mockResolvedValue(ssnAnswer([BreachPlace.UnitedStates]));
+
+    await renderCards();
+
+    const uncovered: HTMLElement = screen.getByTestId(
+      "security-case-exposure-uncovered",
+    );
+
+    expect(uncovered).toHaveTextContent(
+      "Guam and the US Virgin Islands have breach laws of their own, which it does not cover.",
+    );
+    expect(uncovered).not.toHaveTextContent("consumer reporting agencies");
+
+    if (UNCOVERED_US_STATES.length > 0) {
+      expect(uncovered).toHaveTextContent(
+        "It does not cover the breach laws of",
+      );
+      expect(uncovered).toHaveTextContent(
+        "whose statutes could not be read from an official source: check them yourself.",
+      );
+      expect(uncovered).toHaveTextContent("West Virginia");
+      expect(uncovered).toHaveTextContent("Puerto Rico");
+    } else {
+      expect(uncovered).not.toHaveTextContent(
+        "It does not cover the breach laws of",
+      );
+    }
   });
 });

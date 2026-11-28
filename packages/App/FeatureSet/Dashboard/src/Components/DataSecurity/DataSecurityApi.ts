@@ -497,6 +497,15 @@ export default class DataSecurityApi {
     )) as unknown as DataSecurityExposureAssessmentResponse;
   }
 
+  // ...who read the store in the window, from its own access logs (#10951).
+  public static async readExposureLogs(
+    securityCaseId: ObjectID,
+  ): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.readExposureLogs(securityCaseId.toString()),
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
   // A framework's audit evidence over a period (#10375).
   public static async getAuditEvidence(data: {
     framework: ComplianceFramework;
