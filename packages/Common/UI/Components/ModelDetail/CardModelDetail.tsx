@@ -4,7 +4,7 @@ import PermissionGate, {
   PermissionGateResult,
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
-import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
+import { useRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import Navigation from "../../Utils/Navigation";
 import { openDocumentationLink } from "../../Utils/DocsLinkEvents";
 import { ButtonStyleType } from "../Button/Button";
@@ -166,7 +166,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
    * it may change it (PrivateRecordScope).
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
-    usePrivateRecordGateOptions(model);
+    useRecordGateOptions(model, props.modelDetailProps.modelId);
   const singularName: string =
     props.singularName?.trim() || model.singularName || "";
   const editTitle: string = translateNamedAction(translator, {
