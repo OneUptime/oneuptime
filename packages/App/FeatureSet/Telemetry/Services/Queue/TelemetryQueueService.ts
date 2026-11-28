@@ -1,5 +1,6 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
+import TelemetryInsertBackpressure from "Common/Server/Utils/Telemetry/TelemetryInsertBackpressure";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
@@ -2002,7 +2003,12 @@ export default class TelemetryQueueService {
    * stays active-inclusive for the ingest backpressure checks, where
    * in-flight work genuinely counts against capacity.
    */
+  /*
+   * The Telemetry queue's backlog for its KEDA endpoint: without the bulk
+   * telemetry while ClickHouse is refusing inserts, which more pods could
+   * not store faster (TelemetryInsertBackpressure).
+   */
   public static async getQueueBacklogSize(): Promise<number> {
-    return Queue.getQueueBacklogSize(QueueName.Telemetry);
+    return TelemetryInsertBackpressure.getTelemetryBacklogForScaling();
   }
 }

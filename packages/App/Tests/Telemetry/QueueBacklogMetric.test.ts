@@ -27,8 +27,10 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
     QueueName: actual["QueueName"],
     QueueJob: actual["QueueJob"],
     default: {
-      getQueueBacklogSize: (queueName: unknown): unknown => {
-        return getQueueBacklogSizeMock(queueName);
+      getQueueBacklogSize: (queueName: unknown, options?: unknown): unknown => {
+        return options === undefined
+          ? getQueueBacklogSizeMock(queueName)
+          : getQueueBacklogSizeMock(queueName, options);
       },
       getQueueSize: (queueName: unknown): unknown => {
         return getQueueSizeMock(queueName);
@@ -38,6 +40,7 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
 });
 
 import { QueueName } from "Common/Server/Infrastructure/Queue";
+import TelemetryInsertBackpressure from "Common/Server/Utils/Telemetry/TelemetryInsertBackpressure";
 import AppQueueService from "../../Services/Queue/AppQueueService";
 import WorkerQueueService from "../../FeatureSet/Workers/Services/Queue/WorkerQueueService";
 import TelemetryQueueService from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
@@ -50,17 +53,49 @@ const BACKLOG_BY_QUEUE: Record<string, number> = {
   [QueueName.AIInvestigation]: 3,
 };
 
+// The Telemetry queue's bulk telemetry: its prioritized set.
+const TELEMETRY_BULK: number = 700_000;
+
 beforeEach(() => {
+  jest.restoreAllMocks();
   getQueueBacklogSizeMock.mockReset();
   getQueueSizeMock.mockReset();
-  getQueueBacklogSizeMock.mockImplementation(async (queueName: unknown) => {
-    return BACKLOG_BY_QUEUE[queueName as string] ?? 0;
-  });
+  getQueueBacklogSizeMock.mockImplementation(
+    async (queueName: unknown, options?: unknown) => {
+      const withoutPrioritized: boolean =
+        (options as { withoutPrioritized?: boolean } | undefined)
+          ?.withoutPrioritized === true;
+
+      return (
+        (BACKLOG_BY_QUEUE[queueName as string] ?? 0) +
+        (queueName === QueueName.Telemetry && !withoutPrioritized
+          ? TELEMETRY_BULK
+          : 0)
+      );
+    },
+  );
+  jest.spyOn(TelemetryInsertBackpressure, "isActive").mockResolvedValue(false);
 });
 
 describe("AppQueueService.getQueueBacklogSize", () => {
   test("sums the backlog of all five drained queues", async () => {
+    await expect(AppQueueService.getQueueBacklogSize()).resolves.toBe(
+      28 + TELEMETRY_BULK,
+    );
+  });
+
+  /*
+   * 2026-11-27: KEDA scaled the workers from 10 to 139 on the backlog of
+   * metrics ClickHouse was refusing, each new worker adding inserts. While
+   * a writer marks ClickHouse as pushing back, that backlog is left out.
+   */
+  test("leaves the bulk telemetry out while ClickHouse is pushing back, and counts the rest", async () => {
+    jest.spyOn(TelemetryInsertBackpressure, "isActive").mockResolvedValue(true);
+
     await expect(AppQueueService.getQueueBacklogSize()).resolves.toBe(28);
+    expect(getQueueBacklogSizeMock).toHaveBeenCalledWith(QueueName.Telemetry, {
+      withoutPrioritized: true,
+    });
   });
 
   test("reads every queue exactly once, via the backlog-only counter", async () => {
@@ -88,6 +123,14 @@ describe("AppQueueService.getQueueBacklogSize", () => {
 
 describe("WorkerQueueService.getQueueBacklogSize", () => {
   test("sums the backlog of all five drained queues", async () => {
+    await expect(WorkerQueueService.getQueueBacklogSize()).resolves.toBe(
+      28 + TELEMETRY_BULK,
+    );
+  });
+
+  test("leaves the bulk telemetry out while ClickHouse is pushing back, and counts the rest", async () => {
+    jest.spyOn(TelemetryInsertBackpressure, "isActive").mockResolvedValue(true);
+
     await expect(WorkerQueueService.getQueueBacklogSize()).resolves.toBe(28);
   });
 
@@ -100,10 +143,20 @@ describe("WorkerQueueService.getQueueBacklogSize", () => {
 
 describe("TelemetryQueueService.getQueueBacklogSize", () => {
   test("reports the Telemetry queue backlog only, never the active-inclusive size", async () => {
-    await expect(TelemetryQueueService.getQueueBacklogSize()).resolves.toBe(11);
+    await expect(TelemetryQueueService.getQueueBacklogSize()).resolves.toBe(
+      11 + TELEMETRY_BULK,
+    );
 
     expect(getQueueBacklogSizeMock).toHaveBeenCalledTimes(1);
-    expect(getQueueBacklogSizeMock).toHaveBeenCalledWith(QueueName.Telemetry);
+    expect(getQueueBacklogSizeMock).toHaveBeenCalledWith(QueueName.Telemetry, {
+      withoutPrioritized: false,
+    });
     expect(getQueueSizeMock).not.toHaveBeenCalled();
+  });
+
+  test("leaves the bulk telemetry out while ClickHouse is pushing back", async () => {
+    jest.spyOn(TelemetryInsertBackpressure, "isActive").mockResolvedValue(true);
+
+    await expect(TelemetryQueueService.getQueueBacklogSize()).resolves.toBe(11);
   });
 });
