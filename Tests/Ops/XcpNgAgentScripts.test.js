@@ -1382,7 +1382,10 @@ async function agentFromBefore({
       .join("\n"),
   );
   const edited = edit(shipped);
-  fs.writeFileSync(path.join(installed.installDir, "docker-compose.yml"), edited);
+  fs.writeFileSync(
+    path.join(installed.installDir, "docker-compose.yml"),
+    edited,
+  );
   const named = /^ {4}container_name: (\S+)$/m.exec(edited)[1];
   runContainerAs(dir, installed.installDir, running ? named : null);
   return { installDir: installed.installDir, shipped, edited };
@@ -1414,7 +1417,10 @@ describe("install.sh gives each agent on a machine its own container name, and k
     });
     expect(result.output).not.toContain("The agent's container");
     expect(
-      fs.readFileSync(path.join(result.installDir, "docker-compose.yml"), "utf8"),
+      fs.readFileSync(
+        path.join(result.installDir, "docker-compose.yml"),
+        "utf8",
+      ),
     ).toBe(fs.readFileSync(path.join(AGENT_DIR, "docker-compose.yml"), "utf8"));
   });
 
@@ -1540,7 +1546,9 @@ describe("install.sh gives each agent on a machine its own container name, and k
       `  ${CONTAINER_VARIABLE}=${DEFAULT_CONTAINER}-<name> INSTALL_DIR=${clash.installDir} bash install.sh`,
     );
     expect(clash.output).not.toContain("container_name in");
-    expect(containersOn(dir)).toEqual({ [DEFAULT_CONTAINER]: first.installDir });
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+    });
   });
 });
 
@@ -1681,7 +1689,11 @@ describe("install.sh keeps the name of an agent set up before .env held it", () 
   test("a container this directory runs under a name of its own keeps it when nothing else says it", async () => {
     const { fake, port } = await startXo({ certificate: CERTS.selfSigned });
     const dir = scratch();
-    const installed = await pinnedAgent({ port, dir, installDirName: "xo-lab" });
+    const installed = await pinnedAgent({
+      port,
+      dir,
+      installDirName: "xo-lab",
+    });
     fs.writeFileSync(
       installed.envFile,
       installed.envText
@@ -1721,14 +1733,16 @@ describe("install.sh keeps the name of an agent set up before .env held it", () 
       DEFAULT_CONTAINER,
     );
     expect(upgraded.output).not.toContain("The agent's container");
-    expect(containersOn(dir)).toEqual({ [DEFAULT_CONTAINER]: first.installDir });
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+    });
   });
 
   test("its helpers are the Storage Array agent's, for its own service and name", () => {
     const helper = (script, name) => {
-      const match = new RegExp(`\\n${name}\\(\\) \\{\\n[\\s\\S]*?\\n\\}\\n`).exec(
-        script,
-      );
+      const match = new RegExp(
+        `\\n${name}\\(\\) \\{\\n[\\s\\S]*?\\n\\}\\n`,
+      ).exec(script);
       expect(match).not.toBeNull();
       return match[0];
     };
@@ -1799,7 +1813,8 @@ describe("the real Docker Compose names the agent's container as .env says", () 
         );
         expect(rendered.status).toBe(0);
         expect(
-          JSON.parse(rendered.stdout).services[DEFAULT_CONTAINER].container_name,
+          JSON.parse(rendered.stdout).services[DEFAULT_CONTAINER]
+            .container_name,
         ).toBe(expected);
       }
     },

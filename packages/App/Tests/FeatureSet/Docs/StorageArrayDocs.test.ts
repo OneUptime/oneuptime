@@ -984,8 +984,18 @@ describe("Storage Array docs", (): void => {
       expect(unit).toContain(
         "WorkingDirectory=/opt/oneuptime-storage-array-agent",
       );
+      // A second array's agent on the same machine names its own in .env.
       expect(compose).toContain(
-        "container_name: oneuptime-storage-array-agent",
+        "container_name: ${STORAGE_ARRAY_AGENT_CONTAINER_NAME:-oneuptime-storage-array-agent}",
+      );
+      const several: string = section(markdown, "## Monitoring several arrays");
+      expect(several).toContain(
+        "`INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`",
+      );
+      // Never an edit of docker-compose.yml, which an upgrade replaces.
+      expect(several).not.toContain("give each its own `container_name`");
+      expect(install).toContain(
+        '\nSTORAGE_ARRAY_AGENT_CONTAINER_NAME=$(compose_env_quote "$STORAGE_ARRAY_AGENT_CONTAINER_NAME")\n',
       );
       expect(compose).toContain(
         "STORAGE_SYSTEM=${STORAGE_SYSTEM:-purestorage.flasharray}",

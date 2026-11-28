@@ -273,7 +273,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       NETAPP_ONTAP_PASSWORD: "''",
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
       // Named after its directory, <scratch>/agent: not the default one.
-      STORAGE_ARRAY_AGENT_CONTAINER_NAME: "'oneuptime-storage-array-agent-agent'",
+      STORAGE_ARRAY_AGENT_CONTAINER_NAME:
+        "'oneuptime-storage-array-agent-agent'",
     });
     // It holds the array's API token.
     expect(fs.statSync(path.join(run.installDir, ".env")).mode & 0o777).toBe(
@@ -495,7 +496,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       // Single-quoted: Compose hands Harvest exactly what was typed.
       NETAPP_ONTAP_PASSWORD: `'${ONTAP_PASSWORD}'`,
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
-      STORAGE_ARRAY_AGENT_CONTAINER_NAME: "'oneuptime-storage-array-agent-agent'",
+      STORAGE_ARRAY_AGENT_CONTAINER_NAME:
+        "'oneuptime-storage-array-agent-agent'",
     });
     // It holds the user's password, read without echo.
     expect(fs.statSync(path.join(run.installDir, ".env")).mode & 0o777).toBe(
@@ -1314,7 +1316,15 @@ describe("agents/StorageArrayAgent/install.sh: each agent on a machine keeps its
     expect(renamedValues).toEqual(firstValues);
   });
 
-  test.each(["my agent", "-agent", "a", "agent$1", "agent/2", "ägent", "agent:2"])(
+  test.each([
+    "my agent",
+    "-agent",
+    "a",
+    "agent$1",
+    "agent/2",
+    "ägent",
+    "agent:2",
+  ])(
     "refuses %j, a name Docker would refuse, before anything is written or started",
     (name) => {
       const dir = scratch();
@@ -1371,7 +1381,10 @@ describe("agents/StorageArrayAgent/install.sh: each agent on a machine keeps its
     expect(first.status).toBe(0);
 
     const clash = install(dir, {
-      env: { ...arrayEnv("fa-prod-02"), [CONTAINER_VARIABLE]: DEFAULT_CONTAINER },
+      env: {
+        ...arrayEnv("fa-prod-02"),
+        [CONTAINER_VARIABLE]: DEFAULT_CONTAINER,
+      },
       installDirName: "fa02",
     });
 
@@ -1386,7 +1399,9 @@ describe("agents/StorageArrayAgent/install.sh: each agent on a machine keeps its
       `  ${CONTAINER_VARIABLE}=${DEFAULT_CONTAINER}-<array> INSTALL_DIR=${clash.installDir} bash install.sh`,
     );
     // The first agent still runs, under its name.
-    expect(containersOn(dir)).toEqual({ [DEFAULT_CONTAINER]: first.installDir });
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+    });
 
     // Doing what it says starts the second one.
     const fixed = install(dir, {
@@ -1411,9 +1426,7 @@ describe("agents/StorageArrayAgent/install.sh: each agent on a machine keeps its
     const ups = run.docker.split("\n").filter((line) => {
       return line.includes("| compose up");
     });
-    expect(ups).toEqual([
-      `${run.installDir} | compose up -d --force-recreate`,
-    ]);
+    expect(ups).toEqual([`${run.installDir} | compose up -d --force-recreate`]);
     expect(run.envFile.split("\n")).toContain(
       `${CONTAINER_VARIABLE}='${DEFAULT_CONTAINER}-fa02'`,
     );
@@ -1449,7 +1462,10 @@ describe("agents/StorageArrayAgent/install.sh: an agent set up before .env held 
     });
     // The new docker-compose.yml is the shipped one, its name from .env.
     expect(
-      fs.readFileSync(path.join(second.installDir, "docker-compose.yml"), "utf8"),
+      fs.readFileSync(
+        path.join(second.installDir, "docker-compose.yml"),
+        "utf8",
+      ),
     ).toBe(fs.readFileSync(path.join(AGENT_DIR, "docker-compose.yml"), "utf8"));
     // The edited file is kept, and said to need nothing made again.
     const backups = backupsIn(second.installDir);
@@ -1492,7 +1508,10 @@ describe("agents/StorageArrayAgent/install.sh: an agent set up before .env held 
     const dir = scratch();
     const second = agentFromBefore(dir, {
       installDirName: "array-fb",
-      edit: renameTo("storage-fb", { quoted: true, comment: "  # the FlashBlade" }),
+      edit: renameTo("storage-fb", {
+        quoted: true,
+        comment: "  # the FlashBlade",
+      }),
     });
 
     const upgraded = install(dir, { installDirName: "array-fb" });
@@ -1669,7 +1688,9 @@ describe("agents/StorageArrayAgent/install.sh: an agent set up before .env held 
   test("an older first agent in a directory of its own keeps the default name it runs under", () => {
     const dir = scratch();
     const first = agentFromBefore(dir, { installDirName: "storage-agent" });
-    expect(containersOn(dir)).toEqual({ [DEFAULT_CONTAINER]: first.installDir });
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+    });
 
     const upgraded = install(dir, { installDirName: "storage-agent" });
 
@@ -1678,7 +1699,9 @@ describe("agents/StorageArrayAgent/install.sh: an agent set up before .env held 
     expect(containerNameIn(upgraded)).toBe(DEFAULT_CONTAINER);
     expect(upgraded.output).not.toContain("The agent's container");
     expect(backupsIn(first.installDir)).toEqual([]);
-    expect(containersOn(dir)).toEqual({ [DEFAULT_CONTAINER]: first.installDir });
+    expect(containersOn(dir)).toEqual({
+      [DEFAULT_CONTAINER]: first.installDir,
+    });
   });
 
   test("...while one whose container is gone is named after its directory, like a new install there", () => {
@@ -1691,7 +1714,9 @@ describe("agents/StorageArrayAgent/install.sh: an agent set up before .env held 
     const upgraded = install(dir, { installDirName: "storage-agent" });
 
     expect(upgraded.status).toBe(0);
-    expect(containerNameIn(upgraded)).toBe(`${DEFAULT_CONTAINER}-storage-agent`);
+    expect(containerNameIn(upgraded)).toBe(
+      `${DEFAULT_CONTAINER}-storage-agent`,
+    );
     expect(containersOn(dir)).toEqual({
       [`${DEFAULT_CONTAINER}-storage-agent`]: first.installDir,
     });
@@ -1731,9 +1756,9 @@ describe("agents/StorageArrayAgent/install.sh: the container name helpers", () =
     "only_container_name_edited",
   ]
     .map((name) => {
-      const match = new RegExp(`\\n${name}\\(\\) \\{\\n[\\s\\S]*?\\n\\}\\n`).exec(
-        script,
-      );
+      const match = new RegExp(
+        `\\n${name}\\(\\) \\{\\n[\\s\\S]*?\\n\\}\\n`,
+      ).exec(script);
       expect(match).not.toBeNull();
       return match[0];
     })
@@ -1758,9 +1783,7 @@ describe("agents/StorageArrayAgent/install.sh: the container name helpers", () =
     expect(script).toContain(`DEFAULT_CONTAINER_NAME="${DEFAULT_CONTAINER}"`);
     expect(
       fs.readFileSync(path.join(AGENT_DIR, "docker-compose.yml"), "utf8"),
-    ).toContain(
-      `\n  ${DEFAULT_CONTAINER}:\n`,
-    );
+    ).toContain(`\n  ${DEFAULT_CONTAINER}:\n`);
   });
 
   test.each([
@@ -1897,11 +1920,16 @@ describe("agents/StorageArrayAgent/install.sh: the container name helpers", () =
 
     expect(check(renameTo("storage-fb")(shipped))).toBe(0);
     expect(
-      check(renameTo("storage-fb", { quoted: true, comment: " # mine" })(shipped)),
+      check(
+        renameTo("storage-fb", { quoted: true, comment: " # mine" })(shipped),
+      ),
     ).toBe(0);
     expect(
       check(
-        renameTo("storage-fb")(shipped).replace('max-size: "10m"', 'max-size: "50m"'),
+        renameTo("storage-fb")(shipped).replace(
+          'max-size: "10m"',
+          'max-size: "50m"',
+        ),
       ),
     ).toBe(1);
     // Another service renamed is another edit.
@@ -2519,9 +2547,7 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
       { body: FA_INFO, name: "array-two-renamed" },
     );
 
-    expect(run.output).toContain(
-      "✔ Container 'array-two-renamed' is running",
-    );
+    expect(run.output).toContain("✔ Container 'array-two-renamed' is running");
     expect(run.docker).toContain("--network container:array-two-renamed");
   });
 
