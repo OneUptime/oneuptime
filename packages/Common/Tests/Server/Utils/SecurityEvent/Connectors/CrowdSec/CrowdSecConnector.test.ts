@@ -27,6 +27,7 @@ import {
 } from "../../../../../../Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
   BLOCK_INDICATORS_KEY,
+  ConnectorField,
   PUSHED_ALERTS_NOTHING_TO_POLL,
   areSecurityEventConnectorAlertsPushed,
   getSecurityEventConnectorDefinition,
@@ -135,11 +136,9 @@ describe("the catalog's CrowdSec", () => {
 
     expect(definition.category).toBe("Network security");
     expect(
-      definition.configFields.map(
-        (field: { key: string; isOption?: boolean }) => {
-          return `${field.key}${field.isOption ? " (option)" : ""}`;
-        },
-      ),
+      definition.configFields.map((field: ConnectorField): string => {
+        return `${field.key}${field.isOption ? " (option)" : ""}`;
+      }),
     ).toEqual(["lapiUrl", "machineId", `${BLOCK_INDICATORS_KEY} (option)`]);
     expect(definition.howToSendTestAlert).toContain(
       "sudo cscli notifications test oneuptime",

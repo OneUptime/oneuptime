@@ -6,7 +6,7 @@ import CrowdSecBlockDestination, {
   CROWDSEC_UNTIL_LIFTED_IN_MS,
   getCrowdSecAllowlistReason,
 } from "../../../../Server/Utils/SecurityBlocklist/Destinations/CrowdSecBlockDestination";
-import {
+import SecurityBlockDestination, {
   SecurityBlockEntry,
   SecurityBlockHeldItem,
   SecurityBlockSupport,
@@ -251,8 +251,10 @@ describe("what CrowdSec holds", () => {
     expect(await target.capacity()).toEqual({ limit: null });
     expect(target.key).toBe(`CrowdSec:${CONNECTION_ID.toString()}`);
     expect(target.provider).toBe(SecurityBlockDestinationProvider.CrowdSec);
-    expect(target.canChallenge).toBeUndefined();
-    expect(target.enforcesOnEveryMachine).toBeUndefined();
+    // Neither challenges nor enforces on every machine, as the reconciler reads the destination.
+    const asDestination: SecurityBlockDestination = target;
+    expect(asDestination.canChallenge).toBeUndefined();
+    expect(asDestination.enforcesOnEveryMachine).toBeUndefined();
 
     const holders: Array<SecurityBlockHolder> =
       SecurityBlockDestinations.getHolders([target]);
