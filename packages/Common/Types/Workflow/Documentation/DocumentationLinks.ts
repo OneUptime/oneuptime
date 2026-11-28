@@ -86,6 +86,7 @@ export const WorkflowDocsPaths: {
   readonly log: string;
   readonly executeWorkflow: string;
   readonly getFilesFromMarkdown: string;
+  readonly getAttachmentsFromRecord: string;
   readonly records: string;
   readonly componentOutputs: string;
   readonly loops: string;
@@ -125,6 +126,7 @@ export const WorkflowDocsPaths: {
   log: "/workflows/components#log",
   executeWorkflow: "/workflows/components#execute-workflow",
   getFilesFromMarkdown: "/workflows/components#get-files-from-markdown",
+  getAttachmentsFromRecord: "/workflows/components#get-attachments-from-record",
   records: "/workflows/components#working-with-records",
   componentOutputs:
     "/workflows/variables#component-outputs-data-from-earlier-blocks",

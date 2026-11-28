@@ -71,6 +71,12 @@ export enum ComponentInputType {
    * Get Files From Markdown's Record Type (Components/MarkdownFiles).
    */
   MarkdownRecordType = "Markdown Record Type",
+  /*
+   * A kind of record that holds files - Incident, Incident Internal Note,
+   * Alert... - picked from a list, and stored as its table name: Get
+   * Attachments From Record's Record Type (Components/RecordAttachments).
+   */
+  AttachmentRecordType = "Attachment Record Type",
 }
 
 /*

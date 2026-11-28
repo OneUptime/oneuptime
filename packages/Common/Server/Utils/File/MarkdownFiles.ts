@@ -394,9 +394,10 @@ export default class MarkdownFiles {
    * The columns of the record's table the caller may read: all of them for
    * OneUptime itself and server admins, whose reads are never held to
    * columns; otherwise the ones their permission rows open
-   * (ColumnPermissions), exactly as the read below checks its select.
+   * (ColumnPermissions), exactly as the read below checks its select. Read
+   * the same way for a record's attachments (RecordAttachments).
    */
-  private static getReadableColumns(data: {
+  public static getReadableColumns(data: {
     service: DatabaseService<BaseModel>;
     props: DatabaseCommonInteractionProps;
   }): Set<string> {
