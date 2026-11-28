@@ -67833,5 +67833,14 @@
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
   "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "Résolue par OneUptime : le trimestre au cours duquel cette alerte de budget cloud a été déclenchée est terminé.",
-  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "Résolue par OneUptime : l'année au cours de laquelle cette alerte de budget cloud a été déclenchée est terminée."
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "Résolue par OneUptime : l'année au cours de laquelle cette alerte de budget cloud a été déclenchée est terminée.",
+  "Fell behind {{time}}": "Retard pris {{time}}",
+  "Behind by {{count}} days": "En retard de {{count}} jours",
+  "Behind by {{count}} days_one": "En retard de {{count}} jour",
+  "Behind by {{count}} hours": "En retard de {{count}} heures",
+  "Behind by {{count}} hours_one": "En retard de {{count}} heure",
+  "Behind by {{count}} minutes": "En retard de {{count}} minutes",
+  "Behind by {{count}} minutes_one": "En retard de {{count}} minute",
+  "Checks Last Late Due At": "Échéance de la vérification la plus en retard",
+  "Device Polls Last Late Due At": "Échéance de l'interrogation d'équipement la plus en retard"
 }

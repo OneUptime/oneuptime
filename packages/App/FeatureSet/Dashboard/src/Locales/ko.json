@@ -67833,5 +67833,14 @@
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
   "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "OneUptime이 해결했습니다: 이 클라우드 예산 경고가 발생한 분기가 끝났습니다.",
-  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "OneUptime이 해결했습니다: 이 클라우드 예산 경고가 발생한 연도가 끝났습니다."
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "OneUptime이 해결했습니다: 이 클라우드 예산 경고가 발생한 연도가 끝났습니다.",
+  "Fell behind {{time}}": "{{time}}부터 지연",
+  "Behind by {{count}} days": "{{count}}일 지연",
+  "Behind by {{count}} days_one": "{{count}}일 지연",
+  "Behind by {{count}} hours": "{{count}}시간 지연",
+  "Behind by {{count}} hours_one": "{{count}}시간 지연",
+  "Behind by {{count}} minutes": "{{count}}분 지연",
+  "Behind by {{count}} minutes_one": "{{count}}분 지연",
+  "Checks Last Late Due At": "가장 지연된 확인의 예정 시각",
+  "Device Polls Last Late Due At": "가장 지연된 디바이스 폴링의 예정 시각"
 }

@@ -67833,5 +67833,14 @@
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
   "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "已由 OneUptime 解決：此雲端預算警示觸發時所在的季度已結束。",
-  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "已由 OneUptime 解決：此雲端預算警示觸發時所在的年度已結束。"
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "已由 OneUptime 解決：此雲端預算警示觸發時所在的年度已結束。",
+  "Fell behind {{time}}": "{{time}} 開始落後",
+  "Behind by {{count}} days": "落後 {{count}} 天",
+  "Behind by {{count}} days_one": "落後 {{count}} 天",
+  "Behind by {{count}} hours": "落後 {{count}} 小時",
+  "Behind by {{count}} hours_one": "落後 {{count}} 小時",
+  "Behind by {{count}} minutes": "落後 {{count}} 分鐘",
+  "Behind by {{count}} minutes_one": "落後 {{count}} 分鐘",
+  "Checks Last Late Due At": "最落後檢查的應執行時間",
+  "Device Polls Last Late Due At": "最落後裝置輪詢的應執行時間"
 }
