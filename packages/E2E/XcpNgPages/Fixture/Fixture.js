@@ -39,6 +39,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import PoolLayout from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Layout";
 import PoolOverview from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Index";
@@ -819,6 +820,20 @@ async function handleApi(method, options) {
         "sr_name",
       ],
     });
+  }
+
+  /*
+   * Which recommended alerts the pool has already, from its monitors: the
+   * alert cards and the Recommendations badge ask the server.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });
