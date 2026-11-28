@@ -5616,6 +5616,29 @@ jobs:
           Tests/Server/Services/ExistingDeviceMonitorsPostgres.test.ts
           --forceExit
 
+      # #11260, #11266: a fleet an auto import rule made moves to a better
+      # template, or off its template, as one change run by the worker as a
+      # person - 2,000 monitors keep their ids, labels, owners, status history
+      # and incident links, take the template's criteria on their own device,
+      # and keep the template they were created from, so the rule and the
+      # alert policy that made them make none again. Unlinking with the
+      # criteria cleared resolves what they left open; a device that has the
+      # target template's monitor already keeps both, named; a template's
+      # delete clears its monitors first. On copies of every migrated table,
+      # with MonitorNetworkDevice's triggers installed.
+      - name: Test moving a fleet's monitors to another template, on migrated Postgres
+        if: matrix.shard == 5
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_TEMPLATE_CHANGE_TESTS: "true"
+          MONITOR_TEMPLATE_CHANGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_TEMPLATE_CHANGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_TEMPLATE_CHANGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorTemplateChangePostgres.test.ts
+          --forceExit
+
       # Entity risk on copies of the migrated User, Project,
       # SecurityEntityRisk and SecurityEntityCriticality tables, through the
       # real services: a finding writes one row and the next about the same

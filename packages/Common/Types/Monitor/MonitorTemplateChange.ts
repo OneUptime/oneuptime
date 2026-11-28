@@ -394,3 +394,65 @@ export function assertMonitorTemplateChangeSettings(data: {
     );
   }
 }
+
+/*
+ * A change's view as the API answers it (MonitorTemplateChangeRunner.toView),
+ * read back by the Dashboard; null when the answer holds no change.
+ */
+export function readMonitorTemplateChangeView(
+  value: unknown,
+): MonitorTemplateChangeView | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const view: Record<string, unknown> = value as Record<string, unknown>;
+  const id: unknown = view["id"];
+  const status: unknown = view["status"];
+
+  if (
+    typeof id !== "string" ||
+    !id ||
+    typeof status !== "string" ||
+    !(ALL_MONITOR_TEMPLATE_CHANGE_STATUSES as ReadonlyArray<string>).includes(
+      status,
+    )
+  ) {
+    return null;
+  }
+
+  const results: MonitorTemplateChangeResults =
+    readMonitorTemplateChangeResults({
+      processedCount: 0,
+      lines: view["lines"],
+    });
+
+  const readText: (key: string) => string | undefined = (
+    key: string,
+  ): string | undefined => {
+    const text: unknown = view[key];
+    return typeof text === "string" && text ? text : undefined;
+  };
+
+  return {
+    id: id,
+    status: status as MonitorTemplateChangeStatus,
+    settings: readMonitorTemplateChangeSettings(view["settings"]),
+    monitorTemplateId: readText("monitorTemplateId"),
+    monitorTemplateName: readText("monitorTemplateName"),
+    progress: readMonitorTemplateChangeProgress(view["progress"]),
+    lines: results.lines,
+    isLinesTruncated: view["isLinesTruncated"] === true,
+    error: readText("error"),
+    isStopRequested: view["isStopRequested"] === true,
+    retryableCount: toCount(view["retryableCount"]),
+    isTemplateDeleted: view["isTemplateDeleted"] === true,
+    ...(toCount(view["templateStillLinkedCount"]) > 0
+      ? { templateStillLinkedCount: toCount(view["templateStillLinkedCount"]) }
+      : {}),
+    templateDeleteError: readText("templateDeleteError"),
+    createdAt: readText("createdAt"),
+    startedAt: readText("startedAt"),
+    completedAt: readText("completedAt"),
+  };
+}
