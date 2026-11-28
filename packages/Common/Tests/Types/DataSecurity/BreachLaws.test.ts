@@ -743,14 +743,17 @@ describe("GDPR and UK GDPR Article 33(2): a processor tells its controller witho
         dataTypeIds: ["email-address", "person-name"],
         places: [place],
       };
-      const find: (holdsForAnother?: boolean) => BreachObligation | undefined =
-        (holdsForAnother?: boolean): BreachObligation | undefined => {
-          return applyBreachLaws(facts({ ...example, holdsForAnother })).find(
-            (obligation: BreachObligation): boolean => {
-              return obligation.ruleId === id;
-            },
-          );
-        };
+      const find: (
+        holdsForAnother?: boolean,
+      ) => BreachObligation | undefined = (
+        holdsForAnother?: boolean,
+      ): BreachObligation | undefined => {
+        return applyBreachLaws(facts({ ...example, holdsForAnother })).find(
+          (obligation: BreachObligation): boolean => {
+            return obligation.ruleId === id;
+          },
+        );
+      };
 
       expect(find()).toBeUndefined();
       expect(find(false)).toBeUndefined();

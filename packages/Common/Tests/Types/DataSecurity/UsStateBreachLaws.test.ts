@@ -831,7 +831,16 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Missouri,
     law: "Revised Statutes of Missouri",
     provision: "407.1500.2(1)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.IdentityTheftOrFraudInWriting],
@@ -845,7 +854,16 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Missouri,
     law: "Revised Statutes of Missouri",
     provision: "407.1500.2(8)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
     needsName: true,
     nameFree: [],
     // "more than one thousand consumers at one time".
@@ -1153,7 +1171,18 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oregon,
     law: "Oregon Revised Statutes",
     provision: "646A.604(1)(a)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC, MEDICAL, INSURANCE, LOGIN],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      BIOMETRIC,
+      MEDICAL,
+      INSURANCE,
+      LOGIN,
+    ],
     needsName: false,
     nameFree: [],
     conditions: [BreachCondition.UnlikelyHarmInWriting],
@@ -1168,7 +1197,18 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oregon,
     law: "Oregon Revised Statutes",
     provision: "646A.604(1)(b)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC, MEDICAL, INSURANCE, LOGIN],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      BIOMETRIC,
+      MEDICAL,
+      INSURANCE,
+      LOGIN,
+    ],
     needsName: false,
     nameFree: [],
     // "exceeds 250".
@@ -1750,7 +1790,16 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Missouri,
     law: "Revised Statutes of Missouri",
     provision: "407.1500.2(8)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1899,7 +1948,18 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oregon,
     law: "Oregon Revised Statutes",
     provision: "646A.604(6)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC, INSURANCE, MEDICAL, LOGIN],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      BIOMETRIC,
+      INSURANCE,
+      MEDICAL,
+      LOGIN,
+    ],
     needsName: false,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -2103,7 +2163,16 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Texas,
     law: "Texas Business and Commerce Code",
     provision: "521.053(h)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
     needsName: true,
     nameFree: [MEDICAL, INSURANCE],
     minimumPeople: { count: 10000, isMoreThan: true },
@@ -2328,10 +2397,7 @@ type OwnerNoticeSays = Omit<
 > &
   Partial<Pick<StatuteSays, "host">>;
 
-function ownerNotice(
-  peoples: BreachLawId,
-  says: OwnerNoticeSays,
-): StatuteSays {
+function ownerNotice(peoples: BreachLawId, says: OwnerNoticeSays): StatuteSays {
   const people: StatuteSays | undefined = STATUTES.find(
     (statute: StatuteSays): boolean => {
       return statute.id === peoples;
@@ -2854,7 +2920,16 @@ const OWNER_STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Texas,
     law: "Texas Business and Commerce Code",
     provision: "521.053(c)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
     needsName: true,
     nameFree: [MEDICAL, INSURANCE],
     conditions: [],
@@ -3374,9 +3449,9 @@ describe("the other US states' rows, as a set", () => {
     expect(said(BreachLawId.VermontAttorneyGeneralFrom2027)).toContain(
       "swore its security policies",
     );
-    expect(said(BreachLawId.VermontConsumerReportingAgenciesFrom2027)).toContain(
-      "Title 8",
-    );
+    expect(
+      said(BreachLawId.VermontConsumerReportingAgenciesFrom2027),
+    ).toContain("Title 8");
     // Puerto Rico: a custodian tells the people too; the Department announces it within 24 hours, in a time that cannot be extended.
     expect(said(BreachLawId.PuertoRicoResidents)).toContain(
       "keeps the data in its custody for another too",
@@ -3707,9 +3782,7 @@ describe("Puerto Rico, Guam and the US Virgin Islands (#11424, #11426)", () => {
           return rule.id;
         })
         .sort(),
-    ).toEqual(
-      [BreachLawId.GuamResidents, BreachLawId.GuamDataOwner].sort(),
-    );
+    ).toEqual([BreachLawId.GuamResidents, BreachLawId.GuamDataOwner].sort());
     expect(new URL(rows[0]!.sourceUrl).hostname).toBe("col.guamcourts.gov");
     expect(
       conditionsOf(
@@ -3740,9 +3813,7 @@ describe("Puerto Rico, Guam and the US Virgin Islands (#11424, #11426)", () => {
         BreachLawId.UsVirginIslandsDataOwner,
       ].sort(),
     );
-    expect(new URL(rows[0]!.sourceUrl).hostname).toBe(
-      "billtracking.legvi.org",
-    );
+    expect(new URL(rows[0]!.sourceUrl).hostname).toBe("billtracking.legvi.org");
     expect(rows[0]!.sourceTitle).toContain("Act No. 6789 (2005)");
 
     const obligation: BreachObligation = applied(
@@ -3801,7 +3872,7 @@ describe("a statute's general words for government ID numbers cover a passport a
   ];
 
   test.each(GENERIC)(
-    "%s: \"%s\" - a passport number and a taxpayer number, each held with a name",
+    '%s: "%s" - a passport number and a taxpayer number, each held with a name',
     (id: BreachLawId) => {
       const rule: BreachLawRule = getBreachLawRule(id);
 
@@ -4029,9 +4100,9 @@ describe("the notice to the data's owner (#11427)", () => {
       [],
     );
     // Kentucky's, in the definition of a breach, holds for both.
-    expect(
-      getBreachLawRule(BreachLawId.KentuckyDataOwner).conditions,
-    ).toEqual(getBreachLawRule(BreachLawId.KentuckyResidents).conditions);
+    expect(getBreachLawRule(BreachLawId.KentuckyDataOwner).conditions).toEqual(
+      getBreachLawRule(BreachLawId.KentuckyResidents).conditions,
+    );
     // Wisconsin's: only without a contract with the owner, and its exception covers it too.
     expect(
       conditionsOf(
@@ -4155,22 +4226,25 @@ describe.each(
     );
   });
 
-  test(statute.forDataHolders
-    ? "is left out of the assessment until a person says the organization holds the data for another"
-    : "does not wait on whose data it is", () => {
-    const data: Parameters<typeof factsOf>[0] = {
-      dataTypeIds: ["us-ssn", "person-name"],
-      places: [statute.place],
-      foundAt,
-      now: example.now,
-    };
+  test(
+    statute.forDataHolders
+      ? "is left out of the assessment until a person says the organization holds the data for another"
+      : "does not wait on whose data it is",
+    () => {
+      const data: Parameters<typeof factsOf>[0] = {
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [statute.place],
+        foundAt,
+        now: example.now,
+      };
 
-    expect(holds(statute.id, data)).toBe(!statute.forDataHolders);
-    expect(holds(statute.id, { ...data, holdsForAnother: false })).toBe(
-      !statute.forDataHolders,
-    );
-    expect(holds(statute.id, { ...data, holdsForAnother: true })).toBe(true);
-  });
+      expect(holds(statute.id, data)).toBe(!statute.forDataHolders);
+      expect(holds(statute.id, { ...data, holdsForAnother: false })).toBe(
+        !statute.forDataHolders,
+      );
+      expect(holds(statute.id, { ...data, holdsForAnother: true })).toBe(true);
+    },
+  );
 
   test("may apply to the state's people's Social Security numbers held with names, with its deadline and what a person checks", () => {
     const obligation: BreachObligation = applied(statute.id, {
@@ -4280,51 +4354,54 @@ describe.each(
     );
   });
 
-  test(statute.inForceUntil || statute.inForceFrom
-    ? "applies only to an exposure found while its text is in force"
-    : "is in force whenever the exposure was found, so long ago as the table goes", () => {
-    const day: (iso: string) => Parameters<typeof factsOf>[0] = (
-      iso: string,
-    ): Parameters<typeof factsOf>[0] => {
-      return {
-        dataTypeIds: ["us-ssn", "person-name"],
-        places: [statute.place],
-        foundAt: new Date(iso),
-        now: new Date(iso),
-        holdsForAnother: true,
+  test(
+    statute.inForceUntil || statute.inForceFrom
+      ? "applies only to an exposure found while its text is in force"
+      : "is in force whenever the exposure was found, so long ago as the table goes",
+    () => {
+      const day: (iso: string) => Parameters<typeof factsOf>[0] = (
+        iso: string,
+      ): Parameters<typeof factsOf>[0] => {
+        return {
+          dataTypeIds: ["us-ssn", "person-name"],
+          places: [statute.place],
+          foundAt: new Date(iso),
+          now: new Date(iso),
+          holdsForAnother: true,
+        };
       };
-    };
 
-    if (statute.inForceUntil) {
-      const until: number = new Date(
-        `${statute.inForceUntil}T00:00:00.000Z`,
-      ).getTime();
+      if (statute.inForceUntil) {
+        const until: number = new Date(
+          `${statute.inForceUntil}T00:00:00.000Z`,
+        ).getTime();
 
-      expect(holds(statute.id, day(new Date(until - 1).toISOString()))).toBe(
-        true,
-      );
-      expect(holds(statute.id, day(new Date(until).toISOString()))).toBe(
-        false,
-      );
-    }
+        expect(holds(statute.id, day(new Date(until - 1).toISOString()))).toBe(
+          true,
+        );
+        expect(holds(statute.id, day(new Date(until).toISOString()))).toBe(
+          false,
+        );
+      }
 
-    if (statute.inForceFrom) {
-      const from: number = new Date(
-        `${statute.inForceFrom}T00:00:00.000Z`,
-      ).getTime();
+      if (statute.inForceFrom) {
+        const from: number = new Date(
+          `${statute.inForceFrom}T00:00:00.000Z`,
+        ).getTime();
 
-      expect(
-        applied(statute.id, day(new Date(from - 1).toISOString())).status,
-      ).toBe(BreachObligationStatus.NotYetInForce);
-      expect(applied(statute.id, day(new Date(from).toISOString())).status).toBe(
-        BreachObligationStatus.MayApply,
-      );
-    }
+        expect(
+          applied(statute.id, day(new Date(from - 1).toISOString())).status,
+        ).toBe(BreachObligationStatus.NotYetInForce);
+        expect(
+          applied(statute.id, day(new Date(from).toISOString())).status,
+        ).toBe(BreachObligationStatus.MayApply);
+      }
 
-    if (!statute.inForceUntil && !statute.inForceFrom) {
-      expect(applied(statute.id, day("2020-01-06T09:00:00.000Z")).status).toBe(
-        BreachObligationStatus.MayApply,
-      );
-    }
-  });
+      if (!statute.inForceUntil && !statute.inForceFrom) {
+        expect(
+          applied(statute.id, day("2020-01-06T09:00:00.000Z")).status,
+        ).toBe(BreachObligationStatus.MayApply);
+      }
+    },
+  );
 });

@@ -1054,9 +1054,9 @@ describe("deadlines, in their units, counted from when it was found", () => {
       false,
     );
     // From one day to another: in force only between them.
-    expect(
-      isBreachLawInForce(between, new Date("2025-12-31T23:59:59Z")),
-    ).toBe(false);
+    expect(isBreachLawInForce(between, new Date("2025-12-31T23:59:59Z"))).toBe(
+      false,
+    );
     expect(isBreachLawInForce(between, new Date("2026-06-01T00:00:00Z"))).toBe(
       true,
     );
@@ -2708,16 +2708,21 @@ describe("the assessment plain code works out", () => {
     const ruleIds: (view: ExposureAssessmentView) => Array<BreachLawId> = (
       view: ExposureAssessmentView,
     ): Array<BreachLawId> => {
-      return view.obligations.map((obligation: BreachObligation): BreachLawId => {
-        return obligation.ruleId;
+      return view.obligations.map(
+        (obligation: BreachObligation): BreachLawId => {
+          return obligation.ruleId;
+        },
+      );
+    };
+    const uncovered: (
+      view: ExposureAssessmentView,
+    ) => Array<UncoveredLawKind> = (
+      view: ExposureAssessmentView,
+    ): Array<UncoveredLawKind> => {
+      return view.uncovered.map((law: UncoveredLaw): UncoveredLawKind => {
+        return law.kind;
       });
     };
-    const uncovered: (view: ExposureAssessmentView) => Array<UncoveredLawKind> =
-      (view: ExposureAssessmentView): Array<UncoveredLawKind> => {
-        return view.uncovered.map((law: UncoveredLaw): UncoveredLawKind => {
-          return law.kind;
-        });
-      };
 
     const unsaid: ExposureAssessmentView = viewOf();
 

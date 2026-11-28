@@ -421,7 +421,9 @@ describe("every exposure of the eval set lists the obligations it should", () =>
       view: ExposureAssessmentView,
     ): Array<UncoveredLawKind> => {
       return view.uncovered.map(
-        (line: ExposureAssessmentView["uncovered"][number]): UncoveredLawKind => {
+        (
+          line: ExposureAssessmentView["uncovered"][number],
+        ): UncoveredLawKind => {
           return line.kind;
         },
       );

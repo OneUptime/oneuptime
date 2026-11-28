@@ -1554,7 +1554,9 @@ describe("whether the organization holds the data for another (#11427)", () => {
     });
   }
 
-  function ruleIds(answer: DataSecurityExposureAssessmentResponse): Array<string> {
+  function ruleIds(
+    answer: DataSecurityExposureAssessmentResponse,
+  ): Array<string> {
     return answer.view!.obligations.map(
       (obligation: BreachObligation): string => {
         return obligation.ruleId;

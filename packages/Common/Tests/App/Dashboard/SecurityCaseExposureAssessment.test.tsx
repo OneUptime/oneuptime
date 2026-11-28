@@ -1526,11 +1526,9 @@ describe("every US state is a place a person can name (#10952)", () => {
     ).toBe(true);
     // Guam and the US Virgin Islands, whose laws the table holds (#11426).
     for (const territory of ["Guam", "US Virgin Islands"]) {
-      const option: string | undefined = names.find(
-        (name: string): boolean => {
-          return name.startsWith(territory);
-        },
-      );
+      const option: string | undefined = names.find((name: string): boolean => {
+        return name.startsWith(territory);
+      });
 
       expect({ territory, listed: Boolean(option) }).toEqual({
         territory,
@@ -1942,7 +1940,9 @@ describe("whose data it is: one switch, kept with who said it (#11427)", () => {
     expect(dataOwnerSwitch()).toHaveAttribute("aria-checked", "false");
     expect(
       screen.getByTestId("security-case-exposure-data-holder-said"),
-    ).toHaveTextContent("Alice Example said this data is your organization's own.");
+    ).toHaveTextContent(
+      "Alice Example said this data is your organization's own.",
+    );
     expect(
       screen.getByTestId("security-case-exposure-headline"),
     ).toHaveAttribute("data-rule", BreachLawId.TexasAttorneyGeneral);

@@ -5118,9 +5118,7 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     needsName: true,
     nameFreeElements: [],
     conditions: [],
-    action: translationKey(
-      "Tell Puerto Rico's Department of Consumer Affairs",
-    ),
+    action: translationKey("Tell Puerto Rico's Department of Consumer Affairs"),
     recipient: translationKey(
       "The Department of Consumer Affairs (DACO), which announces the breach publicly within 24 hours",
     ),
