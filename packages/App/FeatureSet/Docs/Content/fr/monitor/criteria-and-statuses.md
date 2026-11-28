@@ -265,7 +265,7 @@ L'éditeur affiche chaque critère déplié. Cliquez sur l'en-tête d'un critèr
 
 ### Enregistrer les critères
 
-Cliquez sur **Enregistrer les modifications**. La vérification suivante est jugée selon les nouveaux critères.
+Cliquez sur **Enregistrer les modifications**. La vérification suivante est jugée selon les nouveaux critères. Un incident ou une alerte ouverts dont vous avez supprimé les critères sont résolus à l'enregistrement s'ils étaient configurés pour se résoudre automatiquement, car plus rien ne pourrait les résoudre ensuite : leur chronologie indique pourquoi.
 
 ### Tester le moniteur
 
@@ -352,7 +352,7 @@ Le critère de l'alerte ne change aucun statut : il ne retient donc pas le monit
 :::
 
 :::details L'incident reste ouvert après le rétablissement du moniteur
-Ouvrez le critère de l'incident et dépliez **Plus de champs** dans son incident : **Résoudre automatiquement l'incident** doit être activé. Un incident issu d'un critère que vous avez supprimé depuis n'est pas résolu par le moniteur : résolvez-le à la main.
+Ouvrez le critère de l'incident et dépliez **Plus de champs** dans son incident : **Résoudre automatiquement l'incident** doit être activé. Supprimer le critère d'un incident, ou synchroniser un modèle qui ne l'a plus, résout l'incident s'il était configuré pour se résoudre automatiquement. Celui resté ouvert par un critère supprimé plus tôt, ou qui doit être résolu à la main, vous le résolvez vous-même.
 :::
 
 :::details Le bouton de suppression de Hors ligne est verrouillé

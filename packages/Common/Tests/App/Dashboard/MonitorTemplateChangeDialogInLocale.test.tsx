@@ -263,6 +263,7 @@ function changeView(
     isStopRequested: false,
     retryableCount: 0,
     isTemplateDeleted: false,
+    isAutoImportRulePointed: false,
     createdAt: new Date().toISOString(),
     ...overrides,
   };

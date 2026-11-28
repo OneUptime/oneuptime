@@ -265,7 +265,7 @@ Editoren viser hvert kriterium foldet ud. Klik på et kriteriums overskrift for 
 
 ### Gem kriterierne
 
-Klik på **Gem ændringer**. Den næste kontrol vurderes efter de nye kriterier.
+Klik på **Gem ændringer**. Den næste kontrol vurderes efter de nye kriterier. En åben hændelse eller advarsel, hvis kriterier du slettede, løses, når du gemmer, hvis den var sat til at blive løst af sig selv, for bagefter kunne intet løse den: dens tidslinje siger hvorfor.
 
 ### Test monitoren
 
@@ -352,7 +352,7 @@ Advarslens kriterium ændrer ingen status, så det holder ikke monitoren i den s
 :::
 
 :::details Hændelsen forbliver åben, efter at monitoren er kommet sig
-Åbn hændelsens kriterium, og fold **Flere felter** ud i dens hændelse: **Løs hændelse automatisk** skal være slået til. En hændelse fra et kriterium, du siden har slettet, løses ikke af monitoren: løs den manuelt.
+Åbn hændelsens kriterium, og fold **Flere felter** ud i dens hændelse: **Løs hændelse automatisk** skal være slået til. Sletter du en hændelses kriterium, eller synkroniserer du en skabelon, der ikke længere har det, løses hændelsen, hvis den var sat til at blive løst af sig selv. En, der stod åben efter et kriterium, der blev slettet tidligere, eller som skal løses manuelt, løser du selv.
 :::
 
 :::details Sletteknappen for Offline er låst

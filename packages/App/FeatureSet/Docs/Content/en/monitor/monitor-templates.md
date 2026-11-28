@@ -75,6 +75,8 @@ To sync one monitor, click **Sync from Template** on its row in **Linked Monitor
 
 After a sync, a summary says how many monitors were updated. **Partially synced** means some linked monitors still have the previous configuration, usually because your permissions do not cover them.
 
+A sync that takes away the criteria behind an open incident or alert resolves it when it was set to resolve on its own, since nothing could resolve it once those criteria were gone: its timeline says why, and the summary says how many were resolved. An incident or alert whose criteria the template still has stays open, and one set to be resolved by hand is left to you. Editing a monitor's criteria yourself, in the Dashboard, through the API or with Terraform, does the same.
+
 ## Move monitors to another template
 
 When a better template replaces one, move its monitors to it instead of deleting them. Each monitor keeps its name, status history, labels, owners and incidents, and takes the new template's criteria.
@@ -101,10 +103,10 @@ What the move does:
 - A device has one monitor from each template. When a device already has a monitor made for it from the new template, its other monitor is left out, and the change names the one in the way: delete one of the two, then move again.
 - A monitor of another type than the template's is left out.
 
-The change runs on the server, up to 10,000 monitors at a time, and shows its progress: what was moved, what was left out and why, and the open incidents and alerts it resolved. Closing the dialog does not stop it, and the template's page shows a change that is still running. **Stop** stops it before the next monitor, and **Retry** tries again the monitors that failed or were not reached.
+The change runs on the server, up to 10,000 monitors at a time, and shows its progress: what was moved, what was left out and why, and the open incidents and alerts it resolved. Closing the dialog does not stop it: the template's page and the Monitors list show a change that is still running, with how far it got, and the Monitors list keeps one that finished with monitors left out or failed for an hour. Click its line to open it again, with **Show progress** while it runs and **Show what happened** once it is done. **Stop** stops it before the next monitor, and **Retry** tries again the monitors that failed or were not reached.
 
 > [!TIP]
-> Moving an auto import rule's devices to a new template? Move the monitors first, then point the rule at the new template. In the other order, the rule gives each device a second monitor, from the new template, beside the one it has.
+> Pointing an auto import rule at another template of the same kind offers to move its devices' monitors there first, and the rule uses the new template once they are moved, so no device gets a second monitor. **Save Without Moving** points the rule at it now: each device keeps its monitor and gets the new template's beside it.
 
 ## Unlink monitors from a template
 
@@ -119,7 +121,7 @@ Either way they keep their names, status history, labels, owners and incidents, 
 
 ## Delete a template
 
-A template that a network alert policy or an auto import rule provisions from cannot be deleted: point the policy or the rule at another template first. When monitors are linked to the template, its delete asks what happens to them:
+A template that a network alert policy or an auto import rule provisions from cannot be deleted: point the policy or the rule at another template first. A policy's monitors move with it, and a rule's form offers to move its devices' monitors. When monitors are linked to the template, its delete asks what happens to them:
 
 - **Keep their settings** (the default): the delete unlinks them, and they keep checking and alerting with the criteria they have.
 - **Clear this template's criteria from them**: each is unlinked with its criteria cleared, as above, and then the template is deleted. When a monitor stays linked, such as one your permissions do not cover, the template is kept, and the dialog says how many.
@@ -233,7 +235,7 @@ The device has a monitor made for it from the template you are moving to, usuall
 :::
 
 :::details After an auto import rule moved to a new template, devices have two monitors
-The rule gave each device the new template's monitor beside the one it had. Delete the new monitors, then move the old ones to the new template: they keep their history, and the rule makes none again.
+The rule was saved with **Save Without Moving**, or pointed at the template before its form offered to move them, and gave each device the new template's monitor beside the one it had. Delete the new monitors, then move the old ones to the new template: they keep their history, and the rule makes none again.
 :::
 
 :::details Saving fails with "Unsupported do not sync field"

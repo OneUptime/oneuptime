@@ -121,7 +121,13 @@ describe("what a change of a monitor's template keeps", () => {
     );
   });
 
-  it("keeps the policy on OneUptime's own write: it moves nothing a person chose", () => {
+  /*
+   * OneUptime's own write of a policy's monitor to another template is the
+   * policy moving it to the template it was pointed at (#11452): it stays
+   * the policy's, and is the policy's monitor from that template now - so a
+   * person who later moves it off that one has moved the policy's monitor.
+   */
+  it("keeps the policy on OneUptime's own write, and records the template the policy moved it to", () => {
     const patch: TemplateChangeProvenancePatch =
       MonitorTemplateChangeProvenance.getPatch({
         stored: {
@@ -129,6 +135,53 @@ describe("what a change of a monitor's template keeps", () => {
           networkAlertPolicyId: POLICY,
         },
         writtenMonitorTemplateId: BETTER_TEMPLATE,
+        isOneUptimesOwnWrite: true,
+      });
+
+    expect(patch.networkAlertPolicyId).toBeUndefined();
+    expect(patch.createdFromMonitorTemplateId?.toString()).toBe(
+      BETTER_TEMPLATE.toString(),
+    );
+  });
+
+  it("moves the recorded template on with the policy's every move, and writes nothing when it is that one already", () => {
+    const moved: TemplateChangeProvenancePatch =
+      MonitorTemplateChangeProvenance.getPatch({
+        stored: {
+          monitorTemplateId: BETTER_TEMPLATE,
+          createdFromMonitorTemplateId: WAREHOUSE_TEMPLATE,
+          networkAlertPolicyId: POLICY,
+        },
+        writtenMonitorTemplateId: WAREHOUSE_TEMPLATE,
+        isOneUptimesOwnWrite: true,
+      });
+
+    expect(moved).toEqual({});
+
+    const movedOn: TemplateChangeProvenancePatch =
+      MonitorTemplateChangeProvenance.getPatch({
+        stored: {
+          monitorTemplateId: WAREHOUSE_TEMPLATE,
+          createdFromMonitorTemplateId: WAREHOUSE_TEMPLATE,
+          networkAlertPolicyId: POLICY,
+        },
+        writtenMonitorTemplateId: BETTER_TEMPLATE,
+        isOneUptimesOwnWrite: true,
+      });
+
+    expect(movedOn.createdFromMonitorTemplateId?.toString()).toBe(
+      BETTER_TEMPLATE.toString(),
+    );
+  });
+
+  it("keeps the template it was created from on OneUptime's own unlink of a policy's monitor", () => {
+    const patch: TemplateChangeProvenancePatch =
+      MonitorTemplateChangeProvenance.getPatch({
+        stored: {
+          monitorTemplateId: WAREHOUSE_TEMPLATE,
+          networkAlertPolicyId: POLICY,
+        },
+        writtenMonitorTemplateId: null,
         isOneUptimesOwnWrite: true,
       });
 

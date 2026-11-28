@@ -24,6 +24,9 @@
  *     provision nothing and leave the device uncovered until the sweep.
  *   - A POLICY SAVE hands the work over DETACHED. Provisioning a warehouse is
  *     hundreds of monitor creates; doing it inside the save would time out.
+ *   - A POLICY POINTED AT ANOTHER TEMPLATE MOVES ITS MONITORS there (#11452):
+ *     the save records a change of them before it returns, so the form can
+ *     show its progress at once, and a failure to start one never fails it.
  *   - A POLICY DELETE does NOT detach: the monitors go before the row does,
  *     or nothing is left that knows they were the policy's.
  *   - DISABLING pauses, ENABLING resumes, and neither fires when the payload
@@ -60,6 +63,8 @@ import NetworkDeviceOwnerRuleEngineService from "../../../Server/Services/Networ
 import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
 import NetworkDeviceAutoImportRuleService from "../../../Server/Services/NetworkDeviceAutoImportRuleService";
+import logger from "../../../Server/Utils/Logger";
+import MonitorTemplateChangeRunner from "../../../Server/Utils/Monitor/MonitorTemplateChangeRunner";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
 import NetworkAlertPolicy from "../../../Models/DatabaseModels/NetworkAlertPolicy";
@@ -362,6 +367,16 @@ describe("NetworkDeviceService.onUpdateSuccess reconciles the right writes", () 
 });
 
 describe("NetworkAlertPolicyService hands its own writes to the engine", () => {
+  let startMoveSpy: SpyInstance<
+    typeof MonitorTemplateChangeRunner.startForAlertPolicy
+  >;
+
+  beforeEach(() => {
+    startMoveSpy = jest
+      .spyOn(MonitorTemplateChangeRunner, "startForAlertPolicy")
+      .mockResolvedValue(null);
+  });
+
   function createdPolicy(): NetworkAlertPolicy {
     const created: NetworkAlertPolicy = new NetworkAlertPolicy();
     created.id = POLICY_ID;
@@ -451,10 +466,11 @@ describe("NetworkAlertPolicyService hands its own writes to the engine", () => {
   async function runPolicyUpdateSuccess(
     data: Record<string, unknown>,
     previousPolicies: Array<NetworkAlertPolicy>,
+    props: DatabaseCommonInteractionProps = { tenantId: PROJECT_ID },
   ): Promise<void> {
     await (NetworkAlertPolicyService as any).onUpdateSuccess(
       {
-        updateBy: { data: data, query: {}, props: { tenantId: PROJECT_ID } },
+        updateBy: { data: data, query: {}, props: props },
         carryForward: { previousPolicies: previousPolicies },
       },
       [POLICY_ID],
@@ -565,6 +581,90 @@ describe("NetworkAlertPolicyService hands its own writes to the engine", () => {
       policyId: POLICY_ID,
       stampTemplateSyncedOnCleanPass: false,
     });
+  });
+
+  // #11452: the policy's monitors move to the template it was pointed at.
+  it("starts the move of the policy's monitors to the template it was pointed at, as whoever saved it", async () => {
+    const userId: ObjectID = ObjectID.generate();
+
+    await runPolicyUpdateSuccess(
+      { monitorTemplate: { _id: ObjectID.generate().toString() } },
+      [previousPolicy()],
+      { tenantId: PROJECT_ID, userId: userId },
+    );
+
+    expect(startMoveSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      policyId: POLICY_ID,
+      userId: userId,
+    });
+  });
+
+  it("records the move before the save returns, and before the engine's pass", async () => {
+    const order: Array<string> = [];
+    startMoveSpy.mockImplementation(async (): Promise<null> => {
+      order.push("move");
+      return null;
+    });
+    syncPolicyMock.mockImplementation(async (): Promise<null> => {
+      order.push("sync");
+      return null;
+    });
+
+    await (NetworkAlertPolicyService as any).onUpdateSuccess(
+      {
+        updateBy: {
+          data: { monitorTemplateId: ObjectID.generate() },
+          query: {},
+          props: { tenantId: PROJECT_ID },
+        },
+        carryForward: { previousPolicies: [previousPolicy()] },
+      },
+      [POLICY_ID],
+    );
+
+    // The move is recorded by the time the hook returns; the sync is detached.
+    expect(order[0]).toBe("move");
+
+    await flushDetachedWork();
+
+    expect(order).toEqual(["move", "sync"]);
+  });
+
+  it("asks again on a save that re-sends the template, so the rest of a stopped move is picked up", async () => {
+    await runPolicyUpdateSuccess({ monitorTemplateId: TEMPLATE_ID }, [
+      previousPolicy(),
+    ]);
+
+    expect(startMoveSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts no move for a save that writes no template: a rename, a scope, a switch", async () => {
+    await runPolicyUpdateSuccess({ name: "New name" }, [previousPolicy()]);
+    await runPolicyUpdateSuccess({ scope: { siteIds: [] } }, [
+      previousPolicy(),
+    ]);
+    await runPolicyUpdateSuccess({ isEnabled: false }, [previousPolicy()]);
+
+    expect(startMoveSpy).not.toHaveBeenCalled();
+  });
+
+  it("never fails the save when the move cannot be started", async () => {
+    startMoveSpy.mockRejectedValue(new Error("Redis went away"));
+    const errorSpy: SpyInstance<typeof logger.error> = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {
+        return undefined;
+      }) as never);
+
+    await expect(
+      runPolicyUpdateSuccess({ monitorTemplateId: ObjectID.generate() }, [
+        previousPolicy(),
+      ]),
+    ).resolves.toBeUndefined();
+
+    expect(errorSpy).toHaveBeenCalled();
+    expect(syncPolicyMock).toHaveBeenCalled();
   });
 });
 

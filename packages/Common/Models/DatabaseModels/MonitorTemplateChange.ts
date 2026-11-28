@@ -146,6 +146,96 @@ export default class MonitorTemplateChange extends BaseModel {
   })
   public monitorTemplateName?: string = undefined;
 
+  /*
+   * The network alert policy whose monitors the change moves to the template
+   * the policy was pointed at (issue #11452), when it is one. Such a change
+   * is OneUptime's own: it is started by the policy's save, runs as
+   * OneUptime, and every monitor it moves stays the policy's. No foreign
+   * key, as for the template: a change outlives its policy, to say what it
+   * did. Never written by a person's request.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Network Alert Policy ID",
+    description:
+      "ID of the network alert policy whose monitors the change moves to the template the policy now names. Empty for a change a person asked for.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public networkAlertPolicyId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Network Alert Policy Name",
+    description:
+      "The policy's name when the change was started, so the change can say whose monitors it moved after the policy is renamed or deleted.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public networkAlertPolicyName?: string = undefined;
+
+  /*
+   * The auto import rule whose devices' monitors the change moves to the
+   * template (issue #11451), when it is one: once every one of them is on
+   * the template, the rule is pointed at it, as the person who asked. No
+   * foreign key, for the reason above.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Network Device Auto Import Rule ID",
+    description:
+      "ID of the auto import rule whose devices' monitors the change moves to the template, pointing the rule at the template once they are all on it.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public networkDeviceAutoImportRuleId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Network Device Auto Import Rule Name",
+    description:
+      "The rule's name when the change was asked for, so the change can say which rule it was about after the rule is renamed or deleted.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public networkDeviceAutoImportRuleName?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],

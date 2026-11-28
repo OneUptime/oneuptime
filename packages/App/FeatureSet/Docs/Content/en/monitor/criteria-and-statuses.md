@@ -265,7 +265,7 @@ The editor shows every criteria open. Click a criteria's header to fold it to on
 
 ### Save the criteria
 
-Click **Save Changes**. The next check is judged by the new criteria.
+Click **Save Changes**. The next check is judged by the new criteria. An open incident or alert whose criteria you deleted is resolved as you save, when it was set to resolve on its own, since nothing could resolve it after: its timeline says why.
 
 ### Test the monitor
 
@@ -352,7 +352,7 @@ The alert's criteria changes no status, so it does not hold the monitor in the s
 :::
 
 :::details The incident stays open after the monitor recovered
-Open the incident's criteria and expand **More fields** in its incident: **Auto Resolve Incident** must be on. An incident from a criteria you have since deleted is not resolved by the monitor: resolve it by hand.
+Open the incident's criteria and expand **More fields** in its incident: **Auto Resolve Incident** must be on. Deleting an incident's criteria, or syncing a template that no longer has it, resolves the incident when it was set to resolve on its own. One left open by a criteria deleted earlier, or set to be resolved by hand, you resolve yourself.
 :::
 
 :::details The Delete button of Offline is locked

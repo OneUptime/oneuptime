@@ -20,6 +20,8 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import {
   buildSyncResultSummary,
+  getResolvedSentence,
+  readResolvedCounts,
   SyncResultSummary,
 } from "./MonitorTemplateSyncResultUtil";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -445,6 +447,7 @@ const MonitorTemplatesView: FunctionComponent<
         subject: translationKey("criteria"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
+        ...readResolvedCounts(response.data),
         translator: translator,
       });
 
@@ -489,6 +492,7 @@ const MonitorTemplatesView: FunctionComponent<
         subject: translationKey("monitoring interval"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
+        ...readResolvedCounts(response.data),
         translator: translator,
       });
 
@@ -533,6 +537,7 @@ const MonitorTemplatesView: FunctionComponent<
         subject: translationKey("labels"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
+        ...readResolvedCounts(response.data),
         translator: translator,
       });
 
@@ -588,6 +593,7 @@ const MonitorTemplatesView: FunctionComponent<
           subject: translationKey("custom field defaults"),
           syncedMonitors: synced,
           totalLinkedMonitors: total,
+          ...readResolvedCounts(response.data),
           translator: translator,
         });
 
@@ -626,14 +632,22 @@ const MonitorTemplatesView: FunctionComponent<
       }
 
       const monitorName: string | undefined = singleSyncMonitor.name;
+      // What the sync resolved on the monitor (#11453), said after it.
+      const resolvedSentence: string | null = getResolvedSentence({
+        ...readResolvedCounts(response.data),
+        translator: translator,
+      });
       setSingleSyncMonitor(null);
       setIsSyncingSingle(false);
       setSyncResultTitle("Done");
       setSyncResultMessage(
-        <SentenceWithMonitorName
-          template={SYNCED_MONITOR_RESULT}
-          monitorName={monitorName}
-        />,
+        <span>
+          <SentenceWithMonitorName
+            template={SYNCED_MONITOR_RESULT}
+            monitorName={monitorName}
+          />
+          {resolvedSentence ? ` ${resolvedSentence}` : ""}
+        </span>,
       );
       setTableRefreshToggle(Math.random().toString());
     } catch (e) {
