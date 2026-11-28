@@ -62,6 +62,7 @@ import React, {
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -75,15 +76,29 @@ import {
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import {
-  getLinkFailuresText,
-  getLinkFailureText,
-  LINKED_MONITORS_RESULT,
   LINKED_MONITORS_TITLE,
   SYNC_TO_LINKED_MONITORS_TITLES,
   SYNCED_MONITOR_RESULT,
-  UNLINK_MONITOR_CONFIRMATION,
-  UNLINKED_MONITOR_RESULT,
 } from "./MonitorTemplateLinkedMonitorsWords";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import {
+  MonitorTemplateChangeKind,
+  MonitorTemplateChangeView,
+} from "Common/Types/Monitor/MonitorTemplateChange";
+import MonitorTemplateChangeDialog, {
+  MonitorTemplateChangeDialogMode,
+} from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangeDialog";
+import MonitorTemplateDeleteChoice from "../../../Components/Monitor/TemplateChange/MonitorTemplateDeleteChoice";
+import {
+  APPLY_SETTINGS_DESCRIPTION,
+  APPLY_SETTINGS_TITLE,
+  DeleteChoice,
+  getMonitorsReached,
+} from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangeModel";
+import {
+  getActiveMonitorTemplateChanges,
+  startMonitorTemplateChange,
+} from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangeApi";
 
 /*
  * A sentence about one monitor, in the reader's language, with the
@@ -235,14 +250,6 @@ const MonitorTemplatesView: FunctionComponent<
   const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
   const [isLinking, setIsLinking] = useState<boolean>(false);
   const [linkError, setLinkError] = useState<string>("");
-  /*
-   * The monitors the Link dialog's picker starts with: none when it opens,
-   * and the ones it could not link when some were linked and some were not
-   * (#7678), so Link tries those again. The dialog draws its form again
-   * once the linking is done (BasicFormModal draws none while it loads),
-   * starting from these, as a monitor group's Add Monitors does.
-   */
-  const [monitorIdsToRetry, setMonitorIdsToRetry] = useState<Array<string>>([]);
 
   /*
    * What the picker lists, searched on the server (#10399): the project's
@@ -262,9 +269,30 @@ const MonitorTemplatesView: FunctionComponent<
       });
     }, [monitorType, modelId]);
 
-  const [unlinkTarget, setUnlinkTarget] = useState<Monitor | null>(null);
-  const [isUnlinking, setIsUnlinking] = useState<boolean>(false);
-  const [unlinkError, setUnlinkError] = useState<string>("");
+  /*
+   * A change of the linked monitors' template (issues #11260, #11266): one
+   * monitor's Unlink from Template, or the progress of a change the server
+   * runs - Link Existing Monitors, the table's Move to Another Template and
+   * Unlink from Template, a Delete that clears the monitors first.
+   */
+  const [templateChangeDialog, setTemplateChangeDialog] = useState<{
+    mode: MonitorTemplateChangeDialogMode;
+    monitors?: Array<Monitor> | undefined;
+    changeId?: string | undefined;
+  } | null>(null);
+
+  // A change of this template's monitors still running, for anyone opening the page.
+  const [activeChange, setActiveChange] =
+    useState<MonitorTemplateChangeView | null>(null);
+
+  // What the template's Delete does to the monitors linked to it.
+  const [deleteChoice, setDeleteChoice] = useState<DeleteChoice>(
+    DeleteChoice.KeepSettings,
+  );
+  // The change a Delete that clears the monitors first started, for its progress.
+  const deleteChangeIdRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
 
   // Bumping this triggers a refetch in the linked-monitors MonitorTable.
   const [tableRefreshToggle, setTableRefreshToggle] = useState<string>(
@@ -291,8 +319,35 @@ const MonitorTemplatesView: FunctionComponent<
       }
     };
 
+  const fetchActiveChange: () => Promise<void> = async (): Promise<void> => {
+    try {
+      const changes: Array<MonitorTemplateChangeView> =
+        await getActiveMonitorTemplateChanges(modelId.toString());
+      setActiveChange(changes[0] || null);
+    } catch {
+      // Nothing to show: the change, if any, still runs on the server.
+      setActiveChange(null);
+    }
+  };
+
+  const onTemplateChanged: () => void = (): void => {
+    fetchLinkedMonitorCount();
+    void fetchActiveChange();
+    setTableRefreshToggle(Math.random().toString());
+  };
+
+  const goToTemplates: () => void = (): void => {
+    Navigation.navigate(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route,
+        { modelId },
+      ),
+    );
+  };
+
   useEffect(() => {
     fetchLinkedMonitorCount();
+    void fetchActiveChange();
 
     const fetchMonitorType: () => Promise<void> = async (): Promise<void> => {
       try {
@@ -545,10 +600,20 @@ const MonitorTemplatesView: FunctionComponent<
     }
   };
 
+  /*
+   * Link Existing Monitors (issues #11260, #11266): every monitor picked, as
+   * one change the server runs - with the template's criteria and interval,
+   * unless switched off - and its progress in a dialog of its own. It used
+   * to be a request per monitor from the browser, which refused every
+   * monitor an import had made ("851 of 851 monitors could not be linked")
+   * and stopped when the page closed.
+   */
   const onLinkSubmit: (formData: {
     monitorIds: Array<string>;
+    applyTemplateSettings?: boolean | undefined;
   }) => Promise<void> = async (formData: {
     monitorIds: Array<string>;
+    applyTemplateSettings?: boolean | undefined;
   }): Promise<void> => {
     const monitorIds: Array<string> = formData.monitorIds || [];
     if (monitorIds.length === 0) {
@@ -559,107 +624,29 @@ const MonitorTemplatesView: FunctionComponent<
     setIsLinking(true);
     setLinkError("");
 
-    const errors: Array<string> = [];
-    // The monitors that were not linked, to keep picked for another try.
-    const notLinkedIds: Array<string> = [];
-    for (const monitorId of monitorIds) {
-      try {
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post<JSONObject>({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/monitor-template/${modelId.toString()}/link-monitor/${monitorId}`,
-            ),
-            headers: ModelAPI.getCommonHeaders(),
-          });
-        if (response.isFailure()) {
-          errors.push(API.getFriendlyMessage(response));
-          notLinkedIds.push(monitorId);
-        }
-      } catch (e) {
-        errors.push(API.getFriendlyMessage(e));
-        notLinkedIds.push(monitorId);
-      }
-    }
-
-    setIsLinking(false);
-
-    /*
-     * Whatever was linked is linked, whether or not the rest was: the count
-     * and the Linked Monitors table are read again either way (#7678). A
-     * failure used to return first, and the page went on showing the
-     * template as it was before the monitors that did link.
-     */
-    fetchLinkedMonitorCount();
-    setTableRefreshToggle(Math.random().toString());
-
-    if (errors.length > 0) {
-      /*
-       * How many of how many whenever more than one monitor was picked -
-       * "1 of 3" too - and the reason alone for the one monitor picked.
-       */
-      setLinkError(
-        monitorIds.length === 1
-          ? getLinkFailureText({ error: errors[0]!, translator: translator })
-          : getLinkFailuresText({
-              errors: errors,
-              total: monitorIds.length,
-              translator: translator,
-            }),
-      );
-      /*
-       * The dialog stays open with only the monitors that were not linked
-       * still picked: the ones that were leave it, and the server leaves
-       * them out of its list from now on, as they are this template's.
-       */
-      setMonitorIdsToRetry(notLinkedIds);
-      return;
-    }
-
-    setShowLinkModal(false);
-    setMonitorIdsToRetry([]);
-    setSyncResultTitle("Done");
-    setSyncResultMessage(
-      translator.translatePlural(LINKED_MONITORS_RESULT, monitorIds.length),
-    );
-  };
-
-  const onUnlinkSubmit: () => Promise<void> = async (): Promise<void> => {
-    if (!unlinkTarget || !unlinkTarget.id) {
-      return;
-    }
-
-    setIsUnlinking(true);
-    setUnlinkError("");
     try {
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.post<JSONObject>({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/monitor-template/${modelId.toString()}/unlink-monitor/${unlinkTarget.id.toString()}`,
-          ),
-          headers: ModelAPI.getCommonHeaders(),
+      const started: MonitorTemplateChangeView =
+        await startMonitorTemplateChange({
+          monitorTemplateId: modelId.toString(),
+          settings: {
+            kind: MonitorTemplateChangeKind.Link,
+            applyTemplateSettings: formData.applyTemplateSettings !== false,
+            clearTemplateSettings: false,
+            deleteTemplateWhenDone: false,
+          },
+          monitorIds: monitorIds,
         });
 
-      if (response.isFailure()) {
-        setUnlinkError(API.getFriendlyMessage(response));
-        setIsUnlinking(false);
-        return;
-      }
-
-      const monitorName: string | undefined = unlinkTarget.name;
-      setUnlinkTarget(null);
-      setIsUnlinking(false);
-      setSyncResultTitle("Done");
-      setSyncResultMessage(
-        <SentenceWithMonitorName
-          template={UNLINKED_MONITOR_RESULT}
-          monitorName={monitorName}
-        />,
-      );
-      fetchLinkedMonitorCount();
-      setTableRefreshToggle(Math.random().toString());
+      setShowLinkModal(false);
+      setTemplateChangeDialog({
+        mode: MonitorTemplateChangeDialogMode.Progress,
+        changeId: started.id,
+      });
+      void fetchActiveChange();
     } catch (e) {
-      setUnlinkError(API.getFriendlyMessage(e));
-      setIsUnlinking(false);
+      setLinkError(API.getFriendlyMessage(e));
+    } finally {
+      setIsLinking(false);
     }
   };
 
@@ -1232,6 +1219,34 @@ const MonitorTemplatesView: FunctionComponent<
         ]}
       />
 
+      {activeChange && (
+        <Alert
+          type={AlertType.INFO}
+          dataTestId="monitor-template-active-change"
+          title={translator.translatePlural(
+            {
+              one: "A change of this template's monitors is running: {{done}} of {{count}} monitor done.",
+              other:
+                "A change of this template's monitors is running: {{done}} of {{count}} monitors done.",
+            },
+            activeChange.progress.total,
+            {
+              done: translator.formatNumber(
+                getMonitorsReached(activeChange.progress),
+              ),
+              count: translator.formatNumber(activeChange.progress.total),
+            },
+          )}
+          textOnRight={translator.translateText("Show progress") as string}
+          onClick={() => {
+            setTemplateChangeDialog({
+              mode: MonitorTemplateChangeDialogMode.Progress,
+              changeId: activeChange.id,
+            });
+          }}
+        />
+      )}
+
       <MonitorsTable
         title={linkedMonitorsTitle}
         description="Monitors created from or linked to this template. Use the sync buttons on the cards above to push the template's criteria, monitoring interval, labels, or custom field defaults onto every linked monitor."
@@ -1245,6 +1260,15 @@ const MonitorTemplatesView: FunctionComponent<
          */
         isDeleteable={false}
         query={linkedMonitorsQuery}
+        linkedToTemplate={
+          monitorType
+            ? {
+                id: modelId.toString(),
+                name: templateName || templateMonitorName,
+                monitorType: monitorType,
+              }
+            : undefined
+        }
         cardButtons={[
           {
             /*
@@ -1273,7 +1297,6 @@ const MonitorTemplatesView: FunctionComponent<
             onClick: () => {
               setSyncResultMessage("");
               setLinkError("");
-              setMonitorIdsToRetry([]);
               setShowLinkModal(true);
             },
           },
@@ -1304,8 +1327,10 @@ const MonitorTemplatesView: FunctionComponent<
               _onError: ErrorFunction,
             ) => {
               setSyncResultMessage("");
-              setUnlinkError("");
-              setUnlinkTarget(monitor);
+              setTemplateChangeDialog({
+                mode: MonitorTemplateChangeDialogMode.Unlink,
+                monitors: [monitor],
+              });
               onCompleteAction();
             },
           },
@@ -1313,16 +1338,70 @@ const MonitorTemplatesView: FunctionComponent<
         refreshToggle={tableRefreshToggle}
       />
 
+      {/*
+       * What a deleted template leaves on its monitors, asked before the
+       * delete (issues #11260, #11266): they keep its criteria as their own
+       * by default, as the delete always left them; or its criteria are
+       * cleared from each first, by a change on the server, and the template
+       * goes once nothing is linked to it.
+       */}
       <ModelDelete
         modelType={MonitorTemplate}
         modelId={modelId}
+        confirmationContent={
+          (linkedMonitorCount || 0) > 0 ? (
+            <MonitorTemplateDeleteChoice
+              templateName={templateName || templateMonitorName}
+              linkedMonitorCount={linkedMonitorCount || 0}
+              onChange={(choice: DeleteChoice) => {
+                setDeleteChoice(choice);
+              }}
+            />
+          ) : undefined
+        }
+        hideDeleteToast={
+          (linkedMonitorCount || 0) > 0 &&
+          deleteChoice === DeleteChoice.ClearCriteria
+        }
+        onDelete={async () => {
+          deleteChangeIdRef.current = null;
+
+          if (
+            (linkedMonitorCount || 0) > 0 &&
+            deleteChoice === DeleteChoice.ClearCriteria
+          ) {
+            const started: MonitorTemplateChangeView =
+              await startMonitorTemplateChange({
+                monitorTemplateId: modelId.toString(),
+                settings: {
+                  kind: MonitorTemplateChangeKind.Unlink,
+                  applyTemplateSettings: false,
+                  clearTemplateSettings: true,
+                  deleteTemplateWhenDone: true,
+                },
+                allLinkedToTemplate: true,
+              });
+
+            deleteChangeIdRef.current = started.id;
+            return;
+          }
+
+          await ModelAPI.deleteItem<MonitorTemplate>({
+            modelType: MonitorTemplate,
+            id: modelId,
+          });
+        }}
         onDeleteSuccess={() => {
-          Navigation.navigate(
-            RouteUtil.populateRouteParams(
-              RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route,
-              { modelId },
-            ),
-          );
+          // Cleared first: the template goes once its monitors are done.
+          if (deleteChangeIdRef.current) {
+            setTemplateChangeDialog({
+              mode: MonitorTemplateChangeDialogMode.Progress,
+              changeId: deleteChangeIdRef.current,
+            });
+            return;
+          }
+
+          goToTemplates();
         }}
       />
 
@@ -1473,7 +1552,10 @@ const MonitorTemplatesView: FunctionComponent<
       )}
 
       {showLinkModal && linkableMonitorsQuery && (
-        <BasicFormModal<{ monitorIds: Array<string> }>
+        <BasicFormModal<{
+          monitorIds: Array<string>;
+          applyTemplateSettings: boolean;
+        }>
           title="Link Existing Monitors"
           description={translator.translateTemplate(
             "Pick {{monitorType}} monitors to link to this template. Monitors linked to another template move to this one.",
@@ -1487,11 +1569,10 @@ const MonitorTemplatesView: FunctionComponent<
           onClose={() => {
             setShowLinkModal(false);
             setLinkError("");
-            setMonitorIdsToRetry([]);
           }}
           onSubmit={onLinkSubmit}
           formProps={{
-            initialValues: { monitorIds: monitorIdsToRetry },
+            initialValues: { monitorIds: [], applyTemplateSettings: true },
             fields: [
               {
                 field: {
@@ -1514,28 +1595,35 @@ const MonitorTemplatesView: FunctionComponent<
                   emptyListText: translationKey("No monitors to link yet."),
                 },
               },
+              {
+                field: {
+                  applyTemplateSettings: true,
+                },
+                title: APPLY_SETTINGS_TITLE,
+                description: APPLY_SETTINGS_DESCRIPTION,
+                fieldType: FormFieldSchemaType.Toggle,
+                required: false,
+              },
             ],
           }}
         />
       )}
 
-      {unlinkTarget && (
-        <ConfirmModal
-          title="Unlink Monitor from Template"
-          description={
-            <SentenceWithMonitorName
-              template={UNLINK_MONITOR_CONFIRMATION}
-              monitorName={unlinkTarget.name}
-            />
-          }
-          submitButtonText="Unlink"
-          submitButtonType={ButtonStyleType.DANGER}
-          isLoading={isUnlinking}
-          error={unlinkError}
-          onSubmit={onUnlinkSubmit}
+      {templateChangeDialog && (
+        <MonitorTemplateChangeDialog
+          mode={templateChangeDialog.mode}
+          monitors={templateChangeDialog.monitors}
+          changeId={templateChangeDialog.changeId}
+          template={{
+            id: modelId.toString(),
+            name: templateName || templateMonitorName,
+            monitorType: monitorType,
+          }}
+          onChanged={onTemplateChanged}
+          onTemplateDeleted={goToTemplates}
           onClose={() => {
-            setUnlinkTarget(null);
-            setUnlinkError("");
+            setTemplateChangeDialog(null);
+            void fetchActiveChange();
           }}
         />
       )}

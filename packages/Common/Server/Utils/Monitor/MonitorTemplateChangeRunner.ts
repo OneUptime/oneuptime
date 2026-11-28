@@ -13,6 +13,8 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   ACTIVE_MONITOR_TEMPLATE_CHANGE_STATUSES,
   MAX_MONITORS_PER_TEMPLATE_CHANGE,
+  MONITOR_NOT_REACHED_FAILED,
+  MONITOR_NOT_REACHED_STOPPED,
   MONITOR_TEMPLATE_CHANGE_VIEW_LINE_LIMIT,
   MonitorTemplateChangeKind,
   MonitorTemplateChangeLine,
@@ -137,12 +139,8 @@ export const MAX_CONSECUTIVE_IDENTICAL_CHANGE_FAILURES: number = 10;
 // The longest reason a line keeps.
 export const MAX_MONITOR_TEMPLATE_CHANGE_REASON_LENGTH: number = 500;
 
-// Why a monitor was not reached, when the change stopped or failed first.
-export const MONITOR_NOT_REACHED_STOPPED: string =
-  "The change was stopped before it got to this monitor.";
-
-export const MONITOR_NOT_REACHED_FAILED: string =
-  "The change stopped before it got to this monitor. Retry to change it.";
+// Why a monitor was not reached: the shared reasons, worded in every language.
+export { MONITOR_NOT_REACHED_FAILED, MONITOR_NOT_REACHED_STOPPED };
 
 const LOCK_NAMESPACE: string = "MonitorTemplateChange";
 

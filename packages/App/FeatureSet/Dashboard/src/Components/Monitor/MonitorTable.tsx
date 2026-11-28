@@ -110,6 +110,8 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProbeUtil from "../../Utils/Probe";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import useMonitorTemplateBulkActions from "./TemplateChange/useMonitorTemplateBulkActions";
+import { MonitorTemplateChangeDialogTemplate } from "./TemplateChange/MonitorTemplateChangeDialog";
 
 export interface ComponentProps {
   query?: Query<Monitor> | undefined;
@@ -144,6 +146,13 @@ export interface ComponentProps {
    * status page and SLO it is on, not only out of this one.
    */
   isDeleteable?: boolean | undefined;
+  /*
+   * The template this list is of - its Linked Monitors - for its bulk
+   * actions: Move to Another Template and Unlink from Template. Every other
+   * list offers Link to Template and Unlink from Template (issues #11260,
+   * #11266).
+   */
+  linkedToTemplate?: MonitorTemplateChangeDialogTemplate | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
@@ -524,6 +533,24 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Monitor>({ modelType: Monitor });
 
+  /*
+   * A change of the monitors' template, once it is done, reads the list
+   * again: their Template column, and on a template's page which are left.
+   */
+  const [templateChangeToggle, setTemplateChangeToggle] = useState<number>(0);
+
+  const {
+    bulkActions: templateBulkActions,
+    modals: templateBulkActionModals,
+  } = useMonitorTemplateBulkActions({
+    template: props.linkedToTemplate,
+    onChanged: (): void => {
+      setTemplateChangeToggle((toggle: number): number => {
+        return toggle + 1;
+      });
+    },
+  });
+
   const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
     useBulkOwnerActions<Monitor>({
       ownerUserModelType: MonitorOwnerUser,
@@ -707,6 +734,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 getBulkRemoveProbesAction(),
                 ...labelBulkActions,
                 ...ownerBulkActions,
+                ...templateBulkActions,
                 ...archiveBulkActions,
                 ModalTableBulkDefaultActions.Delete,
               ],
@@ -736,7 +764,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         isCreateable={false}
         isViewable={true}
-        refreshToggle={props.refreshToggle}
+        refreshToggle={`${props.refreshToggle || ""}-${templateChangeToggle}`}
         topContent={filterBar}
         emptyState={{ ...props.emptyState, ...facetEmptyState }}
         currentFacetState={facetSaveState}
@@ -952,6 +980,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
 
       {labelBulkActionModals}
       {ownerBulkActionModals}
+      {templateBulkActionModals}
 
       {showRemoveProbesModal && (
         <BasicFormModal

@@ -1,5 +1,6 @@
 import { LIMIT_PER_PROJECT } from "../Database/LimitMax";
 import BadDataException from "../Exception/BadDataException";
+import { translationKey } from "../Translator";
 
 /*
  * ONE CHANGE OF MANY MONITORS' TEMPLATE, ON THE SERVER (OneUptime issues
@@ -117,6 +118,19 @@ export enum MonitorTemplateChangeOutcome {
   Failed = "failed",
   NotReached = "notReached",
 }
+
+/*
+ * Why a monitor was not reached, when the change stopped or failed first:
+ * the change's own reasons, keys of the Dashboard's locales, so its list of
+ * what was not done reads in the reader's language.
+ */
+export const MONITOR_NOT_REACHED_STOPPED: string = translationKey(
+  "The change was stopped before it got to this monitor.",
+);
+
+export const MONITOR_NOT_REACHED_FAILED: string = translationKey(
+  "The change stopped before it got to this monitor. Retry to change it.",
+);
 
 // What one link or unlink did (MonitorTemplateService).
 export interface MonitorTemplateLinkResult {
