@@ -108,9 +108,9 @@ export const IconPickerPlaceholder: FunctionComponent<
         <div className={`${ICON_PLACEHOLDER_TEXT_BOX_CLASS} min-w-0`}>
           <span
             data-testid="icon-picker-placeholder-text"
-            className={`block w-full truncate pl-2 ${
-              writtenValue ? "text-gray-500" : "text-gray-400"
-            }${props.disabled ? " bg-gray-100" : ""}`}
+            className={`block w-full truncate pl-2 text-gray-500${
+              props.disabled ? " bg-gray-100" : ""
+            }`}
           >
             {writtenValue || placeholder}
           </span>
