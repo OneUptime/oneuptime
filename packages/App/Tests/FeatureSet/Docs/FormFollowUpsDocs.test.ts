@@ -156,18 +156,19 @@ describe("Following Up on a Submission", () => {
         "utf8",
       );
 
-      expect({ page, mounted: source.includes("<FormFollowUpRecordCard") }).toEqual(
-        { page, mounted: true },
-      );
+      expect({
+        page,
+        mounted: source.includes("<FormFollowUpRecordCard"),
+      }).toEqual({ page, mounted: true });
     }
   });
 
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
     "is written in %s, and every other Forms page links to it",
     (language: string) => {
-      expect(fs.existsSync(path.join(CONTENT_DIR, language, `${PAGE}.md`))).toBe(
-        true,
-      );
+      expect(
+        fs.existsSync(path.join(CONTENT_DIR, language, `${PAGE}.md`)),
+      ).toBe(true);
 
       for (const page of OTHER_FORMS_PAGES) {
         expect({

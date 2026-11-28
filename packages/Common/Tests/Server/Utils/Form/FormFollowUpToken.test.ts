@@ -65,11 +65,14 @@ describe("FormFollowUpToken", () => {
     expect(
       FormFollowUpToken.matches({ stored: undefined, presented: presented }),
     ).toBe(false);
-    expect(FormFollowUpToken.matches({ stored: null, presented: presented })).toBe(
-      false,
-    );
     expect(
-      FormFollowUpToken.matches({ stored: "not-a-token", presented: "0".repeat(64) }),
+      FormFollowUpToken.matches({ stored: null, presented: presented }),
+    ).toBe(false);
+    expect(
+      FormFollowUpToken.matches({
+        stored: "not-a-token",
+        presented: "0".repeat(64),
+      }),
     ).toBe(false);
   });
 

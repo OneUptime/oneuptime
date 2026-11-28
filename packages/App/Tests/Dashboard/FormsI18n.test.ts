@@ -224,17 +224,29 @@ const ALL_STRINGS: Array<string> = unique([
 const SAME_EVERYWHERE: Array<string> = ["name@example.com"];
 
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
-  // An alert form's Monitor (#10760) is "Monitor" in these languages too.
-  de: ["Name", "Optional", "Status", "Monitor"],
-  fr: ["Date", "Description", "Incident", "Options", "Question", "Questions"],
+  /*
+   * An alert form's Monitor (#10760) is "Monitor" in these languages too,
+   * and a follow-up's Team badge "Team" (FormFollowUpRecordCard).
+   */
+  de: ["Name", "Optional", "Status", "Monitor", "Team"],
+  // And a follow-up's Conversation, "Conversation" in French too.
+  fr: [
+    "Date",
+    "Description",
+    "Incident",
+    "Options",
+    "Question",
+    "Questions",
+    "Conversation",
+  ],
   es: ["No", "Monitor"],
-  // Italian says "file" too.
-  it: ["No", "File", "Monitor"],
+  // Italian says "file" too, and "team".
+  it: ["No", "File", "Monitor", "Team"],
   pt: ["Status", "Monitor"],
-  nl: ["Incident", "Labels", "Status", "Monitor"],
-  da: ["Status", "Monitor"],
-  no: ["Status", "Monitor"],
-  sv: ["Incident", "Status", "Monitor"],
+  nl: ["Incident", "Labels", "Status", "Monitor", "Team"],
+  da: ["Status", "Monitor", "Team"],
+  no: ["Status", "Monitor", "Team"],
+  sv: ["Incident", "Status", "Monitor", "Team"],
 };
 
 /*

@@ -78,13 +78,22 @@ import { FORM_SIGN_IN_REQUIRED_MESSAGE } from "../../../../Types/Form/FormPrivat
 import { PublicFormSubmissionFollowUp } from "../../../../Types/Form/FormPublic";
 import FormTargetType from "../../../../Types/Form/FormTargetType";
 import ObjectID from "../../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { Mock } from "jest-mock";
 
 type AnyFunction = (...args: Array<any>) => any;
 type Row = Record<string, any>;
 
-const PROJECT_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
 const FORM_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const OTHER_FORM_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
@@ -177,7 +186,10 @@ const makeService: (store: Store) => Record<string, AnyFunction> = (
       // A create does not hand back a computed secret.
       delete row["accessToken"];
       store.rows.push({ ...row, accessToken: data.data["accessToken"] });
-      return Object.assign(Object.create(Object.getPrototypeOf(data.data)), row);
+      return Object.assign(
+        Object.create(Object.getPrototypeOf(data.data)),
+        row,
+      );
     }),
     findOneBy: jest.fn(
       async (data: { query: Row; sort?: Row }): Promise<Row | null> => {
@@ -191,17 +203,21 @@ const makeService: (store: Store) => Record<string, AnyFunction> = (
         );
       },
     ),
-    findOneById: jest.fn(async (data: { id: ObjectID }): Promise<Row | null> => {
-      return (
-        store.rows.find((row: Row): boolean => {
-          return text(row["id"]) === text(data.id);
-        }) || null
-      );
-    }),
+    findOneById: jest.fn(
+      async (data: { id: ObjectID }): Promise<Row | null> => {
+        return (
+          store.rows.find((row: Row): boolean => {
+            return text(row["id"]) === text(data.id);
+          }) || null
+        );
+      },
+    ),
     findBy: jest.fn(
-      async (data: { query: Row; sort?: Row; limit?: number }): Promise<
-        Array<Row>
-      > => {
+      async (data: {
+        query: Row;
+        sort?: Row;
+        limit?: number;
+      }): Promise<Array<Row>> => {
         return sorted(
           store.rows.filter((row: Row): boolean => {
             return matches(row, data.query);
@@ -383,7 +399,13 @@ beforeEach(() => {
 
   Object.assign(UserService, {
     findOneById: jest.fn(async (): Promise<Row> => {
-      return { name: { toString: (): string => { return "Sam Responder"; } } };
+      return {
+        name: {
+          toString: (): string => {
+            return "Sam Responder";
+          },
+        },
+      };
     }),
   });
 
@@ -464,7 +486,9 @@ describe("after a submission", () => {
     );
     expect(sentMail[0]!["toEmail"].toString()).toBe("jane@example.com");
     expect(sentMail[0]!["isSubjectLiteral"]).toBe(true);
-    expect(sentMail[0]!["subject"]).toBe("Your request: INC-42: Checkout fails");
+    expect(sentMail[0]!["subject"]).toBe(
+      "Your request: INC-42: Checkout fails",
+    );
     expect(sentMail[0]!["vars"]["requestUrl"]).toBe(
       `${FORM_URL}?followUp=${encodeURIComponent(credentialOf(follower))}`,
     );
@@ -648,28 +672,40 @@ describe("opening a request with a link", () => {
   });
 
   test.each([
-    ["no credential", (): Row => {
-      return {};
-    }],
-    ["a malformed credential", (): Row => {
-      return { credential: "nonsense" };
-    }],
-    ["a wrong token", (follower: Row): Row => {
-      return {
-        credential: formatFormFollowUpCredential({
-          followerId: follower["id"].toString(),
-          token: "cd".repeat(32),
-        }),
-      };
-    }],
-    ["a person who is not following any more", (): Row => {
-      return {
-        credential: formatFormFollowUpCredential({
-          followerId: ObjectID.generate().toString(),
-          token: "ab".repeat(32),
-        }),
-      };
-    }],
+    [
+      "no credential",
+      (): Row => {
+        return {};
+      },
+    ],
+    [
+      "a malformed credential",
+      (): Row => {
+        return { credential: "nonsense" };
+      },
+    ],
+    [
+      "a wrong token",
+      (follower: Row): Row => {
+        return {
+          credential: formatFormFollowUpCredential({
+            followerId: follower["id"].toString(),
+            token: "cd".repeat(32),
+          }),
+        };
+      },
+    ],
+    [
+      "a person who is not following any more",
+      (): Row => {
+        return {
+          credential: formatFormFollowUpCredential({
+            followerId: ObjectID.generate().toString(),
+            token: "ab".repeat(32),
+          }),
+        };
+      },
+    ],
   ])(
     "gives the one not-available answer for %s",
     async (_name: string, accessOf: (follower: Row) => Row) => {
@@ -1001,13 +1037,11 @@ describe("a message from somebody following", () => {
     const submission: Row = addSubmission();
     const jane: Row = addFollower({ submission, email: "jane@example.com" });
 
-    (getFormTargetHandler as unknown as Mock<AnyFunction>).mockReturnValue(
-      {
-        addNote: jest.fn(async (): Promise<never> => {
-          throw new Error("note refused");
-        }),
-      },
-    );
+    (getFormTargetHandler as unknown as Mock<AnyFunction>).mockReturnValue({
+      addNote: jest.fn(async (): Promise<never> => {
+        throw new Error("note refused");
+      }),
+    });
 
     const request: PublicFormRequest = await FormFollowUp.reply({
       form: makeForm(),
@@ -1261,9 +1295,11 @@ describe("the record's page", () => {
   test("lets nobody reply who may not edit the record", async () => {
     addSubmission();
 
-    recordKind["findUpdatable"]!.mockImplementation(async (): Promise<never> => {
-      throw new NotAuthorizedException("no");
-    });
+    recordKind["findUpdatable"]!.mockImplementation(
+      async (): Promise<never> => {
+        throw new NotAuthorizedException("no");
+      },
+    );
 
     const view: FormFollowUpRecordView = (await FormFollowUp.getForRecord({
       recordType: FormTargetType.Incident,
@@ -1434,14 +1470,15 @@ describe("the record's page", () => {
     const submission: Row = addSubmission();
     addFollower({ submission, email: "jane@example.com" });
 
-    const view: FormFollowUpRecordView =
-      await FormFollowUp.addPersonFromRecord({
+    const view: FormFollowUpRecordView = await FormFollowUp.addPersonFromRecord(
+      {
         recordType: FormTargetType.Incident,
         recordId: INCIDENT_ID,
         email: "ops@example.com",
         name: "Ops",
         props: props as never,
-      });
+      },
+    );
 
     expect(view.people).toHaveLength(2);
     expect(sentMail[0]!["vars"]["addedBy"]).toBe("Sam Responder");
@@ -1499,6 +1536,8 @@ describe("the record's page", () => {
     })) as FormFollowUpRecordView;
 
     expect(view.formName).toBe("Support");
-    expect(getFormFollowUpRecordKind).toHaveBeenCalledWith(FormTargetType.Alert);
+    expect(getFormFollowUpRecordKind).toHaveBeenCalledWith(
+      FormTargetType.Alert,
+    );
   });
 });

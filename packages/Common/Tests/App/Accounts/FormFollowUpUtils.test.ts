@@ -201,19 +201,22 @@ describe("takeFormFollowUpView", () => {
   });
 
   test.each([
-    ["a credential cut short", `${FORM_FOLLOW_UP_PARAMETER}=${CREDENTIAL.slice(0, -1)}`],
+    [
+      "a credential cut short",
+      `${FORM_FOLLOW_UP_PARAMETER}=${CREDENTIAL.slice(0, -1)}`,
+    ],
     ["a credential that is no credential", `${FORM_FOLLOW_UP_PARAMETER}=hello`],
     ["an empty credential", `${FORM_FOLLOW_UP_PARAMETER}=`],
     ["a submission that is no id", `${FORM_REQUEST_PARAMETER}=../../admin`],
-  ])("opens nothing for %s, and still takes it out of the address", (
-    _name: string,
-    query: string,
-  ) => {
-    openAt(`${FORM_PATH}?${query}`);
+  ])(
+    "opens nothing for %s, and still takes it out of the address",
+    (_name: string, query: string) => {
+      openAt(`${FORM_PATH}?${query}`);
 
-    expect(takeFormFollowUpView(SHARE_KEY)).toBeNull();
-    expect(window.location.search).toBe("");
-  });
+      expect(takeFormFollowUpView(SHARE_KEY)).toBeNull();
+      expect(window.location.search).toBe("");
+    },
+  );
 
   test("opens nothing for an address with no follow-up in it", () => {
     openAt(`${FORM_PATH}?template=outage`);
@@ -261,14 +264,17 @@ describe("takeFormFollowUpView", () => {
       JSON.stringify({ kind: "request", access: { submissionId: "x" } }),
     ],
     ["a list", JSON.stringify([{ kind: "mine" }])],
-  ])("opens nothing for a kept view that is %s", (
-    _name: string,
-    kept: string,
-  ) => {
-    window.sessionStorage.setItem(`oneuptime-form-follow-up:${SHARE_KEY}`, kept);
+  ])(
+    "opens nothing for a kept view that is %s",
+    (_name: string, kept: string) => {
+      window.sessionStorage.setItem(
+        `oneuptime-form-follow-up:${SHARE_KEY}`,
+        kept,
+      );
 
-    expect(takeFormFollowUpView(SHARE_KEY)).toBeNull();
-  });
+      expect(takeFormFollowUpView(SHARE_KEY)).toBeNull();
+    },
+  );
 
   test("still opens the address's view when the tab keeps nothing", () => {
     jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
@@ -321,7 +327,10 @@ describe("getSubmissionFollowUpView", () => {
 describe("getFormFollowUpUrl", () => {
   test("hangs off the form's link", () => {
     expect(
-      getFormFollowUpUrl({ shareKey: SHARE_KEY }, FORM_FOLLOW_UP_ROUTE).toString(),
+      getFormFollowUpUrl(
+        { shareKey: SHARE_KEY },
+        FORM_FOLLOW_UP_ROUTE,
+      ).toString(),
     ).toBe(`${BASE_URL}${FORM_FOLLOW_UP_ROUTE}`);
     expect(
       getFormFollowUpUrl(
@@ -613,7 +622,9 @@ describe("readPublicFormRequest", () => {
     ).toEqual({ name: "Open", isClosed: false });
     expect(
       readPublicFormRequest(
-        aRequest({ state: { name: "Resolved", color: "#16A34A", isClosed: true } }),
+        aRequest({
+          state: { name: "Resolved", color: "#16A34A", isClosed: true },
+        }),
       ).state,
     ).toEqual({ name: "Resolved", color: "#16A34A", isClosed: true });
   });

@@ -54,7 +54,9 @@ describe("getFormFollowUpNote: who wrote it", () => {
 
   test("says a form when the form has no name", () => {
     expect(
-      getFormFollowUpNote({ authorName: "Jane", message: "Hi" }).split("\n\n")[0],
+      getFormFollowUpNote({ authorName: "Jane", message: "Hi" }).split(
+        "\n\n",
+      )[0],
     ).toBe("Jane wrote on this request through a form:");
   });
 });

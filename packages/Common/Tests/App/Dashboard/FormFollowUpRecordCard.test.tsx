@@ -56,7 +56,9 @@ const RECORD_ID: string = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
 const JANE_ID: string = "aa2504e0-4f89-41d3-9a0c-0305e82c3301";
 const BOB_ID: string = "bb2504e0-4f89-41d3-9a0c-0305e82c3301";
 
-const view: (overrides?: Partial<FormFollowUpRecordView>) => FormFollowUpRecordView = (
+const view: (
+  overrides?: Partial<FormFollowUpRecordView>,
+) => FormFollowUpRecordView = (
   overrides?: Partial<FormFollowUpRecordView>,
 ): FormFollowUpRecordView => {
   return {
@@ -191,7 +193,9 @@ describe("which records it is drawn on", () => {
       expect(gets).toHaveLength(1);
     });
 
-    expect(screen.queryByTestId("form-follow-up-record")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-follow-up-record"),
+    ).not.toBeInTheDocument();
   });
 
   test.each([
@@ -207,7 +211,9 @@ describe("which records it is drawn on", () => {
       expect(gets).toHaveLength(1);
     });
 
-    expect(screen.queryByTestId("form-follow-up-record")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("form-follow-up-record"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -262,9 +268,7 @@ describe("what it shows", () => {
     await renderCard();
     await shown();
 
-    expect(
-      screen.getByTestId("form-follow-up-record-off"),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("form-follow-up-record-off")).toBeInTheDocument();
     expect(
       screen.queryByTestId("form-follow-up-record-reply"),
     ).not.toBeInTheDocument();
@@ -327,9 +331,11 @@ describe("what it does", () => {
       screen.getByText(FormsCopy.followUpRemovePersonDescription),
     ).toBeInTheDocument();
 
-    const confirm: HTMLElement = screen.getAllByRole("button", {
-      name: FormsCopy.followUpRemovePerson,
-    }).pop()!;
+    const confirm: HTMLElement = screen
+      .getAllByRole("button", {
+        name: FormsCopy.followUpRemovePerson,
+      })
+      .pop()!;
 
     await act(async (): Promise<void> => {
       fireEvent.click(confirm);

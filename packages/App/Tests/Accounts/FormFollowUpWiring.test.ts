@@ -135,9 +135,10 @@ describe("the view's copy", () => {
       for (const key of Object.keys(ENGLISH)) {
         const value: string = block[key]!;
 
-        expect({ key, isText: typeof value === "string" && value.trim() !== "" }).toEqual(
-          { key, isText: true },
-        );
+        expect({
+          key,
+          isText: typeof value === "string" && value.trim() !== "",
+        }).toEqual({ key, isText: true });
         expect({ key, placeholders: placeholders(value) }).toEqual({
           key,
           placeholders: placeholders(ENGLISH[key]!),
@@ -187,7 +188,9 @@ describe("the follow-up routes' refusals", () => {
     (code: string) => {
       const locale: Record<string, unknown> = readLocale(code);
 
-      for (const sentence of Object.values(FormFollowUpMessage) as Array<string>) {
+      for (const sentence of Object.values(
+        FormFollowUpMessage,
+      ) as Array<string>) {
         const value: unknown = locale[sentence];
 
         expect({ sentence, isText: typeof value === "string" }).toEqual({
@@ -198,14 +201,19 @@ describe("the follow-up routes' refusals", () => {
         if (code === "en") {
           expect(value).toBe(sentence);
         } else {
-          expect({ sentence, value }).not.toEqual({ sentence, value: sentence });
+          expect({ sentence, value }).not.toEqual({
+            sentence,
+            value: sentence,
+          });
         }
       }
     },
   );
 
   test("none still speaks of reports or incident forms", () => {
-    for (const sentence of Object.values(FormFollowUpMessage) as Array<string>) {
+    for (const sentence of Object.values(
+      FormFollowUpMessage,
+    ) as Array<string>) {
       expect(sentence).not.toMatch(/incident form/i);
       expect(sentence).not.toMatch(/\breport\b/i);
       expect(sentence).not.toContain("{{");

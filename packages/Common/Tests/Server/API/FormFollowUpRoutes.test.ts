@@ -141,10 +141,7 @@ function route(method: string, uri: string): RegisteredRoute {
   return mockRouter.match(method, uri) as unknown as RegisteredRoute;
 }
 
-function buildRequest(data: {
-  body?: unknown;
-  host?: string;
-}): ExpressRequest {
+function buildRequest(data: { body?: unknown; host?: string }): ExpressRequest {
   return {
     params: { shareKey: SHARE_KEY },
     body: data.body,
@@ -221,7 +218,11 @@ describe("FormAPI's follow-up routes", () => {
         FORM_FOLLOW_UP_ADD_PERSON_ROUTE,
         FORM_FOLLOW_UP_STOP_ROUTE,
       ]) {
-        cases.push(["POST", `${prefix}${path}`, [ownPage, FormAPI.requireJsonBody]]);
+        cases.push([
+          "POST",
+          `${prefix}${path}`,
+          [ownPage, FormAPI.requireJsonBody],
+        ]);
       }
 
       cases.push([
@@ -343,7 +344,9 @@ describe("FormAPI's follow-up routes", () => {
 
   describe("writing to the team", () => {
     it("hands the follow-up the reply box's answers", async () => {
-      (FormFollowUp.reply as unknown as MockedFn).mockResolvedValue({} as never);
+      (FormFollowUp.reply as unknown as MockedFn).mockResolvedValue(
+        {} as never,
+      );
 
       await runHandler(
         "POST",
@@ -424,7 +427,9 @@ describe("FormAPI's follow-up routes", () => {
         .mockResolvedValue({ giveBack } as never);
 
       (FormFollowUp.addPerson as unknown as MockedFn).mockRejectedValue(
-        new BadDataException("That person is already following this request.") as never,
+        new BadDataException(
+          "That person is already following this request.",
+        ) as never,
       );
 
       const { next } = await runHandler(
