@@ -364,6 +364,42 @@ export default class ConnectorPlatformHealth {
   }
 
   /*
+   * For a product that sends its alerts (CrowdSec, #11158), in place of the
+   * schedule: when the last of them arrived, read off the connection's row.
+   * None yet is a warning, with how to send one, never a failure: a quiet
+   * week has no alert to send.
+   */
+  public static toAlertsReceivedCheck(data: {
+    lastEventIngestedAt: Date | undefined | null;
+    // How to send one, in the product's own words.
+    howToSendOne: string;
+  }): SecurityConnectorCheck {
+    const startedAtMs: number = Date.now();
+
+    if (!data.lastEventIngestedAt) {
+      return makeCheck({
+        key: "alerts-received",
+        name: "Alerts received",
+        status: "warn",
+        startedAtMs,
+        message: "No alert has arrived through this connection yet.",
+        remediation: data.howToSendOne,
+      });
+    }
+
+    return makeCheck({
+      key: "alerts-received",
+      name: "Alerts received",
+      status: "pass",
+      startedAtMs,
+      message: `The last alert arrived at ${new Date(data.lastEventIngestedAt).toISOString()}.`,
+      details: {
+        lastEventIngestedAt: new Date(data.lastEventIngestedAt).toISOString(),
+      },
+    });
+  }
+
+  /*
    * The connection's own schedule, read off its row. Only meaningful for a
    * saved connection; the unsaved-settings test skips it.
    */

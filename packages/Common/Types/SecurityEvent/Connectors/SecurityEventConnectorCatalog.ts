@@ -30,10 +30,11 @@ export type SecurityEventConnectorCategory =
   | "SIEM"
   | "EDR / XDR"
   | "Cloud security"
+  | "Network security"
   | "Identity";
 
 export const SecurityEventConnectorCategories: Array<SecurityEventConnectorCategory> =
-  ["SIEM", "EDR / XDR", "Cloud security", "Identity"];
+  ["SIEM", "EDR / XDR", "Cloud security", "Network security", "Identity"];
 
 /*
  * "json" is a multi-line JSON document edited in a code editor, such as a
@@ -201,6 +202,20 @@ export interface SecurityEventConnectorDefinition {
    * the events. Absent means the provider imports alerts.
    */
   importsNoAlerts?: boolean | undefined;
+  /*
+   * The product sends its alerts to OneUptime, rather than OneUptime
+   * polling it for them: CrowdSec's http notification plugin posts each
+   * alert to the ingest endpoint, naming the connection (#11158). Such a
+   * connection is never polled - it has no poll interval, no Run now, no
+   * preview or import of a time range - and its alerts open cases as a
+   * polled product's do, at its Open Cases From. Absent means it is polled.
+   */
+  alertsArePushed?: boolean | undefined;
+  /*
+   * For a product that sends its alerts: how to send one now, in the
+   * product's own words, for a connection none has arrived through yet.
+   */
+  howToSendTestAlert?: string | undefined;
 }
 
 /*
@@ -919,6 +934,71 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       ],
     },
     {
+      provider: SecurityEventConnectorProvider.CrowdSec,
+      title: "CrowdSec",
+      vendorName: "CrowdSec",
+      productName: "CrowdSec",
+      description: translationKey(
+        "Receive the alerts CrowdSec's notification plugin sends as Detection Finding events, and ban the addresses you block through its Local API.",
+      ),
+      category: "Network security",
+      icon: IconProp.UserGroup,
+      logo: ProviderLogo.CrowdSec,
+      docsPath: "/docs/integrations/crowdsec",
+      // Never polled (alertsArePushed): the interval is never read.
+      defaultPollIntervalInMinutes: 5,
+      supportsAlertingOnlyToggle: false,
+      importedRecordName: "alert",
+      cursorOverlapInMinutes: 0,
+      alertsArePushed: true,
+      howToSendTestAlert:
+        "Add the connection's notification to CrowdSec as its Send alerts says, then send a test alert on the CrowdSec host: sudo cscli notifications test oneuptime",
+      configFields: [
+        {
+          key: "lapiUrl",
+          title: translationKey("Local API URL"),
+          description: translationKey(
+            "Only to block addresses in CrowdSec: where OneUptime reaches CrowdSec's Local API, over https wherever it crosses a network.",
+          ),
+          type: "url",
+          required: false,
+          placeholder: "https://crowdsec.example.com:8080",
+        },
+        {
+          key: "machineId",
+          title: translationKey("Machine ID"),
+          description: translationKey(
+            "Only to block addresses in CrowdSec: the machine OneUptime signs in as. Add one on the CrowdSec host with sudo cscli machines add oneuptime --auto -f -",
+          ),
+          type: "text",
+          required: false,
+          placeholder: "oneuptime",
+        },
+        {
+          key: BLOCK_INDICATORS_KEY,
+          title: translationKey("Block addresses with CrowdSec"),
+          description: translationKey(
+            "OneUptime adds a ban decision in CrowdSec for each address and range you block, and lifts it when the block ends. Needs the Local API URL, the machine ID and its password.",
+          ),
+          type: "toggle",
+          required: false,
+          defaultValue: false,
+          isOption: true,
+        },
+      ],
+      secretFields: [
+        {
+          key: "password",
+          title: translationKey("Machine password"),
+          description: translationKey(
+            "Only to block addresses in CrowdSec: the password cscli printed for the machine.",
+          ),
+          type: "password",
+          required: false,
+        },
+      ],
+    },
+    {
       provider: SecurityEventConnectorProvider.GoogleSecOps,
       title: "Google SecOps",
       /*
@@ -1020,6 +1100,23 @@ export function getSecurityEventConnectorDefinition(
     },
   );
 }
+
+/*
+ * Whether a provider sends its alerts to OneUptime rather than being
+ * polled (alertsArePushed): such a connection has no poll, preview or
+ * import of a time range to run.
+ */
+export function areSecurityEventConnectorAlertsPushed(
+  provider: string | undefined,
+): boolean {
+  return (
+    getSecurityEventConnectorDefinition(provider)?.alertsArePushed === true
+  );
+}
+
+// What a pushed provider's connection says when asked to poll, preview or import.
+export const PUSHED_ALERTS_NOTHING_TO_POLL: string =
+  "This connection's alerts are sent to OneUptime as they happen, so there is nothing to poll, preview or import.";
 
 export function getSecurityEventConnectorTitle(
   provider: string | undefined,

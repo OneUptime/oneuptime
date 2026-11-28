@@ -12,6 +12,7 @@ import GoogleSecOpsConnector from "./GoogleSecOps/GoogleSecOpsConnector";
 import MicrosoftEntraIdConnector from "./MicrosoftEntraId/MicrosoftEntraIdConnector";
 import GoogleWorkspaceConnector from "./GoogleWorkspace/GoogleWorkspaceConnector";
 import CloudflareConnector from "./Cloudflare/CloudflareConnector";
+import CrowdSecConnector from "./CrowdSec/CrowdSecConnector";
 
 /*
  * One connector instance per provider. Connectors are stateless (every
@@ -30,6 +31,7 @@ export default class SecurityEventConnectorRegistry {
     new MicrosoftEntraIdConnector(),
     new GoogleWorkspaceConnector(),
     new CloudflareConnector(),
+    new CrowdSecConnector(),
     new GoogleSecOpsConnector(),
   ];
 
