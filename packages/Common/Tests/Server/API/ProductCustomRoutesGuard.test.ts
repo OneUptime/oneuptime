@@ -5,6 +5,7 @@ import { DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT } from "../../../Types/AI/AIData
 import { getToolProducts } from "../../../Server/Utils/AI/Toolbox/ToolProducts";
 import {
   PRODUCT_OF_AI_RESOURCE_TYPE,
+  PRODUCT_OF_FORM_TARGET_TYPE,
   PRODUCT_OF_WORKSPACE_CHANNEL_RECORD_TYPE,
 } from "../../../Server/Utils/ServerProducts/ProductsOfRequest";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -1051,7 +1052,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/public/:shareKey/submit`":
         PUBLIC_PAGE,
       "`${crudApiPath}${FORM_CUSTOM_DOMAIN_SUBMIT_ROUTE}`": PUBLIC_PAGE,
+      // A form's follow-ups, on its link and its own domain alike.
+      "`${variant.prefix}${FORM_FOLLOW_UP_ROUTE}`": PUBLIC_PAGE,
+      "`${variant.prefix}${FORM_FOLLOW_UP_REPLY_ROUTE}`": PUBLIC_PAGE,
+      "`${variant.prefix}${FORM_FOLLOW_UP_ADD_PERSON_ROUTE}`": PUBLIC_PAGE,
+      "`${variant.prefix}${FORM_FOLLOW_UP_STOP_ROUTE}`": PUBLIC_PAGE,
     },
+  },
+  "packages/Common/Server/API/FormFollowUpRecordAPI.ts": {
+    products: [ProductKey.Forms, ...Object.values(PRODUCT_OF_FORM_TARGET_TYPE)],
+    leftAlone: {},
   },
   "packages/App/FeatureSet/Notification/API/SubscriberNotificationPreview.ts": {
     products: [ProductKey.StatusPages],
@@ -1887,6 +1897,10 @@ const productsOfRefusal: (
       "ProductsOfRequest.workspaceChannelRecord": Object.values(
         PRODUCT_OF_WORKSPACE_CHANNEL_RECORD_TYPE,
       ),
+      "ProductsOfRequest.formFollowUpRecord": [
+        ProductKey.Forms,
+        ...Object.values(PRODUCT_OF_FORM_TARGET_TYPE),
+      ],
       "ProductsOfRequest.aiResource": Object.values(
         PRODUCT_OF_AI_RESOURCE_TYPE,
       ),

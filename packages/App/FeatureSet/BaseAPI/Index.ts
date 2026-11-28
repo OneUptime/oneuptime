@@ -2295,6 +2295,7 @@ import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/Scheduled
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
 import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
+import FormFollowUpRecordAPI from "Common/Server/API/FormFollowUpRecordAPI";
 import WorkspaceAskToConnectAPI from "Common/Server/API/WorkspaceAskToConnectAPI";
 import OnCallPagePassOnAPI from "Common/Server/API/OnCallPagePassOnAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
@@ -7520,6 +7521,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * needs permission to edit it.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
+
+    /*
+     * A form submission's follow-up on the page of the record it created
+     * (/form-follow-up/<record type>/<id>, .../reply, .../people): read with
+     * the caller's own permissions on the record and its private notes;
+     * replying and changing who follows needs permission to edit it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, FormFollowUpRecordAPI);
 
     /*
      * Asking every member of the project to connect their Slack or
