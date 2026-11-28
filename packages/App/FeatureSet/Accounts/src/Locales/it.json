@@ -349,6 +349,15 @@
     "loadFailed": "Non è stato possibile caricare questa richiesta. Riprova tra qualche minuto.",
     "backToForm": "Torna al modulo"
   },
+  "formFollowUpStates": {
+    "identified": "Identificato",
+    "acknowledged": "Riconosciuto",
+    "resolved": "Risolto",
+    "scheduled": "Programmato",
+    "ongoing": "In corso",
+    "ended": "Terminato",
+    "completed": "Completato"
+  },
   "errors": {
     "forbidden": {
       "title": "Vietato",

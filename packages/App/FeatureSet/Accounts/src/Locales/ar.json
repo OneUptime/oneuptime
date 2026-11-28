@@ -349,6 +349,15 @@
     "loadFailed": "تعذّر تحميل هذا الطلب. يُرجى المحاولة مرة أخرى بعد بضع دقائق.",
     "backToForm": "العودة إلى النموذج"
   },
+  "formFollowUpStates": {
+    "identified": "تم التحديد",
+    "acknowledged": "تم الإقرار",
+    "resolved": "تم الحل",
+    "scheduled": "مجدول",
+    "ongoing": "جارٍ",
+    "ended": "انتهى",
+    "completed": "مكتمل"
+  },
   "errors": {
     "forbidden": {
       "title": "محظور",

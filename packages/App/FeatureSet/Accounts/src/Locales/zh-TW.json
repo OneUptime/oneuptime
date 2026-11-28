@@ -349,6 +349,15 @@
     "loadFailed": "無法載入此請求。請過幾分鐘再試。",
     "backToForm": "返回表單"
   },
+  "formFollowUpStates": {
+    "identified": "已識別",
+    "acknowledged": "已確認",
+    "resolved": "已解決",
+    "scheduled": "已排定",
+    "ongoing": "進行中",
+    "ended": "已結束",
+    "completed": "已完成"
+  },
   "errors": {
     "forbidden": {
       "title": "禁止存取",

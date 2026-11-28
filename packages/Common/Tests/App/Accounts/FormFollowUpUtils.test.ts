@@ -36,10 +36,12 @@ import {
   FORM_PAGE_HEADER_VALUE,
 } from "../../../Types/Form/FormPublic";
 import { JSONObject } from "../../../Types/JSON";
+import { StateListType } from "../../../Utils/StateListType";
 import {
   FormFollowUpView,
   addPersonToFormRequest,
   getFormFollowUpUrl,
+  getFormRequestStateName,
   getSubmissionFollowUpView,
   keepFormFollowUpView,
   loadFormRequest,
@@ -630,6 +632,28 @@ describe("readPublicFormRequest", () => {
     ).toEqual({ name: "Resolved", color: "#16A34A", isClosed: true });
   });
 
+  test("reads the list a state is one of, and no list it does not know", () => {
+    expect(
+      readPublicFormRequest(
+        aRequest({
+          state: { name: "Resolved", list: StateListType.AlertState },
+        }),
+      ).state,
+    ).toEqual({
+      name: "Resolved",
+      list: StateListType.AlertState,
+      isClosed: false,
+    });
+
+    for (const list of [StateListType.MonitorStatus, "Project", 3, null]) {
+      expect(
+        readPublicFormRequest(
+          aRequest({ state: { name: "Resolved", list: list } }),
+        ).state,
+      ).toEqual({ name: "Resolved", isClosed: false });
+    }
+  });
+
   test("has no state when the record has none it can name", () => {
     expect(readPublicFormRequest(aRequest({ state: null })).state).toBeNull();
     expect(
@@ -733,5 +757,92 @@ describe("readPublicFormMyRequests", () => {
     expect(() => {
       return readPublicFormMyRequests(data);
     }).toThrow("Your requests could not be read.");
+  });
+});
+
+describe("getFormRequestStateName", () => {
+  // A stand-in for the page's translate: each key in capitals.
+  const translate: (
+    key: string,
+    options: { defaultValue: string },
+  ) => string = (key: string): string => {
+    return key.toUpperCase();
+  };
+
+  test.each([
+    [StateListType.IncidentState, "Resolved", "FORMFOLLOWUPSTATES.RESOLVED"],
+    [
+      StateListType.IncidentState,
+      "Identified",
+      "FORMFOLLOWUPSTATES.IDENTIFIED",
+    ],
+    [
+      StateListType.AlertState,
+      "Acknowledged",
+      "FORMFOLLOWUPSTATES.ACKNOWLEDGED",
+    ],
+    [
+      StateListType.ScheduledMaintenanceState,
+      "Ongoing",
+      "FORMFOLLOWUPSTATES.ONGOING",
+    ],
+    [
+      StateListType.ScheduledMaintenanceState,
+      " Completed ",
+      "FORMFOLLOWUPSTATES.COMPLETED",
+    ],
+  ])(
+    "reads OneUptime's own %s name %j in the reader's words",
+    (list: StateListType, name: string, drawn: string) => {
+      expect(
+        getFormRequestStateName(
+          translate,
+          list as StateListType.IncidentState,
+          name,
+        ),
+      ).toBe(drawn);
+    },
+  );
+
+  test("reads a name the project gave as written, even a word OneUptime uses", () => {
+    expect(
+      getFormRequestStateName(translate, StateListType.IncidentState, "Open"),
+    ).toBe("Open");
+    // "Ongoing" is a maintenance state's name, not an incident state's.
+    expect(
+      getFormRequestStateName(
+        translate,
+        StateListType.IncidentState,
+        "Ongoing",
+      ),
+    ).toBe("Ongoing");
+  });
+
+  test("reads a state of no known list as written, and no name as nothing", () => {
+    expect(getFormRequestStateName(translate, undefined, "Resolved")).toBe(
+      "Resolved",
+    );
+    expect(
+      getFormRequestStateName(translate, StateListType.IncidentState, ""),
+    ).toBe("");
+    expect(
+      getFormRequestStateName(
+        translate,
+        StateListType.IncidentState,
+        undefined,
+      ),
+    ).toBe("");
+  });
+
+  test("falls back to the name itself when the locale has no word for it", () => {
+    expect(
+      getFormRequestStateName(
+        (_key: string, options: { defaultValue: string }): string => {
+          return options.defaultValue;
+        },
+        StateListType.AlertState,
+        "Resolved",
+      ),
+    ).toBe("Resolved");
   });
 });

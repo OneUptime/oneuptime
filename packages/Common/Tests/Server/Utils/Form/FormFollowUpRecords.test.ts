@@ -12,6 +12,7 @@ import {
 import Color from "../../../../Types/Color";
 import FormTargetType from "../../../../Types/Form/FormTargetType";
 import ObjectID from "../../../../Types/ObjectID";
+import { StateListType } from "../../../../Utils/StateListType";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -26,6 +27,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  *   - a maintenance event is closed when it is over (ScheduledMaintenance-
  *     StartUtil.hasEnded) - ended, completed, or a state of the project's
  *     own after Ended ("Reviewing").
+ *
+ * And each state says which list it is one of, which decides whether its
+ * name is OneUptime's - read in the reader's language - or the project's.
  *
  * The records and the rules are stood in for; everything is read as root.
  */
@@ -104,7 +108,12 @@ describe("an incident's facts", () => {
       .mockResolvedValue(false as never);
 
     expect(await readFacts(FormTargetType.Incident)).toEqual({
-      state: { name: "Investigating", color: "#d97706", isClosed: false },
+      state: {
+        name: "Investigating",
+        list: StateListType.IncidentState,
+        color: "#d97706",
+        isClosed: false,
+      },
       reference: "INC-42",
     });
   });
@@ -194,7 +203,12 @@ describe("an alert's facts", () => {
       .mockResolvedValue(true as never);
 
     expect(await readFacts(FormTargetType.Alert)).toEqual({
-      state: { name: "Acknowledged", color: "#2563eb", isClosed: true },
+      state: {
+        name: "Acknowledged",
+        list: StateListType.AlertState,
+        color: "#2563eb",
+        isClosed: true,
+      },
       reference: "ALT-7",
     });
     expect(isResolved).toHaveBeenCalledWith({
@@ -248,7 +262,12 @@ describe("a maintenance event's facts", () => {
       ] as never);
 
     expect(await readFacts(FormTargetType.ScheduledMaintenance)).toEqual({
-      state: { name: "Reviewing", color: "#475569", isClosed: true },
+      state: {
+        name: "Reviewing",
+        list: StateListType.ScheduledMaintenanceState,
+        color: "#475569",
+        isClosed: true,
+      },
       reference: "SM-3",
     });
     expect(over).toHaveBeenCalledWith(PROJECT_ID);

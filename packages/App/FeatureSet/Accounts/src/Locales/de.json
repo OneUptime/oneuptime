@@ -349,6 +349,15 @@
     "loadFailed": "Diese Anfrage konnte nicht geladen werden. Bitte versuchen Sie es in ein paar Minuten erneut.",
     "backToForm": "Zurück zum Formular"
   },
+  "formFollowUpStates": {
+    "identified": "Identifiziert",
+    "acknowledged": "Bestätigt",
+    "resolved": "Behoben",
+    "scheduled": "Geplant",
+    "ongoing": "Laufend",
+    "ended": "Beendet",
+    "completed": "Abgeschlossen"
+  },
   "errors": {
     "forbidden": {
       "title": "Verboten",

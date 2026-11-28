@@ -8,6 +8,7 @@ import {
   addPersonToFormRequest,
   FormFollowUpTarget,
   FormFollowUpView as FollowUpView,
+  getFormRequestStateName,
   loadFormRequest,
   loadMyFormRequests,
   sendFormRequestReply,
@@ -225,8 +226,16 @@ const StateBadge: FunctionComponent<StateBadgeProps> = (
 ): ReactElement => {
   const { t } = useTranslation();
 
+  const translate: (
+    key: string,
+    options: { defaultValue: string },
+  ) => string = (key: string, options: { defaultValue: string }): string => {
+    return t(key, options);
+  };
+
+  // OneUptime's own name for the state in the reader's words, any other as written.
   const name: string = props.state
-    ? props.state.name
+    ? getFormRequestStateName(translate, props.state.list, props.state.name)
     : t("formFollowUp.closed");
 
   return (
@@ -302,10 +311,15 @@ const MyRequests: FunctionComponent<ViewProps> = (
 
   return (
     <div data-testid="form-my-requests">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {t("formFollowUp.myRequests")}
-        </h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {t("formFollowUp.myRequests")}
+          </h2>
+          <p className="mt-1 text-sm text-gray-600 [overflow-wrap:anywhere]">
+            {t("formSignIn.signedInAs", { email: mine.signedInAs })}
+          </p>
+        </div>
         <Button
           title={t("formFollowUp.newRequest")}
           isTitleTranslated={true}
@@ -315,59 +329,58 @@ const MyRequests: FunctionComponent<ViewProps> = (
           onClick={props.onBackToForm}
         />
       </div>
-      <p className="mt-1 text-sm text-gray-600 [overflow-wrap:anywhere]">
-        {t("formSignIn.signedInAs", { email: mine.signedInAs })}
-      </p>
 
-      {mine.requests.length === 0 ? (
-        <p
-          className="mt-6 rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-600"
-          data-testid="form-my-requests-empty"
-        >
-          {t("formFollowUp.noRequests")}
-        </p>
-      ) : (
-        <ul className="mt-6 divide-y divide-gray-100 rounded-lg border border-gray-200">
-          {mine.requests.map(
-            (request: PublicFormRequestSummary): ReactElement => {
-              return (
-                <li key={request.submissionId}>
-                  <button
-                    type="button"
-                    className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    data-testid={`form-my-request-${request.submissionId}`}
-                    onClick={() => {
-                      props.onOpenView({
-                        kind: "request",
-                        access: { submissionId: request.submissionId },
-                      });
-                    }}
-                  >
-                    <span className="min-w-0">
-                      {request.reference ? (
-                        <span className="block text-xs font-medium text-gray-500">
-                          {request.reference}
+      <div className="mt-6">
+        {mine.requests.length === 0 ? (
+          <p
+            className="rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-600"
+            data-testid="form-my-requests-empty"
+          >
+            {t("formFollowUp.noRequests")}
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+            {mine.requests.map(
+              (request: PublicFormRequestSummary): ReactElement => {
+                return (
+                  <li key={request.submissionId}>
+                    <button
+                      type="button"
+                      className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      data-testid={`form-my-request-${request.submissionId}`}
+                      onClick={() => {
+                        props.onOpenView({
+                          kind: "request",
+                          access: { submissionId: request.submissionId },
+                        });
+                      }}
+                    >
+                      <span className="min-w-0">
+                        {request.reference ? (
+                          <span className="block text-xs font-medium text-gray-500">
+                            {request.reference}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                        <span className="block text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
+                          {request.title}
                         </span>
-                      ) : (
-                        <></>
-                      )}
-                      <span className="block text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
-                        {request.title}
+                        <span className="mt-0.5 block text-xs text-gray-500">
+                          {t("formFollowUp.lastActivity", {
+                            when: props.formatWhen(request.lastActivityAt),
+                          })}
+                        </span>
                       </span>
-                      <span className="mt-0.5 block text-xs text-gray-500">
-                        {t("formFollowUp.lastActivity", {
-                          when: props.formatWhen(request.lastActivityAt),
-                        })}
-                      </span>
-                    </span>
-                    <StateBadge state={request.state} />
-                  </button>
-                </li>
-              );
-            },
-          )}
-        </ul>
-      )}
+                      <StateBadge state={request.state} />
+                    </button>
+                  </li>
+                );
+              },
+            )}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };
@@ -827,13 +840,18 @@ const RequestView: FunctionComponent<RequestViewProps> = (
         className="mt-8 border-t border-gray-100 pt-6"
         aria-labelledby="form-request-people"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3
-            id="form-request-people"
-            className="text-sm font-semibold text-gray-900"
-          >
-            {t("formFollowUp.people")}
-          </h3>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3
+              id="form-request-people"
+              className="text-sm font-semibold text-gray-900"
+            >
+              {t("formFollowUp.people")}
+            </h3>
+            <p className="mt-1 text-sm text-gray-600">
+              {t("formFollowUp.peopleDescription")}
+            </p>
+          </div>
           {request.canAddPeople && !isAddingPerson ? (
             <button
               type="button"
@@ -851,9 +869,6 @@ const RequestView: FunctionComponent<RequestViewProps> = (
             <></>
           )}
         </div>
-        <p className="mt-1 text-sm text-gray-600">
-          {t("formFollowUp.peopleDescription")}
-        </p>
         <ul
           className="mt-3 divide-y divide-gray-100"
           data-testid="form-request-people-list"

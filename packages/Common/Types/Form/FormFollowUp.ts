@@ -10,6 +10,7 @@ import {
   FORM_FILE_QUESTION_MAX_FILES,
 } from "./FormFileAnswer";
 import FormTargetType from "./FormTargetType";
+import { StateListType } from "../../Utils/StateListType";
 import {
   cleanSingleLineAnswer,
   isWholeEmailAddress,
@@ -267,10 +268,43 @@ export interface PublicFormRequestAccess {
   submissionId?: string | undefined;
 }
 
+/*
+ * The lists a request's record's state is one of: an incident's, an alert's
+ * or a maintenance event's states, each by its table (StateListType).
+ */
+export type FormFollowUpStateList =
+  | StateListType.IncidentState
+  | StateListType.AlertState
+  | StateListType.ScheduledMaintenanceState;
+
+export const FORM_FOLLOW_UP_STATE_LISTS: ReadonlyArray<FormFollowUpStateList> =
+  [
+    StateListType.IncidentState,
+    StateListType.AlertState,
+    StateListType.ScheduledMaintenanceState,
+  ];
+
+// The list a record of each kind a form creates takes its states from.
+export const FORM_FOLLOW_UP_STATE_LIST_OF_TARGET: Record<
+  FormTargetType,
+  FormFollowUpStateList
+> = {
+  [FormTargetType.Incident]: StateListType.IncidentState,
+  [FormTargetType.Alert]: StateListType.AlertState,
+  [FormTargetType.ScheduledMaintenance]:
+    StateListType.ScheduledMaintenanceState,
+};
+
 // The state of the record a request created, as the person following reads it.
 export interface PublicFormRequestState {
-  // The state's own name in the project: "Investigating", "Resolved".
+  /*
+   * The state's own name in the project: "Investigating", "Resolved". One
+   * of OneUptime's own names reads in the reader's language, any other as
+   * written - decided by its list (Common/Utils/DefaultRecordNames).
+   */
   name: string;
+  // The list the state is one of, which decides how its name reads.
+  list?: FormFollowUpStateList | undefined;
   // Its color, as #rrggbb, when it has one.
   color?: string | undefined;
   // The record is resolved, completed or deleted: nothing more is under way.

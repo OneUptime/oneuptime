@@ -15,11 +15,13 @@ import {
   FORM_FOLLOW_UP_PARAMETER,
   FORM_FOLLOW_UP_REPLY_ROUTE,
   FORM_FOLLOW_UP_ROUTE,
+  FORM_FOLLOW_UP_STATE_LISTS,
   FORM_FOLLOW_UP_STOP_ROUTE,
   FORM_MY_REQUESTS_PARAMETER,
   FORM_MY_REQUESTS_ROUTE,
   FORM_REQUEST_PARAMETER,
   FormFollowUpAuthor,
+  FormFollowUpStateList,
   PublicFormMyRequests,
   PublicFormRequest,
   PublicFormRequestAccess,
@@ -34,6 +36,7 @@ import {
 import { PublicFormSubmissionFollowUp } from "Common/Types/Form/FormPublic";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { isDefaultRecordName } from "Common/Utils/DefaultRecordNames";
 
 /*
  * A FORM'S FOLLOW-UPS ON ITS OWN PAGE (Common/Types/Form/FormFollowUp):
@@ -364,6 +367,12 @@ const readState: (value: unknown) => PublicFormRequestState | null = (
     isClosed: value["isClosed"] === true,
   };
 
+  const list: string = readText(value["list"]);
+
+  if ((FORM_FOLLOW_UP_STATE_LISTS as ReadonlyArray<string>).includes(list)) {
+    state.list = list as FormFollowUpStateList;
+  }
+
   const color: string = readText(value["color"]);
 
   if (STATE_COLOR.test(color)) {
@@ -630,4 +639,55 @@ export const getSubmissionFollowUpView: GetSubmissionFollowUpViewFunction = (
   return followUp.credential
     ? { kind: "request", access: { credential: followUp.credential } }
     : { kind: "request", access: { submissionId: followUp.submissionId } };
+};
+
+/*
+ * The keys of OneUptime's own names for the states a request's record can
+ * be in (Types/StatusPage/DefaultStatusNames), in the formFollowUpStates
+ * block of the page's locale - the words the status page uses for them.
+ */
+const DEFAULT_STATE_NAME_KEYS: Readonly<Record<string, string>> = {
+  Identified: "identified",
+  Acknowledged: "acknowledged",
+  Resolved: "resolved",
+  Scheduled: "scheduled",
+  Ongoing: "ongoing",
+  Ended: "ended",
+  Completed: "completed",
+};
+
+export type GetFormRequestStateNameFunction = (
+  translate: (key: string, options: { defaultValue: string }) => string,
+  list: FormFollowUpStateList | undefined,
+  name: string | undefined,
+) => string;
+
+/*
+ * A request's state's name as its reader reads it, by the one rule
+ * (Common/Utils/DefaultRecordNames): one of OneUptime's own names for its
+ * list in the reader's language, a name the project gave as written - a
+ * state named "Open" stays "Open". A state of no known list reads as
+ * written.
+ */
+export const getFormRequestStateName: GetFormRequestStateNameFunction = (
+  translate: (key: string, options: { defaultValue: string }) => string,
+  list: FormFollowUpStateList | undefined,
+  name: string | undefined,
+): string => {
+  if (!name) {
+    return "";
+  }
+
+  if (!isDefaultRecordName(list, name)) {
+    return name;
+  }
+
+  const trimmed: string = name.trim();
+  const key: string | undefined = DEFAULT_STATE_NAME_KEYS[trimmed];
+
+  if (!key) {
+    return name;
+  }
+
+  return translate(`formFollowUpStates.${key}`, { defaultValue: trimmed });
 };

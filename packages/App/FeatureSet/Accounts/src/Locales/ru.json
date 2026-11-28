@@ -349,6 +349,15 @@
     "loadFailed": "Не удалось загрузить этот запрос. Попробуйте ещё раз через несколько минут.",
     "backToForm": "Вернуться к форме"
   },
+  "formFollowUpStates": {
+    "identified": "Выявлен",
+    "acknowledged": "Подтверждён",
+    "resolved": "Устранён",
+    "scheduled": "Запланировано",
+    "ongoing": "Продолжается",
+    "ended": "Закончено",
+    "completed": "Завершено"
+  },
   "errors": {
     "forbidden": {
       "title": "Запрещено",

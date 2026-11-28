@@ -349,6 +349,15 @@
     "loadFailed": "Deze aanvraag kon niet worden geladen. Probeer het over een paar minuten opnieuw.",
     "backToForm": "Terug naar het formulier"
   },
+  "formFollowUpStates": {
+    "identified": "Geïdentificeerd",
+    "acknowledged": "Bevestigd",
+    "resolved": "Opgelost",
+    "scheduled": "Gepland",
+    "ongoing": "Lopend",
+    "ended": "Beëindigd",
+    "completed": "Voltooid"
+  },
   "errors": {
     "forbidden": {
       "title": "Verboden",

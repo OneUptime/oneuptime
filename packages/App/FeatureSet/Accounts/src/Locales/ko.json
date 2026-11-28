@@ -349,6 +349,15 @@
     "loadFailed": "이 요청을 불러오지 못했습니다. 몇 분 후에 다시 시도해 주세요.",
     "backToForm": "양식으로 돌아가기"
   },
+  "formFollowUpStates": {
+    "identified": "식별됨",
+    "acknowledged": "인지됨",
+    "resolved": "해결됨",
+    "scheduled": "예정됨",
+    "ongoing": "진행 중",
+    "ended": "종료됨",
+    "completed": "완료됨"
+  },
   "errors": {
     "forbidden": {
       "title": "금지됨",
