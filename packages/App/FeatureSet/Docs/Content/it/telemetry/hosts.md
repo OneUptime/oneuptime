@@ -79,6 +79,16 @@ Ogni istanza di OneUptime serve i propri programmi di installazione, quindi un'i
 L'ultimo passaggio della finestra di dialogo indica quando l'host si connette, con un link all'host. Nell'elenco appare come **In avvio** finché non arrivano le sue prime metriche, di solito entro un minuto, poi con la sua integrità, **Integro** quando nulla va controllato, e il collector **In esecuzione**. La pagina **Topologia** dell'host disegna su un'unica mappa ciò che gira su di esso, ciò che lo chiama e ciò che chiama: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
 :::
 
+## Cosa conta come host
+
+L'elenco **Host** mostra le macchine che inviano la propria telemetria da un collector installato sulla macchina. Anche altra telemetria nomina una macchina in `host.name`, ma non aggiunge mai un host:
+
+- quella di un host Docker o Podman, che contiene `container.runtime`: si trova sotto **Docker** o **Podman**;
+- quella di un cluster, un nodo o un pod Kubernetes, che contiene `k8s.cluster.name`, `k8s.node.name` o `k8s.pod.name`: si trova sotto **Kubernetes**;
+- quella propria di un container, che contiene `container.id`, e quella di un'applicazione, che contiene `telemetry.sdk.name`: si trova sotto il servizio dell'applicazione.
+
+Le versioni precedenti aggiungevano alcune di queste macchine come host: host Docker e Podman, nodi e pod Kubernetes, e un host per ogni pod di un'app che esporta direttamente a OneUptime, uno in più a ogni rollout. L'aggiornamento li ha archiviati, ciascuno con una voce nel suo feed che spiega il perché. Ha mantenuto ogni host che hai aggiunto tu, ogni host il cui collector è gestito da OneUptime e ogni host che ha inviato le letture proprie di un host. Quelli archiviati sono in **Avanzato → Archiviato** nell'elenco **Host**, dove **Annulla archiviazione** ne riporta indietro uno.
+
 ## Vedere quali host richiedono attenzione
 
 L'elenco **Host** inizia con **Richiede attenzione**: ogni host guasto o da controllare, prima il più urgente, ognuno con il motivo e un passaggio verso la sua pagina. Un host che ha smesso di segnalare dice quando l'ha fatto l'ultima volta. Quando nulla richiede attenzione, la scheda non c'è.

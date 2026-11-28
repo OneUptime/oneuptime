@@ -61,6 +61,10 @@ Imposta la **Chiave attributo**, come `service.name`, `host.name` o `k8s.namespa
 
 È l'origine più comune, perché non ha bisogno di un elenco proprio: i valori sono quelli che già invii.
 
+Una variabile Telemetry Attribute può avere anche un **Tipo di risorsa**: **Cluster Kubernetes**, **Host**, **cluster Docker Swarm**, **cluster Proxmox**, **cloud OpenStack**, **vCenter VMware**, **pool XCP-ng**, **cluster Ceph** o **Array di storage**. Con un tipo, ogni widget mostra solo i dati di quel tipo, anche prima che sia scelto un valore: **Tutti** diventa **Tutti gli host**, **Tutti i cluster** e così via, e li mostra tutti, e scegliere dei valori restringe la vista a quelli. Il selettore offre solo i nomi di quel tipo, quindi una variabile di tipo **Host** offre i tuoi host, mai un host Docker o un pod. Finché nulla di quel tipo invia dati a OneUptime, la dashboard lo segnala sopra i suoi widget, con un pulsante per configurarne uno, come **Configura Kubernetes**.
+
+I modelli di infrastruttura danno il tipo alla loro variabile, e le dashboard create da essi prima che esistessero i tipi hanno ricevuto il loro con l'aggiornamento. Per leggere di nuovo l'intero progetto, imposta il **Tipo di risorsa** della variabile su **Qualsiasi tipo di risorsa**.
+
 ### Project Labels
 
 Scegli etichette di progetto esistenti da offrire come menu a tendina della dashboard. Per esempio, crea una variabile chiamata `UNIT`, imposta la sua origine su **Etichette del progetto** e scegli le etichette `0660` e `0661`.
@@ -83,7 +87,7 @@ Una variabile Query di una dashboard più vecchia viene conservata e mostra una 
 
 Con **Consenti selezione multipla** spuntato, chi guarda sceglie uno o più valori, e i widget mostrano uno qualsiasi di essi. Una selezione vuota significa **Tutti**, e una variabile a selezione multipla parte sempre da **Tutti**, quindi il suo valore **Predefinito** è disattivato.
 
-Una variabile a selezione singola parte dal suo valore **Predefinito**, oppure da **Tutti** quando non ne ha. **Tutti** rimuove il filtro della variabile, quindi i widget mostrano tutto.
+Una variabile a selezione singola parte dal suo valore **Predefinito**, oppure da **Tutti** quando non ne ha. **Tutti** rimuove il filtro della variabile, quindi i widget mostrano tutto. Su una variabile con un **Tipo di risorsa**, mostrano tutto ciò che è di quel tipo.
 
 Usa la selezione multipla per confrontare "checkout e payments insieme" senza lasciare la dashboard. Evitala dove i numeri non si sommano tra i valori, come in una media di medie.
 

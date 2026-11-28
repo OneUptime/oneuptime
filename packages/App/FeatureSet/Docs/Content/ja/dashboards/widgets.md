@@ -191,7 +191,7 @@ SLO ウィジェットは [公開ダッシュボード](/docs/dashboards/sharing
 
 | グループ | ウィジェット | データの送り元 |
 | --- | --- | --- |
-| **ホスト** | **ホスト**。接続ステータス、OS、CPU、メモリ付き | `host.name` を送る任意の OpenTelemetry コレクター |
+| **ホスト** | **ホスト**。接続ステータス、OS、CPU、メモリ付き | 各ホスト上のコレクター。[ホストとして数えられるもの](/docs/telemetry/hosts#ホストとして数えられるもの) を参照してください |
 | **Kubernetes** | **Pod**、**ノード**、**Namespace**、**Deployment**、**StatefulSets**、**DaemonSets**、**Job**、**CronJobs** | [Kubernetes エージェント](/docs/monitor/kubernetes-agent) |
 | **Docker** | **ホスト**、**コンテナ**、**イメージ**、**ネットワーク**、**ボリューム** | Docker エージェント |
 | **Docker Swarm** | **ノード**、**サービス** | Docker Swarm エージェント |
