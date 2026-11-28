@@ -1,6 +1,7 @@
 import DatabaseConfig from "../DatabaseConfig";
 import MonitorOpenRecords from "../Utils/Monitor/MonitorOpenRecords";
 import MonitorIncidentPause, {
+  MonitorHeldStatus,
   MonitorIncidentPauseState,
 } from "../Utils/Monitor/MonitorIncidentPause";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
@@ -5217,12 +5218,29 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
   ): Promise<void> {
     try {
       if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
-        // change status of all the monitors.
+        /*
+         * Every monitor the incident lists is put in its status, except one
+         * that other incidents declared by hand, or maintenance events, hold
+         * in a more severe status: a monitor several hold is in the most
+         * severe of theirs (MonitorIncidentPause, #11432), and takes this
+         * incident's once they let go. A minor incident declared on a
+         * monitor in a major outage used to put it in the minor status
+         * while the major outage was still open.
+         */
+        const monitorIds: Array<ObjectID> =
+          await MonitorIncidentPause.getMonitorsTakingStatus({
+            projectId: createdItem.projectId,
+            monitorIds:
+              createdItem.monitors?.map((monitor: Monitor) => {
+                return new ObjectID(monitor._id || "");
+              }) || [],
+            monitorStatusId: createdItem.changeMonitorStatusToId,
+            writer: { incidentId: createdItem.id || undefined },
+          });
+
         await MonitorService.changeMonitorStatus(
           createdItem.projectId,
-          createdItem.monitors?.map((monitor: Monitor) => {
-            return new ObjectID(monitor._id || "");
-          }) || [],
+          monitorIds,
           createdItem.changeMonitorStatusToId,
           true, // notifyMonitorOwners
           createdItem.rootCause ||
@@ -5252,6 +5270,11 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
    * (MonitorIncidentPause), and its time is left out of uptime while the
    * incidents that pause it put it in no status. An incident OneUptime
    * declared pauses nothing, so its monitors are not read.
+   *
+   * And each is put in the most severe status of what pauses it, when it is
+   * not in it (#11432): the incident stopped pausing it, its status was
+   * taken away or made less severe, so the status of what still holds the
+   * monitor shows - not the one this incident left behind.
    */
   @CaptureSpan()
   public async disableActiveMonitoringIfManualIncident(
@@ -5288,6 +5311,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         .map((monitor: Monitor): ObjectID => {
           return monitor.id!;
         }),
+      putInHeldStatus: true,
     });
   }
 
@@ -7081,15 +7105,28 @@ ${incidentSeverity.name}
       },
     });
 
-    const monitorIdsToChange: Array<ObjectID> = (incident?.monitors || [])
-      .filter((monitor: Monitor): boolean => {
-        return (
-          isMonitorStatusChanged ||
-          addedMonitorIds.includes(this.getMonitorIdForComparison(monitor))
-        );
-      })
-      .map((monitor: Monitor): ObjectID => {
-        return new ObjectID(monitor._id?.toString() || "");
+    /*
+     * Not a monitor other pauses hold in a more severe status: it shows the
+     * most severe of theirs (MonitorIncidentPause, #11432). One whose status
+     * this edit made less severe, so another pause's is now the most
+     * severe, is put in that one once the edit's pauses are worked out
+     * (disableActiveMonitoringIfManualIncident).
+     */
+    const monitorIdsToChange: Array<ObjectID> =
+      await MonitorIncidentPause.getMonitorsTakingStatus({
+        projectId: data.projectId,
+        monitorIds: (incident?.monitors || [])
+          .filter((monitor: Monitor): boolean => {
+            return (
+              isMonitorStatusChanged ||
+              addedMonitorIds.includes(this.getMonitorIdForComparison(monitor))
+            );
+          })
+          .map((monitor: Monitor): ObjectID => {
+            return new ObjectID(monitor._id?.toString() || "");
+          }),
+        monitorStatusId: monitorStatusIdToApply,
+        writer: { incidentId: data.incidentId },
       });
 
     if (monitorIdsToChange.length === 0) {
@@ -7240,14 +7277,18 @@ ${incidentSeverity.name}
   /*
    * Gives the monitors back once an incident lets go of them - resolved,
    * the monitors taken off it, or deleted. Each monitor is worked out from
-   * the incidents still open on it (MonitorIncidentPause):
+   * what still pauses it (MonitorIncidentPause):
    *
-   *   - one that another open incident declared by hand still pauses stays
-   *     paused, in the status it holds;
-   *   - one a scheduled maintenance event in progress still holds, in a
-   *     status of its own, goes back to that status (#11301);
-   *   - any other is resumed, and returned to operational unless another
-   *     incident is still open on it - its checks then set its status.
+   *   - one that other open incidents declared by hand, or scheduled
+   *     maintenance events in progress, still hold in a status of theirs
+   *     goes to the most severe of those statuses (putInHeldStatus, #11432).
+   *     It used to keep the status of the incident that let go while
+   *     another incident still held it - Degraded, say, while INC-1 still
+   *     said Major Outage - and to go back to operational while maintenance
+   *     with a status of its own still held it (#11301);
+   *   - any other is returned to operational unless another incident is
+   *     still open on it, and resumed unless something still pauses it -
+   *     its checks then set its status.
    *
    * Only the incidents that pause a monitor keep it paused: open, declared
    * by hand, holding their monitors and pausing monitoring. A reopened
@@ -7256,9 +7297,9 @@ ${incidentSeverity.name}
    * resolve giving back nothing (issue #11141).
    *
    * The time a monitor's pause left out of uptime is counted again from
-   * when it resumes, or from its operational status when that is written -
-   * unless maintenance that sets no status still pauses it, which leaves it
-   * out until the event ends (MonitorIncidentPause).
+   * when it resumes, or from the status written here - unless what still
+   * pauses it sets no status, which leaves it out until that is over too
+   * (MonitorIncidentPause).
    */
   @CaptureSpan()
   public async markMonitorsActiveForMonitoring(
@@ -7321,37 +7362,18 @@ ${incidentSeverity.name}
           continue;
         }
 
-        if (pause.isPaused) {
-          // Still held: its time counts as what the incidents left holding it say.
-          await MonitorIncidentPause.markUptime(pause);
-          continue;
-        }
-
         /*
-         * A scheduled maintenance event in progress still holds it, and puts
-         * it in a status of its own: it goes back to that status, not to
-         * operational, which showed it up for the rest of the event (#11301).
+         * Other incidents declared by hand, or maintenance events, still
+         * hold it in a status of theirs: it goes to the most severe of them,
+         * whichever let go (#11432).
          */
-        const maintenanceStatus: {
-          monitorStatusId: ObjectID;
-          rootCause: string;
-        } | null =
-          await MonitorIncidentPause.getStatusOfMaintenanceStillHolding(pause);
+        const heldStatus: MonitorHeldStatus | null =
+          await MonitorIncidentPause.putInHeldStatus({
+            state: pause,
+            startsAt: startsAt,
+          });
 
-        if (maintenanceStatus) {
-          await MonitorService.changeMonitorStatus(
-            projectId,
-            [monitor.id!],
-            maintenanceStatus.monitorStatusId,
-            true, // notifyOwners, as the move to operational below does.
-            maintenanceStatus.rootCause,
-            undefined,
-            {
-              isRoot: true,
-            },
-            startsAt,
-          );
-
+        if (heldStatus) {
           await MonitorIncidentPause.markUptime(pause);
           continue;
         }

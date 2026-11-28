@@ -1,6 +1,9 @@
 import Color from "../../Types/Color";
 import { JSONObject } from "../../Types/JSON";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
+import MonitorPausedBy, {
+  MonitorPausedByUtil,
+} from "../../Types/Monitor/MonitorPausedBy";
 import MonitorCheckScheduleUtil from "./MonitorCheckScheduleUtil";
 
 /*
@@ -29,6 +32,11 @@ export interface MonitorStatusChangeRow {
    * its last check saw, and left out of uptime (issue #6480).
    */
   isMonitoringOff: boolean;
+  /*
+   * With it: what paused the monitor, when a pause rather than its switch
+   * left the time out (#11433) - its pill says paused, and by what.
+   */
+  pausedBy: MonitorPausedBy | null;
 }
 
 // #rgb, #rgba, #rrggbb and #rrggbbaa.
@@ -145,6 +153,10 @@ export default class MonitorStatusHistoryUtil {
         endsAt: rowEndsAt ?? successorStartsAt,
         isOngoing: i === 0 && !rowEndsAt,
         isMonitoringOff: row.isMonitoringOff === true,
+        pausedBy:
+          row.isMonitoringOff === true
+            ? MonitorPausedByUtil.fromValue(row.pausedBy)
+            : null,
       });
     }
 

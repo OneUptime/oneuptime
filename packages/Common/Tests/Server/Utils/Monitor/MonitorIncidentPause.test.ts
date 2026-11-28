@@ -9,6 +9,7 @@ import MonitorIncidentPause, {
   MonitorIncidentPauseState,
 } from "../../../../Server/Utils/Monitor/MonitorIncidentPause";
 import URL from "../../../../Types/API/URL";
+import MonitorPausedBy from "../../../../Types/Monitor/MonitorPausedBy";
 import ObjectID from "../../../../Types/ObjectID";
 import { getJestSpyOn } from "../../../Spy";
 import {
@@ -95,11 +96,19 @@ function monitorWith(data: {
   return monitor;
 }
 
-function latestRow(isMonitoringOff: boolean): MonitorStatusTimeline {
+function latestRow(
+  isMonitoringOff: boolean,
+  pausedBy?: MonitorPausedBy | undefined,
+): MonitorStatusTimeline {
   const row: MonitorStatusTimeline = new MonitorStatusTimeline(
     ObjectID.generate(),
   );
   row.isMonitoringOff = isMonitoringOff;
+
+  if (pausedBy) {
+    row.pausedBy = pausedBy;
+  }
+
   return row;
 }
 
@@ -413,13 +422,43 @@ describe("markUptime: what the monitor's time counts as from here", () => {
     );
   });
 
-  test("already marked left out: nothing written again", async () => {
+  test("already marked left out, by what pauses it now: nothing written again", async () => {
+    incidentsFound = [incidentWith({ id: ObjectID.generate().toString() })];
+    latest = latestRow(true, MonitorPausedBy.Incident);
+
+    await MonitorIncidentPause.markUptime(await syncState());
+
+    expect(switches).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Marked before #11433, or by something else - monitoring turned off, say -
+   * the time left out says what pauses it from here, so it reads "paused".
+   */
+  test("left out already, but not marked as paused by an incident: marked again, saying so", async () => {
     incidentsFound = [incidentWith({ id: ObjectID.generate().toString() })];
     latest = latestRow(true);
 
     await MonitorIncidentPause.markUptime(await syncState());
 
-    expect(switches).not.toHaveBeenCalled();
+    expect(switches).toHaveBeenCalledTimes(1);
+    expect(switches.mock.calls[0]![0]).toMatchObject({
+      isMonitoringOff: true,
+      pausedBy: MonitorPausedBy.Incident,
+    });
+  });
+
+  test("a mark that counts the time again says no pause", async () => {
+    incidentsFound = [];
+    latest = latestRow(true, MonitorPausedBy.Incident);
+
+    await MonitorIncidentPause.markUptime(await syncState());
+
+    expect(switches).toHaveBeenCalledTimes(1);
+    expect(switches.mock.calls[0]![0]).toMatchObject({
+      isMonitoringOff: false,
+      pausedBy: null,
+    });
   });
 
   test("paused by an incident that puts it in a status: counted, nothing to mark", async () => {

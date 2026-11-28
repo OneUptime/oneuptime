@@ -22,6 +22,9 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import MonitorPausedBy, {
+  MonitorPausedByUtil,
+} from "../../Types/Monitor/MonitorPausedBy";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -125,6 +128,17 @@ const monitoringOffSetByCreate: WeakMap<
   CreateBy<MonitorStatusTimeline>,
   boolean
 > = new WeakMap<CreateBy<MonitorStatusTimeline>, boolean>();
+
+/*
+ * And what paused the monitor, for such a row that leaves the time out
+ * (MonitorStatusTimeline.pausedBy, #11433): an incident declared by hand,
+ * scheduled maintenance, or both. Kept from recordMonitoringSwitch to
+ * onBeforeCreate, which writes it on the row.
+ */
+const pausedBySetByCreate: WeakMap<
+  CreateBy<MonitorStatusTimeline>,
+  MonitorPausedBy | null
+> = new WeakMap<CreateBy<MonitorStatusTimeline>, MonitorPausedBy | null>();
 const monitoringSwitchRowIdByCreate: WeakMap<
   CreateBy<MonitorStatusTimeline>,
   string
@@ -180,6 +194,12 @@ export interface UptimeDailyAggregateRow {
   monitorStatusId: string | null;
   seconds: string | number;
   isMonitoringOff?: boolean | null | undefined;
+  /*
+   * With isMonitoringOff: what paused the monitor for that time
+   * (MonitorStatusTimeline.pausedBy, #11433), or null for monitoring turned
+   * off. Optional, as rows shaped before it read as monitoring off.
+   */
+  pausedBy?: string | null | undefined;
 }
 
 /*
@@ -202,6 +222,17 @@ export interface MonitorGroupDailyUptimeRow {
    * before it existed read as monitored.
    */
   unionWithMonitoringOff?: string | number | null | undefined;
+  /*
+   * The day's union of the periods of a status and those a pause left out
+   * (#11433): less unions[0], the time at least one monitor was paused by an
+   * incident declared by hand or by maintenance that set it no status,
+   * while none was checked - the part of the time off that says "paused".
+   * And whether an incident, or maintenance, paused any of them that day.
+   * Optional, as rows shaped before them read as monitoring off.
+   */
+  unionWithPaused?: string | number | null | undefined;
+  pausedByIncident?: boolean | null | undefined;
+  pausedForMaintenance?: boolean | null | undefined;
 }
 
 /*
@@ -430,6 +461,8 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                CASE WHEN src.is_off THEN NULL ELSE src.status_id END
                  AS status_id,
                src.is_off,
+               CASE WHEN src.is_off THEN src.paused_by ELSE NULL END
+                 AS paused_by,
                src.s,
                src.e,
                width_bucket(src.s, g.starts) AS first_day,
@@ -442,6 +475,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         SELECT pr.monitor_id,
                pr.status_id,
                pr.is_off,
+               pr.paused_by,
                pr.s,
                pr.e,
                generate_series(pr.first_day, pr.last_day) AS day_index
@@ -452,6 +486,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                sp.day_index,
                sp.status_id,
                sp.is_off,
+               sp.paused_by,
                SUM(EXTRACT(EPOCH FROM (
                  LEAST(sp.e, g.starts[sp.day_index + 1])
                    - GREATEST(sp.s, g.starts[sp.day_index])
@@ -460,7 +495,8 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         CROSS JOIN grid g
         WHERE LEAST(sp.e, g.starts[sp.day_index + 1])
                 > GREATEST(sp.s, g.starts[sp.day_index])
-        GROUP BY sp.monitor_id, sp.day_index, sp.status_id, sp.is_off
+        GROUP BY sp.monitor_id, sp.day_index, sp.status_id, sp.is_off,
+                 sp.paused_by
       ),
       ${Service.getDayBucketsCte()}
       SELECT m.monitor_id AS "monitorId",
@@ -470,7 +506,8 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                AS "daySeconds",
              a.status_id AS "monitorStatusId",
              COALESCE(a.seconds, 0)::double precision AS "seconds",
-             COALESCE(a.is_off, false) AS "isMonitoringOff"
+             COALESCE(a.is_off, false) AS "isMonitoringOff",
+             a.paused_by AS "pausedBy"
       FROM mons m
       CROSS JOIN days d
       LEFT JOIN agg a ON a.monitor_id = m.monitor_id
@@ -579,6 +616,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         SELECT t."monitorId" AS monitor_id,
                t."monitorStatusId" AS status_id,
                t."isMonitoringOff" IS TRUE AS is_off,
+               t."pausedBy" AS paused_by,
                GREATEST(
                  t."startsAt",
                  p.win_start,
@@ -730,6 +768,21 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         if (seconds > 0) {
           bucket.monitoringOffSeconds =
             (bucket.monitoringOffSeconds || 0) + seconds;
+
+          /*
+           * Of it, the time a pause left out rather than the monitor's
+           * switch (#11433), and what paused it, so the day says "paused"
+           * and why.
+           */
+          const pausedBy: MonitorPausedBy | null =
+            MonitorPausedByUtil.fromValue(row.pausedBy);
+
+          if (pausedBy) {
+            bucket.pausedSeconds = (bucket.pausedSeconds || 0) + seconds;
+            bucket.pausedBy =
+              MonitorPausedByUtil.combine([bucket.pausedBy, pausedBy]) ||
+              undefined;
+          }
         }
 
         continue;
@@ -988,8 +1041,13 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       ${Service.getTimelineSourceCtes({ monitorIds: "$2::uuid[]" })},
       periods AS (
         SELECT mb.group_key,
-               CASE WHEN src.is_off THEN 0 ELSE rk.status_rank END
-                 AS status_rank,
+               CASE
+                 WHEN src.is_off AND src.paused_by IS NOT NULL THEN 0
+                 WHEN src.is_off THEN -1
+                 ELSE rk.status_rank
+               END AS status_rank,
+               CASE WHEN src.is_off THEN src.paused_by ELSE NULL END
+                 AS paused_by,
                src.s,
                src.e,
                width_bucket(src.s, g.starts) AS first_day,
@@ -1004,6 +1062,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       split AS (
         SELECT group_key,
                status_rank,
+               paused_by,
                first_day AS day_index,
                s AS seg_start,
                e AS seg_end
@@ -1012,6 +1071,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         UNION ALL
         SELECT pr.group_key,
                pr.status_rank,
+               pr.paused_by,
                di AS day_index,
                GREATEST(pr.s, g.starts[di]) AS seg_start,
                LEAST(pr.e, g.starts[di + 1]) AS seg_end
@@ -1024,9 +1084,12 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         SELECT group_key,
                day_index,
                status_rank,
+               paused_by,
                seg_start,
                seg_end,
                MAX(seg_end) OVER earlier AS reached_all,
+               MAX(seg_end) FILTER (WHERE status_rank >= 0) OVER earlier
+                 AS reached_paused,
                ${reachedColumns.join(",\n               ")}
         FROM split
         WHERE seg_end > seg_start
@@ -1043,7 +1106,13 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                  ${unionColumns.join(",\n                 ")}
                ]::double precision[] AS unions,
                COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (seg_end - GREATEST(seg_start, COALESCE(reached_all, seg_start)))), 0)), 0)::double precision
-                 AS union_all
+                 AS union_all,
+               COALESCE(SUM(GREATEST(EXTRACT(EPOCH FROM (seg_end - GREATEST(seg_start, COALESCE(reached_paused, seg_start)))), 0)) FILTER (WHERE status_rank >= 0), 0)::double precision
+                 AS union_paused,
+               COALESCE(BOOL_OR(paused_by IN ('${MonitorPausedBy.Incident}', '${MonitorPausedBy.IncidentAndScheduledMaintenance}')), false)
+                 AS paused_by_incident,
+               COALESCE(BOOL_OR(paused_by IN ('${MonitorPausedBy.ScheduledMaintenance}', '${MonitorPausedBy.IncidentAndScheduledMaintenance}')), false)
+                 AS paused_for_maintenance
         FROM reach
         GROUP BY group_key, day_index
       ),
@@ -1054,7 +1123,10 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
              EXTRACT(EPOCH FROM (d.bucket_end - d.bucket_start))::bigint
                AS "daySeconds",
              u.unions AS "unions",
-             u.union_all AS "unionWithMonitoringOff"
+             u.union_all AS "unionWithMonitoringOff",
+             u.union_paused AS "unionWithPaused",
+             u.paused_by_incident AS "pausedByIncident",
+             u.paused_for_maintenance AS "pausedForMaintenance"
       FROM generate_series(1, $7::int) AS gk(group_key)
       CROSS JOIN days d
       LEFT JOIN day_unions u ON u.group_key = gk.group_key
@@ -1139,6 +1211,26 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
 
       if (monitoringOffSeconds >= MINIMUM_GROUP_STATUS_SECONDS) {
         bucket.monitoringOffSeconds = monitoringOffSeconds;
+
+        /*
+         * Of it, the time at least one monitor was paused - by an incident
+         * declared by hand or by maintenance that set it no status - while
+         * none was checked (#11433), and what paused them, so the day says
+         * "paused" and why. The rest had monitoring turned off.
+         */
+        const unionWithPaused: number = Number(row.unionWithPaused);
+        const pausedSeconds: number = Number.isFinite(unionWithPaused)
+          ? Math.min(unionWithPaused - unionAt(1), monitoringOffSeconds)
+          : 0;
+
+        if (pausedSeconds >= MINIMUM_GROUP_STATUS_SECONDS) {
+          bucket.pausedSeconds = pausedSeconds;
+          bucket.pausedBy =
+            MonitorPausedByUtil.of({
+              isByIncident: row.pausedByIncident === true,
+              isForMaintenance: row.pausedForMaintenance === true,
+            }) || undefined;
+        }
       }
 
       for (
@@ -1855,6 +1947,13 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
      * the row is then marked as isMonitoringOff says.
      */
     rootCause?: string | undefined;
+    /*
+     * What paused the monitor, for a mark that leaves its time out because
+     * of a pause (MonitorStatusTimeline.pausedBy, #11433). Time left out
+     * already is marked again when this changes - an event joins the
+     * incident pausing the monitor, say - so the day bars say why.
+     */
+    pausedBy?: MonitorPausedBy | null | undefined;
   }): Promise<MonitorStatusTimeline | null> {
     const latest: MonitorStatusTimeline | null = await this.findOneBy({
       query: {
@@ -1868,6 +1967,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         projectId: true,
         monitorStatusId: true,
         isMonitoringOff: true,
+        pausedBy: true,
       },
       props: {
         isRoot: true,
@@ -1878,7 +1978,17 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       return null;
     }
 
-    if ((latest.isMonitoringOff === true) === data.isMonitoringOff) {
+    const pausedBy: MonitorPausedBy | null =
+      data.isMonitoringOff && data.rootCause
+        ? MonitorPausedByUtil.fromValue(data.pausedBy)
+        : null;
+
+    if (
+      (latest.isMonitoringOff === true) === data.isMonitoringOff &&
+      (!data.isMonitoringOff ||
+        !data.rootCause ||
+        MonitorPausedByUtil.fromValue(latest.pausedBy) === pausedBy)
+    ) {
       return null;
     }
 
@@ -1917,6 +2027,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     // Marked as the incident says, not as the monitor's switch does.
     if (data.rootCause) {
       monitoringOffSetByCreate.set(createBy, data.isMonitoringOff);
+      pausedBySetByCreate.set(createBy, pausedBy);
     }
 
     try {
@@ -2201,6 +2312,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         startsAt: true,
         endsAt: true,
         isMonitoringOff: true,
+        pausedBy: true,
       },
     });
 
@@ -2229,6 +2341,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         startsAt: true,
         endsAt: true,
         isMonitoringOff: true,
+        pausedBy: true,
       },
     });
 
@@ -2252,6 +2365,26 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     createBy.data.isMonitoringOff = isMonitoringOff;
 
     /*
+     * What paused the monitor for that time, when a pause rather than its
+     * switch leaves the time out (#11433): as the mark says, for the row
+     * that marks it; a row written into the timeline's past takes it with
+     * the switch it takes, from the row before it (or the first row after).
+     * Time with monitoring turned off, and time that counts, has none.
+     */
+    const pausedBy: MonitorPausedBy | null = !isMonitoringOff
+      ? null
+      : isMonitoringOffSetByCreate !== undefined && !stateAfterThis
+        ? pausedBySetByCreate.get(createBy) || null
+        : stateAfterThis
+          ? MonitorPausedByUtil.fromValue(
+              (stateBeforeThis || stateAfterThis).pausedBy,
+            )
+          : null;
+
+    // Null, not left out: a value a caller sent is never kept (OneUptime decides it).
+    createBy.data.pausedBy = pausedBy || (null as unknown as MonitorPausedBy);
+
+    /*
      * check if this new state and the previous state are same.
      * if yes, then throw bad data exception.
      *
@@ -2268,7 +2401,8 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
 
       if (
         isSameStatus &&
-        (stateBeforeThis.isMonitoringOff === true) === isMonitoringOff
+        (stateBeforeThis.isMonitoringOff === true) === isMonitoringOff &&
+        MonitorPausedByUtil.fromValue(stateBeforeThis.pausedBy) === pausedBy
       ) {
         /*
          * Logged above debug on purpose. This is the exact point at which an
@@ -2307,7 +2441,8 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       if (
         stateAfterThis.monitorStatusId.toString() ===
           monitorStatusId.toString() &&
-        (stateAfterThis.isMonitoringOff === true) === isMonitoringOff
+        (stateAfterThis.isMonitoringOff === true) === isMonitoringOff &&
+        MonitorPausedByUtil.fromValue(stateAfterThis.pausedBy) === pausedBy
       ) {
         throw new BadDataException(
           "Monitor Status cannot be same as next status.",

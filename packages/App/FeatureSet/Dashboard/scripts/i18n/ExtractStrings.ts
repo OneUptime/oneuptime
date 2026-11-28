@@ -465,6 +465,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/Monitor/MonitorType.ts", kind: "ui" },
   /*
+   * What a day-by-day uptime strip says - each bar's name, its tooltip and
+   * the dialog a day opens - which the Dashboard's strips word in the
+   * reader's language (getUptimeHistoryLabels): the monitor's Uptime history
+   * and a monitor group's (#11433). Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/UptimeHistoryLabels.ts",
+    kind: "keys",
+  },
+  /*
    * A new monitor's default criteria, written in the language of the person
    * creating it: each criteria's name and description, and the title and
    * description of every incident and alert it opens. Only the sentences the

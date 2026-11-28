@@ -65,7 +65,14 @@ const SENTENCES: ReadonlyArray<string> = [
   "Loading maintenance event",
   "Auto-attach runbooks when matching maintenance events are created.",
   "Match maintenance events and start runbooks automatically.",
-  "We are not monitoring this monitor since it is disabled because of an ongoing maintenance event. To enable active monitoring, please end the maintenance event.",
+  /*
+   * The banner of a monitor a maintenance event paused, reworded in the
+   * incident banner's style (#11433): one sentence for each way uptime can
+   * take the time.
+   */
+  "A maintenance event in progress paused this monitor's checks until it ends. The event sets no status for this monitor, so uptime, status pages and SLOs leave this time out. What reaches it meanwhile is listed in Monitoring Logs, not evaluated. To check it again now, end the event or take this monitor off it.",
+  "A maintenance event in progress paused this monitor's checks until it ends. Uptime, status pages and SLOs count this time as the status the event sets. What reaches it meanwhile is listed in Monitoring Logs, not evaluated. To check it again now, end the event or take this monitor off it.",
+  "A maintenance event in progress paused this monitor's checks until it ends. Uptime, status pages and SLOs count this time as the status the event sets, or leave it out when the event sets none. What reaches it meanwhile is listed in Monitoring Logs, not evaluated. To check it again now, end the event or take this monitor off it.",
   "Ready-made text for maintenance updates. Pick one when writing a public or private note on a maintenance event, or when changing its state, and edit it before posting.",
   "No monitors affected by this maintenance event.",
   "No other resources affected by this maintenance event.",
@@ -118,6 +125,8 @@ const STALE: ReadonlyArray<string> = [
   "Add a private note to this scheduled maintenance. This note will be visible only to the team members of this scheduled maintenance.",
   "Should status page subscribers be notified when this event state changes to ended?",
   "Should status page subscribers be notified when this event state changes to ongoing?",
+  // The maintenance banner before #11433, which said nothing of what the pause does.
+  "We are not monitoring this monitor since it is disabled because of an ongoing maintenance event. To enable active monitoring, please end the maintenance event.",
 ];
 
 /*

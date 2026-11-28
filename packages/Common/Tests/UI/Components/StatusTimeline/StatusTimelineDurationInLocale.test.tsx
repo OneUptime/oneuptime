@@ -354,6 +354,9 @@ describe("the legend, drawn in Japanese", () => {
     measuredMs: 31 * DAY * 1000,
     monitoringOffMs: (2 * HOUR + 5 * MINUTE + 9) * 1000,
     monitoringOffCount: 1,
+    // Turned off, not paused (#11433).
+    pausedMs: 0,
+    pausedCount: 0,
   };
 
   const instances: Record<string, i18n> = {};

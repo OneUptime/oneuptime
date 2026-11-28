@@ -19,6 +19,9 @@ import {
 } from "Common/Types/Monitor/MonitorUptimeSummary";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "Common/Types/Monitor/UptimeBarTooltipMaintenance";
+import UptimeHistoryLabels, {
+  getUptimeHistoryLabels,
+} from "Common/Types/Monitor/UptimeHistoryLabels";
 import ObjectID from "Common/Types/ObjectID";
 import {
   UptimeDayBucket,
@@ -75,13 +78,28 @@ export interface ComponentProps {
 
 const CARD_TITLE: string = translationKey("Uptime history");
 /*
- * Grey bars are days nothing was measured: no data, or monitoring off,
- * which is drawn in a lighter grey with stripes and named in the legend
- * (issue #7112).
+ * Grey bars are days nothing was measured: no data, or monitoring off or
+ * paused, which is drawn in a lighter grey with stripes and named in the
+ * legend (issues #7112, #11433).
  */
 const CARD_DESCRIPTION: string = translationKey(
-  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.",
+  "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data, or with monitoring off or paused.",
 );
+
+/*
+ * The legend's name for the striped grey, for what the strip's days were
+ * (#11433): left out because monitoring was turned off, because an
+ * incident or scheduled maintenance paused the checks, or both.
+ */
+export const LEFT_OUT_LEGEND_NAMES: {
+  monitoringOff: string;
+  paused: string;
+  monitoringOffOrPaused: string;
+} = {
+  monitoringOff: translationKey("Monitoring off"),
+  paused: translationKey("Paused"),
+  monitoringOffOrPaused: translationKey("Monitoring off or paused"),
+};
 
 interface StatusModels {
   all: Array<MonitorStatus>;
@@ -150,6 +168,13 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * The strip's names, its tooltip and its day dialog in the reader's
+   * language: they read English in every language until #11433.
+   */
+  const uptimeHistoryLabels: UptimeHistoryLabels = useMemo(() => {
+    return getUptimeHistoryLabels(translator);
+  }, [translator]);
   const summary: MonitorUptimeSummary | null = props.summary.value;
   const [selectedDay, setSelectedDay] = useState<SelectedDay | null>(null);
   const stripRef: MutableRefObject<HTMLDivElement | null> =
@@ -414,10 +439,11 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
   }
 
   /*
-   * A day nothing was checked on because monitoring was off (issue #7112):
-   * its bar is the monitoring-off grey, and the legend names it.
+   * A day nothing was checked on because monitoring was off (issue #7112),
+   * or because a pause left it out (#11433): its bar is the monitoring-off
+   * grey, and the legend names it for what those days were.
    */
-  const hasMonitoringOffDay: boolean = summary.buckets.some(
+  const leftOutDays: Array<UptimeDayBucket> = summary.buckets.filter(
     (bucket: UptimeDayBucket): boolean => {
       return DayUptimeGraphUtil.isMonitoringOffDay({
         hasEvents: bucket.coveredSeconds > 0,
@@ -425,6 +451,18 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
       });
     },
   );
+  const hasMonitoringOffDay: boolean = leftOutDays.length > 0;
+  const pausedDayCount: number = leftOutDays.filter(
+    (bucket: UptimeDayBucket): boolean => {
+      return DayUptimeGraphUtil.readLeftOutTime(bucket).isNamedPaused;
+    },
+  ).length;
+  const leftOutLegendName: string =
+    pausedDayCount === 0
+      ? LEFT_OUT_LEGEND_NAMES.monitoringOff
+      : pausedDayCount === leftOutDays.length
+        ? LEFT_OUT_LEGEND_NAMES.paused
+        : LEFT_OUT_LEGEND_NAMES.monitoringOffOrPaused;
 
   const monitorCreatedAt: Date | undefined = props.monitorCreatedAt
     ? OneUptimeDate.fromString(props.monitorCreatedAt)
@@ -465,6 +503,7 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
           <div className="min-w-[36rem] sm:min-w-0">
             <MonitorUptimeGraph
               items={[]}
+              labels={uptimeHistoryLabels}
               uptimeBuckets={summary.buckets}
               monitorStatuses={statusModels.all}
               downtimeMonitorStatuses={statusModels.downtime}
@@ -544,9 +583,9 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
               />
               {/*
                * The Status Timeline's word for the same time on this page,
-               * in the reader's language.
+               * in the reader's language: monitoring off, paused, or both.
                */}
-              {translator.translateText("Monitoring off")}
+              {translator.translateText(leftOutLegendName)}
             </li>
           ) : (
             <></>
@@ -649,6 +688,9 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
             hasEvents={selectedDay.summary.hasEvents}
             statusDurations={selectedDay.summary.statusDurations}
             monitoringOffSeconds={selectedDay.summary.monitoringOffSeconds}
+            pausedSeconds={selectedDay.summary.pausedSeconds}
+            pausedBy={selectedDay.summary.pausedBy}
+            labels={uptimeHistoryLabels}
             maintenanceEvents={selectedDay.summary.maintenanceEvents}
             onMaintenanceClick={navigateToMaintenance}
             onIncidentClick={navigateToIncident}

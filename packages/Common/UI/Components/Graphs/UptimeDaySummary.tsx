@@ -3,7 +3,9 @@ import Color from "../../../Types/Color";
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../../Types/Monitor/UptimeHistoryLabels";
+import MonitorPausedBy from "../../../Types/Monitor/MonitorPausedBy";
 import DayUptimeGraphUtil, {
+  DayLeftOutReading,
   MONITORING_OFF_MINIMUM_SECONDS,
 } from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -92,9 +94,46 @@ export interface ComponentProps {
    * and a line under it says for how long monitoring was off.
    */
   monitoringOffSeconds?: number | undefined;
+  /*
+   * Of it, how long a pause left out - an incident declared by hand or
+   * scheduled maintenance that paused the checks with no status set
+   * (#11433) - and what paused them: said as paused, and why, never as
+   * monitoring off.
+   */
+  pausedSeconds?: number | undefined;
+  pausedBy?: MonitorPausedBy | null | undefined;
   /* Defaults to English. The status page passes translated strings. */
   labels?: UptimeHistoryLabels | undefined;
 }
+
+// A line under the day for time left out: the pause icon, and for how long.
+const LeftOutLine: FunctionComponent<{
+  testId: string;
+  text: string;
+}> = (props: { testId: string; text: string }): ReactElement => {
+  return (
+    <div
+      data-testid={props.testId}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        padding: "4px 0",
+        gap: "6px",
+      }}
+    >
+      <PauseIcon size={12} color="var(--ou-text-muted, #6b7280)" />
+      <span
+        style={{
+          fontSize: "12px",
+          color: "var(--ou-text-muted, #6b7280)",
+          fontWeight: 500,
+        }}
+      >
+        {props.text}
+      </span>
+    </div>
+  );
+};
 
 /*
  * One day of uptime: the percentage, a bar showing how the day was spent, and
@@ -156,6 +195,64 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
   // Checked for part of the day: the uptime is of that part.
   const isMonitoringOffForPart: boolean =
     props.hasEvents && monitoringOffSeconds >= MONITORING_OFF_MINIMUM_SECONDS;
+
+  /*
+   * Of the time left out, what a pause left out and what had monitoring
+   * turned off (#11433): each said as what it was.
+   */
+  const leftOut: DayLeftOutReading = DayUptimeGraphUtil.readLeftOutTime({
+    monitoringOffSeconds: monitoringOffSeconds,
+    pausedSeconds: props.pausedSeconds,
+    pausedBy: props.pausedBy,
+  });
+
+  const leftOutLines: Array<ReactElement> = [];
+
+  /*
+   * For how long each part lasted: under the uptime of a day with data,
+   * and under the block of a day nothing was checked on when both parts
+   * are there.
+   */
+  if (
+    isMonitoringOffForPart ||
+    (isMonitoringOffDay &&
+      leftOut.turnedOffSeconds > 0 &&
+      leftOut.pausedSeconds > 0)
+  ) {
+    if (leftOut.pausedSeconds > 0 && leftOut.pausedBy) {
+      leftOutLines.push(
+        <LeftOutLine
+          key="paused"
+          testId="uptime-day-paused-for"
+          text={DayUptimeGraphUtil.fillLabel(
+            DayUptimeGraphUtil.getPausedForLabel({
+              pausedBy: leftOut.pausedBy,
+              labels: labels,
+            }),
+            {
+              duration: OneUptimeDate.secondsToFormattedFriendlyTimeString(
+                leftOut.pausedSeconds,
+              ),
+            },
+          )}
+        />,
+      );
+    }
+
+    if (leftOut.turnedOffSeconds > 0) {
+      leftOutLines.push(
+        <LeftOutLine
+          key="monitoring-off"
+          testId="uptime-day-monitoring-off-for"
+          text={DayUptimeGraphUtil.fillLabel(labels.monitoringOffFor, {
+            duration: OneUptimeDate.secondsToFormattedFriendlyTimeString(
+              leftOut.turnedOffSeconds,
+            ),
+          })}
+        />,
+      );
+    }
+  }
 
   const hasBreakdown: boolean = hasStatuses || isMonitoringOffForPart;
 
@@ -265,10 +362,20 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {/* ── Monitoring off (issue #7112) ── */}
+      {/*
+       * ── Monitoring off (issue #7112), or paused (#11433) ──
+       * A day nothing was checked on says why: a pause - by an incident
+       * declared by hand, for scheduled maintenance, or both - or
+       * monitoring turned off, whichever left out more of it.
+       */}
       {isMonitoringOffDay && (
         <div
-          data-testid="uptime-day-monitoring-off"
+          data-testid={
+            leftOut.isNamedPaused
+              ? "uptime-day-paused"
+              : "uptime-day-monitoring-off"
+          }
+          data-paused-by={leftOut.pausedBy || undefined}
           style={NO_READING_BLOCK_STYLE}
         >
           <div
@@ -281,8 +388,27 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
             <PauseIcon size={18} color="var(--ou-text-subtle, #9ca3af)" />
           </div>
           <div style={NO_READING_TEXT_STYLE}>
-            {labels.monitoringOffOnThisDay}
+            {leftOut.isNamedPaused && leftOut.pausedBy
+              ? DayUptimeGraphUtil.getPausedOnThisDayLabel({
+                  pausedBy: leftOut.pausedBy,
+                  labels: labels,
+                })
+              : labels.monitoringOffOnThisDay}
           </div>
+          {leftOutLines.length > 0 ? (
+            <div
+              style={{
+                display: "inline-flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                marginTop: "8px",
+              }}
+            >
+              {leftOutLines}
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
       )}
 
@@ -406,37 +532,12 @@ const UptimeDaySummary: FunctionComponent<ComponentProps> = (
             );
           })}
           {/*
-           * Time with monitoring off is in no status and out of the
-           * uptime above, as the Status Timeline's legend lists it last
-           * with no share: said in a line of its own, how long it lasted.
+           * Time left out is in no status and out of the uptime above, as
+           * the Status Timeline's legend lists it last with no share: said
+           * in a line of its own each, how long it lasted - paused, and
+           * why, or with monitoring off (#11433).
            */}
-          {isMonitoringOffForPart && (
-            <div
-              data-testid="uptime-day-monitoring-off-for"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "4px 0",
-                gap: "6px",
-              }}
-            >
-              <PauseIcon size={12} color="var(--ou-text-muted, #6b7280)" />
-              <span
-                style={{
-                  fontSize: "12px",
-                  color: "var(--ou-text-muted, #6b7280)",
-                  fontWeight: 500,
-                }}
-              >
-                {DayUptimeGraphUtil.fillLabel(labels.monitoringOffFor, {
-                  duration:
-                    OneUptimeDate.secondsToFormattedFriendlyTimeString(
-                      monitoringOffSeconds,
-                    ),
-                })}
-              </span>
-            </div>
-          )}
+          {isMonitoringOffForPart && leftOutLines}
         </div>
       )}
     </>

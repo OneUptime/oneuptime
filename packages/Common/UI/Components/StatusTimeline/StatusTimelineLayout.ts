@@ -33,6 +33,9 @@
 
 import moment from "moment-timezone";
 import OneUptimeDate from "../../../Types/Date";
+import MonitorPausedBy, {
+  MonitorPausedByUtil,
+} from "../../../Types/Monitor/MonitorPausedBy";
 import {
   ENGLISH_DATE_LANGUAGE,
   formatReaderFigure,
@@ -71,6 +74,12 @@ export interface StatusTimelineEntry {
    * - as uptime leaves it out.
    */
   isMonitoringOff?: boolean | undefined;
+  /*
+   * With isMonitoringOff: what paused the monitor's checks, when a pause
+   * rather than its switch left the time out (MonitorStatusTimeline
+   * .pausedBy, #11433) - said as paused, and why, never as monitoring off.
+   */
+  pausedBy?: MonitorPausedBy | null | undefined;
 }
 
 export interface StatusTimelineWindow {
@@ -698,6 +707,12 @@ export interface StatusTimelineSummary {
   monitoringOffMs: number;
   // How many entries with monitoring off the window holds.
   monitoringOffCount: number;
+  /*
+   * Of that time and those entries, the ones a pause left out (#11433): the
+   * legend names them Paused, and the rest Monitoring Off.
+   */
+  pausedMs: number;
+  pausedCount: number;
 }
 
 /*
@@ -740,6 +755,8 @@ export const summarizeStatusTimeline: (data: {
   let measuredMs: number = 0;
   let monitoringOffMs: number = 0;
   let monitoringOffCount: number = 0;
+  let pausedMs: number = 0;
+  let pausedCount: number = 0;
 
   for (const entry of data.entries) {
     const start: number = Math.max(time(entry.startsAt), windowStart);
@@ -759,6 +776,12 @@ export const summarizeStatusTimeline: (data: {
     if (entry.isMonitoringOff === true) {
       monitoringOffMs += durationMs;
       monitoringOffCount += 1;
+
+      if (MonitorPausedByUtil.fromValue(entry.pausedBy)) {
+        pausedMs += durationMs;
+        pausedCount += 1;
+      }
+
       continue;
     }
 
@@ -829,6 +852,8 @@ export const summarizeStatusTimeline: (data: {
     measuredMs: measuredMs,
     monitoringOffMs: monitoringOffMs,
     monitoringOffCount: monitoringOffCount,
+    pausedMs: pausedMs,
+    pausedCount: pausedCount,
   };
 };
 

@@ -182,6 +182,9 @@ const summaryOf: (name: string) => StatusTimelineSummary = (
     // Monitoring was on throughout (issue #6480).
     monitoringOffMs: 0,
     monitoringOffCount: 0,
+    // Nor did a pause leave any of it out (#11433).
+    pausedMs: 0,
+    pausedCount: 0,
   };
 };
 

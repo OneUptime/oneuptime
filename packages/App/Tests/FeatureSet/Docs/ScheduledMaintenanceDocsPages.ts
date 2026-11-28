@@ -137,6 +137,12 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Chat.",
     "Code.",
     "Its monitors are not checked.",
+    /*
+     * A status page's words for a day the event's pause left out of uptime
+     * (#11433): each language names it as its status page labels the day's
+     * bar (TelemetryMonitorAndStatusPageDocsFacts).
+     */
+    "paused for scheduled maintenance",
     "Its other resources stay quiet.",
     "Network sites and SLOs hold back.",
     "Your status pages show it.",

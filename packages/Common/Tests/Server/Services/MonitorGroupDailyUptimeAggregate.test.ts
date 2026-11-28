@@ -540,14 +540,23 @@ describe("MonitorStatusTimelineService.toMonitorGroupUptimeDailyAggregate", () =
  * 1's union it is the day's time with monitoring off.
  */
 describe("a monitor group's time with monitoring off (issue #7112)", () => {
-  test("ranks a period with monitoring off 0, below every status, whatever status it holds, and keeps it", async () => {
+  /*
+   * A period a pause left out ranks 0 and one with monitoring turned off -1
+   * (#11433), both below every status, whatever status they hold: no level
+   * counts either, and the union of the paused ones and the statuses tells
+   * the time paused apart from the time with monitoring off.
+   */
+  test("ranks a period a pause left out 0 and one with monitoring off -1, below every status, whatever status it holds, and keeps both", async () => {
     const stub: StubbedService = stubService();
     await stub.service.getMonitorGroupDailyUptimeAggregate(request());
 
     const sql: string = flatten(stub.calls[0]!.sql);
 
     expect(sql).toContain(
-      "CASE WHEN src.is_off THEN 0 ELSE rk.status_rank END AS status_rank",
+      "CASE WHEN src.is_off AND src.paused_by IS NOT NULL THEN 0 WHEN src.is_off THEN -1 ELSE rk.status_rank END AS status_rank",
+    );
+    expect(sql).toContain(
+      "MAX(seg_end) FILTER (WHERE status_rank >= 0) OVER earlier AS reached_paused",
     );
     // A status not in $6 is still left out, but a period with monitoring off is kept.
     expect(sql).toContain("LEFT JOIN ranks rk ON rk.status_id = src.status_id");

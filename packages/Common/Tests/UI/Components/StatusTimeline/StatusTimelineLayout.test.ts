@@ -1222,6 +1222,8 @@ describe("summarizeStatusTimeline: the legend", () => {
       measuredMs: 0,
       monitoringOffMs: 0,
       monitoringOffCount: 0,
+      pausedMs: 0,
+      pausedCount: 0,
     });
   });
 
@@ -1284,6 +1286,8 @@ describe("summarizeStatusTimeline: the legend", () => {
       measuredMs: 0,
       monitoringOffMs: HOUR,
       monitoringOffCount: 1,
+      pausedMs: 0,
+      pausedCount: 0,
     });
   });
 });

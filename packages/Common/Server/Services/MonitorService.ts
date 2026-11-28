@@ -2831,8 +2831,11 @@ export class Service extends ProjectReferencesService<Model> {
      * on it now say - turned on while one pauses it, its checks start again
      * now, not once the incident is resolved. And monitoring turned back on:
      * while such an incident pauses it with no status of its own, its time
-     * is still left out of uptime from here (MonitorIncidentPause). Each
-     * monitor on its own; a side effect never fails the save.
+     * is still left out of uptime from here (MonitorIncidentPause). Either
+     * way it is put in the most severe status of what pauses it then, when
+     * it is not in it (#11432): turned on, an incident's status gives way to
+     * that of maintenance still holding the monitor. Each monitor on its
+     * own; a side effect never fails the save.
      */
     if (
       onUpdate.updateBy.data.keepMonitoringDuringIncidents !== undefined ||
@@ -2868,6 +2871,7 @@ export class Service extends ProjectReferencesService<Model> {
           await MonitorIncidentPause.syncMonitors({
             projectId: projectId,
             monitorIds: [monitorId],
+            putInHeldStatus: true,
           });
         } catch (error) {
           logger.error(

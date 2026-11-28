@@ -230,6 +230,7 @@ import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResource
 import EndOnCallTimeLogsOfDeletedPolicies from "./EndOnCallTimeLogsOfDeletedPolicies";
 import WorkOutMonitorsPausedByIncidents from "./WorkOutMonitorsPausedByIncidents";
 import LeaveTimeOfMonitorsPausedForMaintenanceOutOfUptime from "./LeaveTimeOfMonitorsPausedForMaintenanceOutOfUptime";
+import RecordWhatPausedMonitorsOnStatusTimelines from "./RecordWhatPausedMonitorsOnStatusTimelines";
 import AddSensitiveFileServedToRecommendedRules from "./AddSensitiveFileServedToRecommendedRules";
 import MergeBackExceptionsSplitByFailedLookups from "./MergeBackExceptionsSplitByFailedLookups";
 
@@ -1751,6 +1752,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * ordering requirement of its own; before the two slots kept last.
    */
   new LeaveTimeOfMonitorsPausedForMaintenanceOutOfUptime(),
+  /*
+   * Says what paused a monitor - an incident declared by hand, scheduled
+   * maintenance, or both - on every status event that left its time out of
+   * uptime because of a pause (MonitorStatusTimeline.pausedBy, #11433), from
+   * the note each was written with, so the day bars and the Status Timeline
+   * say "paused" for that time and keep "monitoring off" for monitoring
+   * turned off. After the schema migration that adds the column, and after
+   * the migration above, whose marks it reads. Postgres, paged by monitor,
+   * idempotent; before the two slots kept last.
+   */
+  new RecordWhatPausedMonitorsOnStatusTimelines(),
   /*
    * The on-call schedule layers stored with no restriction type the engine
    * read - written with restrictionType, the key's natural spelling, or

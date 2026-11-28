@@ -29,6 +29,7 @@
  * cannot be blown up by a flapping monitor.
  */
 
+import MonitorPausedBy from "../Monitor/MonitorPausedBy";
 import ObjectID from "../ObjectID";
 
 /**
@@ -90,8 +91,26 @@ export interface UptimeDayBucket {
    *
    * Left out when monitoring was on for the whole bucket, so a payload or a
    * reader from before it reads every bucket as it always did.
+   *
+   * It holds the time a pause left out too (pausedSeconds), so every reader
+   * of it counts that time as it always has.
    */
   monitoringOffSeconds?: number | undefined;
+
+  /*
+   * Of monitoringOffSeconds, the time an incident declared by hand or a
+   * scheduled maintenance event paused the monitor's checks with no status
+   * set for it (MonitorStatusTimeline.pausedBy, issue #11433), rather than
+   * its monitoring being turned off. The bars, their name and their dialog
+   * say such time is "paused", and why (pausedBy), and keep "monitoring
+   * off" for the rest. A monitor group's: the time at least one of its
+   * monitors was paused while none of them was checked.
+   *
+   * Left out, with pausedBy, when nothing paused the monitor that day.
+   */
+  pausedSeconds?: number | undefined;
+  // What paused it that day: an incident, maintenance, or both.
+  pausedBy?: MonitorPausedBy | undefined;
 }
 
 /**

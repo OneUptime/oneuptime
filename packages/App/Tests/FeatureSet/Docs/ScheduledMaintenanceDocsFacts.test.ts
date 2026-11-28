@@ -1013,20 +1013,21 @@ describe("what an event affects", () => {
     "## What an event affects",
   );
 
-  it("stops checking its monitors, says so on their pages and shows the status picked for them", () => {
+  it("stops checking its monitors, says on their pages that they are paused and shows the status picked for them", () => {
     expect(TIMELINE_SERVICE).toContain(
       "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true, /// This will stop active monitoring.",
     );
     expect(TIMELINE_SERVICE).toContain(
       "await this.applyMonitorStatusWhenStarting({",
     );
+    // Paused, and what the pause does (#11433): it said "disabled".
     expect(
       readDashboardSource("Components/Monitor/DisabledWarning.tsx"),
     ).toContain(
-      'const PAUSED_TITLE: string = translationKey("This monitor is disabled");',
+      'export const PAUSED_TITLE: string = translationKey("This monitor is paused");',
     );
     expect(affects).toContain(
-      "Every monitor under **Monitors** stops being checked, and each one's pages say **This monitor is disabled**.",
+      "Every monitor under **Monitors** stops being checked, and each one's pages say **This monitor is paused**, with what the pause does and how to have it checked again.",
     );
   });
 
@@ -1041,7 +1042,8 @@ describe("what an event affects", () => {
     const flagWritten: number = release.search(
       /disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:\s*false/,
     );
-    const heldChecked: number = release.indexOf("if (isHeldByAnotherEvent) {");
+    // Cleared only when no other event still holds the monitor.
+    const heldChecked: number = release.indexOf("if (!isHeldByAnotherEvent) {");
 
     expect(release).toContain("isOperationalState: true,");
     expect(release).toContain(
@@ -1057,23 +1059,37 @@ describe("what an event affects", () => {
     );
   });
 
-  it("gives a monitor an incident declared by hand still pauses the incident's status, and one an incident lets go during the event the event's", () => {
+  /*
+   * A monitor that several pauses hold is in the most severe status they
+   * set (#11432): the event's end and an incident's resolve both leave it in
+   * the most severe status of what still holds it (putInHeldStatus), and an
+   * event that starts puts its status only on the monitors nothing holds in
+   * a more severe one (getMonitorsTakingStatus).
+   */
+  it("gives a monitor other events or incidents declared by hand still hold the most severe of their statuses, and keeps a more severe one while the event runs", () => {
     const release: string = TIMELINE_SERVICE.slice(
       TIMELINE_SERVICE.indexOf(
         "public async enableActiveMonitoringForMonitors(",
       ),
     );
 
-    // The event ends: the status of the incidents still pausing it, if any.
+    // The event ends: the most severe status of what still holds the monitor.
     expect(release).toContain(
-      "await MonitorIncidentPause.getStatusOfIncidentsStillPausing(pause)",
+      "await MonitorIncidentPause.putInHeldStatus({ state: pause })",
     );
-    // An incident resolved: the status of the events still holding it.
+    // An incident resolved: the same.
     expect(readCommonSource("Server/Services/IncidentService.ts")).toContain(
-      "await MonitorIncidentPause.getStatusOfMaintenanceStillHolding(pause);",
+      "await MonitorIncidentPause.putInHeldStatus({",
     );
+    // An event that starts or is given monitors: not over a more severe status.
+    expect(EVENT_SERVICE).toContain(
+      "await MonitorIncidentPause.getMonitorsTakingStatus({",
+    );
+    expect(
+      readCommonSource("Server/Utils/Monitor/MonitorIncidentPause.ts"),
+    ).toContain("public static getMostSevereStatus(");
     expect(affects).toContain(
-      "A monitor that an incident declared by hand still pauses goes back to the status that incident puts it in instead, and an incident that lets go of a monitor while the event still holds it puts the monitor back in the event's status, when the event sets one.",
+      "A monitor that other events, or incidents declared by hand, hold in a status of their own goes to the most severe of those statuses instead, and one they hold in a more severe status than the event's keeps it while the event runs: see [Monitoring while an incident is open](/docs/incidents/declaring-incidents#monitoring-while-an-incident-is-open).",
     );
   });
 

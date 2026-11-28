@@ -43,6 +43,7 @@ import IncidentStateService from "../../../Server/Services/IncidentStateService"
 import IncidentAlertService from "../../../Server/Services/IncidentAlertService";
 import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
 import MonitorService from "../../../Server/Services/MonitorService";
+import MonitorIncidentPause from "../../../Server/Utils/Monitor/MonitorIncidentPause";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
@@ -472,6 +473,18 @@ const INCIDENT: Kind = {
     stub(MonitorService, "changeMonitorStatus", (args: Array<unknown>) => {
       probes.monitorStatus.push(args);
     });
+    /*
+     * Which of its monitors take its status: those nothing holds in a more
+     * severe one (#11432). None does here - nothing pauses them.
+     */
+    stub(
+      MonitorIncidentPause,
+      "getMonitorsTakingStatus",
+      undefined,
+      (args: Array<unknown>) => {
+        return (args[0] as { monitorIds: Array<ObjectID> }).monitorIds;
+      },
+    );
     stub(
       IncidentService,
       "disableActiveMonitoringIfManualIncident",

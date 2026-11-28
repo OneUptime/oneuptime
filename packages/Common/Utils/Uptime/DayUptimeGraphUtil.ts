@@ -16,6 +16,9 @@
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../Types/Monitor/UptimeHistoryLabels";
+import MonitorPausedBy, {
+  MonitorPausedByUtil,
+} from "../../Types/Monitor/MonitorPausedBy";
 import OneUptimeDate from "../../Types/Date";
 import Timezone from "../../Types/Timezone";
 import moment from "moment-timezone";
@@ -50,6 +53,36 @@ export interface UptimeGraphDay {
 export interface DayEvent {
   id: string;
   declaredAt: Date | string;
+}
+
+/*
+ * A day's time left out of uptime, as a reading or the timeline says
+ * (issue #11433): all of it (monitoringOffSeconds, as UptimeDayBucket counts
+ * it), the part of it a pause left out (pausedSeconds), and what paused the
+ * monitor. The rest of it had monitoring turned off.
+ */
+export interface DayLeftOutTime {
+  monitoringOffSeconds?: number | undefined;
+  pausedSeconds?: number | undefined;
+  pausedBy?: MonitorPausedBy | null | undefined;
+}
+
+/*
+ * How a day's time left out reads: how long monitoring was turned off, how
+ * long a pause left out and what paused it, and - for a day nothing was
+ * checked on - which of the two names it. A pause names such a day when it
+ * left out at least as much as monitoring off did.
+ */
+export interface DayLeftOutReading {
+  turnedOffSeconds: number;
+  pausedSeconds: number;
+  pausedBy: MonitorPausedBy | null;
+  isNamedPaused: boolean;
+}
+
+// A paused span of the timeline, with what paused it.
+export interface PausedDaySpan extends DaySpan {
+  pausedBy?: MonitorPausedBy | null | undefined;
 }
 
 export default class DayUptimeGraphUtil {
@@ -238,6 +271,13 @@ export default class DayUptimeGraphUtil {
      */
     monitoringOffSeconds?: number | undefined;
     /*
+     * Of it, how long a pause left out, and what paused the monitor
+     * (#11433): such a day is named for the pause - "Oct 21, 2026: paused
+     * for scheduled maintenance" - never "monitoring off".
+     */
+    pausedSeconds?: number | undefined;
+    pausedBy?: MonitorPausedBy | null | undefined;
+    /*
      * The day's maintenance events (UptimeMaintenanceUtil), said after
      * everything else: "Oct 21, 2026: 66.69% uptime, 1 maintenance event".
      * A screen reader hears what the bar's mark shows.
@@ -264,6 +304,20 @@ export default class DayUptimeGraphUtil {
       noDataLabel = hasIncidents
         ? labels.dayLabelMonitoringOffWithIncidents
         : labels.dayLabelMonitoringOff;
+
+      const leftOut: DayLeftOutReading = this.readLeftOutTime({
+        monitoringOffSeconds: data.monitoringOffSeconds,
+        pausedSeconds: data.pausedSeconds,
+        pausedBy: data.pausedBy,
+      });
+
+      if (leftOut.isNamedPaused && leftOut.pausedBy) {
+        noDataLabel = this.getPausedDayLabel({
+          pausedBy: leftOut.pausedBy,
+          hasIncidents: hasIncidents,
+          labels: labels,
+        });
+      }
     }
 
     const label: string = !data.hasEvents
@@ -293,6 +347,139 @@ export default class DayUptimeGraphUtil {
         labels: labels,
       }),
     });
+  }
+
+  /*
+   * A day's time left out, read for its words (#11433): the paused part -
+   * never more than all of it - with what paused the monitor, and the rest,
+   * with monitoring turned off. A part under a second is no time.
+   */
+  public static readLeftOutTime(data: DayLeftOutTime): DayLeftOutReading {
+    const monitoringOffSeconds: number = Math.max(
+      Number(data.monitoringOffSeconds) || 0,
+      0,
+    );
+    const pausedBy: MonitorPausedBy | null = MonitorPausedByUtil.fromValue(
+      data.pausedBy,
+    );
+    const pausedSeconds: number = pausedBy
+      ? Math.min(
+          Math.max(Number(data.pausedSeconds) || 0, 0),
+          monitoringOffSeconds,
+        )
+      : 0;
+    const turnedOffSeconds: number = monitoringOffSeconds - pausedSeconds;
+
+    const isPaused: boolean = pausedSeconds >= MONITORING_OFF_MINIMUM_SECONDS;
+
+    return {
+      turnedOffSeconds:
+        turnedOffSeconds >= MONITORING_OFF_MINIMUM_SECONDS
+          ? turnedOffSeconds
+          : 0,
+      pausedSeconds: isPaused ? pausedSeconds : 0,
+      pausedBy: isPaused ? pausedBy : null,
+      isNamedPaused: isPaused && pausedSeconds >= turnedOffSeconds,
+    };
+  }
+
+  // A day a pause left out, named for what paused it.
+  public static getPausedDayLabel(data: {
+    pausedBy: MonitorPausedBy;
+    hasIncidents: boolean;
+    labels: UptimeHistoryLabels;
+  }): string {
+    const labels: UptimeHistoryLabels = data.labels;
+
+    switch (data.pausedBy) {
+      case MonitorPausedBy.Incident:
+        return data.hasIncidents
+          ? labels.dayLabelPausedByIncidentWithIncidents
+          : labels.dayLabelPausedByIncident;
+      case MonitorPausedBy.ScheduledMaintenance:
+        return data.hasIncidents
+          ? labels.dayLabelPausedForMaintenanceWithIncidents
+          : labels.dayLabelPausedForMaintenance;
+      default:
+        return data.hasIncidents
+          ? labels.dayLabelPausedByIncidentAndMaintenanceWithIncidents
+          : labels.dayLabelPausedByIncidentAndMaintenance;
+    }
+  }
+
+  // The day dialog's words for a day a pause left out, in place of "no data".
+  public static getPausedOnThisDayLabel(data: {
+    pausedBy: MonitorPausedBy;
+    labels: UptimeHistoryLabels;
+  }): string {
+    switch (data.pausedBy) {
+      case MonitorPausedBy.Incident:
+        return data.labels.pausedByIncidentOnThisDay;
+      case MonitorPausedBy.ScheduledMaintenance:
+        return data.labels.pausedForMaintenanceOnThisDay;
+      default:
+        return data.labels.pausedByIncidentAndMaintenanceOnThisDay;
+    }
+  }
+
+  // The line under a day's uptime for the part a pause left out ({{duration}}).
+  public static getPausedForLabel(data: {
+    pausedBy: MonitorPausedBy;
+    labels: UptimeHistoryLabels;
+  }): string {
+    switch (data.pausedBy) {
+      case MonitorPausedBy.Incident:
+        return data.labels.pausedByIncidentFor;
+      case MonitorPausedBy.ScheduledMaintenance:
+        return data.labels.pausedForMaintenanceFor;
+      default:
+        return data.labels.pausedByIncidentAndMaintenanceFor;
+    }
+  }
+
+  /*
+   * How long a day's paused spans left out, and what paused them, from
+   * timeline rows rather than a server reading (#11433): the part of the
+   * day the paused spans cover that no checked span covers, as
+   * getMonitoringOffSecondsOfDay counts all of it, and what paused each of
+   * them that touches it.
+   */
+  public static getPausedTimeOfDay(data: {
+    monitoringOffSpans: Array<PausedDaySpan>;
+    checkedSpans: Array<DaySpan>;
+    dayStart: Date;
+    dayEnd: Date;
+  }): { pausedSeconds: number; pausedBy: MonitorPausedBy | null } {
+    const pausedSpans: Array<PausedDaySpan> = data.monitoringOffSpans.filter(
+      (span: PausedDaySpan): boolean => {
+        return (
+          Boolean(MonitorPausedByUtil.fromValue(span.pausedBy)) &&
+          span.endDate.getTime() > data.dayStart.getTime() &&
+          span.startDate.getTime() < data.dayEnd.getTime()
+        );
+      },
+    );
+
+    const pausedSeconds: number = this.getMonitoringOffSecondsOfDay({
+      monitoringOffSpans: pausedSpans,
+      checkedSpans: data.checkedSpans,
+      dayStart: data.dayStart,
+      dayEnd: data.dayEnd,
+    });
+
+    return {
+      pausedSeconds: pausedSeconds,
+      pausedBy:
+        pausedSeconds > 0
+          ? MonitorPausedByUtil.combine(
+              pausedSpans.map(
+                (span: PausedDaySpan): MonitorPausedBy | null | undefined => {
+                  return span.pausedBy;
+                },
+              ),
+            )
+          : null,
+    };
   }
 
   /*

@@ -193,7 +193,10 @@ const EntryRow: FunctionComponent<{
              * turning monitoring off read as a second status in a row.
              */}
             {entry.isMonitoringOff === true && (
-              <MonitoringOffIndicator size={PillSize.Small} />
+              <MonitoringOffIndicator
+                size={PillSize.Small}
+                pausedBy={entry.pausedBy}
+              />
             )}
             {entry.isOngoing && (
               <CurrentlyActiveIndicator size={PillSize.Small} />

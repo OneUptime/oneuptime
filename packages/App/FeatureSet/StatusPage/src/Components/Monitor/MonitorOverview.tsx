@@ -142,10 +142,43 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
     dayLabelMonitoringOffWithIncidents: t(
       "uptimeHistory.dayLabelMonitoringOffWithIncidents",
     ),
+    /*
+     * A day an incident or scheduled maintenance paused the resource's
+     * checks, with no status set for it (#11433): paused, and why, never
+     * "not monitored".
+     */
+    dayLabelPausedByIncident: t("uptimeHistory.dayLabelPausedByIncident"),
+    dayLabelPausedByIncidentWithIncidents: t(
+      "uptimeHistory.dayLabelPausedByIncidentWithIncidents",
+    ),
+    dayLabelPausedForMaintenance: t(
+      "uptimeHistory.dayLabelPausedForMaintenance",
+    ),
+    dayLabelPausedForMaintenanceWithIncidents: t(
+      "uptimeHistory.dayLabelPausedForMaintenanceWithIncidents",
+    ),
+    dayLabelPausedByIncidentAndMaintenance: t(
+      "uptimeHistory.dayLabelPausedByIncidentAndMaintenance",
+    ),
+    dayLabelPausedByIncidentAndMaintenanceWithIncidents: t(
+      "uptimeHistory.dayLabelPausedByIncidentAndMaintenanceWithIncidents",
+    ),
     uptime: t("uptimeHistory.uptime"),
     noMonitoringData: t("uptimeHistory.noMonitoringData"),
     monitoringOffOnThisDay: t("uptimeHistory.monitoringOffOnThisDay"),
     monitoringOffFor: t("uptimeHistory.monitoringOffFor"),
+    pausedByIncidentOnThisDay: t("uptimeHistory.pausedByIncidentOnThisDay"),
+    pausedForMaintenanceOnThisDay: t(
+      "uptimeHistory.pausedForMaintenanceOnThisDay",
+    ),
+    pausedByIncidentAndMaintenanceOnThisDay: t(
+      "uptimeHistory.pausedByIncidentAndMaintenanceOnThisDay",
+    ),
+    pausedByIncidentFor: t("uptimeHistory.pausedByIncidentFor"),
+    pausedForMaintenanceFor: t("uptimeHistory.pausedForMaintenanceFor"),
+    pausedByIncidentAndMaintenanceFor: t(
+      "uptimeHistory.pausedByIncidentAndMaintenanceFor",
+    ),
     incidents: t("uptimeHistory.incidents"),
     noIncidents: t("uptimeHistory.noIncidents"),
     noIncidentsDescription: t("uptimeHistory.noIncidentsDescription"),
@@ -455,6 +488,8 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           hasEvents={selectedDaySummary?.hasEvents}
           statusDurations={selectedDaySummary?.statusDurations}
           monitoringOffSeconds={selectedDaySummary?.monitoringOffSeconds}
+          pausedSeconds={selectedDaySummary?.pausedSeconds}
+          pausedBy={selectedDaySummary?.pausedBy}
           maintenanceEvents={selectedDaySummary?.maintenanceEvents}
           onMaintenanceClick={props.onMaintenanceClick}
           labels={uptimeHistoryLabels}

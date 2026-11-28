@@ -556,6 +556,8 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
            * its entries, and drawn and counted apart from its statuses.
            */
           monitoringOffColumn="isMonitoringOff"
+          // And what paused it, when a pause left the time out (#11433).
+          pausedByColumn="pausedBy"
           causeColumn="rootCause"
           noCauseText={NO_ROOT_CAUSE_TEXT}
           // In the reader's language, as the table's View Cause (#9752).
@@ -605,6 +607,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
           statusChangeLog: true,
           rootCause: true,
           isMonitoringOff: true,
+          pausedBy: true,
         }}
         actionButtons={[
           {
@@ -729,7 +732,11 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                       item.monitorStatus.name,
                     )}
                   />
-                  {item.isMonitoringOff ? <MonitoringOffIndicator /> : <></>}
+                  {item.isMonitoringOff ? (
+                    <MonitoringOffIndicator pausedBy={item.pausedBy} />
+                  ) : (
+                    <></>
+                  )}
                 </div>
               );
             },

@@ -29,9 +29,15 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * paused the checks until it is resolved, that what reaches the monitor
  * meanwhile is listed in Monitoring Logs, not evaluated, and how to keep it
  * checked - Keep monitoring during incidents, in Settings.
+ *
+ * #11433 rewrote the maintenance event's the same way, under the title the
+ * incident's has - "This monitor is paused", never "disabled" - in three
+ * sentences: what uptime makes of the time depends on whether the event sets
+ * a status, read from the monitor's newest status event.
  */
 
 const getItemMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -40,16 +46,23 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: (...args: Array<unknown>): unknown => {
         return getItemMock(...args);
       },
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
+      },
     },
   };
 });
 
 import DisabledWarning, {
   getMonitoringOffNotice,
+  MAINTENANCE_PAUSE_MESSAGES,
   MonitoringOffNotice,
   MonitoringOffReason,
+  PAUSED_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/DisabledWarning";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
+import MonitorPausedBy from "../../../Types/Monitor/MonitorPausedBy";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -186,6 +199,47 @@ describe("every reason the banner gives, in every language", () => {
     },
   );
 
+  // The maintenance event's three sentences, one for each thing uptime makes of the time.
+  test.each(Object.entries(MAINTENANCE_PAUSE_MESSAGES))(
+    "the maintenance banner's sentence for %s is worded in all 17 translations",
+    (_when: string, message: string) => {
+      expect(readDashboardLocale("en")[message]).toBe(message);
+      expect(languagesLeavingInEnglish(message, readDashboardLocale)).toEqual(
+        [],
+      );
+    },
+  );
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s: the three sentences differ, and its paused title is the incident's",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      expect(
+        new Set(
+          Object.values(MAINTENANCE_PAUSE_MESSAGES).map(
+            (message: string): string => {
+              return words[message]!;
+            },
+          ),
+        ).size,
+      ).toBe(3);
+
+      // One title for a pause, whatever paused the monitor.
+      expect(noticeFor(MonitoringOffReason.ScheduledMaintenance).title).toBe(
+        PAUSED_TITLE,
+      );
+      expect(noticeFor(MonitoringOffReason.ManualIncident).title).toBe(
+        PAUSED_TITLE,
+      );
+
+      // A pause is not monitoring turned off.
+      expect(words[PAUSED_TITLE]).not.toBe(
+        words[noticeFor(MonitoringOffReason.TurnedOff).title],
+      );
+    },
+  );
+
   test("negative control: the English put back in de.json is caught, and names de", () => {
     const key: string = noticeFor(MonitoringOffReason.ManualIncident).message;
 
@@ -237,6 +291,7 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   getItemMock.mockReset();
+  getListMock.mockReset();
 });
 
 afterAll(async () => {
@@ -292,6 +347,86 @@ describe("the banner of a monitor held by an incident", () => {
       expect(document.body.textContent || "").not.toContain(
         "resolve the incident",
       );
+    },
+  );
+});
+
+/*
+ * The banner of a monitor a maintenance event paused, as it reads its
+ * newest status event: left out of uptime because the event sets no status,
+ * or counted as the status it sets.
+ */
+describe("the banner of a monitor a maintenance event paused", () => {
+  const latestEvent: (data: {
+    isMonitoringOff: boolean;
+    pausedBy?: MonitorPausedBy | undefined;
+  }) => MonitorStatusTimeline = (data: {
+    isMonitoringOff: boolean;
+    pausedBy?: MonitorPausedBy | undefined;
+  }): MonitorStatusTimeline => {
+    const row: MonitorStatusTimeline = new MonitorStatusTimeline(
+      ObjectID.generate(),
+    );
+    row.isMonitoringOff = data.isMonitoringOff;
+
+    if (data.pausedBy) {
+      row.pausedBy = data.pausedBy;
+    }
+
+    return row;
+  };
+
+  test.each(
+    PAGE_LANGUAGES.flatMap((language: string) => {
+      return [
+        [
+          language,
+          "left out",
+          latestEvent({
+            isMonitoringOff: true,
+            pausedBy: MonitorPausedBy.ScheduledMaintenance,
+          }),
+          MAINTENANCE_PAUSE_MESSAGES.leftOutOfUptime,
+        ],
+        [
+          language,
+          "counted",
+          latestEvent({ isMonitoringOff: false }),
+          MAINTENANCE_PAUSE_MESSAGES.countedInUptime,
+        ],
+      ] as Array<[string, string, MonitorStatusTimeline, string]>;
+    }),
+  )(
+    "%s, its time %s: its title and its sentence in the reader's language, no English left",
+    async (
+      language: string,
+      _what: string,
+      latest: MonitorStatusTimeline,
+      message: string,
+    ) => {
+      await inLanguage(language);
+      getItemMock.mockResolvedValue(
+        MONITOR_FOR_REASON[MonitoringOffReason.ScheduledMaintenance] as never,
+      );
+      getListMock.mockResolvedValue({ data: [latest], count: 1 } as never);
+
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      render(
+        <DisabledWarning
+          monitorId={new ObjectID("11111111-1111-4111-8111-111111111112")}
+        />,
+      );
+      await flush();
+
+      expect(screen.getByText(words[message]!)).toBeInTheDocument();
+      expect(screen.getByText(words[PAUSED_TITLE]!)).toBeInTheDocument();
+
+      const text: string = document.body.textContent || "";
+
+      expect(text).not.toContain("A maintenance event in progress");
+      expect(text).not.toContain("This monitor is");
+      expect(text).not.toContain("disabled");
     },
   );
 });

@@ -953,7 +953,7 @@ describe("MonitorUptimeHistoryCard", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data or with monitoring off.",
+        "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data, or with monitoring off or paused.",
       ),
     ).toBeInTheDocument();
   });

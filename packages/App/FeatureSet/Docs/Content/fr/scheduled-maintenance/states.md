@@ -72,7 +72,7 @@ Les boutons de l'en-tête portent le nom de vos états. Tant que l'événement a
 
 Un événement démarre quand il passe d'un état où il attend à **En cours**, ou directement à l'un de vos états placé entre **En cours** et **Terminé**. Alors :
 
-- **Ses moniteurs cessent d'être vérifiés** et passent à son **Changer le statut du moniteur en**, s'il en a un. Un moniteur que vous ajoutez à l'événement pendant les travaux change aussi. S'il n'en a pas, ils gardent leur statut, et leur disponibilité, leurs pages de statut et leurs SLO excluent ce temps jusqu'à la fin de l'événement.
+- **Ses moniteurs cessent d'être vérifiés** et passent à son **Changer le statut du moniteur en**, s'il en a un, sauf si un incident déclaré à la main ou un autre événement retient l'un d'eux dans un statut plus grave. Un moniteur que vous ajoutez à l'événement pendant les travaux change aussi. S'il n'en a pas, ils gardent leur statut, et leur disponibilité, leurs pages de statut et leurs SLO excluent ce temps jusqu'à la fin de l'événement.
 - **Ses pages de statut le listent comme en cours**, et ses abonnés sont prévenus : à son heure si **Lorsque l'événement commence** est activé, et à la main selon ce que dit **Notifier les abonnés de la page de statut** dans la boîte de dialogue.
 - **Ses propriétaires sont prévenus**, s'ils ont activé la notification de changement d'état, et l'événement apparaît sous **Événements de maintenance en cours**.
 

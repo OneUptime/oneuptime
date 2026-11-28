@@ -221,6 +221,7 @@ let loggerError: jest.SpyInstance;
 let pauseSyncs: jest.SpyInstance;
 let uptimeMarks: jest.SpyInstance;
 let monitorSyncs: jest.SpyInstance;
+let heldStatuses: jest.SpyInstance;
 
 // The monitors whose flag was cleared, in order.
 function releasedMonitorIds(): Array<string> {
@@ -424,6 +425,14 @@ beforeEach(() => {
   monitorSyncs = jest
     .spyOn(MonitorIncidentPause, "syncMonitors")
     .mockResolvedValue(undefined as never);
+  /*
+   * The status what still holds each monitor puts it in (#11432): none,
+   * here, unless a test says. Which status that is, and its write, are
+   * MonitorHeldStatus.test.ts's and MonitorPauseHeldStatusPostgres's.
+   */
+  heldStatuses = jest
+    .spyOn(MonitorIncidentPause, "putInHeldStatus")
+    .mockResolvedValue(null as never);
   jest
     .spyOn(IncidentService, "getIncidentLinkInDashboard")
     .mockImplementation((async (
@@ -444,6 +453,15 @@ afterEach(() => {
 function uptimeMarkedMonitorIds(): Array<string> {
   return uptimeMarks.mock.calls.map((call: Array<unknown>): string => {
     return (call[0] as MonitorIncidentPauseState).monitor.id!.toString();
+  });
+}
+
+// The monitors put in the status of what still holds them, in order.
+function heldStatusMonitorIds(): Array<string> {
+  return heldStatuses.mock.calls.map((call: Array<unknown>): string => {
+    return (
+      call[0] as { state: MonitorIncidentPauseState }
+    ).state.monitor.id!.toString();
   });
 }
 
@@ -773,28 +791,18 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
     expect(stillHeldMonitorIds()).toEqual([]);
   });
 
-  test("a monitor an incident declared by hand still pauses goes back to the incident's status, not to operational (#11301)", async () => {
+  test("a monitor what still pauses it holds in a status is put in that status, not back to operational (#11301, #11432)", async () => {
     const incidentStatusId: ObjectID = new ObjectID(
       "0193c0de-5a5a-4aaa-8bbb-0000000000f2",
     );
 
-    pauseSyncs.mockImplementation((async (data: {
-      monitorId: ObjectID;
-    }): Promise<MonitorIncidentPauseState> => {
-      const incident: Incident = new Incident(
-        new ObjectID("0193c0de-5a5a-4aaa-8bbb-0000000000c1"),
-      );
-      incident.projectId = PROJECT_ID;
-      incident.incidentNumberWithPrefix = "INC-7";
-      incident.changeMonitorStatusToId = incidentStatusId;
-
-      return {
-        monitor: new Monitor(data.monitorId),
-        pausingIncidents:
-          data.monitorId.toString() === MONITOR_A ? [incident] : [],
-        isPaused: data.monitorId.toString() === MONITOR_A,
-        holdingMaintenanceEvents: [],
-      };
+    // An incident declared by hand still holds A in its status; nothing holds B.
+    heldStatuses.mockImplementation((async (data: {
+      state: MonitorIncidentPauseState;
+    }) => {
+      return data.state.monitor.id!.toString() === MONITOR_A
+        ? { monitorStatusId: incidentStatusId, isMostSevereOfSeveral: false }
+        : null;
     }) as never);
 
     await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
@@ -802,6 +810,11 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
     );
 
     expect(releasedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+    // Both are worked out after their flag, each from what still pauses it.
+    expect(heldStatusMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+    expect(pauseSyncs).toHaveBeenCalledTimes(2);
+    // Only B, which nothing holds in a status, goes back to operational.
+    expect(operationalMonitorIds()).toEqual([MONITOR_B]);
 
     const rows: Array<MonitorStatusTimeline> =
       statusTimelineCreate.mock.calls.map(
@@ -809,38 +822,48 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
           return (call[0] as { data: MonitorStatusTimeline }).data;
         },
       );
-
-    expect(
-      rows.map((row: MonitorStatusTimeline): [string, string] => {
-        return [row.monitorId!.toString(), row.monitorStatusId!.toString()];
-      }),
-    ).toEqual([
-      [MONITOR_A, incidentStatusId.toString()],
-      [MONITOR_B, OPERATIONAL_STATUS_ID],
-    ]);
-    expect(rows[0]!.rootCause).toBe(
-      "Scheduled maintenance is over, and [INC-7](https://oneuptime.example/incidents/0193c0de-5a5a-4aaa-8bbb-0000000000c1) is still open, so the monitor is back in the status the incident puts it in.",
-    );
     // The move to operational says nothing of its own, as before.
-    expect(rows[1]!.rootCause).toBeUndefined();
+    expect(rows[0]!.rootCause).toBeUndefined();
     expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
   });
 
-  test("a monitor already in the status of the incident still pausing it gets no row", async () => {
+  test("the status of what still holds a monitor is worked out after its flag is cleared, from the pause as it then stands", async () => {
+    const order: Array<string> = [];
+
+    monitorUpdateOneById.mockImplementation((async () => {
+      order.push("flag");
+    }) as never);
     pauseSyncs.mockImplementation((async (data: {
       monitorId: ObjectID;
     }): Promise<MonitorIncidentPauseState> => {
-      const incident: Incident = new Incident(ObjectID.generate());
-      incident.projectId = PROJECT_ID;
-      incident.changeMonitorStatusToId = new ObjectID(MAINTENANCE_STATUS_ID);
-
+      order.push("pause");
       return {
         monitor: new Monitor(data.monitorId),
-        pausingIncidents: [incident],
-        isPaused: true,
+        pausingIncidents: [],
+        isPaused: false,
         holdingMaintenanceEvents: [],
       };
     }) as never);
+    heldStatuses.mockImplementation((async () => {
+      order.push("held");
+      return null;
+    }) as never);
+    uptimeMarks.mockImplementation((async () => {
+      order.push("uptime");
+    }) as never);
+
+    await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
+      releasingEvent([MONITOR_A]),
+    );
+
+    expect(order).toEqual(["flag", "pause", "held", "uptime"]);
+  });
+
+  test("a monitor what pauses it holds in the status it is in already gets no row", async () => {
+    heldStatuses.mockResolvedValue({
+      monitorStatusId: new ObjectID(MAINTENANCE_STATUS_ID),
+      isMostSevereOfSeveral: false,
+    } as never);
 
     await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
       releasingEvent([MONITOR_A]),
@@ -887,7 +910,13 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
     expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
   });
 
-  test("a monitor another event holds while ongoing is left in maintenance", async () => {
+  /*
+   * Another event still holding A keeps it paused. It is put in the status
+   * of what still holds it (#11432); when that sets none, it keeps the
+   * status it has, as before, its time left out while the other event runs
+   * (markUptime).
+   */
+  test("a monitor another event holds while ongoing stays paused, in the status of what still holds it", async () => {
     storedEvents = [
       {
         id: OTHER_EVENT_ID,
@@ -902,13 +931,45 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
     );
 
     expect(releasedMonitorIds()).toEqual([MONITOR_B]);
+    expect(heldStatusMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+    // The other event sets no status here: A keeps its own, B goes back.
     expect(operationalMonitorIds()).toEqual([MONITOR_B]);
-    // Still held, its time counts as the other event says (#11301).
-    expect(stillHeldMonitorIds()).toEqual([MONITOR_A]);
-    expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_B]);
+    // Still held, A's time counts as the other event says (#11301).
+    expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+    expect(stillHeldMonitorIds()).toEqual([]);
   });
 
-  test("a monitor another event holds in a state of the project's own past ongoing is left in maintenance", async () => {
+  test("a monitor another event holds in a status of its own stays paused, in that status, with no operational row", async () => {
+    storedEvents = [
+      {
+        id: OTHER_EVENT_ID,
+        state: "ongoing",
+        monitors: [MONITOR_A],
+        timeline: ["scheduled", "ongoing"],
+        monitorStatusId: MAINTENANCE_STATUS_ID,
+      },
+    ];
+    heldStatuses.mockImplementation((async (data: {
+      state: MonitorIncidentPauseState;
+    }) => {
+      return data.state.monitor.id!.toString() === MONITOR_A
+        ? {
+            monitorStatusId: new ObjectID(MAINTENANCE_STATUS_ID),
+            isMostSevereOfSeveral: false,
+          }
+        : null;
+    }) as never);
+
+    await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
+      releasingEvent([MONITOR_A, MONITOR_B]),
+    );
+
+    expect(releasedMonitorIds()).toEqual([MONITOR_B]);
+    expect(operationalMonitorIds()).toEqual([MONITOR_B]);
+    expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+  });
+
+  test("a monitor another event holds in a state of the project's own past ongoing stays paused", async () => {
     // Say "Verifying", between Ongoing and Ended: it released nothing.
     storedEvents = [
       {
@@ -924,6 +985,7 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
     );
 
     expect(releasedMonitorIds()).toEqual([MONITOR_B]);
+    // "Verifying" sets no status here: A keeps the status it has.
     expect(operationalMonitorIds()).toEqual([MONITOR_B]);
   });
 
@@ -977,7 +1039,7 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
     expect(timelineReads()).toEqual([[OTHER_EVENT_ID, THIRD_EVENT_ID]]);
   });
 
-  test("an event found to hold keeps the later monitors it holds in maintenance with no further read", async () => {
+  test("an event found to hold keeps the later monitors it holds paused with no further read", async () => {
     storedEvents = [
       {
         id: OTHER_EVENT_ID,
@@ -992,6 +1054,7 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
     );
 
     expect(releasedMonitorIds()).toEqual([MONITOR_C]);
+    // It sets no status: A and B keep theirs, C goes back to operational.
     expect(operationalMonitorIds()).toEqual([MONITOR_C]);
     expect(timelineReads()).toEqual([[OTHER_EVENT_ID]]);
   });
@@ -1189,6 +1252,7 @@ describe("ScheduledMaintenanceService.onDeleteSuccess: deleting an event release
     );
 
     expect(releasedMonitorIds()).toEqual([MONITOR_B]);
+    // "Verifying" sets no status here: A keeps its status while it stays paused.
     expect(operationalMonitorIds()).toEqual([MONITOR_B]);
   });
 });

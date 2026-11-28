@@ -227,6 +227,8 @@ const summary: StatusTimelineSummary = {
   measuredMs: 30 * 24 * 3600 * 1000,
   monitoringOffMs: 0,
   monitoringOffCount: 0,
+  pausedMs: 0,
+  pausedCount: 0,
 };
 
 const instances: Record<string, i18n> = {};

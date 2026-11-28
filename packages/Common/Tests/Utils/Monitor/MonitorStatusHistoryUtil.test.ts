@@ -1,6 +1,7 @@
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import Color from "../../../Types/Color";
+import MonitorPausedBy from "../../../Types/Monitor/MonitorPausedBy";
 import ObjectID from "../../../Types/ObjectID";
 import MonitorStatusHistoryUtil, {
   MonitorStatusChangeRow,
@@ -191,6 +192,7 @@ describe("MonitorStatusHistoryUtil.getStatusChangeRows", () => {
         endsAt: undefined,
         isOngoing: true,
         isMonitoringOff: false,
+        pausedBy: null,
       },
       {
         id: "row-2",
@@ -200,6 +202,7 @@ describe("MonitorStatusHistoryUtil.getStatusChangeRows", () => {
         endsAt: new Date("2026-09-18T08:00:00.000Z"),
         isOngoing: false,
         isMonitoringOff: false,
+        pausedBy: null,
       },
     ]);
   });
@@ -245,6 +248,56 @@ describe("MonitorStatusHistoryUtil.getStatusChangeRows", () => {
       ["row-off", true, true],
       ["row-on", false, false],
       ["row-unread", false, false],
+    ]);
+  });
+
+  /*
+   * A row a pause left out says what paused the monitor (#11433), so the
+   * card's pill says "Paused for Maintenance" rather than Monitoring Off; a
+   * row that counts says none, whatever its column holds.
+   */
+  it("says what paused a row a pause left out, and nothing for any other row", () => {
+    const pausedRow: MonitorStatusTimeline = row({
+      id: "row-paused",
+      statusId: OPERATIONAL_ID,
+      statusName: "Operational",
+      startsAt: "2026-09-19T08:00:00.000Z",
+      isMonitoringOff: true,
+    });
+    pausedRow.pausedBy = MonitorPausedBy.ScheduledMaintenance;
+
+    const turnedOffRow: MonitorStatusTimeline = row({
+      id: "row-off",
+      statusId: OPERATIONAL_ID,
+      statusName: "Operational",
+      startsAt: "2026-09-18T08:00:00.000Z",
+      endsAt: "2026-09-19T08:00:00.000Z",
+      isMonitoringOff: true,
+    });
+
+    const countedRow: MonitorStatusTimeline = row({
+      id: "row-counted",
+      statusId: OFFLINE_ID,
+      statusName: "Offline",
+      startsAt: "2026-09-17T08:00:00.000Z",
+      endsAt: "2026-09-18T08:00:00.000Z",
+      isMonitoringOff: false,
+    });
+    // Never read as paused once the time counts.
+    countedRow.pausedBy = MonitorPausedBy.Incident;
+
+    expect(
+      MonitorStatusHistoryUtil.getStatusChangeRows([
+        pausedRow,
+        turnedOffRow,
+        countedRow,
+      ]).map((changeRow: MonitorStatusChangeRow) => {
+        return [changeRow.id, changeRow.isMonitoringOff, changeRow.pausedBy];
+      }),
+    ).toEqual([
+      ["row-paused", true, MonitorPausedBy.ScheduledMaintenance],
+      ["row-off", true, null],
+      ["row-counted", false, null],
     ]);
   });
 

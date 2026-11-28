@@ -9,10 +9,13 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import { subscribeToModelSwitchSaved } from "Common/UI/Components/ModelSwitch/ModelSwitchEvents";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { MonitorPausedByUtil } from "Common/Types/Monitor/MonitorPausedBy";
 import { subscribeToArchiveStateChanges } from "../Archive/ArchiveStateEvents";
 import MonitoringSwitchCopy, {
   MONITORING_OFF_BANNER_TEST_ID,
@@ -51,19 +54,78 @@ export interface MonitoringOffNotice {
   message: string;
 }
 
-const PAUSED_TITLE: string = translationKey("This monitor is disabled");
+/*
+ * A pause is not monitoring turned off (#11433): the banner of a monitor an
+ * incident or a maintenance event paused says it is paused. It said
+ * "disabled", the Monitors table's word for monitoring turned off.
+ */
+export const PAUSED_TITLE: string = translationKey("This monitor is paused");
+
+/*
+ * A maintenance event's pause, in the style of the incident's (#11433):
+ * what the pause does - until when, and what uptime makes of the time -
+ * what happens to what reaches the monitor meanwhile, and how to have it
+ * checked again. Whether uptime counts the time is read from the monitor's
+ * newest status event (getMaintenanceNoticeMessage): left out while the
+ * event sets no status, counted as the status it sets otherwise. Until that
+ * is known, the sentence says both.
+ */
+export const MAINTENANCE_PAUSE_MESSAGES: {
+  leftOutOfUptime: string;
+  countedInUptime: string;
+  eitherWay: string;
+} = {
+  leftOutOfUptime: translationKey(
+    "A maintenance event in progress paused this monitor's checks until it ends. The event sets no status for this monitor, so uptime, status pages and SLOs leave this time out. What reaches it meanwhile is listed in Monitoring Logs, not evaluated. To check it again now, end the event or take this monitor off it.",
+  ),
+  countedInUptime: translationKey(
+    "A maintenance event in progress paused this monitor's checks until it ends. Uptime, status pages and SLOs count this time as the status the event sets. What reaches it meanwhile is listed in Monitoring Logs, not evaluated. To check it again now, end the event or take this monitor off it.",
+  ),
+  eitherWay: translationKey(
+    "A maintenance event in progress paused this monitor's checks until it ends. Uptime, status pages and SLOs count this time as the status the event sets, or leave it out when the event sets none. What reaches it meanwhile is listed in Monitoring Logs, not evaluated. To check it again now, end the event or take this monitor off it.",
+  ),
+};
+
+/*
+ * The maintenance banner's message for the monitor's newest status event:
+ * one that leaves its time out because maintenance paused it says so, one
+ * that counts says that, and none read (still loading, or the read failed)
+ * says both.
+ */
+export const getMaintenanceNoticeMessage: (
+  latestStatusEvent: MonitorStatusTimeline | null | undefined,
+) => string = (
+  latestStatusEvent: MonitorStatusTimeline | null | undefined,
+): string => {
+  if (!latestStatusEvent) {
+    return MAINTENANCE_PAUSE_MESSAGES.eitherWay;
+  }
+
+  if (latestStatusEvent.isMonitoringOff !== true) {
+    return MAINTENANCE_PAUSE_MESSAGES.countedInUptime;
+  }
+
+  return MonitorPausedByUtil.isForMaintenance(latestStatusEvent.pausedBy)
+    ? MAINTENANCE_PAUSE_MESSAGES.leftOutOfUptime
+    : MAINTENANCE_PAUSE_MESSAGES.eitherWay;
+};
 
 /*
  * What the banner says about a monitor, or null when it is being checked.
  *
  * Turned off: what off means, with the button that turns it back on. An
- * incident or a maintenance event that paused it keeps the wording it had:
- * monitoring resumes when that ends, so there is nothing to switch here.
+ * incident or a maintenance event that paused it says what the pause does
+ * and how to have the monitor checked again: monitoring resumes when that
+ * ends, so there is nothing to switch here. For maintenance, what its
+ * uptime makes of the time is read from the monitor's newest status event,
+ * when it has been read (getMaintenanceNoticeMessage).
  */
 export const getMonitoringOffNotice: (
   monitor: Monitor | null,
+  latestStatusEvent?: MonitorStatusTimeline | null | undefined,
 ) => MonitoringOffNotice | null = (
   monitor: Monitor | null,
+  latestStatusEvent?: MonitorStatusTimeline | null | undefined,
 ): MonitoringOffNotice | null => {
   if (!monitor || monitor.monitorType === MonitorType.Manual) {
     return null;
@@ -108,9 +170,7 @@ export const getMonitoringOffNotice: (
     return {
       reason: MonitoringOffReason.ScheduledMaintenance,
       title: PAUSED_TITLE,
-      message: translationKey(
-        "We are not monitoring this monitor since it is disabled because of an ongoing maintenance event. To enable active monitoring, please end the maintenance event.",
-      ),
+      message: getMaintenanceNoticeMessage(latestStatusEvent),
     };
   }
 
@@ -122,6 +182,40 @@ export const getDisabledMessage: (monitor: Monitor | null) => string = (
   monitor: Monitor | null,
 ): string => {
   return getMonitoringOffNotice(monitor)?.message || "";
+};
+
+/*
+ * The monitor's newest status event, with whether it leaves its time out
+ * and what paused it; null when it cannot be read.
+ */
+const readLatestStatusEvent: (
+  monitorId: ObjectID,
+) => Promise<MonitorStatusTimeline | null> = async (
+  monitorId: ObjectID,
+): Promise<MonitorStatusTimeline | null> => {
+  try {
+    const result: ListResult<MonitorStatusTimeline> =
+      await ModelAPI.getList<MonitorStatusTimeline>({
+        modelType: MonitorStatusTimeline,
+        query: {
+          monitorId: monitorId,
+        },
+        limit: 1,
+        skip: 0,
+        select: {
+          _id: true,
+          isMonitoringOff: true,
+          pausedBy: true,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+      });
+
+    return result.data[0] || null;
+  } catch {
+    return null;
+  }
 };
 
 /*
@@ -175,8 +269,27 @@ const DisabledWarning: FunctionComponent<ComponentProps> = (
           },
         });
 
-        if (!cancelled) {
-          setNotice(getMonitoringOffNotice(monitor));
+        if (cancelled) {
+          return;
+        }
+
+        setNotice(getMonitoringOffNotice(monitor));
+
+        /*
+         * Paused for maintenance: whether its uptime counts the time, from
+         * the monitor's newest status event. A failed read leaves the
+         * sentence that says both.
+         */
+        if (
+          getMonitoringOffNotice(monitor)?.reason ===
+          MonitoringOffReason.ScheduledMaintenance
+        ) {
+          const latestStatusEvent: MonitorStatusTimeline | null =
+            await readLatestStatusEvent(props.monitorId);
+
+          if (!cancelled && latestStatusEvent) {
+            setNotice(getMonitoringOffNotice(monitor, latestStatusEvent));
+          }
         }
       } catch {
         /*

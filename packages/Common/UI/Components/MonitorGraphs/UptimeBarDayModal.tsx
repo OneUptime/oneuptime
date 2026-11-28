@@ -11,6 +11,7 @@ import {
 import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "../Icon/Icon";
 import Pill from "../Pill/Pill";
 import Color from "../../../Types/Color";
+import MonitorPausedBy from "../../../Types/Monitor/MonitorPausedBy";
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import { isRecordNameAsWritten } from "../../../Utils/DefaultRecordNames";
 import { StateListType } from "../../../Utils/StateOrder";
@@ -48,6 +49,12 @@ export interface ComponentProps {
    * what the tooltip does: a day it was off, or for how long.
    */
   monitoringOffSeconds?: number | undefined;
+  /*
+   * Of it, what a pause left out, and what paused the monitor (#11433):
+   * the dialog says "paused" and why, as the tooltip does.
+   */
+  pausedSeconds?: number | undefined;
+  pausedBy?: MonitorPausedBy | null | undefined;
   /* Defaults to English. The status page passes translated strings. */
   labels?: UptimeHistoryLabels | undefined;
   /*
@@ -124,6 +131,8 @@ const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
               hasEvents={Boolean(props.hasEvents)}
               statusDurations={props.statusDurations || []}
               monitoringOffSeconds={props.monitoringOffSeconds}
+              pausedSeconds={props.pausedSeconds}
+              pausedBy={props.pausedBy}
               hasFollowingContent={true}
               labels={props.labels}
             />

@@ -27,6 +27,7 @@ import {
 } from "./StatusTimelineTime";
 import MonitoringOffIndicator from "../StateTimeline/MonitoringOffIndicator";
 import { PillSize } from "../Pill/Pill";
+import { MonitorPausedByUtil } from "../../../Types/Monitor/MonitorPausedBy";
 import { formatDurationInSeconds } from "../../Utils/UseLiveDuration";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -129,15 +130,20 @@ const getMarkLabel: (data: {
 
   /*
    * A status held with monitoring off says so, as the list's pill does:
-   * nothing checked the monitor then (issue #6480).
+   * nothing checked the monitor then (issue #6480). One a pause left out
+   * says it was paused (#11433).
    */
   const isMonitoringOff: boolean = entry.isMonitoringOff === true;
+  const isPaused: boolean =
+    isMonitoringOff && Boolean(MonitorPausedByUtil.fromValue(entry.pausedBy));
 
   if (!entry.listEnd) {
     return translator.translateTemplate(
-      isMonitoringOff
-        ? "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active."
-        : "{{status}}, since {{start}}, {{duration}} so far. Currently Active.",
+      isPaused
+        ? "{{status}}, paused, since {{start}}, {{duration}} so far. Currently Active."
+        : isMonitoringOff
+          ? "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active."
+          : "{{status}}, since {{start}}, {{duration}} so far. Currently Active.",
       {
         status: entry.name,
         start: formatStatusTimelineShortDateTime(entry.startsAt, clock),
@@ -147,9 +153,11 @@ const getMarkLabel: (data: {
   }
 
   return translator.translateTemplate(
-    isMonitoringOff
-      ? "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}"
-      : "{{status}}, {{start}} – {{end}}, {{duration}}",
+    isPaused
+      ? "{{status}}, paused, {{start}} – {{end}}, {{duration}}"
+      : isMonitoringOff
+        ? "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}"
+        : "{{status}}, {{start}} – {{end}}, {{duration}}",
     {
       status: entry.name,
       ...formatStatusTimelineDateRange({
@@ -244,7 +252,10 @@ const MarkTooltipContent: FunctionComponent<{
       </div>
       {entry.isMonitoringOff === true && (
         <div className="mt-1">
-          <MonitoringOffIndicator size={PillSize.Small} />
+          <MonitoringOffIndicator
+            size={PillSize.Small}
+            pausedBy={entry.pausedBy}
+          />
         </div>
       )}
       <div className="mt-1 font-medium tabular-nums text-gray-700">

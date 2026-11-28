@@ -39,6 +39,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import DisabledWarning, {
+  MAINTENANCE_PAUSE_MESSAGES,
   getDisabledMessage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/DisabledWarning";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -247,16 +248,18 @@ describe("getDisabledMessage", () => {
         monitorWith({ disableActiveMonitoringBecauseOfManualIncident: true }),
       ),
     ).toContain("turn on Keep monitoring during incidents in Settings");
-    // The record is a maintenance event (#6817), as the pages around it say.
+    /*
+     * The record is a maintenance event (#6817), as the pages around it say,
+     * and the banner says what its pause does (#11433): until the newest
+     * status event is read, both ways uptime can take the time.
+     */
     expect(
       getDisabledMessage(
         monitorWith({
           disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
         }),
       ),
-    ).toBe(
-      "We are not monitoring this monitor since it is disabled because of an ongoing maintenance event. To enable active monitoring, please end the maintenance event.",
-    );
+    ).toBe(MAINTENANCE_PAUSE_MESSAGES.eitherWay);
   });
 
   test("an enabled, manual or missing monitor has no banner", () => {

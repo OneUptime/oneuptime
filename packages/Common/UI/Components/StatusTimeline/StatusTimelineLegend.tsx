@@ -6,7 +6,10 @@ import {
   StatusTimelineSummary,
   StatusTimelineSummaryItem,
 } from "./StatusTimelineLayout";
-import { MONITORING_OFF_TEXT } from "../StateTimeline/MonitoringOffIndicator";
+import {
+  MONITORING_OFF_TEXT,
+  PAUSED_TEXT,
+} from "../StateTimeline/MonitoringOffIndicator";
 import { getInlineSeparator, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import IsolatedText from "../IsolatedText/IsolatedText";
@@ -63,7 +66,8 @@ const StatusTimelineLegendFigures: FunctionComponent<{
  *
  * Time with monitoring off (issue #6480) comes last, as long as it lasted
  * and with no share: nothing checked the monitor then, so it is in no
- * status's time, and the shares are of the rest - as uptime counts it.
+ * status's time, and the shares are of the rest - as uptime counts it. Time
+ * a pause left out is named Paused, apart from it (#11433).
  */
 const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -71,6 +75,18 @@ const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
 
   const hasMonitoringOff: boolean = props.summary.monitoringOffCount > 0;
+
+  /*
+   * Of that time, what a pause left out (Paused) and what had monitoring
+   * turned off (Monitoring Off), each as long as it lasted (#11433).
+   */
+  const pausedCount: number = props.summary.pausedCount || 0;
+  const pausedMs: number = props.summary.pausedMs || 0;
+  const turnedOffCount: number = props.summary.monitoringOffCount - pausedCount;
+  const turnedOffMs: number = Math.max(
+    props.summary.monitoringOffMs - pausedMs,
+    0,
+  );
 
   if (props.summary.items.length === 0 && !hasMonitoringOff) {
     return <></>;
@@ -155,7 +171,7 @@ const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
           );
         },
       )}
-      {hasMonitoringOff && (
+      {hasMonitoringOff && turnedOffCount > 0 && (
         <li
           className="min-w-0 text-sm"
           data-testid="status-timeline-legend-monitoring-off"
@@ -170,9 +186,25 @@ const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
               MONITORING_OFF_TEXT}
           </span>
           <span className="tabular-nums text-gray-500">
-            {formatStatusTimelineCompactDuration(
-              props.summary.monitoringOffMs / 1000,
-            )}
+            {formatStatusTimelineCompactDuration(turnedOffMs / 1000)}
+          </span>
+        </li>
+      )}
+      {pausedCount > 0 && (
+        <li
+          className="min-w-0 text-sm"
+          data-testid="status-timeline-legend-paused"
+        >
+          <span
+            className={`mr-2 inline-block h-2.5 w-2.5 rounded-full align-baseline ${MONITORING_OFF_CLASS_NAME}`}
+            style={{ backgroundImage: MONITORING_OFF_STRIPES }}
+            aria-hidden="true"
+          ></span>
+          <span className="mr-2 font-medium text-gray-900">
+            {translator.translateText(PAUSED_TEXT) || PAUSED_TEXT}
+          </span>
+          <span className="tabular-nums text-gray-500">
+            {formatStatusTimelineCompactDuration(pausedMs / 1000)}
           </span>
         </li>
       )}

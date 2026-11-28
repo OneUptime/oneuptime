@@ -44,6 +44,7 @@ import Select from "../../../Types/BaseDatabase/Select";
 import Sort from "../../../Types/BaseDatabase/Sort";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
+import { MonitorPausedByUtil } from "../../../Types/Monitor/MonitorPausedBy";
 import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -212,6 +213,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * time apart from the statuses'.
    */
   monitoringOffColumn?: string | undefined;
+  /*
+   * And the column that says what paused the record's checks, when a pause
+   * rather than its switch left the time out: a monitor's pausedBy
+   * (#11433). Its entries are marked Paused, and the legend names that time
+   * apart from monitoring off.
+   */
+  pausedByColumn?: string | undefined;
 
   // More fields of each row, for renderEntryDetails.
   selectMoreFields?: Select<TBaseModel> | undefined;
@@ -363,6 +371,10 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       fields["createdByUser"] = { _id: true, name: true, email: true };
     }
 
+    if (props.pausedByColumn) {
+      fields[props.pausedByColumn] = true;
+    }
+
     if (props.monitoringOffColumn) {
       fields[props.monitoringOffColumn] = true;
     }
@@ -371,7 +383,12 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       ...fields,
       ...((props.selectMoreFields as JSONObject | undefined) || {}),
     } as Select<TBaseModel>;
-  }, [props.stateColumn, props.monitoringOffColumn, model]);
+  }, [
+    props.stateColumn,
+    props.monitoringOffColumn,
+    props.pausedByColumn,
+    model,
+  ]);
 
   const sort: Sort<TBaseModel> = {
     startsAt: SortOrder.Descending,
@@ -624,6 +641,9 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
         changedBy: userName || undefined,
         isMonitoringOff: props.monitoringOffColumn
           ? readValue(row, props.monitoringOffColumn) === true
+          : undefined,
+        pausedBy: props.pausedByColumn
+          ? MonitorPausedByUtil.fromValue(readValue(row, props.pausedByColumn))
           : undefined,
       });
     }

@@ -1235,6 +1235,7 @@ import { AddShownImages1809187821478 } from "./1809187821478-AddShownImages";
 import { BackfillShownImages1809187821479 } from "./1809187821479-BackfillShownImages";
 import { AddMonitorTemplateChangePolicyAndRule1809187821500 } from "./1809187821500-AddMonitorTemplateChangePolicyAndRule";
 import { AddFormFollowUps1809188000000 } from "./1809188000000-AddFormFollowUps";
+import { AddMonitorStatusTimelinePausedBy1809188011433 } from "./1809188011433-AddMonitorStatusTimelinePausedBy";
 
 export default [
   InitialMigration,
@@ -2474,4 +2475,5 @@ export default [
   BackfillShownImages1809187821479,
   AddMonitorTemplateChangePolicyAndRule1809187821500,
   AddFormFollowUps1809188000000,
+  AddMonitorStatusTimelinePausedBy1809188011433,
 ];
