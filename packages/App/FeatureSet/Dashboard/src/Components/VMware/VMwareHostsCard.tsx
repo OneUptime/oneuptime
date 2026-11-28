@@ -28,6 +28,11 @@ import {
   formatBytes,
   formatMhz,
 } from "../../Pages/VMware/Utils/VMwareResourceUtils";
+import { useVMwareHealthRules } from "../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import {
+  VMwareHealthRules,
+  isPastVMwareHealthThreshold,
+} from "Common/Types/VMware/VMwareHealthRules";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
@@ -61,8 +66,12 @@ export interface ComponentProps {
   testId?: string | undefined;
 }
 
-export function getVMwareHostBarClassName(percent: number): string {
-  return percent > VMWARE_HOST_SATURATION_PERCENT
+// Amber past the rule's line (90% unless the project set another).
+export function getVMwareHostBarClassName(
+  percent: number,
+  threshold: number | null = VMWARE_HOST_SATURATION_PERCENT,
+): string {
+  return isPastVMwareHealthThreshold(percent, threshold)
     ? "bg-amber-500"
     : "bg-emerald-500";
 }
@@ -71,6 +80,7 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const rules: VMwareHealthRules = useVMwareHealthRules();
   const listClassName: string = useCardRuledListClassName();
   const testId: string = props.testId || "vmware-hosts-card";
 
@@ -82,6 +92,7 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
     hosts: props.hosts,
     datacenters: props.datacenters,
     now: props.now,
+    rules,
   });
 
   if (hosts.length === 0) {
@@ -125,10 +136,12 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
     key: string;
     label: string;
     percent: number | null;
+    threshold: number | null;
   }) => ReactElement = (data: {
     key: string;
     label: string;
     percent: number | null;
+    threshold: number | null;
   }): ReactElement => {
     const percent: number | null =
       data.percent === null ? null : Math.min(100, Math.max(0, data.percent));
@@ -149,7 +162,7 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
             <></>
           ) : (
             <div
-              className={`h-1.5 rounded-full ${getVMwareHostBarClassName(percent)}`}
+              className={`h-1.5 rounded-full ${getVMwareHostBarClassName(percent, data.threshold)}`}
               style={{ width: `${Math.max(percent, 2)}%` }}
             />
           )}
@@ -180,6 +193,7 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
               host: host,
               datacenter: datacenter,
               now: props.now,
+              rules,
             });
             const load: VMwareHostLoad = getVMwareHostLoad({
               host: host,
@@ -310,11 +324,13 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
                       key: "cpu",
                       label: "CPU",
                       percent: load.cpuPercent,
+                      threshold: rules.hostCpuWarningPercent,
                     })}
                     {renderBar({
                       key: "memory",
                       label: "Memory",
                       percent: load.memoryPercent,
+                      threshold: rules.hostMemoryWarningPercent,
                     })}
                   </div>
                 </ResourcePartRow>

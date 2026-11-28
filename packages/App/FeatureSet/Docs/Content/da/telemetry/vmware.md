@@ -185,7 +185,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find vCenter i OneUptime
 
-Intet sendes, før den første fulde gennemgang af inventaret er færdig, så giv det ét indsamlingsinterval (som standard 2 minutter). Åbn derefter **Produkter → Infrastruktur → VMware → Alle vCenter**: vCenter er der med sine datacentre, klynger, ESXi-værter, virtuelle maskiner, datastores og ressourcepuljer. Dets side **Topologi** tegner dem alle på ét kort og markerer det, der kræver opmærksomhed: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
+Intet sendes, før den første fulde gennemgang af inventaret er færdig, så giv det ét indsamlingsinterval (som standard 2 minutter). Åbn derefter **Produkter → Infrastruktur → VMware → Alle vCenter**: vCenter er der med sine datacentre, klynger, ESXi-værter, virtuelle maskiner, datastores og ressourcepuljer. Dets side **Topologi** tegner dem alle på ét kort og markerer det, der kræver opmærksomhed: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort). I **Inventar** er hver VM, ESXi-vært, klynge og datastore et element, der er navngivet, som vCenter navngiver det, med hvor det befinder sig under navnet: en VM's vært og klynge, en værts klynge og datacenter.
 :::
 
 ## Miljøvariabler
@@ -246,7 +246,7 @@ Receiveren sender ingen metrik for en VM's strømtilstand. Den sender `vcenter.v
 
 Siden **Oversigt** besvarer først "er dette vCenter sundt". Dens sidehoved viser, om der kommer data, og hvordan vCenter har det: **Sund**, **Forringet** mens noget trænger til et kig, **Usund** mens noget kræver nogen nu, eller **Tilstand ukendt** mens vCenter er afbrudt, fordi dets seneste rapport så ikke længere er sandheden. Dens chips tæller datacentrene, klyngerne, de ESXi-værter, vCenter når, ud af alle, de tændte VM'er ud af alle, skabelonerne og datastorene, og alle undtagen datacentrene åbner deres liste.
 
-Derefter kommer **Kræver opmærksomhed**: alt, hvad der kræver nogen, det mest presserende først, hver med årsagen og et skridt fra sin side. En ESXi-vært, som vCenter ikke når, en datastore, der er mere end 90 % fuld, og en VM, hvis hukommelse værten swapper til disk, er kritiske. En vært, der er mere end 90 % optaget, en datastore, der er mere end 80 % fuld, en VM, der venter på en ledig CPU, eller hvis hukommelse værten tager tilbage, en klynge med værter, der ikke er effektive, eller uden hukommelsen til at miste en af dem, og de alarmer, vCenter tæller i hvert datacenter, trænger til et kig. Hver tærskel er den, som dens [advarselsskabelon](/docs/monitor/vmware-monitor#færdige-advarselsskabeloner) udløses ved. Når intet kræver opmærksomhed, er der intet kort.
+Derefter kommer **Kræver opmærksomhed**: alt, hvad der kræver nogen, det mest presserende først, hver med årsagen og et skridt fra sin side. En ESXi-vært, som vCenter ikke når, en datastore, der er mere end 90 % fuld, og en VM, hvis hukommelse værten swapper ud lige nu, er kritiske. En vært, der er mere end 90 % optaget, en datastore, der er mere end 80 % fuld, en VM, der venter på en ledig CPU, hvis hukommelse værten tager tilbage, eller som læser swappet hukommelse tilbage eller beholder mere end 1 GiB af den, en klynge med værter, der ikke er effektive, eller uden hukommelsen til at miste en af dem, og de alarmer, vCenter tæller i hvert datacenter, trænger til et kig. Hver tærskel er en, dit projekt kan ændre eller slå fra: se [Sundhedsregler](#sundhedsregler). Når intet kræver opmærksomhed, er der intet kort.
 
 Under det står de effektive værter, værternes CPU og hukommelse vægtet efter kapacitet, den fyldteste datastore og den værste CPU-ready-tid for en VM, med deres diagrammer; **ESXi-værter**, hver værts status og belastning et skridt fra dens side; og de største forbrugere.
 
@@ -263,6 +263,37 @@ vCenter rapporterer kun en værts CPU- og hukommelsesforbrug, mens værten er fo
 | **Slukket eller i standby** | Den rapporterer intet forbrug, og dens datacenter har slukkede værter og andre i standby. |
 | **Intet forbrug rapporteret** | Den rapporterer intet forbrug, og det, dens datacenter tæller, siger ikke hvorfor. Den trænger til et kig. |
 | **Rapporterer ikke** | vCenter har ikke rapporteret den i mere end 15 minutter. |
+
+### Swappet hukommelse betyder ikke, at der swappes
+
+`vcenter.vm.memory.swapped` er, hvor meget af en VM's hukommelse der ligger i dens værts swapfil. ESXi lader en swappet side ligge der, indtil VM'en tilgår den igen, så en VM kan beholde nogle få MiB swappet i ugevis, efter at det hukommelsespres, der lagde dem der, er forsvundet. Hukommelse, der er tilbage fra tidligere, er ikke et problem i sig selv: Det er, at værten swapper hukommelse ud lige nu.
+
+Hverken agentens `vcenter`-receiver eller en sonde sender en swaprate, så OneUptime udleder den af, hvordan en VM's swappede hukommelse ændrer sig mellem to rapporter. En VM's side viser under **Swapping nu**, hvilken vej den bevæger sig. Med standardreglerne:
+
+| En VM's swappede hukommelse | Kræver opmærksomhed siger |
+| --- | --- |
+| Vokser: værten swapper den ud lige nu | Kritisk |
+| Skrumper hurtigere end 1 MiB/s: VM'en læser swappet hukommelse tilbage | Trænger til et kig |
+| Forbliver den samme, mere end 1 GiB af den | Trænger til et kig, som swappet tidligere |
+| Forbliver den samme, 1 GiB eller mindre | Intet |
+
+En rate kræver to rapporter med mindre end 15 minutters mellemrum, så en VM's første rapport, eller en efter et hul, siger kun, hvor meget der er swappet. En ressourcepulje trænger kun til et kig, mens dens hukommelse swappes ud.
+
+### Sundhedsregler
+
+Hver tærskel ovenfor er en regel, dit projekt kan ændre: Åbn **Produkter → Infrastruktur → VMware**, derefter **Indstillinger → Sundhedsregler**. Reglerne gælder for hvert vCenter i projektet: **Kræver opmærksomhed**, hvert objekts side, listernes kolonne Status og bjælker samt Topologi. Oversigtens felter, der tager gennemsnittet på tværs af værter eller VM'er, har deres egne tærskler. Lad en tærskel stå tom for at slå dens regel fra. Det, der ikke har nogen tærskel, vises altid: en vært, som vCenter ikke når, en klynge uden hukommelsen til at miste en vært, og de alarmer, vCenter tæller.
+
+| Kort | Regel | Standard |
+| --- | --- | --- |
+| **Travle ESXi-værter** | CPU, hukommelse | En advarsel over 90 % hver |
+| **Fulde datastores** | Brugt plads | En advarsel over 80 %, kritisk over 90 % |
+| **Swapping i VM'er** | Swapping ud nu | Kritisk over 0 KiB/s: al swapping ud |
+| **Swapping i VM'er** | Læser swappet hukommelse tilbage | En advarsel over 1024 KiB/s |
+| **Swapping i VM'er** | Swappet tidligere, ingen swapping nu | En advarsel over 1024 MiB |
+| **Ballooning og CPU Ready for VM'er** | Hukommelse taget ved ballooning, CPU ready | En advarsel over 0 MiB (al ballooning), over 10 % |
+| **Swapping i ressourcepuljer** | Swapping ud nu | En advarsel over 0 KiB/s: al swapping ud |
+
+Standardværdierne er de tærskler, som [advarselsskabelonerne](/docs/monitor/vmware-monitor#færdige-advarselsskabeloner) udløses ved, undtagen for swapping: skabelonen VM Memory Swapping udløses ved al swappet hukommelse. At ændre en regel ændrer, hvad siderne markerer, ikke dine monitorer, som beholder deres egne kriterier.
 
 ### ESXi-værter
 
@@ -285,7 +316,7 @@ De seks værtsadvarsler (en vært, der ikke svarer, CPU- og hukommelsesmætning,
 
 Slukkede virtuelle maskiner og skabeloner vises også. vCenter rapporterer kun CPU-tællere for tændte VM'er, så deres CPU-kolonner viser N/A i stedet for et misvisende nul.
 
-En VM's side siger, hvad den laver (**Kører**, **Slukket**, **Skabelon**, eller **Afbrudt** mens vCenter ikke når dens vært), og hvor den kører, med dens vært og klynge et skridt væk. Dens **Oversigt** har **Kræver opmærksomhed** for VM'en, dens CPU, CPU ready, hukommelse og disk, de hændelser og advarsler, der er åbne på den, hvilke af de syv VM-advarsler der er slået til, og dens detaljer. **Metrikker** har dens diagrammer.
+En VM's side siger, hvad den laver (**Kører**, **Slukket**, **Skabelon**, eller **Afbrudt** mens vCenter ikke når dens vært), og hvor den kører, med dens vært og klynge et skridt væk. Dens **Oversigt** har **Kræver opmærksomhed** for VM'en, dens CPU, CPU ready, hukommelse og disk, de hændelser og advarsler, der er åbne på den, hvilke af de syv VM-advarsler der er slået til, og dens detaljer, med hvor meget af dens hukommelse der er swappet, og om værten flytter den lige nu (**Swapping nu**). **Metrikker** har dens diagrammer.
 
 ### Datastores
 

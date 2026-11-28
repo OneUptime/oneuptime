@@ -1228,6 +1228,7 @@ import { AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201 } from "./
 import { AddScheduleRosterTurnAndRestrictionTypeKey1809187791269 } from "./1809187791269-AddScheduleRosterTurnAndRestrictionTypeKey";
 import { AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260 } from "./1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate";
 import { AddProjectCallVoice1809187801300 } from "./1809187801300-AddProjectCallVoice";
+import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "./1809187811157-AddVMwareHealthSettingsAndSwapRates";
 
 export default [
   InitialMigration,
@@ -2460,4 +2461,5 @@ export default [
   AddScheduleRosterTurnAndRestrictionTypeKey1809187791269,
   AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260,
   AddProjectCallVoice1809187801300,
+  AddVMwareHealthSettingsAndSwapRates1809187811157,
 ];

@@ -22,6 +22,8 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import { getVMwareResourcePoolMemoryTone } from "../../../Components/VMware/VMwareResourceColumns";
+import { useVMwareHealthRules } from "../Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 
 /*
  * Resource pools are list-only (no detail page): the receiver reports a
@@ -32,6 +34,7 @@ const VMwareVCenterResourcePools: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const rules: VMwareHealthRules = useVMwareHealthRules();
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -138,8 +141,13 @@ const VMwareVCenterResourcePools: FunctionComponent<
           key: "memoryBalloonedBytes",
           description:
             VMWARE_METRIC_DESCRIPTIONS.resourcePoolListBalloonedSwapped,
-          // Amber once the host swaps the pool's memory, as Needs attention.
-          getTone: getVMwareResourcePoolMemoryTone,
+          /*
+           * Amber while the host swaps the pool's memory out, as Needs
+           * attention says - not for memory left from earlier (#11157).
+           */
+          getTone: (resource: InfrastructureResource) => {
+            return getVMwareResourcePoolMemoryTone(resource, rules);
+          },
           getValue: (resource: InfrastructureResource): string => {
             const ballooned: number | null = readNumber(
               resource,

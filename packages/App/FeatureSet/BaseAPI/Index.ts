@@ -490,6 +490,9 @@ import OpenStackCloudLabelRuleService, {
 import VMwareVCenterLabelRuleService, {
   Service as VMwareVCenterLabelRuleServiceType,
 } from "Common/Server/Services/VMwareVCenterLabelRuleService";
+import VMwareHealthSettingService, {
+  Service as VMwareHealthSettingServiceType,
+} from "Common/Server/Services/VMwareHealthSettingService";
 import IoTFleetLabelRuleService, {
   Service as IoTFleetLabelRuleServiceType,
 } from "Common/Server/Services/IoTFleetLabelRuleService";
@@ -1746,6 +1749,7 @@ import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwar
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
 import OpenStackCloudLabelRule from "Common/Models/DatabaseModels/OpenStackCloudLabelRule";
 import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
+import VMwareHealthSetting from "Common/Models/DatabaseModels/VMwareHealthSetting";
 import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
@@ -3740,6 +3744,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<VMwareVCenterLabelRule, VMwareVCenterLabelRuleServiceType>(
         VMwareVCenterLabelRule,
         VMwareVCenterLabelRuleService,
+      ).getRouter(),
+    );
+
+    // Where a project's VMware health rules mark a part as needing attention.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareHealthSetting, VMwareHealthSettingServiceType>(
+        VMwareHealthSetting,
+        VMwareHealthSettingService,
       ).getRouter(),
     );
 

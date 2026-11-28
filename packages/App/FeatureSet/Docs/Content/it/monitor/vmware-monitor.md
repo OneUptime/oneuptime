@@ -123,7 +123,7 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 | VM CPU Ready Contention | Macchina virtuale | Avviso | `vcenter.vm.cpu.readiness`, Avg per VM | Sopra il 10 %: la VM era pronta a essere eseguita, ma l'host non aveva un core fisico per lei. Invisibile dall'interno del guest | Al 9 % o meno |
 | VM Memory Saturation | Macchina virtuale | Avviso | `vcenter.vm.memory.utilization`, Avg per VM | Sopra il 90 % della sua memoria: il guest sta per iniziare a paginare | All'81 % o meno |
 | VM Memory Ballooning | Macchina virtuale | Avviso | `vcenter.vm.memory.ballooned`, Max per VM | Sopra 0: l'host è a corto di memoria e la riprende da questo guest | A 0 |
-| VM Memory Swapping | Macchina virtuale | Critico | `vcenter.vm.memory.swapped`, Max per VM | Sopra 0: l'host fa lo swap della memoria della VM, l'ultima risorsa dopo ballooning e compressione | A 0 |
+| VM Memory Swapping | Macchina virtuale | Critico | `vcenter.vm.memory.swapped`, Max per VM | Sopra 0: parte della memoria della VM si trova nel file di swap dell'host, spostata nello swap adesso o rimasta da una pressione precedente, perché ESXi la conserva finché la VM non vi accede. La Panoramica del vCenter distingue i due casi: vedi [Memoria in swap non vuol dire swapping in corso](/docs/telemetry/vmware#memoria-in-swap-non-vuol-dire-swapping-in-corso) | A 0 |
 | VM Disk Latency High | Macchina virtuale | Avviso | `vcenter.vm.disk.latency.max`, Max per VM | Sopra 50 ms: le applicazioni nel guest vanno in timeout sull'I/O | A 45 ms o meno |
 | VM Disk Usage High | Macchina virtuale | Avviso | `vcenter.vm.disk.utilization`, Avg per VM | Sopra il 90 % del suo storage assegnato già impegnato: una VM thin-provisioned sta per reclamare la sua dimensione completa | All'81 % o meno |
 | Datastore Capacity Warning | Datastore | Avviso | `vcenter.datastore.disk.utilization`, Avg per `resource.vcenter.datastore.name` | Sopra l'80 %: un avviso precoce, perché i dischi thin e gli snapshot consumano in fretta il resto | Al 72 % o meno |
@@ -214,7 +214,7 @@ Le metriche qui sotto sono il catalogo che offre il modulo del monitor. Le unit�
 | `vcenter.vm.disk.utilization`              | `%`           | Percentuale (0–100) dello storage assegnato alla VM che è impegnato sul datastore — una VM thin-provisioned vicina al 100 % sta per reclamare la sua dimensione completa       |
 | `vcenter.vm.memory.ballooned`              | `MiBy`        | Memoria del guest recuperata dalla VM dal driver di ballooning (VMware Tools). Sopra 0 significa che l'host ESXi è a corto di memoria                                          |
 | `vcenter.vm.memory.granted`                | `MiBy`        | Memoria macchina concessa alla VM dall'host. _Disattivata per impostazione predefinita_ — attiva `vcenter.vm.memory.granted`                                                  |
-| `vcenter.vm.memory.swapped`                | `MiBy`        | Memoria concessa alla VM dal file di swap dell'host — l'ultima risorsa dopo ballooning e compressione; qualsiasi valore sopra 0 significa che la VM paga latenza del disco per la RAM |
+| `vcenter.vm.memory.swapped`                | `MiBy`        | Memoria concessa alla VM dal file di swap dell'host — l'ultima risorsa dopo ballooning e compressione. ESXi conserva una pagina in swap finché la VM non vi accede, quindi un valore sopra 0 può essere rimasto da una pressione precedente |
 | `vcenter.vm.memory.swapped_ssd`            | `KiBy`        | Memoria della VM spostata nella cache di swap flash dell'host — meno pesante del file di swap, ma comunque pressione sulla memoria                                             |
 | `vcenter.vm.memory.usage`                  | `MiBy`        | Memoria usata attivamente dal guest della VM. Emessa allo stesso modo per VM accese e spente (0 quando è spenta)                                                               |
 | `vcenter.vm.memory.utilization`            | `%`           | Utilizzo della memoria della VM come percentuale (0–100) della sua memoria configurata                                                                                         |
@@ -241,7 +241,7 @@ Le metriche qui sotto sono il catalogo che offre il modulo del monitor. Le unit�
 | `vcenter.resource_pool.memory.ballooned` | `MiBy`     | Memoria recuperata dal driver di ballooning su tutte le VM del pool                                                                                                      |
 | `vcenter.resource_pool.memory.granted`   | `MiBy`     | Memoria dell'host concessa alle VM del pool, suddivisa per `type` (`private` / `shared` — le pagine condivise sono deduplicate dal transparent page sharing)             |
 | `vcenter.resource_pool.memory.shares`    | `{shares}` | Share di memoria configurate sul pool                                                                                                                                    |
-| `vcenter.resource_pool.memory.swapped`   | `MiBy`     | Memoria concessa alle VM del pool dallo spazio di swap degli host ESXi — qualsiasi valore sopra 0 significa che almeno una VM del pool subisce lo swap dell'host         |
+| `vcenter.resource_pool.memory.swapped`   | `MiBy`     | Memoria concessa alle VM del pool dallo spazio di swap degli host ESXi — un valore sopra 0 significa che almeno una VM del pool ha memoria nello swap dell'host, adesso o da prima |
 | `vcenter.resource_pool.memory.usage`     | `MiBy`     | Memoria usata dal pool, suddivisa per `type` (`guest` / `host` / `overhead`) nelle versioni recenti del collector; quelle più vecchie emettono una sola serie senza tipo. Filtra `type = guest` |
 
 ### vSAN
@@ -288,7 +288,7 @@ Alcuni criteri da cui partire:
 - **Un datastore si sta riempiendo:** `vcenter.datastore.disk.utilization`, Media, raggruppata per `resource.vcenter.datastore.name`, **Maggiore di** `80`.
 - **Un cluster ha perso un host:** `vcenter.cluster.host.count` filtrata su `effective = false`, Massimo, raggruppata per `resource.vcenter.cluster.name`, **Maggiore di** `0`.
 - **Sono in esecuzione meno VM del previsto:** `vcenter.cluster.vm.count` filtrata su `power_state = on` e `resource.vcenter.cluster.name = Production`, Somma, **Minore di** il numero che ti aspetti.
-- **L'host sta facendo lo swap di una VM:** `vcenter.vm.memory.swapped`, Massimo, raggruppata per `resource.vcenter.vm.name`, **Maggiore di** `0`.
+- **Una VM tiene molta memoria nello swap dell'host:** `vcenter.vm.memory.swapped`, Massimo, raggruppata per `resource.vcenter.vm.name`, **Maggiore di** `1024`. Qualche MiB può restare lì a lungo dopo che la pressione sulla memoria è passata, quindi una soglia sopra 0 evita che la memoria rimasta da prima faccia scattare il criterio.
 
 ### Criteri predefiniti
 

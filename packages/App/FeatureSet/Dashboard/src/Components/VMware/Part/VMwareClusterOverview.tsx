@@ -18,10 +18,12 @@ import ResourcePartDetailsCard, {
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
 import { OpenIssueRecord } from "../../ResourceTopology/ResourceTopologyIssues";
 import VMwareHostsCard from "../VMwareHostsCard";
+import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
   VMWARE_CLUSTER_HEADROOM_GAP_WORDS,
-  VMWARE_HOST_SATURATION_PERCENT,
   VMwareClusterHeadroom,
+  getVMwareThresholdLine,
   VMwareClusterHeadroomGap,
   getVMwareClusterHeadroom,
   getVMwareClusterHeadroomGap,
@@ -54,10 +56,16 @@ import { VMwarePartRoutes } from "./VMwarePartRoutes";
  * it is in trouble, and its details.
  */
 
-const SATURATION_THRESHOLDS: { warn: number; danger: number } = {
-  warn: VMWARE_HOST_SATURATION_PERCENT,
-  danger: Number.POSITIVE_INFINITY,
-};
+/*
+ * A tile's bar turns amber where a busy host's does, at the project's
+ * rules (VMware > Settings > Health Rules), and never red.
+ */
+function amberAt(threshold: number | null): { warn: number; danger: number } {
+  return {
+    warn: getVMwareThresholdLine(threshold),
+    danger: Number.POSITIVE_INFINITY,
+  };
+}
 
 export interface ComponentProps {
   vcenterId: ObjectID;
@@ -85,6 +93,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const rules: VMwareHealthRules = useVMwareHealthRules();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -264,7 +273,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
               : undefined
           }
           percent={usage.cpuPercent}
-          thresholds={SATURATION_THRESHOLDS}
+          thresholds={amberAt(rules.hostCpuWarningPercent)}
           description={VMWARE_METRIC_DESCRIPTIONS.clusterCpuInUse}
         />
         <GoldenMetricTile
@@ -282,7 +291,7 @@ const VMwareClusterOverview: FunctionComponent<ComponentProps> = (
               : undefined
           }
           percent={usage.memoryPercent}
-          thresholds={SATURATION_THRESHOLDS}
+          thresholds={amberAt(rules.hostMemoryWarningPercent)}
           description={VMWARE_METRIC_DESCRIPTIONS.clusterMemoryInUse}
         />
         <GoldenMetricTile
