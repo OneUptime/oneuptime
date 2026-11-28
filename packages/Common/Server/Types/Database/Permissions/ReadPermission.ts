@@ -74,10 +74,7 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "GlobalConfig.instanceId",
     "UserNotificationEmailRollupItem.rollupBatchId",
     "NetworkDeviceDiscoveryImport.retryOfImportId",
-    /*
-     * The change of many monitors' template a retry tries again (#11411): a
-     * MonitorTemplateChange, which carries no labels.
-     */
+    // The template change a retry tries again (#11266): a MonitorTemplateChange, which carries no labels.
     "MonitorTemplateChange.retryOfChangeId",
     "AIRun.codeTaskId",
     // The code task a postmortem's action item became: an AIRun, which carries no labels.

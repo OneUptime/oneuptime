@@ -217,16 +217,16 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     migration:
       "1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds.ts",
   },
-  // A project's VMware health rules (#11157).
-  {
-    table: "VMwareHealthSetting",
-    migration: "1809187811157-AddVMwareHealthSettingsAndSwapRates.ts",
-  },
-  // A change of many monitors' template, run by a worker (#11260, #11266).
+  // A change of many monitors' template, and how far it got (#11260, #11266).
   {
     table: "MonitorTemplateChange",
     migration:
       "1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate.ts",
+  },
+  // A project's VMware health rules (#11157).
+  {
+    table: "VMwareHealthSetting",
+    migration: "1809187811157-AddVMwareHealthSettingsAndSwapRates.ts",
   },
 ];
 

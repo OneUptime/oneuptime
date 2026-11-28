@@ -132,12 +132,11 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
    */
   "MonitorNetworkDevice",
   /*
-   * A change of many monitors' template, and how far it got (#11411).
-   * Nobody reads this table through the API: its access lists are empty,
-   * and its own routes (Server/API/MonitorTemplateChangeAPI) read it as
-   * root and answer it to whoever may read the project's monitors - the
-   * Monitor tiers among them - while starting, stopping or retrying one
-   * changes each monitor with the person's own permission to edit it.
+   * A change of many monitors' template, and how far it got (#11260,
+   * #11266). Nobody reads this table through the API: its access lists are
+   * empty, the server writes every row as root, and the change's own route
+   * (MonitorTemplateChangeAPI) reads it and decides who may see and act on
+   * which change, as NetworkDeviceDiscoveryImport's does.
    */
   "MonitorTemplateChange",
   /*
