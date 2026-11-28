@@ -833,6 +833,9 @@ const GROUPED_NATIONAL_PHONE_PATTERN: RegExp =
 // A run of digits of a number written in groups.
 const DIGIT_GROUP: RegExp = /[0-9]+/g;
 
+// The area code a number written in groups starts with, in parentheses.
+const AREA_CODE_IN_PARENTHESES: RegExp = /^\(([0-9]+)\)/;
+
 // The runs of digits a number is written in, as numbers' texts.
 function digitGroupsOf(raw: string): Array<string> {
   return raw.match(DIGIT_GROUP) || [];
@@ -860,9 +863,12 @@ function isDay(group: string): boolean {
  * - a date, read year first or day first, with a time or a count after it
  * (2024-11-28-1030), an IPv4 address (192.168.100.200), a range of two
  * numbers of one length (10000-20000), a run of small counts no trunk
- * prefix starts (10 20 30 40 50) - nor a placeholder. A time (10:30:00)
- * and a version (1.2.3) are never written so: a colon sets no group apart,
- * and every group has two digits at least.
+ * prefix starts (10 20 30 40 50), a US Social Security number's groups
+ * (536-22-8731), a North American area code in parentheses, which the
+ * North American detector reads ((718) 487-63058) - nor a placeholder. A
+ * time (10:30:00) and a version
+ * (1.2.3) are never written so: a colon sets no group apart, and every
+ * group has two digits at least.
  */
 export function isWrittenAsNationalPhoneNumber(
   digits: string,
@@ -887,6 +893,37 @@ export function isWrittenAsNationalPhoneNumber(
       (isDay(first) && isMonth(second) && isYear(third)) ||
       (isMonth(first) && isDay(second) && isYear(third)))
   ) {
+    return false;
+  }
+
+  /*
+   * A US Social Security number as it is written, three digits, two and
+   * four, by hyphens, dots or spaces: an SSN's own groups, which no
+   * country writes its numbers in. Read as a national number, an SSN a
+   * phone word happened to be near - "phone 201234567 for SSN
+   * 536.22.8731" - was a phone number to a Phone Number rule, which hid it
+   * before the SSN rule could mask it as one.
+   */
+  if (
+    groups.length === 3 &&
+    first.length === 3 &&
+    second.length === 2 &&
+    third!.length === 4
+  ) {
+    return false;
+  }
+
+  /*
+   * A North American area code in parentheses, three digits with no trunk
+   * prefix - (718): the North American detector reads a number written so,
+   * three digits and four after it, and one written otherwise - (718)
+   * 487-63058 - is no number. A country that writes its area code in
+   * parentheses without a trunk prefix writes two digits, as Brazil's (11)
+   * 91234-5678 and Mexico's (55) 1234 5678.
+   */
+  const area: RegExpMatchArray | null = raw.match(AREA_CODE_IN_PARENTHESES);
+
+  if (area && area[1]!.length === 3 && !area[1]!.startsWith("0")) {
     return false;
   }
 

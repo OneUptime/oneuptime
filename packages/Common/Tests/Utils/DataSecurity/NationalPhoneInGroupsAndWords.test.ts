@@ -150,6 +150,10 @@ describe("a national number in the groups people write it in, beside its word (#
     ["its word too far before it", `tel ${"x".repeat(30)} 03-1234-5678`],
     ["groups glued to a letter", "tel A03-1234-5678 ok"],
     ["groups after a plus sign that is no calling code", "tel +03-1234-5678 ok"],
+    // A US Social Security number's own groups, three, two and four.
+    ["an SSN's groups by hyphens", "tel 666-22-8731 ok"],
+    ["an SSN's groups by dots", "phone 536.22.8731 ok"],
+    ["an SSN's groups by spaces", "mobile 536 22 8731 ok"],
   ])("finds none in %s: %s", (_label: string, text: string) => {
     expect(phonesIn(text)).toEqual([]);
     expect(detectorPhonesIn(text)).toEqual([]);
@@ -201,8 +205,74 @@ describe("isWrittenAsNationalPhoneNumber (#11493)", () => {
     ["1234567890", "123-456-7890", "a straight run"],
     ["0312345678901", "03-1234-5678-901", "too many digits"],
     ["0312345678", "0312345678", "one run: no groups"],
+    ["536228731", "536-22-8731", "a Social Security number's groups"],
+    ["536228731", "536.22.8731", "a Social Security number's groups by dots"],
+    ["012345678", "012 34 5678", "a Social Security number's groups, a 0 first"],
+    ["71848763058", "(718) 487-63058", "a North American area code, the North American detector's"],
+    ["7184876305", "(718) 487 6305", "a North American number, the North American detector's"],
   ])("refuses %s written %s: %s", (digits: string, raw: string) => {
     expect(isWrittenAsNationalPhoneNumber(digits, raw)).toBe(false);
+  });
+
+  test.each([
+    ["11912345678", "(11) 91234-5678", "Brazil's two-digit area code"],
+    ["5512345678", "(55) 1234 5678", "Mexico City's"],
+    ["02012345678", "(020) 1234 5678", "an area code with its trunk prefix"],
+  ])("takes %s written %s: %s", (digits: string, raw: string) => {
+    expect(isWrittenAsNationalPhoneNumber(digits, raw)).toBe(true);
+  });
+
+  test("a malformed North American number beside its word is no phone number, and a proper one still is", () => {
+    expect(phonesIn("tel (718) 487-63058 ok")).toEqual([]);
+    expect(redacted("GET /contact?tel=%28718%29+487-63058")).toBe(
+      "GET /contact?tel=%28718%29+487-63058",
+    );
+    // The North American detector's own: three digits, then four.
+    const northAmerican: Array<string> = phonesIn("tel (718) 487-6305 ok");
+
+    expect(northAmerican).toHaveLength(1);
+    expect(northAmerican[0]).toContain("718) 487-6305");
+    // Brazil writes its two-digit area code so.
+    expect(phonesIn("tel (11) 91234-5678 ok")).toEqual(["(11) 91234-5678"]);
+  });
+
+  test("groups of an SSN's lengths in another order, or more of them, are still a phone number's", () => {
+    // Korea's 02-123-4567, two, three and four.
+    expect(isWrittenAsNationalPhoneNumber("021234567", "02-123-4567")).toBe(
+      true,
+    );
+    // Four groups, the first two of an SSN's lengths.
+    expect(isWrittenAsNationalPhoneNumber("61234567890", "612 34 567 890")).toBe(
+      true,
+    );
+  });
+
+  /*
+   * An SSN a phone word is near is the SSN rule's to mask: before this
+   * check, the Phone Number rule read 536.22.8731 beside "phone" as a
+   * national number and hid it first.
+   */
+  test("an SSN a phone word is near is left to the SSN rule", () => {
+    const ssn: ScrubRegExp = compileBuiltInScrubPattern(LogScrubPatternType.SSN)!;
+    const text: string = "call to phone 201234567 for SSN 536.22.8731 failed";
+    const afterPhone: string = redacted(text);
+
+    expect(afterPhone).toBe("call to phone [REDACTED] for SSN 536.22.8731 failed");
+    expect(
+      ssn.replace(afterPhone, (): string => {
+        return "[SSN]";
+      }),
+    ).toBe("call to phone [REDACTED] for SSN [SSN] failed");
+    // Data Security calls it what it is.
+    expect(
+      findSensitiveValues(text)
+        .filter((match: TextMatch): boolean => {
+          return text.slice(match.start, match.end) === "536.22.8731";
+        })
+        .map((match: TextMatch): string => {
+          return match.dataTypeId;
+        }),
+    ).toEqual(["us-ssn"]);
   });
 
   test("a range of two numbers of unlike lengths, or with a trunk prefix, is a phone number", () => {

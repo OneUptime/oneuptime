@@ -2480,6 +2480,12 @@ const READING_CASES_OF: Readonly<
             `tel 192.168.${100 + random(100)}.${100 + random(100)} ok`,
             "",
           ),
+          // A Social Security number's own groups, three, two and four, of an area none is issued in.
+          labelled(
+            "phone-number",
+            `tel 666-${drawnDigitsOf(2, "2")}-${drawnDigitsOf(4)} ok`,
+            "",
+          ),
         ],
       };
     },
