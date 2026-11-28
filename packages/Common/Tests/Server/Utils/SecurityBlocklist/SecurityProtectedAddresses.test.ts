@@ -1592,7 +1592,7 @@ describe("Google Cloud's front ends and health checks", () => {
         type: GCP_FORWARDING_RULE_TYPE,
         properties:
           data.scheme === undefined ? {} : { loadBalancingScheme: data.scheme },
-        account: data.account,
+        ...(data.account === undefined ? {} : { account: data.account }),
       });
     }
 
