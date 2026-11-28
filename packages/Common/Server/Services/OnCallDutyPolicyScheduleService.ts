@@ -20,6 +20,9 @@ import ScheduleResolution, {
 import RestrictionTimes, {
   RestrictionType,
 } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
+import WeeklyWindowDays from "../../Types/OnCallDutyPolicy/WeeklyWindowDays";
+import WorkingHours from "../../Types/OnCallDutyPolicy/WorkingHours";
+import TimezoneAlias from "../../Types/TimezoneAlias";
 import ScheduleRoster, {
   ScheduleRosterState,
 } from "../../Types/OnCallDutyPolicy/ScheduleRoster";
@@ -308,6 +311,14 @@ interface ScheduleResolutionInputs {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
   layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>;
   attachments: Array<OnCallDutyPolicyEscalationRuleSchedule>;
+}
+
+// A schedule moved from one time zone to another (onBeforeUpdate).
+export interface ScheduleTimezoneMove {
+  scheduleId: ObjectID;
+  projectId: ObjectID | null;
+  fromTimezone: string;
+  toTimezone: string;
 }
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> {
@@ -608,6 +619,220 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     });
   }
 
+  /*
+   * A NEW TIME ZONE KEEPS EVERY TIME ON THE CLOCK (#11455).
+   *
+   * A layer's times are moments: its rotation start, its first hand-off,
+   * and the windows of its active hours. The engine reads each one on the
+   * clock of the schedule's time zone, so a new zone read them as other
+   * hours - a 09:00 hand-off in Europe/Warsaw became a 03:00 one in
+   * America/New_York - and a window near midnight as another day than it
+   * names: a Monday 01:00 window became a Sunday 19:00 one, while the
+   * Dashboard still showed it under Monday. The Dashboard says the opposite
+   * ("Changing it keeps each time as it reads, in the new timezone: a 09:00
+   * hand-off stays at 09:00"), and an on-call rule's working hours already
+   * do so when their zone changes (WorkingHours.moveToTimezone).
+   *
+   * So a schedule moved from one zone to another has every time of its
+   * layers moved with it, once the move is saved: each reads the same date,
+   * day of the week and time of day in the new zone as it did in the old
+   * one (WeeklyWindowDays.moveMomentToTimezone, moveWindowsToTimezone), and
+   * a window keeps the days it names. A schedule given a zone for the first
+   * time, or none any more, keeps its moments: they were set in the zone of
+   * whoever set them, and read in the server's, so no one zone held them.
+   *
+   * The schedules the update moves are read here, as the rows it writes,
+   * with the zone each is in now.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<OnCallDutyPolicySchedule>,
+  ): Promise<OnUpdate<OnCallDutyPolicySchedule>> {
+    const onUpdate: OnUpdate<OnCallDutyPolicySchedule> =
+      await super.onBeforeUpdate(updateBy);
+
+    const written: unknown = (
+      onUpdate.updateBy.data as unknown as Record<string, unknown>
+    )["timezone"];
+
+    if (written === undefined) {
+      return onUpdate;
+    }
+
+    const toTimezone: string | null =
+      typeof written === "string" && written.trim() ? written.trim() : null;
+
+    if (!toTimezone || !WorkingHours.isKnownTimezone(toTimezone)) {
+      return onUpdate;
+    }
+
+    const schedules: Array<OnCallDutyPolicySchedule> =
+      await this.findRowsAndHoldUpdateToThem(onUpdate.updateBy, {
+        _id: true,
+        projectId: true,
+        timezone: true,
+      });
+
+    const moves: Array<ScheduleTimezoneMove> = [];
+
+    for (const schedule of schedules) {
+      const fromTimezone: string | null =
+        schedule.timezone?.toString().trim() || null;
+
+      if (
+        !schedule.id ||
+        !fromTimezone ||
+        !WorkingHours.isKnownTimezone(fromTimezone) ||
+        TimezoneAlias.getCanonicalTimezone(fromTimezone) ===
+          TimezoneAlias.getCanonicalTimezone(toTimezone)
+      ) {
+        continue;
+      }
+
+      moves.push({
+        scheduleId: schedule.id,
+        projectId: schedule.projectId || null,
+        fromTimezone: fromTimezone,
+        toTimezone: toTimezone,
+      });
+    }
+
+    return {
+      updateBy: onUpdate.updateBy,
+      carryForward: {
+        ...(onUpdate.carryForward || {}),
+        timezoneMoves: moves,
+      },
+    };
+  }
+
+  /*
+   * Every layer of a schedule moved to its new zone's clock
+   * (onBeforeUpdate). Written as OneUptime, hook-free: the move is the
+   * schedule's change, made once its zone is saved, and who is on call is
+   * worked out for the whole schedule after it (onUpdateSuccess).
+   */
+  public async moveLayersToTimezone(move: ScheduleTimezoneMove): Promise<void> {
+    const layers: Array<OnCallDutyPolicyScheduleLayer> =
+      await OnCallDutyPolicyScheduleLayerService.findBy({
+        query: {
+          onCallDutyPolicyScheduleId: move.scheduleId,
+        },
+        select: {
+          _id: true,
+          startsAt: true,
+          handOffTime: true,
+          restrictionTimes: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const layer of layers) {
+      if (!layer.id) {
+        continue;
+      }
+
+      const data: Record<string, unknown> = {};
+
+      if (layer.startsAt) {
+        data["startsAt"] = WeeklyWindowDays.moveMomentToTimezone(
+          OneUptimeDate.fromString(layer.startsAt),
+          move.fromTimezone,
+          move.toTimezone,
+        );
+      }
+
+      if (layer.handOffTime) {
+        data["handOffTime"] = WeeklyWindowDays.moveMomentToTimezone(
+          OneUptimeDate.fromString(layer.handOffTime),
+          move.fromTimezone,
+          move.toTimezone,
+        );
+      }
+
+      if (layer.restrictionTimes) {
+        try {
+          data["restrictionTimes"] = WeeklyWindowDays.moveWindowsToTimezone(
+            RestrictionTimes.fromJSON(
+              layer.restrictionTimes as RestrictionTimes | JSONObject,
+            ),
+            move.fromTimezone,
+            move.toTimezone,
+          );
+        } catch (err) {
+          // A restriction nothing reads: kept as it is.
+          logger.error(err);
+        }
+      }
+
+      if (Object.keys(data).length === 0) {
+        continue;
+      }
+
+      await OnCallDutyPolicyScheduleLayerService.updateOneById({
+        id: layer.id,
+        data: data as never,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+  }
+
+  /*
+   * The schedules an update moved to another zone (onBeforeUpdate), once it
+   * is saved: their layers moved to the new zone's clock, and who is on
+   * call worked out again, as after a layer edit. Best effort, each schedule
+   * on its own: the zone is saved already, and a schedule whose layers
+   * could not be moved now reads them as moments, as before this.
+   */
+  private async keepLayersOnTheClock(data: {
+    moves: Array<ScheduleTimezoneMove>;
+    updatedItemIds: Array<ObjectID>;
+  }): Promise<void> {
+    const updated: Set<string> = new Set<string>(
+      data.updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    for (const move of data.moves) {
+      if (!updated.has(move.scheduleId.toString())) {
+        continue;
+      }
+
+      try {
+        await this.moveLayersToTimezone(move);
+      } catch (err) {
+        logger.error(
+          `Could not move the layers of schedule ${move.scheduleId.toString()} from ${move.fromTimezone} to ${move.toTimezone}.`,
+          {
+            projectId: move.projectId?.toString(),
+            onCallDutyPolicyScheduleId: move.scheduleId.toString(),
+          } as LogAttributes,
+        );
+        logger.error(err);
+        continue;
+      }
+
+      try {
+        await this.refreshCurrentUserIdAndHandoffTimeInSchedule(
+          move.scheduleId,
+        );
+      } catch (err) {
+        logger.error(
+          "Error refreshing the schedule roster after a timezone change (best-effort).",
+        );
+        logger.error(err);
+      }
+    }
+  }
+
   protected override async onCreateSuccess(
     _onCreate: OnCreate<OnCallDutyPolicySchedule>,
     createdItem: OnCallDutyPolicySchedule,
@@ -825,6 +1050,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     if (!touchesShiftConfiguration || updatedItemIds.length === 0) {
       return onUpdate;
     }
+
+    await this.keepLayersOnTheClock({
+      moves: (onUpdate.carryForward?.timezoneMoves ||
+        []) as Array<ScheduleTimezoneMove>,
+      updatedItemIds: updatedItemIds,
+    });
 
     try {
       const schedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
