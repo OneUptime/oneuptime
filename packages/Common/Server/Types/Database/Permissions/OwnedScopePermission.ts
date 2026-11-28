@@ -1619,12 +1619,14 @@ export default class OwnedScopePermission {
         continue;
       }
 
-      const owned: { byCaller: Array<string>; byTeam: Array<[string, string]> } =
-        await OwnedScopePermission.findOwnerRows({
-          registryEntry: registryEntry,
-          props: props,
-          teamIds: teamIds,
-        });
+      const owned: {
+        byCaller: Array<string>;
+        byTeam: Array<[string, string]>;
+      } = await OwnedScopePermission.findOwnerRows({
+        registryEntry: registryEntry,
+        props: props,
+        teamIds: teamIds,
+      });
 
       for (const resourceId of owned.byCaller) {
         seen.add(resourceId);

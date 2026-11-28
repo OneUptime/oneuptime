@@ -36,8 +36,12 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * (LabelAccess.getOwnedOnlyRows), held here to the reading it replaced.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("11436000-0000-4000-8000-000000000001");
-const MEMBER_ID: ObjectID = new ObjectID("11436000-0000-4000-8000-000000000002");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11436000-0000-4000-8000-000000000001",
+);
+const MEMBER_ID: ObjectID = new ObjectID(
+  "11436000-0000-4000-8000-000000000002",
+);
 const TEAM_A: ObjectID = new ObjectID("11436000-0000-4000-8000-0000000000b1");
 const TEAM_B: ObjectID = new ObjectID("11436000-0000-4000-8000-0000000000b2");
 const LABEL_X: ObjectID = new ObjectID("11436000-0000-4000-8000-0000000000a1");
@@ -48,7 +52,11 @@ const MONITOR_C: string = "11436000-0000-4000-8000-0000000000c3";
 
 function row(
   permission: Permission,
-  data: { scope?: PermissionScope; labelIds?: Array<ObjectID>; teamId?: ObjectID },
+  data: {
+    scope?: PermissionScope;
+    labelIds?: Array<ObjectID>;
+    teamId?: ObjectID;
+  },
 ): UserPermission {
   return {
     _type: "UserPermission",
@@ -91,25 +99,24 @@ afterEach(() => {
 
 describe("getOwnersOf: who owns each record asked about", () => {
   test("by the kind's owner tables, kept to the records and the project, the caller's own and the grants' teams'", async () => {
-    const userFind: jest.SpiedFunction<typeof MonitorOwnerUserService.findBy> =
-      jest.spyOn(MonitorOwnerUserService, "findBy").mockResolvedValue([
-        { monitorId: new ObjectID(MONITOR_A) } as never,
-      ]);
-    const teamFind: jest.SpiedFunction<typeof MonitorOwnerTeamService.findBy> =
-      jest.spyOn(MonitorOwnerTeamService, "findBy").mockResolvedValue([
+    const userFind: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MonitorOwnerUserService, "findBy")
+      .mockResolvedValue([{ monitorId: new ObjectID(MONITOR_A) } as never]);
+    const teamFind: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MonitorOwnerTeamService, "findBy")
+      .mockResolvedValue([
         { monitorId: new ObjectID(MONITOR_B), teamId: TEAM_A } as never,
         { monitorId: new ObjectID(MONITOR_B), teamId: TEAM_B } as never,
         { monitorId: new ObjectID(MONITOR_B), teamId: TEAM_A } as never,
       ]);
 
-    const owners: Map<string, RecordOwners> = await OwnedScopePermission.getOwnersOf(
-      {
+    const owners: Map<string, RecordOwners> =
+      await OwnedScopePermission.getOwnersOf({
         modelType: Monitor,
         props: memberWith([]),
         teamIds: [TEAM_A, TEAM_B],
         resourceIds: [MONITOR_A, MONITOR_B.toUpperCase(), MONITOR_C, "nope"],
-      },
-    );
+      });
 
     expect(Object.fromEntries(owners)).toEqual({
       [MONITOR_A]: { isOwnedByCaller: true, teamIds: [] },
@@ -133,15 +140,19 @@ describe("getOwnersOf: who owns each record asked about", () => {
     expect(teamFind).toHaveBeenCalledTimes(1);
     const teamCall: { query: Record<string, unknown>; select: unknown } =
       teamFind.mock.calls[0]![0] as never;
-    expect(JSON.stringify(teamCall.query["teamId"])).toContain(TEAM_A.toString());
+    expect(JSON.stringify(teamCall.query["teamId"])).toContain(
+      TEAM_A.toString(),
+    );
     expect(teamCall.select).toEqual({ monitorId: true, teamId: true });
   });
 
   test("no team to weigh: the teams' table is not read; no person: neither is the people's", async () => {
-    const userFind: jest.SpiedFunction<typeof MonitorOwnerUserService.findBy> =
-      jest.spyOn(MonitorOwnerUserService, "findBy").mockResolvedValue([]);
-    const teamFind: jest.SpiedFunction<typeof MonitorOwnerTeamService.findBy> =
-      jest.spyOn(MonitorOwnerTeamService, "findBy").mockResolvedValue([]);
+    const userFind: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MonitorOwnerUserService, "findBy")
+      .mockResolvedValue([]);
+    const teamFind: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MonitorOwnerTeamService, "findBy")
+      .mockResolvedValue([]);
 
     await OwnedScopePermission.getOwnersOf({
       modelType: Monitor,
@@ -155,8 +166,9 @@ describe("getOwnersOf: who owns each record asked about", () => {
   });
 
   test("a kind with no owner tables, or no record asked about, reads nothing and answers nothing", async () => {
-    const userFind: jest.SpiedFunction<typeof MonitorOwnerUserService.findBy> =
-      jest.spyOn(MonitorOwnerUserService, "findBy").mockResolvedValue([]);
+    const userFind: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MonitorOwnerUserService, "findBy")
+      .mockResolvedValue([]);
 
     expect(
       (
@@ -182,10 +194,9 @@ describe("getOwnersOf: who owns each record asked about", () => {
   });
 
   test("the scope's own narrowing reads every owned record, as before: not kept to any", async () => {
-    const userFind: jest.SpiedFunction<typeof MonitorOwnerUserService.findBy> =
-      jest.spyOn(MonitorOwnerUserService, "findBy").mockResolvedValue([
-        { monitorId: new ObjectID(MONITOR_A) } as never,
-      ]);
+    const userFind: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(MonitorOwnerUserService, "findBy")
+      .mockResolvedValue([{ monitorId: new ObjectID(MONITOR_A) } as never]);
     jest.spyOn(MonitorOwnerTeamService, "findBy").mockResolvedValue([]);
 
     const ids: Array<ObjectID> = await OwnedScopePermission.getOwnedIds(
@@ -212,9 +223,18 @@ describe("getTeamIdsOfOwnedRows: the teams whose records the caller's Owned gran
     expect(
       OwnedScopePermission.getTeamIdsOfOwnedRows(
         memberWith([
-          row(Permission.Viewer, { scope: PermissionScope.All, teamId: TEAM_B }),
-          row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A }),
-          row(Permission.MonitorMember, { scope: PermissionScope.Owned, teamId: TEAM_A }),
+          row(Permission.Viewer, {
+            scope: PermissionScope.All,
+            teamId: TEAM_B,
+          }),
+          row(Permission.MonitorAdmin, {
+            scope: PermissionScope.Owned,
+            teamId: TEAM_A,
+          }),
+          row(Permission.MonitorMember, {
+            scope: PermissionScope.Owned,
+            teamId: TEAM_A,
+          }),
           row(Permission.ProjectMember, {
             scope: PermissionScope.Labels,
             labelIds: [LABEL_X],
@@ -231,13 +251,20 @@ describe("getTeamIdsOfOwnedRows: the teams whose records the caller's Owned gran
     expect(
       OwnedScopePermission.getTeamIdsOfOwnedRows(
         memberWith([
-          row(Permission.ProjectAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A }),
+          row(Permission.ProjectAdmin, {
+            scope: PermissionScope.Owned,
+            teamId: TEAM_A,
+          }),
         ]),
       ),
     ).toEqual([]);
-    expect(OwnedScopePermission.getTeamIdsOfOwnedRows({ isRoot: true })).toEqual([]);
     expect(
-      OwnedScopePermission.getTeamIdsOfOwnedRows({ isMasterAdmin: true } as never),
+      OwnedScopePermission.getTeamIdsOfOwnedRows({ isRoot: true }),
+    ).toEqual([]);
+    expect(
+      OwnedScopePermission.getTeamIdsOfOwnedRows({
+        isMasterAdmin: true,
+      } as never),
     ).toEqual([]);
   });
 });
@@ -356,12 +383,23 @@ describe("the rows that grant only on owned records, by the shared rule - as the
   };
 
   const ROW_SETS: Array<[string, Array<UserPermission>]> = [
-    ["Monitor Admin of what A owns", [row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A })]],
+    [
+      "Monitor Admin of what A owns",
+      [
+        row(Permission.MonitorAdmin, {
+          scope: PermissionScope.Owned,
+          teamId: TEAM_A,
+        }),
+      ],
+    ],
     [
       "beside a Viewer over the project",
       [
         row(Permission.Viewer, { scope: PermissionScope.All, teamId: TEAM_B }),
-        row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A }),
+        row(Permission.MonitorAdmin, {
+          scope: PermissionScope.Owned,
+          teamId: TEAM_A,
+        }),
       ],
     ],
     [
@@ -372,24 +410,55 @@ describe("the rows that grant only on owned records, by the shared rule - as the
           labelIds: [LABEL_X],
           teamId: TEAM_B,
         }),
-        row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A }),
+        row(Permission.MonitorAdmin, {
+          scope: PermissionScope.Owned,
+          teamId: TEAM_A,
+        }),
       ],
     ],
     [
       "two teams' Owned grants",
       [
-        row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A }),
-        row(Permission.MonitorMember, { scope: PermissionScope.Owned, teamId: TEAM_B }),
+        row(Permission.MonitorAdmin, {
+          scope: PermissionScope.Owned,
+          teamId: TEAM_A,
+        }),
+        row(Permission.MonitorMember, {
+          scope: PermissionScope.Owned,
+          teamId: TEAM_B,
+        }),
       ],
     ],
-    ["Project Admin stored as Owned", [row(Permission.ProjectAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A })]],
-    ["the wildcard scoped to Owned", [row(Permission.EditAllOperationalResources, { scope: PermissionScope.Owned, teamId: TEAM_A })]],
+    [
+      "Project Admin stored as Owned",
+      [
+        row(Permission.ProjectAdmin, {
+          scope: PermissionScope.Owned,
+          teamId: TEAM_A,
+        }),
+      ],
+    ],
+    [
+      "the wildcard scoped to Owned",
+      [
+        row(Permission.EditAllOperationalResources, {
+          scope: PermissionScope.Owned,
+          teamId: TEAM_A,
+        }),
+      ],
+    ],
     ["a row with no scope", [row(Permission.MonitorAdmin, { teamId: TEAM_A })]],
     ["nothing at all", []],
   ];
 
   for (const [name, rows] of ROW_SETS) {
-    for (const modelType of [Monitor, Runner, MonitorOwnerUser, MonitorProbe, Label]) {
+    for (const modelType of [
+      Monitor,
+      Runner,
+      MonitorOwnerUser,
+      MonitorProbe,
+      Label,
+    ]) {
       for (const type of [
         DatabaseRequestType.Read,
         DatabaseRequestType.Update,
@@ -404,7 +473,11 @@ describe("the rows that grant only on owned records, by the shared rule - as the
           );
 
           expect(
-            OwnedScopePermission.isLimitedToOwnedRecords(modelType, props, type),
+            OwnedScopePermission.isLimitedToOwnedRecords(
+              modelType,
+              props,
+              type,
+            ),
           ).toBe(expected !== null);
           expect(
             OwnedScopePermission.getOwningTeamIds(modelType, props, type).map(

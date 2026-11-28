@@ -29,9 +29,9 @@ const MODELS: Array<{ new (): BaseModel }> = Entities as Array<{
 }>;
 
 // Whether the server reads a part's rows as naming its record alone, by its key.
-const serverNamesOnlyItsRecord: (modelType: { new (): BaseModel }) => boolean = (
-  modelType: { new (): BaseModel },
-): boolean => {
+const serverNamesOnlyItsRecord: (modelType: {
+  new (): BaseModel;
+}) => boolean = (modelType: { new (): BaseModel }): boolean => {
   const model: BaseModel = new modelType();
   const column: {
     type?: TableColumnType;
@@ -71,7 +71,9 @@ const PARTS: Array<{ new (): BaseModel }> = MODELS.filter(
 
     return Boolean(
       typeof column.modelType === "function" &&
-        new (column.modelType as { new (): BaseModel })().getAccessControlColumn(),
+        new (column.modelType as {
+          new (): BaseModel;
+        })().getAccessControlColumn(),
     );
   },
 );
@@ -105,7 +107,9 @@ describe("RecordParts agrees with the server's reading of every part", () => {
       if (RecordParts.namesOnlyItsRecord(model) !== server) {
         disagreements.push(
           `${model.tableName}: the server reads its rows as ${
-            server ? "naming its record alone" : "naming other labelled records too"
+            server
+              ? "naming its record alone"
+              : "naming other labelled records too"
           } - ${server ? "take it off" : "add it to"} PARTS_NAMING_OTHER_LABELLED_RECORDS`,
         );
       }
@@ -122,9 +126,11 @@ describe("RecordParts agrees with the server's reading of every part", () => {
     );
 
     expect(
-      PARTS_NAMING_OTHER_LABELLED_RECORDS.filter((tableName: string): boolean => {
-        return !parts.includes(tableName);
-      }),
+      PARTS_NAMING_OTHER_LABELLED_RECORDS.filter(
+        (tableName: string): boolean => {
+          return !parts.includes(tableName);
+        },
+      ),
     ).toEqual([]);
   });
 });

@@ -7,7 +7,10 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import { JSONObject } from "../../../Types/JSON";
-import { LabelRefusal, LabelVerdict } from "../../../Types/LabelAccess/LabelAccess";
+import {
+  LabelRefusal,
+  LabelVerdict,
+} from "../../../Types/LabelAccess/LabelAccess";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { RecordOwnershipResult } from "../../../Types/RecordAccess/RecordOwnership";
@@ -39,9 +42,19 @@ import {
   isRecordOwnershipWanted,
   readRecordOwnership,
 } from "../../../UI/Utils/RecordOwnershipRead";
-import { getGlobalTranslator, Translator } from "../../../UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 import { keepProjectPermissionsInTab } from "../../Helpers/TabProjectPermissions";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * THE DASHBOARD'S LOCKS BY WHO OWNS A RECORD, AND OF A RECORD'S PARTS
@@ -103,7 +116,11 @@ const signInAs: (rows: Array<UserPermission>) => void = (
 ): void => {
   PermissionUtil.setGlobalPermissions({
     _type: "UserGlobalAccessPermission",
-    globalPermissions: [Permission.Public, Permission.User, Permission.CurrentUser],
+    globalPermissions: [
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+    ],
     projectIds: [new ObjectID(PROJECT_ID)],
   });
   keepProjectPermissionsInTab({
@@ -113,16 +130,21 @@ const signInAs: (rows: Array<UserPermission>) => void = (
   });
 };
 
-const ANSWER: (
-  owners: { isOwnedByCaller: boolean; teamIds: Array<string> },
-) => RecordOwnershipResult = (owners: {
+const ANSWER: (owners: {
+  isOwnedByCaller: boolean;
+  teamIds: Array<string>;
+}) => RecordOwnershipResult = (owners: {
   isOwnedByCaller: boolean;
   teamIds: Array<string>;
 }): RecordOwnershipResult => {
   return {
     tableName: "Monitor",
     tables: [
-      { tableName: "Monitor", key: "_id", operations: ["read", "update", "delete"] },
+      {
+        tableName: "Monitor",
+        key: "_id",
+        operations: ["read", "update", "delete"],
+      },
       {
         tableName: "MonitorOwnerUser",
         key: "monitorId",
@@ -150,7 +172,10 @@ const factsOf: (owners: {
 
 const OWNED_ADMIN: Array<UserPermission> = [
   row(Permission.Viewer, { scope: PermissionScope.All }),
-  row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A }),
+  row(Permission.MonitorAdmin, {
+    scope: PermissionScope.Owned,
+    teamId: TEAM_A,
+  }),
 ];
 
 beforeEach(() => {
@@ -175,12 +200,18 @@ describe("getRecordLock: a record by its labels and its owners", () => {
     expect(lock.labelIds).toEqual([]);
 
     expect(
-      lock.weigh(ModelAction.Delete, [], factsOf({ isOwnedByCaller: false, teamIds: [] }))
-        .refusal,
+      lock.weigh(
+        ModelAction.Delete,
+        [],
+        factsOf({ isOwnedByCaller: false, teamIds: [] }),
+      ).refusal,
     ).toBe(LabelRefusal.Owned);
     expect(
-      lock.weigh(ModelAction.Delete, [], factsOf({ isOwnedByCaller: true, teamIds: [] }))
-        .isAllowed,
+      lock.weigh(
+        ModelAction.Delete,
+        [],
+        factsOf({ isOwnedByCaller: true, teamIds: [] }),
+      ).isAllowed,
     ).toBe(true);
     expect(
       lock.weigh(
@@ -202,11 +233,9 @@ describe("getRecordLock: a record by its labels and its owners", () => {
   test("while nobody has said who owns it: the owners decide, nothing is refused", () => {
     signInAs(OWNED_ADMIN);
 
-    const verdict: LabelVerdict = PermissionGate.getRecordLock(new Monitor())!.weigh(
-      ModelAction.Delete,
-      [],
-      null,
-    );
+    const verdict: LabelVerdict = PermissionGate.getRecordLock(
+      new Monitor(),
+    )!.weigh(ModelAction.Delete, [], null);
 
     expect(verdict.isAllowed).toBe(true);
     expect(verdict.isDecidedByOwners).toBe(true);
@@ -247,7 +276,9 @@ describe("getRecordLock: a record by its labels and its owners", () => {
         owners: { isOwnedByCaller: false, teamIds: [] },
         ownership: {
           tableName: "Team",
-          tables: [{ tableName: "Team", key: "_id", operations: ["update", "delete"] }],
+          tables: [
+            { tableName: "Team", key: "_id", operations: ["update", "delete"] },
+          ],
           records: { [RECORD]: { isOwnedByCaller: false, teamIds: [] } },
         },
       }).refusal,
@@ -275,7 +306,9 @@ describe("getRecordLock: a record by its labels and its owners", () => {
 
     expect(lock.isDecidedByOwners).toBe(false);
     expect(lock.labelIds).toEqual([LABEL_X]);
-    expect(lock.weigh(ModelAction.Delete, []).refusal).toBe(LabelRefusal.Labels);
+    expect(lock.weigh(ModelAction.Delete, []).refusal).toBe(
+      LabelRefusal.Labels,
+    );
     expect(lock.weigh(ModelAction.Delete, [LABEL_X]).isAllowed).toBe(true);
   });
 });
@@ -323,7 +356,10 @@ describe("getPartLock: a part by the record's labels and owners", () => {
     signInAs([
       row(Permission.Viewer, { scope: PermissionScope.All }),
       row(Permission.DeleteMonitorProbe, { scope: PermissionScope.All }),
-      row(Permission.DeleteMonitorProbe, { isBlock: true, labelIds: [LABEL_X] }),
+      row(Permission.DeleteMonitorProbe, {
+        isBlock: true,
+        labelIds: [LABEL_X],
+      }),
     ]);
 
     expect(
@@ -381,15 +417,21 @@ describe("getPartLock: a part by the record's labels and owners", () => {
       new Monitor(),
     )!;
 
-    expect(lock.weigh(ModelAction.Update, []).refusal).toBe(LabelRefusal.Labels);
+    expect(lock.weigh(ModelAction.Update, []).refusal).toBe(
+      LabelRefusal.Labels,
+    );
     expect(lock.weigh(ModelAction.Update, [LABEL_X]).isAllowed).toBe(true);
   });
 
   test("a model that is no part of the record has no part lock", () => {
     signInAs(OWNED_ADMIN);
 
-    expect(PermissionGate.getPartLock(new MonitorProbe(), new Runner())).toBeNull();
-    expect(PermissionGate.getPartLock(new Monitor() as never, new Monitor())).toBeNull();
+    expect(
+      PermissionGate.getPartLock(new MonitorProbe(), new Runner()),
+    ).toBeNull();
+    expect(
+      PermissionGate.getPartLock(new Monitor() as never, new Monitor()),
+    ).toBeNull();
   });
 });
 
@@ -427,7 +469,9 @@ describe("the page's scope, with who owns the record and its parts", () => {
       heldBackOperations: ["update", "delete"],
     });
     expect(
-      PermissionGate.check(new Monitor(), ModelAction.Delete, { recordAccess: reading }),
+      PermissionGate.check(new Monitor(), ModelAction.Delete, {
+        recordAccess: reading,
+      }),
     ).toEqual({ isAllowed: false });
 
     const answered: RecordAccessScope = scopeOf({
@@ -456,7 +500,10 @@ describe("the page's scope, with who owns the record and its parts", () => {
       ownership: { result: null, isRead: true },
     });
 
-    expect(scope.tables["Monitor"]).toEqual({ isHeldBack: false, refusals: {} });
+    expect(scope.tables["Monitor"]).toEqual({
+      isHeldBack: false,
+      refusals: {},
+    });
   });
 
   test("a part is answered when a gate asks, by the record's owners", () => {
@@ -508,7 +555,9 @@ describe("the page's scope, with who owns the record and its parts", () => {
     });
 
     expect(
-      getRecordAccessGateOptions(scope, new MonitorOwnerUser())?.refusals["delete"],
+      getRecordAccessGateOptions(scope, new MonitorOwnerUser())?.refusals[
+        "delete"
+      ],
     ).toBe("A team you are on blocks this on monitors labelled Production.");
   });
 
@@ -531,7 +580,9 @@ describe("the page's scope, with who owns the record and its parts", () => {
       ownership: { result: null, isRead: true },
     });
     const outer: RecordAccessScope = {
-      tables: { Monitor: { isHeldBack: false, refusals: { update: "server" } } },
+      tables: {
+        Monitor: { isHeldBack: false, refusals: { update: "server" } },
+      },
       tableNames: ["Monitor"],
       isHeldBack: false,
     };
@@ -580,7 +631,9 @@ describe("the columns a list is not sorted by, and why", () => {
         labelNames: new Map<string, string>(),
         translator: translator,
       }),
-    ).toBe(COLUMN_SORT_LOCK_REASONS.labelsUnnamed.replace("{{items}}", "monitors"));
+    ).toBe(
+      COLUMN_SORT_LOCK_REASONS.labelsUnnamed.replace("{{items}}", "monitors"),
+    );
 
     // The name, the relation, and a column the reader reads wherever the monitor: no lock.
     expect(getColumnSortLock(new Monitor(), "name")).toBeNull();
@@ -590,7 +643,10 @@ describe("the columns a list is not sorted by, and why", () => {
   test("a runner's key for a Runbook Admin of what their team owns beside a Viewer: kept to owners", () => {
     signInAs([
       row(Permission.Viewer, { scope: PermissionScope.All }),
-      row(Permission.RunbookAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A }),
+      row(Permission.RunbookAdmin, {
+        scope: PermissionScope.Owned,
+        teamId: TEAM_A,
+      }),
     ]);
 
     const lock: ReturnType<typeof getColumnSortLock> = getColumnSortLock(
@@ -600,7 +656,11 @@ describe("the columns a list is not sorted by, and why", () => {
 
     // Only if the key is a column only Runner's changers read.
     if (PermissionGate.isColumnKeptToOwners(new Runner(), "key")) {
-      expect(lock).toEqual({ column: "key", labelIds: [], isKeptToOwners: true });
+      expect(lock).toEqual({
+        column: "key",
+        labelIds: [],
+        isKeptToOwners: true,
+      });
       expect(
         getColumnSortLockSentence({
           lock: lock!,
@@ -619,7 +679,9 @@ describe("the columns a list is not sorted by, and why", () => {
   test("a Project Member over the project sorts by every column", () => {
     signInAs([row(Permission.ProjectMember, { scope: PermissionScope.All })]);
 
-    expect(getColumnSortLock(new Monitor(), "serverMonitorSecretKey")).toBeNull();
+    expect(
+      getColumnSortLock(new Monitor(), "serverMonitorSecretKey"),
+    ).toBeNull();
   });
 });
 
@@ -642,7 +704,9 @@ describe("the snapshot as the pages read it", () => {
       row(Permission.Viewer, { scope: PermissionScope.All }),
     ]);
 
-    expect(PermissionGate.getSnapshotLabelIds().sort()).toEqual([LABEL_X, TEAM_B].sort());
+    expect(PermissionGate.getSnapshotLabelIds().sort()).toEqual(
+      [LABEL_X, TEAM_B].sort(),
+    );
   });
 
   test("the snapshot's key moves when the snapshot does", () => {
@@ -663,7 +727,9 @@ describe("reading who owns the records", () => {
           200,
           {
             tableName: "Monitor",
-            tables: [{ tableName: "Monitor", key: "_id", operations: ["delete"] }],
+            tables: [
+              { tableName: "Monitor", key: "_id", operations: ["delete"] },
+            ],
             records: { [RECORD]: { isOwnedByCaller: true, teamIds: [] } },
           },
           {},
@@ -675,17 +741,22 @@ describe("reading who owns the records", () => {
       ids: [RECORD],
     });
 
-    const call: { url: { toString: () => string }; data: JSONObject } =
-      post.mock.calls[0]![0] as never;
+    const call: { url: { toString: () => string }; data: JSONObject } = post
+      .mock.calls[0]![0] as never;
     expect(call.url.toString()).toContain("/monitor/record-ownership");
     expect(call.data).toEqual({ ids: [RECORD] });
-    expect(result.records[RECORD]).toEqual({ isOwnedByCaller: true, teamIds: [] });
+    expect(result.records[RECORD]).toEqual({
+      isOwnedByCaller: true,
+      teamIds: [],
+    });
   });
 
   test("a refusal, or an answer it cannot read, is thrown: the owners then decide", async () => {
     jest
       .spyOn(API, "post")
-      .mockResolvedValue(new HTTPErrorResponse(500, { message: "x" }, {}) as never);
+      .mockResolvedValue(
+        new HTTPErrorResponse(500, { message: "x" }, {}) as never,
+      );
 
     await expect(
       readRecordOwnership({ modelType: Monitor, ids: [RECORD] }),
@@ -693,7 +764,9 @@ describe("reading who owns the records", () => {
 
     jest
       .spyOn(API, "post")
-      .mockResolvedValue(new HTTPResponse<JSONObject>(200, { nope: true }, {}) as never);
+      .mockResolvedValue(
+        new HTTPResponse<JSONObject>(200, { nope: true }, {}) as never,
+      );
 
     await expect(
       readRecordOwnership({ modelType: Monitor, ids: [RECORD] }),

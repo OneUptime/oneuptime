@@ -861,9 +861,7 @@ export default class LabelAccess {
       if (owned === null) {
         return {
           ...allowedGrant,
-          outcome: ownersDecide
-            ? GrantOutcome.Undecided
-            : GrantOutcome.Allowed,
+          outcome: ownersDecide ? GrantOutcome.Undecided : GrantOutcome.Allowed,
         };
       }
 
@@ -882,9 +880,7 @@ export default class LabelAccess {
       if (owned === null) {
         return {
           ...allowedGrant,
-          outcome: ownersDecide
-            ? GrantOutcome.Undecided
-            : GrantOutcome.Allowed,
+          outcome: ownersDecide ? GrantOutcome.Undecided : GrantOutcome.Allowed,
         };
       }
 

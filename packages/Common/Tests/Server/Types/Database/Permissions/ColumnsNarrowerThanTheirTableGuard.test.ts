@@ -189,7 +189,9 @@ const getNarrowerColumns: (
 
 describe("the columns of labelled models read by fewer people than their table", () => {
   test("are these, and no others: a new one is withheld per record - look at the pages that show it", () => {
-    expect(getNarrowerColumns(null)).toEqual([...NARROWER_THAN_THEIR_TABLE].sort());
+    expect(getNarrowerColumns(null)).toEqual(
+      [...NARROWER_THAN_THEIR_TABLE].sort(),
+    );
   });
 
   test("of the models read across projects, none yet", () => {
@@ -219,6 +221,8 @@ describe("the columns of labelled models read by fewer people than their table",
       }
     }
 
-    expect(held.sort()).toEqual([...HELD_TO_THEIR_OWN_READ_THROUGH_RELATIONS].sort());
+    expect(held.sort()).toEqual(
+      [...HELD_TO_THEIR_OWN_READ_THROUGH_RELATIONS].sort(),
+    );
   });
 });

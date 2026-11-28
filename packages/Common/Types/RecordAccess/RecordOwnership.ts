@@ -115,9 +115,7 @@ export default class RecordOwnership {
       return null;
     }
 
-    const ids: Array<string> | null = readIdList(
-      (body as JSONObject)["ids"],
-    );
+    const ids: Array<string> | null = readIdList((body as JSONObject)["ids"]);
 
     if (!ids) {
       return null;

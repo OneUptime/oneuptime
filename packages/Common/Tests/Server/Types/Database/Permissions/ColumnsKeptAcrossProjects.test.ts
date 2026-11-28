@@ -38,7 +38,9 @@ import { describe, expect, test } from "@jest/globals";
 
 const FIRST: ObjectID = new ObjectID("11438000-0000-4000-8000-000000000001");
 const SECOND: ObjectID = new ObjectID("11438000-0000-4000-8000-000000000002");
-const MEMBER_ID: ObjectID = new ObjectID("11438000-0000-4000-8000-000000000003");
+const MEMBER_ID: ObjectID = new ObjectID(
+  "11438000-0000-4000-8000-000000000003",
+);
 const LABEL_X: ObjectID = new ObjectID("11438000-0000-4000-8000-0000000000a1");
 
 const MONITOR_A: string = "11438000-0000-4000-8000-0000000000c1";
@@ -102,7 +104,9 @@ function acrossProjects(
   } as DatabaseCommonInteractionProps;
 }
 
-function inProject(rows: Array<UserPermission>): DatabaseCommonInteractionProps {
+function inProject(
+  rows: Array<UserPermission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: MEMBER_ID,
     userType: UserType.User,
@@ -140,20 +144,22 @@ const monitorIn: (id: string, projectId: ObjectID | null) => Monitor = (
 
 describe("a read across projects: the columns kept to labels, project by project", () => {
   test("a project whose grant to read the key is limited to labels keeps it; one over the whole project does not", () => {
-    const kept: Map<string, Array<ColumnKeptToLabels>> =
-      AccessControlPermission.getColumnsKeptToLabelsByProject(
-        Monitor,
-        { name: true, serverMonitorSecretKey: true },
-        acrossProjects(CUSTOMER, MEMBER_OVER_PROJECT),
-      );
+    const kept: Map<
+      string,
+      Array<ColumnKeptToLabels>
+    > = AccessControlPermission.getColumnsKeptToLabelsByProject(
+      Monitor,
+      { name: true, serverMonitorSecretKey: true },
+      acrossProjects(CUSTOMER, MEMBER_OVER_PROJECT),
+    );
 
     expect(Array.from(kept.keys())).toEqual([FIRST.toString().toLowerCase()]);
     expect(
-      kept.get(FIRST.toString().toLowerCase())!.map(
-        (column: ColumnKeptToLabels): string => {
+      kept
+        .get(FIRST.toString().toLowerCase())!
+        .map((column: ColumnKeptToLabels): string => {
           return column.column;
-        },
-      ),
+        }),
     ).toEqual(["serverMonitorSecretKey"]);
   });
 
@@ -278,7 +284,10 @@ describe("a select through a relation of a column held to its own read", () => {
     const kept: Array<RelatedColumnsKeptToLabels> =
       AccessControlPermission.getRelatedColumnsKeptToLabels(
         NetworkDevice,
-        { name: true, probe: { _id: true, name: true, snmpTrapReceiver: true } },
+        {
+          name: true,
+          probe: { _id: true, name: true, snmpTrapReceiver: true },
+        },
         inProject(READ_DEVICES_AND_LABELLED_PROBES),
       );
 
@@ -348,7 +357,10 @@ describe("a select through a relation of a column held to its own read", () => {
   });
 
   test("the related records the grant does not reach are read without the column; those it reaches keep it", async () => {
-    const device: (id: string, probeId: string | null) => Dictionary<unknown> = (
+    const device: (
+      id: string,
+      probeId: string | null,
+    ) => Dictionary<unknown> = (
       id: string,
       probeId: string | null,
     ): Dictionary<unknown> => {
@@ -389,9 +401,13 @@ describe("a select through a relation of a column held to its own read", () => {
       },
     });
 
-    expect((rows[0]!["probe"] as Dictionary<unknown>)["snmpTrapReceiver"]).toBeUndefined();
+    expect(
+      (rows[0]!["probe"] as Dictionary<unknown>)["snmpTrapReceiver"],
+    ).toBeUndefined();
     expect((rows[0]!["probe"] as Dictionary<unknown>)["name"]).toBe(PROBE_A);
-    expect((rows[1]!["probe"] as Dictionary<unknown>)["snmpTrapReceiver"]).toEqual({
+    expect(
+      (rows[1]!["probe"] as Dictionary<unknown>)["snmpTrapReceiver"],
+    ).toEqual({
       port: 162,
     });
     expect(rows[2]!["probe"]).toBeNull();
@@ -424,6 +440,8 @@ describe("a select through a relation of a column held to its own read", () => {
       },
     });
 
-    expect((rows[0]!["probe"] as Dictionary<unknown>)["snmpTrapReceiver"]).toBeUndefined();
+    expect(
+      (rows[0]!["probe"] as Dictionary<unknown>)["snmpTrapReceiver"],
+    ).toBeUndefined();
   });
 });

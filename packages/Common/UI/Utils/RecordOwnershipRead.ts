@@ -40,14 +40,15 @@ export const readRecordOwnership: (data: {
 }): Promise<RecordOwnershipResult> => {
   const path: string = new data.modelType().getCrudApiPath()?.toString() || "";
 
-  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-    await API.post({
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
       url: URL.fromURL(APP_API_URL).addRoute(
         `${path}${RecordOwnership.routePath}`,
       ),
       data: { ids: [...data.ids] },
       headers: ModelAPI.getCommonHeaders(),
-    });
+    },
+  );
 
   if (response instanceof HTTPErrorResponse) {
     throw response;
@@ -72,7 +73,9 @@ export const readRecordOwnership: (data: {
  */
 export const isRecordOwnershipWanted: (
   modelType: { new (): BaseModel } | null | undefined,
-) => boolean = (modelType: { new (): BaseModel } | null | undefined): boolean => {
+) => boolean = (
+  modelType: { new (): BaseModel } | null | undefined,
+): boolean => {
   if (!modelType) {
     return false;
   }

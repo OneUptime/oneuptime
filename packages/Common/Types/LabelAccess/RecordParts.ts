@@ -110,9 +110,8 @@ export default class RecordParts {
 
     try {
       tableName =
-        (
-          new (column.modelType as { new (): { tableName?: string | null } })()
-        ).tableName || "";
+        new (column.modelType as { new (): { tableName?: string | null } })()
+          .tableName || "";
     } catch {
       return null;
     }

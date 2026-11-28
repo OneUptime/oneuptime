@@ -1443,7 +1443,11 @@ export default class PermissionGate {
     const recordTableName: string = record.tableName || "";
     const recordOf: RecordOfPart | null = RecordParts.getRecordOf(part);
 
-    if (!recordOf || !recordTableName || recordOf.tableName !== recordTableName) {
+    if (
+      !recordOf ||
+      !recordTableName ||
+      recordOf.tableName !== recordTableName
+    ) {
       return null;
     }
 
@@ -1457,10 +1461,8 @@ export default class PermissionGate {
     const labelRows: LabelRuleRows = LabelAccess.readRows(rows);
     const partReachOf: (action: ModelAction, narrows: boolean) => LabelReach =
       this.getReachReader(part, labelRows, held);
-    const recordReachOf: (
-      action: ModelAction,
-      narrows: boolean,
-    ) => LabelReach = this.getReachReader(record, labelRows, held);
+    const recordReachOf: (action: ModelAction, narrows: boolean) => LabelReach =
+      this.getReachReader(record, labelRows, held);
 
     const isRecordLabelled: boolean = Boolean(
       record.getAccessControlColumn?.(),
@@ -1538,7 +1540,11 @@ export default class PermissionGate {
         const reads: Array<WeighedReach> =
           action === ModelAction.Create
             ? []
-            : [ofPart(partReachOf(ModelAction.Read, partNarrows(ModelAction.Read)))];
+            : [
+                ofPart(
+                  partReachOf(ModelAction.Read, partNarrows(ModelAction.Read)),
+                ),
+              ];
 
         const operations: Array<WeighedReach> = [
           ofPart(partReachOf(action, partNarrows(action))),
@@ -1735,9 +1741,7 @@ export default class PermissionGate {
    * those grants' teams' records already.
    */
   public static isColumnKeptToOwners(
-    model: ColumnPermissionCheckableModel &
-      LabelledGateModel &
-      OwnedKindModel,
+    model: ColumnPermissionCheckableModel & LabelledGateModel & OwnedKindModel,
     column: string,
   ): boolean {
     if (User.isMasterAdmin() || !KindsWithOwners.hasOwners(model)) {

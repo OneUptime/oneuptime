@@ -226,8 +226,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
   );
 
   const isRowOwnershipWanted: boolean = Boolean(
-    rowLabelLock?.isDecidedByOwners &&
-      isRecordOwnershipWanted(props.modelType),
+    rowLabelLock?.isDecidedByOwners && isRecordOwnershipWanted(props.modelType),
   );
   const [rowIds, setRowIds] = useState<Array<string>>([]);
   const rowOwnership: RecordOwnershipState = useRecordOwnership({
@@ -527,20 +526,22 @@ const ModelTable: <TBaseModel extends BaseModel>(
    * whose rows' owners may lock something, so nobody else's list draws
    * again for it.
    */
-  const onFetchSuccess: (data: Array<TBaseModel>, totalCount: number) => void =
-    (data: Array<TBaseModel>, totalCount: number): void => {
-      if (isRowOwnershipWanted) {
-        setRowIds(
-          data
-            .map((item: TBaseModel): string => {
-              return LabelAccess.readId(item._id || item.id);
-            })
-            .filter(Boolean),
-        );
-      }
+  const onFetchSuccess: (
+    data: Array<TBaseModel>,
+    totalCount: number,
+  ) => void = (data: Array<TBaseModel>, totalCount: number): void => {
+    if (isRowOwnershipWanted) {
+      setRowIds(
+        data
+          .map((item: TBaseModel): string => {
+            return LabelAccess.readId(item._id || item.id);
+          })
+          .filter(Boolean),
+      );
+    }
 
-      props.onFetchSuccess?.(data, totalCount);
-    };
+    props.onFetchSuccess?.(data, totalCount);
+  };
 
   if (props.enableJsonImportExport) {
     bulkActions = {

@@ -39,7 +39,10 @@ describe("the kinds with owner tables", () => {
     );
 
     for (const kind of KINDS_WHOSE_READS_THE_OWNED_SCOPE_LEAVES_ALONE) {
-      expect([kind, KINDS_WITH_OWNER_TABLES.includes(kind)]).toEqual([kind, true]);
+      expect([kind, KINDS_WITH_OWNER_TABLES.includes(kind)]).toEqual([
+        kind,
+        true,
+      ]);
     }
   });
 });
@@ -61,9 +64,17 @@ describe("which kinds' reads the Owned scope leaves alone", () => {
   test.each([
     ["a runner: picked by every reader of runners", new Runner(), true],
     ["a team", new Team(), true],
-    ["a schedule's layer: it takes its owners from the schedule", new OnCallDutyPolicyScheduleLayer(), true],
+    [
+      "a schedule's layer: it takes its owners from the schedule",
+      new OnCallDutyPolicyScheduleLayer(),
+      true,
+    ],
     ["a monitor: its reads keep to what its reader owns", new Monitor(), false],
-    ["a monitor's probe: it takes its owners from the monitor", new MonitorProbe(), false],
+    [
+      "a monitor's probe: it takes its owners from the monitor",
+      new MonitorProbe(),
+      false,
+    ],
   ])("%s", (_name: string, model: unknown, expected: boolean) => {
     expect(KindsWithOwners.leavesReadsAlone(model as never)).toBe(expected);
   });

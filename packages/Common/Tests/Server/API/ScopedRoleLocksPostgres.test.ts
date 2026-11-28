@@ -333,7 +333,11 @@ describePostgres(
       [
         "the customer: Viewer over the project, Project Member on Production",
         [
-          { team: "Support", permission: Permission.Viewer, scope: PermissionScope.All },
+          {
+            team: "Support",
+            permission: Permission.Viewer,
+            scope: PermissionScope.All,
+          },
           {
             team: "Support",
             permission: Permission.ProjectMember,
@@ -345,7 +349,11 @@ describePostgres(
       [
         "Viewer, and Monitor Admin of what Support owns",
         [
-          { team: "Support", permission: Permission.Viewer, scope: PermissionScope.All },
+          {
+            team: "Support",
+            permission: Permission.Viewer,
+            scope: PermissionScope.All,
+          },
           {
             team: "Support",
             permission: Permission.MonitorAdmin,
@@ -356,7 +364,11 @@ describePostgres(
       [
         "Viewer; Monitor Admin of what Support owns, Monitor Member of what Ops owns",
         [
-          { team: "Support", permission: Permission.Viewer, scope: PermissionScope.All },
+          {
+            team: "Support",
+            permission: Permission.Viewer,
+            scope: PermissionScope.All,
+          },
           {
             team: "Support",
             permission: Permission.MonitorAdmin,
@@ -372,7 +384,11 @@ describePostgres(
       [
         "Project Member on Production, and Monitor Admin of what Ops owns",
         [
-          { team: "Support", permission: Permission.Viewer, scope: PermissionScope.All },
+          {
+            team: "Support",
+            permission: Permission.Viewer,
+            scope: PermissionScope.All,
+          },
           {
             team: "Support",
             permission: Permission.ProjectMember,
@@ -389,7 +405,11 @@ describePostgres(
       [
         "Project Member on Production and Monitor Admin of what Support owns, one team",
         [
-          { team: "Support", permission: Permission.Viewer, scope: PermissionScope.All },
+          {
+            team: "Support",
+            permission: Permission.Viewer,
+            scope: PermissionScope.All,
+          },
           {
             team: "Support",
             permission: Permission.ProjectMember,
@@ -438,7 +458,11 @@ describePostgres(
       [
         "Viewer; people owners on Production, team owners of what Support owns",
         [
-          { team: "Support", permission: Permission.Viewer, scope: PermissionScope.All },
+          {
+            team: "Support",
+            permission: Permission.Viewer,
+            scope: PermissionScope.All,
+          },
           {
             team: "Support",
             permission: Permission.CreateMonitorOwnerUser,
@@ -466,7 +490,11 @@ describePostgres(
       [
         "Viewer; probes on Production",
         [
-          { team: "Support", permission: Permission.Viewer, scope: PermissionScope.All },
+          {
+            team: "Support",
+            permission: Permission.Viewer,
+            scope: PermissionScope.All,
+          },
           {
             team: "Support",
             permission: Permission.CreateMonitorProbe,
@@ -484,7 +512,11 @@ describePostgres(
       [
         "Viewer; probes of what Support owns",
         [
-          { team: "Support", permission: Permission.Viewer, scope: PermissionScope.All },
+          {
+            team: "Support",
+            permission: Permission.Viewer,
+            scope: PermissionScope.All,
+          },
           {
             team: "Support",
             permission: Permission.CreateMonitorProbe,
@@ -509,7 +541,13 @@ describePostgres(
       ],
       [
         "Viewer alone",
-        [{ team: "Support", permission: Permission.Viewer, scope: PermissionScope.All }],
+        [
+          {
+            team: "Support",
+            permission: Permission.Viewer,
+            scope: PermissionScope.All,
+          },
+        ],
       ],
     ];
 
@@ -802,9 +840,8 @@ describePostgres(
         "/test/reader-props",
         UserMiddleware.getUserMiddleware,
         async (req: ExpressRequest, res: ExpressResponse) => {
-          capturedProps = await CommonAPI.getDatabaseCommonInteractionProps(
-            req,
-          );
+          capturedProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
           res.status(200).json({});
         },
       );
@@ -869,14 +906,17 @@ describePostgres(
     };
 
     // Whether a check the server runs before a write lets it through.
-    const serverAllows: (ask: () => Promise<unknown>) => Promise<boolean> =
-      async (ask: () => Promise<unknown>): Promise<boolean> => {
-        try {
-          return Boolean(await ask());
-        } catch {
-          return false;
-        }
-      };
+    const serverAllows: (
+      ask: () => Promise<unknown>,
+    ) => Promise<boolean> = async (
+      ask: () => Promise<unknown>,
+    ): Promise<boolean> => {
+      try {
+        return Boolean(await ask());
+      } catch {
+        return false;
+      }
+    };
 
     const serverDecides: (data: {
       asked: Asked;
@@ -900,11 +940,15 @@ describePostgres(
       switch (data.asked) {
         case "Monitor update":
           return serverAllows(() => {
-            return MonitorService.findOneUpdatableById(byId(monitor.id) as never);
+            return MonitorService.findOneUpdatableById(
+              byId(monitor.id) as never,
+            );
           });
         case "Monitor delete":
           return serverAllows(() => {
-            return MonitorService.findOneDeletableById(byId(monitor.id) as never);
+            return MonitorService.findOneDeletableById(
+              byId(monitor.id) as never,
+            );
           });
         case "Owner (person) add":
           return serverAllows(async () => {
@@ -969,12 +1013,14 @@ describePostgres(
       model: BaseModel;
       action: ModelAction.Create | ModelAction.Update | ModelAction.Delete;
     } = (asked: Asked) => {
-      const action: ModelAction.Create | ModelAction.Update | ModelAction.Delete =
-        asked.endsWith("update")
-          ? ModelAction.Update
-          : asked.endsWith("add")
-            ? ModelAction.Create
-            : ModelAction.Delete;
+      const action:
+        | ModelAction.Create
+        | ModelAction.Update
+        | ModelAction.Delete = asked.endsWith("update")
+        ? ModelAction.Update
+        : asked.endsWith("add")
+          ? ModelAction.Create
+          : ModelAction.Delete;
 
       if (asked.startsWith("Monitor")) {
         return { model: new Monitor(), action: action };
@@ -1155,11 +1201,7 @@ describePostgres(
 
             const isLowerBound: boolean = NAMES_OTHER_RECORDS.includes(asked);
 
-            if (
-              isLowerBound
-                ? !dashboard && server
-                : dashboard !== server
-            ) {
+            if (isLowerBound ? !dashboard && server : dashboard !== server) {
               disagreements.push(
                 `${asked} of "${monitor.name}": server ${server}, Dashboard ${dashboard}`,
               );
@@ -1187,7 +1229,8 @@ describePostgres(
 
       const customer: string =
         "the customer: Viewer over the project, Project Member on Production";
-      const ownedAdmin: string = "Viewer, and Monitor Admin of what Support owns";
+      const ownedAdmin: string =
+        "Viewer, and Monitor Admin of what Support owns";
       const mixed: string =
         "Project Member on Production, and Monitor Admin of what Ops owns";
       const probes: string = "Viewer; probes on Production";
@@ -1316,7 +1359,9 @@ describePostgres(
 
         expect(Object.keys(answer.records).sort()).toEqual(
           MONITORS.filter((monitor: Fixture): boolean => {
-            return monitor.ownedBy === "reader" || monitor.ownedBy === "Support";
+            return (
+              monitor.ownedBy === "reader" || monitor.ownedBy === "Support"
+            );
           })
             .map((monitor: Fixture): string => {
               return monitor.id.toString().toLowerCase();

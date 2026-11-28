@@ -1685,7 +1685,9 @@ export default class AccessControlPermission {
           row,
           relation.relation,
         )) {
-          const id: string = LabelAccess.readId(related["_id"] || related["id"]);
+          const id: string = LabelAccess.readId(
+            related["_id"] || related["id"],
+          );
 
           if (id && !relatedIds.includes(id)) {
             relatedIds.push(id);

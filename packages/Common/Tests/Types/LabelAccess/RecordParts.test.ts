@@ -28,15 +28,18 @@ describe("the record a part is read through", () => {
     [new MonitorProbe(), "Monitor", "monitorId"],
     [new MonitorStatusTimeline(), "Monitor", "monitorId"],
     [new IncidentInternalNote(), "Incident", "incidentId"],
-  ])("%s is read through its %s, by %s", (model: unknown, table: string, key: string) => {
-    expect(RecordParts.getRecordOf(model as never)).toEqual({
-      tableName: table,
-      key: key,
-      isList: false,
-    });
-    expect(RecordParts.isPartOf(model as never, table)).toBe(true);
-    expect(RecordParts.isPartOf(model as never, "Alert")).toBe(false);
-  });
+  ])(
+    "%s is read through its %s, by %s",
+    (model: unknown, table: string, key: string) => {
+      expect(RecordParts.getRecordOf(model as never)).toEqual({
+        tableName: table,
+        key: key,
+        isList: false,
+      });
+      expect(RecordParts.isPartOf(model as never, table)).toBe(true);
+      expect(RecordParts.isPartOf(model as never, "Alert")).toBe(false);
+    },
+  );
 
   test("an announcement is read through a list of status pages", () => {
     expect(RecordParts.getRecordOf(new StatusPageAnnouncement())).toEqual({

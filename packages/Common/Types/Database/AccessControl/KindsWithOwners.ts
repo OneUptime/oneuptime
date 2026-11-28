@@ -94,10 +94,7 @@ const READS_LEFT_ALONE: ReadonlySet<string> = new Set<string>(
 export interface OwnedKindModel {
   tableName?: string | null | undefined;
   isOperationalResource?: boolean | undefined;
-  ownedThrough?:
-    | { parentModels: ReadonlyArray<unknown> }
-    | null
-    | undefined;
+  ownedThrough?: { parentModels: ReadonlyArray<unknown> } | null | undefined;
 }
 
 const getTableNameOf: (modelType: unknown) => string = (
@@ -109,7 +106,7 @@ const getTableNameOf: (modelType: unknown) => string = (
 
   try {
     return (
-      (new (modelType as { new (): { tableName?: string | null } })())
+      new (modelType as { new (): { tableName?: string | null } })()
         .tableName || ""
     );
   } catch {

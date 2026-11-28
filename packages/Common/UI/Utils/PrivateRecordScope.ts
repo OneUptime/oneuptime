@@ -210,7 +210,11 @@ export function useListGateOptions(
 
   const isOtherRecordsPart: boolean =
     isAnsweredAsPart(recordAccessScope, model) &&
-    !isListOfRecordRows({ model: model, query: query, scope: recordAccessScope });
+    !isListOfRecordRows({
+      model: model,
+      query: query,
+      scope: recordAccessScope,
+    });
 
   return React.useMemo((): PermissionGateOptions | undefined => {
     const kept: PermissionGateOptions | undefined =

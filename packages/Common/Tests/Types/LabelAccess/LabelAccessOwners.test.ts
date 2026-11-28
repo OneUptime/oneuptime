@@ -61,12 +61,15 @@ const row: (
   };
 };
 
-const ids: (values: ReadonlyArray<unknown> | null | undefined) => Array<string> =
-  (values: ReadonlyArray<unknown> | null | undefined): Array<string> => {
-    return (values || []).map((value: unknown): string => {
-      return LabelAccess.readId(value);
-    });
-  };
+const ids: (
+  values: ReadonlyArray<unknown> | null | undefined,
+) => Array<string> = (
+  values: ReadonlyArray<unknown> | null | undefined,
+): Array<string> => {
+  return (values || []).map((value: unknown): string => {
+    return LabelAccess.readId(value);
+  });
+};
 
 const MONITOR_UPDATE: Array<Permission> = [
   Permission.ProjectOwner,
@@ -106,7 +109,7 @@ const everything: () => LabelReach = (): LabelReach => {
 
 const owners: (
   isOwnedByCaller: boolean,
-  teamIds: Array<string> = [],
+  teamIds?: Array<string>,
 ) => RecordOwners = (
   isOwnedByCaller: boolean,
   teamIds: Array<string> = [],
@@ -204,8 +207,14 @@ describe("getOwnedOnlyRows: the rows that grant an operation only on owned recor
 
 describe("getOwnedOnlyTeamIds: those rows' teams, where the scope narrows", () => {
   const OWNED: LabelRuleRows = LabelAccess.readRows([
-    row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A }),
-    row(Permission.MonitorMember, { scope: PermissionScope.Owned, teamId: TEAM_A }),
+    row(Permission.MonitorAdmin, {
+      scope: PermissionScope.Owned,
+      teamId: TEAM_A,
+    }),
+    row(Permission.MonitorMember, {
+      scope: PermissionScope.Owned,
+      teamId: TEAM_A,
+    }),
     row(Permission.EditProjectMonitor, {
       scope: PermissionScope.Owned,
       teamId: TEAM_B,
@@ -257,7 +266,12 @@ describe("getOwnedOnlyTeamIds: those rows' teams, where the scope narrows", () =
 
   test("getReach carries them; isDecidedByOwnersAnywhere says so", () => {
     const reach: LabelReach = reachOf(
-      [row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A })],
+      [
+        row(Permission.MonitorAdmin, {
+          scope: PermissionScope.Owned,
+          teamId: TEAM_A,
+        }),
+      ],
       MONITOR_UPDATE,
     );
 
@@ -304,21 +318,44 @@ describe("isOwnedBy: the caller, or one of the grant's teams - never only anothe
   test.each([
     ["the caller owns it", owners(true), [TEAM_A], true],
     ["the grant's team owns it", owners(false, [TEAM_A]), [TEAM_A], true],
-    ["one of the grant's teams owns it", owners(false, [TEAM_B]), [TEAM_A, TEAM_B], true],
+    [
+      "one of the grant's teams owns it",
+      owners(false, [TEAM_B]),
+      [TEAM_A, TEAM_B],
+      true,
+    ],
     ["another team owns it", owners(false, [TEAM_C]), [TEAM_A], false],
     ["nobody owns it", owners(false), [TEAM_A], false],
-    ["a grant no team gives, on a record a team owns", owners(false, [TEAM_A]), [], false],
-    ["ids in another case", owners(false, [TEAM_A.toUpperCase()]), [TEAM_A], true],
+    [
+      "a grant no team gives, on a record a team owns",
+      owners(false, [TEAM_A]),
+      [],
+      false,
+    ],
+    [
+      "ids in another case",
+      owners(false, [TEAM_A.toUpperCase()]),
+      [TEAM_A],
+      true,
+    ],
   ] as Array<[string, RecordOwners, Array<string>, boolean]>)(
     "%s",
-    (_name: string, recordOwners: RecordOwners, teamIds: Array<string>, expected: boolean) => {
+    (
+      _name: string,
+      recordOwners: RecordOwners,
+      teamIds: Array<string>,
+      expected: boolean,
+    ) => {
       expect(LabelAccess.isOwnedBy(recordOwners, teamIds)).toBe(expected);
     },
   );
 });
 
 describe("isGrantWithin: every record one grant reaches, another reaches", () => {
-  const grant: (labels: Array<string>, teams?: Array<string> | null) => LabelGrant = (
+  const grant: (
+    labels: Array<string>,
+    teams?: Array<string> | null,
+  ) => LabelGrant = (
     labels: Array<string>,
     teams: Array<string> | null = null,
   ): LabelGrant => {
@@ -338,13 +375,38 @@ describe("isGrantWithin: every record one grant reaches, another reaches", () =>
     ["the same labels", grant([LABEL_X]), grant([LABEL_X]), true],
     ["fewer labels", grant([LABEL_X]), grant([LABEL_X, LABEL_Y]), true],
     ["another label", grant([LABEL_Y]), grant([LABEL_X]), false],
-    ["owned beside labels, within labels alone", grant([LABEL_X], [TEAM_A]), grant([LABEL_X]), false],
-    ["labels alone, within owned beside labels", grant([LABEL_X]), grant([LABEL_X], [TEAM_A]), true],
-    ["owned teams that are all the other's", grant([LABEL_X], [TEAM_A]), grant([LABEL_X], [TEAM_A, TEAM_B]), true],
-    ["owned teams that are not", grant([LABEL_X], [TEAM_A, TEAM_C]), grant([LABEL_X], [TEAM_A]), false],
+    [
+      "owned beside labels, within labels alone",
+      grant([LABEL_X], [TEAM_A]),
+      grant([LABEL_X]),
+      false,
+    ],
+    [
+      "labels alone, within owned beside labels",
+      grant([LABEL_X]),
+      grant([LABEL_X], [TEAM_A]),
+      true,
+    ],
+    [
+      "owned teams that are all the other's",
+      grant([LABEL_X], [TEAM_A]),
+      grant([LABEL_X], [TEAM_A, TEAM_B]),
+      true,
+    ],
+    [
+      "owned teams that are not",
+      grant([LABEL_X], [TEAM_A, TEAM_C]),
+      grant([LABEL_X], [TEAM_A]),
+      false,
+    ],
   ] as Array<[string, LabelGrant, LabelGrant, boolean]>)(
     "%s",
-    (_name: string, inner: LabelGrant, outer: LabelGrant, expected: boolean) => {
+    (
+      _name: string,
+      inner: LabelGrant,
+      outer: LabelGrant,
+      expected: boolean,
+    ) => {
       expect(LabelAccess.isGrantWithin(inner, outer)).toBe(expected);
     },
   );
@@ -353,7 +415,10 @@ describe("isGrantWithin: every record one grant reaches, another reaches", () =>
 describe("weighRecord: a record by its labels and its owners", () => {
   const OWNED_ADMIN: Array<UserPermission> = [
     row(Permission.Viewer, { scope: PermissionScope.All }),
-    row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A }),
+    row(Permission.MonitorAdmin, {
+      scope: PermissionScope.Owned,
+      teamId: TEAM_A,
+    }),
   ];
 
   const LABELS_AND_OWNED: Array<UserPermission> = [
@@ -363,7 +428,10 @@ describe("weighRecord: a record by its labels and its owners", () => {
       labelIds: [LABEL_X],
       teamId: TEAM_A,
     }),
-    row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_B }),
+    row(Permission.MonitorAdmin, {
+      scope: PermissionScope.Owned,
+      teamId: TEAM_B,
+    }),
   ];
 
   const weigh: (data: {
@@ -381,8 +449,12 @@ describe("weighRecord: a record by its labels and its owners", () => {
   }): LabelVerdict => {
     const operation: WeighedReach = {
       reach: reachOf(data.rows, MONITOR_UPDATE),
-      ...(data.labelsDecide === undefined ? {} : { labelsDecide: data.labelsDecide }),
-      ...(data.ownersDecide === undefined ? {} : { ownersDecide: data.ownersDecide }),
+      ...(data.labelsDecide === undefined
+        ? {}
+        : { labelsDecide: data.labelsDecide }),
+      ...(data.ownersDecide === undefined
+        ? {}
+        : { ownersDecide: data.ownersDecide }),
     };
 
     return LabelAccess.weighRecord({
@@ -411,20 +483,29 @@ describe("weighRecord: a record by its labels and its owners", () => {
 
   test("every grant scoped to Owned: allowed on their own, and on the grant's team's", () => {
     expect(
-      weigh({ rows: OWNED_ADMIN, labels: [], recordOwners: owners(true) }).isAllowed,
-    ).toBe(true);
-    expect(
-      weigh({ rows: OWNED_ADMIN, labels: [], recordOwners: owners(false, [TEAM_A]) })
+      weigh({ rows: OWNED_ADMIN, labels: [], recordOwners: owners(true) })
         .isAllowed,
     ).toBe(true);
     expect(
-      weigh({ rows: OWNED_ADMIN, labels: [], recordOwners: owners(false, [TEAM_B]) })
-        .refusal,
+      weigh({
+        rows: OWNED_ADMIN,
+        labels: [],
+        recordOwners: owners(false, [TEAM_A]),
+      }).isAllowed,
+    ).toBe(true);
+    expect(
+      weigh({
+        rows: OWNED_ADMIN,
+        labels: [],
+        recordOwners: owners(false, [TEAM_B]),
+      }).refusal,
     ).toBe(LabelRefusal.Owned);
   });
 
   test("while who owns it is not known, the owners decide: allowed, and said to be theirs", () => {
-    expect(weigh({ rows: OWNED_ADMIN, labels: [], recordOwners: null })).toEqual({
+    expect(
+      weigh({ rows: OWNED_ADMIN, labels: [], recordOwners: null }),
+    ).toEqual({
       isAllowed: true,
       refusal: null,
       labelIds: [],
@@ -435,7 +516,11 @@ describe("weighRecord: a record by its labels and its owners", () => {
 
   test("labels beside Owned: a record carrying the labels is allowed, whoever owns it", () => {
     expect(
-      weigh({ rows: LABELS_AND_OWNED, labels: [LABEL_X], recordOwners: owners(false) }),
+      weigh({
+        rows: LABELS_AND_OWNED,
+        labels: [LABEL_X],
+        recordOwners: owners(false),
+      }),
     ).toEqual({
       isAllowed: true,
       refusal: null,
@@ -640,7 +725,12 @@ describe("weighRecord: a write needs a read, and the refusal says why it does no
   test("weighLabelledRecord is the record's own case, owners included", () => {
     const read: LabelReach = everything();
     const operation: LabelReach = reachOf(
-      [row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: TEAM_A })],
+      [
+        row(Permission.MonitorAdmin, {
+          scope: PermissionScope.Owned,
+          teamId: TEAM_A,
+        }),
+      ],
       MONITOR_UPDATE,
     );
 

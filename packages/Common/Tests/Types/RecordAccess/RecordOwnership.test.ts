@@ -18,7 +18,11 @@ const TEAM: string = "11436000-0000-4000-8000-0000000001b1";
 const ANSWER: RecordOwnershipResult = {
   tableName: "Monitor",
   tables: [
-    { tableName: "Monitor", key: "_id", operations: ["read", "update", "delete"] },
+    {
+      tableName: "Monitor",
+      key: "_id",
+      operations: ["read", "update", "delete"],
+    },
     {
       tableName: "MonitorOwnerUser",
       key: "monitorId",
@@ -65,9 +69,12 @@ describe("the ids a request names", () => {
     ["no ids", { monitorIds: [RECORD_A] }],
     ["ids that are no list", { ids: RECORD_A }],
     ["an id that is no text", { ids: [RECORD_A, 7] }],
-  ])("%s names nothing in the shape it takes", (_name: string, body: unknown) => {
-    expect(RecordOwnership.readRequestIds(body)).toBeNull();
-  });
+  ])(
+    "%s names nothing in the shape it takes",
+    (_name: string, body: unknown) => {
+      expect(RecordOwnership.readRequestIds(body)).toBeNull();
+    },
+  );
 });
 
 describe("the answer, both ways", () => {
@@ -95,7 +102,9 @@ describe("the answer, both ways", () => {
   test("an operation named twice is kept once", () => {
     const json: JSONObject = {
       ...RecordOwnership.toJSON(ANSWER),
-      tables: [{ tableName: "Monitor", key: "_id", operations: ["read", "read"] }],
+      tables: [
+        { tableName: "Monitor", key: "_id", operations: ["read", "read"] },
+      ],
     };
 
     expect(RecordOwnership.fromJSON(json)?.tables).toEqual([
@@ -107,8 +116,14 @@ describe("the answer, both ways", () => {
     ["no answer", null],
     ["a list", []],
     ["no table name", { ...RecordOwnership.toJSON(ANSWER), tableName: "" }],
-    ["tables that are no list", { ...RecordOwnership.toJSON(ANSWER), tables: {} }],
-    ["records that are a list", { ...RecordOwnership.toJSON(ANSWER), records: [] }],
+    [
+      "tables that are no list",
+      { ...RecordOwnership.toJSON(ANSWER), tables: {} },
+    ],
+    [
+      "records that are a list",
+      { ...RecordOwnership.toJSON(ANSWER), records: [] },
+    ],
     [
       "an operation it does not know",
       {

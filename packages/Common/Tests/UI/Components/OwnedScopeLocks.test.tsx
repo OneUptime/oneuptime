@@ -55,8 +55,10 @@ let deletedIds: Array<string> = [];
 const ownershipAsks: Array<Array<string>> = [];
 
 // Who owns each monitor, as the server answers: by monitor id.
-let ownedBy: Record<string, { isOwnedByCaller: boolean; teamIds: Array<string> }> =
-  {};
+let ownedBy: Record<
+  string,
+  { isOwnedByCaller: boolean; teamIds: Array<string> }
+> = {};
 // The answer held back until a test lets it go, or failing.
 let ownershipAnswer: "now" | "never" | "fails" = "now";
 let releaseOwnership: (() => void) | null = null;
@@ -178,7 +180,8 @@ const NAMES: Record<string, string> = {
   [OPS]: "Ops'",
 };
 
-const OWNED: string = "Your permission is limited to monitors you or your teams own.";
+const OWNED: string =
+  "Your permission is limited to monitors you or your teams own.";
 const LABELS_OR_OWNED: string =
   "Your permission is limited to monitors labelled Production and to monitors you or your teams own.";
 
@@ -234,7 +237,11 @@ const row: (
   },
 ) => UserPermission = (
   permission: Permission,
-  options?: { labelIds?: Array<string>; scope?: PermissionScope; teamId?: string },
+  options?: {
+    labelIds?: Array<string>;
+    scope?: PermissionScope;
+    teamId?: string;
+  },
 ): UserPermission => {
   return {
     _type: "UserPermission",
@@ -265,7 +272,10 @@ const LABELS_AND_OWNED: Array<UserPermission> = [
     labelIds: [LABEL_ID],
     teamId: SUPPORT_TEAM,
   }),
-  row(Permission.MonitorAdmin, { scope: PermissionScope.Owned, teamId: OPS_TEAM }),
+  row(Permission.MonitorAdmin, {
+    scope: PermissionScope.Owned,
+    teamId: OPS_TEAM,
+  }),
 ];
 
 // The customer's team, exactly: no grant scoped to Owned.
@@ -283,7 +293,11 @@ const signInAs: (rows: Array<UserPermission>) => void = (
 ): void => {
   PermissionUtil.setGlobalPermissions({
     _type: "UserGlobalAccessPermission",
-    globalPermissions: [Permission.Public, Permission.User, Permission.CurrentUser],
+    globalPermissions: [
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+    ],
     projectIds: [new ObjectID(PROJECT_ID)],
   });
   keepProjectPermissionsInTab({
@@ -309,7 +323,11 @@ const ownershipJson: (ids: Array<string>) => JSONObject = (
   return {
     tableName: "Monitor",
     tables: [
-      { tableName: "Monitor", key: "_id", operations: ["read", "update", "delete"] },
+      {
+        tableName: "Monitor",
+        key: "_id",
+        operations: ["read", "update", "delete"],
+      },
       {
         tableName: "MonitorOwnerUser",
         key: "monitorId",
@@ -369,7 +387,9 @@ const deleteButton: () => Promise<HTMLButtonElement> =
     return findButton("Delete Monitor")!;
   };
 
-const deletePageOf: (id: string) => ReactElement = (id: string): ReactElement => {
+const deletePageOf: (id: string) => ReactElement = (
+  id: string,
+): ReactElement => {
   return (
     <ModelPage
       title="Monitor"
@@ -425,7 +445,11 @@ const monitorsList: (data: {
       isCreateable={false}
       isViewable={false}
       formFields={[
-        { field: { name: true }, title: "Name", fieldType: FormFieldSchemaType.Text },
+        {
+          field: { name: true },
+          title: "Name",
+          fieldType: FormFieldSchemaType.Text,
+        },
       ]}
     />
   );
@@ -452,7 +476,9 @@ const openRowMenu: (name: string) => Promise<HTMLElement> = async (
     expect(tableRowOf(name)).not.toBeNull();
   });
 
-  fireEvent.click(within(tableRowOf(name)!).getByTestId("row-actions-more-button"));
+  fireEvent.click(
+    within(tableRowOf(name)!).getByTestId("row-actions-more-button"),
+  );
 
   return screen.getByRole("menu");
 };
@@ -461,7 +487,9 @@ const reasonOf: (item: HTMLElement) => string | null = (
   item: HTMLElement,
 ): string | null => {
   const describedBy: string | null = item.getAttribute("aria-describedby");
-  return describedBy ? document.getElementById(describedBy)?.textContent || null : null;
+  return describedBy
+    ? document.getElementById(describedBy)?.textContent || null
+    : null;
 };
 
 beforeEach(() => {
@@ -688,7 +716,9 @@ describe("the Monitors list, for a Monitor Admin of what Support owns", () => {
     });
 
     for (const name of ["The reader's own", "Nobody's"]) {
-      fireEvent.click(tableRowOf(name)!.querySelector('input[type="checkbox"]')!);
+      fireEvent.click(
+        tableRowOf(name)!.querySelector('input[type="checkbox"]')!,
+      );
     }
 
     fireEvent.click(await screen.findByText("Bulk Actions"));
@@ -704,15 +734,17 @@ describe("the Monitors list, for a Monitor Admin of what Support owns", () => {
     });
 
     fireEvent.click(
-      Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(
-        (item: HTMLElement) => {
-          return (item.textContent || "").trim() === "Delete";
-        },
-      )!,
+      Array.from(
+        document.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+      ).find((item: HTMLElement) => {
+        return (item.textContent || "").trim() === "Delete";
+      })!,
     );
 
     await waitFor(() => {
-      expect(document.querySelector('[data-testid="modal-footer"]')).not.toBeNull();
+      expect(
+        document.querySelector('[data-testid="modal-footer"]'),
+      ).not.toBeNull();
     });
 
     fireEvent.click(
@@ -740,7 +772,9 @@ describe("the Monitors list, for a Monitor Admin of what Support owns", () => {
 });
 
 describe("a column read on some labels only (#11437)", () => {
-  const headerOf: (title: string) => HTMLElement = (title: string): HTMLElement => {
+  const headerOf: (title: string) => HTMLElement = (
+    title: string,
+  ): HTMLElement => {
     return screen.getAllByRole("columnheader").find((header: HTMLElement) => {
       return (header.textContent || "").includes(title);
     })!;
@@ -756,7 +790,9 @@ describe("a column read on some labels only (#11437)", () => {
 
     const keyHeader: HTMLElement = headerOf("Secret Key");
     expect(keyHeader).not.toHaveAttribute("aria-sort");
-    expect(within(keyHeader).queryByRole("button", { name: "Secret Key" })).toBeNull();
+    expect(
+      within(keyHeader).queryByRole("button", { name: "Secret Key" }),
+    ).toBeNull();
 
     const about: HTMLElement = within(keyHeader).getByRole("button", {
       name: "About Secret Key",
@@ -791,9 +827,9 @@ describe("a column read on some labels only (#11437)", () => {
     for (const call of getListCalls.filter((item: { modelType: unknown }) => {
       return item.modelType === Monitor;
     })) {
-      expect(Object.keys((call.sort as object) || {})).not.toContain(
-        "serverMonitorSecretKey",
-      );
+      expect(
+        Object.keys((call.sort as Record<string, unknown>) || {}),
+      ).not.toContain("serverMonitorSecretKey");
     }
   });
 
@@ -892,7 +928,9 @@ describe("an edit form of a field read on some labels only (#11437)", () => {
     await renderForm(NOBODYS);
 
     await waitFor(() => {
-      expect(screen.getByText("Leave blank to keep the stored value.")).toBeInTheDocument();
+      expect(
+        screen.getByText("Leave blank to keep the stored value."),
+      ).toBeInTheDocument();
     });
 
     await save();
@@ -906,11 +944,14 @@ describe("an edit form of a field read on some labels only (#11437)", () => {
 
     await waitFor(() => {
       expect(
-        (screen.getByPlaceholderText("The agent's key") as HTMLInputElement).value,
+        (screen.getByPlaceholderText("The agent's key") as HTMLInputElement)
+          .value,
       ).toBe("11436000-0000-4000-8000-0000000002d1");
     });
 
-    expect(screen.queryByText("Leave blank to keep the stored value.")).toBeNull();
+    expect(
+      screen.queryByText("Leave blank to keep the stored value."),
+    ).toBeNull();
 
     await save();
 

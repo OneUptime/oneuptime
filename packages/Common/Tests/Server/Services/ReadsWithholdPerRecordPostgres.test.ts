@@ -305,8 +305,7 @@ describePostgres(
           process.env["READS_WITHHOLD_PER_RECORD_TEST_DATABASE_HOST"] ||
           "localhost",
         port: Number(
-          process.env["READS_WITHHOLD_PER_RECORD_TEST_DATABASE_PORT"] ||
-            "5400",
+          process.env["READS_WITHHOLD_PER_RECORD_TEST_DATABASE_PORT"] || "5400",
         ),
         username: process.env["DATABASE_USERNAME"] || "postgres",
         password: process.env["DATABASE_PASSWORD"] || "password",
@@ -398,7 +397,8 @@ describePostgres(
        * (@ColumnAccessControl) - wherever the rule reads who may read it.
        */
       const columnsOf: () => Dictionary<ColumnAccessControl> =
-        ScheduledMaintenanceTemplate.prototype.getColumnAccessControlForAllColumns;
+        ScheduledMaintenanceTemplate.prototype
+          .getColumnAccessControlForAllColumns;
 
       getJestSpyOn(
         ScheduledMaintenanceTemplate.prototype,
@@ -560,9 +560,8 @@ describePostgres(
         "/test/reader-props",
         UserMiddleware.getUserMiddleware,
         async (req: ExpressRequest, res: ExpressResponse) => {
-          capturedProps = await CommonAPI.getDatabaseCommonInteractionProps(
-            req,
-          );
+          capturedProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
           res.status(200).json({});
         },
       );
@@ -778,7 +777,10 @@ describePostgres(
 
       test("a probe's trap report reaches the reader only through a device whose probe their grant reaches", async () => {
         await setTeamPermissions(firstTeamId, firstProjectId, [
-          { permission: Permission.ReadNetworkDevice, scope: PermissionScope.All },
+          {
+            permission: Permission.ReadNetworkDevice,
+            scope: PermissionScope.All,
+          },
           {
             permission: Permission.ReadProjectProbe,
             scope: PermissionScope.Labels,
@@ -804,7 +806,10 @@ describePostgres(
 
       test("a reader who reads probes over the whole project reads both reports, as before", async () => {
         await setTeamPermissions(firstTeamId, firstProjectId, [
-          { permission: Permission.ReadNetworkDevice, scope: PermissionScope.All },
+          {
+            permission: Permission.ReadNetworkDevice,
+            scope: PermissionScope.All,
+          },
           {
             permission: Permission.ReadProjectProbe,
             scope: PermissionScope.All,

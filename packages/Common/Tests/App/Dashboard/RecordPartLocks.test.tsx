@@ -48,8 +48,10 @@ configure({ asyncUtilTimeout: 15000 });
 
 let deletedIds: Array<string> = [];
 const ownershipAsks: Array<Array<string>> = [];
-let ownedBy: Record<string, { isOwnedByCaller: boolean; teamIds: Array<string> }> =
-  {};
+let ownedBy: Record<
+  string,
+  { isOwnedByCaller: boolean; teamIds: Array<string> }
+> = {};
 
 jest.mock("react-i18next", () => {
   return {
@@ -159,7 +161,11 @@ const monitor: (id: string) => Monitor = (id: string): Monitor => {
   const value: Monitor = new Monitor();
   value._id = id;
   value.name =
-    id === MONITOR_A ? "Website A" : id === SUPPORTS ? "Support's" : "Website B";
+    id === MONITOR_A
+      ? "Website A"
+      : id === SUPPORTS
+        ? "Support's"
+        : "Website B";
   value.labels = id === MONITOR_A ? [label()] : [];
   return value;
 };
@@ -220,7 +226,11 @@ const row: (
   },
 ) => UserPermission = (
   permission: Permission,
-  options?: { labelIds?: Array<string>; scope?: PermissionScope; isBlock?: boolean },
+  options?: {
+    labelIds?: Array<string>;
+    scope?: PermissionScope;
+    isBlock?: boolean;
+  },
 ): UserPermission => {
   return {
     _type: "UserPermission",
@@ -252,7 +262,11 @@ const signInAs: (rows: Array<UserPermission>) => void = (
 ): void => {
   PermissionUtil.setGlobalPermissions({
     _type: "UserGlobalAccessPermission",
-    globalPermissions: [Permission.Public, Permission.User, Permission.CurrentUser],
+    globalPermissions: [
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+    ],
     projectIds: [new ObjectID(PROJECT_ID)],
   });
   keepProjectPermissionsInTab({
@@ -278,7 +292,11 @@ const ownershipJson: (ids: Array<string>) => JSONObject = (
   return {
     tableName: "Monitor",
     tables: [
-      { tableName: "Monitor", key: "_id", operations: ["read", "update", "delete"] },
+      {
+        tableName: "Monitor",
+        key: "_id",
+        operations: ["read", "update", "delete"],
+      },
       {
         tableName: "MonitorOwnerUser",
         key: "monitorId",
@@ -357,7 +375,10 @@ const probesOf: (data: {
         },
       ]}
       filters={[]}
-      cardProps={{ title: "Probes", description: "Where this monitor checks from." }}
+      cardProps={{
+        title: "Probes",
+        description: "Where this monitor checks from.",
+      }}
       isDeleteable={true}
       isEditable={false}
       isCreateable={false}
@@ -385,7 +406,9 @@ const reasonOf: (item: HTMLElement) => string | null = (
   item: HTMLElement,
 ): string | null => {
   const describedBy: string | null = item.getAttribute("aria-describedby");
-  return describedBy ? document.getElementById(describedBy)?.textContent || null : null;
+  return describedBy
+    ? document.getElementById(describedBy)?.textContent || null
+    : null;
 };
 
 /*
@@ -514,8 +537,13 @@ describe("a monitor's Owners card, for the customer's team", () => {
     render(pageOf(MONITOR_A, ownersOf(MONITOR_A)));
     await screen.findByText(/1 person/);
 
-    expect(await addOwner()).toHaveAttribute("data-testid", "owners-add-circle");
-    expect(screen.getByRole("button", { name: "Remove Ben Ito" })).toBeInTheDocument();
+    expect(await addOwner()).toHaveAttribute(
+      "data-testid",
+      "owners-add-circle",
+    );
+    expect(
+      screen.getByRole("button", { name: "Remove Ben Ito" }),
+    ).toBeInTheDocument();
   });
 
   test("a Project Member over the whole project adds and removes owners on B, as before", async () => {
@@ -523,8 +551,13 @@ describe("a monitor's Owners card, for the customer's team", () => {
     render(pageOf(MONITOR_B, ownersOf(MONITOR_B)));
     await screen.findByText(/1 person/);
 
-    expect(await addOwner()).toHaveAttribute("data-testid", "owners-add-circle");
-    expect(screen.getByRole("button", { name: "Remove Ben Ito" })).toBeInTheDocument();
+    expect(await addOwner()).toHaveAttribute(
+      "data-testid",
+      "owners-add-circle",
+    );
+    expect(
+      screen.getByRole("button", { name: "Remove Ben Ito" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -551,8 +584,13 @@ describe("a monitor's Owners card, for a Monitor Admin of what their team owns",
     await screen.findByText(/1 person/);
     await answered();
 
-    expect(await addOwner()).toHaveAttribute("data-testid", "owners-add-circle");
-    expect(screen.getByRole("button", { name: "Remove Ben Ito" })).toBeInTheDocument();
+    expect(await addOwner()).toHaveAttribute(
+      "data-testid",
+      "owners-add-circle",
+    );
+    expect(
+      screen.getByRole("button", { name: "Remove Ben Ito" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -574,7 +612,10 @@ describe("a monitor's probes list", () => {
     signInAs([
       row(Permission.Viewer, { scope: PermissionScope.All }),
       row(Permission.DeleteMonitorProbe, { scope: PermissionScope.All }),
-      row(Permission.DeleteMonitorProbe, { isBlock: true, labelIds: [LABEL_ID] }),
+      row(Permission.DeleteMonitorProbe, {
+        isBlock: true,
+        labelIds: [LABEL_ID],
+      }),
     ]);
     render(pageOf(MONITOR_A, probesOf({ id: MONITOR_A })));
 
@@ -588,7 +629,10 @@ describe("a monitor's probes list", () => {
     signInAs([
       row(Permission.Viewer, { scope: PermissionScope.All }),
       row(Permission.DeleteMonitorProbe, { scope: PermissionScope.All }),
-      row(Permission.DeleteMonitorProbe, { isBlock: true, labelIds: [LABEL_ID] }),
+      row(Permission.DeleteMonitorProbe, {
+        isBlock: true,
+        labelIds: [LABEL_ID],
+      }),
     ]);
     render(pageOf(MONITOR_B, probesOf({ id: MONITOR_B })));
 
@@ -626,9 +670,14 @@ describe("a monitor's probes list", () => {
     signInAs([
       row(Permission.Viewer, { scope: PermissionScope.All }),
       row(Permission.DeleteMonitorProbe, { scope: PermissionScope.All }),
-      row(Permission.DeleteMonitorProbe, { isBlock: true, labelIds: [LABEL_ID] }),
+      row(Permission.DeleteMonitorProbe, {
+        isBlock: true,
+        labelIds: [LABEL_ID],
+      }),
     ]);
-    render(pageOf(MONITOR_A, probesOf({ id: MONITOR_A, isKeptToMonitor: false })));
+    render(
+      pageOf(MONITOR_A, probesOf({ id: MONITOR_A, isKeptToMonitor: false })),
+    );
 
     expect(await probeDelete()).toEqual({ isLocked: false, reason: null });
   });

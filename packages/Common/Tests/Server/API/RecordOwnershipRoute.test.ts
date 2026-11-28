@@ -45,7 +45,9 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
  * tables and operations the owners decide. The answer is never cached.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("11436000-0000-4000-8000-000000000a01");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11436000-0000-4000-8000-000000000a01",
+);
 const USER_ID: ObjectID = new ObjectID("11436000-0000-4000-8000-000000000a02");
 const TEAM_ID: ObjectID = new ObjectID("11436000-0000-4000-8000-000000000a03");
 const READABLE: string = "11436000-0000-4000-8000-000000000ac1";
@@ -82,15 +84,24 @@ const routesOf: (router: ExpressRouter) => Array<string> = (
   router: ExpressRouter,
 ): Array<string> => {
   return (
-    (router as unknown as { stack: Array<{ route?: { path: string; methods: Record<string, boolean> } }> })
-      .stack || []
+    (
+      router as unknown as {
+        stack: Array<{
+          route?: { path: string; methods: Record<string, boolean> };
+        }>;
+      }
+    ).stack || []
   )
     .filter((layer: { route?: unknown }): boolean => {
       return Boolean(layer.route);
     })
-    .map((layer: { route?: { path: string; methods: Record<string, boolean> } }): string => {
-      return `${Object.keys(layer.route!.methods).join(",").toUpperCase()} ${layer.route!.path}`;
-    });
+    .map(
+      (layer: {
+        route?: { path: string; methods: Record<string, boolean> };
+      }): string => {
+        return `${Object.keys(layer.route!.methods).join(",").toUpperCase()} ${layer.route!.path}`;
+      },
+    );
 };
 
 describe("where the route is served", () => {
@@ -136,7 +147,9 @@ describe("where the route is served", () => {
     expect(posts.length).toBe(1);
     expect(posts[0]!.path).toBe("/monitor/record-ownership");
     expect(posts[0]!.functions[0]).toBe(UserMiddleware.getUserMiddleware);
-    expect(posts[0]!.functions[1]).toBe(UserMiddleware.requireUserAuthentication);
+    expect(posts[0]!.functions[1]).toBe(
+      UserMiddleware.requireUserAuthentication,
+    );
   });
 });
 
@@ -147,7 +160,10 @@ describe("what the route answers", () => {
     records: { [READABLE]: { isOwnedByCaller: true, teamIds: [] } },
   };
 
-  const ask: (body: unknown, props?: DatabaseCommonInteractionProps) => Promise<{
+  const ask: (
+    body: unknown,
+    props?: DatabaseCommonInteractionProps,
+  ) => Promise<{
     sent: ReturnType<typeof jest.spyOn>;
     noCache: ReturnType<typeof jest.spyOn>;
     read: ReturnType<typeof jest.spyOn>;
@@ -187,7 +203,9 @@ describe("what the route answers", () => {
     });
 
     expect(answer.noCache).toHaveBeenCalledTimes(1);
-    expect(answer.sent.mock.calls[0]![2]).toEqual(RecordOwnership.toJSON(RESULT));
+    expect(answer.sent.mock.calls[0]![2]).toEqual(
+      RecordOwnership.toJSON(RESULT),
+    );
     expect(
       (answer.read.mock.calls[0]![0] as { ids: Array<string> }).ids,
     ).toEqual([READABLE]);
@@ -230,9 +248,9 @@ describe("the reader: only what the caller may read, by the scope's own lookups"
 
     // Read as the caller: the read rule every page's read follows.
     expect((find.mock.calls[0]![0] as { props: unknown }).props).toBe(MEMBER);
-    expect(JSON.stringify((find.mock.calls[0]![0] as { query: unknown }).query)).toContain(
-      UNREADABLE,
-    );
+    expect(
+      JSON.stringify((find.mock.calls[0]![0] as { query: unknown }).query),
+    ).toContain(UNREADABLE);
 
     // Owners looked up for the readable record alone, with the caller's Owned grants' teams.
     const asked: { resourceIds: Array<string>; teamIds: Array<ObjectID> } =
@@ -256,8 +274,13 @@ describe("the reader: only what the caller may read, by the scope's own lookups"
   });
 
   it("asks nothing for no records", async () => {
-    const find: ReturnType<typeof jest.spyOn> = jest.spyOn(MonitorService, "findBy");
-    jest.spyOn(OwnedScopePermission, "getOwnersOf").mockResolvedValue(new Map());
+    const find: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      MonitorService,
+      "findBy",
+    );
+    jest
+      .spyOn(OwnedScopePermission, "getOwnersOf")
+      .mockResolvedValue(new Map());
 
     const result: RecordOwnershipResult = await RecordOwnershipReader.read({
       service: MonitorService as unknown as DatabaseService<BaseModel>,
