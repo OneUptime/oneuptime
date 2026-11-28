@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { JSONObject } from "Common/Types/JSON";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import VMwareCollectionErrorCode from "Common/Types/VMware/VMwareCollectionError";
 import {
@@ -271,6 +272,61 @@ describe("VMwareCollector.collect", () => {
         return Boolean(request.body?.includes(PASSWORD));
       }),
     ).toHaveLength(1);
+  });
+
+  test("reads vSphere's swap rates over the vCenter's collection interval, and sends them (#11468)", async () => {
+    for (const [minutes, samples] of [
+      [2, 6],
+      [5, 15],
+      [10, 15],
+    ] as Array<[number, number]>) {
+      VSphereSessionCache.clear();
+      const replay: ReplayTransport = replaying("vcsim-vcenter-collect.json");
+      const setup: Harness = harness({ transport: replay.transport });
+
+      const report: VMwareCollectionReport = await VMwareCollector.collect(
+        collectionJob({
+          trustedCertificateFingerprint: TRUSTED_FINGERPRINT,
+          collectionIntervalInMinutes: minutes,
+        }),
+        setup.dependencies,
+      );
+
+      const swapQueries: Array<VSphereHttpRequest> = replay.requests.filter(
+        (request: VSphereHttpRequest) => {
+          return Boolean(
+            request.body?.includes("<QueryPerf ") &&
+              request.body.includes("<counterId>86</counterId>"),
+          );
+        },
+      );
+      // The hosts' pass and the VMs', each over the interval's samples.
+      expect({ minutes, passes: swapQueries.length }).toEqual({
+        minutes,
+        passes: 2,
+      });
+      for (const query of swapQueries) {
+        expect(query.body).toContain(`<maxSample>${samples}</maxSample>`);
+      }
+
+      const names: Set<string> = new Set();
+      for (const resource of report.resourceMetrics as Array<JSONObject>) {
+        for (const scope of resource["scopeMetrics"] as Array<JSONObject>) {
+          for (const metric of scope["metrics"] as Array<JSONObject>) {
+            names.add(metric["name"] as string);
+          }
+        }
+      }
+      for (const name of [
+        "vcenter.host.memory.swap_out.rate",
+        "vcenter.host.memory.swap_in.rate",
+        "vcenter.vm.memory.swap_out.rate",
+        "vcenter.vm.memory.swap_in.rate",
+      ]) {
+        expect(names.has(name)).toBe(true);
+      }
+      expect(report.summary!.warnings).toEqual([]);
+    }
   });
 
   test("collects a standalone ESXi host the same way", async () => {

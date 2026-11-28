@@ -2,16 +2,26 @@ import { describe, expect, test } from "@jest/globals";
 import VMwareInventoryCollector, {
   HOST_PERF_COUNTERS,
   MAX_QUERY_METRICS,
+  MAX_SWAP_RATE_SAMPLES,
+  REALTIME_SAMPLE_SECONDS,
+  SWAP_RATE_PERF_COUNTERS,
   VM_PERF_COUNTERS,
   getPerfBatchSize,
+  getSwapRateSampleCount,
   parseVsanEntityMetrics,
+  readSwapRates,
 } from "../../../Utils/VMware/VMwareInventoryCollector";
+import {
+  VSPHERE_SWAP_IN_RATE_COUNTER,
+  VSPHERE_SWAP_OUT_RATE_COUNTER,
+} from "Common/Types/VMware/VMwareSwapRates";
 import {
   VMwareComputeResource,
   VMwareDatacenter,
   VMwareHost,
   VMwareInventorySnapshot,
   VMwareResourcePool,
+  VMwareSwapRates,
   VMwareVirtualMachine,
   getInventoryPath,
 } from "../../../Utils/VMware/VMwareInventory";
@@ -184,20 +194,81 @@ describe("VMwareInventoryCollector against the recorded vCenter simulator", () =
         return request.body || "";
       });
 
+    // The hosts' samples and their swap rates, then the VMs' (#11468).
+    expect(queryPerfBodies).toHaveLength(4);
     // Hosts: 16 counters, so up to 16 hosts per query - all five in one.
     expect(queryPerfBodies[0]!.match(/<querySpec>/g)).toHaveLength(5);
     expect(queryPerfBodies[0]!.match(/<metricId>/g)).toHaveLength(5 * 16);
     expect(queryPerfBodies[0]).toContain("<intervalId>20</intervalId>");
     expect(queryPerfBodies[0]).toContain("<maxSample>1</maxSample>");
     // VMs: 12 counters, so up to 21 VMs per query - all ten in one.
-    expect(queryPerfBodies[1]!.match(/<querySpec>/g)).toHaveLength(10);
+    expect(queryPerfBodies[2]!.match(/<querySpec>/g)).toHaveLength(10);
+  });
+
+  test("asks the swap rate counters apart, over the samples of a collection interval", async () => {
+    const { replay } = await collectFrom("vcsim-vcenter-collect.json");
+    const queryPerfBodies: Array<string> = replay.requests
+      .filter((request: { body?: string | undefined }) => {
+        return (request.body || "").includes("<QueryPerf ");
+      })
+      .map((request: { body?: string | undefined }) => {
+        return request.body || "";
+      });
+
+    for (const [index, entities] of [
+      [1, 5],
+      [3, 10],
+    ] as Array<[number, number]>) {
+      const body: string = queryPerfBodies[index]!;
+      expect(body.match(/<querySpec>/g)).toHaveLength(entities);
+      // mem.swapoutRate.average (86) and mem.swapinRate.average (85).
+      expect(body.match(/<metricId>/g)).toHaveLength(entities * 2);
+      expect(body).toContain("<counterId>86</counterId>");
+      expect(body).toContain("<counterId>85</counterId>");
+      expect(body).toContain("<intervalId>20</intervalId>");
+      // Two minutes of 20-second samples, the default interval.
+      expect(body).toContain("<maxSample>6</maxSample>");
+    }
+  });
+
+  test("reads every host's and powered-on VM's swap rates: the simulator's are zero", async () => {
+    const { snapshot } = await collectFrom("vcsim-vcenter-collect.json");
+    const datacenter: VMwareDatacenter = snapshot.datacenters[0]!;
+
+    expect(datacenter.hostSwapRates.size).toBe(5);
+    expect(datacenter.vmSwapRates.size).toBe(10);
+    for (const rates of [
+      ...datacenter.hostSwapRates.values(),
+      ...datacenter.vmSwapRates.values(),
+    ]) {
+      expect(rates.swapOutBytesPerSecond).toBe(0);
+      expect(rates.swapInBytesPerSecond).toBe(0);
+    }
+    // Each sampled at its newest sample, as vCenter stamped it.
+    expect(datacenter.vmSwapRates.get("vm-84")!.sampledAt).toEqual(
+      new Date("2026-10-10T14:30:15.292Z"),
+    );
+    // Powered-off VMs and templates are not asked.
+    for (const vm of datacenter.vms.values()) {
+      expect({
+        vm: vm.name,
+        asked: datacenter.vmSwapRates.has(vm.ref.value),
+      }).toEqual({
+        vm: vm.name,
+        asked: !vm.isTemplate && vm.powerState === "poweredOn",
+      });
+    }
   });
 
   test("names every counter it read by group.name.rollup", async () => {
     const { snapshot } = await collectFrom("vcsim-vcenter-collect.json");
     const names: Array<string> = Array.from(snapshot.counterNames.values());
 
-    for (const counter of [...HOST_PERF_COUNTERS, ...VM_PERF_COUNTERS]) {
+    for (const counter of [
+      ...HOST_PERF_COUNTERS,
+      ...VM_PERF_COUNTERS,
+      ...SWAP_RATE_PERF_COUNTERS,
+    ]) {
       expect(names).toContain(counter);
     }
   });
@@ -346,6 +417,16 @@ class FakeClient {
   // The VM performance queries asked; hosts' are kept apart.
   public readonly queries: Array<Array<string>> = [];
   public readonly hostQueries: Array<Array<string>> = [];
+  // The swap rate pass's queries (#11468), apart from the others.
+  public readonly swapQueries: Array<Array<PerfQuery>> = [];
+  public swapFailures: Array<(entities: Array<string>) => VSphereFault | null> =
+    [];
+  // Each entity's samples of each swap rate counter, by counter name.
+  public swapSamples: Map<string, Record<string, Array<number>>> = new Map();
+  public swapSampleTimes: Array<string> = [
+    "2026-10-10T11:59:40Z",
+    "2026-10-10T12:00:00Z",
+  ];
   public perfFailures: Array<(entities: Array<string>) => VSphereFault | null> =
     [];
   public vsanAnswers: Map<string, string> = new Map();
@@ -400,6 +481,49 @@ class FakeClient {
     const entities: Array<string> = queries.map((query: PerfQuery) => {
       return query.entity.value;
     });
+
+    const swapIds: Map<number, string> = new Map(
+      this.counters
+        .filter((counter: PerfCounterInfo): boolean => {
+          return SWAP_RATE_PERF_COUNTERS.includes(counter.name);
+        })
+        .map((counter: PerfCounterInfo): [number, string] => {
+          return [counter.key, counter.name];
+        }),
+    );
+
+    if (
+      queries[0] &&
+      queries[0].counterIds.some((id: number): boolean => {
+        return swapIds.has(id);
+      })
+    ) {
+      this.swapQueries.push(queries);
+      const failure:
+        | ((entities: Array<string>) => VSphereFault | null)
+        | undefined = this.swapFailures.shift();
+      const fault: VSphereFault | null = failure ? failure(entities) : null;
+      if (fault) {
+        throw fault;
+      }
+      return queries.map((query: PerfQuery): PerfEntityMetric => {
+        const samples: Record<string, Array<number>> =
+          this.swapSamples.get(query.entity.value) || {};
+        return {
+          entity: query.entity,
+          sampleInfo: this.swapSampleTimes.map((timestamp: string) => {
+            return { timestamp: timestamp, interval: 20 };
+          }),
+          series: query.counterIds.map((id: number) => {
+            return {
+              counterId: id,
+              instance: "*",
+              values: samples[swapIds.get(id)!] || [],
+            };
+          }),
+        };
+      });
+    }
 
     const toSamples: () => Array<PerfEntityMetric> =
       (): Array<PerfEntityMetric> => {
@@ -491,11 +615,16 @@ function inventoryWithVms(client: FakeClient, vmCount: number): void {
       });
     }),
   );
-  client.counters = Array.from(
-    new Set([...HOST_PERF_COUNTERS, ...VM_PERF_COUNTERS]),
-  ).map((name: string, index: number): PerfCounterInfo => {
-    return { key: 100 + index, name: name, unit: null };
-  });
+  client.counters = [
+    ...Array.from(new Set([...HOST_PERF_COUNTERS, ...VM_PERF_COUNTERS])).map(
+      (name: string, index: number): PerfCounterInfo => {
+        return { key: 100 + index, name: name, unit: null };
+      },
+    ),
+    // vSphere defines both swap rates in kiloBytesPerSecond (#11468).
+    { key: 900, name: VSPHERE_SWAP_OUT_RATE_COUNTER, unit: "kiloBytesPerSecond" },
+    { key: 901, name: VSPHERE_SWAP_IN_RATE_COUNTER, unit: "kiloBytesPerSecond" },
+  ];
 }
 
 describe("VMwareInventoryCollector recovery", () => {
@@ -677,5 +806,314 @@ describe("VMwareInventoryCollector recovery", () => {
 
     expect(quiet.warnings).toEqual([]);
     expect(quiet.datacenters[0]!.vsan.clustersByUuid.size).toBe(0);
+  });
+});
+
+describe("vSphere's own swap rates (#11468)", () => {
+  test("a VM swapping out reads the average of its samples, in bytes per second", async () => {
+    const client: FakeClient = new FakeClient();
+    inventoryWithVms(client, 2);
+    client.swapSampleTimes = [
+      "2026-10-10T11:58:20Z",
+      "2026-10-10T11:58:40Z",
+      "2026-10-10T11:59:00Z",
+      "2026-10-10T11:59:20Z",
+      "2026-10-10T11:59:40Z",
+      "2026-10-10T12:00:00Z",
+    ];
+    client.swapSamples.set("vm-0", {
+      [VSPHERE_SWAP_OUT_RATE_COUNTER]: [0, 0, 256, 512, 1024, 1280],
+      [VSPHERE_SWAP_IN_RATE_COUNTER]: [64, 64, 64, 64, 64, 64],
+    });
+    client.swapSamples.set("vm-1", {
+      [VSPHERE_SWAP_OUT_RATE_COUNTER]: [0, 0, 0, 0, 0, 0],
+      [VSPHERE_SWAP_IN_RATE_COUNTER]: [0, 0, 0, 0, 0, 0],
+    });
+
+    const snapshot: VMwareInventorySnapshot =
+      await new VMwareInventoryCollector(
+        client as unknown as VSphereSoapClient,
+        { collectVsan: false },
+      ).collect();
+
+    const rates: Map<string, VMwareSwapRates> =
+      snapshot.datacenters[0]!.vmSwapRates;
+    expect(rates.get("vm-0")).toEqual({
+      // (0 + 0 + 256 + 512 + 1024 + 1280) / 6 KiB/s.
+      swapOutBytesPerSecond: 512 * 1024,
+      swapInBytesPerSecond: 64 * 1024,
+      sampledAt: new Date("2026-10-10T12:00:00Z"),
+    });
+    expect(rates.get("vm-1")).toEqual({
+      swapOutBytesPerSecond: 0,
+      swapInBytesPerSecond: 0,
+      sampledAt: new Date("2026-10-10T12:00:00Z"),
+    });
+    expect(snapshot.warnings).toEqual([]);
+  });
+
+  test("hosts and powered-on VMs are asked, in their own pass, over the collection interval's samples", async () => {
+    const client: FakeClient = new FakeClient();
+    inventoryWithVms(client, 2);
+
+    await new VMwareInventoryCollector(client as unknown as VSphereSoapClient, {
+      collectVsan: false,
+      swapRateSampleCount: getSwapRateSampleCount(5),
+    }).collect();
+
+    expect(
+      client.swapQueries.map((queries: Array<PerfQuery>) => {
+        return queries.map((query: PerfQuery) => {
+          return {
+            entity: query.entity.value,
+            counterIds: query.counterIds,
+            intervalId: query.intervalId,
+            maxSample: query.maxSample,
+          };
+        });
+      }),
+    ).toEqual([
+      [{ entity: "h-1", counterIds: [900, 901], intervalId: 20, maxSample: 15 }],
+      [
+        { entity: "vm-0", counterIds: [900, 901], intervalId: 20, maxSample: 15 },
+        { entity: "vm-1", counterIds: [900, 901], intervalId: 20, maxSample: 15 },
+      ],
+    ]);
+    // The other counters are still asked for the newest sample alone, as before.
+    expect(client.queries).toEqual([["vm-0", "vm-1"]]);
+  });
+
+  test("a vCenter without the swap rate counters says so once, and asks nothing of them", async () => {
+    const client: FakeClient = new FakeClient();
+    inventoryWithVms(client, 2);
+    client.counters = client.counters.filter((counter: PerfCounterInfo) => {
+      return !SWAP_RATE_PERF_COUNTERS.includes(counter.name);
+    });
+
+    const snapshot: VMwareInventorySnapshot =
+      await new VMwareInventoryCollector(
+        client as unknown as VSphereSoapClient,
+        { collectVsan: false },
+      ).collect();
+
+    expect(client.swapQueries).toEqual([]);
+    expect(snapshot.datacenters[0]!.vmSwapRates.size).toBe(0);
+    expect(snapshot.datacenters[0]!.hostSwapRates.size).toBe(0);
+    expect(snapshot.warnings).toEqual([
+      "This vCenter has no mem.swapoutRate.average performance counter, so the metrics built from it are left out.",
+      "This vCenter has no mem.swapinRate.average performance counter, so the metrics built from it are left out.",
+    ]);
+    // The rest of the collection is as it was.
+    expect(client.queries).toEqual([["vm-0", "vm-1"]]);
+  });
+
+  test("a VM gone before its swap rates were asked is left out, and the others asked again", async () => {
+    const client: FakeClient = new FakeClient();
+    inventoryWithVms(client, 3);
+    client.swapFailures = [
+      // The hosts' pass.
+      (): null => {
+        return null;
+      },
+      (): VSphereFault => {
+        return new VSphereFault({
+          faultType: "ManagedObjectNotFound",
+          faultString: "gone",
+          objectRef: { type: "VirtualMachine", value: "vm-1" },
+        });
+      },
+    ];
+    for (const vm of ["vm-0", "vm-1", "vm-2"]) {
+      client.swapSamples.set(vm, {
+        [VSPHERE_SWAP_OUT_RATE_COUNTER]: [8],
+        [VSPHERE_SWAP_IN_RATE_COUNTER]: [0],
+      });
+    }
+
+    const snapshot: VMwareInventorySnapshot =
+      await new VMwareInventoryCollector(
+        client as unknown as VSphereSoapClient,
+        { collectVsan: false },
+      ).collect();
+
+    expect(
+      Array.from(snapshot.datacenters[0]!.vmSwapRates.keys()).sort(),
+    ).toEqual(["vm-0", "vm-2"]);
+    // The other counters' samples are unaffected by the swap pass's failure.
+    expect(
+      Array.from(snapshot.datacenters[0]!.vmPerf.keys()).sort(),
+    ).toEqual(["vm-0", "vm-1", "vm-2"]);
+  });
+
+  test("an entity vSphere sent no sample of either counter for has no swap rates", async () => {
+    const client: FakeClient = new FakeClient();
+    inventoryWithVms(client, 1);
+    client.swapSamples.set("vm-0", {
+      [VSPHERE_SWAP_OUT_RATE_COUNTER]: [-1, -1],
+      [VSPHERE_SWAP_IN_RATE_COUNTER]: [],
+    });
+
+    const snapshot: VMwareInventorySnapshot =
+      await new VMwareInventoryCollector(
+        client as unknown as VSphereSoapClient,
+        { collectVsan: false },
+      ).collect();
+
+    expect(snapshot.datacenters[0]!.vmSwapRates.has("vm-0")).toBe(false);
+    expect(snapshot.datacenters[0]!.hostSwapRates.has("h-1")).toBe(false);
+  });
+});
+
+describe("getSwapRateSampleCount", () => {
+  test("the 20-second samples of a collection interval, up to five minutes of them", () => {
+    expect(REALTIME_SAMPLE_SECONDS).toBe(20);
+    expect(MAX_SWAP_RATE_SAMPLES).toBe(15);
+    expect(getSwapRateSampleCount(1)).toBe(3);
+    expect(getSwapRateSampleCount(2)).toBe(6);
+    expect(getSwapRateSampleCount(4)).toBe(12);
+    expect(getSwapRateSampleCount(5)).toBe(15);
+    expect(getSwapRateSampleCount(60)).toBe(15);
+    // Part of a sample is a sample.
+    expect(getSwapRateSampleCount(0.5)).toBe(2);
+  });
+
+  test("no interval, or none that is one, is the default two minutes", () => {
+    for (const minutes of [null, undefined, 0, -3, Number.NaN]) {
+      expect(getSwapRateSampleCount(minutes)).toBe(6);
+    }
+  });
+});
+
+describe("readSwapRates", () => {
+  const counterNames: Map<number, string> = new Map([
+    [86, VSPHERE_SWAP_OUT_RATE_COUNTER],
+    [85, VSPHERE_SWAP_IN_RATE_COUNTER],
+    [24, "mem.usage.average"],
+  ]);
+  const counterUnits: Map<number, string | null> = new Map([
+    [86, "kiloBytesPerSecond"],
+    [85, "kiloBytesPerSecond"],
+    [24, "percent"],
+  ]);
+
+  function perf(
+    series: Array<{ counterId: number; instance?: string; values: Array<number> }>,
+    times: Array<string> = ["2026-10-10T12:00:00Z"],
+  ): PerfEntityMetric {
+    return {
+      entity: { type: "VirtualMachine", value: "vm-1" },
+      sampleInfo: times.map((timestamp: string) => {
+        return { timestamp, interval: 20 };
+      }),
+      series: series.map((item) => {
+        return {
+          counterId: item.counterId,
+          instance: item.instance ?? "",
+          values: item.values,
+        };
+      }),
+    };
+  }
+
+  test("averages each counter's samples, in bytes per second", () => {
+    expect(
+      readSwapRates({
+        perf: perf(
+          [
+            { counterId: 86, values: [100, 300] },
+            { counterId: 85, values: [10] },
+          ],
+          ["2026-10-10T11:59:40Z", "2026-10-10T12:00:00Z"],
+        ),
+        counterNames,
+        counterUnits,
+      }),
+    ).toEqual({
+      swapOutBytesPerSecond: 200 * 1024,
+      swapInBytesPerSecond: 10 * 1024,
+      sampledAt: new Date("2026-10-10T12:00:00Z"),
+    });
+  });
+
+  test("a sample vSphere marks missing (-1) is no sample; a counter with none is unknown", () => {
+    expect(
+      readSwapRates({
+        perf: perf([
+          { counterId: 86, values: [-1, 400, -1] },
+          { counterId: 85, values: [-1] },
+        ]),
+        counterNames,
+        counterUnits,
+      }),
+    ).toEqual({
+      swapOutBytesPerSecond: 400 * 1024,
+      swapInBytesPerSecond: null,
+      sampledAt: new Date("2026-10-10T12:00:00Z"),
+    });
+  });
+
+  test("an instance of a device is not the whole VM's; '' and '*' are", () => {
+    expect(
+      readSwapRates({
+        perf: perf([
+          { counterId: 86, instance: "scsi0:0", values: [999] },
+          { counterId: 86, instance: "*", values: [1] },
+          { counterId: 85, instance: "", values: [2] },
+        ]),
+        counterNames,
+        counterUnits,
+      }),
+    ).toEqual({
+      swapOutBytesPerSecond: 1024,
+      swapInBytesPerSecond: 2048,
+      sampledAt: new Date("2026-10-10T12:00:00Z"),
+    });
+  });
+
+  test("a counter in a unit no rate is in is no sample", () => {
+    expect(
+      readSwapRates({
+        perf: perf([{ counterId: 86, values: [5] }]),
+        counterNames,
+        counterUnits: new Map([[86, "percent"]]),
+      }),
+    ).toBeNull();
+  });
+
+  test("other counters, no series, or no sample time read nothing", () => {
+    expect(
+      readSwapRates({
+        perf: perf([{ counterId: 24, values: [50] }]),
+        counterNames,
+        counterUnits,
+      }),
+    ).toBeNull();
+    expect(
+      readSwapRates({ perf: perf([]), counterNames, counterUnits }),
+    ).toBeNull();
+    expect(
+      readSwapRates({
+        perf: perf([{ counterId: 86, values: [5] }], ["not a time"]),
+        counterNames,
+        counterUnits,
+      }),
+    ).toBeNull();
+  });
+
+  test("the sample time is the newest vSphere stamped, whatever order they came in", () => {
+    expect(
+      readSwapRates({
+        perf: perf(
+          [{ counterId: 86, values: [1, 1, 1] }],
+          [
+            "2026-10-10T12:00:00Z",
+            "2026-10-10T11:59:20Z",
+            "2026-10-10T11:59:40Z",
+          ],
+        ),
+        counterNames,
+        counterUnits,
+      })!.sampledAt,
+    ).toEqual(new Date("2026-10-10T12:00:00Z"));
   });
 });

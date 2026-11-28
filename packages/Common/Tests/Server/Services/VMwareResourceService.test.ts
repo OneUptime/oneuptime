@@ -2,7 +2,10 @@ import VMwareResourceService, {
   ParsedVMwareResource,
   VMwareInventorySummary,
   VMwareResourceLatestMetric,
+  VMwareResourceSwapRateReading,
+  readSwapRateReadings,
 } from "../../../Server/Services/VMwareResourceService";
+import { VMwareSwapRateSource } from "../../../Types/VMware/VMwareSwapRates";
 import logger from "../../../Server/Utils/Logger";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import ObjectID from "../../../Types/ObjectID";
@@ -493,6 +496,8 @@ describe("VMwareResourceService.bulkUpdateLatestMetrics", () => {
       cpuReadinessPercent: 0.4,
       memoryBalloonedBytes: 0,
       memorySwappedBytes: null,
+      memorySwapOutBytesPerSecond: null,
+      memorySwapInBytesPerSecond: null,
       hostCount: null,
       effectiveHostCount: null,
       poweredOnHostCount: null,
@@ -515,12 +520,118 @@ describe("VMwareResourceService.bulkUpdateLatestMetrics", () => {
   /*
    * Params: projectId, vcenterId, then per row
    * (kind, externalId, cpu, cpuMhz, cpuCap, cpuEff, mem, maxMem, memEff,
-   *  memPct, disk, maxDisk, diskPct, cpuReady, balloon, swap, hostCnt,
-   *  effHostCnt, onHostCnt, vmCnt, onVmCnt, tmplCnt, dsCnt, clCnt,
-   *  notRespHostCnt, standbyHostCnt, critHostCnt, warnHostCnt, critVmCnt,
-   *  critClCnt, observedAt) — 31 values.
+   *  memPct, disk, maxDisk, diskPct, cpuReady, balloon, swap, swapOutRate,
+   *  swapInRate, hostCnt, effHostCnt, onHostCnt, vmCnt, onVmCnt, tmplCnt,
+   *  dsCnt, clCnt, notRespHostCnt, standbyHostCnt, critHostCnt,
+   *  warnHostCnt, critVmCnt, critClCnt, observedAt) — 33 values. The swap
+   * rates are vSphere's own, where a probe sent them (#11468).
    */
-  const ROW_WIDTH: number = 31;
+  const ROW_WIDTH: number = 33;
+
+  test("vSphere's own swap rates ride the update as numbers, after the swapped amount; none sent is NULL (#11468)", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await VMwareResourceService.bulkUpdateLatestMetrics({
+      projectId: PROJECT_ID,
+      vmwareVCenterId: VCENTER_ID,
+      metrics: [
+        latestMetric({
+          memorySwappedBytes: 64 * 1024 * 1024,
+          memorySwapOutBytesPerSecond: 524288.5,
+          memorySwapInBytesPerSecond: 0,
+        }),
+        latestMetric({ externalId: "vm/no-rates" }),
+        // A negative rate is no rate.
+        latestMetric({
+          externalId: "vm/negative",
+          memorySwapOutBytesPerSecond: -1,
+          memorySwapInBytesPerSecond: Number.NaN,
+        }),
+      ],
+    });
+
+    const [sql, params] = query.mock.calls[0] as QueryCall;
+    expect(params).toHaveLength(2 + 3 * ROW_WIDTH);
+    expect(params[17]).toBe(String(64 * 1024 * 1024)); // swap
+    expect(params[18]).toBe(524288.5); // swapOutRate keeps its fraction
+    expect(params[19]).toBe(0); // swapInRate: 0 is a value
+    expect(params[2 + ROW_WIDTH + 16]).toBeNull();
+    expect(params[2 + ROW_WIDTH + 17]).toBeNull();
+    expect(params[2 + 2 * ROW_WIDTH + 16]).toBeNull();
+    expect(params[2 + 2 * ROW_WIDTH + 17]).toBeNull();
+    expect(sql).toContain("$19::numeric, $20::numeric, ");
+  });
+
+  test("writes where the rates came from, each part's latest readings, and answers what it wrote", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await VMwareResourceService.bulkUpdateLatestMetrics({
+      projectId: PROJECT_ID,
+      vmwareVCenterId: VCENTER_ID,
+      metrics: [latestMetric()],
+    });
+
+    const [sql] = query.mock.calls[0] as QueryCall;
+    expect(sql).toContain('"memorySwapRateSource" = ');
+    expect(sql).toContain('"healthReadings" = ');
+    expect(sql.replace(/\s+/g, " ")).toContain(
+      'RETURNING p."kind", p."externalId", p."memorySwapOutBytesPerSecond", p."memorySwapInBytesPerSecond", p."memorySwapRateSource"',
+    );
+    // vSphere's rates, where the report carries them, win over working them out.
+    expect(sql).toMatch(/"memorySwapOutBytesPerSecond" = CASE/);
+    expect(sql).toContain(`'${VMwareSwapRateSource.VSphere}'`);
+    expect(sql).toContain(`'${VMwareSwapRateSource.Derived}'`);
+  });
+
+  test("answers the swap rates the update left on the VM and pool rows the report spoke of", async () => {
+    mockQueryRunner([
+      [
+        {
+          kind: "VirtualMachine",
+          externalId: VM_EXTERNAL_ID,
+          memorySwapOutBytesPerSecond: "524288",
+          memorySwapInBytesPerSecond: "0",
+          memorySwapRateSource: VMwareSwapRateSource.VSphere,
+        },
+        {
+          kind: "Host",
+          externalId: "host/dc-east/esx-01",
+          memorySwapOutBytesPerSecond: "4096",
+          memorySwapInBytesPerSecond: "0",
+          memorySwapRateSource: VMwareSwapRateSource.VSphere,
+        },
+      ],
+      2,
+    ]);
+    const readings: Array<VMwareResourceSwapRateReading> =
+      await VMwareResourceService.bulkUpdateLatestMetrics({
+        projectId: PROJECT_ID,
+        vmwareVCenterId: VCENTER_ID,
+        metrics: [
+          latestMetric({
+            memorySwappedBytes: 0,
+            memorySwapOutBytesPerSecond: 524288,
+            memorySwapInBytesPerSecond: 0,
+          }),
+          latestMetric({
+            kind: "Host",
+            externalId: "host/dc-east/esx-01",
+            memorySwapOutBytesPerSecond: 4096,
+            memorySwapInBytesPerSecond: 0,
+          }),
+        ],
+      });
+
+    // The host's are vSphere's too, but OneUptime writes a VM's and a pool's.
+    expect(readings).toEqual([
+      {
+        kind: "VirtualMachine",
+        externalId: VM_EXTERNAL_ID,
+        swapOutBytesPerSecond: 524288,
+        swapInBytesPerSecond: 0,
+        source: VMwareSwapRateSource.VSphere,
+        observedAt: new Date("2026-06-13T00:00:00.000Z"),
+      },
+    ]);
+  });
 
   test("does nothing for an empty batch", async () => {
     const query: jest.Mock = mockQueryRunner();
@@ -655,11 +766,11 @@ describe("VMwareResourceService.bulkUpdateLatestMetrics", () => {
     expect(params[17]).toBe("512"); // swap truncated
     // Integer columns are truncated numbers, not strings.
     expect(params[5]).toBe(1200); // cpuMhz
-    expect(params[18]).toBe(4); // hostCnt
-    expect(params[22]).toBe(118); // onVmCnt
+    expect(params[20]).toBe(4); // hostCnt
+    expect(params[24]).toBe(118); // onVmCnt
     // Decimal columns keep their fraction.
     expect(params[14]).toBe(50); // diskPct
-    expect(params[32]).toEqual(new Date("2026-06-13T00:00:00.000Z"));
+    expect(params[34]).toEqual(new Date("2026-06-13T00:00:00.000Z"));
   });
 
   /*
@@ -700,15 +811,15 @@ describe("VMwareResourceService.bulkUpdateLatestMetrics", () => {
     const [sql, params] = query.mock.calls[0] as QueryCall;
     expect(params).toHaveLength(2 + ROW_WIDTH);
     expect(params[2]).toBe("Datacenter");
-    expect(params[26]).toBe(1); // notRespHostCnt
-    expect(params[27]).toBe(1); // standbyHostCnt
-    expect(params[28]).toBe(2); // critHostCnt, truncated
-    expect(params[29]).toBe(0); // warnHostCnt: nothing yellow is a value
-    expect(params[30]).toBe(3); // critVmCnt
-    expect(params[31]).toBeNull(); // critClCnt: not carried, the stored one is kept
+    expect(params[28]).toBe(1); // notRespHostCnt
+    expect(params[29]).toBe(1); // standbyHostCnt
+    expect(params[30]).toBe(2); // critHostCnt, truncated
+    expect(params[31]).toBe(0); // warnHostCnt: nothing yellow is a value
+    expect(params[32]).toBe(3); // critVmCnt
+    expect(params[33]).toBeNull(); // critClCnt: not carried, the stored one is kept
     // Each is cast as the integer column it lands in, before observedAt.
     expect(sql).toContain(
-      "$27::integer, $28::integer, $29::integer, $30::integer, $31::integer, $32::integer, $33::timestamptz",
+      "$29::integer, $30::integer, $31::integer, $32::integer, $33::integer, $34::integer, $35::timestamptz",
     );
   });
 
@@ -1016,5 +1127,137 @@ describe("VMwareResourceService.getStaleThresholdMinutes", () => {
     expect(VMwareResourceService.getStaleThresholdDate(now).toISOString()).toBe(
       "2026-06-13T11:45:00.000Z",
     );
+  });
+});
+
+describe("readSwapRateReadings (#11468)", () => {
+  const OBSERVED_AT: Date = new Date("2026-11-27T10:02:00.000Z");
+
+  function reported(
+    overrides: Partial<VMwareResourceLatestMetric> = {},
+  ): VMwareResourceLatestMetric {
+    return {
+      kind: "VirtualMachine",
+      externalId: VM_EXTERNAL_ID,
+      cpuPercent: null,
+      cpuMhz: null,
+      cpuCapacityMhz: null,
+      cpuEffectiveMhz: null,
+      memoryBytes: null,
+      maxMemoryBytes: null,
+      memoryEffectiveBytes: null,
+      memoryPercent: null,
+      diskBytes: null,
+      maxDiskBytes: null,
+      diskPercent: null,
+      cpuReadinessPercent: null,
+      memoryBalloonedBytes: null,
+      memorySwappedBytes: 0,
+      memorySwapOutBytesPerSecond: null,
+      memorySwapInBytesPerSecond: null,
+      hostCount: null,
+      effectiveHostCount: null,
+      poweredOnHostCount: null,
+      vmCount: null,
+      poweredOnVmCount: null,
+      vmTemplateCount: null,
+      datastoreCount: null,
+      clusterCount: null,
+      notRespondingHostCount: null,
+      standbyHostCount: null,
+      criticalHostCount: null,
+      warningHostCount: null,
+      criticalVmCount: null,
+      criticalClusterCount: null,
+      observedAt: OBSERVED_AT,
+      ...overrides,
+    };
+  }
+
+  function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      kind: "VirtualMachine",
+      externalId: VM_EXTERNAL_ID,
+      memorySwapOutBytesPerSecond: "2048.5",
+      memorySwapInBytesPerSecond: null,
+      memorySwapRateSource: VMwareSwapRateSource.Derived,
+      ...overrides,
+    };
+  }
+
+  test("reads the RETURNING rows TypeORM hands back, as [rows, affected] or as rows", () => {
+    for (const written of [[[row()], 1], [row()]]) {
+      expect(
+        readSwapRateReadings({ written, reported: [reported()] }),
+      ).toEqual([
+        {
+          kind: "VirtualMachine",
+          externalId: VM_EXTERNAL_ID,
+          swapOutBytesPerSecond: 2048.5,
+          swapInBytesPerSecond: null,
+          source: VMwareSwapRateSource.Derived,
+          observedAt: OBSERVED_AT,
+        },
+      ]);
+    }
+  });
+
+  test("a pool's too, and at its own report's time", () => {
+    const at: Date = new Date("2026-11-27T10:04:00.000Z");
+    expect(
+      readSwapRateReadings({
+        written: [row({ kind: "ResourcePool", externalId: "pool/a" })],
+        reported: [
+          reported({ kind: "ResourcePool", externalId: "pool/a", observedAt: at }),
+        ],
+      }),
+    ).toEqual([
+      expect.objectContaining({ kind: "ResourcePool", observedAt: at }),
+    ]);
+  });
+
+  test("a part whose report said nothing of its swapping kept old rates: no reading of now", () => {
+    expect(
+      readSwapRateReadings({
+        written: [row()],
+        reported: [reported({ memorySwappedBytes: null })],
+      }),
+    ).toEqual([]);
+    // But vSphere's rates alone are something said.
+    expect(
+      readSwapRateReadings({
+        written: [row({ memorySwapRateSource: VMwareSwapRateSource.VSphere })],
+        reported: [
+          reported({
+            memorySwappedBytes: null,
+            memorySwapOutBytesPerSecond: 0,
+          }),
+        ],
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a row no report names, of another kind, of no known source or with no rate is left out", () => {
+    for (const written of [
+      [row({ externalId: "vm/unreported" })],
+      [row({ kind: "Host" })],
+      [row({ kind: "Datastore" })],
+      [row({ memorySwapRateSource: null })],
+      [row({ memorySwapRateSource: "guessed" })],
+      [row({ memorySwapOutBytesPerSecond: null })],
+      [row({ memorySwapOutBytesPerSecond: "not a number" })],
+    ]) {
+      expect(
+        readSwapRateReadings({ written, reported: [reported()] }),
+      ).toEqual([]);
+    }
+  });
+
+  test("anything but rows reads nothing", () => {
+    for (const written of [undefined, null, 3, "rows", {}, [[]], [null, 7]]) {
+      expect(
+        readSwapRateReadings({ written, reported: [reported()] }),
+      ).toEqual([]);
+    }
   });
 });

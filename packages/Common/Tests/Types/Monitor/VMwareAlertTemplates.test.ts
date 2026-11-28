@@ -375,13 +375,14 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     },
   },
   {
+    // Swapping now (#11468): OneUptime's swap out rate, not the amount left.
     id: "vmware-vm-memory-swapping",
     category: "Virtual Machine",
     severity: "Critical",
     rollingTime: RollingTime.Past5Minutes,
     queries: [
       {
-        metricName: "vcenter.vm.memory.swapped",
+        metricName: "oneuptime.vmware.vm.memory.swap_out.rate",
         aggregation: MetricsAggregationType.Max,
         attributes: {},
         legendUnit: undefined,
@@ -389,14 +390,40 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     ],
     groupBy: VM,
     fire: {
-      alias: "vm_memory_swapped",
+      alias: "vm_memory_swap_out_rate",
       filterType: FilterType.GreaterThan,
       value: 0,
     },
     recover: {
-      alias: "vm_memory_swapped",
+      alias: "vm_memory_swap_out_rate",
       filterType: FilterType.EqualTo,
       value: 0,
+    },
+  },
+  {
+    // A lot of memory left in the swap file (#11468): in MiB, past 1 GiB.
+    id: "vmware-vm-swapped-memory-high",
+    category: "Virtual Machine",
+    severity: "Warning",
+    rollingTime: RollingTime.Past5Minutes,
+    queries: [
+      {
+        metricName: "vcenter.vm.memory.swapped",
+        aggregation: MetricsAggregationType.Max,
+        attributes: {},
+        legendUnit: "MiBy",
+      },
+    ],
+    groupBy: VM,
+    fire: {
+      alias: "vm_swapped_memory",
+      filterType: FilterType.GreaterThan,
+      value: 1024,
+    },
+    recover: {
+      alias: "vm_swapped_memory",
+      filterType: FilterType.LessThanOrEqualTo,
+      value: 1024,
     },
   },
   {
@@ -722,7 +749,7 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     rollingTime: RollingTime.Past5Minutes,
     queries: [
       {
-        metricName: "vcenter.resource_pool.memory.swapped",
+        metricName: "oneuptime.vmware.resource_pool.memory.swap_out.rate",
         aggregation: MetricsAggregationType.Max,
         attributes: {},
         legendUnit: undefined,
@@ -730,12 +757,12 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     ],
     groupBy: RESOURCE_POOL,
     fire: {
-      alias: "resource_pool_memory_swapped",
+      alias: "resource_pool_memory_swap_out_rate",
       filterType: FilterType.GreaterThan,
       value: 0,
     },
     recover: {
-      alias: "resource_pool_memory_swapped",
+      alias: "resource_pool_memory_swap_out_rate",
       filterType: FilterType.EqualTo,
       value: 0,
     },
@@ -844,9 +871,9 @@ describe("VMwareAlertTemplates - registry", () => {
     );
   });
 
-  test("ships the 24 per-object templates the design spec lists, and the heartbeat first", () => {
-    expect(PER_OBJECT_TEMPLATES).toHaveLength(24);
-    expect(ALL_TEMPLATES).toHaveLength(25);
+  test("ships the 25 per-object templates - the design spec's 24 and VM Swapped Memory High - and the heartbeat first", () => {
+    expect(PER_OBJECT_TEMPLATES).toHaveLength(25);
+    expect(ALL_TEMPLATES).toHaveLength(26);
     expect(ALL_TEMPLATES[0]!.id).toBe(STOPPED_REPORTING_ID);
     // The host that is down comes first among the hosts' templates.
     expect(ALL_TEMPLATES[1]!.id).toBe("vmware-host-not-responding");

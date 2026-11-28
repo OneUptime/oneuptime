@@ -4,7 +4,15 @@ import VMwareResourceService, {
   ParsedVMwareResource,
   VMWARE_SWAP_RATE_MAX_GAP_SECONDS,
   VMwareResourceLatestMetric,
+  VMwareResourceSwapRateReading,
 } from "../../../Server/Services/VMwareResourceService";
+import {
+  VMWARE_HEALTH_READINGS_KEEP_SECONDS,
+  VMWARE_HEALTH_READINGS_MAX,
+  VMwareHealthReading,
+  readVMwareHealthReadings,
+} from "../../../Types/VMware/VMwareHealthReadings";
+import { VMwareSwapRateSource } from "../../../Types/VMware/VMwareSwapRates";
 import logger from "../../../Server/Utils/Logger";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -86,6 +94,10 @@ function report(data: {
   externalId?: string | undefined;
   swappedMiB: number | null;
   atSeconds: number;
+  // vSphere's own rates, in bytes per second, as a probe sends them (#11468).
+  swapOutRate?: number | null | undefined;
+  swapInRate?: number | null | undefined;
+  overrides?: Partial<VMwareResourceLatestMetric> | undefined;
 }): VMwareResourceLatestMetric {
   return {
     kind: data.kind || "VirtualMachine",
@@ -104,6 +116,8 @@ function report(data: {
     cpuReadinessPercent: 1,
     memoryBalloonedBytes: 0,
     memorySwappedBytes: data.swappedMiB === null ? null : data.swappedMiB * MIB,
+    memorySwapOutBytesPerSecond: data.swapOutRate ?? null,
+    memorySwapInBytesPerSecond: data.swapInRate ?? null,
     hostCount: null,
     effectiveHostCount: null,
     poweredOnHostCount: null,
@@ -119,6 +133,7 @@ function report(data: {
     criticalVmCount: null,
     criticalClusterCount: null,
     observedAt: at(data.atSeconds),
+    ...(data.overrides || {}),
   };
 }
 
@@ -412,5 +427,258 @@ describePostgres("VMware swap rates on Postgres", () => {
       expect(swap.outBytesPerSecond).toBeCloseTo((index * MIB) / 100, 6);
       expect(swap.inBytesPerSecond).toBe(0);
     }
+  });
+
+  async function sourceOf(externalId: string = VM_ID): Promise<string | null> {
+    const rows: Array<{ memorySwapRateSource: string | null }> =
+      await database.query(
+        `SELECT "memorySwapRateSource" FROM "VMwareResource" WHERE "projectId" = $1 AND "vmwareVCenterId" = $2 AND "externalId" = $3`,
+        [projectId.toString(), vcenterId.toString(), externalId],
+      );
+    return rows[0]!.memorySwapRateSource;
+  }
+
+  async function readingsOf(
+    externalId: string = VM_ID,
+  ): Promise<Array<VMwareHealthReading>> {
+    const rows: Array<{ healthReadings: unknown }> = await database.query(
+      `SELECT "healthReadings" FROM "VMwareResource" WHERE "projectId" = $1 AND "vmwareVCenterId" = $2 AND "externalId" = $3`,
+      [projectId.toString(), vcenterId.toString(), externalId],
+    );
+    return readVMwareHealthReadings(rows[0]!.healthReadings);
+  }
+
+  describe("vSphere's own swap rates (#11468)", () => {
+    test("are kept as a probe sent them, and the row says vSphere measured them", async () => {
+      await write(
+        report({
+          swappedMiB: 4,
+          atSeconds: 0,
+          swapOutRate: 524288,
+          swapInRate: 1024.5,
+        }),
+      );
+      expect(await swapOf()).toEqual({
+        swappedMiB: 4,
+        outBytesPerSecond: 524288,
+        inBytesPerSecond: 1024.5,
+      });
+      expect(await sourceOf()).toBe(VMwareSwapRateSource.VSphere);
+    });
+
+    test("win over working the rate out, even when the amount moved", async () => {
+      await write(
+        report({ swappedMiB: 4, atSeconds: 0, swapOutRate: 0, swapInRate: 0 }),
+        report({
+          swappedMiB: 400,
+          atSeconds: 120,
+          swapOutRate: 0,
+          swapInRate: 0,
+        }),
+      );
+      expect(await swapOf()).toEqual({
+        swappedMiB: 400,
+        outBytesPerSecond: 0,
+        inBytesPerSecond: 0,
+      });
+      expect(await sourceOf()).toBe(VMwareSwapRateSource.VSphere);
+    });
+
+    test("one direction sent is that direction alone; the other is not known", async () => {
+      await write(
+        report({ swappedMiB: 4, atSeconds: 0, swapOutRate: 2048 }),
+      );
+      expect(await swapOf()).toEqual({
+        swappedMiB: 4,
+        outBytesPerSecond: 2048,
+        inBytesPerSecond: null,
+      });
+    });
+
+    test("an ESXi host's are kept on its row", async () => {
+      await write(
+        report({
+          kind: "Host",
+          externalId: HOST_ID,
+          swappedMiB: null,
+          atSeconds: 0,
+          swapOutRate: 4096,
+          swapInRate: 0,
+        }),
+      );
+      expect(await swapOf(HOST_ID)).toEqual({
+        swappedMiB: null,
+        outBytesPerSecond: 4096,
+        inBytesPerSecond: 0,
+      });
+      expect(await sourceOf(HOST_ID)).toBe(VMwareSwapRateSource.VSphere);
+    });
+
+    test("a vCenter that stops sending them goes back to working the rates out, and says so", async () => {
+      await write(
+        report({ swappedMiB: 4, atSeconds: 0, swapOutRate: 0, swapInRate: 0 }),
+        report({ swappedMiB: 12, atSeconds: 120 }),
+      );
+      const swap: {
+        swappedMiB: number | null;
+        outBytesPerSecond: number | null;
+        inBytesPerSecond: number | null;
+      } = await swapOf();
+      expect(swap.outBytesPerSecond).toBeCloseTo((8 * MIB) / 120, 6);
+      expect(await sourceOf()).toBe(VMwareSwapRateSource.Derived);
+    });
+
+    test("a worked-out rate says so; a first report has none, and no source", async () => {
+      await write(report({ swappedMiB: 4, atSeconds: 0 }));
+      expect(await sourceOf()).toBeNull();
+      await write(report({ swappedMiB: 4, atSeconds: 120 }));
+      expect(await sourceOf()).toBe(VMwareSwapRateSource.Derived);
+      // A report with no swapped amount keeps the rates, and where they came from.
+      await write(report({ swappedMiB: null, atSeconds: 240 }));
+      expect(await sourceOf()).toBe(VMwareSwapRateSource.Derived);
+    });
+
+    test("answers the VM's and pool's rates it wrote, for OneUptime's own metrics; a host's are not", async () => {
+      await write(report({ swappedMiB: 4, atSeconds: 0 }));
+      const readings: Array<VMwareResourceSwapRateReading> =
+        await VMwareResourceService.bulkUpdateLatestMetrics({
+          projectId,
+          vmwareVCenterId: vcenterId,
+          metrics: [
+            report({ swappedMiB: 4, atSeconds: 120 }),
+            report({
+              kind: "Host",
+              externalId: HOST_ID,
+              swappedMiB: null,
+              atSeconds: 120,
+              swapOutRate: 4096,
+              swapInRate: 0,
+            }),
+          ],
+        });
+      expect(readings).toEqual([
+        {
+          kind: "VirtualMachine",
+          externalId: VM_ID,
+          swapOutBytesPerSecond: 0,
+          swapInBytesPerSecond: 0,
+          source: VMwareSwapRateSource.Derived,
+          observedAt: at(120),
+        },
+      ]);
+    });
+
+    test("a first report answers nothing: there is no rate yet", async () => {
+      expect(
+        await VMwareResourceService.bulkUpdateLatestMetrics({
+          projectId,
+          vmwareVCenterId: vcenterId,
+          metrics: [report({ swappedMiB: 4, atSeconds: 0 })],
+        }),
+      ).toEqual([]);
+    });
+  });
+
+  describe("each part's last readings, for 'for at least N minutes' (#11469)", () => {
+    test("a VM's: one per report, oldest first, with what each report carried", async () => {
+      await write(
+        report({ swappedMiB: 4, atSeconds: 0 }),
+        report({ swappedMiB: 12, atSeconds: 120 }),
+        report({
+          swappedMiB: 12,
+          atSeconds: 240,
+          swapOutRate: 2048,
+          swapInRate: 0,
+        }),
+      );
+      const readings: Array<VMwareHealthReading> = await readingsOf();
+      const t0: number = T0.getTime() / 1000;
+      expect(readings).toHaveLength(3);
+      expect(readings[0]).toEqual({
+        t: t0,
+        sw: 4 * MIB,
+        bl: 0,
+        rd: 1,
+      });
+      expect(readings[1]!.t).toBe(t0 + 120);
+      expect(readings[1]!.so).toBeCloseTo((8 * MIB) / 120, 6);
+      expect(readings[1]!.si).toBe(0);
+      expect(readings[2]).toEqual({
+        t: t0 + 240,
+        so: 2048,
+        si: 0,
+        sw: 12 * MIB,
+        bl: 0,
+        rd: 1,
+      });
+    });
+
+    test("a host's: its CPU and memory, and nothing a host does not have", async () => {
+      await write(
+        report({
+          kind: "Host",
+          externalId: HOST_ID,
+          swappedMiB: null,
+          atSeconds: 0,
+          overrides: { cpuPercent: 93.5, memoryPercent: 40 },
+        }),
+        report({
+          kind: "Host",
+          externalId: HOST_ID,
+          swappedMiB: null,
+          atSeconds: 120,
+          // A report with no CPU breaks a run rather than stretching it.
+          overrides: { cpuPercent: null, memoryPercent: 41 },
+        }),
+      );
+      const t0: number = T0.getTime() / 1000;
+      expect(await readingsOf(HOST_ID)).toEqual([
+        { t: t0, cpu: 93.5, mem: 40 },
+        { t: t0 + 120, mem: 41 },
+      ]);
+    });
+
+    test("the same report again replaces its reading; an older one is never written", async () => {
+      await write(
+        report({ swappedMiB: 4, atSeconds: 0 }),
+        report({ swappedMiB: 4, atSeconds: 120 }),
+        report({ swappedMiB: 4, atSeconds: 120 }),
+        report({ swappedMiB: 900, atSeconds: 60 }),
+      );
+      const readings: Array<VMwareHealthReading> = await readingsOf();
+      expect(
+        readings.map((reading: VMwareHealthReading) => {
+          return reading.t - T0.getTime() / 1000;
+        }),
+      ).toEqual([0, 120]);
+    });
+
+    test("readings older than the longest wait and one gap are dropped", async () => {
+      await write(
+        report({ swappedMiB: 4, atSeconds: 0 }),
+        report({ swappedMiB: 4, atSeconds: 60 }),
+        report({
+          swappedMiB: 4,
+          atSeconds: VMWARE_HEALTH_READINGS_KEEP_SECONDS + 60,
+        }),
+      );
+      expect(
+        (await readingsOf()).map((reading: VMwareHealthReading) => {
+          return reading.t - T0.getTime() / 1000;
+        }),
+      ).toEqual([60, VMWARE_HEALTH_READINGS_KEEP_SECONDS + 60]);
+    });
+
+    test("never more than the newest 64", async () => {
+      for (let index: number = 0; index < VMWARE_HEALTH_READINGS_MAX + 6; index++) {
+        await write(report({ swappedMiB: 4, atSeconds: index * 30 }));
+      }
+      const readings: Array<VMwareHealthReading> = await readingsOf();
+      expect(readings).toHaveLength(VMWARE_HEALTH_READINGS_MAX);
+      expect(readings[readings.length - 1]!.t - T0.getTime() / 1000).toBe(
+        (VMWARE_HEALTH_READINGS_MAX + 5) * 30,
+      );
+      expect(readings[0]!.t - T0.getTime() / 1000).toBe(6 * 30);
+    });
   });
 });

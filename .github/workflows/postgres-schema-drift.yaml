@@ -118,12 +118,14 @@ jobs:
           Tests/Server/Services/AIInvestigationDecisionPostgres.test.ts --forceExit
 
       # #11157: whether the host is swapping a VM's memory now, or only holds
-      # what it swapped before. No collector sends a swap rate, so the
-      # latest-metric UPDATE works both out from the swapped amount in the
-      # same statement, on a copy of the migrated VMwareResource table: growth
-      # is swapping out, shrinking is reading back, the same amount is memory
-      # left from earlier, and reports too far apart, delivered twice or late
-      # say nothing new.
+      # what it swapped before. The latest-metric UPDATE works both out from
+      # the swapped amount in the same statement, on a copy of the migrated
+      # VMwareResource table: growth is swapping out, shrinking is reading
+      # back, the same amount is memory left from earlier, and reports too far
+      # apart, delivered twice or late say nothing new. #11468: vSphere's own
+      # rates, which a probe sends, are kept as sent and win, and the row says
+      # where its rates came from. #11469: each part's last readings, kept
+      # for the health rules' waits.
       - name: Test VMware swap rates on migrated Postgres
         if: matrix.shard == 4
         working-directory: packages/Common
@@ -2709,7 +2711,8 @@ jobs:
           --forceExit
 
       # The inventory's overview and status facets, its security patch
-      # (#9965) and agent permissions (#9967) facets, and the host an Esper
+      # (#9965) and agent permissions (#9967) facets, its cluster, host and
+      # datacenter facets past 10,000 items (#11470), and the host an Esper
       # device's serial number finds when telemetry names the device another
       # way (#9586).
       - name: Test the inventory overview, status facets and hosts by serial number on migrated Postgres
@@ -2726,6 +2729,7 @@ jobs:
           Tests/Server/Types/Database/InventoryStatusPostgres.test.ts
           Tests/Server/Types/Database/InventorySecurityPatchPostgres.test.ts
           Tests/Server/Types/Database/InventoryAgentPermissionsPostgres.test.ts
+          Tests/Server/Types/Database/InventoryPlacementPostgres.test.ts
           Tests/Server/Services/InventoryHostsBySerialNumberPostgres.test.ts
           --forceExit
 
@@ -4810,7 +4814,10 @@ jobs:
       # vCenter's, not the datacenter's), renames rows the old rule named on
       # their next report and keeps a name a person typed; and two reports
       # tell a VM the host is swapping out from one holding 4 MiB left from
-      # earlier, as the Overview's rules then judge them.
+      # earlier, as the Overview's rules then judge them. #11468: the same
+      # export with the swap rate counters a probe adds keeps vSphere's rates
+      # as sent; without them the rates are worked out; either way the flush
+      # writes the rate it judges by as OneUptime's own metric.
       - name: Test a vCenter's ingest into Inventory and its swap rates, on migrated Postgres
         if: matrix.shard == 3
         working-directory: packages/App

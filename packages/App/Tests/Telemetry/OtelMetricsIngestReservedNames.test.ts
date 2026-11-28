@@ -29,6 +29,10 @@ import {
   KUBERNETES_COST_METRICS,
   KubernetesCostMetric,
 } from "Common/Types/Kubernetes/KubernetesCostMetrics";
+import {
+  VMWARE_SWAP_RATE_METRICS,
+  VMwareSwapRateMetric,
+} from "Common/Types/VMware/VMwareSwapRates";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -537,6 +541,66 @@ describe("OTLP metric ingest refuses the Kubernetes cost names", () => {
     "oneuptime.kubernetes.costs.total",
     "custom.oneuptime.kubernetes.cost.total",
     "kubernetes.cost.total",
+  ])("keeps %s", async (name: string) => {
+    await ingest([resource([gaugeMetric(name)])]);
+
+    expect(rowNames()).toEqual([name]);
+  });
+});
+
+/*
+ * The VMware swap rates (#11468) are reserved the same way: the VMware
+ * flush writes them from what a vCenter sent - vSphere's own rates where a
+ * probe reads them, else worked out - and billing leaves them out by name,
+ * so a sender must never be able to write one: a forged point would page
+ * someone through VM Memory Swapping.
+ */
+describe("OTLP metric ingest refuses the VMware swap rate names", () => {
+  test.each([...VMWARE_SWAP_RATE_METRICS])(
+    "%s writes no row and no catalog entry",
+    async (name: string) => {
+      await ingest([
+        resource([gaugeMetric(name), gaugeMetric("vcenter.vm.memory.swapped")]),
+      ]);
+
+      expect(rowNames()).toEqual(["vcenter.vm.memory.swapped"]);
+      expect(catalogNames()).toEqual(["vcenter.vm.memory.swapped"]);
+    },
+  );
+
+  test("refuses the whole prefix, in any letter case", async () => {
+    await ingest([
+      resource([
+        gaugeMetric("oneuptime.vmware.host.memory.swap_out.rate"),
+        gaugeMetric("OneUptime.VMware.VM.Memory.Swap_Out.Rate"),
+        gaugeMetric("vcenter.vm.memory.swap_out.rate"),
+      ]),
+    ]);
+
+    // The probe's own vSphere rate is a vcenter.* metric, and is kept.
+    expect(rowNames()).toEqual(["vcenter.vm.memory.swap_out.rate"]);
+  });
+
+  test("a RenameMetric rule into the prefix drops the row", async () => {
+    loadRules.mockResolvedValue(
+      renameRule({
+        from: "vcenter.vm.memory.swapped",
+        to: VMwareSwapRateMetric.VirtualMachineSwapOut,
+      }),
+    );
+
+    await ingest([resource([gaugeMetric("vcenter.vm.memory.swapped")])]);
+
+    expect(rowNames()).toEqual([]);
+  });
+
+  test.each([
+    "vcenter.vm.memory.swapped",
+    "vcenter.host.memory.swap_in.rate",
+    // The prefix ends in a dot: near misses are ordinary names.
+    "oneuptime.vmware",
+    "oneuptime.vmwares.vm.memory.swap_out.rate",
+    "custom.oneuptime.vmware.vm.memory.swap_out.rate",
   ])("keeps %s", async (name: string) => {
     await ingest([resource([gaugeMetric(name)])]);
 

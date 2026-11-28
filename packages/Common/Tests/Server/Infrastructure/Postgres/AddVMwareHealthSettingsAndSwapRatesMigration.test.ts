@@ -6,7 +6,7 @@ import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaM
 import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187811157-AddVMwareHealthSettingsAndSwapRates";
 import {
   DEFAULT_VMWARE_HEALTH_RULES,
-  VMWARE_HEALTH_RULE_KEYS,
+  VMWARE_HEALTH_THRESHOLD_RULE_KEYS,
   VMwareHealthRuleKey,
 } from "../../../../Types/VMware/VMwareHealthRules";
 
@@ -81,7 +81,8 @@ describe("AddVMwareHealthSettingsAndSwapRates1809187811157", () => {
   test("each threshold is a nullable integer whose default is its rule's default", async () => {
     const createTable: string = (await statementsOf("up"))[0]!;
 
-    for (const key of VMWARE_HEALTH_RULE_KEYS) {
+    // The thresholds: the waits came later (#11469, its own migration).
+    for (const key of VMWARE_HEALTH_THRESHOLD_RULE_KEYS) {
       expect({
         key,
         column: createTable.includes(

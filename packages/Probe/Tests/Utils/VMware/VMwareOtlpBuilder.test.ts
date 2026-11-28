@@ -9,6 +9,10 @@ import VMwareOtlpBuilder, {
 } from "../../../Utils/VMware/VMwareOtlpBuilder";
 import { VCENTER_METRICS } from "../../../Utils/VMware/VCenterMetricDefinitions";
 import {
+  ONEUPTIME_VCENTER_METRICS,
+  getVCenterMetricDefinition,
+} from "../../../Utils/VMware/OneUptimeVCenterMetricDefinitions";
+import {
   VMwareComputeResource,
   VMwareDatacenter,
   VMwareHost,
@@ -853,6 +857,137 @@ describe("VMwareOtlpBuilder", () => {
         time: sampleNano,
       },
     ]);
+  });
+
+  test("vSphere's swap rates are sent for the host and the VM, in bytes per second, at their newest sample's time (#11468)", () => {
+    const sampledAt: Date = new Date("2026-10-10T11:59:40.000Z");
+    const result: VMwareOtlpBuildResult = VMwareOtlpBuilder.build(
+      snapshotOf({
+        hostSwapRates: new Map([
+          [
+            "host-1",
+            {
+              swapOutBytesPerSecond: 4096,
+              swapInBytesPerSecond: 0,
+              sampledAt,
+            },
+          ],
+        ]),
+        vmSwapRates: new Map([
+          [
+            "vm-1",
+            {
+              swapOutBytesPerSecond: 512 * 1024,
+              swapInBytesPerSecond: 64 * 1024,
+              sampledAt,
+            },
+          ],
+        ]),
+      }),
+      "x",
+    );
+    const esx: Record<string, string> = {
+      "vcenter.host.name": "esx-01.example.com",
+    };
+    const web: Record<string, string> = { "vcenter.vm.name": "web-01" };
+    const time: string = toUnixNano(sampledAt);
+
+    expect(points(result, esx, "vcenter.host.memory.swap_out.rate")).toEqual([
+      { attributes: {}, value: 4096, time },
+    ]);
+    expect(points(result, esx, "vcenter.host.memory.swap_in.rate")).toEqual([
+      { attributes: {}, value: 0, time },
+    ]);
+    expect(points(result, web, "vcenter.vm.memory.swap_out.rate")).toEqual([
+      { attributes: {}, value: 512 * 1024, time },
+    ]);
+    expect(points(result, web, "vcenter.vm.memory.swap_in.rate")).toEqual([
+      { attributes: {}, value: 64 * 1024, time },
+    ]);
+    // A VM's resource carries a VM's rates, not its host's.
+    expect(points(result, web, "vcenter.host.memory.swap_out.rate")).toEqual(
+      [],
+    );
+
+    // Each with OneUptime's own definition: a gauge of doubles, in By/s.
+    for (const resource of result.resourceMetrics as Array<JSONObject>) {
+      for (const scope of resource["scopeMetrics"] as Array<JSONObject>) {
+        for (const metric of scope["metrics"] as Array<JSONObject>) {
+          const definition: (typeof ONEUPTIME_VCENTER_METRICS)[string] | undefined =
+            ONEUPTIME_VCENTER_METRICS[metric["name"] as string];
+          if (!definition) {
+            continue;
+          }
+          expect(VCENTER_METRICS[metric["name"] as string]).toBeUndefined();
+          expect(metric["description"]).toBe(definition.description);
+          expect(metric["unit"]).toBe("By/s");
+          expect(metric["gauge"]).toBeDefined();
+          for (const dataPoint of (metric["gauge"] as JSONObject)[
+            "dataPoints"
+          ] as Array<JSONObject>) {
+            expect(typeof dataPoint["asDouble"]).toBe("number");
+          }
+        }
+      }
+    }
+  });
+
+  test("a swap rate vSphere sent no sample of is left out; the other is still sent", () => {
+    const result: VMwareOtlpBuildResult = VMwareOtlpBuilder.build(
+      snapshotOf({
+        vmSwapRates: new Map([
+          [
+            "vm-1",
+            {
+              swapOutBytesPerSecond: 2048,
+              swapInBytesPerSecond: null,
+              sampledAt: NOW,
+            },
+          ],
+        ]),
+      }),
+      "x",
+    );
+    const web: Record<string, string> = { "vcenter.vm.name": "web-01" };
+    expect(points(result, web, "vcenter.vm.memory.swap_out.rate")).toHaveLength(
+      1,
+    );
+    expect(points(result, web, "vcenter.vm.memory.swap_in.rate")).toEqual([]);
+  });
+
+  test("with no swap rates read - the VMware agent's case, or a vCenter without the counters - none are sent", () => {
+    const result: VMwareOtlpBuildResult = VMwareOtlpBuilder.build(
+      snapshotOf(),
+      "x",
+    );
+    for (const name of Object.keys(ONEUPTIME_VCENTER_METRICS)) {
+      expect(
+        points(result, { "vcenter.vm.name": "web-01" }, name).concat(
+          points(result, { "vcenter.host.name": "esx-01.example.com" }, name),
+        ),
+      ).toEqual([]);
+    }
+  });
+
+  test("OneUptime's additions are four, none of them the receiver's, each found beside the receiver's", () => {
+    expect(Object.keys(ONEUPTIME_VCENTER_METRICS).sort()).toEqual([
+      "vcenter.host.memory.swap_in.rate",
+      "vcenter.host.memory.swap_out.rate",
+      "vcenter.vm.memory.swap_in.rate",
+      "vcenter.vm.memory.swap_out.rate",
+    ]);
+    for (const name of Object.keys(ONEUPTIME_VCENTER_METRICS)) {
+      expect(VCENTER_METRICS[name]).toBeUndefined();
+      expect(getVCenterMetricDefinition(name)).toBe(
+        ONEUPTIME_VCENTER_METRICS[name],
+      );
+    }
+    expect(getVCenterMetricDefinition("vcenter.vm.memory.swapped")).toBe(
+      VCENTER_METRICS["vcenter.vm.memory.swapped"],
+    );
+    expect(getVCenterMetricDefinition("vcenter.vm.memory.nothing")).toBe(
+      undefined,
+    );
   });
 
   test("a VM's virtual disk latency names the disk type", () => {

@@ -505,10 +505,26 @@ describe("VMwareSnapshotScan - metric allow-list", () => {
       "vcenter.datacenter.disk.space",
       "vcenter.datacenter.cluster.count",
       "vcenter.resource_pool.memory.swapped",
+      // vSphere's own swap rates, which a probe sends (#11468).
+      "vcenter.host.memory.swap_out.rate",
+      "vcenter.host.memory.swap_in.rate",
+      "vcenter.vm.memory.swap_out.rate",
+      "vcenter.vm.memory.swap_in.rate",
     ]) {
       expect(VMWARE_SNAPSHOT_METRIC_NAMES.has(name)).toBe(true);
     }
-    expect(VMWARE_SNAPSHOT_METRIC_NAMES.size).toBe(35);
+    expect(VMWARE_SNAPSHOT_METRIC_NAMES.size).toBe(39);
+  });
+
+  test("OneUptime's own swap rate metrics are never read back in as a vCenter's", () => {
+    for (const name of [
+      "oneuptime.vmware.vm.memory.swap_out.rate",
+      "oneuptime.vmware.vm.memory.swap_in.rate",
+      "oneuptime.vmware.resource_pool.memory.swap_out.rate",
+      "oneuptime.vmware.resource_pool.memory.swap_in.rate",
+    ]) {
+      expect(VMWARE_SNAPSHOT_METRIC_NAMES.has(name)).toBe(false);
+    }
   });
 
   test("perf-only series are not allow-listed (the ingest gate)", () => {
@@ -1925,5 +1941,124 @@ describe("VMwareSnapshotScan - vCenter extras derive", () => {
       }),
     );
     expect(kinds).toEqual(new Set(Object.values(VMwareResourceKind)));
+  });
+});
+
+describe("VMwareSnapshotScan - vSphere's own swap rates (#11468)", () => {
+  const VM_ID: string = "vm/5030a1b2-0000-4000-8000-000000000001";
+  const HOST_ID: string = "host/DC1/esx01.example.com";
+
+  test("a VM's and a host's rates are kept in bytes per second, as sent", () => {
+    const b: Buffers = buffers();
+    feed(
+      b,
+      VM_ON,
+      "vcenter.vm.memory.swap_out.rate",
+      datapoint({ value: 524288, asDouble: true }),
+    );
+    feed(
+      b,
+      VM_ON,
+      "vcenter.vm.memory.swap_in.rate",
+      datapoint({ value: 65536.5, asDouble: true }),
+    );
+    feed(
+      b,
+      HOST,
+      "vcenter.host.memory.swap_out.rate",
+      datapoint({ value: 4096, asDouble: true }),
+    );
+    feed(
+      b,
+      HOST,
+      "vcenter.host.memory.swap_in.rate",
+      datapoint({ value: 0, asDouble: true }),
+    );
+
+    const vm: VMwareResourceLatestMetricSnapshot =
+      deriveVMwareResourceLatestMetric(entry(b, "VirtualMachine", VM_ID));
+    expect(vm.memorySwapOutBytesPerSecond).toBe(524288);
+    expect(vm.memorySwapInBytesPerSecond).toBe(65536.5);
+
+    const host: VMwareResourceLatestMetricSnapshot =
+      deriveVMwareResourceLatestMetric(entry(b, "Host", HOST_ID));
+    expect(host.memorySwapOutBytesPerSecond).toBe(4096);
+    expect(host.memorySwapInBytesPerSecond).toBe(0);
+  });
+
+  test("a VM with a rate is seen, though its rates say nothing of its CPU", () => {
+    const b: Buffers = buffers();
+    feed(
+      b,
+      VM_ON,
+      "vcenter.vm.memory.swap_out.rate",
+      datapoint({ value: 0, asDouble: true }),
+    );
+    const vm: VMwareResourceBufferEntry = entry(b, "VirtualMachine", VM_ID);
+    expect(vm.sawNonCpuMetric).toBe(true);
+    expect(vm.sawCpuMetric).toBe(false);
+  });
+
+  test("a report with no rate leaves the rates unknown: the receiver's case", () => {
+    const b: Buffers = buffers();
+    feed(b, VM_ON, "vcenter.vm.memory.swapped", datapoint({ value: 8 }));
+    const vm: VMwareResourceLatestMetricSnapshot =
+      deriveVMwareResourceLatestMetric(entry(b, "VirtualMachine", VM_ID));
+    expect(vm.memorySwappedBytes).toBe(8 * MIB);
+    expect(vm.memorySwapOutBytesPerSecond).toBeNull();
+    expect(vm.memorySwapInBytesPerSecond).toBeNull();
+  });
+
+  test("a negative rate is no rate", () => {
+    const b: Buffers = buffers();
+    feed(
+      b,
+      VM_ON,
+      "vcenter.vm.memory.swap_out.rate",
+      datapoint({ value: -1, asDouble: true }),
+    );
+    expect(
+      deriveVMwareResourceLatestMetric(entry(b, "VirtualMachine", VM_ID))
+        .memorySwapOutBytesPerSecond,
+    ).toBeNull();
+  });
+
+  test("the newest point wins, as for every other reading", () => {
+    const b: Buffers = buffers();
+    feed(
+      b,
+      VM_ON,
+      "vcenter.vm.memory.swap_out.rate",
+      datapoint({ value: 100, atMs: BASE_MS + 60_000, asDouble: true }),
+    );
+    feed(
+      b,
+      VM_ON,
+      "vcenter.vm.memory.swap_out.rate",
+      datapoint({ value: 999, atMs: BASE_MS, asDouble: true }),
+    );
+    expect(
+      deriveVMwareResourceLatestMetric(entry(b, "VirtualMachine", VM_ID))
+        .memorySwapOutBytesPerSecond,
+    ).toBe(100);
+  });
+
+  test("a host's rate on a VM, or a VM's on a host, is dropped", () => {
+    const b: Buffers = buffers();
+    feed(
+      b,
+      VM_ON,
+      "vcenter.host.memory.swap_out.rate",
+      datapoint({ value: 5, asDouble: true }),
+    );
+    feed(
+      b,
+      HOST,
+      "vcenter.vm.memory.swap_out.rate",
+      datapoint({ value: 5, asDouble: true }),
+    );
+    for (const item of entries(b)) {
+      expect(item.memorySwapOutBytesPerSecond ?? null).toBeNull();
+    }
   });
 });

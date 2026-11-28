@@ -18,6 +18,26 @@ Each recorded exchange keeps the HTTP method, the path, the SOAP method the prob
 and vSphere's answer. Request bodies are not kept. The PerformanceManager's counter list
 is trimmed to the counters the collector asks for and two it does not.
 
+### Added by hand: vSphere's swap rates (#11468)
+
+The probe reads vSphere's own swap rate counters, `mem.swapoutRate.average` and
+`mem.swapinRate.average`, which it did not ask for when the collections were recorded.
+They were added to `vcsim-vcenter-collect.json` and `vcsim-esx-collect.json` afterwards,
+by hand, as the simulator itself defines and answers them:
+
+- the two counters in the PerformanceManager's counter list, as govmomi's simulator
+  defines them: keys 85 (`swapinRate`) and 86 (`swapoutRate`) for a vCenter, 65618 and
+  65619 for a standalone ESXi host, in `kiloBytesPerSecond`
+  (`simulator/vpx/performance_manager.go`, `simulator/esx/performance_manager.go`);
+- after each recorded `QueryPerf` - the hosts' and the powered-on VMs' - a second one for
+  the swap rate counters alone: every entity of the recorded one, six 20-second samples
+  (a two-minute collection interval) ending at the recorded sample's time, each `0`. The
+  simulator's sample data for both counters is all zeros, for hosts and VMs alike
+  (`performance_manager_data.go`): its hosts never swap.
+
+The probe's tests of a vCenter that is swapping, or that has no such counters, change
+those answers in the test.
+
 ## Recording them again
 
 ```bash

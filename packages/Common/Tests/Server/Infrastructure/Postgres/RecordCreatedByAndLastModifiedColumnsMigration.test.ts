@@ -222,6 +222,12 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "VMwareHealthSetting",
     migration: "1809187811157-AddVMwareHealthSettingsAndSwapRates.ts",
   },
+  // A vCenter's, a cluster's, an ESXi host's or a VM's own health rules (#11469).
+  {
+    table: "VMwareHealthRuleOverride",
+    migration:
+      "1809187811469-AddVMwareHealthRuleOverridesAndEvaluationPeriods.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

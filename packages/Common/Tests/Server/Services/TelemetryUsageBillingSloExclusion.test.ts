@@ -52,6 +52,10 @@ import {
   isKubernetesCostMetricName,
 } from "../../../Types/Kubernetes/KubernetesCostMetrics";
 import { SESSION_REPLAY_SIGNAL_SESSIONS_METRIC } from "../../../Types/Rum/SessionReplaySignalMetric";
+import {
+  VMWARE_SWAP_RATE_METRICS,
+  isVMwareSwapRateMetricName,
+} from "../../../Types/VMware/VMwareSwapRates";
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
@@ -392,6 +396,11 @@ const EVERY_EXCLUDED_METRIC_NAME: Array<string> = [
    * telemetry the project already sent, written by the usage sweep.
    */
   ...(Object.values(TelemetryUsageMetricType) as Array<string>),
+  /*
+   * And the VMware swap rates (#11468): how fast each VM and resource pool
+   * swaps now, written by the VMware flush from what a vCenter already sent.
+   */
+  ...(VMWARE_SWAP_RATE_METRICS as ReadonlyArray<string>),
 ].sort();
 
 describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
@@ -408,7 +417,8 @@ describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
           TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name) ||
           TelemetryUsageMetricTypeUtil.isReservedMetricName(name) ||
           isProductAnalyticsDerivedMetricName(name) ||
-          isKubernetesCostMetricName(name),
+          isKubernetesCostMetricName(name) ||
+          isVMwareSwapRateMetricName(name),
       ).toBe(true);
     }
   });

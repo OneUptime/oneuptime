@@ -9,7 +9,28 @@ import {
 } from "../../../Types/Monitor/VMwareMetricCatalog";
 import { VMwareResourceScope } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import {
+  VMWARE_SWAP_RATE_METRICS,
+  VMWARE_SWAP_RATE_METRIC_NAME_PREFIX,
+  VMwareSwapRateCounterMetric,
+} from "../../../Types/VMware/VMwareSwapRates";
 import { describe, expect, test } from "@jest/globals";
+
+/*
+ * What the catalog adds to the vcenter receiver's metrics (#11468): the
+ * swap rates vSphere reports for an ESXi host, which only a probe reads,
+ * and OneUptime's own swap rates of each VM and resource pool, which the
+ * VMware flush writes from either collector's reports.
+ */
+const ONEUPTIME_ADDITIONS: Array<string> = [
+  VMwareSwapRateCounterMetric.HostSwapOut,
+  VMwareSwapRateCounterMetric.HostSwapIn,
+  ...VMWARE_SWAP_RATE_METRICS,
+];
+
+function isOneUptimeMetricName(name: string): boolean {
+  return name.startsWith(VMWARE_SWAP_RATE_METRIC_NAME_PREFIX);
+}
 
 describe("VMwareMetricCatalog", () => {
   const allMetrics: Array<VMwareMetricDefinition> = getAllVMwareMetrics();
@@ -67,6 +88,14 @@ describe("VMwareMetricCatalog", () => {
        * A pve_-style or k8s.-style name here would mean a metric was
        * copied from another catalog and would never match a series.
        */
+      if (isOneUptimeMetricName(metric.metricName)) {
+        // OneUptime's own swap rates (#11468): its prefix, then the object.
+        expect(metric.metricName).toMatch(
+          /^oneuptime\.vmware\.(vm|resource_pool)\.memory\.swap_(out|in)\.rate$/,
+        );
+        expect(metric.id).toMatch(/^oneuptime-vmware-/);
+        continue;
+      }
       expect(metric.metricName).toMatch(
         /^vcenter\.(datacenter|cluster|host|vm|datastore|resource_pool)\./,
       );
@@ -92,7 +121,10 @@ describe("VMwareMetricCatalog", () => {
     };
 
     for (const metric of allMetrics) {
-      const segment: string = metric.metricName.split(".")[1]!;
+      // oneuptime.vmware.<object>.* names its object one segment later.
+      const segment: string = metric.metricName.split(".")[
+        isOneUptimeMetricName(metric.metricName) ? 2 : 1
+      ]!;
       expect(metric.defaultResourceScope).toBe(scopeBySegment[segment]);
     }
   });
@@ -426,7 +458,7 @@ describe("VMwareMetricCatalog", () => {
       "vcenter.vm.vsan.throughput",
     ];
 
-    for (const metricName of receiverMetrics) {
+    for (const metricName of [...receiverMetrics, ...ONEUPTIME_ADDITIONS]) {
       expect(getVMwareMetricByMetricName(metricName)).toBeDefined();
     }
 
@@ -436,7 +468,62 @@ describe("VMwareMetricCatalog", () => {
           return m.metricName;
         })
         .sort(),
-    ).toEqual([...receiverMetrics].sort());
+    ).toEqual([...receiverMetrics, ...ONEUPTIME_ADDITIONS].sort());
+  });
+
+  test("the swap rates are rates in By/s, read at their most, of the object they name", () => {
+    for (const metricName of ONEUPTIME_ADDITIONS) {
+      const metric: VMwareMetricDefinition =
+        getVMwareMetricByMetricName(metricName)!;
+      expect({ metricName, unit: metric.unit }).toEqual({
+        metricName,
+        unit: "By/s",
+      });
+      expect(metric.defaultAggregation).toBe(AggregationType.Max);
+    }
+    expect(
+      getVMwareMetricByMetricName("oneuptime.vmware.vm.memory.swap_out.rate")!
+        .friendlyName,
+    ).toBe("VM Swap Out Rate");
+    expect(
+      getVMwareMetricByMetricName(
+        "oneuptime.vmware.resource_pool.memory.swap_out.rate",
+      )!.defaultResourceScope,
+    ).toBe(VMwareResourceScope.ResourcePool);
+    expect(
+      getVMwareMetricByMetricName("vcenter.host.memory.swap_out.rate")!
+        .defaultResourceScope,
+    ).toBe(VMwareResourceScope.Host);
+  });
+
+  test("each swap rate says where it comes from: vSphere's counter, or the swapped amount", () => {
+    const vmOut: VMwareMetricDefinition = getVMwareMetricByMetricName(
+      "oneuptime.vmware.vm.memory.swap_out.rate",
+    )!;
+    expect(vmOut.description).toContain("mem.swapoutRate");
+    expect(vmOut.description).toContain("worked out");
+    expect(vmOut.description).toContain("source");
+    expect(
+      getVMwareMetricByMetricName(
+        "oneuptime.vmware.resource_pool.memory.swap_out.rate",
+      )!.description,
+    ).toContain("vSphere has no swap rate counter for a resource pool");
+    expect(
+      getVMwareMetricByMetricName("vcenter.host.memory.swap_out.rate")!
+        .description,
+    ).toContain("Only a probe-collected vCenter has it");
+  });
+
+  test("the swapped amounts say an amount is not swapping now, and which metric is", () => {
+    expect(
+      getVMwareMetricByMetricName("vcenter.vm.memory.swapped")!.description,
+    ).toContain("VM Swap Out Rate says whether the host is swapping now.");
+    expect(
+      getVMwareMetricByMetricName("vcenter.resource_pool.memory.swapped")!
+        .description,
+    ).toContain(
+      "Resource Pool Swap Out Rate says whether the hosts are swapping now.",
+    );
   });
 
   test("every metric the inventory snapshot scan reads is catalogued", () => {

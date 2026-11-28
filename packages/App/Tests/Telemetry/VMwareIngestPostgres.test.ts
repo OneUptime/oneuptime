@@ -24,6 +24,10 @@ import EntityExtractor, {
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  VMwareSwapRateMetric,
+  VMwareSwapRateSource,
+} from "Common/Types/VMware/VMwareSwapRates";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -66,6 +70,13 @@ import path from "path";
  * between two reports of the same export, and the Overview's rules judge
  * the rows as a page reads them - the issue's 4 MiB left from earlier is
  * no finding, a VM the host swaps out is critical.
+ *
+ * And vSphere's own rates (#11468): the same recorded export with the swap
+ * rate counters a probe adds to it (vcenter.vm.memory.swap_out.rate and
+ * swap_in.rate, as the probe's builder writes them) keeps vSphere's rates
+ * as sent and says so; without them - the VMware agent's export - the rates
+ * are worked out, and say that. Either way the flush writes the rate it
+ * judges by as OneUptime's own metric, which VM Memory Swapping reads.
  *
  * Opt in with RUN_POSTGRES_VMWARE_INGEST_TESTS=true against a Postgres
  * migrated to the current head (the Postgres Schema Drift workflow's
@@ -696,6 +707,7 @@ describePostgres(
           memorySwappedBytes: true,
           memorySwapOutBytesPerSecond: true,
           memorySwapInBytesPerSecond: true,
+          memorySwapRateSource: true,
           memoryBalloonedBytes: true,
           cpuReadinessPercent: true,
           metricsUpdatedAt: true,
@@ -790,6 +802,244 @@ describePostgres(
           ),
         }).severity,
       ).toBeNull();
+    });
+
+    /*
+     * The recorded export as a probe sends it (#11468): the receiver's
+     * metrics, and for each powered-on VM vSphere's swap rates, a gauge of
+     * doubles in By/s at the report's time, as VMwareOtlpBuilder writes
+     * them.
+     */
+    function withVSphereSwapRates(
+      body: JSONObject,
+      ratesByVm: Record<string, { out: number; in: number }>,
+    ): JSONObject {
+      for (const resourceMetrics of body[
+        "resourceMetrics"
+      ] as Array<JSONObject>) {
+        const vmName: string | null =
+          attributesOf(resourceMetrics)["vcenter.vm.name"] || null;
+        const rates: { out: number; in: number } | undefined = vmName
+          ? ratesByVm[vmName]
+          : undefined;
+        if (!rates) {
+          continue;
+        }
+        const scopeMetrics: JSONObject = (
+          resourceMetrics["scopeMetrics"] as Array<JSONObject>
+        )[0]!;
+        const metrics: Array<JSONObject> = scopeMetrics[
+          "metrics"
+        ] as Array<JSONObject>;
+        // At the report's time: the VM's swapped amount's.
+        const reference: JSONObject =
+          metrics.find((metric: JSONObject): boolean => {
+            return metric["name"] === "vcenter.vm.memory.swapped";
+          }) || metrics[0]!;
+        const series: JSONObject = (reference["sum"] ||
+          reference["gauge"]) as JSONObject;
+        const time: string = (
+          series["dataPoints"] as Array<JSONObject>
+        )[0]!["timeUnixNano"] as string;
+        for (const [name, value] of [
+          ["vcenter.vm.memory.swap_out.rate", rates.out],
+          ["vcenter.vm.memory.swap_in.rate", rates.in],
+        ] as Array<[string, number]>) {
+          metrics.push({
+            name,
+            unit: "By/s",
+            gauge: {
+              dataPoints: [
+                { startTimeUnixNano: time, timeUnixNano: time, asDouble: value },
+              ],
+            },
+          });
+        }
+      }
+      return body;
+    }
+
+    // The rows the flush wrote as OneUptime's swap rate metrics.
+    function swapRateRows(): Array<JSONObject> {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const submit: jest.SpiedFunction<any> = jest.spyOn(
+        OtelMetricsIngestService as unknown as Record<string, () => unknown>,
+        "submitMetricsBuffer",
+      );
+      const rows: Array<JSONObject> = [];
+      for (const call of submit.mock.calls) {
+        for (const row of (call[0] || []) as Array<JSONObject>) {
+          if (
+            String(row["name"]).startsWith("oneuptime.vmware.") &&
+            row["name"] !== undefined
+          ) {
+            rows.push(row);
+          }
+        }
+      }
+      return rows;
+    }
+
+    function rowFor(
+      rows: Array<JSONObject>,
+      metricName: string,
+      vmName: string,
+    ): JSONObject | undefined {
+      return rows.find((row: JSONObject): boolean => {
+        const attributes: JSONObject = (row["attributes"] || {}) as JSONObject;
+        return (
+          row["name"] === metricName &&
+          attributes["resource.vcenter.vm.name"] === vmName
+        );
+      });
+    }
+
+    async function swapRateSourceOf(vmName: string): Promise<string | null> {
+      const rows: Array<{ memorySwapRateSource: string | null }> =
+        await database.query(
+          `SELECT "memorySwapRateSource" FROM "VMwareResource"
+           WHERE "projectId" = $1 AND "vmwareVCenterId" = $2 AND "kind" = 'VirtualMachine' AND "name" = $3`,
+          [projectId.toString(), vcenterId.toString(), vmName],
+        );
+      return rows[0]?.memorySwapRateSource ?? null;
+    }
+
+    test("#11468: without vSphere's rates - the agent's export - two reports work them out, and the flush writes them as worked out", async () => {
+      await ingest(
+        recordedExportWith({
+          secondsLater: 0,
+          swappedMiB: { DC0_H0_VM0: 4, DC0_H0_VM1: 4 },
+        }),
+      );
+      // A first report has no rate to write.
+      expect(swapRateRows()).toEqual([]);
+      expect(await swapRateSourceOf("DC0_H0_VM1")).toBeNull();
+
+      await ingest(
+        recordedExportWith({
+          secondsLater: 120,
+          swappedMiB: { DC0_H0_VM0: 4, DC0_H0_VM1: 12 },
+        }),
+      );
+
+      expect(await swapRateSourceOf("DC0_H0_VM1")).toBe(
+        VMwareSwapRateSource.Derived,
+      );
+      const rows: Array<JSONObject> = swapRateRows();
+      const swapping: JSONObject = rowFor(
+        rows,
+        VMwareSwapRateMetric.VirtualMachineSwapOut,
+        "DC0_H0_VM1",
+      )!;
+      expect(Number(swapping["value"])).toBeCloseTo((8 * 1024 * 1024) / 120, 3);
+      expect((swapping["attributes"] as JSONObject)["source"]).toBe("derived");
+      // Scoped and grouped as every VMware monitor reads a VM's metrics.
+      expect(
+        (swapping["attributes"] as JSONObject)["resource.vmware.vcenter.name"],
+      ).toBeTruthy();
+      expect(swapping["metricPointType"]).toBe("Gauge");
+      expect(swapping["projectId"]).toBe(projectId.toString());
+
+      const residual: JSONObject = rowFor(
+        rows,
+        VMwareSwapRateMetric.VirtualMachineSwapOut,
+        "DC0_H0_VM0",
+      )!;
+      expect(Number(residual["value"])).toBe(0);
+      expect(
+        Number(
+          rowFor(rows, VMwareSwapRateMetric.VirtualMachineSwapIn, "DC0_H0_VM0")![
+            "value"
+          ],
+        ),
+      ).toBe(0);
+    });
+
+    test("#11468: with vSphere's rates - a probe's export - one report keeps them as sent, and the flush writes them as measured", async () => {
+      await ingest(
+        withVSphereSwapRates(
+          recordedExportWith({
+            secondsLater: 0,
+            swappedMiB: { DC0_H0_VM0: 4, DC0_H0_VM1: 4 },
+          }),
+          {
+            // The issue's VM: 4 MiB left from earlier, nothing swapped now.
+            DC0_H0_VM0: { out: 0, in: 0 },
+            // Swapping out now, though its swapped amount has not moved yet.
+            DC0_H0_VM1: { out: 524288, in: 2048 },
+          },
+        ),
+      );
+
+      const vms: Map<string, VMwareResource> = await virtualMachines();
+      const swapping: VMwareResource = vms.get("DC0_H0_VM1")!;
+      expect(swapping.memorySwappedBytes).toBe(4 * 1024 * 1024);
+      expect(swapping.memorySwapOutBytesPerSecond).toBe(524288);
+      expect(swapping.memorySwapInBytesPerSecond).toBe(2048);
+      expect(await swapRateSourceOf("DC0_H0_VM1")).toBe(
+        VMwareSwapRateSource.VSphere,
+      );
+      expect(vms.get("DC0_H0_VM0")!.memorySwapOutBytesPerSecond).toBe(0);
+      // A VM vSphere sent no rate for has none yet, from one report.
+      expect(vms.get("DC0_C0_RP1_VM0")!.memorySwapOutBytesPerSecond).toBeNull();
+
+      const rows: Array<JSONObject> = swapRateRows();
+      const written: JSONObject = rowFor(
+        rows,
+        VMwareSwapRateMetric.VirtualMachineSwapOut,
+        "DC0_H0_VM1",
+      )!;
+      expect(Number(written["value"])).toBe(524288);
+      expect((written["attributes"] as JSONObject)["source"]).toBe("vsphere");
+      expect(
+        Number(
+          rowFor(rows, VMwareSwapRateMetric.VirtualMachineSwapIn, "DC0_H0_VM1")![
+            "value"
+          ],
+        ),
+      ).toBe(2048);
+
+      // As the Overview judges the rows: swapping now is critical, and says vSphere measured it.
+      const now: Date = new Date(
+        new Date(swapping.metricsUpdatedAt!).getTime() + 60 * 1000,
+      );
+      expect(swapping.memorySwapRateSource).toBe(VMwareSwapRateSource.VSphere);
+      const verdict: VMwareAssessment = assessVMwareVirtualMachine({
+        vm: swapping,
+        now,
+      });
+      expect(verdict.severity).toBe(ResourceAttentionSeverity.Critical);
+      expect(
+        assessVMwareVirtualMachine({ vm: vms.get("DC0_H0_VM0")!, now }).severity,
+      ).toBeNull();
+    });
+
+    test("#11468: a probe's vCenter that stops sending vSphere's rates goes back to working them out", async () => {
+      await ingest(
+        withVSphereSwapRates(
+          recordedExportWith({
+            secondsLater: 0,
+            swappedMiB: { DC0_H0_VM1: 4 },
+          }),
+          { DC0_H0_VM1: { out: 0, in: 0 } },
+        ),
+      );
+      expect(await swapRateSourceOf("DC0_H0_VM1")).toBe(
+        VMwareSwapRateSource.VSphere,
+      );
+
+      await ingest(
+        recordedExportWith({
+          secondsLater: 120,
+          swappedMiB: { DC0_H0_VM1: 12 },
+        }),
+      );
+      expect(await swapRateSourceOf("DC0_H0_VM1")).toBe(
+        VMwareSwapRateSource.Derived,
+      );
+      expect(
+        (await virtualMachines()).get("DC0_H0_VM1")!.memorySwapOutBytesPerSecond,
+      ).toBeCloseTo((8 * 1024 * 1024) / 120, 3);
     });
 
     test("the extractor's entities for the recorded export are what Inventory holds", async () => {

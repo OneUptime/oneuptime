@@ -19,6 +19,7 @@ import {
 import VMwareOtlpBuilder, {
   VMwareOtlpBuildResult,
 } from "../../../Utils/VMware/VMwareOtlpBuilder";
+import { ONEUPTIME_VCENTER_METRICS } from "../../../Utils/VMware/OneUptimeVCenterMetricDefinitions";
 import VSphereSoapClient, {
   PerfEntityMetric,
   PerfSeries,
@@ -43,8 +44,12 @@ import {
  * metric's kind, unit, description, value type, temporality and datapoint
  * attributes - and then what the server's ingest makes of both.
  *
- * Two differences are expected:
+ * Three differences are expected:
  *
+ *   - the probe also sends vSphere's own swap rates for each ESXi host and
+ *     powered-on VM (#11468, ONEUPTIME_VCENTER_METRICS), which the receiver
+ *     cannot read: those, and no other metric, may be missing from the
+ *     agent's export;
  *   - on vCenter, the agent's collector leaves out a VM that sits in a vApp
  *     when its finder cannot place the vApp (the simulator's are not found,
  *     and the receiver records a partial error instead), while the probe
@@ -431,12 +436,12 @@ describe.each([
           sampled.get(identity)!,
         );
 
-        // Nothing foreign to the agent's export ...
+        // Nothing foreign to the agent's export but OneUptime's swap rates ...
         expect({
           identity: identity,
           notInAgentExport: Array.from(probeShapes.keys()).filter(
             (name: string) => {
-              return !agentShapes.has(name);
+              return !agentShapes.has(name) && !ONEUPTIME_VCENTER_METRICS[name];
             },
           ),
         }).toEqual({ identity: identity, notInAgentExport: [] });
@@ -505,6 +510,82 @@ describe.each([
         exactly: data.exactMetrics,
         asSamples: data.sampleMetrics,
       });
+    });
+
+    test("adds vSphere's own swap rates for every host and powered-on VM, which the agent cannot send (#11468)", async () => {
+      const collection: ProbeCollection = await probeCollection(
+        data.probeFixture,
+      );
+      const probe: Map<string, JSONObject> = byIdentity(
+        collection.result.resourceMetrics,
+      );
+
+      let hosts: number = 0;
+      let vms: number = 0;
+      for (const [identity, resource] of probe) {
+        const shapes: Map<string, MetricShape> = shapesOf(resource);
+        const names: Array<string> = Array.from(shapes.keys());
+        const added: Array<string> = names
+          .filter((name: string): boolean => {
+            return Boolean(ONEUPTIME_VCENTER_METRICS[name]);
+          })
+          .sort();
+        const isHost: boolean = names.includes("vcenter.host.cpu.usage");
+        const isVm: boolean = names.includes("vcenter.vm.memory.usage");
+        const prefix: string = isHost ? "vcenter.host" : "vcenter.vm";
+
+        if (!isHost && !isVm) {
+          // A cluster, a datastore, a resource pool: vSphere has no swap rate of theirs.
+          expect({ identity, added }).toEqual({ identity, added: [] });
+          continue;
+        }
+        if (added.length === 0) {
+          continue;
+        }
+
+        isHost ? hosts++ : vms++;
+        expect({ identity, added }).toEqual({
+          identity,
+          added: [
+            `${prefix}.memory.swap_in.rate`,
+            `${prefix}.memory.swap_out.rate`,
+          ],
+        });
+        for (const name of added) {
+          expect({ identity, name, shape: shapes.get(name) }).toEqual({
+            identity,
+            name,
+            shape: {
+              kind: "gauge",
+              unit: "By/s",
+              description: ONEUPTIME_VCENTER_METRICS[name]!.description,
+              valueKinds: ["asDouble"],
+              aggregationTemporality: null,
+              attributeSets: [""],
+            },
+          });
+        }
+      }
+
+      const swapRated: { hosts: number; vms: number } = {
+        hosts: 0,
+        vms: 0,
+      };
+      for (const datacenter of collection.snapshot.datacenters) {
+        swapRated.hosts += datacenter.hostSwapRates.size;
+        swapRated.vms += datacenter.vmSwapRates.size;
+      }
+      // Every host, and every powered-on VM vSphere sampled.
+      expect({ hosts, vms }).toEqual(swapRated);
+      expect(hosts).toBeGreaterThan(0);
+      expect(vms).toBeGreaterThan(0);
+
+      // The agent's collector sends none of them.
+      for (const resource of agentCollection(data.agentFixture) as Array<JSONObject>) {
+        for (const name of shapesOf(resource).keys()) {
+          expect(ONEUPTIME_VCENTER_METRICS[name]).toBeUndefined();
+        }
+      }
     });
 
     test("the server's ingest builds the same inventory and the same vCenter counts from either", async () => {
