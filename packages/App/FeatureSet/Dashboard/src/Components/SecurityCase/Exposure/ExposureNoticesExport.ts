@@ -376,6 +376,15 @@ export function describeWhoseInEnglish(
     lines.push("Nobody has said where the people live yet.");
   }
 
+  // Whether the organization holds the data for another (#11427).
+  if (view.holdsForAnother === true) {
+    lines.push(
+      "A person said your organization holds this data for another organization: the notices owed to the data's owner are among the laws below.",
+    );
+  } else if (view.holdsForAnother === false) {
+    lines.push("A person said this data is your organization's own.");
+  }
+
   return lines;
 }
 

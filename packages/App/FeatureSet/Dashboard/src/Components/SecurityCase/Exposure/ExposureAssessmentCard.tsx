@@ -84,6 +84,7 @@ import ExposureObligationRow, {
   ObligationStatusPill,
 } from "./ExposureObligationRow";
 import ExposurePeoplePlaces from "./ExposurePeoplePlaces";
+import ExposureDataOwner from "./ExposureDataOwner";
 import DataSecurityApi from "../../DataSecurity/DataSecurityApi";
 import { getCountryName } from "../../DataSecurity/ComplianceFacts";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -102,6 +103,7 @@ import { DataSecurityExposureAssessmentResponse } from "Common/Types/DataSecurit
 import {
   BreachObligation,
   ExposureAssessmentView,
+  ExposureDataHeldFor,
   ExposureDataType,
   ExposureReadsLogged,
   ExposureSecret,
@@ -829,6 +831,22 @@ const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
       onSave={savePlaces}
     />
   );
+  // Whether the organization holds the data for another (#11427), and who said it.
+  const dataHeldFor: ExposureDataHeldFor | undefined =
+    props.answer.assessment?.dataHeldFor;
+  const heldForSaidBy: string | undefined = dataHeldFor?.saidByUserId
+    ? props.answer.editors[dataHeldFor.saidByUserId]
+    : undefined;
+  const saveDataHeldFor: (forAnother: boolean) => Promise<void> = async (
+    forAnother: boolean,
+  ): Promise<void> => {
+    props.onChanged(
+      await DataSecurityApi.setExposureDataHeldFor({
+        securityCaseId: props.caseId,
+        forAnother,
+      }),
+    );
+  };
 
   return (
     <Card
@@ -1052,6 +1070,15 @@ const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
         ) : (
           <div className={SECTION_CLASS_NAME}>{places}</div>
         )}
+
+        <div className={SECTION_CLASS_NAME}>
+          <ExposureDataOwner
+            said={dataHeldFor}
+            saidByName={heldForSaidBy}
+            canChange={props.answer.canChange}
+            onSave={saveDataHeldFor}
+          />
+        </div>
 
         <section
           className={SECTION_CLASS_NAME}
