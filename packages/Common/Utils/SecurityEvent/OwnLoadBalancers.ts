@@ -311,6 +311,157 @@ export function isGoogleCloudApplicationForwardingRule(
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * Google's front ends (#11047)
+ * ---------------------------------------------------------------------------
+ *
+ * Behind a Google Cloud global external Application Load Balancer, or a
+ * classic one, an app's connections come from Google's front ends (GFEs),
+ * not from the load balancer's own address, and the front end forwards
+ * `X-Forwarded-For: [<what the client sent>,] <client>, <load balancer>`.
+ * The load balancer's address is trusted with the rest of the project's
+ * own (#10546); the front ends' ranges must be too, or every attack through
+ * one is blamed on a front end.
+ *
+ * Google publishes them on its load balancing firewall rules page
+ * (GOOGLE_FRONT_END_RANGES_SOURCE), as the source ranges of the proxies of
+ * these load balancers - not as a list a program reads. Checked there on
+ * GOOGLE_FRONT_END_RANGES_CHECKED_ON, and against Google's own published
+ * lists of that day: both IPv4 ranges are in Google's ranges (goog.json:
+ * 35.184.0.0/13, 130.211.0.0/16) and in none Google Cloud lets a customer
+ * hold (cloud.json), and the IPv6 one is in neither, an address only
+ * Google's network writes. So nobody outside Google connects from them.
+ *
+ * Trusting them still never lets anyone outside Google name a client:
+ *
+ *   - through the project's own Application Load Balancer, the front end
+ *     appends the client and then the load balancer's own address, both
+ *     after anything the client wrote; walked from the right, the load
+ *     balancer is trusted (it is the project's), the client is not, and the
+ *     client is named;
+ *   - through anyone else's, the header ends with that load balancer's
+ *     address, which is not the project's, so the walk stops there and the
+ *     event names that load balancer - never a forged address before it.
+ *     (Another customer's load balancer reaches a backend outside its own
+ *     network only through an internet NEG, whose traffic leaves Google
+ *     from other ranges altogether: _cloud-eoips.googleusercontent.com.)
+ *
+ * But Google's TCP and SSL proxy load balancers - the global external proxy
+ * Network Load Balancer and the classic one - connect from these same
+ * ranges and pass a request on as the client sent it, X-Forwarded-For and
+ * all. With one in front of the project's apps, trusting the ranges would
+ * believe whatever a client wrote. So the ranges are trusted only while the
+ * project's connected Google Cloud projects hold an Application Load
+ * Balancer that uses them and no such proxy - and while every load
+ * balancer could be read, so that none was missed.
+ */
+
+export const GOOGLE_FRONT_END_RANGES: ReadonlyArray<string> = [
+  "35.191.0.0/16",
+  "130.211.0.0/22",
+  "2600:2d00:1:1::/64",
+];
+
+// Where Google publishes them, and when they were checked there.
+export const GOOGLE_FRONT_END_RANGES_SOURCE: string =
+  "https://cloud.google.com/load-balancing/docs/firewall-rules";
+export const GOOGLE_FRONT_END_RANGES_CHECKED_ON: string = "2026-11-27";
+
+// How a Google Cloud forwarding rule's load balancer uses Google's front ends.
+export enum GoogleFrontEndUse {
+  // An Application Load Balancer: its front ends add the client to X-Forwarded-For.
+  Forwards = "forwards",
+  /*
+   * A TCP or SSL proxy load balancer, or one OneUptime cannot tell is not:
+   * its front ends pass a request on as the client sent it.
+   */
+  PassesOn = "passes-on",
+}
+
+// What a forwarding rule routes to through a TCP or SSL proxy, before the proxy is looked up.
+const GCP_PASS_ON_TARGET_COLLECTIONS: ReadonlyArray<string> = [
+  "/targettcpproxies/",
+  "/targetsslproxies/",
+];
+
+/*
+ * A global backend service: what a forwarding rule reaches only through a
+ * target TCP or SSL proxy. A passthrough load balancer's rule names a
+ * regional one, and an Application Load Balancer's a URL map.
+ */
+const GCP_GLOBAL_BACKEND_SERVICES: string = "/global/backendservices/";
+
+function isGlobalForwardingRule(record: OwnLoadBalancerRecord): boolean {
+  return (record.providerResourceId || "")
+    .toLowerCase()
+    .includes("/global/forwardingrules/");
+}
+
+function routesOn(record: OwnLoadBalancerRecord): boolean {
+  return readCloudRelationships(record.cloudRelationships).some(
+    (relationship: CloudResourceRelationship): boolean => {
+      if (relationship.kind !== CloudRelationshipKind.RoutesTo) {
+        return false;
+      }
+
+      const target: string = relationship.target.toLowerCase();
+
+      return (
+        target.includes(GCP_GLOBAL_BACKEND_SERVICES) ||
+        GCP_PASS_ON_TARGET_COLLECTIONS.some((collection: string): boolean => {
+          return target.includes(collection);
+        })
+      );
+    },
+  );
+}
+
+/*
+ * Whether a Google Cloud forwarding rule's load balancer connects from
+ * Google's front ends, and how; null for one that does not.
+ *
+ * Only an external one does: the scheme EXTERNAL (a classic load balancer,
+ * global in the Premium Tier and regional in the Standard) or a global
+ * EXTERNAL_MANAGED (a global external load balancer). A regional
+ * EXTERNAL_MANAGED one connects from its region's proxy-only subnet, an
+ * internal one from inside the network - private addresses, trusted
+ * anyway - and a passthrough one passes the client's own connection on.
+ *
+ * Of those, one that routes to a URL map, through an HTTP or HTTPS proxy,
+ * forwards; one that routes through a TCP or SSL proxy passes on. A global
+ * external rule always routes through one of the four proxies, so one whose
+ * target OneUptime cannot tell passes on, toward trusting less. A regional
+ * EXTERNAL rule to a regional backend service or a target pool is a
+ * passthrough load balancer, which uses no front end.
+ */
+export function readGoogleFrontEndUse(
+  record: OwnLoadBalancerRecord,
+): GoogleFrontEndUse | null {
+  if (!isType(record, GCP_FORWARDING_RULE_TYPE)) {
+    return null;
+  }
+
+  const scheme: string = readText(
+    readProperties(record.cloudProperties)["loadBalancingScheme"],
+  ).toUpperCase();
+  const isGlobal: boolean = isGlobalForwardingRule(record);
+
+  if (scheme !== "EXTERNAL" && !(scheme === "EXTERNAL_MANAGED" && isGlobal)) {
+    return null;
+  }
+
+  if (isGoogleCloudApplicationForwardingRule(record)) {
+    return GoogleFrontEndUse.Forwards;
+  }
+
+  if (routesOn(record) || isGlobal) {
+    return GoogleFrontEndUse.PassesOn;
+  }
+
+  return null;
+}
+
+/*
  * The Application Gateway an Azure public IP address is attached to, by
  * its parsed ARM id, or null: one attached to a load balancer, a NAT
  * gateway, a virtual machine's interface or nothing is no gateway's.

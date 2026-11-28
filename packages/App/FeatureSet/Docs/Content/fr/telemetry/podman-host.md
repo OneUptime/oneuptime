@@ -140,6 +140,7 @@ Ouvrez **Produits → Infrastructure → Podman → Tous les hôtes**. L'hôte a
 | `ONEUPTIME_SERVICE_TOKEN` | Oui | La clé d'ingestion de **Paramètres du projet → Télémétrie & APM → Clés d'ingestion**. |
 | `PODMAN_HOST_NAME` | Non | Le nom de l'hôte dans OneUptime. Par défaut `podman-host` : donnez donc le sien à chaque hôte. |
 | `DOCKER_API_VERSION` | Non | La version de l'API Docker que l'agent parle avec le socket Podman. Vide par défaut : l'agent la négocie avec le socket. Ne la définissez que pour épingler une version (voir [Dépannage](#dépannage)). |
+| `ONEUPTIME_LOG_OPERATOR_1` à `ONEUPTIME_LOG_OPERATOR_5` | Non | Vos propres operators de collecteur, chacun en JSON, pour un format de journal que l'agent ne lit pas. Voir [Lire votre propre format de journal](#lire-votre-propre-format-de-journal). |
 
 Pour modifier une valeur, supprimez l'agent et exécutez de nouveau sa commande (Podman CLI), ou modifiez `docker-compose.yml` et exécutez `podman compose up -d` (Podman Compose).
 
@@ -200,6 +201,33 @@ log_size_max = 104857600
 ```
 
 Recréez ensuite les conteneurs. Un conteneur garde le pilote de journalisation avec lequel il a été créé : le redémarrer ne suffit donc pas.
+
+## Lire votre propre format de journal
+
+L'agent lit les niveaux des formats qu'écrivent la plupart des programmes. Pour un format qu'il ne lit pas, comme un format maison, donnez-lui jusqu'à cinq operators de collecteur personnalisés, chacun en JSON dans `ONEUPTIME_LOG_OPERATOR_1` à `ONEUPTIME_LOG_OPERATOR_5`. Ils s'exécutent sur chaque ligne de journal de conteneur après que l'agent a lu son conteneur et son flux, et avant qu'il lise le niveau de la ligne. Pour définir le niveau d'une ligne, écrivez-le dans `attributes.severity_text` sous la forme d'un mot que l'agent lit, comme `ERROR`, `warn` ou `critical`, et passez la ligne à `severity-router`, la première étape de l'agent. Un operator qui définit lui-même la gravité, comme un `severity_parser`, voit son résultat écrasé : l'agent lit le niveau de chaque ligne après vos operators.
+
+Pour des lignes comme `<<E>> payment failed`, dont la lettre est le niveau :
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+Le collecteur ne démarre pas s'il ne peut pas construire un operator, vérifiez-les donc avant que l'agent les exécute :
+
+- `install.sh`, lancé avec ces variables définies, les vérifie avec le propre `validate` du collecteur avant de toucher à votre agent actuel. Si le collecteur les refuse, le script s'arrête avec le message du collecteur, et votre agent continue de tourner.
+- Avec Podman Compose, placez-les dans le `.env` à côté de `docker-compose.yml`, chaque valeur entre guillemets simples, et exécutez `podman compose up -d`. Le service `oneuptime-podman-agent-config-check` effectue d'abord la même vérification. Quand `podman compose` exécute Docker Compose, l'agent ne démarre que si elle réussit ; podman-compose démarre l'agent quel que soit le résultat de la vérification, lisez donc sa sortie avec `podman compose logs oneuptime-podman-agent-config-check`.
+- Avec la Podman CLI, effectuez vous-même la vérification, avec les autres variables de l'agent, puis démarrez l'agent avec les mêmes options `-e` :
+
+```bash
+podman run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e PODMAN_HOST_NAME="my-podman-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/podman-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Agent Kubernetes](/docs/telemetry/kubernetes-agent#lire-votre-propre-format-de-journal) explique les operators de l'exemple, que l'agent Kubernetes accepte aussi.
 
 ## Mettre à jour l'agent
 

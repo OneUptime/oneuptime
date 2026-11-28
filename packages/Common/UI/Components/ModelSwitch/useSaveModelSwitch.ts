@@ -4,8 +4,10 @@ import ObjectID from "../../../Types/ObjectID";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
+  PermissionGateOptions,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { useRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import { announceModelSwitchSaved } from "./ModelSwitchEvents";
 import { ModelSwitchColumn } from "./ModelSwitchUtil";
 import {
@@ -83,9 +85,16 @@ const useSaveModelSwitch: <TBaseModel extends BaseModel>(data: {
     return new data.modelType();
   }, [data.modelType]);
 
+  // On the record's page, what its labels leave the reader (#11259).
+  const recordOptions: PermissionGateOptions | undefined = useRecordGateOptions(
+    model,
+    data.modelId,
+  );
+
   const gate: PermissionGateResult = PermissionGate.checkColumnUpdate(
     model,
     data.column,
+    recordOptions,
   );
 
   const save: () => void = useCallback((): void => {

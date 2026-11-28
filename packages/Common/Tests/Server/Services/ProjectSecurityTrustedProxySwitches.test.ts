@@ -19,9 +19,9 @@ import { describe, expect, it } from "@jest/globals";
  * (Project.securityReadAccessLogForwardedFor, off unless turned on).
  *
  * A Security Admin may turn either off and on, as a Project Owner or Admin
- * may, and reaches no other column of the project through them. Every role
- * that reads the project reads them, so Trusted Proxies says to everyone
- * what is trusted.
+ * may, and edit the Trusted Proxies list beside them (#11049), and reaches
+ * no other column of the project through them. Every role that reads the
+ * project reads them, so Trusted Proxies says to everyone what is trusted.
  */
 
 const SWITCHES: Array<string> = [
@@ -127,13 +127,39 @@ describe.each(SWITCHES)("who may flip %s", (column: string) => {
 describe("a Security Admin reaches nothing else of the project through them", () => {
   it.each([
     ["the project's name", { name: "Renamed" }],
-    ["its trusted proxies", { securityTrustedProxies: "203.0.113.0/24" }],
     ["its AI switch", { enableAi: false }],
     ["its plan", { paymentProviderPlanId: "plan_enterprise" }],
+    ["its risk threshold", { securityRiskCaseThreshold: 10 }],
   ])("not %s", (_what: string, data: Record<string, unknown>) => {
     for (const column of SWITCHES) {
       expect(
         mayWrite({ ...data, [column]: false }, Permission.SecurityAdmin),
+      ).toBe(false);
+    }
+  });
+});
+
+describe("a Security Admin sets Trusted Proxies as a whole (#11049)", () => {
+  it("the list and both switches in one save", () => {
+    expect(
+      mayWrite(
+        {
+          securityTrustedProxies: "203.0.113.0/24",
+          securityTrustOwnLoadBalancers: false,
+          securityReadAccessLogForwardedFor: true,
+        },
+        Permission.SecurityAdmin,
+      ),
+    ).toBe(true);
+  });
+
+  it("but a Security Member or Viewer none of them", () => {
+    for (const permission of [
+      Permission.SecurityMember,
+      Permission.SecurityViewer,
+    ]) {
+      expect(
+        mayWrite({ securityTrustedProxies: "203.0.113.0/24" }, permission),
       ).toBe(false);
     }
   });

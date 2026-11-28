@@ -8,6 +8,7 @@ import BUILT_IN_DETECTORS, {
 import {
   DIGIT_OF_EVERY_SCRIPT_PREFILTER,
   expandBackReferences,
+  FULLWIDTH_FORM_PREFILTER,
   getDataTypePrefilter,
   getDetectorPrefilter,
   MAX_PREFILTER_LENGTH,
@@ -15,6 +16,11 @@ import {
   RE2_MAX_REPEAT,
   toRe2Prefilter,
 } from "../../../Utils/DataSecurity/DetectorPrefilter";
+import { DIGIT_ZEROS } from "../../../Utils/DataSecurity/DigitReadings";
+import {
+  FULLWIDTH_FORMS,
+  holdsFullwidthFormOfANumber,
+} from "../../../Utils/DataSecurity/FullwidthForms";
 import {
   findSensitiveValues,
   ScanDetector,
@@ -452,6 +458,87 @@ describe("a data type's expression", () => {
         "GET /health returned 200 in 12ms for the checkout service",
       ),
     ).toBe(false);
+  });
+
+  /*
+   * #11115: a number typed wholly in fullwidth - its plus sign, hyphens,
+   * parentheses and ideographic spaces - may hold only ASCII digits, which
+   * the patterns' expressions read with ASCII separators: the type of
+   * every detector that reads those forms takes a text with one of them
+   * beside a digit, exactly the texts the reading reads.
+   */
+  test("a number's type takes one typed in fullwidth, its signs and separators too (#11115)", () => {
+    for (const dataTypeId of [
+      "phone-number",
+      "us-ssn",
+      "credit-card-number",
+      "iban",
+      "br-cpf",
+    ]) {
+      const expression: string = getDataTypePrefilter({ dataTypeId })!;
+
+      expect([dataTypeId, isRe2Syntax(expression)]).toEqual([dataTypeId, true]);
+      expect(expression).toContain(FULLWIDTH_FORM_PREFILTER);
+      expect(expression.length).toBeLessThanOrEqual(MAX_PREFILTER_LENGTH);
+    }
+
+    const phone: RegExp = asJavaScript(
+      getDataTypePrefilter({ dataTypeId: "phone-number" })!,
+    );
+
+    for (const text of [
+      "電話：＋81 3－1234－5678",
+      "電話：＋８１ ３－１２３４－５６７８",
+      "tel：　02012345678",
+    ]) {
+      expect([
+        text,
+        findSensitiveValues(text, {
+          detectors: getBuiltInDetectorsOf("phone-number"),
+        }).length > 0,
+        phone.test(text),
+      ]).toEqual([text, true, true]);
+    }
+
+    // CJK prose holds forms beside no digit: the search still narrows.
+    expect(phone.test("（注）設定を確認してください。　以上")).toBe(false);
+  });
+
+  test("the fullwidth forms' expression takes a form beside a digit of any script, and nothing else", () => {
+    const beside: RegExp = asJavaScript(FULLWIDTH_FORM_PREFILTER);
+
+    expect(isRe2Syntax(FULLWIDTH_FORM_PREFILTER)).toBe(true);
+
+    for (const form of FULLWIDTH_FORMS) {
+      for (const zero of DIGIT_ZEROS) {
+        const digit: string = String.fromCharCode(zero + 5);
+        const character: string = String.fromCharCode(form);
+
+        expect([
+          form.toString(16),
+          zero.toString(16),
+          beside.test(`${character}${digit}`),
+          beside.test(`${digit}${character}`),
+          beside.test(`${character}x${digit}`),
+        ]).toEqual([form.toString(16), zero.toString(16), true, true, false]);
+      }
+    }
+
+    // What it takes is what the reading reads.
+    for (const text of [
+      "＋81",
+      "3－",
+      "（注）",
+      "a－b",
+      "1 －",
+      "東京　大阪",
+      "１２　３４",
+    ]) {
+      expect([text, beside.test(text)]).toEqual([
+        text,
+        holdsFullwidthFormOfANumber(text),
+      ]);
+    }
   });
 
   test("a secret's type takes a text holding an escape: a token after an encoded = (#11031)", () => {

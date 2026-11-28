@@ -84,19 +84,17 @@ tests:
 
   # `redis-cli` happens to survive as a symlink inside the valkey image, so a
   # stale probe command would keep passing here and silently rot the day that
-  # symlink goes away. Pin the probes to the real binary name.
+  # symlink goes away. Pin the readiness probe to the real binary name. (The
+  # liveness probe is a TCP connect and runs no binary: valkey-memory_test.)
   - it: probes with valkey-cli
     templates:
       - templates/valkey-statefulset.yaml
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].livenessProbe.exec.command[0]
-          value: valkey-cli
-      - equal:
           path: spec.template.spec.containers[0].readinessProbe.exec.command[0]
           value: valkey-cli
       - equal:
-          path: spec.template.spec.containers[0].livenessProbe.exec.command[2]
+          path: spec.template.spec.containers[0].readinessProbe.exec.command[2]
           value: $(VALKEY_PASSWORD)
 
   # Both Services resolve targetPort by NAME against the container port. A

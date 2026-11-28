@@ -2320,7 +2320,10 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
      * owner" - waits for "Scheduled Maintenance Created" until then, on every
      * App server, and follows it in the order it was made
      * (WorkspaceCreatedMessageFirst): its channels hear of the event first,
-     * then of what happened to it.
+     * then of what happened to it. Held since the event was written
+     * (DatabaseService.create, before even a creator whose role creates only
+     * what they own is made its owner, #11352): this chain takes the hold
+     * over here, and lets it go below.
      */
     await WorkspaceCreatedMessageFirst.hold({
       scheduledMaintenanceId: createdItem.id!,

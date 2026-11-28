@@ -250,6 +250,37 @@ describe("ProbeAPI", () => {
       );
     });
 
+    it("should let Settings > Global Probes read whether a global probe is behind, since when and by how much", async () => {
+      await callGlobalProbes({
+        body: {
+          select: {
+            connectionStatus: true,
+            checksLateSince: true,
+            checksLastLateAt: true,
+            checksLastLateDueAt: true,
+            devicePollsLateSince: true,
+            devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
+            key: true,
+          },
+        },
+      });
+
+      expect(ProbeService.findBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: {
+            connectionStatus: true,
+            checksLateSince: true,
+            checksLastLateAt: true,
+            checksLastLateDueAt: true,
+            devicePollsLateSince: true,
+            devicePollsLastLateAt: true,
+            devicePollsLastLateDueAt: true,
+          },
+        }),
+      );
+    });
+
     it("should drop selected fields outside the select list", async () => {
       await callGlobalProbes({
         body: {

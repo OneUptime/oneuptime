@@ -728,11 +728,24 @@ const SLO_NOTES: ReadonlyArray<StatusChangeNote> = [
   },
 ];
 
-// The budgets' alerts, resolved when their month ends.
+/*
+ * The budgets' alerts, resolved when their window ends: a cloud budget's
+ * month, quarter or year (#11008), an OpenStack budget's month.
+ */
 const BUDGET_NOTES: ReadonlyArray<StatusChangeNote> = [
   {
     written: translationKey(
       "Resolved by OneUptime: the month this cloud budget alert was raised in is over.",
+    ),
+  },
+  {
+    written: translationKey(
+      "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.",
+    ),
+  },
+  {
+    written: translationKey(
+      "Resolved by OneUptime: the year this cloud budget alert was raised in is over.",
     ),
   },
   {

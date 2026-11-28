@@ -29,9 +29,11 @@ import Probe, {
  * (NetworkDeviceService.getOldestWaitingPollDueAt); and from each, what
  * Types/Probe/ProbeBehind keeps on the probe - the first and the latest
  * reading that found a check, or a poll, waiting more than a minute past
- * its time. The probe's page in the Dashboard, the probe lists, the Admin
- * Dashboard's OneUptime Health, Probe Status monitors and the master
- * admins' notifications read those.
+ * its time, and when the longest-waiting one was due at the latest, so the
+ * probe lists can say how far behind it is ("Behind by 15 minutes"). The
+ * probe's page in the Dashboard, the probe lists, the Admin Dashboard's
+ * OneUptime Health, Probe Status monitors and the master admins'
+ * notifications read those.
  *
  * A probe that is not connected keeps nothing: Disconnected says more, and
  * a probe that comes back starts again from on time. Writes only what
@@ -52,8 +54,10 @@ type ProbeWithLateWork = Pick<
   | "id"
   | "checksLateSince"
   | "checksLastLateAt"
+  | "checksLastLateDueAt"
   | "devicePollsLateSince"
   | "devicePollsLastLateAt"
+  | "devicePollsLastLateDueAt"
 >;
 
 /*
@@ -98,6 +102,8 @@ const writeLateWork: (data: {
       data.lateChecks.checksLateSince;
     (update as Record<string, unknown>)["checksLastLateAt"] =
       data.lateChecks.checksLastLateAt;
+    (update as Record<string, unknown>)["checksLastLateDueAt"] =
+      data.lateChecks.checksLastLateDueAt;
   }
 
   if (data.latePolls) {
@@ -105,6 +111,8 @@ const writeLateWork: (data: {
       data.latePolls.devicePollsLateSince;
     (update as Record<string, unknown>)["devicePollsLastLateAt"] =
       data.latePolls.devicePollsLastLateAt;
+    (update as Record<string, unknown>)["devicePollsLastLateDueAt"] =
+      data.latePolls.devicePollsLastLateDueAt;
   }
 
   await ProbeService.updateColumnsByIdWithoutHooks({
@@ -129,8 +137,10 @@ export const updateProbesBehind: (options?: {
       _id: true,
       checksLateSince: true,
       checksLastLateAt: true,
+      checksLastLateDueAt: true,
       devicePollsLateSince: true,
       devicePollsLastLateAt: true,
+      devicePollsLastLateDueAt: true,
     },
     skip: 0,
     limit: LIMIT_MAX,
@@ -188,6 +198,7 @@ export const updateProbesBehind: (options?: {
             now: now,
           }),
           now: now,
+          oldestDueAt: oldestCheckDueAt.get(probeId),
         })
       : undefined;
 
@@ -200,6 +211,7 @@ export const updateProbesBehind: (options?: {
               now: now,
             }),
             now: now,
+            oldestDueAt: oldestPollDueAt.get(probeId),
           }),
         )
       : undefined;

@@ -485,6 +485,53 @@ Hendelser over flere linjer settes sammen igjen før filtreringen i begge moduse
 > [!IMPORTANT]
 > Kubernetes-hendelser og ressursspesifikasjoner filtreres aldri av dette. De kommer fra Kubernetes-API-et uten egen alvorlighetsgrad, så en terskel ville slettet hele strømmen, inkludert advarslene `FailedScheduling`, `BackOff` og `OOMKilling` som du mest av alt vil ha. De er få og verdifulle, så agenten sender dem alltid; for å tynne dem ut, bruk **Logger → Innstillinger → Drop-filtre** i OneUptime.
 
+### Lese ditt eget loggformat
+
+Agenten leser nivåene i formatene de fleste programmer skriver. For et format den ikke leser, for eksempel et internt, legger du til dine egne collector-operatorer med `logs.extraOperators`. De kjører på hver pod-logglinje i `daemonset`-modus, etter at agenten har satt sammen linjen igjen og lest poden og strømmen dens, og før den leser nivået til linjen.
+
+For å sette nivået til en linje skriver du det til `attributes.severity_text` som et ord agenten leser, for eksempel `ERROR`, `warn`, `critical` eller en klog-bokstav. Agenten leser det før noen av sine egne lesere, og lagrer det slik OneUptime lagrer det ordet alle andre steder. Send deretter linjen videre til `severity-router`, agentens første trinn, eller la den gå videre til den neste operatoren din.
+
+For linjer som `<<E>> payment failed` og `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+Chartet sjekker operatorene når du installerer eller oppgraderer. En verdi collectoren ville avvist, får `helm install` til å feile med en melding som navngir operatoren, i stedet for å etterlate et DaemonSet som starter på nytt igjen og igjen: en type collectoren i `image.tag` ikke har, en innstilling typen trenger, et felt, en id som allerede er tatt, en `output` som ikke peker på noe, et regex eller en streng i et uttrykk. I en streng i et uttrykk skrives backslashen i et regex to ganger, som i `"^\\d+ "`, eller så settes regexet i en rå streng, mellom backticks. Resten av et uttrykk kompileres av collectoren når den starter.
+
+Chartet avviser også tre typer operatorer som collectoren ville kjørt, og sier hvorfor:
+
+- En som setter alvorlighetsgraden til linjen selv, for eksempel en `severity_parser`, en `syslog_parser` eller `severity`-blokken i en parser. Agenten leser nivået til hver linje etter operatorene dine og ville overskrevet den, så skriv heller nivået til `attributes.severity_text`.
+- En router uten `default`, eller en rute uten `output`. Linjene den ikke gir videre til noen operator, droppes.
+- Parseren `container`. Agenten har allerede lest formatet til container-kjøretiden, så operatorene dine ser programmets egen linje.
+
+`logs.extraOperators` krever `daemonset`-modus. Logg-taileren i `api`-modus kjører ingen collector-operatorer, så chartet avviser innstillingen der, og Windows-podene i en hybridinstallasjon (`logs.windowsPods.enabled`) får den ikke.
+
 ### Inkludere eller utelukke målinger etter navn
 
 `filters.metrics` bestemmer hvilke målinger som forlater klyngen, på tvers av alle receivere.

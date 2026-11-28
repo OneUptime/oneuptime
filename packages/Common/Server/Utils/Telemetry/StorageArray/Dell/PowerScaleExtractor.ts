@@ -1,4 +1,5 @@
 import StorageArrayResourceKind from "../../../../../Types/StorageArray/StorageArrayResourceKind";
+import lookupTable from "../../../../../Utils/LookupTable";
 import DellPowerScalePlatform, {
   POWERSCALE_NODE_KIND,
   POWERSCALE_QUOTA_KIND,
@@ -58,15 +59,19 @@ const NODE_STATUSES: Record<number, string> = {
   3: "unknown",
 };
 
-// ISILON-MIB quotaType.
-const QUOTA_TYPES: Record<string, string> = {
+/*
+ * ISILON-MIB quotaType. Read by the type the agent's series carries, so a
+ * Map (lookupTable): it answers only for the types it lists, never for a
+ * name every object inherits ("constructor").
+ */
+const QUOTA_TYPES: ReadonlyMap<string, string> = lookupTable<string>({
   "0": "default-user",
   "1": "user",
   "2": "default-group",
   "3": "group",
   "4": "directory",
   "5": "special",
-};
+});
 
 // IF-MIB ifOperStatus.
 const INTERFACE_STATUSES: Record<number, string> = {
@@ -79,14 +84,14 @@ const INTERFACE_STATUSES: Record<number, string> = {
   7: "down",
 };
 
-// IF-MIB ifType, for the ports a OneFS node has.
-const INTERFACE_TYPES: Record<string, string> = {
+// IF-MIB ifType, for the ports a OneFS node has: by the series' type, as QUOTA_TYPES.
+const INTERFACE_TYPES: ReadonlyMap<string, string> = lookupTable<string>({
   "6": "ethernet",
   "53": "virtual",
   "135": "vlan",
   "161": "aggregate",
   "199": "infiniband",
-};
+});
 
 // The OneFS version in a node's sysDescr: "<node> <id> Isilon OneFS v9.11.0.0".
 const ONEFS_VERSION: RegExp = /\bOneFS\s+v?(\d+(?:\.\d+)+)/i;
@@ -240,7 +245,7 @@ function quotaName(series: StorageArraySeries): string | null {
   if ((type === "1" || type === "3") && id) {
     return `${path} (${type === "1" ? "user" : "group"} ${id})`;
   }
-  return `${path} (${(QUOTA_TYPES[type] || type).replace("-", " ")})`;
+  return `${path} (${(QUOTA_TYPES.get(type) || type).replace("-", " ")})`;
 }
 
 /*
@@ -304,7 +309,7 @@ function readQuota(series: StorageArraySeries): void {
   }
   const type: string | null = series.label("type");
   if (type !== null) {
-    patch.componentType = QUOTA_TYPES[type] || type;
+    patch.componentType = QUOTA_TYPES.get(type) || type;
   }
   const owner: string | null = series.label("id");
   if (owner && owner !== "0" && (type === "1" || type === "3")) {
@@ -561,7 +566,7 @@ function readInterface(series: StorageArraySeries, node: string): void {
   patch.details["node"] = node;
   patch.details["port"] = port;
   const type: string | null = series.label("interface_type");
-  patch.componentType = (type && INTERFACE_TYPES[type]) || "port";
+  patch.componentType = (type && INTERFACE_TYPES.get(type)) || "port";
   // A port an administrator turned off is not down.
   patch.status =
     series.label("admin_status") === "2"

@@ -1,5 +1,7 @@
-import { DataTypeDetector } from "./Detector";
+import { anyWordIn, anyWordNear } from "./ContextWords";
+import { CONTEXT_AFTER, CONTEXT_BEFORE, DataTypeDetector } from "./Detector";
 import { readDigitsOfEveryScript } from "./DigitReadings";
+import { readFullwidthForms } from "./FullwidthForms";
 import PercentDecodedText from "./PercentDecodedText";
 import PlusAsSpaceText from "./PlusAsSpaceText";
 
@@ -17,22 +19,31 @@ import PlusAsSpaceText from "./PlusAsSpaceText";
  * as a URL's query string reads it: a "+" for the space a form writes it
  * as, its escapes read (readsPlusAsSpace, #11199:
  * card=4111+1111+1111+1111, PlusAsSpaceText) - with every script's digits
- * read there too when it reads them. A match found in a reading is placed
- * on the characters the text writes it with, so what it finds - and what a
- * scrub rule hides - is the value as written, escapes and "+"s and all.
+ * read there too when it reads them. A detector of a number also reads
+ * each of those with a number's fullwidth signs and separators read as
+ * their ASCII characters, as Japanese and Chinese text types one
+ * (readsFullwidthForms, #11115: ＋８１ ３－１２３４－５６７８,
+ * FullwidthForms) - with every script's digits read in that too. A match
+ * found in a reading is placed on the characters the text writes it with,
+ * so what it finds - and what a scrub rule hides - is the value as
+ * written, escapes and "+"s and fullwidth forms and all.
  *
  * Data Security's scanner (TextScanner.ts) reads each window so, for the
  * detectors that ask; and every scrub rule built on the detectors finds its
  * matches through findDetectorRanges here: the IP Address rule
- * (Utils/Telemetry/ScrubIpAddress.ts), the Email Address and Credit Card
- * rules (Utils/Telemetry/ScrubBuiltInPatterns.ts), and a metric pipeline
- * rule's Holds Data Type filter (Server/Utils/Telemetry/
- * MetricPipelineEngine.ts). So a finding and the rule that covers it read a
- * text the same ways, in every place a rule runs.
+ * (Utils/Telemetry/ScrubIpAddress.ts), the Email Address, Credit Card,
+ * Phone Number and SSN rules (Utils/Telemetry/ScrubBuiltInPatterns.ts) and
+ * a metric pipeline rule's Matches Pattern Type filter, which compiles
+ * those (Server/Utils/Telemetry/MetricPipelineEngine.ts). A detector whose
+ * type is one only beside its words (requiresContext: a national phone
+ * number, nine digits beside "SSN", #11114) finds a value there only with
+ * one of its words near it, as the scanner judges it (isWordNear). So a
+ * finding and the rule that covers it read a text the same ways, in every
+ * place a rule runs.
  *
  * Each reading is made the first time a detector asks for it, once a text,
- * in one pass (PercentDecodedText, PlusAsSpaceText, DigitReadings): in time
- * in line with the text's length.
+ * in one pass (PercentDecodedText, PlusAsSpaceText, DigitReadings,
+ * FullwidthForms): in time in line with the text's length.
  */
 
 // A range of a text: [start, end).
@@ -50,6 +61,7 @@ export interface ReadingNeeds {
   readsPercentEncoded?: boolean | undefined;
   readsDigitsOfEveryScript?: boolean | undefined;
   readsPlusAsSpace?: boolean | undefined;
+  readsFullwidthForms?: boolean | undefined;
 }
 
 function samePosition(position: number): number {
@@ -59,7 +71,9 @@ function samePosition(position: number): number {
 /*
  * The readings of one text, each made the first time it is asked for: the
  * text as written, as its percent-escapes read, as a URL's query string
- * reads it, and with every script's digits read by their values.
+ * reads it, with every script's digits read by their values, and each of
+ * the first three with a number's fullwidth signs and separators read as
+ * ASCII.
  */
 export class TextReadings {
   public readonly written: TextReading;
@@ -70,9 +84,87 @@ export class TextReadings {
   private plusAsSpaceDigitReadings: Array<TextReading> | undefined = undefined;
   private digitReadings: Array<TextReading> | undefined = undefined;
   private decodedDigitReadings: Array<TextReading> | undefined = undefined;
+  // Each reading's fullwidth reading (FullwidthForms), or null for none.
+  private readonly fullwidthOf: Map<TextReading, TextReading | null> = new Map<
+    TextReading,
+    TextReading | null
+  >();
+  // The digit readings of each fullwidth reading.
+  private readonly fullwidthDigitsOf: Map<TextReading, Array<TextReading>> =
+    new Map<TextReading, Array<TextReading>>();
+  // Each reading in lower case, made the first time its words are read.
+  private readonly lowerCase: Map<TextReading, string> = new Map<
+    TextReading,
+    string
+  >();
 
   public constructor(text: string) {
     this.written = { text: text, toWritten: samePosition };
+  }
+
+  /*
+   * A reading in lower case, where the words around a value are looked
+   * for (isWordNear): made once a reading, whoever asks.
+   */
+  public lowerCaseOf(reading: TextReading): string {
+    let lower: string | undefined = this.lowerCase.get(reading);
+
+    if (lower === undefined) {
+      lower = reading.text.toLowerCase();
+      this.lowerCase.set(reading, lower);
+    }
+
+    return lower;
+  }
+
+  /*
+   * A reading of the text - as written, with its escapes read, or as a
+   * query string reads it - with a number's fullwidth signs and separators
+   * read as ASCII (FullwidthForms, #11115): ＋８１ ３－１２３４－５６７８ as
+   * +８１ ３-１２３４-５６７８, whose digits every script's digit readings then
+   * read. Null when the reading holds no such form beside a digit. As long
+   * as the reading it folds, so placed as that one places it.
+   */
+  public getFullwidthFormsOf(base: TextReading): TextReading | null {
+    let folded: TextReading | null | undefined = this.fullwidthOf.get(base);
+
+    if (folded === undefined) {
+      const text: string | null = readFullwidthForms(base.text);
+
+      folded = text === null ? null : { text, toWritten: base.toWritten };
+      this.fullwidthOf.set(base, folded);
+    }
+
+    return folded;
+  }
+
+  // The text as written with its fullwidth forms read, or null (getFullwidthFormsOf).
+  public getFullwidthForms(): TextReading | null {
+    return this.getFullwidthFormsOf(this.written);
+  }
+
+  /*
+   * A fullwidth reading with each script's digits read alone, then all of
+   * them together, as getDigitsOfEveryScript reads the text: a number
+   * typed wholly in fullwidth, its digits and its separators (#11115).
+   * Placed as the fullwidth reading places it.
+   */
+  public getDigitsOfEveryScriptOfFullwidth(
+    folded: TextReading,
+  ): Array<TextReading> {
+    let readings: Array<TextReading> | undefined =
+      this.fullwidthDigitsOf.get(folded);
+
+    if (readings === undefined) {
+      readings = readDigitsOfEveryScript(folded.text).map(
+        (reading: string): TextReading => {
+          return { text: reading, toWritten: folded.toWritten };
+        },
+      );
+      this.fullwidthDigitsOf.set(folded, readings);
+    }
+
+    return readings;
   }
 
   // The text with its percent-escapes read, or null when it holds none.
@@ -185,8 +277,12 @@ export class TextReadings {
     return this.plusAsSpaceDigitReadings;
   }
 
-  // Every reading a detector reads, the text as written first.
-  public readingsFor(needs: ReadingNeeds): Array<TextReading> {
+  /*
+   * The readings that read a text's words and signs differently, of those
+   * a detector reads: as written, with its escapes read, as a query string
+   * reads it.
+   */
+  private baseReadingsFor(needs: ReadingNeeds): Array<TextReading> {
     const readings: Array<TextReading> = [this.written];
 
     if (needs.readsPercentEncoded) {
@@ -204,6 +300,43 @@ export class TextReadings {
         readings.push(spaced);
       }
     }
+
+    return readings;
+  }
+
+  // The fullwidth readings of the base readings a detector reads, for one that asks.
+  private fullwidthReadingsFor(
+    needs: ReadingNeeds,
+    bases: ReadonlyArray<TextReading>,
+  ): Array<TextReading> {
+    const readings: Array<TextReading> = [];
+
+    if (!needs.readsFullwidthForms) {
+      return readings;
+    }
+
+    for (const base of bases) {
+      const folded: TextReading | null = this.getFullwidthFormsOf(base);
+
+      if (folded) {
+        readings.push(folded);
+      }
+    }
+
+    return readings;
+  }
+
+  /*
+   * Every reading a detector reads, the text as written first, and the
+   * fullwidth ones last, so a detector that does not read them reads what
+   * it always has, in the order it always has.
+   */
+  public readingsFor(needs: ReadingNeeds): Array<TextReading> {
+    const readings: Array<TextReading> = this.baseReadingsFor(needs);
+    const folded: Array<TextReading> = this.fullwidthReadingsFor(
+      needs,
+      readings,
+    );
 
     if (needs.readsDigitsOfEveryScript) {
       for (const reading of this.getDigitsOfEveryScript()) {
@@ -223,6 +356,18 @@ export class TextReadings {
       }
     }
 
+    for (const reading of folded) {
+      readings.push(reading);
+    }
+
+    if (needs.readsDigitsOfEveryScript) {
+      for (const reading of folded) {
+        for (const digits of this.getDigitsOfEveryScriptOfFullwidth(reading)) {
+          readings.push(digits);
+        }
+      }
+    }
+
     return readings;
   }
 
@@ -235,8 +380,10 @@ export class TextReadings {
    * none - "(718) 487-63058", which a form writes %28718%29+487-63058,
    * read so holds the international number +487-63058. The query
    * string's reading reads every escape that one does, an escaped "+" as
-   * the "+" it is. A rule's own pattern still reads every reading
-   * (findInEveryReading), so it hides at least what a finding is.
+   * the "+" it is. The same holds of the escapes' reading with its
+   * fullwidth forms read (#11115), and its digits. A rule's own pattern
+   * still reads every reading (findInEveryReading), so it hides at least
+   * what a finding is.
    */
   public detectorReadingsFor(needs: ReadingNeeds): Array<TextReading> {
     const readings: Array<TextReading> = this.readingsFor(needs);
@@ -252,23 +399,37 @@ export class TextReadings {
     const decoded: TextReading | null = this.getPercentDecoded();
     const decodedDigits: Array<TextReading> =
       this.getDigitsOfEveryScriptPercentDecoded();
+    const decodedFolded: TextReading | null = decoded
+      ? this.fullwidthOf.get(decoded) ?? null
+      : null;
+    const decodedFoldedDigits: Array<TextReading> = decodedFolded
+      ? this.fullwidthDigitsOf.get(decodedFolded) || []
+      : [];
 
     return readings.filter((reading: TextReading): boolean => {
-      return reading !== decoded && !decodedDigits.includes(reading);
+      return (
+        reading !== decoded &&
+        reading !== decodedFolded &&
+        !decodedDigits.includes(reading) &&
+        !decodedFoldedDigits.includes(reading)
+      );
     });
   }
 
   /*
    * The readings that read a text's words differently, of those a
    * detector reads: as written, with its escapes read, as a query string
-   * reads it - every script's digits change no word. Where the words a
-   * candidate needs around it are looked for: date%20of%20birth and
-   * date+of+birth are the words date of birth (#11199).
+   * reads it, and each of those with its fullwidth forms read - an
+   * ideographic space between two words is a space (#11115) - for a
+   * detector that reads them; every script's digits change no word. Where
+   * the words a candidate needs around it are looked for: date%20of%20birth
+   * and date+of+birth are the words date of birth (#11199).
    */
   public wordReadingsFor(needs: ReadingNeeds): Array<TextReading> {
     return this.readingsFor({
       readsPercentEncoded: needs.readsPercentEncoded,
       readsPlusAsSpace: needs.readsPlusAsSpace,
+      readsFullwidthForms: needs.readsFullwidthForms,
     });
   }
 }
@@ -453,6 +614,89 @@ export function acceptedRangesIn(
   return ranges;
 }
 
+// What a detector's words are, and how far around a candidate they are looked for.
+export interface ContextOfDetector extends ReadingNeeds {
+  keywords?: ReadonlyArray<string> | undefined;
+  contextBefore?: number | undefined;
+  contextAfter?: number | undefined;
+}
+
+// How far before and after a candidate its detector's words are looked for.
+export function contextReachOf(detector: ContextOfDetector): {
+  before: number;
+  after: number;
+} {
+  return {
+    before: detector.contextBefore ?? CONTEXT_BEFORE,
+    after: detector.contextAfter ?? CONTEXT_AFTER,
+  };
+}
+
+/*
+ * Whether a text holds any of a detector's words, in a reading that reads
+ * its words (wordReadingsFor) - as written, with its escapes read, as a
+ * query string reads it, its fullwidth forms read: the scanner reads no
+ * candidate of a type that needs its words in a text that holds none, nor
+ * do the rules built on the detectors.
+ */
+export function holdsWordsOf(
+  readings: TextReadings,
+  detector: ContextOfDetector,
+): boolean {
+  return readings
+    .wordReadingsFor(detector)
+    .some((reading: TextReading): boolean => {
+      return anyWordIn(readings.lowerCaseOf(reading), detector.keywords);
+    });
+}
+
+/*
+ * WHETHER A DETECTOR'S WORDS SIT NEAR A CANDIDATE, AS THE SCANNER JUDGES
+ * IT (#11114).
+ *
+ * A candidate found in a reading of a text - [start, end) of that reading
+ * - has its words near it when one is a word of the text as written, from
+ * `before` characters before where it is written to `after` characters
+ * after, or of the reading it was found in, around it there:
+ * "aws%20secret%20access%20key%3A" reads "aws secret access key:"
+ * (#11031). The scanner judges every candidate so (TextScanner.scanWindow),
+ * and the rules built on the detectors judge a candidate of a type that is
+ * one only beside its words so too (findDetectorRanges): "tel 0201234567"
+ * is a phone number, "order 0201234567" is none.
+ */
+export function isWordNear(data: {
+  readings: TextReadings;
+  // The reading the candidate was found in, and where in it.
+  reading: TextReading;
+  start: number;
+  end: number;
+  words: ReadonlyArray<string> | undefined;
+  before: number;
+  after: number;
+}): boolean {
+  const readings: TextReadings = data.readings;
+
+  return (
+    anyWordNear(
+      readings.lowerCaseOf(readings.written),
+      data.reading.toWritten(data.start),
+      data.reading.toWritten(data.end),
+      data.words,
+      data.before,
+      data.after,
+    ) ||
+    (data.reading !== readings.written &&
+      anyWordNear(
+        readings.lowerCaseOf(data.reading),
+        data.start,
+        data.end,
+        data.words,
+        data.before,
+        data.after,
+      ))
+  );
+}
+
 /*
  * THE ONE FUNCTION A RULE BUILT ON THE DETECTORS FINDS ITS MATCHES WITH.
  *
@@ -460,6 +704,15 @@ export function acceptedRangesIn(
  * left to right, none overlapping. Each detector reads the text as written,
  * and in each reading it asks for, placed on the written characters; what
  * two detectors or two readings share is one range.
+ *
+ * A detector of a type that is one only beside a word that names it
+ * (requiresContext) finds a value only with one of its words near it, as
+ * the scanner judges it (isWordNear, #11114): a national phone number of
+ * no other shape beside "tel", nine digits in a row beside "SSN". So a rule
+ * hides what Data Security finds in the value it reads, words and all, and
+ * never a run of digits no word names. The field's name the scanner also
+ * counts as a word (hintedDataTypeIds) is not the value's, and a rule
+ * reads the value alone.
  */
 export function findDetectorRanges(
   detectors: ReadonlyArray<DataTypeDetector>,
@@ -475,14 +728,34 @@ export function findDetectorRanges(
   const found: Array<TextRange> = [];
 
   for (const detector of detectors) {
+    if (detector.requiresContext && !holdsWordsOf(readings, detector)) {
+      continue;
+    }
+
+    const reach: { before: number; after: number } = contextReachOf(detector);
+
     for (const reading of readings.detectorReadingsFor(detector)) {
       for (const [start, end] of acceptedRangesIn(detector, reading.text)) {
         const writtenStart: number = reading.toWritten(start);
         const writtenEnd: number = reading.toWritten(end);
 
-        if (!isGluedToAnEscape(detector, text, writtenStart, writtenEnd)) {
-          found.push([writtenStart, writtenEnd]);
+        if (
+          isGluedToAnEscape(detector, text, writtenStart, writtenEnd) ||
+          (detector.requiresContext &&
+            !isWordNear({
+              readings,
+              reading,
+              start,
+              end,
+              words: detector.keywords,
+              before: reach.before,
+              after: reach.after,
+            }))
+        ) {
+          continue;
         }
+
+        found.push([writtenStart, writtenEnd]);
       }
     }
   }

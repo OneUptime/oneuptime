@@ -8,6 +8,10 @@ import {
   foldDigits,
   hasDigitBeyondAscii,
 } from "../../Utils/DataSecurity/DigitReadings";
+import {
+  foldFullwidthForms,
+  holdsFullwidthFormOfANumber,
+} from "../../Utils/DataSecurity/FullwidthForms";
 import PercentDecodedText from "../../Utils/DataSecurity/PercentDecodedText";
 import PlusAsSpaceText from "../../Utils/DataSecurity/PlusAsSpaceText";
 import {
@@ -521,10 +525,27 @@ const CUSTOM_PATTERN_READINGS: ReadingNeeds = {
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
+  readsFullwidthForms: true,
 };
 
 /*
- * A CUSTOM PATTERN, IN EVERY READING OF A VALUE (#11031, #11033, #11199).
+ * Whether a text may read otherwise than as written, in a way a custom
+ * pattern reads it: an escape, a "+", a digit beyond ASCII, or a number's
+ * fullwidth sign or separator. Nearly no text does, and is read as
+ * written alone.
+ */
+export function mayReadOtherwise(text: string): boolean {
+  return (
+    text.indexOf("%") !== -1 ||
+    text.indexOf("+") !== -1 ||
+    hasDigitBeyondAscii(text) ||
+    holdsFullwidthFormOfANumber(text)
+  );
+}
+
+/*
+ * A CUSTOM PATTERN, IN EVERY READING OF A VALUE (#11031, #11033, #11199,
+ * #11115).
  *
  * A Custom Regex rule - one a person wrote, or the one "Scrub it" makes
  * from a data type's own patterns (TelemetryScrubCoverage's
@@ -535,16 +556,20 @@ const CUSTOM_PATTERN_READINGS: ReadingNeeds = {
  * whose "/" is %2F is hidden; as a URL's query string reads it, a "+"
  * between two characters of a value the space a form writes it for, so an
  * IBAN typed in its groups into a form - iban=DE44+5001+0517+5407+3249+31 -
- * is hidden too, as one with %20 between its groups was; and with every
+ * is hidden too, as one with %20 between its groups was; with every
  * script's digits read by their values, so an IBAN or a national ID
- * number in Arabic-Indic or fullwidth digits is. Each match is placed on
- * the characters the text writes it with, escapes and "+"s and all, and
- * what two readings share is one match. So a finding the detectors make in
- * a reading, the rule made from their patterns hides there.
+ * number in Arabic-Indic or fullwidth digits is; and with a number's
+ * fullwidth signs and separators read as ASCII, so a CPF typed wholly in
+ * fullwidth, ４７１．３９２．８６５－８２, is too (#11115). Each match is
+ * placed on the characters the text writes it with, escapes and "+"s and
+ * fullwidth forms and all, and what two readings share is one match. So a
+ * finding the detectors make in a reading, the rule made from their
+ * patterns hides there.
  *
- * A text with no escape, no "+" and no digit beyond ASCII - nearly every
- * one - has no other reading, and is read exactly as before. A match of no
- * text in another reading hides nothing, and is left out.
+ * A text with no escape, no "+", no digit beyond ASCII and no fullwidth
+ * form beside a digit - nearly every one - has no other reading, and is
+ * read exactly as before (mayReadOtherwise). A match of no text in
+ * another reading hides nothing, and is left out.
  */
 class ReadingsScrubRegExp implements ScrubRegExp {
   public readonly source: string;
@@ -559,11 +584,7 @@ class ReadingsScrubRegExp implements ScrubRegExp {
 
   // The text's readings, the text as written first: one when it has no other.
   private static readingsOf(text: string): Array<TextReading> | null {
-    if (
-      text.indexOf("%") === -1 &&
-      text.indexOf("+") === -1 &&
-      !hasDigitBeyondAscii(text)
-    ) {
+    if (!mayReadOtherwise(text)) {
       return null;
     }
 
@@ -649,7 +670,9 @@ class ReadingsScrubRegExp implements ScrubRegExp {
    * pattern matches as written - a base64 key's, jane+news@example.com's -
    * is the value's own, and stays. The match is read alone, so a pattern
    * that needs the text around it (a look-behind's words) reads it as
-   * written.
+   * written. A match found only with its fullwidth forms read
+   * (４７１．３９２．８６５－８２) reads as written here: ScrubAction reads its
+   * forms as it reads its digits.
    */
   public readMatch(matchedText: string): string {
     // A "+" written, or escaped as a URL inside a query string writes one (%2B).
@@ -664,6 +687,8 @@ class ReadingsScrubRegExp implements ScrubRegExp {
       decoded,
       foldDigits(matchedText),
       foldDigits(decoded),
+      foldFullwidthForms(foldDigits(matchedText)),
+      foldFullwidthForms(foldDigits(decoded)),
     ])) {
       if (this.matchesWhole(reading)) {
         return matchedText;
@@ -676,7 +701,11 @@ class ReadingsScrubRegExp implements ScrubRegExp {
       return matchedText;
     }
 
-    for (const reading of new Set<string>([spaced, foldDigits(spaced)])) {
+    for (const reading of new Set<string>([
+      spaced,
+      foldDigits(spaced),
+      foldFullwidthForms(foldDigits(spaced)),
+    ])) {
       if (this.matchesWhole(reading)) {
         return spaced;
       }
