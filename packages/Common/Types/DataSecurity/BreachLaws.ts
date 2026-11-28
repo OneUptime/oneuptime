@@ -1430,8 +1430,10 @@ const NEW_YORK_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   BreachDataElement.OnlineCredentials,
 ];
 
+// "government-issued identification number" covers a taxpayer identification number too (GENERIC_GOVERNMENT_IDS).
 const TEXAS_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   ...US_STATE_IDS,
+  BreachDataElement.TaxIdNumber,
   BreachDataElement.OtherGovernmentId,
   BreachDataElement.FinancialAccount,
   ...HEALTH_DATA,
@@ -1451,6 +1453,22 @@ const US_STATE_CORE: ReadonlyArray<BreachDataElement> = [
   BreachDataElement.SocialSecurityNumber,
   BreachDataElement.DriversLicense,
   BreachDataElement.FinancialAccount,
+];
+
+/*
+ * A statute that covers government ID numbers in general words - "other
+ * government identification number" (New Hampshire), "government-issued
+ * identification number" (New Mexico), "other unique identification number
+ * created or collected by a government body" (Iowa, Missouri, South
+ * Dakota; "entity", Oklahoma), "numbers or information issued by a
+ * governmental or regulatory entity that uniquely will identify an
+ * individual" (South Carolina): by its terms a passport number and a
+ * taxpayer identification number too, though it names neither.
+ */
+const GENERIC_GOVERNMENT_IDS: ReadonlyArray<BreachDataElement> = [
+  BreachDataElement.PassportNumber,
+  BreachDataElement.TaxIdNumber,
+  BreachDataElement.OtherGovernmentId,
 ];
 
 const ALABAMA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
@@ -1522,7 +1540,7 @@ const ILLINOIS_ELEMENTS: ReadonlyArray<BreachDataElement> = [
 
 const IOWA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   ...US_STATE_CORE,
-  BreachDataElement.OtherGovernmentId,
+  ...GENERIC_GOVERNMENT_IDS,
   BreachDataElement.Biometric,
 ];
 
@@ -1550,7 +1568,7 @@ const MISSISSIPPI_ELEMENTS: ReadonlyArray<BreachDataElement> = [
 
 const MISSOURI_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   ...US_STATE_CORE,
-  BreachDataElement.OtherGovernmentId,
+  ...GENERIC_GOVERNMENT_IDS,
   ...HEALTH_DATA,
 ];
 
@@ -1575,7 +1593,7 @@ const NEVADA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
 
 const NEW_HAMPSHIRE_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   ...US_STATE_CORE,
-  BreachDataElement.OtherGovernmentId,
+  ...GENERIC_GOVERNMENT_IDS,
 ];
 
 const NEW_JERSEY_ELEMENTS: ReadonlyArray<BreachDataElement> = [
@@ -1585,7 +1603,7 @@ const NEW_JERSEY_ELEMENTS: ReadonlyArray<BreachDataElement> = [
 
 const NEW_MEXICO_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   ...US_STATE_CORE,
-  BreachDataElement.OtherGovernmentId,
+  ...GENERIC_GOVERNMENT_IDS,
   BreachDataElement.Biometric,
 ];
 
@@ -1605,12 +1623,14 @@ const NORTH_DAKOTA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
 
 const OKLAHOMA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   ...US_STATE_CORE,
-  BreachDataElement.OtherGovernmentId,
+  ...GENERIC_GOVERNMENT_IDS,
   BreachDataElement.Biometric,
 ];
 
+// "passport number or other identification number issued by the United States": the IRS's taxpayer numbers too.
 const OREGON_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   ...US_STATE_IDS,
+  BreachDataElement.TaxIdNumber,
   BreachDataElement.OtherGovernmentId,
   BreachDataElement.FinancialAccount,
   BreachDataElement.Biometric,
@@ -1634,12 +1654,12 @@ const RHODE_ISLAND_ELEMENTS: ReadonlyArray<BreachDataElement> = [
 
 const SOUTH_CAROLINA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   ...US_STATE_CORE,
-  BreachDataElement.OtherGovernmentId,
+  ...GENERIC_GOVERNMENT_IDS,
 ];
 
 const SOUTH_DAKOTA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   ...US_STATE_CORE,
-  BreachDataElement.OtherGovernmentId,
+  ...GENERIC_GOVERNMENT_IDS,
   BreachDataElement.MedicalInformation,
   BreachDataElement.OnlineCredentials,
 ];

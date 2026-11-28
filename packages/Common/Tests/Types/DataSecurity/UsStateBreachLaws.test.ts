@@ -569,7 +569,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Iowa,
     law: "Iowa Code",
     provision: "715C.2(1)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.FinancialHarmInWriting],
@@ -583,7 +583,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Iowa,
     law: "Iowa Code",
     provision: "715C.2(8)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     // "more than five hundred residents of this state".
@@ -831,7 +831,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Missouri,
     law: "Revised Statutes of Missouri",
     provision: "407.1500.2(1)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.IdentityTheftOrFraudInWriting],
@@ -845,7 +845,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Missouri,
     law: "Revised Statutes of Missouri",
     provision: "407.1500.2(8)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
     needsName: true,
     nameFree: [],
     // "more than one thousand consumers at one time".
@@ -941,7 +941,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewHampshire,
     law: "New Hampshire Revised Statutes",
     provision: "359-C:20, I(a)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.MisuseOrUndetermined],
@@ -955,7 +955,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewHampshire,
     law: "New Hampshire Revised Statutes",
     provision: "359-C:20, I(b)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.MisuseOrUndetermined],
@@ -1002,7 +1002,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewMexico,
     law: "New Mexico Statutes Annotated 1978",
     provision: "57-12C-6",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.SignificantRiskOfIdentityTheft],
@@ -1018,7 +1018,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewMexico,
     law: "New Mexico Statutes Annotated 1978",
     provision: "57-12C-10",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     // "more than one thousand New Mexico residents as a result of a single security breach".
@@ -1115,7 +1115,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oklahoma,
     law: "Oklahoma Statutes, Title 24",
     provision: "163(A)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.CausesIdentityTheftOrFraud],
@@ -1131,7 +1131,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oklahoma,
     law: "Oklahoma Statutes, Title 24",
     provision: "163(E)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     // "fewer than five hundred (500) residents ... shall be exempt".
@@ -1153,17 +1153,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oregon,
     law: "Oregon Revised Statutes",
     provision: "646A.604(1)(a)",
-    elements: [
-      SSN,
-      DL,
-      PASSPORT,
-      OTHER_ID,
-      ACCOUNT,
-      BIOMETRIC,
-      MEDICAL,
-      INSURANCE,
-      LOGIN,
-    ],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC, MEDICAL, INSURANCE, LOGIN],
     needsName: false,
     nameFree: [],
     conditions: [BreachCondition.UnlikelyHarmInWriting],
@@ -1178,17 +1168,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oregon,
     law: "Oregon Revised Statutes",
     provision: "646A.604(1)(b)",
-    elements: [
-      SSN,
-      DL,
-      PASSPORT,
-      OTHER_ID,
-      ACCOUNT,
-      BIOMETRIC,
-      MEDICAL,
-      INSURANCE,
-      LOGIN,
-    ],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC, MEDICAL, INSURANCE, LOGIN],
     needsName: false,
     nameFree: [],
     // "exceeds 250".
@@ -1274,7 +1254,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthCarolina,
     law: "Code of Laws of South Carolina",
     provision: "39-1-90(A)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.IllegalUseOrMaterialRisk],
@@ -1288,7 +1268,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthCarolina,
     law: "Code of Laws of South Carolina",
     provision: "39-1-90(K)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     // "more than one thousand persons at one time".
@@ -1305,7 +1285,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthDakota,
     law: "South Dakota Codified Laws",
     provision: "22-40-20",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
     needsName: true,
     nameFree: [ACCOUNT, LOGIN],
     conditions: [BreachCondition.LikelyHarmAfterTellingAg],
@@ -1320,7 +1300,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthDakota,
     law: "South Dakota Codified Laws",
     provision: "22-40-20 (attorney general)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
     needsName: true,
     nameFree: [ACCOUNT, LOGIN],
     // "any breach of system security that exceeds two hundred fifty residents".
@@ -1770,7 +1750,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Missouri,
     law: "Revised Statutes of Missouri",
     provision: "407.1500.2(8)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1800,7 +1780,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewHampshire,
     law: "New Hampshire Revised Statutes",
     provision: "359-C:20, VI(a)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1830,7 +1810,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewMexico,
     law: "New Mexico Statutes Annotated 1978",
     provision: "57-12C-10",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1919,17 +1899,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oregon,
     law: "Oregon Revised Statutes",
     provision: "646A.604(6)",
-    elements: [
-      SSN,
-      DL,
-      PASSPORT,
-      OTHER_ID,
-      ACCOUNT,
-      BIOMETRIC,
-      INSURANCE,
-      MEDICAL,
-      LOGIN,
-    ],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC, INSURANCE, MEDICAL, LOGIN],
     needsName: false,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1976,7 +1946,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthCarolina,
     law: "Code of Laws of South Carolina",
     provision: "39-1-90(K)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1991,7 +1961,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthDakota,
     law: "South Dakota Codified Laws",
     provision: "22-40-24",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
     needsName: true,
     nameFree: [ACCOUNT, LOGIN],
     conditions: [BreachCondition.LikelyHarmAfterTellingAg],
@@ -2133,7 +2103,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Texas,
     law: "Texas Business and Commerce Code",
     provision: "521.053(h)",
-    elements: [SSN, DL, PASSPORT, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
     needsName: true,
     nameFree: [MEDICAL, INSURANCE],
     minimumPeople: { count: 10000, isMoreThan: true },
@@ -2884,7 +2854,7 @@ const OWNER_STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Texas,
     law: "Texas Business and Commerce Code",
     provision: "521.053(c)",
-    elements: [SSN, DL, PASSPORT, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
     needsName: true,
     nameFree: [MEDICAL, INSURANCE],
     conditions: [],
@@ -3785,6 +3755,171 @@ describe("Puerto Rico, Guam and the US Virgin Islands (#11424, #11426)", () => {
 
     expect(obligation.status).toBe(BreachObligationStatus.MayApply);
     expect(conditionsOf(obligation)).toEqual([]);
+  });
+});
+
+/*
+ * A statute that covers government ID numbers in general words covers a
+ * passport number and a taxpayer identification number by its terms,
+ * though it names neither: New Hampshire's notice no longer missed an
+ * exposure of passport numbers held with names. A statute that names its
+ * government IDs one by one covers only those.
+ */
+describe("a statute's general words for government ID numbers cover a passport and a taxpayer number it does not name", () => {
+  const PASSPORTS: ReadonlyArray<string> = [
+    "us-passport",
+    "uk-passport",
+    "passport-number",
+  ];
+  const GENERIC: ReadonlyArray<[BreachLawId, string]> = [
+    [
+      BreachLawId.NewHampshireResidents,
+      "other government identification number",
+    ],
+    [BreachLawId.NewMexicoResidents, "government-issued identification number"],
+    [
+      BreachLawId.IowaResidents,
+      "other unique identification number created or collected by a government body",
+    ],
+    [
+      BreachLawId.MissouriResidents,
+      "other unique identification number created or collected by a government body",
+    ],
+    [
+      BreachLawId.SouthDakotaResidents,
+      "other unique identification number created or collected by a government body",
+    ],
+    [
+      BreachLawId.OklahomaResidents,
+      "other unique identification number created or collected by a government entity",
+    ],
+    [
+      BreachLawId.SouthCarolinaResidents,
+      "numbers or information issued by a governmental or regulatory entity that uniquely will identify an individual",
+    ],
+    [BreachLawId.TexasIndividuals, "government-issued identification number"],
+  ];
+
+  test.each(GENERIC)(
+    "%s: \"%s\" - a passport number and a taxpayer number, each held with a name",
+    (id: BreachLawId) => {
+      const rule: BreachLawRule = getBreachLawRule(id);
+
+      expect(rule.dataElements).toEqual(
+        expect.arrayContaining([
+          BreachDataElement.PassportNumber,
+          BreachDataElement.TaxIdNumber,
+          BreachDataElement.OtherGovernmentId,
+        ]),
+      );
+
+      for (const type of [...PASSPORTS, "us-itin"]) {
+        const obligation: BreachObligation = applied(id, {
+          dataTypeIds: [type, "person-name"],
+          places: [rule.places![0]!],
+        });
+
+        expect({ id, type, status: obligation.status }).toEqual({
+          id,
+          type,
+          status: BreachObligationStatus.MayApply,
+        });
+        expect(obligation.reasons).toContainEqual({
+          kind: BreachReasonKind.Holds,
+          elements: [
+            type === "us-itin"
+              ? BreachDataElement.TaxIdNumber
+              : BreachDataElement.PassportNumber,
+          ],
+        });
+      }
+
+      // Without the name, none of these lists counts it.
+      expect(rule.needsName).toBe(true);
+      expect(
+        checkKinds(
+          applied(id, {
+            dataTypeIds: ["us-passport"],
+            places: [rule.places![0]!],
+          }),
+        ),
+      ).toContain(BreachCheckKind.HeldWithNames);
+    },
+  );
+
+  test("every row of each of those states covers them, its notices to the attorney general, the agencies and the owner too", () => {
+    const families: Array<BreachLawFamily> = GENERIC.map(
+      ([id]: [BreachLawId, string]): BreachLawFamily => {
+        return getBreachLawRule(id).family;
+      },
+    );
+
+    for (const rule of BREACH_LAW_RULES.filter((each: BreachLawRule) => {
+      return families.includes(each.family);
+    })) {
+      expect({
+        id: rule.id,
+        passport: rule.dataElements.includes(BreachDataElement.PassportNumber),
+        taxId: rule.dataElements.includes(BreachDataElement.TaxIdNumber),
+      }).toEqual({ id: rule.id, passport: true, taxId: true });
+    }
+  });
+
+  test("Oregon's \"other identification number issued by the United States\" is the IRS's taxpayer number too", () => {
+    for (const rule of BREACH_LAW_RULES.filter((each: BreachLawRule) => {
+      return each.family === BreachLawFamily.Oregon;
+    })) {
+      expect({
+        id: rule.id,
+        taxId: rule.dataElements.includes(BreachDataElement.TaxIdNumber),
+      }).toEqual({ id: rule.id, taxId: true });
+    }
+
+    expect(
+      applied(BreachLawId.OregonResidents, {
+        dataTypeIds: ["us-itin", "person-name"],
+        places: [BreachPlace.Oregon],
+      }).status,
+    ).toBe(BreachObligationStatus.MayApply);
+  });
+
+  test("a statute that names its government IDs one by one covers only those: no passport where it names none", () => {
+    // Mississippi, Rhode Island and Montana name a tribal ID card; New York names no other ID at all.
+    for (const [id, place] of [
+      [BreachLawId.MississippiResidents, BreachPlace.Mississippi],
+      [BreachLawId.RhodeIslandResidents, BreachPlace.RhodeIsland],
+      [BreachLawId.MontanaResidents, BreachPlace.Montana],
+      [BreachLawId.NewYorkResidents, BreachPlace.NewYork],
+    ] as Array<[BreachLawId, BreachPlace]>) {
+      for (const type of PASSPORTS) {
+        expect({
+          id,
+          type,
+          status: applied(id, {
+            dataTypeIds: [type, "person-name"],
+            places: [place],
+          }).status,
+        }).toEqual({
+          id,
+          type,
+          status: BreachObligationStatus.NotTriggered,
+        });
+      }
+    }
+
+    // Montana names the taxpayer number; Mississippi does not.
+    expect(
+      applied(BreachLawId.MontanaResidents, {
+        dataTypeIds: ["us-itin", "person-name"],
+        places: [BreachPlace.Montana],
+      }).status,
+    ).toBe(BreachObligationStatus.MayApply);
+    expect(
+      applied(BreachLawId.MississippiResidents, {
+        dataTypeIds: ["us-itin", "person-name"],
+        places: [BreachPlace.Mississippi],
+      }).status,
+    ).toBe(BreachObligationStatus.NotTriggered);
   });
 });
 
