@@ -519,7 +519,7 @@ const METRICS_CLICKHOUSE_SETTINGS: JSONObject = {
  * one part a second however many workers insert), the metrics-only
  * settings over them.
  */
-const METRICS_INSERT_CLICKHOUSE_SETTINGS: JSONObject = {
+const METRICS_INSERT_CLICKHOUSE_SETTINGS: Record<string, unknown> = {
   ...readAsyncInsertBufferSettingsFromEnv(),
   ...METRICS_CLICKHOUSE_SETTINGS,
 };
