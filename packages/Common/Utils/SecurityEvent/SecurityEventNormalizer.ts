@@ -2,6 +2,7 @@ import { JSONObject } from "../../Types/JSON";
 import lookupTable from "../LookupTable";
 import NormalizedSecurityEvent from "../../Types/SecurityEvent/NormalizedSecurityEvent";
 import SecurityEventFormat from "../../Types/SecurityEvent/SecurityEventFormat";
+import CrowdSecNormalizer from "./Connectors/CrowdSecNormalizer";
 import GenericNormalizer from "./GenericNormalizer";
 import GoogleSecOpsAlertNormalizer from "./GoogleSecOpsAlertNormalizer";
 import OcsfNormalizer from "./OcsfNormalizer";
@@ -20,6 +21,8 @@ const FORMAT_ALIASES: ReadonlyMap<string, SecurityEventFormat> = lookupTable({
   "google-secops-alert": SecurityEventFormat.GoogleSecOpsAlert,
   "secops-alert": SecurityEventFormat.GoogleSecOpsAlert,
   detection: SecurityEventFormat.GoogleSecOpsAlert,
+  crowdsec: SecurityEventFormat.CrowdSec,
+  "crowdsec-alert": SecurityEventFormat.CrowdSec,
   generic: SecurityEventFormat.Generic,
 });
 
@@ -41,6 +44,11 @@ export default class SecurityEventNormalizer {
 
     if (GoogleSecOpsAlertNormalizer.isGoogleSecOpsAlert(payload)) {
       return SecurityEventFormat.GoogleSecOpsAlert;
+    }
+
+    // A scenario, the source it blames and its bucket's fields (#11158).
+    if (CrowdSecNormalizer.isCrowdSecAlert(payload)) {
+      return SecurityEventFormat.CrowdSec;
     }
 
     return SecurityEventFormat.Generic;
@@ -79,6 +87,14 @@ export default class SecurityEventNormalizer {
         return UdmNormalizer.normalize(payload);
       case SecurityEventFormat.GoogleSecOpsAlert:
         return GoogleSecOpsAlertNormalizer.normalize(payload);
+      case SecurityEventFormat.CrowdSec:
+        /*
+         * Named, but not a CrowdSec alert: read as any JSON is, so nothing
+         * a sender mislabels is lost.
+         */
+        return CrowdSecNormalizer.isCrowdSecAlert(payload)
+          ? CrowdSecNormalizer.normalize(payload)
+          : GenericNormalizer.normalize(payload);
       case SecurityEventFormat.Generic:
         return GenericNormalizer.normalize(payload);
       default:
