@@ -65,6 +65,14 @@ export enum SecurityProtectedAddressSource {
   // The published ranges of an edge the project has connected (Cloudflare).
   Edge = "Edge",
   /*
+   * What the project trusts as its own proxies (#11158, #11365): its
+   * Trusted Proxies, and Google's front ends while Your Load Balancers
+   * trusts them for a connected Google Cloud project's Application Load
+   * Balancer. A block of one would cut off everyone it forwards.
+   */
+  TrustedProxy = "TrustedProxy",
+  GoogleFrontEnd = "GoogleFrontEnd",
+  /*
    * What protects a domain, a URL or a file (#10346), the project's own
    * list aside (ProtectedEntity), and a cloud resource's DNS name or DNS
    * zone (CloudResource):
@@ -142,6 +150,12 @@ export const SECURITY_PROTECTED_ADDRESS_SENTENCES: Readonly<
   ),
   [SecurityProtectedAddressSource.Edge]: translationKey(
     "{{address}} is one of {{name}}'s addresses, and {{name}} is in front of your app: blocking it would take your site down.",
+  ),
+  [SecurityProtectedAddressSource.TrustedProxy]: translationKey(
+    "{{address}} is on your Trusted Proxies: OneUptime trusts it as one of your own proxies, and blocking it would cut off everyone it forwards.",
+  ),
+  [SecurityProtectedAddressSource.GoogleFrontEnd]: translationKey(
+    "{{address}} is one of Google's front ends, which your Google Cloud load balancers connect from: blocking it would cut off the visitors they carry.",
   ),
   [SecurityProtectedAddressSource.OneUptime]: translationKey(
     "{{address}} is OneUptime's own address: blocking it would cut your machines and agents off from OneUptime.",

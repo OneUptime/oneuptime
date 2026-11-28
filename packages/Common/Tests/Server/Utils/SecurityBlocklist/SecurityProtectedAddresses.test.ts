@@ -16,6 +16,9 @@ import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceServi
 import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointService";
 import ProbeService from "../../../../Server/Services/ProbeService";
 import SecurityProtectedEntityService from "../../../../Server/Services/SecurityProtectedEntityService";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import Project from "../../../../Models/DatabaseModels/Project";
+import SecurityOwnLoadBalancers from "../../../../Server/Utils/SecurityEvent/SecurityOwnLoadBalancers";
 import logger from "../../../../Server/Utils/Logger";
 import DnsResolutionCache from "../../../../Server/Utils/Monitor/DnsResolutionCache";
 import SecurityEdgeRanges, {
@@ -30,6 +33,7 @@ import SecurityProtectedAddresses, {
   PROTECTED_ADDRESS_ROWS_PER_SOURCE,
   SecurityProtectedAddressGroup,
   SecurityProtectionCheck,
+  SecurityProtectionSnapshot,
   getProtectedAddressPrefilter,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityProtectedAddresses";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -170,6 +174,14 @@ interface Records {
   devices?: Array<NetworkDevice>;
   endpoints?: Array<NetworkEndpoint>;
   edges?: Array<SecurityEdge>;
+  // The project's Trusted Proxies, as the column holds them (#11158).
+  trustedProxies?: string;
+  // Your Load Balancers; on unless said.
+  trustsOwnLoadBalancers?: boolean;
+  // Google's front ends, while Your Load Balancers trusts them.
+  googleFrontEnds?: Array<string>;
+  // The cloud inventory Google's front ends are read from could not be read.
+  googleFrontEndsUnreadable?: boolean;
 }
 
 // The spied reads of each source.
@@ -183,6 +195,8 @@ interface Reads {
   devices: Spy;
   endpoints: Spy;
   edges: Spy;
+  project: Spy;
+  googleFrontEnds: Spy;
 }
 
 // A findBy that answers as the database would: the rows its query finds, at most its limit.
@@ -288,6 +302,40 @@ function install(records: Records = {}): Reads {
       SecurityEdgeRanges,
       "findConnectedEdges",
     ).mockResolvedValue((records.edges || []) as never),
+    project: getJestSpyOn(ProjectService, "findOneById").mockImplementation(
+      async (): Promise<Project> => {
+        const project: Project = new Project();
+        project._id = PROJECT_ID.toString();
+
+        if (records.trustedProxies !== undefined) {
+          project.securityTrustedProxies = records.trustedProxies;
+        }
+
+        if (records.trustsOwnLoadBalancers !== undefined) {
+          project.securityTrustOwnLoadBalancers =
+            records.trustsOwnLoadBalancers;
+        }
+
+        return project;
+      },
+    ),
+    googleFrontEnds: getJestSpyOn(
+      SecurityOwnLoadBalancers,
+      "getTrusted",
+    ).mockImplementation(async () => {
+      if (records.googleFrontEndsUnreadable) {
+        throw new Error("the cloud inventory could not be read");
+      }
+
+      return {
+        loadBalancers: [],
+        googleFrontEnds: (records.googleFrontEnds || []).map(
+          (range: string): NetworkAddressBlock => {
+            return NetworkAddressBlockUtil.parse(range)!;
+          },
+        ),
+      };
+    }),
   };
 }
 
@@ -1517,6 +1565,9 @@ describe("SecurityProtectedAddresses.listAutomaticProtections", () => {
       SecurityProtectedAddressSource.NetworkDevice,
       SecurityProtectedAddressSource.NetworkEndpoint,
       SecurityProtectedAddressSource.Edge,
+      // What the project trusts as its own proxies (#11158).
+      SecurityProtectedAddressSource.TrustedProxy,
+      SecurityProtectedAddressSource.GoogleFrontEnd,
     ]);
 
     for (const group of groups) {
@@ -1965,5 +2016,169 @@ describe("SecurityProtectedAddresses.asSeenBy", () => {
     ]) {
       expect(seen(protection, reader([]))).toEqual(protection);
     }
+  });
+});
+
+/*
+ * WHAT THE PROJECT TRUSTS AS ITS OWN PROXIES (#11158): its Trusted
+ * Proxies, and Google's front ends while Your Load Balancers trusts them
+ * (#11047). A block of one would cut off everyone it forwards - at
+ * Cloudflare, a WAF, CrowdSec - so it is refused wherever it is asked for,
+ * and said so in the project's own words.
+ */
+describe("SecurityProtectedAddresses, what the project trusts as its own proxies (#11158)", () => {
+  test("an address on Trusted Proxies, a range holding one, an address inside a listed range", async () => {
+    install({ trustedProxies: "203.0.113.10\n198.51.100.0/24" });
+
+    await expect(find("203.0.113.10")).resolves.toEqual({
+      protection: {
+        source: SecurityProtectedAddressSource.TrustedProxy,
+        protectedValue: "203.0.113.10",
+      },
+      unreadSources: [],
+    });
+    expect((await find("203.0.113.0/24")).protection?.protectedValue).toBe(
+      "203.0.113.10",
+    );
+    expect((await find("198.51.100.77")).protection).toEqual({
+      source: SecurityProtectedAddressSource.TrustedProxy,
+      protectedValue: "198.51.100.0/24",
+    });
+    // Beside them, nothing.
+    await expect(find("203.0.113.11")).resolves.toEqual({
+      protection: null,
+      unreadSources: [],
+    });
+  });
+
+  test("says so in the project's own words", async () => {
+    install({ trustedProxies: "203.0.113.10" });
+
+    const protection: SecurityAddressProtection = (await find("203.0.113.10"))
+      .protection!;
+
+    expect(
+      describeSecurityAddressProtection({ value: "203.0.113.10", protection }),
+    ).toBe(
+      "203.0.113.10 is on your Trusted Proxies: OneUptime trusts it as one of your own proxies, and blocking it would cut off everyone it forwards.",
+    );
+  });
+
+  test("a range too broad to be a proxy is read as the scans read it: no proxy, and nothing it holds protected", async () => {
+    install({ trustedProxies: "16.0.0.0/4" });
+
+    await expect(find("17.1.2.3")).resolves.toEqual({
+      protection: null,
+      unreadSources: [],
+    });
+  });
+
+  test("Google's front ends, while Your Load Balancers trusts them", async () => {
+    install({ googleFrontEnds: ["35.191.0.0/16", "130.211.0.0/22"] });
+
+    await expect(find("35.191.3.4")).resolves.toEqual({
+      protection: {
+        source: SecurityProtectedAddressSource.GoogleFrontEnd,
+        protectedValue: "35.191.0.0/16",
+        name: "Google Cloud",
+      },
+      unreadSources: [],
+    });
+    expect(
+      describeSecurityAddressProtection({
+        value: "35.191.3.4",
+        protection: (await find("35.191.3.4")).protection!,
+      }),
+    ).toBe(
+      "35.191.3.4 is inside 35.191.0.0/16. 35.191.0.0/16 is one of Google's front ends, which your Google Cloud load balancers connect from: blocking it would cut off the visitors they carry.",
+    );
+  });
+
+  test("not while Your Load Balancers is off: the scans trust none of them then", async () => {
+    const reads: Reads = install({
+      trustsOwnLoadBalancers: false,
+      googleFrontEnds: ["35.191.0.0/16"],
+    });
+
+    await expect(find("35.191.3.4")).resolves.toEqual({
+      protection: null,
+      unreadSources: [],
+    });
+    expect(reads.googleFrontEnds).not.toHaveBeenCalled();
+  });
+
+  test("an inventory that cannot be read leaves the answer open: the block is not made", async () => {
+    install({ googleFrontEndsUnreadable: true });
+
+    await expect(find("35.191.3.4")).resolves.toEqual({
+      protection: null,
+      unreadSources: [SecurityProtectedAddressSource.GoogleFrontEnd],
+    });
+  });
+
+  test("read as OneUptime, after every other source", async () => {
+    const reads: Reads = install({ trustedProxies: "203.0.113.10" });
+
+    await find("198.51.100.1");
+
+    for (const input of inputsOf(reads.project)) {
+      expect(input.props).toEqual(ROOT);
+    }
+
+    // A host on the address answers first: what the project trusts is read after.
+    const host_: Host = host({ name: "web-3", addresses: "203.0.113.10" });
+    install({ trustedProxies: "203.0.113.10", hosts: [host_] });
+    expect((await find("203.0.113.10")).protection?.source).toBe(
+      SecurityProtectedAddressSource.Host,
+    );
+  });
+
+  test("listed on Protected Entities, each its own group", async () => {
+    install({
+      trustedProxies: "203.0.113.10\n198.51.100.0/24",
+      googleFrontEnds: ["35.191.0.0/16"],
+    });
+
+    const groups: Array<SecurityProtectedAddressGroup> = await list(ROOT);
+
+    expect(
+      groupOf(
+        groups,
+        SecurityProtectedAddressSource.TrustedProxy,
+      )?.protections.map((protection: SecurityAddressProtection): string => {
+        return protection.protectedValue;
+      }),
+    ).toEqual(["203.0.113.10", "198.51.100.0/24"]);
+    expect(
+      groupOf(groups, SecurityProtectedAddressSource.GoogleFrontEnd)
+        ?.protections[0]?.protectedValue,
+    ).toBe("35.191.0.0/16");
+  });
+
+  test("and held to every block a feed serves", async () => {
+    install({
+      trustedProxies: "203.0.113.10",
+      googleFrontEnds: ["35.191.0.0/16"],
+    });
+
+    const snapshot: SecurityProtectionSnapshot =
+      await SecurityProtectedAddresses.readAllProtections({
+        projectId: PROJECT_ID,
+        limitPerSource: 100,
+      });
+
+    expect(
+      snapshot.protections
+        .filter((protection: SecurityAddressProtection): boolean => {
+          return (
+            protection.source === SecurityProtectedAddressSource.TrustedProxy ||
+            protection.source === SecurityProtectedAddressSource.GoogleFrontEnd
+          );
+        })
+        .map((protection: SecurityAddressProtection): string => {
+          return protection.protectedValue;
+        }),
+    ).toEqual(["203.0.113.10", "35.191.0.0/16"]);
+    expect(snapshot.unreadSources).toEqual([]);
   });
 });

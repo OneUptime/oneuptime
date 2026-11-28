@@ -51,6 +51,12 @@ import { readSecurityAddress } from "../../../Types/SecurityBlocklist/SecurityAd
 import NetworkAddressBlockUtil, {
   NetworkAddressBlock,
 } from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
+import Project from "../../../Models/DatabaseModels/Project";
+import ProjectService from "../../Services/ProjectService";
+import SecurityOwnLoadBalancers, {
+  SecurityOwnLoadBalancerBlocks,
+} from "../SecurityEvent/SecurityOwnLoadBalancers";
+import { toTrustedProxies } from "../../../Utils/SecurityEvent/ClientAddressTrust";
 
 /*
  * WHETHER A BLOCK WOULD TOUCH ONE OF THE PROJECT'S OWN ADDRESSES (#10338),
@@ -76,7 +82,12 @@ import NetworkAddressBlockUtil, {
  *     load balancer by its name alone - its network devices' addresses and
  *     its network endpoints';
  *   - the published ranges of the edge in front of the app, when the project
- *     has connected one (SecurityEdgeRanges).
+ *     has connected one (SecurityEdgeRanges);
+ *   - what the project trusts as its own proxies (#11158): its Trusted
+ *     Proxies, and Google's front ends while Your Load Balancers trusts
+ *     them (#11047). A block of one cuts off everyone it forwards, at
+ *     every destination - Cloudflare, a WAF, CrowdSec - and an event that
+ *     names one names the proxy, not the client.
  *
  * Each record source is read in one bounded query, narrowed by the text an
  * address of the block starts with ("35.205.11." for 35.205.11.0/24), and
@@ -445,6 +456,7 @@ export default class SecurityProtectedAddresses {
           return this.readEdges(data.projectId);
         },
       },
+      ...this.getTrustedProxyReaders(data.projectId),
     ];
 
     for (const reader of readers) {
@@ -560,6 +572,7 @@ export default class SecurityProtectedAddresses {
           return this.readEdges(data.projectId);
         },
       },
+      ...this.getTrustedProxyReaders(data.projectId),
     ];
 
     for (const reader of readers) {
@@ -671,7 +684,109 @@ export default class SecurityProtectedAddresses {
       return this.readEdges(data.projectId);
     });
 
+    for (const reader of this.getTrustedProxyReaders(data.projectId)) {
+      await add(reader.source, reader.read);
+    }
+
     return groups;
+  }
+
+  /*
+   * What the project trusts as its own proxies, each its own source so a
+   * refusal says which (#11158): its Trusted Proxies, and Google's front
+   * ends while Your Load Balancers trusts them (#11047). Both are ranges,
+   * read whole, as OneUptime, the way the scans read them
+   * (SecurityTrustedProxies): a range holds a block's address without
+   * sharing its text.
+   */
+  public static getTrustedProxyReaders(projectId: ObjectID): Array<{
+    source: SecurityProtectedAddressSource;
+    read: () => Promise<SourceReading>;
+  }> {
+    return [
+      {
+        source: SecurityProtectedAddressSource.TrustedProxy,
+        read: () => {
+          return this.readTrustedProxies(projectId);
+        },
+      },
+      {
+        source: SecurityProtectedAddressSource.GoogleFrontEnd,
+        read: () => {
+          return this.readGoogleFrontEnds(projectId);
+        },
+      },
+    ];
+  }
+
+  // The project's Trusted Proxies, as the scans read the list: too broad a range is no proxy.
+  public static async readTrustedProxies(
+    projectId: ObjectID,
+  ): Promise<SourceReading> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: { securityTrustedProxies: true },
+      props: ROOT,
+    });
+
+    return {
+      // An entry of the list is an address or a range, with no name of its own.
+      protections: protectionsOf({
+        values: toTrustedProxies(project?.securityTrustedProxies).blocks.map(
+          (block: NetworkAddressBlock): string => {
+            return block.text;
+          },
+        ),
+        source: SecurityProtectedAddressSource.TrustedProxy,
+        name: "",
+      }).map(
+        (protection: SecurityAddressProtection): SecurityAddressProtection => {
+          return {
+            source: protection.source,
+            protectedValue: protection.protectedValue,
+          };
+        },
+      ),
+      isComplete: true,
+    };
+  }
+
+  /*
+   * Google's front ends, while a connected Google Cloud project's
+   * Application Load Balancer brings them and Your Load Balancers is on:
+   * the scans trust them then, and believe the client each forwards. When
+   * they are not trusted (a TCP or SSL proxy load balancer connects from
+   * them too, #11388) they are not protected here.
+   */
+  public static async readGoogleFrontEnds(
+    projectId: ObjectID,
+  ): Promise<SourceReading> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: { securityTrustOwnLoadBalancers: true },
+      props: ROOT,
+    });
+
+    // On unless the project turned it off, as the scans read it.
+    if (project?.securityTrustOwnLoadBalancers === false) {
+      return { protections: [], isComplete: true };
+    }
+
+    const own: SecurityOwnLoadBalancerBlocks =
+      await SecurityOwnLoadBalancers.getTrusted(projectId);
+
+    return {
+      protections: protectionsOf({
+        values: own.googleFrontEnds.map(
+          (block: NetworkAddressBlock): string => {
+            return block.text;
+          },
+        ),
+        source: SecurityProtectedAddressSource.GoogleFrontEnd,
+        name: "Google Cloud",
+      }),
+      isComplete: true,
+    };
   }
 
   // ---------- The sources ----------
