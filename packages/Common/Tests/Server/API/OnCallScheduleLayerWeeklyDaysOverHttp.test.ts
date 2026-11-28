@@ -278,9 +278,9 @@ beforeEach(() => {
       OnCallDutyPolicyScheduleService,
       "refreshCurrentUserIdAndHandoffTimeInSchedule",
     )
-    .mockImplementation(async (scheduleId: ObjectID): Promise<void> => {
+    .mockImplementation((async (scheduleId: ObjectID): Promise<void> => {
       rosterRefreshes.push(scheduleId.toString());
-    });
+    }) as never);
   jest
     .spyOn(OnCallDutyPolicyScheduleService, "propagateShiftConfigChange")
     .mockResolvedValue(undefined as never);
@@ -994,9 +994,9 @@ describe("PUT /api/on-call-duty-policy-schedule/:id: a new time zone keeps every
 
   test("a schedule given its first zone keeps its moments", async () => {
     const before: Array<JSONObject> = [
-      ...layers.rows.map((row: StoredRow) => {
+      ...layers.rows.map((row: StoredRow): JSONObject => {
         return {
-          id: row["_id"],
+          id: String(row["_id"]),
           startsAt: (row["startsAt"] as Date).getTime(),
         };
       }),
@@ -1011,9 +1011,9 @@ describe("PUT /api/on-call-duty-policy-schedule/:id: a new time zone keeps every
     expect(layers.updates).toHaveLength(0);
     expect(rosterRefreshes).toEqual([]);
     expect(
-      layers.rows.map((row: StoredRow) => {
+      layers.rows.map((row: StoredRow): JSONObject => {
         return {
-          id: row["_id"],
+          id: String(row["_id"]),
           startsAt: (row["startsAt"] as Date).getTime(),
         };
       }),
