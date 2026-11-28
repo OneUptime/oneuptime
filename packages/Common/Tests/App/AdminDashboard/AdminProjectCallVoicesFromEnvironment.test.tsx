@@ -16,6 +16,7 @@ import React, { ReactElement, ReactNode } from "react";
 import { I18nextProvider } from "react-i18next";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * ADMIN DASHBOARD > SETTINGS > CALL AND SMS > PROJECT CALL VOICES, WHILE
@@ -308,7 +309,9 @@ describe("set to true", () => {
     expect(toggle).toBeChecked();
     expect(toggle).toHaveAttribute("aria-disabled", "true");
     expect(toggle).toHaveAccessibleDescription(
-      expect.stringContaining(PROJECT_CALL_VOICES_COPY.environmentLockedReason),
+      new RegExp(
+        escapeRegExp(PROJECT_CALL_VOICES_COPY.environmentLockedReason),
+      ),
     );
     expect(environmentCard()).toHaveTextContent(
       PROJECT_CALL_VOICES_COPY.switchOnDescription,
@@ -585,8 +588,10 @@ describe("in the reader's language", () => {
         wordOf(PROJECT_CALL_VOICES_COPY.environmentDescription),
       );
       expect(toggle).toHaveAccessibleDescription(
-        expect.stringContaining(
-          wordOf(PROJECT_CALL_VOICES_COPY.environmentLockedReason),
+        new RegExp(
+          escapeRegExp(
+            wordOf(PROJECT_CALL_VOICES_COPY.environmentLockedReason),
+          ),
         ),
       );
       // The variable's name and the Helm value as they are written, in every language.

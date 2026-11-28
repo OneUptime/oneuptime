@@ -286,7 +286,7 @@ async function place(
 ): Promise<{ twiml: string; log: CallLog; created: JSONObject }> {
   await CallService.makeCall(callRequest, {
     projectId: PROJECT_ID,
-    isSensitive: options.isSensitive,
+    isSensitive: options.isSensitive ?? false,
     customTwilioConfig: options.customTwilioConfig,
   });
 
