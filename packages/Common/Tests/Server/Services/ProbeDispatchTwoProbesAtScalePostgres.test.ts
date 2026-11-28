@@ -82,6 +82,31 @@ const ONE_MINUTE: string = "* * * * *";
 const FIVE_MINUTES: string = "*/5 * * * *";
 const MINUTE_IN_MS: number = 60 * 1000;
 
+// Every timer stays real, so the database driver's do: only Date stands still.
+const REAL_TIMERS: Array<
+  | "hrtime"
+  | "nextTick"
+  | "performance"
+  | "queueMicrotask"
+  | "setImmediate"
+  | "clearImmediate"
+  | "setInterval"
+  | "clearInterval"
+  | "setTimeout"
+  | "clearTimeout"
+> = [
+  "hrtime",
+  "nextTick",
+  "performance",
+  "queueMicrotask",
+  "setImmediate",
+  "clearImmediate",
+  "setInterval",
+  "clearInterval",
+  "setTimeout",
+  "clearTimeout",
+];
+
 // What a claim or a count may read, with room to spare (measured: below 450 and 650).
 const CLAIM_BUFFER_BOUND: number = 2000;
 const COUNT_BUFFER_BOUND: number = 1500;
@@ -314,6 +339,9 @@ describePostgres(
     }, 600_000);
 
     afterAll(async () => {
+      // The clock the hand-out stopped, going again.
+      jest.useRealTimers();
+
       if (database?.isInitialized) {
         await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
         await database.destroy();
@@ -635,6 +663,18 @@ describePostgres(
     });
 
     test("both probes' workers at once hand out every assignment that may be probed exactly once, to its own probe, each with the monitor the read after the claim used to hand out", async () => {
+      /*
+       * What is due at one moment, handed out on a clock that stands still
+       * from here on (Date alone; this test and the next read it). Each
+       * claim stamps a monitor with its schedule's next run, a whole
+       * minute: on the moving clock a hand-out that ran past one handed the
+       * monitors it reached before it out again after it - due again, as
+       * their schedule says, not claimed twice - and failed here whenever
+       * the run crossed a minute (17,558 one-minute monitors, each first
+       * before the minute and again after it, on Postgres 15).
+       */
+      jest.useFakeTimers({ doNotFake: REAL_TIMERS, now: Date.now() });
+
       const startedAt: number = Date.now();
       const expected: Array<number> = [
         await mayBeHandedOut(probeIds[0]!, new Date()),
@@ -805,6 +845,7 @@ describePostgres(
     }, 600_000);
 
     test("and once everything that may be probed is handed out, each probe's pending count is 0", async () => {
+      // At the moment of the hand-out: its clock still stands there.
       for (const probe of probeIds) {
         await expect(
           MonitorProbeService.countMonitorProbesDueForProbing({
