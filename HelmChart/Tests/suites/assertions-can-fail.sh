@@ -6,8 +6,11 @@
 # nothing about whether it could fail. helm-unittest 0.5.1, which CI pinned
 # until #11403, has no failedTemplate errorPattern: it read one as no
 # assertion, and 72 tests passed whatever their messages said. So this suite
-# plants mistakes and requires helm-unittest to catch each one:
+# plants mistakes and requires each check to catch them:
 #
+#   0. The harness's own assertions, which the other suites use: each fails
+#      on a value it should refuse, an empty needle among them (grep finds
+#      the empty string in any text, so assert_present once passed one).
 #   1. The pinned helm-unittest itself, on a chart of the suite's own: a
 #      template's `fail` and a values.schema.json refusal, each held to its
 #      whole message by errorMessage and to a pattern by errorPattern. Each
@@ -75,6 +78,46 @@ junit_outcomes() {
         }
     ' "$1"
 }
+
+# ---------------------------------------------------------------------------
+# 0. The harness's own assertions
+# ---------------------------------------------------------------------------
+
+# harness_outcome <assertion> <its arguments...>: "pass" or "fail", as the
+# harness's tally scores it, kept apart from this suite's tally.
+harness_outcome() {
+    (
+        PASSES=0
+        FAILURES=0
+        "$@" >/dev/null
+        if [ "$FAILURES" -gt 0 ]; then
+            echo fail
+        elif [ "$PASSES" -gt 0 ]; then
+            echo pass
+        else
+            echo none
+        fi
+    )
+}
+
+assert_eq "assert_present fails on an empty needle, which any text holds" \
+    fail "$(harness_outcome assert_present "x" "the CronJob runs kubectl" "")"
+assert_eq "assert_present fails on an empty needle in an empty text" \
+    fail "$(harness_outcome assert_present "x" "" "")"
+assert_eq "assert_present fails on a needle the text lacks" \
+    fail "$(harness_outcome assert_present "x" "the CronJob runs kubectl" "helm")"
+assert_eq "assert_present passes on a needle the text holds" \
+    pass "$(harness_outcome assert_present "x" "the CronJob runs kubectl" "kubectl")"
+assert_eq "assert_absent fails on an empty needle" \
+    fail "$(harness_outcome assert_absent "x" "the CronJob runs kubectl" "")"
+assert_eq "assert_absent fails on a needle the text holds" \
+    fail "$(harness_outcome assert_absent "x" "the CronJob runs kubectl" "kubectl")"
+assert_eq "assert_absent passes on a needle the text lacks" \
+    pass "$(harness_outcome assert_absent "x" "the CronJob runs kubectl" "helm")"
+assert_eq "assert_eq fails on two values that differ" \
+    fail "$(harness_outcome assert_eq "x" "a" "b")"
+assert_eq "assert_eq passes on two that are the same" \
+    pass "$(harness_outcome assert_eq "x" "a" "a")"
 
 # ---------------------------------------------------------------------------
 # 1. The pinned helm-unittest, on a chart of this suite's own

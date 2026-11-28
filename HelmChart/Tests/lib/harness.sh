@@ -86,9 +86,17 @@ assert_eq() {
 # grep stops reading at the first match, and the EPIPE that hands the writer
 # turns a match into a failed pipeline under `set -o pipefail` -- which scored
 # passing assertions as failures.
+#
+# An empty needle fails either way. grep finds the empty string in any text,
+# so assert_present passed it whatever the haystack held, and a needle read
+# from a lookup that came back empty -- an override key renamed in
+# IronBank/values.yaml (iron-bank.sh), a key missing from editions.json
+# (marketplace.sh) -- checked nothing (#11403).
 assert_present() {
     # assert_present <description> <haystack> <needle>
-    if grep -qF -- "$3" <<<"$2"; then
+    if [ -z "$3" ]; then
+        fail "$1 (the text to look for is empty, which any text holds)"
+    elif grep -qF -- "$3" <<<"$2"; then
         pass "$1"
     else
         fail "$1 (missing '$3')"
@@ -97,7 +105,9 @@ assert_present() {
 
 assert_absent() {
     # assert_absent <description> <haystack> <needle>
-    if grep -qF -- "$3" <<<"$2"; then
+    if [ -z "$3" ]; then
+        fail "$1 (the text to look for is empty, which any text holds)"
+    elif grep -qF -- "$3" <<<"$2"; then
         fail "$1 (found '$3')"
     else
         pass "$1"
