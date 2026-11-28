@@ -995,7 +995,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
   "restriction-times": {
     title: "RestrictionTimes",
     description:
-      "When an on-call schedule layer is on call (its active hours), or when an on-call rule waits for working hours: around the clock, a window every day, or windows of the week, read in the schedule's (or the rule's) time zone. A write that would leave a layer on call at no time without saying so is refused with a 400 that names the key: a restriction type that is missing, is not None, Daily or Weekly, or is named differently under restrictionType and restictionType; a Daily restriction without a window, or with times that are a time of day alone (\"09:00\"); a Weekly one without its list of windows; and a window that opens and closes at the same time.",
+      "When an on-call schedule layer is on call (its active hours), or when an on-call rule waits for working hours: around the clock, a window every day, or windows of the week, read in the schedule's (or the rule's) time zone. A write that would leave a layer on call at no time without saying so is refused with a 400 that names the key: a restriction type that is missing, is not None, Daily or Weekly, or is named differently under restrictionType and restictionType; a Daily restriction without a window, or with times that are a time of day alone (\"09:00\"); a Weekly one without its list of windows; and a window that opens and closes at the same time. A layer's write is also refused for a weekly window whose startTime or endTime falls on another day than its startDay or endDay names.",
     isEnum: false,
     properties: [
       {
@@ -1003,7 +1003,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "RestrictionType (enum)",
         required: true,
         description:
-          'The type of restriction: None (on call around the clock), Daily or Weekly. It can also be written under restictionType, its older spelling without the second "r", which every OneUptime version reads; responses carry the type under both. An update that sends both with different values takes the one that differs from the layer\'s current type, as a client that read the layer and changed one of them meant.',
+          'The type of restriction: None (on call around the clock), Daily or Weekly. It can also be written under restictionType, its older spelling without the second "r", which every OneUptime version reads; responses carry the type under both. restictionType in responses is deprecated: they carry it until the first major version released on or after 1 June 2027, and writes always read it. An update that sends both with different values takes the one that differs from the layer\'s current type, as a client that read the layer and changed one of them meant.',
       },
       {
         name: "dayRestrictionTimes",
@@ -1017,7 +1017,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "Array<WeeklyRestriction>",
         required: false,
         description:
-          "For Weekly: the windows of the week the layer is on call, each { startDay, startTime, endDay, endTime }. OneUptime reads each window's days and times from startTime and endTime, DateTimes read in the schedule's time zone, so date them on the weekdays startDay and endDay name, as the dashboard does. A window is continuous from its start to its end; an empty list restricts nothing.",
+          "For Weekly: the windows of the week the layer is on call, each { startDay, startTime, endDay, endTime }. A window is on call on the days it names: startTime and endTime are DateTimes read in the schedule's time zone, and each must fall on the day startDay or endDay names there, or the write is refused with a 400 that names the window and gives a time on the named day to send instead. A day left out is the day its time falls on, and a window sent back as the layer holds it is not judged again. A window is continuous from its start to its end; an empty list restricts nothing.",
       },
     ],
     values: [],

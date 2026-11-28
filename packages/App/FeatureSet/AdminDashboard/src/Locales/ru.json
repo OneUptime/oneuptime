@@ -4653,5 +4653,20 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Такое же название есть у другого объекта типа «{{kind}}» в этом проекте, поэтому в полях выбора их не различить. Откройте каждый, чтобы понять, какой из них какой, затем переименуйте один из них.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} называется так же, как другой объект этого типа, и в полях выбора их не различить. Откройте каждый объект, чтобы понять, какой из них какой, затем переименуйте один из них.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kinds}}, названные так же, как другой объект типа «{{kind}}»: {{count}}. В полях выбора их не различить. Откройте каждый объект, чтобы понять, какой из них какой, затем переименуйте один из них.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} называется так же, как другой объект этого типа, и в полях выбора их не различить. Откройте каждый объект, чтобы понять, какой из них какой, затем переименуйте один из них."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} называется так же, как другой объект этого типа, и в полях выбора их не различить. Откройте каждый объект, чтобы понять, какой из них какой, затем переименуйте один из них.",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "Ваши права на чтение этого поля распространяются только на {{items}} с меткой {{labels}}, поэтому список нельзя отсортировать по нему.",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "Ваши права на чтение этого поля распространяются только на {{items}} с определёнными метками, поэтому список нельзя отсортировать по нему.",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "Ваши права на чтение этого поля распространяются только на {{items}}, которыми владеете вы или ваши команды, поэтому список нельзя отсортировать по нему.",
+  "{{first}} and {{second}}": "{{first}} и {{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}, {{second}} и {{third}}",
+  "{{first}} or {{second}}": "{{first}} или {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}}, {{second}} или {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "Ваши права распространяются только на {{items}} с меткой {{labels}}.",
+  "Your permission is limited to {{items}} with certain labels.": "Ваши права распространяются только на {{items}} с определёнными метками.",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "Команда, в которую вы входите, блокирует это там, где {{items}} помечены меткой {{labels}}.",
+  "A team you are on blocks this on {{items}} with certain labels.": "Команда, в которую вы входите, блокирует это там, где {{items}} помечены определёнными метками.",
+  "Your permissions do not reach this {{itemName}}.": "Ваши права не распространяются на этот элемент ({{itemName}}).",
+  "Your permission is limited to {{items}} you or your teams own.": "Ваши права распространяются только на {{items}}, которыми владеете вы или ваши команды.",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Ваши права распространяются только на {{items}} с меткой {{labels}} и на {{items}}, которыми владеете вы или ваши команды.",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Ваши права распространяются только на {{items}} с определёнными метками и на {{items}}, которыми владеете вы или ваши команды."
 }

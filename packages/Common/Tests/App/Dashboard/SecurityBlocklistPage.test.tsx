@@ -256,6 +256,9 @@ import AutomaticProtectionsCard from "../../../../App/FeatureSet/Dashboard/src/C
 import {
   AUTOMATIC_PROTECTIONS_MORE,
   AUTOMATIC_PROTECTIONS_UNREAD,
+  GOOGLE_FRONT_ENDS_PROTECTED,
+  GOOGLE_FRONT_ENDS_PROTECTED_TEST_ID,
+  GOOGLE_FRONT_ENDS_PROTECTED_WITHOUT_LOAD_BALANCER,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ProtectedEntities/AutomaticProtectionsCopy";
 import Project from "../../../Models/DatabaseModels/Project";
 import SecurityBlock from "../../../Models/DatabaseModels/SecurityBlock";
@@ -1738,6 +1741,106 @@ describe("Protected Entities' Protected Automatically", () => {
     expect(
       screen.queryByText(AUTOMATIC_PROTECTIONS_UNREAD),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * #11388: Google Cloud's front ends and health checks - a dozen ranges
+   * with one reason - on one line of their own, after the rest, named by
+   * one of the project's Google Cloud load balancers when there is one.
+   */
+  describe("Google Cloud's front ends and health checks", () => {
+    function google(name: string): Record<string, unknown> {
+      return {
+        source: SecurityProtectedAddressSource.GoogleFrontEnd,
+        protections: ["35.191.0.0/16", "130.211.0.0/22", "209.85.152.0/22"].map(
+          (range: string) => {
+            return {
+              source: SecurityProtectedAddressSource.GoogleFrontEnd,
+              protectedValue: range,
+              name,
+            };
+          },
+        ),
+        hasMore: false,
+        isRead: true,
+      };
+    }
+
+    const HOST: Record<string, unknown> = {
+      source: SecurityProtectedAddressSource.Host,
+      protections: [
+        {
+          source: SecurityProtectedAddressSource.Host,
+          protectedValue: "203.0.113.10",
+          name: "web-3",
+        },
+      ],
+      hasMore: false,
+      isRead: true,
+    };
+
+    test("are one line, every range on it, named by the load balancer they reach", async () => {
+      api.readAutomaticProtections.mockResolvedValue([
+        google("web-https"),
+        HOST,
+      ] as never);
+
+      await act(async () => {
+        render(<AutomaticProtectionsCard />);
+      });
+
+      const line: HTMLElement = screen.getByTestId(
+        GOOGLE_FRONT_ENDS_PROTECTED_TEST_ID,
+      );
+
+      expect(line).toHaveTextContent(
+        "35.191.0.0/16, 130.211.0.0/22, 209.85.152.0/22",
+      );
+      expect(line).toHaveTextContent(
+        GOOGLE_FRONT_ENDS_PROTECTED.replace("{{name}}", "web-https"),
+      );
+      // Not a line a range: the host's line, and theirs.
+      expect(
+        screen.queryByText(/35\.191\.0\.0\/16 is where/),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText("203.0.113.10 is the address of host web-3."),
+      ).toBeInTheDocument();
+      // After the rest.
+      const host: HTMLElement = screen.getByText(
+        "203.0.113.10 is the address of host web-3.",
+      );
+
+      expect(
+        Boolean(
+          host.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ).toBe(true);
+    });
+
+    test("with no Google Cloud load balancer to name, say whose they are all the same", async () => {
+      api.readAutomaticProtections.mockResolvedValue([google("")] as never);
+
+      await act(async () => {
+        render(<AutomaticProtectionsCard />);
+      });
+
+      expect(
+        screen.getByTestId(GOOGLE_FRONT_ENDS_PROTECTED_TEST_ID),
+      ).toHaveTextContent(GOOGLE_FRONT_ENDS_PROTECTED_WITHOUT_LOAD_BALANCER);
+    });
+
+    test("a list without them draws no such line", async () => {
+      api.readAutomaticProtections.mockResolvedValue([HOST] as never);
+
+      await act(async () => {
+        render(<AutomaticProtectionsCard />);
+      });
+
+      expect(
+        screen.queryByTestId(GOOGLE_FRONT_ENDS_PROTECTED_TEST_ID),
+      ).not.toBeInTheDocument();
+    });
   });
 
   test("says when there are more than it lists, and when some could not be read: protected all the same", async () => {

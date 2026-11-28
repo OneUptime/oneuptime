@@ -9,8 +9,14 @@ import {
   AUTOMATIC_PROTECTIONS_TEST_ID,
   AUTOMATIC_PROTECTIONS_TITLE,
   AUTOMATIC_PROTECTIONS_UNREAD,
+  GOOGLE_FRONT_ENDS_PROTECTED,
+  GOOGLE_FRONT_ENDS_PROTECTED_TEST_ID,
+  GOOGLE_FRONT_ENDS_PROTECTED_WITHOUT_LOAD_BALANCER,
 } from "./AutomaticProtectionsCopy";
-import { SecurityAddressProtection } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
+import {
+  SecurityAddressProtection,
+  SecurityProtectedAddressSource,
+} from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
@@ -28,8 +34,10 @@ import React, {
  * PROTECTED AUTOMATICALLY (#10338): the addresses OneUptime never blocks
  * because they are the project's own - its hosts, Kubernetes nodes, cloud
  * resources, network devices and endpoints, the addresses its people named,
- * its probes and OneUptime's, the ranges that are not on the internet, and
- * the edge in front of it when one is connected. Worked out from what
+ * its probes and OneUptime's, the ranges that are not on the internet, the
+ * edge in front of it when one is connected, and Google Cloud's front ends
+ * and health checks (#11388), on one line of their own with one of the
+ * project's Google Cloud load balancers they reach. Worked out from what
  * OneUptime knows each time it is read, never stored, so nothing here can be
  * removed: each row says what the address is, in the words a refused block
  * uses.
@@ -66,11 +74,30 @@ const AutomaticProtectionsCard: FunctionComponent = (): ReactElement => {
     };
   }, []);
 
-  const protections: Array<SecurityAddressProtection> = (groups || []).flatMap(
+  const allProtections: Array<SecurityAddressProtection> = (
+    groups || []
+  ).flatMap(
     (group: AutomaticProtectionGroup): Array<SecurityAddressProtection> => {
       return group.protections;
     },
   );
+  /*
+   * Google Cloud's front ends and health checks (#11388): a dozen ranges
+   * with one reason, drawn on one line of their own after the rest.
+   */
+  const isGoogle: (protection: SecurityAddressProtection) => boolean = (
+    protection: SecurityAddressProtection,
+  ): boolean => {
+    return protection.source === SecurityProtectedAddressSource.GoogleFrontEnd;
+  };
+  const protections: Array<SecurityAddressProtection> = allProtections.filter(
+    (protection: SecurityAddressProtection): boolean => {
+      return !isGoogle(protection);
+    },
+  );
+  const googleFrontEnds: Array<SecurityAddressProtection> =
+    allProtections.filter(isGoogle);
+  const googleLoadBalancer: string = googleFrontEnds[0]?.name || "";
   const hasMore: boolean = (groups || []).some(
     (group: AutomaticProtectionGroup): boolean => {
       return group.hasMore;
@@ -117,6 +144,32 @@ const AutomaticProtectionsCard: FunctionComponent = (): ReactElement => {
                     </li>
                   );
                 },
+              )}
+              {googleFrontEnds.length > 0 ? (
+                <li
+                  className="flex flex-col gap-0.5 py-2 sm:flex-row sm:items-baseline sm:gap-4"
+                  data-testid={GOOGLE_FRONT_ENDS_PROTECTED_TEST_ID}
+                >
+                  <span className="shrink-0 break-all font-mono text-sm text-gray-900 sm:w-56">
+                    {googleFrontEnds
+                      .map((protection: SecurityAddressProtection): string => {
+                        return protection.protectedValue;
+                      })
+                      .join(", ")}
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    {googleLoadBalancer
+                      ? translator.translateTemplate(
+                          GOOGLE_FRONT_ENDS_PROTECTED,
+                          { name: googleLoadBalancer },
+                        )
+                      : translator.translateText(
+                          GOOGLE_FRONT_ENDS_PROTECTED_WITHOUT_LOAD_BALANCER,
+                        ) || GOOGLE_FRONT_ENDS_PROTECTED_WITHOUT_LOAD_BALANCER}
+                  </span>
+                </li>
+              ) : (
+                <></>
               )}
             </ul>
             {hasMore ? (

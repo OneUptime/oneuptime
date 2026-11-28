@@ -4653,5 +4653,20 @@
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "이 프로젝트에 이름이 같은 다른 항목({{kind}})이 있어 선택기에서 둘을 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
   "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kinds}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
-  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요."
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "You can read this only on {{items}} labelled {{labels}}, so the list cannot be sorted by it.": "이 항목은 {{labels}} 레이블이 붙은 {{items}}에서만 읽을 수 있으므로 목록을 이 항목으로 정렬할 수 없습니다.",
+  "You can read this only on {{items}} with certain labels, so the list cannot be sorted by it.": "이 항목은 특정 레이블이 붙은 {{items}}에서만 읽을 수 있으므로 목록을 이 항목으로 정렬할 수 없습니다.",
+  "You can read this only on {{items}} you or your teams own, so the list cannot be sorted by it.": "이 항목은 나 또는 내 팀이 소유한 {{items}}에서만 읽을 수 있으므로 목록을 이 항목으로 정렬할 수 없습니다.",
+  "{{first}} and {{second}}": "{{first}} 및 {{second}}",
+  "{{first}}, {{second}} and {{third}}": "{{first}}, {{second}} 및 {{third}}",
+  "{{first}} or {{second}}": "{{first}} 또는 {{second}}",
+  "{{first}}, {{second}} or {{third}}": "{{first}}, {{second}} 또는 {{third}}",
+  "Your permission is limited to {{items}} labelled {{labels}}.": "권한이 {{labels}} 레이블이 붙은 {{items}}(으)로 제한되어 있습니다.",
+  "Your permission is limited to {{items}} with certain labels.": "권한이 특정 레이블이 붙은 {{items}}(으)로 제한되어 있습니다.",
+  "A team you are on blocks this on {{items}} labelled {{labels}}.": "소속된 팀 중 하나가 {{labels}} 레이블이 붙은 {{items}}에서 이 작업을 차단합니다.",
+  "A team you are on blocks this on {{items}} with certain labels.": "소속된 팀 중 하나가 특정 레이블이 붙은 {{items}}에서 이 작업을 차단합니다.",
+  "Your permissions do not reach this {{itemName}}.": "권한이 이 {{itemName}}에는 미치지 않습니다.",
+  "Your permission is limited to {{items}} you or your teams own.": "권한이 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다.",
+  "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "권한이 {{labels}} 레이블이 붙은 {{items}} 및 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다.",
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "권한이 특정 레이블이 붙은 {{items}} 및 나 또는 내 팀이 소유한 {{items}}(으)로 제한되어 있습니다."
 }

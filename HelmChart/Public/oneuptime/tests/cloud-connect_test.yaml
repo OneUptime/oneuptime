@@ -103,4 +103,8 @@ tests:
     set:
       cloudConnect.aws.existingSecret.name: cloud-connect-aws-secret
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/cloudConnect/aws/existingSecret': missing properties 'accessKeyIdKey', 'secretAccessKeyKey'

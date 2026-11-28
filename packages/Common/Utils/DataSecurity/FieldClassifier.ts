@@ -5,7 +5,7 @@ import {
   DataTypeInfo,
   getBuiltInDataType,
 } from "../../Types/DataSecurity/DataTypeCatalog";
-import { DataTypeDetector } from "./Detector";
+import { matchesFieldShape } from "./Detector";
 import { getBuiltInDetectorsOf } from "./Detectors/Index";
 import { getHintedDataTypeIds } from "./FieldNameHints";
 import { isFreeTextFieldName } from "./FreeTextFieldNames";
@@ -278,29 +278,6 @@ function confidenceForRatio(
   }
 
   return nameHinted ? DataConfidence.Medium : DataConfidence.Low;
-}
-
-/*
- * Whether a whole value has the shape a hinted type expects, for a field
- * whose name is all the context its values have: a `cvv` column of "123".
- */
-function matchesFieldShape(
-  detector: DataTypeDetector | ScanDetector,
-  value: string,
-): string | null {
-  if (!detector.fieldValuePattern || !detector.fieldValuePattern.test(value)) {
-    return null;
-  }
-
-  const normalized: string = detector.normalize
-    ? detector.normalize(value)
-    : value;
-
-  if (detector.validate && !detector.validate(normalized, value)) {
-    return null;
-  }
-
-  return normalized;
 }
 
 export function classifyField(

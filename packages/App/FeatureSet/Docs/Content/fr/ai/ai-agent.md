@@ -53,7 +53,7 @@ Cliquez sur **Lancer la tâche**, ou appuyez sur Entrée. La page de la tâche s
 | **Journaux** | Les 20 dernières lignes de log qui contiennent votre recherche, sur la dernière heure, le dernier jour ou la dernière semaine. |
 | **Profil de performance** | Où va le temps d'une fonction dans les profils de son service : qui l'appelle, ce qu'elle appelle et ses lignes les plus chaudes. |
 
-Une demande porte au plus 10 éléments de contexte. Les jetons, clés, mots de passe et adresses e-mail présents dans ce que OneUptime lit sont masqués avant que l'IA ne les voie, comme partout où OneUptime AI lit vos données.
+Une demande porte au plus 10 éléments de contexte. Les jetons, clés, mots de passe, adresses e-mail, numéros de téléphone et numéros de sécurité sociale présents dans ce que OneUptime lit sont masqués avant que l'IA ne les voie, comme partout où OneUptime AI lit vos données.
 
 ## La conversation d'une tâche
 
@@ -151,7 +151,7 @@ Ce que l'agent peut lire est décidé par le serveur OneUptime, à partir de la 
 
 - **Lecture seule.** Les requêtes s'exécutent sur le serveur OneUptime, jamais sur le Runner, qui ne détient aucun identifiant permettant de lire la télémétrie. Rien de ce qu'elles font ne peut modifier votre projet.
 - **Ce projet, et seulement les services de ce dépôt.** Vous ne les associez pas vous-même : ce sont les services pour lesquels OneUptime trouve ce dépôt, comme il trouve le dépôt d'une correction - les stack traces de leurs exceptions passent par ses fichiers, ils portent le même nom que lui, ou c'est le seul dépôt du projet. La télémétrie d'un autre service ne peut pas être lue.
-- **Aucun incident privé**, et les jetons, clés, mots de passe et adresses e-mail sont masqués avant que l'agent ne voie un résultat, comme partout où OneUptime AI lit vos données.
+- **Aucun incident privé**, et les jetons, clés, mots de passe, adresses e-mail, numéros de téléphone et numéros de sécurité sociale sont masqués avant que l'agent ne voie un résultat, comme partout où OneUptime AI lit vos données.
 - **Ce que tout le monde peut lire.** Ce que l'agent trouve aboutit dans une pull request, que des personnes extérieures à vos rôles OneUptime peuvent lire. Là où une équipe, un rôle personnalisé ou une clé d'API ne lit les services ou les incidents que selon le propriétaire ou l'étiquette, l'agent exclut ceux qu'un propriétaire ou une étiquette met à part, sauf si sa tâche les concerne.
 - **Limité.** Par la limite de temps de l'exécution, et par **Appels d'outils par exécution** lorsque le projet la fixe : chaque requête est un appel d'outil.
 

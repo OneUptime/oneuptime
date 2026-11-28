@@ -591,7 +591,10 @@ tests:
       compliance.nodeBenchmark.benchmark: rh-1.9
     asserts:
       - failedTemplate:
-          errorPattern: "compliance.nodeBenchmark.benchmark"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/compliance/nodeBenchmark/benchmark': value must be one of 'auto', 'cis-1.12', 'cis-1.11', 'eks-1.8.0', 'gke-1.9.0', 'aks-1.8'
 
   # --- Where it cannot run ------------------------------------------------------
   - it: is left out on GKE Autopilot, which admits no host access
@@ -712,14 +715,51 @@ tests:
           path: spec.jobTemplate.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key
           value: kubernetes.io/arch
 
-  - it: refuses a node group named as the control plane's run is
+  # The template refuses it, not values.schema.json: a schema `not` could only
+  # say "'not' failed", which names no reason.
+  - it: refuses a node group named as the control plane's run is, and says why
     set:
       compliance.nodeBenchmark.enabled: true
       compliance.nodeBenchmark.nodeGroups:
         - name: control-plane
     asserts:
       - failedTemplate:
-          errorPattern: "compliance.nodeBenchmark.nodeGroups.0.name"
+          errorMessage: 'compliance.nodeBenchmark.nodeGroups[0].name is control-plane, the name of kube-bench''s run on a control plane node (its CronJob is oneuptime-agent-kubernetes-kube-bench-control-plane). Give this node group another name.'
+
+  - it: names the node group that takes the name, wherever in the list it is
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.nodeGroups:
+        - name: workers
+        - name: control-plane
+    asserts:
+      - failedTemplate:
+          errorMessage: 'compliance.nodeBenchmark.nodeGroups[1].name is control-plane, the name of kube-bench''s run on a control plane node (its CronJob is oneuptime-agent-kubernetes-kube-bench-control-plane). Give this node group another name.'
+
+  - it: refuses it even where no control plane run renders, as the name is that run's
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.benchmark: eks-1.8.0
+      compliance.nodeBenchmark.nodeGroups:
+        - name: control-plane
+    asserts:
+      - failedTemplate:
+          errorMessage: 'compliance.nodeBenchmark.nodeGroups[0].name is control-plane, the name of kube-bench''s run on a control plane node (its CronJob is oneuptime-agent-kubernetes-kube-bench-control-plane). Give this node group another name.'
+
+  - it: takes a node group whose name only starts with control-plane
+    set:
+      compliance.nodeBenchmark.enabled: true
+      compliance.nodeBenchmark.nodeGroups:
+        - name: control-plane-gpu
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kuberne-kube-bench-control-plane-gpu
+    asserts:
+      - isKind:
+          of: CronJob
+      - equal:
+          path: metadata.labels["oneuptime.com/node-group"]
+          value: control-plane-gpu
 
   - it: refuses a node group whose name a CronJob could not take
     set:
@@ -728,7 +768,10 @@ tests:
         - name: GPU_Pool
     asserts:
       - failedTemplate:
-          errorPattern: "compliance.nodeBenchmark.nodeGroups.0.name"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/compliance/nodeBenchmark/nodeGroups/0/name': 'GPU_Pool' does not match pattern '^[a-z0-9]([-a-z0-9]{0,18}[a-z0-9])?$'
 
   - it: keeps every CronJob's name within the 52 characters a CronJob may have, cutting only a long release name
     release:
@@ -773,7 +816,10 @@ tests:
       compliance.nodeBenchmark.image.digest: latest
     asserts:
       - failedTemplate:
-          errorPattern: "compliance.nodeBenchmark.image.digest"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/compliance/nodeBenchmark/image/digest': 'latest' does not match pattern '^(sha256:[a-f0-9]{64})?$'
 
   - it: refuses a key the chart does not read
     set:
@@ -781,4 +827,7 @@ tests:
       compliance.nodeBenchmark.privileged: true
     asserts:
       - failedTemplate:
-          errorPattern: "compliance.nodeBenchmark"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/compliance/nodeBenchmark': additional properties 'privileged' not allowed

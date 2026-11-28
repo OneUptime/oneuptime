@@ -739,20 +739,41 @@ describe("a Matches Pattern Type filter", () => {
     },
   );
 
+  /*
+   * Kept: what Data Security calls none of the type there. Under a key
+   * that names it, the key is the word a value needs (#11383) - so nine
+   * digits no word names are held under a key that names nothing - and a
+   * value its type's own checks refuse is kept whatever its key.
+   */
   test.each([
-    ["phoneNumber", "a national number no word names", "order 02012345678"],
-    ["phoneNumber", "a decimal typed in fullwidth", "＋５１．５０７２１７"],
-    ["ssn", "nine digits no word names", "ref 536221234"],
+    [
+      "phoneNumber",
+      "caller",
+      "a national number no word names",
+      "order 02012345678",
+    ],
+    [
+      "phoneNumber",
+      "caller",
+      "a decimal typed in fullwidth",
+      "＋５１．５０７２１７",
+    ],
+    ["ssn", "applicant.ref", "nine digits no word names", "ref 536221234"],
     [
       "ssn",
-      "an area never issued, typed in fullwidth",
+      "ssn",
+      "an area never issued, typed in fullwidth, under a key that names an SSN",
       "６６６．２２．８７３１",
     ],
+    [
+      "ssn",
+      "ssn",
+      "nine digits in a straight run, under a key that names an SSN",
+      "123456789",
+    ],
   ])(
-    "%s keeps %s: %s",
-    (patternType: string, _label: string, value: string) => {
-      const key: string = patternType === "ssn" ? "ssn" : "caller";
-
+    "%s under %s keeps %s: %s",
+    (patternType: string, key: string, _label: string, value: string) => {
       expect(leftOf(redactWhere(key, patternType), key, value)).toBe(value);
     },
   );

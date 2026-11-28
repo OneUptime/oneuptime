@@ -40,7 +40,7 @@ Al het andere staat onder **Meer velden**, ingeklapt tot u het opent:
 | Veld | Wat het doet |
 | --- | --- |
 | **Elke beurt duurt** | **1 dag**, **1 week**, **2 weken** of **1 maand**, en **1 week** als u het niet wijzigt. Het wordt gevraagd zodra iemand elkaar afwisselt. Elke persoon heeft zo lang dienst, daarna neemt de volgende het over, op het tijdstip van de dag waarop het schema is gemaakt. |
-| **Tijdzone** | De tijdzone waarin overdrachtstijden en diensturen worden bijgehouden. Hij begint op de uwe. Elke tijdzone volgt de huidige regels van haar regio: America/Vancouver (Brits-Columbia) blijft vanaf 2026 het hele jaar op UTC-7. |
+| **Tijdzone** | De tijdzone waarin overdrachtstijden en diensturen worden bijgehouden. Hij begint op de uwe. Wijzigt u hem later, dan blijft elke tijd staan zoals hij er staat: een overdracht om 09:00 blijft om 09:00, en een venster op maandag blijft op maandag. Elke tijdzone volgt de huidige regels van haar regio: America/Vancouver (Brits-Columbia) blijft vanaf 2026 het hele jaar op UTC-7. |
 | **Beschrijving** | Notities over het schema. |
 | **Labels** | Labels om het schema te vinden en te groeperen. |
 
@@ -70,6 +70,8 @@ flowchart TB
 | **Wissel elke** | Hoe vaak de dienst overgaat naar de volgende persoon in de laag. |
 | **Tijd van eerste overdracht** | De eerste overdracht aan de volgende persoon, bij of na het begin. Latere overdrachten volgen elk rotatie-interval. |
 | **Beperkingen** | De uren waarop de laag dienst heeft (**Actieve uren**): **Geen beperkingen**, **Specifieke tijdstippen van de dag** of **Specifieke tijdstippen van de week**, in de tijdzone van het schema. Daarbuiten nemen lagere lagen het over. |
+
+Een venster van **Specifieke tijdstippen van de week** loopt van de dag en tijd onder **Van:** tot de dag en tijd onder **Tot:**, en de dagen die het toont, zijn de dagen waarop het dienst heeft. Een venster waarvan de tijden op andere dagen vallen dan waarmee het is opgeslagen, zoals een venster dat via de API is geschreven met tijden die op andere dagen zijn gedateerd, of een venster dat is opgeslagen voordat de tijdzone van zijn schema veranderde, is op zijn laag gemarkeerd met **Actieve uren te controleren** en zegt eronder als welke dagen het is opgeslagen. Het blijft dienst hebben op de getoonde dagen, en **Laag opslaan** houdt het daar: kies de dagen die u bedoelt voordat u opslaat.
 
 Met actieve uren is elk venster een eigen dienst. Van 17:00 tot 07:00 is één dienst, die de volgende ochtend om 07:00 eindigt: in de **Tijdlijn van bereikbaarheidsschema's**, in de e-mails, in de mobiele app en in Slack en Microsoft Teams op dezelfde manier, in de tijdzone van het schema en ook in de nachten waarin de klok verzet wordt. De beurt van iemand omvat al diens vensters tot de volgende overdracht, en diegene krijgt het één keer in elke richting te horen: "You are now on-call" wanneer het eerste venster van de beurt begint, met wanneer dat venster en wanneer de beurt eindigt, en "You are no longer on-call" wanneer het laatste venster eindigt, niet bij elk venster. Wil je vóór elk venster een herinnering, kies dan een tijd bij **Herinner mij vóór diensten**, zoals [Agendafeeds](/docs/on-call/calendar-feeds#herinneringen-en-meldingen-over-hertoewijzing) beschrijft. Heeft iemand anders tussen twee vensters dienst, via een overschrijving of een lagere laag, of geeft een wijziging van de lagen het volgende venster aan iemand anders, dan is dat een overdracht en wordt het als zodanig gemeld. De diensttijd wordt nog steeds venster voor venster vastgelegd, en de kanalen en de feed van het bereikbaarheidsbeleid zeggen nog steeds telkens wie er dienst heeft.
 
@@ -114,7 +116,10 @@ Bereikbaarheidsschema's zijn de resource `/api/on-call-duty-policy-schedule`; hu
 - Een schema maken met `firstLayerUsers` (een lijst met gebruikers-id's, in de volgorde waarin ze elkaar afwisselen) in de `miscDataProps` geeft het zijn eerste laag, net als in het dashboard: **Layer 1**, van dienst vanaf nu, de klok rond. `firstLayerRotation` zegt hoe lang elke beurt duurt, als een rotatie zoals `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; zonder deze waarde een week. Elke gebruiker moet lid van het project zijn en de aanroeper moet lagen mogen maken; anders wordt het schema niet gemaakt.
 - Een schema dat zonder deze waarden wordt gemaakt, heeft zoals voorheen geen lagen; de Terraform-resource voor schema's stuurt ze niet mee.
 - Een laag die zonder `rotation` wordt gemaakt, draagt elke week over, en een laag zonder `restrictionTimes` heeft de klok rond dienst, zoals een nieuwe laag in het dashboard begint.
-- De `restrictionTimes` van een laag, haar actieve uren, noemen het type onder `restrictionType`: `None` (de klok rond dienst), `Daily` of `Weekly`. `restictionType`, de oudere spelling zonder de tweede "r", wordt ook gelezen, en elk antwoord bevat het type onder beide, zodat een client of een Terraform-configuratie die met een van beide is geschreven blijft werken; de laag wordt opgeslagen met `restrictionType`.
+- De `restrictionTimes` van een laag, haar actieve uren, noemen het type onder `restrictionType`: `None` (de klok rond dienst), `Daily` of `Weekly`. `restictionType`, de oudere spelling zonder de tweede "r", wordt ook gelezen, en elk antwoord bevat het type onder beide, zodat een client of een Terraform-configuratie die met een van beide is geschreven blijft werken; de laag wordt opgeslagen met `restrictionType`. `restictionType` in antwoorden is verouderd: antwoorden bevatten het tot de eerste hoofdversie die op of na 1 juni 2027 uitkomt, en schrijfacties zullen het altijd lezen. Schrijf `restrictionType`.
+- Een `Weekly`-venster, `{"startDay", "startTime", "endDay", "endTime"}`, heeft dienst op de dagen die het noemt: zijn `startTime` en `endTime` moeten in de tijdzone van het schema op zijn `startDay` en `endDay` vallen. Een venster waarvan de tijd op een andere dag valt, wordt geweigerd met een `400` die het venster noemt, de dag waarop de tijd valt en een tijd op de genoemde dag om in plaats daarvan te sturen. Een weggelaten dag is de dag waarop de tijd valt. Een venster dat precies wordt teruggestuurd zoals de laag het bevat, wordt niet opnieuw beoordeeld, zodat een client die een laag leest en terugschrijft daarom niet wordt geweigerd. In een schema zonder tijdzone, waarvan de tijden in die van de server worden gelezen, wordt een tijd alleen geweigerd als hij in geen enkele tijdzone op zijn dag valt.
+- Bij een upgrade van OneUptime wordt elk opgeslagen venster waarvan de tijden op andere dagen vallen dan het noemt, en in geen enkele tijdzone op die dagen, op hetzelfde tijdstip van de dag naar de dagen verplaatst die het noemt, en wordt opnieuw bepaald wie er dienst heeft. Een venster waarvan de tijden in een andere tijdzone op zijn dagen vallen, wat kan gebeuren bij een venster dat in een andere zone is ingesteld of is opgeslagen voordat de tijdzone van zijn schema veranderde, blijft zoals het is, zodat het oproept zoals voorheen, en wordt gemarkeerd met **Actieve uren te controleren**.
+- Wordt de `timezone` van een schema van de ene zone naar een andere gewijzigd, dan gaan `startsAt`, `handOffTime` en `restrictionTimes` van zijn lagen mee naar de klok van de nieuwe zone: elk toont daar dezelfde datum, dag en tijd van de dag als voorheen. Krijgt een schema zijn eerste tijdzone, of wordt die weggehaald, dan blijven de momenten zoals ze zijn.
 - Een schrijfactie waardoor een laag op geen enkel moment dienst zou hebben, wordt geweigerd met een `400` die de sleutel noemt: een type dat ontbreekt, onbekend is of onder de twee spellingen verschilt (een update neemt het type dat afwijkt van het huidige type van de laag); een `Daily`-venster waarvan `startTime` en `endTime` geen datums en tijden zijn (alleen `"09:00"` wordt geweigerd); een `Weekly`-beperking zonder `weeklyRestrictionTimes`; of een venster dat op hetzelfde tijdstip opent en sluit. Een `rotation` waarvan de `intervalType` niet `Hour`, `Day`, `Week`, `Month` of `Year` is, wordt op dezelfde manier geweigerd.
 - Een laag die werd opgeslagen voordat deze schrijfacties werden geweigerd, zonder een type dat werd gelezen, had nooit dienst. Bij een upgrade van OneUptime wordt elke zulke laag gelezen volgens de uren die ze bevat, zo opgeslagen en wordt opnieuw bepaald wie er dienst heeft in haar schema, zodat haar mensen vanaf dan worden opgeroepen en dat te horen krijgen.
 - Een wijziging van de lagen van een schema en de mensen daarin, gemaakt met de API of Terraform, wordt als één wijziging gemeld: wie er bereikbaar is, wordt bepaald zodra de lagen een halve minuut niet zijn gewijzigd, en wie bereikbaar wordt, dat niet meer is of de volgende is, hoort het één keer, niet één keer per geschreven laag of persoon. Oproepen gaan naar wie de lagen bereikbaar maken zodra elke wijziging is opgeslagen.
@@ -155,6 +160,25 @@ curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
           "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
           "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
         }
+      }}
+    }
+  }'
+```
+
+```bash
+curl -X PUT https://oneuptime.com/api/on-call-duty-schedule-layer/<layer-id> \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Weekly",
+        "weeklyRestrictionTimes": [{
+          "startDay": "Monday",
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T09:00:00+01:00"},
+          "endDay": "Friday",
+          "endTime": {"_type": "DateTime", "value": "2026-01-09T17:00:00+01:00"}
+        }]
       }}
     }
   }'

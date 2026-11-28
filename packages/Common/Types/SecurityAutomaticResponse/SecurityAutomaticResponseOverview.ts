@@ -176,6 +176,7 @@ export function readSecurityAutomaticResponseTrialSummary(
     sparedSignedIn: readCount(object["sparedSignedIn"]),
     sparedProtected: readCount(object["sparedProtected"]),
     sparedCannotTell: readCount(object["sparedCannotTell"]),
+    sparedUnvouchedProxy: readCount(object["sparedUnvouchedProxy"]),
     wouldHaveStopped: readCount(object["wouldHaveStopped"]),
   };
 }

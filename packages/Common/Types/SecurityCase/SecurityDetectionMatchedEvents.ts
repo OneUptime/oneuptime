@@ -153,13 +153,21 @@ export const SECURITY_DETECTION_MATCHED_EVENT_ATTRIBUTES_MAX: number = 40;
 export const SECURITY_DETECTION_MATCHED_EVENT_ATTRIBUTE_VALUE_MAX_LENGTH: number = 500;
 
 /*
- * The attributes a kept event keeps before any other: what the card reads
- * of it - the request it happened in, its trace's answer and exception, and
- * the log line it was read from, with the service and the record it was
- * sent under - so a kept event opens the same trace, logs and exception.
+ * The attributes a kept event keeps before any other: how its address was
+ * known - verified as the connection's own, forwarded by trusted proxies
+ * (which ones), or only claimed - which an automatic response reads before
+ * it blocks the address (#11389, ClientAddressTrust.readUnvouchedForwarding);
+ * then what the card reads of it - the request it happened in, its trace's
+ * answer and exception, and the log line it was read from, with the
+ * service and the record it was sent under - so a kept event opens the same
+ * trace, logs and exception.
  */
 export const SECURITY_DETECTION_MATCHED_EVENT_KEY_ATTRIBUTES: ReadonlyArray<string> =
   [
+    SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust,
+    SECURITY_REQUEST_ATTRIBUTES.forwardedBy,
+    SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress,
+    SECURITY_REQUEST_ATTRIBUTES.claimedClientAddressFrom,
     SECURITY_REQUEST_ATTRIBUTES.url,
     SECURITY_REQUEST_ATTRIBUTES.route,
     SECURITY_REQUEST_ATTRIBUTES.method,

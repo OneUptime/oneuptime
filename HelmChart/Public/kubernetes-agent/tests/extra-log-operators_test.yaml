@@ -13,14 +13,14 @@ suite: logs.extraOperators, collector operators of your own (issue #11225)
 # and what each test here refuses, a passing case beside it shows the line.
 #
 # A refusal is read at templates/extra-log-operators-check.yaml, the template
-# the check runs in, and held to its whole message with errorMessage.
-# helm-unittest 0.5.1, the version CI pins, has no errorPattern: it reads one
-# as no assertion at all, so a test written with one passes whatever the
-# message says. Nor does it find a failed document at a template the error did
-# not come from. A refusal by values.schema.json is no template's, as the
-# render stops before any, so for those the suite holds only that the install
-# fails (failedTemplate: {}), and Tests/Ops/validate-collector-configs.sh
-# holds Helm's own messages for them.
+# the check runs in, and held to its whole message with errorMessage, as every
+# refusal in the charts' suites is (Tests/Ops/HelmUnittestAssertions.test.js
+# says why): helm-unittest finds no failed document at a template the error
+# did not come from. A refusal by values.schema.json is no template's, as the
+# render stops before any; helm-unittest (from 1.0.0, and the harness pins
+# 1.2.1) holds it to the whole of Helm's message, which those tests spell out.
+# Tests/Ops/validate-collector-configs.sh holds them to the message of the
+# Helm that job runs, too.
 #
 # The patterns are single-quoted YAML, so a backslash is the regex's own. In
 # the collector's config an operator of the list is at 6 spaces, its keys at 8.
@@ -163,7 +163,11 @@ tests:
       logs.extraOperators: inhouse
     asserts:
       - template: templates/extra-log-operators-check.yaml
-        failedTemplate: {}
+        failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/logs/extraOperators': got string, want array
 
   - it: refuses an item that is not an operator
     set:
@@ -171,7 +175,11 @@ tests:
         - regex_parser
     asserts:
       - template: templates/extra-log-operators-check.yaml
-        failedTemplate: {}
+        failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/logs/extraOperators/0': got string, want object
 
   - it: refuses an operator without a type
     set:
@@ -180,7 +188,11 @@ tests:
           regex: '^(?P<severity_text>\w+)'
     asserts:
       - template: templates/extra-log-operators-check.yaml
-        failedTemplate: {}
+        failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/logs/extraOperators/0': missing property 'type'
 
   - it: refuses a type the collector has no operator for
     set:
@@ -189,7 +201,11 @@ tests:
           regex: '^(?P<severity_text>\w+)'
     asserts:
       - template: templates/extra-log-operators-check.yaml
-        failedTemplate: {}
+        failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/logs/extraOperators/0/type': value must be one of 'add', 'assign_keys', 'container', 'copy', 'csv_parser', 'filter', 'flatten', 'json_array_parser', 'json_parser', 'key_value_parser', 'move', 'noop', 'otelcol', 'recombine', 'regex_parser', 'regex_replace', 'remove', 'retain', 'router', 'sanitize_utf8', 'scope_name_parser', 'severity_parser', 'syslog_parser', 'time_parser', 'trace_parser', 'unquote', 'uri_parser'
 
   - it: refuses an input operator, which has no place in a receiver's chain
     set:
@@ -198,7 +214,11 @@ tests:
           include: [/var/log/app.log]
     asserts:
       - template: templates/extra-log-operators-check.yaml
-        failedTemplate: {}
+        failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/logs/extraOperators/0/type': value must be one of 'add', 'assign_keys', 'container', 'copy', 'csv_parser', 'filter', 'flatten', 'json_array_parser', 'json_parser', 'key_value_parser', 'move', 'noop', 'otelcol', 'recombine', 'regex_parser', 'regex_replace', 'remove', 'retain', 'router', 'sanitize_utf8', 'scope_name_parser', 'severity_parser', 'syslog_parser', 'time_parser', 'trace_parser', 'unquote', 'uri_parser'
 
   - it: refuses an output operator, which would end the chain before the agent's
     set:
@@ -206,7 +226,11 @@ tests:
         - type: stdout
     asserts:
       - template: templates/extra-log-operators-check.yaml
-        failedTemplate: {}
+        failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/logs/extraOperators/0/type': value must be one of 'add', 'assign_keys', 'container', 'copy', 'csv_parser', 'filter', 'flatten', 'json_array_parser', 'json_parser', 'key_value_parser', 'move', 'noop', 'otelcol', 'recombine', 'regex_parser', 'regex_replace', 'remove', 'retain', 'router', 'sanitize_utf8', 'scope_name_parser', 'severity_parser', 'syslog_parser', 'time_parser', 'trace_parser', 'unquote', 'uri_parser'
 
   - it: refuses an id that is not a string
     set:
@@ -215,7 +239,11 @@ tests:
           id: 7
     asserts:
       - template: templates/extra-log-operators-check.yaml
-        failedTemplate: {}
+        failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/logs/extraOperators/0/id': got number, want string
 
   - it: refuses an empty id
     set:
@@ -224,7 +252,11 @@ tests:
           id: ""
     asserts:
       - template: templates/extra-log-operators-check.yaml
-        failedTemplate: {}
+        failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/logs/extraOperators/0/id': minLength: got 0, want 1
 
   # ----- Operators that set the level themselves ------------------------------
   - it: refuses a severity_parser, whose level the agent would overwrite, and says where a level goes
