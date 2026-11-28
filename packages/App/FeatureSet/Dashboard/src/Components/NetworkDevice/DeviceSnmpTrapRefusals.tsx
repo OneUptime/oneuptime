@@ -38,11 +38,14 @@ export interface ComponentProps {
 
 /*
  * A device's own refused SNMPv3 traps, on its pages (OneUptime issues
- * #11005, #11173): its probe counts every SNMPv3 trap it refuses by source
- * address, and the ones from this device's addresses - its hostname, when
- * that is an address, and its Other Addresses - are said here, with what to
- * change and the way to change it. Nothing shows while the device's traps
- * are taken: a banner is for something to act on.
+ * #11005, #11173, #11406): its probe counts every SNMPv3 trap it refuses by
+ * source address, OneUptime keeps each with the devices it came from - the
+ * devices that have the address as their hostname, one of their Other
+ * Addresses, or what their DNS name resolves to, as traps are matched - and
+ * this device's are said here, with what to change and the way to change
+ * it. So a device added by its DNS name sees its refusals too, though the
+ * page resolves no names. Nothing shows while the device's traps are taken:
+ * a banner is for something to act on.
  *
  * A project's own probe keeps its whole report (Probe.snmpTrapReceiver),
  * read through the device's probe, which holds it to the probe's own
@@ -149,11 +152,14 @@ const DeviceSnmpTrapRefusals: FunctionComponent<ComponentProps> = (
       setIsGlobalProbe(isOnGlobalProbe);
       setProbeEngineId(probeReport?.engineId);
       setRefusals(
-        SnmpTrapReceiverUtil.getRefusalsFromAddresses(report, [
-          device.hostname,
-          ...NetworkDeviceOtherAddressesUtil.parse(device.otherAddresses)
-            .addresses,
-        ]),
+        SnmpTrapReceiverUtil.getRefusalsOfDevice(report, {
+          deviceId: props.modelId.toString(),
+          addresses: [
+            device.hostname,
+            ...NetworkDeviceOtherAddressesUtil.parse(device.otherAddresses)
+              .addresses,
+          ],
+        }),
       );
     };
 

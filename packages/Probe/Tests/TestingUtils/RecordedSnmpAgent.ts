@@ -41,6 +41,21 @@ export interface RecordedSnmpAgentOptions {
    * absent, as net-snmp makes one.
    */
   engineId?: string | undefined;
+  /*
+   * Serve SNMP-FRAMEWORK-MIB's snmpEngine group (RFC 3411) - snmpEngineID,
+   * snmpEngineBoots, snmpEngineTime, snmpEngineMaxMessageSize - to every
+   * version, the engine ID the one its Reports say: as a real agent does
+   * whose view includes it (Net-SNMP with a full view, Cisco's v1default).
+   * Off, it is an agent whose community's view leaves it out (Net-SNMP's
+   * `systemonly`): a GET for it is answered noSuchObject.
+   */
+  servesSnmpEngineGroup?: boolean | undefined;
+  /*
+   * false: an agent that speaks v1 and v2c only. An SNMPv3 message - a
+   * poll's, or engine discovery - gets no answer at all, as from an agent
+   * with SNMPv3 switched off.
+   */
+  answersSnmpV3?: boolean | undefined;
 }
 
 interface NumericVariation {
@@ -97,7 +112,32 @@ type SnmpAgent = {
     rinfo: unknown,
   ) => void;
   close: (callback?: () => void) => void;
+  engine: { engineID: Buffer };
+  listener: { sockets: Record<string, dgram.Socket> };
 };
+
+// SNMP-FRAMEWORK-MIB's snmpEngine group (RFC 3411).
+export const SNMP_ENGINE_ID_OID: string = "1.3.6.1.6.3.10.2.1.1.0";
+const SNMP_ENGINE_BOOTS_OID: string = "1.3.6.1.6.3.10.2.1.2.0";
+const SNMP_ENGINE_TIME_OID: string = "1.3.6.1.6.3.10.2.1.3.0";
+const SNMP_ENGINE_MAX_MESSAGE_SIZE_OID: string = "1.3.6.1.6.3.10.2.1.4.0";
+
+// Whether a datagram is SNMPv3: a SEQUENCE whose first element is INTEGER 3.
+function isSnmpV3(datagram: Buffer): boolean {
+  if (datagram.length < 2 || datagram[0] !== 0x30) {
+    return false;
+  }
+
+  // Past the SEQUENCE's length, short or long form.
+  const lengthOctet: number = datagram[1]!;
+  const start: number = lengthOctet & 0x80 ? 2 + (lengthOctet & 0x7f) : 2;
+
+  return (
+    datagram[start] === 0x02 &&
+    datagram[start + 1] === 0x01 &&
+    datagram[start + 2] === 0x03
+  );
+}
 
 const TWO_TO_THE_32: bigint = BigInt(2) ** BigInt(32);
 const TWO_TO_THE_64: bigint = BigInt(2) ** BigInt(64);
@@ -294,6 +334,12 @@ export default class RecordedSnmpAgent {
       recorded.contextMibs.set(context, mib);
     }
 
+    if (options.servesSnmpEngineGroup) {
+      recorded.serveSnmpEngineGroup(agent.getMib());
+    }
+
+    recorded.watchRequests(options.answersSnmpV3 !== false);
+
     /*
      * net-snmp hands every request that names a context to onProxyRequest.
      * Answer it from that context's MIB, the way the agent answers the
@@ -380,6 +426,75 @@ export default class RecordedSnmpAgent {
       } else {
         entry.node.value = Number(grown);
       }
+    }
+  }
+
+  // The agent's SNMPv3 engine ID, as hex in capitals.
+  public get engineId(): string {
+    return this.agent.engine.engineID.toString("hex").toUpperCase();
+  }
+
+  // Every datagram the agent was sent, SNMPv3 ones told apart.
+  public readonly requests: Array<{ isSnmpV3: boolean; datagram: Buffer }> = [];
+
+  /*
+   * snmpEngineID and the rest of its group, as the agent's own engine says
+   * them, beside whatever the recording holds (which wins).
+   */
+  private serveSnmpEngineGroup(mib: AgentMib): void {
+    const group: Array<{ oid: string; type: number; value: unknown }> = [
+      {
+        oid: SNMP_ENGINE_ID_OID,
+        type: snmp.ObjectType.OctetString,
+        value: Buffer.from(this.agent.engine.engineID),
+      },
+      { oid: SNMP_ENGINE_BOOTS_OID, type: snmp.ObjectType.Integer, value: 1 },
+      { oid: SNMP_ENGINE_TIME_OID, type: snmp.ObjectType.Integer, value: 120 },
+      {
+        oid: SNMP_ENGINE_MAX_MESSAGE_SIZE_OID,
+        type: snmp.ObjectType.Integer,
+        // What Net-SNMP 5.9.4's snmpd says.
+        value: 1500,
+      },
+    ];
+
+    for (const entry of group) {
+      const existing: MibNode | null = mib.lookup(entry.oid);
+
+      if (existing && existing.valueType !== undefined) {
+        continue;
+      }
+
+      const node: MibNode = mib.addNodesForOid(entry.oid);
+      node.valueType = entry.type;
+      node.value = entry.value;
+    }
+  }
+
+  /*
+   * Keeps every datagram the agent is sent (requests), and drops the SNMPv3
+   * ones unanswered when it speaks v1 and v2c only.
+   */
+  private watchRequests(answersSnmpV3: boolean): void {
+    for (const socket of Object.values(this.agent.listener.sockets || {})) {
+      const handlers: Array<(...args: Array<unknown>) => void> =
+        socket.listeners("message") as Array<(...args: Array<unknown>) => void>;
+
+      socket.removeAllListeners("message");
+
+      socket.on("message", (datagram: Buffer, rinfo: unknown): void => {
+        const isV3: boolean = isSnmpV3(datagram);
+
+        this.requests.push({ isSnmpV3: isV3, datagram: datagram });
+
+        if (isV3 && !answersSnmpV3) {
+          return;
+        }
+
+        for (const handler of handlers) {
+          handler(datagram, rinfo);
+        }
+      });
     }
   }
 

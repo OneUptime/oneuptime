@@ -19,9 +19,11 @@ import {
   NetworkEventCounts,
   NetworkEventRow,
   NetworkEventSource,
+  NetworkEventSourceKind,
   buildNetworkEventAttributes,
   buildNetworkEventFacetsRequest,
   buildNetworkEventSourcesAttributes,
+  buildNetworkEventTrapSourcesAttributes,
   getNetworkEventDetailAttributes,
   getNetworkEventSubjects,
   parseNetworkEventCounts,
@@ -903,6 +905,7 @@ describe("who sends syslog without being a device", () => {
         hostname: "edge-sw9",
         vendor: "Cisco",
         probeId: PROBE_ID,
+        kinds: [NetworkEventSourceKind.Syslog],
         lastSeenAt: new Date("2026-10-13T10:11:12Z"),
         messageCount: 2,
       },
@@ -912,6 +915,7 @@ describe("who sends syslog without being a device", () => {
         // Its newest message did not say; an older one did.
         vendor: "MikroTik",
         probeId: PROBE_ID,
+        kinds: [NetworkEventSourceKind.Syslog],
         lastSeenAt: new Date("2026-10-13T10:11:10Z"),
         messageCount: 2,
       },
@@ -986,6 +990,202 @@ describe("who sends syslog without being a device", () => {
         },
       ),
     );
+  });
+});
+
+describe("who sends SNMP traps without being a device (#11407)", () => {
+  const SITE_ID: string = "8c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f";
+  const SITE_PROBE_ID: string = "55555555-5555-4555-8555-555555555555";
+
+  // A trap log as the trap ingest writes it for an address that is no device.
+  function trapFrom(
+    address: string,
+    time: string,
+    extra: Record<string, unknown> = {},
+  ): { time: string; attributes: JSONObject } {
+    return {
+      time: time,
+      attributes: {
+        "snmpTrap.unmatched": "true",
+        "snmpTrap.sourceIp": address,
+        "snmpTrap.oid": "1.3.6.1.4.1.1588.2.1.1.1.0.3",
+        "snmpTrap.version": "2c",
+        "probe.id": PROBE_ID,
+        ...extra,
+      } as JSONObject,
+    };
+  }
+
+  function syslogFrom(
+    address: string,
+    time: string,
+    extra: Record<string, unknown> = {},
+  ): { time: string; attributes: JSONObject } {
+    return {
+      time: time,
+      attributes: {
+        "syslog.unmatched": "true",
+        "syslog.sourceIp": address,
+        "probe.id": PROBE_ID,
+        ...extra,
+      } as JSONObject,
+    };
+  }
+
+  test("an enterprise trap that is no event lists its sender, with the maker its enterprise arc names", () => {
+    expect(
+      toNetworkEventSources([
+        trapFrom("203.0.113.20", "2026-11-28T10:00:00Z"),
+        trapFrom("203.0.113.20", "2026-11-28T09:59:00Z"),
+      ]),
+    ).toEqual([
+      {
+        address: "203.0.113.20",
+        hostname: undefined,
+        vendor: "Brocade",
+        probeId: PROBE_ID,
+        siteId: undefined,
+        kinds: [NetworkEventSourceKind.SnmpTraps],
+        lastSeenAt: new Date("2026-11-28T10:00:00Z"),
+        messageCount: 2,
+      },
+    ]);
+  });
+
+  test("a standard trap, an event, names no maker", () => {
+    expect(
+      toNetworkEventSources([
+        trapFrom("203.0.113.21", "2026-11-28T10:00:00Z", {
+          "snmpTrap.oid": "1.3.6.1.6.3.1.1.5.3",
+          "event.domain": "network",
+          "event.name": "interface.down",
+        }),
+      ])[0]?.vendor,
+    ).toBeUndefined();
+  });
+
+  test("a trap a site's default credentials signed says the site, with the probe that heard it", () => {
+    const sources: Array<NetworkEventSource> = toNetworkEventSources([
+      // The newest, heard by another probe, says no site.
+      trapFrom("203.0.113.22", "2026-11-28T10:05:00Z", {
+        "probe.id": "66666666-6666-4666-8666-666666666666",
+      }),
+      trapFrom("203.0.113.22", "2026-11-28T10:00:00Z", {
+        "networkSite.id": SITE_ID,
+        "probe.id": SITE_PROBE_ID,
+        "snmpTrap.version": "3",
+      }),
+    ]);
+
+    expect(sources).toHaveLength(1);
+    expect(sources[0]!.siteId).toBe(SITE_ID);
+    // Add as device files it at the site, polled by the probe the site's trap came to.
+    expect(sources[0]!.probeId).toBe(SITE_PROBE_ID);
+  });
+
+  test("syslog and SNMP traps from one address are one sender that sends both", () => {
+    const sources: Array<NetworkEventSource> = toNetworkEventSources([
+      trapFrom("203.0.113.30", "2026-11-28T10:00:00Z"),
+      syslogFrom("203.0.113.30", "2026-11-28T09:00:00Z", {
+        "syslog.hostname": "fabric-sw-30",
+        "syslog.vendor": "Brocade",
+      }),
+    ]);
+
+    expect(sources).toEqual([
+      expect.objectContaining({
+        address: "203.0.113.30",
+        hostname: "fabric-sw-30",
+        kinds: [
+          NetworkEventSourceKind.Syslog,
+          NetworkEventSourceKind.SnmpTraps,
+        ],
+        lastSeenAt: new Date("2026-11-28T10:00:00Z"),
+        messageCount: 2,
+      }),
+    ]);
+  });
+
+  test("one IPv6 address however each kind writes it is one sender", () => {
+    const sources: Array<NetworkEventSource> = toNetworkEventSources([
+      trapFrom("2001:db8::30", "2026-11-28T10:00:00Z"),
+      syslogFrom("2001:DB8:0:0:0:0:0:30", "2026-11-28T09:00:00Z"),
+    ]);
+
+    expect(sources).toHaveLength(1);
+    expect(sources[0]!.kinds).toEqual([
+      NetworkEventSourceKind.Syslog,
+      NetworkEventSourceKind.SnmpTraps,
+    ]);
+  });
+
+  test("the newest first whichever read a log came from: the reads are handed over one after the other", () => {
+    const sources: Array<NetworkEventSource> = toNetworkEventSources([
+      // The syslog read's answer, then the traps'.
+      syslogFrom("203.0.113.40", "2026-11-28T09:00:00Z"),
+      syslogFrom("203.0.113.41", "2026-11-28T08:00:00Z"),
+      trapFrom("203.0.113.42", "2026-11-28T10:00:00Z"),
+      trapFrom("203.0.113.40", "2026-11-28T09:30:00Z", {
+        "networkSite.id": SITE_ID,
+      }),
+    ]);
+
+    expect(
+      sources.map((source: NetworkEventSource) => {
+        return [source.address, source.lastSeenAt?.toISOString()];
+      }),
+    ).toEqual([
+      ["203.0.113.42", "2026-11-28T10:00:00.000Z"],
+      ["203.0.113.40", "2026-11-28T09:30:00.000Z"],
+      ["203.0.113.41", "2026-11-28T08:00:00.000Z"],
+    ]);
+    expect(sources[1]!.siteId).toBe(SITE_ID);
+  });
+
+  test("a trap of a device, a trap with no address, and a matched one say nobody to add", () => {
+    expect(
+      toNetworkEventSources([
+        {
+          time: "2026-11-28T10:00:00Z",
+          attributes: {
+            "snmpTrap.sourceIp": "10.0.0.2",
+            "networkDevice.id": DEVICE_ID,
+          },
+        },
+        {
+          time: "2026-11-28T10:00:00Z",
+          attributes: {
+            "snmpTrap.sourceIp": "10.0.0.2",
+            "snmpTrap.unmatched": "false",
+          },
+        },
+        {
+          time: "2026-11-28T10:00:00Z",
+          attributes: { "snmpTrap.unmatched": "true" },
+        },
+      ]),
+    ).toEqual([]);
+  });
+
+  test('a switch as ClickHouse hands it back: true, "true" or "1"', () => {
+    for (const value of [true, "true", "1"]) {
+      expect(
+        toNetworkEventSources([
+          trapFrom("203.0.113.50", "2026-11-28T10:00:00Z", {
+            "snmpTrap.unmatched": value,
+          }),
+        ]),
+      ).toHaveLength(1);
+    }
+  });
+
+  test("the card reads traps by the attribute the trap ingest marks them with", () => {
+    expect(buildNetworkEventTrapSourcesAttributes()).toEqual({
+      "snmpTrap.unmatched": "true",
+    });
+    expect(buildNetworkEventSourcesAttributes()).toEqual({
+      "syslog.unmatched": "true",
+    });
   });
 });
 

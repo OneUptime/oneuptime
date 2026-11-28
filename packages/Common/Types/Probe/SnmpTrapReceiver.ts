@@ -12,11 +12,12 @@ import SnmpSecurityLevel, {
 import SnmpV3CredentialHolderUtil, {
   SnmpV3CredentialHolders,
 } from "./SnmpV3CredentialHolders";
+import ObjectID from "../ObjectID";
 import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
 
 /*
  * A PROBE'S SNMP TRAP RECEIVER, AS IT REPORTS ITSELF, AND THE SNMPv3 USERS IT
- * IS HANDED (OneUptime issues #11005, #11172, #11173, #11174).
+ * IS HANDED (OneUptime issues #11005, #11172, #11173, #11174, #11406).
  *
  * Every probe runs an SNMP trap receiver (Probe/Services/SnmpTrapReceiver).
  * v1 and v2c traps carry a community string and are taken as they come; an
@@ -56,6 +57,15 @@ import IpCanonicalUtil from "../../Utils/IpCanonicalUtil";
  *     san-monitor". A refused trap is never forwarded and nothing it carried
  *     is kept or logged - only that it came, from where, as whom, and why it
  *     was refused.
+ *
+ * OneUptime keeps each refusal with the devices it came from (#11406):
+ * every device on the probe that has its source address, as its hostname,
+ * one of its Other Addresses or the address its DNS name resolves to - the
+ * way a trap is matched to its device. A device's pages read their own
+ * refusals by it, so a device added by its DNS name sees them too. The
+ * probe never says which devices: it sends addresses, and what it sends
+ * is read without them (sanitizeReport); only a report OneUptime kept is
+ * read with them (parseReport).
  *
  * The users carry secrets: the probe keeps them in memory only, never on
  * disk and never in a log, as it keeps the credentials it polls with.
@@ -109,6 +119,16 @@ export interface SnmpTrapRefusal {
   // ISO dates.
   firstSeenAt: string;
   lastSeenAt: string;
+  /*
+   * The devices on the probe it came from, by ID, in order (#11406): every
+   * device that has its source address - as its hostname, one of its Other
+   * Addresses or the address its DNS name resolves to - at most
+   * MAX_SNMP_TRAP_REFUSAL_DEVICES. Written by OneUptime as it keeps the
+   * report, only ever with devices of the project that reads it, and never
+   * taken from a probe. Absent when no device has the address, and from a
+   * report kept before #11406.
+   */
+  deviceIds?: Array<string> | undefined;
 }
 
 export interface SnmpTrapReceiverReport {
@@ -173,6 +193,14 @@ export const MAX_SNMP_USER_NAME_LENGTH: number = 32;
 export const MAX_REPORTED_SNMP_TRAP_REFUSALS: number = 50;
 export const SNMP_TRAP_REFUSAL_RETENTION_MS: number = 24 * 60 * 60 * 1000;
 
+/*
+ * How many devices one refusal names (SnmpTrapRefusal.deviceIds): devices
+ * that send from one address - blades behind their chassis, a cluster's
+ * members - are a few. Past this many, a device whose page does not find it
+ * by its ID still finds it by its typed addresses.
+ */
+export const MAX_SNMP_TRAP_REFUSAL_DEVICES: number = 25;
+
 // How many users one probe is handed at most, and addresses per user.
 export const MAX_SNMP_TRAP_RECEIVER_USERS: number = 5000;
 export const MAX_SNMP_TRAP_RECEIVER_USER_ADDRESSES: number = 256;
@@ -224,9 +252,28 @@ export default class SnmpTrapReceiverUtil {
   /*
    * A report as the server keeps it, built from whatever the probe posted:
    * only the fields above, each of the right type and size, unknown keys
-   * dropped. Null when it is not a report at all.
+   * dropped. Null when it is not a report at all. Which devices a refusal
+   * came from is never taken from a probe (#11406): OneUptime works that out
+   * itself as it keeps the report, so a probe cannot put a refusal on a
+   * device's page by naming the device.
    */
   public static sanitizeReport(value: unknown): SnmpTrapReceiverReport | null {
+    return SnmpTrapReceiverUtil.readReport(value, { withDeviceIds: false });
+  }
+
+  /*
+   * A stored report as the dashboard and the server read it: the same rules
+   * as a fresh one, so a row written by an older server reads safely, and
+   * with the devices OneUptime found each refusal came from.
+   */
+  public static parseReport(value: unknown): SnmpTrapReceiverReport | null {
+    return SnmpTrapReceiverUtil.readReport(value, { withDeviceIds: true });
+  }
+
+  private static readReport(
+    value: unknown,
+    options: { withDeviceIds: boolean },
+  ): SnmpTrapReceiverReport | null {
     if (!SnmpTrapReceiverUtil.isObject(value)) {
       return null;
     }
@@ -241,7 +288,10 @@ export default class SnmpTrapReceiverUtil {
 
     const report: SnmpTrapReceiverReport = {
       isEnabled: true,
-      refusals: SnmpTrapReceiverUtil.sanitizeRefusals(value["refusals"]),
+      refusals: SnmpTrapReceiverUtil.sanitizeRefusals(
+        value["refusals"],
+        options,
+      ),
     };
 
     const port: unknown = value["port"];
@@ -292,14 +342,6 @@ export default class SnmpTrapReceiverUtil {
   }
 
   /*
-   * A stored report as the dashboard and the server read it: the same rules
-   * as a fresh one, so a row written by an older server reads safely.
-   */
-  public static parseReport(value: unknown): SnmpTrapReceiverReport | null {
-    return SnmpTrapReceiverUtil.sanitizeReport(value);
-  }
-
-  /*
    * What a global probe's report says that belongs to no project, and is
    * kept on the probe for every project that uses it to read (#11173):
    * whether its receiver is on, its port, why it cannot listen, and its
@@ -334,10 +376,42 @@ export default class SnmpTrapReceiverUtil {
   }
 
   /*
+   * A device's own refusals, as its pages show them (#11406): those
+   * OneUptime found came from the device - which is how a device added by
+   * its DNS name finds them, as the page resolves no names - and those from
+   * one of its typed addresses, for a report kept before OneUptime said
+   * which devices, or a refusal from an address more devices share than one
+   * refusal names.
+   */
+  public static getRefusalsOfDevice(
+    report: SnmpTrapReceiverReport | null | undefined,
+    device: {
+      deviceId: string | null | undefined;
+      addresses: Array<string | null | undefined>;
+    },
+  ): Array<SnmpTrapRefusal> {
+    if (!report || report.refusals.length === 0) {
+      return [];
+    }
+
+    const deviceId: string = (device.deviceId || "").trim().toLowerCase();
+    const fromAddresses: Set<SnmpTrapRefusal> = new Set(
+      SnmpTrapReceiverUtil.getRefusalsFromAddresses(report, device.addresses),
+    );
+
+    return report.refusals.filter((refusal: SnmpTrapRefusal): boolean => {
+      return (
+        fromAddresses.has(refusal) ||
+        Boolean(deviceId && refusal.deviceIds?.includes(deviceId))
+      );
+    });
+  }
+
+  /*
    * The refusals of a report whose source is one of a device's addresses:
    * its hostname, when that is an IP address, and its Other Addresses. A
-   * device registered by DNS name is matched by its Other Addresses only -
-   * the page does not resolve names.
+   * DNS name matches nothing here - nothing is resolved - so a device's
+   * pages read their refusals through getRefusalsOfDevice.
    */
   public static getRefusalsFromAddresses(
     report: SnmpTrapReceiverReport | null | undefined,
@@ -481,7 +555,41 @@ export default class SnmpTrapReceiverUtil {
     return users;
   }
 
-  private static sanitizeRefusals(value: unknown): Array<SnmpTrapRefusal> {
+  /*
+   * The devices a stored refusal names: IDs only, in lower case, each once,
+   * in order, at most MAX_SNMP_TRAP_REFUSAL_DEVICES. Undefined when it names
+   * none, so a refusal no device sent reads as it was written.
+   */
+  public static sanitizeDeviceIds(value: unknown): Array<string> | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+
+    const deviceIds: Set<string> = new Set();
+
+    for (const entry of value) {
+      if (typeof entry !== "string") {
+        continue;
+      }
+
+      const id: string = entry.trim().toLowerCase();
+
+      if (ObjectID.isValidUUID(id)) {
+        deviceIds.add(id);
+      }
+    }
+
+    const sorted: Array<string> = Array.from(deviceIds)
+      .sort()
+      .slice(0, MAX_SNMP_TRAP_REFUSAL_DEVICES);
+
+    return sorted.length > 0 ? sorted : undefined;
+  }
+
+  private static sanitizeRefusals(
+    value: unknown,
+    options: { withDeviceIds: boolean },
+  ): Array<SnmpTrapRefusal> {
     if (!Array.isArray(value)) {
       return [];
     }
@@ -523,7 +631,7 @@ export default class SnmpTrapReceiverUtil {
         continue;
       }
 
-      refusals.push({
+      const refusal: SnmpTrapRefusal = {
         sourceAddress: IpCanonicalUtil.canonicalize(sourceAddress),
         reason: reason as SnmpTrapRefusalReason,
         userName:
@@ -533,7 +641,17 @@ export default class SnmpTrapReceiverUtil {
         count: count,
         firstSeenAt: firstSeenAt,
         lastSeenAt: lastSeenAt,
-      });
+      };
+
+      const deviceIds: Array<string> | undefined = options.withDeviceIds
+        ? SnmpTrapReceiverUtil.sanitizeDeviceIds(entry["deviceIds"])
+        : undefined;
+
+      if (deviceIds) {
+        refusal.deviceIds = deviceIds;
+      }
+
+      refusals.push(refusal);
     }
 
     return refusals.sort((a: SnmpTrapRefusal, b: SnmpTrapRefusal): number => {

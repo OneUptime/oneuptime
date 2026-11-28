@@ -1,4 +1,7 @@
-import { NetworkEventSource } from "./NetworkEventsModel";
+import {
+  NetworkEventSource,
+  NetworkEventSourceKind,
+} from "./NetworkEventsModel";
 import {
   NetworkQuickAction,
   getNetworkQuickActionRoute,
@@ -28,23 +31,25 @@ import Modal from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
- * Who is sending syslog to a probe without being a device yet - with the
- * two ways to make it one. "Add as device" opens Add Device with the
- * address and the probe filled in; "It is one of my devices" adds the
- * address to that device's Other Addresses, and its messages go to the
- * device from the next minute on.
+ * Who is sending syslog or SNMP traps to a probe without being a device
+ * yet (#11407) - with the two ways to make it one. "Add as device" opens
+ * Add Device with the address and the probe filled in, and the site when a
+ * site's default SNMPv3 credentials signed its traps; "It is one of my
+ * devices" adds the address to that device's Other Addresses, and what it
+ * sends goes to the device from the next minute on.
  *
- * Their messages are not lost meanwhile: they are kept for the project and
- * shown on the Events page with the address in place of a device's name.
+ * Nothing it sent is lost meanwhile: it is kept for the project, its events
+ * on the Events page with the address in place of a device's name, and the
+ * rest - an enterprise trap that is no event - in Logs.
  *
  * Every row here is an address that is not a device yet - the card's title
- * says so once, so no row repeats it.
+ * says so once, so no row repeats it. Each says what it sends.
  */
 
 export interface ComponentProps {
@@ -53,12 +58,72 @@ export interface ComponentProps {
   onLinked: () => void;
 }
 
-export const LinkSyslogSourceModal: FunctionComponent<{
+// Which of a sender's kinds the words are for.
+type SenderWords = "syslog" | "snmpTraps" | "both";
+
+function wordsFor(kinds: Array<NetworkEventSourceKind>): SenderWords {
+  const sendsSyslog: boolean = kinds.includes(NetworkEventSourceKind.Syslog);
+  const sendsTraps: boolean = kinds.includes(NetworkEventSourceKind.SnmpTraps);
+
+  if (sendsSyslog && sendsTraps) {
+    return "both";
+  }
+
+  return sendsTraps ? "snmpTraps" : "syslog";
+}
+
+// What "It is one of my devices" says, by what the address sends.
+const LINK_WORDS: Record<
+  SenderWords,
+  { title: string; description: string; pick: string; linked: string }
+> = {
+  syslog: {
+    title: translationKey("Which device sends this syslog?"),
+    description: translationKey(
+      "Syslog from {{address}} will go to the device you pick. The address is added to the device's Other Addresses, where you can remove it again.",
+    ),
+    pick: translationKey("Pick the device that sends this syslog."),
+    linked: translationKey(
+      "Syslog from {{address}} goes to {{device}} from the next minute on.",
+    ),
+  },
+  snmpTraps: {
+    title: translationKey("Which device sends these SNMP traps?"),
+    description: translationKey(
+      "SNMP traps from {{address}} will go to the device you pick. The address is added to the device's Other Addresses, where you can remove it again.",
+    ),
+    pick: translationKey("Pick the device that sends these SNMP traps."),
+    linked: translationKey(
+      "SNMP traps from {{address}} go to {{device}} from the next minute on.",
+    ),
+  },
+  both: {
+    title: translationKey("Which device sends from this address?"),
+    description: translationKey(
+      "Syslog and SNMP traps from {{address}} will go to the device you pick. The address is added to its Other Addresses, where you can remove it again.",
+    ),
+    pick: translationKey("Pick the device that sends from this address."),
+    linked: translationKey(
+      "Syslog and SNMP traps from {{address}} go to {{device}} from the next minute on.",
+    ),
+  },
+};
+
+// The chip each kind is shown with.
+const KIND_LABELS: Record<NetworkEventSourceKind, string> = {
+  [NetworkEventSourceKind.Syslog]: translationKey("Syslog"),
+  [NetworkEventSourceKind.SnmpTraps]: translationKey("SNMP traps"),
+};
+
+export const LinkSourceModal: FunctionComponent<{
   address: string;
+  // What the address sends; syslog when not said.
+  kinds?: Array<NetworkEventSourceKind> | undefined;
   onClose: () => void;
   onLinked: (deviceName: string) => void;
 }> = (props: {
   address: string;
+  kinds?: Array<NetworkEventSourceKind> | undefined;
   onClose: () => void;
   onLinked: (deviceName: string) => void;
 }): ReactElement => {
@@ -67,9 +132,15 @@ export const LinkSyslogSourceModal: FunctionComponent<{
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
+  const words: {
+    title: string;
+    description: string;
+    pick: string;
+    linked: string;
+  } = LINK_WORDS[wordsFor(props.kinds || [NetworkEventSourceKind.Syslog])];
+
   const save: () => Promise<void> = async (): Promise<void> => {
-    const pickError: string =
-      translator.translateText("Pick the device that sends this syslog.") || "";
+    const pickError: string = translator.translateText(words.pick) || "";
 
     if (!selected) {
       setError(pickError);
@@ -110,11 +181,10 @@ export const LinkSyslogSourceModal: FunctionComponent<{
 
   return (
     <Modal
-      title="Which device sends this syslog?"
-      description={translator.translateTemplate(
-        "Syslog from {{address}} will go to the device you pick. The address is added to the device's Other Addresses, where you can remove it again.",
-        { address: props.address },
-      )}
+      title={words.title}
+      description={translator.translateTemplate(words.description, {
+        address: props.address,
+      })}
       onClose={props.onClose}
       submitButtonText="Use this device"
       onSubmit={() => {
@@ -153,7 +223,7 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [linkingAddress, setLinkingAddress] = useState<string | null>(null);
+  const [linking, setLinking] = useState<NetworkEventSource | null>(null);
   const [notice, setNotice] = useState<string>("");
 
   if (props.sources.length === 0 && !notice) {
@@ -166,8 +236,8 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
   return (
     <div id="network-event-sources">
       <Card
-        title="Sending syslog, not a device yet"
-        description="Addresses that sent syslog to one of your probes in this time range and are not a device in OneUptime. Their messages are kept and shown above; make each a device to get its own page."
+        title="Sending syslog or SNMP traps, not a device yet"
+        description="Addresses that sent syslog or SNMP traps to one of your probes in this time range and are not a device in OneUptime. What they sent is kept; make each a device to get its own page."
       >
         <div data-testid="network-event-sources">
           {notice ? (
@@ -199,9 +269,13 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
 
               if (lastSeenAgo) {
                 details.push(
-                  translator.translateTemplate("last message {{time}}", {
-                    time: lastSeenAgo,
-                  }),
+                  wordsFor(source.kinds) === "snmpTraps"
+                    ? translator.translateTemplate("last trap {{time}}", {
+                        time: lastSeenAgo,
+                      })
+                    : translator.translateTemplate("last message {{time}}", {
+                        time: lastSeenAgo,
+                      }),
                 );
               }
 
@@ -221,7 +295,7 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
-                      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
                         <span className="font-mono text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
                           {source.address}
                         </span>
@@ -234,6 +308,19 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
                           </span>
                         ) : (
                           <></>
+                        )}
+                        {source.kinds.map(
+                          (kind: NetworkEventSourceKind): ReactElement => {
+                            return (
+                              <span
+                                key={kind}
+                                className="flex-shrink-0 whitespace-nowrap rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-gray-200"
+                                data-testid="network-event-source-kind"
+                              >
+                                {translator.translateText(KIND_LABELS[kind])}
+                              </span>
+                            );
+                          },
                         )}
                       </div>
                       {details.length > 0 ? (
@@ -266,6 +353,7 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
                             {
                               address: source.address,
                               probeId: source.probeId,
+                              siteId: source.siteId,
                             },
                           ),
                         );
@@ -278,7 +366,7 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
                       buttonStyle={ButtonStyleType.NORMAL}
                       dataTestId="network-event-source-link"
                       onClick={() => {
-                        setLinkingAddress(source.address);
+                        setLinking(source);
                       }}
                     />
                   </div>
@@ -288,20 +376,21 @@ const NetworkEventSourcesCard: FunctionComponent<ComponentProps> = (
           </ul>
         </div>
       </Card>
-      {linkingAddress ? (
-        <LinkSyslogSourceModal
-          address={linkingAddress}
+      {linking ? (
+        <LinkSourceModal
+          address={linking.address}
+          kinds={linking.kinds}
           onClose={() => {
-            setLinkingAddress(null);
+            setLinking(null);
           }}
           onLinked={(deviceName: string) => {
             setNotice(
               translator.translateTemplate(
-                "Syslog from {{address}} goes to {{device}} from the next minute on.",
-                { address: linkingAddress, device: deviceName },
+                LINK_WORDS[wordsFor(linking.kinds)].linked,
+                { address: linking.address, device: deviceName },
               ),
             );
-            setLinkingAddress(null);
+            setLinking(null);
             props.onLinked();
           }}
         />

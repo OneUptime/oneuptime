@@ -14,10 +14,12 @@ export default interface SnmpSystemInfo {
   sysContact?: string | undefined;
   sysUpTimeSeconds?: number | undefined;
   /*
-   * The agent's SNMP engine ID, as hex in capitals, when it was polled over
-   * SNMPv3: what its SNMPv3 traps are sent as (NetworkDevice.snmpEngineId,
-   * #11172). Learned from the walk's own engine discovery, never asked for;
-   * absent from a v1 or v2c poll and from probes older than #11172.
+   * The agent's SNMP engine ID, as hex in capitals: what its SNMPv3 traps
+   * are sent as (NetworkDevice.snmpEngineId, #11172). An SNMPv3 poll learns
+   * it from its own engine discovery; a network device's v1 or v2c poll
+   * reads it from the device's own agent, as snmpEngineID.0 over its
+   * community or by SNMPv3 discovery at its polling address (#11405).
+   * Absent when the agent says none, and from older probes.
    */
   snmpEngineId?: string | undefined;
 }

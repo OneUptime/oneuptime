@@ -97,7 +97,7 @@ Jede Sonde lauscht auf Port 5140 auf Syslog, über UDP und über TCP. Über TCP 
 
 1. einem Gerät, das die Sonde abfragt und dessen Hostname diese Adresse ist (oder zu ihr auflöst) oder das sie auf seiner Seite **Einstellungen** unter **Weitere Adressen** führt;
 2. auf Ihrer eigenen (benutzerdefinierten) Sonde jedem Gerät im Projekt mit dieser Adresse oder mit dem Hostnamen, den die Nachricht trägt, wenn genau ein Gerät diesen Namen hat;
-3. andernfalls wird die Nachricht auf Ihrer eigenen Sonde für die Ereignisseite des Netzwerks unter **Sendet Syslog, noch kein Gerät** aufbewahrt, bis Sie sagen, zu welchem Gerät sie gehört. Eine globale Sonde verwirft sie.
+3. andernfalls wird die Nachricht auf Ihrer eigenen Sonde für die Ereignisseite des Netzwerks unter **Sendet Syslog oder SNMP-Traps, noch kein Gerät** aufbewahrt, bis Sie sagen, zu welchem Gerät sie gehört. Eine globale Sonde verwirft sie.
 
 Eine Zeile von einer unbekannten Adresse, die keine Syslog-Priorität hat und kein Ereignis ist, gilt als Rauschen und wird verworfen.
 
@@ -223,10 +223,10 @@ Vom Tab **Ereignisse** eines Geräts aus überwachen die Monitore nur dieses Ger
 
 ## Adressen, die noch keine Geräte sind
 
-Syslog kann ankommen, bevor das Gerät, das es sendet, zu OneUptime hinzugefügt wurde. Auf Ihrer eigenen Sonde wird es aufbewahrt, seine Ereignisse stehen auf der Ereignisseite des Netzwerks unter dem Namen, den das Gerät sich selbst gibt, und seine Adresse steht unter **Sendet Syslog, noch kein Gerät**:
+Syslog und SNMP-Traps können ankommen, bevor das Gerät, das sie sendet, zu OneUptime hinzugefügt wurde. Auf Ihrer eigenen Sonde werden sie aufbewahrt, und auf einer globalen Sonde auch ein SNMPv3-Trap, der mit den eigenen Anmeldedaten Ihres Projekts signiert ist. Ihre Ereignisse stehen auf der Ereignisseite des Netzwerks unter dem Namen, den das Gerät sich selbst gibt, und die Adresse steht unter **Sendet Syslog oder SNMP-Traps, noch kein Gerät**, mit dem, was sie sendet: Syslog, SNMP-Traps oder beides. Ein eigener Trap eines Herstellers, der kein Ereignis ist, steht nur unter Protokolle, und sein Absender wird trotzdem aufgeführt:
 
-- **Als Gerät hinzufügen** öffnet **Gerät hinzufügen** mit bereits eingetragener Adresse und Sonde. Die bereits angekommenen Nachrichten bleiben auf der Seite des Netzwerks; neue gehen an das Gerät.
-- **Es ist eines meiner Geräte** trägt die Adresse bei einem Gerät unter **Weitere Adressen** ein: Verwenden Sie es, wenn ein bereits hinzugefügtes Gerät von einer anderen Adresse sendet, etwa einem Loopback. Seine Nachrichten gehen ab der nächsten Minute an dieses Gerät.
+- **Als Gerät hinzufügen** öffnet **Gerät hinzufügen** mit bereits eingetragener Adresse und Sonde, und auch mit dem Standort, wenn seine Traps mit den Standard-SNMPv3-Anmeldedaten dieses Standorts signiert wurden. Was bereits angekommen ist, bleibt, wo es ist; was danach kommt, geht an das Gerät.
+- **Es ist eines meiner Geräte** trägt die Adresse bei einem Gerät unter **Weitere Adressen** ein: Verwenden Sie es, wenn ein bereits hinzugefügtes Gerät von einer anderen Adresse sendet, etwa einem Loopback. Sein Syslog und seine SNMP-Traps gehen ab der nächsten Minute an dieses Gerät.
 
 Mehrere Geräte hinter einer NAT-Adresse teilen sich diese Adresse, ihre Nachrichten gehen also an das eine Gerät, das sie hat, es sei denn, eine Nachricht benennt ihr eigenes Gerät.
 
@@ -254,7 +254,7 @@ Eine Pipeline gehört zu ihrem Projekt. Um eine in einem anderen Projekt zu verw
 
 Wenn eine Ereignisseite noch ihre Einrichtungsschritte zeigt:
 
-- **Empfängt die Sonde überhaupt etwas?** Die Ereignisseite des Netzwerks listet unter **Sendet Syslog, noch kein Gerät** jede Adresse auf, die im Zeitraum Syslog gesendet hat. Steht das Gerät dort, sendet es von einer Adresse, die nicht sein Hostname ist: Tragen Sie diese Adresse bei ihm unter **Weitere Adressen** ein.
+- **Empfängt die Sonde überhaupt etwas?** Die Ereignisseite des Netzwerks listet unter **Sendet Syslog oder SNMP-Traps, noch kein Gerät** jede Adresse auf, die im Zeitraum Syslog oder SNMP-Traps gesendet hat. Steht das Gerät dort, sendet es von einer Adresse, die nicht sein Hostname ist: Tragen Sie diese Adresse bei ihm unter **Weitere Adressen** ein.
 - **Firewalls und Docker.** Erlauben Sie Port 5140 vom Gerät zur Sonde, und veröffentlichen Sie den Port, wenn die Sonde in Docker läuft. Viele Geräte senden an Port 514, wenn man es ihnen nicht anders sagt.
 - **Das Log der Sonde.** Beim Start schreibt die Sonde den Port ins Log, auf dem sie lauscht, oder dass sie ihn nicht öffnen konnte. Verwirft sie Nachrichten wegen `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`, schreibt sie einmal pro Minute ins Log, wie viele.
 - **Eine globale Sonde.** Ein Gerät, das von einer globalen Sonde abgefragt wird, kann ihr aus einem privaten Netzwerk kein Syslog senden. Betreiben Sie eine benutzerdefinierte Sonde im Netzwerk des Geräts und wählen Sie sie in den Einstellungen des Geräts aus.
