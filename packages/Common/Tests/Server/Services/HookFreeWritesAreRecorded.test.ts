@@ -363,6 +363,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
      * records (#11060).
      */
     "Service.rescheduleTelemetryMonitor Monitor": Why.Bookkeeping,
+    /*
+     * Which template a monitor was created from, and its network alert
+     * policy let go, stamped beside a person's move of the monitor to
+     * another template or unlink from one (#11260, #11266) - a change the
+     * audit log records. Written row by row, round the hooks, only when the
+     * moved monitors need different stamps.
+     */
+    "Service.keepWhatTheTemplateChangeLeaves Monitor": Why.FollowOn,
   },
   "packages/Common/Server/Services/MonitorTestService.ts": {
     "Service.claimMonitorTestsForProbing MonitorTest": Why.Bookkeeping,

@@ -11,6 +11,7 @@ import {
   readMonitorTemplateChangeView,
 } from "Common/Types/Monitor/MonitorTemplateChange";
 import { APP_API_URL } from "Common/UI/Config";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
@@ -91,12 +92,16 @@ async function postJson(route: string, body: JSONObject): Promise<JSONObject> {
  * the server not doing what it said, and must not read as "no change".
  */
 function readChange(body: JSONObject): MonitorTemplateChangeView {
-  const view: MonitorTemplateChangeView | null =
-    readMonitorTemplateChangeView(body["change"]);
+  const view: MonitorTemplateChangeView | null = readMonitorTemplateChangeView(
+    body["change"],
+  );
 
   if (!view) {
+    // A sentence of the Dashboard's locales, so it reads in the reader's language.
     throw new BadDataException(
-      "The server's answer about the change could not be read. Reload the page to see where it stands.",
+      translationKey(
+        "The answer from the server could not be read. Reload the page, then try again.",
+      ),
     );
   }
 

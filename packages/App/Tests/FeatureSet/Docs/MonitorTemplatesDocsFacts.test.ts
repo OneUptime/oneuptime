@@ -619,14 +619,17 @@ describe("the template's page", () => {
   it("offers the unlink's two choices, as the dialog words them", () => {
     const unlink: string = section(page, "## Unlink monitors from a template");
 
-    for (const choice of [UnlinkChoice.KeepSettings, UnlinkChoice.ClearCriteria]) {
+    for (const choice of [
+      UnlinkChoice.KeepSettings,
+      UnlinkChoice.ClearCriteria,
+    ]) {
       expect(unlink).toContain(`**${UNLINK_CHOICE_TITLES[choice].other}**`);
     }
 
     // What each choice says it does, the page says too.
-    expect(UNLINK_CHOICE_DESCRIPTIONS[UnlinkChoice.KeepSettings].other).toContain(
-      "keep checking and alerting with the criteria they have now",
-    );
+    expect(
+      UNLINK_CHOICE_DESCRIPTIONS[UnlinkChoice.KeepSettings].other,
+    ).toContain("keep checking and alerting with the criteria they have now");
     expect(unlink).toContain(
       "keep checking and alerting with the criteria they have now",
     );
@@ -639,7 +642,10 @@ describe("the template's page", () => {
   it("says what a template's delete does to its monitors, with the delete's two choices", () => {
     const remove: string = section(page, "## Delete a template");
 
-    for (const choice of [DeleteChoice.KeepSettings, DeleteChoice.ClearCriteria]) {
+    for (const choice of [
+      DeleteChoice.KeepSettings,
+      DeleteChoice.ClearCriteria,
+    ]) {
       expect(remove).toContain(`**${DELETE_CHOICE_TITLES[choice]}**`);
     }
 

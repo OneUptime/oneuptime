@@ -111,7 +111,9 @@ export default class MonitorCriteriaReplaced {
         data.because === CriteriaReplacedBecause.LinkedToTemplate
           ? "after its template's criteria replaced its own"
           : "after its template's criteria were cleared from it",
-      getRootCause: async (kind: MonitorTurnedOffRecordKind): Promise<string> => {
+      getRootCause: async (
+        kind: MonitorTurnedOffRecordKind,
+      ): Promise<string> => {
         return MonitorCriteriaReplaced.getRootCause({
           kind: kind,
           because: data.because,

@@ -539,17 +539,15 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
    */
   const [templateChangeToggle, setTemplateChangeToggle] = useState<number>(0);
 
-  const {
-    bulkActions: templateBulkActions,
-    modals: templateBulkActionModals,
-  } = useMonitorTemplateBulkActions({
-    template: props.linkedToTemplate,
-    onChanged: (): void => {
-      setTemplateChangeToggle((toggle: number): number => {
-        return toggle + 1;
-      });
-    },
-  });
+  const { bulkActions: templateBulkActions, modals: templateBulkActionModals } =
+    useMonitorTemplateBulkActions({
+      template: props.linkedToTemplate,
+      onChanged: (): void => {
+        setTemplateChangeToggle((toggle: number): number => {
+          return toggle + 1;
+        });
+      },
+    });
 
   const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
     useBulkOwnerActions<Monitor>({

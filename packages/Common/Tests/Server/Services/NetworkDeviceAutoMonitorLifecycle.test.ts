@@ -1234,10 +1234,11 @@ describe("what a move to another template keeps", () => {
     expect("networkAlertPolicyId" in updateBy.data).toBe(false);
     expect(
       hookFree.mock.calls.map((call: Array<unknown>) => {
-        const arg: { id: ObjectID; data: Record<string, unknown> } = call[0] as {
-          id: ObjectID;
-          data: Record<string, unknown>;
-        };
+        const arg: { id: ObjectID; data: Record<string, unknown> } =
+          call[0] as {
+            id: ObjectID;
+            data: Record<string, unknown>;
+          };
         return {
           id: arg.id.toString(),
           createdFrom: String(arg.data["createdFromMonitorTemplateId"]),

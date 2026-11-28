@@ -792,8 +792,7 @@ export default class MonitorTemplateChangeRunner {
         return "done";
       }
 
-      const monitorId: string =
-        state.monitorIds[state.results.processedCount]!;
+      const monitorId: string = state.monitorIds[state.results.processedCount]!;
 
       try {
         await this.changeMonitor(state, monitorId);

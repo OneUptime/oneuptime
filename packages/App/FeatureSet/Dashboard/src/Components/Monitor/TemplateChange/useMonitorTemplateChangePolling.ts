@@ -35,9 +35,7 @@ export default function useMonitorTemplateChangePolling(data: {
   // Told once when the change it watches finishes.
   onFinished?: ((view: MonitorTemplateChangeView) => void) | undefined;
 }): MonitorTemplateChangePolling {
-  const [view, setViewState] = useState<MonitorTemplateChangeView | null>(
-    null,
-  );
+  const [view, setViewState] = useState<MonitorTemplateChangeView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const sequenceRef: React.MutableRefObject<number> = useRef<number>(0);
   const timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null> =
@@ -163,17 +161,16 @@ export default function useMonitorTemplateChangePolling(data: {
     };
   }, [poll]);
 
-  const setView: (next: MonitorTemplateChangeView | null) => void =
-    useCallback(
-      (next: MonitorTemplateChangeView | null): void => {
-        setViewState(next);
+  const setView: (next: MonitorTemplateChangeView | null) => void = useCallback(
+    (next: MonitorTemplateChangeView | null): void => {
+      setViewState(next);
 
-        if (next) {
-          report(next);
-        }
-      },
-      [report],
-    );
+      if (next) {
+        report(next);
+      }
+    },
+    [report],
+  );
 
   return {
     view: view,

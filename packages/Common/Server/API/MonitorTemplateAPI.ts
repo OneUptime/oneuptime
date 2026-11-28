@@ -56,9 +56,7 @@ function readSyncFields(req: ExpressRequest): Array<string> | undefined {
  * before sent it - keeps what the route always did.
  */
 function readSwitch(req: ExpressRequest, name: string): boolean {
-  return (
-    (req.body as Record<string, unknown> | undefined)?.[name] === true
-  );
+  return (req.body as Record<string, unknown> | undefined)?.[name] === true;
 }
 
 export default class MonitorTemplateAPI extends BaseAPI<
@@ -169,10 +167,7 @@ export default class MonitorTemplateAPI extends BaseAPI<
               monitorTemplateId,
               monitorId,
               props,
-              applyTemplateSettings: readSwitch(
-                req,
-                "applyTemplateSettings",
-              ),
+              applyTemplateSettings: readSwitch(req, "applyTemplateSettings"),
             });
 
           return Response.sendJsonObjectResponse(req, res, {

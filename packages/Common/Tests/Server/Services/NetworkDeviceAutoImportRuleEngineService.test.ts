@@ -1438,7 +1438,9 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
         createdFrom: TEMPLATE_ID,
       });
       // A person moved it to watch another device as well: no snapshot key.
-      moved.monitorSteps = makeMonitorSteps("99999999-9999-4999-8999-999999999999");
+      moved.monitorSteps = makeMonitorSteps(
+        "99999999-9999-4999-8999-999999999999",
+      );
 
       mockRunNowScans([makeScan({ discoveredDevices: [makeHost()] })]);
       deviceFindByMock.mockResolvedValue([existingDevice]);

@@ -352,10 +352,10 @@ describePostgres(
      * gets, its offline incident set to resolve on its own, every id named
      * after the template so a monitor's criteria say whose they are.
      */
-    const templateSteps: (data: {
-      prefix: string;
-      deviceId: ObjectID;
-    }) => { steps: MonitorSteps; criteria: Criteria } = (data: {
+    const templateSteps: (data: { prefix: string; deviceId: ObjectID }) => {
+      steps: MonitorSteps;
+      criteria: Criteria;
+    } = (data: {
       prefix: string;
       deviceId: ObjectID;
     }): { steps: MonitorSteps; criteria: Criteria } => {
@@ -425,13 +425,18 @@ describePostgres(
       name: string;
       prefix: string;
       interval: string;
-    }) => Promise<{ template: MonitorTemplate; criteria: Criteria }> = async (data: {
+    }) => Promise<{
+      template: MonitorTemplate;
+      criteria: Criteria;
+    }> = async (data: {
       name: string;
       prefix: string;
       interval: string;
     }): Promise<{ template: MonitorTemplate; criteria: Criteria }> => {
-      const built: { steps: MonitorSteps; criteria: Criteria } =
-        templateSteps({ prefix: data.prefix, deviceId: ObjectID.generate() });
+      const built: { steps: MonitorSteps; criteria: Criteria } = templateSteps({
+        prefix: data.prefix,
+        deviceId: ObjectID.generate(),
+      });
       const template: MonitorTemplate = new MonitorTemplate();
       template.projectId = projectId;
       template.templateName = data.name;
@@ -484,6 +489,11 @@ describePostgres(
         });
       }
 
+      // The suite's ids, as the rows carry them: read once, not in the loop.
+      const probe: string = probeId.toString();
+      const project: string = projectId.toString();
+      const operationalStatus: string = operationalStatusId.toString();
+
       for (
         let offset: number = 0;
         offset < fleet.length;
@@ -500,11 +510,11 @@ describePostgres(
         batch.forEach((member: FleetMonitor, index: number) => {
           const base: number = index * 5;
           deviceValues.push(
-            `($${base + 1}, 1, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, '${probeId.toString()}', 'Probe')`,
+            `($${base + 1}, 1, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, '${probe}', 'Probe')`,
           );
           deviceParams.push(
             member.deviceId.toString(),
-            projectId.toString(),
+            project,
             `${data.prefix}SW${offset + index}`,
             `${data.prefix.toLowerCase()}sw${offset + index}-${member.deviceId.toString()}`,
             // The device's address is its hostname, as a scan found it.
@@ -529,7 +539,7 @@ describePostgres(
             member.deviceId.toString();
 
           monitorValues.push(
-            `($${base + 1}, 1, '${projectId.toString()}', $${base + 2}, $${base + 3}, '${MonitorType.NetworkDevice}', '${operationalStatusId.toString()}', $${base + 4}::jsonb, '${data.template.id!.toString()}', $${base + 5}, '${data.template.monitoringInterval}', ${
+            `($${base + 1}, 1, '${project}', $${base + 2}, $${base + 3}, '${MonitorType.NetworkDevice}', '${operationalStatus}', $${base + 4}::jsonb, '${data.template.id!.toString()}', $${base + 5}, '${data.template.monitoringInterval}', ${
               data.networkAlertPolicyId
                 ? `'${data.networkAlertPolicyId.toString()}'`
                 : "NULL"
@@ -1076,7 +1086,8 @@ describePostgres(
       policy.isEnabled = true;
       policy.monitorTemplateId = old.template.id!;
       policy.scope = {};
-      const savedPolicy: NetworkAlertPolicy = await database.manager.save(policy);
+      const savedPolicy: NetworkAlertPolicy =
+        await database.manager.save(policy);
 
       const fleet: Array<FleetMonitor> = await seedFleet({
         count: 150,
@@ -1216,7 +1227,9 @@ describePostgres(
       ]);
 
       expect(
-        second.get(fleet[1]!.monitorId.toString())!.monitorTemplateId?.toString(),
+        second
+          .get(fleet[1]!.monitorId.toString())!
+          .monitorTemplateId?.toString(),
       ).toBe(old.template.id!.toString());
       expect(
         second.get(inTheWay.toString())!.monitorTemplateId?.toString(),

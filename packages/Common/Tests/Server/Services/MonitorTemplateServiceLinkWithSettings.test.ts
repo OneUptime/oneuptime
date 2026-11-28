@@ -15,7 +15,14 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import MonitorCriteriaClear from "../../../Utils/Monitor/MonitorCriteriaClear";
 import { MONITOR_NOT_LINKED_REFUSAL } from "../../../Utils/Monitor/MonitorTemplateLinkRefusal";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -61,7 +68,10 @@ function criteria(id: string): MonitorCriteriaInstance {
   return instance;
 }
 
-function deviceSteps(deviceId: ObjectID, criteriaIds: Array<string>): MonitorSteps {
+function deviceSteps(
+  deviceId: ObjectID,
+  criteriaIds: Array<string>,
+): MonitorSteps {
   const step: MonitorStep = new MonitorStep();
   step.data!.id = "step-1";
   step.data!.networkDeviceMonitor = {
@@ -202,7 +212,9 @@ describe("Link Existing Monitors", () => {
     const template: MonitorTemplate = betterTemplate();
     template.labels = [new Label(ObjectID.generate())];
     template.customFields = { site: "Template site" };
-    jest.spyOn(MonitorTemplateService, "findOneById").mockResolvedValue(template);
+    jest
+      .spyOn(MonitorTemplateService, "findOneById")
+      .mockResolvedValue(template);
     jest
       .spyOn(MonitorService, "findOneById")
       .mockResolvedValue(automaticMonitor());

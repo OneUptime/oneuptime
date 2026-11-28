@@ -90,9 +90,9 @@ export function isMonitorTemplateChangeActive(
 ): boolean {
   return Boolean(
     status &&
-      (ACTIVE_MONITOR_TEMPLATE_CHANGE_STATUSES as ReadonlyArray<string>).includes(
-        status,
-      ),
+      (
+        ACTIVE_MONITOR_TEMPLATE_CHANGE_STATUSES as ReadonlyArray<string>
+      ).includes(status),
   );
 }
 
@@ -122,15 +122,23 @@ export enum MonitorTemplateChangeOutcome {
 /*
  * Why a monitor was not reached, when the change stopped or failed first:
  * the change's own reasons, keys of the Dashboard's locales, so its list of
- * what was not done reads in the reader's language.
+ * what was not done reads in the reader's language. Each is said once for
+ * every monitor of its group ("491 monitors were not reached"), so none
+ * speaks of "this monitor", as the discovery import's do not.
  */
 export const MONITOR_NOT_REACHED_STOPPED: string = translationKey(
-  "The change was stopped before it got to this monitor.",
+  "The change was stopped.",
 );
 
 export const MONITOR_NOT_REACHED_FAILED: string = translationKey(
-  "The change stopped before it got to this monitor. Retry to change it.",
+  "The change stopped before it finished.",
 );
+
+// Every reason the change writes itself, for the Dashboard to word them all.
+export const MONITOR_TEMPLATE_CHANGE_OWN_REASONS: ReadonlyArray<string> = [
+  MONITOR_NOT_REACHED_STOPPED,
+  MONITOR_NOT_REACHED_FAILED,
+];
 
 // What one link or unlink did (MonitorTemplateService).
 export interface MonitorTemplateLinkResult {
@@ -247,7 +255,9 @@ export function readMonitorTemplateChangeSettings(
   value: unknown,
 ): MonitorTemplateChangeSettings {
   const settings: Record<string, unknown> =
-    value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
 
   return {
     kind:
@@ -326,7 +336,9 @@ export function readMonitorTemplateChangeProgress(
   value: unknown,
 ): MonitorTemplateChangeProgress {
   const progress: Record<string, unknown> =
-    value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
 
   return {
     total: toCount(progress["total"]),

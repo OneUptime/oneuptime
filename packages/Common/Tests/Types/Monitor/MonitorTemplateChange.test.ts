@@ -225,9 +225,9 @@ describe("a change's progress and monitors", () => {
   });
 
   it("read the monitors asked for as strings, in order", () => {
-    expect(readMonitorTemplateChangeMonitorIds(["a", 7, "", "b", null])).toEqual(
-      ["a", "b"],
-    );
+    expect(
+      readMonitorTemplateChangeMonitorIds(["a", 7, "", "b", null]),
+    ).toEqual(["a", "b"]);
     expect(readMonitorTemplateChangeMonitorIds("a")).toEqual([]);
   });
 
@@ -236,9 +236,9 @@ describe("a change's progress and monitors", () => {
   });
 
   it("is active while Queued or Running", () => {
-    expect(isMonitorTemplateChangeActive(MonitorTemplateChangeStatus.Queued)).toBe(
-      true,
-    );
+    expect(
+      isMonitorTemplateChangeActive(MonitorTemplateChangeStatus.Queued),
+    ).toBe(true);
     expect(
       isMonitorTemplateChangeActive(MonitorTemplateChangeStatus.Running),
     ).toBe(true);

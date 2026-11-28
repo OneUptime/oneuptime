@@ -2078,7 +2078,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     const updateDataKeys: Array<string> = Object.keys(updateBy.data || {});
 
-    if (RelationIdUtil.isWritten(updateDataKeys, MONITOR_TEMPLATE_RELATION_KEYS)) {
+    if (
+      RelationIdUtil.isWritten(updateDataKeys, MONITOR_TEMPLATE_RELATION_KEYS)
+    ) {
       await this.keepWhatTheTemplateChangeLeaves(updateBy);
     }
 
@@ -2138,7 +2140,10 @@ export class Service extends ProjectReferencesService<Model> {
     }> = monitors.flatMap(
       (
         monitor: Model,
-      ): Array<{ monitorId: ObjectID; patch: TemplateChangeProvenancePatch }> => {
+      ): Array<{
+        monitorId: ObjectID;
+        patch: TemplateChangeProvenancePatch;
+      }> => {
         if (!monitor.id) {
           return [];
         }

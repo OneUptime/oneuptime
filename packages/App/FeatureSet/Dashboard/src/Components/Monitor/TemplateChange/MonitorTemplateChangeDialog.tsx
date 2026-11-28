@@ -40,9 +40,11 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
+  getMonitorTemplateChange,
   retryMonitorTemplateChange,
   startMonitorTemplateChange,
   stopMonitorTemplateChange,
@@ -237,11 +239,52 @@ const MonitorTemplateChangeDialog: FunctionComponent<ComponentProps> = (
     [props.onChanged],
   );
 
-  const polling: MonitorTemplateChangePolling =
-    useMonitorTemplateChangePolling({
+  const polling: MonitorTemplateChangePolling = useMonitorTemplateChangePolling(
+    {
       changeId: changeId,
       onFinished: onFinished,
-    });
+    },
+  );
+
+  /*
+   * While a change runs, its view carries its first lines only. Once it is
+   * done, every line is read once, so each group of what was left out or
+   * failed counts all its monitors - three thousand refused for one reason
+   * read as three thousand, not as the first two hundred.
+   */
+  const allLinesReadFor: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+  // The change shown now: a retry started since shows its own lines.
+  const shownChangeId: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(changeId);
+  shownChangeId.current = changeId;
+
+  useEffect(() => {
+    const finished: MonitorTemplateChangeView | null = polling.view;
+
+    if (
+      !finished ||
+      isMonitorTemplateChangeActive(finished.status) ||
+      !finished.isLinesTruncated ||
+      allLinesReadFor.current === finished.id
+    ) {
+      return;
+    }
+
+    allLinesReadFor.current = finished.id;
+
+    getMonitorTemplateChange(finished.id, { allLines: true })
+      .then((complete: MonitorTemplateChangeView) => {
+        if (shownChangeId.current === complete.id) {
+          polling.setView(complete);
+        }
+      })
+      .catch(() => {
+        // The first lines stay, and the list says it shows only those.
+      });
+  }, [polling.view]);
 
   const pickedTemplate: MonitorTemplate | undefined = templates.find(
     (template: MonitorTemplate): boolean => {
@@ -267,8 +310,8 @@ const MonitorTemplateChangeDialog: FunctionComponent<ComponentProps> = (
     applyTemplateSettings?: boolean | undefined;
     clearTemplateSettings?: boolean | undefined;
   }): Promise<void> => {
-    const started: MonitorTemplateChangeView =
-      await startMonitorTemplateChange({
+    const started: MonitorTemplateChangeView = await startMonitorTemplateChange(
+      {
         monitorTemplateId: request.monitorTemplateId,
         settings: {
           kind: request.kind,
@@ -277,7 +320,8 @@ const MonitorTemplateChangeDialog: FunctionComponent<ComponentProps> = (
           deleteTemplateWhenDone: false,
         },
         monitorIds: monitorIds,
-      });
+      },
+    );
 
     polling.setView(started);
     setChangeId(started.id);
@@ -299,8 +343,7 @@ const MonitorTemplateChangeDialog: FunctionComponent<ComponentProps> = (
           applyTemplateSettings: applyTemplateSettings,
         });
       } else if (props.mode === MonitorTemplateChangeDialogMode.Unlink) {
-        const isClearing: boolean =
-          unlinkChoice === UnlinkChoice.ClearCriteria;
+        const isClearing: boolean = unlinkChoice === UnlinkChoice.ClearCriteria;
 
         // One monitor from its template's row: at once, no change to watch.
         if (count === 1 && props.template?.id) {
@@ -310,24 +353,27 @@ const MonitorTemplateChangeDialog: FunctionComponent<ComponentProps> = (
             clearTemplateSettings: isClearing,
           });
 
+          const resolved: number =
+            result.resolvedIncidentCount + result.resolvedAlertCount;
+
           Toast.success(
-            isClearing
-              ? translator.translatePlural(
-                  {
-                    one: "Unlinked, and its criteria cleared. {{count}} open incident or alert was resolved.",
-                    other:
-                      "Unlinked, and its criteria cleared. {{count}} open incidents and alerts were resolved.",
-                  },
-                  result.resolvedIncidentCount + result.resolvedAlertCount,
-                  {
-                    count: translator.formatNumber(
-                      result.resolvedIncidentCount + result.resolvedAlertCount,
-                    ),
-                  },
-                )
-              : (translator.translateText(
+            !isClearing
+              ? (translator.translateText(
                   "Unlinked. The monitor keeps its settings as its own.",
-                ) as string),
+                ) as string)
+              : resolved === 0
+                ? (translator.translateText(
+                    "Unlinked, and its criteria cleared.",
+                  ) as string)
+                : translator.translatePlural(
+                    {
+                      one: "Unlinked, and its criteria cleared. {{count}} open incident or alert was resolved.",
+                      other:
+                        "Unlinked, and its criteria cleared. {{count}} open incidents and alerts were resolved.",
+                    },
+                    resolved,
+                    { count: translator.formatNumber(resolved) },
+                  ),
           );
           props.onChanged?.();
           props.onClose();
@@ -432,12 +478,18 @@ const MonitorTemplateChangeDialog: FunctionComponent<ComponentProps> = (
       submitButtonText =
         props.mode === MonitorTemplateChangeDialogMode.Move
           ? translator.translatePlural(
-              { one: "Move {{count}} Monitor", other: "Move {{count}} Monitors" },
+              {
+                one: "Move {{count}} Monitor",
+                other: "Move {{count}} Monitors",
+              },
               count,
               { count: translator.formatNumber(count) },
             )
           : translator.translatePlural(
-              { one: "Link {{count}} Monitor", other: "Link {{count}} Monitors" },
+              {
+                one: "Link {{count}} Monitor",
+                other: "Link {{count}} Monitors",
+              },
               ofPickedType,
               { count: translator.formatNumber(ofPickedType) },
             );
@@ -632,8 +684,7 @@ const MonitorTemplateChangeDialog: FunctionComponent<ComponentProps> = (
                         {
                           monitorType: translatableTerm(
                             MonitorTypeHelper.getTitle(
-                              props.template?.monitorType ||
-                                MonitorType.Manual,
+                              props.template?.monitorType || MonitorType.Manual,
                             ),
                           ),
                         },
@@ -718,21 +769,22 @@ const MonitorTemplateChangeDialog: FunctionComponent<ComponentProps> = (
                 onChange={(value: string) => {
                   setUnlinkChoice(value || UnlinkChoice.KeepSettings);
                 }}
-                options={[UnlinkChoice.KeepSettings, UnlinkChoice.ClearCriteria].map(
-                  (choice: UnlinkChoice) => {
-                    return {
-                      value: choice,
-                      title: translator.translatePlural(
-                        UNLINK_CHOICE_TITLES[choice],
-                        count,
-                      ),
-                      description: translator.translatePlural(
-                        UNLINK_CHOICE_DESCRIPTIONS[choice],
-                        count,
-                      ),
-                    };
-                  },
-                )}
+                options={[
+                  UnlinkChoice.KeepSettings,
+                  UnlinkChoice.ClearCriteria,
+                ].map((choice: UnlinkChoice) => {
+                  return {
+                    value: choice,
+                    title: translator.translatePlural(
+                      UNLINK_CHOICE_TITLES[choice],
+                      count,
+                    ),
+                    description: translator.translatePlural(
+                      UNLINK_CHOICE_DESCRIPTIONS[choice],
+                      count,
+                    ),
+                  };
+                })}
               />
             </>
           )}

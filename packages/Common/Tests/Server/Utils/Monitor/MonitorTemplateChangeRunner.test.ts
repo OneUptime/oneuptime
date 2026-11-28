@@ -289,12 +289,14 @@ function installFakes(): void {
   const templateService: Record<string, jest.Mock> =
     MonitorTemplateService as unknown as Record<string, jest.Mock>;
 
-  templateService["readTemplateToLinkOrUnlink"]!.mockImplementation((async (): Promise<MonitorTemplate> => {
-    if (!db.template) {
-      throw new BadDataException("This monitor template does not exist.");
-    }
-    return db.template;
-  }) as never);
+  templateService["readTemplateToLinkOrUnlink"]!.mockImplementation(
+    (async (): Promise<MonitorTemplate> => {
+      if (!db.template) {
+        throw new BadDataException("This monitor template does not exist.");
+      }
+      return db.template;
+    }) as never,
+  );
 
   templateService["assertNothingProvisionsFrom"]!.mockResolvedValue(
     undefined as never,
@@ -372,9 +374,11 @@ function installFakes(): void {
     return monitor;
   }) as never);
 
-  monitorService["countBy"]!.mockImplementation((async (): Promise<PositiveNumber> => {
-    return new PositiveNumber(db.stillLinkedCount);
-  }) as never);
+  monitorService["countBy"]!.mockImplementation(
+    (async (): Promise<PositiveNumber> => {
+      return new PositiveNumber(db.stillLinkedCount);
+    }) as never,
+  );
 
   (Queue.addJob as unknown as jest.Mock).mockResolvedValue(undefined as never);
   (Semaphore.lock as unknown as jest.Mock).mockResolvedValue({} as never);
@@ -567,8 +571,11 @@ describe("asking for a change", () => {
     expect(
       (MonitorService.findBy as unknown as jest.Mock).mock.calls.every(
         (call: Array<unknown>): boolean => {
-          return (call[0] as { props: DatabaseCommonInteractionProps }).props
-            .userId?.toString() === PERSON_ID.toString();
+          return (
+            (
+              call[0] as { props: DatabaseCommonInteractionProps }
+            ).props.userId?.toString() === PERSON_ID.toString()
+          );
         },
       ),
     ).toBe(true);
@@ -862,7 +869,9 @@ describe("the worker changing the monitors", () => {
 });
 
 describe("a template's delete that clears its monitors first", () => {
-  async function startDelete(ids: Array<string>): Promise<MonitorTemplateChange> {
+  async function startDelete(
+    ids: Array<string>,
+  ): Promise<MonitorTemplateChange> {
     personProps = propsWith(TEMPLATE_DELETER);
     db.linkedToTemplate = ids;
 
@@ -1008,9 +1017,7 @@ describe("stopping, retrying and the sweep", () => {
 
     expect(stale.resumeCount).toBe(1);
     expect(tooOften.status).toBe(MonitorTemplateChangeStatus.Failed);
-    expect(tooOften.error).toContain(
-      "more often than it is picked up again",
-    );
+    expect(tooOften.error).toContain("more often than it is picked up again");
     expect(waitedTooLong.status).toBe(MonitorTemplateChangeStatus.Failed);
     expect(waitedTooLong.error).toContain("waited too long to start");
     expect(Queue.addJob).toHaveBeenCalledTimes(1);

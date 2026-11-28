@@ -333,7 +333,9 @@ describe("MonitorAutoResolveTemplates.ofCriteriaRemoved", () => {
     expect(
       MonitorAutoResolveTemplates.isEmpty(
         MonitorAutoResolveTemplates.ofCriteriaRemoved({
-          before: steps([criteria({ id: "by-hand", incidents: [{ id: "x" }] })]),
+          before: steps([
+            criteria({ id: "by-hand", incidents: [{ id: "x" }] }),
+          ]),
           after: undefined,
         }),
       ),

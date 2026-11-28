@@ -1259,15 +1259,15 @@ export class Service extends ProjectReferencesService<Model> {
       props: data.props,
     });
 
-    const resolved: { incidents: number; alerts: number } = data
-      .applyTemplateSettings
-      ? await this.resolveWhatRemovedCriteriaLeftOpen({
-          monitor: monitor,
-          stepsAfter: updateData.monitorSteps,
-          templateName: template.templateName || "",
-          because: CriteriaReplacedBecause.LinkedToTemplate,
-        })
-      : { incidents: 0, alerts: 0 };
+    const resolved: { incidents: number; alerts: number } =
+      data.applyTemplateSettings
+        ? await this.resolveWhatRemovedCriteriaLeftOpen({
+            monitor: monitor,
+            stepsAfter: updateData.monitorSteps,
+            templateName: template.templateName || "",
+            because: CriteriaReplacedBecause.LinkedToTemplate,
+          })
+        : { incidents: 0, alerts: 0 };
 
     return {
       outcome: MonitorTemplateChangeOutcome.Changed,

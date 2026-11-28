@@ -253,10 +253,22 @@ const MonitorTemplateChangeProgress: FunctionComponent<ComponentProps> = (
               },
             )}
           </ul>
+          {/*
+           * While the change runs, only its first lines come with it: each
+           * group counts those. Once it is done, the dialog reads them all.
+           */}
           {props.view.isLinesTruncated && (
-            <p className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500">
-              {translator.translateText(
-                "More monitors than listed here ended the same way.",
+            <p
+              className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500"
+              data-testid="monitor-template-change-issues-truncated"
+            >
+              {translator.translatePlural(
+                {
+                  one: "Only the first {{count}} monitor is listed here.",
+                  other: "Only the first {{count}} monitors are listed here.",
+                },
+                props.view.lines.length,
+                { count: translator.formatNumber(props.view.lines.length) },
               )}
             </p>
           )}

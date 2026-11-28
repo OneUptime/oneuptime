@@ -147,9 +147,9 @@ describe("telling templates and patches apart", () => {
         WAREHOUSE_TEMPLATE.toString().toUpperCase(),
       ),
     ).toBe(true);
-    expect(MonitorTemplateChangeProvenance.isSameTemplate(null, undefined)).toBe(
-      true,
-    );
+    expect(
+      MonitorTemplateChangeProvenance.isSameTemplate(null, undefined),
+    ).toBe(true);
     expect(
       MonitorTemplateChangeProvenance.isSameTemplate(WAREHOUSE_TEMPLATE, null),
     ).toBe(false);

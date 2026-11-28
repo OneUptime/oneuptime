@@ -1,6 +1,4 @@
 import {
-  MONITOR_NOT_REACHED_FAILED,
-  MONITOR_NOT_REACHED_STOPPED,
   MonitorTemplateChangeKind,
   MonitorTemplateChangeLine,
   MonitorTemplateChangeOutcome,
@@ -8,6 +6,7 @@ import {
   MonitorTemplateChangeStatus,
   MonitorTemplateChangeView,
 } from "Common/Types/Monitor/MonitorTemplateChange";
+import { getErrorInSentenceText } from "Common/UI/Utils/ErrorInSentence";
 import {
   PluralTemplate,
   translationKey,
@@ -61,9 +60,9 @@ export const UNLINK_CHOICE_DESCRIPTIONS: Record<UnlinkChoice, PluralTemplate> =
         "They keep checking and alerting with the criteria they have now, as monitors of their own, and no longer get this template's updates.",
     },
     [UnlinkChoice.ClearCriteria]: {
-      one: "It keeps checking, but raises no incidents or alerts and sets no status until you link it to a template again. What its criteria left open is resolved.",
+      one: "It keeps checking, but raises no incidents or alerts and sets no status until you link it to a template again. Open incidents and alerts its criteria were set to resolve are resolved.",
       other:
-        "They keep checking, but raise no incidents or alerts and set no status until you link them to a template again. What their criteria left open is resolved.",
+        "They keep checking, but raise no incidents or alerts and set no status until you link them to a template again. Open incidents and alerts their criteria were set to resolve are resolved.",
     },
   };
 
@@ -75,9 +74,9 @@ export const WHAT_STAYS: PluralTemplate = {
 
 // A device's monitor an import made is never made again, said once moved.
 export const NEVER_MADE_AGAIN: PluralTemplate = {
-  one: "If an import, an auto import rule or an alert policy made it, that rule never makes it again.",
+  one: "If an import, an auto import rule or an alert policy made it, it is never made again.",
   other:
-    "Any an import, an auto import rule or an alert policy made are never made again by that rule.",
+    "Those that an import, an auto import rule or an alert policy made are never made again.",
 };
 
 // Link and Move: the template's settings come too, unless switched off.
@@ -121,7 +120,7 @@ export const DELETE_CHOICE_DESCRIPTIONS: Record<DeleteChoice, string> = {
     "They keep checking and alerting with the criteria they have now, as monitors of their own.",
   ),
   [DeleteChoice.ClearCriteria]: translationKey(
-    "They keep checking, but raise no incidents or alerts until you link them to another template. What their criteria left open is resolved.",
+    "They keep checking, but raise no incidents or alerts and set no status until you link them to another template. Open incidents and alerts their criteria were set to resolve are resolved.",
   ),
 };
 
@@ -226,18 +225,26 @@ export function getMonitorTemplateChangeTitle(data: {
   const view: MonitorTemplateChangeView = data.view;
   const progress: MonitorTemplateChangeProgress = view.progress;
   const templateName: string =
-    view.monitorTemplateName || translated(translator, translationKey("the template"));
-  const isLink: boolean =
-    view.settings.kind === MonitorTemplateChangeKind.Link;
+    view.monitorTemplateName ||
+    translated(translator, translationKey("the template"));
+  const isLink: boolean = view.settings.kind === MonitorTemplateChangeKind.Link;
   const isDelete: boolean = view.settings.deleteTemplateWhenDone;
 
   switch (data.phase) {
     case MonitorTemplateChangePhase.Starting:
       return translated(translator, translationKey("Starting the change…"));
     case MonitorTemplateChangePhase.Waiting:
-      return translated(translator, translationKey("Waiting for another change of this project's monitors to finish…"));
+      return translated(
+        translator,
+        translationKey(
+          "Waiting for another change of this project's monitors to finish…",
+        ),
+      );
     case MonitorTemplateChangePhase.Stopping:
-      return translated(translator, translationKey("Stopping before the next monitor…"));
+      return translated(
+        translator,
+        translationKey("Stopping before the next monitor…"),
+      );
     case MonitorTemplateChangePhase.Running:
       if (isDelete) {
         return translator.translateTemplate(
@@ -251,7 +258,10 @@ export function getMonitorTemplateChangeTitle(data: {
             "Linking monitors to {{templateName}}…",
             { templateName: templateName },
           )
-        : translated(translator, translationKey("Unlinking monitors from their template…"));
+        : translated(
+            translator,
+            translationKey("Unlinking monitors from their template…"),
+          );
     case MonitorTemplateChangePhase.Stopped:
       return translator.translatePlural(
         {
@@ -265,7 +275,10 @@ export function getMonitorTemplateChangeTitle(data: {
         },
       );
     case MonitorTemplateChangePhase.Failed:
-      return translated(translator, translationKey("The change stopped before it finished"));
+      return translated(
+        translator,
+        translationKey("The change stopped before it finished"),
+      );
     default:
       break;
   }
@@ -341,10 +354,30 @@ export function getMonitorTemplateChangeDescription(data: {
   const translator: Translator = data.translator;
 
   if (isMonitorTemplateChangePhaseActive(data.phase)) {
-    return translated(translator, translationKey("The server makes the change. You can close this dialog: it keeps going, and this template's page shows how far it got."));
+    /*
+     * A change of one template's monitors shows on that template's page; an
+     * unlink from the Monitors list, from each monitor's own template, has
+     * no page to show on.
+     */
+    return data.view.monitorTemplateId
+      ? translated(
+          translator,
+          translationKey(
+            "The server makes the change. You can close this dialog: it keeps going, and this template's page shows how far it got.",
+          ),
+        )
+      : translated(
+          translator,
+          translationKey(
+            "The server makes the change. You can close this dialog: it keeps going.",
+          ),
+        );
   }
 
-  if (data.view.settings.deleteTemplateWhenDone && !data.view.isTemplateDeleted) {
+  if (
+    data.view.settings.deleteTemplateWhenDone &&
+    !data.view.isTemplateDeleted
+  ) {
     if (data.view.templateStillLinkedCount) {
       return translator.translatePlural(
         {
@@ -359,14 +392,28 @@ export function getMonitorTemplateChangeDescription(data: {
       );
     }
 
+    // Why the template could not be deleted, in the reader's language.
     if (data.view.templateDeleteError) {
-      return data.view.templateDeleteError;
+      return getErrorInSentenceText({
+        message: data.view.templateDeleteError,
+        translator: translator,
+      });
     }
   }
 
   return data.view.retryableCount > 0
-    ? translated(translator, translationKey("What changed is kept. Retry changes the monitors that failed or were not reached."))
-    : translated(translator, translationKey("Each monitor kept its history, labels, owners and incidents."));
+    ? translated(
+        translator,
+        translationKey(
+          "What changed is kept. Retry changes the monitors that failed or were not reached.",
+        ),
+      )
+    : translated(
+        translator,
+        translationKey(
+          "Each monitor kept its history, labels, owners and incidents.",
+        ),
+      );
 }
 
 // The counts under the bar, each said only when it is not zero.
@@ -408,7 +455,10 @@ export function getMonitorTemplateChangeCounts(data: {
         },
     progress.unchanged,
   );
-  add({ one: "{{count}} left out", other: "{{count}} left out" }, progress.skipped);
+  add(
+    { one: "{{count}} left out", other: "{{count}} left out" },
+    progress.skipped,
+  );
   add({ one: "{{count}} failed", other: "{{count}} failed" }, progress.failed);
   add(
     { one: "{{count}} not reached", other: "{{count}} not reached" },
@@ -512,11 +562,17 @@ export function getIssueGroupTitle(
   }
 }
 
-// The change's own reasons, worded in every language (see the reasons file).
-export const MONITOR_TEMPLATE_CHANGE_OWN_REASONS: ReadonlyArray<string> = [
-  MONITOR_NOT_REACHED_STOPPED,
-  MONITOR_NOT_REACHED_FAILED,
-];
+/*
+ * The reasons the change writes itself (MONITOR_TEMPLATE_CHANGE_OWN_REASONS),
+ * as keys the Dashboard's locales word: the issue groups look each reason up
+ * in the reader's language, and a reason the Dashboard never recorded would
+ * read English in every one. Held to the shared list by a test.
+ */
+export const MONITOR_TEMPLATE_CHANGE_TRANSLATED_REASONS: ReadonlyArray<string> =
+  [
+    translationKey("The change was stopped."),
+    translationKey("The change stopped before it finished."),
+  ];
 
 export const RETRY_BUTTON: PluralTemplate = {
   one: "Retry {{count}} monitor",

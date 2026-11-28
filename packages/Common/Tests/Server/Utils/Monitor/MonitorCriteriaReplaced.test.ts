@@ -79,7 +79,9 @@ describe("resolving what removed criteria left open", () => {
       });
 
     const result: Awaited<
-      ReturnType<typeof MonitorCriteriaReplaced.resolveWhatRemovedCriteriaLeftOpen>
+      ReturnType<
+        typeof MonitorCriteriaReplaced.resolveWhatRemovedCriteriaLeftOpen
+      >
     > = await MonitorCriteriaReplaced.resolveWhatRemovedCriteriaLeftOpen({
       monitorId: MONITOR_ID,
       projectId: PROJECT_ID,
@@ -117,7 +119,9 @@ describe("resolving what removed criteria left open", () => {
     > = jest.spyOn(MonitorTurnedOff, "resolveWhatItWouldResolve");
 
     const result: Awaited<
-      ReturnType<typeof MonitorCriteriaReplaced.resolveWhatRemovedCriteriaLeftOpen>
+      ReturnType<
+        typeof MonitorCriteriaReplaced.resolveWhatRemovedCriteriaLeftOpen
+      >
     > = await MonitorCriteriaReplaced.resolveWhatRemovedCriteriaLeftOpen({
       monitorId: MONITOR_ID,
       projectId: PROJECT_ID,
