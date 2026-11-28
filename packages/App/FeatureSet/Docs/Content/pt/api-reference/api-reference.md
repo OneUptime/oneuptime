@@ -309,7 +309,13 @@ Alguns campos guardam um valor JSON com uma forma própria, como `rotation` e `r
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Uma chave que é renomeada continua sendo lida pelo nome antigo: o tipo de restrição de uma camada é escrito em `restrictionType`, ou na grafia antiga `restictionType`, e uma resposta traz as duas.
+Uma chave que é renomeada continua sendo lida pelo nome antigo: o tipo de restrição de uma camada é escrito em `restrictionType`, ou na grafia antiga `restictionType`, e uma resposta traz as duas. A grafia antiga está obsoleta nas respostas: elas a trazem até a primeira versão principal lançada em 1º de junho de 2027 ou depois. As escritas sempre a leem.
+
+Um valor também tem de corresponder ao que diz. A janela semanal de uma camada fica de plantão nos dias que nomeia, então seus `startTime` e `endTime` devem cair em seus `startDay` e `endDay` no fuso horário do agendamento. Uma janela datada em outros dias é recusada com um `400` que nomeia a janela e dá um horário no dia nomeado para enviar no lugar:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Onde um projeto foi comprado
 

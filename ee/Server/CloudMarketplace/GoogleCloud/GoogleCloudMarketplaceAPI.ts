@@ -390,6 +390,10 @@ export default class GoogleCloudMarketplaceAPI {
    * consumer can no longer be billed (SERVICE_NOT_ACTIVATED,
    * BILLING_DISABLED, PROJECT_DELETED); a report is only sent when the check
    * has no errors.
+   *
+   * The operation's labels go on the report alone, where Google passes them
+   * to Cloud Billing: a check that carries them is refused outright (HTTP
+   * 400, "User labels are not allowed in this operation").
    */
   public async checkUsage(
     operation: GoogleCloudUsageOperation,
@@ -397,7 +401,11 @@ export default class GoogleCloudMarketplaceAPI {
     const body: Record<string, unknown> = await this.call(
       "POST",
       `${SERVICE_CONTROL_API_BASE_URL}/services/${this.getServiceName()}:check`,
-      { operation: this.toServiceControlOperation(operation) },
+      {
+        operation: this.toServiceControlOperation(operation, {
+          withUserLabels: false,
+        }),
+      },
     );
 
     return GoogleCloudMarketplaceAPI.readServiceControlErrors(
@@ -411,7 +419,11 @@ export default class GoogleCloudMarketplaceAPI {
     const body: Record<string, unknown> = await this.call(
       "POST",
       `${SERVICE_CONTROL_API_BASE_URL}/services/${this.getServiceName()}:report`,
-      { operations: [this.toServiceControlOperation(operation)] },
+      {
+        operations: [
+          this.toServiceControlOperation(operation, { withUserLabels: true }),
+        ],
+      },
     );
 
     return GoogleCloudMarketplaceAPI.readServiceControlErrors(
@@ -464,6 +476,7 @@ export default class GoogleCloudMarketplaceAPI {
 
   private toServiceControlOperation(
     operation: GoogleCloudUsageOperation,
+    options: { withUserLabels: boolean },
   ): Record<string, unknown> {
     return {
       operationId: operation.operationId,
@@ -477,7 +490,9 @@ export default class GoogleCloudMarketplaceAPI {
           metricValues: [{ int64Value: String(operation.quantity) }],
         },
       ],
-      ...(operation.labels ? { userLabels: operation.labels } : {}),
+      ...(options.withUserLabels && operation.labels
+        ? { userLabels: operation.labels }
+        : {}),
     };
   }
 

@@ -295,6 +295,13 @@ export default class CreatedNotificationHold {
         record.waiting.delete(tell);
         resolve(false);
       }, atMostMs);
+      /*
+       * Only a cap on the wait: it never keeps a process alive on its own,
+       * so a server shutting down, or a test's worker, need not sit out a
+       * create whose owners never come in. Whatever keeps the process
+       * running (the server, the job) still lets it fire.
+       */
+      timer.unref?.();
 
       const tell: () => void = (): void => {
         if (this.isAddingOwners(create, by)) {

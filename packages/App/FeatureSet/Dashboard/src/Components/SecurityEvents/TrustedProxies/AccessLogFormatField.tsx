@@ -75,6 +75,11 @@ const AccessLogFormatField: FunctionComponent<ComponentProps> = (
             </button>
           }
         >
+          {/*
+           * Each format by the name nginx and ingress-nginx give it
+           * ("nginx main" is log_format main): drawn as written, never
+           * looked up.
+           */}
           {KNOWN_ACCESS_LOG_FORMATS.map(
             (known: KnownAccessLogFormat): ReactElement => {
               return (
@@ -82,6 +87,7 @@ const AccessLogFormatField: FunctionComponent<ComponentProps> = (
                   key={known.key}
                   text={known.name}
                   icon={IconProp.Logs}
+                  isUserContent={true}
                   dataTestId={`${TRUSTED_PROXIES_TEST_IDS.accessLogFormatField}-known-${known.key}`}
                   onClick={() => {
                     props.onChange(known.text);

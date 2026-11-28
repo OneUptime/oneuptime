@@ -10,10 +10,14 @@ import RestrictionTimes, {
   RESTRICTION_TYPE_KEY,
   RestrictionType,
 } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
+import WeeklyWindowDays from "../../Types/OnCallDutyPolicy/WeeklyWindowDays";
 import { getDefaultLayerRotation } from "../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 import { JSONObject } from "../../Types/JSON";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import QueryHelper from "../Types/Database/QueryHelper";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
@@ -207,6 +211,154 @@ export class Service extends ProjectReferencesService<Model> {
     return types.size === 1 ? Array.from(types)[0]! : null;
   }
 
+  /*
+   * The time zones of the schedules, by id: the zone each one's times are
+   * read in, or null for a schedule with none (read in the server's).
+   */
+  private async readScheduleTimezones(
+    scheduleIds: Array<ObjectID>,
+  ): Promise<Map<string, string | null>> {
+    const zones: Map<string, string | null> = new Map<string, string | null>();
+
+    if (scheduleIds.length === 0) {
+      return zones;
+    }
+
+    const schedules: Array<OnCallDutyPolicySchedule> =
+      await OnCallDutyPolicyScheduleService.findBy({
+        query: {
+          _id: QueryHelper.any(scheduleIds),
+        },
+        select: {
+          _id: true,
+          timezone: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const schedule of schedules) {
+      if (schedule.id) {
+        zones.set(
+          schedule.id.toString(),
+          schedule.timezone?.toString() || null,
+        );
+      }
+    }
+
+    return zones;
+  }
+
+  /*
+   * A WEEKLY WINDOW IS ON CALL ON THE DAYS IT NAMES (#11455).
+   *
+   * The engine reads a window's days from the weekday its times fall on, in
+   * the schedule's time zone. A write whose times fall on other days than
+   * its windows name - "startDay": "Monday" with a startTime on a
+   * Wednesday - was stored as it came, and the layer was on call on
+   * Wednesdays, and on no Monday. Each window is now held to its days in
+   * its schedule's zone (WeeklyWindowDays.checkWrittenWindows), and a write
+   * that is not is refused with a 400 that names the window. A day left out
+   * is filled in from its time; a window the layer already holds, sent back
+   * as it is, as the Dashboard's Save Layer sends every window, is not
+   * judged again.
+   */
+  private async holdWindowsToTheirDaysOnCreate(
+    restrictionTimes: RestrictionTimes,
+    scheduleId: ObjectID,
+  ): Promise<RestrictionTimes> {
+    if (restrictionTimes.restrictionType !== RestrictionType.Weekly) {
+      return restrictionTimes;
+    }
+
+    const zones: Map<string, string | null> = await this.readScheduleTimezones([
+      scheduleId,
+    ]);
+
+    return WeeklyWindowDays.checkWrittenWindows(restrictionTimes, {
+      timezone: zones.get(scheduleId.toString()) || null,
+    });
+  }
+
+  /*
+   * The same for an update: each layer it writes is judged in its own
+   * schedule's zone, against the windows it holds now. The rows are the
+   * ones the update writes, and the update is held to them.
+   */
+  private async holdWindowsToTheirDaysOnUpdate(
+    updateBy: UpdateBy<Model>,
+    restrictionTimes: RestrictionTimes,
+  ): Promise<RestrictionTimes> {
+    if (restrictionTimes.restrictionType !== RestrictionType.Weekly) {
+      return restrictionTimes;
+    }
+
+    const layers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        onCallDutyPolicyScheduleId: true,
+        restrictionTimes: true,
+      },
+    );
+
+    const zones: Map<string, string | null> = await this.readScheduleTimezones(
+      layers
+        .map((layer: Model): ObjectID | undefined => {
+          return layer.onCallDutyPolicyScheduleId;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    );
+
+    let checked: RestrictionTimes | null = null;
+
+    for (const layer of layers) {
+      let storedWindows: Array<unknown> = [];
+
+      try {
+        storedWindows = layer.restrictionTimes
+          ? RestrictionTimes.fromJSON(
+              layer.restrictionTimes as RestrictionTimes | JSONObject,
+            ).weeklyRestrictionTimes || []
+          : [];
+      } catch {
+        storedWindows = [];
+      }
+
+      const forLayer: RestrictionTimes = WeeklyWindowDays.checkWrittenWindows(
+        restrictionTimes,
+        {
+          timezone:
+            zones.get(layer.onCallDutyPolicyScheduleId?.toString() || "") ||
+            null,
+          storedWindows: storedWindows,
+        },
+      );
+
+      /*
+       * One value is written to every layer: a day left out that reads
+       * otherwise in another of their zones is named, not guessed.
+       */
+      if (
+        checked &&
+        JSON.stringify(checked.toDatabaseJSON()) !==
+          JSON.stringify(forLayer.toDatabaseJSON())
+      ) {
+        throw new BadDataException(
+          "This update writes layers of schedules in different time zones, where a day a window leaves out reads otherwise. Name each window's startDay and endDay.",
+        );
+      }
+
+      checked = forLayer;
+    }
+
+    return checked || restrictionTimes;
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -235,8 +387,9 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     createBy.data.rotation = this.readWrittenRotation(createBy.data.rotation);
-    createBy.data.restrictionTimes = this.readWrittenRestrictionTimes(
-      createBy.data.restrictionTimes,
+    createBy.data.restrictionTimes = await this.holdWindowsToTheirDaysOnCreate(
+      this.readWrittenRestrictionTimes(createBy.data.restrictionTimes),
+      createBy.data.onCallDutyPolicyScheduleId,
     );
 
     /*
@@ -308,10 +461,14 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy.data.restrictionTimes !== undefined &&
       updateBy.data.restrictionTimes !== null
     ) {
-      updateBy.data.restrictionTimes = this.readWrittenRestrictionTimes(
-        updateBy.data.restrictionTimes,
-        await this.readCurrentRestrictionType(updateBy),
-      );
+      updateBy.data.restrictionTimes =
+        await this.holdWindowsToTheirDaysOnUpdate(
+          updateBy,
+          this.readWrittenRestrictionTimes(
+            updateBy.data.restrictionTimes,
+            await this.readCurrentRestrictionType(updateBy),
+          ),
+        );
     }
 
     return {

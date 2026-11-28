@@ -146,7 +146,14 @@ describe("connecting a pool for the first time", () => {
       "utf8",
     );
     expect(XCP_NG_AGENT_CONTAINER).toBe("oneuptime-xcp-ng-agent");
-    expect(compose).toContain(`container_name: ${XCP_NG_AGENT_CONTAINER}`);
+    /*
+     * Its default: a second Xen Orchestra's agent on the same machine names
+     * its own in .env (XCP_NG_AGENT_CONTAINER_NAME, #11168), and the card is
+     * about the first.
+     */
+    expect(compose).toContain(
+      `container_name: \${XCP_NG_AGENT_CONTAINER_NAME:-${XCP_NG_AGENT_CONTAINER}}`,
+    );
   });
 });
 

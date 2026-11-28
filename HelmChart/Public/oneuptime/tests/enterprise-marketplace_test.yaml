@@ -419,4 +419,8 @@ tests:
     set:
       enterpriseMarketplace.provider: oracle
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/enterpriseMarketplace/provider': value must be one of '', 'aws', 'azure', 'google-cloud', <nil>

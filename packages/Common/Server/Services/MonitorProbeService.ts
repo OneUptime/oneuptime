@@ -332,9 +332,9 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * all until it is unblocked, as ProjectService's
    * getActiveProjectStatusQuery says for every other monitoring path.
    *
-   * The read is a range scan of the (probeId, isEnabled, nextPingAt) index
-   * that stops once it has its rows: `nextPingAt <= now`, oldest first, in
-   * the index's own order. It used to read
+   * The read is a range scan of the (probeId, isEnabled, nextPingAt,
+   * lastPingAt) index that stops once it has its rows: `nextPingAt <= now`,
+   * oldest first, in the index's own order. It used to read
    * `(nextPingAt IS NULL OR nextPingAt <= now)` ordered `ASC NULLS FIRST`,
    * which no ASC NULLS LAST btree can serve, so every claim read EVERY due
    * row of the probe, joined each to its monitor and project, sorted them
@@ -343,6 +343,30 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * and 39,774 buffers to hand out 200, from cache, with parallel workers.
    * A NULL nextPingAt was only ever a legacy row (a new one is due at
    * creation); setAsideUnprobeable makes any it finds due now.
+   *
+   * Rows due at the same moment are handed out by when each was last
+   * handed out, oldest first (OneUptime issue #11386): lastPingAt, which
+   * this statement writes. Each claimed row is stamped with its schedule's
+   * next run, a whole minute, so all of a probe's one-minute monitors are
+   * due at the same instant, and a busy probe hands them out over a round of
+   * several claims. Ordered by nextPingAt alone, Postgres answered rows due
+   * at the same instant in the order its index held them - where each
+   * row's last write put it in the table, which moves as these writes move
+   * the rows and vacuum frees their room - so a busy probe checked a
+   * monitor anywhere in its round, somewhere else each minute: a minute
+   * apart give or take the round (16 s of a 19 s round measured, with the
+   * probe's one worker and 300 monitors). Now each round hands them out as
+   * the round before did, so a monitor keeps its place and its checks are a
+   * minute apart. And when a probe falls behind - its round runs past the
+   * next minute, so what it reaches after the minute is stamped with the
+   * minute after and misses one - those go first the next time, having
+   * waited longest: the minutes missed go round the probe's monitors
+   * instead of falling on whichever the table put last, as they would by
+   * any fixed key (an id). A row never handed out (no lastPingAt: only rows
+   * written before it was always set) waits behind the others due with it,
+   * in the same round: NULLS LAST, as the index holds them. The order is the
+   * index's own, so the read still sorts nothing; the wider key costs every
+   * claimed row nothing more, since its index entry is written anyway.
    *
    * The same statement says whether the read stepped over a due row nothing
    * may probe (a paused monitor, a blocked project) - one of the first
@@ -366,8 +390,8 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * holding the request's probe scheduling slot. With every statement 50 ms
    * slower, as on a busy database, that read was 52 of a request's 124 ms.
    *
-   * Returns the MonitorProbe rows it claimed, oldest first, each with its
-   * monitor.
+   * Returns the MonitorProbe rows it claimed in the order it took them -
+   * oldest due first, then longest ago handed out - each with its monitor.
    */
   public async claimMonitorProbesForProbing(data: {
     probeId: ObjectID;
@@ -383,7 +407,8 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
 
     const claimQuery: string = `
         WITH "claimable" AS (
-          SELECT mp."_id", mp."nextPingAt" AS "dueAt", m."monitoringInterval",
+          SELECT mp."_id", mp."nextPingAt" AS "dueAt",
+            mp."lastPingAt" AS "lastHandedOutAt", m."monitoringInterval",
             ${ClaimedMonitor.COLUMNS.join(", ")}
           FROM "MonitorProbe" mp
           INNER JOIN "Monitor" m ON mp."monitorId" = m."_id"
@@ -392,7 +417,7 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
             AND mp."isEnabled" = true
             AND mp."nextPingAt" <= $2
             AND ${Service.getProbeableSql("$4")}
-          ORDER BY mp."nextPingAt" ASC
+          ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC
           LIMIT $3
           FOR NO KEY UPDATE OF mp SKIP LOCKED
         ),
@@ -408,7 +433,8 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
           LEFT JOIN "schedule" s
             ON s."monitoringInterval" = c."monitoringInterval"
           WHERE mp."_id" = c."_id"
-          RETURNING mp."_id", c."dueAt", c."monitoringInterval",
+          RETURNING mp."_id", c."dueAt", c."lastHandedOutAt",
+            c."monitoringInterval",
             (s."nextPingAt" IS NOT NULL) AS "scheduled",
             ${ClaimedMonitor.COLUMNS_OF_CLAIMED.join(", ")}
         ),
@@ -457,7 +483,7 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
           f."steppedOver"
         FROM "flags" f
         LEFT JOIN "claimed" c ON true
-        ORDER BY c."dueAt" ASC NULLS FIRST
+        ORDER BY c."dueAt" ASC NULLS FIRST, c."lastHandedOutAt" ASC
       `;
 
     /*

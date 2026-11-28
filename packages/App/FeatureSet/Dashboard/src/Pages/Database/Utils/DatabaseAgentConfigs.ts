@@ -55,7 +55,10 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
     # report). This is the version Tests/Ops/validate-collector-configs.sh
     # validates the configs against; bump the two together. The
     # oneuptime.agent.version every configs/*.yaml stamps is this release,
-    # its last number raised each time the files change on it.
+    # its last number raised each time the files change on it - this file
+    # too - or an installed agent is never told to upgrade:
+    # packages/Common/Tests/App/Dashboard/AgentFilesVersion.test.ts fails
+    # until the version moves with the files.
     image: otel/opentelemetry-collector-contrib:0.165.0
     # Deliberately no container_name: one agent monitors ONE database, so a
     # machine watching several databases runs several copies of this file
@@ -459,7 +462,8 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
         value: "0.165.1"
         action: upsert
@@ -733,7 +737,8 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
         value: "0.165.1"
         action: upsert
@@ -923,7 +928,8 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
         value: "0.165.1"
         action: upsert
@@ -1122,7 +1128,8 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
         value: "0.165.1"
         action: upsert
@@ -1317,7 +1324,8 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
         value: "0.165.1"
         action: upsert
@@ -1496,7 +1504,8 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
         value: "0.165.1"
         action: upsert
@@ -1658,7 +1667,8 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
         value: "0.165.1"
         action: upsert
@@ -1777,7 +1787,8 @@ processors:
       # Shown as the agent version on the database's page, with a sign when
       # a newer one is out. The collector image docker-compose.yml pins, its
       # last number raised each time these files change on that collector
-      # (0.161.2: the MySQL config's own readings of Galera).
+      # (0.165.1: docker-compose.yml hands the AI agent beside it its Data
+      # Observability settings).
       - key: oneuptime.agent.version
         value: "0.165.1"
         action: upsert

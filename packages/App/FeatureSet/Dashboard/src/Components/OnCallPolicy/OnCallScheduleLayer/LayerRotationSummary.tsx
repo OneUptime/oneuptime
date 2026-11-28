@@ -186,8 +186,8 @@ const LayerRotationSummary: FunctionComponent<ComponentProps> = (
     props.layer.restrictionTimes;
   const hasRestriction: boolean = Boolean(
     restrictionTimes &&
-      restrictionTimes.restictionType &&
-      restrictionTimes.restictionType !== RestrictionType.None,
+      restrictionTimes.restrictionType &&
+      restrictionTimes.restrictionType !== RestrictionType.None,
   );
 
   const rotationSummary: string = summarizeRotation(props.layer.rotation);
