@@ -456,6 +456,45 @@ function jsonNamesOf(names: ReadonlyArray<ErasedName>): Array<string> {
 }
 
 /*
+ * Each name as inline code, as a JSON column's text holds it: inside a JSON
+ * string, so a name with a backslash or a quote - a Windows account,
+ * CORP\alice - is found as well.
+ */
+function jsonCodesOf(names: ReadonlyArray<ErasedName>): Array<string> {
+  return getDescriptionNameTexts(names).code.map((code: string): string => {
+    return JSON.stringify(code).slice(1, -1);
+  });
+}
+
+/*
+ * The names a playbook run's results are searched for and un-named by:
+ * each as the vault holds it, and lower-cased. A threat intel lookup writes
+ * the value it matched, which it matched lower-cased - "1 entity is
+ * known-bad in threat intel: `alice.smith@contoso.com`." for
+ * Alice.Smith@Contoso.com (SecurityPlaybookActions, Check threat intel). A
+ * lower-cased name the vault holds of its own keeps its own token.
+ */
+function withLowerCasedNames(
+  names: ReadonlyArray<ErasedName>,
+): Array<ErasedName> {
+  const byNamed: Map<string, ErasedName> = new Map<string, ErasedName>();
+
+  for (const name of names) {
+    byNamed.set(name.named, name);
+  }
+
+  for (const name of names) {
+    const lowerCased: string = name.named.trim().toLowerCase();
+
+    if (lowerCased && !byNamed.has(lowerCased)) {
+      byNamed.set(lowerCased, { named: lowerCased, hashed: name.hashed });
+    }
+  }
+
+  return Array.from(byNamed.values());
+}
+
+/*
  * Each name as a JSON column's text holds it, and in lower case too: a
  * threat intel stamp on an event a detection kept holds the value it
  * matched lower-cased (#11230).
@@ -1335,16 +1374,15 @@ export default class SecurityUserErasureRecords {
     projectId: ObjectID;
     names: ReadonlyArray<ErasedName>;
   }): Promise<number> {
-    // A name as a whole value of the results, or as inline code in a step's summary or details.
+    const names: Array<ErasedName> = withLowerCasedNames(data.names);
+
+    // A name as a whole value of the results, or as inline code in a step's message.
     const ids: Array<ObjectID> = idsOf(
       await this.query(
         `SELECT "_id" FROM "SecurityPlaybookRun" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos(COALESCE("stepResults"::text, ''), erased.name) > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
         [
           data.projectId.toString(),
-          [
-            ...jsonNamesOf(data.names),
-            ...getDescriptionNameTexts(data.names).code,
-          ],
+          [...jsonNamesOf(names), ...jsonCodesOf(names)],
         ],
       ),
     );
@@ -1371,11 +1409,11 @@ export default class SecurityUserErasureRecords {
 
       /*
        * Each whole value, and each name a step wrote as inline code in its
-       * summary or details: "1 entity is known-bad in threat intel:
+       * message: "1 entity is known-bad in threat intel:
        * `alice@example.com`." kept the address (#11230).
        */
       const results: { value: JSONArray | undefined; changed: boolean } =
-        unnameJsonMarkdown(run.stepResults, data.names);
+        unnameJsonMarkdown(run.stepResults, names);
 
       if (!results.changed) {
         continue;

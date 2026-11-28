@@ -34,7 +34,10 @@ import {
 } from "../../../../../Types/SecurityCase/SecurityCaseAi";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
-import SecurityPlaybookRunStatus from "../../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
+import { SecurityPlaybookActionType } from "../../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
+import SecurityPlaybookRunStatus, {
+  SecurityPlaybookStepStatus,
+} from "../../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SecurityUserErasureRequestStatus } from "../../../../../Types/SecurityEvent/SecurityUserErasure";
 import {
   detectionRuleMatchMarkdown,
@@ -684,53 +687,110 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
       );
     });
 
-    test("a step's summary that names the person as inline code - a threat intel lookup's - gets the token too, a person's words do not (#11230)", async () => {
-      const summary: (value: string) => string = (value: string): string => {
+    test("a step's message that names the person as inline code - a threat intel lookup's, lower-cased as it matched, a Windows account's backslash and all - gets the token too, an approver's words do not (#11230)", async () => {
+      // As Check threat intel writes its message (SecurityPlaybookActions).
+      const lookedUp: (value: string) => string = (value: string): string => {
         return `1 entity is known-bad in threat intel: \`${value}\`.`;
       };
-      const finished: ObjectID = await insert("SecurityPlaybookRun", {
-        projectId: projectId.toString(),
-        playbookName: "Look up the account",
-        status: SecurityPlaybookRunStatus.Succeeded,
-        stepResults: [
-          {
-            stepId: "lookup",
-            summaryInMarkdown: summary(ALICE),
-            detailsInMarkdown: `- \`${ALICE}\`: email-addr, feed **Acme**, confidence 80`,
-          },
-          // A person's own words keep what they wrote.
-          { stepId: "note", note: `Ask ${ALICE} about it` },
-        ],
+      const UPN: string = "Alice.Smith@Contoso.com";
+      const WINDOWS: string = "CORP\\alice";
+      const upnToken: string = ScrubHashToken.ofValue({
+        projectId,
+        value: UPN,
       });
+      const windowsToken: string = ScrubHashToken.ofValue({
+        projectId,
+        value: WINDOWS,
+      });
+      const erased: Array<ErasedName> = [
+        ...names,
+        { named: UPN, hashed: upnToken },
+        { named: WINDOWS, hashed: windowsToken },
+      ];
+      const lookUp: (message: string) => Record<string, unknown> = (
+        message: string,
+      ): Record<string, unknown> => {
+        return {
+          stepId: "lookup",
+          action: SecurityPlaybookActionType.CheckThreatIntel,
+          status: SecurityPlaybookStepStatus.Succeeded,
+          message,
+          found: true,
+        };
+      };
+      const runOf: (
+        stepResults: Array<Record<string, unknown>>,
+      ) => Promise<ObjectID> = (
+        stepResults: Array<Record<string, unknown>>,
+      ): Promise<ObjectID> => {
+        return insert("SecurityPlaybookRun", {
+          projectId: projectId.toString(),
+          playbookName: "Look up the account",
+          status: SecurityPlaybookRunStatus.Succeeded,
+          stepResults,
+        });
+      };
+      const messageOf: (id: ObjectID) => Promise<unknown> = async (
+        id: ObjectID,
+      ): Promise<unknown> => {
+        return (
+          (await rowOf("SecurityPlaybookRun", id))["stepResults"] as Array<
+            Record<string, unknown>
+          >
+        )[0]!["message"];
+      };
+
+      // The name as the vault holds it, beside an approver's own words.
+      const exact: ObjectID = await runOf([
+        lookUp(lookedUp(ALICE)),
+        {
+          stepId: "suspend",
+          status: SecurityPlaybookStepStatus.Succeeded,
+          approval: { comment: `Ask ${ALICE} first`, targets: [ALICE] },
+        },
+      ]);
+      // The lookup matched Alice.Smith@Contoso.com lower-cased, and says so.
+      const lowerCased: ObjectID = await runOf([
+        lookUp(lookedUp(UPN.toLowerCase())),
+      ]);
+      // The column's JSON holds the backslash escaped: CORP\\alice.
+      const backslashed: ObjectID = await runOf([lookUp(lookedUp(WINDOWS))]);
 
       await SecurityUserErasureRecords.withdrawPlaybookRuns({
         projectId,
-        names,
+        names: erased,
       });
 
-      const results: Array<Record<string, unknown>> = (
-        await rowOf("SecurityPlaybookRun", finished)
-      )["stepResults"] as Array<Record<string, unknown>>;
+      expect(await messageOf(exact)).toBe(lookedUp(aliceToken));
+      expect(await messageOf(lowerCased)).toBe(lookedUp(upnToken));
+      expect(await messageOf(backslashed)).toBe(lookedUp(windowsToken));
 
-      expect(results[0]!["summaryInMarkdown"]).toBe(summary(aliceToken));
-      expect(results[0]!["detailsInMarkdown"]).toBe(
-        `- \`${aliceToken}\`: email-addr, feed **Acme**, confidence 80`,
-      );
-      expect(results[1]!["note"]).toBe(`Ask ${ALICE} about it`);
+      const approval: Record<string, unknown> = (
+        (await rowOf("SecurityPlaybookRun", exact))["stepResults"] as Array<
+          Record<string, unknown>
+        >
+      )[1]!["approval"] as Record<string, unknown>;
+
+      expect(approval["comment"]).toBe(`Ask ${ALICE} first`);
+      expect(approval["targets"]).toEqual([aliceToken]);
 
       // Done again, nothing more is found to change.
-      const version: unknown = (await rowOf("SecurityPlaybookRun", finished))[
-        "version"
-      ];
+      const versions: Array<unknown> = [];
+
+      for (const id of [exact, lowerCased, backslashed]) {
+        versions.push((await rowOf("SecurityPlaybookRun", id))["version"]);
+      }
 
       await SecurityUserErasureRecords.withdrawPlaybookRuns({
         projectId,
-        names,
+        names: erased,
       });
 
-      expect((await rowOf("SecurityPlaybookRun", finished))["version"]).toBe(
-        version,
-      );
+      for (const [index, id] of [exact, lowerCased, backslashed].entries()) {
+        expect((await rowOf("SecurityPlaybookRun", id))["version"]).toBe(
+          versions[index],
+        );
+      }
     });
   });
 

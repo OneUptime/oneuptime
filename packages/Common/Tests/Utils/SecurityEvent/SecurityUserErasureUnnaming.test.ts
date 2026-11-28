@@ -546,15 +546,19 @@ describe("a correlation's group value", () => {
 });
 
 describe("a JSON value OneUptime wrote in Markdown, as a playbook run's step results", () => {
-  test("a whole value, and a name a step set apart as inline code, get what the rule left", () => {
+  test("a whole value, and a name a step's message set apart as inline code, get what the rule left", () => {
     const results: Array<JSONObject> = [
       {
         stepId: "lookup",
-        summaryInMarkdown:
-          "1 entity is known-bad in threat intel: `alice@example.com`.",
-        detailsInMarkdown:
-          "- `alice@example.com`: email-addr, feed **Acme**, confidence 80",
-        targets: ["auth0|alice@example.com"],
+        status: "Succeeded",
+        message:
+          "2 entities are known-bad in threat intel: `alice@example.com`, `203.0.113.9`.",
+        found: true,
+      },
+      {
+        stepId: "suspend",
+        status: "Succeeded",
+        targets: [{ type: "User", value: "auth0|alice@example.com" }],
       },
     ];
 
@@ -562,20 +566,26 @@ describe("a JSON value OneUptime wrote in Markdown, as a playbook run's step res
       value: [
         {
           stepId: "lookup",
-          summaryInMarkdown: `1 entity is known-bad in threat intel: \`${TOKEN}\`.`,
-          detailsInMarkdown: `- \`${TOKEN}\`: email-addr, feed **Acme**, confidence 80`,
-          targets: [`auth0|${TOKEN}`],
+          status: "Succeeded",
+          message: `2 entities are known-bad in threat intel: \`${TOKEN}\`, \`203.0.113.9\`.`,
+          found: true,
+        },
+        {
+          stepId: "suspend",
+          status: "Succeeded",
+          targets: [{ type: "User", value: `auth0|${TOKEN}` }],
         },
       ],
       changed: true,
     });
   });
 
-  test("a name inside other words, or inside a longer code span, stays as written", () => {
+  test("a name inside other words - an approver's comment - or inside a longer code span stays as written", () => {
     const results: Array<JSONObject> = [
       {
-        note: "Call alice@example.com about her sign-ins",
-        summaryInMarkdown: "Ran `whois alice@example.com` on the host",
+        stepId: "suspend",
+        approval: { comment: "Call alice@example.com about her sign-ins" },
+        message: "Ran `whois alice@example.com` on the host",
       },
     ];
 
