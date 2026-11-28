@@ -2,6 +2,7 @@ import InsightFixRouting, {
   InsightFixRoutingResult,
 } from "../../../../../Server/Utils/AI/SRE/Insights/FixRouting";
 import FixPerformanceTaskTrigger from "../../../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import CodeFixPersonRepository from "../../../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
 import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import CodeFixStartGate from "../../../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
 import SpanTreeAnalyzer, {
@@ -525,7 +526,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
      * (FixPerformanceTaskTrigger.test.ts, #11075).
      */
     jest
-      .spyOn(FixPerformanceTaskTrigger, "getUsableRepositories")
+      .spyOn(CodeFixPersonRepository, "getUsableRepositories")
       .mockResolvedValue({
         connectedCount: 1,
         usable: [

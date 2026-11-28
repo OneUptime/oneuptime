@@ -217,10 +217,14 @@ async function under(
   await flush();
 }
 
-function codeFix(): React.ReactElement {
+function codeFix(
+  // The repositories to pick from, when the step asks which (#11209).
+  repositories: Array<{ id: string; name: string }> = [],
+): React.ReactElement {
   const suggestion: InvestigationCodeFixSuggestion = {
     ...NO_INVESTIGATION_CODE_FIX_SUGGESTION,
     offer: SuggestionOffer.Act,
+    repositories,
   };
 
   return (
@@ -288,6 +292,27 @@ describe("Open fix pull request, on a private incident's AI card", () => {
     expect(lock).toHaveTextContent(REMEDIATION_FIX_PULL_REQUEST_WHO_MAY_OPEN);
     expect(lock.textContent!.endsWith(REASON)).toBe(true);
     expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("a reader it is locked from is asked no repository to pick: the lock is the step", async () => {
+    store(READER_ROWS);
+    await under(
+      privateIncident(),
+      codeFix([
+        { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+        { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+      ]),
+    );
+
+    expect(screen.getByTestId("remediation-code-fix-locked")).toHaveTextContent(
+      REMEDIATION_FIX_PULL_REQUEST_WHO_MAY_OPEN,
+    );
+    expect(
+      screen.queryByTestId("remediation-code-fix-repository"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("remediation-code-fix-open"),
+    ).not.toBeInTheDocument();
   });
 
   test("once the team that owns it may approve its fixes, it is offered", async () => {
