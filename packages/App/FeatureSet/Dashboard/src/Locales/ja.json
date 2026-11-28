@@ -24816,7 +24816,6 @@
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.": "このルールに一致すると、これらの人やチームが所有者になります。ルールが所有者を継承するだけなら空欄にします。",
   "Inherit Owners From Monitor": "モニターから所有者を継承",
   "{{used}} of {{provisioned}}": "{{provisioned}} 中 {{used}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "エージェントのフォルダーで実行します。.env はそのままです。docker-compose.yml や otel-collector-config*.yaml に加えた変更があれば適用し直してください。",
   "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.": "このテンプレートから作成されるインシデントの開始時の状態。空欄なら通常の状態です。確認済みや解決済みで開始すると誰も呼び出されません。",
   "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "空欄のままにすると通常の開始状態になります。すでに確認済みまたは解決済みのアラートを記録するには、後の状態を選択してください。誰も呼び出されません。",
   "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "空欄のままにすると通常の開始状態になります。すでに確認済みまたは解決済みのエピソードを記録するには、後の状態を選択してください。誰も呼び出されません。",
@@ -68142,5 +68141,6 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "この系列（{{series}}）のアラートは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、この系列にも一致したためです。同じチェックの 2 つの段階に入った系列には、最初の段階からアラートが 1 件だけ作成されます。",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "インシデントは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、これにも一致したためです。同じチェックの 2 つの段階では、最初の段階からインシデントが 1 件だけ作成されます。",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "この系列（{{series}}）のインシデントは作成しませんでした。この条件より前にある「{{criteria}}」が同じものをチェックしており、この系列にも一致したためです。同じチェックの 2 つの段階に入った系列には、最初の段階からインシデントが 1 件だけ作成されます。",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} がこのモニターをそのステータスにしているため、ここから、モニターの時間は再び稼働率、ステータスページ、SLO の計算に含まれます。"
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} がこのモニターをそのステータスにしているため、ここから、モニターの時間は再び稼働率、ステータスページ、SLO の計算に含まれます。",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "エージェントのフォルダーで実行します。.env はそのままです。ダウンロードしたファイルに加えた変更があれば適用し直してください。"
 }

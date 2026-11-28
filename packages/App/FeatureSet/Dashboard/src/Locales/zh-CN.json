@@ -24816,7 +24816,6 @@
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.": "此规则匹配时，这些人员和团队会成为所有者。如果规则只继承所有者，请留空。",
   "Inherit Owners From Monitor": "从监视器继承所有者",
   "{{used}} of {{provisioned}}": "{{provisioned}} 中的 {{used}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "在代理的文件夹中运行。你的 .env 会保留；请重新应用你对 docker-compose.yml 或 otel-collector-config*.yaml 做过的修改。",
   "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.": "由此模板创建的事件的初始状态。留空则使用常规状态；以已确认或已解决开始不会呼叫任何人。",
   "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "留空则使用通常的初始状态。若要记录已确认或已解决的警报，请选择后续状态。不会呼叫任何人。",
   "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "留空则使用通常的初始状态。若要记录已确认或已解决的片段，请选择后续状态。不会呼叫任何人。",
@@ -68142,5 +68141,6 @@
   "Skipped creating an alert for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one alert, from the first.": "已跳过为此序列（{{series}}）创建警报，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也与它匹配。处于同一检查两个级别的序列只会收到一条警报，来自第一个级别。",
   "Skipped creating an incident because \"{{criteria}}\", listed before this criteria, checks the same thing and matched too. Two bands of one check open one incident, from the first.": "已跳过创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也同样匹配。同一检查的两个级别只会打开一个事件，来自第一个级别。",
   "Skipped creating an incident for this series ({{series}}) because \"{{criteria}}\", listed before this criteria, checks the same thing and matched it too. A series in two bands of one check gets one incident, from the first.": "已跳过为此序列（{{series}}）创建事件，因为排在此条件之前的“{{criteria}}”检查的是同一项内容，也与它匹配。处于同一检查两个级别的序列只会收到一个事件，来自第一个级别。",
-  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 将此监视器置于其状态，因此从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。"
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.": "{{incidents}} 将此监视器置于其状态，因此从此时起，正常运行时间、状态页和 SLO 重新计入此监视器的时间。",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "在代理的文件夹中运行。你的 .env 会保留；请重新应用你对下载的文件做过的修改。"
 }

@@ -1236,8 +1236,8 @@ describe("the Docker Compose install", () => {
         return block.includes("bash install.sh");
       }),
     ).toEqual([
-      // Only a second Xen Orchestra's agent, in a folder of its own.
-      `INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab ${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=${XCP_NG_AGENT_CONTAINER}-lab bash install.sh\n`,
+      // Only a second Xen Orchestra's agent, in a folder of its own, a value a line.
+      `INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab \\\n  ${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=${XCP_NG_AGENT_CONTAINER}-lab \\\n  bash install.sh\n`,
     ]);
   });
 });
@@ -1502,7 +1502,7 @@ describe("drift guards against agents/XcpNgAgent", () => {
     expect(topic).toContain(
       codeBlock(
         "bash",
-        `INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab ${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=${XCP_NG_AGENT_CONTAINER}-lab bash install.sh`,
+        `INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab \\\n  ${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=${XCP_NG_AGENT_CONTAINER}-lab \\\n  bash install.sh`,
       ),
     );
     // Nothing tells anyone to edit docker-compose.yml, which an upgrade replaces.

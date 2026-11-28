@@ -637,14 +637,21 @@ describe("which upgrade commands wrap", () => {
     for (const command of [
       getProxmoxAgentUpgradeCommand(READER_URL),
       getProxmoxAgentDownloadCommand(READER_URL),
-      getStorageArrayAgentDownloadCommand(READER_URL),
       getDatabaseAgentUpgradeCommand(READER_URL),
     ]) {
       expect(isAgentUpgradeCommandWrapped(command)).toBe(true);
     }
-    expect(
-      isAgentUpgradeCommandWrapped(getVMwareNativeUpgradeCommand(READER_URL)),
-    ).toBe(false);
+    /*
+     * The Storage Array agent's Compose download is a line per file the
+     * agent runs, whichever array it reads: a longer script, kept as
+     * written like the VMware agent's install without Docker.
+     */
+    for (const command of [
+      getVMwareNativeUpgradeCommand(READER_URL),
+      getStorageArrayAgentDownloadCommand(READER_URL),
+    ]) {
+      expect(isAgentUpgradeCommandWrapped(command)).toBe(false);
+    }
   });
 });
 
@@ -1070,7 +1077,7 @@ describe("the agents that report the collector they pin", () => {
     expect(within(dialog).getByText("Download the latest files")).toBeVisible();
     expect(
       within(dialog).getByText(
-        "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.",
+        "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.",
       ),
     ).toBeVisible();
     expect(
