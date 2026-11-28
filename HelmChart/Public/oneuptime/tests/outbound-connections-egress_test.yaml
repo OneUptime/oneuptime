@@ -156,7 +156,10 @@ tests:
       outboundConnections.blockPrivateNetwork: "true"
     asserts:
       - failedTemplate:
-          errorPattern: "outboundConnections.blockPrivateNetwork: Invalid type. Expected: boolean, given: string"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/outboundConnections/blockPrivateNetwork': got string, want boolean
 
   - it: rejects a number such as 1
     templates:
@@ -165,7 +168,10 @@ tests:
       outboundConnections.blockPrivateNetwork: 1
     asserts:
       - failedTemplate:
-          errorPattern: "outboundConnections.blockPrivateNetwork: Invalid type. Expected: boolean, given: integer"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/outboundConnections/blockPrivateNetwork': got number, want boolean
 
   # A misspelt key would otherwise leave the switch silently off.
   - it: rejects an unknown key in the block
@@ -175,4 +181,7 @@ tests:
       outboundConnections.blockPrivateAddresses: true
     asserts:
       - failedTemplate:
-          errorPattern: "Additional property blockPrivateAddresses is not allowed"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/outboundConnections': additional properties 'blockPrivateAddresses' not allowed

@@ -5,6 +5,7 @@ OneUptime can send its SMS and calls through a gateway you run, instead of Twili
 :::cards
 - [Set it up](#set-it-up): A URL, and a signing secret made for you.
 - [What your gateway receives](#what-your-gateway-receives): One signed JSON request per SMS or call.
+- [Calls in other languages](#calls-in-other-languages): Speak each call in the language its person reads.
 - [Act on a page](#act-on-a-page): Acknowledge, escalate or resolve from a call or a reply.
 - [Delivery and retries](#delivery-and-retries): What happens when your gateway is down.
 :::
@@ -63,7 +64,8 @@ Each SMS and call is one `POST` request with a JSON body and these headers:
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ Each SMS and call is one `POST` request with a JSON body and these headers:
 | `sentAt` | When OneUptime sent it, in ISO 8601. |
 | `to` | The phone number, in E.164 form. `null` in a test. |
 | `message` | The SMS, or what the call says. An SMS is at most 1,600 characters, and a call's text at most 16,384. A longer text is cut and ends with a note that the rest is in OneUptime. |
-| `isSensitive` | `true` for a verification code. Keep the message out of your own logs. |
+| `isSensitive` | `true` for a verification code. Keep the message, and the one in `inLanguage`, out of your own logs. |
 | `project` | The project's `id` and `name`, or `null` when no project sent it. |
 | `actions` | For an on-call page, the links that act on it. `null` otherwise. |
+| `inLanguage` | For a call to someone who reads OneUptime in another language than English: `language`, its code, and `message`, what the call says in it. `null` otherwise, and for every SMS, which is already in their language. See [Calls in other languages](#calls-in-other-languages). |
 
 A call is described rather than scripted: `message` is what it says, without Twilio's "press 1 to acknowledge". Offer the actions your own way, such as key presses, and call the matching link.
+
+### Calls in Other Languages
+
+A call to someone who reads OneUptime in another language carries its words twice: in English, in `message`, as every call has, and in their language, in `inLanguage`. Your gateway chooses the voice, so OneUptime cannot know which languages it speaks. When your gateway has a voice of `inLanguage.language`, speak `inLanguage.message` with it. When it has none, speak `message` in English instead. Never give one language's words to another language's voice: they would not be understood. A gateway that reads only `message` keeps working as before and speaks English.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+The language's code is a BCP 47 tag, one of the languages OneUptime is written in: `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa` and `ar`. `es` is Spain's Spanish, `pt` Brazil's Portuguese, `no` Norwegian Bokmål, `ar` Modern Standard Arabic, and both Chinese codes are Mandarin, in simplified and in traditional characters. Persian is among them: Twilio has no Persian voice, so its calls are in English, but your gateway may have one. A verification code is written digit by digit, with two spaces between digits: have your voice read the digits one at a time, slowly, rather than as a number.
 
 ### Check the Signature
 
@@ -116,7 +137,7 @@ The SMS or call log, and for an on-call page the person's on-call log, says `Sen
 
 ## Test Requests
 
-**Check Gateway** sends a request with `event` set to `test`, and `to`, `project` and `actions` set to `null`. Answer it with a 2xx status and send nothing.
+**Check Gateway** sends a request with `event` set to `test`, and `to`, `project`, `actions` and `inLanguage` set to `null`. Answer it with a 2xx status and send nothing.
 
 ## Next steps
 

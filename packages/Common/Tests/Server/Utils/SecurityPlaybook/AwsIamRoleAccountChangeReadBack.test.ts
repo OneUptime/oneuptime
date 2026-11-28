@@ -14,6 +14,7 @@ import {
 } from "../../../../Server/Utils/DataSource/HttpFetch";
 import AccountChangeReadBack, {
   AccountChangeFacts,
+  AccountChangePolicyDocument,
   AccountChangeState,
   AccountChangeUnknownReason,
 } from "../../../../Server/Utils/SecurityPlaybook/AccountChangeReadBack";
@@ -28,15 +29,28 @@ import {
   readAccountChange,
 } from "../../../../Utils/SecurityCase/AttackAccountChanges";
 import {
+  AwsIdentityProviderKind,
+  AwsIdentityProviderReach,
+  AwsTrustedIdentityProvider,
+} from "../../../../Utils/SecurityCase/AwsTrustPolicy";
+import {
+  GITHUB_AUDIENCE_ONLY_TRUST,
+  GITHUB_BRANCH_TRUST,
+  GITHUB_ORGANIZATION_TRUST,
+  GOOGLE_TRUST,
+} from "../../../Helpers/AwsTrustPolicyExamples";
+import {
   ATTACH_ROLE_POLICY_RECORD,
   AWS_DOCS_GAP,
   CREATE_ROLE_RECORD,
+  GET_ROLE_POLICY_SAMPLE_RESPONSE,
   GET_ROLE_SAMPLE_RESPONSE,
   LIST_ATTACHED_ROLE_POLICIES_SAMPLE_RESPONSE,
   LIST_ROLE_POLICIES_SAMPLE_RESPONSE,
   PUT_ROLE_POLICY_RECORD,
   RECORDED_ACCOUNT,
   UPDATE_ASSUME_ROLE_POLICY_RECORD,
+  getInlinePolicyResponse,
   getRoleResponse,
   iamErrorBody,
   readRecordedEvent,
@@ -69,7 +83,8 @@ interface FakeRole {
   roleId: string;
   trustPolicy: JSONObject | string;
   attachedPolicies?: Array<string> | undefined;
-  inlinePolicies?: Array<string> | undefined;
+  // Its inline policies, by name: each one's document (#11377).
+  inlinePolicies?: Record<string, JSONObject | string> | undefined;
 }
 
 interface FakeIamOptions {
@@ -201,7 +216,7 @@ function fakeIam(
       }
       case "ListRolePolicies": {
         const listed: { items: Array<string>; tail: string } = page(
-          role.inlinePolicies || [],
+          Object.keys(role.inlinePolicies || {}),
           form,
           size,
         );
@@ -217,6 +232,30 @@ function fakeIam(
               .join("")}</PolicyNames>${listed.tail}`,
           ),
         );
+      }
+      // One inline policy's document, URL-encoded as GetRolePolicy writes it (#11377).
+      case "GetRolePolicy": {
+        const policyName: string = form.get("PolicyName") || "";
+        const document: JSONObject | string | undefined =
+          role.inlinePolicies?.[policyName];
+
+        return document === undefined
+          ? answer(
+              404,
+              iamErrorBody(
+                "NoSuchEntity",
+                `The role policy with name ${policyName} cannot be found.`,
+              ),
+            )
+          : answer(
+              200,
+              getInlinePolicyResponse({
+                action,
+                subject: name,
+                policyName,
+                document,
+              }),
+            );
       }
       default:
         throw new Error(`the fake does not answer ${action} for a role`);
@@ -288,6 +327,12 @@ function trusting(...principals: Array<string>): JSONObject {
   };
 }
 
+// The IAM API Reference's PutRolePolicy sample's document: s3:* on everything (#11377).
+const S3_ACCESS_POLICY: JSONObject = {
+  Version: "2012-10-17",
+  Statement: { Effect: "Allow", Action: "s3:*", Resource: "*" },
+};
+
 const EC2_TRUST: JSONObject = {
   Version: "2012-10-17",
   Statement: [
@@ -340,7 +385,7 @@ describe("the recorded calls, as the case reads them", () => {
           objectId: change.objectId,
           objectName: change.objectName,
           cloudAccountId: change.cloudAccountId,
-          trustPolicies: change.trustPolicies.length,
+          policyDocuments: change.policyDocuments.length,
         };
       }),
     ).toEqual([
@@ -352,7 +397,7 @@ describe("the recorded calls, as the case reads them", () => {
         objectId: "",
         objectName: "",
         cloudAccountId: RECORDED_ACCOUNT,
-        trustPolicies: 0,
+        policyDocuments: 0,
       },
       {
         subject: AccountChangeSubject.Role,
@@ -362,7 +407,7 @@ describe("the recorded calls, as the case reads them", () => {
         objectId: "",
         objectName: "",
         cloudAccountId: RECORDED_ACCOUNT,
-        trustPolicies: 1,
+        policyDocuments: 1,
       },
       {
         subject: AccountChangeSubject.Role,
@@ -372,7 +417,7 @@ describe("the recorded calls, as the case reads them", () => {
         objectId: "arn:aws:iam::aws:policy/ReadOnlyAccess",
         objectName: "ReadOnlyAccess",
         cloudAccountId: RECORDED_ACCOUNT,
-        trustPolicies: 0,
+        policyDocuments: 0,
       },
       {
         subject: AccountChangeSubject.Role,
@@ -382,7 +427,8 @@ describe("the recorded calls, as the case reads them", () => {
         objectId: "",
         objectName: "S3AccessPolicy",
         cloudAccountId: RECORDED_ACCOUNT,
-        trustPolicies: 0,
+        // The document it set (#11377): what the policy now is held to.
+        policyDocuments: 1,
       },
     ]);
   });
@@ -628,7 +674,7 @@ describe("a trust policy the attack set (UpdateAssumeRolePolicy)", () => {
       }),
     );
 
-    expect(cut.trustPolicies[0]!.length).toBe(1000);
+    expect(cut.policyDocuments[0]!.length).toBe(1000);
 
     for (const [trustPolicy, trusted] of [
       [EC2_TRUST, undefined],
@@ -664,7 +710,7 @@ describe("a trust policy the attack set (UpdateAssumeRolePolicy)", () => {
       }),
     );
 
-    expect(twice.trustPolicies).toHaveLength(2);
+    expect(twice.policyDocuments).toHaveLength(2);
 
     const read: (trustPolicy: JSONObject) => Promise<AccountChangeFacts> = (
       trustPolicy: JSONObject,
@@ -747,25 +793,29 @@ describe("a policy the attack gave the role (AttachRolePolicy, PutRolePolicy)", 
     }
   });
 
-  test("an inline policy: still there while the role has one of its name - GetRole's and ListRolePolicies' own samples say S3Access does", async () => {
+  test("an inline policy: still there while the role has it as the attack wrote it - GetRole's, ListRolePolicies' and GetRolePolicy's own samples say S3Access does (#11377)", async () => {
     expect(
       await readBack(inline, {
         roles: {},
         answers: {
           GetRole: GET_ROLE_SAMPLE_RESPONSE,
           ListRolePolicies: LIST_ROLE_POLICIES_SAMPLE_RESPONSE,
+          GetRolePolicy: GET_ROLE_POLICY_SAMPLE_RESPONSE,
         },
       }),
     ).toEqual({
       provider: "AWS",
       state: AccountChangeState.StillThere,
       url: rolePage("S3Access"),
+      policyDocument: AccountChangePolicyDocument.Attack,
     });
   });
 
-  test("an inline policy: still there case aside; undone once deleted", async () => {
-    const role: (inlinePolicies: Array<string>) => FakeIamOptions = (
-      inlinePolicies: Array<string>,
+  test("an inline policy: still there case aside while its document is the attack's; undone once deleted, or once its document is another (#11377)", async () => {
+    const role: (
+      inlinePolicies: Record<string, JSONObject>,
+    ) => FakeIamOptions = (
+      inlinePolicies: Record<string, JSONObject>,
     ): FakeIamOptions => {
       return {
         roles: {
@@ -778,12 +828,38 @@ describe("a policy the attack gave the role (AttachRolePolicy, PutRolePolicy)", 
       };
     };
 
-    expect((await readBack(inline, role(["s3accesspolicy"]))).state).toBe(
-      AccountChangeState.StillThere,
-    );
     expect(
-      (await readBack(inline, role(["CloudwatchPutMetricPolicy"]))).state,
+      (await readBack(inline, role({ s3accesspolicy: S3_ACCESS_POLICY })))
+        .state,
+    ).toBe(AccountChangeState.StillThere);
+    expect(
+      (
+        await readBack(
+          inline,
+          role({ CloudwatchPutMetricPolicy: S3_ACCESS_POLICY }),
+        )
+      ).state,
     ).toBe(AccountChangeState.Undone);
+    expect(
+      await readBack(
+        inline,
+        role({
+          S3AccessPolicy: {
+            Version: "2012-10-17",
+            Statement: {
+              Effect: "Allow",
+              Action: "s3:GetObject",
+              Resource: "*",
+            },
+          },
+        }),
+      ),
+    ).toEqual({
+      provider: "AWS",
+      state: AccountChangeState.Undone,
+      url: rolePage("S3Access"),
+      policyDocument: AccountChangePolicyDocument.Changed,
+    });
   });
 
   test("the role deleted took its policies with it", async () => {
@@ -841,11 +917,13 @@ describe("a policy the attack gave the role (AttachRolePolicy, PutRolePolicy)", 
           S3Access: {
             roleId: "AROADBQP57FF2AEXAMPLE",
             trustPolicy: EC2_TRUST,
-            inlinePolicies: Array.from(
-              { length: AWS_IAM_MAX_LIST_PAGES + 1 },
-              (_: unknown, index: number): string => {
-                return `policy-${index}`;
-              },
+            inlinePolicies: Object.fromEntries(
+              Array.from(
+                { length: AWS_IAM_MAX_LIST_PAGES + 1 },
+                (_: unknown, index: number): [string, JSONObject] => {
+                  return [`policy-${index}`, S3_ACCESS_POLICY];
+                },
+              ),
             ),
           },
         },
@@ -933,6 +1011,174 @@ describe("whatever the role's change", () => {
       expect(form.get("Version")).toBe("2010-05-08");
       expect(form.get("UserName")).toBeNull();
     }
+  });
+});
+
+describe("the identity providers a role lets in (#11378)", () => {
+  const GITHUB: string = "token.actions.githubusercontent.com";
+  // An attack's trust: GitHub Actions with its audience alone - any repository, of any organization.
+  const opened: AccountChange = changeOf(
+    attackTrustRecord({
+      roleName: "Deploy",
+      policy: JSON.parse(GITHUB_AUDIENCE_ONLY_TRUST) as JSONObject,
+      eventID: "attack-oidc-1",
+    }),
+  );
+  const deploy: (trustPolicy: JSONObject | string) => FakeIamOptions = (
+    trustPolicy: JSONObject | string,
+  ): FakeIamOptions => {
+    return {
+      roles: { Deploy: { roleId: "AROADEPLOYEXAMPLE", trustPolicy } },
+    };
+  };
+  const reachOf: (
+    facts: AccountChangeFacts,
+  ) => Array<[string, AwsIdentityProviderReach]> = (
+    facts: AccountChangeFacts,
+  ): Array<[string, AwsIdentityProviderReach]> => {
+    return (facts.providers || []).map(
+      (
+        provider: AwsTrustedIdentityProvider,
+      ): [string, AwsIdentityProviderReach] => {
+        return [provider.name, provider.reach];
+      },
+    );
+  };
+
+  test("a role the attack made names whom its trust policy lets in now: the provider, and how far", async () => {
+    const facts: AccountChangeFacts = await readBack(
+      changeOf(CREATE_ROLE_RECORD),
+      {
+        roles: {
+          TestRole: {
+            roleId: "AROA6ON6E4XEFFEXAMPLE",
+            trustPolicy: GITHUB_AUDIENCE_ONLY_TRUST,
+          },
+        },
+      },
+    );
+
+    expect(facts).toEqual({
+      provider: "AWS",
+      state: AccountChangeState.StillThere,
+      url: rolePage("TestRole"),
+      providers: [
+        {
+          principal: `arn:aws:iam::012345678910:oidc-provider/${GITHUB}`,
+          name: GITHUB,
+          kind: AwsIdentityProviderKind.Oidc,
+          reach: AwsIdentityProviderReach.AnyOrganization,
+          claim: "sub",
+          values: [],
+        },
+      ],
+    });
+  });
+
+  test("a trust policy still as the attack set it names the provider it lets in", async () => {
+    const facts: AccountChangeFacts = await readBack(
+      opened,
+      deploy(GITHUB_AUDIENCE_ONLY_TRUST),
+    );
+
+    expect(facts.state).toBe(AccountChangeState.StillThere);
+    expect(reachOf(facts)).toEqual([
+      [GITHUB, AwsIdentityProviderReach.AnyOrganization],
+    ]);
+  });
+
+  test("undone once the role lets in none of the providers the attack's policy let in - counted as the outside accounts are", async () => {
+    for (const trust of [
+      EC2_TRUST,
+      // Another provider the attack's policy never named is not its way back.
+      GOOGLE_TRUST,
+    ]) {
+      expect(await readBack(opened, deploy(trust))).toEqual({
+        provider: "AWS",
+        state: AccountChangeState.Undone,
+        url: rolePage("Deploy"),
+      });
+    }
+  });
+
+  test("the provider still let in, held to one repository now: a person confirms it, told what it lets in - never undone", async () => {
+    const facts: AccountChangeFacts = await readBack(
+      opened,
+      deploy(GITHUB_BRANCH_TRUST),
+    );
+
+    expect(facts).toMatchObject({
+      state: AccountChangeState.Unknown,
+      reason: AccountChangeUnknownReason.CannotTellWhich,
+    });
+    expect(facts.providers).toEqual([
+      expect.objectContaining({
+        name: GITHUB,
+        reach: AwsIdentityProviderReach.Limited,
+        claim: "sub",
+        values: ["repo:GitHubOrg/GitHubRepo:ref:refs/heads/GitHubBranch"],
+      }),
+    ]);
+    expect(facts.trusted).toBeUndefined();
+  });
+
+  test("an attack that let in an outside account and a provider: undone only once neither is", async () => {
+    const both: AccountChange = changeOf(
+      attackTrustRecord({
+        roleName: "Deploy",
+        policy: {
+          Version: "2012-10-17",
+          Statement: [
+            ...(trusting(ATTACKER)["Statement"] as Array<JSONObject>),
+            ...((JSON.parse(GITHUB_AUDIENCE_ONLY_TRUST) as JSONObject)[
+              "Statement"
+            ] as Array<JSONObject>),
+          ],
+        },
+        eventID: "attack-oidc-2",
+      }),
+    );
+
+    expect(await readBack(both, deploy(trusting(ATTACKER)))).toMatchObject({
+      state: AccountChangeState.Unknown,
+      trusted: [ATTACKER],
+    });
+    expect(
+      reachOf(await readBack(both, deploy(GITHUB_AUDIENCE_ONLY_TRUST))),
+    ).toEqual([[GITHUB, AwsIdentityProviderReach.AnyOrganization]]);
+    expect((await readBack(both, deploy(EC2_TRUST))).state).toBe(
+      AccountChangeState.Undone,
+    );
+  });
+
+  test("a role open to every AWS account now is never undone, whatever the attack let in", async () => {
+    expect(await readBack(opened, deploy(trusting("*")))).toMatchObject({
+      state: AccountChangeState.Unknown,
+      trusted: ["*"],
+    });
+  });
+
+  test("an attack's policy CloudTrail cut short: a person confirms, told every provider the role lets in now", async () => {
+    const cut: AccountChange = changeOf(
+      recordedRoleCall({
+        eventName: "UpdateAssumeRolePolicy",
+        requestParameters: {
+          roleName: "Deploy",
+          policyDocument: `${GITHUB_AUDIENCE_ONLY_TRUST.slice(0, 200)}`,
+        },
+        eventID: "attack-oidc-3",
+      }),
+    );
+
+    const facts: AccountChangeFacts = await readBack(
+      cut,
+      deploy(GITHUB_ORGANIZATION_TRUST),
+    );
+
+    expect(facts.state).toBe(AccountChangeState.Unknown);
+    expect(reachOf(facts)).toEqual([
+      [GITHUB, AwsIdentityProviderReach.Limited],
+    ]);
   });
 });
 

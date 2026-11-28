@@ -93,7 +93,6 @@ import {
   toStoredCallVoice,
 } from "../../Types/Call/CallVoice";
 import ProjectCallVoice from "../../Types/Call/ProjectCallVoice";
-import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import GlobalConfigService from "./GlobalConfigService";
 import NameTakenException from "../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -1760,15 +1759,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * On unless the create request set it itself. The column's database
    * default stays false, so a project that existed before opens no case
    * from risk until someone turns it on.
+   *
+   * And it trusts no private address as a proxy unlisted (#11389,
+   * Project.securityTrustPrivateAddresses): a TCP proxy at one would pass on
+   * the X-Forwarded-For a client wrote. Off unless the create request set it
+   * itself. That column's database default stays on, so a project that
+   * existed before keeps trusting its HTTP proxies inside its network as it
+   * did, until someone turns it off.
    */
   public applyNewProjectSecurityDefaults(data: {
     enableSecurityRiskCases?: boolean | null | undefined;
+    securityTrustPrivateAddresses?: boolean | null | undefined;
   }): void {
     if (
       data.enableSecurityRiskCases === undefined ||
       data.enableSecurityRiskCases === null
     ) {
       data.enableSecurityRiskCases = true;
+    }
+
+    if (
+      data.securityTrustPrivateAddresses === undefined ||
+      data.securityTrustPrivateAddresses === null
+    ) {
+      data.securityTrustPrivateAddresses = false;
     }
   }
 
@@ -2084,7 +2098,6 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
   }
 
-  @CaptureSpan()
   /*
    * The voice the project's calls speak with through the server's Twilio
    * account (#11065, Types/Call/ProjectCallVoice): one of OneUptime's, or
@@ -2113,18 +2126,18 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     if (!props?.isRoot && getCallVoice(value)) {
-      const config: GlobalConfig | null = IsBillingEnabled
-        ? null
-        : await GlobalConfigService.findOneById({
-            id: ObjectID.getZeroObjectID(),
-            select: { letProjectsChooseCallVoice: true },
-            props: { isRoot: true },
-          });
+      /*
+       * The master admin's switch, or GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_
+       * CALL_VOICE once it is set (#11462): never read on OneUptime Cloud.
+       */
+      const canChoose: boolean = IsBillingEnabled
+        ? false
+        : await GlobalConfigService.canProjectsChooseCallVoice();
 
       const refusal: string | null = ProjectCallVoice.getWriteError({
         value: value,
         isBillingEnabled: IsBillingEnabled,
-        letProjectsChooseCallVoice: config?.letProjectsChooseCallVoice,
+        letProjectsChooseCallVoice: canChoose,
       });
 
       if (refusal) {
@@ -2135,6 +2148,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     data.callVoice = toStoredCallVoice(value);
   }
 
+  @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {

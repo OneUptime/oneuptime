@@ -50,6 +50,8 @@ Samtalet nämner ditt projekt. Ett samtal som inte hör till ett projekt, till e
 
 Ett samtal är på det språk du använder OneUptime på när Twilio-kontot som det går ut genom talar med en av OneUptimes röster: allt det säger, svaren på dina knapptryck inräknade, med en röst på ditt språk, en kvinnoröst om kontots röst är en kvinnoröst och en mansröst om den är en mansröst. Knapparna är desamma: 1 för att bekräfta, 2 för att eskalera. Ett samtal via ett konto som behåller sin standardröst är på engelska, och det är också ett samtal till någon som använder OneUptime på persiska, som ingen röst talar: se [Rösten som samtalen använder](/docs/self-hosted/twilio-integration#rösten-som-samtalen-använder).
 
+Samtalet som verifierar ditt telefonnummer är också på ditt språk: det säger sin kod en siffra i taget, med en paus mellan siffrorna, tre gånger. Ett samtal via installationens egen [SMS- och samtalsgateway](/docs/self-hosted/sms-and-call-gateway) får sina ord på ditt språk, och gatewayen väljer rösten.
+
 ## En ordning för allt
 
 **Användarinställningar → Så når man mig** öppnas med din ordning: numrerade steg som varje larm provar i tur och ordning, för incidenter, larm och episoder av alla allvarlighetsgrader. Varje steg är en tidpunkt, till exempel direkt eller efter 5 minuter, med de verifierade metoder som går ut tillsammans då. Ett senare steg går bara ut om ingen har bekräftat larmet innan dess.

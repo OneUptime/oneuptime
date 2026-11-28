@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-이름이 바뀐 키는 예전 이름으로도 계속 읽힙니다. 레이어의 제한 종류는 `restrictionType` 이나 예전 철자 `restictionType` 에 쓰며, 응답에는 둘 다 담깁니다.
+이름이 바뀐 키는 예전 이름으로도 계속 읽힙니다. 레이어의 제한 종류는 `restrictionType` 이나 예전 철자 `restictionType` 에 쓰며, 응답에는 둘 다 담깁니다. 예전 철자는 응답에서 더 이상 사용되지 않습니다. 응답에는 2027년 6월 1일 또는 그 이후에 처음 출시되는 메이저 버전이 나올 때까지 담깁니다. 쓰기에서는 항상 읽습니다.
+
+값은 그 값이 말하는 내용과도 맞아야 합니다. 레이어의 주간 시간대는 지정한 요일에 온콜이므로, 그 `startTime` 과 `endTime` 은 스케줄의 시간대 기준으로 각각 `startDay` 와 `endDay` 에 걸려야 합니다. 다른 요일로 날짜가 잡힌 시간대는 그 시간대를 밝히고 대신 보낼 수 있는 지정 요일의 시각을 알려 주는 `400` 으로 거부됩니다:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### 프로젝트를 구매한 곳
 
@@ -425,7 +431,7 @@ Incident not found.
 
 ### 레코드의 Markdown에 있는 이미지
 
-Markdown에 붙여 넣은 이미지(인시던트 설명, Markdown 사용자 정의 필드, 노트에 있는 스크린샷 등)는 비공개 파일입니다. 그 주소(`/file/image/access-token/...`)로는 프로젝트에 로그인한 사람만 열 수 있으므로, API 키는 이미지를 보여 주는 레코드를 통해 읽습니다.
+Markdown에 붙여 넣은 이미지(인시던트 설명, Markdown 사용자 정의 필드, 노트에 있는 스크린샷 등)는 비공개 파일입니다. 그 주소(`/file/image/access-token/...`)로는 프로젝트에 로그인한 사람 중 이미지를 보여 주는 레코드를 읽을 수 있는 사람이나 이미지를 추가한 사람만 열 수 있으므로, API 키는 이미지를 보여 주는 레코드를 통해 읽습니다.
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +465,7 @@ curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
 }
 ```
 
-넘겨주는 것은 레코드 자신의 프로젝트에 업로드된 그림뿐이며, 최대 20개, 모두 합쳐 10 MB까지이고, SVG는 넘겨주지 않습니다. Markdown이 있는 모든 종류의 레코드에 같은 요청이 있으며, `/api/incident-public-note/<id>/markdown-files`나 `/api/alert/<id>/markdown-files`처럼 씁니다. 없는 레코드나 키가 읽을 수 없는 레코드는 `get-item`처럼 `404`로 응답하고, 키가 그 종류의 레코드를 아예 읽을 수 없으면 `422`로 응답합니다. 워크플로는 같은 이미지를 [Markdown에서 파일 가져오기](/docs/workflows/components#get-files-from-markdown)로 읽습니다.
+넘겨주는 것은 레코드 자신의 프로젝트에 업로드된 그림뿐이며, 최대 20개, 모두 합쳐 10 MB까지이고, SVG는 넘겨주지 않습니다. Markdown이 있는 모든 종류의 레코드에 같은 요청이 있으며, `/api/incident-public-note/<id>/markdown-files`나 `/api/alert/<id>/markdown-files`처럼 씁니다. 없는 레코드나 키가 읽을 수 없는 레코드는 `get-item`처럼 `404`로 응답하고, 키가 그 종류의 레코드를 아예 읽을 수 없으면 `422`로 응답합니다. 워크플로는 같은 이미지를 [Markdown에서 파일 가져오기](/docs/workflows/components#get-files-from-markdown)로 읽고, 노트의 첨부 파일이나 파일 사용자 정의 필드처럼 레코드에 있는 파일은 [레코드에서 첨부 파일 가져오기](/docs/workflows/components#get-attachments-from-record)로 읽습니다.
 
 ## 전체 엔드포인트 참조
 

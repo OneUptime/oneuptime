@@ -295,6 +295,8 @@ test.describe("connecting Azure", () => {
         dataSecurityResponse: "off",
         // The blocklist in Azure WAF, under More fields: off until turned on.
         wafBlocklist: "off",
+        // Savings actions, under More fields: off until chosen (#11010).
+        savingsActions: "off",
       },
       secrets: { clientSecret: PASSWORD },
     });
@@ -434,6 +436,8 @@ test.describe("one paste, whatever the cloud", () => {
          */
         wafBlocklist: "off",
         securityCaseChecks: "off",
+        // Savings actions, under More fields: off until chosen (#11010).
+        savingsActions: "off",
       },
       secrets: {},
     });
@@ -822,6 +826,7 @@ test.describe("Data Security's settings, under the command", () => {
        */
       wafBlocklist: "off",
       securityCaseChecks: "off",
+      savingsActions: "off",
     });
   });
 

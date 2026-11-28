@@ -1377,9 +1377,16 @@ const Layers: FunctionComponent<ComponentProps> = (
   /*
    * The schedule's timezone lives on the schedule model but is edited here, next
    * to the layers whose rotation-start / hand-off / restriction times it governs
-   * — so the zone and the times it interprets are configured in one place. We
-   * update local state optimistically so the layer editors and previews
-   * re-anchor immediately, and roll back if the save fails.
+   * — so the zone and the times it interprets are configured in one place.
+   *
+   * Saving it moves every layer's times to the new zone's clock on the server
+   * (#11455: a 09:00 hand-off stays at 09:00, a Monday window stays on
+   * Monday), so the layers are read again before the page takes the new zone:
+   * the editors and previews re-anchor once, on the times as they are now,
+   * and a layer form opened before is read again (LayerCard keys it on the
+   * zone) rather than saving the times it fetched under the old one. The
+   * page's unsaved changes to who takes turns are kept: only each layer's
+   * own settings are read again.
    */
   const saveScheduleTimezone: SaveScheduleTimezoneFunction = async (
     timezone: string | undefined,
@@ -1390,7 +1397,6 @@ const Layers: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    setScheduleTimezone(timezone);
     setIsSavingTimezone(true);
     setActionError("");
 
@@ -1403,7 +1409,39 @@ const Layers: FunctionComponent<ComponentProps> = (
         },
       });
     } catch (err) {
-      setScheduleTimezone(previous);
+      setActionError(API.getFriendlyMessage(err));
+      setIsSavingTimezone(false);
+      return;
+    }
+
+    try {
+      const loaded: LoadedLayers = await loadLayers();
+      const loadedById: Map<string, OnCallDutyPolicyScheduleLayer> = new Map<
+        string,
+        OnCallDutyPolicyScheduleLayer
+      >(
+        loaded.layers.map(
+          (
+            layer: OnCallDutyPolicyScheduleLayer,
+          ): [string, OnCallDutyPolicyScheduleLayer] => {
+            return [getLayerId(layer), layer];
+          },
+        ),
+      );
+
+      setSavedLayers((layers: Array<OnCallDutyPolicyScheduleLayer>) => {
+        return layers.map(
+          (
+            layer: OnCallDutyPolicyScheduleLayer,
+          ): OnCallDutyPolicyScheduleLayer => {
+            return loadedById.get(getLayerId(layer)) || layer;
+          },
+        );
+      });
+      setScheduleTimezone(loaded.timezone);
+    } catch (err) {
+      // The zone is saved: the page takes it, and says the layers did not load.
+      setScheduleTimezone(timezone);
       setActionError(API.getFriendlyMessage(err));
     }
 

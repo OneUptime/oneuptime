@@ -58,6 +58,8 @@ export interface ExposureViewOptions {
   // What OneUptime read of the store's access logs (#10951).
   logRead?: ExposureLogRead | undefined;
   storeKind?: string | undefined;
+  // What a person said: whether the organization holds this data for another (#11427).
+  holdsForAnother?: boolean | undefined;
 }
 
 export function exposureWindowOf(): ExposureWindow | null {
@@ -142,6 +144,7 @@ export function exposureViewOf(
       },
     ],
     hasMoreSecrets: false,
+    holdsForAnother: data.holdsForAnother,
     now: EXPOSURE_NOW,
   });
 }

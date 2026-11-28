@@ -191,7 +191,7 @@ Jedes dieser Widgets listet die Ressourcen, die ein Agent oder ein Collector an 
 
 | Gruppe | Widgets | Befüllt durch |
 | --- | --- | --- |
-| **Hosts** | **Hosts**, mit Verbindungsstatus, Betriebssystem, CPU und Speicher | Jeden OpenTelemetry Collector, der `host.name` sendet |
+| **Hosts** | **Hosts**, mit Verbindungsstatus, Betriebssystem, CPU und Speicher | Den Collector auf jedem Host: siehe [Was als Host zählt](/docs/telemetry/hosts#was-als-host-zählt) |
 | **Kubernetes** | **Pods**, **Knoten**, **Namespaces**, **Deployments**, **StatefulSets**, **DaemonSets**, **Jobs**, **CronJobs** | Den [Kubernetes-Agent](/docs/monitor/kubernetes-agent) |
 | **Docker** | **Hosts**, **Container**, **Images**, **Netzwerke**, **Volumes** | Den Docker-Agent |
 | **Docker Swarm** | **Knoten**, **Dienste** | Den Docker-Swarm-Agent |

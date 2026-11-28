@@ -27,6 +27,7 @@
 | 在下一個區塊之前等待                                          | [Sleep](#sleep)                                                   |
 | 啟動另一個工作流程                                            | [Execute Workflow](#execute-workflow)                             |
 | 把記錄的 Markdown 顯示的圖片附加到電子郵件 | [從 Markdown 取得檔案](#get-files-from-markdown) |
+| 把備註的附件，或記錄的檔案類型自訂欄位，附加到電子郵件 | [從記錄取得附件](#get-attachments-from-record) |
 | 讀取或變更事件、監測器和其他記錄                              | [OneUptime 資料元件](#oneuptime-資料元件)                  |
 | 為其他工具的問題開啟、確認和解決事件或警示                     | [來自其他工具的事件和警示](#來自其他工具的事件和警示) |
 | 確認或關閉 Zabbix 問題                                         | [Zabbix](#zabbix)                                                 |
@@ -420,7 +421,7 @@ return { proceed: true, title: args.title.toUpperCase() };
 - **計數**：**檔案** 中有多少張圖片。
 - **未包含**：Markdown 顯示但不在 **檔案** 中的檔案，每個都帶有 `name`、`urls`、`fields`、`reason`，以及說明原因的 `message`。
 
-**檔案** 包含圖片的資料，所以執行記錄會隱藏它，改為顯示 **計數** 和 **未包含**。拿到圖片的後續區塊會把拿到的內容寫進記錄中它自己的項目。
+**檔案** 包含圖片的資料，所以執行記錄會隱藏它，改為顯示 **計數** 和 **未包含**。拿到圖片的後續區塊也會隱藏它們，無論是在它收到的內容中還是在它傳回的內容中（請參閱 [執行記錄](/docs/workflows/runs-and-logs#步驟分頁)）。
 
 ### 它會交出哪些圖片
 
@@ -525,6 +526,61 @@ Microsoft Graph 回應 `202 Accepted`，區塊走 **成功**。
 :::
 
 以這種方式寄送的訊息中，Microsoft Graph 接受的附件最大為 3 MB。更大的圖片需要上傳工作階段，或用連結代替圖片。也可以在工作流程之外用 API 金鑰讀取記錄的圖片：請參閱 [記錄的 Markdown 中的圖片](/docs/api-reference/api-reference#記錄的-markdown-中的圖片)。
+
+## Get Attachments From Record
+
+讀取記錄所含的檔案，並附上每個檔案的名稱、類型和資料：備註的附件、事件的事後分析附件、公告的附件，以及記錄的 **檔案** 和 **多個檔案** 自訂欄位中的檔案。用它把這些檔案附加到電子郵件中。如果還要附加記錄的 Markdown 顯示的圖片，請為同一筆記錄新增 [從 Markdown 取得檔案](#get-files-from-markdown)。
+
+| 設定 | 作用 |
+| --- | --- |
+| **記錄類型** | 含有這些檔案的記錄類型：事件、事件的內部備註或公開備註、警示、排定維護等。 |
+| **記錄 ID** | 要讀取的記錄，通常是啟動工作流程的那筆記錄，例如 `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`。 |
+
+| 輸出 | 何時 |
+| --- | --- |
+| **成功** | 已讀取記錄，無論它是否含有檔案。 |
+| **錯誤** | 無法讀取記錄：記錄不存在，或工作流程無權讀取它。原因見 **錯誤**。 |
+
+它傳回：
+
+- **檔案**：每個檔案，先是記錄自身的附件，再是它的檔案類型自訂欄位（依建立順序），包含：
+  - `name`：檔案上傳時的名稱；
+  - `mimeType`：它的類型，例如 `application/pdf` 或 `image/png`；
+  - `sizeInBytes`：以位元組為單位的大小；
+  - `base64`：檔案的資料；
+  - `contentId`：檔案在電子郵件中的 ID，無論哪筆記錄含有它，同一個檔案的 ID 都相同；
+  - `fields`：記錄把它放在哪裡：`attachments`、`postmortemAttachments` 或某個自訂欄位的名稱。
+- **計數**：**檔案** 中有多少個檔案。
+- **未包含**：記錄所含但不在 **檔案** 中的檔案，每個都帶有 `name`、`fields`、`reason`，以及說明原因的 `message`。
+
+**檔案** 包含檔案的資料，所以執行記錄會隱藏它，改為顯示 **計數** 和 **未包含**；拿到這些檔案的後續區塊也會隱藏它們。
+
+### 它會交出哪些檔案
+
+這個區塊像 Find One 區塊一樣，以工作流程的身分讀取記錄：只在工作流程自己的專案中讀取，從不讀取私人的事件、警示或集數，而且只讀取工作流程的權限允許它讀取的內容。它無權讀取的記錄會走 **錯誤**，和不存在的記錄一樣。如果「執行身分」的角色能讀取事件但不能讀取其內部備註，就無法讀取備註的附件。
+
+它只交出：
+
+- 記錄現在含有的檔案：它自己的附件，以及它的 **檔案** 和 **多個檔案** 自訂欄位中的檔案。文字自訂欄位不會被讀取。要附加事件備註中的檔案，請逐筆讀取備註：這個區塊不會讀取另一筆記錄底下的記錄；
+- 記錄自身所在專案的檔案。其他專案的檔案會作為找不到而列在 **未包含** 下；
+- 文件、試算表、簡報、圖片、文字和資料檔案、壓縮檔以及封包擷取：即 **檔案** 自訂欄位接受的檔案類型，每個都依檔案內容和類型一起檢查。SVG 可以攜帶指令碼，因此會被排除，只是聲稱自己是其類型所說內容的檔案也會被排除；
+- 與 **從 Markdown 取得檔案** 一樣，最多 20 個檔案，總共 10 MB。超出限制的內容會連同原因列在 **未包含** 下。
+
+它不能列出檔案，也不能依 ID 讀取檔案：它只讀取記錄所含的內容。
+
+要把這些檔案附加到 [上面範例](#範例透過-microsoft-graph-寄送的電子郵件中的內嵌圖片) 中透過 Microsoft Graph 寄送的電子郵件，請在 **從 Markdown 取得檔案** 之後新增 **從記錄取得附件**，在程式碼的 **參數** 中加上 `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}`，並用 `isInline: false` 逐一加入它們：
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## 來自其他工具的事件和警示
 

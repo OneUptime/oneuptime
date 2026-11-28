@@ -1652,7 +1652,7 @@ describe("when a criteria's incidents and alerts open and close", () => {
     );
   });
 
-  it("leaves an incident whose criteria was deleted for someone to resolve", () => {
+  it("resolves an incident whose criteria is deleted as the change is saved, and leaves one stranded earlier for someone to resolve", () => {
     // The auto-resolve rules are read from the criteria the monitor has now.
     expect(MONITOR_RESOURCE).toContain(
       'for (const criteriaInstance of criteriaInstances) {\n        criteriaInstanceMap[criteriaInstance.data?.id || ""] = criteriaInstance;',
@@ -1660,8 +1660,22 @@ describe("when a criteria's incidents and alerts open and close", () => {
     expect(MONITOR_INCIDENT).toContain(
       "if (!autoResolveTemplates || autoResolveTemplates.length === 0) {\n      return false;\n    }",
     );
+    /*
+     * So no check resolves it once its criteria is gone: the write that
+     * takes the criteria away resolves it instead (#11453) - an edit, a
+     * template's sync, the API and Terraform alike, one place for all.
+     */
+    expect(MONITOR_SERVICE).toContain(
+      "if (criteriaChange && updatedItemIds.length > 0) {\n      await this.resolveWhatTheWriteTookOff({",
+    );
     expect(criteriaPage).toContain(
-      "An incident from a criteria you have since deleted is not resolved by the monitor: resolve it by hand.",
+      "Deleting an incident's criteria, or syncing a template that no longer has it, resolves the incident when it was set to resolve on its own. One left open by a criteria deleted earlier, or set to be resolved by hand, you resolve yourself.",
+    );
+    expect(criteriaPage).toContain(
+      "An open incident or alert whose criteria you deleted is resolved as you save, when it was set to resolve on its own",
+    );
+    expect(criteriaPage).not.toContain(
+      "An incident from a criteria you have since deleted is not resolved by the monitor",
     );
   });
 
@@ -1735,7 +1749,7 @@ describe("when a criteria's incidents and alerts open and close", () => {
      * (#10819) are read under that rule.
      */
     expect(MONITOR_PROBE_SERVICE).toContain(
-      '            AND ${Service.getProbeableSql("$4")}\n          ORDER BY mp."nextPingAt" ASC\n          LIMIT $3\n          FOR NO KEY UPDATE OF mp SKIP LOCKED',
+      '            AND ${Service.getProbeableSql("$4")}\n          ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC\n          LIMIT $3\n          FOR NO KEY UPDATE OF mp SKIP LOCKED',
     );
     expect(MONITOR_PROBE_SERVICE).toContain(
       '`m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false`,',

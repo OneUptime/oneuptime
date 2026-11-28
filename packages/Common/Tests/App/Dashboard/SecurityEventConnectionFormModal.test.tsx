@@ -2614,3 +2614,230 @@ describe("getConnectionStepFields", () => {
     );
   });
 });
+
+/*
+ * A CrowdSec connection (#11158) is sent its alerts by CrowdSec's
+ * notification plugin and never polled. Its form walks to an Alerts step
+ * in place of Polling - its name, which alerts open cases and whether to
+ * block with CrowdSec, and no poll interval - and its settings say they
+ * are for blocking alone, so a connection made to receive alerts asks for
+ * nothing but a name.
+ */
+describe("SecurityEventConnectionFormModal (a CrowdSec connection, #11158)", () => {
+  const CREATED_ID: string = "55555555-5555-4555-8555-555555555555";
+
+  function stepTitles(): Array<string> {
+    return within(progress())
+      .getAllByRole("listitem")
+      .map((item: HTMLElement): string => {
+        return item.textContent || "";
+      });
+  }
+
+  function crowdsecConnection(): SecurityEventConnection {
+    const connection: SecurityEventConnection = new SecurityEventConnection();
+    connection._id = CONNECTION_ID;
+    connection.projectId = PROJECT_ID;
+    connection.name = "Edge CrowdSec";
+    connection.provider = SecurityEventConnectorProvider.CrowdSec;
+    connection.config = {
+      lapiUrl: "https://crowdsec.example.com:8080",
+      machineId: "oneuptime",
+      blockIndicators: true,
+    };
+    connection.isEnabled = true;
+    connection.pollIntervalInMinutes = 5;
+    connection.alertingOnly = true;
+    connection.caseMinimumSeverity = "Medium";
+    return connection;
+  }
+
+  beforeEach((): void => {
+    mockTransport();
+  });
+
+  afterEach((): void => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("its last step is Alerts, never Polling, once CrowdSec is picked", async (): Promise<void> => {
+    await renderModal();
+
+    expect(stepTitles()).toEqual([
+      "Provider",
+      "Connection",
+      "Credentials",
+      "Polling",
+    ]);
+
+    await chooseProvider("CrowdSec");
+
+    expect(stepTitles()).toEqual([
+      "Provider",
+      "Connection",
+      "Credentials",
+      "Alerts",
+    ]);
+  });
+
+  test("its settings are for blocking alone, and say so", async (): Promise<void> => {
+    await renderModal();
+    await chooseProvider("CrowdSec");
+    await next();
+
+    expect(activeStep()).toBe("Connection");
+    expect(screen.getByText("CrowdSec settings")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Only to block addresses in CrowdSec. Leave them empty to receive its alerts alone.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByLabelText(/^Local API URL/)).toBeVisible();
+    expect(screen.getByLabelText(/^Machine ID/)).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: /CrowdSec setup guide/ }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringMatching(/\/integrations\/crowdsec$/),
+    );
+
+    // Nothing here is required: a connection that only receives alerts walks on.
+    await next();
+    expect(activeStep()).toBe("Credentials");
+    expect(screen.getByLabelText(/^Machine password/)).toHaveAttribute(
+      "type",
+      "password",
+    );
+    await next();
+    expect(activeStep()).toBe("Alerts");
+  });
+
+  test("the Alerts step asks its name, what opens a case and whether to block - and no poll interval", async (): Promise<void> => {
+    await renderModal();
+    await chooseProvider("CrowdSec");
+    await next();
+    await next();
+    await next();
+    expect(activeStep()).toBe("Alerts");
+
+    expect(screen.getByLabelText(/^Name/)).toBeVisible();
+    expect(
+      screen.getByRole("combobox", { name: /^Open Cases From/ }),
+    ).toBeVisible();
+    const block: HTMLElement = screen.getByRole("switch", {
+      name: /^Block addresses with CrowdSec/,
+    });
+    expect(block).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.queryByRole("switch", { name: /^Alerts only/ }),
+    ).not.toBeInTheDocument();
+
+    // More fields holds a description and Enabled, at their defaults.
+    expect(
+      within(dialog())
+        .getAllByTestId("folded-section-item")
+        .map((item: HTMLElement): string => {
+          return `${item.textContent}:${item.getAttribute("data-item-set")}`;
+        }),
+    ).toEqual(["Description:false", "Enabled:false"]);
+    await openPollingMoreFields();
+    expect(
+      screen.queryByRole("spinbutton", { name: /^Poll Interval/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: /^Enabled/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(
+      screen.getByText(
+        "On, its alerts open cases as Open Cases From says. Off, they are kept as events alone.",
+      ),
+    ).toBeVisible();
+  });
+
+  test("made with a name alone, it receives alerts, blocks nothing, and is handed back with its id", async (): Promise<void> => {
+    jest
+      .mocked(ModelAPI.create)
+      .mockResolvedValue(
+        new HTTPResponse(200, { _id: CREATED_ID } as JSONObject, {}),
+      );
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal();
+    await chooseProvider("CrowdSec");
+    await next();
+    await next();
+    await next();
+    expect(activeStep()).toBe("Alerts");
+
+    fill(/^Name/, "Edge CrowdSec");
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Create connection"));
+    });
+
+    await waitFor((): void => {
+      expect(ModelAPI.create).toHaveBeenCalledTimes(1);
+    });
+    const created: { model: SecurityEventConnection } = jest.mocked(
+      ModelAPI.create,
+    ).mock.calls[0]?.[0] as { model: SecurityEventConnection };
+    expect(created.model.provider).toBe("crowdsec");
+    expect(created.model.name).toBe("Edge CrowdSec");
+    expect(created.model.config).toEqual({ blockIndicators: false });
+    expect(JSON.parse(created.model.secrets || "{}")).toEqual({});
+    expect(created.model.isEnabled).toBe(true);
+    expect(created.model.caseMinimumSeverity).toBe("High");
+
+    await waitFor((): void => {
+      expect(onSaved).toHaveBeenCalledTimes(1);
+    });
+    const handedBack: SecurityEventConnection | undefined = (
+      onSaved.mock.calls[0] as unknown as Array<
+        SecurityEventConnection | undefined
+      >
+    )[0];
+    expect(handedBack?.id?.toString()).toBe(CREATED_ID);
+    expect(handedBack?.provider).toBe("crowdsec");
+    expect(handedBack?.name).toBe("Edge CrowdSec");
+  });
+
+  test("going back to a product OneUptime polls brings Polling back, with its interval", async (): Promise<void> => {
+    await renderModal();
+    await chooseProvider("CrowdSec");
+    expect(stepTitles()[3]).toBe("Alerts");
+
+    await chooseProvider("Okta System Log");
+    expect(stepTitles()[3]).toBe("Polling");
+
+    await next();
+    fill(/^Okta organization URL/, OKTA_ORG_URL);
+    await next();
+    fireEvent.change(screen.getByLabelText(/^API token/), {
+      target: { value: OKTA_TOKEN },
+    });
+    await next();
+    expect(activeStep()).toBe("Polling");
+    await openPollingMoreFields();
+    expect(
+      screen.getByRole("spinbutton", { name: /^Poll Interval/ }),
+    ).toHaveValue(5);
+  });
+
+  test("editing one walks Connection, Credentials and Alerts, its settings as stored", async (): Promise<void> => {
+    await renderModal({ connection: crowdsecConnection() });
+
+    expect(stepTitles()).toEqual(["Connection", "Credentials", "Alerts"]);
+    expect(screen.getByLabelText(/^Local API URL/)).toHaveValue(
+      "https://crowdsec.example.com:8080",
+    );
+    expect(screen.getByLabelText(/^Machine ID/)).toHaveValue("oneuptime");
+
+    await next();
+    expect(activeStep()).toBe("Credentials");
+    await next();
+    expect(activeStep()).toBe("Alerts");
+    expect(screen.getByLabelText(/^Name/)).toHaveValue("Edge CrowdSec");
+    expect(
+      screen.getByRole("switch", { name: /^Block addresses with CrowdSec/ }),
+    ).toHaveAttribute("aria-checked", "true");
+  });
+});

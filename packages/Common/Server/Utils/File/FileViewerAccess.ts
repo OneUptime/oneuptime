@@ -4,8 +4,9 @@ import Query from "../../Types/Database/Query";
 import Select from "../../Types/Database/Select";
 import { ExpressRequest, ExpressResponse } from "../Express";
 import logger from "../Logger";
-import FileOwnership, { OwnedFile } from "./FileOwnership";
+import FileOwnership, { normalizeFileId, OwnedFile } from "./FileOwnership";
 import PublishedImages from "./PublishedImages";
+import ShownImageAccess from "./ShownImageAccess";
 import File from "../../../Models/DatabaseModels/File";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import SsoAuthorizationException from "../../../Types/Exception/SsoAuthorizationException";
@@ -34,7 +35,10 @@ import { UserTenantAccessPermission } from "../../../Types/Permission";
  *   - A private file of a project: the people who can open that project,
  *     decided the way every request to the project is decided - a membership
  *     they have accepted, and the project's sign-in rules met (SSO, where
- *     the project requires it).
+ *     the project requires it) - and of them, only the person who uploaded
+ *     it and the people who may read a record of the project that shows it
+ *     (#11478, mayViewInProject): its address does not open it for a member
+ *     whose role reads none of the records it is in.
  *   - A private file uploaded outside any project: the person who uploaded
  *     it.
  *   - Server admins: every file, as with every other record.
@@ -52,9 +56,13 @@ export interface FileViewer {
   isMasterAdmin: boolean;
 }
 
-// A file as the image routes read it: its owners, and whether it is public.
+/*
+ * A file as the image routes read it: its owners, whether it is public, and
+ * the token its address carries.
+ */
 export interface ViewableFile extends OwnedFile {
   isPublic?: boolean | undefined;
+  imageAccessToken?: string | null | undefined;
 }
 
 // What deciding who may see a file reads of it: never its bytes.
@@ -247,10 +255,11 @@ export default class FileViewerAccess {
   }
 
   /**
-   * Whether this person may see this private file: a member of the project
-   * it was uploaded in who can open the project now, the uploader of a file
-   * with no project, or a server admin. Throws when what the person may
-   * open cannot be looked up.
+   * Whether this person may see this private file: someone who can open the
+   * project it was uploaded in now, and who uploaded it or may read a
+   * record of the project that shows it (mayViewInProject); the uploader
+   * of a file with no project; or a server admin. Throws when what the
+   * person may open or read cannot be looked up.
    */
   public static async mayViewPrivateFile(data: {
     req: ExpressRequest;
@@ -266,50 +275,105 @@ export default class FileViewerAccess {
       file: { ...data.file, isPublic: false },
       userId: data.viewer.userId,
       mayOpenProject: async (projectId: ObjectID): Promise<boolean> => {
-        return await this.canOpenProject({
-          req: data.req,
-          userId: data.viewer.userId,
+        const permission: UserTenantAccessPermission | null =
+          await this.getProjectPermission({
+            req: data.req,
+            userId: data.viewer.userId,
+            projectId: projectId,
+          });
+
+        if (!permission) {
+          return false;
+        }
+
+        return await this.mayViewInProject({
+          viewer: data.viewer,
+          file: data.file,
           projectId: projectId,
+          permission: permission,
         });
       },
     });
   }
 
-  /*
-   * Whether the person can open the project right now: what the API answers
-   * for every request made to it (UserMiddleware): an accepted membership,
-   * with the project's SSO requirement met. A project that requires SSO the
-   * request has not signed in with, a project that no longer exists, or one
-   * a master admin blocked, is a no. A lookup that fails is an error, not a
-   * decision (keepReadableFile turns it into a refusal).
+  /**
+   * Whether a person who can open the file's project may see it there
+   * (#11478), by the rule API keys and workflows follow (MarkdownFiles):
+   *
+   *   - the person who uploaded it, always: an image in a draft the editor
+   *     uploaded before its record is saved, or one they pasted themselves
+   *     - its bytes were theirs to begin with;
+   *   - anyone else, only while a record of the project that they may read
+   *     shows it, as they may read it (ShownImageAccess): a member whose
+   *     role reads only monitors does not open the image in an incident
+   *     whose address reached them some other way.
+   *
+   * An image no record shows any more - edited out of what it was in, or
+   * its record deleted - is its uploader's alone, project admins' too:
+   * taking an image out of a record, or deleting the record, is how people
+   * take an image back, and nothing in OneUptime shows it to anyone after.
+   * An admin loses nothing a record still shows: they read every record of
+   * the project. Server admins are decided before this is asked.
    */
-  private static async canOpenProject(data: {
+  public static async mayViewInProject(data: {
+    viewer: FileViewer;
+    file: ViewableFile;
+    projectId: ObjectID;
+    permission: UserTenantAccessPermission;
+  }): Promise<boolean> {
+    if (FileOwnership.isFileOfUser(data.file, data.viewer.userId)) {
+      return true;
+    }
+
+    const fileId: string = normalizeFileId(data.file._id || data.file.id);
+    const token: string =
+      typeof data.file.imageAccessToken === "string"
+        ? data.file.imageAccessToken
+        : "";
+
+    if (!ObjectID.isValidUUID(fileId) || !token) {
+      return false;
+    }
+
+    return await ShownImageAccess.isShownTo({
+      userId: data.viewer.userId,
+      projectId: data.projectId,
+      permission: data.permission,
+      file: { fileId: fileId, token: token },
+    });
+  }
+
+  /*
+   * What the person holds in the project right now, or null when they
+   * cannot open it: what the API answers for every request made to it
+   * (UserMiddleware): an accepted membership, with the project's SSO
+   * requirement met. A project that requires SSO the request has not signed
+   * in with, a project that no longer exists, or one a master admin
+   * blocked, is a null. A lookup that fails is an error, not a decision
+   * (keepReadableFile turns it into a refusal).
+   */
+  private static async getProjectPermission(data: {
     req: ExpressRequest;
     userId: ObjectID;
     projectId: ObjectID;
-  }): Promise<boolean> {
-    let permission: UserTenantAccessPermission | null = null;
-
+  }): Promise<UserTenantAccessPermission | null> {
     try {
-      permission =
-        await UserMiddleware.getUserTenantAccessPermissionWithTenantId({
-          req: data.req,
-          tenantId: data.projectId,
-          userId: data.userId,
-        });
+      return await UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+        req: data.req,
+        tenantId: data.projectId,
+        userId: data.userId,
+      });
     } catch (err) {
       if (
         err instanceof SsoAuthorizationException ||
         err instanceof TenantNotFoundException ||
         err instanceof ProjectBlockedException
       ) {
-        return false;
+        return null;
       }
 
       throw err;
     }
-
-    return Boolean(permission);
   }
 
   /*

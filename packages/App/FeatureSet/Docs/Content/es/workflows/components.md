@@ -27,6 +27,7 @@ Rara vez la necesitarás abierta mientras construyes. Los ajustes de cada bloque
 | Esperar antes del bloque siguiente                            | [Sleep](#sleep)                                                   |
 | Iniciar otro flujo de trabajo                                 | [Execute Workflow](#execute-workflow)                             |
 | Adjuntar a un correo electrónico las imágenes que muestra el Markdown de un registro | [Obtener archivos del Markdown](#get-files-from-markdown) |
+| Adjuntar a un correo electrónico los adjuntos de una nota, o los campos personalizados de archivo de un registro | [Obtener adjuntos del registro](#get-attachments-from-record) |
 | Leer o cambiar incidentes, monitores y otros registros        | [Componentes de datos de OneUptime](#componentes-de-datos-de-oneuptime)  |
 | Abrir, reconocer y resolver incidentes o alertas por los problemas de otra herramienta | [Incidentes y alertas de otras herramientas](#incidentes-y-alertas-de-otras-herramientas) |
 | Reconocer o cerrar un problema de Zabbix | [Zabbix](#zabbix) |
@@ -420,7 +421,7 @@ Devuelve:
 - **Recuento**: cuántas imágenes contiene **Archivos**.
 - **Excluidos**: los archivos que muestra el Markdown y que no están en **Archivos**, cada uno con su `name`, sus `urls`, sus `fields`, un `reason` y un `message` que dice por qué.
 
-**Archivos** contiene los datos de las imágenes, así que el registro de la ejecución lo oculta y muestra **Recuento** y **Excluidos** en su lugar. Un bloque posterior al que se le pasan las imágenes escribe lo que recibe en su propia entrada del registro.
+**Archivos** contiene los datos de las imágenes, así que el registro de la ejecución lo oculta y muestra **Recuento** y **Excluidos** en su lugar. Un bloque posterior al que se le pasan las imágenes también las muestra ocultas, en lo que recibió y en lo que devolvió (vea [Ejecuciones](/docs/workflows/runs-and-logs#la-pestaña-pasos)).
 
 ### Qué imágenes entrega
 
@@ -525,6 +526,61 @@ Microsoft Graph responde `202 Accepted` y el bloque toma **Éxito**.
 :::
 
 Microsoft Graph acepta un adjunto de hasta 3 MB en un mensaje que se le envía así. Una imagen más grande necesita una sesión de carga, o un enlace en lugar de la imagen. Las imágenes de un registro también se pueden leer con una clave de API, fuera de un flujo de trabajo: vea [Imágenes en el Markdown de un registro](/docs/api-reference/api-reference#imágenes-en-el-markdown-de-un-registro).
+
+## Get Attachments From Record
+
+Lee los archivos que contiene un registro, con el nombre, el tipo y los datos de cada archivo: los adjuntos de una nota, los adjuntos del post mortem de un incidente, los adjuntos de un anuncio y los archivos de los campos personalizados **Archivo** y **Varios archivos** del registro. Úselo para adjuntarlos a un correo electrónico. Para adjuntar también las imágenes que muestra el Markdown de un registro, añada [Obtener archivos del Markdown](#get-files-from-markdown) para el mismo registro.
+
+| Ajuste | Qué hace |
+| --- | --- |
+| **Tipo de registro** | El tipo de registro que contiene los archivos: un incidente, una nota interna o pública de un incidente, una alerta, un mantenimiento programado y más. |
+| **ID del registro** | El registro que se lee, normalmente el que inició el flujo de trabajo, como `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`. |
+
+| Salida | Cuándo |
+| --- | --- |
+| **Éxito** | Se leyó el registro, contenga archivos o no. |
+| **Error** | No se pudo leer el registro: no existe, o el flujo de trabajo no puede leerlo. **Error** dice por qué. |
+
+Devuelve:
+
+- **Archivos**: cada archivo, primero los adjuntos del propio registro y luego sus campos personalizados de archivo en el orden en que se crearon, con:
+  - `name`: el nombre del archivo, tal como se subió;
+  - `mimeType`: su tipo, como `application/pdf` o `image/png`;
+  - `sizeInBytes`: su tamaño en bytes;
+  - `base64`: los datos del archivo;
+  - `contentId`: un ID para el archivo en un correo, el mismo para el mismo archivo sea cual sea el registro que lo contiene;
+  - `fields`: dónde lo tiene el registro: `attachments`, `postmortemAttachments` o el nombre de un campo personalizado.
+- **Recuento**: cuántos archivos contiene **Archivos**.
+- **Excluidos**: los archivos que contiene el registro y que no están en **Archivos**, cada uno con su `name`, sus `fields`, un `reason` y un `message` que dice por qué.
+
+**Archivos** contiene los datos de los archivos, así que el registro de la ejecución lo oculta y muestra **Recuento** y **Excluidos** en su lugar, y un bloque posterior al que se le pasan los archivos también los muestra ocultos.
+
+### Qué archivos entrega
+
+El bloque lee el registro como lo hace un bloque Find One, como el flujo de trabajo: en el proyecto del flujo de trabajo, nunca un incidente, una alerta o un episodio privados, y solo lo que los permisos del flujo de trabajo le dejan leer. Un registro que no puede leer toma **Error**, igual que uno que no existe. Un rol de «Ejecutar como» que puede leer incidentes pero no sus notas internas no puede leer los adjuntos de una nota.
+
+Solo entrega:
+
+- archivos que el registro contiene ahora: sus propios adjuntos y los archivos de sus campos personalizados **Archivo** y **Varios archivos**. Un campo personalizado de texto no se lee. Para adjuntar los archivos de las notas de un incidente, lea cada nota: el bloque no lee los registros que dependen de otro;
+- archivos del proyecto del propio registro. Un archivo de otro proyecto aparece en **Excluidos** como no encontrado;
+- documentos, hojas de cálculo, presentaciones, imágenes, archivos de texto y de datos, archivos comprimidos y capturas de paquetes: los tipos de archivo que acepta un campo personalizado **Archivo**, cada uno comprobado por lo que contiene el archivo además de por su tipo. Un SVG puede llevar script, así que se excluye, igual que un archivo que solo dice ser lo que indica su tipo;
+- hasta 20 archivos, y 10 MB en total, como hace **Obtener archivos del Markdown**. Lo que supera un límite aparece en **Excluidos**, con el motivo.
+
+No puede listar archivos ni leer uno por su ID: solo lee lo que contiene el registro.
+
+Para adjuntar los archivos al correo enviado con Microsoft Graph del [ejemplo anterior](#ejemplo-imágenes-incrustadas-en-un-correo-enviado-con-microsoft-graph), añada **Obtener adjuntos del registro** después de **Obtener archivos del Markdown**, añada `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}` a los **Argumentos** del código y agregue cada uno con `isInline: false`:
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## Incidentes y alertas de otras herramientas
 

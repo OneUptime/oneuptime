@@ -201,5 +201,6 @@ Eine Dateifrage behält die Dateien, die eine einreichende Person auswählt, in 
 - [Ein Formular erstellen](/docs/forms/building): Die Fragen, die diese Felder füllen, ausgeblendete Fragen und Vorlagen.
 - [Vorfalleinstellungen & Automatisierung](/docs/incidents/settings): Vorfallsvorlagen und benutzerdefinierte Felder.
 - [Vorfallnotizen, Eigentümer & Feed](/docs/incidents/notes-owners-and-feed): Private Notizen, öffentliche Notizen und Eigentümer.
+- [Eine Einreichung nachverfolgen](/docs/forms/follow-ups): Wer sendet, verfolgt die eigene Anfrage, schreibt Ihrem Team und fügt andere hinzu.
 - [Teilen & Sicherheit](/docs/forms/sharing-and-security): Wer einreichen kann, und wie oft.
 :::

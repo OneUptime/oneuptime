@@ -201,5 +201,6 @@ En filfråga håller de filer som en inlämnare väljer i webbläsaren och skick
 - [Bygga ett formulär](/docs/forms/building): Frågorna som fyller de här fälten, dolda frågor och mallar.
 - [Incidentinställningar och automatisering](/docs/incidents/settings): Incidentmallar och anpassade fält.
 - [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed): Privata anteckningar, offentliga anteckningar och ägare.
+- [Följa upp en inlämning](/docs/forms/follow-ups): Den som skickar följer sin förfrågan, skriver till ditt team och lägger till andra.
 - [Delning & säkerhet](/docs/forms/sharing-and-security): Vem som kan lämna in, och hur ofta.
 :::

@@ -80,6 +80,8 @@ ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 CEPH_CLUSTER_NAME=my-ceph-cluster
 CEPH_MGR_ENDPOINTS=[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]
+CEPH_AGENT_CONTAINER_NAME=oneuptime-ceph-agent
+CEPH_AI_AGENT_CONTAINER_NAME=oneuptime-ceph-ai-agent
 ```
 
 List every mgr daemon, active and standbys, comma-separated and wrapped in square brackets: the brackets make the collector read the value as a list of scrape targets. Start the agent:
@@ -119,6 +121,8 @@ The install script writes these to `/opt/oneuptime-ceph-agent/.env`; a Docker Co
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | The ingestion key from **Project Settings → Telemetry & APM → Ingestion Keys**. |
 | `CEPH_CLUSTER_NAME` | No | The cluster's name in OneUptime, stamped on every metric as the `ceph.cluster.name` resource attribute. Keep it stable: changing it later registers a second cluster. Defaults to `ceph`. |
 | `CEPH_MGR_ENDPOINTS` | Yes | Every mgr daemon as a comma-separated `host:port` list in square brackets, such as `[ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283]`. The install script adds the brackets for you. |
+| `CEPH_AGENT_CONTAINER_NAME` | No | The collector's container name. Defaults to `oneuptime-ceph-agent`. A second cluster's agent on the same machine needs names of its own: see [Monitoring several clusters](#monitoring-several-clusters). The install script names a new agent's containers after its folder unless you set them, and keeps them when you run the script again. |
+| `CEPH_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name. Defaults to `oneuptime-ceph-ai-agent`, and for a second agent to a name beside its collector's, such as `oneuptime-ceph-ai-agent-cluster2`. |
 
 The AI agent's own settings are under [AI agent](#ai-agent).
 
@@ -206,6 +210,18 @@ processors:
 
 The collector reads its config only when it starts: run `docker compose restart oneuptime-ceph-agent`. The cluster then shows the labels `team:storage` and `env:production`. Labels are matched without regard to case, so an existing `Production` label is reused rather than duplicated, and the agent never removes a label someone added in OneUptime.
 
+## Monitoring several clusters
+
+One agent reads one cluster. To monitor several from the same machine, install each into its own folder, with its own `.env` and container names of its own, since two containers cannot share a name:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-ceph-agent-cluster2 bash install.sh
+```
+
+The script names the agent's containers after the folder: `oneuptime-ceph-agent-cluster2` and `oneuptime-ceph-ai-agent-cluster2`. To choose them yourself, set `CEPH_AGENT_CONTAINER_NAME` and `CEPH_AI_AGENT_CONTAINER_NAME` when you run it. It keeps the names in that agent's `.env`, so running the script again to upgrade the agent keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. Give each folder a name of its own: Docker Compose names a project after its folder alone, so the script refuses a folder named like one that already runs an agent elsewhere. With Docker Compose, set the names in each agent's `.env` instead.
+
+The systemd unit assumes `/opt/oneuptime-ceph-agent`: for another folder, save it under another name, such as `oneuptime-ceph-agent-cluster2.service`, and change its `WorkingDirectory`. Pass the folder to the diagnostic script with `-d`.
+
 ## Run as a systemd service
 
 To start the agent with the machine and restart it when it fails, install its systemd unit. It assumes the agent lives in `/opt/oneuptime-ceph-agent`, where the install script puts it:
@@ -220,7 +236,7 @@ sudo systemctl enable --now oneuptime-ceph-agent
 
 The agent reports the collector version its files pin as its **Agent Version**. When that is older than the version this OneUptime release pins, a warning sign appears beside it on the cluster's **Overview**. Select it to see these commands. An agent installed before its files reported a version shows none until it is upgraded this way.
 
-The collector image is pinned in `docker-compose.yml` and its config is a file next to it, so pulling alone does not move the agent forward. Run `install.sh` again: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and `otel-collector-config.yaml` (a file you edited is kept as `<file>.bak.<timestamp>`), pulls the images and recreates the agent so the collector reads its new config. The AI agent's `ceph/` folder stays as it is.
+The collector image is pinned in `docker-compose.yml` and its config is a file next to it, so pulling alone does not move the agent forward. Run `install.sh` again: it reuses every value in your existing `.env` (nothing is prompted for again), refreshes `docker-compose.yml` and `otel-collector-config.yaml` (a file you edited is kept as `<file>.bak.<timestamp>`), pulls the images and recreates the agent so the collector reads its new config. The AI agent's `ceph/` folder stays as it is. An agent installed outside `/opt/oneuptime-ceph-agent` needs its folder, `INSTALL_DIR=<folder> bash install.sh`, and keeps its container names.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/ceph-agent -o install.sh

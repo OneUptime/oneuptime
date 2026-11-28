@@ -27,6 +27,7 @@ Du behöver sällan ha den öppen medan du bygger. Varje blocks inställningar s
 | Vänta före nästa block                                        | [Sleep](#sleep)                                                   |
 | Starta ett annat arbetsflöde                                  | [Execute Workflow](#execute-workflow)                             |
 | Bifoga bilderna som en posts Markdown visar i ett e-postmeddelande | [Hämta filer från Markdown](#get-files-from-markdown) |
+| Bifoga en antecknings bilagor, eller en posts anpassade filfält, i ett e-postmeddelande | [Hämta bilagor från post](#get-attachments-from-record) |
 | Läsa eller ändra incidenter, monitorer och andra poster       | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Öppna, bekräfta och lösa incidenter eller larm för ett annat verktygs problem | [Incidenter och larm från andra verktyg](#incidenter-och-larm-från-andra-verktyg) |
 | Bekräfta eller stänga ett Zabbix-problem                      | [Zabbix](#zabbix)                                                 |
@@ -420,7 +421,7 @@ Den returnerar:
 - **Antal**: hur många bilder **Filer** innehåller.
 - **Utelämnade**: filerna som Markdown visar men som inte finns i **Filer**, var och en med sitt `name`, sina `urls`, sina `fields`, en `reason` och ett `message` som säger varför.
 
-**Filer** innehåller bildernas data, så körningens logg döljer det och visar **Antal** och **Utelämnade** i stället. Ett senare block som får bilderna skriver det det får i sin egen post i loggen.
+**Filer** innehåller bildernas data, så körningens logg döljer det och visar **Antal** och **Utelämnade** i stället. Ett senare block som får bilderna visar dem också dolda, i det som det tog emot och i det som det returnerade (se [Körningar](/docs/workflows/runs-and-logs#fliken-steg)).
 
 ### Vilka bilder den lämnar ut
 
@@ -525,6 +526,61 @@ Microsoft Graph svarar `202 Accepted`, och blocket tar **Framgång**.
 :::
 
 Microsoft Graph tar emot en bilaga på upp till 3 MB i ett meddelande som skickas till det på det här sättet. En större bild behöver en uppladdningssession, eller en länk i stället för bilden. En posts bilder kan också läsas med en API-nyckel, utanför ett arbetsflöde: se [Bilder i en posts Markdown](/docs/api-reference/api-reference#bilder-i-en-posts-markdown).
+
+## Get Attachments From Record
+
+Läser filerna som en post innehåller, med namn, typ och data för varje fil: en antecknings bilagor, en incidents efteranalysbilagor, ett meddelandes bilagor och filerna i postens anpassade fält av typen **Fil** och **Flera filer**. Använd den för att bifoga dem i ett e-postmeddelande. För att också bifoga bilderna som en posts Markdown visar lägger du till [Hämta filer från Markdown](#get-files-from-markdown) för samma post.
+
+| Inställning | Vad den gör |
+| --- | --- |
+| **Posttyp** | Den sortens post som innehåller filerna: en incident, en incidents interna eller offentliga anteckning, ett larm, ett planerat underhåll med mera. |
+| **Post-ID** | Posten som läses, oftast den som startade arbetsflödet, som i `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`. |
+
+| Utgång | När |
+| --- | --- |
+| **Framgång** | Posten lästes, oavsett om den innehåller några filer. |
+| **Fel** | Posten kunde inte läsas: den finns inte, eller arbetsflödet får inte läsa den. **Fel** säger varför. |
+
+Den returnerar:
+
+- **Filer**: varje fil, först postens egna bilagor, sedan dess anpassade filfält i den ordning de skapades, med:
+  - `name`: filens namn, som den laddades upp;
+  - `mimeType`: dess typ, som `application/pdf` eller `image/png`;
+  - `sizeInBytes`: dess storlek i byte;
+  - `base64`: filens data;
+  - `contentId`: ett ID för filen i ett e-postmeddelande, samma för samma fil vilken post som än innehåller den;
+  - `fields`: var posten har den: `attachments`, `postmortemAttachments` eller namnet på ett anpassat fält.
+- **Antal**: hur många filer **Filer** innehåller.
+- **Utelämnade**: filerna som posten innehåller men som inte finns i **Filer**, var och en med sitt `name`, sina `fields`, en `reason` och ett `message` som säger varför.
+
+**Filer** innehåller filernas data, så körningens logg döljer det och visar **Antal** och **Utelämnade** i stället, och ett senare block som får filerna visar dem också dolda.
+
+### Vilka filer den lämnar ut
+
+Blocket läser posten på samma sätt som ett Find One-block, som arbetsflödet: i arbetsflödets eget projekt, aldrig en privat incident, ett privat larm eller en privat episod, och bara det som arbetsflödets behörigheter låter det läsa. En post som det inte får läsa tar **Fel**, precis som en som inte finns. En roll under "Kör som" som får läsa incidenter men inte deras interna anteckningar kan inte läsa en antecknings bilagor.
+
+Den lämnar bara ut:
+
+- filer som posten innehåller nu: dess egna bilagor och filerna i dess anpassade fält av typen **Fil** och **Flera filer**. Ett anpassat textfält läses inte. För att bifoga filerna i en incidents anteckningar läser du varje anteckning: blocket läser inte posterna under en annan;
+- filer från postens eget projekt. En fil från ett annat projekt står under **Utelämnade** som inte hittad;
+- dokument, kalkylblad, presentationer, bilder, text- och datafiler, arkiv och paketinspelningar: de sorters filer som ett anpassat fält av typen **Fil** tar emot, var och en kontrollerad efter vad filen innehåller och efter sin typ. En SVG kan innehålla skript, så den lämnas utanför, och det gör även en fil som bara påstår sig vara det som dess typ säger;
+- upp till 20 filer och 10 MB totalt, som **Hämta filer från Markdown** gör. Det som går över en gräns står under **Utelämnade** med skälet.
+
+Den kan inte lista filer eller läsa en via dess ID: den läser bara det som posten innehåller.
+
+För att bifoga filerna i e-postmeddelandet via Microsoft Graph i [exemplet ovan](#exempel-inbäddade-bilder-i-ett-e-postmeddelande-via-microsoft-graph) lägger du till **Hämta bilagor från post** efter **Hämta filer från Markdown**, lägger till `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}` i kodens **Argument** och lägger till var och en av dem med `isInline: false`:
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## Incidenter och larm från andra verktyg
 

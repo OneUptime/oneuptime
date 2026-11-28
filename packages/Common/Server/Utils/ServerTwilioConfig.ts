@@ -1,8 +1,10 @@
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 import { toCallVoiceValue } from "../../Types/Call/CallVoice";
 import ServerTwilioEnvironment, {
   ServerTwilioCallVoiceReading,
   ServerTwilioEnvironmentReading,
+  ServerTwilioProjectCallVoicesReading,
 } from "../../Types/CallAndSMS/ServerTwilioEnvironment";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import TwilioConfigUses, {
@@ -112,6 +114,41 @@ export const getServerTwilioCallVoice: () => ServerTwilioCallVoiceReading =
   (): ServerTwilioCallVoiceReading => {
     return ServerTwilioEnvironment.readCallVoice(process.env);
   };
+
+/*
+ * Whether GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE sets the switch that
+ * lets projects choose their call voice (#11462), read again on every call,
+ * as the voice's variable is: never on OneUptime Cloud (IsBillingEnabled).
+ */
+export const getServerTwilioProjectCallVoices: () => ServerTwilioProjectCallVoicesReading =
+  (): ServerTwilioProjectCallVoicesReading => {
+    return ServerTwilioEnvironment.readLetProjectsChooseCallVoice(process.env, {
+      isBillingEnabled: IsBillingEnabled,
+    });
+  };
+
+/*
+ * Whether the server lets projects choose the voice of their calls through
+ * its Twilio account, as every reader of the switch takes it - the calls,
+ * a project's write of its voice, what the Dashboard is told: what
+ * GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE says once it is set (#11462)
+ * - no, while it is neither true nor false - else the switch saved in the
+ * Admin Dashboard (GlobalConfig.letProjectsChooseCallVoice, #11065), as it
+ * was read. ProjectCallVoice.areOffered still says no on OneUptime Cloud,
+ * whatever this is.
+ */
+export const getLetProjectsChooseCallVoice: (saved: unknown) => unknown = (
+  saved: unknown,
+): unknown => {
+  const environment: ServerTwilioProjectCallVoicesReading =
+    getServerTwilioProjectCallVoices();
+
+  if (environment.isSet) {
+    return environment.letProjectsChoose;
+  }
+
+  return saved;
+};
 
 /*
  * The voice the server's calls speak with, whoever set the account - the

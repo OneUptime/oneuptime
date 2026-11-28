@@ -34,6 +34,15 @@ const TAXII_ONLY_FIELDS: Array<{ key: keyof Model; title: string }> = [
   { key: "apiRootUrl", title: "TAXII API root URL" },
   { key: "collectionId", title: "Collection ID" },
   { key: "apiToken", title: "API token" },
+];
+
+/*
+ * A user name and password, which a TAXII collection and a list behind a
+ * sign-in both take (#11158): CrowdSec's Console serves the blocklists a
+ * team subscribes to as a "Raw IP List" behind HTTP Basic Auth. A Google
+ * SecOps feed reads through its connection's credential instead.
+ */
+const BASIC_AUTH_FIELDS: Array<{ key: keyof Model; title: string }> = [
   { key: "basicAuthUsername", title: "Basic auth username" },
   { key: "basicAuthPassword", title: "Basic auth password" },
 ];
@@ -190,6 +199,16 @@ export class Service extends ProjectReferencesService<Model> {
             feedType === ThreatIntelFeedType.List ? "list" : "Google SecOps"
           } feed does not use it: leave it empty.`,
         );
+      }
+    }
+
+    if (feedType !== ThreatIntelFeedType.List) {
+      for (const field of BASIC_AUTH_FIELDS) {
+        if (hasValue(written[field.key])) {
+          throw new BadDataException(
+            `${field.title} is for a TAXII collection or a list behind a sign-in. A Google SecOps feed does not use it: leave it empty.`,
+          );
+        }
       }
     }
 

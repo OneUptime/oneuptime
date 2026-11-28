@@ -238,9 +238,8 @@ export default class StorageArrayConnectionRules {
      * An empty password in an update is "keep the saved one" - the
      * dashboard's edit form sends its empty field - never "clear it".
      */
-    const isPasswordGiven: boolean = StorageArrayConnectionRules.isPasswordGiven(
-      update["password"],
-    );
+    const isPasswordGiven: boolean =
+      StorageArrayConnectionRules.isPasswordGiven(update["password"]);
     if (!isPasswordGiven) {
       delete update["password"];
     }
@@ -302,13 +301,12 @@ export default class StorageArrayConnectionRules {
       });
 
     if (!isPasswordGiven) {
-      const refusal: string | null = StorageArrayConnectionRules.getRebindRefusal(
-        {
+      const refusal: string | null =
+        StorageArrayConnectionRules.getRebindRefusal({
           saved: savedBinding,
           next: nextBinding,
           presentedFingerprint: saved.presentedCertificate?.fingerprint256,
-        },
-      );
+        });
       if (refusal) {
         throw new BadDataException(refusal);
       }

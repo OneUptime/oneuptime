@@ -532,11 +532,14 @@ export default class NetworkInventoryUtil {
       }
 
       /*
-       * The agent's SNMPv3 engine ID, from the walk's own discovery: what
-       * the device's SNMPv3 traps are sent as, which tells it apart from
-       * devices that send traps from the same address (#11172). Taken at
-       * every poll, so a replaced device's new ID is taken at its next one;
-       * a v1 or v2c poll carries none and leaves the last one as it was.
+       * The agent's SNMPv3 engine ID: what the device's SNMPv3 traps are
+       * sent as, which tells it apart from devices that send traps from the
+       * same address (#11172). An SNMPv3 poll reads it from its own
+       * discovery, a v1 or v2c poll from the device's own agent, over its
+       * community or by SNMPv3 discovery at its polling address (#11405) -
+       * only ever its own poll, never a trap. Taken at every poll that read
+       * one, so a replaced device's new ID is taken at its next one; a poll
+       * that read none leaves the last one as it was.
        */
       const snmpEngineId: string | null =
         SnmpTrapReceiverUtil.normalizeEngineId(systemInfo?.snmpEngineId);

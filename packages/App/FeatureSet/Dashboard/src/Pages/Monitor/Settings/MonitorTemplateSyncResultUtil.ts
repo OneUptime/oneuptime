@@ -17,6 +17,54 @@ export const SYNCED_ONTO_MONITORS: PluralTemplate = {
     "Synced {{subject}} onto {{count}} monitors ({{total}} linked to this template).",
 };
 
+/*
+ * What a criteria sync resolved (#11453): the open incidents and alerts the
+ * criteria the template no longer has had opened, set to resolve on their
+ * own - nothing could resolve them once those criteria were gone.
+ */
+export const RESOLVED_BY_SYNC: PluralTemplate = {
+  one: "{{count}} open incident or alert that only the removed criteria could resolve was resolved.",
+  other:
+    "{{count}} open incidents and alerts that only the removed criteria could resolve were resolved.",
+};
+
+// The counts a sync answers with, each 0 when it says none (MonitorTemplateService).
+export function readResolvedCounts(answer: unknown): {
+  resolvedIncidentCount: number;
+  resolvedAlertCount: number;
+} {
+  const body: Record<string, unknown> =
+    answer && typeof answer === "object"
+      ? (answer as Record<string, unknown>)
+      : {};
+
+  const count: (key: string) => number = (key: string): number => {
+    const value: number = Number(body[key]);
+    return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+  };
+
+  return {
+    resolvedIncidentCount: count("resolvedIncidentCount"),
+    resolvedAlertCount: count("resolvedAlertCount"),
+  };
+}
+
+// The sentence for what a sync resolved, or none when it resolved nothing.
+export function getResolvedSentence(data: {
+  resolvedIncidentCount?: number | undefined;
+  resolvedAlertCount?: number | undefined;
+  translator: Translator;
+}): string | null {
+  const resolved: number =
+    (data.resolvedIncidentCount || 0) + (data.resolvedAlertCount || 0);
+
+  return resolved > 0
+    ? data.translator.translatePlural(RESOLVED_BY_SYNC, resolved, {
+        count: data.translator.formatNumber(resolved),
+      })
+    : null;
+}
+
 // What a short sync says next: how many it did not reach, and what to do.
 export const STILL_ON_PREVIOUS_CONFIGURATION: PluralTemplate = {
   one: "{{count}} linked monitor still uses the previous configuration — usually because your permissions do not cover it. Run the sync again as a user who can update every linked monitor.",
@@ -45,6 +93,9 @@ export function buildSyncResultSummary(data: {
   subject: string;
   syncedMonitors: number;
   totalLinkedMonitors: number;
+  // What the sync resolved (#11453): only a criteria sync resolves any.
+  resolvedIncidentCount?: number | undefined;
+  resolvedAlertCount?: number | undefined;
   translator: Translator;
 }): SyncResultSummary {
   const synced: number = data.syncedMonitors;
@@ -60,10 +111,18 @@ export function buildSyncResultSummary(data: {
     },
   );
 
+  const resolvedSentence: string | null = getResolvedSentence({
+    resolvedIncidentCount: data.resolvedIncidentCount,
+    resolvedAlertCount: data.resolvedAlertCount,
+    translator: data.translator,
+  });
+
   if (synced >= total) {
     return {
       title: "Done",
-      message: message,
+      message: resolvedSentence
+        ? joinSentences([message, resolvedSentence])
+        : message,
       isIncomplete: false,
     };
   }
@@ -76,7 +135,11 @@ export function buildSyncResultSummary(data: {
 
   return {
     title: "Partially synced",
-    message: joinSentences([message, remainingSentence]),
+    message: joinSentences(
+      resolvedSentence
+        ? [message, resolvedSentence, remainingSentence]
+        : [message, remainingSentence],
+    ),
     isIncomplete: true,
   };
 }

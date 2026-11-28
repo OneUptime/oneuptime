@@ -27,6 +27,7 @@ You rarely need it open while you build. Every block's settings end with **How t
 | Wait before the next block                            | [Sleep](#sleep)                                                   |
 | Start another workflow                                | [Execute Workflow](#execute-workflow)                             |
 | Attach the images a record's Markdown shows to an email | [Get Files From Markdown](#get-files-from-markdown)             |
+| Attach a note's attachments, or a record's file custom fields, to an email | [Get Attachments From Record](#get-attachments-from-record) |
 | Read or change incidents, monitors and other records  | [OneUptime data components](#oneuptime-data-components)          |
 | Open, acknowledge and resolve incidents or alerts for another tool's problems | [Incidents and alerts from other tools](#incidents-and-alerts-from-other-tools) |
 | Acknowledge or close a Zabbix problem                 | [Zabbix](#zabbix)                                                 |
@@ -420,7 +421,7 @@ It returns:
 - **Count**: how many images **Files** holds.
 - **Left Out**: the files the Markdown shows that aren't in **Files**, each with its `name`, `urls`, `fields`, a `reason` and a `message` that says why.
 
-**Files** holds the images' data, so the run's log hides it and shows **Count** and **Left Out** instead. A later block that is handed the images writes what it is handed to its own entry in the log.
+**Files** holds the images' data, so the run's log hides it and shows **Count** and **Left Out** instead. A later block that is handed the images shows them hidden too, in what it received and in what it returned (see [Runs and logs](/docs/workflows/runs-and-logs#the-steps-tab)).
 
 ### Which images it hands out
 
@@ -525,6 +526,61 @@ Microsoft Graph answers `202 Accepted`, and the block takes **Success**.
 :::
 
 Microsoft Graph takes an attachment of up to 3 MB in a message it is sent this way. A larger image needs an upload session, or a link in place of the image. A record's images can also be read with an API key, from outside a workflow: see [Images in a record's Markdown](/docs/api-reference/api-reference#images-in-a-records-markdown).
+
+## Get Attachments From Record
+
+Read the files a record holds, with each file's name, type and data: a note's attachments, an incident's postmortem attachments, an announcement's attachments, and the files in the record's **File** and **Multiple files** custom fields. Use it to attach them to an email. To attach the images a record's Markdown shows as well, add [Get Files From Markdown](#get-files-from-markdown) for the same record.
+
+| Setting         | What it does                                                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Record Type** | The kind of record that holds the files: an incident, an incident's internal or public note, an alert, a maintenance event and more.           |
+| **Record ID**   | The record to read, usually the one that started the workflow, as in `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`. |
+
+| Output      | When                                                                                                |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| **Success** | The record was read, whether or not it holds any files.                                             |
+| **Error**   | The record couldn't be read: it doesn't exist, or the workflow may not read it. **Error** says why. |
+
+It returns:
+
+- **Files**: each file, the record's own attachments first, then its file custom fields in the order they were created, with:
+  - `name`: the file's name, as it was uploaded;
+  - `mimeType`: its type, such as `application/pdf` or `image/png`;
+  - `sizeInBytes`;
+  - `base64`: the file's data;
+  - `contentId`: an ID for the file in an email, the same for the same file whichever record holds it;
+  - `fields`: where the record holds it: `attachments`, `postmortemAttachments`, or a custom field's name.
+- **Count**: how many files **Files** holds.
+- **Left Out**: the files the record holds that aren't in **Files**, each with its `name`, `fields`, a `reason` and a `message` that says why.
+
+**Files** holds the files' data, so the run's log hides it and shows **Count** and **Left Out** instead, and a later block that is handed the files shows them hidden too.
+
+### Which files it hands out
+
+The block reads the record the way a Find One block does, as the workflow: in the workflow's own project, never a private incident, alert or episode, and only what the workflow's permissions let it read. A record it may not read takes **Error**, just as one that doesn't exist does. A Run As role that may read incidents but not their internal notes can't read a note's attachments.
+
+It hands out only:
+
+- files the record holds now: its own attachments, and the files of its **File** and **Multiple files** custom fields. A Text custom field isn't read. To attach the files of an incident's notes, read each note: the block doesn't read the records under another;
+- files of the record's own project. A file of another project is listed under **Left Out** as not found;
+- documents, spreadsheets, presentations, pictures, text and data files, archives and packet captures: the kinds of file a **File** custom field takes, each checked by what the file holds as well as by its type. An SVG can carry script, so it's left out, and so is a file that only claims to be what its type says;
+- up to 20 files, and 10 MB in all, as **Get Files From Markdown** does. Whatever goes past a limit is listed under **Left Out**, with the reason.
+
+It can't list files, or read one by its ID: it reads only what the record holds.
+
+To attach the files to the Microsoft Graph email of the [example above](#example-inline-images-in-a-microsoft-graph-email), add **Get Attachments From Record** after **Get Files From Markdown**, add `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}` to the code's **Arguments**, and push each of them with `isInline: false`:
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## Incidents and alerts from other tools
 

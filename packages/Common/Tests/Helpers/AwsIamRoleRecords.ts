@@ -22,6 +22,12 @@ import CloudTrailLogParser from "../../Utils/SecurityEvent/LogParsers/CloudTrail
  *     ListAttachedRolePolicies and ListRolePolicies, word for word, and
  *     answers of the same shape for the roles a test sets up - a trust
  *     policy URL-encoded, as GetRole's reference says it is written.
+ *   - An inline policy's document (#11377): the IAM API Reference's
+ *     PutUserPolicy sample request in the same envelope, and its
+ *     GetRolePolicy and GetUserPolicy sample responses, word for word -
+ *     each reference says the document comes back URL-encoded (RFC 3986),
+ *     as the answers a test sets up write it, though its sample shows it
+ *     plain.
  *
  * AWS's pages write a run of tabs and spaces after a policy's "Version",
  * kept here as they have it.
@@ -92,7 +98,8 @@ export const RECORDED_ACCOUNT: string = "777777777777";
 
 /*
  * Another IAM call, recorded as CloudTrail records CreateRole: its name,
- * its parameters, an event id of its own, and no response elements.
+ * its parameters, an event id of its own, and no response elements - a
+ * role's call, or a user's (#11377), in the same envelope.
  */
 export function recordedRoleCall(data: {
   eventName: string;
@@ -148,6 +155,45 @@ export const PUT_ROLE_POLICY_RECORD: JSONObject = recordedRoleCall({
   },
   eventID: "8e4a6c13-2d5f-4f70-b9e2-EXAMPLE30a13",
 });
+
+// The IAM API Reference's PutUserPolicy sample request: IAMReadAccess, IAM's reads, on Bob (#11377).
+export const PUT_USER_POLICY_RECORD: JSONObject = recordedRoleCall({
+  eventName: "PutUserPolicy",
+  requestParameters: {
+    userName: "Bob",
+    policyName: "IAMReadAccess",
+    policyDocument: `{"Version":"2012-10-17",${AWS_DOCS_GAP}"Statement":{"Effect":"Allow","Action":["iam:Get*", "iam:List*", "iam:Generate*"],"Resource":"*"}}`,
+  },
+  eventID: "4c1d9e27-7a3b-4d58-a6f0-EXAMPLE30a14",
+});
+
+/*
+ * An inline policy the attack wrote (#11377): PutRolePolicy or
+ * PutUserPolicy in the same envelope, naming the role or the user, the
+ * policy, and the document it set as the caller sent it.
+ */
+export function attackInlinePolicyRecord(data: {
+  eventName: "PutRolePolicy" | "PutUserPolicy";
+  // The role's name, or the user's.
+  subject: string;
+  policyName: string;
+  policyDocument: string;
+  eventID: string;
+  eventTime?: string | undefined;
+}): JSONObject {
+  return recordedRoleCall({
+    eventName: data.eventName,
+    requestParameters: {
+      ...(data.eventName === "PutRolePolicy"
+        ? { roleName: data.subject }
+        : { userName: data.subject }),
+      policyName: data.policyName,
+      policyDocument: data.policyDocument,
+    },
+    eventID: data.eventID,
+    eventTime: data.eventTime,
+  });
+}
 
 /*
  * A record as a case keeps it: read by OneUptime's own CloudTrail parser,
@@ -258,6 +304,66 @@ export function getRoleResponse(data: {
   <RequestId>df37e965-9967-11e1-a4c3-270EXAMPLE04</RequestId>
 </ResponseMetadata>
 </GetRoleResponse>`;
+}
+
+// The IAM API Reference's GetRolePolicy sample response, word for word: S3Access's S3AccessPolicy (#11377).
+export const GET_ROLE_POLICY_SAMPLE_RESPONSE: string = `<GetRolePolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<GetRolePolicyResult>
+  <PolicyName>S3AccessPolicy</PolicyName>
+  <RoleName>S3Access</RoleName>
+  <PolicyDocument>
+  {"Version":"2012-10-17",${AWS_DOCS_GAP}"Statement":[{"Effect":"Allow","Action":["s3:*"],"Resource":["*"]}]}
+  </PolicyDocument>
+</GetRolePolicyResult>
+<ResponseMetadata>
+  <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</GetRolePolicyResponse>`;
+
+// The IAM API Reference's GetUserPolicy sample response, word for word: Bob's AllAccessPolicy (#11377).
+export const GET_USER_POLICY_SAMPLE_RESPONSE: string = `<GetUserPolicyResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+ <GetUserPolicyResult>
+    <UserName>Bob</UserName>
+    <PolicyName>AllAccessPolicy</PolicyName>
+    <PolicyDocument>
+    {"Version":"2012-10-17",${AWS_DOCS_GAP}"Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}
+    </PolicyDocument>
+ </GetUserPolicyResult>
+ <ResponseMetadata>
+    <RequestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</RequestId>
+ </ResponseMetadata>
+</GetUserPolicyResponse>`;
+
+/*
+ * An inline policy's document, answered as GetRolePolicy and GetUserPolicy
+ * answer (#11377): URL-encoded, as both references say it is written.
+ */
+export function getInlinePolicyResponse(data: {
+  action: "GetRolePolicy" | "GetUserPolicy";
+  // The role's name, or the user's.
+  subject: string;
+  policyName: string;
+  document: JSONObject | string;
+}): string {
+  const document: string =
+    typeof data.document === "string"
+      ? data.document
+      : JSON.stringify(data.document);
+  const subject: string =
+    data.action === "GetRolePolicy"
+      ? `<RoleName>${data.subject}</RoleName>`
+      : `<UserName>${data.subject}</UserName>`;
+
+  return `<${data.action}Response xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+<${data.action}Result>
+  <PolicyName>${data.policyName}</PolicyName>
+  ${subject}
+  <PolicyDocument>${encodeURIComponent(document)}</PolicyDocument>
+</${data.action}Result>
+<ResponseMetadata>
+  <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
+</ResponseMetadata>
+</${data.action}Response>`;
 }
 
 // IAM's error, as its Query API writes one: NoSuchEntity once a role is gone.

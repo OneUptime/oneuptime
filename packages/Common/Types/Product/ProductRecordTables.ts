@@ -566,6 +566,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   ],
   [ProductKey.StorageArrays]: [
     "StorageArray",
+    "StorageArrayConnection",
+    "StorageArrayConnectionTest",
     "StorageArrayFeed",
     "StorageArrayLabelRule",
     "StorageArrayOwnerRule",
@@ -722,6 +724,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "FormPrivateUserSession",
     "FormSSO",
     "FormSubmission",
+    "FormSubmissionFollower",
+    "FormSubmissionMessage",
   ],
 };
 

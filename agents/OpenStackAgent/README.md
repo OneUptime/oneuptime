@@ -293,6 +293,20 @@ The same questions, the same check with Keystone and the same files, but it runs
 
 Run one agent per cloud: if you are moving off the Docker install, run `docker compose down` first, or every metric arrives twice. `install.sh --without-docker` on a Docker install's folder keeps its answers.
 
+## Monitoring several clouds
+
+One agent reads one cloud. To monitor several from the same machine, install each into its own directory, with its own `.env` and container names of its own — two containers cannot share a name:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-openstack-agent-cloud2 bash install.sh
+```
+
+`install.sh` names the agent's containers after the directory (`oneuptime-openstack-agent-cloud2`, `oneuptime-openstack-exporter-cloud2`, `oneuptime-openstack-quota-exporter-cloud2`, `oneuptime-openstack-database-exporter-cloud2`, `oneuptime-openstack-worker-state-exporter-cloud2` and `oneuptime-openstack-ai-agent-cloud2`); set `OPENSTACK_AGENT_CONTAINER_NAME` and the other `*_CONTAINER_NAME` variables when you run it to choose them yourself. It keeps them in that agent's `.env`, so a re-run (the upgrade) keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. Give each directory a name of its own: Compose names a project after its directory alone, so `install.sh` refuses a directory named like one that already runs an agent elsewhere, before it changes anything. With Docker Compose, set the names in each agent's `.env` instead.
+
+The names apply with Docker. The logs and traces collectors read theirs from `.env` too (`OPENSTACK_LOGS_CONTAINER_NAME`, `OPENSTACK_TRACES_CONTAINER_NAME`).
+
+The systemd unit assumes `/opt/oneuptime-openstack-agent`: copy it under another name for another directory and change its `WorkingDirectory`. Pass the directory to the doctor script with `-d`.
+
 ## Run as a systemd Service
 
 To survive reboots without relying on Docker's restart policy alone, install the provided unit:
@@ -520,6 +534,12 @@ Answers to the installer. Set any of them in the environment to skip its questio
 | `OPENSTACK_SINGLE_CLOUD_EXPORTER_TARGETS` | No | `host:port` of [an exporter running without `--multi-cloud`](#bring-your-own-exporter). `.env` holds it in brackets |
 | `OPENSTACK_RABBITMQ_TARGETS`, `OPENSTACK_MARIADB_TARGETS`, `OPENSTACK_MEMCACHED_TARGETS`, `OPENSTACK_HAPROXY_TARGETS`, `OPENSTACK_NETWORK_EXPORTER_TARGETS`, `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | No | [What the cloud stands on](#what-the-cloud-stands-on). The installer keeps them across a re-run, and never asks |
 | `OPENSTACK_CONTROL_PLANE_REGION` | No | The region of a target in those lists that does not say its own (default: the first region) |
+| `OPENSTACK_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-openstack-agent`). A second cloud's agent on the same machine needs names of its own ([Monitoring several clouds](#monitoring-several-clouds)): `install.sh` names a new agent's containers after its directory unless you set them, and keeps them on every re-run |
+| `OPENSTACK_EXPORTER_CONTAINER_NAME` | No | The bundled exporter's container name (default: `oneuptime-openstack-exporter`; beside the collector's for a second agent, e.g. `oneuptime-openstack-exporter-cloud2`) |
+| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | No | The quota exporter's container name (default: `oneuptime-openstack-quota-exporter`; beside the collector's for a second agent, e.g. `oneuptime-openstack-quota-exporter-cloud2`) |
+| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | No | The database exporter's container name (default: `oneuptime-openstack-database-exporter`; beside the collector's for a second agent, e.g. `oneuptime-openstack-database-exporter-cloud2`) |
+| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | No | The worker state exporter's container name (default: `oneuptime-openstack-worker-state-exporter`; beside the collector's for a second agent, e.g. `oneuptime-openstack-worker-state-exporter-cloud2`) |
+| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-openstack-ai-agent`; beside the collector's for a second agent, e.g. `oneuptime-openstack-ai-agent-cloud2`) |
 
 | Variable | Description |
 |----------|-------------|

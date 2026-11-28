@@ -56,6 +56,7 @@ import {
 } from "../../Types/Telemetry/TelemetryIngestionBudget";
 import TelemetryIngestShedding from "../Utils/Telemetry/TelemetryIngestShedding";
 import {
+  QUEUE_REFUSAL_SURFACE_FOR_SIGNAL,
   TelemetryIngestRefusalReason,
   getTelemetryIngestRefusalReasonForBudget,
 } from "../../Types/Telemetry/TelemetryIngestRefusal";
@@ -885,8 +886,10 @@ export default class TelemetryIngest {
        * full for everyone (TelemetryIngestShedding, 2026-11-27): answered
        * 429 with a Retry-After, its exporter sending the batch again later,
        * before its body is read. A decision in memory, from the queue as the
-       * process last read it. Not counted against the key: nothing on its
-       * page would put it right.
+       * process last read it. Counted against the key, under the signal's
+       * own surface (#11440), as every refusal is: so the project's Usage
+       * page, its explorers and the key's own page say OneUptime is
+       * catching up, not only the sender's log.
        */
       const sheddingSignal: TelemetryIngestionBudgetSignal | null =
         getTelemetryIngestionBudgetSignalForSurface(surface);
@@ -903,6 +906,12 @@ export default class TelemetryIngest {
             projectId: policy.projectId.toString(),
             telemetryIngestionBudgetRefusal: shed.kind,
           });
+
+          TelemetryIngest.recordRefusal(
+            policy,
+            getTelemetryIngestRefusalReasonForBudget(shed),
+            QUEUE_REFUSAL_SURFACE_FOR_SIGNAL[sheddingSignal],
+          );
 
           return sendTelemetryIngestionBudgetRefusal({
             req: req,

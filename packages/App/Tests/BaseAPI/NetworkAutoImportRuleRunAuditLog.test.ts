@@ -1,6 +1,7 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import Semaphore from "Common/Server/Infrastructure/Semaphore";
+import MonitorNetworkDeviceService from "Common/Server/Services/MonitorNetworkDeviceService";
 import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorTemplateService from "Common/Server/Services/MonitorTemplateService";
 import NetworkDeviceAutoImportRuleService from "Common/Server/Services/NetworkDeviceAutoImportRuleService";
@@ -135,6 +136,18 @@ jest.mock("Common/Server/Services/MonitorTemplateService", () => {
   return {
     __esModule: true,
     default: { findOneById: jest.fn(), findBy: jest.fn() },
+  };
+});
+
+/*
+ * The Network Device monitors whose steps watch a device: the duplicate
+ * check reads them before the rule gives a device its template's monitor
+ * (DeviceMonitorDuplicateCheck, #10990).
+ */
+jest.mock("Common/Server/Services/MonitorNetworkDeviceService", () => {
+  return {
+    __esModule: true,
+    default: { findMonitorIdsWatching: jest.fn() },
   };
 });
 
@@ -325,6 +338,10 @@ beforeEach(() => {
 
   mocked(MonitorService.findBy).mockResolvedValue([]);
   mocked(MonitorService.findOneBy).mockResolvedValue(null);
+  // No monitor's steps watch the two new switches yet.
+  mocked(MonitorNetworkDeviceService.findMonitorIdsWatching).mockResolvedValue(
+    [],
+  );
   monitorCreate.mockImplementation(
     async (createBy: { data: Monitor }): Promise<Monitor> => {
       createBy.data.id = createBy.data.id || ObjectID.generate();

@@ -7,6 +7,7 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import ShownImageAccess from "../../../Server/Utils/File/ShownImageAccess";
 import Response from "../../../Server/Utils/Response";
 import MimeType from "../../../Types/File/MimeType";
 import ObjectID from "../../../Types/ObjectID";
@@ -45,6 +46,16 @@ jest.mock("../../../Server/Middleware/UserAuthorization", () => {
   };
 });
 
+// Whether a record of the project shows the image to the person (#11478).
+jest.mock("../../../Server/Utils/File/ShownImageAccess", () => {
+  return {
+    __esModule: true,
+    default: {
+      isShownTo: jest.fn(),
+    },
+  };
+});
+
 jest.mock("../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -60,10 +71,12 @@ jest.mock("../../../Server/Utils/Logger", () => {
 /*
  * The image routes' decisions with every collaborator stubbed: who is
  * asking (UserMiddleware.getSessionUser), whether they can open a project
- * (UserMiddleware.getUserTenantAccessPermissionWithTenantId), and the two
- * reads - the file's owners first, its bytes only once it may be served.
- * The same routes run end to end, with real signed sessions, in
- * FileImageRouteViewers.test.ts.
+ * (UserMiddleware.getUserTenantAccessPermissionWithTenantId), whether a
+ * record of it shows them the image (ShownImageAccess.isShownTo, #11478),
+ * and the two reads - the file's owners first, its bytes only once it may
+ * be served. The same routes run end to end, with real signed sessions, in
+ * FileImageRouteViewers.test.ts, and against Postgres in
+ * FileImageRecordAccessPostgres.test.ts.
  */
 
 const TOKEN_ROUTE: string = "/file/image/access-token/:token";
@@ -76,21 +89,40 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const USER_ID: ObjectID = new ObjectID("e7c4f2a1-0000-4000-8000-0000000000bb");
 
-type BuildFileFunction = (isPublic: unknown) => File;
+// Who uploaded the files below, unless a test says the person asking did.
+const UPLOADER_ID: ObjectID = new ObjectID(
+  "e7c4f2a1-0000-4000-8000-0000000000cc",
+);
+
+type BuildFileFunction = (isPublic: unknown, uploadedBy?: ObjectID) => File;
 
 /*
  * A file of PROJECT_ID. isPublic is deliberately typed loose here so the
  * varchar-era value (the STRING "false") can be fed through the gate as
  * well as a real boolean.
  */
-const buildFile: BuildFileFunction = (isPublic: unknown): File => {
+const buildFile: BuildFileFunction = (
+  isPublic: unknown,
+  uploadedBy: ObjectID = UPLOADER_ID,
+): File => {
   const file: File = new File();
   file._id = IMAGE_ID;
   file.file = Buffer.from("png-bytes");
   file.fileType = MimeType.png;
   file.projectId = PROJECT_ID;
+  file.createdByUserId = uploadedBy;
+  file.imageAccessToken = "abc123";
   (file as unknown as { isPublic: unknown }).isPublic = isPublic;
   return file;
+};
+
+type SetShownFunction = (isShown: boolean) => void;
+
+// Whether a record of the file's project shows it to the person asking.
+const setShown: SetShownFunction = (isShown: boolean): void => {
+  (ShownImageAccess.isShownTo as unknown as jest.Mock).mockResolvedValue(
+    isShown as never,
+  );
 };
 
 // Every read of the stored file, and whether it came back with its bytes.
@@ -131,6 +163,14 @@ const store: StoreFunction = (file: File | null): void => {
       (row as unknown as { isPublic: unknown }).isPublic = (
         file as unknown as { isPublic: unknown }
       ).isPublic;
+
+      if (find.select["createdByUserId"] && file.createdByUserId) {
+        row.createdByUserId = file.createdByUserId;
+      }
+
+      if (find.select["imageAccessToken"] && file.imageAccessToken) {
+        row.imageAccessToken = file.imageAccessToken;
+      }
 
       if (file.fileType) {
         row.fileType = file.fileType;
@@ -212,6 +252,7 @@ describe("FileAPI access control", () => {
     reads = [];
     setSession(null);
     setMember(false);
+    setShown(false);
     store(null);
   });
 
@@ -296,9 +337,10 @@ describe("FileAPI access control", () => {
   });
 
   describe("token route — signed-in callers", () => {
-    it("serves a private file to a member of its project", async () => {
+    it("serves a private file to a member of its project a record shows it to", async () => {
       signedIn();
       setMember(true);
+      setShown(true);
       store(buildFile(false));
 
       await callRoute(TOKEN_ROUTE, { token: "abc123" });
@@ -324,6 +366,52 @@ describe("FileAPI access control", () => {
           userId: USER_ID,
         }),
       );
+
+      // And whether a record of it shows them this image.
+      expect(ShownImageAccess.isShownTo).toHaveBeenCalledWith({
+        userId: USER_ID,
+        projectId: PROJECT_ID,
+        permission: { projectId: PROJECT_ID, permissions: [] },
+        file: { fileId: IMAGE_ID, token: "abc123" },
+      });
+    });
+
+    it("refuses a private file to a member of its project no record shows it to, and never reads its bytes", async () => {
+      signedIn();
+      setMember(true);
+      setShown(false);
+      store(buildFile(false));
+
+      await callRoute(TOKEN_ROUTE, { token: "abc123" });
+
+      expectRefused();
+      expect(readAnyBytes()).toBe(false);
+    });
+
+    it("serves a private file to the member who uploaded it, without reading any record", async () => {
+      signedIn();
+      setMember(true);
+      setShown(false);
+      store(buildFile(false, USER_ID));
+
+      await callRoute(TOKEN_ROUTE, { token: "abc123" });
+
+      expectServed();
+      expect(ShownImageAccess.isShownTo).not.toHaveBeenCalled();
+    });
+
+    it("answers as for a missing file when the records that show it cannot be read", async () => {
+      signedIn();
+      setMember(true);
+      (ShownImageAccess.isShownTo as unknown as jest.Mock).mockRejectedValue(
+        new Error("the records could not be read") as never,
+      );
+      store(buildFile(false));
+
+      await callRoute(TOKEN_ROUTE, { token: "abc123" });
+
+      expectRefused();
+      expect(readAnyBytes()).toBe(false);
     });
 
     it("refuses a private file to a session that cannot open its project, and never reads its bytes", async () => {

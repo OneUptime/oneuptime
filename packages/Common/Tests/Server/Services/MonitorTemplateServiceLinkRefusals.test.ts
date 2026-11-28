@@ -116,8 +116,8 @@ const link: () => Promise<void> = async (): Promise<void> => {
   });
 };
 
-const sync: () => Promise<void> = (): Promise<void> => {
-  return MonitorTemplateService.syncToMonitor({
+const sync: () => Promise<void> = async (): Promise<void> => {
+  await MonitorTemplateService.syncToMonitor({
     monitorTemplateId: TEMPLATE_ID,
     monitorId: MONITOR_ID,
     fields: ["monitorSteps"],

@@ -109,6 +109,10 @@ const PROBE_INGEST: string = readSource(
 const DEVICE_MATCHER: string = readSource(
   "Common/Server/Utils/Syslog/SyslogDeviceMatcher.ts",
 );
+// What an SNMP trap's source address is matched to a device by (#11407).
+const TRAP_SOURCE_MATCHER: string = readSource(
+  "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil.ts",
+);
 
 // The page's tables, in the order it has them.
 const ALL_TABLES: Array<Array<Array<string>>> = tables(PAGE);
@@ -616,12 +620,16 @@ describe("the Network Events page: how events get here", () => {
     );
   });
 
-  it("says a newly added address takes effect from the next minute, the matcher's memory", () => {
+  it("says a newly added address takes effect from the next minute, the matchers' memory", () => {
     const limits: Record<string, number> = numberConstants(DEVICE_MATCHER);
 
     expect(limits["CACHE_TTL_MS"]).toBe(MINUTE_IN_MS);
+    // A trap's address is matched the same way, and kept as long (#11407).
+    expect(
+      numberConstants(TRAP_SOURCE_MATCHER)["SOURCE_MATCH_CACHE_TTL_MS"],
+    ).toBe(MINUTE_IN_MS);
     expect(PAGE).toContain(
-      "Its messages go to that device from the next minute on.",
+      "Its syslog and SNMP traps go to that device from the next minute on.",
     );
   });
 });

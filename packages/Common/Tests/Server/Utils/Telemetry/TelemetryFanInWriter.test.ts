@@ -805,7 +805,7 @@ describe("TelemetryFanInWriter", () => {
       await result.flushed;
 
       expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
-      expect(callOptions(target, 0).clickhouseSettings).toBe(settings);
+      expect(callOptions(target, 0).clickhouseSettings).toEqual(settings);
     });
 
     test("a mixed batch applies the FIRST submission's clickhouseSettings", async () => {
@@ -830,7 +830,7 @@ describe("TelemetryFanInWriter", () => {
       await Promise.all([first.flushed, second.flushed]);
 
       expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
-      expect(callOptions(target, 0).clickhouseSettings).toBe(settingsFirst);
+      expect(callOptions(target, 0).clickhouseSettings).toEqual(settingsFirst);
     });
 
     /*
@@ -867,6 +867,8 @@ describe("TelemetryFanInWriter", () => {
 
       expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
       expect(callOptions(target, 0).clickhouseSettings).toEqual({
+        // Async, said outright: an async insert is sent without its token (#11536).
+        async_insert: 1,
         async_insert_max_data_size: "104857600",
         async_insert_busy_timeout_ms: 300,
         distributed_foreground_insert: 1,
@@ -890,6 +892,7 @@ describe("TelemetryFanInWriter", () => {
       await result.flushed;
 
       expect(callOptions(target, 0).clickhouseSettings).toEqual({
+        async_insert: 1,
         async_insert_busy_timeout_ms: 1000,
       });
     });

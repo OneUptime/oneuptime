@@ -5,6 +5,7 @@ import { DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT } from "../../../Types/AI/AIData
 import { getToolProducts } from "../../../Server/Utils/AI/Toolbox/ToolProducts";
 import {
   PRODUCT_OF_AI_RESOURCE_TYPE,
+  PRODUCT_OF_FORM_TARGET_TYPE,
   PRODUCT_OF_WORKSPACE_CHANNEL_RECORD_TYPE,
 } from "../../../Server/Utils/ServerProducts/ProductsOfRequest";
 import { describe, expect, jest, test } from "@jest/globals";
@@ -1061,7 +1062,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "`${new this.entityType() .getCrudApiPath() ?.toString()}/public/:shareKey/submit`":
         PUBLIC_PAGE,
       "`${crudApiPath}${FORM_CUSTOM_DOMAIN_SUBMIT_ROUTE}`": PUBLIC_PAGE,
+      // A form's follow-ups, on its link and its own domain alike.
+      "`${variant.prefix}${FORM_FOLLOW_UP_ROUTE}`": PUBLIC_PAGE,
+      "`${variant.prefix}${FORM_FOLLOW_UP_REPLY_ROUTE}`": PUBLIC_PAGE,
+      "`${variant.prefix}${FORM_FOLLOW_UP_ADD_PERSON_ROUTE}`": PUBLIC_PAGE,
+      "`${variant.prefix}${FORM_FOLLOW_UP_STOP_ROUTE}`": PUBLIC_PAGE,
     },
+  },
+  "packages/Common/Server/API/FormFollowUpRecordAPI.ts": {
+    products: [ProductKey.Forms, ...Object.values(PRODUCT_OF_FORM_TARGET_TYPE)],
+    leftAlone: {},
   },
   "packages/App/FeatureSet/Notification/API/SubscriberNotificationPreview.ts": {
     products: [ProductKey.StatusPages],
@@ -1576,14 +1586,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read.",
+      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read, the pictures a record's Markdown shows among them, by GET or POST (#11256).",
       {
-        "packages/Common/Server/API/BaseAPI.ts": 9,
+        "packages/Common/Server/API/BaseAPI.ts": 10,
         "packages/Common/Server/API/BaseAnalyticsAPI.ts": 7,
       },
     ),
     ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone, which monitors, dashboards, saved views, recording rules and SLOs read what a scrub rule being written would hide, and what Security Events would lose (#10433), what a drop or sample filter being written would take of the last day's logs or traces, and what reads those records (#10436) - as a POST for the rule or filter it describes, which is never saved - and how many values each of the project's scrub rules changed in the last week, by service and version (#10366).",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone, which monitors, dashboards, saved views, recording rules and SLOs read what a scrub rule being written would hide, and what Security Events would lose (#10433), what a drop or sample filter being written would take of the last day's logs or traces, and what reads those records (#10436) - as a POST for the rule or filter it describes, which is never saved - and how many values each of the project's scrub rules changed in the last week, by service and version (#10366), and who owns the records a page shows, as a POST for their IDs, which changes nothing (#11436).",
       {
         "packages/Common/Server/API/PickedStatusPagesReachRoute.ts": 1,
         "packages/Common/Server/API/ScrubRuleReadersAPI.ts": 1,
@@ -1592,6 +1602,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,
+        "packages/Common/Server/API/RecordOwnershipRoute.ts": 1,
         "packages/Common/Server/API/PublicNoteReachRoute.ts": 1,
         "packages/Common/Server/API/UsedByAPI.ts": 1,
         "packages/Common/Server/API/WhoIsToldAPI.ts": 1,
@@ -1897,6 +1908,10 @@ const productsOfRefusal: (
       "ProductsOfRequest.workspaceChannelRecord": Object.values(
         PRODUCT_OF_WORKSPACE_CHANNEL_RECORD_TYPE,
       ),
+      "ProductsOfRequest.formFollowUpRecord": [
+        ProductKey.Forms,
+        ...Object.values(PRODUCT_OF_FORM_TARGET_TYPE),
+      ],
       "ProductsOfRequest.aiResource": Object.values(
         PRODUCT_OF_AI_RESOURCE_TYPE,
       ),

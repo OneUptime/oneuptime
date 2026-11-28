@@ -92,10 +92,11 @@ const LOADER: string = path.join(
 
 /*
  * The files that draw a mark they always show, and so import its shapes
- * directly: the icon set's brand glyphs and the code hosts' marks.
+ * directly: the icon set's brand glyphs (Icon draws them from
+ * IconBrandMarks) and the code hosts' marks.
  */
 const MARK_IMPORTERS: ReadonlyArray<string> = [
-  path.join(PACKAGES, "Common", "UI", "Components", "Icon", "Icon.tsx"),
+  path.join(PACKAGES, "Common", "UI", "Components", "Icon", "IconBrandMarks.ts"),
   path.join(
     PACKAGES,
     "App",

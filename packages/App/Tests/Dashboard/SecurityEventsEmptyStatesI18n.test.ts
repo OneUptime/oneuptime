@@ -61,7 +61,7 @@ const COMPONENT_STRINGS: Array<string> = [
   "Read the setup guide",
   // SecurityEventConnectionsEmptyState
   "No security event connections yet",
-  "Connect a SIEM, EDR / XDR, cloud security or identity product and OneUptime polls it on a schedule, importing each new alert, finding or log event as an OCSF security event.",
+  "Connect a SIEM, EDR / XDR, cloud security, network security or identity product, and OneUptime imports each new alert, finding or log event as an OCSF security event.",
   "Add connection",
   "Pick a product to connect",
   "Supported products",
@@ -87,6 +87,7 @@ const CATEGORY_STRINGS: Array<string> = [
   "SIEM",
   "EDR / XDR",
   "Cloud security",
+  "Network security",
   "Identity",
 ];
 
@@ -140,9 +141,18 @@ const RETIRED_EVENTS_DESCRIPTION: string =
 const RETIRED_OCSF_DESCRIPTION: string =
   "Events show up here as soon as a source starts sending. Every event is normalized to OCSF, whatever format it arrives in.";
 
+/*
+ * The connections' empty state said every product is polled on a schedule;
+ * CrowdSec sends its alerts instead (#11158), and the sentence names the
+ * network security products it filed beside the others.
+ */
+const RETIRED_CONNECTIONS_DESCRIPTION: string =
+  "Connect a SIEM, EDR / XDR, cloud security or identity product and OneUptime polls it on a schedule, importing each new alert, finding or log event as an OCSF security event.";
+
 const RETIRED_STRINGS: Array<string> = [
   RETIRED_EVENTS_DESCRIPTION,
   RETIRED_OCSF_DESCRIPTION,
+  RETIRED_CONNECTIONS_DESCRIPTION,
   // The grey requirements box that sat above the docs cards.
   "Before you connect",
   // The heading of the eight heavy EmptyStateGuideLinks docs cards.

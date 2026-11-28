@@ -194,6 +194,27 @@ describe("initials are read through Common/Utils/NameInitials", () => {
     expect(unknown).toEqual([]);
   });
 
+  /*
+   * filesUnder reads a folder that is not there as an empty one, so a root
+   * that moved would drop out of the scan and every test here would pass on
+   * less (#11403). A Community Edition checkout has no ee/ at all, and there
+   * the Enterprise roots are not read.
+   */
+  test("reads every folder it names, so none drops out of the scan", () => {
+    const enterprise: string = path.join(REPOSITORY, "ee");
+
+    for (const root of ROOTS) {
+      if (root.startsWith(enterprise) && !fs.existsSync(enterprise)) {
+        continue;
+      }
+
+      expect({
+        root: path.relative(REPOSITORY, root),
+        isThere: fs.existsSync(root),
+      }).toEqual({ root: path.relative(REPOSITORY, root), isThere: true });
+    }
+  });
+
   test("each known one is still there, so the list only shrinks", () => {
     const found: Array<Found> = initialsDeclarations();
 

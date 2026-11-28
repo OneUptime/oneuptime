@@ -264,11 +264,23 @@ describe("a list feed", () => {
     ).resolves.toBeDefined();
   });
 
+  test("a list behind a sign-in keeps its user name and password: CrowdSec's Raw IP List (#11158)", async () => {
+    await expect(
+      service.onBeforeCreate(
+        createBy(
+          listFeed({
+            basicAuthUsername: "integration-user",
+            basicAuthPassword: "hunter2",
+          }),
+        ),
+      ),
+    ).resolves.toBeDefined();
+  });
+
   test.each([
     ["apiRootUrl", "https://taxii.example.com/api1/", "TAXII API root URL"],
     ["collectionId", "col-1", "Collection ID"],
     ["apiToken", "secret", "API token"],
-    ["basicAuthPassword", "hunter2", "Basic auth password"],
   ])(
     "holds no TAXII field: %s",
     async (key: string, value: string, title: string) => {
@@ -392,6 +404,20 @@ describe("a Google SecOps feed", () => {
       "Choose the Google SecOps connection this feed reads through.",
     );
   });
+
+  test.each([
+    ["basicAuthUsername", "integration-user", "Basic auth username"],
+    ["basicAuthPassword", "hunter2", "Basic auth password"],
+  ])(
+    "holds no user name or password of its own: %s",
+    async (key: string, value: string, title: string) => {
+      await expect(
+        service.onBeforeCreate(createBy(secOpsFeed({ [key]: value }))),
+      ).rejects.toThrow(
+        `${title} is for a TAXII collection or a list behind a sign-in. A Google SecOps feed does not use it: leave it empty.`,
+      );
+    },
+  );
 
   test("refuses a connection to another product, another project's, or none at all", async () => {
     for (const found of [

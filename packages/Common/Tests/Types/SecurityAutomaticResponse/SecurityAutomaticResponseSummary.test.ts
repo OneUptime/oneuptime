@@ -57,6 +57,15 @@ describe("the trial run's summary", () => {
           value: "198.51.100.8",
           outcome: SecurityAutomaticResponseOutcome.StoppedAtLimit,
         },
+        // #11389: through a private proxy nothing vouches for, twice: one address.
+        {
+          value: "198.51.100.9",
+          outcome: SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+        },
+        {
+          value: "198.51.100.9",
+          outcome: SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+        },
       ]),
     ).toEqual({
       wouldActOn: 3,
@@ -64,6 +73,7 @@ describe("the trial run's summary", () => {
       sparedSignedIn: 1,
       sparedProtected: 1,
       sparedCannotTell: 1,
+      sparedUnvouchedProxy: 1,
       wouldHaveStopped: 2,
     });
   });
@@ -75,8 +85,27 @@ describe("the trial run's summary", () => {
       sparedSignedIn: 0,
       sparedProtected: 0,
       sparedCannotTell: 0,
+      sparedUnvouchedProxy: 0,
       wouldHaveStopped: 0,
     });
+  });
+
+  /*
+   * #11389: an address left for a person because the proxy it came through
+   * is trusted only for being private is spared, never acted on - however
+   * often the policy would have acted on it otherwise.
+   */
+  test("an address spared for an unvouched proxy is never counted as acted on", () => {
+    expect(
+      summarizeSecurityAutomaticResponseTrial([
+        {
+          value: "203.0.113.70",
+          outcome: SecurityAutomaticResponseOutcome.SparedUnvouchedProxy,
+        },
+      ]),
+    ).toEqual(
+      expect.objectContaining({ wouldActOn: 0, sparedUnvouchedProxy: 1 }),
+    );
   });
 });
 

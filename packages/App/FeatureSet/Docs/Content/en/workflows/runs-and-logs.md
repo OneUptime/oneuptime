@@ -87,9 +87,13 @@ The ID under each step's title is exactly what goes in a `{{local.components.<id
 
 The values shown are what the block received, after variables were filled in and before the block did anything with them, with two exceptions: secrets and fields the block marks sensitive are redacted, and a value longer than 4,000 characters is cut short with "… (truncated)". A run keeps its last 100 steps; a long or often-resumed run shows an amber note where the earlier ones were dropped. Runs recorded before output names were kept show the output by its ID, without where it led.
 
+A value a block marks sensitive, such as the images **Get Files From Markdown** returns, stays redacted in every block after it, after a **Sleep** too. A later block that is handed it shows it redacted in what it received and in what it returned, and its text is redacted wherever it appears in what the run records: a message that includes it, or an error that quotes it. Short parts of it that say what was handed on, such as a file's name or type, are left in. The blocks themselves still get the real value.
+
 ### The Full Log tab
 
 The raw line-by-line log the runner wrote, including anything the blocks logged themselves, such as a **Log** block's value or a script's `console.log`. Use it when the Steps tab doesn't explain the failure.
+
+Each value the log writes, whether what a block received, what it returned or what it logged, is cut to its first 65,536 characters and ends with how many were left out, such as `… (10,420,113 more characters left out)`. A block's received values and returned values are each cut on their own, so one long value doesn't hide the others. Secrets and sensitive values are redacted before a value is cut, so one that the cut would split is still redacted whole.
 
 ## Copying and downloading a run
 

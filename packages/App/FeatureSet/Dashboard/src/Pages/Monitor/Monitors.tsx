@@ -1,4 +1,5 @@
 import MonitorTable from "../../Components/Monitor/MonitorTable";
+import MonitorTemplateChangesNotice from "../../Components/Monitor/TemplateChange/MonitorTemplateChangesNotice";
 import ActiveMonitorLimitNotice, {
   ActiveMonitorLimitNoticeShowWhen,
 } from "../../Components/Monitor/ActiveMonitorLimitNotice";
@@ -43,6 +44,13 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [importCount, setImportCount] = useState<number>(0);
 
   /*
+   * The project's template changes (#11454): read again when a dialog that
+   * may have started one closes, and the list read again when one finishes.
+   */
+  const [templateChangesToggle, setTemplateChangesToggle] = useState<number>(0);
+  const [templateChangesDone, setTemplateChangesDone] = useState<number>(0);
+
+  /*
    * Import Alerts (issue #7697): Prometheus, Grafana and Datadog alert rules
    * as Metrics monitors, in the list's ⋯ beside Import JSON - offered to
    * whoever may create a monitor, as Create Monitor is.
@@ -83,6 +91,21 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <ActiveMonitorLimitNotice
         showWhen={ActiveMonitorLimitNoticeShowWhen.OverLimit}
       />
+      {/*
+       * A change of monitors' template still running - an Unlink from
+       * Template started here has no template's page to show on - or one
+       * that finished in the last hour with monitors left out (#11454).
+       */}
+      <div className="mb-5 empty:mb-0">
+        <MonitorTemplateChangesNotice
+          refreshToggle={String(templateChangesToggle)}
+          onChanged={() => {
+            setTemplateChangesDone((done: number): number => {
+              return done + 1;
+            });
+          }}
+        />
+      </div>
       <MonitorTable
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -105,8 +128,13 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           offer: MONITORS_IMPORT_OFFER,
           translator: translator,
         })}
-        refreshToggle={`${firstRun.refreshToken}-${importCount}`}
+        refreshToggle={`${firstRun.refreshToken}-${importCount}-${templateChangesDone}`}
         cardButtons={importButton ? [importButton] : []}
+        onTemplateChangeDialogClosed={() => {
+          setTemplateChangesToggle((toggle: number): number => {
+            return toggle + 1;
+          });
+        }}
       />
       {firstRun.showcase}
     </Fragment>

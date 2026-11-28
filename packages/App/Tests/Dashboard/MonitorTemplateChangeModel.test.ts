@@ -4,6 +4,7 @@ import path from "path";
 import {
   MONITOR_NOT_REACHED_FAILED,
   MONITOR_NOT_REACHED_STOPPED,
+  MONITOR_NO_LONGER_THE_POLICYS,
   MONITOR_TEMPLATE_CHANGE_OWN_REASONS,
   MonitorTemplateChangeKind,
   MonitorTemplateChangeLine,
@@ -29,7 +30,19 @@ import {
   MonitorTemplateChangeIssueGroup,
   MonitorTemplateChangePhase,
   NEVER_MADE_AGAIN,
+  POLICY_MOVE_BUTTON,
+  POLICY_MOVE_BUTTON_UNCOUNTED,
+  POLICY_MOVE_MONITORS,
+  POLICY_MOVE_MONITORS_UNCOUNTED,
+  POLICY_MOVE_TITLE,
   RETRY_BUTTON,
+  RULE_MOVE_BUTTON,
+  RULE_MOVE_CHOICE_DESCRIPTIONS,
+  RULE_MOVE_CHOICE_TITLES,
+  RULE_MOVE_QUESTION,
+  RULE_MOVE_TITLE,
+  RULE_SAVE_WITHOUT_MOVING_BUTTON,
+  RuleMoveChoice,
   SETTINGS_KEPT,
   SETTINGS_REPLACED,
   UNLINK_CHOICE_DESCRIPTIONS,
@@ -40,6 +53,7 @@ import {
   getMonitorTemplateChangeCounts,
   getMonitorTemplateChangeDescription,
   getMonitorTemplateChangeIssueGroups,
+  getMonitorTemplateChangeLine,
   getMonitorTemplateChangePercent,
   getMonitorTemplateChangePhase,
   getMonitorTemplateChangeTitle,
@@ -136,6 +150,7 @@ function view(
     isStopRequested: false,
     retryableCount: 0,
     isTemplateDeleted: false,
+    isAutoImportRulePointed: false,
     createdAt: CREATED_AT,
     ...overrides,
   };
@@ -495,13 +510,17 @@ describe("the headline", () => {
 });
 
 describe("the line under the headline", () => {
-  test("while it runs: closing the dialog does not stop it, and the template's page shows it", () => {
+  test("while it runs: closing the dialog does not stop it, and the Monitors list and the template's page show it (#11454)", () => {
     expect(description(view())).toBe(
-      "The server makes the change. You can close this dialog: it keeps going, and this template's page shows how far it got.",
+      "The server makes the change. You can close this dialog: it keeps going, and the Monitors list and this template's page show how far it got.",
     );
   });
 
-  test("an unlink from the Monitors list, from each monitor's own template, names no page to come back to", () => {
+  test("an unlink from the Monitors list, from each monitor's own template, comes back on the Monitors list (#11454)", () => {
+    /*
+     * It belongs to no template's page: before #11454, once its dialog was
+     * closed nothing showed how far it got.
+     */
     expect(
       description(
         view({
@@ -511,7 +530,7 @@ describe("the line under the headline", () => {
         }),
       ),
     ).toBe(
-      "The server makes the change. You can close this dialog: it keeps going.",
+      "The server makes the change. You can close this dialog: it keeps going, and the Monitors list shows how far it got.",
     );
   });
 
@@ -676,6 +695,8 @@ describe("the change's own reasons are in every language", () => {
     expect(MONITOR_TEMPLATE_CHANGE_OWN_REASONS).toEqual([
       MONITOR_NOT_REACHED_STOPPED,
       MONITOR_NOT_REACHED_FAILED,
+      // A policy's move (#11452): a monitor someone moved or unlinked meanwhile.
+      MONITOR_NO_LONGER_THE_POLICYS,
     ]);
   });
 
@@ -702,6 +723,10 @@ describe("every sentence the dialogs say is worded in every language the Dashboa
     SETTINGS_KEPT,
     DELETE_LINKED_QUESTION,
     RETRY_BUTTON,
+    POLICY_MOVE_MONITORS,
+    POLICY_MOVE_BUTTON,
+    RULE_MOVE_QUESTION,
+    RULE_MOVE_BUTTON,
   ];
 
   const sentences: Array<string> = [
@@ -713,6 +738,15 @@ describe("every sentence the dialogs say is worded in every language the Dashboa
     DELETE_CHOICE_DESCRIPTIONS[DeleteChoice.ClearCriteria],
     DELETE_MOVE_FIRST_HINT,
     ...MONITOR_TEMPLATE_CHANGE_TRANSLATED_REASONS,
+    POLICY_MOVE_TITLE,
+    POLICY_MOVE_MONITORS_UNCOUNTED,
+    POLICY_MOVE_BUTTON_UNCOUNTED,
+    RULE_MOVE_TITLE,
+    RULE_MOVE_CHOICE_TITLES[RuleMoveChoice.MoveFirst],
+    RULE_MOVE_CHOICE_TITLES[RuleMoveChoice.Leave],
+    RULE_MOVE_CHOICE_DESCRIPTIONS[RuleMoveChoice.MoveFirst],
+    RULE_MOVE_CHOICE_DESCRIPTIONS[RuleMoveChoice.Leave],
+    RULE_SAVE_WITHOUT_MOVING_BUTTON,
   ];
 
   test("English has each, each count form under its own key", () => {
@@ -756,4 +790,609 @@ describe("every sentence the dialogs say is worded in every language the Dashboa
       expect({ language, inEnglish }).toEqual({ language, inEnglish: [] });
     },
   );
+});
+
+/*
+ * A network alert policy pointed at another template moves its monitors
+ * there (#11452), and an auto import rule's devices' monitors can move to
+ * the template the rule is pointed at (#11451). Each form says what happens
+ * before it saves - what moves, what each monitor takes from the new
+ * template and what it keeps - and the change then says how far it got, on
+ * the Monitors list too (#11454).
+ */
+const POLICY_ID: string = "80000000-0000-4000-8000-000000000001";
+const RULE_ID: string = "90000000-0000-4000-8000-000000000001";
+
+function policyMove(
+  overrides: Partial<MonitorTemplateChangeView> = {},
+): MonitorTemplateChangeView {
+  return view({
+    networkAlertPolicyId: POLICY_ID,
+    networkAlertPolicyName: "Core switches",
+    ...overrides,
+  });
+}
+
+function ruleMove(
+  overrides: Partial<MonitorTemplateChangeView> = {},
+): MonitorTemplateChangeView {
+  return view({
+    autoImportRuleId: RULE_ID,
+    autoImportRuleName: "Warehouse switches",
+    ...overrides,
+  });
+}
+
+function lineOf(
+  change: MonitorTemplateChangeView,
+  translator: Translator = ENGLISH,
+  now: number = CREATED_AT_MS + 1000,
+): string {
+  return getMonitorTemplateChangeLine({
+    translator: translator,
+    view: change,
+    phase: getMonitorTemplateChangePhase(change, now),
+  });
+}
+
+function descriptionIn(
+  change: MonitorTemplateChangeView,
+  translator: Translator,
+): string {
+  return getMonitorTemplateChangeDescription({
+    translator: translator,
+    view: change,
+    phase: getMonitorTemplateChangePhase(change, CREATED_AT_MS + 1000),
+  });
+}
+
+function counts(
+  template: PluralTemplate,
+  values: Array<number>,
+): Array<string> {
+  return values.map((count: number): string => {
+    return ENGLISH.translatePlural(template, count, {
+      count: ENGLISH.formatNumber(count),
+      templateName: "Switches (new)",
+      oldTemplateName: "Switches (old)",
+    });
+  });
+}
+
+describe("pointing a network alert policy at another template (#11452)", () => {
+  test("the question names the template, how many monitors move, and that they stay the policy's", () => {
+    expect(
+      ENGLISH.translateTemplate(POLICY_MOVE_TITLE, {
+        templateName: "Switches (new)",
+      }),
+    ).toBe("Move this policy's monitors to Switches (new)?");
+
+    expect(counts(POLICY_MOVE_MONITORS, [1, 2000])).toEqual([
+      "Its 1 monitor moves to Switches (new) on the server, and stays this policy's.",
+      "Its 2,000 monitors move to Switches (new) on the server, and stay this policy's.",
+    ]);
+  });
+
+  test("its button says what it does and to how many: no save leaves them on the old template", () => {
+    expect(counts(POLICY_MOVE_BUTTON, [1, 2000])).toEqual([
+      "Move 1 Monitor and Save",
+      "Move 2,000 Monitors and Save",
+    ]);
+  });
+
+  test("when how many could not be read, it says the same without the number", () => {
+    expect(
+      ENGLISH.translateTemplate(POLICY_MOVE_MONITORS_UNCOUNTED, {
+        templateName: "Switches (new)",
+      }),
+    ).toBe(
+      "Its monitors move to Switches (new) on the server, and stay this policy's.",
+    );
+    expect(POLICY_MOVE_BUTTON_UNCOUNTED).toBe("Move Monitors and Save");
+  });
+
+  test("what each monitor takes and keeps is said with it, as for any move", () => {
+    // The dialog says these under the question, for the policy's count.
+    expect(ENGLISH.translatePlural(SETTINGS_REPLACED, 2000)).toMatch(
+      /^Their criteria, interval and probe agreement are replaced by the template's\./,
+    );
+    expect(ENGLISH.translatePlural(WHAT_STAYS, 2000)).toContain("history");
+  });
+
+  test("while it runs, its headline names the policy and the template", () => {
+    expect(title(policyMove())).toBe(
+      "Moving the monitors of the alert policy Core switches to Switches (new)…",
+    );
+  });
+
+  test("a policy's move that clears a template's criteria is still said as a clear", () => {
+    // The two never meet on the server; the clear's words win if they did.
+    expect(title(policyMove({ settings: DELETE }))).toBe(
+      "Clearing Switches (new)'s criteria from its monitors…",
+    );
+  });
+
+  test("once done, each monitor kept its history and stays the policy's - or Retry says what is left", () => {
+    expect(
+      description(
+        policyMove({ status: MonitorTemplateChangeStatus.Completed }),
+      ),
+    ).toBe(
+      "Each monitor kept its history, labels, owners and incidents, and stays the policy's.",
+    );
+    expect(
+      description(
+        policyMove({
+          status: MonitorTemplateChangeStatus.Completed,
+          retryableCount: 4,
+        }),
+      ),
+    ).toBe(
+      "What changed is kept. Retry changes the monitors that failed or were not reached.",
+    );
+  });
+
+  test("monitors someone moved or unlinked meanwhile are one group, its reason naming no monitor", () => {
+    const groups: Array<MonitorTemplateChangeIssueGroup> =
+      getMonitorTemplateChangeIssueGroups([
+        line(
+          "a",
+          MonitorTemplateChangeOutcome.Skipped,
+          MONITOR_NO_LONGER_THE_POLICYS,
+          "core-sw-01",
+        ),
+        line(
+          "b",
+          MonitorTemplateChangeOutcome.Skipped,
+          MONITOR_NO_LONGER_THE_POLICYS,
+          "core-sw-02",
+        ),
+      ]);
+
+    expect(groups).toHaveLength(1);
+    expect(getIssueGroupTitle(ENGLISH, groups[0]!)).toBe(
+      "2 monitors were left out",
+    );
+    expect(groups[0]!.reason).toBe(
+      "Moved to another template or unlinked by someone since, so no longer the policy's.",
+    );
+    // Read under "1 monitor was left out" as under "300 monitors were left out".
+    expect(groups[0]!.reason).not.toMatch(/\b(it|them|they|this monitor)\b/i);
+  });
+});
+
+describe("pointing an auto import rule at another template (#11451)", () => {
+  test("the question says how many of the rule's devices' monitors are on the template it uses now", () => {
+    expect(
+      ENGLISH.translateTemplate(RULE_MOVE_TITLE, {
+        templateName: "Switches (new)",
+      }),
+    ).toBe("Move this rule's monitors to Switches (new)?");
+    expect(counts(RULE_MOVE_QUESTION, [1, 120])).toEqual([
+      "This rule's devices have 1 monitor from Switches (old).",
+      "This rule's devices have 120 monitors from Switches (old).",
+    ]);
+  });
+
+  test("two choices, moving first and recommended: each says what happens to the monitors and to the devices", () => {
+    const values: Record<string, string> = {
+      templateName: "Switches (new)",
+      oldTemplateName: "Switches (old)",
+    };
+
+    expect(Object.keys(RULE_MOVE_CHOICE_TITLES)).toEqual([
+      RuleMoveChoice.MoveFirst,
+      RuleMoveChoice.Leave,
+    ]);
+    expect(
+      [RuleMoveChoice.MoveFirst, RuleMoveChoice.Leave].map(
+        (choice: RuleMoveChoice): Array<string> => {
+          return [
+            ENGLISH.translateTemplate(RULE_MOVE_CHOICE_TITLES[choice], values),
+            ENGLISH.translateTemplate(
+              RULE_MOVE_CHOICE_DESCRIPTIONS[choice],
+              values,
+            ),
+          ];
+        },
+      ),
+    ).toEqual([
+      [
+        "Move them to Switches (new) first (recommended)",
+        "Each takes the criteria, interval and probe agreement of Switches (new), and keeps its name, history, labels, owners and incidents. The rule uses Switches (new) once they are moved, and gives a monitor only to devices that have none.",
+      ],
+      [
+        "Leave them on Switches (old)",
+        "They stay as they are, and the rule gives each of these devices a second monitor, from Switches (new).",
+      ],
+    ]);
+  });
+
+  test("the button says which choice it carries out", () => {
+    expect(counts(RULE_MOVE_BUTTON, [1, 120])).toEqual([
+      "Move 1 Monitor First",
+      "Move 120 Monitors First",
+    ]);
+    expect(RULE_SAVE_WITHOUT_MOVING_BUTTON).toBe("Save Without Moving");
+  });
+
+  test("while it runs, its headline names the rule and the template", () => {
+    expect(title(ruleMove())).toBe(
+      "Moving the monitors of the auto import rule Warehouse switches to Switches (new)…",
+    );
+  });
+
+  test("once done: the rule uses the new template now", () => {
+    expect(
+      description(
+        ruleMove({
+          status: MonitorTemplateChangeStatus.Completed,
+          isAutoImportRulePointed: true,
+        }),
+      ),
+    ).toBe(
+      "Each monitor kept its history, labels, owners and incidents, and Warehouse switches uses Switches (new) now.",
+    );
+  });
+
+  test("or it still uses the old one, with how many of its devices' monitors are not on the new one yet", () => {
+    expect(
+      [1, 37].map((count: number): string => {
+        return description(
+          ruleMove({
+            status: MonitorTemplateChangeStatus.Completed,
+            autoImportRuleMonitorsLeftCount: count,
+          }),
+        );
+      }),
+    ).toEqual([
+      "Warehouse switches still uses its old template: 1 of its devices' monitors is not on Switches (new) yet. Retry it, or move it from its template's page, then save the rule again.",
+      "Warehouse switches still uses its old template: 37 of its devices' monitors are not on Switches (new) yet. Retry them, or move them from their template's page, then save the rule again.",
+    ]);
+  });
+
+  test("or why pointing it was refused, in the reader's words", () => {
+    expect(
+      description(
+        ruleMove({
+          status: MonitorTemplateChangeStatus.Completed,
+          autoImportRuleError:
+            "You do not have permission to edit network device auto import rules.",
+        }),
+      ),
+    ).toContain(
+      "You do not have permission to edit network device auto import rules.",
+    );
+  });
+
+  test("a move that stopped or failed before it pointed the rule says the rule still uses its old template, and what to do", () => {
+    expect(
+      description(
+        ruleMove({
+          status: MonitorTemplateChangeStatus.Stopped,
+          retryableCount: 12,
+        }),
+      ),
+    ).toBe(
+      "Warehouse switches still uses its old template. Retry the monitors that were not moved, then save the rule again.",
+    );
+    // A rule whose name was not read is "The rule".
+    expect(
+      description(
+        ruleMove({
+          status: MonitorTemplateChangeStatus.Failed,
+          autoImportRuleName: undefined,
+        }),
+      ),
+    ).toBe(
+      "The rule still uses its old template. Retry the monitors that were not moved, then save the rule again.",
+    );
+  });
+
+  test("while it runs, it says what any change says: it keeps going, and where it shows", () => {
+    expect(description(ruleMove())).toBe(description(view()));
+  });
+});
+
+describe("a change as one line of the Monitors list (#11454)", () => {
+  const running: MonitorTemplateChangeProgress = progress({
+    total: 2000,
+    processed: 1200,
+    changed: 1190,
+    unchanged: 10,
+  });
+
+  test("while it runs: what it does, and how far it got", () => {
+    expect(lineOf(view({ progress: running }))).toBe(
+      "Linking monitors to Switches (new): 1,200 of 2,000 monitors done.",
+    );
+    expect(
+      lineOf(
+        view({
+          settings: UNLINK,
+          monitorTemplateId: undefined,
+          monitorTemplateName: undefined,
+          progress: running,
+        }),
+      ),
+    ).toBe(
+      "Unlinking monitors from their template: 1,200 of 2,000 monitors done.",
+    );
+    expect(lineOf(view({ settings: DELETE, progress: running }))).toBe(
+      "Clearing Switches (new)'s criteria from its monitors: 1,200 of 2,000 monitors done.",
+    );
+    expect(lineOf(policyMove({ progress: running }))).toBe(
+      "Moving the monitors of the alert policy Core switches to Switches (new): 1,200 of 2,000 monitors done.",
+    );
+    expect(lineOf(ruleMove({ progress: running }))).toBe(
+      "Moving the monitors of the auto import rule Warehouse switches to Switches (new): 1,200 of 2,000 monitors done.",
+    );
+  });
+
+  test("one monitor is said as one", () => {
+    expect(lineOf(view({ progress: progress({ total: 1 }) }))).toBe(
+      "Linking monitors to Switches (new): 0 of 1 monitor done.",
+    );
+    expect(
+      lineOf(
+        policyMove({
+          progress: progress({ total: 1, processed: 1, changed: 1 }),
+        }),
+      ),
+    ).toBe(
+      "Moving the monitors of the alert policy Core switches to Switches (new): 1 of 1 monitor done.",
+    );
+  });
+
+  test("monitors not reached are not progress", () => {
+    expect(
+      lineOf(
+        view({
+          progress: progress({
+            total: 10,
+            processed: 10,
+            changed: 4,
+            notReached: 6,
+          }),
+        }),
+      ),
+    ).toBe("Linking monitors to Switches (new): 4 of 10 monitors done.");
+  });
+
+  test("starting, waiting for another change and stopping still say how far it got", () => {
+    const queued: MonitorTemplateChangeView = view({
+      status: MonitorTemplateChangeStatus.Queued,
+      progress: progress({ total: 300 }),
+    });
+
+    expect(lineOf(queued)).toBe(
+      "Linking monitors to Switches (new): 0 of 300 monitors done.",
+    );
+    expect(
+      lineOf(
+        queued,
+        ENGLISH,
+        CREATED_AT_MS + MONITOR_TEMPLATE_CHANGE_WAITING_AFTER_MS + 1,
+      ),
+    ).toBe("Linking monitors to Switches (new): 0 of 300 monitors done.");
+    expect(
+      lineOf(
+        view({
+          isStopRequested: true,
+          progress: progress({ total: 300, processed: 100, changed: 100 }),
+        }),
+      ),
+    ).toBe("Linking monitors to Switches (new): 100 of 300 monitors done.");
+  });
+
+  test("once done, the line is its dialog's headline", () => {
+    const finished: Array<MonitorTemplateChangeView> = [
+      view({
+        status: MonitorTemplateChangeStatus.Completed,
+        progress: progress({ total: 5, processed: 5, changed: 3, skipped: 2 }),
+      }),
+      view({
+        status: MonitorTemplateChangeStatus.Stopped,
+        progress: progress({
+          total: 5,
+          processed: 5,
+          changed: 2,
+          notReached: 3,
+        }),
+      }),
+      view({ status: MonitorTemplateChangeStatus.Failed }),
+      ruleMove({
+        status: MonitorTemplateChangeStatus.Completed,
+        progress: progress({ total: 3, processed: 3, changed: 3 }),
+      }),
+    ];
+
+    for (const change of finished) {
+      expect(lineOf(change)).toBe(title(change));
+    }
+
+    expect(
+      finished.map((change: MonitorTemplateChangeView): string => {
+        return lineOf(change);
+      }),
+    ).toEqual([
+      "3 of 5 monitors are linked to Switches (new)",
+      "Stopped after 2 of 5 monitors",
+      "The change stopped before it finished",
+      "3 monitors are linked to Switches (new)",
+    ]);
+  });
+
+  test("a template whose name could not be read is the template", () => {
+    expect(
+      lineOf(
+        view({
+          monitorTemplateName: undefined,
+          progress: progress({ total: 2 }),
+        }),
+      ),
+    ).toBe("Linking monitors to the template: 0 of 2 monitors done.");
+  });
+
+  test("in German, with German numbers", () => {
+    const german: Translator = translatorFor("de");
+
+    expect(lineOf(policyMove({ progress: running }), german)).toBe(
+      "Die Monitore der Warnungsrichtlinie Core switches werden zu Switches (new) verschoben: 1.200 von 2.000 Monitoren erledigt.",
+    );
+    expect(
+      lineOf(
+        policyMove({
+          progress: progress({ total: 1, processed: 1, changed: 1 }),
+        }),
+        german,
+      ),
+    ).toBe(
+      "Die Monitore der Warnungsrichtlinie Core switches werden zu Switches (new) verschoben: 1 von 1 Monitor erledigt.",
+    );
+  });
+});
+
+describe("what a policy's or a rule's change says, in every language the Dashboard speaks", () => {
+  // At counts that pick every form a language has: 1, 3, 21 (Russian's one), 2,000.
+  const TOTALS: Array<number> = [1, 3, 21, 2000];
+
+  function said(translator: Translator): Array<string> {
+    const out: Array<string> = [];
+
+    for (const total of TOTALS) {
+      const running: MonitorTemplateChangeProgress = progress({
+        total: total,
+        processed: 1,
+        changed: 1,
+      });
+
+      out.push(
+        lineOf(view({ progress: running }), translator),
+        lineOf(
+          view({
+            settings: UNLINK,
+            monitorTemplateId: undefined,
+            monitorTemplateName: undefined,
+            progress: running,
+          }),
+          translator,
+        ),
+        lineOf(view({ settings: DELETE, progress: running }), translator),
+        lineOf(policyMove({ progress: running }), translator),
+        lineOf(ruleMove({ progress: running }), translator),
+        descriptionIn(
+          ruleMove({
+            status: MonitorTemplateChangeStatus.Completed,
+            autoImportRuleMonitorsLeftCount: total,
+          }),
+          translator,
+        ),
+      );
+
+      for (const template of [
+        POLICY_MOVE_MONITORS,
+        POLICY_MOVE_BUTTON,
+        RULE_MOVE_QUESTION,
+        RULE_MOVE_BUTTON,
+      ]) {
+        out.push(
+          translator.translatePlural(template, total, {
+            count: translator.formatNumber(total),
+            templateName: "Switches (new)",
+            oldTemplateName: "Switches (old)",
+          }),
+        );
+      }
+    }
+
+    out.push(
+      title(policyMove(), translator),
+      title(ruleMove(), translator),
+      descriptionIn(view(), translator),
+      descriptionIn(
+        view({
+          settings: UNLINK,
+          monitorTemplateId: undefined,
+          monitorTemplateName: undefined,
+        }),
+        translator,
+      ),
+      descriptionIn(
+        policyMove({ status: MonitorTemplateChangeStatus.Completed }),
+        translator,
+      ),
+      descriptionIn(
+        ruleMove({
+          status: MonitorTemplateChangeStatus.Completed,
+          isAutoImportRulePointed: true,
+        }),
+        translator,
+      ),
+      descriptionIn(
+        ruleMove({ status: MonitorTemplateChangeStatus.Stopped }),
+        translator,
+      ),
+      descriptionIn(
+        ruleMove({
+          status: MonitorTemplateChangeStatus.Failed,
+          autoImportRuleName: undefined,
+          monitorTemplateName: undefined,
+        }),
+        translator,
+      ),
+    );
+
+    return out;
+  }
+
+  const english: Array<string> = said(ENGLISH);
+
+  test("English says each, with every value filled in", () => {
+    expect(english.length).toBe(TOTALS.length * 10 + 8);
+
+    for (const sentence of english) {
+      expect(sentence).not.toContain("{{");
+    }
+  });
+
+  test.each(LANGUAGES)(
+    "%s says each in its own words, with every value filled in",
+    (language: string) => {
+      const words: Array<string> = said(translatorFor(language));
+      const inEnglish: Array<string> = words.filter(
+        (sentence: string, index: number): boolean => {
+          return sentence === english[index];
+        },
+      );
+      const unfilled: Array<string> = words.filter(
+        (sentence: string): boolean => {
+          return sentence.includes("{{");
+        },
+      );
+
+      expect({ language, inEnglish, unfilled }).toEqual({
+        language,
+        inEnglish: [],
+        unfilled: [],
+      });
+    },
+  );
+
+  test("Russian says 21 as it says 1, and 3 and 5 in its general words", () => {
+    const russian: Translator = translatorFor("ru");
+
+    expect(
+      [1, 21, 3, 5].map((count: number): string => {
+        return russian.translatePlural(RULE_MOVE_BUTTON, count, {
+          count: russian.formatNumber(count),
+        });
+      }),
+    ).toEqual([
+      "Сначала перенести 1 монитор",
+      "Сначала перенести 21 монитор",
+      "Сначала перенести мониторы (3)",
+      "Сначала перенести мониторы (5)",
+    ]);
+  });
 });

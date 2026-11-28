@@ -93,6 +93,7 @@ import {
   SecurityBlockDuration,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
 import { SecurityProtectedAddressSource } from "Common/Types/SecurityBlocklist/SecurityProtectedAddress";
+import { GOOGLE_LOAD_BALANCER_SOURCE_RANGES } from "Common/Utils/SecurityEvent/OwnLoadBalancers";
 import {
   BLOCK_DOMAIN_TITLE,
   BLOCK_FILE_TITLE,
@@ -277,12 +278,23 @@ import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import SecurityCaseStepCheckState, {
   SECURITY_CASE_STEP_CHECK_STATES,
 } from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
-import { AWS_IAM_ROLE_CHANGES } from "Common/Utils/SecurityCase/AttackAccountChanges";
+import {
+  AWS_IAM_INLINE_POLICY_CALLS,
+  AWS_IAM_ROLE_CHANGES,
+} from "Common/Utils/SecurityCase/AttackAccountChanges";
+import {
+  AWS_SHARED_IDENTITY_PROVIDERS,
+  AwsIdentityProviderReach,
+  getAwsTrustedIdentityProviders,
+  isAwsIdentityProviderOpen,
+} from "Common/Utils/SecurityCase/AwsTrustPolicy";
 import {
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
+  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_HELD,
   STEP_CHECK_CONFIRM,
   STEP_CHECK_DOCS_LINK,
   STEP_CHECK_HOW_WE_KNOW,
@@ -299,6 +311,7 @@ import {
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1088,6 +1101,13 @@ describe("Security Cases and Playbooks docs", () => {
     expect(CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS).toContain(
       "add the scope {{scope}} to the connection's domain-wide delegation",
     );
+    // The line a check writes now says where the connection is, and links to it (#11376).
+    expect(CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE).toContain(
+      "add the scope {{scope}} to the domain-wide delegation of the Google Workspace connection under Security Events → Connections",
+    );
+    expect(checks).toContain(
+      "The line that says which scope a Google Workspace connection lacks links to that connection's form under Security Events → Connections the same way.",
+    );
 
     // The Google Workspace page says where the scope is added, and why.
     const google: string = flat(
@@ -1098,7 +1118,7 @@ describe("Security Cases and Playbooks docs", () => {
       `4. To let a [security case](/docs/telemetry/security-cases#${slugifyMarkdownHeading("How OneUptime checks a step")}) check that an account an attack added to a group was taken out of it, add \`${GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE}\` the same way.`,
     );
     expect(google).toContain(
-      "Without it, the case names each such change for you to confirm, and says which scope to add.",
+      "Without it, the case names each such change for you to confirm, and says which scope to add, with a link to this connection's form under **Security Events → Connections** for someone who may change it.",
     );
   });
 
@@ -1121,16 +1141,122 @@ describe("Security Cases and Playbooks docs", () => {
     expect(undo![1]).toContain(
       "and, in AWS, the roles it made, gave a policy or made trust someone else, each read back in Okta, Microsoft Entra ID, Google Workspace or AWS IAM.",
     );
-    // The trust policy, held to the ones the attack set, as readIamTrust holds it.
+    // The trust policy, held to the ones the attack set, as readIamTrust holds it - identity providers counted (#11378).
     expect(checks).toContain(
-      "the role's trust policy now is held to the ones the attack set: undone once the role trusts none of the outside accounts they let in, still there while it is the last one the attack set, and yours to confirm otherwise.",
-    );
-    expect(checks).toContain(
-      "The step names the outside accounts the role trusts. OneUptime never deletes or edits a role.",
+      "the role's trust policy now is held to the ones the attack set: undone once the role lets in none of the outside accounts or identity providers they let in, still there while it is the last one the attack set, and yours to confirm otherwise. OneUptime never deletes or edits a role.",
     );
     // The line the step says what to run again in is the one its words say.
     expect(CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN).toContain(
       "run the command it shows again.",
+    );
+  });
+
+  it("says whom a role lets in through an identity provider, and which way in it marks as open to anyone, as the trust policy reader holds them (#11378)", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+
+    expect(checks).toContain(
+      "Under a role, the step names whom it lets in: the outside accounts its trust policy trusts, and each identity provider it lets in, such as GitHub Actions' OIDC provider, Google, Amazon Cognito or a SAML provider, with the claim its conditions hold the token to,",
+    );
+
+    // The example the docs quote is the line the step writes for such a trust.
+    const example: string =
+      "Tokens from token.actions.githubusercontent.com may assume the role Deploy when their sub matches repo:octo-org/app:*";
+
+    expect(checks).toContain(`as in "${example}"`);
+    expect(
+      CHECK_ACCOUNT_CHANGE_PROVIDER_HELD.split("{{provider}}")
+        .join("token.actions.githubusercontent.com")
+        .split("{{account}}")
+        .join("Deploy")
+        .split("{{claim}}")
+        .join("sub")
+        .split("{{value}}")
+        .join("repo:octo-org/app:*"),
+    ).toBe(`${example}.`);
+
+    const held: Array<string> = getAwsTrustedIdentityProviders({
+      Version: "2012-10-17",
+      Statement: {
+        Effect: "Allow",
+        Principal: {
+          Federated:
+            "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com",
+        },
+        Action: "sts:AssumeRoleWithWebIdentity",
+        Condition: {
+          StringLike: {
+            "token.actions.githubusercontent.com:sub": "repo:octo-org/app:*",
+          },
+        },
+      },
+    }).map((provider: { reach: AwsIdentityProviderReach }): string => {
+      return provider.reach;
+    });
+
+    expect(held).toEqual([AwsIdentityProviderReach.Limited]);
+
+    // What is marked, by the claims the docs name for each provider.
+    expect(checks).toContain(
+      "A way in open to anyone is marked: a trust policy that trusts every AWS account, one that lets in GitHub Actions or another provider every organization shares without limiting the claim that tells organizations apart (`sub` for GitHub Actions, `aud` for Amazon Cognito and Google), even with a wildcard where the organization goes, and one that lets in a provider of your own without limiting `sub` or `aud`.",
+    );
+
+    // A provider of your own: `sub` or `aud` holds it, AWS STS's own audience does not.
+    const ownProvider: (condition: JSONObject) => string = (
+      condition: JSONObject,
+    ): string => {
+      return getAwsTrustedIdentityProviders({
+        Version: "2012-10-17",
+        Statement: {
+          Effect: "Allow",
+          Principal: {
+            Federated:
+              "arn:aws:iam::123456789012:oidc-provider/oidc.example.com",
+          },
+          Action: "sts:AssumeRoleWithWebIdentity",
+          Condition: condition,
+        },
+      })[0]!.reach;
+    };
+
+    expect(
+      ownProvider({ StringEquals: { "oidc.example.com:sub": "deploy" } }),
+    ).toBe(AwsIdentityProviderReach.Limited);
+    expect(
+      ownProvider({ StringEquals: { "oidc.example.com:aud": "my-app" } }),
+    ).toBe(AwsIdentityProviderReach.Limited);
+    expect(
+      ownProvider({
+        StringEquals: { "oidc.example.com:aud": "sts.amazonaws.com" },
+      }),
+    ).toBe(AwsIdentityProviderReach.Anyone);
+    expect(
+      AWS_SHARED_IDENTITY_PROVIDERS["token.actions.githubusercontent.com"]![0],
+    ).toBe("sub");
+    expect(
+      AWS_SHARED_IDENTITY_PROVIDERS["cognito-identity.amazonaws.com"],
+    ).toEqual(["aud"]);
+    expect(AWS_SHARED_IDENTITY_PROVIDERS["accounts.google.com"]).toEqual([
+      "aud",
+    ]);
+    expect(
+      isAwsIdentityProviderOpen({
+        reach: AwsIdentityProviderReach.AnyOrganization,
+      }),
+    ).toBe(true);
+  });
+
+  it("says an inline policy the attack wrote is read by its document, as the reader reads it (#11377)", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+
+    expect([...AWS_IAM_INLINE_POLICY_CALLS]).toEqual([
+      "PutUserPolicy",
+      "PutRolePolicy",
+    ]);
+    expect(checks).toContain(
+      "An inline policy the attack wrote, to a user or a role, is read by its document, since writing one replaces the document of a policy of that name: still there while its document is the one the attack wrote, and undone once the policy is deleted or its document is another, such as the old one put back.",
+    );
+    expect(checks).toContain(
+      "You confirm it when OneUptime cannot tell: AWS refused to read the document, CloudTrail cut the attack's short, or the policy is back to one the case's events show written earlier, which may be the old one or the attack's first.",
     );
   });
 
@@ -2420,6 +2546,8 @@ describe("Security Cases and Playbooks docs", () => {
         SecurityProtectedAddressSource.GlobalProbe,
         SecurityProtectedAddressSource.OneUptimeCloud,
         SecurityProtectedAddressSource.Edge,
+        SecurityProtectedAddressSource.GoogleFrontEnd,
+        SecurityProtectedAddressSource.TrustedProxy,
         SecurityProtectedAddressSource.OneUptime,
         SecurityProtectedAddressSource.EndpointProduct,
         SecurityProtectedAddressSource.Monitor,
@@ -2433,6 +2561,17 @@ describe("Security Cases and Playbooks docs", () => {
     );
     expect(blocklist).toContain(
       "Your project's own addresses are never blocked: the entries of **Protected Entities**, your hosts, Kubernetes nodes, cloud resources, network devices and endpoints, your address names and probes, OneUptime Cloud's probes, the ranges that are not on the internet, and the edge in front of your app.",
+    );
+    // #11388: Google Cloud's front ends and health checks, in every project, each range as the code holds it.
+    expect(blocklist).toContain(
+      "Nor are Google Cloud's front ends and health checks, such as `35.191.0.0/16` and `130.211.0.0/22`, which nobody but Google connects from: a block of one would cut off the visitors of a Google Cloud load balancer in front of your app and fail its health checks, whether or not you connected its Google Cloud project.",
+    );
+    for (const range of ["35.191.0.0/16", "130.211.0.0/22"]) {
+      expect(GOOGLE_LOAD_BALANCER_SOURCE_RANGES).toContain(range);
+    }
+    // #11158: the project's Trusted Proxies, at every destination.
+    expect(blocklist).toContain(
+      "Nor are your **Trusted Proxies**, which OneUptime trusts as your own: a block of one would cut off everyone it forwards.",
     );
     expect(AUTOMATIC_PROTECTIONS_TITLE).toBe("Protected Automatically");
     expect(blocklist).toContain(
@@ -3142,16 +3281,20 @@ describe("Connect a Cloud Account's Security case checks section", () => {
         return codeSpans(row[1] as string);
       }),
     ).toEqual([...AWS_SECURITY_CASE_CHECKS_ACTIONS]);
-    // A role's (#11038): the role and whom it trusts, then its two lists.
+    // A role's (#11038): the role and whom it trusts, then its two lists, and an inline policy's document (#11377).
     expect(table.slice(-2)).toEqual([
       [
         "The role, whom its trust policy trusts, or that it is gone",
         "`iam:GetRole`",
       ],
       [
-        "The role's managed policies, and its inline policies' names",
-        "`iam:ListAttachedRolePolicies`, `iam:ListRolePolicies`",
+        "The role's managed policies, its inline policies' names, and the document of one the attack wrote",
+        "`iam:ListAttachedRolePolicies`, `iam:ListRolePolicies`, `iam:GetRolePolicy`",
       ],
+    ]);
+    expect(table[4]).toEqual([
+      "Its managed policies, its inline policies' names, and the document of one the attack wrote",
+      "`iam:ListAttachedUserPolicies`, `iam:ListUserPolicies`, `iam:GetUserPolicy`",
     ]);
   });
 
@@ -3163,7 +3306,11 @@ describe("Connect a Cloud Account's Security case checks section", () => {
       "the user or role it made, and the trust policy it set on a role.",
     );
     expect(flat(checks)).toContain(
-      "A command run before the setting read roles grants a user's reads alone: run the connection's command again, and until you do, a case names its role changes for you to confirm and says to run it.",
+      "A command run before the setting read roles grants a user's reads alone, and one run before it read inline policies' documents grants no document: run the connection's command again, and until you do, a case names those changes for you to confirm and says to run it.",
+    );
+    // An inline policy's document says what it grants: never a secret, and only the attack's is read (#11377).
+    expect(flat(checks)).toContain(
+      "An inline policy's document, which says what the policy grants, is read only for a policy the attack wrote, to tell its document from one a person put back.",
     );
   });
 

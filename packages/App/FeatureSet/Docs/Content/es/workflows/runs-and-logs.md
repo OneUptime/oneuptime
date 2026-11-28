@@ -87,9 +87,13 @@ El ID que aparece bajo el título de cada paso es exactamente lo que va en una r
 
 Los valores que se muestran son los que recibió el bloque, después de rellenar las variables y antes de que el bloque hiciera nada con ellos, con dos excepciones: los secretos y los campos que el bloque marca como sensibles se ocultan, y un valor de más de 4.000 caracteres se recorta con "… (truncated)". Una ejecución conserva sus últimos 100 pasos; una ejecución larga o reanudada a menudo muestra una nota ámbar donde se descartaron los anteriores. Las ejecuciones registradas antes de que se guardaran los nombres de las salidas muestran la salida por su ID, sin adónde llevó.
 
+Un valor que un bloque marca como sensible, como las imágenes que devuelve **Obtener archivos del Markdown**, sigue oculto en todos los bloques posteriores, también después de una **Pausa**. Un bloque posterior al que se le pasa lo muestra oculto en lo que recibió y en lo que devolvió, y su texto se oculta dondequiera que aparezca en lo que registra la ejecución: un mensaje que lo incluye o un error que lo cita. Se dejan las partes cortas que dicen qué se pasó, como el nombre o el tipo de un archivo. Los propios bloques siguen recibiendo el valor real.
+
 ### La pestaña Registro completo
 
 El registro bruto, línea a línea, que escribió el ejecutor, incluido todo lo que los propios bloques registraron, como el valor de un bloque **Registro** o el `console.log` de un script. Úsalo cuando la pestaña Pasos no explique el fallo.
+
+Cada valor que escribe el registro, ya sea lo que un bloque recibió, lo que devolvió o lo que registró, se recorta a sus primeros 65.536 caracteres y termina con cuántos se dejaron fuera, como `… (10,420,113 more characters left out)`. Los valores recibidos y los devueltos de un bloque se recortan cada uno por su lado, para que un valor largo no oculte los demás. Los secretos y los valores sensibles se ocultan antes de recortar un valor, de modo que uno que el corte partiría sigue oculto entero.
 
 ## Copiar y descargar una ejecución
 

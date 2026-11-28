@@ -104,6 +104,11 @@ import SecurityEventService from "Common/Server/Services/SecurityEventService";
 import TelemetryFanInWriter from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import SecurityEventsIngestService from "../../FeatureSet/Telemetry/Services/SecurityEventsIngestService";
 import SecurityEventsQueueService from "../../FeatureSet/Telemetry/Services/Queue/SecurityEventsQueueService";
+import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
+import PushedConnectionAlerts from "Common/Server/Utils/SecurityEvent/Connectors/PushedConnectionAlerts";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 
 type MockedFn = jest.Mock;
 
@@ -590,6 +595,252 @@ describe("SecurityEventsIngestService.processSecurityEventsFromQueue — queue w
       ),
     ).rejects.toThrow(
       /Failed to flush security events to ClickHouse: clickhouse down/,
+    );
+  });
+});
+
+/*
+ * Alerts a product sends through its connection (#11158): CrowdSec's
+ * notification plugin names the connection in the address it posts to
+ * (?connection=<id>), or in a header. The handler refuses, before anything
+ * is queued, a connection this project has none of, and hands the worker
+ * the connection with CrowdSec's format; the worker keeps the alerts
+ * through the connection (PushedConnectionAlerts), and as plain events
+ * when the connection was deleted in between.
+ */
+describe("SecurityEventsIngestService — alerts sent through a connection (#11158)", () => {
+  const CONNECTION_ID: string = "cccccccc-cccc-4ccc-8ccc-000000000001";
+  let addJobSpy: jest.SpyInstance;
+  let findConnectionSpy: jest.SpyInstance;
+  let receiveSpy: jest.SpyInstance;
+  let nextMock: MockedFn;
+  const res: ExpressResponse = {} as unknown as ExpressResponse;
+
+  // What CrowdSec's http plugin posts: a list of its alerts.
+  function crowdsecAlert(): JSONObject {
+    return {
+      uuid: "5d6c1f7a-2b3e-4c8d-9e0f-1a2b3c4d5e6f",
+      scenario: "crowdsecurity/ssh-bf",
+      scenario_hash:
+        "4441dcff07020f6690d998b7101e642359ba405c2abb83565bbbdcee36de280f",
+      scenario_version: "0.1",
+      message:
+        "Ip 192.0.2.7 performed 'crowdsecurity/ssh-bf' (6 events over 2s)",
+      events_count: 6,
+      capacity: 5,
+      leakspeed: "10s",
+      start_at: EVENT_TIME_ISO,
+      stop_at: EVENT_TIME_ISO,
+      source: { ip: "192.0.2.7", scope: "Ip", value: "192.0.2.7" },
+      decisions: [
+        {
+          duration: "4h",
+          origin: "crowdsec",
+          scenario: "crowdsecurity/ssh-bf",
+          scope: "Ip",
+          type: "ban",
+          value: "192.0.2.7",
+        },
+      ],
+      events: [],
+    };
+  }
+
+  function crowdsecConnection(): SecurityEventConnection {
+    const connection: SecurityEventConnection = new SecurityEventConnection();
+    connection._id = CONNECTION_ID;
+    connection.projectId = PROJECT_ID;
+    connection.provider = SecurityEventConnectorProvider.CrowdSec;
+    connection.isEnabled = true;
+    return connection;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    PushedConnectionAlerts.clearCache();
+    addJobSpy = jest
+      .spyOn(SecurityEventsQueueService, "addSecurityEventsIngestJob")
+      .mockResolvedValue(undefined);
+    findConnectionSpy = jest
+      .spyOn(PushedConnectionAlerts, "findConnection")
+      .mockResolvedValue(crowdsecConnection());
+    receiveSpy = jest
+      .spyOn(PushedConnectionAlerts, "receive")
+      .mockResolvedValue({
+        received: 1,
+        duplicates: 0,
+        stored: 1,
+        detections: 1,
+        casesOpened: 1,
+      });
+    nextMock = jest.fn();
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(FROZEN_NOW);
+    jest
+      .spyOn(OTelIngestService, "telemetryServiceFromName")
+      .mockResolvedValue(SERVICE_METADATA);
+    jest
+      .spyOn(TelemetryFanInWriter, "submit")
+      .mockResolvedValue({ flushed: Promise.resolve() });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("?connection= names the connection: the worker is handed it, with CrowdSec's format, and the 200 goes out", async () => {
+    const req: ExpressRequest = makeIngestRequest({
+      projectId: PROJECT_ID,
+      body: [crowdsecAlert()],
+      query: { connection: CONNECTION_ID },
+    });
+
+    await SecurityEventsIngestService.ingestSecurityEvents(
+      req,
+      res,
+      nextMock as unknown as NextFunction,
+    );
+
+    expect(nextMock).not.toHaveBeenCalled();
+    expect(findConnectionSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      connectionId: CONNECTION_ID,
+    });
+    expect(req.body).toEqual({
+      events: [crowdsecAlert()],
+      format: "crowdsec",
+      connectionId: CONNECTION_ID,
+    });
+    expect(getSendEmptySuccessMock()).toHaveBeenCalledWith(req, res);
+    expect(addJobSpy).toHaveBeenCalledWith(req);
+  });
+
+  test("the x-oneuptime-security-connection header names it as well", async () => {
+    const req: ExpressRequest = makeIngestRequest({
+      projectId: PROJECT_ID,
+      body: [crowdsecAlert()],
+      headers: { "x-oneuptime-security-connection": CONNECTION_ID },
+    });
+
+    await SecurityEventsIngestService.ingestSecurityEvents(
+      req,
+      res,
+      nextMock as unknown as NextFunction,
+    );
+
+    expect(findConnectionSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      connectionId: CONNECTION_ID,
+    });
+    expect((req.body as JSONObject)["connectionId"]).toBe(CONNECTION_ID);
+  });
+
+  test("a format the address names wins over the connection's own", async () => {
+    const req: ExpressRequest = makeIngestRequest({
+      projectId: PROJECT_ID,
+      body: [crowdsecAlert()],
+      query: { connection: CONNECTION_ID, format: "generic" },
+    });
+
+    await SecurityEventsIngestService.ingestSecurityEvents(
+      req,
+      res,
+      nextMock as unknown as NextFunction,
+    );
+
+    expect((req.body as JSONObject)["format"]).toBe("generic");
+  });
+
+  test("a connection this project has none of is refused, with what to do, before anything is queued", async () => {
+    findConnectionSpy.mockRejectedValue(
+      new BadDataException(
+        "This project has no connection of that ID that receives alerts. Copy the address from the connection's Send alerts, under Security Events > Connections.",
+      ),
+    );
+    const req: ExpressRequest = makeIngestRequest({
+      projectId: PROJECT_ID,
+      body: [crowdsecAlert()],
+      query: { connection: CONNECTION_ID },
+    });
+
+    await SecurityEventsIngestService.ingestSecurityEvents(
+      req,
+      res,
+      nextMock as unknown as NextFunction,
+    );
+
+    expect(nextMock).toHaveBeenCalledTimes(1);
+    expect(nextMock.mock.calls[0]![0]).toBeInstanceOf(BadDataException);
+    expect(getSendEmptySuccessMock()).not.toHaveBeenCalled();
+    expect(addJobSpy).not.toHaveBeenCalled();
+  });
+
+  test("no connection named: the alerts are plain events, and no connection is looked up", async () => {
+    const req: ExpressRequest = makeIngestRequest({
+      projectId: PROJECT_ID,
+      body: [crowdsecAlert()],
+      query: { format: "crowdsec" },
+    });
+
+    await SecurityEventsIngestService.ingestSecurityEvents(
+      req,
+      res,
+      nextMock as unknown as NextFunction,
+    );
+
+    expect(findConnectionSpy).not.toHaveBeenCalled();
+    expect(req.body).toEqual({ events: [crowdsecAlert()], format: "crowdsec" });
+  });
+
+  test("the worker keeps a connection's alerts through it, read as CrowdSec's", async () => {
+    await SecurityEventsIngestService.processSecurityEventsFromQueue(
+      makeQueueRequest({
+        events: [crowdsecAlert()],
+        format: "crowdsec",
+        connectionId: CONNECTION_ID,
+      }),
+    );
+
+    expect(receiveSpy).toHaveBeenCalledTimes(1);
+
+    const handed: {
+      projectId: ObjectID;
+      connection: SecurityEventConnection;
+      events: Array<NormalizedSecurityEvent>;
+    } = receiveSpy.mock.calls[0]![0] as {
+      projectId: ObjectID;
+      connection: SecurityEventConnection;
+      events: Array<NormalizedSecurityEvent>;
+    };
+
+    expect(handed.projectId).toBe(PROJECT_ID);
+    expect(handed.connection.id?.toString()).toBe(CONNECTION_ID);
+    expect(
+      handed.events.map((event: NormalizedSecurityEvent): string => {
+        return event.eventUid;
+      }),
+    ).toEqual(["crowdsec:5d6c1f7a-2b3e-4c8d-9e0f-1a2b3c4d5e6f"]);
+    expect(handed.events[0]!.classUid).toBe(2004);
+    // Kept through the connection, not written a second time here.
+    expect(getSubmitMock()).not.toHaveBeenCalled();
+  });
+
+  test("a connection deleted since the request was taken: the alerts are kept as events", async () => {
+    findConnectionSpy.mockRejectedValue(
+      new BadDataException("This project has no connection of that ID."),
+    );
+
+    await SecurityEventsIngestService.processSecurityEventsFromQueue(
+      makeQueueRequest({
+        events: [crowdsecAlert()],
+        format: "crowdsec",
+        connectionId: CONNECTION_ID,
+      }),
+    );
+
+    expect(receiveSpy).not.toHaveBeenCalled();
+    expect(getSubmitMock()).toHaveBeenCalledTimes(1);
+    expect(getSubmittedRows()[0]!["eventUid"]).toBe(
+      "crowdsec:5d6c1f7a-2b3e-4c8d-9e0f-1a2b3c4d5e6f",
     );
   });
 });

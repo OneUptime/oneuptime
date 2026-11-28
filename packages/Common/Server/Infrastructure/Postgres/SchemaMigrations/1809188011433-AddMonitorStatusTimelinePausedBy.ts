@@ -9,10 +9,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * as it did until the data migration fills in the paused ones
  * (RecordWhatPausedMonitorsOnStatusTimelines).
  */
-export class AddMonitorStatusTimelinePausedBy1809187811433
+export class AddMonitorStatusTimelinePausedBy1809188011433
   implements MigrationInterface
 {
-  public name = "AddMonitorStatusTimelinePausedBy1809187811433";
+  public name = "AddMonitorStatusTimelinePausedBy1809188011433";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

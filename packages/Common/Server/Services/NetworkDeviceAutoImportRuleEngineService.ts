@@ -1224,6 +1224,120 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
    * rows are a handful of scalar columns, so completeness is one query in
    * any realistic project.
    */
+  /*
+   * The devices a run of `rule` reaches (issue #11451): those at the
+   * addresses of the hosts the rule imports - its conditions met, no enabled
+   * exclusion rule vetoing - in the project's scans a run reads, each found
+   * as the scan's probe sees its address, exactly as a run finds a host's
+   * device (primeExistingDevices). Their monitors from the rule's template
+   * are the ones the rule would give a second monitor beside, were it
+   * pointed at another template without moving them. Writes nothing. Ids
+   * lower-cased.
+   */
+  @CaptureSpan()
+  public async findDeviceIdsTheRuleReaches(data: {
+    projectId: ObjectID;
+    rule: AutoImportRuleCandidate;
+  }): Promise<Set<string>> {
+    const deviceIds: Set<string> = new Set<string>();
+
+    if (data.rule.isExclusion) {
+      return deviceIds;
+    }
+
+    const exclusionRules: Array<NetworkDeviceAutoImportRule> = (
+      await this.loadEnabledRules(data.projectId)
+    ).filter((candidate: NetworkDeviceAutoImportRule): boolean => {
+      return Boolean(candidate.isExclusion);
+    });
+
+    const rules: Array<AutoImportRuleCandidate> = [
+      data.rule,
+      ...exclusionRules,
+    ];
+
+    // The scans a run reads, newest first (applyRuleToCompletedScans).
+    const scanStubs: Array<NetworkDeviceDiscoveryScan> =
+      await NetworkDeviceDiscoveryScanService.findBy({
+        query: {
+          projectId: data.projectId,
+          status: QueryHelper.any(DISCOVERY_SCAN_IMPORTABLE_STATUSES),
+        },
+        select: {
+          _id: true,
+        },
+        sort: {
+          completedAt: SortOrder.Descending,
+        },
+        limit: MAX_SCANS_PER_AUTO_IMPORT_RULE_RUN,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    for (const scanStub of scanStubs) {
+      const scan: NetworkDeviceDiscoveryScan | null =
+        await NetworkDeviceDiscoveryScanService.findOneBy({
+          query: {
+            _id: scanStub.id!,
+            projectId: data.projectId,
+            status: QueryHelper.any(DISCOVERY_SCAN_IMPORTABLE_STATUSES),
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            probeId: true,
+            status: true,
+            statusMessage: true,
+            discoveredDevices: true,
+          },
+          props: { isRoot: true, ignoreHooks: true },
+        });
+
+      if (!scan || isDiscoveryScanWaitingForFirstReport(scan)) {
+        continue;
+      }
+
+      const hostnames: Array<string> = normalizeDiscoveredHosts(
+        (scan.discoveredDevices as Array<DiscoveredNetworkDevice>) || [],
+      )
+        .filter((host: DiscoveredNetworkDevice): boolean => {
+          const evaluation: AutoImportHostEvaluation =
+            AutoImportRuleMatcher.evaluateHost(rules, host);
+
+          return (
+            evaluation.shouldImport &&
+            evaluation.matchedRules.includes(data.rule)
+          );
+        })
+        .map((host: DiscoveredNetworkDevice): string => {
+          return host.ipAddress || "";
+        })
+        .filter((hostname: string): boolean => {
+          return Boolean(hostname);
+        });
+
+      if (hostnames.length === 0) {
+        continue;
+      }
+
+      const found: Map<string, NetworkDevice> = await this.loadExistingDevices({
+        projectId: data.projectId,
+        scan: scan,
+        hostnames: hostnames,
+        // A device the scan's probe cannot tell apart is no host's.
+        ambiguousInto: new Set<string>(),
+      });
+
+      for (const device of found.values()) {
+        if (device.id) {
+          deviceIds.add(device.id.toString().toLowerCase());
+        }
+      }
+    }
+
+    return deviceIds;
+  }
+
   private async loadEnabledRules(
     projectId: ObjectID,
   ): Promise<Array<NetworkDeviceAutoImportRule>> {

@@ -87,9 +87,13 @@ Die ID unter dem Titel jedes Schritts ist genau das, was in einen `{{local.compo
 
 Die gezeigten Werte sind das, was der Baustein erhalten hat, nachdem Variablen eingesetzt wurden und bevor der Baustein etwas damit getan hat, mit zwei Ausnahmen: Geheimnisse und Felder, die der Baustein als sensibel markiert, werden geschwärzt, und ein Wert, der länger als 4.000 Zeichen ist, wird mit "… (truncated)" gekürzt. Eine Ausführung behält ihre letzten 100 Schritte; eine lange oder oft fortgesetzte Ausführung zeigt einen bernsteinfarbenen Hinweis, wo die früheren verworfen wurden. Ausführungen, die aufgezeichnet wurden, bevor Namen von Ausgängen gespeichert wurden, zeigen den Ausgang mit seiner ID, ohne wohin er führte.
 
+Ein Wert, den ein Baustein als sensibel markiert, etwa die Bilder, die **Dateien aus Markdown abrufen** zurückgibt, bleibt in jedem Baustein danach geschwärzt, auch nach einer **Pause**. Ein späterer Baustein, dem er übergeben wird, zeigt ihn geschwärzt in dem, was er empfangen, und in dem, was er zurückgegeben hat, und sein Text wird überall geschwärzt, wo er in dem auftaucht, was die Ausführung aufzeichnet: in einer Nachricht, die ihn enthält, oder in einem Fehler, der ihn zitiert. Kurze Teile davon, die sagen, was weitergegeben wurde, etwa der Name oder Typ einer Datei, bleiben stehen. Die Bausteine selbst bekommen weiterhin den echten Wert.
+
 ### Der Reiter Full Log
 
 Das rohe, zeilenweise Protokoll, das der Runner geschrieben hat, einschließlich allem, was die Bausteine selbst protokolliert haben, etwa der Wert eines **Protokoll**-Bausteins oder das `console.log` eines Skripts. Verwenden Sie es, wenn der Reiter Schritte den Fehler nicht erklärt.
+
+Jeder Wert, den das Protokoll schreibt, ob das, was ein Baustein empfangen, was er zurückgegeben oder was er protokolliert hat, wird auf seine ersten 65.536 Zeichen gekürzt und endet damit, wie viele ausgelassen wurden, etwa `… (10,420,113 more characters left out)`. Die empfangenen und die zurückgegebenen Werte eines Bausteins werden jeweils für sich gekürzt, sodass ein langer Wert die anderen nicht verdeckt. Geheimnisse und sensible Werte werden geschwärzt, bevor ein Wert gekürzt wird, sodass einer, den der Schnitt teilen würde, trotzdem ganz geschwärzt bleibt.
 
 ## Eine Ausführung kopieren und herunterladen
 

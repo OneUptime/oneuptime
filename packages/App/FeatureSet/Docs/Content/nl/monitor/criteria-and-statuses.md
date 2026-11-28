@@ -265,7 +265,7 @@ De editor toont elk criterium uitgeklapt. Klik op de kop van een criterium om he
 
 ### De criteria opslaan
 
-Klik op **Wijzigingen opslaan**. De volgende controle wordt met de nieuwe criteria beoordeeld.
+Klik op **Wijzigingen opslaan**. De volgende controle wordt met de nieuwe criteria beoordeeld. Een open incident of open waarschuwing waarvan u de criteria hebt verwijderd, wordt bij het opslaan opgelost als die was ingesteld om zichzelf op te lossen, want daarna kan niets hem meer oplossen: de tijdlijn ervan zegt waarom.
 
 ### De monitor testen
 
@@ -352,7 +352,7 @@ Het criterium van de waarschuwing wijzigt geen status, dus het houdt de monitor 
 :::
 
 :::details Het incident blijft open nadat de monitor herstelde
-Open het criterium van het incident en klap **Meer velden** in zijn incident uit: **Incident automatisch oplossen** moet aan staan. Een incident van een criterium dat u sindsdien hebt verwijderd, wordt niet door de monitor opgelost: los het handmatig op.
+Open het criterium van het incident en klap **Meer velden** in zijn incident uit: **Incident automatisch oplossen** moet aan staan. Het criterium van een incident verwijderen, of een sjabloon synchroniseren dat het niet meer heeft, lost het incident op als het was ingesteld om zichzelf op te lossen. Een incident dat open is gebleven door een eerder verwijderd criterium, of dat handmatig moet worden opgelost, lost u zelf op.
 :::
 
 :::details De verwijderknop van Offline is vergrendeld

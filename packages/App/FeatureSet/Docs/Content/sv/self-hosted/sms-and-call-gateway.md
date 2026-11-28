@@ -5,6 +5,7 @@ OneUptime kan skicka sina SMS och samtal via en gateway som du driver, i ställe
 :::cards
 - [Konfigurera gatewayen](#konfigurera-gatewayen): En URL och en signeringshemlighet som skapas åt dig.
 - [Vad din gateway tar emot](#vad-din-gateway-tar-emot): En signerad JSON-begäran per SMS eller samtal.
+- [Samtal på andra språk](#samtal-på-andra-språk): Låt varje samtal tala det språk som personen använder OneUptime på.
 - [Agera på ett larm](#agera-på-ett-larm): Bekräfta, eskalera eller lös från ett samtal eller ett svar.
 - [Leverans och nya försök](#leverans-och-nya-försök): Vad som händer när din gateway ligger nere.
 :::
@@ -63,7 +64,8 @@ Varje SMS och samtal är en `POST`-begäran med en JSON-body och de här huvuden
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ Varje SMS och samtal är en `POST`-begäran med en JSON-body och de här huvuden
 | `sentAt` | När OneUptime skickade det, i ISO 8601. |
 | `to` | Telefonnumret, i E.164-format. `null` i ett test. |
 | `message` | SMS:et, eller det som samtalet säger. Ett SMS är högst 1 600 tecken, och ett samtals text högst 16 384. En längre text kortas och slutar med en notering om att resten finns i OneUptime. |
-| `isSensitive` | `true` för en verifieringskod. Håll meddelandet borta från dina egna loggar. |
+| `isSensitive` | `true` för en verifieringskod. Håll meddelandet, och det i `inLanguage`, borta från dina egna loggar. |
 | `project` | Projektets `id` och `name`, eller `null` när inget projekt skickade det. |
 | `actions` | För ett jourlarm de länkar som agerar på det. Annars `null`. |
+| `inLanguage` | För ett samtal till någon som använder OneUptime på ett annat språk än engelska: `language`, språkets kod, och `message`, det som samtalet säger på språket. Annars `null`, och för varje SMS, som redan är på personens språk. Se [Samtal på andra språk](#samtal-på-andra-språk). |
 
 Ett samtal beskrivs i stället för att skrivas som ett manus: `message` är det som samtalet säger, utan Twilios "tryck 1 för att bekräfta". Erbjud åtgärderna på ditt eget sätt, till exempel med knapptryckningar, och anropa motsvarande länk.
+
+### Samtal på andra språk
+
+Ett samtal till någon som använder OneUptime på ett annat språk bär sina ord två gånger: på engelska, i `message`, som varje samtal har, och på personens språk, i `inLanguage`. Din gateway väljer rösten, så OneUptime kan inte veta vilka språk den talar. När din gateway har en röst på `inLanguage.language`, låt den rösten säga `inLanguage.message`. När den inte har någon, säg `message` på engelska i stället. Ge aldrig ett språks ord till ett annat språks röst: de skulle inte förstås. En gateway som bara läser `message` fungerar som förut och talar engelska.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+Språkets kod är en BCP 47-tagg, ett av de språk som OneUptime är skrivet på: `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa` och `ar`. `es` är spanska från Spanien, `pt` portugisiska från Brasilien, `no` norskt bokmål, `ar` modern standardarabiska, och båda de kinesiska koderna är mandarin, med förenklade och med traditionella tecken. Persiska finns bland dem: Twilio har ingen persisk röst, så via Twilio är ett samtal till någon som använder OneUptime på persiska, på engelska, men din gateway kan ha en. En verifieringskod skrivs siffra för siffra, med två mellanslag mellan siffrorna: låt din röst läsa siffrorna en i taget, långsamt, i stället för som ett tal.
 
 ### Kontrollera signaturen
 
@@ -116,7 +137,7 @@ SMS- eller samtalsloggen, och för ett jourlarm personens jourlogg, säger `Sent
 
 ## Testbegäranden
 
-**Kontrollera gateway** skickar en begäran med `event` satt till `test`, och `to`, `project` och `actions` satta till `null`. Svara på den med en 2xx-status och skicka ingenting.
+**Kontrollera gateway** skickar en begäran med `event` satt till `test`, och `to`, `project`, `actions` och `inLanguage` satta till `null`. Svara på den med en 2xx-status och skicka ingenting.
 
 ## Nästa steg
 

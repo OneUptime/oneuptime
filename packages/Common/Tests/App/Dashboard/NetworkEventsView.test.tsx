@@ -158,6 +158,7 @@ import NetworkEventsView, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkEvents/NetworkEventsView";
 import {
   NETWORK_EVENTS_PAGE_LIMIT,
+  NetworkEventSourceKind,
   NetworkEventsScope,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkEvents/NetworkEventsModel";
 import { getNetworkEventsDocsUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkEvents/NetworkEventsSetup";
@@ -1815,7 +1816,7 @@ describe("who sends syslog without being a device", () => {
 
     expect(
       within(card).getByRole("heading", {
-        name: "Sending syslog, not a device yet",
+        name: "Sending syslog or SNMP traps, not a device yet",
       }),
     ).toBeInTheDocument();
 
@@ -1868,6 +1869,7 @@ describe("who sends syslog without being a device", () => {
               hostname: "unknown-sw",
               vendor: "Cisco",
               probeId: PROBE_ID,
+              kinds: [NetworkEventSourceKind.Syslog],
               lastSeenAt: null,
               messageCount: 1,
             },
@@ -2135,6 +2137,217 @@ describe("who sends syslog without being a device", () => {
     expect(
       screen.queryByText("The senders could not be read.", { exact: false }),
     ).not.toBeInTheDocument();
+  });
+
+  test("each row says it sends syslog", async () => {
+    await renderView(NETWORK);
+
+    expect(
+      within(screen.getByTestId("network-event-source"))
+        .getAllByTestId("network-event-source-kind")
+        .map((chip: HTMLElement) => {
+          return chip.textContent;
+        }),
+    ).toEqual(["Syslog"]);
+  });
+});
+
+describe("who sends SNMP traps without being a device (#11407)", () => {
+  const TRAP_SENDER: string = "203.0.113.20";
+  const SITE_ID: string = "8c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f";
+
+  // A Brocade port state change from an address no device has: no event, in Logs only.
+  const BROCADE_PORT_CHANGE: Record<string, string> = {
+    "snmpTrap.unmatched": "true",
+    "snmpTrap.sourceIp": TRAP_SENDER,
+    "snmpTrap.oid": "1.3.6.1.4.1.1588.2.1.1.1.0.3",
+    "snmpTrap.version": "3",
+    "snmpTrap.securityName": "branch-default",
+    "networkSite.id": SITE_ID,
+    "probe.id": PROBE_ID,
+  };
+
+  function sourceAt(address: string): HTMLElement {
+    const source: HTMLElement | undefined = screen
+      .getAllByTestId("network-event-source")
+      .find((row: HTMLElement): boolean => {
+        return (row.textContent || "").includes(address);
+      });
+
+    if (!source) {
+      throw new Error(`No sender ${address}`);
+    }
+
+    return source;
+  }
+
+  function kindsOf(source: HTMLElement): Array<string | null> {
+    return within(source)
+      .getAllByTestId("network-event-source-kind")
+      .map((chip: HTMLElement) => {
+        return chip.textContent;
+      });
+  }
+
+  beforeEach(() => {
+    aDayOfEvents();
+    put(7, BROCADE_PORT_CHANGE);
+    put(9, BROCADE_PORT_CHANGE);
+  });
+
+  test("an enterprise trap that is no event is not in the list, and its sender is in the card, with its maker, as sending SNMP traps", async () => {
+    await renderView(NETWORK);
+
+    // Not an event: the list of events does not show it.
+    for (const row of rows()) {
+      expect(row).not.toHaveTextContent(TRAP_SENDER);
+    }
+
+    const source: HTMLElement = sourceAt(TRAP_SENDER);
+
+    expect(kindsOf(source)).toEqual(["SNMP traps"]);
+    expect(source).toHaveTextContent("Brocade · last trap 7 minutes ago");
+  });
+
+  test("is asked for by the mark the trap ingest leaves, over the page's own range", async () => {
+    await renderView(NETWORK);
+
+    const request: LogsListRequest | undefined = logsRequests().find(
+      (candidate: LogsListRequest): boolean => {
+        return candidate.query.attributes["snmpTrap.unmatched"] === "true";
+      },
+    );
+
+    expect(request?.query.attributes).toEqual({ "snmpTrap.unmatched": "true" });
+    expect(request?.query.time.startValue).toEqual(minutesAgo(60 * 24));
+    expect(request?.limit).toBe(500);
+  });
+
+  test("Add as device opens Add Device with the address, the probe and the site whose default credentials signed it", async () => {
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation(() => {});
+    await renderView(NETWORK);
+
+    fireEvent.click(
+      within(sourceAt(TRAP_SENDER)).getByTestId("network-event-source-add"),
+    );
+
+    const url: URL = urlOf(navigate.mock.calls[0]![0] as Route);
+
+    expect(url.pathname).toBe(`/dashboard/${PROJECT_ID}/network-devices`);
+    expect(url.searchParams.get("open")).toBe("add-device");
+    expect(url.searchParams.get("address")).toBe(TRAP_SENDER);
+    expect(url.searchParams.get("probe")).toBe(PROBE_ID);
+    expect(url.searchParams.get("site")).toBe(SITE_ID);
+  });
+
+  test("It is one of my devices: the dialog speaks of its SNMP traps, and they go to the device picked", async () => {
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "Core Switch",
+        hostname: "10.0.0.2",
+      }),
+    ]);
+    updateByIdMock.mockResolvedValue({});
+    await renderView(NETWORK);
+
+    fireEvent.click(
+      within(sourceAt(TRAP_SENDER)).getByTestId("network-event-source-link"),
+    );
+    await flush();
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+
+    expect(modal).toHaveTextContent("Which device sends these SNMP traps?");
+    expect(modal).toHaveTextContent(
+      `SNMP traps from ${TRAP_SENDER} will go to the device you pick.`,
+    );
+
+    await openDevicePicker(modal);
+    fireEvent.click(
+      await screen.findByRole("option", { name: /^Core Switch/ }),
+    );
+    fireEvent.click(
+      within(modal).getByRole("button", { name: "Use this device" }),
+    );
+    await flush();
+
+    expect(
+      (updateByIdMock.mock.calls[0]![0] as { data: JSONObject }).data,
+    ).toEqual({ otherAddresses: TRAP_SENDER });
+    expect(
+      screen.getByTestId("network-event-sources-notice"),
+    ).toHaveTextContent(
+      `SNMP traps from ${TRAP_SENDER} go to Core Switch from the next minute on.`,
+    );
+  });
+
+  test("an address that sends both is one row that says both, and the dialog speaks of the address", async () => {
+    put(11, {
+      "syslog.unmatched": "true",
+      "syslog.sourceIp": TRAP_SENDER,
+      "syslog.hostname": "fabric-sw-20",
+      "probe.id": PROBE_ID,
+    });
+    await renderView(NETWORK);
+
+    const source: HTMLElement = sourceAt(TRAP_SENDER);
+
+    expect(kindsOf(source)).toEqual(["Syslog", "SNMP traps"]);
+    expect(source).toHaveTextContent("fabric-sw-20");
+    expect(source).toHaveTextContent("last message 7 minutes ago");
+    expect(
+      screen
+        .getAllByTestId("network-event-source")
+        .filter((row: HTMLElement): boolean => {
+          return (row.textContent || "").includes(TRAP_SENDER);
+        }),
+    ).toHaveLength(1);
+
+    fireEvent.click(within(source).getByTestId("network-event-source-link"));
+    await flush();
+
+    expect(screen.getByTestId("modal")).toHaveTextContent(
+      "Which device sends from this address?",
+    );
+    expect(screen.getByTestId("modal")).toHaveTextContent(
+      `Syslog and SNMP traps from ${TRAP_SENDER} will go to the device you pick.`,
+    );
+  });
+
+  test("the syslog senders are still listed when the traps cannot be read, and the trap senders when syslog cannot", async () => {
+    logsListMock.mockImplementation(async (options: unknown) => {
+      if (
+        (options as LogsListRequest).query.attributes["snmpTrap.unmatched"] ===
+        "true"
+      ) {
+        throw new Error("The trap senders could not be read.");
+      }
+
+      return answerLogsList(options);
+    });
+    put(21, {
+      "syslog.unmatched": "true",
+      "syslog.sourceIp": UNKNOWN_ADDRESS,
+      "probe.id": PROBE_ID,
+    });
+    await renderView(NETWORK);
+
+    expect(sourceAt(UNKNOWN_ADDRESS)).toBeInTheDocument();
+    expect(screen.getByTestId("network-event-sources")).not.toHaveTextContent(
+      TRAP_SENDER,
+    );
+  });
+
+  test("a project whose probes heard only SNMP traps from senders not added yet sees them, never the syslog set-up guide", async () => {
+    store = [];
+    put(7, BROCADE_PORT_CHANGE);
+    await renderView(NETWORK);
+
+    expect(screen.queryByTestId("syslog-setup-guide")).not.toBeInTheDocument();
+    expect(sourceAt(TRAP_SENDER)).toBeInTheDocument();
   });
 });
 

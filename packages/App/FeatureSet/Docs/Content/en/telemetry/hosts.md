@@ -79,6 +79,16 @@ Every OneUptime serves its own installers, so a self-hosted OneUptime hands out 
 The dialog's last step says when the host connects, with a link to it. In the list it shows as **Starting** until its first metrics arrive, usually within a minute, then with its health, **Healthy** when nothing on it needs a look, and its collector **Running**. The host's **Topology** page draws what runs on it, what calls it and what it calls as one map: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
 :::
 
+## What counts as a host
+
+**Hosts** lists the machines that send their own telemetry, from a collector on the machine. Other telemetry names a machine in `host.name` too, and never adds a host:
+
+- a Docker or Podman host's, which carries `container.runtime`: it is under **Docker** or **Podman**;
+- a Kubernetes cluster's, node's or pod's, which carries `k8s.cluster.name`, `k8s.node.name` or `k8s.pod.name`: it is under **Kubernetes**;
+- a container's own, which carries `container.id`, and an application's, which carries `telemetry.sdk.name`: it is under the application's service.
+
+Earlier releases added some of these as hosts: Docker and Podman hosts, Kubernetes nodes and pods, and a host for each pod of an app that exports straight to OneUptime, one more with every rollout. The upgrade archived them, each with an entry in its feed that says why. It kept every host you added yourself, every host whose collector OneUptime manages, and every host that sent a host's own readings. The archived ones are under **Advanced → Archived** on the **Hosts** list, where **Unarchive** brings one back.
+
 ## See which hosts need attention
 
 The **Hosts** list starts with **Needs attention**: every host that is broken or needs a look, the most urgent first, each with why and one step to its page. A host that stopped reporting says when it last did. When nothing needs attention, there is no card.

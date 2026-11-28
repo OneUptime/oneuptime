@@ -2080,6 +2080,22 @@ export default class ChunkLoader {
       return map;
     };
 
+    // The payload's own string entries: a mobile tags marker's tags.
+    const readFlatStringMap: () => Record<string, string> = (): Record<
+      string,
+      string
+    > => {
+      const map: Record<string, string> = {};
+
+      for (const [mapKey, mapValue] of Object.entries(payload)) {
+        if (typeof mapValue === "string") {
+          map[mapKey] = mapValue;
+        }
+      }
+
+      return map;
+    };
+
     const atUnixMs: number | undefined =
       readNumber("atUnixMs") ?? readNumber("occurredAtUnixMs");
 
@@ -2351,9 +2367,15 @@ export default class ChunkLoader {
         break;
       }
       case "tags": {
+        /*
+         * The browser recorder writes { tags: { ... } }; the React Native
+         * recorder writes the flat map of the tags (MobileReplayRecorder's
+         * setTags() and addTag()), whose values are all strings, so a
+         * mobile tag named "tags" is a string, never a map.
+         */
         row.tags = isSessionReplayTagsPayload(payload)
           ? payload.tags
-          : readStringMap("tags") ?? {};
+          : readStringMap("tags") ?? readFlatStringMap();
         break;
       }
       case "click-dropped": {

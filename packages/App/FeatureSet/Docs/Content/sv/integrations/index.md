@@ -62,6 +62,7 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Inkommande | Hämtar inloggningar och katalogändringar från Microsoft Entra ID och Microsoft 365-granskningsloggen till Säkerhetshändelser. |
 | [Google Workspace](/docs/integrations/google-workspace) | Inkommande | Hämtar inloggningar, administratörsändringar och detektioner från Google Workspace till Säkerhetshändelser. |
 | [Cloudflare](/docs/integrations/cloudflare) | Inkommande | Hämtar det som Cloudflares brandvägg blockerade, utmanade och loggade till Säkerhetshändelser, bredvid det som nådde din app. |
+| [CrowdSec](/docs/integrations/crowdsec) | Inkommande | Hämtar larm från CrowdSec till Säkerhetshändelser, och bannlyser i CrowdSec adresserna du blockerar. |
 
 ### Ärendehantering och IT-tjänstehantering
 

@@ -657,6 +657,12 @@ async function walkDevice(
          */
         collectTransceivers: device.collectTransceivers === true,
         transceiverCacheKey: `${device.networkDeviceId}@${snmpMonitor.hostname}`,
+        /*
+         * The device's SNMP engine ID, polled over v1 or v2c too: what
+         * tells its SNMPv3 traps from its neighbours' at one address
+         * (#11405). This poll's result is where the device keeps it.
+         */
+        readEngineId: true,
       },
     );
 

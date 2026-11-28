@@ -10,6 +10,24 @@ import PingMonitorSeedIds, {
   SeedIdsPurpose,
 } from "../../../Components/NetworkDevice/PingMonitorSeedIds";
 import { findOrCreateRecommendedTemplate } from "../../../Components/NetworkDevice/RecommendedMonitorTemplate";
+import { getProjectMonitorTemplateChanges } from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangeApi";
+import MonitorTemplateChangesNotice from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangesNotice";
+import {
+  isPointedAtAnotherTemplate,
+  readRelationId,
+  readTemplateIdOfRecord,
+  readTemplateName,
+} from "../../../Components/Monitor/TemplateChange/TemplateRepoint";
+import useMonitorTemplateMoveConfirmation, {
+  MonitorTemplateMoveConfirmation,
+} from "../../../Components/Monitor/TemplateChange/useMonitorTemplateMoveConfirmation";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import {
+  MonitorTemplateChangeView,
+  isMonitorTemplateChangeActive,
+} from "Common/Types/Monitor/MonitorTemplateChange";
+import FormSubmitCancelled from "Common/UI/Components/Forms/Types/FormSubmitCancelled";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Label from "Common/Models/DatabaseModels/Label";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
@@ -58,6 +76,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -92,6 +111,7 @@ A policy with every list empty covers every device in the project, and the table
 Each matching device gets a monitor, and every one counts towards your plan: an unscoped policy in a large estate is a lot of monitors. Before the recommended policy is created, it says how many devices the project has.
 
 - A monitor is named after its device, and follows its template: edit the template's criteria and every monitor follows. A change made to one of them by hand is overwritten on the next sync.
+- Pointing the policy at another template moves its monitors there: each takes the template's criteria, interval and probe agreement, keeps its name, history, labels, owners and incidents, and stays the policy's. The form says so before it saves, and the move runs on the server, its progress shown on this page.
 - Disabling a policy stands its monitors down without deleting them. Deleting a policy deletes its monitors.
 
 ## Templates
@@ -500,6 +520,27 @@ const NetworkAlertPoliciesPage: FunctionComponent<
   );
 
   /*
+   * Pointing a policy at another template moves its monitors there (#11452):
+   * the form says so before it saves (moveConfirmation), the save starts the
+   * move on the server, and the page shows it running (the notice), its
+   * dialog opened once the save is done.
+   */
+  const moveConfirmation: MonitorTemplateMoveConfirmation =
+    useMonitorTemplateMoveConfirmation();
+  // The template each policy the Edit form opened on is on, by policy id.
+  const templateOfPolicy: React.MutableRefObject<Map<string, string>> = useRef<
+    Map<string, string>
+  >(new Map<string, string>());
+  // The policy whose monitors the save moves, until the save is done.
+  const movingPolicyId: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+  const [changesToggle, setChangesToggle] = useState<string>("");
+  const [openChangeId, setOpenChangeId] = useState<string | undefined>(
+    undefined,
+  );
+
+  /*
    * Selecting an unreadable relation fails the whole list request, so the
    * template column is asked for only when the user may read it. Which
    * template a policy uses is read with the policy itself (the model's read
@@ -544,8 +585,105 @@ const NetworkAlertPoliciesPage: FunctionComponent<
         }
       : null;
 
+  /*
+   * Before a save points a policy at another template: how many monitors
+   * it has, and the question. A "Cancel" calls the save back.
+   */
+  const confirmMoveOfMonitors: (
+    policy: NetworkAlertPolicy,
+  ) => Promise<void> = async (policy: NetworkAlertPolicy): Promise<void> => {
+    // What an earlier save that did not go through asked for is not this one's.
+    movingPolicyId.current = null;
+
+    const policyId: string | null = readRelationId(policy._id || policy.id);
+    const writtenTemplateId: string | null = readTemplateIdOfRecord(policy);
+
+    if (
+      !policyId ||
+      !isPointedAtAnotherTemplate({
+        storedTemplateId: templateOfPolicy.current.get(policyId),
+        writtenTemplateId: writtenTemplateId,
+      })
+    ) {
+      return;
+    }
+
+    let count: number | null = null;
+
+    try {
+      count = await ModelAPI.count<Monitor>({
+        modelType: Monitor,
+        query: {
+          projectId: ProjectUtil.getCurrentProjectId()!,
+          networkAlertPolicyId: new ObjectID(policyId),
+        },
+      });
+    } catch {
+      // Asked all the same: the question says it without the number.
+    }
+
+    if (count === 0) {
+      return;
+    }
+
+    const isConfirmed: boolean = await moveConfirmation.confirmPolicyMove({
+      templateName:
+        (await readTemplateName(writtenTemplateId!)) ||
+        (translator.translateText("the template") as string),
+      count: count,
+    });
+
+    if (!isConfirmed) {
+      throw new FormSubmitCancelled();
+    }
+
+    movingPolicyId.current = policyId;
+  };
+
+  // Once the save is done: the move the save started, its dialog opened.
+  const showMoveOfMonitors: () => Promise<void> = async (): Promise<void> => {
+    const policyId: string | null = movingPolicyId.current;
+    movingPolicyId.current = null;
+
+    if (!policyId) {
+      return;
+    }
+
+    try {
+      const move: MonitorTemplateChangeView | undefined = (
+        await getProjectMonitorTemplateChanges()
+      ).find((view: MonitorTemplateChangeView): boolean => {
+        return (
+          view.networkAlertPolicyId?.toLowerCase() === policyId.toLowerCase() &&
+          isMonitorTemplateChangeActive(view.status)
+        );
+      });
+
+      if (move) {
+        setOpenChangeId(move.id);
+      }
+    } catch {
+      // The page's notice shows it on its next read.
+    }
+
+    setChangesToggle(ObjectID.generate().toString());
+  };
+
   return (
     <Fragment>
+      {moveConfirmation.confirmation}
+      <div className="mb-5 empty:mb-0">
+        <MonitorTemplateChangesNotice
+          filter={(view: MonitorTemplateChangeView): boolean => {
+            return Boolean(view.networkAlertPolicyId);
+          }}
+          refreshToggle={changesToggle}
+          openChangeId={openChangeId}
+          onChanged={(): void => {
+            setRefreshToggle(ObjectID.generate().toString());
+          }}
+        />
+      </div>
       <ModelTable<NetworkAlertPolicy>
         modelType={NetworkAlertPolicy}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
@@ -563,6 +701,36 @@ const NetworkAlertPoliciesPage: FunctionComponent<
         showViewIdButton={true}
         createEditModalWidth={ModalWidth.Large}
         refreshToggle={refreshToggle}
+        onEditFormItemFetched={async (
+          item: NetworkAlertPolicy,
+        ): Promise<NetworkAlertPolicy> => {
+          const policyId: string | null = readRelationId(item._id || item.id);
+
+          if (policyId) {
+            templateOfPolicy.current.set(
+              policyId,
+              readTemplateIdOfRecord(item) || "",
+            );
+          }
+
+          return item;
+        }}
+        onBeforeUpdate={async (
+          item: NetworkAlertPolicy,
+        ): Promise<NetworkAlertPolicy> => {
+          await confirmMoveOfMonitors(item);
+          return item;
+        }}
+        onCreateSuccess={async (
+          item: NetworkAlertPolicy,
+          modalType?: ModalType,
+        ): Promise<NetworkAlertPolicy> => {
+          if (modalType === ModalType.Edit) {
+            await showMoveOfMonitors();
+          }
+
+          return item;
+        }}
         cardProps={{
           title: "Alert Policies",
           /*
@@ -803,7 +971,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
                   required: true,
                   placeholder: "Select a Network Device template",
                   description:
-                    "A template can back one policy, and cannot also be used by an auto import rule.",
+                    "A template can back one policy, and cannot also be used by an auto import rule. Pointing the policy at another template moves its monitors there, with their history.",
                 },
               ]
             : []),

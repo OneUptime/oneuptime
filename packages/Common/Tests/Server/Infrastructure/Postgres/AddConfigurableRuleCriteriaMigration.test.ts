@@ -56,6 +56,9 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   "NetworkDeviceNamingRule",
   // 1809184860000-AddDataPipelineOwnerRules
   "DataPipelineOwnerRule",
+  // 1809187720000-AddXcpNgPoolTables
+  "XcpNgPoolLabelRule",
+  "XcpNgPoolOwnerRule",
 ];
 
 type IsCoveredByMigrationFunction = (modelName: string) => boolean;

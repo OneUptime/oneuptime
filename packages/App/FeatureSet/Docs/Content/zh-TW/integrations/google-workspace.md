@@ -45,7 +45,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 1. 在 [Google 管理控制台](https://admin.google.com) 中，以超級管理員身分開啟 **Security → Access and data control → API controls → Manage domain-wide delegation**，然後選擇 **Add new**。
 2. 把服務帳戶的 **Unique ID** 填為 **Client ID**，把 `https://www.googleapis.com/auth/admin.reports.audit.readonly` 填為 **OAuth scope**。選擇 **Authorize**。Google 可能需要幾分鐘才能生效。
 3. 若要讓劇本停用、解除停用和登出使用者（請參閱 [圍堵](/docs/telemetry/security-cases#圍堵)），請把 `https://www.googleapis.com/auth/admin.directory.user` 和 `https://www.googleapis.com/auth/admin.directory.user.security` 新增到同一用戶端的範圍中，以逗號分隔。此時，連線所代表的管理員必須是管理這些使用者的管理員。
-4. 若要讓 [安全案例](/docs/telemetry/security-cases#oneuptime-如何檢查一個步驟) 檢查攻擊新增到群組中的帳戶已被移出該群組，請以同樣的方式新增 `https://www.googleapis.com/auth/admin.directory.group.member.readonly`。它只讀取群組的成員，不讀取其他任何內容，需要一位可以讀取群組的管理員。沒有它時，案例會列出每一項此類變更，由你來確認，並說明要新增哪個範圍。
+4. 若要讓 [安全案例](/docs/telemetry/security-cases#oneuptime-如何檢查一個步驟) 檢查攻擊新增到群組中的帳戶已被移出該群組，請以同樣的方式新增 `https://www.googleapis.com/auth/admin.directory.group.member.readonly`。它只讀取群組的成員，不讀取其他任何內容，需要一位可以讀取群組的管理員。沒有它時，案例會列出每一項此類變更，由你來確認，並說明要新增哪個範圍，還會為可以變更該連線的人附上指向 **安全事件 → 連線** 中此連線表單的連結。
 
 ### 在 OneUptime 中新增連線
 

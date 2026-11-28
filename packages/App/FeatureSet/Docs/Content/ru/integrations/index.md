@@ -62,6 +62,7 @@ flowchart TB
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Входящее | Передаёт входы и изменения каталога Microsoft Entra ID, а также журнал аудита Microsoft 365 в События безопасности. |
 | [Google Workspace](/docs/integrations/google-workspace) | Входящее | Передаёт входы, изменения администраторов и обнаружения Google Workspace в События безопасности. |
 | [Cloudflare](/docs/integrations/cloudflare) | Входящее | Передаёт в События безопасности то, что межсетевой экран Cloudflare заблокировал, проверил и записал в журнал, рядом с тем, что дошло до вашего приложения. |
+| [CrowdSec](/docs/integrations/crowdsec) | Входящее | Передаёт оповещения CrowdSec в События безопасности и добавляет в CrowdSec бан для адресов, которые вы блокируете. |
 
 ### Тикеты и управление ИТ-услугами
 

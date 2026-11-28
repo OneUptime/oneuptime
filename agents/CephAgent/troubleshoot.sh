@@ -138,6 +138,21 @@ dotenv_get() {
   printf '%s' "$value"
 }
 
+# service_container <compose service> <.env variable> <default name>: the
+# container that service of this directory runs as, whatever it is named: the
+# one Compose says, else the name .env gives it (install.sh writes one for
+# each), else the default.
+service_container() {
+  local name="" cid="" found=""
+  name=$(dotenv_get "$2" "$ENV_FILE")
+  cid=$(cd "$DIR" 2>/dev/null && docker compose ps -a -q "$1" 2>/dev/null | head -1)
+  if [ -n "$cid" ]; then
+    found=$(docker inspect -f '{{.Name}}' "$cid" 2>/dev/null | sed 's#^/##')
+    [ -n "$found" ] && name="$found"
+  fi
+  printf '%s' "${name:-$3}"
+}
+
 # Read an env var as the running container actually sees it (compose defaults
 # included). Falls back to the .env file when the container isn't running.
 agent_env() {
@@ -199,6 +214,11 @@ pass "Docker daemon reachable"
 
 if [ -d "$DIR" ] && [ -f "$DIR/docker-compose.yml" ]; then
   pass "Install dir '$DIR' exists (compose install)"
+  # A second agent on this machine has container names of its own
+  # (README.md, "Monitoring several clusters"): the ones install.sh writes to .env, which
+  # docker-compose.yml reads. Each is the one Compose says this directory
+  # runs, else .env's, else the default.
+  AGENT_CONTAINER=$(service_container oneuptime-ceph-agent CEPH_AGENT_CONTAINER_NAME "$AGENT_CONTAINER")
 else
   warn "No compose install at '$DIR' — re-run with -d <dir> if you installed elsewhere."
 fi

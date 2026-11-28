@@ -21,13 +21,24 @@ import CommonAPI from "./CommonAPI";
  * CHANGING MANY MONITORS' TEMPLATE, OVER HTTP (issues #11260, #11266).
  *
  *   POST /monitor-template-change/start
- *        { monitorTemplateId?, settings, monitorIds | allLinkedToTemplate }
+ *        { monitorTemplateId?, settings,
+ *          monitorIds | allLinkedToTemplate | autoImportRuleId }
  *                                                 ask for a change
  *   GET  /monitor-template-change/change/:changeId[?lines=all]
  *                                                 one change, as it stands
  *   GET  /monitor-template-change/template/:monitorTemplateId/active
  *                                                 the template's changes
  *                                                 that have not finished
+ *   GET  /monitor-template-change/project/active
+ *                                                 the project's changes the
+ *                                                 Monitors list shows: still
+ *                                                 running, or finished in the
+ *                                                 last hour with monitors left
+ *                                                 out or failed (#11454)
+ *   GET  /monitor-template-change/auto-import-rule/:ruleId/monitors
+ *                                                 what a move of an auto
+ *                                                 import rule's monitors
+ *                                                 would move (#11451)
  *   POST /monitor-template-change/change/:changeId/stop
  *   POST /monitor-template-change/change/:changeId/retry
  *
@@ -66,13 +77,15 @@ function readBody(req: ExpressRequest): JSONObject {
     : {};
 }
 
-function readIdParam(req: ExpressRequest, name: string): ObjectID {
+function readIdParam(
+  req: ExpressRequest,
+  name: string,
+  notFound: string = "This change was not found. Reload the page, then try again.",
+): ObjectID {
   const value: unknown = req.params[name];
 
   if (typeof value !== "string" || !ObjectID.isValidUUID(value)) {
-    throw new BadDataException(
-      "This change was not found. Reload the page, then try again.",
-    );
+    throw new BadDataException(notFound);
   }
 
   return new ObjectID(value);
@@ -113,6 +126,7 @@ router.post(
           settings: body["settings"],
           monitorIds: body["monitorIds"],
           allLinkedToTemplate: body["allLinkedToTemplate"],
+          autoImportRuleId: body["autoImportRuleId"],
         });
 
       return await sendView({
@@ -183,6 +197,67 @@ router.get(
           }) as unknown as JSONObject;
         }),
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
+  "/monitor-template-change/project/active",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { props, projectId } = await getPersonProps(req);
+
+      MonitorTemplateChangeRunner.assertCanSeeChanges(props);
+
+      const rows: Array<MonitorTemplateChange> =
+        await MonitorTemplateChangeRunner.findChangesToShowOfProject({
+          projectId: projectId,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        changes: rows.map((row: MonitorTemplateChange): JSONObject => {
+          return MonitorTemplateChangeRunner.toView({
+            row: row,
+          }) as unknown as JSONObject;
+        }),
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.get(
+  "/monitor-template-change/auto-import-rule/:ruleId/monitors",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const { props, projectId } = await getPersonProps(req);
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        (await MonitorTemplateChangeRunner.getAutoImportRuleMonitorsToMove({
+          projectId: projectId,
+          props: props,
+          ruleId: readIdParam(
+            req,
+            "ruleId",
+            "The auto import rule was not found. Reload the page, then try again.",
+          ),
+        })) as unknown as JSONObject,
+      );
     } catch (err) {
       next(err);
     }

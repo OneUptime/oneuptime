@@ -12,11 +12,18 @@ import {
   isCloudConnectionIdInLink,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Connect/CloudConnectRoutes";
 import {
-  CloudConnectionsAccess,
+  ConnectionsAccess,
+  NO_CONNECTIONS_ACCESS,
+  StepCheckLinkAccess,
   StepCheckLinkTarget,
   getStepCheckLinkTarget,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseChecks";
 import { getResponseLinkRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseLinks";
+import {
+  SECURITY_EVENT_CONNECTION_QUERY_PARAM,
+  getSecurityEventConnectionsRoute,
+  isSecurityEventConnectionIdInLink,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsRoutes";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -28,24 +35,48 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import {
   CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION,
   CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS,
+  CHECK_ACCOUNT_CHANGES_OPEN_SECURITY_EVENT_CONNECTIONS,
   STEP_CHECK_OPEN_BLOCKLIST,
 } from "../../../Utils/SecurityCase/ResponsePlan/StepCheckWords";
 
 /*
- * A STEP'S LINE LINKS TO THE AWS CONNECTION IT MEANS (#11039): a link kind
- * the card routes - Cloud > Connect, on the connection's form when the link
- * names one - through the Dashboard's RouteUtil and PageMap, never an
- * address of the server's. The card draws it only for a reader who may see
- * Cloud > Connect, worded by what they may do there.
+ * A STEP'S LINE LINKS TO THE CONNECTION IT MEANS: the AWS connection under
+ * Cloud > Connect (#11039), and the Google Workspace one under Security
+ * Events > Connections (#11376) - link kinds the card routes, on the
+ * connection's form when the link names one, through the Dashboard's
+ * RouteUtil and PageMap, never an address of the server's. The card draws
+ * each only for a reader who may see its page, worded by what they may do
+ * there: Edit Connection for one who may change it, the page for one who
+ * may only see it, nothing for anyone else.
  */
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const CONNECTION_ID: string = "5d0c2a7e-0000-4000-8000-00000000c0de";
 const CONNECT_PAGE: string = `/dashboard/${PROJECT_ID}/cloud/connect`;
+const SECURITY_CONNECTIONS_PAGE: string = `/dashboard/${PROJECT_ID}/security-events/connections`;
 
-const EDITS: CloudConnectionsAccess = { mayRead: true, mayUpdate: true };
-const SEES: CloudConnectionsAccess = { mayRead: true, mayUpdate: false };
-const NEITHER: CloudConnectionsAccess = { mayRead: false, mayUpdate: false };
+const EDITS_ALL: ConnectionsAccess = { mayRead: true, mayUpdate: true };
+const SEES_ALL: ConnectionsAccess = { mayRead: true, mayUpdate: false };
+
+// What a reader may do on Cloud > Connect alone.
+function onCloudConnect(access: ConnectionsAccess): StepCheckLinkAccess {
+  return {
+    cloudConnections: access,
+    securityEventConnections: NO_CONNECTIONS_ACCESS,
+  };
+}
+
+// What a reader may do on Security Events > Connections alone.
+function onSecurityConnections(access: ConnectionsAccess): StepCheckLinkAccess {
+  return {
+    cloudConnections: NO_CONNECTIONS_ACCESS,
+    securityEventConnections: access,
+  };
+}
+
+const EDITS: StepCheckLinkAccess = onCloudConnect(EDITS_ALL);
+const SEES: StepCheckLinkAccess = onCloudConnect(SEES_ALL);
+const NEITHER: StepCheckLinkAccess = onCloudConnect(NO_CONNECTIONS_ACCESS);
 
 const TO_CONNECTION: ResponseLink = {
   kind: ResponseLinkKind.OpenCloudConnection,
@@ -165,5 +196,132 @@ describe("what the card draws, by what the reader may do on Cloud > Connect", ()
         )?.title,
       ).toBe(STEP_CHECK_OPEN_BLOCKLIST);
     }
+  });
+});
+
+// ---------- Security Events > Connections (#11376) ----------
+
+const TO_SECURITY_CONNECTION: ResponseLink = {
+  kind: ResponseLinkKind.OpenSecurityEventConnection,
+  connectionId: CONNECTION_ID,
+};
+const TO_SECURITY_CONNECTIONS: ResponseLink = {
+  kind: ResponseLinkKind.OpenSecurityEventConnection,
+};
+
+describe("the Google Workspace line's link, as stored and read back (#11376)", () => {
+  test("names a connection by its id, and only an id; anything else is Security Events > Connections itself", () => {
+    expect(
+      readResponseLink({
+        kind: "OpenSecurityEventConnection",
+        connectionId: CONNECTION_ID.toUpperCase(),
+      }),
+    ).toEqual(TO_SECURITY_CONNECTION);
+
+    for (const connectionId of [
+      undefined,
+      "",
+      "google",
+      "../../admin",
+      `${CONNECTION_ID}?x=1`,
+      42,
+    ]) {
+      expect({
+        connectionId,
+        link: readResponseLink({
+          kind: "OpenSecurityEventConnection",
+          connectionId,
+        }),
+      }).toEqual({ connectionId, link: TO_SECURITY_CONNECTIONS });
+    }
+  });
+
+  test("Security Events > Connections, on the connection's form when it names one - a route of the Dashboard's own", () => {
+    expect(getResponseLinkRoute(TO_SECURITY_CONNECTION)?.toString()).toBe(
+      `${SECURITY_CONNECTIONS_PAGE}?${SECURITY_EVENT_CONNECTION_QUERY_PARAM}=${CONNECTION_ID}`,
+    );
+    expect(getResponseLinkRoute(TO_SECURITY_CONNECTIONS)?.toString()).toBe(
+      SECURITY_CONNECTIONS_PAGE,
+    );
+    expect(
+      getSecurityEventConnectionsRoute("https://evil.example.com").toString(),
+    ).toBe(SECURITY_CONNECTIONS_PAGE);
+    expect(SECURITY_EVENT_CONNECTION_QUERY_PARAM).toBe("connection");
+    expect(isSecurityEventConnectionIdInLink(CONNECTION_ID)).toBe(true);
+    expect(isSecurityEventConnectionIdInLink(`${CONNECTION_ID} `)).toBe(false);
+    expect(isSecurityEventConnectionIdInLink(null)).toBe(false);
+  });
+});
+
+describe("what the card draws, by what the reader may do on Security Events > Connections (#11376)", () => {
+  test("one who may change connections - a Security Admin: Edit Connection, to its form", () => {
+    expect(
+      where(
+        getStepCheckLinkTarget(
+          TO_SECURITY_CONNECTION,
+          onSecurityConnections(EDITS_ALL),
+        ),
+      ),
+    ).toEqual({
+      route: `${SECURITY_CONNECTIONS_PAGE}?connection=${CONNECTION_ID}`,
+      url: undefined,
+      title: CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION,
+      values: {},
+    });
+  });
+
+  test("one who may only see them - a Security Member: Open Security Event Connections, to the page", () => {
+    for (const link of [TO_SECURITY_CONNECTION, TO_SECURITY_CONNECTIONS]) {
+      expect(
+        where(getStepCheckLinkTarget(link, onSecurityConnections(SEES_ALL))),
+      ).toEqual({
+        route: SECURITY_CONNECTIONS_PAGE,
+        url: undefined,
+        title: CHECK_ACCOUNT_CHANGES_OPEN_SECURITY_EVENT_CONNECTIONS,
+        values: {},
+      });
+    }
+  });
+
+  test("a link that names no connection is the page, even for one who may change them", () => {
+    expect(
+      where(
+        getStepCheckLinkTarget(
+          TO_SECURITY_CONNECTIONS,
+          onSecurityConnections(EDITS_ALL),
+        ),
+      ),
+    ).toMatchObject({
+      route: SECURITY_CONNECTIONS_PAGE,
+      title: CHECK_ACCOUNT_CHANGES_OPEN_SECURITY_EVENT_CONNECTIONS,
+    });
+  });
+
+  test("one who may not see Security Events > Connections gets nothing - whatever they may do on Cloud > Connect", () => {
+    for (const access of [
+      onSecurityConnections(NO_CONNECTIONS_ACCESS),
+      onCloudConnect(EDITS_ALL),
+    ]) {
+      expect(getStepCheckLinkTarget(TO_SECURITY_CONNECTION, access)).toBeNull();
+    }
+
+    expect(getStepCheckLinkTarget(TO_SECURITY_CONNECTION)).toBeNull();
+  });
+
+  test("each page's link by its own access: Cloud > Connect's never by what the reader may do on Security Events'", () => {
+    expect(
+      getStepCheckLinkTarget(TO_CONNECTION, onSecurityConnections(EDITS_ALL)),
+    ).toBeNull();
+    expect(
+      where(
+        getStepCheckLinkTarget(TO_CONNECTION, {
+          cloudConnections: SEES_ALL,
+          securityEventConnections: EDITS_ALL,
+        }),
+      ),
+    ).toMatchObject({
+      route: CONNECT_PAGE,
+      title: CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS,
+    });
   });
 });

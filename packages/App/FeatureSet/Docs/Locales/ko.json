@@ -257,6 +257,7 @@
     "Forms Overview": "양식 개요",
     "Building a Form": "양식 만들기",
     "What a Submission Creates": "제출로 만들어지는 항목",
+    "Following Up on a Submission": "제출 후속 조치",
     "Sharing & Security": "공유 및 보안",
     "Workflows Overview": "워크플로우 개요",
     "Authoring a Workflow": "워크플로우 작성",
@@ -511,6 +512,7 @@
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
     "Cloudflare": "Cloudflare",
+    "CrowdSec": "CrowdSec",
     "Global SSO": "글로벌 SSO",
     "Import and Export Label Rules": "레이블 규칙 가져오기 및 내보내기",
     "Run Rules on Existing Resources": "기존 리소스에 규칙 실행"

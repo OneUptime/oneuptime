@@ -1,4 +1,4 @@
-import { AddMonitorStatusTimelinePausedBy1809187811433 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187811433-AddMonitorStatusTimelinePausedBy";
+import { AddMonitorStatusTimelinePausedBy1809188011433 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809188011433-AddMonitorStatusTimelinePausedBy";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import ColumnType from "../../../Types/Database/ColumnType";
@@ -32,7 +32,7 @@ const MIGRATION_DIRECTORY: string = path.join(
   "../../../Server/Infrastructure/Postgres/SchemaMigrations",
 );
 
-const MIGRATION_TIMESTAMP: string = "1809187811433";
+const MIGRATION_TIMESTAMP: string = "1809188011433";
 
 const MIGRATION_NAME: string = `AddMonitorStatusTimelinePausedBy${MIGRATION_TIMESTAMP}`;
 
@@ -79,7 +79,7 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
   test("up() adds the one nullable column, with no default and no backfill", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddMonitorStatusTimelinePausedBy1809187811433().up(runner);
+    await new AddMonitorStatusTimelinePausedBy1809188011433().up(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "MonitorStatusTimeline" ADD "pausedBy" character varying(100)`,
@@ -93,7 +93,7 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
   test("down() drops exactly it", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddMonitorStatusTimelinePausedBy1809187811433().down(runner);
+    await new AddMonitorStatusTimelinePausedBy1809188011433().down(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "MonitorStatusTimeline" DROP COLUMN "pausedBy"`,
@@ -101,7 +101,7 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
   });
 
   test("its name is its class's, and it is registered once", () => {
-    expect(new AddMonitorStatusTimelinePausedBy1809187811433().name).toBe(
+    expect(new AddMonitorStatusTimelinePausedBy1809188011433().name).toBe(
       MIGRATION_NAME,
     );
 
@@ -120,23 +120,36 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
 
     const migration: MigrationInterface | undefined = SchemaMigrations.find(
       (candidate: unknown): boolean => {
-        return candidate === AddMonitorStatusTimelinePausedBy1809187811433;
+        return candidate === AddMonitorStatusTimelinePausedBy1809188011433;
       },
     ) as MigrationInterface | undefined;
     expect(migration).toBeDefined();
 
-    // Numbered after every migration before it.
-    const timestamps: Array<number> = fs
-      .readdirSync(MIGRATION_DIRECTORY)
-      .map((file: string): number => {
-        return Number(file.split("-")[0]);
-      })
-      .filter((timestamp: number): boolean => {
-        return Number.isFinite(timestamp);
-      });
-    expect(Math.max(...timestamps)).toBeGreaterThanOrEqual(
-      Number(MIGRATION_TIMESTAMP),
+    // Numbered after every migration registered before it.
+    const position: number = SchemaMigrations.indexOf(
+      AddMonitorStatusTimelinePausedBy1809188011433 as never,
     );
+    const timestampOf: (migration: unknown) => number = (
+      migration: unknown,
+    ): number => {
+      return Number(
+        /(\d{13})$/.exec((migration as { name: string }).name)?.[1] || "0",
+      );
+    };
+
+    expect(position).toBeGreaterThan(0);
+    expect(
+      Math.max(...SchemaMigrations.slice(0, position).map(timestampOf)),
+    ).toBeLessThan(Number(MIGRATION_TIMESTAMP));
+
+    // And no other file in the folder takes its number.
+    expect(
+      fs
+        .readdirSync(MIGRATION_DIRECTORY)
+        .filter((file: string): boolean => {
+          return file.startsWith(`${MIGRATION_TIMESTAMP}-`);
+        }),
+    ).toEqual([`${MIGRATION_TIMESTAMP}-AddMonitorStatusTimelinePausedBy.ts`]);
     expect(
       fs.existsSync(
         path.join(

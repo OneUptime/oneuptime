@@ -24,9 +24,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  * What Security Events trusts as a proxy decides which address an attack is
  * blamed on, and so which address a case offers to block. A Security Admin
- * now edits the list, as a Project Owner or Admin does, beside the two
+ * now edits the list, as a Project Owner or Admin does, beside the
  * switches they already flipped: whether the project's own load balancers
- * are trusted, and whether its access logs are read for X-Forwarded-For.
+ * are trusted, whether its access logs are read for X-Forwarded-For, and
+ * whether private addresses are trusted unlisted (#11389).
  * Each is a column of the project, and the audit log records each change
  * of it - the list before and after, the switch's old and new value, and
  * who changed it - whoever that is. Pinned against the entry that reaches
@@ -85,6 +86,8 @@ const TRUSTED_PROXY_COLUMNS: ReadonlyArray<string> = [
   "securityTrustOwnLoadBalancers",
   "securityReadAccessLogForwardedFor",
   "securityAccessLogFormat",
+  // #11389: whether private addresses are trusted as proxies unlisted.
+  "securityTrustPrivateAddresses",
 ];
 
 const SECURITY_ADMIN: DatabaseCommonInteractionProps = {
@@ -230,8 +233,11 @@ describe("a Security Admin's change of Trusted Proxies is recorded, with who mad
   test.each([
     ["securityTrustOwnLoadBalancers", true, false],
     ["securityReadAccessLogForwardedFor", false, true],
+    // #11389: a project from before turning off Private Addresses, and back on.
+    ["securityTrustPrivateAddresses", true, false],
+    ["securityTrustPrivateAddresses", false, true],
   ])(
-    "%s, flipped",
+    "%s, flipped from %s to %s",
     async (column: string, oldValue: boolean, newValue: boolean) => {
       const entry: AuditLog = await recordChange(
         { [column]: oldValue } as Partial<Project>,

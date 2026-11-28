@@ -172,6 +172,359 @@ discover_pve_nodes() {
         | sed -n 's/.*"ip": *"\([^"]*\)".*/\1/p' | paste -sd, - || true
 }
 
+# ----------------------------------------------------------------------------
+# The agent's container names
+# ----------------------------------------------------------------------------
+# Two containers cannot share a name, so a second Proxmox cluster's agent on
+# this machine, in a directory of its own, needs container names of its own:
+# its collector's, its API failover sidecar's, its bundled exporter's and its
+# AI agent's. docker-compose.yml reads each from .env (container_name:
+# ${PROXMOX_AGENT_CONTAINER_NAME:-oneuptime-proxmox-agent}, and the three
+# below), and nothing asks for them. The collector's is, in this order:
+#   - PROXMOX_AGENT_CONTAINER_NAME exported, or in .env on a re-run, like
+#     every other value;
+#   - for an agent set up before .env held it, the name its docker-compose.yml
+#     was given by hand: read from that file before this run replaces it,
+#     else from the container this directory runs, else from the newest
+#     docker-compose.yml.bak.<timestamp> an earlier upgrade kept; and an
+#     agent that runs under the default name keeps it. An upgrade never
+#     renames an agent;
+#   - otherwise the directory's: oneuptime-proxmox-agent-<project>, <project>
+#     being the name Compose gives the directory's project (see "The agent's
+#     Compose project" below: cluster2 for /opt/cluster2), or the project's
+#     name itself when it starts with oneuptime-proxmox-agent. One directory
+#     is one project, and one name. The default directory's is the default
+#     name, so a first agent is named as it always was.
+# Each of the others is its variable the same way, else the name it was
+# given by hand or runs as, else beside the collector's:
+# oneuptime-pve-exporter-cluster2 beside oneuptime-proxmox-agent-cluster2.
+# The compose services keep their names, so `docker compose ps` and `logs`
+# in the directory find the containers whatever they are named.
+AGENT_SERVICE="oneuptime-proxmox-agent"
+DEFAULT_CONTAINER_NAME="oneuptime-proxmox-agent"
+# The containers beside the collector, one a line: the .env variable of
+# its name, its compose service, its default name, and what it is, for a
+# name beside any other (companion_container_name_for).
+COMPANION_CONTAINERS="PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME|pve-api-failover|oneuptime-pve-api-failover|pve-api-failover
+PROXMOX_PVE_EXPORTER_CONTAINER_NAME|pve-exporter|oneuptime-pve-exporter|pve-exporter
+PROXMOX_AI_AGENT_CONTAINER_NAME|oneuptime-proxmox-ai-agent|oneuptime-proxmox-ai-agent|ai"
+
+# Whether $1 is a name Docker gives a container: a letter or a digit, then at
+# least one more letter, digit, _, . or -.
+is_container_name() {
+    case "$1" in
+        "" | ? | [!a-zA-Z0-9]* | *[!a-zA-Z0-9_.-]*) return 1 ;;
+    esac
+    return 0
+}
+
+# compose_container_name <compose file>: the container_name the agent's
+# service sets there, when it is a name written out (not ${...}), or nothing.
+compose_container_name() {
+    local value=""
+    [ -f "$1" ] || return 0
+    value="$(awk -v service="$AGENT_SERVICE" '
+        /^[[:space:]]*(#.*)?$/ { next }
+        {
+            match($0, /^[[:space:]]*/)
+            indent = RLENGTH
+            if (inside && indent <= service_indent) { inside = 0 }
+            if (!inside && $0 ~ ("^[[:space:]]+" service ":[[:space:]]*(#.*)?$")) {
+                inside = 1
+                service_indent = indent
+                next
+            }
+            if (inside && $0 ~ /^[[:space:]]+container_name:/) {
+                sub(/^[[:space:]]+container_name:[[:space:]]*/, "")
+                sub(/[[:space:]]+#.*$/, "")
+                sub(/[[:space:]]+$/, "")
+                print
+                exit
+            }
+        }' "$1" 2>/dev/null)" || true
+    case "$value" in
+        \"*\") value="${value#\"}"; value="${value%\"}" ;;
+        \'*\') value="${value#\'}"; value="${value%\'}" ;;
+    esac
+    if is_container_name "$value"; then
+        printf '%s' "$value"
+    fi
+}
+
+# The name of the agent's container this directory's compose project runs
+# (running or not), or nothing.
+existing_container_name() {
+    local id="" name=""
+    [ -f "$INSTALL_DIR/docker-compose.yml" ] || return 0
+    id="$(cd "$INSTALL_DIR" 2>/dev/null && docker compose ps -a -q "$AGENT_SERVICE" 2>/dev/null | head -n 1)" || true
+    [ -n "$id" ] || return 0
+    name="$(docker inspect -f '{{.Name}}' "$id" 2>/dev/null | head -n 1)" || true
+    name="${name#/}"
+    if is_container_name "$name"; then
+        printf '%s' "$name"
+    fi
+}
+
+# The name the newest docker-compose.yml.bak.<timestamp> gave the agent,
+# when it is not the default one, or nothing.
+backup_container_name() {
+    local backup="" name="" found=""
+    for backup in "$INSTALL_DIR"/docker-compose.yml.bak.*; do
+        [ -f "$backup" ] || continue
+        name="$(compose_container_name "$backup")"
+        if [ -n "$name" ] && [ "$name" != "$DEFAULT_CONTAINER_NAME" ]; then
+            found="$name"
+        fi
+    done
+    printf '%s' "$found"
+}
+
+# The installation directory's container name for this agent: after the
+# Compose project the directory runs (a-z 0-9 _ - only, so a container name
+# too, once it starts with this agent's name).
+directory_container_name() {
+    local project=""
+    project="$(compose_project_name)"
+    case "$project" in
+        "") printf '%s' "$DEFAULT_CONTAINER_NAME" ;;
+        "$DEFAULT_CONTAINER_NAME"*) printf '%s' "$project" ;;
+        *) printf '%s-%s' "$DEFAULT_CONTAINER_NAME" "$project" ;;
+    esac
+}
+
+# Sets PROXMOX_AGENT_CONTAINER_NAME when neither the shell nor .env gave it,
+# as the block above says, and CONTAINER_NAME_SOURCE to where it came from.
+choose_container_name() {
+    local edited="" existing="" backed_up=""
+    edited="$(compose_container_name "$INSTALL_DIR/docker-compose.yml")"
+    existing="$(existing_container_name)"
+    if [ -n "$edited" ] && [ "$edited" != "$DEFAULT_CONTAINER_NAME" ]; then
+        PROXMOX_AGENT_CONTAINER_NAME="$edited"
+        CONTAINER_NAME_SOURCE="its docker-compose.yml"
+    elif [ -n "$existing" ] && [ "$existing" != "$DEFAULT_CONTAINER_NAME" ]; then
+        PROXMOX_AGENT_CONTAINER_NAME="$existing"
+        CONTAINER_NAME_SOURCE="the container it runs as"
+    else
+        backed_up="$(backup_container_name)"
+        if [ -n "$backed_up" ]; then
+            PROXMOX_AGENT_CONTAINER_NAME="$backed_up"
+            CONTAINER_NAME_SOURCE="its docker-compose.yml, kept as a backup by an earlier upgrade"
+        elif [ -n "$existing" ]; then
+            PROXMOX_AGENT_CONTAINER_NAME="$existing"
+            CONTAINER_NAME_SOURCE="the container it runs as"
+        else
+            PROXMOX_AGENT_CONTAINER_NAME="$(directory_container_name)"
+            CONTAINER_NAME_SOURCE="its directory"
+        fi
+    fi
+}
+
+# exported_container_names: which of COMPANION_CONTAINERS' variables the
+# shell gives, before .env is read back into them.
+exported_container_names() {
+    local variable="" rest=""
+    while IFS='|' read -r variable rest; do
+        if [ -n "$variable" ] && [ -n "${!variable:-}" ]; then
+            printf '%s ' "$variable"
+        fi
+    done <<COMPANIONS_EOF
+$COMPANION_CONTAINERS
+COMPANIONS_EOF
+}
+
+# kept_container_name <compose service> <its default name>: the name an agent
+# set up before .env held it gave the service's container by hand, or the
+# one it runs as, in choose_container_name's order; or nothing. The helpers
+# above read AGENT_SERVICE and DEFAULT_CONTAINER_NAME, which this gives the
+# service's for the time it asks them.
+kept_container_name() {
+    local AGENT_SERVICE="$1" DEFAULT_CONTAINER_NAME="$2"
+    local edited="" existing="" backed_up=""
+    edited="$(compose_container_name "$INSTALL_DIR/docker-compose.yml")"
+    existing="$(existing_container_name)"
+    if [ -n "$edited" ] && [ "$edited" != "$DEFAULT_CONTAINER_NAME" ]; then
+        printf '%s' "$edited"
+    elif [ -n "$existing" ] && [ "$existing" != "$DEFAULT_CONTAINER_NAME" ]; then
+        printf '%s' "$existing"
+    else
+        backed_up="$(backup_container_name)"
+        if [ -n "$backed_up" ]; then
+            printf '%s' "$backed_up"
+        else
+            printf '%s' "$existing"
+        fi
+    fi
+}
+
+# companion_container_name_for <collector's container name> <companion's
+# default> <role>: the name of a container that runs beside the collector,
+# beside its name: the companion's default beside the default,
+# <companion's default>-lab beside <collector's default>-lab, and
+# <name>-<role> beside any other name.
+companion_container_name_for() {
+    case "$1" in
+        "$DEFAULT_CONTAINER_NAME") printf '%s' "$2" ;;
+        "$DEFAULT_CONTAINER_NAME"-*) printf '%s%s' "$2" "${1#"$DEFAULT_CONTAINER_NAME"}" ;;
+        *) printf '%s-%s' "$1" "$3" ;;
+    esac
+}
+
+# choose_companion_container_names <collector's container name>: sets each
+# variable of COMPANION_CONTAINERS, as "The agent's container names" above
+# says: exported or in .env, checked; else, for an agent set up before .env
+# held them, the name the container was given by hand or runs as; else
+# beside the collector's. A name .env holds that was beside the collector's
+# old one, before the collector was given another, follows the new one.
+choose_companion_container_names() {
+    local collector="$1" variable="" service="" default="" role="" value=""
+    while IFS='|' read -r variable service default role; do
+        [ -n "$variable" ] || continue
+        value="${!variable:-}"
+        case " $EXPORTED_CONTAINER_NAMES " in
+            *" $variable "*) ;;
+            *)
+                if [ -n "$value" ] && [ -n "$KEPT_CONTAINER_NAME" ] \
+                    && [ "$value" = "$(companion_container_name_for "$KEPT_CONTAINER_NAME" "$default" "$role")" ]; then
+                    value=""
+                fi
+                ;;
+        esac
+        if [ -n "$value" ]; then
+            if ! is_container_name "$value"; then
+                echo "Error: $variable=\"$value\" is not a container name: a letter or a digit, then"
+                echo "letters, digits, _, . or - (e.g. $default-lab)."
+                exit 1
+            fi
+        elif [ -z "$KEPT_CONTAINER_NAME" ]; then
+            value="$(kept_container_name "$service" "$default")"
+        fi
+        if [ -z "$value" ]; then
+            value="$(companion_container_name_for "$collector" "$default" "$role")"
+        fi
+        printf -v "$variable" '%s' "$value"
+    done <<COMPANIONS_EOF
+$COMPANION_CONTAINERS
+COMPANIONS_EOF
+}
+
+# only_container_names_edited <compose file> <sha256 of the one installed>:
+# whether the file differs from the one install.sh installed in its
+# containers' names alone (the collector's and every companion's), each
+# given by hand: the edit a second agent on this machine needed, which .env
+# carries now, so nothing needs making again.
+only_container_names_edited() {
+    local file="$1" recorded="$2" restored="" restored_sha="" names="" variable="" service="" default="" role=""
+    [ -n "$recorded" ] || return 1
+    names="$AGENT_SERVICE=$DEFAULT_CONTAINER_NAME"
+    while IFS='|' read -r variable service default role; do
+        [ -n "$variable" ] && names="$names $service=$default"
+    done <<COMPANIONS_EOF
+$COMPANION_CONTAINERS
+COMPANIONS_EOF
+    restored="$(mktemp)" || return 1
+    awk -v names="$names" '
+        BEGIN {
+            count = split(names, pairs, " ")
+            for (i = 1; i <= count; i++) {
+                split(pairs[i], pair, "=")
+                default_of[pair[1]] = pair[2]
+            }
+        }
+        /^[[:space:]]*(#.*)?$/ { print; next }
+        {
+            match($0, /^[[:space:]]*/)
+            indent = RLENGTH
+            if (inside != "" && indent <= service_indent) { inside = "" }
+            if (inside == "" && $0 ~ /^[[:space:]]+[A-Za-z0-9_.-]+:[[:space:]]*(#.*)?$/) {
+                name = $0
+                sub(/^[[:space:]]+/, "", name)
+                sub(/:.*$/, "", name)
+                if (name in default_of && !(name in done)) {
+                    inside = name
+                    service_indent = indent
+                }
+            } else if (inside != "" && $0 ~ /^[[:space:]]+container_name:/) {
+                print "    container_name: " default_of[inside]
+                done[inside] = 1
+                inside = ""
+                next
+            }
+            print
+        }' "$file" > "$restored" 2>/dev/null || true
+    restored_sha="$(file_sha256 "$restored")"
+    rm -f "$restored"
+    [ -n "$restored_sha" ] && [ "$restored_sha" = "$recorded" ]
+}
+
+# ----------------------------------------------------------------------------
+# The agent's Compose project
+# ----------------------------------------------------------------------------
+# Compose names the project of a directory after the directory: lower case,
+# only a-z 0-9 _ and -, no leading _ or - ("PVE Lab (2)" is pvelab2), unless
+# COMPOSE_PROJECT_NAME says otherwise. Two directories of the same name are one
+# project to Compose, whatever their parents: the `up --force-recreate` below
+# would recreate the other directory's agent from this directory's files,
+# without a word. So an install whose project another directory runs stops
+# before it changes anything, and asks for a directory of another name.
+
+
+# The installation directory as Compose records it (an absolute path, with
+# no trailing /).
+absolute_install_dir() {
+    local dir="$INSTALL_DIR"
+    case "$dir" in
+        /*) ;;
+        *) dir="$(pwd)/$dir" ;;
+    esac
+    while [ "${dir%/}" != "$dir" ] && [ -n "${dir%/}" ]; do
+        dir="${dir%/}"
+    done
+    printf '%s' "$dir"
+}
+
+# The name of the Compose project the installation directory runs as.
+compose_project_name() {
+    local name="${COMPOSE_PROJECT_NAME:-}" dir=""
+    if [ -z "$name" ] && [ -f "$ENV_FILE" ]; then
+        name="$(dotenv_get COMPOSE_PROJECT_NAME "$ENV_FILE")"
+    fi
+    if [ -z "$name" ]; then
+        dir="$(absolute_install_dir)"
+        name="${dir##*/}"
+    fi
+    printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-' | sed 's/^[-_]*//'
+}
+
+# Whether $1 and $2 are one directory on this machine, however each is
+# spelled (a symlink, a trailing /).
+same_directory() {
+    local first="" second=""
+    first="$(cd "$1" 2>/dev/null && pwd -P)" || return 1
+    second="$(cd "$2" 2>/dev/null && pwd -P)" || return 1
+    [ "$first" = "$second" ]
+}
+
+# Another directory, still on this machine, whose containers run in the
+# Compose project this one would run in, or nothing. A directory that is
+# gone (the agent was moved) holds no agent but those containers, which are
+# this one's to replace.
+other_project_directory() {
+    local project="" here="" dir=""
+    project="$(compose_project_name)"
+    [ -n "$project" ] || return 0
+    here="$(absolute_install_dir)"
+    while IFS= read -r dir; do
+        dir="${dir%/}"
+        [ -n "$dir" ] && [ "$dir" != "$here" ] && [ -d "$dir" ] || continue
+        same_directory "$dir" "$here" && continue
+        printf '%s' "$dir"
+        return 0
+    done <<PROJECT_DIRECTORIES_EOF
+$(docker ps -a --filter "label=com.docker.compose.project=$project" \
+    --format '{{.Label "com.docker.compose.project.working_dir"}}' 2>/dev/null | sort -u)
+PROJECT_DIRECTORIES_EOF
+}
+
 # Installation directory (decided first so an existing .env can be reused)
 INSTALL_DIR="${INSTALL_DIR:-/opt/oneuptime-proxmox-agent}"
 ENV_FILE="$INSTALL_DIR/.env"
@@ -187,7 +540,17 @@ PVE_VERIFY_SSL PVE_CA_FILE COMPOSE_PROFILES \
 ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES ONEUPTIME_AI_ALLOW_WRITES \
 ONEUPTIME_AI_PVE_API_TOKEN_ID ONEUPTIME_AI_PVE_API_TOKEN_SECRET \
 ONEUPTIME_AI_WRITE_TARGETS ONEUPTIME_AI_PROTECTED_TARGETS \
-ONEUPTIME_AI_AGENT_RESOURCE_NAME LOG_LEVEL"
+ONEUPTIME_AI_AGENT_RESOURCE_NAME LOG_LEVEL \
+PROXMOX_AGENT_CONTAINER_NAME PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME \
+PROXMOX_PVE_EXPORTER_CONTAINER_NAME PROXMOX_AI_AGENT_CONTAINER_NAME"
+
+# The container names the shell gives, and the collector's as .env has it
+# (see "The agent's container names" above), before .env is read back.
+EXPORTED_CONTAINER_NAMES="$(exported_container_names)"
+KEPT_CONTAINER_NAME=""
+if [ -f "$ENV_FILE" ]; then
+    KEPT_CONTAINER_NAME="$(dotenv_get PROXMOX_AGENT_CONTAINER_NAME "$ENV_FILE")"
+fi
 
 # Re-running the installer is the upgrade, and it keeps the existing
 # configuration: every value already in .env is reused unless the same
@@ -356,6 +719,49 @@ if [ "$ONEUPTIME_AI_ALLOW_WRITES" = "true" ] && [ "$REUSED_ENV" = 0 ]; then
     fi
 fi
 
+# The agent's container names (see "The agent's container names" above):
+# the collector's exported or in .env, checked, or else the one this
+# directory's agent already has, or its directory's; then the others'.
+CONTAINER_NAME_SOURCE=""
+if [ -n "$PROXMOX_AGENT_CONTAINER_NAME" ]; then
+    if ! is_container_name "$PROXMOX_AGENT_CONTAINER_NAME"; then
+        echo "Error: PROXMOX_AGENT_CONTAINER_NAME=\"$PROXMOX_AGENT_CONTAINER_NAME\" is not a container name: a letter or"
+        echo "a digit, then letters, digits, _, . or - (e.g. $DEFAULT_CONTAINER_NAME-cluster2)."
+        exit 1
+    fi
+else
+    choose_container_name
+fi
+choose_companion_container_names "$PROXMOX_AGENT_CONTAINER_NAME"
+if [ "$PROXMOX_AGENT_CONTAINER_NAME" != "$DEFAULT_CONTAINER_NAME" ]; then
+    echo ""
+    case "$CONTAINER_NAME_SOURCE" in
+        "its directory")
+            echo "The agent's containers are named after its directory, so they do not take the names of"
+            echo "another cluster's agent on this machine:"
+            ;;
+        "")
+            echo "The agent's containers are named as you gave them (PROXMOX_AGENT_CONTAINER_NAME and the others):"
+            ;;
+        *)
+            echo "The agent's containers keep their names, from $CONTAINER_NAME_SOURCE:"
+            ;;
+    esac
+    echo "  $PROXMOX_AGENT_CONTAINER_NAME, $PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME,"
+    echo "  $PROXMOX_PVE_EXPORTER_CONTAINER_NAME and $PROXMOX_AI_AGENT_CONTAINER_NAME."
+fi
+
+# Another directory of the same name runs this directory's Compose project
+# (see "The agent's Compose project" above): stop before anything changes.
+OTHER_PROJECT_DIR="$(other_project_directory)"
+if [ -n "$OTHER_PROJECT_DIR" ]; then
+    echo "Error: $OTHER_PROJECT_DIR already runs containers in the Docker Compose project"
+    echo "\"$(compose_project_name)\": Compose names a project after its directory, and gives $INSTALL_DIR"
+    echo "that name too. Installing here would recreate them and run this agent in their place. Install"
+    echo "it into a directory of another name instead, e.g. INSTALL_DIR=$(absolute_install_dir)-2 bash install.sh"
+    exit 1
+fi
+
 # Create installation directory
 echo ""
 echo "Installing to: $INSTALL_DIR"
@@ -415,6 +821,13 @@ fetch_agent_file() {
     exit 1
 }
 
+# What install.sh had installed as docker-compose.yml, for
+# only_container_names_edited once the download has replaced it.
+INSTALLED_COMPOSE_SHA=""
+if [ -f "$AGENT_FILES_RECORD" ]; then
+    INSTALLED_COMPOSE_SHA="$(awk '$2 == "docker-compose.yml" { sha = $1 } END { print sha }' "$AGENT_FILES_RECORD")"
+fi
+
 # Download configuration files
 echo "Downloading configuration files..."
 rm -f "$AGENT_FILES_RECORD.new"
@@ -427,6 +840,22 @@ if [ -f "$AGENT_FILES_RECORD.new" ]; then
 else
     rm -f "$AGENT_FILES_RECORD"
 fi
+# A docker-compose.yml whose one change was the containers' names is not a
+# change to make again: .env carries the names now.
+RENAMED_COMPOSE_BACKUP=""
+KEPT_EDITS=()
+for backup in "${EDITED_FILES[@]}"; do
+    case "${backup##*/}" in
+        docker-compose.yml.bak.*)
+            if only_container_names_edited "$backup" "$INSTALLED_COMPOSE_SHA"; then
+                RENAMED_COMPOSE_BACKUP="$backup"
+                continue
+            fi
+            ;;
+    esac
+    KEPT_EDITS+=("$backup")
+done
+EDITED_FILES=("${KEPT_EDITS[@]}")
 
 # Create .env file. It holds the Proxmox API token secrets, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
@@ -456,6 +885,10 @@ ONEUPTIME_AI_WRITE_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_WRITE_TARGETS")
 ONEUPTIME_AI_PROTECTED_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_PROTECTED_TARGETS")
 ONEUPTIME_AI_AGENT_RESOURCE_NAME=$(compose_env_quote "$ONEUPTIME_AI_AGENT_RESOURCE_NAME")
 LOG_LEVEL=$(compose_env_quote "$LOG_LEVEL")
+PROXMOX_AGENT_CONTAINER_NAME=$(compose_env_quote "$PROXMOX_AGENT_CONTAINER_NAME")
+PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME=$(compose_env_quote "$PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME")
+PROXMOX_PVE_EXPORTER_CONTAINER_NAME=$(compose_env_quote "$PROXMOX_PVE_EXPORTER_CONTAINER_NAME")
+PROXMOX_AI_AGENT_CONTAINER_NAME=$(compose_env_quote "$PROXMOX_AI_AGENT_CONTAINER_NAME")
 ENVEOF
 chmod 600 "$ENV_FILE"
 
@@ -483,7 +916,19 @@ fi
 # otel-collector-config.yaml (a bind mount), and the collector reads its
 # config only when it starts. A plain `up -d` would keep the old config —
 # and the old oneuptime.agent.version — running after the new one arrived.
-docker compose up -d --force-recreate
+if ! docker compose up -d --force-recreate; then
+    echo ""
+    echo "Error: the agent did not start. If Docker reports that a container name is already in"
+    echo "use ($PROXMOX_AGENT_CONTAINER_NAME, $PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME,"
+    echo "$PROXMOX_PVE_EXPORTER_CONTAINER_NAME or $PROXMOX_AI_AGENT_CONTAINER_NAME), another container on this"
+    echo "machine has it (another cluster's agent, say): give this agent names of its own and run this"
+    echo "again, e.g."
+    echo "  PROXMOX_AGENT_CONTAINER_NAME=$DEFAULT_CONTAINER_NAME-<cluster> INSTALL_DIR=$INSTALL_DIR bash install.sh"
+    echo "(its sidecars and AI agent are named beside it, or by PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME,"
+    echo "PROXMOX_PVE_EXPORTER_CONTAINER_NAME and PROXMOX_AI_AGENT_CONTAINER_NAME). They are kept in"
+    echo "$ENV_FILE from then on (see README.md, \"Monitoring several clusters\")."
+    exit 1
+fi
 
 echo ""
 echo "=========================================="
@@ -505,8 +950,8 @@ fi
 echo ""
 echo "To check status:  cd $INSTALL_DIR && docker compose ps"
 echo "To view logs:     cd $INSTALL_DIR && docker compose logs -f"
-echo "AI agent status:  docker exec oneuptime-proxmox-ai-agent wget -qO- http://127.0.0.1:3877/status"
-echo "Node it reads:    docker logs oneuptime-pve-api-failover"
+echo "AI agent status:  docker exec $PROXMOX_AI_AGENT_CONTAINER_NAME wget -qO- http://127.0.0.1:3877/status"
+echo "Node it reads:    docker logs $PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME"
 echo "To stop:          cd $INSTALL_DIR && docker compose down"
 echo "To restart:       cd $INSTALL_DIR && docker compose restart"
 echo "To upgrade:       run this installer again; it reuses $ENV_FILE"
@@ -539,4 +984,16 @@ if [ "${#DIFFERING_FILES[@]}" -gt 0 ]; then
         echo "  $backup"
     done
     echo "If they do, apply the same edits to the new files, then: cd $INSTALL_DIR && docker compose up -d --force-recreate"
+fi
+if [ -n "$RENAMED_COMPOSE_BACKUP" ]; then
+    echo ""
+    echo "Your docker-compose.yml gave the agent's containers names of their own, the one change you"
+    echo "had made to it. The new docker-compose.yml reads the names from .env"
+    echo "(PROXMOX_AGENT_CONTAINER_NAME and the others), so there is nothing to make again."
+    echo "Your copy is kept: $RENAMED_COMPOSE_BACKUP"
+elif [ "$CONTAINER_NAME_SOURCE" = "its docker-compose.yml" ]; then
+    echo ""
+    echo "The new docker-compose.yml reads the containers' names from .env (PROXMOX_AGENT_CONTAINER_NAME"
+    echo "and the others): leave their container_name lines as they are when you make your other"
+    echo "changes again."
 fi

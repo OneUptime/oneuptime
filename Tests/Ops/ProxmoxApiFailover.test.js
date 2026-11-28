@@ -233,7 +233,11 @@ describe("agents/ProxmoxAgent/docker-compose.yml, the pve-api-failover service",
     expect(FAILOVER.image).toMatch(
       /^curlimages\/curl:\d+\.\d+\.\d+@sha256:[0-9a-f]{64}$/,
     );
-    expect(FAILOVER.container_name).toBe("oneuptime-pve-api-failover");
+    // Its name from .env, beside the collector's for a second cluster's
+    // agent (ProxmoxAgentContainerNames.test.js).
+    expect(FAILOVER.container_name).toBe(
+      "${PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME:-oneuptime-pve-api-failover}",
+    );
     // tini forwards docker stop's SIGTERM to the script.
     expect(FAILOVER.init).toBe(true);
     expect(FAILOVER.user).toBe("100:101");

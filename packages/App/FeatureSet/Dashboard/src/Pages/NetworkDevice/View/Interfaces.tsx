@@ -257,6 +257,7 @@ const NetworkDeviceInterfaces: FunctionComponent<
       return <></>;
     }
 
+    // The type's English name, which the badge looks up once.
     return (
       <Pill
         text={title}

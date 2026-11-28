@@ -158,6 +158,8 @@ Docker Compose reads these from the `.env` next to `docker-compose.yml`; the ins
 | `VCENTER_PASSWORD` | Yes | That user's password. If it contains `$`, `#`, spaces or quotes, single-quote it in `.env` (`install.sh` does this for you) — see Troubleshooting; without Docker, double-quote it instead (see [Quick Start — Without Docker](#quick-start--without-docker)) |
 | `VCENTER_INSECURE_SKIP_VERIFY` | No | `true` to accept vCenter's default self-signed (VMCA) certificate; `false` keeps TLS verification on (default: `false`) |
 | `VCENTER_COLLECTION_INTERVAL` | No | How often the whole inventory is polled. Raise to `5m` or `10m` for very large vCenters (default: `2m`) |
+| `VMWARE_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-vmware-agent`). A second vCenter's agent on the same machine needs names of its own ([Monitoring several vCenters](#monitoring-several-vcenters)): `install.sh` names a new agent's containers after its directory unless you set them, and keeps them on every re-run |
+| `VMWARE_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-vmware-ai-agent`; beside the collector's for a second agent, e.g. `oneuptime-vmware-ai-agent-vcenter2`) |
 
 ## Collected Metrics
 
@@ -304,6 +306,20 @@ docker exec oneuptime-vmware-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `... which the VMware AI agent protects` | The VM is named after `VCENTER_ENDPOINT`'s host or is in `ONEUPTIME_AI_PROTECTED_TARGETS`; leave that change to a person. |
 | `This vCenter has more than one datacenter` | Set `GOVC_DATACENTER`, or OneUptime AI names objects by their full path. |
 | `Killed (timeout ...): govc produced no output at all` | vCenter is unreachable from the agent: check `VCENTER_ENDPOINT` and the network to it on TCP 443. |
+
+## Monitoring several vCenters
+
+One agent reads one vCenter. To monitor several from the same machine, install each into its own directory, with its own `.env` and container names of its own — two containers cannot share a name:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-vmware-agent-vcenter2 bash install.sh
+```
+
+`install.sh` names the agent's containers after the directory (`oneuptime-vmware-agent-vcenter2` and `oneuptime-vmware-ai-agent-vcenter2`); set `VMWARE_AGENT_CONTAINER_NAME` and the other `*_CONTAINER_NAME` variables when you run it to choose them yourself. It keeps them in that agent's `.env`, so a re-run (the upgrade) keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. Give each directory a name of its own: Compose names a project after its directory alone, so `install.sh` refuses a directory named like one that already runs an agent elsewhere, before it changes anything. With Docker Compose, set the names in each agent's `.env` instead.
+
+The systemd unit assumes `/opt/oneuptime-vmware-agent`: copy it under another name for another directory and change its `WorkingDirectory`. Pass the directory to the doctor script with `-d`.
+
+If the first agent publishes the syslog port, publish the second's on another one (e.g. `5515:5514`) and point that vCenter's hosts at it. Without Docker there is no container: a second agent is a second unit, under another name, whose `EnvironmentFile` and `ExecStart` name its own directory and whose collector reports its own metrics on another port than `8890`.
 
 ## Run as a systemd Service
 

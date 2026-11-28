@@ -101,8 +101,29 @@ describe("ingest writes only what this module reads", () => {
     const body: string = getRumClientTypeBody();
 
     expect(body).toContain("RumClientKind | null");
-    expect(body).toContain("return RUM_CLIENT_KIND_BROWSER;");
-    expect(body).toContain("return RUM_CLIENT_KIND_MOBILE;");
     expect(body).not.toMatch(/return "(browser|mobile)";/);
+
+    /*
+     * Since #11257 the ingest reads a resource with this module's own
+     * classifier, which Inventory shares: it returns this module's
+     * constants, never a literal of its own.
+     */
+    expect(body).toContain("return getRumClientKindOfResource({");
+
+    const moduleSource: string = fs.readFileSync(
+      path.join(__dirname, "../../../Types/Rum/RumClientKind.ts"),
+      "utf8",
+    );
+    const start: number = moduleSource.indexOf(
+      "export function getRumClientKindOfResource(",
+    );
+    expect(start).toBeGreaterThan(-1);
+    const end: number = moduleSource.indexOf("\n}\n", start);
+    expect(end).toBeGreaterThan(start);
+    const classifier: string = moduleSource.slice(start, end);
+
+    expect(classifier).toContain("return RUM_CLIENT_KIND_BROWSER;");
+    expect(classifier).toContain("return RUM_CLIENT_KIND_MOBILE;");
+    expect(classifier).not.toMatch(/return "(browser|mobile)";/);
   });
 });

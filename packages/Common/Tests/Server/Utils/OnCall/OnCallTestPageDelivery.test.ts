@@ -68,6 +68,7 @@ import {
   timedOutRequestError,
   unresolvedNameRequestError,
 } from "../../TestingUtils/NotificationRequestErrors";
+import { getSpokenCall } from "../../../../Utils/Call/CallLanguage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -902,7 +903,7 @@ describe("call", () => {
     expect(gather.responseUrl.toString()).toBe(CALL_RESPONSE_URL);
   });
 
-  test("to a person who reads Persian, is English only: no voice speaks Persian", async () => {
+  test("to a person who reads Persian, carries its Persian beside its English: Twilio speaks the English, a gateway may speak Persian (#11459)", async () => {
     await deliver(
       {
         userCall: {
@@ -920,7 +921,12 @@ describe("call", () => {
       JSONObject,
     ];
 
-    expect(callRequest.inLanguage).toBeUndefined();
+    expect(callRequest.inLanguage?.language).toBe("fa");
+    expect(callRequest.inLanguage!.data.length).toBe(callRequest.data.length);
+    // No voice of Twilio's speaks Persian: through it, the call is the English one.
+    expect(getSpokenCall(callRequest, "Polly.Joanna-Neural").language).toBe(
+      "en",
+    );
   });
 });
 
@@ -1549,7 +1555,6 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
       const result: OnCallTestPageResultDelivery = toDelivery({
         delivery: row,
-        isDelivered: false,
       });
 
       expect(result.channel).toBe(channel);
@@ -1574,9 +1579,7 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
     row.id = new ObjectID("abababab-abab-4bab-8bab-abababababab");
 
-    expect(
-      toDelivery({ delivery: row, isDelivered: false }).statusMessageCode,
-    ).toEqual({
+    expect(toDelivery({ delivery: row }).statusMessageCode).toEqual({
       code: OnCallTestPageLineCode.MethodNotVerified,
       channel: OnCallPageChannel.CustomChannel,
     });
@@ -1597,7 +1600,6 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
     const result: OnCallTestPageResultDelivery = toDelivery({
       delivery: row,
-      isDelivered: false,
     });
 
     expect(result.statusMessage).toBe(row.statusMessage);
@@ -1651,7 +1653,6 @@ describe("a method that is not verified: named, and read as a code (#7260)", () 
 
       const result: OnCallTestPageResultDelivery = toDelivery({
         delivery: row,
-        isDelivered: false,
       });
 
       // The English stays, for every other reader of the API.

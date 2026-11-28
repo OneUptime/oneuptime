@@ -22,9 +22,17 @@ metadata:
 # reads the node, never the Kubernetes API.
 automountServiceAccountToken: false
 {{- $groups := $values.nodeGroups | default (list (dict "name" "workers")) }}
-{{- range $groups }}
+{{- range $index, $group := $groups }}
+{{- /*
+  control-plane is the run on a control plane node's: two CronJobs of one
+  name cannot both be installed. Refused here rather than in
+  values.schema.json, where a `not` could only say "'not' failed".
+*/}}
+{{- if eq (toString $group.name) "control-plane" }}
+{{- fail (printf "compliance.nodeBenchmark.nodeGroups[%d].name is control-plane, the name of kube-bench's run on a control plane node (its CronJob is %s). Give this node group another name." $index (include "kubernetes-agent.nodeBenchmarkCronJobName" (dict "root" $ "group" "control-plane"))) }}
+{{- end }}
 ---
-{{ include "kubernetes-agent.nodeBenchmarkCronJob" (dict "root" $ "group" . "controlPlane" false) }}
+{{ include "kubernetes-agent.nodeBenchmarkCronJob" (dict "root" $ "group" $group "controlPlane" false) }}
 {{- end }}
 {{- if eq (include "kubernetes-agent.nodeBenchmarkControlPlane" .) "true" }}
 ---

@@ -35,7 +35,10 @@ function items(vendorTemplateId: string): Array<NetworkDeviceAlertPackItem> {
   );
 }
 
-function item(vendorTemplateId: string, name: string): NetworkDeviceAlertPackItem {
+function item(
+  vendorTemplateId: string,
+  name: string,
+): NetworkDeviceAlertPackItem {
   const found: NetworkDeviceAlertPackItem | undefined = items(
     vendorTemplateId,
   ).find((candidate: NetworkDeviceAlertPackItem) => {
@@ -47,11 +50,12 @@ function item(vendorTemplateId: string, name: string): NetworkDeviceAlertPackIte
 }
 
 function names(vendorTemplateId: string | undefined): Array<string> {
-  return NetworkDeviceAlertPackUtil.getPackItems(undefined, vendorTemplateId).map(
-    (candidate: NetworkDeviceAlertPackItem) => {
-      return candidate.name;
-    },
-  );
+  return NetworkDeviceAlertPackUtil.getPackItems(
+    undefined,
+    vendorTemplateId,
+  ).map((candidate: NetworkDeviceAlertPackItem) => {
+    return candidate.name;
+  });
 }
 
 function trapResponse(trap: Partial<SnmpTrap>): ProbeMonitorResponse {
@@ -117,8 +121,10 @@ describe("what a SAN switch's pack holds", () => {
   });
 
   test("Fibre Channel port errors: more than once in ten seconds, per port, on SNMP Interface Errors (per second)", () => {
-    const filter: CriteriaFilter = item("brocade-fos", "Fibre Channel port errors")
-      .filters[0]!;
+    const filter: CriteriaFilter = item(
+      "brocade-fos",
+      "Fibre Channel port errors",
+    ).filters[0]!;
 
     expect(filter).toEqual({
       checkOn: CheckOn.SnmpInterfaceErrorsPerSecond,
@@ -260,7 +266,10 @@ describe("Brocade Fabric OS traps", () => {
     ["Field-replaceable unit changed", "1.3.6.1.4.1.1588.2.1.2.2.0.2"],
   ])("%s fires on %s", async (name: string, trapOid: string) => {
     expect(
-      await fires(item("brocade-fos", name), trapResponse({ trapOid: trapOid })),
+      await fires(
+        item("brocade-fos", name),
+        trapResponse({ trapOid: trapOid }),
+      ),
     ).toBe(true);
   });
 
@@ -270,11 +279,14 @@ describe("Brocade Fabric OS traps", () => {
     });
 
     expect(
-      await fires(item("brocade-fos", "Field-replaceable unit changed"), zoneChange),
+      await fires(
+        item("brocade-fos", "Field-replaceable unit changed"),
+        zoneChange,
+      ),
     ).toBe(false);
-    expect(await fires(item("brocade-fos", "Fabric segmented"), zoneChange)).toBe(
-      false,
-    );
+    expect(
+      await fires(item("brocade-fos", "Fabric segmented"), zoneChange),
+    ).toBe(false);
   });
 });
 

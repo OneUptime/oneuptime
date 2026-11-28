@@ -90,6 +90,52 @@ type RedactSecretsFromStringFunction = (
   secrets: Array<string>,
 ) => string;
 
+/*
+ * Values longer than this are taken out by their text, one after another,
+ * rather than in the one pattern the shorter ones share (#11476): a value a
+ * step marked sensitive and handed on can be megabytes of base64, and a
+ * pattern of megabytes is slow to build and to run.
+ */
+export const LONG_REDACTED_VALUE_LENGTH: number = 256;
+
+// The pattern of each list of short values, built once.
+const SHORT_VALUE_PATTERNS: Map<string, RegExp> = new Map();
+const MAX_CACHED_PATTERNS: number = 100;
+
+const getShortValuePattern: (shortValues: Array<string>) => RegExp = (
+  shortValues: Array<string>,
+): RegExp => {
+  const key: string = shortValues.join("\u0000");
+  const known: RegExp | undefined = SHORT_VALUE_PATTERNS.get(key);
+
+  if (known) {
+    return known;
+  }
+
+  /*
+   * One global expression replaces every occurrence without processing the
+   * replacement marker again. The alternatives are longest-first from
+   * getSecretValuesForRedaction, which prevents a shorter overlapping secret
+   * from exposing the tail of a longer one.
+   */
+  const pattern: RegExp = new RegExp(
+    shortValues
+      .map((secret: string) => {
+        return escapeRegExp(secret);
+      })
+      .join("|"),
+    "g",
+  );
+
+  if (SHORT_VALUE_PATTERNS.size >= MAX_CACHED_PATTERNS) {
+    SHORT_VALUE_PATTERNS.clear();
+  }
+
+  SHORT_VALUE_PATTERNS.set(key, pattern);
+
+  return pattern;
+};
+
 export const redactSecretsFromString: RedactSecretsFromStringFunction = (
   value: string,
   secrets: Array<string>,
@@ -98,19 +144,69 @@ export const redactSecretsFromString: RedactSecretsFromStringFunction = (
     return value;
   }
 
-  const escapedSecrets: Array<string> = secrets.map((secret: string) => {
-    return escapeRegExp(secret);
-  });
+  const longValues: Array<string> = [];
+  const shortValues: Array<string> = [];
+
+  for (const secret of secrets) {
+    if (!secret) {
+      continue;
+    }
+
+    if (secret.length > LONG_REDACTED_VALUE_LENGTH) {
+      longValues.push(secret);
+    } else {
+      shortValues.push(secret);
+    }
+  }
+
+  const redactShort: (text: string) => string = (text: string): string => {
+    if (!text || shortValues.length === 0) {
+      return text;
+    }
+
+    const pattern: RegExp = getShortValuePattern(shortValues);
+    pattern.lastIndex = 0;
+
+    return text.replace(pattern, () => {
+      return WORKFLOW_LOG_REDACTED_VALUE;
+    });
+  };
+
+  if (longValues.length === 0) {
+    return redactShort(value);
+  }
 
   /*
-   * One global expression replaces every occurrence without processing the
-   * replacement marker again. The alternatives are longest-first from
-   * getSecretValuesForRedaction, which prevents a shorter overlapping secret
-   * from exposing the tail of a longer one.
+   * The text as pieces between the long values (null where one was), the
+   * longest taken out first so a shorter one inside it is gone with it; the
+   * short values are then taken out of each piece, never out of a marker.
    */
-  const secretPattern: RegExp = new RegExp(escapedSecrets.join("|"), "g");
+  let pieces: Array<string | null> = [value];
 
-  return value.replace(secretPattern, () => {
-    return WORKFLOW_LOG_REDACTED_VALUE;
-  });
+  for (const longValue of longValues) {
+    const next: Array<string | null> = [];
+
+    for (const piece of pieces) {
+      if (piece === null || !piece.includes(longValue)) {
+        next.push(piece);
+        continue;
+      }
+
+      piece.split(longValue).forEach((part: string, index: number): void => {
+        if (index > 0) {
+          next.push(null);
+        }
+
+        next.push(part);
+      });
+    }
+
+    pieces = next;
+  }
+
+  return pieces
+    .map((piece: string | null): string => {
+      return piece === null ? WORKFLOW_LOG_REDACTED_VALUE : redactShort(piece);
+    })
+    .join("");
 };

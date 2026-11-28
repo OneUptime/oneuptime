@@ -182,10 +182,11 @@ describe("the monitor claim reads only what it hands out", () => {
   }
 
   /*
-   * `nextPingAt <= now ORDER BY nextPingAt ASC LIMIT n` is a range of the
-   * (probeId, isEnabled, nextPingAt) btree in its own order: Postgres reads
-   * it until it has n rows that pass and stops. `IS NULL OR` and
-   * `NULLS FIRST` made it read, join and sort every due row instead.
+   * `nextPingAt <= now ORDER BY nextPingAt ASC, lastPingAt ASC LIMIT n` is a
+   * range of the (probeId, isEnabled, nextPingAt, lastPingAt) btree in its
+   * own order: Postgres reads it until it has n rows that pass and stops.
+   * `IS NULL OR` and `NULLS FIRST` made it read, join and sort every due row
+   * instead.
    */
   test("its read is a range of the scheduler index, oldest first, that stops at its limit", async () => {
     const { statements } = await claim([]);
@@ -194,7 +195,9 @@ describe("the monitor claim reads only what it hands out", () => {
     expect(read).toContain('WHERE mp."probeId" = $1');
     expect(read).toContain('AND mp."isEnabled" = true');
     expect(read).toContain('AND mp."nextPingAt" <= $2');
-    expect(read).toContain('ORDER BY mp."nextPingAt" ASC LIMIT $3');
+    expect(read).toContain(
+      'ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC LIMIT $3',
+    );
     expect(read).not.toContain("NULLS FIRST");
     expect(read).not.toMatch(/"nextPingAt" IS NULL OR/);
     // The batch the probe asked for: claims made at once each lock their own.
@@ -206,14 +209,49 @@ describe("the monitor claim reads only what it hands out", () => {
     const sql: string = normalizeSql(statements[0]!.sql);
 
     expect(readOf(sql)).toContain(
-      'SELECT mp."_id", mp."nextPingAt" AS "dueAt", m."monitoringInterval"',
+      'SELECT mp."_id", mp."nextPingAt" AS "dueAt", mp."lastPingAt" AS "lastHandedOutAt", m."monitoringInterval"',
     );
     expect(sql).toContain(
-      'RETURNING mp."_id", c."dueAt", c."monitoringInterval"',
+      'RETURNING mp."_id", c."dueAt", c."lastHandedOutAt", c."monitoringInterval"',
     );
     // With each claimed row's monitor, as the probe is handed it (#11120).
     expect(sql).toMatch(
-      /SELECT c\."_id", c\."dueAt", c\."monitoringInterval", c\."scheduled", c\."monitorId", c\."monitorProjectId", c\."monitorType", c\."monitorSteps", f\."steppedOver" FROM "flags" f LEFT JOIN "claimed" c ON true ORDER BY c\."dueAt" ASC NULLS FIRST$/,
+      /SELECT c\."_id", c\."dueAt", c\."monitoringInterval", c\."scheduled", c\."monitorId", c\."monitorProjectId", c\."monitorType", c\."monitorSteps", f\."steppedOver" FROM "flags" f LEFT JOIN "claimed" c ON true ORDER BY c\."dueAt" ASC NULLS FIRST, c\."lastHandedOutAt" ASC$/,
+    );
+  });
+
+  /*
+   * #11386: rows due at the same moment - every one-minute monitor a probe
+   * claims is stamped with the same next minute - go by when each was last
+   * handed out, oldest first, so a probe's round hands them out as the
+   * round before did and the ones it reached after the minute go first next
+   * time. lastPingAt is what this statement writes on each row it claims,
+   * and it is the index's last column, so the order is still the index's
+   * own. A row never handed out (NULL) waits behind the others due with
+   * it, as the index holds NULLs (ASC NULLS LAST), never ahead of them with
+   * a sort. The probe is answered in the same order.
+   */
+  test("rows due at the same moment go by when each was last handed out, oldest first, in the index's own order, and the probe is answered in that order (#11386)", async () => {
+    const { statements } = await claim([]);
+    const sql: string = normalizeSql(statements[0]!.sql);
+    const read: string = readOf(sql);
+
+    // Due first; of rows due at once, the one handed out longest ago.
+    expect(read).toMatch(
+      /ORDER BY mp\."nextPingAt" ASC, mp\."lastPingAt" ASC LIMIT \$3 FOR NO KEY UPDATE OF mp SKIP LOCKED/,
+    );
+    // Nothing but the index's own columns, in its own direction and NULL order.
+    expect(read).not.toMatch(/"lastPingAt" (DESC|ASC NULLS FIRST)/);
+    expect(read).not.toMatch(/ORDER BY[^)]*"_id"/);
+    expect(read).not.toMatch(/ORDER BY[^)]*COALESCE/);
+
+    // What this claim writes: the next claim's order.
+    expect(sql).toContain('SET "lastPingAt" = $2,');
+    expect(statements[0]!.parameters[1]).toBeInstanceOf(Date);
+
+    // The answer in the order the rows were taken.
+    expect(sql).toMatch(
+      /ORDER BY c\."dueAt" ASC NULLS FIRST, c\."lastHandedOutAt" ASC$/,
     );
   });
 

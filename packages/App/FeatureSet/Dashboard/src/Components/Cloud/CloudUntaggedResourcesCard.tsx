@@ -9,6 +9,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -153,7 +154,9 @@ const UntaggedRow: FunctionComponent<{
             </span>
             {props.showAccount && resource.accountName ? (
               <>
-                <span aria-hidden="true">{" · "}</span>
+                <span aria-hidden="true">
+                  <InlineSeparator />
+                </span>
                 <bdi>{resource.accountName}</bdi>
               </>
             ) : (

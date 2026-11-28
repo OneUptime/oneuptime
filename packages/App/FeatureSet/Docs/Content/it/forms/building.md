@@ -256,6 +256,7 @@ Un invio che supera un limite, omette una risposta obbligatoria o dà una rispos
 
 :::cards
 - [Cosa crea un invio](/docs/forms/on-submit): Come le risposte e le impostazioni All'invio diventano un incidente o un evento di manutenzione.
+- [Seguire un invio](/docs/forms/follow-ups): Chi invia segue la propria richiesta, scrive al tuo team e aggiunge altre persone.
 - [Condivisione e sicurezza](/docs/forms/sharing-and-security): Condividere il link, un link per ogni modello, e cosa li protegge.
 - [Impostazioni e automazione degli incidenti](/docs/incidents/settings): Campi personalizzati e modelli degli incidenti.
 :::

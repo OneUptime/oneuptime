@@ -74,6 +74,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
+import { answerSharedNames } from "../../SuiteHelpers/SharedNameAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import CloudLayout from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Layout";
 import CloudOverview from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/Index";
@@ -174,6 +175,8 @@ import OwnerRules from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Se
 import LabelRules from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Settings/LabelRules";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import OpenStackBudget from "Common/Models/DatabaseModels/OpenStackBudget";
 import Project from "Common/Models/DatabaseModels/Project";
 import Color from "Common/Types/Color";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -190,6 +193,12 @@ import Search from "Common/Types/BaseDatabase/Search";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
+import {
+  MONITOR_RECOMMENDATION_COVERAGE_PATH,
+  MonitorRecommendationCoverageMatcher,
+  readCoverageQuestions,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationCoverageQuestions";
+import MonitorRecommendationCreateUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationCreateUtil";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -699,6 +708,63 @@ const monitors = monitorIds
     return monitorFor(recommendationId, index + 1);
   })
   .filter(Boolean);
+
+/*
+ * Which recommended alerts the cloud has already (POST /monitor/recommendation-coverage,
+ * #11074), answered from these monitors as MonitorRecommendationCoverageQuery answers it:
+ * for each monitor type asked about, the monitors of that type by name, each matched by the
+ * server's own matcher, the first by name covering a recommendation. The route's refusals
+ * are the server's too: a role that may not read monitors, and questions it cannot read.
+ */
+function answerRecommendationCoverage(body) {
+  const refusal = "You do not have permission to read this project's monitors.";
+  if (ALERTS === "denied") {
+    return new HTTPErrorResponse(403, { message: refusal }, {});
+  }
+  try {
+    refuseUnlessRoleMay(Monitor, "read");
+  } catch {
+    return new HTTPErrorResponse(403, { message: refusal }, {});
+  }
+
+  let questions;
+  try {
+    questions = readCoverageQuestions(body);
+  } catch (error) {
+    return new HTTPErrorResponse(400, { message: error.message }, {});
+  }
+
+  const covered = {};
+  const monitorTypes = new Set(
+    questions.map((question) => {
+      return question.monitorType;
+    }),
+  );
+  for (const monitorType of monitorTypes) {
+    const matcher = new MonitorRecommendationCoverageMatcher(
+      questions.filter((question) => {
+        return question.monitorType === monitorType;
+      }),
+    );
+    const byName = monitors
+      .filter((monitor) => {
+        return monitor.monitorType === monitorType;
+      })
+      .sort((a, b) => {
+        return a.name.localeCompare(b.name) || a._id.localeCompare(b._id);
+      });
+    for (const monitor of byName) {
+      matcher.addMonitor(
+        monitor._id,
+        MonitorRecommendationCreateUtil.getExistingMonitorSteps([monitor]),
+      );
+    }
+    for (const [key, monitorId] of matcher.getAnswer()) {
+      covered[key] = monitorId;
+    }
+  }
+  return ok({ covered });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -2254,6 +2320,13 @@ async function handleApi(method, options) {
   });
 
   if (method === "POST") {
+    if (
+      parsed.pathname.endsWith(
+        `/monitor${MONITOR_RECOMMENDATION_COVERAGE_PATH}`,
+      )
+    ) {
+      return answerRecommendationCoverage(body);
+    }
     if (parsed.pathname.endsWith("/resource-ai-access/status")) {
       return ok(
         getAiAccessStatus({
@@ -2567,6 +2640,26 @@ async function handleApi(method, options) {
     const names = answerUniqueNames({ url });
     if (names) {
       return ok(names);
+    }
+
+    /*
+     * Which budgets share a name (#11021): a cloud's budgets list asks with
+     * every read of its rows, to mark them - from the budgets it holds now,
+     * one a test made among them.
+     */
+    const twins = answerSharedNames({
+      url,
+      kinds: [
+        {
+          modelType: OpenStackBudget,
+          records: () => {
+            return store.OpenStackBudget;
+          },
+        },
+      ],
+    });
+    if (twins) {
+      return ok(twins);
     }
   }
 

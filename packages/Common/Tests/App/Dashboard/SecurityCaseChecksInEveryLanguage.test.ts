@@ -13,11 +13,27 @@ import {
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
+  CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
+  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
+  CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS,
+  CHECK_ACCOUNT_CHANGES_OPEN_SECURITY_EVENT_CONNECTIONS,
+  CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CHANGED,
+  CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_INLINE_POLICY_STILL,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_ANYONE,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_HELD,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_HELD_TO_SEVERAL,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_SAML,
+  CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED,
+  CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_STILL,
 } from "../../../Utils/SecurityCase/ResponsePlan/StepCheckWords";
+import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -118,16 +134,137 @@ describe("the step names the setting as each language's AWS form titles it", () 
 
   test("in every language, the Google Workspace line fills in the scope whole", () => {
     for (const language of LANGUAGES) {
-      const line: string = dashboardTranslator(language).translateTemplate(
+      for (const key of [
         CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
-        { scope: GROUP_MEMBER_SCOPE },
-      );
+        CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
+      ]) {
+        const line: string = dashboardTranslator(language).translateTemplate(
+          key,
+          { scope: GROUP_MEMBER_SCOPE },
+        );
 
-      expect({ language, scope: line.includes(GROUP_MEMBER_SCOPE) }).toEqual({
+        expect({
+          language,
+          key,
+          scope: line.includes(GROUP_MEMBER_SCOPE),
+        }).toEqual({ language, key, scope: true });
+        expect(line).not.toContain("{{");
+      }
+    }
+  });
+
+  /*
+   * #11376: the line says where the connection is, for a reader the link
+   * is not drawn for, as that language's menu names it - its words for
+   * Security Events and Connections, the way the AWS lines name Cloud →
+   * Connect: an arrow that points the way its words are read.
+   */
+  test("in every language, the Google Workspace line names Security Events → Connections as its menu does", () => {
+    for (const language of LANGUAGES) {
+      const line: string = wordingOf(
         language,
-        scope: true,
+        CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
+      );
+      const arrow: string = isRightToLeftLanguage(language) ? "←" : "→";
+      const path: string = `${wordingOf(language, "Security Events")} ${arrow} ${wordingOf(language, "Connections")}`;
+
+      expect({ language, names: line.includes(path) }).toEqual({
+        language,
+        names: true,
       });
-      expect(line).not.toContain("{{");
+    }
+  });
+
+  test("in every language, the link to the page is its own words, as Cloud > Connect's is", () => {
+    for (const language of DASHBOARD_LANGUAGES) {
+      for (const words of [
+        CHECK_ACCOUNT_CHANGES_OPEN_SECURITY_EVENT_CONNECTIONS,
+        CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS,
+        CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION,
+      ]) {
+        expect({
+          language,
+          words,
+          ownWords: wordingOf(language, words) !== words,
+        }).toEqual({ language, words, ownWords: true });
+      }
+    }
+  });
+});
+
+/*
+ * #11377, #11378: an inline policy said by its document, and whom a role
+ * lets in, each a sentence of its own in every language - every value
+ * filled in, nothing of English's left where the language has its words.
+ */
+describe("the lines of an inline policy and of whom a role lets in, in every language", () => {
+  const VALUES: Record<string, string> = {
+    account: "Deploy",
+    object: "ci-deploy",
+    provider: "token.actions.githubusercontent.com",
+    claim: "sub",
+    value: "repo:octo-org/app:*",
+  };
+  const KEYS: ReadonlyArray<string> = [
+    CHECK_ACCOUNT_CHANGE_INLINE_POLICY_STILL,
+    CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CHANGED,
+    CHECK_ACCOUNT_CHANGE_INLINE_POLICY_CONFIRM,
+    CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_STILL,
+    CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED,
+    CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CONFIRM,
+    CHECK_ACCOUNT_CHANGE_PROVIDER_HELD,
+    CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION,
+    CHECK_ACCOUNT_CHANGE_PROVIDER_ANYONE,
+    CHECK_ACCOUNT_CHANGE_PROVIDER_SAML,
+  ];
+
+  test("each is worded, its own words, every value filled in", () => {
+    for (const language of LANGUAGES) {
+      for (const key of KEYS) {
+        const worded: string = wordingOf(language, key);
+        const line: string = dashboardTranslator(language).translateTemplate(
+          key,
+          VALUES,
+        );
+
+        expect(line).not.toContain("{{");
+
+        // Every value the English line names, the language's names too.
+        for (const name of key.match(/{{(\w+)}}/g) || []) {
+          const value: string = VALUES[name.slice(2, -2)]!;
+
+          expect({ language, key, value, named: line.includes(value) }).toEqual(
+            { language, key, value, named: true },
+          );
+        }
+
+        if (language !== "en") {
+          expect({ language, key, ownWords: worded !== key }).toEqual({
+            language,
+            key,
+            ownWords: true,
+          });
+        }
+      }
+    }
+  });
+
+  test("the count of values a provider is held to, in every language, the first named", () => {
+    for (const language of LANGUAGES) {
+      for (const count of [2, 5, 21]) {
+        const line: string = dashboardTranslator(language).translatePlural(
+          CHECK_ACCOUNT_CHANGE_PROVIDER_HELD_TO_SEVERAL,
+          count,
+          VALUES,
+        );
+
+        expect(line).not.toContain("{{");
+        expect({
+          language,
+          count,
+          named: line.includes(VALUES["value"]!),
+        }).toEqual({ language, count, named: true });
+      }
     }
   });
 });

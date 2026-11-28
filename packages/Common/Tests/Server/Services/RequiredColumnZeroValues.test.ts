@@ -55,7 +55,11 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
  *     its first two tiers (#6978);
  *   - OpenStackProjectUsage.sortValue: 0 for a project that has cost
  *     nothing (its rows are written by raw SQL today, which the check never
- *     sees, but a create would have been refused).
+ *     sees, but a create would have been refused);
+ *   - CloudTagCoverageDay's counts: a day on which none of an account's
+ *     resources carried every required tag - the day a project first
+ *     requires one, most often - counts 0 covered. The watcher's count of
+ *     that day was refused, so the coverage trend went without it (#11012).
  *
  * Each service now says 0 is a value of those columns; everything else is
  * read as it always was. And every required number of every table is held
@@ -339,6 +343,12 @@ const ZERO_IS_A_VALUE: Record<string, string> = {
   "AIRunEvent.sequence": "a run's first event is sequence 0",
   "CloudCostRecommendation.monthlySavings":
     "a right-sizing whose saving is not known yet, or one that rounds to nothing",
+  "CloudSavingsAction.monthlySavings":
+    "a change that saves nothing a month by its own count: an off-hours stop's saving is its hours",
+  "CloudTagCoverageDay.coveredCount":
+    "a day none of the account's resources carried every required tag",
+  "CloudTagCoverageDay.resourceCount":
+    "a day the account's connection listed no resources",
   "DataReconciliation.tolerance": "the two tables must agree exactly",
   "LlmModelPrice.inputPricePerMillionTokensInUSD":
     "a model that bills its output only",
@@ -360,6 +370,8 @@ const ZERO_IS_NOT_A_VALUE: Record<string, string> = {
     "a reminder every 0 minutes, which the service refuses first",
   "CloudBudget.monthlyAmount":
     "a budget of nothing, which the service refuses first",
+  "CloudCostLineItem.amount":
+    "a line item of nothing, which the service refuses first: a credit is a kind, not a negative amount",
   "HostCollectorConfigVersion.versionNumber": "versions count from 1",
   "IncidentReminderRule.reminderIntervalInMinutes":
     "a reminder every 0 minutes, which the service refuses first",

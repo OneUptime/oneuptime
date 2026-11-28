@@ -405,7 +405,7 @@ export default class ThreatIntelFeed extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Basic Auth Username",
     description:
-      "Username for basic-auth collections. Leave empty for anonymous or token-authenticated collections.",
+      "Username for a basic-auth collection, or a list behind a sign-in. Leave empty for anonymous or token-authenticated feeds.",
   })
   @Column({
     nullable: true,
@@ -425,7 +425,7 @@ export default class ThreatIntelFeed extends BaseModel {
     encrypted: true,
     title: "Basic Auth Password",
     description:
-      "Password for basic-auth collections. Encrypted at rest and never returned by the API.",
+      "Password for a basic-auth collection, or a list behind a sign-in. Encrypted at rest and never returned by the API.",
   })
   @Column({
     nullable: true,

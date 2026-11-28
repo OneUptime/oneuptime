@@ -52,6 +52,12 @@ interface RecordedListRequest {
   limit: number;
 }
 
+// A list read's `_id: new Includes([...])`, as the fixture records it.
+interface RecordedIncludes {
+  _type: string;
+  value: Array<{ value: string }>;
+}
+
 interface FixtureSpan {
   spanId: string;
   parentSpanId: string;
@@ -245,13 +251,34 @@ test.describe("header", () => {
     expect(spanRead.sort).toEqual({ startTimeUnixNano: "ASC" });
     expect(spanRead.skip).toBe(0);
     expect(spanRead.limit).toBe(500);
-    expect(
-      state.modelListRequests.some(
-        (request: { query: Record<string, unknown> }) => {
-          return request.query["projectId"] !== undefined;
-        },
-      ),
-    ).toBe(true);
+    /*
+     * The services its spans are attributed to, read by their ids as the
+     * spans land (#10921) - never the project's first 10,000 by name.
+     */
+    const serviceReads: Array<{ query: Record<string, unknown> }> =
+      state.modelListRequests.filter((request: { modelName: string }) => {
+        return request.modelName === "Service";
+      });
+    expect(serviceReads.length).toBeGreaterThan(0);
+    const servicesRead: Set<string> = new Set();
+    for (const read of serviceReads) {
+      const ids: RecordedIncludes | undefined = read.query["_id"] as
+        | RecordedIncludes
+        | undefined;
+      expect(ids?._type, "services read by their ids").toBe("Includes");
+      for (const id of ids?.value || []) {
+        servicesRead.add(id.value.toLowerCase());
+      }
+    }
+    expect(Array.from(servicesRead).sort()).toEqual(
+      Array.from(
+        new Set(
+          state.spans.map((span: FixtureSpan): string => {
+            return span.serviceId.toLowerCase();
+          }),
+        ),
+      ).sort(),
+    );
     expect(state.analyticsCountRequests[0]!.query).toMatchObject({
       traceId: TRACES["checkout"],
     });
@@ -1907,23 +1934,28 @@ test.describe("a repository to pick before the fix starts (?repo=pick)", () => {
       "trace-fix-performance-repository",
     );
     await expect(picker).toContainText("Which repository holds this code?");
-    await expect(picker).toContainText("Pick a repository");
+    // Code's searched repository field (#10921): the hint is its search box's.
+    await expect(picker.getByRole("combobox")).toHaveAttribute(
+      "placeholder",
+      "Pick a repository",
+    );
 
     const button: Locator = strip.getByTestId("trace-fix-performance");
     await expect(button).toBeDisabled();
     await screenshot(page, "performance-fix-pick-repository", false);
 
     await picker.getByRole("combobox").click();
-    // The one open menu: the picker's (other boxes on the page list options too).
-    const menu: Locator = page.locator(".ou-select__menu");
-    await expect(menu.locator(".ou-select__option")).toHaveText([
+    /*
+     * The one open list: the picker's, the connected repositories the
+     * server finds, by name (other boxes on the page list options too).
+     */
+    const menu: Locator = page.getByTestId("entity-dropdown-menu");
+    await expect(menu.getByRole("option")).toHaveText([
       "acme/billing",
       "acme/checkout-api",
       "acme/storefront-web-with-a-rather-long-repository-name",
     ]);
-    await menu
-      .locator(".ou-select__option", { hasText: "acme/checkout-api" })
-      .click();
+    await menu.getByRole("option", { name: "acme/checkout-api" }).click();
 
     await expect(button).toBeEnabled();
     await button.click();
@@ -1954,12 +1986,10 @@ test.describe("a repository to pick before the fix starts (?repo=pick)", () => {
       "trace-fix-performance-repository",
     );
     const button: Locator = strip.getByTestId("trace-fix-performance");
-    const menu: Locator = page.locator(".ou-select__menu");
+    const menu: Locator = page.getByTestId("entity-dropdown-menu");
 
     await picker.getByRole("combobox").click();
-    await menu
-      .locator(".ou-select__option", { hasText: "acme/checkout-api" })
-      .click();
+    await menu.getByRole("option", { name: "acme/checkout-api" }).click();
     await button.click();
 
     await expect(strip.getByTestId("trace-fix-performance-error")).toHaveText(
@@ -1967,16 +1997,17 @@ test.describe("a repository to pick before the fix starts (?repo=pick)", () => {
     );
     // The pick is gone with the repository: nothing to start until another is picked.
     await expect(button).toBeDisabled();
-    await expect(picker).toContainText("Pick a repository");
+    await expect(picker.getByRole("combobox")).toHaveAttribute(
+      "placeholder",
+      "Pick a repository",
+    );
 
     await picker.getByRole("combobox").click();
-    await expect(menu.locator(".ou-select__option")).toHaveText([
+    await expect(menu.getByRole("option")).toHaveText([
       "acme/billing",
       "acme/storefront-web-with-a-rather-long-repository-name",
     ]);
-    await menu
-      .locator(".ou-select__option", { hasText: "acme/billing" })
-      .click();
+    await menu.getByRole("option", { name: "acme/billing" }).click();
     await button.click();
 
     await expect(page.getByTestId("trace-fix-performance-progress")).toHaveText(
@@ -2054,8 +2085,8 @@ test.describe("a repository to pick before the fix starts (?repo=pick)", () => {
         .getByRole("combobox")
         .click();
       await expect(
-        page.locator(".ou-select__menu .ou-select__option", {
-          hasText: "acme/storefront-web-with-a-rather-long-repository-name",
+        page.getByTestId("entity-dropdown-menu").getByRole("option", {
+          name: "acme/storefront-web-with-a-rather-long-repository-name",
         }),
       ).toBeVisible();
       await page.getByTestId("trace-performance-suggestion").screenshot({

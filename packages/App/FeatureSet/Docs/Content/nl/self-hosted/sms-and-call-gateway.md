@@ -5,6 +5,7 @@ OneUptime kan zijn sms-berichten en oproepen versturen via een gateway die u zel
 :::cards
 - [De gateway instellen](#de-gateway-instellen): Een URL, en een ondertekeningsgeheim dat voor u wordt gemaakt.
 - [Wat uw gateway ontvangt](#wat-uw-gateway-ontvangt): Eén ondertekend JSON-verzoek per sms of oproep.
+- [Oproepen in andere talen](#oproepen-in-andere-talen): Elke oproep spreken in de taal waarin de persoon OneUptime gebruikt.
 - [Op een melding reageren](#op-een-melding-reageren): Bevestigen, escaleren of oplossen vanuit een oproep of een antwoord.
 - [Aflevering en nieuwe pogingen](#aflevering-en-nieuwe-pogingen): Wat er gebeurt als uw gateway onbereikbaar is.
 :::
@@ -63,7 +64,8 @@ Elke sms en elke oproep is één `POST`-verzoek met een JSON-body en deze header
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ Elke sms en elke oproep is één `POST`-verzoek met een JSON-body en deze header
 | `sentAt` | Wanneer OneUptime het verstuurde, in ISO 8601. |
 | `to` | Het telefoonnummer, in E.164-notatie. `null` bij een test. |
 | `message` | De sms, of wat de oproep zegt. Een sms is maximaal 1.600 tekens, en de tekst van een oproep maximaal 16.384. Een langere tekst wordt ingekort en eindigt met een opmerking dat de rest in OneUptime staat. |
-| `isSensitive` | `true` voor een verificatiecode. Houd het bericht buiten uw eigen logs. |
+| `isSensitive` | `true` voor een verificatiecode. Houd het bericht, en dat in `inLanguage`, buiten uw eigen logs. |
 | `project` | Het `id` en de `name` van het project, of `null` als geen project het verstuurde. |
 | `actions` | Bij een dienstmelding de links die erop reageren. Anders `null`. |
+| `inLanguage` | Bij een oproep aan iemand die OneUptime in een andere taal dan het Engels gebruikt: `language`, de code van die taal, en `message`, wat de oproep in die taal zegt. Anders `null`, en bij elke sms, die al in de taal van de persoon is. Zie [Oproepen in andere talen](#oproepen-in-andere-talen). |
 
 Een oproep wordt beschreven, niet als script uitgeschreven: `message` is wat hij zegt, zonder het "druk op 1 om te bevestigen" van Twilio. Bied de acties op uw eigen manier aan, bijvoorbeeld via toetsaanslagen, en roep de bijbehorende link aan.
+
+### Oproepen in andere talen
+
+Een oproep aan iemand die OneUptime in een andere taal gebruikt, bevat zijn woorden twee keer: in het Engels, in `message`, zoals elke oproep, en in de taal van de persoon, in `inLanguage`. Uw gateway kiest de stem, dus OneUptime kan niet weten welke talen hij spreekt. Heeft uw gateway een stem van `inLanguage.language`, laat die stem dan `inLanguage.message` uitspreken. Heeft hij er geen, spreek dan in plaats daarvan `message` in het Engels uit. Geef de woorden van de ene taal nooit aan de stem van een andere taal: ze zouden niet worden begrepen. Een gateway die alleen `message` leest, blijft werken zoals voorheen en spreekt Engels.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+De code van de taal is een BCP 47-tag, een van de talen waarin OneUptime is geschreven: `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa` en `ar`. `es` is het Spaans van Spanje, `pt` het Portugees van Brazilië, `no` Noors Bokmål, `ar` modern standaard-Arabisch, en beide Chinese codes zijn Mandarijn, in vereenvoudigde en in traditionele karakters. Perzisch hoort erbij: Twilio heeft geen Perzische stem, dus via Twilio is een oproep aan iemand die OneUptime in het Perzisch gebruikt in het Engels, maar uw gateway heeft er misschien wel een. Een verificatiecode wordt cijfer voor cijfer geschreven, met twee spaties tussen de cijfers: laat uw stem de cijfers een voor een en langzaam voorlezen, niet als een getal.
 
 ### De handtekening controleren
 
@@ -116,7 +137,7 @@ In het sms- of oproeplogboek, en bij een dienstmelding in het bereikbaarheidslog
 
 ## Testverzoeken
 
-**Gateway controleren** verstuurt een verzoek met `event` op `test`, en `to`, `project` en `actions` op `null`. Beantwoord het met een 2xx-status en verstuur niets.
+**Gateway controleren** verstuurt een verzoek met `event` op `test`, en `to`, `project`, `actions` en `inLanguage` op `null`. Beantwoord het met een 2xx-status en verstuur niets.
 
 ## Volgende stappen
 

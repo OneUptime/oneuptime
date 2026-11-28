@@ -171,10 +171,32 @@ export default class SecurityEventConnectionTester {
           return true;
         },
       }));
-    checks.push(...ConnectorPlatformHealth.toPlatformChecks(platform));
+    /*
+     * A product that sends its alerts (CrowdSec, #11158) is never polled:
+     * no poll scheduler or schedule to check, and when its last alert
+     * arrived in their place.
+     */
+    const isPushed: boolean = definition?.alertsArePushed === true;
+
+    checks.push(
+      ...ConnectorPlatformHealth.toPlatformChecks(platform).filter(
+        (check: SecurityConnectorCheck): boolean => {
+          return !isPushed || check.key !== "scheduler";
+        },
+      ),
+    );
 
     if (data.connection?.id) {
-      checks.push(await this.scheduleCheck(data.connection));
+      checks.push(
+        isPushed
+          ? ConnectorPlatformHealth.toAlertsReceivedCheck({
+              lastEventIngestedAt: data.connection.lastEventIngestedAt,
+              howToSendOne:
+                definition?.howToSendTestAlert ||
+                `Send an alert from ${title} to the connection.`,
+            })
+          : await this.scheduleCheck(data.connection),
+      );
     }
 
     const status: SecurityConnectorTestReport["status"] =

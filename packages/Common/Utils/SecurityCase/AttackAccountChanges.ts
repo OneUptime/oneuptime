@@ -34,7 +34,10 @@ import {
  *                           made to trust someone else, with the trust
  *                           policy it set), AttachRolePolicy and
  *                           PutRolePolicy (a role given more power),
- *                           each with the role as its subject (#11038)
+ *                           each with the role as its subject (#11038); an
+ *                           inline policy's call (PutUserPolicy,
+ *                           PutRolePolicy) with the document it set
+ *                           (#11377)
  *
  * Only what succeeded: a refused change gave nothing. Pure, so each event's
  * reading is pinned on its own; the products' read-back is the server's.
@@ -124,12 +127,14 @@ export interface AccountChange {
    */
   cloudConnectionId: string;
   /*
-   * The trust policies the case's events set on a role, oldest first, as
-   * CloudTrail recorded them (UpdateAssumeRolePolicy's policyDocument,
-   * #11038): what the read-back holds the role's trust policy now to.
-   * [] for every other change.
+   * The policy documents the case's events set on what the change names,
+   * oldest first, each once, as CloudTrail recorded them - the last is the
+   * one the attack left: a role's trust policy (UpdateAssumeRolePolicy's
+   * policyDocument, #11038), or an inline policy of a role or a user
+   * (PutRolePolicy's, PutUserPolicy's, #11377). What the read-back holds
+   * the document IAM has now to. [] for every other change.
    */
-  trustPolicies: Array<string>;
+  policyDocuments: Array<string>;
   // The event that says so: its name in the product, its id and when it happened.
   eventName: string;
   eventUid: string;
@@ -239,7 +244,7 @@ function change(
     ownerType: (data.ownerType || "").trim(),
     cloudAccountId: (data.cloudAccountId || "").trim(),
     cloudConnectionId: (data.cloudConnectionId || "").trim(),
-    trustPolicies: (data.trustPolicies || []).filter(
+    policyDocuments: (data.policyDocuments || []).filter(
       (policy: string): boolean => {
         return Boolean(policy.trim());
       },
@@ -666,6 +671,15 @@ export const AWS_IAM_ROLE_CHANGES: Record<string, AccountChangeKind> = {
   PutRolePolicy: AccountChangeKind.Policy,
 };
 
+/*
+ * The calls that write an inline policy, a user's or a role's (#11377):
+ * each sets its whole document, and rewrites a policy of its name.
+ */
+export const AWS_IAM_INLINE_POLICY_CALLS: ReadonlyArray<string> = [
+  "PutUserPolicy",
+  "PutRolePolicy",
+];
+
 // The attributes a CloudTrail event the cloud connection read carries (CloudAuditSecurityEvents).
 const CLOUD_AUDIT_ACCOUNT_ATTRIBUTE: string = "oneuptime.cloud.account_id";
 const CLOUD_AUDIT_CONNECTION_ATTRIBUTE: string =
@@ -702,11 +716,28 @@ function readAwsAccountId(event: SecurityCaseEventSnapshot): string {
 }
 
 /*
+ * The document an inline policy's call set (PutRolePolicy, PutUserPolicy,
+ * #11377), as CloudTrail recorded it: a call that writes a policy of a
+ * name a role or a user already has rewrites it, so the read-back holds
+ * the policy to what the attack wrote, never to its name alone. None for a
+ * managed policy, attached by its ARN.
+ */
+function readInlinePolicyDocuments(
+  event: SecurityCaseEventSnapshot,
+  eventName: string,
+): Array<string> {
+  return AWS_IAM_INLINE_POLICY_CALLS.includes(eventName)
+    ? [attribute(event, "requestParameters.policyDocument")]
+    : [];
+}
+
+/*
  * A change to an IAM role (#11038), by the role the call names - never the
  * caller's: a role's call always names it. What it gave, by its id in IAM
  * and its name: a role made, by the id IAM gave it (a role of the same
  * name made since is another); a managed policy by its ARN, an inline one
- * by its name; a trust policy, as the call set it.
+ * by its name, with the document it set (#11377); a trust policy, as the
+ * call set it.
  */
 function readAwsRoleChange(
   event: SecurityCaseEventSnapshot,
@@ -742,7 +773,7 @@ function readAwsRoleChange(
     case AccountChangeKind.Trust:
       return change(event, {
         ...base,
-        trustPolicies: [attribute(event, "requestParameters.policyDocument")],
+        policyDocuments: [attribute(event, "requestParameters.policyDocument")],
       });
 
     case AccountChangeKind.Policy:
@@ -750,7 +781,10 @@ function readAwsRoleChange(
         ...base,
         ...(policyArn
           ? { objectId: policyArn, objectName: readAwsPolicyName(policyArn) }
-          : { objectName: attribute(event, "requestParameters.policyName") }),
+          : {
+              objectName: attribute(event, "requestParameters.policyName"),
+              policyDocuments: readInlinePolicyDocuments(event, data.eventName),
+            }),
       });
 
     default:
@@ -817,6 +851,10 @@ export function readAwsAccountChange(
     objectName: objects[kind].name,
     cloudAccountId: readAwsAccountId(event),
     cloudConnectionId: attribute(event, CLOUD_AUDIT_CONNECTION_ATTRIBUTE),
+    // An inline policy's document, as the call set it (#11377).
+    policyDocuments: policyArn
+      ? []
+      : readInlinePolicyDocuments(event, eventName),
     eventName,
   });
 }
@@ -872,8 +910,9 @@ function byTime(left: { time: string }, right: { time: string }): number {
  * ACCOUNT_CHANGES_MAX. A role's trust policy, set more than once, is one
  * change that keeps every policy the events set, oldest first, each once
  * (#11038): the attack may have let in one account, then another, and a
- * policy left out could be the one still letting it in. The case's events
- * are few enough to keep them all.
+ * policy left out could be the one still letting it in. An inline policy
+ * written more than once keeps every document the same way (#11377). The
+ * case's events are few enough to keep them all.
  */
 export function getAttackAccountChanges(data: {
   matches: SecurityCaseMatchesJson | null;
@@ -888,8 +927,8 @@ export function getAttackAccountChanges(data: {
     ...(data.keptEvents || []),
   ];
   const changes: Map<string, AccountChange> = new Map();
-  // Each role's trust policies, as each event set one, by the change's key.
-  const trustPolicies: Map<
+  // Each change's policy documents, as each event set one, by the change's key.
+  const policyDocuments: Map<
     string,
     Array<{ time: string; policy: string }>
   > = new Map();
@@ -904,9 +943,9 @@ export function getAttackAccountChanges(data: {
     const key: string = getChangeKey(found);
     const known: AccountChange | undefined = changes.get(key);
 
-    for (const policy of found.trustPolicies) {
-      trustPolicies.set(key, [
-        ...(trustPolicies.get(key) || []),
+    for (const policy of found.policyDocuments) {
+      policyDocuments.set(key, [
+        ...(policyDocuments.get(key) || []),
         { time: found.time, policy },
       ]);
     }
@@ -919,7 +958,7 @@ export function getAttackAccountChanges(data: {
   return Array.from(changes.entries())
     .map(([key, item]: [string, AccountChange]): AccountChange => {
       const policies: Array<{ time: string; policy: string }> | undefined =
-        trustPolicies.get(key);
+        policyDocuments.get(key);
 
       if (!policies) {
         return item;
@@ -938,7 +977,7 @@ export function getAttackAccountChanges(data: {
         ordered.push(entry.policy);
       }
 
-      return { ...item, trustPolicies: ordered };
+      return { ...item, policyDocuments: ordered };
     })
     .sort(byTime)
     .slice(0, ACCOUNT_CHANGES_MAX);

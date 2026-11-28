@@ -27,6 +27,7 @@ Du får sjældent brug for at have den åben, mens du bygger. Hver bloks indstil
 | Vente før den næste blok                                      | [Sleep](#sleep)                                                   |
 | Starte en anden arbejdsgang                                      | [Execute Workflow](#execute-workflow)                             |
 | Vedhæfte de billeder, en posts Markdown viser, til en e-mail | [Hent filer fra Markdown](#get-files-from-markdown) |
+| Vedhæfte en notes vedhæftninger eller en posts brugerdefinerede filfelter til en e-mail | [Hent vedhæftninger fra post](#get-attachments-from-record) |
 | Læse eller ændre hændelser, monitorer og andre poster         | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Åbne, kvittere for og løse hændelser eller advarsler for et andet værktøjs problemer | [Hændelser og advarsler fra andre værktøjer](#hændelser-og-advarsler-fra-andre-værktøjer) |
 | Kvittere for eller lukke et Zabbix-problem                    | [Zabbix](#zabbix)                                                 |
@@ -420,7 +421,7 @@ Den returnerer:
 - **Antal**: hvor mange billeder **Filer** indeholder.
 - **Udeladt**: de filer, Markdown viser, som ikke er i **Filer**, hver med sit `name`, sine `urls`, sine `fields`, en `reason` og en `message`, der siger hvorfor.
 
-**Filer** indeholder billedernes data, så kørslens log skjuler det og viser **Antal** og **Udeladt** i stedet. En senere blok, der får billederne, skriver det, den får, i sin egen post i loggen.
+**Filer** indeholder billedernes data, så kørslens log skjuler det og viser **Antal** og **Udeladt** i stedet. En senere blok, der får billederne, viser dem også skjult, i det, den modtog, og i det, den returnerede (se [Kørsler](/docs/workflows/runs-and-logs#fanen-trin)).
 
 ### Hvilke billeder den udleverer
 
@@ -525,6 +526,61 @@ Microsoft Graph svarer `202 Accepted`, og blokken tager **Succes**.
 :::
 
 Microsoft Graph tager imod en vedhæftning på op til 3 MB i en besked, der sendes til den på denne måde. Et større billede kræver en uploadsession eller et link i stedet for billedet. En posts billeder kan også læses med en API-nøgle uden for en arbejdsgang: se [Billeder i en posts Markdown](/docs/api-reference/api-reference#billeder-i-en-posts-markdown).
+
+## Get Attachments From Record
+
+Læser de filer, en post indeholder, med hver fils navn, type og data: en notes vedhæftninger, en hændelses postmortem-vedhæftninger, en meddelelses vedhæftninger og filerne i postens brugerdefinerede felter af typen **Fil** og **Flere filer**. Brug det til at vedhæfte dem en e-mail. For også at vedhæfte de billeder, en posts Markdown viser, skal du tilføje [Hent filer fra Markdown](#get-files-from-markdown) for den samme post.
+
+| Indstilling | Hvad den gør |
+| --- | --- |
+| **Posttype** | Den slags post, der indeholder filerne: en hændelse, en hændelses interne eller offentlige note, en advarsel, en planlagt vedligeholdelse og mere. |
+| **Post-id** | Den post, der læses, som regel den, der startede arbejdsgangen, som i `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`. |
+
+| Udgang | Hvornår |
+| --- | --- |
+| **Succes** | Posten blev læst, uanset om den indeholder filer. |
+| **Fejl** | Posten kunne ikke læses: Den findes ikke, eller arbejdsgangen må ikke læse den. **Fejl** siger hvorfor. |
+
+Den returnerer:
+
+- **Filer**: hver fil, først postens egne vedhæftninger, derefter dens brugerdefinerede filfelter i den rækkefølge, de blev oprettet, med:
+  - `name`: filens navn, som den blev uploadet;
+  - `mimeType`: dens type, som `application/pdf` eller `image/png`;
+  - `sizeInBytes`: dens størrelse i byte;
+  - `base64`: filens data;
+  - `contentId`: et ID til filen i en e-mail, det samme for den samme fil, uanset hvilken post der indeholder den;
+  - `fields`: hvor posten har den: `attachments`, `postmortemAttachments` eller navnet på et brugerdefineret felt.
+- **Antal**: hvor mange filer **Filer** indeholder.
+- **Udeladt**: de filer, posten indeholder, som ikke er i **Filer**, hver med sit `name`, sine `fields`, en `reason` og en `message`, der siger hvorfor.
+
+**Filer** indeholder filernes data, så kørslens log skjuler det og viser **Antal** og **Udeladt** i stedet, og en senere blok, der får filerne, viser dem også skjult.
+
+### Hvilke filer den udleverer
+
+Blokken læser posten, som en Find One-blok gør, som arbejdsgangen: i arbejdsgangens eget projekt, aldrig en privat hændelse, advarsel eller episode, og kun det, arbejdsgangens rettigheder lader den læse. En post, den ikke må læse, tager **Fejl**, ligesom en, der ikke findes. En rolle under "Kør som", der må læse hændelser, men ikke deres interne noter, kan ikke læse en notes vedhæftninger.
+
+Den udleverer kun:
+
+- filer, posten indeholder nu: dens egne vedhæftninger og filerne i dens brugerdefinerede felter af typen **Fil** og **Flere filer**. Et brugerdefineret tekstfelt læses ikke. For at vedhæfte filerne fra en hændelses noter skal du læse hver note: Blokken læser ikke de poster, der hører under en anden;
+- filer fra postens eget projekt. En fil fra et andet projekt står under **Udeladt** som ikke fundet;
+- dokumenter, regneark, præsentationer, billeder, tekst- og datafiler, arkiver og pakkeoptagelser: de slags filer, et brugerdefineret felt af typen **Fil** tager imod, hver kontrolleret ud fra det, filen indeholder, og ud fra dens type. En SVG kan indeholde script, så den udelades, og det gør en fil, der kun påstår at være det, dens type siger, også;
+- op til 20 filer og 10 MB i alt, som **Hent filer fra Markdown** gør. Det, der går ud over en grænse, står under **Udeladt** med grunden.
+
+Den kan ikke vise en liste over filer eller læse en ud fra dens ID: Den læser kun det, posten indeholder.
+
+For at vedhæfte filerne til e-mailen sendt med Microsoft Graph i [eksemplet ovenfor](#eksempel-indlejrede-billeder-i-en-e-mail-sendt-med-microsoft-graph) skal du tilføje **Hent vedhæftninger fra post** efter **Hent filer fra Markdown**, tilføje `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}` til kodens **Argumenter** og tilføje hver af dem med `isInline: false`:
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## Hændelser og advarsler fra andre værktøjer
 

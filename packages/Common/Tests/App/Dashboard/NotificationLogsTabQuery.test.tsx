@@ -76,6 +76,7 @@ import {
   readNotificationLogsTab,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationLogs/NotificationLogsTabQuery";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 
 const PAGE: string = `/dashboard/${PROJECT_ID}/settings/notification-logs`;
 
@@ -133,11 +134,31 @@ describe("Notification Logs, opened from a link", () => {
     goTo(PAGE);
     await renderTabs();
 
+    /*
+     * In English: the Call and Push tabs are named by keys that name their
+     * meaning (#11418), which English reads as the bare word.
+     */
     expect(
       screen.getAllByRole("tab").map((tab: HTMLElement): string => {
         return tab.textContent?.trim() || "";
       }),
-    ).toEqual(Object.values(NOTIFICATION_LOGS_TAB_NAMES));
+    ).toEqual(
+      Object.values(NOTIFICATION_LOGS_TAB_NAMES).map(withMeaningKeyAsItsWord),
+    );
+    expect(
+      screen.getAllByRole("tab").map((tab: HTMLElement): string => {
+        return tab.textContent?.trim() || "";
+      }),
+    ).toEqual([
+      "Email",
+      "SMS",
+      "WhatsApp",
+      "Telegram",
+      "Webhook",
+      "Call",
+      "Push",
+      "Workspace",
+    ]);
   });
 
   test.each([

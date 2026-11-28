@@ -2164,6 +2164,8 @@ type RumPlantedName =
   | "sessionLabel"
   | "sessionTrait"
   | "sessionAttribute"
+  // A tag the page gave the session with setTags() (#11458).
+  | "sessionTag"
   | "replayDomText"
   | "sourcesContent"
   | "sessionId"
@@ -2180,6 +2182,7 @@ const RUM_PLANTED: Readonly<Record<RumPlantedName, string>> = {
   sessionLabel: "planted.rum.label@example.com",
   sessionTrait: "PLANTED-TRAIT-RUM",
   sessionAttribute: "PLANTED-SESSATTR-RUM",
+  sessionTag: "PLANTED-SESSTAG-RUM tagged.rum@example.com",
   replayDomText: "PLANTED-DOMTEXT-RUM Ada Lovelace, 12 Downing St",
   sourcesContent: "PLANTED-SRCCONTENT-RUM",
   sessionId: "PLANTED-SESSIONID-0192f1a0",
@@ -2279,6 +2282,12 @@ function useRumTables(): void {
       location: "sessions.identifiedUserLabel",
       record: { sessionId: RUM_PLANTED["sessionId"] },
     }),
+    // A tag the page gave its sessions (#11458): its place, never its value.
+    finding({
+      id: "10933000-0000-4000-8000-0000000000d3",
+      location: "sessions.tags.customer",
+      record: { sessionId: RUM_PLANTED["sessionId"] },
+    }),
   ]);
   // The application's newest release's source map, its embedded sources planted.
   useInMemoryTable(asService(TelemetrySourceMapService), [
@@ -2335,6 +2344,7 @@ function plantedRumSessionRows(): Array<JSONObject> {
       readLabel: RUM_PLANTED["sessionLabel"],
       readTraits: JSON.stringify({ plan: RUM_PLANTED["sessionTrait"] }),
       readAttributes: JSON.stringify({ cart: RUM_PLANTED["sessionAttribute"] }),
+      readTags: JSON.stringify({ customer: RUM_PLANTED["sessionTag"] }),
       readPayload: RUM_PLANTED["replayDomText"],
       domText: RUM_PLANTED["replayDomText"],
     },
@@ -2441,6 +2451,9 @@ describe("a RUM application's leaks reach OneUptime AI without a value in them (
       "src/checkout/payment.js",
       "Payment declined for <value>",
       "identify",
+      // The tag's recorder call and place (#11458).
+      "setTags",
+      "sessions.tags.customer",
       "/checkout/",
       "/account/",
       "browser",
@@ -2492,6 +2505,8 @@ describe("a RUM application's leaks reach OneUptime AI without a value in them (
       "identifiedUserLabel",
       "identifiedUserTraits",
       "attributes",
+      // A session's tags (#11458).
+      "tags",
       "payload",
       "chunk",
     ]) {

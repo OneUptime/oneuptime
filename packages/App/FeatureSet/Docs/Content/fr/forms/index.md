@@ -8,6 +8,7 @@ Utilisez un formulaire quand les personnes qui remarquent un problème, ou qui o
 - [Créer votre premier formulaire](#créer-votre-premier-formulaire): D'un formulaire vide à un lien que vous pouvez partager.
 - [Créer un formulaire](/docs/forms/building): Questions, types de réponse, questions masquées, modèles et image de marque.
 - [Ce que crée une soumission](/docs/forms/on-submit): Comment les réponses et les paramètres deviennent un incident ou un événement de maintenance.
+- [Suivre une soumission](/docs/forms/follow-ups): Les personnes qui envoient suivent leur demande, écrivent à votre équipe et ajoutent d'autres personnes.
 - [Partage et sécurité](/docs/forms/sharing-and-security): Le lien, la liste d'autorisation IP, les limites de débit et le dépannage.
 :::
 
@@ -290,6 +291,7 @@ Les anciennes pages du tableau de bord redirigent vers les nouvelles.
 :::cards
 - [Créer un formulaire](/docs/forms/building): Questions, types de réponse, champs liés, champs personnalisés et aperçu.
 - [Ce que crée une soumission](/docs/forms/on-submit): Comment les réponses et les paramètres À la soumission deviennent un incident ou un événement de maintenance.
+- [Suivre une soumission](/docs/forms/follow-ups): Les personnes qui envoient suivent leur demande, écrivent à votre équipe et ajoutent d'autres personnes.
 - [Partage et sécurité](/docs/forms/sharing-and-security): Le lien, la liste d'autorisation IP, les limites de débit, le captcha et le dépannage.
 - [Déclarer un incident](/docs/incidents/declaring-incidents): Les autres façons de déclarer des incidents.
 :::

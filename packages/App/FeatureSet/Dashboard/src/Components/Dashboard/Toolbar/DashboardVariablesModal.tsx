@@ -42,6 +42,13 @@ import {
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getDashboardVariableTypeName } from "./DashboardVariableTypeNames";
+import {
+  DASHBOARD_RESOURCE_SCOPES,
+  DashboardResourceScope,
+  getDashboardResourceScopeIdentityKey,
+  isDashboardResourceScope,
+} from "Common/Types/Dashboard/DashboardResourceScope";
+import { getDashboardResourceScopeName } from "Common/UI/Components/Dashboard/DashboardResourceScopeWords";
 
 /*
  * A Project Labels variable's default: one of its allowed labels, drawn as
@@ -251,6 +258,93 @@ const LabelChoices: FunctionComponent<LabelChoicesProps> = (
         {translator.translateText(
           "Choose up to 1,000 labels. Their names appear in the toolbar and on shared dashboards. Bind this variable in a Monitor List widget’s Label Variable setting.",
         )}
+      </p>
+    </div>
+  );
+};
+
+/*
+ * The kind of resource a Telemetry Attribute variable picks among
+ * (DashboardResourceScope, issue #11258): set by an infrastructure template
+ * on its own variable, and chosen here for one of your own. With a kind,
+ * every widget shows only that kind's data and "All" means all of them;
+ * "Any resource type" filters nothing until a value is picked, as before.
+ * Picking a kind for a variable with no attribute key yet fills in the
+ * attribute its resources are named by.
+ */
+const ResourceTypeChoice: FunctionComponent<{
+  variable: DashboardVariable;
+  onChange: (variable: DashboardVariable) => void;
+}> = (props: {
+  variable: DashboardVariable;
+  onChange: (variable: DashboardVariable) => void;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const scope: DashboardResourceScope | undefined = isDashboardResourceScope(
+    props.variable.resourceScope,
+  )
+    ? props.variable.resourceScope
+    : undefined;
+
+  const options: Array<DropdownOption> = [
+    getTranslatedDropdownOption(
+      "",
+      translator.translateText("Any resource type") || "Any resource type",
+    ),
+    ...DASHBOARD_RESOURCE_SCOPES.map(
+      (choice: DashboardResourceScope): DropdownOption => {
+        return getTranslatedDropdownOption(
+          choice,
+          getDashboardResourceScopeName(translator, choice),
+        );
+      },
+    ),
+  ];
+
+  return (
+    <div className="mt-3">
+      <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
+        {translator.translateText("Resource Type")}
+      </label>
+      <Dropdown
+        ariaLabel={translator.translateText("Resource Type")}
+        isAriaLabelTranslated={true}
+        isClearable={false}
+        options={options}
+        value={findDropdownOption(options, scope || "")}
+        onChange={(next: DropdownValue | Array<DropdownValue> | null) => {
+          const picked: string | null = readPickedDropdownValue(next);
+          const nextScope: DashboardResourceScope | undefined =
+            isDashboardResourceScope(picked) ? picked : undefined;
+
+          if (nextScope === scope) {
+            return;
+          }
+
+          const updated: DashboardVariable = { ...props.variable };
+
+          if (nextScope) {
+            updated.resourceScope = nextScope;
+
+            if (!updated.attributeKey || !updated.attributeKey.trim()) {
+              updated.attributeKey =
+                getDashboardResourceScopeIdentityKey(nextScope);
+            }
+          } else {
+            delete updated.resourceScope;
+          }
+
+          props.onChange(updated);
+        }}
+      />
+      <p className="text-xs text-gray-500 mt-1">
+        {scope
+          ? translator.translateText(
+              'Every widget shows only this resource type\'s data. "All" shows all of them, and picking values narrows it to those.',
+            )
+          : translator.translateText(
+              "Pick a resource type to show only its data on every widget, even before a value is picked.",
+            )}
       </p>
     </div>
   );
@@ -472,13 +566,21 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
                   return props.onChange({ ...variable, attributeKey: value });
                 }}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                {translator.translateText(
-                  variable.isMultiSelect
-                    ? 'Widgets that support this attribute will be scoped to the selected value. Choosing "All" removes this attribute filter — a multi-select with nothing picked is All.'
-                    : 'Widgets that support this attribute will be scoped to the selected value. Choosing "All" removes this attribute filter.',
-                )}
-              </p>
+              {isDashboardResourceScope(variable.resourceScope) ? (
+                <></>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  {translator.translateText(
+                    variable.isMultiSelect
+                      ? 'Widgets that support this attribute will be scoped to the selected value. Choosing "All" removes this attribute filter — a multi-select with nothing picked is All.'
+                      : 'Widgets that support this attribute will be scoped to the selected value. Choosing "All" removes this attribute filter.',
+                  )}
+                </p>
+              )}
+              <ResourceTypeChoice
+                variable={variable}
+                onChange={props.onChange}
+              />
             </>
           ) : variable.type === DashboardVariableType.ProjectLabel ? (
             <>

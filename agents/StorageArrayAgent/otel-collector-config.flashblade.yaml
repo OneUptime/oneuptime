@@ -117,10 +117,11 @@ processors:
         value: "${env:STORAGE_SYSTEM}"
         action: upsert
       # Shown as the agent version on the array's page, with a sign when
-      # a newer one is out. Keep it in step with the collector image
-      # docker-compose.yml pins.
+      # a newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time the agent's files change on that
+      # collector (0.165.1: PowerStore, ONTAP and PowerScale beside Pure).
       - key: oneuptime.agent.version
-        value: "0.165.0"
+        value: "0.165.1"
         action: upsert
       # Optional: promote resource attributes to project labels on the
       # array — oneuptime.label.<dimension>=<value> becomes the label

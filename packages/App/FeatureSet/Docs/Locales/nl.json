@@ -257,6 +257,7 @@
     "Forms Overview": "Formulieren – overzicht",
     "Building a Form": "Een formulier bouwen",
     "What a Submission Creates": "Wat een inzending aanmaakt",
+    "Following Up on a Submission": "Een inzending opvolgen",
     "Sharing & Security": "Delen & beveiliging",
     "Workflows Overview": "Workflows – Overzicht",
     "Authoring a Workflow": "Een workflow maken",
@@ -511,6 +512,7 @@
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
     "Cloudflare": "Cloudflare",
+    "CrowdSec": "CrowdSec",
     "Global SSO": "Globale SSO",
     "Import and Export Label Rules": "Labelregels importeren en exporteren",
     "Run Rules on Existing Resources": "Regels uitvoeren op bestaande resources"

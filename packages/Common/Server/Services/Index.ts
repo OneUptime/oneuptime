@@ -24,6 +24,7 @@ import DomainService from "./DomainService";
 import EmailLogService from "./EmailLogService";
 import EmailVerificationTokenService from "./EmailVerificationTokenService";
 import FileService from "./FileService";
+import ShownImageService from "./ShownImageService";
 import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
 import IncidentOnCallRuleOwningTeamService from "./IncidentOnCallRuleOwningTeamService";
@@ -35,6 +36,8 @@ import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
 import FormService from "./FormService";
 import FormSubmissionService from "./FormSubmissionService";
+import FormSubmissionFollowerService from "./FormSubmissionFollowerService";
+import FormSubmissionMessageService from "./FormSubmissionMessageService";
 import FormDomainService from "./FormDomainService";
 import FormPrivateUserService from "./FormPrivateUserService";
 import FormPrivateUserSessionService from "./FormPrivateUserSessionService";
@@ -725,6 +728,8 @@ const services: Array<BaseService> = [
   EmailVerificationTokenService,
 
   FileService,
+  // Which records show each inline image (#11478).
+  ShownImageService,
 
   IncidentCustomFieldService,
   IncidentOnCallRuleService,
@@ -740,6 +745,8 @@ const services: Array<BaseService> = [
   IncidentTemplateOwnerUserService,
   FormService,
   FormSubmissionService,
+  FormSubmissionFollowerService,
+  FormSubmissionMessageService,
   FormDomainService,
   FormPrivateUserService,
   /*

@@ -5,6 +5,7 @@ OneUptime kann seine SMS und Anrufe statt über Twilio über ein Gateway senden,
 :::cards
 - [Gateway einrichten](#gateway-einrichten): Eine URL und ein Signaturgeheimnis, das für Sie erzeugt wird.
 - [Was Ihr Gateway empfängt](#was-ihr-gateway-empfängt): Eine signierte JSON-Anfrage pro SMS oder Anruf.
+- [Anrufe in anderen Sprachen](#anrufe-in-anderen-sprachen): Jeden Anruf in der Sprache sprechen, in der die angerufene Person OneUptime nutzt.
 - [Auf einen Alarm reagieren](#auf-einen-alarm-reagieren): Bestätigen, eskalieren oder beheben, direkt aus einem Anruf oder einer Antwort.
 - [Zustellung und Wiederholungen](#zustellung-und-wiederholungen): Was passiert, wenn Ihr Gateway nicht erreichbar ist.
 :::
@@ -63,7 +64,8 @@ Jede SMS und jeder Anruf ist eine `POST`-Anfrage mit einem JSON-Body und diesen 
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ Jede SMS und jeder Anruf ist eine `POST`-Anfrage mit einem JSON-Body und diesen 
 | `sentAt` | Wann OneUptime sie gesendet hat, in ISO 8601. |
 | `to` | Die Telefonnummer im E.164-Format. `null` bei einem Test. |
 | `message` | Die SMS oder das, was der Anruf sagt. Eine SMS hat höchstens 1.600 Zeichen, der Text eines Anrufs höchstens 16.384. Ein längerer Text wird gekürzt und endet mit einem Hinweis, dass der Rest in OneUptime steht. |
-| `isSensitive` | `true` bei einem Verifizierungscode. Halten Sie die Nachricht aus Ihren eigenen Logs heraus. |
+| `isSensitive` | `true` bei einem Verifizierungscode. Halten Sie die Nachricht und die in `inLanguage` aus Ihren eigenen Logs heraus. |
 | `project` | `id` und `name` des Projekts oder `null`, wenn kein Projekt sie gesendet hat. |
 | `actions` | Bei einem Bereitschaftsalarm die Links, die auf ihn reagieren. Sonst `null`. |
+| `inLanguage` | Bei einem Anruf an jemanden, der OneUptime in einer anderen Sprache als Englisch nutzt: `language`, der Code der Sprache, und `message`, das, was der Anruf in ihr sagt. Sonst `null`, ebenso bei jeder SMS, die schon in der Sprache der Person ist. Siehe [Anrufe in anderen Sprachen](#anrufe-in-anderen-sprachen). |
 
 Ein Anruf wird beschrieben, nicht als Skript vorgegeben: `message` ist das, was er sagt, ohne Twilios „Drücken Sie 1 zum Bestätigen“. Bieten Sie die Aktionen auf Ihre eigene Weise an, etwa per Tastendruck, und rufen Sie den passenden Link auf.
+
+### Anrufe in anderen Sprachen
+
+Ein Anruf an jemanden, der OneUptime in einer anderen Sprache nutzt, enthält seine Worte zweimal: auf Englisch in `message`, wie jeder Anruf, und in der Sprache der Person in `inLanguage`. Ihr Gateway wählt die Stimme, daher kann OneUptime nicht wissen, welche Sprachen es spricht. Hat Ihr Gateway eine Stimme der Sprache `inLanguage.language`, sprechen Sie `inLanguage.message` mit ihr. Hat es keine, sprechen Sie stattdessen `message` auf Englisch. Geben Sie die Worte einer Sprache nie der Stimme einer anderen Sprache: Niemand würde sie verstehen. Ein Gateway, das nur `message` liest, funktioniert weiter wie bisher und spricht Englisch.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+Der Code der Sprache ist ein BCP-47-Tag, eine der Sprachen, in denen OneUptime geschrieben ist: `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa` und `ar`. `es` ist das Spanisch Spaniens, `pt` das Portugiesisch Brasiliens, `no` norwegisches Bokmål, `ar` modernes Hocharabisch, und beide chinesischen Codes sind Mandarin, in vereinfachten und in traditionellen Schriftzeichen. Persisch gehört dazu: Twilio hat keine persische Stimme, daher ist ein Anruf an jemanden, der OneUptime auf Persisch nutzt, über Twilio auf Englisch, aber Ihr Gateway hat vielleicht eine. Ein Verifizierungscode wird Ziffer für Ziffer geschrieben, mit zwei Leerzeichen zwischen den Ziffern: Lassen Sie Ihre Stimme die Ziffern einzeln und langsam vorlesen, nicht als Zahl.
 
 ### Die Signatur prüfen
 
@@ -116,7 +137,7 @@ Im SMS- oder Anrufprotokoll und bei einem Bereitschaftsalarm im Bereitschaftspro
 
 ## Testanfragen
 
-**Gateway prüfen** sendet eine Anfrage, bei der `event` auf `test` und `to`, `project` und `actions` auf `null` gesetzt sind. Beantworten Sie sie mit einem 2xx-Status und senden Sie nichts.
+**Gateway prüfen** sendet eine Anfrage, bei der `event` auf `test` und `to`, `project`, `actions` und `inLanguage` auf `null` gesetzt sind. Beantworten Sie sie mit einem 2xx-Status und senden Sie nichts.
 
 ## Nächste Schritte
 

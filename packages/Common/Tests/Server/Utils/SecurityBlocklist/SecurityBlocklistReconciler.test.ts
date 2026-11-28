@@ -75,6 +75,25 @@ import {
   SecurityBlockEnforcementState,
 } from "../../../../Types/SecurityBlocklist/SecurityBlockEnforcement";
 import InMemoryLocks from "../../TestingUtils/InMemoryLocks";
+import CrowdSecBlockDestination, {
+  CROWDSEC_RENEW_WHEN_LEFT_IN_MS,
+  CROWDSEC_UNTIL_LIFTED_IN_MS,
+  getCrowdSecAllowlistReason,
+} from "../../../../Server/Utils/SecurityBlocklist/Destinations/CrowdSecBlockDestination";
+import CrowdSecLapiClient from "../../../../Server/Utils/SecurityEvent/Response/CrowdSecLapiClient";
+import {
+  CROWDSEC_META_CONNECTION,
+  CROWDSEC_ONEUPTIME_SCENARIO,
+} from "../../../../Types/SecurityEvent/CrowdSec/CrowdSecDecisions";
+import CrowdSecNormalizer, {
+  CROWDSEC_ALERT_TYPE_ATTRIBUTE,
+  CrowdSecAlertType,
+} from "../../../../Utils/SecurityEvent/Connectors/CrowdSecNormalizer";
+import FakeCrowdSecLapi, {
+  FakeLapiAlert,
+  FakeLapiDecision,
+  loopbackTransport,
+} from "../SecurityEvent/Response/FakeCrowdSecLapi";
 import {
   afterEach,
   beforeEach,
@@ -2180,7 +2199,7 @@ describe("a destination that takes a pass's changes in one call", () => {
 });
 
 describe("the destinations a project has in production", () => {
-  test("are Cloudflare's lists and rules (#10343), AWS WAF's web ACLs (#10344), Azure WAF policies (#10348), Cloud Armor policies (#10349), the blocklist feeds (#10345), Microsoft Defender's and CrowdStrike Falcon's connections (#10346), and never the test destination", () => {
+  test("are Cloudflare's lists and rules (#10343), AWS WAF's web ACLs (#10344), Azure WAF policies (#10348), Cloud Armor policies (#10349), the blocklist feeds (#10345), Microsoft Defender's and CrowdStrike Falcon's connections (#10346), CrowdSec's (#11158), and never the test destination", () => {
     SecurityBlockDestinations.resetSourcesForTests();
 
     expect(SecurityBlockDestinations.hasSources()).toBe(true);
@@ -2198,6 +2217,7 @@ describe("the destinations a project has in production", () => {
       SecurityBlockDestinationProvider.Feed,
       SecurityBlockDestinationProvider.MicrosoftDefender,
       SecurityBlockDestinationProvider.CrowdStrike,
+      SecurityBlockDestinationProvider.CrowdSec,
     ]);
   });
 });
@@ -2714,5 +2734,305 @@ describe("a block whose address became protected after it was made (#10640)", ()
         }),
       ).toEqual(heldBack.reason);
     });
+  });
+});
+
+/*
+ * THE BLOCKLIST IN CROWDSEC (#11158), through the real reconciler: the
+ * CrowdSec destination over HTTP to a Local API that answers as CrowdSec
+ * v1.8.2 does (FakeCrowdSecLapi), its clock the pass's. A block is a ban
+ * until its end, a block until lifted a ban renewed before it lapses, a
+ * lifted block's ban ended, a ban LAPI lost put back - and LAPI down
+ * changes what LAPI holds in nothing, while the rows say why.
+ */
+describe("the blocklist in CrowdSec (#11158)", () => {
+  const MACHINE: string = "oneuptime";
+  const PASSWORD: string = "Rv8n2Qw7xKp4Lm9ZtY3sB6dF";
+  const CONNECTION_ID: ObjectID = new ObjectID(
+    "cccccccc-cccc-4ccc-8ccc-000000000001",
+  );
+
+  let lapi: FakeCrowdSecLapi;
+  let crowdsec: CrowdSecBlockDestination;
+  let clock: Date;
+
+  // A pass at a minute, with LAPI's clock and the destination's at that minute.
+  async function passAt(minutes: number): Promise<SecurityBlocklistPassResult> {
+    clock = at(minutes);
+    lapi.setNow(clock);
+    return await pass(minutes);
+  }
+
+  function bans(): Array<FakeLapiDecision & { alert: FakeLapiAlert }> {
+    return lapi
+      .activeDecisions()
+      .filter((decision: FakeLapiDecision): boolean => {
+        return decision.scenario === CROWDSEC_ONEUPTIME_SCENARIO;
+      });
+  }
+
+  function bannedValues(): Array<string> {
+    return bans()
+      .map((decision: FakeLapiDecision): string => {
+        return decision.value;
+      })
+      .sort();
+  }
+
+  beforeEach(async () => {
+    clock = NOW;
+    lapi = new FakeCrowdSecLapi();
+    lapi.setNow(clock);
+    lapi.addMachine(MACHINE, { password: PASSWORD });
+    const url: string = await lapi.start();
+
+    crowdsec = new CrowdSecBlockDestination({
+      connectionId: CONNECTION_ID,
+      name: "CrowdSec",
+      client: new CrowdSecLapiClient({
+        lapiUrl: url,
+        machineId: MACHINE,
+        password: PASSWORD,
+        transport: loopbackTransport,
+      }),
+      now: (): Date => {
+        return clock;
+      },
+    });
+
+    enforceAt(crowdsec);
+
+    jest
+      .spyOn(SecurityBlocklistFeedProtection, "check")
+      .mockImplementation(
+        async (data: {
+          entries: ReadonlyArray<SecurityBlocklistFeedEntry>;
+        }): Promise<SecurityBlocklistFeedProtectionCheck> => {
+          return { isReadable: true, served: [...data.entries], withheld: [] };
+        },
+      );
+  });
+
+  afterEach(async () => {
+    await lapi.stop();
+  });
+
+  test("a block is a ban until its end, Applied once LAPI is read back holding it, and its case hears it once", async () => {
+    const block: SecurityBlock = addBlock({
+      index: 1,
+      value: "35.205.11.131",
+      hasCase: true,
+    });
+
+    await passAt(2);
+
+    expect(bannedValues()).toEqual(["35.205.11.131"]);
+    expect(bans()[0]?.until.toISOString()).toBe(
+      new Date(block.expiresAt!).toISOString(),
+    );
+    expect(bans()[0]?.origin).toBe("cscli");
+    expect(stateOf(1, crowdsec)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(errorOf(1, crowdsec)).toBeNull();
+    expect(bans()[0]?.alert.message).toBe(
+      "OneUptime case CASE-42 until 2026-11-21 10:43 UTC",
+    );
+
+    await passAt(3);
+    expect(bannedValues()).toEqual(["35.205.11.131"]);
+    expect(linesSaying("enforced at CrowdSec")).toHaveLength(1);
+  });
+
+  test("a lifted block's ban is ended at once, and a person's ban of the same address is left alone", async () => {
+    lapi.addDecisionAlert({
+      machineId: "localhost",
+      scenario: "manual 'ban' from 'localhost'",
+      origin: "cscli",
+      value: "35.205.11.131",
+      durationInMs: 2 * DAY,
+    });
+    addBlock({ index: 1, value: "35.205.11.131" });
+    addBlock({ index: 2, value: "35.205.11.132" });
+
+    await passAt(2);
+    expect(bannedValues()).toEqual(["35.205.11.131", "35.205.11.132"]);
+
+    setState(1, SecurityBlockState.Lifted);
+    await passAt(3);
+
+    expect(bannedValues()).toEqual(["35.205.11.132"]);
+    expect(stateOf(1, crowdsec)).toBe(SecurityBlockEnforcementState.Removed);
+    // The person's own ban stands.
+    expect(
+      lapi.activeDecisions().filter((decision: FakeLapiDecision) => {
+        return decision.value === "35.205.11.131";
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a block until lifted is a week's ban, renewed with three days left, and never a moment unbanned", async () => {
+    addBlock({ index: 1, value: "35.205.11.131", expiresAt: null });
+
+    await passAt(2);
+    const first: FakeLapiDecision = bans()[0]!;
+    expect(first.until.getTime()).toBe(
+      at(2).getTime() + CROWDSEC_UNTIL_LIFTED_IN_MS,
+    );
+
+    // A day on, nothing to do: it reads as never ending.
+    await passAt(2 + 24 * 60);
+    expect(
+      bans().map((decision: FakeLapiDecision) => {
+        return decision.id;
+      }),
+    ).toEqual([first.id]);
+
+    // With three days left, renewed: the new ban first, the old one ended after it.
+    const renewAt: number =
+      2 +
+      (CROWDSEC_UNTIL_LIFTED_IN_MS - CROWDSEC_RENEW_WHEN_LEFT_IN_MS) / MINUTE;
+    await passAt(renewAt);
+
+    expect(bans()).toHaveLength(1);
+    expect(bans()[0]?.id).not.toBe(first.id);
+    expect(bans()[0]?.until.getTime()).toBe(
+      at(renewAt).getTime() + CROWDSEC_UNTIL_LIFTED_IN_MS,
+    );
+    expect(stateOf(1, crowdsec)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("a block extended is a ban extended", async () => {
+    const block: SecurityBlock = addBlock({ index: 1, value: "35.205.11.131" });
+
+    await passAt(2);
+    const extended: Date = new Date(at(2).getTime() + 30 * DAY);
+    blocks.get(block.id!.toString())!.expiresAt = extended;
+
+    await passAt(3);
+
+    expect(bans()).toHaveLength(1);
+    expect(bans()[0]?.until.toISOString()).toBe(extended.toISOString());
+  });
+
+  test("LAPI down: bans already made stay in force, rows keep their state and say why, new blocks wait - and are banned once it is back", async () => {
+    addBlock({ index: 1, value: "35.205.11.131" });
+    await passAt(2);
+    expect(stateOf(1, crowdsec)).toBe(SecurityBlockEnforcementState.Applied);
+
+    lapi.failEveryRequestWith = 502;
+    addBlock({ index: 2, value: "35.205.11.132" });
+    const failed: SecurityBlocklistPassResult = await passAt(3);
+
+    expect(failed.failed).toBe(1);
+    expect(stateOf(1, crowdsec)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(stateOf(2, crowdsec)).toBe(SecurityBlockEnforcementState.Pending);
+    expect(errorOf(2, crowdsec)).toContain(
+      "CrowdSec is not ready to hold blocks: CrowdSec Local API login failed (HTTP 502)",
+    );
+    expect(retryAtOf(2, crowdsec)?.getTime()).toBe(
+      at(3).getTime() + SECURITY_BLOCKLIST_FIRST_RETRY_IN_MS,
+    );
+    // What LAPI holds is untouched: the first ban still in force there.
+    lapi.failEveryRequestWith = null;
+    expect(bannedValues()).toEqual(["35.205.11.131"]);
+
+    await passAt(5);
+    expect(bannedValues()).toEqual(["35.205.11.131", "35.205.11.132"]);
+    expect(stateOf(2, crowdsec)).toBe(SecurityBlockEnforcementState.Applied);
+    expect(errorOf(2, crowdsec)).toBeNull();
+  });
+
+  test("a ban deleted in CrowdSec, or flushed by a LAPI before 1.8, is put back on the next pass", async () => {
+    addBlock({ index: 1, value: "35.205.11.131" });
+    await passAt(2);
+
+    // `cscli decisions delete --scenario oneuptime/blocklist`: the decision ended by hand.
+    bans()[0]!.alert.decisions[0]!.until = at(3);
+    await passAt(4);
+    expect(bannedValues()).toEqual(["35.205.11.131"]);
+
+    // LAPI's flush before 1.8 deleted old alerts, decisions and all.
+    expect(lapi.flushOlderThan(0)).toBeGreaterThan(0);
+    expect(bannedValues()).toEqual([]);
+    await passAt(5);
+    expect(bannedValues()).toEqual(["35.205.11.131"]);
+    expect(stateOf(1, crowdsec)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("an address one of CrowdSec's allowlists holds is never banned there, says which, and a ban already made is taken off", async () => {
+    addBlock({ index: 1, value: "35.205.11.131", hasCase: true });
+    addBlock({ index: 2, value: "35.205.11.132" });
+    await passAt(2);
+    expect(bannedValues()).toEqual(["35.205.11.131", "35.205.11.132"]);
+
+    lapi.allowlists = [{ name: "office", items: [{ value: "35.205.11.131" }] }];
+    await passAt(3);
+
+    expect(bannedValues()).toEqual(["35.205.11.132"]);
+    expect(stateOf(1, crowdsec)).toBe(SecurityBlockEnforcementState.Failed);
+    expect(errorOf(1, crowdsec)).toBe(
+      `Not applied: ${getCrowdSecAllowlistReason({ value: "35.205.11.131", allowlist: "office" })}`,
+    );
+    expect(
+      linesSaying("CrowdSec's allowlist office holds 35.205.11.131"),
+    ).toHaveLength(1);
+  });
+
+  test("a challenge CrowdSec cannot hold says why, and an automatic response's challenge is banned there", async () => {
+    addBlock({
+      index: 1,
+      value: "35.205.11.131",
+      action: SecurityBlockAction.Challenge,
+    });
+    const fallsBack: SecurityBlock = addBlock({
+      index: 2,
+      value: "35.205.11.132",
+      action: SecurityBlockAction.Challenge,
+    });
+    blocks.get(fallsBack.id!.toString())!.challengeFallsBackToBlock = true;
+
+    await passAt(2);
+
+    expect(bannedValues()).toEqual(["35.205.11.132"]);
+    expect(errorOf(1, crowdsec)).toBe(
+      "Not applied: OneUptime bans in CrowdSec, and does not challenge through it",
+    );
+    expect(stateOf(2, crowdsec)).toBe(SecurityBlockEnforcementState.Applied);
+  });
+
+  test("another connection's bans on the same LAPI are never ended", async () => {
+    lapi.addDecisionAlert({
+      machineId: MACHINE,
+      scenario: CROWDSEC_ONEUPTIME_SCENARIO,
+      origin: "cscli",
+      value: "198.51.100.9",
+      durationInMs: DAY,
+      meta: [
+        {
+          key: CROWDSEC_META_CONNECTION,
+          value: "cccccccc-cccc-4ccc-8ccc-000000000002",
+        },
+      ],
+    });
+    addBlock({ index: 1, value: "35.205.11.131" });
+
+    await passAt(2);
+
+    expect(bannedValues()).toEqual(["198.51.100.9", "35.205.11.131"]);
+  });
+
+  test("OneUptime's ban, as the notification plugin sends it back, reads as OneUptime's own: no case, no block, no loop", async () => {
+    addBlock({ index: 1, value: "35.205.11.131", hasCase: true });
+    await passAt(2);
+
+    expect(lapi.notified).toHaveLength(1);
+    const echoed: JSONObject = lapi.notified[0]!;
+
+    expect(CrowdSecNormalizer.isCrowdSecAlert(echoed)).toBe(true);
+    const event: ReturnType<typeof CrowdSecNormalizer.normalize> =
+      CrowdSecNormalizer.normalize(echoed);
+    expect(event.attributes[CROWDSEC_ALERT_TYPE_ATTRIBUTE]).toBe(
+      CrowdSecAlertType.OneUptime,
+    );
+    expect(CrowdSecNormalizer.isDetection(event)).toBe(false);
   });
 });

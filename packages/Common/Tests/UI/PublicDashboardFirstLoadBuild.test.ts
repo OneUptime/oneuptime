@@ -172,4 +172,99 @@ describe("a public dashboard's first load", () => {
   ])("leaves out %s, which no widget draws", (_name: string, file: string) => {
     expect(inputsUnder(built!.firstLoad, file)).toEqual([]);
   });
+
+  /*
+   * The Storage Array widgets name a hardware component, a drive and a
+   * controller, and word a component's status as the Storage Array pages
+   * do. They read those words from StorageArrayResourceKindLabels and
+   * StorageArrayStatusWords: read from StorageArrayResourceKindUtil and the
+   * pages' health rules (StorageArrayHealth), they brought the storage
+   * platforms' registry with them, and with it every platform's metrics and
+   * alert templates - some 60 KB before gzip that no widget reads.
+   */
+  test("has the Storage Array widgets' words, which their rows write", () => {
+    expect(
+      inputsUnder(
+        built!.firstLoad,
+        "Types/StorageArray/StorageArrayResourceKindLabels.ts",
+      ).length,
+    ).toBe(1);
+    expect(
+      inputsUnder(
+        built!.firstLoad,
+        "Dashboard/src/Pages/StorageArray/Utils/StorageArrayStatusWords.ts",
+      ).length,
+    ).toBe(1);
+  });
+
+  /*
+   * A public dashboard cannot draw logs, traces, security events, product
+   * analytics or cloud costs (PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES): such a
+   * widget only says under its title that it is not available. The board's
+   * registry imported them statically, and with them the models they read -
+   * every cloud cost model since the Cloud Cost widget, a RUM
+   * application's, a security event's - some 250 KiB before gzip (53 KiB
+   * gzipped). Each is a file of its own now, loaded the first time a board
+   * draws one (LazyDashboardWidget).
+   */
+  test("has the loader of the widgets it cannot draw, which the board draws them through", () => {
+    expect(
+      inputsUnder(
+        built!.firstLoad,
+        `${DASHBOARD}/Dashboard/Components/LazyDashboardWidget.tsx`,
+      ).length,
+    ).toBe(1);
+  });
+
+  test.each([
+    ["the Log Chart widget", "DashboardLogChartComponent.tsx"],
+    ["the Trace Chart widget", "DashboardTraceChartComponent.tsx"],
+    ["the Trace Table widget", "DashboardTraceTableComponent.tsx"],
+    [
+      "the Security Events List widget",
+      "DashboardSecurityEventsListComponent.tsx",
+    ],
+    [
+      "the Security Events Flow widget",
+      "DashboardSecurityEventsFlowComponent.tsx",
+    ],
+    ["the Funnel widget", "DashboardProductAnalyticsFunnelComponent.tsx"],
+    [
+      "the User Retention widget",
+      "DashboardProductAnalyticsRetentionComponent.tsx",
+    ],
+    ["the Cloud Cost widget", "DashboardCloudCostComponent.tsx"],
+  ])(
+    "leaves out %s, which a public dashboard cannot draw, until a board draws one",
+    (_name: string, file: string) => {
+      const widget: string = `${DASHBOARD}/Dashboard/Components/${file}`;
+
+      expect(inputsUnder(built!.firstLoad, widget)).toEqual([]);
+      expect(inputsUnder(built!.loadedLater, widget).length).toBe(1);
+    },
+  );
+
+  test.each([
+    [
+      "the storage platforms' registry",
+      "Types/StorageArray/StorageArrayPlatformRegistry.ts",
+    ],
+    [
+      "every storage platform, with its metrics and alert templates",
+      "Types/StorageArray/Platforms/",
+    ],
+    [
+      "the words of every platform's kinds",
+      "Types/StorageArray/StorageArrayResourceKindUtil.ts",
+    ],
+    [
+      "the Storage Array pages' health rules",
+      "Dashboard/src/Pages/StorageArray/Utils/StorageArrayHealth.ts",
+    ],
+  ])(
+    "leaves out %s, which no Storage Array widget reads",
+    (_name: string, file: string) => {
+      expect(inputsUnder(built!.firstLoad, file)).toEqual([]);
+    },
+  );
 });

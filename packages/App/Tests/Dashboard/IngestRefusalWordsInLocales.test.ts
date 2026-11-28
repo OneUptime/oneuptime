@@ -54,13 +54,20 @@ function sameAsEnglishIn(language: string): ReadonlyArray<string> {
   return [...SAME_AS_ENGLISH, ...(progress.sameAsEnglish || [])];
 }
 
-// The refusal words, the card that lists them and the key picker.
+/*
+ * The refusal words, the card that lists them and the key picker - and
+ * what the Usage page and the explorers' banner say of the telemetry queue
+ * refusing a project's telemetry while OneUptime catches up (#11440),
+ * which Common's UI draws for the Dashboard.
+ */
 const SOURCE_FILES: ReadonlyArray<string> = [
   "src/Components/Telemetry/IngestRefusalWords.ts",
   "src/Components/Telemetry/IngestRefusalFacts.ts",
   "src/Components/Telemetry/IngestRefusalRoutes.ts",
   "src/Components/Telemetry/IngestionKeyRefusalsCard.tsx",
   "src/Components/Telemetry/IngestionKeySelector.tsx",
+  "../../../Common/UI/Components/TelemetryIngestionBudget/TelemetryQueueRefusalWords.ts",
+  "../../../Common/UI/Components/TelemetryIngestionBudget/TelemetryQueueRefusalsCard.tsx",
 ].map((file: string): string => {
   return path.join(DASHBOARD, file);
 });
@@ -156,6 +163,14 @@ describe("the refusal words", () => {
       "{{name}} (turned off)",
       "Ingestion Key Refusal",
       "Last Refused At",
+      // The telemetry queue's (#11440): the reasons, the Usage page's card, the banner.
+      "OneUptime is still storing what this project already sent, so it refuses more for now.",
+      "OneUptime's telemetry queue is nearly full, so it refuses telemetry from every project for now.",
+      "Too much waiting to be stored",
+      "Refused While OneUptime Catches Up",
+      "Refusing now",
+      "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.",
+      "See what was refused",
     ]) {
       expect({ sentence, found: keys.includes(sentence) }).toEqual({
         sentence,
@@ -265,6 +280,8 @@ describe("the refusal words", () => {
     "Over the project's ingestion rate limit",
     "No payment method on the project",
     "Project blocked by an administrator",
+    "Too much waiting to be stored",
+    "Telemetry queue nearly full",
   ];
 
   test("every reason has its few words", () => {

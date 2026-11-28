@@ -309,7 +309,13 @@ Vissa fält innehåller ett JSON-värde med en egen form, till exempel `rotation
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-En nyckel som byter namn läses fortfarande under sitt gamla namn: ett lagers begränsningstyp skrivs under `restrictionType`, eller under den äldre stavningen `restictionType`, och ett svar har båda.
+En nyckel som byter namn läses fortfarande under sitt gamla namn: ett lagers begränsningstyp skrivs under `restrictionType`, eller under den äldre stavningen `restictionType`, och ett svar har båda. Den äldre stavningen är inaktuell i svar: de har den fram till den första huvudversionen som släpps den 1 juni 2027 eller senare. Skrivningar läser den alltid.
+
+Ett värde tas också på orden. Ett lagers veckofönster har jour de dagar det nämner, så dess `startTime` och `endTime` måste infalla på dess `startDay` och `endDay` i schemats tidszon. Ett fönster som är daterat på andra dagar avvisas med en `400` som nämner fönstret och ger en tid på den nämnda dagen att skicka i stället:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Var ett projekt köptes
 
@@ -425,7 +431,7 @@ Den brukade svara `200` med en tom kropp. En lista (`get-list`) och en räkning 
 
 ### Bilder i en posts Markdown
 
-En bild som klistrats in i Markdown, som en skärmbild i en incidents beskrivning, ett anpassat Markdown-fält eller en anteckning, är en privat fil. Dess adress (`/file/image/access-token/...`) öppnar den bara för en person som är inloggad i projektet, så en API-nyckel läser den i stället genom posten som visar den:
+En bild som klistrats in i Markdown, som en skärmbild i en incidents beskrivning, ett anpassat Markdown-fält eller en anteckning, är en privat fil. Dess adress (`/file/image/access-token/...`) öppnar den bara för en person som är inloggad i projektet och får läsa en post som visar den, eller som lade till den, så en API-nyckel läser den i stället genom posten som visar den:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +465,7 @@ Posten läses som nyckeln, så som `get-item` läser den: nyckeln behöver behö
 }
 ```
 
-Bara bilder som laddats upp till postens eget projekt lämnas ut, upp till 20 och 10 MB totalt, och aldrig en SVG. Varje sorts post med Markdown har samma begäran, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post som inte finns, eller som nyckeln inte får läsa, svarar `404` som `get-item` gör, och `422` när nyckeln inte får läsa den sortens post alls. Ett arbetsflöde läser samma bilder med [Hämta filer från Markdown](/docs/workflows/components#get-files-from-markdown).
+Bara bilder som laddats upp till postens eget projekt lämnas ut, upp till 20 och 10 MB totalt, och aldrig en SVG. Varje sorts post med Markdown har samma begäran, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post som inte finns, eller som nyckeln inte får läsa, svarar `404` som `get-item` gör, och `422` när nyckeln inte får läsa den sortens post alls. Ett arbetsflöde läser samma bilder med [Hämta filer från Markdown](/docs/workflows/components#get-files-from-markdown), och filerna som en post innehåller, som en antecknings bilagor och dess anpassade filfält, med [Hämta bilagor från post](/docs/workflows/components#get-attachments-from-record).
 
 ## Den fullständiga referensen över slutpunkter
 

@@ -256,6 +256,7 @@ En inlämning som bryter mot en gräns, utelämnar ett obligatoriskt svar eller 
 
 :::cards
 - [Vad en inlämning skapar](/docs/forms/on-submit): Hur svaren och inställningarna Vid inlämning blir en incident eller en underhållshändelse.
+- [Följa upp en inlämning](/docs/forms/follow-ups): Den som skickar följer sin förfrågan, skriver till ditt team och lägger till andra.
 - [Delning & säkerhet](/docs/forms/sharing-and-security): Dela länken, en länk för varje mall, och vad som skyddar dem.
 - [Incidentinställningar och automatisering](/docs/incidents/settings): Anpassade fält och mallar för incidenter.
 :::

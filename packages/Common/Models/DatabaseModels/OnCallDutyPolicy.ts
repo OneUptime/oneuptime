@@ -14,6 +14,7 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableMCP from "../../Types/Database/EnableMCP";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -839,11 +840,19 @@ export default class OnCallDutyPolicy extends BaseModel {
       Permission.EditProjectOnCallDutyPolicy,
     ],
   })
+  /*
+   * Through a relation, only the policy's own readers read it (#11234): a
+   * policy's setting, not its label. A reader of an incident, an alert, an
+   * SLO's burn-rate rule or a notification log sees which policy paged, as
+   * before, not what that policy gives the people it pages. Nothing reads
+   * it through one: the Incident Role card reads it on the policy itself.
+   */
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
     title: "Incident Role ID",
     description:
       "ID of the incident role given to everybody this policy pages about an incident or an incident episode. Empty: no role.",

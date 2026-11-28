@@ -137,8 +137,8 @@ export default class FileModel extends BaseModel {
    * file id when embedding files in markdown so that ObjectIDs are not
    * enumerable. The token only addresses the file; it does not open it.
    * The token route serves a public file to anyone, and a private one only
-   * to the people who may see it - the members of the project it was
-   * uploaded in (FileViewerAccess).
+   * to the people who may see it - its uploader, and the members of its
+   * project who may read a record that shows it (FileViewerAccess).
    *
    * Computed and closed to every write: FileService generates it for every
    * upload, and a value a request sends is replaced, never refused.

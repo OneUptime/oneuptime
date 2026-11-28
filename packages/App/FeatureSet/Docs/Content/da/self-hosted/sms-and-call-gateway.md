@@ -5,6 +5,7 @@ OneUptime kan sende sine SMS og opkald gennem en gateway, du selv driver, i sted
 :::cards
 - [Sæt gatewayen op](#sæt-gatewayen-op): En URL og en signeringshemmelighed, der laves til dig.
 - [Hvad din gateway modtager](#hvad-din-gateway-modtager): Én signeret JSON-anmodning pr. SMS eller opkald.
+- [Opkald på andre sprog](#opkald-på-andre-sprog): Lad hvert opkald tale det sprog, som personen bruger OneUptime på.
 - [Reager på et tilkald](#reager-på-et-tilkald): Bekræft, eskalér eller løs fra et opkald eller et svar.
 - [Levering og nye forsøg](#levering-og-nye-forsøg): Hvad der sker, når din gateway er nede.
 :::
@@ -63,7 +64,8 @@ Hver SMS og hvert opkald er én `POST`-anmodning med en JSON-body og disse heade
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ Hver SMS og hvert opkald er én `POST`-anmodning med en JSON-body og disse heade
 | `sentAt` | Hvornår OneUptime sendte den, i ISO 8601. |
 | `to` | Telefonnummeret i E.164-format. `null` i en test. |
 | `message` | SMS'en, eller det, opkaldet siger. En SMS er højst 1.600 tegn, og et opkalds tekst højst 16.384. En længere tekst afkortes og slutter med en note om, at resten står i OneUptime. |
-| `isSensitive` | `true` for en bekræftelseskode. Hold beskeden ude af dine egne logs. |
+| `isSensitive` | `true` for en bekræftelseskode. Hold beskeden, og den i `inLanguage`, ude af dine egne logs. |
 | `project` | Projektets `id` og `name`, eller `null`, når intet projekt sendte den. |
 | `actions` | For et vagttilkald de links, der handler på det. Ellers `null`. |
+| `inLanguage` | For et opkald til en, der bruger OneUptime på et andet sprog end engelsk: `language`, sprogets kode, og `message`, det, opkaldet siger på sproget. Ellers `null`, og for hver SMS, som allerede er på personens sprog. Se [Opkald på andre sprog](#opkald-på-andre-sprog). |
 
 Et opkald beskrives i stedet for at blive skrevet som et manuskript: `message` er det, opkaldet siger, uden Twilios "tryk 1 for at bekræfte". Tilbyd handlingerne på din egen måde, f.eks. med tastetryk, og kald det tilsvarende link.
+
+### Opkald på andre sprog
+
+Et opkald til en, der bruger OneUptime på et andet sprog, har sine ord med to gange: på engelsk i `message`, som alle opkald har, og på personens sprog i `inLanguage`. Din gateway vælger stemmen, så OneUptime kan ikke vide, hvilke sprog den taler. Når din gateway har en stemme på `inLanguage.language`, så lad den stemme sige `inLanguage.message`. Når den ingen har, så sig `message` på engelsk i stedet. Giv aldrig ét sprogs ord til et andet sprogs stemme: de ville ikke blive forstået. En gateway, der kun læser `message`, virker fortsat som før og taler engelsk.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+Sprogets kode er et BCP 47-tag, et af de sprog, OneUptime er skrevet på: `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa` og `ar`. `es` er spansk fra Spanien, `pt` portugisisk fra Brasilien, `no` norsk bokmål, `ar` moderne standardarabisk, og begge de kinesiske koder er mandarin, med forenklede og med traditionelle tegn. Persisk er blandt dem: Twilio har ingen persisk stemme, så gennem Twilio er et opkald til en, der bruger OneUptime på persisk, på engelsk, men din gateway har måske en. En bekræftelseskode skrives ciffer for ciffer, med to mellemrum mellem cifrene: lad din stemme læse cifrene ét ad gangen, langsomt, i stedet for som et tal.
 
 ### Kontrollér signaturen
 
@@ -116,7 +137,7 @@ SMS- eller opkaldsloggen, og for et vagttilkald personens vagtlog, viser `Sent t
 
 ## Testanmodninger
 
-**Tjek gateway** sender en anmodning med `event` sat til `test` og `to`, `project` og `actions` sat til `null`. Besvar den med en 2xx-status, og send ingenting.
+**Tjek gateway** sender en anmodning med `event` sat til `test` og `to`, `project`, `actions` og `inLanguage` sat til `null`. Besvar den med en 2xx-status, og send ingenting.
 
 ## Næste trin
 

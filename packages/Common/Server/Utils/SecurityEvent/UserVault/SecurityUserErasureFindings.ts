@@ -20,7 +20,10 @@ import {
   DETECTION_GROUP_VALUE_ATTRIBUTE,
   DETECTION_SUMMARY_ATTRIBUTE,
 } from "../../../../Types/SecurityEvent/DetectionFindingConstants";
+import { OcsfSeverityId } from "../../../../Types/SecurityEvent/OcsfSeverity";
 import {
+  ERASED_THREAT_INTEL_SEVERITY,
+  THREAT_CONFIDENCE_ATTRIBUTE,
   THREAT_FEED_NAME_ATTRIBUTE,
   THREAT_INDICATOR_ID_ATTRIBUTE,
   THREAT_INDICATOR_VALUE_ATTRIBUTE,
@@ -111,11 +114,20 @@ import {
  * fingerprint of the match once the names are out, as its alert and case
  * detection carry it (DetectionFingerprint.erasedIndicatorIdOf) - and the
  * feed's own name in ruleName, as a match on an indicator with no name has
- * it. The feed stays named, and so do the indicator's type and confidence:
- * that one of the feed's indicators matched, never which. The old id is
- * never sent, only the new one; the feed's name is the finding's own
- * attribute. A finding an earlier erasure un-named with the indicator left
- * as it was gets it the same way.
+ * it. The feed stays named, and so does the indicator's type: that one of
+ * the feed's indicators matched, never which. The old id is never sent,
+ * only the new one; the feed's name is the finding's own attribute. A
+ * finding an earlier erasure un-named with the indicator left as it was
+ * gets it the same way.
+ *
+ * AND THE INDICATOR'S CONFIDENCE (#11447). The feed keeps each indicator's
+ * score beside the address too, and in a small feed whose addresses each
+ * have their own, the score alone could point back at one; the severity a
+ * match takes from it is a band of it, which can as well. So the same
+ * change drops oneuptime.threat.confidence, and gives the finding the
+ * severity a match on an unscored indicator reads
+ * (ERASED_THREAT_INTEL_SEVERITY) - constants, nothing of the person. A
+ * finding an earlier erasure left with its score gets the same.
  *
  * BATCHED AND IDEMPOTENT. Findings that need the same change (the same
  * observables replaced by the same tokens, the same new fingerprint - most
@@ -230,7 +242,9 @@ export interface FindingUidChange {
 /*
  * What a threat intel finding says of the feed's indicator once its person
  * is out (#11230): the erased indicator id in ruleId and
- * oneuptime.threat.indicator_id, and the feed's own name in ruleName.
+ * oneuptime.threat.indicator_id, and the feed's own name in ruleName - and
+ * no confidence, at the severity an unscored indicator's match reads
+ * (#11447).
  */
 export interface FindingIndicatorChange {
   id: string;
@@ -276,6 +290,13 @@ export interface ErasureFindingRow {
   ruleName?: string | undefined;
   indicatorId?: string | undefined;
   feedName?: string | undefined;
+  /*
+   * The indicator's score, as oneuptime.threat.confidence holds it ("" when
+   * it holds none), and the finding's severity, which a feed takes from it
+   * (#11447). Unknown when the read did not say.
+   */
+  confidence?: string | undefined;
+  severityName?: string | undefined;
 }
 
 // Where a read of a project's findings is: after this finding, in (time, _id) order.
@@ -392,7 +413,8 @@ function holdsAnyToken(
 /*
  * The indicator change a threat intel finding needs once `erasedId` stands
  * for its indicator (#11230), or none when it already says nothing more:
- * both id places hold it, and ruleName is the feed's.
+ * both id places hold it, ruleName is the feed's, it holds no confidence
+ * and its severity is the one an unscored indicator's match reads (#11447).
  */
 export function getFindingIndicatorChange(
   row: ErasureFindingRow,
@@ -400,7 +422,10 @@ export function getFindingIndicatorChange(
 ): FindingIndicatorChange | undefined {
   return row.ruleId !== erasedId ||
     row.indicatorId !== erasedId ||
-    (row.ruleName || "") !== (row.feedName || "")
+    (row.ruleName || "") !== (row.feedName || "") ||
+    Boolean(row.confidence) ||
+    (row.severityName !== undefined &&
+      row.severityName !== ERASED_THREAT_INTEL_SEVERITY)
     ? { id: erasedId }
     : undefined;
 }
@@ -664,7 +689,7 @@ export default class SecurityUserErasureFindings {
     after?: FindingsCursor | null | undefined;
     limit: number;
   }): Statement {
-    const statement: Statement = SQL`SELECT _id AS findingId, toString(toUnixTimestamp64Nano(time)) AS findingTime, observables, eventUid AS findingUid, attributes[${text(DETECTION_GROUP_VALUE_ATTRIBUTE)}] AS findingGroupValue, attributes[${text(THREAT_INDICATOR_VALUE_ATTRIBUTE)}] AS findingIndicatorValue, attributes[${text(FINDING_USER_ERASED_ATTRIBUTE)}] AS findingErased, ruleId AS findingRuleId, ruleName AS findingRuleName, attributes[${text(THREAT_INDICATOR_ID_ATTRIBUTE)}] AS findingIndicatorId, attributes[${text(THREAT_FEED_NAME_ATTRIBUTE)}] AS findingFeedName FROM `;
+    const statement: Statement = SQL`SELECT _id AS findingId, toString(toUnixTimestamp64Nano(time)) AS findingTime, observables, eventUid AS findingUid, attributes[${text(DETECTION_GROUP_VALUE_ATTRIBUTE)}] AS findingGroupValue, attributes[${text(THREAT_INDICATOR_VALUE_ATTRIBUTE)}] AS findingIndicatorValue, attributes[${text(FINDING_USER_ERASED_ATTRIBUTE)}] AS findingErased, ruleId AS findingRuleId, ruleName AS findingRuleName, attributes[${text(THREAT_INDICATOR_ID_ATTRIBUTE)}] AS findingIndicatorId, attributes[${text(THREAT_FEED_NAME_ATTRIBUTE)}] AS findingFeedName, attributes[${text(THREAT_CONFIDENCE_ATTRIBUTE)}] AS findingConfidence, severityName AS findingSeverity FROM `;
 
     statement.append(
       `${databaseName()}.${SecurityEventService.model.tableName}`,
@@ -717,6 +742,8 @@ export default class SecurityUserErasureFindings {
           ruleName: readText(row["findingRuleName"]),
           indicatorId: readText(row["findingIndicatorId"]),
           feedName: readText(row["findingFeedName"]),
+          confidence: readText(row["findingConfidence"]),
+          severityName: readText(row["findingSeverity"]),
         };
       },
     );
@@ -934,13 +961,20 @@ export default class SecurityUserErasureFindings {
 
   /*
    * The finding's attributes once the names are out, the feed's indicator
-   * with them (#11230), and the erasure said.
+   * with them (#11230) and its confidence dropped (#11447), and the erasure
+   * said.
    */
   private static appendUnnamedAttributes(data: {
     statement: Statement;
     replacements: ReadonlyArray<FindingReplacement>;
     indicator?: FindingIndicatorChange | undefined;
   }): void {
+    if (data.indicator) {
+      data.statement.append(
+        SQL`mapFilter((keptKey, keptValue) -> keptKey != ${text(THREAT_CONFIDENCE_ATTRIBUTE)}, `,
+      );
+    }
+
     data.statement.append("mapUpdate(");
 
     if (data.replacements.length > 0) {
@@ -971,6 +1005,10 @@ export default class SecurityUserErasureFindings {
     }
 
     data.statement.append("))");
+
+    if (data.indicator) {
+      data.statement.append(")");
+    }
   }
 
   /*
@@ -1064,12 +1102,14 @@ export default class SecurityUserErasureFindings {
     /*
      * The feed's indicator out of the finding's provenance (#11230): the
      * erased indicator id for the indicator's, and the feed's name - the
-     * finding's own attribute - for the indicator's.
+     * finding's own attribute - for the indicator's. And the severity the
+     * indicator's score gave it, the one an unscored indicator's match
+     * reads (#11447).
      */
     if (indicator) {
       updates.push((): void => {
         statement.append(
-          SQL`ruleId = ${text(indicator.id)}, ruleName = attributes[${text(THREAT_FEED_NAME_ATTRIBUTE)}]`,
+          SQL`ruleId = ${text(indicator.id)}, ruleName = attributes[${text(THREAT_FEED_NAME_ATTRIBUTE)}], severityName = ${text(ERASED_THREAT_INTEL_SEVERITY)}, severityId = ${number(OcsfSeverityId[ERASED_THREAT_INTEL_SEVERITY])}`,
         );
       });
     }

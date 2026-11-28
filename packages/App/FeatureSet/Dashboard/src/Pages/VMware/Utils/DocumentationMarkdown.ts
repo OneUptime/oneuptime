@@ -12,6 +12,11 @@ import {
 } from "../../../Components/SetupGuide/SetupGuide";
 import { VMWARE_AGENT_VERSION } from "../../../Components/AgentVersion/AgentKind";
 import {
+  AgentContainerNames,
+  getAgentContainerNameRows,
+  getSeveralAgentsTopic,
+} from "../../../Components/SetupGuide/AgentContainerNames";
+import {
   INSTALL_SCRIPT_READ_FIRST_NOTE,
   getAgentFileDownloadCommand,
   getInstallScriptDownloadCommand,
@@ -96,6 +101,29 @@ export const VMWARE_AGENT_INSTALL_DIR: string = "/opt/oneuptime-vmware-agent";
 export const VMWARE_AGENT_CONTAINER: string = "oneuptime-vmware-agent";
 export const VMWARE_AI_AGENT_CONTAINER: string = "oneuptime-vmware-ai-agent";
 
+/*
+ * Each container's name, from .env (#11434): a second vCenter's agent on the
+ * same machine needs names of its own. In install.sh's order: the collector,
+ * then COMPANION_CONTAINERS.
+ */
+export const VMWARE_AGENT_CONTAINER_NAMES: AgentContainerNames = {
+  names: [
+    {
+      variable: "VMWARE_AGENT_CONTAINER_NAME",
+      container: VMWARE_AGENT_CONTAINER,
+      role: "collector",
+    },
+    {
+      variable: "VMWARE_AI_AGENT_CONTAINER_NAME",
+      container: VMWARE_AI_AGENT_CONTAINER,
+      role: "AI agent",
+    },
+  ],
+  noun: "vCenter",
+  installDir: VMWARE_AGENT_INSTALL_DIR,
+  suffix: "vcenter2",
+};
+
 // The name the guide suggests when it is not installing for a known vCenter.
 export const VMWARE_EXAMPLE_VCENTER_NAME: string = "my-vcenter";
 
@@ -133,7 +161,11 @@ export const VMWARE_AGENT_COMPOSE_FILE: string = `services:
     # validates the config against, and the one the config reports as the
     # agent's version (oneuptime.agent.version); bump the three together.
     image: otel/opentelemetry-collector-contrib:0.165.0
-    container_name: oneuptime-vmware-agent
+    # The container's name, from .env: a second vCenter's agent on this
+    # machine, in a directory of its own, has names of its own, which
+    # install.sh writes there and an upgrade keeps (README.md, "Monitoring
+    # several vCenters").
+    container_name: \${VMWARE_AGENT_CONTAINER_NAME:-oneuptime-vmware-agent}
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
     # Uncomment (together with the syslog receivers and the logs pipeline
@@ -179,7 +211,8 @@ export const VMWARE_AGENT_COMPOSE_FILE: string = `services:
   # ("OneUptime AI agent"). Remove this service if you do not use OneUptime AI.
   oneuptime-vmware-ai-agent:
     image: oneuptime/resource-ai-agent:release
-    container_name: oneuptime-vmware-ai-agent
+    # Named beside the collector, from .env (see above).
+    container_name: \${VMWARE_AI_AGENT_CONTAINER_NAME:-oneuptime-vmware-ai-agent}
     # It only talks HTTPS to vCenter and OneUptime: no root, no capabilities,
     # a read-only root filesystem, and its private per-command directories
     # on a tmpfs.
@@ -980,6 +1013,7 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
       linuxService
         ? ""
         : `
+${getAgentContainerNameRows(VMWARE_AGENT_CONTAINER_NAMES, context.method === "install-script")}
 
 The OneUptime AI agent's own settings are under **OneUptime AI agent**.`
     }`,
@@ -1232,6 +1266,18 @@ Then remove the \`oneuptime\` user's permission in vCenter if you no longer need
   };
 }
 
+function getSeveralVCentersTopic(context: GuideContext): SetupGuideTopic {
+  return getSeveralAgentsTopic(
+    VMWARE_AGENT_CONTAINER_NAMES,
+    context.method === "install-script",
+    {
+      title: "Monitoring several vCenters",
+      summary:
+        "One agent per vCenter, each in a folder of its own with container names of its own.",
+    },
+  );
+}
+
 function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
   return [
     getEnvironmentVariablesTopic(context),
@@ -1241,6 +1287,10 @@ function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
     getSyslogTopic(context),
     getLabelsTopic(context),
     getAiAgentTopic(context),
+    // Without Docker no container runs, so none is named.
+    ...(isLinuxService(context.method)
+      ? []
+      : [getSeveralVCentersTopic(context)]),
     isLinuxService(context.method)
       ? getLinuxServiceUpgradeTopic(context.oneuptimeUrl)
       : getUpgradeTopic(context),

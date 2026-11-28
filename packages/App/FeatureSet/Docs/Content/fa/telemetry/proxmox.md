@@ -112,6 +112,10 @@ PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
+PROXMOX_AGENT_CONTAINER_NAME=oneuptime-proxmox-agent
+PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME=oneuptime-pve-api-failover
+PROXMOX_PVE_EXPORTER_CONTAINER_NAME=oneuptime-pve-exporter
+PROXMOX_AI_AGENT_CONTAINER_NAME=oneuptime-proxmox-ai-agent
 ```
 
 `PVE_NODES` هر گره را با نشانی خودش، درون کروشه، فهرست می‌کند و `COMPOSE_PROFILES=pve-exporter` صادرکننده همراه را هم اجرا می‌کند. عامل را اجرا کنید:
@@ -161,6 +165,10 @@ Everything is ready. Begin running and processing data.
 | `PVE_API_TOKEN_SECRET` | صادرکننده همراه یا عامل هوش مصنوعی | راز توکن API در Proxmox. |
 | `PVE_VERIFY_SSL` | خیر | گواهی TLS در API در Proxmox را راستی‌آزمایی می‌کند (صادرکننده و عامل هوش مصنوعی). پیش‌فرض آن `false` است، چون Proxmox با گواهی‌های خودامضا عرضه می‌شود. |
 | `COMPOSE_PROFILES` | خیر | برای اجرای کانتینر صادرکننده همراه، آن را روی `pve-exporter` بگذارید. |
+| `PROXMOX_AGENT_CONTAINER_NAME` | خیر | نام کانتینر کالکتور. پیش‌فرض آن `oneuptime-proxmox-agent` است. عامل خوشه دوم روی همان ماشین به نام‌های خودش نیاز دارد: [پایش چند خوشه](#پایش-چند-خوشه) را ببینید. اسکریپت نصب، اگر آن‌ها را تنظیم نکنید، کانتینرهای عامل تازه را به نام پوشه‌اش می‌نامد و وقتی اسکریپت را دوباره اجرا می‌کنید آن‌ها را نگه می‌دارد. |
+| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | خیر | نام کانتینر sidecar فیل‌اوور API. پیش‌فرض آن `oneuptime-pve-api-failover` است، و برای عامل دوم نامی کنار نام کالکتورش، مثلاً `oneuptime-pve-api-failover-cluster2`. |
+| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | خیر | نام کانتینر صادرکننده همراه. پیش‌فرض آن `oneuptime-pve-exporter` است، و برای عامل دوم نامی کنار نام کالکتورش، مثلاً `oneuptime-pve-exporter-cluster2`. |
+| `PROXMOX_AI_AGENT_CONTAINER_NAME` | خیر | نام کانتینر عامل هوش مصنوعی. پیش‌فرض آن `oneuptime-proxmox-ai-agent` است، و برای عامل دوم نامی کنار نام کالکتورش، مثلاً `oneuptime-proxmox-ai-agent-cluster2`. |
 
 ## آنچه عامل گردآوری می‌کند
 
@@ -336,6 +344,18 @@ Proxmox VE 9.0 و بعد از آن یک سرور متریک OpenTelemetry دار
 
 نتایج پشتیبان‌گیری، گره‌های جداشده و همتاسازی‌های ناموفق باز هم به OneUptime می‌رسند: [اعلان‌های Proxmox VE را بفرستید](#فرستادن-اعلانهای-proxmox-ve)، که با ارسال بومی هم کار می‌کنند.
 
+## پایش چند خوشه
+
+یک عامل یک خوشه را می‌خواند. برای پایش چند خوشه از یک ماشین، هر عامل را در پوشه خودش با `.env` خودش و نام‌های کانتینر خودش نصب کنید، چون دو کانتینر نمی‌توانند یک نام داشته باشند:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-proxmox-agent-cluster2 bash install.sh
+```
+
+اسکریپت کانتینرهای عامل را به نام پوشه می‌نامد: `oneuptime-proxmox-agent-cluster2`، `oneuptime-pve-api-failover-cluster2`، `oneuptime-pve-exporter-cluster2` و `oneuptime-proxmox-ai-agent-cluster2`. برای انتخاب آن‌ها توسط خودتان، هنگام اجرای اسکریپت `PROXMOX_AGENT_CONTAINER_NAME` و بقیه متغیرهای جدول بالا را تنظیم کنید. اسکریپت نام‌ها را در `.env` همان عامل نگه می‌دارد، پس اجرای دوباره اسکریپت برای به‌روزرسانی عامل آن‌ها را حفظ می‌کند، و عاملی که `container_name` آن را زمانی در `docker-compose.yml` ویرایش کرده‌اید همان نام را نگه می‌دارد. به هر پوشه نامی از آن خودش بدهید: Docker Compose هر پروژه را فقط به نام پوشه‌اش می‌نامد، پس اسکریپت پوشه‌ای را که هم‌نام پوشه‌ای باشد که در جای دیگری عاملی را اجرا می‌کند نمی‌پذیرد. با Docker Compose، به‌جای آن نام‌ها را در `.env` هر عامل تنظیم کنید.
+
+واحد systemd فرض می‌کند عامل در `/opt/oneuptime-proxmox-agent` است: برای پوشه‌ای دیگر، آن را با نامی دیگر ذخیره کنید، مثلاً `oneuptime-proxmox-agent-cluster2.service`، و `WorkingDirectory` آن را تغییر دهید. پوشه را با `-d` به اسکریپت تشخیصی بدهید.
+
 ## اجرا به‌صورت یک سرویس systemd
 
 برای اینکه عامل همراه ماشین شروع شود و اگر از کار افتاد دوباره راه‌اندازی شود، واحد systemd آن را نصب کنید. این واحد فرض می‌کند عامل در `/opt/oneuptime-proxmox-agent` است، جایی که اسکریپت نصب آن را می‌گذارد:
@@ -350,7 +370,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 عامل نسخه کالکتوری را که فایل‌هایش روی آن ثابت شده‌اند به‌عنوان **نسخه عامل** خود گزارش می‌کند. وقتی این نسخه از نسخه‌ای که این انتشار OneUptime روی آن ثابت شده قدیمی‌تر باشد، یک نشانه هشدار کنارش در **نمای کلی** خوشه دیده می‌شود. آن را برگزینید تا این فرمان‌ها را ببینید. عاملی که پیش از آنکه فایل‌هایش نسخه‌ای گزارش کنند نصب شده، تا وقتی به این شیوه به‌روز نشود نسخه‌ای نشان نمی‌دهد.
 
-ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌اش فایلی کنار آن است، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و `otel-collector-config.yaml` را تازه می‌کند (فایلی که ویرایش کرده‌اید به‌صورت `<file>.bak.<timestamp>` نگه داشته می‌شود)، ایمیج‌ها را می‌کشد و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. یک `.env` از پیش از `PVE_NODES` همچنان فقط `PVE_HOST` را می‌خواند، و اسکریپت گره‌هایی را که باید به آن افزوده شوند نام می‌برد.
+ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌اش فایلی کنار آن است، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و `otel-collector-config.yaml` را تازه می‌کند (فایلی که ویرایش کرده‌اید به‌صورت `<file>.bak.<timestamp>` نگه داشته می‌شود)، ایمیج‌ها را می‌کشد و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. یک `.env` از پیش از `PVE_NODES` همچنان فقط `PVE_HOST` را می‌خواند، و اسکریپت گره‌هایی را که باید به آن افزوده شوند نام می‌برد. عاملی که بیرون از `/opt/oneuptime-proxmox-agent` نصب شده به پوشه‌اش نیاز دارد، `INSTALL_DIR=<folder> bash install.sh`، و نام‌های کانتینرش را نگه می‌دارد.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh

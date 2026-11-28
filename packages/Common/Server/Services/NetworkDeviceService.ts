@@ -34,6 +34,7 @@ import { RuleRunWriteProps } from "../Utils/Rules/RuleRun/RuleApplication";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
+import IP from "../../Types/IP/IP";
 import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import OneUptimeDate from "../../Types/Date";
@@ -4318,42 +4319,60 @@ export class Service extends ProjectReferencesService<Model> {
       ],
     );
 
-    const devices: Array<Model> = [];
+    return Service.readAddressedDevices(rows);
+  }
 
-    for (const row of Array.isArray(rows) ? rows : []) {
-      const record: {
-        id?: unknown;
-        projectId?: unknown;
-        hostname?: unknown;
-        otherAddresses?: unknown;
-      } = row as {
-        id?: unknown;
-        projectId?: unknown;
-        hostname?: unknown;
-        otherAddresses?: unknown;
-      };
-      const id: string = String(record.id || "");
-      const projectId: string = String(record.projectId || "");
+  /*
+   * The devices on a probe registered by a DNS name, with the columns that
+   * say which addresses are theirs: the name, and their Other Addresses.
+   * What a probe's refused SNMPv3 traps are also matched by (#11406): the
+   * names are resolved as trap matching resolves them, so a device added
+   * as "san-sw-01.example.com" finds its refusals too, and a name that
+   * resolves to an address another project's device has gives the refusal
+   * to nobody. Held to the same tenancy and served projects as
+   * findDevicesAtAddressesOnProbe, in a stable order, at most `limit`.
+   *
+   * The SQL leaves out what is plainly an address (digits and dots, or a
+   * colon); the caller reads what is left with IP.isIP, as trap matching
+   * does, and resolves the rest.
+   */
+  @CaptureSpan()
+  public async findDnsNamedDevicesOnProbe(data: {
+    probeId: ObjectID;
+    limit: number;
+  }): Promise<Array<Model>> {
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        SELECT nd."_id"::text AS "id",
+          nd."projectId"::text AS "projectId",
+          nd."hostname" AS "hostname",
+          nd."otherAddresses" AS "otherAddresses"
+        FROM "NetworkDevice" nd
+        INNER JOIN "Probe" pr ON nd."probeId" = pr."_id"
+        INNER JOIN "Project" p ON nd."projectId" = p."_id"
+        WHERE nd."probeId" = $1
+          AND nd."deletedAt" IS NULL
+          AND ${Service.getTrapReceiverTenancySql("nd", "$2")}
+          AND nd."hostname" IS NOT NULL
+          AND strpos(nd."hostname", ':') = 0
+          AND btrim(nd."hostname") !~ '^[0-9.]*$'
+        ORDER BY nd."_id"
+        LIMIT $3
+      `,
+      [
+        data.probeId.toString(),
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        Math.max(0, Math.floor(data.limit)),
+      ],
+    );
 
-      if (!ObjectID.isValidUUID(id) || !ObjectID.isValidUUID(projectId)) {
-        continue;
-      }
+    return Service.readAddressedDevices(rows).filter(
+      (device: Model): boolean => {
+        const hostname: string = (device.hostname || "").trim();
 
-      const device: Model = new Model(new ObjectID(id));
-      device.projectId = new ObjectID(projectId);
-
-      if (typeof record.hostname === "string") {
-        device.hostname = record.hostname;
-      }
-
-      if (typeof record.otherAddresses === "string") {
-        device.otherAddresses = record.otherAddresses;
-      }
-
-      devices.push(device);
-    }
-
-    return devices;
+        return hostname.length > 0 && !IP.isIP(hostname);
+      },
+    );
   }
 
   /*
@@ -4462,6 +4481,50 @@ export class Service extends ProjectReferencesService<Model> {
       `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
       `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
     ].join("\n          AND ");
+  }
+
+  /*
+   * The rows of findDevicesAtAddressesOnProbe and findDnsNamedDevicesOnProbe
+   * as devices: ID and project, with the hostname and Other Addresses that
+   * say which addresses are theirs. A row whose IDs are not IDs is left out.
+   */
+  private static readAddressedDevices(rows: unknown): Array<Model> {
+    const devices: Array<Model> = [];
+
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const record: {
+        id?: unknown;
+        projectId?: unknown;
+        hostname?: unknown;
+        otherAddresses?: unknown;
+      } = row as {
+        id?: unknown;
+        projectId?: unknown;
+        hostname?: unknown;
+        otherAddresses?: unknown;
+      };
+      const id: string = String(record.id || "");
+      const projectId: string = String(record.projectId || "");
+
+      if (!ObjectID.isValidUUID(id) || !ObjectID.isValidUUID(projectId)) {
+        continue;
+      }
+
+      const device: Model = new Model(new ObjectID(id));
+      device.projectId = new ObjectID(projectId);
+
+      if (typeof record.hostname === "string") {
+        device.hostname = record.hostname;
+      }
+
+      if (typeof record.otherAddresses === "string") {
+        device.otherAddresses = record.otherAddresses;
+      }
+
+      devices.push(device);
+    }
+
+    return devices;
   }
 
   private static readIds(rows: unknown): Array<ObjectID> {

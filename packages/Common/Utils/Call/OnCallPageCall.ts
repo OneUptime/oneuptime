@@ -437,12 +437,20 @@ const SENTENCE_END_MARKS: Readonly<Record<string, string>> = {
 };
 
 // Whatever already ends a sentence, in any of OneUptime's languages.
-const ANY_SENTENCE_END: RegExp = /[.!?…。！？।؟]$/u;
+export const ANY_SENTENCE_END: RegExp = /[.!?…。！？।؟]$/u;
 
-const asSentenceInLanguage: (text: string, language: string) => string = (
+/*
+ * `text` ended as a sentence of `language` once: as it is when anything of
+ * any of OneUptime's languages ends it already - "。", "।", "؟" as surely
+ * as "." - else with the language's own full stop. What a gateway is told
+ * a call says and the message a call leaves on voicemail join a call's
+ * sentences with it (Notification CallService): a Japanese sentence was
+ * given a "." after its "。" there.
+ */
+export const asSentenceInLanguage: (
   text: string,
   language: string,
-): string => {
+) => string = (text: string, language: string): string => {
   if (!text || ANY_SENTENCE_END.test(text)) {
     return text;
   }

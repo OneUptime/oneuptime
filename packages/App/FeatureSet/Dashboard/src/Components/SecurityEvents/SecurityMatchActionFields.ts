@@ -15,6 +15,9 @@ import {
   SECURITY_MATCH_RAISES_FIELD_KEY,
   SECURITY_MATCH_RAISES_FIELD_TITLE,
   SecurityMatchRaises,
+  SecurityMatchRaisesCopy,
+  LIST_SIGN_IN_ANSWERS,
+  LIST_SIGN_IN_COPY,
   TAXII_SIGN_IN_ANSWERS,
   TAXII_SIGN_IN_COPY,
   TaxiiSignIn,
@@ -120,6 +123,32 @@ export const getTaxiiSignInChoices: (options?: {
         signIn === TaxiiSignIn.Anonymous && options?.anonymousDescription
           ? options.anonymousDescription
           : TAXII_SIGN_IN_COPY[signIn].description,
+    };
+  });
+};
+
+/*
+ * A list's sign-in answers (#11158): none, or a username and password - a
+ * list takes no bearer token. Each keeps the TAXII answer's title.
+ */
+export const getListSignInChoices: (options?: {
+  anonymousDescription?: string | undefined;
+}) => Array<RadioButton> = (options?: {
+  anonymousDescription?: string | undefined;
+}): Array<RadioButton> => {
+  return LIST_SIGN_IN_ANSWERS.map((signIn: TaxiiSignIn): RadioButton => {
+    const copy: SecurityMatchRaisesCopy =
+      LIST_SIGN_IN_COPY[
+        signIn as TaxiiSignIn.Anonymous | TaxiiSignIn.BasicAuth
+      ];
+
+    return {
+      value: signIn,
+      title: copy.title,
+      description:
+        signIn === TaxiiSignIn.Anonymous && options?.anonymousDescription
+          ? options.anonymousDescription
+          : copy.description,
     };
   });
 };

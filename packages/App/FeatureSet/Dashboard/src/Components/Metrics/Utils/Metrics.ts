@@ -38,6 +38,7 @@ import MetricResultUnitConverter from "Common/Utils/Metrics/MetricResultUnitConv
 import Dictionary from "Common/Types/Dictionary";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import { getLookupWindowBody } from "Common/UI/Utils/Telemetry/AttributeValueSuggestions";
+import { DashboardResourceScope } from "Common/Types/Dashboard/DashboardResourceScope";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import MetricQueryServices from "Common/Utils/Metrics/MetricQueryServices";
@@ -1095,6 +1096,12 @@ export default class MetricUtil {
     metricName?: string | undefined;
     searchText?: string | undefined;
     /*
+     * Only the values on one kind of resource's telemetry: a template's Host
+     * variable offers hosts, never a Docker host's or a pod's name
+     * (DashboardResourceScope, issue #11258).
+     */
+    resourceScope?: DashboardResourceScope | undefined;
+    /*
      * The time range on screen: the values offered are those of the data
      * points in it (issue #4708). Without it, the last day.
      */
@@ -1111,6 +1118,7 @@ export default class MetricUtil {
           ...(data.searchText && data.searchText.trim().length > 0
             ? { searchText: data.searchText.trim() }
             : {}),
+          ...(data.resourceScope ? { resourceScope: data.resourceScope } : {}),
           ...getLookupWindowBody(data.timeRange),
         },
         headers: {

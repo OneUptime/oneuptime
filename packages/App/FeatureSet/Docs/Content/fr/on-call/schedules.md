@@ -40,7 +40,7 @@ Tout le reste se trouve sous **Plus de champs**, replié jusqu'à ce que vous l'
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Chaque tour dure** | **1 jour**, **1 semaine**, **2 semaines** ou **1 mois**, et **1 semaine** si vous ne le changez pas. Il est demandé dès que quelqu'un assure l'astreinte à tour de rôle. Chaque personne est d'astreinte pendant cette durée, puis la suivante prend le relais, à l'heure de la journée à laquelle le planning a été créé. |
-| **Fuseau horaire** | Le fuseau horaire des heures de passation et des heures d'astreinte. Il commence avec le vôtre. Chaque fuseau horaire suit les règles actuelles de sa région : America/Vancouver (Colombie-Britannique) reste à UTC-7 toute l'année à partir de 2026. |
+| **Fuseau horaire** | Le fuseau horaire des heures de passation et des heures d'astreinte. Il commence avec le vôtre. Le changer ensuite garde chaque heure telle qu'elle se lit : une passation à 09:00 reste à 09:00, et une plage du lundi reste le lundi. Chaque fuseau horaire suit les règles actuelles de sa région : America/Vancouver (Colombie-Britannique) reste à UTC-7 toute l'année à partir de 2026. |
 | **Description** | Des notes sur le planning. |
 | **Étiquettes** | Des étiquettes pour retrouver et regrouper le planning. |
 
@@ -70,6 +70,8 @@ flowchart TB
 | **Rotation tous les** | La fréquence à laquelle l'astreinte passe à la personne suivante de la couche. |
 | **Heure de la première passation** | La première passation à la personne suivante, au début ou après. Les passations suivantes suivent chaque intervalle de rotation. |
 | **Restrictions** | Les heures d'astreinte de la couche (**Heures actives**) : **Aucune restriction**, **Heures spécifiques de la journée** ou **Heures spécifiques de la semaine**, dans le fuseau horaire du planning. En dehors, les couches inférieures prennent le relais. |
+
+Une plage de type **Heures spécifiques de la semaine** va du jour et de l'heure sous **De :** au jour et à l'heure sous **À :**, et les jours qu'elle affiche sont les jours où elle est d'astreinte. Une plage dont les heures tombent sur d'autres jours que ceux avec lesquels elle a été enregistrée, comme une plage écrite via l'API avec des heures datées d'autres jours, ou une plage enregistrée avant que le fuseau horaire de son planning change, est marquée **Heures actives à vérifier** sur sa couche, et indique en dessous sous quels jours elle a été enregistrée. Elle reste d'astreinte les jours affichés, et **Enregistrer la couche** l'y maintient : choisissez les jours voulus avant d'enregistrer.
 
 Avec des heures actives, chaque plage est une permanence à part entière. De 17:00 à 07:00, c'est une permanence qui se termine à 07:00 le lendemain matin : dans la **Chronologie des astreintes**, dans les e-mails, dans l'application mobile et dans Slack et Microsoft Teams de la même façon, dans le fuseau horaire du planning et aussi les nuits de changement d'heure. Le tour d'une personne couvre toutes ses plages jusqu'au relais suivant, et elle est prévenue une fois dans chaque sens : « You are now on-call » quand la première plage de son tour commence, avec la fin de cette plage et la fin de son tour, et « You are no longer on-call » quand sa dernière plage se termine, pas à chaque plage. Pour recevoir un rappel avant chaque plage, choisissez une heure dans **Me rappeler avant les permanences**, comme le décrit [Flux de calendrier](/docs/on-call/calendar-feeds#rappels-et-avis-de-réaffectation). Quand quelqu'un d'autre est d'astreinte entre deux de ses plages, par un remplacement ou une couche inférieure, ou qu'une modification des couches donne la plage suivante à quelqu'un d'autre, c'est un relais, annoncé comme tel. Son temps d'astreinte est toujours enregistré plage par plage, et les canaux et le flux de la politique d'astreinte disent toujours à chaque fois qui est d'astreinte.
 
@@ -114,7 +116,10 @@ Les plannings d'astreinte sont la ressource `/api/on-call-duty-policy-schedule` 
 - Créer un planning avec `firstLayerUsers` (une liste d'identifiants d'utilisateurs, dans l'ordre de leurs tours) dans ses `miscDataProps` lui donne sa première couche, comme le fait le tableau de bord : **Layer 1**, d'astreinte dès maintenant, 24 heures sur 24. `firstLayerRotation` indique la durée de chaque tour, sous forme de rotation comme `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` ; sans elle, une semaine. Chaque utilisateur doit être membre du projet et l'appelant doit être autorisé à créer des couches, sinon le planning n'est pas créé.
 - Un planning créé sans eux n'a pas de couches, comme auparavant ; la ressource Terraform des plannings ne les envoie pas.
 - Une couche créée sans `rotation` passe le relais chaque semaine, et une couche sans `restrictionTimes` est d'astreinte 24 h/24, comme commence une nouvelle couche dans le tableau de bord.
-- Les `restrictionTimes` d'une couche, ses heures actives, nomment leur type sous `restrictionType` : `None` (astreinte 24 h/24), `Daily` ou `Weekly`. `restictionType`, son ancienne orthographe sans le second « r », est lu aussi, et chaque réponse porte le type sous les deux, si bien qu'un client ou une configuration Terraform écrits avec l'une ou l'autre continuent de fonctionner ; la couche est enregistrée avec `restrictionType`.
+- Les `restrictionTimes` d'une couche, ses heures actives, nomment leur type sous `restrictionType` : `None` (astreinte 24 h/24), `Daily` ou `Weekly`. `restictionType`, son ancienne orthographe sans le second « r », est lu aussi, et chaque réponse porte le type sous les deux, si bien qu'un client ou une configuration Terraform écrits avec l'une ou l'autre continuent de fonctionner ; la couche est enregistrée avec `restrictionType`. `restictionType` dans les réponses est obsolète : les réponses le portent jusqu'à la première version majeure publiée le 1er juin 2027 ou après, et les écritures le liront toujours. Écrivez `restrictionType`.
+- Une plage `Weekly`, `{"startDay", "startTime", "endDay", "endTime"}`, est d'astreinte les jours qu'elle nomme : ses `startTime` et `endTime` doivent tomber sur ses `startDay` et `endDay` dans le fuseau horaire du planning. Une plage dont l'heure tombe un autre jour est refusée avec un `400` qui nomme la plage, le jour où tombe son heure et une heure du jour nommé à envoyer à la place. Un jour omis est le jour où tombe son heure. Une plage renvoyée exactement telle que la couche la contient n'est pas jugée à nouveau, si bien qu'un client qui lit une couche et la réécrit n'est pas refusé pour autant. Dans un planning sans fuseau horaire, dont les heures sont lues dans celui du serveur, une heure n'est refusée que si elle ne tombe sur son jour dans aucun fuseau horaire.
+- La mise à niveau de OneUptime déplace chaque plage enregistrée dont les heures tombent sur d'autres jours que ceux qu'elle nomme, et ne tombent sur ces jours dans aucun fuseau horaire, vers les jours qu'elle nomme, à la même heure de la journée, et recalcule qui est d'astreinte. Une plage dont les heures tombent sur ses jours dans un autre fuseau horaire, comme cela peut arriver à une plage définie dans un autre fuseau ou enregistrée avant que le fuseau horaire de son planning change, est laissée telle quelle, alertant comme avant, et marquée **Heures actives à vérifier**.
+- Changer le `timezone` d'un planning d'un fuseau à un autre fait passer les `startsAt`, `handOffTime` et `restrictionTimes` de ses couches à l'horloge du nouveau fuseau : chacun y indique la même date, le même jour et la même heure de la journée qu'avant. Donner à un planning son premier fuseau horaire, ou le lui retirer, laisse les instants tels qu'ils sont.
 - Une écriture qui laisserait une couche d'astreinte à aucun moment est refusée avec un `400` qui nomme la clé : un type absent, inconnu ou différent sous les deux orthographes (une mise à jour prend celui qui diffère du type actuel de la couche) ; une plage `Daily` dont `startTime` et `endTime` ne sont pas des dates et heures (`"09:00"` seul est refusé) ; une restriction `Weekly` sans `weeklyRestrictionTimes` ; ou une plage qui s'ouvre et se ferme à la même heure. Une `rotation` dont l'`intervalType` n'est pas `Hour`, `Day`, `Week`, `Month` ou `Year` est refusée de la même façon.
 - Une couche enregistrée avant que ces écritures soient refusées, sans type qui soit lu, n'était jamais d'astreinte. La mise à niveau de OneUptime lit chacune de ces couches d'après les heures qu'elle contient, l'enregistre ainsi et recalcule qui est d'astreinte dans son planning, de sorte que ses personnes sont alertées dès lors et en sont prévenues.
 - Un changement apporté aux couches d'un planning et aux personnes qui les composent, fait avec l'API ou Terraform, est annoncé comme un seul changement : qui est d'astreinte est calculé une fois que les couches sont restées une demi-minute sans changement, et une personne qui prend ou quitte l'astreinte, ou qui est la suivante, en est informée une fois, et non une fois par couche ou par personne écrite. Les alertes vont à la personne que les couches mettent d'astreinte dès que chaque changement est enregistré.
@@ -155,6 +160,25 @@ curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
           "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
           "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
         }
+      }}
+    }
+  }'
+```
+
+```bash
+curl -X PUT https://oneuptime.com/api/on-call-duty-schedule-layer/<layer-id> \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Weekly",
+        "weeklyRestrictionTimes": [{
+          "startDay": "Monday",
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T09:00:00+01:00"},
+          "endDay": "Friday",
+          "endTime": {"_type": "DateTime", "value": "2026-01-09T17:00:00+01:00"}
+        }]
       }}
     }
   }'

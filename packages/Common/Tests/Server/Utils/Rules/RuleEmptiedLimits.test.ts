@@ -824,8 +824,8 @@ describe("RuleEmptiedLimits.switchOffRulesLimitedOnlyToDeletedRecords", () => {
       await RuleEmptiedLimits.switchOffRulesLimitedOnlyToDeletedRecords(),
     ).toBe(1);
 
-    // One read a list, 156 of them (an AI rule's data store labels, #10494, the latest).
-    expect(database.statements(/GROUP BY r\."_id"/)).toHaveLength(156);
+    // One read a list, 158 of them (an XCP-ng pool's label and owner rules' pool labels, #11093, the latest).
+    expect(database.statements(/GROUP BY r\."_id"/)).toHaveLength(158);
     expect(database.statements(/^UPDATE/)).toHaveLength(1);
     expect(
       JSON.parse(

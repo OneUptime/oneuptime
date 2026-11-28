@@ -38,6 +38,18 @@ jest.mock("Common/Server/Utils/Telemetry/TelemetryIngestionBudget", () => {
   return { __esModule: true, ...actual, default: { admit } };
 });
 
+const record: jest.Mock = jest.fn();
+jest.mock(
+  "Common/Server/Utils/Telemetry/TelemetryIngestRefusalRecorder",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "Common/Server/Utils/Telemetry/TelemetryIngestRefusalRecorder",
+    ) as Record<string, unknown>;
+
+    return { __esModule: true, ...actual, default: { record } };
+  },
+);
+
 const getRefusal: jest.Mock = jest.fn();
 jest.mock("Common/Server/Utils/Telemetry/TelemetryIngestShedding", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -63,6 +75,8 @@ import {
 } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { TelemetryIngestRefusalReason } from "Common/Types/Telemetry/TelemetryIngestRefusal";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 
 const STATUS_ROOT: protobuf.Root = protobuf.Root.fromJSON({
   nested: {
@@ -197,7 +211,47 @@ describe("handleExport", () => {
     const error: grpc.ServiceError = callback.mock.calls[0]![0];
     expect(error.code).toBe(grpc.status.RESOURCE_EXHAUSTED);
     expect(retryDelaySeconds(error)).toBe(30);
+
+    /*
+     * Counted against the key (#11440) under the signal's own surface:
+     * this one port carries every signal, and the project's pages tell
+     * the refusals by signal.
+     */
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(record).toHaveBeenCalledWith({
+      projectId: policy.projectId,
+      ingestionKeyId: policy.ingestionKeyId,
+      reason: TelemetryIngestRefusalReason.QueueBacklogged,
+      surface: TelemetryIngestSurface.OtelMetrics,
+    });
   });
+
+  test.each([
+    [ProductType.Logs, TelemetryIngestSurface.OtelLogs],
+    [ProductType.Traces, TelemetryIngestSurface.OtelTraces],
+    [ProductType.Profiles, TelemetryIngestSurface.OtelProfiles],
+  ])(
+    "a refused %s export is counted under %s, not the gRPC port",
+    async (signal: ProductType, surface: TelemetryIngestSurface) => {
+      getRefusal.mockReturnValue({
+        ...shed,
+        kind: TelemetryIngestionBudgetRefusalKind.QueueFull,
+        signal: signal,
+      });
+
+      await handleExport(exportCall({}), jest.fn(), signal as never, jest.fn());
+
+      expect(record).toHaveBeenCalledWith({
+        projectId: policy.projectId,
+        ingestionKeyId: policy.ingestionKeyId,
+        reason: TelemetryIngestRefusalReason.QueueFull,
+        surface: surface,
+      });
+      expect(
+        (record.mock.calls[0]![0] as Record<string, unknown>)["surface"],
+      ).not.toBe(TelemetryIngestSurface.Grpc);
+    },
+  );
 
   test("a project that is not refused goes on to its budget and the queue", async () => {
     const queueFn: jest.Mock = jest.fn().mockResolvedValue(undefined);
@@ -214,6 +268,7 @@ describe("handleExport", () => {
     expect(admit).toHaveBeenCalledTimes(1);
     expect(queueFn).toHaveBeenCalledTimes(1);
     expect(callback).toHaveBeenCalledWith(null, {});
+    expect(record).not.toHaveBeenCalled();
   });
 
   test("never asks about a credential it refuses", async () => {

@@ -19,6 +19,11 @@ import {
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
+import {
+  AgentContainerNames,
+  getAgentContainerNameRows,
+  getSeveralAgentsTopic,
+} from "../../../Components/SetupGuide/AgentContainerNames";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   PROXMOX_NOTIFICATION_TARGET_NAME,
@@ -114,6 +119,39 @@ export const PROXMOX_AI_AGENT_CONTAINER: string = "oneuptime-proxmox-ai-agent";
  * answers, else the next node of PVE_NODES that does.
  */
 export const PROXMOX_FAILOVER_CONTAINER: string = "oneuptime-pve-api-failover";
+
+/*
+ * Each container's name, from .env (#11434): a second cluster's agent on the
+ * same machine needs names of its own. In install.sh's order: the collector,
+ * then COMPANION_CONTAINERS.
+ */
+export const PROXMOX_AGENT_CONTAINER_NAMES: AgentContainerNames = {
+  names: [
+    {
+      variable: "PROXMOX_AGENT_CONTAINER_NAME",
+      container: PROXMOX_AGENT_CONTAINER,
+      role: "collector",
+    },
+    {
+      variable: "PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME",
+      container: PROXMOX_FAILOVER_CONTAINER,
+      role: "API failover sidecar",
+    },
+    {
+      variable: "PROXMOX_PVE_EXPORTER_CONTAINER_NAME",
+      container: PROXMOX_EXPORTER_CONTAINER,
+      role: "bundled exporter",
+    },
+    {
+      variable: "PROXMOX_AI_AGENT_CONTAINER_NAME",
+      container: PROXMOX_AI_AGENT_CONTAINER,
+      role: "AI agent",
+    },
+  ],
+  noun: "cluster",
+  installDir: PROXMOX_AGENT_INSTALL_DIR,
+  suffix: "cluster2",
+};
 
 // The name the guide suggests when it is not installing for a known cluster.
 export const PROXMOX_EXAMPLE_CLUSTER_NAME: string = "my-proxmox-cluster";
@@ -773,6 +811,7 @@ function getEnvironmentVariablesTopic(
 | \`PVE_API_TOKEN_SECRET\` | Bundled exporter and AI agent | Proxmox API token secret |
 | \`PVE_VERIFY_SSL\` | No | Verify the Proxmox API TLS certificate (default: \`false\` — PVE ships self-signed certificates) |
 | \`COMPOSE_PROFILES\` | No | Set to \`pve-exporter\` to start the bundled exporter container |
+${getAgentContainerNameRows(PROXMOX_AGENT_CONTAINER_NAMES, context.method === "install-script")}
 
 The OneUptime AI agent's own settings are under **OneUptime AI agent**.`,
   };
@@ -976,6 +1015,18 @@ Then delete the API token under *Datacenter → Permissions → API Tokens* if y
   };
 }
 
+function getSeveralClustersTopic(context: AgentGuideContext): SetupGuideTopic {
+  return getSeveralAgentsTopic(
+    PROXMOX_AGENT_CONTAINER_NAMES,
+    context.method === "install-script",
+    {
+      title: "Monitoring several clusters",
+      summary:
+        "One agent per cluster, each in a folder of its own with container names of its own.",
+    },
+  );
+}
+
 function getAgentAdvancedTopics(
   context: AgentGuideContext,
 ): Array<SetupGuideTopic> {
@@ -988,6 +1039,7 @@ function getAgentAdvancedTopics(
     getServiceLogsTopic(context),
     getLabelsTopic(context),
     getAiAgentTopic(),
+    getSeveralClustersTopic(context),
     getUpgradeTopic(context),
   ];
 }

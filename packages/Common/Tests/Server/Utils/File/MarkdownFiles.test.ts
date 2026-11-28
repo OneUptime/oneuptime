@@ -651,6 +651,369 @@ describe("MarkdownFiles.readRecordFiles", () => {
   });
 });
 
+/*
+ * The image tokens records show a caller (#11478): what decides whether an
+ * image's address opens it for a person (ShownImageAccess). Read as the
+ * caller, of the columns that can show images they may read.
+ */
+describe("MarkdownFiles.readShownTokens", () => {
+  const OTHER_RECORD_ID: ObjectID = new ObjectID(
+    "cccccccc-0000-4000-8000-000000000002",
+  );
+
+  interface ManyRecords {
+    service: DatabaseService<BaseModel>;
+    reads: Array<JSONObject>;
+    queries: Array<{ sql: string; parameters: Array<unknown> }>;
+  }
+
+  // A service of `model` holding these records, each found by its id.
+  const serviceOf: (data: {
+    model: BaseModel;
+    records: Array<JSONObject>;
+    markdownCustomFields?: Array<string>;
+    refuse?: Error;
+  }) => ManyRecords = (data: {
+    model: BaseModel;
+    records: Array<JSONObject>;
+    markdownCustomFields?: Array<string>;
+    refuse?: Error;
+  }): ManyRecords => {
+    const reads: Array<JSONObject> = [];
+    const queries: Array<{ sql: string; parameters: Array<unknown> }> = [];
+    const modelType: { new (): BaseModel } = data.model.constructor as {
+      new (): BaseModel;
+    };
+
+    const service: DatabaseService<BaseModel> = {
+      modelType: modelType,
+      getModel: (): BaseModel => {
+        return new modelType();
+      },
+      findBy: async (read: JSONObject): Promise<Array<BaseModel>> => {
+        reads.push(read);
+
+        if (data.refuse) {
+          throw data.refuse;
+        }
+
+        return data.records.map((values: JSONObject): BaseModel => {
+          const record: BaseModel = new modelType();
+
+          for (const [key, value] of Object.entries(values)) {
+            // Only what was selected comes back, as from the database.
+            if (key === "_id" || (read["select"] as JSONObject)[key]) {
+              record.setValue(key, value as never);
+            }
+          }
+
+          return record;
+        });
+      },
+      getRepository: () => {
+        return {
+          manager: {
+            query: async (
+              sql: string,
+              parameters: Array<unknown>,
+            ): Promise<unknown> => {
+              queries.push({ sql, parameters });
+
+              return (data.markdownCustomFields || []).map((name: string) => {
+                return { name };
+              });
+            },
+          },
+        };
+      },
+    } as unknown as DatabaseService<BaseModel>;
+
+    return { service, reads, queries };
+  };
+
+  const readable: (columns: Array<string>) => void = (
+    columns: Array<string>,
+  ): void => {
+    jest
+      .spyOn(ColumnPermissions, "getModelColumnsByPermissions")
+      .mockReturnValue(new Columns(columns));
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the tokens each record shows, read as the caller, from the columns that can show images", async () => {
+    readable(new Incident().getTableColumns().columns);
+
+    const fake: ManyRecords = serviceOf({
+      model: new Incident(),
+      records: [
+        {
+          _id: RECORD_ID.toString(),
+          projectId: PROJECT_ID,
+          description: `${image("a")} ${image("b")}`,
+          rootCause: image("c"),
+        },
+        {
+          _id: OTHER_RECORD_ID.toString(),
+          projectId: PROJECT_ID,
+          description: "Nothing to see.",
+        },
+      ],
+    });
+    const props: DatabaseCommonInteractionProps = apiKeyProps();
+
+    const shown: Map<string, Set<string>> = await MarkdownFiles.readShownTokens(
+      {
+        service: fake.service,
+        recordIds: [RECORD_ID, OTHER_RECORD_ID],
+        projectId: PROJECT_ID,
+        props: props,
+      },
+    );
+
+    expect(Array.from(shown.get(RECORD_ID.toString())!)).toEqual([
+      tokenOf("a"),
+      tokenOf("b"),
+      tokenOf("c"),
+    ]);
+    expect(Array.from(shown.get(OTHER_RECORD_ID.toString())!)).toEqual([]);
+
+    // One read, as the caller, of the records of the project named.
+    expect(fake.reads).toHaveLength(1);
+    expect(fake.reads[0]!["props"]).toBe(props);
+    expect((fake.reads[0]!["query"] as JSONObject)["projectId"]).toBe(
+      PROJECT_ID,
+    );
+    expect(fake.reads[0]!["limit"]).toBe(2);
+    expect(Object.keys(fake.reads[0]!["select"] as JSONObject).sort()).toEqual(
+      [
+        "_id",
+        "customFields",
+        "description",
+        "postmortemNote",
+        "projectId",
+        "remediationNotes",
+        "rootCause",
+      ].sort(),
+    );
+  });
+
+  test("only the columns the caller may read are read, and the tokens of the rest never named", async () => {
+    readable(["_id", "projectId", "description"]);
+
+    const fake: ManyRecords = serviceOf({
+      model: new Incident(),
+      records: [
+        {
+          _id: RECORD_ID.toString(),
+          projectId: PROJECT_ID,
+          description: image("a"),
+          rootCause: image("c"),
+        },
+      ],
+    });
+
+    const shown: Map<string, Set<string>> = await MarkdownFiles.readShownTokens(
+      {
+        service: fake.service,
+        recordIds: [RECORD_ID],
+        projectId: PROJECT_ID,
+        props: apiKeyProps(),
+      },
+    );
+
+    expect(Object.keys(fake.reads[0]!["select"] as JSONObject).sort()).toEqual(
+      ["_id", "description", "projectId"].sort(),
+    );
+    expect(Array.from(shown.get(RECORD_ID.toString())!)).toEqual([
+      tokenOf("a"),
+    ]);
+  });
+
+  test("a Markdown custom field's images, not a Text field's, the field names asked once", async () => {
+    readable(new Incident().getTableColumns().columns);
+
+    const fake: ManyRecords = serviceOf({
+      model: new Incident(),
+      records: [
+        {
+          _id: RECORD_ID.toString(),
+          projectId: PROJECT_ID,
+          customFields: {
+            "Customer impact": image("a"),
+            "Ticket link": image("b"),
+          },
+        },
+        {
+          _id: OTHER_RECORD_ID.toString(),
+          projectId: PROJECT_ID,
+          customFields: { "Customer impact": image("c") },
+        },
+      ],
+      markdownCustomFields: ["Customer impact"],
+    });
+
+    const shown: Map<string, Set<string>> = await MarkdownFiles.readShownTokens(
+      {
+        service: fake.service,
+        recordIds: [RECORD_ID, OTHER_RECORD_ID],
+        projectId: PROJECT_ID,
+        props: apiKeyProps(),
+      },
+    );
+
+    expect(Array.from(shown.get(RECORD_ID.toString())!)).toEqual([
+      tokenOf("a"),
+    ]);
+    expect(Array.from(shown.get(OTHER_RECORD_ID.toString())!)).toEqual([
+      tokenOf("c"),
+    ]);
+    expect(fake.queries).toHaveLength(1);
+    expect(fake.queries[0]!.parameters).toEqual([
+      PROJECT_ID.toString(),
+      CustomFieldType.Markdown,
+    ]);
+  });
+
+  test("a record of another project in the answer is left out", async () => {
+    readable(new Incident().getTableColumns().columns);
+
+    const fake: ManyRecords = serviceOf({
+      model: new Incident(),
+      records: [
+        {
+          _id: RECORD_ID.toString(),
+          projectId: OTHER_PROJECT_ID,
+          description: image("a"),
+        },
+      ],
+    });
+
+    const shown: Map<string, Set<string>> = await MarkdownFiles.readShownTokens(
+      {
+        service: fake.service,
+        recordIds: [RECORD_ID],
+        projectId: PROJECT_ID,
+        props: apiKeyProps(),
+      },
+    );
+
+    expect(shown.size).toBe(0);
+  });
+
+  test("nothing is read when the caller may read none of the columns, or names no record", async () => {
+    readable(["_id", "projectId", "title"]);
+
+    const fake: ManyRecords = serviceOf({
+      model: new Incident(),
+      records: [],
+    });
+
+    for (const recordIds of [[RECORD_ID], []]) {
+      expect(
+        (
+          await MarkdownFiles.readShownTokens({
+            service: fake.service,
+            recordIds: recordIds,
+            projectId: PROJECT_ID,
+            props: apiKeyProps(),
+          })
+        ).size,
+      ).toBe(0);
+    }
+
+    expect(fake.reads).toEqual([]);
+  });
+
+  test("a record that cannot show images is never read", async () => {
+    const fake: ManyRecords = serviceOf({ model: new User(), records: [] });
+
+    expect(
+      (
+        await MarkdownFiles.readShownTokens({
+          service: fake.service,
+          recordIds: [RECORD_ID],
+          projectId: PROJECT_ID,
+          props: apiKeyProps(),
+        })
+      ).size,
+    ).toBe(0);
+    expect(fake.reads).toEqual([]);
+  });
+
+  test("ids are read once each, in lower case; what is not an id is not asked", async () => {
+    readable(new Incident().getTableColumns().columns);
+
+    const fake: ManyRecords = serviceOf({ model: new Incident(), records: [] });
+
+    await MarkdownFiles.readShownTokens({
+      service: fake.service,
+      recordIds: [
+        new ObjectID(RECORD_ID.toString().toUpperCase()),
+        RECORD_ID,
+        new ObjectID("not-an-id"),
+      ],
+      projectId: PROJECT_ID,
+      props: apiKeyProps(),
+    });
+
+    expect(fake.reads[0]!["limit"]).toBe(1);
+  });
+
+  test("a read the caller's permissions refuse is thrown, as the read throws it", async () => {
+    readable(new Incident().getTableColumns().columns);
+
+    const fake: ManyRecords = serviceOf({
+      model: new Incident(),
+      records: [],
+      refuse: new NotFoundException("Incident not found."),
+    });
+
+    await expect(
+      MarkdownFiles.readShownTokens({
+        service: fake.service,
+        recordIds: [RECORD_ID],
+        projectId: PROJECT_ID,
+        props: apiKeyProps(),
+      }),
+    ).rejects.toThrow("Incident not found.");
+  });
+
+  test("OneUptime itself reads every column, without asking which it may", async () => {
+    const spy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ColumnPermissions,
+      "getModelColumnsByPermissions",
+    );
+
+    const fake: ManyRecords = serviceOf({
+      model: new Incident(),
+      records: [
+        {
+          _id: RECORD_ID.toString(),
+          projectId: PROJECT_ID,
+          postmortemNote: image("e"),
+        },
+      ],
+    });
+
+    const shown: Map<string, Set<string>> = await MarkdownFiles.readShownTokens(
+      {
+        service: fake.service,
+        recordIds: [RECORD_ID],
+        projectId: PROJECT_ID,
+        props: { isRoot: true },
+      },
+    );
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(Array.from(shown.get(RECORD_ID.toString())!)).toEqual([
+      tokenOf("e"),
+    ]);
+  });
+});
+
 describe("MarkdownFiles.getContentId", () => {
   test("the same for the same token, different for another, and never the token itself", () => {
     const first: string = MarkdownFiles.getContentId(tokenOf("a"));

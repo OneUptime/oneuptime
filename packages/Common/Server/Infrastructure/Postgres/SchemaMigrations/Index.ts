@@ -1229,7 +1229,13 @@ import { AddScheduleRosterTurnAndRestrictionTypeKey1809187791269 } from "./18091
 import { AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260 } from "./1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate";
 import { AddProjectCallVoice1809187801300 } from "./1809187801300-AddProjectCallVoice";
 import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "./1809187811157-AddVMwareHealthSettingsAndSwapRates";
-import { AddMonitorStatusTimelinePausedBy1809187811433 } from "./1809187811433-AddMonitorStatusTimelinePausedBy";
+import { AddProjectSecurityTrustPrivateAddresses1809187811240 } from "./1809187811240-AddProjectSecurityTrustPrivateAddresses";
+import { SwapMonitorProbeClaimIndexForClaimOrder1809187821386 } from "./1809187821386-SwapMonitorProbeClaimIndexForClaimOrder";
+import { AddShownImages1809187821478 } from "./1809187821478-AddShownImages";
+import { BackfillShownImages1809187821479 } from "./1809187821479-BackfillShownImages";
+import { AddMonitorTemplateChangePolicyAndRule1809187821500 } from "./1809187821500-AddMonitorTemplateChangePolicyAndRule";
+import { AddFormFollowUps1809188000000 } from "./1809188000000-AddFormFollowUps";
+import { AddMonitorStatusTimelinePausedBy1809188011433 } from "./1809188011433-AddMonitorStatusTimelinePausedBy";
 
 export default [
   InitialMigration,
@@ -2463,5 +2469,11 @@ export default [
   AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260,
   AddProjectCallVoice1809187801300,
   AddVMwareHealthSettingsAndSwapRates1809187811157,
-  AddMonitorStatusTimelinePausedBy1809187811433,
+  AddProjectSecurityTrustPrivateAddresses1809187811240,
+  SwapMonitorProbeClaimIndexForClaimOrder1809187821386,
+  AddShownImages1809187821478,
+  BackfillShownImages1809187821479,
+  AddMonitorTemplateChangePolicyAndRule1809187821500,
+  AddFormFollowUps1809188000000,
+  AddMonitorStatusTimelinePausedBy1809188011433,
 ];
