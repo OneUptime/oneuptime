@@ -27,9 +27,12 @@ import { digitZeroOf } from "./DigitReadings";
  * number's.
  *
  * This reads each of those forms as the ASCII character it is the
- * fullwidth form of, each of those dashes between two digits as a "-",
- * and every other character as it is: the reading a detector of a number
- * asks for (Detector.ts, readsFullwidthForms), beside the text as written,
+ * fullwidth form of, each of those dashes between two digits as a "-", a
+ * fullwidth Latin letter as its ASCII letter - so a number glued to a word
+ * typed in fullwidth is a longer token, as in ASCII: ｅ＋７７７… is no phone
+ * number, as e+777… is none (#11385) - and every other character as it is:
+ * the reading a detector of a number asks for (Detector.ts,
+ * readsFullwidthForms), beside the text as written,
  * and with every script's digits read in it too (TextReadings). A form and
  * a dash are each one UTF-16 unit, and so is the character it is read as,
  * so the reading is as long as the text, and a match found in it is on the
@@ -101,6 +104,20 @@ const NUMBER_DASH_SET: ReadonlySet<number> = new Set<number>(NUMBER_DASHES);
 // The lowest of the forms and dashes: no character before it is one.
 const LOWEST_FORM: number = 0x2010;
 
+// The first and last characters of the fullwidth ASCII block, ！ and ～, and how far each is from its ASCII one.
+const FULLWIDTH_BLOCK_FIRST: number = 0xff01;
+const FULLWIDTH_BLOCK_LAST: number = 0xff5e;
+const FULLWIDTH_TO_ASCII: number = 0xfee0;
+const IDEOGRAPHIC_SPACE: number = 0x3000;
+const FULLWIDTH_COMMERCIAL_AT: number = 0xff20;
+
+// Whether a UTF-16 unit is a fullwidth Latin letter: Ａ to Ｚ, ａ to ｚ.
+export function isFullwidthLetter(code: number): boolean {
+  return (
+    (code >= 0xff21 && code <= 0xff3a) || (code >= 0xff41 && code <= 0xff5a)
+  );
+}
+
 // Whether a UTF-16 unit is one of the fullwidth forms read.
 export function isFullwidthForm(code: number): boolean {
   return code >= LOWEST_FORM && ASCII_OF_FULLWIDTH_FORM.has(code);
@@ -156,8 +173,12 @@ export function holdsFullwidthFormOfANumber(text: string): boolean {
 /*
  * The text with every fullwidth form written as its ASCII character, each
  * dash between two digits as "-", and every other character as it is:
- * "＋８１ ３ー１２３４" is "+８１ ３-１２３４". A value a rule found reads so,
- * for its mask and its token (ScrubAction).
+ * "＋８１ ３ー１２３４" is "+８１ ３-１２３４". A fullwidth Latin letter is
+ * read as its ASCII letter too (#11385), so a number glued to a word typed
+ * in fullwidth is a longer token, as in ASCII - ｅ＋７７７… is no phone
+ * number, as e+777… is none - and the word's letters are no part of a
+ * number either way. A value a rule found reads so, for its mask and its
+ * token (ScrubAction).
  */
 export function foldFullwidthForms(text: string): string {
   let folded: string | null = null;
@@ -175,6 +196,8 @@ export function foldFullwidthForms(text: string): string {
         isDashBetweenDigitsAt(text, index)
       ) {
         ascii = "-";
+      } else if (ascii === undefined && isFullwidthLetter(code)) {
+        ascii = String.fromCharCode(code - FULLWIDTH_TO_ASCII);
       }
     }
 
@@ -201,18 +224,6 @@ export function readFullwidthForms(text: string): string | null {
 }
 
 // THE FULLWIDTH ASCII BLOCK, AS NFKC FOLDS IT (#11385).
-
-// The first and last characters of the block, ！ and ～, and how far each is from its ASCII one.
-const FULLWIDTH_BLOCK_FIRST: number = 0xff01;
-const FULLWIDTH_BLOCK_LAST: number = 0xff5e;
-const FULLWIDTH_TO_ASCII: number = 0xfee0;
-const IDEOGRAPHIC_SPACE: number = 0x3000;
-const FULLWIDTH_COMMERCIAL_AT: number = 0xff20;
-
-// Whether a UTF-16 unit is a fullwidth Latin letter: Ａ to Ｚ, ａ to ｚ.
-export function isFullwidthLetter(code: number): boolean {
-  return (code >= 0xff21 && code <= 0xff3a) || (code >= 0xff41 && code <= 0xff5a);
-}
 
 // Whether a UTF-16 unit is a fullwidth digit, ０ to ９.
 function isFullwidthDigit(code: number): boolean {
