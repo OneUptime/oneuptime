@@ -7,6 +7,7 @@ import {
   STEP_CHECK_MAX_FACTS,
   SecurityCaseStepCheckSentence,
   StepCheckFactMark,
+  isStepCheckFactMarkUnderLine,
   readStepCheckDataTime,
 } from "../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
 import SecurityCaseStepCheckState, {
@@ -20,7 +21,12 @@ import {
   AccountChangeSubject,
   getAttackAccountChanges,
 } from "../../../../Utils/SecurityCase/AttackAccountChanges";
-import { AWS_EVERY_ACCOUNT } from "../../../../Utils/SecurityCase/AwsTrustPolicy";
+import {
+  AWS_EVERY_ACCOUNT,
+  AwsIdentityProviderReach,
+  AwsTrustedIdentityProvider,
+  isAwsIdentityProviderOpen,
+} from "../../../../Utils/SecurityCase/AwsTrustPolicy";
 import { RESPONSE_STEP_KINDS } from "../../../../Utils/SecurityCase/ResponsePlan/ResponsePlanKeys";
 import {
   CHECK_ACCOUNT_CHANGES_ALL_UNDONE,
@@ -31,7 +37,7 @@ import {
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
-  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
+  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
   CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_NONE_FOUND,
   CHECK_ACCOUNT_CHANGES_STILL_THERE,
@@ -60,6 +66,11 @@ import {
   CHECK_ACCOUNT_CHANGE_POLICY_CONFIRM,
   CHECK_ACCOUNT_CHANGE_POLICY_STILL,
   CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_ANYONE,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_HELD,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_HELD_TO_SEVERAL,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_SAML,
   CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
   CHECK_ACCOUNT_CHANGE_ROLE_GONE,
   CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED,
@@ -132,12 +143,15 @@ import {
  * Each line is marked by what it says (StepCheckFactMark): undone, still
  * there, to confirm, or how to let OneUptime read the rest. An IAM role's
  * change (#11038) is said as a role's, and a role still there or to
- * confirm is followed by an unmarked line naming the outside AWS accounts
- * it trusts - kept with its line, or left out with it. An inline policy
- * the attack wrote is said by its document, never its name alone (#11377).
- * A line that says what to change in OneUptime links to where it is
- * changed: the AWS connection's form, or Cloud → Connect to connect one
- * (#11039).
+ * confirm is followed by a line naming the outside AWS accounts it
+ * trusts, and one for each identity provider it lets in, with what its
+ * conditions hold it to (#11378) - kept with its line, or left out with
+ * it - one that lets in anyone marked as open. An inline policy the attack
+ * wrote is said by its document, never its name alone (#11377). A line
+ * that says what to change in OneUptime links to where it is changed: the
+ * AWS connection's form, or Cloud → Connect to connect one (#11039); the
+ * Google Workspace connection's form, or Security Events → Connections to
+ * connect a product (#11376).
  */
 
 export interface AccountChangesInput {
@@ -163,6 +177,8 @@ interface ReadChange {
   hasConnection: boolean;
   // An AWS change's: the connection that reaches its account (#11039).
   reader?: AccountChangeReader | undefined;
+  // Another product's: the Security Events connection that answered (#11376).
+  connectionId?: string | undefined;
 }
 
 const STILL_SENTENCES: Record<AccountChangeKind, string> = {
@@ -318,6 +334,7 @@ function readChange(answer: AccountChangeAnswer): ReadChange {
     error: answer.error || "",
     hasConnection: answer.hasConnection,
     reader: answer.reader,
+    connectionId: answer.connectionId,
   };
 }
 
@@ -388,7 +405,8 @@ export function describeAccountChange(
  * Whom an IAM role trusts outside the account it is in, as its trust
  * policy says now (#11038): the line under a role still there, or one to
  * confirm, naming what a person checks. Unmarked - it says more of the
- * line above it - and none when the role trusts nobody outside.
+ * line above it - but for every AWS account, marked as open to anyone
+ * (#11378), and none when the role trusts nobody outside.
  */
 export function describeRoleTrust(
   item: Pick<ReadChange, "change" | "outcome" | "facts">,
@@ -410,10 +428,13 @@ export function describeRoleTrust(
     trusted: trusted[0]!,
   };
 
+  // Anyone in AWS: a way in open to anyone, marked so (#11378).
   if (trusted.includes(AWS_EVERY_ACCOUNT)) {
-    return sentence(CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT, {
-      account: item.change.account,
-    });
+    return sentence(
+      CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT,
+      { account: item.change.account },
+      { mark: StepCheckFactMark.Exposed },
+    );
   }
 
   return trusted.length === 1
@@ -423,15 +444,94 @@ export function describeRoleTrust(
       });
 }
 
-// A change's lines: its own, and whom a role trusts under it.
+// The most identity providers named under one role, the open ones first.
+export const ROLE_IDENTITY_PROVIDERS_MAX: number = 3;
+
+/*
+ * Whom a role lets in through an identity provider, as its trust policy
+ * says now (#11378): a line for each under the role's, said as plainly as
+ * the policy holds it - the tokens a claim's value lets in, a SAML
+ * provider's sign-ins, or, marked as open, anyone with a token from it,
+ * in any organization for a shared one. Only of a role still there or to
+ * confirm, like whom it trusts outside its account; at most
+ * ROLE_IDENTITY_PROVIDERS_MAX, the open ones never left out for a held
+ * one.
+ */
+export function describeRoleIdentityProviders(
+  item: Pick<ReadChange, "change" | "outcome" | "facts">,
+): Array<SecurityCaseStepCheckSentence> {
+  const providers: Array<AwsTrustedIdentityProvider> =
+    item.facts?.providers || [];
+
+  if (
+    !isRoleChange(item.change) ||
+    (item.outcome !== ChangeOutcome.Still &&
+      item.outcome !== ChangeOutcome.Confirm)
+  ) {
+    return [];
+  }
+
+  return [
+    ...providers.filter(isAwsIdentityProviderOpen),
+    ...providers.filter((provider: AwsTrustedIdentityProvider): boolean => {
+      return !isAwsIdentityProviderOpen(provider);
+    }),
+  ]
+    .slice(0, ROLE_IDENTITY_PROVIDERS_MAX)
+    .map(
+      (provider: AwsTrustedIdentityProvider): SecurityCaseStepCheckSentence => {
+        const values: Record<string, string> = {
+          account: item.change.account,
+          provider: provider.name,
+          claim: provider.claim,
+        };
+
+        switch (provider.reach) {
+          case AwsIdentityProviderReach.AnyOrganization:
+            return sentence(
+              CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION,
+              values,
+              { mark: StepCheckFactMark.Exposed },
+            );
+          case AwsIdentityProviderReach.Anyone:
+            return sentence(CHECK_ACCOUNT_CHANGE_PROVIDER_ANYONE, values, {
+              mark: StepCheckFactMark.Exposed,
+            });
+          case AwsIdentityProviderReach.SignedIn:
+            return sentence(CHECK_ACCOUNT_CHANGE_PROVIDER_SAML, {
+              account: item.change.account,
+              provider: provider.name,
+            });
+          default:
+            return provider.values.length > 1
+              ? sentence(
+                  CHECK_ACCOUNT_CHANGE_PROVIDER_HELD_TO_SEVERAL,
+                  { ...values, value: provider.values[0]! },
+                  { count: provider.values.length },
+                )
+              : sentence(CHECK_ACCOUNT_CHANGE_PROVIDER_HELD, {
+                  ...values,
+                  value: provider.values[0] || "",
+                });
+        }
+      },
+    );
+}
+
+/*
+ * A change's lines: its own, then whom a role lets in under it - the
+ * outside accounts it trusts, and the identity providers it lets in.
+ */
 export function describeAccountChangeLines(
   item: Pick<ReadChange, "change" | "outcome" | "facts">,
 ): Array<SecurityCaseStepCheckSentence> {
   const trust: SecurityCaseStepCheckSentence | null = describeRoleTrust(item);
 
-  return trust
-    ? [describeAccountChange(item), trust]
-    : [describeAccountChange(item)];
+  return [
+    describeAccountChange(item),
+    ...(trust ? [trust] : []),
+    ...describeRoleIdentityProviders(item),
+  ];
 }
 
 /*
@@ -440,12 +540,14 @@ export function describeAccountChangeLines(
  * product cannot tell about.
  *
  *   - no connection to the product, or - AWS - none that reads the account
- *     the change was made in: linked to Cloud → Connect (#11039);
+ *     the change was made in: linked to where one is connected, Cloud →
+ *     Connect (#11039) or Security Events → Connections (#11376);
  *   - a connection not given the read: an AWS connection whose Security
  *     case checks are off (#10900), or on with a command not run again
- *     since they grant more (#11038), linked to that connection's form
- *     (#11039); a Google Workspace delegation without the group member
- *     scope (#10901);
+ *     since they grant more (#11038, #11377), linked to that connection's
+ *     form (#11039); a Google Workspace delegation without the group
+ *     member scope (#10901), linked to that connection's form under
+ *     Security Events → Connections (#11376);
  *   - a product that says the account holds something of the kind, but
  *     not which - but for a role's trust policy, whose own line says what
  *     to confirm, and names whom it trusts, and an inline policy, whose
@@ -453,7 +555,10 @@ export function describeAccountChangeLines(
  */
 export function confirmReasons(
   confirms: Array<
-    Pick<ReadChange, "change" | "facts" | "hasConnection" | "reader">
+    Pick<
+      ReadChange,
+      "change" | "facts" | "hasConnection" | "reader" | "connectionId"
+    >
   >,
 ): Array<SecurityCaseStepCheckSentence> {
   const reasons: Array<SecurityCaseStepCheckSentence> = [];
@@ -494,12 +599,16 @@ export function confirmReasons(
           { kind: ResponseLinkKind.OpenCloudConnection },
         );
       } else {
+        // Where a connection to the product is made: AWS's under Cloud, the others' under Security Events.
         once(
           `connection:${provider}`,
           CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
           {
             provider,
           },
+          isAws
+            ? { kind: ResponseLinkKind.OpenCloudConnection }
+            : { kind: ResponseLinkKind.OpenSecurityEventConnection },
         );
       }
     } else if (item.facts?.reason === AccountChangeUnknownReason.NotGranted) {
@@ -528,9 +637,18 @@ export function confirmReasons(
           );
         }
       } else if (provider === AccountChangeProvider.GoogleWorkspace) {
-        once("google-groups", CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS, {
-          scope: GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE,
-        });
+        // The connection whose delegation lacks the scope, when its answer names it (#11376).
+        once(
+          "google-groups",
+          CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
+          { scope: GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE },
+          item.connectionId
+            ? {
+                kind: ResponseLinkKind.OpenSecurityEventConnection,
+                connectionId: item.connectionId,
+              }
+            : { kind: ResponseLinkKind.OpenSecurityEventConnection },
+        );
       }
     } else if (
       item.facts?.reason === AccountChangeUnknownReason.CannotTellWhich &&
@@ -549,8 +667,9 @@ export function confirmReasons(
 }
 
 /*
- * Lines as they go together: a marked line, and the unmarked ones under it
- * that say more of it - whom a role trusts (#11038).
+ * Lines as they go together: a marked line, and the ones under it that say
+ * more of it - whom a role trusts (#11038), and whom it lets in, marked
+ * when that is anyone (#11378).
  */
 function linesTogether(
   facts: Array<SecurityCaseStepCheckSentence>,
@@ -561,7 +680,7 @@ function linesTogether(
     const last: Array<SecurityCaseStepCheckSentence> | undefined =
       together[together.length - 1];
 
-    if (!fact.mark && last) {
+    if (isStepCheckFactMarkUnderLine(fact.mark) && last) {
       last.push(fact);
     } else {
       together.push([fact]);

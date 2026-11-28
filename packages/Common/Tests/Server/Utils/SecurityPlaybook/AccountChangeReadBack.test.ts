@@ -1238,6 +1238,92 @@ describe("each change is read in every connection of its product", () => {
     ).toMatchObject({ facts: null, error: "Okta is down" });
   });
 
+  test("the answer names the connection whose answer it is: the one a person edits to let OneUptime read it (#11376)", async () => {
+    jest.spyOn(CloudConnectionService, "findBy").mockResolvedValue([]);
+
+    const first: SecurityEventConnection = connection(
+      SecurityEventConnectorProvider.GoogleWorkspace,
+    );
+    const second: SecurityEventConnection = connection(
+      SecurityEventConnectorProvider.GoogleWorkspace,
+    );
+
+    jest
+      .spyOn(SecurityEventConnectionService, "findBy")
+      .mockResolvedValue([first, second]);
+    jest
+      .spyOn(SecurityEventConnectionService, "getConnectorSettings")
+      .mockResolvedValue(GOOGLE_SETTINGS);
+
+    const answersOf: (
+      facts: Array<AccountChangeFacts | null | Error>,
+    ) => Promise<AccountChangesReading["answers"][number]> = async (
+      facts: Array<AccountChangeFacts | null | Error>,
+    ): Promise<AccountChangesReading["answers"][number]> => {
+      let calls: number = 0;
+
+      jest
+        .spyOn(AccountChangeReadBack, "read")
+        .mockImplementation(async (): Promise<AccountChangeFacts | null> => {
+          const answer: AccountChangeFacts | null | Error = facts[calls++]!;
+
+          if (answer instanceof Error) {
+            throw answer;
+          }
+
+          return answer;
+        });
+
+      return (
+        await AccountChangesState.read({
+          projectId: ObjectID.generate(),
+          changes: [
+            change({
+              provider: AccountChangeProvider.GoogleWorkspace,
+              kind: AccountChangeKind.Group,
+              objectId: "",
+              objectName: "finance@acme.com",
+            }),
+          ],
+        })
+      ).answers[0]!;
+    };
+    const notGranted: AccountChangeFacts = {
+      provider: "Google Workspace",
+      state: AccountChangeState.Unknown,
+      reason: AccountChangeUnknownReason.NotGranted,
+    };
+
+    // The first lacks the scope, the second says undone: the one to edit is the first.
+    expect(
+      await answersOf([
+        notGranted,
+        { provider: "Google Workspace", state: AccountChangeState.Undone },
+      ]),
+    ).toMatchObject({ facts: notGranted, connectionId: first.id!.toString() });
+
+    // Still there in the second wins, and names it.
+    expect(
+      await answersOf([
+        notGranted,
+        { provider: "Google Workspace", state: AccountChangeState.StillThere },
+      ]),
+    ).toMatchObject({
+      facts: { state: AccountChangeState.StillThere },
+      connectionId: second.id!.toString(),
+    });
+
+    // None had the account, or each failed: no connection answered.
+    expect(await answersOf([null, null])).not.toHaveProperty("connectionId");
+    expect(
+      await answersOf([new Error("Google is down"), notGranted]),
+    ).toMatchObject({
+      facts: notGranted,
+      error: "Google is down",
+      connectionId: second.id!.toString(),
+    });
+  });
+
   test("the events kept on the case are read as they were kept", async () => {
     const kept: SecurityCaseEvidence = new SecurityCaseEvidence();
     kept.eventSnapshot = {

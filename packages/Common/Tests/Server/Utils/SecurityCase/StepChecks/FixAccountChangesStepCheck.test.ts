@@ -1,11 +1,18 @@
 import FixAccountChangesStepCheck, {
+  ROLE_IDENTITY_PROVIDERS_MAX,
   confirmReasons,
   decideAccountChanges,
   describeAccountChange,
   describeAccountChangeLines,
+  describeRoleIdentityProviders,
   describeRoleTrust,
   orderAccountChangeFacts,
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/FixAccountChangesStepCheck";
+import {
+  AwsIdentityProviderKind,
+  AwsIdentityProviderReach,
+  AwsTrustedIdentityProvider,
+} from "../../../../../Utils/SecurityCase/AwsTrustPolicy";
 import {
   AccountChangeAnswer,
   AccountChangesReading,
@@ -33,6 +40,7 @@ import {
   STEP_CHECK_MAX_FACTS,
   SecurityCaseStepCheckSentence,
   StepCheckFactMark,
+  isStepCheckFactMarkUnderLine,
   readStepCheckEvidence,
   readStepCheckSentence,
 } from "../../../../../Types/SecurityCase/SecurityCaseStepCheckEvidence";
@@ -58,6 +66,7 @@ import {
   CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
   CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
+  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
   CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
   CHECK_ACCOUNT_CHANGES_NONE_FOUND,
   CHECK_ACCOUNT_CHANGES_STILL_THERE,
@@ -75,6 +84,11 @@ import {
   CHECK_ACCOUNT_CHANGE_POLICY_CONFIRM,
   CHECK_ACCOUNT_CHANGE_POLICY_STILL,
   CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_ANYONE,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_HELD,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_HELD_TO_SEVERAL,
+  CHECK_ACCOUNT_CHANGE_PROVIDER_SAML,
   CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
   CHECK_ACCOUNT_CHANGE_ROLE_GONE,
   CHECK_ACCOUNT_CHANGE_ROLE_INLINE_POLICY_CHANGED,
@@ -111,6 +125,8 @@ import { describe, expect, test } from "@jest/globals";
 
 const NOW: Date = new Date("2026-11-17T21:00:00.000Z");
 const KEY: string = getResponseStepKey(RESPONSE_STEP_KINDS.fixAccountChanges);
+// The project's Google Workspace connection under Security Events > Connections (#11376).
+const GOOGLE_CONNECTION_ID: string = "9a7e6c5d-0000-4000-8000-0000000060a1";
 
 function change(data: Partial<AccountChange>): AccountChange {
   return {
@@ -548,7 +564,7 @@ describe("what a person is told to grant, so OneUptime reads the change back", (
     );
   });
 
-  test("a Google Workspace delegation without the group member scope: the scope to add, word for word", () => {
+  test("a Google Workspace delegation without the group member scope: the scope to add, word for word, where the connection is - linked to its form (#11376)", () => {
     const group: AccountChange = change({
       provider: AccountChangeProvider.GoogleWorkspace,
       account: "alice@example.com",
@@ -563,48 +579,102 @@ describe("what a person is told to grant, so OneUptime reads the change back", (
           state: AccountChangeState.Unknown,
           reason: AccountChangeUnknownReason.NotGranted,
         },
+        connectionId: GOOGLE_CONNECTION_ID,
       }),
     ]);
 
     expect(result.state).toBe(SecurityCaseStepCheckState.CannotTell);
-    expect(
-      result.evidence.facts.map(
-        (fact: SecurityCaseStepCheckSentence): unknown => {
-          return [fact.template, fact.values, fact.mark];
-        },
-      ),
-    ).toEqual([
-      [
-        CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
-        {
+    expect(result.evidence.facts).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
+        values: {
           account: "alice@example.com",
           object: "finance@example.com",
           provider: "Google Workspace",
         },
-        StepCheckFactMark.Confirm,
-      ],
-      [
-        CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
-        {
+        mark: StepCheckFactMark.Confirm,
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
+        values: {
           scope:
             "https://www.googleapis.com/auth/admin.directory.group.member.readonly",
         },
-        StepCheckFactMark.HowToCheck,
+        mark: StepCheckFactMark.HowToCheck,
+        link: {
+          kind: ResponseLinkKind.OpenSecurityEventConnection,
+          connectionId: GOOGLE_CONNECTION_ID,
+        },
+      },
+    ]);
+    // Said with where the connection is, for a reader the link is not drawn for.
+    expect(CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE).toContain(
+      "of the Google Workspace connection under Security Events → Connections",
+    );
+    // What a check before #11376 said stays worded, for a case closed since.
+    expect(CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS).toContain(
+      "add the scope {{scope}} to the connection's domain-wide delegation",
+    );
+  });
+
+  test("a Google Workspace answer that names no connection links to Security Events > Connections; two such changes say it once (#11376)", () => {
+    const groupChange: (name: string) => AccountChange = (
+      name: string,
+    ): AccountChange => {
+      return change({
+        provider: AccountChangeProvider.GoogleWorkspace,
+        account: "alice@example.com",
+        objectId: "",
+        objectName: name,
+        eventName: "ADD_GROUP_MEMBER",
+        eventUid: name,
+      });
+    };
+    const notGranted: AccountChangeFacts = {
+      provider: "Google Workspace",
+      state: AccountChangeState.Unknown,
+      reason: AccountChangeUnknownReason.NotGranted,
+    };
+
+    expect(
+      confirmReasons([
+        {
+          change: groupChange("finance@example.com"),
+          facts: notGranted,
+          hasConnection: true,
+        },
+        {
+          change: groupChange("admins@example.com"),
+          facts: notGranted,
+          hasConnection: true,
+          connectionId: GOOGLE_CONNECTION_ID,
+        },
+      ]).map((fact: SecurityCaseStepCheckSentence): unknown => {
+        return [fact.template, fact.link];
+      }),
+    ).toEqual([
+      [
+        CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS_SCOPE,
+        { kind: ResponseLinkKind.OpenSecurityEventConnection },
       ],
     ]);
   });
 
-  test("an AWS change whose event names no account: no connection to AWS, said as for any product", () => {
+  test("an AWS change whose event names no account: no connection to AWS, said as for any product, linked to Cloud > Connect", () => {
     const unnamed: AccountChange = change({ ...AWS_KEY, cloudAccountId: "" });
 
     expect(
       confirmReasons([
         { change: unnamed, facts: null, hasConnection: false },
       ]).map((fact: SecurityCaseStepCheckSentence): unknown => {
-        return [fact.template, fact.values];
+        return [fact.template, fact.values, fact.link];
       }),
     ).toEqual([
-      [CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION, { provider: "AWS" }],
+      [
+        CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
+        { provider: "AWS" },
+        { kind: ResponseLinkKind.OpenCloudConnection },
+      ],
     ]);
   });
 
@@ -1189,6 +1259,8 @@ describe("whom a role trusts, under its line (#11038)", () => {
     ).toEqual({
       template: CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT,
       values: { account: "backdoor" },
+      // A way in open to anyone, marked so (#11378).
+      mark: StepCheckFactMark.Exposed,
     });
   });
 
@@ -1374,7 +1446,7 @@ describe("the lines that say what to grant link to where it is granted (#11039)"
     ]);
   });
 
-  test("an answer that names no connection links to Cloud > Connect; another product's lines link nowhere", () => {
+  test("an answer that names no connection links to Cloud > Connect; another product with no connection, to Security Events > Connections where it is connected (#11376)", () => {
     const result: StepCheckResult = decide([
       answer(AWS_KEY, { facts: NOT_GRANTED }),
       answer(GROUP, { hasConnection: false }),
@@ -1389,7 +1461,10 @@ describe("the lines that say what to grant link to where it is granted (#11039)"
         CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
         { kind: ResponseLinkKind.OpenCloudConnection },
       ],
-      [CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION, undefined],
+      [
+        CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
+        { kind: ResponseLinkKind.OpenSecurityEventConnection },
+      ],
     ]);
   });
 
@@ -1413,6 +1488,242 @@ describe("the lines that say what to grant link to where it is granted (#11039)"
       template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
       values: { cloudAccount: AWS_ACCOUNT },
     });
+  });
+});
+
+// ---------- The identity providers a role lets in (#11378) ----------
+
+describe("whom a role lets in through an identity provider, under its line (#11378)", () => {
+  const GITHUB: string = "token.actions.githubusercontent.com";
+
+  function provider(
+    data: Partial<AwsTrustedIdentityProvider>,
+  ): AwsTrustedIdentityProvider {
+    return {
+      principal: `arn:aws:iam::${AWS_ACCOUNT}:oidc-provider/${GITHUB}`,
+      name: GITHUB,
+      kind: AwsIdentityProviderKind.Oidc,
+      reach: AwsIdentityProviderReach.Limited,
+      claim: "sub",
+      values: ["repo:GitHubOrg/GitHubRepo:*"],
+      ...data,
+    };
+  }
+
+  const OPEN_GITHUB: AwsTrustedIdentityProvider = provider({
+    reach: AwsIdentityProviderReach.AnyOrganization,
+    values: [],
+  });
+  const CLUSTER: AwsTrustedIdentityProvider = provider({
+    principal: `arn:aws:iam::${AWS_ACCOUNT}:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE`,
+    name: "oidc.eks.us-east-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE",
+    reach: AwsIdentityProviderReach.Anyone,
+    values: [],
+  });
+  const OKTA: AwsTrustedIdentityProvider = provider({
+    principal: `arn:aws:iam::${AWS_ACCOUNT}:saml-provider/Okta`,
+    name: "Okta",
+    kind: AwsIdentityProviderKind.Saml,
+    reach: AwsIdentityProviderReach.SignedIn,
+    claim: "",
+    values: [],
+  });
+
+  function lines(
+    item: AccountChange,
+    outcome: string,
+    providers: Array<AwsTrustedIdentityProvider>,
+    extra: Partial<AccountChangeFacts> = {},
+  ): Array<SecurityCaseStepCheckSentence> {
+    return describeRoleIdentityProviders({
+      change: item,
+      outcome: outcome as never,
+      facts: awsFacts(AccountChangeState.StillThere, { providers, ...extra }),
+    });
+  }
+
+  test("held to a value: the tokens it lets in, said plainly, on an unmarked line", () => {
+    expect(lines(ROLE_MADE, "Still", [provider({})])).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGE_PROVIDER_HELD,
+        values: {
+          account: "backdoor",
+          provider: GITHUB,
+          claim: "sub",
+          value: "repo:GitHubOrg/GitHubRepo:*",
+        },
+      },
+    ]);
+  });
+
+  test("held to several values: counted, the first named", () => {
+    expect(
+      lines(ROLE_TRUST, "Confirm", [
+        provider({
+          values: [
+            "repo:GitHubOrg/app:*",
+            "repo:GitHubOrg/api:*",
+            "repo:GitHubOrg/web:*",
+          ],
+        }),
+      ]),
+    ).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGE_PROVIDER_HELD_TO_SEVERAL,
+        values: {
+          account: "Deploy",
+          provider: GITHUB,
+          claim: "sub",
+          value: "repo:GitHubOrg/app:*",
+        },
+        count: 3,
+      },
+    ]);
+  });
+
+  test("open to anyone: every organization through a shared provider, anyone a provider of your own signs in - each marked", () => {
+    expect(lines(ROLE_MADE, "Still", [OPEN_GITHUB, CLUSTER])).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION,
+        values: { account: "backdoor", provider: GITHUB, claim: "sub" },
+        mark: StepCheckFactMark.Exposed,
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGE_PROVIDER_ANYONE,
+        values: {
+          account: "backdoor",
+          provider: CLUSTER.name,
+          claim: "sub",
+        },
+        mark: StepCheckFactMark.Exposed,
+      },
+    ]);
+  });
+
+  test("a SAML provider: the people it signs in as the role", () => {
+    expect(lines(ROLE_MADE, "Still", [OKTA])).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGE_PROVIDER_SAML,
+        values: { account: "backdoor", provider: "Okta" },
+      },
+    ]);
+  });
+
+  test(`at most ${ROLE_IDENTITY_PROVIDERS_MAX}, the open ones first: one is never left out for a held one`, () => {
+    const many: Array<AwsTrustedIdentityProvider> = [
+      provider({ name: "a.example.com" }),
+      provider({ name: "b.example.com" }),
+      OKTA,
+      provider({ name: "c.example.com" }),
+      OPEN_GITHUB,
+    ];
+
+    expect(
+      lines(ROLE_MADE, "Still", many).map(
+        (line: SecurityCaseStepCheckSentence): string => {
+          return line.values["provider"]!;
+        },
+      ),
+    ).toEqual([GITHUB, "a.example.com", "b.example.com"]);
+    expect(ROLE_IDENTITY_PROVIDERS_MAX).toBe(3);
+  });
+
+  test("said only of a role still there or to confirm, as whom it trusts outside its account", () => {
+    expect(lines(ROLE_TRUST, "Undone", [OPEN_GITHUB])).toEqual([]);
+    expect(lines(AWS_KEY, "Still", [OPEN_GITHUB])).toEqual([]);
+    expect(lines(ROLE_MADE, "Still", [])).toEqual([]);
+  });
+
+  test("under the role's line, after the outside accounts it trusts, kept with it as the check is decided", () => {
+    const result: StepCheckResult = decide([
+      answer(ROLE_MADE, {
+        facts: awsFacts(AccountChangeState.StillThere, {
+          trusted: ["444455556666"],
+          providers: [provider({}), OPEN_GITHUB],
+        }),
+      }),
+    ]);
+
+    expect(
+      result.evidence.facts.map(
+        (fact: SecurityCaseStepCheckSentence): [unknown, unknown] => {
+          return [fact.template, fact.mark];
+        },
+      ),
+    ).toEqual([
+      [CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL, StepCheckFactMark.NotDone],
+      [CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT, undefined],
+      [
+        CHECK_ACCOUNT_CHANGE_PROVIDER_ANY_ORGANIZATION,
+        StepCheckFactMark.Exposed,
+      ],
+      [CHECK_ACCOUNT_CHANGE_PROVIDER_HELD, undefined],
+    ]);
+  });
+
+  test("a marked line under a change is kept, or left out, with it - never a way in without its role", () => {
+    const group: Array<SecurityCaseStepCheckSentence> =
+      describeAccountChangeLines({
+        change: ROLE_MADE,
+        outcome: "Still" as never,
+        facts: awsFacts(AccountChangeState.StillThere, {
+          trusted: ["*"],
+          providers: [OPEN_GITHUB],
+        }),
+      });
+    const single: SecurityCaseStepCheckSentence = describeAccountChange({
+      change: AWS_KEY,
+      outcome: "Still" as never,
+      facts: awsFacts(AccountChangeState.StillThere),
+    });
+
+    expect(
+      group.map((line: SecurityCaseStepCheckSentence): unknown => {
+        return line.mark;
+      }),
+    ).toEqual([
+      StepCheckFactMark.NotDone,
+      StepCheckFactMark.Exposed,
+      StepCheckFactMark.Exposed,
+    ]);
+
+    // Room for one line less than the group: it is left out whole, never cut after its role.
+    const ordered: Array<SecurityCaseStepCheckSentence> =
+      orderAccountChangeFacts({
+        still: [
+          ...Array.from({ length: STEP_CHECK_MAX_FACTS - 2 }, () => {
+            return single;
+          }),
+          ...group,
+        ],
+        confirm: [],
+        howToCheck: [],
+        undone: [],
+      });
+
+    expect(ordered).toHaveLength(STEP_CHECK_MAX_FACTS - 2);
+    expect(
+      ordered.some((line: SecurityCaseStepCheckSentence): boolean => {
+        return line.mark === StepCheckFactMark.Exposed;
+      }),
+    ).toBe(false);
+  });
+
+  test("the mark is kept as the check is stored and read back", () => {
+    const result: StepCheckResult = decide([
+      answer(ROLE_MADE, {
+        facts: awsFacts(AccountChangeState.StillThere, {
+          providers: [OPEN_GITHUB],
+        }),
+      }),
+    ]);
+
+    expect(
+      readStepCheckEvidence(JSON.parse(JSON.stringify(result.evidence)))?.facts,
+    ).toEqual(result.evidence.facts);
+    expect(isStepCheckFactMarkUnderLine(StepCheckFactMark.Exposed)).toBe(true);
+    expect(isStepCheckFactMarkUnderLine(undefined)).toBe(true);
+    expect(isStepCheckFactMarkUnderLine(StepCheckFactMark.NotDone)).toBe(false);
   });
 });
 
