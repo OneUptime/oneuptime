@@ -252,7 +252,7 @@ describe("estimating how many batches a project has waiting", () => {
 describe("deciding whom to refuse", () => {
   const estimate: (
     estimated: number,
-    hits: number = 500,
+    hits?: number,
   ) => QueuedBatchesEstimate = (
     estimated: number,
     hits: number = 500,
