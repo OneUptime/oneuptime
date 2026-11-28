@@ -4671,5 +4671,11 @@
   "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Din behörighet är begränsad till {{items}} med vissa etiketter och till {{items}} som du eller dina team äger.",
   "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "När du tar bort en monitormall avlänkas dess monitorer. De behåller kriterierna och inställningarna den gav dem och fortsätter att kontrollera och larma.",
   "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "Enheten som den här monitorn skapades för har redan en monitor länkad till den här mallen: {{monitorName}}. Ta bort en av de två, eller länka den här till en annan mall.",
-  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Enheten som den här monitorn skapades för har redan en monitor länkad till den här mallen. Ta bort en av de två, eller länka den här till en annan mall."
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "Enheten som den här monitorn skapades för har redan en monitor länkad till den här mallen. Ta bort en av de två, eller länka den här till en annan mall.",
+  "Behind by {{count}} minutes": "Ligger {{count}} minuter efter",
+  "Behind by {{count}} minutes_one": "Ligger {{count}} minut efter",
+  "Behind by {{count}} hours": "Ligger {{count}} timmar efter",
+  "Behind by {{count}} hours_one": "Ligger {{count}} timme efter",
+  "Behind by {{count}} days": "Ligger {{count}} dagar efter",
+  "Behind by {{count}} days_one": "Ligger {{count}} dag efter"
 }

@@ -23,6 +23,14 @@ import ObjectID from "Common/Types/ObjectID";
 import SecretDigest from "Common/Server/Utils/Telemetry/SecretDigest";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
+import { TelemetryIngestShedError } from "Common/Server/Utils/Telemetry/TelemetryIngestShedding";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import {
+  TelemetryIngestionBudgetRefusalKind,
+  TelemetryIngestionBudgetScope,
+} from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import { TelemetryIngestRefusalReason } from "Common/Types/Telemetry/TelemetryIngestRefusal";
+import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 
 /*
  * A KEY USED ONLY OVER MQTT SHOWS AS USED (issue #8020).
@@ -868,5 +876,105 @@ describe("a device credential is not an ingestion key", () => {
     expect(client.close).toHaveBeenCalledTimes(1);
     expect(queueMock()).not.toHaveBeenCalled();
     expectNothingStamped();
+  });
+});
+
+/*
+ * A publish the queue refuses while OneUptime catches up
+ * (TelemetryIngestShedding, #11440): refused as any enqueue failure is -
+ * MQTT 3.1.1 has no NACK, so the client is closed and retransmits - and
+ * counted against the key the client connected with, under the metrics'
+ * own surface, so the project's pages say it was refused while OneUptime
+ * caught up.
+ */
+describe("a publish the queue refuses while OneUptime catches up", () => {
+  const shedError: (
+    kind: TelemetryIngestionBudgetRefusalKind,
+  ) => TelemetryIngestShedError = (
+    kind: TelemetryIngestionBudgetRefusalKind,
+  ): TelemetryIngestShedError => {
+    return new TelemetryIngestShedError({
+      kind: kind,
+      scope: TelemetryIngestionBudgetScope.Project,
+      signal: ProductType.Metrics,
+      message:
+        "OneUptime has not yet stored the metrics this project already sent. Retry in 30 seconds.",
+      retryAfterSeconds: 30,
+      resetsAt: new Date("2026-11-28T12:00:30Z"),
+    });
+  };
+
+  test.each([
+    [
+      TelemetryIngestionBudgetRefusalKind.QueueBacklogged,
+      TelemetryIngestRefusalReason.QueueBacklogged,
+    ],
+    [
+      TelemetryIngestionBudgetRefusalKind.QueueFull,
+      TelemetryIngestRefusalReason.QueueFull,
+    ],
+  ])(
+    "%s: refused, counted against the key under the metrics' surface, and not a use",
+    async (
+      kind: TelemetryIngestionBudgetRefusalKind,
+      reason: TelemetryIngestRefusalReason,
+    ) => {
+      const policy: TelemetryIngestionKeyPolicy = buildPolicy();
+      const client: TestClient = newClient();
+
+      expect((await connectWithKey(client, policy)).success).toBe(true);
+
+      const refused: TelemetryIngestShedError = shedError(kind);
+      queueMock().mockRejectedValue(refused);
+
+      await expect(publish(client)).resolves.toBe(refused);
+
+      expect(TelemetryIngestRefusalRecorder.record).toHaveBeenCalledTimes(1);
+      expect(TelemetryIngestRefusalRecorder.record).toHaveBeenCalledWith({
+        projectId: policy.projectId,
+        ingestionKeyId: policy.ingestionKeyId,
+        reason: reason,
+        surface: TelemetryIngestSurface.OtelMetrics,
+      });
+
+      await settle();
+      expectNothingStamped();
+    },
+  );
+
+  test("any other failure of the queue is not counted as a refusal", async () => {
+    const client: TestClient = newClient();
+
+    expect((await connectWithKey(client, buildPolicy())).success).toBe(true);
+    queueMock().mockRejectedValue(new Error("Redis is down"));
+
+    await expect(publish(client)).resolves.toBeInstanceOf(Error);
+    expect(TelemetryIngestRefusalRecorder.record).not.toHaveBeenCalled();
+  });
+
+  test("a device credential names no key, and is counted nowhere", async () => {
+    const credentialId: string = ObjectID.generate().toString();
+    const secretKey: string = ObjectID.generate().toString();
+
+    credentialMock().mockResolvedValue({
+      credentialId,
+      secretKeyDigest: SecretDigest.of(secretKey),
+      projectId: PROJECT_ID.toString(),
+      iotFleetId: ObjectID.generate().toString(),
+      fleetName: FLEET,
+      externalId: DEVICE,
+    });
+
+    const client: TestClient = newClient();
+
+    expect((await connect(client, secretKey, credentialId)).success).toBe(true);
+
+    const refused: TelemetryIngestShedError = shedError(
+      TelemetryIngestionBudgetRefusalKind.QueueBacklogged,
+    );
+    queueMock().mockRejectedValue(refused);
+
+    await expect(publish(client)).resolves.toBe(refused);
+    expect(TelemetryIngestRefusalRecorder.record).not.toHaveBeenCalled();
   });
 });

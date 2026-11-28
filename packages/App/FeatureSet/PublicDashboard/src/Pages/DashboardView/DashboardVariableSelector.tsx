@@ -55,6 +55,10 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
         ),
         data: {
           attributeKey: variable.attributeKey,
+          // Only the values of the kind it picks among (issue #11258).
+          ...(variable.resourceScope
+            ? { resourceScope: variable.resourceScope }
+            : {}),
         },
       })
         .then((response: HTTPResponse<JSONObject>) => {
@@ -83,7 +87,12 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
     return () => {
       cancelled = true;
     };
-  }, [variable.type, variable.attributeKey, props.dashboardId]);
+  }, [
+    variable.type,
+    variable.attributeKey,
+    variable.resourceScope,
+    props.dashboardId,
+  ]);
 
   return (
     <DashboardVariableControl

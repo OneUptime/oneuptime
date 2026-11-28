@@ -161,6 +161,24 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 이 명령은 **`ceph-1`** 클러스터용 에이전트를 설치합니다. `CEPH_CLUSTER_NAME`을 정확히 그대로 두세요. 그렇지 않으면 데이터가 새 클러스터로 등록됩니다.",
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. This cluster is **`ceph-1`**. Fix it in `.env` and apply it with `docker compose up -d` in the folder with `docker-compose.yml` — note that a new name registers a new cluster.":
     "클러스터의 식별자는 `CEPH_CLUSTER_NAME`에서 오며, 모든 메트릭에 `ceph.cluster.name`으로 붙습니다. 이 클러스터의 이름: **`ceph-1`**. `.env`에서 고친 뒤 `docker-compose.yml`이 있는 폴더에서 `docker compose up -d`로 적용하세요. 새 이름은 새 클러스터로 등록된다는 점에 유의하세요.",
+  "| `CEPH_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-ceph-agent`). A second cluster's agent on the same machine needs names of its own: the install script names a new agent's containers after its folder unless you set them, and keeps them when you run the script again |":
+    "| `CEPH_AGENT_CONTAINER_NAME` | 아니요 | 컬렉터의 컨테이너 이름(기본값: `oneuptime-ceph-agent`). 같은 머신에 있는 두 번째 클러스터의 에이전트에는 고유한 이름이 필요합니다. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 컨테이너 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다 |",
+  "| `CEPH_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-ceph-ai-agent`). The install script names a second cluster's AI agent after its collector (`oneuptime-ceph-ai-agent-cluster2` beside `oneuptime-ceph-agent-cluster2`) unless you set it, and keeps it when you run the script again |":
+    "| `CEPH_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름(기본값: `oneuptime-ceph-ai-agent`). 설치 스크립트는 이 값을 설정하지 않으면 두 번째 클러스터의 AI 에이전트 이름을 그 컬렉터 이름에 맞춰 짓고(`oneuptime-ceph-ai-agent-cluster2`, 컬렉터 `oneuptime-ceph-agent-cluster2`와 나란히), 스크립트를 다시 실행해도 그 이름을 유지합니다 |",
+  "One agent reads one cluster. For a second cluster, install a second agent in a folder of its own, with container names of its own — two containers cannot share a name:":
+    "에이전트 하나는 클러스터 하나를 읽습니다. 두 번째 클러스터에는 별도 폴더에 고유한 컨테이너 이름으로 두 번째 에이전트를 설치하세요. 두 컨테이너는 이름을 공유할 수 없습니다:",
+  "The script names the containers after the folder, such as `oneuptime-ceph-agent-cluster2`, unless you set their variables, such as `CEPH_AGENT_CONTAINER_NAME`. It keeps the names in that agent's `.env`, so running the script again with the same `INSTALL_DIR` to upgrade the agent keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name.":
+    "변수(예: `CEPH_AGENT_CONTAINER_NAME`)를 설정하지 않으면 스크립트가 폴더 이름을 따서 컨테이너 이름을 짓습니다(예: `oneuptime-ceph-agent-cluster2`). 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로, 같은 `INSTALL_DIR`로 스크립트를 다시 실행해 에이전트를 업그레이드해도 이름이 유지되며, `docker-compose.yml`에서 `container_name`을 직접 수정한 적이 있는 에이전트도 그 이름을 유지합니다.",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so the script refuses a folder named like one that already runs an agent elsewhere. Pass the folder to the diagnostic script with `-d`.":
+    "폴더마다 고유한 이름을 붙이세요. Docker Compose는 폴더 이름만으로 프로젝트 이름을 짓기 때문에, 스크립트는 다른 곳에서 이미 에이전트를 실행 중인 폴더와 같은 이름의 폴더를 거부합니다. 진단 스크립트에는 `-d`로 폴더를 넘기세요.",
+  "| `CEPH_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-ceph-agent`). A second cluster's agent on the same machine needs one of its own |":
+    "| `CEPH_AGENT_CONTAINER_NAME` | 아니요 | 컬렉터의 컨테이너 이름(기본값: `oneuptime-ceph-agent`). 같은 머신에 있는 두 번째 클러스터의 에이전트에는 고유한 이름이 필요합니다 |",
+  "| `CEPH_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-ceph-ai-agent`). A second cluster's agent on the same machine needs one of its own |":
+    "| `CEPH_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름(기본값: `oneuptime-ceph-ai-agent`). 같은 머신에 있는 두 번째 클러스터의 에이전트에는 고유한 이름이 필요합니다 |",
+  "One agent reads one cluster. For a second cluster, set up a second agent in a folder of its own, with container names of its own — two containers cannot share a name. Set them in that agent's `.env`:":
+    "에이전트 하나는 클러스터 하나를 읽습니다. 두 번째 클러스터에는 별도 폴더에 고유한 컨테이너 이름으로 두 번째 에이전트를 구성하세요. 두 컨테이너는 이름을 공유할 수 없습니다. 이름은 그 에이전트의 `.env`에 설정하세요:",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so a second folder of the same name would replace the first agent's containers. Keep the names out of `docker-compose.yml`, which an upgrade replaces.":
+    "폴더마다 고유한 이름을 붙이세요. Docker Compose는 폴더 이름만으로 프로젝트 이름을 짓기 때문에, 같은 이름의 두 번째 폴더는 첫 번째 에이전트의 컨테이너를 대체합니다. 이름은 `docker-compose.yml`에 넣지 마세요. 업그레이드가 이 파일을 대체합니다.",
 };
 
 export default TRANSLATION;

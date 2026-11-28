@@ -4671,5 +4671,11 @@
   "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "إذنك مقصور على {{items}} التي تحمل تسميات معيّنة وعلى {{items}} التي تملكها أنت أو فرقك.",
   "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "يؤدي حذف قالب مراقبة إلى إلغاء ربط مراقباته. وتحتفظ بالمعايير والإعدادات التي منحها لها، وتواصل الفحص والتنبيه.",
   "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "الجهاز الذي أُنشئت له هذه المراقبة لديه بالفعل مراقبة مرتبطة بهذا القالب: {{monitorName}}. احذف إحداهما، أو اربط هذه المراقبة بقالب آخر.",
-  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "الجهاز الذي أُنشئت له هذه المراقبة لديه بالفعل مراقبة مرتبطة بهذا القالب. احذف إحداهما، أو اربط هذه المراقبة بقالب آخر."
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "الجهاز الذي أُنشئت له هذه المراقبة لديه بالفعل مراقبة مرتبطة بهذا القالب. احذف إحداهما، أو اربط هذه المراقبة بقالب آخر.",
+  "Behind by {{count}} minutes": "متأخر بمقدار {{count}} د",
+  "Behind by {{count}} minutes_one": "متأخر بمقدار {{count}} دقيقة",
+  "Behind by {{count}} hours": "متأخر بمقدار {{count}} س",
+  "Behind by {{count}} hours_one": "متأخر بمقدار {{count}} ساعة",
+  "Behind by {{count}} days": "متأخر بمقدار {{count}} ي",
+  "Behind by {{count}} days_one": "متأخر بمقدار {{count}} يوم"
 }

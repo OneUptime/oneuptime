@@ -409,7 +409,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cpuCores: true,
           totalMemoryBytes: true,
           processCount: true,
-          containerRuntime: true,
           lastSeenAt: true,
           createdAt: true,
           collectorInstanceUid: true,
@@ -464,13 +463,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
               hostIdentifier: true,
             },
             title: "Host Name (host.name)",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              containerRuntime: true,
-            },
-            title: "Container Runtime",
             type: FieldType.Text,
           },
           {

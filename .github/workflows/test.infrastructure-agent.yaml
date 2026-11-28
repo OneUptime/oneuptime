@@ -15,6 +15,9 @@ on:
     paths:
       - "agents/InfrastructureAgent/**"
       - ".github/workflows/test.infrastructure-agent.yaml"
+      # What the reproducible-build job builds with, and what it checks.
+      - ".github/actions/setup-release-toolchain/**"
+      - "Tests/Ops/InfrastructureAgentReproducibleBuild.test.js"
   # Not on every push to main: each pull request was tested on its merge
   # with main, and main runs this nightly and on demand instead
   # (Tests/Ops/PullRequestChecksNotOnPush.test.js says why).
@@ -47,6 +50,38 @@ jobs:
       # a //go:build tag (utils/disk_drives_windows.go) is at least type-checked.
       - run: cd agents/InfrastructureAgent && GOOS=windows GOARCH=amd64 go vet ./...
       - run: cd agents/InfrastructureAgent && GOOS=darwin GOARCH=arm64 go vet ./...
+
+  # The agent built twice from one commit, two clones made seconds apart, with
+  # the release's own Go, GoReleaser and syft: every archive, package, SBOM
+  # and the checksums file must be the same bytes, as the apt and yum indexes,
+  # the Homebrew cask and the winget manifest record their SHA-256 (#11466).
+  # The config as it was before must give other bytes, so the check is not
+  # vacuous. RUN_AGENT_REPRODUCIBLE_BUILD=1 fails the suite, rather than
+  # skipping it, if a tool is missing (the Ops Config Test job, which has
+  # none of them, skips it).
+  reproducible-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up the release toolchain
+        uses: ./.github/actions/setup-release-toolchain
+        with:
+          syft: 'true'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: Tests/Ops/package-lock.json
+      - name: Install Ops test dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: Tests/Ops
+      - name: Build the agent twice, and hold every file to the same bytes
+        working-directory: Tests/Ops
+        env:
+          RUN_AGENT_REPRODUCIBLE_BUILD: "1"
+        run: npx jest --config ./jest.config.json --runInBand InfrastructureAgentReproducibleBuild
 
   # Disk collection handles what gopsutil returns on Windows - partial partition
   # lists, drive-letter devices - and the Linux job can only reproduce that with

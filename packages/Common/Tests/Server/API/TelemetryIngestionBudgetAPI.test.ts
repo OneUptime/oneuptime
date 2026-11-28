@@ -200,7 +200,11 @@ describe("GET /telemetry-ingestion-budget/project", () => {
       expect(
         await call(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE),
       ).toBeUndefined();
-      expect(getProjectStatus).toHaveBeenCalledWith({ projectId: PROJECT_ID });
+      // With what the telemetry queue refused (#11440), for the Usage page and the explorers.
+      expect(getProjectStatus).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        includesQueueRefusals: true,
+      });
       expect(sendJson).toHaveBeenCalledTimes(1);
     },
   );
@@ -257,7 +261,11 @@ describe("GET /telemetry-ingestion-budget/project", () => {
     expect(
       await call(TELEMETRY_INGESTION_BUDGET_PROJECT_ROUTE),
     ).toBeUndefined();
-    expect(getProjectStatus).toHaveBeenCalledWith({ projectId: PROJECT_ID });
+    // With what the telemetry queue refused (#11440), for the Usage page and the explorers.
+    expect(getProjectStatus).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      includesQueueRefusals: true,
+    });
   });
 });
 
@@ -270,7 +278,11 @@ describe("GET /telemetry-ingestion-budget/admin/projects/:projectId", () => {
     expect(
       await call(ADMIN_PROJECT_ROUTE, { projectId: PROJECT_ID.toString() }),
     ).toBeUndefined();
-    expect(getProjectStatus).toHaveBeenCalledWith({ projectId: PROJECT_ID });
+    // With what the telemetry queue refused (#11440), for the Usage page and the explorers.
+    expect(getProjectStatus).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      includesQueueRefusals: true,
+    });
   });
 
   test("is a 404 for a project that does not exist, and a 400 for an id that is not one", async () => {

@@ -60,7 +60,6 @@
 
 "use strict";
 
-const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 
@@ -68,6 +67,11 @@ const {
   compareVersions,
   parseVersion,
 } = require("../Release/GenerateReleaseNotes");
+// What every upload to a GitHub release follows, OneUptime's own too.
+const ReleaseAssets = require("../Release/ReleaseAssets");
+
+const { assetsByName, describeFile, isDraft, parseSums, sha256OfAsset } =
+  ReleaseAssets;
 
 const PROVIDER = "terraform-provider-oneuptime";
 
@@ -80,47 +84,6 @@ function sumsName(version) {
 
 function signatureName(version) {
   return `${sumsName(version)}.sig`;
-}
-
-// GitHub's REST API says `draft`, gh's --json says `isDraft`.
-function isDraft(release) {
-  return Boolean(release.draft === undefined ? release.isDraft : release.draft);
-}
-
-/*
- * The SHA-256 GitHub keeps of an asset, "sha256:<hex>", as hex; null for one
- * it keeps none of (GitHub has kept them only since mid 2025).
- */
-function sha256OfAsset(asset) {
-  const digest = asset ? asset.digest : null;
-  if (typeof digest !== "string" || !digest.startsWith("sha256:")) {
-    return null;
-  }
-  return digest.slice("sha256:".length).toLowerCase();
-}
-
-/*
- * The files a SHA256SUMS lists, name to SHA-256. A line is a hash and a
- * name, as GoReleaser and sha256sum write it; "*" before the name is
- * sha256sum's binary mode.
- */
-function parseSums(text) {
-  const sums = new Map();
-  for (const line of String(text || "").split(/\r?\n/)) {
-    const match = /^([0-9a-fA-F]{64})[ \t]+\*?(\S.*?)\s*$/.exec(line);
-    if (match) {
-      sums.set(match[2], match[1].toLowerCase());
-    }
-  }
-  return sums;
-}
-
-function assetsByName(release) {
-  return new Map(
-    ((release && release.assets) || []).map((asset) => {
-      return [asset.name, asset];
-    }),
-  );
 }
 
 /*
@@ -164,22 +127,6 @@ function problemsOfPublishedRelease(release, version, sumsText) {
   }
 
   return problems;
-}
-
-function sha256OfFile(file) {
-  return crypto
-    .createHash("sha256")
-    .update(fs.readFileSync(file))
-    .digest("hex");
-}
-
-// A built file as differencesFromBuilt compares it.
-function describeFile(file) {
-  return {
-    name: path.basename(file),
-    size: fs.statSync(file).size,
-    sha256: sha256OfFile(file),
-  };
 }
 
 /*
@@ -241,117 +188,28 @@ function differencesFromBuilt(release, files) {
   if (!release) {
     return ["there is no release"];
   }
-
-  const differences = [];
-  if (!isDraft(release)) {
-    differences.push(
-      "it is published: a run only ever uploads to a draft of its own",
-    );
-  }
-
-  const assets = assetsByName(release);
-  for (const file of files) {
-    const asset = assets.get(file.name);
-    if (!asset) {
-      differences.push(`${file.name} is not on it`);
-      continue;
-    }
-    if (asset.state && asset.state !== "uploaded") {
-      differences.push(
-        `${file.name} did not finish uploading (${asset.state})`,
-      );
-    }
-    if (asset.size !== file.size) {
-      differences.push(
-        `${file.name} is ${asset.size} bytes there, and ${file.size} as built`,
-      );
-    }
-    const actual = sha256OfAsset(asset);
-    if (actual && actual !== file.sha256) {
-      differences.push(
-        `${file.name} has SHA-256 ${actual} there, and ${file.sha256} as built`,
-      );
-    }
-  }
-
-  const built = new Set(
-    files.map((file) => {
-      return file.name;
-    }),
-  );
-  for (const name of assets.keys()) {
-    if (!built.has(name)) {
-      differences.push(`${name} is on it, and this run did not build it`);
-    }
-  }
-
-  return differences;
+  return [
+    ...(isDraft(release)
+      ? []
+      : ["it is published: a run only ever uploads to a draft of its own"]),
+    ...ReleaseAssets.differencesFromFiles(release, files, { only: true }),
+  ];
 }
 
 /*
  * What uploading the files built for a release to its draft takes, one step
- * a file, without ever changing a published release (#11016):
- *
- *   keep     the draft holds it already, whole, the same bytes;
- *   upload   the draft does not hold it;
- *   replace  the draft holds an upload of it that did not finish, or other
- *            bytes: that asset is deleted, by its id, and the file uploaded
- *            again. Only ever on a draft, which no registry has read.
- *
- * A release that is not a draft gets no step at all: `refused` says why.
- * Neither does one GitHub gives no upload URL for. Each upload goes to the
- * draft's own upload URL, by its id, never by its tag: a tag can name a
- * published release too, and gh's `release upload <tag> --clobber` replaced
- * the assets of one when it did (OneUptime/terraform-provider-oneuptime#20).
- * `files` are describeFile's, each with its `path`.
+ * a file, without ever changing a published release (#11016): keep, upload
+ * or replace, each to the draft's own upload URL, by its id
+ * (ReleaseAssets.uploadPlan). A release that is not a draft gets no step at
+ * all: gh's `release upload <tag> --clobber` replaced the assets of one
+ * (OneUptime/terraform-provider-oneuptime#20). `files` are describeFile's,
+ * each with its `path`.
  */
 function uploadPlan(release, files) {
-  if (!release) {
-    return { refused: "there is no release", steps: [] };
-  }
-  if (!isDraft(release)) {
-    return {
-      refused:
-        "it is published, and a published release is never changed: the registries have read its assets",
-      steps: [],
-    };
-  }
-  const uploadUrl = String(release.upload_url || "").replace(/\{[^}]*\}$/, "");
-  if (
-    !/^https:\/\/[^/]+\/repos\/[^/]+\/[^/]+\/releases\/\d+\/assets$/.test(
-      uploadUrl,
-    )
-  ) {
-    return {
-      refused: `GitHub gives no upload URL for it (${release.upload_url || "none"})`,
-      steps: [],
-    };
-  }
-
-  const assets = assetsByName(release);
-  const steps = files.map((file) => {
-    const url = `${uploadUrl}?name=${encodeURIComponent(file.name)}`;
-    const asset = assets.get(file.name);
-    if (!asset) {
-      return { action: "upload", name: file.name, path: file.path, url };
-    }
-    const whole = !asset.state || asset.state === "uploaded";
-    if (
-      whole &&
-      asset.size === file.size &&
-      sha256OfAsset(asset) === file.sha256
-    ) {
-      return { action: "keep", name: file.name };
-    }
-    return {
-      action: "replace",
-      name: file.name,
-      path: file.path,
-      url,
-      assetId: String(asset.id),
-    };
+  return ReleaseAssets.uploadPlan(release, files, {
+    published:
+      "it is published, and a published release is never changed: the registries have read its assets",
   });
-  return { refused: null, steps };
 }
 
 function versionParts(version) {

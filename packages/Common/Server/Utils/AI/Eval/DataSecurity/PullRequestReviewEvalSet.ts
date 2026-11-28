@@ -875,6 +875,82 @@ const FRONT_END: Array<PullRequestEvalDiff> = [
       },
     ],
   },
+  /*
+   * A recorded session's tags (#11458): read by everyone who can list
+   * sessions, stored as sent. An email tag is a point; a build, an
+   * experiment's arm or the user's id is none; a secret can fail the check.
+   */
+  {
+    id: "session-tagged-with-email",
+    title: "Tag recorded sessions with the customer",
+    files: [
+      changedFile("web/src/session.ts", 20, [
+        " export function tagSession(customer: Customer): void {",
+        '+  OneUptimeReplay.setTags({ customer: customer.email, build: "2026.11" });',
+        " }",
+      ]),
+    ],
+    points: [
+      {
+        subject: "customer.email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "replay-queue-tag-with-email",
+    title: "Tag the session before the recorder loads",
+    files: [
+      addedFile("web/public/tags.js", [
+        "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+        '  "addTag",',
+        '  "owner",',
+        "  window.currentUser.email,",
+        "]);",
+      ]),
+    ],
+    points: [
+      {
+        subject: "window.currentUser.email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "session-tagged-with-build-and-user-id",
+    title: "Tag recorded sessions with the build and the user's id",
+    files: [
+      changedFile("web/src/session.ts", 20, [
+        " export function tagSession(customer: Customer): void {",
+        "+  OneUptimeReplay.setTags({ build: BUILD_ID, experiment: arm, user: customer.id });",
+        " }",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "session-tagged-with-api-token",
+    title: "Tag sessions with the API token for debugging",
+    files: [
+      changedFile("web/src/debug.ts", 4, [
+        " if (config.debug) {",
+        '+  replay.addTag("api_token", config.apiToken);',
+        " }",
+      ]),
+    ],
+    points: [
+      {
+        subject: "api_token",
+        checkId: "secrets-in-telemetry",
+        isBlocking: true,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
 ];
 
 const MIGRATIONS: Array<PullRequestEvalDiff> = [

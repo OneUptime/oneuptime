@@ -292,6 +292,12 @@ ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
 COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
+OPENSTACK_AGENT_CONTAINER_NAME=oneuptime-openstack-agent
+OPENSTACK_EXPORTER_CONTAINER_NAME=oneuptime-openstack-exporter
+OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME=oneuptime-openstack-quota-exporter
+OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-database-exporter
+OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-worker-state-exporter
+OPENSTACK_AI_AGENT_CONTAINER_NAME=oneuptime-openstack-ai-agent
 ```
 
 `OPENSTACK_EXPORTER_CLOUDS` перечисляет все регионы в квадратных скобках, а `COMPOSE_PROFILES` запускает встроенный экспортер и [ИИ-агента](#ии-агент). Оба файла содержат секреты. Экспортер работает с uid 65532 и должен быть единственной учётной записью, которая может читать `clouds.yaml`. Запустите агент:
@@ -380,6 +386,12 @@ Everything is ready. Begin running and processing data.
 | `OPENSTACK_AGENT_SERVICES` | Нет | Какие службы читает этот агент, для [разделения облака между агентами](/docs/telemetry/openstack-very-large-clouds#совместный-сбор-данных-облака), например `compute\|placement`. По умолчанию все. |
 | `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | Нет | Сколько памяти может занимать коллектор. Сбору данных очень большого облака нужно больше значения по умолчанию, `512`. |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | Нет | `openstack_database_exporter`, для [пути через базу данных](/docs/telemetry/openstack-very-large-clouds#путь-через-базу-данных): `[openstack-database-exporter:9180]`. По умолчанию пусто. Остальные настройки этого пути перечислены там. |
+| `OPENSTACK_AGENT_CONTAINER_NAME` | Нет | Имя контейнера коллектора. По умолчанию `oneuptime-openstack-agent`. Агенту второго облака на той же машине нужны собственные имена: см. [Мониторинг нескольких облаков](#мониторинг-нескольких-облаков). Если переменные не заданы, скрипт установки называет контейнеры нового агента по его папке и сохраняет эти имена при повторном запуске скрипта. |
+| `OPENSTACK_EXPORTER_CONTAINER_NAME` | Нет | Имя контейнера встроенного экспортера. По умолчанию `oneuptime-openstack-exporter`, а для второго агента — имя рядом с именем его коллектора, например `oneuptime-openstack-exporter-cloud2`. |
+| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | Нет | Имя контейнера экспортера квот. По умолчанию `oneuptime-openstack-quota-exporter`, а для второго агента — имя рядом с именем его коллектора, например `oneuptime-openstack-quota-exporter-cloud2`. |
+| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | Нет | Имя контейнера экспортера базы данных. По умолчанию `oneuptime-openstack-database-exporter`, а для второго агента — имя рядом с именем его коллектора, например `oneuptime-openstack-database-exporter-cloud2`. |
+| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | Нет | Имя контейнера экспортера состояния рабочих процессов. По умолчанию `oneuptime-openstack-worker-state-exporter`, а для второго агента — имя рядом с именем его коллектора, например `oneuptime-openstack-worker-state-exporter-cloud2`. |
+| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | Нет | Имя контейнера ИИ-агента. По умолчанию `oneuptime-openstack-ai-agent`, а для второго агента — имя рядом с именем его коллектора, например `oneuptime-openstack-ai-agent-cloud2`. |
 
 Скрипт установки также читает учётные данные из окружения, чтобы пропустить вопросы: `OPENSTACK_APPLICATION_CREDENTIAL_ID` и `OPENSTACK_APPLICATION_CREDENTIAL_SECRET` либо `OPENSTACK_USERNAME`, `OPENSTACK_PASSWORD`, `OPENSTACK_PROJECT_NAME`, `OPENSTACK_USER_DOMAIN_NAME` и `OPENSTACK_PROJECT_DOMAIN_NAME`. У них собственные имена, а не `OS_*`, которые задаёт файл openrc, поэтому подключённый администратором openrc никогда не становится учётными данными агента без чьего-либо ведома. Учётные данные приложения лучше имени пользователя и пароля: их можно ограничить чтением, и у них есть срок действия.
 
@@ -1025,6 +1037,7 @@ sudo bash install-logs.sh
 | `OPENSTACK_LOGS_DIRECTORY` | Где находятся журналы Kolla-Ansible, если не в её обычном томе Docker |
 | `OPENSTACK_LOGS_TIMEZONE` | Часовой пояс, в котором oslo.log пишет время. По умолчанию `UTC` |
 | `OPENSTACK_LOGS_UNITS` | Юниты journal для чтения, в квадратных скобках. По умолчанию юниты каждой службы OpenStack |
+| `OPENSTACK_LOGS_CONTAINER_NAME` | Имя контейнера коллектора, с Docker. По умолчанию `oneuptime-openstack-logs`. Повторный запуск скрипта его сохраняет |
 
 Профиль files читает службы OpenStack по имени, поэтому RabbitMQ, MariaDB, HAProxy и libvirt в той же папке не затрагиваются. Коллектор, перезапущенный позже, продолжает со строки, до которой дошёл.
 
@@ -1645,6 +1658,20 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 Рабочий процесс может начаться с оповещения OpenStack и предложить исправление: шаг **Предложить исправление OpenStack** принимает оповещение или инцидент и команду. Оно проходит через ту же политику, ту же область записи и то же чтение того, чего касается изменение, что и исправление, предлагаемое ИИ OneUptime, не требует модели ИИ, а человек одобряет его на оповещении. Рабочий процесс не может ни внести изменение сам, ни одобрить то, что он предлагает, какой бы ни был режим исправлений облака. Шаблон **Propose taking a failing OpenStack compute service out of scheduling** — место, с которого можно начать.
 
+## Мониторинг нескольких облаков
+
+Один агент читает одно облако. Чтобы отслеживать несколько с одной машины, установите каждый агент в свою папку, со своим `.env` и собственными именами контейнеров, так как два контейнера не могут иметь одно имя:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-openstack-agent-cloud2 bash install.sh
+```
+
+Скрипт называет контейнеры агента по папке: `oneuptime-openstack-agent-cloud2`, `oneuptime-openstack-exporter-cloud2`, `oneuptime-openstack-quota-exporter-cloud2`, `oneuptime-openstack-database-exporter-cloud2`, `oneuptime-openstack-worker-state-exporter-cloud2` и `oneuptime-openstack-ai-agent-cloud2`. Чтобы выбрать их самостоятельно, задайте `OPENSTACK_AGENT_CONTAINER_NAME` и остальные переменные из таблицы выше при его запуске. Он записывает имена в `.env` этого агента, поэтому имена сохраняются при повторном запуске скрипта для обновления агента, а агент, чей `container_name` вы когда-то изменили в `docker-compose.yml`, сохраняет это имя. Дайте каждой папке собственное имя: Docker Compose называет проект только по его папке, поэтому скрипт отказывается от папки с тем же именем, что и папка, в которой где-то уже работает агент. При установке через Docker Compose вместо этого задайте имена в `.env` каждого агента.
+
+Имена применяются с Docker: установка без Docker не запускает контейнеров. Коллекторы журналов и трассировок читают свои имена из `.env` так же: `OPENSTACK_LOGS_CONTAINER_NAME` и `OPENSTACK_TRACES_CONTAINER_NAME`.
+
+Юнит systemd предполагает `/opt/oneuptime-openstack-agent`: для другой папки сохраните его под другим именем, например `oneuptime-openstack-agent-cloud2.service`, и измените его `WorkingDirectory`. Передайте папку диагностическому скрипту с помощью `-d`.
+
 ## Запуск как службы systemd
 
 Чтобы агент запускался вместе с машиной и перезапускался при сбое, установите его юнит systemd. Предполагается, что агент находится в `/opt/oneuptime-openstack-agent`, куда его ставит скрипт установки. Установка без Docker уже является службой systemd.
@@ -1659,7 +1686,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 Агент сообщает версию своих файлов как свою **Версия агента**: версию коллектора, которую они закрепляют, с последним числом, увеличиваемым при каждом изменении файлов на этом коллекторе. Когда она старше версии, которую закрепляет этот выпуск OneUptime, рядом появляется предупреждающий знак. Выберите его, чтобы увидеть эти команды.
 
-Образ коллектора закреплён в `docker-compose.yml`, а его конфигурация — файл рядом с ним, поэтому одно скачивание образов агент вперёд не двигает. Снова запустите `install.sh`, с `sudo`, если вы устанавливали без Docker: он использует все значения из вашего существующего `.env` и учётные данные из `clouds.yaml` (ничего не спрашивается заново), проверяет учётные данные в Keystone, обновляет файлы агента (отредактированный вами файл сохраняется как `<file>.bak.<timestamp>`), скачивает образы и пересоздаёт агент, чтобы коллектор прочитал новую конфигурацию.
+Образ коллектора закреплён в `docker-compose.yml`, а его конфигурация — файл рядом с ним, поэтому одно скачивание образов агент вперёд не двигает. Снова запустите `install.sh`, с `sudo`, если вы устанавливали без Docker: он использует все значения из вашего существующего `.env` и учётные данные из `clouds.yaml` (ничего не спрашивается заново), проверяет учётные данные в Keystone, обновляет файлы агента (отредактированный вами файл сохраняется как `<file>.bak.<timestamp>`), скачивает образы и пересоздаёт агент, чтобы коллектор прочитал новую конфигурацию. Агенту, установленному вне `/opt/oneuptime-openstack-agent`, нужна его папка, `INSTALL_DIR=<folder> bash install.sh`, и он сохраняет имена своих контейнеров.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh

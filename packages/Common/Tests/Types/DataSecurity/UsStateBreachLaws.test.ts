@@ -14,7 +14,9 @@ import {
   BreachPlace,
   COVERED_PLACES,
   COVERED_US_STATES,
+  FOLLOW_UP_LAWS_CHECKED_ON,
   getBreachLawRule,
+  getBreachPlaceOfCountry,
   isDeadlineWithoutLength,
   isUsStatePlace,
   isUsStateRule,
@@ -25,6 +27,7 @@ import {
 } from "../../../Types/DataSecurity/BreachLaws";
 import {
   addBusinessDays,
+  applyBreachLaw,
   applyBreachLaws,
   BreachCheck,
   BreachCheckKind,
@@ -35,6 +38,8 @@ import {
   BreachReasonKind,
   ExposureReadsLogged,
   getWhoseData,
+  isBreachLawForFacts,
+  isBreachLawInForce,
 } from "../../../Types/DataSecurity/ExposureAssessment";
 import { getBuiltInDataType } from "../../../Types/DataSecurity/DataTypeCatalog";
 import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
@@ -60,6 +65,12 @@ import { describe, expect, test } from "@jest/globals";
 // When every example exposure was found: a Monday, 09:00 UTC.
 const FOUND_AT: Date = new Date("2026-11-23T09:00:00.000Z");
 const NOW: Date = new Date("2026-11-24T12:00:00.000Z");
+/*
+ * An exposure found after a newer text took effect (#11425): Monday
+ * 4 January 2027, 09:00 UTC, and the next day.
+ */
+const FOUND_IN_2027: Date = new Date("2027-01-04T09:00:00.000Z");
+const NOW_IN_2027: Date = new Date("2027-01-05T12:00:00.000Z");
 const HOUR: number = 60 * 60 * 1000;
 const DAY: number = 24 * HOUR;
 
@@ -95,6 +106,13 @@ interface StatuteSays {
   afterRule?: BreachLawId;
   // The host of the official site its text is on.
   host: string;
+  // The day its text was read: US_STATE_LAWS_CHECKED_ON unless it says (#11424-#11427).
+  checkedOn?: string;
+  // The days its text is in force, where the table holds two texts of a law (#11425).
+  inForceFrom?: string;
+  inForceUntil?: string;
+  // A notice to the data's owner, applied only when the data is held for another (#11427).
+  forDataHolders?: boolean;
 }
 
 const RESIDENTS: BreachDeadlineStart = BreachDeadlineStart.PeopleNotified;
@@ -551,7 +569,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Iowa,
     law: "Iowa Code",
     provision: "715C.2(1)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.FinancialHarmInWriting],
@@ -565,7 +583,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Iowa,
     law: "Iowa Code",
     provision: "715C.2(8)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     // "more than five hundred residents of this state".
@@ -813,7 +831,16 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Missouri,
     law: "Revised Statutes of Missouri",
     provision: "407.1500.2(1)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.IdentityTheftOrFraudInWriting],
@@ -827,7 +854,16 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Missouri,
     law: "Revised Statutes of Missouri",
     provision: "407.1500.2(8)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
     needsName: true,
     nameFree: [],
     // "more than one thousand consumers at one time".
@@ -923,7 +959,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewHampshire,
     law: "New Hampshire Revised Statutes",
     provision: "359-C:20, I(a)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.MisuseOrUndetermined],
@@ -937,7 +973,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewHampshire,
     law: "New Hampshire Revised Statutes",
     provision: "359-C:20, I(b)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.MisuseOrUndetermined],
@@ -984,7 +1020,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewMexico,
     law: "New Mexico Statutes Annotated 1978",
     provision: "57-12C-6",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.SignificantRiskOfIdentityTheft],
@@ -1000,7 +1036,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewMexico,
     law: "New Mexico Statutes Annotated 1978",
     provision: "57-12C-10",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     // "more than one thousand New Mexico residents as a result of a single security breach".
@@ -1097,13 +1133,15 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oklahoma,
     law: "Oklahoma Statutes, Title 24",
     provision: "163(A)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.CausesIdentityTheftOrFraud],
     unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
     start: FOUND,
     host: "www.oklegislature.gov",
+    // As SB 626 (Laws 2025, c. 406) amended it, from 1 January 2026.
+    inForceFrom: "2026-01-01",
   },
   {
     id: BreachLawId.OklahomaAttorneyGeneral,
@@ -1111,7 +1149,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Oklahoma,
     law: "Oklahoma Statutes, Title 24",
     provision: "163(E)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     // "fewer than five hundred (500) residents ... shall be exempt".
@@ -1123,6 +1161,8 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     start: RESIDENTS,
     afterRule: BreachLawId.OklahomaResidents,
     host: "www.oklegislature.gov",
+    // New with SB 626, from 1 January 2026.
+    inForceFrom: "2026-01-01",
   },
   // Oregon Revised Statutes 646A.602 and 646A.604.
   {
@@ -1135,6 +1175,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
       SSN,
       DL,
       PASSPORT,
+      TAX_ID,
       OTHER_ID,
       ACCOUNT,
       BIOMETRIC,
@@ -1160,6 +1201,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
       SSN,
       DL,
       PASSPORT,
+      TAX_ID,
       OTHER_ID,
       ACCOUNT,
       BIOMETRIC,
@@ -1252,7 +1294,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthCarolina,
     law: "Code of Laws of South Carolina",
     provision: "39-1-90(A)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     conditions: [BreachCondition.IllegalUseOrMaterialRisk],
@@ -1266,7 +1308,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthCarolina,
     law: "Code of Laws of South Carolina",
     provision: "39-1-90(K)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     // "more than one thousand persons at one time".
@@ -1283,7 +1325,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthDakota,
     law: "South Dakota Codified Laws",
     provision: "22-40-20",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
     needsName: true,
     nameFree: [ACCOUNT, LOGIN],
     conditions: [BreachCondition.LikelyHarmAfterTellingAg],
@@ -1298,7 +1340,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthDakota,
     law: "South Dakota Codified Laws",
     provision: "22-40-20 (attorney general)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
     needsName: true,
     nameFree: [ACCOUNT, LOGIN],
     // "any breach of system security that exceeds two hundred fifty residents".
@@ -1384,6 +1426,8 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     amount: 45,
     start: FOUND,
     host: "legislature.vermont.gov",
+    // The text in force until 1 January 2027 (#11425).
+    inForceUntil: "2027-01-01",
   },
   {
     id: BreachLawId.VermontAttorneyGeneral,
@@ -1413,6 +1457,8 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     amount: 14,
     start: FOUND,
     host: "legislature.vermont.gov",
+    // The text in force until 1 January 2027 (#11425).
+    inForceUntil: "2027-01-01",
   },
   // Code of Virginia 18.2-186.6.
   {
@@ -1744,7 +1790,16 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Missouri,
     law: "Revised Statutes of Missouri",
     provision: "407.1500.2(8)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1774,7 +1829,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewHampshire,
     law: "New Hampshire Revised Statutes",
     provision: "359-C:20, VI(a)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1804,7 +1859,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.NewMexico,
     law: "New Mexico Statutes Annotated 1978",
     provision: "57-12C-10",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, BIOMETRIC],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1897,6 +1952,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
       SSN,
       DL,
       PASSPORT,
+      TAX_ID,
       OTHER_ID,
       ACCOUNT,
       BIOMETRIC,
@@ -1950,7 +2006,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthCarolina,
     law: "Code of Laws of South Carolina",
     provision: "39-1-90(K)",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1965,7 +2021,7 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.SouthDakota,
     law: "South Dakota Codified Laws",
     provision: "22-40-24",
-    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
     needsName: true,
     nameFree: [ACCOUNT, LOGIN],
     conditions: [BreachCondition.LikelyHarmAfterTellingAg],
@@ -2029,6 +2085,8 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
     start: FOUND,
     host: "legislature.vermont.gov",
+    // The text in force until 1 January 2027 (#11425).
+    inForceUntil: "2027-01-01",
   },
   {
     id: BreachLawId.VirginiaConsumerReportingAgencies,
@@ -2105,7 +2163,16 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Texas,
     law: "Texas Business and Commerce Code",
     provision: "521.053(h)",
-    elements: [SSN, DL, PASSPORT, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
     needsName: true,
     nameFree: [MEDICAL, INSURANCE],
     minimumPeople: { count: 10000, isMoreThan: true },
@@ -2114,6 +2181,795 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     start: FOUND,
     host: "tcss.legis.texas.gov",
   },
+  /*
+   * Vermont Statutes, Title 9, 2430 and 2435, as 2025, No. 138 (Adj. Sess.)
+   * amended them, in force from 1 January 2027 (#11425). 2430(13)(C): the
+   * data "does not require a consumer's first name or first initial and
+   * last name if any of the data elements ... is sufficient to perform or
+   * attempt to perform identity theft" - so no name is needed. The deadlines
+   * and the agencies' threshold are as before.
+   */
+  {
+    id: BreachLawId.VermontResidentsFrom2027,
+    family: BreachLawFamily.Vermont,
+    place: BreachPlace.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(1)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GENETIC,
+      LOGIN,
+    ],
+    needsName: false,
+    nameFree: [],
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "legislature.vermont.gov",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    inForceFrom: "2027-01-01",
+  },
+  {
+    id: BreachLawId.VermontAttorneyGeneralFrom2027,
+    family: BreachLawFamily.Vermont,
+    place: BreachPlace.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(3)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GENETIC,
+      LOGIN,
+    ],
+    needsName: false,
+    nameFree: [],
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    unit: BreachDeadlineUnit.BusinessDays,
+    amount: 14,
+    start: FOUND,
+    host: "legislature.vermont.gov",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    inForceFrom: "2027-01-01",
+  },
+  {
+    id: BreachLawId.VermontConsumerReportingAgenciesFrom2027,
+    family: BreachLawFamily.Vermont,
+    place: BreachPlace.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(c)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GENETIC,
+      LOGIN,
+    ],
+    needsName: false,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "legislature.vermont.gov",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    inForceFrom: "2027-01-01",
+  },
+  /*
+   * Puerto Rico: Ley 111-2005, Articles 2 and 3, as Ley 97-2008 amended
+   * them, in Spanish (#11424). The personal information file: the name or
+   * first initial and paternal surname with a Social Security number, a
+   * driver's license, voter card "u otra Identificación Oficial" number, an
+   * account number, a user name and password, HIPAA-protected medical
+   * information, "información contributiva" or employment evaluations. The
+   * citizens "de la manera más expedita posible"; the Department of Consumer
+   * Affairs "dentro de un plazo improrrogable de diez (10) días de
+   * detectarse".
+   */
+  {
+    id: BreachLawId.PuertoRicoResidents,
+    family: BreachLawFamily.PuertoRico,
+    place: BreachPlace.PuertoRico,
+    law: "Puerto Rico Citizen Information on Data Banks Security Act",
+    provision: "Section 3",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [],
+    conditions: [],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "sutra.oslpr.org",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.PuertoRicoConsumerAffairs,
+    family: BreachLawFamily.PuertoRico,
+    place: BreachPlace.PuertoRico,
+    law: "Puerto Rico Citizen Information on Data Banks Security Act",
+    provision: "Section 3 (Department of Consumer Affairs)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [],
+    // No threshold: every breach.
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 10,
+    start: FOUND,
+    host: "sutra.oslpr.org",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  },
+  /*
+   * Guam Code Annotated, Title 9, 48.20 and 48.30(a) (#11426): the name with
+   * a Social Security number, a driver's license or the Guam identification
+   * card number issued in lieu of one, or an account or card number with its
+   * code; a breach "causes, or the individual or entity reasonably believes
+   * has caused or will cause, identity theft or other fraud".
+   */
+  {
+    id: BreachLawId.GuamResidents,
+    family: BreachLawFamily.Guam,
+    place: BreachPlace.Guam,
+    law: "Guam Code Annotated, Title 9",
+    provision: "48.30(a)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "col.guamcourts.gov",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  },
+  /*
+   * Virgin Islands Code, Title 14, 2209(a), (d) and (e), as Act No. 6789
+   * (2005) enacted them (#11426): the name with a Social Security number, a
+   * driver's license number or an account or card number with its code; "in
+   * the most expedient time possible and without unreasonable delay".
+   */
+  {
+    id: BreachLawId.UsVirginIslandsResidents,
+    family: BreachLawFamily.UsVirginIslands,
+    place: BreachPlace.UsVirginIslands,
+    law: "Virgin Islands Code, Title 14",
+    provision: "2209(a)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    conditions: [],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "billtracking.legvi.org",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  },
+];
+
+/*
+ * The notice to the data's owner (#11427): each jurisdiction's, as its
+ * statute words it. It covers the data the jurisdiction's personal
+ * information does - the same definition its people's notice reads - so it
+ * takes that line's data and name rule; the rest is said here, by hand: its
+ * subsection, its deadline, the tests of harm that hold for it, and its site.
+ */
+type OwnerNoticeSays = Omit<
+  StatuteSays,
+  "family" | "place" | "law" | "elements" | "needsName" | "nameFree" | "host"
+> &
+  Partial<Pick<StatuteSays, "host">>;
+
+function ownerNotice(peoples: BreachLawId, says: OwnerNoticeSays): StatuteSays {
+  const people: StatuteSays | undefined = STATUTES.find(
+    (statute: StatuteSays): boolean => {
+      return statute.id === peoples;
+    },
+  );
+
+  if (!people) {
+    throw new Error(`No line for ${peoples}.`);
+  }
+
+  return {
+    family: people.family,
+    place: people.place,
+    law: people.law,
+    elements: people.elements,
+    needsName: people.needsName,
+    nameFree: people.nameFree,
+    host: people.host,
+    forDataHolders: true,
+    ...says,
+  };
+}
+
+const OWNER_STATUTES: ReadonlyArray<StatuteSays> = [
+  // "as expeditiously as possible and without unreasonable delay, but no later than 10 days" (8-38-8).
+  ownerNotice(BreachLawId.AlabamaResidents, {
+    id: BreachLawId.AlabamaDataOwner,
+    provision: "8-38-8",
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 10,
+    start: FOUND,
+  }),
+  // "immediately after the information recipient discovers the breach" (45.48.070(a)).
+  ownerNotice(BreachLawId.AlaskaResidents, {
+    id: BreachLawId.AlaskaDataOwner,
+    provision: "45.48.070(a)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "as soon as practicable"; exception J covers subsection B's notices alone (18-552(C)).
+  ownerNotice(BreachLawId.ArizonaResidents, {
+    id: BreachLawId.ArizonaDataOwner,
+    provision: "18-552(C)",
+    conditions: [],
+    unit: BreachDeadlineUnit.AsSoonAsPracticable,
+    start: FOUND,
+  }),
+  // "immediately following discovery"; (d) excuses "Notification under this section".
+  ownerNotice(BreachLawId.ArkansasResidents, {
+    id: BreachLawId.ArkansasDataOwner,
+    provision: "4-110-105(b)(1)",
+    conditions: [BreachCondition.LikelyHarm],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following its discovery" (36a-701b(c)).
+  ownerNotice(BreachLawId.ConnecticutResidents, {
+    id: BreachLawId.ConnecticutDataOwner,
+    provision: "36a-701b(c)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following determination of the breach of security" (12B-102(b)).
+  ownerNotice(BreachLawId.DelawareResidents, {
+    id: BreachLawId.DelawareDataOwner,
+    provision: "12B-102(b)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "in the most expedient time possible following discovery"; harm is in the breach's definition.
+  ownerNotice(BreachLawId.DistrictOfColumbiaResidents, {
+    id: BreachLawId.DistrictOfColumbiaDataOwner,
+    provision: "28-3852(b)",
+    conditions: [BreachCondition.LikelyHarmAfterConsulting],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+  }),
+  // "within 24 hours following discovery", for data held for an information broker or data collector.
+  ownerNotice(BreachLawId.GeorgiaResidents, {
+    id: BreachLawId.GeorgiaDataOwner,
+    provision: "10-1-912(b)",
+    conditions: [BreachCondition.HeldForBrokerOrAgency],
+    unit: BreachDeadlineUnit.Hours,
+    amount: 24,
+    start: FOUND,
+  }),
+  // "as soon as practicable following discovery"; identity theft or fraud is in the breach's definition.
+  ownerNotice(BreachLawId.GuamResidents, {
+    id: BreachLawId.GuamDataOwner,
+    provision: "48.30(c)",
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.AsSoonAsPracticable,
+    start: FOUND,
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  }),
+  // "immediately following discovery of the breach"; illegal use is in the definition of a security breach.
+  ownerNotice(BreachLawId.HawaiiResidents, {
+    id: BreachLawId.HawaiiDataOwner,
+    provision: "487N-2(b)",
+    conditions: [BreachCondition.LikelyIllegalUse],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following discovery of a breach if misuse ... occurred or is reasonably likely to occur".
+  ownerNotice(BreachLawId.IdahoResidents, {
+    id: BreachLawId.IdahoDataOwner,
+    provision: "28-51-105(2)",
+    conditions: [BreachCondition.MisuseOccurredOrLikely],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following discovery" (530/10(b)).
+  ownerNotice(BreachLawId.IllinoisResidents, {
+    id: BreachLawId.IllinoisDataOwner,
+    provision: "10(b)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // 3-2's notice, "without unreasonable delay, but not more than forty-five (45) days" (3-3(a)).
+  ownerNotice(BreachLawId.IndianaResidents, {
+    id: BreachLawId.IndianaDataOwner,
+    provision: "24-4.9-3-2",
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+  }),
+  // "immediately following discovery of such breach of security" (715C.2(2)).
+  ownerNotice(BreachLawId.IowaResidents, {
+    id: BreachLawId.IowaDataOwner,
+    provision: "715C.2(2)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "following discovery of a breach", no time; identity theft is in the definition (50-7a01(h)).
+  ownerNotice(BreachLawId.KansasResidents, {
+    id: BreachLawId.KansasDataOwner,
+    provision: "50-7a02(b)",
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.NoFixedTime,
+    start: FOUND,
+  }),
+  // "as soon as reasonably practicable following discovery"; identity theft or fraud is in the definition.
+  ownerNotice(BreachLawId.KentuckyResidents, {
+    id: BreachLawId.KentuckyDataOwner,
+    provision: "365.732(3)",
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.AsSoonAsPracticable,
+    start: FOUND,
+  }),
+  // (D) and (E): "not later than sixty days from the discovery"; (I) excuses "Notification as provided in this Section".
+  ownerNotice(BreachLawId.LouisianaResidents, {
+    id: BreachLawId.LouisianaDataOwner,
+    provision: "51:3074(D)",
+    conditions: [BreachCondition.LikelyHarm],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 60,
+    start: FOUND,
+  }),
+  // "immediately following discovery" (1348(2)).
+  ownerNotice(BreachLawId.MaineResidents, {
+    id: BreachLawId.MaineDataOwner,
+    provision: "1348(2)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "as soon as reasonably practicable, but not later than 10 days" (14-3504(c)(2)).
+  ownerNotice(BreachLawId.MarylandResidents, {
+    id: BreachLawId.MarylandDataOwner,
+    provision: "14-3504(c)",
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 10,
+    start: FOUND,
+  }),
+  // "as soon as practicable and without unreasonable delay", on the people's notice's two triggers.
+  ownerNotice(BreachLawId.MassachusettsResidents, {
+    id: BreachLawId.MassachusettsDataOwner,
+    provision: "3(a)",
+    conditions: [BreachCondition.SubstantialRiskOfIdentityTheft],
+    unit: BreachDeadlineUnit.AsSoonAsPracticable,
+    start: FOUND,
+  }),
+  // 445.72(2)'s own exception, and (4): "any notice required under this section without unreasonable delay".
+  ownerNotice(BreachLawId.MichiganResidents, {
+    id: BreachLawId.MichiganDataOwner,
+    provision: "445.72(2)",
+    conditions: [BreachCondition.SubstantialLossOrIdentityTheft],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+  }),
+  // "immediately following discovery" (325E.61, subdivision 1(b)).
+  ownerNotice(BreachLawId.MinnesotaResidents, {
+    id: BreachLawId.MinnesotaDataOwner,
+    provision: "325E.61, subdivision 1(b)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "as soon as practicable following its discovery", if acquired "for fraudulent purposes" ((4)).
+  ownerNotice(BreachLawId.MississippiResidents, {
+    id: BreachLawId.MississippiDataOwner,
+    provision: "75-24-29(4)",
+    conditions: [BreachCondition.AcquiredForFraud],
+    unit: BreachDeadlineUnit.AsSoonAsPracticable,
+    start: FOUND,
+  }),
+  // "immediately following discovery of the breach"; (5) excuses subdivisions (1) and (2) alike.
+  ownerNotice(BreachLawId.MissouriResidents, {
+    id: BreachLawId.MissouriDataOwner,
+    provision: "407.1500.2(2)",
+    conditions: [BreachCondition.IdentityTheftOrFraudInWriting],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following discovery"; loss or injury is in the breach's definition.
+  ownerNotice(BreachLawId.MontanaResidents, {
+    id: BreachLawId.MontanaDataOwner,
+    provision: "30-14-1704(2)",
+    conditions: [BreachCondition.LossOrInjury],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "when it becomes aware of a breach if use ... for an unauthorized purpose occurred or is reasonably likely".
+  ownerNotice(BreachLawId.NebraskaResidents, {
+    id: BreachLawId.NebraskaDataOwner,
+    provision: "87-803(3)",
+    conditions: [BreachCondition.MisuseOccurredOrLikely],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following discovery" (603A.220(2)).
+  ownerNotice(BreachLawId.NevadaResidents, {
+    id: BreachLawId.NevadaDataOwner,
+    provision: "603A.220(2)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following discovery" (359-C:20, I(c)).
+  ownerNotice(BreachLawId.NewHampshireResidents, {
+    id: BreachLawId.NewHampshireDataOwner,
+    provision: "359-C:20, I(c)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following discovery" (56:8-163(b)).
+  ownerNotice(BreachLawId.NewJerseyResidents, {
+    id: BreachLawId.NewJerseyDataOwner,
+    provision: "56:8-163(b)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "not later than forty-five calendar days following discovery", with its own significant-risk exception.
+  ownerNotice(BreachLawId.NewMexicoResidents, {
+    id: BreachLawId.NewMexicoDataOwner,
+    provision: "57-12C-6(C)",
+    conditions: [BreachCondition.SignificantRiskOfIdentityTheft],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+  }),
+  // "immediately following discovery of the breach"; illegal use or material risk is in the definition.
+  ownerNotice(BreachLawId.NorthCarolinaResidents, {
+    id: BreachLawId.NorthCarolinaDataOwner,
+    provision: "75-65(b)",
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following the discovery" (51-30-03).
+  ownerNotice(BreachLawId.NorthDakotaResidents, {
+    id: BreachLawId.NorthDakotaDataOwner,
+    provision: "51-30-03",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "in an expeditious manner", if it causes or is believed to cause a material risk of identity theft or fraud.
+  ownerNotice(BreachLawId.OhioResidents, {
+    id: BreachLawId.OhioDataOwner,
+    provision: "1349.19(C)",
+    conditions: [BreachCondition.MaterialRiskOfIdentityTheft],
+    unit: BreachDeadlineUnit.AsSoonAsPracticable,
+    start: FOUND,
+  }),
+  // "as soon as practicable following determination"; identity theft or fraud is in the definition.
+  ownerNotice(BreachLawId.OklahomaResidents, {
+    id: BreachLawId.OklahomaDataOwner,
+    provision: "163(C)",
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.AsSoonAsPracticable,
+    start: FOUND,
+    inForceFrom: "2026-01-01",
+  }),
+  // "as soon as is practicable but not later than 10 days after discovering the breach" ((2)(a)).
+  ownerNotice(BreachLawId.OregonResidents, {
+    id: BreachLawId.OregonDataOwner,
+    provision: "646A.604(2)",
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 10,
+    start: FOUND,
+  }),
+  // "following discovery by the vendor", no time; loss or injury is in the breach's definition.
+  ownerNotice(BreachLawId.PennsylvaniaResidents, {
+    id: BreachLawId.PennsylvaniaDataOwner,
+    provision: "Section 3(c)",
+    conditions: [BreachCondition.LossOrInjury],
+    unit: BreachDeadlineUnit.NoFixedTime,
+    start: FOUND,
+  }),
+  // Article 3's second paragraph: an entity that resells or provides access to the databases; no time.
+  ownerNotice(BreachLawId.PuertoRicoResidents, {
+    id: BreachLawId.PuertoRicoDataOwner,
+    provision: "Section 3 (resellers and access providers)",
+    conditions: [BreachCondition.ResellsOrProvidesAccess],
+    unit: BreachDeadlineUnit.NoFixedTime,
+    start: FOUND,
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  }),
+  // "immediately following discovery"; illegal use or material risk is in the definition.
+  ownerNotice(BreachLawId.SouthCarolinaResidents, {
+    id: BreachLawId.SouthCarolinaDataOwner,
+    provision: "39-1-90(B)",
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "no later than forty-five (45) days from the discovery or notification" ((c)).
+  ownerNotice(BreachLawId.TennesseeResidents, {
+    id: BreachLawId.TennesseeDataOwner,
+    provision: "47-18-2107(c)",
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+  }),
+  // "immediately following discovery" (2209(b)).
+  ownerNotice(BreachLawId.UsVirginIslandsResidents, {
+    id: BreachLawId.UsVirginIslandsDataOwner,
+    provision: "2209(b)",
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  }),
+  // "immediately following the person's discovery of the breach if misuse ... occurs or is reasonably likely".
+  ownerNotice(BreachLawId.UtahResidents, {
+    id: BreachLawId.UtahDataOwner,
+    provision: "13-44-202(3)",
+    conditions: [BreachCondition.MisuseOccurredOrLikely],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+  }),
+  // "immediately following discovery of the breach"; (d) excuses any notice under subsection (b).
+  ownerNotice(BreachLawId.VermontResidents, {
+    id: BreachLawId.VermontDataOwner,
+    provision: "2435(b)(2)",
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+    inForceUntil: "2027-01-01",
+  }),
+  // The same subsection in the text from 1 January 2027, where no name is needed.
+  ownerNotice(BreachLawId.VermontResidentsFrom2027, {
+    id: BreachLawId.VermontDataOwnerFrom2027,
+    provision: "2435(b)(2)",
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    inForceFrom: "2027-01-01",
+  }),
+  // "without unreasonable delay following discovery"; identity theft or fraud is in the definition.
+  ownerNotice(BreachLawId.VirginiaResidents, {
+    id: BreachLawId.VirginiaDataOwner,
+    provision: "18.2-186.6(D)",
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+  }),
+  // "as soon as practicable", without a contract with the owner; (2)(cm) excuses (bm) too.
+  ownerNotice(BreachLawId.WisconsinResidents, {
+    id: BreachLawId.WisconsinDataOwner,
+    provision: "134.98(2)(bm)",
+    conditions: [
+      BreachCondition.NoContractWithOwner,
+      BreachCondition.NoMaterialRiskOfIdentityTheft,
+    ],
+    unit: BreachDeadlineUnit.AsSoonAsPracticable,
+    start: FOUND,
+  }),
+  // "as soon as practicable following the determination"; loss or injury is in the definition.
+  ownerNotice(BreachLawId.WyomingResidents, {
+    id: BreachLawId.WyomingDataOwner,
+    provision: "40-12-502(g)",
+    conditions: [BreachCondition.LossOrInjury],
+    unit: BreachDeadlineUnit.AsSoonAsPracticable,
+    start: FOUND,
+  }),
+  /*
+   * The states #10377 read first, whose people's lines are in
+   * BreachLaws.test.ts: their data written out here.
+   */
+  // California Civil Code 1798.82(b), as SB 446 left it: "immediately following discovery".
+  {
+    id: BreachLawId.CaliforniaDataOwner,
+    family: BreachLawFamily.California,
+    place: BreachPlace.California,
+    law: "California Civil Code",
+    provision: "1798.82(b)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GENETIC,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [LOGIN],
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+    host: "leginfo.legislature.ca.gov",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  // Colorado Revised Statutes 6-1-716(2)(b): "in the most expedient time possible, and without unreasonable delay".
+  {
+    id: BreachLawId.ColoradoDataOwner,
+    family: BreachLawFamily.Colorado,
+    place: BreachPlace.Colorado,
+    law: "Colorado Revised Statutes",
+    provision: "6-1-716(2)(b)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [LOGIN, ACCOUNT],
+    conditions: [BreachCondition.MisuseOccurredOrLikely],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "content.leg.colorado.gov",
+    forDataHolders: true,
+  },
+  // Florida Statutes 501.171(6)(a): "as expeditiously as practicable, but no later than 10 days".
+  {
+    id: BreachLawId.FloridaDataOwner,
+    family: BreachLawFamily.Florida,
+    place: BreachPlace.Florida,
+    law: "Florida Statutes",
+    provision: "501.171(6)(a)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GEOLOCATION,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [LOGIN],
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 10,
+    start: FOUND,
+    host: "www.leg.state.fl.us",
+    forDataHolders: true,
+  },
+  // New York General Business Law 899-aa(3): "immediately", "within thirty days following discovery".
+  {
+    id: BreachLawId.NewYorkDataOwner,
+    family: BreachLawFamily.NewYork,
+    place: BreachPlace.NewYork,
+    law: "New York General Business Law",
+    provision: "899-aa(3)",
+    elements: [SSN, DL, ACCOUNT, BIOMETRIC, MEDICAL, INSURANCE, LOGIN],
+    needsName: false,
+    nameFree: [],
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 30,
+    start: FOUND,
+    host: "www.nysenate.gov",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  // Texas Business and Commerce Code 521.053(c): "immediately after discovering the breach".
+  {
+    id: BreachLawId.TexasDataOwner,
+    family: BreachLawFamily.Texas,
+    place: BreachPlace.Texas,
+    law: "Texas Business and Commerce Code",
+    provision: "521.053(c)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+    ],
+    needsName: true,
+    nameFree: [MEDICAL, INSURANCE],
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+    host: "tcss.legis.texas.gov",
+    forDataHolders: true,
+  },
+  // Revised Code of Washington 19.255.010(2): "immediately following discovery".
+  {
+    id: BreachLawId.WashingtonDataOwner,
+    family: BreachLawFamily.Washington,
+    place: BreachPlace.Washington,
+    law: "Revised Code of Washington",
+    provision: "19.255.010(2)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      ACCOUNT,
+      DATE_OF_BIRTH,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      LOGIN,
+    ],
+    needsName: false,
+    nameFree: [],
+    conditions: [],
+    unit: BreachDeadlineUnit.Immediately,
+    start: FOUND,
+    host: "app.leg.wa.gov",
+    forDataHolders: true,
+  },
+];
+
+// Every line of this file: the people's, the offices', the agencies' and the data owner's notices.
+const ALL_STATUTES: ReadonlyArray<StatuteSays> = [
+  ...STATUTES,
+  ...OWNER_STATUTES,
 ];
 
 // The states #10377 read first, and their rows: those rows' tests are in BreachLaws.test.ts.
@@ -2141,11 +2997,19 @@ const FIRST_STATE_ROWS: ReadonlyArray<BreachLawId> = [
   BreachLawId.WashingtonAttorneyGeneral,
 ];
 
-// A store's facts: what it holds (catalog data type ids) and where a person said the people live.
+/*
+ * A store's facts: what it holds (catalog data type ids), where a person
+ * said the people live, the countries its data places them in, when it was
+ * found, and whether a person said the organization holds it for another.
+ */
 function factsOf(data: {
   dataTypeIds: Array<string>;
   places?: Array<BreachPlace>;
+  countries?: Array<string>;
   records?: number;
+  foundAt?: Date;
+  now?: Date;
+  holdsForAnother?: boolean;
 }): BreachLawFacts {
   return {
     whose: getWhoseData({
@@ -2157,7 +3021,7 @@ function factsOf(data: {
         };
       }),
       estimatedRecords: data.records,
-      subjectCountries: [],
+      subjectCountries: data.countries || [],
       placesNamed: data.places,
     }),
     reads: {
@@ -2167,8 +3031,9 @@ function factsOf(data: {
       outsideAccountsUsedInWindow: 0,
       isTreatedAsRead: true,
     },
-    foundAt: FOUND_AT,
-    now: NOW,
+    foundAt: data.foundAt || FOUND_AT,
+    now: data.now || NOW,
+    holdsForAnother: data.holdsForAnother,
   };
 }
 
@@ -2183,6 +3048,44 @@ function applied(
     },
   )!;
 }
+
+// Whether the whole table, applied to the facts, holds a row at all.
+function holds(id: BreachLawId, data: Parameters<typeof factsOf>[0]): boolean {
+  return applyBreachLaws(factsOf(data)).some(
+    (obligation: BreachObligation): boolean => {
+      return obligation.ruleId === id;
+    },
+  );
+}
+
+/*
+ * The day a line's example exposure is found, and the day it is assessed:
+ * a text in force from a later day is applied to an exposure found once it
+ * is in force; and a notice to the data's owner, once a person says the
+ * organization holds the data for another.
+ */
+function exampleOf(statute: StatuteSays): {
+  foundAt: Date;
+  now: Date;
+  holdsForAnother?: boolean;
+} {
+  const startsLater: boolean = Boolean(
+    statute.inForceFrom &&
+      new Date(`${statute.inForceFrom}T00:00:00.000Z`).getTime() >
+        FOUND_AT.getTime(),
+  );
+
+  return {
+    foundAt: startsLater ? FOUND_IN_2027 : FOUND_AT,
+    now: startsLater ? NOW_IN_2027 : NOW,
+    ...(statute.forDataHolders ? { holdsForAnother: true } : {}),
+  };
+}
+
+// The action of every notice to the people: the shared words the residents' rows use.
+const TELL_THE_PEOPLE_ACTION: string = getBreachLawRule(
+  BreachLawId.AlabamaResidents,
+).action;
 
 function checkKinds(obligation: BreachObligation): Array<BreachCheckKind> {
   return obligation.checks.map((check: BreachCheck): BreachCheckKind => {
@@ -2200,10 +3103,10 @@ function conditionsOf(obligation: BreachObligation): Array<BreachCondition> {
     });
 }
 
-describe("every US state, the District of Columbia and Puerto Rico is a place", () => {
-  test("52 places, each by its ISO 3166-2:US code, in alphabetical order", () => {
-    expect(US_JURISDICTION_PLACES).toHaveLength(52);
-    expect(new Set(US_JURISDICTION_PLACES).size).toBe(52);
+describe("every US state, the District of Columbia, Puerto Rico, Guam and the US Virgin Islands is a place", () => {
+  test("54 places, each by its ISO 3166-2:US code, in alphabetical order", () => {
+    expect(US_JURISDICTION_PLACES).toHaveLength(54);
+    expect(new Set(US_JURISDICTION_PLACES).size).toBe(54);
 
     for (const place of US_JURISDICTION_PLACES) {
       expect(place).toMatch(/^US-[A-Z]{2}$/);
@@ -2223,6 +3126,42 @@ describe("every US state, the District of Columbia and Puerto Rico is a place", 
     );
     expect(US_JURISDICTION_PLACES).toContain(BreachPlace.DistrictOfColumbia);
     expect(US_JURISDICTION_PLACES).toContain(BreachPlace.PuertoRico);
+    // Guam and the US Virgin Islands, by their ISO codes (#11426).
+    expect(BreachPlace.Guam).toBe("US-GU");
+    expect(BreachPlace.UsVirginIslands).toBe("US-VI");
+    expect(US_JURISDICTION_PLACES).toContain(BreachPlace.Guam);
+    expect(US_JURISDICTION_PLACES).toContain(BreachPlace.UsVirginIslands);
+  });
+
+  test("Guam and the US Virgin Islands are named as places and as choices", () => {
+    expect(BREACH_PLACE_WORDS[BreachPlace.Guam]).toBe("Guam");
+    expect(BREACH_PLACE_CHOICES[BreachPlace.Guam]).toBe("Guam");
+    expect(BREACH_PLACE_WORDS[BreachPlace.UsVirginIslands]).toBe(
+      "the US Virgin Islands",
+    );
+    expect(BREACH_PLACE_CHOICES[BreachPlace.UsVirginIslands]).toBe(
+      "US Virgin Islands",
+    );
+  });
+
+  test("data that places its people in Puerto Rico, Guam or the US Virgin Islands by country code places them in that territory", () => {
+    expect(getBreachPlaceOfCountry("PR")).toBe(BreachPlace.PuertoRico);
+    expect(getBreachPlaceOfCountry(" gu ")).toBe(BreachPlace.Guam);
+    expect(getBreachPlaceOfCountry("VI")).toBe(BreachPlace.UsVirginIslands);
+    // The British Virgin Islands are a country of their own, which the table does not cover.
+    expect(getBreachPlaceOfCountry("VG")).toBe(BreachPlace.Elsewhere);
+
+    const obligation: BreachObligation = applied(
+      BreachLawId.PuertoRicoConsumerAffairs,
+      { dataTypeIds: ["us-ssn", "person-name"], countries: ["PR"] },
+    );
+
+    expect(obligation.status).toBe(BreachObligationStatus.MayApply);
+    expect(obligation.isPlaceKnown).toBe(true);
+    expect(obligation.reasons).toContainEqual({
+      kind: BreachReasonKind.PeopleIn,
+      places: [BreachPlace.PuertoRico],
+    });
   });
 
   test("the states the table had before stay as they were, so answers already saved keep their meaning", () => {
@@ -2288,7 +3227,7 @@ describe("every US state, the District of Columbia and Puerto Rico is a place", 
 
     // Every state this file holds a statute for is covered; every other state is said to be left out.
     const read: Set<BreachPlace> = new Set(
-      STATUTES.map((statute: StatuteSays): BreachPlace => {
+      ALL_STATUTES.map((statute: StatuteSays): BreachPlace => {
         return statute.place;
       }),
     );
@@ -2305,6 +3244,18 @@ describe("every US state, the District of Columbia and Puerto Rico is a place", 
 
     expect([...COVERED_US_STATES].sort()).toEqual([...read].sort());
   });
+
+  test("West Virginia is the one jurisdiction left out: its code could not be read from its official site", () => {
+    expect(UNCOVERED_US_STATES).toEqual([BreachPlace.WestVirginia]);
+    expect(COVERED_US_STATES).toContain(BreachPlace.PuertoRico);
+    expect(COVERED_US_STATES).toContain(BreachPlace.Guam);
+    expect(COVERED_US_STATES).toContain(BreachPlace.UsVirginIslands);
+    expect(
+      BREACH_LAW_RULES.some((rule: BreachLawRule): boolean => {
+        return Boolean(rule.places?.includes(BreachPlace.WestVirginia));
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("the other US states' rows, as a set", () => {
@@ -2320,23 +3271,64 @@ describe("the other US states' rows, as a set", () => {
         return rule.id;
       }).sort(),
     ).toEqual(
-      STATUTES.map((statute: StatuteSays): BreachLawId => {
+      ALL_STATUTES.map((statute: StatuteSays): BreachLawId => {
         return statute.id;
       }).sort(),
     );
+    expect(new Set(ALL_STATUTES).size).toBe(ALL_STATUTES.length);
   });
 
-  test("each was read on 27 November 2026, and applies in its own state alone", () => {
+  test("each was read on the day its line says - 27 November 2026, or 28 November for #11424 to #11427's - and applies in its own state alone", () => {
     expect(US_STATE_LAWS_CHECKED_ON).toBe("2026-11-27");
+    expect(FOLLOW_UP_LAWS_CHECKED_ON).toBe("2026-11-28");
 
     for (const rule of STATE_ROWS) {
+      const statute: StatuteSays = ALL_STATUTES.find(
+        (each: StatuteSays): boolean => {
+          return each.id === rule.id;
+        },
+      )!;
+
       expect({ id: rule.id, checkedOn: rule.checkedOn }).toEqual({
         id: rule.id,
-        checkedOn: US_STATE_LAWS_CHECKED_ON,
+        checkedOn: statute.checkedOn || US_STATE_LAWS_CHECKED_ON,
       });
       expect(rule.places).toHaveLength(1);
       expect(US_JURISDICTION_PLACES).toContain(rule.places![0]);
     }
+  });
+
+  test("a row's days in force are its line's: Vermont's two texts meet on 1 January 2027, and no other row has an end", () => {
+    for (const statute of ALL_STATUTES) {
+      const rule: BreachLawRule = getBreachLawRule(statute.id);
+
+      expect({
+        id: rule.id,
+        inForceFrom: rule.inForceFrom,
+        inForceUntil: rule.inForceUntil,
+      }).toEqual({
+        id: statute.id,
+        inForceFrom: statute.inForceFrom,
+        inForceUntil: statute.inForceUntil,
+      });
+    }
+
+    const ending: Array<BreachLawId> = BREACH_LAW_RULES.filter(
+      (rule: BreachLawRule): boolean => {
+        return Boolean(rule.inForceUntil);
+      },
+    ).map((rule: BreachLawRule): BreachLawId => {
+      return rule.id;
+    });
+
+    expect(ending.sort()).toEqual(
+      [
+        BreachLawId.VermontResidents,
+        BreachLawId.VermontAttorneyGeneral,
+        BreachLawId.VermontConsumerReportingAgencies,
+        BreachLawId.VermontDataOwner,
+      ].sort(),
+    );
   });
 
   test("a state's notices are one family, named as the state is", () => {
@@ -2365,7 +3357,8 @@ describe("the other US states' rows, as a set", () => {
           return (
             candidate.family === rule.family &&
             candidate.action ===
-              getBreachLawRule(BreachLawId.AlabamaResidents).action
+              getBreachLawRule(BreachLawId.AlabamaResidents).action &&
+            candidate.inForceFrom === rule.inForceFrom
           );
         },
       )!;
@@ -2446,15 +3439,739 @@ describe("the other US states' rows, as a set", () => {
       getBreachLawRule(BreachLawId.TexasConsumerReportingAgencies)
         .minimumPeople,
     ).toEqual({ count: 10000, isMoreThan: true });
+    // Vermont from 2027: no name needed where the data is enough for identity theft; HIPAA entities still tell the attorney general.
+    expect(said(BreachLawId.VermontResidentsFrom2027)).toContain(
+      "enough to attempt identity theft",
+    );
+    expect(said(BreachLawId.VermontAttorneyGeneralFrom2027)).toContain(
+      "written certification that it followed HIPAA's breach notification rule",
+    );
+    expect(said(BreachLawId.VermontAttorneyGeneralFrom2027)).toContain(
+      "swore its security policies",
+    );
+    expect(
+      said(BreachLawId.VermontConsumerReportingAgenciesFrom2027),
+    ).toContain("Title 8");
+    // Puerto Rico: a custodian tells the people too; the Department announces it within 24 hours, in a time that cannot be extended.
+    expect(said(BreachLawId.PuertoRicoResidents)).toContain(
+      "keeps the data in its custody for another too",
+    );
+    expect(said(BreachLawId.PuertoRicoResidents)).toContain(
+      "law enforcement's need to secure evidence",
+    );
+    expect(said(BreachLawId.PuertoRicoConsumerAffairs)).toContain(
+      "announces the breach publicly within 24 hours",
+    );
+    expect(said(BreachLawId.PuertoRicoConsumerAffairs)).toContain(
+      "cannot be extended",
+    );
+    // The notices to the data's owner (#11427): what each statute adds.
+    expect(said(BreachLawId.AlabamaDataOwner)).toContain(
+      "may agree, by contract, that you send the notices",
+    );
+    expect(said(BreachLawId.AlaskaDataOwner)).toContain(
+      "You need not tell the people yourself",
+    );
+    expect(said(BreachLawId.ArizonaDataOwner)).toContain(
+      "only if your agreement with the data's owner says you do",
+    );
+    expect(said(BreachLawId.OregonDataOwner)).toContain(
+      "tells the attorney general when more than 250 consumers",
+    );
+    expect(said(BreachLawId.PennsylvaniaDataOwner)).toContain(
+      "makes the law's determinations",
+    );
+    expect(said(BreachLawId.WyomingDataOwner)).toContain(
+      "may agree which of you tells the people",
+    );
+    expect(said(BreachLawId.GeorgiaDataOwner)).toContain(
+      "The information broker or agency you hold the data for",
+    );
+    expect(said(BreachLawId.PuertoRicoDataOwner)).toContain(
+      "The data's owner, custodian or holder",
+    );
+    expect(said(BreachLawId.PuertoRicoDataOwner)).toContain(
+      "The law sets no time for this notice.",
+    );
+    expect(said(BreachLawId.NewYorkDataOwner)).toContain("Immediately");
+    expect(said(BreachLawId.NebraskaDataOwner)).toContain(
+      "When you become aware of the breach.",
+    );
+    expect(said(BreachLawId.OhioDataOwner)).toContain(
+      "In an expeditious manner",
+    );
+    for (const id of [
+      BreachLawId.KansasDataOwner,
+      BreachLawId.PennsylvaniaDataOwner,
+    ]) {
+      expect(said(id)).toContain("the law sets no time for it");
+    }
+  });
+});
+
+describe("Vermont's two texts: until 1 January 2027, and from that day (#11425)", () => {
+  // Each row of the text until then, and the row of the text from then that replaces it.
+  const PAIRS: ReadonlyArray<[BreachLawId, BreachLawId]> = [
+    [BreachLawId.VermontResidents, BreachLawId.VermontResidentsFrom2027],
+    [
+      BreachLawId.VermontAttorneyGeneral,
+      BreachLawId.VermontAttorneyGeneralFrom2027,
+    ],
+    [
+      BreachLawId.VermontConsumerReportingAgencies,
+      BreachLawId.VermontConsumerReportingAgenciesFrom2027,
+    ],
+    [BreachLawId.VermontDataOwner, BreachLawId.VermontDataOwnerFrom2027],
+  ];
+  const SSN_WITH_NAME: Array<string> = ["us-ssn", "person-name"];
+  const IN_VERMONT: Array<BreachPlace> = [BreachPlace.Vermont];
+
+  test("each old row ends the day its new row starts, and they are the same notice", () => {
+    for (const [old, next] of PAIRS) {
+      const before: BreachLawRule = getBreachLawRule(old);
+      const after: BreachLawRule = getBreachLawRule(next);
+
+      expect(before.inForceUntil).toBe("2027-01-01");
+      expect(before.inForceFrom).toBeUndefined();
+      expect(after.inForceFrom).toBe("2027-01-01");
+      expect(after.inForceUntil).toBeUndefined();
+      // The same notice of the same law: who, what, when and what a person checks.
+      expect({
+        family: after.family,
+        law: after.law,
+        provision: after.provision,
+        places: after.places,
+        dataElements: after.dataElements,
+        minimumPeople: after.minimumPeople,
+        conditions: after.conditions,
+        action: after.action,
+        recipient: after.recipient,
+        deadline: after.deadline,
+        deadlineNote: after.deadlineNote,
+        forDataHolders: after.forDataHolders,
+      }).toEqual({
+        family: before.family,
+        law: before.law,
+        provision: before.provision,
+        places: before.places,
+        dataElements: before.dataElements,
+        minimumPeople: before.minimumPeople,
+        conditions: before.conditions,
+        action: before.action,
+        recipient: before.recipient,
+        deadline: before.deadline,
+        deadlineNote: before.deadlineNote,
+        forDataHolders: before.forDataHolders,
+      });
+      // What changes: a name is no longer needed.
+      expect(before.needsName).toBe(true);
+      expect(after.needsName).toBe(false);
+      // Read from the same statute page, which sets out both texts, and cited as the act amended it.
+      expect(after.sourceUrl).toBe(before.sourceUrl);
+      expect(before.sourceTitle).toContain("until 1 January 2027");
+      expect(after.sourceTitle).toContain("2025, No. 138 (Adj. Sess.)");
+      expect(after.sourceTitle).toContain("from 1 January 2027");
+      expect(after.checkedOn).toBe(FOLLOW_UP_LAWS_CHECKED_ON);
+    }
+  });
+
+  test("found on the last day of 2026, the text in force until 1 January 2027 applies", () => {
+    const facts: Parameters<typeof factsOf>[0] = {
+      dataTypeIds: SSN_WITH_NAME,
+      places: IN_VERMONT,
+      foundAt: new Date("2026-12-31T23:59:59.000Z"),
+      now: new Date("2026-12-31T23:59:59.000Z"),
+      holdsForAnother: true,
+    };
+
+    for (const [old, next] of PAIRS) {
+      expect(applied(old, facts).status).toBe(BreachObligationStatus.MayApply);
+
+      const notYet: BreachObligation = applied(next, facts);
+
+      expect(notYet.status).toBe(BreachObligationStatus.NotYetInForce);
+      expect(notYet.reasons).toEqual([
+        { kind: BreachReasonKind.NotInForce, date: "2027-01-01" },
+      ]);
+    }
+
+    // The residents' 45 days count from when it was found.
+    expect(applied(BreachLawId.VermontResidents, facts).dueAt).toBe(
+      "2027-02-14T23:59:59.000Z",
+    );
+  });
+
+  test("found on 1 January 2027, the new text applies, and the old one is not this exposure's at all", () => {
+    const facts: Parameters<typeof factsOf>[0] = {
+      dataTypeIds: SSN_WITH_NAME,
+      places: IN_VERMONT,
+      foundAt: new Date("2027-01-01T00:00:00.000Z"),
+      now: new Date("2027-01-01T00:00:00.000Z"),
+      holdsForAnother: true,
+    };
+
+    for (const [old, next] of PAIRS) {
+      expect(holds(old, facts)).toBe(false);
+
+      const obligation: BreachObligation = applied(next, facts);
+
+      expect(obligation.status).toBe(BreachObligationStatus.MayApply);
+      expect(obligation.isPlaceKnown).toBe(true);
+    }
+
+    expect(applied(BreachLawId.VermontResidentsFrom2027, facts).dueAt).toBe(
+      "2027-02-15T00:00:00.000Z",
+    );
+    // 14 business days, Friday 1 January 2027 to Thursday 21 January.
+    expect(
+      applied(BreachLawId.VermontAttorneyGeneralFrom2027, facts).dueAt,
+    ).toBe("2027-01-21T00:00:00.000Z");
+  });
+
+  test("found in December 2026 and assessed in 2027, it still follows the text in force when it was found", () => {
+    const facts: Parameters<typeof factsOf>[0] = {
+      dataTypeIds: SSN_WITH_NAME,
+      places: IN_VERMONT,
+      foundAt: new Date("2026-12-20T10:00:00.000Z"),
+      now: new Date("2027-01-10T10:00:00.000Z"),
+      holdsForAnother: true,
+    };
+
+    for (const [old, next] of PAIRS) {
+      expect(applied(old, facts).status).toBe(BreachObligationStatus.MayApply);
+
+      const later: BreachObligation = applied(next, facts);
+
+      // In force now, but not on the day it was found: it does not apply, and says why.
+      expect(later.status).toBe(BreachObligationStatus.NotTriggered);
+      expect(later.reasons).toEqual([
+        { kind: BreachReasonKind.InForceAfterFound, date: "2027-01-01" },
+      ]);
+      expect(later.dueAt).toBeUndefined();
+    }
+  });
+
+  test("a Social Security number found without a name: the old text asks whether names were held, the new one does not", () => {
+    const before: BreachObligation = applied(BreachLawId.VermontResidents, {
+      dataTypeIds: ["us-ssn"],
+      places: IN_VERMONT,
+    });
+    const after: BreachObligation = applied(
+      BreachLawId.VermontResidentsFrom2027,
+      {
+        dataTypeIds: ["us-ssn"],
+        places: IN_VERMONT,
+        foundAt: FOUND_IN_2027,
+        now: NOW_IN_2027,
+      },
+    );
+
+    expect(checkKinds(before)).toContain(BreachCheckKind.HeldWithNames);
+    expect(after.status).toBe(BreachObligationStatus.MayApply);
+    expect(checkKinds(after)).not.toContain(BreachCheckKind.HeldWithNames);
+    // Where the data is enough to attempt identity theft: said on the row.
+    expect(
+      getBreachLawRule(BreachLawId.VermontResidentsFrom2027).note,
+    ).toContain("enough to attempt identity theft");
+  });
+
+  test("the day that decides is the day it was found, in UTC: one second before midnight is 2026", () => {
+    const rule: BreachLawRule = getBreachLawRule(BreachLawId.VermontResidents);
+    const next: BreachLawRule = getBreachLawRule(
+      BreachLawId.VermontResidentsFrom2027,
+    );
+    const lastSecond: Parameters<typeof factsOf>[0] = {
+      dataTypeIds: SSN_WITH_NAME,
+      places: IN_VERMONT,
+      foundAt: new Date("2026-12-31T23:59:59.999Z"),
+      now: new Date("2027-03-01T00:00:00.000Z"),
+    };
+    const firstMoment: Parameters<typeof factsOf>[0] = {
+      ...lastSecond,
+      foundAt: new Date("2027-01-01T00:00:00.000Z"),
+    };
+
+    expect(isBreachLawForFacts(rule, factsOf(lastSecond))).toBe(true);
+    expect(isBreachLawForFacts(rule, factsOf(firstMoment))).toBe(false);
+    expect(isBreachLawForFacts(next, factsOf(lastSecond))).toBe(true);
+    expect(isBreachLawForFacts(next, factsOf(firstMoment))).toBe(true);
+    // Applied on its own past its end, the old row says a newer text replaced it.
+    expect(applyBreachLaw(rule, factsOf(firstMoment)).reasons).toEqual([
+      { kind: BreachReasonKind.ReplacedBeforeFound, date: "2027-01-01" },
+    ]);
+  });
+});
+
+describe("Puerto Rico, Guam and the US Virgin Islands (#11424, #11426)", () => {
+  test("Puerto Rico's law is read in Spanish, from the Legislative Assembly's own copies of the act and its amendment", () => {
+    const residents: BreachLawRule = getBreachLawRule(
+      BreachLawId.PuertoRicoResidents,
+    );
+    const department: BreachLawRule = getBreachLawRule(
+      BreachLawId.PuertoRicoConsumerAffairs,
+    );
+
+    for (const rule of [residents, department]) {
+      expect(new URL(rule.sourceUrl).hostname).toBe("sutra.oslpr.org");
+      expect(rule.sourceTitle).toContain(
+        "Ley Núm. 111 de 7 de septiembre de 2005",
+      );
+      expect(rule.checkedOn).toBe(FOLLOW_UP_LAWS_CHECKED_ON);
+    }
+
+    // The first paragraph of Article 3 as Ley 97-2008 rewrote it: the residents' notice cites the amendment.
+    expect(residents.sourceTitle).toContain(
+      "Ley Núm. 97 de 19 de junio de 2008",
+    );
+    expect(residents.sourceUrl).not.toBe(department.sourceUrl);
+  });
+
+  test("Puerto Rico's Department of Consumer Affairs within 10 calendar days of detecting it, for every breach", () => {
+    const obligation: BreachObligation = applied(
+      BreachLawId.PuertoRicoConsumerAffairs,
+      {
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [BreachPlace.PuertoRico],
+        records: 3,
+      },
+    );
+
+    expect(obligation.status).toBe(BreachObligationStatus.MayApply);
+    expect(obligation.dueAt).toBe("2026-12-03T09:00:00.000Z");
+    // No threshold, and no test of harm: nothing for a person to weigh but whether it was read.
+    expect(checkKinds(obligation)).toEqual([]);
+  });
+
+  test("Puerto Rico's personal information: a passport is an official identification, a taxpayer number tax information, and every item needs the name", () => {
+    for (const id of ["us-passport", "us-itin"]) {
+      const named: BreachObligation = applied(BreachLawId.PuertoRicoResidents, {
+        dataTypeIds: [id, "person-name"],
+        places: [BreachPlace.PuertoRico],
+      });
+      const nameless: BreachObligation = applied(
+        BreachLawId.PuertoRicoResidents,
+        { dataTypeIds: [id], places: [BreachPlace.PuertoRico] },
+      );
+
+      expect(named.status).toBe(BreachObligationStatus.MayApply);
+      expect(checkKinds(named)).not.toContain(BreachCheckKind.HeldWithNames);
+      expect(checkKinds(nameless)).toContain(BreachCheckKind.HeldWithNames);
+    }
+
+    // A user name and password count only with the name, like every item on its list.
+    expect(
+      checkKinds(
+        applied(BreachLawId.PuertoRicoResidents, {
+          dataTypeIds: ["email-address", "generic-secret"],
+          places: [BreachPlace.PuertoRico],
+        }),
+      ),
+    ).toContain(BreachCheckKind.HeldWithNames);
+  });
+
+  test("Guam's residents, where the breach causes or is believed to cause identity theft or fraud; no other notice", () => {
+    const rows: Array<BreachLawRule> = BREACH_LAW_RULES.filter(
+      (rule: BreachLawRule): boolean => {
+        return Boolean(rule.places?.includes(BreachPlace.Guam));
+      },
+    );
+
+    expect(
+      rows
+        .map((rule: BreachLawRule): BreachLawId => {
+          return rule.id;
+        })
+        .sort(),
+    ).toEqual([BreachLawId.GuamResidents, BreachLawId.GuamDataOwner].sort());
+    expect(new URL(rows[0]!.sourceUrl).hostname).toBe("col.guamcourts.gov");
+    expect(
+      conditionsOf(
+        applied(BreachLawId.GuamResidents, {
+          dataTypeIds: ["us-drivers-license", "person-name"],
+          places: [BreachPlace.Guam],
+        }),
+      ),
+    ).toEqual([BreachCondition.CausesIdentityTheftOrFraud]);
+  });
+
+  test("the US Virgin Islands' residents, with no test of harm; no other notice", () => {
+    const rows: Array<BreachLawRule> = BREACH_LAW_RULES.filter(
+      (rule: BreachLawRule): boolean => {
+        return Boolean(rule.places?.includes(BreachPlace.UsVirginIslands));
+      },
+    );
+
+    expect(
+      rows
+        .map((rule: BreachLawRule): BreachLawId => {
+          return rule.id;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        BreachLawId.UsVirginIslandsResidents,
+        BreachLawId.UsVirginIslandsDataOwner,
+      ].sort(),
+    );
+    expect(new URL(rows[0]!.sourceUrl).hostname).toBe("billtracking.legvi.org");
+    expect(rows[0]!.sourceTitle).toContain("Act No. 6789 (2005)");
+
+    const obligation: BreachObligation = applied(
+      BreachLawId.UsVirginIslandsResidents,
+      {
+        dataTypeIds: ["bank-account-number", "person-name"],
+        places: [BreachPlace.UsVirginIslands],
+      },
+    );
+
+    expect(obligation.status).toBe(BreachObligationStatus.MayApply);
+    expect(conditionsOf(obligation)).toEqual([]);
+  });
+});
+
+/*
+ * A statute that covers government ID numbers in general words covers a
+ * passport number and a taxpayer identification number by its terms,
+ * though it names neither: New Hampshire's notice no longer missed an
+ * exposure of passport numbers held with names. A statute that names its
+ * government IDs one by one covers only those.
+ */
+describe("a statute's general words for government ID numbers cover a passport and a taxpayer number it does not name", () => {
+  const PASSPORTS: ReadonlyArray<string> = [
+    "us-passport",
+    "uk-passport",
+    "passport-number",
+  ];
+  const GENERIC: ReadonlyArray<[BreachLawId, string]> = [
+    [
+      BreachLawId.NewHampshireResidents,
+      "other government identification number",
+    ],
+    [BreachLawId.NewMexicoResidents, "government-issued identification number"],
+    [
+      BreachLawId.IowaResidents,
+      "other unique identification number created or collected by a government body",
+    ],
+    [
+      BreachLawId.MissouriResidents,
+      "other unique identification number created or collected by a government body",
+    ],
+    [
+      BreachLawId.SouthDakotaResidents,
+      "other unique identification number created or collected by a government body",
+    ],
+    [
+      BreachLawId.OklahomaResidents,
+      "other unique identification number created or collected by a government entity",
+    ],
+    [
+      BreachLawId.SouthCarolinaResidents,
+      "numbers or information issued by a governmental or regulatory entity that uniquely will identify an individual",
+    ],
+    [BreachLawId.TexasIndividuals, "government-issued identification number"],
+  ];
+
+  test.each(GENERIC)(
+    '%s: "%s" - a passport number and a taxpayer number, each held with a name',
+    (id: BreachLawId) => {
+      const rule: BreachLawRule = getBreachLawRule(id);
+
+      expect(rule.dataElements).toEqual(
+        expect.arrayContaining([
+          BreachDataElement.PassportNumber,
+          BreachDataElement.TaxIdNumber,
+          BreachDataElement.OtherGovernmentId,
+        ]),
+      );
+
+      for (const type of [...PASSPORTS, "us-itin"]) {
+        const obligation: BreachObligation = applied(id, {
+          dataTypeIds: [type, "person-name"],
+          places: [rule.places![0]!],
+        });
+
+        expect({ id, type, status: obligation.status }).toEqual({
+          id,
+          type,
+          status: BreachObligationStatus.MayApply,
+        });
+        expect(obligation.reasons).toContainEqual({
+          kind: BreachReasonKind.Holds,
+          elements: [
+            type === "us-itin"
+              ? BreachDataElement.TaxIdNumber
+              : BreachDataElement.PassportNumber,
+          ],
+        });
+      }
+
+      // Without the name, none of these lists counts it.
+      expect(rule.needsName).toBe(true);
+      expect(
+        checkKinds(
+          applied(id, {
+            dataTypeIds: ["us-passport"],
+            places: [rule.places![0]!],
+          }),
+        ),
+      ).toContain(BreachCheckKind.HeldWithNames);
+    },
+  );
+
+  test("every row of each of those states covers them, its notices to the attorney general, the agencies and the owner too", () => {
+    const families: Array<BreachLawFamily> = GENERIC.map(
+      ([id]: [BreachLawId, string]): BreachLawFamily => {
+        return getBreachLawRule(id).family;
+      },
+    );
+
+    for (const rule of BREACH_LAW_RULES.filter((each: BreachLawRule) => {
+      return families.includes(each.family);
+    })) {
+      expect({
+        id: rule.id,
+        passport: rule.dataElements.includes(BreachDataElement.PassportNumber),
+        taxId: rule.dataElements.includes(BreachDataElement.TaxIdNumber),
+      }).toEqual({ id: rule.id, passport: true, taxId: true });
+    }
+  });
+
+  test("Oregon's \"other identification number issued by the United States\" is the IRS's taxpayer number too", () => {
+    for (const rule of BREACH_LAW_RULES.filter((each: BreachLawRule) => {
+      return each.family === BreachLawFamily.Oregon;
+    })) {
+      expect({
+        id: rule.id,
+        taxId: rule.dataElements.includes(BreachDataElement.TaxIdNumber),
+      }).toEqual({ id: rule.id, taxId: true });
+    }
+
+    expect(
+      applied(BreachLawId.OregonResidents, {
+        dataTypeIds: ["us-itin", "person-name"],
+        places: [BreachPlace.Oregon],
+      }).status,
+    ).toBe(BreachObligationStatus.MayApply);
+  });
+
+  test("a statute that names its government IDs one by one covers only those: no passport where it names none", () => {
+    // Mississippi, Rhode Island and Montana name a tribal ID card; New York names no other ID at all.
+    for (const [id, place] of [
+      [BreachLawId.MississippiResidents, BreachPlace.Mississippi],
+      [BreachLawId.RhodeIslandResidents, BreachPlace.RhodeIsland],
+      [BreachLawId.MontanaResidents, BreachPlace.Montana],
+      [BreachLawId.NewYorkResidents, BreachPlace.NewYork],
+    ] as Array<[BreachLawId, BreachPlace]>) {
+      for (const type of PASSPORTS) {
+        expect({
+          id,
+          type,
+          status: applied(id, {
+            dataTypeIds: [type, "person-name"],
+            places: [place],
+          }).status,
+        }).toEqual({
+          id,
+          type,
+          status: BreachObligationStatus.NotTriggered,
+        });
+      }
+    }
+
+    // Montana names the taxpayer number; Mississippi does not.
+    expect(
+      applied(BreachLawId.MontanaResidents, {
+        dataTypeIds: ["us-itin", "person-name"],
+        places: [BreachPlace.Montana],
+      }).status,
+    ).toBe(BreachObligationStatus.MayApply);
+    expect(
+      applied(BreachLawId.MississippiResidents, {
+        dataTypeIds: ["us-itin", "person-name"],
+        places: [BreachPlace.Mississippi],
+      }).status,
+    ).toBe(BreachObligationStatus.NotTriggered);
+  });
+});
+
+describe("the notice to the data's owner (#11427)", () => {
+  const OWNER_ROWS: Array<BreachLawRule> = BREACH_LAW_RULES.filter(
+    (rule: BreachLawRule): boolean => {
+      return isUsStateRule(rule) && rule.forDataHolders === true;
+    },
+  );
+
+  test("every US jurisdiction the table covers has one, but Rhode Island and South Dakota, whose statutes ask for none", () => {
+    const places: Set<BreachPlace> = new Set(
+      OWNER_ROWS.map((rule: BreachLawRule): BreachPlace => {
+        return rule.places![0]!;
+      }),
+    );
+
+    expect([...places].sort()).toEqual(
+      COVERED_US_STATES.filter((place: BreachPlace): boolean => {
+        return (
+          place !== BreachPlace.RhodeIsland && place !== BreachPlace.SouthDakota
+        );
+      }).sort(),
+    );
+    expect(OWNER_ROWS).toHaveLength(OWNER_STATUTES.length);
+  });
+
+  test("each tells the data's owner and is applied only once a person says the organization holds the data for another", () => {
+    for (const rule of OWNER_ROWS) {
+      const statute: StatuteSays = OWNER_STATUTES.find(
+        (each: StatuteSays): boolean => {
+          return each.id === rule.id;
+        },
+      )!;
+      const example: Parameters<typeof factsOf>[0] = {
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [statute.place],
+        foundAt: exampleOf(statute).foundAt,
+        now: exampleOf(statute).now,
+      };
+
+      expect(rule.action).toMatch(/^Tell the data's owner$/);
+      expect({ id: rule.id, held: holds(rule.id, example) }).toEqual({
+        id: rule.id,
+        held: false,
+      });
+      expect({
+        id: rule.id,
+        held: holds(rule.id, { ...example, holdsForAnother: false }),
+      }).toEqual({ id: rule.id, held: false });
+      expect({
+        id: rule.id,
+        held: holds(rule.id, { ...example, holdsForAnother: true }),
+      }).toEqual({ id: rule.id, held: true });
+    }
+  });
+
+  test("each covers the data its jurisdiction's notice to the people does, as the text in force that day reads it", () => {
+    for (const rule of OWNER_ROWS) {
+      const statute: StatuteSays = OWNER_STATUTES.find(
+        (each: StatuteSays): boolean => {
+          return each.id === rule.id;
+        },
+      )!;
+      const day: Date = exampleOf(statute).foundAt;
+      const people: BreachLawRule = BREACH_LAW_RULES.find(
+        (candidate: BreachLawRule): boolean => {
+          return (
+            candidate.family === rule.family &&
+            candidate.action === TELL_THE_PEOPLE_ACTION &&
+            isBreachLawInForce(candidate, day)
+          );
+        },
+      )!;
+
+      expect({ id: rule.id, hasPeoplesNotice: Boolean(people) }).toEqual({
+        id: rule.id,
+        hasPeoplesNotice: true,
+      });
+
+      expect({
+        id: rule.id,
+        elements: rule.dataElements,
+        needsName: rule.needsName,
+        nameFree: rule.nameFreeElements,
+      }).toEqual({
+        id: rule.id,
+        elements: people.dataElements,
+        needsName: people.needsName,
+        nameFree: people.nameFreeElements,
+      });
+      // No threshold of people: the owner is told of any breach.
+      expect(rule.minimumPeople).toBeUndefined();
+    }
+  });
+
+  test("a test of harm carries over only where the statute puts it on this notice", () => {
+    // Arizona's exception covers the notices of subsection B alone, so its owner's has none.
+    expect(getBreachLawRule(BreachLawId.ArizonaResidents).conditions).toEqual([
+      BreachCondition.SubstantialEconomicLoss,
+    ]);
+    expect(getBreachLawRule(BreachLawId.ArizonaDataOwner).conditions).toEqual(
+      [],
+    );
+    // Alabama's substantial harm is a test for the covered entity's notice alone.
+    expect(getBreachLawRule(BreachLawId.AlabamaDataOwner).conditions).toEqual(
+      [],
+    );
+    // Kentucky's, in the definition of a breach, holds for both.
+    expect(getBreachLawRule(BreachLawId.KentuckyDataOwner).conditions).toEqual(
+      getBreachLawRule(BreachLawId.KentuckyResidents).conditions,
+    );
+    // Wisconsin's: only without a contract with the owner, and its exception covers it too.
+    expect(
+      conditionsOf(
+        applied(BreachLawId.WisconsinDataOwner, {
+          dataTypeIds: ["us-ssn", "person-name"],
+          places: [BreachPlace.Wisconsin],
+          holdsForAnother: true,
+        }),
+      ),
+    ).toEqual([
+      BreachCondition.NoContractWithOwner,
+      BreachCondition.NoMaterialRiskOfIdentityTheft,
+    ]);
+  });
+
+  test("the deadlines as the statutes word them: immediately, as soon as practicable, or a number of hours or days", () => {
+    const unitOf: (id: BreachLawId) => BreachDeadlineUnit = (
+      id: BreachLawId,
+    ): BreachDeadlineUnit => {
+      return getBreachLawRule(id).deadline.unit;
+    };
+
+    expect(unitOf(BreachLawId.CaliforniaDataOwner)).toBe(
+      BreachDeadlineUnit.Immediately,
+    );
+    expect(unitOf(BreachLawId.MassachusettsDataOwner)).toBe(
+      BreachDeadlineUnit.AsSoonAsPracticable,
+    );
+    expect(getBreachLawRule(BreachLawId.GeorgiaDataOwner).deadline).toEqual({
+      unit: BreachDeadlineUnit.Hours,
+      amount: 24,
+      start: BreachDeadlineStart.Found,
+    });
+
+    const georgia: BreachObligation = applied(BreachLawId.GeorgiaDataOwner, {
+      dataTypeIds: ["us-ssn"],
+      places: [BreachPlace.Georgia],
+      holdsForAnother: true,
+    });
+
+    expect(georgia.dueAt).toBe("2026-11-24T09:00:00.000Z");
+
+    const immediately: BreachObligation = applied(
+      BreachLawId.CaliforniaDataOwner,
+      {
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [BreachPlace.California],
+        holdsForAnother: true,
+      },
+    );
+
+    // Immediately sets no due moment: it is never put after one that has a length.
+    expect(immediately.dueAt).toBeUndefined();
+    expect(isDeadlineWithoutLength(BreachDeadlineUnit.Immediately)).toBe(true);
+    expect(
+      isDeadlineWithoutLength(BreachDeadlineUnit.AsSoonAsPracticable),
+    ).toBe(true);
   });
 });
 
 describe.each(
-  STATUTES.map((statute: StatuteSays): [string, StatuteSays] => {
+  ALL_STATUTES.map((statute: StatuteSays): [string, StatuteSays] => {
     return [`${statute.id}: ${statute.law} ${statute.provision}`, statute];
   }),
 )("%s", (_title: string, statute: StatuteSays) => {
   const rule: BreachLawRule = getBreachLawRule(statute.id);
+  // When its example exposure is found and assessed, and whether the data is held for another.
+  const example: ReturnType<typeof exampleOf> = exampleOf(statute);
+  const foundAt: Date = example.foundAt;
 
   test("says what the statute says", () => {
     expect({
@@ -2469,6 +4186,9 @@ describe.each(
       fewerPeopleThan: rule.fewerPeopleThan,
       conditions: rule.conditions,
       deadline: rule.deadline,
+      inForceFrom: rule.inForceFrom,
+      inForceUntil: rule.inForceUntil,
+      forDataHolders: rule.forDataHolders === true,
     }).toEqual({
       family: statute.family,
       places: [statute.place],
@@ -2486,6 +4206,9 @@ describe.each(
         start: statute.start,
         ...(statute.afterRule ? { afterRule: statute.afterRule } : {}),
       },
+      inForceFrom: statute.inForceFrom,
+      inForceUntil: statute.inForceUntil,
+      forDataHolders: statute.forDataHolders === true,
     });
   });
 
@@ -2494,7 +4217,7 @@ describe.each(
 
     expect(url.protocol).toBe("https:");
     expect(url.hostname).toBe(statute.host);
-    expect(rule.checkedOn).toBe(US_STATE_LAWS_CHECKED_ON);
+    expect(rule.checkedOn).toBe(statute.checkedOn || US_STATE_LAWS_CHECKED_ON);
     expect(rule.sourceTitle).toContain(
       statute.provision
         .split("(")[0]!
@@ -2503,10 +4226,31 @@ describe.each(
     );
   });
 
+  test(
+    statute.forDataHolders
+      ? "is left out of the assessment until a person says the organization holds the data for another"
+      : "does not wait on whose data it is",
+    () => {
+      const data: Parameters<typeof factsOf>[0] = {
+        dataTypeIds: ["us-ssn", "person-name"],
+        places: [statute.place],
+        foundAt,
+        now: example.now,
+      };
+
+      expect(holds(statute.id, data)).toBe(!statute.forDataHolders);
+      expect(holds(statute.id, { ...data, holdsForAnother: false })).toBe(
+        !statute.forDataHolders,
+      );
+      expect(holds(statute.id, { ...data, holdsForAnother: true })).toBe(true);
+    },
+  );
+
   test("may apply to the state's people's Social Security numbers held with names, with its deadline and what a person checks", () => {
     const obligation: BreachObligation = applied(statute.id, {
       dataTypeIds: ["us-ssn", "person-name"],
       places: [statute.place],
+      ...example,
     });
 
     expect(obligation.status).toBe(BreachObligationStatus.MayApply);
@@ -2529,6 +4273,7 @@ describe.each(
       const residents: BreachObligation = applied(statute.afterRule!, {
         dataTypeIds: ["us-ssn", "person-name"],
         places: [statute.place],
+        ...example,
       });
 
       const after: string | undefined = residents.dueAt
@@ -2547,9 +4292,9 @@ describe.each(
     } else {
       expect(obligation.dueAt).toBe(
         (statute.unit === BreachDeadlineUnit.BusinessDays
-          ? addBusinessDays(FOUND_AT, statute.amount!)
+          ? addBusinessDays(foundAt, statute.amount!)
           : new Date(
-              FOUND_AT.getTime() +
+              foundAt.getTime() +
                 statute.amount! *
                   (statute.unit === BreachDeadlineUnit.Hours ? HOUR : DAY),
             )
@@ -2562,6 +4307,7 @@ describe.each(
     const elsewhere: BreachObligation = applied(statute.id, {
       dataTypeIds: ["us-ssn", "person-name"],
       places: [BreachPlace.UnitedKingdom],
+      ...example,
     });
 
     expect(elsewhere.status).toBe(BreachObligationStatus.NotTriggered);
@@ -2575,6 +4321,7 @@ describe.each(
       const unknown: BreachObligation = applied(statute.id, {
         dataTypeIds: ["us-ssn", "person-name"],
         ...(places ? { places } : {}),
+        ...example,
       });
 
       expect(unknown.status).toBe(BreachObligationStatus.MayApply);
@@ -2590,6 +4337,7 @@ describe.each(
     const emails: BreachObligation = applied(statute.id, {
       dataTypeIds: ["email-address"],
       places: [statute.place],
+      ...example,
     });
 
     expect(emails.status).toBe(BreachObligationStatus.NotTriggered);
@@ -2598,10 +4346,62 @@ describe.each(
     const nameless: BreachObligation = applied(statute.id, {
       dataTypeIds: ["us-ssn"],
       places: [statute.place],
+      ...example,
     });
 
     expect(checkKinds(nameless).includes(BreachCheckKind.HeldWithNames)).toBe(
       statute.needsName && !statute.nameFree.includes(SSN),
     );
   });
+
+  test(
+    statute.inForceUntil || statute.inForceFrom
+      ? "applies only to an exposure found while its text is in force"
+      : "is in force whenever the exposure was found, so long ago as the table goes",
+    () => {
+      const day: (iso: string) => Parameters<typeof factsOf>[0] = (
+        iso: string,
+      ): Parameters<typeof factsOf>[0] => {
+        return {
+          dataTypeIds: ["us-ssn", "person-name"],
+          places: [statute.place],
+          foundAt: new Date(iso),
+          now: new Date(iso),
+          holdsForAnother: true,
+        };
+      };
+
+      if (statute.inForceUntil) {
+        const until: number = new Date(
+          `${statute.inForceUntil}T00:00:00.000Z`,
+        ).getTime();
+
+        expect(holds(statute.id, day(new Date(until - 1).toISOString()))).toBe(
+          true,
+        );
+        expect(holds(statute.id, day(new Date(until).toISOString()))).toBe(
+          false,
+        );
+      }
+
+      if (statute.inForceFrom) {
+        const from: number = new Date(
+          `${statute.inForceFrom}T00:00:00.000Z`,
+        ).getTime();
+
+        expect(
+          applied(statute.id, day(new Date(from - 1).toISOString())).status,
+        ).toBe(BreachObligationStatus.NotYetInForce);
+        expect(
+          applied(statute.id, day(new Date(from).toISOString())).status,
+        ).toBe(BreachObligationStatus.MayApply);
+      }
+
+      if (!statute.inForceUntil && !statute.inForceFrom) {
+        expect(
+          applied(statute.id, day("2020-01-06T09:00:00.000Z")).status,
+        ).toBe(BreachObligationStatus.MayApply);
+      }
+    },
+  );
 });

@@ -47,7 +47,9 @@ import {
 } from "./TelemetryScrubPlan";
 import { ScrubProofRowReader } from "./TelemetryScrubProof";
 import {
+  pickUnprovenScrubRuleCandidate,
   planScrubRuleCandidates,
+  ScrubPlanFinding,
   ScrubRuleCandidate,
   ScrubRuleSource,
 } from "./TelemetryScrubPlanner";
@@ -190,23 +192,28 @@ export async function planProvenScrubItRule(data: {
           })
         : null;
 
-    candidate =
-      planScrubRuleCandidates({
-        finding: {
+    const finding: ScrubPlanFinding = {
+      dataTypeId: data.dataTypeId,
+      dataCategory: record?.dataCategory || null,
+      location: data.location,
+      target: data.target,
+      projectType:
+        record?.projectType ||
+        (await readProjectDataTypePattern({
+          projectId: data.projectId,
           dataTypeId: data.dataTypeId,
-          dataCategory: record?.dataCategory || null,
-          location: data.location,
-          target: data.target,
-          projectType:
-            record?.projectType ||
-            (await readProjectDataTypePattern({
-              projectId: data.projectId,
-              dataTypeId: data.dataTypeId,
-            })),
-        },
+        })),
+    };
+
+    // A secret in an attribute is hidden whole: no record proves a pattern (#11458).
+    candidate = pickUnprovenScrubRuleCandidate({
+      candidates: planScrubRuleCandidates({
+        finding,
         securityEventsSources: sources?.isChecked ? sources.sources : [],
         serviceId: scope.serviceId?.toString().toLowerCase() || null,
-      })[0] || null;
+      }),
+      finding,
+    });
 
     if (!candidate) {
       // Throws, saying why no rule can hide this data.

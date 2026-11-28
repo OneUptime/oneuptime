@@ -25,6 +25,8 @@ Cada status é uma etiqueta cuja cor diz onde a mensagem está:
 
 Aponte para um status, toque nele ou chegue até ele com a tecla Tab, e ele diz o que significa e o que vem depois. **Ver mensagem de status**, no menu da linha, mostra o que o provedor respondeu, como o ID da mensagem ou o motivo da falha. O filtro **Status** de cada aba lista todos os status que a aba pode mostrar, na ordem em que uma mensagem passa por eles.
 
+O cartão **Quem foi avisado**, na visão geral de um incidente ou de um alerta, e o resultado de uma chamada de teste mostram o status de cada mensagem da mesma forma, nas mesmas cores: uma chamada que ainda está tocando aparece como **Chamando** lá também, nunca como **Enviado**.
+
 ## SMS
 
 ```mermaid title="Os status de um SMS, do OneUptime ao telefone"
@@ -40,7 +42,7 @@ flowchart TB
 | **Enviando** | O OneUptime entregou o SMS ao Twilio, que o está repassando à operadora. |
 | **Enviado** | A operadora aceitou o SMS. Passa para **Entregues** ou **Não entregue** assim que a operadora responder. |
 | **Entregues** | A operadora confirmou que o SMS chegou ao telefone. É o último status de um SMS que chegou. |
-| **Não entregue** | A operadora não conseguiu entregá-lo. **Código de erro** informa o motivo: `30003` é um telefone desligado ou fora de alcance, `30005` um número que não existe, `30006` um telefone fixo, e `30007` uma mensagem que a operadora filtrou. |
+| **Não entregue** | A operadora não conseguiu entregá-lo. **Código de erro** informa o motivo e o que o código significa. |
 | **Falhou** | O Twilio não conseguiu enviá-lo. **Código de erro** informa o motivo. |
 | **Erro** | Não foi enviado, por exemplo porque os SMS estão desativados no projeto, ou porque o Twilio recusou o número. **Ver mensagem de status** informa o motivo. |
 | **Saldo insuficiente** | Não foi enviado: o saldo do projeto era baixo demais para pagar por ele. |
@@ -49,6 +51,33 @@ flowchart TB
 Um SMS que o próprio gateway de SMS e chamadas do servidor aceitou fica em **Enviado**, em verde: o gateway não informa a entrega, então esse é o seu último status.
 
 O Twilio informa ao OneUptime cada mudança assim que ela acontece, assinada com o token de autenticação da conta pela qual o SMS saiu, e o OneUptime recusa qualquer relatório que não seja do Twilio. Para isso, o Twilio precisa conseguir alcançar o seu servidor: veja [Integração do Twilio](/docs/self-hosted/twilio-integration).
+
+### Códigos de erro
+
+Cada código em **Código de erro** abre a página do Twilio sobre ele, que lista o que pode causá-lo. Abaixo dos códigos com que um SMS mais falha, o log diz em uma linha o que eles significam:
+
+| Código | O que significa |
+| --- | --- |
+| `20003` | O Twilio não aceitou as credenciais da conta. |
+| `21211` | O número não é um número de telefone válido. |
+| `21408` | A conta Twilio não tem permissão para enviar SMS para este país. |
+| `21606` | O número de envio não pode enviar SMS por esta conta Twilio. |
+| `21608` | Uma conta de teste do Twilio só pode enviar para números verificados nela. |
+| `21610` | O destinatário respondeu STOP, então o Twilio não envia mais SMS para ele a partir deste número. |
+| `21612` | O número de envio não consegue alcançar este número. |
+| `21614` | O número não é um número de celular, e sim, por exemplo, um telefone fixo. |
+| `30001` | Foram enviados SMS demais de uma vez, e a fila do Twilio transbordou. |
+| `30002` | A conta Twilio foi suspensa antes de o SMS sair. |
+| `30003` | O telefone está desligado ou fora de alcance. |
+| `30004` | O número está bloqueado para receber o SMS. |
+| `30005` | O número é desconhecido e pode não existir mais. |
+| `30006` | O número não pode receber SMS, por exemplo por ser um telefone fixo. |
+| `30007` | O Twilio ou a operadora filtrou o SMS como spam. |
+| `30008` | A operadora não conseguiu entregar o SMS e não disse o motivo. |
+| `30032` | O número gratuito de envio ainda não foi verificado. |
+| `30034` | O número de envio não está registrado no A2P 10DLC, que as operadoras dos EUA exigem. |
+
+Um código que não é do Twilio, como o status HTTP com que o seu gateway de SMS e chamadas respondeu, é mostrado como está.
 
 ## Chamadas
 

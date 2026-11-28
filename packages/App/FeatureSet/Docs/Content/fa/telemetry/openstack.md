@@ -292,6 +292,12 @@ ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
 COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
+OPENSTACK_AGENT_CONTAINER_NAME=oneuptime-openstack-agent
+OPENSTACK_EXPORTER_CONTAINER_NAME=oneuptime-openstack-exporter
+OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME=oneuptime-openstack-quota-exporter
+OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-database-exporter
+OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-worker-state-exporter
+OPENSTACK_AI_AGENT_CONTAINER_NAME=oneuptime-openstack-ai-agent
 ```
 
 `OPENSTACK_EXPORTER_CLOUDS` همه مناطق را در کروشه فهرست می‌کند و `COMPOSE_PROFILES` exporter همراه و [عامل هوش مصنوعی](#عامل-هوش-مصنوعی) را راه می‌اندازد. هر دو فایل رازهایی در خود دارند. exporter با uid 65532 اجرا می‌شود و باید تنها حسابی باشد که می‌تواند `clouds.yaml` را بخواند. عامل را راه بیندازید:
@@ -380,6 +386,12 @@ Everything is ready. Begin running and processing data.
 | `OPENSTACK_AGENT_SERVICES` | خیر | این عامل کدام سرویس‌ها را می‌خواند، برای [تقسیم یک ابر بین عامل‌ها](/docs/telemetry/openstack-very-large-clouds#اشتراک-یک-ابر-بین-چند-جمعآورنده)، مثل `compute\|placement`. پیش‌فرض همه آن‌هاست. |
 | `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | خیر | مقدار حافظه‌ای که collector می‌تواند نگه دارد. scrape یک ابر بسیار بزرگ بیش از پیش‌فرض `512` می‌گیرد. |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | خیر | `openstack_database_exporter`، برای [مسیر پایگاه داده](/docs/telemetry/openstack-very-large-clouds#مسیر-پایگاهداده): `[openstack-database-exporter:9180]`. پیش‌فرض هیچ است. بقیه تنظیم‌های آن مسیر همان‌جا فهرست شده‌اند. |
+| `OPENSTACK_AGENT_CONTAINER_NAME` | خیر | نام کانتینر collector. پیش‌فرض `oneuptime-openstack-agent` است. عامل ابر دوم روی همان ماشین به نام‌های خودش نیاز دارد: [پایش چند ابر](#پایش-چند-ابر) را ببینید. اسکریپت نصب، اگر آن‌ها را تنظیم نکنید، کانتینرهای عامل تازه را به نام پوشه‌اش می‌نامد و وقتی اسکریپت را دوباره اجرا می‌کنید آن‌ها را نگه می‌دارد. |
+| `OPENSTACK_EXPORTER_CONTAINER_NAME` | خیر | نام کانتینر exporter همراه. پیش‌فرض `oneuptime-openstack-exporter` است، و برای عامل دوم نامی کنار نام collector آن، مثلاً `oneuptime-openstack-exporter-cloud2`. |
+| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | خیر | نام کانتینر exporter سهمیه. پیش‌فرض `oneuptime-openstack-quota-exporter` است، و برای عامل دوم نامی کنار نام collector آن، مثلاً `oneuptime-openstack-quota-exporter-cloud2`. |
+| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | خیر | نام کانتینر exporter پایگاه داده. پیش‌فرض `oneuptime-openstack-database-exporter` است، و برای عامل دوم نامی کنار نام collector آن، مثلاً `oneuptime-openstack-database-exporter-cloud2`. |
+| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | خیر | نام کانتینر exporter وضعیت workerها. پیش‌فرض `oneuptime-openstack-worker-state-exporter` است، و برای عامل دوم نامی کنار نام collector آن، مثلاً `oneuptime-openstack-worker-state-exporter-cloud2`. |
+| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | خیر | نام کانتینر عامل هوش مصنوعی. پیش‌فرض `oneuptime-openstack-ai-agent` است، و برای عامل دوم نامی کنار نام collector آن، مثلاً `oneuptime-openstack-ai-agent-cloud2`. |
 
 اسکریپت نصب اعتبارنامه را از محیط هم می‌خواند تا پرسش‌هایش را رد کند: `OPENSTACK_APPLICATION_CREDENTIAL_ID` و `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`، یا `OPENSTACK_USERNAME`، `OPENSTACK_PASSWORD`، `OPENSTACK_PROJECT_NAME`، `OPENSTACK_USER_DOMAIN_NAME` و `OPENSTACK_PROJECT_DOMAIN_NAME`. این‌ها نام‌های خودشان را دارند و نه نام‌های `OS_*` که یک فایل openrc تنظیم می‌کند، تا openrc منبع‌شده یک admin بی‌آنکه کسی پرسیده شود هرگز اعتبارنامه عامل نشود. اعتبارنامه برنامه از نام کاربری و گذرواژه بهتر است: می‌توان آن را به خواندن محدود کرد و می‌تواند منقضی شود.
 
@@ -1025,6 +1037,7 @@ sudo bash install-logs.sh
 | `OPENSTACK_LOGS_DIRECTORY` | جایی که لاگ‌های Kolla-Ansible هستند، اگر در volume داکر معمول آن نیست |
 | `OPENSTACK_LOGS_TIMEZONE` | منطقه زمانی که oslo.log زمان‌هایش را در آن می‌نویسد. پیش‌فرض `UTC` |
 | `OPENSTACK_LOGS_UNITS` | unitهای journal که خوانده شوند، در کروشه. پیش‌فرض همه سرویس‌های OpenStack |
+| `OPENSTACK_LOGS_CONTAINER_NAME` | نام کانتینر collector، با Docker. پیش‌فرض `oneuptime-openstack-logs`. اجرای دوباره اسکریپت آن را نگه می‌دارد |
 
 پروفایل فایل‌ها سرویس‌های OpenStack را با نام می‌خواند، پس RabbitMQ، MariaDB، HAProxy و libvirt در همان پوشه به حال خود گذاشته می‌شوند. collectorی که بعداً دوباره راه بیفتد از خطی که به آن رسیده ادامه می‌دهد.
 
@@ -1645,6 +1658,20 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 یک workflow می‌تواند از هشداری در OpenStack شروع شود و fixی پیشنهاد دهد: گام **پیشنهاد یک اصلاح OpenStack** هشدار یا incident و دستور را می‌گیرد. از همان سیاست، همان محدوده نوشتن و همان خواندن آنچه تغییر لمس می‌کند می‌گذرد که fixای که هوش مصنوعی OneUptime پیشنهاد می‌دهد، مدل هوش مصنوعی نمی‌خواهد، و انسان آن را روی هشدار تأیید می‌کند. workflow نمی‌تواند خودش تغییر را انجام دهد یا آنچه پیشنهاد می‌دهد را تأیید کند، حالت fix ابر هر چه باشد. الگوی **Propose taking a failing OpenStack compute service out of scheduling** جای شروع است.
 
+## پایش چند ابر
+
+یک عامل یک ابر را می‌خواند. برای پایش چند ابر از یک ماشین، هر عامل را در پوشه خودش با `.env` خودش و نام‌های کانتینر خودش نصب کنید، چون دو کانتینر نمی‌توانند یک نام داشته باشند:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-openstack-agent-cloud2 bash install.sh
+```
+
+اسکریپت کانتینرهای عامل را به نام پوشه می‌نامد: `oneuptime-openstack-agent-cloud2`، `oneuptime-openstack-exporter-cloud2`، `oneuptime-openstack-quota-exporter-cloud2`، `oneuptime-openstack-database-exporter-cloud2`، `oneuptime-openstack-worker-state-exporter-cloud2` و `oneuptime-openstack-ai-agent-cloud2`. برای انتخاب آن‌ها توسط خودتان، هنگام اجرای اسکریپت `OPENSTACK_AGENT_CONTAINER_NAME` و بقیه متغیرهای جدول بالا را تنظیم کنید. اسکریپت نام‌ها را در `.env` همان عامل نگه می‌دارد، پس اجرای دوباره اسکریپت برای به‌روزرسانی عامل آن‌ها را حفظ می‌کند، و عاملی که `container_name` آن را زمانی در `docker-compose.yml` ویرایش کرده‌اید همان نام را نگه می‌دارد. به هر پوشه نامی از آن خودش بدهید: Docker Compose هر پروژه را فقط به نام پوشه‌اش می‌نامد، پس اسکریپت پوشه‌ای را که هم‌نام پوشه‌ای باشد که در جای دیگری عاملی را اجرا می‌کند نمی‌پذیرد. با Docker Compose، به‌جای آن نام‌ها را در `.env` هر عامل تنظیم کنید.
+
+این نام‌ها با Docker اعمال می‌شوند: نصب بدون Docker هیچ کانتینری اجرا نمی‌کند. collectorهای لاگ و trace هم نام‌های خودشان را به همین شکل از `.env` می‌خوانند: `OPENSTACK_LOGS_CONTAINER_NAME` و `OPENSTACK_TRACES_CONTAINER_NAME`.
+
+unit مربوط به systemd فرض می‌کند عامل در `/opt/oneuptime-openstack-agent` است: برای پوشه‌ای دیگر، آن را با نامی دیگر ذخیره کنید، مثلاً `oneuptime-openstack-agent-cloud2.service`، و `WorkingDirectory` آن را تغییر دهید. پوشه را با `-d` به اسکریپت تشخیصی بدهید.
+
 ## اجرا به‌صورت سرویس systemd
 
 برای شروع عامل با ماشین و راه‌اندازی مجددش وقتی شکست می‌خورد، unit مربوط به systemd آن را نصب کنید. فرض می‌کند عامل در `/opt/oneuptime-openstack-agent` است، جایی که اسکریپت نصب می‌گذارد. نصب بدون Docker از قبل یک سرویس systemd است.
@@ -1659,7 +1686,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 عامل نسخه فایل‌هایش را به‌عنوان **نسخه عامل** گزارش می‌کند: نسخه collector که قفل کرده‌اند، با آخرین عدد که هر بار فایل‌ها روی آن collector تغییر کنند بالا می‌رود. وقتی این از نسخه‌ای که این نسخه OneUptime قفل می‌کند قدیمی‌تر باشد، کنار آن علامت هشدار ظاهر می‌شود. آن را انتخاب کنید تا این دستورها را ببینید.
 
-ایمیج collector در `docker-compose.yml` قفل شده و پیکربندی‌اش فایلی کنار آن است، پس pull به‌تنهایی عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید، با `sudo` اگر بدون Docker نصب کردید: هر مقدار در `.env` موجود شما و اعتبارنامه در `clouds.yaml` را دوباره به کار می‌برد (چیزی دوباره پرسیده نمی‌شود)، اعتبارنامه را با Keystone بررسی می‌کند، فایل‌های عامل را تازه می‌کند (فایلی که ویرایش کرده‌اید با نام `<file>.bak.<timestamp>` نگه داشته می‌شود)، ایمیج‌ها را pull می‌کند و عامل را دوباره می‌سازد تا collector پیکربندی تازه‌اش را بخواند.
+ایمیج collector در `docker-compose.yml` قفل شده و پیکربندی‌اش فایلی کنار آن است، پس pull به‌تنهایی عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید، با `sudo` اگر بدون Docker نصب کردید: هر مقدار در `.env` موجود شما و اعتبارنامه در `clouds.yaml` را دوباره به کار می‌برد (چیزی دوباره پرسیده نمی‌شود)، اعتبارنامه را با Keystone بررسی می‌کند، فایل‌های عامل را تازه می‌کند (فایلی که ویرایش کرده‌اید با نام `<file>.bak.<timestamp>` نگه داشته می‌شود)، ایمیج‌ها را pull می‌کند و عامل را دوباره می‌سازد تا collector پیکربندی تازه‌اش را بخواند. عاملی که بیرون از `/opt/oneuptime-openstack-agent` نصب شده به پوشه‌اش نیاز دارد، `INSTALL_DIR=<folder> bash install.sh`، و نام‌های کانتینرش را نگه می‌دارد.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh

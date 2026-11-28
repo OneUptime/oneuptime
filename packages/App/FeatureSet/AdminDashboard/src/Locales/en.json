@@ -4671,5 +4671,11 @@
   "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.",
   "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.",
   "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.",
-  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template."
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.",
+  "Behind by {{count}} minutes": "Behind by {{count}} minutes",
+  "Behind by {{count}} minutes_one": "Behind by {{count}} minute",
+  "Behind by {{count}} hours": "Behind by {{count}} hours",
+  "Behind by {{count}} hours_one": "Behind by {{count}} hour",
+  "Behind by {{count}} days": "Behind by {{count}} days",
+  "Behind by {{count}} days_one": "Behind by {{count}} day"
 }

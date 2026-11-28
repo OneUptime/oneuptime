@@ -48,6 +48,7 @@ export const EXPOSURE_TEST_IDS: {
   placeStates: string;
   stateLaws: string;
   statesNotApplying: string;
+  dataHolder: string;
 } = {
   card: "security-case-exposure-assessment",
   notAssessed: "security-case-exposure-not-assessed",
@@ -80,6 +81,7 @@ export const EXPOSURE_TEST_IDS: {
   placeStates: "security-case-exposure-place-states",
   stateLaws: "security-case-exposure-state-laws",
   statesNotApplying: "security-case-exposure-states-not-applying",
+  dataHolder: "security-case-exposure-data-holder",
 };
 
 // The card.
@@ -167,6 +169,11 @@ export const WITHOUT_UNREASONABLE_DELAY: string = translationKey(
   "As soon as possible, without unreasonable delay",
 );
 export const NO_FIXED_TIME: string = translationKey("No fixed deadline");
+// The notices to the data's owner (#11427): "immediately following discovery", "as soon as practicable".
+export const IMMEDIATELY: string = translationKey("Immediately");
+export const AS_SOON_AS_PRACTICABLE: string = translationKey(
+  "As soon as practicable",
+);
 
 // Who read it.
 export const READS_NOT_LOGGED: string = translationKey(
@@ -380,6 +387,10 @@ export const WHAT_TO_CHECK: string = translationKey("What a person checks");
 export const WHY_NOT: string = translationKey("Why not");
 export const SOURCE_CHECKED: string = translationKey("Checked {{date}}");
 export const IN_FORCE_FROM: string = translationKey("In force from {{date}}.");
+// A newer text of a law that took effect after the exposure was found (#11425).
+export const IN_FORCE_AFTER_FOUND: string = translationKey(
+  "It took effect on {{date}}, after the exposure was found: the text in force when it was found applies.",
+);
 export const IF_PEOPLE_LIVE_IN: string = translationKey(
   "If any of the people live in {{places}}.",
 );
@@ -430,11 +441,14 @@ export const PLACES_SAID: string = translationKey(
 export const PLACES_SAID_BY_SOMEONE: string = translationKey(
   "Someone said the people live in {{places}}.",
 );
-// The US states, the District of Columbia and Puerto Rico, picked from a list of their own (#10952).
+/*
+ * The US states, the District of Columbia, Puerto Rico, Guam and the US
+ * Virgin Islands, picked from a list of their own (#10952, #11426).
+ */
 export const US_STATES: string = translationKey("US states");
 export const SEARCH_US_STATES: string = translationKey("Search for a state");
 export const US_STATES_HINT: string = translationKey(
-  "Pick each state where some of them live, the District of Columbia and Puerto Rico among them: each has a breach law of its own.",
+  "Pick each state some of them live in, the District of Columbia, Puerto Rico, Guam and the US Virgin Islands too: each has its own breach law.",
 );
 export const STATE_NOT_IN_TABLE: string = translationKey(
   "Its breach law is not in OneUptime's table",
@@ -443,6 +457,34 @@ export const CHANGE_PLACES: string = translationKey("Change Places");
 export const SAVE_PLACES: string = translationKey("Save Places");
 export const CANCEL: string = translationKey("Cancel");
 export const PLACES_SAVED: string = translationKey("Places saved.");
+
+/*
+ * Whether the organization holds the data for another organization (#11427):
+ * a switch, kept with who said it, as where the people live is.
+ */
+export const DATA_OWNER_HEADING: string = translationKey("The Data's Owner");
+export const HOLDS_FOR_ANOTHER: string = translationKey(
+  "We hold this data for another organization",
+);
+export const HOLDS_FOR_ANOTHER_DESCRIPTION: string = translationKey(
+  "On, the notices the law asks a vendor or service provider to send the data's owner are added.",
+);
+export const HELD_FOR_ANOTHER_SAID: string = translationKey(
+  "{{name}} said your organization holds this data for another organization.",
+);
+export const HELD_FOR_ANOTHER_SAID_BY_SOMEONE: string = translationKey(
+  "Someone said your organization holds this data for another organization.",
+);
+export const OWN_DATA_SAID: string = translationKey(
+  "{{name}} said this data is your organization's own.",
+);
+export const OWN_DATA_SAID_BY_SOMEONE: string = translationKey(
+  "Someone said this data is your organization's own.",
+);
+export const DATA_OWNER_SAVED: string = translationKey("Answer saved.");
+export const DATA_OWNER_READ_ONLY: string = translationKey(
+  "Someone who can edit this case can change this.",
+);
 
 // The case's checklist, answered.
 export const CHECKLIST: string = translationKey("The Case's Checklist");

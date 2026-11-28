@@ -114,8 +114,13 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     try {
+      /*
+       * Archived hosts are left out, as Infrastructure → Hosts leaves them out: archiving
+       * one there takes it off this list too (issue #11257).
+       */
       const baseQuery: Record<string, unknown> = {
         projectId: projectId,
+        isArchived: false,
       };
 
       if (statusFilter === "connected") {

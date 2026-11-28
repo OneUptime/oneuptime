@@ -4671,5 +4671,11 @@
   "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Ваши права распространяются только на {{items}} с определёнными метками и на {{items}}, которыми владеете вы или ваши команды.",
   "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "При удалении шаблона монитора его мониторы отвязываются. Они сохраняют критерии и настройки, полученные от шаблона, и продолжают проверять и отправлять оповещения.",
   "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "У устройства, для которого создан этот монитор, уже есть монитор, связанный с этим шаблоном: {{monitorName}}. Удалите один из двух или свяжите этот монитор с другим шаблоном.",
-  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "У устройства, для которого создан этот монитор, уже есть монитор, связанный с этим шаблоном. Удалите один из двух или свяжите этот монитор с другим шаблоном."
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "У устройства, для которого создан этот монитор, уже есть монитор, связанный с этим шаблоном. Удалите один из двух или свяжите этот монитор с другим шаблоном.",
+  "Behind by {{count}} minutes": "Отстаёт на {{count}} мин.",
+  "Behind by {{count}} minutes_one": "Отстаёт на {{count}} мин.",
+  "Behind by {{count}} hours": "Отстаёт на {{count}} ч.",
+  "Behind by {{count}} hours_one": "Отстаёт на {{count}} ч.",
+  "Behind by {{count}} days": "Отстаёт на {{count}} дн.",
+  "Behind by {{count}} days_one": "Отстаёт на {{count}} дн."
 }

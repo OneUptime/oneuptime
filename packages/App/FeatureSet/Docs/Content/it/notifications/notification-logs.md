@@ -25,6 +25,8 @@ Ogni stato è una pillola il cui colore dice dove si trova il messaggio:
 
 Punta uno stato, toccalo o raggiungilo con il tasto Tab, e ti dirà cosa significa e cosa viene dopo. **Visualizza messaggio di stato**, nel menu della riga, mostra cosa ha risposto il fornitore, come l'ID del messaggio o il motivo del fallimento. Il filtro **Stato** di ogni scheda elenca tutti gli stati che la scheda può mostrare, nell'ordine in cui un messaggio li attraversa.
 
+La scheda **Chi è stato avvisato**, nella panoramica di un incidente o di un avviso, e il risultato di una chiamata di test mostrano lo stato di ogni messaggio allo stesso modo e con gli stessi colori: una chiamata che sta ancora squillando risulta **In chiamata** anche lì, mai **Inviati**.
+
 ## SMS
 
 ```mermaid title="Gli stati di un SMS, da OneUptime al telefono"
@@ -40,7 +42,7 @@ flowchart TB
 | **Invio in corso** | OneUptime ha passato l'SMS a Twilio, che lo sta inoltrando all'operatore. |
 | **Inviati** | L'operatore ha accettato l'SMS. Passa a **Consegnati** o **Non consegnato** non appena l'operatore risponde. |
 | **Consegnati** | L'operatore ha confermato che l'SMS ha raggiunto il telefono. È l'ultimo stato di un SMS arrivato. |
-| **Non consegnato** | L'operatore non è riuscito a consegnarlo. **Codice di errore** indica il motivo: `30003` è un telefono spento o irraggiungibile, `30005` un numero che non esiste, `30006` un telefono fisso, e `30007` un messaggio filtrato dall'operatore. |
+| **Non consegnato** | L'operatore non è riuscito a consegnarlo. **Codice di errore** indica il motivo e cosa significa il codice. |
 | **Non riuscito** | Twilio non è riuscito a inviarlo. **Codice di errore** indica il motivo. |
 | **Errore** | Non è stato inviato, per esempio perché gli SMS sono disattivati per il progetto, o perché Twilio ha rifiutato il numero. **Visualizza messaggio di stato** indica il motivo. |
 | **Saldo insufficiente** | Non è stato inviato: il saldo del progetto non bastava a pagarlo. |
@@ -49,6 +51,33 @@ flowchart TB
 Un SMS che il gateway per SMS e chiamate del server ha preso resta **Inviati**, in verde: il gateway non segnala la consegna, quindi questo è il suo ultimo stato.
 
 Twilio segnala a OneUptime ogni cambiamento non appena avviene, firmato con il token di autenticazione dell'account da cui è partito l'SMS, e OneUptime rifiuta ogni segnalazione che non sia di Twilio. Per questo Twilio deve poter raggiungere il tuo server: vedi [Integrazione Twilio](/docs/self-hosted/twilio-integration).
+
+### Codici di errore
+
+Ogni codice in **Codice di errore** apre la pagina di Twilio dedicata a quel codice, che elenca cosa può causarlo. Sotto i codici con cui un SMS fallisce più spesso, il log dice in una riga cosa significano:
+
+| Codice | Cosa significa |
+| --- | --- |
+| `20003` | Twilio non ha accettato le credenziali dell'account. |
+| `21211` | Il numero non è un numero di telefono valido. |
+| `21408` | L'account Twilio non è autorizzato a inviare SMS verso questo paese. |
+| `21606` | Il numero mittente non può inviare SMS per questo account Twilio. |
+| `21608` | Un account Twilio di prova può inviare solo ai numeri verificati al suo interno. |
+| `21610` | Il destinatario ha risposto STOP, quindi Twilio non gli invia più SMS da questo numero. |
+| `21612` | Il numero mittente non può raggiungere questo numero. |
+| `21614` | Il numero non è un numero di cellulare, ma per esempio un telefono fisso. |
+| `30001` | Sono stati inviati troppi SMS insieme e la coda di Twilio si è saturata. |
+| `30002` | L'account Twilio è stato sospeso prima che l'SMS partisse. |
+| `30003` | Il telefono è spento o irraggiungibile. |
+| `30004` | Il numero è bloccato per la ricezione dell'SMS. |
+| `30005` | Il numero è sconosciuto e potrebbe non esistere più. |
+| `30006` | Il numero non può ricevere SMS, per esempio perché è un telefono fisso. |
+| `30007` | Twilio o l'operatore ha filtrato l'SMS come spam. |
+| `30008` | L'operatore non è riuscito a consegnare l'SMS e non ha detto perché. |
+| `30032` | Il numero verde mittente non è ancora verificato. |
+| `30034` | Il numero mittente non è registrato per A2P 10DLC, che gli operatori statunitensi richiedono. |
+
+Un codice che non è di Twilio, come lo stato HTTP con cui ha risposto il tuo gateway per SMS e chiamate, viene mostrato così com'è.
 
 ## Chiamate
 

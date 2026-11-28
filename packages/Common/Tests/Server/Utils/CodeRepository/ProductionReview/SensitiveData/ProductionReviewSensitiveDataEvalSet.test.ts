@@ -612,14 +612,51 @@ describe("every leak Data Security locates in a service's code, the review of th
   });
 
   /*
+   * A session tagged with the customer's email (#11458): a Session point
+   * at the recorder's setTags() call, with its own sentence, at the very
+   * tag the sessions keep it under.
+   */
+  test("a session tagged with the customer's email: a Session point at the recorder's setTags(), where the sessions keep the tag", () => {
+    const evalCase: TelemetryLeakEvalCase = evalCaseOf(
+      "session-tagged-with-the-customers-email",
+    );
+    const finding: RecordedTelemetryLeakFinding = evalCase.findings[0]!;
+    const result: SensitiveDataRulesResult = SensitiveDataRules.find({
+      files: addedFiles(evalCase),
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toMatchObject({
+      path: "src/tags.js",
+      line: finding.leadsTo[0]!.line,
+      sink: SensitiveDataSink.Session,
+      checkId: "sensitive-data-in-telemetry",
+      subject: "customer.email",
+      where: "recorder.setTags",
+      isBlocking: false,
+      location: finding.location,
+      text: "Writes an email address to a recorded session's tags: `customer.email`, in `recorder.setTags`. A session's tags are stored as sent, and everyone who can list sessions reads them.",
+    });
+    expect(finding.location).toBe("sessions.tags.customer");
+    // The recorder's own module, which only defines setTags(), is no point.
+    expect(
+      result.candidates.filter((candidate: SensitiveDataCandidate): boolean => {
+        return candidate.path === "src/recorder.js";
+      }),
+    ).toEqual([]);
+  });
+
+  /*
    * No false point: the fix a person would make - the case's solution,
    * which the code agent's benchmark checks - leaves the RUM cases with
-   * none. The session is identified by the customer's id, and the browser
-   * log keeps only the cart's total.
+   * none. The session is identified by the customer's id, the browser log
+   * keeps only the cart's total, and the session is tagged with the
+   * customer's id.
    */
   test.each([
     "browser-log-email-found-through-a-source-map",
     "session-identified-by-the-customers-email",
+    "session-tagged-with-the-customers-email",
   ])("%s, fixed as a person would fix it, has no point", (id: string) => {
     const evalCase: TelemetryLeakEvalCase = evalCaseOf(id);
 

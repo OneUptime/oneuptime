@@ -4671,5 +4671,11 @@
   "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "आपकी अनुमति केवल उन {{items}} तक सीमित है जिन पर कुछ खास लेबल हैं, और उन {{items}} तक जिनके मालिक आप या आपकी टीमें हैं।",
   "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "मॉनिटर टेम्पलेट हटाने से उसके मॉनिटर अनलिंक हो जाते हैं। वे टेम्पलेट से मिले मानदंड और सेटिंग्स रखते हैं, और जाँच करते तथा अलर्ट देते रहते हैं।",
   "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "जिस डिवाइस के लिए यह मॉनिटर बनाया गया था, उसके पास पहले से इस टेम्पलेट से लिंक किया गया एक मॉनिटर है: {{monitorName}}। दोनों में से एक को हटाएं, या इसे किसी दूसरे टेम्पलेट से लिंक करें।",
-  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "जिस डिवाइस के लिए यह मॉनिटर बनाया गया था, उसके पास पहले से इस टेम्पलेट से लिंक किया गया एक मॉनिटर है। दोनों में से एक को हटाएं, या इसे किसी दूसरे टेम्पलेट से लिंक करें।"
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "जिस डिवाइस के लिए यह मॉनिटर बनाया गया था, उसके पास पहले से इस टेम्पलेट से लिंक किया गया एक मॉनिटर है। दोनों में से एक को हटाएं, या इसे किसी दूसरे टेम्पलेट से लिंक करें।",
+  "Behind by {{count}} minutes": "{{count}} मिनट पीछे",
+  "Behind by {{count}} minutes_one": "{{count}} मिनट पीछे",
+  "Behind by {{count}} hours": "{{count}} घंटे पीछे",
+  "Behind by {{count}} hours_one": "{{count}} घंटा पीछे",
+  "Behind by {{count}} days": "{{count}} दिन पीछे",
+  "Behind by {{count}} days_one": "{{count}} दिन पीछे"
 }

@@ -841,6 +841,36 @@ export default class DataSecurityAPI extends BaseAPI<
       },
     );
 
+    /*
+     * ...whether the organization holds the data for another (#11427):
+     * { forAnother: true | false }, null to take the answer back.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.exposureDataHeldFor(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const body: JSONObject = (req.body || {}) as JSONObject;
+        const forAnother: unknown = body["forAnother"];
+
+        if (typeof forAnother !== "boolean" && forAnother !== null) {
+          throw new BadDataException(
+            "Say whether your organization holds this data for another organization: true, false, or null to take the answer back.",
+          );
+        }
+
+        return (await ExposureAssessmentDrafter.setDataHeldFor({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+          forAnother,
+        })) as unknown as JSONObject;
+      },
+    );
+
     // ...who read the store in the window, from its own access logs (#10951): no body.
     this.post(
       DATA_SECURITY_API_ROUTES.readExposureLogs(":id"),

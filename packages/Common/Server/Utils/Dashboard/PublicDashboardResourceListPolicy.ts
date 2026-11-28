@@ -4,6 +4,7 @@ import Search from "../../../Types/BaseDatabase/Search";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import { isDashboardResourceScope } from "../../../Types/Dashboard/DashboardResourceScope";
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
@@ -1252,7 +1253,8 @@ export default class PublicDashboardResourceListPolicy {
   private static buildHostPolicy(
     argumentsObject: Record<string, unknown>,
   ): PolicyDraft {
-    const query: Record<string, unknown> = {};
+    // Archived hosts are not listed, as on Infrastructure → Hosts (#11257).
+    const query: Record<string, unknown> = { isArchived: false };
     PublicDashboardResourceListPolicy.addCollectorStatusFilter(
       query,
       argumentsObject,
@@ -1354,7 +1356,8 @@ export default class PublicDashboardResourceListPolicy {
     argumentsObject: Record<string, unknown>;
     resourceType: string;
   }): PolicyDraft {
-    const query: Record<string, unknown> = {};
+    // Archived hosts are not listed, as on their own lists (#11257).
+    const query: Record<string, unknown> = { isArchived: false };
     PublicDashboardResourceListPolicy.addCollectorStatusFilter(
       query,
       data.argumentsObject,
@@ -2483,6 +2486,16 @@ export default class PublicDashboardResourceListPolicy {
         }
         variable.attributeKey =
           typeof attributeKey === "string" ? attributeKey : undefined;
+
+        /*
+         * The kind of resource it picks among, from the stored variable -
+         * never the request - so a public log stream reads the kind's logs
+         * as the page draws them (issue #11258).
+         */
+        const resourceScope: unknown = drawn["resourceScope"];
+        if (isDashboardResourceScope(resourceScope)) {
+          variable.resourceScope = resourceScope;
+        }
       }
 
       variables.push(variable);

@@ -4671,5 +4671,11 @@
   "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "您的权限仅限于带有特定标签的{{items}}，以及您或您的团队拥有的{{items}}。",
   "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "删除监视器模板会取消关联其监视器。这些监视器保留模板赋予的标准和设置，并继续检查和发出警报。",
   "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "为其创建此监视器的设备已有一个关联到此模板的监视器：{{monitorName}}。请删除二者之一，或将此监视器关联到其他模板。",
-  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "为其创建此监视器的设备已有一个关联到此模板的监视器。请删除二者之一，或将此监视器关联到其他模板。"
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "为其创建此监视器的设备已有一个关联到此模板的监视器。请删除二者之一，或将此监视器关联到其他模板。",
+  "Behind by {{count}} minutes": "滞后 {{count}} 分钟",
+  "Behind by {{count}} minutes_one": "滞后 {{count}} 分钟",
+  "Behind by {{count}} hours": "滞后 {{count}} 小时",
+  "Behind by {{count}} hours_one": "滞后 {{count}} 小时",
+  "Behind by {{count}} days": "滞后 {{count}} 天",
+  "Behind by {{count}} days_one": "滞后 {{count}} 天"
 }

@@ -102,6 +102,7 @@ describe("DashboardAPI public attribute-values", () => {
   type VariableSpec = {
     type?: DashboardVariableType | string | undefined;
     attributeKey?: unknown;
+    resourceScope?: string | undefined;
   };
 
   type BuildViewConfigFunction = (data: {
@@ -138,6 +139,9 @@ describe("DashboardAPI public attribute-values", () => {
             label: `Variable ${index}`,
             type: variable.type,
             attributeKey: variable.attributeKey,
+            ...(variable.resourceScope
+              ? { resourceScope: variable.resourceScope }
+              : {}),
           };
         },
       ),
@@ -891,6 +895,53 @@ describe("DashboardAPI public attribute-values", () => {
         "projectId",
         "telemetryType",
       ]);
+    });
+
+    /*
+     * A template's variable picks among one kind of resource (#11258): its
+     * values are that kind's alone - the kind the stored variable names,
+     * which a request can repeat but never replace.
+     */
+    it("hands a variable's kind of resource on as the stored variable names it", async () => {
+      dashboard.dashboardViewConfig = buildViewConfig({
+        componentTypes: [DashboardComponentType.Chart],
+        variables: [
+          {
+            type: DashboardVariableType.TelemetryAttribute,
+            attributeKey: "resource.host.name",
+            resourceScope: "Host",
+          },
+        ],
+      });
+
+      await callRoute({ attributeKey: "resource.host.name" });
+
+      expect(getFetchArgs()).toMatchObject({
+        attributeKey: "resource.host.name",
+        resourceScope: "Host",
+      });
+      expect(Object.keys(getFetchArgs()).sort()).toEqual([
+        "attributeKey",
+        "projectId",
+        "resourceScope",
+        "telemetryType",
+      ]);
+    });
+
+    it("reads no value for a kind the stored variable does not name", async () => {
+      setAttributeVariables(["host.name"]);
+
+      await callRoute({
+        attributeKey: "host.name",
+        resourceScope: "KubernetesCluster",
+      });
+
+      expect(
+        TelemetryAttributeService.fetchAttributeValues,
+      ).not.toHaveBeenCalled();
+      expect((getThrownError() as Error).message).toBe(
+        "This kind of resource is not part of this dashboard.",
+      );
     });
 
     it("sends no response at all when the key is refused", async () => {

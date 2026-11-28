@@ -12,6 +12,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -1375,9 +1376,11 @@ const getMethodSummary: (
       {translator.translateTemplate("Verified: {{methods}}.", {
         methods: joinList(
           verified.map((method: ReadinessMethodWire): string => {
-            return `${translator.translateTerm(method.methodType)} ${
-              method.maskedIdentifier
-            }`.trim();
+            // "Phone call", never the shared "Call" (#11418).
+            return `${NotificationMethodUtil.getMethodName(
+              translator,
+              method.methodType,
+            )} ${method.maskedIdentifier}`.trim();
           }),
         ),
       })}
