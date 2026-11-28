@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { expectNoAxeViolations } from "../SuiteHelpers/Axe";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -20,6 +21,10 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * And the bar along the top is one landmark, named "Main menu" in the
  * reader's language, at a laptop's width and on a phone with its menu open:
  * it had no name, and on a phone it was two landmarks.
+ *
+ * axe's rules hold the bar, and Help and the profile menu open, light and
+ * dark, at both widths: a phone's bar with its menu open, and no Help
+ * (SuiteHelpers/Axe, #10297).
  *
  * The fixture's ?header=true page (HeaderFixture.js) is the production
  * header and nav bar, in English or Arabic, light or dark. The widths are
@@ -479,4 +484,52 @@ for (const language of ["en", "ar"] as Array<Language>) {
     ).toEqual([words.mainMenu]);
     await expectNoSidewaysScroll(page);
   });
+}
+
+for (const width of [LAPTOP, PHONE]) {
+  for (const theme of ["light", "dark"] as Array<Theme>) {
+    test(`at ${width}px (${theme}) axe finds no broken rule in the top bar, Help or the profile menu`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: MenuWords = wordsOf("en");
+      await open(page, width, { theme: theme });
+
+      if (width === PHONE) {
+        await page.getByTestId("mobile-nav-toggle").click();
+        await expect(page.getByTestId("mobile-nav-menu")).toBeVisible();
+      }
+
+      await expectNoAxeViolations(page, {
+        include: ['[data-testid="dashboard-top-section"]'],
+        message: `the top bar at ${width}px (${theme})`,
+      });
+
+      if (width === PHONE) {
+        await page.getByTestId("mobile-nav-toggle").click();
+        await expect(page.getByTestId("mobile-nav-menu")).toBeHidden();
+      }
+
+      // A phone's bar draws no Help button.
+      const menus: Array<[Locator, string]> = [
+        [profileButton(page, words), words.profile],
+      ];
+
+      if (width === LAPTOP) {
+        menus.unshift([headerButton(page, words.help), words.help]);
+      }
+
+      for (const [button, name] of menus) {
+        await button.click();
+        await expect(menu(page, name)).toBeVisible();
+        await expectNoAxeViolations(page, {
+          include: ['[role="menu"]'],
+          message: `${name}'s menu at ${width}px (${theme})`,
+        });
+        await page.keyboard.press("Escape");
+        await expect(menu(page, name)).toHaveCount(0);
+      }
+    });
+  }
 }

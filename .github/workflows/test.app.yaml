@@ -431,7 +431,6 @@ jobs:
               test-openstack-pages-ui
               test-ask-ai-ui
               test-meraki-traffic-ui
-              test-navigation-search-ui
               test-slo-burn-rate-ui
               test-proxmox-pages-ui
               test-bulk-actions-ui
@@ -500,7 +499,6 @@ jobs:
               test-cloud-spend-ui
               test-public-dashboard-theme-ui
               test-code-editor-ui
-              test-shared-ui-ui
               test-maintenance-calendar-ui
               test-status-timeline-ui
               test-color-picker-ui
@@ -560,6 +558,8 @@ jobs:
               test-side-by-side-pages-ui
               test-xcp-ng-pages-ui
               test-storage-array-pages-ui
+              test-navigation-search-ui
+              test-shared-ui-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

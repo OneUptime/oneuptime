@@ -8,6 +8,7 @@ import {
 } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { expectNoAxeViolations } from "../SuiteHelpers/Axe";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { NO_BREAK_SPACE } from "../SuiteHelpers/NoBreakSpaces";
@@ -2633,6 +2634,39 @@ test.describe("keyboard only", () => {
         await expect(page.getByTestId("keyboard-log")).toHaveText(
           "bell-hide:notificationSetup",
         );
+      });
+    }
+  }
+
+  /*
+   * axe's rules on everything the section draws - the tabs and their
+   * panels, the bell with its panel open, a form's steps, the chips and
+   * the CSV drop area - light and dark, on a laptop and a phone
+   * (SuiteHelpers/Axe, #10297).
+   */
+  for (const theme of ["light", "dark"] as const) {
+    for (const width of [1280, 390] as const) {
+      test(`axe finds no broken rule in the section, its bell open, at ${width} (${theme})`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width: width, height: 900 });
+        await openKeyboard(page, theme === "dark" ? "&theme=dark" : "");
+
+        await expectNoAxeViolations(page, {
+          include: ['[data-testid="section-keyboard"]'],
+          message: `?section=keyboard at ${width} (${theme})`,
+        });
+
+        await page.getByRole("button", { name: "View notifications" }).click();
+        await expect(
+          page.getByRole("button", { name: "2 Active Incidents" }),
+        ).toBeVisible();
+        await expectNoAxeViolations(page, {
+          include: ['[data-testid="bell-holder"]'],
+          message: `the bell's panel at ${width} (${theme})`,
+        });
       });
     }
   }
