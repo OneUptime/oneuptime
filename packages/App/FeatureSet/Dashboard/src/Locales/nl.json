@@ -24816,7 +24816,6 @@
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.": "Als deze regel overeenkomt, worden deze personen en teams eigenaar. Laat leeg als de regel alleen eigenaren overneemt.",
   "Inherit Owners From Monitor": "Eigenaren overnemen van monitor",
   "{{used}} of {{provisioned}}": "{{used}} van {{provisioned}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Voer dit uit in de map van de agent. Je .env blijft behouden; pas de wijzigingen die je in docker-compose.yml of otel-collector-config*.yaml had gemaakt opnieuw toe.",
   "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.": "De status waarin incidenten uit dit sjabloon beginnen. Laat leeg voor de gebruikelijke; starten als bevestigd of opgelost roept niemand op.",
   "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "Laat leeg voor de gebruikelijke beginstatus. Kies een latere status om een waarschuwing vast te leggen die al bevestigd of opgelost is. Er wordt niemand voor opgeroepen.",
   "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "Laat leeg voor de gebruikelijke beginstatus. Kies een latere status om een episode vast te leggen die al bevestigd of opgelost is. Er wordt niemand voor opgeroepen.",
@@ -68395,5 +68394,6 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "De stem waarmee de oproepen van uw project spreken wanneer ze via het Twilio-account van deze server gaan. Een eigen Twilio-configuratie heeft een eigen stem.",
   "This server's voice": "Stem van deze server",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio rekent extra kosten voor deze stemmen: minder dan {{cents}} dollarcent per oproep voor dienst, in elke taal.",
-  "Voice": "Stem"
+  "Voice": "Stem",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "Voer dit uit in de map van de agent. Je .env blijft behouden; pas de wijzigingen die je in de gedownloade bestanden had gemaakt opnieuw toe."
 }

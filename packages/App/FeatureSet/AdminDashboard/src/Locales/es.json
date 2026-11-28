@@ -4605,7 +4605,7 @@
   "Project Call Voices": "Voces de los proyectos",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "Si cada proyecto elige la voz de sus propias llamadas por la cuenta de Twilio de este servidor.",
   "Let projects choose their call voice": "Dejar que los proyectos elijan la voz de sus llamadas",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "Los propietarios y administradores de un proyecto la eligen en Ajustes del proyecto > Notificaciones > Canales de notificación, y la cuenta de Twilio de este servidor la paga. Un proyecto que no elige ninguna habla con la voz de arriba.",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "Los propietarios y administradores de un proyecto la eligen en Ajustes del proyecto > Notificaciones > Canales de notificación. Un proyecto que no elige ninguna habla con la voz de arriba.",
   "Every project's calls through this server's Twilio account speak with the voice above.": "Las llamadas de todos los proyectos por la cuenta de Twilio de este servidor hablan con la voz de arriba.",
   "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Según Twilio, sus voces Basic no están pensadas para uso en producción.",
   "Save, then send a test call to hear it.": "Guarda y después envía una llamada de prueba para escucharla.",
@@ -4668,5 +4668,8 @@
   "Your permissions do not reach this {{itemName}}.": "Tus permisos no llegan a este elemento ({{itemName}}).",
   "Your permission is limited to {{items}} you or your teams own.": "Tu permiso está limitado a {{items}} que pertenecen a ti o a tus equipos.",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "Tu permiso está limitado a {{items}} con la etiqueta {{labels}} y a {{items}} que pertenecen a ti o a tus equipos.",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Tu permiso está limitado a {{items}} con ciertas etiquetas y a {{items}} que pertenecen a ti o a tus equipos."
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "Tu permiso está limitado a {{items}} con ciertas etiquetas y a {{items}} que pertenecen a ti o a tus equipos.",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "Eliminar una plantilla de monitor desvincula sus monitores. Conservan los criterios y la configuración que les dio, y siguen comprobando y generando alertas.",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "El dispositivo para el que se creó este monitor ya tiene un monitor vinculado a esta plantilla: {{monitorName}}. Elimina uno de los dos o vincula este a otra plantilla.",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "El dispositivo para el que se creó este monitor ya tiene un monitor vinculado a esta plantilla. Elimina uno de los dos o vincula este a otra plantilla."
 }

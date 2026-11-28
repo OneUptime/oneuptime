@@ -24816,7 +24816,6 @@
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.": "जब यह नियम मेल खाता है, तो ये लोग और टीमें मालिक बन जाते हैं। अगर नियम केवल मालिक विरासत में लेता है, तो खाली छोड़ें।",
   "Inherit Owners From Monitor": "मॉनिटर से स्वामी इनहेरिट करें",
   "{{used}} of {{provisioned}}": "{{provisioned}} में से {{used}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "इसे एजेंट के फ़ोल्डर में चलाएँ। आपकी .env बनी रहती है; docker-compose.yml या otel-collector-config*.yaml में किए गए बदलाव दोबारा लागू करें।",
   "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.": "इस टेम्पलेट से बनी घटनाएँ जिस स्थिति में शुरू होती हैं। सामान्य स्थिति के लिए खाली छोड़ें; स्वीकृत या सुलझी हुई स्थिति में शुरू करने पर किसी को पेज नहीं किया जाता।",
   "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "सामान्य प्रारंभिक स्थिति के लिए खाली छोड़ें। पहले से स्वीकार किया गया या सुलझाया गया अलर्ट दर्ज करने के लिए बाद की स्थिति चुनें। इसके लिए किसी को ऑन-कॉल पर नहीं बुलाया जाता।",
   "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "सामान्य प्रारंभिक स्थिति के लिए खाली छोड़ें। पहले से स्वीकार किया गया या सुलझाया गया एपिसोड दर्ज करने के लिए बाद की स्थिति चुनें। इसके लिए किसी को ऑन-कॉल पर नहीं बुलाया जाता।",
@@ -68395,5 +68394,6 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "वह आवाज़ जिसमें आपके प्रोजेक्ट की कॉल बोलती हैं, जब वे इस सर्वर के Twilio खाते से जाती हैं। आपके अपने Twilio कॉन्फ़िगरेशन की अपनी आवाज़ होती है।",
   "This server's voice": "इस सर्वर की आवाज़",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio इन आवाज़ों के लिए अतिरिक्त शुल्क लेता है: किसी भी भाषा में, हर पेज की कॉल पर {{cents}} अमेरिकी सेंट से कम।",
-  "Voice": "आवाज़"
+  "Voice": "आवाज़",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "इसे एजेंट के फ़ोल्डर में चलाएँ। आपकी .env बनी रहती है; डाउनलोड की गई फ़ाइलों में किए गए बदलाव दोबारा लागू करें।"
 }

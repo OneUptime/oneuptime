@@ -24816,7 +24816,6 @@
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.": "Quando questa regola corrisponde, queste persone e questi team diventano proprietari. Lascia vuoto se la regola eredita solo i proprietari.",
   "Inherit Owners From Monitor": "Eredita proprietari dal monitor",
   "{{used}} of {{provisioned}}": "{{used}} di {{provisioned}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Eseguilo nella cartella dell'agente. Mantiene il tuo .env; riapplica le modifiche che avevi fatto a docker-compose.yml o otel-collector-config*.yaml.",
   "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.": "Lo stato iniziale degli incidenti creati da questo modello. Lascia vuoto per quello abituale; iniziare come riconosciuto o risolto non chiama nessuno.",
   "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "Lascia vuoto per lo stato iniziale abituale. Scegli uno stato successivo per registrare un avviso già riconosciuto o risolto. Nessun reperibile viene chiamato.",
   "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "Lascia vuoto per lo stato iniziale abituale. Scegli uno stato successivo per registrare un episodio già riconosciuto o risolto. Nessun reperibile viene chiamato.",
@@ -68395,5 +68394,6 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "La voce con cui parlano le chiamate del tuo progetto quando passano per l'account Twilio di questo server. Una configurazione Twilio tua ha una voce sua.",
   "This server's voice": "Voce di questo server",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio addebita un supplemento per queste voci: meno di {{cents}} centesimi di dollaro per ogni chiamata di reperibilità, in qualsiasi lingua.",
-  "Voice": "Voce"
+  "Voice": "Voce",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "Eseguilo nella cartella dell'agente. Mantiene il tuo .env; riapplica le modifiche che avevi fatto ai file scaricati."
 }

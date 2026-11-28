@@ -24816,7 +24816,6 @@
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.": "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.",
   "Inherit Owners From Monitor": "Inherit Owners From Monitor",
   "{{used}} of {{provisioned}}": "{{used}} of {{provisioned}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.",
   "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.": "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.",
   "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.",
   "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.",
@@ -68395,5 +68394,6 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.",
   "This server's voice": "This server's voice",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.",
-  "Voice": "Voice"
+  "Voice": "Voice",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads."
 }

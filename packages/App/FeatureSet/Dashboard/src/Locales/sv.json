@@ -24816,7 +24816,6 @@
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.": "När regeln matchar blir de här personerna och teamen ägare. Lämna tomt om regeln bara ärver ägare.",
   "Inherit Owners From Monitor": "Ärv ägare från övervakning",
   "{{used}} of {{provisioned}}": "{{used}} av {{provisioned}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "Kör detta i agentens mapp. Din .env behålls; tillämpa på nytt de ändringar du gjort i docker-compose.yml eller otel-collector-config*.yaml.",
   "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.": "Tillståndet som incidenter från den här mallen startar i. Lämna tomt för det vanliga; start som bekräftad eller löst larmar ingen.",
   "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "Lämna tomt för det vanliga starttillståndet. Välj ett senare tillstånd för att registrera ett larm som redan är bekräftat eller löst. Ingen blir larmad.",
   "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "Lämna tomt för det vanliga starttillståndet. Välj ett senare tillstånd för att registrera en episod som redan är bekräftad eller löst. Ingen blir larmad.",
@@ -68395,5 +68394,6 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "Rösten som projektets samtal talar med när de går genom den här serverns Twilio-konto. En egen Twilio-konfiguration har en egen röst.",
   "This server's voice": "Den här serverns röst",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio tar extra betalt för de här rösterna: under {{cents}} amerikanska cent per larmsamtal, på alla språk.",
-  "Voice": "Röst"
+  "Voice": "Röst",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "Kör detta i agentens mapp. Din .env behålls; tillämpa på nytt de ändringar du gjort i de hämtade filerna."
 }

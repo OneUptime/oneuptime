@@ -4605,7 +4605,7 @@
   "Project Call Voices": "项目通话语音",
   "Whether each project chooses the voice of its own calls through this server's Twilio account.": "每个项目是否为经由此服务器 Twilio 账户的自身通话选择语音。",
   "Let projects choose their call voice": "允许项目选择其通话语音",
-  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels, and this server's Twilio account pays for it. A project that chooses none speaks with the voice above.": "项目所有者和管理员在 项目设置 > 通知 > 通知渠道 中选择，费用由此服务器的 Twilio 账户支付。未选择语音的项目使用上面的语音。",
+  "Project owners and admins choose it in Project Settings > Notifications > Notification Channels. A project that chooses none uses the voice above.": "项目所有者和管理员在 项目设置 > 通知 > 通知渠道 中选择。未选择语音的项目使用上面的语音。",
   "Every project's calls through this server's Twilio account speak with the voice above.": "所有项目经由此服务器 Twilio 账户的通话都使用上面的语音。",
   "Free. Twilio says its Basic voices are not meant for production.": "免费。Twilio 表示其 Basic 语音不适合用于生产环境。",
   "Save, then send a test call to hear it.": "保存后，发送测试呼叫即可试听。",
@@ -4668,5 +4668,8 @@
   "Your permissions do not reach this {{itemName}}.": "您的权限不涵盖此{{itemName}}。",
   "Your permission is limited to {{items}} you or your teams own.": "您的权限仅限于您或您的团队拥有的{{items}}。",
   "Your permission is limited to {{items}} labelled {{labels}} and to {{items}} you or your teams own.": "您的权限仅限于带有标签 {{labels}} 的{{items}}，以及您或您的团队拥有的{{items}}。",
-  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "您的权限仅限于带有特定标签的{{items}}，以及您或您的团队拥有的{{items}}。"
+  "Your permission is limited to {{items}} with certain labels and to {{items}} you or your teams own.": "您的权限仅限于带有特定标签的{{items}}，以及您或您的团队拥有的{{items}}。",
+  "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.": "删除监视器模板会取消关联其监视器。这些监视器保留模板赋予的标准和设置，并继续检查和发出警报。",
+  "The device this monitor was made for already has a monitor linked to this template: {{monitorName}}. Delete one of the two, or link this one to another template.": "为其创建此监视器的设备已有一个关联到此模板的监视器：{{monitorName}}。请删除二者之一，或将此监视器关联到其他模板。",
+  "The device this monitor was made for already has a monitor linked to this template. Delete one of the two, or link this one to another template.": "为其创建此监视器的设备已有一个关联到此模板的监视器。请删除二者之一，或将此监视器关联到其他模板。"
 }

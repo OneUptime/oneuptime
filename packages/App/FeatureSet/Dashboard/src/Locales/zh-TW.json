@@ -24816,7 +24816,6 @@
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.": "此規則符合時，這些人員和團隊會成為擁有者。如果規則只繼承擁有者，請留空。",
   "Inherit Owners From Monitor": "從監測器繼承擁有者",
   "{{used}} of {{provisioned}}": "{{provisioned}} 中的 {{used}}",
-  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to docker-compose.yml or otel-collector-config*.yaml.": "在代理程式的資料夾中執行。你的 .env 會保留；請重新套用你對 docker-compose.yml 或 otel-collector-config*.yaml 做過的變更。",
   "The state incidents from this template start in. Leave empty for the usual one; starting acknowledged or resolved pages no one.": "由此範本建立的事件的初始狀態。留空則使用一般狀態；以已確認或已解決開始不會呼叫任何人。",
   "Leave empty for the usual starting state. Pick a later state to record an alert that is already acknowledged or resolved. No one is paged for it.": "留空則使用一般的初始狀態。若要記錄已確認或已解決的警示，請選擇後續狀態。不會呼叫任何人。",
   "Leave empty for the usual starting state. Pick a later state to record an episode that is already acknowledged or resolved. No one is paged for it.": "留空則使用一般的初始狀態。若要記錄已確認或已解決的片段，請選擇後續狀態。不會呼叫任何人。",
@@ -68395,5 +68394,6 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "您的專案的通話經由此伺服器的 Twilio 帳戶撥出時所用的語音。您自己的 Twilio 設定有其自己的語音。",
   "This server's voice": "此伺服器的語音",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio 對這些語音額外收費：無論哪種語言，每通呼叫電話都不到 {{cents}} 美分。",
-  "Voice": "語音"
+  "Voice": "語音",
+  "Run this in the agent's folder. It keeps your .env; re-apply any change you made to the files it downloads.": "在代理程式的資料夾中執行。你的 .env 會保留；請重新套用你對下載的檔案做過的變更。"
 }
