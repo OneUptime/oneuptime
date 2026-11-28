@@ -15,6 +15,7 @@ import SecurityUserErasureThreatStamps, {
 import ScrubHashToken from "../../../../../Server/Utils/Telemetry/ScrubHashToken";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
+  ENRICHMENT_CONFIDENCE_ATTRIBUTE,
   ENRICHMENT_INDICATOR_ID_ATTRIBUTE,
   ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE,
   isErasedIndicatorId,
@@ -94,6 +95,8 @@ function stamped(data: {
   id?: string;
   time?: string;
   stamp: string;
+  // The indicator's score the stamp still holds (#11447).
+  confidence?: string;
   principal?: Partial<StampedEventRow["roles"][ScrubbedUserRole]>;
   target?: Partial<StampedEventRow["roles"][ScrubbedUserRole]>;
 }): StampedEventRow {
@@ -101,6 +104,7 @@ function stamped(data: {
     id: data.id ?? "event-1",
     time: data.time ?? "1764000000000000001",
     indicatorValue: data.stamp,
+    ...(data.confidence !== undefined ? { confidence: data.confidence } : {}),
     roles: {
       [ScrubbedUserRole.Principal]: role(data.principal),
       [ScrubbedUserRole.Target]: role(data.target),
@@ -315,6 +319,69 @@ describe("whose a stamp is", () => {
   });
 });
 
+/*
+ * #11447: the feed keeps each indicator's score beside the address, and the
+ * stamp kept it too. A stamp an earlier erasure took the person out of
+ * holds their token already, and may still hold the score.
+ */
+describe("a stamp's indicator score (#11447)", () => {
+  const CONTEXT: {
+    projectId: ObjectID;
+    tokens: Array<string>;
+    names: Array<ErasedName>;
+  } = { projectId: PROJECT_ID, tokens: TOKENS, names: NAMES };
+
+  test("one an earlier erasure left with the token and its score: rewritten to the same token and id, which the rewrite takes the score from", () => {
+    const rewrite: StampRewrite | null = planStampRewrite(
+      stamped({
+        stamp: TOKEN,
+        confidence: "80",
+        principal: { user: TOKEN, scrubbed: TOKEN, isErased: true },
+      }),
+      CONTEXT,
+    );
+
+    expect(rewrite).toEqual({
+      id: "event-1",
+      time: "1764000000000000001",
+      value: TOKEN,
+      indicatorId: erasedIdOf(TOKEN),
+    });
+  });
+
+  test("what the rule left around the token stays around it", () => {
+    expect(
+      planStampRewrite(
+        stamped({ stamp: `auth0|${TOKEN}`, confidence: "60" }),
+        CONTEXT,
+      )?.value,
+    ).toBe(`auth0|${TOKEN}`);
+  });
+
+  test("one with the token and no score left needs nothing more", () => {
+    for (const confidence of ["", undefined]) {
+      expect(
+        planStampRewrite(
+          stamped({
+            stamp: TOKEN,
+            ...(confidence !== undefined ? { confidence } : {}),
+          }),
+          CONTEXT,
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("another person's token, with its score, is left to their own request", () => {
+    expect(
+      planStampRewrite(
+        stamped({ stamp: "[HASHED:0000000000000000]", confidence: "80" }),
+        CONTEXT,
+      ),
+    ).toBeNull();
+  });
+});
+
 describe("the mutations that rewrite the stamps", () => {
   function rewrite(id: string, time: string, value: string): StampRewrite {
     return { id, time, value, indicatorId: erasedIdOf(value) };
@@ -383,7 +450,7 @@ describe("what the erasure sends ClickHouse about the stamps", () => {
 
     expect(statement.query).toMatch(
       new RegExp(
-        `^SELECT _id AS stampedEventId, toString\\(toUnixTimestamp64Nano\\(time\\)\\) AS stampedEventTime, attributes\\[\\{p\\d+:String\\}\\] AS stampedValue, principalUser AS principalStampedUser, attributes\\[\\{p\\d+:String\\}\\] AS principalStampedHashedAs, `,
+        `^SELECT _id AS stampedEventId, toString\\(toUnixTimestamp64Nano\\(time\\)\\) AS stampedEventTime, attributes\\[\\{p\\d+:String\\}\\] AS stampedValue, attributes\\[\\{p\\d+:String\\}\\] AS stampedConfidence, principalUser AS principalStampedUser, attributes\\[\\{p\\d+:String\\}\\] AS principalStampedHashedAs, `,
       ),
     );
     expect(statement.query).toMatch(
@@ -393,11 +460,16 @@ describe("what the erasure sends ClickHouse about the stamps", () => {
     expect(statement.query).toContain(
       "AND NOT has(arrayMap(observable -> lowerUTF8(observable), observables), lowerUTF8(attributes[",
     );
+    // Or a stamp an earlier erasure left holding a token and the indicator's score (#11447).
+    expect(statement.query).toMatch(
+      /AND \(\(multiSearchAny\(attributes\[\{p\d+:String\}\], \{p\d+:Array\(String\)\}\) AND attributes\[\{p\d+:String\}\] != ''\) OR \(NOT multiSearchAny\(/,
+    );
     expect(statement.query).toMatch(/ORDER BY time, _id LIMIT \{p\d+:Int32\}$/);
     expect(parameterValues(statement)).toEqual(
       expect.arrayContaining([
         PROJECT_ID.toString(),
         ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE,
+        ENRICHMENT_CONFIDENCE_ATTRIBUTE,
         HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Principal],
         HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Target],
         SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal].scrubbed,
@@ -446,8 +518,12 @@ describe("what the erasure sends ClickHouse about the stamps", () => {
 
     expect(statement.query).toMatch(
       new RegExp(
-        `^ALTER TABLE \\S+\\.${EVENTS}Local ON CLUSTER '[^']+' UPDATE attributes = mapUpdate\\(attributes, map\\(\\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}\\)\\), attributeKeys = mapKeys\\(mapUpdate\\(attributes, map\\(`,
+        `^ALTER TABLE \\S+\\.${EVENTS}Local ON CLUSTER '[^']+' UPDATE attributes = mapFilter\\(\\(stampKey, stampValue\\) -> stampKey != \\{p\\d+:String\\}, mapUpdate\\(attributes, map\\(\\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}\\)\\)\\), attributeKeys = mapKeys\\(mapFilter\\(\\(stampKey, stampValue\\) -> stampKey != \\{p\\d+:String\\}, mapUpdate\\(attributes, map\\(`,
       ),
+    );
+    // The indicator's score goes by its key: nothing of the score is sent (#11447).
+    expect(parameterValues(statement)).toContain(
+      ENRICHMENT_CONFIDENCE_ATTRIBUTE,
     );
     expect(statement.query).toMatch(
       /WHERE projectId = \{p\d+:String\} AND time >= fromUnixTimestamp64Nano\(\{p\d+:Int64\}\) AND time <= fromUnixTimestamp64Nano\(\{p\d+:Int64\}\) AND _id IN \(\{p\d+:Array\(String\)\}\)$/,

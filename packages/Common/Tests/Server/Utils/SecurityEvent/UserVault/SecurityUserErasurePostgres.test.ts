@@ -39,6 +39,12 @@ import SecurityPlaybookRunStatus, {
   SecurityPlaybookStepStatus,
 } from "../../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SecurityUserErasureRequestStatus } from "../../../../../Types/SecurityEvent/SecurityUserErasure";
+import OcsfSeverity from "../../../../../Types/SecurityEvent/OcsfSeverity";
+import {
+  ENRICHMENT_CONFIDENCE_ATTRIBUTE,
+  ERASED_THREAT_INTEL_SEVERITY,
+  ocsfSeverityForConfidence,
+} from "../../../../../Types/SecurityEvent/ThreatIntelConstants";
 import {
   detectionRuleMatchMarkdown,
   threatIntelMatchMarkdown,
@@ -1388,7 +1394,9 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
      * #11230: a threat intel feed lists the person's address, and keeps it
      * in clear beside its indicator's STIX id and name. What OneUptime wrote
      * about the match named the indicator by both; written here by the same
-     * builders the matcher writes with.
+     * builders the matcher writes with. And by its score (#11447): "(email-
+     * addr, confidence 80)", a kept event's threat.confidence, and the
+     * detection's severity, which the matcher takes from the score.
      */
     describe("a threat intel feed's indicator (#11230)", () => {
       const STIX_ID: string = "indicator--8e2e2d2b-17d4-4cbf-938f-98ee46b3cd3f";
@@ -1407,13 +1415,14 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
         value: string,
         stixId: string = STIX_ID,
         indicatorName: string = INDICATOR_NAME,
+        confidence: number = 80,
       ): string {
         return threatIntelMatchMarkdown({
           feedName: FEED_NAME,
           indicatorName,
           indicatorValue: value,
           indicatorType: "email-addr",
-          confidence: 80,
+          confidence,
           matchCount: 2,
           windowStart: "2026-11-24T09:00:00Z",
           windowEnd: "2026-11-24T09:15:00Z",
@@ -1426,10 +1435,12 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
       function alertDescription(
         value: string,
         stixId: string = STIX_ID,
+        confidence: number = 80,
+        indicatorName: string = INDICATOR_NAME,
       ): string {
         return [
-          INDICATOR_NAME,
-          `Indicator ${value} (email-addr, confidence 80) matched 2 security events between A and B.`,
+          indicatorName,
+          `Indicator ${value} (email-addr, confidence ${confidence}) matched 2 security events between A and B.`,
           `STIX indicator: ${stixId}`,
           `Sample event: Sign-in from ${ADDRESS}`,
           `Observables: ${value}, ${ADDRESS}`,
@@ -1440,21 +1451,45 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
         table: "AlertFeed" | "IncidentFeed",
         recordId: ObjectID,
         description: string,
+        value: string = ALICE,
       ): Promise<ObjectID> {
         return await insert(table, {
           projectId: projectId.toString(),
           [table === "AlertFeed" ? "alertId" : "incidentId"]:
             recordId.toString(),
-          feedInfoInMarkdown: `#### 🚨 Created:\n\n**[Threat Intel] ${FEED_NAME} — ${ALICE}**:\n\n${description}\n\n🔴 **State**: Created`,
+          feedInfoInMarkdown: feedInfoOf(description, value),
         });
       }
 
-      test("a detection's description, and the case's it opened: the erased indicator id for the STIX id, and the indicator's name gone", async () => {
+      // What the feed item that announced an alert or an incident about the value says.
+      function feedInfoOf(description: string, value: string = ALICE): string {
+        return `#### 🚨 Created:\n\n**[Threat Intel] ${FEED_NAME} — ${value}**:\n\n${description}\n\n🔴 **State**: Created`;
+      }
+
+      // A match's text with the indicator's score out of it, as an erasure leaves it (#11447).
+      function withoutScore(text: string, confidence: number = 80): string {
+        const stated: string = `(email-addr, confidence ${confidence})`;
+
+        expect(text).toContain(stated);
+
+        return text.split(stated).join("(email-addr)");
+      }
+
+      // A priority a case was opened at, and a severity an alert paged at.
+      const PRIORITY_ID: ObjectID = new ObjectID(
+        "11447000-0000-4000-8000-0000000000a1",
+      );
+      const ALERT_SEVERITY_ID: ObjectID = new ObjectID(
+        "11447000-0000-4000-8000-0000000000a2",
+      );
+
+      test("a detection's description, and the case's it opened: the erased indicator id for the STIX id, the indicator's name and its score gone, and the detection at the severity of a match on an unscored indicator", async () => {
         const caseId: ObjectID = await insert("SecurityCase", {
           projectId: projectId.toString(),
           title: `${FEED_NAME} — ${ALICE}`,
           description: matchDescription(ALICE),
           entities: userEntities(ALICE),
+          securityCasePriorityId: PRIORITY_ID.toString(),
         });
         const detectionId: ObjectID = await detection({
           securityCaseId: caseId.toString(),
@@ -1463,23 +1498,29 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
           description: matchDescription(ALICE),
           groupValue: ALICE,
           ruleName: FEED_NAME,
+          // The matcher's, from the indicator's score.
+          severity: ocsfSeverityForConfidence(80),
           fingerprint: ofFeed(
             keyed(ALICE, DetectionFingerprintKind.ThreatIntel),
           ),
         });
-        // Somebody else's match keeps the feed's indicator.
+        // Somebody else's match keeps the feed's indicator, and its score.
         const bobId: ObjectID = await detection({
           source: SecurityDetectionSource.ThreatIntel,
           title: `${FEED_NAME} — ${BOB}`,
           description: matchDescription(BOB, BOB_STIX_ID, "Phishing sender"),
           groupValue: BOB,
+          severity: ocsfSeverityForConfidence(80),
           fingerprint: ofFeed(keyed(BOB, DetectionFingerprintKind.ThreatIntel)),
         });
 
+        expect(ocsfSeverityForConfidence(80)).toBe(OcsfSeverity.High);
+
         await SecurityUserErasureRecords.unnameRecords({ projectId, names });
 
+        // No score of the indicator's in the match's sentence (#11447).
         const unnamed: string = [
-          `Indicator \`${aliceToken}\` (email-addr, confidence 80) from the threat intel feed **${FEED_NAME}** matched 2 security events between 2026-11-24T09:00:00Z and 2026-11-24T09:15:00Z.`,
+          `Indicator \`${aliceToken}\` (email-addr) from the threat intel feed **${FEED_NAME}** matched 2 security events between 2026-11-24T09:00:00Z and 2026-11-24T09:15:00Z.`,
           `STIX indicator: \`${erasedIdOf(aliceToken)}\``,
           `Sample event: \`Sign-in from ${ADDRESS}\``,
         ].join("\n\n");
@@ -1495,24 +1536,124 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
         );
         // The feed is still named; the indicator is not.
         expect(row["ruleName"]).toBe(FEED_NAME);
-        expect((await rowOf("SecurityCase", caseId))["description"]).toBe(
-          unnamed,
+        // Nor the band of its score, which the severity was (#11447).
+        expect(row["severity"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
+        expect(row["severity"]).toBe(ocsfSeverityForConfidence(0));
+
+        const kase: Record<string, unknown> = await rowOf(
+          "SecurityCase",
+          caseId,
         );
 
-        for (const kept of [row, await rowOf("SecurityCase", caseId)]) {
+        expect(kase["description"]).toBe(unnamed);
+        // The priority the case was opened at stays: people triaged it by that.
+        expect(kase["securityCasePriorityId"]).toBe(PRIORITY_ID.toString());
+
+        for (const kept of [row, kase]) {
           const text: string = JSON.stringify(kept);
 
           expect(text).not.toContain(STIX_ID);
           expect(text).not.toContain("Phishing sender");
+          expect(text).not.toContain("confidence");
           expect(text.toLowerCase()).not.toContain(ALICE);
         }
 
-        expect((await rowOf("SecurityDetection", bobId))["description"]).toBe(
+        const bob: Record<string, unknown> = await rowOf(
+          "SecurityDetection",
+          bobId,
+        );
+
+        expect(bob["description"]).toBe(
           matchDescription(BOB, BOB_STIX_ID, "Phishing sender"),
+        );
+        expect(bob["description"]).toContain("(email-addr, confidence 80)");
+        expect(bob["severity"]).toBe(OcsfSeverity.High);
+      });
+
+      test("a description a person rewrote keeps the score they wrote in it; OneUptime's own sentence loses it", async () => {
+        const rewritten: string =
+          "Dana: the feed scores this address (email-addr, confidence 80) - escalate.";
+        const caseId: ObjectID = await insert("SecurityCase", {
+          projectId: projectId.toString(),
+          title: `${FEED_NAME} — ${ALICE}`,
+          description: rewritten,
+        });
+        const detectionId: ObjectID = await detection({
+          securityCaseId: caseId.toString(),
+          source: SecurityDetectionSource.ThreatIntel,
+          title: `${FEED_NAME} — ${ALICE}`,
+          description: matchDescription(ALICE),
+          groupValue: ALICE,
+          severity: OcsfSeverity.High,
+        });
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        const kase: Record<string, unknown> = await rowOf(
+          "SecurityCase",
+          caseId,
+        );
+
+        // Its title is OneUptime's, and gets the token; its description is the person's.
+        expect(kase["title"]).toBe(`${FEED_NAME} — ${aliceToken}`);
+        expect(kase["description"]).toBe(rewritten);
+
+        const row: Record<string, unknown> = await rowOf(
+          "SecurityDetection",
+          detectionId,
+        );
+
+        expect(String(row["description"])).toContain(
+          `Indicator \`${aliceToken}\` (email-addr) from the threat intel feed`,
+        );
+        expect(String(row["description"])).not.toContain("confidence");
+        expect(row["severity"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
+      });
+
+      test("a detection the rule wrote about something else - not a match on the person - keeps its severity", async () => {
+        // A detection rule's, that names the person in its title: not a feed's score.
+        const ruleDetection: ObjectID = await detection({
+          source: SecurityDetectionSource.DetectionRule,
+          title: `Brute force — ${ALICE}`,
+          description: detectionRuleMatchMarkdown({
+            ruleName: "Brute force",
+            matchCount: 12,
+            windowStart: "2026-11-24T09:00:00Z",
+            windowEnd: "2026-11-24T09:15:00Z",
+            observables: [ALICE, ADDRESS],
+          }).toString(),
+          groupValue: ALICE,
+          severity: OcsfSeverity.Critical,
+        });
+        // A feed's match on somebody else, whose title the person's name is not in.
+        const bobMatch: ObjectID = await detection({
+          source: SecurityDetectionSource.ThreatIntel,
+          title: `${FEED_NAME} — ${BOB}`,
+          description: matchDescription(
+            BOB,
+            BOB_STIX_ID,
+            "Phishing sender",
+            95,
+          ),
+          groupValue: BOB,
+          severity: OcsfSeverity.Critical,
+        });
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        const rule: Record<string, unknown> = await rowOf(
+          "SecurityDetection",
+          ruleDetection,
+        );
+
+        expect(rule["title"]).toBe(`Brute force — ${aliceToken}`);
+        expect(rule["severity"]).toBe(OcsfSeverity.Critical);
+        expect((await rowOf("SecurityDetection", bobMatch))["severity"]).toBe(
+          OcsfSeverity.Critical,
         );
       });
 
-      test("the events a detection kept: their stamp about the person says the token and the erased indicator id", async () => {
+      test("the events a detection kept: their stamp about the person says the token and the erased indicator id, and keeps no score", async () => {
         const detectionId: ObjectID = await detection({
           source: SecurityDetectionSource.ThreatIntel,
           title: `${FEED_NAME} — ${ALICE}`,
@@ -1527,6 +1668,7 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
                   "threat.indicator_id": STIX_ID,
                   "threat.feed": FEED_NAME,
                   "threat.indicator_type": "email-addr",
+                  [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "80",
                 },
               },
               {
@@ -1534,6 +1676,7 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
                 attributes: {
                   "threat.indicator_value": "198.51.100.66",
                   "threat.indicator_id": BOB_STIX_ID,
+                  [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "60",
                 },
               },
             ],
@@ -1550,6 +1693,7 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
             {
               message: "Sign-in",
               principalUser: aliceToken,
+              // The feed and the type stay; the score goes (#11447).
               attributes: {
                 "threat.indicator_value": aliceToken,
                 "threat.indicator_id": erasedIdOf(aliceToken),
@@ -1562,6 +1706,7 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
               attributes: {
                 "threat.indicator_value": "198.51.100.66",
                 "threat.indicator_id": BOB_STIX_ID,
+                [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "60",
               },
             },
           ],
@@ -1569,13 +1714,14 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
         });
       });
 
-      test("an alert and an incident the match opened: their description and the feed item that announced it say the erased indicator id, the rest as written", async () => {
+      test("an alert and an incident the match opened: their description and the feed item that announced it say the erased indicator id and no score, the rest as written", async () => {
         const fingerprint: string = ofFeed(
           legacy(ALICE, DetectionFingerprintKind.ThreatIntel),
         );
         const alertId: ObjectID = await alert(fingerprint, {
           title: `[Threat Intel] ${FEED_NAME} — ${ALICE}`,
           description: alertDescription(ALICE),
+          alertSeverityId: ALERT_SEVERITY_ID.toString(),
         });
         const alertItem: ObjectID = await feedItem(
           "AlertFeed",
@@ -1615,17 +1761,23 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
 
         const erased: string = erasedIdOf(aliceToken);
         const after: Record<string, unknown> = await rowOf("Alert", alertId);
-
-        expect(after["description"]).toBe(
+        // The erased indicator id for the STIX id, and no score (#11447).
+        const cut: string = withoutScore(
           alertDescription(ALICE).replace(
             `STIX indicator: ${STIX_ID}`,
             `STIX indicator: ${erased}`,
           ),
         );
+
+        expect(after["description"]).toBe(cut);
         expect(after["seriesFingerprint"]).toBe(
           ofFeed(keyed(aliceToken, DetectionFingerprintKind.ThreatIntel)),
         );
-        // Nothing else about it changed: its title is left, as an erasure leaves alerts.
+        /*
+         * Nothing else about it changed: its title is left, as an erasure
+         * leaves alerts, and so is the severity it paged at.
+         */
+        expect(after["alertSeverityId"]).toBe(ALERT_SEVERITY_ID.toString());
         expect({
           ...after,
           description: null,
@@ -1634,28 +1786,63 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
 
         expect(
           (await rowOf("AlertFeed", alertItem))["feedInfoInMarkdown"],
-        ).toContain(`STIX indicator: ${erased}`);
+        ).toBe(feedInfoOf(cut));
         expect(
           String((await rowOf("AlertFeed", alertItem))["feedInfoInMarkdown"]),
         ).not.toContain(STIX_ID);
-        expect((await rowOf("Incident", incidentId))["description"]).toBe(
-          alertDescription(ALICE).replace(
-            `STIX indicator: ${STIX_ID}`,
-            `STIX indicator: ${erased}`,
-          ),
-        );
+        expect((await rowOf("Incident", incidentId))["description"]).toBe(cut);
         expect(
-          String(
-            (await rowOf("IncidentFeed", incidentItem))["feedInfoInMarkdown"],
-          ),
-        ).toContain(`STIX indicator: ${erased}`);
+          (await rowOf("IncidentFeed", incidentItem))["feedInfoInMarkdown"],
+        ).toBe(feedInfoOf(cut));
+
+        for (const kept of [
+          await rowOf("Alert", alertId),
+          await rowOf("AlertFeed", alertItem),
+          await rowOf("Incident", incidentId),
+          await rowOf("IncidentFeed", incidentItem),
+        ]) {
+          expect(JSON.stringify(kept)).not.toContain("confidence");
+        }
 
         expect((await rowOf("Alert", bobAlert))["description"]).toBe(
           alertDescription(BOB, BOB_STIX_ID),
         );
+        expect((await rowOf("AlertFeed", bobItem))["feedInfoInMarkdown"]).toBe(
+          feedInfoOf(alertDescription(BOB, BOB_STIX_ID)),
+        );
+      });
+
+      test("an alert whose description states a score but no STIX id - a list's or Google SecOps's indicator - loses the score, its feed item too", async () => {
+        // A list's indicator is no STIX indicator: the description names none.
+        const description: string = alertDescription(ALICE)
+          .split("\n\n")
+          .filter((paragraph: string): boolean => {
+            return !paragraph.startsWith("STIX indicator: ");
+          })
+          .join("\n\n");
+        const alertId: ObjectID = await alert(
+          ofFeed(legacy(ALICE, DetectionFingerprintKind.ThreatIntel)),
+          {
+            title: `[Threat Intel] ${FEED_NAME} — ${ALICE}`,
+            description,
+          },
+        );
+        const alertItem: ObjectID = await feedItem(
+          "AlertFeed",
+          alertId,
+          description,
+        );
+
+        expect(description).not.toContain("STIX indicator");
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        expect((await rowOf("Alert", alertId))["description"]).toBe(
+          withoutScore(description),
+        );
         expect(
-          String((await rowOf("AlertFeed", bobItem))["feedInfoInMarkdown"]),
-        ).toContain(`STIX indicator: ${BOB_STIX_ID}`);
+          (await rowOf("AlertFeed", alertItem))["feedInfoInMarkdown"],
+        ).toBe(feedInfoOf(withoutScore(description)));
       });
 
       test("what an earlier erasure un-named with the indicator left, a request filed again takes it out", async () => {
@@ -1664,6 +1851,7 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
           title: `${FEED_NAME} — ${aliceToken}`,
           description: matchDescription(aliceToken),
           groupValue: aliceToken,
+          severity: OcsfSeverity.High,
           fingerprint: ofFeed(
             keyed(aliceToken, DetectionFingerprintKind.ThreatIntel),
           ),
@@ -1690,6 +1878,8 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
         ]) {
           expect(String(description)).not.toContain(STIX_ID);
           expect(String(description)).toContain(erasedIdOf(aliceToken));
+          // And the score beside it (#11447).
+          expect(String(description)).not.toContain("confidence");
         }
 
         expect(
@@ -1697,6 +1887,132 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
             (await rowOf("SecurityDetection", detectionId))["description"],
           ),
         ).not.toContain("Phishing sender");
+        expect(
+          (await rowOf("SecurityDetection", detectionId))["severity"],
+        ).toBe(ERASED_THREAT_INTEL_SEVERITY);
+      });
+
+      /*
+       * #11447: an erasure from before it took the indicator's id and name
+       * out, and left its score beside the erased indicator id - in every
+       * place the match wrote. A request filed again finds each by the
+       * score and the token, and takes the score out.
+       */
+      test("what #11230's erasure left - the erased indicator id with the indicator's score beside it - a request filed again takes the score out of each place, and leaves the rest", async () => {
+        const erased: string = erasedIdOf(aliceToken);
+        const left: string = [
+          `Indicator \`${aliceToken}\` (email-addr, confidence 80) from the threat intel feed **${FEED_NAME}** matched 2 security events between 2026-11-24T09:00:00Z and 2026-11-24T09:15:00Z.`,
+          `STIX indicator: \`${erased}\``,
+          `Sample event: \`Sign-in from ${ADDRESS}\``,
+        ].join("\n\n");
+        const leftAlert: string = alertDescription(ALICE).replace(
+          `STIX indicator: ${STIX_ID}`,
+          `STIX indicator: ${erased}`,
+        );
+        const fingerprint: string = ofFeed(
+          keyed(aliceToken, DetectionFingerprintKind.ThreatIntel),
+        );
+        const caseId: ObjectID = await insert("SecurityCase", {
+          projectId: projectId.toString(),
+          title: `${FEED_NAME} — ${aliceToken}`,
+          description: left,
+          securityCasePriorityId: PRIORITY_ID.toString(),
+        });
+        const detectionId: ObjectID = await detection({
+          securityCaseId: caseId.toString(),
+          source: SecurityDetectionSource.ThreatIntel,
+          title: `${FEED_NAME} — ${aliceToken}`,
+          description: left,
+          groupValue: aliceToken,
+          ruleName: FEED_NAME,
+          severity: OcsfSeverity.High,
+          fingerprint,
+          matchedEvents: {
+            events: [
+              {
+                message: "Sign-in",
+                principalUser: aliceToken,
+                attributes: {
+                  "threat.indicator_value": aliceToken,
+                  "threat.indicator_id": erased,
+                  "threat.feed": FEED_NAME,
+                  [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "80",
+                },
+              },
+            ],
+            outcomes: {},
+          },
+        });
+        const alertId: ObjectID = await alert(fingerprint, {
+          title: `[Threat Intel] ${FEED_NAME} — ${ALICE}`,
+          description: leftAlert,
+          alertSeverityId: ALERT_SEVERITY_ID.toString(),
+        });
+        const alertItem: ObjectID = await feedItem(
+          "AlertFeed",
+          alertId,
+          leftAlert,
+        );
+        const incidentId: ObjectID = await insert("Incident", {
+          projectId: projectId.toString(),
+          title: `[Threat Intel] ${FEED_NAME} — ${ALICE}`,
+          description: leftAlert,
+          seriesFingerprint: fingerprint,
+        });
+        const incidentItem: ObjectID = await feedItem(
+          "IncidentFeed",
+          incidentId,
+          leftAlert,
+        );
+
+        await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+        const row: Record<string, unknown> = await rowOf(
+          "SecurityDetection",
+          detectionId,
+        );
+
+        expect(row["description"]).toBe(withoutScore(left));
+        expect(row["severity"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
+        expect(row["fingerprint"]).toBe(fingerprint);
+        expect(row["matchedEvents"]).toEqual({
+          events: [
+            {
+              message: "Sign-in",
+              principalUser: aliceToken,
+              attributes: {
+                "threat.indicator_value": aliceToken,
+                "threat.indicator_id": erased,
+                "threat.feed": FEED_NAME,
+              },
+            },
+          ],
+          outcomes: {},
+        });
+
+        const kase: Record<string, unknown> = await rowOf(
+          "SecurityCase",
+          caseId,
+        );
+
+        expect(kase["description"]).toBe(withoutScore(left));
+        expect(kase["securityCasePriorityId"]).toBe(PRIORITY_ID.toString());
+
+        const alerted: Record<string, unknown> = await rowOf("Alert", alertId);
+
+        expect(alerted["description"]).toBe(withoutScore(leftAlert));
+        // Its grouping is the token's, as it was, so it goes on taking the match's repeats.
+        expect(alerted["seriesFingerprint"]).toBe(fingerprint);
+        expect(alerted["alertSeverityId"]).toBe(ALERT_SEVERITY_ID.toString());
+        expect(
+          (await rowOf("AlertFeed", alertItem))["feedInfoInMarkdown"],
+        ).toBe(feedInfoOf(withoutScore(leftAlert)));
+        expect((await rowOf("Incident", incidentId))["description"]).toBe(
+          withoutScore(leftAlert),
+        );
+        expect(
+          (await rowOf("IncidentFeed", incidentItem))["feedInfoInMarkdown"],
+        ).toBe(feedInfoOf(withoutScore(leftAlert)));
       });
 
       test("running it again changes nothing", async () => {
@@ -1712,17 +2028,41 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
           title: `${FEED_NAME} — ${ALICE}`,
           description: matchDescription(ALICE),
           groupValue: ALICE,
+          severity: OcsfSeverity.High,
           fingerprint: ofFeed(
             keyed(ALICE, DetectionFingerprintKind.ThreatIntel),
           ),
+          matchedEvents: {
+            events: [
+              {
+                message: "Sign-in",
+                principalUser: ALICE,
+                attributes: {
+                  "threat.indicator_value": ALICE,
+                  "threat.indicator_id": STIX_ID,
+                  [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "80",
+                },
+              },
+            ],
+            outcomes: {},
+          },
         });
 
         const alertId: ObjectID = await alert(
           ofFeed(keyed(ALICE, DetectionFingerprintKind.ThreatIntel)),
           { description: alertDescription(ALICE) },
         );
+        const incidentId: ObjectID = await insert("Incident", {
+          projectId: projectId.toString(),
+          title: `[Threat Intel] ${FEED_NAME} — ${ALICE}`,
+          description: alertDescription(ALICE),
+          seriesFingerprint: ofFeed(
+            keyed(ALICE, DetectionFingerprintKind.ThreatIntel),
+          ),
+        });
 
         await feedItem("AlertFeed", alertId, alertDescription(ALICE));
+        await feedItem("IncidentFeed", incidentId, alertDescription(ALICE));
         await SecurityUserErasureRecords.unnameRecords({ projectId, names });
 
         const snapshot: () => Promise<string> = async (): Promise<string> => {
@@ -1733,6 +2073,8 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
             "SecurityCase",
             "Alert",
             "AlertFeed",
+            "Incident",
+            "IncidentFeed",
           ]) {
             rows.push(
               ...(await database.query(
@@ -1747,9 +2089,340 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
 
         const once: string = await snapshot();
 
+        // Nothing of the score is left for a second run to find.
+        expect(once).not.toContain("confidence");
+
         await SecurityUserErasureRecords.unnameRecords({ projectId, names });
 
         expect(await snapshot()).toBe(once);
+      });
+
+      /*
+       * #11447: a feed of a handful of accounts, each with a score of its
+       * own - one in each band a score gives - and what the matcher wrote in
+       * Postgres about each match: the detection and the case it opened (the
+       * score in their sentence, the detection's severity the score's band),
+       * the events the detection kept (their stamp's score), the alert and
+       * the incident, and the feed items that announced them.
+       *
+       * Whoever reads the feed's indicators reads each address beside its
+       * score. Before the erasure, the score a record states names one
+       * address, and so does the band the detection's severity is. After it,
+       * the person's records keep the feed and the type, no score, and the
+       * severity every erased match reads, so two erased people's records
+       * say the same.
+       */
+      describe("a small feed whose addresses each have their own score (#11447)", () => {
+        const CAROL: string = "carol@example.com";
+        const LISTED: ReadonlyArray<{
+          address: string;
+          stixId: string;
+          confidence: number;
+        }> = [
+          { address: ALICE, stixId: STIX_ID, confidence: 95 },
+          { address: BOB, stixId: BOB_STIX_ID, confidence: 75 },
+          {
+            address: CAROL,
+            stixId: "indicator--ca401000-0000-4000-8000-000000011447",
+            confidence: 45,
+          },
+        ];
+
+        type Listed = (typeof LISTED)[number];
+
+        interface MatchRecords {
+          caseId: ObjectID;
+          detectionId: ObjectID;
+          alertId: ObjectID;
+          alertItem: ObjectID;
+          incidentId: ObjectID;
+          incidentItem: ObjectID;
+        }
+
+        function tokenOf(address: string): string {
+          return ScrubHashToken.ofValue({ projectId, value: address });
+        }
+
+        // What a match on one listed address writes, as the matcher writes it.
+        async function matchOn(listed: Listed): Promise<MatchRecords> {
+          const description: string = matchDescription(
+            listed.address,
+            listed.stixId,
+            "Phishing sender",
+            listed.confidence,
+          );
+          const announced: string = alertDescription(
+            listed.address,
+            listed.stixId,
+            listed.confidence,
+            "Phishing sender",
+          );
+          const fingerprint: string = ofFeed(
+            keyed(listed.address, DetectionFingerprintKind.ThreatIntel),
+          );
+          const caseId: ObjectID = await insert("SecurityCase", {
+            projectId: projectId.toString(),
+            title: `${FEED_NAME} — ${listed.address}`,
+            description,
+            entities: userEntities(listed.address),
+          });
+          const detectionId: ObjectID = await detection({
+            securityCaseId: caseId.toString(),
+            source: SecurityDetectionSource.ThreatIntel,
+            title: `${FEED_NAME} — ${listed.address}`,
+            description,
+            groupValue: listed.address,
+            ruleName: FEED_NAME,
+            severity: ocsfSeverityForConfidence(listed.confidence),
+            fingerprint,
+            matchedEvents: {
+              events: [
+                {
+                  message: "Sign-in",
+                  principalUser: listed.address,
+                  attributes: {
+                    "threat.indicator_value": listed.address,
+                    "threat.indicator_id": listed.stixId,
+                    "threat.feed": FEED_NAME,
+                    "threat.indicator_type": "email-addr",
+                    [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: String(
+                      listed.confidence,
+                    ),
+                  },
+                },
+              ],
+              outcomes: {},
+            },
+          });
+          const alertId: ObjectID = await alert(fingerprint, {
+            title: `[Threat Intel] ${FEED_NAME} — ${listed.address}`,
+            description: announced,
+          });
+          const incidentId: ObjectID = await insert("Incident", {
+            projectId: projectId.toString(),
+            title: `[Threat Intel] ${FEED_NAME} — ${listed.address}`,
+            description: announced,
+            seriesFingerprint: fingerprint,
+          });
+
+          return {
+            caseId,
+            detectionId,
+            alertId,
+            alertItem: await feedItem(
+              "AlertFeed",
+              alertId,
+              announced,
+              listed.address,
+            ),
+            incidentId,
+            incidentItem: await feedItem(
+              "IncidentFeed",
+              incidentId,
+              announced,
+              listed.address,
+            ),
+          };
+        }
+
+        async function matchTheFeed(): Promise<Map<string, MatchRecords>> {
+          const records: Map<string, MatchRecords> = new Map<
+            string,
+            MatchRecords
+          >();
+
+          for (const listed of LISTED) {
+            records.set(listed.address, await matchOn(listed));
+          }
+
+          return records;
+        }
+
+        // Every row a match wrote, as a reader of them reads it.
+        async function rowsOfMatch(
+          records: MatchRecords,
+        ): Promise<Array<Record<string, unknown>>> {
+          return [
+            await rowOf("SecurityDetection", records.detectionId),
+            await rowOf("SecurityCase", records.caseId),
+            await rowOf("Alert", records.alertId),
+            await rowOf("AlertFeed", records.alertItem),
+            await rowOf("Incident", records.incidentId),
+            await rowOf("IncidentFeed", records.incidentItem),
+          ];
+        }
+
+        // The scores a record states: in a match's sentence, and in a kept event's stamp.
+        function scoresStatedIn(text: string): Array<number> {
+          const scores: Array<number> = [];
+
+          for (const pattern of [
+            /, confidence ([0-9]+)\)/g,
+            /"threat\.confidence":"([0-9]+)"/g,
+          ]) {
+            let stated: RegExpExecArray | null = pattern.exec(text);
+
+            while (stated) {
+              scores.push(Number(stated[1]));
+              stated = pattern.exec(text);
+            }
+          }
+
+          return scores;
+        }
+
+        /*
+         * The addresses the feed lists that fit what a record states of the
+         * indicator, as a reader of the feed would put it to them: every
+         * score it states. A record that states none fits them all.
+         */
+        function addressesFittingScores(
+          row: Record<string, unknown>,
+        ): Array<string> {
+          const scores: Array<number> = scoresStatedIn(JSON.stringify(row));
+
+          return LISTED.filter((listed: Listed): boolean => {
+            return scores.every((score: number): boolean => {
+              return score === listed.confidence;
+            });
+          }).map((listed: Listed): string => {
+            return listed.address;
+          });
+        }
+
+        // The addresses the feed lists whose score's band a severity is.
+        function addressesInBand(severity: unknown): Array<string> {
+          return LISTED.filter((listed: Listed): boolean => {
+            return ocsfSeverityForConfidence(listed.confidence) === severity;
+          }).map((listed: Listed): string => {
+            return listed.address;
+          });
+        }
+
+        const EVERY_ADDRESS: Array<string> = LISTED.map(
+          (listed: Listed): string => {
+            return listed.address;
+          },
+        );
+
+        test("before the erasure, each match's records name one address the feed lists: by the score they state, and by the band the detection's severity is", async () => {
+          const records: Map<string, MatchRecords> = await matchTheFeed();
+
+          for (const listed of LISTED) {
+            const rows: Array<Record<string, unknown>> = await rowsOfMatch(
+              records.get(listed.address)!,
+            );
+
+            for (const row of rows) {
+              expect(addressesFittingScores(row)).toEqual([listed.address]);
+            }
+
+            // The detection's severity is the score's band, and a band of its own.
+            expect(addressesInBand(rows[0]!["severity"])).toEqual([
+              listed.address,
+            ]);
+          }
+        });
+
+        test("after it, the person's records state no score, and the detection reads the severity every erased match reads: put to the feed, they fit every address it lists; somebody else's still name theirs", async () => {
+          const records: Map<string, MatchRecords> = await matchTheFeed();
+
+          await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+          const aliceRows: Array<Record<string, unknown>> = await rowsOfMatch(
+            records.get(ALICE)!,
+          );
+
+          for (const row of aliceRows) {
+            expect(addressesFittingScores(row)).toEqual(EVERY_ADDRESS);
+          }
+
+          expect(aliceRows[0]!["severity"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
+
+          // The feed and the indicator's type stay: they fit every address listed.
+          for (const row of [aliceRows[0]!, aliceRows[1]!]) {
+            expect(String(row["description"])).toContain(
+              `Indicator \`${aliceToken}\` (email-addr) from the threat intel feed **${FEED_NAME}**`,
+            );
+          }
+
+          for (const listed of [LISTED[1]!, LISTED[2]!]) {
+            const rows: Array<Record<string, unknown>> = await rowsOfMatch(
+              records.get(listed.address)!,
+            );
+
+            for (const row of rows) {
+              expect(addressesFittingScores(row)).toEqual([listed.address]);
+            }
+
+            expect(rows[0]!["severity"]).toBe(
+              ocsfSeverityForConfidence(listed.confidence),
+            );
+          }
+        });
+
+        test("two erased people's records say the same of the feed: past their tokens, nothing tells a score of 95 from one of 45", async () => {
+          const records: Map<string, MatchRecords> = await matchTheFeed();
+          const carolToken: string = tokenOf(CAROL);
+
+          // What tells them apart, read off each person's records.
+          const asRead: (
+            address: string,
+            token: string,
+          ) => Promise<string> = async (
+            address: string,
+            token: string,
+          ): Promise<string> => {
+            const rows: Array<Record<string, unknown>> = await rowsOfMatch(
+              records.get(address)!,
+            );
+            const detectionRow: Record<string, unknown> = rows[0]!;
+            const kept: string = JSON.stringify([
+              detectionRow["title"],
+              detectionRow["description"],
+              detectionRow["groupValue"],
+              detectionRow["ruleName"],
+              detectionRow["severity"],
+              detectionRow["fingerprint"],
+              detectionRow["matchedEvents"],
+              rows[1]!["title"],
+              rows[1]!["description"],
+              // An alert and an incident keep the names they were written with, as an erasure leaves them.
+              rows[2]!["description"],
+              rows[3]!["feedInfoInMarkdown"],
+              rows[4]!["description"],
+              rows[5]!["feedInfoInMarkdown"],
+            ]);
+
+            return kept
+              .split(keyed(token, DetectionFingerprintKind.ThreatIntel))
+              .join("<keyed>")
+              .split(keyed(address, DetectionFingerprintKind.ThreatIntel))
+              .join("<keyed>")
+              .split(token)
+              .join("<token>")
+              .split(address)
+              .join("<person>");
+          };
+
+          // Before: the score, and the band, tell them apart.
+          expect(await asRead(ALICE, aliceToken)).not.toBe(
+            await asRead(CAROL, carolToken),
+          );
+
+          await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+          await SecurityUserErasureRecords.unnameRecords({
+            projectId,
+            names: [{ named: CAROL, hashed: carolToken }],
+          });
+
+          const alice: string = await asRead(ALICE, aliceToken);
+
+          expect(alice).toBe(await asRead(CAROL, carolToken));
+          expect(alice).toContain(`"${ERASED_THREAT_INTEL_SEVERITY}"`);
+          expect(alice).not.toContain("confidence");
+          expect(alice).toContain("[INDICATOR:<keyed>]");
+        });
       });
     });
 

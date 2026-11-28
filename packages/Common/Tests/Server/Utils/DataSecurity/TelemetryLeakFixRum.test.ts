@@ -582,6 +582,10 @@ describe("one pull request per application and repository", () => {
     expect(text).toContain('"page": "/account/settings"');
     expect(text).toContain('"recorderCall": "identify"');
     expect(text).toContain("identify() with an opaque reference");
+    // A session's tags, by the call that gave them (#11458).
+    expect(text).toContain(
+      'where a session\'s tags hold it ("recorderCall": "setTags"), leave it out of the tags the page gives the session recorder with setTags() and addTag()',
+    );
     expect(text).not.toContain('"service":');
   });
 
