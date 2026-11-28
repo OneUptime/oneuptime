@@ -408,7 +408,9 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=validate-only" \
   -keyout "${WORK_DIR}/powerstore-syslog-tls.key" \
   -out "${WORK_DIR}/powerstore-syslog-tls.crt" >/dev/null 2>&1
 chmod 0644 "${WORK_DIR}/powerstore-syslog-tls.key" "${WORK_DIR}/powerstore-syslog-tls.crt"
-node -e '
+# js-yaml is a devDependency of Tests/Ops, so this runs there, as the
+# extraction below does: from the repository's root it is not installed.
+(cd "${REPO_ROOT}/Tests/Ops" && node -e '
 const fs = require("fs");
 const yaml = require("js-yaml");
 
@@ -436,7 +438,7 @@ if (!tls || !tls.tcp || !tls.tcp.tls || tls.tcp.listen_address !== "0.0.0.0:6514
 config.service.pipelines.logs.receivers.push("syslog/tls");
 fs.writeFileSync(out, yaml.dump(config));
 ' "${REPO_ROOT}/agents/StorageArrayAgent/powerstore-syslog.yaml" \
-  "${WORK_DIR}/StorageArrayAgent-powerstore-syslog-tls.yaml"
+  "${WORK_DIR}/StorageArrayAgent-powerstore-syslog-tls.yaml")
 validate "StorageArrayAgent / powerstore-syslog.yaml, with its TLS receiver uncommented" \
   "${WORK_DIR}/StorageArrayAgent-powerstore-syslog-tls.yaml" \
   -e "STORAGE_SYSTEM=dell.powerstore" \
