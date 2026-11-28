@@ -1,9 +1,12 @@
 import AlertInternalNoteService from "../../Services/AlertInternalNoteService";
 import AlertService from "../../Services/AlertService";
+import AlertStateService from "../../Services/AlertStateService";
 import IncidentInternalNoteService from "../../Services/IncidentInternalNoteService";
 import IncidentService from "../../Services/IncidentService";
+import IncidentStateService from "../../Services/IncidentStateService";
 import ScheduledMaintenanceInternalNoteService from "../../Services/ScheduledMaintenanceInternalNoteService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceStateService from "../../Services/ScheduledMaintenanceStateService";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertInternalNote from "../../../Models/DatabaseModels/AlertInternalNote";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -177,12 +180,13 @@ const RECORD_KINDS: Record<FormTargetType, FormFollowUpRecordKind> = {
       const incident: Incident | null = await IncidentService.findOneById({
         id: id,
         select: {
+          projectId: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
+          currentIncidentStateId: true,
           currentIncidentState: {
             name: true,
             color: true,
-            isResolvedState: true,
           },
         },
         props: { isRoot: true },
@@ -192,10 +196,19 @@ const RECORD_KINDS: Record<FormTargetType, FormFollowUpRecordKind> = {
         return null;
       }
 
+      // Resolved by the project's own rule, a state placed after Resolved too.
+      const isClosed: boolean =
+        incident.projectId && incident.currentIncidentStateId
+          ? await IncidentStateService.isResolvedIncidentState({
+              projectId: incident.projectId,
+              incidentStateId: incident.currentIncidentStateId,
+            })
+          : false;
+
       return {
         state: toRequestState({
           state: incident.currentIncidentState,
-          isClosed: Boolean(incident.currentIncidentState?.isResolvedState),
+          isClosed: isClosed,
         }),
         reference: getReference({
           withPrefix: incident.incidentNumberWithPrefix,
@@ -259,12 +272,13 @@ const RECORD_KINDS: Record<FormTargetType, FormFollowUpRecordKind> = {
       const alert: Alert | null = await AlertService.findOneById({
         id: id,
         select: {
+          projectId: true,
           alertNumber: true,
           alertNumberWithPrefix: true,
+          currentAlertStateId: true,
           currentAlertState: {
             name: true,
             color: true,
-            isResolvedState: true,
           },
         },
         props: { isRoot: true },
@@ -274,10 +288,19 @@ const RECORD_KINDS: Record<FormTargetType, FormFollowUpRecordKind> = {
         return null;
       }
 
+      // Resolved by the project's own rule, a state placed after Resolved too.
+      const isClosed: boolean =
+        alert.projectId && alert.currentAlertStateId
+          ? await AlertStateService.isResolvedAlertState({
+              projectId: alert.projectId,
+              alertStateId: alert.currentAlertStateId,
+            })
+          : false;
+
       return {
         state: toRequestState({
           state: alert.currentAlertState,
-          isClosed: Boolean(alert.currentAlertState?.isResolvedState),
+          isClosed: isClosed,
         }),
         reference: getReference({
           withPrefix: alert.alertNumberWithPrefix,
@@ -343,13 +366,13 @@ const RECORD_KINDS: Record<FormTargetType, FormFollowUpRecordKind> = {
         await ScheduledMaintenanceService.findOneById({
           id: id,
           select: {
+            projectId: true,
             scheduledMaintenanceNumber: true,
             scheduledMaintenanceNumberWithPrefix: true,
+            currentScheduledMaintenanceStateId: true,
             currentScheduledMaintenanceState: {
               name: true,
               color: true,
-              isEndedState: true,
-              isResolvedState: true,
             },
           },
           props: { isRoot: true },
@@ -359,13 +382,27 @@ const RECORD_KINDS: Record<FormTargetType, FormFollowUpRecordKind> = {
         return null;
       }
 
+      /*
+       * Over by the project's own rule (ScheduledMaintenanceStartUtil.
+       * hasEnded): ended, completed, or a state of its own after Ended.
+       */
+      const stateId: ObjectID | undefined =
+        event.currentScheduledMaintenanceStateId;
+      const isClosed: boolean =
+        event.projectId && stateId
+          ? (
+              await ScheduledMaintenanceStateService.getOverScheduledMaintenanceStateIds(
+                event.projectId,
+              )
+            ).some((overId: ObjectID): boolean => {
+              return overId.toString() === stateId.toString();
+            })
+          : false;
+
       return {
         state: toRequestState({
           state: event.currentScheduledMaintenanceState,
-          isClosed: Boolean(
-            event.currentScheduledMaintenanceState?.isEndedState ||
-              event.currentScheduledMaintenanceState?.isResolvedState,
-          ),
+          isClosed: isClosed,
         }),
         reference: getReference({
           withPrefix: event.scheduledMaintenanceNumberWithPrefix,
