@@ -37,6 +37,7 @@ Suchen Sie die Meldung, die Terraform ausgegeben hat, oder das, was Sie beobacht
 | `Not an ID` | Verweisen Sie auf den Datensatz, statt ihn zu nennen: siehe [Ein Name, wo eine ID hingehört](#ein-name-wo-eine-id-hingehört) |
 | JSON aus dem Dashboard in einer `.tf`-Datei | Schreiben Sie es als HCL: siehe [JSON aus dem Dashboard](#json-aus-dem-dashboard) |
 | `no available releases match the given constraints` | Verwenden Sie einen Versionsbereich, nicht eine einzelne Version: siehe [Eine Version, die nie veröffentlicht wurde](#eine-version-die-nie-veröffentlicht-wurde) |
+| `checksum list has unexpected SHA-256 hash` | Verwenden Sie eine andere Version des Providers: siehe [Eine Version, deren Prüfsummen nicht passen](#eine-version-deren-prüfsummen-nicht-passen) |
 | `x509: certificate signed by unknown authority` | Vertrauen Sie Ihrer Zertifizierungsstelle: siehe [Zertifikate](#zertifikate) |
 | `invalid character '<' looking for beginning of value` | Richten Sie `oneuptime_url` auf Ihre OneUptime-Instanz selbst: siehe [Eine Webseite statt der API](#eine-webseite-statt-der-api) |
 | `connection refused` oder `Client.Timeout exceeded` | Prüfen Sie die Adresse, das Netzwerk und jeden Proxy: siehe [Verbindungen, die scheitern](#verbindungen-die-scheitern) |
@@ -238,6 +239,14 @@ terraform {
 ```
 
 Bei einer selbst gehosteten OneUptime-Instanz begrenzen Sie den Bereich auf die Version Ihrer Instanz, wie [Selbst gehostete Einrichtung](/docs/terraform/self-hosted#die-provider-version-wählen) zeigt. [Registry-Verwendung](/docs/terraform/registry#wie-versionen-nummeriert-werden) erklärt, wie Versionen nummeriert werden.
+
+### Eine Version, deren Prüfsummen nicht passen
+
+`checksum list has unexpected SHA-256 hash` bedeutet, dass die Dateien, die das Release für diese Version ausliefert, nicht die sind, die die Registry gelesen hat, als die Version veröffentlicht wurde. Die Registry behält die Prüfsummen, die sie damals gelesen hat, und `init` prüft jeden Download gegen sie. Die Dateien von 14.3.0, 16.0.0, 17.0.0, 17.1.0 und 17.2.0 sowie einiger älterer Versionen von 11.x bis 14.0.x wurden ein zweites Mal gebaut und hochgeladen, nachdem die Registrys sie gelesen hatten, daher lehnt `init` diese Versionen auf jeder Plattform ab, unter Terraform wie unter OpenTofu. Eine Lock-Datei kommt daran nicht vorbei: `init` vergleicht die Prüfsumme der Registry mit der des Releases, bevor es die Lock-Datei liest.
+
+Verwenden Sie eine andere Version: 17.3.0 oder neuer, oder 15.0.0. Ein Bereich, der eine neuere Version zulässt, nimmt sie mit `terraform init -upgrade`. Wird eine solche Version erneut veröffentlicht, dann als nächste Patch-Version, etwa 17.2.1 für 17.2.0, mit demselben Provider darin, und ein Bereich, der diesen Patch zulässt, nimmt ihn mit.
+
+Um eine Version zu prüfen, bevor Sie sie verwenden, siehe [Die Prüfsummen einer Version prüfen](/docs/terraform/registry#die-prüfsummen-einer-version-prüfen).
 
 ## Verbindung zu einer selbst gehosteten OneUptime-Instanz
 

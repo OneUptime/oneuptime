@@ -7,6 +7,7 @@ OneUptime プロバイダーは [Terraform Registry](https://registry.terraform.
 - [バージョンの番号の付け方](#バージョンの番号の付け方): プロバイダーのバージョンは、それを公開した OneUptime のリリースです。
 - [ロックファイル](#ロックファイル): すべてのマシンがインストールするバージョンとチェックサム。
 - [新しいバージョンに移る](#新しいバージョンに移る): 変更点を読み、ダウンロードして、プランを実行します。
+- [バージョンのチェックサムを確かめる](#バージョンのチェックサムを確かめる): `init` と同じように、バージョンを手で確かめます。
 :::
 
 ## 公開されているもの
@@ -57,6 +58,8 @@ terraform {
 
 公開されたバージョンは変わりません。レジストリは最初にダウンロードしたもののチェックサムを保持し、`init` はすべてのダウンロードをそれと照合します。直す必要があるバージョンは次のパッチバージョンとして公開し直され、範囲はそれを含みます。そのリリースのノートには、どのバージョンを置き換えるかが書かれています。
 
+OneUptime は、各バージョンを公開した後と、その後は毎日、両方のレジストリが保持するチェックサムを、リリースが配布するファイルとすべてのプラットフォームについて照合します。
+
 ## ロックファイル
 
 `terraform init` は、選んだバージョンとダウンロードのチェックサムを `.terraform.lock.hcl` に記録します。このファイルをコミットしてください。そうすれば、別のバージョンを選ぶまで、すべてのマシンと CI の実行が正確にそのバージョンをインストールします。チェックサムはレジストリが公開するすべてのプラットフォームを対象とするので、1 つのロックファイルで Linux、macOS、Windows のマシンに対応できます。
@@ -95,6 +98,29 @@ terraform init -upgrade
 :::
 
 セルフホストの OneUptime では、まず OneUptime をアップグレードし、その後でプロバイダーの範囲の上限を上げます。
+
+## バージョンのチェックサムを確かめる
+
+`init` がバージョンをインストールするのは、お使いのプラットフォームについて 3 つの SHA-256 チェックサムが一致するときだけです。バージョンが公開されたときにレジストリが保持したもの、リリースの `SHA256SUMS` にある zip の行、そして zip そのものです。さらに、`SHA256SUMS` が OneUptime の鍵で署名されていることも確かめます。この鍵のフィンガープリントは `9D87 E494 AC01 6697` で終わります。バージョンを自分で確かめるには、1 行目にそのバージョン、お使いのシステムとアーキテクチャを設定します:
+
+```bash
+VERSION=17.3.0 OS=linux ARCH=amd64
+ZIP=terraform-provider-oneuptime_${VERSION}_${OS}_${ARCH}.zip
+SUMS=terraform-provider-oneuptime_${VERSION}_SHA256SUMS
+curl -s https://registry.terraform.io/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH > registry.json
+jq -r .shasum registry.json
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$ZIP"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS"
+curl -sLO "https://github.com/OneUptime/terraform-provider-oneuptime/releases/download/v$VERSION/$SUMS.sig"
+grep "$ZIP" "$SUMS"
+sha256sum "$ZIP"
+jq -r '.signing_keys.gpg_public_keys[0].ascii_armor' registry.json | gpg --import
+gpg --verify "$SUMS.sig" "$SUMS"
+```
+
+表示される 3 つのチェックサムは同じでなければならず、`gpg` は `Good signature from "OneUptime <key@oneuptime.com>"` と表示しなければなりません。macOS では、`shasum -a 256` を `sha256sum` の代わりに使います。レジストリのチェックサムがほかの 2 つと違うとき、`init` はそのバージョンを拒否します: [チェックサムが一致しないバージョン](/docs/terraform/troubleshooting#チェックサムが一致しないバージョン) を参照してください。
+
+OpenTofu のレジストリも同じチェックサムを保持しています。そのチェックサムは `https://registry.opentofu.org/v1/providers/oneuptime/oneuptime/$VERSION/download/$OS/$ARCH` から読めます。このレジストリにはプロバイダーの鍵がないため、`tofu init` はチェックサムを確かめ、署名の確認は飛ばします。
 
 ## コードの場所
 
