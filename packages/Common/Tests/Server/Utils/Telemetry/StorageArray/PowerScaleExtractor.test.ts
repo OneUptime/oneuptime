@@ -996,11 +996,7 @@ describe("series by series", () => {
       { path: "/ifs/x", type: "constructor" },
       1,
     );
-    f.feed(
-      "powerscale_quota_usage_bytes",
-      { path: "/ifs/y", type: "5" },
-      1,
-    );
+    f.feed("powerscale_quota_usage_bytes", { path: "/ifs/y", type: "5" }, 1);
     f.feed(
       "powerscale_interface_status",
       { node: "lab-1", interface: "ix0", interface_type: "toString" },
@@ -1018,9 +1014,7 @@ describe("series by series", () => {
       }),
     );
 
-    expect(byId.get("/ifs/x (constructor)")?.componentType).toBe(
-      "constructor",
-    );
+    expect(byId.get("/ifs/x (constructor)")?.componentType).toBe("constructor");
     expect(byId.get("/ifs/y (special)")?.componentType).toBe("special");
     expect(byId.get("lab-1/ix0")?.componentType).toBe("port");
     expect(byId.get("lab-1/ib0")?.componentType).toBe("infiniband");
