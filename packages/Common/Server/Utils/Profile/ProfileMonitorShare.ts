@@ -10,11 +10,11 @@ import Profile from "../../../Models/AnalyticsModels/Profile";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
-import OneUptimeDate from "../../../Types/Date";
 import MonitorStepProfileMonitor, {
   MonitorStepProfileMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepProfileMonitor";
 import { ProfileFunctionShareReading } from "../../../Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
+import TelemetryCheckWindow from "../../../Types/Monitor/TelemetryCheckWindow";
 import ObjectID from "../../../Types/ObjectID";
 import {
   ProfileTypeActivity,
@@ -63,10 +63,9 @@ export default class ProfileMonitorShare {
       data.evaluateUntil,
     );
 
-    const window: { startTime: Date; endTime: Date } =
-      ProfileMonitorShare.getWindow(query, data);
+    const window: InBetween<Date> = ProfileMonitorShare.getWindow(query, data);
 
-    query.startTime = new InBetween(window.startTime, window.endTime);
+    query.startTime = window;
 
     if (data.scope) {
       query = TelemetryReadScopeUtil.applyToQuery(
@@ -94,8 +93,9 @@ export default class ProfileMonitorShare {
       const activity: Array<ProfileTypeActivity> =
         await ProfileAggregationService.getProfileTypeActivity({
           projectId: data.projectId,
-          startTime: window.startTime,
-          endTime: window.endTime,
+          startTime: window.startValue,
+          endTime: window.endValue,
+          includesEnd: window.includesEnd,
           ...serviceFilter,
         });
 
@@ -109,8 +109,8 @@ export default class ProfileMonitorShare {
         projectId: data.projectId,
         frameText: functionName,
         profileQuery: query,
-        startTime: window.startTime,
-        endTime: window.endTime,
+        startTime: window.startValue,
+        endTime: window.endValue,
       });
 
     return {
@@ -121,28 +121,25 @@ export default class ProfileMonitorShare {
   }
 
   /*
-   * The monitor's window: the one its query reads, or - for a monitor with
-   * no window - the last five minutes, so the share never reads the whole
-   * retention.
+   * The monitor's window: the one its query reads, which holds its start
+   * and not its end (TelemetryCheckWindow) - kept as it is, so the share
+   * reads the profiles the count reads - or, for a monitor with no window,
+   * the last five minutes, so the share never reads the whole retention.
    */
   private static getWindow(
     query: Query<Profile>,
     data: { evaluateUntil?: Date | undefined },
-  ): { startTime: Date; endTime: Date } {
+  ): InBetween<Date> {
     const range: unknown = query.startTime;
 
     if (range instanceof InBetween) {
-      return {
-        startTime: new Date(range.startValue as Date),
-        endTime: new Date(range.endValue as Date),
-      };
+      return new InBetween<Date>(
+        new Date(range.startValue as Date),
+        new Date(range.endValue as Date),
+        { includesEnd: range.includesEnd },
+      );
     }
 
-    const endTime: Date = data.evaluateUntil || OneUptimeDate.getCurrentDate();
-
-    return {
-      startTime: OneUptimeDate.addRemoveSeconds(endTime, -300),
-      endTime,
-    };
+    return TelemetryCheckWindow.ofSeconds(300, data.evaluateUntil);
   }
 }

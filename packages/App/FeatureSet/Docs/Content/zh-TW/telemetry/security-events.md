@@ -206,7 +206,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Kubernetes 稽核日誌 | API 伺服器的稽核日誌檔案，由收集器的 `filelog` 接收器讀取 |
 | Web 攻擊 | Web 伺服器的存取日誌，由收集器的 `filelog` 接收器讀取 |
 
-在 **你的日誌** 上，每一類都會顯示上次找到它的時間，**檢查一行日誌** 則會在任何日誌到達之前，顯示你貼上的一行會變成什麼。
+在 **你的日誌** 上，每一類都會顯示上次找到它的時間，**檢查一行日誌** 則會在任何日誌到達之前，顯示你貼上的一行會變成什麼。OneUptime 會像掃描讀取你的日誌那樣，結合你的[受信任的代理伺服器](#受信任的代理伺服器)和存取日誌的設定來讀取這一行，所以它指出的用戶端與儲存的事件將指出的相同，並且不儲存任何內容。
 
 安全性產品寫入日誌的威脅，例如 CEF 或 LEEF 的發現，或 Palo Alto Networks、FortiGate 或 Cisco ASA 的威脅，會像已連線產品的警示一樣開啟 [案件](/docs/telemetry/security-cases)，並提高它所指的使用者、主機或位址的風險。**你的日誌** 上的 **從以下等級開啟案例** 決定從哪個嚴重程度開始：預設為 **高及以上**，你也可以選擇其他等級或 **從未**。該產品的登入和被封鎖的連線仍然是事件，供你的規則讀取。
 
@@ -299,6 +299,8 @@ Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽
 
 聲稱的位址永遠不會從案件中被封鎖：任何人都可以傳送 `X-Forwarded-For: 192.0.2.44`，封鎖會把 192.0.2.44 背後的人擋在外面。只有聲稱位址的事件，其 **回應計畫** 會請你到負載平衡器或防火牆的日誌中尋找真實位址。
 
+如果事件的用戶端是由你信任的代理伺服器轉送的，事件會以 **轉送代理伺服器** 列出它經過的代理伺服器：按 `X-Forwarded-For` 列出的順序，連線本身的位址排在最後。它們記錄在 `oneuptime.request.forwarded_by` 中，**檢查一行日誌** 會說明每一個受信任的原因。
+
 為了讓位址經過驗證，請在應用程式的伺服器跨度上記錄兩樣東西：連線本身的位址 `network.peer.address`，OpenTelemetry 的 HTTP 檢測會設定它；以及在代理伺服器之後的 `X-Forwarded-For` 標頭，把它加入 `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST` 後，檢測會把它記錄為 `http.request.header.x-forwarded-for`。JSON 存取日誌的讀取方式相同：它的用戶端欄位（例如 `remote_addr`）是連線的位址，它的 `http_x_forwarded_for` 欄位是標頭。
 
 #### 受信任的代理伺服器
@@ -311,10 +313,15 @@ Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽
 | 列在 **受信任的代理伺服器** 中 | 你列出了它 |
 | 在你連線的邊緣網路公布的位址範圍中，例如 [Cloudflare](/docs/integrations/cloudflare) | 連線存在期間 |
 | 你自己的應用程式負載平衡器之一 | 除非你關閉它 |
+| 你的 Google Cloud Application Load Balancer 之後的 Google 前端之一 | 隨你的負載平衡器一起信任，除非你的某個 TCP 或 SSL 代理負載平衡器也從這些前端連線 |
 
-**安全事件 → 連線 → 更多設定** 中有 **受信任的代理伺服器**（你填寫的清單）和 **自動信任**（顯示其餘受信任的項目及原因）。當代理伺服器的位址是公開位址並且沒有其他項目信任它時，請把它列在 **受信任的代理伺服器** 中，每行一個位址或範圍：例如你沒有連線的 CDN、經由網際網路到達你的應用程式的負載平衡器，或者在有公開位址的伺服器上、位於你的應用程式前面的 nginx 等反向代理伺服器。在你列出之前，經過它的每次攻擊都會被歸咎於代理伺服器。在 Google Cloud 全球外部應用程式負載平衡器之後，到你的應用程式的連線來自 Google 的前端：請列出 `35.191.0.0/16` 和 `130.211.0.0/22`。
+在 TCP 層運作的代理伺服器不會向 `X-Forwarded-For` 加入任何內容：它會原樣傳遞用戶端寫入的標頭。例如 Network Load Balancer、`mode tcp` 下的 HAProxy，以及使用 `externalTrafficPolicy: Cluster` 的 Kubernetes Service，後者會從某個節點的位址把每個連線交給你的入口。這樣的代理伺服器位於私有位址時會受到信任，所以它後面的用戶端可以選擇攻擊被歸咎於哪個位址。在這樣的代理伺服器之後，請透過用戶端 IP 保留或 `externalTrafficPolicy: Local` 在連線上保留用戶端自己的位址，並且不要記錄 `X-Forwarded-For`，也不要把它寫入日誌。
+
+**安全事件 → 連線 → 更多設定** 中有 **受信任的代理伺服器**（你填寫的清單）和 **自動信任**（顯示其餘受信任的項目及原因）。當代理伺服器的位址是公開位址並且沒有其他項目信任它時，請把它列在 **受信任的代理伺服器** 中，每行一個位址或範圍：例如你沒有連線的 CDN、經由網際網路到達你的應用程式的負載平衡器，或者在有公開位址的伺服器上、位於你的應用程式前面的 nginx 等反向代理伺服器。在你列出之前，經過它的每次攻擊都會被歸咎於代理伺服器。比代理伺服器的範圍更寬的範圍（例如 `0.0.0.0/0`）會被拒絕：它會信任所有位址，這樣任何人都能選擇攻擊被歸咎於哪個位址。專案擁有者、專案管理員或安全性管理員可以編輯該清單，每次變更都會記錄在專案的[稽核日誌](/docs/configuration/audit-logs)中。
 
 你自己的應用程式負載平衡器是你[連線的雲端帳戶](/docs/telemetry/cloud-accounts)列出的那些：AWS Application Load Balancer、所有接聽程式都是 HTTP 或 HTTPS 的 AWS Classic Load Balancer、Google Cloud Application Load Balancer 和 Azure Application Gateway，依它們的公開位址。每一個都會把它轉送的用戶端加到 `X-Forwarded-For`。Google Cloud 負載平衡器會在用戶端位址之後附加自己的位址，Application Gateway 會從自己的位址連線公開後端，所以沒有這一項，經過它們的每次攻擊都會被歸咎於負載平衡器。**自動信任** 中的 **你的負載平衡器** 會列出它們，專案擁有者、專案管理員或安全性管理員可以關閉它。
+
+在 Google Cloud 全球外部應用程式負載平衡器或傳統版負載平衡器之後，到你的應用程式的連線來自 Google 的前端，而不是負載平衡器自己的位址。因此，只要某個已連線的 Google Cloud 專案中有這樣的負載平衡器，安全事件也會信任這些前端的位址範圍：`35.191.0.0/16`、`130.211.0.0/22` 和 `2600:2d00:1:1::/64`，與 Google 的[負載平衡防火牆規則](https://cloud.google.com/load-balancing/docs/firewall-rules)列出的一致。**你的負載平衡器** 會在清單的最後一行顯示它們，以及帶來它們的負載平衡器，它的開關也會關閉它們。Google 之外沒有人會從這些範圍連線，信任它們也不會讓任何人能冒稱用戶端：經過別人負載平衡器的請求，其 `X-Forwarded-For` 以該負載平衡器的位址結尾，而它不是你的，所以事件會指出這個位址。但 Google 的 TCP 和 SSL 代理負載平衡器也從相同的範圍連線，並按用戶端傳送的原樣傳遞請求，所以只要你有這樣的負載平衡器，或者沒能列出全部負載平衡器，這些範圍就不受信任，該行會說明原因。如果這樣的負載平衡器位於你尚未連線的 Google Cloud 專案中，請連線該專案，或關閉 **你的負載平衡器**。
 
 你的其他任何東西都不會被自動信任：不包括你的主機、Kubernetes 節點、探測器或虛擬機器、NAT 閘道，以及 Network、Gateway 或 Azure 負載平衡器。它們不轉送任何人，或者原樣傳遞請求，所以在上面執行的任何東西都可能冒稱任何用戶端：監控帶著自己的標頭發出的請求、一個 Pod、閘道後面的一台筆記型電腦。如果其中一個是你的代理伺服器，請把它加入 **受信任的代理伺服器**。Kubernetes 入口會作為它實際所是的負載平衡器受到信任：GKE 入口是 Google Cloud Application Load Balancer，AKS 的 Application Gateway 入口是 Application Gateway，類別為 `alb` 的 EKS 入口是 AWS Application Load Balancer。叢集內的入口控制器從私有位址轉送，私有位址一律受信任。
 
@@ -337,6 +344,25 @@ log_format main '$remote_addr - $remote_user [$time_local] "$request" '
 - 該欄位是 `-`，或者是最後一個位址不帶連接埠的位址清單。
 
 如果你的格式以另一個包含位址的標頭結尾（例如 `X-Real-IP`），或者你的 Web 伺服器寫入標頭時不跳脫其中的引號（例如 Express 的 `morgan`），請保持關閉：否則請求自己的使用者代理程式就能加入一個欄位。JSON 存取日誌不需要這個開關，因為它的欄位是有名稱的。
+
+#### 你自己的日誌格式
+
+如果你的 Web 伺服器沒有把 `X-Forwarded-For` 放在最後，請提供它們的格式：**更多設定** 下 **存取日誌** 中的 **日誌格式**。依照 `nginx.conf` 中的寫法貼上你的 nginx `log_format`，或從已知格式開始：nginx 的 `main` 或 ingress-nginx 的 `upstreaminfo`。例如，下面的格式在標頭之後記錄每個請求花費的時間：
+
+```nginx
+log_format timed '$remote_addr - $remote_user [$time_local] "$request" '
+                 '$status $body_bytes_sent "$http_referer" '
+                 '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+```
+
+符合你的格式的每一行都按欄位讀取：發起連線的位址取自 `$remote_addr`，`X-Forwarded-For` 取自 `$http_x_forwarded_for`，無論格式把它放在哪裡。它的讀取方式與任何 `X-Forwarded-For` 相同：只有在 `$remote_addr` 是你信任的代理伺服器時才讀取，並且從右往左讀。任何其他欄位都不會被當作這兩者之一，不符合你的格式的行照舊讀取，由 **日誌以 X-Forwarded-For 結尾** 決定其最後一個欄位。
+
+- nginx 會把用戶端傳送的引號跳脫為 `\x22`，所以一行中的每個引號都屬於你的格式。引號比你的格式多的行（不跳脫引號的伺服器會寫出這樣的行，例如 `escape=none`、Express 的 `morgan`）不是你的格式的行，其中的任何內容都不會按格式讀取。
+- **日誌格式** 會拒絕其 `X-Forwarded-For` 或 `$remote_addr` 無法與相鄰欄位區分開的格式，例如位於用戶端寫入的兩個欄位之間、沒有引號的標頭，並提示你替它加上引號，寫成 `"$http_x_forwarded_for"`。
+- ingress-nginx 的 `upstreaminfo` 不記錄 `X-Forwarded-For`，所以每行的用戶端就是它的 `$remote_addr`。如果它前面有 Application Load Balancer 或其他 HTTP 代理伺服器，請在你的 `log-format-upstream` 中加入 `"$http_x_forwarded_for"`，以讀取它轉送的用戶端。在會原樣傳遞用戶端所寫標頭的 Network Load Balancer 之後，則不要加入。
+- 當 nginx 透過它的 realip 模組或 ingress-nginx 的 `use-forwarded-headers`，自己根據 `X-Forwarded-For` 設定 `$remote_addr` 時，它會相信 `set_real_ip_from` 或 `proxy-real-ip-cidr` 指定的任何人，而 ingress-nginx 的預設值指定了所有人。請在 `$http_x_forwarded_for` 旁邊記錄真正發起連線的位址 `$realip_remote_addr`：安全事件隨後會把 `$realip_remote_addr` 讀作連線，把 `$remote_addr` 只讀作聲稱的位址，並依據你的受信任的代理伺服器作出判斷。
+
+專案擁有者、專案管理員或安全性管理員可以提供該格式，每次變更都會記錄在專案的稽核日誌中。
 
 ### 已被清除規則隱藏
 

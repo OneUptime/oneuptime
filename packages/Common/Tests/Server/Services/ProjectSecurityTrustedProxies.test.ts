@@ -44,11 +44,11 @@ import type { SpyInstance } from "jest-mock";
 /*
  * ISSUE #10416: the proxies a project's apps sit behind, so Security Events
  * trusts the client address they forward - Project.securityTrustedProxies,
- * one IP address or range a line, set where the project's other settings
- * are set (a Project Owner or Admin), and read by the scans once a minute
- * (SecurityTrustedProxies). What is saved is an address or a range, kept
- * one way; anything else is refused with the reason, never read later as
- * no proxy.
+ * one IP address or range a line, set by a Project Owner, a Project Admin
+ * or - since #11049 - a Security Admin, as the two switches beside it are,
+ * and read by the scans once a minute (SecurityTrustedProxies). What is
+ * saved is an address or a range, kept one way, none wider than a proxy's;
+ * anything else is refused with the reason, never read later as no proxy.
  */
 
 const COLUMN: string = "securityTrustedProxies";
@@ -142,18 +142,26 @@ describe("Project.securityTrustedProxies: the column", () => {
     expect(metadata.description).toContain("X-Forwarded-For");
   });
 
-  it("is read and written as the project's other Security Events settings are", () => {
-    expect(project.getColumnAccessControlFor(COLUMN)).toEqual(
-      project.getColumnAccessControlFor("securityRiskCaseThreshold"),
-    );
+  it("is read and written as the two switches beside it are (#11049)", () => {
+    for (const beside of [
+      "securityTrustOwnLoadBalancers",
+      "securityReadAccessLogForwardedFor",
+    ]) {
+      expect(project.getColumnAccessControlFor(COLUMN)).toEqual(
+        project.getColumnAccessControlFor(beside),
+      );
+    }
   });
 
-  it.each([Permission.ProjectOwner, Permission.ProjectAdmin])(
-    "the column layer lets %s write it",
-    (permission: Permission) => {
-      expect(mayWrite({ [COLUMN]: "203.0.113.0/24" }, permission)).toBe(true);
-    },
-  );
+  it.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+  ])("the column layer lets %s write it", (permission: Permission) => {
+    expect(mayWrite({ [COLUMN]: "203.0.113.0/24" }, permission)).toBe(true);
+    // And empty it again.
+    expect(mayWrite({ [COLUMN]: null }, permission)).toBe(true);
+  });
 
   it.each([
     Permission.ProjectMember,
@@ -162,8 +170,27 @@ describe("Project.securityTrustedProxies: the column", () => {
     Permission.ReadProject,
     Permission.SecurityMember,
     Permission.SecurityViewer,
+    Permission.ManageProjectBilling,
+    Permission.BillingAdmin,
+    Permission.EditIncomingRequestSecret,
   ])("and refuses %s", (permission: Permission) => {
     expect(mayWrite({ [COLUMN]: "203.0.113.0/24" }, permission)).toBe(false);
+  });
+
+  it("a Security Admin reaches nothing else of the project through it", () => {
+    for (const other of [
+      { name: "Renamed" },
+      { enableAi: false },
+      { paymentProviderPlanId: "plan_enterprise" },
+      { securityRiskCaseThreshold: 10 },
+    ]) {
+      expect(
+        mayWrite(
+          { ...other, [COLUMN]: "203.0.113.0/24" },
+          Permission.SecurityAdmin,
+        ),
+      ).toBe(false);
+    }
   });
 
   it("starts unset on a new project: only private addresses are trusted", () => {
@@ -229,6 +256,38 @@ describe("ProjectService.applySecurityTrustedProxyRules: what a project may stor
         });
       }).toThrow(BadDataException);
     }
+  });
+
+  /*
+   * #11049: with 0.0.0.0/0 stored, every hop of an X-Forwarded-For was
+   * trusted, so its leftmost - what the sender wrote - was the client. The
+   * API refuses it as the card does, whoever saves it.
+   */
+  it("refuses a range too broad to be a proxy's, with the reason", () => {
+    for (const tooBroad of ["0.0.0.0/0", "128.0.0.0/1", "::/0", "2000::/3"]) {
+      expect(() => {
+        ProjectService.applySecurityTrustedProxyRules({
+          securityTrustedProxies: `203.0.113.0/24\n${tooBroad}`,
+        });
+      }).toThrow(
+        new BadDataException(
+          `${tooBroad} covers too much of the internet to be a proxy. List your proxy's own addresses or ranges, such as 203.0.113.0/24.`,
+        ),
+      );
+    }
+  });
+
+  it("keeps the widest ranges a proxy can have: a /8 of IPv4, a /16 of IPv6, and Google's front ends", () => {
+    const data: { securityTrustedProxies?: unknown } = {
+      securityTrustedProxies:
+        "35.0.0.0/8\n2600::/16\n35.191.0.0/16\n130.211.0.0/22\nfc00::/7",
+    };
+
+    ProjectService.applySecurityTrustedProxyRules(data);
+
+    expect(data.securityTrustedProxies).toBe(
+      "35.0.0.0/8\n2600::/16\n35.191.0.0/16\n130.211.0.0/22\nfc00::/7",
+    );
   });
 
   it("refuses more proxies than a project may trust", () => {
@@ -311,6 +370,8 @@ describe("SecurityTrustedProxies: what the scans read", () => {
         securityTrustedProxies: true,
         securityTrustOwnLoadBalancers: true,
         securityReadAccessLogForwardedFor: true,
+        // The format the project's access logs are written in (#11048).
+        securityAccessLogFormat: true,
       },
       props: { isRoot: true },
     });

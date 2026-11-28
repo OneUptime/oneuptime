@@ -88,6 +88,8 @@ const MONITOR_A: string = "aaaaaaaa-0000-4000-8000-00000000000a";
 const MONITOR_B: string = "aaaaaaaa-0000-4000-8000-00000000000b";
 const GROUP_A: string = "bbbbbbbb-0000-4000-8000-00000000000a";
 const GROUP_B: string = "bbbbbbbb-0000-4000-8000-00000000000b";
+// An OpenStack budget's cloud (#11020).
+const CLOUD: string = "cccccccc-0000-4000-8000-000000011020";
 
 const CREATED_A: string = "2026-03-02T10:00:00.000Z";
 const CREATED_B: string = "2026-09-14T08:30:00.000Z";
@@ -557,6 +559,142 @@ describe("the names the project holds more than once", () => {
     ).toBeNull();
     // No day to tell them apart by, and nothing invented.
     expect(agents).not.toHaveTextContent("Created");
+
+    // Said plainly, once, under the kind: no page shows AI agents (#11020).
+    const notes: Array<HTMLElement> = within(agents).getAllByTestId(
+      `${DUPLICATE_NAMES_TEST_ID}-no-page`,
+    );
+    expect(notes).toHaveLength(1);
+    expect(readText(notes[0]!)).toBe(
+      "AI agents have no page in the dashboard: rename one with the API or Terraform.",
+    );
+  });
+
+  test("a kind with a page says nothing of pages it has none of", async () => {
+    readDuplicatesMock.mockResolvedValue(
+      duplicates([monitorKind([API_HEALTH_CHECK]), EDGE]),
+    );
+
+    await renderCard();
+
+    expect(
+      screen.queryByTestId(`${DUPLICATE_NAMES_TEST_ID}-no-page`),
+    ).toBeNull();
+  });
+
+  /*
+   * The kinds opened under another record or page (#11020): linked from
+   * what the server sends beside each record - only what the reader may
+   * read, so a record without it is named without a link.
+   */
+  test("an OpenStack budget is linked to its cloud's Spend page; one whose cloud the reader may not read is not", async () => {
+    readDuplicatesMock.mockResolvedValue(
+      duplicates([
+        {
+          tableName: "OpenStackBudget",
+          pluralName: "OpenStack Budgets",
+          groupCount: 1,
+          groups: [
+            {
+              name: "Compute",
+              count: 2,
+              records: [
+                {
+                  id: MONITOR_A,
+                  name: "Compute",
+                  createdAt: CREATED_A,
+                  isArchived: false,
+                  pageFields: { openStackCloudId: CLOUD },
+                },
+                {
+                  id: MONITOR_B,
+                  name: "compute",
+                  createdAt: CREATED_B,
+                  isArchived: false,
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+
+    await renderCard();
+
+    const budgets: HTMLElement = screen.getByRole("region", {
+      name: "OpenStack Budgets",
+    });
+    const links: Array<HTMLElement> = within(budgets).getAllByTestId(
+      `${DUPLICATE_NAMES_TEST_ID}-record-link`,
+    );
+
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveTextContent("Compute");
+    expect(links[0]).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/openstack/${CLOUD}/spend`,
+    );
+    expect(links[0]).toHaveAttribute("target", "_blank");
+    // The other is named, without a link.
+    expect(budgets).toHaveTextContent("compute");
+    expect(
+      within(budgets).queryByTestId(`${DUPLICATE_NAMES_TEST_ID}-no-page`),
+    ).toBeNull();
+  });
+
+  test("a workspace summary is linked to the Summary tab of its workspace's page", async () => {
+    readDuplicatesMock.mockResolvedValue(
+      duplicates([
+        {
+          tableName: "WorkspaceNotificationSummary",
+          pluralName: "Workspace Notification Summaries",
+          groupCount: 1,
+          groups: [
+            {
+              name: "Morning",
+              count: 2,
+              records: [
+                {
+                  id: MONITOR_A,
+                  name: "Morning",
+                  createdAt: CREATED_A,
+                  isArchived: false,
+                  pageFields: {
+                    workspaceType: "Slack",
+                    summaryType: "Incident",
+                  },
+                },
+                {
+                  id: MONITOR_B,
+                  name: "morning",
+                  createdAt: CREATED_B,
+                  isArchived: false,
+                  pageFields: {
+                    workspaceType: "MicrosoftTeams",
+                    summaryType: "Alert Episode",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+
+    await renderCard();
+
+    const links: Array<HTMLElement> = within(
+      screen.getByRole("region", { name: "Workspace Notification Summaries" }),
+    ).getAllByTestId(`${DUPLICATE_NAMES_TEST_ID}-record-link`);
+
+    expect(
+      links.map((link: HTMLElement): string | null => {
+        return link.getAttribute("href");
+      }),
+    ).toEqual([
+      `/dashboard/${PROJECT_ID}/incidents/workspace-connection-slack?tab=summary`,
+      `/dashboard/${PROJECT_ID}/alerts/workspace-connection-microsoft-teams?tab=summary`,
+    ]);
   });
 
   test("the list could not be read: says so, with why, and the switch still works", async () => {

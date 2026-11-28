@@ -6,7 +6,11 @@ import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceD
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateOptions,
+} from "Common/UI/Utils/PermissionGate";
+import { useRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -23,6 +27,12 @@ const NetworkDeviceSnmpWalk: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
+  // On the device's page, what its labels leave the reader (#11259).
+  const deviceOptions: PermissionGateOptions | undefined = useRecordGateOptions(
+    new NetworkDevice(),
+    modelId,
+  );
+
   return (
     <SnmpWalkCard
       networkDeviceId={modelId}
@@ -31,7 +41,11 @@ const NetworkDeviceSnmpWalk: FunctionComponent<
           .isAllowed
       }
       canEditDevice={
-        PermissionGate.check(new NetworkDevice(), ModelAction.Update).isAllowed
+        PermissionGate.check(
+          new NetworkDevice(),
+          ModelAction.Update,
+          deviceOptions,
+        ).isAllowed
       }
       canEditTemplate={
         PermissionGate.check(new NetworkDeviceOidTemplate(), ModelAction.Update)

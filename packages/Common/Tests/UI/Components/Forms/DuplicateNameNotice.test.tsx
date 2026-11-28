@@ -26,6 +26,7 @@ import DuplicateNameNotice, {
 } from "../../../../UI/Components/Forms/DuplicateNameNotice";
 import RecordPageContext, {
   GetRecordPageRoute,
+  RecordPages,
 } from "../../../../UI/Components/RecordPage/RecordPageContext";
 import UniqueNamesApi from "../../../../UI/Utils/UniqueNamesApi";
 import Route from "../../../../Types/API/Route";
@@ -90,7 +91,7 @@ function takenBy(
 
 interface NoticeProps extends Partial<ComponentProps> {
   // Whether the front end says where records are opened.
-  pages?: GetRecordPageRoute | null;
+  pages?: RecordPages | null;
 }
 
 function Notice(props: NoticeProps): ReactElement {
@@ -110,7 +111,7 @@ function Notice(props: NoticeProps): ReactElement {
   }
 
   return (
-    <RecordPageContext.Provider value={pages || pageOf}>
+    <RecordPageContext.Provider value={pages || { getRoute: pageOf }}>
       {notice}
     </RecordPageContext.Provider>
   );
@@ -376,8 +377,10 @@ describe("under a name field", () => {
 
     render(
       <Notice
-        pages={(): null => {
-          return null;
+        pages={{
+          getRoute: (): null => {
+            return null;
+          },
         }}
       />,
     );
@@ -388,6 +391,153 @@ describe("under a name field", () => {
     expect(notice.querySelector("strong")).toHaveTextContent(
       "API Health Check",
     );
+    // A front end that says nothing of pages it has none of says nothing more.
+    expect(screen.queryByTestId("duplicate-name-notice-no-page")).toBeNull();
+  });
+
+  /*
+   * A kind opened under another record (#11020): the front end is handed
+   * what the server sent of the record that has the name, to build its
+   * page's address - an OpenStack budget's cloud.
+   */
+  test("the record's page fields reach the front end that builds its link", async () => {
+    checkMock.mockResolvedValue(
+      answer({
+        takenBy: {
+          id: HOLDER_ID,
+          name: "Compute",
+          isArchived: false,
+          pageFields: {
+            openStackCloudId: "cccccccc-0000-4000-8000-000000011020",
+          },
+        },
+      }),
+    );
+
+    const asked: Array<unknown> = [];
+
+    render(
+      <Notice
+        tableName="OpenStackBudget"
+        singularName="OpenStack Budget"
+        name="Compute"
+        pages={{
+          getRoute: (data: {
+            tableName: string;
+            modelId: ObjectID;
+            pageFields?: Record<string, string> | undefined;
+          }): Route | null => {
+            asked.push(data);
+            return data.pageFields?.["openStackCloudId"]
+              ? new Route(
+                  `/dashboard/project-1/openstack/${data.pageFields["openStackCloudId"]}/spend`,
+                )
+              : null;
+          },
+        }}
+      />,
+    );
+
+    await findNotice();
+
+    expect(asked).toContainEqual({
+      tableName: "OpenStackBudget",
+      modelId: new ObjectID(HOLDER_ID),
+      pageFields: { openStackCloudId: "cccccccc-0000-4000-8000-000000011020" },
+    });
+    expect(screen.getByTestId("duplicate-name-notice-link")).toHaveAttribute(
+      "href",
+      "/dashboard/project-1/openstack/cccccccc-0000-4000-8000-000000011020/spend",
+    );
+    expect(screen.queryByTestId("duplicate-name-notice-no-page")).toBeNull();
+  });
+
+  /*
+   * A kind no page shows (#11020): the name in bold, and the front end's
+   * words for why there is no link - never a link that leads nowhere.
+   */
+  test("a kind shown on no page says so in the front end's words", async () => {
+    checkMock.mockResolvedValue(
+      answer({ isRequired: true, takenBy: takenBy({ name: "Triage Bot" }) }),
+    );
+
+    render(
+      <Notice
+        tableName="AIAgent"
+        singularName="AI Agent"
+        name="Triage Bot"
+        pages={{
+          getRoute: (): null => {
+            return null;
+          },
+          getNoPageNote: (tableName: string): string | null => {
+            return tableName === "AIAgent"
+              ? "AI agents have no page in the dashboard: rename one with the API or Terraform."
+              : null;
+          },
+        }}
+      />,
+    );
+
+    const notice: HTMLElement = await findNotice();
+
+    expect(readText(notice)).toBe(
+      "Another AI agent is already called Triage Bot. AI agents have no page in the dashboard: rename one with the API or Terraform. Pick another name: names are unique in this project.",
+    );
+    expect(screen.queryByTestId("duplicate-name-notice-link")).toBeNull();
+    expect(notice.querySelector("strong")).toHaveTextContent("Triage Bot");
+  });
+
+  test("a kind with a page never says it has none, whatever the front end would say", async () => {
+    checkMock.mockResolvedValue(answer({ takenBy: takenBy() }));
+
+    render(
+      <Notice
+        pages={{
+          getRoute: pageOf,
+          getNoPageNote: (): string => {
+            return "No page.";
+          },
+        }}
+      />,
+    );
+
+    await findNotice();
+
+    expect(screen.getByTestId("duplicate-name-notice-link")).toHaveAttribute(
+      "href",
+      HOLDER_PAGE,
+    );
+    expect(screen.queryByTestId("duplicate-name-notice-no-page")).toBeNull();
+  });
+
+  test("a record the reader may not read is named nowhere, and no page is said", async () => {
+    checkMock.mockResolvedValue(
+      answer({ isRequired: true, isTakenByUnreadable: true }),
+    );
+
+    render(
+      <Notice
+        tableName="AIAgent"
+        singularName="AI Agent"
+        name="Triage Bot"
+        pages={{
+          getRoute: (): null => {
+            return null;
+          },
+          getNoPageNote: (): string => {
+            return "AI agents have no page in the dashboard: rename one with the API or Terraform.";
+          },
+        }}
+      />,
+    );
+
+    const notice: HTMLElement = await findNotice();
+
+    expect(readText(notice)).toBe(
+      "Another AI agent already has this name. Pick another name: names are unique in this project.",
+    );
+    expect(screen.queryByTestId("duplicate-name-notice-no-page")).toBeNull();
   });
 
   test("editing a monitor with its own name again - in any case or spacing - asks nothing and says nothing", async () => {
@@ -534,7 +684,7 @@ describe("under a name field", () => {
     checkMock.mockResolvedValue(answer({ takenBy: takenBy() }));
 
     render(
-      <RecordPageContext.Provider value={pageOf}>
+      <RecordPageContext.Provider value={{ getRoute: pageOf }}>
         <DuplicateNameNotice
           tableName="Monitor"
           singularName="Monitor"

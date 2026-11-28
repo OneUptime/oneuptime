@@ -7,8 +7,10 @@ import MetricPipelineRuleFilterCondition, {
   MetricPipelineRuleFilterConditionType,
 } from "../../../Types/Metrics/MetricPipelineRuleFilterCondition";
 import MetricPipelineRuleType from "../../../Types/Metrics/MetricPipelineRuleType";
-import { ScrubRegExp } from "../../../Types/Telemetry/ScrubRule";
-import { hasDigitBeyondAscii } from "../../../Utils/DataSecurity/DigitReadings";
+import {
+  mayReadOtherwise,
+  ScrubRegExp,
+} from "../../../Types/Telemetry/ScrubRule";
 import {
   ReadingNeeds,
   TextReading,
@@ -134,26 +136,25 @@ const PATTERN_READINGS: ReadingNeeds = {
   readsPercentEncoded: true,
   readsDigitsOfEveryScript: true,
   readsPlusAsSpace: true,
+  readsFullwidthForms: true,
 };
 
 /*
  * Whether a pattern matches a value in a reading beside the value as
  * written - its percent-escapes read, a "+" read as the space a URL's
- * query string writes it for, every script's digits read by their values
- * (Utils/DataSecurity/TextReadings, #11031, #11033, #11199) - as a Custom
- * Regex log or trace rule reads one. Asked only of a rule that hides, for
- * Matches Regex: so the metric rule "Scrub it" makes from a data type's
- * patterns (a token, an IBAN) hides a value Data Security finds encoded,
- * with "+"s between its groups or in another script's digits, and no rule
- * ever hides less than it did - Does Not Match Regex, and a Filter, Sample
- * or Rename rule, read the value as written alone, as before.
+ * query string writes it for, every script's digits read by their values,
+ * a number's fullwidth signs and separators read as ASCII
+ * (Utils/DataSecurity/TextReadings, #11031, #11033, #11199, #11115) - as a
+ * Custom Regex log or trace rule reads one. Asked only of a rule that
+ * hides, for Matches Regex: so the metric rule "Scrub it" makes from a
+ * data type's patterns (a token, an IBAN) hides a value Data Security
+ * finds encoded, with "+"s between its groups, in another script's digits
+ * or typed in fullwidth, and no rule ever hides less than it did - Does
+ * Not Match Regex, and a Filter, Sample or Rename rule, read the value as
+ * written alone, as before.
  */
 function matchesInOtherReadings(re: LinearRegExp, value: string): boolean {
-  if (
-    value.indexOf("%") === -1 &&
-    value.indexOf("+") === -1 &&
-    !hasDigitBeyondAscii(value)
-  ) {
+  if (!mayReadOtherwise(value)) {
     return false;
   }
 
@@ -536,10 +537,13 @@ export default class MetricPipelineEngine {
    * Whether a value holds what a built-in Pattern Type finds - the very
    * pattern a log or trace scrub rule of that type runs
    * (Utils/Telemetry/ScrubBuiltInPatterns): what Data Security calls an IP
-   * address, an email address or a card number, found by its own detectors
-   * in every reading they read (#10934, #10935, #10936, #10960). A value
-   * that names no pattern type matches nothing, as an invalid regex does.
-   * OneUptime's own patterns, each bounded: no work allowance is asked.
+   * address, an email address, a card number, a phone number or a US
+   * Social Security number, found by its own detectors in every reading
+   * they read (#10934, #10935, #10936, #10960, #11112) - a national number
+   * or nine digits beside the word that names them in the value (#11114),
+   * a number typed in fullwidth (#11115). A value that names no pattern
+   * type matches nothing, as an invalid regex does. OneUptime's own
+   * patterns, each bounded: no work allowance is asked.
    */
   private static holdsPatternType(
     actual: string,

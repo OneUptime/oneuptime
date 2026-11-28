@@ -204,7 +204,7 @@ const DataStoreSettings: FunctionComponent<
     // How it is scanned: only the fields its kind reads (#11140).
     ...(hasScanMethod
       ? getStoreScanMethodFields({
-          section: scanMethodSection,
+          collapsibleSection: scanMethodSection,
           kindOf: (): string | undefined => {
             return dataStore?.kind;
           },

@@ -38,6 +38,7 @@ import {
   PLACED_CLIENTS_NOTE,
   UNPLACED_DEVICES_NOTE,
   MERAKI_CONNECTION_NAME,
+  MERAKI_CONNECTIONS_NAME,
   MERAKI_STATUS_WORDS,
   MERAKI_TONE_PILL,
   MerakiConnectionAction,
@@ -113,6 +114,9 @@ import React, {
   useState,
 } from "react";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import useTwinMarks, {
+  TwinMarks,
+} from "Common/UI/Components/ModelTable/TwinMarks";
 
 /*
  * The project's Meraki connections, at the foot of the whole network's
@@ -300,6 +304,25 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
   const cardRef: MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const hasConnections: boolean = connections.length > 0;
+
+  /*
+   * A connection whose name another connection has is marked beside its
+   * name, and the card says how many there are (TwinMarks, #11021): this
+   * list is drawn here, not by the shared list, so it marks them itself.
+   * Asked again only when a connection is added, renamed or removed: a
+   * read's status, polled while it runs, changes no name.
+   */
+  const twinMarks: TwinMarks = useTwinMarks({
+    modelType: NetworkControllerConnection,
+    singularName: MERAKI_CONNECTION_NAME,
+    pluralName: MERAKI_CONNECTIONS_NAME,
+  });
+
+  useEffect(() => {
+    if (isLoaded) {
+      twinMarks.onRowsRead(connections, { isBackground: true });
+    }
+  }, [connections, isLoaded, twinMarks.onRowsRead]);
 
   const model: NetworkControllerConnection = new NetworkControllerConnection();
   const gateOptions: PermissionGateOptions = {
@@ -1173,6 +1196,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
+          {twinMarks.note}
           <ul className="divide-y divide-gray-100">
             {connections.map(
               (connectionModel: NetworkControllerConnection): ReactElement => {
@@ -1469,9 +1493,14 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="min-w-0 truncate text-sm font-medium text-gray-900">
-                          {facts.connection.name}
-                        </span>
+                        {twinMarks.drawName({
+                          id: id,
+                          name: (
+                            <span className="min-w-0 truncate text-sm font-medium text-gray-900">
+                              {facts.connection.name}
+                            </span>
+                          ),
+                        })}
                         <span data-testid="meraki-connection-status">
                           <Pill
                             text={isReading ? READING_NOW : words.label}

@@ -1,4 +1,5 @@
 import { HeldPermissions } from "../../Types/HeldPermissions";
+import ObjectID from "../../Types/ObjectID";
 import PrivateRecordParts, {
   PrivateRecordPartModel,
 } from "../../Types/PrivateRecord/PrivateRecordParts";
@@ -121,6 +122,88 @@ export function usePrivateRecordGateOptions(
         : {}),
     };
   }, [scope, isPart, recordAccessScope, tableName]);
+}
+
+/*
+ * usePrivateRecordGateOptions, for a gate about ONE record of `model` - a
+ * switch, a reset, a delete card, each naming the record it writes: the
+ * page's answer for its own kind (RecordAccessScope.recordTableName) is
+ * taken only when that record is the one the page is open on
+ * (RecordAccessScope.recordId). A switch of another monitor on a monitor's
+ * page is not locked by this monitor's labels.
+ */
+export function useRecordGateOptions(
+  model: PrivateRecordPartModel | null | undefined,
+  recordId: ObjectID | string | null | undefined,
+): PermissionGateOptions | undefined {
+  const options: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+  const recordAccessScope: RecordAccessScope | null = useRecordAccessScope();
+  const tableName: string = model?.tableName || "";
+  const id: string = recordId ? recordId.toString().toLowerCase() : "";
+
+  return React.useMemo((): PermissionGateOptions | undefined => {
+    return withoutAnswerForOtherRecords({
+      options: options,
+      scope: recordAccessScope,
+      tableName: tableName,
+      isAboutPageRecord: (scope: RecordAccessScope): boolean => {
+        return !scope.recordId || !id || scope.recordId === id;
+      },
+    });
+  }, [options, recordAccessScope, tableName, id]);
+}
+
+// The options without the page's answer, where it is about another record.
+function withoutAnswerForOtherRecords(data: {
+  options: PermissionGateOptions | undefined;
+  scope: RecordAccessScope | null;
+  tableName: string;
+  isAboutPageRecord: (scope: RecordAccessScope) => boolean;
+}): PermissionGateOptions | undefined {
+  if (
+    !data.options?.recordAccess ||
+    !data.scope ||
+    !data.tableName ||
+    data.scope.recordTableName !== data.tableName ||
+    data.isAboutPageRecord(data.scope)
+  ) {
+    return data.options;
+  }
+
+  const rest: PermissionGateOptions = { ...data.options };
+  delete rest.recordAccess;
+
+  return Object.keys(rest).length > 0 ? rest : undefined;
+}
+
+/*
+ * usePrivateRecordGateOptions, for a list of `model`'s records: a list of
+ * the very kind the page is open on (RecordAccessScope.recordTableName) -
+ * other monitors on a monitor's page - lists other records, which what the
+ * server or the labels say of the page's record is not about, so its rows
+ * are weighed by their own labels (ModelTable) and not by the page's
+ * answer. A list of the record's parts keeps the answer.
+ */
+export function useListGateOptions(
+  model: PrivateRecordPartModel | null | undefined,
+): PermissionGateOptions | undefined {
+  const options: PermissionGateOptions | undefined =
+    usePrivateRecordGateOptions(model);
+  const recordAccessScope: RecordAccessScope | null = useRecordAccessScope();
+  const tableName: string = model?.tableName || "";
+
+  return React.useMemo((): PermissionGateOptions | undefined => {
+    return withoutAnswerForOtherRecords({
+      options: options,
+      scope: recordAccessScope,
+      tableName: tableName,
+      // A list of the page's own kind is of other records.
+      isAboutPageRecord: (): boolean => {
+        return false;
+      },
+    });
+  }, [options, recordAccessScope, tableName]);
 }
 
 /*

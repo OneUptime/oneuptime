@@ -362,16 +362,29 @@ reader that knows where its format keeps the level, then a severity parser.
    warnings name a category: `/app/x.py:3: DeprecationWarning: …`.
 4. **`parse-numeric-severity`** — pino and bunyan write the level as a number
    among the top-level fields: `{"level":30,…}`.
-5. **`parse-severity-from-body`** — a level word, believed only where a level
+5. **The formats that keep the level in a place of their own** (issue
+   #11226), each read there and nowhere else, so a word that is a level only
+   in its own format (`System`, `Fine`, a `#`) is read in no other line:
+   MongoDB's `"s"` (`parse-mongodb-severity`), CloudNativePG's wrapped
+   PostgreSQL record, whose `error_severity` wins over the wrapper's `level`
+   (`parse-cnpg-severity`), Serilog's compact JSON `@l`
+   (`parse-clef-severity`, and `add-clef-information` for the Information it
+   writes no `@l` for), Redis's and Valkey's symbol, NestJS's ConsoleLogger,
+   logrus with colours, MySQL 8's `[System]`, java.util.logging's `FINEST` to
+   `CONFIG`, Sidekiq 7, PHP's error log and Gitea's `[I]`.
+6. **`parse-severity-from-body`** — a level word, believed only where a level
    sits: in the line's **preamble** (punctuation, digits, word tokens that end
    on a structural delimiter, colour codes, and a time at the very start, read
    with its letters: RFC 3339's `T` and `Z`, a zone such as `UTC` or `GMT`,
-   ctime's day and month), or as the value of a **level field** (`level`,
-   `lvl`, `severity`, `levelname`, `level_name`, `log.level`, hclog's `@level`,
-   Serilog's `@l`, …). Prose is not preamble: `Connection error, retrying`
-   stops at `Connection `. The preamble branch is anchored, so it beats a level
-   field further along the line.
-6. **`add-fallback-severity`** — a line nothing read, on stdout: INFO.
+   ctime's day and month, zerolog's `3:04PM`), or as the value of a **level
+   field** (`level`, `lvl`, `severity`, `levelname`, `level_name`,
+   `log.level`, hclog's `@level`, Serilog's `@l`, …). Prose is not preamble:
+   `Connection error, retrying` stops at `Connection `. The preamble branch is
+   anchored, so it beats a level field further along the line.
+7. **`parse-slog-severity`** — Go's log/slog between its four names,
+   `level=ERROR+4`, at its level plus 9 as OpenTelemetry's slog bridge numbers
+   it; after the general read, so a line that one reads keeps that level.
+8. **`add-fallback-severity`** — a line nothing read, on stdout: INFO.
 
 A line nothing read on **stderr** has no severity at all (the router's default,
 `severity-unspecified`). stderr carries every level of a program's diagnostics
@@ -401,11 +414,13 @@ validate` only proves each operator is well-formed. So the suite holds it to:
   real `LogSeverity`: stanza's built-in preset knows trace/debug/info/warn/
   warning/error/err/fatal and nothing else, and an unmapped text leaves the
   record **Unspecified** rather than erroring.
-- **Behaviour.** The corpus in `Utils/LogSeverityCorpus.js` — 209 log lines:
-  61 captured from the programs themselves (Vault, the collector,
-  kube-state-metrics, PostgreSQL, Prometheus, nginx, Python, Node, Logback and
-  java.util.logging), the rest in their documented layouts, this suite's
-  corpus from before #10972 among them — goes through each
+- **Behaviour.** The corpus in `Utils/LogSeverityCorpus.js` — 311 log lines:
+  162 captured from the programs themselves (Vault, the collector,
+  kube-state-metrics, PostgreSQL, Prometheus, nginx, Python, Node, Logback,
+  java.util.logging, and for #11226 and #11228 MongoDB, Redis, NestJS, logrus,
+  slog, zerolog, MySQL 8.4, Sidekiq 7 and 8, PHP, Gitea, Serilog and
+  CloudNativePG in a kind cluster), the rest in their documented layouts, this
+  suite's corpus from before #10972 among them — goes through each
   config's own operators the way stanza runs them (`classify` in
   `Utils/StanzaSeverity.js`), and each line must be read by the reader the
   corpus names and stored at its level. Prose that merely mentions a level word
@@ -419,9 +434,72 @@ validate` only proves each operator is well-formed. So the suite holds it to:
   quadratic or exponential. Every reader must stay cheap on thirty-odd
   pathological shapes at a size where a quadratic one takes seconds.
 - **Lockstep.** The four configs carry one identical chain.
+- **Expansion.** No pattern holds a `$` followed by a name: collector 0.96.0,
+  which `--reuse-values` keeps, still expands a bare `$NAME` as an
+  environment variable, so MongoDB's `\$date` read nothing there. A literal
+  dollar is `[$]`.
 
 `agent-log-severity-behaviour.sh` runs the same corpus through the real
-collector.
+collector, on each agent and on the chart at the collector it pins and at
+`0.96.0`, with and without `filters.logs.minSeverity=ERROR`, and once more
+with the documented `logs.extraOperators` example set (through the chart, and
+through the container agents' `ONEUPTIME_LOG_OPERATOR_<n>` variables): the
+in-house lines it reads (`Utils/ExtraLogOperatorExamples.js`) must leave at
+the levels it names, beside the whole corpus as it leaves without it.
+
+### `AgentLogOperators.test.js`
+
+Log operators of your own (issue #11225), for a log format the agents do not
+read. The container agents take five, `ONEUPTIME_LOG_OPERATOR_1` to `_5`, each
+one collector operator as JSON: in each config, five slots in order, after the
+line is put back together and its stream read and right before the severity
+router, each a `noop` when unset and quoted so YAML keeps the fallback whole;
+in each Compose file, the five named without a value (an empty one would stop
+the collector), and a config check, the collector's own `validate` over the
+same config and settings, which the agent waits on. For the Kubernetes agent's
+`logs.extraOperators`, the chart's check (`kubernetes-agent.validateExtraLogOperators`)
+is held to the agent's own config: the ids it keeps are the pod log
+receiver's, the types of the agent's operators without an id are the ones it
+knows, its types are the schema's enum, the types newer than `0.96.0` are
+the ones it refuses there, the operators render right after the pod's uid
+is moved and before the severity router, the check runs in a template
+nothing else includes, and the example in `values.yaml` is the one the
+chart's suite renders. In the JavaScript model of each chain
+(`Utils/StanzaSeverity.js`), the example's in-house lines are read by no
+reader of the agent's own, and with the example's operators run first each
+leaves at the level it names.
+
+The chart's helm-unittest suite, `tests/extra-log-operators_test.yaml`, holds
+what the chart renders and every refusal by its whole message (helm-unittest
+0.5.1, which CI pins, has no `errorPattern`: it reads one as no assertion).
+`validate-collector-configs.sh` holds those verdicts to the collector's own.
+
+### `LogSeverityOneTable.test.js`
+
+A level word is turned into a stored severity in more than one place, and the
+same word must land on the same severity in all of them (issue #11228: the
+agents stored `critical` as an Error and `alert` and `panic` as Fatal, while
+OneUptime's ingest did the opposite). The table is `LOG_SEVERITY_NUMBER_BY_TEXT`
+in `packages/Common/Types/Log/LogSeverity.ts`, loaded as the module it is
+(`loadCommonModule` in `Utils/AgentLogSeverityConfigs.js`), and the suite
+holds every copy to it, number for number:
+
+- the four configs' `severity-parser`: every alias of its mapping block, and
+  every text its readers lift;
+- the API-mode tailer's `severityTextToNumber`, which must also number exactly
+  the texts the DaemonSet's readers lift;
+- syslog's eight severities by number, through their RFC 5424 keywords:
+  OneUptime's syslog ingest (`SyslogSeverity.ts`) and the host collector's
+  journald priority mapping;
+- CloudWatch Logs' first-word and RDS database reads.
+
+A text that is no word a sender writes in a level field, only a mark in one
+format's own position (klog's letter, pino's number, PostgreSQL's `LOG` in
+capitals), is a reader token, listed with the number it names; the chain may
+map nothing else the table does not know. Vendor vocabularies whose meaning
+the vendor defines (Datadog's statuses, Google Cloud Logging's severities) are
+read as the vendor says and are not held here. A last block keeps the copies
+as they were before #11228 and shows the words they disagreed on.
 
 ### `validate-collector-configs.sh`
 
@@ -457,6 +535,21 @@ expressions — the Go-side class of error the jest suite structurally cannot se
 a malformed regex, an `output`/`default` naming an operator that does not exist,
 or an expr string one backslash short. It runs on every PR from the
 "Ops Config Test" workflow.
+
+For the Kubernetes agent's `logs.extraOperators` (issue #11225) it also runs
+`Utils/extra-log-operators-agreement.js`: a table of operators, each with the
+chart's verdict (it renders them, or refuses them with a message that
+matches) and the collector's `validate` verdict on the same operators in a
+receiver of their own, written down, so that the chart refuses at install
+time what would stop the collector, and refuses on its own only what it says
+why (a level the agent would overwrite, a router that would drop lines). It
+validates the agent's config with operators of every type the chart takes in
+it, on the pinned collector and, with the types it has, on `0.96.0`; shows,
+by renaming one of them in that config, that an id the chart keeps (one of
+the agent's, or `move`, the name the collector gives the agent's first move)
+is a duplicate the collector refuses and that `move1` is not; and checks
+the messages of what `values.schema.json` refuses, which helm-unittest cannot
+read.
 
 ```sh
 cd Tests/Ops && npm run validate-collector-configs
@@ -897,7 +990,15 @@ started — and with the socket off it stops before starting anything, with the
 the daemon's name (`docker info --format '{{.Name}}'`, the hostname
 `docker node ls` shows) into `.env` as `DOCKER_SWARM_NODE_NAME`, keeps one given
 when running it, and keeps only a hostname's characters (the name goes into an
-OTTL string).
+OTTL string). Log operators of your own (`ONEUPTIME_LOG_OPERATOR_1` to `_5`,
+issue #11225): with none set nothing is checked or passed, and an empty one is
+not passed; a set one is run through the collector's `validate` in the agent's
+image, with the agent's settings, before the agent is touched, and then reaches
+the collector alone; one the collector refuses stops the script with its
+message, and the agent is neither removed nor started again. The Swarm
+installer writes them into `.env` single-quoted, checks the new `.env` with the
+Compose file's config check before it replaces the old one, keeps one `.env`
+has when run again without it, and refuses one holding a single quote.
 
 ### `ContainerAgentConfigs.test.js`
 

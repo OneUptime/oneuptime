@@ -485,6 +485,53 @@ Kubernetes इवेंट एजेंट पर नेमस्पेस क�
 > [!IMPORTANT]
 > Kubernetes इवेंट और संसाधन स्पेसिफ़िकेशन इससे कभी फ़िल्टर नहीं होते। वे Kubernetes API से अपनी किसी गंभीरता के बिना आते हैं, इसलिए कोई सीमा पूरी फ़ीड हटा देती, जिसमें `FailedScheduling`, `BackOff` और `OOMKilling` चेतावनियाँ भी होतीं जो आपको सबसे ज़्यादा चाहिए। वे कम और कीमती हैं, इसलिए एजेंट उन्हें हमेशा भेजता है; उन्हें कम करने के लिए OneUptime में **लॉग → सेटिंग्स → ड्रॉप फ़िल्टर** का उपयोग करें।
 
+### अपना खुद का लॉग फ़ॉर्मेट पढ़ना
+
+एजेंट उन फ़ॉर्मेट के स्तर पढ़ता है जिनमें ज़्यादातर प्रोग्राम लॉग लिखते हैं। जिस फ़ॉर्मेट को वह नहीं पढ़ता, जैसे आपके संगठन में बना कोई फ़ॉर्मेट, उसके लिए `logs.extraOperators` से अपने खुद के कलेक्टर operators जोड़ें। ये `daemonset` मोड में हर पॉड लॉग लाइन पर चलते हैं: एजेंट द्वारा लाइन को फिर से जोड़ने और उसका पॉड और स्ट्रीम पढ़ने के बाद, और लाइन का स्तर पढ़ने से पहले।
+
+किसी लाइन का स्तर सेट करने के लिए उसे `attributes.severity_text` में ऐसे शब्द के रूप में लिखें जिसे एजेंट पढ़ता है, जैसे `ERROR`, `warn`, `critical` या कोई klog अक्षर। एजेंट इसे स्तर पढ़ने के अपने किसी भी तरीके से पहले पढ़ता है, और इसे वैसे ही सहेजता है जैसे OneUptime उस शब्द को बाकी हर जगह सहेजता है। फिर लाइन को `severity-router` को सौंपें, जो एजेंट का पहला चरण है, या उसे अपने अगले operator तक आगे जाने दें।
+
+`<<E>> payment failed` और `SEV1 checkout is down` जैसी लाइनों के लिए:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+जब आप इंस्टॉल या अपग्रेड करते हैं, तब चार्ट operators को जाँचता है। कलेक्टर जिस मान को अस्वीकार कर देता, वह बार-बार फिर से शुरू होने वाला DaemonSet छोड़ने के बजाय `helm install` को उस operator का नाम बताने वाले संदेश के साथ विफल कर देता है: ऐसा टाइप जो `image.tag` वाले कलेक्टर में नहीं है, टाइप की कोई ज़रूरी सेटिंग, कोई फ़ील्ड, पहले से ली गई कोई ID, ऐसा `output` जो किसी भी operator की ओर इशारा नहीं करता, कोई रेगुलर एक्सप्रेशन, या किसी एक्सप्रेशन में कोई स्ट्रिंग। एक्सप्रेशन की स्ट्रिंग में रेगुलर एक्सप्रेशन का बैकस्लैश दो बार लिखा जाता है, जैसे `"^\\d+ "` में, या रेगुलर एक्सप्रेशन बैकटिक के बीच किसी रॉ स्ट्रिंग में रखा जाता है। एक्सप्रेशन का बाकी हिस्सा कलेक्टर शुरू होते समय कंपाइल करता है।
+
+चार्ट तीन तरह के ऐसे operators भी अस्वीकार करता है जिन्हें कलेक्टर चला लेता, और कारण बताता है:
+
+- ऐसा operator जो लाइन की गंभीरता खुद सेट करता है, जैसे `severity_parser`, `syslog_parser` या किसी पार्सर का `severity` ब्लॉक। एजेंट आपके operators के बाद हर लाइन का स्तर पढ़ता है और उसे ओवरराइट कर देता, इसलिए इसके बजाय स्तर को `attributes.severity_text` में लिखें।
+- बिना `default` वाला राउटर, या बिना `output` वाला रूट। जो लाइनें वह किसी operator को नहीं सौंपता, वे हटा दी जाती हैं।
+- `container` पार्सर। एजेंट कंटेनर रनटाइम का फ़ॉर्मेट पहले ही पढ़ चुका होता है, इसलिए आपके operators प्रोग्राम की अपनी लाइन देखते हैं।
+
+`logs.extraOperators` के लिए `daemonset` मोड चाहिए। `api` मोड का लॉग टेलर कोई कलेक्टर operators नहीं चलाता, इसलिए चार्ट वहाँ यह सेटिंग अस्वीकार करता है, और हाइब्रिड इंस्टॉल (`logs.windowsPods.enabled`) के Windows पॉड को यह नहीं मिलती।
+
 ### नाम के आधार पर मेट्रिक्स शामिल करना या बाहर रखना
 
 `filters.metrics` तय करता है कि कौन-से मेट्रिक्स क्लस्टर छोड़ें, हर रिसीवर के लिए।

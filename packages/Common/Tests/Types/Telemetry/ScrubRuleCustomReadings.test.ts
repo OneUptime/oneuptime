@@ -1,6 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
+import { buildScrubPatternForDataType } from "../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import {
   compileScrubRuleCustomRegex,
+  mayReadOtherwise,
   ScrubRegExp,
 } from "../../../Types/Telemetry/ScrubRule";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
@@ -296,6 +298,80 @@ describe("a value with no other reading", () => {
   });
 });
 
+/*
+ * #11115: a value typed wholly in fullwidth, as Japanese and Chinese text
+ * writes one - its digits, and the plus sign, hyphens, parentheses, full
+ * stops, solidi and ideographic spaces it is written with - is read with
+ * those forms as ASCII too, its digits by their values, so the pattern
+ * finds it there and hides it as written.
+ */
+describe("a value typed wholly in fullwidth (#11115)", () => {
+  const IDEOGRAPHIC_SPACE: string = "　";
+
+  test("an IBAN, its groups apart by ideographic spaces, is hidden whole", () => {
+    const regex: ScrubRegExp = compiled(IBAN_PATTERN);
+    const iban: string = [
+      "DE８９",
+      "３７０４",
+      "００４４",
+      "０５３２",
+      "０１３０",
+      "００",
+    ].join(IDEOGRAPHIC_SPACE);
+
+    expect(hidden(regex, `IBAN：${iban} ok`)).toBe("IBAN：[REDACTED] ok");
+    expect(regex.test(`IBAN：${iban} ok`)).toBe(true);
+  });
+
+  test("a phone number's own pattern finds one typed in fullwidth, its plus sign and hyphens too", () => {
+    const regex: ScrubRegExp = compiled("\\+81 [0-9]-[0-9]{4}-[0-9]{4}");
+
+    for (const written of [
+      "＋８１ ３－１２３４－５６７８",
+      `＋８１${IDEOGRAPHIC_SPACE}３－１２３４－５６７８`,
+      "＋81 3－1234－5678",
+    ]) {
+      expect(matchedTexts(regex, `電話：${written} 自宅`)).toEqual([written]);
+    }
+  });
+
+  test("the pattern Scrub It makes for a CPF hides one typed in fullwidth, and reads it as the CPF it is", () => {
+    const regex: ScrubRegExp = compiled(
+      buildScrubPatternForDataType("br-cpf")!,
+    );
+    const written: string = "４７１．３９２．８６５－８２";
+
+    expect(hidden(regex, `CPF ${written}`)).toBe("CPF [REDACTED]");
+    // Read as written: Mask and Hash read its forms as they read its digits (ScrubAction).
+    expect(regex.readMatch!(written)).toBe(written);
+  });
+
+  test("a fullwidth form beside no digit gives no other reading: CJK prose is read as written", () => {
+    const regex: ScrubRegExp = compiled("\\(注\\)");
+    const prose: string = "（注）設定を確認してください。";
+
+    expect(mayReadOtherwise(prose)).toBe(false);
+    expect(regex.test(prose)).toBe(false);
+    expect(hidden(regex, prose)).toBe(prose);
+  });
+
+  test("says which texts may read otherwise, and every other is read as written alone", () => {
+    for (const [text, may] of [
+      ["a%3Db", true],
+      ["a+b", true],
+      ["call ٤", true],
+      ["＋81", true],
+      [`１２${IDEOGRAPHIC_SPACE}３４`, true],
+      ["plain text 123", false],
+      ["（注）", false],
+      [`東京${IDEOGRAPHIC_SPACE}大阪`, false],
+      ["", false],
+    ] as Array<[string, boolean]>) {
+      expect([text, mayReadOtherwise(text)]).toEqual([text, may]);
+    }
+  });
+});
+
 describe("in time in line with the value's length", () => {
   const LIMIT_IN_MS: number = 2000;
   const LENGTH: number = 400_000;
@@ -318,6 +394,20 @@ describe("in time in line with the value's length", () => {
     ],
     ["escaped '+'s for spaces without end", repeat("DE89%2B3704%2B")],
     ["'+'s between digits of another script without end", repeat("٣+")],
+    // #11115: a number's fullwidth forms beside digits, the reading's every case.
+    ["fullwidth hyphens between digits without end", repeat("４－")],
+    ["fullwidth plus signs before digits without end", repeat("＋４")],
+    ["digits in fullwidth parentheses without end", repeat("（４）")],
+    ["ideographic spaces between ASCII digits without end", repeat("4　")],
+    ["fullwidth forms beside no digit without end", repeat("（）－＋．／　")],
+    [
+      "IBANs typed wholly in fullwidth without end",
+      repeat("DE８９　３７０４　００４４　０５３２　０１３０　００；"),
+    ],
+    [
+      "fullwidth forms escaped in a URL without end",
+      repeat("%EF%BC%8B%EF%BC%94%EF%BC%8D"),
+    ],
   ])("reads %s", (_label: string, text: string) => {
     for (const pattern of [TOKEN_PATTERN, IBAN_PATTERN]) {
       const regex: ScrubRegExp = compiled(pattern);

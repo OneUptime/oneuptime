@@ -116,12 +116,11 @@ export async function queueStorageArrayCollectionMetrics(data: {
     return 0;
   }
 
-  const identifiers: Array<string> = StorageArrayProbeMetrics.getArrayIdentifiers(
-    {
+  const identifiers: Array<string> =
+    StorageArrayProbeMetrics.getArrayIdentifiers({
       resourceMetrics: data.report.resourceMetrics,
       collector: collector,
-    },
-  );
+    });
 
   const namesByIdentifier: Map<string, string> =
     await StorageArrayConnectionService.getArrayNamesBySystemId({
@@ -180,7 +179,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(
+            "OneUptime does not know this probe. Check the probe key and probe ID it runs with.",
+          ),
         );
       }
 
@@ -238,7 +239,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(
+            "OneUptime does not know this probe. Check the probe key and probe ID it runs with.",
+          ),
         );
       }
 
@@ -310,7 +313,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(
+            "OneUptime does not know this probe. Check the probe key and probe ID it runs with.",
+          ),
         );
       }
 

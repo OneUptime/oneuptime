@@ -36,10 +36,25 @@
  * does, and `--app-busy-percent <n>` gives n% of each replica's event loop
  * to other work, as the results, telemetry and jobs an App pod also
  * handles do.
+ *
+ * Kept-alive connections, as a cluster has them (issue #11121):
+ * `--balance connection` sends the probes' requests over connections kept
+ * alive as a probe keeps them, to one Service address that sends each new
+ * connection to an App replica picked at random, as kube-proxy does
+ * (ProbeDispatchConnectionBalancer, on `--balancer-port`, any free one by
+ * default). `--front-origin <url>` sends them to an nginx in front of that
+ * address instead, as probes outside the cluster reach the App.
+ * `--later-app-replicas <n> --later-at-seconds <t>` starts n more App
+ * replicas that the address sends connections to only from t seconds into
+ * the run: the pods KEDA adds, once Ready. `--post-results` has each check
+ * send its result on the probe's connections. The run then reports every
+ * replica's fetches answered a second, scheduling requests running and
+ * waiting, and connections, every five seconds.
  */
 import {
   ProbeDispatchBenchmarkOptions,
   ProbeDispatchRun,
+  ReplicaTimelinePoint,
   runProbeDispatchBenchmark,
 } from "../Tests/Telemetry/ProbeDispatch/ProbeDispatchHarness";
 import { TimingSummary } from "../Tests/Telemetry/ProbeDispatch/ProbeDispatchAppReplica";
@@ -135,6 +150,12 @@ function readArguments(argv: Array<string>): Arguments {
       metricsPath: textOf("--metrics-path"),
       statementLatencyMs: valueOf("--statement-latency-ms", 0),
       busyPercent: valueOf("--app-busy-percent", 0),
+      balance: textOf("--balance") === "connection" ? "connection" : "request",
+      balancerPort: valueOf("--balancer-port", 0),
+      frontOrigin: textOf("--front-origin"),
+      laterAppReplicas: valueOf("--later-app-replicas", 0),
+      laterAtMs: valueOf("--later-at-seconds", 0) * 1000,
+      postResults: argv.includes("--post-results"),
     },
   };
 }
@@ -240,9 +261,57 @@ function describe(run: ProbeDispatchRun): Array<string> {
     );
   }
 
+  for (const line of describeReplicaTimeline(run)) {
+    lines.push(line);
+  }
+
   lines.push(
     `  harness event loop delay p99 ${run.harnessEventLoopDelayP99Ms} ms`,
   );
+
+  return lines;
+}
+
+/*
+ * Each App replica every five seconds (issue #11121): fetches answered a
+ * second / scheduling requests running / waiting / connections open,
+ * and the replicas KEDA added, once they are sent connections.
+ */
+function describeReplicaTimeline(run: ProbeDispatchRun): Array<string> {
+  if (run.replicaTimeline.length === 0) {
+    return [];
+  }
+
+  const lines: Array<string> = [];
+  const later: Set<number> = new Set<number>(run.laterReplicas);
+
+  lines.push(
+    `  replicas every 5 s, answered a second / running / waiting / connections open (accepted, closed by "Connection: close")${
+      run.laterAtSecond === null
+        ? ""
+        : `; replicas ${run.laterReplicas
+            .map((replica: number): number => {
+              return replica + 1;
+            })
+            .join(", ")} sent connections from ${run.laterAtSecond} s`
+    }:`,
+  );
+
+  for (const point of run.replicaTimeline) {
+    lines.push(
+      `    ${String(point.atSecond).padStart(3)} s  ${point.replicas
+        .map((replica: ReplicaTimelinePoint["replicas"][number]): string => {
+          return `${later.has(replica.replica) ? "+" : " "}${replica.replica + 1}: ${replica.answeredPerSecond}/${replica.running}/${replica.waiting}/${replica.connectionsOpen} (${replica.connectionsAcceptedInWindow}, ${replica.closingAnswersInWindow})`;
+        })
+        .join("  ")}`,
+    );
+  }
+
+  if (Object.keys(run.connectionsSentToReplicas).length > 0) {
+    lines.push(
+      `  connections the Service address sent each replica: ${JSON.stringify(run.connectionsSentToReplicas)}; results posted ${run.resultsPosted}, failed ${run.resultsFailed}`,
+    );
+  }
 
   return lines;
 }

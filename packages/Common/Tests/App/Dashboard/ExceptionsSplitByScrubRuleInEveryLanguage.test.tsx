@@ -116,6 +116,7 @@ jest.mock("../../../UI/Utils/Telemetry/UseTelemetryEntityNames", () => {
 });
 
 import ExceptionsViewer from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionsViewer";
+import { forgetRememberedSplitExceptions } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionSplitPairs";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -204,6 +205,9 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  // A page load in a browser that has seen no project before.
+  forgetRememberedSplitExceptions();
+  window.localStorage.clear();
   viewerProps = null;
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
@@ -219,13 +223,17 @@ beforeEach(async () => {
   getListMock.mockImplementation(async () => {
     return { data: [], count: 0 };
   });
-  // The project's split exceptions; every other count (the error classes) 0.
+  /*
+   * The project's split exceptions, and the list's (the toggle's figure,
+   * which carries the list's class lens); every other count (the error
+   * classes, each naming its class as a word) 0.
+   */
   countMock.mockImplementation(async (args: unknown) => {
     const query: Record<string, unknown> = (
       args as { query: Record<string, unknown> }
     ).query;
     return query["splitFromTelemetryExceptionId"] instanceof NotNull &&
-      !("errorClass" in query)
+      typeof query["errorClass"] !== "string"
       ? SPLIT_COUNT
       : 0;
   });

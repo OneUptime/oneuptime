@@ -155,12 +155,17 @@ function renderProbeForm(options: {
 }): void {
   render(
     <RecordPageContext.Provider
-      value={(data: { tableName: string; modelId: ObjectID }): Route | null => {
-        return data.tableName === "Probe"
-          ? new Route(
-              `/dashboard/${PROJECT_ID}/settings/probes/${data.modelId.toString()}`,
-            )
-          : null;
+      value={{
+        getRoute: (data: {
+          tableName: string;
+          modelId: ObjectID;
+        }): Route | null => {
+          return data.tableName === "Probe"
+            ? new Route(
+                `/dashboard/${PROJECT_ID}/settings/probes/${data.modelId.toString()}`,
+              )
+            : null;
+        },
       }}
     >
       <ModelFormModal<Probe>

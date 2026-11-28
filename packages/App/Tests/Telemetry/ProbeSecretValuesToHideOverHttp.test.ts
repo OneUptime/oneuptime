@@ -19,11 +19,12 @@ import {
   createExpressApp,
 } from "Common/Server/Utils/Express";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
+import MonitorProbeService, {
+  ClaimedMonitorProbe,
+} from "Common/Server/Services/MonitorProbeService";
 import MonitorSecretService from "Common/Server/Services/MonitorSecretService";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
 import ProbeService from "Common/Server/Services/ProbeService";
@@ -283,17 +284,17 @@ function secrets(): Array<MonitorSecret> {
   });
 }
 
-function claimedMonitor(): MonitorProbe {
+// What the claim hands back for the probe's one due monitor (#11120).
+function claimedMonitor(): ClaimedMonitorProbe {
   const monitor: Monitor = new Monitor(MONITOR_ID);
   monitor.projectId = PROJECT_ID;
   monitor.monitorType = MonitorType.API;
   monitor.monitorSteps = apiSteps();
 
-  const monitorProbe: MonitorProbe = new MonitorProbe(ObjectID.generate());
-  monitorProbe.monitorId = MONITOR_ID;
-  monitorProbe.probeId = new ObjectID(PROBE_ID);
-  monitorProbe.monitor = monitor;
-  return monitorProbe;
+  return {
+    monitorProbeId: new ObjectID("c1c1c1c1-0000-4000-8000-0000000000d4"),
+    monitor: monitor,
+  };
 }
 
 function claimedTest(): MonitorTest {
@@ -398,10 +399,7 @@ describe("the secret values a probe is handed to hide in its log, over HTTP", ()
   beforeEach(() => {
     jest.clearAllMocks();
     mockLoggedLines.length = 0;
-    monitorProbeService.claimMonitorProbesForProbing.mockResolvedValue([
-      new ObjectID("c1c1c1c1-0000-4000-8000-0000000000d4"),
-    ] as never);
-    monitorProbeService.findBy.mockImplementation((() => {
+    monitorProbeService.claimMonitorProbesForProbing.mockImplementation((() => {
       return Promise.resolve([claimedMonitor()]);
     }) as never);
     monitorTestService.claimMonitorTestsForProbing.mockResolvedValue([

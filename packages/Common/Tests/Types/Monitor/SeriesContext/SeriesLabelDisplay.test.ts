@@ -885,5 +885,63 @@ describe("SeriesLabelDisplay", () => {
         SeriesLabelDisplay.buildTitleSuffix({ summary: "Controller failed" }),
       ).toBe(" - Alert Summary: Controller failed");
     });
+
+    /*
+     * NetApp ONTAP's templates (#11001) group by Harvest's labels, and Dell
+     * PowerMax's (#11004) by the probe's: unregistered, a LUN Offline alert
+     * read "Lun: lun7 | Svm: svm1" and an SRP alert "Srp: SRP_1".
+     */
+    test.each([
+      ["aggr", "Aggregate"],
+      ["svm", "SVM"],
+      ["volume", "Volume"],
+      ["lun", "LUN"],
+      ["disk", "Disk"],
+      ["shelf", "Shelf"],
+      ["destination_location", "SnapMirror Destination"],
+      ["message", "Message"],
+      ["srp", "Storage Resource Pool"],
+      ["storage_group", "Storage Group"],
+      ["srdf_group", "SRDF Group"],
+      ["component", "Component"],
+      ["description", "Description"],
+    ])(
+      "ONTAP's and PowerMax's %s is a registered group-by key, named %s",
+      (key: string, name: string) => {
+        expect(SeriesLabelDisplay.isKnownLabelKey(key)).toBe(true);
+        expect(SeriesLabelDisplay.getFriendlyLabelName(key)).toBe(name);
+        // The thing that breached, before the array that scopes it.
+        expect(SeriesLabelDisplay.getLabelPriority(key)).toBeLessThan(
+          SeriesLabelDisplay.getLabelPriority("resource.storage.array.name"),
+        );
+      },
+    );
+
+    test("an ONTAP LUN's alert names the LUN, then its volume, then the storage VM", () => {
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          svm: "svm1",
+          volume: "vol_db",
+          lun: "lun7",
+          "resource.storage.array.name": "ontap-prod",
+        }),
+      ).toBe("LUN: lun7 | Volume: vol_db | SVM: svm1");
+
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          svm: "svm1",
+          volume: "vol_db",
+        }),
+      ).toBe("Volume: vol_db | SVM: svm1");
+    });
+
+    test("a PowerMax pool's alert names the pool, then the array", () => {
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "resource.storage.array.name": "000197900123",
+          srp: "SRP_1",
+        }),
+      ).toBe("Storage Resource Pool: SRP_1 | Storage Array: 000197900123");
+    });
   });
 });

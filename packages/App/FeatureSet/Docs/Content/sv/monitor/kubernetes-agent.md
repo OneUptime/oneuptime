@@ -384,6 +384,7 @@ Profilering kräver **Linux 5.10** eller senare och en privilegierad podd med no
 | `logs.mode` | (från `preset`) | `daemonset`, `api` eller `disabled`. Åsidosätter presetet. |
 | `logs.windowsPods.enabled` | `false` | Följer också poddar på Windows-noder. Se [Kluster med flera operativsystem](#kluster-med-flera-operativsystem-windows-nodpooler). |
 | `logs.api.replicas` | `1` | Repliker av logg-tailern, i läget `api`. |
+| `logs.extraOperators` | `[]` | Egna collector-operatorer, för ett loggformat som agenten inte läser, i läget `daemonset`. Se [Läsa ditt eget loggformat](/docs/telemetry/kubernetes-agent#läsa-ditt-eget-loggformat). |
 | `ebpf.enabled` | `true` | eBPF-spår och förfrågningsmätvärden. Se [Applikationsspår med eBPF](#applikationsspår-med-ebpf). |
 | `profiling.enabled` | `false` | CPU-flamgrafer. Se [Kontinuerlig CPU-profilering](#kontinuerlig-cpu-profilering). |
 | `kubeStateMetrics.enabled` | `false` | Klustrets tillstånd från kube-state-metrics. |

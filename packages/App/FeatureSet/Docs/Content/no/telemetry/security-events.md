@@ -206,7 +206,7 @@ Hver type når OneUptime som vanlige logger:
 | Kubernetes-revisjonslogger | Revisjonsloggfilen til API-serveren, lest av collectorens `filelog`-receiver |
 | Webangrep | Tilgangsloggen til en webserver, lest av collectorens `filelog`-receiver |
 
-På **Loggene dine** viser hver type når den sist ble funnet, og **Sjekk en logglinje** viser hva en linje du limer inn, blir til, før noen kommer.
+På **Loggene dine** viser hver type når den sist ble funnet, og **Sjekk en logglinje** viser hva en linje du limer inn, blir til, før noen kommer. OneUptime leser linjen slik skanningene leser loggene dine, med de [klarerte proxyene](#klarerte-proxyer) dine og innstillingene for tilgangsloggene dine, så den oppgir klienten den lagrede hendelsen vil oppgi, og lagrer ingenting.
 
 En trussel som et sikkerhetsprodukt skriver i loggene dine, for eksempel et CEF- eller LEEF-funn eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åpner en [sak](/docs/telemetry/security-cases) slik et tilkoblet produkts varsel gjør, og øker risikoen for brukeren, verten eller adressen den nevner. **Åpne saker fra** på **Loggene dine** angir fra hvilken alvorlighetsgrad: **Høy og høyere** med mindre du velger en annen, eller **Aldri**. Produktets pålogginger og blokkerte tilkoblinger forblir hendelser som reglene dine kan lese.
 
@@ -299,6 +299,8 @@ En hendelse nevner adressen en forespørsel kom fra, bare når avsenderen av for
 
 En oppgitt adresse blokkeres aldri fra en sak: Hvem som helst kan sende `X-Forwarded-For: 192.0.2.44`, og en blokkering ville stenge ute den som enn har 192.0.2.44. En hendelse med bare en oppgitt adresse har en **Responsplan** som ber deg finne den ekte adressen i loggene til lastbalansereren eller brannmuren din.
 
+En hendelse der en proxy du stoler på, videresendte klienten, viser hvilke proxyer den kom gjennom, som **Videresendt av**: i den rekkefølgen `X-Forwarded-For` lister dem opp, med tilkoblingens egen adresse sist. De ligger i `oneuptime.request.forwarded_by`, og **Sjekk en logglinje** forteller hvorfor hver av dem er klarert.
+
 Registrer to ting på serverspennene til appen din, så adressene er verifisert: tilkoblingens egen adresse, `network.peer.address`, som HTTP-instrumenteringene i OpenTelemetry setter, og bak en proxy headeren `X-Forwarded-For`, som de registrerer som `http.request.header.x-forwarded-for` når du oppgir den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-tilgangslogg leses på samme måte: Klientfeltet, for eksempel `remote_addr`, er tilkoblingens adresse, og feltet `http_x_forwarded_for` er headeren.
 
 #### Klarerte proxyer
@@ -311,10 +313,15 @@ Sikkerhetshendelser tror en proxy på hvem klienten var, når adressen dens er:
 | Oppført under **Klarerte proxyer** | Du har oppført den |
 | I de publiserte områdene til en kant du har koblet til, for eksempel [Cloudflare](/docs/integrations/cloudflare) | Så lenge tilkoblingen finnes |
 | En av dine egne applikasjonslastbalanserere | Med mindre du slår det av |
+| En av Googles front-ends, bak din Google Cloud Application Load Balancer | Sammen med lastbalansererne dine, med mindre en TCP- eller SSL-proxylastbalanserer du har, også kobler til fra dem |
 
-**Sikkerhetshendelser → Tilkoblinger → Flere innstillinger** inneholder **Klarerte proxyer**, listen du skriver, og **Klarert automatisk**, som viser resten og hvorfor. Før opp en proxy under **Klarerte proxyer**, én adresse eller ett område på hver linje, når adressen dens er offentlig og ingenting annet stoler på den: et CDN du ikke har koblet til, en lastbalanserer som når appen din over internett, eller en omvendt proxy som nginx på en server med offentlig adresse foran appen din. Inntil du gjør det, tilskrives hvert angrep gjennom den selve proxyen. Bak en global ekstern Application Load Balancer i Google Cloud kommer appens tilkoblinger fra Googles front-ends: Før opp `35.191.0.0/16` og `130.211.0.0/22`.
+En proxy som jobber på TCP-nivå, legger ikke til noe i `X-Forwarded-For`: Den sender videre headeren klienten skrev. Eksempler er en Network Load Balancer, HAProxy i `mode tcp` og en Kubernetes-Service med `externalTrafficPolicy: Cluster`, som gir ingressen din hver tilkobling fra adressen til en node. På en privat adresse er en slik proxy klarert, så en klient bak den kunne velge adressen et angrep tilskrives. Bak en slik beholder du klientens egen adresse på tilkoblingen, med bevaring av klient-IP eller `externalTrafficPolicy: Local`, og verken registrerer eller logger du `X-Forwarded-For`.
+
+**Sikkerhetshendelser → Tilkoblinger → Flere innstillinger** inneholder **Klarerte proxyer**, listen du skriver, og **Klarert automatisk**, som viser resten og hvorfor. Før opp en proxy under **Klarerte proxyer**, én adresse eller ett område på hver linje, når adressen dens er offentlig og ingenting annet stoler på den: et CDN du ikke har koblet til, en lastbalanserer som når appen din over internett, eller en omvendt proxy som nginx på en server med offentlig adresse foran appen din. Inntil du gjør det, tilskrives hvert angrep gjennom den selve proxyen. Et område som er bredere enn en proxys, for eksempel `0.0.0.0/0`, avvises: Det ville klarert alle adresser, så hvem som helst kunne velge adressen et angrep tilskrives. En Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator redigerer listen, og hver endring står i [revisjonsloggen](/docs/configuration/audit-logs) til prosjektet.
 
 Dine egne applikasjonslastbalanserere er de som de [tilkoblede skykontoene](/docs/telemetry/cloud-accounts) dine viser: AWS Application Load Balancers, AWS Classic Load Balancers der hver lytter er HTTP eller HTTPS, Google Cloud Application Load Balancers og Azure Application Gateways, med de offentlige adressene sine. Hver av dem legger klienten den videresender, til i `X-Forwarded-For`. En lastbalanserer i Google Cloud legger til sin egen adresse etter klientens, og en Application Gateway når en offentlig backend fra sin egen adresse, så uten dem ville hvert angrep gjennom en av dem blitt tilskrevet lastbalansereren. **Lastbalansererne dine** på **Klarert automatisk** viser dem, og en Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator kan slå det av.
+
+Bak en global ekstern Application Load Balancer i Google Cloud, eller en klassisk en, kommer appens tilkoblinger fra Googles front-ends, ikke fra lastbalansererens egen adresse. Så lenge et tilkoblet Google Cloud-prosjekt har en, stoler Sikkerhetshendelser derfor også på områdene til front-endene: `35.191.0.0/16`, `130.211.0.0/22` og `2600:2d00:1:1::/64`, slik Googles [brannmurregler for lastbalansering](https://cloud.google.com/load-balancing/docs/firewall-rules) lister dem opp. **Lastbalansererne dine** viser dem på den siste linjen i listen, sammen med lastbalansererne som tar dem med, og bryteren slår også dem av. Ingen utenfor Google kobler til fra disse områdene, og å stole på dem lar aldri noen oppgi en klient: En forespørsel gjennom noen andres lastbalanserer avslutter `X-Forwarded-For` med adressen til den lastbalansereren, som ikke er din, så hendelsen oppgir den. Men Googles TCP- og SSL-proxylastbalanserere kobler til fra de samme områdene og sender en forespørsel videre slik klienten sendte den, så så lenge en av dine finnes, eller ikke alle lastbalansererne kunne listes opp, er områdene ikke klarert, og linjen forteller hvorfor. Hvis en slik lastbalanserer ligger i et Google Cloud-prosjekt du ikke har koblet til, kobler du det til, eller slår av **Lastbalansererne dine**.
 
 Ingenting annet av ditt er klarert automatisk: ikke vertene, Kubernetes-nodene, sondene eller de virtuelle maskinene dine, en NAT-gateway eller en Network-, Gateway- eller Azure-lastbalanserer. De videresender ingen, eller de sender en forespørsel videre slik den kom, så det som kjører på dem, kunne oppgi hvilken som helst klient: en forespørsel en monitor sender med egne headere, en pod, en bærbar PC bak gatewayen. Hvis en av dem er proxyen din, legger du den til i **Klarerte proxyer**. En Kubernetes-ingress er klarert som den lastbalansereren den er: En GKE-ingress er en Google Cloud Application Load Balancer, en AKS-ingress for Application Gateway en Application Gateway, og en EKS-ingress av klassen `alb` en AWS Application Load Balancer. En ingress-kontroller i klyngen din videresender fra en privat adresse, som alltid er klarert.
 
@@ -337,6 +344,25 @@ En linje sier aldri hva feltene er, så det siste feltet leses som `X-Forwarded-
 - når det feltet er `-` eller en liste over adresser der den siste ikke har port.
 
 La den være av når formatet ditt slutter med en annen header som inneholder en adresse, for eksempel `X-Real-IP`, eller når webserveren din skriver headere uten å escape anførselstegnene deres, slik `morgan` for Express gjør: En forespørsels egen user agent kunne da legge til et felt. En JSON-tilgangslogg trenger ingen bryter, siden feltene har navn.
+
+#### Ditt eget loggformat
+
+Hvis webserverne dine setter `X-Forwarded-For` et annet sted enn sist, oppgir du formatet deres: **Loggformat** på **Tilgangslogger** under **Flere innstillinger**. Lim inn `log_format` for nginx slik `nginx.conf` skriver det, eller start fra et kjent format, `main` for nginx eller `upstreaminfo` for ingress-nginx. For eksempel et format som etter headeren logger hvor lang tid hver forespørsel tok:
+
+```nginx
+log_format timed '$remote_addr - $remote_user [$time_local] "$request" '
+                 '$status $body_bytes_sent "$http_referer" '
+                 '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+```
+
+Hver linje i formatet ditt leses felt for felt: adressen som koblet til, fra `$remote_addr`, og `X-Forwarded-For` fra `$http_x_forwarded_for`, uansett hvor formatet plasserer den. Den leses som enhver `X-Forwarded-For`: bare når `$remote_addr` er en proxy du stoler på, og fra høyre. Ingen andre felt tas noen gang for noen av dem, og en linje som ikke er i formatet ditt, leses som før, der **Logger slutter med X-Forwarded-For** avgjør det siste feltet.
+
+- nginx escaper anførselstegnene en klient sender, som `\x22`, så hvert anførselstegn i en linje hører til formatet ditt. En linje med flere anførselstegn enn formatet ditt, slik en server som ikke escaper dem, skriver (`escape=none`, `morgan` for Express), er ingen linje i formatet ditt, og ingenting i den leses som en slik.
+- **Loggformat** avviser et format der `X-Forwarded-For` eller `$remote_addr` ikke kan skilles fra feltene ved siden av, for eksempel en header uten anførselstegn mellom to felt en klient skriver, og ber deg sette den i anførselstegn, som `"$http_x_forwarded_for"`.
+- `upstreaminfo` for ingress-nginx logger ingen `X-Forwarded-For`, så klienten i hver linje er `$remote_addr`. Står en Application Load Balancer eller en annen HTTP-proxy foran den, legger du til `"$http_x_forwarded_for"` i `log-format-upstream` for å lese klienten den videresendte. Bak en Network Load Balancer, som sender videre headeren klienten skrev, skal du la være.
+- Når nginx selv setter `$remote_addr` ut fra `X-Forwarded-For`, med realip-modulen eller `use-forwarded-headers` for ingress-nginx, tror den på alle som `set_real_ip_from` eller `proxy-real-ip-cidr` oppgir, og standarden for ingress-nginx oppgir alle. Logg adressen som faktisk koblet til, `$realip_remote_addr`, ved siden av `$http_x_forwarded_for`: Sikkerhetshendelser leser da `$realip_remote_addr` som tilkoblingen, `$remote_addr` bare som en påstand, og avgjør med de klarerte proxyene dine.
+
+En Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator oppgir det, og hver endring står i revisjonsloggen til prosjektet.
 
 ### Skjult av en rensingsregel
 

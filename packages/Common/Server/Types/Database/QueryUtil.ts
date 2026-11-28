@@ -793,6 +793,7 @@ export default class QueryUtil {
         query[key] = QueryHelper.inBetween(
           (query[key] as InBetween<CompareType>).startValue as any,
           (query[key] as InBetween<CompareType>).endValue as any,
+          { includesEnd: (query[key] as InBetween<CompareType>).includesEnd },
         ) as any;
       } else if (
         query[key] &&
