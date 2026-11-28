@@ -68354,5 +68354,16 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "Die Stimme, mit der die Anrufe Ihres Projekts sprechen, wenn sie über das Twilio-Konto dieses Servers laufen. Eine eigene Twilio-Konfiguration hat eine eigene Stimme.",
   "This server's voice": "Stimme dieses Servers",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio berechnet für diese Stimmen einen Aufpreis: weniger als {{cents}} US-Cent pro Anruf einer Alarmierung, in jeder Sprache.",
-  "Voice": "Stimme"
+  "Voice": "Stimme",
+  "Each file the record holds, in order: its name, MIME type, size, data in base64, content ID, and where the record holds it. Hidden in the run's log.": "Jede Datei, die der Datensatz enthält, der Reihe nach: ihr Name, MIME-Typ, ihre Größe, die Daten in base64, die Content-ID und wo der Datensatz sie enthält. Im Protokoll des Laufs ausgeblendet.",
+  "Get Attachments From Record": "Anhänge aus Datensatz abrufen",
+  "How many files Files holds.": "Wie viele Dateien „Dateien“ enthält.",
+  "Internal record of which records show each inline image, so the image's address opens it only for the people who may read one of them.": "Interne Aufzeichnung, welche Datensätze jedes eingebettete Bild zeigen, damit die Adresse des Bildes es nur für die Personen öffnet, die einen davon lesen dürfen.",
+  "Read the files a record holds, such as a note's attachments or the files in its File custom fields, with their names, types and data, ready to attach to an email.": "Liest die Dateien, die ein Datensatz enthält, etwa die Anhänge einer Notiz oder die Dateien in seinen benutzerdefinierten Dateifeldern, mit Namen, Typ und Daten, bereit zum Anhängen an eine E-Mail.",
+  "Record Table Name": "Tabellenname des Datensatzes",
+  "Shown Image": "Angezeigtes Bild",
+  "Shown Images": "Angezeigte Bilder",
+  "Taken when the record was read, whether or not it holds any files.": "Wird genommen, wenn der Datensatz gelesen wurde, ob er Dateien enthält oder nicht.",
+  "The files the record holds that are not in Files, each with the reason: a kind of file that is not handed out, too large, or not found in this project.": "Die Dateien, die der Datensatz enthält, die aber nicht in „Dateien“ sind, jeweils mit dem Grund: eine Dateiart, die nicht herausgegeben wird, zu groß oder in diesem Projekt nicht gefunden.",
+  "The kind of record that holds the files: an incident, a note, an alert, and more.": "Die Art des Datensatzes, der die Dateien enthält: ein Vorfall, eine Notiz, eine Warnung und mehr."
 }

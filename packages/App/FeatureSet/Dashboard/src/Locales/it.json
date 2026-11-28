@@ -68354,5 +68354,16 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "La voce con cui parlano le chiamate del tuo progetto quando passano per l'account Twilio di questo server. Una configurazione Twilio tua ha una voce sua.",
   "This server's voice": "Voce di questo server",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio addebita un supplemento per queste voci: meno di {{cents}} centesimi di dollaro per ogni chiamata di reperibilità, in qualsiasi lingua.",
-  "Voice": "Voce"
+  "Voice": "Voce",
+  "Each file the record holds, in order: its name, MIME type, size, data in base64, content ID, and where the record holds it. Hidden in the run's log.": "Ogni file che il record contiene, in ordine: nome, tipo MIME, dimensione, dati in base64, ID del contenuto e dove il record lo contiene. Nascosto nel log dell'esecuzione.",
+  "Get Attachments From Record": "Ottieni gli allegati dal record",
+  "How many files Files holds.": "Quanti file contiene «File».",
+  "Internal record of which records show each inline image, so the image's address opens it only for the people who may read one of them.": "Registro interno di quali record mostrano ogni immagine incorporata, così che l'indirizzo dell'immagine la apra solo alle persone che possono leggerne uno.",
+  "Read the files a record holds, such as a note's attachments or the files in its File custom fields, with their names, types and data, ready to attach to an email.": "Legge i file che un record contiene, come gli allegati di una nota o i file dei suoi campi personalizzati di tipo File, con nome, tipo e dati, pronti da allegare a un'e-mail.",
+  "Record Table Name": "Nome tabella del record",
+  "Shown Image": "Immagine mostrata",
+  "Shown Images": "Immagini mostrate",
+  "Taken when the record was read, whether or not it holds any files.": "Preso quando il record è stato letto, che contenga file o no.",
+  "The files the record holds that are not in Files, each with the reason: a kind of file that is not handed out, too large, or not found in this project.": "I file che il record contiene ma che non sono in «File», ciascuno con il motivo: un tipo di file che non viene consegnato, è troppo grande o non è stato trovato in questo progetto.",
+  "The kind of record that holds the files: an incident, a note, an alert, and more.": "Il tipo di record che contiene i file: un incidente, una nota, un avviso e altro."
 }

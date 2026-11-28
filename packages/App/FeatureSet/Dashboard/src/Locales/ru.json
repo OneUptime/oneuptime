@@ -68354,5 +68354,16 @@
   "The voice your project's calls speak with when they go out through this server's Twilio account. A Twilio config of your own has a voice of its own.": "Голос, которым говорят звонки вашего проекта, когда они идут через аккаунт Twilio этого сервера. У собственной конфигурации Twilio свой голос.",
   "This server's voice": "Голос этого сервера",
   "Twilio charges extra for these voices: under {{cents}} US cents for each page's call, in any language.": "Twilio взимает за эти голоса дополнительную плату: менее {{cents}} центов США за каждый звонок дежурному, на любом языке.",
-  "Voice": "Голос"
+  "Voice": "Голос",
+  "Each file the record holds, in order: its name, MIME type, size, data in base64, content ID, and where the record holds it. Hidden in the run's log.": "Каждый файл, который хранит запись, по порядку: имя, MIME-тип, размер, данные в base64, ID содержимого и где запись его хранит. Скрыто в журнале прогона.",
+  "Get Attachments From Record": "Получить вложения из записи",
+  "How many files Files holds.": "Сколько файлов содержит «Файлы».",
+  "Internal record of which records show each inline image, so the image's address opens it only for the people who may read one of them.": "Служебная запись о том, какие записи показывают каждое встроенное изображение, чтобы адрес изображения открывал его только тем, кому можно читать одну из них.",
+  "Read the files a record holds, such as a note's attachments or the files in its File custom fields, with their names, types and data, ready to attach to an email.": "Читает файлы, которые хранит запись, например вложения заметки или файлы в её пользовательских полях типа «Файл», с их именами, типами и данными, готовые для вложения в письмо.",
+  "Record Table Name": "Имя таблицы записи",
+  "Shown Image": "Показываемое изображение",
+  "Shown Images": "Показываемые изображения",
+  "Taken when the record was read, whether or not it holds any files.": "Выбирается, когда запись прочитана, есть в ней файлы или нет.",
+  "The files the record holds that are not in Files, each with the reason: a kind of file that is not handed out, too large, or not found in this project.": "Файлы, которые хранит запись, но которых нет в «Файлы», у каждого указана причина: тип файла, который не выдаётся, слишком большой или не найден в этом проекте.",
+  "The kind of record that holds the files: an incident, a note, an alert, and more.": "Тип записи, в которой хранятся файлы: инцидент, заметка, оповещение и другие."
 }
