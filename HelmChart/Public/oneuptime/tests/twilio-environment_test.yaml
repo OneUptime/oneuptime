@@ -615,7 +615,10 @@ tests:
         letProjectsChooseCallVoice: "yes"
     asserts: &refusesSwitch
       - failedTemplate:
-          errorPattern: "letProjectsChooseCallVoice"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/twilio/letProjectsChooseCallVoice': value must be one of <nil>, '', true, false, 'true', 'false'
 
   - it: refuses true in another case, which the server would read, at install
     templates:
@@ -631,7 +634,12 @@ tests:
     set:
       twilio:
         letProjectsChooseCallVoice: 1
-    asserts: *refusesSwitch
+    asserts:
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/twilio/letProjectsChooseCallVoice': got number, want null or boolean or string
 
   - it: refuses a list
     templates:
@@ -640,7 +648,12 @@ tests:
       twilio:
         letProjectsChooseCallVoice:
           - true
-    asserts: *refusesSwitch
+    asserts:
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/twilio/letProjectsChooseCallVoice': got array, want null or boolean or string
 
   # ---------------------------------------------------------------------------
   # worker: it sends what the queues hold, so it reads the same account
