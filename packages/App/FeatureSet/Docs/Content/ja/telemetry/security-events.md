@@ -129,6 +129,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `ocsf` | OCSF のイベント JSON (`class_uid`、`severity_id` など) | なし |
 | `udm` | Google SecOps (Chronicle) の UDM イベント (`metadata.event_type` など) | `chronicle`、`google-secops` |
 | `google-secops-alert` | Google SecOps の検出とアラート: SOAR の Webhook と検出ストリーム | `secops-alert`、`detection` |
+| `crowdsec` | CrowdSec のアラート。その `http` 通知プラグインが送信する形のまま ( [CrowdSec](/docs/integrations/crowdsec) を参照) | `crowdsec-alert` |
 | `generic` | その他の JSON。一般的な項目名で読み取る | なし |
 
 形式は `?format=`、 `x-oneuptime-security-event-format` ヘッダー、または最上位の `"format"` フィールドで指定します。指定しなければイベントごとに形式が判定されるので、ひとつの Webhook で検出と生のイベントを混在させることができます。
@@ -266,10 +267,12 @@ Key Vault、ストレージ アカウント、Azure SQL データベースは、
 | Microsoft Entra ID | サインイン、ディレクトリの変更、リスク検出、選んだ場合は失敗したバックグラウンドとアプリのサインイン、および Microsoft 365 監査ログのメール転送、共有、フィッシングの判定 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | サインイン、Google 自身による検出、管理者による変更とアプリへのアクセス許可、ドライブでの共有 | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | ファイアウォールがエッジでブロック、チャレンジ、ログ記録したもの、HTTP Activity として | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | 通知プラグインが送信するアラートを Detection Finding として、およびブロックしたアドレスの BAN | [CrowdSec](/docs/integrations/crowdsec) |
 
 - 製品自身のアラートのうち **ケースを開く重大度** (別のレベルを選ばない限り **高以上**、または **なし**) 以上のものは、対象のユーザー、ホスト、アドレスごとにまとめられて [ケース](/docs/telemetry/security-cases) を開きます。
 - 接続は、レコードが表すアクティビティの時刻ではなく、製品がレコードを作成した時刻で読み取ります。1 時間ごとに実行される SIEM ルールは一致したイベントよりずっと後に検出を作成しますが、それも取り込まれます。
 - 最初のポーリングは 24 時間さかのぼるので、新しい接続ではすぐに最近のレコードが表示されます。
+- CrowdSec 接続はポーリングされません。CrowdSec はアラートを発生させるたびに、接続の行にある **アラートを送信** が示す通知を通じて送信します。
 - 接続の行にある **接続をテスト** は、製品へのアクセスと OneUptime 自身のワーカーが動いているかを確認し、何も取り込みません。 **今すぐ実行** はすぐにポーリングします。
 
 ## イベントが持つもの

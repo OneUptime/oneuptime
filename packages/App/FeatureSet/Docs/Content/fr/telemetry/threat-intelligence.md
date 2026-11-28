@@ -23,7 +23,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- Pour une liste, une adresse `https` qui télécharge un fichier texte avec un indicateur par ligne.
+- Pour une liste, une adresse `https` qui télécharge un fichier texte avec un indicateur par ligne, librement ou avec un nom d'utilisateur et un mot de passe.
 - Pour un flux TAXII, un serveur TAXII 2.1 qui publie des objets STIX 2.1 de type `indicator`, et l'ID de la collection à interroger. Un flux TAXII se connecte de façon anonyme, avec un jeton bearer ou avec l'authentification HTTP basique.
 - Pour un flux Google SecOps, une [connexion Google SecOps](/docs/integrations/google-secops#configurer-le-connecteur-géré) dont le compte de service peut rechercher les correspondances d'indicateurs : le rôle `roles/chronicle.viewer` le peut.
 - Les serveurs qui exigent un certificat client TLS (TLS mutuel), comme CISA AIS, ne sont pas pris en charge. Le serveur ATT&CK public de MITRE publie des techniques et des groupes plutôt que des indicateurs, donc un flux qui pointe vers lui reste vide.
@@ -50,7 +50,7 @@ Ouvrez **Produits → Événements de sécurité → Détections → Renseigneme
 
 ### Créer le flux
 
-Cliquez sur **Créer : Flux de renseignements sur les menaces** et choisissez sa **Source** : **Liste d'indicateurs**, **Collection TAXII** ou **Google SecOps**. L'étape suivante ne demande que cette source : l'**URL de la liste** pour une liste, le **Serveur TAXII** et la **Connexion** pour une collection, ou la **Connexion Google SecOps**. **En cas de correspondance** vient en dernier. Les champs figurent dans le tableau ci-dessous.
+Cliquez sur **Créer : Flux de renseignements sur les menaces** et choisissez sa **Source** : **Liste d'indicateurs**, **Collection TAXII** ou **Google SecOps**. L'étape suivante ne demande que cette source : l'**URL de la liste** et la **Connexion** pour une liste, le **Serveur TAXII** et la **Connexion** pour une collection, ou la **Connexion Google SecOps**. **En cas de correspondance** vient en dernier. Les champs figurent dans le tableau ci-dessous.
 
 ### Vérifier la première interrogation
 
@@ -67,7 +67,7 @@ En une minute ou deux, la ligne du flux affiche **Dernière interrogation**, et 
 | **ID de la collection** | La collection qui publie les indicateurs. |
 | **Intervalle d'interrogation (minutes)** | La fréquence de lecture de la source : de 1 à 1440 minutes, 60 par défaut. Une liste est lue au plus toutes les 15 minutes. |
 | **Confiance minimale** | Pour une collection TAXII ou Google SecOps : les indicateurs de confiance inférieure sont ignorés, de 0 à 100, et 0 garde tout. Les indicateurs sans confiance passent toujours. |
-| **Connexion** | La façon dont OneUptime se connecte : **Sans connexion** pour une collection publique, **Jeton bearer** pour un jeton fourni par l'opérateur du serveur, ou **Nom d'utilisateur et mot de passe** pour l'authentification HTTP basique. |
+| **Connexion** | La façon dont OneUptime se connecte : **Sans connexion** pour une liste ou une collection publique, **Jeton bearer** pour un jeton fourni par l'opérateur d'une collection, ou **Nom d'utilisateur et mot de passe** pour l'authentification HTTP basique. |
 | **Jeton d'API**, **Nom d'utilisateur Basic Auth** et **Mot de passe Basic Auth** | Demandés seulement pour la connexion choisie. |
 | **Ouvrir un dossier en cas de correspondance** | Activé par défaut : chaque événement qui nomme un indicateur ouvre un [dossier](/docs/telemetry/security-cases) sur cet indicateur, ou rejoint le dossier ouvert qui porte déjà sur lui. |
 | **Alertes et incidents** | **Créer une alerte** par défaut : chaque indicateur correspondant ouvre une alerte. |
@@ -76,7 +76,7 @@ En une minute ou deux, la ligne du flux affiche **Dernière interrogation**, et 
 | **Gravité de l'incident** | Comme **Gravité de l'alerte**, pour les incidents. |
 | **Écrire un Detection Finding en cas de correspondance** | Activé par défaut : chaque correspondance écrit un constat dans le flux d'événements. |
 
-Les jetons et les mots de passe d'un flux TAXII sont chiffrés et ne sont plus jamais affichés après l'enregistrement. Pour les changer, choisissez **Mettre à jour les identifiants** dans la ligne du flux, puis **Jeton bearer**, **Nom d'utilisateur et mot de passe** ou **Sans connexion**, qui efface ce qui est enregistré : votre choix remplace la connexion du flux, donc enregistrer un jeton efface un mot de passe enregistré, et inversement.
+Les jetons et les mots de passe d'un flux sont chiffrés et ne sont plus jamais affichés après l'enregistrement. Pour les changer, choisissez **Mettre à jour les identifiants** dans la ligne du flux, puis **Jeton bearer**, **Nom d'utilisateur et mot de passe** ou **Sans connexion**, qui efface ce qui est enregistré : votre choix remplace la connexion du flux, donc enregistrer un jeton efface un mot de passe enregistré, et inversement. Une liste ne propose pas de jeton.
 
 ### Comment un flux est interrogé
 
@@ -92,6 +92,7 @@ Un flux désactivé n'est ni interrogé ni confronté. Les indicateurs qu'il pos
 - Une valeur reste un indicateur actif pendant 2 jours après l'interrogation qui l'a lue en dernier, et une valeur que la liste retire cesse de correspondre à l'interrogation suivante. Une liste qui n'a pas changé est réécrite une fois par jour.
 - Une liste contient au plus 50 000 indicateurs. **Résumé de la dernière interrogation** indique combien ont été lus, combien de lignes ont été ignorées et combien ont été laissés de côté.
 - L'adresse doit utiliser `https` et suit les mêmes règles sortantes qu'une connexion : sur OneUptime Cloud, une adresse privée est refusée.
+- Une liste protégée par un identifiant est demandée avec son **Nom d'utilisateur et mot de passe**, en authentification HTTP basique, jamais dans son adresse. La CrowdSec Console sert ainsi les listes de blocage auxquelles vous vous abonnez : voir [Lire les listes de blocage de CrowdSec](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
 
 ### Comment Google SecOps est lu
 

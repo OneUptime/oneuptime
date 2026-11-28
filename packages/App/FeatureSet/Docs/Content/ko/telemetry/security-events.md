@@ -129,6 +129,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `ocsf` | OCSF 이벤트 JSON(`class_uid`, `severity_id` 등) | 없음 |
 | `udm` | Google SecOps(Chronicle) UDM 이벤트(`metadata.event_type` 등) | `chronicle`, `google-secops` |
 | `google-secops-alert` | Google SecOps 탐지와 경고: SOAR 웹훅과 탐지 스트림 | `secops-alert`, `detection` |
+| `crowdsec` | CrowdSec 경고. `http` 알림 플러그인이 보내는 그대로([CrowdSec](/docs/integrations/crowdsec) 참고) | `crowdsec-alert` |
 | `generic` | 그 밖의 모든 JSON. 일반적인 필드 이름으로 읽음 | 없음 |
 
 형식은 `?format=`, `x-oneuptime-security-event-format` 헤더, 또는 최상위 `"format"` 필드로 지정합니다. 지정하지 않으면 이벤트마다 형식을 따로 판단하므로, 웹훅 하나에 탐지와 원시 이벤트를 섞어 보낼 수 있습니다.
@@ -266,10 +267,12 @@ Key Vault, 스토리지 계정, Azure SQL 데이터베이스는 각각 모든 �
 | Microsoft Entra ID | 로그인, 디렉터리 변경, 위험 탐지, 선택하면 실패한 백그라운드 및 앱 로그인, 그리고 Microsoft 365 감사 로그의 메일 전달, 공유, 피싱 판정 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | 로그인, Google 자체 탐지, 관리자 변경과 앱 액세스 허용, 드라이브 공유 | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | 방화벽이 엣지에서 차단, 챌린지, 로그 기록한 것, HTTP Activity로 | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | 알림 플러그인이 보내는 경고를 Detection Finding으로, 그리고 차단한 주소의 밴 | [CrowdSec](/docs/integrations/crowdsec) |
 
 - 제품 자체의 경고 중 **케이스를 여는 기준**(다른 수준을 고르지 않는 한 **높음 이상**, 또는 **없음**) 이상인 것은 그 대상인 사용자, 호스트, 주소별로 묶여 [케이스](/docs/telemetry/security-cases) 를 엽니다.
 - 연결은 레코드가 설명하는 활동 시각이 아니라, 제품이 레코드를 만든 시각을 기준으로 읽습니다. 매시간 실행되는 SIEM 규칙은 일치한 이벤트보다 한참 뒤에 탐지를 만들지만, 그것도 가져옵니다.
 - 첫 폴링은 24시간 전까지 거슬러 올라가므로, 새 연결에서 최근 레코드가 바로 보입니다.
+- CrowdSec 연결은 폴링하지 않습니다. CrowdSec이 경고를 발생시키는 즉시, 연결 행의 **경고 보내기** 가 알려 주는 알림을 통해 보냅니다.
 - 연결 행의 **연결 테스트** 는 제품에 대한 접근과 OneUptime 자체 워커의 실행 여부를 확인하며, 아무것도 가져오지 않습니다. **지금 실행** 은 즉시 폴링합니다.
 
 ## 이벤트에 담기는 것

@@ -23,7 +23,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- Per un elenco, un indirizzo `https` che scarichi un file di testo con un indicatore per riga.
+- Per un elenco, un indirizzo `https` che scarichi un file di testo con un indicatore per riga, liberamente o con nome utente e password.
 - Per un feed TAXII, un server TAXII 2.1 che pubblichi oggetti STIX 2.1 di tipo `indicator`, e l'ID della raccolta da interrogare. Un feed TAXII accede in modo anonimo, con un token bearer o con l'autenticazione HTTP basic.
 - Per un feed Google SecOps, una [connessione Google SecOps](/docs/integrations/google-secops#configurare-il-connettore-gestito) il cui account di servizio possa cercare le corrispondenze degli indicatori: il ruolo `roles/chronicle.viewer` può farlo.
 - I server che richiedono un certificato client TLS (TLS reciproco), come CISA AIS, non sono supportati. Il server ATT&CK pubblico di MITRE pubblica tecniche e gruppi invece di indicatori, quindi un feed puntato su di esso resta vuoto.
@@ -50,7 +50,7 @@ Apri **Prodotti → Eventi di sicurezza → Rilevamenti → Threat Intel**.
 
 ### Crea il feed
 
-Fai clic su **Crea: Feed di threat intel** e scegli la sua **Origine**: **Elenco di indicatori**, **Raccolta TAXII** o **Google SecOps**. Il passo successivo chiede solo quella origine: l'**URL dell'elenco** per un elenco, il **Server TAXII** e l'**Accesso** per una raccolta, oppure la **Connessione Google SecOps**. **In caso di corrispondenza** viene per ultimo. I campi sono nella tabella qui sotto.
+Fai clic su **Crea: Feed di threat intel** e scegli la sua **Origine**: **Elenco di indicatori**, **Raccolta TAXII** o **Google SecOps**. Il passo successivo chiede solo quella origine: l'**URL dell'elenco** e l'**Accesso** per un elenco, il **Server TAXII** e l'**Accesso** per una raccolta, oppure la **Connessione Google SecOps**. **In caso di corrispondenza** viene per ultimo. I campi sono nella tabella qui sotto.
 
 ### Controlla la prima interrogazione
 
@@ -67,7 +67,7 @@ Entro un paio di minuti la riga del feed mostra **Ultima interrogazione**, e **R
 | **ID della raccolta** | La raccolta che pubblica gli indicatori. |
 | **Intervallo di interrogazione (minuti)** | Ogni quanto leggere l'origine: da 1 a 1440 minuti, 60 per impostazione predefinita. Un elenco si legge al massimo ogni 15 minuti. |
 | **Confidenza minima** | Per una raccolta TAXII o Google SecOps: gli indicatori con una confidenza più bassa vengono saltati, da 0 a 100, e 0 tiene tutto. Gli indicatori senza confidenza passano sempre. |
-| **Accesso** | Come accede OneUptime: **Nessun accesso** per una raccolta pubblica, **Token bearer** per un token fornito dall'operatore del server, o **Nome utente e password** per l'autenticazione HTTP basic. |
+| **Accesso** | Come accede OneUptime: **Nessun accesso** per un elenco o una raccolta pubblici, **Token bearer** per un token fornito dall'operatore di una raccolta, o **Nome utente e password** per l'autenticazione HTTP basic. |
 | **Token API**, **Nome utente Basic Auth** e **Password Basic Auth** | Richiesti solo per l'accesso scelto. |
 | **Apri un caso in caso di corrispondenza** | Attivo per impostazione predefinita: ogni evento che nomina un indicatore apre un [caso](/docs/telemetry/security-cases) su di esso, o si aggiunge al caso aperto che già lo riguarda. |
 | **Avvisi e incidenti** | **Crea un avviso** per impostazione predefinita: ogni indicatore corrispondente apre un avviso. |
@@ -76,7 +76,7 @@ Entro un paio di minuti la riga del feed mostra **Ultima interrogazione**, e **R
 | **Gravità incidente** | Come **Gravità avviso**, per gli incidenti. |
 | **Scrivi un Detection Finding in caso di corrispondenza** | Attivo per impostazione predefinita: ogni corrispondenza scrive una risultanza nel flusso di eventi. |
 
-Token e password di un feed TAXII vengono cifrati e non sono più mostrati dopo il salvataggio. Per cambiarli, scegli **Aggiorna le credenziali** nella riga del feed e poi **Token bearer**, **Nome utente e password** o **Nessun accesso**, che cancella quanto salvato: la tua scelta sostituisce l'accesso del feed, quindi salvare un token cancella una password salvata, e viceversa.
+Token e password di un feed vengono cifrati e non sono più mostrati dopo il salvataggio. Per cambiarli, scegli **Aggiorna le credenziali** nella riga del feed e poi **Token bearer**, **Nome utente e password** o **Nessun accesso**, che cancella quanto salvato: la tua scelta sostituisce l'accesso del feed, quindi salvare un token cancella una password salvata, e viceversa. Un elenco non offre il token.
 
 ### Come viene interrogato un feed
 
@@ -92,6 +92,7 @@ Un feed disattivato non viene né interrogato né confrontato. Gli indicatori ch
 - Un valore resta un indicatore attivo per 2 giorni dopo l'interrogazione che l'ha letto per ultima, e un valore che l'elenco toglie smette di corrispondere all'interrogazione successiva. Un elenco che non è cambiato viene riscritto una volta al giorno.
 - Un elenco contiene al massimo 50.000 indicatori. **Riepilogo dell'ultima interrogazione** dice quanti ne sono stati letti, quante righe sono state saltate e quanti sono stati lasciati fuori.
 - L'indirizzo deve usare `https` e segue le stesse regole in uscita di una connessione: su OneUptime Cloud un indirizzo privato viene rifiutato.
+- Un elenco protetto da accesso viene richiesto con **Nome utente e password**, come autenticazione HTTP basic, mai nel suo indirizzo. La CrowdSec Console serve così le blocklist a cui ti abboni: vedi [Leggere le blocklist di CrowdSec](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
 
 ### Come viene letto Google SecOps
 

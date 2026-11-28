@@ -23,7 +23,7 @@ flowchart TB
 
 ## Før du begynner
 
-- For en liste: en `https`-adresse som laster ned en tekstfil med én indikator per linje.
+- For en liste: en `https`-adresse som laster ned en tekstfil med én indikator per linje, fritt eller med brukernavn og passord.
 - For en TAXII-feed: en TAXII 2.1-server som publiserer STIX 2.1-objekter av typen `indicator`, og ID-en til samlingen som skal hentes. En TAXII-feed logger på anonymt, med et bearer-token eller med HTTP Basic-autentisering.
 - For en Google SecOps-feed: en [Google SecOps-tilkobling](/docs/integrations/google-secops#sett-opp-den-administrerte-koblingen) der tjenestekontoen kan søke i indikatortreff: rollen `roles/chronicle.viewer` kan det.
 - Servere som krever et TLS-klientsertifikat (mutual TLS), for eksempel CISA AIS, støttes ikke. MITREs offentlige ATT&CK-server publiserer teknikker og grupper i stedet for indikatorer, så en feed som peker dit, forblir tom.
@@ -50,7 +50,7 @@ Flisen til en liste lenker til vilkårene: Feodo Tracker er fri for all bruk (CC
 
 ### Opprett feeden
 
-Klikk på **Opprett Feed med trusselsinformasjon**, og velg **Kilde**: **Liste over indikatorer**, **TAXII-samling** eller **Google SecOps**. Neste steg spør bare om den kilden: en listes **Liste-URL**, en samlings **TAXII-server** og **Pålogging**, eller **Google SecOps-tilkobling**. **Ved treff** kommer sist. Feltene står i tabellen nedenfor.
+Klikk på **Opprett Feed med trusselsinformasjon**, og velg **Kilde**: **Liste over indikatorer**, **TAXII-samling** eller **Google SecOps**. Neste steg spør bare om den kilden: en listes **Liste-URL** og **Pålogging**, en samlings **TAXII-server** og **Pålogging**, eller **Google SecOps-tilkobling**. **Ved treff** kommer sist. Feltene står i tabellen nedenfor.
 
 ### Sjekk den første hentingen
 
@@ -67,7 +67,7 @@ I løpet av et minutt eller to viser feedens rad **Sist hentet**, og **Sammendra
 | **Samlings-ID** | Samlingen som publiserer indikatorene. |
 | **Henteintervall (minutter)** | Hvor ofte kilden leses: 1 til 1440 minutter, 60 som standard. En liste leses høyst hvert 15. minutt. |
 | **Minste sikkerhet** | For en TAXII-samling eller Google SecOps: indikatorer med lavere confidence hoppes over, 0 til 100, og 0 beholder alt. Indikatorer uten confidence slipper alltid gjennom. |
-| **Pålogging** | Hvordan OneUptime logger på: **Ingen pålogging** for en offentlig samling, **Bearer-token** for et token fra operatøren av serveren eller **Brukernavn og passord** for HTTP Basic-autentisering. |
+| **Pålogging** | Hvordan OneUptime logger på: **Ingen pålogging** for en offentlig liste eller samling, **Bearer-token** for et token fra operatøren av en samling eller **Brukernavn og passord** for HTTP Basic-autentisering. |
 | **API-token**, **Brukernavn for Basic Auth** og **Passord for Basic Auth** | Spørres bare om for påloggingen som er valgt. |
 | **Åpne en sak ved treff** | På som standard: hver hendelse som nevner en indikator, åpner en [sak](/docs/telemetry/security-cases) om den, eller legges til i den åpne saken som allerede gjelder den. |
 | **Varsler og hendelser** | **Opprett et varsel** som standard: hver indikator som treffer, åpner et varsel. |
@@ -76,7 +76,7 @@ I løpet av et minutt eller to viser feedens rad **Sist hentet**, og **Sammendra
 | **Hendelsesalvor** | Som **Varselsalvor**, for hendelser (incidents). |
 | **Skriv Detection Finding ved treff** | På som standard: hvert treff skriver et funn inn i hendelsesstrømmen. |
 
-En TAXII-feeds tokener og passord krypteres og vises aldri igjen etter at du har lagret dem. For å endre dem velger du **Oppdater påloggingsinformasjon** i feedens rad og deretter **Bearer-token**, **Brukernavn og passord** eller **Ingen pålogging**, som fjerner det lagrede: valget ditt erstatter feedens pålogging, så å lagre et token fjerner et lagret passord, og omvendt.
+En feeds tokener og passord krypteres og vises aldri igjen etter at du har lagret dem. For å endre dem velger du **Oppdater påloggingsinformasjon** i feedens rad og deretter **Bearer-token**, **Brukernavn og passord** eller **Ingen pålogging**, som fjerner det lagrede: valget ditt erstatter feedens pålogging, så å lagre et token fjerner et lagret passord, og omvendt. En liste tilbyr ikke token.
 
 ### Slik hentes en feed
 
@@ -92,6 +92,7 @@ En deaktivert feed hentes ikke og sammenlignes ikke. Indikatorene den allerede h
 - En verdi forblir en aktiv indikator i 2 dager etter hentingen som sist leste den, og en verdi listen fjerner, slutter å treffe ved neste henting. En liste som ikke er endret, skrives på nytt én gang om dagen.
 - En liste rommer høyst 50 000 indikatorer. **Sammendrag av siste henting** forteller hvor mange som ble lest, hvor mange linjer som ble hoppet over, og hvor mange som ble utelatt.
 - Adressen må bruke `https` og følger de samme utgående reglene som en tilkobling: på OneUptime Cloud avvises en privat adresse.
+- En liste bak en pålogging hentes med **Brukernavn og passord**, som HTTP Basic-autentisering, aldri i adressen. Slik leverer CrowdSec Console blokkeringslistene du abonnerer på: se [Les CrowdSecs blokkeringslister](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
 
 ### Slik leses Google SecOps
 

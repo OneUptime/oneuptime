@@ -129,6 +129,7 @@ Der Endpunkt antwortet mit `200`, sobald die Ereignisse in der Warteschlange ste
 | `ocsf` | OCSF-Ereignis-JSON (`class_uid`, `severity_id` und so weiter) | Keine |
 | `udm` | UDM-Ereignisse von Google SecOps (Chronicle) (`metadata.event_type` und so weiter) | `chronicle`, `google-secops` |
 | `google-secops-alert` | Erkennungen und Warnungen von Google SecOps: SOAR-Webhooks und der Erkennungsstrom | `secops-alert`, `detection` |
+| `crowdsec` | Warnungen von CrowdSec, wie sein `http`-Benachrichtigungs-Plugin sie sendet (siehe [CrowdSec](/docs/integrations/crowdsec)) | `crowdsec-alert` |
 | `generic` | Jedes andere JSON, gelesen anhand gängiger Feldnamen | Keine |
 
 Nennen Sie das Format mit `?format=`, mit dem Header `x-oneuptime-security-event-format` oder mit einem Feld `"format"` auf oberster Ebene. Lassen Sie es weg, wird das Format jedes Ereignisses einzeln ermittelt, sodass ein Webhook Erkennungen und rohe Ereignisse mischen kann.
@@ -266,10 +267,12 @@ Er wird als informatives Ereignis `oneuptime-probe-traffic` aufbewahrt, das die 
 | Microsoft Entra ID | Anmeldungen, Verzeichnisänderungen und Risikoerkennungen, auf Wunsch fehlgeschlagene Hintergrund- und App-Anmeldungen, und aus dem Microsoft 365-Audit-Protokoll Weiterleitungen von E-Mails, Freigaben und Phishing-Urteile | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Anmeldungen, die eigenen Erkennungen von Google, Admin-Änderungen und App-Freigaben, und Freigaben in Drive | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | Was die Firewall am Edge blockiert, mit einer Challenge geprüft und protokolliert hat, als HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | Die Warnungen, die sein Benachrichtigungs-Plugin sendet, als Detection Findings, und das Bannen der Adressen, die Sie sperren | [CrowdSec](/docs/integrations/crowdsec) |
 
 - Die eigenen Warnungen des Produkts ab der Stufe, die in **Fälle eröffnen ab** eingestellt ist (**Hoch und höher**, sofern Sie keine andere Stufe wählen, oder **Nie**), eröffnen [Fälle](/docs/telemetry/security-cases), gruppiert nach dem Benutzer, dem Host oder der Adresse, um die es jeweils geht.
 - Eine Verbindung liest Datensätze nach dem Zeitpunkt, zu dem das Produkt sie erstellt hat, nicht nach der Zeit der Aktivität, die sie beschreiben. Eine SIEM-Regel, die stündlich läuft, erstellt Erkennungen lange nach den Ereignissen, auf die sie passte, und diese werden trotzdem importiert.
 - Die erste Abfrage blickt 24 Stunden zurück, sodass eine neue Verbindung sofort aktuelle Datensätze zeigt.
+- Eine CrowdSec-Verbindung wird nie abgefragt: CrowdSec sendet jede Warnung, sobald sie ausgelöst wird, über die Benachrichtigung, die **Warnungen senden** in der Zeile der Verbindung liefert.
 - **Verbindung testen** in der Zeile der Verbindung prüft den Zugriff auf das Produkt und ob die eigenen Worker von OneUptime laufen, und importiert nichts. **Jetzt ausführen** fragt sofort ab.
 
 ## Was ein Ereignis enthält

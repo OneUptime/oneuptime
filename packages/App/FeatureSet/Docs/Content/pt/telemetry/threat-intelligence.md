@@ -23,7 +23,7 @@ flowchart TB
 
 ## Antes de começar
 
-- Para uma lista, um endereço `https` que baixe um arquivo de texto com um indicador por linha.
+- Para uma lista, um endereço `https` que baixe um arquivo de texto com um indicador por linha, livremente ou com um usuário e uma senha.
 - Para um feed TAXII, um servidor TAXII 2.1 que publique objetos STIX 2.1 do tipo `indicator`, e o ID da coleção a consultar. Um feed TAXII faz login de forma anônima, com um token bearer ou com autenticação HTTP básica.
 - Para um feed do Google SecOps, uma [conexão do Google SecOps](/docs/integrations/google-secops#configurar-o-conector-gerenciado) cuja conta de serviço possa pesquisar correspondências de indicadores: o papel `roles/chronicle.viewer` pode.
 - Servidores que exigem um certificado de cliente TLS (TLS mútuo), como o CISA AIS, não são suportados. O servidor ATT&CK público da MITRE publica técnicas e grupos em vez de indicadores, então um feed apontado para ele fica vazio.
@@ -50,7 +50,7 @@ Abra **Produtos → Eventos de segurança → Detecções → Inteligência de a
 
 ### Crie o feed
 
-Clique em **Criar: Feed de inteligência de ameaças** e escolha a **Origem** dele: **Lista de indicadores**, **Coleção TAXII** ou **Google SecOps**. A etapa seguinte pede só essa origem: a **URL da lista** de uma lista, o **Servidor TAXII** e o **Login** de uma coleção, ou a **Conexão do Google SecOps**. **Ao corresponder** vem por último. Os campos estão na tabela abaixo.
+Clique em **Criar: Feed de inteligência de ameaças** e escolha a **Origem** dele: **Lista de indicadores**, **Coleção TAXII** ou **Google SecOps**. A etapa seguinte pede só essa origem: a **URL da lista** e o **Login** de uma lista, o **Servidor TAXII** e o **Login** de uma coleção, ou a **Conexão do Google SecOps**. **Ao corresponder** vem por último. Os campos estão na tabela abaixo.
 
 ### Confira a primeira consulta
 
@@ -67,7 +67,7 @@ Em um ou dois minutos, a linha do feed mostra **Última consulta**, e **Resumo d
 | **ID da coleção** | A coleção que publica os indicadores. |
 | **Intervalo de consulta (minutos)** | Com que frequência ler a origem: de 1 a 1440 minutos, 60 por padrão. Uma lista é lida no máximo a cada 15 minutos. |
 | **Confiança mínima** | Para uma coleção TAXII ou o Google SecOps: os indicadores com uma confiança menor são ignorados, de 0 a 100, e 0 guarda tudo. Indicadores sem confiança sempre passam. |
-| **Login** | Como o OneUptime faz login: **Sem login** para uma coleção pública, **Token bearer** para um token do operador do servidor, ou **Usuário e senha** para autenticação HTTP básica. |
+| **Login** | Como o OneUptime faz login: **Sem login** para uma lista ou coleção pública, **Token bearer** para um token do operador de uma coleção, ou **Usuário e senha** para autenticação HTTP básica. |
 | **Token de API**, **Usuário de Basic Auth** e **Senha de Basic Auth** | Pedidos só para o login escolhido. |
 | **Abrir um caso ao corresponder** | Ativado por padrão: cada evento que cita um indicador abre um [caso](/docs/telemetry/security-cases) sobre ele, ou entra no caso aberto que já trata dele. |
 | **Alertas e incidentes** | **Criar um alerta** por padrão: cada indicador correspondente abre um alerta. |
@@ -76,7 +76,7 @@ Em um ou dois minutos, a linha do feed mostra **Última consulta**, e **Resumo d
 | **Severidade do incidente** | Como **Severidade do alerta**, para incidentes. |
 | **Gravar Detection Finding ao corresponder** | Ativado por padrão: cada correspondência grava um achado no fluxo de eventos. |
 
-Os tokens e as senhas de um feed TAXII são criptografados e nunca mais são exibidos depois de salvos. Para trocá-los, escolha **Atualizar credenciais** na linha do feed e depois **Token bearer**, **Usuário e senha** ou **Sem login**, que apaga o que está salvo: a sua escolha substitui o login do feed, então salvar um token apaga uma senha salva, e vice-versa.
+Os tokens e as senhas de um feed são criptografados e nunca mais são exibidos depois de salvos. Para trocá-los, escolha **Atualizar credenciais** na linha do feed e depois **Token bearer**, **Usuário e senha** ou **Sem login**, que apaga o que está salvo: a sua escolha substitui o login do feed, então salvar um token apaga uma senha salva, e vice-versa. Uma lista não oferece token.
 
 ### Como um feed é consultado
 
@@ -92,6 +92,7 @@ Um feed desativado não é consultado nem comparado. Os indicadores que ele já 
 - Um valor continua sendo um indicador ativo por 2 dias depois da consulta que o leu por último, e um valor que a lista remove deixa de corresponder na consulta seguinte. Uma lista que não mudou é gravada de novo uma vez por dia.
 - Uma lista tem no máximo 50.000 indicadores. **Resumo da última consulta** diz quantos foram lidos, quantas linhas foram ignoradas e quantos ficaram de fora.
 - O endereço precisa usar `https` e segue as mesmas regras de saída de uma conexão: no OneUptime Cloud, um endereço privado é recusado.
+- Uma lista protegida por login é pedida com **Usuário e senha**, como autenticação HTTP básica, nunca no endereço dela. O CrowdSec Console serve assim as listas de bloqueio que você assina: veja [Ler as listas de bloqueio do CrowdSec](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
 
 ### Como o Google SecOps é lido
 

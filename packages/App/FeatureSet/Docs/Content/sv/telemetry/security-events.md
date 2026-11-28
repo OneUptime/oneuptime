@@ -129,6 +129,7 @@ Slutpunkten svarar `200` när händelserna har lagts i kö. En händelse som ski
 | `ocsf` | OCSF-händelse-JSON (`class_uid`, `severity_id` och så vidare) | Inga |
 | `udm` | UDM-händelser från Google SecOps (Chronicle) (`metadata.event_type` och så vidare) | `chronicle`, `google-secops` |
 | `google-secops-alert` | Detektioner och larm från Google SecOps: SOAR-webhooks och detektionsflödet | `secops-alert`, `detection` |
+| `crowdsec` | Larm från CrowdSec, så som dess `http`-aviseringsplugin skickar dem (se [CrowdSec](/docs/integrations/crowdsec)) | `crowdsec-alert` |
 | `generic` | All annan JSON, läst utifrån vanliga fältnamn | Inga |
 
 Ange formatet med `?format=`, med huvudet `x-oneuptime-security-event-format` eller med ett fält `"format"` på översta nivån. Utelämnar du det avgörs varje händelses format för sig, så en enda webhook kan blanda detektioner med råa händelser.
@@ -266,10 +267,12 @@ Den sparas som en informativ händelse, `oneuptime-probe-traffic`, som namnger s
 | Microsoft Entra ID | Inloggningar, katalogändringar och riskidentifieringar, om du vill misslyckade bakgrunds- och appinloggningar, och från Microsoft 365-granskningsloggen vidarebefordran av e-post, delning och nätfiskeutlåtanden | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Inloggningar, Googles egna fynd, administratörsändringar och appåtkomst, och delning i Drive | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | Det som brandväggen blockerade, utmanade och loggade vid kanten, som HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | Larmen som dess aviseringsplugin skickar, som Detection Findings, och bannlysning av adresserna du blockerar | [CrowdSec](/docs/integrations/crowdsec) |
 
 - Produktens egna larm på eller över **Öppna ärenden från** (**Hög och högre** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
 - En anslutning läser poster efter tiden då produkten skapade dem, inte efter tiden för aktiviteten de beskriver. En SIEM-regel som körs varje timme skapar detektioner långt efter händelserna den träffade, och de importeras ändå.
 - Den första hämtningen tittar 24 timmar bakåt, så en ny anslutning visar nya poster direkt.
+- OneUptime hämtar aldrig från en CrowdSec-anslutning: CrowdSec skickar varje larm så snart det utlöses, genom aviseringen som anslutningens **Skicka larm** ger.
 - **Testa anslutningen**, i anslutningens rad, kontrollerar åtkomsten till produkten och att OneUptimes egna workers körs, och importerar ingenting. **Kör nu** hämtar direkt.
 
 ## Vad en händelse innehåller

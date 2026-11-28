@@ -129,6 +129,7 @@ Open **Producten → Beveiligingsgebeurtenissen → Gebeurtenissen**. De gebeurt
 | `ocsf` | OCSF-gebeurtenis-JSON (`class_uid`, `severity_id` enzovoort) | Geen |
 | `udm` | UDM-gebeurtenissen van Google SecOps (Chronicle) (`metadata.event_type` enzovoort) | `chronicle`, `google-secops` |
 | `google-secops-alert` | Detecties en waarschuwingen van Google SecOps: SOAR-webhooks en de detectiestroom | `secops-alert`, `detection` |
+| `crowdsec` | Waarschuwingen van CrowdSec, zoals de `http`-meldingsplug-in ze verstuurt (zie [CrowdSec](/docs/integrations/crowdsec)) | `crowdsec-alert` |
 | `generic` | Elke andere JSON, gelezen op gangbare veldnamen | Geen |
 
 Geef het formaat op met `?format=`, met de header `x-oneuptime-security-event-format`, of met een veld `"format"` op het hoogste niveau. Laat je het weg, dan wordt het formaat van elke gebeurtenis apart bepaald, zodat één webhook detecties en ruwe gebeurtenissen kan mengen.
@@ -266,10 +267,12 @@ Het wordt bewaard als informatieve gebeurtenis, `oneuptime-probe-traffic`, die d
 | Microsoft Entra ID | Aanmeldingen, directorywijzigingen en risicodetecties, desgewenst mislukte achtergrond- en app-aanmeldingen, en uit het Microsoft 365-auditlogboek het doorsturen van e-mail, delen en phishingoordelen | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Aanmeldingen, de eigen detecties van Google, beheerwijzigingen en app-toegang, en delen in Drive | [Google Workspace](/docs/integrations/google-workspace) |
 | Cloudflare | Wat de firewall aan de edge heeft geblokkeerd, uitgedaagd en vastgelegd, als HTTP Activity | [Cloudflare](/docs/integrations/cloudflare) |
+| CrowdSec | De waarschuwingen die de meldingsplug-in verstuurt, als Detection Findings, en bans van de adressen die je blokkeert | [CrowdSec](/docs/integrations/crowdsec) |
 
 - De eigen waarschuwingen van het product vanaf het niveau dat in **Zaken openen vanaf** is ingesteld (**Hoog en hoger**, tenzij je een ander niveau kiest, of **Nooit**), openen [zaken](/docs/telemetry/security-cases), gegroepeerd op de gebruiker, de host of het adres waar ze over gaan.
 - Een verbinding leest records op het tijdstip waarop het product ze aanmaakte, niet op het tijdstip van de activiteit die ze beschrijven. Een SIEM-regel die elk uur draait, maakt detecties lang na de gebeurtenissen waarop hij matchte, en die worden toch geïmporteerd.
 - De eerste bevraging kijkt 24 uur terug, zodat een nieuwe verbinding meteen recente records toont.
+- Een CrowdSec-verbinding wordt nooit bevraagd: CrowdSec stuurt elke waarschuwing zodra het die genereert, via de melding die **Waarschuwingen verzenden** in de rij van de verbinding geeft.
 - **Verbinding testen**, in de rij van de verbinding, controleert de toegang tot het product en of de eigen workers van OneUptime draaien, en importeert niets. **Nu uitvoeren** bevraagt meteen.
 
 ## Wat een gebeurtenis bevat

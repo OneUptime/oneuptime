@@ -62,6 +62,7 @@ flowchart TB
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | 傳入 | 把 Microsoft Entra ID 登入和目錄變更以及 Microsoft 365 稽核日誌匯入安全性事件。 |
 | [Google Workspace](/docs/integrations/google-workspace) | 傳入 | 把 Google Workspace 登入、管理員變更和 Google 自身的偵測匯入安全性事件。 |
 | [Cloudflare](/docs/integrations/cloudflare) | 傳入 | 把 Cloudflare 防火牆封鎖、質詢和記錄的請求匯入安全性事件，與到達你的應用程式的請求並列。 |
+| [CrowdSec](/docs/integrations/crowdsec) | 傳入 | 把 CrowdSec 警示匯入安全性事件，並在 CrowdSec 中封鎖你封鎖的位址。 |
 
 ### 工單與 IT 服務管理
 
