@@ -1,9 +1,16 @@
 import { JSONObject } from "../JSON";
 import {
+  HELP_ITEMS,
   HelpAndSupportSettings,
+  HelpItem,
+  isHelpItem,
   readHelpAndSupportSettings,
   toHelpAndSupportJSON,
 } from "./HelpAndSupport";
+import {
+  HELP_AND_SUPPORT_SEED_VARIABLES,
+  HelpAndSupportSeedProblem,
+} from "./HelpAndSupportSeed";
 
 /*
  * WHAT ADMIN DASHBOARD > SETTINGS > HELP AND SUPPORT IS TOLD
@@ -22,7 +29,13 @@ import {
  *                           the page says so;
  *   isProductRenamed        the server goes by a name of its own, so the
  *                           footer leaves OneUptime's Help and Support out
- *                           by default, as it always has.
+ *                           by default, as it always has;
+ *   seededItems             the places set from the server's configuration
+ *                           (Helm values or config.env, #10938) and not
+ *                           changed on the page since, so the page says
+ *                           where their values came from;
+ *   seedProblems            the values the configuration sets that the page
+ *                           would refuse, which were left out, with why.
  */
 
 export interface HelpAndSupportAnswer {
@@ -31,6 +44,8 @@ export interface HelpAndSupportAnswer {
   adminNotificationEmail: string | null;
   canSendEmail: boolean;
   isProductRenamed: boolean;
+  seededItems: Array<HelpItem>;
+  seedProblems: Array<HelpAndSupportSeedProblem>;
 }
 
 export const toHelpAndSupportAnswerJSON: (
@@ -42,7 +57,69 @@ export const toHelpAndSupportAnswerJSON: (
     adminNotificationEmail: answer.adminNotificationEmail,
     canSendEmail: answer.canSendEmail,
     isProductRenamed: answer.isProductRenamed,
+    seededItems: [...answer.seededItems],
+    seedProblems: answer.seedProblems.map(
+      (problem: HelpAndSupportSeedProblem): JSONObject => {
+        return {
+          item: problem.item,
+          variable: problem.variable,
+          problem: problem.problem,
+        };
+      },
+    ),
   };
+};
+
+// The places the answer says were seeded: known places, each once, in order.
+const readSeededItemList: (value: unknown) => Array<HelpItem> = (
+  value: unknown,
+): Array<HelpItem> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return HELP_ITEMS.filter((item: HelpItem): boolean => {
+    return value.includes(item);
+  });
+};
+
+/*
+ * The refused values the answer lists, each for a known place, named by
+ * the variable that place is seeded from, never by a name the answer made
+ * up.
+ */
+const readSeedProblemList: (
+  value: unknown,
+) => Array<HelpAndSupportSeedProblem> = (
+  value: unknown,
+): Array<HelpAndSupportSeedProblem> => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const problems: Array<HelpAndSupportSeedProblem> = [];
+
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      continue;
+    }
+
+    const data: Record<string, unknown> = entry as Record<string, unknown>;
+    const item: unknown = data["item"];
+    const problem: unknown = data["problem"];
+
+    if (!isHelpItem(item) || typeof problem !== "string" || !problem.trim()) {
+      continue;
+    }
+
+    problems.push({
+      item: item,
+      variable: HELP_AND_SUPPORT_SEED_VARIABLES[item],
+      problem: problem,
+    });
+  }
+
+  return problems;
 };
 
 /*
@@ -80,5 +157,7 @@ export const parseHelpAndSupportAnswer: (
         : null,
     canSendEmail: data["canSendEmail"],
     isProductRenamed: data["isProductRenamed"] === true,
+    seededItems: readSeededItemList(data["seededItems"]),
+    seedProblems: readSeedProblemList(data["seedProblems"]),
   };
 };

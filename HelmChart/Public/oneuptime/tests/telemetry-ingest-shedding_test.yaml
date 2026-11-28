@@ -1,0 +1,101 @@
+# When telemetry is answered 429 for the queue's sake (TelemetryIngestShedding,
+# 2026-11-27): a project with telemetry.projectQueueLimit batches of one signal
+# already waiting in Valkey, and everyone's bulk telemetry while Valkey uses
+# more than telemetry.valkeyMemoryLimitPercent of its maxmemory. Read by the
+# app as TELEMETRY_INGEST_PROJECT_QUEUE_LIMIT and
+# TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT. Every pod that takes telemetry
+# decides it - the app pods, and the worker pods in split mode take the
+# MQTT and stream producers' batches through the same enqueue - so each gets
+# the same values.
+suite: telemetry ingest shedding
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: gives the app pods the defaults when unset
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TELEMETRY_INGEST_PROJECT_QUEUE_LIMIT
+            value: "10000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT
+            value: "85"
+
+  - it: gives the worker pods the same values
+    templates:
+      - templates/worker.yaml
+    set:
+      worker.enabled: true
+      telemetry.projectQueueLimit: 50000
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TELEMETRY_INGEST_PROJECT_QUEUE_LIMIT
+            value: "50000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT
+            value: "85"
+
+  - it: writes a large limit as digits, and 0 to turn either off
+    templates:
+      - templates/app.yaml
+    set:
+      telemetry.projectQueueLimit: 10000000
+      telemetry.valkeyMemoryLimitPercent: 0
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TELEMETRY_INGEST_PROJECT_QUEUE_LIMIT
+            value: "10000000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT
+            value: "0"
+
+  # A key removed from the chart's defaults (null) falls back to its default.
+  - it: falls back to the defaults for a key set to null
+    templates:
+      - templates/app.yaml
+    set:
+      telemetry.projectQueueLimit: null
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: TELEMETRY_INGEST_PROJECT_QUEUE_LIMIT
+            value: "10000"
+
+  - it: refuses a share of Valkey's memory over 100
+    templates:
+      - templates/app.yaml
+    set:
+      telemetry.valkeyMemoryLimitPercent: 150
+    asserts:
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/telemetry/valkeyMemoryLimitPercent': maximum: got 150, want 100

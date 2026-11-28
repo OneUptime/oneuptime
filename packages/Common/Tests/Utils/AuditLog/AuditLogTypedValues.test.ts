@@ -31,6 +31,8 @@ import NotOnWatchlist from "../../../Types/BaseDatabase/NotOnWatchlist";
 import NotWildcard from "../../../Types/BaseDatabase/NotWildcard";
 import OnWatchlist from "../../../Types/BaseDatabase/OnWatchlist";
 import OwnedBy from "../../../Types/BaseDatabase/OwnedBy";
+import LinkedTo from "../../../Types/BaseDatabase/LinkedTo";
+import FilterGroups from "../../../Types/BaseDatabase/FilterGroups";
 import Search from "../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../Types/BaseDatabase/StartsWith";
 import Wildcard from "../../../Types/BaseDatabase/Wildcard";
@@ -267,6 +269,22 @@ const SAMPLES: Readonly<Partial<Record<ObjectType, () => unknown>>> = {
   [ObjectType.OwnedBy]: (): unknown => {
     return new OwnedBy({
       userIds: ["22222222-2222-4222-8222-222222222222"],
+    });
+  },
+  [ObjectType.LinkedTo]: (): unknown => {
+    return new LinkedTo({
+      relations: { monitors: ["33333333-3333-4333-8333-333333333333"] },
+    });
+  },
+  [ObjectType.FilterGroups]: (): unknown => {
+    return new FilterGroups({
+      groups: [
+        { otelCollectorStatus: "connected" },
+        {
+          otelCollectorStatus: new NotEqualOrNull("connected"),
+          collectorLastSeenAt: new IsNull(),
+        },
+      ],
     });
   },
 };

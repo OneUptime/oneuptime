@@ -7,6 +7,8 @@ import {
   getInventoryTypePluralLabel,
 } from "../Inventory/InventoryTypeCatalog";
 import { metaForEntityType } from "../Topology/TopologyMeta";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayKindDefinition } from "Common/Types/StorageArray/StorageArrayPlatform";
 
 /*
  * What every kind of part on a resource topology is called, how it looks,
@@ -38,6 +40,17 @@ export interface ResourceTopologyKindInfo {
 export const SECTION_KIND: string = "section";
 
 export const ENTITY_KIND_PREFIX: string = "entity:";
+
+/*
+ * A kind of storage array part only one platform has (a NetApp aggregate,
+ * SVM, LUN or SnapMirror relationship) is `storage.kind:<kind>`, and its
+ * words and icon are its platform's (StorageArrayPlatform.kindDefinitions).
+ */
+export const STORAGE_ARRAY_KIND_PREFIX: string = "storage.kind:";
+
+export function storageArrayPlatformKind(kind: string): string {
+  return `${STORAGE_ARRAY_KIND_PREFIX}${kind}`;
+}
 
 export function entityKind(entityType: string): string {
   return `${ENTITY_KIND_PREFIX}${entityType}`;
@@ -320,6 +333,39 @@ const KINDS: Record<string, ResourceTopologyKindInfo> = {
     plural: translationKey("Storage"),
     icon: IconProp.Database,
     color: "#c2410c",
+    order: 40,
+  },
+
+  /*
+   * XCP-ng, in fuchsias: a pool, the hosts it is made of, the VMs each host
+   * runs and the storage repositories they use, as Xen Orchestra names them.
+   */
+  "xcp_ng.pool": {
+    label: translationKey("XCP-ng Pool"),
+    plural: translationKey("XCP-ng Pools"),
+    icon: IconProp.XcpNg,
+    color: "#a21caf",
+    order: 0,
+  },
+  "xcp_ng.host": {
+    label: translationKey("Host"),
+    plural: translationKey("Hosts"),
+    icon: IconProp.Server,
+    color: "#c026d3",
+    order: 10,
+  },
+  "xcp_ng.vm": {
+    label: translationKey("VM"),
+    plural: translationKey("VMs"),
+    icon: IconProp.ComputerDesktop,
+    color: "#d946ef",
+    order: 20,
+  },
+  "xcp_ng.sr": {
+    label: translationKey("Storage Repository"),
+    plural: translationKey("Storage Repositories"),
+    icon: IconProp.Database,
+    color: "#86198f",
     order: 40,
   },
 
@@ -777,6 +823,24 @@ export function getResourceTopologyKind(
 
   if (known) {
     return known;
+  }
+
+  if (kind.startsWith(STORAGE_ARRAY_KIND_PREFIX)) {
+    const definition: StorageArrayKindDefinition | null =
+      StorageArrayPlatformRegistry.getKindDefinition(
+        kind.substring(STORAGE_ARRAY_KIND_PREFIX.length),
+      );
+    if (definition) {
+      return {
+        label: definition.singularLabel,
+        plural: definition.pluralLabel,
+        icon: definition.icon,
+        color: "#d97706",
+        // Beside the volumes and pods they hold or replicate.
+        order: 19,
+      };
+    }
+    return UNKNOWN_KIND;
   }
 
   if (kind.startsWith(ENTITY_KIND_PREFIX)) {

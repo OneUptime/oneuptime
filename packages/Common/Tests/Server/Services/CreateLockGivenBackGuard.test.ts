@@ -375,12 +375,12 @@ describe("DatabaseService hands every failure of a create to onCreateError", () 
 
   test("create runs the create itself in one try, and hands what fails to onCreateError with what onBeforeCreate handed back, and which step failed", () => {
     /*
-     * First it gives back the name the create held while its project
-     * requires unique names (#10761): a step that cannot throw, below, so
-     * every failure still reaches onCreateError.
+     * Then, in its finally, it gives back the name the create held while
+     * its project requires unique names (#10761): after onCreateError has
+     * been told, and even when it throws - a step that cannot throw, below.
      */
     expect(create).toMatch(
-      /try\s*\{\s*return await this\._create\(createBy, handedBack\);\s*\}\s*catch \(error\)\s*\{\s*await this\.giveBackUniqueNameOfCreate\(handedBack, createBy\.props\);\s*await this\.onCreateError\(\s*error as Exception,\s*handedBack\.onCreate,\s*handedBack\.progress\.getFailedStatement\(\),?\s*\);\s*throw this\.getException\(error as Exception\);\s*\}/,
+      /try\s*\{\s*return await this\._create\(createBy, handedBack\);\s*\}\s*catch \(error\)\s*\{\s*await this\.onCreateError\(\s*error as Exception,\s*handedBack\.onCreate,\s*handedBack\.progress\.getFailedStatement\(\),?\s*\);\s*throw this\.getException\(error as Exception\);\s*\}\s*finally\s*\{(?:\s*\/\*[\s\S]*?\*\/)?\s*await this\.giveBackUniqueNameOfCreate\(handedBack, createBy\.props\);\s*\}/,
     );
     // One record of the create's steps, from its start.
     expect(create).toMatch(
@@ -388,7 +388,7 @@ describe("DatabaseService hands every failure of a create to onCreateError", () 
     );
   });
 
-  test("the name a failed create held is given back by a step that cannot throw, so onCreateError is always reached", () => {
+  test("the name a failed create held is given back by a step that cannot throw, so the create's own failure is what its caller gets", () => {
     const giveBack: string = methodText(
       classSource,
       "giveBackUniqueNameOfCreate",

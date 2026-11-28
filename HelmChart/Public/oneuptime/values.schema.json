@@ -1460,6 +1460,23 @@
                 "commonConfiguration": {
                     "type": "string"
                 },
+                "maxmemory": {
+                    "type": [
+                        "string",
+                        "integer",
+                        "null"
+                    ],
+                    "description": "The memory Valkey may use for data, as valkey.conf takes it (\"3gb\", \"512mb\", a number of bytes) or as a Kubernetes quantity (\"3Gi\"). Reaching it, Valkey refuses writes (maxmemory-policy noeviction). Empty: maxmemoryPercentOfMemoryLimit of master.resources.limits.memory."
+                },
+                "maxmemoryPercentOfMemoryLimit": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "The share of master.resources.limits.memory that maxmemory is derived from when maxmemory is empty. Empty: 75, or 60 with persistence on, leaving headroom for fragmentation, client buffers and the append-only file rewrite's fork."
+                },
                 "ipFamily": {
                     "type": [
                         "string",
@@ -1651,6 +1668,23 @@
                 },
                 "commonConfiguration": {
                     "type": "string"
+                },
+                "maxmemory": {
+                    "type": [
+                        "string",
+                        "integer",
+                        "null"
+                    ],
+                    "description": "The memory Valkey may use for data, as valkey.conf takes it (\"3gb\", \"512mb\", a number of bytes) or as a Kubernetes quantity (\"3Gi\"). Reaching it, Valkey refuses writes (maxmemory-policy noeviction). Empty: maxmemoryPercentOfMemoryLimit of master.resources.limits.memory."
+                },
+                "maxmemoryPercentOfMemoryLimit": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 100,
+                    "description": "The share of master.resources.limits.memory that maxmemory is derived from when maxmemory is empty. Empty: 75, or 60 with persistence on, leaving headroom for fragmentation, client buffers and the append-only file rewrite's fork."
                 },
                 "ipFamily": {
                     "type": [
@@ -2204,6 +2238,22 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "callVoice": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        null,
+                        "",
+                        "Polly.Joanna-Neural",
+                        "Polly.Matthew-Neural",
+                        "Polly.Amy-Neural",
+                        "Polly.Brian-Neural",
+                        "Google.en-US-Neural2-F",
+                        "Google.en-US-Neural2-J"
+                    ]
                 }
             },
             "additionalProperties": false
@@ -2514,6 +2564,17 @@
             "properties": {
                 "disableIngestion": {
                     "type": "boolean"
+                },
+                "projectQueueLimit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Batches of one signal a project may have waiting in the telemetry queue before more of that signal are answered 429 with a Retry-After. 0 turns it off."
+                },
+                "valkeyMemoryLimitPercent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "description": "Share of Valkey's maxmemory above which every project's bulk telemetry is answered 429 with a Retry-After. 0 turns it off."
                 }
             },
             "additionalProperties": false
@@ -2547,6 +2608,43 @@
             "type": "object",
             "properties": {
                 "onThisServer": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "helpAndSupport": {
+            "type": "object",
+            "description": "Where this server sends its people for help (Admin Dashboard > Settings > Help and Support), set while nothing is saved on that page yet.",
+            "properties": {
+                "supportEmail": {
+                    "type": "string"
+                },
+                "chat": {
+                    "type": "string"
+                },
+                "requestDemo": {
+                    "type": [
+                        "string",
+                        "boolean"
+                    ]
+                },
+                "giveFeedback": {
+                    "type": "string"
+                },
+                "helpLink": {
+                    "type": "string"
+                },
+                "gitHub": {
+                    "type": [
+                        "string",
+                        "boolean"
+                    ]
+                },
+                "mobileApp": {
+                    "type": "string"
+                },
+                "inviteMessage": {
                     "type": "string"
                 }
             },
@@ -2811,7 +2909,7 @@
                         },
                         "allowPrivateNetworkMonitors": {
                             "type": "boolean",
-                            "description": "Let API, Website, External Status Page and Custom JavaScript Code monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes are global probes, so this applies to monitors from every project on the instance. Loopback, link-local and cloud metadata addresses stay blocked. Ignored, with a startup warning, when billing.enabled is true."
+                            "description": "Let API, Website, External Status Page, Custom JavaScript Code and Synthetic monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes are global probes, so this applies to monitors from every project on the instance. Loopback, link-local and cloud metadata addresses stay blocked. Ignored, with a startup warning, when billing.enabled is true."
                         },
                         "syntheticMonitorScriptTimeoutInMs": {
                             "type": "integer",
@@ -4075,6 +4173,13 @@
                     ],
                     "minimum": 1
                 },
+                "probeSchedulingMaxConcurrentMonitorTestRequests": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
                 "workerConcurrency": {
                     "type": "integer"
                 },
@@ -4243,6 +4348,10 @@
                         },
                         "cooldownPeriod": {
                             "type": "integer"
+                        },
+                        "probeSchedulingQueueDepthThreshold": {
+                            "type": "integer",
+                            "minimum": 0
                         },
                         "fallback": {
                             "type": "object",

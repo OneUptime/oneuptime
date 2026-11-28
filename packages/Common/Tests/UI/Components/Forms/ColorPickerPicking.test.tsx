@@ -11,6 +11,7 @@ import Color from "../../../../Types/Color";
 import getJestMockFunction, { MockFunction } from "../../../../Tests/MockType";
 import {
   colorOf,
+  findColorField,
   getColorField,
   getSwatch,
   openCustomPanel,
@@ -347,7 +348,9 @@ describe("Picking a color inside a dialog (issue #3143)", () => {
   /*
    * The report is about a form, not a component: the point of picking a
    * color is that "Label Color is required." goes away and the value
-   * reaches submit.
+   * reaches submit. A form draws its color field's place until the field
+   * has arrived (LazyColorPicker): a color is picked once the field is
+   * there, as a person picks it.
    */
   describe("through the Label form the bug was reported on", () => {
     const LABEL_FIELDS: Fields<FormValues<Record<string, unknown>>> = [
@@ -403,7 +406,7 @@ describe("Picking a color inside a dialog (issue #3143)", () => {
 
       expect(onSubmit).not.toHaveBeenCalled();
 
-      const field: HTMLElement = getColorField("label-color");
+      const field: HTMLElement = await findColorField("label-color");
 
       press(getSwatch(field, "Teal"));
 
@@ -434,7 +437,7 @@ describe("Picking a color inside a dialog (issue #3143)", () => {
         target: { value: "payments" },
       });
 
-      const field: HTMLElement = getColorField("label-color");
+      const field: HTMLElement = await findColorField("label-color");
       const square: HTMLElement = getSquare(openCustomPanel(field));
 
       drag(square, { x: 20, y: 20 }, { x: 100, y: 60 });

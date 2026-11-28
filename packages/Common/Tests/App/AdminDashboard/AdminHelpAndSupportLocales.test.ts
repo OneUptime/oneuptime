@@ -7,6 +7,7 @@ import {
   HelpAndSupportProblems,
   HelpItem,
 } from "../../../Types/HelpAndSupport/HelpAndSupport";
+import { HelpAndSupportSeedProblems } from "../../../Types/HelpAndSupport/HelpAndSupportSeed";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -91,6 +92,8 @@ const SENTENCES: Array<string> = Array.from(
       return [HELP_ITEM_COPY[item].title, HELP_ITEM_COPY[item].where];
     }),
     ...Object.values(HelpAndSupportProblems),
+    // What a value the server's configuration sets was refused for (#10938).
+    ...Object.values(HelpAndSupportSeedProblems),
     // The Help menu preview's own entries, worded as the Dashboard's.
     "Give feedback",
     "Keyboard shortcuts",

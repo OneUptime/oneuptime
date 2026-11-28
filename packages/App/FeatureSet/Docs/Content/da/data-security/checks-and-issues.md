@@ -1,10 +1,10 @@
 # Datasikkerhedskontroller og problemer
 
-Datasikkerhed kører 34 kontroller på hvert datalager, fordelt på ni grupper. En kontrol læser det, der vides om ét datalager - hvordan det er konfigureret, hvad der er fundet i det, hvem der kan nå det, hvor det ligger - og består, fejler eller kan ikke afgøre det. En kontrol, der fejler, åbner ét problem på det datalager, og problemet lukker af sig selv, når kontrollen består. Denne side viser alle kontroller, hvordan et problems alvorlighed og risikoscore beregnes, og hvad der sker med et problem i løbet af dets levetid. Sikkerhedshændelser, Network Flows og sikkerhedsadresseboksen er OneUptimes egne, opbevaret for din sikkerhed: angivet, aldrig scannet eller kontrolleret (se [Datalagre, som OneUptime opbevarer for din sikkerhed](/docs/data-security/compliance#datalagre-som-oneuptime-opbevarer-for-din-sikkerhed)).
+Datasikkerhed kører 35 kontroller på hvert datalager, fordelt på ni grupper. En kontrol læser det, der vides om ét datalager - hvordan det er konfigureret, hvad der er fundet i det, hvem der kan nå det, hvor det ligger - og består, fejler eller kan ikke afgøre det. En kontrol, der fejler, åbner ét problem på det datalager, og problemet lukker af sig selv, når kontrollen består. Denne side viser alle kontroller, hvordan et problems alvorlighed og risikoscore beregnes, og hvad der sker med et problem i løbet af dets levetid. Sikkerhedshændelser, Network Flows og sikkerhedsadresseboksen er OneUptimes egne, opbevaret for din sikkerhed: angivet, aldrig scannet eller kontrolleret (se [Datalagre, som OneUptime opbevarer for din sikkerhed](/docs/data-security/compliance#datalagre-som-oneuptime-opbevarer-for-din-sikkerhed)).
 
 :::cards
 - [Sådan afgør en kontrol](#sådan-afgør-en-kontrol): Bestået, fejlet eller kan ikke afgøre, og hvor slem en fejl er.
-- [Alle kontroller](#alle-kontroller): Alle 34, med hvad hver enkelt kontrollerer, og hvordan det rettes.
+- [Alle kontroller](#alle-kontroller): Alle 35, med hvad hver enkelt kontrollerer, og hvordan det rettes.
 - [Risikoscore](#risikoscore): Hvordan problemer ordnes inden for en alvorlighed.
 - [Hvad der sker med et problem](#hvad-der-sker-med-et-problem): Åben, løst, accepteret, ikke et problem, hvordan hvert blev løst, og rettelser, der følges helt ud i produktion.
 - [OneUptime AI's analyse](#oneuptime-ais-analyse): Om et problem er reelt, hvad det sætter på spil, hvad rettelsen ville ødelægge og den korteste vej til rettet.
@@ -22,6 +22,8 @@ Hver kontrol læser fakta om et datalager og svarer på en af fire måder:
 | Fejlet | Kontrollen finder problemet og siger i én sætning, hvad den så: problemets bevis. | Et problem åbnes, eller det åbne opdateres. |
 | Kan ikke afgøre | En oplysning kunne ikke læses: en tilladelse, rollen ikke har, et kald, der fejlede. | Intet ændres: et åbent problem forbliver åbent, fordi ingen må konkludere, at et problem er løst, når OneUptime ikke kunne se efter. |
 | Gælder ikke | Datalagerets type har ingen sådan indstilling. | Et åbent problem løses. |
+
+Et faktum, der ikke kan vides fra der, hvor det blev læst, gættes heller aldrig: om internettet når et datalager, der blev spurgt inde fra dit netværk, eller om en klynges anonyme bruger må skrive, hvilket kun en skrivning ville vise. Dets kontrol kan ikke afgøre det, og den linje i datalagerets **Konfiguration** viser **Kan ikke kontrolleres**.
 
 ### Alvorligheden følger dataene
 
@@ -45,6 +47,7 @@ Alvorligheden angives for data med følsomheden Begrænset, Fortrolig, Intern og
 | Et snapshot af det kan gendannes af alle (`snapshot-public`) | Database, snapshot | Et databasesnapshot er delt offentligt, så enhver cloud-konto kan gendanne en fuld kopi. | Kritisk / Kritisk / Kritisk / Høj | Gør snapshottet privat. |
 | Et snapshot af det er delt med andre konti (`snapshot-shared-externally`) | Database, snapshot | Et databasesnapshot er delt med konti uden for dine forbundne konti. | Høj / Høj / Middel / Lav | Stop delingen af snapshottet med de konti, der ikke skal have det. |
 | Konti uden for din organisation kan nå det (`shared-with-external-accounts`) | Alle datalagre undtagen telemetri | Datalagerets politik giver adgang til konti, tenants eller projekter, der ikke er forbundet til OneUptime. | Høj / Høj / Middel / Lav | Gennemgå hver ekstern principal, og fjern dem, der ikke har brug for adgang. |
+| Alle, der kan nå det, kan læse det uden loginoplysninger (`readable-without-credentials`) | søgning | Det svarede OneUptime uden loginoplysninger: Alle, der kan nå dets adresse, kan læse dets data og ændre dem, hvis det slet ingen adgangskontrol har. | Kritisk / Høj / Middel / Lav | Slå klyngens sikkerhed til, tag alle roller fra dens anonyme bruger, og giv hver applikation sin egen skrivebeskyttede bruger. En klynge, der tager imod skrivninger uden loginoplysninger, er Kritisk på data med følsomheden Begrænset og Fortrolig og Høj på alle andre. |
 
 ### Kryptering
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Faktor | Point |
 | --- | --- |
 | Alvorlighed | 75 for Kritisk, 50 for Høj, 25 for Middel, 0 for Lav |
-| Eksponering | 10 for Offentlig, 8 for Andre konti, 6 for Kan nås fra internettet, 3 for Ukendt, 0 for Privat |
+| Eksponering | 10 for Offentlig, 8 for Andre konti, 6 for Kan nås fra internettet, 3 for Ukendt, Ikke kontrolleret endnu eller Kan ikke kontrolleres, 0 for Privat |
 | Volumen | Op til 6 efter datalagerets anslåede antal følsomme poster på en logaritmisk skala: 1 for 10 poster, 3 for 1.000, 5 for en million, 6 for ti millioner eller flere |
 | Aktivitet | 5, når Security Operations har set detektioner på datalageret inden for den seneste uge |
 | Produktion | 4 for et datalager i produktion |
@@ -184,11 +187,18 @@ Oversigten tæller de problemer, der er rettet ved kilden, adskilt fra de lækag
 En pull request, som OneUptime AI åbnede for et problem (**Ret med AI**, eller én pull request for en [gruppe af problemer](#problemer-med-én-årsag)), har endnu ikke rettet noget, når den flettes. OneUptime følger den, indtil produktionen beviser det:
 
 - **En lækage i koden.** OneUptime venter på en registreret udrulning af tjenesten, der indeholder fletningen, og holder derefter øje med dens nye version. Hvor en rensningsregel skjuler dataene, må reglen ikke ændre nogen værdi i den version; hvor ingen regel gør det, må ingen af versionens poster indeholde dataene de steder, hvor de blev fundet. Den nye version skal også køre en dag og sende mindst lige så mange logs eller spans, som den gamle gjorde i den time, hvor lækagen sidst blev set. Så er problemet **Rettet i koden**. Én ændret værdi, eller én post, der stadig indeholder dataene, betyder, at rettelsen ikke stoppede lækagen, og om en version, der sender for lidt på en uge, kan intet afgøres. Udrulninger matches på deres commit: registrér dem med `oneuptime deploy`, eller send `vcs.ref.head.revision` (se [Udrulninger og ændringer](/docs/telemetry/change-events)).
+- **Et læk i metrikker eller sessionsafspilninger.** Det bevises på samme måde, ud fra den version, der skrev hver post: en metriks datapunkter nævner den blandt deres attributter, en RUM-applikations browserprotokoller og -spans ud fra den udgivelse, dens source maps blev uploadet til, og dens sessioner ud fra den appversion, sessionsoptageren sender. En metriks data, som en pipelineregel fjerner, eller hvis punkter den kasserer, efterlader intet at læse, så det læk kan ikke afgøres; en **Redigér attribut bort**-regel efterlader sin erstatning at læse.
 - **Et datalagers konfiguration.** Når pull requesten flettes, læses dens datalagre igen med det samme. Hvert problem, hvis kontrol består derefter, er **Rettet i infrastrukturkoden**. Hvis et datalager stadig fejler sin kontrol, når det læses igen en dag efter fletningen, blev rettelsen **flettet, ikke anvendt**: datalagerets ejere og den person, der bad om pull requesten, får en e-mail, én gang, og problemets og datalagerets tidslinjer fortæller det. Det, der mangler, er som regel en apply.
 - **Rensningsreglen bevares.** Efter en verificeret koderettelse bliver den rensningsregel, der inddæmmede lækagen, så en regression skjules, så snart den dukker op. Problemet fortæller, at reglen intet har ændret siden rettelsen, og tilbyder **Fjern regel**.
 - **En regression.** Der holdes fortsat øje med en verificeret rettelse: når en bevaret regel igen ændrer værdier, eller scanningen finder dataene igen, åbnes problemet igen og fortæller, hvilken version der bragte dem tilbage. Det forbliver åbent, indtil det er rettet igen, også mens en regel skjuler dataene.
 
 Hvert trin står på problemets **Tidslinje** og på datalagerets, og AI-resultater tæller de verificerede rettelser efter type (se [Hvor godt OneUptime AI klarer sig](/docs/ai/ai-sre#hvor-godt-oneuptime-ai-klarer-sig)).
+
+### Tilknyt din egen pull request
+
+En rettelse, du selv har skrevet, følges på samme måde. På problemets side tager **Tilknyt pull request** adressen på en pull request i et kodelager, der er forbundet under **Kode** – på GitHub, GitLab, Forgejo eller Gitea – og problemet viser den under **Tilknyttede pull requests**, med om den er merget. OneUptime følger den til dens merge, den udrulning, der leverer den, og produktionens bevis, som ovenfor, og problemet løses med dens navn. Hvert trin står på problemets **Tidslinje**. En pull request, der lukkes uden merge, følges ikke længere, og fjernes den fra problemet, stopper opfølgningen.
+
+Den, der må ændre problemet, må tilknytte en, i et kodelager, vedkommende må læse under **Kode**. Et problem rummer op til 10. En adresse, der ikke tilhører nogen pull request, et kodelager, der ikke er forbundet, eller som vedkommende ikke må læse, en pull request, der er lukket uden merge eller allerede tilknyttet, og et problem, hvis risiko er accepteret, eller som ikke er et problem, afvises, hver med en begrundelse.
 
 ## OneUptime AI's analyse
 

@@ -54,6 +54,14 @@ import TwilioConfigUses, {
 import { getPhoneNumberListError } from "Common/UI/Utils/PhoneNumberListError";
 import { PHONE_NUMBER_LIST_EXAMPLE } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import TwilioConfigPhoneNumbers from "./TwilioConfigPhoneNumbers";
+import TwilioConfigVoiceCopy from "./TwilioConfigVoiceCopy";
+import {
+  CALL_VOICE_DEFAULT_LABEL,
+  getCallVoiceOptions,
+  getCallVoiceSummary,
+} from "Common/UI/Components/CallVoice/CallVoiceOptions";
+import CallVoiceSample from "Common/UI/Components/CallVoice/CallVoiceSample";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
 import TwilioTestSendCopy, {
   getTestSendFromPhoneNumber,
@@ -89,12 +97,13 @@ const FIRST_CONFIG_INITIAL_VALUES: FormValues<ProjectCallSMSConfig> = {
 };
 
 /*
- * The numbers few configs need, folded under More fields at the end of the
- * Twilio step: numbers to send SMS from, for numbers that can only make
- * calls (in some countries, national numbers are voice-only), and the
- * numbers for recipients in other countries (TwilioConfigNumbersCopy).
+ * What few configs need, folded under More fields at the end of the Twilio
+ * step: numbers to send SMS from, for numbers that can only make calls (in
+ * some countries, national numbers are voice-only), the numbers for
+ * recipients in other countries (TwilioConfigNumbersCopy), and the voice
+ * calls speak with (TwilioConfigVoiceCopy, #10948).
  */
-const moreNumbersSection: FormFieldCollapsibleSection<ProjectCallSMSConfig> =
+const moreFieldsSection: FormFieldCollapsibleSection<ProjectCallSMSConfig> =
   getAdvancedFormSection<ProjectCallSMSConfig>();
 
 /*
@@ -749,7 +758,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             // One line: most lists hold one number or two.
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            collapsibleSection: moreNumbersSection,
+            collapsibleSection: moreFieldsSection,
             description: TwilioConfigNumbersCopy.smsPhoneNumbersDescription,
             // The list the error under the field gives: no one country's.
             placeholder: PHONE_NUMBER_LIST_EXAMPLE,
@@ -775,7 +784,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             stepId: "twilio-info",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            collapsibleSection: moreNumbersSection,
+            collapsibleSection: moreFieldsSection,
             description:
               TwilioConfigNumbersCopy.secondaryPhoneNumbersDescription,
             placeholder: "+441234567890, +461234567890",
@@ -786,6 +795,37 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             ): string | null => {
               return getPhoneNumberListError(
                 values.twilioSecondaryPhoneNumbers,
+              );
+            },
+            showIf: isUsedForCalls,
+          },
+          /*
+           * The voice calls through the config speak with (#10948), for a
+           * config that makes calls: one of OneUptime's short list, or -
+           * empty, the placeholder - the account's default voice. Under it,
+           * the voice chosen and a page's first lines, called from this
+           * project, as they would be said (CallVoiceSample).
+           */
+          {
+            field: {
+              twilioCallVoice: true,
+            },
+            title: TwilioConfigVoiceCopy.fieldTitle,
+            stepId: "twilio-info",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: getCallVoiceOptions(translator),
+            required: false,
+            collapsibleSection: moreFieldsSection,
+            placeholder: CALL_VOICE_DEFAULT_LABEL,
+            description: TwilioConfigVoiceCopy.fieldDescription,
+            getFooterElement: (
+              values: FormValues<ProjectCallSMSConfig>,
+            ): ReactElement => {
+              return (
+                <CallVoiceSample
+                  value={values.twilioCallVoice}
+                  projectName={ProjectUtil.getCurrentProject()?.name}
+                />
               );
             },
             showIf: isUsedForCalls,
@@ -942,6 +982,30 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             // As the row says it.
             getExportValue: (item: ProjectCallSMSConfig): string => {
               return getProjectDefaultPillText(item) || "";
+            },
+          },
+          {
+            /*
+             * The voice its calls speak with (#10948), one switch away in
+             * Customize Columns: most configs keep the account's default.
+             * Before the account, which stays last.
+             */
+            field: {
+              twilioCallVoice: true,
+            },
+            title: TwilioConfigVoiceCopy.fieldTitle,
+            type: FieldType.Text,
+            isHiddenByDefault: true,
+            getElement: (item: ProjectCallSMSConfig): ReactElement => {
+              return (
+                <span data-testid="twilio-config-call-voice">
+                  {getCallVoiceSummary(item.twilioCallVoice, translator)}
+                </span>
+              );
+            },
+            // As the API and Terraform name it: empty for the account's default.
+            getExportValue: (item: ProjectCallSMSConfig): string => {
+              return item.twilioCallVoice || "";
             },
           },
           {

@@ -140,6 +140,7 @@ Abre **Productos → Infraestructura → Docker → Todos los hosts**. El host a
 | `ONEUPTIME_SERVICE_TOKEN` | Sí | La clave de ingesta de **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. |
 | `DOCKER_HOST_NAME` | No | El nombre del host en OneUptime. Su valor predeterminado es `docker-host`, así que da a cada host el suyo. |
 | `DOCKER_API_VERSION` | No | La versión de la API de Docker Engine que habla el agente. Vacía por defecto: el agente la negocia con el daemon, así que funciona cualquier Docker Engine a partir de 20.10. Establécela solo para fijar una versión (consulta [Solución de problemas](#solución-de-problemas)). |
+| `ONEUPTIME_LOG_OPERATOR_1` a `ONEUPTIME_LOG_OPERATOR_5` | No | Operators del colector propios, cada uno en JSON, para un formato de log que el agente no lee. Consulta [Leer un formato de log propio](#leer-un-formato-de-log-propio). |
 
 Para cambiar un valor, quita el agente y vuelve a ejecutar su comando (Docker CLI), o edita `docker-compose.yml` y ejecuta `docker compose up -d` (Docker Compose).
 
@@ -150,7 +151,7 @@ Para cambiar un valor, quita el agente y vuelve a ejecutar su comando (Docker CL
 | Métricas de contenedores | CPU (uso, porcentaje, limitación), memoria (uso, límite, porcentaje), E/S de red y de bloques, tiempo de actividad, reinicios y número de procesos, por contenedor, cada 30 segundos. |
 | Logs de contenedores | stdout y stderr de cada contenedor, de su archivo de log `json-file`. |
 
-Las métricas y los logs de cada contenedor se archivan en un servicio con el nombre del contenedor. Cada línea de log recibe una severidad a partir del nivel que menciona, como `[ERROR]`, `level=warn` o `{"level":"info"}`; una línea que no menciona ninguno toma la de su flujo: stderr es `ERROR`, stdout es `INFO`. Las líneas que empiezan con un espacio en blanco o un corchete de cierre se unen a la línea anterior, así que un stack trace llega como un solo registro. Los logs del propio agente se omiten.
+Las métricas y los logs de cada contenedor se archivan en un servicio con el nombre del contenedor. Cada línea de log recibe una severidad a partir del nivel que menciona, como `[ERROR]`, `level=warn` o `{"level":"info"}`, y el traceback de una excepción cuenta como `ERROR`. Una línea que no menciona ninguno es `INFO` en stdout, y no tiene severidad en stderr, donde los programas escriben sus diagnósticos de todos los niveles. Las líneas que empiezan con un espacio en blanco o un corchete de cierre se unen a la línea anterior, así que un stack trace llega como un solo registro. Los logs del propio agente se omiten.
 
 [Monitor de Docker](/docs/monitor/docker-monitor#métricas-recopiladas) enumera cada métrica y lo que significa.
 
@@ -201,6 +202,33 @@ O conviértelo en el predeterminado para cada contenedor creado a partir de ento
 ```
 
 Luego reinicia Docker y vuelve a crear los contenedores. Un contenedor conserva el controlador de logs con el que se creó, así que reiniciarlo no basta.
+
+## Leer un formato de log propio
+
+El agente lee los niveles de los formatos que escriben la mayoría de los programas. Para un formato que no lee, como uno interno, dale hasta cinco operators del colector propios, cada uno en JSON en `ONEUPTIME_LOG_OPERATOR_1` a `ONEUPTIME_LOG_OPERATOR_5`. Se ejecutan en cada línea de log de contenedor después de que el agente haya leído su contenedor y su flujo, y antes de que lea el nivel de la línea. Para fijar el nivel de una línea, escríbelo en `attributes.severity_text` como una palabra que el agente lee, por ejemplo `ERROR`, `warn` o `critical`, y pasa la línea a `severity-router`, el primer paso del agente. Un operator que fija él mismo la severidad, como un `severity_parser`, ve su resultado sobrescrito: el agente lee el nivel de cada línea después de tus operators.
+
+Para líneas como `<<E>> payment failed`, cuya letra es el nivel:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+El colector no arranca con un operator que no puede construir, así que compruébalos antes de que el agente los ejecute:
+
+- `install.sh`, ejecutado con ellos definidos, los comprueba con el propio `validate` del colector antes de tocar el agente que tienes. Si el colector los rechaza, el script se detiene con el mensaje del colector, y tu agente sigue funcionando.
+- Con Docker Compose, ponlos en el `.env` junto a `docker-compose.yml`, cada valor entre comillas simples, y ejecuta `docker compose up -d`. El servicio `oneuptime-docker-agent-config-check` hace antes la misma comprobación, y el agente solo arranca si la supera.
+- Con Docker CLI, haz tú mismo la comprobación, con las demás variables del agente, y luego arranca el agente con las mismas opciones `-e`:
+
+```bash
+docker run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/docker-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Agente de Kubernetes](/docs/telemetry/kubernetes-agent#leer-un-formato-de-log-propio) explica los operators del ejemplo, que el agente de Kubernetes también acepta.
 
 ## Actualizar el agente
 

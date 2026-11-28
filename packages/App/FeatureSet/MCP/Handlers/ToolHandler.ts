@@ -33,6 +33,10 @@ import {
   handlePublicStatusPageTool,
 } from "../Tools/PublicStatusPageTools";
 import { isWorkflowTool, handleWorkflowTool } from "../Tools/WorkflowTools";
+import {
+  getServerWritePolicy,
+  getWritePolicyRefusal,
+} from "../Tools/ToolGenerator";
 import { sanitizeToolName } from "../Tools/SchemaConverter";
 import RequestGate, { McpToolAccess } from "../OAuth/RequestGate";
 import McpCredentialUtil, {
@@ -40,6 +44,10 @@ import McpCredentialUtil, {
   McpCredentialInput,
 } from "../Types/McpCredential";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  ASKS_IN_EVERY_MODE_REFUSAL_PREFIX,
+  ASKS_IN_EVERY_MODE_SUGGESTION,
+} from "Common/Types/AI/AIDataSecurityActions";
 import FieldsLeftOut from "Common/Types/API/FieldsLeftOut";
 import Headers from "Common/Types/API/Headers";
 import logger from "Common/Server/Utils/Logger";
@@ -270,6 +278,31 @@ export function getDeleteChoicesSuggestion(data: {
   return `Nothing was deleted: the error names what depends on it. Ask the user which they want, then call ${tool.name} again with ${ways.join(", or with ")}. Do not choose for them.`;
 }
 
+/*
+ * What to try next when a change was refused because OneUptime asks a
+ * person before it in every mode: a Data Security action the API refused
+ * (#10378), or a record's write this server refused before sending it,
+ * since it makes the same change (Tools/AlwaysAskWrites, #11177). Not
+ * again, and not another way - the person makes it in OneUptime, on the
+ * page the refusal names. Undefined for every other error.
+ *
+ * The API's refusal reaches here inside the words every failed request is
+ * wrapped in - "API request failed: 403 - " and then the API's message
+ * (OneUptimeApiService) - so the refusal is read after them, never only at
+ * the very start, where it never is for an action the API refused.
+ */
+const API_FAILURE_WRAPPER: RegExp = /^API request failed: \d+ - /;
+
+export function getAsksAPersonSuggestion(error: unknown): string | undefined {
+  const message: string = error instanceof Error ? error.message : "";
+
+  return message
+    .replace(API_FAILURE_WRAPPER, "")
+    .startsWith(ASKS_IN_EVERY_MODE_REFUSAL_PREFIX)
+    ? ASKS_IN_EVERY_MODE_SUGGESTION
+    : undefined;
+}
+
 // What a delete's inputs said besides the record: {} when nothing, or what could not be read.
 function sentDeleteChoices(
   tableName: string,
@@ -389,6 +422,26 @@ async function handleCallTool(
 
     // Workflow tools (acknowledge/resolve/notes/whoami) require an API key or a sign-in
     if (isWorkflowTool(name)) {
+      /*
+       * A workflow tool is found by its name in every definition there is,
+       * so one the server's write policy took off the list (MCP_READ_ONLY,
+       * MCP_ALLOW_DESTRUCTIVE) still ran when a client called it by name.
+       * Only a tool this server offers runs.
+       */
+      if (
+        !tools.some((offered: McpToolInfo): boolean => {
+          return offered.name === name;
+        })
+      ) {
+        return buildErrorResult(
+          name,
+          new Error(getWritePolicyRefusal(getServerWritePolicy())),
+          credential,
+          // Nothing is wrong with the arguments, so the default would mislead.
+          "Do not retry this tool: it is turned off on this server. The tools it lists still work.",
+        );
+      }
+
       logger.debug(`Executing workflow tool: ${name}`);
       if (!McpCredentialUtil.isPresent(credential)) {
         return buildErrorResult(
@@ -464,6 +517,7 @@ async function handleCallTool(
       (headers: Headers): void => {
         fieldsLeftOut = FieldsLeftOut.fromHeaders(headers);
       },
+      tool.name,
     );
 
     // Format the response
@@ -488,14 +542,20 @@ async function handleCallTool(
       name,
       error,
       credential,
-      // A delete refused for what it says besides the record says how in its inputs.
-      getDeleteChoicesSuggestion({
-        tool: tools.find((each: McpToolInfo): boolean => {
-          return each.name === name;
+      /*
+       * A Data Security action that asks a person in every mode, refused
+       * here (#10378): never retried, and the person sent to OneUptime.
+       * A delete refused for what it says besides the record says how in
+       * its inputs.
+       */
+      getAsksAPersonSuggestion(error) ||
+        getDeleteChoicesSuggestion({
+          tool: tools.find((each: McpToolInfo): boolean => {
+            return each.name === name;
+          }),
+          args,
+          error,
         }),
-        args,
-        error,
-      }),
     );
   }
 }

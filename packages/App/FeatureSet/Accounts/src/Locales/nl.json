@@ -643,6 +643,8 @@
   "The {{itemName}} was not created.": "{{itemName}} is niet aangemaakt.",
   "The {{itemName}} was not saved.": "{{itemName}} is niet opgeslagen.",
   "This did not finish.": "Dit is niet voltooid.",
+  "The {{itemName}} was not deleted.": "{{itemName}} is niet verwijderd.",
+  "“{{action}}” did not finish.": "\"{{action}}\" is niet voltooid.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Deze pagina liep tegen een probleem aan, dus dit is niet voltooid. Laad de pagina opnieuw en probeer het daarna opnieuw.",
   "This page ran into a problem.": "Deze pagina liep tegen een probleem aan.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "Om te zien wat er misging, voer je npm run doctor -- --logs uit in de map oneuptime van de server en zoek je naar deze referentie.",

@@ -42,11 +42,23 @@ import CloudAccountAiAgent from "../Pages/Cloud/Accounts/View/AI/Agent";
 import CloudAccountAiLogs from "../Pages/Cloud/Accounts/View/AI/Logs";
 import CloudAccountFeed from "../Pages/Cloud/Accounts/View/Feed";
 import CloudAccountCosts from "../Pages/Cloud/Accounts/View/Costs";
+import CloudAccountTags from "../Pages/Cloud/Accounts/View/Tags";
 import CloudAccountRecommendations from "../Pages/Cloud/Accounts/View/Recommendations";
 import CloudOverview from "../Pages/Cloud/Overview";
 import CloudCosts from "../Pages/Cloud/Costs";
 import CloudSavings from "../Pages/Cloud/Savings";
+import CloudCommitments from "../Pages/Cloud/Commitments";
 import CloudBudgets from "../Pages/Cloud/Budgets";
+import CloudBudgetPage from "../Pages/Cloud/Budget";
+import CloudForecast from "../Pages/Cloud/Forecast";
+import CloudCostSettings from "../Pages/Cloud/Settings/Costs";
+import CloudCostGroups from "../Pages/Cloud/CostGroups";
+import CloudCostViewPage from "../Pages/Cloud/CostView";
+import CloudCostGroupPage from "../Pages/Cloud/CostGroup";
+import CloudSchedules from "../Pages/Cloud/Schedules";
+import CloudReports from "../Pages/Cloud/Reports";
+import CloudSavingsAiRules from "../Pages/Cloud/Settings/SavingsAiRules";
+import CloudTags from "../Pages/Cloud/Tags";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
@@ -121,11 +133,112 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_COMMITMENTS] || ""}
+          element={
+            <CloudCommitments
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_COMMITMENTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SCHEDULES] || ""}
+          element={
+            <CloudSchedules
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_SCHEDULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_REPORTS] || ""}
+          element={
+            <CloudReports
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_REPORTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES] || ""}
+          element={
+            <CloudSavingsAiRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
           path={CloudRoutePath[PageMap.CLOUD_BUDGETS] || ""}
           element={
             <CloudBudgets
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_BUDGETS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_BUDGET_VIEW] || ""}
+          element={
+            <CloudBudgetPage
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_BUDGET_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_FORECAST] || ""}
+          element={
+            <CloudForecast
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_FORECAST] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_TAGS] || ""}
+          element={
+            <CloudTags
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_TAGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SETTINGS_COSTS] || ""}
+          element={
+            <CloudCostSettings
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_SETTINGS_COSTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_COST_GROUPS] || ""}
+          element={
+            <CloudCostGroups
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_COST_GROUPS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_COST_VIEW] || ""}
+          element={
+            <CloudCostViewPage
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_COST_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_COST_GROUP_VIEW] || ""}
+          element={
+            <CloudCostGroupPage
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_COST_GROUP_VIEW] as Route}
             />
           }
         />
@@ -294,6 +407,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudAccountCosts
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_ACCOUNT_VIEW_TAGS)}
+          element={
+            <CloudAccountTags
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_TAGS] as Route}
             />
           }
         />

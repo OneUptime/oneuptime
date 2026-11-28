@@ -216,6 +216,12 @@ const PER_TYPE_EXPECTATIONS: Array<PerTypeExpectation> = [
       "trapOid",
       "trapSourceIp",
       "trapVarbinds",
+      // The interface a trap names, and an RMON alarm's (an MDS port monitor's).
+      "trapInterface",
+      "trapAlarmCounter",
+      "trapAlarmValue",
+      "trapAlarmThreshold",
+      "trapAlarmDirection",
       "tables.<key>.rowCount",
       "tables.<key>.unhealthyRows",
       "tables.<key>.rows",

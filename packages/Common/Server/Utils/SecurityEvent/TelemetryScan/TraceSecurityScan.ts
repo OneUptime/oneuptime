@@ -34,6 +34,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
 import ScrubbedClientAddresses from "../ScrubbedClientAddresses";
 import SecurityTrustedProxies from "../SecurityTrustedProxies";
+import SensitiveFileSiteMemoryStore from "../SensitiveFileSiteMemoryStore";
 import SecurityAddressVaultLookup from "../AddressVault/SecurityAddressVaultLookup";
 import SecurityUserVaultLookup from "../UserVault/SecurityUserVaultLookup";
 import {
@@ -61,8 +62,9 @@ import { TelemetryWindowRead } from "./TelemetryScanTypes";
  *     that event, so one request is one event;
  *   - a request for a file that holds secrets that the app answered, its
  *     span saying nothing of what was sent, is decided by what the app
- *     answered the page's other requests - its own page, or the file - or
- *     is no event (#10912, SensitiveFileAnswers);
+ *     answered the page's other requests - its own page, or the file - and,
+ *     for a day, the scan's pages and scans before it (#11036), or is no
+ *     event (#10912, SensitiveFileAnswers);
  *   - a forgery toward cloud metadata is told whether the app then called
  *     that address, from the client spans of its trace;
  *   - each request is followed into its trace (RequestTrace/
@@ -213,15 +215,20 @@ export default class TraceSecurityScan {
   public static async prepareEvents(data: {
     projectId: ObjectID;
     events: Array<NormalizedSecurityEvent>;
+    // The scan's memory of what each app answered (#11036); the page alone without it.
+    siteMemory?: SensitiveFileSiteMemoryStore | undefined;
   }): Promise<Array<NormalizedSecurityEvent>> {
     /*
      * A request for a file that holds secrets whose span says nothing of
      * what was sent is decided by what the app answered the page's other
-     * requests, or is no event (#10912, SensitiveFileAnswers).
+     * requests (#10912) and, for a day, the pages and scans before it
+     * (#11036), or is no event (SensitiveFileAnswers).
      */
-    const events: Array<NormalizedSecurityEvent> = judgeSensitiveFileAnswers(
-      await this.leaveRequestsToTheirLogs(data),
-    );
+    const unjudged: Array<NormalizedSecurityEvent> =
+      await this.leaveRequestsToTheirLogs(data);
+    const events: Array<NormalizedSecurityEvent> = data.siteMemory
+      ? await data.siteMemory.judge(unjudged)
+      : judgeSensitiveFileAnswers(unjudged);
 
     await this.markFetchedForgeries({ projectId: data.projectId, events });
 

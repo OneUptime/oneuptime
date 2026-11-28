@@ -43,9 +43,11 @@ import GcpInventoryClient, {
  *   (its billingExportTable setting, "project.dataset.table"). A read runs
  *   one query over the window (BigQuery jobs.query, a read-only standard
  *   SQL query with named parameters) - grouped by day, project, service,
- *   Region, the cost's labels and, with the detailed export, resource. A
- *   query of a month of a billing export reads a few megabytes to a few
- *   gigabytes.
+ *   Region, the cost's labels and, with the detailed export, resource -
+ *   each group's charge on every basis: billed (its cost), amortized (with
+ *   the commitments' credits taken off) and net (with every credit taken
+ *   off). A query of a month of a billing export reads a few megabytes to a
+ *   few gigabytes.
  *
  *   Commitments: the same export says what the committed use discounts
  *   paid for (their credits) and what they cost (their fees), read once a
@@ -85,7 +87,36 @@ export function isDetailedGcpBillingExport(table: string): boolean {
 }
 
 /*
- * The query over a window. The table is checked before it is written in
+ * The credits that are a commitment's (CloudCostBasis): what a committed
+ * use discount or a subscription paid for (resource-based and the legacy
+ * spend-based discounts), and what offsets a new spend-based commitment's
+ * fee as its usage runs (FEE_UTILIZATION_OFFSET). Taken off the charge,
+ * they make it amortized: Google charges a commitment's fee as it accrues,
+ * hour by hour, so there is no upfront fee to spread over a term - the
+ * usage it covers costs what the commitment charged, rather than the
+ * on-demand price and the fee both.
+ */
+export const GCP_AMORTIZED_CREDIT_TYPES: ReadonlyArray<string> = [
+  "COMMITTED_USAGE_DISCOUNT",
+  "COMMITTED_USAGE_DISCOUNT_DOLLAR_BASE",
+  "FEE_UTILIZATION_OFFSET",
+  "SUBSCRIPTION_BENEFIT",
+];
+
+// A list of credit types as SQL text: each one a fixed word of this file's.
+function sqlCreditTypes(types: ReadonlyArray<string>): string {
+  return types
+    .map((type: string): string => {
+      return `'${type}'`;
+    })
+    .join(", ");
+}
+
+/*
+ * The query over a window: each group's charge before credits (billed),
+ * with the commitments' credits taken off (amortized), and with every
+ * credit taken off - promotions, free tier, sustained use and negotiated
+ * discounts besides (net). The table is checked before it is written in
  * (isValidGcpBillingExportTable); the window is named parameters.
  */
 export function buildGcpBillingExportQuery(table: string): string {
@@ -100,16 +131,21 @@ export function buildGcpBillingExportQuery(table: string): string {
       ? "IFNULL(resource.global_name, '') AS resource_id,"
       : "'' AS resource_id,",
     "currency,",
-    "SUM(cost) AS cost,",
+    // Named for what it holds, as the two beside it are, never as its column.
+    "SUM(cost) AS billed_cost,",
     // Its labels, the keys in order, so one set of labels is one group.
-    "TO_JSON_STRING(ARRAY(SELECT AS STRUCT label.key, label.value FROM UNNEST(labels) AS label ORDER BY label.key)) AS labels_json",
+    "TO_JSON_STRING(ARRAY(SELECT AS STRUCT label.key, label.value FROM UNNEST(labels) AS label ORDER BY label.key)) AS labels_json,",
+    `SUM(cost + IFNULL((SELECT SUM(credit.amount) FROM UNNEST(credits) AS credit WHERE credit.type IN (${sqlCreditTypes(
+      GCP_AMORTIZED_CREDIT_TYPES,
+    )})), 0)) AS amortized_cost,`,
+    "SUM(cost + IFNULL((SELECT SUM(credit.amount) FROM UNNEST(credits) AS credit), 0)) AS net_cost",
     `FROM \`${table.trim()}\``,
     "WHERE usage_start_time >= TIMESTAMP(@start)",
     "AND usage_start_time < TIMESTAMP(@end)",
     // The export's partitions: a day's usage lands in its day's or a later one.
     "AND _PARTITIONTIME >= TIMESTAMP_SUB(TIMESTAMP(@start), INTERVAL 1 DAY)",
     "GROUP BY day, project_id, service, region, resource_id, currency, labels_json",
-    "HAVING cost != 0",
+    "HAVING billed_cost != 0 OR amortized_cost != 0 OR net_cost != 0",
   ].join(" ");
 }
 
@@ -363,8 +399,17 @@ export default class GcpCostClient {
 
     for (const cells of read.rows) {
       const amount: number = Number(cells[6]);
+      // A row without the bases' columns (an older answer) is billed on every basis.
+      const amortizedAmount: number = Number(cells[8] ?? cells[6]);
+      const netAmount: number = Number(cells[9] ?? cells[6]);
 
-      if (!cells[0] || !Number.isFinite(amount) || amount === 0) {
+      if (
+        !cells[0] ||
+        !Number.isFinite(amount) ||
+        !Number.isFinite(amortizedAmount) ||
+        !Number.isFinite(netAmount) ||
+        (amount === 0 && amortizedAmount === 0 && netAmount === 0)
+      ) {
         continue;
       }
 
@@ -380,6 +425,8 @@ export default class GcpCostClient {
           : "",
         currency: cells[5] || CLOUD_COST_DEFAULT_CURRENCY,
         amount,
+        amortizedAmount,
+        netAmount,
         ...(Object.keys(tags).length > 0 ? { tags } : {}),
       });
     }

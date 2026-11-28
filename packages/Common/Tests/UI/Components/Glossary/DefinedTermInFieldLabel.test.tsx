@@ -432,7 +432,8 @@ describe("with its definition open, a field is still named by its title alone", 
       required: false,
     });
 
-    const picker: HTMLElement = screen.getByRole("radiogroup", {
+    // The color field is a file of its own, drawn once it arrives (LazyColorPicker).
+    const picker: HTMLElement = await screen.findByRole("radiogroup", {
       name: "Severity (Optional)",
     });
 

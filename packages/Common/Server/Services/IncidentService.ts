@@ -1,5 +1,8 @@
 import DatabaseConfig from "../DatabaseConfig";
 import MonitorOpenRecords from "../Utils/Monitor/MonitorOpenRecords";
+import MonitorIncidentPause, {
+  MonitorIncidentPauseState,
+} from "../Utils/Monitor/MonitorIncidentPause";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import IncidentMeasurementService from "./IncidentMeasurementService";
@@ -51,6 +54,10 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import IncidentDeclaredByHandStartReader, {
+  IncidentDeclaredByHandStartingState,
+} from "../Utils/Incident/IncidentDeclaredByHandStartReader";
+import { INCIDENT_DECLARED_BY_HAND_KEY } from "../../Types/Incident/IncidentDeclaredByHandStart";
 import ProjectScopedReferenceValidator, {
   getWrittenRelationReferences,
   HeldRelationIds,
@@ -171,6 +178,9 @@ import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Inci
 import ChannelMembersNotAddedNotice, {
   ChannelMembersNotAdded,
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceRuleOwnersOnCreate from "../Utils/Workspace/WorkspaceRuleOwnersOnCreate";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import VideoCallRuleExecutor from "../Utils/VideoCall/VideoCallRuleExecutor";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import {
@@ -372,6 +382,16 @@ type IncidentCreateCarryForward =
        * Owners field holds them already - said false. False without alerts.
        */
       carryOverAlertOwners: boolean;
+      /*
+       * The moment the incident's create began, taken before it is
+       * written - so before anything about it can be: its creator made an
+       * owner, the roles the Dashboard gives as the declarer lands on it,
+       * its owners and its rules. Its "Incident Created" entry is filed at
+       * it, and the alerts it was declared from a millisecond before, so
+       * those are the first two lines of its feed, in that order, however
+       * the steps that write them race the rest (#10911).
+       */
+      feedStartsAt: Date;
     })
   | null;
 
@@ -538,11 +558,12 @@ export class Service extends ProjectReferencesService<Model> {
    * The owners of the template an incident is declared from through
    * createFromTemplate become the incident's owners, handed over as the
    * dashboard hands over the owners its declare form fills in from a
-   * template: onCreateSuccess adds them once the incident's channels exist,
-   * quietly, as the caller (a user's create never asks for its owners to be
-   * notified). Read as the caller, once the template is known to be one
-   * they may declare from; owners the create already hands over are kept,
-   * and each one is handed over once.
+   * template: onCreateSuccess adds them before the incident's channels are
+   * opened, so its notification rules match on them, quietly, as the caller
+   * (a user's create never asks for its owners to be notified). Read as the
+   * caller, once the template is known to be one they may declare from;
+   * owners the create already hands over are kept, and each one is handed
+   * over once.
    */
   private async handOverTemplateOwners(data: {
     createBy: CreateBy<Model>;
@@ -2831,6 +2852,13 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
 
     /*
+     * When the incident's feed starts (IncidentCreateCarryForward): now,
+     * before the incident is written and so before any entry about it can
+     * be.
+     */
+    const feedStartsAt: Date = OneUptimeDate.getCurrentDate();
+
+    /*
      * The check that opened the incident, without a Synthetic monitor's
      * screenshots, as its state timeline keeps it: they are megabytes a row,
      * and nothing shows them - the incident's monitor summary is its own
@@ -2884,9 +2912,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * An incident gets its owners after it is written: from
-     * onCreateSuccess's chain (the owners handed over with the create, once
-     * its Slack / Microsoft Teams channels exist, and the project's owner
-     * rules), from its create as it returns (its creator), and from the
+     * onCreateSuccess's chain (the owners handed over with the create and
+     * the project's owner rules, before its Slack / Microsoft Teams channels
+     * are opened), from its create as it returns (its creator), and from the
      * code that made it once the create returns (a monitor's criteria, the
      * network device the monitor watches). The owners' "Incident Created"
      * notification is sent by a job that runs every minute and takes every
@@ -2976,6 +3004,17 @@ export class Service extends ProjectReferencesService<Model> {
           createBy.miscDataProps?.[INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY],
         alertIds: validatedAlertIds,
       });
+
+    /*
+     * Whether a person declared it in one of OneUptime's declare forms -
+     * Declare Incident, or Slack's and Microsoft Teams' - which say so. Read
+     * here, with the other things a declaration asks for, so a value that is
+     * not true or false is refused before the incident number is taken.
+     */
+    const isDeclaredByHand: boolean =
+      IncidentDeclaredByHandStartReader.readDeclaredByHand(
+        createBy.miscDataProps?.[INCIDENT_DECLARED_BY_HAND_KEY],
+      );
 
     if (!createBy.data.declaredAt) {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
@@ -3341,6 +3380,30 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     /*
+     * Declared by hand, with no state picked and none from a template: where
+     * the project starts incidents declared by hand (#11137,
+     * IncidentDeclaredByHandStart). With its switch on, and no on-call policy
+     * to page - none picked, none from the template, which the lines above
+     * have added by now - that is its acknowledged state: whoever declared it
+     * is on it, so it pages nobody, for the reason an incident declared
+     * acknowledged on purpose does. Otherwise nothing is placed here, and it
+     * starts in the created state below, as it always did.
+     */
+    if (!initialIncidentStateId && isDeclaredByHand) {
+      const handStart: IncidentDeclaredByHandStartingState | null =
+        await IncidentDeclaredByHandStartReader.getStartingState({
+          projectId: projectId,
+          onCallPolicies: createBy.data.onCallDutyPolicies,
+        });
+
+      if (handStart) {
+        initialIncidentStateId = handStart.incidentStateId;
+        startingStage = handStart.stage;
+        isStatePlacedByStartingRead = true;
+      }
+    }
+
+    /*
      * With no state picked, and none from a template, the incident starts in
      * the project's created state - as every incident a monitor declares
      * does - which is open (StartingStage) with no need to read the rest of
@@ -3483,6 +3546,7 @@ export class Service extends ProjectReferencesService<Model> {
         alertIdsToLink: validatedAlertIds,
       }),
       carryOverAlertOwners: carryOverAlertOwners,
+      feedStartsAt: feedStartsAt,
     };
 
     /*
@@ -3749,87 +3813,60 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
+    /*
+     * When the incident's feed starts (IncidentCreateCarryForward): its
+     * "Incident Created" entry is filed at it, and the alerts it was
+     * declared from a moment before - the first two lines of its feed,
+     * whenever the steps below write them (#10911).
+     */
+    const feedStartsAt: Date | undefined = this.getFeedStartsAt(onCreate);
+
+    /*
+     * The incident's Slack, Microsoft Teams and Mattermost messages. Its
+     * rules are matched - its channels opened, its "Incident Created"
+     * posted - once its owners and labels are in, so a rule that asks who
+     * owns it or how it is labelled matches it (#11146): the owners of the
+     * alerts it was declared from, those handed over with its create and
+     * its owner rules', its label rules' labels, and the owners its creator
+     * and the code that made it add. Every other message about it - the
+     * alerts it was declared from, "Added team Platform to the Incident as
+     * the owner" - waits for "Incident Created" until then, and follows it
+     * in the order it was made (WorkspaceCreatedMessageFirst): its channels
+     * hear of the incident first, then of what happened to it, then its
+     * pages. Held on every App server since the incident was written
+     * (DatabaseService.create, before even its creator is made its owner,
+     * #11352), so before the create returns, and a message made on another
+     * one waits too: the Incident Commander role the Dashboard gives the
+     * declarer as the incident's page opens (#11198). This chain takes the
+     * hold over here, and lets it go below.
+     */
+    await WorkspaceCreatedMessageFirst.hold({ incidentId: createdItem.id });
+
+    /*
+     * The alerts it is declared from are linked once the privacy rules have
+     * run (linkAlertsDeclaredWithIncident): waited for before this hook
+     * returns, and by the first state of an incident declared already
+     * acknowledged or resolved, which carries that state over to them.
+     * Never rejects.
+     */
+    const alertsLinked: Promise<void> = this.linkAlertsDeclaredWithIncident(
+      onCreate,
+      createdItem,
+      privacyRulesApplied,
+    );
+
     // Execute operations sequentially with error handling
     privacyRulesApplied
       .then(async () => {
         /*
-         * No channel is opened for an incident declared resolved. Its
-         * created feed entry still goes to the channels the workspace rules
-         * name.
-         */
-        try {
-          if (createdItem.projectId && createdItem.id && isOngoing) {
-            membersNotAddedToNewChannels =
-              await this.handleIncidentWorkspaceOperationsAsync(createdItem);
-          }
-          return Promise.resolve();
-        } catch (error) {
-          logger.error(
-            `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-              userId: createdItem.createdByUserId?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        try {
-          return await this.createIncidentFeedAsync(
-            incident,
-            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
-          );
-        } catch (error) {
-          logger.error(
-            `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-              userId: createdItem.createdByUserId?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        // Under "Incident Created": who could not be added to the new channels.
-        await ChannelMembersNotAddedNotice.noteAll({
-          projectId: createdItem.projectId,
-          membersNotAdded: membersNotAddedToNewChannels,
-        });
-      })
-      .then(() => {
-        /*
-         * The video calls the workspace rules ask for, posted after
-         * "Incident Created" in the channels the rules just created. Not
-         * waited on: a meeting provider that is slow to answer must never
-         * hold up paging the on-call below. No call for an incident declared
-         * resolved.
-         */
-        if (createdItem.projectId && createdItem.id && isOngoing) {
-          VideoCallRuleExecutor.startCallsForIncident({
-            projectId: createdItem.projectId,
-            incidentId: createdItem.id,
-          }).catch((error: unknown) => {
-            logger.error(
-              `Starting video calls failed in IncidentService.onCreateSuccess: ${error}`,
-              {
-                projectId: createdItem.projectId?.toString(),
-                incidentId: createdItem.id?.toString(),
-              } as LogAttributes,
-            );
-          });
-        }
-      })
-      .then(async () => {
-        /*
-         * Declared from alerts: announce the alerts once, here - after
-         * "Incident Created" and after the incident's Slack / Microsoft
-         * Teams channels exist - rather than once per alert as each link is
-         * written (see linkAlertsDeclaredWithIncident). Uses the validated
-         * ids, so it does not wait for the links.
+         * Declared from alerts: the alerts are announced once, here,
+         * rather than once per alert as each link is written (see
+         * linkAlertsDeclaredWithIncident). Declaring the incident from them
+         * is what made it, so the entry is filed a moment before "Incident
+         * Created": the first line of its feed (#10911), wherever the other
+         * steps' entries land. Its message follows "Incident Created" in the
+         * incident's channels, as every message about it made before that
+         * does. Uses the validated ids, so it does not wait for the links.
          */
         try {
           const alertIds: Array<ObjectID> =
@@ -3846,6 +3883,9 @@ export class Service extends ProjectReferencesService<Model> {
               ),
               declaredByRuleName:
                 this.getAlertIncidentRuleNameDeclaredWith(onCreate),
+              ...(feedStartsAt
+                ? { postedAt: this.getDeclaredFromAlertsAt(feedStartsAt) }
+                : {}),
             });
           }
         } catch (error) {
@@ -3860,6 +3900,39 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         /*
+         * Its first state, which its feed lists right under "Incident
+         * Created", ahead of its owners. Not posted to Slack and Microsoft
+         * Teams: "Incident Created" names it (WorkspaceStateChangePosting).
+         * Declared already acknowledged or resolved, it carries that state
+         * over to the alerts it was declared from
+         * (IncidentAlertService.cascadeIncidentStateToLinkedAlerts), so it
+         * waits for them to be linked - such an incident pages nobody.
+         * Declared open, it carries nothing over, and its pages do not wait
+         * for the links.
+         */
+        try {
+          if (!StartingStageUtil.pagesOnCall(startingStage)) {
+            await alertsLinked;
+          }
+
+          return await this.handleIncidentStateChangeAsync(
+            createdItem,
+            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+          );
+        } catch (error) {
+          logger.error(
+            `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        /*
          * An incident declared from alerts gets the alerts' owners as its
          * owners (#10867), private or not - unless the declaration said
          * otherwise: the dashboard's Owners field holds them already, as
@@ -3867,13 +3940,14 @@ export class Service extends ProjectReferencesService<Model> {
          * For a private one - private from the form or made private by a
          * privacy rule above - it is also what lets the people who could
          * see the alerts see the incident. Here rather than before the
-         * request returns: the owners' own hooks invite them to the
-         * incident's Slack / Microsoft Teams channels, which exist only
-         * from the workspace step above, and their "owner added" entries
-         * belong after "Incident Created". And before the owner rules and
-         * the release of the held "Incident Created" notification below
-         * (CreatedNotificationHold), so they are told of the incident once,
-         * by it, as every owner it starts with is.
+         * request returns, and before its channels are opened and
+         * "Incident Created" is posted: its rules match on them, the
+         * channels' setup invites them, and their "owner added" messages
+         * follow "Incident Created" (WorkspaceCreatedMessageFirst). And
+         * before the owner rules and the release of the held "Incident
+         * Created" notification below (CreatedNotificationHold), so they
+         * are told of the incident once, by it, as every owner it starts
+         * with is.
          */
         try {
           const alertIds: Array<ObjectID> =
@@ -3897,32 +3971,13 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        try {
-          return await this.handleIncidentStateChangeAsync(
-            createdItem,
-            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
-          );
-        } catch (error) {
-          logger.error(
-            `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-              userId: createdItem.createdByUserId?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
         /*
          * Owners handed over with the create: a template's owners, from the
          * dashboard's Declare Incident page or from an incident form. Added
-         * here - after the incident's Slack / Microsoft Teams channels
-         * exist, which is when the owners' own hooks can invite them to
-         * those channels, and after "Incident Created" - rather than by the
-         * caller once the create returns, while this chain may still be
-         * creating the channels.
+         * here, in the chain - before its channels are opened and
+         * "Incident Created" is posted, so its rules match on them and the
+         * channels' setup invites them - rather than by the caller once the
+         * create returns, when its channels may be opening already.
          *
          * Whether they are notified is the caller's to say, but only an
          * internal (root) caller's: an incident form asks for its
@@ -3966,6 +4021,153 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the incident.
+        try {
+          await IncidentOwnerRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident owner rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+
+        /*
+         * Every owner this chain adds is in - or could not be added, and it
+         * will not try again: the "Incident Created" notification may go
+         * out once the others' are. Not waited for: paging the on-call
+         * below never waits on it.
+         */
+        CreatedNotificationHold.ownersAreIn(
+          onCreate.createBy,
+          OwnersAddedBy.Chain,
+        );
+      })
+      .then(async () => {
+        /*
+         * Apply label rules: attach matched labels (and optionally inherited
+         * monitor / host labels) to the incident. Runs before the on-call
+         * fan-out so notifications can include the inherited labels, and
+         * before its channels are opened so its rules match on them.
+         */
+        try {
+          await IncidentLabelRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident label rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Its rules are matched from here on, on what it ends up with: the
+         * owners and labels this chain adds are in. Those its creator and
+         * the code that made it add - a monitor's criteria's - are waited
+         * for a moment, in a project with a rule that asks who owns an
+         * incident (WorkspaceRuleOwnersOnCreate). Never throws.
+         */
+        await WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate({
+          createBy: onCreate.createBy,
+          projectId: createdItem.projectId!,
+          eventType: NotificationRuleEventType.Incident,
+          recordId: createdItem.id!,
+        });
+      })
+      .then(async () => {
+        /*
+         * No channel is opened for an incident declared resolved. Its
+         * created feed entry still goes to the channels the workspace rules
+         * name.
+         */
+        try {
+          if (createdItem.projectId && createdItem.id && isOngoing) {
+            membersNotAddedToNewChannels =
+              await this.handleIncidentWorkspaceOperationsAsync(createdItem);
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.createIncidentFeedAsync(
+            incident,
+            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+            feedStartsAt,
+          );
+        } catch (error) {
+          logger.error(
+            `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Under "Incident Created": who could not be added to the new channels.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
+      })
+      .then(async () => {
+        /*
+         * Then what waited for "Incident Created", in the order it was
+         * made: the alerts it was declared from, the owners added above -
+         * "Added team Platform to the Incident as the owner" - and anything
+         * else posted about the incident meanwhile. Never throws.
+         */
+        await WorkspaceCreatedMessageFirst.postHeld({
+          incidentId: createdItem.id!,
+        });
+      })
+      .then(() => {
+        /*
+         * The video calls the workspace rules ask for, posted after
+         * "Incident Created" in the channels the rules just created. Not
+         * waited on: a meeting provider that is slow to answer must never
+         * hold up paging the on-call below. No call for an incident declared
+         * resolved.
+         */
+        if (createdItem.projectId && createdItem.id && isOngoing) {
+          VideoCallRuleExecutor.startCallsForIncident({
+            projectId: createdItem.projectId,
+            incidentId: createdItem.id,
+          }).catch((error: unknown) => {
+            logger.error(
+              `Starting video calls failed in IncidentService.onCreateSuccess: ${error}`,
+              {
+                projectId: createdItem.projectId?.toString(),
+                incidentId: createdItem.id?.toString(),
+              } as LogAttributes,
+            );
+          });
         }
       })
       .then(async () => {
@@ -4023,53 +4225,6 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        // Apply owner rules: add matched owner users/teams to the incident.
-        try {
-          await IncidentOwnerRuleEngineService.applyRulesToIncident(
-            createdItem,
-          );
-        } catch (error) {
-          logger.error(
-            `Apply incident owner rules failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-        }
-
-        /*
-         * Every owner this chain adds is in - or could not be added, and it
-         * will not try again: the "Incident Created" notification may go
-         * out once the others' are. Not waited for: paging the on-call
-         * below never waits on it.
-         */
-        CreatedNotificationHold.ownersAreIn(
-          onCreate.createBy,
-          OwnersAddedBy.Chain,
-        );
-      })
-      .then(async () => {
-        /*
-         * Apply label rules: attach matched labels (and optionally inherited
-         * monitor / host labels) to the incident. Runs before the on-call
-         * fan-out so notifications can include the inherited labels.
-         */
-        try {
-          await IncidentLabelRuleEngineService.applyRulesToIncident(
-            createdItem,
-          );
-        } catch (error) {
-          logger.error(
-            `Apply incident label rules failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
         }
       })
       .then(async () => {
@@ -4318,15 +4473,40 @@ export class Service extends ProjectReferencesService<Model> {
           onCreate.createBy,
           OwnersAddedBy.Chain,
         );
+
+        /*
+         * Maybe of "Incident Created" too: what waited for it goes out now,
+         * rather than once its hold runs out. Never throws.
+         */
+        void WorkspaceCreatedMessageFirst.postHeld({
+          incidentId: createdItem.id!,
+        });
       });
 
-    await this.linkAlertsDeclaredWithIncident(
-      onCreate,
-      createdItem,
-      privacyRulesApplied,
-    );
+    // The page the declarer lands on lists the alerts it was declared from.
+    await alertsLinked;
 
     return createdItem;
+  }
+
+  // When the incident's feed starts, as onBeforeCreate handed it over.
+  private getFeedStartsAt(onCreate: OnCreate<Model>): Date | undefined {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    return carryForward?.feedStartsAt instanceof Date
+      ? carryForward.feedStartsAt
+      : undefined;
+  }
+
+  /*
+   * When the entry naming the alerts an incident was declared from is filed:
+   * a millisecond before its feed starts, where "Incident Created" is filed,
+   * so it is the first line of the feed and "Incident Created" the second
+   * (#10911).
+   */
+  private getDeclaredFromAlertsAt(feedStartsAt: Date): Date {
+    return new Date(feedStartsAt.getTime() - 1);
   }
 
   /*
@@ -4434,8 +4614,8 @@ export class Service extends ProjectReferencesService<Model> {
    *
    * The privacy rules run first: each link's entry on its alert leaves out
    * the incident's title when the incident is private, and a rule can make
-   * it private after it was saved. (The alerts' owners are added to a private
-   * incident later in the chain, once its workspace channels exist.)
+   * it private after it was saved. (The alerts' owners are added later in
+   * the chain, before its workspace channels are opened.)
    *
    * When the declaration asked for it, the alerts are then acknowledged as
    * the declaring user, which stops their on-call escalation at the
@@ -4742,11 +4922,20 @@ export class Service extends ProjectReferencesService<Model> {
     return markdown;
   }
 
+  /*
+   * The incident's "Incident Created" entry, posted to its Slack, Microsoft
+   * Teams and Mattermost channels as the message that announces it - ahead
+   * of the messages its create held back until it
+   * (WorkspaceCreatedMessageFirst). Filed at `postedAt` when given - when
+   * the incident's feed starts - so it leads the feed whenever it is
+   * written, after only the alerts it was declared from.
+   */
   @CaptureSpan()
   private async createIncidentFeedAsync(
     incident: Model,
     // The API key that declared it, when one did (Utils/Feed/FeedApiKeyActor).
     apiKeyActor?: FeedApiKeyActor | undefined,
+    postedAt?: Date | undefined,
   ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
@@ -4856,9 +5045,11 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         feedInfoInMarkdown: feedInfoInMarkdown,
         userId: createdByUserId || undefined,
         apiKeyActor: apiKeyActor,
+        ...(postedAt ? { postedAt: postedAt } : {}),
         workspaceNotification: {
           appendMessageBlocks: incidentCreateMessageBlocks,
           sendWorkspaceNotification: true,
+          announcesRecord: true,
         },
       });
     } catch (error) {
@@ -5053,6 +5244,15 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
     }
   }
 
+  /*
+   * Pauses the checks of the incident's monitors when the incident, declared
+   * by hand, pauses monitoring - except monitors set to keep monitoring
+   * during incidents - and resumes any it no longer pauses. Each monitor is
+   * worked out from every open incident on it, not from this one alone
+   * (MonitorIncidentPause), and its time is left out of uptime while the
+   * incidents that pause it put it in no status. An incident OneUptime
+   * declared pauses nothing, so its monitors are not read.
+   */
   @CaptureSpan()
   public async disableActiveMonitoringIfManualIncident(
     incidentId: ObjectID,
@@ -5060,6 +5260,7 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
     const incident: Model | null = await this.findOneById({
       id: incidentId,
       select: {
+        projectId: true,
         monitors: {
           _id: true,
         },
@@ -5074,21 +5275,20 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
       throw new BadDataException("Incident not found");
     }
 
-    if (!incident.isCreatedAutomatically) {
-      const monitors: Array<Monitor> = incident.monitors || [];
-
-      for (const monitor of monitors) {
-        await MonitorService.updateOneById({
-          id: monitor.id!,
-          data: {
-            disableActiveMonitoringBecauseOfManualIncident: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
+    if (incident.isCreatedAutomatically || !incident.projectId) {
+      return;
     }
+
+    await MonitorIncidentPause.syncMonitors({
+      projectId: incident.projectId,
+      monitorIds: (incident.monitors || [])
+        .filter((monitor: Monitor): boolean => {
+          return Boolean(monitor.id);
+        })
+        .map((monitor: Monitor): ObjectID => {
+          return monitor.id!;
+        }),
+    });
   }
 
   @CaptureSpan()
@@ -6348,6 +6548,9 @@ ${incidentSeverity.name}
         const carryForward: UpdateCarryForward | undefined =
           onUpdate.carryForward;
 
+        // Whether the edit of its monitors worked them out again already.
+        let isMonitorPauseWorkedOut: boolean = false;
+
         if (carryForward) {
           const incidentCarryForward: UpdateCarryForward[string] | undefined =
             carryForward[incidentId.toString()];
@@ -6478,13 +6681,49 @@ ${incidentSeverity.name}
               }
             }
 
-            await this.updateMonitorsForIncidentEdit({
+            isMonitorPauseWorkedOut = await this.updateMonitorsForIncidentEdit({
               projectId: projectId,
               incidentId: incidentId,
               incidentNumberDisplay: incidentNumberDisplay,
               carryForward: incidentCarryForward,
               props: onUpdate.updateBy.props,
             });
+          }
+        }
+
+        /*
+         * Pause Monitoring switched (issue #11141), or the status the
+         * incident puts its monitors in taken away: its monitors are paused
+         * or resumed as their open incidents now say, and their time counted
+         * or left out as they do (MonitorIncidentPause). An edit of the
+         * monitors did that already.
+         */
+        const isMonitorStatusCleared: boolean =
+          RelationIdUtil.isPresent(
+            onUpdate.updateBy.data as Dictionary<unknown>,
+            CHANGE_MONITOR_STATUS_KEYS,
+          ) &&
+          !RelationIdUtil.readConsistent(
+            onUpdate.updateBy.data as Dictionary<unknown>,
+            CHANGE_MONITOR_STATUS_KEYS,
+            "Monitor Status",
+          );
+
+        if (
+          !isMonitorPauseWorkedOut &&
+          (onUpdate.updateBy.data.pauseMonitoring !== undefined ||
+            isMonitorStatusCleared)
+        ) {
+          try {
+            await this.disableActiveMonitoringIfManualIncident(incidentId);
+          } catch (pauseError) {
+            logger.error(
+              `Pausing or resuming the incident's monitors failed in IncidentService.onUpdateSuccess: ${pauseError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
           }
         }
 
@@ -6649,6 +6888,22 @@ ${incidentSeverity.name}
       return true;
     }
 
+    /*
+     * Pause Monitoring written, or the monitor status taken away: the
+     * incident's monitors are worked out again (#11141).
+     */
+    if (
+      data.written["pauseMonitoring"] !== undefined ||
+      (RelationIdUtil.isPresent(data.written, CHANGE_MONITOR_STATUS_KEYS) &&
+        !RelationIdUtil.readConsistent(
+          data.written,
+          CHANGE_MONITOR_STATUS_KEYS,
+          "Monitor Status",
+        ))
+    ) {
+      return true;
+    }
+
     const carryForward: UpdateCarryForward[string] | undefined =
       data.carryForward;
 
@@ -6701,14 +6956,19 @@ ${incidentSeverity.name}
    * would sit on its monitors as false downtime.
    *
    * An open incident:
-   * - stops probing the monitors of a manual incident when one is added,
-   *   as creating it did (disableActiveMonitoringIfManualIncident);
    * - puts the monitors added in its status, and all of its monitors only
    *   when the edit changes that status. Every save used to put all of them
    *   in it again, overwriting a status a probe had set since;
+   * - then pauses the monitors of an incident declared by hand that pauses
+   *   monitoring, as declaring it did (disableActiveMonitoringIfManualIncident):
+   *   after the status, so the time a pause left out of uptime counts again
+   *   once the incident puts its monitors in a status;
    * - holds its monitors from then on (Incident.holdsMonitors), so its
    *   resolve gives them back - even one that held nothing before, as an
    *   incident declared already resolved and reopened since.
+   *
+   * Returns whether it worked the incident's monitors out again, so the
+   * update does not do it twice.
    */
   private async updateMonitorsForIncidentEdit(data: {
     projectId: ObjectID;
@@ -6716,7 +6976,7 @@ ${incidentSeverity.name}
     incidentNumberDisplay: string;
     carryForward: UpdateCarryForward[string];
     props: DatabaseCommonInteractionProps;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const carryForward: UpdateCarryForward[string] = data.carryForward;
 
     if (
@@ -6735,7 +6995,7 @@ ${incidentSeverity.name}
       this.isMonitorStatusChangedByUpdate(carryForward);
 
     if (carryForward.monitorsAdded.length === 0 && !isMonitorStatusChanged) {
-      return;
+      return false;
     }
 
     /*
@@ -6744,7 +7004,7 @@ ${incidentSeverity.name}
      * monitors it holds, the added ones included.
      */
     if (await this.isIncidentResolved({ incidentId: data.incidentId })) {
-      return;
+      return false;
     }
 
     // What the edit does next, it does to monitors the incident then holds.
@@ -6755,9 +7015,35 @@ ${incidentSeverity.name}
       });
     }
 
-    if (carryForward.monitorsAdded.length > 0) {
-      await this.disableActiveMonitoringIfManualIncident(data.incidentId);
-    }
+    await this.putMonitorsInStatusOfEdit({
+      projectId: data.projectId,
+      incidentId: data.incidentId,
+      incidentNumberDisplay: data.incidentNumberDisplay,
+      carryForward: carryForward,
+      isMonitorStatusChanged: isMonitorStatusChanged,
+      props: data.props,
+    });
+
+    await this.disableActiveMonitoringIfManualIncident(data.incidentId);
+
+    return true;
+  }
+
+  /*
+   * Puts the incident's monitors in the status it puts them in after an
+   * edit (updateMonitorsForIncidentEdit): the monitors added, and all of
+   * them when the edit changes the status.
+   */
+  private async putMonitorsInStatusOfEdit(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    incidentNumberDisplay: string;
+    carryForward: UpdateCarryForward[string];
+    isMonitorStatusChanged: boolean;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const carryForward: UpdateCarryForward[string] = data.carryForward;
+    const isMonitorStatusChanged: boolean = data.isMonitorStatusChanged;
 
     // The status the incident puts its monitors in after the update.
     const monitorStatusIdToApply: ObjectID | undefined =
@@ -6930,28 +7216,6 @@ ${incidentSeverity.name}
     }
   }
 
-  // Whether another open incident declared by hand still holds the monitor.
-  @CaptureSpan()
-  public async doesMonitorHasMoreActiveManualIncidents(
-    monitorId: ObjectID,
-    proojectId: ObjectID,
-  ): Promise<boolean> {
-    const incidentCount: PositiveNumber = await this.countBy({
-      query: {
-        monitors: QueryHelper.inRelationArray([monitorId]),
-        currentIncidentStateId: QueryHelper.any(
-          await IncidentStateService.getUnresolvedIncidentStateIds(proojectId),
-        ),
-        isCreatedAutomatically: false,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return incidentCount.toNumber() > 0;
-  }
-
   // Whether any open incident lists the monitor (Common/Utils/ResolvedState).
   @CaptureSpan()
   public async doesMonitorHaveActiveIncidents(
@@ -6973,123 +7237,170 @@ ${incidentSeverity.name}
     return incidentCount.toNumber() > 0;
   }
 
+  /*
+   * Gives the monitors back once an incident lets go of them - resolved,
+   * the monitors taken off it, or deleted. Each monitor is worked out from
+   * the incidents still open on it (MonitorIncidentPause):
+   *
+   *   - one that another open incident declared by hand still pauses stays
+   *     paused, in the status it holds;
+   *   - one a scheduled maintenance event in progress still holds, in a
+   *     status of its own, goes back to that status (#11301);
+   *   - any other is resumed, and returned to operational unless another
+   *     incident is still open on it - its checks then set its status.
+   *
+   * Only the incidents that pause a monitor keep it paused: open, declared
+   * by hand, holding their monitors and pausing monitoring. A reopened
+   * incident holds nothing, so it paused nothing - but it used to count as
+   * one still holding the monitor, which then stayed paused for good, its
+   * resolve giving back nothing (issue #11141).
+   *
+   * The time a monitor's pause left out of uptime is counted again from
+   * when it resumes, or from its operational status when that is written -
+   * unless maintenance that sets no status still pauses it, which leaves it
+   * out until the event ends (MonitorIncidentPause).
+   */
   @CaptureSpan()
   public async markMonitorsActiveForMonitoring(
     projectId: ObjectID,
     monitors: Array<Monitor>,
     startsAt?: Date | undefined,
   ): Promise<void> {
-    // resolve all the monitors.
+    if (monitors.length === 0) {
+      return;
+    }
 
-    if (monitors.length > 0) {
-      // get resolved monitor state.
+    /*
+     * Resolve monitors back to the project's operational status. A project
+     * can hold more than one operational state, so this lookup MUST be
+     * deterministic: without an explicit sort findOneBy falls back to
+     * `createdAt DESC` and would resolve monitors into whichever operational
+     * status was created most recently (e.g. a user- or fixture-added one)
+     * rather than the seeded default. Order by priority ascending (the
+     * seeded default operational status is priority 0), tie-broken by the
+     * oldest row, matching MonitorService.onBeforeCreate so a monitor's
+     * operational status is the same canonical one throughout its lifecycle.
+     */
+    const resolvedMonitorState: MonitorStatus | null =
+      await MonitorStatusService.findOneBy({
+        query: {
+          projectId: projectId!,
+          isOperationalState: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+          createdAt: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+        },
+      });
+
+    for (const monitor of monitors) {
       /*
-       * Resolve monitors back to the project's operational status. A project
-       * can hold more than one operational state, so this lookup MUST be
-       * deterministic: without an explicit sort findOneBy falls back to
-       * `createdAt DESC` and would resolve monitors into whichever operational
-       * status was created most recently (e.g. a user- or fixture-added one)
-       * rather than the seeded default. Order by priority ascending (the
-       * seeded default operational status is priority 0), tie-broken by the
-       * oldest row, matching MonitorService.onBeforeCreate so a monitor's
-       * operational status is the same canonical one throughout its lifecycle.
+       * Per-monitor isolation: one monitor failing here (for example the
+       * fail-closed status timeline lock, or a transient DB error) must not
+       * abort the loop and strand the REMAINING monitors with
+       * disableActiveMonitoringBecauseOfManualIncident still true - a
+       * monitor left in that state is skipped by probes and sits in its
+       * down status indefinitely, silently accruing downtime. So the
+       * monitors are resumed whether or not the project has an operational
+       * status to return them to.
        */
-      const resolvedMonitorState: MonitorStatus | null =
-        await MonitorStatusService.findOneBy({
-          query: {
-            projectId: projectId!,
-            isOperationalState: true,
-          },
-          sort: {
-            priority: SortOrder.Ascending,
-            createdAt: SortOrder.Ascending,
-          },
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-          },
-        });
+      try {
+        const pause: MonitorIncidentPauseState | null =
+          await MonitorIncidentPause.syncPause({
+            projectId: projectId,
+            monitorId: monitor.id!,
+          });
 
-      if (resolvedMonitorState) {
-        for (const monitor of monitors) {
-          /*
-           * Per-monitor isolation: one monitor failing here (for example the
-           * fail-closed status timeline lock, or a transient DB error) must not
-           * abort the loop and strand the REMAINING monitors with
-           * disableActiveMonitoringBecauseOfManualIncident still true - a
-           * monitor left in that state is skipped by probes and sits in its
-           * down status indefinitely, silently accruing downtime.
-           */
-          try {
-            //check state of the monitor.
-
-            const doesMonitorHasMoreActiveManualIncidents: boolean =
-              await this.doesMonitorHasMoreActiveManualIncidents(
-                monitor.id!,
-                projectId!,
-              );
-
-            if (doesMonitorHasMoreActiveManualIncidents) {
-              continue;
-            }
-
-            await MonitorService.updateOneById({
-              id: monitor.id!,
-              data: {
-                disableActiveMonitoringBecauseOfManualIncident: false,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            /*
-             * Don't flip the monitor to operational while other incidents
-             * are still open on it — e.g. a metric monitor with group-by
-             * may have one incident per series, and resolving one series
-             * shouldn't claim the whole monitor is healthy.
-             */
-            const hasOtherActiveIncidents: boolean =
-              await this.doesMonitorHaveActiveIncidents(
-                monitor.id!,
-                projectId!,
-              );
-
-            if (hasOtherActiveIncidents) {
-              continue;
-            }
-
-            /*
-             * changeMonitorStatus performs the same latest-status dedupe check
-             * this loop used to do inline, and additionally absorbs the two
-             * recoverable error classes (status already set by a concurrent
-             * writer, lock not acquired after retries) by skipping the write,
-             * so the common failure modes never even reach the catch below.
-             * notifyOwners is true to preserve the previous behavior here: the
-             * created row had isOwnerNotified unset, so owners were notified.
-             */
-            await MonitorService.changeMonitorStatus(
-              projectId!,
-              [monitor.id!],
-              resolvedMonitorState.id!,
-              true, // notifyOwners - matches the pre-existing behavior of this loop.
-              undefined,
-              undefined,
-              {
-                isRoot: true,
-              },
-              startsAt,
-            );
-          } catch (err) {
-            logger.error(
-              `IncidentService.markMonitorsActiveForMonitoring: failed for monitor ${monitor.id?.toString()}; continuing with the remaining monitors.`,
-            );
-            logger.error(err);
-            continue;
-          }
+        if (!pause) {
+          continue;
         }
+
+        if (pause.isPaused) {
+          // Still held: its time counts as what the incidents left holding it say.
+          await MonitorIncidentPause.markUptime(pause);
+          continue;
+        }
+
+        /*
+         * A scheduled maintenance event in progress still holds it, and puts
+         * it in a status of its own: it goes back to that status, not to
+         * operational, which showed it up for the rest of the event (#11301).
+         */
+        const maintenanceStatus: {
+          monitorStatusId: ObjectID;
+          rootCause: string;
+        } | null =
+          await MonitorIncidentPause.getStatusOfMaintenanceStillHolding(pause);
+
+        if (maintenanceStatus) {
+          await MonitorService.changeMonitorStatus(
+            projectId,
+            [monitor.id!],
+            maintenanceStatus.monitorStatusId,
+            true, // notifyOwners, as the move to operational below does.
+            maintenanceStatus.rootCause,
+            undefined,
+            {
+              isRoot: true,
+            },
+            startsAt,
+          );
+
+          await MonitorIncidentPause.markUptime(pause);
+          continue;
+        }
+
+        /*
+         * Don't flip the monitor to operational while other incidents
+         * are still open on it — e.g. a metric monitor with group-by
+         * may have one incident per series, and resolving one series
+         * shouldn't claim the whole monitor is healthy.
+         */
+        const hasOtherActiveIncidents: boolean =
+          await this.doesMonitorHaveActiveIncidents(monitor.id!, projectId!);
+
+        if (!hasOtherActiveIncidents && resolvedMonitorState) {
+          /*
+           * changeMonitorStatus performs the same latest-status dedupe check
+           * this loop used to do inline, and additionally absorbs the two
+           * recoverable error classes (status already set by a concurrent
+           * writer, lock not acquired after retries) by skipping the write,
+           * so the common failure modes never even reach the catch below.
+           * notifyOwners is true to preserve the previous behavior here: the
+           * created row had isOwnerNotified unset, so owners were notified.
+           */
+          await MonitorService.changeMonitorStatus(
+            projectId!,
+            [monitor.id!],
+            resolvedMonitorState.id!,
+            true, // notifyOwners - matches the pre-existing behavior of this loop.
+            undefined,
+            undefined,
+            {
+              isRoot: true,
+            },
+            startsAt,
+          );
+        }
+
+        /*
+         * After the status: a time left out ends with the operational status
+         * written above, and only one that did not change - already
+         * operational, or kept for another incident - needs a row of its own.
+         */
+        await MonitorIncidentPause.markUptime(pause);
+      } catch (err) {
+        logger.error(
+          `IncidentService.markMonitorsActiveForMonitoring: failed for monitor ${monitor.id?.toString()}; continuing with the remaining monitors.`,
+        );
+        logger.error(err);
+        continue;
       }
     }
   }

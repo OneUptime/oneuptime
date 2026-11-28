@@ -30,9 +30,9 @@ import { downloadMarkdownPdf } from "../../../Components/DataSecurity/Compliance
 import DataSecurityApi from "../../../Components/DataSecurity/DataSecurityApi";
 import { describeTransfer } from "../../../Components/DataSecurity/StoreRecord";
 import LeaveWithoutSavingQuestion from "../../../Components/UnsavedChanges/LeaveWithoutSavingQuestion";
-import useUnsavedParts, {
-  UnsavedParts,
-} from "../../../Components/UnsavedChanges/UseUnsavedParts";
+import usePendingEdits, {
+  PendingEdits,
+} from "../../../Components/UnsavedChanges/UsePendingEdits";
 import { useDataStoreViewContext } from "./DataStoreViewContext";
 import { DataSecurityImpactAssessmentResponse } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
@@ -56,10 +56,7 @@ import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton
 import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import API from "Common/UI/Utils/API/API";
 import Toast from "Common/UI/Utils/Toast";
-import useLeaveGuard, {
-  LeavePrompt,
-  SaveBeforeLeavingFunction,
-} from "Common/UI/Utils/UseLeaveGuard";
+import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import {
   Translator,
   composedValue,
@@ -138,10 +135,24 @@ const DataStoreImpactAssessment: FunctionComponent<
   const [isDrafting, setIsDrafting] = useState<boolean>(false);
   const [draftError, setDraftError] = useState<string>("");
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  // The parts a person is mid-edit on, each with its save (#7402).
-  const unsaved: UnsavedParts = useUnsavedParts();
-  const hasUnsaved: boolean = unsaved.hasUnsaved;
+  // The parts a person is mid-edit on, with their words not saved yet.
+  const pending: PendingEdits<string> = usePendingEdits<string>();
+  const hasUnsaved: boolean = pending.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
+
+  // A part in a person's own words, as its Save and the leave question's Save Changes write it.
+  const savePart: (part: string, markdown: string) => Promise<void> = async (
+    part: string,
+    markdown: string,
+  ): Promise<void> => {
+    setAnswer(
+      await DataSecurityApi.editImpactAssessment({
+        dataStoreId,
+        part: part as ImpactAssessmentPart,
+        markdown,
+      }),
+    );
+  };
 
   useEffect(() => {
     let isCurrent: boolean = true;
@@ -394,19 +405,10 @@ const DataStoreImpactAssessment: FunctionComponent<
                     }
                     canEdit={answer.canEdit}
                     onSave={async (markdown: string): Promise<void> => {
-                      setAnswer(
-                        await DataSecurityApi.editImpactAssessment({
-                          dataStoreId,
-                          part,
-                          markdown,
-                        }),
-                      );
+                      await savePart(part, markdown);
                     }}
-                    onEditingChange={(
-                      isEditing: boolean,
-                      save: SaveBeforeLeavingFunction,
-                    ) => {
-                      unsaved.onPartChange(part, isEditing, save);
+                    onEditingChange={(isEditing: boolean, words: string) => {
+                      pending.track(part, isEditing, words);
                     }}
                   />
                 );
@@ -421,7 +423,7 @@ const DataStoreImpactAssessment: FunctionComponent<
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_ASSESSMENT}
-        onSaveChanges={unsaved.saveAll}
+        onSaveChanges={pending.saveAllWith(savePart)}
       />
     </Fragment>
   );

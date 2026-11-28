@@ -1,22 +1,8 @@
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
-import { ProviderLogoMarkShapes } from "../../../Types/ProviderLogo/ProviderLogoMark";
 import { PROVIDER_LOGO_MARK_BOXES } from "../../../Types/ProviderLogo/ProviderLogoMarks";
-import MicrosoftTeamsMark from "../../../Types/ProviderLogo/Marks/microsoft-teams";
-import GitHubMark from "../../../Types/ProviderLogo/Marks/github";
-import WhatsAppMark from "../../../Types/ProviderLogo/Marks/whatsapp";
-import TelegramMark from "../../../Types/ProviderLogo/Marks/telegram";
-import DiscordMark from "../../../Types/ProviderLogo/Marks/discord";
-import MattermostMark from "../../../Types/ProviderLogo/Marks/mattermost";
-import TerraformMark from "../../../Types/ProviderLogo/Marks/terraform";
-import CrossplaneMark from "../../../Types/ProviderLogo/Marks/crossplane";
-import SlackMark from "../../../Types/ProviderLogo/Marks/slack";
-import KubernetesMark from "../../../Types/ProviderLogo/Marks/kubernetes";
-import AndroidMark from "../../../Types/ProviderLogo/Marks/android";
-import DockerMark from "../../../Types/ProviderLogo/Marks/docker";
-import ProxmoxMark from "../../../Types/ProviderLogo/Marks/proxmox";
-import CephMark from "../../../Types/ProviderLogo/Marks/ceph";
+import ICON_BRAND_MARKS, { IconBrandMark } from "./IconBrandMarks";
 import { renderProviderLogoMarkShapes } from "../ProviderLogo/ProviderLogoMarkSvg";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -225,18 +211,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
    * A brand's mark - Slack in a side menu, Kubernetes on a resource - is the
    * registry's (Common/Types/ProviderLogo): the brand's official mark, every
    * shape filled with the current colour, so it is the same mark the tiles
-   * and lists draw, in the colour of the icons around it.
+   * and lists draw, in the colour of the icons around it (IconBrandMarks).
    */
-  type DrawBrandMarkFunction = (
-    logo: ProviderLogo,
-    shapes: ProviderLogoMarkShapes,
-  ) => ReactElement;
+  type DrawBrandMarkFunction = (logo: IconBrandMark) => ReactElement;
 
   const drawBrandMark: DrawBrandMarkFunction = (
-    logo: ProviderLogo,
-    shapes: ProviderLogoMarkShapes,
+    logo: IconBrandMark,
   ): ReactElement => {
-    return getSvgWrapper(renderProviderLogoMarkShapes(shapes), {
+    return getSvgWrapper(renderProviderLogoMarkShapes(ICON_BRAND_MARKS[logo]), {
       viewBox: PROVIDER_LOGO_MARK_BOXES[logo] || "0 0 24 24",
     });
   };
@@ -266,7 +248,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.MicrosoftTeams) {
-    return drawBrandMark(ProviderLogo.MicrosoftTeams, MicrosoftTeamsMark);
+    return drawBrandMark(ProviderLogo.MicrosoftTeams);
   } else if (icon === IconProp.Bars3) {
     return getSvgWrapper(
       <path
@@ -812,7 +794,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.GitHub) {
-    return drawBrandMark(ProviderLogo.GitHub, GitHubMark);
+    return drawBrandMark(ProviderLogo.GitHub);
   } else if (icon === IconProp.ChevronRight) {
     return getSvgWrapper(
       <path
@@ -1203,17 +1185,17 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.WhatsApp) {
-    return drawBrandMark(ProviderLogo.WhatsApp, WhatsAppMark);
+    return drawBrandMark(ProviderLogo.WhatsApp);
   } else if (icon === IconProp.Telegram) {
-    return drawBrandMark(ProviderLogo.Telegram, TelegramMark);
+    return drawBrandMark(ProviderLogo.Telegram);
   } else if (icon === IconProp.Discord) {
-    return drawBrandMark(ProviderLogo.Discord, DiscordMark);
+    return drawBrandMark(ProviderLogo.Discord);
   } else if (icon === IconProp.Mattermost) {
-    return drawBrandMark(ProviderLogo.Mattermost, MattermostMark);
+    return drawBrandMark(ProviderLogo.Mattermost);
   } else if (icon === IconProp.Terraform) {
-    return drawBrandMark(ProviderLogo.Terraform, TerraformMark);
+    return drawBrandMark(ProviderLogo.Terraform);
   } else if (icon === IconProp.Crossplane) {
-    return drawBrandMark(ProviderLogo.Crossplane, CrossplaneMark);
+    return drawBrandMark(ProviderLogo.Crossplane);
   } else if (icon === IconProp.Hide) {
     return getSvgWrapper(
       <path
@@ -1331,7 +1313,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.Slack) {
-    return drawBrandMark(ProviderLogo.Slack, SlackMark);
+    return drawBrandMark(ProviderLogo.Slack);
   } else if (icon === IconProp.Drag) {
     return getSvgWrapper(
       <path
@@ -2896,11 +2878,11 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.Kubernetes) {
-    return drawBrandMark(ProviderLogo.Kubernetes, KubernetesMark);
+    return drawBrandMark(ProviderLogo.Kubernetes);
   } else if (icon === IconProp.Android) {
-    return drawBrandMark(ProviderLogo.Android, AndroidMark);
+    return drawBrandMark(ProviderLogo.Android);
   } else if (icon === IconProp.Docker) {
-    return drawBrandMark(ProviderLogo.Docker, DockerMark);
+    return drawBrandMark(ProviderLogo.Docker);
   } else if (icon === IconProp.DockerSwarm) {
     /*
      * Docker Swarm glyph — a honeycomb cluster of three hexagonal nodes, an
@@ -2970,7 +2952,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
       </>,
     );
   } else if (icon === IconProp.Proxmox) {
-    return drawBrandMark(ProviderLogo.Proxmox, ProxmoxMark);
+    return drawBrandMark(ProviderLogo.Proxmox);
   } else if (icon === IconProp.VMware) {
     /*
      * VMware — hypervisor mark: a host chassis with three virtual machines
@@ -2987,6 +2969,22 @@ const Icon: FunctionComponent<ComponentProps> = ({
         <rect x="15" y="7" width="3" height="6" rx="0.75" />
       </>,
     );
+  } else if (icon === IconProp.XcpNg) {
+    /*
+     * XCP-ng — a pool: Xen Orchestra on top, linked to the three hosts it
+     * manages. Drawn in the outlined house style (currentColor stroke) like
+     * the VMware mark, so it sits at 16px beside the other hypervisors
+     * without a filled brand mark.
+     */
+    return getSvgWrapper(
+      <>
+        <rect x="8" y="3" width="8" height="5" rx="1" />
+        <path strokeLinecap="round" d="M12 8v5M5.5 13v-2.5h13V13" />
+        <rect x="3" y="13" width="5" height="7" rx="1" />
+        <rect x="9.5" y="13" width="5" height="7" rx="1" />
+        <rect x="16" y="13" width="5" height="7" rx="1" />
+      </>,
+    );
   } else if (icon === IconProp.IoT) {
     // IoT — wireless/connectivity mark (reuses the Signal icon path).
     return getSvgWrapper(
@@ -2997,7 +2995,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
       />,
     );
   } else if (icon === IconProp.Ceph) {
-    return drawBrandMark(ProviderLogo.Ceph, CephMark);
+    return drawBrandMark(ProviderLogo.Ceph);
   } else if (icon === IconProp.StorageArray) {
     /*
      * Storage array — a vendor-neutral enclosure of three stacked drive

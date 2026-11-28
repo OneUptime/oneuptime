@@ -332,9 +332,11 @@ describe("WidgetCatalog", () => {
         "Podman",
         "Proxmox",
         "VMware",
+        "XCP-ng",
         "Ceph",
         "Storage Arrays",
         "Network",
+        "Cloud Costs",
       ]);
     });
 

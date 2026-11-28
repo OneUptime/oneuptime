@@ -426,6 +426,20 @@ export class AzureCostReader {
   }
 
   /*
+   * The earliest time queries of `qpu` in all, on `scope`, fit the tenant's
+   * quotas at once: a subscription read twice over - amortized, then
+   * actual cost - whose two would not both fit before the read's time is up
+   * is put off whole, rather than half read and asked again.
+   */
+  public whenFits(data: { qpu: number; scope: string }): number {
+    return this.pacer.whenFits({
+      nowMs: this.clock.nowMs(),
+      qpu: data.qpu,
+      scope: data.scope,
+    });
+  }
+
+  /*
    * Every page of one query over a scope ("/subscriptions/<id>"), each
    * handed to onPage as Cost Management answers it (its properties), to the
    * last page or maxPages - complete is false when maxPages stopped it. A

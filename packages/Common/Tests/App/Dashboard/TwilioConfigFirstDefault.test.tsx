@@ -283,6 +283,10 @@ jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
     default: {
+      // The project the config is for: the call voice's sample names it (#10948).
+      getCurrentProject: (): unknown => {
+        return { name: "Acme Payments" };
+      },
       getCurrentProjectId: (): unknown => {
         const ObjectIDClass: any = (
           jest.requireActual("../../../Types/ObjectID") as any

@@ -117,6 +117,15 @@ import {
   getStorageArraySetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
 import {
+  XCP_NG_AGENT_INSTALL_DIR,
+  XCP_NG_AGENT_RECREATE_COMMAND,
+  XCP_NG_CONNECT_METHODS,
+  XcpNgConnectMethod,
+  getXcpNgAgentDownloadCommand,
+  getXcpNgAgentUpgradeCommand,
+  getXcpNgSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
+import {
   HOST_COLLECTOR_METHODS,
   HOST_COLLECTOR_UPGRADE_TOPIC_TITLE,
   HOST_INSTALL_METHODS,
@@ -989,8 +998,8 @@ describe("Resource AI agent: its compose service pulled and recreated", () => {
 });
 
 /*
- * The Proxmox, Ceph and VMware agents: the stock collector and a config,
- * pinned in the docker-compose.yml beside it. Their install scripts reuse
+ * The Proxmox, Ceph, VMware and XCP-ng agents: the stock collector and a
+ * config, pinned in the docker-compose.yml beside it. Their install scripts reuse
  * the .env they find (nothing is asked again), download both files and
  * recreate the containers, so running one again is the upgrade. A Docker
  * Compose install takes both files again itself (the pin and the version
@@ -1065,6 +1074,28 @@ describe.each([
       });
     },
   },
+  {
+    name: "XCP-ng",
+    kind: AgentKind.XcpNgAgent,
+    agentDir: "XcpNgAgent",
+    installDir: XCP_NG_AGENT_INSTALL_DIR,
+    served: `${URL}/install/xcp-ng-agent`,
+    installName: "xcp-ng-agent",
+    methods: XCP_NG_CONNECT_METHODS as Array<SetupGuideOption<string>>,
+    upgrade: getXcpNgAgentUpgradeCommand(URL),
+    download: getXcpNgAgentDownloadCommand(URL),
+    recreate: XCP_NG_AGENT_RECREATE_COMMAND,
+    // It says what to do when another Xen Orchestra's agent holds the name.
+    start: /^if ! docker compose up -d --force-recreate; then$/m,
+    setupGuide: (method: string): SetupGuideContent => {
+      return getXcpNgSetupGuide({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        hasApiKey: true,
+        method: method as XcpNgConnectMethod,
+      });
+    },
+  },
 ])(
   "$name agent: the install script again, or the files again",
   (agent: {
@@ -1079,6 +1110,7 @@ describe.each([
     download: string;
     recreate: string;
     withoutDocker?: string;
+    start?: RegExp;
     setupGuide: (method: string) => SetupGuideContent;
   }) => {
     const guide: AgentUpgradeGuide = guideFor(agent.kind);
@@ -1151,7 +1183,9 @@ describe.each([
       expect(script).toContain(
         'printf -v "$name" \'%s\' "$(dotenv_get "$name" "$ENV_FILE")"',
       );
-      expect(script).toMatch(/^docker compose up -d --force-recreate$/m);
+      expect(script).toMatch(
+        agent.start || /^docker compose up -d --force-recreate$/m,
+      );
       expect(script).toContain(
         `INSTALL_DIR="\${INSTALL_DIR:-${agent.installDir}}"`,
       );
@@ -1368,9 +1402,13 @@ describe("Storage Array agent: the install script again, or every file again", (
     expect(script.noteValues).toEqual({
       directory: STORAGE_ARRAY_AGENT_INSTALL_DIR,
     });
-    // The setup guide installs a second array's agent the same way.
+    // The setup guide installs a second array's agent the same way, a value a line.
     expect(getSetupGuideMarkdown(setupGuideFor("flasharray"))).toContain(
-      `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 bash install.sh`,
+      [
+        `INSTALL_DIR=${STORAGE_ARRAY_AGENT_INSTALL_DIR}-fa02 \\`,
+        "  STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 \\",
+        "  bash install.sh",
+      ].join("\n"),
     );
   });
 
@@ -1413,6 +1451,7 @@ describe("Storage Array agent: the install script again, or every file again", (
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerscale.yaml",
     ]);
     expect(STORAGE_ARRAY_AGENT_RECREATE_COMMAND).toBe(
       "docker compose pull\ndocker compose up -d --force-recreate",

@@ -63,7 +63,7 @@ Haga clic en **Siguiente**. Nada en este paso se marca como pendiente hasta que 
 
 ### Cómo se evalúan los criterios
 
-El resultado de cada comprobación pasa por los criterios de arriba abajo, y el primero que coincide decide qué ocurre. Ese criterio puede cambiar el estado del monitor, declarar un incidente, crear una alerta o cualquier combinación de las tres cosas. Cuando ninguno coincide, el monitor muestra su **Estado de monitor predeterminado**, que se configura en **Más campos** debajo de los criterios (**Operativo** salvo que elija otro).
+El resultado de cada comprobación pasa por los criterios de arriba abajo, y el primero que coincide decide qué ocurre. Ese criterio puede cambiar el estado del monitor, declarar un incidente, crear una alerta o cualquier combinación de las tres cosas. Uno que no cambia ningún estado no decide ninguno: lo fija el primer criterio de debajo que coincide y cambia el estado. Cuando ninguno coincide, el monitor muestra su **Estado de monitor predeterminado**, que se configura en **Más campos** debajo de los criterios (**Operativo** salvo que elija otro).
 
 ```mermaid title="De una comprobación a un estado, un incidente o una alerta"
 flowchart TB
@@ -95,7 +95,7 @@ Elija un **Intervalo de monitoreo**, de **Cada minuto** a **Cada semana**. A los
 
 ### Crear el monitor
 
-Haga clic en **Crear monitor**. Se abre la página del nuevo monitor. Para cambiar sus sondas o su intervalo más adelante, abra **Configuración → Sondas e intervalo** en esa página.
+Haga clic en **Crear monitor**. Se abre la página del nuevo monitor. Slack y Microsoft Teams se enteran de él una vez que se han añadido sus propietarios y etiquetas, así que una regla de notificación que pregunta quién es el propietario de un monitor, o cómo está etiquetado, publica su mensaje de creación, y su primer estado sigue a ese mensaje. Para cambiar sus sondas o su intervalo más adelante, abra **Configuración → Sondas e intervalo** en esa página.
 :::
 
 Todos los demás tipos, excepto Manual, se crean desde el paso **Criterios**.

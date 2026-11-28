@@ -454,8 +454,19 @@ sudo systemctl enable --now oneuptime-database-agent
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | Пакет УЦ в формате PEM, смонтированный в контейнер (см. закомментированные `volumes` у `oneuptime-database-ai-agent`), по которому проверяется сертификат сервера, когда `DATABASE_TLS_INSECURE=false` |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | идентификация коллектора | Регистрирует ИИ-агента как другую базу данных, чем у коллектора: её id в OneUptime или `<engine>\|<address>:<port>`. Оставьте пустым |
 | `LOG_LEVEL` | `info` | Уровень журналирования ИИ-агента: `debug`, `info`, `warn` или `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` позволяет агенту читать базы данных этого сервера для Наблюдаемости данных; любое другое значение оставляет это выключенным |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | учётная запись мониторинга | Учётная запись, под которой Наблюдаемость данных читает каталог. Записывается как есть: её `$` не удваиваются |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | Пароль этой учётной записи; заключите его в одинарные кавычки |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` не выполняет ни одной проверки данных: только каталог |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | учётная запись каталога | Учётная запись, под которой проверки данных читают строки |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | Пароль этой учётной записи; заключите его в одинарные кавычки |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` выполняет проверки «Свой SQL» и «Строки с ошибками» |
 
 Что он может выполнять, как работают исправления и как устранять его неполадки: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#серверы-баз-данных).
+
+### Наблюдаемость данных через тот же агент
+
+Тот же агент может читать базы данных PostgreSQL, MySQL и MariaDB этого сервера для [Наблюдаемости данных](/docs/data-observability/index): их таблицы и столбцы, актуальность и объём, изменения схемы и проверки, которые вы настроите. Он работает только на чтение, под учётными записями из своего окружения и с командами, которые строит сам, и не возвращает ни строк, ни учётных записей. Он выключен, пока вы не зададите `ONEUPTIME_DATA_OBSERVABILITY=true` в том же `.env`. В разделе [Подключение базы данных](/docs/data-observability/connect#через-database-agent) описано, как выбрать агент и какие учётные записи ему дать.
 
 ## Kubernetes
 

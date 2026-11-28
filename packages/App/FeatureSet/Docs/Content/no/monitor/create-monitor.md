@@ -63,7 +63,7 @@ Klikk på **Neste**. Ingenting på dette trinnet merkes som manglende før du kl
 
 ### Slik evalueres kriterier
 
-Resultatet av hver sjekk går gjennom kriteriene fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Det kriteriet kan endre monitorens status, erklære en hendelse, opprette et varsel eller en hvilken som helst kombinasjon av de tre. Når ingenting samsvarer, viser monitoren sin **Standard monitorstatus**, som settes under **Flere felt** under kriteriene (**I drift**, med mindre du velger en annen).
+Resultatet av hver sjekk går gjennom kriteriene fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Det kriteriet kan endre monitorens status, erklære en hendelse, opprette et varsel eller en hvilken som helst kombinasjon av de tre. Et som ikke endrer noen status, avgjør ingen: det første kriteriet under det som samsvarer og endrer statusen, setter den. Når ingenting samsvarer, viser monitoren sin **Standard monitorstatus**, som settes under **Flere felt** under kriteriene (**I drift**, med mindre du velger en annen).
 
 ```mermaid title="Fra en sjekk til en status, en hendelse eller et varsel"
 flowchart TB
@@ -95,7 +95,7 @@ Velg et **Overvåkingsintervall**, fra **Hvert minutt** til **Hver uke**. Monito
 
 ### Opprett monitoren
 
-Klikk på **Opprett monitor**. Siden til den nye monitoren åpner. For å endre sondene eller intervallet senere åpner du **Konfigurasjon → Sonder og intervall** på den siden.
+Klikk på **Opprett monitor**. Siden til den nye monitoren åpner. Slack og Microsoft Teams får vite om monitoren når eierne og etikettene dens er på plass, slik at en varslingsregel som spør hvem som eier en monitor, eller hvilke etiketter den har, publiserer opprettelsesmeldingen dens, og den første statusen kommer etter den meldingen. For å endre sondene eller intervallet senere åpner du **Konfigurasjon → Sonder og intervall** på den siden.
 :::
 
 Alle andre typer unntatt Manual opprettes fra trinnet **Kriterier**.

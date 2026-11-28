@@ -12,6 +12,7 @@
 - [流式传输 Azure Monitor 指标和日志](/docs/telemetry/cloud-streaming-azure): 几分钟内获得关键指标和资源日志，从你订阅中的事件中心读取。
 - [流式传输 Google Cloud 日志](/docs/telemetry/cloud-streaming-google-cloud): 每条日志一写入就通过 Pub/Sub 推送。
 - [数据安全](#数据安全): 该连接让数据安全可以读取什么，以及每个级别会给命令添加什么。
+- [节省操作](#节省操作): 让 OneUptime 执行你所批准节省的最小访问权限。
 - [让 AI 修复问题](#让-ai-修复问题): 再运行一条命令，OneUptime AI 就能修复它发现的问题。
 :::
 
@@ -26,7 +27,7 @@ flowchart TB
     ou --> chg["变更和<br/>健康事件"]
 ```
 
-- **访问权限只能读取。** 命令创建的访问权限只读取你的资源及其配置、它们的指标、发生的变更、提供商的健康事件和账户的成本，不做其他任何事：在 AWS 上是下面列出的操作，在 Azure 上是 **Monitoring Reader** 和 **Cost Management Reader** 角色，在 Google Cloud 上是六个查看者角色。OneUptime 从不通过它读取数据或机密：只有当你允许 AI 读取账户的日志时，才会读取日志行；只有当你为 [数据安全](#数据安全) 开启了内容样本时，才会读取这些样本。删除它即可切断 OneUptime 的访问。
+- **访问权限只能读取。** 命令创建的访问权限只读取你的资源及其配置、它们的指标、发生的变更、提供商的健康事件和账户的成本，不做其他任何事：在 AWS 上是下面列出的操作，在 Azure 上是 **Monitoring Reader** 和 **Cost Management Reader** 角色，以及全局管理员授予时的 **Reservations Reader** 和 **Savings plan Reader**，在 Google Cloud 上是六个查看者角色。OneUptime 从不通过它读取数据或机密：只有当你允许 AI 读取账户的日志时，才会读取日志行；只有当你为 [数据安全](#数据安全) 开启了内容样本时，才会读取这些样本。删除它即可切断 OneUptime 的访问。
 - **OneUptime 按计划读取。** 除非你在连接时选择其他间隔，Azure 和 Google Cloud 每 5 分钟读取一次，AWS 每 10 分钟读取一次。每次读取还会记录自上次以来的变更，并且每 30 分钟会有一次读取重新列出所有资源。
 - **每个资源都有自己的页面。** 资源会显示在 **云 → 所有资源** 中，带有其健康状况、关键指标、负责人和标签。已列出资源的页面还会显示它的 **相连的资源**（它运行在什么里面，什么向它发送流量）、它的端点、标签和设置，以及它的 **事件**、**警报** 和 **更改**。
 - **每个账户都有自己的页面。** 账户会显示在 **云 → 账户** 中，带有按类型和区域划分的资源、它们的 **成本**、它们的 **更改**，以及显示其资源如何相互关联的 **拓扑**。
@@ -55,7 +56,7 @@ flowchart TB
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -77,14 +78,14 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | 通过 Cloud Control 列出每个资源及其配置 | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeSubnets`, `ec2:DescribeSecurityGroups`, `ec2:DescribeNatGateways`, `ec2:DescribeAddresses`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:Describe*`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `eks:ListClusters`, `eks:DescribeCluster`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `elasticbeanstalk:DescribeEnvironments`, `wafv2:ListWebACLs`, `wafv2:GetWebACL`, `network-firewall:ListFirewalls`, `globalaccelerator:ListAccelerators`, `cognito-idp:ListUserPools`, `appsync:ListGraphqlApis`, `sagemaker:ListEndpoints`, `apigateway:GET` |
 | 读取发生的变更：账户的管理事件 | `cloudtrail:LookupEvents` |
 | 读取 AWS 自己针对该账户的健康事件 | `health:DescribeEvent*` |
-| 从 Cost Explorer 读取账户的成本 | `ce:GetCostAndUsage`, `ce:GetCostAndUsageWithResources`, `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetReservationCoverage`, `ce:GetReservationUtilization` |
-| 从 Cost Optimization Hub 读取减少支出的方法 | `cost-optimization-hub:ListRecommendations` |
+| 从 Cost Explorer 读取账户的成本 | `ce:GetCostAndUsage*`, `ce:GetSavingsPlans*`, `ce:GetReservation*`, `savingsplans:DescribeSavingsPlans` |
+| 从 Cost Optimization Hub 读取减少支出的方法 | `cost-optimization-hub:ListRecommendations`, `cost-optimization-hub:GetRecommendation` |
 | 在调查期间读取资源的当前状态和最近的事件 | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
 | 在调查期间读取账户的配额 | `servicequotas:ListServiceQuotas` |
 | 读取日志行，仅当你允许 AI 读取账户的日志时 | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | 从组织的管理账户列出组织的账户 | `organizations:ListAccounts` |
 
-`apigateway:GET` 只允许用于 API 自身的定义，从不用于它们的密钥，并且只有管理账户的角色可以列出组织的账户。AWS Health 只响应使用 Business、Enterprise On-Ramp 或 Enterprise 支持计划的账户：没有这类计划时，OneUptime 会在一天后再次询问。
+`apigateway:GET` 只允许用于 API 自身的定义，从不用于它们的密钥，并且只有管理账户的角色可以列出组织的账户。Cost Explorer 的读取作为三个 `Get` 操作系列获得允许，分别针对成本、Savings Plans 和预留，它们不会更改任何内容：角色和用户都不能购买、续订或退还承诺。AWS Health 只响应使用 Business、Enterprise On-Ramp 或 Enterprise 支持计划的账户：没有这类计划时，OneUptime 会在一天后再次询问。
 
 OneUptime 会列出每个区域中的 EC2 实例和卷、VPC、子网和安全组、NAT 网关、Auto Scaling 组、负载均衡器（Application、Network、Gateway 和 Classic）、EKS 集群、ECS 集群和服务、Lambda 函数、RDS 数据库、ElastiCache、SQS 队列、SNS 主题、DynamoDB 表、Kinesis 数据流、Step Functions 状态机、API Gateway API、EFS 文件系统、OpenSearch 域、App Runner 服务、Elastic Beanstalk 环境、WAF Web ACL、Network Firewall 防火墙、Cognito 用户池、AppSync GraphQL API 和 SageMaker 端点，并附上它们的标签；CloudFront 分配及其 Web ACL 只在 us-east-1 中列出一次，Global Accelerator 加速器只在 us-west-2 中列出一次。它还会记录它们之间的连接：每个资源所在的子网和 VPC 以及保护它的安全组、每个负载均衡器把流量发往何处，以及每个 EKS 集群的网络和节点实例。在 OneUptime 列出某种类型之前创建的角色仍会被读取，只是不含该类型，也不会显示警告：再次运行命令即可同时列出该类型，例如子网、安全组和 EKS 集群，或之后新增的 Web ACL、防火墙、加速器、用户池、GraphQL API 和端点，它们随后会在报告指标之前就被列出。
 
@@ -102,13 +103,15 @@ OneUptime 会列出每个区域中的 EC2 实例和卷、VPC、子网和安全�
 
 ### 在 Azure Cloud Shell 中运行命令
 
-该命令会在你当前的订阅上创建一个具有 **Monitoring Reader** 和 **Cost Management Reader** 角色的应用，并输出其详细信息以及其机密的到期日期：
+该命令会在你当前的订阅上创建一个具有 **Monitoring Reader** 和 **Cost Management Reader** 角色的应用，尝试在租户上授予它 **Reservations Reader** 和 **Savings plan Reader**，以列出租户的预留和节省计划，只有拥有提升访问权限的全局管理员才能授予（对其他人，它会说明未授予并继续），然后输出应用的详细信息以及其机密的到期日期：
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
 OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
 APP=$(echo "$OUT" | jq -r .appId)
 az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null
+az role assignment create --assignee "$APP" --role "Reservations Reader" --scope "/providers/Microsoft.Capacity" > /dev/null 2>&1 || echo "Reservations Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
+az role assignment create --assignee "$APP" --role "Savings plan Reader" --scope "/providers/Microsoft.BillingBenefits" > /dev/null 2>&1 || echo "Savings plan Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
 END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
@@ -120,6 +123,8 @@ SCOPE="/providers/Microsoft.Management/managementGroups/$(az account show --quer
 OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
 APP=$(echo "$OUT" | jq -r .appId)
 az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null
+az role assignment create --assignee "$APP" --role "Reservations Reader" --scope "/providers/Microsoft.Capacity" > /dev/null 2>&1 || echo "Reservations Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
+az role assignment create --assignee "$APP" --role "Savings plan Reader" --scope "/providers/Microsoft.BillingBenefits" > /dev/null 2>&1 || echo "Savings plan Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
 END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
@@ -227,7 +232,7 @@ IAM 把一个用户自身的内联策略总长度限制在 2,048 个字符以内
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeDataSecurity > /dev/null 2>&1 || true
 aws iam put-group-policy --group-name OneUptimeDataSecurity --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases","iam:GetAccountAuthorizationDetails","iam:GenerateCredentialReport","iam:GetCredentialReport"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeDataSecurity
@@ -242,6 +247,8 @@ OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reade
 APP=$(echo "$OUT" | jq -r .appId)
 az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null
 az role assignment create --assignee "$APP" --role "Storage Blob Data Reader" --scope "$SCOPE" > /dev/null
+az role assignment create --assignee "$APP" --role "Reservations Reader" --scope "/providers/Microsoft.Capacity" > /dev/null 2>&1 || echo "Reservations Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
+az role assignment create --assignee "$APP" --role "Savings plan Reader" --scope "/providers/Microsoft.BillingBenefits" > /dev/null 2>&1 || echo "Savings plan Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
 END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
@@ -268,9 +275,9 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ## 安全案例检查
 
-在 AWS 上，同一个连接还可以让 [安全案例](/docs/telemetry/security-cases#oneuptime-如何检查一个步骤) 检查攻击对 IAM 用户所做的更改已被撤销：它创建的访问密钥、它设置的控制台密码、它附加或写入的策略、它把用户加入的组、它启用的 MFA 设备，以及它创建的用户。在 **更多字段** 下，**安全案例检查** 默认为 **关闭**，直到你将其开启；表单显示的命令会随之变化。每个操作都只读取，且没有一个读取机密：读取访问密钥的 ID 及其是否处于活动状态，但从不读取密钥本身；读取控制台密码已设置这一事实，但从不读取密码本身。
+在 AWS 上，同一个连接还可以让 [安全案例](/docs/telemetry/security-cases#oneuptime-如何检查一个步骤) 检查攻击对 IAM 用户或角色所做的更改已被撤销：它创建的访问密钥、它设置的控制台密码、它附加或写入的策略、它把用户加入的组、它启用的 MFA 设备、它创建的用户或角色，以及它为角色设置的信任策略。在 **更多字段** 下，**安全案例检查** 默认为 **关闭**，直到你将其开启；表单显示的命令会随之变化。每个操作都只读取，且没有一个读取机密：读取访问密钥的 ID 及其是否处于活动状态，但从不读取密钥本身；读取控制台密码已设置这一事实，但从不读取密码本身。
 
-| 案例对其 CloudTrail 事件中提到的每个用户读取什么 | 操作 |
+| 案例对其 CloudTrail 事件中提到的每个用户和角色读取什么 | 操作 |
 | --- | --- |
 | 该用户，或它已不存在 | `iam:GetUser` |
 | 它的访问密钥，以及每个密钥是否处于活动状态 | `iam:ListAccessKeys` |
@@ -278,25 +285,27 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | 它的托管策略，以及它的内联策略的名称 | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | 它所在的组 | `iam:ListGroupsForUser` |
 | 它的 MFA 设备 | `iam:ListMFADevices` |
+| 角色、其信任策略信任的对象，或角色已不存在 | `iam:GetRole` |
+| 角色的托管策略，以及其内联策略的名称 | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 角色的命令会多用一行添加一个单独的内联策略 `OneUptimeSecurityCaseChecks`，组织的 StackSet 会把它放进每个账户的角色中：
 
 ```bash
-aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 ```
 
 使用 **访问密钥** 时，该策略会放在用户所加入的同名组 `OneUptimeSecurityCaseChecks` 上：
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
-aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-案例只通过能到达更改所在账户的连接读取更改，并且不会通过 **安全案例检查** 为 **关闭** 的连接向 IAM 询问任何内容：它会列出这些更改，由你来确认，并提示你将其开启。**关闭** 不添加任何内容，因此之前的命令所授予的权限会保留，直到你使用 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 删除它。
+案例只通过能到达更改所在账户的连接读取更改，并且不会通过 **安全案例检查** 为 **关闭** 的连接向 IAM 询问任何内容：它会列出这些更改，由你来确认，并提示你将其开启。**关闭** 不添加任何内容，因此之前的命令所授予的权限会保留，直到你使用 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 删除它。在该设置读取角色之前运行的命令只授予读取用户的权限：请再次运行该连接的命令；在你这样做之前，案例会列出其角色更改，由你来确认，并提示你运行它。
 
 ## OneUptime 读取什么
 
@@ -306,9 +315,9 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | 指标 | 每项服务的关键指标，例如实例的 CPU、网络和状态检查 | 每个资源最多 20 个关键指标 | 每种资源类型的关键指标 |
 | 变更 | CloudTrail 管理事件 | 活动日志的管理事件 | Admin Activity 审核日志 |
 | 健康事件 | AWS Health | Service Health 和 Resource Health | Service Health |
-| 成本 | 每天的成本，按服务和区域，开启“按资源的成本”后还按资源，来自 Cost Explorer | 每天的成本，按资源和服务，来自 Cost Management | 每天的成本，按服务、区域和资源，来自你导出到 BigQuery 的结算数据 |
+| 成本 | 每天的成本，包括计费成本、摊销成本和净成本，按服务和区域，开启“按资源的成本”后还按资源，来自 Cost Explorer | 每天的成本，包括实际成本和摊销成本，按资源和服务，来自 Cost Management | 每天的成本，含与不含抵扣额度，按服务、区域和资源，来自你导出到 BigQuery 的结算数据 |
 | 减少支出的方法 | Cost Optimization Hub | Azure Advisor | Recommender |
-| 承诺 | Savings Plans 和预留实例：覆盖了多少以及使用了多少，来自 Cost Explorer | 节省计划和预留，来自 Cost Management | 承诺使用折扣，来自你导出到 BigQuery 的结算数据 |
+| 承诺 | Savings Plans 和预留实例：覆盖了多少以及使用了多少，来自 Cost Explorer，以及每项的结束时间，来自 Cost Explorer 和 Savings Plans API | 节省计划和预留：覆盖了什么，来自 Cost Management，以及每项的结束时间，通过 Reservations Reader 和 Savings plan Reader | 承诺使用折扣：覆盖了什么，来自你导出到 BigQuery 的结算数据，以及 Compute Engine 每项承诺的结束时间，来自 Cloud Asset Inventory |
 | 读取间隔 | 10 分钟 | 5 分钟 | 5 分钟 |
 | 已删除的资源 | 完整列表中不再有它时归档 | 完整列表中不再有它时归档 | 完整列表中不再有它时归档 |
 
@@ -319,7 +328,7 @@ OneUptime 发出的调用会按你的云的价格计入你的云账户。列出�
 | 云 | 价格 |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`：每 1,000 个指标 $0.01，每个资源的每个关键指标每次读取计为一个指标 |
-| AWS 成本 | Cost Explorer：每个请求 $0.01。每次读取成本会发出几个请求，承诺每天四个，“按资源的成本”每天再多几个 |
+| AWS 成本 | Cost Explorer：每个请求 $0.01。每次读取成本会发出两个或稍多几个请求，承诺每天十到十六个，“按资源的成本”每天再多几个 |
 | Azure | 每个订阅每月的前 1,000,000 次指标读取免费，之后每 1,000 次 $0.01 |
 | Google Cloud | 每月读取的前 1,000,000 个时间序列免费，之后每百万个 $0.50 |
 | Google Cloud 成本 | BigQuery 对结算导出的查询收费：每月前 1 TiB 免费，之后每 TiB $6.25 |
@@ -345,7 +354,27 @@ Compute Engine VM 的内存和磁盘使用率不是 Google Cloud 自己的指标
 - **事件和警报。** 在监视器、事件或警报的关联资源中关联一个云资源，它的事件和警报就会列在该资源的页面上。如果网站、API、SSL、ping 或端口监视器的主机直接或通过 DNS 指向某个资源的端点，该监视器的 **已关联资源** 卡片会在 **建议的云资源** 下列出该资源：选择 **关联资源** 即可关联它。
 - **资源的健康状况。** 每次读取都会保存资源关键指标的最新值并加以判断：资源会显示 **健康**、**性能下降** 或 **不健康**，并附上原因，例如状态检查失败或存储快满，指标停止时会显示 **未上报**。**云 → 概览** 和账户的概览会列出需要关注的内容，最紧急的排在最前。资源页面以其类型所依据的数字开头，例如虚拟机的 CPU、内存、网络和磁盘；上次读取未带回的数字显示为 **未报告**。
 - **推荐的监视器。** 账户的 **建议** 按资源类型列出 OneUptime 为其资源推荐的监视器，以及每个监视器适用的资源和已有多少资源设置了它：可以将其添加到单个资源，或一次添加到同类型的所有资源，侧边菜单会统计仍待设置的数量。资源自己的 **建议** 选项卡会提供它自己的监视器。每个监视器每 5 分钟读取一次连接所读取的关键指标，在 AWS 上读取最近 30 分钟、在 Azure 和 Google Cloud 上读取最近 15 分钟的数据，并关联到其资源。读取间隔更长的连接会为每个监视器设置更长的窗口，足以判断每次读取带来的每个值：每小时读取一次时为最近 2 小时。在间隔更改之前创建的监视器会保留其窗口。计数（例如错误或被限流的请求）会在该时间窗口内汇总，因此[以流式方式传输指标](/docs/telemetry/cloud-streaming)的账户与被读取的账户会以相同方式警报，流式传输的账户会更早警报。ACM 每天发布两次的证书剩余天数每小时读取一次：其监视器读取最近 2 天的数据，在证书剩余 30 天或更少时，或在证书过期、ACM 停止发布时警报。RDS 实例的连接数会与其实例类和引擎连接上限的 90% 进行比较。当[维护事件](/docs/scheduled-maintenance/creating-events)包含某个资源时，其监视器不会创建事件或警报。设置了健康检查的 App Service 应用还会再获得两个推荐，读取最近 30 分钟，因为 Azure Monitor 以五分钟粒度保存其指标：一个针对某个实例未通过健康检查，另一个针对通过的实例不到一半；每个事件都会给出在 Azure Cloud Shell 中运行的命令，指出未通过的实例。
-- **账户的成本。** **云 → 支出 → 成本** 绘制每天的支出及其去向，**云 → 支出 → 节省** 列出减少支出的方法，**云 → 支出 → 预算** 会在某个月的成本超出应有水平之前发出警报：[云成本与节省](/docs/telemetry/cloud-costs)。
+- **账户的成本。** **云 → 支出 → 成本** 绘制每天的支出及其去向，**云 → 支出 → 节省** 列出减少支出的方法，**云 → 支出 → 预算** 会在某个月、季度或年度的成本超出应有水平之前告知你，**云 → 支出 → 预测** 说明未来几个月预计花费多少：[云成本与节省](/docs/telemetry/cloud-costs)。
+
+## 节省操作
+
+同一个连接还可以让 OneUptime 执行它发现的节省：所有者批准的节省、节省 AI 规则执行的节省，以及非工作时间计划的停止操作（[云成本与节省](/docs/telemetry/cloud-costs#执行节省)）。在 **更多字段** 中，**节省操作** 默认为 **关闭**，直到你另行选择，表单显示的命令也会随之改变：
+
+| 节省操作 | OneUptime 可以更改什么 | 命令会添加什么 |
+| --- | --- | --- |
+| **关闭** | 无：连接只读取。 | 无 |
+| **停止、启动和清理** | 停止和启动实例与数据库，把 gp2 卷改为 gp3，在最终快照后删除未挂载的磁盘并能从中重新创建，删除旧快照或未使用的映像，以及释放未使用的地址 | AWS：角色或用户上的内联策略 `OneUptimeSavingsActions`。Azure：每个订阅上的自定义角色 **OneUptime Savings Actions**。Google Cloud：每个项目上的自定义角色 `oneuptimeSavingsActions`，并开启 Compute Engine API |
+| **停止、启动、清理和调整规格** | 以上全部，以及把实例或数据库调整为推荐的规格（会重启） | 同上，另含调整规格 |
+
+该策略和这些角色只允许以下操作：
+
+| 云 | 停止、启动和清理 | 调整规格 |
+| --- | --- | --- |
+| AWS | `ec2:DescribeInstances`, `ec2:StopInstances`, `ec2:StartInstances`, `ec2:DescribeVolumes`, `ec2:ModifyVolume`, `ec2:CreateSnapshot`, `ec2:DescribeSnapshots`, `ec2:DeleteVolume`, `ec2:CreateVolume`, `ec2:DeleteSnapshot`, `ec2:DescribeAddresses`, `ec2:ReleaseAddress`, `rds:DescribeDBInstances`, `rds:StopDBInstance`, `rds:StartDBInstance`, `ec2:CreateTags` | `ec2:ModifyInstanceAttribute`, `rds:ModifyDBInstance` |
+| Azure | `Microsoft.Compute/virtualMachines/read`, `Microsoft.Compute/virtualMachines/deallocate/action`, `Microsoft.Compute/virtualMachines/start/action`, `Microsoft.Compute/disks/read`, `Microsoft.Compute/disks/write`, `Microsoft.Compute/disks/delete`, `Microsoft.Compute/snapshots/read`, `Microsoft.Compute/snapshots/write`, `Microsoft.Compute/snapshots/delete`, `Microsoft.Network/publicIPAddresses/read`, `Microsoft.Network/publicIPAddresses/delete` | `Microsoft.Compute/virtualMachines/write` |
+| Google Cloud | `compute.instances.get`, `compute.instances.stop`, `compute.instances.start`, `compute.disks.get`, `compute.disks.createSnapshot`, `compute.snapshots.create`, `compute.snapshots.get`, `compute.disks.delete`, `compute.disks.create`, `compute.snapshots.useReadOnly`, `compute.addresses.get`, `compute.addresses.delete`, `compute.globalAddresses.get`, `compute.globalAddresses.delete`, `compute.images.get`, `compute.images.delete` | `compute.instances.setMachineType` |
+
+在 AWS 上，只有在创建快照或卷时才允许 `ec2:CreateTags`，用于标明 OneUptime 是为哪项更改创建的。不会有任何东西自行更改：每项更改都要等待所有者批准、节省 AI 规则或计划。要收回访问权限，请把 **节省操作** 设为 **关闭**，并删除该策略或角色；之后请求的更改会失败、说明原因，并且不会更改任何东西。
 
 ## 让 AI 修复问题
 

@@ -1,6 +1,6 @@
 {
     "name": "@oneuptime/root",
-    "version": "17.3.0",
+    "version": "18.0.0",
     "private": true,
     "description": "One Complete Observability platform.",
     "main": "ts",
@@ -79,7 +79,7 @@
         "template-deploy-test": "kubectl config use-context oneuptime-test && helm template  oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/test.values.yaml --debug",
         "test-gha-scripts": "bash ./Scripts/GHA/Tests/run.sh",
         "test-lint-rules": "node --test Scripts/Lint/Tests/",
-        "test-helm-chart": "helm unittest ./HelmChart/Public/oneuptime && helm unittest ./HelmChart/Public/kubernetes-agent",
+        "test-helm-chart": "bash ./HelmChart/Tests/run.sh unit",
         "test-helm-chart-all": "bash ./HelmChart/Tests/run.sh",
         "deploy-prod": "gcloud container clusters get-credentials gke-prod-cluster --zone us-central1-a --project oneuptime-k8s && kubectl config use-context gke_oneuptime-k8s_us-central1-a_gke-prod-cluster && helm upgrade oneuptime ./HelmChart/Public/oneuptime -f ./HelmChart/Public/oneuptime/values.yaml  -f ./HelmChart/Values/gke.prod.values.yaml",
         "generate-postgres-migration": "sh ./Scripts/Install/WithConfig.sh node --require ts-node/register ./node_modules/typeorm/cli.js migration:generate ./packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/MigrationName -d ./packages/Common/Server/Infrastructure/Postgres/LocalMigrationGenerationDataSource.ts",

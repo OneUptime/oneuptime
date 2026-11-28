@@ -471,19 +471,66 @@ Gli eventi Kubernetes non vengono filtrati per namespace nell'agent: li invia tu
 
 Accetta `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` e `FATAL`. `WARN` mantiene WARN, ERROR e FATAL e scarta INFO, DEBUG e TRACE; il valore predefinito (`""`) mantiene tutto. Si applica in entrambe le modalità dei log (tramite il collector in modalità `daemonset`, dentro il lettore di log in modalità `api`), quindi un preset non lo disattiva mai a tua insaputa.
 
-I runtime dei container non registrano alcuna severità, quindi l'agent la ricava dal testo stesso del log (`[ERROR]`, `WARN:`, `"level":"info"`, …). Cosa succede a una riga senza un livello riconoscibile dipende dalla modalità dei log, perché le due modalità sanno cose diverse:
+I runtime dei container non registrano alcuna severità, quindi l'agent legge il livello che ogni riga indica: una parola di livello (`[ERROR]`, `WARN:`, `"level":"info"`, …), la prima lettera di una riga di klog (`I`, `W`, `E`, `F`), il `LOG:` di PostgreSQL o il `"level":30` di pino. Il traceback di un'eccezione o un panic conta come ERROR. Cosa succede a una riga che non indica alcun livello dipende dalla modalità dei log, perché le due modalità sanno cose diverse:
 
 | Modalità | Una riga senza livello | Perché |
 | --- | --- | --- |
-| `daemonset` | `stderr` conta come ERROR (mantenuta), `stdout` come INFO (scartata da una soglia WARN) | Il runtime dei container registra da quale flusso proviene ogni riga. |
+| `daemonset` | `stdout` conta come INFO (scartata da una soglia WARN); `stderr` non ha severità, appare come Non specificato e viene mantenuta | Il runtime dei container registra da quale flusso proviene ogni riga. stdout è l'output ordinario di un programma, ma i programmi scrivono su stderr la diagnostica di ogni livello, quindi una riga di stderr non dice nulla del suo livello. |
 | `api` | Sempre mantenuta | L'API `pods/log` di Kubernetes unisce stdout e stderr in un unico flusso senza indicazione per riga, quindi invece di tirare a indovinare l'agent mantiene la riga. |
 
-La modalità `api` scarta quindi, di proposito, strettamente meno della modalità `daemonset`: un traceback di Python o un `npm ERR!` non contengono alcuna parola chiave di severità, e cancellarli in silenzio è proprio l'errore da cui una soglia dovrebbe proteggerti. In modalità ibrida (`logs.windowsPods.enabled`) valgono entrambe le righe, in base al sistema operativo del nodo: i pod Linux seguono `daemonset`, i pod Windows `api`.
+La modalità `api` scarta quindi, di proposito, strettamente meno della modalità `daemonset`: non può distinguere una riga di stderr che non indica alcun livello, come un `npm ERR!`, dall'output ordinario, e cancellarla in silenzio è proprio l'errore da cui una soglia dovrebbe proteggerti. In modalità ibrida (`logs.windowsPods.enabled`) valgono entrambe le righe, in base al sistema operativo del nodo: i pod Linux seguono `daemonset`, i pod Windows `api`.
 
 In entrambe le modalità gli eventi su più righe vengono ricomposti prima del filtraggio, quindi uno stack trace Java viene giudicato in base alla sua prima riga e mantenuto o scartato per intero.
 
 > [!IMPORTANT]
 > Gli eventi Kubernetes e le specifiche delle risorse non vengono mai filtrati da questa impostazione. Arrivano dall'API di Kubernetes senza una severità propria, quindi una soglia cancellerebbe l'intero feed, compresi gli avvisi `FailedScheduling`, `BackOff` e `OOMKilling` che più ti servono. Sono pochi e preziosi, quindi l'agent li invia sempre; per sfoltirli, usa **Log → Impostazioni → Filtri di scarto** in OneUptime.
+
+### Leggere un formato di log proprio
+
+L'agent legge i livelli dei formati che scrive la maggior parte dei programmi. Per un formato che non legge, come uno interno, aggiungi i tuoi operators del collector con `logs.extraOperators`. Vengono eseguiti su ogni riga di log dei pod in modalità `daemonset`, dopo che l'agent ha ricomposto la riga e letto il suo pod e il suo flusso, e prima che ne legga il livello.
+
+Per impostare il livello di una riga, scrivilo in `attributes.severity_text` come una parola che l'agent legge, ad esempio `ERROR`, `warn`, `critical` o una lettera di klog. L'agent lo legge prima di qualsiasi suo lettore e lo memorizza come OneUptime memorizza quella parola ovunque altrove. Poi passa la riga a `severity-router`, il primo passaggio dell'agent, oppure lasciala proseguire verso il tuo operator successivo.
+
+Per righe come `<<E>> payment failed` e `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+Il chart controlla gli operators quando installi o aggiorni. Un valore che il collector rifiuterebbe fa fallire `helm install` con un messaggio che nomina l'operator, invece di lasciare un DaemonSet che si riavvia di continuo: un tipo che il collector di `image.tag` non ha, un'impostazione di cui il tipo ha bisogno, un campo, un id già in uso, un `output` che non punta a nulla, una regex o una stringa in un'espressione. Nella stringa di un'espressione il backslash di una regex si scrive due volte, come in `"^\\d+ "`, oppure la regex va in una stringa raw, tra apici inversi. Il resto di un'espressione viene compilato dal collector all'avvio.
+
+Il chart rifiuta anche tre tipi di operator che il collector eseguirebbe, e dice perché:
+
+- Uno che imposta da sé la severità della riga, come un `severity_parser`, un `syslog_parser` o il blocco `severity` di un parser. L'agent legge il livello di ogni riga dopo i tuoi operators e la sovrascriverebbe, quindi scrivi invece il livello in `attributes.severity_text`.
+- Un router senza `default`, o una route senza `output`. Le righe che non passa a nessun operator vengono scartate.
+- Il parser `container`. L'agent ha già letto il formato del runtime dei container, quindi i tuoi operators vedono la riga così come l'ha scritta il programma.
+
+`logs.extraOperators` richiede la modalità `daemonset`. Il lettore di log della modalità `api` non esegue operators del collector, quindi lì il chart rifiuta l'impostazione, e i pod Windows di un'installazione ibrida (`logs.windowsPods.enabled`) non la ricevono.
 
 ### Includere o escludere metriche per nome
 
@@ -789,7 +836,7 @@ Inserire l'header significa riscrivere traffico già in transito: le richieste H
 
 Quando su questo cluster si verifica un incidente o un avviso, OneUptime AI indaga. L'**Agente IA Kubernetes** del chart le fornisce un terminale: esegue `kubectl` in sola lettura come farebbe un ingegnere reperibile (descrive il pod in errore, legge i suoi eventi, segue i log del container che va in crash, controlla la capacità dei nodi) e cita ogni comando nella pagina dell'incidente.
 
-L'agent è **attivo per impostazione predefinita** e **in sola lettura**: un piccolo Deployment (`kubernetes-agent-ai-agent`, etichetta del pod `component=ai-agent`, immagine `oneuptime/kubernetes-ai-agent`) il cui ServiceAccount può solo leggere. Si registra con gli stessi `oneuptime.apiKey` e `clusterName` usati dal collector, quindi non c'è nulla da configurare nel dashboard: la pagina **Agente IA** del cluster (Kubernetes → cluster → IA → Agente) lo mostra come connesso entro un minuto, e **Testa la connessione**, nel menu **⋯** accanto a quello stato, esegue `kubectl version` e `kubectl auth can-i --list` tramite l'agent. Tutto ciò che l'IA ha fatto con esso è nella pagina **Log IA** del cluster (IA → Log), e ciò che vale la pena sapere sul cluster — i problemi che continuano a ripresentarsi e perché, il nodo o il carico di lavoro dietro la maggior parte di essi, ciò che l'IA ha corretto — nella pagina **Insight IA** (IA → Insights). L'agent include un kubectl fissato (v1.36.6). Non è un Runner e non compare mai in Runbooks → Runners: OneUptime non gli consegna mai credenziali, non esegue mai runbook su di esso, e non viene mai accettato come Runner dei comandi di una regola IA.
+L'agent è **attivo per impostazione predefinita** e **in sola lettura**: un piccolo Deployment (`kubernetes-agent-ai-agent`, etichetta del pod `component=ai-agent`, immagine `oneuptime/kubernetes-ai-agent`) il cui ServiceAccount può solo leggere. Si registra con gli stessi `oneuptime.apiKey` e `clusterName` usati dal collector, quindi non c'è nulla da configurare nel dashboard: la pagina **Agente IA** del cluster (Kubernetes → cluster → IA → Agente) lo mostra come connesso entro un minuto, e **Testa la connessione**, nel menu **⋯** accanto a quello stato, esegue `kubectl version` e `kubectl auth can-i --list` tramite l'agent. Tutto ciò che l'IA ha fatto con esso è nella pagina **Log IA** del cluster (IA → Log), e ciò che vale la pena sapere sul cluster — i problemi che continuano a ripresentarsi e perché, il nodo o il carico di lavoro dietro la maggior parte di essi, ciò che l'IA ha corretto — nella pagina **Insight IA** (IA → Insights). L'agent include un kubectl fissato (v1.36.7). Non è un Runner e non compare mai in Runbooks → Runners: OneUptime non gli consegna mai credenziali, non esegue mai runbook su di esso, e non viene mai accettato come Runner dei comandi di una regola IA.
 
 Su un agent installato prima che esistesse l'agente IA, aggiorna prima l'indice dei chart, poi esegui l'aggiornamento (su un OneUptime self-hosted, aggiorna prima OneUptime — vedi [Aggiornare l'agent](#aggiornare-lagent)):
 

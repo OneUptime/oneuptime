@@ -65,7 +65,7 @@ Three states are created with the project, in this order. The seeding is idempot
 
 | Flag                  | Purpose                                                                                                                                                                                              |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | The state an incident gets when nobody picked one. If no state in the project carries this flag, creating an incident fails with an error telling you to add a created incident state from settings. |
+| `isCreatedState`      | The state an incident gets when nobody picked one — unless the project starts incidents declared by hand acknowledged and one declared by hand pages no on-call policy: see [Incidents declared by hand](#incidents-declared-by-hand). If no state in the project carries this flag, creating an incident fails with an error telling you to add a created incident state from settings. |
 | `isAcknowledgedState` | Marks the project's acknowledged state: the one **Acknowledge** moves an incident to and the acknowledged stat tile is named after. An incident in it, in any state after it, or resolved, is acknowledged — **Acknowledge** is no longer offered for it, on-call stops paging for it, and its SLA is marked responded. |
 | `isResolvedState`     | Marks the project's resolved state: the one **Resolve** moves an incident to and the resolved stat tile shows. An incident in it, or in any state after it, is resolved — it leaves **Active Incidents** and a status page's active section, and its SLA is marked resolved. |
 
@@ -75,6 +75,28 @@ Only one state per project is expected to hold each flag — the lookups fetch t
 - **They cannot be deleted.** Their **Delete** stays in the row's menu, locked, with the reason. A bulk delete skips them and lists them as not deleted. The API refuses to delete a project's last created, acknowledged or resolved state too.
 
 Because the UI reads state names dynamically, renaming a state changes what you see everywhere — the stat tiles (**Acknowledged in** and **Resolved in** with the seeded names), the **Mark Incident as …** confirmation of a custom state, and the pill on the incidents list all follow the name you gave the row.
+
+## Incidents declared by hand
+
+Every new incident starts in your created state and waits there to be acknowledged. When you declare one yourself, you are usually the one responding: you become its Incident Commander as you declare it, and acknowledging it is one more click. A project can start those incidents acknowledged instead.
+
+:::steps
+1. Open **Incidents → Settings → Incident State** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Under the list of states, turn on **Start incidents declared by hand acknowledged**. It saves as soon as you flip it.
+:::
+
+It is off in every project until you turn it on, so an upgrade never changes who is paged. Only Project Owners and Project Admins can change it; for everyone else the switch is locked and says which permission it needs.
+
+While it is on, an incident declared by hand — with **Declare Incident**, wherever you open it, or with the incident form in Slack or Microsoft Teams — starts in your acknowledged state when both of these hold:
+
+- **No state is picked for it**, by you or by the template it is declared from. A state picked wins, as always.
+- **It pages no on-call policy**, picked by you or by its template. Pick a policy and the incident starts in your created state, as before, so the policy pages its people.
+
+Starting acknowledged, it pages no one: as for any incident [declared already acknowledged](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved), no on-call policy runs, not even one an on-call rule adds. Its SLA starts already responded to, and its time to acknowledge is zero, which your MTTA counts in.
+
+**Declare Incident** says so before you declare: under **Initial State**, under **On-Call Policy** while none is picked, and on the summary, which then always lists **Initial State**. It never fills **Initial State** in for you: a state picked there wins, so the on-call policies you pick on the last step would page no one. Slack and Microsoft Teams say so under their on-call policies, and in the message that confirms the incident.
+
+Incidents nobody declares by hand — opened by monitors or alert incident rules, through the API, Terraform, workflows or forms, from a security case, or by OneUptime AI — start in your created state, as before. Over the API, the switch is the project's `startIncidentsDeclaredByHandAcknowledged`.
 
 ## Adding your own states
 
@@ -204,7 +226,7 @@ Alerts and episodes follow the same rule, with your alert states.
 
 An incident is resolved when it moves from a state above your resolved state into the resolved state, or into any state after it — whichever of the five ways above moves it. Each resolve:
 
-- **Gives back the monitors the incident holds.** An incident declared open holds its monitors: it put them in its **Change Monitor Status to** status, when it names one, and, declared by hand, paused their monitoring. An edit while it is open — adding monitors, or changing that status — makes it hold them too. Resolving resumes their monitoring and returns them to operational, unless another open incident is still on them, and from then on the incident holds nothing. So an incident declared already resolved gives nothing back, and neither does a second resolve after a reopen: a status its monitors got in between — from their probes, from maintenance or set by hand — stays.
+- **Gives back the monitors the incident holds.** An incident declared open holds its monitors: it put them in its **Change Monitor Status to** status, when it names one, and, declared by hand with **Pause Monitoring** ticked, paused their monitoring, except on monitors set to keep monitoring during incidents. An edit while it is open — adding monitors, or changing that status — makes it hold them too. Resolving resumes their monitoring and returns them to operational, unless another open incident is still on them, and from then on the incident holds nothing. A monitor another open incident declared by hand still pauses stays paused; one reopened since its resolve holds nothing, so it keeps nothing paused. So an incident declared already resolved gives nothing back, and neither does a second resolve after a reopen: a status its monitors got in between — from their probes, from maintenance or set by hand — stays. See [Monitoring while an incident is open](/docs/incidents/declaring-incidents#monitoring-while-an-incident-is-open).
 - **Marks the SLA resolved** and, when OneUptime AI postmortem drafts are on, drafts a postmortem.
 
 Moving on from **Resolved** to a state after it — **Closed**, say — is not a second resolve: none of this runs again, and no new SLA starts. An incident declared before OneUptime started recording this gives its monitors back on its next resolve, as before.

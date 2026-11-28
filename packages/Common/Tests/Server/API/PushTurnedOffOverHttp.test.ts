@@ -262,8 +262,16 @@ describe("GET /global-config/vars", () => {
     const result: HttpResult = await vars();
 
     expect(result.status).toBe(200);
-    // And, with no email set up in the row, that the server cannot send email.
-    expect(result.body).toEqual({ ...row, canSendEmail: false });
+    /*
+     * And, with no email set up in the row, that the server cannot send
+     * email; and, with the switch off, that projects choose no call voice
+     * (#11065).
+     */
+    expect(result.body).toEqual({
+      ...row,
+      canSendEmail: false,
+      canProjectsChooseCallVoice: false,
+    });
   });
 
   test("is public: a browser with nobody signed in is answered", async () => {
@@ -275,7 +283,7 @@ describe("GET /global-config/vars", () => {
     expect(result.body?.["disablePushNotifications"]).toBe(true);
   });
 
-  test("says exactly these three things, and nothing else of the settings row", async () => {
+  test("says exactly these four things, and nothing else of the settings row", async () => {
     answerWith(
       settingsRow({
         disablePushNotifications: true,
@@ -291,6 +299,7 @@ describe("GET /global-config/vars", () => {
 
     expect(Object.keys(result.body || {}).sort()).toEqual(
       [
+        "canProjectsChooseCallVoice",
         "canSendEmail",
         "disablePushNotifications",
         "disableUserProjectCreation",
@@ -334,6 +343,7 @@ describe("GET /global-config/vars", () => {
       disableUserProjectCreation: false,
       disablePushNotifications: false,
       canSendEmail: false,
+      canProjectsChooseCallVoice: false,
     });
   });
 

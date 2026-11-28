@@ -423,6 +423,7 @@ ${codeBlock(
       }. Empty: no node name is stamped |
 | \`DOCKER_INVENTORY_INTERVAL_SECONDS\` | No | How often the poller refreshes the inventory snapshot (default \`${DOCKER_SWARM_DEFAULT_INVENTORY_INTERVAL_SECONDS}\`) |
 | \`DOCKER_API_VERSION\` | No | Docker Engine API version the collector and the inventory poller speak. Empty by default: they use the daemon's own, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |
+| \`ONEUPTIME_LOG_OPERATOR_1\` to \`ONEUPTIME_LOG_OPERATOR_5\` | No | Collector operators of your own, one each as JSON, for a log format the agent does not read |
 
 ${
   script

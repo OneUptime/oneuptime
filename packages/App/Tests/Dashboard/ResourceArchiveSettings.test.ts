@@ -46,6 +46,7 @@ const RESOURCES: Array<ArchivableResource> = [
     overview: "Index.tsx",
   },
   { resource: "VMware", model: "VMwareVCenter", overview: "Index.tsx" },
+  { resource: "XcpNg", model: "XcpNgPool", overview: "Index.tsx" },
   { resource: "IoT", model: "IoTFleet", overview: "Index.tsx" },
   { resource: "Proxmox", model: "ProxmoxCluster", overview: "Index.tsx" },
   { resource: "OpenStack", model: "OpenStackCloud", overview: "Index.tsx" },

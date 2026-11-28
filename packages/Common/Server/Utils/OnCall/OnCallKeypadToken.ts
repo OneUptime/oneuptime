@@ -1,5 +1,10 @@
 import { OnCallInputRequest } from "../../../Types/Call/CallRequest";
+import { toSpokenCallVoiceValue } from "../../../Types/Call/CallVoice";
 import OneUptimeDate from "../../../Types/Date";
+import {
+  CallKeypadPrompt,
+  readCallKeypadPrompt,
+} from "../../../Utils/Call/CallKeypad";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
@@ -32,6 +37,24 @@ import OnCallPageLinkToken from "./OnCallPageLinkToken";
  * the two claims: a keypad route of the release before, still answering
  * while an upgrade rolls out, reads it there.
  *
+ * Two claims more, which that route never reads - no key is named "ask" or
+ * "voice" - say how the call speaks (#10949, #10948): the prompt it asked
+ * with, so a wrong key is answered by asking again in the call's own words
+ * (Utils/Call/CallKeypad), and the voice it speaks with, so every answer is
+ * said in the call's voice (Types/Call/CallVoice). Each is read back only
+ * as it may be: a prompt of words and a time to listen, a voice from
+ * OneUptime's lists. A call placed before this release carries neither: a
+ * wrong key ends it as before, and its answers speak with the account's
+ * default voice, as it did.
+ *
+ * A call in the person's language (#11066) carries its words in that
+ * language - its answers and its prompt are the call's own - and a voice of
+ * that language. What the keypad route words itself - "That key does
+ * nothing.", what escalating did - it words in the language of that voice
+ * (OnCallPageCallAnswers), so every answer is in the call's language and
+ * voice. No claim names a language: the voice says it, and a voice is only
+ * ever one of OneUptime's.
+ *
  * A call placed before this release has the earlier action - the page's
  * link token beside a call token that names no notification - and keeps it
  * until its call token expires, a day after the call was placed. Such a
@@ -46,6 +69,17 @@ export const ON_CALL_KEYPAD_TOKEN_PURPOSE: string = "on-call-keypad";
 
 // The query parameter the token rides in, on the <Gather> action.
 export const ON_CALL_KEYPAD_TOKEN_PARAM: string = "token";
+
+/*
+ * The query parameter that counts the wrong keys a call was asked again
+ * for, on the action of a prompt said again (Utils/Call/CallKeypad). Twilio
+ * signs the address it posts to, so the count is the route's own.
+ */
+export const ON_CALL_KEYPAD_WRONG_KEYS_PARAM: string = "wrongKeys";
+
+// The claims that say how the call speaks, beside what each key answers.
+const PROMPT_CLAIM: string = "ask";
+const VOICE_CLAIM: string = "voice";
 
 // A day: longer than any call goes on.
 export const ON_CALL_KEYPAD_TOKEN_EXPIRES_IN_SECONDS: number =
@@ -71,6 +105,13 @@ export type OnCallKeypadTokenReading =
       answers: OnCallInputRequest;
       // A call placed before this release, taken while its call token lasts.
       isEarlierCall: boolean;
+      /*
+       * The prompt the call asked with, to ask again after a wrong key; null
+       * for a call that carried none (placed before this release).
+       */
+      prompt: CallKeypadPrompt | null;
+      // The voice the call speaks with, from OneUptime's list; none for the account's default.
+      voice: string | undefined;
     }
   | {
       isAccepted: false;
@@ -100,6 +141,10 @@ export default class OnCallKeypadToken {
     // An id, or its text: the Notification service reads it from JSON.
     userOnCallLogTimelineId: ObjectID | string | undefined;
     answers: OnCallInputRequest;
+    // The prompt the call asks with, said again after a wrong key.
+    prompt?: CallKeypadPrompt | undefined;
+    // The voice the call speaks with, from OneUptime's list.
+    voice?: string | undefined;
   }): string {
     const claims: JSONObject = JSONFunctions.serialize(
       data.answers as unknown as JSONObject,
@@ -109,6 +154,22 @@ export default class OnCallKeypadToken {
     claims["notification"] = data.userOnCallLogTimelineId
       ? data.userOnCallLogTimelineId.toString()
       : "";
+
+    const prompt: CallKeypadPrompt | null = readCallKeypadPrompt(data.prompt);
+
+    if (prompt) {
+      claims[PROMPT_CLAIM] = {
+        sayMessage: prompt.sayMessage,
+        noInputMessage: prompt.noInputMessage,
+        timeoutInSeconds: prompt.timeoutInSeconds,
+      };
+    }
+
+    const voice: string | undefined = toSpokenCallVoiceValue(data.voice);
+
+    if (voice) {
+      claims[VOICE_CLAIM] = voice;
+    }
 
     return JSONWebToken.signJsonPayload(
       claims,
@@ -163,6 +224,8 @@ export default class OnCallKeypadToken {
         isAccepted: true,
         answers: claims as unknown as OnCallInputRequest,
         isEarlierCall: true,
+        prompt: readCallKeypadPrompt(claims[PROMPT_CLAIM]),
+        voice: toSpokenCallVoiceValue(claims[VOICE_CLAIM]),
       };
     }
 
@@ -191,6 +254,8 @@ export default class OnCallKeypadToken {
       isAccepted: true,
       answers: claims as unknown as OnCallInputRequest,
       isEarlierCall: false,
+      prompt: readCallKeypadPrompt(claims[PROMPT_CLAIM]),
+      voice: toSpokenCallVoiceValue(claims[VOICE_CLAIM]),
     };
   }
 

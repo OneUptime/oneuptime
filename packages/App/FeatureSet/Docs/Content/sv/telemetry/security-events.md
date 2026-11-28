@@ -65,6 +65,7 @@ flowchart TB
 | **Anteckningsmallar** | Inställningar | Färdig text för anteckningarna ditt team skriver i sina ärenden |
 | **Numrering** | Inställningar | Texten framför ärendenumren och numret som nästa ärende får |
 | **Riskbedömning** | Inställningar | Om en entitets risk öppnar ett ärende, vid vilken risk, och hur mycket varje entitet betyder |
+| **Raderingsbegäranden** | Inställningar | Personer som raderats på begäran, och vad varje radering ändrade |
 
 **Detektioner**, **AI**, **Anslutningar** och **Inställningar**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
@@ -205,7 +206,7 @@ Varje typ når OneUptime som vanliga loggar:
 | Kubernetes-granskningsloggar | API-serverns granskningsloggfil, läst av collectorns `filelog`-receiver |
 | Webbattacker | En webbservers åtkomstlogg, läst av collectorns `filelog`-receiver |
 
-På **Dina loggar** visar varje typ när den senast hittades, och **Kontrollera en loggrad** visar vad en rad som du klistrar in blir, innan någon har kommit.
+På **Dina loggar** visar varje typ när den senast hittades, och **Kontrollera en loggrad** visar vad en rad som du klistrar in blir, innan någon har kommit. OneUptime läser raden så som skanningarna läser dina loggar, med dina [betrodda proxyservrar](#betrodda-proxyservrar) och inställningarna för dina åtkomstloggar, så den anger den klient som den sparade händelsen kommer att ange, och sparar inget.
 
 Ett hot som en säkerhetsprodukt skriver i dina loggar, till exempel ett CEF- eller LEEF-fynd eller ett hot från Palo Alto Networks, FortiGate eller Cisco ASA, öppnar ett [ärende](/docs/telemetry/security-cases) på samma sätt som en ansluten produkts larm, och ökar risken för användaren, värden eller adressen som det nämner. **Öppna ärenden från** på **Dina loggar** anger från vilken allvarlighetsgrad: **Hög och högre** om du inte väljer en annan, eller **Aldrig**. Produktens inloggningar och blockerade anslutningar förblir händelser som dina regler kan läsa.
 
@@ -246,7 +247,7 @@ Slå på **Nätverksflöden** under **Dina OneUptime-data** på **Anslutningar**
 - intervallet för var och en av dess identifieringar, medan skanningen pågår;
 - värdarna och portarna som dess monitorer kontrollerar.
 
-Den sparas som en informativ händelse, `oneuptime-probe-traffic`, som namnger sonden, och ingen regel läser den. **Nätverksflöden** visar hur många som lades åt sidan det senaste dygnet, med **Visa dem**. Allt annat från en sonds adress räknas som allas trafik, och ett svep eller en skanning utöver sondens arbete rapporteras med sondens namn. En sond känns igen på adressen den rapporterar in från och på adresserna på sina egna nätverksgränssnitt, som den listar varje gång den rapporterar in.
+Den sparas som en informativ händelse, `oneuptime-probe-traffic`, som namnger sonden, och ingen regel läser den. **Nätverksflöden** visar hur många som lades åt sidan det senaste dygnet, med **Visa dem**. Allt annat från en sonds adress räknas som allas trafik, och ett svep eller en skanning utöver sondens arbete rapporteras med sondens namn. En sond känns igen på adressen den rapporterar in från och på adresserna på sina egna nätverksgränssnitt, som den listar varje gång den rapporterar in. En anpassad sond utan värdens nätverk, som en Kubernetes-pod eller en container på ett Docker-bridgenätverk, känns också igen på värdens adresser, som `PROBE_HOST_IP_ADDRESSES` ger den: tills den har dem lämnar dess avfrågningar maskinen från en adress den inte känns igen på och rapporteras som svep. Se [Vad en sond skickar när den hör av sig](/docs/probe/custom-probe#vad-en-sond-skickar-när-den-hör-av-sig).
 
 ### Anslut en säkerhetsprodukt
 
@@ -298,6 +299,8 @@ En händelse nämner adressen som en begäran kom från bara när begärans avs�
 
 En uppgiven adress blockeras aldrig från ett ärende: Vem som helst kan skicka `X-Forwarded-For: 192.0.2.44`, och en blockering skulle stänga ute den som än har 192.0.2.44. En händelse med bara en uppgiven adress har en **Responsplan** som ber dig hitta den riktiga adressen i loggarna från din lastbalanserare eller brandvägg.
 
+En händelse vars klient en proxy du litar på har vidarebefordrat visar vilka proxyservrar den kom genom, som **Vidarebefordrad av**: i den ordning som `X-Forwarded-For` listar dem, med anslutningens egen adress sist. De finns i `oneuptime.request.forwarded_by`, och **Kontrollera en loggrad** säger varför var och en är betrodd.
+
 Registrera två saker på appens serverspann så att dess adresser är verifierade: anslutningens egen adress, `network.peer.address`, som OpenTelemetrys HTTP-instrumenteringar sätter, och bakom en proxy headern `X-Forwarded-For`, som de registrerar som `http.request.header.x-forwarded-for` när du anger den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-åtkomstlogg läses på samma sätt: Dess klientfält, som `remote_addr`, är anslutningens adress, och dess fält `http_x_forwarded_for` är headern.
 
 #### Betrodda proxyservrar
@@ -306,18 +309,40 @@ Säkerhetshändelser tror en proxy om vem dess klient var när dess adress är:
 
 | Betrodd | Varför |
 | --- | --- |
-| Privat, loopback eller link-local, som `10.0.0.5` | Alltid: Ingen har den på internet, så den är en lastbalanserare eller en ingress i ditt nätverk |
 | Listad under **Betrodda proxyservrar** | Du listade den |
 | I de publicerade intervallen för en kant du har anslutit, som [Cloudflare](/docs/integrations/cloudflare) | Så länge anslutningen finns |
-| En av dina egna applikationslastbalanserare | Om du inte stänger av det |
+| En av dina egna applikationslastbalanserare, eller ett proxy-only-undernät i Google Cloud som bara dina applikationslastbalanserare ansluter från | Om du inte stänger av **Dina lastbalanserare** |
+| En av Googles front-ends, bakom din Google Cloud Application Load Balancer | Med dina lastbalanserare, om inte även en TCP- eller SSL-proxylastbalanserare som du har ansluter från dem |
+| Privat, loopback eller link-local, som `10.0.0.5` | Så länge **Privata adresser** är på |
 
-**Säkerhetshändelser → Anslutningar → Fler inställningar** innehåller **Betrodda proxyservrar**, listan du skriver, och **Betrodda automatiskt**, som visar resten och varför. Lista en proxy under **Betrodda proxyservrar**, en adress eller ett intervall på varje rad, när dess adress är offentlig och inget annat litar på den: ett CDN du inte har anslutit, en lastbalanserare som når din app över internet, eller en omvänd proxy som nginx på en server med en offentlig adress framför din app. Tills du gör det skylls varje attack genom den på proxyn. Bakom en global extern Application Load Balancer i Google Cloud kommer appens anslutningar från Googles front-ends: Lista `35.191.0.0/16` och `130.211.0.0/22`.
+Adresserna som en av dina lastbalanserare som arbetar på TCP-nivå ansluter från är aldrig betrodda, även om de finns i listan: se [Proxyservrar som arbetar på TCP-nivå](#proxyservrar-som-arbetar-på-tcp-nivå).
+
+**Säkerhetshändelser → Anslutningar → Fler inställningar** innehåller **Betrodda proxyservrar**, listan du skriver, och **Betrodda automatiskt**, som visar resten och varför. Lista en proxy under **Betrodda proxyservrar**, en adress eller ett intervall på varje rad, när inget annat litar på den: ett CDN du inte har anslutit, en lastbalanserare som når din app över internet, en omvänd proxy som nginx på en server med en offentlig adress framför din app, eller, så länge **Privata adresser** är av, en HTTP-proxy i ditt nätverk, som din ingress. Tills du gör det skylls varje attack genom den på proxyn. Ett intervall som är bredare än en proxys, som `0.0.0.0/0`, avvisas: Det skulle lita på alla adresser, så vem som helst kunde välja den adress som en attack skylls på. En Projektägare, Projektadministratör eller Säkerhetsadministratör redigerar listan, och varje ändring finns i projektets [granskningslogg](/docs/configuration/audit-logs).
 
 Dina egna applikationslastbalanserare är de som dina [anslutna molnkonton](/docs/telemetry/cloud-accounts) listar: AWS Application Load Balancers, AWS Classic Load Balancers vars lyssnare alla är HTTP eller HTTPS, Google Cloud Application Load Balancers och Azure Application Gateways, med sina offentliga adresser. Var och en lägger till klienten den vidarebefordrar i `X-Forwarded-For`. En lastbalanserare i Google Cloud lägger till sin egen adress efter klientens, och en Application Gateway når en offentlig backend från sin egen adress, så utan dem skulle varje attack genom en av dem skyllas på lastbalanseraren. **Dina lastbalanserare** på **Betrodda automatiskt** listar dem, och en Projektägare, Projektadministratör eller Säkerhetsadministratör kan stänga av det.
 
-Inget annat av ditt är betrott automatiskt: inte dina värdar, Kubernetes-noder, sonder eller virtuella maskiner, en NAT-gateway eller en Network-, Gateway- eller Azure-lastbalanserare. De vidarebefordrar ingen, eller skickar en begäran vidare som den kom, så det som körs på dem skulle kunna ange vilken klient som helst: en begäran som en monitor skickar med egna headers, en pod, en bärbar dator bakom gatewayen. Om en av dem är din proxy, lägg till den i **Betrodda proxyservrar**. En Kubernetes-ingress är betrodd som den lastbalanserare den är: En GKE-ingress är en Google Cloud Application Load Balancer, en AKS-ingress för Application Gateway en Application Gateway, och en EKS-ingress av klassen `alb` en AWS Application Load Balancer. En ingress-controller i ditt kluster vidarebefordrar från en privat adress, som alltid är betrodd.
+Bakom en global extern Application Load Balancer i Google Cloud, eller en klassisk, kommer appens anslutningar från Googles front-ends, inte från lastbalanserarens egen adress. Så länge ett anslutet Google Cloud-projekt har en litar Säkerhetshändelser därför även på front-endarnas intervall: `35.191.0.0/16`, `130.211.0.0/22` och `2600:2d00:1:1::/64`, så som Googles [brandväggsregler för lastbalansering](https://cloud.google.com/load-balancing/docs/firewall-rules) listar dem. **Dina lastbalanserare** visar dem på listans sista rad, med de lastbalanserare som för med sig dem, och dess reglage stänger av även dem. Ingen utanför Google ansluter från de här intervallen, och att lita på dem låter aldrig någon ange en klient: En begäran genom någon annans lastbalanserare avslutar sin `X-Forwarded-For` med den lastbalanserarens adress, som inte är din, så händelsen anger den. Men Googles TCP- och SSL-proxylastbalanserare ansluter från samma intervall och skickar vidare en begäran så som klienten skickade den, så så länge en av dina finns, eller inte alla lastbalanserare kunde listas, är intervallen inte betrodda, och raden säger varför. Om en sådan lastbalanserare finns i ett Google Cloud-projekt som du inte har anslutit, anslut det, eller stäng av **Dina lastbalanserare**. Äldre versioner av den här dokumentationen sa att du skulle lista `35.191.0.0/16` och `130.211.0.0/22` under **Betrodda proxyservrar**: Så länge en TCP- eller SSL-proxylastbalanserare som du har ansluter från dem är de inte betrodda ens när de finns i listan, och **Betrodda proxyservrar** varnar för varje intervall du har som innehåller dem. Du kan ta bort dem från listan: **Dina lastbalanserare** litar på dem när det är säkert.
+
+Inget annat av ditt är betrott automatiskt: inte dina värdar, Kubernetes-noder, sonder eller virtuella maskiner, en NAT-gateway eller en Network-, Gateway- eller Azure-lastbalanserare. De vidarebefordrar ingen, eller skickar en begäran vidare som den kom, så det som körs på dem skulle kunna ange vilken klient som helst: en begäran som en monitor skickar med egna headers, en pod, en bärbar dator bakom gatewayen. Om en av dem är din proxy, lägg till den i **Betrodda proxyservrar**. En Kubernetes-ingress är betrodd som den lastbalanserare den är: En GKE-ingress är en Google Cloud Application Load Balancer, en AKS-ingress för Application Gateway en Application Gateway, och en EKS-ingress av klassen `alb` en AWS Application Load Balancer. En ingress-controller i ditt kluster vidarebefordrar från en privat adress, som är betrodd så länge **Privata adresser** är på; så länge det är av, lista dess adresser.
 
 En ändring av någon av dessa gäller inom en minut, och en ny lastbalanserare blir betrodd inom fem.
+
+#### Proxyservrar som arbetar på TCP-nivå
+
+En proxy som arbetar på TCP-nivå lägger inte till något i `X-Forwarded-For`: Den skickar vidare headern som klienten skrev, och din app ser anslutningen komma från proxyn. Vore den betrodd skulle en klient kunna välja vilken adress en attack skylls på, och få någon annans adress blockerad. Exempel är en AWS Network Load Balancer utan bevarande av klient-IP, Google Clouds proxy Network Load Balancers, HAProxy i `mode tcp`, nginx `stream`-modul och en Kubernetes-Service med `externalTrafficPolicy: Cluster`, som lämnar varje anslutning till din ingress från en nods adress.
+
+OneUptime hittar de som dina [anslutna molnkonton](/docs/telemetry/cloud-accounts) listar, och litar aldrig på adresserna de ansluter från, även när **Betrodda proxyservrar** listar dem:
+
+- En regional eller regionsöverskridande proxy Network Load Balancer i Google Cloud: proxy-only-undernätet för dess region och VPC-nätverk, som alla lastbalanserare där delar. Så länge bara dina applikationslastbalanserare använder ett proxy-only-undernät kan inget annat finnas i det, och det är betrott som deras.
+- En global extern eller klassisk proxy Network Load Balancer i Google Cloud: Googles front-ends.
+- En AWS Network Load Balancer som inte bevarar klientens egen adress, från de undernät den finns i: en med en målgrupp av instanser eller IP-adresser över TCP eller TLS, vars bevarande av klient-IP är av (IP-mål har det av om du inte slår på det); en dual-stack-lastbalanserare, som lämnar en IPv6-klient till IPv4-mål från sin egen adress; eller en vars målgrupper OneUptime inte kunde läsa.
+- En AWS Classic Load Balancer med en TCP- eller SSL-lyssnare, från de undernät den finns i.
+
+**Betrodda automatiskt** listar dem under **Inte betrodda, även om de finns i listan**, var och en med varför. Bakom en av dem, behåll klientens egen adress på anslutningen: slå på bevarande av klient-IP, eller sätt en Application Load Balancer framför. AWS-lastbalanserare läses när ditt molnkontos inventering läses, så en ändring syns efter nästa läsning.
+
+För en proxy som OneUptime inte kan se, stäng av **Privata adresser** på **Betrodda automatiskt**. Avstängt är en privat adress betrodd bara när den finns under **Betrodda proxyservrar** eller tillhör en av dina lastbalanserare, så lista först dina HTTP-proxyservrar i ditt nätverk: Tills du gör det skylls varje attack genom en av dem på den. En AWS Application Load Balancer och en Azure Application Gateway når din app från privata adresser i sina undernät, som OneUptime inte listar ännu: Lista även de undernäten. Ett nytt projekt börjar med **Privata adresser** av. Ett projekt från före det fortsätter att lita på privata adresser som tidigare, och **Betrodda automatiskt** säger vad det riskerar. En Projektägare, Projektadministratör eller Säkerhetsadministratör slår om det, och varje ändring finns i projektets granskningslogg.
+
+Vad du än väljer blockeras en adress aldrig automatiskt när den kom genom en privat adress som varken finns i listan eller tillhör en av dina lastbalanserare: [automatisk respons](/docs/telemetry/security-automatic-response) lämnar den åt en person, och en playbooks steg **Blockera adress** väntar på godkännande, även ett vars godkännande är avstängt, och namnger proxyn den kom genom. En person som blockerar adressen från ett ärendes **Responsplan** avgör själv. Finns en privat HTTP-proxy du har framför, lista den under **Betrodda proxyservrar**, så agerar automatisk respons på det den vidarebefordrar.
 
 #### Åtkomstloggar som slutar med X-Forwarded-For
 
@@ -337,6 +362,25 @@ En rad säger aldrig vad dess fält är, så dess sista fält läses som `X-Forw
 
 Låt det vara avstängt när ditt format slutar med en annan header som innehåller en adress, som `X-Real-IP`, eller när din webbserver skriver headers utan att escapa deras citattecken, som `morgan` för Express gör: En begärans egen user agent skulle då kunna lägga till ett fält. En JSON-åtkomstlogg behöver inget reglage, eftersom dess fält har namn.
 
+#### Ditt eget loggformat
+
+Om dina webbservrar placerar `X-Forwarded-For` någon annanstans än sist, ange deras format: **Loggformat** på **Åtkomstloggar** under **Fler inställningar**. Klistra in ditt `log_format` för nginx så som din `nginx.conf` skriver det, eller utgå från ett känt format, nginx `main` eller ingress-nginx `upstreaminfo`. Till exempel ett format som efter headern loggar hur lång tid varje begäran tog:
+
+```nginx
+log_format timed '$remote_addr - $remote_user [$time_local] "$request" '
+                 '$status $body_bytes_sent "$http_referer" '
+                 '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+```
+
+Varje rad i ditt format läses fält för fält: adressen som anslöt från `$remote_addr`, och `X-Forwarded-For` från `$http_x_forwarded_for`, var formatet än placerar den. Den läses som alla `X-Forwarded-For`: bara när `$remote_addr` är en proxy du litar på, och från höger. Inget annat fält tas någonsin för någon av dem, och en rad som inte är i ditt format läses som förut, där **Loggar slutar med X-Forwarded-For** avgör dess sista fält.
+
+- nginx escapar citattecknen som en klient skickar, som `\x22`, så varje citattecken på en rad hör till ditt format. En rad med fler citattecken än ditt format, som en server som inte escapar dem skriver (`escape=none`, `morgan` för Express), är ingen rad i ditt format, och inget i den läses som en sådan.
+- **Loggformat** avvisar ett format vars `X-Forwarded-For` eller `$remote_addr` inte kan skiljas från fälten bredvid, som en header utan citattecken mellan två fält som en klient skriver, och säger att du ska sätta den inom citattecken, som `"$http_x_forwarded_for"`.
+- ingress-nginx `upstreaminfo` loggar ingen `X-Forwarded-For`, så varje rads klient är dess `$remote_addr`. Om en Application Load Balancer eller en annan HTTP-proxy står framför den, lägg till `"$http_x_forwarded_for"` i din `log-format-upstream` för att läsa klienten som den vidarebefordrade. Bakom en Network Load Balancer, som skickar vidare headern som klienten skrev, ska du låta bli.
+- När nginx själv sätter `$remote_addr` från `X-Forwarded-For`, med sin realip-modul eller ingress-nginx `use-forwarded-headers`, tror den på vem som helst som `set_real_ip_from` eller `proxy-real-ip-cidr` anger, och standardvärdet i ingress-nginx anger alla. Logga adressen som verkligen anslöt, `$realip_remote_addr`, bredvid `$http_x_forwarded_for`: Säkerhetshändelser läser då `$realip_remote_addr` som anslutningen, `$remote_addr` bara som ett påstående, och avgör med dina betrodda proxyservrar.
+
+En Projektägare, Projektadministratör eller Säkerhetsadministratör anger det, och varje ändring finns i projektets granskningslogg.
+
 ### Dold av en rensningsregel
 
 En IP-adressregel som raderar eller maskerar dina loggar eller spår döljer adressen som en attack kom från innan Säkerhetshändelser läser dem. Händelsen sparas ändå, utan adress, och överallt där den skulle namnge adressen säger den att en scrub-regel dolde den:
@@ -352,6 +396,8 @@ En regel som hashar sparar adressen åt Säkerhetshändelser, så händelsen nam
 En detektionsregel som räknar per adress bör, precis som regelbibliotekets regler, räkna per `principalIp` eller `targetIp`, som namnger adressen bakom token från en regel som hashar. Ett formats eget adressfält, till exempel `openstack.audit.initiator_address` eller `asa.src_ip`, innehåller bara en adress som står i loggen, så det förblir tomt överallt där en scrub-regel dolde adressen.
 
 En regel som raderar eller maskerar en användare döljer den på samma sätt: där händelsen skulle namnge användaren säger **Källanvändare** eller **Målanvändare** att en scrub-regel dolde den. Där Säkerhetshändelser läser en användare sparar en regel som hashar användaren åt den: en begärans `enduser.id` eller `user.id`, ett AI-anrops användare och en användare som en loggrad namnger, till exempel principal i en granskningslogg från molnet. Så händelsen namnger användaren bakom token, ett ärende om användaren namnger kontot, och en playbook kan agera på det som på vilken annan användare som helst. Det regeln lämnade finns i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så att du kan hitta användaren i dina loggar och spår, som bara innehåller token. En token som ingen användare har sparats för, till exempel en som skapades innan tokens hade en nyckel, förblir händelsens användare: regler räknar den som ett konto, och ingen playbook agerar på den.
+
+Händelsens panel säger det under användaren den nämner i **Källanvändare** och **Målanvändare**: ”Hashad i dina loggar som …”, eller ”Hashad i dina spår som …” för en användare läst från dina spårningar, där … är token. Token är en länk som söker efter den i dina loggar eller spårningar, från en dag före händelsen till en dag efter, i fältet som användaren lästes från: en loggrads brödtext eller ett av dess attribut, eller ett spans attribut, till exempel `user.id` eller ett AI-anrops användare. Det fältet finns i `oneuptime.principal_user_hashed_field` eller `oneuptime.target_user_hashed_field`. En användare som raderats på begäran visar i stället **Raderad på begäran**, och händelsen visar deras token: se [Radera en person](#radera-en-person).
 
 ## Utforska säkerhetshändelser
 
@@ -391,9 +437,9 @@ En förfrågan efter en fil som innehåller hemligheter, till exempel `/.env`, `
 - En typ som ingen webbsida har, till exempel `text/plain` eller `application/octet-stream`: själva filen.
 - En webbsida, eller JSON för en fil som inte är JSON: din webbplats egen sida.
 - Ingenting i det: inget togs.
-- En storlek och ingen typ, som en webbservers åtkomstlogg registrerar det: själva filen när ingen annan sökväg fick den storleken och din webbplats svarar 404 för de sökvägar den inte har, och din webbplats egen sida när samma storlek besvarade två olika sökvägar. När inget avgör det blir förfrågan ingen händelse.
+- En storlek och ingen typ, som en webbservers åtkomstlogg registrerar det: själva filen när ingen annan sökväg fick den storleken och din webbplats svarar 404 för de sökvägar den inte har, och din webbplats egen sida när samma storlek besvarade två olika sökvägar. En förfrågan utan något bredvid sig, till exempel en skanners ensamma `/.env`, bedöms efter vad din webbplats svarade det senaste dygnet. När inget avgör det blir förfrågan ingen händelse.
 
-En levererad fil är kritisk, och regeln **Sensitive file served** i regelbiblioteket öppnar ett ärende om den, med steg för att ta bort filen och byta ut det den innehåller. Var och en av dessa förfrågningar räknas också mot **Scanning for sensitive files**, även en ensidesapps. En administratörssida som din webbplats levererar, till exempel WordPress, är aldrig en sådan, och `wp-config.php` som WordPress körde är din webbplats egen. Cloudflares brandväggshändelser säger inte vad din ursprungsserver skickade, så en förfrågan som Cloudflare släppte igenom räknas bara mot skanning. En händelses panel säger vad din webbplats skickade under **Vad som hände sedan**.
+En levererad fil är kritisk, och regeln **Sensitive file served** i regelbiblioteket öppnar ett ärende om den, med steg för att ta bort filen och byta ut det den innehåller. Var och en av dessa förfrågningar räknas också mot **Scanning for sensitive files**, även en ensidesapps. En administratörssida som din webbplats levererar, till exempel WordPress, är aldrig en sådan, och `wp-config.php` som WordPress körde är din webbplats egen. Cloudflares brandväggshändelser säger inte vad din ursprungsserver skickade, så en förfrågan som Cloudflare släppte igenom räknas bara mot skanning. En händelses panel säger vad din webbplats skickade under **Vad som hände sedan**. Ett projekt som slog på de rekommenderade reglerna innan **Sensitive file served** var en av dem, och som kör alla de andra, fick den vid uppgraderingen, och **Översikt** säger det.
 
 ### Campaigns
 
@@ -747,6 +793,33 @@ Allt i Säkerhetshändelser som läser tidigare händelser läser bara de hände
 - En hunt vars **Tidsintervall** är längre än händelserna lagras hittar inget äldre, och dess formulär säger det.
 
 **Projektinställningar → Telemetri och APM → Datalagring** listar de aktiverade regler som tittar längre tillbaka än dess **Standardlagring (dagar)**. För att täcka dem, lagra händelser längre, med **Ändra lagring** under en regel, eller korta av en regels tidsspann till det som lagras. OneUptime lagrar 15 dagar om du inte ändrar det, eftersom lagringen avgör vad din telemetri kostar och hur länge personuppgifter i händelser, som adresser och användarnamn, lagras. En ny lagring gäller händelser som kommer in från och med då, så reglerna ser längre tillbaka i takt med att de händelserna blir äldre.
+
+## Radera en person
+
+När någon ber dig radera deras data, till exempel enligt artikel 17 i GDPR, raderar du dem i **Säkerhetshändelser → Inställningar → Raderingsbegäranden**. Välj **Radera person** och ange deras användar-id eller e-postadress som dina loggar innehöll den innan din Hash-rensningsregel dolde den, eller den token en händelse visar i stället. En e-postadress raderas även med gemener. Ange din egen referens under **Referens**, till exempel begärans ärendenummer, aldrig personens namn.
+
+Vad begäran gör:
+
+- Inom en minut slutar Säkerhetshändelser att nämna personen. Användarvalvet nekar från och med då deras token, så ingen händelse, inget ärende och ingen playbook nämner dem igen, inte ens när en senare händelse bär samma token: den händelsen behåller token som sin användare, som för varje token utan sparad användare. Att spara en token som kommer tillbaka skulle nämna personen igen, och det är just det de har bett dig sluta med.
+- Inom några minuter tar den bort valvets poster om dem och sätter tillbaka token på deras plats i händelserna som nämnde dem via valvet: **Källanvändare**, **Målanvändare**, observablerna och attributen. Detsamma gör den i de Detection Findings som en detektionsregel eller ett threat intel-flöde skrev om dem, i deras meddelande, observabler och attribut, och den märker vart och ett av dessa fynd med `oneuptime.finding_user_erased`. Den tar bort dem ur titlar, entiteter och sparade händelser i ärenden och detektioner, och ur entitetsrisk, även där en korrelation sätter ihop dem med ett annat värde, till exempel `alice@example.com / 203.0.113.7`.
+- Fingeravtrycken i det som nämnde dem ändras också. En detektionsregel eller ett threat intel-flöde skapar ett fingeravtryck av värdet som det grupperas efter, till exempel en användare, med en nyckel som hör till ditt projekt, så ingen kan räkna ut ett fingeravtryck från en gissning. Personens fingeravtryck, i händelse-id:t för ett Detection Finding, i detektioner och i de larm och incidenter som en detektion öppnade, blir fingeravtrycken för token: det fingeravtryck en regel skapar nästa gång den träffar dem, så ett öppet larm fortsätter att samla de träffarna. Det gäller även en korrelation som inte skriver några Detection Findings och inte öppnar några ärenden: raderingen läser dess värden från titlarna på de larm och incidenter den öppnade och från risken för de andra entiteterna i dess grupp, och behåller bara de värden som fingeravtrycken bekräftar.
+- När ett threat intel-flöde listar deras e-postadress pekar inget av det OneUptime skrev om träffen längre på flödets indikator. I det Detection Finding som flödet skrev, i händelserna som flödet träffade, i detektionen och ärendet och i larmet eller incidenten som träffen öppnade blir indikatorns id `[INDICATOR:…]`, ett fingeravtryck av token, och indikatorns namn försvinner. Flödet, indikatorns typ och dess confidence finns kvar. Händelserna förlorar också adressen som flödet träffade, `threat.indicator_value`, som får token.
+- En playbook-körning eller en åtgärd från OneUptime AI som väntar på godkännande för att agera på dem dras tillbaka och säger varför.
+
+Varje begäran visar sin status, **I kö**, **Raderar**, **Raderad** eller **Misslyckades**, och vad den ändrade: de borttagna valvposterna, händelserna och ärendena som inte längre nämner dem och de återkallade förslagen. Medan den visar **Raderar** säger en rad under den hur långt den har kommit: att ta bort personen från ärenden och händelser, att vänta på att de ändringarna tillämpas, att läsa Detection Findings (vilken omgång, och fram till vilket fynds tid), när slutkontrollen börjar och själva slutkontrollen. Raderingen börjar två minuter efter att begäran har skickats in, när ingen OneUptime-server längre nämner personen, och en begäran visar **Raderad** först när varje ändring har tillämpats och en sista läsning av projektets Detection Findings inte hittar något mer att ändra. Den läsningen väntar tills ingen detektion som läste personens namn fortfarande kan vara i gång, så en begäran visar oftast **Raderad** ungefär 15 minuter efter att den skickades in. Ett projekt med fler Detection Findings än en körning kan läsa läses över flera körningar, som var och en fortsätter där den förra slutade. En begäran som misslyckas försöks igen; efter fem försök visar den **Misslyckades** med orsaken, och projektets ägare får ett e-postmeddelande. Säkerhetshändelser vägrar fortfarande att nämna personen, och att skicka in begäran igen försöker på nytt.
+
+Vad den lämnar kvar:
+
+- Det människor har skrivit: anteckningar, avslutande anteckningar, uppgifter, bevis, anpassade fält och det OneUptime AI har skrivit om ett ärende.
+- Händelser som nämnde personen för att dina loggar, eller en produkt du har anslutit, innehöll dem i klartext, och dina loggar och spårningar själva, som bara innehåller token.
+- Redan skickade aviseringar, titlar och beskrivningar av incidenter och larm som en detektion öppnade (utom ett threat intel-flödes indikator-id), ett ärendes aktivitet, exporter, säkerhetskopior och granskningsloggen.
+- Ett threat intel-flödes egna indikatorer. Flödet fortsätter att lista adressen, och dess indikatorer förblir som flödet har dem.
+- Den risk som en korrelation tillskrev de andra entiteterna i sin grupp, när korrelationen också grupperar efter ett värde som inte bär någon risk, till exempel en process, och inte öppnar något larm, någon incident eller något ärende. Inget som finns kvar säger vad det värdet var, så gruppens fingeravtryck förblir som det var.
+- På en egenhostad OneUptime vars `ENCRYPTION_SECRET` har ändrats, token som skapades före ändringen: radera var och en via den token en händelse visar.
+
+Begäran sparar vem som skickade in den och när, din referens och personens token, som valvet fortsätter att neka dem med. Användar-id:t eller e-postadressen, och namnen som raderingen hittar personen under, lagras krypterade, där ingen sida, export eller API kan läsa dem, och raderas när raderingen är klar; ClickHouse får bara någonsin token. Begäranden kan inte redigeras eller tas bort: de är ditt underlag för raderingen.
+
+Projektägare, Projektadministratörer, Säkerhetsadministratörer och alla med Create Security Erasure Request, till exempel ditt dataskyddsombud, kan skicka in en begäran, från sidan eller via API:ets `/security-user-erasure-request`. Alla säkerhetsroller kan läsa dem.
 
 ## Felsökning
 

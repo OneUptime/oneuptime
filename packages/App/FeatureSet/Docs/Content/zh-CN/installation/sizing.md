@@ -3,7 +3,7 @@
 为使用 [Helm Chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime) 在 Kubernetes 上自托管的 OneUptime 规划 CPU、内存和磁盘。分别为三个数据存储（**ClickHouse**、**PostgreSQL** 和 **Valkey**）以及应用确定规模，从下面的某个档位开始，拿到真实数据后再调整。
 
 > [!IMPORTANT]
-> Chart 的默认值不是生产规模。它默认运行的服务 **没有设置任何 CPU 或内存的请求与限制**，PostgreSQL 和 ClickHouse 只有 **25 Gi** 的小卷，这样 Chart 才能安装到任何集群上。只要不是试用，就请按照本页的数字自行设置资源和存储。
+> Chart 的默认值不是生产规模。除 Valkey 外，它默认运行的服务 **没有设置任何 CPU 或内存的请求与限制**，PostgreSQL 和 ClickHouse 只有 **25 Gi** 的小卷，这样 Chart 才能安装到任何集群上。只要不是试用，就请按照本页的数字自行设置资源和存储。
 
 如果您改用单台服务器上的 Docker Compose 安装，确定规模会更简单：请参阅[要求](/docs/installation/docker-compose#要求)（推荐 16 GB 内存、8 核和 400 GB 磁盘）。
 
@@ -88,7 +88,7 @@ PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因
 
 ## Valkey：缓存、队列与会话
 
-缓存层运行 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 许可分支），用作缓存、工作队列和会话存储。任何支持 Redis 协议的服务器都可以替代它，下面的规模建议同样适用。它 **受内存限制**，持久化 **默认关闭**：它不是权威数据源，可以重建。请按队列深度和并发会话数确定规模；大多数部署有 2–8 GB 内存就够了。它的驱逐策略是 `noeviction`，因此在持续负载下队列积压时要留意它的内存。
+缓存层运行 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 许可分支），用作缓存、工作队列和会话存储。任何支持 Redis 协议的服务器都可以替代它，下面的规模建议同样适用。它 **受内存限制**，持久化 **默认关闭**：它不是权威数据源，可以重建。请按队列深度和并发会话数确定规模；大多数部署有 2–8 GB 内存就够了。Chart 为它设置 4 Gi 的内存限制，并把它的数据上限定为其中的 75%，即 3 GiB（`valkey.maxmemory`），达到上限后它会拒绝写入。它的驱逐策略是 `noeviction`，因此在持续负载下队列积压时要留意它的内存。
 
 ## 应用的计算资源
 
@@ -105,6 +105,52 @@ PostgreSQL 存储的是您的配置和运行状态，而不是遥测数据，因
 它们都运行 Node.js，Node.js 按容器的内存上限（`resources.limits.memory`）确定堆的大小：上限的 75%，最少 256 MB，最多 8096 MB。没有上限时，堆最多可增长到 8096 MB。上限的其余部分留给 Node.js 在堆之外使用的内存。要自己选择堆的大小，请将 `NODE_OPTIONS` 设为 `--max-old-space-size=` 加上以 MB 为单位的大小，写在服务的 `extraEnv` 中（使用 Docker Compose 时，写在覆盖文件里服务的 `environment` 中）。它优先于由上限得出的大小。
 
 Chart 内置 **KEDA**，因此应用、worker、探测器和全局 Runner 可以按队列积压自动伸缩。请同时开启 `keda.enabled` 和每个服务自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安装 KEDA 的集群上，第一次安装需要额外执行一轮：请参阅 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)。KEDA 不管理的服务可以改用基于 CPU 或内存的自动伸缩器（`autoscaling`）。
+
+## 运行大量监视器
+
+每个探测器的每个 worker 都会分批向应用 Pod 索取到期的监视器，每个到期的监视器只会交给其中一个 worker。所有每分钟检查的监视器都在每分钟开始时一起到期，因此关键在于一整分钟的监视器能多快分发出去。以下数据是在 39,700 个监视器（28,200 个每分钟检查，11,500 个每五分钟检查）和一个有 20 个副本的探测器上测得的，每条数据库语句都像在繁忙的数据库上一样，比空闲机器慢 50 或 100 ms。
+
+### 以更大的批次分发监视器
+
+把每个探测器的获取上限（Helm Chart 中为 `monitorFetchLimit`，其他情况下为 `PROBE_MONITOR_FETCH_LIMIT`）从 10 提高到 50。这样每个请求以大致相同的成本分发五倍的监视器。在三个应用 Pod、语句慢 50 ms 的情况下，每分钟的 28,200 个监视器在 19 秒内分发完毕，上限为 10 时需要 44 秒；每五分钟到期的 39,700 个监视器也在 19 秒内分发完毕，上限为 10 时需要 57 秒。此时探测器的一个副本最多同时运行 worker 数 × 获取上限个检查，3 个 worker 时为 150 个：请为它提供相应的内存，或增加副本。
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### 保持调度上限的默认值
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS`（`app.probeSchedulingMaxConcurrentRequests`）是每个应用 Pod 同时处理的探测器请求数：其数据库连接池的五分之一，即 50 个中的 10 个。每个 Pod 都有自己的上限，所以你新增的应用 Pod 会带来各自的上限。在 39,700 个监视器同时到期、语句慢 100 ms 的情况下，一个探测器从一个应用 Pod 每秒获得 313 个监视器，三个 Pod 时为 659 个，六个时为 763 个；把上限提高到 20 多了 7%。单独一个探测器可以使用 Pod 的所有名额，相互竞争的探测器则公平分配名额。Test Monitor 运行有自己的 2 个名额，因此无论监视器多忙，测试都会在探测器每十秒一次的轮询内送达探测器。只有当探测器请求不断等待名额而数据库仍有余量时才提高上限，并同时提高该 Pod 的数据库连接池。
+
+### 一个探测器还是多个
+
+把每个监视器放在它需要从那里检查的探测器上。无论同时有多少副本请求，每个到期的监视器只交给其探测器的一个副本，所以一个有很多副本的探测器和很多探测器一样跟得上。如果监视器延迟而没有请求在等待名额，说明探测器不够：增加副本，或让 KEDA 按每个探测器到期的监视器数对其扩缩容。
+
+### 按探测器所等待的内容自动扩缩容
+
+应用端口上的 `/metrics/probe-scheduling` 汇总了每个应用 Pod 过去一分钟的情况。除 CPU 和内存外，用 KEDA 按其 `queueDepth` 扩缩应用 Pod，并在监视器分发延迟时发出警报：
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `queueDepth` | 当前所有应用 Pod 上等待名额的探测器请求数。连续数分钟大于 0：增加应用 Pod。 |
+| `slotWaitP95Ms` | 在最忙的应用 Pod 上，请求等待名额的时长。 |
+| `refusalsPerMinute` | 收到服务器繁忙答复的探测器请求数。 |
+| `reconnectsAskedPerMinute` | 要求探测器的连接重新连接的答复数，使它的下一个请求可以发往另一个应用 Pod：应用 Pod 积压时每秒几次。连续数分钟大于 0：增加应用 Pod。 |
+| `dispatchLagP95Seconds` | 监视器在其间隔使其到期之后延迟了多久才分发出去。在没有请求等待时接近你最短的间隔：增加探测器副本。 |
+| `monitorsLateByAnIntervalPerMinute` | 延迟了整整一个间隔才分发的监视器：即被跳过的检查。 |
+| `monitorTestWaitP95Seconds` | Test Monitor 运行等待探测器的时长。 |
 
 ## 起步档位
 

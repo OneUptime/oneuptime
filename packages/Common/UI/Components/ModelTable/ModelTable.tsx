@@ -7,7 +7,23 @@ import PermissionGate, {
   PermissionGateResult,
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
+import RecordLocks, {
+  LabelLockAction,
+  ModelRecordLock,
+} from "../../Utils/RecordLocks";
 import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
+import {
+  getRecordLabelIds,
+  getRecordLabelRefusal,
+  useLabelNames,
+} from "../../Utils/RecordLabelLock";
+import {
+  getRecordOwnershipFacts,
+  isRecordOwnershipWanted,
+  RecordOwnershipState,
+  useRecordOwnership,
+} from "../../Utils/RecordOwnershipRead";
+import LabelAccess from "../../../Types/LabelAccess/LabelAccess";
 import {
   FormType,
   ModelField,
@@ -180,6 +196,119 @@ const ModelTable: <TBaseModel extends BaseModel>(
     usePrivateRecordGateOptions(model);
   const translator: Translator = useTranslator();
 
+  /*
+   * WHAT EACH ROW'S LABELS LOCK (#11259). A reader whose permission to
+   * change or delete records of this kind is limited to some labels, or
+   * blocked on some, sees each row's Edit, Delete and switch locked where
+   * the server would refuse it on that row, with why: "You do not have
+   * permission to delete this monitor. Your permission is limited to
+   * monitors labelled Payments." Bulk Delete leaves such a row out and says
+   * why (BaseModelTable's runBulkAction reads the same reason). The rows
+   * are read with their labels' ids for it - nothing more for anyone else -
+   * and a row read without them is left to the server.
+   *
+   * AND WHO OWNS EACH ROW (#11436): for a reader with a grant scoped to
+   * Owned - or beside their labels - on a kind with owner tables, the list
+   * asks the server once for the rows on screen who owns each
+   * (RecordOwnershipRead), and locks the changes of a row neither they nor
+   * those grants' teams own: "Your permission is limited to monitors you or
+   * your teams own." Until it lands, the rows are offered as before, and
+   * the server keeps the last word.
+   */
+  const recordLock: ModelRecordLock | null = RecordLocks.getRecordLock(model);
+  const rowLabelLock: ModelRecordLock | null =
+    recordLock &&
+    (!recordLock.labelsColumn ||
+      PermissionGate.canReadColumn(model, recordLock.labelsColumn))
+      ? recordLock
+      : null;
+  const rowLabelNames: ReadonlyMap<string, string> = useLabelNames(
+    rowLabelLock ? rowLabelLock.labelIds : [],
+  );
+
+  const isRowOwnershipWanted: boolean = Boolean(
+    rowLabelLock?.isDecidedByOwners && isRecordOwnershipWanted(props.modelType),
+  );
+  const [rowIds, setRowIds] = useState<Array<string>>([]);
+  const rowOwnership: RecordOwnershipState = useRecordOwnership({
+    modelType: props.modelType,
+    ids: rowIds,
+    isWanted: isRowOwnershipWanted,
+  });
+
+  const getRowLabelLock: (
+    item: TBaseModel,
+    action: LabelLockAction,
+  ) => string | undefined = (
+    item: TBaseModel,
+    action: LabelLockAction,
+  ): string | undefined => {
+    if (!rowLabelLock) {
+      return undefined;
+    }
+
+    const rowId: string = LabelAccess.readId(
+      (item as BaseModel)._id || (item as BaseModel).id,
+    );
+
+    const reason: string | null = getRecordLabelRefusal({
+      lock: rowLabelLock,
+      action: action,
+      recordLabelIds: rowLabelLock.labelsColumn
+        ? getRecordLabelIds(item, rowLabelLock.labelsColumn)
+        : [],
+      nouns: {
+        singularName: props.singularName || model.singularName || "",
+        pluralName: props.pluralName || model.pluralName || "",
+      },
+      labelNames: rowLabelNames,
+      translator: translator,
+      ownership: getRecordOwnershipFacts(rowOwnership.result, rowId),
+    });
+
+    if (!reason) {
+      return undefined;
+    }
+
+    return PermissionGate.getRefusedOnRecordReason({
+      model: model,
+      action: action,
+      reason: reason,
+      options: {
+        singularName: props.singularName || undefined,
+        verb:
+          action === ModelAction.Delete
+            ? props.bulkActions?.deleteVerb?.trim() || undefined
+            : undefined,
+      },
+    });
+  };
+
+  // The list's own reason first, then the row's labels'.
+  const getEditDisabledReason:
+    | ((item: TBaseModel) => string | undefined)
+    | undefined =
+    rowLabelLock || props.getEditDisabledReason
+      ? (item: TBaseModel): string | undefined => {
+          return (
+            props.getEditDisabledReason?.(item) ||
+            getRowLabelLock(item, ModelAction.Update)
+          );
+        }
+      : undefined;
+
+  const getDeleteDisabledReason:
+    | ((item: TBaseModel) => string | undefined)
+    | undefined =
+    rowLabelLock || props.getDeleteDisabledReason
+      ? (item: TBaseModel): string | undefined => {
+          return (
+            props.getDeleteDisabledReason?.(item) ||
+            getRowLabelLock(item, ModelAction.Delete)
+          );
+        }
+      : undefined;
+
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
   const [importRefreshCounter, setImportRefreshCounter] = useState<number>(0);
 
@@ -286,13 +415,10 @@ const ModelTable: <TBaseModel extends BaseModel>(
             action: ActionButtonSchema<TBaseModel>,
           ): ActionButtonSchema<TBaseModel> => {
             /*
-             * A row the reader may not change (getEditDisabledReason) keeps
-             * its switch locked, with the same reason as its Edit.
+             * A row the reader may not change (getEditDisabledReason, its
+             * labels' lock among it) keeps its switch locked, with the same
+             * reason as its Edit.
              */
-            const getEditDisabledReason:
-              | ((item: TBaseModel) => string | undefined)
-              | undefined = props.getEditDisabledReason;
-
             if (!getEditDisabledReason) {
               return action;
             }
@@ -345,6 +471,78 @@ const ModelTable: <TBaseModel extends BaseModel>(
         [RULE_EMPTIED_LIMITS_COLUMN]: true,
       } as Select<TBaseModel>)
     : ruleCriteriaTable.selectMoreFields;
+
+  /*
+   * What the rows are read with beyond their columns: the row switch's
+   * column, and - for a reader whose changes the rows' labels may lock - the
+   * ids of each row's labels, beside whatever a Labels column reads of them.
+   */
+  let rowSelectMoreFields: Select<TBaseModel> | undefined =
+    baseSelectMoreFields;
+
+  if (props.rowSwitch) {
+    rowSelectMoreFields = {
+      ...((baseSelectMoreFields ||
+        props.selectMoreFields ||
+        {}) as Select<TBaseModel>),
+      [props.rowSwitch.column]: true,
+    } as Select<TBaseModel>;
+  }
+
+  if (rowLabelLock?.labelsColumn) {
+    const labelsColumn: string = rowLabelLock.labelsColumn;
+    const selected: Dictionary<unknown> =
+      ((rowSelectMoreFields ||
+        props.selectMoreFields ||
+        {}) as Dictionary<unknown>) || {};
+    const labelsSelect: unknown = selected[labelsColumn];
+
+    rowSelectMoreFields = {
+      ...selected,
+      [labelsColumn]: {
+        ...(labelsSelect && typeof labelsSelect === "object"
+          ? (labelsSelect as Dictionary<unknown>)
+          : {}),
+        _id: true,
+      },
+    } as Select<TBaseModel>;
+  }
+
+  /*
+   * What the rows' locks are worked out from that lands after the rows: the
+   * names of the labels a reason names, and who owns each row. The list
+   * draws its rows' actions again when it changes (BaseModelTable's
+   * rowLocksKey), so a row's menu says what its lock says now.
+   */
+  const rowLocksKey: string = rowLabelLock
+    ? JSON.stringify([
+        Array.from(rowLabelNames.entries()),
+        rowOwnership.isRead,
+        rowOwnership.result,
+      ])
+    : "";
+
+  /*
+   * The rows on screen, for who owns them (#11436): kept only for a reader
+   * whose rows' owners may lock something, so nobody else's list draws
+   * again for it.
+   */
+  const onFetchSuccess: (
+    data: Array<TBaseModel>,
+    totalCount: number,
+  ) => void = (data: Array<TBaseModel>, totalCount: number): void => {
+    if (isRowOwnershipWanted) {
+      setRowIds(
+        data
+          .map((item: TBaseModel): string => {
+            return LabelAccess.readId(item._id || item.id);
+          })
+          .filter(Boolean),
+      );
+    }
+
+    props.onFetchSuccess?.(data, totalCount);
+  };
 
   if (props.enableJsonImportExport) {
     bulkActions = {
@@ -407,23 +605,21 @@ const ModelTable: <TBaseModel extends BaseModel>(
         {...props}
         columns={columns}
         filters={ruleCriteriaTable.filters}
-        {...(baseSelectMoreFields
-          ? { selectMoreFields: baseSelectMoreFields }
+        {...(rowSelectMoreFields
+          ? { selectMoreFields: rowSelectMoreFields }
           : {})}
         {...(props.rowSwitch
           ? {
-              selectMoreFields: {
-                ...((baseSelectMoreFields ||
-                  props.selectMoreFields ||
-                  {}) as Select<TBaseModel>),
-                [props.rowSwitch.column]: true,
-              } as Select<TBaseModel>,
               actionButtons: [
                 ...rowSwitchActions,
                 ...(props.actionButtons || []),
               ],
             }
           : {})}
+        getEditDisabledReason={getEditDisabledReason}
+        getDeleteDisabledReason={getDeleteDisabledReason}
+        rowLocksKey={rowLocksKey}
+        onFetchSuccess={onFetchSuccess}
         helpContent={ruleCriteriaTable.helpContent}
         bulkActions={bulkActions}
         cardProps={cardProps}
@@ -537,6 +733,16 @@ const ModelTable: <TBaseModel extends BaseModel>(
                         })
                 }
                 isTitleTranslated={true}
+                description={
+                  modalType === ModalType.Create
+                    ? props.createFormDescription
+                    : undefined
+                }
+                submitButtonStyleType={
+                  modalType === ModalType.Create
+                    ? props.createFormSubmitButtonStyle
+                    : undefined
+                }
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}
                 name={

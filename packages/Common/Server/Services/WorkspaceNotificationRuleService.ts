@@ -12,6 +12,7 @@ import NotificationRuleCondition, {
   NotificationRuleConditionCheckOn,
   NotificationRuleConditionUtil,
   NotificationRuleConditionValues,
+  OWNER_CHECK_ON_BY_EVENT_TYPE,
 } from "../../Types/Workspace/NotificationRules/NotificationRuleCondition";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Label from "../../Models/DatabaseModels/Label";
@@ -142,6 +143,9 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import WorkspaceRecordOwners, {
   OwnedRecordKey,
 } from "../Utils/Workspace/WorkspaceRecordOwners";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceMarkdownNotificationJSON from "../Utils/Workspace/WorkspaceMarkdownNotificationJSON";
+import { JSONObject } from "../../Types/JSON";
 import NotificationRuleConditionIds from "../Utils/Workspace/NotificationRuleConditionIds";
 import WorkspacePostedMessages from "../Utils/Workspace/WorkspacePostedMessages";
 import WorkspacePostedMessage from "../../Types/Workspace/WorkspacePostedMessage";
@@ -266,6 +270,96 @@ export type NotificationForRecordKey = Exclude<
   keyof NotificationFor,
   "serviceLevelObjectivePolicyChanges" | "serviceLevelObjectiveStatusChange"
 >;
+
+/*
+ * A message about a record, as sendWorkspaceMarkdownNotification posts it:
+ * what it says, and where and how it goes.
+ */
+export interface WorkspaceMarkdownNotification {
+  projectId: ObjectID;
+  notificationFor: NotificationFor;
+  feedInfoInMarkdown: string;
+  /*
+   * What the message's notification shows, as plain text
+   * (WorkspaceMessagePayload.text). Without it, a Slack notification has
+   * nothing to show and Microsoft Teams says only that a card was sent.
+   */
+  notificationText?: string | undefined;
+  /*
+   * What a workspace is sent, where it is not feedInfoInMarkdown: an
+   * on-call handoff names the person on call as each workspace knows
+   * them - "@ana" where they connected their account there (issue
+   * #7549).
+   */
+  markdownByWorkspaceType?: Partial<Record<WorkspaceType, string>> | undefined;
+  /*
+   * The people each workspace's line mentions on purpose, as its text
+   * writes them (WorkspacePayloadMarkdown.mentions): a hand-off's person
+   * on call, on a rule that asks for it (issue #7968).
+   */
+  mentionsByWorkspaceType?:
+    | Partial<Record<WorkspaceType, Array<WorkspacePayloadMention>>>
+    | undefined;
+  workspaceNotification: {
+    /*
+     * Who did what the message says, as a OneUptime user id: their name
+     * leads the message (WorkspaceUtil.getMessageBlocksByMarkdown), and
+     * its Notification Logs rows name them as who sent it. The author of
+     * the feed item the message posts - never the person it is about.
+     */
+    authorUserId?: ObjectID | undefined;
+    // The project API key that did it, when no person did: its name leads.
+    authorApiKeyName?: string | undefined;
+    sendWorkspaceNotification: boolean;
+    appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
+    /*
+     * The key the posts are kept under (WorkspaceLiveMessageKey), each
+     * with its lead blocks - the entry's own, before the appended ones -
+     * so a later change edits them in place (WorkspaceLiveMessages).
+     */
+    keepPostsAs?: string | undefined;
+    // Not posted in this channel (WorkspaceChannelToSkip).
+    exceptChannel?: WorkspaceChannelToSkip | undefined;
+    /*
+     * Which updates the message is (NotificationRuleUpdates): it is
+     * posted only in the channels and chats whose rules want one of them.
+     * Left out, wherever the record's messages go.
+     */
+    updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
+    /*
+     * One of several messages about one change, each for the channels
+     * that want it said that way (getMessageDestinationsWanting): posted
+     * only where a rule also wants one of these updates...
+     */
+    alsoWantedUpdateKinds?:
+      | ReadonlyArray<NotificationRuleUpdateKind>
+      | undefined;
+    // ...and where no rule wants any of these.
+    notWantedUpdateKinds?:
+      | ReadonlyArray<NotificationRuleUpdateKind>
+      | undefined;
+    /*
+     * For a hand-off's line said with and without its mention: posted
+     * only where a rule that wants it asks to mention who is on call
+     * (true), or only where none does (false).
+     */
+    mentioning?: boolean | undefined;
+    /*
+     * Told where the message was posted - each channel and chat, with
+     * the id the workspace gave the post - once it is, for a message
+     * OneUptime may have to take back: what OneUptime AI read in a call's
+     * transcript, deleted with the transcript (CallSummaryPosts). Told
+     * nothing when nothing was posted.
+     */
+    onPosted?: ((messages: Array<WorkspacePostedMessage>) => void) | undefined;
+    /*
+     * The message announces the record - its Created message: posted at
+     * once, ahead of the other messages about the record that its create
+     * holds back until it (WorkspaceCreatedMessageFirst).
+     */
+    announcesRecord?: boolean | undefined;
+  };
+}
 
 // Slack conversation ids are short upper-case alphanumerics (C0123ABCD, G..., D...).
 const SLACK_CHANNEL_ID_REGEX: RegExp = /^[A-Za-z0-9]{1,64}$/;
@@ -1966,90 +2060,108 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     );
   }
 
+  /*
+   * Whether one of the project's rules for a kind of record asks who owns
+   * it ("Alert Owner is any of Platform"), in any workspace: such a
+   * record's create waits for the owners added outside its chain before its
+   * rules are matched (WorkspaceRuleOwnersOnCreate). False for a kind of
+   * record without owners, and for a project with no workspace connected,
+   * where nothing is posted.
+   */
   @CaptureSpan()
-  public async sendWorkspaceMarkdownNotification(data: {
+  public async hasRulesWithOwnerCondition(data: {
     projectId: ObjectID;
-    notificationFor: NotificationFor;
-    feedInfoInMarkdown: string;
-    /*
-     * What the message's notification shows, as plain text
-     * (WorkspaceMessagePayload.text). Without it, a Slack notification has
-     * nothing to show and Microsoft Teams says only that a card was sent.
-     */
-    notificationText?: string | undefined;
-    /*
-     * What a workspace is sent, where it is not feedInfoInMarkdown: an
-     * on-call handoff names the person on call as each workspace knows
-     * them - "@ana" where they connected their account there (issue
-     * #7549).
-     */
-    markdownByWorkspaceType?:
-      | Partial<Record<WorkspaceType, string>>
-      | undefined;
-    /*
-     * The people each workspace's line mentions on purpose, as its text
-     * writes them (WorkspacePayloadMarkdown.mentions): a hand-off's person
-     * on call, on a rule that asks for it (issue #7968).
-     */
-    mentionsByWorkspaceType?:
-      | Partial<Record<WorkspaceType, Array<WorkspacePayloadMention>>>
-      | undefined;
-    workspaceNotification: {
-      /*
-       * Who did what the message says, as a OneUptime user id: their name
-       * leads the message (WorkspaceUtil.getMessageBlocksByMarkdown), and
-       * its Notification Logs rows name them as who sent it. The author of
-       * the feed item the message posts - never the person it is about.
-       */
-      authorUserId?: ObjectID | undefined;
-      // The project API key that did it, when no person did: its name leads.
-      authorApiKeyName?: string | undefined;
-      sendWorkspaceNotification: boolean;
-      appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
-      /*
-       * The key the posts are kept under (WorkspaceLiveMessageKey), each
-       * with its lead blocks - the entry's own, before the appended ones -
-       * so a later change edits them in place (WorkspaceLiveMessages).
-       */
-      keepPostsAs?: string | undefined;
-      // Not posted in this channel (WorkspaceChannelToSkip).
-      exceptChannel?: WorkspaceChannelToSkip | undefined;
-      /*
-       * Which updates the message is (NotificationRuleUpdates): it is
-       * posted only in the channels and chats whose rules want one of them.
-       * Left out, wherever the record's messages go.
-       */
-      updateKinds?: ReadonlyArray<NotificationRuleUpdateKind> | undefined;
-      /*
-       * One of several messages about one change, each for the channels
-       * that want it said that way (getMessageDestinationsWanting): posted
-       * only where a rule also wants one of these updates...
-       */
-      alsoWantedUpdateKinds?:
-        | ReadonlyArray<NotificationRuleUpdateKind>
-        | undefined;
-      // ...and where no rule wants any of these.
-      notWantedUpdateKinds?:
-        | ReadonlyArray<NotificationRuleUpdateKind>
-        | undefined;
-      /*
-       * For a hand-off's line said with and without its mention: posted
-       * only where a rule that wants it asks to mention who is on call
-       * (true), or only where none does (false).
-       */
-      mentioning?: boolean | undefined;
-      /*
-       * Told where the message was posted - each channel and chat, with
-       * the id the workspace gave the post - once it is, for a message
-       * OneUptime may have to take back: what OneUptime AI read in a call's
-       * transcript, deleted with the transcript (CallSummaryPosts). Told
-       * nothing when nothing was posted.
-       */
-      onPosted?:
-        | ((messages: Array<WorkspacePostedMessage>) => void)
-        | undefined;
-    };
-  }): Promise<void> {
+    eventType: NotificationRuleEventType;
+  }): Promise<boolean> {
+    const ownersCheckOn: NotificationRuleConditionCheckOn | undefined =
+      OWNER_CHECK_ON_BY_EVENT_TYPE[data.eventType];
+
+    if (!ownersCheckOn) {
+      return false;
+    }
+
+    if (!(await this.hasConnectedWorkspace(data.projectId))) {
+      return false;
+    }
+
+    const rules: Array<WorkspaceNotificationRule> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        eventType: data.eventType,
+      },
+      select: {
+        notificationRule: true,
+      },
+      props: {
+        isRoot: true,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    });
+
+    return rules.some((rule: WorkspaceNotificationRule): boolean => {
+      return NotificationRuleConditionUtil.getCheckOnsUsed(
+        (rule.notificationRule as IncidentNotificationRule | undefined)
+          ?.filters,
+      ).has(ownersCheckOn);
+    });
+  }
+
+  /*
+   * Posts a message about a record wherever its rules send it. While the
+   * record is being created, a message that does not announce it waits for
+   * the one that does - its Created message - and is posted right after it,
+   * in the order it was made (WorkspaceCreatedMessageFirst): the record's
+   * channels hear of the record first, then of what happened to it - on
+   * whichever App server the message is made (#11198). It waits with what
+   * it says, so another App server posts it should this one be killed
+   * before its turn (#11235). Asked before anything else, so the messages
+   * keep the order they were made in.
+   */
+  @CaptureSpan()
+  public async sendWorkspaceMarkdownNotification(
+    data: WorkspaceMarkdownNotification,
+  ): Promise<void> {
+    if (
+      !data.workspaceNotification.announcesRecord &&
+      (await WorkspaceCreatedMessageFirst.keep({
+        record: data.notificationFor,
+        post: (): Promise<void> => {
+          return this.postWorkspaceMarkdownNotification(data);
+        },
+        stored: (): JSONObject => {
+          return WorkspaceMarkdownNotificationJSON.toJSON(data);
+        },
+      }))
+    ) {
+      return;
+    }
+
+    await this.postWorkspaceMarkdownNotification(data);
+  }
+
+  /*
+   * A message another App server kept for a record's Created message, and
+   * was killed before posting (#11235): posted here, in its turn in the
+   * record's line, from what that server stored of it - wherever the
+   * record's rules send it now, as that server would have. The server that
+   * takes it over calls this (WorkspaceCreatedMessageFirst.
+   * takeOverForStoppedServers, which App/Index.ts starts). Throws when what
+   * was stored is not a message: it is not posted.
+   */
+  @CaptureSpan()
+  public async postStoredWorkspaceMarkdownNotification(
+    stored: JSONObject,
+  ): Promise<void> {
+    await this.postWorkspaceMarkdownNotification(
+      WorkspaceMarkdownNotificationJSON.fromJSON(stored),
+    );
+  }
+
+  @CaptureSpan()
+  private async postWorkspaceMarkdownNotification(
+    data: WorkspaceMarkdownNotification,
+  ): Promise<void> {
     /*
      * A project with no Slack or Microsoft Teams connected has nowhere to
      * post: nothing below could open a channel, send a message or log a

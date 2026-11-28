@@ -1,22 +1,22 @@
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Query from "Common/Types/BaseDatabase/Query";
+import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import EveryPage from "Common/UI/Utils/EveryPage";
 import { getCloudAccountResourcesQuery } from "../Cloud/CloudAccountScope";
-import { CloudAccountRecommendationResource } from "./CloudAccountRecommendationPlan";
-import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
+import CloudAccountRecommendationPlan, {
+  CloudAccountRecommendationResource,
+} from "./CloudAccountRecommendationPlan";
+import MonitorRecommendationCoverageApi from "./MonitorRecommendationCoverageApi";
 import {
   CLOUD_RECOMMENDATION_CONNECTION_SELECT,
   readCloudConnectionRecommendationContext,
@@ -35,31 +35,72 @@ import {
  *     one's connection says of how its metrics come: how often it reads
  *     them, and which its stream writes instead, which each monitor's
  *     window follows (readCloudConnectionRecommendationContext, #10028);
- *   - the Metrics monitors that may already cover a recommendation, and the
- *     recommendations the team dismissed on a cloud resource's tab.
+ *   - which of their recommendations a monitor covers already, decided by
+ *     the server (#11074), and the recommendations the team dismissed on a
+ *     cloud resource's tab.
+ *
+ * EVERY RESOURCE, AND EVERY DISMISSAL OF ONE (#11210). The account's
+ * resources were one read of the first 10,000, and the dismissals one read
+ * of the project's first 10,000: in a larger account the resources past
+ * them were offered nothing, and in a project that had dismissed more, a
+ * dismissed recommendation came back as one to set up. The resources are
+ * read a page at a time until every one is (EveryPage), and the dismissals
+ * by the resources they are of - the account's own, every one - rather
+ * than the project's first 10,000.
  */
 
+// The most resources one page of the account's holds.
+export const ACCOUNT_RESOURCES_PAGE_SIZE: number = 2500;
+
+// The most resources whose dismissals one read asks for.
+export const DISMISSALS_RESOURCES_PER_READ: number = 500;
+
 export interface CloudAccountRecommendationResources {
+  // Every resource the account holds, each with what decides its monitors.
   resources: Array<CloudAccountRecommendationResource>;
-  // How many the account holds: more than were read past the list's limit.
-  total: number;
 }
 
 export interface CloudAccountRecommendationCoverage {
-  existingMonitors: Array<{
-    monitorId: ObjectID;
-    monitorSteps: Array<MonitorStep>;
-  }>;
+  /*
+   * The monitor that covers each recommendation of each resource, by
+   * getCloudAccountCoverageKey: decided by the server (#11074).
+   */
+  coveredMonitorIds: Map<string, ObjectID>;
+  // What the team dismissed on the account's resources' tabs.
   dismissals: Array<RecommendationDismissal>;
 }
+
+// What decides each resource's recommendations, as on its own tab.
+export const CLOUD_ACCOUNT_RESOURCE_SELECT: Select<CloudResource> = {
+  _id: true,
+  name: true,
+  cloudProvider: true,
+  cloudResourceType: true,
+  telemetryAttributes: true,
+  cloudReadings: true,
+  cloudProperties: true,
+  cloudConnectionId: true,
+  // What its account's stream is read by.
+  cloudAccountId: true,
+  cloudRegion: true,
+};
+
+// What the plan reads of a dismissal.
+export const CLOUD_ACCOUNT_DISMISSAL_SELECT: Select<RecommendationDismissal> = {
+  recommendationId: true,
+  recommendationType: true,
+  resourceType: true,
+  resourceId: true,
+  dismissalReason: true,
+};
 
 export async function loadCloudAccountRecommendationResources(data: {
   projectId: ObjectID;
   provider: string;
   cloudAccountId: string;
 }): Promise<CloudAccountRecommendationResources> {
-  const [list, connections]: [
-    ListResult<CloudResource>,
+  const [rows, connections]: [
+    Array<CloudResource>,
     Map<string, CloudConnection>,
   ] = await Promise.all([
     loadAccountResources(data),
@@ -67,7 +108,7 @@ export async function loadCloudAccountRecommendationResources(data: {
   ]);
   const now: Date = OneUptimeDate.getCurrentDate();
 
-  const resources: Array<CloudAccountRecommendationResource> = list.data
+  const resources: Array<CloudAccountRecommendationResource> = rows
     .filter((resource: CloudResource): boolean => {
       return Boolean(resource._id);
     })
@@ -92,18 +133,20 @@ export async function loadCloudAccountRecommendationResources(data: {
       };
     });
 
-  return {
-    resources: resources,
-    total: Math.max(list.count || 0, resources.length),
-  };
+  return { resources: resources };
 }
 
+/*
+ * Every resource of the account, by name, a page at a time: a page holds
+ * each resource's attributes, readings and properties, so the pages are
+ * smaller than the most a page may hold.
+ */
 function loadAccountResources(data: {
   projectId: ObjectID;
   provider: string;
   cloudAccountId: string;
-}): Promise<ListResult<CloudResource>> {
-  return ModelAPI.getList<CloudResource>({
+}): Promise<Array<CloudResource>> {
+  return EveryPage.read<CloudResource>({
     modelType: CloudResource,
     query: {
       ...getCloudAccountResourcesQuery({
@@ -114,23 +157,9 @@ function loadAccountResources(data: {
       // Its environments are App Platforms', and read no cloud metrics.
       cloudResourceKind: CloudResourceKind.Resource,
     },
-    limit: LIMIT_PER_PROJECT,
-    skip: 0,
-    // What decides each one's recommendations, as on its own tab.
-    select: {
-      _id: true,
-      name: true,
-      cloudProvider: true,
-      cloudResourceType: true,
-      telemetryAttributes: true,
-      cloudReadings: true,
-      cloudProperties: true,
-      cloudConnectionId: true,
-      // What its account's stream is read by.
-      cloudAccountId: true,
-      cloudRegion: true,
-    },
+    select: CLOUD_ACCOUNT_RESOURCE_SELECT,
     sort: { name: SortOrder.Ascending },
+    pageSize: ACCOUNT_RESOURCES_PAGE_SIZE,
   });
 }
 
@@ -149,17 +178,13 @@ async function loadCloudConnections(
   >();
 
   try {
-    const list: ListResult<CloudConnection> =
-      await ModelAPI.getList<CloudConnection>({
-        modelType: CloudConnection,
-        query: { provider: provider as CloudProvider },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: { _id: true, ...CLOUD_RECOMMENDATION_CONNECTION_SELECT },
-        sort: {},
-      });
+    const rows: Array<CloudConnection> = await EveryPage.read<CloudConnection>({
+      modelType: CloudConnection,
+      query: { provider: provider as CloudProvider },
+      select: { _id: true, ...CLOUD_RECOMMENDATION_CONNECTION_SELECT },
+    });
 
-    for (const connection of list.data) {
+    for (const connection of rows) {
       if (connection._id) {
         connections.set(connection._id.toString(), connection);
       }
@@ -171,56 +196,84 @@ async function loadCloudConnections(
   return connections;
 }
 
-export async function loadCloudAccountRecommendationCoverage(): Promise<CloudAccountRecommendationCoverage> {
-  const [monitorList, dismissalList]: [
-    ListResult<Monitor>,
-    ListResult<RecommendationDismissal>,
+/*
+ * What the team dismissed on these resources' tabs - every dismissal of
+ * every one of them - read by the resources, a few hundred at a time, each
+ * read a page at a time (a resource has a dismissal per recommendation it
+ * was offered). A read that fails fails the answer: a dismissed
+ * recommendation read as not dismissed would be offered again.
+ */
+export async function loadCloudAccountDismissals(
+  resourceIds: Array<string>,
+): Promise<Array<RecommendationDismissal>> {
+  const ids: Array<string> = Array.from(
+    new Set(
+      resourceIds
+        .map((id: string): string => {
+          return id.trim().toLowerCase();
+        })
+        .filter((id: string): boolean => {
+          return ObjectID.isValidUUID(id);
+        }),
+    ),
+  );
+
+  const dismissals: Array<RecommendationDismissal> = [];
+
+  for (
+    let start: number = 0;
+    start < ids.length;
+    start += DISMISSALS_RESOURCES_PER_READ
+  ) {
+    dismissals.push(
+      ...(await EveryPage.read<RecommendationDismissal>({
+        modelType: RecommendationDismissal,
+        query: {
+          recommendationType: RecommendationType.Monitor,
+          resourceType: MonitorRecommendationResourceType.CloudResource,
+          resourceId: new Includes(
+            ids
+              .slice(start, start + DISMISSALS_RESOURCES_PER_READ)
+              .map((id: string): ObjectID => {
+                return new ObjectID(id);
+              }),
+          ),
+        } as Query<RecommendationDismissal>,
+        select: CLOUD_ACCOUNT_DISMISSAL_SELECT,
+      })),
+    );
+  }
+
+  return dismissals;
+}
+
+/*
+ * Which of the resources' recommendations a monitor covers already, and
+ * what the team dismissed. Coverage is the server's to decide, with a query
+ * over every monitor the reader may read (#11074): the page read the
+ * project's first 10,000 Metrics monitors and compared them here, so a
+ * monitor past them never covered anything, and the account offered again
+ * what was already made.
+ */
+export async function loadCloudAccountRecommendationCoverage(
+  resources: Array<CloudAccountRecommendationResource>,
+): Promise<CloudAccountRecommendationCoverage> {
+  const [coveredMonitorIds, dismissals]: [
+    Map<string, ObjectID>,
+    Array<RecommendationDismissal>,
   ] = await Promise.all([
-    ModelAPI.getList<Monitor>({
-      modelType: Monitor,
-      query: { monitorType: MonitorType.Metrics },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: { name: true, monitorSteps: true },
-      sort: { name: SortOrder.Ascending },
-    }),
-    /*
-     * Every cloud resource's dismissals: the plan reads those of the
-     * account's own resources (CloudAccountRecommendationPlan.buildGroups),
-     * and a list of a few thousand ids is no query to send.
-     */
-    ModelAPI.getList<RecommendationDismissal>({
-      modelType: RecommendationDismissal,
-      query: {
-        recommendationType: RecommendationType.Monitor,
-        resourceType: MonitorRecommendationResourceType.CloudResource,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
-        recommendationId: true,
-        recommendationType: true,
-        resourceType: true,
-        resourceId: true,
-        dismissalReason: true,
-      },
-      sort: {},
-    }),
+    MonitorRecommendationCoverageApi.findCoveringMonitors(
+      CloudAccountRecommendationPlan.getCoverageQuestions(resources),
+    ),
+    loadCloudAccountDismissals(
+      resources.map((resource: CloudAccountRecommendationResource): string => {
+        return resource.resourceId;
+      }),
+    ),
   ]);
 
   return {
-    existingMonitors: monitorList.data
-      .filter((monitor: Monitor): boolean => {
-        return Boolean(monitor.id);
-      })
-      .map((monitor: Monitor) => {
-        return {
-          monitorId: monitor.id!,
-          monitorSteps: MonitorRecommendationCreateUtil.getExistingMonitorSteps(
-            [monitor],
-          ),
-        };
-      }),
-    dismissals: dismissalList.data,
+    coveredMonitorIds,
+    dismissals: dismissals,
   };
 }

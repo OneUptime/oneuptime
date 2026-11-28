@@ -67,6 +67,8 @@ const SUB_MINUTE_JOBS: Record<string, string> = {
     "The same for monitors that expect an email: offline as soon as the window passes, evaluated only once it can have.",
   "packages/App/FeatureSet/Workers/Jobs/Telegram/PollUpdates.ts":
     "A Telegram long poll for the bot's messages while polling is on; with it off, one read of the settings.",
+  "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations.ts":
+    "Each telemetry monitor is evaluated at its own moment of its interval, so an installation's evaluations start spread over the minute instead of all at its start and hitting ClickHouse together (#11060): each run queues the evaluations due before the next run, each at its moment. Reads only the telemetry monitors due by then (by type, the monitorType and _id index), and stamps and queues only those.",
 };
 
 // Jobs that run every minute or more often and list projects, and why.

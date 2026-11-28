@@ -1,19 +1,47 @@
 import ProductionReviewSensitiveData, {
+  parseColumnLocation,
+  SESSION_REPLAY_PLACE_OF_SINK,
+  STORE_KINDS_OF_SINK,
+  TableKnowledge,
   TelemetryKnowledge,
 } from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewSensitiveData";
+import { ProductionReviewRumApplication } from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewScope";
+import { CodeAgentScopedService } from "../../../../../Server/Utils/AI/CodeFix/CodeAgentTelemetryScope";
+import * as TelemetryScrubCoverage from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { SensitiveDataCandidate } from "../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataCandidate";
+import { CodeHostChangedFile } from "../../../../../Server/Utils/CodeRepository/CodeHost/CodeHostTypes";
+import DataAssetService from "../../../../../Server/Services/DataAssetService";
+import DataAssetUsageService from "../../../../../Server/Services/DataAssetUsageService";
+import DataSecurityCustomDataTypeService from "../../../../../Server/Services/DataSecurityCustomDataTypeService";
+import DataStoreFindingService from "../../../../../Server/Services/DataStoreFindingService";
+import DataStoreService from "../../../../../Server/Services/DataStoreService";
+import DataAsset from "../../../../../Models/DatabaseModels/DataAsset";
+import DataAssetUsage from "../../../../../Models/DatabaseModels/DataAssetUsage";
 import DataStore from "../../../../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../../../../Models/DatabaseModels/DataStoreFinding";
 import {
+  ProductionReviewLeakHeldBeforeJSON,
   ProductionReviewLeakJSON,
+  ProductionReviewSensitiveDataJSON,
+  ProductionReviewSensitiveDataUtil,
+  SensitiveDataColumn,
   SensitiveDataLeakKind,
   SensitiveDataSink,
 } from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
+import DataStoreEnvironment from "../../../../../Types/DataSecurity/DataStoreEnvironment";
+import { telemetryDataStoreKey } from "../../../../../Types/DataSecurity/DataStoreKey";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
+import { DataStoreExposure } from "../../../../../Types/DataSecurity/DataStorePosture";
+import {
+  getRumTelemetryLeakSignal,
+  TelemetryLeakFixOwnerKind,
+  TelemetryLeakSignal,
+} from "../../../../../Types/DataSecurity/TelemetryLeakFix";
+import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import SecuritySeverity from "../../../../../Types/SecuritySeverity";
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * WHAT PRODUCTION KNOWS MAKES A POINT SHARPER (#10376): the store a
@@ -326,5 +354,1356 @@ describe("what the service's telemetry already held", () => {
     )!;
 
     expect(point.production).toBeUndefined();
+  });
+});
+
+/*
+ * WHAT DATA SECURITY KNOWS OF A MIGRATION'S TABLE (#10779): the store the
+ * table is in - by the findings in its columns, and the tables Data
+ * Observability watches - what that store holds, what of it the new
+ * column inherits, and the table's columns already found holding what
+ * the new one is for. Read for a private repository alone; it never
+ * changes how bad the point is.
+ */
+describe("a migration's table, as Data Security knows it (#10779)", () => {
+  const ORDERS_DB_ID: string = "5d1c2b3a-0000-4000-8000-0000000000c1";
+  const STAGING_DB_ID: string = "5d1c2b3a-0000-4000-8000-0000000000c2";
+  const CUSTOMERS_ASSET_ID: string = "5d1c2b3a-0000-4000-8000-0000000000d1";
+
+  function ssnColumn(
+    change: Partial<SensitiveDataCandidate> = {},
+  ): SensitiveDataCandidate {
+    return {
+      kind: SensitiveDataLeakKind.Migration,
+      checkId: "new-personal-data-column",
+      column: SensitiveDataColumn.PersonalData,
+      path: "db/migrations/20261124_add_customer_ssn.sql",
+      line: 1,
+      lineText: "ALTER TABLE customers ADD COLUMN customer_ssn VARCHAR(11);",
+      subject: "customer_ssn",
+      where: "customers",
+      dataTypes: [
+        {
+          id: "us-ssn",
+          name: "US Social Security number",
+          sensitivity: DataSensitivity.Restricted,
+          category: null,
+        },
+      ],
+      sensitivity: DataSensitivity.Restricted,
+      isBlocking: false,
+      text: "Adds the column `customer_ssn` to `customers`, whose name says it holds a US Social Security number.",
+      fix: "Store it only if you must, encrypted or tokenized, and say in your record of processing what it is for.",
+      ...change,
+    };
+  }
+
+  function dbStore(change: Partial<DataStore> = {}): DataStore {
+    const made: DataStore = new DataStore();
+
+    made.id = new ObjectID(ORDERS_DB_ID);
+    made.name = "orders-db";
+    made.kind = DataStoreKind.AwsRdsInstance;
+    made.sensitivity = DataSensitivity.Restricted;
+    made.dataTypeIds = ["us-ssn", "email-address"];
+    made.environment = DataStoreEnvironment.Production;
+    made.exposure = DataStoreExposure.Private;
+    Object.assign(made, change);
+
+    return made;
+  }
+
+  function columnFinding(
+    change: Partial<DataStoreFinding> = {},
+  ): DataStoreFinding {
+    const made: DataStoreFinding = new DataStoreFinding();
+
+    made.dataStoreId = new ObjectID(ORDERS_DB_ID);
+    made.dataTypeId = "us-ssn";
+    made.dataTypeName = "US Social Security number";
+    made.sensitivity = DataSensitivity.Restricted;
+    made.location = "public.customers.ssn_last4";
+    made.locationKind = "Column";
+    made.lastSeenAt = new Date("2026-11-22T10:00:00.000Z");
+    made.matchCount = 40;
+    made.isSuppressed = false;
+    Object.assign(made, change);
+
+    return made;
+  }
+
+  function knowledge(change: Partial<TableKnowledge> = {}): TableKnowledge {
+    return {
+      stores: [dbStore()],
+      findings: [columnFinding()],
+      assets: [],
+      ...change,
+    };
+  }
+
+  describe("a column's location, read for a table", () => {
+    test.each([
+      [
+        "public.customers.ssn_last4",
+        "customers",
+        "public.customers",
+        "ssn_last4",
+      ],
+      ["customers.ssn", "customers", "customers", "ssn"],
+      [
+        "analytics.public.customers.email",
+        "customers",
+        "analytics.public.customers",
+        "email",
+      ],
+      ["Public.Customers.SSN", "customers", "Public.Customers", "SSN"],
+      ["customers.address.city", "customers", "customers", "address.city"],
+    ])(
+      "%s is %s's",
+      (location: string, table: string, named: string, column: string) => {
+        expect(parseColumnLocation(location, table)).toEqual({
+          table: named,
+          column,
+        });
+      },
+    );
+
+    test.each([
+      ["public.customers_audit.ssn", "customers"],
+      ["public.orders.customers", "customers"],
+      ["customers", "customers"],
+      ["a.b.c.customers.ssn", "customers"],
+      ["", "customers"],
+    ])("%s is no column of %s", (location: string, table: string) => {
+      expect(parseColumnLocation(location, table)).toBeNull();
+    });
+  });
+
+  describe("what a point is told", () => {
+    test("the store the table is in, what it holds, and the column that already holds the same data", () => {
+      const known: ReturnType<
+        typeof ProductionReviewSensitiveData.readTableKnown
+      > = ProductionReviewSensitiveData.readTableKnown(
+        ssnColumn(),
+        knowledge(),
+      );
+
+      expect(known).toEqual({
+        store: {
+          dataStoreId: ORDERS_DB_ID,
+          name: "orders-db",
+          sensitivity: DataSensitivity.Restricted,
+          dataTypeNames: ["US Social Security number", "Email address"],
+        },
+        table: {
+          name: "public.customers",
+          dataTypeNames: ["US Social Security number"],
+          sameData: [
+            {
+              location: "public.customers.ssn_last4",
+              dataTypeName: "US Social Security number",
+              lastSeenAt: "2026-11-22T10:00:00.000Z",
+            },
+          ],
+          otherStoreCount: 0,
+        },
+      });
+    });
+
+    test("other kinds of data the table holds are named, never as the same data", () => {
+      const known: ReturnType<
+        typeof ProductionReviewSensitiveData.readTableKnown
+      > = ProductionReviewSensitiveData.readTableKnown(
+        ssnColumn(),
+        knowledge({
+          findings: [
+            columnFinding({
+              dataTypeId: "email-address",
+              dataTypeName: "Email address",
+              sensitivity: DataSensitivity.Confidential,
+              location: "public.customers.email",
+            }),
+            columnFinding({
+              dataTypeId: "phone-number",
+              dataTypeName: "Phone number",
+              sensitivity: DataSensitivity.Confidential,
+              location: "public.customers.phone",
+            }),
+          ],
+        }),
+      );
+
+      expect(known!.table.sameData).toEqual([]);
+      expect(known!.table.dataTypeNames.sort()).toEqual(
+        ["Email address", "Phone number"].sort(),
+      );
+    });
+
+    test("the most sensitive kinds first, three at most, each once", () => {
+      const known: ReturnType<
+        typeof ProductionReviewSensitiveData.readTableKnown
+      > = ProductionReviewSensitiveData.readTableKnown(
+        ssnColumn({ dataTypes: [] }),
+        knowledge({
+          findings: [
+            columnFinding({
+              dataTypeName: "Email address",
+              sensitivity: DataSensitivity.Confidential,
+              location: "public.customers.email",
+            }),
+            columnFinding({
+              dataTypeName: "Email address",
+              sensitivity: DataSensitivity.Confidential,
+              location: "public.customers.backup_email",
+            }),
+            columnFinding({ location: "public.customers.ssn" }),
+            columnFinding({
+              dataTypeName: "City",
+              sensitivity: DataSensitivity.Internal,
+              location: "public.customers.city",
+            }),
+            columnFinding({
+              dataTypeName: "Phone number",
+              sensitivity: DataSensitivity.Confidential,
+              location: "public.customers.phone",
+            }),
+          ],
+        }),
+      );
+
+      expect(known!.table.dataTypeNames).toHaveLength(3);
+      expect(known!.table.dataTypeNames[0]).toBe("US Social Security number");
+      expect(known!.table.dataTypeNames).not.toContain("City");
+    });
+
+    test.each([
+      [DataStoreExposure.Public, DataStoreExposure.Public],
+      [DataStoreExposure.OtherAccounts, DataStoreExposure.OtherAccounts],
+      [
+        DataStoreExposure.InternetReachable,
+        DataStoreExposure.InternetReachable,
+      ],
+      [DataStoreExposure.Private, undefined],
+      [DataStoreExposure.Unknown, undefined],
+    ])(
+      "a store %s: the column inherits %s",
+      (
+        exposure: DataStoreExposure,
+        inherited: DataStoreExposure | undefined,
+      ) => {
+        expect(
+          ProductionReviewSensitiveData.readTableKnown(
+            ssnColumn(),
+            knowledge({ stores: [dbStore({ exposure })] }),
+          )!.store.exposure,
+        ).toBe(inherited);
+      },
+    );
+
+    test("a store not encrypted at rest says so; one encrypted, or not read, says nothing", () => {
+      for (const [encryptedAtRest, said] of [
+        [false, true],
+        [true, undefined],
+        [null, undefined],
+      ] as Array<[boolean | null, boolean | undefined]>) {
+        expect(
+          ProductionReviewSensitiveData.readTableKnown(
+            ssnColumn(),
+            knowledge({
+              stores: [
+                dbStore({
+                  posture: {
+                    readAt: "2026-11-20T00:00:00.000Z",
+                    encryptedAtRest,
+                  },
+                }),
+              ],
+            }),
+          )!.store.isNotEncryptedAtRest,
+        ).toBe(said);
+      }
+    });
+
+    test("a table only Data Observability watches, with no finding in it: its store, its schema", () => {
+      const known: ReturnType<
+        typeof ProductionReviewSensitiveData.readTableKnown
+      > = ProductionReviewSensitiveData.readTableKnown(
+        ssnColumn(),
+        knowledge({
+          findings: [],
+          assets: [
+            {
+              dataStoreId: ORDERS_DB_ID,
+              name: "customers",
+              schemaName: "billing",
+              isUsedByRepository: false,
+            },
+          ],
+        }),
+      );
+
+      expect(known!.store.name).toBe("orders-db");
+      expect(known!.table).toEqual({
+        name: "billing.customers",
+        dataTypeNames: [],
+        sameData: [],
+        otherStoreCount: 0,
+      });
+    });
+
+    test("of several stores holding the table: the one the repository's services use first", () => {
+      const known: ReturnType<
+        typeof ProductionReviewSensitiveData.readTableKnown
+      > = ProductionReviewSensitiveData.readTableKnown(
+        ssnColumn(),
+        knowledge({
+          stores: [
+            dbStore(),
+            dbStore({
+              id: new ObjectID(STAGING_DB_ID),
+              name: "orders-db-staging",
+              environment: DataStoreEnvironment.Staging,
+            }),
+          ],
+          findings: [columnFinding()],
+          assets: [
+            {
+              dataStoreId: STAGING_DB_ID,
+              name: "customers",
+              schemaName: "public",
+              isUsedByRepository: true,
+            },
+          ],
+        }),
+      );
+
+      expect(known!.store.name).toBe("orders-db-staging");
+      expect(known!.table.otherStoreCount).toBe(1);
+      // Its own findings only: the other store's column is not this table's.
+      expect(known!.table.sameData).toEqual([]);
+    });
+
+    test("then production's, then the one whose columns were found holding data", () => {
+      const staging: DataStore = dbStore({
+        id: new ObjectID(STAGING_DB_ID),
+        name: "orders-db-staging",
+        environment: DataStoreEnvironment.Staging,
+      });
+
+      expect(
+        ProductionReviewSensitiveData.readTableKnown(
+          ssnColumn(),
+          knowledge({
+            stores: [staging, dbStore()],
+            findings: [
+              columnFinding({ dataStoreId: new ObjectID(STAGING_DB_ID) }),
+              columnFinding(),
+            ],
+          }),
+        )!.store.name,
+      ).toBe("orders-db");
+
+      expect(
+        ProductionReviewSensitiveData.readTableKnown(
+          ssnColumn(),
+          knowledge({
+            stores: [
+              staging,
+              dbStore({ environment: DataStoreEnvironment.Unknown }),
+            ],
+            findings: [
+              columnFinding({ dataStoreId: new ObjectID(STAGING_DB_ID) }),
+            ],
+            assets: [
+              {
+                dataStoreId: ORDERS_DB_ID,
+                name: "customers",
+                schemaName: "public",
+                isUsedByRepository: false,
+              },
+            ],
+          }),
+        )!.store.name,
+      ).toBe("orders-db-staging");
+    });
+
+    test("nothing known: no table named, another table's columns, no store holding it, not a migration", () => {
+      expect(
+        ProductionReviewSensitiveData.readTableKnown(
+          ssnColumn({ where: undefined }),
+          knowledge(),
+        ),
+      ).toBeNull();
+      expect(
+        ProductionReviewSensitiveData.readTableKnown(
+          ssnColumn({ where: "orders" }),
+          knowledge(),
+        ),
+      ).toBeNull();
+      expect(
+        ProductionReviewSensitiveData.readTableKnown(
+          ssnColumn(),
+          knowledge({ stores: [] }),
+        ),
+      ).toBeNull();
+      expect(
+        ProductionReviewSensitiveData.readTableKnown(
+          ssnColumn({ kind: SensitiveDataLeakKind.Telemetry }),
+          knowledge(),
+        ),
+      ).toBeNull();
+    });
+
+    test("on the point: production knows the store and the table - its severity and failing are the column's own", () => {
+      const point: ProductionReviewLeakJSON =
+        ProductionReviewSensitiveData.toPoint({
+          candidate: ssnColumn(),
+          stores: [],
+          telemetry: NO_TELEMETRY,
+          tables: knowledge({
+            stores: [dbStore({ sensitivity: DataSensitivity.Public })],
+          }),
+          isFailOn: true,
+          occurrences: new Map<string, number>(),
+        })!;
+      const without: ProductionReviewLeakJSON =
+        ProductionReviewSensitiveData.toPoint({
+          candidate: ssnColumn(),
+          stores: [],
+          telemetry: NO_TELEMETRY,
+          isFailOn: true,
+          occurrences: new Map<string, number>(),
+        })!;
+
+      expect(point.production!.store!.name).toBe("orders-db");
+      expect(point.production!.table!.name).toBe("public.customers");
+      expect({
+        severity: point.severity,
+        isBlocking: point.isBlocking,
+        failsCheck: point.failsCheck,
+        sensitivity: point.sensitivity,
+        key: point.key,
+      }).toEqual({
+        severity: without.severity,
+        isBlocking: without.isBlocking,
+        failsCheck: without.failsCheck,
+        sensitivity: without.sensitivity,
+        key: without.key,
+      });
+      expect(without.production).toBeUndefined();
+    });
+
+    test("a reader who may not read Data Security reads the point without any of it, and the same severity", () => {
+      const point: ProductionReviewLeakJSON =
+        ProductionReviewSensitiveData.toPoint({
+          candidate: ssnColumn(),
+          stores: [],
+          telemetry: NO_TELEMETRY,
+          tables: knowledge({
+            stores: [dbStore({ sensitivity: DataSensitivity.Public })],
+          }),
+          isFailOn: true,
+          occurrences: new Map<string, number>(),
+        })!;
+      const section: ProductionReviewSensitiveDataJSON =
+        ProductionReviewSensitiveDataUtil.withoutProduction({
+          points: [point],
+          moreCount: 0,
+          droppedCount: 0,
+          isFailOn: true,
+          isAiRead: false,
+        });
+
+      expect(section.points[0]!.production).toBeUndefined();
+      expect(section.points[0]!.severity).toBe(point.severity);
+      expect(JSON.stringify(section)).not.toContain("orders-db");
+      expect(JSON.stringify(section)).not.toContain("ssn_last4");
+    });
+  });
+
+  describe("read for a private repository alone", () => {
+    const PROJECT_ID: ObjectID = new ObjectID(
+      "a1b2c3d4-1111-4222-8333-444455556666",
+    );
+    let findingReads: jest.SpyInstance;
+    let assetReads: jest.SpyInstance;
+    let usageReads: jest.SpyInstance;
+    let storeReads: jest.SpyInstance;
+
+    const MIGRATION: Array<CodeHostChangedFile> = [
+      {
+        filename: "db/migrations/20261124_add_customer_ssn.sql",
+        status: "added",
+        additions: 1,
+        deletions: 0,
+        patch:
+          "@@ -0,0 +1,1 @@\n+ALTER TABLE customers ADD COLUMN customer_ssn VARCHAR(11);",
+      },
+    ];
+
+    beforeEach(() => {
+      jest
+        .spyOn(DataSecurityCustomDataTypeService, "findBy")
+        .mockResolvedValue([]);
+      findingReads = jest
+        .spyOn(DataStoreFindingService, "findBy")
+        .mockResolvedValue([
+          columnFinding(),
+          // Another table's, which the read's text search also finds.
+          columnFinding({ location: "public.customers_audit.ssn" }),
+          // Found by no value and marked by no person: not counted.
+          columnFinding({
+            location: "public.customers.tax_id",
+            matchCount: 0,
+            isConfirmed: false,
+          }),
+        ]);
+      assetReads = jest.spyOn(DataAssetService, "findBy").mockResolvedValue([]);
+      usageReads = jest
+        .spyOn(DataAssetUsageService, "findBy")
+        .mockResolvedValue([]);
+      storeReads = jest
+        .spyOn(DataStoreService, "findBy")
+        .mockResolvedValue([dbStore()]);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    async function section(data: {
+      isRepositoryPrivate?: (() => Promise<boolean>) | undefined;
+      files?: Array<CodeHostChangedFile>;
+    }): Promise<ProductionReviewSensitiveDataJSON> {
+      return await ProductionReviewSensitiveData.find({
+        projectId: PROJECT_ID,
+        files: data.files || MIGRATION,
+        services: [],
+        isFailOn: false,
+        now: new Date("2026-11-24T10:00:00.000Z"),
+        isRepositoryPrivate: data.isRepositoryPrivate,
+      });
+    }
+
+    test("a private repository's migration point knows its table", async () => {
+      const read: ProductionReviewSensitiveDataJSON = await section({
+        isRepositoryPrivate: async (): Promise<boolean> => {
+          return true;
+        },
+      });
+
+      expect(read.points).toHaveLength(1);
+      expect(read.points[0]!.production).toEqual({
+        store: expect.objectContaining({ name: "orders-db" }),
+        table: {
+          name: "public.customers",
+          dataTypeNames: ["US Social Security number"],
+          sameData: [
+            {
+              location: "public.customers.ssn_last4",
+              dataTypeName: "US Social Security number",
+              lastSeenAt: "2026-11-22T10:00:00.000Z",
+            },
+          ],
+          otherStoreCount: 0,
+        },
+      });
+      // Its columns' findings, read by the table's name in any schema.
+      expect(findingReads.mock.calls[0]![0]).toMatchObject({
+        query: { projectId: PROJECT_ID, locationKind: "Column" },
+      });
+      expect(storeReads).toHaveBeenCalledTimes(1);
+    });
+
+    test("a public repository's says only what the diff shows: Data Security is not even asked", async () => {
+      const read: ProductionReviewSensitiveDataJSON = await section({
+        isRepositoryPrivate: async (): Promise<boolean> => {
+          return false;
+        },
+      });
+
+      expect(read.points).toHaveLength(1);
+      expect(read.points[0]!.production).toBeUndefined();
+      expect(findingReads).not.toHaveBeenCalled();
+      expect(assetReads).not.toHaveBeenCalled();
+      expect(storeReads).not.toHaveBeenCalled();
+    });
+
+    test("a repository whose visibility no one asked is not private", async () => {
+      const read: ProductionReviewSensitiveDataJSON = await section({});
+
+      expect(read.points[0]!.production).toBeUndefined();
+      expect(findingReads).not.toHaveBeenCalled();
+    });
+
+    test("visibility is asked only for a migration that names its table", async () => {
+      const asked: jest.Mock = jest.fn(async (): Promise<boolean> => {
+        return true;
+      });
+
+      await section({
+        isRepositoryPrivate: asked as unknown as () => Promise<boolean>,
+        files: [
+          {
+            filename: "src/signup.ts",
+            status: "added",
+            additions: 1,
+            deletions: 0,
+            patch: '@@ -0,0 +1,1 @@\n+logger.info("signup", { email });',
+          },
+        ],
+      });
+
+      expect(asked).not.toHaveBeenCalled();
+    });
+
+    test("the stores the repository's services use are asked of the tables Data Observability watches", async () => {
+      assetReads.mockResolvedValue([
+        Object.assign(new DataAsset(), {
+          id: new ObjectID(CUSTOMERS_ASSET_ID),
+          name: "customers",
+          schemaName: "public",
+          dataStoreId: new ObjectID(ORDERS_DB_ID),
+        }),
+      ]);
+      usageReads.mockResolvedValue([
+        Object.assign(new DataAssetUsage(), {
+          dataAssetId: new ObjectID(CUSTOMERS_ASSET_ID),
+        }),
+      ]);
+
+      const read: ProductionReviewSensitiveDataJSON =
+        await ProductionReviewSensitiveData.find({
+          projectId: PROJECT_ID,
+          files: MIGRATION,
+          services: [
+            {
+              id: "8b5b7f2e-2c3d-4c6a-9e1f-5a6b7c8d9e01",
+              name: "checkout-api",
+              method: "stack-trace",
+              evidence: "",
+              pathInRepository: null,
+            },
+          ],
+          isFailOn: false,
+          now: new Date("2026-11-24T10:00:00.000Z"),
+          isRepositoryPrivate: async (): Promise<boolean> => {
+            return true;
+          },
+        });
+
+      expect(usageReads).toHaveBeenCalledTimes(1);
+      expect(read.points[0]!.production!.store!.name).toBe("orders-db");
+    });
+
+    test("an archived store is no store the table is in", async () => {
+      storeReads.mockResolvedValue([dbStore({ isArchived: true })]);
+
+      const read: ProductionReviewSensitiveDataJSON = await section({
+        isRepositoryPrivate: async (): Promise<boolean> => {
+          return true;
+        },
+      });
+
+      expect(read.points[0]!.production).toBeUndefined();
+    });
+
+    test("what cannot be read leaves the point as the diff says it, never failing the section", async () => {
+      findingReads.mockRejectedValue(new Error("Postgres is away"));
+
+      const read: ProductionReviewSensitiveDataJSON = await section({
+        isRepositoryPrivate: async (): Promise<boolean> => {
+          return true;
+        },
+      });
+
+      expect(read.points).toHaveLength(1);
+      expect(read.points[0]!.production).toBeUndefined();
+    });
+  });
+});
+
+/*
+ * A WEB OR MOBILE APP'S FRONT END (#11395): what its code writes lands in
+ * its RUM application's session replays - its browser logs, its browser
+ * spans, its sessions' users - which Data Security scans as one store. A
+ * point of a front end's file is told what that store held, of its own
+ * kind of record alone, at the place with that record's prefix, and named
+ * for the application.
+ */
+describe("what a front end's RUM application already held (#11395)", () => {
+  const RUM_APP_ID: string = "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f";
+  const OTHER_APP_ID: string = "7c8d9e0f-1a2b-4c3d-8e4f-00000000beef";
+  const REPLAYS_STORE_ID: string = "5d1c2b3a-0000-4000-8000-0000000000c1";
+  const OTHER_REPLAYS_STORE_ID: string = "5d1c2b3a-0000-4000-8000-0000000000c2";
+  const STOREFRONT: ProductionReviewRumApplication = {
+    id: RUM_APP_ID,
+    name: "storefront-web",
+    pathInRepository: null,
+  };
+  const CHECKOUT_API: CodeAgentScopedService = {
+    id: SERVICE_ID,
+    name: "checkout-api",
+    method: "stack-trace",
+    evidence: "",
+    pathInRepository: null,
+  };
+
+  function replaysStore(
+    id: string = REPLAYS_STORE_ID,
+    applicationId: string = RUM_APP_ID,
+  ): DataStore {
+    const made: DataStore = new DataStore();
+
+    made.id = new ObjectID(id);
+    made.kind = DataStoreKind.TelemetrySessionReplays;
+    made.storeKey = telemetryDataStoreKey({
+      serviceId: applicationId,
+      kind: DataStoreKind.TelemetrySessionReplays,
+    });
+
+    return made;
+  }
+
+  function logsStore(): DataStore {
+    const made: DataStore = new DataStore();
+
+    made.id = new ObjectID(LOGS_STORE_ID);
+    made.kind = DataStoreKind.TelemetryLogs;
+    made.serviceId = new ObjectID(SERVICE_ID);
+
+    return made;
+  }
+
+  function finding(change: Partial<DataStoreFinding>): DataStoreFinding {
+    const made: DataStoreFinding = new DataStoreFinding();
+
+    made.dataStoreId = new ObjectID(REPLAYS_STORE_ID);
+    made.dataTypeId = "email-address";
+    made.dataTypeName = "Email address";
+    made.lastSeenAt = new Date("2026-10-21T10:00:00.000Z");
+    made.isScrubbed = false;
+    Object.assign(made, change);
+
+    return made;
+  }
+
+  const PAYMENT_PATH: string = "web/src/checkout/payment.js";
+  const SESSION_PATH: string = "web/src/session.js";
+
+  function browserLog(
+    change: Partial<SensitiveDataCandidate> = {},
+  ): SensitiveDataCandidate {
+    return emailCandidate({
+      path: PAYMENT_PATH,
+      lineText:
+        '    logger.warn("Payment declined", { "user.email": customer.email });',
+      subject: "user.email",
+      where: "logger.warn",
+      location: "attributes.user.email",
+      ...change,
+    });
+  }
+
+  function sessionUser(
+    change: Partial<SensitiveDataCandidate> = {},
+  ): SensitiveDataCandidate {
+    return emailCandidate({
+      sink: SensitiveDataSink.Session,
+      path: SESSION_PATH,
+      lineText: "  recorder.identify(customer.email, { plan: customer.plan });",
+      subject: "customer.email",
+      where: "recorder.identify",
+      location: "sessions.identifiedUserLabel",
+      text: "Identifies a recorded session by an email address: `customer.email`, in `recorder.identify`.",
+      ...change,
+    });
+  }
+
+  function knowledge(data: {
+    findings: Array<DataStoreFinding>;
+    stores?: Array<DataStore>;
+    applications?: Array<ProductionReviewRumApplication>;
+    services?: Array<CodeAgentScopedService>;
+    rules?: TelemetryKnowledge["coverage"]["rules"];
+  }): TelemetryKnowledge {
+    const applications: Array<ProductionReviewRumApplication> =
+      data.applications || [STOREFRONT];
+    const services: Array<CodeAgentScopedService> = data.services || [];
+
+    return {
+      servicesByPath: new Map([
+        [PAYMENT_PATH, services],
+        [SESSION_PATH, services],
+      ]),
+      applicationsByPath: new Map([
+        [PAYMENT_PATH, applications],
+        [SESSION_PATH, applications],
+      ]),
+      stores: data.stores || [replaysStore()],
+      findings: data.findings,
+      coverage: { rules: data.rules || [] },
+    };
+  }
+
+  test("a browser log's point: the application's browser logs held it, at the browser log's own place, named for the application", () => {
+    const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
+      telemetry: knowledge({
+        findings: [finding({ location: "logs.attributes.user.email" })],
+      }),
+    })!;
+
+    expect(point.production!.heldBefore).toEqual([
+      {
+        serviceId: RUM_APP_ID,
+        serviceName: "storefront-web",
+        ownerKind: TelemetryLeakFixOwnerKind.RumApplication,
+        storeKind: DataStoreKind.TelemetrySessionReplays,
+        location: "logs.attributes.user.email",
+        dataTypeName: "Email address",
+        lastSeenAt: "2026-10-21T10:00:00.000Z",
+      },
+    ]);
+  });
+
+  test("a session's user held there is no browser log's: a Log point is told only of its own kind of record", () => {
+    const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
+      telemetry: knowledge({
+        findings: [
+          finding({ location: "sessions.identifiedUserLabel" }),
+          finding({ location: "spans.attributes.user.email" }),
+        ],
+      }),
+    })!;
+
+    expect(point.production).toBeUndefined();
+  });
+
+  test("a Session point: the sessions' own user, never a browser log's", () => {
+    const point: ProductionReviewLeakJSON = pointOf(sessionUser(), {
+      telemetry: knowledge({
+        findings: [
+          finding({ location: "logs.attributes.user.email" }),
+          finding({ location: "sessions.identifiedUserLabel" }),
+        ],
+      }),
+    })!;
+
+    expect(
+      point.production!.heldBefore!.map(
+        (place: ProductionReviewLeakHeldBeforeJSON) => {
+          return [place.location, place.ownerKind];
+        },
+      ),
+    ).toEqual([
+      [
+        "sessions.identifiedUserLabel",
+        TelemetryLeakFixOwnerKind.RumApplication,
+      ],
+    ]);
+  });
+
+  test("a trait's point: its own trait first, then another place of the sessions with the same data", () => {
+    const point: ProductionReviewLeakJSON = pointOf(
+      sessionUser({
+        subject: "email",
+        location: "sessions.identifiedUserTraits.email",
+      }),
+      {
+        telemetry: knowledge({
+          findings: [
+            finding({ location: "sessions.identifiedUserLabel" }),
+            finding({ location: "sessions.identifiedUserTraits.email" }),
+            finding({ location: "sessions.attributes.contact" }),
+          ],
+        }),
+      },
+    )!;
+
+    expect(
+      point.production!.heldBefore!.map((place: { location: string }) => {
+        return place.location;
+      }),
+    ).toEqual([
+      "sessions.identifiedUserTraits.email",
+      "sessions.identifiedUserLabel",
+    ]);
+  });
+
+  test("a browser span's point: the browser spans' attribute, never a browser log's", () => {
+    const point: ProductionReviewLeakJSON = pointOf(
+      browserLog({ sink: SensitiveDataSink.Span, where: "span.setAttribute" }),
+      {
+        telemetry: knowledge({
+          findings: [
+            finding({ location: "logs.attributes.user.email" }),
+            finding({ location: "spans.attributes.user.email" }),
+          ],
+        }),
+      },
+    )!;
+
+    expect(
+      point.production!.heldBefore!.map((place: { location: string }) => {
+        return place.location;
+      }),
+    ).toEqual(["spans.attributes.user.email"]);
+  });
+
+  test("a file that may be either: the service's logs and the application's browser logs, each named for its own", () => {
+    const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
+      telemetry: knowledge({
+        stores: [logsStore(), replaysStore()],
+        services: [CHECKOUT_API],
+        findings: [
+          finding({ location: "logs.attributes.user.email" }),
+          finding({
+            dataStoreId: new ObjectID(LOGS_STORE_ID),
+            location: "attributes.user.email",
+          }),
+        ],
+      }),
+    })!;
+
+    expect(
+      point.production!.heldBefore!.map(
+        (place: ProductionReviewLeakHeldBeforeJSON) => {
+          return [
+            place.serviceName,
+            place.storeKind,
+            place.location,
+            place.ownerKind || null,
+          ];
+        },
+      ),
+    ).toEqual([
+      [
+        "storefront-web",
+        DataStoreKind.TelemetrySessionReplays,
+        "logs.attributes.user.email",
+        TelemetryLeakFixOwnerKind.RumApplication,
+      ],
+      [
+        "checkout-api",
+        DataStoreKind.TelemetryLogs,
+        "attributes.user.email",
+        null,
+      ],
+    ]);
+  });
+
+  test("a file no application's front end may be is told nothing of the session replays", () => {
+    const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
+      telemetry: knowledge({
+        applications: [],
+        findings: [finding({ location: "logs.attributes.user.email" })],
+      }),
+    })!;
+
+    expect(point.production).toBeUndefined();
+  });
+
+  test("another application's session replays are not this file's", () => {
+    const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
+      telemetry: knowledge({
+        stores: [replaysStore(OTHER_REPLAYS_STORE_ID, OTHER_APP_ID)],
+        findings: [
+          finding({
+            dataStoreId: new ObjectID(OTHER_REPLAYS_STORE_ID),
+            location: "logs.attributes.user.email",
+          }),
+        ],
+      }),
+    })!;
+
+    expect(point.production).toBeUndefined();
+  });
+
+  test("a browser log's message, never its own place there: told of another place its browser logs held the same data, as a service's log is", () => {
+    const point: ProductionReviewLeakJSON = pointOf(
+      browserLog({ subject: "customer.email", location: "body" }),
+      {
+        telemetry: knowledge({
+          findings: [finding({ location: "logs.attributes.user.email" })],
+        }),
+      },
+    )!;
+
+    // Another place of the same data, as a service's log is told of it.
+    expect(point.production!.heldBefore![0]!.location).toBe(
+      "logs.attributes.user.email",
+    );
+  });
+
+  test("a rule of every service masks a browser log's place at ingest", () => {
+    const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
+      telemetry: knowledge({
+        findings: [],
+        rules: [
+          {
+            id: "rule-1",
+            name: "Mask emails",
+            signal: "log",
+            patternType: "email",
+            fieldsToScrub: "both",
+          },
+        ],
+      }),
+    })!;
+
+    expect(point.production!.maskedAtIngestBy).toBe("Mask emails");
+  });
+
+  test("a service's own rule never reaches a front end's records, which are no service's", () => {
+    const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
+      telemetry: knowledge({
+        findings: [],
+        rules: [
+          {
+            id: "rule-1",
+            name: "Mask checkout-api emails",
+            signal: "log",
+            patternType: "email",
+            fieldsToScrub: "both",
+            serviceId: SERVICE_ID,
+          },
+        ],
+      }),
+    })!;
+
+    expect(point.production).toBeUndefined();
+  });
+
+  test("no rule reaches a session's user: a Session point is never masked at ingest", () => {
+    const point: ProductionReviewLeakJSON = pointOf(sessionUser(), {
+      telemetry: knowledge({
+        findings: [],
+        rules: [
+          {
+            id: "rule-1",
+            name: "Mask emails",
+            signal: "log",
+            patternType: "email",
+            fieldsToScrub: "both",
+          },
+        ],
+      }),
+    })!;
+
+    expect(point.production).toBeUndefined();
+  });
+
+  test("a finding masked at its own place there: masked, by no name", () => {
+    const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
+      telemetry: knowledge({
+        findings: [
+          finding({ location: "logs.attributes.user.email", isScrubbed: true }),
+        ],
+      }),
+    })!;
+
+    expect(point.production!.maskedAtIngestBy).toBe("");
+  });
+
+  test("a reader who may not read Data Security reads the point without the application's places", () => {
+    const point: ProductionReviewLeakJSON = pointOf(browserLog(), {
+      telemetry: knowledge({
+        findings: [finding({ location: "logs.attributes.user.email" })],
+      }),
+    })!;
+    const section: ProductionReviewSensitiveDataJSON = {
+      points: [point],
+      moreCount: 0,
+      droppedCount: 0,
+      isFailOn: false,
+      isAiRead: false,
+    };
+
+    expect(
+      ProductionReviewSensitiveDataUtil.withoutProduction(section).points[0]!
+        .production,
+    ).toBeUndefined();
+  });
+
+  describe("read for a review (find)", () => {
+    const PROJECT_ID: ObjectID = new ObjectID(
+      "a1b2c3d4-1111-4222-8333-444455556666",
+    );
+    let storeReads: jest.SpyInstance;
+    let findingReads: jest.SpyInstance;
+
+    const BROWSER_LOG: CodeHostChangedFile = {
+      filename: PAYMENT_PATH,
+      status: "added",
+      additions: 1,
+      deletions: 0,
+      patch:
+        '@@ -0,0 +1,1 @@\n+logger.warn("Payment declined", { "user.email": customer.email });',
+    };
+    const SESSION: CodeHostChangedFile = {
+      filename: SESSION_PATH,
+      status: "added",
+      additions: 1,
+      deletions: 0,
+      patch:
+        "@@ -0,0 +1,1 @@\n+recorder.identify(customer.email, { plan: customer.plan });",
+    };
+    const SERVER_LOG: CodeHostChangedFile = {
+      filename: "api/payments.py",
+      status: "added",
+      additions: 1,
+      deletions: 0,
+      patch:
+        '@@ -0,0 +1,1 @@\n+logger.warning("declined", extra={"user.email": email})',
+    };
+
+    beforeEach(() => {
+      jest
+        .spyOn(DataSecurityCustomDataTypeService, "findBy")
+        .mockResolvedValue([]);
+      jest
+        .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+        .mockResolvedValue({ rules: [] } as never);
+      storeReads = jest
+        .spyOn(DataStoreService, "findBy")
+        .mockResolvedValue([replaysStore()]);
+      findingReads = jest
+        .spyOn(DataStoreFindingService, "findBy")
+        .mockResolvedValue([
+          finding({ location: "logs.attributes.user.email" }),
+          finding({ location: "sessions.identifiedUserLabel" }),
+        ]);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    async function section(data: {
+      files: Array<CodeHostChangedFile>;
+      rumApplications?:
+        | (() => Promise<Array<ProductionReviewRumApplication>>)
+        | undefined;
+      services?: Array<CodeAgentScopedService>;
+    }): Promise<ProductionReviewSensitiveDataJSON> {
+      return await ProductionReviewSensitiveData.find({
+        projectId: PROJECT_ID,
+        files: data.files,
+        services: data.services || [],
+        isFailOn: false,
+        now: new Date("2026-10-22T10:00:00.000Z"),
+        rumApplications: data.rumApplications,
+      });
+    }
+
+    test("a repository that serves no service still reads its application's session replays, by the application's store key", async () => {
+      const asked: jest.Mock = jest.fn(
+        async (): Promise<Array<ProductionReviewRumApplication>> => {
+          return [STOREFRONT];
+        },
+      );
+      const read: ProductionReviewSensitiveDataJSON = await section({
+        files: [BROWSER_LOG, SESSION],
+        rumApplications: asked,
+      });
+
+      expect(asked).toHaveBeenCalledTimes(1);
+      expect(storeReads).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify(storeReads.mock.calls[0]![0].query)).toContain(
+        telemetryDataStoreKey({
+          serviceId: RUM_APP_ID,
+          kind: DataStoreKind.TelemetrySessionReplays,
+        }),
+      );
+      expect(storeReads.mock.calls[0]![0]).toMatchObject({
+        query: { kind: DataStoreKind.TelemetrySessionReplays },
+        props: { isRoot: true },
+      });
+
+      const byPath: Map<string, ProductionReviewLeakJSON> = new Map(
+        read.points.map(
+          (
+            point: ProductionReviewLeakJSON,
+          ): [string, ProductionReviewLeakJSON] => {
+            return [point.path, point];
+          },
+        ),
+      );
+
+      expect(byPath.get(PAYMENT_PATH)!.sink).toBe(SensitiveDataSink.Log);
+      expect(
+        byPath
+          .get(PAYMENT_PATH)!
+          .production!.heldBefore!.map((place: { location: string }) => {
+            return place.location;
+          }),
+      ).toEqual(["logs.attributes.user.email"]);
+      expect(byPath.get(SESSION_PATH)!.sink).toBe(SensitiveDataSink.Session);
+      expect(
+        byPath
+          .get(SESSION_PATH)!
+          .production!.heldBefore!.map((place: { location: string }) => {
+            return place.location;
+          }),
+      ).toEqual(["sessions.identifiedUserLabel"]);
+    });
+
+    test("a service's stores and an application's are both read, each by its own key", async () => {
+      storeReads.mockImplementation((async (data: {
+        query: JSONObject;
+      }): Promise<Array<DataStore>> => {
+        return data.query["kind"] === DataStoreKind.TelemetrySessionReplays
+          ? [replaysStore()]
+          : [logsStore()];
+      }) as never);
+
+      await section({
+        files: [BROWSER_LOG],
+        services: [CHECKOUT_API],
+        rumApplications: async (): Promise<
+          Array<ProductionReviewRumApplication>
+        > => {
+          return [STOREFRONT];
+        },
+      });
+
+      expect(storeReads).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(findingReads.mock.calls[0]![0].query)).toContain(
+        REPLAYS_STORE_ID,
+      );
+      expect(JSON.stringify(findingReads.mock.calls[0]![0].query)).toContain(
+        LOGS_STORE_ID,
+      );
+    });
+
+    test("a file only a server runs is no front end's: the applications are not even asked", async () => {
+      const asked: jest.Mock = jest.fn(
+        async (): Promise<Array<ProductionReviewRumApplication>> => {
+          return [STOREFRONT];
+        },
+      );
+      const read: ProductionReviewSensitiveDataJSON = await section({
+        files: [SERVER_LOG],
+        rumApplications: asked,
+      });
+
+      expect(read.points).toHaveLength(1);
+      expect(read.points[0]!.production).toBeUndefined();
+      expect(asked).not.toHaveBeenCalled();
+      expect(storeReads).not.toHaveBeenCalled();
+    });
+
+    test("a repository that is no application's front end reads no session replay", async () => {
+      const read: ProductionReviewSensitiveDataJSON = await section({
+        files: [BROWSER_LOG],
+        rumApplications: async (): Promise<
+          Array<ProductionReviewRumApplication>
+        > => {
+          return [];
+        },
+      });
+
+      expect(read.points[0]!.production).toBeUndefined();
+      expect(storeReads).not.toHaveBeenCalled();
+    });
+
+    test("the applications cannot be read: the points stand as the diff says them", async () => {
+      const read: ProductionReviewSensitiveDataJSON = await section({
+        files: [BROWSER_LOG, SESSION],
+        rumApplications: async (): Promise<
+          Array<ProductionReviewRumApplication>
+        > => {
+          throw new Error("Postgres is away");
+        },
+      });
+
+      expect(read.points).toHaveLength(2);
+      expect(
+        read.points.map((point: ProductionReviewLeakJSON) => {
+          return point.production;
+        }),
+      ).toEqual([undefined, undefined]);
+    });
+
+    test("the session replays cannot be read: the points stand as the diff says them", async () => {
+      findingReads.mockRejectedValue(new Error("Postgres is away"));
+
+      const read: ProductionReviewSensitiveDataJSON = await section({
+        files: [SESSION],
+        rumApplications: async (): Promise<
+          Array<ProductionReviewRumApplication>
+        > => {
+          return [STOREFRONT];
+        },
+      });
+
+      expect(read.points).toHaveLength(1);
+      expect(read.points[0]!.production).toBeUndefined();
+    });
+  });
+});
+
+describe("how each sink's writes reach production's stores (#11395)", () => {
+  test("a front end's log, span and session user reach its RUM application's session replays", () => {
+    expect(STORE_KINDS_OF_SINK[SensitiveDataSink.Log]).toEqual([
+      DataStoreKind.TelemetryLogs,
+      DataStoreKind.TelemetrySessionReplays,
+    ]);
+    expect(STORE_KINDS_OF_SINK[SensitiveDataSink.Span]).toContain(
+      DataStoreKind.TelemetrySessionReplays,
+    );
+    expect(STORE_KINDS_OF_SINK[SensitiveDataSink.Session]).toEqual([
+      DataStoreKind.TelemetrySessionReplays,
+    ]);
+  });
+
+  test("what only a service writes never reaches a session replay", () => {
+    for (const sink of [
+      SensitiveDataSink.Metric,
+      SensitiveDataSink.AiPrompt,
+      SensitiveDataSink.Exception,
+    ]) {
+      expect(STORE_KINDS_OF_SINK[sink]).not.toContain(
+        DataStoreKind.TelemetrySessionReplays,
+      );
+      expect(SESSION_REPLAY_PLACE_OF_SINK[sink]).toBeUndefined();
+    }
+  });
+
+  test("every sink that reaches the session replays has its kind of record there, as Data Security names it", () => {
+    for (const sink of Object.values(SensitiveDataSink)) {
+      const place: { signal: TelemetryLeakSignal; prefix: string } | undefined =
+        SESSION_REPLAY_PLACE_OF_SINK[sink];
+
+      expect({
+        sink,
+        hasPlace: place !== undefined,
+      }).toEqual({
+        sink,
+        hasPlace: STORE_KINDS_OF_SINK[sink].includes(
+          DataStoreKind.TelemetrySessionReplays,
+        ),
+      });
+    }
+
+    // The place a sink's write lands is the one Data Security's own reading of a finding gives back.
+    expect(
+      getRumTelemetryLeakSignal(
+        DataStoreKind.TelemetrySessionReplays,
+        `${SESSION_REPLAY_PLACE_OF_SINK[SensitiveDataSink.Log]!.prefix}attributes.user.email`,
+      ),
+    ).toBe(SESSION_REPLAY_PLACE_OF_SINK[SensitiveDataSink.Log]!.signal);
+    expect(
+      getRumTelemetryLeakSignal(
+        DataStoreKind.TelemetrySessionReplays,
+        `${SESSION_REPLAY_PLACE_OF_SINK[SensitiveDataSink.Span]!.prefix}attributes.user.email`,
+      ),
+    ).toBe(SESSION_REPLAY_PLACE_OF_SINK[SensitiveDataSink.Span]!.signal);
+    expect(
+      getRumTelemetryLeakSignal(
+        DataStoreKind.TelemetrySessionReplays,
+        "sessions.identifiedUserLabel",
+      ),
+    ).toBe(SESSION_REPLAY_PLACE_OF_SINK[SensitiveDataSink.Session]!.signal);
   });
 });

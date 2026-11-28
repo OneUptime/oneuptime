@@ -133,6 +133,40 @@ describe("another unnamed row's name", () => {
       }),
     ).not.toContain("hunter2-secret-value");
   });
+
+  /*
+   * #6301 names a call policy's number by the number; #11384's phone rule,
+   * written for what reaches a model, made it "[redacted-phone]". Only that
+   * table keeps phone numbers: every other name hides them, an exception's
+   * message above all, and the number's name still hides a secret.
+   */
+  test("a call policy's number is the number, and no other name keeps one", () => {
+    expect(
+      getAuditLogResourceName({
+        tableName: "IncomingCallPolicyPhoneNumber",
+        columns: ["phoneNumber"],
+        values: { phoneNumber: "+14155550102" },
+      }),
+    ).toBe("+14155550102");
+    expect(
+      getAuditLogResourceName({
+        tableName: "IncomingCallPolicyPhoneNumber",
+        columns: ["phoneNumber"],
+        values: { phoneNumber: "+14155550102 password=hunter2-secret-value" },
+      }),
+    ).toBe("+14155550102 password=[redacted]");
+
+    expect(
+      getAuditLogResourceName({
+        tableName: "RunbookExecution",
+        columns: ["runbookNameSnapshot"],
+        values: { runbookNameSnapshot: "Call +44 20 7946 0958" },
+      }),
+    ).toBe("Call [redacted-phone]");
+    expect(
+      exception("SmsError", "the SMS to +44 20 7946 0958 was refused"),
+    ).not.toContain("7946 0958");
+  });
 });
 
 describe("a value's first line", () => {

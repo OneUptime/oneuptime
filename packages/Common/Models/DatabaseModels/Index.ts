@@ -20,6 +20,7 @@ import NetworkAlertPolicy from "./NetworkAlertPolicy";
 import NetworkSnmpCredentialProfile from "./NetworkSnmpCredentialProfile";
 import NetworkDeviceDiscoveryScan from "./NetworkDeviceDiscoveryScan";
 import NetworkDeviceDiscoveryImport from "./NetworkDeviceDiscoveryImport";
+import MonitorTemplateChange from "./MonitorTemplateChange";
 import NetworkDeviceDiagnostic from "./NetworkDeviceDiagnostic";
 import PacketCapture from "./PacketCapture";
 import NetworkInterface from "./NetworkInterface";
@@ -78,6 +79,14 @@ import StorageArray from "./StorageArray";
 import StorageArrayOwnerTeam from "./StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "./StorageArrayOwnerUser";
 import StorageArrayResource from "./StorageArrayResource";
+import StorageArrayConnection from "./StorageArrayConnection";
+import StorageArrayConnectionTest from "./StorageArrayConnectionTest";
+import XcpNgPool from "./XcpNgPool";
+import XcpNgPoolOwnerTeam from "./XcpNgPoolOwnerTeam";
+import XcpNgPoolOwnerUser from "./XcpNgPoolOwnerUser";
+import XcpNgResource from "./XcpNgResource";
+import XcpNgConnection from "./XcpNgConnection";
+import XcpNgConnectionTest from "./XcpNgConnectionTest";
 import VMwareVCenter from "./VMwareVCenter";
 import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
 import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
@@ -98,7 +107,19 @@ import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
 import CloudAccount from "./CloudAccount";
 import CloudAccountFeed from "./CloudAccountFeed";
 import CloudBudget from "./CloudBudget";
+import CloudCommitment from "./CloudCommitment";
+import CloudCostGroup from "./CloudCostGroup";
+import CloudCostLineItem from "./CloudCostLineItem";
+import CloudCostView from "./CloudCostView";
+import CloudRequiredTag from "./CloudRequiredTag";
+import CloudTagCoverageDay from "./CloudTagCoverageDay";
+import CloudTagFinding from "./CloudTagFinding";
+import CloudTagSetting from "./CloudTagSetting";
 import CloudCostRecommendation from "./CloudCostRecommendation";
+import CloudCostReport from "./CloudCostReport";
+import CloudCostSetting from "./CloudCostSetting";
+import CloudOffHoursSchedule from "./CloudOffHoursSchedule";
+import CloudSavingsAction from "./CloudSavingsAction";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
@@ -229,6 +250,7 @@ import DataStoreLabelRule from "./DataStoreLabelRule";
 import DataSecurityFlow from "./DataSecurityFlow";
 import DataSecurityIssue from "./DataSecurityIssue";
 import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
+import DataSecurityIssuePullRequest from "./DataSecurityIssuePullRequest";
 import DataSecurityIssueGroup from "./DataSecurityIssueGroup";
 import DataSecurityAiProposal from "./DataSecurityAiProposal";
 import DataSecurityAiDecision from "./DataSecurityAiDecision";
@@ -261,6 +283,7 @@ import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
+import SecurityUserErasureRequest from "./SecurityUserErasureRequest";
 import SecurityBlock from "./SecurityBlock";
 import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
 import SecurityBlockCloudWaf from "./SecurityBlockCloudWaf";
@@ -360,6 +383,7 @@ import IncomingCallLogItem from "./IncomingCallLogItem";
 
 import Probe from "./Probe";
 import ProbeOwnerTeam from "./ProbeOwnerTeam";
+import GlobalProbeSnmpTrapReport from "./GlobalProbeSnmpTrapReport";
 import ProbeOwnerUser from "./ProbeOwnerUser";
 import AIAgent from "./AIAgent";
 import AIAgentOwnerTeam from "./AIAgentOwnerTeam";
@@ -505,6 +529,7 @@ import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
 import AIPostmortemRule from "./AIPostmortemRule";
 import ExternalMcpServer from "./ExternalMcpServer";
+import ExternalMcpToolReadOnlyMark from "./ExternalMcpToolReadOnlyMark";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -631,8 +656,11 @@ import CephClusterOwnerRule from "./CephClusterOwnerRule";
 import CephClusterLabelRule from "./CephClusterLabelRule";
 import StorageArrayOwnerRule from "./StorageArrayOwnerRule";
 import StorageArrayLabelRule from "./StorageArrayLabelRule";
+import XcpNgPoolOwnerRule from "./XcpNgPoolOwnerRule";
+import XcpNgPoolLabelRule from "./XcpNgPoolLabelRule";
 import VMwareVCenterOwnerRule from "./VMwareVCenterOwnerRule";
 import VMwareVCenterLabelRule from "./VMwareVCenterLabelRule";
+import VMwareHealthSetting from "./VMwareHealthSetting";
 import RunbookOwnerRule from "./RunbookOwnerRule";
 import RunbookLabelRule from "./RunbookLabelRule";
 import WorkflowOwnerRule from "./WorkflowOwnerRule";
@@ -672,6 +700,7 @@ import DockerHostFeed from "./DockerHostFeed";
 import DockerSwarmClusterFeed from "./DockerSwarmClusterFeed";
 import CephClusterFeed from "./CephClusterFeed";
 import StorageArrayFeed from "./StorageArrayFeed";
+import XcpNgPoolFeed from "./XcpNgPoolFeed";
 import PodmanHostFeed from "./PodmanHostFeed";
 import ProxmoxClusterFeed from "./ProxmoxClusterFeed";
 import OpenStackCloudFeed from "./OpenStackCloudFeed";
@@ -765,6 +794,7 @@ const AllModelTypes: Array<{
   DataSecurityFlow,
   DataSecurityIssue,
   DataSecurityIssueFeed,
+  DataSecurityIssuePullRequest,
   DataSecurityIssueGroup,
   DataSecurityAiProposal,
   DataSecurityAiDecision,
@@ -797,6 +827,7 @@ const AllModelTypes: Array<{
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,
+  SecurityUserErasureRequest,
   SecurityBlock,
   SecurityBlockEnforcement,
   SecurityBlockCloudWaf,
@@ -984,8 +1015,11 @@ const AllModelTypes: Array<{
   CephClusterLabelRule,
   StorageArrayOwnerRule,
   StorageArrayLabelRule,
+  XcpNgPoolOwnerRule,
+  XcpNgPoolLabelRule,
   VMwareVCenterOwnerRule,
   VMwareVCenterLabelRule,
+  VMwareHealthSetting,
   RunbookOwnerRule,
   RunbookLabelRule,
   WorkflowOwnerRule,
@@ -1042,6 +1076,7 @@ const AllModelTypes: Array<{
   AutoRemediationDecision,
   AIPostmortemRule,
   ExternalMcpServer,
+  ExternalMcpToolReadOnlyMark,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,
@@ -1183,6 +1218,7 @@ const AllModelTypes: Array<{
   CodeRepositoryMintedToken,
 
   ProbeOwnerTeam,
+  GlobalProbeSnmpTrapReport,
   ProbeOwnerUser,
 
   AIAgent,
@@ -1250,6 +1286,7 @@ const AllModelTypes: Array<{
   DockerSwarmClusterFeed,
   CephClusterFeed,
   StorageArrayFeed,
+  XcpNgPoolFeed,
   PodmanHostFeed,
   ProxmoxClusterFeed,
   OpenStackCloudFeed,
@@ -1288,6 +1325,7 @@ const AllModelTypes: Array<{
   NetworkSnmpCredentialProfile,
   NetworkDeviceDiscoveryScan,
   NetworkDeviceDiscoveryImport,
+  MonitorTemplateChange,
   NetworkDeviceDiagnostic,
   PacketCapture,
   NetworkInterface,
@@ -1346,6 +1384,14 @@ const AllModelTypes: Array<{
   StorageArrayOwnerTeam,
   StorageArrayOwnerUser,
   StorageArrayResource,
+  StorageArrayConnection,
+  StorageArrayConnectionTest,
+  XcpNgPool,
+  XcpNgPoolOwnerTeam,
+  XcpNgPoolOwnerUser,
+  XcpNgResource,
+  XcpNgConnection,
+  XcpNgConnectionTest,
   VMwareVCenter,
   VMwareVCenterOwnerTeam,
   VMwareVCenterOwnerUser,
@@ -1365,7 +1411,19 @@ const AllModelTypes: Array<{
   CloudAccount,
   CloudAccountFeed,
   CloudBudget,
+  CloudCommitment,
+  CloudCostView,
+  CloudCostGroup,
+  CloudCostLineItem,
+  CloudRequiredTag,
+  CloudTagCoverageDay,
+  CloudTagFinding,
+  CloudTagSetting,
   CloudCostRecommendation,
+  CloudCostReport,
+  CloudCostSetting,
+  CloudOffHoursSchedule,
+  CloudSavingsAction,
   CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,

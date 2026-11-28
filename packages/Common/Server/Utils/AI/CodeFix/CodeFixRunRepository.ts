@@ -68,8 +68,9 @@ export function getPerformanceStackTrace(
 }
 
 /*
- * The repositories a run may be made in: the one the person who asked for it
- * picked (CodeFixTaskContext.pickedCodeRepositoryId), when they picked one;
+ * The repositories a run may be made in: the one decided for the person who
+ * asked for it (CodeFixTaskContext.pickedCodeRepositoryId - their pick, or
+ * the one resolved among the repositories they may use, #11075, #11209);
  * otherwise the ones the auto remediation rules that opened it allow
  * (allowedCodeRepositoryIds), or every connected one. Read when the run is
  * queued (resolveForNewRun) and again when it starts (AIAgentDataAPI), so
@@ -118,6 +119,13 @@ export default class CodeFixRunRepository {
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     taskContext?: CodeFixTaskContext | undefined;
+    /*
+     * The repositories it may resolve to, when the caller holds it to fewer
+     * than its context allows: a person's fix, to the repositories that
+     * person may use in Code (CodeFixPersonRepository, #11075, #11209).
+     * Unset: the context's own (getRunRepositoryAllowance).
+     */
+    allowance?: CodeRepositoryAllowance | undefined;
   }): Promise<ObjectID | null> {
     try {
       const facts: { stackTrace: string | null; serviceName: string | null } =
@@ -128,7 +136,8 @@ export default class CodeFixRunRepository {
           projectId: data.projectId,
           stackTrace: facts.stackTrace,
           serviceName: facts.serviceName,
-          allowance: getRunRepositoryAllowance(data.taskContext),
+          allowance:
+            data.allowance || getRunRepositoryAllowance(data.taskContext),
         });
 
       return resolution ? new ObjectID(resolution.codeRepositoryId) : null;

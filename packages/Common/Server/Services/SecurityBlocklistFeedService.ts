@@ -544,15 +544,15 @@ export class Service extends ProjectReferencesService<Model> {
     return onUpdate;
   }
 
+  /*
+   * The feeds the delete removes, with the delete held to exactly them
+   * (findRowsAndHoldDeleteToThem): every project that loses one has its
+   * blocks reconciled, and none that keeps its feeds does.
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    /*
-     * The feeds the delete removes - the ones the caller may delete, in the
-     * delete's own window - and the delete held to them: only their
-     * projects' blocks are told the feed is gone.
-     */
     const feeds: Array<Model> = await this.findRowsAndHoldDeleteToThem(
       deleteBy,
       { _id: true, projectId: true },

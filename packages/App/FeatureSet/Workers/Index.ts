@@ -35,6 +35,9 @@ import "./Jobs/TelemetryException/SendAssignedNotification";
 // An exception's former fingerprint, once no occurrence carries it: deleted.
 import "./Jobs/TelemetryException/RetireFormerFingerprints";
 
+// The duplicates a failed lookup made before #11027: merged back, once.
+import "./Jobs/TelemetryException/MergeBackExceptionsSplitByFailedLookups";
+
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
 import "./Jobs/Monitor/ClearStoredLogScreenshots";
@@ -109,6 +112,8 @@ import "./Jobs/NetworkDeviceDiscovery/RequeueRecurringScans";
 import "./Jobs/NetworkDeviceDiscovery/ProcessAutoImportRules";
 import "./Jobs/NetworkDeviceDiscovery/RunDiscoveryImports";
 import "./Jobs/NetworkDeviceDiscovery/SweepDiscoveryImports";
+import "./Jobs/MonitorTemplate/RunTemplateChanges";
+import "./Jobs/MonitorTemplate/SweepTemplateChanges";
 import "./Jobs/NetworkDeviceDiscovery/AgeOutDiscoveredDevices";
 import "./Jobs/NetworkDeviceDiscovery/SyncDiscoveredDeviceInventory";
 
@@ -333,6 +338,7 @@ import "./Jobs/SecurityEvents/EntityRisk";
 import "./Jobs/SecurityEvents/RunScheduledHunts";
 import "./Jobs/SecurityEvents/SendSecurityHuntNotification";
 import "./Jobs/SecurityEvents/SecurityWatchlists";
+import "./Jobs/SecurityEvents/EraseSecurityUsers";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";
@@ -397,12 +403,22 @@ import "./Jobs/OpenStack/ExpireConnectionTests";
 import "./Jobs/VMware/CleanupStaleResources";
 // vCenter connection tests no probe will answer: failed, password wiped.
 import "./Jobs/VMware/ExpireConnectionTests";
+import "./Jobs/StorageArray/ExpireConnectionTests";
 
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";
 
 // Storage array disconnection sweeper + inventory cleanup.
 import "./Jobs/StorageArray/CleanupStaleResources";
+
+// XCP-ng pool disconnection sweeper + inventory cleanup.
+import "./Jobs/XcpNg/CleanupStaleResources";
+
+// XCP-ng connections read from a probe: connection tests no probe answers.
+import "./Jobs/XcpNg/ExpireConnectionTests";
+
+// XCP-ng connections read from a probe: API tokens about to expire.
+import "./Jobs/XcpNg/WarnExpiringApiTokens";
 
 // Docker Swarm cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/DockerSwarm/CleanupStaleResources";
@@ -416,6 +432,13 @@ import "./Jobs/Cloud/ReadCloudConnections";
 // Azure connections' streams: their event hubs read every minute.
 import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
+import "./Jobs/Cloud/EvaluateCloudCommitments";
+import "./Jobs/Cloud/MakeCloudCostGroups";
+// Scheduled cloud cost reports, sent when they are due (#11009).
+import "./Jobs/Cloud/SendCloudCostReports";
+// Changes for savings stepped, and off-hours schedules run (#11010).
+import "./Jobs/Cloud/CloudSavingsJobs";
+import "./Jobs/Cloud/WatchCloudTags";
 // What still reads a metric its cloud deprecates, moved again every hour.
 import "./Jobs/Cloud/MoveOffRetiredCloudMetrics";
 import "./Jobs/DataSecurity/DataSecurityJobs";
@@ -446,6 +469,7 @@ import "./Jobs/OpenStackCloudOwners/SendOwnerAddedNotification";
 import "./Jobs/VMwareVCenterOwners/SendOwnerAddedNotification";
 import "./Jobs/CephClusterOwners/SendOwnerAddedNotification";
 import "./Jobs/StorageArrayOwners/SendOwnerAddedNotification";
+import "./Jobs/XcpNgPoolOwners/SendOwnerAddedNotification";
 import "./Jobs/IoTFleetOwners/SendOwnerAddedNotification";
 import "./Jobs/CloudResourceOwners/SendOwnerAddedNotification";
 import "./Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";

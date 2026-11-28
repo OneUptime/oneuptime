@@ -2,6 +2,7 @@ import McpRemediationRunner, {
   McpFixTarget,
 } from "../../../../Server/Utils/AI/Remediation/McpRemediationRunner";
 import RemediationExecutionRunner from "../../../../Server/Utils/AI/Remediation/RemediationExecutionRunner";
+import ExternalMcpToolReadOnlyMarkService from "../../../../Server/Services/ExternalMcpToolReadOnlyMarkService";
 import { EXPLAIN_NO_FIX_RULE } from "../../../../Server/Utils/AI/Remediation/RemediationRoundRun";
 import { EXPLAIN_NO_FIX_TOOL_NAME } from "../../../../Types/AutoRemediation/RemediationRound";
 import AIInvestigationEngine, {
@@ -209,6 +210,10 @@ beforeEach(() => {
   jest
     .spyOn(ReadAudienceReader, "forSubject")
     .mockResolvedValue(readAudienceOf({ projectId: PROJECT_ID }));
+  // No Project Admin has marked a tool read-only (#11081: McpRunToolkitMarks).
+  jest
+    .spyOn(ExternalMcpToolReadOnlyMarkService, "findMarksOfServer")
+    .mockResolvedValue([]);
 });
 
 beforeEach(() => {
@@ -760,6 +765,66 @@ describe("a fix that asks first", () => {
     expect(calls[1]!.errorMessage).toContain("an earlier change failed");
     expect(feedItems[feedItems.length - 1]).toContain("did not complete");
     expect(feedItems[feedItems.length - 1]).toContain("⚠️");
+  });
+
+  /*
+   * Issue #10879: Enable AI is read before each change is sent, as an
+   * approved command plan's commands are never handed to an agent once it
+   * is off (AiCommandKillSwitch).
+   */
+  test("Enable AI turned off after the approval: no change is sent, and the feed says the fix did not complete", async () => {
+    await startFake();
+    servers = [storedServer(SERVER_ID)];
+    suggestionRow({
+      status: AutoRemediationSuggestionStatus.Approved,
+      verificationStatus: AutoRemediationVerificationStatus.Pending,
+      mcpToolCallPlan: ExternalMcpToolCallPlanUtil.toJSON({
+        calls: [
+          proposedCall(1, "scale_service", { service: "api", count: 3 }),
+          proposedCall(2, "restart_service", { service: "api" }),
+        ],
+      }),
+    });
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({ enableAi: false } as never);
+
+    await McpRemediationRunner.executeApprovedCalls({
+      suggestionId: SUGGESTION_ID,
+    });
+
+    expect(changingCalls()).toEqual([]);
+    const calls: Array<ExternalMcpToolCall> = lastPlan().calls;
+    expect(calls[0]!.status).toBe(ExternalMcpToolCallStatus.Failed);
+    expect(calls[0]!.errorMessage).toContain(
+      "OneUptime AI is turned off for this project (Enable AI",
+    );
+    expect(calls[1]!.status).toBe(ExternalMcpToolCallStatus.Skipped);
+    expect(feedItems[feedItems.length - 1]).toContain("did not complete");
+  });
+
+  test("Enable AI that cannot be read sends no change either", async () => {
+    await startFake();
+    servers = [storedServer(SERVER_ID)];
+    suggestionRow({
+      status: AutoRemediationSuggestionStatus.Approved,
+      verificationStatus: AutoRemediationVerificationStatus.Pending,
+      mcpToolCallPlan: ExternalMcpToolCallPlanUtil.toJSON({
+        calls: [proposedCall(1, "restart_service", { service: "api" })],
+      }),
+    });
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockRejectedValue(new Error("the database is not reachable") as never);
+
+    await McpRemediationRunner.executeApprovedCalls({
+      suggestionId: SUGGESTION_ID,
+    });
+
+    expect(changingCalls()).toEqual([]);
+    expect(lastPlan().calls[0]!.errorMessage).toBe(
+      "OneUptime could not confirm that OneUptime AI is on for this project (Enable AI), so nothing was sent to the MCP server.",
+    );
   });
 
   test("a server turned off since is never reached", async () => {

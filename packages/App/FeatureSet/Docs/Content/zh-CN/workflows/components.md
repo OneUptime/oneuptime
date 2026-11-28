@@ -26,6 +26,7 @@
 | 在两个块之间转换数据                                          | [JSON](#json) 或 [Custom Code](#custom-code)                      |
 | 在下一个块之前等待                                            | [Sleep](#sleep)                                                   |
 | 启动另一个工作流                                              | [Execute Workflow](#execute-workflow)                             |
+| 把记录的 Markdown 显示的图片附加到邮件 | [从 Markdown 获取文件](#get-files-from-markdown) |
 | 读取或更改事件、监视器和其他记录                              | [OneUptime 数据组件](#oneuptime-数据组件)                  |
 | 为其他工具的问题打开、确认和解决事件或警报                     | [来自其他工具的事件和警报](#来自其他工具的事件和警报) |
 | 确认或关闭 Zabbix 问题                                         | [Zabbix](#zabbix)                                                 |
@@ -391,6 +392,139 @@ return { proceed: true, title: args.title.toUpperCase() };
 另一个工作流一进入队列就触发 **出站**。无法启动时触发 **错误**：它不存在、已关闭或已归档，或者启动它会造成循环。
 
 用它来共享通用逻辑：搭建一个“发帖到事件频道”的工作流，然后从每个需要它的工作流启动它。相互启动的工作流链不能绕回自身，最多 10 层深。参见 [配置与安全](/docs/workflows/configuration#调用其他工作流的限制)。
+
+## Get Files From Markdown
+
+读取记录的 Markdown 显示的图片，例如有人粘贴到事件描述、Markdown 自定义字段或备注里的截图，并带上每张图片的名称、类型和数据。用它把图片附加到邮件中，让图片出现在 Markdown 放置它们的位置。
+
+| 设置 | 作用 |
+| --- | --- |
+| **记录类型** | 其 Markdown 显示这些图片的记录类型：事件、事件的公开备注或内部备注、警报、维护事件等。 |
+| **记录 ID** | 要读取的记录，通常是启动工作流的那条记录，例如 `{{local.components.incident-on-create-1.returnValues.model._id}}`。 |
+
+| 输出 | 何时 |
+| --- | --- |
+| **成功** | 已读取记录，无论它是否显示图片。 |
+| **错误** | 无法读取记录：记录不存在，或工作流无权读取它。原因见 **错误**。 |
+
+它返回：
+
+- **文件**：每张图片，按记录显示它的顺序，包含：
+  - `name`：文件上传时的名称；
+  - `mimeType`：它的类型，例如 `image/png` 或 `image/jpeg`；
+  - `sizeInBytes`：以字节为单位的大小；
+  - `base64`：图片的数据；
+  - `contentId`：图片在 HTML 邮件中的 ID（`<img src="cid:...">`），无论哪条记录显示它，同一张图片的 ID 都相同；
+  - `urls`：Markdown 显示它时用的所有地址；
+  - `fields`：显示它的字段，例如 `description` 或某个自定义字段的名称。
+- **计数**：**文件** 中有多少张图片。
+- **未包括**：Markdown 显示但不在 **文件** 中的文件，每个都带有 `name`、`urls`、`fields`、`reason`，以及说明原因的 `message`。
+
+**文件** 包含图片的数据，所以运行日志会隐藏它，改为显示 **计数** 和 **未包括**。拿到图片的后续块会把拿到的内容写进日志中它自己的条目。
+
+### 它会交出哪些图片
+
+这个块像 Find One 块一样，以工作流的身份读取记录：只在工作流自己的项目中读取，从不读取私有的事件、警报或剧集，并且只读取工作流的权限允许它读取的内容。它无权读取的记录会走 **错误**，和不存在的记录一样。
+
+它只交出：
+
+- 记录的 Markdown 字段显示的图片，例如事件的描述、根本原因、事后复盘和修复备注，以及它的 Markdown 自定义字段。文本自定义字段不是 Markdown，所以写在其中的地址不会被读取；
+- 上传到记录自身所在项目的图片。从其他项目的记录复制来的地址会作为未找到列在 **未包括** 下；
+- 图片：PNG、JPEG、GIF、WebP、BMP、TIFF、AVIF、HEIC 和 ICO，每张都按文件内容和类型一起检查。SVG 可以携带脚本，因此会被排除，只是声称自己是图片的文件也会被排除；
+- 最多 20 张图片，总共 10 MB。超出限制的内容会连同原因列在 **未包括** 下。
+
+它不能列出文件，也不能按地址读取文件：它只读取记录显示的内容。
+
+### 示例：通过 Microsoft Graph 发送的邮件中的内嵌图片
+
+这个工作流为每个新事件通过 Microsoft Graph 发送邮件，并把描述中的截图显示在描述放置它们的位置。
+
+:::steps
+### 获取 Microsoft Graph 的令牌
+
+在 Microsoft Entra ID 中注册一个应用程序，授予它应用程序权限 `Mail.Send`，并授予管理员同意。然后为 Microsoft 创建一个名为 `GRAPH_TOKEN` 的 [OAuth 2.0 变量](/docs/workflows/variables#oauth-20-变量会自动刷新的令牌)，授权类型为 **Client Credentials**，范围为 `https://graph.microsoft.com/.default`。
+
+### 从新事件开始
+
+添加触发器 **创建事件时**，并传递它的 **标题** 和 **描述**。
+
+### 读取事件的图片
+
+在触发器之后添加 **从 Markdown 获取文件**。把 **记录类型** 设为 **事件**，把 **记录 ID** 设为 `{{local.components.incident-on-create-1.returnValues.model._id}}`。
+
+### 构建消息
+
+在它的 **成功** 输出上添加 **运行自定义 JavaScript**，并使用以下 **参数**：
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+代码把图片的每个地址都指向它的附件（`cid:` 加上它的 `contentId`），并以相同的 ID 把图片作为内嵌附件附上：
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### 通过 Microsoft Graph 发送
+
+在代码的 **成功** 输出上添加 **API 调用 POST (JSON)**：
+
+| 设置 | 值 |
+| --- | --- |
+| **URL** | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail` |
+| **请求标头** | `Authorization`：`Bearer {{global.variables.GRAPH_TOKEN}}` |
+| **请求主体** | `{{local.components.javascript-1.returnValues.returnValue}}` |
+
+Microsoft Graph 返回 `202 Accepted`，块走 **成功**。
+:::
+
+以这种方式发送的消息中，Microsoft Graph 接受的附件最大为 3 MB。更大的图片需要上传会话，或用链接代替图片。也可以在工作流之外用 API 密钥读取记录的图片：参见 [记录的 Markdown 中的图片](/docs/api-reference/api-reference#记录的-markdown-中的图片)。
 
 ## 来自其他工具的事件和警报
 

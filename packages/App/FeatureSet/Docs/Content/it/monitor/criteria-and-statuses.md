@@ -3,7 +3,7 @@
 I criteri di un monitor decidono cosa significa ogni controllo: se il monitor è attivo o fuori servizio, e se OneUptime dichiara un incidente o crea un avviso. Gli stati sono l'elenco del vostro progetto di ciò che un monitor può essere, da **Operativo** a **Offline**. Questa pagina spiega entrambi per ogni tipo di monitor; la pagina di ciascun tipo elenca i filtri che offre.
 
 :::cards
-- [Come decidono i criteri](#come-decidono-i-criteri): Dall'alto verso il basso, e vince la prima corrispondenza.
+- [Come decidono i criteri](#come-decidono-i-criteri): Dall'alto verso il basso: agisce la prima corrispondenza, e la prima che cambia lo stato lo imposta.
 - [Cosa contiene un criterio](#cosa-contiene-un-criterio): Filtri, una condizione di corrispondenza, azioni e impostazioni.
 - [Giudicare una finestra di controlli](#giudicare-una-finestra-di-controlli): Contare i controlli falliti, individuare l'instabilità, leggere un percentile.
 - [Modificare i criteri di un monitor](#modificare-i-criteri-di-un-monitor): Modificare, aggiungere, riordinare e testare i criteri.
@@ -12,28 +12,33 @@ I criteri di un monitor decidono cosa significa ogni controllo: se il monitor è
 
 ## Come decidono i criteri
 
-Ogni volta che un monitor viene controllato, i suoi criteri giudicano il risultato dall'alto dell'elenco verso il basso. Il primo criterio i cui filtri corrispondono decide cosa succede, e i criteri sottostanti non vengono considerati per quel controllo. Se nessuno corrisponde, il monitor passa al suo **Stato predefinito del monitor**. Mantiene invece il suo stato finché un criterio che lo riporta indietro non ha ancora corrisposto: vedi [Quando un criterio si ripristina](#quando-un-criterio-si-ripristina).
+Ogni volta che un monitor viene controllato, i suoi criteri giudicano il risultato dall'alto dell'elenco verso il basso. Il primo criterio i cui filtri corrispondono decide cosa succede: dichiara i suoi incidenti, crea i suoi avvisi e, se è impostato per farlo, cambia lo stato del monitor. I criteri sottostanti vengono considerati solo quando non cambia alcuno stato, e allora solo per lo stato. Se nessuno corrisponde, il monitor passa al suo **Stato predefinito del monitor**. Mantiene invece il suo stato finché un criterio che lo riporta indietro non ha ancora corrisposto: vedi [Quando un criterio si ripristina](#quando-un-criterio-si-ripristina).
 
 ```mermaid title="Come viene giudicato ogni controllo"
 flowchart TB
     R["Il risultato di<br/>un controllo"] --> C1{"Primo criterio:<br/>i filtri<br/>corrispondono?"}
-    C1 -->|"Sì"| A["Quel criterio<br/>agisce"]
+    C1 -->|"Sì"| A["Quel criterio agisce:<br/>dichiara i suoi incidenti<br/>e crea i suoi avvisi"]
     C1 -->|"No"| C2{"Criterio<br/>successivo:<br/>i filtri<br/>corrispondono?"}
     C2 -->|"Sì"| A
     C2 -->|"Nessuno<br/>corrispondeva"| D["Il monitor<br/>passa al suo<br/>stato predefinito"]
-    A --> S["Cambia<br/>lo stato"]
-    A --> I["Dichiara un<br/>incidente"]
-    A --> L["Crea un avviso"]
+    A --> Q{"Cambia<br/>lo stato?"}
+    Q -->|"Sì"| S["Imposta<br/>lo stato"]
+    Q -->|"No"| N["Il primo criterio<br/>sottostante che<br/>corrisponde e cambia<br/>lo stato lo imposta,<br/>oppure il monitor<br/>passa al suo<br/>stato predefinito"]
 ```
 
 L'ordine fa parte della regola. Un nuovo monitor elenca i suoi criteri dal caso peggiore: offline, poi un avvertimento se il suo tipo ne ha uno (un certificato o un dominio in scadenza), poi online. Un criterio sano e ampio, come **Online** impostato su **Vero**, corrisponde a quasi ogni controllo, quindi va per ultimo: sopra gli altri, corrisponderebbe per primo ogni volta e gli altri non agirebbero mai.
 
-Un criterio che corrisponde ma non cambia alcuno stato decide comunque il controllo: il monitor mantiene il suo stato, e i criteri sottostanti attendono il controllo successivo. Lo **Stato predefinito del monitor** si applica solo quando nessun criterio corrisponde. Per un nuovo monitor è **Operativo**; modificatelo sotto **Altri campi**, sotto i criteri.
+Un criterio che corrisponde ma non cambia alcuno stato, come un preavviso che crea soltanto un avviso, non decide alcuno stato. Il suo avviso si apre e si risolve come quello di qualunque criterio, e i criteri sottostanti che cambiano lo stato vengono giudicati solo per lo stato, nel loro ordine: il primo di essi che corrisponde imposta lo stato e in quel controllo non apre nulla. Se nessuno di essi corrisponde, il monitor passa al suo **Stato predefinito del monitor**, come quando nessun criterio corrisponde. Così un sito di nuovo raggiungibile ma lento risulta **Operativo** con il suo avviso aperto, qualunque stato gli abbia lasciato un controllo precedente. Per un nuovo monitor è **Operativo**; modificatelo sotto **Altri campi**, sotto i criteri.
+
+> [!NOTE]
+> Un criterio che corrispondeva per primo senza cambiare alcuno stato lasciava prima il monitor nello stato che aveva, finché continuava a corrispondere: uno switch sorvegliato dal pacchetto di avvisi consigliato perdeva un polling, tornava con una porta sopra l'80% e restava **Offline**, con la sua pagina di stato rossa, finché la porta restava carica. Ora decidono lo stato solo i criteri che lo cambiano. Un monitor i cui criteri cambiano tutti lo stato viene giudicato esattamente come prima. Così pure quale criterio dichiara gli incidenti di un controllo e ne crea gli avvisi: su un monitor che si ferma alla prima corrispondenza, è ancora il primo criterio che corrisponde.
 
 > [!NOTE]
 > Un monitor che apre un incidente o un avviso per ogni host, container, disco o interfaccia giudica tutti i criteri a ogni controllo, così due host possono corrispondere a due criteri diversi contemporaneamente. È un monitor la cui query ha un **Raggruppa per**, come un monitor di metriche o di log, oppure un criterio che indica `*` per ogni disco o interfaccia. Lo è anche un monitor di metriche che osserva un'espressione PromQL: ogni serie che l'espressione restituisce viene giudicata da sola. Un monitor di richieste in ingresso che raggruppa gli incidenti per un campo del payload si ferma comunque alla prima corrispondenza.
 >
-> Un monitor del genere ha comunque un solo stato, impostato dal primo criterio che corrisponde. Un criterio che lo riporta soltanto al suo **Stato predefinito del monitor**, senza aprire incidenti né avvisi, attende gli host che hanno soddisfatto un criterio che imposta un altro stato: corrisponde quando ciascuno di essi lo soddisfa, qualunque cosa facciano gli altri host. Fino ad allora il monitor mantiene il suo stato, anche quando nessun criterio corrisponde, mentre gli incidenti e gli avvisi di ogni host continuano a risolversi ciascuno per conto proprio.
+> Un monitor del genere ha comunque un solo stato, impostato dal primo criterio che corrisponde tra quelli che cambiano lo stato. Un criterio che lo riporta soltanto al suo **Stato predefinito del monitor**, senza aprire incidenti né avvisi, attende gli host che hanno soddisfatto un criterio che imposta un altro stato: corrisponde quando ciascuno di essi lo soddisfa, qualunque cosa facciano gli altri host. Fino ad allora il monitor mantiene il suo stato, anche quando nessun criterio che cambia lo stato corrisponde, mentre gli incidenti e gli avvisi di ogni host continuano a risolversi ciascuno per conto proprio.
+>
+> I criteri che controllano la stessa cosa sono livelli dello stesso controllo: leggono gli stessi valori, come la stessa metrica, lo stesso disco, la stessa interfaccia o la stessa tabella, e differiscono solo nelle soglie, come un livello critico sopra il 95% e un livello di avvertimento sopra l'80%. Un host in entrambi i livelli riceve un solo incidente e un solo avviso, quelli del primo livello che gli corrisponde, quindi mettete per primo il livello più grave; i **Log di monitoraggio** dell'host dicono a quale livello l'altro lo ha lasciato. I criteri che controllano cose diverse aprono ciascuno il proprio per l'host: una CPU surriscaldata e una memoria piena sono due avvisi, e lo sono anche una porta satura e una porta che registra errori su un dispositivo di rete. Prima erano uno solo, perché il primo criterio che corrispondeva si prendeva l'host qualunque cosa controllasse, quindi il secondo avviso si apriva solo quando il primo smetteva di corrispondere.
 
 ## Cosa contiene un criterio
 
@@ -111,7 +116,7 @@ Per il secondo, attiva **Ripristina solo quando è soddisfatta una condizione pr
 
 ### Confrontare un controllo con il precedente
 
-**Controllo precedente** confronta ogni controllo con il controllo precedente della stessa sonda, e dello stesso disco per l'occupazione di un disco. **Nell'ultimo periodo di** indica quanto può essere vecchio quel controllo, quindi impostalo più lungo dell'intervallo di monitoraggio. È offerto per gli stessi filtri di **Conteggio**.
+**Controllo precedente** confronta ogni controllo con il controllo precedente della stessa sonda, e dello stesso disco per l'occupazione di un disco. **Nell'ultimo periodo di** indica quanto può essere vecchio quel controllo, quindi impostalo più lungo dell'intervallo di monitoraggio. È offerto per gli stessi filtri di **Conteggio**. È offerto anche per **Valore del record DNS**, dove confronta l'intera risposta DNS con quella del controllo precedente, con **Diverso da** o **Uguale a**: vedi [Quando la risposta DNS cambia](/docs/monitor/dns-monitor#quando-la-risposta-dns-cambia).
 
 Un valore misurato, come un tempo di risposta, corrisponde quando supera il controllo precedente di più della variazione impostata in **Variazione rispetto al controllo precedente**, con **Maggiore di**, o gli resta sotto di più di quella variazione, con **Minore di**. La variazione è un **Valore nell'unità del controllo**, come 200 ms, o una **Percentuale del controllo precedente**, come il 50%, e 0 corrisponde a qualsiasi aumento o calo. **Uguale a** e **Diverso da** confrontano con il valore precedente stesso.
 
@@ -125,11 +130,11 @@ La frase sotto le impostazioni della finestra lo rilegge: «Verifica se "Tempo d
 
 ## Quando un criterio si ripristina
 
-Un criterio smette di agire non appena i suoi filtri smettono di corrispondere: in quel controllo il suo incidente e il suo avviso si risolvono, quando **Risoluzione automatica dell'incidente** e **Risoluzione automatica dell'avviso** sono attivi, e il monitor passa al criterio successivo che corrisponde.
+Un criterio smette di agire non appena i suoi filtri smettono di corrispondere: in quel controllo il suo incidente e il suo avviso si risolvono, quando **Risoluzione automatica dell'incidente** e **Risoluzione automatica dell'avviso** sono attivi, e lo stato del monitor segue i criteri che corrispondono allora.
 
 **Ripristina solo quando è soddisfatta una condizione propria** mantiene il criterio in vigore dopo che i suoi filtri smettono di corrispondere, finché non corrispondono i filtri sotto **Si ripristina quando**. Partono come l'opposto dei filtri del criterio, negli ultimi 10 minuti, e possono usare tutto ciò che offre un filtro, come una finestra che conta i controlli. Un criterio è in vigore finché il monitor ha lo stato che imposta o è aperto un incidente o un avviso che ha dichiarato. Finché resta in vigore, conta come una corrispondenza al suo posto nell'elenco: un criterio sopra di esso che corrisponde prende comunque il sopravvento.
 
-Quando nessun criterio corrisponde, un monitor che un criterio ha spostato dal suo **Stato predefinito del monitor** mantiene lo stato che ha, purché abbia anche un criterio che lo riporti soltanto a quello stato senza aprire nulla. È il margine di ripristino: i modelli scattano sopra il 90% e tornano all'81% o meno, quindi all'89% il monitor resta dov'è. I suoi incidenti e avvisi si risolvono comunque quando il loro criterio smette di corrispondere. Un monitor senza un criterio del genere passa al suo **Stato predefinito del monitor**, come sempre.
+Quando nessun criterio che cambia lo stato corrisponde, un monitor che un criterio ha spostato dal suo **Stato predefinito del monitor** mantiene lo stato che ha, purché abbia anche un criterio che lo riporti soltanto a quello stato senza aprire nulla. È il margine di ripristino: i modelli scattano sopra il 90% e tornano all'81% o meno, quindi all'89% il monitor resta dov'è. I suoi incidenti e avvisi si risolvono comunque quando il loro criterio smette di corrispondere. Un monitor senza un criterio del genere passa al suo **Stato predefinito del monitor**, come sempre.
 
 ## Solo in certi giorni e orari
 
@@ -153,6 +158,7 @@ flowchart TB
 
 - **Uno alla volta.** Finché un incidente dichiarato da un criterio è ancora aperto, lo stesso criterio che corrisponde di nuovo non ne dichiara un altro. Gli avvisi funzionano allo stesso modo. Un monitor che raggruppa per host o per campo del payload ne tiene uno aperto per host o per valore, e un criterio di un monitor di email in ingresso con **Apri un nuovo incidente per ogni email** ne apre uno per ogni email.
 - **La chiusura.** A un controllo successivo in cui corrisponde un altro criterio, o nessuno, viene risolto un incidente il cui criterio ha attivo **Risoluzione automatica dell'incidente**, e così un avviso con **Risoluzione automatica dell'avviso**. Entrambi si trovano sotto **Altri campi** nell'incidente o nell'avviso, e i criteri con cui parte un nuovo monitor li hanno attivi.
+- **Il criterio che agisce.** Su un monitor che si ferma alla prima corrispondenza, il primo criterio che corrisponde dichiara gli incidenti del controllo e ne crea gli avvisi, anche quando non cambia alcuno stato e un criterio sottostante imposta lo stato. Quest'ultimo nel controllo non apre nulla: mettete i criteri che cambiano lo stato sopra quelli che si limitano ad avvisare, il peggiore per primo, come quelli di un nuovo monitor, e lo stato di un controllo e il suo incidente verranno dallo stesso criterio.
 - **Più sonde.** Un monitor controllato da più di una sonda cambia solo quando le sue sonde concordano. Vedere [Come vengono valutati i criteri](/docs/monitor/create-monitor#come-vengono-valutati-i-criteri).
 - **Un monitor padre fuori servizio.** Nella pagina **Configurazione → Dipendenze** di un monitor, **Monitor da cui dipende** indica i monitor da cui dipende. Finché uno di essi è in uno stato elencato in **Sospendi quando lo stato del padre è** (qualsiasi stato offline, se lasciato vuoto), il monitor non apre incidenti né avvisi. Il suo stato continua a cambiare, e ciò che è aperto continua a risolversi.
 - **La manutenzione programmata.** Un monitor incluso in un evento di manutenzione in corso non viene controllato, quindi i suoi criteri non vengono eseguiti. Vedere [Panoramica della manutenzione programmata](/docs/scheduled-maintenance/index).
@@ -231,6 +237,16 @@ Quando una valutazione dura troppo per il suo monitor, il suo riepilogo ti avvis
 | All'arrivo dei suoi risultati, come richieste ed email in arrivo | 5 secondi |
 
 Un decimo lascia a un monitor lo spazio per crescere di dieci volte prima che i suoi controlli si sovrappongano e restino indietro, così lo sai presto. Sotto i 5 secondi, un controllo va bene per quanto sia grande: valutare 16.000 serie richiede circa 2,5 secondi. Oltre un minuto, occupa un worker e i database che legge per tutto quel tempo, qualunque sia il suo intervallo. Per velocizzarlo, restringi i filtri delle sue query, raggruppa per meno attributi o controllalo meno spesso.
+
+## Quando controllano i monitor di telemetria
+
+I monitor che leggono la telemetria, come i monitor di log, metriche, tracce, Kubernetes, host e Docker, non vengono controllati tutti nello stesso momento. Ognuno ha il proprio momento nel suo intervallo, calcolato dall'ID del monitor: un monitor controllato ogni minuto viene eseguito allo stesso secondo di ogni minuto, uno controllato ogni 5 minuti nello stesso momento di ogni 5 minuti, e uno controllato ogni ora o meno spesso entro i primi 5 minuti dell'ora o del giorno indicati dal suo intervallo. Il momento resta lo stesso quando OneUptime si riavvia e su ogni server, così l'archivio della telemetria viene letto un po' alla volta nel corso del minuto invece che da tutti i monitor insieme.
+
+Ogni monitor mantiene il suo intervallo: i suoi controlli sono distanziati esattamente come prima. Ogni controllo valuta la finestra che termina nel suo momento, anche quando viene eseguito più tardi, per esempio mentre OneUptime è occupato, o quando un controllo non riuscito viene ripetuto pochi secondi dopo. Così una finestra lunga quanto l'intervallo copre esattamente il tempo trascorso dal controllo precedente: nessun dato viene valutato due volte, e nessuno viene tralasciato. Una finestra include il suo inizio ma non la sua fine, quindi un dato con un timestamp esattamente nel momento in cui una finestra termina e inizia la successiva viene valutato una sola volta, dal controllo successivo. Il riepilogo di valutazione di un controllo, in **Visualizza riepilogo** nei **Log di monitoraggio** del monitor, indica quale finestra ha valutato, e lo stesso fa la causa principale di un incidente o di un avviso che apre. Finché OneUptime è indietro di più di un minuto nella lettura della telemetria che ha ricevuto, la finestra di un controllo termina invece nel punto fino a cui OneUptime è arrivato a leggere, così un controllo non valuta mai dati che sono ancora in attesa di essere letti. Se OneUptime resta così indietro che il prossimo controllo di un monitor è previsto prima che sia iniziato il precedente, viene eseguito solo il precedente, per la propria finestra, e la finestra successiva non viene controllata.
+
+Ciò che si sposta è il momento dell'intervallo in cui un controllo viene eseguito: fino a un intervallo dopo, e mai più di 5 minuti dopo. Un incidente o un avviso può aprirsi fino a quel tempo più tardi rispetto a se ogni controllo venisse eseguito all'inizio del suo intervallo, e a volte prima. La **Panoramica** del monitor mostra quando è previsto il suo prossimo controllo.
+
+Un monitor nuovo viene controllato pochi secondi dopo la creazione, per la finestra che termina allora, e poi nel suo momento. Lo stesso vale per un monitor che ha saltato dei controlli mentre era disattivato o mentre OneUptime era fermo. Quando si modifica l'intervallo di un monitor, il suo prossimo controllo passa al nuovo intervallo. Subito dopo l'aggiornamento a una versione di OneUptime che distribuisce i controlli, ogni monitor viene controllato ancora una volta all'ora prevista dalla vecchia pianificazione, e da allora in poi nel suo momento.
 
 ## Modificare i criteri di un monitor
 
@@ -327,6 +343,12 @@ Un criterio più in alto nell'elenco ha corrisposto per primo. Aprite **Configur
 
 :::details Non si è aperto alcun incidente quando il monitor è andato giù
 Controllate il criterio che ha corrisposto: **Quando i filtri corrispondono, dichiara un incidente.** deve essere attivo. Un incidente non viene dichiarato finché l'incidente dello stesso criterio è ancora aperto, finché un monitor padre in **Monitor da cui dipende** è fuori servizio, o finché il monitor è in manutenzione programmata. La scheda **Riepilogo del monitor** nella **Panoramica** del monitor indica quale.
+
+Un criterio soprastante che non cambia alcuno stato, come un avviso di risposta lenta, può corrispondere per primo: crea il suo avviso, il criterio sottostante imposta lo stato e dichiara il suo incidente solo in un controllo in cui è la prima corrispondenza. Trascinate i criteri che cambiano lo stato sopra quelli che si limitano ad avvisare.
+:::
+
+:::details Il monitor è tornato al suo stato predefinito mentre un avviso restava aperto
+Il criterio dell'avviso non cambia alcuno stato, quindi non trattiene il monitor nello stato impostato da un controllo precedente. Lo imposta il primo criterio che corrisponde e cambia lo stato, e quando nessuno lo fa, il monitor passa al suo **Stato predefinito del monitor**. Per mantenere uno stato finché dura un problema, date al criterio che lo imposta una condizione di ripristino propria: vedi [Quando un criterio si ripristina](#quando-un-criterio-si-ripristina).
 :::
 
 :::details L'incidente resta aperto dopo che il monitor si è ripreso

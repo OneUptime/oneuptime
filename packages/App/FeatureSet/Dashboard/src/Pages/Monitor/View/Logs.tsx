@@ -36,7 +36,9 @@ import SummaryInfo from "../../../Components/Monitor/SummaryView/SummaryInfo";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
+  MonitorEvaluationEvent,
 } from "Common/Types/Monitor/MonitorEvaluationSummary";
+import { wordEvaluationText } from "../../../Utils/EvaluationText";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
 import MonitorLogSummaryUtil, {
   INCOMING_EMAIL_NO_SUBJECT_LABEL,
@@ -331,6 +333,28 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
     if (!evaluationSummary) {
       return {
         text: translator.translateText("Not recorded") || "Not recorded",
+        isQuiet: true,
+      };
+    }
+
+    /*
+     * Received while the monitor was not being checked, and listed rather
+     * than dropped (#11141): not evaluated, and why - "Not evaluated:
+     * monitoring is paused by an incident".
+     */
+    const notEvaluated: MonitorEvaluationEvent | undefined = (
+      evaluationSummary.events || []
+    ).find((event: MonitorEvaluationEvent): boolean => {
+      return event.type === "not-evaluated";
+    });
+
+    if (notEvaluated) {
+      return {
+        text: wordEvaluationText(
+          translator,
+          notEvaluated.title,
+          notEvaluated.titleSentence,
+        ),
         isQuiet: true,
       };
     }

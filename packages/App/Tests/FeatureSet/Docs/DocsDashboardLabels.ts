@@ -330,6 +330,10 @@ export const LABELS_DRAWN_BY_OWN_KEY: Readonly<
   "inventory/cmdb-sync": {
     Model: "Model (hardware model)",
   },
+  // A WhatsApp message the person has read, as the notification logs draw it (#11138).
+  "notifications/notification-logs": {
+    Read: "Read (message status)",
+  },
 };
 
 /*

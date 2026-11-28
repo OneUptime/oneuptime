@@ -21,7 +21,10 @@ import FetchNetworkDeviceList from "./Jobs/NetworkDevice/FetchList";
 import FetchNetworkDeviceDiagnostics from "./Jobs/NetworkDevice/FetchDiagnostics";
 import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
 import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
+import SyncSnmpTrapReceiver from "./Jobs/SnmpTrap/SyncSnmpTrapReceiver";
 import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
+import FetchXcpNgWork from "./Jobs/XcpNg/FetchXcpNgWork";
+import FetchStorageArrayWork from "./Jobs/StorageArray/FetchStorageArrayWork";
 import FetchOpenStackWork from "./Jobs/OpenStack/FetchOpenStackWork";
 import FetchOpenStackChecks from "./Jobs/OpenStack/FetchOpenStackChecks";
 import ScanDataSecurityDatabases from "./Jobs/DataSecurity/ScanDatabases";
@@ -186,6 +189,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
        */
       FetchVMwareWork();
 
+      // Storage arrays read from their management server (#11004).
+      FetchStorageArrayWork();
+
+      /*
+       * XCP-ng pools this probe reads with the secrets saved in OneUptime -
+       * through a Xen Orchestra, or a pool's own XAPI - with no agent to
+       * run, and the connection tests people start from the dashboard.
+       */
+      FetchXcpNgWork();
+
       /*
        * OpenStack clouds this probe collects with the credential saved in OneUptime:
        * OpenStack monitoring without an agent, and its connection tests.
@@ -212,6 +225,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       // Optional SNMP trap receiver (PROBE_SNMP_TRAP_RECEIVER_ENABLED).
       SnmpTrapReceiver.start();
+
+      /*
+       * Every thirty seconds: the receiver reported to OneUptime - on or
+       * off, its SNMPv3 engine ID and the SNMPv3 traps it refused - and the
+       * SNMPv3 users of this probe's devices handed back to it.
+       */
+      SyncSnmpTrapReceiver();
 
       /*
        * Syslog receiver: UDP and TCP 5140. On unless

@@ -136,7 +136,7 @@ Hændelseslinkene åbner i en ny fane, så du kan tjekke den eksisterende hænde
 
 **Vagtpolitikker kopieres ikke.** Advarslerne kørte deres egne vagtpolitikker, da de blev oprettet, så at kopiere dem over på hændelsen ville tilkalde de samme personer en gang til. Hændelsens vagtpolitikker er det, du vælger på trinnet **Vagt og roller**, plus det, dine vagtregler for hændelser tilføjer — præcis som for enhver anden hændelse.
 
-**Advarslernes monitorer udfyldes på forhånd som berørte monitorer.** Som ved enhver hændelse, der erklæres i hånden, sættes den aktive overvågning af hændelsens monitorer på pause, indtil hændelsen er løst. Fjern en monitor fra **Monitorer** på trinnet **Berørte ressourcer**, før du sender, hvis den skal blive ved med at blive kontrolleret.
+**Advarslernes monitorer udfyldes på forhånd som berørte monitorer.** Som ved enhver hændelse, der erklæres i hånden, sættes den aktive overvågning af hændelsens monitorer på pause, indtil hændelsen er løst, så den monitor, der rejste advarslerne, holder op med at rejse flere. Fjern krydset i **Sæt overvågning på pause** på trinnet **Berørte ressourcer**, før du sender, eller slå **Fortsæt overvågning under hændelser** til i monitorens **Indstillinger** for at holde den tjekket: hændelsen nævner stadig monitoren, og dens statussider viser den stadig. Se [Overvågning, mens en hændelse er åben](/docs/incidents/declaring-incidents#overvågning-mens-en-hændelse-er-åben).
 
 **En privat advarsel giver en privat hændelse.** Er nogen af advarslerne private, starter **Privat hændelse** slået til, og banneret, der viser advarslerne, siger det. En privat hændelse er kun synlig for sine ejere, Projektejere og Projektadministratorer — og advarslernes ejere starter som dens ejere, så de personer, der kunne se advarslerne, kan se hændelsen, medmindre du fjerner dem. Du er også ejer, som ved enhver hændelse, du erklærer.
 
@@ -155,7 +155,7 @@ sequenceDiagram
 
 Når du sender, kontrollerer serveren advarslerne, før den opretter noget: højst 50 af dem, hver en advarsel i dette projekt, som du må se, og du skal have lov til at knytte advarsler til hændelser. Fejler en kontrol, afvises anmodningen, og ingen hændelse oprettes — så et forkert advarsels-id bruger aldrig et hændelsesnummer. Når hændelsen findes — og når dens privatlivsregler har kørt, så tilknytningerne ved, om den er privat — knyttes hver advarsel, før anmodningen vender tilbage, så hændelsens side **Tilknyttede advarsler** allerede viser dem. Fejler en enkelt tilknytning — fordi advarslen blev slettet et øjeblik forinden for eksempel — erklæres hændelsen alligevel, og de andre advarsler knyttes alligevel.
 
-Hændelsens feed får én post **Advarsel tilknyttet**, der nævner advarslerne, skrevet efter **Hændelse oprettet**, i stedet for én pr. advarsel — se [Feedet, Slack og Microsoft Teams](#feedet-slack-og-microsoft-teams).
+Hændelsens feed får én post **Advarsel tilknyttet**, der nævner advarslerne, i stedet for én pr. advarsel, og den er feedets første post, før **Hændelse oprettet** — se [Feedet, Slack og Microsoft Teams](#feedet-slack-og-microsoft-teams).
 
 ### Advarslernes ejere ejer hændelsen
 
@@ -312,7 +312,7 @@ Det gælder også, når begge er private, fordi en privat advarsel og en privat 
 
 **Kun hændelsens poster når Slack og Microsoft Teams.** **Advarsel tilknyttet** og **Advarsel frakoblet** slås op, hvor hændelsens andre feedopdateringer går hen. Posterne på advarslens side bliver i dashboardet, så en tilknytning giver én besked i stedet for to. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams) for at sætte de kanaler op.
 
-**At erklære en hændelse fra advarsler skriver én post, ikke én pr. advarsel.** De tilknytninger, der laves, mens hændelsen erklæres, skriver ingen egne poster **Advarsel tilknyttet**. I stedet får hændelsen, når dens post **Hændelse oprettet** er ude — og hændelsens egne Slack- og Microsoft Teams-kanaler, hvis du bruger dem, er oprettet — én post **Advarsel tilknyttet**: "Declared from 3 alerts:", efterfulgt af én linje pr. advarsel med dens nummer og titel (en privat advarsel uden sin titel). Det er den ene besked, der slås op i Slack og Microsoft Teams. Hver advarsel får stadig sin egen post **Tilknyttet hændelse**.
+**At erklære en hændelse fra advarsler skriver én post, ikke én pr. advarsel.** De tilknytninger, der laves, mens hændelsen erklæres, skriver ingen egne poster **Advarsel tilknyttet**. I stedet får hændelsen én post **Advarsel tilknyttet**: "Declared from 3 alerts:", efterfulgt af én linje pr. advarsel med dens nummer og titel (en privat advarsel uden sin titel). Det var erklæringen fra advarslerne, der skabte hændelsen, så posten er den første i hændelsens feed, før **Hændelse oprettet** og før de ejere og roller, den får, mens den erklæres. Det er den ene besked, der slås op i Slack og Microsoft Teams, hvor den følger efter **Hændelse oprettet**. Hver advarsel får stadig sin egen post **Tilknyttet hændelse**.
 
 Begge feeds' dialoger **Filtrér efter begivenhedstype**, i hvert feeds menu **⋯**, viser disse begivenhedstyper, så du kan vise eller skjule tilknytningsaktivitet som enhver anden slags post. Mere om hændelsens feed i [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed).
 

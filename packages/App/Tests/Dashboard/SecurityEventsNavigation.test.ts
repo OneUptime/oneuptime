@@ -223,7 +223,9 @@ describe("the Security Events menu", () => {
        * fast a case at each priority must be worked right under the
        * priorities themselves; the rest of how its cases are kept - their
        * own fields, the text their notes start from, their numbers - as
-       * those products keep theirs; and Risk Scoring, about entities, last.
+       * those products keep theirs; Risk Scoring, about entities; and
+       * Erasure Requests, a person erased from Security Events on request
+       * (#10908), last.
        */
       [
         "Settings",
@@ -235,6 +237,7 @@ describe("the Security Events menu", () => {
           "Note Templates",
           "Numbering",
           "Risk Scoring",
+          "Erasure Requests",
         ],
       ],
     ]);
@@ -283,6 +286,7 @@ describe("the Security Events menu", () => {
       ["Note Templates", "SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES"],
       ["Numbering", "SECURITY_EVENTS_SETTINGS_NUMBERING"],
       ["Risk Scoring", "SECURITY_EVENTS_SETTINGS_RISK_SCORING"],
+      ["Erasure Requests", "SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS"],
     ]);
   });
 
@@ -750,6 +754,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Settings", "Note Templates"],
       ["Security Events", "Settings", "Numbering"],
       ["Security Events", "Settings", "Risk Scoring"],
+      ["Security Events", "Settings", "Erasure Requests"],
     ]);
   });
 

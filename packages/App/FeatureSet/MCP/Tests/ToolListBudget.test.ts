@@ -86,9 +86,55 @@ import ModelType from "../Types/ModelType";
  * tools too (4,795 bytes: a service's recommended monitors, people added
  * to a policy, invitations, and How to Reach Me) and the two that make a
  * monitor said what it costs on the Free plan, which took the answer to
- * 284,919 (#10041, #9995).
+ * 284,919 (#10041, #9995). 300,000 on 2026-11-26, when Ask AI's Data
+ * Security actions became ten tools (10,132 bytes: scrub a finding, judge
+ * one, change an issue, set a store's owners, draft a rule from a sentence
+ * and save it, respond on a store, Fix with AI, and read and decide OneUptime
+ * AI's proposals) and took the answer from 286,206 to 296,338, so an agent
+ * acts on Data Security as its buttons do, as the person signed in (#10378,
+ * #10889). They were cut by 990 bytes first: the actions a response can take
+ * are named once, in its schema, and a saved draft's fields say only which
+ * kind of rule they belong to. 313,500 on 2026-11-26: Cloud Cost View,
+ * Cloud Cost Group and Cloud Cost Line Item's eighteen tools (12,458 bytes,
+ * #11006) had taken the answer past 300,000 with no word here, and Required
+ * Tag's six tools (3,592 bytes, #11012) took it from 309,708 to 313,300, so
+ * an agent allocates a cloud bill to teams and sets the tags a cloud's
+ * resources must carry as people do. Those are generated, as every model's
+ * are, and say each thing once - the create a model's required fields, in
+ * its own words, an update nothing more - so there was nothing on them to
+ * cut. The Data Security tools were cut by 726 bytes, by their own rule:
+ * what an argument is, its schema says once (no description restates an
+ * argument's values, no argument repeats its enum, no ID says it is an ID),
+ * which took the answer to 312,574. The budget is that and a small margin,
+ * not the 315,000 the Required Tag tools set. Cloud Tag Setting, the one
+ * row of who is told about an untagged resource, has no tools. 315,000 on
+ * 2026-11-27: Cloud Budget's create and update took twelve fields more
+ * (#11008) - what a budget counts (a scope, a cost group, a filter), its
+ * period, fiscal year and plan, its own unusual day, and who is told below
+ * 100% - which took the answer past 313,500 to 314,246, so an agent makes a
+ * quarterly budget for a cost group as people do. They are generated and
+ * say each thing once; the amount's description was cut by 101 bytes first.
+ * 320,500 the same day: Cloud Cost Report's six tools (#11009) took the
+ * answer to 319,980 with no word here, so an agent schedules a cost report
+ * as people do. They are generated too, with nothing on them to cut.
+ * 320,250 later that day: the descriptions of our own models' columns that
+ * a create tool still carried were cut where they said what the schema
+ * already says, by 213 bytes - a budget's amount named the periods its
+ * period's enum lists (#11008), a cost group's view (#11006) and a
+ * compliance setting's resource said they were IDs, which their format
+ * says, and a compliance setting's kind of resource and framework listed
+ * the values their enums list (the framework's list had missed NSA/CISA
+ * Hardening, which the enum has). That took the answer to 319,767; the
+ * budget is that and a small margin. Kept at 320,250 on 2026-11-28: a cost
+ * report's scope, period and cost basis, a cost group's split, a line
+ * item's kind and repeat and a view's grouping now list their values
+ * (6fd66defbef, e67ba4095bc), and a data store may be OpenSearch
+ * (6e799311ccb), which took the answer to 320,346. Those enums are what
+ * the API accepts, so the cut was where a description said them again: a
+ * reconciliation's two measures, a custom data type's sensitivity and
+ * oneuptime_help's topic, by 215 bytes, to 320,131.
  */
-const MAX_TOOLS_LIST_BYTES: number = 290_000;
+const MAX_TOOLS_LIST_BYTES: number = 320_250;
 
 // The most any one tool may take of it.
 const MAX_TOOL_BYTES: number = 5_000;

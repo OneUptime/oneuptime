@@ -1,7 +1,9 @@
 import {
-  CLAIM_CANDIDATES_PER_MONITOR_PROBE,
+  ClaimedMonitorProbe,
+  MAX_MONITOR_PROBES_PER_CLAIM,
   Service as MonitorProbeServiceType,
 } from "../../../Server/Services/MonitorProbeService";
+import { SET_ASIDE_PER_CLAIM } from "../../../Server/Utils/Probe/ClaimSetAside";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
 } from "../../../Types/Billing/SubscriptionStatus";
@@ -62,8 +64,26 @@ const ALL_VALUES: Array<SubscriptionStatus | null> = [
 ];
 
 /*
- * `selectRows` is what the candidate read answers; the claim statement then
- * answers every candidate it was handed, unless `claimedRows` says which.
+ * The claim is one statement since #10819, and holds the rule twice: in the
+ * rows it claims, and in its check for rows it stepped over. Both bind the
+ * one shared list.
+ */
+const PREDICATES_IN_CLAIM: number = 2;
+
+function admits(
+  statement: CapturedStatement,
+  project: {
+    paymentProviderSubscriptionStatus: string | null;
+    paymentProviderMeteredSubscriptionStatus: string | null;
+  },
+): boolean {
+  return claimAdmitsProject(statement, project, PREDICATES_IN_CLAIM);
+}
+
+/*
+ * `selectRows` is what the claim's statement answers (its first and only
+ * statement unless it gives a new schedule's rows their next run or sets
+ * rows aside); `claimedRows`, what any later statement answers.
  */
 async function captureClaim(
   selectRows: Array<Record<string, unknown>> = [],
@@ -72,7 +92,7 @@ async function captureClaim(
 ): Promise<{
   statements: Array<CapturedStatement>;
   select: CapturedStatement;
-  claimed: Array<ObjectID>;
+  claimed: Array<ClaimedMonitorProbe>;
 }> {
   const service: MonitorProbeServiceType = new MonitorProbeServiceType();
   const statements: Array<CapturedStatement> = captureClaimQueries(
@@ -85,10 +105,11 @@ async function captureClaim(
       : undefined,
   );
 
-  const claimed: Array<ObjectID> = await service.claimMonitorProbesForProbing({
-    probeId: PROBE_ID,
-    limit,
-  });
+  const claimed: Array<ClaimedMonitorProbe> =
+    await service.claimMonitorProbesForProbing({
+      probeId: PROBE_ID,
+      limit,
+    });
 
   expect(statements.length).toBeGreaterThanOrEqual(1);
 
@@ -109,7 +130,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       const { select } = await captureClaim();
 
       expect(
-        claimAdmitsProject(select, {
+        admits(select, {
           paymentProviderSubscriptionStatus: SubscriptionStatus.Active,
           paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.PastDue,
         }),
@@ -120,7 +141,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       const { select } = await captureClaim();
 
       expect(
-        claimAdmitsProject(select, {
+        admits(select, {
           paymentProviderSubscriptionStatus: SubscriptionStatus.PastDue,
           paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Active,
         }),
@@ -131,7 +152,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       const { select } = await captureClaim();
 
       expect(
-        claimAdmitsProject(select, {
+        admits(select, {
           paymentProviderSubscriptionStatus: SubscriptionStatus.PastDue,
           paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.PastDue,
         }),
@@ -146,7 +167,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       const { select } = await captureClaim();
 
       expect(
-        claimAdmitsProject(select, {
+        admits(select, {
           paymentProviderSubscriptionStatus: SubscriptionStatus.Active,
           paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Unpaid,
         }),
@@ -169,7 +190,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
           const { select } = await captureClaim();
 
           expect(
-            claimAdmitsProject(select, {
+            admits(select, {
               [column]: status,
               [otherColumn]: SubscriptionStatus.Active,
             } as {
@@ -186,7 +207,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
           const { select } = await captureClaim();
 
           expect(
-            claimAdmitsProject(select, {
+            admits(select, {
               [column]: status,
               [otherColumn]: SubscriptionStatus.Active,
             } as {
@@ -203,7 +224,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
           const { select } = await captureClaim();
 
           expect(
-            claimAdmitsProject(select, {
+            admits(select, {
               [column]: SubscriptionStatus.PastDue,
               [otherColumn]: status,
             } as {
@@ -217,7 +238,9 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       test("appears exactly once and binds the shared active list", async () => {
         const { select } = await captureClaim();
 
-        expect([...getBoundStatusList(select, column)].sort()).toEqual(
+        expect(
+          [...getBoundStatusList(select, column, PREDICATES_IN_CLAIM)].sort(),
+        ).toEqual(
           [...SubscriptionStatusUtil.getActiveSubscriptionStatuses()].sort(),
         );
       });
@@ -245,7 +268,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
         expect({
           planStatus,
           meteredStatus,
-          admitted: claimAdmitsProject(select, {
+          admitted: admits(select, {
             paymentProviderSubscriptionStatus: planStatus,
             paymentProviderMeteredSubscriptionStatus: meteredStatus,
           }),
@@ -255,19 +278,37 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
   });
 
   describe("the statement itself", () => {
-    test("binds probeId, now, the candidate count and the active statuses, in that order", async () => {
+    test("binds probeId, now, the batch, the active statuses, the known schedules, the minute on and the set-aside batch, in that order", async () => {
       const { select } = await captureClaim([], 42);
 
-      expect(select.parameters).toHaveLength(4);
+      expect(select.parameters).toHaveLength(8);
       expect(select.parameters[0]).toBe(PROBE_ID.toString());
       expect(select.parameters[1]).toBeInstanceOf(Date);
-      // More candidates than the limit: see CLAIM_CANDIDATES_PER_MONITOR_PROBE.
-      expect(CLAIM_CANDIDATES_PER_MONITOR_PROBE).toBeGreaterThan(1);
-      expect(select.parameters[2]).toBe(
-        42 * CLAIM_CANDIDATES_PER_MONITOR_PROBE,
-      );
+      expect(select.parameters[2]).toBe(42);
       expect(select.parameters[3]).toEqual(
         SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+      );
+      // A fresh process knows no schedule yet.
+      expect(select.parameters[4]).toEqual([]);
+      expect(select.parameters[5]).toEqual([]);
+      expect(
+        (select.parameters[6] as Date).getTime() -
+          (select.parameters[1] as Date).getTime(),
+      ).toBe(60 * 1000);
+      expect(select.parameters[7]).toBe(SET_ASIDE_PER_CLAIM);
+    });
+
+    test("hands out what the probe asked for, as a whole number from 1 to the most a claim may", async () => {
+      expect((await captureClaim([], 7.9)).select.parameters[2]).toBe(7);
+      expect((await captureClaim([], 0)).select.parameters[2]).toBe(1);
+      expect((await captureClaim([], -5)).select.parameters[2]).toBe(1);
+      expect(
+        (await captureClaim([], "50" as unknown as number)).select
+          .parameters[2],
+      ).toBe(50);
+      expect((await captureClaim([], Number.NaN)).select.parameters[2]).toBe(1);
+      expect((await captureClaim([], 1_000_000)).select.parameters[2]).toBe(
+        MAX_MONITOR_PROBES_PER_CLAIM,
       );
     });
 
@@ -302,7 +343,7 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
 
       expect(select.parameters[3]).toEqual([SubscriptionStatus.Active]);
       expect(
-        claimAdmitsProject(select, {
+        admits(select, {
           paymentProviderSubscriptionStatus: SubscriptionStatus.PastDue,
           paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Active,
         }),
@@ -312,13 +353,11 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
     /*
      * The fix must not disturb what the claim is otherwise for: disabled /
      * deleted monitors and deleted projects stay out, and the rows come
-     * oldest first. The candidate read locks nothing (issue #7194); the claim
-     * statement after it locks MonitorProbe rows alone - see below. The
-     * read is a range of the (probeId, isEnabled, nextPingAt) index in the
-     * index's own order, so it stops at its LIMIT (MonitorProbeClaimSetAside
-     * pins why).
+     * oldest first. The read is a range of the (probeId, isEnabled,
+     * nextPingAt, lastPingAt) index in the index's own order, so it stops at
+     * its LIMIT (MonitorProbeClaimSetAside pins why).
      */
-    test("keeps the rest of the claim predicate intact, and the candidate read locks nothing", async () => {
+    test("keeps the rest of the claim predicate intact, oldest first, in the index's order", async () => {
       const { select } = await captureClaim();
       const sql: string = normalizeSql(select.sql);
 
@@ -332,116 +371,72 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       expect(sql).toContain('AND m."disableActiveMonitoring" = false');
       expect(sql).toContain('AND m."deletedAt" IS NULL');
       expect(sql).toContain('AND p."deletedAt" IS NULL');
-      expect(sql).toContain('ORDER BY mp."nextPingAt" ASC LIMIT $3');
-      expect(sql).not.toContain("NULLS FIRST");
-      expect(sql).not.toContain('mp."nextPingAt" IS NULL');
+      expect(sql).toContain(
+        'ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC LIMIT $3 FOR NO KEY UPDATE OF mp SKIP LOCKED',
+      );
       expect(sql).not.toContain("FOR UPDATE");
-      expect(sql).not.toContain("FOR NO KEY UPDATE");
+
+      // The read itself: in the index's own order, never NULLS FIRST.
+      const read: string = sql.slice(
+        sql.indexOf('WITH "claimable" AS ('),
+        sql.indexOf('"schedule" AS ('),
+      );
+      expect(read).not.toContain("NULLS FIRST");
+      expect(read).not.toContain('mp."nextPingAt" IS NULL');
     });
   });
 
   describe("after rows are claimed", () => {
     /*
-     * Nothing to claim, so no claim statement - only the set-aside, which
-     * moves due rows nothing may probe (none probeable means every due row
-     * was stepped over) and is an index probe when there are none.
+     * Nothing due: the statement answers one row with no _id, for its flag.
+     * With nothing stepped over, that is all - no second statement.
      */
-    test("returns nothing and runs no claim statement when nothing is due", async () => {
-      const { statements, claimed } = await captureClaim([]);
+    test("returns nothing, and runs nothing more, when nothing is due", async () => {
+      const { statements, claimed } = await captureClaim([
+        { _id: null, steppedOver: false },
+      ]);
 
-      expect(statements).toHaveLength(2);
-      expect(normalizeSql(statements[1]!.sql)).not.toContain('"lastPingAt"');
-      expect(normalizeSql(statements[1]!.sql)).toContain('"unprobeable"');
+      expect(statements).toHaveLength(1);
       expect(claimed).toEqual([]);
     });
 
     /*
-     * The select gained a fourth parameter; the claim is a separate
-     * statement that numbers its own. Pin that it still lines up.
+     * Issue #10819. Claims for the same probe made at the same moment each
+     * lock the next rows nobody holds, in the one statement that writes
+     * them - so none hands out a row twice, and none comes back empty
+     * while rows are due because another took the ones it had read.
      */
-    test("claims the selected rows in one statement whose numbering lines up", async () => {
-      const firstId: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-      const secondId: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-
-      const { statements, claimed } = await captureClaim([
-        { _id: firstId, monitoringInterval: null },
-        { _id: secondId, monitoringInterval: "not a cron" },
-      ]);
-
-      // The read, the claim, then the set-aside.
-      expect(statements).toHaveLength(3);
-
-      const claim: CapturedStatement = statements[1]!;
-
-      expect(normalizeSql(claim.sql)).toContain('UPDATE "MonitorProbe" AS mp');
-      // now, the candidates, their next runs, the probe, the limit.
-      expect(claim.parameters).toHaveLength(5);
-      expect(claim.parameters[0]).toBeInstanceOf(Date);
-      expect(claim.parameters[1]).toEqual([firstId, secondId]);
-      expect(claim.parameters[2]).toHaveLength(2);
-      expect(claim.parameters[3]).toBe(PROBE_ID.toString());
-      expect(claim.parameters[4]).toBe(25);
-      expect(claim.parameters).not.toContainEqual(
-        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
-      );
-      expectPlaceholdersMatchParameters(claim);
-
-      expect(
-        claimed.map((id: ObjectID) => {
-          return id.toString();
-        }),
-      ).toEqual([firstId, secondId]);
-    });
-
-    /*
-     * Issue #7194. The claim locks only for its own statement, and only rows
-     * that are still due when it locks them and that nobody else holds - so
-     * an instance that raced this one for the same rows hands out none of
-     * them twice.
-     */
-    test("locks only MonitorProbe rows nobody holds, re-checked as still due", async () => {
-      const { statements } = await captureClaim([
-        {
-          _id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-          monitoringInterval: "* * * * *",
-        },
-      ]);
-
-      const sql: string = normalizeSql(statements[1]!.sql);
+    test("locks only MonitorProbe rows nobody holds, re-checked as still due, and writes them in the same statement", async () => {
+      const { select } = await captureClaim();
+      const sql: string = normalizeSql(select.sql);
 
       expect(sql).toContain("FOR NO KEY UPDATE OF mp SKIP LOCKED");
-      expect(sql).toContain('WHERE mp."_id" = ANY($2::uuid[])');
-      expect(sql).toContain('AND mp."probeId" = $4');
-      expect(sql).toContain('AND mp."isEnabled" = true');
-      expect(sql).toContain('AND mp."deletedAt" IS NULL');
+      expect(sql).toContain('UPDATE "MonitorProbe" AS mp');
+      expect(sql).toContain('SET "lastPingAt" = $2');
+      expect(sql).toContain('FROM "claimable" c');
+      expect(sql).toContain('WHERE mp."_id" = c."_id"');
+      // Each row's next run: its schedule's, from the bound arrays.
       expect(sql).toContain(
-        'AND (mp."nextPingAt" IS NULL OR mp."nextPingAt" <= $1::timestamptz)',
+        'unnest($5::text[], $6::timestamptz[]) AS s("monitoringInterval", "nextPingAt")',
       );
-      expect(sql).toContain("LIMIT $5");
-      expect(sql).toContain('AND mp."_id" IN (SELECT "_id" FROM "claimable")');
       // A SELECT of what it wrote, so TypeORM answers with the rows.
-      expect(sql).toContain('SELECT "_id" FROM "claimed"');
+      expect(sql).toContain('LEFT JOIN "claimed" c ON true');
     });
 
-    test("hands out only what the claim statement wrote, not every candidate", async () => {
+    test("hands out what the statement wrote, oldest first", async () => {
       const firstId: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
       const secondId: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-      // Another instance claimed the first between the read and the claim.
-      const { claimed } = await captureClaim(
-        [
-          { _id: firstId, monitoringInterval: "* * * * *" },
-          { _id: secondId, monitoringInterval: "* * * * *" },
-        ],
-        25,
-        [{ _id: secondId }],
-      );
+      const { claimed } = await captureClaim([
+        { _id: firstId, monitoringInterval: "* * * * *", steppedOver: false },
+        { _id: secondId, monitoringInterval: "* * * * *", steppedOver: false },
+      ]);
 
       expect(
-        claimed.map((id: ObjectID) => {
-          return id.toString();
+        claimed.map((claimedMonitorProbe: ClaimedMonitorProbe) => {
+          return claimedMonitorProbe.monitorProbeId.toString();
         }),
-      ).toEqual([secondId]);
+      ).toEqual([firstId, secondId]);
     });
 
     test("never opens a transaction", async () => {

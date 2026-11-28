@@ -869,6 +869,8 @@ export const AI_READ_DATA_SECURITY_TERMS: ReadonlyArray<string> = [
   translationKey("Internet reachable"),
   translationKey("Private"),
   translationKey("Unknown"),
+  translationKey("Not checked yet"),
+  translationKey("Can't be checked"),
   // SecuritySeverity
   translationKey("Critical"),
   translationKey("High"),
@@ -1463,6 +1465,8 @@ export const AI_READ_RESOURCE_KINDS: ReadonlyArray<string> = [
   translationKey("OpenStack Clouds"),
   translationKey("vCenter"),
   translationKey("vCenters"),
+  translationKey("XCP-ng Pool"),
+  translationKey("XCP-ng Pools"),
   translationKey("Ceph Cluster"),
   translationKey("Ceph Clusters"),
   translationKey("Storage Array"),

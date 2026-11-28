@@ -40,7 +40,7 @@ See [Creating a Monitor](/docs/monitor/create-monitor).
 
 ### Criteria
 
-A monitor's rules: what each check result means. They are checked in order, and the first one that matches can change the monitor's status, declare an incident, create an alert, or all three.
+A monitor's rules: what each check result means. They are checked in order, and the first one that matches can change the monitor's status, declare an incident, create an alert, or all three. One that changes no status leaves the status to the next criteria that matches and changes it.
 
 Also called: **Monitoring Criteria**, **Monitor Criteria**, **Monitor Steps**. See [Criteria & Statuses](/docs/monitor/criteria-and-statuses).
 
@@ -162,7 +162,7 @@ See [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
 
 ### Infrastructure
 
-The menu's group of the machines and platforms you run: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Storage Arrays, Network and IoT. An agent or a connection fills each one, and each says how every machine, cluster or device in it is doing.
+The menu's group of the machines and platforms you run: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Storage Arrays, Network and IoT. An agent or a connection fills each one, and each says how every machine, cluster or device in it is doing.
 
 See [Hosts](/docs/telemetry/hosts).
 

@@ -180,8 +180,13 @@ const DOWN_FILE: RegExp = /\.down\.sql$/i;
 const SYMBOL_OR_STRING: RegExp = /^:?["']?\w+["']?$/;
 // Alembic's alter_column changing a type.
 const TYPE_ARGUMENT: RegExp = /\btype_\s*=/;
-// The languages a migration directory's migrations are read in.
-const MIGRATION_LANGUAGE: RegExp = /\.(rb|py|ts|js|mjs|cjs)$/;
+/*
+ * The languages a migration directory's migrations are read in: Rails',
+ * Django's and Alembic's, Sequelize's, TypeORM's and Knex's - and Ecto's
+ * (.exs, .ex) and Liquibase's changelogs (.xml), whose new columns the
+ * Sensitive data section reads (#10779).
+ */
+const MIGRATION_LANGUAGE: RegExp = /\.(rb|py|ts|js|mjs|cjs|exs|ex|xml)$/;
 const JAVASCRIPT_FILE: RegExp = /\.(ts|js|mjs|cjs)$/;
 
 /*

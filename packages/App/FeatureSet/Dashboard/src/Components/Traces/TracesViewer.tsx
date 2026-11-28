@@ -35,16 +35,10 @@ import {
 } from "Common/UI/Components/TelemetryViewer/types";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
-import Host from "Common/Models/DatabaseModels/Host";
-import DockerHost from "Common/Models/DatabaseModels/DockerHost";
-import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ModelAPI, {
-  ListResult as ModelListResult,
-} from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
@@ -66,6 +60,10 @@ import {
 import useHashedAddressSearch from "../Telemetry/useHashedAddressSearch";
 import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
 import useAttributeValueSuggestions, {
   AttributeValueSuggestionsState,
 } from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
@@ -94,7 +92,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
 import SpanDetailsPanel from "./SpanDetailsPanel";
 import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
@@ -220,7 +217,10 @@ import {
   ResolvedTelemetryEntity,
   TelemetryEntityNameMap,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
-import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  TelemetryEntityLookup,
+  useTelemetryEntityLookup,
+} from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
 import useResultTotal, {
   ResultTotalListAnswer,
@@ -884,19 +884,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     undefined,
   );
 
-  const [services, setServices] = useState<Array<Service>>([]);
-  const [hosts, setHosts] = useState<Array<Host>>([]);
-  const [dockerHosts, setDockerHosts] = useState<Array<DockerHost>>([]);
-  const [podmanHosts, setPodmanHosts] = useState<Array<PodmanHost>>([]);
-  const [kubernetesClusters, setKubernetesClusters] = useState<
-    Array<KubernetesCluster>
-  >([]);
   /*
-   * Whether the Service list above has landed (or failed). Span rows only
-   * ask the entity-name lookup about ids that list does not name, and before
-   * it lands every id looks unnamed.
+   * The services the page names - its spans' and its Service facet's - read
+   * by their ids as they land (TelemetryServicesOnPage). The page read the
+   * project's first 10,000 services by name instead, and its first 10,000
+   * hosts, Docker and Podman hosts and Kubernetes clusters: a span whose
+   * service sorted past them read "unknown service" (#10921). Hosts and
+   * clusters are named by their facets' server-side names and the entity
+   * resolver.
    */
-  const [resourcesLoaded, setResourcesLoaded] = useState<boolean>(false);
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
+  /*
+   * The spans whose services have been read (or failed to be). Span rows
+   * only ask the entity-name lookup about ids no service answers to, and
+   * before the read settles every id looks unnamed.
+   */
+  const [spansWithServicesRead, setSpansWithServicesRead] =
+    useState<Array<Span> | null>(null);
 
   /*
    * A pinned snapshot window outranks a controlled one and the URL: it
@@ -1086,6 +1090,51 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [attributesLoading, setAttributesLoading] = useState<boolean>(false);
   // The key list could not load: the `@key:` value picker then asks for any key.
   const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
+
+  // The ids of the services the spans and the Service facet name.
+  const serviceIdsOnPage: Array<string> = useMemo(() => {
+    return [
+      ...spans.map((span: Span): string => {
+        return span.primaryEntityId?.toString() || "";
+      }),
+      ...(facetData["primaryEntityId"] || []).map(
+        (facet: FacetValue): string => {
+          return facet.value;
+        },
+      ),
+    ];
+  }, [spans, facetData]);
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    void servicesOnPage.readServicesOf(serviceIdsOnPage).then(() => {
+      if (isCurrent) {
+        setSpansWithServicesRead(spans);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [serviceIdsOnPage]);
+
+  // The services the page knows of, as they are read.
+  const services: Array<Service> = useMemo(() => {
+    const byId: Map<string, Service> = new Map<string, Service>();
+
+    for (const id of serviceIdsOnPage) {
+      const service: Service | undefined = servicesOnPage.knownServices.get(
+        id.toLowerCase(),
+      );
+
+      if (service?.id) {
+        byId.set(service.id.toString().toLowerCase(), service);
+      }
+    }
+
+    return Array.from(byId.values());
+  }, [serviceIdsOnPage, servicesOnPage.knownServices]);
 
   // Service lookup map
   const serviceById: Record<string, Service> = useMemo(() => {
@@ -1616,82 +1665,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     defaultSpanType,
     selectedSavedViewId,
   ]);
-
-  // Load services / hosts / docker hosts / k8s clusters once
-  useEffect(() => {
-    const loadResources: () => Promise<void> = async () => {
-      try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (!projectId) {
-          return;
-        }
-        const [
-          serviceResult,
-          hostResult,
-          dockerHostResult,
-          podmanHostResult,
-          clusterResult,
-        ]: [
-          ModelListResult<Service>,
-          ModelListResult<Host>,
-          ModelListResult<DockerHost>,
-          ModelListResult<PodmanHost>,
-          ModelListResult<KubernetesCluster>,
-        ] = await Promise.all([
-          ModelAPI.getList({
-            modelType: Service,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, serviceColor: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: Host,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, hostIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: DockerHost,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, hostIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: PodmanHost,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, hostIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: KubernetesCluster,
-            query: { projectId: projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, clusterIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-        ]);
-        setServices(serviceResult.data || []);
-        setHosts(hostResult.data || []);
-        setDockerHosts(dockerHostResult.data || []);
-        setPodmanHosts(podmanHostResult.data || []);
-        setKubernetesClusters(clusterResult.data || []);
-      } catch {
-        // non-critical
-      } finally {
-        setResourcesLoaded(true);
-      }
-    };
-    void loadResources();
-  }, []);
 
   // Load telemetry attributes for search suggestions
   useEffect(() => {
@@ -2540,38 +2513,6 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
     }
 
-    const hostNameMap: Record<string, string> = {};
-    for (const host of hosts) {
-      if (host.id) {
-        hostNameMap[host.id.toString()] =
-          host.name || host.hostIdentifier || unknownName;
-      }
-    }
-
-    const dockerHostNameMap: Record<string, string> = {};
-    for (const dockerHost of dockerHosts) {
-      if (dockerHost.id) {
-        dockerHostNameMap[dockerHost.id.toString()] =
-          dockerHost.name || dockerHost.hostIdentifier || unknownName;
-      }
-    }
-
-    const podmanHostNameMap: Record<string, string> = {};
-    for (const podmanHost of podmanHosts) {
-      if (podmanHost.id) {
-        podmanHostNameMap[podmanHost.id.toString()] =
-          podmanHost.name || podmanHost.hostIdentifier || unknownName;
-      }
-    }
-
-    const clusterNameMap: Record<string, string> = {};
-    for (const cluster of kubernetesClusters) {
-      if (cluster.id) {
-        clusterNameMap[cluster.id.toString()] =
-          cluster.name || cluster.clusterIdentifier || unknownName;
-      }
-    }
-
     const statusLabelMap: Record<string, string> =
       getSpanStatusDisplayLabelMap(translator);
     const statusColorMap: Record<string, string> = getSpanStatusColorMap();
@@ -2590,17 +2531,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       /*
        * One facet per catalog resource type (Host … IoT Fleet), at 2.00 –
        * 2.11 so they stay grouped under Service and above Status. Each folds
-       * away while empty. Types without a preloaded list are named by the
-       * server's facet displayName.
+       * away while empty. Each value is named by the server's facet
+       * displayName, read from Postgres by its id.
        */
       ...buildResourceFacetConfigs({
         basePriority: 2,
-        valueDisplayMaps: {
-          hostId: hostNameMap,
-          dockerHostId: dockerHostNameMap,
-          podmanHostId: podmanHostNameMap,
-          kubernetesClusterId: clusterNameMap,
-        },
       }),
       {
         key: "statusCode",
@@ -2687,15 +2622,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         priority: 9,
       },
     ];
-  }, [
-    services,
-    hosts,
-    dockerHosts,
-    podmanHosts,
-    kubernetesClusters,
-    spanType,
-    translator.language,
-  ]);
+  }, [services, spanType, translator.language]);
 
   // Histogram series — status-stacked counts, or a single latency series.
   const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {
@@ -2908,7 +2835,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         return span.primaryEntityId?.toString();
       }),
       knownNames: [serviceNameMap, facetDisplayNames["primaryEntityId"]],
-      includeSpanEntityIds: resourcesLoaded,
+      includeSpanEntityIds: spansWithServicesRead === spans,
     });
   }, [
     scopeEntityId,
@@ -2917,17 +2844,36 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     spans,
     serviceNameMap,
     facetDisplayNames,
-    resourcesLoaded,
+    spansWithServicesRead,
   ]);
 
   const entityTypeHints: Record<string, ServiceType> = useMemo(() => {
     return buildTraceEntityTypeHints(scopeEntityId, props.scopeEntityType);
   }, [scopeEntityId, props.scopeEntityType]);
 
-  const entityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+  /*
+   * The names, and the ids every read answered nothing for: a chip a link
+   * or a saved view brought naming a deleted service reads "No longer
+   * available", never its id (#11213).
+   */
+  const entityLookup: TelemetryEntityLookup = useTelemetryEntityLookup(
     entityIdsToResolve,
     { typeHints: entityTypeHints },
   );
+  const entityNames: TelemetryEntityNameMap = entityLookup.names;
+
+  // The services read so far that are archived: a chip naming one says so.
+  const archivedServiceIds: ReadonlySet<string> = useMemo(() => {
+    const ids: Set<string> = new Set<string>();
+
+    for (const service of services) {
+      if (service.isArchived && service.id) {
+        ids.add(service.id.toString().toLowerCase());
+      }
+    }
+
+    return ids;
+  }, [services]);
 
   /*
    * Display labels are re-derived on every render (see
@@ -2943,6 +2889,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         entityNames,
         scopeEntityId,
         scopeEntityType: props.scopeEntityType,
+        notFoundEntityIds: entityLookup.notFound,
+        archivedEntityIds: archivedServiceIds,
       });
     },
     [
@@ -2951,6 +2899,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       entityNames,
       scopeEntityId,
       props.scopeEntityType,
+      entityLookup.notFound,
+      archivedServiceIds,
     ],
   );
 

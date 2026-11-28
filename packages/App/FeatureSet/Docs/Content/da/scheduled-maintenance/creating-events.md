@@ -63,7 +63,7 @@ Intet sendes, før du vælger en statusside: en begivenhed, der ikke vises på n
 | **Ejere**                            | **Detaljer om vedligeholdelse**     | Ingen                           | Personer og teams, der ejer begivenheden og får besked om den.                   |
 | **Etiketter**                        | **Detaljer om vedligeholdelse**     | Ingen                           | Etiketter, som regler og filtre kan matche på.                                   |
 | **Monitorer**                        | **Berørte ressourcer** | Ingen                       | De monitorer, der ikke kontrolleres, mens begivenheden står på.                  |
-| **Skift monitorstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden. Spørges om, så snart en monitor er valgt. |
+| **Skift monitorstatus til**     | **Berørte ressourcer** | Ingen ændring               | Den status, de monitorer viser under begivenheden, og som deres oppetid tæller. Uden en beholder de deres status, og deres oppetid udelader tiden. Spørges om, så snart en monitor er valgt. |
 | **Andre berørte ressourcer**         | **Berørte ressourcer** | Ingen                       | Værter, klynger, databaser, netværkslokationer, tjenester og mere.               |
 | **Vis begivenhed på disse statussider** | **Berørte ressourcer** | Ingen                    | De eneste statussider, der kan vise begivenheden eller give deres abonnenter besked. |
 | **Notifikationer til abonnenter**    | **Berørte ressourcer** | Offentliggjort med det samme, alle tre tidspunkter slået til, ingen påmindelser | Hvornår begivenheden vises på de sider, og hvornår deres abonnenter får besked. |
@@ -75,7 +75,7 @@ To ting udfylder formularen for dig undervejs:
 
 ## Start fra en ressource eller en skabelon
 
-På fanen **Planlagt vedligeholdelse** for en vært, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, en OpenStack-cloud, et storage array, en IoT-flåde, en database, en cloudressource, en tjeneste eller en netværkslokation åbner **Opret vedligeholdelseshændelse** den samme formular med den ressource allerede valgt under **Andre berørte ressourcer**, og fanen viser de begivenheder, der påvirker den. Fanen for et lagerelement vælger den vært, tjeneste eller Kubernetes-klynge, elementet peger på.
+På fanen **Planlagt vedligeholdelse** for en vært, en Kubernetes-, Proxmox-, Ceph- eller Docker Swarm-klynge, en Docker- eller Podman-vært, en vCenter, en XCP-ng-pool, en OpenStack-cloud, et storage array, en IoT-flåde, en database, en cloudressource, en tjeneste eller en netværkslokation åbner **Opret vedligeholdelseshændelse** den samme formular med den ressource allerede valgt under **Andre berørte ressourcer**, og fanen viser de begivenheder, der påvirker den. Fanen for et lagerelement vælger den vært, tjeneste eller Kubernetes-klynge, elementet peger på.
 
 **Opret fra skabelon**, ved siden af knappen til at oprette, beder dig om at **Vælg skabelon for planlagt vedligeholdelse** og åbner derefter formularen udfyldt fra skabelonen. Se [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates).
 
@@ -84,9 +84,9 @@ På fanen **Planlagt vedligeholdelse** for en vært, en Kubernetes-, Proxmox-, C
 I det øjeblik du klikker på **Opret vedligeholdelseshændelse**, gennemgår OneUptime disse trin i denne rækkefølge:
 
 1. **Den får et nummer og en tilstand.** Nummeret kommer fra en tæller pr. projekt og vises med dit præfiks (`SM-42`). Begivenheden starter i din planlagte tilstand, uanset hvilken tilstand en anmodning nævner.
-2. **Dine chatværktøjer hører om den.** Slack- og Microsoft Teams-reglerne under **Arbejdsområde** poster den i deres kanaler, og en regel kan oprette en kanal til begivenheden. Dens feed registrerer, at den blev oprettet.
-3. **Dens tilstandstidslinje begynder.** Den første række i dens **Tilstandstidslinje** er din planlagte tilstand.
-4. **Ejere og etiketter tilføjes**: dem, du har valgt, og derefter dem fra matchende ejer- og etiketregler.
+2. **Dens tilstandstidslinje begynder.** Den første række i dens **Tilstandstidslinje** er din planlagte tilstand.
+3. **Ejere og etiketter tilføjes**: dem, du har valgt, og derefter dem fra matchende ejer- og etiketregler.
+4. **Dine chatværktøjer hører om den.** Slack- og Microsoft Teams-reglerne under **Arbejdsområde** poster den i deres kanaler, og en regel kan oprette en kanal til begivenheden. Dens feed registrerer, at den blev oprettet. Reglerne ser de ejere og etiketter, begivenheden blev oprettet med, så en regel, der spørger, hvem der ejer en begivenhed, eller hvilke etiketter den har, også poster den. Det, der i mellemtiden er sagt om begivenheden, f.eks. de netop tilføjede ejere, følger efter den i de kanaler.
 5. **Runbook-regler starter** de runbooks, der matcher begivenheden.
 6. **Påmindelser planlægges**, når en påmindelsesregel matcher, for dens ejere.
 

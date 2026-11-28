@@ -139,91 +139,434 @@ receivers:
         source_identifier: attributes["log.file.path"]
         force_flush_period: 5s
         max_log_size: 1048576
-      # Podman's k8s-file driver does not record a severity; OTel log records
-      # have dedicated severity_number / severity_text fields that downstream
-      # viewers rely on for filtering. Derive a best-effort severity: read a
-      # level keyword out of the body when there is one, and fall back to the
-      # stdout/stderr stream when there is not.
+      # Operators of your own (issue #11225), for a format the readers below
+      # do not know: up to five, each one stanza operator, as JSON, in
+      # ONEUPTIME_LOG_OPERATOR_1 to ONEUPTIME_LOG_OPERATOR_5. They run on
+      # every line after it is put back together and before its level is read,
+      # and a slot left unset is a noop. To set a line's level, write it to
+      # attributes.severity_text, as a word this agent reads (ERROR, warn,
+      # critical, ...): the router below sends a line that has one straight to
+      # the severity parser. Leave a slot unset rather than empty: the
+      # collector reads an empty one as no operator at all and stops.
+      # install.sh and the Compose file's config check run `otelcol validate`
+      # over them first, so a bad one stops the install with the collector's
+      # own message instead of a collector that restarts forever.
+      - "${env:ONEUPTIME_LOG_OPERATOR_1:-type: noop}"
+      - "${env:ONEUPTIME_LOG_OPERATOR_2:-type: noop}"
+      - "${env:ONEUPTIME_LOG_OPERATOR_3:-type: noop}"
+      - "${env:ONEUPTIME_LOG_OPERATOR_4:-type: noop}"
+      - "${env:ONEUPTIME_LOG_OPERATOR_5:-type: noop}"
+      # Podman's k8s-file driver records no severity, only the stream a line was
+      # written to; OTel log records have dedicated severity_number /
+      # severity_text fields that downstream viewers rely on for filtering.
       #
-      # A level keyword is only believed when it sits where a LEVEL sits, not
-      # merely because the word turns up somewhere in the line. Two shapes
-      # count, and the pattern is those two, in this order:
+      # Derive a severity: the router hands each line to the FIRST reader that
+      # knows where its format keeps the level.
       #
-      #   1. LINE PREAMBLE. The keyword is on the first line of the record and
-      #      everything before it is preamble: punctuation, digits, and word
-      #      tokens that end on a structural delimiter (. ] = - : / | ) }).
-      #      That is "[ERROR] ...", Monolog's "app.INFO: ...", "2026-08-31
-      #      07:25:04 INFO ...", Python's "... - myapp - INFO - ..." and
-      #      logfmt's leading "level=error ...". Prose is not: "Connection
-      #      error, retrying" stops the preamble dead at "Connection ",
-      #      because a bare word followed by a space is not a preamble token.
-      #      The repetition is LAZY, so the first keyword in preamble
-      #      position wins rather than the last.
-      #   2. LEVEL FIELD. The keyword is the value of a level-ish key anywhere
-      #      in the line -- level / lvl / severity / severity_text / levelname
-      #      / log.level / log_level -- quoted or not, separated by ":" or
-      #      "=". That is zap and logrus JSON ({"level":"info"}) and logfmt
-      #      whose level is not the first field (ts=... level=error msg=...).
+      #   1. parse-klog-severity. klog and glog (every Kubernetes
+      #      component, cert-manager, ingress-nginx's controller) put the
+      #      level in the first letter, glued to the date: "I1123
+      #      19:09:25.286486 1 solver.go:104] ..." is INFO, W is WARN, E
+      #      ERROR, F FATAL.
+      #   2. add-exception-severity. What a runtime prints for an exception
+      #      names no level but is an error: Python's "Traceback (most
+      #      recent call last):", Java's "Exception in thread ..." and
+      #      "Caused by: ...", .NET's "Unhandled exception.", Rust's "thread
+      #      'main' panicked at ...", and a line that starts with an
+      #      exception's class ("TypeError: ...",
+      #      "java.lang.IllegalStateException: ..."). ERROR.
+      #   3. add-warning-severity. Python's warnings module and Node's
+      #      process warnings name a category, not a level: "/app/x.py:3:
+      #      DeprecationWarning: ..." and "(node:1) [DEP0005]
+      #      DeprecationWarning: ...". WARN.
+      #   4. parse-numeric-severity. pino and bunyan write the level as a
+      #      number among the top-level fields, {"level":30,...}: 10 TRACE,
+      #      20 DEBUG, 30 INFO, 40 WARN, 50 ERROR, 60 FATAL.
+      #   5. The formats that keep the level in a place of their own, each
+      #      read there and nowhere else (issue #11226), so a word that is a
+      #      level only in its own format ("System", "Fine", a "#") is read
+      #      in no other line:
+      #        parse-mongodb-severity  MongoDB's "s" (F E W I, D1 to D5);
+      #        parse-cnpg-severity     CloudNativePG's wrapped PostgreSQL
+      #                                record: its "error_severity", not
+      #                                the wrapper's "level";
+      #        parse-clef-severity     Serilog's compact JSON: "@l";
+      #        add-clef-information    ...which writes no "@l" for
+      #                                Information: INFO;
+      #        parse-redis-severity    Redis's and Valkey's symbol: .
+      #                                debug, - verbose, * notice, #
+      #                                warning;
+      #        parse-nest-severity     NestJS's ConsoleLogger, after its
+      #                                locale's time;
+      #        parse-logrus-severity   logrus with colours: TRAC, DEBU,
+      #                                ERRO, FATA, PANI;
+      #        parse-mysql-severity    MySQL 8's [System] and its others;
+      #        parse-jul-severity      java.util.logging's FINEST to
+      #                                CONFIG, in capitals before a colon;
+      #        parse-sidekiq-severity  Sidekiq 7's "pid=1 tid=x INFO:";
+      #        parse-php-severity      PHP's error log, "PHP Warning:  ";
+      #        parse-gitea-severity    Gitea's [I], after its caller.
+      #   6. parse-severity-from-body. A level word, believed only where a
+      #      level sits, not merely because the word turns up in the line:
+      #        LINE PREAMBLE. The word is on the first line and everything
+      #        before it is preamble: punctuation, digits, word tokens that
+      #        end on a structural delimiter (. ] = - : / | ) }), colour
+      #        codes, and a time at the very start, read with its letters
+      #        (RFC 3339's T and Z, a zone such as UTC or GMT, ctime's day
+      #        and month, zerolog's 3:04PM). That is "[ERROR] ...",
+      #        Monolog's "app.INFO: ...", hclog's
+      #        "2026-11-23T18:58:14.670Z [INFO] ...", Python's "... - myapp
+      #        - INFO - ..." and PostgreSQL's "2026-11-23 18:53:14.906 GMT
+      #        [27] LOG:  ...". Prose is not: "Connection error, retrying"
+      #        stops at "Connection ", a bare word followed by a space. The
+      #        repetition is lazy, so the first word in preamble position
+      #        wins.
+      #        LEVEL FIELD. The word is the value of a level key anywhere in
+      #        the line, quoted or not, after ":" or "=": level, lvl,
+      #        severity, severity_text, levelname, level_name, log.level,
+      #        log_level, hclog's @level, Serilog's @l. That is zap, logrus
+      #        and slog JSON, and logfmt.
+      #      The preamble is anchored, so it beats a level field further
+      #      along the line. The words are the OTel names, PSR-3's and
+      #      syslog's, and the ones formats write for them: PostgreSQL's LOG
+      #      (in capitals only: "Log rotated" is prose), MySQL's Note,
+      #      java.util.logging's SEVERE, .NET's trce, dbug and fail,
+      #      zerolog's and Serilog's three letters (INF, WRN, ...), log15's
+      #      eror, zap's DPanic.
+      #   7. parse-slog-severity. Go's log/slog between its four names,
+      #      level=ERROR+4 or "level":"INFO+2", where the general read found
+      #      no level, so a line that one reads keeps that level.
+      #   8. add-fallback-severity. A line nothing read, on stdout: INFO, as
+      #      stdout is a program's ordinary output.
+      # A line nothing read on STDERR gets no severity at all (the router's
+      # default, severity-unspecified). stderr is where programs write their
+      # diagnostics, every level of them: klog, zap's production config, logrus,
+      # hclog, Python's logging and PostgreSQL write everything there. So the
+      # stream says nothing about such a line's level. It used to make one
+      # ERROR, which stored every unread INFO and WARN line on stderr as an
+      # Error (issue #10972). OneUptime shows it as Unspecified, and a severity
+      # filter keeps it, having no level to compare.
       #
-      # The preamble branch is anchored, so when it matches it is the leftmost
-      # match and beats a level field further along the same line. Both
-      # branches take end-of-body as a trailing delimiter, so Docker (whose
-      # json-file driver keeps the newline in the `log` field) and Podman
-      # (whose CRI format does not) read the same line the same way.
-      #
-      # A line matching neither shape takes the stream fallback below, exactly
-      # as it did before any of this existed. Every keyword in the alternation
-      # MUST also resolve in `severity-parser` below: stanza's built-in preset
-      # knows nothing of notice/crit/critical/panic/alert/emerg/emergency, and
-      # an unmapped keyword leaves the record Unspecified, which is worse than
-      # the stream guess it replaced.
-      # Tests/Ops/ContainerAgentLogSeverity.test.js pins all of it, the corpus
-      # of lines that must NOT match included.
+      # Every text a reader lifts MUST resolve in `severity-parser` below:
+      # stanza's built-in preset knows only
+      # trace/debug/info/warn/warning/error/err/fatal, and an unmapped text
+      # leaves the record Unspecified. The patterns are linear in JavaScript's
+      # backtracking engine as well as in RE2, since the Kubernetes agent's
+      # API-mode tailer runs the same source there: a time is read once, at the
+      # start of the line, and only the colour-code token consumes an ESC.
+      # Tests/Ops/ContainerAgentLogSeverity.test.js pins all of it over a corpus
+      # of real lines (Tests/Ops/Utils/LogSeverityCorpus.js), prose that must
+      # not be read included, and Tests/Ops/agent-log-severity-behaviour.sh runs
+      # that corpus through the real collector.
       - type: router
         id: severity-router
         routes:
+          - output: severity-parser
+            expr: 'attributes["severity_text"] != nil'
+          - output: parse-klog-severity
+            expr: 'body matches "^([IWEF])\\d{4}(?:\\d{4})? \\d\\d:\\d\\d:\\d\\d\\.\\d{6} +\\d+ [^ :\\]]+:\\d+\\]"'
+          - output: add-exception-severity
+            expr: 'body matches "^(?:Traceback \\(most recent call last\\):|Exception in thread \"|Caused by: |Unhandled [Ee]xception[.:]|thread \\x27[^\\x27]*\\x27 panicked at |(?:[A-Za-z_$][\\w$]*\\.)*(?:[A-Z][\\w$]*)?(?:Error|Exception)(?::(?:\\s|$)|[\\r\\n]|$))"'
+          - output: add-warning-severity
+            expr: 'body matches "^(?:\\S+:\\d+: |\\(node:\\d+\\) (?:\\[[A-Z]+\\d+\\] )?)[A-Z][A-Za-z]*Warning: "'
+          - output: parse-numeric-severity
+            expr: 'body matches "^\\{(?:\"(?:[^\"\\\\]|\\\\.)*\":(?:\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d+(?:\\.\\d+)?|true|false|null),)*?\"level\":([1-6]0)[,}]"'
+          - output: parse-mongodb-severity
+            expr: 'body matches "^\\{\"t\":\\{\"[$]date\":\"[^\"]*\"\\},\"s\":\"([FEWI]|D[1-5])\""'
+          - output: parse-cnpg-severity
+            expr: 'body matches "^\\{\"level\":\"[a-z]+\",\"ts\":\"[^\"]*\",\"logger\":\"postgres\",\"msg\":\"record\",.*?\"error_severity\":\"(DEBUG|LOG|INFO|NOTICE|WARNING|ERROR|FATAL|PANIC)\""'
+          - output: parse-clef-severity
+            expr: 'body matches "^\\{\"@t\":\"[^\"\\\\]*\",\"@mt?\":\"(?:[^\"\\\\]|\\\\.)*\",(?:\"@r\":\\[(?:\"(?:[^\"\\\\]|\\\\.)*\",?)*\\],)?(?:\"@i\":\"[0-9a-f]+\",)?\"@l\":\"(Verbose|Debug|Information|Warning|Error|Fatal)\""'
+          - output: add-clef-information
+            expr: 'body matches "^\\{\"@t\":\"[^\"\\\\]*\",\"@mt?\":\""'
+          - output: parse-redis-severity
+            expr: 'body matches "^\\d+:[CMSX] \\d\\d? [A-Z][a-z]{2} \\d{4} \\d\\d:\\d\\d:\\d\\d\\.\\d{3} ([.*#-]) "'
+          - output: parse-nest-severity
+            expr: 'body matches "^(?:\\x1b\\[[0-9;]*m)?\\[Nest\\] \\d+  - (?:\\x1b\\[[0-9;]*m)?[^\\x1b\\n]*?\\d(?: ?[AP]M)? (?:\\x1b\\[[0-9;]*m)? *(VERBOSE|DEBUG|LOG|WARN|ERROR|FATAL)(?:\\x1b\\[[0-9;]*m)? "'
+          - output: parse-logrus-severity
+            expr: 'body matches "^\\x1b\\[\\d+m(TRAC|DEBU|INFO|WARN|ERRO|FATA|PANI)\\x1b\\[0m\\[[^\\]\\n]*\\] "'
+          - output: parse-mysql-severity
+            expr: 'body matches "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{6}(?:Z|[+-]\\d\\d:\\d\\d) \\d+ \\[(System|ERROR|Warning|Note)\\] \\[MY-\\d{6}\\] "'
+          - output: parse-jul-severity
+            expr: 'body matches "^(FINEST|FINER|FINE|CONFIG): "'
+          - output: parse-sidekiq-severity
+            expr: 'body matches "^(?:\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z )?pid=\\d+ tid=[a-z0-9]+(?: [a-z_]+=[^ =]+)* (DEBUG|INFO|WARN|ERROR|FATAL): "'
+          - output: parse-php-severity
+            expr: 'body matches "^PHP (Fatal error|Parse error|Recoverable fatal error|Warning|Notice|Deprecated):  "'
+          - output: parse-gitea-severity
+            expr: 'body matches "^\\d{4}/\\d\\d/\\d\\d \\d\\d:\\d\\d:\\d\\d(?:\\.\\d+)? (?:\\S+\\(\\) )?\\[([TDIWEF])\\] "'
           - output: parse-severity-from-body
-            expr: 'body matches "(?i)(?:^(?:[^A-Za-z\"\\n]|[A-Za-z][A-Za-z0-9_]*[ \\t]*[.:=,/>|)}\\]-])*?|(?:^|[\\s,{\\[])\"?(?:log[._]?level|severity_?text|severity|levelname|level|lvl)\"?[ \\t]*[:=][ \\t]*\"?)(TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|ERR|FATAL|PANIC)(?:$|[\\s\\]:=,)\"}|>])"'
-        default: add-fallback-severity
+            expr: 'body matches "(?i)(?:^(?:(?:\\x1b\\[[0-9;]*m)*(?:\\[(?:\\x1b\\[[0-9;]*m)*)?(?:\\d{4}-\\d\\d-\\d\\d[T ]\\d\\d:\\d\\d(?::\\d\\d(?:[.,]\\d+)?)?(?:Z|[+-]\\d\\d(?::?\\d\\d)?)?(?:[ \\t]+(?-i:UTC|GMT|CET|CEST|EET|EEST|WET|WEST|BST|IST|MSK|EST|EDT|CST|CDT|MST|MDT|PST|PDT|HST|AKST|AKDT|JST|KST|HKT|SGT|AEST|AEDT|ACST|ACDT|AWST|NZST|NZDT))?|(?-i:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?-i:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\\d\\d? \\d\\d:\\d\\d:\\d\\d(?:\\.\\d+)? \\d{4}|\\d\\d?:\\d\\d(?-i:AM|PM)))?(?:[^A-Za-z\"\\n\\x1b]|\\x1b\\[[0-9;]*m|[A-Za-z][A-Za-z0-9_]*[ \\t]*[.:=,/>|)}\\]-])*?|(?:^|[\\s,{\\[])\"?(?:@?(?:log[._]?level|severity_?text|severity|level_?name|level|lvl)|@l)\"?[ \\t]*[:=][ \\t]*\"?)(TRACE|TRCE|TRC|DEBUG|DBUG|DBG|VRB|INFORMATION|INFO|INF|NOTICE|NOTE|(?-i:LOG)|WARNING|WARN|WRN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|EROR|ERR|FAIL|SEVERE|DPANIC|FATAL|FTL|PANIC|PNC)(?:$|[\\s\\]:=,)\"}|>\\x1b]|/[A-Za-z][A-Za-z0-9_-]*\\])"'
+          - output: parse-slog-severity
+            expr: 'body matches "(?:^|[\\s{,])\"?level\"?[=:]\"?(DEBUG-[1-4]|DEBUG\\+[1-3]|INFO\\+[1-3]|WARN\\+[1-3]|ERROR\\+[1-7])(?:$|[\\s\",}])"'
+          - output: add-fallback-severity
+            expr: 'attributes["log.iostream"] != "stderr"'
+        default: severity-unspecified
+      # 1. klog and glog: the first letter is the level.
       - type: regex_parser
-        id: parse-severity-from-body
-        regex: '(?i)(?:^(?:[^A-Za-z"\n]|[A-Za-z][A-Za-z0-9_]*[ \t]*[.:=,/>|)}\]-])*?|(?:^|[\s,{\[])"?(?:log[._]?level|severity_?text|severity|levelname|level|lvl)"?[ \t]*[:=][ \t]*"?)(?P<severity_text>TRACE|DEBUG|INFO|NOTICE|WARNING|WARN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|ERR|FATAL|PANIC)(?:$|[\s\]:=,)"}|>])'
+        id: parse-klog-severity
+        regex: '^(?P<severity_text>[IWEF])\d{4}(?:\d{4})? \d\d:\d\d:\d\d\.\d{6} +\d+ [^ :\]]+:\d+\]'
         parse_from: body
         output: severity-parser
-      # No keyword in the body: fall back to the stream. Podman's k8s-file
-      # driver records no severity of its own. stderr -> ERROR, stdout -> INFO.
+      # 2. An exception's header: an error, though it names no level.
+      - type: add
+        id: add-exception-severity
+        field: attributes.severity_text
+        value: ERROR
+        output: severity-parser
+      # 3. A Python or Node warning category: a warning.
+      - type: add
+        id: add-warning-severity
+        field: attributes.severity_text
+        value: WARN
+        output: severity-parser
+      # 4. pino and bunyan: a number among the top-level fields.
+      - type: regex_parser
+        id: parse-numeric-severity
+        regex: '^\{(?:"(?:[^"\\]|\\.)*":(?:"(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?|true|false|null),)*?"level":(?P<severity_text>[1-6]0)[,}]'
+        parse_from: body
+        output: severity-parser
+      # 5. MongoDB's JSON: the "s" right after the time (F E W I, D1-D5).
+      - type: regex_parser
+        id: parse-mongodb-severity
+        regex: '^\{"t":\{"[$]date":"[^"]*"\},"s":"(?P<severity_text>[FEWI]|D[1-5])"'
+        parse_from: body
+        output: severity-parser
+      # 6. CloudNativePG wraps each PostgreSQL record in a line of its own
+      #    manager, whose "level" says only that it logged one: the record's
+      #    "error_severity" is the level.
+      - type: regex_parser
+        id: parse-cnpg-severity
+        regex: '^\{"level":"[a-z]+","ts":"[^"]*","logger":"postgres","msg":"record",.*?"error_severity":"(?P<severity_text>DEBUG|LOG|INFO|NOTICE|WARNING|ERROR|FATAL|PANIC)"'
+        parse_from: body
+        output: severity-parser
+      # 7. Serilog's compact JSON (CLEF): "@l" after the message.
+      - type: regex_parser
+        id: parse-clef-severity
+        regex: '^\{"@t":"[^"\\]*","@mt?":"(?:[^"\\]|\\.)*",(?:"@r":\[(?:"(?:[^"\\]|\\.)*",?)*\],)?(?:"@i":"[0-9a-f]+",)?"@l":"(?P<severity_text>Verbose|Debug|Information|Warning|Error|Fatal)"'
+        parse_from: body
+        output: severity-parser
+      # 8. ...which leaves "@l" out for Information.
+      - type: add
+        id: add-clef-information
+        field: attributes.severity_text
+        value: INFO
+        output: severity-parser
+      # 9. Redis and Valkey: a symbol after the time.
+      - type: regex_parser
+        id: parse-redis-severity
+        regex: '^\d+:[CMSX] \d\d? [A-Z][a-z]{2} \d{4} \d\d:\d\d:\d\d\.\d{3} (?P<severity_text>[.*#-]) '
+        parse_from: body
+        output: severity-parser
+      # 10. NestJS's ConsoleLogger: the level after its locale's time.
+      - type: regex_parser
+        id: parse-nest-severity
+        regex: '^(?:\x1b\[[0-9;]*m)?\[Nest\] \d+  - (?:\x1b\[[0-9;]*m)?[^\x1b\n]*?\d(?: ?[AP]M)? (?:\x1b\[[0-9;]*m)? *(?P<severity_text>VERBOSE|DEBUG|LOG|WARN|ERROR|FATAL)(?:\x1b\[[0-9;]*m)? '
+        parse_from: body
+        output: severity-parser
+      # 11. logrus with colours: four letters, then the time in brackets.
+      - type: regex_parser
+        id: parse-logrus-severity
+        regex: '^\x1b\[\d+m(?P<severity_text>TRAC|DEBU|INFO|WARN|ERRO|FATA|PANI)\x1b\[0m\[[^\]\n]*\] '
+        parse_from: body
+        output: severity-parser
+      # 12. MySQL 8's error log, [System] among its levels.
+      - type: regex_parser
+        id: parse-mysql-severity
+        regex: '^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}(?:Z|[+-]\d\d:\d\d) \d+ \[(?P<severity_text>System|ERROR|Warning|Note)\] \[MY-\d{6}\] '
+        parse_from: body
+        output: severity-parser
+      # 13. java.util.logging's lower levels, in capitals before a colon.
+      - type: regex_parser
+        id: parse-jul-severity
+        regex: '^(?P<severity_text>FINEST|FINER|FINE|CONFIG): '
+        parse_from: body
+        output: severity-parser
+      # 14. Sidekiq 7: the level after its pid, thread and job.
+      - type: regex_parser
+        id: parse-sidekiq-severity
+        regex: '^(?:\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z )?pid=\d+ tid=[a-z0-9]+(?: [a-z_]+=[^ =]+)* (?P<severity_text>DEBUG|INFO|WARN|ERROR|FATAL): '
+        parse_from: body
+        output: severity-parser
+      # 15. PHP's own error log line.
+      - type: regex_parser
+        id: parse-php-severity
+        regex: '^PHP (?P<severity_text>Fatal error|Parse error|Recoverable fatal error|Warning|Notice|Deprecated):  '
+        parse_from: body
+        output: severity-parser
+      # 16. Gitea: a letter in brackets, after its caller.
+      - type: regex_parser
+        id: parse-gitea-severity
+        regex: '^\d{4}/\d\d/\d\d \d\d:\d\d:\d\d(?:\.\d+)? (?:\S+\(\) )?\[(?P<severity_text>[TDIWEF])\] '
+        parse_from: body
+        output: severity-parser
+      # 17. A level word where a level sits.
+      - type: regex_parser
+        id: parse-severity-from-body
+        regex: '(?i)(?:^(?:(?:\x1b\[[0-9;]*m)*(?:\[(?:\x1b\[[0-9;]*m)*)?(?:\d{4}-\d\d-\d\d[T ]\d\d:\d\d(?::\d\d(?:[.,]\d+)?)?(?:Z|[+-]\d\d(?::?\d\d)?)?(?:[ \t]+(?-i:UTC|GMT|CET|CEST|EET|EEST|WET|WEST|BST|IST|MSK|EST|EDT|CST|CDT|MST|MDT|PST|PDT|HST|AKST|AKDT|JST|KST|HKT|SGT|AEST|AEDT|ACST|ACDT|AWST|NZST|NZDT))?|(?-i:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?-i:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\d\d? \d\d:\d\d:\d\d(?:\.\d+)? \d{4}|\d\d?:\d\d(?-i:AM|PM)))?(?:[^A-Za-z"\n\x1b]|\x1b\[[0-9;]*m|[A-Za-z][A-Za-z0-9_]*[ \t]*[.:=,/>|)}\]-])*?|(?:^|[\s,{\[])"?(?:@?(?:log[._]?level|severity_?text|severity|level_?name|level|lvl)|@l)"?[ \t]*[:=][ \t]*"?)(?P<severity_text>TRACE|TRCE|TRC|DEBUG|DBUG|DBG|VRB|INFORMATION|INFO|INF|NOTICE|NOTE|(?-i:LOG)|WARNING|WARN|WRN|EMERGENCY|EMERG|ALERT|CRITICAL|CRIT|ERROR|EROR|ERR|FAIL|SEVERE|DPANIC|FATAL|FTL|PANIC|PNC)(?:$|[\s\]:=,)"}|>\x1b]|/[A-Za-z][A-Za-z0-9_-]*\])'
+        parse_from: body
+        output: severity-parser
+      # 18. Go's log/slog between its four names: level=ERROR+4.
+      - type: regex_parser
+        id: parse-slog-severity
+        regex: '(?:^|[\s{,])"?level"?[=:]"?(?P<severity_text>DEBUG-[1-4]|DEBUG\+[1-3]|INFO\+[1-3]|WARN\+[1-3]|ERROR\+[1-7])(?:$|[\s",}])'
+        parse_from: body
+        output: severity-parser
+      # 19. Nothing read, on stdout: a program's ordinary output.
       - type: add
         id: add-fallback-severity
         field: attributes.severity_text
-        value: 'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")'
+        value: INFO
         output: severity-parser
-      # Promote the textual severity onto the LogRecord itself so OTel log
-      # consumers see a real severity_number rather than Unspecified.
+      # Promote the text onto the LogRecord, so OTel consumers see a real
+      # severity_number. Each text is stored at the number OneUptime's ingest
+      # stores the same word at (LOG_SEVERITY_NUMBER_BY_TEXT in
+      # packages/Common/Types/Log/LogSeverity.ts, issue #11228), so a line is
+      # stored the same way whether it comes through this agent or a Fluent or
+      # OTLP sender: Tests/Ops/LogSeverityOneTable.test.js holds this block to
+      # that table, number for number. Each alias is under one level only:
+      # stanza reads this block as a map, in no set order.
       - type: severity_parser
         id: severity-parser
         parse_from: attributes.severity_text
         preset: default
         mapping:
+          # .NET's trce, zerolog's TRC, logrus's TRAC, java.util.logging's
+          # FINEST, Gitea's T; pino's 10. And Go's log/slog between its names,
+          # at its level plus 9, as OpenTelemetry's slog bridge numbers it.
+          trace:
+            - trce
+            - trc
+            - trac
+            - finest
+            - t
+            - "10"
+            - debug-4
+          trace2:
+            - debug-3
+          trace3:
+            - debug-2
+          trace4:
+            - debug-1
+          # .NET's dbug, zerolog's DBG, Serilog's VRB and Verbose, NestJS's
+          # VERBOSE, logrus's DEBU, java.util.logging's FINER, Gitea's D,
+          # MongoDB's D1 to D5, Redis's "."; pino's 20.
+          debug:
+            - dbug
+            - dbg
+            - vrb
+            - verbose
+            - debu
+            - finer
+            - d
+            - d1
+            - d2
+            - d3
+            - d4
+            - d5
+            - "."
+            - "20"
+          # Redis's "-" (verbose, above its debug), java.util.logging's FINE.
+          debug2:
+            - "-"
+            - fine
+            - debug+1
+          # java.util.logging's CONFIG.
+          debug3:
+            - config
+            - debug+2
+          debug4:
+            - debug+3
+          # MySQL's Note and System, PostgreSQL's and NestJS's LOG, zerolog's
+          # INF, .NET's and Serilog's Information; klog's I, pino's 30.
+          info:
+            - note
+            - system
+            - log
+            - inf
+            - information
+            - i
+            - "30"
+          # syslog's notice and Redis's "*" (its notice): INFO2, above INFO, as
+          # Appendix B maps notice.
+          info2:
+            - notice
+            - "*"
+            - info+1
+          info3:
+            - info+2
+          info4:
+            - info+3
+          # zerolog's WRN, Redis's "#", PHP's Deprecated; klog's W, pino's 40.
           warn:
             - warning
+            - wrn
+            - "#"
+            - deprecated
+            - w
+            - "40"
+          warn2:
+            - warn+1
+          warn3:
+            - warn+2
+          warn4:
+            - warn+3
+          # log15's eror, logrus's ERRO, .NET's fail, java.util.logging's
+          # SEVERE, PHP's Recoverable fatal error; klog's E, pino's 50.
           error:
             - err
+            - eror
+            - erro
+            - fail
+            - severe
+            - recoverable fatal error
+            - e
+            - "50"
+          # syslog's crit, and zap's DPanic (it panics only in development):
+          # ERROR2.
+          error2:
             - crit
-            - critical
-          # PSR-3 / syslog put alert and emergency above critical, and neither
-          # has a built-in mapping; nginx writes emergency as [emerg].
-          fatal:
-            - panic
+            - dpanic
+            - error+1
+          # syslog's and PSR-3's alert: ERROR3, an error that asks for action.
+          error3:
             - alert
+            - error+2
+          error4:
+            - error+3
+          # A crash, or an application logger's top level: Python's and .NET's
+          # critical, a panic (Go's, PostgreSQL's, logrus's PANI, zerolog's
+          # PNC), logrus's FATA, PHP's Fatal error and Parse error, syslog's
+          # emerg; zerolog's FTL; klog's F, pino's 60.
+          fatal:
+            - critical
+            - panic
+            - pnc
+            - pani
+            - fata
+            - fatal error
+            - parse error
+            - ftl
             - emerg
             - emergency
-          info:
-            - notice
-      # Remove the now-redundant attribute so we don't duplicate the value
-      # both as an attribute and as the record's severity field.
+            - f
+            - "60"
+            - error+4
+          fatal2:
+            - error+5
+          fatal3:
+            - error+6
+          fatal4:
+            - error+7
+      # Remove the now-redundant attribute so the value is not duplicated as an
+      # attribute beside the record's own severity.
       - type: remove
         id: remove-severity-attr
         field: attributes.severity_text
+      # Nothing read, on stderr: the router's default, which leaves the record
+      # with no severity. The end of the chain, after the cleanup.
+      - type: noop
+        id: severity-unspecified
 
 processors:
   # Container CPU as OneUptime shows it: the CPU the container used over each

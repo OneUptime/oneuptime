@@ -22,7 +22,10 @@ import {
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import { getAllCephAlertTemplates } from "Common/Types/Monitor/CephAlertTemplates";
 import { getAllOpenStackAlertTemplates } from "Common/Types/Monitor/OpenStackAlertTemplates";
+import { getAllStorageArrayAlertTemplates } from "Common/Types/Monitor/StorageArrayAlertTemplates";
 import { getAllVMwareAlertTemplates } from "Common/Types/Monitor/VMwareAlertTemplates";
+import { getAllXcpNgAlertTemplates } from "Common/Types/Monitor/XcpNgAlertTemplates";
+import { getAllXcpNgEventAlertTemplates } from "Common/Types/Monitor/XcpNgEventAlertTemplates";
 import { isEnglishCopy } from "../../FeatureSet/Docs/Utils/Translations";
 
 /*
@@ -367,9 +370,13 @@ describe("what the Dashboard draws, in Persian", () => {
     ).toEqual([]);
   });
 
+  /*
+   * An app such as these is an اپلیکیشن, the Persian word for the
+   * authenticator app on its card and the sign-in page (#10915).
+   */
   test("the authenticator apps help #6733 named reads in Persian, the apps by their names", () => {
     expect(PERSIAN.get(AUTHENTICATOR_HELP)).toBe(
-      "یک کد یک‌بارمصرف از برنامه‌ای مانند 1Password، Google Authenticator یا Microsoft Authenticator بگیرید.",
+      "یک کد یک‌بارمصرف از اپلیکیشنی مانند 1Password، Google Authenticator یا Microsoft Authenticator بگیرید.",
     );
   });
 
@@ -1566,6 +1573,10 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
       name: "Edit custom rules in each zone",
       why: "the check blocking adds to a Cloudflare connection's test, which the test report draws as the connector names it",
     },
+    {
+      name: "Zone configuration changed",
+      why: "a Brocade switch's recommended alert, which a monitor's criteria carry under the alert pack's own name",
+    },
   ];
 
   // What a docs line says in Latin letters about a zone or a recordset, once code, links, names and time zones are out.
@@ -1750,7 +1761,29 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
   // A load balancer's ezafe written with a hamza: the spelling Persian does not use.
   const LOAD_BALANCER_WITH_HAMZA: string = `متعادل${ZERO_WIDTH_NON_JOINER}کننده${ch(0x654)} بار`;
   // A repository, and money: neither is a pool.
-  const NOT_A_POOL: ReadonlyArray<string> = ["مخزن", "پول"];
+  const REPOSITORY: string = "مخزن";
+  /*
+   * Money as a word of its own: توپولوژی (topology) holds the same three
+   * letters, and "Open pool topology" names a pool and its topology.
+   */
+  const MONEY: RegExp = /(?:^|[^؀-ۿ])پول(?![؀-ۿ])/;
+  /*
+   * An XCP-ng storage repository is مخزن ذخیره‌سازی, as the glossary says,
+   * so a text whose English names a repository as well as a pool ("Storage
+   * repository of pool {{pool}}", "a shared one is reachable from every host
+   * of the pool") says مخزن for the repository, never for the pool.
+   */
+  const SAYS_REPOSITORY: RegExp = /\brepositor(?:y|ies)\b/i;
+  // Whether a text's Persian calls its pool something else than استخر.
+  const callsAPoolSomethingElse: (
+    english: string,
+    persian: string,
+  ) => boolean = (english: string, persian: string): boolean => {
+    if (MONEY.test(persian)) {
+      return true;
+    }
+    return !SAYS_REPOSITORY.test(english) && persian.includes(REPOSITORY);
+  };
 
   // English that says one of the four, outside its placeholders.
   const SAYS_ONE: RegExp =
@@ -1898,18 +1931,40 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
     expect(pools.length).toBeGreaterThan(150);
     expect(
       pools
-        .filter(([, , persian]: [string, string, string]): boolean => {
+        .filter(([, english, persian]: [string, string, string]): boolean => {
           return (
-            !persian.includes(POOL) ||
-            NOT_A_POOL.some((word: string): boolean => {
-              return persian.includes(word);
-            })
+            !persian.includes(POOL) || callsAPoolSomethingElse(english, persian)
           );
         })
         .map(([key, , persian]: [string, string, string]): string => {
           return `${key} => ${persian}`;
         }),
     ).toEqual([]);
+  });
+
+  test("a storage repository of a pool keeps its own word, topology is no money, and a pool called a repository is still caught (control)", () => {
+    const repositoryOfPool: string = `مخزن ذخیره${ZERO_WIDTH_NON_JOINER}سازی استخر {{pool}}`;
+    expect(
+      callsAPoolSomethingElse(
+        "Storage repository of pool {{pool}}",
+        repositoryOfPool,
+      ),
+    ).toBe(false);
+    expect(
+      callsAPoolSomethingElse("Open pool topology", "باز کردن توپولوژی استخر"),
+    ).toBe(false);
+    // A pool worded as a repository, where the English names no repository.
+    expect(
+      callsAPoolSomethingElse("Resource pool {{pool}}", "مخزن منابع {{pool}}"),
+    ).toBe(true);
+    // A pool worded as money, whatever else the text names.
+    expect(
+      callsAPoolSomethingElse(
+        "Storage repository of pool {{pool}}",
+        "مخزن ذخیره‌سازی پول {{pool}}",
+      ),
+    ).toBe(true);
+    expect(callsAPoolSomethingElse("The buffer pool", "پول بافر")).toBe(true);
   });
 
   test("the check finds one kept in Latin letters, and leaves code, a command, an identifier and a name drawn in English alone (control)", () => {
@@ -1953,7 +2008,11 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
   const ALERT_TEMPLATE_NAMES: ReadonlyArray<string> = [
     ...getAllOpenStackAlertTemplates(),
     ...getAllCephAlertTemplates(),
+    // A storage array's too: Dell PowerMax's "Storage Resource Pool Above 80%" (#11004).
+    ...getAllStorageArrayAlertTemplates(),
     ...getAllVMwareAlertTemplates(),
+    ...getAllXcpNgAlertTemplates(),
+    ...getAllXcpNgEventAlertTemplates(),
   ].map((template: { name: string }): string => {
     return template.name;
   });
@@ -1976,6 +2035,10 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
     {
       name: "Cast, save, and share",
       why: "Chrome's menu item, named as Chrome draws it",
+    },
+    {
+      name: "«Pool»",
+      why: "the name OneUptime gives an XCP-ng pool Xen Orchestra names nothing (Pool and the start of its UUID), stored in English",
     },
   ];
 

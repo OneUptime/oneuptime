@@ -8,7 +8,9 @@ import SecurityCaseFeedService from "../../../../../Server/Services/SecurityCase
 import DataSecurityAiCall from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiCall";
 import DataSecurityAiEngine from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiEngine";
 import { DataSecurityAiPrompt } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
-import { ExposureDraftSkip } from "../../../../../Server/Utils/AI/DataSecurity/ExposureAssessmentDrafter";
+import ExposureAssessmentDrafter, {
+  ExposureDraftSkip,
+} from "../../../../../Server/Utils/AI/DataSecurity/ExposureAssessmentDrafter";
 import ExposureAssessmentRun, {
   ExposureRunAiSkip,
   ExposureRunOutcome,
@@ -200,6 +202,68 @@ describe("which exposures are assessed on their own", () => {
 
     // The timeline: assessed, then written up - when, never what.
     expect(timeline).toHaveBeenCalledTimes(2);
+  });
+
+  test("a store that logs its reads has its access logs read before OneUptime AI writes it up, so the write-up says who read it (#10951)", async () => {
+    tables = useExposureTables({
+      issues: [issueRow({ status: "Open", resolvedAt: null })],
+      stores: [storeRow({ posture: { accessLogging: true } })],
+    });
+
+    const order: Array<string> = [];
+    const readLogs: SpyInstance<
+      typeof ExposureAssessmentDrafter.readLogsOnItsOwn
+    > = jest
+      .spyOn(ExposureAssessmentDrafter, "readLogsOnItsOwn")
+      .mockImplementation(async () => {
+        order.push("read the logs");
+        return null;
+      });
+
+    jest
+      .spyOn(ExposureAssessmentDrafter, "draftOnItsOwn")
+      .mockImplementation(async () => {
+        order.push("written up");
+        return { drafted: false, reason: ExposureDraftSkip.NothingHeld };
+      });
+
+    const outcome: ExposureRunOutcome = await run();
+
+    expect(outcome.started).toBe(true);
+    expect(readLogs).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      securityCaseId: new ObjectID(CASE_ID),
+      now: NOW,
+    });
+    expect(order).toEqual(["read the logs", "written up"]);
+  });
+
+  test("the logs are read with AI off too: the card says who read it either way", async () => {
+    projectWith({ enableAi: false });
+
+    const readLogs: SpyInstance<
+      typeof ExposureAssessmentDrafter.readLogsOnItsOwn
+    > = jest
+      .spyOn(ExposureAssessmentDrafter, "readLogsOnItsOwn")
+      .mockResolvedValue(null);
+    const outcome: ExposureRunOutcome = await run();
+
+    expect(outcome.aiSkipped).toBe(ExposureRunAiSkip.AiOff);
+    expect(readLogs).toHaveBeenCalledTimes(1);
+  });
+
+  test("a case assessed already is not read again on its own", async () => {
+    tables = useExposureTables({
+      cases: [caseRow({ exposureAssessment: startedAssessment() })],
+    });
+
+    const readLogs: SpyInstance<
+      typeof ExposureAssessmentDrafter.readLogsOnItsOwn
+    > = jest.spyOn(ExposureAssessmentDrafter, "readLogsOnItsOwn");
+
+    await run();
+
+    expect(readLogs).not.toHaveBeenCalled();
   });
 
   test("the website images bucket - Public data, open to anyone - gets no assessment", async () => {

@@ -789,6 +789,9 @@
   "/dashboard/:projectId/security-events/settings/risk-scoring": [
     "security-events"
   ],
+  "/dashboard/:projectId/security-events/settings/erasure-requests": [
+    "security-events"
+  ],
   "/dashboard/:projectId/data-security/overview": [
     "data-security"
   ],
@@ -1350,16 +1353,40 @@
   "/dashboard/:projectId/cloud/costs": [
     "cloud"
   ],
+  "/dashboard/:projectId/cloud/cost-groups": [
+    "cloud"
+  ],
   "/dashboard/:projectId/cloud/savings": [
     "cloud"
   ],
+  "/dashboard/:projectId/cloud/reports": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/schedules": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/commitments": [
+    "cloud"
+  ],
   "/dashboard/:projectId/cloud/budgets": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/forecast": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/tags": [
     "cloud"
   ],
   "/dashboard/:projectId/cloud/settings/owner-rules": [
     "cloud"
   ],
   "/dashboard/:projectId/cloud/settings/label-rules": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/settings/costs": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/settings/savings-ai-rules": [
     "cloud"
   ],
   "/dashboard/:projectId/cloud/archived": [
@@ -1461,6 +1488,9 @@
   "/dashboard/:projectId/vmware/settings/rules-audit-logs": [
     "vmware"
   ],
+  "/dashboard/:projectId/vmware/settings/health-rules": [
+    "vmware"
+  ],
   "/dashboard/:projectId/vmware/archived": [
     "vmware"
   ],
@@ -1478,6 +1508,42 @@
   ],
   "/dashboard/:projectId/vmware/developer/ai-assistants": [
     "vmware"
+  ],
+  "/dashboard/:projectId/xcp-ng": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/connections": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/documentation": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/settings/owner-rules": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/settings/label-rules": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/settings/rules-audit-logs": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/archived": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/terraform": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/crossplane": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/api": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/cli": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/developer/ai-assistants": [
+    "xcp-ng"
   ],
   "/dashboard/:projectId/ceph": [
     "ceph"
@@ -1513,6 +1579,9 @@
     "ceph"
   ],
   "/dashboard/:projectId/storage-arrays": [
+    "storage-arrays"
+  ],
+  "/dashboard/:projectId/storage-arrays/connections": [
     "storage-arrays"
   ],
   "/dashboard/:projectId/storage-arrays/documentation": [

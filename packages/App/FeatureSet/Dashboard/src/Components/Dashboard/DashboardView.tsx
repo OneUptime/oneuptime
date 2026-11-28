@@ -45,6 +45,7 @@ import DashboardLogChartComponentUtil from "Common/Utils/Dashboard/Components/Da
 import DashboardSecurityEventsListComponentUtil from "Common/Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
 import DashboardSecurityEventsFlowComponentUtil from "Common/Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
 import DashboardProductAnalyticsFunnelComponentUtil from "Common/Utils/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
+import DashboardCloudCostComponentUtil from "Common/Utils/Dashboard/Components/DashboardCloudCostComponent";
 import DashboardProductAnalyticsRetentionComponentUtil from "Common/Utils/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
 import DashboardTraceChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceChartComponent";
@@ -77,6 +78,8 @@ import DashboardProxmoxNodeListComponentUtil from "Common/Utils/Dashboard/Compon
 import DashboardProxmoxGuestListComponentUtil from "Common/Utils/Dashboard/Components/DashboardProxmoxGuestListComponent";
 import DashboardVMwareHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardVMwareHostListComponent";
 import DashboardVMwareVirtualMachineListComponentUtil from "Common/Utils/Dashboard/Components/DashboardVMwareVirtualMachineListComponent";
+import DashboardXcpNgHostListComponentUtil from "Common/Utils/Dashboard/Components/DashboardXcpNgHostListComponent";
+import DashboardXcpNgVmListComponentUtil from "Common/Utils/Dashboard/Components/DashboardXcpNgVmListComponent";
 import DashboardDockerSwarmNodeListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmNodeListComponent";
 import DashboardDockerSwarmServiceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
@@ -118,8 +121,10 @@ import DashboardVariable, {
 import DashboardVariableUrlState from "Common/Utils/Dashboard/VariableUrlState";
 import PermissionGate, {
   ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import { useRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import { PAGE_DOCK_END_CLASS_NAME } from "Common/UI/Utils/PageDock";
@@ -235,9 +240,20 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
    * TablePermission either way; what was broken is that the UI never said so,
    * and the work was lost when it finally did.
    */
+  /*
+   * On the dashboard's page, what its labels leave the reader (#11259): a
+   * role limited to some labels edits only the dashboards carrying one.
+   */
+  const dashboardOptions: PermissionGateOptions | undefined =
+    useRecordGateOptions(new Dashboard(), props.dashboardId);
+
   const editGate: PermissionGateResult = useMemo(() => {
-    return PermissionGate.check(new Dashboard(), ModelAction.Update);
-  }, []);
+    return PermissionGate.check(
+      new Dashboard(),
+      ModelAction.Update,
+      dashboardOptions,
+    );
+  }, [dashboardOptions]);
 
   // A playlist's turn is read only, whoever watches it.
   const canEditDashboard: boolean = editGate.isAllowed && !isPlayback;
@@ -1244,6 +1260,11 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
               DashboardSecurityEventsFlowComponentUtil.getDefaultComponent();
           }
 
+          if (componentType === DashboardComponentType.CloudCost) {
+            newComponent =
+              DashboardCloudCostComponentUtil.getDefaultComponent();
+          }
+
           if (componentType === DashboardComponentType.ProductAnalyticsFunnel) {
             newComponent =
               DashboardProductAnalyticsFunnelComponentUtil.getDefaultComponent();
@@ -1416,6 +1437,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           ) {
             newComponent =
               DashboardVMwareVirtualMachineListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.XcpNgHostList) {
+            newComponent =
+              DashboardXcpNgHostListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.XcpNgVmList) {
+            newComponent =
+              DashboardXcpNgVmListComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.DockerSwarmNodeList) {

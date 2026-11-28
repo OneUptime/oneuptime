@@ -1,9 +1,23 @@
 import FixPerformanceTaskTrigger, {
   FinishedPerformanceFix,
   MAX_ANALYZED_TRACE_SPANS,
+  NO_CONNECTED_REPOSITORY_FOR_PERFORMANCE_FIX_MESSAGE,
   PERFORMANCE_FIX_ALREADY_DONE_MESSAGE,
   PerformanceTraceSpans,
 } from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import CodeFixPersonRepository, {
+  CodeFixRepositoryUse,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
+import CodeTaskAccess from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
+import { ResolvableRepository } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
+import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
+import {
+  CodeRepositoryAllowance,
+  EVERY_CODE_REPOSITORY,
+  NO_CODE_REPOSITORY,
+} from "../../../Types/CodeRepository/CodeRepositoryAllowance";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import SubjectCodeFixRun from "../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeFixStartGate, {
@@ -12,6 +26,7 @@ import CodeFixStartGate, {
 import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import { CODE_TASK_PLAN_REQUIRED_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import CodeHostAccess from "../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
 import {
   CodeTaskBlocker,
   CodeTaskBlockerType,
@@ -44,11 +59,18 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
+  MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES,
+  NO_TRACE_PERFORMANCE_FIX_SUGGESTION,
   PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE,
-  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
   TRACE_NOT_WORTH_FIXING_MESSAGE,
   TracePerformanceFixSuggestion,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import {
+  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
 import {
   FAST_REQUEST_WITH_N_PLUS_ONE,
   HEALTH_CHECK,
@@ -100,6 +122,159 @@ function gateSays(
   return jest
     .spyOn(CodeFixStartGate, "check")
     .mockResolvedValue({ codeRepositoryId, blocker } as CodeFixStart);
+}
+
+// A connected repository as the resolver reads it.
+function resolvable(
+  id: string,
+  name?: string | undefined,
+): ResolvableRepository {
+  return {
+    id,
+    name: name || `repository-${id.slice(-4)}`,
+    organizationName: "acme",
+    repositoryName: (name || `repository-${id.slice(-4)}`).toLowerCase(),
+    mainBranchName: "main",
+    gitHubAppInstallationId: "1234",
+  };
+}
+
+/*
+ * The connected repositories the person who asks may use in Code (#11075):
+ * read, and ask OneUptime AI to work in. The gate's one, unless a test says,
+ * so the gates a test is about are the only ones in its way.
+ */
+function personMayUse(
+  usable: Array<string> = [GATE_REPOSITORY_ID.toString()],
+  connectedCount: number = usable.length,
+): jest.SpyInstance {
+  let allowance: CodeRepositoryAllowance = EVERY_CODE_REPOSITORY;
+
+  if (usable.length === 0) {
+    allowance = NO_CODE_REPOSITORY;
+  } else if (usable.length < connectedCount) {
+    allowance = {
+      isEveryRepository: false,
+      repositoryIds: usable.map((id: string): string => {
+        return id.toLowerCase();
+      }),
+    };
+  }
+
+  const use: CodeFixRepositoryUse = {
+    connectedCount,
+    usable: usable.map((id: string): ResolvableRepository => {
+      return resolvable(id);
+    }),
+    allowance,
+  };
+
+  return jest
+    .spyOn(CodeFixPersonRepository, "getUsableRepositories")
+    .mockResolvedValue(use);
+}
+
+/*
+ * What one person may do in Code with the project's repositories (#11075),
+ * as CodeTaskAccess answers it under their own permissions: of the ones
+ * that exist (connected or not), each is theirs to read unless it is
+ * `unreadable`, and theirs to ask OneUptime AI to work in unless it is
+ * `notAskable`. `asked` holds whose permissions each read was made under.
+ */
+interface PersonInCode {
+  existing: Set<string>;
+  unreadable: Set<string>;
+  notAskable: Set<string>;
+  asked: Array<DatabaseCommonInteractionProps>;
+}
+
+function noPersonInCodeYet(): PersonInCode {
+  return {
+    existing: new Set<string>(),
+    unreadable: new Set<string>(),
+    notAskable: new Set<string>(),
+    asked: [],
+  };
+}
+
+const keyOfId: (id: ObjectID | string) => string = (
+  id: ObjectID | string,
+): string => {
+  return id.toString().trim().toLowerCase();
+};
+
+function repositoryRow(id: string): CodeRepository {
+  const repository: CodeRepository = new CodeRepository();
+  repository.id = new ObjectID(id);
+  return repository;
+}
+
+// CodeTaskAccess, answering for one person from a world of their permissions.
+function fakePersonInCode(): PersonInCode {
+  const person: PersonInCode = noPersonInCodeYet();
+
+  const mayRead: (id: string) => boolean = (id: string): boolean => {
+    return person.existing.has(id) && !person.unreadable.has(id);
+  };
+
+  const mayAsk: (id: string) => boolean = (id: string): boolean => {
+    return person.existing.has(id) && !person.notAskable.has(id);
+  };
+
+  jest
+    .spyOn(CodeTaskAccess, "listReadableRepositoriesByIds")
+    .mockImplementation(
+      async (data: {
+        props: DatabaseCommonInteractionProps;
+        repositoryIds: Array<ObjectID | string>;
+      }): Promise<Array<CodeRepository>> => {
+        person.asked.push(data.props);
+
+        return data.repositoryIds
+          .map(keyOfId)
+          .filter(mayRead)
+          .map(repositoryRow);
+      },
+    );
+  jest
+    .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+    .mockImplementation(
+      async (data: {
+        props: DatabaseCommonInteractionProps;
+        repositoryIds: Array<ObjectID | string>;
+      }): Promise<Set<string>> => {
+        person.asked.push(data.props);
+
+        return new Set<string>(data.repositoryIds.map(keyOfId).filter(mayAsk));
+      },
+    );
+  jest
+    .spyOn(CodeTaskAccess, "findReadableRepository")
+    .mockImplementation(
+      async (data: {
+        props: DatabaseCommonInteractionProps;
+        repositoryId: ObjectID;
+      }): Promise<CodeRepository | null> => {
+        person.asked.push(data.props);
+        const id: string = keyOfId(data.repositoryId);
+
+        return mayRead(id) ? repositoryRow(id) : null;
+      },
+    );
+  jest
+    .spyOn(CodeTaskAccess, "canAskInRepository")
+    .mockImplementation(
+      async (data: {
+        props: DatabaseCommonInteractionProps;
+        repositoryId: ObjectID;
+      }): Promise<boolean> => {
+        person.asked.push(data.props);
+
+        return mayAsk(keyOfId(data.repositoryId));
+      },
+    );
+
+  return person;
 }
 
 // No fix for the trace did its work yet.
@@ -210,6 +385,8 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
     aiSwitch(true);
     noFinishedFix();
     gateSays(null, null);
+    // Who may start one has its own describe below (#11075).
+    personMayUse();
   });
 
   afterEach(() => {
@@ -228,6 +405,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId: "",
         spans: spansWithNPlusOne(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(BadDataException);
 
@@ -246,6 +424,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: [],
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(/no spans/);
 
@@ -266,6 +445,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: spansWithNPlusOne(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(AI_DISABLED_MESSAGE);
 
@@ -287,6 +467,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: healthySpans(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(TRACE_NOT_WORTH_FIXING_MESSAGE);
 
@@ -314,6 +495,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
           traceId,
           spans: trace.spans,
           userId,
+          props: READER,
         }),
       ).rejects.toThrow(TRACE_NOT_WORTH_FIXING_MESSAGE);
 
@@ -335,6 +517,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: spansWithNPlusOne(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(/^No connected repository exists for this project/);
 
@@ -354,6 +537,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: spansWithNPlusOne(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(
       "A performance fix task is already queued or running for this trace. Track its progress in Code.",
@@ -391,6 +575,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: spansWithNPlusOne(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(/already queued or running/);
 
@@ -411,6 +596,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
       traceId,
       spans: spansWithNPlusOne(),
       userId,
+      props: READER,
     });
 
     expect(create).toHaveBeenCalledTimes(1);
@@ -433,6 +619,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         spans: spansWithNPlusOne(),
         serviceName: "orders-service",
         userId,
+        props: READER,
       });
 
     expect(run).toBe(createdRun);
@@ -506,6 +693,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
       traceId,
       spans,
       userId,
+      props: READER,
     });
 
     const storedContext: CodeFixTaskContext = (
@@ -544,6 +732,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: spansWithNPlusOne(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(PERFORMANCE_FIX_ALREADY_DONE_MESSAGE);
 
@@ -569,6 +758,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: spansWithNPlusOne(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(new BadDataException(NO_CREDITS.message));
 
@@ -588,6 +778,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: spansWithNPlusOne(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(PaymentRequiredException);
   });
@@ -605,6 +796,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
       spans: spansWithNPlusOne(),
       serviceName: "orders-service",
       userId,
+      props: READER,
     });
 
     expect(check).toHaveBeenCalledTimes(1);
@@ -639,6 +831,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
       traceId,
       spans: spansWithNPlusOne(),
       userId,
+      props: READER,
     });
 
     expect(enqueue).toHaveBeenCalledWith(
@@ -648,9 +841,19 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         userId,
       }),
     );
+    // And held to it when it starts: the repository the person may use.
+    expect(
+      (enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+        .taskContext.pickedCodeRepositoryId,
+    ).toBe(GATE_REPOSITORY_ID.toString());
   });
 
-  test("no repository resolves for the gate: queued without one, as the run then finds its own", async () => {
+  /*
+   * #11075: a run queued without a repository found its own when it
+   * started, among every connected one - one the person may not use
+   * included. The only repository the person may use is the one it works in.
+   */
+  test("no repository resolves for the gate, and the person may use one: the run is made in it, and held to it when it starts", async () => {
     connected();
     gateSays(null, null);
     const enqueue: jest.SpyInstance = jest
@@ -662,9 +865,19 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
       traceId,
       spans: spansWithNPlusOne(),
       userId,
+      props: READER,
     });
 
-    expect(enqueue.mock.calls[0]![0]).toMatchObject({ codeRepositoryId: null });
+    const queued: {
+      codeRepositoryId?: ObjectID | null;
+      taskContext: CodeFixTaskContext;
+    } = enqueue.mock.calls[0]![0];
+    expect(queued.codeRepositoryId?.toString()).toBe(
+      GATE_REPOSITORY_ID.toString(),
+    );
+    expect(queued.taskContext.pickedCodeRepositoryId).toBe(
+      GATE_REPOSITORY_ID.toString(),
+    );
   });
 
   test("a run in flight is said before what Code's gate says: the page links to it", async () => {
@@ -682,6 +895,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         traceId,
         spans: spansWithNPlusOne(),
         userId,
+        props: READER,
       }),
     ).rejects.toThrow(/already queued or running/);
 
@@ -846,6 +1060,8 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
     hiddenFrom = jest
       .spyOn(CodeTaskThread, "findTasksHiddenFrom")
       .mockResolvedValue(new Set<string>());
+    // Who may start one has its own describe (#11075).
+    personMayUse();
   });
 
   afterEach(() => {
@@ -1317,8 +1533,30 @@ describe("the server agrees with the page", () => {
     ...NOT_WORTH_FIXING_TRACES,
   ];
 
+  /*
+   * Which of the connected repositories the person may use in Code
+   * (#11075): every one, none of them, or - the rows counted, but none
+   * OneUptime AI can reach - nothing to use at all.
+   */
+  type PersonUse = "may use every one" | "may use none" | "none reachable";
+
+  const uses: Array<PersonUse> = [
+    "may use every one",
+    "may use none",
+    "none reachable",
+  ];
+
   const cases: Array<
-    [string, TraceFixture, boolean, boolean, boolean, boolean, boolean]
+    [
+      string,
+      TraceFixture,
+      boolean,
+      boolean,
+      boolean,
+      boolean,
+      boolean,
+      PersonUse,
+    ]
   > = [];
   for (const trace of traces) {
     for (const isAiOn of [true, false]) {
@@ -1326,15 +1564,18 @@ describe("the server agrees with the page", () => {
         for (const hasActiveRun of [true, false]) {
           for (const hasFinishedFix of [true, false]) {
             for (const isBlocked of [true, false]) {
-              cases.push([
-                `${trace.title}, AI ${isAiOn ? "on" : "off"}, ${hasRepository ? "a repository" : "no repository"}, ${hasActiveRun ? "a fix in flight" : "no fix in flight"}, ${hasFinishedFix ? "a fix done" : "none done"}, ${isBlocked ? "Code's gate says no" : "nothing in the way"}`,
-                trace,
-                isAiOn,
-                hasRepository,
-                hasActiveRun,
-                hasFinishedFix,
-                isBlocked,
-              ]);
+              for (const use of uses) {
+                cases.push([
+                  `${trace.title}, AI ${isAiOn ? "on" : "off"}, ${hasRepository ? "a repository" : "no repository"}, ${hasActiveRun ? "a fix in flight" : "no fix in flight"}, ${hasFinishedFix ? "a fix done" : "none done"}, ${isBlocked ? "Code's gate says no" : "nothing in the way"}, the person ${use}`,
+                  trace,
+                  isAiOn,
+                  hasRepository,
+                  hasActiveRun,
+                  hasFinishedFix,
+                  isBlocked,
+                  use,
+                ]);
+              }
             }
           }
         }
@@ -1352,8 +1593,16 @@ describe("the server agrees with the page", () => {
       hasActiveRun: boolean,
       hasFinishedFix: boolean,
       isBlocked: boolean,
+      use: PersonUse,
     ) => {
       aiSwitch(isAiOn);
+      if (use === "may use every one") {
+        personMayUse();
+      } else if (use === "may use none") {
+        personMayUse([], 1);
+      } else {
+        personMayUse([], 0);
+      }
       jest
         .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
         .mockResolvedValue(hasRepository);
@@ -1396,6 +1645,7 @@ describe("the server agrees with the page", () => {
           traceId,
           spans: trace.spans,
           userId,
+          props: READER,
         });
       } catch {
         created = false;
@@ -1609,9 +1859,48 @@ describe("a repository to pick for a fix no repository was found for", () => {
     { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
   ];
 
+  /*
+   * The project's connected repositories: the list a suggestion reads
+   * (getResolvableRepositories), and whether one is connected, as a pick
+   * is checked (CodeHostAccess, through CodeTaskGate.isRepositoryReachable).
+   */
+  let reachableAsked: Array<Array<string>> = [];
+
+  // What the person may do in Code with the project's repositories (#11075).
+  let person: PersonInCode = noPersonInCodeYet();
+
   function connectedRepositories(
     repositories: Array<{ id: string; name: string }> = REPOSITORIES,
   ): jest.SpyInstance {
+    const connected: Set<string> = new Set<string>(
+      repositories.map((repository: { id: string; name: string }): string => {
+        return repository.id.toLowerCase();
+      }),
+    );
+
+    for (const id of connected) {
+      person.existing.add(id);
+    }
+
+    reachableAsked = [];
+    jest
+      .spyOn(CodeHostAccess, "getReachableRepositoryIds")
+      .mockImplementation(async (data: { repositoryIds: Array<ObjectID> }) => {
+        const ids: Array<string> = data.repositoryIds.map(
+          (id: ObjectID): string => {
+            return id.toString();
+          },
+        );
+
+        reachableAsked.push(ids);
+
+        return new Set<string>(
+          ids.filter((id: string): boolean => {
+            return connected.has(id);
+          }),
+        );
+      });
+
     return jest
       .spyOn(CodeRepositoryService, "getResolvableRepositories")
       .mockResolvedValue(
@@ -1626,6 +1915,23 @@ describe("a repository to pick for a fix no repository was found for", () => {
           };
         }),
       );
+  }
+
+  // More connected repositories than a suggestion lists, by name.
+  function manyRepositories(
+    count: number,
+  ): Array<{ id: string; name: string }> {
+    return Array.from(
+      { length: count },
+      (_: unknown, index: number): { id: string; name: string } => {
+        const number: string = String(index + 1).padStart(6, "0");
+
+        return {
+          id: `52000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+          name: `ap-${number}`,
+        };
+      },
+    );
   }
 
   function noFixYet(): void {
@@ -1648,6 +1954,7 @@ describe("a repository to pick for a fix no repository was found for", () => {
     aiSwitch(true);
     noFinishedFix();
     noFixYet();
+    person = fakePersonInCode();
   });
 
   afterEach(() => {
@@ -1679,14 +1986,19 @@ describe("a repository to pick for a fix no repository was found for", () => {
     });
 
     test("the trace's facts resolve a repository: no pick, the fix works in it", async () => {
-      gateSays(null, GATE_REPOSITORY_ID);
+      const gate: jest.SpyInstance = gateSays(null, GATE_REPOSITORY_ID);
       const list: jest.SpyInstance = connectedRepositories();
 
       const suggestion: TracePerformanceFixSuggestion = await suggest();
 
       expect(suggestion.offer).toBe(SuggestionOffer.Act);
       expect(suggestion.repositories).toEqual([]);
-      expect(list).not.toHaveBeenCalled();
+      // Read once, to weigh which the reader may use (#11075) - no list to pick from.
+      expect(list).toHaveBeenCalledTimes(1);
+      expect(
+        (gate.mock.calls[0]![0] as { allowance: CodeRepositoryAllowance })
+          .allowance,
+      ).toEqual(EVERY_CODE_REPOSITORY);
     });
 
     test("one repository is no choice: no pick", async () => {
@@ -1696,31 +2008,50 @@ describe("a repository to pick for a fix no repository was found for", () => {
       expect((await suggest()).repositories).toEqual([]);
     });
 
+    test("past the first 200: the answer lists the first 200 by name - enough to say a pick is asked for, which the page searches for", async () => {
+      gateSays(null, null);
+      connectedRepositories(
+        manyRepositories(MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES + 50),
+      );
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.Act);
+      expect(suggestion.repositories).toHaveLength(
+        MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES,
+      );
+      expect(suggestion.repositories[0]!.name).toBe("ap-000001");
+    });
+
     test("Code's gate says a step is missing: that step, and no pick", async () => {
       gateSays(NO_CREDITS, null);
-      const list: jest.SpyInstance = connectedRepositories();
+      connectedRepositories();
 
       const suggestion: TracePerformanceFixSuggestion = await suggest();
 
       expect(suggestion.offer).toBe(SuggestionOffer.SetUp);
       expect(suggestion.repositories).toEqual([]);
-      expect(list).not.toHaveBeenCalled();
     });
 
-    test("a list that cannot be read: the fix, with no pick, never an error", async () => {
+    /*
+     * #11075: with no list, who may start the fix cannot be told - and a
+     * fix offered then could be one the person may not start. The route
+     * answers the error, and the page offers nothing for it (any failure
+     * there means no suggestion).
+     */
+    test("a list that cannot be read: no fix is offered as if it could start", async () => {
       gateSays(null, null);
       jest
         .spyOn(CodeRepositoryService, "getResolvableRepositories")
         .mockRejectedValue(new Error("connection refused"));
 
-      const suggestion: TracePerformanceFixSuggestion = await suggest();
-
-      expect(suggestion.offer).toBe(SuggestionOffer.Act);
-      expect(suggestion.repositories).toEqual([]);
+      await expect(suggest()).rejects.toThrow("connection refused");
     });
 
     test("a repository with no name of its own is named by its organization and repository", async () => {
       gateSays(null, null);
+      person.existing.add("51000000-0000-4000-8000-000000000009");
+      person.existing.add("51000000-0000-4000-8000-000000000001");
       jest
         .spyOn(CodeRepositoryService, "getResolvableRepositories")
         .mockResolvedValue([
@@ -1757,6 +2088,7 @@ describe("a repository to pick for a fix no repository was found for", () => {
         spans: spansWithNPlusOne(),
         serviceName: "orders-service",
         userId,
+        props: READER,
         ...(repositoryId ? { repositoryId } : {}),
       });
     }
@@ -1791,7 +2123,7 @@ describe("a repository to pick for a fix no repository was found for", () => {
       expect(queued.taskContext.traceId).toBe(traceId);
     });
 
-    test("a pick that is not one of the project's connected repositories is refused, nothing queued", async () => {
+    test("a pick that is none of the project's repositories is refused as not found - never said to exist - nothing queued", async () => {
       connectedRepositories();
       gateSays(null, null);
       const enqueue: jest.SpyInstance = jest.spyOn(
@@ -1799,10 +2131,113 @@ describe("a repository to pick for a fix no repository was found for", () => {
         "enqueueSubjectCodeFixRun",
       );
 
-      await expect(click(ObjectID.generate())).rejects.toThrow(
-        PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+      const refusal: unknown = await click(ObjectID.generate()).catch(
+        (error: unknown) => {
+          return error;
+        },
+      );
+
+      expect(refusal).toBeInstanceOf(NotFoundException);
+      expect((refusal as Error).message).toBe(
+        PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
       );
       expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    test("a pick the person may use that is not connected is refused as not connected, nothing queued", async () => {
+      connectedRepositories();
+      // Theirs to read and ask in, but OneUptime cannot reach it.
+      const disconnected: string = "51000000-0000-4000-8000-0000000000dd";
+      person.existing.add(disconnected);
+      gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest.spyOn(
+        SubjectCodeFixRun,
+        "enqueueSubjectCodeFixRun",
+      );
+
+      const refusal: unknown = await click(new ObjectID(disconnected)).catch(
+        (error: unknown) => {
+          return error;
+        },
+      );
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toBe(
+        PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+      );
+      expect(reachableAsked).toEqual([[disconnected]]);
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    /*
+     * #10921: the pick was checked against the first 200 connected
+     * repositories by name, so one past them - which the page's search
+     * finds - was refused as not connected.
+     */
+    test("a pick past the first 200 connected repositories by name is taken: checked by itself, never against a list", async () => {
+      const repositories: Array<{ id: string; name: string }> =
+        manyRepositories(MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES + 50);
+      const last: { id: string; name: string } =
+        repositories[repositories.length - 1]!;
+      const list: jest.SpyInstance = connectedRepositories(repositories);
+      const gate: jest.SpyInstance = gateSays(null, new ObjectID(last.id));
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click(new ObjectID(last.id));
+
+      // Only that one repository was asked about - no list was read.
+      expect(reachableAsked).toEqual([[last.id]]);
+      expect(list).not.toHaveBeenCalled();
+      expect(
+        (gate.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+          .taskContext.pickedCodeRepositoryId,
+      ).toBe(last.id);
+      expect(
+        (enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+          .taskContext.pickedCodeRepositoryId,
+      ).toBe(last.id);
+    });
+
+    test("a pick in another letter case is asked about as the database writes an id", async () => {
+      connectedRepositories();
+      gateSays(null, new ObjectID(REPOSITORIES[1]!.id));
+      jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click(new ObjectID(REPOSITORIES[1]!.id.toUpperCase()));
+
+      expect(reachableAsked).toEqual([[REPOSITORIES[1]!.id]]);
+    });
+
+    test("nothing picked, or no id, is no choice", async () => {
+      connectedRepositories();
+
+      expect(
+        await CodeFixPersonRepository.isRepositoryChoice({
+          projectId,
+          props: READER,
+        }),
+      ).toBe(false);
+      expect(
+        await CodeFixPersonRepository.isRepositoryChoice({
+          projectId,
+          pickedRepositoryId: new ObjectID("not-an-id"),
+          props: READER,
+        }),
+      ).toBe(false);
+      // Refused before anything is read.
+      expect(reachableAsked).toEqual([]);
+      expect(person.asked).toEqual([]);
+      expect(
+        await CodeFixPersonRepository.isRepositoryChoice({
+          projectId,
+          pickedRepositoryId: new ObjectID(REPOSITORIES[0]!.id),
+          props: READER,
+        }),
+      ).toBe(true);
     });
 
     test("none resolves, several connected, no pick: refused in the words of the missing step, nothing queued", async () => {
@@ -1819,7 +2254,12 @@ describe("a repository to pick for a fix no repository was found for", () => {
       expect(enqueue).not.toHaveBeenCalled();
     });
 
-    test("none resolves and there is no choice to make: queued as before, to find its repository when it starts", async () => {
+    /*
+     * #11075: it was queued without a repository, to find its own when it
+     * started - among every connected repository, one the person may not
+     * use included. The only one is the one it works in now.
+     */
+    test("none resolves and there is no choice to make: the run is made in the one repository, and held to it", async () => {
       connectedRepositories(REPOSITORIES.slice(0, 1));
       gateSays(null, null);
       const enqueue: jest.SpyInstance = jest
@@ -1829,10 +2269,14 @@ describe("a repository to pick for a fix no repository was found for", () => {
       await click();
 
       expect(enqueue).toHaveBeenCalledTimes(1);
-      expect(
-        (enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
-          .taskContext.pickedCodeRepositoryId,
-      ).toBeUndefined();
+      const queued: {
+        codeRepositoryId?: ObjectID | null;
+        taskContext: CodeFixTaskContext;
+      } = enqueue.mock.calls[0]![0];
+      expect(queued.taskContext.pickedCodeRepositoryId).toBe(
+        REPOSITORIES[0]!.id,
+      );
+      expect(queued.codeRepositoryId?.toString()).toBe(REPOSITORIES[0]!.id);
     });
 
     test("the trace's facts resolve a repository: no pick needed, queued on it", async () => {
@@ -1849,7 +2293,8 @@ describe("a repository to pick for a fix no repository was found for", () => {
           enqueue.mock.calls[0]![0] as { codeRepositoryId?: ObjectID }
         ).codeRepositoryId?.toString(),
       ).toBe(GATE_REPOSITORY_ID.toString());
-      expect(list).not.toHaveBeenCalled();
+      // Read once, to weigh which the person may use (#11075).
+      expect(list).toHaveBeenCalledTimes(1);
     });
 
     test("Code's gate refuses the picked repository (its Runner is offline): refused in its words", async () => {
@@ -1891,5 +2336,743 @@ describe("a repository to pick for a fix no repository was found for", () => {
       expect(gate).not.toHaveBeenCalled();
       expect(enqueue).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+/*
+ * WHO MAY START A TRACE'S FIX, AND IN WHICH REPOSITORY (#11075).
+ *
+ * The trace page's picker offered only the connected repositories the
+ * person could read, but the create route checked a pick only for being
+ * connected, as OneUptime: a request naming any connected repository of
+ * the project was taken - one the person may not read, or may not ask
+ * OneUptime AI to work in. Every other Fix with AI (a Data Security issue,
+ * a telemetry finding, a profile) holds its repository to the person's own
+ * permissions in Code, and a trace's fix does now: the person reads the
+ * trace, and may read the repository and ask OneUptime AI to work in it.
+ *
+ * Four connected repositories, each the person's to use or not:
+ *
+ *   checkout-api   read, and ask in: theirs to use
+ *   billing        read, and ask in: theirs to use
+ *   ledger         read only: AI is not theirs to ask in it
+ *   vault          neither: not theirs to see at all
+ */
+describe("who may start a trace's fix, and in which repository (#11075)", () => {
+  const CHECKOUT: string = "11075000-0000-4000-8000-00000000c001";
+  const BILLING: string = "11075000-0000-4000-8000-00000000c002";
+  const LEDGER: string = "11075000-0000-4000-8000-00000000c003";
+  const VAULT: string = "11075000-0000-4000-8000-00000000c004";
+  // The person's to use, but OneUptime cannot reach it.
+  const HARBOUR: string = "11075000-0000-4000-8000-00000000c005";
+
+  const NAMES: Record<string, string> = {
+    [CHECKOUT]: "checkout-api",
+    [BILLING]: "billing",
+    [LEDGER]: "ledger",
+    [VAULT]: "vault",
+  };
+
+  const CONNECTED: Array<string> = [CHECKOUT, LEDGER, VAULT, BILLING];
+
+  let person: PersonInCode = noPersonInCodeYet();
+  let reachableAsked: Array<Array<string>> = [];
+
+  /*
+   * The project's connected repositories OneUptime AI can work in, as the
+   * resolver reads them, and whether one is reachable, as a pick is checked.
+   */
+  function connect(ids: Array<string> = CONNECTED): jest.SpyInstance {
+    const reachable: Set<string> = new Set<string>(ids);
+
+    reachableAsked = [];
+    jest
+      .spyOn(CodeHostAccess, "getReachableRepositoryIds")
+      .mockImplementation(async (data: { repositoryIds: Array<ObjectID> }) => {
+        const asked: Array<string> = data.repositoryIds.map(keyOfId);
+
+        reachableAsked.push(asked);
+
+        return new Set<string>(
+          asked.filter((id: string): boolean => {
+            return reachable.has(id);
+          }),
+        );
+      });
+
+    return jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue(
+        ids.map((id: string): ResolvableRepository => {
+          return resolvable(id, NAMES[id]);
+        }),
+      );
+  }
+
+  function refusalOf(promise: Promise<unknown>): Promise<unknown> {
+    return promise.then(
+      () => {
+        return null;
+      },
+      (error: unknown) => {
+        return error;
+      },
+    );
+  }
+
+  beforeEach(() => {
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    aiSwitch(true);
+    noFinishedFix();
+    jest
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
+      .mockResolvedValue(true);
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+      .mockResolvedValue(new Set<string>());
+
+    person = fakePersonInCode();
+    for (const id of [...CONNECTED, HARBOUR]) {
+      person.existing.add(id);
+    }
+    person.unreadable.add(VAULT);
+    person.notAskable.add(VAULT);
+    person.notAskable.add(LEDGER);
+
+    connect();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe("the repositories a person may use", () => {
+    async function useOf(): Promise<CodeFixRepositoryUse> {
+      return await CodeFixPersonRepository.getUsableRepositories({
+        projectId,
+        props: READER,
+      });
+    }
+
+    test("of the connected ones, those the person may read and ask OneUptime AI to work in - in the list's order", async () => {
+      const use: CodeFixRepositoryUse = await useOf();
+
+      expect(
+        use.usable.map((repository: ResolvableRepository): string => {
+          return repository.id;
+        }),
+      ).toEqual([CHECKOUT, BILLING]);
+      expect(use.connectedCount).toBe(4);
+      // The fix is held to them alone.
+      expect(use.allowance).toEqual({
+        isEveryRepository: false,
+        repositoryIds: [CHECKOUT, BILLING],
+      });
+    });
+
+    test("weighed under the person's own permissions, never OneUptime's", async () => {
+      await useOf();
+
+      expect(person.asked.length).toBeGreaterThan(0);
+      for (const props of person.asked) {
+        expect(props).toBe(READER);
+        expect(props.isRoot).toBeUndefined();
+      }
+    });
+
+    test("only the ones they may read are asked whether AI is theirs to ask in", async () => {
+      const askable: jest.SpyInstance = jest.mocked(
+        CodeTaskAccess.listAskableRepositoryIds,
+      ) as unknown as jest.SpyInstance;
+
+      await useOf();
+
+      const asked: Array<string> = (
+        askable.mock.calls[0]![0] as { repositoryIds: Array<string> }
+      ).repositoryIds.map(keyOfId);
+      expect(asked.sort()).toEqual([BILLING, CHECKOUT, LEDGER].sort());
+    });
+
+    test("a person who may use every one: every connected repository, and the fix is held to none of them in particular", async () => {
+      person.unreadable.clear();
+      person.notAskable.clear();
+
+      const use: CodeFixRepositoryUse = await useOf();
+
+      expect(use.usable).toHaveLength(4);
+      expect(use.allowance).toEqual(EVERY_CODE_REPOSITORY);
+    });
+
+    test("a person who may use none: none, and the fix is held to none", async () => {
+      person.notAskable.add(CHECKOUT);
+      person.notAskable.add(BILLING);
+
+      const use: CodeFixRepositoryUse = await useOf();
+
+      expect(use.usable).toEqual([]);
+      expect(use.connectedCount).toBe(4);
+      expect(use.allowance).toEqual(NO_CODE_REPOSITORY);
+    });
+
+    test("no repository OneUptime AI can work in: nothing is weighed under the person's permissions", async () => {
+      connect([]);
+
+      const use: CodeFixRepositoryUse = await useOf();
+
+      expect(use).toEqual({
+        connectedCount: 0,
+        usable: [],
+        allowance: NO_CODE_REPOSITORY,
+      });
+      expect(person.asked).toEqual([]);
+    });
+
+    test("past the project's first 10,000 connected repositories: every one is weighed, and the one past them the person may use is theirs", async () => {
+      const ids: Array<string> = Array.from(
+        { length: 10050 },
+        (_: unknown, index: number): string => {
+          return `11075000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+        },
+      );
+      const last: string = ids[ids.length - 1]!;
+
+      for (const id of ids) {
+        person.existing.add(id);
+        if (id !== last) {
+          person.notAskable.add(id);
+        }
+      }
+      connect(ids);
+
+      const use: CodeFixRepositoryUse = await useOf();
+
+      expect(
+        use.usable.map((repository: ResolvableRepository): string => {
+          return repository.id;
+        }),
+      ).toEqual([last]);
+      expect(use.connectedCount).toBe(10050);
+      expect(use.allowance).toEqual({
+        isEveryRepository: false,
+        repositoryIds: [last],
+      });
+
+      const readable: jest.SpyInstance = jest.mocked(
+        CodeTaskAccess.listReadableRepositoriesByIds,
+      ) as unknown as jest.SpyInstance;
+      expect(
+        (readable.mock.calls[0]![0] as { repositoryIds: Array<string> })
+          .repositoryIds,
+      ).toHaveLength(10050);
+    });
+  });
+
+  describe("a pick, checked by itself", () => {
+    test.each([
+      ["one they may read and ask OneUptime AI to work in", CHECKOUT, null, ""],
+      [
+        "one they may read but not ask AI in",
+        LEDGER,
+        NotAuthorizedException,
+        PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+      ],
+      [
+        "one they may not read",
+        VAULT,
+        NotFoundException,
+        PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+      ],
+      [
+        "no repository of the project at all",
+        "11075000-0000-4000-8000-00000000ffff",
+        NotFoundException,
+        PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+      ],
+      [
+        "one they may use that OneUptime cannot reach",
+        HARBOUR,
+        BadDataException,
+        PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+      ],
+    ])(
+      "%s",
+      async (
+        _name: string,
+        repositoryId: string,
+        exceptionType: unknown,
+        message: string,
+      ) => {
+        const refusal: Error | null =
+          (await CodeFixPersonRepository.checkRepositoryPick({
+            projectId,
+            pickedRepositoryId: new ObjectID(repositoryId),
+            props: READER,
+          })) as Error | null;
+
+        if (!exceptionType) {
+          expect(refusal).toBeNull();
+          return;
+        }
+
+        expect(refusal).toBeInstanceOf(exceptionType as typeof Error);
+        expect(refusal!.message).toBe(message);
+      },
+    );
+
+    test("one they may not read is refused as not found, and nothing more is asked of it - not whether it is connected", async () => {
+      await CodeFixPersonRepository.checkRepositoryPick({
+        projectId,
+        pickedRepositoryId: new ObjectID(VAULT),
+        props: READER,
+      });
+
+      expect(CodeTaskAccess.canAskInRepository).not.toHaveBeenCalled();
+      expect(reachableAsked).toEqual([]);
+    });
+
+    test("asked under the person's own permissions, in the letter case the database writes", async () => {
+      await CodeFixPersonRepository.checkRepositoryPick({
+        projectId,
+        pickedRepositoryId: new ObjectID(CHECKOUT.toUpperCase()),
+        props: READER,
+      });
+
+      expect(person.asked).toEqual([READER, READER]);
+      expect(
+        jest
+          .mocked(CodeTaskAccess.findReadableRepository)
+          .mock.calls[0]![0].repositoryId.toString(),
+      ).toBe(CHECKOUT);
+      expect(reachableAsked).toEqual([[CHECKOUT]]);
+    });
+  });
+
+  describe("a click with a pick", () => {
+    async function click(repositoryId: string): Promise<AIRun> {
+      return FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace({
+        projectId,
+        traceId,
+        spans: spansWithNPlusOne(),
+        userId,
+        props: READER,
+        repositoryId: new ObjectID(repositoryId),
+      });
+    }
+
+    test("a pick the person may not ask OneUptime AI to work in is refused in a sentence that says so - nothing queued", async () => {
+      const gate: jest.SpyInstance = gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest.spyOn(
+        SubjectCodeFixRun,
+        "enqueueSubjectCodeFixRun",
+      );
+
+      const refusal: unknown = await refusalOf(click(LEDGER));
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect((refusal as Error).message).toBe(
+        PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+      );
+      // Code's gate is asked of no repository: only what stops everyone.
+      expect(
+        (gate.mock.calls[0]![0] as { allowance: CodeRepositoryAllowance })
+          .allowance,
+      ).toEqual(NO_CODE_REPOSITORY);
+      expect(
+        (gate.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+          .taskContext.pickedCodeRepositoryId,
+      ).toBeUndefined();
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    test("a pick the person may not read is refused as not found - nothing queued", async () => {
+      gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest.spyOn(
+        SubjectCodeFixRun,
+        "enqueueSubjectCodeFixRun",
+      );
+
+      const refusal: unknown = await refusalOf(click(VAULT));
+
+      expect(refusal).toBeInstanceOf(NotFoundException);
+      expect((refusal as Error).message).toBe(
+        PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+      );
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    test("a pick the person may use is taken: the run is made in it, and held to it when it starts", async () => {
+      const gate: jest.SpyInstance = gateSays(null, new ObjectID(CHECKOUT));
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click(CHECKOUT);
+
+      expect(
+        (gate.mock.calls[0]![0] as { allowance: CodeRepositoryAllowance })
+          .allowance,
+      ).toEqual({ isEveryRepository: false, repositoryIds: [CHECKOUT] });
+
+      const queued: {
+        codeRepositoryId?: ObjectID | null;
+        taskContext: CodeFixTaskContext;
+        userId?: ObjectID;
+      } = enqueue.mock.calls[0]![0];
+      expect(queued.codeRepositoryId?.toString()).toBe(CHECKOUT);
+      expect(queued.taskContext.pickedCodeRepositoryId).toBe(CHECKOUT);
+      expect(queued.userId).toBe(userId);
+    });
+
+    test.each([
+      [
+        "the plan has no AI in Code",
+        {
+          type: CodeTaskBlockerType.PlanRequired,
+          message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+        },
+      ],
+      [
+        "the subscription is unpaid",
+        {
+          type: CodeTaskBlockerType.SubscriptionUnpaid,
+          message: "This project's subscription is unpaid.",
+        },
+      ],
+    ])(
+      "what stops everyone comes first: %s - said, not that the pick is not the person's",
+      async (_name: string, blocker: CodeTaskBlocker) => {
+        gateSays(blocker, null);
+
+        const refusal: unknown = await refusalOf(click(LEDGER));
+
+        expect(refusal).toBeInstanceOf(PaymentRequiredException);
+        expect((refusal as Error).message).toBe(blocker.message);
+      },
+    );
+
+    test("anything else Code's gate says waits: the person's own refusal comes first, as Code's request box says it", async () => {
+      gateSays(NO_CREDITS, null);
+
+      const refusal: unknown = await refusalOf(click(LEDGER));
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect((refusal as Error).message).toBe(
+        PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+      );
+    });
+
+    test("a pick the person may use, that Code's gate says cannot run now, is refused in the gate's words", async () => {
+      gateSays(NO_CREDITS, new ObjectID(CHECKOUT));
+
+      const refusal: unknown = await refusalOf(click(CHECKOUT));
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toBe(NO_CREDITS.message);
+    });
+  });
+
+  describe("a click without a pick", () => {
+    async function click(): Promise<AIRun> {
+      return FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace({
+        projectId,
+        traceId,
+        spans: spansWithNPlusOne(),
+        userId,
+        props: READER,
+      });
+    }
+
+    test("the trace's facts are resolved among the connected repositories the person may use - never another - and the run is held to the one found", async () => {
+      const gate: jest.SpyInstance = gateSays(null, new ObjectID(BILLING));
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click();
+
+      expect(
+        (gate.mock.calls[0]![0] as { allowance: CodeRepositoryAllowance })
+          .allowance,
+      ).toEqual({
+        isEveryRepository: false,
+        repositoryIds: [CHECKOUT, BILLING],
+      });
+
+      const queued: {
+        codeRepositoryId?: ObjectID | null;
+        taskContext: CodeFixTaskContext;
+      } = enqueue.mock.calls[0]![0];
+      expect(queued.codeRepositoryId?.toString()).toBe(BILLING);
+      expect(queued.taskContext.pickedCodeRepositoryId).toBe(BILLING);
+    });
+
+    test("several the person may use, and the facts match none: a pick is asked for - nothing queued", async () => {
+      gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest.spyOn(
+        SubjectCodeFixRun,
+        "enqueueSubjectCodeFixRun",
+      );
+
+      await expect(click()).rejects.toThrow(
+        PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE,
+      );
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    test("one the person may use, of several connected: the run is made in it, though the facts matched none", async () => {
+      person.notAskable.add(BILLING);
+      gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click();
+
+      const queued: {
+        codeRepositoryId?: ObjectID | null;
+        taskContext: CodeFixTaskContext;
+      } = enqueue.mock.calls[0]![0];
+      expect(queued.codeRepositoryId?.toString()).toBe(CHECKOUT);
+      expect(queued.taskContext.pickedCodeRepositoryId).toBe(CHECKOUT);
+    });
+
+    test("none the person may use: refused in a sentence that says why, and who can help - nothing queued", async () => {
+      person.notAskable.add(CHECKOUT);
+      person.notAskable.add(BILLING);
+      const gate: jest.SpyInstance = gateSays(null, null);
+      const enqueue: jest.SpyInstance = jest.spyOn(
+        SubjectCodeFixRun,
+        "enqueueSubjectCodeFixRun",
+      );
+
+      const refusal: unknown = await refusalOf(click());
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect((refusal as Error).message).toBe(
+        NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
+      );
+      expect(
+        (gate.mock.calls[0]![0] as { allowance: CodeRepositoryAllowance })
+          .allowance,
+      ).toEqual(NO_CODE_REPOSITORY);
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    test("none the person may use, and the plan has no AI in Code: the plan's words first", async () => {
+      person.notAskable.add(CHECKOUT);
+      person.notAskable.add(BILLING);
+      gateSays(
+        {
+          type: CodeTaskBlockerType.PlanRequired,
+          message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+        },
+        null,
+      );
+
+      const refusal: unknown = await refusalOf(click());
+
+      expect(refusal).toBeInstanceOf(PaymentRequiredException);
+      expect((refusal as Error).message).toBe(CODE_TASK_PLAN_REQUIRED_MESSAGE);
+    });
+
+    test("none OneUptime AI can work in, though rows are counted: a repository to connect - not a permission to ask for", async () => {
+      connect([]);
+      gateSays(null, null);
+
+      const refusal: unknown = await refusalOf(click());
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as Error).message).toBe(
+        NO_CONNECTED_REPOSITORY_FOR_PERFORMANCE_FIX_MESSAGE,
+      );
+    });
+
+    test("a person who may use every repository is held to none in particular: the facts pick among all", async () => {
+      person.unreadable.clear();
+      person.notAskable.clear();
+      const gate: jest.SpyInstance = gateSays(null, new ObjectID(LEDGER));
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click();
+
+      expect(
+        (gate.mock.calls[0]![0] as { allowance: CodeRepositoryAllowance })
+          .allowance,
+      ).toEqual(EVERY_CODE_REPOSITORY);
+      expect(
+        (enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+          .taskContext.pickedCodeRepositoryId,
+      ).toBe(LEDGER);
+    });
+
+    test("the automatic routing is OneUptime's own: never held to a person, never asked whose permissions", async () => {
+      const gate: jest.SpyInstance = gateSays(null, null);
+      const usable: jest.SpyInstance = jest.spyOn(
+        CodeFixPersonRepository,
+        "getUsableRepositories",
+      );
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await FixPerformanceTaskTrigger.createPerformanceFixTaskFromFindings({
+        projectId,
+        traceId,
+        findings: SpanTreeAnalyzer.analyzeTrace(spansWithNPlusOne()),
+        codeLocations: [],
+      });
+
+      expect(usable).not.toHaveBeenCalled();
+      expect(person.asked).toEqual([]);
+      expect(gate).not.toHaveBeenCalled();
+      expect(
+        (enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+          .taskContext.pickedCodeRepositoryId,
+      ).toBeUndefined();
+    });
+  });
+
+  describe("what the trace page offers the person", () => {
+    async function suggest(): Promise<TracePerformanceFixSuggestion> {
+      return FixPerformanceTaskTrigger.getSuggestionForTrace({
+        reader: READER,
+        projectId,
+        traceId,
+        loadTrace: async (): Promise<PerformanceTraceSpans> => {
+          return {
+            spans: SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans,
+            dominantEntityId: null,
+          };
+        },
+      });
+    }
+
+    test("may use none of the connected repositories: nothing is offered - a click would be refused", async () => {
+      person.notAskable.add(CHECKOUT);
+      person.notAskable.add(BILLING);
+      gateSays(null, null);
+
+      expect(await suggest()).toEqual(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
+    });
+
+    test("may use none, and the plan has no AI in Code: the plan's step, as Code says it", async () => {
+      person.notAskable.add(CHECKOUT);
+      person.notAskable.add(BILLING);
+      gateSays(
+        {
+          type: CodeTaskBlockerType.PlanRequired,
+          message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+        },
+        null,
+      );
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.SetUp);
+      expect(suggestion.blocker?.type).toBe(CodeTaskBlockerType.PlanRequired);
+      expect(suggestion.repositories).toEqual([]);
+    });
+
+    test("may use none, and the credits are used up: nothing - the credits would not let them start it either", async () => {
+      person.notAskable.add(CHECKOUT);
+      person.notAskable.add(BILLING);
+      gateSays(NO_CREDITS, null);
+
+      expect(await suggest()).toEqual(NO_TRACE_PERFORMANCE_FIX_SUGGESTION);
+    });
+
+    test("may use some: the pick is offered from those alone, by name", async () => {
+      gateSays(null, null);
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.Act);
+      expect(suggestion.repositories).toEqual([
+        { id: BILLING, name: "billing" },
+        { id: CHECKOUT, name: "checkout-api" },
+      ]);
+    });
+
+    test("the page's answer is resolved among the person's repositories, as the click is", async () => {
+      const gate: jest.SpyInstance = gateSays(null, new ObjectID(CHECKOUT));
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.Act);
+      expect(suggestion.repositories).toEqual([]);
+      expect(
+        (gate.mock.calls[0]![0] as { allowance: CodeRepositoryAllowance })
+          .allowance,
+      ).toEqual({
+        isEveryRepository: false,
+        repositoryIds: [CHECKOUT, BILLING],
+      });
+    });
+
+    test("none OneUptime AI can work in: a repository to connect, and Code's gate is not asked", async () => {
+      connect([]);
+      const gate: jest.SpyInstance = gateSays(null, null);
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.SetUp);
+      expect(suggestion.blocker).toBeNull();
+      expect(gate).not.toHaveBeenCalled();
+    });
+
+    test("weighed under the reader's own permissions", async () => {
+      gateSays(null, null);
+
+      await suggest();
+
+      expect(person.asked.length).toBeGreaterThan(0);
+      for (const props of person.asked) {
+        expect(props).toBe(READER);
+      }
+    });
+
+    /*
+     * The page and the server agree for each kind of person: what the page
+     * offers, a click is let through - and what it does not, refused.
+     */
+    test.each([
+      ["may use two", [], true],
+      ["may use one", [BILLING], true],
+      ["may use none", [CHECKOUT, BILLING], false],
+    ])(
+      "the person %s: offered exactly when a click would start it",
+      async (
+        _name: string,
+        alsoNotAskable: Array<string>,
+        isOffered: boolean,
+      ) => {
+        for (const id of alsoNotAskable) {
+          person.notAskable.add(id);
+        }
+        gateSays(null, new ObjectID(CHECKOUT));
+        jest
+          .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+          .mockResolvedValue(fakeRun());
+
+        const suggestion: TracePerformanceFixSuggestion = await suggest();
+        const refusal: unknown = await refusalOf(
+          FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace({
+            projectId,
+            traceId,
+            spans: SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans,
+            userId,
+            props: READER,
+          }),
+        );
+
+        expect(suggestion.offer === SuggestionOffer.Act).toBe(isOffered);
+        expect(refusal === null).toBe(isOffered);
+      },
+    );
   });
 });

@@ -4098,6 +4098,7 @@ describe("alert-only behaviour", () => {
         "proxmoxClusters",
         "openStackClouds",
         "vmwareVCenters",
+        "xcpNgPools",
         "cephClusters",
         "storageArrays",
         "dockerSwarmClusters",

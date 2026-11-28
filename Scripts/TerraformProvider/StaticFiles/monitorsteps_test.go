@@ -234,15 +234,22 @@ func monitorStepsFullUserList(t *testing.T) types.List {
 	)
 
 	incident := monitorStepsTestObj(t, monitorStepsIncidentAttrTypes(), map[string]attr.Value{
-		"title":                        types.StringValue("Site is down"),
-		"description":                  types.StringValue("The site did not respond."),
-		"incident_severity_id":         types.StringValue("sev-1"),
-		"auto_resolve_incident":        types.BoolValue(true),
-		"remediation_notes":            types.StringValue("Check the load balancer."),
-		"on_call_policy_ids":           monitorStepsTestStrList(t, "ocp-1", "ocp-2"),
-		"label_ids":                    monitorStepsTestStrList(t, "lbl-1"),
-		"owner_team_ids":               monitorStepsTestStrList(t, "team-1"),
-		"owner_user_ids":               monitorStepsTestStrList(t, "user-1"),
+		"title":                 types.StringValue("Site is down"),
+		"description":           types.StringValue("The site did not respond."),
+		"incident_severity_id":  types.StringValue("sev-1"),
+		"auto_resolve_incident": types.BoolValue(true),
+		"remediation_notes":     types.StringValue("Check the load balancer."),
+		"on_call_policy_ids":    monitorStepsTestStrList(t, "ocp-1", "ocp-2"),
+		"label_ids":             monitorStepsTestStrList(t, "lbl-1"),
+		"owner_team_ids":        monitorStepsTestStrList(t, "team-1"),
+		"owner_user_ids":        monitorStepsTestStrList(t, "user-1"),
+		// An incident commander for each incident it opens (#10984).
+		"incident_member_roles": monitorStepsTestObjList(t, monitorStepsIncidentMemberRoleAttrTypes(),
+			monitorStepsTestObj(t, monitorStepsIncidentMemberRoleAttrTypes(), map[string]attr.Value{
+				"role_id": types.StringValue("role-commander"),
+				"user_id": types.StringValue("user-1"),
+			}),
+		),
 		"show_incident_on_status_page": types.BoolValue(true),
 		"is_private":                   types.BoolValue(false),
 	})
@@ -311,7 +318,9 @@ func monitorStepsFullUserList(t *testing.T) types.List {
 		"retry_count_on_error":           types.Int64Value(2),
 		"request_timeout_in_ms":          types.Int64Value(30000),
 		"retry_count":                    types.Int64Value(2),
-		"criteria":                       monitorStepsTestObjList(t, monitorStepsCriteriaAttrTypes(), onlineCriteria, offlineCriteria),
+		// What a template's monitors keep as their own when it syncs (#10984).
+		"do_not_sync_fields": monitorStepsTestStrList(t, "monitorDestination", "requestHeaders"),
+		"criteria":           monitorStepsTestObjList(t, monitorStepsCriteriaAttrTypes(), onlineCriteria, offlineCriteria),
 	}
 	for _, sub := range monitorStepsSubConfigs {
 		stepOverrides[sub.tfName] = types.StringValue(`{"key":"` + sub.tfName + `"}`)
@@ -424,6 +433,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	          "retryCountOnError": 2,
 	          "requestTimeoutInMs": 30000,
 	          "retryCount": 2,
+	          "doNotSyncFields": ["monitorDestination", "requestHeaders"],
 	          ` + subConfigsGolden + `
 	          "monitorCriteria": {
 	            "_type": "MonitorCriteria",
@@ -513,6 +523,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                    "activeHours": {
 	                      "_type": "RestrictionTimes",
 	                      "value": {
+	                        "restrictionType": "Weekly",
 	                        "restictionType": "Weekly",
 	                        "dayRestrictionTimes": null,
 	                        "weeklyRestrictionTimes": [
@@ -536,6 +547,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	                        "labelIds": ["lbl-1"],
 	                        "ownerTeamIds": ["team-1"],
 	                        "ownerUserIds": ["user-1"],
+	                        "incidentMemberRoles": [{ "roleId": "role-commander", "userId": "user-1" }],
 	                        "showIncidentOnStatusPage": true,
 	                        "isPrivate": false
 	                      }

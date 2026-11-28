@@ -1,4 +1,9 @@
 import { escapeRegExp } from "../RegExpEscape";
+import {
+  SpokenCallVoice,
+  getSpokenCallVoice,
+} from "../../Types/Call/CallVoice";
+import { translationKey, Translator } from "../../Types/Translator";
 
 /*
  * HOW A CALL SAYS ITS WORDS.
@@ -28,12 +33,13 @@ import { escapeRegExp } from "../RegExpEscape";
  *     OneUptime, so an installation that goes by its own name says that
  *     instead (ProductBrandingText), and only then is it spelled for the voice.
  *
- * SSML is read by Amazon Polly and Google voices only. OneUptime's calls name
- * no voice, so Twilio speaks them with the Twilio account's default voice -
- * Basic "man" unless the account's owner picked another in the Twilio
- * Console - and a Basic voice fails a <Say> that carries SSML. So a call
- * that names no voice is given spaced letters, which every voice reads alike
- * (isSsmlVoice).
+ * SSML is read by Amazon Polly and Google voices only. A call that names no
+ * voice is spoken by the Twilio account's default voice - Basic "man"
+ * unless the account's owner picked another in the Twilio Console - and a
+ * Basic voice fails a <Say> that carries SSML. So only a call that names a
+ * voice from OneUptime's list (Types/Call/CallVoice), each of which reads
+ * it, gets SSML; any other is given spaced letters, which every voice reads
+ * alike (isSsmlVoice).
  *
  * Pure, with no Node or browser APIs.
  */
@@ -46,6 +52,35 @@ export const CALL_SPEECH_CUT_MARK: string = "…";
 
 // What "#42" - a number without a prefix - is said as.
 export const CALL_SPEECH_NUMBER_WORD: string = "number";
+
+/*
+ * How a call says "#42" - a number without a prefix - as its words say a
+ * number: "number 42" in English, "Nummer 42" in German, "42番" in
+ * Japanese (#11066). The digits as they are, in every language.
+ */
+export type SayRecordNumber = (digits: string) => string;
+
+// "#42" in English: "number 42".
+export const sayRecordNumberInEnglish: SayRecordNumber = (
+  digits: string,
+): string => {
+  return `${CALL_SPEECH_NUMBER_WORD} ${digits}`;
+};
+
+// The key a call's words say "#42" with, in each language.
+export const CALL_SPEECH_NUMBER_TEMPLATE: string =
+  translationKey("number {{number}}");
+
+// "#42" in a translator's language.
+export const getSayRecordNumber: (translator: Translator) => SayRecordNumber = (
+  translator: Translator,
+): SayRecordNumber => {
+  return (digits: string): string => {
+    return translator.translateTemplate(CALL_SPEECH_NUMBER_TEMPLATE, {
+      number: digits,
+    });
+  };
+};
 
 // The product's name as a voice is given it: two words, said as they are meant.
 export const ONEUPTIME_SPOKEN_NAME: string = "One Uptime";
@@ -94,9 +129,6 @@ const DANGLING_END: RegExp = /[\s,;:.!?、。，；：\-–—([{/\\]+$/u;
 
 // "OneUptime" as a word: "OneUptime's", "OneUptime." - never inside a longer word.
 const PRODUCT_NAME_WORD: RegExp = /\bOneUptime\b/g;
-
-// Whether the voice named reads SSML: Amazon Polly's and Google's do.
-const SSML_VOICE: RegExp = /^(polly|google)\./i;
 
 /*
  * Whether a code point is one a voice can be given: one XML 1.0 allows (its
@@ -153,11 +185,19 @@ export const toSpokenText: (text: unknown) => string = (
   return toTwimlText(text).replace(PRODUCT_NAME_WORD, ONEUPTIME_SPOKEN_NAME);
 };
 
-// Whether the voice named reads SSML. None - the account's default voice - may not.
+/*
+ * Whether the voice named reads SSML: a voice of OneUptime's lists that
+ * does (Types/Call/CallVoice), another language's among them. None - the
+ * account's default voice - may not, nor
+ * may a voice the list does not hold, whatever its provider: Google's
+ * Chirp3-HD voices read none, and a Basic voice fails the <Say>.
+ */
 export const isSsmlVoice: (voice: string | null | undefined) => boolean = (
   voice: string | null | undefined,
 ): boolean => {
-  return typeof voice === "string" && SSML_VOICE.test(voice.trim());
+  const listed: SpokenCallVoice | null = getSpokenCallVoice(voice);
+
+  return Boolean(listed && listed.readsSsml);
 };
 
 /*
@@ -307,7 +347,11 @@ export const cutForSpeech: (text: unknown, maxLength?: number) => string = (
  */
 export const getRecordNumberSpeech: (
   recordNumber: string,
-) => Array<SpeechPart> = (recordNumber: string): Array<SpeechPart> => {
+  sayNumber?: SayRecordNumber,
+) => Array<SpeechPart> = (
+  recordNumber: string,
+  sayNumber: SayRecordNumber = sayRecordNumberInEnglish,
+): Array<SpeechPart> => {
   const value: string =
     typeof recordNumber === "string" ? recordNumber.trim() : "";
   const match: RegExpMatchArray | null = value.match(RECORD_NUMBER);
@@ -323,9 +367,7 @@ export const getRecordNumberSpeech: (
   if (runs.length === 0) {
     return [
       {
-        text: prefix.includes("#")
-          ? `${CALL_SPEECH_NUMBER_WORD} ${digits}`
-          : digits,
+        text: prefix.includes("#") ? sayNumber(digits) : digits,
       },
     ];
   }
@@ -446,9 +488,11 @@ const splitOnPrefixedNumbers: (
 export const getSpeechParts: (
   sentence: SpokenSentence,
   recordNumberPrefixes?: ReadonlyArray<string>,
+  sayNumber?: SayRecordNumber,
 ) => Array<SpeechPart> = (
   sentence: SpokenSentence,
   recordNumberPrefixes: ReadonlyArray<string> = [],
+  sayNumber: SayRecordNumber = sayRecordNumberInEnglish,
 ): Array<SpeechPart> => {
   const text: string =
     typeof sentence.sayMessage === "string" ? sentence.sayMessage : "";
@@ -480,7 +524,7 @@ export const getSpeechParts: (
     .flatMap((piece: SentencePiece): Array<SpeechPart> => {
       return "text" in piece
         ? [{ text: piece.text }]
-        : getRecordNumberSpeech(piece.recordNumber);
+        : getRecordNumberSpeech(piece.recordNumber, sayNumber);
     })
     .filter((part: SpeechPart): boolean => {
       return "characters" in part ? part.characters !== "" : part.text !== "";

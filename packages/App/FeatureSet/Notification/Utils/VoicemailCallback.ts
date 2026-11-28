@@ -2,8 +2,10 @@ import CallService from "../Services/CallService";
 import {
   getVoicemailMessage,
   VOICEMAIL_MESSAGE_CALL_DATA_KEY,
+  VOICEMAIL_VOICE_CALL_DATA_KEY,
 } from "./AnsweredBy";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import { toSpokenCallVoiceValue } from "Common/Types/Call/CallVoice";
 import ObjectID from "Common/Types/ObjectID";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import logger from "Common/Server/Utils/Logger";
@@ -43,6 +45,20 @@ export function getVoicemailMessageOfCall(callData: unknown): string {
 }
 
 /*
+ * The voice a call was placed with, as its log keeps it, so the message
+ * left on its voicemail is said in it too (#10948): one from OneUptime's
+ * list, or none - the account's default voice - for a call placed without
+ * one, or before voices could be chosen.
+ */
+export function getVoicemailVoiceOfCall(callData: unknown): string | undefined {
+  return toSpokenCallVoiceValue(
+    callData && typeof callData === "object"
+      ? (callData as Record<string, unknown>)[VOICEMAIL_VOICE_CALL_DATA_KEY]
+      : undefined,
+  );
+}
+
+/*
  * Leaves the message on voicemail: the live call is turned to it, through
  * the account that placed it, and ends once it is said. Whether it was:
  * not when the call had ended already - the voicemail hung up, its mailbox
@@ -54,6 +70,8 @@ export async function leaveVoicemailMessage(data: {
   callSid: string;
   message: string;
   callLogId: ObjectID | string;
+  // The voice the call was placed with (getVoicemailVoiceOfCall).
+  voice?: string | undefined;
 }): Promise<boolean> {
   try {
     // Through the outbound proxy, as every request of the server (#10721).
@@ -64,7 +82,9 @@ export async function leaveVoicemailMessage(data: {
     );
 
     await client.calls(data.callSid).update({
-      twiml: CallService.generateVoicemailTwiml(data.message),
+      twiml: CallService.generateVoicemailTwiml(data.message, {
+        voice: data.voice,
+      }),
     });
 
     return true;

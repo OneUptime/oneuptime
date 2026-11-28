@@ -41,6 +41,7 @@ export enum InstallScriptName {
   ProxmoxAgent = "proxmox-agent",
   StorageArrayAgent = "storage-array-agent",
   VMwareAgent = "vmware-agent",
+  XcpNgAgent = "xcp-ng-agent",
 }
 
 export interface InstallScriptEntry {
@@ -260,6 +261,16 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerstore.yaml",
+      "powerstore-exporter.Dockerfile",
+      "powerstore-syslog.yaml",
+      // NetApp ONTAP, through NetApp Harvest: its config and its templates.
+      "otel-collector-config.netapp-ontap.yaml",
+      "netapp-harvest.yml",
+      "netapp-harvest-rest.yaml",
+      "netapp-harvest-keyperf.yaml",
+      "netapp-harvest-restperf.yaml",
+      "otel-collector-config.powerscale.yaml",
       "systemd/oneuptime-storage-array-agent.service",
       TROUBLESHOOT_SCRIPT_FILE,
     ],
@@ -275,6 +286,24 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "otel-collector-config.yaml",
       "systemd/oneuptime-vmware-agent.service",
       "systemd/oneuptime-vmware-agent-native.service",
+      TROUBLESHOOT_SCRIPT_FILE,
+    ],
+  },
+  /*
+   * One agent reads one Xen Orchestra, and every XCP-ng pool it manages.
+   * xo-ca.pem, the certificate it trusts for Xen Orchestra, is made on the
+   * agent's machine by install.sh, never served.
+   */
+  {
+    name: InstallScriptName.XcpNgAgent,
+    title: "XCP-ng agent",
+    sourceDirectory: "agents/XcpNgAgent",
+    script: INSTALL_SCRIPT_FILE,
+    files: [
+      INSTALL_SCRIPT_FILE,
+      "docker-compose.yml",
+      "otel-collector-config.yaml",
+      "systemd/oneuptime-xcp-ng-agent.service",
       TROUBLESHOOT_SCRIPT_FILE,
     ],
   },

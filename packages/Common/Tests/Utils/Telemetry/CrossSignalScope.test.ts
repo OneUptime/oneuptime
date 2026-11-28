@@ -957,3 +957,103 @@ describe("a log line to open", () => {
     expect(toTracesExplorerQueryParams({ logId: "" }).dropped).toEqual([]);
   });
 });
+
+/*
+ * #11045: an attribute that must CONTAIN a text - a Hash rule's token
+ * inside a longer user ("auth0|[HASHED:...]") - which a security event's
+ * panel searches the attribute its user was read from for.
+ */
+describe("attributesContaining", () => {
+  const TOKEN: string = "[HASHED:0123456789abcdef]";
+
+  test("logs: an attributes chip holding a contains value, which the explorer compiles to a contains-match", () => {
+    const result: CrossSignalQueryParams = toLogsExplorerQueryParams({
+      attributesContaining: { "openstack.user_name": TOKEN },
+    });
+    const tuples: Array<[string, Array<string>]> = JSON.parse(
+      result.params["filters"]!,
+    );
+
+    expect(tuples).toEqual([
+      ["attributes.openstack.user_name", [`~"${TOKEN}"`]],
+    ]);
+    expect(
+      (
+        compileAttributeChipValues(tuples[0]![1]) as { toString(): string }
+      ).toString(),
+    ).toBe(TOKEN);
+    expect(result.dropped).toEqual([]);
+  });
+
+  test('traces: an `@key:~"text"` search token, which the grammar reads as a contains-match', () => {
+    const result: CrossSignalQueryParams = toTracesExplorerQueryParams({
+      attributesContaining: { "user.id": TOKEN },
+    });
+
+    expect(result.params["search"]).toBe(`@user.id:~"${TOKEN}"`);
+
+    const tokens: Array<SearchToken> = parseSearchQuery(
+      result.params["search"]!,
+    );
+
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]!.type).toBe(SearchTokenType.Attribute);
+    expect(tokens[0]!.key).toBe("user.id");
+    // Typed, as @jest/globals' toEqual takes no type argument.
+    const predicate: SearchValuePredicate = {
+      operator: SearchValueOperator.Contains,
+      value: TOKEN,
+      values: [],
+    };
+
+    expect(tokens[0]!.predicate).toEqual(predicate);
+  });
+
+  test("traces: a key no token can carry, or a value with a percent, rides a chip with the same contains value", () => {
+    const result: CrossSignalQueryParams = toTracesExplorerQueryParams({
+      attributesContaining: { "user name": TOKEN, "user.id": "50%" },
+    });
+
+    expect(result.params["search"]).toBeUndefined();
+    expect(JSON.parse(result.params["filters"]!)).toEqual([
+      ["attributes.user name", `~"${TOKEN}"`],
+      ["attributes.user.id", '~"50%"'],
+    ]);
+    expect(parseSearchValue('~"50%"').value).toBe("50%");
+  });
+
+  test("an exact filter and a contains one on the same scope both reach the explorer", () => {
+    const result: CrossSignalQueryParams = toTracesExplorerQueryParams({
+      attributes: { "http.method": "GET" },
+      attributesContaining: { "enduser.id": TOKEN },
+    });
+
+    expect(result.params["search"]).toBe(
+      `@http.method:${buildSearchTokenValue("GET")} @enduser.id:~"${TOKEN}"`,
+    );
+  });
+
+  test("an empty key or value carries no scope", () => {
+    expect(
+      toLogsExplorerQueryParams({
+        attributesContaining: { "": TOKEN, "user.id": "" },
+      }).params,
+    ).toEqual({});
+    expect(
+      toTracesExplorerQueryParams({
+        attributesContaining: { "": TOKEN, "user.id": "" },
+      }).params,
+    ).toEqual({});
+  });
+
+  test("metrics compare whole values only, and say they dropped it", () => {
+    expect(
+      toMetricsExplorerQueryParams({
+        attributesContaining: { "user.id": TOKEN },
+      }).dropped,
+    ).toEqual(["attributesContaining"]);
+    expect(
+      toMetricsExplorerQueryParams({ attributesContaining: {} }).dropped,
+    ).toEqual([]);
+  });
+});

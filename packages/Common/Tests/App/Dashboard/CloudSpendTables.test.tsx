@@ -21,10 +21,7 @@ import { MemoryRouter } from "react-router-dom";
  *     OneUptime holds it), what would change and what it saves a month in
  *     its own currency; the strip above, or what each cloud needs before
  *     any is read; the accounts whose recommendations are not read.
- *   - Budgets: created in two steps (what a month may cost and for which
- *     account; when to alert), the currency most accounts are billed in
- *     and 80% and 100% to start with; each row says what the month has
- *     cost against it, where it is heading and how it is doing.
+ *   - Budgets: in CloudBudgetsAndForecast (#11008).
  */
 
 const mockCapturedTableProps: Array<Record<string, unknown>> = [];
@@ -46,7 +43,6 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
-import CloudBudget from "../../../Models/DatabaseModels/CloudBudget";
 import CloudCostRecommendation from "../../../Models/DatabaseModels/CloudCostRecommendation";
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -64,11 +60,8 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 import CloudSavingsTable, {
   getSavingChangeText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudSavingsTable";
-import CloudBudgets, {
-  ALERT_AT_NOT_PERCENTS,
-  ALL_ACCOUNTS,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Budgets";
 import CloudSavings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Savings";
+import CloudSavingsApi from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Savings/CloudSavingsApi";
 import { SAVINGS_GAPS_NONE_READ_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostGapsCard";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
@@ -77,15 +70,6 @@ interface CapturedColumn<T> {
   field: Record<string, unknown>;
   getElement?: (item: T) => React.ReactElement;
   isHiddenByDefault?: boolean;
-}
-
-interface CapturedFormField {
-  title: string;
-  stepId?: string;
-  required?: boolean;
-  collapsibleSection?: unknown;
-  customValidation?: (values: Record<string, unknown>) => string | null;
-  defaultValue?: unknown;
 }
 
 const ACCOUNT_ROW: string = "10000000-0000-4000-8000-0000000000b1";
@@ -143,6 +127,21 @@ beforeEach(() => {
       };
     },
   );
+  /*
+   * What acting on savings came to (#11010): nothing changed yet, so the
+   * Savings page draws no strip, approval card or changes of its own.
+   */
+  getJestSpyOn(CloudSavingsApi, "getSummary").mockResolvedValue({
+    currency: "USD",
+    savedThisMonth: 0,
+    realisedCount: 0,
+    measuringCount: 0,
+    promisedMonthly: 0,
+    scheduledHoursThisMonth: 0,
+    changesCount: 0,
+    waitingCount: 0,
+    waitingForYouCount: 0,
+  });
 });
 
 afterEach(() => {
@@ -614,230 +613,5 @@ describe("Cloud > Savings", () => {
 
     await screen.findByTestId("cloud-savings-not-read");
     expect(screen.queryByTestId("cloud-commitments")).toBeNull();
-  });
-});
-
-describe("Cloud > Budgets", () => {
-  async function openBudgets(): Promise<void> {
-    await act(async () => {
-      render(
-        <MemoryRouter>
-          <CloudBudgets {...pageProps} />
-        </MemoryRouter>,
-      );
-    });
-  }
-
-  test("created in two steps, in the currency most accounts are billed in, alerting at 80% and 100%", async () => {
-    await openBudgets();
-
-    expect(lastTable()).toMatchObject({
-      modelType: CloudBudget,
-      id: "cloud-budgets-table",
-      isCreateable: true,
-      isEditable: true,
-      isDeleteable: true,
-      rowSwitch: { column: "isEnabled" },
-      createInitialValues: {
-        currency: "EUR",
-        alertThresholds: "80,100",
-        alertOnProjection: true,
-        alertOnAnomaly: true,
-        isEnabled: true,
-      },
-    });
-    expect(
-      (lastTable()["formSteps"] as Array<{ id: string }>).map(
-        (step: { id: string }) => {
-          return step.id;
-        },
-      ),
-    ).toEqual(["budget", "alerts"]);
-
-    const fields: Array<CapturedFormField> = lastTable()[
-      "formFields"
-    ] as Array<CapturedFormField>;
-    const byStep: (stepId: string) => Array<string> = (
-      stepId: string,
-    ): Array<string> => {
-      return fields
-        .filter((field: CapturedFormField): boolean => {
-          return field.stepId === stepId;
-        })
-        .map((field: CapturedFormField): string => {
-          return field.title;
-        });
-    };
-
-    expect(byStep("budget")).toEqual([
-      "Name",
-      "Monthly Amount",
-      "Account",
-      "Currency",
-      "Description",
-    ]);
-    expect(byStep("alerts")).toEqual([
-      "Alert At",
-      "Alert When On Course To Pass",
-      "Alert On Unusual Days",
-      "Alert Severity",
-      "On-Call Policies",
-    ]);
-    // A day that cost far more than usual alerts unless turned off.
-    const unusualDays: CapturedFormField | undefined = fields.find(
-      (field: CapturedFormField): boolean => {
-        return field.title === "Alert On Unusual Days";
-      },
-    );
-    expect(unusualDays?.defaultValue).toBe(true);
-    // The currency and a description wait under More fields.
-    expect(
-      fields
-        .filter((field: CapturedFormField): boolean => {
-          return Boolean(field.collapsibleSection);
-        })
-        .map((field: CapturedFormField): string => {
-          return field.title;
-        }),
-    ).toEqual(["Currency", "Description"]);
-    expect(titles("columns")).toEqual([
-      "Name",
-      "Applies To",
-      "This Month",
-      "Status",
-    ]);
-  });
-
-  test("a row: what the month has cost against it, where it is heading, how it is doing", async () => {
-    await openBudgets();
-
-    const budget: CloudBudget = new CloudBudget();
-    Object.assign(budget, {
-      _id: "10000000-0000-4000-8000-0000000000d1",
-      name: "Production",
-      monthlyAmount: 5000,
-      currency: "USD",
-      spentThisMonth: 4100,
-      projectedThisMonth: 6200,
-      alertThresholds: "80,100",
-      lastCheckedAt: new Date(),
-      isEnabled: true,
-    });
-
-    const month: HTMLElement = drawn(
-      column<CloudBudget>("This Month").getElement!(budget),
-    );
-    expect(month).toHaveTextContent("$4,100 of $5,000");
-    expect(month).toHaveTextContent("On course for $6,200");
-
-    const status: HTMLElement = drawn(
-      column<CloudBudget>("Status").getElement!(budget),
-    );
-    expect(within(status).getByTestId("cloud-budget-status")).toHaveAttribute(
-      "data-tone",
-      "warning",
-    );
-    expect(status).toHaveTextContent("Passed 80%");
-
-    expect(
-      drawn(column<CloudBudget>("Applies To").getElement!(budget)),
-    ).toHaveTextContent(ALL_ACCOUNTS);
-
-    /*
-     * Its name and description are the team's own words, each set apart
-     * in its own direction: on a Persian page an English description keeps
-     * its full stop at its end.
-     */
-    budget.description = "Every account, before credits.";
-    const isolated: Array<string> = Array.from(
-      drawn(column<CloudBudget>("Name").getElement!(budget)).querySelectorAll(
-        "bdi",
-      ),
-    ).map((element: Element): string => {
-      return element.textContent || "";
-    });
-    expect(isolated).toEqual(["Production", "Every account, before credits."]);
-
-    budget.cloudAccountId = new ObjectID(ACCOUNT_ROW);
-    budget.cloudAccount = { name: "web-prod" } as CloudAccount;
-    expect(
-      within(
-        drawn(column<CloudBudget>("Applies To").getElement!(budget)),
-      ).getByRole("link", { name: "web-prod" }),
-    ).toHaveAttribute(
-      "href",
-      expect.stringContaining(`/cloud/accounts/${ACCOUNT_ROW}/costs`),
-    );
-
-    // Paused: no longer checked, so what it last said of the month is old.
-    budget.isEnabled = false;
-    const paused: HTMLElement = drawn(
-      column<CloudBudget>("This Month").getElement!(budget),
-    );
-    expect(paused).toHaveTextContent("$4,100 of $5,000");
-    expect(paused).not.toHaveTextContent("On course for");
-    expect(
-      drawn(column<CloudBudget>("Status").getElement!(budget)),
-    ).toHaveTextContent("Paused");
-    budget.isEnabled = true;
-
-    // Not checked yet: nothing said of where it is heading.
-    Object.assign(budget, { lastCheckedAt: undefined });
-    expect(
-      drawn(column<CloudBudget>("This Month").getElement!(budget)),
-    ).not.toHaveTextContent("On course for");
-  });
-
-  test("a budget's amount reads as it was set, and nothing spent as nothing: $0 of $500, not $0.00 of $500.00", async () => {
-    await openBudgets();
-
-    const budget: CloudBudget = new CloudBudget();
-    Object.assign(budget, {
-      _id: "10000000-0000-4000-8000-0000000000d2",
-      name: "Sandbox",
-      monthlyAmount: 500,
-      currency: "USD",
-      spentThisMonth: 0,
-      projectedThisMonth: 0,
-      alertThresholds: "80,100",
-      isEnabled: true,
-    });
-
-    const nothing: HTMLElement = drawn(
-      column<CloudBudget>("This Month").getElement!(budget),
-    );
-    expect(nothing).toHaveTextContent("$0 of $500");
-    expect(nothing).not.toHaveTextContent(".00");
-
-    // A spend in cents keeps them; a budget with cents keeps its own.
-    Object.assign(budget, { spentThisMonth: 203.69, monthlyAmount: 237.5 });
-    expect(
-      drawn(column<CloudBudget>("This Month").getElement!(budget)),
-    ).toHaveTextContent("$203.69 of $237.50");
-  });
-
-  test("Alert At says when it is not a list of percents, rather than the budget alerting at 80% and 100% instead", async () => {
-    await openBudgets();
-
-    const alertAt: CapturedFormField = (
-      lastTable()["formFields"] as Array<CapturedFormField>
-    ).find((field: CapturedFormField): boolean => {
-      return field.title === "Alert At";
-    })!;
-    expect(alertAt.customValidation).toBeDefined();
-
-    // As people write them: commas, spaces, percent signs.
-    for (const written of ["80,100", "50%, 90%", " 75 ; 100 ", "120"]) {
-      expect(alertAt.customValidation!({ alertThresholds: written })).toBe(
-        null,
-      );
-    }
-
-    // Not a percent, out of 1 to 1000, or nothing at all: said.
-    for (const written of ["abc", "80, ninety", "0", "1500", " , ", ""]) {
-      expect(alertAt.customValidation!({ alertThresholds: written })).toBe(
-        ALERT_AT_NOT_PERCENTS,
-      );
-    }
   });
 });

@@ -69,6 +69,7 @@ import {
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   RESOURCE_COSTS_FIELD_KEY,
+  SAVINGS_ACTIONS_FIELD_KEY,
   getCloudConnectionDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
@@ -112,12 +113,39 @@ import {
   CLOUD_SAVINGS_INTERVAL_MS,
 } from "Common/Types/Cloud/CloudCost";
 import {
+  CLOUD_BUDGET_ALERT_FROM_PERCENT,
+  CloudBudgetPeriod,
+  CloudBudgetPlanSplit,
+  CloudBudgetScope,
+  isCloudBudgetNoticeOnly,
+} from "Common/Types/Cloud/CloudBudget";
+import {
+  CLOUD_COST_FORECAST_CONFIDENCE_PERCENT,
+  CLOUD_COST_FORECAST_MAX_MONTHS_AHEAD,
+  CLOUD_COST_FORECAST_MIN_MONTHS_FOR_SEASON,
+  CLOUD_COST_FORECAST_MIN_MONTHS_FOR_TREND,
+  CLOUD_COST_FORECAST_MIN_SPREAD,
+  CLOUD_COST_FORECAST_MONTHS_AHEAD,
+  CloudCostForecastMethod,
+} from "Common/Types/Cloud/CloudCostForecast";
+import {
   CLOUD_COMMITMENT_KINDS,
   CLOUD_COMMITMENT_WINDOW_DAYS,
   CloudCommitmentKind,
   getCloudCommitmentKindLabel,
 } from "Common/Types/Cloud/CloudCommitments";
 import { ELASTIC_BEANSTALK_ENVIRONMENT_TAG } from "Common/Types/Cloud/CloudPlatformCosts";
+import {
+  AWS_SAVINGS_ACTIONS_CLEAN_UP_ACTIONS,
+  AWS_SAVINGS_ACTIONS_POLICY_NAME,
+  AWS_SAVINGS_ACTIONS_RESIZE_ACTIONS,
+  AZURE_SAVINGS_ACTIONS_CLEAN_UP_ACTIONS,
+  AZURE_SAVINGS_ACTIONS_RESIZE_ACTIONS,
+  AZURE_SAVINGS_ACTIONS_ROLE,
+  GCP_SAVINGS_ACTIONS_CLEAN_UP_PERMISSIONS,
+  GCP_SAVINGS_ACTIONS_RESIZE_PERMISSIONS,
+  GCP_SAVINGS_ACTIONS_ROLE_ID,
+} from "Common/Types/CloudConnection/CloudSavingsActionsAccess";
 import {
   CLOUD_COST_ANOMALY_ACCOUNT_RATIO,
   CLOUD_COST_ANOMALY_BASELINE_DAYS,
@@ -161,6 +189,7 @@ import {
   getAzureSetupCommand,
   getCloudConnectionSetupCommand,
   getGcpSetupCommand,
+  isAwsActionGranted,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   ROLE_CHECK_PASS_MS,
@@ -220,7 +249,13 @@ const SOURCES: Record<string, string> = {
   aiAgentSetup: `${DASHBOARD}/Components/Cloud/CloudAiAgentSetup.ts`,
   aiChangeWords: `${DASHBOARD}/Components/Cloud/CloudAiChangeWords.ts`,
   costWords: `${DASHBOARD}/Components/Cloud/CloudCostWords.ts`,
-  budgets: `${DASHBOARD}/Pages/Cloud/Budgets.tsx`,
+  // The budget form (#11008), and the words its fields are titled with.
+  budgets: `${DASHBOARD}/Components/Cloud/Budgets/CloudBudgetForm.tsx`,
+  budgetWords: `${DASHBOARD}/Components/Cloud/Budgets/CloudBudgetWords.ts`,
+  budgetScopeTarget: `${DASHBOARD}/Components/Cloud/Budgets/CloudBudgetScopeTarget.tsx`,
+  budgetNotices: `${SERVER}/Utils/CloudCost/CloudBudgetNotices.ts`,
+  budgetApi: `${SERVER}/API/CloudBudgetAPI.ts`,
+  forecastPage: `${DASHBOARD}/Pages/Cloud/Forecast.tsx`,
   costWindow: "packages/Common/Types/Cloud/CloudCost.ts",
   budgetJob:
     "packages/App/FeatureSet/Workers/Jobs/Cloud/EvaluateCloudBudgets.ts",
@@ -1217,6 +1252,73 @@ describe("Connect a Cloud Account", () => {
     );
   });
 
+  /*
+   * Savings actions (#11010): each choice as the form names it, and every
+   * action it grants, as the setup commands grant them.
+   */
+  it("says what each Savings actions choice lets OneUptime change, and lists every action it grants", () => {
+    const savings: string = section("Savings actions");
+    const field: { title: string; options?: Array<{ label: string }> } =
+      definition(CloudProvider.AWS).configFields.find(
+        (candidate: { key: string }): boolean => {
+          return candidate.key === SAVINGS_ACTIONS_FIELD_KEY;
+        },
+      ) as { title: string; options?: Array<{ label: string }> };
+    const [choices, grants] = tables(savings) as [
+      Array<Array<string>>,
+      Array<Array<string>>,
+    ];
+    const actionsOf: (cell: string) => Array<string> = (
+      cell: string,
+    ): Array<string> => {
+      return cell
+        .split(",")
+        .map((action: string): string => {
+          return action.split("`").join("").trim();
+        })
+        .sort();
+    };
+
+    expect(savings).toContain(`**${field.title}**`);
+    expect(
+      choices.slice(1).map((row: Array<string>): string => {
+        return (row[0] as string).split("*").join("");
+      }),
+    ).toEqual(
+      (field.options || []).map((option: { label: string }): string => {
+        return option.label;
+      }),
+    );
+    expect(savings).toContain(`\`${AWS_SAVINGS_ACTIONS_POLICY_NAME}\``);
+    expect(savings).toContain(`**${AZURE_SAVINGS_ACTIONS_ROLE}**`);
+    expect(savings).toContain(`\`${GCP_SAVINGS_ACTIONS_ROLE_ID}\``);
+    expect(
+      grants.slice(1).map((row: Array<string>): Array<unknown> => {
+        return [
+          row[0],
+          actionsOf(row[1] as string),
+          actionsOf(row[2] as string),
+        ];
+      }),
+    ).toEqual([
+      [
+        "AWS",
+        [...AWS_SAVINGS_ACTIONS_CLEAN_UP_ACTIONS, "ec2:CreateTags"].sort(),
+        [...AWS_SAVINGS_ACTIONS_RESIZE_ACTIONS].sort(),
+      ],
+      [
+        "Azure",
+        [...AZURE_SAVINGS_ACTIONS_CLEAN_UP_ACTIONS].sort(),
+        [...AZURE_SAVINGS_ACTIONS_RESIZE_ACTIONS].sort(),
+      ],
+      [
+        "Google Cloud",
+        [...GCP_SAVINGS_ACTIONS_CLEAN_UP_PERMISSIONS].sort(),
+        [...GCP_SAVINGS_ACTIONS_RESIZE_PERMISSIONS].sort(),
+      ],
+    ]);
+  });
+
   it("names the form's fields, buttons and menu as the dashboard draws them", () => {
     const form: string = source("form");
     const table: string = source("table");
@@ -1334,10 +1436,25 @@ describe("Cloud Costs and Savings", () => {
 
     for (const action of [
       "ce:GetCostAndUsage",
+      "savingsplans:DescribeSavingsPlans",
       "cost-optimization-hub:ListRecommendations",
+      "cost-optimization-hub:GetRecommendation",
     ]) {
-      expect(AWS_READ_ONLY_ACTIONS).toContain(action);
+      expect({ action, granted: isAwsActionGranted(action) }).toEqual({
+        action,
+        granted: true,
+      });
       expect(aws).toContain(`\`${action}\``);
+    }
+
+    // Cost Explorer's reads, granted as the three families the page names.
+    for (const family of [
+      "ce:GetCostAndUsage*",
+      "ce:GetSavingsPlans*",
+      "ce:GetReservation*",
+    ]) {
+      expect(AWS_READ_ONLY_ACTIONS).toContain(family);
+      expect(aws).toContain(`\`${family}\``);
     }
   });
 
@@ -1403,11 +1520,16 @@ describe("Cloud Costs and Savings", () => {
 
   it("names the budget form's fields as the page draws them, its default thresholds, and when budgets are checked", () => {
     const budgets: string = source("budgets");
+    // A title wrapped onto lines of its own reads as one line here.
+    const words: string =
+      `${source("budgetWords")}\n${source("budgetScopeTarget")}`
+        .replace(/\(\s+/g, "(")
+        .replace(/,\s*\)/g, ")");
     const section: string = costsSection("Budgets");
 
+    // The titles the form writes as they are.
     for (const title of [
-      "Monthly Amount",
-      "Account",
+      "Cost Basis",
       "Alert At",
       "Alert When On Course To Pass",
       "Alert On Unusual Days",
@@ -1415,6 +1537,24 @@ describe("Cloud Costs and Savings", () => {
       "On-Call Policies",
     ]) {
       expect(budgets).toContain(`title: "${title}",`);
+      expect(section).toContain(`**${title}**`);
+    }
+
+    // The titles it holds as words the reader's language says (#11008).
+    for (const title of [
+      "Applies To",
+      "Account",
+      "Cost Group",
+      "Filter",
+      "Period",
+      "Amount",
+      "First Month of the Year",
+      "Budget Plan",
+      "Monthly Plan",
+      "Notify",
+      "Notify the Cost Group's Team",
+    ]) {
+      expect(words).toContain(`translationKey("${title}")`);
       expect(section).toContain(`**${title}**`);
     }
 
@@ -1593,8 +1733,9 @@ describe("Cloud Costs and Savings", () => {
       ).toBe(false);
     }
 
-    // The action, as the access gets it.
-    expect(AWS_READ_ONLY_ACTIONS).toContain("ce:GetCostAndUsageWithResources");
+    // The action, as the access gets it: in Cost Explorer's GetCostAndUsage family.
+    expect(isAwsActionGranted("ce:GetCostAndUsageWithResources")).toBe(true);
+    expect(AWS_READ_ONLY_ACTIONS).toContain("ce:GetCostAndUsage*");
     expect(aws).toContain("`ce:GetCostAndUsageWithResources`");
     expect(read).toContain(
       'AWS_RESOURCE_COST_ACTION: string =\n  "ce:GetCostAndUsageWithResources";',
@@ -1641,21 +1782,32 @@ describe("Cloud Costs and Savings", () => {
     );
     const card: string = source("commitmentsCard");
 
-    // Read with the four actions the access gets, four requests a day.
+    /*
+     * Read with the actions the access gets, in Cost Explorer's families:
+     * four requests a day for their coverage and use, and six to twelve
+     * for each commitment's own (AwsCommitmentInventory).
+     */
     expect(source("awsCommitments")).toContain(
       'export const AWS_COMMITMENT_ACTIONS: ReadonlyArray<string> = [\n  "ce:GetSavingsPlansCoverage",\n  "ce:GetSavingsPlansUtilization",\n  "ce:GetReservationCoverage",\n  "ce:GetReservationUtilization",\n];',
     );
     for (const action of [
       "ce:GetSavingsPlansCoverage",
       "ce:GetSavingsPlansUtilization",
+      "ce:GetSavingsPlansUtilizationDetails",
       "ce:GetReservationCoverage",
       "ce:GetReservationUtilization",
+      "savingsplans:DescribeSavingsPlans",
     ]) {
-      expect(AWS_READ_ONLY_ACTIONS).toContain(action);
+      expect({ action, granted: isAwsActionGranted(action) }).toEqual({
+        action,
+        granted: true,
+      });
       expect(aws).toContain(`\`${action}\``);
     }
-    expect(aws).toContain("the commitments are read with four a day");
-    expect(COSTS_PAGE).toContain("it adds the four actions they are read with");
+    expect(aws).toContain(
+      "the commitments are read with four a day for their coverage and use, and six to twelve more a day for each one's own",
+    );
+    expect(COSTS_PAGE).toContain("it adds the actions they are read with");
 
     // Over the last 30 days, on Savings and an account's Costs.
     expect(CLOUD_COMMITMENT_WINDOW_DAYS).toBe(30);
@@ -1767,13 +1919,110 @@ describe("Cloud Costs and Savings", () => {
     expect(where).toContain(
       "Under the list, the card says what the rest came to: what is in no environment, what an environment is billed as a whole, or what does not carry the tag.",
     );
-    // Read again once, as far back as a first read.
+    /*
+     * Read again once, as far back as a first read: for their tags (2),
+     * then for their amortized and net figures (3).
+     */
     expect(source("lanes")).toContain(
-      "export const CLOUD_COSTS_READ_VERSION: number = 2;",
+      "export const CLOUD_COSTS_READ_VERSION: number = 3;",
     );
     expect(where).toContain(
       "Costs read before tags were kept are read again once, as far back as a first read, so their tags fill in.",
     );
+    expect(costsSection("Billed, amortized and net")).toContain(
+      "Each connection reads its costs again once, as far back as a first read, so each basis fills in.",
+    );
+  });
+
+  it("says who a budget tells below 100% and who it pages from 100%, as its notices and alerts do", () => {
+    const section: string = costsSection("Budgets").replace(/\s+/g, " ");
+
+    expect(section).toContain(
+      "The people and teams to **Notify** are told by email and chat as the spend passes a share below 100%, with no alert, so nobody is paged for spend within the budget.",
+    );
+    expect(section).toContain(
+      "From 100%, an alert is raised, they own it, and the **On-Call Policies** are paged. A budget with nobody to tell raises an alert at every share.",
+    );
+    // A share below 100% is told, with no alert, when there is someone to tell.
+    expect(CLOUD_BUDGET_ALERT_FROM_PERCENT).toBe(100);
+    expect(
+      isCloudBudgetNoticeOnly({ threshold: 80, hasPeopleToNotify: true }),
+    ).toBe(true);
+    expect(
+      isCloudBudgetNoticeOnly({ threshold: 100, hasPeopleToNotify: true }),
+    ).toBe(false);
+    expect(
+      isCloudBudgetNoticeOnly({ threshold: 80, hasPeopleToNotify: false }),
+    ).toBe(false);
+    // A split year is held a month at a time.
+    expect(section).toContain(
+      "A year split by month is checked a month at a time, against that month's share.",
+    );
+  });
+
+  it("says how a forecast is made as CloudCostForecast makes it, and how sure it is", () => {
+    const forecasts: string = costsSection("Forecasts").replace(/\s+/g, " ");
+
+    expect(CLOUD_COST_FORECAST_MONTHS_AHEAD).toBe(12);
+    expect(forecasts).toContain(
+      "**Cloud → Spend → Forecast** says what the spend is on course to cost in each of the next 12 months, for everything, an account, a cost group or a service",
+    );
+    expect(CLOUD_COST_PACE_DAYS).toBe(7);
+    expect(forecasts).toContain(
+      "**This month** is what it cost so far, with each day still to come at the average of the last seven full days, as a budget projects it.",
+    );
+    expect(CLOUD_COST_FORECAST_MIN_MONTHS_FOR_TREND).toBe(3);
+    expect(forecasts).toContain(
+      "**With fewer than 3 full months**, each month ahead is that pace carried forward, with no likely range",
+    );
+    expect(forecasts).toContain("**From 3 full months**, a trend runs through");
+    expect(CLOUD_COST_FORECAST_MIN_MONTHS_FOR_SEASON).toBe(12);
+    expect(forecasts).toContain("**From 12 full months**, each calendar month");
+    expect(CLOUD_COST_FORECAST_CONFIDENCE_PERCENT).toBe(80);
+    expect(forecasts).toContain("where it should land 8 times in 10");
+    expect(CLOUD_COST_FORECAST_MIN_SPREAD).toBe(0.05);
+    expect(forecasts).toContain("never narrower than 5% either side");
+    expect(forecasts).toContain(
+      "A forecast is no promise: a new service, a migration or a price change moves the months ahead in ways no past month shows.",
+    );
+    expect(forecasts).toContain("**What If**");
+    expect(forecasts).toContain("**Save as Budget Plan**");
+    // The page applies the what-if as it is typed, and saves the plan.
+    expect(source("forecastPage")).toContain("applyCloudCostGrowth(");
+    expect(source("forecastPage")).toContain("<CloudForecastSavePlan");
+    expect(source("budgetWords")).toContain('translationKey("What If")');
+    expect(source("budgetWords")).toMatch(
+      /translationKey\(\s*"Save as Budget Plan",?\s*\)/,
+    );
+    expect(source("sideMenu")).toContain('title: "Forecast"');
+    expect(anchorsOf("en", CLOUD_COSTS).has("forecasts")).toBe(true);
+  });
+
+  it("names the API's budget fields and reads as the API takes them", () => {
+    const api: string = costsSection("Budgets and forecasts in the API");
+
+    for (const scope of Object.values(CloudBudgetScope)) {
+      expect(api).toContain(`\`${scope}\``);
+    }
+
+    for (const period of Object.values(CloudBudgetPeriod)) {
+      expect(api).toContain(`\`${period}\``);
+    }
+
+    for (const split of Object.values(CloudBudgetPlanSplit)) {
+      expect(api).toContain(`\`${split}\``);
+    }
+
+    for (const method of Object.values(CloudCostForecastMethod)) {
+      expect(api).toContain(`\`${method}\``);
+    }
+
+    expect(CLOUD_COST_FORECAST_MAX_MONTHS_AHEAD).toBe(24);
+    expect(api).toContain("for 1 to 24 months ahead");
+    expect(source("budgetApi")).toContain("`${path}/forecast`");
+    expect(source("budgetApi")).toContain("`${path}/:budgetId/spend`");
+    expect(api).toContain("/api/cloud-budget/forecast");
+    expect(api).toContain("/api/cloud-budget/<budget ID>/spend");
   });
 
   it("names the MCP server and the CLI's command an AI agent or a script manages budgets with", () => {
@@ -1782,7 +2031,10 @@ describe("Cloud Costs and Savings", () => {
     expect(budgets).toContain("[MCP server](/docs/ai/mcp-server)");
     expect(budgets).toContain("`oneuptime cloud-budget`");
     expect(source("cliReadme")).toContain("`cloud-budget`");
-    expect(readPage("en", "ai/mcp-server")).toContain("| Cloud Budget |");
+    // The MCP page's Cloud row: budgets, with the cost groups' records beside them.
+    expect(readPage("en", "ai/mcp-server")).toMatch(
+      /^\| Cloud \| [^\n]*\bCloud Budget\b[^\n]* \|$/m,
+    );
   });
 
   it("names Cloud's pages as the side menu draws them: the Spend pages under their section", () => {
@@ -1795,7 +2047,7 @@ describe("Cloud Costs and Savings", () => {
       expect(COSTS_PAGE).toContain(`**Cloud → ${page}**`);
     }
 
-    for (const page of ["Costs", "Savings", "Budgets"]) {
+    for (const page of ["Costs", "Savings", "Budgets", "Forecast"]) {
       expect(sideMenu).toContain(`title: "${page}"`);
       expect(COSTS_PAGE).toContain(`**Cloud → Spend → ${page}**`);
       expect(PAGE).toContain(`**Cloud → Spend → ${page}**`);

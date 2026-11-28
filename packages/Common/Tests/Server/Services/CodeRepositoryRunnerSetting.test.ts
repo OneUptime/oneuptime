@@ -7,6 +7,7 @@ import ProjectReferenceCheck, {
   ProjectReferenceColumn,
 } from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
+import Runbook from "../../../Models/DatabaseModels/Runbook";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -28,8 +29,11 @@ import path from "path";
  *   - never an in-cluster Runner the Kubernetes agent chart installed,
  *     which never clones a repository: the repository's own hooks refuse
  *     it, by the one agent-row rule (RunnerService.isKubernetesAgentRunnerRow);
- *   - and whoever may change the repository's other settings may change its
- *     Runner, and nobody else.
+ *   - and those who write a runbook's steps that run may change its Runner,
+ *     as they may its setup, build and test commands, and nobody else: the
+ *     Runner decides what runs on which of the project's Runners
+ *     (Types/CodeRepository/CodeRepositoryRunnerAuthoring). The
+ *     repository's other settings stay with whoever may edit it.
  */
 
 const RUNNER_ID: string = "9e4f5a6b-1111-4222-8333-944455556666";
@@ -184,7 +188,7 @@ describe("what a repository's Runner setting may name", () => {
     expect(CodeRepositoryService).toBeDefined();
   });
 
-  test("whoever may change the repository's settings may change its Runner, and nobody else", () => {
+  test("those who write a runbook's steps that run may change its Runner, as its commands, and nobody else", () => {
     const repository: CodeRepository = new CodeRepository();
     const runner: ReturnType<typeof repository.getColumnAccessControlFor> =
       repository.getColumnAccessControlFor("runnerId");
@@ -194,6 +198,24 @@ describe("what a repository's Runner setting may name", () => {
     expect(runner).toBeDefined();
     expect(runner).toEqual(commands);
     expect(repository.getColumnAccessControlFor("runner")).toEqual(commands);
-    expect(runner!.update).toContain(Permission.EditCodeRepository);
+    expect(runner!.update).toEqual(
+      new Runbook().getColumnAccessControlFor("steps")?.update,
+    );
+
+    for (const notAWriter of [
+      Permission.EditCodeRepository,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CodeAdmin,
+      Permission.CodeMember,
+    ]) {
+      expect(runner!.update).not.toContain(notAWriter);
+    }
+
+    // Its other settings are still theirs who may edit it.
+    expect(repository.getColumnAccessControlFor("name")?.update).toContain(
+      Permission.EditCodeRepository,
+    );
   });
 });

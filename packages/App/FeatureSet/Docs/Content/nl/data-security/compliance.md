@@ -91,7 +91,7 @@ Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren
 | Art. 25 | Gegevensbescherming door ontwerp en door standaardinstellingen | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 28 | Verwerkers | `sensitive-data-to-ai` |
 | Art. 30 | Register van verwerkingsactiviteiten | Voldaan door Gegevensbeveiliging zelf |
-| Art. 32 | Beveiliging van de verwerking | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| Art. 32 | Beveiliging van de verwerking | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | Art. 44-49 | Doorgiften aan derde landen | `residency-violation` |
 
 ### CCPA
@@ -99,7 +99,7 @@ Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren
 | Eis | Wat ze vraagt | Controles |
 | --- | --- | --- |
 | 1798.100(c) | Verzameling beperkt tot wat nodig is | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
-| 1798.150 | Redelijke beveiligingsprocedures | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 1798.150 | Redelijke beveiligingsprocedures | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### HIPAA
 
@@ -107,7 +107,7 @@ Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren
 | --- | --- | --- |
 | 164.308(a)(4) | Beheer van informatietoegang | `unused-access` |
 | 164.308(a)(7) | Calamiteitenplan | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
-| 164.312(a)(1) | Toegangsbeheer | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 164.312(a)(1) | Toegangsbeheer | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 164.312(a)(2)(iv) | Versleuteling en ontsleuteling | `not-encrypted-at-rest`, `no-customer-managed-key` |
 | 164.312(b) | Auditcontroles | `access-not-logged` |
 | 164.312(e)(1) | Beveiliging van overdracht | `encryption-in-transit-not-enforced`, `weak-tls` |
@@ -120,7 +120,7 @@ Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren
 | 3.4.1 | Kaartnummers worden gemaskeerd wanneer ze worden weergegeven | `card-numbers-readable`, `sensitive-data-in-telemetry` |
 | 3.5.1 | Kaartnummers zijn onleesbaar waar ze ook worden opgeslagen | `not-encrypted-at-rest`, `no-customer-managed-key`, `card-numbers-readable` |
 | 4.2.1 | Sterke cryptografie beschermt kaartgegevens tijdens overdracht | `encryption-in-transit-not-enforced`, `weak-tls` |
-| 7.2 | Toegang wordt naar behoefte bepaald en toegekend | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 7.2 | Toegang wordt naar behoefte bepaald en toegekend | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 7.2.4 | Accounts en hun toegang worden beoordeeld | `unused-access` |
 | 8.3.2 | Authenticatiefactoren zijn onleesbaar wanneer ze worden opgeslagen | `plaintext-passwords` |
 | 10.2 | Auditlogs leggen toegang tot kaartgegevens vast | `access-not-logged` |
@@ -130,7 +130,7 @@ Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren
 | Eis | Wat ze vraagt | Controles |
 | --- | --- | --- |
 | A1.2 | Back-up en herstel | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
-| CC6.1 | Logische toegangsbeveiliging | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| CC6.1 | Logische toegangsbeveiliging | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | CC6.2 | Toegang wordt ingetrokken wanneer ze niet meer nodig is | `unused-access` |
 | CC6.7 | Overdracht van informatie | `encryption-in-transit-not-enforced`, `weak-tls` |
 | CC7.2 | Bewaking van systeemcomponenten | `access-not-logged` |
@@ -141,7 +141,7 @@ Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren
 | --- | --- | --- |
 | A.5.9 | Inventaris van informatie en andere gerelateerde bedrijfsmiddelen | `no-owner` |
 | A.5.12 | Classificatie van informatie | Voldaan door Gegevensbeveiliging zelf |
-| A.5.15 | Toegangsbeveiliging | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| A.5.15 | Toegangsbeveiliging | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | A.5.18 | Toegangsrechten | `unused-access` |
 | A.5.34 | Privacy en bescherming van persoonsgegevens | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.11 | Maskeren van gegevens | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
@@ -155,7 +155,7 @@ Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren
 | Eis | Wat ze vraagt | Controles |
 | --- | --- | --- |
 | ID.AM-07 | Inventarissen van gegevens en metagegevens worden bijgehouden | `no-owner` |
-| PR.AA-05 | Toegangsrechten worden beheerd | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
+| PR.AA-05 | Toegangsrechten worden beheerd | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
 | PR.DS-01 | Gegevens in rust zijn beschermd | `not-encrypted-at-rest`, `no-customer-managed-key`, `secrets-stored`, `secrets-in-telemetry` |
 | PR.DS-02 | Gegevens tijdens overdracht zijn beschermd | `encryption-in-transit-not-enforced`, `weak-tls` |
 | PR.DS-11 | Back-ups van gegevens worden bewaard en getest | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
@@ -167,13 +167,13 @@ Beveiligingsleden, Beveiligingsbeheerders, Projectbeheerders en Projecteigenaren
 | --- | --- | --- |
 | Art. 6 | Noodzakelijkheid en doelbinding | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 33 | Internationale doorgifte van gegevens | `residency-violation` |
-| Art. 46 | Beveiligingsmaatregelen | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| Art. 46 | Beveiligingsmaatregelen | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### DPDP
 
 | Eis | Wat ze vraagt | Controles |
 | --- | --- | --- |
-| Sec. 8(5) | Redelijke beveiligingswaarborgen | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| Sec. 8(5) | Redelijke beveiligingswaarborgen | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | Sec. 8(7) | Wissing zodra het doel is bereikt | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Sec. 16 | Doorgifte buiten India | `residency-violation` |
 
@@ -226,6 +226,8 @@ Vier opslagen bevatten met opzet IP-adressen en gebruikersnamen, om je netwerk t
 Het doel van elk is "Netwerk- en informatiebeveiliging (overweging 49 AVG)". Om je eigen doel of bewaartermijn te schrijven, gebruik je **Register bewerken** in de **Instellingen** van de opslag: een veld dat je leeg laat, houdt dat van OneUptime.
 
 Een opslag staat erin zolang je project de gegevens ervan bewaart: de adreskluis zolang een ingeschakelde IP-adresregel logs of traces hasht die Beveiligingsgebeurtenissen leest, de gebruikerskluis zolang een ingeschakelde regel met een ander patroon dat doet, en elk nog 31 dagen daarna (zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Zodra de gegevens weg zijn, wordt de opslag gearchiveerd, en die komt terug met je doel en bewaartermijn als de gegevens terugkomen.
+
+Om één persoon te wissen uit “Beveiligingsgebruikerskluis”, en uit de events en cases die hen daardoor noemen, dient u een wisverzoek in: zie [Een persoon wissen](/docs/telemetry/security-events#een-persoon-wissen).
 
 ## Effectbeoordelingen
 

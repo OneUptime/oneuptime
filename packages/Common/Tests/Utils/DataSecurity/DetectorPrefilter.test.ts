@@ -8,6 +8,7 @@ import BUILT_IN_DETECTORS, {
 import {
   DIGIT_OF_EVERY_SCRIPT_PREFILTER,
   expandBackReferences,
+  FULLWIDTH_FORM_PREFILTER,
   getDataTypePrefilter,
   getDetectorPrefilter,
   MAX_PREFILTER_LENGTH,
@@ -15,6 +16,11 @@ import {
   RE2_MAX_REPEAT,
   toRe2Prefilter,
 } from "../../../Utils/DataSecurity/DetectorPrefilter";
+import { DIGIT_ZEROS } from "../../../Utils/DataSecurity/DigitReadings";
+import {
+  FULLWIDTH_FORMS,
+  holdsFullwidthFormOfANumber,
+} from "../../../Utils/DataSecurity/FullwidthForms";
 import {
   findSensitiveValues,
   ScanDetector,
@@ -333,13 +339,29 @@ describe("a data type's expression", () => {
         "GET /health returned 200 in 12ms for the checkout service",
       ),
     ).toBe(false);
-    // An escape of a byte beyond ASCII is none the reading reads.
-    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("caf%C3%A9")).toBe(
-      false,
-    );
+    // An escape of a byte beyond ASCII is one the reading reads, as UTF-8 (#11032).
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("caf%C3%A9")).toBe(true);
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("%EF%BC%94")).toBe(true);
     expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("cpu 100% busy")).toBe(
       false,
     );
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("%zz %g1 x%4")).toBe(
+      false,
+    );
+  });
+
+  test("a text whose only escapes spell a character beyond ASCII is taken: what the reading finds there, the search hands over (#11032)", () => {
+    const expression: string = getDataTypePrefilter({
+      dataTypeId: "email-address",
+    })!;
+    const text: string = "/signup?email=jos%C3%A9%40example.com";
+
+    expect(
+      findSensitiveValues(text, {
+        detectors: getBuiltInDetectorsOf("email-address"),
+      }).length,
+    ).toBeGreaterThan(0);
+    expect(asJavaScript(expression).test(text)).toBe(true);
   });
 
   /*
@@ -400,7 +422,8 @@ describe("a data type's expression", () => {
 
     expect(isRe2Syntax(expression)).toBe(true);
     expect(expression).toContain(DIGIT_OF_EVERY_SCRIPT_PREFILTER);
-    expect(expression).not.toContain(PERCENT_ESCAPE_PREFILTER);
+    // And one in a URL, with %20 between its groups (#11199).
+    expect(expression).toContain(PERCENT_ESCAPE_PREFILTER);
 
     for (const text of [
       "カード番号：４１１１ １１１１ １１１１ １１１１",
@@ -437,8 +460,228 @@ describe("a data type's expression", () => {
     ).toBe(false);
   });
 
+  /*
+   * #11115: a number typed wholly in fullwidth - its plus sign, hyphens,
+   * parentheses and ideographic spaces - may hold only ASCII digits, which
+   * the patterns' expressions read with ASCII separators: the type of
+   * every detector that reads those forms takes a text with one of them
+   * beside a digit, exactly the texts the reading reads.
+   */
+  test("a number's type takes one typed in fullwidth, its signs and separators too (#11115)", () => {
+    for (const dataTypeId of [
+      "phone-number",
+      "us-ssn",
+      "credit-card-number",
+      "iban",
+      "br-cpf",
+    ]) {
+      const expression: string = getDataTypePrefilter({ dataTypeId })!;
+
+      expect([dataTypeId, isRe2Syntax(expression)]).toEqual([dataTypeId, true]);
+      expect(expression).toContain(FULLWIDTH_FORM_PREFILTER);
+      expect(expression.length).toBeLessThanOrEqual(MAX_PREFILTER_LENGTH);
+    }
+
+    const phone: RegExp = asJavaScript(
+      getDataTypePrefilter({ dataTypeId: "phone-number" })!,
+    );
+
+    for (const text of [
+      "電話：＋81 3－1234－5678",
+      "電話：＋８１ ３－１２３４－５６７８",
+      "tel：　02012345678",
+    ]) {
+      expect([
+        text,
+        findSensitiveValues(text, {
+          detectors: getBuiltInDetectorsOf("phone-number"),
+        }).length > 0,
+        phone.test(text),
+      ]).toEqual([text, true, true]);
+    }
+
+    // CJK prose holds forms beside no digit: the search still narrows.
+    expect(phone.test("（注）設定を確認してください。　以上")).toBe(false);
+  });
+
+  test("the fullwidth forms' expression takes a form beside a digit of any script, and nothing else", () => {
+    const beside: RegExp = asJavaScript(FULLWIDTH_FORM_PREFILTER);
+
+    expect(isRe2Syntax(FULLWIDTH_FORM_PREFILTER)).toBe(true);
+
+    for (const form of FULLWIDTH_FORMS) {
+      for (const zero of DIGIT_ZEROS) {
+        const digit: string = String.fromCharCode(zero + 5);
+        const character: string = String.fromCharCode(form);
+
+        expect([
+          form.toString(16),
+          zero.toString(16),
+          beside.test(`${character}${digit}`),
+          beside.test(`${digit}${character}`),
+          beside.test(`${character}x${digit}`),
+        ]).toEqual([form.toString(16), zero.toString(16), true, true, false]);
+      }
+    }
+
+    // What it takes is what the reading reads.
+    for (const text of [
+      "＋81",
+      "3－",
+      "（注）",
+      "a－b",
+      "1 －",
+      "東京　大阪",
+      "１２　３４",
+    ]) {
+      expect([text, beside.test(text)]).toEqual([
+        text,
+        holdsFullwidthFormOfANumber(text),
+      ]);
+    }
+  });
+
+  test("a secret's type takes a text holding an escape: a token after an encoded = (#11031)", () => {
+    const expression: string = getDataTypePrefilter({
+      dataTypeId: "github-token",
+    })!;
+    const token: string = ["ghp", "Zx8Kq2Lm9Pw4Rt6Hy3Nc8Vb5Jm1Df7Gs0AeQ"].join(
+      "_",
+    );
+    const text: string = `/login?next=https%3A%2F%2Fapp.example.com%2Fcb%3Ftoken%3D${token}`;
+
+    expect(expression.includes(PERCENT_ESCAPE_PREFILTER)).toBe(true);
+    expect(asJavaScript(expression).test(text)).toBe(true);
+    expect(
+      findSensitiveValues(text, {
+        detectors: getBuiltInDetectorsOf("github-token"),
+      }).length,
+    ).toBe(1);
+  });
+
+  /*
+   * #11199: a detector of a value written in groups reads a text as a URL's
+   * query string reads it, a "+" for a space - card=4111+1111+1111+1111 -
+   * so the search must hand such a record over too: its pattern's
+   * expression takes a "+" wherever it takes a space. Proved for every
+   * such detector, with texts drawn from its own pattern, their spaces
+   * written "+", that it finds a candidate in.
+   */
+  test("a type whose detectors read a query string's '+'s takes a value written with them (#11199)", () => {
+    const plusReaders: Array<DataTypeDetector> = BUILT_IN_DETECTORS.filter(
+      (detector: DataTypeDetector): boolean => {
+        return detector.readsPlusAsSpace === true;
+      },
+    );
+    let checked: number = 0;
+
+    expect(plusReaders.length).toBeGreaterThan(60);
+
+    for (const detector of plusReaders) {
+      // A detector that reads "+"s reads escapes too: %20 between its groups.
+      expect([detector.dataTypeId, detector.readsPercentEncoded]).toEqual([
+        detector.dataTypeId,
+        true,
+      ]);
+
+      const expression: RegExp = asJavaScript(
+        getDataTypePrefilter({ dataTypeId: detector.dataTypeId })!,
+      );
+
+      for (const text of positivesOf(detector, 30, random)) {
+        const written: string = text.replace(
+          /(?<=[A-Za-z0-9)]) (?=[A-Za-z0-9(])/g,
+          "+",
+        );
+
+        if (written === text) {
+          continue;
+        }
+
+        const found: boolean =
+          findSensitiveValues(written, {
+            detectors: [detector],
+            hintedDataTypeIds: new Set([detector.dataTypeId]),
+          }).length > 0;
+
+        if (found) {
+          expect([
+            detector.dataTypeId,
+            written,
+            expression.test(written),
+          ]).toEqual([detector.dataTypeId, written, true]);
+          checked++;
+        }
+      }
+    }
+
+    expect(checked).toBeGreaterThan(100);
+  });
+
+  test("the card number type takes a card typed into a form, and still narrows past a timestamp's '+' (#11199)", () => {
+    const expression: string = getDataTypePrefilter({
+      dataTypeId: "credit-card-number",
+    })!;
+
+    expect(isRe2Syntax(expression)).toBe(true);
+
+    for (const text of [
+      "GET /pay?card=4539+1488+0343+6467&step=2",
+      "GET /pay?card=3782+822463+10005",
+      "GET /pay?card=4539%201488%200343%206467",
+    ]) {
+      expect([text, asJavaScript(expression).test(text)]).toEqual([text, true]);
+    }
+
+    // A "+" alone - a time zone's offset, a sum - is no card's.
+    for (const text of [
+      "2026-11-27T10:15:02+00:00 INFO GET /health returned 200 in 12ms",
+      "computed 2+2 and C++ in 12ms",
+    ]) {
+      expect([text, asJavaScript(expression).test(text)]).toEqual([
+        text,
+        false,
+      ]);
+    }
+  });
+
+  test("a '+' is taken where a pattern takes a space, and only there", () => {
+    const withPlus: RegExp = asJavaScript(
+      toRe2Prefilter("[0-9]{4} [0-9]{4}", "g", { plusAsSpace: true })!,
+    );
+    const negated: RegExp = asJavaScript(
+      toRe2Prefilter("a[^x]b", "g", { plusAsSpace: true })!,
+    );
+    const asWritten: RegExp = asJavaScript(
+      toRe2Prefilter("[0-9]{4} [0-9]{4}", "g")!,
+    );
+
+    expect(withPlus.test("4111+1111")).toBe(true);
+    expect(withPlus.test("4111 1111")).toBe(true);
+    expect(withPlus.test("4111-1111")).toBe(false);
+    expect(asWritten.test("4111+1111")).toBe(false);
+    // A class that takes a space takes a "+" too, even one written [^...].
+    expect(negated.test("a+b")).toBe(true);
+    expect(
+      asJavaScript(toRe2Prefilter("a[^ +]b", "g", { plusAsSpace: true })!).test(
+        "a+b",
+      ),
+    ).toBe(false);
+    expect(
+      asJavaScript(toRe2Prefilter("a\\sb", "g", { plusAsSpace: true })!).test(
+        "a+b",
+      ),
+    ).toBe(true);
+    // A pattern that takes no space takes no "+".
+    expect(
+      asJavaScript(
+        toRe2Prefilter("[0-9]{8}", "g", { plusAsSpace: true })!,
+      ).test("4111+1111"),
+    ).toBe(false);
+  });
+
   test("a type whose detectors read only what is written takes no escape alone", () => {
-    for (const dataTypeId of ["credit-card-number", "github-token"]) {
+    for (const dataTypeId of ["mac-address", "bitcoin-address"]) {
       const expression: string = getDataTypePrefilter({ dataTypeId })!;
 
       expect([

@@ -1,0 +1,218 @@
+# The level the node collector reads off a pod's log line (issue #10972).
+#
+# Container runtimes record no severity, only the stream, so the DaemonSet's
+# filelog receiver reads one off the line. Until #10972 a line it could not
+# read took its stream's guess, and on stderr that was ERROR: hclog behind a
+# time ending in "Z", hclog's JSON "@level", klog's letter and PostgreSQL's
+# "LOG" all went unread, and those programs log everything to stderr, so
+# their INFO and WARN lines were stored as Errors and
+# filters.logs.minSeverity=ERROR kept them.
+#
+# The chain now tries readers that know where a format keeps its level, then
+# the general read, and only then the stream: stdout is INFO, and stderr is no
+# severity at all, which the minSeverity filter keeps. A mistake here is data
+# stored at the wrong level, not a failed deploy, so this pins the render.
+#
+# Issue #11226 added the readers of the formats that keep their level in a
+# place of their own (MongoDB, CloudNativePG, Serilog's compact JSON, Redis,
+# NestJS, logrus with colours, MySQL 8, java.util.logging, Sidekiq 7, PHP,
+# Gitea, Go's slog between its names, zerolog's 3:04PM time). Issue #11228
+# put each word at the number OneUptime's ingest stores it at, so the mapping
+# has numbered levels (info2, error2, error3) as well as the six names.
+# What the chain then does to real lines is Tests/Ops: the JavaScript suite
+# ContainerAgentLogSeverity.test.js, and agent-log-severity-behaviour.sh in the
+# real collector, on the version the chart pins and on 0.96.0.
+#
+# The patterns read the rendered collector config with the ConfigMap's own
+# indent stripped: a receiver at 2, its operators at 6, an operator's keys at
+# 8, a route's at 12. They are single-quoted, so a backslash is the regex's own.
+suite: pod log severity is read off the line, and an unread stderr line has none
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-daemonset.yaml
+tests:
+  - it: reads a level already lifted into attributes first, then tries the readers in order, and sends what none of them reads on stderr to no severity
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: severity-router\n        routes:\n(?:[ ]*#[^\n]*\n)*          - output: severity-parser\n            expr: ''attributes\["severity_text"\] != nil''\n(?:[ ]*#[^\n]*\n)*          - output: parse-klog-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: add-exception-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: add-warning-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-numeric-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-mongodb-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-cnpg-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-clef-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: add-clef-information\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-redis-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-nest-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-logrus-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-mysql-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-jul-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-sidekiq-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-php-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-gitea-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-severity-from-body\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: parse-slog-severity\n            expr: [^\n]+\n(?:[ ]*#[^\n]*\n)*          - output: add-fallback-severity\n            expr: ''attributes\["log\.iostream"\] != "stderr"''\n(?:[ ]*#[^\n]*\n)*        default: severity-unspecified\n'
+  # Issue #11226: each format that keeps its level in a place of its own has
+  # a reader anchored on that place, which hands its text to the one parser.
+  - it: reads MongoDB, CloudNativePG, Serilog, Redis, NestJS, logrus, MySQL, java.util.logging, Sidekiq, PHP and Gitea where each keeps its level
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      - type: regex_parser\n        id: parse-mongodb-severity\n        regex: ''\^\\\{"t":\\\{"\[\$\]date":'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-cnpg-severity\n        regex: ''[^\n]*"logger":"postgres","msg":"record",[^\n]*"error_severity":"\(\?P<severity_text>'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-clef-severity\n        regex: ''[^\n]*"@l":"\(\?P<severity_text>Verbose\|Debug\|Information\|Warning\|Error\|Fatal\)"'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      - type: add\n        id: add-clef-information\n        field: attributes\.severity_text\n        value: INFO\n        output: severity-parser\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-redis-severity\n        regex: ''[^\n]*\(\?P<severity_text>\[\.\*#-\]\) '''
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-nest-severity\n        regex: ''[^\n]*\\\[Nest\\\] [^\n]*\(\?P<severity_text>VERBOSE\|DEBUG\|LOG\|WARN\|ERROR\|FATAL\)'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-logrus-severity\n        regex: ''[^\n]*\(\?P<severity_text>TRAC\|DEBU\|INFO\|WARN\|ERRO\|FATA\|PANI\)'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-mysql-severity\n        regex: ''[^\n]*\\\[\(\?P<severity_text>System\|ERROR\|Warning\|Note\)\\\] \\\[MY-'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-jul-severity\n        regex: ''\^\(\?P<severity_text>FINEST\|FINER\|FINE\|CONFIG\): '''
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-sidekiq-severity\n        regex: ''[^\n]*pid=\\d\+ tid=[^\n]*\(\?P<severity_text>DEBUG\|INFO\|WARN\|ERROR\|FATAL\): '''
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-php-severity\n        regex: ''\^PHP \(\?P<severity_text>Fatal error\|Parse error\|Recoverable fatal error\|Warning\|Notice\|Deprecated\):  '''
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-gitea-severity\n        regex: ''[^\n]*\(\?P<severity_text>\[TDIWEF\]\)\\\] '''
+  # Go's log/slog between its names: after the general read, so a line that
+  # one reads keeps that level.
+  - it: reads slog's levels between its names, after the general read
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-slog-severity\n        regex: ''[^\n]*level"\?\[=:\]"\?\(\?P<severity_text>DEBUG-\[1-4\]\|DEBUG\\\+\[1-3\]\|INFO\\\+\[1-3\]\|WARN\\\+\[1-3\]\|ERROR\\\+\[1-7\]\)'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n            - error\+4\n          fatal2:\n            - error\+5\n          fatal3:\n            - error\+6\n          fatal4:\n            - error\+7\n'
+  # zerolog's console writer starts a line with its default 3:04PM time.
+  - it: reads a level after a 3:04PM time at the start of the line
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-severity-from-body\n        regex: ''[^\n]*\|\\d\\d\?:\\d\\d\(\?-i:AM\|PM\)\)\)\?'
+  # Issue #11228: each word at the number OneUptime's ingest stores it at,
+  # so the numbered levels are in the mapping block, not only the buckets.
+  - it: maps syslog's notice, crit and alert to INFO2, ERROR2 and ERROR3, and critical and panic to FATAL
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n          info2:\n            - notice\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n          error2:\n            - crit\n            - dpanic\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n          error3:\n            - alert\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n          fatal:\n            - critical\n            - panic\n'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n          error:\n(?:            - [^\n]+\n)*            - (?:critical|crit|alert)\n'
+  - it: falls back to the stream only on stdout, and only to INFO
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      - type: add\n        id: add-fallback-severity\n        field: attributes\.severity_text\n        value: INFO\n        output: severity-parser\n'
+      # The guess this replaced: stderr -> ERROR.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'stderr" \? "ERROR"'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'id: add-fallback-severity\n[^-]*EXPR\('
+  - it: reads klog's letter, PostgreSQL's LOG, a time ending in Z and hclog's @level
+    set:
+      clusterName: prod-us
+    asserts:
+      # klog: the letter glued to the date, then the time, thread and file:line.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-klog-severity\n        regex: ''\^\(\?P<severity_text>\[IWEF\]\)\\d\{4\}'
+      # The general read: an RFC 3339 time with its Z, a zone's name, hclog's @.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: parse-severity-from-body\n        regex: ''\(\?i\)[^\n]*\(\?:Z\|\[\+-\]\\d\\d[^\n]*\(\?-i:UTC\|GMT\|[^\n]*@\?\(\?:log\[\._\]\?level[^\n]*\(\?-i:LOG\)'
+  - it: reads an exception's header as an error and a warning category as a warning
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      - type: add\n        id: add-exception-severity\n        field: attributes\.severity_text\n        value: ERROR\n        output: severity-parser\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      - type: add\n        id: add-warning-severity\n        field: attributes\.severity_text\n        value: WARN\n        output: severity-parser\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'output: add-exception-severity\n            expr: ''body matches "\^\(\?:Traceback \\\\\(most recent call last\\\\\):\|Exception in thread'
+  - it: maps every level word the readers lift onto a level
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        id: severity-parser\n        parse_from: attributes\.severity_text\n        preset: default\n        mapping:\n'
+      # klog's letters and pino's numbers, one level each.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n          info:\n(?:            (?:- [^\n]+|#[^\n]*)\n)*            - log\n(?:            (?:- [^\n]+|#[^\n]*)\n)*            - i\n            - "30"\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n          error:\n(?:            (?:- [^\n]+|#[^\n]*)\n)*            - e\n            - "50"\n'
+  - it: ends the chain on the noop the stderr default leads to, after the cleanup
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      - type: remove\n        id: remove-severity-attr\n        field: attributes\.severity_text\n(?:[ ]*#[^\n]*\n)*      - type: noop\n        id: severity-unspecified\n\n'
+  - it: keeps an unread stderr line under a severity threshold, as the filter has no severity to compare
+    set:
+      clusterName: prod-us
+      filters.logs.minSeverity: ERROR
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '''severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_ERROR'''
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '        default: severity-unspecified\n'
+  - it: renders the same chain for collector 0.96.0, which --reuse-values keeps
+    set:
+      clusterName: prod-us
+      image.tag: "0.96.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  filelog:\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n          - output: add-fallback-severity\n            expr: ''attributes\["log\.iostream"\] != "stderr"''\n(?:[ ]*#[^\n]*\n)*        default: severity-unspecified\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n      - type: noop\n        id: severity-unspecified\n'
+  - it: leaves the chain out when the DaemonSet does not read pod logs
+    set:
+      clusterName: prod-us
+      logs.mode: api
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'severity-router'

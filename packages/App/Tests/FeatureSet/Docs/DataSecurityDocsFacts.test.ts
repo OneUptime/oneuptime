@@ -14,14 +14,22 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
 import {
   BREACH_LAW_RULES,
+  BREACH_PLACE_CHOICES,
   BreachLawFamily,
   BreachLawRule,
+  BreachPlace,
+  COVERED_US_STATES,
+  UNCOVERED_US_STATES,
+  isUsStateRule,
 } from "Common/Types/DataSecurity/BreachLaws";
 import {
   ASSESSED_ON_ITS_OWN_SENSITIVITIES,
   EXPOSING_CHANGE_LOOKBACK_IN_DAYS,
 } from "Common/Types/DataSecurity/ExposureAssessment";
-import { nameScrubItRule } from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  METRIC_PATTERN_TYPE_OF_DATA_TYPE,
+  nameScrubItRule,
+} from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import {
   ModelBudget,
   ModelStoreBudget,
@@ -31,6 +39,17 @@ import {
   isTestStreetAddress,
   UNSURE_SCORE,
 } from "Common/Utils/DataSecurity/Model/RecognizedEntity";
+import { isFreeTextFieldName } from "Common/Utils/DataSecurity/FreeTextFieldNames";
+import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
+import { readableForModel } from "Common/Utils/DataSecurity/Model/ModelTextReading";
+import {
+  alignTelemetryLeakTemplates,
+  maskUnprovenWords,
+} from "Common/Utils/DataSecurity/TelemetryLeakTemplate";
+import BUILT_IN_DETECTORS, {
+  getBuiltInDetectorsOf,
+} from "Common/Utils/DataSecurity/Detectors/Index";
+import { readScanWarning } from "Common/Types/DataSecurity/ScanWarnings";
 import ObjectID from "Common/Types/ObjectID";
 import {
   CARD_LINE,
@@ -224,6 +243,7 @@ import { ALL_CUSTOM_DATA_TYPE_VALIDATORS } from "Common/Utils/DataSecurity/Custo
 import {
   CONTEXT_AFTER,
   CONTEXT_BEFORE,
+  DataTypeDetector,
 } from "Common/Utils/DataSecurity/Detector";
 import {
   MAX_FIELD_VALUES,
@@ -237,7 +257,9 @@ import {
   maskValue,
 } from "Common/Utils/DataSecurity/Masking";
 import {
+  findSensitiveValues,
   MAX_SCANNED_TEXT_LENGTH,
+  TextMatch,
   WINDOW_OVERLAP,
   WINDOW_SIZE,
 } from "Common/Utils/DataSecurity/TextScanner";
@@ -520,7 +542,7 @@ describe("Data Security overview", () => {
       ["AWS", DataStoreProvider.Aws],
       ["Azure", DataStoreProvider.Azure],
       ["Google Cloud", DataStoreProvider.Gcp],
-      ["Databases you run", DataStoreProvider.SelfManaged],
+      ["Stores you run", DataStoreProvider.SelfManaged],
       ["OneUptime", DataStoreProvider.OneUptime],
     ];
 
@@ -865,7 +887,7 @@ describe("Set Up Data Security", () => {
     );
   });
 
-  it("says which databases are sampled, and how", () => {
+  it("says which stores you run are sampled, and how", () => {
     const service: string = source(
       "Common/Server/Services/DataStoreService.ts",
     );
@@ -880,11 +902,13 @@ describe("Set Up Data Security", () => {
       return info.kind;
     });
 
-    // From OneUptime's workers and from a probe alike (OneUptime issue #8322).
+    // From OneUptime's workers and from a probe alike (#8322, and the search clusters #11140).
     expect(scannable).toEqual([
       DataStoreKind.PostgreSql,
       DataStoreKind.MySql,
       DataStoreKind.SqlServer,
+      DataStoreKind.Elasticsearch,
+      DataStoreKind.OpenSearch,
     ]);
     expect([...WORKER_CLAIMED_DATA_STORE_KINDS]).toEqual(
       expect.arrayContaining(scannable),
@@ -892,12 +916,18 @@ describe("Set Up Data Security", () => {
     expect([...PROBE_SCANNABLE_DATA_STORE_KINDS].sort()).toEqual(
       [...scannable].sort(),
     );
-    expect(section(page, "## Scan a database you run")).toContain(
-      "Data Security samples PostgreSQL, MySQL and SQL Server databases",
+    expect(section(page, "## Scan a store you run")).toContain(
+      "Data Security samples PostgreSQL, MySQL and SQL Server databases, and Elasticsearch and OpenSearch clusters",
     );
-    expect(service).toContain(
-      "/^(postgres|postgresql|mysql|mariadb|mssql|sqlserver):\\/\\//i",
-    );
+    // Each kind's own scheme, and a search cluster's address read as one.
+    for (const scheme of [
+      "/^(postgres|postgresql):\\/\\//i",
+      "/^(mysql|mariadb):\\/\\//i",
+      "/^(mssql|sqlserver):\\/\\//i",
+    ]) {
+      expect(service).toContain(scheme);
+    }
+    expect(service).toContain("readSearchConnection(trimmed)");
 
     const store: string = source("Common/Models/DatabaseModels/DataStore.ts");
 
@@ -1027,9 +1057,93 @@ describe("Set Up Data Security", () => {
     }
   });
 
+  it("gives a search cluster's connection string as the connection reader reads it", () => {
+    const reader: string = source(
+      "Common/Server/Utils/DataSecurity/Content/SearchStoreConnection.ts",
+    );
+    const connection: string = section(
+      page,
+      "### A search cluster's connection string",
+    );
+
+    expect(reader).toContain('const API_KEY_PARAMETER: string = "api_key";');
+    expect(reader).toContain(
+      'const VERIFY_CERTIFICATE_PARAMETER: string = "verify_certificate";',
+    );
+    expect(connection).toContain("?api_key=");
+    expect(connection).toContain("?verify_certificate=false");
+
+    // The JSON form's keys, every one the reader takes and no other.
+    for (const key of [
+      "url",
+      "username",
+      "password",
+      "apiKey",
+      "caCertificate",
+      "verifyCertificate",
+    ]) {
+      expect(reader).toContain(`"${key}",`);
+      expect(connection).toContain(`${key}`);
+    }
+
+    // The example the form shows under the field is the page's.
+    expect(reader).toContain('"https://reader:password@search.internal:9200";');
+    expect(connection).toContain(
+      "https://reader:password@search.internal:9200",
+    );
+    // The roles the live clusters were scanned with (SearchStoreSamplerClusters).
+    expect(connection).toContain(
+      '"privileges":["read","view_index_metadata","monitor"]',
+    );
+    expect(connection).toContain(
+      '"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]',
+    );
+  });
+
+  it("says what is asked of a store you run, as the endpoint check asks it, and that nothing is written", () => {
+    const check: string = source(
+      "Common/Server/Utils/DataSecurity/Content/SearchEndpointCheck.ts",
+    );
+    const asked: string = section(
+      page,
+      "### What OneUptime checks on a store you run",
+    );
+
+    expect(check).toContain('elasticsearch: "/_security/_authenticate",');
+    expect(check).toContain('opensearch: "/_plugins/_security/authinfo",');
+    expect(asked).toContain("`/_security/_authenticate` on Elasticsearch");
+    expect(asked).toContain("`/_plugins/_security/authinfo` on OpenSearch");
+    expect(check).toContain('"/_search?size=0&track_total_hits=1"');
+    expect(asked).toContain(
+      "A search that returns no documents, only whether there are any",
+    );
+    expect(asked).toContain("Nothing is written to it");
+    // Every request the sampler sends is a GET.
+    expect(
+      source("Common/Server/Utils/DataSecurity/Content/SearchStoreSampler.ts"),
+    ).toContain('method: "GET";');
+    // A probe or a OneUptime someone hosts asks from inside a network.
+    expect(
+      source("Common/Server/Utils/DataSecurity/Content/SearchStoreHttp.ts"),
+    ).toContain(
+      "return isBillingEnabled\n    ? DataStorePostureReadFrom.Internet\n    : DataStorePostureReadFrom.Network;",
+    );
+    expect(asked).toContain(
+      "whether the internet reaches the cluster can't be known from there",
+    );
+    // The three exposures that say OneUptime does not know, told apart.
+    for (const exposure of [
+      DataStoreExposure.Unknown,
+      DataStoreExposure.NotChecked,
+      DataStoreExposure.CannotBeChecked,
+    ]) {
+      expect(asked).toContain(`**${exposure}**`);
+    }
+  });
+
   it("quotes the reason a store's content was not scanned as the scan gives it", () => {
     const quoted: string =
-      "Content scanning needs the connection's content permission, or a connection string for a database.";
+      "Content scanning needs the connection's content permission, or a connection string for a store you run.";
 
     expect(source(`${SERVER}/DataSecurityRunner.ts`)).toContain(`"${quoted}"`);
     expect(page).toContain(`"${quoted}"`);
@@ -1433,6 +1547,203 @@ describe("Sensitive Data Types", () => {
       ).toContain('title="What Data Security Reads"');
       expect(model).toContain(
         "**Test It** runs in your browser, without the model",
+      );
+    });
+
+    /*
+     * The follow-ups of #10373 (#10926-#10931): a finding's records and
+     * proofs, a short field named for free text, the model's turns, the
+     * warnings in the reader's language, and why Test It has no model.
+     */
+    it("lists a finding's records and proves its rules with the model, in up to 20 seconds of its time", () => {
+      expect(
+        constant(
+          `${MODEL_DIRECTORY}/ModelBudget.ts`,
+          "REREAD_MODEL_TIME_IN_MS",
+        ),
+      ).toBe(20_000);
+      expect(model).toContain(
+        "they are read again with the model, up to 20 seconds of its time each time",
+      );
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingOccurrences.tsx",
+        ),
+      ).toContain("cannot run on this server just now");
+    });
+
+    it("reads a short field only when its name says a person wrote free text in it, as measured", () => {
+      type ShortRuleScores = {
+        catalogValuesRead: number;
+        catalogFalseFindings?: number;
+        falseFindingsPerThousandNegatives: number;
+        languages: Record<string, Record<string, Record<string, number>>>;
+      };
+      const short: string = section(page, "### Short values");
+      const measured: {
+        namedForFreeText: ShortRuleScores;
+        atLeastFourWords: ShortRuleScores;
+      } = JSON.parse(
+        source(
+          "Common/Tests/Server/Utils/DataSecurity/Model/ShortFreeTextBaseline.json",
+        ),
+      );
+      const set: { fields: Array<{ kind: string; values: Array<string> }> } =
+        JSON.parse(
+          source(
+            "Common/Tests/Utils/DataSecurity/Model/ShortFreeTextTestSet.json",
+          ),
+        );
+      const values: Array<string> = set.fields.flatMap(
+        (field: { values: Array<string> }): Array<string> => {
+          return field.values;
+        },
+      );
+      const marked: (mark: string) => number = (mark: string): number => {
+        return values.reduce((total: number, value: string): number => {
+          return total + value.split(mark).length - 1;
+        }, 0);
+      };
+      const ruleRow: (
+        label: string,
+        scores: ShortRuleScores,
+      ) => Array<string> = (
+        label: string,
+        scores: ShortRuleScores,
+      ): Array<string> => {
+        const all: Record<string, Record<string, number>> = scores.languages[
+          "all"
+        ] as Record<string, Record<string, number>>;
+
+        return [
+          label,
+          String(scores.catalogValuesRead),
+          (all["person-name"]?.["precision"] as number).toFixed(2),
+          (all["person-name"]?.["recall"] as number).toFixed(2),
+          (all["postal-address"]?.["precision"] as number).toFixed(2),
+          String(Math.round(scores.falseFindingsPerThousandNegatives)),
+        ];
+      };
+      const [rules, languages] = tables(short);
+
+      expect(short).toContain(
+        `on ${set.fields.length} columns of a database in the seven languages, ${values.length} values in all`,
+      );
+      expect(short).toContain(
+        `holding ${marked("[[N:")} names and ${marked("[[A:")} street addresses`,
+      );
+      expect(short).toContain(
+        `read ${measured.atLeastFourWords.catalogValuesRead} of the catalog's values and made ${measured.atLeastFourWords.catalogFalseFindings} false names of them`,
+      );
+      expect(rows(rules)).toEqual([
+        ruleRow(
+          "Fields of four or more words (not chosen)",
+          measured.atLeastFourWords,
+        ),
+        ruleRow(
+          "Fields named for free text (chosen)",
+          measured.namedForFreeText,
+        ),
+      ]);
+      expect(rows(languages)).toEqual(
+        scoreRows(measured.namedForFreeText.languages),
+      );
+
+      // Its examples: brands and characters in the catalog's values.
+      const catalog: Array<string> = set.fields
+        .filter((field: { kind: string }): boolean => {
+          return field.kind === "catalog";
+        })
+        .flatMap((field: { values: Array<string> }): Array<string> => {
+          return field.values;
+        });
+
+      for (const name of ["Ralph Lauren", "Tom Sawyer"]) {
+        expect({
+          name,
+          inCatalog: catalog.some((value: string): boolean => {
+            return value.includes(name);
+          }),
+        }).toEqual({ name, inCatalog: true });
+        expect(short).toContain(`\`${name}\``);
+      }
+
+      // And the field names it gives, read and not read as it says.
+      for (const fieldPath of [
+        "delivery_note",
+        "comentario",
+        "Lieferhinweis",
+        "opmerking",
+        "orders.delivery_note",
+      ]) {
+        expect({ fieldPath, read: isFreeTextFieldName(fieldPath) }).toEqual({
+          fieldPath,
+          read: true,
+        });
+        expect(model).toContain(`\`${fieldPath}\``);
+      }
+
+      for (const fieldPath of ["notes.author", "message_id"]) {
+        expect({ fieldPath, read: isFreeTextFieldName(fieldPath) }).toEqual({
+          fieldPath,
+          read: false,
+        });
+        expect(short).toContain(`\`${fieldPath}\``);
+      }
+    });
+
+    it("gives every table and object its turn at the model's time", () => {
+      expect(source(`${MODEL_DIRECTORY}/ModelTurns.ts`)).toContain(
+        "export function rotateForModel",
+      );
+      expect(model).toContain(
+        "every table and object takes its turn, however much free text the store holds",
+      );
+    });
+
+    it("shows a scan's warnings, these among them, in the reader's language", () => {
+      const fence: string = only(
+        scanMarkdown(model).fences.filter((item: { lang: string }) => {
+          return item.lang === "text";
+        }),
+      ).code;
+
+      for (const line of fence.trim().split("\n")) {
+        expect({ line, read: readScanWarning(line) !== null }).toEqual({
+          line,
+          read: true,
+        });
+      }
+
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Components/DataSecurity/ScanDetail.tsx",
+        ),
+      ).toContain("translateScanWarning(");
+      expect(model).toContain(
+        "every other warning of a content or telemetry scan, in the reader's language",
+      );
+    });
+
+    it("says why Test It runs without the model, and the box says it too", () => {
+      const modelBytes: number = manifest.files.reduce(
+        (total: number, file: { bytes: number }): number => {
+          return total + file.bytes;
+        },
+        0,
+      );
+
+      // The model's own files, and the runtime's WebAssembly on top.
+      expect(Math.round(modelBytes / 1_000_000)).toBeLessThan(113);
+      expect(model).toContain(
+        "The model would add about 113 MB to download, 67 MB compressed, and about 440 MB to the tab's memory, so it runs only in the scanner.",
+      );
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/DataTypes.tsx",
+        ),
+      ).toContain(
+        "It runs only in the scanner, so what it finds is not shown here.",
       );
     });
   });
@@ -1925,8 +2236,15 @@ describe("Data Security Checks and Issues", () => {
       return Math.round(10 * DATA_STORE_EXPOSURE_WEIGHT[value]);
     };
 
+    // The three it does not know weigh alike (#11140): not checked yet, can't be, or could not tell.
+    expect(exposure(DataStoreExposure.NotChecked)).toBe(
+      exposure(DataStoreExposure.Unknown),
+    );
+    expect(exposure(DataStoreExposure.CannotBeChecked)).toBe(
+      exposure(DataStoreExposure.Unknown),
+    );
     expect(points("Exposure")).toBe(
-      `${exposure(DataStoreExposure.Public)} for Public, ${exposure(DataStoreExposure.OtherAccounts)} for Other accounts, ${exposure(DataStoreExposure.InternetReachable)} for Internet reachable, ${exposure(DataStoreExposure.Unknown)} for Unknown, ${exposure(DataStoreExposure.Private)} for Private`,
+      `${exposure(DataStoreExposure.Public)} for Public, ${exposure(DataStoreExposure.OtherAccounts)} for Other accounts, ${exposure(DataStoreExposure.InternetReachable)} for Internet reachable, ${exposure(DataStoreExposure.Unknown)} for Unknown, Not checked yet or Can't be checked, ${exposure(DataStoreExposure.Private)} for Private`,
     );
 
     const volume: (records: number) => number = (records: number): number => {
@@ -3530,21 +3848,22 @@ describe("Data Security Integrations", () => {
     // The reads line, word for word as the card draws it.
     expect(breach).toContain(`"${READS_NOT_LOGGED}"`);
 
-    // Every family of the table is named, and nothing the table does not hold.
-    const named: Record<BreachLawFamily, string> = {
+    /*
+     * Every family of the table is named, and nothing the table does not
+     * hold: each law by its name, and the US states' together, as every
+     * state but those the table leaves out (#10952).
+     */
+    const named: Partial<Record<BreachLawFamily, string>> = {
       [BreachLawFamily.Gdpr]: "GDPR Articles 33 and 34",
       [BreachLawFamily.UkGdpr]: "UK GDPR Articles 33 and 34",
       [BreachLawFamily.Hipaa]: "HIPAA's Breach Notification Rule",
       [BreachLawFamily.PciDss]: "PCI DSS requirement 12.10.1",
+      [BreachLawFamily.Visa]: "Visa's",
+      [BreachLawFamily.Mastercard]: "Mastercard's",
+      [BreachLawFamily.AmericanExpress]: "American Express's",
       [BreachLawFamily.Lgpd]: "Brazil's LGPD",
       [BreachLawFamily.Dpdp]: "India's DPDP Rules",
       [BreachLawFamily.CertIn]: "CERT-In directions",
-      [BreachLawFamily.California]: "California",
-      [BreachLawFamily.Colorado]: "Colorado",
-      [BreachLawFamily.Florida]: "Florida",
-      [BreachLawFamily.NewYork]: "New York",
-      [BreachLawFamily.Texas]: "Texas",
-      [BreachLawFamily.Washington]: "Washington",
     };
     const families: Array<string> = [
       ...new Set(
@@ -3553,8 +3872,15 @@ describe("Data Security Integrations", () => {
         }),
       ),
     ].sort();
+    const stateFamilies: Array<string> = families.filter(
+      (family: string): boolean => {
+        return BREACH_LAW_RULES.filter((rule: BreachLawRule): boolean => {
+          return rule.family === family;
+        }).every(isUsStateRule);
+      },
+    );
 
-    expect(Object.keys(named).sort()).toEqual(families);
+    expect([...Object.keys(named), ...stateFamilies].sort()).toEqual(families);
 
     for (const words of Object.values(named)) {
       expect({ words, said: breach.includes(words) }).toEqual({
@@ -3562,6 +3888,28 @@ describe("Data Security Integrations", () => {
         said: true,
       });
     }
+
+    // The states the table leaves out, by the names a person picks them by; Puerto Rico is no state.
+    const statesLeftOut: Array<string> = UNCOVERED_US_STATES.filter(
+      (place: BreachPlace): boolean => {
+        return place !== BreachPlace.PuertoRico;
+      },
+    ).map((place: BreachPlace): string => {
+      return BREACH_PLACE_CHOICES[place];
+    });
+
+    expect(statesLeftOut).toEqual(["West Virginia"]);
+    expect(COVERED_US_STATES).toContain(BreachPlace.DistrictOfColumbia);
+    expect(COVERED_US_STATES).not.toContain(BreachPlace.PuertoRico);
+    expect(breach).toContain(
+      `the breach laws of every US state but ${statesLeftOut.join(" and ")}, and of the District of Columbia`,
+    );
+    expect(breach).toContain(
+      "West Virginia and Puerto Rico, whose statutes could not be read from an official source",
+    );
+    expect(breach).toContain(
+      "its notices to the attorney general or another state office and to the consumer reporting agencies",
+    );
 
     expect(breach).toContain("Nothing is sent anywhere");
     expect(breach).toContain("not legal advice");
@@ -3649,6 +3997,25 @@ describe("Data Security Integrations", () => {
     );
     expect(pullRequests).toContain(
       "**Leaks Caught Before Merge**, on **Project Settings → AI → AI Results**",
+    );
+    // A migration's table (#10779): its store, for a private repository alone.
+    expect(sensitiveData).toContain("(await data.isRepositoryPrivate())");
+    expect(sensitiveData).toContain("DataAssetUsageService.findBy(");
+    expect(pullRequests).toContain(
+      "For a migration, in a private repository only, it names the store the table is in, what that store holds",
+    );
+    // An exception's message is telemetry too (#10778), and so is a recorded session's user (#11395).
+    expect(types).toContain('Exception = "Exception",');
+    expect(types).toContain('Session = "Session",');
+    expect(pullRequests).toContain(
+      "in a log, a span, a metric, an exception's message, an error tracker's report or a recorded session's user",
+    );
+    // A web or mobile app's code: its RUM application's session replays (#11395).
+    expect(sensitiveData).toContain(
+      "[SensitiveDataSink.Session]: [DataStoreKind.TelemetrySessionReplays],",
+    );
+    expect(pullRequests).toContain(
+      "or, for a web or mobile app's code, its RUM application's session replays",
     );
   });
 
@@ -3840,9 +4207,13 @@ describe("Data Security Integrations", () => {
     expect(prompt).toContain(
       "Fix this data security issue in the infrastructure code (Terraform, CloudFormation, Bicep or similar)",
     );
-    expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "return buildDataSecurityFixRequest(",
-    );
+    /*
+     * Fix with AI's button and Ask AI's action build the request in one
+     * place (DataSecurityButtons.fixIssueWithAi, #10378).
+     */
+    expect(
+      source("Common/Server/Utils/DataSecurity/DataSecurityButtons.ts"),
+    ).toContain("return buildDataSecurityFixRequest(");
     // The request is what the Code task it starts is asked (#10362, #10365).
     expect(
       source("Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask.ts"),
@@ -3854,9 +4225,9 @@ describe("Data Security Integrations", () => {
     expect(prompt).toContain(
       "Fix this data security issue in the code of the service that writes this data to its telemetry",
     );
-    expect(source("Common/Server/API/DataSecurityAPI.ts")).toContain(
-      "await DataSecurityAiReads.readPlaces({ projectId, issue })",
-    );
+    expect(
+      source("Common/Server/Utils/DataSecurity/DataSecurityButtons.ts"),
+    ).toContain("await DataSecurityAiReads.readPlaces({");
     expect(section(page, "## OneUptime AI")).toContain(
       "For a telemetry issue it asks for a change to the code of the service that writes the data instead",
     );
@@ -3884,6 +4255,303 @@ describe("Data Security Integrations", () => {
     expect(
       source("Common/Models/DatabaseModels/DataStoreOwnerRule.ts"),
     ).toContain('title: "Cloud Tag Pattern"');
+  });
+});
+
+/*
+ * HOW A VALUE IS READ, AND WHAT A LEAK'S TEMPLATE KEEPS (#11031-#11034,
+ * #11098): what the Data types page says a scan reads - a URL's escapes, a
+ * character's UTF-8 bytes too, a person's name a URL's query parameter
+ * names, a URL as the model reads it - and what the Telemetry page says a
+ * template keeps of a line read from one record, held to the code.
+ */
+describe("What a value is read as, and what a leak's template keeps", () => {
+  const lineOf: (page: string, start: string) => string = (
+    page: string,
+    start: string,
+  ): string => {
+    const line: string | undefined = english(page)
+      .split("\n")
+      .find((each: string): boolean => {
+        return each.startsWith(start);
+      });
+
+    expect({ page, start, found: line !== undefined }).toEqual({
+      page,
+      start,
+      found: true,
+    });
+
+    return line || "";
+  };
+
+  function foundWhole(value: string, dataTypeId: string): string | null {
+    const match: TextMatch | undefined = findSensitiveValues(value).find(
+      (each: TextMatch): boolean => {
+        return each.dataTypeId === dataTypeId;
+      },
+    );
+
+    return match ? value.slice(match.start, match.end) : null;
+  }
+
+  it("finds each value the paragraph on how people write a value names, whole, as it is written", () => {
+    const paragraph: string = lineOf(
+      DATA_TYPES,
+      "A value is also read as people write it.",
+    );
+
+    for (const [value, dataTypeId] of [
+      ["jane%40example.com", "email-address"],
+      ["jos%C3%A9%40example.com", "email-address"],
+      ["４１１１ １１１１ １１１１ １１１１", "credit-card-number"],
+      ["张伟@example.com", "email-address"],
+      ["почта@пример.рф", "email-address"],
+      // #11199: a URL's query string as a form writes it.
+      ["4111+1111+1111+1111", "credit-card-number"],
+      ["DE44%205001%200517%205407%203249%2031", "iban"],
+      ["SW1A+2AA", "postal-code"],
+      ["10+Downing+Street", "postal-address"],
+      // #11115: a number typed wholly in fullwidth, its signs and separators too.
+      ["＋８１ ３－１２３４－５６７８", "phone-number"],
+      ["５３６－２２－８７３１", "us-ssn"],
+    ] as Array<[string, string]>) {
+      expect(paragraph).toContain(`\`${value}\``);
+      expect({ value, found: foundWhole(value, dataTypeId) }).toEqual({
+        value,
+        found: value,
+      });
+    }
+
+    // A date of birth needs its words: the date after them, as it is written.
+    expect(paragraph).toContain("`dob=12%2F03%2F1985`");
+    expect(foundWhole("dob=12%2F03%2F1985", "date-of-birth")).toBe(
+      "12%2F03%2F1985",
+    );
+  });
+
+  /*
+   * #11033, #11200: each type the paragraph says is read in any script's
+   * digits is - every one of its detectors reads every script's digits -
+   * and each is read in a URL's query string as a form writes it (#11199).
+   */
+  it("reads every type the paragraph names in any script's digits, and in a URL as a form writes it", () => {
+    const paragraph: string = lineOf(
+      DATA_TYPES,
+      "A value is also read as people write it.",
+    );
+    const named: Array<[string, string]> = [
+      ["a card number", "credit-card-number"],
+      ["a card's security code or expiry date", "card-verification-code"],
+      ["a card's security code or expiry date", "card-expiration-date"],
+      ["a phone number", "phone-number"],
+      ["a US Social Security number", "us-ssn"],
+      ["an IBAN", "iban"],
+      ["a routing number", "us-bank-routing-number"],
+      ["a bank account number", "bank-account-number"],
+      ["a sort code", "uk-sort-code"],
+      ["a BSB", "au-bsb"],
+      ["a BIC", "swift-bic"],
+      ["an IFSC", "in-ifsc"],
+      ["a national ID number", "br-cpf"],
+      ["a health ID number such as an NHS number", "uk-nhs-number"],
+      ["a postcode", "postal-code"],
+      ["a date of birth", "date-of-birth"],
+    ];
+
+    for (const [words, dataTypeId] of named) {
+      expect(paragraph).toContain(words);
+
+      for (const detector of getBuiltInDetectorsOf(dataTypeId)) {
+        expect({
+          dataTypeId,
+          digits: detector.readsDigitsOfEveryScript,
+          url: detector.readsPlusAsSpace && detector.readsPercentEncoded,
+          // And typed wholly in fullwidth, its signs and separators too (#11115).
+          fullwidth: detector.readsFullwidthForms,
+        }).toEqual({ dataTypeId, digits: true, url: true, fullwidth: true });
+      }
+    }
+
+    expect(paragraph).toContain(
+      "Such a number typed wholly in fullwidth, as Japanese and Chinese text writes one, is read with its plus sign, hyphens, parentheses, full stops, slashes and ideographic spaces as ASCII ones too",
+    );
+
+    /*
+     * #11385: a number set apart by another dash, and a value typed in
+     * fullwidth letters - each example the paragraph gives is found as
+     * its type - and CJK prose read as it is.
+     */
+    expect(paragraph).toContain(
+      "and so is a number whose groups are set apart by another dash, read as a hyphen between two digits only",
+    );
+    expect(paragraph).toContain(
+      "A value typed in fullwidth letters is read with its letters, digits and signs as ASCII ones",
+    );
+    expect(paragraph).toContain(
+      "Text with no value typed in fullwidth letters, such as Japanese or Chinese prose, is read as it is.",
+    );
+
+    for (const [text, dataTypeId] of [
+      ["tel ＋８１ ３ー１２３４ー５６７８", "phone-number"],
+      ["ssn 536–22–8731", "us-ssn"],
+      ["mail ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ", "email-address"],
+      ["IBAN ＤＥ８９　３７０４　００４４　０５３２　０１３０　００", "iban"],
+      ["postcode ＳＷ１Ａ　２ＡＡ", "postal-code"],
+      ["ＴＥＬ　０３１２３４５６７８", "phone-number"],
+    ]) {
+      expect({
+        text,
+        found: findSensitiveValues(text!).some((match: TextMatch): boolean => {
+          return match.dataTypeId === dataTypeId;
+        }),
+      }).toEqual({ text, found: true });
+    }
+
+    for (const detector of BUILT_IN_DETECTORS) {
+      if (detector.readsFullwidthForms) {
+        expect({
+          dataTypeId: detector.dataTypeId,
+          letters: detector.readsFullwidthLetters,
+        }).toEqual({ dataTypeId: detector.dataTypeId, letters: true });
+      }
+    }
+
+    // A street address is words, read in a URL as a form writes them.
+    expect(
+      getBuiltInDetectorsOf("postal-address").every(
+        (detector: DataTypeDetector): boolean => {
+          return Boolean(detector.readsPlusAsSpace);
+        },
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * #11112: Scrub It's metric rule for a phone or a Social Security number
+   * matches the type's Pattern Type, as its rule for the three types before
+   * them does, and a rule made with the frozen pattern before is moved to
+   * it when OneUptime is upgraded.
+   */
+  it("says which types Scrub It's metric rule matches by Pattern Type, as the code maps them, and that rules made before are moved", () => {
+    const row: string = lineOf(
+      TELEMETRY,
+      "| Any data type in a metric's attribute |",
+    );
+    const item: string = lineOf(TELEMETRY, "- **A metric's attribute.**");
+
+    expect(Array.from(METRIC_PATTERN_TYPE_OF_DATA_TYPE.keys()).sort()).toEqual([
+      "credit-card-number",
+      "email-address",
+      "ip-address",
+      "phone-number",
+      "us-ssn",
+    ]);
+    expect(row).toContain(
+      "For an IP address, an email address, a card number, a phone number or a US Social Security number, its filter is **Matches Pattern Type** of that type",
+    );
+    expect(item).toContain(
+      "A rule **Scrub It** made for an IP address, an email address, a card number, a phone number or a US Social Security number before its filter was **Matches Pattern Type** is moved to that filter when you upgrade",
+    );
+
+    const migrations: string = source(
+      "App/FeatureSet/Workers/DataMigrations/Index.ts",
+    );
+
+    for (const migration of [
+      "MetricScrubRulesMatchTheirPatternType",
+      "MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType",
+    ]) {
+      expect(migrations).toContain(`new ${migration}()`);
+    }
+  });
+
+  it("finds a person's name under a URL's query parameter named for one, High, and leaves one named name to the model (#11034)", () => {
+    const paragraph: string = lineOf(
+      DATA_TYPES,
+      "Some data types cannot be told by their values:",
+    );
+    const url: string = "/contacts?full_name=Jos%C3%A9%20Garc%C3%ADa";
+    const [name] = findSensitiveValues(url).filter(
+      (match: TextMatch): boolean => {
+        return match.dataTypeId === "person-name";
+      },
+    );
+
+    expect(paragraph).toContain(`\`${url}\``);
+    expect(paragraph).toContain(
+      "A parameter named only `name` is left to the model.",
+    );
+    expect(url.slice(name!.start, name!.end)).toBe("Jos%C3%A9%20Garc%C3%ADa");
+    expect(name!.normalized).toBe("José García");
+    expect(name!.confidence).toBe(DataConfidence.High);
+    expect(
+      findSensitiveValues("/contacts?name=Jos%C3%A9%20Garc%C3%ADa").filter(
+        (match: TextMatch): boolean => {
+          return match.dataTypeId === "person-name";
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  it("hands the model a URL as a URL reads, its escapes read and a + between letters a space (#11034)", () => {
+    const bullet: string = lineOf(DATA_TYPES, "- **What it reads.**");
+
+    expect(bullet).toContain("`/profile?name=Jos%C3%A9%20Garc%C3%ADa`");
+    expect(readableForModel("/profile?name=Jos%C3%A9%20Garc%C3%ADa")).toBe(
+      "/profile?name=José García",
+    );
+    expect(readableForModel("full_name=Lars+Eriksson")).toBe(
+      "full_name=Lars Eriksson",
+    );
+  });
+
+  it("masks every word that is not one code writes log lines with, however many records share it, as the page's examples (#11098, #11204)", () => {
+    const bullet: string = lineOf(TELEMETRY, "- **A log line**:");
+
+    expect(bullet).toContain(
+      "`Payment declined for Maria Gonzalez` is `Payment declined for <value>`",
+    );
+    expect(maskUnprovenWords("Payment declined for Maria Gonzalez")).toBe(
+      "Payment declined for <value>",
+    );
+    // Read from every record of the line: the records aligned, then masked, as a leak's places are.
+    expect(bullet).toContain(
+      "`Ticket assigned to jdoe`, read from every record of the line, is `Ticket assigned to <value>`",
+    );
+    const reads: Array<string> = [
+      "Ticket assigned to jdoe",
+      "Ticket assigned to jdoe",
+      "Ticket assigned to jdoe",
+    ];
+    const aligned: Map<string, string> = alignTelemetryLeakTemplates(reads);
+
+    for (const read of reads) {
+      expect(maskUnprovenWords(aligned.get(read) || read)).toBe(
+        "Ticket assigned to <value>",
+      );
+    }
+
+    // The AI page says the same of what Fix leaks in the code is handed (#11204).
+    expect(english(AI)).toContain(
+      "each word that isn't one code writes log lines with as `<value>`, however many records share it",
+    );
+    // Aligned reads of one line, a value they share: masked as one read's would be.
+    const differing: Map<string, string> = alignTelemetryLeakTemplates([
+      "Ticket assigned to jdoe with priority urgent",
+      "Ticket assigned to jdoe with priority low",
+    ]);
+
+    expect(
+      maskUnprovenWords(
+        differing.get("Ticket assigned to jdoe with priority urgent") || "",
+      ),
+    ).toBe("Ticket assigned to <value> with priority <value>");
+    // The page's other example keeps every word: each is the code's.
+    expect(bullet).toContain("`User <Email address> signed up`");
+    expect(maskUnprovenWords("User <Email address> signed up")).toBe(
+      "User <Email address> signed up",
+    );
   });
 });
 

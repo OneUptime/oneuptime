@@ -57,6 +57,7 @@ import { getTracesBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/U
 import { getUserSettingsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/UserSettingsBreadcrumbs";
 import { getUsersBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/UsersBreadcrumbs";
 import { getVMwareBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/VMwareBreadcrumbs";
+import { getXcpNgBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/XcpNgBreadcrumbs";
 import { getWorkflowsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/WorkflowsBreadcrumbs";
 import { getNetworkDeviceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Utils/Breadcrumbs";
 import { getNetworkSiteBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/Utils/Breadcrumbs";
@@ -105,6 +106,7 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
   ProxmoxRoutePath: getProxmoxBreadcrumbs,
   OpenStackRoutePath: getOpenStackBreadcrumbs,
   VMwareRoutePath: getVMwareBreadcrumbs,
+  XcpNgRoutePath: getXcpNgBreadcrumbs,
   IoTRoutePath: getIoTBreadcrumbs,
   DockerSwarmRoutePath: getDockerSwarmBreadcrumbs,
   CephRoutePath: getCephBreadcrumbs,
@@ -180,6 +182,8 @@ const PAGES_WITHOUT_TRAILS: Dictionary<string> = {
 
 const modelId: string = "7b3b1548-23cd-46ab-8359-280eb34362af";
 const subModelId: string = "9c4a2b1e-7d3f-4e8a-9b6c-1f2e3d4c5b6a";
+// A third level (RouteParams.PartID): one part of a storage array's kind.
+const partId: string = "aggr1";
 
 const realRoutes: Array<{ path: string }> = Object.values(RouteMap)
   .map((route: Route): { path: string } => {
@@ -201,7 +205,8 @@ const visit: (page: string) => string = (page: string): string => {
   const path: string = RouteUtil.getRouteString(page)
     .replace(":projectId", PROJECT_ID)
     .replace(":id", modelId)
-    .replace(":subModelId", subModelId);
+    .replace(":subModelId", subModelId)
+    .replace(":partId", partId);
   goTo(path);
   return path;
 };

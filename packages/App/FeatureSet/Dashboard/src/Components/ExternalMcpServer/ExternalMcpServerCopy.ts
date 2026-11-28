@@ -7,6 +7,10 @@ import {
   countExternalMcpServerChangingTools,
   readExternalMcpServerTools,
 } from "Common/Types/AI/ExternalMcpServer/ExternalMcpServerTool";
+import {
+  ExternalMcpToolMarkRefusal,
+  ExternalMcpToolMarkRefusalKind,
+} from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolReadOnlyMark";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   RULE_CODE_REPOSITORIES_FIELD_COPY,
@@ -28,7 +32,9 @@ import {
  * MCP servers it already runs or subscribes to - a name, the address, and
  * how OneUptime signs in - and OneUptime AI uses their tools: in
  * investigations the ones that only read, in fixes the others too, the way
- * the auto remediation rule's Approval says.
+ * the auto remediation rule's Approval says, and in Ask AI and an incident's
+ * or alert's conversation all of them, a tool that may change something
+ * once the person approves the call (issue #10879).
  *
  * "External", because the AI section also holds MCP Server: OneUptime's
  * own server, which AI assistants connect to. This page is the other way
@@ -43,7 +49,7 @@ export const EXTERNAL_MCP_SERVERS_PAGE_COPY: {
 } = {
   title: translationKey("External MCP Servers"),
   description: translationKey(
-    "MCP servers outside OneUptime whose tools OneUptime AI may use while it investigates and fixes, such as AWS, Azure or GitHub.",
+    "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.",
   ),
   ownServerNote: translationKey(
     "To connect an AI assistant to OneUptime instead, use {{mcpServerLink}}.",
@@ -222,7 +228,7 @@ export const EXTERNAL_MCP_SERVER_TOOLS_COPY: {
 } = {
   title: translationKey("Tools"),
   description: translationKey(
-    "Investigations use only the tools that read. Fixes also use the others, the way the AI rule's Fix setting says.",
+    "Investigations and answers in Slack and Microsoft Teams use only the tools that read. Fixes also use the others, the way the AI rule's Fix setting says.",
   ),
   noTools: translationKey("The server offers no tools."),
   notReadYet: translationKey(
@@ -232,6 +238,142 @@ export const EXTERNAL_MCP_SERVER_TOOLS_COPY: {
     "The server offers more tools than OneUptime reads. Only these are used.",
   ),
 };
+
+/*
+ * A PROJECT ADMIN'S READ-ONLY MARK ON A TOOL (issue #11081): what the Tools
+ * card says about each tool its server does not mark either way, and the
+ * dialog that marks one. Marking lets OneUptime AI call the tool with
+ * nobody asking, so the dialog says that plainly before anything is saved,
+ * one tool at a time; taking a mark away only makes OneUptime AI ask again,
+ * so it saves at once.
+ */
+export const EXTERNAL_MCP_TOOL_MARK_COPY: {
+  markButton: string;
+  markAgainButton: string;
+  removeButton: string;
+  markedBy: string;
+  markedByNobody: string;
+  lapsedBy: string;
+  lapsedByNobody: string;
+  serverMarksChange: string;
+  refusedSentence: string;
+  dialogTitle: string;
+  dialogWhatItSays: string;
+  dialogNoDescription: string;
+  dialogArguments: string;
+  dialogMeaning: string;
+  dialogWarning: string;
+  dialogRecorded: string;
+  dialogSubmit: string;
+  markedToast: string;
+  removedToast: string;
+  markFailed: string;
+  removeFailed: string;
+} = {
+  markButton: translationKey("Mark as Read-Only"),
+  markAgainButton: translationKey("Mark Again"),
+  removeButton: translationKey("Remove Mark"),
+  // Under a tool a Project Admin marked, while the mark holds.
+  markedBy: translationKey("Marked read-only by {{name}} on {{date}}."),
+  // The same, once the person who marked it is gone.
+  markedByNobody: translationKey("Marked read-only on {{date}}."),
+  // Under a tool the server changed after it was marked.
+  lapsedBy: translationKey(
+    "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.",
+  ),
+  lapsedByNobody: translationKey(
+    "Marked read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.",
+  ),
+  /*
+   * Over the list, for whoever may mark: the server marks every tool that
+   * does not read as a change, so none can be marked (an mcp-go server's
+   * tools, kAgent's tools 0.2 included).
+   */
+  serverMarksChange: translationKey(
+    "The server marks its other tools as ones that may change things, so they can't be marked read-only.",
+  ),
+  // What a locked Mark button says, before who may.
+  refusedSentence: translationKey(
+    "You do not have permission to mark tools read-only.",
+  ),
+  dialogTitle: translationKey("Mark {{tool}} as read-only?"),
+  dialogWhatItSays: translationKey("What the server says it does"),
+  dialogNoDescription: translationKey("The server gives no description."),
+  dialogArguments: translationKey("Its arguments: {{arguments}}"),
+  dialogMeaning: translationKey(
+    "OneUptime AI will then call it without asking anyone: in investigations, in fixes, in Slack and Microsoft Teams, and at once in Ask AI.",
+  ),
+  dialogWarning: translationKey(
+    "Mark it only if you know it only reads. If it can change something, OneUptime AI could change it with no one asking.",
+  ),
+  dialogRecorded: translationKey(
+    "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.",
+  ),
+  dialogSubmit: translationKey("Mark as Read-Only"),
+  markedToast: translationKey("{{tool}} marked read-only"),
+  removedToast: translationKey("Mark removed from {{tool}}"),
+  markFailed: translationKey("The tool was not marked read-only."),
+  removeFailed: translationKey("The mark was not removed."),
+};
+
+/*
+ * Over the list, for whoever may mark: how many tools the server says
+ * nothing about, and what marking one does.
+ */
+export const EXTERNAL_MCP_TOOL_MARK_HINT: PluralTemplate = {
+  one: "The server doesn't say whether {{count}} tool only reads. If you know it does, mark it read-only, and OneUptime AI can use it without asking.",
+  other:
+    "The server doesn't say whether {{count}} tools only read. Mark the ones you know only read, and OneUptime AI can use them without asking.",
+};
+
+// Why OneUptime never lets a tool be marked, under it, for whoever may mark.
+export const EXTERNAL_MCP_TOOL_MARK_REFUSALS: {
+  nameSaysItChanges: string;
+  runsWhatItIsGiven: string;
+  argumentCanChange: string;
+  argumentValueCanChange: string;
+} = {
+  nameSaysItChanges: translationKey(
+    "Can't be marked read-only: “{{word}}” in its name says it changes things.",
+  ),
+  runsWhatItIsGiven: translationKey(
+    "Can't be marked read-only: it runs whatever its {{word}} argument says.",
+  ),
+  argumentCanChange: translationKey(
+    "Can't be marked read-only: its {{word}} argument can make it change things.",
+  ),
+  argumentValueCanChange: translationKey(
+    "Can't be marked read-only: its {{argument}} argument can ask it to “{{word}}”.",
+  ),
+};
+
+// The sentence that says why a tool can never be marked, and its values.
+export function getExternalMcpToolMarkRefusalSentence(
+  refusal: ExternalMcpToolMarkRefusal,
+): { template: string; values: Record<string, string> } {
+  switch (refusal.kind) {
+    case ExternalMcpToolMarkRefusalKind.NameSaysItChanges:
+      return {
+        template: EXTERNAL_MCP_TOOL_MARK_REFUSALS.nameSaysItChanges,
+        values: { word: refusal.word },
+      };
+    case ExternalMcpToolMarkRefusalKind.RunsWhatItIsGiven:
+      return {
+        template: EXTERNAL_MCP_TOOL_MARK_REFUSALS.runsWhatItIsGiven,
+        values: { word: refusal.word },
+      };
+    case ExternalMcpToolMarkRefusalKind.ArgumentCanChange:
+      return refusal.argument
+        ? {
+            template: EXTERNAL_MCP_TOOL_MARK_REFUSALS.argumentValueCanChange,
+            values: { word: refusal.word, argument: refusal.argument },
+          }
+        : {
+            template: EXTERNAL_MCP_TOOL_MARK_REFUSALS.argumentCanChange,
+            values: { word: refusal.word },
+          };
+  }
+}
 
 // The switch on a server's page.
 export const EXTERNAL_MCP_SERVER_SWITCH_COPY: {

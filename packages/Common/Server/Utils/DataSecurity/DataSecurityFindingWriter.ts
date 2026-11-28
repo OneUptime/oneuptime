@@ -590,6 +590,16 @@ export default class DataSecurityFindingWriter {
       columns["estimatedRecords"] = Math.round(data.result.estimatedRecords);
     }
 
+    /*
+     * How exposed a self-managed store is, as its own endpoint answered
+     * this scan (#11140): its posture, read now, from which the
+     * evaluation this scan queues works out its exposure.
+     */
+    if (data.result.posture) {
+      columns["posture"] = data.result.posture as unknown as JSONObject;
+      columns["configurationReadAt"] = data.now;
+    }
+
     if (data.keepUnplacedFields) {
       columns["fieldSuggestionState"] = withPendingFields({
         previous: store.fieldSuggestionState,

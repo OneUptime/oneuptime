@@ -20,6 +20,7 @@ import MetricPipelineRuleFilterCondition, {
 import MetricPipelineRuleType from "../../../../Types/Metrics/MetricPipelineRuleType";
 import ObjectID from "../../../../Types/ObjectID";
 import { clearLinearRegExpCache } from "../../../../Utils/LinearRegExp/PatternCache";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * THE ONE ENGINE FOR METRICS (#10753).
@@ -629,6 +630,12 @@ describe("a Matches Pattern Type filter", () => {
     ["a card in fullwidth digits", "４５３２ ０１５１ １２８３ ０３６６"],
     ["a card in Arabic-Indic digits", "٤٥٣٢٠١٥١١٢٨٣٠٣٦٦"],
     ["an American Express card", "3782 822463 10005"],
+    // #11199: in a URL, with %20 or a form's "+" between its groups.
+    [
+      "a card in a URL, %20 between its groups",
+      "/pay?card=4532%200151%201283%200366",
+    ],
+    ["a card typed into a form", "/pay?card=4532+0151+1283+0366"],
   ])("creditCard redacts %s: %s", (_label: string, value: string) => {
     expect(leftOf(redactWhere("card", "creditCard"), "card", value)).toBe(
       "[REDACTED]",
@@ -644,6 +651,132 @@ describe("a Matches Pattern Type filter", () => {
     ).toBe("[REDACTED]");
     expect(leftOf(redactWhere("ssn", "ssn"), "ssn", "none")).toBe("none");
   });
+
+  // #11025, #11030: what Data Security finds, as a log or trace rule hides it.
+  test.each([
+    ["an international number", "+44 20 8123 4567"],
+    ["one in its calling code's parentheses", "(+44) 20 8123 4567"],
+    ["one in an encoded URL", "/callback?phone=%2B49%2030%2081234567"],
+    ["one in Arabic-Indic digits", "+٤٩ ٣٠ ٨١٢٣٤٥٦٧"],
+    ["a North American one in fullwidth digits", "(４１５) ３２１-８７３１"],
+    // #11199: as a form writes one, its own "+" escaped.
+    ["one a form wrote", "/callback?phone=%2B49+30+81234567"],
+  ])("phoneNumber redacts %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("caller", "phoneNumber"), "caller", value)).toBe(
+      "[REDACTED]",
+    );
+  });
+
+  test.each([
+    ["a decimal", "+51.507217"],
+    ["a time zone beside a date", "UTC +1 2026-11-24"],
+    ["a version", "v1.2.3+build.5"],
+  ])("phoneNumber keeps %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("caller", "phoneNumber"), "caller", value)).toBe(
+      value,
+    );
+  });
+
+  test.each([
+    ["one set apart by dots", "536.22.8731"],
+    ["one set apart by spaces", "536 22 8731"],
+    ["one in Arabic-Indic digits", "٥٣٦-٢٢-٨٧٣١"],
+    // #11199
+    ["one typed into a form", "/verify?ssn=536+22+8731"],
+  ])("ssn redacts %s: %s", (_label: string, value: string) => {
+    expect(leftOf(redactWhere("ssn", "ssn"), "ssn", value)).toBe("[REDACTED]");
+  });
+
+  test("ssn keeps an area no one is issued, and a longer chain of groups", () => {
+    for (const value of ["666.22.8731", "536.22.8731.01"]) {
+      expect(leftOf(redactWhere("ssn", "ssn"), "ssn", value)).toBe(value);
+    }
+  });
+
+  /*
+   * #11115, #11114: Scrub It's metric rule for a phone or SSN finding
+   * matches these pattern types (#11112), so it hides a number typed
+   * wholly in fullwidth, and a national number or nine digits beside the
+   * word that names them in the label, as a log or trace rule does.
+   */
+  test.each([
+    [
+      "phoneNumber",
+      "a number typed wholly in fullwidth",
+      "＋８１ ３－１２３４－５６７８",
+    ],
+    [
+      "phoneNumber",
+      "one with an ideographic space",
+      "＋８１　３－１２３４－５６７８",
+    ],
+    [
+      "phoneNumber",
+      "a fullwidth plus sign before ASCII digits",
+      "＋81 3－1234－5678",
+    ],
+    ["phoneNumber", "a national number beside tel", "tel 02012345678"],
+    [
+      "phoneNumber",
+      "a national number in a URL",
+      "/notify?phone%3D02012345678",
+    ],
+    [
+      "ssn",
+      "a Social Security number typed wholly in fullwidth",
+      "５３６－２２－８７３１",
+    ],
+    ["ssn", "nine digits beside SSN", "SSN 536221234"],
+    ["ssn", "nine fullwidth digits beside ssn", "ssn ５３６２２１２３４"],
+  ])(
+    "%s redacts %s: %s",
+    (patternType: string, _label: string, value: string) => {
+      const key: string = patternType === "ssn" ? "ssn" : "caller";
+
+      expect(leftOf(redactWhere(key, patternType), key, value)).toBe(
+        "[REDACTED]",
+      );
+    },
+  );
+
+  /*
+   * Kept: what Data Security calls none of the type there. Under a key
+   * that names it, the key is the word a value needs (#11383) - so nine
+   * digits no word names are held under a key that names nothing - and a
+   * value its type's own checks refuse is kept whatever its key.
+   */
+  test.each([
+    [
+      "phoneNumber",
+      "caller",
+      "a national number no word names",
+      "order 02012345678",
+    ],
+    [
+      "phoneNumber",
+      "caller",
+      "a decimal typed in fullwidth",
+      "＋５１．５０７２１７",
+    ],
+    ["ssn", "applicant.ref", "nine digits no word names", "ref 536221234"],
+    [
+      "ssn",
+      "ssn",
+      "an area never issued, typed in fullwidth, under a key that names an SSN",
+      "６６６．２２．８７３１",
+    ],
+    [
+      "ssn",
+      "ssn",
+      "nine digits in a straight run, under a key that names an SSN",
+      "123456789",
+    ],
+  ])(
+    "%s under %s keeps %s: %s",
+    (patternType: string, key: string, _label: string, value: string) => {
+      expect(leftOf(redactWhere(key, patternType), key, value)).toBe(value);
+    },
+  );
 
   test("a value that names no pattern type matches nothing", () => {
     for (const patternType of ["", "custom", "sensitiveKeys", "constructor"]) {
@@ -687,5 +820,216 @@ describe("a Matches Pattern Type filter", () => {
       run(rowOf({ region: "eu" }), [redactWhere("peer", "ipAddress")])!
         .attributes,
     ).toEqual({ region: "eu" });
+  });
+});
+
+/*
+ * A RULE THAT HIDES READS A VALUE AS DATA SECURITY DOES (#11031, #11033).
+ *
+ * The metric rule "Scrub it" makes for a token or an IBAN under a key is a
+ * Redact Attribute rule whose filter matches the type's own pattern
+ * (Matches Regex). Data Security finds the type in a value with its
+ * percent-escapes read and in every script's digits, so a rule that hides
+ * - Redact or Remove Attribute, Drop - matches its pattern there too. Does
+ * Not Match Regex, and a rule that hides nothing it matches (Filter,
+ * Sample, Rename, Add), read the value as written alone, as before: no
+ * rule ever hides less than it did.
+ */
+describe("a rule that hides matches its pattern in every reading of a value", () => {
+  // A made-up token, put together where it is used.
+  const TOKEN: string = ["ghp", "Zx8Kq2Lm9Pw4Rt6Hy3Nc8Vb5Jm1Df7Gs0AeQ"].join(
+    "_",
+  );
+  const TOKEN_PATTERN: string =
+    "(?<![A-Za-z0-9_])ghp_[A-Za-z0-9]{36}(?![A-Za-z0-9])";
+  const ENCODED_URL: string = `https://app.example.com/cb?next=%2Fhome%3Ftoken%3D${TOKEN}`;
+  const ARABIC_IBAN: string = "DE٨٩٣٧٠٤٠٠٤٤٠٥٣٢٠١٣٠٠٠";
+  const IBAN_PATTERN: string = "\\b[A-Z]{2}[0-9]{2}[0-9]{18}\\b";
+
+  function hidingRule(
+    ruleType: MetricPipelineRuleType,
+    pattern: string,
+  ): MetricPipelineRule {
+    return ruleOf(ruleType, {
+      addAttributeKey: "url",
+      filters: [
+        attributeIs(
+          "url",
+          MetricPipelineRuleFilterConditionType.MatchesRegex,
+          pattern,
+        ),
+      ],
+    });
+  }
+
+  test("Redact Attribute hides a token after an encoded =", () => {
+    expect(
+      run(rowOf({ url: ENCODED_URL, region: "eu" }), [
+        hidingRule(MetricPipelineRuleType.RedactAttribute, TOKEN_PATTERN),
+      ])!.attributes,
+    ).toEqual({ url: "[REDACTED]", region: "eu" });
+  });
+
+  test("Remove Attribute and Drop hide it too", () => {
+    expect(
+      run(rowOf({ url: ENCODED_URL, region: "eu" }), [
+        hidingRule(MetricPipelineRuleType.RemoveAttribute, TOKEN_PATTERN),
+      ])!.attributes,
+    ).toEqual({ region: "eu" });
+    expect(
+      run(rowOf({ url: ENCODED_URL }), [
+        hidingRule(MetricPipelineRuleType.Drop, TOKEN_PATTERN),
+      ]),
+    ).toBeNull();
+  });
+
+  test("an IBAN in Arabic-Indic digits is hidden by its pattern", () => {
+    expect(
+      run(rowOf({ url: `iban=${ARABIC_IBAN}` }), [
+        hidingRule(MetricPipelineRuleType.RedactAttribute, IBAN_PATTERN),
+      ])!.attributes,
+    ).toEqual({ url: "[REDACTED]" });
+  });
+
+  // #11199: a value a form wrote, its spaces "+", is read with its spaces.
+  test("an IBAN typed into a form, + between its groups, is hidden by its grouped pattern", () => {
+    const grouped: string = "\\b[A-Z]{2}[0-9]{2}(?: [0-9]{4}){4} [0-9]{2}\\b";
+
+    for (const url of [
+      "/payout?iban=DE89+3704+0044+0532+0130+00",
+      "/payout?iban=DE89%203704%200044%200532%200130%2000",
+    ]) {
+      expect(
+        run(rowOf({ url }), [
+          hidingRule(MetricPipelineRuleType.RedactAttribute, grouped),
+        ])!.attributes,
+      ).toEqual({ url: "[REDACTED]" });
+    }
+
+    // A Filter rule reads it as written alone: its grouped pattern matches nothing there.
+    expect(
+      run(rowOf({ url: "/payout?iban=DE89+3704+0044+0532+0130+00" }), [
+        ruleOf(MetricPipelineRuleType.Filter, {
+          filters: [
+            attributeIs(
+              "url",
+              MetricPipelineRuleFilterConditionType.MatchesRegex,
+              grouped,
+            ),
+          ],
+        }),
+      ]),
+    ).toBeNull();
+  });
+
+  // #11115: a value typed wholly in fullwidth, its separators too, is read with them as ASCII.
+  test("an IBAN typed wholly in fullwidth, ideographic spaces between its groups, is hidden by its grouped pattern", () => {
+    const grouped: string = "\\b[A-Z]{2}[0-9]{2}(?: [0-9]{4}){4} [0-9]{2}\\b";
+    const url: string = [
+      "DE８９",
+      "３７０４",
+      "００４４",
+      "０５３２",
+      "０１３０",
+      "００",
+    ].join("　");
+
+    expect(
+      run(rowOf({ url }), [
+        hidingRule(MetricPipelineRuleType.RedactAttribute, grouped),
+      ])!.attributes,
+    ).toEqual({ url: "[REDACTED]" });
+    // A Filter rule reads it as written alone, as before.
+    expect(
+      run(rowOf({ url }), [
+        ruleOf(MetricPipelineRuleType.Filter, {
+          filters: [
+            attributeIs(
+              "url",
+              MetricPipelineRuleFilterConditionType.MatchesRegex,
+              grouped,
+            ),
+          ],
+        }),
+      ]),
+    ).toBeNull();
+  });
+
+  test("a value written plainly matches as it always did, and one with nothing to find never does", () => {
+    const redact: MetricPipelineRule = hidingRule(
+      MetricPipelineRuleType.RedactAttribute,
+      TOKEN_PATTERN,
+    );
+
+    expect(run(rowOf({ url: `token=${TOKEN}` }), [redact])!.attributes).toEqual(
+      { url: "[REDACTED]" },
+    );
+    expect(
+      run(rowOf({ url: "https://app.example.com/cb?next=%2Fhome" }), [redact])!
+        .attributes,
+    ).toEqual({ url: "https://app.example.com/cb?next=%2Fhome" });
+  });
+
+  test("Does Not Match Regex reads the value as written alone: it never hides less", () => {
+    const redact: MetricPipelineRule = ruleOf(
+      MetricPipelineRuleType.RedactAttribute,
+      {
+        addAttributeKey: "url",
+        filters: [
+          attributeIs(
+            "url",
+            MetricPipelineRuleFilterConditionType.DoesNotMatchRegex,
+            TOKEN_PATTERN,
+          ),
+        ],
+      },
+    );
+
+    // As written, the encoded token does not match: so the value is redacted, as before.
+    expect(run(rowOf({ url: ENCODED_URL }), [redact])!.attributes).toEqual({
+      url: "[REDACTED]",
+    });
+  });
+
+  test("a Filter rule reads the value as written alone: it keeps what it kept", () => {
+    const filter: MetricPipelineRule = ruleOf(MetricPipelineRuleType.Filter, {
+      filters: [
+        attributeIs(
+          "url",
+          MetricPipelineRuleFilterConditionType.MatchesRegex,
+          TOKEN_PATTERN,
+        ),
+      ],
+    });
+
+    // Its pattern matches nothing as written, so the row is filtered out, as before.
+    expect(run(rowOf({ url: ENCODED_URL }), [filter])).toBeNull();
+  });
+
+  test("a value of escapes or digits without end is read in time in line with its length", () => {
+    const redact: MetricPipelineRule = hidingRule(
+      MetricPipelineRuleType.RedactAttribute,
+      TOKEN_PATTERN,
+    );
+
+    for (const url of [
+      "%3D".repeat(130_000),
+      "٣".repeat(400_000),
+      // #11115: a number's fullwidth forms beside digits without end.
+      "４－".repeat(200_000),
+      "4　".repeat(200_000),
+    ]) {
+      const timed: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return String(
+            (run(rowOf({ url }), [redact])!.attributes as JSONObject)["url"],
+          );
+        },
+        limitInMs: 2000,
+      });
+
+      expect(timed.inMs).toBeLessThan(2000);
+      expect(timed.result).toBe(url);
+    }
   });
 });

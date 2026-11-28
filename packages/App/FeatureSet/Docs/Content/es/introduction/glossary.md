@@ -40,7 +40,7 @@ Consulta [Crear un monitor](/docs/monitor/create-monitor).
 
 ### Criterios
 
-Las reglas de un monitor: qué significa cada resultado de una comprobación. Se evalúan en orden, y el primero que coincide puede cambiar el estado del monitor, declarar un incidente, crear una alerta o las tres cosas.
+Las reglas de un monitor: qué significa cada resultado de una comprobación. Se evalúan en orden, y el primero que coincide puede cambiar el estado del monitor, declarar un incidente, crear una alerta o las tres cosas. Uno que no cambia ningún estado deja el estado al siguiente criterio que coincide y lo cambia.
 
 Otros nombres: **Criterios de monitoreo**, **Criterios del monitor**, **Pasos del monitor**. Consulta [Criterios y estados](/docs/monitor/criteria-and-statuses).
 
@@ -162,7 +162,7 @@ Consulta [Agente de Kubernetes](/docs/telemetry/kubernetes-agent).
 
 ### Infraestructura
 
-El grupo del menú con las máquinas y plataformas que ejecutas: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Cabinas de almacenamiento, Red e IoT. Un agente o una conexión rellena cada una, y cada una indica cómo está cada máquina, clúster o dispositivo que contiene.
+El grupo del menú con las máquinas y plataformas que ejecutas: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Cabinas de almacenamiento, Red e IoT. Un agente o una conexión rellena cada una, y cada una indica cómo está cada máquina, clúster o dispositivo que contiene.
 
 Consulta [Hosts](/docs/telemetry/hosts).
 

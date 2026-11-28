@@ -12,11 +12,7 @@ import LogSeverity from "Common/Types/Log/LogSeverity";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import TimeRange from "Common/Types/Time/TimeRange";
-import {
-  RESOURCE_FACET_CATALOG,
-  RESOURCE_FACET_CATALOG_KEYS,
-  ResourceFacetDefinition,
-} from "Common/Types/Telemetry/ResourceFacetCatalog";
+import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import type {
   ErrorPatternCorrelation,
   ErrorPatternTrend,
@@ -1092,6 +1088,7 @@ describe("scope picker", () => {
       "proxmoxClusterId",
       "openStackCloudId",
       "vmwareVCenterId",
+      "xcpNgPoolId",
       "cephClusterId",
       "storageArrayId",
       "serverlessFunctionId",
@@ -1257,78 +1254,23 @@ describe("scope picker covers every catalog resource type", () => {
     ).toEqual(["primaryEntityId", ...RESOURCE_FACET_CATALOG_KEYS]);
   });
 
-  test("pins the group label of every facet", () => {
-    expect(Insights.INSIGHTS_SCOPE_FACET_LABELS).toEqual({
-      primaryEntityId: "Services",
-      hostId: "Hosts",
-      dockerHostId: "Docker hosts",
-      podmanHostId: "Podman hosts",
-      kubernetesClusterId: "Kubernetes clusters",
-      dockerSwarmClusterId: "Docker Swarm clusters",
-      proxmoxClusterId: "Proxmox clusters",
-      openStackCloudId: "OpenStack clouds",
-      vmwareVCenterId: "vCenters",
-      cephClusterId: "Ceph clusters",
-      storageArrayId: "Storage arrays",
-      serverlessFunctionId: "Serverless functions",
-      cloudResourceId: "Cloud resources",
-      rumApplicationId: "RUM applications",
-      iotFleetId: "IoT fleets",
-      databaseServerId: "Databases",
-    });
-  });
-
-  test("keeps the labels the four original groups always had", () => {
-    /*
-     * Derived labels must not rename a group users already know — the rule
-     * was chosen because it reproduces these exactly.
-     */
-    expect(Insights.INSIGHTS_SCOPE_FACET_LABELS["hostId"]).toBe("Hosts");
-    expect(Insights.INSIGHTS_SCOPE_FACET_LABELS["dockerHostId"]).toBe(
-      "Docker hosts",
-    );
-    expect(Insights.INSIGHTS_SCOPE_FACET_LABELS["podmanHostId"]).toBe(
-      "Podman hosts",
-    );
-    expect(Insights.INSIGHTS_SCOPE_FACET_LABELS["kubernetesClusterId"]).toBe(
-      "Kubernetes clusters",
-    );
-  });
-
-  test.each(
-    RESOURCE_FACET_CATALOG.map(
-      (definition: ResourceFacetDefinition): [string, string] => {
-        return [definition.facetKey, definition.pluralLabel];
-      },
-    ),
-  )(
-    "%s has a picker group label derived from its plural label",
-    (facetKey: string, pluralLabel: string) => {
-      const label: string | undefined =
-        Insights.INSIGHTS_SCOPE_FACET_LABELS[facetKey];
-
-      expect(label).toBeDefined();
-      expect(label).not.toBe(facetKey);
-      expect(label!.trim().length).toBeGreaterThan(0);
-      // Same words as the catalog's plural, only the casing may differ.
-      expect(label!.toLowerCase()).toBe(pluralLabel.toLowerCase());
-      expect(label).toBe(Insights.toInsightsScopeGroupLabel(pluralLabel));
-    },
-  );
-
-  test("every offered facet key has a label, and no two groups share one", () => {
-    const labels: Array<string> = Insights.INSIGHTS_SCOPE_FACET_KEYS.map(
-      (facetKey: string): string => {
-        const label: string | undefined =
-          Insights.INSIGHTS_SCOPE_FACET_LABELS[facetKey];
-
-        expect(label).toBeDefined();
-
-        return label!;
-      },
-    );
-
-    expect(new Set(labels).size).toBe(labels.length);
+  /*
+   * The picker names each record's kind beside it now, searched on the
+   * server (TelemetryResourceScopePicker, #10921): there are no groups to
+   * title, and the kinds it offers are TelemetryResourceScope's, pinned by
+   * TelemetryResourceScope.test.ts against this same catalog.
+   */
+  test("names no group titles of its own any more", () => {
+    expect(
+      (Insights as unknown as Record<string, unknown>)[
+        "INSIGHTS_SCOPE_FACET_LABELS"
+      ],
+    ).toBeUndefined();
+    expect(
+      (Insights as unknown as Record<string, unknown>)[
+        "toInsightsScopeGroupLabel"
+      ],
+    ).toBeUndefined();
   });
 
   test("parses every catalog facet out of a facets response", () => {
@@ -1413,45 +1355,5 @@ describe("scope picker covers every catalog resource type", () => {
 
     expect(request["serviceIds"]).toEqual(["svc-1"]);
     expect(request["resourceFilters"]).toEqual(expectedResourceFilters);
-  });
-});
-
-describe("toInsightsScopeGroupLabel", () => {
-  test.each([
-    ["Hosts", "Hosts"],
-    ["Docker Hosts", "Docker hosts"],
-    ["Kubernetes Clusters", "Kubernetes clusters"],
-    ["Docker Swarm Clusters", "Docker Swarm clusters"],
-    ["vCenters", "vCenters"],
-    ["RUM Applications", "RUM applications"],
-    ["IoT Fleets", "IoT fleets"],
-    ["Serverless Functions", "Serverless functions"],
-    ["Databases", "Databases"],
-  ])("%p reads %p", (pluralLabel: string, expected: string) => {
-    expect(Insights.toInsightsScopeGroupLabel(pluralLabel)).toBe(expected);
-  });
-
-  test("leaves a head noun that is not plainly capitalised alone", () => {
-    expect(Insights.toInsightsScopeGroupLabel("Kubernetes CRDs")).toBe(
-      "Kubernetes CRDs",
-    );
-    expect(Insights.toInsightsScopeGroupLabel("Edge vCenters")).toBe(
-      "Edge vCenters",
-    );
-    expect(Insights.toInsightsScopeGroupLabel("Cloud VMs")).toBe("Cloud VMs");
-  });
-
-  test("never touches anything but the last word", () => {
-    expect(Insights.toInsightsScopeGroupLabel("Azure Container Apps")).toBe(
-      "Azure Container apps",
-    );
-  });
-
-  test("trims and collapses whitespace, and tolerates an empty label", () => {
-    expect(Insights.toInsightsScopeGroupLabel("  Ceph   Clusters ")).toBe(
-      "Ceph clusters",
-    );
-    expect(Insights.toInsightsScopeGroupLabel("")).toBe("");
-    expect(Insights.toInsightsScopeGroupLabel("   ")).toBe("");
   });
 });

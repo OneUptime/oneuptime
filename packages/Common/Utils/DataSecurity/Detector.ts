@@ -130,12 +130,116 @@ export interface DataTypeDetector {
   readsDigitsOfEveryScript?: boolean | undefined;
 
   /*
+   * Whether the text is also read as a URL's query string reads it
+   * (PlusAsSpaceText.ts): each "+" a space, as a form or URLSearchParams
+   * writes a value's spaces - card=4111+1111+1111+1111, iban=DE44+5001+...,
+   * postcode=SW1A+1AA, and date+of+birth before a date (#11199) - its
+   * escapes read, and an escaped "+" between two characters of a value a
+   * space too, as a URL inside a query string writes one (%2B). A number's
+   * own sign is a "+": %2B44+20+7946+0958 and +44+20+7946+0958 read
+   * +44 20 7946 0958. For a detector of a value written in groups, or
+   * found by the words before it; it reads percent-encoded text too, so a
+   * value written with %20 between its groups is read as well. A
+   * candidate found so is placed on the characters it is written with,
+   * "+"s and escapes and all.
+   */
+  readsPlusAsSpace?: boolean | undefined;
+
+  /*
+   * Whether the text is also read with a number's fullwidth signs and
+   * separators read as their ASCII characters (FullwidthForms.ts, #11115):
+   * the plus sign ＋, the hyphen －, the parentheses （ ）, the full stop ．,
+   * the solidus ／ and the ideographic space, as Japanese and Chinese text
+   * types a number wholly in fullwidth - ＋８１ ３－１２３４－５６７８,
+   * ５３６－２２－８７３１. Each reading the detector reads otherwise is read
+   * so too, every script's digits read in it when it reads them. For a
+   * detector of a number, as every one that reads every script's digits
+   * is. One character for one, so a candidate found so is on the very
+   * characters it is written with. The other dashes a number's groups are
+   * set apart by are read as hyphens between two digits in it too
+   * (#11385): ー, ‐, ‑, ‒, – and −, ０３ー１２３４ー５６７８ and 536–22–8731.
+   */
+  readsFullwidthForms?: boolean | undefined;
+
+  /*
+   * Whether the text is also read with the fullwidth ASCII block - letters,
+   * digits, signs and punctuation - read as ASCII, as NFKC folds it, the
+   * ideographic space as a space (FullwidthForms.ts, #11385): a value typed
+   * in fullwidth letters, an IBAN ＤＥ８９ ３７０４…, a UK postcode
+   * ＳＷ１Ａ ２ＡＡ, an email address ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ - and the
+   * words beside a value typed so, ＴＥＬ, ＳＳＮ. Read only for a text that
+   * holds some of a value typed in fullwidth letters, never for CJK prose.
+   * For a detector of a value with letters, and for one that reads a number
+   * typed in fullwidth (readsFullwidthForms), whose words may be. One
+   * character for one, so a candidate found so is on the very characters
+   * it is written with.
+   */
+  readsFullwidthLetters?: boolean | undefined;
+
+  /*
    * What a database search narrows by for this detector, as an RE2
    * expression that matches at least every text its pattern matches - for
    * a pattern DetectorPrefilter cannot write itself, one with the u flag.
    * More is fine, never less.
    */
   prefilter?: string | undefined;
+}
+
+/*
+ * A detector that reads its value however people and URLs write it: in
+ * every script's digits (#10960, #11033, #11200), with its percent-escapes
+ * read, as a URL's query string reads it, a "+" for a space (#11199) -
+ * card=4539%201488%200343%206467, iban=DE44+5001+0517+5407+3249+31,
+ * dob=12%2F03%2F1985, bank+account=12345678 - and typed wholly in
+ * fullwidth, its signs and separators too (#11115): １９８５／０３／１２,
+ * ５３６－２２－８７３１, its groups set apart by another dash (#11385):
+ * 536–22–8731, and its letters typed in fullwidth too: ＧＢ８２ＷＥＳＴ…,
+ * ＳＷ１Ａ ２ＡＡ. For a detector of a number, of a code a bank or a card
+ * has, or of a value written in groups: the same value whatever the
+ * writing, proven by the same checks.
+ */
+export function withEveryReading(detector: DataTypeDetector): DataTypeDetector {
+  return {
+    ...detector,
+    readsDigitsOfEveryScript: true,
+    readsPercentEncoded: true,
+    readsPlusAsSpace: true,
+    readsFullwidthForms: true,
+    readsFullwidthLetters: true,
+  };
+}
+
+/*
+ * WHETHER A FIELD'S WHOLE VALUE HAS THE SHAPE ITS TYPE TAKES THERE.
+ *
+ * For a field whose name hints a type and is all the context its values
+ * have (fieldValuePattern): a `cvv` column of "123", a `user.phone`
+ * attribute of "020 1234 5678". The value as its detector normalizes it
+ * when it has the shape and passes the detector's validator, and null
+ * when not. The one judgement of it: what a field's classification counts
+ * (FieldClassifier) and what a rule that reads a value under such a key
+ * hides (TextReadings.findDetectorRanges, #11383).
+ */
+export function matchesFieldShape(
+  detector: Pick<
+    DataTypeDetector,
+    "fieldValuePattern" | "normalize" | "validate"
+  >,
+  value: string,
+): string | null {
+  if (!detector.fieldValuePattern || !detector.fieldValuePattern.test(value)) {
+    return null;
+  }
+
+  const normalized: string = detector.normalize
+    ? detector.normalize(value)
+    : value;
+
+  if (detector.validate && !detector.validate(normalized, value)) {
+    return null;
+  }
+
+  return normalized;
 }
 
 // How far around a candidate its context words are looked for.

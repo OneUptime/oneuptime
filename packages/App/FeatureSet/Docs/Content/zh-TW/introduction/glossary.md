@@ -40,7 +40,7 @@ OneUptime 使用的每個詞彙，都用一兩句話說明，並附上它的其�
 
 ### 條件
 
-監測器的規則：每個檢查結果代表什麼。條件會依序檢查，第一個相符的條件可以變更監測器的狀態、宣告事件、建立警示，或三者都做。
+監測器的規則：每個檢查結果代表什麼。條件會依序檢查，第一個相符的條件可以變更監測器的狀態、宣告事件、建立警示，或三者都做。不變更狀態的條件會把狀態留給下一個相符且會變更狀態的條件。
 
 又稱：**監測條件**、**監測器條件**、**Monitor Steps**。參閱 [條件與狀態](/docs/monitor/criteria-and-statuses)。
 
@@ -162,7 +162,7 @@ OneUptime 在專案中可以聯絡到你的位址：電子郵件地址、用於�
 
 ### 基礎設施
 
-選單中彙集你所執行的機器和平台的一組項目：主機、Kubernetes、Docker、Docker Swarm、Podman、Proxmox、OpenStack、VMware、Ceph、儲存陣列、網路和 IoT。每一項都由代理程式或連線填入，並顯示其中每台機器、每個叢集或每台裝置的運作狀況。
+選單中彙集你所執行的機器和平台的一組項目：主機、Kubernetes、Docker、Docker Swarm、Podman、Proxmox、OpenStack、VMware、XCP-ng、Ceph、儲存陣列、網路和 IoT。每一項都由代理程式或連線填入，並顯示其中每台機器、每個叢集或每台裝置的運作狀況。
 
 參閱 [主機](/docs/telemetry/hosts)。
 

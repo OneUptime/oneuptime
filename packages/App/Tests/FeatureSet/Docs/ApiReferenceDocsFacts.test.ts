@@ -85,6 +85,8 @@ import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import {
   SharedNameKind,
   getSharedNamesRoute,
+  getSharedNamesRouteOfTable,
+  readSharedNamesAnswer,
 } from "Common/Types/Database/SharedNames";
 import {
   ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
@@ -1029,6 +1031,57 @@ describe("OneUptime API Reference: a request and its answer", () => {
   });
 
   /*
+   * #11021: every kind the setting holds is asked for by its table's name,
+   * and its answer - the one its list marks twins from - is the page's
+   * sample: groups of IDs, with when each was made.
+   */
+  it("says how to ask which records of a kind the setting holds share a name, with the answer's shape", () => {
+    const section: string = englishSection(
+      API_REFERENCE,
+      "#### Names another record has",
+    );
+
+    expect(section).toContain(
+      `\`GET /api${getSharedNamesRouteOfTable("Monitor")}\`, or any kind the setting holds by its table's name, answers which of its records share a name`,
+    );
+
+    const sample: string =
+      '{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}';
+
+    expect(section).toContain(`\`${sample}\``);
+    // The sample reads back as the answer it shows.
+    expect(
+      readSharedNamesAnswer({
+        groups: [
+          [
+            "7f0b1d7e-0000-4000-8000-00000000000a",
+            "7f0b1d7e-0000-4000-8000-00000000000b",
+          ],
+        ],
+        createdAt: {
+          "7f0b1d7e-0000-4000-8000-00000000000a": "2026-11-05T05:14:00.000Z",
+        },
+      }),
+    ).toEqual({
+      groups: [
+        [
+          "7f0b1d7e-0000-4000-8000-00000000000a",
+          "7f0b1d7e-0000-4000-8000-00000000000b",
+        ],
+      ],
+      createdAt: {
+        "7f0b1d7e-0000-4000-8000-00000000000a": "2026-11-05T05:14:00.000Z",
+      },
+    });
+    expect(section).toContain(
+      "each group two or more records your key may read, with when each was made",
+    );
+    expect(section).toContain(
+      "Archived records are grouped apart from the records in service.",
+    );
+  });
+
+  /*
    * #10318: the other kinds with a name of their own refuse a rename onto a
    * taken name as they refuse a create, through the update's own check, and
    * records that shared a name before keep it but are never renamed onto
@@ -1402,9 +1455,14 @@ describe("OneUptime API Reference: an API key", () => {
 
       expect(scripts).toContain(getApiKeyExportCommand());
 
+      /*
+       * A line of its own, as the Developer pages write it: between the
+       * address and the body of a POST, or last in a GET, which sends
+       * nothing after it (a record's Markdown files).
+       */
       for (const script of scripts) {
         if (script.startsWith("curl ")) {
-          expect(script).toContain(`  ${header} \\`);
+          expect(script.split(" \\\n  ")).toContain(header);
         }
       }
     }

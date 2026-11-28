@@ -23,6 +23,7 @@ import ServerlessFunctionService from "../../Services/ServerlessFunctionService"
 import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
+import XcpNgPoolService from "../../Services/XcpNgPoolService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 
@@ -91,6 +92,7 @@ export const TELEMETRY_USAGE_RESOURCE_NAME_SOURCES: Partial<
     "name",
   ]),
   [ServiceType.VMwareVCenter]: asSource(VMwareVCenterService, ["name"]),
+  [ServiceType.XcpNgPool]: asSource(XcpNgPoolService, ["name"]),
   // An IoTDevice row carries its fleet's id (OtelIngestBaseService).
   [ServiceType.IoTDevice]: asSource(IoTFleetService, ["name"]),
   [ServiceType.ServerlessFunction]: asSource(ServerlessFunctionService, [

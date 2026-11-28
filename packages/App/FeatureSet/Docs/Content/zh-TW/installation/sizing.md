@@ -3,7 +3,7 @@
 為使用 [Helm Chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime) 在 Kubernetes 上自行託管的 OneUptime 規劃 CPU、記憶體和磁碟。分別為三個資料儲存（**ClickHouse**、**PostgreSQL** 和 **Valkey**）以及應用程式決定規模，從下面的某個級別開始，取得真實數據後再調整。
 
 > [!IMPORTANT]
-> Chart 的預設值不是正式環境的規模。它預設執行的服務 **沒有設定任何 CPU 或記憶體的要求與限制**，PostgreSQL 和 ClickHouse 只有 **25 Gi** 的小磁碟區，這樣 Chart 才能安裝到任何叢集上。只要不是試用，就請依照本頁的數字自行設定資源和儲存空間。
+> Chart 的預設值不是正式環境的規模。除 Valkey 外，它預設執行的服務 **沒有設定任何 CPU 或記憶體的要求與限制**，PostgreSQL 和 ClickHouse 只有 **25 Gi** 的小磁碟區，這樣 Chart 才能安裝到任何叢集上。只要不是試用，就請依照本頁的數字自行設定資源和儲存空間。
 
 如果您改用單台伺服器上的 Docker Compose 安裝，決定規模會更簡單：請參閱[需求](/docs/installation/docker-compose#需求)（建議 16 GB 記憶體、8 核心和 400 GB 磁碟）。
 
@@ -88,7 +88,7 @@ PostgreSQL 儲存的是您的設定和運作狀態，而不是遙測資料，因
 
 ## Valkey：快取、佇列與工作階段
 
-快取層執行 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 授權分支），用作快取、工作佇列和工作階段儲存。任何支援 Redis 通訊協定的伺服器都可以取代它，下面的規模建議同樣適用。它 **受記憶體限制**，持久化 **預設關閉**：它不是權威資料來源，可以重建。請依佇列深度和同時工作階段數決定規模；大多數部署有 2–8 GB 記憶體就夠了。它的逐出原則是 `noeviction`，因此在持續負載下佇列積壓時要留意它的記憶體。
+快取層執行 [Valkey](https://valkey.io)（Redis 7.2 的 BSD 授權分支），用作快取、工作佇列和工作階段儲存。任何支援 Redis 通訊協定的伺服器都可以取代它，下面的規模建議同樣適用。它 **受記憶體限制**，持久化 **預設關閉**：它不是權威資料來源，可以重建。請依佇列深度和同時工作階段數決定規模；大多數部署有 2–8 GB 記憶體就夠了。Chart 為它設定 4 Gi 的記憶體限制，並把它的資料上限定為其中的 75%，即 3 GiB（`valkey.maxmemory`），達到上限後它會拒絕寫入。它的逐出原則是 `noeviction`，因此在持續負載下佇列積壓時要留意它的記憶體。
 
 ## 應用程式的運算資源
 
@@ -105,6 +105,52 @@ PostgreSQL 儲存的是您的設定和運作狀態，而不是遙測資料，因
 它們都執行 Node.js，Node.js 依容器的記憶體上限（`resources.limits.memory`）決定堆積的大小：上限的 75%，最少 256 MB，最多 8096 MB。沒有上限時，堆積最多可成長到 8096 MB。上限的其餘部分留給 Node.js 在堆積之外使用的記憶體。若要自行選擇堆積的大小，請將 `NODE_OPTIONS` 設為 `--max-old-space-size=` 加上以 MB 為單位的大小，寫在服務的 `extraEnv` 中（使用 Docker Compose 時，寫在覆寫檔案裡服務的 `environment` 中）。它優先於由上限得出的大小。
 
 Chart 內建 **KEDA**，因此應用程式、worker、探測器和全域 Runner 可以依佇列積壓自動調整規模。請同時開啟 `keda.enabled` 和每個服務自己的 `keda.enabled`（例如 `app.keda.enabled`）。在尚未安裝 KEDA 的叢集上，第一次安裝需要額外執行一輪：請參閱 Chart 的 [KEDA 指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md)。KEDA 不管理的服務可以改用以 CPU 或記憶體為依據的自動調整器（`autoscaling`）。
+
+## 執行大量監控
+
+每個探測器的每個 worker 都會分批向應用程式 Pod 索取到期的監控，每個到期的監控只會交給其中一個 worker。所有每分鐘檢查的監控都在每分鐘開始時一起到期，因此關鍵在於一整分鐘的監控能多快分發出去。以下數據是在 39,700 個監控（28,200 個每分鐘檢查，11,500 個每五分鐘檢查）和一個有 20 個複本的探測器上測得的，每條資料庫陳述式都像在忙碌的資料庫上一樣，比閒置機器慢 50 或 100 ms。
+
+### 以更大的批次分發監控
+
+把每個探測器的擷取上限（Helm Chart 中為 `monitorFetchLimit`，其他情況下為 `PROBE_MONITOR_FETCH_LIMIT`）從 10 提高到 50。這樣每個請求以大致相同的成本分發五倍的監控。在三個應用程式 Pod、陳述式慢 50 ms 的情況下，每分鐘的 28,200 個監控在 19 秒內分發完畢，上限為 10 時需要 44 秒；每五分鐘到期的 39,700 個監控也在 19 秒內分發完畢，上限為 10 時需要 57 秒。此時探測器的一個複本最多同時執行 worker 數 × 擷取上限個檢查，3 個 worker 時為 150 個：請為它提供相應的記憶體，或增加複本。
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### 保持排程上限的預設值
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS`（`app.probeSchedulingMaxConcurrentRequests`）是每個應用程式 Pod 同時處理的探測器請求數：其資料庫連線集區的五分之一，即 50 個中的 10 個。每個 Pod 都有自己的上限，所以你新增的應用程式 Pod 會帶來各自的上限。在 39,700 個監控同時到期、陳述式慢 100 ms 的情況下，一個探測器從一個應用程式 Pod 每秒獲得 313 個監控，三個 Pod 時為 659 個，六個時為 763 個；把上限提高到 20 多了 7%。單獨一個探測器可以使用 Pod 的所有名額，相互競爭的探測器則公平分配名額。Test Monitor 執行有自己的 2 個名額，因此無論監控多忙，測試都會在探測器每十秒一次的輪詢內送達探測器。只有當探測器請求不斷等待名額而資料庫仍有餘裕時才提高上限，並同時提高該 Pod 的資料庫連線集區。
+
+### 一個探測器還是多個
+
+把每個監控放在它需要從那裡檢查的探測器上。無論同時有多少複本請求，每個到期的監控只交給其探測器的一個複本，所以一個有很多複本的探測器和很多探測器一樣跟得上。如果監控延遲而沒有請求在等待名額，表示探測器不夠：增加複本，或讓 KEDA 依每個探測器到期的監控數對其擴縮。
+
+### 依探測器所等待的內容自動擴縮
+
+應用程式連接埠上的 `/metrics/probe-scheduling` 彙總了每個應用程式 Pod 過去一分鐘的情況。除了 CPU 和記憶體，用 KEDA 依其 `queueDepth` 擴縮應用程式 Pod，並在監控分發延遲時發出警示：
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| 欄位 | 含義 |
+| --- | --- |
+| `queueDepth` | 目前所有應用程式 Pod 上等待名額的探測器請求數。連續數分鐘大於 0：增加應用程式 Pod。 |
+| `slotWaitP95Ms` | 在最忙的應用程式 Pod 上，請求等待名額的時間。 |
+| `refusalsPerMinute` | 收到伺服器忙碌回覆的探測器請求數。 |
+| `reconnectsAskedPerMinute` | 要求探測器的連線重新連線的回覆數，讓它的下一個請求可以送往另一個應用程式 Pod：應用程式 Pod 積壓時每秒幾次。連續數分鐘大於 0：增加應用程式 Pod。 |
+| `dispatchLagP95Seconds` | 監控在其間隔使其到期之後延遲了多久才分發出去。在沒有請求等待時接近你最短的間隔：增加探測器複本。 |
+| `monitorsLateByAnIntervalPerMinute` | 延遲了整整一個間隔才分發的監控：即被略過的檢查。 |
+| `monitorTestWaitP95Seconds` | Test Monitor 執行等待探測器的時間。 |
 
 ## 起步級別
 

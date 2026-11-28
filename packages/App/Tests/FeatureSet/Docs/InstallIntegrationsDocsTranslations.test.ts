@@ -311,6 +311,10 @@ const ADMIN_KEYS: Record<string, string> = {
   // Settings > Data Retention: the limit on resolved incidents and alerts (#6941).
   "Data Retention": "sideMenu.settingsDataRetention",
   "Keep for at most": "Keep for at most",
+  // Settings > Call and SMS: whether projects choose their call voice (#11065).
+  "Project Call Voices": "Project Call Voices",
+  "Let projects choose their call voice":
+    "Let projects choose their call voice",
 };
 
 // The bold words of a page that name the Admin Dashboard, paths included.
@@ -327,7 +331,11 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Incident response",
     "Choose products one by one",
   ],
-  [TWILIO]: ["Admin Dashboard > Settings > Call and SMS"],
+  [TWILIO]: [
+    "Admin Dashboard > Settings > Call and SMS",
+    "Project Call Voices",
+    "Let projects choose their call voice",
+  ],
   [SIZING]: [
     "Keep for at most",
     "Admin Dashboard → Settings → Server → Data Retention",
@@ -652,6 +660,21 @@ const NUMBERS: Record<string, Array<string>> = {
     "75",
     "256",
     "8096",
+    /*
+     * Running many monitors (#10819): the install measured, how much slower
+     * its database was, and what each setting gave.
+     */
+    "39700",
+    "28200",
+    "11500",
+    "100",
+    "19",
+    "44",
+    "57",
+    "150",
+    "313",
+    "659",
+    "763",
   ],
   [SLACK]: ["443", "15"],
   // ...and the most projects the bot's question offers a button for.

@@ -14,6 +14,7 @@ Les deux utilisent le même type de moniteur. Ce qui les distingue, ce sont les 
 - [Envoyer un heartbeat](#envoyer-un-heartbeat): Depuis curl, cron, Node.js, Python ou Go.
 - [Alerter quand les appels cessent](#marquer-hors-ligne-sil-ny-a-pas-de-heartbeat-en-10-minutes-un-interrupteur-de-lhomme-mort): Faire du moniteur un interrupteur de l'homme mort.
 - [Recevoir des alertes](#recevoir-les-alertes-dun-autre-système): Un incident par alerte Alertmanager ou Grafana.
+- [Publier dans Slack sans appeler personne](#publier-dans-slack-sans-appeler-personne): Prévenir un canal, et n'appeler qu'en dehors des heures de travail.
 - [S'abonner à SNS ou Event Grid](#sabonner-à-amazon-sns-ou-à-azure-event-grid): Confirmer l'abonnement en un clic.
 :::
 
@@ -422,6 +423,38 @@ La charge utile complète est disponible à côté : un titre d'incident `{{aler
 
 Pour une configuration Alertmanager complète, voir [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Pour Grafana, voir [Grafana](/docs/integrations/grafana).
 
+### Le garder vérifié pendant les incidents
+
+Un incident que quelqu'un déclare sur ce moniteur — depuis l'une de ses alertes, par exemple, avec **Déclarer un incident** — met en pause ses vérifications jusqu'à la résolution de l'incident, donc les requêtes qui arrivent entre-temps ne sont pas évaluées : elles n'ouvrent ni ne résolvent aucune alerte. Chacune est quand même listée dans les **Journaux de surveillance** du moniteur, telle qu'elle est arrivée, avec la raison pour laquelle elle n'a pas été évaluée.
+
+Pour un moniteur auquel d'autres systèmes envoient leurs alertes, un incident sur une alerte ne devrait pas l'empêcher de lire la suivante. Ouvrez les **Paramètres** du moniteur et, sous **Pendant les incidents**, activez **Continuer la surveillance pendant les incidents** : les incidents déclarés dessus le laissent alors vérifié, y compris ceux déjà ouverts. Pour le garder vérifié pour un seul incident, décochez **Mettre la surveillance en pause** en le déclarant. Voir [Surveillance pendant qu'un incident est ouvert](/docs/incidents/declaring-incidents#surveillance-pendant-quun-incident-est-ouvert).
+
+## Publier dans Slack sans appeler personne
+
+Un environnement de préproduction, ou un produit dont les problèmes peuvent attendre, peut vouloir qu'une requête soit publiée dans un canal de discussion sans appeler personne. Une alerte qui ne nomme aucune politique d'astreinte le fait : elle est publiée dans Slack, Microsoft Teams ou Mattermost par les règles d'espace de travail du projet, et ne lance aucune escalade.
+
+:::steps
+1. Ouvrez le critère et, sous **Actions**, activez **Lorsque les filtres correspondent, créer une alerte.** Laissez ses **Politiques d'astreinte** vides.
+2. Écrivez dans l'alerte ce que dit la requête, par exemple `{{requestBody.commonAnnotations.summary}}` dans sa description. Voir [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
+3. Dans **Alertes → Espace de travail → Slack**, ajoutez une règle pour les alertes de ce moniteur et activez **Publier dans des canaux existants**. Slack doit d'abord être [connecté au projet](/docs/workspace-connections/slack).
+:::
+
+Une alerte qui ne nomme aucune politique d'astreinte peut tout de même appeler quelqu'un par les règles du projet. Vérifiez qu'aucune règle dans **Alertes → Règles → Règles d'astreinte** n'appelle quelqu'un pour ces alertes, et qu'aucune règle dans **Alertes → Règles → Règles d'incident** ne déclare d'incident à partir d'elles.
+
+Pour publier sans créer d'alerte, activez seulement **Lorsque les filtres correspondent, modifier le statut du moniteur.**, et ajoutez plutôt la règle dans **Moniteurs → Espace de travail → Slack**. Le canal apprend alors seulement que le statut du moniteur a changé, sans rien de la requête, et seulement quand il change : d'autres requêtes pendant que le moniteur est déjà dans ce statut ne publient rien.
+
+### N'appeler qu'en dehors des heures de travail
+
+Deux critères avec les mêmes filtres se partagent la semaine, dans cet ordre :
+
+1. Le premier publie pendant les heures de travail. Dans ses **Paramètres**, activez **Évaluer ce critère uniquement certains jours et à certaines heures**, et choisissez les jours, les heures et le **Fuseau horaire**. Son alerte ne nomme aucune politique d'astreinte.
+2. Le second appelle le reste du temps. Il n'a pas d'heures, et son alerte nomme votre politique d'astreinte.
+
+Le premier critère qui correspond à une requête décide de ce qui se passe. En dehors de ses heures, le premier critère est ignoré, donc le second correspond la nuit et le week-end, et c'est seulement alors que quelqu'un est appelé. Voir [Seulement certains jours et à certaines heures](/docs/monitor/criteria-and-statuses#seulement-certains-jours-et-à-certaines-heures).
+
+- Une requête est jugée à son arrivée, selon les heures du moment. Un problème qui commence à 16:55 n'appelle quelqu'un après 17:00 que si l'expéditeur l'envoie de nouveau, comme Alertmanager le fait une fois par `repeat_interval`.
+- Une alerte avec **Résoudre automatiquement l'alerte** activé est résolue quand une requête correspond à un autre critère. La première requête après le début des heures de travail correspond au premier critère : elle résout donc l'alerte de la nuit et en ouvre une qui n'appelle personne. Laissez **Résoudre automatiquement l'alerte** désactivé sur l'alerte du second critère pour qu'elle reste ouverte jusqu'à ce que quelqu'un la résolve.
+
 ## Services qui vérifient d'abord l'URL
 
 Certains services vérifient un nouveau point de terminaison avant de lui envoyer quoi que ce soit : ils lui envoient une requête, et n'envoient rien tant qu'il ne répond pas comme ils l'attendent. OneUptime répond lui-même à ces vérifications : il suffit de coller l'**URL de heartbeat** du moniteur dans le service.
@@ -479,11 +512,16 @@ Event Grid valide un point de terminaison qui lui renvoie un code, ou dont le pr
 3. **Utilisez POST avec `Content-Type: application/json`** — tout ce qui lit le corps en dépend.
 4. **Ne mélangez pas les deux usages sur un même moniteur** — un moniteur qui reçoit des alertes pilotées par les événements n'a pas de cadence régulière : un critère "Non reçu dans le délai (minutes)" y basculerait sans cesse. Utilisez un moniteur à part pour l'interrupteur de l'homme mort.
 5. **Surveillez le surveillant** — Assurez-vous que le service qui envoie les requêtes gère correctement les erreurs, pour que les requêtes échouées ne passent pas inaperçues.
+6. **Garder un récepteur d'événements vérifié pendant les incidents** — Sur un moniteur qui reçoit les alertes d'un autre système, activez **Continuer la surveillance pendant les incidents** dans ses **Paramètres**, pour qu'un incident déclaré dessus ne le mette pas en pause. Voir [Le garder vérifié pendant les incidents](#le-garder-vérifié-pendant-les-incidents).
 
 ## Dépannage
 
 :::details Mon expéditeur reçoit un 200, mais rien n'apparaît sur le moniteur
 Le `200` est envoyé avant la validation de la requête : il ne prouve donc pas qu'elle a été acceptée. Vérifiez que la clé secrète de l'URL correspond à l'**URL de heartbeat** du moniteur, et que le moniteur n'est pas désactivé. Regardez ensuite la chronologie du moniteur pour voir si les requêtes arrivent.
+:::
+
+:::details Les requêtes arrivent, mais le moniteur n'ouvre aucune alerte pendant qu'un incident est ouvert
+Un incident déclaré à la main sur le moniteur met en pause ses vérifications, donc ses requêtes sont listées dans ses **Journaux de surveillance** comme **Non évalué : la surveillance est mise en pause par un incident**, et le bandeau sur ses pages le dit. Activez **Continuer la surveillance pendant les incidents** dans ses **Paramètres** : ses vérifications reprennent aussitôt, et les requêtes suivantes sont évaluées. Les requêtes listées pendant qu'il était en pause ne sont pas évaluées après coup. Voir [Le garder vérifié pendant les incidents](#le-garder-vérifié-pendant-les-incidents).
 :::
 
 :::details Mon expéditeur reçoit un 401

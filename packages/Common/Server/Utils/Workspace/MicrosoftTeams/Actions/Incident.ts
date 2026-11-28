@@ -71,6 +71,7 @@ import WorkspaceIncidentFromAlert, {
   WorkspaceDeclaringAlert,
 } from "../../WorkspaceIncidentFromAlert";
 import MicrosoftTeamsAffectedResources from "../MicrosoftTeamsAffectedResources";
+import WorkspaceIncidentDeclaredByHand from "../../WorkspaceIncidentDeclaredByHand";
 import WorkspaceIncidentSubscriberNotification, {
   WORKSPACE_NOTIFY_SUBSCRIBERS_FIELD,
   WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT,
@@ -855,6 +856,11 @@ export default class MicrosoftTeamsIncidentActions {
             linked: toLink.linked,
             alert: linkedAlert?.name,
           }),
+          startedAcknowledgedLine:
+            await WorkspaceIncidentDeclaredByHand.getConfirmationLine({
+              projectId: projectId,
+              created: createdIncident,
+            }),
           subscribersLine:
             await WorkspaceIncidentSubscriberNotification.getConfirmationLine({
               projectId: projectId,
@@ -924,8 +930,9 @@ export default class MicrosoftTeamsIncidentActions {
    * The confirmation: the incident by its number, as Slack's names it -
    * "✅ Incident INC-43 created successfully. View incident" - with a link
    * to it when one can be built, what it is linked to
-   * (WorkspaceAffectedResources.getLinkedLine), and whether status page
-   * subscribers will be told (WorkspaceIncidentSubscriberNotification
+   * (WorkspaceAffectedResources.getLinkedLine), that it started
+   * acknowledged, when it did (WorkspaceIncidentDeclaredByHand), and whether
+   * status page subscribers will be told (WorkspaceIncidentSubscriberNotification
    * .getConfirmationLine), each in a paragraph of its own. The link is
    * words, not the address itself, which ran past a phone's screen.
    */
@@ -935,10 +942,12 @@ export default class MicrosoftTeamsIncidentActions {
     // "INC-43", or "#43" in a project without a prefix; null for none.
     incidentNumber?: string | null | undefined;
     linkedLine?: MarkdownText | null | undefined;
+    // That it started acknowledged (WorkspaceIncidentDeclaredByHand).
+    startedAcknowledgedLine?: MarkdownText | null | undefined;
     subscribersLine?: MarkdownText | null | undefined;
   }): Promise<string> {
     const linked: MarkdownText = FeedMarkdown.join(
-      [data.linkedLine, data.subscribersLine]
+      [data.linkedLine, data.startedAcknowledgedLine, data.subscribersLine]
         .filter(
           (line: MarkdownText | null | undefined): line is MarkdownText => {
             return Boolean(line);
@@ -1133,11 +1142,17 @@ export default class MicrosoftTeamsIncidentActions {
         data.subscriberChoice === undefined ? null : data.subscriberChoice,
     });
 
-    // Save the incident - linked to its alert, as one declared from it.
+    /*
+     * Save the incident - linked to its alert, as one declared from it - as
+     * declared by hand, as on Declare Incident: the project's switch may
+     * start it acknowledged (#11137, WorkspaceIncidentDeclaredByHand).
+     */
     const createdIncident: Incident = await IncidentService.create({
       data: incident,
       props: data.props,
-      ...(data.alert ? { miscDataProps: data.alert.miscDataProps } : {}),
+      miscDataProps: WorkspaceIncidentDeclaredByHand.withDeclaredByHand(
+        data.alert?.miscDataProps,
+      ),
     });
 
     logger.debug(
@@ -1439,6 +1454,12 @@ export default class MicrosoftTeamsIncidentActions {
      * (WorkspaceIncidentSubscriberNotification.getField).
      */
     notifySubscribers?: WorkspaceNotifySubscribersField | null | undefined;
+    /*
+     * Under the on-call policies, while the project starts incidents
+     * declared by hand acknowledged (WorkspaceIncidentDeclaredByHand); left
+     * out otherwise.
+     */
+    onCallPoliciesHint?: string | undefined;
   }): JSONObject {
     return MicrosoftTeamsCardChoices.fitCardToBudget<
       keyof MicrosoftTeamsNewIncidentFormChoices
@@ -1459,6 +1480,7 @@ export default class MicrosoftTeamsIncidentActions {
           affectedResources: data.affectedResources,
           declaringAlert: data.declaringAlert,
           notifySubscribers: data.notifySubscribers,
+          onCallPoliciesHint: data.onCallPoliciesHint,
         });
       },
     }).card;
@@ -1471,6 +1493,7 @@ export default class MicrosoftTeamsIncidentActions {
     affectedResources?: MicrosoftTeamsNewIncidentAffectedResources | undefined;
     declaringAlert?: WorkspaceDeclaringAlert | null | undefined;
     notifySubscribers?: WorkspaceNotifySubscribersField | null | undefined;
+    onCallPoliciesHint?: string | undefined;
   }): JSONObject {
     const { shown } = data;
     const initialTitle: string = (
@@ -1651,6 +1674,13 @@ export default class MicrosoftTeamsIncidentActions {
         isMultiSelect: true,
         choices: shown.onCallDutyPolicies.choices,
       });
+
+      // Left empty, it starts acknowledged where the project says so.
+      if (data.onCallPoliciesHint) {
+        bodyElements.push(
+          MicrosoftTeamsCardChoices.buildNoteElement(data.onCallPoliciesHint),
+        );
+      }
     }
 
     addNotShownNote(shown.onCallDutyPolicies, "on-call policies");

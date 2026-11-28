@@ -8,9 +8,8 @@ import {
   routesAt,
 } from "../Helpers/PageRoutes";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
 
 /*
  * The Storage Arrays product is a lazy-loaded route group mirroring the Ceph
@@ -77,6 +76,9 @@ const STORAGE_ARRAY_PAGE_KEYS: ReadonlyArray<string> = [
   "STORAGE_ARRAYS_SETTINGS_OWNER_RULE_VIEW",
   "STORAGE_ARRAYS_SETTINGS_LABEL_RULES",
   "STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW",
+  // The management servers a probe reads arrays from (#11004).
+  "STORAGE_ARRAYS_CONNECTIONS",
+  "STORAGE_ARRAYS_CONNECTION_VIEW",
   "STORAGE_ARRAY_VIEW",
   // The array drawn as one map: Components/ResourceTopology.
   "STORAGE_ARRAY_VIEW_TOPOLOGY",
@@ -86,6 +88,9 @@ const STORAGE_ARRAY_PAGE_KEYS: ReadonlyArray<string> = [
   "STORAGE_ARRAY_VIEW_HOST_DETAIL",
   "STORAGE_ARRAY_VIEW_REPLICATION",
   "STORAGE_ARRAY_VIEW_HARDWARE",
+  // A kind a platform has of its own (#11000), and a page per part (#11001).
+  "STORAGE_ARRAY_VIEW_INVENTORY",
+  "STORAGE_ARRAY_VIEW_INVENTORY_PART",
   "STORAGE_ARRAY_VIEW_DIRECTORIES",
   "STORAGE_ARRAY_VIEW_FILE_SYSTEMS",
   "STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL",
@@ -136,6 +141,10 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["HostDetail.tsx", "STORAGE_ARRAY_VIEW_HOST_DETAIL"],
   ["Replication.tsx", "STORAGE_ARRAY_VIEW_REPLICATION"],
   ["Hardware.tsx", "STORAGE_ARRAY_VIEW_HARDWARE"],
+  // A kind a platform has of its own (#11000): NetApp's aggregates, ...
+  ["Inventory.tsx", "STORAGE_ARRAY_VIEW_INVENTORY"],
+  // ... and one of them, an ONTAP aggregate, SVM, LUN or relationship (#11001).
+  ["InventoryPart.tsx", "STORAGE_ARRAY_VIEW_INVENTORY_PART"],
   ["Directories.tsx", "STORAGE_ARRAY_VIEW_DIRECTORIES"],
   ["FileSystems.tsx", "STORAGE_ARRAY_VIEW_FILE_SYSTEMS"],
   ["FileSystemDetail.tsx", "STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL"],
@@ -163,6 +172,8 @@ const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
   [["Archived.tsx"], "STORAGE_ARRAYS_ARCHIVED"],
   [["Settings", "OwnerRules.tsx"], "STORAGE_ARRAYS_SETTINGS_OWNER_RULES"],
   [["Settings", "LabelRules.tsx"], "STORAGE_ARRAYS_SETTINGS_LABEL_RULES"],
+  [["Connections.tsx"], "STORAGE_ARRAYS_CONNECTIONS"],
+  [["ConnectionView.tsx"], "STORAGE_ARRAYS_CONNECTION_VIEW"],
 ];
 
 /** Detail pages and the list each is reached from. */
@@ -243,6 +254,15 @@ describe("RouteMap gives every page a URL", () => {
     },
   );
 
+  test("a platform's kind is one segment, and one of its parts a second under it", () => {
+    expect(dense(routeMap)).toContain(
+      "[PageMap.STORAGE_ARRAY_VIEW_INVENTORY]:`${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}`",
+    );
+    expect(dense(routeMap)).toContain(
+      "[PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART]:`${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}/${RouteParams.PartID}`",
+    );
+  });
+
   test("every view route is built from the StorageArrayRoutePath dictionary", () => {
     for (const key of NAVIGABLE_PAGE_KEYS) {
       if (key === "STORAGE_ARRAYS") {
@@ -288,6 +308,16 @@ describe("every route is actually mounted", () => {
         new RegExp(`RouteUtil\\.getLastPathForKey\\(PageMap\\.${key},2,?\\)`),
       );
     }
+  });
+
+  test("a platform part's page registers its three trailing segments", () => {
+    // inventory/:subModelId/:partId, under the kind's own list.
+    expect(dense(routes)).toMatch(
+      /RouteUtil\.getLastPathForKey\(PageMap\.STORAGE_ARRAY_VIEW_INVENTORY_PART,3,?\)/,
+    );
+    expect(dense(routes)).toMatch(
+      /RouteUtil\.getLastPathForKey\(PageMap\.STORAGE_ARRAY_VIEW_INVENTORY,2,?\)/,
+    );
   });
 
   test("the rule view routes hand the rule model to the rule pages", () => {
@@ -439,6 +469,12 @@ describe("every navigable page has breadcrumbs", () => {
     );
   });
 
+  test("a platform part's trail leads back through the array's inventory", () => {
+    expect(dense(breadcrumbs)).toContain(
+      'PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART,["Project","StorageArrays","ViewStorageArray","Inventory","InventoryDetail",]',
+    );
+  });
+
   test("the trails use storage vocabulary, not Ceph's", () => {
     expect(breadcrumbs).toContain('"Storage Arrays"');
     expect(breadcrumbs).toContain('"View Storage Array"');
@@ -479,9 +515,10 @@ describe("the side menus reach the whole product", () => {
     "SideMenu.tsx",
   );
 
-  test("the product side menu links to the list, archive, docs and rules", () => {
+  test("the product side menu links to the list, connections, archive, docs and rules", () => {
     for (const key of [
       "STORAGE_ARRAYS",
+      "STORAGE_ARRAYS_CONNECTIONS",
       "STORAGE_ARRAYS_ARCHIVED",
       "STORAGE_ARRAYS_DOCUMENTATION",
       "STORAGE_ARRAYS_SETTINGS_OWNER_RULES",
@@ -497,8 +534,11 @@ describe("the side menus reach the whole product", () => {
 
   test("the array side menu links to every view page", () => {
     for (const [, key] of VIEW_PAGES) {
-      if (key.endsWith("_DETAIL")) {
-        // Detail pages are reached from their list, not the side menu.
+      if (
+        key.endsWith("_DETAIL") ||
+        key === "STORAGE_ARRAY_VIEW_INVENTORY_PART"
+      ) {
+        // Detail pages, and a platform part's, are reached from their list.
         continue;
       }
       const linked: boolean =
@@ -576,13 +616,40 @@ describe("the side menus reach the whole product", () => {
     }
   });
 
+  test("an ONTAP cluster gets volumes, its own kinds and hardware — never the Pure-only pages", () => {
+    const kinds: Array<string> =
+      StorageArrayResourceKindUtil.getKindsForSystem("netapp.ontap");
+    // A volume and the hardware kinds are shared; the rest are ONTAP's own.
+    expect(kinds).toEqual([
+      "Volume",
+      "Aggregate",
+      "Svm",
+      "Lun",
+      "SnapMirror",
+      "Controller",
+      "Drive",
+      "Hardware",
+      "NetworkInterface",
+    ]);
+    for (const kind of [
+      StorageArrayResourceKind.Host,
+      StorageArrayResourceKind.Pod,
+      StorageArrayResourceKind.Directory,
+      StorageArrayResourceKind.FileSystem,
+      StorageArrayResourceKind.Bucket,
+    ]) {
+      expect(kinds).not.toContain(kind);
+    }
+  });
+
   test("an array whose platform is unknown gets no inventory pages at all", () => {
     expect(StorageArrayResourceKindUtil.getKindsForSystem("")).toEqual([]);
     expect(StorageArrayResourceKindUtil.getKindsForSystem(undefined)).toEqual(
       [],
     );
+    // A platform no registry declares (NetApp ONTAP is one since #11001).
     expect(
-      StorageArrayResourceKindUtil.getKindsForSystem("netapp.ontap"),
+      StorageArrayResourceKindUtil.getKindsForSystem("hitachi.vsp"),
     ).toEqual([]);
     // The menu renders the Storage section only when it has items.
     expect(dense(viewSideMenu)).toContain(
@@ -827,7 +894,9 @@ describe("the install guide is wired to the shipped agent", () => {
     );
     expect(page).toContain('arrayName={storageArray.name||""}');
     expect(page).toContain("storageSystem={storageArray.storageSystem}");
-    expect(page).toContain("select:{name:true,storageSystem:true,}");
+    expect(page).toContain(
+      "select:{name:true,storageSystem:true,systemId:true,}",
+    );
   });
 
   test("the list page opens the guide from Add, and shows its showcase while the project has no array", () => {
@@ -867,6 +936,144 @@ describe("the install guide is wired to the shipped agent", () => {
     );
     // One the dialog sees connect puts the showcase away at once.
     expect(list).toContain("firstRecordWatch.onRecordCreated();");
+  });
+});
+
+describe("a platform a probe reads is connected, never installed (#11004)", () => {
+  const connections: string = dense(
+    readSource("Pages", "StorageArray", "Connections.tsx"),
+  );
+  const connectionView: string = dense(
+    readSource("Pages", "StorageArray", "ConnectionView.tsx"),
+  );
+
+  test("the connections list connects one with the two-step form, for its platform", () => {
+    expect(connections).toContain('createVerb="Connect"');
+    expect(connections).toContain(
+      "formSteps={STORAGE_ARRAY_CONNECTION_FORM_STEPS}",
+    );
+    expect(connections).toContain("getStorageArrayConnectFormFields({");
+    expect(connections).toContain(
+      "item.storageSystem=collector.storageSystem;",
+    );
+    // A row opens the connection's own page, and so does a new connection.
+    expect(connections).toContain(
+      "RouteMap[PageMap.STORAGE_ARRAYS_CONNECTION_VIEW]asRoute",
+    );
+    expect(connections).toContain("Navigation.navigate(viewRoute(");
+  });
+
+  test("a Connect link opens the Connect form at once, for the platform it names", () => {
+    // ?create=1, as every list opens its create form (CreateFormAddress).
+    expect(connections).toContain("opensCreateFormFromAddress={true}");
+    expect(connections).toContain(
+      "Navigation.getQueryStringByName(CONNECT_PLATFORM_QUERY_PARAMETER",
+    );
+    const offer: string = dense(
+      readSource(
+        "Components",
+        "StorageArray",
+        "Connection",
+        "StorageArrayConnectOffer.tsx",
+      ),
+    );
+    expect(offer).toContain(
+      "[CREATE_FORM_ADDRESS_PARAM]:CREATE_FORM_ADDRESS_VALUE,",
+    );
+    expect(offer).toContain(
+      "RouteMap[PageMap.STORAGE_ARRAYS_CONNECTIONS]asRoute",
+    );
+  });
+
+  test("the connection's page edits with the same steps, tests, trusts and deletes", () => {
+    expect(connectionView).toContain(
+      "formSteps={STORAGE_ARRAY_CONNECTION_FORM_STEPS}",
+    );
+    expect(connectionView).toContain(
+      "getStorageArrayConnectionEditFormFields({",
+    );
+    expect(connectionView).toContain("storageArrayConnectionId:modelId,");
+    expect(connectionView).toContain("<StorageArrayConnectionTestPanel");
+    expect(connectionView).toContain(
+      "trustedCertificateFingerprint:fingerprint,",
+    );
+    expect(connectionView).toContain("<StorageArrayConnectionStatusCard");
+    expect(connectionView).toContain("<StorageArrayConnectionArraysCard");
+    expect(connectionView).toContain(
+      "<ModelDeletemodelType={StorageArrayConnection}",
+    );
+    // Never the saved password: the test sends none, and the server uses it.
+    expect(connectionView).toContain('password:"",');
+    expect(connectionView).not.toContain("password:true");
+  });
+
+  test("the Storage Arrays list offers Connect Unisphere beside Add Storage Array", () => {
+    const list: string = dense(
+      readSource("Pages", "StorageArray", "StorageArrays.tsx"),
+    );
+    expect(list).toContain("...connectButtons,");
+    expect(list).toContain("StorageArrayProbeCollectors.getAll().map(");
+    expect(list).toContain("Navigation.navigate(getConnectRoute(collector));");
+    // And under the first-run showcase, for someone about to install the agent.
+    expect(list).toContain("actionsNote={<StorageArrayConnectOffer/>}");
+  });
+
+  test("an array a probe reads shows its connection, not the agent's guide", () => {
+    const overview: string = dense(
+      readSource("Pages", "StorageArray", "View", "Index.tsx"),
+    );
+    // However the call is wrapped: with a trailing comma when it breaks.
+    expect(
+      overview.replace(
+        "isProbeCollected(storageArray.storageSystem,)",
+        "isProbeCollected(storageArray.storageSystem)",
+      ),
+    ).toContain(
+      'storageArray&&StorageArrayProbeCollectors.isProbeCollected(storageArray.storageSystem)?(<divclassName="mb-5"><StorageArrayCollectedByCard',
+    );
+    expect(overview).toContain("):storageArray?(<ResourceConnectionGuideCard");
+    expect(overview).toContain("systemId:true,");
+
+    const documentation: string = dense(
+      readSource("Pages", "StorageArray", "View", "Documentation.tsx"),
+    );
+    expect(documentation).toContain(
+      "StorageArrayProbeCollectors.getCollector(storageArray.storageSystem)",
+    );
+    expect(documentation.indexOf("<StorageArrayCollectedByCard")).toBeLessThan(
+      documentation.indexOf("<StorageArrayDocumentationCard"),
+    );
+  });
+
+  test("the connections page is found by search", () => {
+    const search: string = dense(
+      readSource("Components", "CommandPalette", "PageSearchIndex.ts"),
+    );
+    expect(search).toContain("page:PageMap.STORAGE_ARRAYS_CONNECTIONS,");
+    expect(search).toContain('"unisphere"');
+    expect(search).toContain('"powermax"');
+  });
+
+  test("the connections' trails read Project > Storage Arrays > Connections", () => {
+    const breadcrumbs: string = dense(
+      readSource("Utils", "Breadcrumbs", "StorageArrayBreadcrumbs.ts"),
+    );
+    expect(breadcrumbs).toContain(
+      'PageMap.STORAGE_ARRAYS_CONNECTIONS,["Project","StorageArrays","Connections",]',
+    );
+    expect(breadcrumbs).toContain(
+      'PageMap.STORAGE_ARRAYS_CONNECTION_VIEW,["Project","StorageArrays","Connections","ViewConnection",]',
+    );
+  });
+
+  test("a connection's route sits under the product, beside its list", () => {
+    const routeMap: string = dense(readSource("Utils", "RouteMap.ts"));
+    expect(routeMap).toContain(
+      "[PageMap.STORAGE_ARRAYS_CONNECTIONS]:`connections`",
+    );
+    expect(routeMap).toContain(
+      "[PageMap.STORAGE_ARRAYS_CONNECTION_VIEW]:`connections/${RouteParams.ModelID}`",
+    );
   });
 });
 

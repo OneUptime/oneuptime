@@ -3,6 +3,7 @@ import { KeyedConcurrencyRelease } from "Common/Server/Utils/KeyedConcurrencyLim
 import ProbeSchedulingLimiterInstance, {
   PROBE_SCHEDULING_BUSY_MESSAGE,
   PROBE_SCHEDULING_BUSY_RETRY_AFTER_SECONDS,
+  PROBE_SCHEDULING_MAX_SLOT_HOLD_MS,
   ProbeSchedulingAbandonedError,
   ProbeSchedulingBusyError,
   ProbeSchedulingLimiter,
@@ -12,10 +13,18 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeCapability, {
   ProbeCapabilityUtil,
 } from "Common/Types/Probe/ProbeCapability";
+import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
+import ProbeSchedulingReconnectInstance, {
+  ProbeSchedulingReconnect,
+} from "Common/Server/Utils/Probe/ProbeSchedulingReconnect";
+import ProbeSchedulingMetricsInstance, {
+  ProbeSchedulingMetrics,
+} from "Common/Server/Utils/Probe/ProbeSchedulingMetrics";
 
 /*
  * Holds a request a probe makes for work - /monitor/list, /monitor-test/list,
@@ -23,10 +32,19 @@ import ProbeCapability, {
  * discovery scans, device diagnostics, packet captures, VMware and OpenStack
  * collections and checks, Data Security and Data Observability (issue #8051)
  * - to the process's probe scheduling limit
- * (Common/Server/Utils/Probe/ProbeSchedulingLimiter): it runs once a slot is
- * free, keeps the slot until its answer has gone, and a request the limiter
+ * (Common/Server/Utils/Probe/ProbeSchedulingLimiter), in the lane the route
+ * names: the work lane unless said, the monitor test lane for
+ * /monitor-test/list (#10819). It runs once a slot of its lane is free,
+ * keeps the slot until its answer has gone, and a request the limiter
  * refuses is answered busy here and never reaches the handler, so it claims
  * nothing - what it would have been handed stays due for the next request.
+ *
+ * A request whose probe has hung up already - it was authenticated after
+ * the probe's own deadline, on a slow database or Valkey - takes no slot and
+ * never reaches the handler either. Its "close" has been and gone, so
+ * nothing would ever give a slot taken for it back: once every slot of a
+ * process went that way, that process answered every probe busy, and handed
+ * none of them a monitor, until it was restarted.
  *
  * Busy is a 429 with Retry-After to a probe whose fetch of the endpoint
  * reads it as "ask again at the next tick": one that declares the
@@ -36,6 +54,17 @@ import ProbeCapability, {
  * without a word, where a 429 would reach its log every tick (its monitor
  * and monitor test fetches parse any answer as a list, and its other work
  * fetches log a refused request as a failure).
+ *
+ * While the lane has requests waiting for a slot here, the answer to a
+ * request it ran asks its client to reconnect ("Connection: close", at
+ * most one answer a lane every PROBE_SCHEDULING_RECONNECT_EVERY_MS): the
+ * probe's or nginx's next request then opens a new connection, which
+ * kube-proxy may send to a pod KEDA added for the probes, or to one less
+ * busy (ProbeSchedulingReconnect, #11121). Kept alive, the probes'
+ * connections stayed on the pods that were there when they were opened.
+ * Each answer that asks is counted, by lane, in the probe scheduling
+ * metrics (reconnectsAskedPerMinute on /metrics/probe-scheduling,
+ * probe.scheduling.reconnect.count: #11392).
  */
 
 // The endpoint's answer when it has nothing to hand out.
@@ -60,11 +89,39 @@ export interface ProbeSchedulingLimitOptions {
    */
   retriesWhenBusy?: ProbeCapability | null | undefined;
   limiter?: ProbeSchedulingLimiter | undefined;
+  // The limit's lane: the work lane unless said.
+  lane?: ProbeSchedulingLane | undefined;
+  /*
+   * Longest a request keeps its slot with neither its answer gone nor its
+   * probe hung up: PROBE_SCHEDULING_MAX_SLOT_HOLD_MS unless said.
+   */
+  maxSlotHoldMs?: number | undefined;
+  // What says when an answer asks to reconnect: the process's unless said.
+  reconnect?: ProbeSchedulingReconnect | undefined;
+  // Where an answer that asks to reconnect is counted: the process's unless said.
+  metrics?: ProbeSchedulingMetrics | undefined;
 }
 
 interface ResponseEvents {
   once?: (event: string, listener: () => void) => void;
   writableFinished?: boolean;
+  // Node sets both just before the response's "close", and never clears them.
+  destroyed?: boolean;
+  closed?: boolean;
+}
+
+/*
+ * Whether the probe hung up before its answer was complete, and the
+ * response's "close" has been and gone: nothing more will ever be heard of
+ * this response, so a listener added now never fires.
+ */
+export function hasProbeHungUp(res: ExpressResponse): boolean {
+  const events: ResponseEvents = res as unknown as ResponseEvents;
+
+  return Boolean(
+    (events.destroyed === true || events.closed === true) &&
+      !events.writableFinished,
+  );
 }
 
 /*
@@ -86,21 +143,85 @@ function abandonedWhenClientLeaves(res: ExpressResponse): AbortSignal {
   return controller.signal;
 }
 
-// Gives the slot back once the answer has gone, or the client has.
-function releaseWhenAnswered(
-  res: ExpressResponse,
-  release: KeyedConcurrencyRelease,
-): void {
-  const events: ResponseEvents = res as unknown as ResponseEvents;
+interface AnswerHeaders {
+  writeHead?: (...args: Array<unknown>) => unknown;
+  headersSent?: boolean;
+}
 
-  if (typeof events.once !== "function") {
-    // Nothing to listen to (a unit test's bare object): do not keep it.
-    release();
+/*
+ * Runs `decide` just before the answer's headers are written, however the
+ * handler sends it (res.send writes them through writeHead too), so what it
+ * sets goes out with them. An answer whose headers have gone already, or a
+ * bare object with nothing to write them (a unit test's), is left alone.
+ */
+export function beforeAnswerHeaders(
+  res: ExpressResponse,
+  decide: () => void,
+): void {
+  const response: AnswerHeaders = res as unknown as AnswerHeaders;
+  const writeHead: ((...args: Array<unknown>) => unknown) | undefined =
+    response.writeHead;
+
+  if (typeof writeHead !== "function" || response.headersSent) {
     return;
   }
 
-  events.once("finish", release);
-  events.once("close", release);
+  response.writeHead = function (
+    this: unknown,
+    ...args: Array<unknown>
+  ): unknown {
+    response.writeHead = writeHead;
+
+    try {
+      decide();
+    } catch (error) {
+      // What it would have set is not worth the answer.
+      logger.error(error);
+    }
+
+    return writeHead.apply(this, args);
+  };
+}
+
+/*
+ * Gives the slot back once the answer has gone, or the client has - or,
+ * should both be missed, once it has been held `maxSlotHoldMs`
+ * (PROBE_SCHEDULING_MAX_SLOT_HOLD_MS), saying so in the log.
+ */
+function releaseWhenAnswered(data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  release: KeyedConcurrencyRelease;
+  probeId: string;
+  maxSlotHoldMs: number;
+}): void {
+  const events: ResponseEvents = data.res as unknown as ResponseEvents;
+
+  if (typeof events.once !== "function") {
+    // Nothing to listen to (a unit test's bare object): do not keep it.
+    data.release();
+    return;
+  }
+
+  const takenAt: number = Date.now();
+
+  const timer: ReturnType<typeof setTimeout> = setTimeout((): void => {
+    logger.error(
+      `Probe scheduling: a slot taken for ${data.req.originalUrl || data.req.url || "a request"} of probe ${data.probeId} was still held ${Date.now() - takenAt} ms later, with no answer sent and no hang-up seen. It is given back now; kept, it would be one slot fewer for every probe until this process restarts.`,
+    );
+    data.release();
+  }, data.maxSlotHoldMs);
+
+  // The timer must never keep the process up on its own.
+  (timer as { unref?: () => void }).unref?.();
+
+  const giveBack: () => void = (): void => {
+    clearTimeout(timer);
+    data.release();
+  };
+
+  events.once("finish", giveBack);
+  events.once("close", giveBack);
 }
 
 export default class ProbeSchedulingMiddleware {
@@ -153,6 +274,13 @@ export default class ProbeSchedulingMiddleware {
       options.retriesWhenBusy === undefined
         ? ProbeCapability.RetryWhenBusy
         : options.retriesWhenBusy;
+    const maxSlotHoldMs: number =
+      options.maxSlotHoldMs ?? PROBE_SCHEDULING_MAX_SLOT_HOLD_MS;
+    const reconnect: ProbeSchedulingReconnect =
+      options.reconnect || ProbeSchedulingReconnectInstance;
+    const metrics: ProbeSchedulingMetrics =
+      options.metrics || ProbeSchedulingMetricsInstance;
+    const lane: ProbeSchedulingLane = options.lane || ProbeSchedulingLane.Work;
 
     return async (
       req: ExpressRequest,
@@ -167,11 +295,22 @@ export default class ProbeSchedulingMiddleware {
         return next();
       }
 
+      /*
+       * The probe hung up while its request was on its way here: there is
+       * nobody to answer, and a slot taken now would never be given back
+       * (see the comment at the top). Nothing is claimed: what it would
+       * have been handed stays due for its next request.
+       */
+      if (hasProbeHungUp(res)) {
+        return;
+      }
+
       let release: KeyedConcurrencyRelease;
 
       try {
         release = await limiter.acquire(probeId.toString(), {
           signal: abandonedWhenClientLeaves(res),
+          lane: options.lane,
         });
       } catch (error) {
         if (error instanceof ProbeSchedulingAbandonedError) {
@@ -191,7 +330,36 @@ export default class ProbeSchedulingMiddleware {
         return next(error);
       }
 
-      releaseWhenAnswered(res, release);
+      // Handed the slot as its probe hung up: give it straight back.
+      if (hasProbeHungUp(res)) {
+        release();
+        return;
+      }
+
+      /*
+       * Requests waiting behind this one as its answer goes: the answer
+       * moves the probe's connection, so its next request may go to another
+       * pod (see the comment at the top).
+       */
+      beforeAnswerHeaders(res, (): void => {
+        if (
+          reconnect.shouldAskToReconnect({
+            lane: lane,
+            waiting: limiter.waitingCount(undefined, lane),
+          })
+        ) {
+          res.setHeader("Connection", "close");
+          metrics.recordReconnectAsked(lane);
+        }
+      });
+
+      releaseWhenAnswered({
+        req: req,
+        res: res,
+        release: release,
+        probeId: probeId.toString(),
+        maxSlotHoldMs: maxSlotHoldMs,
+      });
       return next();
     };
   }

@@ -28,6 +28,8 @@ export const STORE_EXPOSURE_OPTIONS: Array<DropdownOption> = [
   { label: "Internet reachable", value: DataStoreExposure.InternetReachable },
   { label: "Private", value: DataStoreExposure.Private },
   { label: "Unknown", value: DataStoreExposure.Unknown },
+  { label: "Not checked yet", value: DataStoreExposure.NotChecked },
+  { label: "Can't be checked", value: DataStoreExposure.CannotBeChecked },
 ];
 
 /*
@@ -46,14 +48,19 @@ export const STORE_ENVIRONMENT_OPTIONS: Array<DropdownOption> = [
 /*
  * The clouds by their own names, as written in every language
  * (DropdownOption.isUserContent). OneUptime holds a service's telemetry
- * and the security records it declares (#10398), so it is OneUptime.
+ * and the security records it declares (#10398), so it is OneUptime - a
+ * name too, written as it is.
  */
 export const STORE_PROVIDER_OPTIONS: Array<DropdownOption> = [
   { label: "AWS", value: DataStoreProvider.Aws, isUserContent: true },
   { label: "Azure", value: DataStoreProvider.Azure, isUserContent: true },
   { label: "Google Cloud", value: DataStoreProvider.Gcp, isUserContent: true },
   { label: "Run by you", value: DataStoreProvider.SelfManaged },
-  { label: "OneUptime", value: DataStoreProvider.OneUptime },
+  {
+    label: "OneUptime",
+    value: DataStoreProvider.OneUptime,
+    isUserContent: true,
+  },
 ];
 
 // What a store's provider is called, for its rows.

@@ -94,6 +94,12 @@ import {
 } from "Common/Utils/StateOrder";
 import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
 import ScheduledMaintenancePublication from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import NotificationRuleUpdates, {
+  NotificationRuleUpdateKind,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import { SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS } from "Common/Server/Utils/Feed/FeedUpdateKinds";
+import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import {
   DEFAULT_MAINTENANCE_DURATION_IN_MINUTES,
   MaintenanceWindow,
@@ -1031,20 +1037,63 @@ describe("what an event affects", () => {
       ),
     );
 
+    // The flag written back, on one line or two.
+    const flagWritten: number = release.search(
+      /disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:\s*false/,
+    );
+    const heldChecked: number = release.indexOf("if (isHeldByAnotherEvent) {");
+
     expect(release).toContain("isOperationalState: true,");
     expect(release).toContain(
       "await this.isMonitorHeldInMaintenanceByAnyEvent(",
     );
-    expect(release.indexOf("if (isHeldByAnotherEvent) {")).toBeLessThan(
-      release.indexOf(
-        "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:\n                  false",
-      ),
-    );
+    expect(heldChecked).toBeGreaterThan(-1);
+    expect(flagWritten).toBeGreaterThan(heldChecked);
     expect(EVENT_SERVICE).toContain(
       "protected override async onDeleteSuccess(",
     );
     expect(affects).toContain(
       "When the event ends, or is deleted, checks resume and each monitor goes back to operational, unless another event in progress still holds it.",
+    );
+  });
+
+  it("gives a monitor an incident declared by hand still pauses the incident's status, and one an incident lets go during the event the event's", () => {
+    const release: string = TIMELINE_SERVICE.slice(
+      TIMELINE_SERVICE.indexOf(
+        "public async enableActiveMonitoringForMonitors(",
+      ),
+    );
+
+    // The event ends: the status of the incidents still pausing it, if any.
+    expect(release).toContain(
+      "await MonitorIncidentPause.getStatusOfIncidentsStillPausing(pause)",
+    );
+    // An incident resolved: the status of the events still holding it.
+    expect(readCommonSource("Server/Services/IncidentService.ts")).toContain(
+      "await MonitorIncidentPause.getStatusOfMaintenanceStillHolding(pause);",
+    );
+    expect(affects).toContain(
+      "A monitor that an incident declared by hand still pauses goes back to the status that incident puts it in instead, and an incident that lets go of a monitor while the event still holds it puts the monitor back in the event's status, when the event sets one.",
+    );
+  });
+
+  it("leaves the time of monitors it puts in no status out of uptime, status pages and SLOs, and counts the status it picks", () => {
+    // Its start, and the edits of an event in progress, mark that time.
+    expect(TIMELINE_SERVICE).toContain(
+      "await this.markUptimeOfMonitors(scheduledMaintenanceEvent);",
+    );
+    expect(EVENT_SERVICE).toContain(
+      "await ScheduledMaintenanceStateTimelineService.markUptimeOfMonitors(",
+    );
+    // An event that picks a status counts it.
+    expect(
+      readCommonSource("Server/Utils/Monitor/MonitorIncidentPause.ts"),
+    ).toContain("public static getStatusSettingMaintenanceEvents(");
+    expect(affects).toContain(
+      "If you picked a **Change Monitor Status to**, the monitors show that status, on your status pages too, and their uptime counts it. If you did not, each monitor keeps the status its last check saw, and its uptime, status pages and SLOs leave the time out, as they leave out time with monitoring turned off",
+    );
+    expect(affects).toContain(
+      "Its **Status Timeline** marks where that time starts and ends.",
     );
   });
 
@@ -2378,6 +2427,7 @@ describe("starting from a resource or a template", () => {
         CreateFromRecordKind.DockerHost,
         CreateFromRecordKind.PodmanHost,
         CreateFromRecordKind.VMwareVCenter,
+        CreateFromRecordKind.XcpNgPool,
         CreateFromRecordKind.OpenStackCloud,
         CreateFromRecordKind.StorageArray,
         CreateFromRecordKind.IoTFleet,
@@ -2398,7 +2448,7 @@ describe("starting from a resource or a template", () => {
     }
 
     expect(start).toContain(
-      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
+      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an XCP-ng pool, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
     );
   });
 
@@ -2472,16 +2522,18 @@ describe("what happens when an event is created", () => {
     );
   });
 
-  it("works through the steps in the page's order: chat, feed, state timeline, owners and labels, runbook rules, reminders", () => {
+  it("works through the steps in the page's order: state timeline, owners and labels, chat and feed, runbook rules, reminders (#11188)", () => {
     expect(
       inOrder(
         positionsIn(createSuccessSteps(EVENT_SERVICE), [
-          "this.handleScheduledMaintenanceWorkspaceOperationsAsync(",
-          "this.createScheduledMaintenanceFeedAsync(",
           "this.createScheduledMaintenanceStateTimelineAsync(",
           "this.addOwners(",
           "ScheduledMaintenanceOwnerRuleEngineService.applyRulesToScheduledMaintenance(",
           "ScheduledMaintenanceLabelRuleEngineService.applyRulesToScheduledMaintenance(",
+          "WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate(",
+          "this.handleScheduledMaintenanceWorkspaceOperationsAsync(",
+          "this.createScheduledMaintenanceFeedAsync(",
+          "WorkspaceCreatedMessageFirst.postHeld(",
           "RunbookRuleEngineService.applyRulesToScheduledMaintenance(",
           "this.refreshReminderSchedule({",
         ]),
@@ -2490,14 +2542,32 @@ describe("what happens when an event is created", () => {
     expect(
       inOrder(
         positionsIn(happens, [
-          "**Your chat tools hear of it.**",
           "**Its state timeline starts.**",
           "**Owners and labels are added**",
+          "**Your chat tools hear of it.**",
           "**Runbook rules start**",
           "**Reminders are scheduled**",
         ]),
       ),
     ).toBe(true);
+  });
+
+  it("matches the chat rules on the owners and labels it is created with, and posts what was said meanwhile after it (#11188)", () => {
+    const steps: string = createSuccessSteps(EVENT_SERVICE);
+
+    // Its creator, made its owner as the create returns, is waited for.
+    expect(EVENT_SERVICE).toContain(
+      "CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);",
+    );
+    expect(steps).toContain(
+      "eventType: NotificationRuleEventType.ScheduledMaintenance,",
+    );
+    // Everything else said about it waits for its created message.
+    expect(steps).toContain("await WorkspaceCreatedMessageFirst.hold({");
+    expect(EVENT_SERVICE).toContain("announcesRecord: true,");
+    expect(happens).toContain(
+      "The rules see the owners and labels the event was created with, so a rule that asks who owns an event, or how it is labelled, posts it too. Whatever was said about the event meanwhile, such as the owners just added, follows it in those channels.",
+    );
   });
 
   it("lets a Workspace rule create a channel for the event", () => {
@@ -3224,7 +3294,7 @@ describe("recurring events", () => {
       inOrder(
         positionsIn(recurringJob, [
           "scheduleNextEventAt: nextScheduledTime,",
-          "scheduledMaintenanceEvent = await ScheduledMaintenanceService.create({",
+          "await ScheduledMaintenanceService.create(createBy);",
         ]),
       ),
     ).toBe(true);
@@ -3616,6 +3686,51 @@ describe("where maintenance settings live", () => {
     expect(where).toContain(
       "at an address beginning `/dashboard/{projectId}/scheduled-maintenance-events/settings/`.",
     );
+  });
+
+  it("says what the Workspace rules post of an event - its owners added and taken off among it - as its services post them (#11223)", () => {
+    expect(where).toContain(
+      "The **Workspace** section holds the Slack and Microsoft Teams rules that post events to channels: each event as it is created, then its state changes, notes, owners added and taken off, and reminders, as each rule's **Updates** step chooses.",
+    );
+
+    // Each owner line is posted: added and taken off, a person and a team.
+    for (const file of [
+      "Server/Services/ScheduledMaintenanceOwnerUserService.ts",
+      "Server/Services/ScheduledMaintenanceOwnerTeamService.ts",
+    ]) {
+      expect({
+        file,
+        linesPosted:
+          readCommonSource(file).split("sendWorkspaceNotification: true,")
+            .length - 1,
+      }).toEqual({ file, linesPosted: 2 });
+    }
+
+    // They are the Owners update, a box of the Updates step, as each update named is.
+    for (const type of [
+      ScheduledMaintenanceFeedEventType.OwnerUserAdded,
+      ScheduledMaintenanceFeedEventType.OwnerTeamAdded,
+      ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
+      ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
+    ]) {
+      expect({
+        type,
+        kind: SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS[type],
+      }).toEqual({ type, kind: NotificationRuleUpdateKind.Owners });
+    }
+
+    expect(
+      NotificationRuleUpdates.getChoosableKinds(
+        NotificationRuleEventType.ScheduledMaintenance,
+      ),
+    ).toEqual([
+      NotificationRuleUpdateKind.StateChanges,
+      NotificationRuleUpdateKind.PublicNotes,
+      NotificationRuleUpdateKind.PrivateNotes,
+      NotificationRuleUpdateKind.Owners,
+      NotificationRuleUpdateKind.Reminders,
+      NotificationRuleUpdateKind.Other,
+    ]);
   });
 });
 

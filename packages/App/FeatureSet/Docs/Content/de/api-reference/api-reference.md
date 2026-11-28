@@ -274,7 +274,7 @@ Ein Projekt, das eindeutige Namen verlangt, wie es ein neues Projekt tut, hält 
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-Eine solche Ablehnung enthält außerdem `takenById`, die ID des Datensatzes, der den Namen hat, wenn Ihr Schlüssel ihn lesen darf. Datensätze, die sich einen Namen teilten, bevor das Projekt eindeutige Namen verlangte, behalten ihn, bis sie umbenannt werden, und ein Update kann mehreren Datensätzen derselben Art nicht denselben Namen geben. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` beantwortet, ob ein Name vergeben ist, bevor Sie ihn senden, und `GET /api/unique-names/duplicates` listet die Namen auf, die das Projekt mehr als einmal hat, Art für Art.
+Eine solche Ablehnung enthält außerdem `takenById`, die ID des Datensatzes, der den Namen hat, wenn Ihr Schlüssel ihn lesen darf. Datensätze, die sich einen Namen teilten, bevor das Projekt eindeutige Namen verlangte, behalten ihn, bis sie umbenannt werden, und ein Update kann mehreren Datensätzen derselben Art nicht denselben Namen geben. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` beantwortet, ob ein Name vergeben ist, bevor Sie ihn senden, und `GET /api/unique-names/duplicates` listet die Namen auf, die das Projekt mehr als einmal hat, Art für Art. `GET /api/shared-names/Monitor`, oder der Tabellenname jeder anderen Art, für die die Einstellung gilt, beantwortet, welche ihrer Datensätze sich einen Namen teilen, so wie die Listen im Dashboard sie markieren: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, jede Gruppe zwei oder mehr Datensätze, die Ihr Schlüssel lesen darf, mit dem Zeitpunkt, zu dem jeder angelegt wurde. Archivierte Datensätze werden getrennt von denen gruppiert, die in Dienst sind.
 
 #### Werte, die schon ein anderer Datensatz hat
 
@@ -300,6 +300,22 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 Ein Update, das die Werte eines Datensatzes so schreibt, wie sie bereits sind, ändert nichts: Es startet die Workflows **On Update** des Datensatzes nicht, sendet keine Live-Aktualisierungen und fügt keinen Audit-Protokolleintrag hinzu. `false` über `false` geschrieben zählt als derselbe Wert, ebenso `"false"` über `false` geschrieben, eine als Text geschriebene Zahl, eine Zeit, die als derselbe Zeitpunkt in einem anderen Format geschrieben wird, und Labels, die als dieselben Labels in beliebiger Reihenfolge geschrieben werden. Wenn ein Update einige Werte ändert und andere so zurückschreibt, wie sie sind, listet sein Audit-Protokolleintrag nur die geänderten Werte auf, und **Beobachtete Felder** eines Workflows hört nur diese.
+
+### Als JSON geschriebene Werte
+
+Manche Felder enthalten einen JSON-Wert mit eigener Form, etwa `rotation` und `restrictionTimes` einer Ebene eines Bereitschaftsplans; die API-Referenz führt jede Form bei ihren Datentypen auf. OneUptime liest nur die Schlüssel dieser Form, daher wird ein Wert, der den Schlüssel weglässt, der sagt, was er bedeutet, diesen Schlüssel anders schreibt oder ihm einen Wert gibt, den OneUptime nicht kennt, mit einem `400` abgelehnt, der den Schlüssel nennt, statt als Wert gespeichert zu werden, der nichts bewirkt:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+Ein umbenannter Schlüssel wird weiterhin unter seinem alten Namen gelesen: Die Art der Einschränkung einer Ebene wird unter `restrictionType` geschrieben oder unter der älteren Schreibweise `restictionType`, und eine Antwort enthält beide. Die ältere Schreibweise ist in Antworten veraltet: Antworten enthalten sie bis zur ersten Hauptversion, die am oder nach dem 1. Juni 2027 erscheint. Schreibvorgänge lesen sie immer.
+
+Ein Wert wird außerdem beim Wort genommen. Das wöchentliche Zeitfenster einer Ebene hat an den Tagen Bereitschaft, die es nennt, daher müssen seine `startTime` und `endTime` in der Zeitzone des Plans auf seinen `startDay` und `endDay` fallen. Ein Fenster, das auf andere Tage datiert ist, wird mit einem `400` abgelehnt, der das Fenster nennt und eine Zeit am genannten Tag angibt, die stattdessen gesendet werden kann:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Wo ein Projekt gekauft wurde
 
@@ -412,6 +428,44 @@ Incident not found.
 ```
 
 Früher antwortete es mit `200` und einem leeren Body. Eine Liste (`get-list`) und eine Zählung antworten weiterhin mit `200` und den Datensätzen, die Sie lesen dürfen, ohne Datensätze, wenn es keine gibt. Der Terraform-Provider liest ein `404` beim Aktualisieren als eine Ressource, die weg ist, und entfernt sie aus dem State, sodass der nächste Plan sie wieder anlegt: Geben Sie dem API-Schlüssel, den er verwendet, die Berechtigungen und die Labels, um jede Ressource zu lesen, die er verwaltet. Die MCP-Tools beantworten ein `404` mit einem Fehler, der auf das passende Listen-Tool verweist, und die CLI endet mit dem Code `3`.
+
+### Bilder im Markdown eines Datensatzes
+
+Ein Bild, das in Markdown eingefügt wurde, etwa ein Screenshot in der Beschreibung eines Vorfalls, einem benutzerdefinierten Markdown-Feld oder einer Notiz, ist eine private Datei. Seine Adresse (`/file/image/access-token/...`) öffnet es nur für eine Person, die im Projekt angemeldet ist, daher liest ein API-Schlüssel es stattdessen über den Datensatz, der es zeigt:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Der Datensatz wird als der Schlüssel gelesen, so wie `get-item` ihn liest: Der Schlüssel braucht die Berechtigung, ihn zu lesen, und seine Labels. Die Antwort enthält jedes Bild, das das Markdown des Datensatzes zeigt, in der Reihenfolge, in der es sie zeigt: `name`, `mimeType`, `sizeInBytes`, die Daten in `base64`, eine `contentId` für einen eingebetteten E-Mail-Anhang, die `urls`, unter denen das Markdown es zeigt, und die `fields`, in denen es steht. Unter `leftOut` stehen die Dateien, die das Markdown zeigt, die aber nicht herausgegeben werden, jeweils mit einem `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Herausgegeben werden nur Bilder, die in das eigene Projekt des Datensatzes hochgeladen wurden, bis zu 20 und insgesamt 10 MB, und nie ein SVG. Jede Art von Datensatz mit Markdown hat dieselbe Anfrage, etwa `/api/incident-public-note/<id>/markdown-files` oder `/api/alert/<id>/markdown-files`. Ein Datensatz, der nicht existiert oder den der Schlüssel nicht lesen darf, antwortet `404`, wie `get-item`, und `422`, wenn der Schlüssel diese Art von Datensatz überhaupt nicht lesen darf. Ein Workflow liest dieselben Bilder mit [Dateien aus Markdown abrufen](/docs/workflows/components#get-files-from-markdown).
 
 ## Die vollständige Endpunkt-Referenz
 

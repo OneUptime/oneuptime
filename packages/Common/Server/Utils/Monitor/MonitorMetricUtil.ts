@@ -47,6 +47,11 @@ import {
   CRITERIA_FILTER_NOT_MATCHED_VALUE,
 } from "../../../Types/Monitor/CriteriaFilterMatchHistory";
 import { MONITOR_STEP_ID_ATTRIBUTE } from "../../../Types/Monitor/MonitorStepSeries";
+import {
+  DNS_ANSWER_METRIC_NAME,
+  DNS_ANSWER_TEXT_ATTRIBUTE,
+} from "../../../Types/Monitor/DnsMonitor/DnsAnswer";
+import DnsAnswerFingerprint, { DnsAnswerReading } from "./DnsAnswerFingerprint";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 
@@ -1520,6 +1525,49 @@ export default class MonitorMetricUtil {
         metricRows: metricRows,
         metricNameServiceNameMap: metricNameServiceNameMap,
       });
+
+      /*
+       * A network device's ping on its own (issue #11071): only its poll
+       * says whether the ping answered (isReachable), because its IsOnline
+       * is the device's verdict - ping OR the SNMP walk. A Ping monitor's
+       * verdict is its IsOnline, and writes neither series.
+       */
+      if (typeof pingResponse.isReachable === "boolean") {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.IcmpIsReachable,
+          value: pingResponse.isReachable ? 1 : 0,
+          description: translationKey(
+            "Whether the device answered its probe's ping (1 yes, 0 no)",
+          ),
+          unit: "",
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.IcmpResponseTime,
+          // No echo, no round trip: a gap, never a zero.
+          value: pingResponse.isReachable
+            ? pingResponse.avgRoundTripTimeInMs
+            : undefined,
+          description: translationKey(
+            "ICMP Response Time (in ms) of the device's ping",
+          ),
+          unit: "ms",
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+      }
     }
 
     if ((data.dataToProcess as ProbeMonitorResponse).isOnline !== undefined) {
@@ -1628,6 +1676,44 @@ export default class MonitorMetricUtil {
         metricRows: metricRows,
         metricNameServiceNameMap: metricNameServiceNameMap,
       });
+    }
+
+    /*
+     * The DNS answer this check got (#10905): its fingerprint, the answer in
+     * words beside it, so "DNS Record Value is different from the previous
+     * check" can compare it with the probe's previous answer of the step
+     * (PreviousCheckComparison). The evaluator's record, like a match
+     * history's, never a chart anyone picks: it is not indexed as a metric
+     * type. A check that got no answer writes none (DnsAnswer).
+     */
+    const dnsAnswer: DnsAnswerReading | null = DnsAnswerFingerprint.read(
+      (data.dataToProcess as ProbeMonitorResponse).dnsResponse,
+    );
+
+    if (dnsAnswer) {
+      const probeId: ObjectID | undefined = (
+        data.dataToProcess as ProbeMonitorResponse
+      ).probeId;
+
+      metricRows.push(
+        await this.buildMonitorMetricRow({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          metricName: DNS_ANSWER_METRIC_NAME,
+          value: dnsAnswer.fingerprint,
+          attributes: this.buildMonitorMetricAttributes({
+            monitorId: data.monitorId,
+            projectId: data.projectId,
+            monitorName: data.monitorName,
+            probeName: data.probeName,
+            extraAttributes: {
+              ...(probeId ? { probeId: probeId.toString() } : {}),
+              [DNS_ANSWER_TEXT_ATTRIBUTE]: dnsAnswer.text,
+            },
+          }),
+          metricPointType: MetricPointType.Gauge,
+        }),
+      );
     }
 
     /*

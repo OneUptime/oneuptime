@@ -27,6 +27,7 @@ import { MonitorStepOpenStackMonitorUtil } from "Common/Types/Monitor/MonitorSte
 import { MonitorStepVMwareMonitorUtil } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorStepCephMonitorUtil } from "Common/Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
+import { MonitorStepXcpNgMonitorUtil } from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
 import { MonitorStepIoTMonitorUtil } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
@@ -284,6 +285,13 @@ function stepFor(monitorType: MonitorType): MonitorStep {
       return step.setStorageArrayMonitor({
         ...MonitorStepStorageArrayMonitorUtil.getDefault(),
         arrayIdentifier: "pure-prod-01",
+        metricViewConfig: VIEW,
+        rollingTime: ROLLING_TIME,
+      });
+    case MonitorType.XcpNg:
+      return step.setXcpNgMonitor({
+        ...MonitorStepXcpNgMonitorUtil.getDefault(),
+        poolIdentifier: "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
         metricViewConfig: VIEW,
         rollingTime: ROLLING_TIME,
       });

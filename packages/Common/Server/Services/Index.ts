@@ -119,6 +119,8 @@ import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
 import StorageArrayService from "./StorageArrayService";
 import StorageArrayResourceService from "./StorageArrayResourceService";
+import StorageArrayConnectionService from "./StorageArrayConnectionService";
+import StorageArrayConnectionTestService from "./StorageArrayConnectionTestService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
 import OpenStackCloudLabelRuleService from "./OpenStackCloudLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
@@ -137,6 +139,7 @@ import CephClusterOwnerTeamService from "./CephClusterOwnerTeamService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import VMwareResourceService from "./VMwareResourceService";
 import VMwareVCenterLabelRuleService from "./VMwareVCenterLabelRuleService";
+import VMwareHealthSettingService from "./VMwareHealthSettingService";
 import VMwareVCenterOwnerRuleService from "./VMwareVCenterOwnerRuleService";
 import VMwareVCenterOwnerTeamService from "./VMwareVCenterOwnerTeamService";
 import VMwareVCenterOwnerUserService from "./VMwareVCenterOwnerUserService";
@@ -146,6 +149,14 @@ import StorageArrayLabelRuleService from "./StorageArrayLabelRuleService";
 import StorageArrayOwnerRuleService from "./StorageArrayOwnerRuleService";
 import StorageArrayOwnerTeamService from "./StorageArrayOwnerTeamService";
 import StorageArrayOwnerUserService from "./StorageArrayOwnerUserService";
+import XcpNgPoolService from "./XcpNgPoolService";
+import XcpNgResourceService from "./XcpNgResourceService";
+import XcpNgPoolLabelRuleService from "./XcpNgPoolLabelRuleService";
+import XcpNgPoolOwnerRuleService from "./XcpNgPoolOwnerRuleService";
+import XcpNgPoolOwnerTeamService from "./XcpNgPoolOwnerTeamService";
+import XcpNgPoolOwnerUserService from "./XcpNgPoolOwnerUserService";
+import XcpNgConnectionService from "./XcpNgConnectionService";
+import XcpNgConnectionTestService from "./XcpNgConnectionTestService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
 import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
@@ -205,6 +216,7 @@ import DockerHostFeedService from "./DockerHostFeedService";
 import DockerSwarmClusterFeedService from "./DockerSwarmClusterFeedService";
 import CephClusterFeedService from "./CephClusterFeedService";
 import StorageArrayFeedService from "./StorageArrayFeedService";
+import XcpNgPoolFeedService from "./XcpNgPoolFeedService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import PodmanHostFeedService from "./PodmanHostFeedService";
 import ProxmoxClusterFeedService from "./ProxmoxClusterFeedService";
@@ -250,6 +262,7 @@ import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogServi
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ProbeService from "./ProbeService";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
+import GlobalProbeSnmpTrapReportService from "./GlobalProbeSnmpTrapReportService";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
 import AIAgentService from "./AIAgentService";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
@@ -442,6 +455,7 @@ import SecurityCaseNoteService from "./SecurityCaseNoteService";
 import SecurityCaseTaskService from "./SecurityCaseTaskService";
 import SecurityCaseStepCheckService from "./SecurityCaseStepCheckService";
 import SecurityCasePullRequestService from "./SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService from "./DataSecurityIssuePullRequestService";
 import SecurityCaseAiActionService from "./SecurityCaseAiActionService";
 import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
@@ -499,6 +513,7 @@ import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
 import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
+import SecurityUserErasureRequestService from "./SecurityUserErasureRequestService";
 import SecurityBlockService from "./SecurityBlockService";
 import SecurityBlockEnforcementService from "./SecurityBlockEnforcementService";
 import SecurityBlocklistFeedService from "./SecurityBlocklistFeedService";
@@ -552,6 +567,7 @@ import ServiceLevelObjectiveErrorBudgetPolicyTierService from "./ServiceLevelObj
 import LlmCostBudgetService from "./LlmCostBudgetService";
 import LlmObservabilityConnectionService from "./LlmObservabilityConnectionService";
 import ExternalMcpServerService from "./ExternalMcpServerService";
+import ExternalMcpToolReadOnlyMarkService from "./ExternalMcpToolReadOnlyMarkService";
 import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
@@ -622,7 +638,19 @@ import TeamOwnerUserService from "./TeamOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudBudgetService from "./CloudBudgetService";
+import CloudCommitmentService from "./CloudCommitmentService";
+import CloudCostGroupService from "./CloudCostGroupService";
+import CloudCostLineItemService from "./CloudCostLineItemService";
+import CloudCostViewService from "./CloudCostViewService";
+import CloudRequiredTagService from "./CloudRequiredTagService";
+import CloudTagCoverageDayService from "./CloudTagCoverageDayService";
+import CloudTagFindingService from "./CloudTagFindingService";
+import CloudTagSettingService from "./CloudTagSettingService";
 import CloudCostRecommendationService from "./CloudCostRecommendationService";
+import CloudCostSettingService from "./CloudCostSettingService";
+import CloudCostReportService from "./CloudCostReportService";
+import CloudOffHoursScheduleService from "./CloudOffHoursScheduleService";
+import CloudSavingsActionService from "./CloudSavingsActionService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
@@ -797,6 +825,8 @@ const services: Array<BaseService> = [
   CephResourceService,
   StorageArrayService,
   StorageArrayResourceService,
+  StorageArrayConnectionService,
+  StorageArrayConnectionTestService,
   ProxmoxClusterLabelRuleService,
   OpenStackCloudLabelRuleService,
   DockerSwarmClusterLabelRuleService,
@@ -817,9 +847,18 @@ const services: Array<BaseService> = [
   StorageArrayOwnerRuleService,
   StorageArrayOwnerTeamService,
   StorageArrayOwnerUserService,
+  XcpNgPoolService,
+  XcpNgResourceService,
+  XcpNgPoolLabelRuleService,
+  XcpNgPoolOwnerRuleService,
+  XcpNgPoolOwnerTeamService,
+  XcpNgPoolOwnerUserService,
+  XcpNgConnectionService,
+  XcpNgConnectionTestService,
   VMwareVCenterService,
   VMwareResourceService,
   VMwareVCenterLabelRuleService,
+  VMwareHealthSettingService,
   VMwareVCenterOwnerRuleService,
   VMwareVCenterOwnerTeamService,
   VMwareVCenterOwnerUserService,
@@ -865,6 +904,7 @@ const services: Array<BaseService> = [
   DockerSwarmClusterFeedService,
   CephClusterFeedService,
   StorageArrayFeedService,
+  XcpNgPoolFeedService,
   DatabaseServerFeedService,
   PodmanHostFeedService,
   ProxmoxClusterFeedService,
@@ -890,6 +930,7 @@ const services: Array<BaseService> = [
   ProjectSmtpConfigService,
   ProbeService,
   ProbeOwnerTeamService,
+  GlobalProbeSnmpTrapReportService,
   ProbeOwnerUserService,
   AIAgentService,
   AIAgentOwnerUserService,
@@ -1076,6 +1117,7 @@ const services: Array<BaseService> = [
   SecurityCaseTaskService,
   SecurityCaseStepCheckService,
   SecurityCasePullRequestService,
+  DataSecurityIssuePullRequestService,
   SecurityCaseAiActionService,
   SecurityCaseEvidenceService,
   SecurityCasePriorityService,
@@ -1131,6 +1173,7 @@ const services: Array<BaseService> = [
   DataAssetLineageService,
   DataAlertService,
   SecurityProtectedEntityService,
+  SecurityUserErasureRequestService,
   SecurityBlockService,
   SecurityBlockEnforcementService,
   SecurityBlocklistFeedService,
@@ -1185,6 +1228,7 @@ const services: Array<BaseService> = [
   LlmCostBudgetService,
   LlmObservabilityConnectionService,
   ExternalMcpServerService,
+  ExternalMcpToolReadOnlyMarkService,
   LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,
@@ -1241,7 +1285,19 @@ const services: Array<BaseService> = [
   CloudAccountService,
   CloudAccountFeedService,
   CloudBudgetService,
+  CloudCommitmentService,
+  CloudCostViewService,
+  CloudCostGroupService,
+  CloudCostLineItemService,
+  CloudRequiredTagService,
+  CloudTagCoverageDayService,
+  CloudTagFindingService,
+  CloudTagSettingService,
   CloudCostRecommendationService,
+  CloudCostSettingService,
+  CloudCostReportService,
+  CloudOffHoursScheduleService,
+  CloudSavingsActionService,
   CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,

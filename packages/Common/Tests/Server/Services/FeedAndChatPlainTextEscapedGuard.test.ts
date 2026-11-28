@@ -237,6 +237,17 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
     reason: "A Postgres statement, not Markdown.",
   },
   /*
+   * How a threat intel match's stored description starts the lines that
+   * name the feed's indicator (#11230): what an erasure looks for in the
+   * Security records, handed to Postgres's strpos as written.
+   */
+  {
+    file: "packages/Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureRecords.ts",
+    text: "\\`indicator--",
+    reason:
+      "Text an erasure searches stored descriptions for, as a Postgres query's parameter: never Markdown written to a feed or a chat, and escaped it would match nothing.",
+  },
+  /*
    * A Production Review point's suggested change (#10376): its lines,
    * minus as the change has them and plus as they would be, inside the
    * diff block it fences with fenceFor, which no backtick run in them can

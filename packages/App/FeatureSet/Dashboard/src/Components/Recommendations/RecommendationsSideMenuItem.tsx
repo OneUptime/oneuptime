@@ -5,26 +5,19 @@ import { BadgeType } from "Common/UI/Components/Badge/Badge";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import MonitorRecommendationCatalog, {
   MonitorRecommendationResourceTypeDefinition,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
-import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import {
   MonitorRecommendation,
   MonitorRecommendationContext,
   MonitorRecommendationResourceType,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
-import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
+import MonitorRecommendationCoverageApi from "./MonitorRecommendationCoverageApi";
 import RecommendationDismissalUtil from "./RecommendationDismissalUtil";
 import RecommendationFilterUtil from "./RecommendationFilterUtil";
 import RecommendationResourceRegistry, {
@@ -135,29 +128,6 @@ const RecommendationsSideMenuItem: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const [monitorLists, dismissals]: [
-        Array<ListResult<Monitor>>,
-        Array<RecommendationDismissal>,
-      ] = await Promise.all([
-        Promise.all(
-          definition.monitorTypes.map(async (monitorType: MonitorType) => {
-            return await ModelAPI.getList<Monitor>({
-              modelType: Monitor,
-              query: { monitorType: monitorType },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              select: { name: true, monitorSteps: true },
-              sort: { name: SortOrder.Ascending },
-            });
-          }),
-        ),
-        RecommendationDismissalUtil.getDismissals({
-          resourceType: props.resourceType,
-          resourceId: props.resourceId,
-          recommendationType: RecommendationType.Monitor,
-        }),
-      ]);
-
       /*
        * `MonitorRecommendationArgs` requires monitor-status and severity ids
        * because the templates write them into the criteria they build. The
@@ -176,40 +146,37 @@ const RecommendationsSideMenuItem: FunctionComponent<ComponentProps> = (
        */
       const fingerprintOnlyPlaceholderId: ObjectID = ObjectID.getZeroObjectID();
 
-      const monitors: Array<Monitor> = monitorLists.flatMap(
-        (monitorList: ListResult<Monitor>) => {
-          return monitorList.data;
-        },
-      );
+      /*
+       * Coverage is decided by the server, with a query over every monitor
+       * the reader may read (#11074): the badge read the first 10,000
+       * monitors of each type, so one past them never covered anything.
+       */
+      const [coveredMonitorIds, dismissals]: [
+        Map<string, ObjectID>,
+        Array<RecommendationDismissal>,
+      ] = await Promise.all([
+        MonitorRecommendationCoverageApi.getCoveredRecommendationMonitorIds({
+          recommendations: recommendations,
+          args: {
+            resourceIdentifier: resourceIdentifier,
+            onlineMonitorStatusId: fingerprintOnlyPlaceholderId,
+            offlineMonitorStatusId: fingerprintOnlyPlaceholderId,
+            defaultIncidentSeverityId: fingerprintOnlyPlaceholderId,
+            defaultAlertSeverityId: fingerprintOnlyPlaceholderId,
+            monitorName: resourceDisplayName,
+          },
+        }),
+        RecommendationDismissalUtil.getDismissals({
+          resourceType: props.resourceType,
+          resourceId: props.resourceId,
+          recommendationType: RecommendationType.Monitor,
+        }),
+      ]);
 
       const viewModels: Array<RecommendationViewModel> =
         RecommendationFilterUtil.buildViewModels({
           recommendations: recommendations,
-          coveredMonitorIds:
-            MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
-              recommendations: recommendations,
-              existingMonitors: monitors
-                .filter((monitor: Monitor) => {
-                  return Boolean(monitor.id);
-                })
-                .map((monitor: Monitor) => {
-                  return {
-                    monitorId: monitor.id!,
-                    monitorSteps:
-                      MonitorRecommendationCreateUtil.getExistingMonitorSteps([
-                        monitor,
-                      ]) as Array<MonitorStep>,
-                  };
-                }),
-              args: {
-                resourceIdentifier: resourceIdentifier,
-                onlineMonitorStatusId: fingerprintOnlyPlaceholderId,
-                offlineMonitorStatusId: fingerprintOnlyPlaceholderId,
-                defaultIncidentSeverityId: fingerprintOnlyPlaceholderId,
-                defaultAlertSeverityId: fingerprintOnlyPlaceholderId,
-                monitorName: resourceDisplayName,
-              },
-            }),
+          coveredMonitorIds: coveredMonitorIds,
           dismissals: dismissals,
         });
 

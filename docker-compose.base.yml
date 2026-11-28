@@ -132,6 +132,8 @@ x-common-runtime-variables: &common-runtime-variables
   GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER: ${GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER:-}
   GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS: ${GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS:-}
   GLOBAL_TWILIO_SMS_PHONE_NUMBERS: ${GLOBAL_TWILIO_SMS_PHONE_NUMBERS:-}
+  # The voice of the server's calls, with the account or without it (#11064).
+  GLOBAL_TWILIO_CALL_VOICE: ${GLOBAL_TWILIO_CALL_VOICE:-}
 
   # The server's email settings, set here instead of in Admin Dashboard >
   # Settings > Emails (see config.example.env). Defaulted so a config.env
@@ -235,10 +237,25 @@ x-common-runtime-variables: &common-runtime-variables
   DISABLE_AUTOMATIC_ALERT_CREATION: ${DISABLE_AUTOMATIC_ALERT_CREATION}
 
   DISABLE_TELEMETRY_INGESTION: ${DISABLE_TELEMETRY_INGESTION}
+  TELEMETRY_INGEST_PROJECT_QUEUE_LIMIT: ${TELEMETRY_INGEST_PROJECT_QUEUE_LIMIT}
+  TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT: ${TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT}
 
   # The products every project offers as the server starts (#6815). Unset in
   # a config.env from before it, every product is on.
   SERVER_PRODUCTS: ${SERVER_PRODUCTS:-everything}
+
+  # Where the server sends its people for help (#10938): each seeds Admin
+  # Dashboard > Settings > Help and Support while nothing is saved there yet,
+  # and the page holds the settings from then on. Unset in a config.env from
+  # before them, every setting stays on OneUptime's default.
+  HELP_AND_SUPPORT_SUPPORT_EMAIL: ${HELP_AND_SUPPORT_SUPPORT_EMAIL:-}
+  HELP_AND_SUPPORT_CHAT: ${HELP_AND_SUPPORT_CHAT:-}
+  HELP_AND_SUPPORT_REQUEST_DEMO: ${HELP_AND_SUPPORT_REQUEST_DEMO:-}
+  HELP_AND_SUPPORT_GIVE_FEEDBACK: ${HELP_AND_SUPPORT_GIVE_FEEDBACK:-}
+  HELP_AND_SUPPORT_HELP_LINK: ${HELP_AND_SUPPORT_HELP_LINK:-}
+  HELP_AND_SUPPORT_GITHUB: ${HELP_AND_SUPPORT_GITHUB:-}
+  HELP_AND_SUPPORT_MOBILE_APP: ${HELP_AND_SUPPORT_MOBILE_APP:-}
+  HELP_AND_SUPPORT_INVITE_MESSAGE: ${HELP_AND_SUPPORT_INVITE_MESSAGE:-}
 
   # Defaulted, unlike its siblings: this one gates outbound traffic, and an
   # existing config.env upgraded in place will not have the key.
@@ -392,7 +409,13 @@ services:
       oneuptime:
         aliases:
           - redis
-    command: valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}" --save "" --appendonly no
+    # A memory cap, and noeviction because BullMQ needs it: a full Valkey
+    # refuses writes with an OOM error - telemetry the app cannot queue is
+    # answered with a retryable 503, and while it uses more than
+    # TELEMETRY_INGEST_VALKEY_MEMORY_LIMIT_PERCENT of the cap bulk telemetry
+    # is answered 429 - instead of growing until the host runs out of memory
+    # (#11439). VALKEY_MAX_MEMORY in config.env sets it.
+    command: valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}" --save "" --appendonly no --maxmemory "${VALKEY_MAX_MEMORY:-2gb}" --maxmemory-policy noeviction
     environment:
       VALKEY_PASSWORD: ${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}
     healthcheck:

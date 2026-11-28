@@ -24,6 +24,8 @@ import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import StorageArrayCollectedByCard from "../../../Components/StorageArray/Connection/StorageArrayCollectedByCard";
+import StorageArrayProbeCollectors from "Common/Types/StorageArray/Collection/StorageArrayProbeCollectors";
 import { getStorageArrayConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -46,12 +48,25 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "Common/Types/StorageArray/StorageArrayResourceKind";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "Common/Types/StorageArray/StorageSystem";
+import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayGoldenCharts,
+  StorageArrayOpenProblemSeries,
+  StorageArrayOverviewChart,
+  StorageArrayPlatform,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayInventoryTileWords,
+  StorageArrayKindWords,
+  StorageArrayTopListWords,
+  getStorageArrayInventoryTileWords,
+  getStorageArrayKindCount,
+  getStorageArrayKindWords,
+  getStorageArrayTopListWords,
+} from "../Utils/StorageArrayKindWords";
 import StorageArrayResourceUtils, {
   STORAGE_ARRAY_ATTRIBUTE,
   UNHEALTHY_RESOURCE_STATUSES,
@@ -192,7 +207,7 @@ const ALERT_STALE_AFTER_MS: number = 3 * 60 * 1000;
 
 const TOP_LIST_SIZE: number = 5;
 
-interface ActiveAlertRow {
+export interface ActiveAlertRow {
   key: string;
   severity: string;
   summary: string;
@@ -252,22 +267,60 @@ export const StorageArrayMetricTitle: FunctionComponent<
 };
 
 /*
- * The golden charts of a platform, from StorageArrayMetricCatalog: read and
- * write latency, IOPS and bandwidth drawn on one panel each, and capacity
- * used. Nothing for a platform OneUptime has no catalog for.
+ * The golden charts of a platform (its overview.goldenCharts, catalog ids
+ * from StorageArrayMetricCatalog): read and write latency, IOPS and
+ * bandwidth drawn on one panel each, and capacity used. Nothing for a
+ * platform OneUptime has no catalog for.
  */
 export function getGoldenChartQueries(data: {
   storageSystem: string | null | undefined;
   arrayName: string;
 }): Array<MetricQueryConfigData> {
-  const prefix: string | null =
-    data.storageSystem === StorageSystem.PureStorageFlashArray
-      ? "purefa"
-      : data.storageSystem === StorageSystem.PureStorageFlashBlade
-        ? "purefb"
-        : null;
+  const overview: StorageArrayPlatform["overview"] | undefined =
+    StorageArrayPlatformRegistry.getPlatform(data.storageSystem)?.overview;
 
-  if (!prefix) {
+  /*
+   * A platform whose figures are not read and write pairs draws panels of
+   * its own (overview.charts): a PowerScale's protocols, throughput,
+   * busiest nodes and capacity. Each panel is its lines overlaid, a line
+   * split by the label it names.
+   */
+  if (overview?.charts) {
+    return StorageArrayResourceUtils.buildCatalogQueries(
+      overview.charts.flatMap(
+        (
+          chart: StorageArrayOverviewChart,
+        ): Array<
+          Parameters<typeof StorageArrayResourceUtils.buildCatalogQuery>[0]
+        > => {
+          return chart.lines.map(
+            (
+              line: StorageArrayOverviewChart["lines"][number],
+              index: number,
+            ): Parameters<
+              typeof StorageArrayResourceUtils.buildCatalogQuery
+            >[0] => {
+              return {
+                metricId: line.metricId,
+                arrayName: data.arrayName,
+                ...(index === 0
+                  ? { title: chart.title, description: chart.description }
+                  : { overlayWithPreviousQuery: true }),
+                ...(line.legend ? { legend: line.legend } : {}),
+                ...(line.groupByLabel
+                  ? { groupByAttributeKeys: [line.groupByLabel] }
+                  : {}),
+              };
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  const charts: StorageArrayGoldenCharts | undefined = overview?.goldenCharts;
+
+  if (!charts) {
     return [];
   }
 
@@ -278,7 +331,7 @@ export function getGoldenChartQueries(data: {
    */
   return StorageArrayResourceUtils.buildCatalogQueries([
     {
-      metricId: `${prefix}-array-read-latency`,
+      metricId: charts.readLatency,
       arrayName: data.arrayName,
       title: translationKey("Latency"),
       description: translationKey(
@@ -287,13 +340,13 @@ export function getGoldenChartQueries(data: {
       legend: translationKey("Read"),
     },
     {
-      metricId: `${prefix}-array-write-latency`,
+      metricId: charts.writeLatency,
       arrayName: data.arrayName,
       legend: translationKey("Write"),
       overlayWithPreviousQuery: true,
     },
     {
-      metricId: `${prefix}-array-read-iops`,
+      metricId: charts.readIops,
       arrayName: data.arrayName,
       title: translationKey("IOPS"),
       description: translationKey(
@@ -302,13 +355,13 @@ export function getGoldenChartQueries(data: {
       legend: translationKey("Read"),
     },
     {
-      metricId: `${prefix}-array-write-iops`,
+      metricId: charts.writeIops,
       arrayName: data.arrayName,
       legend: translationKey("Write"),
       overlayWithPreviousQuery: true,
     },
     {
-      metricId: `${prefix}-array-read-bandwidth`,
+      metricId: charts.readBandwidth,
       arrayName: data.arrayName,
       title: translationKey("Throughput"),
       description: translationKey(
@@ -317,37 +370,195 @@ export function getGoldenChartQueries(data: {
       legend: translationKey("Read"),
     },
     {
-      metricId: `${prefix}-array-write-bandwidth`,
+      metricId: charts.writeBandwidth,
       arrayName: data.arrayName,
       legend: translationKey("Write"),
       overlayWithPreviousQuery: true,
     },
     {
-      metricId: `${prefix}-array-space-utilization`,
+      metricId: charts.capacityUsed,
       arrayName: data.arrayName,
       title: translationKey("Capacity Used"),
-      description: translationKey(
-        "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.",
-      ),
+      description: charts.capacityUsedDescription,
       legend: translationKey("Capacity Used"),
     },
   ]);
 }
 
 /*
- * The alert series of a platform (one series per open alert, value 1);
- * both for an array whose platform is not known yet.
+ * The alert series of a platform (one series per open alert, value 1,
+ * overview.alertMetricName); every platform's for an array whose platform
+ * is not known yet.
  */
 export function getAlertMetricNames(
   storageSystem: string | null | undefined,
 ): Array<string> {
-  if (storageSystem === StorageSystem.PureStorageFlashArray) {
-    return ["purefa_alerts_open"];
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(storageSystem);
+  const platforms: ReadonlyArray<StorageArrayPlatform> = platform
+    ? [platform]
+    : StorageArrayPlatformRegistry.getPlatforms();
+  return platforms.flatMap((candidate: StorageArrayPlatform): Array<string> => {
+    return candidate.overview.alertMetricName
+      ? [candidate.overview.alertMetricName]
+      : [];
+  });
+}
+
+/*
+ * The open problems a platform reports on series of their own
+ * (overview.openProblems: ONTAP's health_*_alerts, one series per problem,
+ * 1 while it is open and 0 once, the poll after it clears), as the Active
+ * Alerts card lists them: worded by their labels, critical where their
+ * severity says so, newest first per problem, and only while the newest
+ * reading is recent.
+ */
+export function getOpenProblemRows(data: {
+  problems: ReadonlyArray<StorageArrayOpenProblemSeries>;
+  rows: ReadonlyArray<{
+    metricName: string;
+    time: number;
+    value: number;
+    attributes: Record<string, unknown>;
+  }>;
+  translator: Translator;
+  staleAfterMs: number;
+}): Array<ActiveAlertRow> {
+  const byName: Map<string, StorageArrayOpenProblemSeries> = new Map();
+  for (const problem of data.problems) {
+    byName.set(problem.metricName, problem);
   }
-  if (storageSystem === StorageSystem.PureStorageFlashBlade) {
-    return ["purefb_alerts_open"];
+
+  let newest: number = 0;
+  const latest: Map<
+    string,
+    {
+      problem: StorageArrayOpenProblemSeries;
+      time: number;
+      value: number;
+      attributes: Record<string, unknown>;
+    }
+  > = new Map();
+  const sorted: Array<(typeof data.rows)[number]> = [...data.rows].sort(
+    (a: (typeof data.rows)[number], b: (typeof data.rows)[number]): number => {
+      return b.time - a.time;
+    },
+  );
+  for (const row of sorted) {
+    const problem: StorageArrayOpenProblemSeries | undefined = byName.get(
+      row.metricName,
+    );
+    if (!problem) {
+      continue;
+    }
+    newest = Math.max(newest, row.time);
+    const key: string = [
+      problem.metricName,
+      ...problem.keyLabels.map((label: string): string => {
+        return String(row.attributes[label] ?? "");
+      }),
+    ].join("|");
+    if (!latest.has(key)) {
+      latest.set(key, { ...row, problem: problem });
+    }
   }
-  return ["purefa_alerts_open", "purefb_alerts_open"];
+
+  const open: Array<ActiveAlertRow> = [];
+  for (const [key, entry] of latest.entries()) {
+    if (!(entry.value >= 1) || newest - entry.time > data.staleAfterMs) {
+      continue;
+    }
+    const values: Record<string, string> = {};
+    for (const [label, value] of Object.entries(entry.attributes)) {
+      if (value !== null && value !== undefined && typeof value !== "object") {
+        values[label] = String(value);
+      }
+    }
+    const severity: string = entry.problem.severityLabel
+      ? String(entry.attributes[entry.problem.severityLabel] || "")
+          .trim()
+          .toLowerCase()
+      : "";
+    open.push({
+      key: key,
+      severity: entry.problem.criticalSeverities.includes(severity)
+        ? "critical"
+        : severity === "informational" || severity === "info"
+          ? "info"
+          : "warning",
+      summary: data.translator.translateTemplate(entry.problem.summary, values),
+      code: "",
+      component: entry.problem.componentLabel
+        ? String(entry.attributes[entry.problem.componentLabel] || "").trim()
+        : "",
+    });
+  }
+  return open;
+}
+
+/*
+ * The statuses Needs attention asks the inventory for: the words every
+ * platform shares for a part in trouble, then the array's platform's own
+ * (an ONTAP aggregate offline, a disk broken).
+ */
+export function getUnhealthyStatusWords(
+  storageSystem: string | null | undefined,
+): Array<string> {
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(storageSystem);
+  return Array.from(
+    new Set<string>([
+      ...UNHEALTHY_RESOURCE_STATUSES,
+      ...(platform?.componentStatuses.critical || []),
+      ...(platform?.componentStatuses.warning || []),
+    ]),
+  );
+}
+
+// The kinds whose state is the status the array writes for them.
+const STATUS_KINDS: ReadonlyArray<string> = [
+  StorageArrayResourceKind.Hardware,
+  StorageArrayResourceKind.Drive,
+  StorageArrayResourceKind.Controller,
+  StorageArrayResourceKind.NetworkInterface,
+  StorageArrayResourceKind.Pod,
+];
+
+/*
+ * The kinds an array's Needs attention asks the inventory for by their
+ * status: the ones whose state is the status every platform writes, a
+ * kind only its platform has whose parts have a page of their own (an
+ * ONTAP aggregate, SVM, LUN, SnapMirror relationship) for its rows to
+ * open, and a shared kind whose list the platform draws with a state (an
+ * ONTAP volume's online or offline). A PowerStore's NAS servers, which
+ * have no page of their own, stay off it as before.
+ */
+export function getStatusKinds(
+  storageSystem: string | null | undefined,
+  kinds: ReadonlyArray<string>,
+): Array<string> {
+  return kinds.filter((kind: string): boolean => {
+    return (
+      STATUS_KINDS.includes(kind) ||
+      Boolean(
+        StorageArrayPlatformRegistry.getKindDefinition(kind, storageSystem) &&
+          StorageArrayPlatformRegistry.getPlatform(
+            storageSystem,
+          )?.kindDefinitions?.some((definition: { kind: string }): boolean => {
+            return definition.kind === kind;
+          }) &&
+          StorageArrayPlatformRegistry.getKindPage(storageSystem, kind)?.part,
+      ) ||
+      Boolean(
+        StorageArrayPlatformRegistry.getKindPage(
+          storageSystem,
+          kind,
+        )?.columns?.some((column: { type: string }): boolean => {
+          return column.type === "status";
+        }),
+      )
+    );
+  });
 }
 
 const StorageArrayOverview: FunctionComponent<
@@ -443,6 +654,7 @@ const StorageArrayOverview: FunctionComponent<
         podCount: true,
         fileSystemCount: true,
         bucketCount: true,
+        countsByKind: true,
         hardwareComponentCount: true,
         unhealthyHardwareCount: true,
         healthStatus: true,
@@ -518,16 +730,18 @@ const StorageArrayOverview: FunctionComponent<
   const fetchInventory: (item: StorageArray) => Promise<void> = async (
     item: StorageArray,
   ): Promise<void> => {
-    const kinds: Array<StorageArrayResourceKind> =
-      StorageArrayResourceKindUtil.getKindsForSystem(item.storageSystem);
-
-    // Volumes on a FlashArray, file systems on a FlashBlade.
-    const topKind: StorageArrayResourceKind | null = kinds.includes(
-      StorageArrayResourceKind.Volume,
-    )
-      ? StorageArrayResourceKind.Volume
-      : kinds.includes(StorageArrayResourceKind.FileSystem)
-        ? StorageArrayResourceKind.FileSystem
+    /*
+     * The kind the platform's Slowest and Largest lists rank
+     * (overview.topKind): volumes on a FlashArray, file systems on a
+     * FlashBlade.
+     */
+    const topKindName: string | undefined =
+      StorageArrayPlatformRegistry.getPlatform(item.storageSystem)?.overview
+        .topKind;
+    const topKind: StorageArrayResourceKind | null =
+      topKindName &&
+      getStorageArrayTopListWords(topKindName, item.storageSystem)
+        ? (topKindName as StorageArrayResourceKind)
         : null;
 
     if (!topKind) {
@@ -647,7 +861,7 @@ const StorageArrayOverview: FunctionComponent<
           return null;
         }),
         kinds.includes(StorageArrayResourceKind.FileSystem)
-          ? loadFileSystemAvailableRatios(arrayName).catch(
+          ? loadFileSystemAvailableRatios(arrayName, item.storageSystem).catch(
               (): Map<string, number> => {
                 return new Map();
               },
@@ -655,15 +869,15 @@ const StorageArrayOverview: FunctionComponent<
           : Promise.resolve(new Map<string, number>()),
       ]);
 
-      const statusKinds: Array<StorageArrayResourceKind> = [
-        StorageArrayResourceKind.Hardware,
-        StorageArrayResourceKind.Drive,
-        StorageArrayResourceKind.Controller,
-        StorageArrayResourceKind.NetworkInterface,
-        StorageArrayResourceKind.Pod,
-      ].filter((kind: StorageArrayResourceKind): boolean => {
-        return kinds.includes(kind);
-      });
+      /*
+       * Every kind whose state is the status its platform writes: a
+       * FlashArray's hardware and pods, an ONTAP cluster's volumes,
+       * aggregates, SVMs, LUNs and SnapMirror relationships too.
+       */
+      const statusKinds: Array<string> = getStatusKinds(
+        item.storageSystem,
+        kinds,
+      );
 
       const nearFull: Array<string> = Array.from(ratios.entries())
         .filter(([, ratio]: [string, number]): boolean => {
@@ -678,7 +892,47 @@ const StorageArrayOverview: FunctionComponent<
         reads.push(
           listParts({
             kind: new Includes(statusKinds),
-            status: new Includes([...UNHEALTHY_RESOURCE_STATUSES]),
+            status: new Includes(getUnhealthyStatusWords(item.storageSystem)),
+          }),
+        );
+      }
+      /*
+       * A kind replicated on a schedule (an ONTAP SnapMirror relationship)
+       * is behind when its lag passes one and a half intervals, whatever
+       * its status says: the furthest behind, which the rules then judge.
+       */
+      const lagKinds: Array<string> = statusKinds.filter(
+        (kind: string): boolean => {
+          return (
+            kind !== StorageArrayResourceKind.Pod &&
+            Boolean(
+              StorageArrayPlatformRegistry.getKindPage(
+                item.storageSystem,
+                kind,
+              )?.columns?.some((column: { type: string }): boolean => {
+                return column.type === "lag";
+              }),
+            )
+          );
+        },
+      );
+      for (const kind of lagKinds) {
+        reads.push(
+          ModelAPI.getList<StorageArrayResource>({
+            modelType: StorageArrayResource,
+            query: {
+              storageArrayId: modelId,
+              kind: kind,
+              replicationLagMs: new GreaterThan(0),
+            },
+            skip: 0,
+            limit: 100,
+            select: StorageArrayResourceUtils.INVENTORY_SELECT,
+            sort: {
+              replicationLagMs: SortOrder.Descending,
+            },
+          }).then((result: ListResult<StorageArrayResource>) => {
+            return result.data;
           }),
         );
       }
@@ -844,6 +1098,62 @@ const StorageArrayOverview: FunctionComponent<
         });
       }
 
+      // What the platform reports open on series of its own (ONTAP's).
+      const problems: ReadonlyArray<StorageArrayOpenProblemSeries> =
+        StorageArrayPlatformRegistry.getPlatform(item.storageSystem)?.overview
+          .openProblems || [];
+      if (problems.length > 0) {
+        const problemRows: Array<{
+          metricName: string;
+          time: number;
+          value: number;
+          attributes: Record<string, unknown>;
+        }> = [];
+        for (const problem of problems) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const problemQuery: any = {
+            modelType: Metric,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!.toString(),
+              name: problem.metricName,
+              time: new InBetween<Date>(startDate, endDate),
+              attributes: {
+                [STORAGE_ARRAY_ATTRIBUTE]: item.name || "",
+              },
+            },
+            limit: 500,
+            skip: 0,
+            select: {
+              time: true,
+              value: true,
+              attributes: true,
+            },
+            sort: {
+              time: SortOrder.Descending,
+            },
+            requestOptions: {},
+          };
+          const problemResult: AnalyticsListResult<Metric> =
+            await AnalyticsModelAPI.getList<Metric>(problemQuery);
+          for (const metric of problemResult.data) {
+            problemRows.push({
+              metricName: problem.metricName,
+              time: metric.time ? new Date(metric.time as Date).getTime() : 0,
+              value: Number(metric.value),
+              attributes: (metric.attributes as Record<string, unknown>) || {},
+            });
+          }
+        }
+        open.push(
+          ...getOpenProblemRows({
+            problems: problems,
+            rows: problemRows,
+            translator: translator,
+            staleAfterMs: ALERT_STALE_AFTER_MS,
+          }),
+        );
+      }
+
       open.sort((a: ActiveAlertRow, b: ActiveAlertRow): number => {
         const aRank: number = SEVERITY_ORDER.indexOf(a.severity);
         const bRank: number = SEVERITY_ORDER.indexOf(b.severity);
@@ -944,14 +1254,17 @@ const StorageArrayOverview: FunctionComponent<
     });
   };
 
-  const isFlashBlade: boolean = StorageSystemUtil.isFlashBlade(
-    storageArray?.storageSystem,
-  );
-  const isFlashArray: boolean = StorageSystemUtil.isFlashArray(
-    storageArray?.storageSystem,
-  );
+  /*
+   * The array's platform, which says which of its counts the hero shows and
+   * which kind its tile and ranked lists are about (overview).
+   */
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(storageArray?.storageSystem);
 
-  const routes: StorageArrayPartRoutes = getStorageArrayPartRoutes(modelId);
+  const routes: StorageArrayPartRoutes = getStorageArrayPartRoutes(
+    modelId,
+    storageArray?.storageSystem,
+  );
 
   const collectorStatus: string =
     (storageArray?.otelCollectorStatus as string) || "";
@@ -1022,54 +1335,22 @@ const StorageArrayOverview: FunctionComponent<
       label: string;
     }> = [];
 
-    if (isFlashArray) {
-      if (storageArray.volumeCount !== undefined) {
-        specChips.push({
-          icon: IconProp.Disc,
-          label: translator.translatePlural(
-            { one: "{{count}} volume", other: "{{count}} volumes" },
-            storageArray.volumeCount || 0,
-          ),
-        });
+    for (const chip of platform?.overview.countChips || []) {
+      const count: number | undefined = getStorageArrayKindCount(
+        storageArray,
+        chip.kind,
+      );
+      if (count === undefined || (!chip.showWhenZero && !count)) {
+        continue;
       }
-      if (storageArray.hostCount !== undefined) {
-        specChips.push({
-          icon: IconProp.Server,
-          label: translator.translatePlural(
-            { one: "{{count}} host", other: "{{count}} hosts" },
-            storageArray.hostCount || 0,
-          ),
-        });
-      }
-      if (storageArray.podCount) {
-        specChips.push({
-          icon: IconProp.Refresh,
-          label: translator.translatePlural(
-            { one: "{{count}} pod", other: "{{count}} pods" },
-            storageArray.podCount,
-          ),
-        });
-      }
-    }
-    if (isFlashBlade) {
-      if (storageArray.fileSystemCount !== undefined) {
-        specChips.push({
-          icon: IconProp.Folder,
-          label: translator.translatePlural(
-            { one: "{{count}} file system", other: "{{count}} file systems" },
-            storageArray.fileSystemCount || 0,
-          ),
-        });
-      }
-      if (storageArray.bucketCount !== undefined) {
-        specChips.push({
-          icon: IconProp.Archive,
-          label: translator.translatePlural(
-            { one: "{{count}} bucket", other: "{{count}} buckets" },
-            storageArray.bucketCount || 0,
-          ),
-        });
-      }
+      const words: StorageArrayKindWords = getStorageArrayKindWords(
+        chip.kind,
+        storageArray?.storageSystem,
+      );
+      specChips.push({
+        icon: words.icon,
+        label: translator.translatePlural(words.count, count || 0),
+      });
     }
     if (storageArray.hardwareComponentCount) {
       specChips.push({
@@ -1336,12 +1617,64 @@ const StorageArrayOverview: FunctionComponent<
                     "The array closed its alerts within the last few minutes; the counts update with its next report.",
                   )
                 : translator.translateText(
-                    "Alert details are unavailable right now. Open Pure1 or run purealert list on the array for the full list.",
+                    StorageArrayPlatformRegistry.getPlatformOrDefault(
+                      storageArray.storageSystem,
+                    ).overview.alertDetailsUnavailable || "",
                   )}
             </div>
           )}
         </Card>
       </div>
+    );
+  };
+
+  /*
+   * The last golden tile: the count of the platform's main kind, with the
+   * count of the kind beside it under it (overview.inventoryTile) - a
+   * FlashArray's volumes and hosts, a FlashBlade's file systems and
+   * buckets. An array whose platform is not known shows the default
+   * platform's, at the counts it has.
+   */
+  const renderInventoryTile: () => ReactElement = (): ReactElement => {
+    if (!storageArray) {
+      return <Fragment />;
+    }
+    const tile: StorageArrayPlatform["overview"]["inventoryTile"] =
+      StorageArrayPlatformRegistry.getPlatformOrDefault(
+        storageArray.storageSystem,
+      ).overview.inventoryTile;
+    if (!tile) {
+      return <Fragment />;
+    }
+    const tileWords: StorageArrayInventoryTileWords =
+      getStorageArrayInventoryTileWords(tile.kind, storageArray?.storageSystem);
+    const count: number | undefined = getStorageArrayKindCount(
+      storageArray,
+      tile.kind,
+    );
+    return (
+      <GoldenMetricTile
+        title={tileWords.title}
+        description={tileWords.description}
+        icon={
+          getStorageArrayKindWords(tile.kind, storageArray?.storageSystem).icon
+        }
+        iconColor="sky"
+        value={
+          count === null || count === undefined ? undefined : String(count)
+        }
+        sublabel={
+          tile.sublabelKind
+            ? translator.translatePlural(
+                getStorageArrayKindWords(
+                  tile.sublabelKind,
+                  storageArray?.storageSystem,
+                ).count,
+                getStorageArrayKindCount(storageArray, tile.sublabelKind) || 0,
+              )
+            : undefined
+        }
+      />
     );
   };
 
@@ -1370,6 +1703,17 @@ const StorageArrayOverview: FunctionComponent<
         : (translator.translateText("of usable capacity") as string);
 
     const openAlerts: number | undefined = storageArray.openAlertCount;
+    /*
+     * A platform whose arrays send their own alerts as logs (a PowerStore's
+     * syslog, read by its Array Alerts templates) reports no count of them:
+     * the tile says where they are rather than "0 critical, 0 warning".
+     */
+    const alertsAreLogs: boolean =
+      (openAlerts === null || openAlerts === undefined) &&
+      (
+        StorageArrayPlatformRegistry.getPlatform(storageArray.storageSystem)
+          ?.logAlertTemplates || []
+      ).length > 0;
     const hardwareTotal: number | undefined =
       storageArray.hardwareComponentCount;
     const unhealthyHardware: number | undefined =
@@ -1405,13 +1749,17 @@ const StorageArrayOverview: FunctionComponent<
               ? undefined
               : String(openAlerts)
           }
-          sublabel={translator.translateTemplate(
-            "{{critical}} critical, {{warning}} warning",
-            {
-              critical: storageArray.criticalAlertCount || 0,
-              warning: storageArray.warningAlertCount || 0,
-            },
-          )}
+          sublabel={
+            alertsAreLogs
+              ? (translator.translateText("In the logs") as string)
+              : translator.translateTemplate(
+                  "{{critical}} critical, {{warning}} warning",
+                  {
+                    critical: storageArray.criticalAlertCount || 0,
+                    warning: storageArray.warningAlertCount || 0,
+                  },
+                )
+          }
         />
         <GoldenMetricTile
           title="Unhealthy Hardware"
@@ -1447,41 +1795,7 @@ const StorageArrayOverview: FunctionComponent<
               : undefined
           }
         />
-        {isFlashBlade ? (
-          <GoldenMetricTile
-            title="File Systems"
-            description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.fileSystemsTile}
-            icon={IconProp.Folder}
-            iconColor="sky"
-            value={
-              storageArray.fileSystemCount === null ||
-              storageArray.fileSystemCount === undefined
-                ? undefined
-                : String(storageArray.fileSystemCount)
-            }
-            sublabel={translator.translatePlural(
-              { one: "{{count}} bucket", other: "{{count}} buckets" },
-              storageArray.bucketCount || 0,
-            )}
-          />
-        ) : (
-          <GoldenMetricTile
-            title="Volumes"
-            description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumesTile}
-            icon={IconProp.Disc}
-            iconColor="sky"
-            value={
-              storageArray.volumeCount === null ||
-              storageArray.volumeCount === undefined
-                ? undefined
-                : String(storageArray.volumeCount)
-            }
-            sublabel={translator.translatePlural(
-              { one: "{{count}} host", other: "{{count}} hosts" },
-              storageArray.hostCount || 0,
-            )}
-          />
-        )}
+        {renderInventoryTile()}
       </div>
     );
   };
@@ -1512,7 +1826,11 @@ const StorageArrayOverview: FunctionComponent<
       <div className="mb-6">
         <EmbeddedMetricCard
           title="Golden Signals"
-          description="Read and write latency, IOPS and bandwidth as hosts see them, and capacity used, for this array."
+          description={
+            platform?.overview.chartsDescription
+              ? translator.translateText(platform.overview.chartsDescription)
+              : "Read and write latency, IOPS and bandwidth as hosts see them, and capacity used, for this array."
+          }
           queryConfigs={queryConfigs}
           timeRange={chartTimeRange}
           onTimeRangeChange={handleChartTimeRangeChange}
@@ -1596,30 +1914,12 @@ const StorageArrayOverview: FunctionComponent<
       return <Fragment />;
     }
 
-    if (isFlashBlade) {
-      return (
-        <CardGrid
-          columns={2}
-          cardWidth="narrow"
-          className="!mb-6"
-          dataTestId="storage-array-top-objects"
-        >
-          {renderTopList({
-            title: "Slowest File Systems",
-            description: "File systems with the highest read or write latency.",
-            tooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.slowestFileSystems,
-            rows: slowestObjects,
-            detailPageKey: PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL,
-          })}
-          {renderTopList({
-            title: "Largest File Systems",
-            description: "File systems using the most flash.",
-            tooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.largestFileSystems,
-            rows: largestObjects,
-            detailPageKey: PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL,
-          })}
-        </CardGrid>
-      );
+    const topKind: string | undefined = platform?.overview.topKind;
+    const words: StorageArrayTopListWords | null = topKind
+      ? getStorageArrayTopListWords(topKind, storageArray?.storageSystem)
+      : null;
+    if (!words) {
+      return <Fragment />;
     }
 
     return (
@@ -1630,18 +1930,18 @@ const StorageArrayOverview: FunctionComponent<
         dataTestId="storage-array-top-objects"
       >
         {renderTopList({
-          title: "Slowest Volumes",
-          description: "Volumes with the highest read or write latency.",
-          tooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.slowestVolumes,
+          title: words.slowestTitle,
+          description: words.slowestDescription,
+          tooltip: words.slowestTooltip,
           rows: slowestObjects,
-          detailPageKey: PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL,
+          detailPageKey: words.detailPageKey,
         })}
         {renderTopList({
-          title: "Largest Volumes",
-          description: "Volumes using the most flash after data reduction.",
-          tooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.largestVolumes,
+          title: words.largestTitle,
+          description: words.largestDescription,
+          tooltip: words.largestTooltip,
           rows: largestObjects,
-          detailPageKey: PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL,
+          detailPageKey: words.detailPageKey,
         })}
       </CardGrid>
     );
@@ -1670,8 +1970,22 @@ const StorageArrayOverview: FunctionComponent<
     >
       {renderHero()}
 
-      {/* How to connect it, while it is not connected */}
-      {storageArray ? (
+      {/*
+       * How it is connected: an array a probe reads from its management
+       * server says through which connection, and whether that works
+       * (#11004); an agent's array, how to connect it while it is not.
+       */}
+      {storageArray &&
+      StorageArrayProbeCollectors.isProbeCollected(
+        storageArray.storageSystem,
+      ) ? (
+        <div className="mb-5">
+          <StorageArrayCollectedByCard
+            storageSystem={storageArray.storageSystem as string}
+            systemId={storageArray.systemId}
+          />
+        </div>
+      ) : storageArray ? (
         <ResourceConnectionGuideCard
           status={storageArray.otelCollectorStatus as string | undefined}
           lastSeenAt={storageArray.lastSeenAt}

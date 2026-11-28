@@ -27,6 +27,7 @@ Start med det spørgsmål, flisen skal besvare:
 | Kommer folk igennem et forløb, og kommer de tilbage? | **Tragt** eller **Fastholdelse af brugere** |
 | Hvilken tilstand er vores klynger og værter i? | En widget fra gruppen Infrastruktur |
 | Hvor i verden er vores netværk, og hvad er nede? | **Netværkskort** |
+| Hvad koster vores skyer, og hvilket team bruger pengene? | **Cloudomkostning** |
 | En overskrift, en note, klokken på et andet kontor? | **Tekst** eller **Ur** |
 | Data, der ligger uden for OneUptime? | En widget fra gruppen Eksterne datakilder |
 | Noget, ingen widget dækker? | **HTML**, når du er sikker på, at ingen anden widget gør det |
@@ -197,10 +198,12 @@ Hver af disse widgets viser de ressourcer, en agent eller en collector rapporter
 | **Podman** | **Værter**, **Containere**, **Billeder**, **Netværk**, **Diskenheder** | Podman-agenten |
 | **Proxmox** | **Noder**, **Gæster** | Proxmox-agenten |
 | **VMware** | **Værter**, **Virtuelle maskiner** | VMware-agenten, eller et vCenter, du forbinder |
+| **XCP-ng** | **Værter**, **VM'er** | XCP-ng-agenten |
 | **Ceph** | **OSD'er**, som en væg farvet efter tilstand, og **Pools** | Ceph-agenten |
 | **Lagerarrays** | **Diskenheder**, og **Hardware** som en væg farvet efter status | Lagerarray-agenten |
+| **Cloudomkostninger** | **Cloudomkostning**, en total, en opdeling eller en tendens for forbruget | De omkostninger, dine [cloudkonti](/docs/telemetry/cloud-accounts) rapporterer |
 
-Brug dem til én side, der blander tilstanden af din infrastruktur med telemetrien fra de arbejdsbelastninger, der kører på den.
+Brug dem til én side, der blander tilstanden af din infrastruktur med telemetrien fra de arbejdsbelastninger, der kører på den. Widgetten Cloudomkostning er ikke en liste: se [Cloudomkostninger](#cloudomkostninger).
 
 ### Network Map
 
@@ -213,6 +216,19 @@ Over kortet står, hvor mange sites der er nede, for en rød prik på to pixels 
 **Indstillinger**: titel, kort- eller listevisning, højeste antal tegnede sites, om sitenavne skal skrives, og filtre efter sitetype og efter status. Sitenavne forsvinder automatisk, når kortet bliver for fyldt til, at de kan læses; værktøjstippet navngiver stadig hver markør.
 
 Et site vises kun, hvis det har koordinater. Tilføj breddegrad og længdegrad på sitet (eller importér dem fra en CSV) for at fastgøre det.
+
+## Cloudomkostninger
+
+### Cloudomkostning
+
+Hvad dine skyer koster, ved siden af de tjenester, der bruger pengene, for dashboardets tidsinterval. Den læser de samme tal som **Cloud → Forbrug → Omkostninger** og en omkostningsgruppes side, for de samme dage.
+
+- **Dækker**: alle konti, én **Konto**, en **Omkostningsgruppe** eller en **Omkostningsvisning**. Vælg kontoen, gruppen eller visningen i indstillingen under den.
+- **Vis**: en total i forhold til perioden før, en opdeling af de største dele eller en tendens for hver dags forbrug.
+- **Opdel efter**: tjenester, regioner, konti eller ressourcer. En omkostningsvisnings opdeling viser dens grupper og det, ingen gruppe tager.
+- **Omkostningsgrundlag**: faktureret, amortiseret eller netto. Tomt er det projektets, som Omkostninger åbner med.
+
+Tallene er i den valuta, de fleste af dine konti faktureres i. At se den kræver det samme som at se Omkostninger: hver læser ser det, de må læse. Et offentligt dashboard viser kun titlen. Se [Cloudomkostninger og besparelser](/docs/telemetry/cloud-costs#rapporter-og-eksporter) for rapporter og eksporter af de samme tal.
 
 ## Eksterne datakilder
 
@@ -249,7 +265,7 @@ Gennem API'et og Terraform er rækkefølgen widgettens `arguments.sort`: en kolo
 
 Et [offentligt dashboard](/docs/dashboards/sharing) tegner de fleste widgets for sine besøgende, og hver viser kun det, den er sat op til at vise. Nogle få kan ikke vises uden en indlogget session:
 
-- **Logdiagram**, **Spordiagram**, **Sportabel**, **Sikkerhedshændelser**, **Flow af sikkerhedshændelser**, **Tragt** og **Fastholdelse af brugere** skriver på deres plads, at de ikke er tilgængelige på offentlige dashboards.
+- **Logdiagram**, **Spordiagram**, **Sportabel**, **Sikkerhedshændelser**, **Flow af sikkerhedshændelser**, **Tragt**, **Fastholdelse af brugere** og **Cloudomkostning** skriver på deres plads, at de ikke er tilgængelige på offentlige dashboards.
 - Widgets fra Eksterne datakilder viser deres data, når de læser **Dette projekts metrikker (PromQL)**, aldrig deres forespørgsler. En widget med en ekstern datakilde udelades helt fra et offentligt dashboard.
 
 ## Når en widget ikke kan vises

@@ -107,7 +107,8 @@ Your pages are written in your language: the one you pick in the language menu a
 | --- | --- |
 | Email, SMS, push notifications and Telegram | Your language |
 | Your own Slack, Microsoft Teams and Mattermost messages | Your language |
-| Phone calls and WhatsApp | English |
+| Phone calls | Your language, when the Twilio account that calls speaks with one of OneUptime's voices; otherwise English. See [What a phone call says](/docs/notifications/on-call-rules#what-a-phone-call-says) |
+| WhatsApp | English |
 
 OneUptime's own words change: subjects, headings, buttons and sentences, and the names every new project starts with, such as Identified and Critical Incident. What your team wrote reads as written: titles, descriptions, root causes, and the names of projects, teams and states your project named itself. A text message in a language with a script of its own, such as Russian, Japanese or Persian, takes more parts than one in English.
 
@@ -122,7 +123,7 @@ You are an owner of the record, directly or through a team, or the record has no
 :::
 
 :::details My pages are in English, though the dashboard is not
-The dashboard follows your browser until you pick a language. Pick it in the language menu at the bottom of any page, or under **Language** on **User Profile**. Phone calls and WhatsApp messages stay in English.
+The dashboard follows your browser until you pick a language. Pick it in the language menu at the bottom of any page, or under **Language** on **User Profile**. WhatsApp messages stay in English, and so do phone calls through a Twilio account that keeps its default voice.
 :::
 
 :::details I added a phone number, but it is not in my rules

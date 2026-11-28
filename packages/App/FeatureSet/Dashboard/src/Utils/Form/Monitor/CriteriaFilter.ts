@@ -73,6 +73,32 @@ export const PROFILE_CHECK_ON_LABELS: ReadonlyArray<string> = [
  * criteria are these two: offline while its agent sends nothing, online
  * while it sends.
  */
+/*
+ * What a Network Device monitor's reachability checks read (issue #11071),
+ * under each in the check picker: one reads the device's ping, one the
+ * ping or the SNMP walk, one the walk alone - and a credential problem
+ * fails only the last.
+ */
+export const NETWORK_DEVICE_CHECK_DESCRIPTIONS: Partial<
+  Record<CheckOn, string>
+> = {
+  [CheckOn.SnmpIsOnline]: translationKey(
+    "True when the device answers its probe's ping or its SNMP walk.",
+  ),
+  [CheckOn.IcmpIsReachable]: translationKey(
+    "True when the device answers its probe's ping, whatever SNMP does.",
+  ),
+  [CheckOn.IcmpResponseTime]: translationKey(
+    "The average round trip of the device's ping. Not checked when no echo came back.",
+  ),
+  [CheckOn.IcmpPacketLossPercent]: translationKey(
+    "The share of the ping's echoes the device did not answer.",
+  ),
+  [CheckOn.SnmpWalkIsSucceeding]: translationKey(
+    "False when the SNMP walk was tried and failed: credentials, the agent or an ACL.",
+  ),
+};
+
 export const METRIC_HAS_NO_DATA_LABEL: string = translationKey("Has No Data");
 export const METRIC_HAS_DATA_LABEL: string = translationKey("Has Data");
 
@@ -780,6 +806,15 @@ export default class CriteriaFilterUtil {
     // Whether the check is a yes or no one, which takes no change, depends on it.
     monitorType?: MonitorType | undefined;
   }): CriteriaFilter {
+    // A DNS answer's one window: the previous check (#10905).
+    if (
+      CommonCriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        data.criteriaFilter.checkOn,
+      )
+    ) {
+      return CriteriaFilterUtil.toPreviousCheckOnly(data.criteriaFilter);
+    }
+
     const options: EvaluateOverTimeOptions = {
       ...(data.criteriaFilter.evaluateOverTimeOptions ||
         CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS),
@@ -910,6 +945,15 @@ export default class CriteriaFilterUtil {
       };
     }
 
+    // A DNS answer's one window: the previous check (#10905).
+    if (
+      CommonCriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        data.criteriaFilter.checkOn,
+      )
+    ) {
+      return CriteriaFilterUtil.toPreviousCheckOnly(data.criteriaFilter);
+    }
+
     return {
       ...data.criteriaFilter,
       evaluateOverTime: true,
@@ -950,6 +994,17 @@ export default class CriteriaFilterUtil {
     criteriaFilter: CriteriaFilter | undefined,
     monitorType?: MonitorType | undefined,
   ): string {
+    // A DNS answer's one window: the previous check's answer (#10905).
+    if (
+      CommonCriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        criteriaFilter?.checkOn,
+      )
+    ) {
+      return translationKey(
+        "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.",
+      );
+    }
+
     if (
       CommonCriteriaFilterUtil.isJudgedCheckByCheck(
         criteriaFilter?.checkOn,
@@ -987,6 +1042,7 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.SwapUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent ||
       criteriaFilter?.checkOn === CheckOn.PacketLossPercent ||
+      criteriaFilter?.checkOn === CheckOn.IcmpPacketLossPercent ||
       criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       criteriaFilter?.checkOn === CheckOn.LlmBadAnswerPercent ||
       criteriaFilter?.checkOn === CheckOn.SessionsWithExceptionsPercent ||
@@ -994,6 +1050,7 @@ export default class CriteriaFilterUtil {
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
+      criteriaFilter?.checkOn === CheckOn.IcmpResponseTime ||
       criteriaFilter?.checkOn === CheckOn.Jitter ||
       criteriaFilter?.checkOn === CheckOn.PortDnsLookupTime ||
       criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime ||
@@ -1884,6 +1941,14 @@ export default class CriteriaFilterUtil {
         return (
           i.value === CheckOn.SnmpIsOnline ||
           /*
+           * The device's ping on its own (issue #11071), beside the walk:
+           * "answers ping, SNMP failing" is not "down", and a fleet that
+           * always answers ping can say Offline from the ping alone.
+           */
+          i.value === CheckOn.IcmpIsReachable ||
+          i.value === CheckOn.IcmpResponseTime ||
+          i.value === CheckOn.IcmpPacketLossPercent ||
+          /*
            * Offered beside "Is Online" because the two now mean different
            * things: a device is online when it answers ping OR its walk
            * succeeds, so a switch whose SNMP agent has stopped answering is
@@ -1907,12 +1972,26 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpTransceiverPastWarningThreshold ||
           i.value === CheckOn.SnmpTransceiverRxPowerDrop ||
           i.value === CheckOn.SnmpTransceiverReading ||
+          // A SAN switch's Fibre Channel counters, port by port.
+          i.value === CheckOn.SnmpFibreChannelCounterPerSecond ||
           i.value === CheckOn.SnmpTableValue ||
           i.value === CheckOn.SnmpTableRowIsUnhealthy ||
           i.value === CheckOn.SnmpTableRowCount ||
           i.value === CheckOn.SnmpTrapReceived ||
           i.value === CheckOn.SnmpTrapVarbindValue
         );
+      });
+
+      /*
+       * Which path each reachability check reads (issue #11071), said where
+       * they are picked: "SNMP Device Is Online" kept its name from before
+       * ping-first polling, and reads as SNMP alone without this.
+       */
+      options = options.map((i: DropdownOption): DropdownOption => {
+        const description: string | undefined =
+          NETWORK_DEVICE_CHECK_DESCRIPTIONS[i.value as CheckOn];
+
+        return description ? { ...i, description: description } : i;
       });
     }
 
@@ -2042,6 +2121,92 @@ export default class CriteriaFilterUtil {
     }
 
     return options;
+  }
+
+  /*
+   * The conditions the Filter Condition dropdown offers for a filter: its
+   * check's own, and - for a DNS Record Value compared with the previous
+   * check (#10905) - Not Equal To and Equal To alone: the whole answer is
+   * different from the previous one, or the same.
+   */
+  public static getFilterTypeOptions(data: {
+    criteriaFilter: CriteriaFilter | undefined;
+    monitorType?: MonitorType | undefined;
+  }): Array<DropdownOption> {
+    const checkOn: CheckOn | undefined = data.criteriaFilter?.checkOn;
+
+    if (!checkOn) {
+      return [];
+    }
+
+    const options: Array<DropdownOption> =
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn);
+    const previousCheckFilterTypes: Array<FilterType> | null =
+      CommonCriteriaFilterUtil.getPreviousCheckFilterTypes(checkOn);
+
+    if (
+      !previousCheckFilterTypes ||
+      !CommonCriteriaFilterUtil.isComparedWithPreviousCheck(
+        data.criteriaFilter,
+        data.monitorType,
+      )
+    ) {
+      return options;
+    }
+
+    return previousCheckFilterTypes
+      .map((filterType: FilterType): DropdownOption | undefined => {
+        return options.find((option: DropdownOption): boolean => {
+          return option.value === filterType;
+        });
+      })
+      .filter(
+        (option: DropdownOption | undefined): option is DropdownOption => {
+          return Boolean(option);
+        },
+      );
+  }
+
+  /*
+   * A DNS Record Value whose window is ticked (#10905): compared with the
+   * previous check, the only window a DNS answer has, by one of the two
+   * conditions it takes there - Not Equal To unless it holds Equal To - and
+   * no change from it, count or percentile. Any other filter as it is.
+   */
+  public static toPreviousCheckOnly(
+    criteriaFilter: CriteriaFilter,
+  ): CriteriaFilter {
+    const filterTypes: Array<FilterType> | null =
+      CommonCriteriaFilterUtil.getPreviousCheckFilterTypes(
+        criteriaFilter.checkOn,
+      );
+
+    if (!filterTypes) {
+      return criteriaFilter;
+    }
+
+    const options: EvaluateOverTimeOptions = {
+      ...(criteriaFilter.evaluateOverTimeOptions ||
+        CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS),
+      evaluateOverTimeType: EvaluateOverTimeType.PreviousCheck,
+    };
+
+    delete options.countFilterType;
+    delete options.countValue;
+    delete options.percentile;
+    delete options.changeType;
+    delete options.changeValue;
+
+    return {
+      ...criteriaFilter,
+      filterType:
+        criteriaFilter.filterType &&
+        filterTypes.includes(criteriaFilter.filterType)
+          ? criteriaFilter.filterType
+          : filterTypes[0],
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: options,
+    };
   }
 
   public static getFilterTypeOptionsByCheckOn(
@@ -2409,6 +2574,7 @@ export default class CriteriaFilterUtil {
 
     if (
       checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.IcmpIsReachable ||
       /*
        * "Is False" on the walk means the walk was ATTEMPTED and failed. A
        * poll that ran no walk at all — a device with no credentials, which
@@ -2435,7 +2601,9 @@ export default class CriteriaFilterUtil {
      */
     if (
       checkOn === CheckOn.SnmpTransceiverReading ||
-      checkOn === CheckOn.SnmpTransceiverRxPowerDrop
+      checkOn === CheckOn.SnmpTransceiverRxPowerDrop ||
+      // A Fibre Channel counter's rate: so many a second.
+      checkOn === CheckOn.SnmpFibreChannelCounterPerSecond
     ) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -2566,7 +2734,10 @@ export default class CriteriaFilterUtil {
     if (
       checkOn === CheckOn.SnmpResponseTime ||
       // A rate is a number: above or below a threshold.
-      checkOn === CheckOn.SnmpOidRatePerSecond
+      checkOn === CheckOn.SnmpOidRatePerSecond ||
+      // The device's ping on its own (issue #11071): milliseconds, percent.
+      checkOn === CheckOn.IcmpResponseTime ||
+      checkOn === CheckOn.IcmpPacketLossPercent
     ) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -3383,6 +3554,14 @@ export default class CriteriaFilterUtil {
       return "5000";
     }
 
+    if (checkOn === CheckOn.IcmpResponseTime) {
+      return "200";
+    }
+
+    if (checkOn === CheckOn.IcmpPacketLossPercent) {
+      return "20";
+    }
+
     if (checkOn === CheckOn.SnmpOidValue) {
       return "1";
     }
@@ -3423,6 +3602,11 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SnmpTransceiverRxPowerDrop) {
       return "2";
+    }
+
+    // Credit loss above none at all; CRC errors above one in ten seconds.
+    if (checkOn === CheckOn.SnmpFibreChannelCounterPerSecond) {
+      return "0.1";
     }
 
     if (checkOn === CheckOn.DnsResponseTime) {

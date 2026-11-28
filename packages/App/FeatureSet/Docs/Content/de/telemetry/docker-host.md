@@ -140,6 +140,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Der Ingestion-Schlüssel aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. |
 | `DOCKER_HOST_NAME` | Nein | Der Name des Hosts in OneUptime. Standard ist `docker-host`; geben Sie daher jedem Host einen eigenen. |
 | `DOCKER_API_VERSION` | Nein | Die Version der Docker-Engine-API, die der Agent spricht. Standardmäßig leer: Der Agent handelt sie mit dem Daemon aus, sodass jede Docker Engine ab 20.10 funktioniert. Setzen Sie sie nur, um eine Version festzulegen (siehe [Fehlerbehebung](#fehlerbehebung)). |
+| `ONEUPTIME_LOG_OPERATOR_1` bis `ONEUPTIME_LOG_OPERATOR_5` | Nein | Eigene Collector-Operators, je einer als JSON, für ein Log-Format, das der Agent nicht liest. Siehe [Ein eigenes Log-Format lesen](#ein-eigenes-log-format-lesen). |
 
 Um einen Wert zu ändern, entfernen Sie den Agent und führen seinen Befehl erneut aus (Docker CLI), oder Sie bearbeiten `docker-compose.yml` und führen `docker compose up -d` aus (Docker Compose).
 
@@ -150,7 +151,7 @@ Um einen Wert zu ändern, entfernen Sie den Agent und führen seinen Befehl erne
 | Container-Metriken | CPU (Nutzung, Prozentsatz, Drosselung), Speicher (Nutzung, Limit, Prozentsatz), Netzwerk- und Block-I/O, Betriebszeit, Neustarts und Prozessanzahl, pro Container, alle 30 Sekunden. |
 | Container-Logs | stdout und stderr jedes Containers, aus seiner Logdatei `json-file`. |
 
-Die Metriken und Logs jedes Containers werden unter einem Dienst abgelegt, der nach dem Container benannt ist. Jede Logzeile erhält einen Schweregrad aus der Stufe, die sie nennt, etwa `[ERROR]`, `level=warn` oder `{"level":"info"}`; eine Zeile ohne Stufe übernimmt die ihres Streams: stderr ist `ERROR`, stdout ist `INFO`. Zeilen, die mit Leerraum oder einer schließenden Klammer beginnen, werden an die vorherige Zeile angehängt, sodass ein Stacktrace als ein Datensatz ankommt. Die eigenen Logs des Agents werden weggelassen.
+Die Metriken und Logs jedes Containers werden unter einem Dienst abgelegt, der nach dem Container benannt ist. Jede Logzeile erhält einen Schweregrad aus der Stufe, die sie nennt, etwa `[ERROR]`, `level=warn` oder `{"level":"info"}`, und der Traceback einer Exception zählt als `ERROR`. Eine Zeile ohne Stufe ist auf stdout `INFO` und hat auf stderr keinen Schweregrad, denn dorthin schreiben Programme ihre Diagnosen jeder Stufe. Zeilen, die mit Leerraum oder einer schließenden Klammer beginnen, werden an die vorherige Zeile angehängt, sodass ein Stacktrace als ein Datensatz ankommt. Die eigenen Logs des Agents werden weggelassen.
 
 [Docker-Überwachung](/docs/monitor/docker-monitor#erfasste-metriken) listet jede Metrik und ihre Bedeutung auf.
 
@@ -201,6 +202,33 @@ Oder machen Sie ihn in `/etc/docker/daemon.json` zum Standard für jeden danach 
 ```
 
 Starten Sie dann Docker neu und erstellen Sie die Container neu. Ein Container behält den Log-Treiber, mit dem er erstellt wurde; ein Neustart reicht daher nicht.
+
+## Ein eigenes Log-Format lesen
+
+Der Agent liest die Stufen der Formate, die die meisten Programme schreiben. Für ein Format, das er nicht liest, etwa ein hauseigenes, geben Sie ihm bis zu fünf eigene Collector-Operators, jeden als JSON in `ONEUPTIME_LOG_OPERATOR_1` bis `ONEUPTIME_LOG_OPERATOR_5`. Sie laufen auf jeder Container-Logzeile, nachdem der Agent ihren Container und Stream gelesen hat, und bevor er die Stufe der Zeile liest. Um die Stufe einer Zeile zu setzen, schreiben Sie sie nach `attributes.severity_text`, als ein Wort, das der Agent liest, etwa `ERROR`, `warn` oder `critical`, und geben Sie die Zeile an `severity-router` weiter, den ersten Schritt des Agents. Ein Operator, der den Schweregrad selbst setzt, etwa ein `severity_parser`, wird überschrieben: Der Agent liest die Stufe jeder Zeile nach Ihren Operators.
+
+Für Zeilen wie `<<E>> payment failed`, deren Buchstabe die Stufe ist:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+Der Collector startet nicht mit einem Operator, den er nicht erstellen kann; prüfen Sie die Operators daher, bevor der Agent sie ausführt:
+
+- `install.sh` prüft sie, wenn Sie es mit gesetzten Variablen ausführen, mit dem eigenen `validate` des Collectors, bevor es Ihren vorhandenen Agent anrührt. Lehnt der Collector sie ab, bricht das Skript mit der Meldung des Collectors ab, und Ihr Agent läuft weiter.
+- Mit Docker Compose tragen Sie sie in die `.env` neben `docker-compose.yml` ein, jeden Wert in einfachen Anführungszeichen, und führen `docker compose up -d` aus. Der Dienst `oneuptime-docker-agent-config-check` führt zuerst dieselbe Prüfung aus, und der Agent startet nur, wenn sie erfolgreich ist.
+- Mit der Docker CLI führen Sie die Prüfung selbst aus, mit den anderen Variablen des Agents, und starten den Agent dann mit denselben `-e`-Flags:
+
+```bash
+docker run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/docker-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes-Agent](/docs/telemetry/kubernetes-agent#ein-eigenes-log-format-lesen) erklärt die Operators des Beispiels, die auch der Kubernetes-Agent annimmt.
 
 ## Agent aktualisieren
 

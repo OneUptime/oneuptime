@@ -778,6 +778,14 @@ describe("prepare: PrepareGuard runs first, with the real policy", () => {
   });
 });
 
+// An agent's compose file: docker-compose.yml, docker-compose.logs.yml, ...
+const AGENT_COMPOSE_FILE_PATTERN: RegExp = /^docker-compose.*\.ya?ml$/;
+// A line of a compose file at its top level, and the services: key.
+const TOP_LEVEL_LINE_PATTERN: RegExp = /^\S/;
+const SERVICES_KEY_PATTERN: RegExp = /^services:\s*$/;
+// A container_name read from .env: ${VARIABLE:-default}.
+const CONTAINER_NAME_FROM_ENV_PATTERN: RegExp = /^\$\{/;
+
 // ---- prepare(): what the agent protects ----------------------------------------------------
 
 describe("prepare: what the agent never changes", () => {
@@ -795,7 +803,7 @@ describe("prepare: what the agent never changes", () => {
     assert.deepStrictEqual(built.docker.calls, []);
   });
 
-  test("OneUptime's other agents on the same engine: Host, Ceph, Proxmox, VMware, Storage Array and database agents", () => {
+  test("OneUptime's other agents on the same engine: Host, Ceph, Proxmox, VMware, OpenStack, XCP-ng, Storage Array and database agents", () => {
     const built: Built = build({ config: WRITES });
 
     for (const name of [
@@ -807,12 +815,31 @@ describe("prepare: what the agent never changes", () => {
       "oneuptime-proxmox-ai-agent",
       "oneuptime-vmware-agent",
       "oneuptime-vmware-ai-agent",
+      "oneuptime-openstack-agent",
+      // OpenStack's log-only and trace-only collectors.
+      "oneuptime-openstack-logs",
+      "oneuptime-openstack-traces",
+      "oneuptime-xcp-ng-agent",
+      "oneuptime-xcp-ng-ai-agent",
+      /*
+       * A second Xen Orchestra's collector and AI agent, named after its
+       * folder by install.sh, and a second pool's AI agent.
+       */
+      "oneuptime-xcp-ng-agent-lab",
+      "oneuptime-xcp-ng-ai-agent-lab",
+      "oneuptime-xcp-ng-ai-agent-lab-pool",
       "oneuptime-storage-array-agent",
-      // A second array's agent, renamed in a folder of its own.
+      // A second array's agent, named after its folder by install.sh.
       "oneuptime-storage-array-agent-fb",
-      // Compose's names for Pure's exporters, after the install directory.
+      /*
+       * Compose's names for the exporters and the syslog collector, after
+       * the install directory.
+       */
       "oneuptime-storage-array-agent-pure-fa-exporter-1",
       "array2-pure-fb-exporter-1",
+      "oneuptime-storage-array-agent-powerstore-exporter-1",
+      "array2-powerstore-syslog-1",
+      "ontap-netapp-harvest-1",
       // Compose's names for the database agent installed in /opt/oneuptime-database-agent.
       "oneuptime-database-agent-oneuptime-database-agent-1",
       "orders-db-oneuptime-database-ai-agent-1",
@@ -1337,6 +1364,116 @@ describe("run: a protected object named by its id is still protected", () => {
       ["service", "inspect", "b2rr"],
       ["service", "update", "--force", "b2rr"],
     ]);
+  });
+
+  /*
+   * A second Storage Array or XCP-ng agent on the same machine runs under a
+   * name of its own, from its .env (#11168) - any name someone exports, too.
+   * Whatever it is, Compose labels the container with the service it was
+   * made for, and that is held to the protected names.
+   */
+  const STORAGE_FB_ID: string = "5f0a5f0a5f0a".padEnd(64, "5");
+  const XEN_LAB_ID: string = "6e1b6e1b6e1b".padEnd(64, "6");
+  const SHOP_WEB_ID: string = "7d2c7d2c7d2c".padEnd(64, "7");
+  const RENAMED_AGENTS: Array<FakeEngineObject> = [
+    OWN_CONTAINER_OBJECT,
+    {
+      kind: "container",
+      id: STORAGE_FB_ID,
+      name: "storage-fb",
+      labels: {
+        "com.docker.compose.project": "array-fb",
+        "com.docker.compose.service": "oneuptime-storage-array-agent",
+      },
+    },
+    {
+      kind: "container",
+      id: XEN_LAB_ID,
+      name: "xen-lab",
+      labels: {
+        "com.docker.compose.project": "xo-lab",
+        "com.docker.compose.service": "oneuptime-xcp-ng-agent",
+      },
+    },
+    {
+      kind: "container",
+      id: SHOP_WEB_ID,
+      name: "shop-web-1",
+      labels: {
+        "com.docker.compose.project": "shop",
+        "com.docker.compose.service": "web",
+      },
+    },
+  ];
+
+  test("an agent's container given a name of its own is protected by the Compose service it was made for", async () => {
+    for (const [command, shown, service] of [
+      [
+        "docker restart storage-fb",
+        "the container storage-fb \\(5f0a5f0a5f0a\\)",
+        "oneuptime-storage-array-agent",
+      ],
+      [
+        "docker stop 5f0a5f0a",
+        "the container storage-fb \\(5f0a5f0a5f0a\\)",
+        "oneuptime-storage-array-agent",
+      ],
+      [
+        "docker restart xen-lab",
+        "the container xen-lab \\(6e1b6e1b6e1b\\)",
+        "oneuptime-xcp-ng-agent",
+      ],
+      [
+        "docker update --memory 1g 6e1b6e1b6e1b",
+        "the container xen-lab \\(6e1b6e1b6e1b\\)",
+        "oneuptime-xcp-ng-agent",
+      ],
+    ] as Array<[string, string, string]>) {
+      const built: Built = build({
+        config: WRITES,
+        responder: engine(RENAMED_AGENTS),
+      });
+
+      // The words name nothing protected: only the engine can tell.
+      expectPrepared(built.executor.prepare(request(command)));
+      expectRefusedAtRun(
+        built,
+        await runCommand(built, command),
+        new RegExp(
+          `^Refused by the Docker AI agent: docker resolves \\S+ to ${shown}\\. .*would change ${service}, which the Docker AI agent protects \\(${service}\\)`,
+        ),
+      );
+    }
+  });
+
+  test("a container of anyone else's Compose service is changed as before", async () => {
+    const built: Built = build({
+      config: WRITES,
+      responder: engine(RENAMED_AGENTS),
+    });
+    const result: ExecResult = await runCommand(
+      built,
+      "docker restart shop-web-1",
+    );
+
+    assert.strictEqual(result.success, true, String(result.errorMessage));
+    assert.deepStrictEqual(built.docker.argvs(), [
+      ["container", "inspect", "shop-web-1"],
+      ["restart", "shop-web-1"],
+    ]);
+  });
+
+  test("a Compose service ONEUPTIME_AI_PROTECTED_TARGETS names protects its containers, as a swarm service does its tasks", async () => {
+    const built: Built = build({
+      config: { ...WRITES, ONEUPTIME_AI_PROTECTED_TARGETS: "web" },
+      responder: engine(RENAMED_AGENTS),
+    });
+
+    expectRefusedAtRun(
+      built,
+      await runCommand(built, "docker restart shop-web-1"),
+      /docker resolves shop-web-1 to the container shop-web-1 \(7d2c7d2c7d2c\)\. .*would change web, which the Docker AI agent protects \(web\)/,
+    );
   });
 });
 
@@ -2978,6 +3115,38 @@ describe("pure helpers", () => {
         },
       ],
     );
+    /*
+     * A container Compose made: the service it was made for, whatever the
+     * container is named (container_name read from .env, say).
+     */
+    assert.deepStrictEqual(
+      parseDockerTargetInspect({
+        kind: "container",
+        targets: ["storage-fb"],
+        text: JSON.stringify([
+          {
+            Id: "5f0a".padEnd(64, "5"),
+            Name: "/storage-fb",
+            Config: {
+              Labels: {
+                "com.docker.compose.project": "array-fb",
+                "com.docker.compose.service": "oneuptime-storage-array-agent",
+                "com.docker.compose.oneoff": "False",
+              },
+            },
+          },
+        ]),
+      }),
+      [
+        {
+          target: "storage-fb",
+          kind: "container",
+          id: "5f0a".padEnd(64, "5"),
+          names: ["storage-fb"],
+          memberOf: ["oneuptime-storage-array-agent"],
+        },
+      ],
+    );
     assert.deepStrictEqual(
       parseDockerTargetInspect({
         kind: "node",
@@ -3371,22 +3540,39 @@ describe("pure helpers", () => {
     const named: Set<string> = new Set<string>();
 
     for (const agent of fs.readdirSync(repoAgents)) {
-      for (const file of ["docker-compose.yml", "install.sh"]) {
-        const filePath: string = path.join(repoAgents, agent, file);
+      const agentDir: string = path.join(repoAgents, agent);
 
-        if (!fs.existsSync(filePath)) {
-          continue;
-        }
+      if (!fs.statSync(agentDir).isDirectory()) {
+        continue;
+      }
 
+      // docker-compose.yml, docker-compose.logs.yml, ...: every compose file.
+      for (const file of fs.readdirSync(agentDir).filter((name: string) => {
+        return AGENT_COMPOSE_FILE_PATTERN.test(name) || name === "install.sh";
+      })) {
+        /*
+         * A name written out, or the default of one read from .env
+         * (container_name: ${XCP_NG_AGENT_CONTAINER_NAME:-oneuptime-xcp-ng-agent}).
+         */
         for (const match of fs
-          .readFileSync(filePath, "utf8")
-          .matchAll(/(?:container_name:\s*|--name\s+)(oneuptime-[a-z-]+)/g)) {
+          .readFileSync(path.join(agentDir, file), "utf8")
+          .matchAll(
+            /(?:container_name:\s*(?:\$\{[A-Z0-9_]+:-)?|--name\s+)(oneuptime-[a-z-]+)/g,
+          )) {
           named.add(match[1]!);
         }
       }
     }
 
-    assert.ok(named.size >= 15, [...named].join(", "));
+    assert.ok(named.size >= 25, [...named].join(", "));
+    for (const name of [
+      "oneuptime-storage-array-agent",
+      "oneuptime-xcp-ng-agent",
+      "oneuptime-openstack-logs",
+      "oneuptime-openstack-traces",
+    ]) {
+      assert.ok(named.has(name), `${name} is not read from the agents' files`);
+    }
     for (const name of named) {
       assert.ok(protectedNames.includes(name), `${name} is not protected`);
     }
@@ -3401,6 +3587,179 @@ describe("pure helpers", () => {
       "oneuptime-database-ai-agent",
     ]) {
       assert.match(databaseCompose, new RegExp(`^  ${service}:$`, "m"));
+    }
+  });
+
+  /*
+   * Every service of every agent's compose file, and what its container is
+   * named: its container_name, written out or read from .env, or nothing
+   * (Compose names it <project>-<service>-1, the project being the
+   * directory it was installed in).
+   */
+  function agentComposeServices(): Array<{
+    file: string;
+    service: string;
+    containerName: string | null;
+  }> {
+    const repoAgents: string = path.resolve(__dirname, "..", "..", "..", "..");
+    const found: Array<{
+      file: string;
+      service: string;
+      containerName: string | null;
+    }> = [];
+
+    for (const agent of fs.readdirSync(repoAgents).sort()) {
+      const agentDir: string = path.join(repoAgents, agent);
+
+      if (!fs.statSync(agentDir).isDirectory()) {
+        continue;
+      }
+
+      for (const file of fs.readdirSync(agentDir).sort()) {
+        if (!AGENT_COMPOSE_FILE_PATTERN.test(file)) {
+          continue;
+        }
+
+        let inServices: boolean = false;
+        let current: {
+          file: string;
+          service: string;
+          containerName: string | null;
+        } | null = null;
+
+        for (const line of fs
+          .readFileSync(path.join(agentDir, file), "utf8")
+          .split("\n")) {
+          if (TOP_LEVEL_LINE_PATTERN.test(line)) {
+            inServices = SERVICES_KEY_PATTERN.test(line);
+            current = null;
+            continue;
+          }
+
+          const service: RegExpMatchArray | null = line.match(
+            /^ {2}([a-z0-9][a-z0-9_.-]*):\s*$/,
+          );
+
+          if (inServices && service) {
+            current = {
+              file: `${agent}/${file}`,
+              service: service[1]!,
+              containerName: null,
+            };
+            found.push(current);
+            continue;
+          }
+
+          const named: RegExpMatchArray | null = line.match(
+            /^ {4}container_name:\s*(\S+)\s*$/,
+          );
+
+          if (current && named) {
+            current.containerName = named[1]!;
+          }
+        }
+      }
+    }
+
+    return found;
+  }
+
+  test("every container an agent's compose file runs is protected, whatever directory it was installed in", () => {
+    const built: Built = build({ config: WRITES });
+    const services: Array<{
+      file: string;
+      service: string;
+      containerName: string | null;
+    }> = agentComposeServices();
+
+    // Every agent with a compose file is read, its sidecars among them.
+    for (const service of [
+      "oneuptime-xcp-ng-agent",
+      "oneuptime-storage-array-agent",
+      "netapp-harvest",
+      "powerstore-syslog",
+      "oneuptime-openstack-logs",
+      "oneuptime-database-ai-agent",
+    ]) {
+      assert.ok(
+        services.some((entry: { service: string }): boolean => {
+          return entry.service === service;
+        }),
+        `${service} is not read`,
+      );
+    }
+
+    for (const entry of services) {
+      const fromEnv: RegExpMatchArray | null = (
+        entry.containerName || ""
+      ).match(/^\$\{[A-Z0-9_]+:-([a-z0-9-]+)\}$/);
+      const names: Array<string> =
+        entry.containerName === null
+          ? // Compose's own name, for an install in any directory.
+            ["oneuptime-database-agent", "orders", "fa02", "x"].map(
+              (project: string): string => {
+                return `${project}-${entry.service}-1`;
+              },
+            )
+          : [fromEnv ? fromEnv[1]! : entry.containerName];
+
+      for (const name of names) {
+        const prepared: PrepareResult = built.executor.prepare(
+          request(`docker stop ${name}`),
+        );
+        assert.match(
+          String(prepared.refusal),
+          new RegExp(
+            `would change ${name}, which the Docker AI agent protects`,
+          ),
+          `${entry.file}: ${entry.service} runs as ${name}, which is not protected`,
+        );
+      }
+    }
+  });
+
+  test("an agent whose container name its .env gives is protected by its Compose service under any name", () => {
+    const services: Array<{
+      file: string;
+      service: string;
+      containerName: string | null;
+    }> = agentComposeServices().filter(
+      (entry: { containerName: string | null }): boolean => {
+        return CONTAINER_NAME_FROM_ENV_PATTERN.test(entry.containerName || "");
+      },
+    );
+    const protectedNames: Array<string> = [
+      ...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
+      ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
+    ];
+
+    // Each service, and the .env variable its container's name comes from.
+    const variables: Record<string, string> = {
+      "StorageArrayAgent/docker-compose.yml: oneuptime-storage-array-agent":
+        "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
+      "XcpNgAgent/docker-compose.yml: oneuptime-xcp-ng-agent":
+        "XCP_NG_AGENT_CONTAINER_NAME",
+      "XcpNgAgent/docker-compose.yml: oneuptime-xcp-ng-ai-agent":
+        "XCP_NG_AI_AGENT_CONTAINER_NAME",
+    };
+
+    assert.deepStrictEqual(
+      services.map((entry: { file: string; service: string }): string => {
+        return `${entry.file}: ${entry.service}`;
+      }),
+      Object.keys(variables),
+    );
+    for (const entry of services) {
+      // run() holds the container's com.docker.compose.service to the list.
+      assert.ok(
+        protectedNames.includes(entry.service),
+        `${entry.service} is not protected by its name`,
+      );
+      // ...and the default name it falls back to is that service's.
+      assert.strictEqual(
+        entry.containerName,
+        `\${${variables[`${entry.file}: ${entry.service}`]}:-${entry.service}}`,
+      );
     }
   });
 });

@@ -3,7 +3,7 @@
 De criteria van een monitor bepalen wat elke controle betekent: of de monitor bereikbaar is of uitgevallen, en of OneUptime een incident meldt of een waarschuwing maakt. Statussen zijn de lijst van uw project met wat een monitor kan zijn, van **Operationeel** tot **Offline**. Deze pagina legt beide uit voor elk monitortype; de eigen pagina van elk type noemt de filters die het biedt.
 
 :::cards
-- [Hoe criteria beslissen](#hoe-criteria-beslissen): Van boven naar beneden, en de eerste overeenkomst wint.
+- [Hoe criteria beslissen](#hoe-criteria-beslissen): Van boven naar beneden: de eerste overeenkomst handelt, en de eerste die de status wijzigt, zet die.
 - [Wat een criterium bevat](#wat-een-criterium-bevat): Filters, een overeenkomstvoorwaarde, acties en instellingen.
 - [Een venster van controles beoordelen](#een-venster-van-controles-beoordelen): Mislukte controles tellen, instabiliteit opmerken, een percentiel lezen.
 - [De criteria van een monitor wijzigen](#de-criteria-van-een-monitor-wijzigen): Criteria bewerken, toevoegen, herschikken en testen.
@@ -12,28 +12,33 @@ De criteria van een monitor bepalen wat elke controle betekent: of de monitor be
 
 ## Hoe criteria beslissen
 
-Telkens wanneer een monitor wordt gecontroleerd, beoordelen zijn criteria het resultaat van boven naar beneden in de lijst. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt, en de criteria eronder worden voor die controle niet meer bekeken. Komt er geen overeen, dan gaat de monitor naar zijn **Standaard monitorstatus**. Zolang een criterium dat hem terugbrengt nog niet overeenkomt, behoudt hij in plaats daarvan zijn status: zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt).
+Telkens wanneer een monitor wordt gecontroleerd, beoordelen zijn criteria het resultaat van boven naar beneden in de lijst. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt: het meldt zijn incidenten, maakt zijn waarschuwingen en wijzigt, als het daarvoor is ingesteld, de status van de monitor. De criteria eronder worden alleen bekeken als het geen status wijzigt, en dan alleen voor de status. Komt er geen overeen, dan gaat de monitor naar zijn **Standaard monitorstatus**. Zolang een criterium dat hem terugbrengt nog niet overeenkomt, behoudt hij in plaats daarvan zijn status: zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt).
 
 ```mermaid title="Hoe elke controle wordt beoordeeld"
 flowchart TB
     R["Het resultaat<br/>van een controle"] --> C1{"Eerste<br/>criterium:<br/>komen de<br/>filters overeen?"}
-    C1 -->|"Ja"| A["Dat criterium<br/>handelt"]
+    C1 -->|"Ja"| A["Dat criterium handelt:<br/>meldt zijn incidenten<br/>en maakt waarschuwingen"]
     C1 -->|"Nee"| C2{"Volgende<br/>criterium:<br/>komen de<br/>filters overeen?"}
     C2 -->|"Ja"| A
     C2 -->|"Geen enkele<br/>kwam overeen"| D["De monitor<br/>gaat naar<br/>zijn standaardstatus"]
-    A --> S["Wijzigt<br/>de status"]
-    A --> I["Meldt een<br/>incident"]
-    A --> L["Maakt een<br/>waarschuwing"]
+    A --> Q{"Wijzigt het<br/>de status?"}
+    Q -->|"Ja"| S["Het zet<br/>de status"]
+    Q -->|"Nee"| N["Het eerste criterium<br/>eronder dat overeenkomt<br/>en de status wijzigt,<br/>zet die, anders gaat<br/>de monitor naar zijn<br/>standaardstatus"]
 ```
 
 De volgorde hoort bij de regel. Een nieuwe monitor zet zijn criteria van slechtste naar beste: offline, dan een waarschuwing als zijn type er een heeft (een certificaat of een domein dat binnenkort verloopt), dan online. Een breed gezond criterium, zoals **Is online** op **Waar**, komt overeen met bijna elke controle, dus het staat als laatste: boven de andere zou het elke keer als eerste overeenkomen en zouden de andere nooit handelen.
 
-Een criterium dat overeenkomt maar geen status wijzigt, beslist de controle toch: de monitor houdt zijn status, en de criteria eronder wachten op de volgende controle. De **Standaard monitorstatus** geldt alleen als geen enkel criterium overeenkomt. Bij een nieuwe monitor is dat **Operationeel**; wijzig het onder **Meer velden**, onder de criteria.
+Een criterium dat overeenkomt maar geen status wijzigt, zoals een criterium dat alleen een waarschuwing maakt, beslist geen status. Zijn waarschuwing gaat open en wordt opgelost zoals die van elk criterium, en de criteria eronder die de status wijzigen, worden alleen voor de status beoordeeld, op hun volgorde: de eerste daarvan die overeenkomt, zet de status en opent bij die controle niets. Komt geen van hen overeen, dan gaat de monitor naar zijn **Standaard monitorstatus**, zoals wanneer geen criterium overeenkomt. Een site die weer bereikbaar maar traag is, staat dus op **Operationeel** met zijn waarschuwing open, welke status een eerdere controle ook achterliet. Bij een nieuwe monitor is de standaard **Operationeel**; wijzig het onder **Meer velden**, onder de criteria.
+
+> [!NOTE]
+> Een criterium dat als eerste overeenkwam en geen status wijzigde, liet de monitor vroeger in de status die hij had, zolang het bleef overeenkomen: een switch die het aanbevolen waarschuwingspakket bewaakt, miste één poll, kwam terug met een poort boven 80% en bleef **Offline**, met zijn statuspagina rood, zolang de poort druk bleef. Nu beslissen alleen de criteria die de status wijzigen erover. Een monitor waarvan alle criteria de status wijzigen, wordt precies zo beoordeeld als voorheen. Dat geldt ook voor welk criterium de incidenten van een controle meldt en de waarschuwingen ervan maakt: bij een monitor die stopt bij de eerste overeenkomst, is dat nog steeds het eerste criterium dat overeenkomt.
 
 > [!NOTE]
 > Een monitor die per host, container, schijf of interface een eigen incident of waarschuwing opent, beoordeelt bij elke controle alle criteria, zodat twee hosts tegelijk met twee verschillende criteria kunnen overeenkomen. Dat is een monitor waarvan de query een **Groeperen op** heeft, zoals een metriek- of logmonitor, of een criterium dat `*` noemt voor elke schijf of interface. Dat geldt ook voor een metriekmonitor die een PromQL-expressie bewaakt: elke reeks die de expressie teruggeeft, wordt op zichzelf beoordeeld. Een monitor voor inkomende verzoeken die incidenten groepeert op een payloadveld, stopt toch bij de eerste overeenkomst.
 >
-> Zo'n monitor heeft toch één status, bepaald door het eerste criterium dat overeenkomt. Een criterium dat hem alleen terugbrengt naar zijn **Standaard monitorstatus** en geen incident of waarschuwing opent, wacht op de hosts die voldeden aan een criterium dat een andere status zet: het komt overeen zodra elk van hen eraan voldoet, wat de andere hosts ook doen. Tot dan behoudt de monitor zijn status, ook als geen criterium overeenkomt, terwijl de incidenten en waarschuwingen van elke host nog steeds elk apart worden opgelost.
+> Zo'n monitor heeft toch één status, bepaald door het eerste criterium dat overeenkomt onder de criteria die de status wijzigen. Een criterium dat hem alleen terugbrengt naar zijn **Standaard monitorstatus** en geen incident of waarschuwing opent, wacht op de hosts die voldeden aan een criterium dat een andere status zet: het komt overeen zodra elk van hen eraan voldoet, wat de andere hosts ook doen. Tot dan behoudt de monitor zijn status, ook als geen criterium dat de status wijzigt overeenkomt, terwijl de incidenten en waarschuwingen van elke host nog steeds elk apart worden opgelost.
+>
+> Criteria die hetzelfde controleren, zijn niveaus van één controle: ze lezen dezelfde waarden, zoals dezelfde metriek, schijf, interface of tabel, en verschillen alleen in hun drempels, zoals een kritiek niveau boven 95% en een waarschuwingsniveau boven 80%. Een host in beide niveaus krijgt één incident en één waarschuwing, van het eerste niveau dat met hem overeenkomt, dus zet het ernstigste niveau bovenaan; de **Monitoringlogboeken** van de host zeggen aan welk niveau het andere hem heeft overgelaten. Criteria die verschillende dingen controleren, openen elk hun eigen incident of waarschuwing voor de host: een hete CPU en een vol geheugen zijn twee waarschuwingen, en dat geldt ook voor een drukke poort en een poort die fouten logt op een netwerkapparaat. Vroeger was dat er één: het eerste criterium dat overeenkwam, nam de host, wat het ook controleerde, zodat de tweede waarschuwing pas openging als de eerste niet meer overeenkwam.
 
 ## Wat een criterium bevat
 
@@ -111,7 +116,7 @@ Zet bij het tweede **Alleen herstellen wanneer aan een eigen voorwaarde is volda
 
 ### Een controle met de vorige vergelijken
 
-**Vorige controle** vergelijkt elke controle met de vorige controle van dezelfde sonde, en voor de bezetting van een schijf ook van dezelfde schijf. **Voor de laatste** is hoe lang geleden die controle mag zijn, dus kies het langer dan het monitoringinterval. Het wordt aangeboden voor dezelfde filters als **Aantal**.
+**Vorige controle** vergelijkt elke controle met de vorige controle van dezelfde sonde, en voor de bezetting van een schijf ook van dezelfde schijf. **Voor de laatste** is hoe lang geleden die controle mag zijn, dus kies het langer dan het monitoringinterval. Het wordt aangeboden voor dezelfde filters als **Aantal**. Het wordt ook aangeboden voor **DNS-recordwaarde**, waar het het hele DNS-antwoord vergelijkt met dat van de vorige controle, met **Niet gelijk aan** of **Gelijk aan**: zie [Wanneer het DNS-antwoord verandert](/docs/monitor/dns-monitor#wanneer-het-dns-antwoord-verandert).
 
 Een gemeten waarde, zoals een reactietijd, voldoet wanneer die meer dan de verandering onder **Verschil met de vorige controle** boven de vorige controle ligt, met **Groter dan**, of eronder, met **Kleiner dan**. De verandering is een **Waarde in de eenheid van de controle**, zoals 200 ms, of een **Procent van de vorige controle**, zoals 50%, en 0 voldoet bij elke stijging of daling. **Gelijk aan** en **Niet gelijk aan** vergelijken met de vorige waarde zelf.
 
@@ -125,11 +130,11 @@ De zin onder de instellingen van het venster leest het terug: ‘Controleer: "Re
 
 ## Wanneer een criterium herstelt
 
-Een criterium stopt met handelen zodra zijn filters niet meer overeenkomen: bij die controle worden zijn incident en waarschuwing opgelost, als **Incident automatisch oplossen** en **Waarschuwing automatisch oplossen** aan staan, en de monitor gaat naar het volgende criterium dat overeenkomt.
+Een criterium stopt met handelen zodra zijn filters niet meer overeenkomen: bij die controle worden zijn incident en waarschuwing opgelost, als **Incident automatisch oplossen** en **Waarschuwing automatisch oplossen** aan staan, en de status van de monitor volgt de criteria die dan overeenkomen.
 
 **Alleen herstellen wanneer aan een eigen voorwaarde is voldaan** houdt het criterium van kracht nadat zijn filters niet meer overeenkomen, tot de filters onder **Herstelt wanneer** overeenkomen. Ze beginnen als het tegendeel van de filters van het criterium, over de laatste 10 minuten, en kunnen alles gebruiken wat een filter biedt, zoals een venster dat controles telt. Een criterium is van kracht zolang de monitor de status heeft die het instelt, of een incident of waarschuwing open is die het heeft gemeld. Zolang het standhoudt, telt het als een overeenkomst op zijn plaats in de lijst: een criterium erboven dat overeenkomt, neemt het nog steeds over.
 
-Als geen criterium overeenkomt, behoudt een monitor die een criterium van zijn **Standaard monitorstatus** heeft gehaald zijn status, zolang hij ook een criterium heeft dat hem alleen naar die status terugbrengt en niets opent. Dat is de herstelmarge: de sjablonen gaan af boven 90% en komen terug bij 81% of minder, dus bij 89% blijft de monitor waar hij is. Zijn incidenten en waarschuwingen worden nog steeds opgelost wanneer hun eigen criterium niet meer overeenkomt. Een monitor zonder zo'n criterium gaat zoals altijd naar zijn **Standaard monitorstatus**.
+Als geen criterium dat de status wijzigt overeenkomt, behoudt een monitor die een criterium van zijn **Standaard monitorstatus** heeft gehaald zijn status, zolang hij ook een criterium heeft dat hem alleen naar die status terugbrengt en niets opent. Dat is de herstelmarge: de sjablonen gaan af boven 90% en komen terug bij 81% of minder, dus bij 89% blijft de monitor waar hij is. Zijn incidenten en waarschuwingen worden nog steeds opgelost wanneer hun eigen criterium niet meer overeenkomt. Een monitor zonder zo'n criterium gaat zoals altijd naar zijn **Standaard monitorstatus**.
 
 ## Alleen op bepaalde dagen en tijden
 
@@ -153,6 +158,7 @@ flowchart TB
 
 - **Eén tegelijk.** Zolang een incident dat een criterium heeft gemeld nog open is, meldt hetzelfde criterium bij een nieuwe overeenkomst geen tweede. Waarschuwingen werken net zo. Een monitor die op host of payloadveld groepeert, houdt er één open per host of waarde, en een criterium van een monitor voor inkomende e-mail met **Voor elke e-mail een nieuw incident openen** opent er één per e-mail.
 - **Sluiten.** Bij een latere controle waarbij een ander criterium overeenkomt, of geen, wordt een incident opgelost waarvan het criterium **Incident automatisch oplossen** aan heeft, en ook een waarschuwing met **Waarschuwing automatisch oplossen**. Beide staan onder **Meer velden** in het incident of de waarschuwing, en de criteria waarmee een nieuwe monitor begint, hebben ze aan.
+- **Het criterium dat handelt.** Bij een monitor die stopt bij de eerste overeenkomst, meldt het eerste criterium dat overeenkomt de incidenten van de controle en maakt het de waarschuwingen ervan, ook als het geen status wijzigt en een criterium eronder de status zet. Dat criterium opent bij de controle niets: zet de criteria die de status wijzigen boven de criteria die alleen waarschuwen, de ergste eerst, zoals die van een nieuwe monitor, dan komen de status van een controle en het incident ervan van hetzelfde criterium.
 - **Meerdere sondes.** Een monitor die door meer dan één sonde wordt gecontroleerd, verandert alleen als zijn sondes het eens zijn. Zie [Hoe criteria worden geëvalueerd](/docs/monitor/create-monitor#hoe-criteria-worden-geëvalueerd).
 - **Een bovenliggende monitor die uitvalt.** Op de pagina **Configuratie → Afhankelijkheden** van een monitor noemt **Afhankelijk van monitors** de monitoren waarvan hij afhangt. Zolang een van die monitoren een status heeft die onder **Onderdrukken als status van bovenliggende monitor is** staat (elke offline-status als dat leeg blijft), opent de monitor geen incidenten of waarschuwingen. Zijn status verandert nog steeds, en wat open staat, wordt nog steeds opgelost.
 - **Gepland onderhoud.** Een monitor in een lopende onderhoudsgebeurtenis wordt niet gecontroleerd, dus zijn criteria draaien niet. Zie [Gepland onderhoud – Overzicht](/docs/scheduled-maintenance/index).
@@ -231,6 +237,16 @@ Als een evaluatie te lang duurt voor haar monitor, waarschuwt de samenvatting u.
 | Zodra de resultaten binnenkomen, zoals bij inkomende verzoeken en e-mails | 5 seconden |
 
 Een tiende laat een monitor ruimte om tienvoudig te groeien voordat zijn controles elkaar in de weg zitten en achterlopen, zodat u het vroeg merkt. Onder 5 seconden is een controle in orde, hoe groot ook: 16.000 reeksen beoordelen duurt ongeveer 2,5 seconden. Boven een minuut bezet ze zo lang een worker en de databases die ze leest, wat haar interval ook is. Om haar sneller te maken, maakt u de filters van haar query's nauwer, groepeert u op minder attributen of controleert u minder vaak.
+
+## Wanneer telemetriemonitors controleren
+
+Monitors die telemetrie lezen, zoals logs-, metrics-, traces-, Kubernetes-, host- en Docker-monitors, worden niet allemaal op hetzelfde moment gecontroleerd. Elke monitor heeft zijn eigen moment in zijn interval, berekend uit de ID van de monitor: een monitor die elke minuut wordt gecontroleerd, draait op dezelfde seconde van elke minuut, een die elke 5 minuten wordt gecontroleerd op hetzelfde moment van elke 5 minuten, en een die elk uur of minder vaak wordt gecontroleerd binnen de eerste 5 minuten van het uur of de dag die zijn interval noemt. Het moment blijft hetzelfde als OneUptime opnieuw opstart en op elke server, zodat de telemetrieopslag in de loop van de minuut beetje bij beetje wordt gelezen in plaats van door alle monitors tegelijk.
+
+Elke monitor behoudt zijn interval: zijn controles liggen precies even ver uit elkaar als eerder. Elke controle beoordeelt het venster dat op haar moment eindigt, ook wanneer ze later draait, bijvoorbeeld terwijl OneUptime het druk heeft, of wanneer een mislukte controle een paar seconden later opnieuw wordt geprobeerd. Zo dekt een venster dat even lang is als het interval precies de tijd sinds de vorige controle: er worden geen gegevens twee keer beoordeeld, en er worden er geen overgeslagen. Een venster omvat zijn begin maar niet zijn einde, dus gegevens met een tijdstempel precies op het moment waarop het ene venster eindigt en het volgende begint, worden één keer beoordeeld, door de latere controle. De evaluatiesamenvatting van een controle, onder **Samenvatting bekijken** in de **Monitoringlogboeken** van de monitor, zegt welk venster ze heeft beoordeeld, en dat doet ook de hoofdoorzaak van een incident of een waarschuwing die ze opent. Zolang OneUptime meer dan een minuut achterloopt met het lezen van de telemetrie die het heeft ontvangen, eindigt het venster van een controle in plaats daarvan op het punt waar OneUptime met lezen is gebleven, zodat een controle nooit gegevens beoordeelt die nog wachten tot ze gelezen worden. Als OneUptime zo ver achterraakt dat de volgende controle van een monitor gepland is voordat de vorige is begonnen, draait alleen de vorige, voor haar eigen venster, en wordt het venster daarna niet gecontroleerd.
+
+Wat verschuift, is wanneer in zijn interval een controle draait: tot één interval later, en nooit meer dan 5 minuten later. Een incident of een waarschuwing kan tot zoveel later openen dan wanneer elke controle aan het begin van haar interval zou draaien, en soms eerder. Het **Overzicht** van de monitor toont wanneer zijn volgende controle gepland is.
+
+Een nieuwe monitor wordt binnen enkele seconden na het aanmaken gecontroleerd, voor het venster dat dan eindigt, en daarna op zijn eigen moment. Dat geldt ook voor een monitor die controles heeft gemist terwijl hij uit stond of terwijl OneUptime gestopt was. Wanneer u het interval van een monitor wijzigt, gaat zijn volgende controle naar het nieuwe interval. Direct na de upgrade naar een versie van OneUptime die controles spreidt, wordt elke monitor nog één keer gecontroleerd op het tijdstip dat het oude schema voor hem had, en daarna op zijn eigen moment.
 
 ## De criteria van een monitor wijzigen
 
@@ -327,6 +343,12 @@ Een criterium hoger in de lijst kwam eerst overeen. Open **Configuratie → Crit
 
 :::details Er werd geen incident geopend toen de monitor uitviel
 Controleer het criterium dat overeenkwam: **Wanneer filters overeenkomen, verklaar een incident.** moet aan staan. Er wordt geen incident gemeld zolang het incident van hetzelfde criterium nog open is, zolang een bovenliggende monitor uit **Afhankelijk van monitors** is uitgevallen, of zolang de monitor in gepland onderhoud is. De kaart **Monitorsamenvatting** in het **Overzicht** van de monitor vertelt welke het was.
+
+Een criterium erboven dat geen status wijzigt, zoals een waarschuwing bij trage antwoorden, kan als eerste overeenkomen: het maakt zijn waarschuwing, het criterium eronder zet de status en meldt zijn incident alleen bij een controle waarbij het de eerste overeenkomst is. Sleep de criteria die de status wijzigen boven de criteria die alleen waarschuwen.
+:::
+
+:::details De monitor ging terug naar zijn standaardstatus terwijl een waarschuwing open bleef
+Het criterium van de waarschuwing wijzigt geen status, dus het houdt de monitor niet vast in de status die een eerdere controle zette. Het eerste criterium dat overeenkomt en de status wijzigt, zet die, en als geen enkel dat doet, gaat de monitor naar zijn **Standaard monitorstatus**. Geef het criterium dat een status zet een eigen herstelvoorwaarde om die status vast te houden zolang een probleem duurt: zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt).
 :::
 
 :::details Het incident blijft open nadat de monitor herstelde

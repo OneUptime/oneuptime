@@ -579,7 +579,13 @@ const CLAIMS: Array<ClaimUnderTest> = [
     probeRanges: [
       'WHERE ds."scanProbeId" = $1 AND ds."nextTableHealthCollectionAt" <= $4',
     ],
-    isProbesRow: 'ds."scanProbeId" = $1',
+    /*
+     * A store a Database Agent reads (#11148) is never the probe's to set
+     * aside, even where the probe scans its content: the agent's claim reads
+     * the same due time.
+     */
+    isProbesRow:
+      'ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL',
     joins: [
       'LEFT JOIN "Project" p ON ds."projectId" = p."_id"',
       'LEFT JOIN "Probe" pr ON ds."scanProbeId" = pr."_id"',
@@ -587,6 +593,8 @@ const CLAIMS: Array<ClaimUnderTest> = [
     rule: [
       'ds."deletedAt" IS NULL',
       'ds."isTableHealthEnabled" = true',
+      // Read by its Database Agent, so never handed to the probe.
+      'ds."tableHealthDatabaseServerId" IS NULL',
       'ds."isArchived" = false',
       'ds."provider" = $n',
       'ds."kind" = ANY($n::text[])',
@@ -1030,6 +1038,91 @@ describe("the OpenStack check claim no longer reads every check of every project
       'SET "nextLifecycleCheckAt" = $2::timestamptz + (',
     );
     expect(lifecycleSql).not.toContain("nextApiCheckAt");
+  });
+});
+
+/*
+ * A store whose tables a Database Agent reads (#11148) is the agent's: its
+ * claim reads the same nextTableHealthCollectionAt. Were the probe that
+ * scans the store's content to judge it by its own rule - which never hands
+ * such a store out - it would push the agent's due time on, every claim.
+ */
+describe("the probe never sets aside or makes due a store a Database Agent reads", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function setAsideStatement(): Promise<string> {
+    silenceLogs();
+    const statements: Array<CapturedStatement> = captureClaimQueries(
+      DataStoreService,
+      [],
+    );
+
+    await setAsideUncollectableTableHealthStores({
+      probeId: PROBE_ID,
+      currentDate: new Date(),
+    });
+
+    expect(statements).toHaveLength(1);
+
+    return normalizeSql(statements[0]!.sql);
+  }
+
+  test("the oldest due rows it looks at are the probe's own, never an agent's", async () => {
+    const sql: string = await setAsideStatement();
+    const oldestDue: string = between(
+      sql,
+      '"oldestDue" AS (',
+      SET_ASIDE_MARKER,
+    );
+
+    expect(oldestDue).toContain(
+      'FROM "DataStore" ds WHERE ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL AND ds."nextTableHealthCollectionAt" <= $2',
+    );
+  });
+
+  test("what it moves is judged the probe's again, under its lock", async () => {
+    const sql: string = await setAsideStatement();
+    const unclaimable: string = between(
+      sql,
+      SET_ASIDE_MARKER,
+      '"setAside" AS (',
+    );
+
+    expect(unclaimable).toContain(
+      'AND ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL AND ds."nextTableHealthCollectionAt" <= $2 AND (',
+    );
+  });
+
+  test("a store with no due time is made due only when it is the probe's", async () => {
+    const sql: string = await setAsideStatement();
+    const unscheduled: string = between(
+      sql,
+      '"unscheduled" AS (',
+      '"madeDue" AS (',
+    );
+
+    expect(unscheduled).toContain(
+      'WHERE ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL AND ds."nextTableHealthCollectionAt" IS NULL',
+    );
+  });
+
+  test("and the claim hands such a store to no probe", async () => {
+    silenceLogs();
+    const statements: Array<CapturedStatement> = captureClaimQueries(
+      DataStoreService,
+      [],
+    );
+
+    await claimDueTableHealthStoresForProbe({
+      probeId: PROBE_ID,
+      limit: LIMIT,
+    });
+
+    expect(normalizeSql(statements[0]!.sql)).toContain(
+      'AND ds."isTableHealthEnabled" = true AND ds."tableHealthDatabaseServerId" IS NULL AND ds."isArchived" = false',
+    );
   });
 });
 

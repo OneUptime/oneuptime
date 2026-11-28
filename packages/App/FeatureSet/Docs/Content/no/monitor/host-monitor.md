@@ -237,7 +237,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 Hvert kriterium kontrolleres for hver disk:
 
 - Mens hendelsen til en disk er åpen, åpner kriteriet som åpnet den, ingen annen for den disken. En annen disk som oppfyller det, åpner sin egen.
-- En disk som oppfyller to kriterier, for eksempel ett over 98 % og ett over 90 %, får én hendelse, fra det første av dem i listen. Sett det strengeste først.
+- En disk som oppfyller to kriterier på samme måling, for eksempel ett over 98 % og ett over 90 %, får én hendelse, fra det første av dem i listen. Sett det strengeste først. Kriterier på ulike målinger åpner hver sin egen hendelse for disken.
 - Hendelsen til en disk løses når den disken ikke lenger oppfyller kriteriet som åpnet den, uansett hva de andre diskene gjør.
 - Monitoren har én status. Et kriterium som endrer den til en annen status, for eksempel **Offline**, setter den så snart én disk oppfyller det. Kriteriet som bringer monitoren tilbake til **Standard monitorstatus** venter på diskene som oppfylte et slikt kriterium, og samsvarer når hver av dem oppfyller det, uansett hva de andre diskene gjør. En disk som faller fra 96 % til 89 %, holder derfor monitoren **Offline** til den er på eller under 81 %, gjenopprettingsmarginen på 10 %, selv om hendelsen dens løses så snart den ikke lenger er over 90 %. **Serier** viser den disken som **Holder statusen**. En disk som ikke lenger rapporteres, holder ikke lenger statusen.
 

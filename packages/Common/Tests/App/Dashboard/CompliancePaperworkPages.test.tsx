@@ -71,9 +71,53 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownEditor", () => {
   };
 });
 
+/*
+ * The leave question each page asks before its unsaved words are lost,
+ * drawn as it is: "Save Changes in the question before leaving" below
+ * answers it as a reader does. Its Save Changes, as the page hands it, is
+ * also kept for a test to press without leaving - the question's own
+ * answers are LeaveWithoutSavingQuestion.test's.
+ */
+const mockLeaveSaves: Array<(() => Promise<void>) | undefined> = [];
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/UnsavedChanges/LeaveWithoutSavingQuestion",
+  () => {
+    const react: typeof React = jest.requireActual("react") as typeof React;
+    const actual: {
+      default: React.FunctionComponent<LeaveQuestionProps>;
+    } = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/UnsavedChanges/LeaveWithoutSavingQuestion",
+    ) as {
+      default: React.FunctionComponent<LeaveQuestionProps>;
+    };
+
+    return {
+      __esModule: true,
+      default: (props: LeaveQuestionProps): ReactElement => {
+        mockLeaveSaves.push(props.onSaveChanges);
+        return react.createElement(actual.default, props);
+      },
+    };
+  },
+);
+
+// Save Changes, as the page hands it now.
+async function saveBeforeLeaving(): Promise<void> {
+  const save: (() => Promise<void>) | undefined =
+    mockLeaveSaves[mockLeaveSaves.length - 1];
+
+  expect(save).toBeDefined();
+
+  await act(async () => {
+    await save!();
+  });
+}
+
 import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import { NOT_LEGAL_ADVICE } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/ComplianceDraftsCopy";
 import RecordOfProcessingCard from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/RecordOfProcessingCard";
+import type { ComponentProps as LeaveQuestionProps } from "../../../../App/FeatureSet/Dashboard/src/Components/UnsavedChanges/LeaveWithoutSavingQuestion";
 import DataSecurityAuditEvidencePage, {
   readEvidenceFramework,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DataSecurity/AuditEvidence";
@@ -451,6 +495,82 @@ describe("Review Drafts", () => {
     ).not.toBeDisabled();
   });
 
+  test("leaving mid-edit offers Save Changes, which writes the field as its own Save would", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/data-security/compliance/review-drafts`);
+    jest
+      .spyOn(DataSecurityApi, "getRecordOfProcessing")
+      .mockImplementation(
+        async (options?: {
+          dataStoreId?: ObjectID | undefined;
+        }): Promise<DataSecurityRecordOfProcessingResponse> => {
+          return recordOf(
+            options?.dataStoreId
+              ? [rowOf(options.dataStoreId.toString(), { facts: [HOLDS] })]
+              : [rowOf(FIRST_ID), rowOf(SECOND_ID)],
+          );
+        },
+      );
+    const written: SpyInstance<typeof DataSecurityApi.applyRecordField> = jest
+      .spyOn(DataSecurityApi, "applyRecordField")
+      .mockResolvedValue({ row: rowOf(FIRST_ID) });
+
+    await renderPage(<ReviewDraftsPage {...PAGE_PROPS} />);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("data-security-store-record-purpose-edit"),
+      );
+    });
+    await act(async () => {
+      fireEvent.change(
+        screen.getByTestId("data-security-store-record-purpose-editor"),
+        { target: { value: "Orders, and the invoices they need" } },
+      );
+    });
+
+    await saveBeforeLeaving();
+
+    expect(written).toHaveBeenCalledTimes(1);
+    expect(written).toHaveBeenCalledWith({
+      dataStoreId: FIRST_ID,
+      field: RecordField.Purpose,
+      action: RecordFieldAction.Write,
+      value: "Orders, and the invoices they need",
+    });
+  });
+
+  test("a store the reader may not change offers no edit, though they may change others (#10805)", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/data-security/compliance/review-drafts`);
+    jest
+      .spyOn(DataSecurityApi, "getRecordOfProcessing")
+      .mockImplementation(
+        async (options?: {
+          dataStoreId?: ObjectID | undefined;
+        }): Promise<DataSecurityRecordOfProcessingResponse> => {
+          // The whole record offers changes; this store, by its own row, does not.
+          return options?.dataStoreId
+            ? {
+                ...recordOf([rowOf(options.dataStoreId.toString())]),
+                canEdit: false,
+                canDraft: false,
+              }
+            : recordOf([rowOf(FIRST_ID), rowOf(SECOND_ID)]);
+        },
+      );
+
+    await renderPage(<ReviewDraftsPage {...PAGE_PROPS} />);
+
+    expect(
+      screen.getByTestId("data-security-store-record-purpose"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("data-security-store-record-purpose-edit"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("data-security-review-drafts-draft"),
+    ).not.toBeInTheDocument();
+  });
+
   test("nothing waiting says so, with the way back", async () => {
     goTo(`/dashboard/${PROJECT_ID}/data-security/compliance/review-drafts`);
     jest
@@ -634,6 +754,55 @@ describe("a store's Impact Assessment", () => {
       markdown: "Our own words about the risks.",
     });
   });
+
+  test("leaving mid-edit offers Save Changes, which saves the part as its own Save would", async () => {
+    jest.spyOn(DataSecurityApi, "getImpactAssessment").mockResolvedValue(
+      assessmentOf({
+        assessment: {
+          version: 1,
+          language: "en",
+          facts: [HOLDS],
+          triggers: [],
+          sections: {
+            [ImpactAssessmentPart.Risks]: {
+              part: ImpactAssessmentPart.Risks,
+              markdown: "Drafted risks.",
+              source: ImpactAssessmentSectionSource.Drafted,
+              factKeys: [HOLDS.key],
+              draftedAt: DRAFTED_AT,
+            },
+          },
+        },
+      }),
+    );
+    const edited: SpyInstance<typeof DataSecurityApi.editImpactAssessment> =
+      jest
+        .spyOn(DataSecurityApi, "editImpactAssessment")
+        .mockResolvedValue(assessmentOf());
+
+    await renderInStore(<DataStoreImpactAssessment {...PAGE_PROPS} />);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("data-security-impact-assessment-risks-edit"),
+      );
+    });
+    await act(async () => {
+      fireEvent.change(
+        screen.getByTestId("data-security-impact-assessment-risks-editor"),
+        { target: { value: "Our own words, saved on the way out." } },
+      );
+    });
+
+    await saveBeforeLeaving();
+
+    expect(edited).toHaveBeenCalledTimes(1);
+    expect(edited).toHaveBeenCalledWith({
+      dataStoreId: new ObjectID(FIRST_ID),
+      part: ImpactAssessmentPart.Risks,
+      markdown: "Our own words, saved on the way out.",
+    });
+  });
 });
 
 function evidenceOf(): DataSecurityAuditEvidenceResponse {
@@ -813,6 +982,42 @@ describe("a framework's Audit Evidence", () => {
       periodInDays: 90,
       requirement: "CC6.1",
       text: "Public access is reviewed every week by the platform team.",
+    });
+  });
+
+  test("leaving mid-edit offers Save Changes, which saves the paragraph as its own Save would", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/data-security/compliance/audit-evidence?framework=SOC%202`,
+    );
+    jest
+      .spyOn(DataSecurityApi, "getAuditEvidence")
+      .mockResolvedValue(evidenceOf());
+    const edited: SpyInstance<typeof DataSecurityApi.editAuditEvidence> = jest
+      .spyOn(DataSecurityApi, "editAuditEvidence")
+      .mockResolvedValue(evidenceOf());
+
+    await renderPage(<DataSecurityAuditEvidencePage {...PAGE_PROPS} />);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("data-security-audit-evidence-CC6-1-edit"),
+      );
+    });
+    await act(async () => {
+      fireEvent.change(
+        screen.getByTestId("data-security-audit-evidence-CC6-1-editor"),
+        { target: { value: "Reviewed every week." } },
+      );
+    });
+
+    await saveBeforeLeaving();
+
+    expect(edited).toHaveBeenCalledTimes(1);
+    expect(edited).toHaveBeenCalledWith({
+      framework: ComplianceFramework.SOC2,
+      periodInDays: 90,
+      requirement: "CC6.1",
+      text: "Reviewed every week.",
     });
   });
 });

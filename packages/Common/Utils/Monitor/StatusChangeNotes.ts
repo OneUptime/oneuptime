@@ -168,6 +168,16 @@ export const STATUS_CHANGED_BY_MAINTENANCE: string = translationKey(
 export const STATUS_CHANGED_TO_DEFAULT: string = translationKey(
   "No criteria matched, so the monitor changed to its default status.",
 );
+/*
+ * Criteria matched, and none of them changes the status - an alert-only
+ * criteria decides none (#11238) - so the monitor went to its default
+ * status, as when none matches. Stored as "No monitoring criteria that
+ * changes the status met. Change to default status."
+ */
+export const STATUS_CHANGED_TO_DEFAULT_NO_STATUS_CRITERIA: string =
+  translationKey(
+    "No criteria that changes the status matched, so the monitor changed to its default status.",
+  );
 export const STATUS_CREATED_WITH_MONITOR: string = translationKey(
   "This status was created when the monitor was created.",
 );
@@ -185,6 +195,44 @@ export const MONITORING_TURNED_ON_BY_USER: string = translationKey(
 );
 export const MONITORING_TURNED_ON: string = translationKey(
   "Monitoring was turned back on. Uptime, status pages and SLOs count the monitor's time again from here.",
+);
+/*
+ * Time a pause leaves out of uptime, and counts again (MonitorIncidentPause):
+ * a monitor paused by an incident declared by hand (#11141) or by scheduled
+ * maintenance (#11301) with no status set for it, a status set by what
+ * pauses it, and the pause over. The incidents and the events are each a
+ * link, "[INC-12](...)" or "[INC-12](...) and [INC-14](...)", kept as written.
+ */
+export const MONITORING_PAUSED_BY_INCIDENTS: string = translationKey(
+  "Monitoring is paused by {{incidents}}, declared by hand without a status for this monitor. Nothing checks the monitor until the incident is resolved, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+);
+export const MONITORING_PAUSED_FOR_MAINTENANCE: string = translationKey(
+  "Monitoring is paused by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until the maintenance ends, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+);
+export const MONITORING_PAUSED_BY_INCIDENTS_AND_MAINTENANCE: string =
+  translationKey(
+    "Monitoring is paused by {{incidents}}, declared by hand, and by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until both are over, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  );
+export const PAUSING_INCIDENTS_SET_STATUS: string = translationKey(
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.",
+);
+export const PAUSING_MAINTENANCE_SETS_STATUS: string = translationKey(
+  "Scheduled maintenance ({{events}}) puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.",
+);
+export const MONITORING_RESUMED: string = translationKey(
+  "Monitoring resumed. Uptime, status pages and SLOs count the monitor's time again from here.",
+);
+/*
+ * A monitor back in the status of what still pauses it, when the rest lets
+ * go of it (MonitorIncidentPause, #11301): an incident declared by hand still
+ * open once maintenance is over, or maintenance still in progress once an
+ * incident lets go.
+ */
+export const BACK_IN_STATUS_OF_INCIDENT: string = translationKey(
+  "Scheduled maintenance is over, and {{incident}} is still open, so the monitor is back in the status the incident puts it in.",
+);
+export const BACK_IN_STATUS_OF_MAINTENANCE: string = translationKey(
+  "Scheduled maintenance ({{event}}) is still in progress, so the monitor is back in the status it puts it in.",
 );
 // OpenStackProjectPages writes these two, from here.
 export const OPENSTACK_PROJECT_USES_INCIDENT: string = translationKey(
@@ -229,6 +277,11 @@ const MONITOR_STATUS_NOTES: ReadonlyArray<StatusChangeNote> = [
     written: "No monitoring criteria met. Change to default status.",
     said: STATUS_CHANGED_TO_DEFAULT,
   },
+  {
+    written:
+      "No monitoring criteria that changes the status met. Change to default status.",
+    said: STATUS_CHANGED_TO_DEFAULT_NO_STATUS_CRITERIA,
+  },
   // MonitorService.
   { written: STATUS_CREATED_WITH_MONITOR },
   { written: STATUS_CHANGED_WITH_MONITOR },
@@ -243,6 +296,19 @@ const MONITOR_STATUS_NOTES: ReadonlyArray<StatusChangeNote> = [
     written: `{{user}} turned monitoring back on.${MONITORING_ON_TAIL}`,
     said: MONITORING_TURNED_ON_BY_USER,
   },
+  /*
+   * MonitorIncidentPause.getUptimeRootCause and the moves back to a status.
+   * Maintenance's "puts this monitor in its status" is read before the
+   * incidents' one, whose incidents could otherwise be read as any text.
+   */
+  { written: MONITORING_PAUSED_BY_INCIDENTS },
+  { written: MONITORING_PAUSED_FOR_MAINTENANCE },
+  { written: MONITORING_PAUSED_BY_INCIDENTS_AND_MAINTENANCE },
+  { written: PAUSING_MAINTENANCE_SETS_STATUS },
+  { written: PAUSING_INCIDENTS_SET_STATUS },
+  { written: MONITORING_RESUMED },
+  { written: BACK_IN_STATUS_OF_INCIDENT },
+  { written: BACK_IN_STATUS_OF_MAINTENANCE },
   { written: OPENSTACK_PROJECT_USES_INCIDENT },
   { written: OPENSTACK_PROJECT_USES_BACK },
   {
@@ -493,6 +559,35 @@ const MONITORING_TURNED_OFF_NOTES: ReadonlyArray<StatusChangeNote> = [
 ];
 
 /*
+ * MonitorCriteriaReplaced (#11260, #11266): an incident or alert set to
+ * resolve on its own, resolved when a template took the criteria that
+ * opened it off the monitor - linking it to another template, whose
+ * criteria replaced its own, or unlinking it and clearing the template's.
+ */
+const MONITOR_CRITERIA_REPLACED_NOTES: ReadonlyArray<StatusChangeNote> = [
+  {
+    written: translationKey(
+      "The monitor **{{monitor}}** was linked to the template **{{template}}**, and its criteria replaced the ones that opened this incident. This incident was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there, the monitor's new criteria open a new incident.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The monitor **{{monitor}}** was linked to the template **{{template}}**, and its criteria replaced the ones that opened this alert. This alert was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there, the monitor's new criteria open a new alert.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The monitor **{{monitor}}** was unlinked from the template **{{template}}**, and the template's criteria were cleared from it. This incident was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The monitor **{{monitor}}** was unlinked from the template **{{template}}**, and the template's criteria were cleared from it. This alert was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now.",
+    ),
+  },
+];
+
+/*
  * DeviceManagementConnectionAlerts (#10286): an incident or alert set to
  * resolve on its own, resolved when its device management connection was
  * turned off - its Connection Stopped Reading monitor's - or deleted -
@@ -662,11 +757,24 @@ const SLO_NOTES: ReadonlyArray<StatusChangeNote> = [
   },
 ];
 
-// The budgets' alerts, resolved when their month ends.
+/*
+ * The budgets' alerts, resolved when their window ends: a cloud budget's
+ * month, quarter or year (#11008), an OpenStack budget's month.
+ */
 const BUDGET_NOTES: ReadonlyArray<StatusChangeNote> = [
   {
     written: translationKey(
       "Resolved by OneUptime: the month this cloud budget alert was raised in is over.",
+    ),
+  },
+  {
+    written: translationKey(
+      "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.",
+    ),
+  },
+  {
+    written: translationKey(
+      "Resolved by OneUptime: the year this cloud budget alert was raised in is over.",
     ),
   },
   {
@@ -873,6 +981,7 @@ export const STATUS_CHANGE_NOTES: ReadonlyArray<StatusChangeNote> = [
   ...LINKED_ALERT_NOTES,
   ...SERIES_RESOLVED_NOTES,
   ...MONITORING_TURNED_OFF_NOTES,
+  ...MONITOR_CRITERIA_REPLACED_NOTES,
   ...DEVICE_MANAGEMENT_CONNECTION_NOTES,
   ...NETWORK_SITE_NOTES,
   ...SLO_NOTES,

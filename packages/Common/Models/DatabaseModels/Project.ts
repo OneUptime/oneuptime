@@ -15,6 +15,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
+import { CALL_VOICE_VALUES } from "../../Types/Call/CallVoice";
 import ColumnType from "../../Types/Database/ColumnType";
 import { getDecimalDatabaseTransformer } from "../../Types/Database/DecimalColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -98,11 +99,11 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
     Permission.BillingMember,
     Permission.BillingViewer,
     /*
-     * Security Admin is on the update list below for three columns - the
-     * hourly limit of automatic blocks and the two switches of Trusted
-     * Proxies - and a role that may change a table's records reads them by
-     * its own name too (WriteNeedsReadRoleCoverage), as the billing roles
-     * do. Each column's own read list still decides what it reads.
+     * Security Admin reads the hourly limit of automatic blocks it sets
+     * (securityAutomaticResponseMaxBlocksPerHour, #10746): an update reaches
+     * only the records its caller may read, so without this its one change
+     * of the project would change nothing. Each column's own read list
+     * decides the rest.
      */
     Permission.SecurityAdmin,
   ],
@@ -118,11 +119,13 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * update. Edit Incoming Request Secret is here for one column alone,
    * requireIncomingRequestSecret (issue #8502), the same way, and so is
    * Security Admin, for the hourly limit of automatic blocks
-   * (securityAutomaticResponseMaxBlocksPerHour, #10746) and the two
-   * switches of Security Events' Trusted Proxies: whether the project's own
-   * load balancers are trusted (securityTrustOwnLoadBalancers, #10546) and
-   * whether its access logs end with X-Forwarded-For
-   * (securityReadAccessLogForwardedFor, #10548).
+   * (securityAutomaticResponseMaxBlocksPerHour, #10746) and Security
+   * Events' Trusted Proxies: the list (securityTrustedProxies, #11049),
+   * whether the project's own load balancers are trusted
+   * (securityTrustOwnLoadBalancers, #10546), whether private addresses are
+   * (securityTrustPrivateAddresses, #11389), whether its access logs end
+   * with X-Forwarded-For (securityReadAccessLogForwardedFor, #10548) and
+   * the format they are written in (securityAccessLogFormat, #11048).
    */
   update: [
     Permission.ProjectOwner,
@@ -1903,6 +1906,46 @@ export default class Project extends TenantModel {
   public detectVoicemailOnCalls?: boolean = undefined;
 
   /*
+   * THE VOICE THE PROJECT'S CALLS SPEAK WITH THROUGH THE SERVER'S TWILIO
+   * ACCOUNT (#11065, Types/Call/ProjectCallVoice): one of OneUptime's neural
+   * voices (Types/Call/CallVoice), read only while the server's master admin
+   * lets projects choose (GlobalConfig.letProjectsChooseCallVoice) - never
+   * on OneUptime Cloud. Empty, as every project starts, the calls speak with
+   * the server's voice. A Twilio config of the project's own has a voice of
+   * its own (ProjectCallSMSConfig.twilioCallVoice). ProjectService refuses a
+   * voice the list does not hold, and one the server does not offer.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Call Voice",
+    description:
+      "The voice the project's calls speak with through this server's Twilio account, when the server lets projects choose: a neural Amazon Polly or Google voice. Leave it empty for the server's voice.",
+    allowedValues: CALL_VOICE_VALUES,
+    example: "Polly.Joanna-Neural",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public callVoice?: string = undefined;
+
+  /*
    * Throttle flag for the owner notification sent when the fallback above is used or
    * when a responder turns out to be unreachable. An incident storm must not turn into a
    * mail storm, so the owners are told once and the flag is cleared on the usual
@@ -3201,8 +3244,14 @@ export default class Project extends TenantModel {
    * address the request only claims is never blamed
    * (Utils/SecurityEvent/ClientAddressTrust). Private, loopback and
    * link-local addresses are trusted without being listed. One address or
-   * range a line, at most MAX_TRUSTED_PROXIES; the server refuses anything
-   * else, and keeps each written one way (NetworkAddressBlock).
+   * range a line, at most MAX_TRUSTED_PROXIES, none wider than a proxy's
+   * (MIN_TRUSTED_PROXY_PREFIX_LENGTH); the server refuses anything else,
+   * and keeps each written one way (NetworkAddressBlock).
+   *
+   * A Security Admin edits it, as a Project Owner or Admin does (#11049),
+   * as they flip the two switches beside it: they run Security Events, and
+   * may already block any address or stop protecting one, so the list
+   * hands them nothing they could not do. Every change is in the audit log.
    */
   @ColumnAccessControl({
     create: [Permission.User],
@@ -3215,7 +3264,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
   })
   @TableColumn({
     required: false,
@@ -3279,6 +3332,64 @@ export default class Project extends TenantModel {
   public securityTrustOwnLoadBalancers?: boolean = undefined;
 
   /*
+   * Whether Security Events trusts an address that is nobody's on the
+   * internet - private, loopback, link-local - as a proxy without its being
+   * listed (#11389). A proxy that works at the TCP level (HAProxy in mode
+   * tcp, nginx's stream module, a Kubernetes Service with
+   * externalTrafficPolicy: Cluster) passes on the X-Forwarded-For a client
+   * wrote, and at a private address it was trusted, so a client could
+   * choose the address an attack is blamed on. Off, a private address is
+   * trusted only when it is listed under Trusted Proxies or is one of the
+   * project's own load balancers'.
+   *
+   * Off for a new project, the safe start: ProjectService.onBeforeCreate
+   * turns it off when the create request leaves it unset
+   * (applyNewProjectSecurityDefaults). The column's own default stays on,
+   * so every project from before the switch keeps trusting private
+   * addresses as it did - none names its HTTP proxies as attackers
+   * overnight - and the generated Terraform provider's static default never
+   * flips a Terraform-managed project on its next apply. An address
+   * forwarded through a private address nothing vouches for is never
+   * blocked automatically, either way
+   * (Utils/SecurityEvent/ClientAddressTrust.readUnvouchedForwarding). Set
+   * as the switches beside it are, by a Project Owner, a Project Admin or a
+   * Security Admin.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Trust Private Addresses",
+    description:
+      "Whether Security Events trusts private, loopback and link-local addresses as proxies without your listing them. Off for a new project.",
+    defaultValue: true,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public securityTrustPrivateAddresses?: boolean = undefined;
+
+  /*
    * Whether the project's web servers' access logs end with the
    * X-Forwarded-For header, as nginx's main format does (#10548): Security
    * Events then reads a combined log line's last quoted field as the one
@@ -3323,6 +3434,51 @@ export default class Project extends TenantModel {
   public securityReadAccessLogForwardedFor?: boolean = undefined;
 
   /*
+   * The format the project's web servers write their access logs in, when
+   * it gives it (#11048): an nginx log_format, as nginx.conf writes it -
+   * the directive, or its strings - or a known one it picked on Access
+   * Logs (nginx's main, ingress-nginx's upstreaminfo). Security Events then
+   * reads each line in that format field by field, X-Forwarded-For from
+   * wherever $http_x_forwarded_for is, only behind a proxy the project
+   * trusts; a line not in it is read as before
+   * (Utils/SecurityEvent/LogParsers/AccessLogFormat). Kept as given, at most
+   * MAX_ACCESS_LOG_FORMAT_LENGTH; the server refuses one it cannot read a
+   * line by, with why. Set as the switch beside it is, by a Project Owner,
+   * a Project Admin or a Security Admin.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Access Log Format",
+    description:
+      "The nginx log_format your web servers write their access logs in, so Security Events reads X-Forwarded-For wherever the format puts it. Empty unless given.",
+    example:
+      'log_format main \'$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_time\';',
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public securityAccessLogFormat?: string = undefined;
+
+  /*
    * The most automatic blocks the project's automatic response policies
    * make in an hour (#10746, Security Events > Playbooks > Automatic
    * Response, under More settings): past it they stop blocking and page the
@@ -3342,6 +3498,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.SecurityAdmin,
     ],
     update: [
       Permission.ProjectOwner,
@@ -3713,6 +3870,48 @@ export default class Project extends TenantModel {
   })
   public notifyStatusPageSubscribersOfNewIncidentsByDefault?: boolean =
     undefined;
+
+  /*
+   * Whether an incident someone declares by hand starts acknowledged
+   * (Incidents -> Settings -> Incident State, issue #11137;
+   * Common/Types/Incident/IncidentDeclaredByHandStart). Off for every
+   * project, existing and new, so nothing pages any less until an owner or
+   * admin turns it on. On, an incident declared in the dashboard, Slack or
+   * Microsoft Teams starts in the project's acknowledged state when no state
+   * is picked for it, by the person or its template, and it pages no on-call
+   * policy: whoever declares it is on it. One that pages a policy starts in
+   * the created state, so the policy pages. Incidents created by monitors,
+   * rules, the API and workflows are not affected.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Start Incidents Declared by Hand Acknowledged",
+    description:
+      "Whether an incident someone declares in the dashboard, Slack or Microsoft Teams starts acknowledged, since whoever declares it is already on it. When enabled, such an incident starts in the project's acknowledged state, so no one is paged, unless a state is picked for it (by the person or its template) or it pages an on-call policy: then it starts as it always did. On-call rules do not page an incident that starts acknowledged. Incidents created by monitors, rules, the API and workflows are not affected. Off by default.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public startIncidentsDeclaredByHandAcknowledged?: boolean = undefined;
 
   /*
    * The layout every network topology map in the project opens on (issue

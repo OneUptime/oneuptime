@@ -177,6 +177,8 @@ describe("which updates link something a fix acts on", () => {
         "proxmoxClusters",
         "openStackClouds",
         "vmwareVCenters",
+        // Fixed through its XCP-ng AI agent (#10998).
+        "xcpNgPools",
         "cephClusters",
         "databaseServers",
         "monitors",

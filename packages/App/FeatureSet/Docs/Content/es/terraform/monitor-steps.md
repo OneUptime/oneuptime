@@ -11,7 +11,7 @@
 
 ## Cómo se juzga una comprobación
 
-Cada comprobación da un resultado: la respuesta de una sonda, el valor que devuelve un script o la telemetría que lee la comprobación. Los criterios del paso lo juzgan después en su orden. El primer criterio cuyos filtros coinciden decide lo que pasa: puede cambiar el estado del monitor, abrir incidentes y abrir alertas. Los criterios que vienen después no se miran en esa comprobación.
+Cada comprobación da un resultado: la respuesta de una sonda, el valor que devuelve un script o la telemetría que lee la comprobación. Los criterios del paso lo juzgan después en su orden. El primer criterio cuyos filtros coinciden decide lo que pasa: puede cambiar el estado del monitor, abrir incidentes y abrir alertas. Los criterios que vienen después no se miran en esa comprobación, salvo que no cambie ningún estado (`change_monitor_status` desactivado): entonces los criterios que vienen después y cambian el estado se juzgan solo para el estado, y el primero de ellos que coincide lo fija. Si ninguno lo hace, el monitor pasa a su estado predeterminado.
 
 ```mermaid title="Cómo se juzga cada comprobación"
 flowchart TB
@@ -177,11 +177,12 @@ Cada elemento de `monitor_steps` es una cosa que comprobar:
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` y `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` y `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Los reintentos cuando el script falla: `0` lo ejecuta una vez. |
+| `do_not_sync_fields` | list(string) | Plantillas de monitor | Los campos que cada monitor creado a partir de la plantilla conserva como propios cuando la plantilla sincroniza sus pasos con él, como `monitorDestination` o `dnsMonitor.queryName`: los que enumera su tarjeta **Ajustes de sincronización de la plantilla**. |
 | `criteria` | list (obligatorio) | Todos | Cómo se juzga cada resultado: vea [Atributos de un criterio](#atributos-de-un-criterio). |
 
 ### Ajustes de cada tipo de monitor
 
-Los tipos de monitor con más que ajustar que una dirección guardan sus ajustes (una consulta de logs, una conexión a una base de datos, un clúster que vigilar) en un atributo propio, como JSON sin procesar escrito con `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` y `probe_status_monitor`.
+Los tipos de monitor con más que ajustar que una dirección guardan sus ajustes (una consulta de logs, una conexión a una base de datos, un clúster que vigilar) en un atributo propio, como JSON sin procesar escrito con `jsonencode()`: `log_monitor`, `security_events_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` y `probe_status_monitor`.
 
 Su JSON es el mismo que el del panel, con las claves en camelCase. Un ID dentro de él se escribe como lo escribe la API: `{ _type = "ObjectID", value = "..." }`. Un monitor de Logs que cuenta los errores de un servicio:
 
@@ -254,7 +255,7 @@ Los monitores de métricas agrupados son la única excepción. Cuando la consult
 
 ### Incidentes y alertas
 
-Un elemento de `incidents` admite `title` y `description` (ambos obligatorios), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page` e `is_private`. Un elemento de `alerts` admite lo mismo, con `alert_severity_id` y `auto_resolve_alert`, y sin `show_incident_on_status_page`.
+Un elemento de `incidents` admite `title` y `description` (ambos obligatorios), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `incident_member_roles`, `show_incident_on_status_page` e `is_private`. Un elemento de `alerts` admite lo mismo, con `alert_severity_id` y `auto_resolve_alert`, y sin `show_incident_on_status_page` ni `incident_member_roles`. `incident_member_roles` da a personas un rol en cada incidente que abre el criterio, como el de comandante del incidente: un `{ role_id, user_id }` por persona y rol.
 
 Este criterio pone el monitor sin conexión, abre un incidente que avisa a la política de guardia y lo resuelve cuando el sitio vuelve:
 
@@ -479,6 +480,14 @@ Una comprobación con la que no coincide ningún criterio pone el monitor en su 
 ## Un monitor sin pasos
 
 `monitor_steps` es opcional, pero un monitor creado sin él no tiene criterios con los que juzgar un resultado: las sondas se saltan un monitor sin pasos, y se queda en el estado en el que empezó. Su estado de Terraform deja el atributo vacío, y el plan queda limpio. Un monitor manual nunca necesita pasos: usted fija su estado. Todos los demás tipos necesitan al menos un paso para comprobar algo.
+
+## Lo que conserva un apply
+
+Un apply que cambia `monitor_steps` envía los pasos enteros, y OneUptime sustituye por ellos los pasos que guarda. Un ajuste que su configuración puede escribir y omite se quita, como muestra el plan. Dos tipos de ajuste se conservan en cambio tal como los guarda OneUptime, porque ningún plan puede mostrarlos. El apply lee primero los pasos que guarda OneUptime, y falla sin escribir nada si no puede.
+
+Un ajuste para el que el proveedor no tiene atributo, como el `snmpMonitor` que aún guardan los pasos del tipo de monitor SNMP retirado, o uno que tiene un OneUptime más reciente y que su versión del proveedor aún no conoce, se queda en su paso, criterio, incidente o alerta. Cada uno se empareja como OneUptime los empareja para conservar sus ID: un paso por su posición, un criterio por su nombre y un incidente o una alerta por su título, y si no, por posición. Cuando su configuración quita ese paso, criterio, incidente o alerta, el ajuste se va con él.
+
+Un ajuste que usted escribe con `jsonencode()`, como `dns_monitor`, `incident_grouping` o las `metric_monitor_options` de un filtro, se compara por lo que escribe. OneUptime puede guardar más en él, un valor predeterminado propio o una clave puesta en el panel: eso no es un cambio, y un apply lo conserva. Una clave que usted quita del `jsonencode()` se elimina. En una lista, lo que OneUptime guarda de más se conserva elemento por elemento, mientras la lista tenga tantos elementos como la de OneUptime.
 
 ## El formato de transferencia
 

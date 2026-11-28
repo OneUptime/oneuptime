@@ -178,6 +178,8 @@ jest.mock(
       // What the Add to Balance dialog says, as the page words it (#7475).
       getAddToBalanceAmountDescription:
         actual["getAddToBalanceAmountDescription"],
+      // Whether it says a payment method is needed first (#11053).
+      isPaymentMethodNeededFirst: actual["isPaymentMethodNeededFirst"],
     };
   },
 );
@@ -606,6 +608,11 @@ import {
   helpAndSupportWith,
   setSignedInHelpAndSupport,
 } from "../../Helpers/HelpAndSupportEnvironment";
+import type { SpyInstance } from "jest-mock";
+import ProjectPaymentMethods from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectPaymentMethods";
+import { NO_PAYMENT_METHOD_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceCopy";
+import Navigation from "../../../UI/Utils/Navigation";
+import { ProjectBalanceType } from "../../../Utils/Project/ProjectBalance";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006805";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -766,6 +773,8 @@ const sent: (name: ProductEventName) => Array<Record<string, unknown>> = (
 beforeEach(() => {
   guidedSetupRunServer.reset();
   window.localStorage.clear();
+  // Whether the project has a payment method: not counted yet, as before #11053.
+  ProjectPaymentMethods.reset();
   billingEnabled = true;
   maySecondLevel = true;
   mayChangeChannels = true;
@@ -1239,6 +1248,137 @@ describe("how should we reach you", () => {
     ).toHaveAttribute("href", expect.stringContaining("notification-settings"));
   });
 
+  /*
+   * A project known to have no payment method (#11053): Add to Balance says
+   * one is needed first, and where it is added, before it asks for any
+   * amount - the amount used to come first, and the missing card only once
+   * it was in, in the server's refusal.
+   */
+  test("no payment method yet: Add to Balance says one is needed first, and where, before any amount", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 0 });
+    const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+
+    // The step's button keeps its words (#7475).
+    expect(screen.getByTestId("on-call-setup-add-balance")).toHaveTextContent(
+      "Add to Balance",
+    );
+
+    await press("on-call-setup-add-balance");
+
+    // No amount is asked for.
+    expect(screen.queryByTestId("recharge-dialog")).toBeNull();
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+
+    expect(dialog).toHaveTextContent(
+      NO_PAYMENT_METHOD_DESCRIPTIONS[ProjectBalanceType.SmsOrCall],
+    );
+    expect(dialog).toHaveTextContent(
+      "Project Settings > Billing and Invoices > Billing",
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Add Payment Method" }),
+      );
+    });
+
+    // It takes the person to where a payment method is added.
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy.mock.calls[0]![0].toString()).toContain(
+      `/dashboard/${PROJECT_ID}/settings/billing`,
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(api["rechargeBalance"]).not.toHaveBeenCalled();
+  });
+
+  test("no payment method yet: Cancel leaves the person in the step, and nothing is charged", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 0 });
+    const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+    await press("on-call-setup-add-balance");
+
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByRole("button", {
+          name: "Cancel",
+        }),
+      );
+    });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(navigateSpy).not.toHaveBeenCalled();
+    expect(api["rechargeBalance"]).not.toHaveBeenCalled();
+    expect(screen.getByTestId("on-call-setup-add-balance")).toBeInTheDocument();
+  });
+
+  test("with a payment method, Add to Balance asks for the amount as before", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 1 });
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+    await press("on-call-setup-add-balance");
+
+    expect(screen.getByTestId("recharge-dialog")).toBeInTheDocument();
+    expect(screen.getByTestId("recharge-field")).toHaveTextContent(
+      "Amount (USD)",
+    );
+    expect(screen.queryByText("Add Payment Method")).toBeNull();
+  });
+
+  test("a payment method added while the step is open: the amount is asked for at once", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 0 });
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+
+    // The Billing page counted again, in another tab of this app.
+    await act(async () => {
+      ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 1 });
+    });
+
+    await press("on-call-setup-add-balance");
+
+    expect(screen.getByTestId("recharge-dialog")).toBeInTheDocument();
+  });
+
+  test("a project a cloud marketplace bills, with no card, is still sent to Notification Settings", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 0 });
+    marketplace = "aws";
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+
+    expect(screen.queryByTestId("on-call-setup-add-balance")).toBeNull();
+    expect(
+      screen.getByTestId("on-call-setup-add-balance-link"),
+    ).toHaveAttribute("href", expect.stringContaining("notification-settings"));
+  });
+
   test("no balance, for someone who may not add it: who can, and no button", async () => {
     mayAddBalance = false;
     api["loadProjectPhoneFacts"]!.mockResolvedValue({
@@ -1486,6 +1626,161 @@ describe("how should we reach you", () => {
     expect(storedRun()["reachConfirmed"]).toBe(true);
     expect(stepState("reach_you")).toBe("done");
     expect(stepState("who_else")).toBe("open");
+  });
+});
+
+/*
+ * A server whose admins took the mobile app away (Admin Dashboard >
+ * Settings > Help and Support, #10945): every sentence of the step that
+ * named the app as a way to be reached says it without the app, and a
+ * server that offers the app reads as it always did.
+ */
+describe("how should we reach you, on a server without the mobile app (#10945)", () => {
+  const hideTheApp: () => void = (): void => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+  };
+
+  afterEach(() => {
+    forgetHelpAndSupport();
+  });
+
+  test("the push row is Push notifications, never Mobile app or browser", async () => {
+    hideTheApp();
+    await renderSetup();
+
+    const row: HTMLElement = screen.getByTestId("on-call-setup-reach-push");
+
+    expect(row).toHaveTextContent(ON_CALL_SETUP_COPY.pushRowWithoutApp);
+    expect(row).not.toHaveTextContent(ON_CALL_SETUP_COPY.pushRow);
+    expect(row).not.toHaveTextContent("app");
+  });
+
+  test("with the app offered, the row reads as it always did", async () => {
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-reach-push")).toHaveTextContent(
+      "Mobile app or browser",
+    );
+  });
+
+  test("a browser that cannot receive push is told to use another window, not to install the app", async () => {
+    hideTheApp();
+    api["getBrowserPushProblem"]!.mockReturnValue(
+      BrowserPushProblem.NotSupported,
+    );
+    await renderSetup();
+
+    const problem: HTMLElement = screen.getByTestId(
+      "on-call-setup-browser-push-problem",
+    );
+
+    expect(problem).toHaveTextContent(
+      "This browser cannot receive push notifications here. Use a regular (not private) window of a recent Chrome, Edge, Firefox or Safari.",
+    );
+    expect(problem).not.toHaveTextContent("OneUptime On-Call app");
+  });
+
+  test("with the app offered, the same problem still offers the app", async () => {
+    api["getBrowserPushProblem"]!.mockReturnValue(
+      BrowserPushProblem.NotSupported,
+    );
+    await renderSetup();
+
+    expect(
+      screen.getByTestId("on-call-setup-browser-push-problem"),
+    ).toHaveTextContent("or install the OneUptime On-Call app.");
+  });
+
+  test("an iPhone that needs OneUptime on its Home Screen is told how, without the app", async () => {
+    hideTheApp();
+    api["registerThisBrowser"]!.mockRejectedValue(
+      new BrowserPushError(BrowserPushProblem.NeedsHomeScreen),
+    );
+    await renderSetup();
+    await press("on-call-setup-use-this-browser");
+
+    const error: HTMLElement = screen.getByTestId(
+      "on-call-setup-browser-push-error",
+    );
+
+    expect(error).toHaveTextContent(
+      "On iPhone and iPad, push notifications work once OneUptime is on your Home Screen.",
+    );
+    expect(error).not.toHaveTextContent("You can also install");
+  });
+
+  test("self-hosted without Twilio: a member is told email still reaches them, and nothing about the app", async () => {
+    hideTheApp();
+    billingEnabled = false;
+    projectCanSend = { email: true, sms: false, call: false };
+    await renderSetup();
+
+    const notice: HTMLElement = screen.getByTestId("on-call-setup-no-twilio");
+
+    expect(notice).toHaveTextContent(
+      "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard. Until then, email still reaches you.",
+    );
+    expect(notice).not.toHaveTextContent("the app");
+  });
+
+  test("self-hosted without Twilio: a master admin is told the same, with the way to the server's setup", async () => {
+    hideTheApp();
+    billingEnabled = false;
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    sendingStatus = {
+      channels: [
+        {
+          channel: ServerSendingChannel.SMS,
+          state: ServerSendingState.NotSetUp,
+        },
+        {
+          channel: ServerSendingChannel.Call,
+          state: ServerSendingState.NotSetUp,
+        },
+      ],
+      globalProbes: null,
+    };
+    await renderSetup();
+
+    const notice: HTMLElement = screen.getByTestId("on-call-setup-no-twilio");
+
+    expect(notice).toHaveTextContent(
+      "Set up Twilio for the server; until then, email still reaches you.",
+    );
+    expect(notice).not.toHaveTextContent("the app");
+    expect(
+      screen.getByTestId("on-call-setup-set-up-twilio"),
+    ).toBeInTheDocument();
+  });
+
+  test("with the app offered, a member is told email and the app still reach them, as before", async () => {
+    billingEnabled = false;
+    projectCanSend = { email: true, sms: false, call: false };
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-no-twilio")).toHaveTextContent(
+      "Until then, email and the app still reach you.",
+    );
+  });
+
+  test("a page of the server's own for the app keeps every sentence that names the app", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: {
+          choice: HelpChoice.Link,
+          value: "https://portal.example.com/oneuptime",
+        },
+      }),
+    );
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-reach-push")).toHaveTextContent(
+      "Mobile app or browser",
+    );
   });
 });
 
@@ -2269,7 +2564,38 @@ describe("the test page", () => {
     expect(
       screen.getByTestId("on-call-setup-not-received"),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("on-call-setup-not-received")).toHaveTextContent(
+      ON_CALL_SETUP_COPY.testDidNotGetItHelp,
+    );
     expect(screen.queryByTestId("on-call-setup-test-continue")).toBeNull();
+  });
+
+  test("on a server without the mobile app, what to check names the email and the phone only (#10945)", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      await atTest();
+      await press("send-test-page");
+      await act(async () => {
+        reportTestResult(result(OnCallTestPageStatus.Paging));
+      });
+      await press("on-call-setup-did-not-get-it");
+
+      const help: HTMLElement = screen.getByTestId(
+        "on-call-setup-not-received",
+      );
+
+      expect(help).toHaveTextContent(
+        ON_CALL_SETUP_COPY.testDidNotGetItHelpWithoutApp,
+      );
+      expect(help).not.toHaveTextContent("mobile app");
+    } finally {
+      forgetHelpAndSupport();
+    }
   });
 
   test("skipping reaches the summary, but never counts as finished", async () => {

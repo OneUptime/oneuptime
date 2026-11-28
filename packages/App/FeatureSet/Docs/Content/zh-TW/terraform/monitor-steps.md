@@ -11,7 +11,7 @@
 
 ## 如何判定一次檢查
 
-每次檢查都會給出一個結果：探測器的回應、指令碼的傳回值，或檢查讀取的遙測資料。然後，步驟的條件按順序判定這個結果。第一個篩選器相符的條件決定會發生什麼：它可以更改監測器的狀態、建立事件和建立警示。對這次檢查而言，它之後的條件不會被檢視。
+每次檢查都會給出一個結果：探測器的回應、指令碼的傳回值，或檢查讀取的遙測資料。然後，步驟的條件按順序判定這個結果。第一個篩選器相符的條件決定會發生什麼：它可以更改監測器的狀態、建立事件和建立警示。對這次檢查而言，它之後的條件不會被檢視，除非它不變更任何狀態（`change_monitor_status` 關閉）：這時，它之後會變更狀態的條件只為狀態進行判定，其中第一個相符的條件設定狀態。如果都不相符，監測器會進入預設狀態。
 
 ```mermaid title="如何判定每次檢查"
 flowchart TB
@@ -177,11 +177,12 @@ resource "oneuptime_monitor" "website" {
 | `screen_size_types` | list(string) | Synthetic | `Mobile`、`Tablet` 和 `Desktop`。 |
 | `browser_types` | list(string) | Synthetic | `Chromium` 和 `Firefox`。 |
 | `retry_count_on_error` | number | Synthetic | 指令碼失敗時的重試次數：`0` 只執行一次。 |
+| `do_not_sync_fields` | list(string) | 監測器範本 | 範本將其步驟同步到由它建立的監測器時，每個監測器作為自己的值保留的欄位，例如 `monitorDestination` 或 `dnsMonitor.queryName`：即範本的 **範本同步設定** 卡片列出的欄位。 |
 | `criteria` | list（必填） | 全部 | 如何判定每個結果：請參閱 [條件屬性](#條件屬性)。 |
 
 ### 各監測器類型的設定
 
-除位址外還有更多設定的監測器類型，會把設定（日誌查詢、資料庫連線、要監視的叢集）放在各自的屬性中，以 `jsonencode()` 寫成原始 JSON：`log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`openstack_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor` 和 `probe_status_monitor`。
+除位址外還有更多設定的監測器類型，會把設定（日誌查詢、資料庫連線、要監視的叢集）放在各自的屬性中，以 `jsonencode()` 寫成原始 JSON：`log_monitor`、`security_events_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`openstack_monitor`、`vmware_monitor`、`xcp_ng_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor` 和 `probe_status_monitor`。
 
 它們的 JSON 與儀表板的相同，鍵使用 camelCase。其中的 ID 按 API 的寫法書寫：`{ _type = "ObjectID", value = "..." }`。一個統計某個服務錯誤數的 Logs 監測器：
 
@@ -254,7 +255,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 ### 事件和警示
 
-`incidents` 的每一項接受 `title` 和 `description`（兩者都必填）、`incident_severity_id`、`auto_resolve_incident`、`remediation_notes`、`on_call_policy_ids`、`label_ids`、`owner_team_ids`、`owner_user_ids`、`show_incident_on_status_page` 和 `is_private`。`alerts` 的每一項接受同樣的屬性，但使用 `alert_severity_id` 和 `auto_resolve_alert`，並且沒有 `show_incident_on_status_page`。
+`incidents` 的每一項接受 `title` 和 `description`（兩者都必填）、`incident_severity_id`、`auto_resolve_incident`、`remediation_notes`、`on_call_policy_ids`、`label_ids`、`owner_team_ids`、`owner_user_ids`、`incident_member_roles`、`show_incident_on_status_page` 和 `is_private`。`alerts` 的每一項接受同樣的屬性，但使用 `alert_severity_id` 和 `auto_resolve_alert`，並且沒有 `show_incident_on_status_page` 和 `incident_member_roles`。`incident_member_roles` 為條件開啟的每個事件中的人員指定角色，例如事件指揮官：每個人員和角色寫一個 `{ role_id, user_id }`。
 
 這個條件會把監測器標記為 offline，建立一個呼叫待命策略的事件，並在網站恢復後解決它：
 
@@ -479,6 +480,14 @@ monitor_steps = [{
 ## 沒有步驟的監測器
 
 `monitor_steps` 是選用的，但沒有它而建立的監測器沒有用來判定結果的條件：探測器會跳過沒有步驟的監測器，它會一直停留在初始狀態。你的 state 會讓該屬性保持為空，計畫也保持乾淨。手動監測器從不需要步驟：它的狀態由你自己設定。其他所有類型都至少需要一個步驟才能檢查任何東西。
+
+## apply 保留什麼
+
+變更 `monitor_steps` 的 apply 會傳送完整的步驟，OneUptime 會用它們取代自己保存的步驟。你的設定可以撰寫卻省略的設定值會被移除，正如 plan 所示。有兩類設定值則會依 OneUptime 保存的樣子保留，因為任何 plan 都無法顯示它們。apply 會先讀取 OneUptime 保存的步驟，如果讀取失敗，則不寫入任何內容並回報錯誤。
+
+提供者沒有對應屬性的設定值，例如已停用的 SNMP 監測器類型的步驟仍保存的 `snmpMonitor`，或較新的 OneUptime 擁有而你的提供者版本尚不認識的設定值，會留在它所在的步驟、條件、事件或警示上。每一項都依 OneUptime 為保留 ID 而進行的配對方式配對：步驟依位置，條件依名稱，事件或警示依標題，否則依位置。當你的設定移除該步驟、條件、事件或警示時，該設定值也隨之移除。
+
+你用 `jsonencode()` 撰寫的設定值，例如 `dns_monitor`、`incident_grouping` 或篩選器的 `metric_monitor_options`，會依你撰寫的內容比較。OneUptime 可能在其中保存更多內容，例如它自己的預設值或在儀表板中設定的鍵：這不算變化，apply 也會保留它。你從 `jsonencode()` 中移除的鍵會被移除。在清單中，只要清單的項目數與 OneUptime 的清單相同，OneUptime 多保存的內容就會逐項保留。
 
 ## 傳輸格式
 

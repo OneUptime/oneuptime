@@ -14,6 +14,22 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The resolver also asks PermissionGate whether the reader may read a
+ * table's archive switch (f5f416c04ac); the gate's import chain reads
+ * `window` as well. A member who reads the services reads it too.
+ */
+jest.mock("Common/UI/Utils/PermissionGate", () => {
+  return {
+    __esModule: true,
+    default: {
+      canReadColumn: (): boolean => {
+        return true;
+      },
+    },
+  };
+});
+
 import { describe, expect, test } from "@jest/globals";
 import {
   RESOURCE_FACET_CATALOG,
@@ -111,6 +127,7 @@ describe("LOGS_SCOPE_FACET_ENTITY_TYPES", () => {
       proxmoxClusterId: ServiceType.ProxmoxCluster,
       openStackCloudId: ServiceType.OpenStackCloud,
       vmwareVCenterId: ServiceType.VMwareVCenter,
+      xcpNgPoolId: ServiceType.XcpNgPool,
       cephClusterId: ServiceType.CephCluster,
       storageArrayId: ServiceType.StorageArray,
       serverlessFunctionId: ServiceType.ServerlessFunction,

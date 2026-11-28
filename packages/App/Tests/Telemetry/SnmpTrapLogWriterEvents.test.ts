@@ -22,6 +22,7 @@ import { JSONObject } from "Common/Types/JSON";
 import SnmpTrap, {
   SnmpTrapVarbind,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
+import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 
@@ -337,7 +338,58 @@ describe("a trap from an address that is no device", () => {
     // Known by its address until it is added.
     expect(attributes["event.device"]).toBe("10.0.0.2");
     expect(Object.keys(attributes)).not.toContain("networkDevice.id");
+    expect(Object.keys(attributes)).not.toContain("networkSite.id");
     expect(findInterface).not.toHaveBeenCalled();
+  });
+
+  test("names the site whose default credentials signed it, for Add as device to file it there (#11174)", async () => {
+    const site: ObjectID = ObjectID.generate();
+
+    await SnmpTrapLogWriter.writeUnmatchedTrapLogRow({
+      snmpTrap: {
+        ...trap(COLD_START),
+        snmpVersion: "3",
+        securityName: "site-default",
+        securityLevel: SnmpSecurityLevel.AuthPriv,
+      },
+      probeId: PROBE,
+      projectId: PROJECT,
+      siteId: site,
+    });
+
+    const attributes: Record<string, unknown> = (insertedRows[0] as JSONObject)[
+      "attributes"
+    ] as Record<string, unknown>;
+
+    expect(attributes["networkSite.id"]).toBe(site.toString());
+    expect(attributes["snmpTrap.unmatched"]).toBe(true);
+    expect(attributes["event.name"]).toBe("device.reboot");
+  });
+
+  test("never names a site on a device's own row", async () => {
+    const attributes: Record<string, unknown> = await write(trap(COLD_START));
+
+    expect(Object.keys(attributes)).not.toContain("networkSite.id");
+  });
+});
+
+describe("who holds the credential that signed it is how it was matched, never what is kept", () => {
+  test("no attribute and no word of the row says it, not even another project's ID", async () => {
+    const otherProject: string = "11720000-0000-4000-8000-000000060be8";
+    const attributes: Record<string, unknown> = await write({
+      ...trap(LINK_DOWN, linkVarbinds(10101)),
+      snmpVersion: "3",
+      securityName: "san-monitor",
+      securityLevel: SnmpSecurityLevel.AuthPriv,
+      signedBy: {
+        projectIds: [PROJECT.toString(), otherProject],
+        deviceIds: [SWITCH.toString()],
+        siteIds: [],
+      },
+    });
+
+    expect(JSON.stringify(insertedRows[0])).not.toContain(otherProject);
+    expect(Object.keys(attributes).join(" ")).not.toContain("signedBy");
   });
 });
 
@@ -404,5 +456,99 @@ describe("the project's first logs", () => {
     });
 
     expect(reached).toEqual([]);
+  });
+});
+
+/*
+ * The trap history says what arrived (#11005): an inform says so, and an
+ * SNMPv3 trap the user it was authenticated as, its security level, the
+ * engine that sent it and its context - beside the OID and the varbinds.
+ * Each only when the probe said it, and only as what it can be: a v1 or
+ * v2c trap's row is what it always was.
+ */
+describe("who sent it, and how", () => {
+  test("an SNMPv3 authPriv trap names its user, level, engine and context", async () => {
+    const attributes: Record<string, unknown> = await write({
+      ...trap(LINK_DOWN, linkVarbinds(10101)),
+      snmpVersion: "3",
+      isInform: false,
+      securityName: "san-monitor",
+      securityLevel: SnmpSecurityLevel.AuthPriv,
+      engineId: "80001F8880D5E4C3B2A1",
+      contextName: "vf-128",
+    });
+
+    expect(attributes).toMatchObject({
+      "snmpTrap.version": "3",
+      "snmpTrap.securityName": "san-monitor",
+      "snmpTrap.securityLevel": "authPriv",
+      "snmpTrap.engineId": "80001F8880D5E4C3B2A1",
+      "snmpTrap.contextName": "vf-128",
+      "event.name": "interface.down",
+    });
+    expect(attributes).not.toHaveProperty("snmpTrap.isInform");
+    expect(insertedRows[0]!["body"]).toBe(
+      `SNMPv3 trap ${LINK_DOWN} (linkDown) received from 10.0.0.2`,
+    );
+    expect(
+      (insertedRows[0]!["attributeKeys"] as Array<string>).slice().sort(),
+    ).toEqual(Object.keys(attributes).sort());
+  });
+
+  test("an inform says it is one, whatever its version", async () => {
+    const v3: Record<string, unknown> = await write({
+      ...trap(LINK_UP),
+      snmpVersion: "3",
+      isInform: true,
+      securityName: "san-monitor",
+      securityLevel: SnmpSecurityLevel.AuthNoPriv,
+    });
+
+    expect(v3["snmpTrap.isInform"]).toBe(true);
+    expect(insertedRows[0]!["body"]).toBe(
+      `SNMPv3 inform ${LINK_UP} (linkUp) received from 10.0.0.2`,
+    );
+
+    const v2c: Record<string, unknown> = await write({
+      ...trap(LINK_UP),
+      isInform: true,
+    });
+
+    expect(v2c["snmpTrap.isInform"]).toBe(true);
+    expect(v2c).not.toHaveProperty("snmpTrap.securityName");
+    expect(insertedRows[0]!["body"]).toBe(
+      `SNMP inform ${LINK_UP} (linkUp) received from 10.0.0.2`,
+    );
+  });
+
+  test("a community string is never written into the history", async () => {
+    const attributes: Record<string, unknown> = await write({
+      ...trap(COLD_START),
+      community: "s3cr3t-community",
+    });
+
+    expect(JSON.stringify(attributes)).not.toContain("s3cr3t-community");
+    expect(JSON.stringify(insertedRows)).not.toContain("s3cr3t-community");
+  });
+
+  test("each only as what it can be: a sender's values are text from the network", () => {
+    expect(
+      SnmpTrapLogWriter.getSenderAttributes({
+        ...trap(COLD_START),
+        snmpVersion: "3",
+        isInform: "yes" as unknown as boolean,
+        securityName: "evil\u001b[31m-user-name-far-longer-than-snmp-allows",
+        securityLevel: "superPriv" as unknown as SnmpSecurityLevel,
+        engineId: "<img src=x>",
+        contextName: "ctx\u0000name",
+      }),
+    ).toEqual({
+      "snmpTrap.securityName": "evil?[31m-user-name-far-longer-t",
+      "snmpTrap.contextName": "ctx?name",
+    });
+  });
+
+  test("a v2c trap's row gains nothing", () => {
+    expect(SnmpTrapLogWriter.getSenderAttributes(trap(COLD_START))).toEqual({});
   });
 });

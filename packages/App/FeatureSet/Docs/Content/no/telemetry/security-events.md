@@ -65,6 +65,7 @@ flowchart TB
 | **Notatmaler** | Innstillinger | Ferdig tekst til notatene teamet ditt skriver på sakene sine |
 | **Nummerering** | Innstillinger | Teksten foran saksnumrene, og nummeret den neste saken får |
 | **Risikovurdering** | Innstillinger | Om risikoen for en entitet åpner en sak, ved hvilken risiko, og hvor mye hver entitet betyr |
+| **Sletteforespørsler** | Innstillinger | Personer som er slettet på forespørsel, og hva hver sletting endret |
 
 **Deteksjoner**, **KI**, **Tilkoblinger** og **Innstillinger**, som settes opp én gang, er slått sammen til du åpner dem. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.
 
@@ -205,7 +206,7 @@ Hver type når OneUptime som vanlige logger:
 | Kubernetes-revisjonslogger | Revisjonsloggfilen til API-serveren, lest av collectorens `filelog`-receiver |
 | Webangrep | Tilgangsloggen til en webserver, lest av collectorens `filelog`-receiver |
 
-På **Loggene dine** viser hver type når den sist ble funnet, og **Sjekk en logglinje** viser hva en linje du limer inn, blir til, før noen kommer.
+På **Loggene dine** viser hver type når den sist ble funnet, og **Sjekk en logglinje** viser hva en linje du limer inn, blir til, før noen kommer. OneUptime leser linjen slik skanningene leser loggene dine, med de [klarerte proxyene](#klarerte-proxyer) dine og innstillingene for tilgangsloggene dine, så den oppgir klienten den lagrede hendelsen vil oppgi, og lagrer ingenting.
 
 En trussel som et sikkerhetsprodukt skriver i loggene dine, for eksempel et CEF- eller LEEF-funn eller en trussel fra Palo Alto Networks, FortiGate eller Cisco ASA, åpner en [sak](/docs/telemetry/security-cases) slik et tilkoblet produkts varsel gjør, og øker risikoen for brukeren, verten eller adressen den nevner. **Åpne saker fra** på **Loggene dine** angir fra hvilken alvorlighetsgrad: **Høy og høyere** med mindre du velger en annen, eller **Aldri**. Produktets pålogginger og blokkerte tilkoblinger forblir hendelser som reglene dine kan lese.
 
@@ -246,7 +247,7 @@ Slå på **Nettverksflyt** under **OneUptime-dataene dine** på **Tilkoblinger**
 - området til hver av oppdagelsene dens, mens skanningen pågår;
 - vertene og portene monitorene dens sjekker.
 
-Den lagres som en informativ hendelse, `oneuptime-probe-traffic`, som navngir sonden, og ingen regel leser den. **Nettverksflyt** viser hvor mange som ble lagt til side det siste døgnet, med **Se dem**. Alt annet fra en sondes adresse telles som alles trafikk, og et sveip eller en skanning utover sondens arbeid rapporteres med sondens navn. En sonde gjenkjennes på adressen den melder seg fra, og på adressene til sine egne nettverksgrensesnitt, som den lister opp hver gang den melder seg.
+Den lagres som en informativ hendelse, `oneuptime-probe-traffic`, som navngir sonden, og ingen regel leser den. **Nettverksflyt** viser hvor mange som ble lagt til side det siste døgnet, med **Se dem**. Alt annet fra en sondes adresse telles som alles trafikk, og et sveip eller en skanning utover sondens arbeid rapporteres med sondens navn. En sonde gjenkjennes på adressen den melder seg fra, og på adressene til sine egne nettverksgrensesnitt, som den lister opp hver gang den melder seg. En egendefinert sonde uten vertens nettverk, som en Kubernetes-pod eller en container på et Docker-bridgenettverk, gjenkjennes også på vertens adresser, som `PROBE_HOST_IP_ADDRESSES` gir den: til den har dem, forlater avspørringene dens maskinen fra en adresse den ikke gjenkjennes på, og rapporteres som sveip. Se [Hva en sonde sender når den sender livstegn](/docs/probe/custom-probe#hva-en-sonde-sender-når-den-sender-livstegn).
 
 ### Koble til et sikkerhetsprodukt
 
@@ -298,6 +299,8 @@ En hendelse nevner adressen en forespørsel kom fra, bare når avsenderen av for
 
 En oppgitt adresse blokkeres aldri fra en sak: Hvem som helst kan sende `X-Forwarded-For: 192.0.2.44`, og en blokkering ville stenge ute den som enn har 192.0.2.44. En hendelse med bare en oppgitt adresse har en **Responsplan** som ber deg finne den ekte adressen i loggene til lastbalansereren eller brannmuren din.
 
+En hendelse der en proxy du stoler på, videresendte klienten, viser hvilke proxyer den kom gjennom, som **Videresendt av**: i den rekkefølgen `X-Forwarded-For` lister dem opp, med tilkoblingens egen adresse sist. De ligger i `oneuptime.request.forwarded_by`, og **Sjekk en logglinje** forteller hvorfor hver av dem er klarert.
+
 Registrer to ting på serverspennene til appen din, så adressene er verifisert: tilkoblingens egen adresse, `network.peer.address`, som HTTP-instrumenteringene i OpenTelemetry setter, og bak en proxy headeren `X-Forwarded-For`, som de registrerer som `http.request.header.x-forwarded-for` når du oppgir den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-tilgangslogg leses på samme måte: Klientfeltet, for eksempel `remote_addr`, er tilkoblingens adresse, og feltet `http_x_forwarded_for` er headeren.
 
 #### Klarerte proxyer
@@ -306,18 +309,40 @@ Sikkerhetshendelser tror en proxy på hvem klienten var, når adressen dens er:
 
 | Klarert | Hvorfor |
 | --- | --- |
-| Privat, loopback eller link-local, for eksempel `10.0.0.5` | Alltid: Ingen har den på internett, så den er en lastbalanserer eller en ingress i nettverket ditt |
 | Oppført under **Klarerte proxyer** | Du har oppført den |
 | I de publiserte områdene til en kant du har koblet til, for eksempel [Cloudflare](/docs/integrations/cloudflare) | Så lenge tilkoblingen finnes |
-| En av dine egne applikasjonslastbalanserere | Med mindre du slår det av |
+| En av dine egne applikasjonslastbalanserere, eller et proxy-only-delnett i Google Cloud som bare applikasjonslastbalansererne dine kobler til fra | Med mindre du slår av **Lastbalansererne dine** |
+| En av Googles front-ends, bak din Google Cloud Application Load Balancer | Sammen med lastbalansererne dine, med mindre en TCP- eller SSL-proxylastbalanserer du har, også kobler til fra dem |
+| Privat, loopback eller link-local, for eksempel `10.0.0.5` | Så lenge **Private adresser** er slått på |
 
-**Sikkerhetshendelser → Tilkoblinger → Flere innstillinger** inneholder **Klarerte proxyer**, listen du skriver, og **Klarert automatisk**, som viser resten og hvorfor. Før opp en proxy under **Klarerte proxyer**, én adresse eller ett område på hver linje, når adressen dens er offentlig og ingenting annet stoler på den: et CDN du ikke har koblet til, en lastbalanserer som når appen din over internett, eller en omvendt proxy som nginx på en server med offentlig adresse foran appen din. Inntil du gjør det, tilskrives hvert angrep gjennom den selve proxyen. Bak en global ekstern Application Load Balancer i Google Cloud kommer appens tilkoblinger fra Googles front-ends: Før opp `35.191.0.0/16` og `130.211.0.0/22`.
+Adressene en av lastbalansererne dine som jobber på TCP-nivå, kobler til fra, blir aldri klarert, selv om de er oppført: se [Proxyer som jobber på TCP-nivå](#proxyer-som-jobber-på-tcp-nivå).
+
+**Sikkerhetshendelser → Tilkoblinger → Flere innstillinger** inneholder **Klarerte proxyer**, listen du skriver, og **Klarert automatisk**, som viser resten og hvorfor. Før opp en proxy under **Klarerte proxyer**, én adresse eller ett område på hver linje, når ingenting annet stoler på den: et CDN du ikke har koblet til, en lastbalanserer som når appen din over internett, en omvendt proxy som nginx på en server med offentlig adresse foran appen din, eller, så lenge **Private adresser** er slått av, en HTTP-proxy i nettverket ditt, for eksempel ingressen din. Inntil du gjør det, tilskrives hvert angrep gjennom den selve proxyen. Et område som er bredere enn en proxys, for eksempel `0.0.0.0/0`, avvises: Det ville klarert alle adresser, så hvem som helst kunne velge adressen et angrep tilskrives. En Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator redigerer listen, og hver endring står i [revisjonsloggen](/docs/configuration/audit-logs) til prosjektet.
 
 Dine egne applikasjonslastbalanserere er de som de [tilkoblede skykontoene](/docs/telemetry/cloud-accounts) dine viser: AWS Application Load Balancers, AWS Classic Load Balancers der hver lytter er HTTP eller HTTPS, Google Cloud Application Load Balancers og Azure Application Gateways, med de offentlige adressene sine. Hver av dem legger klienten den videresender, til i `X-Forwarded-For`. En lastbalanserer i Google Cloud legger til sin egen adresse etter klientens, og en Application Gateway når en offentlig backend fra sin egen adresse, så uten dem ville hvert angrep gjennom en av dem blitt tilskrevet lastbalansereren. **Lastbalansererne dine** på **Klarert automatisk** viser dem, og en Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator kan slå det av.
 
-Ingenting annet av ditt er klarert automatisk: ikke vertene, Kubernetes-nodene, sondene eller de virtuelle maskinene dine, en NAT-gateway eller en Network-, Gateway- eller Azure-lastbalanserer. De videresender ingen, eller de sender en forespørsel videre slik den kom, så det som kjører på dem, kunne oppgi hvilken som helst klient: en forespørsel en monitor sender med egne headere, en pod, en bærbar PC bak gatewayen. Hvis en av dem er proxyen din, legger du den til i **Klarerte proxyer**. En Kubernetes-ingress er klarert som den lastbalansereren den er: En GKE-ingress er en Google Cloud Application Load Balancer, en AKS-ingress for Application Gateway en Application Gateway, og en EKS-ingress av klassen `alb` en AWS Application Load Balancer. En ingress-kontroller i klyngen din videresender fra en privat adresse, som alltid er klarert.
+Bak en global ekstern Application Load Balancer i Google Cloud, eller en klassisk en, kommer appens tilkoblinger fra Googles front-ends, ikke fra lastbalansererens egen adresse. Så lenge et tilkoblet Google Cloud-prosjekt har en, stoler Sikkerhetshendelser derfor også på områdene til front-endene: `35.191.0.0/16`, `130.211.0.0/22` og `2600:2d00:1:1::/64`, slik Googles [brannmurregler for lastbalansering](https://cloud.google.com/load-balancing/docs/firewall-rules) lister dem opp. **Lastbalansererne dine** viser dem på den siste linjen i listen, sammen med lastbalansererne som tar dem med, og bryteren slår også dem av. Ingen utenfor Google kobler til fra disse områdene, og å stole på dem lar aldri noen oppgi en klient: En forespørsel gjennom noen andres lastbalanserer avslutter `X-Forwarded-For` med adressen til den lastbalansereren, som ikke er din, så hendelsen oppgir den. Men Googles TCP- og SSL-proxylastbalanserere kobler til fra de samme områdene og sender en forespørsel videre slik klienten sendte den, så så lenge en av dine finnes, eller ikke alle lastbalansererne kunne listes opp, er områdene ikke klarert, og linjen forteller hvorfor. Hvis en slik lastbalanserer ligger i et Google Cloud-prosjekt du ikke har koblet til, kobler du det til, eller slår av **Lastbalansererne dine**. Eldre versjoner av denne dokumentasjonen sa at du skulle føre opp `35.191.0.0/16` og `130.211.0.0/22` under **Klarerte proxyer**: Så lenge en TCP- eller SSL-proxylastbalanserer du har, kobler til fra dem, blir de ikke klarert selv om de er oppført, og **Klarerte proxyer** advarer om hvert av områdene dine som inneholder dem. Du kan ta dem ut av listen: **Lastbalansererne dine** klarerer dem når det er trygt.
+
+Ingenting annet av ditt er klarert automatisk: ikke vertene, Kubernetes-nodene, sondene eller de virtuelle maskinene dine, en NAT-gateway eller en Network-, Gateway- eller Azure-lastbalanserer. De videresender ingen, eller de sender en forespørsel videre slik den kom, så det som kjører på dem, kunne oppgi hvilken som helst klient: en forespørsel en monitor sender med egne headere, en pod, en bærbar PC bak gatewayen. Hvis en av dem er proxyen din, legger du den til i **Klarerte proxyer**. En Kubernetes-ingress er klarert som den lastbalansereren den er: En GKE-ingress er en Google Cloud Application Load Balancer, en AKS-ingress for Application Gateway en Application Gateway, og en EKS-ingress av klassen `alb` en AWS Application Load Balancer. En ingress-kontroller i klyngen din videresender fra en privat adresse, som er klarert så lenge **Private adresser** er slått på; så lenge det er slått av, fører du opp adressene dens.
 
 En endring i noen av disse trer i kraft innen ett minutt, og en ny lastbalanserer blir klarert innen fem.
+
+#### Proxyer som jobber på TCP-nivå
+
+En proxy som jobber på TCP-nivå, legger ikke til noe i `X-Forwarded-For`: Den sender videre headeren klienten skrev, og appen din ser tilkoblingen komme fra proxyen. Var den klarert, kunne en klient velge hvilken adresse et angrep tilskrives, og få en annens adresse blokkert. Eksempler er en AWS Network Load Balancer uten bevaring av klient-IP, Google Clouds proxy Network Load Balancere, HAProxy i `mode tcp`, `stream`-modulen til nginx og en Kubernetes-Service med `externalTrafficPolicy: Cluster`, som gir ingressen din hver tilkobling fra adressen til en node.
+
+OneUptime finner dem de [tilkoblede skykontoene](/docs/telemetry/cloud-accounts) dine lister opp, og klarerer aldri adressene de kobler til fra, selv når **Klarerte proxyer** fører dem opp:
+
+- En regional eller tverregional proxy Network Load Balancer i Google Cloud: proxy-only-delnettet for regionen og VPC-nettverket dens, som alle lastbalansererne der deler. Så lenge bare applikasjonslastbalansererne dine bruker et proxy-only-delnett, kan ingenting annet være i det, og det er klarert som deres.
+- En global ekstern eller klassisk proxy Network Load Balancer i Google Cloud: Googles front-ends.
+- En AWS Network Load Balancer som ikke bevarer klientens egen adresse, fra delnettene den ligger i: en med en målgruppe av instanser eller IP-adresser over TCP eller TLS der bevaring av klient-IP er slått av (IP-mål har den slått av med mindre du slår den på); en dual-stack-lastbalanserer, som gir en IPv6-klient til IPv4-mål fra sin egen adresse; eller en der OneUptime ikke kunne lese målgruppene.
+- En AWS Classic Load Balancer med en TCP- eller SSL-lytter, fra delnettene den ligger i.
+
+**Klarert automatisk** lister dem opp under **Ikke klarert, selv om de er lagt til**, hver med grunnen. Bak en av dem holder du klientens egen adresse på tilkoblingen: Slå på bevaring av klient-IP, eller sett en Application Load Balancer foran. AWS-lastbalanserere leses sammen med inventaret til skykontoen din, så en endring vises etter neste lesing.
+
+For en proxy OneUptime ikke kan se, slår du av **Private adresser** på **Klarert automatisk**. Slått av er en privat adresse bare klarert når den er oppført under **Klarerte proxyer** eller tilhører en av lastbalansererne dine, så før først opp HTTP-proxyene i nettverket ditt: Inntil du gjør det, tilskrives hvert angrep gjennom en av dem selve proxyen. En AWS Application Load Balancer og en Azure Application Gateway når appen din fra private adresser i subnettene sine, som OneUptime ikke fører opp ennå: Før opp disse subnettene også. Et nytt prosjekt starter med **Private adresser** slått av. Et prosjekt fra før det fortsetter å klarere private adresser som før, og **Klarert automatisk** sier hva det risikerer. En Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator slår det om, og hver endring står i revisjonsloggen til prosjektet.
+
+Uansett hva du velger, blokkeres en adresse aldri automatisk når den kom gjennom en privat adresse som verken er oppført eller tilhører en av lastbalansererne dine: [automatisk respons](/docs/telemetry/security-automatic-response) overlater den til en person, og trinnet **Blokker adresse** i en playbook venter på godkjenning, også et der godkjenningen er slått av, og nevner proxyen den kom gjennom. En person som blokkerer adressen fra **Responsplan** i en sak, avgjør det selv. Står en privat HTTP-proxy du har foran, fører du den opp under **Klarerte proxyer**, og automatisk respons handler på det den videresender.
 
 #### Tilgangslogger som slutter med X-Forwarded-For
 
@@ -337,6 +362,25 @@ En linje sier aldri hva feltene er, så det siste feltet leses som `X-Forwarded-
 
 La den være av når formatet ditt slutter med en annen header som inneholder en adresse, for eksempel `X-Real-IP`, eller når webserveren din skriver headere uten å escape anførselstegnene deres, slik `morgan` for Express gjør: En forespørsels egen user agent kunne da legge til et felt. En JSON-tilgangslogg trenger ingen bryter, siden feltene har navn.
 
+#### Ditt eget loggformat
+
+Hvis webserverne dine setter `X-Forwarded-For` et annet sted enn sist, oppgir du formatet deres: **Loggformat** på **Tilgangslogger** under **Flere innstillinger**. Lim inn `log_format` for nginx slik `nginx.conf` skriver det, eller start fra et kjent format, `main` for nginx eller `upstreaminfo` for ingress-nginx. For eksempel et format som etter headeren logger hvor lang tid hver forespørsel tok:
+
+```nginx
+log_format timed '$remote_addr - $remote_user [$time_local] "$request" '
+                 '$status $body_bytes_sent "$http_referer" '
+                 '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+```
+
+Hver linje i formatet ditt leses felt for felt: adressen som koblet til, fra `$remote_addr`, og `X-Forwarded-For` fra `$http_x_forwarded_for`, uansett hvor formatet plasserer den. Den leses som enhver `X-Forwarded-For`: bare når `$remote_addr` er en proxy du stoler på, og fra høyre. Ingen andre felt tas noen gang for noen av dem, og en linje som ikke er i formatet ditt, leses som før, der **Logger slutter med X-Forwarded-For** avgjør det siste feltet.
+
+- nginx escaper anførselstegnene en klient sender, som `\x22`, så hvert anførselstegn i en linje hører til formatet ditt. En linje med flere anførselstegn enn formatet ditt, slik en server som ikke escaper dem, skriver (`escape=none`, `morgan` for Express), er ingen linje i formatet ditt, og ingenting i den leses som en slik.
+- **Loggformat** avviser et format der `X-Forwarded-For` eller `$remote_addr` ikke kan skilles fra feltene ved siden av, for eksempel en header uten anførselstegn mellom to felt en klient skriver, og ber deg sette den i anførselstegn, som `"$http_x_forwarded_for"`.
+- `upstreaminfo` for ingress-nginx logger ingen `X-Forwarded-For`, så klienten i hver linje er `$remote_addr`. Står en Application Load Balancer eller en annen HTTP-proxy foran den, legger du til `"$http_x_forwarded_for"` i `log-format-upstream` for å lese klienten den videresendte. Bak en Network Load Balancer, som sender videre headeren klienten skrev, skal du la være.
+- Når nginx selv setter `$remote_addr` ut fra `X-Forwarded-For`, med realip-modulen eller `use-forwarded-headers` for ingress-nginx, tror den på alle som `set_real_ip_from` eller `proxy-real-ip-cidr` oppgir, og standarden for ingress-nginx oppgir alle. Logg adressen som faktisk koblet til, `$realip_remote_addr`, ved siden av `$http_x_forwarded_for`: Sikkerhetshendelser leser da `$realip_remote_addr` som tilkoblingen, `$remote_addr` bare som en påstand, og avgjør med de klarerte proxyene dine.
+
+En Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator oppgir det, og hver endring står i revisjonsloggen til prosjektet.
+
 ### Skjult av en rensingsregel
 
 En IP-adresseregel som sletter eller maskerer loggene eller trasene dine, skjuler adressen et angrep kom fra før Sikkerhetshendelser leser dem. Hendelsen lagres likevel, uten adresse, og overalt der den ville navngitt adressen, sier den at en scrub-regel skjulte den:
@@ -352,6 +396,8 @@ En regel som hasher, lagrer adressen for Sikkerhetshendelser, så hendelsen navn
 En deteksjonsregel som teller per adresse, bør telle per `principalIp` eller `targetIp`, som navngir adressen bak tokenet fra en regel som hasher, slik regelbibliotekets regler gjør. Et formats eget adressefelt, for eksempel `openstack.audit.initiator_address` eller `asa.src_ip`, inneholder bare en adresse som sto i loggen, så det forblir tomt overalt der en scrub-regel skjulte en.
 
 En regel som sletter eller maskerer en bruker, skjuler den på samme måte: Der hendelsen ville navngitt brukeren, sier **Kildebruker** eller **Målbruker** at en scrub-regel skjulte den. Der Sikkerhetshendelser leser en bruker, lagrer en regel som hasher, brukeren for den: en forespørsels `enduser.id` eller `user.id`, et AI-kalls bruker og en bruker som en logglinje navngir, som principal i en revisjonslogg fra skyen. Så hendelsen navngir brukeren bak tokenet, en sak om brukeren navngir kontoen, og en playbook kan handle på den som på enhver annen bruker. Det regelen la igjen, står i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så du kan finne brukeren i loggene og trasene dine, som bare inneholder tokenet. Et token som ingen bruker er lagret for, som et som ble laget før tokener hadde en nøkkel, forblir hendelsens bruker: Regler teller det som én konto, og ingen playbook handler på det.
+
+Hendelsens panel sier det under brukeren den nevner i **Kildebruker** og **Målbruker**: «Hashet i loggene dine som …», eller «Hashet i sporene dine som …» for en bruker lest fra sporene dine, der … er tokenet. Tokenet er en lenke som søker etter det i loggene eller sporene dine, fra en dag før hendelsen til en dag etter, i feltet brukeren ble lest fra: brødteksten til en logglinje eller et av attributtene dens, eller et attributt i et span, som `user.id` eller et AI-kalls bruker. Det feltet står i `oneuptime.principal_user_hashed_field` eller `oneuptime.target_user_hashed_field`. En bruker som er slettet på forespørsel, viser i stedet **Slettet på forespørsel**, og hendelsen viser tokenet deres: se [Slett en person](#slett-en-person).
 
 ## Utforsk sikkerhetshendelser
 
@@ -391,9 +437,9 @@ En forespørsel om en fil med hemmeligheter, for eksempel `/.env`, `/.git/config
 - En type som ikke er en nettside, for eksempel `text/plain` eller `application/octet-stream`: selve filen.
 - En nettside, eller JSON for en fil som ikke er JSON: nettstedets egen side.
 - Ingenting i svaret: ingenting ble tatt.
-- En størrelse og ingen type, slik tilgangsloggen til en webserver registrerer svaret: selve filen når ingen annen sti fikk den størrelsen og nettstedet ditt svarer 404 for stiene det ikke har, og nettstedets egen side når samme størrelse besvarte to forskjellige stier. Når ingenting avgjør det, blir forespørselen ikke en hendelse.
+- En størrelse og ingen type, slik tilgangsloggen til en webserver registrerer svaret: selve filen når ingen annen sti fikk den størrelsen og nettstedet ditt svarer 404 for stiene det ikke har, og nettstedets egen side når samme størrelse besvarte to forskjellige stier. En forespørsel uten noe ved siden av, for eksempel en skanners enslige `/.env`, vurderes etter hva nettstedet ditt svarte det siste døgnet. Når ingenting avgjør det, blir forespørselen ikke en hendelse.
 
-En levert fil får alvorlighetsgraden Kritisk, og regelbibliotekets regel **Sensitive file served** åpner en sak om den, med trinn for å ta ned filen og rotere det den inneholder. Hver av disse forespørslene teller også med i **Scanning for sensitive files**, også dem fra en enkeltsideapp. En administrasjonsside som nettstedet ditt leverer, for eksempel den i WordPress, er aldri en av dem, og en `wp-config.php` som WordPress kjørte, er nettstedets egen side. Cloudflares brannmurhendelser sier ikke hva opprinnelsen din sendte, så en forespørsel Cloudflare slapp gjennom, teller bare med i skanningen. Panelet til en hendelse viser hva nettstedet ditt sendte, under **Hva som skjedde videre**.
+En levert fil får alvorlighetsgraden Kritisk, og regelbibliotekets regel **Sensitive file served** åpner en sak om den, med trinn for å ta ned filen og rotere det den inneholder. Hver av disse forespørslene teller også med i **Scanning for sensitive files**, også dem fra en enkeltsideapp. En administrasjonsside som nettstedet ditt leverer, for eksempel den i WordPress, er aldri en av dem, og en `wp-config.php` som WordPress kjørte, er nettstedets egen side. Cloudflares brannmurhendelser sier ikke hva opprinnelsen din sendte, så en forespørsel Cloudflare slapp gjennom, teller bare med i skanningen. Panelet til en hendelse viser hva nettstedet ditt sendte, under **Hva som skjedde videre**. Et prosjekt som slo på de anbefalte reglene før **Sensitive file served** var en av dem, og som kjører alle de andre, fikk den ved oppgraderingen, og **Oversikt** sier det.
 
 ### Campaigns
 
@@ -747,6 +793,33 @@ Alt i Sikkerhetshendelser som leser tidligere hendelser, leser bare hendelsene s
 - En hunt med et **Tidsintervall** som er lengre enn hendelsene oppbevares, finner ingenting eldre, og skjemaet dens sier det.
 
 **Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring** viser de aktiverte reglene som ser lenger tilbake enn **Standard oppbevaring (dager)**. For å dekke dem, oppbevar hendelser lenger, med **Endre oppbevaring** under en regel, eller forkort tidsrommet til en regel til det som oppbevares. OneUptime oppbevarer 15 dager med mindre du endrer det, fordi oppbevaringen bestemmer hva telemetrien din koster og hvor lenge personopplysninger i hendelser, som adresser og brukernavn, oppbevares. En ny oppbevaring gjelder for hendelser som kommer inn fra da av, så reglene ser lenger tilbake etter hvert som de hendelsene blir eldre.
+
+## Slett en person
+
+Når noen ber deg slette dataene deres, for eksempel etter GDPR artikkel 17, sletter du dem i **Sikkerhetshendelser → Innstillinger → Sletteforespørsler**. Velg **Slett person**, og skriv inn bruker-ID-en eller e-postadressen slik loggene dine inneholdt den før Hash-skrubbregelen din skjulte den, eller tokenet en hendelse viser i stedet. En e-postadresse slettes også med små bokstaver. Legg inn din egen referanse under **Referanse**, for eksempel saksnummeret til forespørselen, aldri personens navn.
+
+Hva forespørselen gjør:
+
+- Innen et minutt slutter Sikkerhetshendelser å nevne personen. Brukerhvelvet avviser tokenene deres fra da av, så ingen hendelse, sak eller playbook nevner dem igjen, heller ikke når en senere hendelse har det samme tokenet: den hendelsen beholder tokenet som sin bruker, som for ethvert token uten en lagret bruker. Å lagre et token som kommer tilbake, ville nevne personen igjen, og det er nettopp det de har bedt deg slutte med.
+- Innen noen få minutter sletter den hvelvets oppføringer om dem og setter tokenet tilbake på deres plass i hendelsene som nevnte dem via hvelvet: **Kildebruker**, **Målbruker**, observablene og attributtene. Det samme gjør den i Detection Findings som en deteksjonsregel eller en threat intel-feed skrev om dem, i meldingen, observablene og attributtene deres, og den merker hvert av disse funnene med `oneuptime.finding_user_erased`. Den fjerner dem fra titler, entiteter og lagrede hendelser i saker og deteksjoner, og fra entitetsrisiko, også der en korrelasjon setter dem sammen med en annen verdi, for eksempel `alice@example.com / 203.0.113.7`.
+- Fingeravtrykkene i det som nevnte dem, endres også. En deteksjonsregel eller en threat intel-feed lager et fingeravtrykk av verdien den grupperer etter, for eksempel en bruker, med en nøkkel som tilhører prosjektet ditt, så ingen kan regne ut et fingeravtrykk fra en gjetning. Personens fingeravtrykk, i hendelses-ID-en til et Detection Finding, i deteksjoner og i varslene og insidentene en deteksjon åpnet, blir tokenets: fingeravtrykket en regel lager neste gang den treffer dem, så et åpent varsel fortsetter å samle disse treffene. Det gjelder også en korrelasjon som ikke skriver noen Detection Findings og ikke åpner noen saker: slettingen leser verdiene dens fra titlene på varslene og insidentene den åpnet, og fra risikoen til de andre entitetene i gruppen dens, og beholder bare verdiene som fingeravtrykkene bekrefter.
+- Når en threat intel-feed lister e-postadressen deres, peker ingenting av det OneUptime skrev om treffet, lenger på feedens indikator. I det Detection Finding feeden skrev, i hendelsene feeden traff, i deteksjonen og saken og i varselet eller insidenten treffet åpnet, blir indikatorens ID til `[INDICATOR:…]`, et fingeravtrykk av tokenet, og indikatorens navn fjernes. Feeden, indikatorens type og dens confidence blir værende. Hendelsene mister også adressen feeden traff, `threat.indicator_value`, som får tokenet.
+- En playbook-kjøring eller en handling fra OneUptime AI som venter på godkjenning for å handle på dem, trekkes tilbake og sier hvorfor.
+
+Hver forespørsel viser statusen sin, **I kø**, **Sletter**, **Slettet** eller **Mislyktes**, og hva den endret: de slettede hvelvoppføringene, hendelsene og sakene som ikke lenger nevner dem, og de tilbaketrukne forslagene. Mens den viser **Sletter**, sier en linje under den hvor langt den har kommet: å fjerne personen fra saker og hendelser, å vente på at de endringene blir tatt i bruk, å lese Detection Findings (hvilken runde, og frem til hvilket funns tidspunkt), når sluttkontrollen starter, og selve sluttkontrollen. Slettingen starter to minutter etter at forespørselen er sendt inn, når ingen OneUptime-server lenger nevner personen, og en forespørsel viser **Slettet** først når hver endring er tatt i bruk og en siste lesing av prosjektets Detection Findings ikke finner mer å endre. Den lesingen venter til ingen deteksjon som leste personens navn, fortsatt kan være i gang, så en forespørsel viser vanligvis **Slettet** omtrent 15 minutter etter at den er sendt inn. Et prosjekt med flere Detection Findings enn én kjøring kan lese, leses over flere kjøringer, som hver fortsetter der den forrige stoppet. En forespørsel som mislykkes, prøves på nytt; etter fem forsøk viser den **Mislyktes** med årsaken, og prosjektets eiere får en e-post. Sikkerhetshendelser nekter fortsatt å nevne personen, og å sende inn forespørselen på nytt prøver igjen.
+
+Hva den lar være:
+
+- Det folk har skrevet: notater, avslutningsnotater, oppgaver, bevis, egendefinerte felt og det OneUptime AI har skrevet om en sak.
+- Hendelser som nevnte personen fordi loggene dine, eller et produkt du har koblet til, inneholdt dem i klartekst, og loggene og sporene dine selv, som bare inneholder tokenet.
+- Allerede sendte varslinger, titler og beskrivelser av insidenter og varsler som en deteksjon åpnet (bortsett fra indikator-ID-en til en threat intel-feed), en saks aktivitet, eksporter, sikkerhetskopier og revisjonsloggen.
+- En threat intel-feeds egne indikatorer. Feeden fortsetter å liste adressen, og indikatorene dens forblir slik feeden har dem.
+- Risikoen en korrelasjon tilskrev de andre entitetene i gruppen sin, når korrelasjonen også grupperer etter en verdi som ikke bærer noen risiko, for eksempel en prosess, og ikke åpner noe varsel, noen insident eller noen sak. Ingenting som er igjen, sier hva den verdien var, så fingeravtrykket til gruppen forblir som det var.
+- På en selvhostet OneUptime der `ENCRYPTION_SECRET` er endret, tokener laget før endringen: slett hvert av dem via tokenet en hendelse viser.
+
+Forespørselen lagrer hvem som sendte den inn og når, referansen din og personens tokener, som hvelvet fortsetter å avvise dem med. Bruker-ID-en eller e-postadressen, og navnene slettingen finner personen under, lagres kryptert, der ingen side, eksport eller API kan lese dem, og slettes når slettingen er ferdig; ClickHouse får bare tokenene. Forespørsler kan ikke redigeres eller slettes: de er din dokumentasjon på slettingen.
+
+Prosjekteiere, Prosjektadministratorer, Sikkerhetsadministratorer og alle med Create Security Erasure Request, for eksempel personvernombudet ditt, kan sende inn en forespørsel, fra siden eller via API-ets `/security-user-erasure-request`. Alle sikkerhetsroller kan lese dem.
 
 ## Feilsøking
 

@@ -2,6 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
+import { StorageArrayKindPage } from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayPlatformState,
+  getKindPageFor,
+  useStorageArrayPlatform,
+} from "../Utils/UseStorageArrayPlatform";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -21,15 +29,34 @@ import {
 } from "../Utils/StorageArrayHealth";
 
 /*
- * FlashBlade S3 buckets (kind=Bucket), from purefb_buckets_* via the
+ * FlashBlade S3 buckets (kind=Bucket), from its bucket series via the
  * inventory: the account a bucket belongs to (groupName), how full it is
  * against its quota (what it stores before data reduction, of capacityBytes;
  * #9647), its quota, the flash it uses (usedBytes) and its object count.
  */
+
+// What the list says on a platform that says nothing of the kind.
+const BUCKETS_DESCRIPTION: string = translationKey(
+  "S3 buckets on this array with their account, quota, the space they use, how many objects they hold and their latest performance.",
+);
+const BUCKETS_NO_ITEMS: string = translationKey(
+  "No buckets in the inventory yet. Buckets appear here a few minutes after the Storage Array Agent starts scraping the array.",
+);
+
 const StorageArrayBuckets: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const platform: StorageArrayPlatformState = useStorageArrayPlatform(modelId);
+
+  if (platform.isLoading) {
+    return <PageSkeleton shape="table" />;
+  }
+
+  const kindPage: StorageArrayKindPage | null = getKindPageFor(
+    platform.storageSystem,
+    StorageArrayResourceKind.Bucket,
+  );
 
   return (
     <StorageArrayResourceTable
@@ -40,8 +67,8 @@ const StorageArrayBuckets: FunctionComponent<
       singularName="Bucket"
       pluralName="Buckets"
       title="Buckets"
-      description="S3 buckets on this FlashBlade with their account, quota, the flash they use, how many objects they hold and their latest performance."
-      noItemsMessage="No buckets in the inventory yet. Buckets appear here a few minutes after the Storage Array Agent starts scraping the FlashBlade's object store."
+      description={kindPage?.description || BUCKETS_DESCRIPTION}
+      noItemsMessage={kindPage?.noItemsMessage || BUCKETS_NO_ITEMS}
       getDetailRoute={(item: StorageArrayResource): Route => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL] as Route,

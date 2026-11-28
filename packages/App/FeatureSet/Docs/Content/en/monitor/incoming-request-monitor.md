@@ -14,6 +14,7 @@ Both use the same monitor type. What separates them is the criteria you configur
 - [Send a heartbeat](#sending-a-heartbeat): From curl, cron, Node.js, Python or Go.
 - [Alert when pings stop](#mark-as-offline-if-no-heartbeat-in-10-minutes-a-dead-mans-switch): Turn the monitor into a dead-man's switch.
 - [Receive alerts](#receiving-alerts-from-another-system): One incident per Alertmanager or Grafana alert.
+- [Post to Slack without paging](#posting-to-slack-without-paging-anyone): Notify a channel, and page only after hours.
 - [Subscribe to SNS or Event Grid](#subscribing-to-amazon-sns-or-azure-event-grid): Confirm the subscription in one click.
 :::
 
@@ -422,6 +423,38 @@ The full payload is available alongside it, so an incident title of `{{alertname
 
 For a full Alertmanager configuration, see [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, see [Grafana](/docs/integrations/grafana).
 
+### Keep it checked during incidents
+
+An incident someone declares on this monitor - from one of its alerts, say, with **Declare Incident** - pauses its checks until the incident is resolved, so the requests that arrive meanwhile are not evaluated: they open and resolve no alerts. Each one is still listed in the monitor's **Monitoring Logs**, as it came, with why it was not evaluated.
+
+For a monitor that other systems post their alerts to, an incident about one alert should not stop it reading the next. Open the monitor's **Settings** and, under **During Incidents**, turn on **Keep monitoring during incidents**: incidents declared on it then leave it checked, including any already open. To keep it checked for one incident only, untick **Pause Monitoring** when you declare it. See [Monitoring while an incident is open](/docs/incidents/declaring-incidents#monitoring-while-an-incident-is-open).
+
+## Posting to Slack without paging anyone
+
+A staging environment, or a product whose problems can wait, may want a request posted in a chat channel without paging anyone. An alert that names no on-call policy does this: it posts to Slack, Microsoft Teams or Mattermost through the project's workspace rules, and starts no escalation.
+
+:::steps
+1. Open the criteria and, under **Actions**, turn on **When filters match, create an alert.** Leave its **On-Call Policies** empty.
+2. Write what the request says into the alert, such as `{{requestBody.commonAnnotations.summary}}` in its description. See [Incident & Alert Dynamic Templating](/docs/monitor/incident-alert-templating).
+3. In **Alerts → Workspace → Slack**, add a rule for this monitor's alerts and turn on **Post to existing channels**. Slack must be [connected to the project](/docs/workspace-connections/slack) first.
+:::
+
+An alert that names no on-call policy can still page through the project's rules. Check that no rule in **Alerts → Rules → On-Call Rules** pages for these alerts, and that no rule in **Alerts → Rules → Incident Rules** declares an incident from them.
+
+To post without creating an alert, turn on only **When filters match, change monitor status.**, and add the rule in **Monitors → Workspace → Slack** instead. The channel then hears only that the monitor's status changed, with nothing from the request, and only when it changes: more requests while the monitor is already in that status post nothing.
+
+### Paging only outside working hours
+
+Two criteria with the same filters split the week between them, in this order:
+
+1. The first posts during working hours. Under its **Settings**, turn on **Judge this criteria only on certain days and times**, and pick the days, the hours and the **Timezone**. Its alert names no on-call policy.
+2. The second pages the rest of the time. It has no hours, and its alert names your on-call policy.
+
+The first criteria that matches a request decides what happens. Outside its hours the first criteria is skipped, so the second one matches at night and at weekends, and only then is anyone paged. See [Only on certain days and times](/docs/monitor/criteria-and-statuses#only-on-certain-days-and-times).
+
+- A request is judged when it arrives, by the hours as they are then. A problem that starts at 16:55 pages after 17:00 only when the sender sends it again, as Alertmanager does once every `repeat_interval`.
+- An alert with **Auto Resolve Alert** on resolves when a request matches another criteria. The first request after working hours begin matches the first criteria, so it resolves the night's alert and opens one that pages nobody. Leave **Auto Resolve Alert** off on the second criteria's alert to keep it open until someone resolves it.
+
 ## Services that check the URL first
 
 Some services check a new endpoint before they deliver anything to it: they send it a request, and deliver only once it answers the way they expect. OneUptime answers these checks itself, so pasting the monitor's **Heartbeat URL** into the service is all it takes.
@@ -479,11 +512,16 @@ Event Grid validates an endpoint that echoes a code back to it, or whose owner o
 3. **Use POST with `Content-Type: application/json`** — anything that reads inside the body depends on it.
 4. **Don't mix the two jobs on one monitor** — a monitor receiving event-driven alerts has no regular cadence, so a "Not Recieved In Minutes" criteria on it will flap. Use a separate monitor for the dead-man's switch.
 5. **Monitor the monitor** — Ensure the service sending requests has proper error handling so failed requests don't go unnoticed.
+6. **Keep an event receiver checked during incidents** — on a monitor that receives alerts from another system, turn on **Keep monitoring during incidents** in its **Settings**, so an incident declared on it does not pause it. See [Keep it checked during incidents](#keep-it-checked-during-incidents).
 
 ## Troubleshooting
 
 :::details My sender gets a 200, but nothing shows on the monitor
 The `200` is sent before the request is validated, so it does not prove the request was accepted. Check that the secret key in the URL matches the monitor's **Heartbeat URL**, and that the monitor is not disabled. Then look at the monitor's timeline to see whether requests are landing.
+:::
+
+:::details Requests arrive, but the monitor opens no alerts while an incident is open
+An incident declared by hand on the monitor pauses its checks, so its requests are listed in its **Monitoring Logs** as **Not evaluated: monitoring is paused by an incident**, and the banner across its pages says so. Turn on **Keep monitoring during incidents** in its **Settings**: its checks start again at once, and the next requests are evaluated. The requests listed while it was paused are not evaluated afterwards. See [Keep it checked during incidents](#keep-it-checked-during-incidents).
 :::
 
 :::details My sender gets a 401

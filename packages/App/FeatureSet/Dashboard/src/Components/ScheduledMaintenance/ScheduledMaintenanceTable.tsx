@@ -42,6 +42,8 @@ import {
   FilterOperator,
 } from "../ResourceOwners/FilterChipDropdown";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -124,7 +126,13 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   const [scheduledMaintenanceTemplates, setScheduledMaintenanceTemplates] =
     useState<Array<ScheduledMaintenanceTemplate>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
+  /*
+   * What failed, in English (a key), said first in the Error dialog when
+   * nobody explained the failure: its title, "Error", names nothing (#7680).
+   */
+  const [errorWhatFailed, setErrorWhatFailed] = useState<string>("");
   const [
     showScheduledMaintenanceTemplateModal,
     setShowScheduledMaintenanceTemplateModal,
@@ -336,6 +344,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             });
           setScheduledMaintenanceStates(result.data);
         } catch (err) {
+          setErrorWhatFailed(
+            translationKey(
+              "The scheduled maintenance states could not be loaded.",
+            ),
+          );
           setError(API.getFriendlyMessage(err));
         }
       };
@@ -366,6 +379,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
 
         setScheduledMaintenanceTemplates(listResult.data);
       } catch (err) {
+        setErrorWhatFailed(
+          translationKey(
+            "The scheduled maintenance templates could not be loaded.",
+          ),
+        );
         setError(API.getFriendlyMessage(err));
       }
 
@@ -750,6 +768,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               _id: true,
               projectId: true,
             },
+            xcpNgPools: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
             cephClusters: {
               name: true,
               _id: true,
@@ -916,6 +939,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   _id: true,
                   projectId: true,
                 },
+                xcpNgPools: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
                 cephClusters: {
                   name: true,
                   _id: true,
@@ -974,6 +1002,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     proxmoxClusters={item.proxmoxClusters || []}
                     openStackClouds={item.openStackClouds || []}
                     vmwareVCenters={item.vmwareVCenters || []}
+                    xcpNgPools={item.xcpNgPools || []}
                     cephClusters={item.cephClusters || []}
                     storageArrays={item.storageArrays || []}
                     dockerSwarmClusters={item.dockerSwarmClusters || []}
@@ -1112,6 +1141,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Error`}
           description={`${error}`}
+          errorWhatFailed={
+            errorWhatFailed
+              ? translator.translateText(errorWhatFailed) || errorWhatFailed
+              : undefined
+          }
           submitButtonText={"Close"}
           onSubmit={() => {
             return setError("");

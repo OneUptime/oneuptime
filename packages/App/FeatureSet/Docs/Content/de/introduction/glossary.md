@@ -40,7 +40,7 @@ Siehe [Einen Monitor erstellen](/docs/monitor/create-monitor).
 
 ### Kriterien
 
-Die Regeln eines Monitors: was jedes Prüfergebnis bedeutet. Sie werden der Reihe nach geprüft, und die erste zutreffende kann den Status des Monitors ändern, einen Vorfall melden, eine Warnung erstellen oder alles drei.
+Die Regeln eines Monitors: was jedes Prüfergebnis bedeutet. Sie werden der Reihe nach geprüft, und die erste zutreffende kann den Status des Monitors ändern, einen Vorfall melden, eine Warnung erstellen oder alles drei. Eine, die keinen Status ändert, überlässt den Status der nächsten zutreffenden, die ihn ändert.
 
 Auch genannt: **Überwachungskriterien**, **Monitor-Kriterien**, **Monitor-Schritte**. Siehe [Kriterien & Status](/docs/monitor/criteria-and-statuses).
 
@@ -162,7 +162,7 @@ Siehe [Kubernetes-Agent](/docs/telemetry/kubernetes-agent).
 
 ### Infrastruktur
 
-Die Menügruppe der Rechner und Plattformen, die Sie betreiben: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Speicher-Arrays, Netzwerk und IoT. Ein Agent oder eine Verbindung füllt jeden Eintrag, und jeder zeigt, wie es jedem Rechner, Cluster oder Gerät darin geht.
+Die Menügruppe der Rechner und Plattformen, die Sie betreiben: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Speicher-Arrays, Netzwerk und IoT. Ein Agent oder eine Verbindung füllt jeden Eintrag, und jeder zeigt, wie es jedem Rechner, Cluster oder Gerät darin geht.
 
 Siehe [Hosts](/docs/telemetry/hosts).
 

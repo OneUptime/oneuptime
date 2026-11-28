@@ -40,7 +40,7 @@ Se [Skapa en monitor](/docs/monitor/create-monitor).
 
 ### Kriterier
 
-En monitors regler: vad varje kontrollresultat betyder. De kontrolleras i ordning, och det första som matchar kan ändra monitorns status, deklarera en incident, skapa ett larm eller alla tre.
+En monitors regler: vad varje kontrollresultat betyder. De kontrolleras i ordning, och det första som matchar kan ändra monitorns status, deklarera en incident, skapa ett larm eller alla tre. Ett som inte ändrar någon status lämnar statusen till nästa kriterium som matchar och ändrar den.
 
 Kallas även: **Övervakningskriterier**, **Monitorkriterier**, **Monitor Steps**. Se [Kriterier och statusar](/docs/monitor/criteria-and-statuses).
 
@@ -162,7 +162,7 @@ Se [Kubernetes-agent](/docs/telemetry/kubernetes-agent).
 
 ### Infrastruktur
 
-Menyns grupp med maskinerna och plattformarna som du kör: Värdar, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Lagringsarrayer, Nätverk och IoT. En agent eller en anslutning fyller var och en, och var och en visar hur varje maskin, kluster eller enhet i den mår.
+Menyns grupp med maskinerna och plattformarna som du kör: Värdar, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Lagringsarrayer, Nätverk och IoT. En agent eller en anslutning fyller var och en, och var och en visar hur varje maskin, kluster eller enhet i den mår.
 
 Se [Värdar](/docs/telemetry/hosts).
 

@@ -1,8 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
 import ForgejoApi, {
+  FORGEJO_SUGGESTIONS_VERSION,
   MAX_DIFF_LINES_READ,
 } from "../../../../../Server/Utils/CodeRepository/CodeHost/ForgejoApi";
 import { CodeHostHttpErrorKind } from "../../../../../Server/Utils/CodeRepository/CodeHost/CodeHostHttp";
+import { CodeHost } from "../../../../../Types/CodeRepository/CodeHost";
 import {
   CodeHostChangedFiles,
   CodeHostComment,
@@ -695,5 +697,155 @@ describe("ForgejoApi: the review's comment on the pull request", () => {
       commentId: 7,
       htmlUrl: "",
     });
+  });
+});
+
+/*
+ * SUGGESTED CHANGES ON THEIR LINES (#10777): one review of the pull
+ * request, a comment only, pinned to the head the review read, each of its
+ * comments on the line it changes - as Forgejo's and Gitea's API (v1)
+ * documents it. Forgejo applies a ```suggestion block from version 18;
+ * Gitea does not.
+ */
+describe("ForgejoApi: a review whose comments are on their lines", () => {
+  test("a comment-only review of the head it was read at, each comment on its new line", async () => {
+    const { api, host } = forgejo([
+      {
+        method: "POST",
+        path: "/repos/acme/checkout/pulls/12/reviews",
+        answer: () => {
+          return {
+            status: 200,
+            json: {
+              id: 88,
+              state: "COMMENT",
+              commit_id: "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766",
+              comments_count: 2,
+            },
+          };
+        },
+      },
+    ]);
+
+    const written: { reviewId: number } = await api.createPullRequestReview({
+      owner: OWNER,
+      name: NAME,
+      number: 12,
+      commitId: "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766",
+      body: "**Sensitive data** · suggests 2 changes",
+      comments: [
+        { path: "src/signup.ts", line: 41, body: "one" },
+        { path: "src/billing.ts", line: 7, body: "two" },
+      ],
+    });
+
+    expect(written).toEqual({ reviewId: 88 });
+    expect(host.requests[0]!.headers["Authorization"]).toBe(`token ${TOKEN}`);
+    expect(JSON.parse(host.requests[0]!.body!)).toEqual({
+      body: "**Sensitive data** · suggests 2 changes",
+      commit_id: "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766",
+      event: "COMMENT",
+      comments: [
+        {
+          path: "src/signup.ts",
+          body: "one",
+          new_position: 41,
+          old_position: 0,
+        },
+        {
+          path: "src/billing.ts",
+          body: "two",
+          new_position: 7,
+          old_position: 0,
+        },
+      ],
+    });
+  });
+
+  test("a review the server refuses is refused whole, as it says", async () => {
+    const { api } = forgejo([
+      {
+        method: "POST",
+        path: "/repos/acme/checkout/pulls/12/reviews",
+        answer: () => {
+          return { status: 422, json: { message: "line not in the diff" } };
+        },
+      },
+    ]);
+
+    await expect(
+      api.createPullRequestReview({
+        owner: OWNER,
+        name: NAME,
+        number: 12,
+        commitId: "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766",
+        body: "x",
+        comments: [{ path: "src/signup.ts", line: 999, body: "x" }],
+      }),
+    ).rejects.toMatchObject({ kind: CodeHostHttpErrorKind.Rejected });
+  });
+
+  test("an answer with no review id is the server not being Forgejo's or Gitea's API", async () => {
+    const { api } = forgejo([
+      {
+        method: "POST",
+        path: "/repos/acme/checkout/pulls/12/reviews",
+        answer: () => {
+          return { status: 200, json: { state: "COMMENT" } };
+        },
+      },
+    ]);
+
+    await expect(
+      api.createPullRequestReview({
+        owner: OWNER,
+        name: NAME,
+        number: 12,
+        commitId: "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766",
+        body: "x",
+        comments: [{ path: "src/signup.ts", line: 1, body: "x" }],
+      }),
+    ).rejects.toMatchObject({ kind: CodeHostHttpErrorKind.BadResponse });
+  });
+
+  test.each([
+    ["Forgejo 18", "18.0.0+gitea-1.22.0", true],
+    [
+      "Forgejo 18's development builds",
+      "18.0.0-dev-1234-abcdef+gitea-1.22.0",
+      true,
+    ],
+    ["a later Forgejo", "19.1.2+gitea-1.22.0", true],
+    ["Forgejo 17", "17.0.1+gitea-1.22.0", false],
+    ["Forgejo 9", "9.0.3+gitea-1.22.0", false],
+    ["Gitea", "1.24.6", false],
+    ["Gitea, if it ever reached 18", "18.0.0", false],
+    ["a server that says nothing", null, false],
+  ])(
+    "%s applies suggestions: %s",
+    (_what: string, version: string | null, applies: boolean) => {
+      expect(
+        ForgejoApi.appliesSuggestions({
+          product: version ? CodeHost.readForgejoServerProduct(version) : null,
+          version,
+        }),
+      ).toBe(applies);
+    },
+  );
+
+  test("the server's version is read once a review asks it", async () => {
+    const { api, host } = forgejo([
+      {
+        method: "GET",
+        path: "/version",
+        answer: () => {
+          return { json: { version: "18.0.1+gitea-1.22.0" } };
+        },
+      },
+    ]);
+
+    expect(ForgejoApi.appliesSuggestions(await api.getServerInfo())).toBe(true);
+    expect(host.requests).toHaveLength(1);
+    expect(FORGEJO_SUGGESTIONS_VERSION).toBe(18);
   });
 });

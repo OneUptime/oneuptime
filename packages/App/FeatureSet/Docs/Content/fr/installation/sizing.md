@@ -3,7 +3,7 @@
 Planifiez le CPU, la mémoire et le disque d'un OneUptime auto-hébergé sur Kubernetes avec le [chart Helm](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensionnez séparément les trois bases de données – **ClickHouse**, **PostgreSQL** et **Valkey** – et l'application, partez de l'un des paliers ci-dessous, puis ajustez dès que vous avez de vrais chiffres.
 
 > [!IMPORTANT]
-> Les valeurs par défaut du chart ne sont pas un dimensionnement de production. Les services qu'il exécute par défaut ne définissent **aucune requête ni limite de CPU ou de mémoire**, et PostgreSQL et ClickHouse reçoivent de petits volumes de **25 Gi**, pour que le chart s'installe sur n'importe quel cluster. Au-delà d'un essai, définissez vous-même les ressources et le stockage, avec les chiffres de cette page.
+> Les valeurs par défaut du chart ne sont pas un dimensionnement de production. À part Valkey, les services qu'il exécute par défaut ne définissent **aucune requête ni limite de CPU ou de mémoire**, et PostgreSQL et ClickHouse reçoivent de petits volumes de **25 Gi**, pour que le chart s'installe sur n'importe quel cluster. Au-delà d'un essai, définissez vous-même les ressources et le stockage, avec les chiffres de cette page.
 
 Vous utilisez plutôt l'installation Docker Compose sur un seul serveur ? Son dimensionnement est plus simple : voir les [exigences](/docs/installation/docker-compose#prérequis) (16 Go de mémoire, 8 cœurs et 400 Go de disque recommandés).
 
@@ -88,7 +88,7 @@ Avec de nombreux réplicas d'app, de workers et de sondes, les connexions à la 
 
 ## Valkey – cache, files d'attente et sessions
 
-La couche de cache exécute [Valkey](https://valkey.io), le fork de Redis 7.2 sous licence BSD, comme cache, file de travail et magasin de sessions. N'importe quel serveur compatible avec le protocole Redis peut le remplacer, et le dimensionnement ci-dessous s'applique dans les deux cas. Il est **limité par la mémoire**, et la persistance est **désactivée par défaut** : ce n'est pas une source de vérité et il peut être reconstruit. Dimensionnez-le selon la profondeur des files et les sessions simultanées ; 2 à 8 Go de mémoire suffisent pour la plupart des installations. Sa politique d'éviction est `noeviction` : surveillez sa mémoire si les files s'engorgent sous une charge soutenue.
+La couche de cache exécute [Valkey](https://valkey.io), le fork de Redis 7.2 sous licence BSD, comme cache, file de travail et magasin de sessions. N'importe quel serveur compatible avec le protocole Redis peut le remplacer, et le dimensionnement ci-dessous s'applique dans les deux cas. Il est **limité par la mémoire**, et la persistance est **désactivée par défaut** : ce n'est pas une source de vérité et il peut être reconstruit. Dimensionnez-le selon la profondeur des files et les sessions simultanées ; 2 à 8 Go de mémoire suffisent pour la plupart des installations. Le chart lui donne une limite de mémoire de 4 Gi et plafonne ses données à 75 % de celle-ci, soit 3 GiB (`valkey.maxmemory`), où il refuse les écritures. Sa politique d'éviction est `noeviction` : surveillez sa mémoire si les files s'engorgent sous une charge soutenue.
 
 ## Calcul de l'application
 
@@ -105,6 +105,52 @@ Au-delà des bases de données, dimensionnez les charges de travail sans état. 
 Chacune exécute Node.js, qui dimensionne son tas d'après la limite de mémoire de son conteneur (`resources.limits.memory`) : 75 % de la limite, au moins 256 Mo et au plus 8096 Mo. Sans limite, le tas peut grandir jusqu'à 8096 Mo. Le reste de la limite est pour la mémoire que Node.js utilise hors de son tas. Pour choisir vous-même la taille du tas, définissez `NODE_OPTIONS` à `--max-old-space-size=` suivi d'une taille en Mo, dans l'`extraEnv` du service (avec Docker Compose, dans l'`environment` du service, dans un fichier d'override). Elle l'emporte sur la taille que donne la limite.
 
 Le chart intègre **KEDA**, pour que l'app, les workers, les sondes et le Runner global puissent s'adapter à leur file d'attente. Activez `keda.enabled` en même temps que le `keda.enabled` propre à chaque service (par exemple `app.keda.enabled`). Sur un cluster qui n'a pas encore KEDA, la première installation demande un passage supplémentaire : voir le [guide KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) du chart. Les services que KEDA ne gère pas peuvent utiliser à la place un autoscaler fondé sur le CPU ou la mémoire (`autoscaling`).
+
+## Faire tourner de nombreux moniteurs
+
+Chaque worker de chaque sonde demande aux pods de l'application, par lots, les moniteurs à vérifier, et chaque moniteur à vérifier va à exactement l'un d'eux. Tous les moniteurs vérifiés chaque minute arrivent à échéance ensemble au début de chaque minute : ce qui compte, c'est la vitesse à laquelle les moniteurs d'une minute entière sont distribués. Les chiffres ci-dessous ont été mesurés avec 39 700 moniteurs (28 200 vérifiés chaque minute et 11 500 toutes les cinq minutes), sur une sonde de 20 réplicas, chaque requête à la base de données étant rendue 50 ou 100 ms plus lente que sur une machine au repos, comme sur une base chargée.
+
+### Distribuer les moniteurs par lots plus grands
+
+Portez la limite de récupération de chaque sonde (`monitorFetchLimit` dans le chart Helm, `PROBE_MONITOR_FETCH_LIMIT` ailleurs) de 10 à 50. Chaque requête distribue alors cinq fois plus de moniteurs pour à peu près le même coût. Avec trois pods de l'application et des requêtes plus lentes de 50 ms, les 28 200 moniteurs de chaque minute ont été distribués en 19 secondes, contre 44 avec une limite de 10, et les 39 700 qui arrivent à échéance toutes les cinq minutes en 19 secondes, contre 57. Un réplica de sonde exécute alors jusqu'à workers × limite de récupération vérifications à la fois, 150 avec 3 workers : donnez-lui la mémoire nécessaire, ou ajoutez des réplicas.
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### Garder la limite de planification par défaut
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) est le nombre de requêtes de sondes que chaque pod de l'application traite à la fois : un cinquième de son pool de connexions à la base de données, 10 sur 50. Chaque pod a la sienne, donc les pods de l'application que vous ajoutez apportent la leur. Avec les 39 700 moniteurs à vérifier en même temps et des requêtes plus lentes de 100 ms, une sonde a reçu 313 moniteurs par seconde d'un pod de l'application, 659 de trois et 763 de six, et porter la limite à 20 a ajouté 7 %. Une sonde seule peut occuper toutes les places d'un pod, et les sondes en concurrence se les partagent équitablement. Les exécutions de Test Monitor ont 2 places à elles, si bien qu'un test atteint une sonde dans son intervalle de dix secondes, quelle que soit la charge des moniteurs. N'augmentez la limite que si des requêtes de sondes attendent sans cesse une place alors que la base de données a de la marge, et augmentez avec elle le pool de connexions du pod.
+
+### Une sonde ou plusieurs
+
+Placez chaque moniteur sur les sondes depuis lesquelles il doit vérifier. Chaque moniteur à vérifier va à un seul réplica de sa sonde, quel que soit le nombre de réplicas qui demandent en même temps : une sonde avec de nombreux réplicas suit donc aussi bien que de nombreuses sondes. Quand des moniteurs sont en retard alors qu'aucune requête n'attend de place, ce sont les sondes qui manquent : ajoutez des réplicas, ou laissez KEDA mettre chaque sonde à l'échelle selon ses moniteurs à vérifier.
+
+### Mettre à l'échelle selon ce qu'attendent les sondes
+
+`/metrics/probe-scheduling`, sur le port de l'application, additionne la vue de chaque pod de l'application sur la dernière minute. Mettez les pods de l'application à l'échelle selon son `queueDepth` avec KEDA, en plus du CPU et de la mémoire, et alertez quand des moniteurs sont distribués en retard :
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| Champ | Ce qu'il indique |
+| --- | --- |
+| `queueDepth` | Les requêtes de sondes qui attendent une place en ce moment, sur tous les pods de l'application. Au-dessus de 0 pendant plusieurs minutes : ajoutez des pods de l'application. |
+| `slotWaitP95Ms` | Combien de temps les requêtes ont attendu une place, sur le pod de l'application le plus chargé. |
+| `refusalsPerMinute` | Les requêtes de sondes auxquelles le serveur a répondu qu'il était occupé. |
+| `reconnectsAskedPerMinute` | Les réponses qui ont demandé à la connexion d'une sonde de se reconnecter, pour que sa requête suivante puisse aller vers un autre pod de l'application : quelques-unes par seconde tant qu'un pod de l'application est débordé. Au-dessus de 0 pendant plusieurs minutes : ajoutez des pods de l'application. |
+| `dispatchLagP95Seconds` | Le retard avec lequel les moniteurs ont été distribués, après le moment où leur intervalle les rendait à vérifier. Proche de votre intervalle le plus court alors qu'aucune requête n'attend : ajoutez des réplicas de sonde. |
+| `monitorsLateByAnIntervalPerMinute` | Les moniteurs distribués avec un intervalle entier de retard : des vérifications manquées. |
+| `monitorTestWaitP95Seconds` | Combien de temps les exécutions de Test Monitor ont attendu une sonde. |
 
 ## Paliers de départ
 

@@ -8,6 +8,10 @@ import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import RelationListPermission from "./RelationListPermission";
 import TablePermission from "./TablePermission";
 import OwnedByFilter, { OwnerTable, OwnerTablesOfKind } from "../OwnedByFilter";
+import LinkedToLinkTables, { LinkTableRelation } from "../LinkedToLinkTables";
+import FilterGroups, {
+  FILTER_GROUPS_QUERY_KEY,
+} from "../../../../Types/BaseDatabase/FilterGroups";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -17,6 +21,9 @@ import OwnedBy, {
   OWNED_BY_QUERY_KEY,
   OwnedByMatch,
 } from "../../../../Types/BaseDatabase/OwnedBy";
+import LinkedTo, {
+  LINKED_TO_QUERY_KEY,
+} from "../../../../Types/BaseDatabase/LinkedTo";
 import Columns from "../../../../Types/Database/Columns";
 import RelationReadersUtil from "../../../../Types/Database/RelationReadersUtil";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
@@ -459,7 +466,11 @@ export default class QueryPermission {
        * but the operator carries the list of fields it will ILIKE against
        * (QueryUtil.serializeQuery expands it into an OR over those fields).
        * Validate each inner field the same way we validate any other queried
-       * column so a client can't search across columns the user can't read.
+       * column so a client can't search across columns the user can't read -
+       * a marked one only on a read pinned to the caller
+       * (OwnerOnlyColumnPermission, #11381): which rows a search of
+       * somebody's phone matches confirms or denies a guess at it, as
+       * `{ phone: "+1555..." }` does.
        */
       if (query[key] instanceof MultiSearch) {
         const multiSearch: MultiSearch = query[key] as unknown as MultiSearch;
@@ -485,6 +496,13 @@ export default class QueryPermission {
           }
         }
 
+        OwnerOnlyColumnPermission.checkColumnsFilteredWithin({
+          modelType: modelType,
+          query: query,
+          columns: multiSearch.fields,
+          props: props,
+        });
+
         continue;
       }
 
@@ -497,6 +515,128 @@ export default class QueryPermission {
           modelType: modelType,
           key: key,
           ownedBy: query[key] as unknown as OwnedBy,
+          props: props,
+        });
+
+        continue;
+      }
+
+      /*
+       * THE RECORDS LINKED TO SOME RECORDS (LinkedTo, under "linkedTo",
+       * #11073) is no column either: it filters through each relation it
+       * names, so each is held to what a filter on that column itself is -
+       * a column of the record, which the caller may read, a marked one
+       * only on a read pinned to the caller (OwnerOnlyColumnPermission,
+       * #11381). No marked column is one it can name today - it names ids
+       * and lists of linked records, and every marked column is text - so
+       * that last check holds for the day an id is marked.
+       */
+      if (query[key] instanceof LinkedTo) {
+        if (key !== LINKED_TO_QUERY_KEY) {
+          throw new BadDataException(
+            `A filter by linked records goes under "${LINKED_TO_QUERY_KEY}", not "${key}".`,
+          );
+        }
+
+        const linkedRelations: Array<string> = Object.keys(
+          (query[key] as unknown as LinkedTo).relations,
+        );
+
+        for (const relation of linkedRelations) {
+          /*
+           * A relation kept in a table of its own (a team's members,
+           * LinkedToLinkTables, #11211) reads that table: held to its read.
+           */
+          const linkTable: LinkTableRelation | null = LinkedToLinkTables.get(
+            modelType,
+            relation,
+          );
+
+          if (linkTable) {
+            QueryPermission.checkLinkTableRelationPermission({
+              relation: relation,
+              linkTable: linkTable,
+              held: held,
+              props: props,
+            });
+
+            continue;
+          }
+
+          if (excludedColumnNames.includes(relation)) {
+            continue;
+          }
+
+          if (!tableColumns.includes(relation)) {
+            throw new BadDataException(
+              `Invalid column on ${model.singularName} - ${relation}. Column does not exist.`,
+            );
+          }
+
+          if (!canReadOnTheseColumns.columns.includes(relation)) {
+            throw new NotAuthorizedException(
+              ColumnRefusalMessage.getQueryRefusal({
+                column: relation,
+                permissions:
+                  model.getColumnAccessControlFor(relation)?.read || [],
+              }),
+            );
+          }
+        }
+
+        OwnerOnlyColumnPermission.checkColumnsFilteredWithin({
+          modelType: modelType,
+          query: query,
+          columns: linkedRelations,
+          props: props,
+        });
+
+        continue;
+      }
+
+      /*
+       * THE RECORDS ONE OF SEVERAL FILTERS MATCHES (FilterGroups, under
+       * "filterGroups", #11211) is no column either: each group filters
+       * the record's own columns, so each column a group names is held to
+       * what a filter on that column itself is - a column of the record,
+       * which the caller may read, a marked one only on a read pinned to
+       * the caller (OwnerOnlyColumnPermission).
+       */
+      if (query[key] instanceof FilterGroups) {
+        if (key !== FILTER_GROUPS_QUERY_KEY) {
+          throw new BadDataException(
+            `A filter of several groups goes under "${FILTER_GROUPS_QUERY_KEY}", not "${key}".`,
+          );
+        }
+
+        const columns: Array<string> = (query[key] as unknown as FilterGroups)
+          .columns;
+
+        for (const column of columns) {
+          if (!tableColumns.includes(column)) {
+            throw new BadDataException(
+              `Invalid column on ${model.singularName} - ${column}. Column does not exist.`,
+            );
+          }
+
+          if (
+            !excludedColumnNames.includes(column) &&
+            !canReadOnTheseColumns.columns.includes(column)
+          ) {
+            throw new NotAuthorizedException(
+              ColumnRefusalMessage.getQueryRefusal({
+                column: column,
+                permissions:
+                  model.getColumnAccessControlFor(column)?.read || [],
+              }),
+            );
+          }
+        }
+
+        OwnerOnlyColumnPermission.checkColumnsFilteredWithin({
+          modelType: modelType,
+          query: query,
+          columns: columns,
           props: props,
         });
 
@@ -527,6 +667,84 @@ export default class QueryPermission {
         props: props,
         isReadPinnedToCaller: isReadPinnedToCaller,
       });
+    }
+  }
+
+  /*
+   * A FILTER THROUGH A LINK TABLE IS A READ OF THE LINK TABLE (#11211).
+   *
+   * `{ linkedTo: LinkedTo({ relations: { members: [...] } }) }` on a list of
+   * teams matches the teams some people are in, which is what TeamMember
+   * holds (LinkedToLinkTables): a row naming the team beside one of them.
+   * So it is held to what listing those rows by the same people would be
+   * held to: the table's read permission, no block on it, and the read of
+   * the two columns it compares - by one of their own read permissions,
+   * never by CurrentUser alone, which reads only the caller's own rows of a
+   * person's records (canFilterOrOrderByRelatedColumn, #9895) - and none of
+   * them read only on the records the caller's teams own. The link rows are
+   * read through the record they name, so the records this query reaches
+   * are already the ones whose links the caller may read.
+   */
+  private static checkLinkTableRelationPermission(data: {
+    relation: string;
+    linkTable: LinkTableRelation;
+    held: HeldPermissions;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    const linkModelType: DatabaseBaseModelType = data.linkTable
+      .modelType as DatabaseBaseModelType;
+    const linkModel: BaseModel = new linkModelType();
+
+    TablePermission.checkTableLevelPermissions(
+      linkModelType,
+      data.props,
+      DatabaseRequestType.Read,
+    );
+
+    TablePermission.checkTableLevelBlockPermissions(
+      linkModelType,
+      data.props,
+      DatabaseRequestType.Read,
+    );
+
+    const keptToOwners: Array<string> =
+      OwnedScopePermission.getColumnsKeptToOwners(linkModelType, data.props);
+
+    for (const column of [
+      data.linkTable.recordColumnName,
+      data.linkTable.linkedColumnName,
+    ]) {
+      if (keptToOwners.includes(column)) {
+        throw new NotAuthorizedException(
+          OwnedScopePermission.getColumnKeptToOwnersRefusal(
+            linkModelType,
+            column,
+          ),
+        );
+      }
+
+      if (
+        !QueryPermission.mayReadRelatedColumnByItsOwnRead({
+          relatedModelType: linkModelType,
+          relatedModel: linkModel,
+          column: column,
+          held: data.held,
+          props: data.props,
+        })
+      ) {
+        throw new NotAuthorizedException(
+          ColumnRefusalMessage.getRelationQueryRefusal({
+            column: column,
+            relatedModelName:
+              linkModel.singularName || linkModel.tableName || "",
+            relationColumn: data.relation,
+            permissions: QueryPermission.getRelatedFilterPermissions(
+              linkModel,
+              column,
+            ),
+          }),
+        );
+      }
     }
   }
 

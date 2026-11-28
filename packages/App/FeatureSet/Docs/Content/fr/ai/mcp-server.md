@@ -41,7 +41,7 @@ Le serveur est sans état : il n'émet aucun identifiant de session et chaque re
 - **Maintenance planifiée** : créer et gérer des événements de maintenance.
 - **Télémétrie** : interroger les logs, les métriques, les traces, les exceptions, les logs de moniteurs, les événements de sécurité et plus encore, en lecture seule.
 
-Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 55 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Un type d'enregistrement sans aucun champ modifiable une fois créé, comme le lien d'un incident avec une alerte, n'a pas d'outil de mise à jour. Les outils en lecture seule portent `readOnlyHint` et tout outil qui modifie quelque chose porte `destructiveHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. `openWorldHint` signale les outils qui vont au-delà de votre projet : les outils des pages de statut publiques ; les modifications affichées sur une page de statut et envoyées à ses abonnés, comme un nouvel incident, un changement de son état ou une note publique ; les invitations, envoyées par e-mail à des personnes qui ne font pas forcément encore partie de votre projet ; et les outils qui créent ou modifient un moniteur, un entrepôt de données ou un outil de BI, puisque OneUptime contacte ensuite l'adresse que vous lui donnez. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
+Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 60 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Un type d'enregistrement sans aucun champ modifiable une fois créé, comme le lien d'un incident avec une alerte, n'a pas d'outil de mise à jour. Les outils en lecture seule portent `readOnlyHint` et tout outil qui modifie quelque chose porte `destructiveHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. `openWorldHint` signale les outils qui vont au-delà de votre projet : les outils des pages de statut publiques ; les modifications affichées sur une page de statut et envoyées à ses abonnés, comme un nouvel incident, un changement de son état ou une note publique ; les invitations, envoyées par e-mail à des personnes qui ne font pas forcément encore partie de votre projet ; et les outils qui créent ou modifient un moniteur, un entrepôt de données ou un outil de BI, puisque OneUptime contacte ensuite l'adresse que vous lui donnez. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
 
 ## Avant de commencer
 
@@ -359,6 +359,29 @@ Le serveur a aussi les actions de mise en place de Demander à l'IA, un appel ch
 
 Ils agissent en votre nom, connecté avec OAuth : une clé d'API de projet ne peut pas utiliser les huit qui créent quelque chose. Votre client vous demande avant chacun d'eux, et sa réponse dit ce qui a été créé. Ce qui manque, comme une autorisation, une adresse ou de la place dans le forfait, est dit avant que quoi que ce soit soit créé.
 
+## Outils pour la Sécurité des données
+
+Le serveur dispose aussi des [actions de Sécurité des données de Demander à l'IA](/docs/data-security/integrations#demander-à-lia), un appel chacune. Chacune apporte exactement la modification que fait son bouton dans la Sécurité des données, en votre nom et avec vos autorisations, après les mêmes vérifications :
+
+- **`query_data_security_proposals`** : ce que propose OneUptime AI en attendant une personne, les plus risquées d'abord. Avec `which: "data-types"`, les types de données qu'elle a trouvés et que les analyses ne recherchent pas encore : le nom, la catégorie et la sensibilité de chacun, la façon dont il a été prouvé, et les magasins et champs où il se trouve, jamais une valeur. Il ne change rien
+- **`draft_data_security_rule`** : une règle de résidence, de propriétaire ou d'étiquettes rédigée à partir d'une phrase, comme « les données personnelles de l'UE doivent rester dans l'UE », avec les magasins qu'elle couvre aujourd'hui. Il ne change rien
+- **`scrub_data_security_finding`** : **Nettoyer** une détection dans la télémétrie
+- **`judge_data_security_finding`** : **Confirmer**, ou **Non sensible** avec une raison, et de même pour les détections semblables
+- **`change_data_security_issue`** : **Rouvrir**, **Attribuer**, **Accepter le risque** ou **Pas un problème**
+- **`set_data_store_owners`** : les propriétaires d'un magasin, ajoutés ou retirés
+- **`save_data_security_rule`** : une règle que `draft_data_security_rule` a rédigée
+- **`respond_on_data_store`** : une action de réponse via la connexion cloud du magasin, comme **Bloquer l'accès public**
+- **`fix_data_security_issue_with_ai`** : **Corriger avec l'IA**, une pull request que quelqu'un relit et fusionne
+- **`decide_data_security_proposal`** : **Approuver** ou **Masquer** une proposition
+
+Demander à l'IA demande à une personne avant certaines de ces actions dans tous les modes, sur une carte qui dit ce qui change, ce qui cesse de fonctionner et ce que cela coûte : répondre sur un magasin, **Non sensible**, **Accepter le risque**, **Pas un problème**, changer les propriétaires d'un magasin, enregistrer une règle, décider d'une proposition, un nettoyage que quelque chose lit, et **Confirmer** dans un projet qui alerte quelqu'un pour un problème critique. Ce serveur ne peut pas vous montrer cette carte, il les refuse donc, dit pourquoi, et nomme la page de OneUptime où vous faites la modification. Rien n'est jamais exécuté sans elle.
+
+Les outils de création, de mise à jour et de suppression sont soumis à la même règle, pour un client connecté avec OAuth comme pour une clé API, quelles que soient ses autorisations : une écriture qui apporte l'une de ces modifications est refusée dans les mêmes termes, et la réponse nomme la même page. `update_data_security_issue` ne met `status` ni à `Accepted` ni à `Not an issue`, `update_data_store_finding` n'active pas `isSuppressed`, ni `isConfirmed` là où quelqu'un est alerté pour un problème critique, et `create_residency_rule` n'enregistre aucune règle. Ils ne font pas non plus ce que OneUptime AI ne fait qu'après avoir demandé à une personne, quoi que disent ses règles : un type de données désactivé dans `disabledDataTypeIds`, un emplacement exclu des analyses d'un magasin dans `scanExclusions`, ou une étape de playbook de sécurité qui confine une menace, ou répond sur un magasin de données, sans l'approbation de personne. Et `update_label` ne renomme pas une étiquette qui dit production, comme `Production` ou `env: prod`, en un nom qui ne le dit pas, et `delete_label` n'en supprime aucune : une telle étiquette tient les ressources cloud qui la portent à l'écart des plannings hors heures et des règles IA qui agissent sans demander, et le refus nomme **Paramètres du projet → Basique → Étiquettes**, où vous effectuez la modification.
+
+Toute autre écriture se fait comme avant : un problème rouvert, attribué ou résolu, une détection de nouveau marquée comme sensible, une règle renommée ou désactivée, un type de données réactivé, toute autre étiquette renommée ou supprimée. `oneuptime_describe_resource` indique quelles écritures d'une ressource sont refusées, et l'agent reçoit la consigne de ne pas en réessayer une, ni de la faire d'une autre façon.
+
+Les autres agissent en votre nom, connecté avec OAuth : une clé d'API de projet ne peut pas les utiliser, et n'utilise que les deux qui ne changent rien. Sur un serveur auto-hébergé, `MCP_READ_ONLY=true` ne laisse que les outils qui ne changent rien, et `MCP_ALLOW_DESTRUCTIVE=false` refuse de retirer les propriétaires d'un magasin, ce qui les supprime.
+
 ## Interroger la télémétrie
 
 Les logs, les métriques, les traces (spans), les exceptions, les logs de moniteurs et les autres types de télémétrie sont accessibles par des outils `list_` et `count_` en lecture seule (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` et leurs jumeaux `count_`). La télémétrie arrive par OpenTelemetry, il n'y a donc pas d'outils de création.
@@ -509,7 +532,7 @@ Le serveur MCP est sans état : il n'émet ni ne suit d'identifiants de session,
 | Sécurité | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Sécurité des données | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Observabilité des données | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| Cloud | Cloud Budget |
+| Cloud | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost Report, Cloud Cost View, Required Tag |
 
 | Domaine | Télémétrie avec des outils de liste et de comptage seulement |
 | --- | --- |

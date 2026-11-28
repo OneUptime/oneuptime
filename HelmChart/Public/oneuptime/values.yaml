@@ -1128,6 +1128,29 @@ valkey:
       type: ClusterIP
       ports:
         valkey: "6379"
+    # Off by default: Valkey keeps nothing on disk, and a restarted Valkey
+    # starts empty - every queued job, telemetry and probe results included,
+    # is gone. It stays off because of what it would cost every install:
+    #   - every queued telemetry batch is written to Valkey once and deleted
+    #     once it is processed, so the append-only file is written as fast as
+    #     telemetry arrives, and a slow node disk stalls Valkey's single
+    #     thread on fsync, slowing every cache read and queue write with it;
+    #   - rewriting that file forks the server, and the fork's copy-on-write
+    #     pages count against the same memory limit (maxmemory below is
+    #     derived lower with persistence on, to leave room for it).
+    # What emptied Valkey on OneUptime Cloud (2026-11-27) was a liveness probe
+    # killing a busy server and a cache that grew to 35 GB; both are gone (the
+    # liveness probe below is a TCP connect, and Valkey now refuses writes at
+    # maxmemory instead of growing).
+    #
+    # Turn it on for a Valkey whose queued work must survive a restart, on a
+    # fast disk (SSD): the server then writes an append-only file
+    # (appendonly yes, appendfsync everysec - at most a second of writes lost)
+    # to a PersistentVolumeClaim mounted at /data. Turning it on or off on a
+    # release that is already installed changes the StatefulSet's
+    # volumeClaimTemplates, which Kubernetes does not allow, so delete the
+    # StatefulSet first, leaving its pod running, and then upgrade:
+    #   kubectl delete statefulset <release>-valkey --cascade=orphan
     persistence:
       enabled: false
       size: 8Gi
@@ -1138,30 +1161,80 @@ valkey:
     # Optional: override global security contexts just for the Valkey pod/container
     podSecurityContext: {}
     containerSecurityContext: {}
-    resources: {}
-  # Liveness/readiness probes for the Valkey container. Both run
-  # "valkey-cli ping" inside the pod. Under transient disk fsync or CPU
-  # contention (common on slower disks such as GCP pd-standard) a single PING
-  # can take longer than a second, so the defaults below are deliberately
-  # tolerant: a few slow PINGs must not flap readiness or trigger a liveness
-  # kill and restart loop. Raise the timeouts/thresholds further if you run it
-  # on constrained nodes.
+    # The memory limit is the cache's ceiling: Valkey's maxmemory is derived
+    # from it (valkey.maxmemory below), so it refuses writes before the kernel
+    # would kill it. The request reserves room for Valkey on its node. A
+    # Valkey using more than its request is among the first pods the kubelet
+    # evicts under node memory pressure, and an evicted Valkey comes back
+    # empty: where queued work matters, set requests.memory equal to
+    # limits.memory, which makes the pod Guaranteed, the last to be evicted.
+    #
+    # No CPU limit, on purpose. Valkey runs commands on one thread, and a CPU
+    # limit throttles that thread in 100 ms slices: every command and PING
+    # queued behind it waits out the throttle, which is how a CPU-limited
+    # Valkey looks hung while it is only waiting for its quota.
+    #
+    # Helm merges what you set here into these defaults key by key. To run
+    # without a limit (and so without a derived maxmemory), set
+    # `limits.memory: null`. A request above the limit lifts the limit to the
+    # request (Kubernetes refuses a request above its limit).
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        memory: 4Gi
+  # The memory Valkey may use for data, as valkey.conf takes it ("3gb",
+  # "512mb", a number of bytes) or as a Kubernetes quantity ("3Gi"). Reaching
+  # it, Valkey refuses writes with an OOM error (maxmemory-policy noeviction,
+  # which BullMQ needs) and keeps serving reads, deletes and the workers that
+  # drain the queue, so a flood of queued telemetry is answered with a
+  # retryable error instead of growing Valkey until it is killed.
+  #
+  # Empty: maxmemoryPercentOfMemoryLimit of master.resources.limits.memory -
+  # 3 GiB of the 4Gi default. With no memory limit and nothing here, Valkey
+  # has no cap at all and grows until the node runs out of memory.
+  maxmemory: ""
+  # The share of master.resources.limits.memory maxmemory is derived from,
+  # 1-100. Empty: 75, or 60 with persistence on. The rest is headroom for
+  # what maxmemory does not count - allocator fragmentation, client buffers
+  # and, with persistence, the copy-on-write pages of the fork that rewrites
+  # the append-only file. A cap at the limit itself would let the kernel
+  # OOM-kill Valkey before it ever refused a write.
+  maxmemoryPercentOfMemoryLimit:
+  # Liveness and readiness probes for the Valkey container.
+  #
+  # Liveness is a TCP connect to the Valkey port, so it fails only when the
+  # server is not listening at all - the one case a restart fixes. It used to
+  # run "valkey-cli ping", and a PING waits behind every command queued before
+  # it: a server busy draining a deep queue, or loading its append-only file,
+  # missed the timeout while doing its job, and the restart that followed
+  # threw away everything it held. That is what emptied Valkey on OneUptime
+  # Cloud on 2026-11-27.
+  #
+  # Readiness still runs "valkey-cli ping": a server that does not answer in
+  # time stops taking new connections, which loses nothing. Under transient
+  # disk fsync or CPU contention (common on slower disks such as GCP
+  # pd-standard) a single PING can take longer than a second, so its defaults
+  # are deliberately tolerant.
   livenessProbe:
     enabled: true
     initialDelaySeconds: 30
     timeoutSeconds: 5
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 6
   readinessProbe:
     enabled: true
     initialDelaySeconds: 5
     timeoutSeconds: 3
     periodSeconds: 5
     failureThreshold: 3
-  commonConfiguration: |-
-    appendonly no
-    save ""
-    maxmemory-policy noeviction
+  # Extra valkey.conf lines, written after the chart's own, so a setting here
+  # wins over the chart's (maxmemory, maxmemory-policy, appendonly, save). The
+  # chart writes the memory cap and persistence settings itself, from the
+  # values above; keep `maxmemory-policy noeviction` if you set one here, as
+  # BullMQ's queues are corrupted by evicted keys.
+  commonConfiguration: ""
   # Also publish the Service under its pre-13.0.0 name,
   # `<release>-redis-master`, pointing at the same pods.
   #
@@ -1413,6 +1486,15 @@ twilio:
     name:
     # The key of that Secret that holds the auth token.
     authTokenKey: authToken
+  # The voice the server's calls speak with, with accountSid or without it:
+  # one of Polly.Joanna-Neural, Polly.Matthew-Neural, Polly.Amy-Neural,
+  # Polly.Brian-Neural, Google.en-US-Neural2-F or Google.en-US-Neural2-J. A
+  # call to someone who reads OneUptime in another language speaks it, in a
+  # voice of that language of the same kind. Twilio charges the account extra
+  # for these voices. Set, it is the voice, and Admin Dashboard > Settings >
+  # Call and SMS shows it read-only; leave it empty to choose the voice there.
+  # See https://oneuptime.com/docs/self-hosted/twilio-integration#the-voice-calls-speak-with
+  callVoice:
 
 # How this server sends its own email - what Admin Dashboard > Settings >
 # Emails otherwise sets up. Set serverType, and the settings are the ones these
@@ -1516,6 +1598,21 @@ alerts:
 # clients do not retry, but no data is queued or persisted.
 telemetry:
   disableIngestion: false
+  # Telemetry waits in Valkey until a worker stores it. A project with this
+  # many batches of one signal (logs, traces, metrics, profiles, security
+  # events) already waiting is answered 429 with a Retry-After for that
+  # signal alone - its senders send the batches again later - while every
+  # other project carries on. A healthy queue holds almost nothing of any
+  # project, so only a flood, or ingest stopped for long, gets here: on
+  # 2026-11-27 one project's metrics flood was 93% of a 700,000-job queue,
+  # grew Valkey to 35 GB and took the probes down with it. 0 turns it off.
+  projectQueueLimit: 10000
+  # Every project's logs, traces, metrics, profiles and security events are
+  # answered 429 the same way while Valkey uses more than this share of its
+  # maxmemory, keeping the rest for probe check results, the Worker and
+  # Workflow queues and the caches. Needs a maxmemory (valkey.maxmemory,
+  # derived from valkey.master.resources.limits.memory). 0 turns it off.
+  valkeyMemoryLimitPercent: 85
 
 # Incoming Request monitors whose criteria group by a payload field evaluate
 # every request they receive, in order: each waits in Valkey until its
@@ -1545,6 +1642,41 @@ incomingRequests:
 # changes; nothing is deleted, and what already runs keeps running.
 products:
   onThisServer: everything
+
+# Where this server sends its people for help - Admin Dashboard > Settings >
+# Help and Support - set from here while nothing is saved on that page yet: a
+# new server's first start, or the first start with a value set of a server
+# whose page was never saved. From then on the page holds the settings. A
+# change made there is kept, a restart never sets it back, and a value
+# changed here later is not applied: the server's log says so, and the page
+# is where it changes. Each value is checked as the page checks it (links
+# start with https://, http:// or mailto:); one that would be refused is left
+# out and said in the log. Leave a value empty to keep OneUptime's own.
+# https://oneuptime.com/docs/self-hosted/help-and-support
+helpAndSupport:
+  # Help > Support Email, Contact Support on Page not found, the crash
+  # screen and account emails: an email address, or "hidden".
+  supportEmail: ""
+  # Help > Chat on Slack: a Slack, Microsoft Teams or other chat link, or
+  # "hidden". Shown to signed-in people only.
+  chat: ""
+  # Help > Request Demo: "shown" or "hidden".
+  requestDemo: ""
+  # Help > Give feedback: an email address, a link to a page of your own,
+  # or "hidden".
+  giveFeedback: ""
+  # The footer's Help and Support link, Contact on the sign-in pages and
+  # Support in the API reference: a link, or "hidden".
+  helpLink: ""
+  # OneUptime's GitHub links - Report a Bug or Request a Feature, and the
+  # docs' GitHub links: "shown" or "hidden".
+  gitHub: ""
+  # The Get the mobile app prompts: a link to a page of your own, such as
+  # your device manager's company portal, or "hidden".
+  mobileApp: ""
+  # What single sign-on says to someone who still needs an invitation:
+  # plain text, up to 1000 characters.
+  inviteMessage: ""
 
 # Browser source maps, uploaded from CI so exception stack traces can be shown
 # with original file names and line numbers instead of minified ones.
@@ -1789,9 +1921,10 @@ probes:
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
     # the pod—and therefore out of synthetic browser processes—by default.
     automountServiceAccountToken: false
-    # Let API, Website, External Status Page and Custom JavaScript Code monitors
-    # on this probe reach private network addresses (RFC-1918, CGNAT, IPv6
-    # unique-local), e.g. http://10.0.0.5/health. Honored on this chart probe.
+    # Let API, Website, External Status Page, Custom JavaScript Code and
+    # Synthetic monitors on this probe reach private network addresses
+    # (RFC-1918, CGNAT, IPv6 unique-local), e.g. http://10.0.0.5/health.
+    # Honored on this chart probe.
     # Chart probes auto-register as GLOBAL probes, so turning it on lets those
     # monitors from EVERY project on this instance reach private addresses
     # through this probe. Loopback, link-local and the cloud metadata endpoint
@@ -2367,17 +2500,20 @@ app:
   # every connection sign-ins and dashboards need (see "Size the Postgres
   # connections" in docs/production-checklist.md). Of a pool of 50, by
   # default: probe scheduling - every request a probe makes for work, and
-  # the pending counts - runs at most 10
-  # requests at once (a fifth of the pool, half of that for one probe), and
-  # the queue jobs this pod runs while worker.enabled is false hold at most
-  # 30 connections (the pool less a fifth kept for requests and less probe
-  # scheduling's share). Requests always have the other 10, and whatever the
-  # others are not using. Empty = those defaults, scaled to the pool.
+  # the pending counts - runs at most 10 requests at once (a fifth of the
+  # pool, shared fairly among the probes asking: one probe alone may use
+  # every slot), Test Monitor runs at most 2 more in a lane of their own,
+  # and the queue jobs this pod runs while worker.enabled is false hold at
+  # most 28 connections (the pool less a fifth kept for requests and less
+  # probe scheduling's 12). Requests always have the other 10, and whatever
+  # the others are not using. Empty = those defaults, scaled to the pool.
   # Set databaseMaxQueueJobConnections to the pool size for no cap. The
   # worker pods (worker.enabled) serve no requests: their jobs keep the
-  # whole pool.
+  # whole pool. With tens of thousands of monitors, read "Running many
+  # monitors" in docs/production-checklist.md before raising these.
   databaseMaxQueueJobConnections:
   probeSchedulingMaxConcurrentRequests:
+  probeSchedulingMaxConcurrentMonitorTestRequests:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
@@ -2466,7 +2602,10 @@ app:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when combined queue backlog (waiting + delayed jobs across worker + workflow + telemetry + runbook) exceeds this threshold
+    # Scale up when combined queue backlog (waiting + delayed jobs across worker + workflow + telemetry + runbook) exceeds this threshold.
+    # While ClickHouse is refusing telemetry inserts the backlog leaves out the
+    # bulk telemetry waiting for it, which more pods could not store faster
+    # (see worker.keda.queueSizeThreshold).
     queueSizeThreshold: 10
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, app.resources.requests.cpu must also be set.
@@ -2478,6 +2617,12 @@ app:
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
+    # Also scale up while probe requests wait for a slot of the probe
+    # scheduling limit: when the app pods' queue depth together
+    # (/metrics/probe-scheduling, queueDepth) passes this many per pod. 0 to
+    # disable. Kept in split mode (worker.enabled): the app pods serve the
+    # probes. See "Running many monitors" in docs/production-checklist.md.
+    probeSchedulingQueueDepthThreshold: 0
     # Fallback used when KEDA cannot read the metrics-api endpoint
     # (e.g. all app pods are down). Prevents HPA from flapping between
     # min/max when the queue-size metric goes <unknown>, which would otherwise
@@ -2568,6 +2713,11 @@ worker:
   keda:
     enabled: false
     minReplicas: 1
+    # Every worker pod runs up to telemetryFanInMaxConcurrentInserts ClickHouse
+    # INSERTs, so maxReplicas x that is the most the fleet sends ClickHouse at
+    # once: keep it under ~60% of ClickHouse's max_concurrent_queries
+    # (docs/production-checklist.md), or set telemetryWriter.enabled to make it
+    # a constant.
     maxReplicas: 100
     # /metrics/queue-size reports the GLOBAL queue backlog (waiting + delayed
     # jobs across worker + workflow + telemetry + runbook) and KEDA reads it as
@@ -2580,6 +2730,14 @@ worker:
     # counts delayed jobs, and every cron repeatable holds one, so it never
     # falls to zero: set this high enough that the idle floor alone cannot pin
     # the fleet at maxReplicas.
+    #
+    # While ClickHouse is refusing telemetry inserts (overloaded, too many
+    # parts, out of reach) the backlog leaves out the bulk telemetry waiting
+    # for it - more pods could not store it faster, and each would add
+    # inserts to the ClickHouse refusing them, as on 2026-11-27 when the
+    # workers went from 10 to 139. The monitoring work and the other queues
+    # still count, and the telemetry counts again two minutes after the last
+    # refused insert.
     queueSizeThreshold: 25
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, worker.resources.requests.cpu must also be set.

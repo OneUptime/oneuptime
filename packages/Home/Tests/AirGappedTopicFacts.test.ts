@@ -2047,9 +2047,9 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
   ],
   "network-monitoring/capability/traps": [
     fact(
-      "v1 and v2c traps and informs",
+      "v1, v2c and v3 traps and informs",
       NETWORK_DEVICE,
-      "takes v1 and v2c traps and informs",
+      "takes v1, v2c and v3 traps and informs",
     ),
     fact(
       "UDP 162 by default",
@@ -2467,7 +2467,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact(
       "Investigations are read-only, and secrets are redacted before anything reaches the model.",
       AI_SRE,
-      "**Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns).",
+      "**Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns), and so are",
     ),
   ],
   "ai/flow": [

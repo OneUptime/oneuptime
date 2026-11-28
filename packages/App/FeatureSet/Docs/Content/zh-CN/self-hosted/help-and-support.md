@@ -7,6 +7,7 @@
 - [每项设置会改变什么](#每项设置会改变什么)：每个位置、它的默认值和可选项。
 - [提供反馈](#提供反馈)：用户所写内容发送到哪里。
 - [登录消息](#登录消息)：应该向谁申请邀请。
+- [通过部署配置设置](#通过部署配置设置)：Helm 值或 `config.env`，用于新服务器。
 :::
 
 ## 更改帮助的去向
@@ -28,12 +29,12 @@
 
 | 设置 | 用户在哪里看到 | 默认 | 你自己的 |
 | --- | --- | --- | --- |
-| **支持邮箱** | 帮助 › **支持邮箱**、找不到页面时的 **联系支持团队**，以及错误屏幕请用户发送支持包的地址 | `support@oneuptime.com` | 一个电子邮件地址 |
-| **聊天** | 帮助 › **在 Slack 上聊天** | OneUptime 的 Slack 社区 | 一个链接。Slack 或 Microsoft Teams 链接保留其名称；其他链接显示为 **与支持团队聊天** |
+| **支持邮箱** | 帮助 › **支持邮箱**、找不到页面时的 **联系支持团队**、账户邮件，以及错误屏幕请用户发送支持包的地址 | `support@oneuptime.com` | 一个电子邮件地址 |
+| **聊天** | 帮助 › **在 Slack 上聊天**，以及 API 参考顶部的聊天链接 | OneUptime 的 Slack 社区 | 一个链接。Slack 或 Microsoft Teams 链接保留其名称；其他链接显示为 **与支持团队聊天** |
 | **请求演示** | 帮助 › **请求演示** | 显示 | 只能隐藏 |
 | **提供反馈** | 帮助 › **提供反馈**，以及搜索中的 **提供反馈** | 此服务器的管理员 | 一个电子邮件地址，或你自己的页面 |
-| **帮助和支持** | 页脚中的 **帮助和支持**，以及登录页面上的 **联系方式** | `https://oneuptime.com/support` | 一个链接 |
-| **报告错误或请求功能** | 产品菜单底部，以及反馈后提供的公开 GitHub 问题 | 显示 | 只能隐藏 |
+| **帮助和支持** | 页脚中的 **帮助和支持**、登录页面上的 **联系方式**，以及 API 参考顶部的 **支持** | `https://oneuptime.com/support` | 一个链接 |
+| **报告错误或请求功能** | 产品菜单底部、反馈后提供的公开 GitHub 问题，以及文档和 API 参考中的 GitHub 链接 | 显示 | 只能隐藏 |
 | **获取移动应用** | **如何联系我**、值班设置、新成员在首页的第一步，以及 **项目设置** 中的 **移动应用** | App Store 和 Google Play | 你自己的页面，例如设备管理工具的公司门户 |
 | **给需要邀请的人的消息** | 单点登录中显示 “You need to be invited.” 和 “No project access.” 的屏幕 | OneUptime 的句子 | 你自己的文字 |
 
@@ -41,9 +42,17 @@
 
 Admin Dashboard 自己的帮助菜单、页脚和产品菜单保留 OneUptime 的链接：它们面向此服务器的管理员，而管理员通过 OneUptime 获得服务器方面的帮助。
 
+### 账户邮件
+
+在自托管服务器上，账户邮件（例如邀请或电子邮件地址变更）在结尾会引导用户联系此服务器的管理员，而不是 OneUptime 支持团队。设置了你自己的支持邮箱后，邮件会以链接形式写明它：“需要帮助？请发送邮件至 it-help@example.com。”使用默认值或隐藏时，邮件内容和以前一样。
+
+### 文档和 API 参考
+
+此服务器提供的文档和 API 参考也遵循相同的设置。隐藏 **报告错误或请求功能** 后，任何页面都不再链接到 GitHub，而 **此页面有帮助吗?** 只会在答案会被保存或发送的地方询问。API 参考的顶部栏显示你选择的聊天和帮助页面；隐藏时两者都不显示。
+
 ### 谁能看到你的链接
 
-支持邮箱和 **帮助和支持** 链接也会显示在登录页面上，因此任何能打开这些页面的人都能看到它们。聊天链接和移动应用的页面只发送给已登录的用户：聊天链接通常是加入你工作区的邀请。
+支持邮箱和 **帮助和支持** 链接也会显示在登录页面上，因此任何能打开这些页面的人都能看到它们。聊天链接和移动应用的页面只发送给已登录的用户：聊天链接通常是加入你工作区的邀请。出于同样的原因，任何人都能阅读的文档和 API 参考只向已登录此服务器的用户显示你自己的聊天链接。
 
 ## 提供反馈
 
@@ -78,6 +87,39 @@ it-help@example.com or https://help.example.com/oneuptime
 - **获取移动应用** 会从新成员在首页的第一步中移除，而这些第一步仍会在此人可以被联系到、并且测试呼叫已送达后完成。
 - **如何联系我** 和值班设置只提供浏览器。
 - **移动应用** 会从 **项目设置** 中移除。
+- 凡是 OneUptime 列出联系某人的方式的地方，例如引导式设置、首页、团队的合规规则和询问 AI，都不再提到该应用。
+
+## 通过部署配置设置
+
+使用 Helm 或 Docker Compose 安装的服务器可以在启动时就带有这些设置。在 Helm chart 的 `helpAndSupport` 值中设置它们，或者在 Docker Compose 的 `config.env` 中设置：
+
+```yaml
+helpAndSupport:
+  supportEmail: it-help@example.com
+  chat: https://example.slack.com/archives/C024BE91L
+  requestDemo: hidden
+  gitHub: hidden
+  inviteMessage: |
+    Ask the IT service desk to invite you to OneUptime:
+    it-help@example.com
+```
+
+| Helm 值 | `config.env` | 可填写的内容 |
+| --- | --- | --- |
+| `supportEmail` | `HELP_AND_SUPPORT_SUPPORT_EMAIL` | 一个电子邮件地址，或 `hidden` |
+| `chat` | `HELP_AND_SUPPORT_CHAT` | 一个链接，或 `hidden` |
+| `requestDemo` | `HELP_AND_SUPPORT_REQUEST_DEMO` | `shown` 或 `hidden` |
+| `giveFeedback` | `HELP_AND_SUPPORT_GIVE_FEEDBACK` | 一个电子邮件地址、一个链接，或 `hidden` |
+| `helpLink` | `HELP_AND_SUPPORT_HELP_LINK` | 一个链接，或 `hidden` |
+| `gitHub` | `HELP_AND_SUPPORT_GITHUB` | `shown` 或 `hidden` |
+| `mobileApp` | `HELP_AND_SUPPORT_MOBILE_APP` | 一个链接，或 `hidden` |
+| `inviteMessage` | `HELP_AND_SUPPORT_INVITE_MESSAGE` | 纯文本 |
+
+- 它们在服务器启动时读取，并且只在 **帮助和支持** 中尚未保存任何内容时读取。从那以后，设置由该页面保存：在页面上所做的更改会保留，重启也绝不会把它改回去。
+- 之后在配置中更改的值不会生效，服务器日志会说明这一点。请在页面上更改。
+- 每个值都按页面的方式检查。会被拒绝的值（例如 `javascript:` 链接）会被略过，页面和服务器日志会说明原因。其他值仍会被设置。
+- 将值留空即可保留 OneUptime 的默认值。两个开关也可以使用 `true` 和 `false`。
+- 页面会标记每项来自你的配置的设置，直到你更改它。
 
 ## 后续步骤
 

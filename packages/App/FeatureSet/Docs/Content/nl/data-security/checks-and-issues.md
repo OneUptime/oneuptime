@@ -1,10 +1,10 @@
 # Controles en problemen van Gegevensbeveiliging
 
-Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
+Gegevensbeveiliging voert 35 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
 
 :::cards
 - [Hoe een controle beslist](#hoe-een-controle-beslist): Slagen, falen of niet te bepalen, en hoe erg een falen is.
-- [Elke controle](#elke-controle): Alle 34, met wat elke controle nagaat en hoe je het oplost.
+- [Elke controle](#elke-controle): Alle 35, met wat elke controle nagaat en hoe je het oplost.
 - [Risicoscore](#risicoscore): Hoe problemen binnen een ernst worden geordend.
 - [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem, hoe elk is opgelost, en oplossingen die tot in productie worden gevolgd.
 - [De analyse van OneUptime AI](#de-analyse-van-oneuptime-ai): Of een probleem echt is, wat het in gevaar brengt, wat de oplossing zou breken en de kortste weg naar opgelost.
@@ -22,6 +22,8 @@ Elke controle leest feiten over een opslag en antwoordt op een van vier manieren
 | Faalt | De controle vindt het probleem, en zegt in één zin wat ze zag: het bewijs van het probleem. | Er opent een probleem, of het openstaande probleem wordt bijgewerkt. |
 | Niet te bepalen | Een feit kon niet worden gelezen: een machtiging die de rol niet heeft, een aanroep die mislukte. | Er verandert niets: een openstaand probleem blijft open, omdat niemand mag concluderen dat een probleem is opgelost als OneUptime niet kon kijken. |
 | Niet van toepassing | De soort van de opslag heeft zo'n instelling niet. | Een openstaand probleem wordt opgelost. |
+
+Een feit dat niet te weten is vanaf de plek waar het werd gelezen, wordt ook nooit geraden: of internet een opslag bereikt die vanuit je netwerk werd bevraagd, of of de anonieme gebruiker van een cluster mag schrijven, wat alleen een schrijfactie zou laten zien. Zijn controle kan het niet bepalen, en die regel van de **Configuratie** van de opslag staat op **Niet te controleren**.
 
 ### Ernst volgt de gegevens
 
@@ -45,6 +47,7 @@ De ernst staat vermeld voor gegevens met Beperkt, Vertrouwelijk, Intern en Openb
 | Een snapshot ervan kan door iedereen worden hersteld (`snapshot-public`) | Database, snapshot | Een databasesnapshot wordt openbaar gedeeld, dus elk cloudaccount kan een volledige kopie herstellen. | Kritiek / Kritiek / Kritiek / Hoog | Maak de snapshot privé. |
 | Een snapshot ervan wordt gedeeld met andere accounts (`snapshot-shared-externally`) | Database, snapshot | Een databasesnapshot wordt gedeeld met accounts buiten je gekoppelde accounts. | Hoog / Hoog / Gemiddeld / Laag | Stop het delen van de snapshot met de accounts die hem niet zouden moeten hebben. |
 | Accounts buiten je organisatie kunnen erbij (`shared-with-external-accounts`) | Elke opslag behalve telemetrie | Het beleid van de opslag geeft toegang aan accounts, tenants of projecten die niet aan OneUptime zijn gekoppeld. | Hoog / Hoog / Gemiddeld / Laag | Bekijk elke externe principal, en verwijder de principals die geen toegang nodig hebben. |
+| Iedereen die het bereikt, kan het zonder inloggegevens lezen (`readable-without-credentials`) | zoekdienst | Het antwoordde OneUptime zonder inloggegevens: wie het adres kan bereiken, kan de gegevens lezen, en ze wijzigen als er helemaal geen toegangscontrole is. | Kritiek / Hoog / Gemiddeld / Laag | Schakel de beveiliging van de cluster in, neem de anonieme gebruiker elke rol af, en geef elke applicatie een eigen alleen-lezen gebruiker. Een cluster die schrijfacties zonder inloggegevens aanneemt, is Kritiek bij Beperkt en Vertrouwelijk, en Hoog bij alle andere gegevens. |
 
 ### Versleuteling
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Factor | Punten |
 | --- | --- |
 | Ernst | 75 voor Kritiek, 50 voor Hoog, 25 voor Gemiddeld, 0 voor Laag |
-| Blootstelling | 10 voor Openbaar, 8 voor Andere accounts, 6 voor Bereikbaar via internet, 3 voor Onbekend, 0 voor Privé |
+| Blootstelling | 10 voor Openbaar, 8 voor Andere accounts, 6 voor Bereikbaar via internet, 3 voor Onbekend, Nog niet gecontroleerd of Niet te controleren, 0 voor Privé |
 | Volume | Tot 6, naar het geschatte aantal gevoelige records van de opslag op een logaritmische schaal: 1 voor 10 records, 3 voor 1.000, 5 voor een miljoen, 6 voor tien miljoen of meer |
 | Activiteit | 5 als Security Operations de afgelopen week detecties op de opslag zag |
 | Productie | 4 voor een opslag in productie |
@@ -184,11 +187,18 @@ Het Overzicht telt de problemen die bij de bron zijn opgelost apart van de lekke
 Een pull request die OneUptime AI voor een probleem opende (**Oplossen met AI**, of één pull request voor een [groep problemen](#problemen-met-één-oorzaak)), heeft nog niets opgelost op het moment dat hij wordt gemerged. OneUptime volgt hem totdat productie het bewijst:
 
 - **Een lek in code.** OneUptime wacht op een vastgelegde deploy van de service die de merge bevat, en houdt daarna de nieuwe versie in de gaten. Waar een opschoonregel de gegevens verbergt, mag de regel in die versie geen enkele waarde wijzigen; waar geen regel dat doet, mag geen record van die versie de gegevens bevatten op de plekken waar ze zijn gevonden. De nieuwe versie moet ook een dag draaien en minstens evenveel logs of spans sturen als de oude deed in het uur waarin het lek het laatst werd gezien. Dan is het probleem **Hersteld in de code**. Eén gewijzigde waarde, of één record dat de gegevens nog bevat, betekent dat de fix het lek niet heeft gestopt, en over een versie die in een week te weinig stuurt, valt niets te zeggen. Deploys worden gekoppeld via hun commit: leg ze vast met `oneuptime deploy`, of stuur `vcs.ref.head.revision` mee (zie [Deploys en wijzigingen](/docs/telemetry/change-events)).
+- **Een lek in metrieken of sessieherhalingen.** Het wordt op dezelfde manier bewezen, aan de versie die elk record schreef: de datapunten van een metriek noemen die onder hun attributen, de browserlogboeken en -spans van een RUM-applicatie via de release waarvoor de source maps zijn geüpload, en de sessies via de appversie die de sessierecorder meestuurt. Gegevens van een metriek die een pipelineregel verwijdert, of waarvan die de punten laat vallen, laten niets te lezen over, dus dat lek valt niet te beoordelen; een regel **Kenmerk weglakken** laat de vervangende waarde te lezen.
 - **De configuratie van een opslag.** Als de pull request wordt gemerged, worden zijn opslagen meteen opnieuw gelezen. Elk probleem waarvan de controle daarna slaagt, is **Hersteld in de infrastructuurcode**. Slaagt een opslag een dag na de merge bij het opnieuw lezen nog steeds niet voor zijn controle, dan is de fix **gemerged, niet toegepast**: de eigenaren van de opslag en de persoon die om de pull request vroeg, krijgen één keer een e-mail, en de tijdlijnen van het probleem en de opslag vermelden het. Meestal ontbreekt er een apply.
 - **De opschoonregel blijft.** Na een geverifieerde codefix blijft de opschoonregel die het lek indamde staan, zodat een regressie wordt verborgen zodra die binnenkomt. Het probleem zegt dat de regel sinds de fix niets heeft gewijzigd, en biedt **Regel verwijderen** aan.
 - **Een regressie.** Een geverifieerde fix wordt daarna gevolgd: als een behouden regel weer waarden wijzigt, of de scan de gegevens weer vindt, opent het probleem opnieuw en zegt het welke versie ze terugbracht. Het blijft open totdat het opnieuw is opgelost, ook zolang een regel de gegevens verbergt.
 
 Elke stap staat op de **Tijdlijn** van het probleem en op die van de opslag, en AI-resultaten telt de geverifieerde oplossingen per soort (zie [Hoe goed OneUptime AI het doet](/docs/ai/ai-sre#hoe-goed-oneuptime-ai-het-doet)).
+
+### Je eigen pull request koppelen
+
+Een oplossing die je zelf hebt geschreven, wordt op dezelfde manier gevolgd. Op de pagina van het probleem neemt **Pull request koppelen** het adres van een pull request in een repository die onder **Code** is gekoppeld – op GitHub, GitLab, Forgejo of Gitea – en het probleem toont hem onder **Gekoppelde pull requests**, met of hij is samengevoegd. OneUptime volgt hem tot de merge, de uitrol die hem levert en het bewijs uit productie, zoals hierboven, en het probleem wordt opgelost met hem bij naam. Elke stap staat op de **Tijdlijn** van het probleem. Een pull request die zonder merge is gesloten, wordt niet verder gevolgd, en hem van het probleem ontkoppelen stopt het volgen.
+
+Wie het probleem mag wijzigen, mag er een koppelen, in een repository die diegene onder **Code** mag lezen. Een probleem houdt er maximaal 10. Een adres dat bij geen pull request hoort, een repository die niet is gekoppeld of die diegene niet mag lezen, een pull request die zonder merge is gesloten of al is gekoppeld, en een probleem waarvan het risico is geaccepteerd of dat geen probleem is, worden geweigerd, elk met de reden.
 
 ## De analyse van OneUptime AI
 

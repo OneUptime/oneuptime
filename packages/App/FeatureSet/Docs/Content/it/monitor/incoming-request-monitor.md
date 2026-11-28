@@ -14,6 +14,7 @@ Entrambi usano lo stesso tipo di monitor. A distinguerli sono i criteri che conf
 - [Inviare un heartbeat](#inviare-un-heartbeat): Da curl, cron, Node.js, Python o Go.
 - [Avvisare quando le chiamate si fermano](#segnare-offline-se-non-arriva-un-heartbeat-in-10-minuti-un-interruttore-a-uomo-morto): Trasformate il monitor in un interruttore a uomo morto.
 - [Ricevere avvisi](#ricevere-avvisi-da-un-altro-sistema): Un incidente per ogni avviso di Alertmanager o Grafana.
+- [Pubblicare su Slack senza chiamare nessuno](#pubblicare-su-slack-senza-chiamare-nessuno): Notificare un canale e chiamare chi è di turno solo fuori orario.
 - [Sottoscrivere SNS o Event Grid](#sottoscrivere-amazon-sns-o-azure-event-grid): Confermate la sottoscrizione con un clic.
 :::
 
@@ -422,6 +423,38 @@ Accanto è disponibile l'intero payload, quindi funzionano sia un titolo di inci
 
 Per una configurazione completa di Alertmanager, consultate [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Per Grafana, consultate [Grafana](/docs/integrations/grafana).
 
+### Mantenerlo controllato durante gli incidenti
+
+Un incidente che qualcuno dichiara su questo monitor — da uno dei suoi avvisi, per esempio, con **Dichiara incidente** — ne mette in pausa i controlli finché l'incidente non viene risolto, quindi le richieste che arrivano nel frattempo non vengono valutate: non aprono né risolvono avvisi. Ciascuna viene comunque elencata nei **Log di monitoraggio** del monitor, così come è arrivata, con il motivo per cui non è stata valutata.
+
+Per un monitor a cui altri sistemi inviano i loro avvisi, un incidente su un avviso non dovrebbe impedirgli di leggere il successivo. Aprite le **Impostazioni** del monitor e, sotto **Durante gli incidenti**, attivate **Continua il monitoraggio durante gli incidenti**: gli incidenti dichiarati su di esso lo lasciano allora controllato, compresi quelli già aperti. Per mantenerlo controllato per un solo incidente, togliete la spunta a **Metti in pausa il monitoraggio** quando lo dichiarate. Vedete [Monitoraggio mentre un incidente è aperto](/docs/incidents/declaring-incidents#monitoraggio-mentre-un-incidente-è-aperto).
+
+## Pubblicare su Slack senza chiamare nessuno
+
+Un ambiente di staging, o un prodotto i cui problemi possono aspettare, può voler pubblicare una richiesta in un canale di chat senza chiamare nessuno. Lo fa un avviso che non nomina alcuna policy di reperibilità: viene pubblicato su Slack, Microsoft Teams o Mattermost tramite le regole dell'area di lavoro del progetto, e non avvia alcuna escalation.
+
+:::steps
+1. Aprite il criterio e, in **Azioni**, attivate **Quando i filtri corrispondono, crea un avviso.** Lasciate vuote le sue **Policy di reperibilità**.
+2. Scrivete nell'avviso ciò che dice la richiesta, come `{{requestBody.commonAnnotations.summary}}` nella sua descrizione. Vedete [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
+3. In **Avvisi → Area di lavoro → Slack**, aggiungete una regola per gli avvisi di questo monitor e attivate **Pubblica in canali esistenti**. Prima, Slack deve essere [collegato al progetto](/docs/workspace-connections/slack).
+:::
+
+Un avviso che non nomina alcuna policy di reperibilità può comunque chiamare qualcuno tramite le regole del progetto. Controllate che nessuna regola in **Avvisi → Regole → Regole di reperibilità** chiami qualcuno per questi avvisi, e che nessuna regola in **Avvisi → Regole → Regole degli incidenti** dichiari un incidente a partire da essi.
+
+Per pubblicare senza creare un avviso, attivate solo **Quando i filtri corrispondono, modifica lo stato del monitor.**, e aggiungete invece la regola in **Monitor → Area di lavoro → Slack**. Il canale viene allora a sapere solo che lo stato del monitor è cambiato, senza nulla della richiesta, e solo quando cambia: altre richieste mentre il monitor è già in quello stato non pubblicano nulla.
+
+### Chiamare solo fuori dall'orario di lavoro
+
+Due criteri con gli stessi filtri si dividono la settimana, in quest'ordine:
+
+1. Il primo pubblica durante l'orario di lavoro. Nelle sue **Impostazioni**, attivate **Valuta questi criteri solo in determinati giorni e orari**, e scegliete i giorni, gli orari e il **Fuso orario**. Il suo avviso non nomina alcuna policy di reperibilità.
+2. Il secondo chiama il resto del tempo. Non ha orari, e il suo avviso nomina la vostra policy di reperibilità.
+
+Il primo criterio che corrisponde a una richiesta decide cosa succede. Fuori dai suoi orari il primo criterio viene saltato, quindi il secondo corrisponde di notte e nei fine settimana, e solo allora viene chiamato qualcuno. Vedete [Solo in certi giorni e orari](/docs/monitor/criteria-and-statuses#solo-in-certi-giorni-e-orari).
+
+- Una richiesta viene valutata quando arriva, in base agli orari di quel momento. Un problema che inizia alle 16:55 chiama qualcuno dopo le 17:00 solo se il mittente lo invia di nuovo, come fa Alertmanager una volta ogni `repeat_interval`.
+- Un avviso con **Risoluzione automatica dell'avviso** attiva si risolve quando una richiesta corrisponde a un altro criterio. La prima richiesta dopo l'inizio dell'orario di lavoro corrisponde al primo criterio, quindi risolve l'avviso della notte e ne apre uno che non chiama nessuno. Lasciate **Risoluzione automatica dell'avviso** disattivata sull'avviso del secondo criterio per tenerlo aperto finché qualcuno non lo risolve.
+
 ## Servizi che verificano prima l'URL
 
 Alcuni servizi verificano un nuovo endpoint prima di consegnargli qualcosa: gli inviano una richiesta, e consegnano solo quando risponde come si aspettano. OneUptime risponde da sé a queste verifiche, quindi basta incollare l'**Heartbeat URL** del monitor nel servizio.
@@ -479,11 +512,16 @@ Event Grid convalida un endpoint che gli restituisce un codice, o il cui proprie
 3. **Usate POST con `Content-Type: application/json`**: tutto ciò che legge dentro il corpo dipende da questo.
 4. **Non mescolate i due compiti su un monitor**: un monitor che riceve avvisi guidati dagli eventi non ha una cadenza regolare, quindi un criterio "Non ricevuto in minuti" su di esso oscillerebbe. Usate un monitor separato per l'interruttore a uomo morto.
 5. **Monitorate il monitor**: assicuratevi che il servizio che invia le richieste gestisca bene gli errori, così le richieste fallite non passano inosservate.
+6. **Mantenete controllato un ricevitore di eventi durante gli incidenti**: su un monitor che riceve avvisi da un altro sistema, attivate **Continua il monitoraggio durante gli incidenti** nelle sue **Impostazioni**, così un incidente dichiarato su di esso non lo mette in pausa. Vedete [Mantenerlo controllato durante gli incidenti](#mantenerlo-controllato-durante-gli-incidenti).
 
 ## Risoluzione dei problemi
 
 :::details Il mittente riceve un 200, ma sul monitor non compare nulla
 Il `200` viene inviato prima che la richiesta sia convalidata, quindi non dimostra che sia stata accettata. Controllate che la chiave segreta nell'URL corrisponda all'**Heartbeat URL** del monitor, e che il monitor non sia disattivato. Poi guardate la cronologia del monitor per vedere se le richieste arrivano.
+:::
+
+:::details Le richieste arrivano, ma il monitor non apre avvisi mentre un incidente è aperto
+Un incidente dichiarato a mano sul monitor ne mette in pausa i controlli, quindi le sue richieste vengono elencate nei suoi **Log di monitoraggio** come **Non valutato: il monitoraggio è in pausa a causa di un incidente**, e il banner sulle sue pagine lo dice. Attivate **Continua il monitoraggio durante gli incidenti** nelle sue **Impostazioni**: i suoi controlli ripartono subito, e le richieste successive vengono valutate. Le richieste elencate mentre era in pausa non vengono valutate dopo. Vedete [Mantenerlo controllato durante gli incidenti](#mantenerlo-controllato-durante-gli-incidenti).
 :::
 
 :::details Il mio mittente riceve un 401

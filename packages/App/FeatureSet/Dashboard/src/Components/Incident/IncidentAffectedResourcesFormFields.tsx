@@ -16,6 +16,7 @@ import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Service from "Common/Models/DatabaseModels/Service";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
 import { ModelFormOnBeforeUpdate } from "Common/UI/Components/Forms/ModelForm";
@@ -113,6 +114,24 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
       },
       {
         /*
+         * Whether the incident pauses its monitors' checks (#11141), as
+         * Declare Incident asks it: switched off while the incident is
+         * open, its monitors are checked again at once; on, they pause.
+         */
+        field: {
+          pauseMonitoring: true,
+        },
+        title: "Pause Monitoring",
+        description:
+          "Stops checking these monitors until the incident is resolved. Monitors set to keep monitoring during incidents keep being checked.",
+        fieldType: FormFieldSchemaType.Checkbox,
+        required: false,
+        showIf: (values: FormValues<Incident>): boolean => {
+          return hasPickedMonitors(values);
+        },
+      },
+      {
+        /*
          * Everything else the incident affects, anchored on `hosts`;
          * the payload is split back into each relation below, and
          * the hidden registrations load and save the rest.
@@ -141,6 +160,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
               proxmoxClusters={values.proxmoxClusters as Array<ProxmoxCluster>}
               openStackClouds={values.openStackClouds as Array<OpenStackCloud>}
               vmwareVCenters={values.vmwareVCenters as Array<VMwareVCenter>}
+              xcpNgPools={values.xcpNgPools as Array<XcpNgPool>}
               cephClusters={values.cephClusters as Array<CephCluster>}
               storageArrays={values.storageArrays as Array<StorageArray>}
               dockerSwarmClusters={
@@ -159,6 +179,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 "ProxmoxCluster",
                 "OpenStackCloud",
                 "VMwareVCenter",
+                "XcpNgPool",
                 "CephCluster",
                 "StorageArray",
                 "DockerSwarmCluster",
@@ -194,6 +215,7 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
                 proxmoxClusters: payload.proxmoxClusters,
                 openStackClouds: payload.openStackClouds,
                 vmwareVCenters: payload.vmwareVCenters,
+                xcpNgPools: payload.xcpNgPools,
                 cephClusters: payload.cephClusters,
                 storageArrays: payload.storageArrays,
                 dockerSwarmClusters: payload.dockerSwarmClusters,
@@ -267,6 +289,15 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
       },
       {
         field: { vmwareVCenters: true },
+        title: "",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        showIf: () => {
+          return false;
+        },
+      },
+      {
+        field: { xcpNgPools: true },
         title: "",
         fieldType: FormFieldSchemaType.Text,
         required: false,

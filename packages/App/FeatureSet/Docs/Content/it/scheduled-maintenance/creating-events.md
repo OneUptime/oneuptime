@@ -63,7 +63,7 @@ Non viene inviato nulla finché non scegliete una pagina di stato: un evento mos
 | **Proprietari**                      | **Dettagli della manutenzione**         | Nessuno                         | Persone e team a cui appartiene l'evento e che ne vengono avvisati.              |
 | **Etichette**                        | **Dettagli della manutenzione**         | Nessuna                         | Etichette su cui regole e filtri possono basarsi.                                |
 | **Monitor**                          | **Risorse interessate** | Nessuno                    | I monitor che non vengono controllati mentre l'evento è in corso.                |
-| **Cambia lo stato del monitor in**   | **Risorse interessate** | Nessun cambio              | Lo stato che questi monitor mostrano durante l'evento. Viene chiesto appena si sceglie un monitor. |
+| **Cambia lo stato del monitor in**   | **Risorse interessate** | Nessun cambio              | Lo stato che questi monitor mostrano durante l'evento, e che il loro tempo di attività conta. Se non ne scegliete nessuno, mantengono il loro stato e il loro tempo di attività esclude quel tempo. Viene chiesto appena si sceglie un monitor. |
 | **Altre risorse interessate**        | **Risorse interessate** | Nessuna                    | Host, cluster, database, siti di rete, servizi e altro.                          |
 | **Mostra evento su queste pagine di stato** | **Risorse interessate** | Nessuna           | Le uniche pagine di stato che possono mostrare l'evento o avvisare i loro iscritti. |
 | **Notifiche agli iscritti**          | **Risorse interessate** | Pubblicato subito, tutti e tre i momenti attivi, nessun promemoria | Quando l'evento compare su quelle pagine e quando vengono avvisati i loro iscritti. |
@@ -75,7 +75,7 @@ Due cose compilano il modulo per voi strada facendo:
 
 ## Partire da una risorsa o da un modello
 
-Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, un cloud OpenStack, uno storage array, una flotta IoT, un database, una risorsa cloud, un servizio o un sito di rete, **Crea evento di manutenzione** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
+Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Proxmox, Ceph o Docker Swarm, un host Docker o Podman, un vCenter, un pool XCP-ng, un cloud OpenStack, uno storage array, una flotta IoT, un database, una risorsa cloud, un servizio o un sito di rete, **Crea evento di manutenzione** apre lo stesso modulo con quella risorsa già scelta in **Altre risorse interessate**, e la scheda elenca gli eventi che la riguardano. La scheda di un elemento dell'inventario sceglie l'host, il servizio o il cluster Kubernetes a cui punta l'elemento.
 
 **Crea da modello**, accanto al pulsante di creazione, vi chiede di **Seleziona modello di manutenzione programmata**, poi apre il modulo compilato dal modello. Vedere [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates).
 
@@ -84,9 +84,9 @@ Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Pro
 Nel momento in cui fate clic su **Crea evento di manutenzione**, OneUptime esegue questi passi, in quest'ordine:
 
 1. **Riceve un numero e uno stato.** Il numero viene da un contatore per progetto, mostrato con il vostro prefisso (`SM-42`). L'evento parte nel vostro stato programmato, qualunque stato indichi una richiesta.
-2. **I vostri strumenti di chat lo vengono a sapere.** Le regole Slack e Microsoft Teams in **Area di lavoro** lo pubblicano nei loro canali, e una regola può creare un canale per l'evento. Il suo feed registra che è stato creato.
-3. **Inizia la sua cronologia di stato.** La prima riga della sua **Cronologia stato** è il vostro stato programmato.
-4. **Vengono aggiunti proprietari ed etichette**: quelli che avete scelto, poi quelli delle regole del proprietario e delle etichette che corrispondono.
+2. **Inizia la sua cronologia di stato.** La prima riga della sua **Cronologia stato** è il vostro stato programmato.
+3. **Vengono aggiunti proprietari ed etichette**: quelli che avete scelto, poi quelli delle regole del proprietario e delle etichette che corrispondono.
+4. **I vostri strumenti di chat lo vengono a sapere.** Le regole Slack e Microsoft Teams in **Area di lavoro** lo pubblicano nei loro canali, e una regola può creare un canale per l'evento. Il suo feed registra che è stato creato. Le regole vedono i proprietari e le etichette con cui l'evento è stato creato, così anche una regola che chiede chi è il proprietario di un evento, o come è etichettato, lo pubblica. Ciò che è stato detto sull'evento nel frattempo, come i proprietari appena aggiunti, lo segue in quei canali.
 5. **Le regole di runbook avviano** i runbook che corrispondono all'evento.
 6. **Vengono pianificati i promemoria**, quando corrisponde una regola di promemoria, per i suoi proprietari.
 

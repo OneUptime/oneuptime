@@ -185,6 +185,11 @@ export const LINKED_INFRASTRUCTURE_KINDS: ReadonlyArray<{
     noun: "VMware vCenter",
   },
   {
+    type: LinkedAffectedResourceType.XcpNgPool,
+    aiResourceType: AIResourceType.XcpNgPool,
+    noun: "XCP-ng pool",
+  },
+  {
     type: LinkedAffectedResourceType.CephCluster,
     aiResourceType: AIResourceType.CephCluster,
     noun: "Ceph cluster",

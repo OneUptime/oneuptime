@@ -594,6 +594,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "In an alert's own channel.",
     // The incident form's Notify Status Page Subscribers, and its answer.
     "Status page subscribers.",
+    // Where an incident the form declares starts (#11137).
+    "Where the incident starts.",
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
@@ -661,6 +663,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "In an alert's own channel.",
     // The incident card's Notify Status Page Subscribers, and its answer.
     "Status page subscribers.",
+    // Where an incident the card declares starts (#11137).
+    "Where the incident starts.",
     "What a form may name.",
     "Which records.",
     "What Change State offers.",

@@ -87,6 +87,7 @@ import {
   SENSITIVE_DATA_LIMITS,
   SensitiveDataLeakKind,
   SensitiveDataPosting,
+  SensitiveDataSink,
 } from "Common/Types/CodeRepository/ProductionReviewSensitiveData";
 import DataSensitivity from "Common/Types/DataSecurity/DataSensitivity";
 import SecuritySeverity from "Common/Types/SecuritySeverity";
@@ -1032,7 +1033,7 @@ describe("Code", () => {
       "ToolResultSerializer.redactAndOmitEmbeddedData(text).text",
     );
     expect(flat(ask)).toContain(
-      "Tokens, keys, passwords and email addresses in what OneUptime reads are redacted before AI sees them",
+      "Tokens, keys, passwords, email addresses, phone numbers and Social Security numbers in what OneUptime reads are redacted before AI sees them",
     );
   });
 
@@ -1296,6 +1297,96 @@ describe("Code", () => {
     );
   });
 
+  /*
+   * #11075, #11209: the buttons that start a code task in the person's name
+   * outside Code are held to the repositories they may use there - read,
+   * and ask OneUptime AI to work in - by one rule on the server
+   * (CodeFixPersonRepository), which asks for a pick when several are
+   * theirs and none matched, pins the run to the repository decided, and
+   * leaves the fixes OneUptime AI opens on its own to their AI rules.
+   */
+  it("says the buttons that start a task in your name work only in a repository you may use in Code, as the server holds them", () => {
+    const section: string = flat(
+      englishSection(CODE_PAGE, "## Where fix tasks start"),
+    );
+    const rule: string = readRepoFile(
+      "Common/Server/Utils/AI/CodeFix/CodeFixPersonRepository.ts",
+    );
+    const routes: string = readRepoFile(
+      "Common/Server/API/AIInvestigationAPI.ts",
+    );
+
+    // One rule, for each of the four buttons' triggers.
+    for (const trigger of [
+      "FixPerformanceTaskTrigger",
+      "FixFromIncidentTaskTrigger",
+      "TelemetryImprovementTaskTrigger",
+    ]) {
+      expect(
+        readRepoFile(`Common/Server/Utils/AI/SRE/${trigger}.ts`),
+      ).toContain("CodeFixPersonRepository.decideRepository({");
+    }
+
+    // Read it, and ask AI in it; none theirs, a pick to make, the pin.
+    expect(rule).toContain("CodeTaskAccess.listReadableRepositoriesByIds({");
+    expect(rule).toContain("CodeTaskAccess.keepAskableRepositories<");
+    expect(rule).toContain(
+      "refusal = new NotAuthorizedException(NO_REPOSITORY_YOU_MAY_USE_MESSAGE);",
+    );
+    expect(rule).toContain(
+      "throw new BadDataException(data.refusals.pickARepository);",
+    );
+    expect(rule).toContain(
+      "data.taskContext.pickedCodeRepositoryId = repositoryId;",
+    );
+    // And held to it when the run starts, the improvements' included.
+    expect(
+      readRepoFile("Common/Server/API/AIAgentDataAPI.ts").split(
+        "allowance: getRunRepositoryAllowance(run.taskContext),",
+      ).length - 1,
+    ).toBeGreaterThanOrEqual(3);
+
+    // The three create routes take the pick the page asks for.
+    for (const route of [
+      '"/ai-investigation/create-performance-fix-task"',
+      '"/ai-investigation/create-fix-task"',
+      '"/ai-investigation/create-telemetry-improvement-task"',
+    ]) {
+      const handler: string = routes.slice(routes.indexOf(route));
+      expect(handler.slice(0, handler.indexOf("router.post(", 1))).toContain(
+        "readPickedRepositoryId(",
+      );
+    }
+
+    // Each page asks which repository holds the code, in one question.
+    for (const page of [
+      "Components/Traces/TraceDetail/TracePerformanceSuggestion.tsx",
+      "Components/AutoRemediation/RemediationCodeFix.tsx",
+      "Components/AI/TelemetryImprovementCard.tsx",
+    ]) {
+      const source: string = dashboardSource(page);
+      expect(source).toContain("TELEMETRY_AI_FIX_COPY.pickRepository");
+      expect(source).toContain("isAskableOnly={true}");
+    }
+
+    expect(section).toContain(
+      `${bold("Open fix pull request")}, ${bold("Fix performance with AI")}, ${bold("Improve Logging")} and ${bold("Improve Tracing")} start a task in your name, so each works only in a repository you may use in Code: one you can read and may ask OneUptime AI to work in, which takes permission to edit it. If you may use none of the connected repositories, you are not offered them. With several of yours connected and none matched to the incident's or alert's monitor, the trace's service or code, or the service, the button first asks which repository holds the code, and offers only yours. The task stays in that repository, even if the repositories change before it starts. The fix pull requests OneUptime AI opens on its own (see below) work in the repositories their AI rules allow instead.`,
+    );
+    expect(
+      flat(
+        englishSection(
+          CODE_PAGE,
+          "## Automatic code fixes from investigations",
+        ),
+      ),
+    ).toContain(
+      `A fix that opens on its own works in the repositories the matching rules name, or any connected one when they name none. ${bold("Open fix pull request")} works only in a repository the person who presses it may use in Code, and asks which one first when several are theirs and none is named like the monitor (see [Where fix tasks start](#where-fix-tasks-start)).`,
+    );
+    expect(flat(englishPage(AI_SRE))).toContain(
+      `${bold("Open fix pull request")} works only in a repository you may use in Code: one you can read and may ask OneUptime AI to work in, which takes permission to edit it. With several of yours connected and none named like the incident's or alert's monitor, the step first asks which repository holds the code, and offers only yours. If you may use none of the connected repositories, the step does not offer it. See [Where fix tasks start](/docs/ai/ai-agent#where-fix-tasks-start).`,
+    );
+  });
+
   it("opens an exception's Fix with AI page from its side menu, under Resolve", () => {
     const menu: string = flat(
       dashboardSource("Pages/Exceptions/View/SideMenu.tsx"),
@@ -1378,7 +1469,11 @@ describe("Code", () => {
       numberConstant(verification, "VERIFICATION_COMMAND_TIMEOUT_MS") / 60000;
     const repairs: number = numberConstant(verification, "MAX_REPAIR_ATTEMPTS");
 
-    expect(verification).toContain('CI: "true"');
+    // CI=true, in the environment every code-fix command gets.
+    expect(verification).toContain("env: getCodeFixCommandEnvironment(),");
+    expect(readRepoFile("Runner/Utils/RunnerOwnEnvironment.ts")).toContain(
+      'environment["CI"] = "true";',
+    );
     expect(section).toContain(
       `Each one gets up to ${minutes} minutes and runs with \`CI=true\``,
     );
@@ -1457,9 +1552,20 @@ describe("Code", () => {
       "canRunCommands: runsProjectAuthoredCommands(),",
     );
 
-    // A command the model composed runs without the Runner's own key.
-    expect(flat(agent)).toContain(
-      'for (const name of [ "ONEUPTIME_RUNNER_KEY", "ONEUPTIME_RUNNER_ID", "GIT_ASKPASS", "ONEUPTIME_GIT_ACCESS_TOKEN", ]) { delete environment[name]; }',
+    /*
+     * A command the model composed runs without the Runner's own settings -
+     * its key and id among them - nor the pipeline's git credentials.
+     */
+    const environment: string = flat(
+      readRepoFile("Runner/Utils/RunnerOwnEnvironment.ts"),
+    );
+
+    expect(flat(agent)).toContain("return getCodeFixCommandEnvironment();");
+    expect(environment).toContain(
+      'export const RUNNER_OWN_ENVIRONMENT_PREFIX: string = "ONEUPTIME_RUNNER_";',
+    );
+    expect(environment).toContain(
+      'export const CODE_FIX_PIPELINE_ENVIRONMENT_NAMES: ReadonlyArray<string> = [ "GIT_ASKPASS", "ONEUPTIME_GIT_ACCESS_TOKEN", ];',
     );
 
     expect(rowStartingWith(checks, "One of your Runners")[1]).toContain(
@@ -2344,9 +2450,15 @@ describe("MCP Server", () => {
      * frameworks and requirements a resource turned off (Compliance Setting,
      * #9555, #9708), a Data Security setting like Check Setting, so an agent
      * can say what is off where and why, as Data Security's Integrations
-     * page promises.
+     * page promises; and Cloud's cost views, groups and custom line items
+     * (Cloud Cost View, Cloud Cost Group, Cloud Cost Line Item, #11006), so
+     * finance and agents sort the spend as the Cost Groups pages do; and
+     * the tags Cloud requires (Required Tag, #11012), set the way Cloud
+     * Budget is; and Cloud's scheduled cost reports (Cloud Cost Report,
+     * #11229), so an agent sets up who gets what the clouds cost, weekly or
+     * monthly, as the Cost Reports page does.
      */
-    expect(records()).toHaveLength(55);
+    expect(records()).toHaveLength(60);
     expect(namesIn(0)).toEqual(records());
     /*
      * Every database model with MCP on gets these tools, the update tool
@@ -3357,7 +3469,166 @@ describe("Production review of pull requests", () => {
       // Once per point: the keys a review already suggested are remembered.
       expect(runner).toContain("return !posted.includes(point.key);");
       expect(sensitive).toContain(
-        "On GitHub, each point whose change fixes one line is also posted on that line, once, as a suggestion its author can commit.",
+        "Each point whose change fixes one line is also posted on that line, once, in the host's own review comments: on GitHub and GitLab as a suggestion its author can apply, and on Forgejo from version 18 too.",
+      );
+    });
+
+    /*
+     * Each host's own review comments (#10777): GitLab's suggestion block
+     * names its line, Forgejo applies one from 18, Gitea none - there the
+     * change is a diff - and a line a host refuses stays in the comment.
+     */
+    it("posts each one-line change on its line in each host's own words, and keeps a refused one in the comment", () => {
+      const composer: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer.ts",
+        ),
+      );
+      const host: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewHost.ts",
+        ),
+      );
+      const forgejo: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/CodeHost/ForgejoApi.ts",
+        ),
+      );
+
+      expect(composer).toContain('? "suggestion:-0+0"');
+      expect(host).toContain("createMergeRequestDiffDiscussion(");
+      expect(host).toContain("forgejo.createPullRequestReview(");
+      expect(forgejo).toContain(
+        "export const FORGEJO_SUGGESTIONS_VERSION: number = 18;",
+      );
+      expect(sensitive).toContain(
+        "Gitea and older versions of Forgejo cannot apply a suggestion, so there the change is posted on its line as a diff.",
+      );
+      expect(sensitive).toContain(
+        "A line the host will not take, such as one a later push moved, keeps its change in the comment alone.",
+      );
+    });
+
+    // Exceptions are telemetry too (#10778), and a field's name is no value.
+    it("reads an exception's message and an error tracker's report as telemetry", () => {
+      const rules: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
+        ),
+      );
+
+      expect(Object.values(SensitiveDataSink)).toContain("Exception");
+      expect(rules).toContain('"captureexception",');
+      expect(rules).toContain('"recordexception",');
+      expect(rules).toContain('"errorf",');
+      expect(flat(kinds[0]!.join(" "))).toContain(
+        "an exception's message, an error tracker's report or a prompt sent to an LLM",
+      );
+      expect(flat(kinds[0]!.join(" "))).toContain(
+        "and nor does a message that names only the field it is about, such as `email is required`.",
+      );
+    });
+
+    /*
+     * A recorded session's user is telemetry too (#11395): each session
+     * recorder and product analytics tool the docs name is one the rules
+     * read, an opaque id is no point, and a front end's points are told
+     * what its RUM application's session replays held.
+     */
+    it("reads who a recorded session's user is, by each tool it names, and tells a front end's code apart", () => {
+      const rules: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
+        ),
+      );
+      const scope: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewScope.ts",
+        ),
+      );
+      const sensitiveData: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewSensitiveData.ts",
+        ),
+      );
+      const row: string = flat(kinds[0]!.join(" "));
+
+      expect(Object.values(SensitiveDataSink)).toContain("Session");
+      expect(row).toContain(
+        "OneUptime's [session recorder](/docs/telemetry/session-replay#identify-your-users), LogRocket, FullStory, PostHog, Datadog RUM, OpenReplay, Hotjar, Smartlook, Mixpanel, Amplitude and Heap, each called as its own documentation calls it (`identify()`, `setUser()`, `setUserId()`)",
+      );
+
+      // Each tool the docs name is a receiver the rules read.
+      for (const receiver of [
+        "oneuptimereplay",
+        "logrocket",
+        "fs",
+        "posthog",
+        "datadogrum",
+        "tracker",
+        "hotjar",
+        "smartlook",
+        "mixpanel",
+        "amplitude",
+        "heap",
+      ]) {
+        expect(rules).toContain(`"${receiver}",`);
+      }
+
+      for (const method of ["identify", "setuser", "setuserid"]) {
+        expect(rules).toContain(`"${method}",`);
+      }
+
+      expect(row).toContain(
+        "Nor does a session identified by an opaque id, such as the user's id or a hash of their email.",
+      );
+
+      // A front end's points: its RUM application's session replays.
+      expect(sensitiveData).toContain(
+        "[SensitiveDataSink.Session]: [DataStoreKind.TelemetrySessionReplays],",
+      );
+      expect(sensitive).toContain(
+        "For a web or mobile app's code it is where the app's [RUM application](/docs/data-security/telemetry) held it in its session replays: in its browser logs for a log, its browser spans for a span, and its sessions' users for who a session is.",
+      );
+      // How the repository's application is found, and its code told apart.
+      expect(scope).toContain(
+        "export async function findRumApplicationsOfRepository(",
+      );
+      expect(sensitive).toContain(
+        `A RUM application's code is in the repository when its ${bold("App Identifier")} names the repository or a service the repository serves, or when the repository is the project's only one.`,
+      );
+
+      for (const extension of ["go", "py", "rb"]) {
+        expect(scope).toContain(`"${extension}",`);
+      }
+
+      expect(sensitive).toContain(
+        "A changed file is taken for that code unless OneUptime knows it is not: it is outside the application's folder, when OneUptime knows where its code is, or written in a language only a server runs, such as Go, Python or Ruby.",
+      );
+    });
+
+    // A migration's table (#10779): only in a private repository.
+    it("says what Data Security knows of a migration's table in a private repository alone", () => {
+      const runner: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts",
+        ),
+      );
+      const sensitiveData: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewSensitiveData.ts",
+        ),
+      );
+
+      expect(runner).toContain(
+        "return (await isRepositoryPublic()) === false;",
+      );
+      expect(sensitiveData).toContain("(await data.isRepositoryPrivate())");
+      expect(sensitive).toContain(
+        "For a migration, and only in a private repository, it names the data store the table is in and what that store holds",
+      );
+      expect(sensitive).toContain(
+        "a public repository's review never looks it up.",
       );
     });
 

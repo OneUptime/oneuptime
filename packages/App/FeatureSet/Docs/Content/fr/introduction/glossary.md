@@ -40,7 +40,7 @@ Voir [Créer un moniteur](/docs/monitor/create-monitor).
 
 ### Critères
 
-Les règles d'un moniteur : ce que signifie chaque résultat de vérification. Ils sont examinés dans l'ordre, et le premier qui correspond peut changer le statut du moniteur, déclarer un incident, créer une alerte, ou les trois.
+Les règles d'un moniteur : ce que signifie chaque résultat de vérification. Ils sont examinés dans l'ordre, et le premier qui correspond peut changer le statut du moniteur, déclarer un incident, créer une alerte, ou les trois. Un critère qui ne change aucun statut laisse le statut au critère suivant qui correspond et le change.
 
 Autres noms : **Critères de surveillance**, **Critères du moniteur**, **Étapes du moniteur**. Voir [Critères et statuts](/docs/monitor/criteria-and-statuses).
 
@@ -162,7 +162,7 @@ Voir [Agent Kubernetes](/docs/telemetry/kubernetes-agent).
 
 ### Infrastructure
 
-Le groupe du menu qui réunit les machines et les plateformes que vous exploitez : Hôtes, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Baies de stockage, Réseau et IoT. Un agent ou une connexion alimente chacun d'eux, et chacun indique comment se porte chaque machine, cluster ou appareil qu'il contient.
+Le groupe du menu qui réunit les machines et les plateformes que vous exploitez : Hôtes, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Baies de stockage, Réseau et IoT. Un agent ou une connexion alimente chacun d'eux, et chacun indique comment se porte chaque machine, cluster ou appareil qu'il contient.
 
 Voir [Hôtes](/docs/telemetry/hosts).
 

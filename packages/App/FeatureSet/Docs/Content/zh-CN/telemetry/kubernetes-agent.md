@@ -471,19 +471,66 @@ Kubernetes 事件不会在代理端按命名空间过滤：代理会发送所有
 
 它接受 `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR` 和 `FATAL`。`WARN` 保留 WARN、ERROR 和 FATAL，丢弃 INFO、DEBUG 和 TRACE；默认值（`""`）保留所有内容。它在两种日志模式下都生效（`daemonset` 模式下通过 Collector，`api` 模式下在日志尾随器内部），因此预设永远不会悄悄把它关掉。
 
-容器运行时不记录严重性，因此代理会从日志文本本身读取严重性（`[ERROR]`、`WARN:`、`"level":"info"`、…）。没有可识别级别的行会如何处理取决于日志模式，因为两种模式掌握的信息不同：
+容器运行时不记录严重性，因此代理会读取每一行所写明的级别：表示级别的词（`[ERROR]`、`WARN:`、`"level":"info"`、…）、klog 行的首字母（`I`、`W`、`E`、`F`）、PostgreSQL 的 `LOG:` 或 pino 的 `"level":30`。异常的 traceback 或 panic 计为 ERROR。没有写明级别的行会如何处理取决于日志模式，因为两种模式掌握的信息不同：
 
 | 模式 | 没有级别的行 | 原因 |
 | --- | --- | --- |
-| `daemonset` | `stderr` 计为 ERROR（保留），`stdout` 计为 INFO（被 WARN 阈值丢弃） | 容器运行时会记录每一行来自哪个流。 |
+| `daemonset` | `stdout` 计为 INFO（被 WARN 阈值丢弃）；`stderr` 没有严重性，显示为未指定，并且会保留 | 容器运行时会记录每一行来自哪个流。stdout 是程序的普通输出，但程序会把各个级别的诊断信息都写到 stderr，因此 stderr 行并不能说明它的级别。 |
 | `api` | 始终保留 | Kubernetes 的 `pods/log` API 把 stdout 和 stderr 合并为一个流，没有逐行标记，因此代理不去猜测，而是保留该行。 |
 
-所以 `api` 模式有意比 `daemonset` 模式丢弃得更少：Python traceback 或 `npm ERR!` 不带严重性关键字，悄悄删除它们正是阈值应当避免的失败。在混合模式（`logs.windowsPods.enabled`）下，两行规则都按节点操作系统适用：Linux Pod 遵循 `daemonset`，Windows Pod 遵循 `api`。
+所以 `api` 模式有意比 `daemonset` 模式丢弃得更少：它无法把没有写明级别的 stderr 行（例如 `npm ERR!`）与普通输出区分开，而悄悄删除这样的行正是阈值应当避免的失败。在混合模式（`logs.windowsPods.enabled`）下，两行规则都按节点操作系统适用：Linux Pod 遵循 `daemonset`，Windows Pod 遵循 `api`。
 
 两种模式在过滤之前都会把多行事件重新拼合，因此 Java 堆栈追踪按其第一行判断，整体保留或整体丢弃。
 
 > [!IMPORTANT]
 > Kubernetes 事件和资源规格永远不会被它过滤。它们来自 Kubernetes API，没有自己的严重性，因此阈值会删除整个数据流，包括你最需要的 `FailedScheduling`、`BackOff` 和 `OOMKilling` 警告。它们数量少而价值高，所以代理总是发送它们；要精简它们，请在 OneUptime 中使用 **日志 → 设置 → 丢弃过滤器**。
+
+### 读取自定义日志格式
+
+代理能读取大多数程序所写格式中的级别。对于它读取不了的格式，例如公司内部的格式，请用 `logs.extraOperators` 添加你自己的 Collector operators。在 `daemonset` 模式下，它们会作用于每一条 Pod 日志行，时机是在代理把该行重新拼合、读取其 Pod 和流之后，在读取该行的级别之前。
+
+要设置某行的级别，请把它以代理能读取的词写入 `attributes.severity_text`，例如 `ERROR`、`warn`、`critical` 或 klog 字母。代理会先于它自己的任何读取器读取该值，并按 OneUptime 在其他所有地方存储该词的方式存储它。然后把该行交给代理的第一步 `severity-router`，或者让它继续流向你的下一个 operator。
+
+对于 `<<E>> payment failed` 和 `SEV1 checkout is down` 这样的行：
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+该 chart 会在你安装或升级时检查这些 operators。如果某个值会被 Collector 拒绝，`helm install` 会失败，并给出指明该 operator 的消息，而不是留下一个不断重启的 DaemonSet：`image.tag` 对应的 Collector 没有的类型、该类型需要的设置、字段、已被占用的 id、没有指向任何对象的 `output`、正则表达式，或表达式中的字符串。在表达式的字符串中，正则表达式的反斜杠要写两次，如 `"^\\d+ "`，或者把正则表达式放进原始字符串，用反引号括起来。表达式的其余部分由 Collector 在启动时编译。
+
+该 chart 还会拒绝三种 Collector 本会运行的 operator，并说明原因：
+
+- 自行设置该行严重性的 operator，例如 `severity_parser`、`syslog_parser` 或解析器的 `severity` 块。代理会在你的 operators 之后读取每一行的级别，并会覆盖它，因此请改为把级别写入 `attributes.severity_text`。
+- 没有 `default` 的路由器，或没有 `output` 的路由。它没有交给任何 operator 的行会被丢弃。
+- `container` 解析器。代理已经读取了容器运行时的格式，因此你的 operators 看到的是程序自己写出的行。
+
+`logs.extraOperators` 需要 `daemonset` 模式。`api` 模式的日志尾随器不运行 Collector operators，因此 chart 在该模式下会拒绝此设置，混合安装（`logs.windowsPods.enabled`）中的 Windows Pod 也不会获得它。
 
 ### 按名称包含或排除指标
 
@@ -789,7 +836,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 当此集群上出现事件或警报时，OneUptime AI 会进行调查。chart 中的 **Kubernetes AI 代理** 为它提供一个终端：它像值班工程师那样运行只读的 `kubectl`（describe 出故障的 Pod、读取其事件、查看崩溃容器的日志、检查节点容量），并在事件页面上引用它运行的每一条命令。
 
-该代理 **默认开启** 且 **只读**：一个小型 Deployment（`kubernetes-agent-ai-agent`，Pod 标签 `component=ai-agent`，镜像 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能读取。它使用与 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行注册，因此无需在仪表板中进行任何设置：集群的 **AI 代理** 页面（Kubernetes → 集群 → 人工智能 → 智能体）会在一分钟内显示其为已连接，该状态旁边 **⋯** 菜单中的 **测试连接** 会通过它运行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做过的一切都在集群的 **AI 日志** 页面（人工智能 → 日志）上，而关于该集群值得了解的内容——反复出现的问题及其原因、导致其中大多数问题的节点或工作负载、AI 修复了什么——则在 **AI 洞察** 页面（人工智能 → Insights）上。该代理内置一个固定版本的 kubectl（v1.36.6）。它不是 Runner，也永远不会出现在 Runbooks → Runners 下：OneUptime 从不向它提供凭据，从不在它上面运行 runbook，它也永远不会被接受为 AI 规则的命令 Runner。
+该代理 **默认开启** 且 **只读**：一个小型 Deployment（`kubernetes-agent-ai-agent`，Pod 标签 `component=ai-agent`，镜像 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能读取。它使用与 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行注册，因此无需在仪表板中进行任何设置：集群的 **AI 代理** 页面（Kubernetes → 集群 → 人工智能 → 智能体）会在一分钟内显示其为已连接，该状态旁边 **⋯** 菜单中的 **测试连接** 会通过它运行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做过的一切都在集群的 **AI 日志** 页面（人工智能 → 日志）上，而关于该集群值得了解的内容——反复出现的问题及其原因、导致其中大多数问题的节点或工作负载、AI 修复了什么——则在 **AI 洞察** 页面（人工智能 → Insights）上。该代理内置一个固定版本的 kubectl（v1.36.7）。它不是 Runner，也永远不会出现在 Runbooks → Runners 下：OneUptime 从不向它提供凭据，从不在它上面运行 runbook，它也永远不会被接受为 AI 规则的命令 Runner。
 
 对于在 AI 代理出现之前安装的代理，请先刷新 chart 索引，然后升级（在自托管的 OneUptime 上，请先升级 OneUptime——见 [升级代理](#升级代理)）：
 

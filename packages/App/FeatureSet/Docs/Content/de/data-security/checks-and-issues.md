@@ -1,10 +1,10 @@
 # Prüfungen und Probleme der Datensicherheit
 
-Datensicherheit führt an jedem Datenspeicher 34 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht. Sicherheitsereignisse, Netzwerk-Flows und Sicherheits-Adresstresor sind OneUptimes eigene, für Ihre Sicherheit geführt: deklariert, nie gescannt und nie geprüft (siehe [Datenspeicher, die OneUptime für Ihre Sicherheit führt](/docs/data-security/compliance#datenspeicher-die-oneuptime-für-ihre-sicherheit-führt)).
+Datensicherheit führt an jedem Datenspeicher 35 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht. Sicherheitsereignisse, Netzwerk-Flows und Sicherheits-Adresstresor sind OneUptimes eigene, für Ihre Sicherheit geführt: deklariert, nie gescannt und nie geprüft (siehe [Datenspeicher, die OneUptime für Ihre Sicherheit führt](/docs/data-security/compliance#datenspeicher-die-oneuptime-für-ihre-sicherheit-führt)).
 
 :::cards
 - [Wie eine Prüfung entscheidet](#wie-eine-prüfung-entscheidet): Bestanden, fehlgeschlagen oder nicht feststellbar, und wie schlimm ein Fehlschlag ist.
-- [Jede Prüfung](#jede-prüfung): Alle 34, mit dem, was jede prüft, und wie Sie den Mangel beheben.
+- [Jede Prüfung](#jede-prüfung): Alle 35, mit dem, was jede prüft, und wie Sie den Mangel beheben.
 - [Risikowert](#risikowert): Wie Probleme innerhalb eines Schweregrads geordnet werden.
 - [Was mit einem Problem geschieht](#was-mit-einem-problem-geschieht): Offen, behoben, akzeptiert, kein Problem, wie jedes behoben wurde, und Korrekturen, die bis in die Produktion verfolgt werden.
 - [Die Analyse von OneUptime AI](#die-analyse-von-oneuptime-ai): Ob ein Problem echt ist, was es gefährdet, was die Korrektur beeinträchtigen würde und der kürzeste Weg zur Behebung.
@@ -22,6 +22,8 @@ Jede Prüfung liest Fakten über einen Datenspeicher und antwortet auf eine von 
 | Fehlgeschlagen | Die Prüfung findet den Mangel und sagt in einem Satz, was sie gesehen hat: den Beleg des Problems. | Ein Problem öffnet sich, oder das offene wird aktualisiert. |
 | Nicht feststellbar | Ein Fakt konnte nicht gelesen werden: eine Berechtigung, die die Rolle nicht hat, ein Aufruf, der fehlgeschlagen ist. | Nichts ändert sich: Ein offenes Problem bleibt offen, denn niemand darf schließen, ein Mangel sei behoben, wenn OneUptime nicht nachsehen konnte. |
 | Nicht zutreffend | Die Art des Datenspeichers hat keine solche Einstellung. | Ein offenes Problem wird behoben. |
+
+Ein Fakt, der sich von dort, wo er gelesen wurde, nicht feststellen lässt, wird ebenfalls nie geraten: ob das Internet einen Datenspeicher erreicht, der von innerhalb Ihres Netzwerks gefragt wurde, oder ob der anonyme Benutzer eines Clusters schreiben darf, was nur ein Schreibzugriff zeigen würde. Seine Prüfung kann es nicht feststellen, und diese Zeile der **Konfiguration** des Datenspeichers zeigt **Nicht prüfbar**.
 
 ### Der Schweregrad folgt den Daten
 
@@ -45,6 +47,7 @@ Der Schweregrad wird für eingeschränkte, vertrauliche, interne und öffentlich
 | Ein Snapshot davon kann von jedem wiederhergestellt werden (`snapshot-public`) | Datenbank, Snapshot | Ein Datenbank-Snapshot ist öffentlich geteilt, sodass jedes Cloud-Konto eine vollständige Kopie wiederherstellen kann. | Kritisch / Kritisch / Kritisch / Hoch | Machen Sie den Snapshot privat. |
 | Ein Snapshot davon ist mit anderen Konten geteilt (`snapshot-shared-externally`) | Datenbank, Snapshot | Ein Datenbank-Snapshot ist mit Konten außerhalb Ihrer verbundenen Konten geteilt. | Hoch / Hoch / Mittel / Niedrig | Beenden Sie die Freigabe des Snapshots für die Konten, die ihn nicht haben sollen. |
 | Konten außerhalb Ihrer Organisation können ihn erreichen (`shared-with-external-accounts`) | Jeder Datenspeicher außer Telemetrie | Die Richtlinie des Datenspeichers gewährt Zugriff für Konten, Mandanten oder Projekte, die nicht mit OneUptime verbunden sind. | Hoch / Hoch / Mittel / Niedrig | Prüfen Sie jeden externen Prinzipal, und entfernen Sie die, die keinen Zugriff brauchen. |
+| Jeder, der ihn erreicht, kann ihn ohne Anmeldedaten lesen (`readable-without-credentials`) | Suche | Er hat OneUptime ohne Anmeldedaten geantwortet: Wer seine Adresse erreichen kann, kann seine Daten lesen und sie auch ändern, wenn er gar keine Zugriffskontrolle hat. | Kritisch / Hoch / Mittel / Niedrig | Schalten Sie die Sicherheit des Clusters ein, nehmen Sie seinem anonymen Benutzer jede Rolle, und geben Sie jeder Anwendung einen eigenen Benutzer mit reinem Lesezugriff. Ein Cluster, der Schreibzugriffe ohne Anmeldedaten annimmt, ist bei eingeschränkten und vertraulichen Daten Kritisch und bei allen anderen Hoch. |
 
 ### Verschlüsselung
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Faktor | Punkte |
 | --- | --- |
 | Schweregrad | 75 für Kritisch, 50 für Hoch, 25 für Mittel, 0 für Niedrig |
-| Exponierung | 10 für Öffentlich, 8 für Andere Konten, 6 für Aus dem Internet erreichbar, 3 für Unbekannt, 0 für Privat |
+| Exponierung | 10 für Öffentlich, 8 für Andere Konten, 6 für Aus dem Internet erreichbar, 3 für Unbekannt, Noch nicht geprüft oder Nicht prüfbar, 0 für Privat |
 | Volumen | Bis zu 6, nach den geschätzten sensiblen Datensätzen des Datenspeichers auf einer logarithmischen Skala: 1 für 10 Datensätze, 3 für 1.000, 5 für eine Million, 6 für zehn Millionen oder mehr |
 | Aktivität | 5, wenn Security Operations in der letzten Woche Erkennungen am Datenspeicher gesehen hat |
 | Produktion | 4 für einen Datenspeicher in Produktion |
@@ -184,11 +187,18 @@ Die Übersicht zählt die Probleme, die dort behoben wurden, wo sie entstehen, g
 Ein Pull Request, den OneUptime AI für ein Problem geöffnet hat (**Mit KI beheben** oder ein Pull Request für eine [Gruppe von Problemen](#probleme-mit-einer-ursache)), hat beim Zusammenführen noch nichts behoben. OneUptime verfolgt ihn, bis die Produktion es beweist:
 
 - **Ein Leck im Code.** OneUptime wartet auf einen aufgezeichneten Deploy des Dienstes, der den Merge enthält, und beobachtet dann dessen neue Version. Wo eine Bereinigungsregel die Daten verbirgt, darf die Regel in dieser Version keinen Wert ändern; wo keine Regel das tut, darf kein Eintrag dieser Version die Daten an den Stellen enthalten, an denen sie gefunden wurden. Die neue Version muss außerdem einen Tag laufen und mindestens so viele Logs oder Spans senden wie die alte in der Stunde, in der das Leck zuletzt gesehen wurde. Dann ist das Problem **Im Code korrigiert**. Ein geänderter Wert oder ein Eintrag, der die Daten noch enthält, bedeutet, dass die Korrektur das Leck nicht gestoppt hat, und über eine Version, die in einer Woche zu wenig sendet, lässt sich nichts sagen. Deploys werden über ihren Commit zugeordnet: Zeichnen Sie sie mit `oneuptime deploy` auf, oder senden Sie `vcs.ref.head.revision` (siehe [Deploys und Änderungen](/docs/telemetry/change-events)).
+- **Ein Leck in Metriken oder Sitzungswiedergaben.** Es wird ebenso nachgewiesen, anhand der Version, die jeden Datensatz geschrieben hat: Die Datenpunkte einer Metrik nennen sie unter ihren Attributen, die Browser-Protokolle und -Spans einer RUM-Anwendung über das Release, für das ihre Source Maps hochgeladen wurden, und ihre Sitzungen über die App-Version, die der Sitzungsrecorder sendet. Daten einer Metrik, die eine Pipeline-Regel entfernt oder deren Datenpunkte sie verwirft, hinterlassen nichts zu lesen, sodass dieses Leck nicht beurteilt werden kann; eine Regel **Attribut schwärzen** hinterlässt ihren Ersatzwert zum Lesen.
 - **Die Konfiguration eines Datenspeichers.** Wenn der Pull Request zusammengeführt wird, werden seine Datenspeicher sofort neu gelesen. Jedes Problem, dessen Prüfung danach besteht, ist **Im Infrastrukturcode korrigiert**. Besteht ein Datenspeicher seine Prüfung noch immer nicht, wenn er einen Tag nach dem Merge erneut gelesen wird, wurde die Korrektur **gemergt, nicht angewendet**: Die Eigentümer des Datenspeichers und die Person, die den Pull Request angefordert hat, erhalten einmalig eine E-Mail, und die Zeitachsen des Problems und des Datenspeichers vermerken es. Meist fehlt nur noch ein Apply.
 - **Die Bereinigungsregel bleibt.** Nach einer verifizierten Code-Korrektur bleibt die Bereinigungsregel, die das Leck eingedämmt hat, bestehen, sodass eine Regression verborgen wird, sobald sie auftritt. Das Problem sagt, dass die Regel seit der Korrektur nichts geändert hat, und bietet **Regel entfernen** an.
 - **Eine Regression.** Eine verifizierte Korrektur wird weiter beobachtet: Ändert eine beibehaltene Regel wieder Werte oder findet der Scan die Daten wieder, öffnet sich das Problem erneut und nennt die Version, die sie zurückgebracht hat. Es bleibt offen, bis es erneut behoben ist, auch solange eine Regel die Daten verbirgt.
 
 Jeder Schritt steht in der **Zeitachse** des Problems und in der des Datenspeichers, und KI-Ergebnisse zählt die verifizierten Korrekturen nach Art (siehe [Wie gut OneUptime AI abschneidet](/docs/ai/ai-sre#wie-gut-oneuptime-ai-abschneidet)).
+
+### Ihren eigenen Pull Request verknüpfen
+
+Eine Korrektur, die Sie selbst geschrieben haben, wird ebenso verfolgt. Auf der Seite des Problems nimmt **Pull Request verknüpfen** die Adresse eines Pull Requests in einem unter **Code** verbundenen Repository entgegen – auf GitHub, GitLab, Forgejo oder Gitea –, und das Problem listet ihn unter **Verknüpfte Pull Requests** mit der Angabe, ob er gemergt wurde. OneUptime verfolgt ihn bis zu seinem Merge, dem Deployment, das ihn ausliefert, und dem Nachweis aus der Produktion, wie oben, und das Problem wird unter seiner Nennung gelöst. Jeder Schritt steht in der **Zeitachse** des Problems. Ein ohne Merge geschlossener Pull Request wird nicht weiter verfolgt, und wird er vom Problem entfernt, endet die Verfolgung.
+
+Wer das Problem ändern darf, darf einen verknüpfen, in einem Repository, das er unter **Code** lesen darf. Ein Problem nimmt bis zu 10 auf. Eine Adresse, die zu keinem Pull Request gehört, ein Repository, das nicht verbunden ist oder das die Person nicht lesen darf, ein ohne Merge geschlossener oder bereits verknüpfter Pull Request und ein Problem, dessen Risiko akzeptiert wurde oder das kein Problem ist, werden abgelehnt, jeweils mit dem Grund.
 
 ## Die Analyse von OneUptime AI
 

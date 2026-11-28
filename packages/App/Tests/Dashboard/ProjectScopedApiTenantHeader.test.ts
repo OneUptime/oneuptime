@@ -43,8 +43,10 @@ const TENANT_HEADER: string = "headers: ModelAPI.getCommonHeaders(),";
 const PROJECT_SCOPED_ROUTES: Array<string> = [
   "/sync-to-linked-monitors",
   "/sync-to-monitor/",
-  "/link-monitor/",
-  "/unlink-monitor/",
+  /*
+   * A template's /link-monitor/ and /unlink-monitor/ are reached through
+   * the template change module since #11411, and checked there (below).
+   */
   "/incident/generate-postmortem-from-ai/",
   "/incident-episode/generate-postmortem-from-ai/",
   "/incident/subscriber-audience",
@@ -239,6 +241,40 @@ const NOTE_GENERATOR_PAGES: Array<Array<string>> = [
   ["Components", "EventNotes", "NoteKinds", "AlertNoteKinds.ts"],
   ["Components", "EventNotes", "NoteKinds", "IncidentNoteKinds.tsx"],
   ["Components", "EventNotes", "NoteKinds", "ScheduledMaintenanceNoteKinds.ts"],
+];
+
+/*
+ * Changing monitors' template (#11411) reaches its routes through one
+ * module, Components/Monitor/TemplateChange/MonitorTemplateChangeApi.ts: a
+ * template's page and the monitor lists' dialogs call its functions, each
+ * hands getJson or postJson one of its table's routes
+ * (MONITOR_TEMPLATE_CHANGE_ROUTES), and those two make the module's only raw
+ * calls, to the route they are handed. Link Existing Monitors and Move to
+ * Another Template start one change the server runs
+ * (/monitor-template-change/...), and Unlink from Template posts a
+ * template's /unlink-monitor/. The table builds each route, so the raw-call
+ * sweep above never sees one in a call; they are checked through the module
+ * instead, as the note generator's are. What each call sends and how its
+ * answer is read is tested in MonitorTemplateChangeApi.test.ts.
+ */
+const MONITOR_TEMPLATE_CHANGE_FILE: Array<string> = [
+  "Components",
+  "Monitor",
+  "TemplateChange",
+  "MonitorTemplateChangeApi.ts",
+];
+
+// The routes only the module may name. A template's /link-monitor/ is one.
+const MONITOR_TEMPLATE_CHANGE_MODULE_ROUTES: Array<string> = [
+  "/monitor-template-change/",
+  "/link-monitor/",
+  "/unlink-monitor/",
+];
+
+// How the module asks for the routes it is the way to.
+const MONITOR_TEMPLATE_CHANGE_CALLS: Array<string> = [
+  "await postJson(MONITOR_TEMPLATE_CHANGE_ROUTES.start, {",
+  "await postJson( MONITOR_TEMPLATE_CHANGE_ROUTES.unlinkOne( data.monitorTemplateId, data.monitorId, ),",
 ];
 
 interface RawApiCall {
@@ -664,6 +700,77 @@ describe("project-scoped routes reached through the shared note generator", () =
       expect(readRawApiCalls(file)).toEqual([]);
     },
   );
+});
+
+describe("project-scoped routes reached through the template change module", () => {
+  const moduleFile: string = path.join(
+    DASHBOARD_SRC,
+    ...MONITOR_TEMPLATE_CHANGE_FILE,
+  );
+  const moduleText: string = squash(fs.readFileSync(moduleFile, "utf8"));
+
+  test("the module sends the tenant header on each of its two raw calls", () => {
+    const calls: Array<RawApiCall> = readRawApiCalls(moduleFile);
+
+    expect(countRawApiCallSites(fs.readFileSync(moduleFile, "utf8"))).toBe(2);
+    expect(
+      calls.map((call: RawApiCall): string => {
+        return call.verb;
+      }),
+    ).toEqual(["get", "post"]);
+
+    for (const call of calls) {
+      expect(call.balanced).toBe(true);
+      expect(call.body).toContain(TENANT_HEADER);
+      // To the route it is handed, and nowhere else.
+      expect(call.body).toContain("url: apiUrl(route),");
+    }
+
+    expect(moduleText).toContain(
+      "function apiUrl(route: string): URL { return URL.fromString(APP_API_URL.toString()).addRoute(route); }",
+    );
+  });
+
+  test("every route the module asks for is one of its table's", () => {
+    // Each getJson( or postJson( but the helpers' own declarations.
+    const handed: Array<string> = [
+      ...moduleText.matchAll(/(?<!function )\b(?:getJson|postJson)\( ?/g),
+    ].map((match: RegExpMatchArray): string => {
+      return moduleText.slice(match.index! + match[0].length).slice(0, 34);
+    });
+
+    expect(handed.length).toBeGreaterThanOrEqual(
+      MONITOR_TEMPLATE_CHANGE_CALLS.length,
+    );
+
+    for (const argument of handed) {
+      expect(argument).toMatch(/^`?(\$\{)?MONITOR_TEMPLATE_CHANGE_ROUTES\./);
+    }
+
+    for (const call of MONITOR_TEMPLATE_CHANGE_CALLS) {
+      expect(moduleText).toContain(call);
+    }
+  });
+
+  test("only the module names its routes", () => {
+    const pagesNamingRoutes: Array<string> = [];
+
+    for (const file of listSourceFiles(DASHBOARD_SRC)) {
+      const fileText: string = fs.readFileSync(file, "utf8");
+
+      if (
+        MONITOR_TEMPLATE_CHANGE_MODULE_ROUTES.some((route: string) => {
+          return fileText.includes(route);
+        })
+      ) {
+        pagesNamingRoutes.push(path.relative(DASHBOARD_SRC, file));
+      }
+    }
+
+    expect(pagesNamingRoutes).toEqual([
+      path.join(...MONITOR_TEMPLATE_CHANGE_FILE),
+    ]);
+  });
 });
 
 /*

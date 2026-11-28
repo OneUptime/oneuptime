@@ -87,6 +87,16 @@ Minutterne tælles fra hver bekræftelse, og en politik tilkalder højst 5 gange
 
 Den, der tilkaldes igen, bekræfter fra beskeden eller med **Bekræft igen** på hændelsens eller advarslens side, og minutterne starter forfra; **Eskalér** sender tilkaldet videre til næste niveau. Hvis hændelsen eller advarslen løses eller slettes, politikken arkiveres eller slettes, eller nogen vælger **Tilkald ikke igen**, stopper det. Kortets række **Efter en bekræftelse** siger, hvad politikken gør, og **Yderligere indstillinger** viser minutterne, mens det er foldet sammen. **Politikken i overblik** på **Oversigt** og **Oversigt over eskalering** siger det samme med ord.
 
+## Giv dem, den tilkalder, en hændelsesrolle
+
+En hændelses **Hændelsesroller** viser, hvem der arbejder på den. En politik kan opføre dem, den tilkalder, der: Åbn dens side **Eskaleringsregler**, åbn **Yderligere indstillinger** nederst, og klik på **Rediger** på kortet **Hændelsesrolle**. **Rediger hændelsesrolle** beder om en **Rolle**: en af projektets hændelsesroller eller **Ingen rolle**, som alle politikker starter med.
+
+Alle, som politikken derefter tilkalder om en hændelse eller en hændelsesepisode, får den rolle i den, på hvert niveau og hver gang den tilkalder igen, så længe de er medlem af projektet. Den, den tilkalder som observatør, får den ikke. Den, der allerede har rollen, beholder den uændret, og en rolle til kun én person, såsom **Hændelsesleder**, går til den første, der tilkaldes, så længe ingen har den. Hændelsens feed nævner den politik, der tilføjede dem, og de får ingen særskilt besked om rollen: deres tilkald har allerede fortalt dem om hændelsen.
+
+Sådan vises den, der har vagt i det team, der ejer en tjeneste, på tjenestens hændelser. Opret en rolle som "Tjenesteejer" under **Hændelser → Indstillinger → Hændelsesroller**, vælg den i den politik, der tilkalder betalingsteamet, og lad betalingsmonitorerne køre den politik, fra deres kriterier eller en vagtregel. Den, der har vagt for betalinger, står så som hændelsens "Tjenesteejer", og den, der først ændrer dens status ved at bekræfte den, bliver stadig dens **Hændelsesleder**, også når en politik gav vedkommende en anden rolle, da den tilkaldte.
+
+Kortets række **Rolle for dem, den tilkalder** viser, hvilken rolle politikken giver, og **Yderligere indstillinger** nævner den, mens den er foldet sammen. Arkivering af rollen forhindrer ikke politikken i at give den, og rollens arkiveringsdialog tæller politikken med blandt det, der bruger den: vælg **Ingen rolle** for at stoppe. Sletning af rollen sætter politikken tilbage til **Ingen rolle**.
+
 ## Når flere politikker tilkalder
 
 En hændelse, advarsel eller episode kører hver af sine politikker for sig, på samme tid.
@@ -176,11 +186,14 @@ Vagtpolitikker er ressourcen `/api/on-call-duty-policy`, og ressourcen `oneuptim
 | **Hvis ingen bekræfter efter det sidste niveau** | `repeatPolicyIfNoOneAcknowledges` |
 | **Hvor mange gange mere?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **Efter hvor mange minutter?** | `acknowledgementTimeoutInMinutes` |
+| **Rolle** | `incidentRoleId` |
 | Arkiveret | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` er `false` for **Stop tilkald** og `true` for **Start forfra fra Level 1**. Med `true` skal `repeatPolicyIfNoOneAcknowledgesNoOfTimes` være et helt tal på 1 eller mere: OneUptime afviser `0`. En ældre politik, der er gemt med `0`, gentages aldrig, og dashboardet viser den som **Stop tilkald**.
 
 `acknowledgementTimeoutInMinutes` er `null` for **Tilkald ikke igen** og et helt antal minutter fra 5 til 1440 for **Tilkald igen**. OneUptime afviser alt andet.
+
+`incidentRoleId` er ID'et på en af projektets hændelsesroller eller `null` for **Ingen rolle**.
 
 Se [Opret regler med API'et eller Terraform](/docs/on-call/escalation-rules#opret-regler-med-apiet-eller-terraform) for at oprette en politik med dens første niveau i én forespørgsel.
 

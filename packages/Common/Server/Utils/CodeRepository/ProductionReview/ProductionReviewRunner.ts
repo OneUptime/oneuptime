@@ -21,6 +21,7 @@ import {
   CodeHostPullRequestDetails,
 } from "../CodeHost/CodeHostTypes";
 import ProductionReviewHosts, {
+  LineSuggestion,
   ProductionReviewHost,
 } from "./ProductionReviewHost";
 import { CodeAgentScopedService } from "../../AI/CodeFix/CodeAgentTelemetryScope";
@@ -31,6 +32,7 @@ import ProductionReviewComposer, {
   PRODUCTION_REVIEW_CHECK_TITLES,
   ProductionReviewCheckRunText,
   ProductionReviewCommentInput,
+  LineSuggestionFormat,
 } from "./ProductionReviewComposer";
 import { GitHubCheckRunWritten } from "../GitHub/GitHubCheckRuns";
 import { ChangedCode, readChangedCode } from "./ProductionReviewDiff";
@@ -45,6 +47,7 @@ import ProductionReviewRepositoryProfile, {
   RepositoryProductionProfile,
 } from "./ProductionReviewRepositoryProfile";
 import ProductionReviewScope, {
+  ProductionReviewRumApplication,
   ProductionReviewScopeResult,
 } from "./ProductionReviewScope";
 import ProductionReviewSensitiveData from "./ProductionReviewSensitiveData";
@@ -446,6 +449,16 @@ export default class ProductionReviewRunner {
      */
     let sensitiveData: ProductionReviewSensitiveDataJSON | undefined =
       undefined;
+    /*
+     * Whether anyone on the internet can read the repository: asked of the
+     * host once, and only when something needs it - what Data Security
+     * knows of a migration's table is read for a private repository alone
+     * (#10779), and the comment's posting is decided by the same answer.
+     */
+    const isRepositoryPublic: () => Promise<boolean | null> =
+      ProductionReviewRunner.askOnce((): Promise<boolean | null> => {
+        return host.isRepositoryPublic();
+      });
 
     try {
       sensitiveData = await ProductionReviewSensitiveData.find({
@@ -454,6 +467,22 @@ export default class ProductionReviewRunner {
         services: scope.services,
         isFailOn: repository.isProductionReviewFailOnLeakEnabled === true,
         now,
+        // A host that cannot say is no private repository's.
+        isRepositoryPrivate: async (): Promise<boolean> => {
+          try {
+            return (await isRepositoryPublic()) === false;
+          } catch {
+            return false;
+          }
+        },
+        // The web and mobile apps the repository is the front end of (#11395).
+        rumApplications: (): Promise<Array<ProductionReviewRumApplication>> => {
+          return ProductionReviewScope.getRumApplications({
+            projectId,
+            codeRepositoryId: repository.id!,
+            services: scope.services,
+          });
+        },
       });
     } catch (error) {
       logger.error(
@@ -536,9 +565,11 @@ export default class ProductionReviewRunner {
       review,
       host,
       pullRequest,
+      files,
       repository,
       report,
       update: contextUpdate,
+      isRepositoryPublic,
     });
 
     const outcome: CodeTaskOutcome = {
@@ -868,9 +899,13 @@ export default class ProductionReviewRunner {
     review: ProductionReviewTaskContext;
     host: ProductionReviewHost;
     pullRequest: CodeHostPullRequestDetails;
+    // The pull request's files, as read: a suggestion names its file's old name.
+    files?: Array<CodeHostChangedFile> | undefined;
     repository: CodeRepository;
     report: ProductionReviewReport;
     update: ProductionReviewContextUpdate;
+    // The host's answer, asked once for the whole review; the host's own when unset.
+    isRepositoryPublic?: (() => Promise<boolean | null>) | undefined;
   }): Promise<void> {
     const hasSignal: boolean = ProductionReviewUtil.hasSignal(data.report);
     const isQuiet: boolean =
@@ -888,7 +923,9 @@ export default class ProductionReviewRunner {
       return;
     }
 
-    const isPublic: boolean | null = await data.host.isRepositoryPublic();
+    const isPublic: boolean | null = data.isRepositoryPublic
+      ? await data.isRepositoryPublic()
+      : await data.host.isRepositoryPublic();
 
     const posting:
       | ProductionReviewPosting.Review
@@ -930,7 +967,11 @@ export default class ProductionReviewRunner {
     await ProductionReviewRunner.writeCommitStatus({ ...data, reviewUrl });
 
     if (!isQuiet) {
-      await ProductionReviewRunner.writeSuggestions({ ...data, input });
+      await ProductionReviewRunner.writeSuggestions({
+        ...data,
+        files: data.files || [],
+        input,
+      });
     }
   }
 
@@ -982,16 +1023,20 @@ export default class ProductionReviewRunner {
   }
 
   /*
-   * GitHub: the suggested change of each new point, on its line, as one
-   * review of the pull request its author can commit from (#10376) - a
-   * point's suggestion once, however many pushes show it, and only where
-   * the comment shows the section at all. One that GitHub refuses (a line
-   * a push moved) is not posted, and the comment still shows its change.
+   * The suggested change of each new point, on its line, in the host's own
+   * review comments (#10376, #10777): GitHub's and GitLab's as a block its
+   * author can apply, Forgejo's too from version 18, Gitea's as the change
+   * as a diff - a point's suggestion once, however many pushes show it, and
+   * only where the comment shows the section at all. One the host refuses
+   * (a line a push moved, a server that cannot) is not posted, the comment
+   * still shows its change, and the review never fails for it.
    */
   private static async writeSuggestions(data: {
     run: AIRun;
     review: ProductionReviewTaskContext;
     host: ProductionReviewHost;
+    pullRequest: CodeHostPullRequestDetails;
+    files: Array<CodeHostChangedFile>;
     report: ProductionReviewReport;
     update: ProductionReviewContextUpdate;
     input: ProductionReviewCommentInput;
@@ -1017,33 +1062,71 @@ export default class ProductionReviewRunner {
     }
 
     try {
-      await data.host.writeSuggestions({
-        pullRequestNumber: data.report.pullRequest.number,
-        headSha: data.report.pullRequest.headSha,
+      const format: LineSuggestionFormat = data.host.getLineSuggestionFormat
+        ? await data.host.getLineSuggestionFormat()
+        : LineSuggestionFormat.Suggestion;
+      const taken: Array<string> = await data.host.writeSuggestions({
+        pullRequest: {
+          number: data.report.pullRequest.number,
+          headSha: data.report.pullRequest.headSha,
+          diffRefs: data.pullRequest.diffRefs,
+        },
         body: ProductionReviewComposer.composeSuggestionsBody(
           data.input,
           points.length,
+          format,
         ),
-        comments: points.map((point: ProductionReviewLeakJSON) => {
-          return {
-            path: point.path,
-            line: point.suggestion!.endLine,
-            body: ProductionReviewComposer.composeSuggestion(point),
-          };
-        }),
+        suggestions: points.map(
+          (point: ProductionReviewLeakJSON): LineSuggestion => {
+            return {
+              key: point.key,
+              path: point.path,
+              oldPath: ProductionReviewRunner.oldPathOf(point.path, data.files),
+              line: point.suggestion!.endLine,
+              body: ProductionReviewComposer.composeSuggestion(point, format),
+            };
+          },
+        ),
       });
 
-      data.update.suggestedLeakKeys = [
-        ...posted,
-        ...points.map((point: ProductionReviewLeakJSON): string => {
-          return point.key;
-        }),
-      ].slice(-100);
+      if (taken.length > 0) {
+        data.update.suggestedLeakKeys = [...posted, ...taken].slice(-100);
+      }
     } catch (error) {
       logger.info(
         `Production review ${data.run.id?.toString()}: its suggested changes could not be posted on their lines, so the comment holds them alone: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  /*
+   * A question asked of a host at most once: the first call asks it, and
+   * every call after answers what it answered (a failure too).
+   */
+  public static askOnce<T>(ask: () => Promise<T>): () => Promise<T> {
+    let answer: Promise<T> | null = null;
+
+    return (): Promise<T> => {
+      if (!answer) {
+        answer = ask();
+      }
+
+      return answer;
+    };
+  }
+
+  // A file's name before the pull request renamed it: its own name when it did not.
+  public static oldPathOf(
+    path: string,
+    files: Array<CodeHostChangedFile>,
+  ): string {
+    const file: CodeHostChangedFile | undefined = files.find(
+      (each: CodeHostChangedFile): boolean => {
+        return each.filename === path;
+      },
+    );
+
+    return file?.previousFilename || path;
   }
 
   // The review's comment, as `post` decided it.

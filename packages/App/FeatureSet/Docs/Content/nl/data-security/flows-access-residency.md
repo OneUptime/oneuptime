@@ -60,7 +60,9 @@ Op basis van wat het leest, krijgt elke opslag een blootstelling:
 | **Andere accounts** | Accounts buiten je gekoppelde accounts kunnen erbij. |
 | **Bereikbaar via internet** | Het netwerkendpoint ervan accepteert verbindingen vanaf het internet. |
 | **Privé** | Alleen je eigen accounts en netwerken kunnen erbij. |
-| **Onbekend** | OneUptime kon niet genoeg van de configuratie lezen om het te bepalen. |
+| **Onbekend** | OneUptime heeft het gecontroleerd, maar kon het niet bepalen uit wat het kon lezen. |
+| **Nog niet gecontroleerd** | OneUptime heeft nog niet gecontroleerd hoe het bereikbaar is. |
+| **Niet te controleren** | OneUptime kan op geen enkele manier controleren hoe dit soort opslag bereikbaar is. |
 
 Openbaar gaat vóór gedeeld, en gedeeld gaat vóór bereikbaar: een openbare bucket die ook met een ander account wordt gedeeld, is Public. Blootstelling telt mee in de [risicoscore](/docs/data-security/checks-and-issues#risicoscore) van een probleem.
 

@@ -1,0 +1,307 @@
+# The bundled Valkey is both the cache and every BullMQ queue, and on
+# 2026-11-27 it took OneUptime Cloud down: one tenant's flood of queued
+# telemetry grew it to 35 GB (no maxmemory, no container resources), its
+# single thread saturated, the `valkey-cli ping` liveness probe timed out on a
+# server that was busy rather than dead, the kubelet restarted it, and it came
+# back empty -- every queued job of every tenant gone.
+#
+# This suite pins the three things that stop that chain: a memory cap that
+# makes a full Valkey refuse writes instead of growing, resources that give
+# that cap a ceiling to be derived from, and a liveness probe that never
+# kills a busy server. Plus the persistence switch, which used to mount a
+# volume and write nothing to it.
+suite: valkey memory cap, persistence and liveness
+release:
+  name: ou
+  namespace: oneuptime
+templates:
+  - templates/valkey-configmap.yaml
+  - templates/valkey-statefulset.yaml
+tests:
+  # 75% of the 4Gi default limit. The rest is headroom for what maxmemory
+  # does not count (fragmentation, client buffers): a cap AT the limit would
+  # let the kernel OOM-kill the server before it ever refused a write.
+  - it: caps memory at 75% of the default 4Gi limit and refuses writes there
+    template: templates/valkey-configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 3221225472$'
+      # BullMQ corrupts on evicted keys, so the cap must refuse, not evict.
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory-policy noeviction$'
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^appendonly no$'
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^save ""$'
+      - notMatchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^(appendfsync|dir) '
+
+  - it: ships a memory request and limit, and no CPU limit
+    template: templates/valkey-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources
+          value:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 4Gi
+      # A CPU limit throttles Valkey's one thread, and every PING queued
+      # behind it waits out the throttle.
+      - notExists:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+
+  - it: derives the cap from a raised memory limit
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.master.resources.limits.memory: 8Gi
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 6442450944$'
+
+  - it: derives the cap from a chosen share of the limit
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.maxmemoryPercentOfMemoryLimit: 50
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 2147483648$'
+
+  - it: lets an explicit maxmemory win, in valkey.conf's own form
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.maxmemory: 3gb
+      valkey.master.resources.limits.memory: 16Gi
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 3gb$'
+      - notMatchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory [0-9]+$'
+
+  # valkey.conf does not read Kubernetes quantities ("2Gi" would stop the
+  # server from starting), so one is written out as bytes.
+  - it: writes an explicit Kubernetes quantity as bytes
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.maxmemory: 2Gi
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 2147483648$'
+
+  # A number in values arrives as a float, which Go prints as 1.073741824e+09.
+  - it: writes an explicit byte count as an integer
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.maxmemory: 1073741824
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 1073741824$'
+
+  - it: refuses a maxmemory that is not a memory size
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.maxmemory: lots
+    asserts:
+      - failedTemplate:
+          errorMessage: 'valkey.maxmemory is "lots", which is not a memory size. Use valkey.conf''s own form ("3gb", "512mb", or a number of bytes) or a Kubernetes quantity ("3Gi").'
+
+  # Documented in values.yaml: no limit and no explicit cap is unbounded.
+  - it: writes no cap without a memory limit or an explicit maxmemory
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.master.resources.limits.memory: null
+    asserts:
+      - notMatchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory '
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory-policy noeviction$'
+
+  # valkey.conf takes the last of a repeated directive, so commonConfiguration
+  # has to come after the chart's own lines for an operator's setting to win.
+  - it: lets commonConfiguration override the chart's own lines
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.commonConfiguration: |-
+        maxmemory 1gb
+        maxmemory-policy volatile-lru
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?s)maxmemory 3221225472\n.*maxmemory-policy noeviction\n.*maxmemory 1gb\nmaxmemory-policy volatile-lru'
+
+  # The default commonConfiguration carried these three lines until the
+  # template wrote them itself; a values.yaml copied from that default must
+  # still render a server that persists nothing and never evicts.
+  - it: keeps an old copied commonConfiguration working
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.commonConfiguration: |-
+        appendonly no
+        save ""
+        maxmemory-policy noeviction
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 3221225472$'
+      - notMatchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^appendonly yes$'
+
+  # persistence.enabled used to mount a volume while the config still said
+  # `appendonly no` and `save ""`: a PersistentVolumeClaim with nothing in it.
+  - it: persists to the volume when persistence is on, with fork headroom
+    set:
+      valkey.master.persistence.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^appendonly yes$'
+        template: templates/valkey-configmap.yaml
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^appendfsync everysec$'
+        template: templates/valkey-configmap.yaml
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^dir /data$'
+        template: templates/valkey-configmap.yaml
+      - notMatchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^appendonly no$'
+        template: templates/valkey-configmap.yaml
+      # 60% of 4Gi: the append-only file rewrite forks the server, and the
+      # fork's copy-on-write pages count against the same limit.
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 2576980377$'
+        template: templates/valkey-configmap.yaml
+      # `dir /data` is only true if the claim is mounted there.
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: data
+            mountPath: /data
+        template: templates/valkey-statefulset.yaml
+      - equal:
+          path: spec.volumeClaimTemplates[0].metadata.name
+          value: data
+        template: templates/valkey-statefulset.yaml
+
+  - it: lets an explicit share win with persistence on
+    template: templates/valkey-configmap.yaml
+    set:
+      valkey.master.persistence.enabled: true
+      valkey.maxmemoryPercentOfMemoryLimit: 75
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 3221225472$'
+
+  # A PING waits behind every command queued before it, so it timed out on a
+  # server busy draining the 2026-11-27 flood, and the restart that followed
+  # emptied it. A TCP connect only fails when nothing is listening.
+  - it: checks liveness with a TCP connect, never a PING
+    template: templates/valkey-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.tcpSocket.port
+          value: valkey
+      - notExists:
+          path: spec.template.spec.containers[0].livenessProbe.exec
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.failureThreshold
+          value: 6
+      # Not ready while busy is harmless: it only stops new connections.
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.exec.command
+          value:
+            - valkey-cli
+            - -a
+            - $(VALKEY_PASSWORD)
+            - ping
+
+  # Helm merges an install's resources into the shipped ones key by key, so
+  # a request set above the shipped 4Gi limit would otherwise fail the
+  # upgrade (the API server refuses a request above its limit).
+  - it: lifts the memory limit to a request set above it
+    set:
+      valkey.master.resources.requests.memory: 8Gi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 8Gi
+        template: templates/valkey-statefulset.yaml
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 8Gi
+        template: templates/valkey-statefulset.yaml
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 6442450944$'
+        template: templates/valkey-configmap.yaml
+
+  - it: lowers the CPU request to a CPU limit set below it
+    template: templates/valkey-statefulset.yaml
+    set:
+      valkey.master.resources.limits.cpu: 100m
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 100m
+
+  - it: refuses a memory limit it cannot read as a size
+    template: templates/valkey-statefulset.yaml
+    set:
+      valkey.master.resources.limits.memory: 4Xi
+    asserts:
+      - failedTemplate:
+          errorMessage: 'valkey.master.resources.limits.memory is "4Xi", which is not a memory quantity. Use one such as "512Mi" or "4Gi".'
+
+  - it: renders no resources when they are removed
+    template: templates/valkey-statefulset.yaml
+    set:
+      valkey.master.resources: null
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].resources
+
+  # Everything reads through `oneuptime.valkey`, so the pre-13.0.0 `redis:`
+  # spelling must reach the cap too.
+  - it: derives the cap from a limit set under the legacy redis key
+    set:
+      redis.master.resources.limits.memory: 2Gi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.memory
+          value: 2Gi
+        template: templates/valkey-statefulset.yaml
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 1610612736$'
+        template: templates/valkey-configmap.yaml
+
+  - it: honours an explicit maxmemory set under the legacy redis key
+    template: templates/valkey-configmap.yaml
+    set:
+      redis.maxmemory: 512mb
+    asserts:
+      - matchRegex:
+          path: data["valkey.conf.template"]
+          pattern: '(?m)^maxmemory 512mb$'

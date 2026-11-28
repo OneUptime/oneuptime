@@ -2,7 +2,12 @@ import Metric from "Common/Models/AnalyticsModels/Metric";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
-import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayLatencyReading,
+  StorageArrayLatestReading,
+  StorageArrayPlatform,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -12,9 +17,10 @@ import { STORAGE_ARRAY_ATTRIBUTE } from "./StorageArrayResourceUtils";
 /*
  * What the storage array pages read from the array's metrics where the
  * inventory has no column: the array's latest average read and write
- * latency (the High Read and Write Latency alerts' series) and each
- * FlashBlade file system's available share of its provisioned size (the
- * File System Near Full alert's). Each is the newest reading per series in
+ * latency (the High Read and Write Latency alerts' series) and each file
+ * system's available share of its provisioned size (the File System Near
+ * Full alert's), as the array's platform defines them
+ * (StorageArrayPlatform.overview). Each is the newest reading per series in
  * the last 10 minutes: the agent scrapes the array every minute.
  */
 
@@ -100,45 +106,111 @@ export interface StorageArrayLatencyReadings {
 }
 
 /*
- * The array's latest average latency, as its latency alerts read it: a
- * FlashArray's purefa_array_performance_latency_usec, a FlashBlade's
- * purefb_array_performance_latency_usec across all protocols.
+ * The array's latest average latency, as its latency alerts read it (its
+ * platform's overview.latency; an array whose platform is not known reads
+ * as the default platform). Nothing for a platform without one.
  */
 export async function loadStorageArrayLatency(data: {
   arrayName: string;
   storageSystem: string | null | undefined;
 }): Promise<StorageArrayLatencyReadings> {
-  const isFlashBlade: boolean =
-    data.storageSystem === StorageSystem.PureStorageFlashBlade;
+  const latency: StorageArrayLatencyReading | undefined =
+    StorageArrayPlatformRegistry.getPlatformOrDefault(data.storageSystem)
+      .overview.latency;
+  if (!latency) {
+    return { readUsec: null, writeUsec: null };
+  }
+  /*
+   * Read and write latency each on a metric of their own (an ONTAP
+   * cluster's): the newest reading of each for this array.
+   */
+  if (latency.readMetricName || latency.writeMetricName) {
+    const newest: (
+      metricName: string | undefined,
+    ) => Promise<number | null> = async (
+      metricName: string | undefined,
+    ): Promise<number | null> => {
+      if (!metricName) {
+        return null;
+      }
+      const perArray: StorageArrayLatestPerLabel =
+        await loadStorageArrayLatestPerLabel({
+          arrayName: data.arrayName,
+          metricName: metricName,
+          labelAttribute: STORAGE_ARRAY_ATTRIBUTE,
+        });
+      return perArray.get(data.arrayName)?.value ?? null;
+    };
+    const [readUsec, writeUsec]: [number | null, number | null] =
+      await Promise.all([
+        newest(latency.readMetricName),
+        newest(latency.writeMetricName),
+      ]);
+    return { readUsec: readUsec, writeUsec: writeUsec };
+  }
+  if (
+    !latency.metricName ||
+    !latency.dimensionLabel ||
+    !latency.readDimension ||
+    !latency.writeDimension
+  ) {
+    return { readUsec: null, writeUsec: null };
+  }
+  const readDimension: string = latency.readDimension;
+  const writeDimension: string = latency.writeDimension;
   const perDimension: StorageArrayLatestPerLabel =
     await loadStorageArrayLatestPerLabel({
       arrayName: data.arrayName,
-      metricName: isFlashBlade
-        ? "purefb_array_performance_latency_usec"
-        : "purefa_array_performance_latency_usec",
-      labelAttribute: "dimension",
-      attributes: isFlashBlade ? { protocol: "all" } : undefined,
+      metricName: latency.metricName,
+      labelAttribute: latency.dimensionLabel,
+      attributes: latency.attributes,
     });
   return {
-    readUsec: perDimension.get("usec_per_read_op")?.value ?? null,
-    writeUsec: perDimension.get("usec_per_write_op")?.value ?? null,
+    readUsec: perDimension.get(readDimension)?.value ?? null,
+    writeUsec: perDimension.get(writeDimension)?.value ?? null,
   };
 }
 
 /*
- * Each FlashBlade file system's latest available share of its provisioned
- * size, by its name (purefb_file_systems_space_bytes, space
- * available_ratio).
+ * Where an array's file systems' free share is read
+ * (overview.fileSystemFreeSpace): its platform's, or - when the platform
+ * is not given - the first platform's that has one.
+ */
+function getFileSystemFreeSpaceReading(
+  storageSystem: string | null | undefined,
+): StorageArrayLatestReading | undefined {
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(storageSystem);
+  if (platform) {
+    return platform.overview.fileSystemFreeSpace;
+  }
+  return StorageArrayPlatformRegistry.getPlatforms().find(
+    (candidate: StorageArrayPlatform): boolean => {
+      return Boolean(candidate.overview.fileSystemFreeSpace);
+    },
+  )?.overview.fileSystemFreeSpace;
+}
+
+/*
+ * Each file system's latest available share of its provisioned size, 0 to
+ * 1, by its name (the File System Near Full alert's reading). Empty for a
+ * platform that reports none.
  */
 export async function loadFileSystemAvailableRatios(
   arrayName: string,
+  storageSystem?: string | null | undefined,
 ): Promise<Map<string, number>> {
+  const reading: StorageArrayLatestReading | undefined =
+    getFileSystemFreeSpaceReading(storageSystem);
+  if (!reading) {
+    return new Map();
+  }
   const perName: StorageArrayLatestPerLabel =
     await loadStorageArrayLatestPerLabel({
       arrayName: arrayName,
-      metricName: "purefb_file_systems_space_bytes",
-      labelAttribute: "name",
-      attributes: { space: "available_ratio" },
+      metricName: reading.metricName,
+      labelAttribute: reading.labelAttribute,
+      attributes: reading.attributes,
     });
   const ratios: Map<string, number> = new Map();
   for (const [name, entry] of perName.entries()) {

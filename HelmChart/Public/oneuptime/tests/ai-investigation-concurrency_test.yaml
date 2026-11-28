@@ -58,4 +58,8 @@ tests:
     set:
       app.aiInvestigationConcurrency: 0
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/app/aiInvestigationConcurrency': minimum: got 0, want 1

@@ -6,12 +6,18 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Recurring from "../../Types/Events/Recurring";
 import RestrictionTimes, {
+  LEGACY_RESTRICTION_TYPE_KEY,
+  RESTRICTION_TYPE_KEY,
   RestrictionType,
 } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
+import WeeklyWindowDays from "../../Types/OnCallDutyPolicy/WeeklyWindowDays";
 import { getDefaultLayerRotation } from "../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
-import OneUptimeDate from "../../Types/Date";
+import { JSONObject } from "../../Types/JSON";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
+import OnCallDutyPolicySchedule from "../../Models/DatabaseModels/OnCallDutyPolicySchedule";
+import QueryHelper from "../Types/Database/QueryHelper";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
@@ -107,87 +113,250 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A rotation interval count of 0 / NaN / negative breaks the handoff math
-   * (division by zero, Invalid Date), so reject it at the persistence boundary.
-   * The client also guards this, and the engine defensively clamps, but a raw
-   * API write must not be able to store an invalid rotation.
+   * A LAYER IS NEVER STORED IN A STATE THAT SILENTLY PAGES NOBODY (#11269).
+   *
+   * Its rotation and restriction times are read the way a write must say
+   * them (Recurring.fromWrittenJSON, RestrictionTimes.fromWrittenJSON), and
+   * refused with a 400 naming the key when they say nothing the engine can
+   * page by: a restriction type spelled any way but restrictionType or its
+   * older restictionType, or missing; a Daily window with no times, or times
+   * that are a time of day alone; a rotation interval such as "Weekly", or a
+   * count under another key. Each is then stored as it was read - the
+   * restriction type under its name alone - so what a write meant is what is
+   * kept, whichever spelling it came in.
+   *
+   * A value the write leaves out is not checked: an update that changes
+   * neither keeps what is stored.
    */
-  private validateRotationInterval(rotation: unknown): void {
-    if (!rotation || typeof rotation === "function") {
-      return;
-    }
+  private readWrittenRotation(rotation: unknown): Recurring {
+    return Recurring.fromWrittenJSON(rotation);
+  }
 
-    let count: number;
-    try {
-      const recurring: Recurring =
-        rotation instanceof Recurring
-          ? rotation
-          : Recurring.fromJSON(rotation as any);
-      count = recurring.intervalCount.toNumber();
-    } catch {
-      throw new BadDataException("Invalid rotation configuration.");
-    }
-
-    if (
-      !Number.isFinite(count) ||
-      isNaN(count) ||
-      !Number.isInteger(count) ||
-      count < 1
-    ) {
-      throw new BadDataException(
-        "Rotation interval must be a whole number greater than or equal to 1.",
-      );
-    }
+  private readWrittenRestrictionTimes(
+    restrictionTimes: unknown,
+    currentType?: RestrictionType | null | undefined,
+  ): RestrictionTimes {
+    return RestrictionTimes.fromWrittenJSON(restrictionTimes, {
+      currentType: currentType,
+    });
   }
 
   /*
-   * Reject a zero-length Daily restriction window (From == To time-of-day) at the
-   * persistence boundary. Such a window is active 0 seconds/day, so the layer
-   * silently pages nobody for its coverage. The dashboard already blocks this
-   * (audit F22), but a raw API write bypasses the form — so guard server-side
-   * too. Compares UTC time-of-day, which is stable regardless of server zone.
+   * A client that read a layer gets its type under both spellings, alike,
+   * and one that changes the spelling it knows and writes the value back
+   * sends two that disagree. Which one changed is read from the layers the
+   * update is for: only then, so no other update reads anything more. More
+   * than one type among them, and the write is refused as it stands.
    */
-  private validateRestrictionTimes(restrictionTimes: unknown): void {
-    if (!restrictionTimes || typeof restrictionTimes === "function") {
-      return;
-    }
-
-    let parsed: RestrictionTimes;
-    try {
-      parsed =
-        restrictionTimes instanceof RestrictionTimes
-          ? restrictionTimes
-          : RestrictionTimes.fromJSON(restrictionTimes as any);
-    } catch {
-      // Malformed input is handled elsewhere; nothing to validate here.
-      return;
-    }
+  private async readCurrentRestrictionType(
+    updateBy: UpdateBy<Model>,
+  ): Promise<RestrictionType | null> {
+    const written: unknown = updateBy.data.restrictionTimes;
 
     if (
-      parsed.restictionType === RestrictionType.Daily &&
-      parsed.dayRestrictionTimes &&
-      parsed.dayRestrictionTimes.startTime &&
-      parsed.dayRestrictionTimes.endTime
+      !written ||
+      typeof written !== "object" ||
+      written instanceof RestrictionTimes
     ) {
-      const start: Date = OneUptimeDate.fromString(
-        parsed.dayRestrictionTimes.startTime as any,
-      );
-      const end: Date = OneUptimeDate.fromString(
-        parsed.dayRestrictionTimes.endTime as any,
-      );
+      return null;
+    }
 
-      const timeOfDay: (d: Date) => number = (d: Date): number => {
-        return (
-          d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds()
-        );
-      };
+    const value: unknown = (written as JSONObject)["value"];
 
-      if (timeOfDay(start) === timeOfDay(end)) {
-        throw new BadDataException(
-          "Daily restriction 'From' and 'To' times cannot be the same. Choose a window with a positive duration, or set restrictions to None for 24/7 coverage.",
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const named: unknown = (value as JSONObject)[RESTRICTION_TYPE_KEY];
+    const spelledBefore: unknown = (value as JSONObject)[
+      LEGACY_RESTRICTION_TYPE_KEY
+    ];
+
+    if (
+      named === undefined ||
+      named === null ||
+      spelledBefore === undefined ||
+      spelledBefore === null ||
+      named === spelledBefore
+    ) {
+      return null;
+    }
+
+    /*
+     * The rows the update writes, and the update held to them: the type is
+     * judged by the very rows it is written to.
+     */
+    const layers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        restrictionTimes: true,
+      },
+    );
+
+    const types: Set<RestrictionType> = new Set<RestrictionType>(
+      layers.map((layer: Model): RestrictionType => {
+        // Read as the engine reads it, an instance or the stored JSON alike.
+        try {
+          return layer.restrictionTimes
+            ? RestrictionTimes.fromJSON(
+                layer.restrictionTimes as RestrictionTimes | JSONObject,
+              ).restrictionType
+            : RestrictionType.None;
+        } catch {
+          return RestrictionType.None;
+        }
+      }),
+    );
+
+    return types.size === 1 ? Array.from(types)[0]! : null;
+  }
+
+  /*
+   * The time zones of the schedules, by id: the zone each one's times are
+   * read in, or null for a schedule with none (read in the server's).
+   */
+  private async readScheduleTimezones(
+    scheduleIds: Array<ObjectID>,
+  ): Promise<Map<string, string | null>> {
+    const zones: Map<string, string | null> = new Map<string, string | null>();
+
+    if (scheduleIds.length === 0) {
+      return zones;
+    }
+
+    const schedules: Array<OnCallDutyPolicySchedule> =
+      await OnCallDutyPolicyScheduleService.findBy({
+        query: {
+          _id: QueryHelper.any(scheduleIds),
+        },
+        select: {
+          _id: true,
+          timezone: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const schedule of schedules) {
+      if (schedule.id) {
+        zones.set(
+          schedule.id.toString(),
+          schedule.timezone?.toString() || null,
         );
       }
     }
+
+    return zones;
+  }
+
+  /*
+   * A WEEKLY WINDOW IS ON CALL ON THE DAYS IT NAMES (#11455).
+   *
+   * The engine reads a window's days from the weekday its times fall on, in
+   * the schedule's time zone. A write whose times fall on other days than
+   * its windows name - "startDay": "Monday" with a startTime on a
+   * Wednesday - was stored as it came, and the layer was on call on
+   * Wednesdays, and on no Monday. Each window is now held to its days in
+   * its schedule's zone (WeeklyWindowDays.checkWrittenWindows), and a write
+   * that is not is refused with a 400 that names the window. A day left out
+   * is filled in from its time; a window the layer already holds, sent back
+   * as it is, as the Dashboard's Save Layer sends every window, is not
+   * judged again.
+   */
+  private async holdWindowsToTheirDaysOnCreate(
+    restrictionTimes: RestrictionTimes,
+    scheduleId: ObjectID,
+  ): Promise<RestrictionTimes> {
+    if (restrictionTimes.restrictionType !== RestrictionType.Weekly) {
+      return restrictionTimes;
+    }
+
+    const zones: Map<string, string | null> = await this.readScheduleTimezones([
+      scheduleId,
+    ]);
+
+    return WeeklyWindowDays.checkWrittenWindows(restrictionTimes, {
+      timezone: zones.get(scheduleId.toString()) || null,
+    });
+  }
+
+  /*
+   * The same for an update: each layer it writes is judged in its own
+   * schedule's zone, against the windows it holds now. The rows are the
+   * ones the update writes, and the update is held to them.
+   */
+  private async holdWindowsToTheirDaysOnUpdate(
+    updateBy: UpdateBy<Model>,
+    restrictionTimes: RestrictionTimes,
+  ): Promise<RestrictionTimes> {
+    if (restrictionTimes.restrictionType !== RestrictionType.Weekly) {
+      return restrictionTimes;
+    }
+
+    const layers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        onCallDutyPolicyScheduleId: true,
+        restrictionTimes: true,
+      },
+    );
+
+    const zones: Map<string, string | null> = await this.readScheduleTimezones(
+      layers
+        .map((layer: Model): ObjectID | undefined => {
+          return layer.onCallDutyPolicyScheduleId;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        }),
+    );
+
+    let checked: RestrictionTimes | null = null;
+
+    for (const layer of layers) {
+      let storedWindows: Array<unknown> = [];
+
+      try {
+        storedWindows = layer.restrictionTimes
+          ? RestrictionTimes.fromJSON(
+              layer.restrictionTimes as RestrictionTimes | JSONObject,
+            ).weeklyRestrictionTimes || []
+          : [];
+      } catch {
+        storedWindows = [];
+      }
+
+      const forLayer: RestrictionTimes = WeeklyWindowDays.checkWrittenWindows(
+        restrictionTimes,
+        {
+          timezone:
+            zones.get(layer.onCallDutyPolicyScheduleId?.toString() || "") ||
+            null,
+          storedWindows: storedWindows,
+        },
+      );
+
+      /*
+       * One value is written to every layer: a day left out that reads
+       * otherwise in another of their zones is named, not guessed.
+       */
+      if (
+        checked &&
+        JSON.stringify(checked.toDatabaseJSON()) !==
+          JSON.stringify(forLayer.toDatabaseJSON())
+      ) {
+        throw new BadDataException(
+          "This update writes layers of schedules in different time zones, where a day a window leaves out reads otherwise. Name each window's startDay and endDay.",
+        );
+      }
+
+      checked = forLayer;
+    }
+
+    return checked || restrictionTimes;
   }
 
   @CaptureSpan()
@@ -217,8 +386,11 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.data.restrictionTimes = RestrictionTimes.getDefault();
     }
 
-    this.validateRotationInterval(createBy.data.rotation);
-    this.validateRestrictionTimes(createBy.data.restrictionTimes);
+    createBy.data.rotation = this.readWrittenRotation(createBy.data.rotation);
+    createBy.data.restrictionTimes = await this.holdWindowsToTheirDaysOnCreate(
+      this.readWrittenRestrictionTimes(createBy.data.restrictionTimes),
+      createBy.data.onCallDutyPolicyScheduleId,
+    );
 
     /*
      * A layer created at a number keeps it, and moves no other layer
@@ -278,8 +450,26 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
-    this.validateRotationInterval(updateBy.data.rotation);
-    this.validateRestrictionTimes(updateBy.data.restrictionTimes);
+    if (
+      updateBy.data.rotation !== undefined &&
+      updateBy.data.rotation !== null
+    ) {
+      updateBy.data.rotation = this.readWrittenRotation(updateBy.data.rotation);
+    }
+
+    if (
+      updateBy.data.restrictionTimes !== undefined &&
+      updateBy.data.restrictionTimes !== null
+    ) {
+      updateBy.data.restrictionTimes =
+        await this.holdWindowsToTheirDaysOnUpdate(
+          updateBy,
+          this.readWrittenRestrictionTimes(
+            updateBy.data.restrictionTimes,
+            await this.readCurrentRestrictionType(updateBy),
+          ),
+        );
+    }
 
     return {
       updateBy,

@@ -327,11 +327,14 @@ describe("The defaults the section quotes", () => {
     );
   });
 
-  test("a monitor with monitoring off records the email but logs nothing, as it says", () => {
+  test("a monitor with monitoring off records the email and lists it as not evaluated, as it says (#11141)", () => {
     /*
      * processIncomingEmailFromQueue writes the email to the monitor before
-     * it checks whether the monitor is disabled, then returns before
-     * monitorResource - the evaluation, which is what writes MonitorLog.
+     * it checks whether the monitor is being checked. One that is not -
+     * turned off, paused by an incident or a maintenance event, archived -
+     * has the email listed in its Monitoring Logs as not evaluated
+     * (MonitorResourceUtil.listNotEvaluated), and returns before
+     * monitorResource, the evaluation. It used to log nothing at all.
      */
     const ingest: string = fs.readFileSync(
       path.join(
@@ -344,9 +347,13 @@ describe("The defaults the section quotes", () => {
     const writesEmail: number = ingest.indexOf(
       "incomingEmailMonitorRequest: toStorableJson(",
     );
-    // An archived monitor is skipped at the same point, for the same reason.
-    const skipsDisabled: number = ingest.indexOf(
-      "Incoming email received for archived or disabled monitor",
+    // An archived or paused monitor is handled at the same point.
+    const notChecked: number = ingest.indexOf(
+      "MonitorPauseState.getPauseReason(monitor)",
+    );
+    const lists: number = ingest.indexOf(
+      "await MonitorResourceUtil.listNotEvaluated({",
+      notChecked,
     );
 
     const evaluates: number = ingest.indexOf(
@@ -354,18 +361,19 @@ describe("The defaults the section quotes", () => {
     );
 
     expect(writesEmail).toBeGreaterThan(0);
-    expect(skipsDisabled).toBeGreaterThan(writesEmail);
-    expect(evaluates).toBeGreaterThan(skipsDisabled);
-    expect(ingest.slice(skipsDisabled, evaluates)).toContain("return;");
+    expect(notChecked).toBeGreaterThan(writesEmail);
+    expect(lists).toBeGreaterThan(notChecked);
+    expect(evaluates).toBeGreaterThan(lists);
+    expect(ingest.slice(lists, evaluates)).toContain("return;");
 
     expect(section).toContain(
       "A monitor with monitoring off still records the email, and the **Monitor Summary** card still shows it.",
     );
     expect(section).toContain(
-      "It evaluates nothing, though, so the email gets no row in **Monitoring Logs**",
+      "It evaluates nothing, though: the email's row in **Monitoring Logs** says it was not evaluated",
     );
     expect(summarySection).toContain(
-      "A monitor with monitoring turned off evaluates nothing, so the emails it receives get no rows.",
+      "evaluates nothing, so each email it receives gets a row that says it was not evaluated, and why.",
     );
   });
 });

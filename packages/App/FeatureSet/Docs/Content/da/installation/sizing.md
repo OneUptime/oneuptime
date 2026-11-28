@@ -3,7 +3,7 @@
 Planlæg CPU, hukommelse og disk til en selvhostet OneUptime på Kubernetes med [Helm-chartet](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensionér de tre datalagre – **ClickHouse**, **PostgreSQL** og **Valkey** – og applikationen hver for sig, start fra et af niveauerne nedenfor, og justér, når du har rigtige tal.
 
 > [!IMPORTANT]
-> Chartets standardværdier er ikke en produktionsdimensionering. De tjenester, det kører som standard, sætter **ingen CPU- eller hukommelses-requests eller -grænser**, og PostgreSQL og ClickHouse får små volumener på **25 Gi**, så chartet kan installeres på ethvert cluster. Til alt ud over en prøve sætter du selv ressourcer og lager med tallene på denne side.
+> Chartets standardværdier er ikke en produktionsdimensionering. Bortset fra Valkey sætter de tjenester, det kører som standard, **ingen CPU- eller hukommelses-requests eller -grænser**, og PostgreSQL og ClickHouse får små volumener på **25 Gi**, så chartet kan installeres på ethvert cluster. Til alt ud over en prøve sætter du selv ressourcer og lager med tallene på denne side.
 
 Kører du i stedet Docker Compose-installationen på en enkelt server? Den er enklere at dimensionere: Se [kravene](/docs/installation/docker-compose#krav) (16 GB hukommelse, 8 kerner og 400 GB disk anbefales).
 
@@ -88,7 +88,7 @@ Med mange replikaer af app, workers og sonder kan databaseforbindelserne slippe 
 
 ## Valkey – cache, køer og sessioner
 
-Cachelaget kører [Valkey](https://valkey.io), det BSD-licenserede fork af Redis 7.2, som cache, arbejdskø og sessionslager. Enhver server med Redis-protokollen kan træde i stedet, og dimensioneringen nedenfor gælder begge veje. Det er **hukommelsesbundet**, og persistens er **slået fra som standard**: Det er ikke en autoritativ datakilde og kan genopbygges. Dimensionér det efter kødybde og samtidige sessioner; 2–8 GB hukommelse dækker de fleste installationer. Dets eviction-politik er `noeviction`, så hold øje med hukommelsen, hvis køer hober sig op under vedvarende belastning.
+Cachelaget kører [Valkey](https://valkey.io), det BSD-licenserede fork af Redis 7.2, som cache, arbejdskø og sessionslager. Enhver server med Redis-protokollen kan træde i stedet, og dimensioneringen nedenfor gælder begge veje. Det er **hukommelsesbundet**, og persistens er **slået fra som standard**: Det er ikke en autoritativ datakilde og kan genopbygges. Dimensionér det efter kødybde og samtidige sessioner; 2–8 GB hukommelse dækker de fleste installationer. Chartet giver det en hukommelsesgrænse på 4 Gi og begrænser dets data til 75 % af den, 3 GiB (`valkey.maxmemory`), hvor det afviser skrivninger. Dets eviction-politik er `noeviction`, så hold øje med hukommelsen, hvis køer hober sig op under vedvarende belastning.
 
 ## Applikationens regnekraft
 
@@ -105,6 +105,52 @@ Ud over datalagrene dimensionerer du de tilstandsløse workloads. Hver kører **
 Hver af dem kører Node.js, som afpasser sin heap efter containerens hukommelsesgrænse (`resources.limits.memory`): 75 % af grænsen, mindst 256 MB og højst 8096 MB. Uden en grænse kan heapen vokse til 8096 MB. Resten af grænsen er til den hukommelse, Node.js bruger uden for sin heap. Vil du selv vælge heapen, så sæt `NODE_OPTIONS` til `--max-old-space-size=` efterfulgt af en størrelse i MB i tjenestens `extraEnv` (med Docker Compose i tjenestens `environment` i en override-fil). Det går forud for den størrelse, grænsen giver.
 
 Chartet indeholder **KEDA**, så appen, workers, sonder og den globale Runner kan skalere efter deres køefterslæb. Slå `keda.enabled` til sammen med hver tjenestes egen `keda.enabled` (for eksempel `app.keda.enabled`). På et cluster, der endnu ikke har KEDA, kræver den første installation en ekstra omgang: Se chartets [KEDA-vejledning](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Tjenester, som KEDA ikke styrer, kan i stedet bruge en autoscaler baseret på CPU eller hukommelse (`autoscaling`).
+
+## Kør mange monitorer
+
+Hver worker i hver sonde beder app-pods om de monitorer, der skal tjekkes, en portion ad gangen, og hver monitor, der skal tjekkes, går til præcis én af dem. Alle monitorer, der tjekkes hvert minut, skal tjekkes på samme tid i starten af hvert minut, så det, der tæller, er, hvor hurtigt et helt minuts monitorer bliver delt ud. Tallene nedenfor er målt med 39.700 monitorer (28.200 tjekket hvert minut og 11.500 hvert femte minut) på én sonde med 20 replikaer, hvor hver databaseforespørgsel var 50 eller 100 ms langsommere end på en maskine uden belastning, som på en travl database.
+
+### Del monitorer ud i større portioner
+
+Hæv hver sondes hentegrænse (`monitorFetchLimit` i Helm-chartet, ellers `PROBE_MONITOR_FETCH_LIMIT`) fra 10 til 50. Hver forespørgsel deler så fem gange så mange monitorer ud til omtrent samme pris. Med tre app-pods og forespørgsler, der var 50 ms langsommere, blev hvert minuts 28.200 monitorer delt ud inden for 19 sekunder mod 44 med en grænse på 10, og de 39.700, der skal tjekkes hvert femte minut, inden for 19 sekunder mod 57. En replika af sonden kører så op til workers × hentegrænse tjek ad gangen, 150 med 3 workers: giv den hukommelsen til det, eller tilføj replikaer.
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### Lad planlægningsgrænsen stå på standardværdien
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) er, hvor mange sondeforespørgsler hver app-pod kører ad gangen: en femtedel af dens databasepulje, 10 af 50. Hver pod har sin egen, så de app-pods, du tilføjer, har deres med. Med alle 39.700 klar til tjek på én gang og forespørgsler, der var 100 ms langsommere, fik én sonde 313 monitorer i sekundet fra én app-pod, 659 fra tre og 763 fra seks, og at hæve grænsen til 20 gav 7 % mere. En sonde alene må bruge hver plads i en pod, og sonder, der konkurrerer, deler dem retfærdigt. Test Monitor-kørsler har 2 pladser for sig selv, så en test når en sonde inden for dens tick på ti sekunder, uanset hvor travlt monitorerne har det. Hæv kun grænsen, hvis sondeforespørgsler bliver ved med at vente på en plads, mens databasen har kapacitet til overs, og hæv podens databasepulje sammen med den.
+
+### Én sonde eller mange
+
+Sæt hver monitor på de sonder, den skal tjekke fra. Hver monitor, der skal tjekkes, går til én replika af dens sonde, uanset hvor mange replikaer der spørger på samme tid, så én sonde med mange replikaer følger lige så godt med som mange sonder. Når monitorer er forsinkede, og ingen forespørgsel venter på en plads, mangler der sonder: tilføj replikaer, eller lad KEDA skalere hver sonde efter de monitorer, den skal tjekke.
+
+### Skalér automatisk efter det, sonder venter på
+
+`/metrics/probe-scheduling` på appens port lægger hver app-pods billede af det seneste minut sammen. Skalér app-pods med KEDA efter dens `queueDepth`, ved siden af CPU og hukommelse, og giv en advarsel, når monitorer bliver delt ud for sent:
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| Felt | Hvad det fortæller |
+| --- | --- |
+| `queueDepth` | Sondeforespørgsler, der venter på en plads lige nu, på alle app-pods. Over 0 i flere minutter: tilføj app-pods. |
+| `slotWaitP95Ms` | Hvor længe forespørgsler ventede på en plads, på den travleste app-pod. |
+| `refusalsPerMinute` | Sondeforespørgsler, der fik svaret, at serveren var optaget. |
+| `reconnectsAskedPerMinute` | Svar, der bad en sondes forbindelse om at forbinde igen, så dens næste forespørgsel kan gå til en anden app-pod: nogle få i sekundet, mens en app-pod er bagud. Over 0 i flere minutter: tilføj app-pods. |
+| `dispatchLagP95Seconds` | Hvor sent monitorer blev delt ud efter det tidspunkt, hvor deres interval gjorde dem klar til tjek. Tæt på dit korteste interval, mens ingen forespørgsel venter: tilføj sondereplikaer. |
+| `monitorsLateByAnIntervalPerMinute` | Monitorer, der blev delt ud et helt interval for sent: tjek, der blev sprunget over. |
+| `monitorTestWaitP95Seconds` | Hvor længe Test Monitor-kørsler ventede på en sonde. |
 
 ## Startniveauer
 

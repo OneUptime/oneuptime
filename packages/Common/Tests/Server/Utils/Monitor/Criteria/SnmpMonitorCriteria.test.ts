@@ -1,6 +1,7 @@
 import SnmpMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/SnmpMonitorCriteria";
 import MetricBaselineService, {
   BaselineSummary,
+  MetricSeriesBaselines,
 } from "../../../../../Server/Services/MetricBaselineService";
 import {
   AnomalyDetectionSensitivity,
@@ -10,6 +11,7 @@ import {
 } from "../../../../../Types/Monitor/CriteriaFilter";
 import MonitorMetricType from "../../../../../Types/Monitor/MonitorMetricType";
 import SnmpDataType from "../../../../../Types/Monitor/SnmpMonitor/SnmpDataType";
+import { FibreChannelCounter } from "../../../../../Types/Monitor/SnmpMonitor/SnmpFibreChannel";
 import SnmpInterface from "../../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse, {
   SnmpOidResponse,
@@ -422,8 +424,34 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     let getBaselineSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      getBaselineSpy = jest.spyOn(MetricBaselineService, "getBaseline");
+      getBaselineSpy = jest.spyOn(MetricBaselineService, "getSeriesBaselines");
     });
+
+    /*
+     * Each interface is judged against its own history (#10985): this answers
+     * the same baseline as the history of every port these tests walk.
+     */
+    const answerWith: (baseline: BaselineSummary | null) => void = (
+      baseline: BaselineSummary | null,
+    ): void => {
+      const series: MetricSeriesBaselines = {
+        series: new Map<string, BaselineSummary>(
+          baseline
+            ? ["Gi0/1", "Gi0/2"].map(
+                (name: string): [string, BaselineSummary] => {
+                  return [
+                    SnmpMonitorCriteria.getInterfaceSeriesFingerprint(name),
+                    baseline,
+                  ];
+                },
+              )
+            : [],
+        ),
+        fallback: null,
+      };
+
+      getBaselineSpy.mockResolvedValue(series);
+    };
 
     afterEach(() => {
       getBaselineSpy.mockRestore();
@@ -431,7 +459,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
     test("AnomalouslyHigh fires when utilization exceeds mean + 3σ (Medium default)", async () => {
       // mean 20, σ 5 → 3σ band is [5, 35]; observed 90 breaches high.
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -451,12 +479,12 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         });
 
       expect(result).toBeTruthy();
-      expect(result).toContain("above the same-hour baseline");
+      expect(result).toContain("above its same-hour baseline");
       expect(result).toContain("90.00%");
     });
 
     test("baseline lookup is keyed by monitorId and the utilization metric name", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -484,7 +512,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("no fire when utilization is inside the expected band", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -508,7 +536,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
     test("AnomalouslyLow fires when utilization drops below mean - 3σ", async () => {
       // mean 50, σ 10 → 3σ band is [20, 80]; observed 2 breaches low.
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 50, stddev: 10 }));
+      answerWith(buildBaseline({ mean: 50, stddev: 10 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -528,11 +556,11 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         });
 
       expect(result).toBeTruthy();
-      expect(result).toContain("below the same-hour baseline");
+      expect(result).toContain("below its same-hour baseline");
     });
 
     test("Anomalous (either direction) fires on a high breach", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -556,7 +584,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
     test("High sensitivity (2σ) fires where Medium (3σ) would not", async () => {
       // mean 20, σ 5 → 2σ band tops out at 30; observed 32 breaches at 2σ only.
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -585,7 +613,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("no baseline yet (learning) → never fires", async () => {
-      getBaselineSpy.mockResolvedValue(null);
+      answerWith(null);
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -610,9 +638,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("unreliable (thin) baseline → never fires", async () => {
-      getBaselineSpy.mockResolvedValue(
-        buildBaseline({ mean: 20, stddev: 5, isReliable: false }),
-      );
+      answerWith(buildBaseline({ mean: 20, stddev: 5, isReliable: false }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -637,7 +663,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("zero-variance baseline → never fires", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 0 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 0 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -662,7 +688,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("a zero-variance baseline it has left fires, and says so in words", async () => {
-      getBaselineSpy.mockResolvedValue({
+      answerWith({
         ...buildBaseline({ mean: 0, stddev: 0 }),
         leftFlatHistory: true,
       });
@@ -684,13 +710,15 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
           criteriaFilter,
         });
 
-      expect(result).toContain("SNMP interface utilization 40.00% is above");
+      expect(result).toContain(
+        "SNMP interface Gi0/1 utilization 40.00% is above",
+      );
       expect(result).toContain("which held at 0.00% for all");
       expect(result).not.toContain("σ");
     });
 
     test("back on the value it held, it does not fire", async () => {
-      getBaselineSpy.mockResolvedValue({
+      answerWith({
         ...buildBaseline({ mean: 0, stddev: 0 }),
         leftFlatHistory: true,
       });
@@ -715,7 +743,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("interface scope applies: only the scoped interface's utilization is observed", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -743,7 +771,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("no interfaces in the response → no baseline lookup, no fire", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -887,6 +915,15 @@ describe("SnmpMonitorCriteria — ping-first polling", () => {
         filterType: FilterType.LessThan,
         value: 100,
       },
+      {
+        checkOn: CheckOn.SnmpFibreChannelCounterPerSecond,
+        filterType: FilterType.LessThan,
+        value: 100,
+        snmpMonitorOptions: {
+          interfaceName: "*",
+          fibreChannelCounter: FibreChannelCounter.CreditLoss,
+        },
+      },
     ];
 
     for (const criteriaFilter of walkDependentFilters) {
@@ -1013,5 +1050,274 @@ describe("SnmpMonitorCriteria — ping-first polling", () => {
         }),
       ).toBeNull();
     });
+  });
+});
+
+/*
+ * THE DEVICE'S PING ON ITS OWN (OneUptime issue #11071).
+ *
+ * Every poll pings the device beside its SNMP walk, and the ICMP criteria
+ * judge the ping alone: a switch whose SNMP credentials broke answers ping
+ * and reads "reachable, SNMP failing", where judging by SNMP alone made
+ * 3,000 Meraki switches go offline over one community string.
+ */
+describe("SnmpMonitorCriteria — the device's ping on its own (#11071)", () => {
+  function poll(data: {
+    ping?: {
+      isReachable?: boolean | undefined;
+      packetLossPercent: number;
+      avgRoundTripTimeInMs?: number | undefined;
+    };
+    walk?: { isOnline: boolean } | undefined;
+  }): ProbeMonitorResponse {
+    const response: ProbeMonitorResponse = {
+      projectId: ObjectID.generate(),
+      monitorId: ObjectID.generate(),
+      monitorStepId: ObjectID.generate(),
+      probeId: ObjectID.generate(),
+      failureCause: "",
+      // The device's verdict: ping OR the walk, as the walk pipeline stamps it.
+      isOnline: Boolean(data.ping?.isReachable || data.walk?.isOnline),
+      monitoredAt: new Date(),
+    };
+
+    if (data.ping) {
+      response.pingResponse = {
+        packetsSent: 3,
+        packetsReceived: 0,
+        ...data.ping,
+      };
+    }
+
+    if (data.walk) {
+      response.snmpResponse = {
+        isOnline: data.walk.isOnline,
+        responseTimeInMs: data.walk.isOnline ? 400 : 0,
+        failureCause: data.walk.isOnline ? "" : "Request timed out",
+        oidResponses: [],
+      };
+    }
+
+    return response;
+  }
+
+  async function met(
+    dataToProcess: ProbeMonitorResponse,
+    filter: CriteriaFilter,
+  ): Promise<string | null> {
+    return await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+      dataToProcess: dataToProcess,
+      criteriaFilter: filter,
+    });
+  }
+
+  const REACHABLE: CriteriaFilter = {
+    checkOn: CheckOn.IcmpIsReachable,
+    filterType: FilterType.True,
+    value: undefined,
+  };
+  const UNREACHABLE: CriteriaFilter = {
+    checkOn: CheckOn.IcmpIsReachable,
+    filterType: FilterType.False,
+    value: undefined,
+  };
+
+  // The report: one SNMP credential problem, a fleet that answers ping.
+  const CREDENTIALS_BROKEN: ProbeMonitorResponse = poll({
+    ping: { isReachable: true, packetLossPercent: 0, avgRoundTripTimeInMs: 2 },
+    walk: { isOnline: false },
+  });
+
+  test("a switch whose SNMP credentials broke answers ping: reachable by ICMP, its walk failing, and online", async () => {
+    expect(await met(CREDENTIALS_BROKEN, REACHABLE)).toBeTruthy();
+    expect(await met(CREDENTIALS_BROKEN, UNREACHABLE)).toBeNull();
+    expect(
+      await met(CREDENTIALS_BROKEN, {
+        checkOn: CheckOn.SnmpWalkIsSucceeding,
+        filterType: FilterType.False,
+        value: undefined,
+      }),
+    ).toBeTruthy();
+    expect(
+      await met(CREDENTIALS_BROKEN, {
+        checkOn: CheckOn.SnmpIsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      }),
+    ).toBeNull();
+  });
+
+  test("gear that drops ICMP but answers SNMP is unreachable by ping, and still online", async () => {
+    const icmpFiltered: ProbeMonitorResponse = poll({
+      ping: { isReachable: false, packetLossPercent: 100 },
+      walk: { isOnline: true },
+    });
+
+    expect(await met(icmpFiltered, UNREACHABLE)).toBeTruthy();
+    expect(
+      await met(icmpFiltered, {
+        checkOn: CheckOn.SnmpIsOnline,
+        filterType: FilterType.True,
+        value: undefined,
+      }),
+    ).toBeTruthy();
+  });
+
+  test("a device that answers nothing is unreachable by ping and offline", async () => {
+    const down: ProbeMonitorResponse = poll({
+      ping: { isReachable: false, packetLossPercent: 100 },
+      walk: { isOnline: false },
+    });
+
+    expect(await met(down, UNREACHABLE)).toBeTruthy();
+    expect(
+      await met(down, {
+        checkOn: CheckOn.SnmpIsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      }),
+    ).toBeTruthy();
+  });
+
+  test("is judged on a ping-only poll, which no walk-based check is", async () => {
+    const pingOnly: ProbeMonitorResponse = poll({
+      ping: {
+        isReachable: true,
+        packetLossPercent: 0,
+        avgRoundTripTimeInMs: 1,
+      },
+    });
+
+    expect(await met(pingOnly, REACHABLE)).toBeTruthy();
+    expect(
+      await met(pingOnly, {
+        checkOn: CheckOn.SnmpWalkIsSucceeding,
+        filterType: FilterType.False,
+        value: undefined,
+      }),
+    ).toBeNull();
+  });
+
+  test("response time compares the ping's average round trip, never the walk's time", async () => {
+    const slow: ProbeMonitorResponse = poll({
+      ping: {
+        isReachable: true,
+        packetLossPercent: 0,
+        avgRoundTripTimeInMs: 150,
+      },
+      walk: { isOnline: true },
+    });
+    const filter: CriteriaFilter = {
+      checkOn: CheckOn.IcmpResponseTime,
+      filterType: FilterType.GreaterThan,
+      value: 100,
+    };
+
+    expect(await met(slow, filter)).toBeTruthy();
+    // The walk took 400 ms; the ping 150: under 200 is under 200.
+    expect(
+      await met(slow, {
+        checkOn: CheckOn.IcmpResponseTime,
+        filterType: FilterType.GreaterThan,
+        value: 200,
+      }),
+    ).toBeNull();
+  });
+
+  test("a ping no echo came back to has no response time to compare", async () => {
+    expect(
+      await met(
+        poll({ ping: { isReachable: false, packetLossPercent: 100 } }),
+        {
+          checkOn: CheckOn.IcmpResponseTime,
+          filterType: FilterType.GreaterThan,
+          value: 0,
+        },
+      ),
+    ).toBeNull();
+  });
+
+  test("packet loss compares the share of echoes that did not come back", async () => {
+    const lossy: ProbeMonitorResponse = poll({
+      ping: {
+        isReachable: true,
+        packetLossPercent: 40,
+        avgRoundTripTimeInMs: 9,
+      },
+    });
+
+    expect(
+      await met(lossy, {
+        checkOn: CheckOn.IcmpPacketLossPercent,
+        filterType: FilterType.GreaterThan,
+        value: 20,
+      }),
+    ).toBeTruthy();
+    expect(
+      await met(lossy, {
+        checkOn: CheckOn.IcmpPacketLossPercent,
+        filterType: FilterType.GreaterThan,
+        value: 50,
+      }),
+    ).toBeNull();
+  });
+
+  test("nothing is judged on a poll from a probe that ran no ping", async () => {
+    const walkOnly: ProbeMonitorResponse = poll({ walk: { isOnline: true } });
+
+    for (const filter of [
+      REACHABLE,
+      UNREACHABLE,
+      {
+        checkOn: CheckOn.IcmpResponseTime,
+        filterType: FilterType.LessThan,
+        value: 1000,
+      },
+      {
+        checkOn: CheckOn.IcmpPacketLossPercent,
+        filterType: FilterType.LessThan,
+        value: 100,
+      },
+    ]) {
+      expect(await met(walkOnly, filter)).toBeNull();
+    }
+  });
+
+  test("reads the probe's verdict, or - without one - an echo lost short of all of them", async () => {
+    expect(
+      SnmpMonitorCriteria.isIcmpReachable({
+        packetsSent: 3,
+        packetsReceived: 0,
+        packetLossPercent: 0,
+        isReachable: false,
+      }),
+    ).toBe(false);
+    expect(
+      SnmpMonitorCriteria.isIcmpReachable({
+        packetsSent: 3,
+        packetsReceived: 1,
+        packetLossPercent: 66,
+      }),
+    ).toBe(true);
+    expect(
+      SnmpMonitorCriteria.isIcmpReachable({
+        packetsSent: 3,
+        packetsReceived: 0,
+        packetLossPercent: 100,
+      }),
+    ).toBe(false);
+  });
+
+  test("a trap never judges the ping", async () => {
+    const trap: ProbeMonitorResponse = poll({
+      ping: { isReachable: false, packetLossPercent: 100 },
+    });
+    trap.snmpTrapResponse = {
+      trapOid: "1.3.6.1.6.3.1.1.5.3",
+      sourceIpAddress: "10.20.0.1",
+      varbinds: [],
+    } as unknown as ProbeMonitorResponse["snmpTrapResponse"];
+
+    expect(await met(trap, UNREACHABLE)).toBeNull();
   });
 });

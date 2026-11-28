@@ -13,6 +13,7 @@ import {
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   RESOURCE_COSTS_FIELD_KEY,
+  SAVINGS_ACTIONS_FIELD_KEY,
   SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   doesCloudConnectionWafBlocklistAddRule,
@@ -189,6 +190,8 @@ describe("the catalog", () => {
       READ_INTERVAL_FIELD_KEY,
       // Costs per resource cost Cost Explorer requests: off until asked.
       RESOURCE_COSTS_FIELD_KEY,
+      // Lets OneUptime act on savings, off until someone opts in (#11010).
+      SAVINGS_ACTIONS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
       // Writes in the account, off until someone opts in (#10344).
@@ -200,6 +203,7 @@ describe("the catalog", () => {
       "subscriptionIds",
       "cloud",
       READ_INTERVAL_FIELD_KEY,
+      SAVINGS_ACTIONS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
       // Writes OneUptime's rules in WAF policies, off until someone opts in (#10348).
@@ -210,6 +214,7 @@ describe("the catalog", () => {
       // Costs come from a billing export a person chooses to name.
       GCP_BILLING_EXPORT_TABLE_FIELD_KEY,
       READ_INTERVAL_FIELD_KEY,
+      SAVINGS_ACTIONS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
       // Writes OneUptime's rules in Cloud Armor policies, off until someone opts in (#10349).
@@ -483,6 +488,7 @@ describe("fields by sign-in method", () => {
       "regions",
       READ_INTERVAL_FIELD_KEY,
       RESOURCE_COSTS_FIELD_KEY,
+      SAVINGS_ACTIONS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
       WAF_BLOCKLIST_FIELD_KEY,
@@ -508,6 +514,7 @@ describe("fields by sign-in method", () => {
       "regions",
       READ_INTERVAL_FIELD_KEY,
       RESOURCE_COSTS_FIELD_KEY,
+      SAVINGS_ACTIONS_FIELD_KEY,
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
       WAF_BLOCKLIST_FIELD_KEY,

@@ -79,7 +79,7 @@ describe("what the reading reads", () => {
     ["a percent sign and one character", "x%4"],
     ["a percent sign and no hex digits", "%zz %g1 %1g"],
     ["two percent signs", "50%%"],
-    ["an escape of a byte beyond ASCII", "caf%C3%A9 %FF %80"],
+    ["bytes beyond ASCII that start no character", "%FF %80 %BF %F5%80%80%80"],
     ["a plus, which only a form's body reads as a space", "a+b"],
     ["no percent sign at all", "2001:db8::1"],
     ["an empty text", ""],
@@ -91,7 +91,98 @@ describe("what the reading reads", () => {
   test("reads the escapes among those it leaves", () => {
     expect(
       PercentDecodedText.readableOf("100% of %C3%A9 at %5B2001%3A%3A1%5D, %zz"),
-    ).toBe("100% of %C3%A9 at [2001::1], %zz");
+    ).toBe("100% of é at [2001::1], %zz");
+  });
+});
+
+/*
+ * A CHARACTER BEYOND ASCII, ITS UTF-8 BYTES EACH AN ESCAPE (#11032):
+ * jos%C3%A9%40example.com reads josé@example.com. Only bytes that spell a
+ * character in UTF-8 are read as one; any other is left as it is written.
+ */
+describe("a character's UTF-8 bytes, each escaped", () => {
+  test.each([
+    ["two bytes: é", "jos%C3%A9", "josé"],
+    ["two bytes, in lower case", "jos%c3%a9", "josé"],
+    ["three bytes: €", "%E2%82%AC5", "€5"],
+    ["three bytes: a Han character", "%E5%BC%A0%E4%BC%9F", "张伟"],
+    ["three bytes: a fullwidth digit", "%EF%BC%94%EF%BC%91", "４１"],
+    ["four bytes: an emoji, one beyond U+FFFF", "hi%F0%9F%98%80", "hi😀"],
+    ["the highest code point", "%F4%8F%BF%BF", "\u{10FFFF}"],
+    ["the lowest of three bytes", "%E0%A0%80", "ࠀ"],
+    [
+      "an address of another script, its @ escaped too",
+      "email=jos%C3%A9%40example.com",
+      "email=josé@example.com",
+    ],
+    [
+      "a name in a query string",
+      "name=Jos%C3%A9%20Garc%C3%ADa",
+      "name=José García",
+    ],
+    ["escaped twice", "jos%25C3%25A9", "josé"],
+  ])("%s: %s reads %s", (_label: string, text: string, readable: string) => {
+    expect(PercentDecodedText.read(text)!.readable).toBe(readable);
+  });
+
+  test.each([
+    ["a continuation byte alone", "%A9x", "%A9x"],
+    ["a lead byte alone", "%C3x", "%C3x"],
+    ["a lead byte at the very end", "x%C3", "x%C3"],
+    ["a character cut short", "%E2%82x", "%E2%82x"],
+    ["a lead byte before ASCII", "%C3%41", "%C3A"],
+    ["two lead bytes", "%C3%C3%A9", "%C3é"],
+    ["an overlong two bytes: C0 or C1", "%C0%AF %C1%81", "%C0%AF %C1%81"],
+    ["an overlong three bytes", "%E0%80%AF", "%E0%80%AF"],
+    ["an overlong four bytes", "%F0%80%80%AF", "%F0%80%80%AF"],
+    ["a surrogate", "%ED%A0%80", "%ED%A0%80"],
+    ["beyond U+10FFFF", "%F4%90%80%80", "%F4%90%80%80"],
+    ["a byte that starts nothing", "%F8%80%80%80%80", "%F8%80%80%80%80"],
+    ["a byte written between two escaped", "%C3A%A9", "%C3A%A9"],
+  ])(
+    "leaves %s as it is written: %s reads %s",
+    (_label: string, text: string, readable: string) => {
+      expect(PercentDecodedText.readableOf(text)).toBe(readable);
+    },
+  );
+
+  test("a character whose bytes were escaped unevenly is left, as a URL decoder leaves it", () => {
+    // The lead byte escaped twice, its continuation once: two different readings.
+    expect(PercentDecodedText.readableOf("%25C3%A9")).toBe("%C3%A9");
+  });
+
+  test("each character is placed on every escape it was written with", () => {
+    const text: string = "email=jos%C3%A9%40example.com&x=1";
+    const read: PercentDecodedText = PercentDecodedText.read(text)!;
+
+    expect(writtenOf(text, rangeOf(read, "josé@example.com"))).toBe(
+      "jos%C3%A9%40example.com",
+    );
+    expect(writtenOf(text, rangeOf(read, "é"))).toBe("%C3%A9");
+    expect(writtenOf(text, rangeOf(read, "@"))).toBe("%40");
+    expect(writtenOf(text, rangeOf(read, "&x=1"))).toBe("&x=1");
+  });
+
+  test("a character read as two UTF-16 units is placed whole, wherever a range ends in it", () => {
+    const text: string = "a%F0%9F%98%80b";
+    const read: PercentDecodedText = PercentDecodedText.read(text)!;
+
+    expect(read.readable).toBe("a😀b");
+    // The emoji's two units: both, or either half, take its four escapes.
+    expect(writtenOf(text, [1, 3])).toBe("%F0%9F%98%80");
+    expect(writtenOf(text, [1, 2])).toBe("%F0%9F%98%80");
+    expect(writtenOf(text, [0, 2])).toBe("a%F0%9F%98%80");
+    expect(read.toWritten(3)).toBe(text.length - 1);
+    expect(read.toWritten(read.readable.length)).toBe(text.length);
+  });
+
+  test("ASCII and UTF-8 escapes read together, escaped twice, are placed on their own characters", () => {
+    const text: string = "to=a%253Ab%2520jos%25C3%25A9";
+    const read: PercentDecodedText = PercentDecodedText.read(text)!;
+
+    expect(read.readable).toBe("to=a:b josé");
+    expect(writtenOf(text, rangeOf(read, "josé"))).toBe("jos%25C3%25A9");
+    expect(writtenOf(text, rangeOf(read, ":"))).toBe("%253A");
   });
 
   test("a percent sign before an escape stays, and never joins what the escape reads as into one more", () => {
@@ -154,6 +245,9 @@ describe("where each part of the reading is written", () => {
       "100% of %C3%A9 at %5B2001%3A%3A1%5D, %zz",
       "x%253Ay%25253Az",
       "%%41%2%41",
+      "jos%C3%A9%40example.com",
+      "a%F0%9F%98%80b%E2%82%AC",
+      "%C3%C3%A9%E2%82x%E5%BC%A0",
     ];
 
     for (const text of texts) {
@@ -166,8 +260,16 @@ describe("where each part of the reading is written", () => {
         position++
       ) {
         const written: number = read.toWritten(position);
+        // Between a character's two UTF-16 units: placed after its escapes, as the next position is.
+        const code: number = read.readable.charCodeAt(position - 1);
+        const followsSecondHalf: boolean = code >= 0xdc00 && code <= 0xdfff;
 
-        expect(written).toBeGreaterThan(previous);
+        if (followsSecondHalf) {
+          expect(written).toBeGreaterThanOrEqual(previous);
+        } else {
+          expect(written).toBeGreaterThan(previous);
+        }
+
         expect(written).toBeLessThanOrEqual(text.length);
         previous = written;
       }
@@ -182,6 +284,7 @@ describe("where each part of the reading is written", () => {
       "target=http%3A%2F%2F%5B2001%3Adb8%3A%3A1%5D%2F",
       "x%253Ay%25253Az",
       "100% of %C3%A9 at %5B2001%3A%3A1%5D, %zz",
+      "name=Jos%C3%A9%20Garc%C3%ADa%2C%E5%BC%A0%E4%BC%9F",
     ];
 
     for (const text of texts) {
@@ -200,6 +303,22 @@ describe("where each part of the reading is written", () => {
       }
     }
   });
+
+  test("a whole character beyond U+FFFF reads as itself from its written escapes", () => {
+    const text: string = "%F0%9F%98%80%F0%9F%98%81";
+    const read: PercentDecodedText = PercentDecodedText.read(text)!;
+
+    for (const [start, end] of [
+      [0, 2],
+      [2, 4],
+    ] as Array<[number, number]>) {
+      const [writtenStart, writtenEnd] = read.rangeToWritten([start, end]);
+
+      expect(
+        PercentDecodedText.readableOf(text.slice(writtenStart, writtenEnd)),
+      ).toBe(read.readable.slice(start, end));
+    }
+  });
 });
 
 describe("in time in line with the text's length", () => {
@@ -216,6 +335,11 @@ describe("in time in line with the text's length", () => {
     ["half escapes without end", repeat("%3")],
     ["escapes escaped again without end", repeat("%253A")],
     ["escapes of bytes beyond ASCII without end", repeat("%C3%A9")],
+    ["four-byte characters without end", repeat("%F0%9F%98%80")],
+    ["lead bytes without end", repeat("%F0")],
+    ["characters cut short without end", repeat("%F0%9F%98")],
+    ["continuation bytes without end", repeat("%80")],
+    ["UTF-8 escaped twice without end", repeat("%25C3%25A9")],
     [
       "an encoded URL again and again",
       repeat("http%3A%2F%2F%5B2001%3A%3A1%5D%2F "),

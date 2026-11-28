@@ -16,6 +16,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -87,12 +88,50 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import SecurityCaseTasks from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Tasks/SecurityCaseTasks";
 import { SECURITY_CASE_TASKS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Tasks/SecurityCaseTasksCopy";
 import { SECURITY_CASE_TASK_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Tasks/SecurityCaseTasksModel";
+import DataSecurityApi, {
+  DataSecurityApiError,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
+import {
+  isExposureAnswerShown,
+  isExposureReadRefusal,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/CaseExposureRead";
+import {
+  ANSWER_SUMMARY_DRAFTED_ON_NOTICES,
+  ANSWER_SUMMARY_TO_WRITE_ON_NOTICES,
+  EXPOSURE_CARD_PLACE,
+  EXPOSURE_TEST_IDS,
+  NOT_ASSESSED_TITLE,
+  READS_LOGGED,
+  READS_NOT_LOGGED,
+  WAS_IT_A_BREACH,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
+import { getExposureCardRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureTaskAnswer";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import SecurityCaseTask from "../../../Models/DatabaseModels/SecurityCaseTask";
 import User from "../../../Models/DatabaseModels/User";
+import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../Types/Date";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import { ExposureDraftPart } from "../../../Types/DataSecurity/ExposureAssessment";
+import {
+  DATA_EXPOSURE_CHECKLIST_TASKS,
+  ExposureChecklistItem,
+  getExposureChecklistStepKey,
+} from "../../../Types/DataSecurity/ExposureChecklist";
+import { ImpactAssessmentSectionSource } from "../../../Types/DataSecurity/ImpactAssessment";
+import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { getDataStoreEntityValue } from "../../../Types/SecurityCase/SecurityEntity";
+import {
+  EXPOSURE_NOT_ASSESSED,
+  exposureAnswerOf,
+  exposureAssessmentOf,
+  exposureViewOf,
+} from "../../Helpers/ExposureAssessmentAnswers";
 import Permission from "../../../Types/Permission";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "../../../UI/Components/SideMenu/CountModelSideMenuItem";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
@@ -764,5 +803,375 @@ describe("a case's tasks", () => {
     await waitFor(() => {
       expect(rows()).toHaveLength(3);
     });
+  });
+});
+
+/*
+ * EACH CHECKLIST TASK'S ANSWER, ON THE TASKS PAGE (#10954).
+ *
+ * The Close a Data Exposure playbook adds four tasks to a case about an
+ * exposed store; the Was It a Breach? card answers each. Under each such
+ * task - matched by its key, else by its title as the playbook wrote it -
+ * the Tasks page draws the card's answer in one quiet line, with a link that
+ * lands on the card. The assessment is read once for the page, again when
+ * the case changes, only for a case about a data store, and only drawn for
+ * a reader the server lets read it.
+ */
+describe("each checklist task's answer, from the exposure assessment", () => {
+  const STORE_ENTITIES: JSONArray = [
+    {
+      type: "Data Store",
+      value: getDataStoreEntityValue("aws:s3:eu-customer-exports"),
+    },
+  ];
+  const WHO_READ: string = "33333333-3333-4333-8333-0000000000a1";
+  const REPORT: string = "33333333-3333-4333-8333-0000000000a2";
+  const ROTATE: string = "33333333-3333-4333-8333-0000000000a3";
+  const CLOSE: string = "33333333-3333-4333-8333-0000000000a4";
+  const WHO_READ_TITLE: string =
+    DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.WhoReadIt];
+  const REPORT_TITLE: string =
+    DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.MustReport];
+  const ROTATE_TITLE: string =
+    DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.RotateSecrets];
+  const CLOSE_TITLE: string =
+    DATA_EXPOSURE_CHECKLIST_TASKS[ExposureChecklistItem.CloseTheCase];
+  let exposureReads: SpyInstance<typeof DataSecurityApi.getExposureAssessment>;
+
+  function checklistTasks(): Array<SecurityCaseTask> {
+    return [
+      // Made from the playbook: each keeps its line's key.
+      task(WHO_READ, WHO_READ_TITLE, {
+        responseStepKey: getExposureChecklistStepKey(
+          ExposureChecklistItem.WhoReadIt,
+        ),
+      }),
+      task(REPORT, REPORT_TITLE, {
+        responseStepKey: getExposureChecklistStepKey(
+          ExposureChecklistItem.MustReport,
+        ),
+      }),
+      // Added by hand in the playbook's words: matched by its title.
+      task(ROTATE, ROTATE_TITLE, { isDone: true }),
+      task(CLOSE, CLOSE_TITLE, {
+        responseStepKey: getExposureChecklistStepKey(
+          ExposureChecklistItem.CloseTheCase,
+        ),
+      }),
+      // A task of the case's own: no answer.
+      task(TASK_B, "Pull the proxy logs"),
+    ];
+  }
+
+  function drawAboutAStore(
+    entities: JSONArray | undefined = STORE_ENTITIES,
+  ): (refreshToken: string) => void {
+    const drawnTasks: ReturnType<typeof render> = render(
+      <MemoryRouter>
+        <SecurityCaseTasks
+          caseId={new ObjectID(CASE_ID)}
+          entities={entities}
+          refreshToken="first"
+        />
+      </MemoryRouter>,
+    );
+
+    return (refreshToken: string): void => {
+      drawnTasks.rerender(
+        <MemoryRouter>
+          <SecurityCaseTasks
+            caseId={new ObjectID(CASE_ID)}
+            entities={entities}
+            refreshToken={refreshToken}
+          />
+        </MemoryRouter>,
+      );
+    };
+  }
+
+  function answerUnder(title: string): HTMLElement | null {
+    return within(rowOf(title)).queryByTestId(EXPOSURE_TEST_IDS.taskAnswer);
+  }
+
+  async function allFourAnswered(): Promise<void> {
+    await waitFor(() => {
+      expect(screen.getAllByTestId(EXPOSURE_TEST_IDS.taskAnswer)).toHaveLength(
+        4,
+      );
+    });
+  }
+
+  beforeEach(() => {
+    tasks = checklistTasks();
+    exposureReads = jest
+      .spyOn(DataSecurityApi, "getExposureAssessment")
+      .mockResolvedValue(exposureAnswerOf());
+  });
+
+  test("a task's key is read with it, so a checklist task is known by its key", () => {
+    expect(SECURITY_CASE_TASK_SELECT).toEqual(
+      expect.objectContaining({ responseStepKey: true }),
+    );
+  });
+
+  test("under each checklist task, the card's answer in one quiet line; none under the case's own task", async () => {
+    drawAboutAStore();
+    await allFourAnswered();
+
+    expect(exposureReads).toHaveBeenCalledTimes(1);
+    expect(exposureReads).toHaveBeenCalledWith(new ObjectID(CASE_ID));
+
+    const whoRead: HTMLElement = answerUnder(WHO_READ_TITLE)!;
+
+    // The brief's words: reads not logged, so the data is treated as read.
+    expect(whoRead).toHaveTextContent(READS_NOT_LOGGED);
+    expect(whoRead).toHaveAttribute(
+      "data-item",
+      ExposureChecklistItem.WhoReadIt,
+    );
+    // Quiet: small grey words under the task, never louder than it.
+    expect(whoRead.className).toContain("text-xs");
+    expect(whoRead.className).toContain("text-gray-600");
+
+    expect(answerUnder(REPORT_TITLE)).toHaveTextContent(
+      "GDPR Article 33 may apply first",
+    );
+    expect(answerUnder(ROTATE_TITLE)).toHaveTextContent("1 secret to rotate.");
+    // The summary is not below the task: the answer says where it is.
+    expect(answerUnder(CLOSE_TITLE)).toHaveTextContent(
+      ANSWER_SUMMARY_TO_WRITE_ON_NOTICES,
+    );
+    expect(answerUnder(CLOSE_TITLE)).not.toHaveTextContent("below");
+    expect(answerUnder("Pull the proxy logs")).toBeNull();
+  });
+
+  test("a written internal summary is named where it is, in Breach Notices", async () => {
+    exposureReads.mockResolvedValue(
+      exposureAnswerOf({
+        assessment: exposureAssessmentOf({
+          sections: {
+            [ExposureDraftPart.InternalSummary]: {
+              part: ExposureDraftPart.InternalSummary,
+              markdown:
+                "eu-customer-exports was public for nine days; reads were not logged.",
+              source: ImpactAssessmentSectionSource.Edited,
+              factKeys: [],
+              editedAt: "2026-11-11T11:00:00.000Z",
+            },
+          },
+        }),
+      }),
+    );
+    drawAboutAStore();
+    await allFourAnswered();
+
+    expect(answerUnder(CLOSE_TITLE)).toHaveTextContent(
+      ANSWER_SUMMARY_DRAFTED_ON_NOTICES,
+    );
+  });
+
+  test("the answer sits under the task's title, before who has it", async () => {
+    drawAboutAStore();
+    await allFourAnswered();
+
+    const row: HTMLElement = rowOf(WHO_READ_TITLE);
+    const title: HTMLElement = within(row).getByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.title,
+    );
+    const answer: HTMLElement = answerUnder(WHO_READ_TITLE)!;
+    const assignee: HTMLElement = within(row).getByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.assigneeLine,
+    );
+
+    expect(
+      title.compareDocumentPosition(answer) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      answer.compareDocumentPosition(assignee) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a done task keeps its answer, under its struck-through title", async () => {
+    drawAboutAStore();
+    await allFourAnswered();
+
+    expect(rowOf(ROTATE_TITLE)).toHaveAttribute("data-done", "true");
+    expect(answerUnder(ROTATE_TITLE)).toBeInTheDocument();
+  });
+
+  test("each answer links to the Was It a Breach? card on the case's Overview", async () => {
+    drawAboutAStore();
+    await allFourAnswered();
+
+    for (const line of screen.getAllByTestId(EXPOSURE_TEST_IDS.taskAnswer)) {
+      const href: string =
+        within(line)
+          .getByRole("link", { name: WAS_IT_A_BREACH })
+          .getAttribute("href") || "";
+
+      // The Overview, not its Tasks, landing on the card.
+      expect(href).toContain(`/security-events/cases/${CASE_ID}`);
+      expect(href).not.toContain("/tasks");
+      expect(href.endsWith(`#${EXPOSURE_CARD_PLACE}`)).toBe(true);
+    }
+
+    expect(getExposureCardRoute(new ObjectID(CASE_ID)).toString()).toBe(
+      `${RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SECURITY_CASE_VIEW] as Route,
+        { modelId: new ObjectID(CASE_ID) },
+      ).toString()}#${EXPOSURE_CARD_PLACE}`,
+    );
+  });
+
+  test("a task a person renamed is theirs: no key, a new title, no answer; the playbook's title in other capitals is still its line", async () => {
+    tasks = [
+      task(WHO_READ, "Ask the vendor whether they read it"),
+      task(REPORT, REPORT_TITLE.toUpperCase()),
+    ];
+    drawAboutAStore();
+
+    await waitFor(() => {
+      expect(answerUnder(REPORT_TITLE.toUpperCase())).toBeInTheDocument();
+    });
+    expect(answerUnder("Ask the vendor whether they read it")).toBeNull();
+  });
+
+  test("read once for the page: a colleague's task change reads the tasks again, not the assessment", async () => {
+    drawAboutAStore();
+    await allFourAnswered();
+    await waitFor(() => {
+      expect(colleagueChanges.length).toBeGreaterThanOrEqual(3);
+    });
+
+    const tasksBefore: number = getListMock.mock.calls.length;
+
+    await act(async () => {
+      colleagueChanges[1]!();
+    });
+    await waitFor(() => {
+      expect(getListMock.mock.calls.length).toBeGreaterThan(tasksBefore);
+    });
+    expect(exposureReads).toHaveBeenCalledTimes(1);
+  });
+
+  test("a change to the case reads the assessment again, and each answer says what it says now", async () => {
+    const refresh: (refreshToken: string) => void = drawAboutAStore();
+
+    await waitFor(() => {
+      expect(answerUnder(WHO_READ_TITLE)).toHaveTextContent(READS_NOT_LOGGED);
+    });
+
+    exposureReads.mockResolvedValue(
+      exposureAnswerOf({ view: exposureViewOf({ accessLogging: true }) }),
+    );
+
+    await act(async () => {
+      refresh("second");
+    });
+
+    await waitFor(() => {
+      expect(exposureReads).toHaveBeenCalledTimes(2);
+    });
+    await waitFor(() => {
+      expect(answerUnder(WHO_READ_TITLE)).toHaveTextContent(READS_LOGGED);
+    });
+  });
+
+  test("a case about no data store reads no assessment, and draws no answer", async () => {
+    drawAboutAStore([{ type: "IP Address", value: "203.0.113.9" }]);
+
+    await waitFor(() => {
+      expect(rows()).toHaveLength(5);
+    });
+    expect(exposureReads).not.toHaveBeenCalled();
+    expect(screen.queryByTestId(EXPOSURE_TEST_IDS.taskAnswer)).toBeNull();
+
+    // A case whose entities were not read: the page as it was before.
+    cleanup();
+    draw();
+
+    await waitFor(() => {
+      expect(rows()).toHaveLength(5);
+    });
+    expect(exposureReads).not.toHaveBeenCalled();
+    expect(screen.queryByTestId(EXPOSURE_TEST_IDS.taskAnswer)).toBeNull();
+  });
+
+  test("a reader the server refuses sees the tasks as they are: no answer, and no error", async () => {
+    exposureReads.mockRejectedValue(
+      new DataSecurityApiError("Ask a Project Admin for a role.", 403),
+    );
+    drawAboutAStore();
+
+    await waitFor(() => {
+      expect(exposureReads).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(rows()).toHaveLength(5);
+    });
+    expect(screen.queryByTestId(EXPOSURE_TEST_IDS.taskAnswer)).toBeNull();
+    expect(
+      screen.queryByText("Ask a Project Admin for a role."),
+    ).not.toBeInTheDocument();
+    expect(isExposureReadRefusal(new DataSecurityApiError("", 403))).toBe(true);
+    expect(isExposureReadRefusal(new DataSecurityApiError("", 422))).toBe(true);
+    expect(isExposureReadRefusal(new DataSecurityApiError("", 500))).toBe(
+      false,
+    );
+  });
+
+  test("a read that fails leaves the tasks as they are", async () => {
+    exposureReads.mockRejectedValue(new Error("The server could not answer."));
+    drawAboutAStore();
+
+    await waitFor(() => {
+      expect(exposureReads).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(rows()).toHaveLength(5);
+    });
+    expect(screen.queryByTestId(EXPOSURE_TEST_IDS.taskAnswer)).toBeNull();
+    expect(
+      screen.queryByText("The server could not answer."),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a case not assessed yet says so under each checklist task, with the link to the card where it is assessed", async () => {
+    exposureReads.mockResolvedValue(exposureAnswerOf(EXPOSURE_NOT_ASSESSED));
+    drawAboutAStore();
+    await allFourAnswered();
+
+    for (const line of screen.getAllByTestId(EXPOSURE_TEST_IDS.taskAnswer)) {
+      expect(line).toHaveTextContent(NOT_ASSESSED_TITLE);
+      expect(
+        within(line).getByRole("link", { name: WAS_IT_A_BREACH }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  test("a case about no store the reader may read draws no answer, as the Overview draws no card", async () => {
+    exposureReads.mockResolvedValue(
+      exposureAnswerOf({ ...EXPOSURE_NOT_ASSESSED, stores: [] }),
+    );
+    drawAboutAStore();
+
+    await waitFor(() => {
+      expect(exposureReads).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(rows()).toHaveLength(5);
+    });
+    expect(screen.queryByTestId(EXPOSURE_TEST_IDS.taskAnswer)).toBeNull();
+    expect(isExposureAnswerShown(null)).toBe(false);
+    expect(
+      isExposureAnswerShown(
+        exposureAnswerOf({ ...EXPOSURE_NOT_ASSESSED, stores: [] }),
+      ),
+    ).toBe(false);
+    expect(isExposureAnswerShown(exposureAnswerOf(EXPOSURE_NOT_ASSESSED))).toBe(
+      true,
+    );
+    expect(isExposureAnswerShown(exposureAnswerOf())).toBe(true);
   });
 });

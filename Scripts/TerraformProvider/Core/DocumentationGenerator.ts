@@ -363,7 +363,7 @@ export class DocumentationGenerator {
     { pattern: /^cloud_/, name: "Cloud" },
     {
       pattern:
-        /^host|^docker_|^podman_|^kubernetes_|^proxmox_|^openstack_|^ceph_|^storage_array|^vcenter|^database|^queue|^serverless_function|^collector_config|^inventory_item/,
+        /^host|^docker_|^podman_|^kubernetes_|^proxmox_|^xcp_ng_|^openstack_|^ceph_|^storage_array|^vcenter|^database|^queue|^serverless_function|^collector_config|^inventory_item/,
       name: "Infrastructure",
     },
     { pattern: /^iot_/, name: "IoT" },
@@ -493,7 +493,7 @@ data "${this.config.providerName}_incident_severity" "critical" {
 
 ## Names another record has
 
-A project that requires unique names - on in a new project, under **Project Settings → Basic → Project → Unique Names** - gives each monitor, template, API key and most other records you name a name of its own among its kind, whatever its case or spacing. Teams, labels, on-call policies and schedules, status pages and some other kinds have one in every project. A create or a rename onto a name another of its kind has fails the apply with OneUptime's words, such as \`Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.\`, once the provider has asked again for 30 seconds in case another resource of the same apply is giving the name up. Give the resource a name nobody has, or \`terraform import\` the record that has it. A data source that looks such a record up by \`name\` finds exactly one. See [Names another record has](https://oneuptime.com/docs/terraform/troubleshooting#names-another-record-has).
+A project that requires unique names - on in a new project, under **Project Settings → Basic → Project → Unique Names** - gives each monitor, template, API key and most other records you name a name of its own among its kind, whatever its case or spacing. Teams, labels, on-call policies and schedules, status pages and some other kinds have one in every project. A create or a rename onto a name another of its kind has fails the apply with OneUptime's words, such as \`Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.\`, once the provider has asked again for 30 seconds in case another resource of the same apply is giving the name up. Give the resource a name nobody has, or \`terraform import\` the record that has it: when your API key may read that record, the error names it, with the \`terraform import\` line to run. A data source that looks such a record up by \`name\` finds exactly one. See [Names another record has](https://oneuptime.com/docs/terraform/troubleshooting#names-another-record-has).
 
 ## IDs inside resources
 
@@ -1700,8 +1700,11 @@ If your identity provider manages your people over SCIM, let it: while SCIM Push
    * What a layer's rotation and restriction times look like. Both are JSON,
    * and the API's schema says nothing of their shape, so readers worked them
    * out by trial and error - and one key is spelled restictionType
-   * (OneUptime/terraform-provider-oneuptime#11). The fragments here are not
-   * validated, so each repeats a shape the page's example applies.
+   * (OneUptime/terraform-provider-oneuptime#11). OneUptime 18.0.0 reads
+   * restrictionType too and returns both (OneUptime/oneuptime#11269); the
+   * examples keep restictionType, which every server reads. The fragments
+   * here are not validated, so each repeats a shape the page's example
+   * applies.
    */
   private getOnCallScheduleLayerGuide(): string {
     return `<a id="${ON_CALL_SCHEDULE_LAYER_GUIDE.anchor}"></a>
@@ -1725,11 +1728,11 @@ rotation = jsonencode({
 })
 \`\`\`
 
-\`intervalCount\` is a whole number, 1 or more: with \`value = 2\` and \`intervalType = "Week"\`, the duty hands off every two weeks.
+\`intervalCount\` is a whole number, 1 or more: with \`value = 2\` and \`intervalType = "Week"\`, the duty hands off every two weeks. OneUptime 18.0.0 and later refuse an interval spelled any other way (\`"Weekly"\`, \`"week"\`), and a count under another key; earlier versions handed such a layer off every day.
 
 ### Restriction times
 
-When the layer is on call. \`restictionType\` is the key's real name, without the second "r": the server ignores a key spelled any other way.
+When the layer is on call. The examples write its type under \`restictionType\`, without the second "r": every OneUptime server reads that spelling. OneUptime 18.0.0 and later also read \`restrictionType\`, send the type back under both, and refuse a restriction whose type is missing, is not one of the three below, or is named differently under each spelling, rather than storing a layer that is never on call. Earlier versions ignore a key spelled any other way, so on one of them keep \`restictionType\`. On 18.0.0 and later, write \`restrictionType\`: sending the type back under \`restictionType\` is deprecated, and stops in the first major version released on or after 1 June 2027, after which a configuration that writes it no longer matches what the server sends back.
 
 - \`None\`: around the clock.
 
@@ -1755,7 +1758,7 @@ When the layer is on call. \`restictionType\` is the key's real name, without th
   })
   \`\`\`
 
-- \`Weekly\`: windows in the week. A window runs from its \`startTime\` to its \`endTime\`, and both the weekday and the time of day count: date each one on the weekday you mean, and name those weekdays in \`startDay\` and \`endDay\`. A window is continuous, so Monday 09:00 to Friday 17:00 includes the nights in between. For working hours, give each day a window of its own, as the example above does. A window that ends earlier in the week than it starts runs over the weekend:
+- \`Weekly\`: windows in the week. A window runs from its \`startTime\` to its \`endTime\`, and both the weekday and the time of day count: date each one on the weekday you mean, and name those weekdays in \`startDay\` and \`endDay\`. OneUptime 18.0.0 and later refuse a window whose times fall on other weekdays than it names, in the schedule's \`timezone\`, with an error that names the window and a time to write instead; earlier versions put such a window on the weekdays its times fall on. A window is continuous, so Monday 09:00 to Friday 17:00 includes the nights in between. For working hours, give each day a window of its own, as the example above does. A window that ends earlier in the week than it starts runs over the weekend:
 
   \`\`\`terraform
   restriction_times = jsonencode({

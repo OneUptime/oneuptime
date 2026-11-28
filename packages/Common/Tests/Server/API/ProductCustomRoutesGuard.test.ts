@@ -1,6 +1,7 @@
 import ProductKey from "../../../Types/Product/ProductKey";
 import { SWITCHABLE_PRODUCTS } from "../../../Types/Product/ServerProducts";
 import { SETUP_ACTIONS_RUN_OUTSIDE_CHAT } from "../../../Types/AI/AISetupActions";
+import { DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT } from "../../../Types/AI/AIDataSecurityActions";
 import { getToolProducts } from "../../../Server/Utils/AI/Toolbox/ToolProducts";
 import {
   PRODUCT_OF_AI_RESOURCE_TYPE,
@@ -150,6 +151,17 @@ const SETUP_ACTION_PRODUCTS: ReadonlyArray<ProductKey> = Array.from(
   ),
 );
 
+// Ask AI's Data Security actions, run one call each for the MCP server (#10378).
+const DATA_SECURITY_ACTION_PRODUCTS: ReadonlyArray<ProductKey> = Array.from(
+  new Set<ProductKey>(
+    DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT.flatMap(
+      (action: string): ReadonlyArray<ProductKey> => {
+        return getToolProducts(action);
+      },
+    ),
+  ),
+);
+
 const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/StatusPageAPI.ts": {
     products: [ProductKey.StatusPages],
@@ -203,7 +215,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
    */
   "packages/Common/Server/API/MonitorAPI.ts": {
     products: [ProductKey.Monitors],
-    leftAlone: {},
+    leftAlone: {
+      // Which monitors cover a page's recommended ones (#11074).
+      "`${new this.entityType().getCrudApiPath()?.toString()}${MONITOR_RECOMMENDATION_COVERAGE_PATH}`":
+        READ,
+    },
   },
   "packages/Common/Server/API/MonitorGroupAPI.ts": {
     products: [ProductKey.Monitors],
@@ -217,6 +233,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     },
   },
   "packages/Common/Server/API/MonitorTemplateAPI.ts": {
+    products: [ProductKey.Monitors],
+    leftAlone: {},
+  },
+  // Changing many monitors' template at once (#11260, #11266): writes.
+  "packages/Common/Server/API/MonitorTemplateChangeAPI.ts": {
     products: [ProductKey.Monitors],
     leftAlone: {},
   },
@@ -394,12 +415,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.DataSecurity, ProductKey.Code],
     leftAlone: {},
   },
-  /*
-   * Describe a data type: OneUptime AI drafts one from a sentence or a
-   * group of unplaced fields for the data type form. It saves nothing, but
-   * it asks OneUptime AI for Data Security, so it is refused while Data
-   * Security is off.
-   */
+  // Describe It (#10371): OneUptime AI drafts a data type for the form to save.
   "packages/Common/Server/API/DataSecurityCustomDataTypeAPI.ts": {
     products: [ProductKey.DataSecurity],
     leftAlone: {},
@@ -407,6 +423,78 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
   "packages/Common/Server/API/CloudConnectionAPI.ts": {
     products: [ProductKey.Cloud],
     leftAlone: {},
+  },
+  /*
+   * Cost views (#11006): Make Groups writes a view's missing groups as the
+   * server (CloudCostViewSync), so it names Cloud; the allocation reads.
+   */
+  "packages/Common/Server/API/CloudCostViewAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/:viewId/allocation`": READ,
+    },
+  },
+  // A cost group's page reads its spend (#11006).
+  "packages/Common/Server/API/CloudCostGroupAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/:groupId/spend`": READ,
+    },
+  },
+  /*
+   * Costs' breakdown and its FOCUS export (#11009): both read the costs as
+   * the caller may read them, a project API key's script included.
+   */
+  "packages/Common/Server/API/CloudCostAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/breakdown`": READ,
+      "`${path}/export`": READ,
+    },
+  },
+  /*
+   * A scheduled cost report (#11009): its preview reads what it would say
+   * now; Send Me a Copy sends it, so it names Cloud.
+   */
+  "packages/Common/Server/API/CloudCostReportAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/:reportId/preview`": READ,
+    },
+  },
+  // A budget's page reads its period, and the Forecast page a forecast (#11008).
+  "packages/Common/Server/API/CloudBudgetAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/forecast`": READ,
+      "`${path}/:budgetId/spend`": READ,
+    },
+  },
+  /*
+   * Acting on savings (#11010): every route registers through its post
+   * helper, which refuses a change while Cloud is off, and the pull request
+   * while Code is too. Each call is decided here.
+   */
+  "packages/Common/Server/API/CloudSavingsAPI.ts": {
+    products: [ProductKey.Cloud, ProductKey.Code],
+    leftAlone: {},
+    readHelpers: {
+      post: {
+        "CLOUD_SAVINGS_API_ROUTES.offer": READ,
+        "CLOUD_SAVINGS_API_ROUTES.summary": READ,
+        'CLOUD_SAVINGS_API_ROUTES.schedulePreview(":id")': READ,
+        "CLOUD_SAVINGS_API_ROUTES.apply":
+          "Refused while Cloud is off: it asks for a change to a customer's cloud, made at once for an approver.",
+        'CLOUD_SAVINGS_API_ROUTES.approve(":id")':
+          "Refused while Cloud is off: an approval makes the change.",
+        'CLOUD_SAVINGS_API_ROUTES.dismiss(":id")':
+          "Refused while Cloud is off: it closes a change waiting for approval.",
+        'CLOUD_SAVINGS_API_ROUTES.undo(":id")':
+          "Refused while Cloud is off: it changes a customer's cloud back.",
+        "CLOUD_SAVINGS_API_ROUTES.fixInCode":
+          "Refused while Cloud or Code is off: it starts a task in Code that opens a pull request.",
+      },
+    },
   },
   "packages/Common/Server/API/NetworkControllerConnectionAPI.ts": {
     products: [ProductKey.Network],
@@ -554,10 +642,30 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
     },
   },
+  // Required tags' coverage (#11012): Cloud > Tags and an account's Tags read it.
+  "packages/Common/Server/API/CloudRequiredTagAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${new this.entityType().getCrudApiPath()?.toString()}/${CLOUD_TAG_COVERAGE_ROUTE}`":
+        READ,
+    },
+  },
+  "packages/Common/Server/API/XcpNgResourceAPI.ts": {
+    products: [ProductKey.XcpNg],
+    leftAlone: {
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}/inventory-summary/:poolId`":
+        READ,
+    },
+  },
   "packages/Common/Server/API/HostAPI.ts": {
     products: [ProductKey.Hosts],
     leftAlone: {
       "`${new this.entityType().getCrudApiPath()?.toString()}/needs-attention`":
+        READ,
+      // The cloud VM a host is, and the host a VM is (#11013).
+      "`${new this.entityType().getCrudApiPath()?.toString()}/:id/${HOST_CLOUD_MACHINE_ROUTE}`":
+        READ,
+      "`${new this.entityType().getCrudApiPath()?.toString()}/${HOST_OF_CLOUD_RESOURCE_ROUTE}/:cloudResourceId`":
         READ,
     },
   },
@@ -757,6 +865,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  // How far each open erasure request has got (#11232).
+  "packages/Common/Server/API/SecurityUserErasureRequestAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/AIInsightAPI.ts": {
     products: [ProductKey.AIInsights],
     leftAlone: {
@@ -778,6 +891,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
    */
   "packages/Common/Server/API/SetupActionAPI.ts": {
     products: SETUP_ACTION_PRODUCTS,
+    leftAlone: {},
+  },
+  /*
+   * Ask AI's Data Security actions, one call each, for the MCP server
+   * (#10378): the products of the action the body names, as Ask AI's tool
+   * names them (ProductsOfRequest.dataSecurityAction) - Data Security, and
+   * Code too for Fix with AI.
+   */
+  "packages/Common/Server/API/DataSecurityActionAPI.ts": {
+    products: DATA_SECURITY_ACTION_PRODUCTS,
     leftAlone: {},
   },
   /*
@@ -849,6 +972,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     readHelpers: {
       read: {
         '"/code-task/repositories"': READ,
+        // The repositories a page holds, read by their ids (#10764).
         '"/code-task/repositories-by-id"': READ,
         '"/code-task/repository/:repositoryId"': READ,
         '"/code-task/list"': READ,
@@ -1353,7 +1477,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "An AI agent's or a Runner's own, with its key: it reports on the work OneUptime handed it. OneUptime AI starts no work on a record of a product switched off, nor hands a code fix out while Code is (AIRunService), and no runbook starts from inside OneUptime while Runbooks is (RunbookStarter).",
+      "An AI agent's or a Runner's own, with its key: it reports on the work OneUptime handed it. OneUptime AI starts no work on a record of a product switched off, nor hands a code fix out while Code is (AIRunService), and no runbook starts from inside OneUptime while Runbooks is (RunbookStarter). A database server's agent takes the Data Observability reads its own server is due and reports what it read, as a probe does (ProbeIngest/DataObservability.ts): the server's infrastructure reading, never a person's write.",
       {
         "packages/Common/Server/API/AIAgentAPI.ts": 1,
         "packages/Common/Server/API/AIAgentCodeTaskAPI.ts": 1,
@@ -1364,7 +1488,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/AIAgentTelemetryAPI.ts": 2,
         "packages/App/FeatureSet/Runbook/API/RunnerIngress.ts": 6,
         "packages/App/FeatureSet/Runbook/API/KubernetesAiAgentIngress.ts": 6,
-        "packages/App/FeatureSet/Runbook/API/ResourceAiAgentIngress.ts": 6,
+        "packages/App/FeatureSet/Runbook/API/ResourceAiAgentIngress.ts": 8,
       },
     ),
     ...decided(
@@ -1389,8 +1513,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/PacketCapture.ts": 3,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Probe.ts": 6,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Register.ts": 1,
+        // Its SNMP trap receiver's report, for its devices' SNMPv3 users (#11005).
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/SnmpTrapReceiver.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Syslog.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts": 3,
+        // The XCP-ng connections it reads and tests (#10996, #10999), as a vCenter's.
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/XcpNgCollection.ts": 3,
+        // The storage array connections it reads and tests (Dell PowerMax, #11004).
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/StorageArrayCollection.ts": 3,
         "packages/Probe/API/IncomingRequestIngress.ts": 2,
       },
     ),
@@ -1446,14 +1576,14 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read.",
+      "Every table's CRUD API, and the move of an ordered list's row (issues #9573, #9609): a write or a move refuses a record of a product that is off before any hook runs (assertProductIsOn, see below), and a write again where every write is (ProductWriteRefusal). Its other routes read, the pictures a record's Markdown shows among them, by GET or POST (#11256).",
       {
-        "packages/Common/Server/API/BaseAPI.ts": 9,
+        "packages/Common/Server/API/BaseAPI.ts": 10,
         "packages/Common/Server/API/BaseAnalyticsAPI.ts": 7,
       },
     ),
     ...decided(
-      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone, which monitors, dashboards, saved views, recording rules and SLOs read what a scrub rule being written would hide, and what Security Events would lose (#10433), what a drop or sample filter being written would take of the last day's logs or traces, and what reads those records (#10436) - as a POST for the rule or filter it describes, which is never saved - and how many values each of the project's scrub rules changed in the last week, by service and version (#10366).",
+      "It only reads, for any product's records: how many use a value, what an owner rule would add, where a record is used, who a monitor not saved yet would tell, the resources a record could affect, a custom field's options in use, what OneUptime AI may do, today's AI usage, whether a public note posted now is on a status page and notifies anyone, whether an announcement, a maintenance event or a maintenance template on the status pages picked shows and notifies anyone, which monitors, dashboards, saved views, recording rules and SLOs read what a scrub rule being written would hide, and what Security Events would lose (#10433), what a drop or sample filter being written would take of the last day's logs or traces, and what reads those records (#10436) - as a POST for the rule or filter it describes, which is never saved - and how many values each of the project's scrub rules changed in the last week, by service and version (#10366), and who owns the records a page shows, as a POST for their IDs, which changes nothing (#11436).",
       {
         "packages/Common/Server/API/PickedStatusPagesReachRoute.ts": 1,
         "packages/Common/Server/API/ScrubRuleReadersAPI.ts": 1,
@@ -1462,6 +1592,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/ArchivableValueAPI.ts": 2,
         "packages/Common/Server/API/CustomFieldDefinitionAPI.ts": 1,
         "packages/Common/Server/API/OwnerRulePreviewRoute.ts": 1,
+        "packages/Common/Server/API/RecordOwnershipRoute.ts": 1,
         "packages/Common/Server/API/PublicNoteReachRoute.ts": 1,
         "packages/Common/Server/API/UsedByAPI.ts": 1,
         "packages/Common/Server/API/WhoIsToldAPI.ts": 1,
@@ -1771,6 +1902,7 @@ const productsOfRefusal: (
         PRODUCT_OF_AI_RESOURCE_TYPE,
       ),
       "ProductsOfRequest.setupAction": SETUP_ACTION_PRODUCTS,
+      "ProductsOfRequest.dataSecurityAction": DATA_SECURITY_ACTION_PRODUCTS,
     };
 
     return resolvers[refusal.argument] || handed[refusal.argument] || null;
@@ -2012,6 +2144,26 @@ describe("what the decisions stand on", () => {
     for (const action of ["invite_people", "set_how_to_reach_me"]) {
       expect(SETUP_ACTIONS_RUN_OUTSIDE_CHAT).toContain(action);
       expect([action, getToolProducts(action)]).toEqual([action, []]);
+    }
+  });
+
+  /*
+   * POST /api/data-security-actions/run does the same for Data Security's
+   * actions (#10378): every one of them is Data Security's, and Fix with AI
+   * opens its pull request through Code too.
+   */
+  test("the Data Security actions' route names Data Security, and Code for Fix with AI only", () => {
+    expect([...DATA_SECURITY_ACTION_PRODUCTS].sort()).toEqual(
+      [ProductKey.DataSecurity, ProductKey.Code].sort(),
+    );
+
+    for (const action of DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT) {
+      expect([action, getToolProducts(action)]).toEqual([
+        action,
+        action === "fix_data_security_issue_with_ai"
+          ? [ProductKey.DataSecurity, ProductKey.Code]
+          : [ProductKey.DataSecurity],
+      ]);
     }
   });
 

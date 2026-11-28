@@ -28,12 +28,15 @@ Die **Übersicht** zeigt, wie es um Ihre Daten gerade steht. Solange das Projekt
 
 ## Eine Datenbank verbinden
 
-Verwenden Sie ein **schreibgeschütztes Login**. Wählen Sie in der Übersicht oder unter Datenbanken **Datenbank verbinden**, dann eines von beiden:
+Verwenden Sie ein **schreibgeschütztes Login**. Wählen Sie in der Übersicht oder unter Datenbanken **Datenbank verbinden**, dann eine dieser Möglichkeiten:
 
 - **OneUptime verbindet sich**: Fügen Sie eine Verbindungszeichenfolge ein. Sie wird verschlüsselt gespeichert und nie wieder angezeigt.
 - **Eine Sonde in meinem Netzwerk verbindet sich**: Wählen Sie eine der Sonden dieses Projekts und benennen Sie die Umgebungsvariable der Sonde, die die Verbindungszeichenfolge enthält (zum Beispiel \`ORDERS_DB_URL\`). Die Verbindungszeichenfolge verlässt Ihr Netzwerk nie. Aktualisieren Sie die Sonde zuerst auf die neueste Version.
+- **Mein Datenbank-Agent verbindet sich**: Wählen Sie den Datenbankserver, neben dem sein Datenbank-Agent läuft, und benennen Sie die Datenbank darauf, die gelesen werden soll. Der Agent liest sie mit eigenen Logins, daher wird keines in OneUptime gespeichert. Er liest PostgreSQL, MySQL und MariaDB, sobald sein Betreiber dort, wo er läuft, \`ONEUPTIME_DATA_OBSERVABILITY=true\` setzt.
 
 Eine Datenbank, die bereits für die Datensicherheit verbunden ist, wird ebenfalls überwacht.
+
+In den **Einstellungen** einer Datenbank, in ihrem Menü, benennen Sie sie um (**Details bearbeiten**), geben ihr ein anderes Login, eine andere Sonde oder einen Datenbank-Agenten (**Verbindung ändern**), lesen sie nicht mehr und verwerfen ihre Tabellen und Prüfungen, während die Datensicherheit sie behält (**Aus Data Observability entfernen**), oder löschen sie aus OneUptime (**Datenbank löschen**). Solange die Datensicherheit sich auf eine Datenbank stützt, kann sie nur löschen, wer Datenspeicher der Datensicherheit löschen darf.
 
 **Datenbanken, die Sie verbinden könnten** listet auf derselben Seite auf, was Ihr Projekt bereits kennt und noch niemand verbunden hat: Datenbanken, mit denen Ihre Traces sprechen, solche in Ihren Cloud-Konten und solche, die die Datenbanküberwachung beobachtet. **Verbinden** füllt das Formular mit dem vor, was über jede bekannt ist. Nichts wird gelesen, bevor Sie sie verbinden.
 

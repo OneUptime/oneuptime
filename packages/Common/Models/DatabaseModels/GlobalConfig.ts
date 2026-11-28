@@ -23,6 +23,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import Port from "../../Types/Port";
+import { CALL_VOICE_VALUES } from "../../Types/Call/CallVoice";
 import {
   DEFAULT_TWILIO_CONFIG_USE,
   TwilioConfigUse,
@@ -738,6 +739,70 @@ export default class GlobalConfig extends GlobalConfigModel {
     default: DEFAULT_TWILIO_CONFIG_USE,
   })
   public twilioUsedFor?: TwilioConfigUse = undefined;
+
+  /*
+   * THE VOICE THE SERVER'S CALLS SPEAK WITH (#10948): one of OneUptime's
+   * short list of neural Amazon Polly and Google voices
+   * (Types/Call/CallVoice), for every call through the server's own Twilio
+   * account - a project's own Twilio config has its own. Empty - as on every
+   * installation before it - calls speak with the account's default voice
+   * in the Twilio Console: Twilio's Basic voice, unless its owner picked
+   * another. Not one of the account's columns (SERVER_TWILIO_ACCOUNT_COLUMNS):
+   * it is chosen in the Admin Dashboard even while the GLOBAL_TWILIO_
+   * environment variables set the account - unless GLOBAL_TWILIO_CALL_VOICE
+   * sets the voice too (#11064): this one is then not used, and
+   * GlobalConfigService refuses a write to it. GlobalConfigService refuses a
+   * voice the list does not hold.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Twilio Call Voice",
+    description:
+      "The voice calls through the server's Twilio account speak with: a neural Amazon Polly or Google voice, which Twilio charges for. Leave it empty for the voice the account uses by default (Twilio's free Basic voice unless you changed it in the Twilio Console).",
+    allowedValues: CALL_VOICE_VALUES,
+    example: "Polly.Joanna-Neural",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public twilioCallVoice?: string = undefined;
+
+  /*
+   * WHETHER PROJECTS CHOOSE THE VOICE OF THEIR CALLS THROUGH THE SERVER'S
+   * TWILIO ACCOUNT (#11065, Types/Call/ProjectCallVoice). Off - as on every
+   * server until its master admin turns it on - every project's calls
+   * through it speak with the server's voice. On, a project owner or admin
+   * chooses theirs (Project.callVoice), and Twilio charges the server's
+   * account for it: the owner's consent to that. Never on OneUptime Cloud,
+   * whose account OneUptime pays for: GlobalConfigService refuses it there,
+   * and calls read it as off.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Let Projects Choose Their Call Voice",
+    description:
+      "When on, Project Owners and Project Admins choose the voice their project's calls speak with through this server's Twilio account, which Twilio charges the account for. Not offered on OneUptime Cloud.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public letProjectsChooseCallVoice?: boolean = undefined;
 
   /*
    * What carries the server's SMS and calls (Types/CallAndSMS/

@@ -12,6 +12,7 @@
 - [Azure Monitor 메트릭 및 로그 스트리밍](/docs/telemetry/cloud-streaming-azure): 핵심 메트릭은 몇 분 안에, 리소스 로그도 구독의 이벤트 허브에서 읽어 옵니다.
 - [Google Cloud 로그 스트리밍](/docs/telemetry/cloud-streaming-google-cloud): 기록되는 즉시 모든 로그를 Pub/Sub를 통해 푸시합니다.
 - [데이터 보안](#데이터-보안): 연결이 데이터 보안에 무엇을 읽도록 허용하는지, 그리고 각 수준이 명령에 무엇을 더하는지.
+- [절감 작업](#절감-작업): 승인한 절감을 OneUptime이 실행하게 하는 최소한의 액세스입니다.
 - [AI가 문제를 해결하도록 허용](#ai가-문제를-해결하도록-허용): 명령 하나만 더 실행하면 OneUptime AI가 찾은 문제를 해결할 수 있습니다.
 :::
 
@@ -26,7 +27,7 @@ flowchart TB
     ou --> chg["변경 사항과<br/>상태 이벤트"]
 ```
 
-- **액세스는 읽기만 할 수 있습니다.** 명령이 만드는 액세스는 리소스와 그 설정, 메트릭, 변경 사항, 공급자의 상태 이벤트, 계정의 비용만 읽고 그 외에는 아무것도 할 수 없습니다. AWS에서는 아래에 나열된 작업, Azure에서는 **Monitoring Reader** 및 **Cost Management Reader** 역할, Google Cloud에서는 뷰어 역할 여섯 개입니다. OneUptime은 이 액세스로 데이터나 비밀을 절대 읽지 않습니다. 다만 AI가 계정의 로그를 읽도록 허용한 경우에는 로그 줄을, [데이터 보안](#데이터-보안)의 콘텐츠 샘플을 켠 경우에는 그 샘플을 읽습니다. 삭제하면 OneUptime의 액세스가 끊깁니다.
+- **액세스는 읽기만 할 수 있습니다.** 명령이 만드는 액세스는 리소스와 그 설정, 메트릭, 변경 사항, 공급자의 상태 이벤트, 계정의 비용만 읽고 그 외에는 아무것도 할 수 없습니다. AWS에서는 아래에 나열된 작업, Azure에서는 **Monitoring Reader** 및 **Cost Management Reader** 역할(전역 관리자가 부여하면 **Reservations Reader**와 **Savings plan Reader**도), Google Cloud에서는 뷰어 역할 여섯 개입니다. OneUptime은 이 액세스로 데이터나 비밀을 절대 읽지 않습니다. 다만 AI가 계정의 로그를 읽도록 허용한 경우에는 로그 줄을, [데이터 보안](#데이터-보안)의 콘텐츠 샘플을 켠 경우에는 그 샘플을 읽습니다. 삭제하면 OneUptime의 액세스가 끊깁니다.
 - **OneUptime은 일정에 따라 읽습니다.** 연결할 때 다른 간격을 고르지 않으면 Azure와 Google Cloud는 5분마다, AWS는 10분마다 읽습니다. 각 읽기는 지난 읽기 이후 바뀐 내용도 기록하며, 30분마다 모든 리소스를 다시 나열합니다.
 - **리소스마다 고유한 페이지가 있습니다.** 리소스는 **클라우드 → 모든 리소스**에 상태, 주요 메트릭, 소유자, 레이블과 함께 표시됩니다. 나열된 리소스의 페이지에는 **연결된 리소스**(실행되는 곳, 트래픽을 보내는 곳), 엔드포인트, 태그, 설정, 그리고 **인시던트**, **경고**, **변경 사항**도 표시됩니다.
 - **계정마다 고유한 페이지가 있습니다.** 계정은 **클라우드 → 계정**에 유형과 리전별 리소스, **비용**, **변경 사항**, 그리고 리소스가 어떻게 이어지는지 보여 주는 **토폴로지**와 함께 표시됩니다.
@@ -55,7 +56,7 @@ OneUptime이 로그인하는 방법을 선택합니다. 권장하는 방법은 *
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -77,14 +78,14 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | Cloud Control을 통해 모든 리소스와 그 구성을 나열함 | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeSubnets`, `ec2:DescribeSecurityGroups`, `ec2:DescribeNatGateways`, `ec2:DescribeAddresses`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:Describe*`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `eks:ListClusters`, `eks:DescribeCluster`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `elasticbeanstalk:DescribeEnvironments`, `wafv2:ListWebACLs`, `wafv2:GetWebACL`, `network-firewall:ListFirewalls`, `globalaccelerator:ListAccelerators`, `cognito-idp:ListUserPools`, `appsync:ListGraphqlApis`, `sagemaker:ListEndpoints`, `apigateway:GET` |
 | 바뀐 내용을 읽음: 계정의 관리 이벤트 | `cloudtrail:LookupEvents` |
 | 계정에 대한 AWS 자체 상태 이벤트를 읽음 | `health:DescribeEvent*` |
-| 계정의 비용을 Cost Explorer에서 읽음 | `ce:GetCostAndUsage`, `ce:GetCostAndUsageWithResources`, `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetReservationCoverage`, `ce:GetReservationUtilization` |
-| 지출을 줄이는 방법을 Cost Optimization Hub에서 읽음 | `cost-optimization-hub:ListRecommendations` |
+| 계정의 비용을 Cost Explorer에서 읽음 | `ce:GetCostAndUsage*`, `ce:GetSavingsPlans*`, `ce:GetReservation*`, `savingsplans:DescribeSavingsPlans` |
+| 지출을 줄이는 방법을 Cost Optimization Hub에서 읽음 | `cost-optimization-hub:ListRecommendations`, `cost-optimization-hub:GetRecommendation` |
 | 조사 중에 리소스의 현재 상태와 최근 이벤트를 읽음 | `rds:DescribeEvents`, `autoscaling:DescribeScalingActivities`, `ec2:DescribeInstanceStatus`, `ecs:DescribeTaskDefinition`, `lambda:GetFunctionConfiguration`, `lambda:GetFunctionConcurrency`, `lambda:GetAlias` |
 | 조사 중에 계정의 할당량을 읽음 | `servicequotas:ListServiceQuotas` |
 | AI가 계정의 로그를 읽도록 허용한 경우에만 로그 줄을 읽음 | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | 관리 계정에서 조직의 계정을 나열함 | `organizations:ListAccounts` |
 
-`apigateway:GET`은 API 자체의 정의에만 허용되고 키에는 허용되지 않으며, 조직의 계정은 관리 계정의 역할만 나열할 수 있습니다. AWS Health는 Business, Enterprise On-Ramp 또는 Enterprise 지원 플랜을 사용하는 계정에만 응답합니다. 지원 플랜이 없으면 OneUptime은 하루 뒤에 다시 묻습니다.
+`apigateway:GET`은 API 자체의 정의에만 허용되고 키에는 허용되지 않으며, 조직의 계정은 관리 계정의 역할만 나열할 수 있습니다. Cost Explorer의 읽기는 비용, Savings Plans, 예약에 대한 세 가지 `Get` 작업 계열로 허용되며, 아무것도 바꾸지 않습니다. 역할도 사용자도 약정을 구매, 갱신, 반환할 수 없습니다. AWS Health는 Business, Enterprise On-Ramp 또는 Enterprise 지원 플랜을 사용하는 계정에만 응답합니다. 지원 플랜이 없으면 OneUptime은 하루 뒤에 다시 묻습니다.
 
 OneUptime은 각 리전의 EC2 인스턴스와 볼륨, VPC, 서브넷과 보안 그룹, NAT 게이트웨이, Auto Scaling 그룹, 로드 밸런서(Application, Network, Gateway, Classic), EKS 클러스터, ECS 클러스터와 서비스, Lambda 함수, RDS 데이터베이스, ElastiCache, SQS 대기열, SNS 주제, DynamoDB 테이블, Kinesis 스트림, Step Functions 상태 머신, API Gateway API, EFS 파일 시스템, OpenSearch 도메인, App Runner 서비스, Elastic Beanstalk 환경, WAF 웹 ACL, Network Firewall 방화벽, Cognito 사용자 풀, AppSync GraphQL API, SageMaker 엔드포인트를 태그와 함께 나열하고, CloudFront 배포와 그 웹 ACL은 us-east-1에서, Global Accelerator 액셀러레이터는 us-west-2에서 한 번 나열합니다. 이들이 어떻게 연결되는지도 기록합니다. 각 리소스가 실행되는 서브넷과 VPC 및 이를 보호하는 보안 그룹, 각 로드 밸런서가 트래픽을 보내는 곳, 각 EKS 클러스터의 네트워크와 노드 인스턴스입니다. OneUptime이 어떤 유형을 나열하기 전에 만든 역할도 그 유형 없이 경고 없이 계속 읽힙니다. 서브넷, 보안 그룹, EKS 클러스터, 또는 그 뒤에 추가된 웹 ACL, 방화벽, 액셀러레이터, 사용자 풀, GraphQL API, 엔드포인트처럼 그 유형도 나열하려면 명령을 다시 실행하세요. 그러면 이들은 메트릭을 보고하기 전부터 나열됩니다.
 
@@ -102,13 +103,15 @@ OneUptime은 역할의 신뢰 정책이 명령이 작성하는 `sts:ExternalId` 
 
 ### Azure Cloud Shell에서 명령 실행
 
-이 명령은 현재 구독에 **Monitoring Reader** 및 **Cost Management Reader** 역할이 있는 앱을 만들고, 비밀이 만료되는 날짜와 함께 앱의 세부 정보를 출력합니다.
+이 명령은 현재 구독에 **Monitoring Reader** 및 **Cost Management Reader** 역할이 있는 앱을 만들고, 테넌트의 예약과 절약 플랜을 나열하도록 테넌트에서 **Reservations Reader**와 **Savings plan Reader** 부여를 시도한 뒤(권한이 상승된 전역 관리자만 부여할 수 있으며, 그 외의 사용자에게는 부여되지 않았다고 표시하고 계속 진행합니다), 비밀이 만료되는 날짜와 함께 앱의 세부 정보를 출력합니다.
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
 OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
 APP=$(echo "$OUT" | jq -r .appId)
 az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null
+az role assignment create --assignee "$APP" --role "Reservations Reader" --scope "/providers/Microsoft.Capacity" > /dev/null 2>&1 || echo "Reservations Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
+az role assignment create --assignee "$APP" --role "Savings plan Reader" --scope "/providers/Microsoft.BillingBenefits" > /dev/null 2>&1 || echo "Savings plan Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
 END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
@@ -120,6 +123,8 @@ SCOPE="/providers/Microsoft.Management/managementGroups/$(az account show --quer
 OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
 APP=$(echo "$OUT" | jq -r .appId)
 az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null
+az role assignment create --assignee "$APP" --role "Reservations Reader" --scope "/providers/Microsoft.Capacity" > /dev/null 2>&1 || echo "Reservations Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
+az role assignment create --assignee "$APP" --role "Savings plan Reader" --scope "/providers/Microsoft.BillingBenefits" > /dev/null 2>&1 || echo "Savings plan Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
 END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
@@ -227,7 +232,7 @@ IAM은 사용자 자체의 인라인 정책을 모두 합쳐 2,048자로 제한�
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeDataSecurity > /dev/null 2>&1 || true
 aws iam put-group-policy --group-name OneUptimeDataSecurity --policy-name OneUptimeDataSecurity --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:ListAllMyBuckets","s3:GetBucketLocation","s3:GetBucketPolicyStatus","s3:GetBucketPublicAccessBlock","s3:GetAccountPublicAccessBlock","s3:GetBucketAcl","s3:GetBucketPolicy","s3:GetEncryptionConfiguration","s3:GetBucketVersioning","s3:GetBucketLogging","s3:GetBucketOwnershipControls","s3:GetReplicationConfiguration","s3:GetBucketTagging","rds:DescribeDBInstances","rds:DescribeDBClusters","rds:DescribeDBSnapshots","rds:DescribeDBSnapshotAttributes","rds:DescribeDBClusterSnapshots","rds:DescribeDBClusterSnapshotAttributes","dynamodb:ListTables","dynamodb:DescribeTable","dynamodb:DescribeContinuousBackups","redshift:DescribeClusters","redshift:DescribeLoggingStatus","es:ListDomainNames","es:DescribeDomains","elasticache:DescribeReplicationGroups","elasticfilesystem:DescribeFileSystems","kms:ListAliases","iam:GetAccountAuthorizationDetails","iam:GenerateCredentialReport","iam:GetCredentialReport"],"Resource":"*"},{"Effect":"Allow","Action":["s3:ListBucket"],"Resource":"arn:aws:s3:::*"},{"Effect":"Allow","Action":["s3:GetObject"],"Resource":"arn:aws:s3:::*/*"},{"Effect":"Allow","Action":["kms:Decrypt"],"Resource":"*","Condition":{"StringLike":{"kms:ViaService":"s3.*.amazonaws.com"}}}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeDataSecurity
@@ -242,6 +247,8 @@ OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reade
 APP=$(echo "$OUT" | jq -r .appId)
 az role assignment create --assignee "$APP" --role "Cost Management Reader" --scope "$SCOPE" > /dev/null
 az role assignment create --assignee "$APP" --role "Storage Blob Data Reader" --scope "$SCOPE" > /dev/null
+az role assignment create --assignee "$APP" --role "Reservations Reader" --scope "/providers/Microsoft.Capacity" > /dev/null 2>&1 || echo "Reservations Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
+az role assignment create --assignee "$APP" --role "Savings plan Reader" --scope "/providers/Microsoft.BillingBenefits" > /dev/null 2>&1 || echo "Savings plan Reader was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2
 END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
 echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
@@ -268,9 +275,9 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ## 보안 케이스 확인
 
-AWS에서는 같은 연결로, 공격이 IAM 사용자에게서 바꾼 것이 되돌려졌는지 [보안 케이스](/docs/telemetry/security-cases#oneuptime이-단계를-확인하는-방법)가 확인하게 할 수도 있습니다. 공격이 만든 액세스 키, 설정한 콘솔 비밀번호, 연결하거나 작성한 정책, 사용자를 추가한 그룹, 활성화한 MFA 기기, 만든 사용자입니다. **추가 필드** 아래의 **보안 케이스 확인** 은 켜기 전까지 **꺼짐** 이며, 양식에 표시되는 명령도 이에 따라 바뀝니다. 각 작업은 읽기만 하며 비밀은 읽지 않습니다. 액세스 키의 ID와 활성 여부는 읽지만 키 자체는 읽지 않고, 콘솔 비밀번호가 설정되어 있다는 것은 읽지만 비밀번호 자체는 읽지 않습니다.
+AWS에서는 같은 연결로, 공격이 IAM 사용자나 역할에서 바꾼 것이 되돌려졌는지 [보안 케이스](/docs/telemetry/security-cases#oneuptime이-단계를-확인하는-방법)가 확인하게 할 수도 있습니다. 공격이 만든 액세스 키, 설정한 콘솔 비밀번호, 연결하거나 작성한 정책, 사용자를 추가한 그룹, 활성화한 MFA 기기, 만든 사용자나 역할, 역할에 설정한 신뢰 정책입니다. **추가 필드** 아래의 **보안 케이스 확인** 은 켜기 전까지 **꺼짐** 이며, 양식에 표시되는 명령도 이에 따라 바뀝니다. 각 작업은 읽기만 하며 비밀은 읽지 않습니다. 액세스 키의 ID와 활성 여부는 읽지만 키 자체는 읽지 않고, 콘솔 비밀번호가 설정되어 있다는 것은 읽지만 비밀번호 자체는 읽지 않습니다.
 
-| 케이스가 CloudTrail 이벤트에 나온 각 사용자에 대해 읽는 것 | 작업 |
+| 케이스가 CloudTrail 이벤트에 나온 각 사용자와 역할에 대해 읽는 것 | 작업 |
 | --- | --- |
 | 사용자, 또는 사용자가 더 이상 없다는 것 | `iam:GetUser` |
 | 액세스 키와 각 키의 활성 여부 | `iam:ListAccessKeys` |
@@ -278,25 +285,27 @@ AWS에서는 같은 연결로, 공격이 IAM 사용자에게서 바꾼 것이 �
 | 관리형 정책과 인라인 정책의 이름 | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | 사용자가 속한 그룹 | `iam:ListGroupsForUser` |
 | MFA 기기 | `iam:ListMFADevices` |
+| 역할, 그 신뢰 정책이 신뢰하는 대상, 또는 역할이 사라졌는지 | `iam:GetRole` |
+| 역할의 관리형 정책과 인라인 정책 이름 | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 역할용 명령에는 한 줄이 더해져 전용 인라인 정책 `OneUptimeSecurityCaseChecks` 가 추가되고, 조직의 StackSet은 이를 모든 계정의 역할에 넣습니다.
 
 ```bash
-aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 ```
 
 **액세스 키** 를 쓰면 정책은 사용자가 가입하는 같은 이름의 그룹 `OneUptimeSecurityCaseChecks` 에 들어갑니다.
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
-aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-케이스는 변경이 이루어진 계정에 닿는 연결을 통해서만 변경을 읽고, **보안 케이스 확인** 이 **꺼짐** 인 연결을 통해서는 IAM에 아무것도 묻지 않습니다. 그런 변경은 나열해 직접 확인하게 하고, 이 설정을 켜라고 안내합니다. **꺼짐** 은 아무것도 추가하지 않으므로, 이전 명령이 부여한 것은 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 로 삭제할 때까지 그대로 남습니다.
+케이스는 변경이 이루어진 계정에 닿는 연결을 통해서만 변경을 읽고, **보안 케이스 확인** 이 **꺼짐** 인 연결을 통해서는 IAM에 아무것도 묻지 않습니다. 그런 변경은 나열해 직접 확인하게 하고, 이 설정을 켜라고 안내합니다. **꺼짐** 은 아무것도 추가하지 않으므로, 이전 명령이 부여한 것은 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 로 삭제할 때까지 그대로 남습니다. 설정이 역할을 읽기 전에 실행한 명령은 사용자 읽기만 허용합니다. 연결의 명령을 다시 실행하세요. 그때까지 케이스는 역할 변경을 나열해 직접 확인하게 하고, 명령을 실행하라고 안내합니다.
 
 ## OneUptime이 읽는 것
 
@@ -306,9 +315,9 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | 메트릭 | 각 서비스의 주요 메트릭(예: 인스턴스의 CPU, 네트워크, 상태 검사) | 리소스당 최대 20개의 주요 메트릭 | 각 리소스 유형의 주요 메트릭 |
 | 변경 사항 | CloudTrail 관리 이벤트 | 활동 로그의 관리 이벤트 | Admin Activity 감사 로그 |
 | 상태 이벤트 | AWS Health | Service Health 및 Resource Health | Service Health |
-| 비용 | 매일의 비용을 서비스와 리전별로, 리소스별 비용이 켜져 있으면 리소스별로도 Cost Explorer에서 | 매일의 비용을 리소스와 서비스별로 Cost Management에서 | 매일의 비용을 서비스, 리전, 리소스별로 BigQuery 결제 내보내기에서 |
+| 비용 | 매일의 비용을 청구 비용, 상각 비용, 순비용으로, 서비스와 리전별로, 리소스별 비용이 켜져 있으면 리소스별로도 Cost Explorer에서 | 매일의 비용을 실제 비용과 상각 비용으로, 리소스와 서비스별로 Cost Management에서 | 매일의 비용을 크레딧 포함과 미포함으로, 서비스, 리전, 리소스별로 BigQuery 결제 내보내기에서 |
 | 지출을 줄이는 방법 | Cost Optimization Hub | Azure Advisor | Recommender |
-| 약정 | Savings Plans와 예약 인스턴스: 충당 범위와 사용된 비율을 Cost Explorer에서 | 절약 플랜과 예약을 Cost Management에서 | 약정 사용 할인을 BigQuery 결제 내보내기에서 |
+| 약정 | Savings Plans와 예약 인스턴스: 충당 범위와 사용된 비율을 Cost Explorer에서, 각각의 종료일을 Cost Explorer와 Savings Plans API에서 | 절약 플랜과 예약: 충당 범위를 Cost Management에서, 각각의 종료일을 Reservations Reader와 Savings plan Reader로 | 약정 사용 할인: 충당 범위를 BigQuery 결제 내보내기에서, 각 Compute Engine 약정의 종료일을 Cloud Asset Inventory에서 |
 | 읽기 간격 | 10분 | 5분 | 5분 |
 | 삭제된 리소스 | 전체 목록에 더 이상 없으면 보관 처리 | 전체 목록에 더 이상 없으면 보관 처리 | 전체 목록에 더 이상 없으면 보관 처리 |
 
@@ -319,7 +328,7 @@ OneUptime의 호출은 클라우드 요금으로 클라우드 계정에 청구�
 | 클라우드 | 가격 |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: 메트릭 1,000개당 $0.01이며, 리소스의 주요 메트릭 하나는 읽기마다 메트릭 하나입니다 |
-| AWS 비용 | Cost Explorer: 요청당 $0.01. 비용 읽기 한 번에 요청을 몇 번, 약정은 하루에 네 번, 리소스별 비용은 하루에 몇 번 더 보냅니다 |
+| AWS 비용 | Cost Explorer: 요청당 $0.01. 비용 읽기 한 번에 요청을 두 번 또는 조금 더, 약정은 하루에 열 번에서 열여섯 번, 리소스별 비용은 하루에 몇 번 더 보냅니다 |
 | Azure | 구독마다 매월 처음 1,000,000회의 메트릭 읽기는 무료이며, 그 이후에는 1,000회당 $0.01 |
 | Google Cloud | 매월 처음 1,000,000개의 시계열 읽기는 무료이며, 그 이후에는 백만 개당 $0.50 |
 | Google Cloud 비용 | 결제 내보내기 쿼리는 BigQuery 요금입니다. 매월 처음 1 TiB는 무료이며, 그 이후에는 TiB당 $6.25 |
@@ -345,7 +354,27 @@ Compute Engine VM의 메모리와 디스크 사용률은 Google Cloud 자체 메
 - **인시던트와 경고.** 모니터, 인시던트 또는 경고의 연결된 리소스에서 클라우드 리소스를 연결하면 그 인시던트와 경고가 리소스 페이지에 나열됩니다. 호스트가 직접 또는 DNS를 통해 리소스의 엔드포인트로 이어지는 웹사이트, API, SSL, ping 또는 포트 모니터는 **연결된 리소스** 카드의 **추천 클라우드 리소스**에 그 리소스를 표시합니다. 연결하려면 **리소스 연결**을 선택합니다.
 - **리소스의 상태.** 각 읽기는 리소스 주요 메트릭의 최신 값을 보관하고 판단합니다. 리소스에는 **정상**, **저하됨** 또는 **비정상**이 상태 확인 실패나 거의 찬 스토리지 같은 이유와 함께 표시되며, 메트릭이 멈추면 **보고 없음**이 표시됩니다. **클라우드 → 개요**와 계정의 개요에는 주의가 필요한 항목이 가장 급한 것부터 나열됩니다. 리소스 페이지는 가상 머신의 CPU, 메모리, 네트워크, 디스크처럼 그 종류를 읽는 수치로 시작하며, 마지막 읽기에서 가져오지 못한 수치는 **보고되지 않음**으로 표시됩니다.
 - **권장 모니터.** 계정의 **권장 사항**에는 OneUptime이 그 리소스에 권장하는 모니터가 리소스 유형별로, 각각의 대상 리소스와 이미 설정된 수와 함께 나열됩니다. 리소스 하나에 추가하거나 같은 유형의 모든 리소스에 한 번에 추가할 수 있으며, 사이드 메뉴는 아직 설정해야 하는 것을 셉니다. 리소스의 **권장 사항** 탭에는 그 리소스용 모니터가 제공됩니다. 각 모니터는 연결이 읽는 주요 메트릭을 5분마다, AWS에서는 최근 30분, Azure와 Google Cloud에서는 최근 15분에 걸쳐 읽으며, 해당 리소스에 연결됩니다. 더 드물게 읽는 연결에서는 각 모니터가 한 번의 읽기로 들어오는 모든 값을 판단할 수 있도록 더 긴 기간을 읽습니다. 1시간마다 읽으면 최근 2시간입니다. 간격을 바꾸기 전에 만든 모니터는 그 기간을 그대로 유지합니다. 오류나 제한된 요청 같은 개수는 그 기간 전체에 걸쳐 합산되므로, [메트릭을 스트리밍하는](/docs/telemetry/cloud-streaming) 계정과 읽히는 계정은 똑같이 경고하며, 스트리밍하는 계정이 더 빨리 경고합니다. ACM이 하루에 두 번 게시하는 인증서의 만료까지 남은 일수는 1시간마다 읽힙니다. 그 모니터는 최근 2일을 읽고, 인증서의 남은 기간이 30일 이하가 되거나 인증서가 만료되어 ACM이 게시를 멈추면 경고합니다. RDS 인스턴스의 연결 수는 그 클래스와 엔진의 연결 한도의 90%와 비교됩니다. [유지 관리 이벤트](/docs/scheduled-maintenance/creating-events)가 리소스를 포함하는 동안에는 그 모니터가 인시던트나 경고를 열지 않습니다. 상태 확인이 설정된 App Service 앱에는 두 가지가 더 제안되며, Azure Monitor가 그 메트릭을 5분 단위로 보관하므로 최근 30분을 읽습니다: 인스턴스가 상태 확인에 실패할 때와 인스턴스의 절반 미만만 통과할 때입니다. 각 인시던트에는 실패한 인스턴스를 알려 주는 Azure Cloud Shell용 명령이 함께 나옵니다.
-- **계정의 비용.** **클라우드 → 지출 → 비용**은 매일의 지출과 그 쓰임을 그리고, **클라우드 → 지출 → 절감**은 지출을 줄이는 방법을 나열하며, **클라우드 → 지출 → 예산**은 한 달 비용이 예상보다 커지기 전에 경고를 보냅니다. [클라우드 비용과 절감](/docs/telemetry/cloud-costs)을 참고하세요.
+- **계정의 비용.** **클라우드 → 지출 → 비용**은 매일의 지출과 그 쓰임을 그리고, **클라우드 → 지출 → 절감**은 지출을 줄이는 방법을 나열하며, **클라우드 → 지출 → 예산**은 한 달, 분기 또는 한 해의 비용이 예상보다 커지기 전에 알리고, **클라우드 → 지출 → 예측**은 앞으로의 달 비용이 얼마로 예상되는지 알려 줍니다. [클라우드 비용과 절감](/docs/telemetry/cloud-costs)을 참고하세요.
+
+## 절감 작업
+
+같은 연결로 OneUptime이 찾은 절감을 실행하게 할 수도 있습니다: 소유자가 승인한 것, 절감 AI 규칙이 실행하는 것, 근무 시간 외 스케줄의 중지입니다([클라우드 비용과 절감](/docs/telemetry/cloud-costs#절감-실행)). **추가 필드**의 **절감 작업**은 다른 것을 선택할 때까지 **꺼짐**이며, 양식에 표시되는 명령도 그에 맞게 바뀝니다:
+
+| 절감 작업 | OneUptime이 변경할 수 있는 것 | 명령이 추가하는 것 |
+| --- | --- | --- |
+| **꺼짐** | 없음: 연결은 읽기만 합니다. | 없음 |
+| **중지, 시작, 정리** | 인스턴스와 데이터베이스 중지 및 시작, gp2 볼륨의 gp3 변경, 최종 스냅샷 후 연결되지 않은 디스크 삭제와 그 스냅샷에서의 재생성, 오래된 스냅샷이나 사용하지 않는 이미지 삭제, 사용하지 않는 주소 해제 | AWS: 역할 또는 사용자의 인라인 정책 `OneUptimeSavingsActions`. Azure: 각 구독의 사용자 지정 역할 **OneUptime Savings Actions**. Google Cloud: 각 프로젝트의 사용자 지정 역할 `oneuptimeSavingsActions`와 켜 둔 Compute Engine API |
+| **중지, 시작, 정리, 크기 조정** | 위의 모든 것에 더해, 인스턴스나 데이터베이스를 권장 크기로 조정(다시 시작됨) | 같은 것(크기 조정 포함) |
+
+정책과 역할은 다음 작업만 허용합니다:
+
+| 클라우드 | 중지, 시작, 정리 | 크기 조정 |
+| --- | --- | --- |
+| AWS | `ec2:DescribeInstances`, `ec2:StopInstances`, `ec2:StartInstances`, `ec2:DescribeVolumes`, `ec2:ModifyVolume`, `ec2:CreateSnapshot`, `ec2:DescribeSnapshots`, `ec2:DeleteVolume`, `ec2:CreateVolume`, `ec2:DeleteSnapshot`, `ec2:DescribeAddresses`, `ec2:ReleaseAddress`, `rds:DescribeDBInstances`, `rds:StopDBInstance`, `rds:StartDBInstance`, `ec2:CreateTags` | `ec2:ModifyInstanceAttribute`, `rds:ModifyDBInstance` |
+| Azure | `Microsoft.Compute/virtualMachines/read`, `Microsoft.Compute/virtualMachines/deallocate/action`, `Microsoft.Compute/virtualMachines/start/action`, `Microsoft.Compute/disks/read`, `Microsoft.Compute/disks/write`, `Microsoft.Compute/disks/delete`, `Microsoft.Compute/snapshots/read`, `Microsoft.Compute/snapshots/write`, `Microsoft.Compute/snapshots/delete`, `Microsoft.Network/publicIPAddresses/read`, `Microsoft.Network/publicIPAddresses/delete` | `Microsoft.Compute/virtualMachines/write` |
+| Google Cloud | `compute.instances.get`, `compute.instances.stop`, `compute.instances.start`, `compute.disks.get`, `compute.disks.createSnapshot`, `compute.snapshots.create`, `compute.snapshots.get`, `compute.disks.delete`, `compute.disks.create`, `compute.snapshots.useReadOnly`, `compute.addresses.get`, `compute.addresses.delete`, `compute.globalAddresses.get`, `compute.globalAddresses.delete`, `compute.images.get`, `compute.images.delete` | `compute.instances.setMachineType` |
+
+AWS에서 `ec2:CreateTags`는 스냅샷이나 볼륨을 만드는 동안에만 허용되며, OneUptime이 어떤 변경을 위해 무엇을 만들었는지 표시합니다. 아무것도 저절로 바뀌지 않습니다: 모든 변경은 소유자의 승인, 절감 AI 규칙 또는 스케줄을 기다립니다. 액세스를 거두려면 **절감 작업**을 **꺼짐**으로 설정하고 정책이나 역할을 삭제하세요. 그 뒤에 요청된 변경은 이유를 알려 주며 실패하고 아무것도 바꾸지 않습니다.
 
 ## AI가 문제를 해결하도록 허용
 

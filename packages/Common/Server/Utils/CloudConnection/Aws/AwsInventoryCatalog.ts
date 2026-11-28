@@ -39,6 +39,14 @@ import {
 } from "./AwsServiceListings";
 import { listClassicLoadBalancers } from "./AwsClassicLoadBalancers";
 import { listEksClusters } from "./AwsEksClusters";
+import {
+  AWS_PRESERVE_CLIENT_IP_ATTRIBUTE,
+  canTargetGroupDropClientIp,
+} from "./AwsTargetGroupAttributes";
+import {
+  AWS_PASS_ON_PROPERTIES,
+  AwsClientIpPreservation,
+} from "../../../../Utils/SecurityEvent/PassOnLoadBalancers";
 
 /*
  * WHAT AN AWS ACCOUNT'S INVENTORY LISTS, AND HOW EACH RESOURCE BECOMES ONE
@@ -1971,5 +1979,191 @@ export function addAwsLoadBalancerEdges(data: {
         addEdge(loadBalancerArn, item.resource.providerResourceId);
       }
     }
+  }
+}
+
+/*
+ * Whether a listed target group keeps the client's own address on the
+ * connection (#11389): true for one that always does - UDP, TCP_UDP, QUIC,
+ * TCP_QUIC, an Application Load Balancer as its target, an Application Load
+ * Balancer's own (HTTP, HTTPS) - and for a TCP or TLS one whose
+ * preserve_client_ip.enabled says so, or that leaves it at its default
+ * (instances keep it, IP addresses do not); null for a TCP or TLS one whose
+ * attributes were not read (AwsTargetGroupAttributes).
+ */
+export function doesAwsTargetGroupKeepClientIp(
+  group: AwsListedResource,
+): boolean | null {
+  if (!canTargetGroupDropClientIp(group)) {
+    return true;
+  }
+
+  const attributes: unknown = group.properties["TargetGroupAttributes"];
+
+  if (!Array.isArray(attributes)) {
+    return null;
+  }
+
+  for (const attribute of attributes) {
+    if (
+      attribute &&
+      typeof attribute === "object" &&
+      textAt(attribute as JSONObject, "Key") ===
+        AWS_PRESERVE_CLIENT_IP_ATTRIBUTE
+    ) {
+      return textAt(attribute as JSONObject, "Value").toLowerCase() === "true";
+    }
+  }
+
+  return (
+    (textAt(group.properties, "TargetType").toLowerCase() || "instance") ===
+    "instance"
+  );
+}
+
+// A target group's name: its own, else what its ARN names ("targetgroup/<name>/<id>").
+function targetGroupName(group: AwsListedResource): string {
+  const name: string =
+    textAt(group.properties, "TargetGroupName") ||
+    textAt(group.properties, "Name");
+
+  if (name) {
+    return name;
+  }
+
+  const arn: string =
+    textAt(group.properties, "TargetGroupArn") || group.identifier;
+  const parts: Array<string> = arn.split("/");
+
+  return parts.length >= 3 ? parts[parts.length - 2]! : arn;
+}
+
+/*
+ * WHETHER A LOAD BALANCER PASSES ON WHAT A CLIENT WROTE, FROM ITS OWN
+ * ADDRESSES (#11389), kept on its record for Security Events, which never
+ * trusts an X-Forwarded-For it hands on (Utils/SecurityEvent/
+ * PassOnLoadBalancers):
+ *
+ *   - a Network Load Balancer's ClientIpPreservation: On while every target
+ *     group of it keeps the client's address, Off while one does not
+ *     (TargetGroupsWithoutClientIp names them), Unknown when its target
+ *     groups, or the attributes of one, could not be read;
+ *   - a Network or Classic Load Balancer's SubnetCidrBlocks: the IPv4 and
+ *     IPv6 ranges of the subnets it is in, from the Region's subnets - it
+ *     connects to its targets from its addresses in them - and
+ *     UnreadSubnets, those of its subnets the listing did not hold.
+ */
+export function addAwsPassOnLoadBalancerFacts(data: {
+  items: Array<CloudInventoryItem>;
+  listedByItem: Map<CloudInventoryItem, AwsListedResource>;
+  targetGroups: ReadonlyArray<AwsListedResource>;
+  // Whether the Region's target groups were listed to their last page.
+  areTargetGroupsListed: boolean;
+  subnets: ReadonlyArray<AwsListedResource>;
+}): void {
+  const subnetRanges: Map<string, Array<string>> = new Map();
+
+  for (const subnet of data.subnets) {
+    const id: string = (
+      textAt(subnet.properties, "SubnetId") || subnet.identifier
+    ).toLowerCase();
+
+    if (id) {
+      subnetRanges.set(id, [
+        ...textsAt(subnet.properties, "CidrBlock"),
+        ...textsAt(subnet.properties, "Ipv6CidrBlocks"),
+      ]);
+    }
+  }
+
+  for (const item of data.items) {
+    const type: string = item.resource.resourceType;
+    const listed: AwsListedResource | undefined = data.listedByItem.get(item);
+
+    if (
+      !listed ||
+      (type !== "AWS::ElasticLoadBalancingV2::LoadBalancer" &&
+        type !== "AWS::ElasticLoadBalancing::LoadBalancer")
+    ) {
+      continue;
+    }
+
+    const declaredType: string = textAt(
+      listed.properties,
+      "Type",
+    ).toLowerCase();
+    const isNetwork: boolean =
+      type === "AWS::ElasticLoadBalancingV2::LoadBalancer" &&
+      (declaredType === "network" ||
+        (!declaredType &&
+          item.resource.providerResourceId
+            .toLowerCase()
+            .includes(":loadbalancer/net/")));
+
+    if (type === "AWS::ElasticLoadBalancingV2::LoadBalancer" && !isNetwork) {
+      continue;
+    }
+
+    const ranges: Array<string> = [];
+    const unread: Array<string> = [];
+
+    for (const subnet of textsAt(listed.properties, "Subnets")) {
+      const found: Array<string> | undefined = subnetRanges.get(
+        subnet.toLowerCase(),
+      );
+
+      if (found && found.length > 0) {
+        ranges.push(...found);
+      } else {
+        unread.push(subnet);
+      }
+    }
+
+    const facts: JSONObject = {
+      [AWS_PASS_ON_PROPERTIES.subnetCidrBlocks]: Array.from(new Set(ranges)),
+    };
+
+    if (unread.length > 0) {
+      facts[AWS_PASS_ON_PROPERTIES.unreadSubnets] = unread;
+    }
+
+    if (isNetwork) {
+      const arn: string = item.resource.providerResourceId.toLowerCase();
+      const groups: Array<AwsListedResource> = data.targetGroups.filter(
+        (group: AwsListedResource): boolean => {
+          return textsAt(group.properties, "LoadBalancerArns").some(
+            (loadBalancerArn: string): boolean => {
+              return loadBalancerArn.toLowerCase() === arn;
+            },
+          );
+        },
+      );
+      const withoutClientIp: Array<string> = [];
+      let isUnknown: boolean = !data.areTargetGroupsListed;
+
+      for (const group of groups) {
+        const keeps: boolean | null = doesAwsTargetGroupKeepClientIp(group);
+
+        if (keeps === null) {
+          isUnknown = true;
+        } else if (!keeps) {
+          withoutClientIp.push(targetGroupName(group));
+        }
+      }
+
+      facts[AWS_PASS_ON_PROPERTIES.clientIpPreservation] =
+        withoutClientIp.length > 0
+          ? AwsClientIpPreservation.Off
+          : isUnknown
+            ? AwsClientIpPreservation.Unknown
+            : AwsClientIpPreservation.On;
+
+      if (withoutClientIp.length > 0) {
+        facts[AWS_PASS_ON_PROPERTIES.targetGroupsWithoutClientIp] =
+          withoutClientIp;
+      }
+    }
+
+    item.properties = { ...item.properties, ...facts };
   }
 }

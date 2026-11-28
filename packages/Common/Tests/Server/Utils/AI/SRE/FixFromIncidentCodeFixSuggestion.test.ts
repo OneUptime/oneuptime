@@ -1,6 +1,10 @@
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
+import CodeFixPersonRepository, {
+  CodeFixRepositoryUse,
+} from "../../../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
 import CodeFixStartGate from "../../../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
+import { ResolvableRepository } from "../../../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
 import FixRunBudget from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeTaskRuns from "../../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
@@ -19,7 +23,11 @@ import {
   CodeTaskBlockerType,
 } from "../../../../../Types/AI/CodeTask";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
-import { CodeRepositoryAllowance } from "../../../../../Types/CodeRepository/CodeRepositoryAllowance";
+import {
+  CodeRepositoryAllowance,
+  EVERY_CODE_REPOSITORY,
+  NO_CODE_REPOSITORY,
+} from "../../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import { FinishedFixOutcome } from "../../../../../Utils/Suggestions/CodeFixSuggestion";
@@ -113,8 +121,29 @@ interface Setup {
   hasRepository?: boolean;
   hasAllowedRepository?: boolean;
   gateBlocker?: CodeTaskBlocker | null;
+  // The repository Code's gate resolves the run to (null: none for certain).
+  gateRepositoryId?: string | null;
   rules?: AutomaticFixPullRequestRules | null;
   isWithinBudget?: boolean;
+  /*
+   * The connected repositories the reader may use in Code (#11209): the
+   * project's one repository, theirs, unless a test says.
+   */
+  use?: CodeFixRepositoryUse;
+}
+
+function resolvable(
+  id: string,
+  name: string = "billing-api",
+): ResolvableRepository {
+  return {
+    id,
+    name,
+    organizationName: "acme",
+    repositoryName: name,
+    mainBranchName: "main",
+    gitHubAppInstallationId: "1234",
+  };
 }
 
 // Who reads the record's page: a member, who may read its fix unless a test says.
@@ -134,6 +163,8 @@ interface Spies {
   gate: SpyInstance<typeof CodeFixStartGate.check>;
   rules: SpyInstance<typeof RemediationRulePullRequests.getRulesForSignal>;
   budget: SpyInstance<typeof FixRunBudget.getBudgetStatus>;
+  // The reader's repositories in Code, as the person's fix is held to them.
+  usable: SpyInstance<typeof CodeFixPersonRepository.getUsableRepositories>;
 }
 
 function install(setup: Setup = {}): Spies {
@@ -188,9 +219,21 @@ function install(setup: Setup = {}): Spies {
           : setup.hasRepository ?? true;
       }) as never),
     gate: jest.spyOn(CodeFixStartGate, "check").mockResolvedValue({
-      codeRepositoryId: new ObjectID(REPOSITORY_ID),
+      codeRepositoryId:
+        setup.gateRepositoryId === null
+          ? null
+          : new ObjectID(setup.gateRepositoryId || REPOSITORY_ID),
       blocker: setup.gateBlocker || null,
     } as never),
+    usable: jest
+      .spyOn(CodeFixPersonRepository, "getUsableRepositories")
+      .mockResolvedValue(
+        setup.use || {
+          connectedCount: 1,
+          usable: [resolvable(REPOSITORY_ID)],
+          allowance: EVERY_CODE_REPOSITORY,
+        },
+      ),
     rules: jest
       .spyOn(RemediationRulePullRequests, "getRulesForSignal")
       .mockResolvedValue(
@@ -288,6 +331,7 @@ describe("a fix pull request that exists", () => {
       aiRunId: FIX_ID.toString(),
       isAutomatic: true,
       automaticBlocker: null,
+      repositories: [],
     });
     // A fix on its way: no gate, no repository, no rule is asked.
     expect(spies.gate).not.toHaveBeenCalled();
@@ -358,6 +402,7 @@ describe("a fix pull request that exists", () => {
       aiRunId: FIX_ID.toString(),
       isAutomatic: false,
       automaticBlocker: null,
+      repositories: [],
     });
   });
 
@@ -396,6 +441,7 @@ describe("a fix pull request that exists", () => {
         aiRunId: FIX_ID.toString(),
         isAutomatic: false,
         automaticBlocker: null,
+        repositories: [],
       });
     },
   );
@@ -466,6 +512,7 @@ describe("a fix asked again from Code", () => {
       aiRunId: FIX_ID.toString(),
       isAutomatic: false,
       automaticBlocker: null,
+      repositories: [],
     });
 
     // The task's latest turn is read by the task, not by the turn.
@@ -523,6 +570,7 @@ describe("a fix pull request in a task hidden from the reader", () => {
       aiRunId: null,
       isAutomatic: false,
       automaticBlocker: null,
+      repositories: [],
     });
     // Asked of the fix, as the reader; nothing else is read for it.
     expect(spies.hiddenFrom).toHaveBeenCalledWith({
@@ -557,6 +605,7 @@ describe("no fix yet: the one step in the way, and why it did not open on its ow
       aiRunId: null,
       isAutomatic: false,
       automaticBlocker: AutomaticCodeFixBlocker.NoRepository,
+      repositories: [],
     });
     // Code's gate needs a repository to be asked about.
     expect(spies.gate).not.toHaveBeenCalled();
@@ -693,6 +742,203 @@ describe("no fix yet: the one step in the way, and why it did not open on its ow
       aiRunId: null,
       isAutomatic: false,
       automaticBlocker: AutomaticCodeFixBlocker.ChangedSince,
+      repositories: [],
     });
+  });
+});
+
+/*
+ * WHO MAY OPEN IT, AND IN WHICH REPOSITORY (#11209): the pull request a
+ * person opens is a code task on their behalf, held to the repositories
+ * they may use in Code - read, and ask OneUptime AI to work in - so the step
+ * offers it by that rule, as the trace's Fix performance with AI does.
+ */
+describe("the reader's repositories in Code", () => {
+  const CHECKOUT_ID: string = "13131313-1313-4313-8313-131313131313";
+  const LEDGER_ID: string = "14141414-1414-4414-8414-141414141414";
+
+  test("are weighed for the reader, inside the project, before Code's gate", async () => {
+    const spies: Spies = install();
+
+    await suggestionFor();
+
+    expect(spies.usable).toHaveBeenCalledTimes(1);
+    expect(spies.usable.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      props: READER,
+    });
+    expect(spies.usable.mock.invocationCallOrder[0]).toBeLessThan(
+      spies.gate.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("Code's gate resolves the run among them, by the record's monitor, as a click is resolved", async () => {
+    const allowance: CodeRepositoryAllowance = {
+      isEveryRepository: false,
+      repositoryIds: [CHECKOUT_ID],
+    };
+    const spies: Spies = install({
+      use: {
+        connectedCount: 3,
+        usable: [resolvable(CHECKOUT_ID, "checkout")],
+        allowance,
+      },
+    });
+
+    await suggestionFor();
+
+    expect(spies.gate.mock.calls[0]![0]).toMatchObject({
+      allowance,
+      incidentId: INCIDENT_ID,
+      alertId: undefined,
+    });
+  });
+
+  test("an alert's run is resolved by the alert's monitor", async () => {
+    const spies: Spies = install();
+
+    await suggestionFor({ alertId: ALERT_ID });
+
+    expect(spies.gate.mock.calls[0]![0]).toMatchObject({
+      incidentId: undefined,
+      alertId: ALERT_ID,
+    });
+  });
+
+  test("none of the connected ones theirs: nothing to offer, and the automatic reasons are not read", async () => {
+    const spies: Spies = install({
+      use: { connectedCount: 2, usable: [], allowance: NO_CODE_REPOSITORY },
+    });
+
+    expect(await suggestionFor()).toEqual(NO_INVESTIGATION_CODE_FIX_SUGGESTION);
+    expect(spies.rules).not.toHaveBeenCalled();
+    expect(spies.budget).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [CodeTaskBlockerType.PlanRequired, "AI in Code needs the Growth plan."],
+    [CodeTaskBlockerType.SubscriptionUnpaid, "This subscription is unpaid."],
+  ])(
+    "none theirs, and %s stops everyone: the step says it as Code would",
+    async (type: CodeTaskBlockerType, message: string) => {
+      install({
+        use: { connectedCount: 2, usable: [], allowance: NO_CODE_REPOSITORY },
+        gateBlocker: { type, message },
+      });
+
+      const suggestion: InvestigationCodeFixSuggestion = await suggestionFor();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.SetUp);
+      expect(suggestion.blocker?.type).toBe(type);
+      expect(suggestion.repositories).toEqual([]);
+    },
+  );
+
+  test("none theirs, and what stops only a repository's work (no Runner): still nothing to offer", async () => {
+    install({
+      use: { connectedCount: 2, usable: [], allowance: NO_CODE_REPOSITORY },
+      gateBlocker: {
+        type: CodeTaskBlockerType.NoAgent,
+        message: "No global Runner is online to work in this repository.",
+      },
+    });
+
+    expect(await suggestionFor()).toEqual(NO_INVESTIGATION_CODE_FIX_SUGGESTION);
+  });
+
+  test("none OneUptime AI can work in after all: a repository to connect", async () => {
+    const spies: Spies = install({
+      use: { connectedCount: 0, usable: [], allowance: NO_CODE_REPOSITORY },
+    });
+
+    const suggestion: InvestigationCodeFixSuggestion = await suggestionFor();
+
+    expect(suggestion.offer).toBe(SuggestionOffer.SetUp);
+    expect(suggestion.blocker).toBeNull();
+    expect(spies.gate).not.toHaveBeenCalled();
+  });
+
+  test("several theirs, and the monitor names none of them: the button, with the ones to pick from, by name", async () => {
+    install({
+      use: {
+        connectedCount: 3,
+        usable: [
+          resolvable(LEDGER_ID, "ledger"),
+          resolvable(CHECKOUT_ID, "checkout"),
+        ],
+        allowance: {
+          isEveryRepository: false,
+          repositoryIds: [LEDGER_ID, CHECKOUT_ID],
+        },
+      },
+      gateRepositoryId: null,
+    });
+
+    const suggestion: InvestigationCodeFixSuggestion = await suggestionFor();
+
+    expect(suggestion.offer).toBe(SuggestionOffer.Act);
+    expect(suggestion.repositories).toEqual([
+      { id: CHECKOUT_ID, name: "checkout" },
+      { id: LEDGER_ID, name: "ledger" },
+    ]);
+  });
+
+  test("several theirs, and the monitor names one: no pick to make", async () => {
+    install({
+      use: {
+        connectedCount: 2,
+        usable: [
+          resolvable(LEDGER_ID, "ledger"),
+          resolvable(CHECKOUT_ID, "checkout"),
+        ],
+        allowance: EVERY_CODE_REPOSITORY,
+      },
+      gateRepositoryId: CHECKOUT_ID,
+    });
+
+    expect((await suggestionFor()).repositories).toEqual([]);
+  });
+
+  test("the choices go only with an offer to open it: Code's gate in the way asks no pick", async () => {
+    install({
+      use: {
+        connectedCount: 2,
+        usable: [
+          resolvable(LEDGER_ID, "ledger"),
+          resolvable(CHECKOUT_ID, "checkout"),
+        ],
+        allowance: EVERY_CODE_REPOSITORY,
+      },
+      gateRepositoryId: null,
+      gateBlocker: {
+        type: CodeTaskBlockerType.NoAiCredits,
+        message: "This project's AI credits are used up.",
+      },
+    });
+
+    const suggestion: InvestigationCodeFixSuggestion = await suggestionFor();
+
+    expect(suggestion.offer).toBe(SuggestionOffer.SetUp);
+    expect(suggestion.repositories).toEqual([]);
+  });
+
+  test("a fix on its way or done: the reader's repositories are not weighed", async () => {
+    const spies: Spies = install({ activeFix: fixRun() });
+
+    await suggestionFor();
+
+    expect(spies.usable).not.toHaveBeenCalled();
+    expect(spies.gate).not.toHaveBeenCalled();
+  });
+
+  test("no repository connected at all: not weighed either", async () => {
+    const spies: Spies = install({
+      hasRepository: false,
+      hasAllowedRepository: false,
+    });
+
+    await suggestionFor();
+
+    expect(spies.usable).not.toHaveBeenCalled();
   });
 });

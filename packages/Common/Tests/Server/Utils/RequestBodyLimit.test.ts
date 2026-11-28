@@ -208,11 +208,13 @@ describe("the large routes", () => {
  * StartServer.
  */
 describe("the routes that parse their body only after their caller's key is checked", () => {
+  // A vCenter's, an OpenStack cloud's, and a storage management server's (#11004).
   const collections: Array<string> = PROBE_INGEST_ROUTE_PREFIXES.flatMap(
     (prefix: string): Array<string> => {
       return [
         `${prefix}/probe/vmware/collection`,
         `${prefix}/probe/openstack/collection`,
+        `${prefix}/probe/storage-array/collection`,
       ];
     },
   );
@@ -251,7 +253,7 @@ describe("the routes that parse their body only after their caller's key is chec
   );
 
   test("are a probe's collections, under every prefix, and a forwarding pod's rows", () => {
-    expect(collections).toHaveLength(6);
+    expect(collections).toHaveLength(9);
 
     for (const path of [...collections, "/telemetry-writer/insert"]) {
       expect({
@@ -394,6 +396,7 @@ describe("the routes that parse their body only after their caller's key is chec
       "/probe-ingest/probe/vmware/collection/",
       "/INGESTOR/PROBE/OPENSTACK/COLLECTION/",
       "/Probe/OpenStack/Collection",
+      "/Probe-Ingest/Probe/Storage-Array/Collection/",
       "/Telemetry-Writer/Insert/",
       "/Pyroscope/Ingest/",
       "/TELEMETRY/SOURCE-MAPS/V1/UPLOAD",

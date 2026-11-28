@@ -14,6 +14,7 @@ Beide verwenden denselben Monitortyp. Was sie unterscheidet, sind die Kriterien,
 - [Einen Heartbeat senden](#einen-heartbeat-senden): Aus curl, Cron, Node.js, Python oder Go.
 - [Alarmieren, wenn Aufrufe ausbleiben](#als-offline-markieren-wenn-10-minuten-kein-heartbeat-kommt-ein-totmannschalter): Den Monitor zu einem Totmannschalter machen.
 - [Warnungen empfangen](#warnungen-aus-einem-anderen-system-empfangen): Ein Vorfall pro Alertmanager- oder Grafana-Warnung.
+- [In Slack posten, ohne zu alarmieren](#in-slack-posten-ohne-jemanden-zu-alarmieren): Einen Kanal informieren und nur außerhalb der Arbeitszeit alarmieren.
 - [SNS oder Event Grid abonnieren](#amazon-sns-oder-azure-event-grid-abonnieren): Das Abonnement mit einem Klick bestätigen.
 :::
 
@@ -422,6 +423,38 @@ Die ganze Nutzlast steht daneben zur Verfügung, ein Vorfalltitel `{{alertname}}
 
 Eine vollständige Alertmanager-Konfiguration finden Sie unter [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Für Grafana siehe [Grafana](/docs/integrations/grafana).
 
+### Während Vorfällen geprüft halten
+
+Ein Vorfall, den jemand für diesen Monitor meldet – etwa aus einer seiner Warnungen mit **Vorfall melden** –, pausiert seine Prüfungen, bis der Vorfall behoben ist, daher werden die Anfragen, die in der Zwischenzeit eintreffen, nicht ausgewertet: Sie eröffnen und beheben keine Warnungen. Jede wird trotzdem in **Überwachungsprotokolle** aufgeführt, so wie sie ankam, mit dem Grund, warum sie nicht ausgewertet wurde.
+
+Für einen Monitor, an den andere Systeme ihre Warnungen senden, sollte ein Vorfall zu einer Warnung ihn nicht davon abhalten, die nächste zu lesen. Öffnen Sie die **Einstellungen** des Monitors und schalten Sie auf der Karte **Während Vorfällen** den Schalter **Während Vorfällen weiter überwachen** ein: Für ihn gemeldete Vorfälle lassen ihn dann geprüft, auch bereits offene. Um ihn nur für einen Vorfall geprüft zu halten, entfernen Sie beim Melden den Haken bei **Überwachung pausieren**. Siehe [Überwachung, während ein Vorfall offen ist](/docs/incidents/declaring-incidents#überwachung-während-ein-vorfall-offen-ist).
+
+## In Slack posten, ohne jemanden zu alarmieren
+
+Eine Staging-Umgebung oder ein Produkt, dessen Probleme warten können, soll eine Anfrage vielleicht in einem Chat-Kanal posten, ohne jemanden zu alarmieren. Das leistet eine Warnung, die keine Bereitschaftsrichtlinie nennt: Sie wird über die Arbeitsbereich-Regeln des Projekts in Slack, Microsoft Teams oder Mattermost gepostet und startet keine Eskalation.
+
+:::steps
+1. Öffnen Sie das Kriterium und schalten Sie unter **Aktionen** die Option **Wenn Filter übereinstimmen, eine Warnung erstellen.** ein. Lassen Sie ihre **Bereitschaftsrichtlinien** leer.
+2. Schreiben Sie in die Warnung, was die Anfrage sagt, etwa `{{requestBody.commonAnnotations.summary}}` in ihre Beschreibung. Siehe [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
+3. Fügen Sie unter **Warnungen → Arbeitsbereich → Slack** eine Regel für die Warnungen dieses Monitors hinzu und schalten Sie **In vorhandenen Kanälen posten** ein. Slack muss zuvor [mit dem Projekt verbunden](/docs/workspace-connections/slack) sein.
+:::
+
+Eine Warnung, die keine Bereitschaftsrichtlinie nennt, kann trotzdem über die Regeln des Projekts alarmieren. Prüfen Sie, dass keine Regel unter **Warnungen → Regeln → Bereitschaftsregeln** für diese Warnungen alarmiert und keine Regel unter **Warnungen → Regeln → Vorfallsregeln** aus ihnen einen Vorfall eröffnet.
+
+Um zu posten, ohne eine Warnung zu erstellen, schalten Sie nur **Wenn Filter übereinstimmen, Monitorstatus ändern.** ein und fügen die Regel stattdessen unter **Monitore → Arbeitsbereich → Slack** hinzu. Der Kanal erfährt dann nur, dass sich der Status des Monitors geändert hat, ohne etwas aus der Anfrage, und nur wenn er sich ändert: Weitere Anfragen, während der Monitor schon in diesem Status ist, posten nichts.
+
+### Nur außerhalb der Arbeitszeit alarmieren
+
+Zwei Kriterien mit denselben Filtern teilen sich die Woche, in dieser Reihenfolge:
+
+1. Das erste postet während der Arbeitszeit. Schalten Sie in seinen **Einstellungen** die Option **Diese Kriterien nur an bestimmten Tagen und zu bestimmten Zeiten auswerten** ein und wählen Sie die Tage, die Uhrzeiten und die **Zeitzone**. Seine Warnung nennt keine Bereitschaftsrichtlinie.
+2. Das zweite alarmiert in der übrigen Zeit. Es hat keine Zeiten, und seine Warnung nennt Ihre Bereitschaftsrichtlinie.
+
+Das erste Kriterium, das auf eine Anfrage passt, entscheidet, was geschieht. Außerhalb seiner Zeiten wird das erste Kriterium übersprungen, also greift nachts und am Wochenende das zweite, und nur dann wird jemand alarmiert. Siehe [Nur an bestimmten Tagen und zu bestimmten Zeiten](/docs/monitor/criteria-and-statuses#nur-an-bestimmten-tagen-und-zu-bestimmten-zeiten).
+
+- Eine Anfrage wird bewertet, wenn sie ankommt, nach den Zeiten, die dann gelten. Ein Problem, das um 16:55 beginnt, alarmiert nach 17:00 nur, wenn der Absender es erneut sendet, wie Alertmanager es einmal pro `repeat_interval` tut.
+- Eine Warnung mit eingeschaltetem **Warnung automatisch beheben** wird behoben, wenn eine Anfrage auf ein anderes Kriterium passt. Die erste Anfrage nach Beginn der Arbeitszeit passt auf das erste Kriterium, behebt also die Warnung der Nacht und öffnet eine, die niemanden alarmiert. Lassen Sie **Warnung automatisch beheben** bei der Warnung des zweiten Kriteriums aus, damit sie offen bleibt, bis jemand sie behebt.
+
 ## Dienste, die die URL zuerst prüfen
 
 Manche Dienste prüfen einen neuen Endpunkt, bevor sie ihm etwas zustellen: Sie senden ihm eine Anfrage und stellen erst zu, wenn er so antwortet, wie sie es erwarten. OneUptime beantwortet diese Prüfungen selbst, Sie fügen also nur die **Heartbeat-URL** des Monitors in den Dienst ein.
@@ -479,11 +512,16 @@ Event Grid validiert einen Endpunkt, der ihm einen Code zurückschickt oder dess
 3. **POST mit `Content-Type: application/json` verwenden** — alles, was im Body liest, hängt davon ab.
 4. **Die beiden Aufgaben nicht auf einem Monitor mischen** — ein Monitor, der ereignisgesteuerte Warnungen empfängt, hat keinen regelmäßigen Takt, ein Kriterium "Nicht empfangen in Minuten" darauf würde also flattern. Verwenden Sie für den Totmannschalter einen eigenen Monitor.
 5. **Den Monitor überwachen** — Sorgen Sie dafür, dass der Dienst, der die Anfragen sendet, eine ordentliche Fehlerbehandlung hat, damit fehlgeschlagene Anfragen nicht unbemerkt bleiben.
+6. **Einen Ereignisempfänger während Vorfällen geprüft halten** — Schalten Sie bei einem Monitor, der Warnungen von einem anderen System empfängt, **Während Vorfällen weiter überwachen** in seinen **Einstellungen** ein, damit ein für ihn gemeldeter Vorfall ihn nicht pausiert. Siehe [Während Vorfällen geprüft halten](#während-vorfällen-geprüft-halten).
 
 ## Fehlerbehebung
 
 :::details Mein Absender bekommt 200, aber am Monitor erscheint nichts
 Die `200` wird gesendet, bevor die Anfrage geprüft wird, sie beweist also nicht, dass die Anfrage angenommen wurde. Prüfen Sie, ob der geheime Schlüssel in der URL zur **Heartbeat-URL** des Monitors passt und ob der Monitor nicht deaktiviert ist. Sehen Sie dann in der Zeitleiste des Monitors nach, ob Anfragen ankommen.
+:::
+
+:::details Anfragen kommen an, aber der Monitor eröffnet keine Warnungen, während ein Vorfall offen ist
+Ein von Hand für den Monitor gemeldeter Vorfall pausiert seine Prüfungen, daher werden seine Anfragen in **Überwachungsprotokolle** als **Nicht ausgewertet: Die Überwachung ist durch einen Vorfall pausiert** aufgeführt, und das Banner auf seinen Seiten sagt es. Schalten Sie **Während Vorfällen weiter überwachen** in seinen **Einstellungen** ein: Seine Prüfungen starten sofort wieder, und die nächsten Anfragen werden ausgewertet. Die Anfragen, die aufgeführt wurden, während er pausiert war, werden nachträglich nicht ausgewertet. Siehe [Während Vorfällen geprüft halten](#während-vorfällen-geprüft-halten).
 :::
 
 :::details Mein Absender bekommt 401

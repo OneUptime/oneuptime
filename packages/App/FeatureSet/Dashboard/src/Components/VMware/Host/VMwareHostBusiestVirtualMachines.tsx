@@ -12,12 +12,14 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getThresholdBarColor } from "../../Infrastructure/ResourceTable";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/VMwareMetricDescriptions";
-import { VMWARE_USAGE_BAR_THRESHOLDS } from "../VMwareResourceColumns";
+import { getVMwareUsageBarThresholds } from "../VMwareResourceColumns";
 import {
   VMwareBusyVirtualMachine,
   VMwareHostVirtualMachineSummary,
 } from "../../../Pages/VMware/Utils/VMwareHostData";
 import { getVMwareCpuReadyPercentTone } from "../../../Pages/VMware/Utils/VMwarePartFacts";
+import { useVMwareHealthRules } from "../../../Pages/VMware/Utils/VMwareHealthRulesStore";
+import { VMwareHealthRules } from "Common/Types/VMware/VMwareHealthRules";
 import {
   formatBytes,
   formatPercent,
@@ -51,6 +53,7 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const rules: VMwareHealthRules = useVMwareHealthRules();
 
   const tx: (text: string) => string = (text: string): string => {
     return translator.translateText(text) || text;
@@ -150,8 +153,10 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
                               />
                             </bdi>
                           </Link>
-                          {getVMwareCpuReadyPercentTone(vm.cpuReadyPercent) ===
-                          "warning" ? (
+                          {getVMwareCpuReadyPercentTone(
+                            vm.cpuReadyPercent,
+                            rules,
+                          ) === "warning" ? (
                             <Pill
                               text={translator.translateTemplate(
                                 "CPU Ready {{percent}}",
@@ -202,7 +207,7 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
                             data-testid="vmware-host-busy-vm-cpu-bar"
                             className={`h-1.5 rounded-full ${getThresholdBarColor(
                               percent,
-                              VMWARE_USAGE_BAR_THRESHOLDS,
+                              getVMwareUsageBarThresholds(rules).cpu,
                               "bg-green-500",
                             )}`}
                             style={{ width: `${percent}%` }}

@@ -72,6 +72,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import Project from "../../../Models/DatabaseModels/Project";
 import RecordOfProcessingReader from "../../../Server/Utils/DataSecurity/RecordOfProcessingReader";
 import RecordOfProcessingWriter from "../../../Server/Utils/DataSecurity/RecordOfProcessingWriter";
+import { STORE_RECORD_CHANGE_REFUSED_MESSAGE } from "../../../Server/Utils/DataSecurity/StoreChangeAccess";
 import StoreTelemetryRetention from "../../../Server/Utils/DataSecurity/StoreTelemetryRetention";
 import RecordOfProcessingDrafter from "../../../Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import ImpactAssessmentDrafter from "../../../Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter";
@@ -97,6 +98,8 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { DataStoreResourceKind } from "../../../Types/DataSecurity/DataStoreResource";
 import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import DataSecurityIssueCodeFix from "../../../Server/Utils/DataSecurity/DataSecurityIssueCodeFix";
+import { ISSUE_FIX_ON_ITS_WAY_MESSAGE } from "../../../Server/Utils/DataSecurity/DataSecurityButtons";
 import AiContextReader from "../../../Server/Utils/AI/AiContext/AiContextReader";
 import DataSecurityIntegrations from "../../../Server/Utils/DataSecurity/DataSecurityIntegrations";
 import DeclaredDataStores from "../../../Server/Utils/DataSecurity/DeclaredDataStores";
@@ -596,6 +599,7 @@ let aiSpy: jest.SpyInstance;
 let aiSettingsSpy: jest.SpyInstance;
 let repositoriesSpy: jest.SpyInstance;
 let codeTaskSpy: jest.SpyInstance;
+let fixOnItsWaySpy: jest.SpyInstance;
 let scrubSpy: jest.SpyInstance;
 let dropSpy: jest.SpyInstance;
 let dropImpactSpy: jest.SpyInstance;
@@ -857,6 +861,10 @@ beforeEach(() => {
     .mockImplementation((async () => {
       return repositories;
     }) as never);
+  // No fix of the issue on its way: one is started (#10378).
+  fixOnItsWaySpy = jest
+    .spyOn(DataSecurityIssueCodeFix, "read")
+    .mockResolvedValue({ fix: null } as never);
   codeTaskSpy = jest
     .spyOn(CodeTaskRuns, "start")
     .mockImplementation((async () => {
@@ -1413,7 +1421,7 @@ describe("Scan Now and Check Now", () => {
         storeRow = workerStore();
         storeRow.kind = DataStoreKind.AwsDynamoDbTable;
       },
-      "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+      "OneUptime cannot sample this kind of store's content yet.",
     ],
     [
       "a service's telemetry, which the hourly telemetry scan reads",
@@ -1585,6 +1593,8 @@ describe("Scrub It", () => {
     expect(scrubSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       userId: USER_ID,
+      // The caller's own props, so a key's rule is the key's (#10378).
+      callerProps: expect.objectContaining({ userId: USER_ID }),
       // Its records are what the rule is proven on (#10366).
       findingId: STORE_ID.toString(),
       kind: DataStoreKind.TelemetryLogs,
@@ -1593,7 +1603,13 @@ describe("Scrub It", () => {
       serviceId: null,
       storeKey: null,
     });
+    // Read as the caller first: a finding they may not read is not found (#10378).
     expect(findingFindOneSpy.mock.calls[0]![0]).toMatchObject({
+      query: { _id: STORE_ID, projectId: PROJECT_ID },
+      select: { _id: true },
+      props: { userId: USER_ID },
+    });
+    expect(findingFindOneSpy.mock.calls[1]![0]).toMatchObject({
       query: { _id: STORE_ID, projectId: PROJECT_ID },
       // The store's service, and its key, which names it for a store kept without one (#10433).
       select: { dataStore: { kind: true, serviceId: true, storeKey: true } },
@@ -1654,6 +1670,8 @@ describe("Scrub It", () => {
     expect(scrubSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       userId: USER_ID,
+      // The caller's own props, so a key's rule is the key's (#10378).
+      callerProps: expect.objectContaining({ userId: USER_ID }),
       findingId: STORE_ID.toString(),
       kind: DataStoreKind.TelemetryMetrics,
       dataTypeId: "email-address",
@@ -1743,6 +1761,8 @@ describe("Drop This Metric", () => {
     expect(dropSpy).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       userId: USER_ID,
+      // The caller's own props, so a key's rule is the key's (#10378).
+      callerProps: expect.objectContaining({ userId: USER_ID }),
       kind: DataStoreKind.TelemetryMetrics,
       dataTypeId: "email-address",
       location: "name",
@@ -2052,6 +2072,26 @@ describe("A telemetry finding's records", () => {
       sampleRecords: [],
       lastSeenAt: null,
       now: NOW,
+      // A detector's finding: its detectors read its records again, as always.
+      isFoundByModel: false,
+    });
+  });
+
+  test("a finding the names-and-addresses model made is read with the model (#10926)", async () => {
+    asCaller([Permission.SecurityMember]);
+    findingRow!.dataTypeId = "person-name";
+    findingRow!.location = "body";
+    findingRow!.isFoundByModel = true;
+
+    await records();
+
+    expect(findingFindOneSpy.mock.calls[0]![0]).toMatchObject({
+      select: { isFoundByModel: true },
+    });
+    expect(occurrencesSpy.mock.calls[0]![0]).toMatchObject({
+      dataTypeId: "person-name",
+      location: "body",
+      isFoundByModel: true,
     });
   });
 
@@ -2701,6 +2741,43 @@ describe("Explain and Fix With AI", () => {
       body,
     );
   }
+
+  /*
+   * One fix of an issue at a time (#10378): pressed again while the first
+   * is being written, open for review or waiting on someone, it says so
+   * and starts no second task, pull request or bill.
+   */
+  test.each(["writing", "opened", "waiting"])(
+    "Fix With AI pressed again while a fix is %s starts nothing, and says one is on its way",
+    async (state: string) => {
+      repositories = [repositoryNamed("infra")];
+      fixOnItsWaySpy.mockResolvedValue({ fix: { state } } as never);
+
+      const result: RouteCall = await askForFix();
+
+      expect(result.thrown).toBeUndefined();
+      expect(result.answer).toEqual({ message: ISSUE_FIX_ON_ITS_WAY_MESSAGE });
+      expect(codeTaskSpy).not.toHaveBeenCalled();
+      expect(fixOnItsWaySpy.mock.calls[0]![0]).toMatchObject({
+        projectId: PROJECT_ID,
+        props: { userId: USER_ID },
+      });
+    },
+  );
+
+  test("Fix With AI starts again once the last fix ended or failed", async () => {
+    repositories = [repositoryNamed("infra")];
+
+    for (const state of ["merged", "failed", "closed"]) {
+      codeTaskSpy.mockClear();
+      fixOnItsWaySpy.mockResolvedValue({ fix: { state } } as never);
+
+      const result: RouteCall = await askForFix();
+
+      expect(result.thrown).toBeUndefined();
+      expect(codeTaskSpy).toHaveBeenCalledTimes(1);
+    }
+  });
 
   // As a task in Code is asked (#10362): the caller's own permissions throughout.
   test("Fix With AI starts a code task in the one repository the caller may read and ask in, as the caller, and notes it", async () => {
@@ -5560,11 +5637,19 @@ describe("the compliance paperwork's routes", () => {
   ];
 
   let helperSpies: Array<jest.SpyInstance>;
+  // Whether the caller may change the store itself, by its own row (StoreChangeAccess).
+  let storeChangeSpy: jest.SpyInstance;
 
   beforeEach(() => {
     const row: DataSecurityRecordOfProcessingRow = {
       dataStoreId: STORE_ID.toString(),
     } as DataSecurityRecordOfProcessingRow;
+
+    storeChangeSpy = jest
+      .spyOn(DataStoreService, "findOneUpdatableById")
+      .mockImplementation((async () => {
+        return storeRow;
+      }) as never);
 
     helperSpies = [
       jest
@@ -5710,6 +5795,35 @@ describe("the compliance paperwork's routes", () => {
       userId: USER_ID,
       force: true,
     });
+
+    // ...and only once the caller is known to be able to change THIS store (#10805).
+    expect(storeChangeSpy.mock.calls[0]![0]).toMatchObject({
+      id: STORE_ID,
+      props: { userId: USER_ID },
+    });
+    expect(storeChangeSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      draftStore.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a store's drafts are refused to who may edit some store but not this one, drafting nothing", async () => {
+    asCaller([Permission.EditDataStore]);
+    // An edit of stores limited to labels this store does not carry.
+    storeChangeSpy.mockResolvedValue(null);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.draftRecord(":id"),
+      { id: STORE_ID.toString() },
+      { force: true },
+    );
+
+    expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((result.thrown as Exception).message).toBe(
+      STORE_RECORD_CHANGE_REFUSED_MESSAGE,
+    );
+    expect(result.answer).toBeUndefined();
+    expect(helperSpies[2]!).not.toHaveBeenCalled();
+    expect(aiSpy).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -5972,6 +6086,13 @@ describe("the exposure assessment's routes", () => {
       refused: EXPOSURE_CHANGE_REFUSED,
       body: { places: [BreachPlace.Eea] },
     },
+    // Reading the store's access logs keeps what they say on the case (#10951).
+    {
+      name: "reading the store's access logs for the window",
+      path: DATA_SECURITY_API_ROUTES.readExposureLogs(":id"),
+      allowed: EXPOSURE_CHANGE,
+      refused: EXPOSURE_CHANGE_REFUSED,
+    },
   ];
 
   let exposureSpies: Array<jest.SpyInstance>;
@@ -5992,6 +6113,9 @@ describe("the exposure assessment's routes", () => {
         .mockResolvedValue({} as never),
       jest
         .spyOn(ExposureAssessmentDrafter, "setPeoplePlaces")
+        .mockResolvedValue({} as never),
+      jest
+        .spyOn(ExposureAssessmentDrafter, "readLogsForPerson")
         .mockResolvedValue({} as never),
     ];
   });
@@ -6017,6 +6141,9 @@ describe("the exposure assessment's routes", () => {
     );
     expect(DATA_SECURITY_API_ROUTES.exposurePeoplePlaces("x")).toBe(
       "/security-case/x/exposure-assessment/people",
+    );
+    expect(DATA_SECURITY_API_ROUTES.readExposureLogs("x")).toBe(
+      "/security-case/x/exposure-assessment/read-logs",
     );
   });
 

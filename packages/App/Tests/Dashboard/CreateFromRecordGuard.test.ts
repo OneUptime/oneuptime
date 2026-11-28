@@ -201,6 +201,11 @@ const RECORD_TABS: Array<RecordTabShape> = [
     INCIDENTS_ALERTS_AND_MAINTENANCE,
   ),
   ...kindTabs(
+    "XcpNg",
+    CreateFromRecordKind.XcpNgPool,
+    INCIDENTS_ALERTS_AND_MAINTENANCE,
+  ),
+  ...kindTabs(
     "Ceph",
     CreateFromRecordKind.CephCluster,
     INCIDENTS_ALERTS_AND_MAINTENANCE,

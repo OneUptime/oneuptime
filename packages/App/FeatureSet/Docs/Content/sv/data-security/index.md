@@ -6,7 +6,7 @@ Den svarar på fyra frågor:
 
 :::cards
 - [Var finns våra känsliga data?](/docs/data-security/data-types): 143 datatyper, från kortnummer och nationella ID-nummer till API-nycklar, som hittas i buckets, tabeller och telemetri.
-- [Är de exponerade?](/docs/data-security/checks-and-issues): 34 kontroller av varje datalager: offentlig åtkomst, kryptering, säkerhetskopior, loggning, hemligheter och kopior.
+- [Är de exponerade?](/docs/data-security/checks-and-issues): 35 kontroller av varje datalager: offentlig åtkomst, kryptering, säkerhetskopior, loggning, hemligheter och kopior.
 - [Vem kan nå dem, och vart tar de vägen?](/docs/data-security/flows-access-residency): Varje identitet som kan nå varje datalager, den mest riskfyllda först, vilka tjänster som använder det och vilka AI-leverantörer och värdar dess data når.
 - [Följer de våra regler?](/docs/data-security/compliance): Hemvistregler, och nio ramverk som poängsätts utifrån vad skanningarna hittade.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## Innan du börjar
 
 - **En roll som kan sätta upp den.** Rollerna Projektägare, Projektadministratör och Säkerhetsadministratör ändrar inställningarna för Datasäkerhet. Säkerhetsmedlem arbetar med problem och skannar datalager, och Säkerhetstittare läser vad den har hittat. Andra roller ser ingenting av det om inte deras team får dess behörigheter: vilka buckets som innehåller kortnummer är precis vad en angripare vill veta. Se [Roller](/docs/permissions/reference#roller).
-- **Ett molnkonto att läsa, eller en databas.** Datasäkerhet läser ett molnkonto via en [molnanslutning](/docs/telemetry/cloud-accounts), och en databas som du driver via en anslutningssträng med enbart läsbehörighet. Telemetri behöver ingenting: den skannas varje timme.
+- **Ett molnkonto att läsa, eller ett datalager som du driver.** Datasäkerhet läser ett molnkonto via en [molnanslutning](/docs/telemetry/cloud-accounts), och en databas eller ett sökkluster som du driver via en anslutningssträng med enbart läsbehörighet. Telemetri behöver ingenting: den skannas varje timme.
 
 ## Snabbstart
 
@@ -69,10 +69,10 @@ Under **Fler fält** ställer du in **Datasäkerhet** på **Endast konfiguration
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databaser som du driver | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| Datalager som du driver | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | Loggar, spår, undantag, sessionsuppspelningar, AI-konversationer, mätvärden, säkerhetshändelser, Network Flows, säkerhetsadressvalv, säkerhetsanvändarvalv | Loggar, spår, undantag, sessionsuppspelningar, AI-konversationer, mätvärden |
 
-Varje datalager får de kontroller som gäller för dess sort. Ett datalager vars innehåll inte kan provtas kontrolleras ändå: en offentlig bucket eller en okrypterad databas är ett problem oavsett vad den innehåller. Säkerhetshändelser, Network Flows och säkerhetsadressvalvet är OneUptimes egna, sparade för din säkerhet: angivna, aldrig skannade eller kontrollerade (se [Datalager som OneUptime sparar för din säkerhet](/docs/data-security/compliance#datalager-som-oneuptime-sparar-för-din-säkerhet)).
+Varje datalager får de kontroller som gäller för dess sort, utifrån vad OneUptime kan läsa av det. Ett datalager i ett molnkonto läses från dess molns egna inställningar, så det kontrolleras oavsett om dess innehåll kan provtas eller inte: en offentlig bucket eller en okrypterad databas är ett problem oavsett vad den innehåller. Ett datalager som du driver har inga sådana inställningar som OneUptime kan läsa: ett Elasticsearch- eller OpenSearch-kluster tillfrågas vid varje innehållsskanning på sin egen adress om det svarar utan autentiseringsuppgifter, och hur de andra sorterna kan nås kontrolleras inte (se [Vad OneUptime kontrollerar på ett datalager som du driver](/docs/data-security/setup#vad-oneuptime-kontrollerar-på-ett-datalager-som-du-driver)). Varje datalagers **Inställningar** visar under **Vad OneUptime kontrollerar** vad som kontrolleras på det och vad som inte gör det. Säkerhetshändelser, Network Flows och säkerhetsadressvalvet är OneUptimes egna, sparade för din säkerhet: angivna, aldrig skannade eller kontrollerade (se [Datalager som OneUptime sparar för din säkerhet](/docs/data-security/compliance#datalager-som-oneuptime-sparar-för-din-säkerhet)).
 
 Ett datalager arkiveras, med sin historik, när dess källa inte längre listar det, och dess öppna problem löses: **Arkiverade datalager**, längst ned i menyn för Datasäkerhet, behåller det. Det kommer tillbaka av sig självt om källan listar det igen, och ett problem vars kontroll fortfarande underkänns öppnas igen.
 
@@ -86,9 +86,10 @@ Ett datalagers **Tidslinje** visar vad som har hänt med det, och vem som gjorde
 | Läsa en molnanslutnings konfiguration | En gång om dagen, och inom en timme efter att CloudTrail registrerar en ändring av ett AWS-datalagers åtkomst, kryptering, säkerhetskopior eller delning |
 | Ta prover på ett datalagers innehåll | Var 24:e timme, eller så ofta som **Skanningsintervall (timmar)** anger |
 | Ta prover på varje tjänsts telemetri | Varje timme, den senaste timmen av den |
+| Fråga ett sökkluster som du driver om det svarar utan autentiseringsuppgifter | Vid var och en av dess innehållsskanningar |
 | Kontrollera varje datalager igen | Efter varje läsning och skanning, efter att du har ändrat något som en kontroll beror på, och en gång om dagen |
 
-**Skanna nu** på ett datalager tar prover på dess innehåll direkt, och **Kontrollera nu** läser dess konfiguration igen.
+**Skanna nu** på ett datalager tar prover på dess innehåll direkt, och frågar ett sökkluster som du driver igen om det svarar utan autentiseringsuppgifter. **Kontrollera nu** läser konfigurationen för ett datalager i ett molnkonto igen och kör datalagrets kontroller igen.
 
 ## Nästa steg
 

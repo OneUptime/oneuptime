@@ -40,6 +40,7 @@ import ProbeBehindUtil, {
 } from "Common/Types/Probe/ProbeBehind";
 import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocumentation";
 import ProbePacketCaptures from "../../../Components/PacketCapture/ProbePacketCaptures";
+import ProbeSnmpTraps from "../../../Components/Probe/ProbeSnmpTraps";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
@@ -392,6 +393,13 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
       />
 
       {/*
+       * Its SNMP trap receiver (#11005): the SNMPv3 engine ID a device that
+       * sends informs needs, the SNMPv3 users it takes traps from, and the
+       * SNMPv3 traps it refused, with what to change.
+       */}
+      <ProbeSnmpTraps probeId={modelId} />
+
+      {/*
        * Captures of the traffic this probe sees, started here and downloaded
        * for Wireshark - once whoever runs the probe has turned them on.
        */}
@@ -412,7 +420,7 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
         ownerUserModelType={ProbeOwnerUser}
         ownerTeamModelType={ProbeOwnerTeam}
         description="People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime."
-        emptyDescription="Add a teammate or a team to alert when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted."
+        emptyDescription="Add a teammate or a team so they are alerted when this probe changes status or falls a major release behind. Until then, Project Owners are alerted."
       />
 
       <ResetObjectID<Probe>

@@ -91,7 +91,7 @@ As funções Membro de segurança, Administrador de segurança, Administrador do
 | Art. 25 | Proteção de dados desde a concepção e por padrão | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 28 | Operadores | `sensitive-data-to-ai` |
 | Art. 30 | Registros das atividades de tratamento | Atendido pela própria Segurança de dados |
-| Art. 32 | Segurança do tratamento | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| Art. 32 | Segurança do tratamento | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | Arts. 44-49 | Transferências para países terceiros | `residency-violation` |
 
 ### CCPA
@@ -99,7 +99,7 @@ As funções Membro de segurança, Administrador de segurança, Administrador do
 | Requisito | O que exige | Verificações |
 | --- | --- | --- |
 | 1798.100(c) | Coleta limitada ao necessário | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
-| 1798.150 | Procedimentos de segurança razoáveis | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 1798.150 | Procedimentos de segurança razoáveis | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### HIPAA
 
@@ -107,7 +107,7 @@ As funções Membro de segurança, Administrador de segurança, Administrador do
 | --- | --- | --- |
 | 164.308(a)(4) | Gestão do acesso à informação | `unused-access` |
 | 164.308(a)(7) | Plano de contingência | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
-| 164.312(a)(1) | Controle de acesso | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 164.312(a)(1) | Controle de acesso | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 164.312(a)(2)(iv) | Criptografia e descriptografia | `not-encrypted-at-rest`, `no-customer-managed-key` |
 | 164.312(b) | Controles de auditoria | `access-not-logged` |
 | 164.312(e)(1) | Segurança da transmissão | `encryption-in-transit-not-enforced`, `weak-tls` |
@@ -120,7 +120,7 @@ As funções Membro de segurança, Administrador de segurança, Administrador do
 | 3.4.1 | Os números de cartão são mascarados quando exibidos | `card-numbers-readable`, `sensitive-data-in-telemetry` |
 | 3.5.1 | Os números de cartão ficam ilegíveis onde quer que sejam armazenados | `not-encrypted-at-rest`, `no-customer-managed-key`, `card-numbers-readable` |
 | 4.2.1 | Criptografia forte protege os dados de cartão em trânsito | `encryption-in-transit-not-enforced`, `weak-tls` |
-| 7.2 | O acesso é definido e atribuído conforme a necessidade | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 7.2 | O acesso é definido e atribuído conforme a necessidade | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 7.2.4 | As contas e os acessos delas são revisados | `unused-access` |
 | 8.3.2 | Os fatores de autenticação ficam ilegíveis quando armazenados | `plaintext-passwords` |
 | 10.2 | Os logs de auditoria registram o acesso aos dados de cartão | `access-not-logged` |
@@ -130,7 +130,7 @@ As funções Membro de segurança, Administrador de segurança, Administrador do
 | Requisito | O que exige | Verificações |
 | --- | --- | --- |
 | A1.2 | Backup e recuperação | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
-| CC6.1 | Segurança do acesso lógico | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| CC6.1 | Segurança do acesso lógico | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | CC6.2 | O acesso é removido quando não é mais necessário | `unused-access` |
 | CC6.7 | Transmissão de informações | `encryption-in-transit-not-enforced`, `weak-tls` |
 | CC7.2 | Monitoramento dos componentes do sistema | `access-not-logged` |
@@ -141,7 +141,7 @@ As funções Membro de segurança, Administrador de segurança, Administrador do
 | --- | --- | --- |
 | A.5.9 | Inventário de informações e outros ativos associados | `no-owner` |
 | A.5.12 | Classificação da informação | Atendido pela própria Segurança de dados |
-| A.5.15 | Controle de acesso | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| A.5.15 | Controle de acesso | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | A.5.18 | Direitos de acesso | `unused-access` |
 | A.5.34 | Privacidade e proteção de PII | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.11 | Mascaramento de dados | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
@@ -155,7 +155,7 @@ As funções Membro de segurança, Administrador de segurança, Administrador do
 | Requisito | O que exige | Verificações |
 | --- | --- | --- |
 | ID.AM-07 | Inventários de dados e metadados são mantidos | `no-owner` |
-| PR.AA-05 | As permissões de acesso são gerenciadas | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
+| PR.AA-05 | As permissões de acesso são gerenciadas | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
 | PR.DS-01 | Os dados em repouso são protegidos | `not-encrypted-at-rest`, `no-customer-managed-key`, `secrets-stored`, `secrets-in-telemetry` |
 | PR.DS-02 | Os dados em trânsito são protegidos | `encryption-in-transit-not-enforced`, `weak-tls` |
 | PR.DS-11 | Backups dos dados são mantidos e testados | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
@@ -167,13 +167,13 @@ As funções Membro de segurança, Administrador de segurança, Administrador do
 | --- | --- | --- |
 | Art. 6 | Necessidade e limitação da finalidade | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 33 | Transferência internacional de dados | `residency-violation` |
-| Art. 46 | Medidas de segurança | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| Art. 46 | Medidas de segurança | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### DPDP
 
 | Requisito | O que exige | Verificações |
 | --- | --- | --- |
-| Sec. 8(5) | Salvaguardas de segurança razoáveis | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| Sec. 8(5) | Salvaguardas de segurança razoáveis | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | Sec. 8(7) | Eliminação quando a finalidade é cumprida | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Sec. 16 | Transferência para fora da Índia | `residency-violation` |
 
@@ -226,6 +226,8 @@ Quatro repositórios guardam endereços IP e nomes de usuário de propósito, pa
 A finalidade de cada um é "Segurança das redes e da informação (considerando 49 do RGPD)". Para escrever a sua própria finalidade ou retenção, use **Editar registro** nas **Configurações** do repositório: um campo deixado em branco mantém a do OneUptime.
 
 Um repositório é listado enquanto o seu projeto guarda os dados dele: o cofre de endereços, enquanto uma regra de endereço IP ativada aplica hash aos logs ou traces que os Eventos de segurança leem, o cofre de usuários, enquanto uma regra ativada de qualquer outro padrão faz isso, e cada um por mais 31 dias (veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Quando os dados dele acabam, o repositório é arquivado e volta com a sua finalidade e a sua retenção se os dados voltarem.
+
+Para apagar uma pessoa de “Cofre de usuários de segurança”, e dos eventos e casos que a nomeiam por meio dele, registre uma solicitação de apagamento: veja [Apagar uma pessoa](/docs/telemetry/security-events#apagar-uma-pessoa).
 
 ## Avaliações de impacto
 

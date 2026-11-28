@@ -15,6 +15,8 @@ import McpRunToolkit, {
 import ExternalMcpServerConnection from "../../../../Server/Utils/AI/Mcp/ExternalMcpServerConnection";
 import ExternalMcpServerCheck from "../../../../Server/Utils/AI/Mcp/ExternalMcpServerCheck";
 import { clearMcpSignInCachesForTests } from "../../../../Server/Utils/AI/Mcp/McpSignIn";
+import AiCommandKillSwitch from "../../../../Server/Utils/AI/AiCommandKillSwitch";
+import ExternalMcpToolReadOnlyMarkService from "../../../../Server/Services/ExternalMcpToolReadOnlyMarkService";
 import { ObservabilityAssistantExtraTool } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import { ToolCallOutcome } from "../../../../Server/Utils/AI/Toolbox/Index";
 import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
@@ -132,6 +134,12 @@ beforeEach(() => {
   jest
     .spyOn(ExternalMcpServerCheck, "recordConnection")
     .mockResolvedValue(undefined);
+  // Enable AI, read before every connection and call (#10879): on.
+  jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+  // No Project Admin has marked a tool read-only (#11081: McpRunToolkitMarks).
+  jest
+    .spyOn(ExternalMcpToolReadOnlyMarkService, "findMarksOfServer")
+    .mockResolvedValue([]);
   // The fix is still being worked out, and its plan is written as it goes.
   jest.spyOn(AutoRemediationSuggestionService, "findOneById").mockResolvedValue(
     Object.assign(new AutoRemediationSuggestion(), {

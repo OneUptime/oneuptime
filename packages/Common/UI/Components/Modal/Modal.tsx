@@ -3,6 +3,7 @@ import { isDialogAside } from "./DialogAside";
 import readAsWritten from "../IsolatedText/ReadAsWritten";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
+import { getDialogWhatFailed } from "../../Utils/DialogWhatFailed";
 import { ButtonStyleType } from "../Button/Button";
 import ButtonType from "../Button/ButtonTypes";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
@@ -42,6 +43,40 @@ export enum ModalWidth {
  * create and edit dialog is a BasicForm.
  */
 export const DIALOG_FORM_SELECTOR: string = `form, [${UNSAVED_CHANGES_SCOPE_ATTRIBUTE}="form"]`;
+
+/*
+ * The place a form's control draws while its file is on its way - the
+ * record picker, a code editor, a file picker (LazyControlPlaceholder) -
+ * which takes no focus itself.
+ */
+export const LOADING_CONTROL_SELECTOR: string = '[data-load-state="loading"]';
+
+/*
+ * Whether `element` is a control of a form in `body` with a field before it
+ * still on its way (LOADING_CONTROL_SELECTOR). The form's first field is
+ * then where it starts, once it arrives: Link Existing Monitors' picker
+ * draws its place first, and the dialog started on the switch after it,
+ * the only control there yet, so the picker never had the focus.
+ */
+export const isAfterALoadingField: (
+  element: HTMLElement,
+  body: HTMLElement | null,
+) => boolean = (element: HTMLElement, body: HTMLElement | null): boolean => {
+  const form: Element | null = element.closest(DIALOG_FORM_SELECTOR);
+
+  if (!form || !body || !body.contains(form)) {
+    return false;
+  }
+
+  return Array.from(form.querySelectorAll(LOADING_CONTROL_SELECTOR)).some(
+    (loading: Element): boolean => {
+      return Boolean(
+        loading.compareDocumentPosition(element) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    },
+  );
+};
 
 /*
  * On a phone the dialog is a sheet from the screen's foot, as tall as what
@@ -98,7 +133,9 @@ export interface ComponentProps {
   /*
    * What the dialog was doing, in the reader's language - "Couldn't delete
    * the note." - said first when the error is one nobody explained
-   * (ModalBody).
+   * (ModalBody). Left out, the dialog names itself by its title: "“Rotate
+   * Verification Code” did not finish." (DialogWhatFailed, #7680). A dialog
+   * whose title names no action - "Error", "Test Failed" - says it here.
    */
   errorWhatFailed?: string | undefined;
   isBodyLoading?: boolean | undefined;
@@ -566,11 +603,20 @@ const Modal: FunctionComponent<ComponentProps> = (
         return child.getAttribute("data-testid") === "modal-header";
       }) as HTMLElement | undefined) || null;
 
+    /*
+     * A control of a form whose first field is still on its way is no place
+     * to start (isAfterALoadingField): the dialog starts as it does for a
+     * form that draws late, and the field takes the focus once it arrives.
+     */
     const initialFocusElement: HTMLElement | undefined =
       isInitialFocusOnDialogRef.current
         ? undefined
         : pickInitialFocusElement({
-            focusableElements: getFocusableElements(),
+            focusableElements: getFocusableElements().filter(
+              (element: HTMLElement): boolean => {
+                return !isAfterALoadingField(element, contentRef.current);
+              },
+            ),
             footer,
             isSubmitDestructive: isSubmitDestructiveRef.current,
             header,
@@ -648,13 +694,18 @@ const Modal: FunctionComponent<ComponentProps> = (
         /*
          * The first control of a form in the body that can be changed - a
          * read-only one only when there is nothing else - as where a dialog
-         * drawn at once starts (pickInitialFocusElement).
+         * drawn at once starts (pickInitialFocusElement). None after a field
+         * still on its way: that field is the form's first, and the watch
+         * goes on until it arrives.
          */
         const lateField: HTMLElement | undefined = findFirstChangeable(
           getFocusableElements().filter((element: HTMLElement): boolean => {
             const form: Element | null = element.closest(DIALOG_FORM_SELECTOR);
 
-            return Boolean(form && content.contains(form));
+            return (
+              Boolean(form && content.contains(form)) &&
+              !isAfterALoadingField(element, content)
+            );
           }),
         );
 
@@ -965,7 +1016,10 @@ const Modal: FunctionComponent<ComponentProps> = (
               <div ref={contentInnerRef}>
                 <ModalBody
                   error={props.error}
-                  whatFailed={props.errorWhatFailed}
+                  whatFailed={
+                    props.errorWhatFailed ||
+                    getDialogWhatFailed(translator, translatedTitle)
+                  }
                 >
                   {!props.isBodyLoading ? (
                     /*

@@ -967,7 +967,10 @@ export default class Queue {
   @CaptureSpan()
   public static async getQueueSize(queueName: QueueName): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
-    const waitingCount: number = await queue.getWaitingCount();
+    // Jobs waiting with a priority are waiting too (getPrioritizedJobCount).
+    const waitingCount: number =
+      (await queue.getWaitingCount()) +
+      (await this.getPrioritizedJobCount(queue));
     const activeCount: number = await queue.getActiveCount();
     const delayedCount: number = await queue.getDelayedCount();
 
@@ -997,10 +1000,11 @@ export default class Queue {
   /*
    * How many jobs wait with a priority. BullMQ keeps them in a set of their
    * own, which getWaitingCount() does not count, but they are waiting work
-   * all the same. Only the AIInvestigation queue adds such jobs (its
-   * background runs), so this is 0 for every other queue - and guarded like
-   * the scheduler count, so a client without it reads 0 instead of taking
-   * the whole scaling metric offline.
+   * all the same. The AIInvestigation queue adds such jobs (its background
+   * runs), and the Telemetry queue does for its bulk telemetry, which waits
+   * behind the monitoring work (TelemetryQueueService); every other queue
+   * has none. Guarded like the scheduler count, so a client without it
+   * reads 0 instead of taking the whole scaling metric offline.
    */
   private static async getPrioritizedJobCount(
     queue: BullQueue,
@@ -1068,6 +1072,14 @@ export default class Queue {
   @CaptureSpan()
   public static async getQueueBacklogSize(
     queueName: QueueName,
+    options?: {
+      /*
+       * Leave out the jobs waiting with a priority: the Telemetry queue's
+       * bulk telemetry, which the autoscaler must not scale on while
+       * ClickHouse is refusing its inserts (TelemetryInsertBackpressure).
+       */
+      withoutPrioritized?: boolean | undefined;
+    },
   ): Promise<number> {
     const queue: BullQueue = this.getQueue(queueName);
     const [waitingCount, prioritizedCount, delayedCount, schedulerCount]: [
@@ -1078,7 +1090,9 @@ export default class Queue {
     ] = await Promise.all([
       queue.getWaitingCount(),
       // Jobs waiting with a priority are backlog too (getPrioritizedJobCount).
-      this.getPrioritizedJobCount(queue),
+      options?.withoutPrioritized
+        ? Promise.resolve(0)
+        : this.getPrioritizedJobCount(queue),
       queue.getDelayedCount(),
       this.getJobSchedulerCount(queue),
     ]);

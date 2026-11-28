@@ -135,6 +135,20 @@ export enum CheckOn {
    */
   SnmpIsOnline = "SNMP Device Is Online",
   /*
+   * The device's ping on its own (issue #11071). Its probe pings it on every
+   * poll, beside the SNMP walk, so the verdicts can be judged apart: a
+   * switch whose SNMP credentials broke still answers ping, and reads
+   * "reachable, SNMP failing" instead of offline. Not evaluated on a poll
+   * from a probe that ran no ping (one that predates ping-first polling).
+   *
+   *   - Reachable: an ICMP echo came back.
+   *   - Response time: the echoes' average round trip, when one came back.
+   *   - Packet loss: the share of the poll's echoes that did not.
+   */
+  IcmpIsReachable = "Device Is Reachable (ICMP)",
+  IcmpResponseTime = "ICMP Response Time (in ms)",
+  IcmpPacketLossPercent = "ICMP Packet Loss (in %)",
+  /*
    * The SNMP walk itself. Not evaluated at all on a poll that ran no walk
    * (a device without credentials), so "is False" means "the walk was
    * attempted and failed" - credentials, agent, or an ACL - never "there
@@ -197,6 +211,15 @@ export enum CheckOn {
    * the link goes down.
    */
   SnmpTransceiverRxPowerDrop = "SNMP Transceiver RX Power Drop (in dB)",
+  /*
+   * How fast one of a Fibre Channel port's counters grew, per second, since
+   * the device's previous poll: snmpMonitorOptions.fibreChannelCounter
+   * names which (a FibreChannelCounter - credit loss, discards, CRC errors
+   * ...), and the port is scoped like the interface CheckOns. Met when any
+   * port in scope matches. Not evaluated on a device with no Fibre Channel
+   * ports, nor until it has been polled twice.
+   */
+  SnmpFibreChannelCounterPerSecond = "SNMP Fibre Channel Counter (per second)",
 
   // DNS monitors.
   DnsResponseTime = "DNS Response Time (in ms)",
@@ -316,6 +339,11 @@ export interface SnmpMonitorOptions {
    * "voltage", "biasCurrent").
    */
   transceiverReading?: string | undefined;
+  /*
+   * For CheckOn.SnmpFibreChannelCounterPerSecond: which counter - a
+   * FibreChannelCounter value ("crcErrors", "creditLoss", "discards" ...).
+   */
+  fibreChannelCounter?: string | undefined;
 }
 
 export interface DatabaseMonitorOptions {
@@ -747,6 +775,7 @@ export class CriteriaFilterUtil {
     if (
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.IcmpIsReachable ||
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
@@ -824,6 +853,7 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.IsRequestTimeout ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.IcmpIsReachable ||
       checkOn === CheckOn.ExternalStatusPageIsOnline ||
       checkOn === CheckOn.DatabaseIsOnline ||
       checkOn === CheckOn.NtpIsOnline ||
@@ -1020,6 +1050,16 @@ export class CriteriaFilterUtil {
       (CriteriaFilterUtil.isCountedWindowType(evaluateOverTimeType) ||
         evaluateOverTimeType === EvaluateOverTimeType.PreviousCheck)
     ) {
+      // A DNS answer is compared with the previous one (#10905).
+      if (
+        evaluateOverTimeType === EvaluateOverTimeType.PreviousCheck &&
+        CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+          criteriaFilter?.checkOn,
+        )
+      ) {
+        return evaluateOverTimeType;
+      }
+
       return CriteriaFilterUtil.canCountChecks(
         criteriaFilter?.checkOn,
         monitorType,
@@ -1089,6 +1129,11 @@ export class CriteriaFilterUtil {
     monitorType?: MonitorType | undefined,
   ): boolean {
     if (!checkOn) {
+      return false;
+    }
+
+    // A DNS answer is compared with the previous one, never counted.
+    if (CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(checkOn)) {
       return false;
     }
 
@@ -1356,6 +1401,17 @@ export class CriteriaFilterUtil {
     }
 
     /*
+     * A DNS answer is a set of records (#10905): no average, count or share
+     * of one means anything, and what it can be asked is whether it is the
+     * same as the previous check's.
+     */
+    if (
+      CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(criteriaFilter.checkOn)
+    ) {
+      return [EvaluateOverTimeType.PreviousCheck];
+    }
+
+    /*
      * Counting the window's checks, where they can be counted (#10355), and
      * comparing a check with the one before it, read from the same record
      * of the checks (#10821).
@@ -1431,6 +1487,19 @@ export class CriteriaFilterUtil {
     }
   }
 
+  /*
+   * The checks of a network device's ping on its own (issue #11071): judged
+   * on every poll, a ping-only one included, and on none from a probe that
+   * ran no ping. One list, read by the form and the evaluator alike.
+   */
+  public static isIcmpCheckOn(checkOn: CheckOn | undefined): boolean {
+    return (
+      checkOn === CheckOn.IcmpIsReachable ||
+      checkOn === CheckOn.IcmpResponseTime ||
+      checkOn === CheckOn.IcmpPacketLossPercent
+    );
+  }
+
   // The transceiver CheckOns.
   public static isTransceiverCheckOn(checkOn: CheckOn | undefined): boolean {
     return (
@@ -1454,6 +1523,7 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       checkOn === CheckOn.SnmpInterfaceErrorsPerSecond ||
+      checkOn === CheckOn.SnmpFibreChannelCounterPerSecond ||
       CriteriaFilterUtil.isTransceiverCheckOn(checkOn)
     );
   }
@@ -1498,6 +1568,14 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpResponseTime ||
       checkOn === CheckOn.SnmpIsOnline ||
+      /*
+       * Every poll pings, so a window is the hold-down a fleet needs:
+       * "unreachable by ping for 5 minutes" rides out one lost burst of
+       * echoes (issue #11071).
+       */
+      checkOn === CheckOn.IcmpIsReachable ||
+      checkOn === CheckOn.IcmpResponseTime ||
+      checkOn === CheckOn.IcmpPacketLossPercent ||
       checkOn === CheckOn.DnsResponseTime ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.ExternalStatusPageResponseTime ||
@@ -1533,7 +1611,36 @@ export class CriteriaFilterUtil {
        * compared with the previous check: down by more than one is a
        * certificate replaced by one that expires sooner, up is a renewal.
        */
-      checkOn === CheckOn.ExpiresInDays
+      checkOn === CheckOn.ExpiresInDays ||
+      // Its answer's fingerprint, compared with the previous check alone.
+      CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(checkOn)
     );
+  }
+
+  /*
+   * Whether a check's window can only compare it with the previous check: a
+   * DNS answer (#10905), which each check that gets one writes as a
+   * fingerprint of its records (DnsAnswer). It is the same as the previous
+   * answer or not, so Equal To and Not Equal To are its comparisons
+   * (getPreviousCheckFilterTypes), and nothing else of a window applies.
+   */
+  public static isComparedOnlyWithPreviousCheck(
+    checkOn: CheckOn | undefined,
+  ): boolean {
+    return checkOn === CheckOn.DnsRecordValue;
+  }
+
+  /*
+   * The conditions a filter compared with the previous check can take, when
+   * fewer than its own: Equal To and Not Equal To for a DNS answer, the same
+   * as the previous one or different from it. Null when every condition the
+   * check takes applies.
+   */
+  public static getPreviousCheckFilterTypes(
+    checkOn: CheckOn | undefined,
+  ): Array<FilterType> | null {
+    return CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(checkOn)
+      ? [FilterType.NotEqualTo, FilterType.EqualTo]
+      : null;
   }
 }

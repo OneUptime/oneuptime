@@ -569,14 +569,16 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
+  /*
+   * The connections the delete removes - those its caller may delete, read
+   * in the delete's own window - with the delete held to exactly them
+   * (findRowsAndHoldDeleteToThem), so no connection that enforces the
+   * blocklist is removed unchecked: a read of the delete's query, cut at a
+   * limit of its own, let a bulk delete past it remove one.
+   */
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    /*
-     * The connections the delete removes - the ones the caller may delete,
-     * in the delete's own window - and the delete held to them: a refusal
-     * names only a connection the caller would have deleted.
-     */
     const connections: Array<Model> = await this.findRowsAndHoldDeleteToThem(
       deleteBy,
       { _id: true, projectId: true, provider: true },

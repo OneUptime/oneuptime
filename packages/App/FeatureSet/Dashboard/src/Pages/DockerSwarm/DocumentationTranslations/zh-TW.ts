@@ -38,6 +38,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `DOCKER_INVENTORY_INTERVAL_SECONDS` | 否 | 輪詢器重新整理清單快照的頻率（預設 `300`） |",
   "| `DOCKER_API_VERSION` | No | Docker Engine API version the collector and the inventory poller speak. Empty by default: they use the daemon's own, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |":
     "| `DOCKER_API_VERSION` | 否 | 收集器和清單輪詢器使用的 Docker Engine API 版本。預設為空：它們使用常駐程式自己的版本，因此 20.10 以後的任何 Docker Engine 都能使用。只在需要固定版本時設定（請參閱 疑難排解） |",
+  "| `ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5` | No | Collector operators of your own, one each as JSON, for a log format the agent does not read |":
+    "| `ONEUPTIME_LOG_OPERATOR_1` 到 `ONEUPTIME_LOG_OPERATOR_5` | 否 | 你自己的收集器運算子，每個都以 JSON 形式提供，用於代理程式讀取不了的日誌格式 |",
   "The install script writes the first four to `/opt/oneuptime-docker-swarm-agent/.env`. Add or change any of them there, then run `docker compose up -d` in `/opt/oneuptime-docker-swarm-agent` to recreate the containers with the new values.":
     "安裝指令碼會把前四個寫入 `/opt/oneuptime-docker-swarm-agent/.env`。在那裡新增或修改任何一個，然後在 `/opt/oneuptime-docker-swarm-agent` 中執行 `docker compose up -d`，用新值重新建立容器。",
   "The agent's docker-compose.yml also runs the OneUptime AI agent, `oneuptime-docker-swarm-ai-agent`. It runs the `docker` commands OneUptime AI asks for while it investigates an incident or alert on this cluster, and it appears on the cluster's **AI → AI agent** page. Like the inventory poller it must run on a manager node — on a worker it runs nothing.":

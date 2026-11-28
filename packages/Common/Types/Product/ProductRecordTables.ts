@@ -52,6 +52,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "MonitorStatus",
     "MonitorStatusTimeline",
     "MonitorTemplate",
+    "MonitorTemplateChange",
     "MonitorTest",
     "IncomingRequestSecret",
     AnalyticsTableName.MonitorLog,
@@ -367,6 +368,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "SecurityPlaybookRun",
     "SecurityProtectedEntity",
     "SecurityTelemetrySource",
+    "SecurityUserErasureRequest",
     "SecurityWatchlist",
     "SecurityWatchlistItem",
     "ThreatIntelFeed",
@@ -382,6 +384,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DataSecurityIdentity",
     "DataSecurityIssue",
     "DataSecurityIssueFeed",
+    // A pull request a person linked to an issue as its fix (#10831).
+    "DataSecurityIssuePullRequest",
     // The issues one mistake made, fixed once (#10370).
     "DataSecurityIssueGroup",
     "DataSecurityAiProposal",
@@ -543,6 +547,7 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "OpenStackResource",
   ],
   [ProductKey.VMware]: [
+    "VMwareHealthSetting",
     "VMwareResource",
     "VMwareVCenter",
     "VMwareVCenterConnectionTest",
@@ -563,12 +568,25 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   ],
   [ProductKey.StorageArrays]: [
     "StorageArray",
+    "StorageArrayConnection",
+    "StorageArrayConnectionTest",
     "StorageArrayFeed",
     "StorageArrayLabelRule",
     "StorageArrayOwnerRule",
     "StorageArrayOwnerTeam",
     "StorageArrayOwnerUser",
     "StorageArrayResource",
+  ],
+  [ProductKey.XcpNg]: [
+    "XcpNgConnection",
+    "XcpNgConnectionTest",
+    "XcpNgPool",
+    "XcpNgPoolFeed",
+    "XcpNgPoolLabelRule",
+    "XcpNgPoolOwnerRule",
+    "XcpNgPoolOwnerTeam",
+    "XcpNgPoolOwnerUser",
+    "XcpNgResource",
   ],
   [ProductKey.Network]: [
     "NetworkAddressName",
@@ -616,8 +634,24 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "CloudAccount",
     "CloudAccountFeed",
     "CloudBudget",
+    // Required tags (#11012).
+    "CloudRequiredTag",
+    "CloudTagCoverageDay",
+    "CloudTagFinding",
+    "CloudTagSetting",
     "CloudConnection",
+    // Cost views, their groups and line items (#11006).
+    "CloudCostView",
+    "CloudCostGroup",
+    "CloudCostLineItem",
+    // Commitments, and the cost bases' setting (#11007).
+    "CloudCommitment",
+    "CloudCostSetting",
+    // Scheduled cost reports (#11009).
+    "CloudCostReport",
     "CloudCostRecommendation",
+    "CloudOffHoursSchedule",
+    "CloudSavingsAction",
     AnalyticsTableName.CloudCost,
     // A cloud's resources: App Platforms draws its environments from them.
     "CloudResource",

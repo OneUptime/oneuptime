@@ -45,9 +45,9 @@ import {
 } from "../../Components/DataSecurity/DataSecurityPills";
 import { getIssueViewRoute } from "../../Components/DataSecurity/IssueListRoute";
 import LeaveWithoutSavingQuestion from "../../Components/UnsavedChanges/LeaveWithoutSavingQuestion";
-import useUnsavedParts, {
-  UnsavedParts,
-} from "../../Components/UnsavedChanges/UseUnsavedParts";
+import usePendingEdits, {
+  PendingEdits,
+} from "../../Components/UnsavedChanges/UsePendingEdits";
 import OneUptimeDate from "Common/Types/Date";
 import {
   AUDIT_EVIDENCE_PERIODS,
@@ -88,10 +88,7 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import Toast from "Common/UI/Utils/Toast";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useLeaveGuard, {
-  LeavePrompt,
-  SaveBeforeLeavingFunction,
-} from "Common/UI/Utils/UseLeaveGuard";
+import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -274,9 +271,9 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
   const [isDrafting, setIsDrafting] = useState<boolean>(false);
   const [draftError, setDraftError] = useState<string>("");
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  // The paragraphs a person is mid-edit on, each with its save (#7402).
-  const unsaved: UnsavedParts = useUnsavedParts();
-  const hasUnsaved: boolean = unsaved.hasUnsaved;
+  // The paragraphs a person is mid-edit on, by requirement, with their words not saved yet.
+  const pending: PendingEdits<string> = usePendingEdits<string>();
+  const hasUnsaved: boolean = pending.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   useEffect(() => {
@@ -285,7 +282,7 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
     setEvidence(null);
     setError("");
     setDraftError("");
-    unsaved.forgetAll();
+    pending.clear();
     Navigation.setQueryString({
       framework: framework,
       period: String(periodInDays),
@@ -307,6 +304,24 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
       isCurrent = false;
     };
   }, [framework, periodInDays, readCount]);
+
+  // A requirement's paragraph in a person's own words, as its Save and the leave question's Save Changes write it.
+  const saveParagraph: (
+    requirement: string,
+    text: string,
+  ) => Promise<void> = async (
+    requirement: string,
+    text: string,
+  ): Promise<void> => {
+    setEvidence(
+      await DataSecurityApi.editAuditEvidence({
+        framework,
+        periodInDays,
+        requirement,
+        text,
+      }),
+    );
+  };
 
   const draft: () => Promise<void> = async (): Promise<void> => {
     setIsDrafting(true);
@@ -606,24 +621,10 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
                     }
                     canEdit={evidence.canEdit}
                     onSave={async (text: string): Promise<void> => {
-                      setEvidence(
-                        await DataSecurityApi.editAuditEvidence({
-                          framework: evidence.framework,
-                          periodInDays: evidence.periodInDays,
-                          requirement: requirement.requirement,
-                          text,
-                        }),
-                      );
+                      await saveParagraph(requirement.requirement, text);
                     }}
-                    onEditingChange={(
-                      isEditing: boolean,
-                      save: SaveBeforeLeavingFunction,
-                    ) => {
-                      unsaved.onPartChange(
-                        requirement.requirement,
-                        isEditing,
-                        save,
-                      );
+                    onEditingChange={(isEditing: boolean, words: string) => {
+                      pending.track(requirement.requirement, isEditing, words);
                     }}
                   />
                 );
@@ -664,7 +665,7 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_EVIDENCE}
-        onSaveChanges={unsaved.saveAll}
+        onSaveChanges={pending.saveAllWith(saveParagraph)}
       />
     </Fragment>
   );

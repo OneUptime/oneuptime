@@ -6,6 +6,11 @@ import ProjectNotificationChannelsCard from "../../Components/NotificationMethod
 import DefaultPagingLadderCard from "../../Components/NotificationRule/PagingLadder/DefaultPagingLadderCard";
 import PhoneForOnCallCard from "../../Components/NotificationRule/PagingLadder/PhoneForOnCallCard";
 import VoicemailDetectionCard from "../../Components/NotificationMethods/VoicemailDetectionCard";
+import ProjectCallVoiceCard from "../../Components/NotificationMethods/ProjectCallVoiceCard";
+import { getProjectCallVoiceFoldedItem } from "../../Components/NotificationMethods/ProjectCallVoiceWords";
+import GlobalConfigUtil, {
+  GlobalConfigVars,
+} from "Common/UI/Utils/GlobalConfig";
 import { getVoicemailDetectionFoldedItem } from "../../Components/NotificationMethods/VoicemailDetectionWords";
 import { getProjectPagingDefaultsFoldedItems } from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import {
@@ -15,10 +20,16 @@ import {
   getProjectBalanceAccess,
   getProjectBalanceCardDescription,
   getRechargeBalanceButtons,
+  isPaymentMethodNeededFirst,
   ProjectBalanceAccess,
 } from "../../Components/ProjectBalance/ProjectBalanceAccess";
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
+import AddPaymentMethodFirstModal from "../../Components/ProjectBalance/AddPaymentMethodFirstModal";
 import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
+import {
+  ProjectPaymentMethodsState,
+  useProjectPaymentMethods,
+} from "../../Utils/ProjectPaymentMethods";
 import AutoRechargeCard from "../../Components/ProjectBalance/AutoRechargeCard";
 import {
   ADD_TO_BALANCE_AMOUNT_TITLE,
@@ -53,6 +64,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 
@@ -72,6 +84,11 @@ import React, {
  *
  * When Auto Recharge's last charge failed, the page says so first
  * (AutoRechargeFailedNotice), with what to do or who can.
+ *
+ * On a project known to have no payment method, and no cloud marketplace
+ * billing it, Add to Balance says a payment method is needed first, and
+ * where it is added, before it asks for an amount (AddPaymentMethodFirstModal,
+ * #11053).
  *
  * The project's own mail servers and Twilio accounts - what a status page
  * sends its subscribers through, and what an incoming call policy answers
@@ -103,6 +120,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [rechargeBalanceError, setRechargeBalanceError] = useState<
     string | null
   >(null);
+  // Add to Balance pressed on a project with no payment method (#11053).
+  const [showAddPaymentMethodFirst, setShowAddPaymentMethodFirst] =
+    useState<boolean>(false);
   // Saving Auto Recharge tries the card at once: ask again whether it failed.
   const [autoRechargeSaves, setAutoRechargeSaves] = useState<number>(0);
   // How many own mail servers and Twilio accounts there are, once listed.
@@ -114,6 +134,31 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // Whether on-call calls tell voicemail apart, once read: on, as projects start.
   const [isDetectingVoicemail, setIsDetectingVoicemail] =
     useState<boolean>(true);
+  /*
+   * Whether the server lets projects choose their call voice (#11065):
+   * never on OneUptime Cloud. Not offered until the server says so.
+   */
+  const [canChooseCallVoice, setCanChooseCallVoice] = useState<boolean>(false);
+  // The voice the project chose, once read: none, the server's.
+  const [projectCallVoice, setProjectCallVoice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+
+    GlobalConfigUtil.fetchVars()
+      .then((vars: GlobalConfigVars) => {
+        if (isMounted) {
+          setCanChooseCallVoice(vars.canProjectsChooseCallVoice === true);
+        }
+      })
+      .catch(() => {
+        // Not offered: the server refuses a voice it does not offer anyway.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /*
    * Read on every render rather than remembered: the permission snapshot
@@ -125,6 +170,8 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // A project a cloud marketplace bills has no card: its recharges go there.
   const billingMarketplace: CloudMarketplace | null =
     getCurrentProjectBillingMarketplace();
+  // Whether the project has a payment method, once counted (no request here).
+  const paymentMethods: ProjectPaymentMethodsState = useProjectPaymentMethods();
   const autoRechargeGate: ProjectColumnsEditGate = getProjectColumnsEditGate({
     fields: [
       ...PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.SmsOrCall],
@@ -164,6 +211,17 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               access: balanceAccess,
               translator: translator,
               onRecharge: () => {
+                // No payment method yet: say so before asking for an amount.
+                if (
+                  isPaymentMethodNeededFirst({
+                    paymentMethods: paymentMethods,
+                    marketplace: billingMarketplace,
+                  })
+                ) {
+                  setShowAddPaymentMethodFirst(true);
+                  return;
+                }
+
                 setShowRechargeBalanceModal(true);
                 setRechargeBalanceError(null);
                 setIsRechargeBalanceLoading(false);
@@ -206,6 +264,17 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           lockedButtons={autoRechargeGate.lockedButtons}
           onSaveSuccess={() => {
             setAutoRechargeSaves(autoRechargeSaves + 1);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {showAddPaymentMethodFirst ? (
+        <AddPaymentMethodFirstModal
+          balance={ProjectBalanceType.SmsOrCall}
+          onClose={() => {
+            setShowAddPaymentMethodFirst(false);
           }}
         />
       ) : (
@@ -294,6 +363,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             isPhoneAsked: isPhoneAsked,
           }),
           getVoicemailDetectionFoldedItem(isDetectingVoicemail),
+          ...(canChooseCallVoice
+            ? [getProjectCallVoiceFoldedItem(projectCallVoice)]
+            : []),
           ...getOwnSendersFoldedItems({
             smtpConfigCount: smtpConfigCount,
             twilioConfigCount: twilioConfigCount,
@@ -319,6 +391,16 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             setIsDetectingVoicemail(isOn);
           }}
         />
+        {canChooseCallVoice ? (
+          <ProjectCallVoiceCard
+            projectId={ProjectUtil.getCurrentProjectId()!}
+            onChange={(voice: string | null) => {
+              setProjectCallVoice(voice);
+            }}
+          />
+        ) : (
+          <></>
+        )}
         <CustomSMTPTable
           onCountChange={(count: number) => {
             setSmtpConfigCount(count);

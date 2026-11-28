@@ -1,4 +1,4 @@
-import { CLAIMED_IP } from "./ClaimedClientAddressCopy";
+import { CLAIMED_IP, FORWARDED_BY } from "./ClaimedClientAddressCopy";
 import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenClientAddressCopy";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import { JSONObject } from "Common/Types/JSON";
@@ -6,6 +6,7 @@ import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/Security
 import {
   ClaimedClientAddress,
   readClaimedClientAddress,
+  readForwardedBy,
 } from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import {
@@ -17,11 +18,19 @@ import {
   readHiddenTargetAddress,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import {
+  HashedUserSource,
   SCRUBBED_USER_ATTRIBUTES,
   ScrubbedUserRole,
   USER_HIDDEN_BY_SCRUB_RULE,
+  isEventUserErased,
+  readHashedEventUser,
+  readHashedUserSource,
   readHiddenEventUser,
 } from "Common/Utils/SecurityEvent/ScrubbedUser";
+import {
+  HashedUserSignal,
+  getSecurityEventSignal,
+} from "./SecurityEventSignal";
 
 /*
  * What one security event says, as data.
@@ -62,11 +71,94 @@ export interface SecurityEventDetailField {
    */
   claimedAddress?: ClaimedClientAddress | undefined;
   /*
+   * The proxies the event's verified address came through (#11046), each
+   * an address: what Check a log line says each is trusted for.
+   */
+  forwardedBy?: Array<string> | undefined;
+  /*
    * A user a scrub rule redacted or masked (#10435): what Principal User or
    * Target User says in the user's place, whose filter shows every event
    * whose user a rule hid.
    */
   isHiddenUser?: boolean | undefined;
+  /*
+   * A user Security Events named behind a Hash rule's token (#10909): the
+   * logs or traces hold only the token, so the user is said with what they
+   * hold, and a search for it.
+   */
+  hashedUser?: HashedEventUser | undefined;
+  /*
+   * A user an erasure request took out of Security Events (#10908): the
+   * event's user is the token again, and says why.
+   */
+  isErasedUser?: boolean | undefined;
+}
+
+// What the logs or traces hold in place of a user Security Events named.
+export interface HashedEventUser {
+  // What the Hash rule left: the token, or a user with it inside.
+  hashed: string;
+  // The kind of record it was read from.
+  signal: HashedUserSignal;
+  /*
+   * The field of the record it was read from, `body` or `attributes.<key>`,
+   * when the event says (#11045): its records are searched there.
+   */
+  field?: string | undefined;
+  // When the event happened: its records are searched around it.
+  time?: Date | undefined;
+}
+
+/*
+ * Principal User or Target User for an event that names its user: the
+ * user, and - when Security Events named them behind a Hash rule's token,
+ * or an erasure request took them out again - what the records hold. Null
+ * for an event that names no user of that role.
+ */
+export function buildEventUserField(
+  event: SecurityEventDetailSource,
+  role: ScrubbedUserRole,
+): SecurityEventDetailField | null {
+  const user: string =
+    role === ScrubbedUserRole.Principal
+      ? text(event.principalUser)
+      : text(event.targetUser);
+
+  if (!user) {
+    return null;
+  }
+
+  const hashed: string = readHashedEventUser(event, role);
+  /*
+   * Where the token was read: a log line's user may come from the trace its
+   * request was followed into, so the event's own kind of record is only
+   * the answer when the event does not say (#11045).
+   */
+  const source: HashedUserSource = readHashedUserSource(event, role);
+
+  return {
+    label:
+      role === ScrubbedUserRole.Principal ? "Principal User" : "Target User",
+    value: user,
+    facetKey:
+      role === ScrubbedUserRole.Principal ? "principalUser" : "targetUser",
+    ...(hashed && hashed !== user
+      ? {
+          hashedUser: {
+            hashed,
+            signal:
+              source.signal === "trace"
+                ? HashedUserSignal.Trace
+                : source.signal === "log"
+                  ? HashedUserSignal.Log
+                  : getSecurityEventSignal(event),
+            ...(source.field ? { field: source.field } : {}),
+            time: event.time ? new Date(event.time) : undefined,
+          },
+        }
+      : {}),
+    ...(isEventUserErased(event, role) ? { isErasedUser: true } : {}),
+  };
 }
 
 /*
@@ -132,6 +224,29 @@ export function buildClaimedIpField(
 }
 
 /*
+ * Forwarded By, after Claimed IP (#11046): the proxies the project trusts
+ * that the event's verified address came through, in the order
+ * X-Forwarded-For lists them, the connection's own address last - why the
+ * event names the client they forwarded and not the first of them. Null
+ * for an event whose address no trusted proxy forwarded.
+ */
+export function buildForwardedByField(
+  event: SecurityEventDetailSource,
+): SecurityEventDetailField | null {
+  const forwardedBy: Array<string> = readForwardedBy(event);
+
+  if (forwardedBy.length === 0) {
+    return null;
+  }
+
+  return {
+    label: FORWARDED_BY,
+    value: forwardedBy.join(", "),
+    forwardedBy,
+  };
+}
+
+/*
  * The columns the overview reads. A stored event has them, and so does an
  * event a log line is about to become (NormalizedSecurityEvent), which "Check
  * a log line" on Your logs describes with the same fields.
@@ -169,6 +284,8 @@ export type SecurityEventDetailSource = Partial<
     | "traceId"
     | "sessionId"
     | "eventUid"
+    // When: a user the logs know by a token is searched for around it (#10909).
+    | "time"
     // What it says of its request: a client address a scrub rule hid.
     | "attributes"
   >
@@ -290,12 +407,15 @@ export function buildSecurityEventOverviewFields(
     { label: "Rule ID", value: text(event.ruleId) },
     { label: "MITRE Tactics", value: joinArray(event.mitreTactics) },
     { label: "MITRE Techniques", value: joinArray(event.mitreTechniques) },
-    // A scrub rule hid it: said where the user would be (#10435).
-    buildHiddenUserField(event, ScrubbedUserRole.Principal) || {
-      label: "Principal User",
-      value: text(event.principalUser),
-      facetKey: "principalUser",
-    },
+    /*
+     * A scrub rule hid it: said where the user would be (#10435). Named
+     * behind a token, or erased on request: said with the token (#10909).
+     */
+    buildHiddenUserField(event, ScrubbedUserRole.Principal) ||
+      buildEventUserField(event, ScrubbedUserRole.Principal) || {
+        label: "Principal User",
+        value: "",
+      },
     {
       label: "Principal Host",
       value: text(event.principalHost),
@@ -309,6 +429,8 @@ export function buildSecurityEventOverviewFields(
     },
     // An address the request only claimed: said as claimed, never blamed.
     buildClaimedIpField(event) || { label: CLAIMED_IP, value: "" },
+    // The proxies the verified address came through, when a proxy forwarded it.
+    buildForwardedByField(event) || { label: FORWARDED_BY, value: "" },
     { label: "Principal Process", value: text(event.principalProcess) },
     /*
      * The process the event is about - the one started, in a process
@@ -332,11 +454,11 @@ export function buildSecurityEventOverviewFields(
       label: "Parent Command Line",
       value: text(event.parentProcessCommandLine),
     },
-    buildHiddenUserField(event, ScrubbedUserRole.Target) || {
-      label: "Target User",
-      value: text(event.targetUser),
-      facetKey: "targetUser",
-    },
+    buildHiddenUserField(event, ScrubbedUserRole.Target) ||
+      buildEventUserField(event, ScrubbedUserRole.Target) || {
+        label: "Target User",
+        value: "",
+      },
     {
       label: "Target Host",
       value: text(event.targetHost),

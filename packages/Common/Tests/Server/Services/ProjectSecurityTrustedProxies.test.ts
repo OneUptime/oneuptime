@@ -44,11 +44,11 @@ import type { SpyInstance } from "jest-mock";
 /*
  * ISSUE #10416: the proxies a project's apps sit behind, so Security Events
  * trusts the client address they forward - Project.securityTrustedProxies,
- * one IP address or range a line, set where the project's other settings
- * are set (a Project Owner or Admin), and read by the scans once a minute
- * (SecurityTrustedProxies). What is saved is an address or a range, kept
- * one way; anything else is refused with the reason, never read later as
- * no proxy.
+ * one IP address or range a line, set by a Project Owner, a Project Admin
+ * or - since #11049 - a Security Admin, as the two switches beside it are,
+ * and read by the scans once a minute (SecurityTrustedProxies). What is
+ * saved is an address or a range, kept one way, none wider than a proxy's;
+ * anything else is refused with the reason, never read later as no proxy.
  */
 
 const COLUMN: string = "securityTrustedProxies";
@@ -142,18 +142,26 @@ describe("Project.securityTrustedProxies: the column", () => {
     expect(metadata.description).toContain("X-Forwarded-For");
   });
 
-  it("is read and written as the project's other Security Events settings are", () => {
-    expect(project.getColumnAccessControlFor(COLUMN)).toEqual(
-      project.getColumnAccessControlFor("securityRiskCaseThreshold"),
-    );
+  it("is read and written as the two switches beside it are (#11049)", () => {
+    for (const beside of [
+      "securityTrustOwnLoadBalancers",
+      "securityReadAccessLogForwardedFor",
+    ]) {
+      expect(project.getColumnAccessControlFor(COLUMN)).toEqual(
+        project.getColumnAccessControlFor(beside),
+      );
+    }
   });
 
-  it.each([Permission.ProjectOwner, Permission.ProjectAdmin])(
-    "the column layer lets %s write it",
-    (permission: Permission) => {
-      expect(mayWrite({ [COLUMN]: "203.0.113.0/24" }, permission)).toBe(true);
-    },
-  );
+  it.each([
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+    Permission.SecurityAdmin,
+  ])("the column layer lets %s write it", (permission: Permission) => {
+    expect(mayWrite({ [COLUMN]: "203.0.113.0/24" }, permission)).toBe(true);
+    // And empty it again.
+    expect(mayWrite({ [COLUMN]: null }, permission)).toBe(true);
+  });
 
   it.each([
     Permission.ProjectMember,
@@ -162,8 +170,27 @@ describe("Project.securityTrustedProxies: the column", () => {
     Permission.ReadProject,
     Permission.SecurityMember,
     Permission.SecurityViewer,
+    Permission.ManageProjectBilling,
+    Permission.BillingAdmin,
+    Permission.EditIncomingRequestSecret,
   ])("and refuses %s", (permission: Permission) => {
     expect(mayWrite({ [COLUMN]: "203.0.113.0/24" }, permission)).toBe(false);
+  });
+
+  it("a Security Admin reaches nothing else of the project through it", () => {
+    for (const other of [
+      { name: "Renamed" },
+      { enableAi: false },
+      { paymentProviderPlanId: "plan_enterprise" },
+      { securityRiskCaseThreshold: 10 },
+    ]) {
+      expect(
+        mayWrite(
+          { ...other, [COLUMN]: "203.0.113.0/24" },
+          Permission.SecurityAdmin,
+        ),
+      ).toBe(false);
+    }
   });
 
   it("starts unset on a new project: only private addresses are trusted", () => {
@@ -229,6 +256,38 @@ describe("ProjectService.applySecurityTrustedProxyRules: what a project may stor
         });
       }).toThrow(BadDataException);
     }
+  });
+
+  /*
+   * #11049: with 0.0.0.0/0 stored, every hop of an X-Forwarded-For was
+   * trusted, so its leftmost - what the sender wrote - was the client. The
+   * API refuses it as the card does, whoever saves it.
+   */
+  it("refuses a range too broad to be a proxy's, with the reason", () => {
+    for (const tooBroad of ["0.0.0.0/0", "128.0.0.0/1", "::/0", "2000::/3"]) {
+      expect(() => {
+        ProjectService.applySecurityTrustedProxyRules({
+          securityTrustedProxies: `203.0.113.0/24\n${tooBroad}`,
+        });
+      }).toThrow(
+        new BadDataException(
+          `${tooBroad} covers too much of the internet to be a proxy. List your proxy's own addresses or ranges, such as 203.0.113.0/24.`,
+        ),
+      );
+    }
+  });
+
+  it("keeps the widest ranges a proxy can have: a /8 of IPv4, a /16 of IPv6, and Google's front ends", () => {
+    const data: { securityTrustedProxies?: unknown } = {
+      securityTrustedProxies:
+        "35.0.0.0/8\n2600::/16\n35.191.0.0/16\n130.211.0.0/22\nfc00::/7",
+    };
+
+    ProjectService.applySecurityTrustedProxyRules(data);
+
+    expect(data.securityTrustedProxies).toBe(
+      "35.0.0.0/8\n2600::/16\n35.191.0.0/16\n130.211.0.0/22\nfc00::/7",
+    );
   });
 
   it("refuses more proxies than a project may trust", () => {
@@ -310,7 +369,11 @@ describe("SecurityTrustedProxies: what the scans read", () => {
       select: {
         securityTrustedProxies: true,
         securityTrustOwnLoadBalancers: true,
+        // Whether private addresses are trusted unlisted (#11389).
+        securityTrustPrivateAddresses: true,
         securityReadAccessLogForwardedFor: true,
+        // The format the project's access logs are written in (#11048).
+        securityAccessLogFormat: true,
       },
       props: { isRoot: true },
     });
@@ -320,7 +383,7 @@ describe("SecurityTrustedProxies: what the scans read", () => {
     expect(TRUSTED_PROXIES_CACHE_TTL_MS).toBe(60 * 1000);
   });
 
-  it("a project with none trusts only private addresses", async () => {
+  it("a project with none trusts only private addresses, while it trusts those", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(new Project());
 
     const proxies: TrustedProxies =
@@ -329,6 +392,57 @@ describe("SecurityTrustedProxies: what the scans read", () => {
     expect(proxies.blocks).toEqual([]);
     expect(isTrustedProxy("10.0.0.5", proxies)).toBe(true);
     expect(isTrustedProxy("203.0.113.7", proxies)).toBe(false);
+  });
+
+  /*
+   * #11389: Private Addresses off - where a new project starts - trusts a
+   * private address only when the project lists it, or it is one of its
+   * load balancers'.
+   */
+  it("a project that turned Private Addresses off trusts a private address only when it lists it", async () => {
+    const project: Project = new Project();
+    project.securityTrustPrivateAddresses = false;
+    project.securityTrustedProxies = "10.0.0.0/24";
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
+
+    const proxies: TrustedProxies =
+      await SecurityTrustedProxies.getForProject(PROJECT_ID);
+
+    expect(proxies.trustsPrivateAddresses).toBe(false);
+    expect(isTrustedProxy("10.0.0.5", proxies)).toBe(true);
+    expect(isTrustedProxy("10.0.1.5", proxies)).toBe(false);
+    expect(isTrustedProxy("127.0.0.1", proxies)).toBe(false);
+    expect(isTrustedProxy("fd00::5", proxies)).toBe(false);
+
+    // A TCP proxy at 10.0.1.5 passing on what the client wrote: the proxy is blamed, the client's words claimed.
+    const reading: ClientAddressReading = resolveClientAddress(
+      { peer: "10.0.1.5", forwardedFor: "198.51.100.7" },
+      proxies,
+    );
+
+    expect(reading.address).toBe("10.0.1.5");
+    expect(reading.trust).toBe(ClientAddressTrust.Peer);
+    expect(reading.claimed?.address).toBe("198.51.100.7");
+  });
+
+  it("a project that turned it on, or one from before it, trusts every private address", async () => {
+    for (const trusts of [true, undefined]) {
+      SecurityTrustedProxies.clearCache();
+
+      const project: Project = new Project();
+
+      if (trusts !== undefined) {
+        project.securityTrustPrivateAddresses = trusts;
+      }
+
+      jest.spyOn(ProjectService, "findOneById").mockResolvedValue(project);
+
+      const proxies: TrustedProxies =
+        await SecurityTrustedProxies.getForProject(PROJECT_ID);
+
+      expect(proxies.trustsPrivateAddresses).toBe(true);
+      expect(isTrustedProxy("10.0.1.5", proxies)).toBe(true);
+    }
   });
 
   it("a read that fails trusts less, never more, and is read again next time", async () => {
@@ -340,6 +454,8 @@ describe("SecurityTrustedProxies: what the scans read", () => {
       await SecurityTrustedProxies.getForProject(PROJECT_ID);
 
     expect(proxies.blocks).toEqual([]);
+    // Not even a private address (#11389): the project may have turned those off.
+    expect(isTrustedProxy("10.0.0.5", proxies)).toBe(false);
 
     const project: Project = new Project();
     project.securityTrustedProxies = "203.0.113.50";

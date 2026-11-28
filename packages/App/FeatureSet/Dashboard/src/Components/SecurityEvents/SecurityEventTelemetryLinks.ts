@@ -11,8 +11,18 @@ import {
 import {
   CrossSignalQueryParams,
   toLogsExplorerQueryParams,
+  toTracesExplorerQueryParams,
 } from "Common/Utils/Telemetry/CrossSignalScope";
 import { SECURITY_LOG_ID_ATTRIBUTE } from "Common/Types/SecurityEvent/SecurityLogFormat";
+import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  HASHED_USER_ATTRIBUTE_FIELD_PREFIX,
+  HASHED_USER_BODY_FIELD,
+} from "Common/Utils/SecurityEvent/ScrubbedUser";
+import {
+  HashedUserSignal,
+  getSecurityEventSignal,
+} from "./SecurityEventSignal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { buildTraceViewRoute } from "../../Utils/LogsCrossSignalPivot";
@@ -154,6 +164,142 @@ export interface SecurityEventLogsLink {
   route: Route;
   // Every line the request wrote.
   scope: "request";
+}
+
+/*
+ * WHERE A USER THE LOGS KNOW ONLY BY A TOKEN IS FOUND (#10909, #11045).
+ *
+ * When Security Events named an event's user behind a Hash rule's token
+ * (the user vault, #10632), the logs or traces it read hold only the token,
+ * and the event keeps what the rule left (oneuptime.<role>_user_hashed_as)
+ * and where it read it: the kind of record and the field of it
+ * (oneuptime.<role>_user_hashed_in and _hashed_field). Beside the user,
+ * the event's panel says so, with a link that searches those records, in
+ * the day either side of the event, for the token in that field - wherever
+ * the user vault read the user from:
+ *
+ *   - a log line's body: the logs explorer, the lines whose body holds the
+ *     token;
+ *   - a log line's attribute: the lines whose attribute holds it;
+ *   - a span's attribute - enduser.id, user.id, or the one an AI call's
+ *     user was copied from: the traces explorer, the spans whose attribute
+ *     holds it.
+ *
+ * An event named before the field was kept searches a log line's body, or
+ * a span's request user (enduser.id), as it always has.
+ */
+
+// How far either side of the event the user's records are searched for.
+export const HASHED_USER_SEARCH_WINDOW_IN_HOURS: number = 24;
+
+// A Hash rule's token of today's form, anywhere in a text.
+const TOKEN_IN_TEXT: RegExp = /\[HASHED:[0-9a-f]{16}\]/;
+
+// The span attribute a trace's search names when the event does not say: the request's user.
+export const TRACE_USER_ATTRIBUTE: string = SECURITY_REQUEST_ATTRIBUTES.userId;
+
+export { HashedUserSignal, getSecurityEventSignal };
+
+export interface HashedUserSearch {
+  // What the rule left in the user's place: the token, or a user with it inside.
+  hashed: string;
+  // The token alone, as the panel shows it.
+  token: string;
+  signal: HashedUserSignal;
+  // Where it is searched for: `body`, or `attributes.<key>`.
+  field: string;
+  route: Route;
+}
+
+// The attribute a field names (`attributes.<key>`), or "" for any other field.
+function attributeOfField(field: string | undefined): string {
+  const text: string = (field || "").trim();
+
+  return text.startsWith(HASHED_USER_ATTRIBUTE_FIELD_PREFIX)
+    ? text.slice(HASHED_USER_ATTRIBUTE_FIELD_PREFIX.length)
+    : "";
+}
+
+/*
+ * The search for a user the logs or traces know only by what a Hash rule
+ * left (`hashed`), in the field it was read from when the event says
+ * (`field`), or null when that holds no token of today's form.
+ */
+export function getHashedUserSearch(data: {
+  hashed: string;
+  signal: HashedUserSignal;
+  field?: string | undefined;
+  time?: Date | undefined;
+}): HashedUserSearch | null {
+  const hashed: string = (data.hashed || "").trim();
+  const token: string = hashed.match(TOKEN_IN_TEXT)?.[0] || "";
+
+  if (!token) {
+    return null;
+  }
+
+  const time: Date | undefined =
+    data.time && !Number.isNaN(new Date(data.time).getTime())
+      ? new Date(data.time)
+      : undefined;
+  const window: { startTime?: Date; endTime?: Date } = time
+    ? {
+        startTime: new Date(
+          time.getTime() - HASHED_USER_SEARCH_WINDOW_IN_HOURS * 60 * 60 * 1000,
+        ),
+        endTime: new Date(
+          time.getTime() + HASHED_USER_SEARCH_WINDOW_IN_HOURS * 60 * 60 * 1000,
+        ),
+      }
+    : {};
+
+  // Found inside the field as well as being all of it: "auth0|[HASHED:...]".
+  const attribute: string = attributeOfField(data.field);
+
+  if (data.signal === HashedUserSignal.Trace) {
+    const key: string = attribute || TRACE_USER_ATTRIBUTE;
+
+    return {
+      hashed,
+      token,
+      signal: data.signal,
+      field: `${HASHED_USER_ATTRIBUTE_FIELD_PREFIX}${key}`,
+      route: withQuery(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES]!),
+        toTracesExplorerQueryParams({
+          attributesContaining: { [key]: token },
+          ...window,
+        }).params,
+      ),
+    };
+  }
+
+  if (attribute) {
+    return {
+      hashed,
+      token,
+      signal: data.signal,
+      field: `${HASHED_USER_ATTRIBUTE_FIELD_PREFIX}${attribute}`,
+      route: withQuery(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS]!),
+        toLogsExplorerQueryParams({
+          attributesContaining: { [attribute]: token },
+          ...window,
+        }).params,
+      ),
+    };
+  }
+
+  return {
+    hashed,
+    token,
+    signal: data.signal,
+    field: HASHED_USER_BODY_FIELD,
+    route: withQuery(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS]!),
+      toLogsExplorerQueryParams({ bodyContains: token, ...window }).params,
+    ),
+  };
 }
 
 /*

@@ -643,6 +643,8 @@
   "The {{itemName}} was not created.": "The {{itemName}} was not created.",
   "The {{itemName}} was not saved.": "The {{itemName}} was not saved.",
   "This did not finish.": "This did not finish.",
+  "The {{itemName}} was not deleted.": "The {{itemName}} was not deleted.",
+  "“{{action}}” did not finish.": "“{{action}}” did not finish.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "This page ran into a problem, so this did not finish. Reload the page, then try again.",
   "This page ran into a problem.": "This page ran into a problem.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.",

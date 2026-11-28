@@ -92,9 +92,11 @@ describe("the suggestion helpers", () => {
     });
 
   /*
-   * The shared pieces are the offer (SuggestionOffer) and the set-up step
+   * The shared pieces are the offer (SuggestionOffer), the set-up step
    * every suggestion with one carries (SuggestionBlocker: Code's gate on
-   * the wire).
+   * the wire), and the repository a person's Fix with AI is made in - the
+   * choices to pick from and the refusals of a pick, one rule for every
+   * Fix with AI a person starts (CodeFixRepositoryPick, #11209).
    */
   test("are one per kind of suggestion, plus the shared offer and set-up step", () => {
     expect(helpers.sort()).toEqual(
@@ -102,6 +104,8 @@ describe("the suggestion helpers", () => {
         // A postmortem's action item becoming a pull request or a test (#6801).
         "ActionItemCodeTaskSuggestion.ts",
         "AiSuggestion.ts",
+        // Who may start a Fix with AI, and in which repository (#11075, #11209).
+        "CodeFixRepositoryPick.ts",
         "CodeFixSuggestion.ts",
         // The fix in the code an incident's or alert's investigation recommends.
         "InvestigationCodeFixSuggestion.ts",

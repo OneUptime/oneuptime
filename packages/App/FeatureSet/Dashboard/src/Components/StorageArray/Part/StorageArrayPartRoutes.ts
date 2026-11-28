@@ -2,17 +2,22 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import RouteParams from "../../../Utils/RouteParams";
 import RecommendationFilterUtil, {
   RECOMMENDATION_SELECTION_QUERY_PARAM,
 } from "../../Recommendations/RecommendationFilterUtil";
 import { routeParamFromExternalId } from "../../../Pages/StorageArray/Utils/StorageArrayResourceUtils";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
 
 /*
  * Where a storage array's pages link to: the array, a volume's, a host's, a
  * file system's and a bucket's own page (a hardware component, a drive, a
  * controller and a network interface have the Hardware list, a pod the
- * Replication list), the incidents, alerts and monitors the cards list,
- * and the array's Recommendations with the alerts to turn on ticked.
+ * Replication list), a part of a kind only the array's platform has (a
+ * NetApp aggregate) its own page under its kind's list when the platform
+ * draws one (StorageArrayKindPage.part), the incidents, alerts and
+ * monitors the cards list, and the array's Recommendations with the
+ * alerts to turn on ticked.
  */
 export interface StorageArrayPartRoutes {
   arrayRoute: Route;
@@ -46,8 +51,57 @@ const PART_LISTS: Record<string, PageMap> = {
   Directory: PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES,
 };
 
+// A kind's page from a table above; never a name Object itself has.
+function ownPage(
+  pages: Record<string, PageMap>,
+  kind: string,
+): PageMap | undefined {
+  return Object.prototype.hasOwnProperty.call(pages, kind)
+    ? pages[kind]
+    : undefined;
+}
+
+/*
+ * Whether a kind only a platform has gets a page per part on the array's
+ * platform. Where the caller does not know the platform, its parts link to
+ * their kind's tab: two platforms can have a kind of one name (an
+ * Aggregate) and only one of them draw a page per part.
+ */
+function hasOwnPartPage(
+  kind: string,
+  storageSystem: string | null | undefined,
+): boolean {
+  return Boolean(
+    storageSystem &&
+      StorageArrayPlatformRegistry.getKindPage(storageSystem, kind)?.part,
+  );
+}
+
+/*
+ * A part of a kind only its platform has, on its own page under its
+ * kind's list: .../inventory/Aggregate/aggr1.
+ */
+export function getStorageArrayInventoryPartRoute(data: {
+  storageArrayId: ObjectID;
+  kind: string;
+  externalId: string;
+}): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART] as Route,
+    {
+      modelId: data.storageArrayId,
+      subModelId: encodeURIComponent(data.kind),
+    },
+  ).addRouteParam(
+    RouteParams.PartID,
+    routeParamFromExternalId(data.externalId),
+  );
+}
+
 export function getStorageArrayPartRoutes(
   storageArrayId: ObjectID,
+  // The array's platform, where the caller has it: whose words win.
+  storageSystem?: string | null | undefined,
 ): StorageArrayPartRoutes {
   const ofArray: (page: PageMap) => Route = (page: PageMap): Route => {
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
@@ -71,7 +125,7 @@ export function getStorageArrayPartRoutes(
     hardwareRoute: ofArray(PageMap.STORAGE_ARRAY_VIEW_HARDWARE),
     replicationRoute: ofArray(PageMap.STORAGE_ARRAY_VIEW_REPLICATION),
     getPartRoute: (kind: string, externalId: string): Route => {
-      const page: PageMap | undefined = PART_PAGES[kind];
+      const page: PageMap | undefined = ownPage(PART_PAGES, kind);
       if (page) {
         // The part's own name on the array, percent-encoded: one segment.
         return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
@@ -79,8 +133,32 @@ export function getStorageArrayPartRoutes(
           subModelId: routeParamFromExternalId(externalId),
         });
       }
-      const list: PageMap | undefined = PART_LISTS[kind];
-      return list ? ofArray(list) : arrayRoute;
+      const list: PageMap | undefined = ownPage(PART_LISTS, kind);
+      if (list) {
+        return ofArray(list);
+      }
+      /*
+       * A kind only its platform has (StorageArrayPlatform.kindDefinitions):
+       * the part's own page where the platform draws one, else the
+       * inventory tab that lists it.
+       */
+      if (StorageArrayPlatformRegistry.getKindDefinition(kind, storageSystem)) {
+        if (externalId && hasOwnPartPage(kind, storageSystem)) {
+          return getStorageArrayInventoryPartRoute({
+            storageArrayId: storageArrayId,
+            kind: kind,
+            externalId: externalId,
+          });
+        }
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.STORAGE_ARRAY_VIEW_INVENTORY] as Route,
+          {
+            modelId: storageArrayId,
+            subModelId: encodeURIComponent(kind),
+          },
+        );
+      }
+      return arrayRoute;
     },
     getIncidentRoute: (incidentId: ObjectID): Route => {
       return ofRecord(PageMap.INCIDENT_VIEW, incidentId);

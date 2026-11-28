@@ -25,6 +25,7 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import { AiAffectedResourceKind } from "../../../Types/AI/AiAffectedResources";
 import { AffectedResourceKind } from "../../../Types/AffectedResources/AffectedResourceSearch";
 import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../../Types/Incident/IncidentAlertLink";
+import { INCIDENT_DECLARED_BY_HAND_KEY } from "../../../Types/Incident/IncidentDeclaredByHandStart";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -51,6 +52,7 @@ import LinkedAffectedResources, {
 import logger from "../../../Server/Utils/Logger";
 import ProductBrandingText from "../../../Server/Utils/ProductBrandingText";
 import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceIncidentDeclaredByHand from "../../../Server/Utils/Workspace/WorkspaceIncidentDeclaredByHand";
 import WorkspaceAffectedResources from "../../../Server/Utils/Workspace/WorkspaceAffectedResources";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
@@ -708,6 +710,16 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
   });
 
   beforeEach(() => {
+    /*
+     * Whether the project starts incidents declared by hand acknowledged
+     * (WorkspaceIncidentDeclaredByHand): read with the form's other reads,
+     * and not what these tests are about - off, as every project starts.
+     * SlackNewIncidentModalScope and WorkspaceIncidentDeclaredByHand.test
+     * pin it.
+     */
+    jest
+      .spyOn(WorkspaceIncidentDeclaredByHand, "readIsOn")
+      .mockResolvedValue(false);
     slackCalls = [];
     linkedUser = SIMON;
     connectedProjects = [PROJECT_ID];
@@ -1190,7 +1202,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
 
       expect(inputOf(view, "incidentMonitors")["hint"]).toEqual({
         type: "plain_text",
-        text: "A monitor you pick here pauses its checks until the incident is resolved.",
+        text: "A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
       });
 
       // Whether there is anything to offer: one host read, as the member, in the project.
@@ -1228,7 +1240,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       // The Monitors field still says what a pick there does.
       expect(inputOf(view, "incidentMonitors")["hint"]).toEqual({
         type: "plain_text",
-        text: "A monitor you pick here pauses its checks until the incident is resolved.",
+        text: "A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
       });
     });
 
@@ -1474,7 +1486,10 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       expect(incident.monitors).toBeUndefined();
       // Declared as Simon, with his own props.
       expect(created[0]!.props).toBe(memberProps);
-      expect(created[0]!.miscDataProps).toBeUndefined();
+      // No alert linked: only that it is declared by hand (#11137).
+      expect(created[0]!.miscDataProps).toEqual({
+        [INCIDENT_DECLARED_BY_HAND_KEY]: true,
+      });
 
       // The picks read again as Simon, in the project.
       expect(resourceReads.length).toBeGreaterThan(0);
@@ -2225,6 +2240,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
 
       expect(created).toHaveLength(1);
       expect(created[0]!.miscDataProps).toEqual({
+        [INCIDENT_DECLARED_BY_HAND_KEY]: true,
         [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID.toString()],
       });
       expect(created[0]!.data.isPrivate).toBeUndefined();
@@ -2275,7 +2291,10 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       await settle();
 
       expect(created).toHaveLength(1);
-      expect(created[0]!.miscDataProps).toBeUndefined();
+      // No alert linked: only that it is declared by hand (#11137).
+      expect(created[0]!.miscDataProps).toEqual({
+        [INCIDENT_DECLARED_BY_HAND_KEY]: true,
+      });
       expect(postedTo("https://slack.com/api/chat.postMessage")[0]!.text).toBe(
         `*Incident INC-43* created successfully. <${INCIDENT_URL}|View Incident>\n${NO_MONITORS_LINE}\n`,
       );
@@ -2337,7 +2356,10 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       await settle();
 
       expect(created).toHaveLength(1);
-      expect(created[0]!.miscDataProps).toBeUndefined();
+      // No alert linked: only that it is declared by hand (#11137).
+      expect(created[0]!.miscDataProps).toEqual({
+        [INCIDENT_DECLARED_BY_HAND_KEY]: true,
+      });
       // Its title came from a private alert: never a public incident.
       expect(created[0]!.data.isPrivate).toBe(true);
       expect(postedTo("https://slack.com/api/chat.postEphemeral")).toEqual([

@@ -8,10 +8,6 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Grey, Red, Yellow } from "Common/Types/BrandColors";
-import Color from "Common/Types/Color";
-import SmsStatus from "Common/Types/SmsStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -22,31 +18,17 @@ import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import NotificationLogStatusPill from "./NotificationLogStatusPill";
+import {
+  getNotificationLogStatusFilterOptions,
+  NotificationLogKind,
+  NOTIFICATION_LOGS_DOCUMENTATION,
+} from "./NotificationLogStatus";
 
 export interface SmsLogsTableProps {
   query?: Query<BaseModel>;
   singularName?: string;
 }
-
-const getSmsStatusColor: (status: SmsStatus) => Color = (
-  status: SmsStatus,
-): Color => {
-  switch (status) {
-    case SmsStatus.Delivered:
-    case SmsStatus.Sent:
-    case SmsStatus.Success:
-      return Green;
-    case SmsStatus.Sending:
-      return Yellow;
-    case SmsStatus.Undelivered:
-    case SmsStatus.Failed:
-    case SmsStatus.Error:
-    case SmsStatus.LowBalance:
-      return Red;
-    default:
-      return Grey;
-  }
-};
 
 const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
   props: SmsLogsTableProps,
@@ -91,17 +73,19 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Text,
+      /*
+       * What the status means, and what comes next: Sent is the carrier's
+       * and still on its way to Delivered, unless the server's own gateway
+       * took it, which says nothing after (#11138).
+       */
       getElement: (item: SmsLog): ReactElement => {
-        if (item["status"]) {
-          return (
-            <Pill
-              isMinimal={false}
-              color={getSmsStatusColor(item["status"] as SmsStatus)}
-              text={item["status"] as string}
-            />
-          );
-        }
-        return <></>;
+        return (
+          <NotificationLogStatusPill
+            kind={NotificationLogKind.SMS}
+            status={item.status}
+            statusMessage={item.statusMessage}
+          />
+        );
       },
     },
     {
@@ -114,7 +98,15 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
 
   const defaultFilters: Array<Filter<SmsLog>> = [
     { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
-    { field: { status: true }, title: "Status", type: FieldType.Dropdown },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Dropdown,
+      // Every status an SMS can have, in the order it moves through them.
+      filterDropdownOptions: getNotificationLogStatusFilterOptions(
+        NotificationLogKind.SMS,
+      ),
+    },
   ];
 
   return (
@@ -173,6 +165,7 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
             : "No SMS logs."
         }
         showRefreshButton={true}
+        documentationLink={NOTIFICATION_LOGS_DOCUMENTATION}
         columns={defaultColumns}
         filters={defaultFilters}
         actionButtons={[

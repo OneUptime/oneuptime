@@ -78,7 +78,7 @@ flowchart TB
 
 - **Ingen prosjekter tilknyttet (alle prosjekter / invitasjon først):** Brukere kan logge inn med leverandøren og nå **alle prosjekter de allerede er medlem av**. Nye brukere opprettes **ikke** automatisk — en bruker må først inviteres til et prosjekt. Bruk dette for SSO i hele virksomheten når medlemskap styres et annet sted.
 
-- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Tilknyttede prosjekter** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene ved første innlogging. Et prosjekt du knytter til, starter med medlemsteamet sitt; velg andre team hvis nye brukere skal starte med annen tilgang. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
+- **Prosjekter knyttet til (automatisk klargjøring):** Åpne leverandøren og bruk tabellen **Tilknyttede prosjekter** for å knytte til ett eller flere prosjekter, hvert med et sett standardteam. Brukere som logger inn blir **automatisk klargjort** inn i disse prosjektene og lagt til i standardteamene: en ny person ved sin første innlogging, og en som allerede har en konto, for eksempel en du har opprettet manuelt, ved neste. Et prosjekt du knytter til, starter med medlemsteamet sitt; velg andre team hvis nye brukere skal starte med annen tilgang. Et tilknyttet prosjekt uten team legger ikke til noen. Legg til ett prosjekt + team om gangen for å bygge listen; for å endre en tilknytning, slett den og legg den til på nytt.
 
 En person som allerede er medlem av et tilknyttet prosjekt, beholder teamene sine der.
 
@@ -89,7 +89,13 @@ To spørsmål på leverandøren endrer dette, foldet sammen under **Flere felt**
 | **Personer uten konto** | **Får en ved første pålogging**: de blir med i de tilknyttede prosjektene; er ingen tilknyttet, må de inviteres først. **Må inviteres først**: personer må være invitert til et prosjekt før de kan logge inn med denne leverandøren, også når prosjekter er tilknyttet. |
 | **Hvor denne påloggingen teller som SSO** | **Alle prosjekter**: prosjekter som krever SSO, godtar en pålogging med denne leverandøren. **Bare tilknyttede prosjekter**: pålogging med denne leverandøren oppfyller SSO-kravet bare i prosjektene som er knyttet til den, så personer som allerede er logget inn, kan miste tilgangen til andre prosjekter. |
 
-Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle prosjekter personen hører til, og tilknyttede prosjekter avgjør bare hvor nye personer legges til.
+Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle prosjekter personen hører til, og tilknyttede prosjekter avgjør bare hvor nye personer legges til: ingen av de to svarene legger noen til i et prosjekt. Så lenge ikke noe prosjekt med team er knyttet til, står det på siden til leverandøren under **Personer uten konto** at ingen nye kan logge på ennå.
+
+## E-postadresser identitetsleverandøren din ikke har bekreftet
+
+En global OpenID Connect-leverandør finner kontoen den logger på ut fra e-postadressen den sender, slik et prosjekts leverandør gjør, og kontoene til master-admins blir funnet på samme måte. Derfor logger den ikke på noen med en adresse leverandøren sier at den ikke har bekreftet, med en claim `email_verified` på `false` eller på noe som verken er true eller false. Ellers kunne noen sette adressen til en master-admin på kontoen sin hos leverandøren og logge på hele instansen som vedkommende. En leverandør som sender `email_verified` som `true`, eller ikke sender den, slik Microsoft Entra ID gjør, logger på folk som før.
+
+Gjennom authentik 2025.10 og nyere logger ingen på før du endrer scope-mappingen for `email` der, og gjennom Keycloak ingen som har en adresse den ikke har bekreftet. Hva du skal endre der, hva som fortsatt logger på og hva personen ser, står på siden [SSO](/docs/identity/sso#e-postadresser-identitetsleverandøren-din-ikke-har-bekreftet). Master-admins med et passord kan logge på med det i mellomtiden, på `/accounts/admin-login` så lenge hele instansen krever SSO.
 
 ## Logg også ut av identitetsleverandøren
 
@@ -160,7 +166,7 @@ To endringer i hvem som kan logge inn, kontrolleres etter hverandre. Lagres en a
 ## Feilsøking
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-Personen har ennå ingen OneUptime-konto, og leverandøren oppretter ingen: enten er ingen prosjekter knyttet til den, eller **Personer uten konto** står på **Må inviteres først**. Inviter personen til et prosjekt, eller knytt et prosjekt til leverandøren.
+Personen har ennå ingen OneUptime-konto, og leverandøren oppretter ingen: enten er ikke noe prosjekt med team knyttet til den, eller **Personer uten konto** står på **Må inviteres først**. Inviter personen til et prosjekt, eller knytt et prosjekt til leverandøren, med teamene personen blir med i. Serverens logg viser hvilken av de to grunnene det er, uten å nevne personen.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
@@ -181,6 +187,10 @@ For en SAML-leverandør er svarets audience ikke leverandørens **Issuer (Entity
 
 :::details "SAML response was already used"
 Hvert svar fra identitetsleverandøren din logger inn bare én gang, og bare innen noen minutter etter at det ble utstedt: deretter avvises det med "SAML response has expired". Logg inn på nytt. Hvis svarene fortsetter å utløpe, kontroller klokkene på denne serveren og hos identitetsleverandøren din.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect-leverandøren sendte `email_verified` som `false`, eller som noe som verken er true eller false, så OneUptime logget ikke på noen, heller ikke en master-admin. Få adressen bekreftet hos identitetsleverandøren din, eller merk den som bekreftet der, og logg på igjen. Se [E-postadresser identitetsleverandøren din ikke har bekreftet](#e-postadresser-identitetsleverandøren-din-ikke-har-bekreftet).
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."

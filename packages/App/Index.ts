@@ -2,6 +2,8 @@ import APIReferenceRoutes from "./FeatureSet/APIReference/Index";
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
 import DocsRoutes from "./FeatureSet/Docs/Index";
 import DocsFeedbackStore from "./FeatureSet/Docs/Utils/DocsFeedbackStore";
+import DocsSiteLinks from "Common/Server/Utils/HelpAndSupport/DocsSiteLinks";
+import DocsSiteLinksStore from "Common/Server/Utils/HelpAndSupport/DocsSiteLinksStore";
 import ProductFeedbackService from "Common/Server/Services/ProductFeedbackService";
 import InstallRoutes from "./FeatureSet/Install/Index";
 import FrontendRoutes from "./FeatureSet/Frontend/Index";
@@ -20,6 +22,7 @@ import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import RelaxedScimTeamLocksReport from "Common/Server/Utils/RelaxedScimTeamLocksReport";
 import Express, {
   ExpressApplication,
+  ExpressRequest,
   ExpressRouter,
 } from "Common/Server/Utils/Express";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -34,8 +37,12 @@ import Queue from "Common/Server/Infrastructure/Queue";
 import Redis from "Common/Server/Infrastructure/Redis";
 import InfrastructureStatus from "Common/Server/Infrastructure/Status";
 import logger from "Common/Server/Utils/Logger";
-import { getServerTwilioEnvironment } from "Common/Server/Utils/ServerTwilioConfig";
+import {
+  getServerTwilioCallVoice,
+  getServerTwilioEnvironment,
+} from "Common/Server/Utils/ServerTwilioConfig";
 import ServerTwilioEnvironment, {
+  ServerTwilioCallVoiceReading,
   ServerTwilioEnvironmentReading,
 } from "Common/Types/CallAndSMS/ServerTwilioEnvironment";
 import { getServerEmailEnvironment } from "Common/Server/Utils/ServerEmailSettings";
@@ -49,6 +56,9 @@ import Profiling from "Common/Server/Utils/Profiling";
 import StartupGate from "Common/Server/Utils/StartupGate";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import InstanceReceivingHeartbeat from "Common/Server/Utils/Telemetry/InstanceReceivingHeartbeat";
+import WorkspaceCreatedMessageFirst from "Common/Server/Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceNotificationRuleService from "Common/Server/Services/WorkspaceNotificationRuleService";
+import { JSONObject } from "Common/Types/JSON";
 import {
   ClusterKeyWarning,
   DatastorePasswordWarning,
@@ -197,6 +207,27 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     }
 
     /*
+     * The voice GLOBAL_TWILIO_CALL_VOICE sets for the server's calls
+     * (#11064), said once, and a voice OneUptime does not offer, by the
+     * variable's name: calls speak with the account's default voice until
+     * it names one.
+     */
+    const twilioCallVoice: ServerTwilioCallVoiceReading =
+      getServerTwilioCallVoice();
+    const twilioCallVoiceNotice: string | null =
+      ServerTwilioEnvironment.getCallVoiceStartupNotice(twilioCallVoice);
+    const twilioCallVoiceWarning: string | null =
+      ServerTwilioEnvironment.getCallVoiceStartupWarning(twilioCallVoice);
+
+    if (twilioCallVoiceNotice) {
+      logger.info(twilioCallVoiceNotice);
+    }
+
+    if (twilioCallVoiceWarning) {
+      logger.warn(twilioCallVoiceWarning);
+    }
+
+    /*
      * The server's email settings set by the GLOBAL_EMAIL_ environment
      * variables (#7738), said once: that they set them, so nobody looks for
      * them in the Admin Dashboard, and what is wrong with them - or which
@@ -332,6 +363,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * and keep nothing without it.
      */
     DocsFeedbackStore.useKeeper(ProductFeedbackService);
+    /*
+     * The docs and the API reference link to this server's own help, or
+     * leave OneUptime's GitHub and Slack out, as Admin Dashboard > Settings
+     * > Help and Support says (#10940): they read it through this, and link
+     * to what they always did without it.
+     */
+    DocsSiteLinksStore.useReader((req: ExpressRequest) => {
+      return DocsSiteLinks.getLinks(req);
+    });
     await DocsRoutes.init();
     // The agents' install scripts, at /install/<agent>.
     await InstallRoutes.init();
@@ -361,6 +401,21 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * (QueueWorker).
      */
     QueueWorker.startProcessingJobs();
+
+    /*
+     * A new record's other messages wait in Valkey for its Created message,
+     * with what they say (WorkspaceCreatedMessageFirst). From now on this
+     * server also posts those of another App server that was killed before
+     * posting them - an OOM kill, a lost node - each in its turn and once
+     * (#11235).
+     */
+    WorkspaceCreatedMessageFirst.takeOverForStoppedServers(
+      (stored: JSONObject): Promise<void> => {
+        return WorkspaceNotificationRuleService.postStoredWorkspaceMarkdownNotification(
+          stored,
+        );
+      },
+    );
 
     /*
      * Record, from now on, that OneUptime is receiving: the time between the

@@ -27,6 +27,7 @@ Comece pela pergunta que o bloco precisa responder:
 | As pessoas chegam ao fim de um fluxo, e voltam? | **Funil** ou **Retenção de usuários** |
 | Em que estado estão nossos clusters e hosts? | Um widget do grupo Infraestrutura |
 | Onde no mundo está a nossa rede, e o que está fora do ar? | **Mapa de rede** |
+| Quanto custam as nossas nuvens, e qual equipe gasta? | **Custo de nuvem** |
 | Um título, uma nota, a hora em outro escritório? | **Texto** ou **Relógio** |
 | Dados guardados fora do OneUptime? | Um widget do grupo Fontes de dados externas |
 | Algo que nenhum widget cobre? | **HTML**, depois de ter certeza de que nenhum outro widget faz isso |
@@ -197,10 +198,12 @@ Cada um destes widgets lista os recursos que um agente ou um coletor informa ao 
 | **Podman** | **Hosts**, **Contêineres**, **Imagens**, **Redes**, **Volumes** | O agente Podman |
 | **Proxmox** | **Nós**, **Convidados** | O agente Proxmox |
 | **VMware** | **Hosts**, **Máquinas virtuais** | O agente VMware, ou um vCenter que você conecte |
+| **XCP-ng** | **Hosts**, **VMs** | O agente XCP-ng |
 | **Ceph** | **OSDs**, como uma parede colorida por estado, e **Pools** | O agente Ceph |
 | **Arrays de armazenamento** | **Volumes**, e **Hardware** como uma parede colorida por status | O agente de arrays de armazenamento |
+| **Custos de nuvem** | **Custo de nuvem**, um total, um detalhamento ou uma tendência dos gastos | Os custos que as suas [contas de nuvem](/docs/telemetry/cloud-accounts) informam |
 
-Use-os para ter uma página que mistura o estado da sua infraestrutura com a telemetria das cargas de trabalho que rodam nela.
+Use-os para ter uma página que mistura o estado da sua infraestrutura com a telemetria das cargas de trabalho que rodam nela. O widget Custo de nuvem não é uma lista: veja [Custos de nuvem](#custos-de-nuvem).
 
 ### Network Map
 
@@ -213,6 +216,19 @@ Acima do mapa ele mostra quantos sites estão fora do ar, porque um ponto vermel
 **Configurações**: título, visualização em mapa ou em lista, número máximo de sites desenhados, se os nomes dos sites são impressos, e filtros por tipo de site e por status. Os nomes dos sites somem automaticamente quando o mapa fica cheio demais para serem lidos; a dica de ferramenta continua nomeando cada marcador.
 
 Um site só aparece se tiver coordenadas. Adicione a latitude e a longitude no site (ou importe-as de um CSV) para fixá-lo.
+
+## Custos de nuvem
+
+### Custo de nuvem
+
+Quanto as suas nuvens custam, ao lado dos serviços que gastam, para o intervalo de tempo do painel. Ele lê os mesmos números que **Nuvem → Gastos → Custos** e a página de um grupo de custos, nos mesmos dias.
+
+- **Cobre**: todas as contas, uma **Conta**, um **Grupo de custos** ou uma **Visão de custos**. Escolha a conta, o grupo ou a visão na configuração abaixo.
+- **Mostrar**: um total em relação ao período anterior, um detalhamento das suas maiores partes ou uma tendência dos gastos de cada dia.
+- **Detalhar por**: serviços, regiões, contas ou recursos. O detalhamento de uma visão de custos lista seus grupos, e o que nenhum grupo assume.
+- **Base de custo**: faturado, amortizado ou líquido. Vazia, é a do projeto, com a qual Custos abre.
+
+Os números estão na moeda em que a maioria das suas contas é faturada. Vê-lo exige o mesmo que ver Custos: cada pessoa vê o que pode ler. Um painel público mostra só o título. Veja [Custos e economias de nuvem](/docs/telemetry/cloud-costs#relatórios-e-exportações) para os relatórios e as exportações dos mesmos números.
 
 ## Fontes de dados externas
 
@@ -249,7 +265,7 @@ Pela API e pelo Terraform, a ordem é o `arguments.sort` do widget: uma coluna e
 
 Um [painel público](/docs/dashboards/sharing) desenha a maioria dos widgets para os visitantes, e cada um mostra só o que foi configurado para mostrar. Alguns não podem ser mostrados sem uma sessão conectada:
 
-- **Gráfico de registros**, **Gráfico de traços**, **Tabela de traços**, **Eventos de segurança**, **Fluxo de eventos de segurança**, **Funil** e **Retenção de usuários** dizem, no lugar deles, que não estão disponíveis em painéis públicos.
+- **Gráfico de registros**, **Gráfico de traços**, **Tabela de traços**, **Eventos de segurança**, **Fluxo de eventos de segurança**, **Funil**, **Retenção de usuários** e **Custo de nuvem** dizem, no lugar deles, que não estão disponíveis em painéis públicos.
 - Os widgets de Fontes de dados externas mostram os dados quando leem **Métricas deste projeto (PromQL)**, nunca as consultas. Um widget de fonte de dados externa fica totalmente fora de um painel público.
 
 ## Quando um widget não pode ser mostrado

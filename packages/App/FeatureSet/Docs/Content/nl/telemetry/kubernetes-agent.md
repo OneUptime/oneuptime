@@ -471,19 +471,66 @@ Kubernetes-events worden bij de agent niet op namespace gefilterd: hij stuurt ze
 
 Hij accepteert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` en `FATAL`. `WARN` behoudt WARN, ERROR en FATAL en laat INFO, DEBUG en TRACE vallen; de standaard (`""`) behoudt alles. Hij geldt in beide logmodi (via de collector in de modus `daemonset`, in de logtailer in de modus `api`), dus een preset zet hem nooit achter je rug om uit.
 
-Container-runtimes registreren geen severity, dus de agent leest die uit de logtekst zelf (`[ERROR]`, `WARN:`, `"level":"info"`, …). Wat er gebeurt met een regel zonder herkenbaar niveau, hangt af van de logmodus, omdat de twee modi verschillende dingen weten:
+Container-runtimes registreren geen severity, dus de agent leest het niveau dat elke regel noemt: een niveauwoord (`[ERROR]`, `WARN:`, `"level":"info"`, …), de eerste letter van een klog-regel (`I`, `W`, `E`, `F`), de `LOG:` van PostgreSQL of de `"level":30` van pino. De traceback van een exception of een panic telt als ERROR. Wat er gebeurt met een regel die geen niveau noemt, hangt af van de logmodus, omdat de twee modi verschillende dingen weten:
 
 | Modus | Een regel zonder niveau | Waarom |
 | --- | --- | --- |
-| `daemonset` | `stderr` telt als ERROR (behouden), `stdout` als INFO (weggelaten door een WARN-drempel) | De container-runtime registreert uit welke stream elke regel kwam. |
+| `daemonset` | `stdout` telt als INFO (weggelaten door een WARN-drempel); `stderr` heeft geen severity, wordt getoond als Niet gespecificeerd en blijft behouden | De container-runtime registreert uit welke stream elke regel kwam. stdout is de gewone uitvoer van een programma, maar programma's schrijven hun diagnostiek van elk niveau naar stderr, dus een stderr-regel zegt niets over zijn niveau. |
 | `api` | Altijd behouden | De Kubernetes-API `pods/log` voegt stdout en stderr samen tot één stream zonder markering per regel, dus in plaats van te gokken behoudt de agent de regel. |
 
-De modus `api` laat dus bewust strikt minder vallen dan de modus `daemonset`: een Python-traceback of een `npm ERR!` bevat geen severity-sleutelwoord, en die ongemerkt verwijderen is precies de fout waartegen een drempel je moet beschermen. In de hybride modus (`logs.windowsPods.enabled`) gelden beide rijen, per OS van de node: Linux-pods volgen `daemonset`, Windows-pods `api`.
+De modus `api` laat dus bewust strikt minder vallen dan de modus `daemonset`: hij kan een stderr-regel die geen niveau noemt, zoals een `npm ERR!`, niet onderscheiden van gewone uitvoer, en die ongemerkt verwijderen is precies de fout waartegen een drempel je moet beschermen. In de hybride modus (`logs.windowsPods.enabled`) gelden beide rijen, per OS van de node: Linux-pods volgen `daemonset`, Windows-pods `api`.
 
 Gebeurtenissen over meerdere regels worden in beide modi vóór het filteren weer samengevoegd, dus een Java-stacktrace wordt beoordeeld op zijn eerste regel en als geheel behouden of weggelaten.
 
 > [!IMPORTANT]
 > Kubernetes-events en resourcespecificaties worden hier nooit door gefilterd. Ze komen uit de Kubernetes-API zonder eigen severity, dus een drempel zou de hele feed verwijderen, inclusief de waarschuwingen `FailedScheduling`, `BackOff` en `OOMKilling` die je het hardst nodig hebt. Het zijn er weinig en ze zijn waardevol, dus de agent stuurt ze altijd; gebruik **Logboeken → Instellingen → Drop-filters** in OneUptime om ze uit te dunnen.
+
+### Een eigen logformaat lezen
+
+De agent leest de niveaus van de formaten die de meeste programma's schrijven. Voor een formaat dat hij niet leest, zoals een intern formaat, voeg je met `logs.extraOperators` eigen collector-operators toe. Ze draaien in de modus `daemonset` op elke podlogregel, nadat de agent de regel weer heeft samengevoegd en de pod en stream ervan heeft gelezen, en voordat hij het niveau van de regel leest.
+
+Om het niveau van een regel in te stellen, schrijf je het naar `attributes.severity_text` als een woord dat de agent leest, zoals `ERROR`, `warn`, `critical` of een klog-letter. De agent leest dat vóór al zijn eigen lezers en slaat het op zoals OneUptime dat woord overal elders opslaat. Geef de regel daarna door aan `severity-router`, de eerste stap van de agent, of laat hem doorlopen naar je volgende operator.
+
+Voor regels zoals `<<E>> payment failed` en `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+De chart controleert de operators wanneer je installeert of upgradet. Een waarde die de collector zou weigeren, laat `helm install` mislukken met een melding die de operator noemt, in plaats van een DaemonSet achter te laten dat steeds opnieuw start: een type dat de collector van `image.tag` niet heeft, een instelling die het type nodig heeft, een veld, een id dat al in gebruik is, een `output` die naar niets verwijst, een regex of een string in een expressie. In de string van een expressie schrijf je de backslash van een regex dubbel, zoals in `"^\\d+ "`, of zet je de regex in een raw string, tussen backticks. De rest van een expressie compileert de collector pas wanneer hij start.
+
+De chart weigert ook drie soorten operators die de collector wel zou uitvoeren, en zegt waarom:
+
+- Een operator die zelf de severity van de regel instelt, zoals een `severity_parser`, een `syslog_parser` of het `severity`-blok van een parser. De agent leest het niveau van elke regel na je operators en zou die overschrijven, dus schrijf het niveau in plaats daarvan naar `attributes.severity_text`.
+- Een router zonder `default`, of een route zonder `output`. De regels die hij aan geen enkele operator doorgeeft, worden weggelaten.
+- De parser `container`. De agent heeft het formaat van de container-runtime al gelezen, dus je operators zien de eigen regel van het programma.
+
+`logs.extraOperators` vereist de modus `daemonset`. De logtailer van de modus `api` voert geen collector-operators uit, dus de chart weigert de instelling daar, en de Windows-pods van een hybride installatie (`logs.windowsPods.enabled`) krijgen hem niet.
 
 ### Metrics op naam opnemen of uitsluiten
 
@@ -789,7 +836,7 @@ Het injecteren van de header betekent dat verkeer dat al onderweg is, wordt hers
 
 Als er op dit cluster een incident of waarschuwing ontstaat, onderzoekt OneUptime AI die. De **Kubernetes-AI-agent** van de chart geeft haar een terminal: hij voert alleen-lezen `kubectl` uit zoals een dienstdoende engineer zou doen (de falende pod beschrijven, zijn events lezen, de logs van de crashende container volgen, de nodecapaciteit controleren) en vermeldt elk commando op de incidentpagina.
 
-De agent staat **standaard aan** en is **alleen-lezen**: een kleine Deployment (`kubernetes-agent-ai-agent`, podlabel `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) waarvan het ServiceAccount alleen mag lezen. Hij registreert zich met dezelfde `oneuptime.apiKey` en `clusterName` die de collector gebruikt, dus er is niets in te stellen in het dashboard: de pagina **AI-agent** van het cluster (Kubernetes → cluster → AI → Agent) toont hem binnen een minuut als verbonden, en **Verbinding testen**, in het menu **⋯** naast die status, voert `kubectl version` en `kubectl auth can-i --list` via hem uit. Alles wat AI ermee heeft gedaan, staat op de pagina **AI-logboeken** van het cluster (AI → Logboeken), en wat er over het cluster te weten valt — de problemen die steeds terugkomen en waarom, de node of workload achter de meeste ervan, wat AI heeft opgelost — op de pagina **AI-inzichten** (AI → Insights). De agent wordt geleverd met een vastgezette kubectl (v1.36.6). Het is geen Runner en hij verschijnt nooit onder Runbooks → Runners: OneUptime geeft hem nooit inloggegevens, voert er nooit runbooks op uit, en hij wordt nooit geaccepteerd als commando-Runner van een AI-regel.
+De agent staat **standaard aan** en is **alleen-lezen**: een kleine Deployment (`kubernetes-agent-ai-agent`, podlabel `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) waarvan het ServiceAccount alleen mag lezen. Hij registreert zich met dezelfde `oneuptime.apiKey` en `clusterName` die de collector gebruikt, dus er is niets in te stellen in het dashboard: de pagina **AI-agent** van het cluster (Kubernetes → cluster → AI → Agent) toont hem binnen een minuut als verbonden, en **Verbinding testen**, in het menu **⋯** naast die status, voert `kubectl version` en `kubectl auth can-i --list` via hem uit. Alles wat AI ermee heeft gedaan, staat op de pagina **AI-logboeken** van het cluster (AI → Logboeken), en wat er over het cluster te weten valt — de problemen die steeds terugkomen en waarom, de node of workload achter de meeste ervan, wat AI heeft opgelost — op de pagina **AI-inzichten** (AI → Insights). De agent wordt geleverd met een vastgezette kubectl (v1.36.7). Het is geen Runner en hij verschijnt nooit onder Runbooks → Runners: OneUptime geeft hem nooit inloggegevens, voert er nooit runbooks op uit, en hij wordt nooit geaccepteerd als commando-Runner van een AI-regel.
 
 Werk bij een agent die is geïnstalleerd voordat de AI-agent bestond eerst je chartindex bij en upgrade daarna (upgrade op een zelf-gehoste OneUptime eerst OneUptime — zie [De agent upgraden](#de-agent-upgraden)):
 

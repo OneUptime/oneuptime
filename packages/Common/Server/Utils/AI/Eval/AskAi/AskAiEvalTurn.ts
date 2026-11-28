@@ -45,6 +45,10 @@ import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Email from "../../../../../Types/Email";
+import {
+  HelpAndSupportSettings,
+  getDefaultHelpAndSupportSettings,
+} from "../../../../../Types/HelpAndSupport/HelpAndSupport";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
@@ -99,8 +103,13 @@ import StatusPageService from "../../../../Services/StatusPageService";
 import TeamMemberService from "../../../../Services/TeamMemberService";
 import TeamService from "../../../../Services/TeamService";
 import ActiveMonitorLimit from "../../../Billing/ActiveMonitorLimit";
+import HelpAndSupportServerSettings from "../../../HelpAndSupport/HelpAndSupportServerSettings";
 import UserLanguage from "../../../Notification/UserLanguage";
 import ServerProducts from "../../../ServerProducts/ServerProducts";
+import {
+  answerDataSecurityFromProject,
+  readDataSecurityProject,
+} from "./AskAiEvalDataSecurity";
 import ServerSendingStatus from "../../../ServerSending/ServerSendingStatus";
 import AiContextReader from "../../AiContext/AiContextReader";
 import ChatAgentRunner from "../../Chat/ChatAgentRunner";
@@ -349,6 +358,16 @@ export function readProject(
   project: AskAiEvalProject,
   toolName: string,
 ): string {
+  // Data Security's reads, in a project that holds customer data (#10378).
+  const dataSecurity: string | null = readDataSecurityProject(
+    project,
+    toolName,
+  );
+
+  if (dataSecurity !== null) {
+    return dataSecurity;
+  }
+
   switch (toolName) {
     case "query_monitors":
       return JSON.stringify({
@@ -534,6 +553,7 @@ export default class AskAiEvalTurnRunner {
         language: data.language,
       });
       this.answerFromProject(patches, project);
+      answerDataSecurityFromProject(patches, project);
       this.answerReadsFromProject(patches, project);
 
       const props: DatabaseCommonInteractionProps = getAskingProps(project);
@@ -737,6 +757,18 @@ export default class AskAiEvalTurnRunner {
     patches.set(ServerProducts, "getSavedSettings", async (): Promise<null> => {
       return null;
     });
+    /*
+     * No admin hid the mobile app either (Help and Support, #10945): every
+     * item as a new server starts, which set_up_paging reads to say how a
+     * push reaches the person.
+     */
+    patches.set(
+      HelpAndSupportServerSettings,
+      "getSettings",
+      async (): Promise<HelpAndSupportSettings> => {
+        return getDefaultHelpAndSupportSettings();
+      },
+    );
   }
 
   // Ask AI's reads, from the project; the docs' run for real.

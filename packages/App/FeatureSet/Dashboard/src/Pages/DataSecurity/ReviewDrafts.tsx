@@ -18,13 +18,14 @@ import {
   DraftRecordButton,
   ImpactAssessmentLink,
   StoreRecordFields,
+  writeRecordField,
 } from "../../Components/DataSecurity/StoreRecord";
 import StoreNameCell from "../../Components/DataSecurity/StoreNameCell";
 import AppLink from "../../Components/AppLink/AppLink";
 import LeaveWithoutSavingQuestion from "../../Components/UnsavedChanges/LeaveWithoutSavingQuestion";
-import useUnsavedParts, {
-  UnsavedParts,
-} from "../../Components/UnsavedChanges/UseUnsavedParts";
+import usePendingEdits, {
+  PendingEdits,
+} from "../../Components/UnsavedChanges/UsePendingEdits";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
@@ -34,6 +35,10 @@ import {
   DataSecurityRecordOfProcessingRow,
   RecordRowState,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import {
+  RecordField,
+  RecordFieldValue,
+} from "Common/Types/DataSecurity/RecordOfProcessing";
 import { isDataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -136,9 +141,19 @@ const ReviewDraftsPage: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [rowError, setRowError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
-  // The fields a person is mid-edit on, each with its save (#7402).
-  const unsaved: UnsavedParts = useUnsavedParts();
-  const hasUnsaved: boolean = unsaved.hasUnsaved;
+  /*
+   * What the reader may do with the store in front of them, as the server
+   * decides it for that store's own row - a role that may edit some stores
+   * may not edit this one. The whole record's answer until it is read.
+   */
+  const [rowFlags, setRowFlags] = useState<{
+    canEdit: boolean;
+    canDraft: boolean;
+  } | null>(null);
+  // The fields a person is mid-edit on, with the value each one's Save would write.
+  const pending: PendingEdits<RecordFieldValue | null> =
+    usePendingEdits<RecordFieldValue | null>();
+  const hasUnsaved: boolean = pending.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   // The record once: which stores wait for a person.
@@ -184,6 +199,7 @@ const ReviewDraftsPage: FunctionComponent<
     let isCurrent: boolean = true;
 
     setRow(null);
+    setRowFlags(null);
     setRowError("");
     DataSecurityApi.getRecordOfProcessing({
       dataStoreId: new ObjectID(currentId),
@@ -199,6 +215,10 @@ const ReviewDraftsPage: FunctionComponent<
         // Its personal data was gone by the time it was opened.
         if (read) {
           setRow(read);
+          setRowFlags({
+            canEdit: answer.canEdit !== false,
+            canDraft: answer.canDraft === true,
+          });
         } else {
           setRowError(translator.translateText(NOT_IN_THE_RECORD) || "");
         }
@@ -217,8 +237,12 @@ const ReviewDraftsPage: FunctionComponent<
   const complianceRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.DATA_SECURITY_COMPLIANCE] as Route,
   );
-  const canEdit: boolean = record?.canEdit !== false;
-  const canDraft: boolean = record?.canDraft === true;
+  const canEdit: boolean = rowFlags
+    ? rowFlags.canEdit
+    : record?.canEdit !== false;
+  const canDraft: boolean = rowFlags
+    ? rowFlags.canDraft
+    : record?.canDraft === true;
   const progress: ReactElement =
     storeIds.length > 0 ? (
       <span
@@ -342,7 +366,7 @@ const ReviewDraftsPage: FunctionComponent<
           row={row}
           canEdit={canEdit}
           onRowChange={setRow}
-          onFieldEditingChange={unsaved.onPartChange}
+          pending={pending}
         />
         <div className="flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-4">
           <DraftRecordButton
@@ -375,7 +399,20 @@ const ReviewDraftsPage: FunctionComponent<
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_RECORD}
-        onSaveChanges={unsaved.saveAll}
+        onSaveChanges={
+          // No store in front of the person: nothing of one is being edited to save.
+          row
+            ? pending.saveAllWith(
+                async (field: string, value: RecordFieldValue | null) => {
+                  await writeRecordField({
+                    dataStoreId: row.dataStoreId,
+                    field: field as RecordField,
+                    value,
+                  });
+                },
+              )
+            : undefined
+        }
       />
     </Fragment>
   );

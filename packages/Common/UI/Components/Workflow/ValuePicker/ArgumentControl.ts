@@ -84,6 +84,7 @@ const CHOICE_TYPES: Array<ComponentInputType> = [
   ComponentInputType.IncidentSeveritySelect,
   ComponentInputType.Choice,
   ComponentInputType.CronTab,
+  ComponentInputType.MarkdownRecordType,
 ];
 
 // Component.RECORD_LIST_INPUT_TYPES, repeated so this file stays pure.

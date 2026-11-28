@@ -3,7 +3,7 @@
 Planen Sie CPU, Arbeitsspeicher und Festplatte für ein selbst gehostetes OneUptime auf Kubernetes mit dem [Helm-Chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Dimensionieren Sie die drei Datenspeicher – **ClickHouse**, **PostgreSQL** und **Valkey** – und die Anwendung getrennt, beginnen Sie mit einer der Stufen unten und passen Sie an, sobald Sie echte Zahlen haben.
 
 > [!IMPORTANT]
-> Die Standardwerte des Charts sind keine Produktionsdimensionierung. Die Dienste, die es standardmäßig ausführt, setzen **keine CPU- oder Speicher-Requests oder -Limits**, und PostgreSQL und ClickHouse erhalten kleine Volumes von **25 Gi**, damit sich das Chart auf jedem Cluster installieren lässt. Für alles, was über einen Test hinausgeht, legen Sie Ressourcen und Speicher selbst fest, mit den Zahlen auf dieser Seite.
+> Die Standardwerte des Charts sind keine Produktionsdimensionierung. Bis auf Valkey setzen die Dienste, die es standardmäßig ausführt, **keine CPU- oder Speicher-Requests oder -Limits**, und PostgreSQL und ClickHouse erhalten kleine Volumes von **25 Gi**, damit sich das Chart auf jedem Cluster installieren lässt. Für alles, was über einen Test hinausgeht, legen Sie Ressourcen und Speicher selbst fest, mit den Zahlen auf dieser Seite.
 
 Sie nutzen stattdessen die Docker-Compose-Installation auf einem einzelnen Server? Deren Dimensionierung ist einfacher: Siehe die [Anforderungen](/docs/installation/docker-compose#anforderungen) (empfohlen sind 16 GB Arbeitsspeicher, 8 Kerne und 400 GB Festplatte).
 
@@ -88,7 +88,7 @@ Bei vielen Replikaten von App, Worker und Sonde können die Datenbankverbindunge
 
 ## Valkey – Cache, Warteschlangen und Sitzungen
 
-Die Cache-Schicht führt [Valkey](https://valkey.io) aus, den BSD-lizenzierten Fork von Redis 7.2, als Cache, Arbeitswarteschlange und Sitzungsspeicher. Jeder Server mit Redis-Protokoll kann es ersetzen, und die Dimensionierung unten gilt in beiden Fällen. Es ist **speichergebunden**, und die Persistenz ist **standardmäßig aus**: Es ist keine maßgebliche Datenquelle und lässt sich neu aufbauen. Dimensionieren Sie es nach Warteschlangentiefe und gleichzeitigen Sitzungen; 2–8 GB Arbeitsspeicher reichen für die meisten Installationen. Seine Verdrängungsrichtlinie ist `noeviction`, also beobachten Sie seinen Arbeitsspeicher, wenn sich Warteschlangen unter anhaltender Last stauen.
+Die Cache-Schicht führt [Valkey](https://valkey.io) aus, den BSD-lizenzierten Fork von Redis 7.2, als Cache, Arbeitswarteschlange und Sitzungsspeicher. Jeder Server mit Redis-Protokoll kann es ersetzen, und die Dimensionierung unten gilt in beiden Fällen. Es ist **speichergebunden**, und die Persistenz ist **standardmäßig aus**: Es ist keine maßgebliche Datenquelle und lässt sich neu aufbauen. Dimensionieren Sie es nach Warteschlangentiefe und gleichzeitigen Sitzungen; 2–8 GB Arbeitsspeicher reichen für die meisten Installationen. Das Chart gibt ihm ein Speicher-Limit von 4 Gi und begrenzt seine Daten auf 75 % davon, 3 GiB (`valkey.maxmemory`), ab denen es Schreibvorgänge ablehnt. Seine Verdrängungsrichtlinie ist `noeviction`, also beobachten Sie seinen Arbeitsspeicher, wenn sich Warteschlangen unter anhaltender Last stauen.
 
 ## Rechenleistung der Anwendung
 
@@ -105,6 +105,52 @@ Neben den Datenspeichern dimensionieren Sie die zustandslosen Workloads. Jeder l
 Jeder davon läuft mit Node.js, das seinen Heap nach dem Speicherlimit seines Containers bemisst (`resources.limits.memory`): 75 % des Limits, mindestens 256 MB und höchstens 8096 MB. Ohne Limit kann der Heap auf 8096 MB wachsen. Der Rest des Limits bleibt für den Speicher, den Node.js außerhalb seines Heaps nutzt. Um den Heap selbst festzulegen, setzen Sie `NODE_OPTIONS` auf `--max-old-space-size=`, gefolgt von einer Größe in MB, im `extraEnv` des Dienstes (mit Docker Compose im `environment` des Dienstes, in einer Override-Datei). Das hat Vorrang vor der Größe, die sich aus dem Limit ergibt.
 
 Das Chart bringt **KEDA** mit, sodass App, Worker, Sonden und der globale Runner nach ihrem Warteschlangenrückstand skalieren können. Schalten Sie `keda.enabled` zusammen mit dem eigenen `keda.enabled` jedes Dienstes ein (zum Beispiel `app.keda.enabled`). Auf einem Cluster ohne KEDA braucht die erste Installation einen zusätzlichen Durchlauf: Siehe die [KEDA-Anleitung](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) des Charts. Dienste, die KEDA nicht verwaltet, können stattdessen einen CPU- oder Speicher-Autoscaler nutzen (`autoscaling`).
+
+## Viele Monitore betreiben
+
+Jeder Worker jeder Sonde fragt die App-Pods stapelweise nach den fälligen Monitoren, und jeder fällige Monitor geht an genau einen von ihnen. Alle Monitore mit einem Intervall von einer Minute werden zu Beginn jeder Minute gemeinsam fällig, daher zählt, wie schnell die Monitore einer ganzen Minute verteilt werden. Die Zahlen unten wurden mit 39.700 Monitoren gemessen (28.200 jede Minute geprüft und 11.500 alle fünf Minuten), auf einer Sonde mit 20 Replikaten, wobei jede Datenbankanweisung 50 oder 100 ms langsamer war als auf einer unbelasteten Maschine, wie auf einer ausgelasteten.
+
+### Monitore in größeren Stapeln verteilen
+
+Erhöhen Sie das Abruflimit jeder Sonde (`monitorFetchLimit` im Helm-Chart, sonst `PROBE_MONITOR_FETCH_LIMIT`) von 10 auf 50. Jede Anfrage verteilt dann fünfmal so viele Monitore zu etwa gleichen Kosten. Mit drei App-Pods und um 50 ms langsameren Anweisungen wurden die 28.200 Monitore jeder Minute innerhalb von 19 Sekunden verteilt, gegenüber 44 mit einem Limit von 10, und die 39.700, die alle fünf Minuten fällig werden, innerhalb von 19 Sekunden, gegenüber 57. Ein Sonden-Replikat führt dann bis zu Worker × Abruflimit Prüfungen gleichzeitig aus, 150 bei 3 Workern: Geben Sie ihm den Speicher dafür, oder fügen Sie Replikate hinzu.
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### Das Scheduling-Limit auf seinem Standardwert lassen
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) legt fest, wie viele Sonden-Anfragen jeder App-Pod gleichzeitig ausführt: ein Fünftel seines Datenbank-Pools, 10 von 50. Jeder Pod hat sein eigenes Limit, also bringen App-Pods, die Sie hinzufügen, ihres mit. Mit allen 39.700 gleichzeitig fällig und um 100 ms langsameren Anweisungen bekam eine Sonde von einem App-Pod 313 Monitore pro Sekunde, von dreien 659 und von sechs 763, und ein Limit von 20 brachte 7 % mehr. Eine Sonde allein darf jeden Slot eines Pods nutzen, und Sonden, die konkurrieren, teilen sie gerecht. Test-Monitor-Läufe haben 2 eigene Slots, sodass ein Test eine Sonde innerhalb ihres Zehn-Sekunden-Takts erreicht, wie ausgelastet die Monitore auch sind. Erhöhen Sie das Limit nur, wenn Sonden-Anfragen immer wieder auf einen Slot warten, während die Datenbank noch Reserven hat, und erhöhen Sie den Datenbank-Pool des Pods mit ihm.
+
+### Eine Sonde oder viele
+
+Ordnen Sie jeden Monitor den Sonden zu, von denen aus er prüfen muss. Jeder fällige Monitor geht an ein Replikat seiner Sonde, wie viele Replikate auch gleichzeitig fragen, daher hält eine Sonde mit vielen Replikaten genauso gut Schritt wie viele Sonden. Wenn Monitore verspätet sind und keine Anfrage auf einen Slot wartet, reichen die Sonden nicht aus: Fügen Sie Replikate hinzu, oder lassen Sie KEDA jede Sonde nach ihren fälligen Monitoren skalieren.
+
+### Nach dem skalieren, worauf Sonden warten
+
+`/metrics/probe-scheduling` auf dem Port der App addiert die Sicht aller App-Pods auf die letzte Minute. Skalieren Sie die App-Pods mit KEDA nach dem `queueDepth` dieses Endpunkts, zusätzlich zu CPU und Speicher, und alarmieren Sie, wenn Monitore verspätet verteilt werden:
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| Feld | Was es angibt |
+| --- | --- |
+| `queueDepth` | Sonden-Anfragen, die gerade auf einen Slot warten, auf allen App-Pods. Minutenlang über 0: App-Pods hinzufügen. |
+| `slotWaitP95Ms` | Wie lange Anfragen auf einen Slot gewartet haben, auf dem am stärksten ausgelasteten App-Pod. |
+| `refusalsPerMinute` | Sonden-Anfragen, die als ausgelastet beantwortet wurden. |
+| `reconnectsAskedPerMinute` | Antworten, die die Verbindung einer Sonde gebeten haben, sich neu zu verbinden, damit ihre nächste Anfrage an einen anderen App-Pod gehen kann: einige pro Sekunde, solange ein App-Pod nicht hinterherkommt. Minutenlang über 0: App-Pods hinzufügen. |
+| `dispatchLagP95Seconds` | Wie spät Monitore verteilt wurden, nach dem Moment, zu dem ihr Intervall sie fällig machte. Nahe an Ihrem kürzesten Intervall, während keine Anfrage wartet: Sonden-Replikate hinzufügen. |
+| `monitorsLateByAnIntervalPerMinute` | Monitore, die ein ganzes Intervall zu spät verteilt wurden: Prüfungen, die ausgefallen sind. |
+| `monitorTestWaitP95Seconds` | Wie lange Test-Monitor-Läufe auf eine Sonde gewartet haben. |
 
 ## Startstufen
 

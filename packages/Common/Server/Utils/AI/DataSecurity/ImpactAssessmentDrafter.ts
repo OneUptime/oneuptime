@@ -53,6 +53,7 @@ import FeedPersonName from "../../Feed/FeedPersonName";
 import UserLanguage from "../../Notification/UserLanguage";
 import ProjectLanguage from "../../Notification/ProjectLanguage";
 import CallerPermission from "../../Permission/CallerPermission";
+import StoreChangeAccess from "../../DataSecurity/StoreChangeAccess";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import DataSecurityAiCall from "./DataSecurityAiCall";
 import DataSecurityAiInput, {
@@ -76,9 +77,7 @@ import RecordOfProcessingDossier from "./RecordOfProcessingDossier";
  * people, or data that leaves its people's countries
  * (getImpactAssessmentTriggers); only then is one drafted. Its readers are
  * the store's who may read its issues too: the assessment's risks are its
- * open issues. Drafting and editing it are changes to the store, so they
- * take an edit of that store, decided for its own row - its labels and
- * owners - as an update of it is (RecordOfProcessingReader.mayChangeStore).
+ * open issues.
  *
  * The draft is written from the store's facts (RecordOfProcessingDossier,
  * DataSecurityAiInput.impactAssessmentFacts) - its record, what it holds
@@ -104,8 +103,8 @@ export const ANSWER_UNREAD_MESSAGE: string =
 export const ISSUES_REFUSED_MESSAGE: string =
   "An impact assessment rests on the store's issues, and you may not read Data Security issues in this project.";
 
-export const STORE_CHANGE_REFUSED_MESSAGE: string =
-  "Drafting or editing a store's impact assessment takes permission to edit that store, and you may not edit this one.";
+export const ASSESSMENT_CHANGE_REFUSED_MESSAGE: string =
+  "You may read this store's impact assessment, but not change it. Ask a Project Owner or Project Admin for a role that may edit this data store.";
 
 interface AssessmentContext {
   store: DataStore;
@@ -146,6 +145,22 @@ export default class ImpactAssessmentDrafter {
         operation: "read",
       })
     );
+  }
+
+  /*
+   * Whether the caller may change this store's assessment: whether they may
+   * update the store itself, by its own row (StoreChangeAccess). The
+   * assessment is a column of the store, written as OneUptime, so this is
+   * the only check a change of it meets.
+   */
+  private static async assertMayChangeStore(data: {
+    dataStoreId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    await StoreChangeAccess.assertMayChange({
+      ...data,
+      message: ASSESSMENT_CHANGE_REFUSED_MESSAGE,
+    });
   }
 
   // The store, its row of the record and its assessment, with the facts as they are now.
@@ -197,16 +212,6 @@ export default class ImpactAssessmentDrafter {
     };
   }
 
-  // A draft or an edit, refused to a caller who may not change this store.
-  private static async assertMayChange(data: {
-    dataStoreId: ObjectID;
-    props: DatabaseCommonInteractionProps;
-  }): Promise<void> {
-    if (!(await RecordOfProcessingReader.mayChangeStore(data))) {
-      throw new NotAuthorizedException(STORE_CHANGE_REFUSED_MESSAGE);
-    }
-  }
-
   // The assessment as the caller may read it, with the facts as they are now.
   @CaptureSpan()
   public static async read(data: {
@@ -248,7 +253,11 @@ export default class ImpactAssessmentDrafter {
       now,
     });
 
-    await this.assertMayChange(data);
+    // A draft is written into the store's assessment: who may change the store.
+    await this.assertMayChangeStore({
+      dataStoreId: data.dataStoreId,
+      props: data.props,
+    });
 
     if (isDeclaredDataStoreKind(context.store.kind)) {
       throw new BadDataException(NOT_NEEDED_MESSAGE);
@@ -377,7 +386,11 @@ export default class ImpactAssessmentDrafter {
       now,
     });
 
-    await this.assertMayChange(data);
+    // Whoever may read the assessment may not change it: who may change the store.
+    await this.assertMayChangeStore({
+      dataStoreId: data.dataStoreId,
+      props: data.props,
+    });
 
     const project: { language: string } = {
       language:
@@ -453,10 +466,13 @@ export default class ImpactAssessmentDrafter {
         props: { isRoot: true },
       });
     const isAiEnabled: boolean = project?.enableAi !== false;
-    const canEdit: boolean = await RecordOfProcessingReader.mayChangeStore({
-      dataStoreId: new ObjectID(data.context.row.dataStoreId),
-      props: data.props,
-    });
+    // Offered as the change itself is decided: by this store's own row.
+    const canEdit: boolean = data.context.store.id
+      ? await StoreChangeAccess.mayChange({
+          dataStoreId: data.context.store.id,
+          props: data.props,
+        })
+      : data.props.isRoot === true;
     const editorIds: Array<string> = [
       ...new Set(
         Object.values(data.assessment?.sections || {})

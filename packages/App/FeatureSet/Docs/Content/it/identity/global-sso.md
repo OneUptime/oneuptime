@@ -78,7 +78,7 @@ flowchart TB
 
 - **Nessun progetto collegato (tutti i progetti / prima l'invito):** gli utenti possono accedere con il provider e raggiungere **qualsiasi progetto di cui sono già membri**. I nuovi utenti **non** vengono creati automaticamente: un utente deve prima essere invitato in un progetto. Usalo per un SSO aziendale quando le appartenenze vengono gestite altrove.
 
-- **Progetti collegati (provisioning automatico):** Apri il provider e usa la tabella **Progetti collegati** per collegare uno o più progetti, ciascuno con un insieme di team predefiniti. Gli utenti che accedono vengono **provisionati automaticamente** in quei progetti e aggiunti ai team predefiniti al primo accesso. Un progetto che colleghi parte dal suo team dei membri; scegli altri team se i nuovi arrivati devono partire con un accesso diverso. Aggiungi un progetto + team alla volta per costruire l'elenco; per modificare un collegamento, eliminalo e aggiungilo di nuovo.
+- **Progetti collegati (provisioning automatico):** Apri il provider e usa la tabella **Progetti collegati** per collegare uno o più progetti, ciascuno con un insieme di team predefiniti. Gli utenti che accedono vengono **provisionati automaticamente** in quei progetti e aggiunti ai team predefiniti: chi è nuovo al primo accesso, e chi ha già un account, per esempio uno che hai creato a mano, a quello successivo. Un progetto che colleghi parte dal suo team dei membri; scegli altri team se i nuovi arrivati devono partire con un accesso diverso. Un progetto collegato senza team non aggiunge nessuno. Aggiungi un progetto + team alla volta per costruire l'elenco; per modificare un collegamento, eliminalo e aggiungilo di nuovo.
 
 Chi è già membro di un progetto collegato mantiene i team che ha lì.
 
@@ -89,7 +89,13 @@ Due domande del provider cambiano questo comportamento, raccolte sotto **Altri c
 | **Persone senza account** | **Ne ricevono uno al primo accesso**: entrano nei progetti collegati; se non ce n'è nessuno collegato, devono prima essere invitate. **Devono prima essere invitate**: le persone devono essere invitate in un progetto prima di poter accedere con questo provider, anche se ci sono progetti collegati. |
 | **Dove questo accesso vale come SSO** | **Ogni progetto**: i progetti che richiedono l'SSO accettano un accesso con questo provider. **Solo i progetti collegati**: accedere con questo provider soddisfa l'obbligo di SSO solo nei progetti collegati a esso, quindi chi ha già eseguito l'accesso può perdere l'accesso ad altri progetti. |
 
-Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati.
+Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati: nessuna delle due risposte aggiunge qualcuno a un progetto. Finché non è collegato nessun progetto con dei team, la pagina del provider indica sotto **Persone senza account** che nessuna nuova persona può ancora accedere.
+
+## Indirizzi email che il tuo provider di identità non ha verificato
+
+Un provider OpenID Connect globale trova l'account a cui fa accedere tramite l'indirizzo email che invia, come il provider di un progetto, e gli account degli amministratori principali vengono trovati allo stesso modo. Per questo non fa accedere nessuno con un indirizzo che il provider dice di non aver verificato, con un claim `email_verified` uguale a `false` o a qualcosa che non è né true né false. Altrimenti qualcuno potrebbe mettere l'indirizzo di un amministratore principale sul proprio account presso il provider e accedere all'intera istanza al suo posto. Un provider che invia `email_verified` come `true`, o non lo invia, come Microsoft Entra ID, fa accedere le persone come prima.
+
+Tramite authentik 2025.10 e versioni successive nessuno accede finché non modifichi la sua mappatura di ambito `email`, e tramite Keycloak nessuno di cui non abbia verificato l'indirizzo. Cosa cambiare lì, cosa continua ad accedere e cosa vede la persona sono nella pagina [SSO](/docs/identity/sso#indirizzi-email-che-il-tuo-provider-di-identità-non-ha-verificato). Gli amministratori principali con una password possono accedere con quella nel frattempo, su `/accounts/admin-login` finché l'intera istanza richiede l'SSO.
 
 ## Uscire anche dal provider di identità
 
@@ -160,7 +166,7 @@ Due modifiche su chi può accedere vengono verificate una dopo l'altra. Se nello
 ## Risoluzione dei problemi
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La persona non ha ancora un account OneUptime e il provider non ne crea: o non ha progetti collegati, o **Persone senza account** è impostato su **Devono prima essere invitate**. Invitala in un progetto o collega un progetto al provider.
+La persona non ha ancora un account OneUptime e il provider non ne crea: o non ha nessun progetto collegato con dei team, o **Persone senza account** è impostato su **Devono prima essere invitate**. Invitala in un progetto o collega al provider un progetto, con i team in cui entra. Il log del server indica di quale dei due casi si tratta, senza nominare la persona.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
@@ -183,6 +189,10 @@ Per un provider SAML, la risposta è stata creata per un'altra applicazione: la 
 Ogni risposta del tuo provider di identità fa accedere una sola volta, e solo nei minuti successivi alla sua emissione: dopo viene rifiutata con "SAML response has expired". Accedi di nuovo. Se le risposte continuano a scadere, controlla gli orologi di questo server e del tuo provider di identità.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+Il provider OpenID Connect ha inviato `email_verified` come `false`, o come qualcosa che non è né true né false, quindi OneUptime non ha fatto accedere nessuno, nemmeno un amministratore principale. Fai verificare l'indirizzo presso il tuo provider di identità, o segnalo lì come verificato, e accedi di nuovo. Vedi [Indirizzi email che il tuo provider di identità non ha verificato](#indirizzi-email-che-il-tuo-provider-di-identità-non-ha-verificato).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 L'intera istanza richiede l'SSO, e questo era un accesso con password, passkey, un link inviato via e-mail, Google o Microsoft, oppure una registrazione. Accedi invece con uno dei pulsanti SSO della pagina di accesso. Un amministratore principale accede con la sua password su `/accounts/admin-login`; per permettere di nuovo a tutti l'accesso con password, disattiva **Richiedi l'SSO per l'accesso** su **Single sign-on**.
 :::
@@ -193,5 +203,5 @@ L'intera istanza richiede l'SSO, e questo era un accesso con password, passkey, 
 - [SSO](/docs/identity/sso): Configurare il provider SAML o OIDC proprio di un progetto.
 - [SCIM](/docs/identity/scim): Lascia che il tuo provider di identità aggiunga e rimuova persone automaticamente.
 - [Utenti, team e autorizzazioni](/docs/permissions/index): Che cosa permettono di fare i team in cui entrano i nuovi arrivati.
-- [Aiuto e supporto](/docs/self-hosted/help-and-support): Indicare alle persone che hanno bisogno di un invito a chi chiederlo.
+- [Aiuto e supporto](/docs/self-hosted/help-and-support): Dire a chi ha bisogno di un invito a chi chiederlo.
 :::

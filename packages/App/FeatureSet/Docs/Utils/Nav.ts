@@ -357,6 +357,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/proxmox-monitor",
       },
       {
+        title: "XCP-ng Monitor",
+        url: "/docs/monitor/xcp-ng-monitor",
+      },
+      {
         title: "Docker Swarm Monitor",
         url: "/docs/monitor/docker-swarm-monitor",
       },
@@ -598,6 +602,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Notification Settings",
         url: "/docs/notifications/notification-settings",
+      },
+      {
+        title: "Notification Logs",
+        url: "/docs/notifications/notification-logs",
       },
     ],
   },
@@ -863,6 +871,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/proxmox",
       },
       {
+        title: "XCP-ng Agent",
+        url: "/docs/telemetry/xcp-ng",
+      },
+      {
+        title: "XCP-ng Without an Agent",
+        url: "/docs/telemetry/xcp-ng-agentless",
+      },
+      {
         title: "Ceph Agent",
         url: "/docs/telemetry/ceph",
       },
@@ -967,6 +983,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Cloud Costs and Savings",
         url: "/docs/telemetry/cloud-costs",
+      },
+      {
+        title: "Cloud Cost Allocation",
+        url: "/docs/telemetry/cloud-cost-allocation",
       },
       {
         title: "Stream CloudWatch Metrics and Logs",

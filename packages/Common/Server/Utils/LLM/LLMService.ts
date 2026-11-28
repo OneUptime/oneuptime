@@ -18,7 +18,13 @@ import ClaudeModels from "./ClaudeModels";
 import LLMProviderAnswerTooLargeException from "./LLMProviderAnswerTooLargeException";
 import LLMProviderHTTPException from "./LLMProviderHTTPException";
 import LLMProviderExchangeRecorder from "./LLMProviderExchangeRecorder";
+import LLMStreamedAnswer, {
+  LLMStreamedAnswerReading,
+} from "./LLMStreamedAnswer";
 import RejectedRequestParameter from "./RejectedRequestParameter";
+import ModelReasoning, {
+  ModelReasoningReading,
+} from "../../../Utils/LLM/ModelReasoning";
 import ResponseTooLarge from "../../../Utils/ResponseTooLarge";
 import LlmProviderEndpoint, {
   AzureOpenAIRequestEndpoint,
@@ -135,6 +141,26 @@ export interface LLMCompletionResponse {
    * Test button name it.
    */
   modelName?: string | undefined;
+  /*
+   * Set when the reply carried the model's reasoning: in tags in its text
+   * (<think>...</think>) or in a field of its own (reasoning_content, a
+   * thinking block). The reasoning is left out of content and kept nowhere
+   * (ModelReasoning); this says only that there was some, and where it
+   * ended.
+   */
+  reasoning?: LLMReplyReasoning | undefined;
+}
+
+export interface LLMReplyReasoning {
+  /*
+   * The reply closed a reasoning block it never opened: the model's chat
+   * template opens it (DeepSeek-R1, QwQ, Qwen3's thinking models), so the
+   * model starts every reply inside its reasoning. A reply of such a model
+   * that was cut off before its reasoning closed was all reasoning - which
+   * is what joining the parts of one answer needs to know
+   * (joinAnswerParts).
+   */
+  startedInsideReasoning: boolean;
 }
 
 export interface LLMProviderConfig {
@@ -282,6 +308,21 @@ const ANTHROPIC_REFUSAL_CATEGORY: RegExp = /^[a-z][a-z_]{0,39}$/;
 export const OPENAI_PROMPT_CACHE_KEY_PARAMETER: string = "prompt_cache_key";
 
 /*
+ * What a streamed OpenAI-wire request is sent with when its Additional
+ * Parameters do not say: a streamed answer reports what it used only when
+ * asked to, in a last chunk of its own, and without it the call's tokens
+ * could not be counted or billed.
+ */
+export const OPENAI_STREAM_OPTIONS: JSONObject = { include_usage: true };
+
+/*
+ * What a reply that is only the model's reasoning is reported as: the model
+ * stopped without writing an answer after it (ModelReasoning).
+ */
+export const REASONING_WITHOUT_ANSWER_ERROR: string =
+  "The model stopped without an answer: its reply was only its reasoning. Try again, or choose another model for this LLM provider.";
+
+/*
  * The most of an LLM provider's answer read (issue #8931). A long
  * completion, its tool calls and its usage included, is well under a
  * megabyte. Base URL is any project member's to change and Test LLM
@@ -424,6 +465,11 @@ export default class LLMService {
    * output_config (effort, output format) are what reasoning_effort and
    * response_format are on the OpenAI wire. They are how an operator makes a
    * Claude model think less, for every caller.
+   *
+   * stream and stream_options say only how the answer travels: the OpenAI
+   * wire reads a streamed answer whole (LLMStreamedAnswer), into the same
+   * answer, and some models are served streamed only (QwQ on Alibaba Cloud
+   * Model Studio). The Anthropic and Ollama wires reserve stream.
    */
   private static readonly PROTECTED_ADDITIONAL_PARAMETER_ALLOWLIST: Set<string> =
     new Set([
@@ -444,6 +490,8 @@ export default class LLMService {
       "seed",
       "stop",
       "stop_sequences",
+      "stream",
+      "stream_options",
       "thinking",
       "top_k",
       "top_logprobs",
@@ -463,6 +511,11 @@ export default class LLMService {
    * requests share a prompt cache (LLMPromptCacheKey), which changes where a
    * request is answered, never what it says. A proxy or a server that is not
    * OpenAI's, set up with the OpenAI provider type, may not know the field.
+   *
+   * So is stream_options, which OneUptime adds to a streamed request so the
+   * stream ends with what it used (OPENAI_STREAM_OPTIONS): a server that
+   * does not know it streams the same answer without it, and only its
+   * token counts go missing.
    */
   private static readonly DROPPABLE_UNSUPPORTED_PARAMETERS: Set<string> =
     new Set([
@@ -470,6 +523,7 @@ export default class LLMService {
       "logit_bias",
       "logprobs",
       "presence_penalty",
+      "stream_options",
       "temperature",
       "top_k",
       "top_logprobs",
@@ -808,7 +862,8 @@ export default class LLMService {
       data["model"] = modelName;
       data["messages"] = this.toOpenAIMessages(request.messages);
       data["temperature"] = request.temperature ?? 0.7;
-      data["stream"] = false;
+      // Streamed only when the operator asked; read whole either way.
+      data["stream"] = data["stream"] === true;
       data["n"] = 1;
 
       if (request.maxTokens) {
@@ -857,6 +912,15 @@ export default class LLMService {
       data[OPENAI_PROMPT_CACHE_KEY_PARAMETER] === undefined
     ) {
       data[OPENAI_PROMPT_CACHE_KEY_PARAMETER] = request.promptCacheKey;
+    }
+
+    /*
+     * A request the operator streams (stream: true in Additional Parameters)
+     * asks the stream to end with what it used, so its tokens are counted
+     * as a non-streamed answer's are - unless the operator said otherwise.
+     */
+    if (data["stream"] === true && data["stream_options"] === undefined) {
+      data["stream_options"] = { ...OPENAI_STREAM_OPTIONS };
     }
 
     /*
@@ -1477,17 +1541,123 @@ export default class LLMService {
     return response;
   }
 
+  /*
+   * The answer an OpenAI-wire provider sent: its JSON body, or - when it
+   * streamed (stream: true in Additional Parameters, or a server that
+   * streams whatever it is asked) - the body its events add up to
+   * (LLMStreamedAnswer). A streamed body arrives as text, which
+   * HTTPResponse keeps under `data`.
+   */
+  private static readOpenAIAnswerBody(data: {
+    jsonData: JSONObject;
+    providerName: string;
+    request: LLMCompletionRequest;
+  }): JSONObject {
+    const jsonData: JSONObject = data.jsonData || {};
+
+    if (Array.isArray(jsonData["choices"])) {
+      return jsonData;
+    }
+
+    const text: unknown = jsonData["data"];
+
+    if (typeof text !== "string") {
+      return jsonData;
+    }
+
+    const streamed: LLMStreamedAnswerReading | null =
+      LLMStreamedAnswer.read(text);
+
+    if (!streamed) {
+      return jsonData;
+    }
+
+    /*
+     * A stream that sent an error sent no whole answer, even when part of
+     * one came before it: what came is not presented as finished.
+     */
+    if (streamed.errorMessage) {
+      // The provider's words only where its errors may be kept.
+      const providerWords: string =
+        data.request.includeProviderErrorDetails !== false
+          ? streamed.errorMessage.substring(0, 500)
+          : "";
+
+      throw new BadDataException(
+        `${data.providerName} sent an error in its streamed answer. ${providerWords}`.trim(),
+      );
+    }
+
+    return streamed.body;
+  }
+
+  /*
+   * An OpenAI-wire message's text and the reasoning sent apart from it.
+   * content is a string, null (a reply of tool calls only), or a list of
+   * parts: Mistral sends a Magistral model's answer as a thinking part and
+   * a text part. reasoning_content (DeepSeek, vLLM, SGLang, Model Studio,
+   * LM Studio) and reasoning (newer vLLM, Ollama, OpenRouter, Groq's parsed
+   * format) are the model's thinking, never the answer.
+   */
+  private static readOpenAIMessageText(message: JSONObject | undefined): {
+    text: string;
+    hadSeparateReasoning: boolean;
+  } {
+    const content: unknown = message?.["content"];
+    const textParts: Array<string> = [];
+    let hadSeparateReasoning: boolean = false;
+
+    if (typeof content === "string") {
+      textParts.push(content);
+    } else if (Array.isArray(content)) {
+      for (const rawPart of content) {
+        if (typeof rawPart === "string") {
+          textParts.push(rawPart);
+          continue;
+        }
+
+        if (!rawPart || typeof rawPart !== "object") {
+          continue;
+        }
+
+        const part: JSONObject = rawPart as JSONObject;
+
+        if (part["type"] === "thinking" || part["type"] === "reasoning") {
+          hadSeparateReasoning = true;
+        } else if (typeof part["text"] === "string") {
+          textParts.push(part["text"]);
+        }
+      }
+    }
+
+    for (const key of ["reasoning_content", "reasoning"]) {
+      const reasoning: unknown = message?.[key];
+
+      if (typeof reasoning === "string" && reasoning.trim()) {
+        hadSeparateReasoning = true;
+      }
+    }
+
+    return { text: textParts.join(""), hadSeparateReasoning };
+  }
+
   private static parseOpenAIResponse(
-    jsonData: JSONObject,
+    rawJsonData: JSONObject,
     providerName: string,
+    request: LLMCompletionRequest,
   ): LLMCompletionResponse {
+    const jsonData: JSONObject = this.readOpenAIAnswerBody({
+      jsonData: rawJsonData,
+      providerName: providerName,
+      request: request,
+    });
     const choices: Array<JSONObject> = jsonData["choices"] as Array<JSONObject>;
 
     if (!choices || choices.length === 0) {
       throw new BadDataException(`No response from ${providerName}`);
     }
 
-    const message: JSONObject = choices[0]!["message"] as JSONObject;
+    const message: JSONObject = (choices[0]!["message"] as JSONObject) || {};
     const usage: JSONObject = jsonData["usage"] as JSONObject;
     const toolCalls: Array<LLMToolCall> | undefined =
       this.parseOpenAIToolCalls(message);
@@ -1533,8 +1703,12 @@ export default class LLMService {
       promptTokensDetails?.["cache_write_tokens"],
     );
 
-    return {
-      content: (message["content"] as string) || "",
+    const messageText: { text: string; hadSeparateReasoning: boolean } =
+      this.readOpenAIMessageText(message);
+
+    return this.toAnswer({
+      text: messageText.text,
+      hadSeparateReasoning: messageText.hadSeparateReasoning,
       toolCalls: toolCalls,
       stopReason: stopReason,
       usage: usage
@@ -1546,6 +1720,57 @@ export default class LLMService {
             cacheCreationTokens: cacheWriteTokens || undefined,
           }
         : undefined,
+    });
+  }
+
+  /*
+   * Every provider's reply becomes an answer here, on every wire: the
+   * model's reasoning is left out of its text (ModelReasoning) - a
+   * <think>...</think> block it opens with, one it never closed, or a
+   * "</think>" its chat template opened - as what a provider sent apart from
+   * the text already is (reasoning_content, a thinking block). So no caller -
+   * Ask AI, an investigation, a postmortem, a summary, a title, a workflow
+   * step, the Test button - ever reads a model's reasoning as its answer,
+   * and none of it is shown, stored or logged (AI Logs keep the answer).
+   *
+   * A reply that was only reasoning - the model stopped without writing an
+   * answer, and called no tool - is an error that says so, rather than an
+   * empty answer. One the output cap cut off is the cut-off answer it always
+   * was (stopReason "length"), and its caller asks for the rest or says it
+   * was cut off.
+   */
+  private static toAnswer(data: {
+    text: string;
+    hadSeparateReasoning: boolean;
+    toolCalls: Array<LLMToolCall> | undefined;
+    stopReason: "stop" | "tool_use" | "length";
+    usage: LLMUsage | undefined;
+  }): LLMCompletionResponse {
+    const reading: ModelReasoningReading = ModelReasoning.read(data.text);
+    const hadReasoning: boolean =
+      reading.hadReasoning || data.hadSeparateReasoning;
+
+    if (
+      hadReasoning &&
+      data.stopReason === "stop" &&
+      !reading.answer.trim() &&
+      !(data.toolCalls && data.toolCalls.length > 0)
+    ) {
+      throw new BadDataException(REASONING_WITHOUT_ANSWER_ERROR);
+    }
+
+    return {
+      content: reading.answer,
+      toolCalls: data.toolCalls,
+      stopReason: data.stopReason,
+      usage: data.usage,
+      ...(hadReasoning
+        ? {
+            reasoning: {
+              startedInsideReasoning: reading.closedBlockItNeverOpened,
+            },
+          }
+        : {}),
     };
   }
 
@@ -2332,6 +2557,7 @@ export default class LLMService {
       ...this.parseOpenAIResponse(
         response.jsonData as JSONObject,
         config.llmType,
+        request,
       ),
       modelName: modelName,
     };
@@ -2431,6 +2657,7 @@ export default class LLMService {
       ...this.parseOpenAIResponse(
         response.jsonData as JSONObject,
         "Azure OpenAI",
+        request,
       ),
       modelName: modelName,
     };
@@ -3356,12 +3583,19 @@ export default class LLMService {
       stopReason = "length";
     }
 
-    return {
-      content: textContent,
+    /*
+     * A gateway that speaks this wire for another model (LiteLLM, a
+     * provider's Anthropic-compatible API) may leave that model's <think>
+     * tags in the text, and a model asked to think in tags writes them
+     * there too: the text is read like every other reply's.
+     */
+    return this.toAnswer({
+      text: textContent,
+      hadSeparateReasoning: this.hasAnthropicThinking(jsonData),
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
       stopReason: stopReason,
       usage: usage ? this.parseAnthropicUsage(usage) : undefined,
-    };
+    });
   }
 
   /*
@@ -3633,18 +3867,29 @@ export default class LLMService {
       stopReason = "tool_use";
     }
 
+    /*
+     * Ollama 0.12 and later think by default with a thinking model and send
+     * the thinking in message.thinking; an older Ollama, or a model whose
+     * template it does not know, leaves it in the text, in <think> tags.
+     */
+    const thinking: unknown = message["thinking"];
+
     return {
-      content: (message["content"] as string) || "",
-      toolCalls: toolCalls,
-      stopReason: stopReason,
-      usage:
-        ollamaPromptTokens || ollamaCompletionTokens
-          ? {
-              promptTokens: ollamaPromptTokens,
-              completionTokens: ollamaCompletionTokens,
-              totalTokens: ollamaPromptTokens + ollamaCompletionTokens,
-            }
-          : undefined,
+      ...this.toAnswer({
+        text: typeof message["content"] === "string" ? message["content"] : "",
+        hadSeparateReasoning:
+          typeof thinking === "string" && thinking.trim().length > 0,
+        toolCalls: toolCalls,
+        stopReason: stopReason,
+        usage:
+          ollamaPromptTokens || ollamaCompletionTokens
+            ? {
+                promptTokens: ollamaPromptTokens,
+                completionTokens: ollamaCompletionTokens,
+                totalTokens: ollamaPromptTokens + ollamaCompletionTokens,
+              }
+            : undefined,
+      }),
       modelName: modelName,
     };
   }

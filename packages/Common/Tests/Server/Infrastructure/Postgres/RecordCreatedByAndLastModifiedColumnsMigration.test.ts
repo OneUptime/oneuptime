@@ -132,6 +132,102 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "SecurityCasePullRequest",
     migration: "1809187560604-AddSecurityCasePullRequest.ts",
   },
+  {
+    table: "DataSecurityIssuePullRequest",
+    migration: "1809187660831-AddDataSecurityIssuePullRequest.ts",
+  },
+  // A request to erase one person from Security Events' user vault (#10908).
+  {
+    table: "SecurityUserErasureRequest",
+    migration: "1809187650908-AddSecurityUserErasureRequest.ts",
+  },
+  // Cloud cost views, the groups they make and their line items (#11006).
+  ...["CloudCostView", "CloudCostGroup", "CloudCostLineItem"].map(
+    (table: string): { table: string; migration: string } => {
+      return {
+        table,
+        migration: "1809187711006-AddCloudCostViewsGroupsAndLineItems.ts",
+      };
+    },
+  ),
+  // Required cloud tags, their findings, daily coverage and settings (#11012).
+  ...[
+    "CloudRequiredTag",
+    "CloudTagFinding",
+    "CloudTagCoverageDay",
+    "CloudTagSetting",
+  ].map((table: string): { table: string; migration: string } => {
+    return { table, migration: "1809187711012-AddCloudRequiredTags.ts" };
+  }),
+  // XCP-ng pools, their resources, feed and label and owner rules (#10995).
+  ...[
+    "XcpNgPool",
+    "XcpNgResource",
+    "XcpNgPoolFeed",
+    "XcpNgPoolLabelRule",
+    "XcpNgPoolOwnerRule",
+    "XcpNgPoolOwnerTeam",
+    "XcpNgPoolOwnerUser",
+  ].map((table: string): { table: string; migration: string } => {
+    return { table, migration: "1809187720000-AddXcpNgPoolTables.ts" };
+  }),
+  // Acting on cloud savings, and off-hours schedules (#11010).
+  ...["CloudSavingsAction", "CloudOffHoursSchedule"].map(
+    (table: string): { table: string; migration: string } => {
+      return { table, migration: "1809187721010-AddCloudSavingsActions.ts" };
+    },
+  ),
+  // A project's cloud commitments and cost settings (#11007, #11011).
+  ...["CloudCommitment", "CloudCostSetting"].map(
+    (table: string): { table: string; migration: string } => {
+      return {
+        table,
+        migration: "1809187721011-AddCloudCostBasesAndCommitments.ts",
+      };
+    },
+  ),
+  // XCP-ng connections and their tests, read by a probe (#10996, #10999).
+  ...["XcpNgConnection", "XcpNgConnectionTest"].map(
+    (table: string): { table: string; migration: string } => {
+      return { table, migration: "1809187730000-AddXcpNgConnections.ts" };
+    },
+  ),
+  // Scheduled cloud cost reports (#11009).
+  {
+    table: "CloudCostReport",
+    migration: "1809187761009-AddCloudCostReports.ts",
+  },
+  // Storage array connections (a PowerMax's Unisphere) and their tests, read by a probe (#11004).
+  ...["StorageArrayConnection", "StorageArrayConnectionTest"].map(
+    (table: string): { table: string; migration: string } => {
+      return {
+        table,
+        migration: "1809187781104-AddStorageArrayConnections.ts",
+      };
+    },
+  ),
+  // An external MCP server's tools a Project Admin marked read-only (#11081).
+  {
+    table: "ExternalMcpToolReadOnlyMark",
+    migration: "1809187791081-AddExternalMcpToolReadOnlyMarks.ts",
+  },
+  // Each project's share of a global probe's refused SNMPv3 traps (#11173).
+  {
+    table: "GlobalProbeSnmpTrapReport",
+    migration:
+      "1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds.ts",
+  },
+  // A change of many monitors' template, and how far it got (#11260, #11266).
+  {
+    table: "MonitorTemplateChange",
+    migration:
+      "1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate.ts",
+  },
+  // A project's VMware health rules (#11157).
+  {
+    table: "VMwareHealthSetting",
+    migration: "1809187811157-AddVMwareHealthSettingsAndSwapRates.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

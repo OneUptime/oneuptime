@@ -35,6 +35,12 @@ import MonitorType, {
   MonitorTypeProps,
 } from "Common/Types/Monitor/MonitorType";
 import { getStorageArrayMetric } from "Common/Types/Monitor/StorageArrayMetricCatalog";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayPlatform,
+  StorageArrayResourceFilter,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
+import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
@@ -42,6 +48,7 @@ import {
   getVMwareDefaultAlertTemplateId,
 } from "Common/Types/Monitor/VMwareAlertTemplates";
 import ObjectID from "Common/Types/ObjectID";
+import TelemetryMonitorSchedule from "Common/Server/Utils/Monitor/TelemetryMonitorSchedule";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES } from "Common/Utils/VMware/VMwareCollectionSettings";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -484,11 +491,20 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
   it.each(CREATE_FACTS)(
     "$page: the monitor is checked every minute, with the other telemetry monitors",
     (facts: CreateFacts) => {
+      /*
+       * The scheduler runs every 10 seconds and queues each evaluation at
+       * its monitor's own moment of its interval (#11060); a monitor with no
+       * interval of its own is evaluated every minute.
+       */
       expect(
         source(
           "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations.ts",
         ),
-      ).toContain("{ schedule: EVERY_MINUTE, runOnStartup: false }");
+      ).toContain("{ schedule: EVERY_TEN_SECONDS, runOnStartup: false }");
+      expect(TelemetryMonitorSchedule.read(undefined)).toMatchObject({
+        cron: "* * * * *",
+        cadenceInMs: 60 * 1000,
+      });
       // The worker schedules every telemetry monitor type, from the one list.
       expect(
         source(
@@ -1302,27 +1318,61 @@ describe("the Storage Array page against the form and the agent", () => {
       sectionOf(STORAGE, "## Monitor settings"),
     );
 
-    for (const [title, onlyOn] of [
-      ["Volume", "FlashArray only."],
-      ["Host", "FlashArray only."],
-      ["Pod", "FlashArray only."],
-      ["Hardware Component", ""],
-      ["File System", "FlashBlade only."],
-      ["Bucket", "FlashBlade only."],
-    ] as Array<[string, string]>) {
-      const at: number = form.indexOf(`title: "${title}",`);
-      const platforms: string = form.slice(
-        at,
-        form.indexOf("},", form.indexOf("storageSystems:", at)),
-      );
+    const flashArray: StorageSystem = StorageSystem.PureStorageFlashArray;
+    const flashBlade: StorageSystem = StorageSystem.PureStorageFlashBlade;
+    const ontap: StorageSystem = StorageSystem.NetAppOntap;
 
-      expect(at).toBeGreaterThan(0);
-      expect(platforms.includes("PureStorageFlashArray")).toBe(
-        onlyOn !== "FlashBlade only.",
-      );
-      expect(platforms.includes("PureStorageFlashBlade")).toBe(
-        onlyOn !== "FlashArray only.",
-      );
+    /*
+     * A filter one platform alone offers says so first ("FlashArray
+     * only."); one that more offer never says "only" (#11001: ONTAP's
+     * volumes take the Volume filter, its nodes, disks, shelves and ports
+     * the Hardware Component one). Pure's and ONTAP's are held here; Dell
+     * PowerStore's filters are its own rows' to name.
+     */
+    for (const [title, offeredOn, onlyOn] of [
+      ["Volume", [flashArray, ontap], ""],
+      ["Host", [flashArray], "FlashArray only."],
+      ["Pod", [flashArray], "FlashArray only."],
+      ["Hardware Component", [flashArray, flashBlade, ontap], ""],
+      // A PowerScale's quotas take it too, so it is not FlashBlade's only.
+      ["File System", [flashBlade], ""],
+      ["Bucket", [flashBlade], "FlashBlade only."],
+    ] as Array<[string, Array<StorageSystem>, string]>) {
+      // The form's title for a filter, by the filter's key...
+      const key: string | undefined = new RegExp(
+        `(\\w+): \\{\\s*title: "${title}",`,
+      ).exec(form)?.[1];
+      // ...offered on the platforms that declare that filter (#11000).
+      const platforms: Array<string> =
+        StorageArrayPlatformRegistry.getPlatforms()
+          .filter((platform: StorageArrayPlatform): boolean => {
+            return platform.resourceFilters.some(
+              (filter: StorageArrayResourceFilter): boolean => {
+                return filter.key === key;
+              },
+            );
+          })
+          .map((platform: StorageArrayPlatform): string => {
+            return platform.storageSystem;
+          });
+
+      expect(key).toBeDefined();
+      expect({
+        title,
+        platforms: platforms
+          .filter((system: string): boolean => {
+            /*
+             * As StorageSystem: each const above narrows to its own member,
+             * and an array of the three would take no other.
+             */
+            const held: Array<StorageSystem> = [flashArray, flashBlade, ontap];
+            return held.includes(system as StorageSystem);
+          })
+          .sort(),
+      }).toEqual({
+        title,
+        platforms: [...offeredOn].sort(),
+      });
 
       const row: Array<string> | undefined = rows.find(
         (cells: Array<string>): boolean => {

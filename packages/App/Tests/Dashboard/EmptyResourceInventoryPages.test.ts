@@ -93,6 +93,14 @@ interface ResourceInventoryPageCase {
   readonly addDialog?: string | undefined;
   // The onboarding config (Components/ResourceOnboarding) the dialog draws.
   readonly onboarding?: string | undefined;
+  /*
+   * The card header's other way in, beside Add, as its code reads (comments
+   * left out, whitespace squashed): a probe that reads the resource with
+   * nothing to install - XCP-ng's Connect Without an Agent (#10996), a
+   * PowerMax's Connect Unisphere (#11004). Before Add, or after it.
+   */
+  readonly otherWayInBefore?: string | undefined;
+  readonly otherWayInAfter?: string | undefined;
 }
 
 /*
@@ -202,6 +210,22 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     onboarding: "PROXMOX_CLUSTER_ONBOARDING",
     showcase: "PROXMOX_CLUSTER_SHOWCASE",
   }),
+  /*
+   * A pool registers itself: the XCP-ng Agent beside its Xen Orchestra
+   * reports it. Or a probe reads Xen Orchestra or the pool, with nothing to
+   * install, once it is connected on the Connections page.
+   */
+  {
+    ...addedByGuide({
+      label: "XCP-ng pools",
+      relativePath: "XcpNg/Pools.tsx",
+      modelType: "XcpNgPool",
+      onboarding: "XCP_NG_POOL_ONBOARDING",
+      showcase: "XCP_NG_POOL_SHOWCASE",
+    }),
+    otherWayInBefore:
+      '{ title: "Connect Without an Agent", icon: IconProp.Link, buttonStyle: ButtonStyleType.OUTLINE, onClick: () => { Navigation.navigate( new Route( `${RouteUtil.populateRouteParams( RouteMap[PageMap.XCP_NG_CONNECTIONS] as Route, ).toString()}?${XCP_NG_CONNECT_QUERY_PARAM}=1`, ), ); }, }, ',
+  },
   addedByForm({
     label: "vCenters",
     relativePath: "VMware/VCenters.tsx",
@@ -215,13 +239,21 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     onboarding: "CEPH_CLUSTER_ONBOARDING",
     showcase: "CEPH_CLUSTER_SHOWCASE",
   }),
-  addedByGuide({
-    label: "storage arrays",
-    relativePath: "StorageArray/StorageArrays.tsx",
-    modelType: "StorageArray",
-    onboarding: "STORAGE_ARRAY_ONBOARDING",
-    showcase: "STORAGE_ARRAY_SHOWCASE",
-  }),
+  /*
+   * An array registers itself when the Storage Array Agent pointed at it
+   * reports; a PowerMax is read by a probe once its Unisphere is connected
+   * (connectButtons, one per platform a probe collects).
+   */
+  {
+    ...addedByGuide({
+      label: "storage arrays",
+      relativePath: "StorageArray/StorageArrays.tsx",
+      modelType: "StorageArray",
+      onboarding: "STORAGE_ARRAY_ONBOARDING",
+      showcase: "STORAGE_ARRAY_SHOWCASE",
+    }),
+    otherWayInAfter: "...connectButtons, ",
+  },
   /*
    * A host is added by one command on it, not by a form: Add Host opens
    * that guide, and a host typed in by hand would only wait for telemetry
@@ -362,7 +394,7 @@ describe("empty resource inventory page catalog", () => {
       },
     ).sort();
 
-    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(17);
+    expect(RESOURCE_INVENTORY_PAGES).toHaveLength(18);
     expect(discoveredPages).toEqual(testedPages);
   });
 
@@ -385,7 +417,7 @@ describe("empty resource inventory page catalog", () => {
       return showcase.length > 0;
     });
 
-    expect(showcases).toHaveLength(16);
+    expect(showcases).toHaveLength(17);
     expect(new Set(showcases).size).toBe(showcases.length);
   });
 });
@@ -437,15 +469,26 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       const tableStart: number = source.indexOf(modelTable);
       const tableEnd: number = source.indexOf("/>", tableStart);
       const table: string = source.slice(tableStart, tableEnd);
-      const button: RegExpMatchArray | null = table.match(
+      // The buttons as the code writes them: a comment among them says nothing.
+      const tableCodeStart: number = code.indexOf(modelTable);
+      const tableCode: string = code.slice(
+        tableCodeStart,
+        code.indexOf("/>", tableCodeStart),
+      );
+      const button: RegExpMatchArray | null = tableCode.match(
         new RegExp(
           /*
            * On a phone the button says its verb alone (phoneTitle). A cloud a probe can read
-           * has another way in, Connect Cloud, beside it.
+           * has another way in, Connect Cloud, beside it, and so has a resource a probe
+           * reads once it is connected (otherWayInBefore, otherWayInAfter).
            */
-          `buttons: \\[ (?:\\.\\.\\.\\(canConnectCloud \\? \\[.*?\\] : \\[\\]\\), )?\\{ title: ${escapeRegExp(
+          `buttons: \\[ (?:\\.\\.\\.\\(canConnectCloud \\? \\[.*?\\] : \\[\\]\\), )?${escapeRegExp(
+            resourceCase.otherWayInBefore || "",
+          )}\\{ title: ${escapeRegExp(
             resourceCase.addButtonTitle as string,
-          )}, (?:phoneTitle: "[A-Za-z]+", )?icon: IconProp\\.Add, buttonStyle: ButtonStyleType\\.${resourceCase.addButtonStyle || "NORMAL"}, onClick: \\(\\) => \\{ set([A-Z][A-Za-z]*)\\(true\\); \\}, \\}, \\],`,
+          )}, (?:phoneTitle: "[A-Za-z]+", )?icon: IconProp\\.Add, buttonStyle: ButtonStyleType\\.${resourceCase.addButtonStyle || "NORMAL"}, onClick: \\(\\) => \\{ set([A-Z][A-Za-z]*)\\(true\\); \\}, \\}, ${escapeRegExp(
+            resourceCase.otherWayInAfter || "",
+          )}\\],`,
         ),
       );
 
@@ -473,6 +516,28 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
         source.indexOf("/>", dialogStart),
       );
       expect(dialog).toContain("setConnectedCount(");
+    });
+
+    test("another way in beside Add is a lesser button, to the page that connects it", () => {
+      if (!resourceCase.otherWayInBefore && !resourceCase.otherWayInAfter) {
+        return;
+      }
+
+      // Add stays the plain action the person came for.
+      expect(resourceCase.addButtonStyle || "NORMAL").toBe("NORMAL");
+
+      if (resourceCase.otherWayInBefore) {
+        expect(resourceCase.otherWayInBefore).toContain(
+          "icon: IconProp.Link, buttonStyle: ButtonStyleType.OUTLINE, onClick: () => { Navigation.navigate(",
+        );
+      }
+
+      if (resourceCase.otherWayInAfter === "...connectButtons, ") {
+        // One per platform a probe collects, each an outline link to its Connect form.
+        expect(code).toContain(
+          "const connectButtons: Array<CardButtonSchema> = canConnect() ? StorageArrayProbeCollectors.getAll().map( (collector: StorageArrayProbeCollector): CardButtonSchema => { return { title: collector.words.connectTitle, icon: IconProp.Link, buttonStyle: ButtonStyleType.OUTLINE, onClick: () => { Navigation.navigate(getConnectRoute(collector)); }, }; }, ) : [];",
+        );
+      }
     });
 
     test("where a form adds rows, the showcase's button opens the table's own create form", () => {

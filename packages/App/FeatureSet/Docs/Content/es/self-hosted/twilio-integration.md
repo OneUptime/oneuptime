@@ -66,6 +66,7 @@ Una instalación nueva puede arrancar con los SMS y las llamadas funcionando, si
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | El número desde el que salen las llamadas, con su código de país. No hace falta para `sms-only` |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Opcional, separados por comas: números que se usan en lugar del principal para los destinatarios de su país |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Números separados por comas desde los que sale cada SMS. Obligatorio para `sms-only` |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Opcional: la voz con la que hablan las llamadas, una de las voces de [La voz con la que hablan las llamadas](#la-voz-con-la-que-hablan-las-llamadas). Se lee con `GLOBAL_TWILIO_ACCOUNT_SID` o sin ella, y mientras está definida, **Voz de las llamadas** en el Admin Dashboard la muestra en modo de solo lectura |
 
 Con Helm, defínelas en `twilio` dentro de tus values. Para que el auth token no quede en los values que Helm guarda con cada release, ponlo en un Secret propio e indica ese Secret en `twilio.existingSecret.name`:
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Pon los números de teléfono entre comillas en un archivo de values, y pásalos con `--set-string` en lugar de `--set`: sin comillas, `+14155550100` es un número, y el chart lo rechaza. El chart también rechaza otros valores de `twilio` sin `twilio.accountSid`, un Account SID sin auth token y un auth token indicado a la vez en `twilio.authToken` y en un Secret. Con Terraform, define los mismos valores en un `helm_release`, con el auth token como valor sensible.
+Pon los números de teléfono entre comillas en un archivo de values, y pásalos con `--set-string` en lugar de `--set`: sin comillas, `+14155550100` es un número, y el chart lo rechaza. El chart también rechaza otros valores de `twilio` sin `twilio.accountSid` (todos menos `twilio.callVoice`, que define la voz independientemente de quién defina la cuenta), un Account SID sin auth token, un auth token indicado a la vez en `twilio.authToken` y en un Secret, y un `twilio.callVoice` que no sea una de las voces. Con Terraform, define los mismos valores en un `helm_release`, con el auth token como valor sensible.
 
 Con Docker Compose, define los ajustes `GLOBAL_TWILIO_` en `config.env` y después ejecuta `npm run start` para volver a crear los contenedores.
 
-OneUptime lee las variables al arrancar. Si alguna es incorrecta, como un número de teléfono que OneUptime no puede leer o un auth token que falta, la cuenta no envía SMS ni hace llamadas hasta que se corrija; el log del servidor, **Admin Dashboard > Ajustes > Llamadas y SMS** y la lista de comprobación de `/admin/setup` nombran la variable. El auth token nunca se muestra. Para cambiar la cuenta, cambia las variables y reinicia OneUptime: el Admin Dashboard no la modifica.
+OneUptime lee las variables al arrancar. Si alguna es incorrecta, como un número de teléfono que OneUptime no puede leer o un auth token que falta, la cuenta no envía SMS ni hace llamadas hasta que se corrija; el log del servidor, **Admin Dashboard > Ajustes > Llamadas y SMS** y la lista de comprobación de `/admin/setup` nombran la variable. Una `GLOBAL_TWILIO_CALL_VOICE` que no nombra ninguna voz que ofrezca OneUptime no detiene ninguna llamada: las llamadas hablan con la voz predeterminada de la cuenta hasta que se corrija, y los mismos tres lugares la nombran. El auth token nunca se muestra. Para cambiar la cuenta, cambia las variables y reinicia OneUptime: el Admin Dashboard no la modifica.
 
 ### Gestionar las configuraciones de proyecto con Terraform
 
@@ -146,6 +147,51 @@ Un proyecto tiene una configuración predeterminada para los SMS y otra para las
 Lo que ninguna configuración predeterminada envía sale como saldría sin configuración: mientras la única predeterminada esté en **Solo SMS**, las llamadas a los miembros del proyecto pasan por la configuración de toda la instalación. Si ninguna configuración puede enviar un mensaje, el registro del mensaje dice que la configuración del proyecto no se usa para eso, y quién puede cambiarlo.
 
 Las páginas de estado ofrecen solo las configuraciones que envían SMS, y **Enviar SMS de prueba** y **Enviar llamada de prueba** aparecen solo para lo que envía cada configuración. Toda configuración existente queda en **Llamadas y SMS**, como antes. En la API y en Terraform, la elección es el campo `usedFor`, y se rechaza una configuración sin los números que su elección necesita.
+
+### La voz con la que hablan las llamadas
+
+Las llamadas hablan con la voz que tu cuenta de Twilio usa de forma predeterminada: la voz Basic gratuita de Twilio, salvo que hayas elegido otra en la Twilio Console. Según Twilio, sus voces Basic no están pensadas para uso en producción, así que cada cuenta puede hablar en su lugar con una de estas voces neuronales. Elige la de la cuenta de toda la instalación en la tarjeta **Voz de las llamadas** de **Admin Dashboard > Ajustes > Llamadas y SMS**, y la de una configuración de proyecto en **Voz de las llamadas**, dentro de **Más campos**. Para definir la de la cuenta de toda la instalación desde código, usa `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` con Helm): consulta [Definir la cuenta de toda la instalación con variables de entorno](#definir-la-cuenta-de-toda-la-instalación-con-variables-de-entorno).
+
+| Voz | Proveedor | Cómo suena |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Inglés estadounidense, voz femenina |
+| `Polly.Matthew-Neural` | Amazon Polly | Inglés estadounidense, voz masculina |
+| `Polly.Amy-Neural` | Amazon Polly | Inglés británico, voz femenina |
+| `Polly.Brian-Neural` | Amazon Polly | Inglés británico, voz masculina |
+| `Google.en-US-Neural2-F` | Google | Inglés estadounidense, voz femenina |
+| `Google.en-US-Neural2-J` | Google | Inglés estadounidense, voz masculina |
+
+Toda llamada a través de la cuenta habla con esa voz: los avisos de guardia y la respuesta a la tecla que pulsas, el mensaje que se deja en el buzón de voz, los códigos de verificación, **Enviar llamada de prueba** y los saludos de una política de llamadas entrantes. Con estas voces, un número como `INC-42` se deletrea con SSML, lo que suena más natural que las letras separadas por espacios que reciben otras voces. Twilio cobra estas voces a la cuenta que hace la llamada: $0.0032 por cada 100 caracteres en noviembre de 2026, menos de 3 centavos de dólar por la llamada de un aviso en cualquier idioma. Consulta [los precios de las llamadas de voz de Twilio](https://www.twilio.com/en-us/voice/pricing/us). Deja **Voz de las llamadas** en blanco para mantener la voz predeterminada de la cuenta. En la API y en Terraform, la voz es el campo `twilioCallVoice`, y se rechaza una voz que no esté en la tabla.
+
+#### Llamadas en otros idiomas
+
+La llamada de un aviso de guardia a alguien que usa OneUptime en otro idioma es en ese idioma cuando la cuenta habla con una de las voces de arriba: sus palabras están escritas en ese idioma, y una voz de ese idioma las dice, una voz femenina si la de la cuenta es femenina y una masculina si es masculina. El mensaje que pide una tecla, los detalles que se repiten cuando no se pulsa ninguna, la respuesta a una tecla equivocada y las respuestas a las teclas están todos en ese idioma, y las teclas siguen siendo 1 y 2. Estas son las voces, de la lista de voces neuronales de Twilio, comprobadas el 27 de noviembre de 2026; cuestan lo mismo que las voces de arriba:
+
+| Idioma | Voz femenina | Voz masculina |
+| --- | --- | --- |
+| Alemán | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| Francés | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Español | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italiano | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Portugués | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Neerlandés | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Danés | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Noruego | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Sueco | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Ruso | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Japonés | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Coreano | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Chino simplificado | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Chino tradicional | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Árabe | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Persa | Ninguna: las llamadas son en inglés | Ninguna: las llamadas son en inglés |
+
+Ni Amazon Polly ni Google tienen una voz en persa, así que una llamada a alguien que usa OneUptime en persa es en inglés, como toda llamada a través de una cuenta que mantiene su voz predeterminada, que solo habla inglés. El registro de una llamada guarda lo que dijo la llamada, en el idioma en que lo dijo. Un código de verificación, **Enviar llamada de prueba** y los saludos de una política de llamadas entrantes son en inglés.
+
+#### Proyectos que eligen su propia voz
+
+En una instalación autoalojada, un administrador maestro puede dejar que cada proyecto elija la voz de sus llamadas a través de la cuenta de toda la instalación: activa **Dejar que los proyectos elijan la voz de sus llamadas** en la tarjeta **Voces de los proyectos** de **Admin Dashboard > Ajustes > Llamadas y SMS**. Un **Propietario del proyecto** o un **Administrador del proyecto** la elige entonces en la tarjeta **Voz de las llamadas**, dentro de **Más ajustes** de **Ajustes del proyecto > Notificaciones > Canales de notificación**, y un proyecto que no elige ninguna habla con la voz de la instalación. Twilio cobra la voz de cada proyecto a la cuenta de toda la instalación, así que el interruptor empieza desactivado, y desactivarlo devuelve todos los proyectos a la voz de la instalación. OneUptime Cloud no lo ofrece: elige una voz con una configuración de proyecto propia. En la API, la voz es el campo `callVoice` del proyecto, que se rechaza mientras el interruptor está desactivado.
 
 ### Buzón de voz en las llamadas de guardia
 
@@ -226,7 +272,7 @@ Para el desarrollo, la [guía de pruebas de webhooks](https://www.twilio.com/doc
 1. Desde fuera de tu red corporativa y de la VPN, comprueba que el nombre de host de los callbacks se resuelve hacia la pasarela pública y sirve un certificado TLS válido. Un GET desde el navegador no prueba estos callbacks POST.
 2. Usa **Enviar SMS de prueba** y **Enviar llamada de prueba** en la configuración de Twilio del proyecto. Confirma la recepción en el teléfono de destino. Ambas acciones requieren permiso para añadir configuraciones de Twilio: **Propietario del proyecto**, **Administrador del proyecto**, o **Create Call and SMS** y **Read Call and SMS** en un rol personalizado.
 3. Configura el contacto de SMS o llamada verificado del usuario y sus reglas de notificación, y luego dispara una alerta de guardia controlada. Pulsa 1 y confirma la confirmación en OneUptime. Si usas políticas de llamadas entrantes, llama al número configurado y comprueba su enrutamiento y su registro de llamadas.
-4. Confirma el estado de entrega de los SMS en OneUptime y en los registros de mensajes de Twilio. Un envío aceptado no prueba la entrega; [Twilio informa de los cambios de estado posteriores mediante callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+4. Confirma el estado de entrega de los SMS en OneUptime, en [Registros de notificación](/docs/notifications/notification-logs), y en los registros de mensajes de Twilio. Un envío aceptado no prueba la entrega; [Twilio informa de los cambios de estado posteriores mediante callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
 | Síntoma | Dónde mirar |

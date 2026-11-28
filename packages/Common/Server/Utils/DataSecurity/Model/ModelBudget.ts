@@ -1,3 +1,6 @@
+import { describeScanDuration } from "../../../../Types/DataSecurity/ScanWarningDuration";
+import { writeScanWarning } from "../../../../Types/DataSecurity/ScanWarnings";
+
 /*
  * HOW MUCH MODEL TIME A SCAN MAY SPEND, AND WHAT IT SAYS WHEN IT RAN OUT.
  *
@@ -7,7 +10,9 @@
  * starts once either has spent its share, as no object is read once a scan
  * has read its bytes. A scan that ran out still finishes, with what the
  * model read; its warnings say how much that was - how many of the free-text
- * values it was to read - never what.
+ * values it was to read - never what. They are written from the scan
+ * warnings' templates (Types/DataSecurity/ScanWarnings.ts), which a scan's
+ * details draw in the reader's language (#10930).
  *
  * The budgets are the server's, not a project's setting: model time is the
  * CPU of OneUptime's workers and of probes, shared by every project they
@@ -25,19 +30,19 @@ export const CONTENT_SCAN_MODEL_TIME_IN_MS: number = 2 * 60 * 1000;
 export const TELEMETRY_SCAN_MODEL_TIME_IN_MS: number = 60 * 1000;
 export const TELEMETRY_STORE_MODEL_TIME_IN_MS: number = 6 * 1000;
 
-export type BudgetScope = "content" | "telemetry";
+/*
+ * A finding's records read again after its scan, for a finding the model
+ * made (ModelRereads.ts): Show the records it was seen in, a scrub rule's
+ * proof - every rule a finding is planned with shares it - and the check
+ * that a code fix stopped a leak. A few hundred values at most.
+ */
+export const REREAD_MODEL_TIME_IN_MS: number = 20 * 1000;
+
+export type BudgetScope = "content" | "telemetry" | "reread";
 
 // "2 minutes", "6 seconds": a budget as its warning says it.
 export function describeDuration(milliseconds: number): string {
-  const seconds: number = Math.max(1, Math.round(milliseconds / 1000));
-
-  if (seconds % 60 === 0) {
-    const minutes: number = seconds / 60;
-
-    return minutes === 1 ? "1 minute" : `${minutes} minutes`;
-  }
-
-  return seconds === 1 ? "1 second" : `${seconds} seconds`;
+  return describeScanDuration(milliseconds);
 }
 
 export class ModelStoreBudget {
@@ -113,6 +118,11 @@ export class ModelStoreBudget {
     return this.read < this.toRead ? this.runOutBy : null;
   }
 
+  // Why the model could not run at all, when it could not.
+  public get unavailableReason(): string | null {
+    return this.unavailable;
+  }
+
   /*
    * What the scan's warnings say about the model for this store: nothing
    * when it read every free-text value it was given.
@@ -132,13 +142,18 @@ export class ModelStoreBudget {
       return [];
     }
 
-    const limit: string =
-      this.runOutBy === "store"
-        ? `this store's ${describeDuration(this.limitInMs)} of model time`
-        : `the scan's ${describeDuration(this.scan.limitInMs)} of model time`;
-
     return [
-      `Names and street addresses were looked for in ${this.read} of ${this.toRead} free-text values: ${limit} ran out.`,
+      this.runOutBy === "store"
+        ? writeScanWarning("modelStoreTimeRanOut", {
+            read: this.read,
+            total: this.toRead,
+            limit: this.limitInMs,
+          })
+        : writeScanWarning("modelScanTimeRanOut", {
+            read: this.read,
+            total: this.toRead,
+            limit: this.scan.limitInMs,
+          }),
     ];
   }
 }
@@ -155,15 +170,24 @@ export class ModelBudget {
   }
 
   public static forScope(scope: BudgetScope): ModelBudget {
-    return scope === "telemetry"
-      ? new ModelBudget({
-          scanLimitInMs: TELEMETRY_SCAN_MODEL_TIME_IN_MS,
-          storeLimitInMs: TELEMETRY_STORE_MODEL_TIME_IN_MS,
-        })
-      : new ModelBudget({
-          scanLimitInMs: CONTENT_SCAN_MODEL_TIME_IN_MS,
-          storeLimitInMs: CONTENT_SCAN_MODEL_TIME_IN_MS,
-        });
+    if (scope === "telemetry") {
+      return new ModelBudget({
+        scanLimitInMs: TELEMETRY_SCAN_MODEL_TIME_IN_MS,
+        storeLimitInMs: TELEMETRY_STORE_MODEL_TIME_IN_MS,
+      });
+    }
+
+    if (scope === "reread") {
+      return new ModelBudget({
+        scanLimitInMs: REREAD_MODEL_TIME_IN_MS,
+        storeLimitInMs: REREAD_MODEL_TIME_IN_MS,
+      });
+    }
+
+    return new ModelBudget({
+      scanLimitInMs: CONTENT_SCAN_MODEL_TIME_IN_MS,
+      storeLimitInMs: CONTENT_SCAN_MODEL_TIME_IN_MS,
+    });
   }
 
   public get remainingInMs(): number {

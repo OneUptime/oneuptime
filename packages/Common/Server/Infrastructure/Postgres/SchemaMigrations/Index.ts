@@ -1189,8 +1189,48 @@ import { AddProjectSecurityTrustedProxySwitches1809187580546 } from "./180918758
 import { AddSecurityCaseExposureAssessment1809187590377 } from "./1809187590377-AddSecurityCaseExposureAssessment";
 import { AddHelpAndSupport1809187600000 } from "./1809187600000-AddHelpAndSupport";
 import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "./1809187610767-AddGroupIncidentsByEpisodeToStatusPage";
+import { AddTwilioCallVoice1809187620948 } from "./1809187620948-AddTwilioCallVoice";
 import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
 import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
+import { AddSecurityUserErasureRequest1809187650908 } from "./1809187650908-AddSecurityUserErasureRequest";
+import { AddDataSecurityIssuePullRequest1809187660831 } from "./1809187660831-AddDataSecurityIssuePullRequest";
+import { AddOnCallPolicyIncidentRole1809187670000 } from "./1809187670000-AddOnCallPolicyIncidentRole";
+import { AddOnCallPolicyIncidentRoleIndexAndKey1809187670010 } from "./1809187670010-AddOnCallPolicyIncidentRoleIndexAndKey";
+import { AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000 } from "./1809187680000-AddProjectStartIncidentsDeclaredByHandAcknowledged";
+import { AddStorageArrayCountsByKind1809187690000 } from "./1809187690000-AddStorageArrayCountsByKind";
+import { AddSecurityUserErasureRequestNamesToErase1809187691044 } from "./1809187691044-AddSecurityUserErasureRequestNamesToErase";
+import { AddMonitorTestUnansweredIndex1809187700819 } from "./1809187700819-AddMonitorTestUnansweredIndex";
+import { AddCloudCostViewsGroupsAndLineItems1809187711006 } from "./1809187711006-AddCloudCostViewsGroupsAndLineItems";
+import { AddCloudRequiredTags1809187711012 } from "./1809187711012-AddCloudRequiredTags";
+import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeSnmpTrapReceiver";
+import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTables";
+import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSavingsActions";
+import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-AddCloudCostBasesAndCommitments";
+import { AddXcpNgConnections1809187730000 } from "./1809187730000-AddXcpNgConnections";
+import { AddXcpNgPoolConnectionKey1809187730010 } from "./1809187730010-AddXcpNgPoolConnectionKey";
+import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
+import { AddDataStoreDataObservabilityRemovalAndAgent1809187741147 } from "./1809187741147-AddDataStoreDataObservabilityRemovalAndAgent";
+import { AddDataStoreDatabaseAgentIndexAndKey1809187741148 } from "./1809187741148-AddDataStoreDatabaseAgentIndexAndKey";
+import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
+import { AddKeepMonitoringDuringIncidents1809187751141 } from "./1809187751141-AddKeepMonitoringDuringIncidents";
+import { AddCloudCostReports1809187761009 } from "./1809187761009-AddCloudCostReports";
+import { AddCloudBudgetScopesPeriodsAndPlans1809187771008 } from "./1809187771008-AddCloudBudgetScopesPeriodsAndPlans";
+import { AddCloudBudgetCostGroupIndexAndKey1809187771018 } from "./1809187771018-AddCloudBudgetCostGroupIndexAndKey";
+import { AddXcpNgPoolAiAccess1809187772000 } from "./1809187772000-AddXcpNgPoolAiAccess";
+import { AddXcpNgPoolEventsAndBackups1809187780997 } from "./1809187780997-AddXcpNgPoolEventsAndBackups";
+import { AddStorageArrayConnections1809187781104 } from "./1809187781104-AddStorageArrayConnections";
+import { AddDetectionRuleAddedByOneUptimeAt1809187791037 } from "./1809187791037-AddDetectionRuleAddedByOneUptimeAt";
+import { AddExternalMcpToolReadOnlyMarks1809187791081 } from "./1809187791081-AddExternalMcpToolReadOnlyMarks";
+import { AddMonitorProbeableIndex1809187791119 } from "./1809187791119-AddMonitorProbeableIndex";
+import { AddProjectSecurityAccessLogFormat1809187791129 } from "./1809187791129-AddProjectSecurityAccessLogFormat";
+import { AddProbeLastLateDueAt1809187791200 } from "./1809187791200-AddProbeLastLateDueAt";
+import { AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201 } from "./1809187791201-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds";
+import { AddScheduleRosterTurnAndRestrictionTypeKey1809187791269 } from "./1809187791269-AddScheduleRosterTurnAndRestrictionTypeKey";
+import { AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260 } from "./1809187801260-AddMonitorTemplateChangesAndCreatedFromTemplate";
+import { AddProjectCallVoice1809187801300 } from "./1809187801300-AddProjectCallVoice";
+import { AddVMwareHealthSettingsAndSwapRates1809187811157 } from "./1809187811157-AddVMwareHealthSettingsAndSwapRates";
+import { AddProjectSecurityTrustPrivateAddresses1809187811240 } from "./1809187811240-AddProjectSecurityTrustPrivateAddresses";
+import { SwapMonitorProbeClaimIndexForClaimOrder1809187821386 } from "./1809187821386-SwapMonitorProbeClaimIndexForClaimOrder";
 
 export default [
   InitialMigration,
@@ -2384,6 +2424,46 @@ export default [
   AddSecurityCaseExposureAssessment1809187590377,
   AddHelpAndSupport1809187600000,
   AddGroupIncidentsByEpisodeToStatusPage1809187610767,
+  AddTwilioCallVoice1809187620948,
   AddProjectRequireUniqueNames1809187640000,
   AddUniqueNameIndexes1809187640010,
+  AddSecurityUserErasureRequest1809187650908,
+  AddDataSecurityIssuePullRequest1809187660831,
+  AddOnCallPolicyIncidentRole1809187670000,
+  AddOnCallPolicyIncidentRoleIndexAndKey1809187670010,
+  AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000,
+  AddStorageArrayCountsByKind1809187690000,
+  AddSecurityUserErasureRequestNamesToErase1809187691044,
+  AddMonitorTestUnansweredIndex1809187700819,
+  AddCloudCostViewsGroupsAndLineItems1809187711006,
+  AddCloudRequiredTags1809187711012,
+  AddProbeSnmpTrapReceiver1809187715110,
+  AddXcpNgPoolTables1809187720000,
+  AddCloudSavingsActions1809187721010,
+  AddCloudCostBasesAndCommitments1809187721011,
+  AddXcpNgConnections1809187730000,
+  AddXcpNgPoolConnectionKey1809187730010,
+  AddSanSwitchFibreChannelColumns1809187731166,
+  AddDataStoreDataObservabilityRemovalAndAgent1809187741147,
+  AddDataStoreDatabaseAgentIndexAndKey1809187741148,
+  AddSecurityUserErasureRequestProgress1809187741160,
+  AddKeepMonitoringDuringIncidents1809187751141,
+  AddCloudCostReports1809187761009,
+  AddCloudBudgetScopesPeriodsAndPlans1809187771008,
+  AddCloudBudgetCostGroupIndexAndKey1809187771018,
+  AddXcpNgPoolAiAccess1809187772000,
+  AddXcpNgPoolEventsAndBackups1809187780997,
+  AddStorageArrayConnections1809187781104,
+  AddDetectionRuleAddedByOneUptimeAt1809187791037,
+  AddExternalMcpToolReadOnlyMarks1809187791081,
+  AddMonitorProbeableIndex1809187791119,
+  AddProjectSecurityAccessLogFormat1809187791129,
+  AddProbeLastLateDueAt1809187791200,
+  AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201,
+  AddScheduleRosterTurnAndRestrictionTypeKey1809187791269,
+  AddMonitorTemplateChangesAndCreatedFromTemplate1809187801260,
+  AddProjectCallVoice1809187801300,
+  AddVMwareHealthSettingsAndSwapRates1809187811157,
+  AddProjectSecurityTrustPrivateAddresses1809187811240,
+  SwapMonitorProbeClaimIndexForClaimOrder1809187821386,
 ];

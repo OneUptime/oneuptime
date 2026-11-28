@@ -24,13 +24,15 @@ import {
   DATA_SECURITY_PROBE_STORES_PER_POLL,
   DATA_SECURITY_PROBE_WORK_ROUTE,
   DataSecurityProbeStoreWork,
-  getDatabaseEngineOfKind,
+  getProbeClaimableKinds,
+  getProbeEngineOfKind,
   isValidProbeConnectionVariable,
   readProbeScanResult,
 } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
 import { ContentScanResult } from "Common/Server/Utils/DataSecurity/DataSecurityScanTypes";
 import { getFingerprintKey } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
 import DataTypeProving from "Common/Server/Utils/DataSecurity/DataTypeProving";
+import { readModelResumeAt } from "Common/Server/Utils/DataSecurity/Model/ModelTurns";
 import { ShadowDraft } from "Common/Utils/DataSecurity/ShadowCount";
 import Express, {
   ExpressRequest,
@@ -42,6 +44,10 @@ import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import OneUptimeDate from "Common/Types/Date";
 import { getBuiltInDataType } from "Common/Types/DataSecurity/DataTypeCatalog";
+import {
+  DataStoreExposureCheck,
+  getDataStoreExposureCheck,
+} from "Common/Types/DataSecurity/DataStoreKind";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -199,8 +205,9 @@ export function buildStoreWork(data: {
   // The data types being proven on the store, run in shadow (#10371).
   shadowDataTypes?: Array<ShadowDraft> | undefined;
 }): DataSecurityProbeStoreWork | null {
-  const engine: ReturnType<typeof getDatabaseEngineOfKind> =
-    getDatabaseEngineOfKind(data.store.kind);
+  const engine: ReturnType<typeof getProbeEngineOfKind> = getProbeEngineOfKind(
+    data.store.kind,
+  );
 
   if (
     !data.store.id ||
@@ -245,6 +252,14 @@ export function buildStoreWork(data: {
     fingerprintKey: getFingerprintKey(data.store.projectId),
     // The project's names-and-addresses switch: the probe runs its own model.
     findNamesAndAddresses: data.settings.isModelScanEnabled !== false,
+    // Where its model's turn starts: where the last scan's stopped (#10928).
+    ...(readModelResumeAt(data.store.contentScanState as JSONObject | undefined)
+      ? {
+          modelResumeAt: readModelResumeAt(
+            data.store.contentScanState as JSONObject | undefined,
+          )!,
+        }
+      : {}),
     shadowDataTypes: data.shadowDataTypes || [],
   };
 }
@@ -279,24 +294,31 @@ router.post(
         );
       }
 
+      const capabilities: ReturnType<typeof ProbeCapabilityUtil.parse> =
+        ProbeCapabilityUtil.parse(readBody(req)["probeCapabilities"]);
+
       // A probe that cannot scan is handed nothing, and nothing is claimed.
       if (
-        !ProbeCapabilityUtil.has(
-          ProbeCapabilityUtil.parse(readBody(req)["probeCapabilities"]),
-          ProbeCapability.DataSecurityScan,
-        )
+        !ProbeCapabilityUtil.has(capabilities, ProbeCapability.DataSecurityScan)
       ) {
         return Response.sendJsonObjectResponse(req, res, { stores: [] });
       }
 
       /*
        * Claimed in one self-committing statement (DataSecurityProbeClaim),
-       * so two polls never get the same store.
+       * so two polls never get the same store - a search cluster only by a
+       * probe whose build reads one (#11140).
        */
       const claimed: Array<ClaimedDataStore> = await claimDueDataStoresForProbe(
         {
           probeId,
           limit: DATA_SECURITY_PROBE_STORES_PER_POLL,
+          kinds: getProbeClaimableKinds({
+            readsSearchClusters: ProbeCapabilityUtil.has(
+              capabilities,
+              ProbeCapability.DataSecuritySearchScan,
+            ),
+          }),
         },
       );
 
@@ -319,6 +341,7 @@ router.post(
           kind: true,
           probeConnectionVariable: true,
           scanExclusions: true,
+          contentScanState: true,
         },
         limit: claimed.length,
         skip: 0,
@@ -419,7 +442,7 @@ router.post(
        */
       const store: DataStore | null = await DataStoreService.findOneBy({
         query: { _id: new ObjectID(dataStoreId), scanProbeId: probeId },
-        select: { _id: true, projectId: true },
+        select: { _id: true, projectId: true, kind: true },
         props: { isRoot: true },
       });
 
@@ -515,6 +538,14 @@ router.post(
         (key: string): boolean => {
           return shadowKeys.has(key);
         },
+        /*
+         * How exposed it is, as the probe found it from inside the network
+         * (#11140): read only for a store whose endpoint a scan checks.
+         */
+        getDataStoreExposureCheck(store.kind) ===
+          DataStoreExposureCheck.Endpoint
+          ? { readAt: OneUptimeDate.getCurrentDate() }
+          : undefined,
       );
 
       if (!result) {

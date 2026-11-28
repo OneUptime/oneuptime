@@ -33,6 +33,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `DOCKER_HOST_NAME` | Nej | Ett lättigenkännligt namn för den här värden. Standard är `docker-host` |",
   "| `DOCKER_API_VERSION` | No | Docker Engine API version the agent speaks. Empty by default: the agent negotiates it with the daemon, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |":
     "| `DOCKER_API_VERSION` | Nej | Den version av Docker Engine-API:t som agenten talar. Tom som standard: agenten förhandlar fram den med daemonen, så alla Docker Engine från 20.10 fungerar. Ange den bara för att låsa en version (se Felsökning) |",
+  "| `ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5` | No | Collector operators of your own, one each as JSON, for a log format the agent does not read |":
+    "| `ONEUPTIME_LOG_OPERATOR_1` till `ONEUPTIME_LOG_OPERATOR_5` | Nej | Egna operatorer för insamlaren, en per variabel som JSON, för ett loggformat som agenten inte läser |",
   "Pass each one to `docker run` as `-e NAME=value`. To change one later, remove the agent with `docker rm -f oneuptime-docker-agent` and run the command again with the new value.":
     "Skicka var och en till `docker run` som `-e NAME=value`. För att ändra en senare tar du bort agenten med `docker rm -f oneuptime-docker-agent` och kör kommandot igen med det nya värdet.",
   "The agent tails `/var/lib/docker/containers/*/*-json.log`, so it only sees logs from containers that use Docker's **`json-file`** log driver. That is Docker's default, but some hosts switch to `local` (binary files the agent cannot parse) or to a remote driver (`journald`, `syslog`, `fluentd`, `gelf`, …), which leave no files to read.":

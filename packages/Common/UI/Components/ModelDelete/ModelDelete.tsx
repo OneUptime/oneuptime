@@ -5,7 +5,7 @@ import PermissionGate, {
   PermissionGateResult,
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
-import { usePrivateRecordGateOptions } from "../../Utils/PrivateRecordScope";
+import { useRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import {
   getDisplayNameColumn,
   getRecordDisplayName,
@@ -35,6 +35,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getDeleteWhatFailed } from "../../Utils/DialogWhatFailed";
 import Toast, { ITEM_DELETED } from "../../Utils/Toast";
 import React, { ReactElement, useEffect, useState } from "react";
 
@@ -120,7 +121,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
    * may make them (PrivateRecordScope).
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
-    usePrivateRecordGateOptions(model);
+    useRecordGateOptions(model, props.modelId);
   /*
    * The delete card used to be rendered for everybody: a viewer got a live
    * "Delete <X>" button, a confirmation dialog, and then a refusal from the
@@ -382,6 +383,8 @@ const ModelDelete: <TBaseModel extends BaseModel>(
         <ConfirmModal
           description={error}
           title={`Delete Error`}
+          // "The monitor was not deleted.", where nobody explained why (#7680).
+          errorWhatFailed={getDeleteWhatFailed(translator, typeLabel)}
           onSubmit={() => {
             setShowErrorModal(false);
             setError("");

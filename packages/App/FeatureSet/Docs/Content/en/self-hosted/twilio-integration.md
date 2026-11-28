@@ -66,6 +66,7 @@ A new installation can come up with SMS and calls working, with nothing to set u
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | The number calls go out from, with its country code. Not needed for `sms-only` |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Optional, comma-separated: numbers used instead of the primary one for recipients in their country |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Comma-separated numbers every SMS goes out from. Required for `sms-only` |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Optional: the voice calls speak with, one of the voices in [The voice calls speak with](#the-voice-calls-speak-with). It is read with `GLOBAL_TWILIO_ACCOUNT_SID` or without it, and while it is set, **Call Voice** in the Admin Dashboard shows it read-only |
 
 With Helm, set them under `twilio` in your values. To keep the auth token out of the values Helm stores with every release, put it in a Secret of your own and name that Secret in `twilio.existingSecret.name`:
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Quote phone numbers in a values file, and pass them with `--set-string` rather than `--set`: unquoted, `+14155550100` is a number, which the chart refuses. The chart also refuses other `twilio` values without `twilio.accountSid`, an Account SID without an auth token, and an auth token given both in `twilio.authToken` and in a Secret. With Terraform, set the same values on a `helm_release`, the auth token as a sensitive value.
+Quote phone numbers in a values file, and pass them with `--set-string` rather than `--set`: unquoted, `+14155550100` is a number, which the chart refuses. The chart also refuses other `twilio` values without `twilio.accountSid` (all but `twilio.callVoice`, which sets the voice whoever sets the account), an Account SID without an auth token, an auth token given both in `twilio.authToken` and in a Secret, and a `twilio.callVoice` that is not one of the voices. With Terraform, set the same values on a `helm_release`, the auth token as a sensitive value.
 
 With Docker Compose, set the `GLOBAL_TWILIO_` settings in `config.env`, then run `npm run start` to recreate the containers.
 
-OneUptime reads the variables when it starts. If one is wrong, such as a phone number OneUptime cannot read or a missing auth token, the account sends no SMS and makes no calls until it is fixed; the server's log, **Admin Dashboard > Settings > Call and SMS** and the checklist at `/admin/setup` name the variable. The auth token is never shown. To change the account, change the variables and restart OneUptime: the Admin Dashboard does not change it.
+OneUptime reads the variables when it starts. If one is wrong, such as a phone number OneUptime cannot read or a missing auth token, the account sends no SMS and makes no calls until it is fixed; the server's log, **Admin Dashboard > Settings > Call and SMS** and the checklist at `/admin/setup` name the variable. A `GLOBAL_TWILIO_CALL_VOICE` that names no voice OneUptime offers stops no call: calls speak with the account's default voice until it is fixed, and the same three places name it. The auth token is never shown. To change the account, change the variables and restart OneUptime: the Admin Dashboard does not change it.
 
 ### Manage project configurations with Terraform
 
@@ -146,6 +147,51 @@ A project has a default for SMS and a default for calls, and a configuration is 
 What no default sends goes as it would without a configuration: while the only default is used for **SMS only**, calls to the project's members go through the installation-wide configuration. If no configuration can send a message, the message's log says that the project's configuration is not used for it, and who can change that.
 
 Status pages offer only the configurations that send SMS, and **Send Test SMS** and **Send Test Call** appear only for what a configuration sends. Every existing configuration is used for **Calls and SMS**, as before. Through the API and Terraform, the choice is the `usedFor` field, and a configuration without the numbers its choice needs is refused.
+
+### The voice calls speak with
+
+Calls speak with the voice your Twilio account uses by default: Twilio's free Basic voice, unless you picked another in the Twilio Console. Twilio says its Basic voices are not meant for production, so each account can speak with one of these neural voices instead. Choose the installation-wide account's in the **Call Voice** card of **Admin Dashboard > Settings > Call and SMS**, and a project configuration's in **Call Voice** under **More fields**. To set the installation-wide account's from code, use `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` with Helm): see [Set the installation-wide account from environment variables](#set-the-installation-wide-account-from-environment-variables).
+
+| Voice | Made by | How it sounds |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | US English, female voice |
+| `Polly.Matthew-Neural` | Amazon Polly | US English, male voice |
+| `Polly.Amy-Neural` | Amazon Polly | British English, female voice |
+| `Polly.Brian-Neural` | Amazon Polly | British English, male voice |
+| `Google.en-US-Neural2-F` | Google | US English, female voice |
+| `Google.en-US-Neural2-J` | Google | US English, male voice |
+
+Every call through the account speaks with that voice: on-call pages and the answer to the key you press, the message left on voicemail, verification codes, **Send Test Call** and an incoming call policy's greetings. In these voices, a record number such as `INC-42` is spelled with SSML, which sounds more natural than the spaced letters other voices are given. Twilio charges the account that places the call for these voices: $0.0032 for every 100 characters in November 2026, under 3 US cents for a page's call in any language. See [Twilio's voice pricing](https://www.twilio.com/en-us/voice/pricing/us). Leave **Call Voice** empty to keep the account's default voice. Through the API and Terraform, the voice is the `twilioCallVoice` field, and a voice that is not in the table is refused.
+
+#### Calls in other languages
+
+An on-call page's call to someone who reads OneUptime in another language is in that language when the account speaks with one of the voices above: its words are written in the language, and a voice of the language says them, a woman's voice for a woman's and a man's for a man's. The prompt, the details said again when no key is pressed, the answer to a wrong key and the answers to the keys are all in it, and the keys stay 1 and 2. These are the voices, from Twilio's list of neural voices, checked on 27 November 2026; they cost what the voices above cost:
+
+| Language | Woman's voice | Man's voice |
+| --- | --- | --- |
+| German | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| French | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Spanish | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italian | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Portuguese | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Dutch | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Danish | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Norwegian | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Swedish | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Russian | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Japanese | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Korean | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Simplified Chinese | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Traditional Chinese | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Arabic | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Persian | None: calls are in English | None: calls are in English |
+
+Neither Amazon Polly nor Google has a Persian voice, so a call to someone who reads OneUptime in Persian is in English, as is every call through an account that keeps its default voice, which speaks English only. A call's log keeps what the call said, in the language it said it. A verification code, **Send Test Call** and an incoming call policy's greetings are in English.
+
+#### Projects that choose their own voice
+
+On a self-hosted installation, a master admin can let each project choose the voice of its calls through the installation-wide account: turn on **Let projects choose their call voice** in the **Project Call Voices** card of **Admin Dashboard > Settings > Call and SMS**. A **Project Owner** or **Project Admin** then chooses it in the **Call Voice** card under **More settings** in **Project Settings > Notifications > Notification Channels**, and a project that chooses none speaks with the installation's voice. Twilio charges the installation-wide account for each project's voice, so the switch starts off, and turning it off puts every project back on the installation's voice. OneUptime Cloud does not offer it: choose a voice with a project configuration of your own. Through the API, the voice is the project's `callVoice` field, which is refused while the switch is off.
 
 ### Voicemail on on-call calls
 
@@ -226,7 +272,7 @@ For development, Twilio's [webhook testing guide](https://www.twilio.com/docs/us
 1. From outside your corporate network and VPN, verify that the callback hostname resolves to the public gateway and serves a valid TLS certificate. A browser GET does not exercise these POST callbacks.
 2. Use **Send Test SMS** and **Send Test Call** on the project's Twilio configuration. Confirm receipt on the destination phone. Both need permission to add Twilio configurations: **Project Owner**, **Project Admin**, or **Create Call and SMS** and **Read Call and SMS** in a custom role.
 3. Configure the user's verified SMS/call contact and notification rules, then trigger a controlled on-call alert. Press 1 and confirm acknowledgement in OneUptime. If you use Incoming Call Policies, call the configured number and check its routing and call log.
-4. Confirm SMS delivery status in OneUptime and Twilio's message logs. An accepted send is not proof of delivery; [Twilio reports later status changes through callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+4. Confirm SMS delivery status in OneUptime's [Notification Logs](/docs/notifications/notification-logs) and Twilio's message logs. An accepted send is not proof of delivery; [Twilio reports later status changes through callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
 | Symptom | Where to look |

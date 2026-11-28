@@ -61,7 +61,9 @@ describe("NotificationMiddleware", () => {
         onCallInputRequest,
       );
 
+      // In the account's default voice: no voice named (CallTwimlSpeech).
       expect(responseInstance.say).toHaveBeenCalledWith(
+        {},
         (onCallInputRequest["1234"] as any).sayMessage,
       );
       expect(Response.sendXmlResponse).toHaveBeenCalledWith(
@@ -86,6 +88,7 @@ describe("NotificationMiddleware", () => {
       );
 
       expect(responseInstance.say).toHaveBeenCalledWith(
+        {},
         onCallInputRequest["default"]?.sayMessage,
       );
       expect(Response.sendXmlResponse).toHaveBeenCalledWith(
@@ -119,8 +122,55 @@ describe("NotificationMiddleware", () => {
 
       expect(responseInstance.say).toHaveBeenCalledTimes(1);
       expect(responseInstance.say).toHaveBeenCalledWith(
+        {},
         "You passed this incident on. Good bye.",
       );
+    });
+
+    /*
+     * The voice the call speaks with (#10948), from its keypad token: every
+     * answer is said in it, with the language it speaks.
+     */
+    test("Should say the answer in the call's voice", async () => {
+      onCallInputRequest["1234"] = { sayMessage: "message 1" };
+      const responseInstance: VoiceResponse = new VoiceResponse();
+
+      (
+        VoiceResponse as jest.MockedClass<typeof VoiceResponse>
+      ).mockImplementation(() => {
+        return responseInstance;
+      });
+      await NotificationMiddleware.sendResponse(
+        mockRequest,
+        mockResponse,
+        onCallInputRequest,
+        undefined,
+        "Polly.Amy-Neural",
+      );
+
+      expect(responseInstance.say).toHaveBeenCalledWith(
+        { voice: "Polly.Amy-Neural", language: "en-GB" },
+        "message 1",
+      );
+    });
+
+    test("Should never name a voice OneUptime does not offer", async () => {
+      const responseInstance: VoiceResponse = new VoiceResponse();
+
+      (
+        VoiceResponse as jest.MockedClass<typeof VoiceResponse>
+      ).mockImplementation(() => {
+        return responseInstance;
+      });
+      await NotificationMiddleware.sendResponse(
+        mockRequest,
+        mockResponse,
+        onCallInputRequest,
+        undefined,
+        'man" language="xx',
+      );
+
+      expect(responseInstance.say).toHaveBeenCalledWith({}, "default message");
     });
 
     test("Should say what the call carries when the message handed in is empty", async () => {
@@ -138,7 +188,7 @@ describe("NotificationMiddleware", () => {
         "",
       );
 
-      expect(responseInstance.say).toHaveBeenCalledWith("default message");
+      expect(responseInstance.say).toHaveBeenCalledWith({}, "default message");
     });
   });
 

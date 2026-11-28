@@ -6,7 +6,7 @@ Ela responde a quatro perguntas:
 
 :::cards
 - [Onde estão os nossos dados sensíveis?](/docs/data-security/data-types): 143 tipos de dados, de números de cartão e documentos nacionais de identidade a chaves de API, encontrados em buckets, tabelas e telemetria.
-- [Eles estão expostos?](/docs/data-security/checks-and-issues): 34 verificações de cada repositório: acesso público, criptografia, backups, logs, segredos e cópias.
+- [Eles estão expostos?](/docs/data-security/checks-and-issues): 35 verificações de cada repositório: acesso público, criptografia, backups, logs, segredos e cópias.
 - [Quem pode acessá-los, e para onde eles vão?](/docs/data-security/flows-access-residency): Cada identidade que pode acessar cada repositório, a mais arriscada primeiro, quais serviços o usam e quais provedores de IA e hosts os dados dele alcançam.
 - [Eles atendem às nossas regras?](/docs/data-security/compliance): Regras de residência, e nove estruturas de conformidade pontuadas a partir do que as varreduras encontraram.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## Antes de começar
 
 - **Uma função que possa configurá-la.** As funções Proprietário do projeto, Administrador do projeto e Administrador de segurança alteram as configurações da Segurança de dados. A função Membro de segurança trata problemas e varre repositórios, e a função Visualizador de segurança lê o que ela encontrou. As outras funções não veem nada disso, a menos que a equipe delas receba as permissões: quais buckets guardam números de cartão é exatamente o que um invasor quer saber. Veja [Funções](/docs/permissions/reference#funções).
-- **Uma conta de nuvem para ler, ou um banco de dados.** A Segurança de dados lê uma conta de nuvem por meio de uma [conexão de nuvem](/docs/telemetry/cloud-accounts), e um banco de dados que você executa por meio de uma string de conexão somente leitura. A telemetria não precisa de nada: ela é varrida a cada hora.
+- **Uma conta de nuvem para ler, ou um repositório que você executa.** A Segurança de dados lê uma conta de nuvem por meio de uma [conexão de nuvem](/docs/telemetry/cloud-accounts), e um banco de dados ou um cluster de busca que você executa por meio de uma string de conexão somente leitura. A telemetria não precisa de nada: ela é varrida a cada hora.
 
 ## Início rápido
 
@@ -69,10 +69,10 @@ Abra **Segurança de dados**. Os repositórios aparecem em **Repositórios de da
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Bancos de dados que você executa | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| Repositórios que você executa | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | Logs, traces, exceções, replays de sessão, conversas de IA, métricas, eventos de segurança, Network Flows, cofre de endereços de segurança, cofre de usuários de segurança | Logs, traces, exceções, replays de sessão, conversas de IA, métricas |
 
-Cada repositório recebe as verificações que se aplicam ao seu tipo. Um repositório cujo conteúdo não pode ser amostrado continua sendo verificado: um bucket público ou um banco de dados sem criptografia é um problema, seja o que for que ele contenha. Os eventos de segurança, Network Flows e o cofre de endereços de segurança são do próprio OneUptime, guardados para a sua segurança: declarados, nunca varridos nem verificados (veja [Repositórios que o OneUptime guarda para a sua segurança](/docs/data-security/compliance#repositórios-que-o-oneuptime-guarda-para-a-sua-segurança)).
+Cada repositório recebe as verificações que se aplicam ao seu tipo, de acordo com o que o OneUptime consegue ler dele. Um repositório de uma conta de nuvem é lido das próprias configurações da nuvem dele, então é verificado quer o conteúdo dele possa ser amostrado, quer não: um bucket público ou um banco de dados sem criptografia é um problema, seja o que for que ele contenha. Um repositório que você executa não tem configurações assim para o OneUptime ler: um cluster Elasticsearch ou OpenSearch é consultado no próprio endereço, a cada varredura de conteúdo, para saber se responde sem credenciais, e como os outros tipos podem ser alcançados não é verificado (veja [O que o OneUptime verifica em um repositório que você executa](/docs/data-security/setup#o-que-o-oneuptime-verifica-em-um-repositório-que-você-executa)). As **Configurações** de cada repositório dizem, em **O que o OneUptime verifica**, o que é verificado nele e o que não é. Os eventos de segurança, Network Flows e o cofre de endereços de segurança são do próprio OneUptime, guardados para a sua segurança: declarados, nunca varridos nem verificados (veja [Repositórios que o OneUptime guarda para a sua segurança](/docs/data-security/compliance#repositórios-que-o-oneuptime-guarda-para-a-sua-segurança)).
 
 Um repositório é arquivado, com o seu histórico, assim que a origem dele deixa de listá-lo, e os problemas abertos dele são resolvidos: **Repositórios arquivados**, no fim do menu da Segurança de dados, o guarda. Ele volta sozinho se a origem voltar a listá-lo, e um problema cuja verificação ainda falha abre de novo.
 
@@ -86,9 +86,10 @@ A **Linha do tempo** de um repositório diz o que aconteceu com ele, e quem fez:
 | Ler a configuração de uma conexão de nuvem | Uma vez por dia, e em até uma hora depois que o CloudTrail registra uma mudança no acesso, na criptografia, nos backups ou no compartilhamento de um repositório da AWS |
 | Amostrar o conteúdo de um repositório | A cada 24 horas, ou com a frequência que **Varrer a cada (horas)** indicar |
 | Amostrar a telemetria de cada serviço | A cada hora, a última hora dela |
+| Perguntar a um cluster de busca que você executa se ele responde sem credenciais | A cada varredura de conteúdo dele |
 | Verificar todos os repositórios de novo | Depois de cada leitura e varredura, depois que você muda qualquer coisa de que uma verificação depende, e uma vez por dia |
 
-**Varrer agora** em um repositório amostra o conteúdo dele na hora, e **Verificar agora** lê a configuração dele de novo.
+**Varrer agora** em um repositório amostra o conteúdo dele na hora, e pergunta de novo a um cluster de busca que você executa se ele responde sem credenciais. **Verificar agora** lê de novo a configuração de um repositório de uma conta de nuvem, e executa de novo as verificações do repositório.
 
 ## Próximos passos
 

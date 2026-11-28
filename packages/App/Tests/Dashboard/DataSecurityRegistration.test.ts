@@ -167,6 +167,37 @@ describe("Data Security registry wiring", () => {
     expect(index).toContain("OnlineDdl");
   });
 
+  /*
+   * A person's own pull request, linked to an issue as its fix (#10831):
+   * registered, mounted - the issue's Linked pull requests are read,
+   * linked and taken off through it - and made by its own migration.
+   */
+  test("a linked pull request is registered, mounted and made by its own migration", () => {
+    const model: string = "DataSecurityIssuePullRequest";
+
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      `${model},`,
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      `${model}Service,`,
+    );
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      new RegExp(
+        `new BaseAPI<\\s*${model},\\s*${model}ServiceType\\s*>\\(\\s*${model},\\s*${model}Service,?\\s*\\)`,
+      ),
+    );
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+      ),
+    ).toContain("AddDataSecurityIssuePullRequest1809187660831,");
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809187660831-AddDataSecurityIssuePullRequest.ts",
+      ),
+    ).toContain(`CREATE TABLE "${model}"`);
+  });
+
   test("the stores' own API (with its actions) and every other model's CRUD API are mounted", () => {
     const baseApi: string = readSquashed("App/FeatureSet/BaseAPI/Index.ts");
 

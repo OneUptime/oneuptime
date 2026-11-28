@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/admin-dashboard",
-  "version": "17.3.0",
+  "version": "18.0.0",
   "license": "Apache-2.0",
   "private": false,
   "repository": {
@@ -24,7 +24,7 @@
     "analyze": "analyze=true NODE_ENV=production node esbuild.config.js",
     "test": "react-app-rewired test",
     "eject": "echo 'esbuild does not require eject'",
-    "compile": "tsc",
+    "compile": "export NODE_OPTIONS=\"--max-old-space-size=8192${NODE_OPTIONS:+ $NODE_OPTIONS}\" && tsc",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "start": "node --require ts-node/register Serve.ts",
     "audit": "npm audit --audit-level=low",

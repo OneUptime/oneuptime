@@ -108,6 +108,51 @@ export default class MonitorAutoResolveTemplates {
     );
   }
 
+  /*
+   * What the criteria a write takes off a monitor resolved on their own:
+   * those of `before` whose id `after` no longer has. Nothing can resolve
+   * what they opened once they are gone - a check is matched against the
+   * monitor's criteria as they are - so the write resolves it itself
+   * (MonitorCriteriaReplaced, #11266). A criteria `after` keeps, by its id,
+   * goes on resolving its own records.
+   */
+  public static ofCriteriaRemoved(data: {
+    before: MonitorSteps | null | undefined;
+    after: MonitorSteps | null | undefined;
+  }): MonitorAutoResolveTemplateIds {
+    const kept: Set<string> = new Set<string>(
+      MonitorAutoResolveTemplates.getCriteriaInstances(data.after)
+        .map((criteriaInstance: MonitorCriteriaInstance): string => {
+          return criteriaInstance?.data?.id?.toString() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    const before: MonitorAutoResolveTemplateIds =
+      MonitorAutoResolveTemplates.fromMonitorSteps(data.before);
+
+    const removed: MonitorAutoResolveTemplateIds = {
+      incidents: {},
+      alerts: {},
+    };
+
+    for (const [criteriaId, templateIds] of Object.entries(before.incidents)) {
+      if (!kept.has(criteriaId)) {
+        removed.incidents[criteriaId] = templateIds;
+      }
+    }
+
+    for (const [criteriaId, templateIds] of Object.entries(before.alerts)) {
+      if (!kept.has(criteriaId)) {
+        removed.alerts[criteriaId] = templateIds;
+      }
+    }
+
+    return removed;
+  }
+
   // True when no criteria of the monitor resolves anything on its own.
   public static isEmpty(templateIds: MonitorAutoResolveTemplateIds): boolean {
     return (

@@ -39,6 +39,10 @@ import RelationListPermission, {
 import UpdatePermission from "../Types/Database/Permissions/UpdatePermission";
 import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePermission";
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
+import AccessControlPermission, {
+  ColumnKeptToLabels,
+  RelatedColumnsKeptToLabels,
+} from "../Types/Database/Permissions/AccessControlPermission";
 import SortValidator from "../Types/Database/Permissions/SortValidator";
 import RuleOwningTeams from "../Utils/Rules/RuleOwningTeams";
 import RuleSetCache from "../Utils/Rules/RuleSetCache";
@@ -261,6 +265,9 @@ import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
 import WorkflowListeners from "../Utils/Workflow/WorkflowListeners";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+// A type only: WorkspaceRecordPeople reads through services that extend this one.
+import type { WorkspaceRecord } from "../Utils/Workspace/WorkspaceRecordPeople";
 import CallerPlan from "../Utils/Billing/CallerPlan";
 import QueryIdCondition from "../Utils/Database/QueryIdCondition";
 import {
@@ -286,6 +293,17 @@ const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
     RuleCriteriaOperator.HasAllOf,
     RuleCriteriaOperator.HasNoneOf,
   ]);
+
+/*
+ * The columns a read leaves out of the rows their grants do not reach,
+ * beside its own project's (columnsKeptToLabels): a read across projects'
+ * by project, and those of the records its relations reach (#11438).
+ */
+interface KeptColumnsOfRead {
+  byProject: Map<string, Array<ColumnKeptToLabels>>;
+  related: Array<RelatedColumnsKeptToLabels>;
+  relatedByProject: Map<string, Array<RelatedColumnsKeptToLabels>>;
+}
 
 // An update or a delete whose rows keepRowsCallerMayWrite reads.
 interface WriteOfRows {
@@ -7435,15 +7453,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       return await this._create(createBy, handedBack);
     } catch (error) {
-      // The name a refused or failed create held is free again.
-      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
-
       await this.onCreateError(
         error as Exception,
         handedBack.onCreate,
         handedBack.progress.getFailedStatement(),
       );
       throw this.getException(error as Exception);
+    } finally {
+      /*
+       * The name a refused or failed create held is free again, however
+       * the create ended: after onCreateError has been told, and even when
+       * it throws. A create that wrote its row gave the name back then
+       * (_create), so it has none left to give.
+       */
+      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
     }
   }
 
@@ -7879,6 +7902,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     // Whether open pages were told of the record (its realtime event).
     let isRealtimeEventSent: boolean = false;
 
+    /*
+     * The record whose workspace messages this create held as it wrote it,
+     * for it to let go should no create chain take the hold. See
+     * holdAsWritten, below.
+     */
+    let heldAsWritten: WorkspaceRecord | null = null;
+
     try {
       /*
        * The INSERT itself, in save()'s own transaction - or, held to a
@@ -7917,6 +7947,25 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       // Seed telemetry context with projectId + <model>Id for this create.
       this.setTelemetryContextFromItem(createBy.data);
+
+      /*
+       * Its Slack, Microsoft Teams and Mattermost messages wait for its
+       * Created message from here on, on every App server, when its kind's
+       * create chain posts one: before anything else is written about it,
+       * and before the create returns. Its creator, made its owner just
+       * below, was announced first - "Added Ana Lee to the Incident INC-42
+       * as the owner" before "Incident Created" (#11352). The create chain
+       * takes the hold over (onCreateSuccess) and lets it go once that
+       * message is out; a create that ends before the chain began lets it
+       * go as it ends (finally, below). With ignoreHooks there is no chain,
+       * and no Created message to wait for. See holdAsWritten.
+       */
+      if (!createBy.props.ignoreHooks) {
+        heldAsWritten = await WorkspaceCreatedMessageFirst.holdAsWritten({
+          tableName: this.model.tableName,
+          id: createBy.data.id,
+        });
+      }
 
       // Its creator's own, before anything else. See the helper.
       if (isOwnedByCreatorFirst) {
@@ -8045,6 +8094,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       throw this.getException(error as Exception);
     } finally {
       finishCreate?.();
+
+      /*
+       * A hold no create chain took - the create failed before its chain
+       * began, or took the record out again - goes with the create, rather
+       * than once it has lasted its longest. One the chain took is the
+       * chain's to let go. See holdAsWritten.
+       */
+      if (heldAsWritten) {
+        void WorkspaceCreatedMessageFirst.letGoIfNotTaken(heldAsWritten);
+      }
 
       /*
        * A rule created - with its lists, and whatever its hooks wrote - is
@@ -11571,6 +11630,94 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return ids;
   }
 
+  /*
+   * The ids, in lower case, of the records of `relatedModelType` - a model a
+   * read's relation reaches - that `query` finds, read as OneUptime: for a
+   * read that asks only which of the related records it read a grant's
+   * condition keeps (AccessControlPermission
+   * .withholdRelatedColumnsKeptToLabels, #11438).
+   */
+  private async findRelatedIdsAsOneUptime(
+    relatedModelType: { new (): BaseModel },
+    query: Query<BaseModel>,
+  ): Promise<Array<string>> {
+    if (!PostgresAppInstance.isConnected()) {
+      throw new DatabaseNotConnectedException();
+    }
+
+    const dataSource: DataSource | null = PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      throw new DatabaseNotConnectedException();
+    }
+
+    const rows: Array<BaseModel> = await dataSource
+      .getRepository<BaseModel>(relatedModelType.name)
+      .find({
+        where: QueryUtil.serializeQuery(relatedModelType, query) as any,
+        select: { _id: true } as any,
+      });
+
+    return DatabaseService.getRowIds(rows).map((id: string): string => {
+      return id.toLowerCase();
+    });
+  }
+
+  /*
+   * Adds the table's project column to a read's select when `isNeeded` and
+   * the select does not name it, and returns it so `_findBy` strips it from
+   * the rows again: a read across projects whose rows are weighed by their
+   * own project's grants needs each row's project (#11438). Like the sort
+   * columns, after the read's permission check, and never seen by the
+   * caller.
+   */
+  private addTenantColumnToSelect(
+    findBy: FindBy<TBaseModel>,
+    isNeeded: boolean,
+  ): string | null {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (
+      !isNeeded ||
+      !tenantColumn ||
+      !findBy.select ||
+      (findBy.select as Dictionary<unknown>)[tenantColumn] !== undefined
+    ) {
+      return null;
+    }
+
+    (findBy.select as Dictionary<unknown>)[tenantColumn] = true;
+
+    return tenantColumn;
+  }
+
+  /*
+   * The ids, in lower case, of the rows `query` finds, read as OneUptime with
+   * no hook: for a read that has decided already which rows its caller
+   * reads, and asks only which of them a grant's condition keeps
+   * (AccessControlPermission.withholdColumnsKeptToLabels). Deleted rows are
+   * read when the read they are asked for reads them.
+   */
+  private async findIdsAsOneUptime(
+    query: Query<TBaseModel>,
+    withDeleted: boolean,
+  ): Promise<Array<string>> {
+    const rows: Array<TBaseModel> = await this._findBy(
+      {
+        query: query,
+        select: { _id: true } as Select<TBaseModel>,
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true, ignoreHooks: true },
+      },
+      withDeleted,
+    );
+
+    return DatabaseService.getRowIds(rows).map((id: string): string => {
+      return id.toLowerCase();
+    });
+  }
+
   @CaptureSpan()
   public async findBy(findBy: FindBy<TBaseModel>): Promise<Array<TBaseModel>> {
     return await this._findBy(findBy);
@@ -11601,6 +11748,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     relationSelect: RelationSelect<TBaseModel> | null;
     fileReader: RelatedFileReader | null;
     asker: DatabaseCommonInteractionProps;
+    // The columns the rows are read with only where their grants reach.
+    columnsKeptToLabels: Array<ColumnKeptToLabels>;
+    // The same, of a read across projects and through its relations (#11438).
+    keptElsewhere: KeptColumnsOfRead;
   }> {
     findBy.props = await this.checkCallerBeforeHooks(
       findBy.props,
@@ -11640,6 +11791,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       onBeforeFind.props,
     );
 
+    /*
+     * Nor by a column they read only on the records carrying some labels
+     * (AccessControlPermission.getColumnsKeptToLabels, #11259).
+     */
+    AccessControlPermission.checkSortOnColumnsKeptToLabels(
+      this.modelType,
+      onBeforeFind.sort,
+      onBeforeFind.props,
+    );
+
     if (!onBeforeFind.select || Object.keys(onBeforeFind.select).length === 0) {
       onBeforeFind.select = {} as any;
     }
@@ -11650,6 +11811,69 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
     onBeforeFind.query = this.getRuleCriteriaEffectiveEnabledQuery(
       onBeforeFind.query,
+    );
+
+    /*
+     * A column the caller reads on fewer of the records than the read
+     * reaches - a monitor's secret keys, for a Viewer over the project who
+     * is a Project Member on one label - is read with every record and left
+     * out of the ones its grant does not reach (_findBy), rather than
+     * narrowing the read to the records it is read on: a permission never
+     * takes away what the reader read without it (#11259).
+     */
+    const columnsKeptToLabels: Array<ColumnKeptToLabels> =
+      AccessControlPermission.getColumnsKeptToLabels(
+        this.modelType,
+        onBeforeFind.select,
+        onBeforeFind.props,
+      );
+
+    /*
+     * The same for a read across projects, a project at a time (#11438):
+     * each project's query reads every record its grants reach, and each
+     * row's column is left out where its own project's grant does not reach
+     * it - rather than the read narrowed, as it was, project by project.
+     */
+    const columnsKeptToLabelsByProject: Map<
+      string,
+      Array<ColumnKeptToLabels>
+    > = AccessControlPermission.getColumnsKeptToLabelsByProject(
+      this.modelType,
+      onBeforeFind.select,
+      onBeforeFind.props,
+    );
+
+    /*
+     * And the columns of related records it selects through a relation that
+     * are held to their own read there, for a caller who reads them on some
+     * labels only (#11438): left out of the related records their grant
+     * does not reach. They narrow nothing - a relation's select never did -
+     * and were read on every related record.
+     */
+    const relatedColumnsKeptToLabels: Array<RelatedColumnsKeptToLabels> =
+      AccessControlPermission.getRelatedColumnsKeptToLabels(
+        this.modelType,
+        onBeforeFind.select,
+        onBeforeFind.props,
+      );
+    const relatedColumnsKeptToLabelsByProject: Map<
+      string,
+      Array<RelatedColumnsKeptToLabels>
+    > = AccessControlPermission.getRelatedColumnsKeptToLabelsByProject(
+      this.modelType,
+      onBeforeFind.select,
+      onBeforeFind.props,
+    );
+
+    const columnsWithheldPerRecord: Array<string> = Array.from(
+      new Set<string>(
+        [
+          ...columnsKeptToLabels,
+          ...Array.from(columnsKeptToLabelsByProject.values()).flat(),
+        ].map((kept: ColumnKeptToLabels): string => {
+          return kept.column;
+        }),
+      ),
     );
 
     /*
@@ -11666,6 +11890,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       onBeforeFind.select || null,
       onBeforeFind.props,
       askedSort,
+      {
+        columnsWithheldPerRecord: columnsWithheldPerRecord,
+      },
     );
 
     onBeforeFind.query = result.query;
@@ -11691,6 +11918,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       relationSelect: result.relationSelect,
       fileReader: fileReader,
       asker: asker,
+      columnsKeptToLabels: columnsKeptToLabels,
+      keptElsewhere: {
+        byProject: columnsKeptToLabelsByProject,
+        related: relatedColumnsKeptToLabels,
+        relatedByProject: relatedColumnsKeptToLabelsByProject,
+      },
     };
   }
 
@@ -11794,6 +12027,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         relationSelect: RelationSelect<TBaseModel> | null;
         fileReader: RelatedFileReader | null;
         asker: DatabaseCommonInteractionProps;
+        columnsKeptToLabels: Array<ColumnKeptToLabels>;
+        keptElsewhere: KeptColumnsOfRead;
       } = await this.narrowRead(findBy);
 
       const onBeforeFind: FindBy<TBaseModel> = narrowed.findBy;
@@ -11813,6 +12048,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       const sortColumnsAddedToSelect: Array<string> =
         this.addSortColumnsToSelect(onBeforeFind);
+
+      /*
+       * A read across projects whose rows are withheld a project at a time
+       * (#11438) reads each row's project with it, to weigh the row by that
+       * project's grants; the column is stripped again below, unless the
+       * caller asked for it.
+       */
+      const tenantColumnAddedToSelect: string | null =
+        this.addTenantColumnToSelect(
+          onBeforeFind,
+          narrowed.keptElsewhere.byProject.size > 0 ||
+            narrowed.keptElsewhere.relatedByProject.size > 0,
+        );
 
       if (!(onBeforeFind.skip instanceof PositiveNumber)) {
         onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
@@ -11923,6 +12171,64 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
 
       /*
+       * A column the caller reads only on the records carrying some labels -
+       * a monitor's secret keys, for a Viewer who is a Project Member on one
+       * label - only on those; the others are read without it, before any
+       * hook sees them (#11259). See AccessControlPermission
+       * .getColumnsKeptToLabels.
+       */
+      decryptedItems =
+        await AccessControlPermission.withholdColumnsKeptToLabels({
+          modelType: this.modelType,
+          rows: decryptedItems,
+          kept: narrowed.columnsKeptToLabels,
+          props: onBeforeFind.props,
+          findIds: async (query: Query<TBaseModel>): Promise<Array<string>> => {
+            return await this.findIdsAsOneUptime(query, withDeleted || false);
+          },
+        });
+
+      /*
+       * A read across projects: each row's columns kept to labels in its own
+       * project, left out where that project's grant does not reach the row
+       * (#11438, AccessControlPermission.getColumnsKeptToLabelsByProject).
+       */
+      decryptedItems =
+        await AccessControlPermission.withholdColumnsKeptToLabelsByProject({
+          modelType: this.modelType,
+          rows: decryptedItems,
+          keptByProject: narrowed.keptElsewhere.byProject,
+          props: onBeforeFind.props,
+          findIds: async (query: Query<TBaseModel>): Promise<Array<string>> => {
+            return await this.findIdsAsOneUptime(query, withDeleted || false);
+          },
+        });
+
+      /*
+       * The columns of related records read through a relation that are
+       * held to their own read there, left out of the related records the
+       * caller's grant to read them does not reach (#11438,
+       * AccessControlPermission.getRelatedColumnsKeptToLabels).
+       */
+      decryptedItems =
+        await AccessControlPermission.withholdRelatedColumnsKeptToLabels({
+          modelType: this.modelType,
+          rows: decryptedItems,
+          kept: narrowed.keptElsewhere.related,
+          keptByProject: narrowed.keptElsewhere.relatedByProject,
+          props: onBeforeFind.props,
+          findRelatedIds: async (
+            relatedModelType: { new (): BaseModel },
+            query: Query<BaseModel>,
+          ): Promise<Array<string>> => {
+            return await this.findRelatedIdsAsOneUptime(
+              relatedModelType,
+              query,
+            );
+          },
+        });
+
+      /*
        * A record's files only for someone who may see them; anyone else
        * gets the record without them. See RelatedFileAccess.
        */
@@ -11962,6 +12268,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       for (const item of decryptedItems) {
         for (const sortColumn of sortColumnsAddedToSelect) {
           delete (item as any)[sortColumn];
+        }
+
+        if (tenantColumnAddedToSelect) {
+          delete (item as any)[tenantColumnAddedToSelect];
         }
       }
 
@@ -12325,6 +12635,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       this.unwrapHashedStringsForUnhashedColumns(updateBy.data);
 
       /*
+       * Who did something to the record is OneUptime's to say. See the
+       * helpers. First, so a column that says who and is only OneUptime's
+       * too (a cost report's Outside Recipients Set By) is taken out as
+       * every other such column is, and not refused below.
+       */
+      this.assertUpdateChangesSomething(
+        this.decideUserAttributionOnUpdate(updateBy.data, updateBy.props),
+        updateBy.data,
+      );
+
+      /*
        * What only OneUptime writes is not an update's to change: refused,
        * naming the columns, before any hook reads the write
        * (ColumnsOnlyOneUptimeWrites, #10053).
@@ -12334,12 +12655,6 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         record: updateBy.data,
         props: updateBy.props,
       });
-
-      // Who did something to the record is OneUptime's to say. See the helpers.
-      this.assertUpdateChangesSomething(
-        this.decideUserAttributionOnUpdate(updateBy.data, updateBy.props),
-        updateBy.data,
-      );
 
       // One reference, one value, whichever name it is sent under. See the helper.
       this.assertRelationNamesAgree(updateBy.data, updateBy.props);

@@ -29,9 +29,13 @@ import {
   getResourceReference,
 } from "../Utils/OnCallNotificationContext";
 import OnCallPagePassOn from "../Utils/OnCall/OnCallPagePassOn";
+import {
+  getCallAnswerEscalated,
+  getCallAnswerNotAcknowledged,
+  getCallAnswerNotEscalated,
+} from "../Utils/OnCall/OnCallPageCallAnswers";
 import OnCallAcknowledgePageAnswerReader from "../Utils/OnCall/OnCallAcknowledgePageAnswer";
 import {
-  ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
   ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
   ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
   ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
@@ -71,9 +75,16 @@ import OnCallAcknowledgeLink, {
   OnCallAcknowledgeLinkProof,
 } from "../Utils/OnCall/OnCallAcknowledgeLink";
 import OnCallKeypadToken, {
+  ON_CALL_KEYPAD_TOKEN_PARAM,
+  ON_CALL_KEYPAD_WRONG_KEYS_PARAM,
   OnCallKeypadTokenReading,
   getOnCallKeypadTokenRefusalSentence,
 } from "../Utils/OnCall/OnCallKeypadToken";
+import {
+  getKeyAnswer,
+  readWrongKeyCount,
+  shouldAskAgainAfterWrongKey,
+} from "../../Utils/Call/CallKeypad";
 import {
   CANT_TAKE_IT,
   ESCALATE,
@@ -360,6 +371,14 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const answers: OnCallInputRequest = keypad.answers;
 
           /*
+           * Every answer is said in the voice the call speaks with (#10948),
+           * and in its language (#11066): the answers the call carries are
+           * in it already, and what this route words itself is worded in
+           * the language of that voice (OnCallPageCallAnswers).
+           */
+          const voice: string | undefined = keypad.voice;
+
+          /*
            * The second key escalates the page. Every call bound to its page
            * offers it - this release's by its keypad token, one placed
            * before by the page's link token in its address
@@ -373,7 +392,9 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               await this.passOnFromCall({
                 itemId: itemId,
                 timelineItem: timelineItem,
+                voice: voice,
               }),
+              voice,
             );
           }
 
@@ -403,12 +424,60 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
                 req,
                 res,
                 answers,
-                ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
+                getCallAnswerNotAcknowledged(voice),
+                voice,
               );
             }
+
+            return NotificationMiddleware.sendResponse(
+              req,
+              res,
+              answers,
+              undefined,
+              voice,
+            );
           }
 
-          return NotificationMiddleware.sendResponse(req, res, answers);
+          /*
+           * Any other key - one the call did not offer, # and * among them -
+           * acknowledges nothing and escalates nothing (#10949). It used to
+           * end the call: "Invalid input. Good bye", and the person who
+           * pressed it by mistake lost the page. Now the call says so and
+           * asks again, as often as it asks when no key is pressed, posting
+           * the next key back here with how many it has asked again for
+           * (Utils/Call/CallKeypad). Once those are spent - or for a call
+           * placed before this release, which carried no prompt to say
+           * again - it says what the call said it would and ends.
+           */
+          const wrongKeysSoFar: number = readWrongKeyCount(
+            req.query?.[ON_CALL_KEYPAD_WRONG_KEYS_PARAM],
+          );
+          const keypadToken: unknown = req.query?.[ON_CALL_KEYPAD_TOKEN_PARAM];
+
+          if (
+            !getKeyAnswer(answers, req.body["Digits"]) &&
+            keypad.prompt &&
+            typeof keypadToken === "string" &&
+            shouldAskAgainAfterWrongKey(wrongKeysSoFar)
+          ) {
+            return NotificationMiddleware.sendAskAgain(req, res, {
+              prompt: keypad.prompt,
+              voice: voice,
+              action: await OnCallPageLinks.getCallAskAgainUrl({
+                userOnCallLogTimelineId: itemId,
+                keypadToken: keypadToken,
+                wrongKeys: wrongKeysSoFar + 1,
+              }),
+            });
+          }
+
+          return NotificationMiddleware.sendResponse(
+            req,
+            res,
+            answers,
+            undefined,
+            voice,
+          );
         } catch (error) {
           return next(error);
         }
@@ -1554,11 +1623,14 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
   /*
    * The second key of a call: escalates the person's page and says what came
-   * of it, in a sentence or two the call reads out.
+   * of it, in a sentence or two the call reads out - in the language of the
+   * voice the call speaks with (#11066, OnCallPageCallAnswers).
    */
   private async passOnFromCall(data: {
     itemId: ObjectID;
     timelineItem: UserOnCallLogTimeline;
+    // The voice the call speaks with, from its keypad token.
+    voice?: string | undefined;
   }): Promise<string> {
     const timelineItem: UserOnCallLogTimeline = data.timelineItem;
 
@@ -1567,10 +1639,13 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     ).toLowerCase();
 
     if (!timelineItem.userId || !timelineItem.onCallDutyPolicyExecutionLogId) {
-      return `${getOnCallPassOnRefusalSentence({
-        passedOn: false,
-        refusal: OnCallPassOnRefusal.NotPaged,
-      })} Good bye.`;
+      return getCallAnswerNotEscalated({
+        voice: data.voice,
+        answer: {
+          passedOn: false,
+          refusal: OnCallPassOnRefusal.NotPaged,
+        },
+      });
     }
 
     const answer: OnCallPassOnAnswer = await OnCallPagePassOn.passOn({
@@ -1584,14 +1659,20 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
        * "by 3:34 AM CEST": a time read out is the person's own. Read out, a
        * sentence keeps plain spaces (no keepTogether).
        */
-      return `You escalated this ${noun}. ${getOnCallPassOnSentence(
-        answer.result,
-        { timezone: timelineItem.user?.timezone?.toString() || undefined },
-      )} Good bye.`;
+      return getCallAnswerEscalated({
+        voice: data.voice,
+        noun: noun,
+        result: answer.result,
+        wording: {
+          timezone: timelineItem.user?.timezone?.toString() || undefined,
+        },
+      });
     }
 
-    return `${getOnCallPassOnRefusalSentence(answer, {
-      recordLabel: `This ${noun}`,
-    })} Good bye.`;
+    return getCallAnswerNotEscalated({
+      voice: data.voice,
+      answer: answer,
+      wording: { recordLabel: `This ${noun}` },
+    });
   }
 }

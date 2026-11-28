@@ -1,5 +1,6 @@
 import { MAX_TELEMETRY_LEAK_TEMPLATE_LENGTH } from "../../Types/DataSecurity/TelemetryLeakFix";
 import { normalizeLogBodyToErrorPattern } from "../Telemetry/LogErrorPattern";
+import { isCodeWord, WordPlace } from "./CodeWords";
 import BUILT_IN_DETECTORS from "./Detectors/Index";
 import { findSensitiveValues, ScanDetector, TextMatch } from "./TextScanner";
 
@@ -30,7 +31,17 @@ import { findSensitiveValues, ScanDetector, TextMatch } from "./TextScanner";
  *      several records are aligned (alignTelemetryLeakTemplates): a word
  *      that differs between them is a value, whatever a detector made of
  *      it - and of two that cannot be lined up word for word, only the
- *      words both start and end with are kept.
+ *      words both start and end with are kept;
+ *   6. a word that is not one code writes log lines with (CodeWords) is
+ *      masked (maskUnprovenWords, #11098, #11204), however many records
+ *      read it and however many of them share it: "Payment declined for
+ *      Ada Lovelace" is "Payment declined for <value>", and so is "Ticket
+ *      reassigned to jdoe" read from every record of a line. Records share
+ *      a value as readily as they share the code's words - one user's
+ *      session, one tenant's traffic, the on-call engineer every ticket is
+ *      assigned to - so a word every record holds is no more the code's
+ *      than one record's word is: alignment (5) only ever masks. A
+ *      structured line's field names are kept.
  *
  * Pure: run inside OneUptime, by the locator that reads the records
  * (Server/Utils/DataSecurity/Telemetry/TelemetryLeakLocator). What it
@@ -450,4 +461,205 @@ function maskWord(word: string): string {
   const tail: string = TRAILING_PUNCTUATION.exec(word)?.[0] || "";
 
   return `${lead}${VALUE_PLACEHOLDER}${tail}`;
+}
+
+/*
+ * A template's pieces: a placeholder, or a word - letters and digits of any
+ * script, joined by an apostrophe, "_", "-" or "." ("user_id",
+ * "order.created", "O'Brien"). What lies between them is the template's
+ * own punctuation, kept as it is. Bounded, and no two ways to match one
+ * text: in time in line with its length.
+ */
+const TEMPLATE_PIECE: RegExp =
+  /<[^<>]{1,64}>|[\p{L}\p{N}]+(?:['’._-][\p{L}\p{N}]+)*/gu;
+
+// The opening punctuation a sentence's first word may follow.
+const OPENING_PUNCTUATION: string = "\"'`«“‘([{";
+
+// What ends a sentence, or a field's name: the word after it starts one.
+const SENTENCE_BOUNDARIES: string = ".!?:;=|)]}>";
+
+const DASHES: string = "-–—";
+
+function isSpace(character: string): boolean {
+  return character.trim() === "";
+}
+
+/*
+ * Whether the word after `gap` - what lies between it and the template's
+ * piece before it - starts a sentence: the template's first, or after a
+ * full stop, a colon, an "=", a closing bracket, or a dash between spaces
+ * ("ERROR - Payment declined"). One look back over the gap.
+ */
+function startsSentence(gap: string, isFirst: boolean): boolean {
+  if (isFirst) {
+    return true;
+  }
+
+  let at: number = gap.length - 1;
+
+  while (
+    at >= 0 &&
+    (isSpace(gap[at]!) || OPENING_PUNCTUATION.includes(gap[at]!))
+  ) {
+    at--;
+  }
+
+  if (at < 0) {
+    return false;
+  }
+
+  const last: string = gap[at]!;
+
+  if (SENTENCE_BOUNDARIES.includes(last)) {
+    return true;
+  }
+
+  return DASHES.includes(last) && at >= 1 && isSpace(gap[at - 1]!);
+}
+
+/*
+ * Whether a word of a template is a structured line's field name: "msg"
+ * in {"msg":...}, "user" in user=<value>. The code writes those.
+ */
+function isFieldName(template: string, start: number, end: number): boolean {
+  if (template[end] === "=") {
+    return true;
+  }
+
+  if (template[start - 1] !== '"' || template[end] !== '"') {
+    return false;
+  }
+
+  let after: number = end + 1;
+
+  while (after < template.length && template[after] === " ") {
+    after++;
+  }
+
+  return template[after] === ":";
+}
+
+/*
+ * A TEMPLATE WITH EVERY WORD NO RECORD CAN PROVE IS THE CODE'S MASKED
+ * (#11098, #11204).
+ *
+ * Nothing in a leak's records tells the code's words from a value no
+ * detector names - a person's name, a username, an email's local part, a
+ * free-text value with no digit in it. Not one record, nor records that
+ * all read alike, nor the records of a line aligned with different words
+ * (alignTelemetryLeakTemplates): of those, the words that differ are
+ * values, but the words they share are not the code's for it. The records
+ * read for a leak are a sample of it, and a sample shares a value as
+ * readily as it shares the code's words: every record of one user's
+ * session, of one tenant, of the one engineer every ticket is assigned
+ * to, holds the same name. A rule that waits for three records, or for
+ * records of several sessions, keeps that engineer's name all the same.
+ *
+ * So every word but those code writes log lines with (CodeWords.isCodeWord:
+ * its vocabulary, written as code writes it - a capitalized word in the
+ * middle of a sentence only when it names a technology) is masked, however
+ * many records share it: "Payment declined for Ada Lovelace" is "Payment
+ * declined for <value>", and "Ticket reassigned to jdoe" read from every
+ * record of a line is "Ticket reassigned to <value>". A line read from
+ * aligned records names its file and its line number besides, which the
+ * code agent finds the code by whatever the template keeps.
+ *
+ * Kept: the placeholders the detectors and patterns put in, the template's
+ * punctuation, and a structured line's field names. Words masked side by
+ * side are one value. "" when nothing of the code's words is left to find
+ * the line by.
+ */
+export function maskUnprovenWords(template: string): string {
+  if (!template) {
+    return "";
+  }
+
+  let masked: string = "";
+  let copiedUpTo: number = 0;
+  let isFirst: boolean = true;
+  // The masked text ends with a value placeholder, and nothing but spaces after it.
+  let endsWithValue: boolean = false;
+
+  TEMPLATE_PIECE.lastIndex = 0;
+
+  for (const match of template.matchAll(TEMPLATE_PIECE)) {
+    const piece: string = match[0];
+    const start: number = match.index!;
+    const end: number = start + piece.length;
+    const gap: string = template.slice(copiedUpTo, start);
+    const place: WordPlace = { atSentenceStart: startsSentence(gap, isFirst) };
+    const isWord: boolean = piece[0] !== "<";
+    const keep: boolean =
+      !isWord || isFieldName(template, start, end) || isCodeWord(piece, place);
+
+    isFirst = false;
+    copiedUpTo = end;
+
+    if (keep) {
+      masked += gap + piece;
+      endsWithValue = piece === VALUE_PLACEHOLDER;
+      continue;
+    }
+
+    // Words masked side by side, spaces between them, are one value.
+    if (endsWithValue && !gap.trim()) {
+      continue;
+    }
+
+    masked += gap + VALUE_PLACEHOLDER;
+    endsWithValue = true;
+  }
+
+  masked += template.slice(copiedUpTo);
+
+  return CODE_WORD.test(masked.replace(/<[^<>]*>/g, " ")) ? masked : "";
+}
+
+// What a metric's name is put together with: its parts are judged one by one.
+const NAME_SEPARATORS: RegExp = /([._\-/:]+)/;
+
+/*
+ * A metric's name, as code names an instrument, with every part of it no
+ * record proves is the code's masked (#11098): its parts between the dots,
+ * "_", "-", "/" and ":" judged as a template read once judges its words
+ * (CodeWords.isCodeWord), each kept or masked whole, and masked parts side
+ * by side one value - "logins.ada_lovelace.count" is "logins.<value>.count",
+ * "acme_payments_total" is "<value>_payments_total". A name is never
+ * aligned: each is read on its own. "" when nothing of the code's is left.
+ */
+export function maskUnprovenNameParts(name: string): string {
+  if (!name) {
+    return "";
+  }
+
+  const pieces: Array<string> = name.split(NAME_SEPARATORS);
+  const kept: Array<string> = [];
+
+  for (let index: number = 0; index < pieces.length; index++) {
+    const piece: string = pieces[index]!;
+
+    // Odd indexes are the separators split kept.
+    if (index % 2 === 1 || !piece) {
+      kept.push(piece);
+      continue;
+    }
+
+    if (isCodeWord(piece, { atSentenceStart: true })) {
+      kept.push(piece);
+      continue;
+    }
+
+    // A masked part right after another, a separator between: one value.
+    if (kept.length >= 2 && kept[kept.length - 2] === VALUE_PLACEHOLDER) {
+      kept.pop();
+      continue;
+    }
+
+    kept.push(VALUE_PLACEHOLDER);
+  }
+
+  const masked: string = kept.join("");
+
+  return CODE_WORD.test(masked.replace(/<[^<>]*>/g, " ")) ? masked : "";
 }

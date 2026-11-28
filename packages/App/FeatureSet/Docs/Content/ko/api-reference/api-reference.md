@@ -274,7 +274,7 @@ Incident Severity with the same name already exists.
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-이런 거부에는 키가 그 레코드를 읽을 수 있을 때 그 이름을 가진 레코드의 ID인 `takenById`도 들어 있습니다. 프로젝트가 고유한 이름을 요구하기 전부터 이름을 공유하던 레코드는 이름이 바뀔 때까지 그 이름을 유지하며, 한 번의 업데이트로 같은 종류의 여러 레코드에 같은 이름을 붙일 수는 없습니다. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check`는 이름을 보내기 전에 그 이름이 쓰이고 있는지 알려 주고, `GET /api/unique-names/duplicates`는 프로젝트에서 두 번 이상 쓰이는 이름을 종류별로 나열합니다.
+이런 거부에는 키가 그 레코드를 읽을 수 있을 때 그 이름을 가진 레코드의 ID인 `takenById`도 들어 있습니다. 프로젝트가 고유한 이름을 요구하기 전부터 이름을 공유하던 레코드는 이름이 바뀔 때까지 그 이름을 유지하며, 한 번의 업데이트로 같은 종류의 여러 레코드에 같은 이름을 붙일 수는 없습니다. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check`는 이름을 보내기 전에 그 이름이 쓰이고 있는지 알려 주고, `GET /api/unique-names/duplicates`는 프로젝트에서 두 번 이상 쓰이는 이름을 종류별로 나열합니다. `GET /api/shared-names/Monitor`(또는 이 설정이 적용되는 다른 종류의 테이블 이름)는 대시보드의 목록이 표시하는 것처럼 그 종류의 어떤 레코드가 이름을 공유하는지 알려 줍니다. 응답은 `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}` 형식이며, 각 그룹은 키가 읽을 수 있는 레코드 두 개 이상이고 각 레코드를 만든 시각이 함께 담깁니다. 보관된 레코드는 운영 중인 레코드와 따로 묶입니다.
 
 #### 다른 레코드가 이미 가진 값
 
@@ -300,6 +300,22 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 레코드의 값을 이미 있는 그대로 쓰는 업데이트는 아무것도 바꾸지 않습니다. 레코드의 **On Update** 워크플로를 시작하지 않고, 실시간 업데이트를 보내지 않으며, 감사 로그 항목도 추가하지 않습니다. `false` 위에 쓴 `false`는 같은 값으로 간주되며, `false` 위에 쓴 `"false"`, 텍스트로 쓴 숫자, 다른 형식으로 쓴 같은 시점, 순서만 다른 같은 레이블도 마찬가지입니다. 업데이트가 일부 값을 바꾸고 다른 값은 그대로 다시 쓰면, 감사 로그 항목에는 바뀐 값만 나열되고 워크플로의 **지켜볼 필드**도 그 값만 받습니다.
+
+### JSON으로 쓰는 값
+
+어떤 필드는 온콜 스케줄 레이어의 `rotation` 과 `restrictionTimes` 처럼 고유한 형태의 JSON 값을 담습니다. API 레퍼런스는 각 형태를 데이터 유형에서 보여 줍니다. OneUptime은 그 형태의 키만 읽으므로, 의미를 나타내는 키를 빠뜨리거나, 그 키를 다른 철자로 쓰거나, OneUptime이 모르는 값을 준 값은 아무 일도 하지 않는 값으로 저장되는 대신 키를 밝히는 `400` 으로 거부됩니다:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+이름이 바뀐 키는 예전 이름으로도 계속 읽힙니다. 레이어의 제한 종류는 `restrictionType` 이나 예전 철자 `restictionType` 에 쓰며, 응답에는 둘 다 담깁니다. 예전 철자는 응답에서 더 이상 사용되지 않습니다. 응답에는 2027년 6월 1일 또는 그 이후에 처음 출시되는 메이저 버전이 나올 때까지 담깁니다. 쓰기에서는 항상 읽습니다.
+
+값은 그 값이 말하는 내용과도 맞아야 합니다. 레이어의 주간 시간대는 지정한 요일에 온콜이므로, 그 `startTime` 과 `endTime` 은 스케줄의 시간대 기준으로 각각 `startDay` 와 `endDay` 에 걸려야 합니다. 다른 요일로 날짜가 잡힌 시간대는 그 시간대를 밝히고 대신 보낼 수 있는 지정 요일의 시각을 알려 주는 `400` 으로 거부됩니다:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### 프로젝트를 구매한 곳
 
@@ -412,6 +428,44 @@ Incident not found.
 ```
 
 예전에는 빈 본문과 함께 `200`으로 응답했습니다. 목록(`get-list`)과 개수는 여전히 읽을 수 있는 레코드와 함께 `200`으로 응답하며, 없으면 아무것도 돌려주지 않습니다. Terraform 공급자는 새로 고침 중의 `404`를 사라진 리소스로 읽고 state에서 제거하므로, 다음 plan에서 리소스를 다시 만듭니다. 공급자가 쓰는 API 키에는 관리하는 모든 리소스를 읽을 수 있는 권한과 레이블을 주세요. MCP 도구는 `404`에 대해 해당 목록 도구를 안내하는 오류로 응답하며, CLI는 코드 `3`으로 종료합니다.
+
+### 레코드의 Markdown에 있는 이미지
+
+Markdown에 붙여 넣은 이미지(인시던트 설명, Markdown 사용자 정의 필드, 노트에 있는 스크린샷 등)는 비공개 파일입니다. 그 주소(`/file/image/access-token/...`)로는 프로젝트에 로그인한 사람만 열 수 있으므로, API 키는 이미지를 보여 주는 레코드를 통해 읽습니다.
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+레코드는 `get-item`이 읽는 것과 같이 키로서 읽힙니다. 키에는 레코드를 읽을 권한과 그 레이블이 필요합니다. 응답에는 레코드의 Markdown이 보여 주는 이미지가 보여 주는 순서대로 들어 있고, 각각 `name`, `mimeType`, `sizeInBytes`, `base64` 데이터, 이메일 인라인 첨부용 `contentId`, Markdown이 보여 줄 때 쓰는 `urls`, 이미지가 있는 `fields`가 있습니다. `leftOut`에는 Markdown이 보여 주지만 넘겨주지 않은 파일이 각각 `reason`과 함께 있습니다.
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+넘겨주는 것은 레코드 자신의 프로젝트에 업로드된 그림뿐이며, 최대 20개, 모두 합쳐 10 MB까지이고, SVG는 넘겨주지 않습니다. Markdown이 있는 모든 종류의 레코드에 같은 요청이 있으며, `/api/incident-public-note/<id>/markdown-files`나 `/api/alert/<id>/markdown-files`처럼 씁니다. 없는 레코드나 키가 읽을 수 없는 레코드는 `get-item`처럼 `404`로 응답하고, 키가 그 종류의 레코드를 아예 읽을 수 없으면 `422`로 응답합니다. 워크플로는 같은 이미지를 [Markdown에서 파일 가져오기](/docs/workflows/components#get-files-from-markdown)로 읽습니다.
 
 ## 전체 엔드포인트 참조
 

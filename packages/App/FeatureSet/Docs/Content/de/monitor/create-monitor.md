@@ -63,7 +63,7 @@ Klicken Sie auf **Weiter**. Auf diesem Schritt wird nichts als fehlend markiert,
 
 ### Wie Kriterien ausgewertet werden
 
-Das Ergebnis jeder Prüfung durchläuft die Kriterien von oben nach unten, und das erste zutreffende entscheidet, was passiert. Dieses Kriterium kann den Status des Monitors ändern, einen Vorfall melden, eine Warnung erstellen oder alles in beliebiger Kombination. Trifft keines zu, zeigt der Monitor seinen **Standard-Überwachungsstatus**, der unter **Weitere Felder** unterhalb der Kriterien eingestellt wird (**Betriebsbereit**, sofern Sie keinen anderen wählen).
+Das Ergebnis jeder Prüfung durchläuft die Kriterien von oben nach unten, und das erste zutreffende entscheidet, was passiert. Dieses Kriterium kann den Status des Monitors ändern, einen Vorfall melden, eine Warnung erstellen oder alles in beliebiger Kombination. Eines, das keinen Status ändert, entscheidet keinen: Das erste Kriterium darunter, das zutrifft und den Status ändert, setzt ihn. Trifft keines zu, zeigt der Monitor seinen **Standard-Überwachungsstatus**, der unter **Weitere Felder** unterhalb der Kriterien eingestellt wird (**Betriebsbereit**, sofern Sie keinen anderen wählen).
 
 ```mermaid title="Von einer Prüfung zu einem Status, einem Vorfall oder einer Warnung"
 flowchart TB
@@ -95,7 +95,7 @@ Wählen Sie ein **Überwachungsintervall**, von **Jede Minute** bis **Jede Woche
 
 ### Den Monitor erstellen
 
-Klicken Sie auf **Monitor erstellen**. Die Seite des neuen Monitors öffnet sich. Um seine Sonden oder sein Intervall später zu ändern, öffnen Sie auf dieser Seite **Konfiguration → Sonden & Intervall**.
+Klicken Sie auf **Monitor erstellen**. Die Seite des neuen Monitors öffnet sich. Slack und Microsoft Teams erfahren davon, sobald seine Eigentümer und Beschriftungen hinzugefügt sind, sodass eine Benachrichtigungsregel, die nach den Eigentümern oder Beschriftungen eines Monitors fragt, seine Erstellungsnachricht postet und sein erster Status auf diese Nachricht folgt. Um seine Sonden oder sein Intervall später zu ändern, öffnen Sie auf dieser Seite **Konfiguration → Sonden & Intervall**.
 :::
 
 Alle anderen Typen außer Manuell werden auf dem Schritt **Kriterien** erstellt.

@@ -17,6 +17,7 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import { TELEMETRY_AI_RULE_CRITERIA_FIELDS } from "../../../Types/AI/AiRuleCriteria";
 import { DATA_SECURITY_AI_RULE_ISSUE_CRITERIA_FIELDS } from "../../../Types/DataSecurity/DataSecurityAi";
+import { CLOUD_SAVINGS_AI_RULE_CRITERIA_FIELDS } from "../../../Types/Cloud/CloudSavingsAi";
 import { getMetadataArgsStorage } from "typeorm";
 import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
 
@@ -160,7 +161,9 @@ describe("AIPostmortemRule", () => {
      * alerts' severities, nor the service conditions a telemetry product's
      * AI rules match on (Types/AI/TelemetryAi), nor the conditions a Data
      * Security issue's AI rules match on - its check, severity, store and
-     * data (#10494, Types/DataSecurity/DataSecurityAi).
+     * data (#10494, Types/DataSecurity/DataSecurityAi), nor the ones a
+     * savings AI rule matches on - the kind of change, the resource's
+     * environment and its cloud (#11010, Types/Cloud/CloudSavingsAi).
      */
     expect(
       (getRuleCriteriaFieldsForModel("AutoRemediationRule") || []).filter(
@@ -168,7 +171,8 @@ describe("AIPostmortemRule", () => {
           return (
             field !== "alertSeverities" &&
             !TELEMETRY_AI_RULE_CRITERIA_FIELDS.includes(field) &&
-            !DATA_SECURITY_AI_RULE_ISSUE_CRITERIA_FIELDS.includes(field)
+            !DATA_SECURITY_AI_RULE_ISSUE_CRITERIA_FIELDS.includes(field) &&
+            !CLOUD_SAVINGS_AI_RULE_CRITERIA_FIELDS.includes(field)
           );
         },
       ),

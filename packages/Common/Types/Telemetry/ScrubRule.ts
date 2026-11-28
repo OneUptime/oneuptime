@@ -4,6 +4,24 @@ import LogScrubPatternType from "../Log/LogScrubPatternType";
 import TraceScrubAction from "../Trace/TraceScrubAction";
 import TraceScrubField from "../Trace/TraceScrubField";
 import TraceScrubPatternType from "../Trace/TraceScrubPatternType";
+import {
+  foldDigits,
+  hasDigitBeyondAscii,
+} from "../../Utils/DataSecurity/DigitReadings";
+import {
+  foldFullwidthForms,
+  holdsFullwidthFormOfANumber,
+  holdsFullwidthLettersOfAValue,
+} from "../../Utils/DataSecurity/FullwidthForms";
+import PercentDecodedText from "../../Utils/DataSecurity/PercentDecodedText";
+import PlusAsSpaceText from "../../Utils/DataSecurity/PlusAsSpaceText";
+import {
+  mergeRanges,
+  ReadingNeeds,
+  TextRange,
+  TextReading,
+  TextReadings,
+} from "../../Utils/DataSecurity/TextReadings";
 import LinearRegExp from "../../Utils/LinearRegExp/LinearRegExp";
 import {
   getLinearRegExp,
@@ -88,6 +106,55 @@ export interface ScrubRegExp {
    * (Utils/Telemetry/ScrubJsonText.ts).
    */
   matchRanges(text: string): Array<[number, number]>;
+  /*
+   * A match as the reading it was found in reads it, for what Mask and
+   * Hash make of it (Server/Utils/Telemetry/ScrubAction): a custom
+   * pattern's, found only once a "+" is read as the space a URL's query
+   * string writes it for (#11199), as it reads so. None for a pattern
+   * whose every match reads as it is written (readScrubMatch).
+   */
+  readMatch?(matchedText: string): string;
+  /*
+   * The pattern as it reads the texts of a value held under a key (#11383):
+   * a Phone Number or SSN rule's, whose type Data Security also finds by a
+   * field's name - a national number alone under `user.phone`, nine digits
+   * under `customer.ssn` - and inside a list or a map as the JSON text the
+   * table stores it as. `key`: the field's name, an attribute's key as
+   * Data Security names its location; `value`: what the key holds - a text,
+   * a number (read as its text), or a list or a map whose texts the engine
+   * reads one by one. The pattern itself when the key and the value change
+   * nothing it finds - and an engine reads a number only where they do. None
+   * for a pattern that reads a text alone, whatever holds it
+   * (scrubRegExpUnderKey).
+   */
+  underKey?(key: string, value: unknown): ScrubRegExp;
+}
+
+/*
+ * A rule's pattern as it reads the texts of a value held under `key`
+ * (ScrubRegExp.underKey, #11383): what an engine reads an attribute's texts
+ * with - a log's, a span's, an event's, an exception's, a session
+ * replay's, a metric point's - and the pattern itself for a text no key
+ * holds, or a pattern that reads a text alone.
+ */
+export function scrubRegExpUnderKey(
+  regex: ScrubRegExp,
+  key: string | null | undefined,
+  value: unknown,
+): ScrubRegExp {
+  return regex.underKey && key ? regex.underKey(key, value) : regex;
+}
+
+/*
+ * A match of a rule's pattern as the reading it was found in reads it
+ * (ScrubRegExp.readMatch), or as it is written when the pattern says
+ * nothing of its readings.
+ */
+export function readScrubMatch(
+  regex: ScrubRegExp | null | undefined,
+  matchedText: string,
+): string {
+  return regex?.readMatch ? regex.readMatch(matchedText) : matchedText;
 }
 
 /*
@@ -282,15 +349,34 @@ class RangesScrubRegExp implements ScrubRegExp {
   public readonly source: string;
   public readonly flags: string;
   private readonly findRanges: (text: string) => Array<[number, number]>;
+  private readonly findRangesUnderKey: FindRangesUnderKey | undefined;
 
   public constructor(data: {
     source: string;
     flags: string;
     findRanges: (text: string) => Array<[number, number]>;
+    findRangesUnderKey?: FindRangesUnderKey | undefined;
   }) {
     this.source = data.source;
     this.flags = data.flags;
     this.findRanges = data.findRanges;
+    this.findRangesUnderKey = data.findRangesUnderKey;
+  }
+
+  // See ScrubRegExp.underKey: this, when the key and the value change nothing.
+  public underKey(key: string, value: unknown): ScrubRegExp {
+    const findRanges: ((text: string) => Array<[number, number]>) | null = this
+      .findRangesUnderKey
+      ? this.findRangesUnderKey(key, value)
+      : null;
+
+    return findRanges
+      ? new RangesScrubRegExp({
+          source: this.source,
+          flags: this.flags,
+          findRanges,
+        })
+      : this;
   }
 
   public test(text: string): boolean {
@@ -338,15 +424,28 @@ export function scrubRegExpFromBuiltIn(regex: RegExp): ScrubRegExp {
 }
 
 /*
+ * How a built-in pattern finds its matches in the texts of a value held
+ * under a key (ScrubRegExp.underKey, #11383): a finder of its own for
+ * them, or null when the key and the value change nothing it finds.
+ */
+export type FindRangesUnderKey = (
+  key: string,
+  value: unknown,
+) => ((text: string) => Array<[number, number]>) | null;
+
+/*
  * A built-in pattern whose matches `findRanges` finds: [start, end) pairs,
  * left to right, none overlapping. `source` and `flags` say what it finds,
- * as a RegExp's would. OneUptime's own code only: like
- * scrubRegExpFromBuiltIn, never for a pattern a project wrote.
+ * as a RegExp's would. `findRangesUnderKey`: how it finds them in a value
+ * held under a key, for a pattern that reads the key too (#11383).
+ * OneUptime's own code only: like scrubRegExpFromBuiltIn, never for a
+ * pattern a project wrote.
  */
 export function scrubRegExpFromRanges(data: {
   source: string;
   flags: string;
   findRanges: (text: string) => Array<[number, number]>;
+  findRangesUnderKey?: FindRangesUnderKey | undefined;
 }): ScrubRegExp {
   return new RangesScrubRegExp(data);
 }
@@ -354,13 +453,16 @@ export function scrubRegExpFromRanges(data: {
 /*
  * THE BUILT-IN PATTERNS' VALUE MATCHERS, WRITTEN ONCE (#10433).
  *
- * What an Email, Credit Card, SSN or Phone Number rule finds in a value:
- * the log and trace engines scrub with these (App/FeatureSet/Telemetry/
- * Services/LogScrubRuleService.ts, TraceScrubRuleService.ts), and the
- * lookup of what reads a value a rule would hide asks them of the values a
- * monitor or a saved view looks for (Utils/Telemetry/ScrubRuleFieldReads) -
- * one definition, so the answer is what ingest does. Each is used through
- * scrubRegExpFromBuiltIn, which gives every use its own lastIndex.
+ * What an Email, Credit Card, SSN or Phone Number rule's own pattern finds
+ * in a value. A rule hides these and, beside them, what Data Security's
+ * detectors call that type (Utils/Telemetry/ScrubBuiltInPatterns.ts: #10935
+ * and #10960 for emails and cards, #11025 and #11030 for phone and Social
+ * Security numbers) - the code every place a rule runs compiles it with:
+ * the log and trace engines (App/FeatureSet/Telemetry/Services/
+ * LogScrubRuleService.ts, TraceScrubRuleService.ts), and the lookup of
+ * what reads a value a rule would hide (Utils/Telemetry/
+ * ScrubRuleFieldReads), so the answer is what ingest does. Each is used
+ * through scrubRegExpFromBuiltIn, which gives every use its own lastIndex.
  *
  * IP Address is not here: its matches are what Data Security's own
  * detectors call an IP address (Utils/Telemetry/ScrubIpAddress, #10393).
@@ -480,11 +582,219 @@ export function getRegexSyntaxErrorReason(error: unknown): string {
   return message.replace(REGEX_SYNTAX_ERROR_PREFIX, "").trim() || message;
 }
 
+/*
+ * The readings a custom pattern runs in beside the text as written - and
+ * a metric pipeline rule's Matches Regex filter, where the rule hides what
+ * it matches (Server/Utils/Telemetry/MetricPipelineEngine): every reading
+ * Data Security's detectors read a value in.
+ */
+export const CUSTOM_PATTERN_READINGS: ReadingNeeds = {
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
+  readsFullwidthForms: true,
+  readsFullwidthLetters: true,
+};
+
+/*
+ * Whether a text may read otherwise than as written, in a way a custom
+ * pattern reads it: an escape, a "+", a digit beyond ASCII, a number's
+ * fullwidth sign or separator or another dash between two digits, or some
+ * of a value typed in fullwidth letters. Nearly no text does, and is read
+ * as written alone.
+ */
+export function mayReadOtherwise(text: string): boolean {
+  return (
+    text.indexOf("%") !== -1 ||
+    text.indexOf("+") !== -1 ||
+    hasDigitBeyondAscii(text) ||
+    holdsFullwidthFormOfANumber(text) ||
+    holdsFullwidthLettersOfAValue(text)
+  );
+}
+
+/*
+ * A CUSTOM PATTERN, IN EVERY READING OF A VALUE (#11031, #11033, #11199,
+ * #11115).
+ *
+ * A Custom Regex rule - one a person wrote, or the one "Scrub it" makes
+ * from a data type's own patterns (TelemetryScrubCoverage's
+ * buildScrubPatternForDataType) - finds its pattern in the text as it is
+ * written, and in the readings Data Security's detectors read it in
+ * (Utils/DataSecurity/TextReadings): with its percent-escapes read, so a
+ * redirect's token after an encoded "=" (%3Dghp_...) or an AWS secret
+ * whose "/" is %2F is hidden; as a URL's query string reads it, a "+"
+ * between two characters of a value the space a form writes it for, so an
+ * IBAN typed in its groups into a form - iban=DE44+5001+0517+5407+3249+31 -
+ * is hidden too, as one with %20 between its groups was; with every
+ * script's digits read by their values, so an IBAN or a national ID
+ * number in Arabic-Indic or fullwidth digits is; and with a number's
+ * fullwidth signs and separators read as ASCII, so a CPF typed wholly in
+ * fullwidth, ４７１．３９２．８６５－８２, is too (#11115), and one whose
+ * groups are set apart by another dash, 471.392.865–82; and with the
+ * fullwidth ASCII block read as ASCII, so an IBAN typed in fullwidth
+ * letters, ＧＢ８２ ＷＥＳＴ …, is too (#11385). Each match is placed on the
+ * characters the text writes it with, escapes and "+"s and fullwidth forms
+ * and all, and what two readings share is one match. So a finding the
+ * detectors make in a reading, the rule made from their patterns hides
+ * there.
+ *
+ * A text with no escape, no "+", no digit beyond ASCII, no fullwidth form
+ * beside a digit, no other dash between two and no value typed in
+ * fullwidth letters - nearly every one - has no other reading, and is read
+ * exactly as before (mayReadOtherwise). A match of no text in another
+ * reading hides nothing, and is left out.
+ */
+class ReadingsScrubRegExp implements ScrubRegExp {
+  public readonly source: string;
+  public readonly flags: string;
+  private readonly written: ScrubRegExp;
+
+  public constructor(written: ScrubRegExp) {
+    this.written = written;
+    this.source = written.source;
+    this.flags = written.flags;
+  }
+
+  // The text's readings, the text as written first: one when it has no other.
+  private static readingsOf(text: string): Array<TextReading> | null {
+    if (!mayReadOtherwise(text)) {
+      return null;
+    }
+
+    const readings: Array<TextReading> = new TextReadings(text).readingsFor(
+      CUSTOM_PATTERN_READINGS,
+    );
+
+    return readings.length > 1 ? readings : null;
+  }
+
+  public test(text: string): boolean {
+    if (this.written.test(text)) {
+      return true;
+    }
+
+    return ReadingsScrubRegExp.readingsOf(text) !== null
+      ? this.matchRanges(text).length > 0
+      : false;
+  }
+
+  public replace(
+    text: string,
+    replacer: (matchedText: string) => string,
+  ): string {
+    if (ReadingsScrubRegExp.readingsOf(text) === null) {
+      return this.written.replace(text, replacer);
+    }
+
+    const ranges: Array<[number, number]> = this.matchRanges(text);
+    const pieces: Array<string> = [];
+    let copiedUpTo: number = 0;
+
+    for (const [start, end] of ranges) {
+      pieces.push(
+        text.slice(copiedUpTo, start),
+        replacer(text.slice(start, end)),
+      );
+      copiedUpTo = end;
+    }
+
+    pieces.push(text.slice(copiedUpTo));
+
+    return pieces.join("");
+  }
+
+  public matchRanges(text: string): Array<[number, number]> {
+    const readings: Array<TextReading> | null =
+      ReadingsScrubRegExp.readingsOf(text);
+
+    if (readings === null) {
+      return this.written.matchRanges(text);
+    }
+
+    const found: Array<TextRange> = [];
+
+    for (const reading of readings) {
+      for (const [start, end] of this.written.matchRanges(reading.text)) {
+        if (end > start) {
+          found.push([reading.toWritten(start), reading.toWritten(end)]);
+        }
+      }
+    }
+
+    return mergeRanges(found);
+  }
+
+  // Whether the pattern, as written, finds the whole of a text as one match.
+  private matchesWhole(text: string): boolean {
+    return this.written
+      .matchRanges(text)
+      .some(([start, end]: [number, number]): boolean => {
+        return start === 0 && end === text.length;
+      });
+  }
+
+  /*
+   * A match as the reading it was found in reads it (#11199), for Mask and
+   * Hash: as written - ScrubAction reads its escapes and every script's
+   * digits, as it always has - unless the pattern finds it whole only with
+   * its "+"s read as the spaces a query string writes them for: then as it
+   * reads so, DE44+5001+0517+... as DE44 5001 0517 ..., so its mask is the
+   * value's and its token the one the value written plainly has. A "+" the
+   * pattern matches as written - a base64 key's, jane+news@example.com's -
+   * is the value's own, and stays. The match is read alone, so a pattern
+   * that needs the text around it (a look-behind's words) reads it as
+   * written. A match found only with its fullwidth forms read
+   * (４７１．３９２．８６５－８２) reads as written here: ScrubAction reads its
+   * forms as it reads its digits.
+   */
+  public readMatch(matchedText: string): string {
+    // A "+" written, or escaped as a URL inside a query string writes one (%2B).
+    const decoded: string = PercentDecodedText.readableOf(matchedText);
+
+    if (decoded.indexOf("+") === -1) {
+      return matchedText;
+    }
+
+    for (const reading of new Set<string>([
+      matchedText,
+      decoded,
+      foldDigits(matchedText),
+      foldDigits(decoded),
+      foldFullwidthForms(foldDigits(matchedText)),
+      foldFullwidthForms(foldDigits(decoded)),
+    ])) {
+      if (this.matchesWhole(reading)) {
+        return matchedText;
+      }
+    }
+
+    const spaced: string = PlusAsSpaceText.readableOf(matchedText);
+
+    if (spaced === decoded) {
+      return matchedText;
+    }
+
+    for (const reading of new Set<string>([
+      spaced,
+      foldDigits(spaced),
+      foldFullwidthForms(foldDigits(spaced)),
+    ])) {
+      if (this.matchesWhole(reading)) {
+        return spaced;
+      }
+    }
+
+    return matchedText;
+  }
+}
+
 /**
  * A custom pattern compiled the way ingest compiles it - ingest calls this -
  * or null when it cannot be: empty, not a regular expression, or one the
  * linear-time matcher cannot run (a back-reference). A rule whose pattern
- * compiles to null scrubs nothing.
+ * compiles to null scrubs nothing. It reads a value as written and in
+ * every reading Data Security's detectors read it in (ReadingsScrubRegExp).
  *
  * Compiled now, so a pattern that cannot run is known now - unless the work
  * allowance of the batch under way is spent (Utils/LinearRegExp/PatternWork.ts):
@@ -514,7 +824,7 @@ export function compileScrubRuleCustomRegex(
     }
   }
 
-  return new CustomScrubRegExp(handle);
+  return new ReadingsScrubRegExp(new CustomScrubRegExp(handle));
 }
 
 /**

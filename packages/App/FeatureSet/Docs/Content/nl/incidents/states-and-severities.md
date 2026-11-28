@@ -65,7 +65,7 @@ Er worden met het project drie statussen aangemaakt, in deze volgorde. Het aanma
 
 | Vlag                  | Doel                                                                                                                                                                                                 |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | De status die een incident krijgt als niemand er een koos. Draagt geen enkele status in het project deze vlag, dan mislukt het aanmaken van een incident met een fout die je vraagt vanuit de instellingen een aanmaakstatus voor incidenten toe te voegen. |
+| `isCreatedState`      | De status die een incident krijgt als niemand er een koos — tenzij het project met de hand gemelde incidenten al bevestigd laat beginnen en zo'n incident geen bereikbaarheidsbeleid oproept: zie [Met de hand gemelde incidenten](#met-de-hand-gemelde-incidenten). Draagt geen enkele status in het project deze vlag, dan mislukt het aanmaken van een incident met een fout die je vraagt vanuit de instellingen een aanmaakstatus voor incidenten toe te voegen. |
 | `isAcknowledgedState` | Markeert de bevestigde status van het project: de status waarnaar **Bevestigen** een incident verplaatst en waarnaar de statistiektegel voor bevestiging is genoemd. Een incident in die status, in een latere status, of opgelost, is bevestigd — **Bevestigen** wordt er niet meer voor aangeboden, de bereikbaarheidsdienst stopt met oproepen ervoor, en zijn SLA wordt als beantwoord gemarkeerd. |
 | `isResolvedState`     | Markeert de opgeloste status van het project: de status waarnaar **Oplossen** een incident verplaatst en die de statistiektegel voor oplossing toont. Een incident in die status, of in een latere status, is opgelost — het verdwijnt uit **Actieve incidenten** en uit het actieve deel van een statuspagina, en zijn SLA wordt als opgelost gemarkeerd. |
 
@@ -75,6 +75,28 @@ Per project hoort maar één status elke vlag te dragen — de opzoekingen pakke
 - **Ze kunnen niet worden verwijderd.** Hun **Verwijderen** blijft in het menu van de rij staan, vergrendeld, met de reden. Een bulkverwijdering slaat ze over en noemt ze als niet verwijderd. Ook de API weigert de laatste aanmaak-, bevestigde of opgeloste status van een project te verwijderen.
 
 Omdat de interface statusnamen dynamisch leest, verandert het hernoemen van een status wat je overal ziet — de statistiektegels (**Bevestigd na** en **Opgelost na** met de vooraf aangemaakte namen), de bevestiging **Incident markeren als …** van een eigen status en het label in de incidentenlijst volgen allemaal de naam die je de rij gaf.
+
+## Met de hand gemelde incidenten
+
+Elk nieuw incident begint in je aanmaakstatus en wacht daar tot het wordt bevestigd. Meld je er zelf een, dan ben jij meestal degene die reageert: je wordt de Incident Commander ervan zodra je het meldt, en bevestigen kost je dan nog maar één klik. Een project kan die incidenten in plaats daarvan al bevestigd laten beginnen.
+
+:::steps
+1. Open **Incidenten → Instellingen → Status incident** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Zet onder de lijst met statussen **Start incidents declared by hand acknowledged** aan. Hij wordt opgeslagen zodra je hem omzet.
+:::
+
+Hij staat in elk project uit tot je hem aanzet, dus een upgrade verandert nooit wie er wordt opgeroepen. Alleen Projecteigenaars en Projectbeheerders kunnen hem wijzigen; voor alle anderen is de schakelaar vergrendeld en zegt hij welke machtiging hij nodig heeft.
+
+Zolang hij aanstaat, begint een met de hand gemeld incident — met **Incident melden**, waar je het ook opent, of met het incidentformulier in Slack of Microsoft Teams — in je bevestigde status als aan allebei deze voorwaarden is voldaan:
+
+- **Er is geen status voor gekozen**, niet door jou en niet door het sjabloon waaruit het wordt gemeld. Een gekozen status wint, zoals altijd.
+- **Het roept geen bereikbaarheidsbeleid op**, niet een dat jij kiest en niet een van zijn sjabloon. Kies je een beleid, dan begint het incident in je aanmaakstatus, zoals voorheen, zodat het beleid zijn mensen oproept.
+
+Omdat het bevestigd begint, roept het niemand op: zoals bij elk incident dat [al bevestigd wordt gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld), wordt er geen bereikbaarheidsbeleid uitgevoerd, zelfs geen beleid dat een bereikbaarheidsregel toevoegt. Zijn SLA begint al als beantwoord, en zijn tijd tot bevestiging is nul, wat meetelt in je MTTA.
+
+**Incident melden** zegt dat al voordat je meldt: onder **Initiële status**, onder **Bereikbaarheidsbeleid** zolang er geen is gekozen, en in de samenvatting, die dan altijd **Initiële status** noemt. Het vult **Initiële status** nooit voor je in: een status die daar is gekozen, wint, dus het bereikbaarheidsbeleid dat je in de laatste stap kiest, zou dan niemand oproepen. Slack en Microsoft Teams zeggen het onder hun bereikbaarheidsbeleid en in het bericht dat het incident bevestigt.
+
+Incidenten die niemand met de hand meldt — geopend door monitoren of incidentregels van waarschuwingen, via de API, Terraform, workflows of formulieren, vanuit een beveiligingszaak of door OneUptime AI — beginnen in je aanmaakstatus, zoals voorheen. Via de API is de schakelaar het veld `startIncidentsDeclaredByHandAcknowledged` van het project.
 
 ## Eigen statussen toevoegen
 
@@ -204,7 +226,7 @@ Waarschuwingen en episodes volgen dezelfde regel, met je waarschuwingsstatussen.
 
 Een incident is opgelost wanneer het van een status boven je opgeloste status in de opgeloste status komt, of in een latere status — via welke van de vijf manieren hierboven ook. Elke keer oplossen:
 
-- **Geeft de monitoren vrij die het incident vasthoudt.** Een incident dat open wordt gemeld, houdt zijn monitoren vast: het zette ze in zijn status van **Monitorstatus wijzigen naar**, als het er een noemt, en pauzeerde, als het met de hand werd gemeld, hun bewaking. Een bewerking terwijl het open is — monitoren toevoegen, of die status wijzigen — laat het ze ook vasthouden. Oplossen hervat hun bewaking en zet ze terug op operationeel, tenzij er nog een ander open incident op ze staat, en vanaf dan houdt het incident niets meer vast. Een incident dat al opgelost wordt gemeld, geeft dus niets vrij, en een tweede keer oplossen na een heropening ook niet: een status die zijn monitoren in de tussentijd kregen — van hun sondes, van onderhoud of met de hand ingesteld — blijft.
+- **Geeft de monitoren vrij die het incident vasthoudt.** Een incident dat open wordt gemeld, houdt zijn monitoren vast: het zette ze in zijn status van **Monitorstatus wijzigen naar**, als het er een noemt, en pauzeerde, als het met de hand werd gemeld met **Bewaking pauzeren** aangevinkt, hun bewaking, behalve op monitoren die tijdens incidenten bewaakt blijven. Een bewerking terwijl het open is — monitoren toevoegen, of die status wijzigen — laat het ze ook vasthouden. Oplossen hervat hun bewaking en zet ze terug op operationeel, tenzij er nog een ander open incident op ze staat, en vanaf dan houdt het incident niets meer vast. Een monitor die een ander open, met de hand gemeld incident nog pauzeert, blijft gepauzeerd; een incident dat sinds het oplossen is heropend, houdt niets vast, dus houdt het niets gepauzeerd. Een incident dat al opgelost wordt gemeld, geeft dus niets vrij, en een tweede keer oplossen na een heropening ook niet: een status die zijn monitoren in de tussentijd kregen — van hun sondes, van onderhoud of met de hand ingesteld — blijft. Zie [Bewaking terwijl een incident open is](/docs/incidents/declaring-incidents#bewaking-terwijl-een-incident-open-is).
 - **Markeert de SLA als opgelost** en schrijft, als de postmortem-concepten van OneUptime AI aanstaan, een concept van een postmortem.
 
 Van **Opgelost** verder gaan naar een latere status — **Closed** bijvoorbeeld — is geen tweede keer oplossen: niets hiervan wordt opnieuw uitgevoerd, en er start geen nieuwe SLA. Een incident dat werd gemeld voordat OneUptime dit begon vast te leggen, geeft zijn monitoren bij de volgende keer oplossen vrij, zoals voorheen.

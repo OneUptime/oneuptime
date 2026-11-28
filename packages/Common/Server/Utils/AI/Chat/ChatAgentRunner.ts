@@ -64,6 +64,7 @@ import {
   ObservabilityAssistantExtraTool,
 } from "./ObservabilityAssistant";
 import {
+  AnswerPart,
   compactAgentContext,
   CompactionResult,
   CONTINUE_ANSWER_INSTRUCTION,
@@ -71,7 +72,7 @@ import {
   frameToolResult,
   getElidedToolResultCitations,
   getToolResultLoopCall,
-  joinAnswerContinuation,
+  joinAnswerParts,
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
 import AIAgentRunLimitsHelper, {
@@ -93,6 +94,7 @@ import Timezone from "../../../../Types/Timezone";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
 import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
+import ModelReasoning from "../../../../Utils/LLM/ModelReasoning";
 import {
   AiContextActivity,
   AiContextRule,
@@ -105,7 +107,9 @@ import {
 import ChatInfrastructureAccess, {
   ChatPageInfrastructure,
 } from "./ChatInfrastructureAccess";
+import ChatMcpAccess, { ChatMcpServers } from "./ChatMcpAccess";
 import { readTestPageNotes } from "./ChatTestPageNotes";
+import ToolOutputPager, { READ_TOOL_OUTPUT_TOOL_NAME } from "./ToolOutputPager";
 
 export interface ChatTurnRequest {
   projectId: ObjectID;
@@ -171,6 +175,24 @@ export interface ChatTurnRequest {
    * shared thread brings its own, in extraTools.
    */
   offersPageInfrastructure?: boolean | undefined;
+  /*
+   * Set for every Ask AI turn (the AI chat API) and every turn of an
+   * incident's or alert's conversation (InvestigationThreadService): the
+   * turn may use the project's external MCP servers for the person asking
+   * (ChatMcpAccess) - their tools that only read at once, any other only
+   * once the person approves the call on a card, in every permission mode
+   * (issue #10879: a project's connected servers were never offered to
+   * either). A turn resumed after an approval gets them again, since tools
+   * are never persisted. Left out - an evaluation of Ask AI - no server is
+   * ever reached.
+   */
+  offersExternalMcpServers?: boolean | undefined;
+  /*
+   * The pager the turn's run-scoped tools page their long output with, so
+   * read_tool_output reads all of it: the shared thread hands in the one
+   * its command tools page with. Left out, the turn makes one.
+   */
+  outputPager?: ToolOutputPager | undefined;
   // LlmLog feature label (defaults to OBSERVABILITY_CHAT_FEATURE).
   feature?: string | undefined;
   /*
@@ -204,6 +226,33 @@ export interface ChatExtraTool extends ObservabilityAssistantExtraTool {
   isMutation?: boolean | undefined;
   // As a toolbox tool's: a sentence of Types/AI/AIActionWords.
   buildActionTitle?: ((args: JSONObject) => AIActionSentence) | undefined;
+  /*
+   * A mutation that asks for approval in every permission mode, Auto-run
+   * included, as a setup action does: a change in a system outside
+   * OneUptime, which OneUptime can neither see nor undo - a tool of one of
+   * the project's external MCP servers (McpRunToolkit, issue #10879).
+   */
+  alwaysAsksForApproval?: boolean | undefined;
+  /*
+   * Asked before the card of a call that waits for approval is shown, as a
+   * toolbox action's checks are (AIToolbox.checkBeforeApproval): why it is
+   * not proposed at all - no card, and the model is told - or the
+   * arguments it runs with, written onto the call so the card shows, and
+   * the approval runs, exactly them, and the card's lines.
+   */
+  prepareForApproval?:
+    | ((args: JSONObject) => Promise<ChatExtraToolPreparation>)
+    | undefined;
+}
+
+// What an extra tool's prepareForApproval found.
+export interface ChatExtraToolPreparation {
+  // Not proposed at all: why, as running it would have refused it.
+  refused?: ToolCallOutcome | undefined;
+  // The arguments it runs with, when it rewrites the model's.
+  arguments?: JSONObject | undefined;
+  // The lines under the card's title.
+  description?: Array<AIActionSentence> | undefined;
 }
 
 // The user's per-action approve/deny decision when resuming a paused turn.
@@ -214,8 +263,11 @@ export interface ResumeToolDecision {
 
 /*
  * What a prepared mutation says on its approval card: its title, when the
- * prepare names the record better than buildActionTitle can, and its line
- * (PreparedMutation).
+ * prepare names the record better than buildActionTitle can, its line and
+ * its effects (PreparedMutation) - and whether the call asks for approval
+ * in every mode, Auto-run included (AIToolbox.asksInEveryMode, #10378),
+ * decided from what the prepare read, or without it when the prepare
+ * failed.
  */
 type PreparedActionWords = Pick<
   PreparedMutation,
@@ -224,7 +276,8 @@ type PreparedActionWords = Pick<
   | "namedArguments"
   | "describedArguments"
   | "notRunWithoutApproval"
->;
+  | "effects"
+> & { asksInEveryMode?: boolean | undefined };
 
 /*
  * A turn is not rationed: it makes as many calls as the question needs,
@@ -505,11 +558,14 @@ export function buildReplayedHistoryMessage(
    * ones, leaving claims that look uncited. Strip the markers from replayed
    * answers so only freshly minted citations ever appear; the digest above
    * keeps the underlying evidence referable.
+   *
+   * An answer saved before replies were read for reasoning (issue #11255)
+   * may still hold the model's: it is left out here too, so the model is
+   * never fed its old reasoning as something it said.
    */
-  const prose: string = (message.contentInMarkdown || "").replace(
-    /\s?\[C\d+\]/g,
-    "",
-  );
+  const prose: string = ModelReasoning.removeFrom(
+    message.contentInMarkdown,
+  ).replace(/\s?\[C\d+\]/g, "");
 
   if (prose.trim()) {
     return {
@@ -641,6 +697,12 @@ interface TurnState {
   // The turn's extra tools, so an action card can title an extra mutation.
   extraTools?: Array<ChatExtraTool> | undefined;
   /*
+   * What the turn's tools hold open until it ends - the sessions it opened
+   * on the project's external MCP servers - closed once the turn finishes,
+   * fails or pauses for approval (closeTurnTools).
+   */
+  turnToolClosers: Array<() => Promise<void>>;
+  /*
    * Whether the latest tool call failed: an error the model was shown
    * instead of a result, which loop detection counts.
    */
@@ -667,9 +729,9 @@ export default class ChatAgentRunner {
    */
   @CaptureSpan()
   public static async runTurn(request: ChatTurnRequest): Promise<void> {
-    try {
-      const state: TurnState = this.freshState();
+    const state: TurnState = this.freshState();
 
+    try {
       await this.emitEvent(request, state, {
         eventType: AIRunEventType.RunStarted,
       });
@@ -705,12 +767,15 @@ export default class ChatAgentRunner {
         pageContext,
       );
 
-      // The infrastructure that subject is about, when the turn may reach it.
-      const turn: ChatTurnRequest = await this.withPageInfrastructure(
+      /*
+       * The infrastructure that subject is about, and the project's
+       * external MCP servers, when the turn may reach them.
+       */
+      const turn: ChatTurnRequest = await this.withTurnTools(
         request,
         pageContext,
+        state,
       );
-      state.extraTools = turn.extraTools;
 
       const messages: Array<LLMMessage> = await this.buildInitialMessages(
         turn,
@@ -729,6 +794,8 @@ export default class ChatAgentRunner {
       await this.finalizeWithError(request, message).catch((err: Error) => {
         logger.error(`AI chat turn error finalization failed: ${err.message}`);
       });
+    } finally {
+      await this.closeTurnTools(state);
     }
   }
 
@@ -771,6 +838,7 @@ export default class ChatAgentRunner {
       egressToolEntries: [],
       startedAtMs: Date.now(),
       recordsSeenBeforeTurn: [],
+      turnToolClosers: [],
     };
   }
 
@@ -821,6 +889,7 @@ export default class ChatAgentRunner {
       recordsSeenBeforeTurn: getLatestAIChatRecordsSeen(
         paused.recordsSeenBeforeTurn,
       ),
+      turnToolClosers: [],
     };
 
     const messages: Array<LLMMessage> =
@@ -873,15 +942,44 @@ export default class ChatAgentRunner {
         ? await this.resolvePageContext(request)
         : request.pageContext || undefined;
 
-    const turn: ChatTurnRequest = await this.withPageInfrastructure(
-      request,
-      pageContext,
-    );
-    state.extraTools = turn.extraTools;
+    try {
+      const turn: ChatTurnRequest = await this.withTurnTools(
+        request,
+        pageContext,
+        state,
+      );
+
+      await this.runResumedTurn({
+        turn,
+        state,
+        messages,
+        pendingToolCalls,
+        decisions,
+        pageContext,
+      });
+    } finally {
+      await this.closeTurnTools(state);
+    }
+  }
+
+  /*
+   * A resumed turn, with its tools built again: the person's decisions
+   * applied to the calls it paused on, then its loop where it left off.
+   */
+  private static async runResumedTurn(data: {
+    turn: ChatTurnRequest;
+    state: TurnState;
+    messages: Array<LLMMessage>;
+    pendingToolCalls: Array<LLMToolCall>;
+    decisions: Array<ResumeToolDecision>;
+    pageContext: AIChatPageContext | undefined;
+  }): Promise<void> {
+    const { turn, state, messages, pendingToolCalls, decisions } = data;
+    const request: ChatTurnRequest = turn;
 
     const toolContext: ToolContext = this.buildToolContext(
       request,
-      pageContext,
+      data.pageContext,
     );
 
     /*
@@ -919,11 +1017,13 @@ export default class ChatAgentRunner {
           AIChatToolActionStatus.Approved,
         );
 
+        // A person approved it: the call says so to the tool that runs it.
         const resultText: string = await this.executeToolCall(
           turn,
           state,
           toolContext,
           toolCall,
+          { isApprovedByPerson: true },
         );
 
         resultMessages.set(toolCall.id, {
@@ -991,6 +1091,91 @@ export default class ChatAgentRunner {
   }
 
   /*
+   * The turn with its run-scoped tools, built from current data for this
+   * turn: the infrastructure its subject is about (withPageInfrastructure),
+   * then the project's external MCP servers (withExternalMcpServers), all
+   * paging their long output with one pager, which read_tool_output reads.
+   * What they hold open is closed when the turn ends (closeTurnTools).
+   */
+  private static async withTurnTools(
+    request: ChatTurnRequest,
+    pageContext: AIChatPageContext | undefined,
+    state: TurnState,
+  ): Promise<ChatTurnRequest> {
+    const withPager: ChatTurnRequest = {
+      ...request,
+      outputPager: request.outputPager || new ToolOutputPager(),
+    };
+
+    const turn: ChatTurnRequest = await this.withExternalMcpServers(
+      await this.withPageInfrastructure(withPager, pageContext),
+      state,
+    );
+
+    state.extraTools = turn.extraTools;
+
+    return turn;
+  }
+
+  /*
+   * The turn with the project's external MCP servers, when it may use them
+   * (offersExternalMcpServers): their tools added to its own, and which
+   * servers there are and what it may do with them - or why it may use none
+   * - added to its prompt (ChatMcpAccess). Anything that fails leaves the
+   * turn as it was: it still answers from OneUptime's data.
+   */
+  private static async withExternalMcpServers(
+    request: ChatTurnRequest,
+    state: TurnState,
+  ): Promise<ChatTurnRequest> {
+    if (request.offersExternalMcpServers !== true) {
+      return request;
+    }
+
+    const servers: ChatMcpServers | null = await ChatMcpAccess.buildForTurn({
+      projectId: request.projectId,
+      aiRunId: request.aiRunId,
+      props: request.props,
+      permissionMode: request.permissionMode,
+      outputPager: request.outputPager || new ToolOutputPager(),
+      hasReadToolOutput: (request.extraTools || []).some(
+        (tool: ChatExtraTool): boolean => {
+          return tool.definition.name === READ_TOOL_OUTPUT_TOOL_NAME;
+        },
+      ),
+    });
+
+    if (!servers) {
+      return request;
+    }
+
+    state.turnToolClosers.push(servers.close);
+
+    return {
+      ...request,
+      extraTools: [...(request.extraTools || []), ...servers.extraTools],
+      additionalSystemInstructions: request.additionalSystemInstructions
+        ? `${request.additionalSystemInstructions}\n\n${servers.instructions}`
+        : servers.instructions,
+    };
+  }
+
+  // Ends what the turn's tools held open. Never throws.
+  private static async closeTurnTools(state: TurnState): Promise<void> {
+    for (const close of state.turnToolClosers.splice(0)) {
+      try {
+        await close();
+      } catch (error) {
+        logger.error(
+          `AI chat turn could not close a tool's connection: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+  }
+
+  /*
    * The turn with the infrastructure its subject is about, when it may
    * reach it (offersPageInfrastructure): the command tools added to its
    * own, and what they reach - or why nothing can be reached - added to
@@ -1011,6 +1196,7 @@ export default class ChatAgentRunner {
         aiRunId: request.aiRunId,
         props: request.props,
         pageContext,
+        outputPager: request.outputPager,
       });
 
     if (!infrastructure) {
@@ -1039,6 +1225,8 @@ export default class ChatAgentRunner {
     toolContext: ToolContext,
   ): Promise<LoopOutcome> {
     let finalContent: string = "";
+    // The final answer's reply and its continuations (joinAnswerParts).
+    const answerParts: Array<AnswerPart> = [];
     let finalStopReason: string | undefined = undefined;
     let manifest: AIRunEgressManifest | undefined = undefined;
     /*
@@ -1324,16 +1512,37 @@ export default class ChatAgentRunner {
             : undefined;
 
           /*
-           * Asked for approval: every action in Ask to act, and a setup
-           * action (#6829) in every mode - it makes something that pages
-           * people or that customers see, so Auto-run asks for it too.
+           * Asked for approval: every action in Ask to act, and in every
+           * mode - Auto-run asks for these too:
+           *  - a setup action (#6829): it makes something that pages people
+           *    or that customers see;
+           *  - an action its tool says asks in every mode (#10378): a
+           *    response on a data store, a finding marked not sensitive, a
+           *    risk accepted, and any other that text an attacker wrote (a
+           *    store's name, a finding's evidence) could have talked the
+           *    model into;
+           *  - an extra tool that always asks: a change through one of the
+           *    project's external MCP servers (#10879), in a system outside
+           *    OneUptime that OneUptime can neither see nor undo.
            */
+          const extraTool: ChatExtraTool | undefined = this.getExtraTool(
+            request,
+            toolCall.name,
+          );
           const isSetupAction: boolean =
             isMutation && AIToolbox.isSetupAction(toolCall.name);
+          const asksInEveryMode: boolean =
+            isMutation &&
+            (isSetupAction ||
+              actionWords?.asksInEveryMode === true ||
+              extraTool?.alwaysAsksForApproval === true);
           const asksForApproval: boolean =
             isMutation &&
             (request.permissionMode === AIChatPermissionMode.AskForApproval ||
-              isSetupAction);
+              asksInEveryMode);
+
+          // The card's words, with the lines an extra tool's preparation adds.
+          let cardWords: PreparedActionWords | undefined = actionWords;
 
           /*
            * An action that cannot be made - the person's role may not make
@@ -1348,12 +1557,27 @@ export default class ChatAgentRunner {
            * card: its actions are refused by the same checks as they run.
            */
           if (asksForApproval && !toolCall.argumentsParseError) {
-            const refused: ToolCallOutcome | null =
-              await AIToolbox.checkBeforeApproval({
+            let refused: ToolCallOutcome | null = null;
+
+            if (extraTool) {
+              const preparation: ChatExtraToolPreparation =
+                await this.prepareExtraToolForApproval(extraTool, toolCall);
+
+              refused = preparation.refused || null;
+
+              if (preparation.description) {
+                cardWords = {
+                  ...(actionWords || {}),
+                  description: preparation.description,
+                };
+              }
+            } else {
+              refused = await AIToolbox.checkBeforeApproval({
                 name: toolCall.name,
                 args: toolCall.arguments,
                 ctx: { ...toolContext, plannedCalls: plannedCalls },
               });
+            }
 
             if (refused) {
               state.toolCallCount++;
@@ -1387,7 +1611,7 @@ export default class ChatAgentRunner {
               true,
               AIChatToolActionStatus.Pending,
               undefined,
-              actionWords,
+              cardWords,
             );
             pendingApproval.push(toolCall);
             continue;
@@ -1522,7 +1746,11 @@ export default class ChatAgentRunner {
         continue;
       }
 
-      finalContent = joinAnswerContinuation(finalContent, response.content);
+      answerParts.push({
+        content: response.content,
+        reasoning: response.reasoning,
+      });
+      finalContent = joinAnswerParts(answerParts);
       finalStopReason = response.stopReason;
 
       /*
@@ -1958,19 +2186,41 @@ export default class ChatAgentRunner {
       toolCall.name,
     );
 
-    if (!tool?.prepareMutation || toolCall.argumentsParseError) {
+    if (!tool || toolCall.argumentsParseError) {
       return undefined;
     }
 
     /*
-     * A setup action takes from the model only what its schema takes
-     * (#10041), as the route that runs them outside the chat does: what its
-     * prepare works out - the record each name stands for, by id, the team
-     * an invitation joins - is never the model's to hand it, even where
-     * the prepare finds nothing and leaves the arguments as they were. An
-     * approved card runs the arguments persisted here, prepared once.
+     * Whether the call asks in every mode, from what the prepare read - or,
+     * when there is no prepare or it failed, without it: a tool whose
+     * answer rests on a read then asks (AIToolbox.asksInEveryMode).
      */
-    if (AIToolbox.isSetupAction(toolCall.name)) {
+    const asks: (prepared: PreparedMutation | undefined) => boolean = (
+      prepared: PreparedMutation | undefined,
+    ): boolean => {
+      return AIToolbox.asksInEveryMode({
+        name: toolCall.name,
+        args: toolCall.arguments || {},
+        prepared,
+      });
+    };
+
+    if (!tool.prepareMutation) {
+      return asks(undefined) ? { asksInEveryMode: true } : undefined;
+    }
+
+    /*
+     * A setup action, and an action that takes only what its schema takes
+     * (ObservabilityTool.takesOnlyItsSchema - the Data Security actions,
+     * #10378), takes from the model only what its schema takes (#10041), as
+     * the routes that run them outside the chat do: what its prepare works
+     * out - the record each name stands for, by id, the team an invitation
+     * joins, the findings like one, the plan a fix was shown - is never the
+     * model's to hand it, even where the prepare finds nothing and leaves
+     * the arguments as they were. An approved card runs the arguments
+     * persisted here, prepared once.
+     */
+    if (AIToolbox.isSetupAction(toolCall.name) || tool.takesOnlyItsSchema) {
       toolCall.arguments = readArgumentsTheSchemaTakes(
         tool,
         toolCall.arguments || {},
@@ -1986,6 +2236,8 @@ export default class ChatAgentRunner {
       toolCall.arguments = prepared.arguments;
 
       return {
+        ...(asks(prepared) ? { asksInEveryMode: true } : {}),
+        ...(prepared.effects ? { effects: prepared.effects } : {}),
         ...(prepared.title ? { title: prepared.title } : {}),
         ...(prepared.description && prepared.description.length > 0
           ? { description: prepared.description }
@@ -2011,7 +2263,48 @@ export default class ChatAgentRunner {
           error instanceof Error ? error.message : String(error)
         }`,
       );
-      return undefined;
+      return asks(undefined) ? { asksInEveryMode: true } : undefined;
+    }
+  }
+
+  /*
+   * An extra tool's checks before its card is shown
+   * (ChatExtraTool.prepareForApproval): why it is not proposed at all, or
+   * the arguments it runs with - written onto the call itself, as a
+   * toolbox action's prepared arguments are, so the pending call that is
+   * persisted for approval carries what the person approves - and its
+   * card's lines. A tool with none is proposed as the model asked. A
+   * preparation that fails is a refusal: a card for a call that could not
+   * be checked is never shown.
+   */
+  private static async prepareExtraToolForApproval(
+    extraTool: ChatExtraTool,
+    toolCall: LLMToolCall,
+  ): Promise<ChatExtraToolPreparation> {
+    if (!extraTool.prepareForApproval) {
+      return {};
+    }
+
+    try {
+      const preparation: ChatExtraToolPreparation =
+        await extraTool.prepareForApproval(toolCall.arguments || {});
+
+      if (!preparation.refused && preparation.arguments) {
+        toolCall.arguments = preparation.arguments;
+      }
+
+      return preparation;
+    } catch (error) {
+      const errorMessage: string =
+        error instanceof Error ? error.message : String(error);
+
+      return {
+        refused: {
+          success: false,
+          textForLlm: `Error preparing ${toolCall.name}: ${errorMessage}. Nothing was proposed or sent. Answer with the data you already have.`,
+          errorMessage,
+        },
+      };
     }
   }
 
@@ -2063,6 +2356,8 @@ export default class ChatAgentRunner {
           ...(descriptionSentences.length > 0
             ? { description: descriptionSentences }
             : {}),
+          // What changes, stops working and costs, and why it asks (#10378).
+          ...(words?.effects ? { effects: words.effects } : {}),
           ...(reason ? { reason } : {}),
           ...(words?.title && words.namedArguments
             ? { namedArguments: words.namedArguments }
@@ -2153,6 +2448,8 @@ export default class ChatAgentRunner {
     state: TurnState,
     toolContext: ToolContext,
     toolCall: LLMToolCall,
+    // Set only when a person approved this call on its card (executeResume).
+    options?: { isApprovedByPerson?: boolean | undefined } | undefined,
   ): Promise<string> {
     state.toolCallCount++;
 
@@ -2200,7 +2497,12 @@ export default class ChatAgentRunner {
       request,
       toolContext,
       toolCall,
-      { runDeadlineAtMs: state.runDeadlineAtMs },
+      {
+        runDeadlineAtMs: state.runDeadlineAtMs,
+        ...(options?.isApprovedByPerson === true
+          ? { isApprovedByPerson: true }
+          : {}),
+      },
     );
 
     const durationInMs: number = Date.now() - toolStartMs;
@@ -2688,6 +2990,16 @@ export default class ChatAgentRunner {
       // Same privacy rule as the chat itself: LlmLog is project-readable.
       storeContentPreviews: false,
     });
+
+    /*
+     * A reply the output cap cut off is no title: a title is a few words,
+     * so a reply that ran out of room is something else - a model thinking
+     * out loud, whose template opened its reasoning and which never reached
+     * its "</think>", so nothing in the text says it was reasoning.
+     */
+    if (response.stopReason === "length") {
+      return;
+    }
 
     const title: string = sanitizeGeneratedTitle(response.content);
 

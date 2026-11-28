@@ -173,6 +173,8 @@ import {
   ingestionBudgetStatus,
   isIngestionBudgetRead,
 } from "../../SecurityOperations/Fixture/IngestionBudgetFixture.js";
+import { answerCloudHostLinks } from "../../SuiteHelpers/CloudHostLinkAnswers";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
@@ -220,6 +222,7 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
@@ -529,6 +532,14 @@ function matchesCondition(actual, condition) {
   }
   if (condition instanceof NotEqual) {
     return String(comparable(actual)) !== String(comparable(condition.value));
+  }
+  /*
+   * A column that holds a value: the exceptions list counts the project's
+   * exceptions a scrub rule split (splitFromTelemetryExceptionId), and no
+   * exception here was split, so it offers no Split by a scrub rule.
+   */
+  if (condition instanceof NotNull) {
+    return actual !== null && actual !== undefined;
   }
   // A value left out ("Service is not ..."): none of them, on a relation too.
   if (condition instanceof IncludesNone) {
@@ -3651,6 +3662,35 @@ async function handleApi(method, options) {
    */
   if (isIngestionBudgetRead(method, parsed.pathname)) {
     return ok(ingestionBudgetStatus(NOW));
+  }
+
+  /*
+   * Which cloud VM the host is (#11013): none, as the server answers for a
+   * host whose collector stamped no cloud identity, in a project that
+   * connects no cloud.
+   */
+  const cloudLink = answerCloudHostLinks({
+    method,
+    url,
+    hosts: table(Host),
+    cloudResources: [],
+  });
+  if (cloudLink) {
+    return cloudLink;
+  }
+
+  /*
+   * Which of the host's and the cluster's recommended monitors exist, for
+   * the Recommendations badge in their side menus: none yet.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: table(Monitor),
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

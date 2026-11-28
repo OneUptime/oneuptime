@@ -66,6 +66,7 @@ Une nouvelle installation peut démarrer avec les SMS et les appels déjà en se
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | Le numéro d'où partent les appels, avec son indicatif de pays. Inutile pour `sms-only` |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Facultatif, séparés par des virgules : des numéros utilisés à la place du principal pour les destinataires de leur pays |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Les numéros, séparés par des virgules, d'où part chaque SMS. Obligatoire pour `sms-only` |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Facultatif : la voix avec laquelle parlent les appels, l'une des voix de [La voix avec laquelle parlent les appels](#la-voix-avec-laquelle-parlent-les-appels). Elle est lue avec ou sans `GLOBAL_TWILIO_ACCOUNT_SID`, et tant qu'elle est définie, **Voix des appels** dans l'Admin Dashboard l'affiche en lecture seule |
 
 Avec Helm, définissez-les sous `twilio` dans vos values. Pour que l'auth token ne figure pas dans les values que Helm enregistre à chaque release, placez-le dans un Secret à vous et nommez ce Secret dans `twilio.existingSecret.name` :
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Mettez les numéros de téléphone entre guillemets dans un fichier de values, et passez-les avec `--set-string` plutôt qu'avec `--set` : sans guillemets, `+14155550100` est un nombre, que le chart refuse. Le chart refuse aussi d'autres valeurs `twilio` sans `twilio.accountSid`, un Account SID sans auth token et un auth token donné à la fois dans `twilio.authToken` et dans un Secret. Avec Terraform, définissez les mêmes valeurs sur un `helm_release`, l'auth token comme valeur sensible.
+Mettez les numéros de téléphone entre guillemets dans un fichier de values, et passez-les avec `--set-string` plutôt qu'avec `--set` : sans guillemets, `+14155550100` est un nombre, que le chart refuse. Le chart refuse aussi d'autres valeurs `twilio` sans `twilio.accountSid` (toutes sauf `twilio.callVoice`, qui définit la voix quelle que soit la façon dont le compte est défini), un Account SID sans auth token, un auth token donné à la fois dans `twilio.authToken` et dans un Secret, et une valeur `twilio.callVoice` qui n'est pas l'une des voix. Avec Terraform, définissez les mêmes valeurs sur un `helm_release`, l'auth token comme valeur sensible.
 
 Avec Docker Compose, définissez les paramètres `GLOBAL_TWILIO_` dans `config.env`, puis lancez `npm run start` pour recréer les conteneurs.
 
-OneUptime lit les variables au démarrage. Si l'une d'elles est erronée, par exemple un numéro de téléphone que OneUptime ne peut pas lire ou un auth token manquant, le compte n'envoie aucun SMS et ne passe aucun appel tant que ce n'est pas corrigé ; le journal du serveur, **Admin Dashboard > Paramètres > Appel et SMS** et la liste de contrôle de `/admin/setup` nomment la variable. L'auth token n'est jamais affiché. Pour changer le compte, modifiez les variables et redémarrez OneUptime : l'Admin Dashboard ne le modifie pas.
+OneUptime lit les variables au démarrage. Si l'une d'elles est erronée, par exemple un numéro de téléphone que OneUptime ne peut pas lire ou un auth token manquant, le compte n'envoie aucun SMS et ne passe aucun appel tant que ce n'est pas corrigé ; le journal du serveur, **Admin Dashboard > Paramètres > Appel et SMS** et la liste de contrôle de `/admin/setup` nomment la variable. Une `GLOBAL_TWILIO_CALL_VOICE` qui ne nomme aucune voix proposée par OneUptime n'empêche aucun appel : les appels parlent avec la voix par défaut du compte tant qu'elle n'est pas corrigée, et les trois mêmes endroits la nomment. L'auth token n'est jamais affiché. Pour changer le compte, modifiez les variables et redémarrez OneUptime : l'Admin Dashboard ne le modifie pas.
 
 ### Gérer les configurations de projet avec Terraform
 
@@ -146,6 +147,51 @@ Un projet a une configuration par défaut pour les SMS et une pour les appels, e
 Ce qu'aucune configuration par défaut n'envoie part comme il partirait sans configuration : tant que la seule configuration par défaut est réglée sur **SMS uniquement**, les appels aux membres du projet passent par la configuration de toute l'installation. Si aucune configuration ne peut envoyer un message, le journal du message indique que la configuration du projet ne sert pas à cela, et qui peut le changer.
 
 Les pages de statut ne proposent que les configurations qui envoient des SMS, et **Envoyer un SMS de test** et **Envoyer un appel de test** n'apparaissent que pour ce qu'une configuration envoie. Toute configuration existante est réglée sur **Appels et SMS**, comme avant. Dans l'API et Terraform, le choix est le champ `usedFor`, et une configuration sans les numéros que son choix demande est refusée.
+
+### La voix avec laquelle parlent les appels
+
+Les appels parlent avec la voix que votre compte Twilio utilise par défaut : la voix Basic gratuite de Twilio, sauf si vous en avez choisi une autre dans la Twilio Console. Selon Twilio, ses voix Basic ne sont pas destinées à une utilisation en production, donc chaque compte peut parler à la place avec l'une de ces voix neuronales. Choisissez celle du compte de toute l'installation dans la carte **Voix des appels**, sous **Admin Dashboard > Paramètres > Appel et SMS**, et celle d'une configuration de projet dans **Voix des appels**, sous **Plus de champs**. Pour définir celle du compte de toute l'installation depuis du code, utilisez `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` avec Helm) : voir [Définir le compte de toute l'installation par des variables d'environnement](#définir-le-compte-de-toute-linstallation-par-des-variables-denvironnement).
+
+| Voix | Fournisseur | Comment elle sonne |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Anglais américain, voix féminine |
+| `Polly.Matthew-Neural` | Amazon Polly | Anglais américain, voix masculine |
+| `Polly.Amy-Neural` | Amazon Polly | Anglais britannique, voix féminine |
+| `Polly.Brian-Neural` | Amazon Polly | Anglais britannique, voix masculine |
+| `Google.en-US-Neural2-F` | Google | Anglais américain, voix féminine |
+| `Google.en-US-Neural2-J` | Google | Anglais américain, voix masculine |
+
+Chaque appel passé par le compte parle avec cette voix : les appels d'astreinte et la réponse à la touche sur laquelle vous appuyez, le message laissé sur la messagerie vocale, les codes de vérification, **Envoyer un appel de test** et les messages d'accueil d'une politique d'appels entrants. Avec ces voix, un numéro comme `INC-42` est épelé en SSML, ce qui sonne plus naturel que les lettres espacées que reçoivent les autres voix. Twilio facture ces voix au compte qui passe l'appel : $0.0032 par tranche de 100 caractères en novembre 2026, moins de 3 cents US pour un appel d'astreinte, dans n'importe quelle langue. Voir [la tarification des appels vocaux de Twilio](https://www.twilio.com/en-us/voice/pricing/us). Laissez **Voix des appels** vide pour garder la voix par défaut du compte. Dans l'API et Terraform, la voix est le champ `twilioCallVoice`, et une voix absente du tableau est refusée.
+
+#### Les appels dans d'autres langues
+
+L'appel d'astreinte vers quelqu'un qui utilise OneUptime dans une autre langue est dans cette langue quand le compte parle avec l'une des voix ci-dessus : ses mots sont écrits dans cette langue, et une voix de cette langue les dit, une voix de femme si celle du compte est une voix de femme, et une voix d'homme si c'est une voix d'homme. L'invite, les détails répétés quand aucune touche n'est pressée, la réponse à une mauvaise touche et les réponses aux touches sont tous dans cette langue, et les touches restent 1 et 2. Voici les voix, tirées de la liste des voix neuronales de Twilio, vérifiées le 27 novembre 2026 ; elles coûtent ce que coûtent les voix ci-dessus :
+
+| Langue | Voix de femme | Voix d'homme |
+| --- | --- | --- |
+| Allemand | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| Français | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Espagnol | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italien | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Portugais | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Néerlandais | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Danois | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Norvégien | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Suédois | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Russe | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Japonais | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Coréen | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Chinois simplifié | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Chinois traditionnel | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Arabe | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Persan | Aucune : les appels sont en anglais | Aucune : les appels sont en anglais |
+
+Ni Amazon Polly ni Google n'ont de voix persane, donc un appel vers quelqu'un qui utilise OneUptime en persan est en anglais, comme tout appel passé par un compte qui garde sa voix par défaut, qui ne parle que l'anglais. Le journal d'un appel garde ce que l'appel a dit, dans la langue où il l'a dit. Un code de vérification, **Envoyer un appel de test** et les messages d'accueil d'une politique d'appels entrants sont en anglais.
+
+#### Les projets qui choisissent leur propre voix
+
+Sur une installation auto-hébergée, un administrateur principal peut laisser chaque projet choisir la voix de ses appels passés par le compte de toute l'installation : activez **Laisser les projets choisir la voix de leurs appels** dans la carte **Voix des projets**, sous **Admin Dashboard > Paramètres > Appel et SMS**. Un **Propriétaire du projet** ou un **Administrateur du projet** la choisit ensuite dans la carte **Voix des appels** sous **Plus de paramètres** dans **Paramètres du projet > Notifications > Canaux de notification**, et un projet qui n'en choisit aucune parle avec la voix de l'installation. Twilio facture la voix de chaque projet au compte de toute l'installation, c'est pourquoi l'interrupteur est désactivé au départ, et le désactiver remet chaque projet sur la voix de l'installation. OneUptime Cloud ne le propose pas : choisissez une voix avec une configuration de projet à vous. Dans l'API, la voix est le champ `callVoice` du projet, qui est refusé tant que l'interrupteur est désactivé.
 
 ### Messagerie vocale des appels d'astreinte
 
@@ -226,7 +272,7 @@ Pour le développement, le [guide de test des webhooks](https://www.twilio.com/d
 1. Depuis l'extérieur du réseau de l'entreprise et du VPN, vérifiez que le nom d'hôte des callbacks se résout vers la passerelle publique et présente un certificat TLS valide. Un GET dans le navigateur ne teste pas ces callbacks POST.
 2. Utilisez **Envoyer un SMS de test** et **Envoyer un appel de test** sur la configuration Twilio du projet. Confirmez la réception sur le téléphone de destination. Les deux exigent l'autorisation d'ajouter des configurations Twilio : **Propriétaire du projet**, **Administrateur du projet**, ou **Create Call and SMS** et **Read Call and SMS** dans un rôle personnalisé.
 3. Configurez le contact SMS ou appel vérifié de l'utilisateur et ses règles de notification, puis déclenchez une alerte d'astreinte contrôlée. Appuyez sur 1 et confirmez l'acquittement dans OneUptime. Si vous utilisez des politiques d'appels entrants, appelez le numéro configuré et vérifiez son routage et son journal d'appels.
-4. Confirmez le statut de livraison des SMS dans OneUptime et dans les journaux de messages de Twilio. Un envoi accepté n'est pas une preuve de livraison ; [Twilio signale les changements de statut ultérieurs par des callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+4. Confirmez le statut de livraison des SMS dans OneUptime, sous [Journaux de notification](/docs/notifications/notification-logs), et dans les journaux de messages de Twilio. Un envoi accepté n'est pas une preuve de livraison ; [Twilio signale les changements de statut ultérieurs par des callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
 | Symptôme | Où regarder |

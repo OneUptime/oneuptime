@@ -91,7 +91,7 @@ flowchart TB
 | 第 25 条 | 通过设计和默认设置实现数据保护 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | 第 28 条 | 处理者 | `sensitive-data-to-ai` |
 | 第 30 条 | 处理活动记录 | 由数据安全本身满足 |
-| 第 32 条 | 处理的安全性 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`encryption-in-transit-not-enforced`、`weak-tls`、`no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable`、`access-not-logged`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
+| 第 32 条 | 处理的安全性 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`not-encrypted-at-rest`、`no-customer-managed-key`、`encryption-in-transit-not-enforced`、`weak-tls`、`no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable`、`access-not-logged`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
 | 第 44-49 条 | 向第三国传输 | `residency-violation` |
 
 ### CCPA
@@ -99,7 +99,7 @@ flowchart TB
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
 | 1798.100(c) | 收集仅限于必要的内容 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
-| 1798.150 | 合理的安全程序 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| 1798.150 | 合理的安全程序 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 
 ### HIPAA
 
@@ -107,7 +107,7 @@ flowchart TB
 | --- | --- | --- |
 | 164.308(a)(4) | 信息访问管理 | `unused-access` |
 | 164.308(a)(7) | 应急计划 | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |
-| 164.312(a)(1) | 访问控制 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| 164.312(a)(1) | 访问控制 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | 164.312(a)(2)(iv) | 加密和解密 | `not-encrypted-at-rest`、`no-customer-managed-key` |
 | 164.312(b) | 审计控制 | `access-not-logged` |
 | 164.312(e)(1) | 传输安全 | `encryption-in-transit-not-enforced`、`weak-tls` |
@@ -120,7 +120,7 @@ flowchart TB
 | 3.4.1 | 显示卡号时对其掩码 | `card-numbers-readable`、`sensitive-data-in-telemetry` |
 | 3.5.1 | 卡号无论存储在何处都不可读 | `not-encrypted-at-rest`、`no-customer-managed-key`、`card-numbers-readable` |
 | 4.2.1 | 用强加密保护传输中的卡数据 | `encryption-in-transit-not-enforced`、`weak-tls` |
-| 7.2 | 按需定义和分配访问权限 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| 7.2 | 按需定义和分配访问权限 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | 7.2.4 | 审查账户及其访问权限 | `unused-access` |
 | 8.3.2 | 身份验证因素在存储时不可读 | `plaintext-passwords` |
 | 10.2 | 审计日志记录对卡数据的访问 | `access-not-logged` |
@@ -130,7 +130,7 @@ flowchart TB
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
 | A1.2 | 备份和恢复 | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |
-| CC6.1 | 逻辑访问安全 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
+| CC6.1 | 逻辑访问安全 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
 | CC6.2 | 不再需要的访问权限会被移除 | `unused-access` |
 | CC6.7 | 信息传输 | `encryption-in-transit-not-enforced`、`weak-tls` |
 | CC7.2 | 系统组件的监控 | `access-not-logged` |
@@ -141,7 +141,7 @@ flowchart TB
 | --- | --- | --- |
 | A.5.9 | 信息及其他相关资产的清单 | `no-owner` |
 | A.5.12 | 信息分类 | 由数据安全本身满足 |
-| A.5.15 | 访问控制 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| A.5.15 | 访问控制 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | A.5.18 | 访问权限 | `unused-access` |
 | A.5.34 | 隐私和 PII 保护 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | A.8.11 | 数据脱敏 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
@@ -155,7 +155,7 @@ flowchart TB
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
 | ID.AM-07 | 维护数据和元数据清单 | `no-owner` |
-| PR.AA-05 | 管理访问权限 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access` |
+| PR.AA-05 | 管理访问权限 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access` |
 | PR.DS-01 | 保护静态数据 | `not-encrypted-at-rest`、`no-customer-managed-key`、`secrets-stored`、`secrets-in-telemetry` |
 | PR.DS-02 | 保护传输中的数据 | `encryption-in-transit-not-enforced`、`weak-tls` |
 | PR.DS-11 | 保留并测试数据备份 | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |
@@ -167,13 +167,13 @@ flowchart TB
 | --- | --- | --- |
 | 第 6 条 | 必要性和目的限制 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | 第 33 条 | 数据的国际传输 | `residency-violation` |
-| 第 46 条 | 安全措施 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| 第 46 条 | 安全措施 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 
 ### DPDP
 
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
-| 第 8(5) 条 | 合理的安全保障措施 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| 第 8(5) 条 | 合理的安全保障措施 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | 第 8(7) 条 | 目的达成后删除 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | 第 16 条 | 向印度境外传输 | `residency-violation` |
 
@@ -226,6 +226,8 @@ OneUptime AI 根据数据安全对数据存储的了解，起草其 **用途**�
 每个数据存储的用途都是“网络和信息安全（GDPR 序言第 49 条）”。要写入你自己的用途或保留期，请使用数据存储 **设置** 中的 **编辑记录**：留空的字段会保留 OneUptime 的内容。
 
 只要你的项目还保存着某个数据存储的数据，记录就会列出它：地址保管库会在已启用的 IP 地址规则对安全事件读取的日志或追踪进行哈希处理期间列出，用户保管库会在其他模式的已启用规则这样做期间列出，两者之后都再列出 31 天（参见 [清理敏感数据](/docs/telemetry/drop-filters-and-scrub-rules#清理敏感数据)）。数据消失后，该数据存储会被归档；如果数据回来，它也会带着你的用途和保留期一起回来。
+
+要从“安全用户保管库”以及通过它显示此人的事件和案例中删除某个人，请提交删除请求：参见[删除个人](/docs/telemetry/security-events#删除个人)。
 
 ## 影响评估
 

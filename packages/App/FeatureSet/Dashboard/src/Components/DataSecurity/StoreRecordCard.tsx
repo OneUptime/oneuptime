@@ -9,17 +9,20 @@ import {
   DraftRecordButton,
   ImpactAssessmentLink,
   StoreRecordFields,
+  writeRecordField,
 } from "./StoreRecord";
 import LeaveWithoutSavingQuestion from "../UnsavedChanges/LeaveWithoutSavingQuestion";
-import useUnsavedParts, {
-  UnsavedParts,
-} from "../UnsavedChanges/UseUnsavedParts";
+import usePendingEdits, {
+  PendingEdits,
+} from "../UnsavedChanges/UsePendingEdits";
 import {
   DataSecurityRecordOfProcessingResponse,
   DataSecurityRecordOfProcessingRow,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
+  RecordField,
   RecordFieldStatus,
+  RecordFieldValue,
   RecordFieldView,
 } from "Common/Types/DataSecurity/RecordOfProcessing";
 import ObjectID from "Common/Types/ObjectID";
@@ -71,9 +74,10 @@ const StoreRecordCard: FunctionComponent<{
   );
   const [error, setError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
-  // The fields a person is mid-edit on, each with its save (#7402).
-  const unsaved: UnsavedParts = useUnsavedParts();
-  const hasUnsaved: boolean = unsaved.hasUnsaved;
+  // The fields a person is mid-edit on, with the value each one's Save would write.
+  const pending: PendingEdits<RecordFieldValue | null> =
+    usePendingEdits<RecordFieldValue | null>();
+  const hasUnsaved: boolean = pending.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   useEffect(() => {
@@ -128,6 +132,8 @@ const StoreRecordCard: FunctionComponent<{
     return <></>;
   }
 
+  const dataStoreId: string = row.dataStoreId;
+
   // "Not legal advice" where OneUptime AI's words wait for a person.
   const hasDrafts: boolean = (row.fields || []).some(
     (view: RecordFieldView): boolean => {
@@ -153,7 +159,7 @@ const StoreRecordCard: FunctionComponent<{
             row={row}
             canEdit={answer.canEdit !== false}
             onRowChange={setRow}
-            onFieldEditingChange={unsaved.onPartChange}
+            pending={pending}
           />
           <div className="flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-4 empty:hidden">
             <DraftRecordButton
@@ -170,7 +176,15 @@ const StoreRecordCard: FunctionComponent<{
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_RECORD}
-        onSaveChanges={unsaved.saveAll}
+        onSaveChanges={pending.saveAllWith(
+          async (field: string, value: RecordFieldValue | null) => {
+            await writeRecordField({
+              dataStoreId,
+              field: field as RecordField,
+              value,
+            });
+          },
+        )}
       />
     </Fragment>
   );

@@ -565,6 +565,28 @@ work out, starts from a default for everything else, and folds what most people 
   or list (`whatFailed`) where the page knows it. Enforced by
   [ErrorMessagesGuard](../../packages/Common/Tests/App/ErrorMessagesGuard.test.ts) for the words of
   the last resort; for everything else, not enforced: use judgement.
+- **A failure's reference sits under its lines as they sit.** A piece that lays out its own failure
+  draws the words with `ErrorMessageText` (`hideWhatFailed` where its heading already says what
+  failed), and the reference is drawn by `ErrorReference` alone: one inline box on a line of its own,
+  which the line's alignment places, centred under centred lines and at their start where they
+  start, the right on a page read from the right. Its row was laid out from its own start and
+  centred only where a layout said so (`isCentered`): a table's failed load never did, and its
+  reference sat about 150px off the centre of the lines above it (#7622). No layout hands the words
+  an alignment. Enforced by
+  [ErrorReferenceDrawnOnceGuard](../../packages/Common/Tests/UI/Components/ErrorMessage/ErrorReferenceDrawnOnceGuard.test.ts)
+  and
+  [ErrorReferenceInEveryLayout](../../packages/Common/Tests/App/Dashboard/ErrorReferenceInEveryLayout.test.tsx).
+- **An answer the page cannot read is the page's failure, said plainly.** Something that throws while
+  the browser reads an answer - a parse error, "array is not iterable", a value of a shape nobody
+  expected - is OneUptime's failure, never the reader's: Admin Dashboard > Telemetry Usage said "Array
+  is not iterable" where its projects should have been (#7794, #8413). The client reads an answer only
+  in `readAnswer` and `readErrorAnswer`, and the model clients turn it into models, rows or a count
+  only through `AnswerReader`; what throws there is an `UnreadableAnswerException`, said as a failure
+  nobody explained - the server's with its reference where the answer named one, the page's
+  otherwise - and an error answer whose body says nothing in words (`{ error: { code: 42 } }`) is
+  read through `statedMessage`, never drawn as its JSON. Enforced by
+  [AnswersReadThroughReaderGuard](../../packages/Common/Tests/UI/Utils/API/AnswersReadThroughReaderGuard.test.ts)
+  and [UnreadableAnswer](../../packages/Common/Tests/UI/Utils/API/UnreadableAnswer.test.tsx).
 - **Another system's failure is said in OneUptime's words first,** and that system's own words
   second: "The verification code was not sent to +15551230100. No Twilio account is set up to send
   SMS." Not enforced: use judgement.
@@ -620,6 +642,14 @@ work out, starts from a default for everything else, and folds what most people 
   descending, where its first click goes (as the dashboard's list widgets sort it); anything else by
   the name it shows. A column of many records (labels, owners) does not sort (#8134). Enforced by
   [RelationColumnSort](../../packages/Common/Tests/UI/Components/ModelTable/RelationColumnSort.test.tsx).
+- **A list marks the records that share a name.** Two monitors called "API Health Check", from before
+  the project required unique names, read alike in a list and a picker. Each carries a pill beside
+  its name, "Same name as another monitor", with the day it was made, and a note above the list
+  counts them. The shared table does it for every kind Require Unique Names holds
+  (`@UniqueNameWhenRequired`), so a new kind is marked without a line of its own; a list drawn by hand
+  marks them with `useTwinMarks`. A mark never says that a record the reader may not read has the
+  name (#11021). Enforced by
+  [ListsMarkTwinNamesGuard](../../packages/Common/Tests/App/Dashboard/ListsMarkTwinNamesGuard.test.ts).
 - **A column earns its place.** A column that tells the reader nothing they act on goes, as the Type
   column of workflow variables did. Enforced by
   [WorkflowVariableListsGuard](../../packages/Common/Tests/App/Dashboard/WorkflowVariableListsGuard.test.ts).
@@ -749,6 +779,16 @@ work out, starts from a default for everything else, and folds what most people 
   [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
+- **A dialog that fails says what failed.** A failure nobody explained opens with what failed, and
+  every dialog but the notes' opened with "This did not finish." - over Rotate Verification Code,
+  over the Error dialog a failed delete opened, over Test Failed (#7680). A dialog names itself by
+  its title, the action the person chose ("“Rotate Verification Code” did not finish.", which Modal
+  says for it), or says it in words of its own (`errorWhatFailed`: "The monitor was not deleted.").
+  An Error dialog, whose description is the error and whose title ("Error", "Test Failed") names no
+  action, always says it itself, or marks a title that says it already ("Could not start runbook",
+  `titleSaysWhatFailed`). Enforced by
+  [DialogsSayWhatFailedGuard](../../packages/Common/Tests/UI/DialogsSayWhatFailedGuard.test.ts) and
+  [DialogWhatFailedInReadersLanguage](../../packages/Common/Tests/UI/Components/Modal/DialogWhatFailedInReadersLanguage.test.tsx).
 - **An action that changes something says it worked, without blocking the page.** A save, a
   create, a delete or a test that went out says so in a toast (`Toast.success`,
   `Common/UI/Utils/Toast`), which goes by itself; a failure says so in an error toast or a dialog,
@@ -1409,10 +1449,14 @@ then `npm run i18n:validate` from the root.
   own startup probe keeps its name, in
   [`ProbeWords`](../../packages/App/Tests/Dashboard/ProbeWords.ts). And Persian names a port پورت:
   درگاه is a gateway's or a portal's, and the docs told a reader to free "gateway 443" (#7932).
-  Enforced by
+  The authenticator app has one word in each language too, the Dashboard's Authenticator apps
+  card's, on the sign-in page, in the setup key both draw, in the server's messages and the
+  docs: setting up two-factor authentication in Hindi offered "प्रमाणीकरण ऐप", asked for the
+  code from the "प्रमाणक ऐप" and listed it under "ऑथेंटिकेटर ऐप" (#10915). Enforced by
   [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts),
   [OneWordInSentencesPerThing](../../packages/App/Tests/Dashboard/OneWordInSentencesPerThing.test.ts),
-  [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
+  [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts),
+  [AuthenticatorAppWordPerLanguage](../../packages/App/Tests/Dashboard/AuthenticatorAppWordPerLanguage.test.ts)
   and
   [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).
 - **Two things never share one name in a language.** Arabic called the collector an agent runs

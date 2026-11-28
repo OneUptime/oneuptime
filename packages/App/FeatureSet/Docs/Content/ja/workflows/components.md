@@ -26,6 +26,7 @@
 | 2 つのブロックのあいだでデータを整形する                      | [JSON](#json) または [Custom Code](#custom-code)                  |
 | 次のブロックの前に待つ                                        | [Sleep](#sleep)                                                   |
 | 別のワークフローを開始する                                    | [Execute Workflow](#execute-workflow)                             |
+| レコードの Markdown が表示する画像をメールに添付する | [Markdown からファイルを取得](#get-files-from-markdown) |
 | インシデント、モニターなどのレコードを読み書きする            | [OneUptime データコンポーネント](#oneuptime-データコンポーネント)      |
 | 別のツールの問題に対してインシデントやアラートを開き、確認し、解決する | [他のツールからのインシデントとアラート](#他のツールからのインシデントとアラート) |
 | Zabbix の問題を確認する、またはクローズする                    | [Zabbix](#zabbix)                                                 |
@@ -391,6 +392,139 @@ return { proceed: true, title: args.title.toUpperCase() };
 **送信** は、もう一方のワークフローがキューに入るとすぐに発火します。**エラー** は、それができないときに発火します。存在しない、オフまたはアーカイブ済み、または開始するとループになる場合です。
 
 共通のロジックを共有するために使ってください。「インシデントチャンネルに投稿する」ワークフローを一度作り、それを必要とするすべてのワークフローから開始します。互いを開始するワークフローの連鎖は自分自身に戻ることができず、深さは最大 10 です。[設定と安全性](/docs/workflows/configuration#他のワークフローを呼び出す際の上限) を参照してください。
+
+## Get Files From Markdown
+
+レコードの Markdown が表示する画像 (インシデントの説明、Markdown のカスタムフィールド、メモに貼り付けられたスクリーンショットなど) を、画像ごとの名前、種類、データとともに読み取ります。画像をメールに添付し、Markdown が置いた位置に表示するのに使います。
+
+| 設定 | 役割 |
+| --- | --- |
+| **レコードタイプ** | 画像を表示する Markdown を持つレコードの種類です。インシデント、インシデントの公開メモまたは内部メモ、アラート、メンテナンスイベントなどがあります。 |
+| **レコード ID** | 読み取るレコードです。通常はワークフローを開始したレコードで、`{{local.components.incident-on-create-1.returnValues.model._id}}` のように指定します。 |
+
+| 出力 | タイミング |
+| --- | --- |
+| **成功** | レコードを読み取れました。画像を表示しているかどうかは問いません。 |
+| **エラー** | レコードを読み取れませんでした。レコードが存在しないか、ワークフローに読み取りが許可されていません。理由は **エラー** に入ります。 |
+
+返す値は次のとおりです。
+
+- **ファイル**：レコードが表示する順に、画像ごとに次を持ちます。
+  - `name`：アップロードされたときのファイル名。
+  - `mimeType`：`image/png` や `image/jpeg` などの種類。
+  - `sizeInBytes`：バイト単位のサイズ。
+  - `base64`：画像のデータ。
+  - `contentId`：HTML メールでの画像の ID (`<img src="cid:...">`)。どのレコードが表示していても、同じ画像なら同じ ID です。
+  - `urls`：Markdown が画像を表示するのに使っているすべてのアドレス。
+  - `fields`：画像を表示している項目。`description` やカスタムフィールドの名前などです。
+- **カウント**：**ファイル** に入っている画像の数。
+- **対象外**：Markdown が表示しているのに **ファイル** に入っていないファイル。それぞれ `name`、`urls`、`fields`、`reason` と、理由を説明する `message` を持ちます。
+
+**ファイル** には画像のデータが入っているため、実行ログには表示されず、代わりに **カウント** と **対象外** が表示されます。画像を受け取った後続のブロックは、受け取った内容を自分のログ項目に書き込みます。
+
+### 渡される画像
+
+このブロックは、Find One ブロックと同じようにワークフローとしてレコードを読み取ります。ワークフロー自身のプロジェクトの中だけで、非公開のインシデント、アラート、エピソードは読まず、ワークフローの権限が許すものだけを読みます。読み取りが許可されていないレコードは、存在しないレコードと同じく **エラー** に進みます。
+
+渡すのは次のものだけです。
+
+- レコードの Markdown 項目が表示する画像。インシデントの説明、根本原因、ポストモーテム、修復メモ、そして Markdown のカスタムフィールドなどです。テキストのカスタムフィールドは Markdown ではないため、そこに書かれたアドレスは読みません。
+- レコード自身のプロジェクトにアップロードされた画像。別のプロジェクトのレコードからコピーしたアドレスは、見つからないものとして **対象外** に入ります。
+- PNG、JPEG、GIF、WebP、BMP、TIFF、AVIF、HEIC、ICO の画像。種類だけでなく、ファイルの中身でも確認します。SVG はスクリプトを含められるため対象外で、画像を名乗っているだけのファイルも対象外です。
+- 最大 20 枚、合計 10 MB まで。上限を超えたものは、理由とともに **対象外** に入ります。
+
+ファイルの一覧を出したり、アドレスでファイルを読んだりはできません。読むのはレコードが表示しているものだけです。
+
+### 例: Microsoft Graph で送るメールにインライン画像を入れる
+
+このワークフローは、新しいインシデントごとに Microsoft Graph でメールを送り、説明にあるスクリーンショットを説明の中の位置に表示します。
+
+:::steps
+### Microsoft Graph のトークンを用意する
+
+Microsoft Entra ID にアプリケーションを登録し、アプリケーションのアクセス許可 `Mail.Send` を与えて、管理者の同意を付与します。次に、Microsoft 用に `GRAPH_TOKEN` という名前の [OAuth 2.0 変数](/docs/workflows/variables#oauth-20-変数自動で更新されるトークン) を、付与タイプ **Client Credentials**、スコープ `https://graph.microsoft.com/.default` で作成します。
+
+### 新しいインシデントで開始する
+
+トリガー **インシデントの作成時** を追加し、**タイトル** と **説明** を渡すようにします。
+
+### インシデントの画像を読み取る
+
+トリガーの後に **Markdown からファイルを取得** を追加します。**レコードタイプ** を **インシデント** に、**レコード ID** を `{{local.components.incident-on-create-1.returnValues.model._id}}` にします。
+
+### メッセージを組み立てる
+
+その **成功** 出力に **カスタム JavaScript を実行** を追加し、**引数** を次のようにします。
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+コードは、画像のアドレスをすべて添付ファイル (`cid:` と画像の `contentId`) に向け、画像を同じ ID でインライン添付します。
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### Microsoft Graph で送信する
+
+コードの **成功** 出力に **API 呼び出し POST (JSON)** を追加します。
+
+| 設定 | 値 |
+| --- | --- |
+| **URL** | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail` |
+| **リクエストヘッダー** | `Authorization`：`Bearer {{global.variables.GRAPH_TOKEN}}` |
+| **リクエストボディ** | `{{local.components.javascript-1.returnValues.returnValue}}` |
+
+Microsoft Graph は `202 Accepted` を返し、ブロックは **成功** に進みます。
+:::
+
+この方法で送るメッセージでは、Microsoft Graph が受け付ける添付ファイルは 3 MB までです。それより大きな画像には、アップロード セッションか、画像の代わりのリンクが必要です。レコードの画像は、ワークフローの外から API キーで読むこともできます。[レコードの Markdown にある画像](/docs/api-reference/api-reference#レコードの-markdown-にある画像) を参照してください。
 
 ## 他のツールからのインシデントとアラート
 

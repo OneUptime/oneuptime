@@ -158,7 +158,7 @@ output "monitor_id" {
 }
 ```
 
-監測器的 `monitor_steps` 說明它檢查什麼，以及每個結果意味著什麼：每次檢查後，第一個相符的條件決定它的狀態。[監控步驟](/docs/terraform/monitor-steps) 解釋了每個部分。
+監測器的 `monitor_steps` 說明它檢查什麼，以及每個結果意味著什麼：每次檢查後，第一個相符且會變更狀態的條件決定它的狀態。[監控步驟](/docs/terraform/monitor-steps) 解釋了每個部分。
 
 ### 計畫並套用
 

@@ -1468,6 +1468,125 @@ describe("paging again when an acknowledged incident or alert is not resolved", 
   });
 });
 
+// ---- The incident role of the people a policy pages ---------------------------------
+
+/*
+ * A policy can give everybody it pages a role on the incident or episode
+ * (OnCallDutyPolicy.incidentRoleId, OnCallPolicyIncidentRole). These hold
+ * the page's words to the card that sets it and the code that gives it.
+ */
+describe("giving the people a policy pages an incident role", () => {
+  const escalationPage: string = readDashboardSource(
+    "Pages/OnCallDuty/OnCallDutyPolicy/Escalation.tsx",
+  );
+  const card: string = readDashboardSource(
+    "Components/OnCallPolicy/IncidentRole/PagedPeopleIncidentRoleCard.tsx",
+  );
+  const copy: string = readDashboardSource(
+    "Components/OnCallPolicy/IncidentRole/PagedPeopleIncidentRole.ts",
+  );
+  const givesRole: string = readCommonSource(
+    "Server/Utils/OnCall/OnCallPolicyIncidentRole.ts",
+  );
+  const paging: string = readCommonSource(
+    "Server/Services/UserNotificationRuleService.ts",
+  );
+  const incidentRoleSection: () => string = (): string => {
+    return section(
+      english(ON_CALL_POLICIES),
+      "## Give the people it pages an incident role",
+    );
+  };
+
+  it("names the card folded under More settings, its Edit button, the dialog, its one question and No role", () => {
+    const fold: number = escalationPage.indexOf("<AdvancedPageSection");
+    const cardAt: number = escalationPage.indexOf(
+      "<PagedPeopleIncidentRoleCard",
+    );
+    const foldEnd: number = escalationPage.indexOf("</AdvancedPageSection>");
+
+    expect(fold).toBeGreaterThan(-1);
+    expect(cardAt).toBeGreaterThan(fold);
+    expect(foldEnd).toBeGreaterThan(cardAt);
+    expect(card).toContain('editButtonText="Edit"');
+    expect(card).toContain(
+      "editModalTitle={PagedPeopleIncidentRoleCopy.dialogTitle}",
+    );
+
+    for (const fact of [
+      'cardTitle: translationKey("Incident Role")',
+      'dialogTitle: translationKey("Edit Incident Role")',
+      'fieldTitle: translationKey("Role")',
+      'noRole: translationKey("No role")',
+      'rowTitle: translationKey("Role of the people it pages")',
+    ]) {
+      expect({ fact, inCode: copy.includes(fact) }).toEqual({
+        fact,
+        inCode: true,
+      });
+    }
+
+    expect(incidentRoleSection()).toContain(
+      "open its **Escalation Rules** page, open **More settings** at the bottom, and click **Edit** on the **Incident Role** card. **Edit Incident Role** asks for a **Role**: one of your project's incident roles, or **No role**, which every policy starts with.",
+    );
+  });
+
+  it("starts every policy at No role: the column is empty until somebody picks one", () => {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+    const column: ReturnType<OnCallDutyPolicy["getTableColumnMetadata"]> =
+      policy.getTableColumnMetadata("incidentRoleId");
+
+    expect(column).toBeDefined();
+    expect(column?.required).toBe(false);
+    expect(column?.defaultValue).toBeUndefined();
+    expect(card).toContain("placeholder: PagedPeopleIncidentRoleCopy.noRole");
+  });
+
+  it("says who is given it as the code gives it: responders, members, once, one-person roles first come, no second message", () => {
+    // Observers are not: the paging code asks before it gives the role.
+    expect(paging).toContain("isKnownResponderPage: true");
+    expect(paging).toContain(
+      "this.isObserverRun(options.onCallPolicyExecutionLogId)",
+    );
+    expect(incidentRoleSection()).toContain(
+      "Somebody it pages as an observer is not.",
+    );
+
+    expect(givesRole).toContain("TeamMemberService.isUserMemberOfProject");
+    expect(givesRole).toContain("PagedPersonRoleOutcome.AlreadyHeld");
+    expect(givesRole).toContain("PagedPersonRoleOutcome.HeldBySomebodyElse");
+    expect(givesRole).toContain("member.isMemberNotified = true;");
+    expect(incidentRoleSection()).toContain(
+      "as long as they are a member of the project",
+    );
+    expect(incidentRoleSection()).toContain(
+      "a role that takes one person, such as **Incident Commander**, goes to the first person paged while nobody holds it",
+    );
+    expect(incidentRoleSection()).toContain(
+      "they are sent no separate message about the role",
+    );
+  });
+
+  it("names the card's row and what More settings shows while folded", () => {
+    expect(escalationPage).toContain(
+      "foldedSectionItem(PagedPeopleIncidentRoleCopy.cardTitle",
+    );
+    expect(card).toContain("title: PagedPeopleIncidentRoleCopy.rowTitle");
+    expect(incidentRoleSection()).toContain(
+      "The card's **Role of the people it pages** row says which role the policy gives, and **More settings** names it while it is folded.",
+    );
+  });
+
+  it("maps the setting to its API field", () => {
+    expect(english(ON_CALL_POLICIES)).toContain(
+      "| **Role** | `incidentRoleId` |",
+    );
+    expect(english(ON_CALL_POLICIES)).toContain(
+      "`incidentRoleId` is the ID of one of the project's incident roles, or `null` for **No role**.",
+    );
+  });
+});
+
 // ---- When several policies page ---------------------------------------------------
 
 /*
@@ -2195,7 +2314,7 @@ describe("who can change a policy, and the policy API", () => {
       section(english(ON_CALL_POLICIES), "## API and Terraform"),
     ).map(tableCells);
 
-    expect(rows.length).toBe(6);
+    expect(rows.length).toBe(7);
 
     for (const row of rows) {
       const column: string = (row[1] || "").replace(/`/g, "");
@@ -3406,9 +3525,20 @@ describe("User On-Call Time", () => {
   });
 
   it("counts time on call through two policies once, and time still going on up to now", () => {
-    expect(report).toContain("// Merge overlapping time periods");
+    const timeInRange: string = readCommonSource(
+      "Types/OnCallDutyPolicy/OnCallTimeInRange.ts",
+    );
+
+    expect(report).toContain("getMinutesOnCallInRange({");
+    expect(report).toContain("now: now,");
     expect(report).toContain(
-      "let endDate: Date = log.endsAt || OneUptimeDate.getCurrentDate();",
+      "const now: Date = OneUptimeDate.getCurrentDate();",
+    );
+    expect(timeInRange).toContain(
+      "// Merge overlapping time periods: time on call through two policies at once counts once.",
+    );
+    expect(timeInRange).toContain(
+      "const stintEnd: Date = stint.endsAt || data.now;",
     );
     expect(english(READINESS_AND_REPORTS)).toContain(
       "Time on call through two policies at once counts once, and time still going on counts up to now.",

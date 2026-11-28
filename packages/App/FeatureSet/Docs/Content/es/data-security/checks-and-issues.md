@@ -1,10 +1,10 @@
 # Comprobaciones y problemas de Seguridad de datos
 
-Seguridad de datos ejecuta 34 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida. Eventos de seguridad, Flujos de red y Bóveda de direcciones de seguridad son de OneUptime, que los conserva para tu seguridad: declarados, nunca escaneados ni comprobados (consulta [Almacenes que OneUptime conserva para tu seguridad](/docs/data-security/compliance#almacenes-que-oneuptime-conserva-para-tu-seguridad)).
+Seguridad de datos ejecuta 35 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida. Eventos de seguridad, Flujos de red y Bóveda de direcciones de seguridad son de OneUptime, que los conserva para tu seguridad: declarados, nunca escaneados ni comprobados (consulta [Almacenes que OneUptime conserva para tu seguridad](/docs/data-security/compliance#almacenes-que-oneuptime-conserva-para-tu-seguridad)).
 
 :::cards
 - [Cómo decide una comprobación](#cómo-decide-una-comprobación): Se supera, falla o no se puede saber, y lo grave que es un fallo.
-- [Cada comprobación](#cada-comprobación): Las 34, con lo que comprueba cada una y cómo corregirlo.
+- [Cada comprobación](#cada-comprobación): Las 35, con lo que comprueba cada una y cómo corregirlo.
 - [Puntuación de riesgo](#puntuación-de-riesgo): Cómo se ordenan los problemas dentro de una gravedad.
 - [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema, cómo se resolvió cada uno y las correcciones seguidas hasta producción.
 - [El análisis de OneUptime AI](#el-análisis-de-oneuptime-ai): Si un problema es real, lo que pone en riesgo, lo que rompería la corrección y el camino más corto hacia la corrección.
@@ -22,6 +22,8 @@ Cada comprobación lee datos sobre un almacén y responde de una de cuatro forma
 | Falla | La comprobación encuentra el problema y dice en una frase lo que vio: la evidencia del problema. | Se abre un problema, o el que está abierto se actualiza. |
 | No se puede saber | No se pudo leer un dato: un permiso que el rol no tiene, una llamada que falló. | No cambia nada: un problema abierto sigue abierto, porque nadie puede concluir que un problema está corregido cuando OneUptime no pudo mirar. |
 | No se aplica | El tipo del almacén no tiene ese ajuste. | Un problema abierto se resuelve. |
+
+Un dato que no se puede saber desde donde se leyó tampoco se adivina: si internet llega a un almacén al que se preguntó desde dentro de tu red, o si el usuario anónimo de un clúster puede escribir, algo que solo una escritura diría. Su comprobación no puede saberlo, y esa línea de la **Configuración** del almacén indica **No se puede comprobar**.
 
 ### La gravedad depende de los datos
 
@@ -45,6 +47,7 @@ La gravedad se da para datos Restringidos, Confidenciales, Internos y Públicos,
 | Cualquiera puede restaurar una instantánea suya (`snapshot-public`) | Base de datos, Instantánea | Una instantánea de la base de datos se comparte públicamente, así que cualquier cuenta en la nube puede restaurar una copia completa. | Crítica / Crítica / Crítica / Alta | Haz privada la instantánea. |
 | Una instantánea suya se comparte con otras cuentas (`snapshot-shared-externally`) | Base de datos, Instantánea | Una instantánea de la base de datos se comparte con cuentas ajenas a las que tienes conectadas. | Alta / Alta / Media / Baja | Deja de compartir la instantánea con las cuentas que no deberían tenerla. |
 | Cuentas ajenas a tu organización pueden acceder a él (`shared-with-external-accounts`) | Todos los almacenes salvo la telemetría | La política del almacén concede acceso a cuentas, inquilinos o proyectos que no están conectados a OneUptime. | Alta / Alta / Media / Baja | Revisa cada entidad principal externa y quita las que no necesitan acceso. |
+| Cualquiera que llegue a él puede leerlo sin credenciales (`readable-without-credentials`) | Búsqueda | Respondió a OneUptime sin credenciales: quien pueda llegar a su dirección puede leer sus datos, y cambiarlos si no tiene ningún control de acceso. | Crítica / Alta / Media / Baja | Activa la seguridad del clúster, quita todos los roles a su usuario anónimo y da a cada aplicación su propio usuario de solo lectura. Un clúster que acepta escrituras sin credenciales es Crítica con datos Restringidos y Confidenciales, y Alta con cualquier otro. |
 
 ### Cifrado
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Factor | Puntos |
 | --- | --- |
 | Gravedad | 75 para Crítica, 50 para Alta, 25 para Media, 0 para Baja |
-| Exposición | 10 para Público, 8 para Otras cuentas, 6 para Accesible desde internet, 3 para Desconocido, 0 para Privado |
+| Exposición | 10 para Público, 8 para Otras cuentas, 6 para Accesible desde internet, 3 para Desconocido, Aún sin comprobar o No se puede comprobar, 0 para Privado |
 | Volumen | Hasta 6, según los registros sensibles estimados del almacén en escala logarítmica: 1 para 10 registros, 3 para 1.000, 5 para un millón, 6 para diez millones o más |
 | Actividad | 5 cuando Operaciones de seguridad vio detecciones en el almacén en la última semana |
 | Producción | 4 para un almacén en producción |
@@ -184,11 +187,18 @@ La Vista general cuenta por separado los problemas corregidos donde se originan 
 Una pull request que OneUptime AI abrió para un problema (**Corregir con IA**, o una sola pull request para un [grupo de problemas](#problemas-con-una-sola-causa)) todavía no ha corregido nada cuando se fusiona. OneUptime la sigue hasta que producción lo demuestra:
 
 - **Una fuga en el código.** OneUptime espera un despliegue registrado del servicio que contenga la fusión y luego vigila su nueva versión. Donde una regla de depuración oculta los datos, la regla no debe cambiar ningún valor en esa versión; donde ninguna regla lo hace, ninguna entrada de esa versión puede contener los datos en los lugares donde se encontraron. Además, la nueva versión debe ejecutarse un día y enviar al menos tantos registros o spans como envió la anterior en la hora en que se vio la fuga por última vez. Entonces el problema queda **Corregido en el código**. Un solo valor cambiado, o una sola entrada que todavía contiene los datos, significa que la corrección no detuvo la fuga, y de una versión que envía demasiado poco en una semana no se puede saber nada. Los despliegues se relacionan por su commit: regístralos con `oneuptime deploy` o envía `vcs.ref.head.revision` (consulta [Despliegues y cambios](/docs/telemetry/change-events)).
+- **Una fuga en métricas o reproducciones de sesiones.** Se demuestra igual, por la versión que escribió cada registro: los puntos de datos de una métrica la nombran entre sus atributos, los registros y spans del navegador de una aplicación RUM por la versión para la que se subieron sus source maps, y sus sesiones por la versión de la app que envía el grabador de sesiones. Los datos de una métrica que una regla de pipeline elimina, o cuyos puntos descarta, no dejan nada que leer, así que esa fuga no se puede juzgar; una regla **Ocultar atributo** deja su reemplazo para leer.
 - **La configuración de un almacén.** Cuando la pull request se fusiona, sus almacenes se vuelven a leer al momento. Cada problema cuya comprobación se supera después queda **Corregido en el código de infraestructura**. Si un almacén sigue sin superar su comprobación al volver a leerse un día después de la fusión, la corrección quedó **fusionada, sin aplicar**: los propietarios del almacén y la persona que pidió la pull request reciben un correo, una sola vez, y las cronologías del problema y del almacén lo indican. Lo que suele faltar es un apply.
 - **La regla de depuración se conserva.** Tras una corrección de código verificada, la regla de depuración que contuvo la fuga se queda, así que una regresión se oculta en cuanto llega. El problema indica que la regla no ha cambiado nada desde la corrección y ofrece **Eliminar regla**.
 - **Una regresión.** Una corrección verificada se sigue vigilando después: cuando una regla conservada vuelve a cambiar valores, o el escaneo vuelve a encontrar los datos, el problema se vuelve a abrir e indica qué versión los trajo de vuelta. Sigue abierto hasta que se corrige de nuevo, incluso mientras una regla oculta los datos.
 
 Cada paso aparece en la **Cronología** del problema y en la del almacén, y Resultados de IA cuenta las correcciones verificadas por tipo (consulta [Cómo le va a OneUptime AI](/docs/ai/ai-sre#cómo-le-va-a-oneuptime-ai)).
+
+### Vincular tu propia pull request
+
+Una corrección que escribiste tú se sigue igual. En la página del problema, **Vincular pull request** toma la dirección de una pull request en un repositorio conectado en **Código** (en GitHub, GitLab, Forgejo o Gitea), y el problema la lista en **Pull requests vinculadas**, indicando si se fusionó. OneUptime la sigue hasta su fusión, el despliegue que la publica y la prueba de producción, como arriba, y el problema se resuelve nombrándola. Cada paso aparece en la **Cronología** del problema. Una pull request cerrada sin fusionar ya no se sigue, y quitarla del problema deja de seguirla.
+
+Quien puede cambiar el problema puede vincular una, en un repositorio que pueda leer en **Código**. Un problema admite hasta 10. Una dirección que no es de ninguna pull request, un repositorio que no está conectado o que no puede leer, una pull request cerrada sin fusionar o ya vinculada, y un problema cuyo riesgo se aceptó o que no es un problema se rechazan, cada uno diciendo por qué.
 
 ## El análisis de OneUptime AI
 

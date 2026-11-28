@@ -157,6 +157,38 @@ describe("a log as a row of an Events page", () => {
       probeId: PROBE_ID,
     });
     expect(row?.networkDeviceId).toBeUndefined();
+    // Signed by no site's default credentials: no site to file it in.
+    expect(row?.siteId).toBeUndefined();
+  });
+
+  /*
+   * An SNMPv3 trap from an address that is no device yet, signed with a
+   * site's default credentials, which that site's Default Probe is handed
+   * (#11174): the row says the site, so Add as device files the device
+   * there.
+   */
+  test("a trap a site's default credentials signed, from an address that is no device yet, says the site", () => {
+    const row: NetworkEventRow | null = toNetworkEventRow(
+      log({
+        "event.domain": "network",
+        "event.name": "interface.down",
+        "event.kind": "problem",
+        "snmpTrap.unmatched": "true",
+        "snmpTrap.oid": "1.3.6.1.6.3.1.1.5.3",
+        "snmpTrap.sourceIp": "10.20.0.50",
+        "probe.id": PROBE_ID,
+        "networkSite.id": "8c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f",
+      }),
+      0,
+    );
+
+    expect(row).toMatchObject({
+      isFromUnknownSource: true,
+      isSnmpTrap: true,
+      sourceIp: "10.20.0.50",
+      probeId: PROBE_ID,
+      siteId: "8c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f",
+    });
   });
 
   test("reads a switch however ClickHouse hands it back", () => {

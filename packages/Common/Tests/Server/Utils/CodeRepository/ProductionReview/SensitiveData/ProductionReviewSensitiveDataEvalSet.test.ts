@@ -1,8 +1,16 @@
 import {
+  addedFile,
+  EvalDiffFile,
   EvalExpectedPoint,
   PULL_REQUEST_EVAL_DIFFS,
   PullRequestEvalDiff,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/PullRequestReviewEvalSet";
+import {
+  RecordedTelemetryLeakFinding,
+  TELEMETRY_LEAK_EVAL_SET,
+  TelemetryLeakEvalCase,
+} from "../../../../../../Server/Utils/AI/Eval/DataSecurity/TelemetryLeakEvalSet";
+import { DataStoreKind } from "../../../../../../Types/DataSecurity/DataStoreKind";
 import { SensitiveDataCandidate } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataCandidate";
 import SensitiveDataRules, {
   SensitiveDataRulesResult,
@@ -12,6 +20,7 @@ import {
   PRODUCTION_REVIEW_LEAK_CHECK_IDS,
   SENSITIVE_DATA_LIMITS,
   SensitiveDataLeakKind,
+  SensitiveDataSink,
 } from "../../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import { getDataSecurityCheck } from "../../../../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSensitivity from "../../../../../../Types/DataSecurity/DataSensitivity";
@@ -72,6 +81,36 @@ describe("every diff of the eval set gets exactly its points", () => {
         }),
       ),
     );
+
+    // Where a value goes, and the table a column is added to, where the diff says.
+    const candidates: Array<SensitiveDataCandidate> = SensitiveDataRules.find({
+      files: diff.files,
+    }).candidates;
+
+    for (const expected of diff.points) {
+      if (expected.sink === undefined && expected.where === undefined) {
+        continue;
+      }
+
+      const found: SensitiveDataCandidate | undefined = candidates.find(
+        (candidate: SensitiveDataCandidate): boolean => {
+          return (
+            candidate.subject === expected.subject &&
+            candidate.checkId === expected.checkId
+          );
+        },
+      );
+
+      expect({
+        subject: expected.subject,
+        sink: expected.sink === undefined ? undefined : found?.sink,
+        where: expected.where === undefined ? undefined : found?.where,
+      }).toEqual({
+        subject: expected.subject,
+        sink: expected.sink,
+        where: expected.where,
+      });
+    }
   });
 });
 
@@ -353,5 +392,244 @@ describe("what the rules read, and how much", () => {
 
     expect(result.candidates).toHaveLength(1);
     expect(result.candidates[0]!.text).toContain("loyalty member number");
+  });
+});
+
+/*
+ * WHAT DATA SECURITY LOCATES AFTER IT SHIPS, A REVIEW CATCHES BEFORE
+ * (#10778, with #10367): each leak of the eval set of recorded findings -
+ * a span's and a log line's email, an email in twenty handlers, a key in
+ * an exception's message, an email on a metric, a log line found by its
+ * template, and a web application's browser log and session identified
+ * by an email (#11395) - leads from its records to the line of code that
+ * writes it.
+ * Had that code come in a pull request, its review's rules would have
+ * given a point on that line (or the lines of the call it starts), under
+ * the same check and for the same kind of telemetry.
+ */
+describe("every leak Data Security locates in a service's code, the review of the pull request that added it catches", () => {
+  const SINK_OF_STORE: Partial<Record<DataStoreKind, SensitiveDataSink>> = {
+    [DataStoreKind.TelemetryLogs]: SensitiveDataSink.Log,
+    [DataStoreKind.TelemetryTraces]: SensitiveDataSink.Span,
+    [DataStoreKind.TelemetryExceptions]: SensitiveDataSink.Exception,
+    [DataStoreKind.TelemetryMetrics]: SensitiveDataSink.Metric,
+    [DataStoreKind.TelemetryAiConversations]: SensitiveDataSink.AiPrompt,
+  };
+
+  /*
+   * A RUM application's session replays (#11395) hold its browser logs,
+   * its browser spans and its sessions' details: a finding there is a
+   * point of the sink its place is - a browser log's attribute a Log
+   * point, a session's user a Session point - never of the store alone.
+   */
+  const SINK_OF_SESSION_REPLAY_PLACE: ReadonlyArray<
+    [string, SensitiveDataSink]
+  > = [
+    ["logs.", SensitiveDataSink.Log],
+    ["spans.", SensitiveDataSink.Span],
+    ["sessions.", SensitiveDataSink.Session],
+  ];
+
+  function sinkOf(
+    finding: RecordedTelemetryLeakFinding,
+  ): SensitiveDataSink | undefined {
+    if (finding.storeKind === DataStoreKind.TelemetrySessionReplays) {
+      return SINK_OF_SESSION_REPLAY_PLACE.find(
+        ([prefix]: [string, SensitiveDataSink]): boolean => {
+          return finding.location.startsWith(prefix);
+        },
+      )?.[1];
+    }
+
+    return SINK_OF_STORE[finding.storeKind];
+  }
+
+  // The pull request that added the service's code: every file, every line.
+  function addedFiles(evalCase: TelemetryLeakEvalCase): Array<EvalDiffFile> {
+    return Object.entries(evalCase.files).map(
+      ([path, text]: [string, string]): EvalDiffFile => {
+        return addedFile(path, text.split("\n"));
+      },
+    );
+  }
+
+  // A point on a place's line, or a line of the call that starts there.
+  function caughtAt(
+    candidates: Array<SensitiveDataCandidate>,
+    finding: RecordedTelemetryLeakFinding,
+    place: { file: string; line: number },
+  ): SensitiveDataCandidate | undefined {
+    return candidates.find((candidate: SensitiveDataCandidate): boolean => {
+      return (
+        candidate.path === place.file &&
+        candidate.line >= place.line &&
+        candidate.line <= place.line + 3 &&
+        candidate.checkId === finding.checkId &&
+        candidate.sink !== undefined &&
+        candidate.sink === sinkOf(finding)
+      );
+    });
+  }
+
+  test.each(
+    TELEMETRY_LEAK_EVAL_SET.map(
+      (evalCase: TelemetryLeakEvalCase): [string, TelemetryLeakEvalCase] => {
+        return [evalCase.id, evalCase];
+      },
+    ),
+  )("%s", (_id: string, evalCase: TelemetryLeakEvalCase) => {
+    const result: SensitiveDataRulesResult = SensitiveDataRules.find({
+      files: addedFiles(evalCase),
+    });
+
+    for (const finding of evalCase.findings) {
+      const caught: Array<string> = finding.leadsTo
+        .filter((place: { file: string; line: number }): boolean => {
+          return Boolean(caughtAt(result.candidates, finding, place));
+        })
+        .map((place: { file: string; line: number }): string => {
+          return `${place.file}:${place.line}`;
+        });
+
+      expect({
+        finding: finding.findingId,
+        isCaught: caught.length > 0,
+      }).toEqual({ finding: finding.findingId, isCaught: true });
+    }
+
+    // Every place that writes it is a point, or counted past the review's limits.
+    const writes: number = new Set<string>(
+      evalCase.findings.flatMap(
+        (finding: RecordedTelemetryLeakFinding): Array<string> => {
+          return finding.leadsTo
+            .filter((place: { file: string; line: number }): boolean => {
+              // A metric's instrument is made on one line, and written on another.
+              return !evalCase.files[place.file]
+                ?.split("\n")
+                [place.line - 1]?.includes("createCounter");
+            })
+            .map((place: { file: string; line: number }): string => {
+              return `${place.file}:${place.line}`;
+            });
+        },
+      ),
+    ).size;
+
+    expect(result.candidates.length + result.moreCount).toBeGreaterThanOrEqual(
+      writes,
+    );
+  });
+
+  test("a key in an exception's message: a secret, which can fail the check - the shape only the exceptions sink reads", () => {
+    const evalCase: TelemetryLeakEvalCase = TELEMETRY_LEAK_EVAL_SET.find(
+      (each: TelemetryLeakEvalCase): boolean => {
+        return each.id === "api-key-in-an-exception-message";
+      },
+    )!;
+    const result: SensitiveDataRulesResult = SensitiveDataRules.find({
+      files: addedFiles(evalCase),
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toMatchObject({
+      path: "src/payments.js",
+      line: evalCase.findings[0]!.leadsTo[0]!.line,
+      sink: SensitiveDataSink.Exception,
+      checkId: "secrets-in-telemetry",
+      subject: "apiKey",
+      isBlocking: true,
+      location: "message",
+    });
+  });
+
+  function evalCaseOf(id: string): TelemetryLeakEvalCase {
+    return TELEMETRY_LEAK_EVAL_SET.find(
+      (each: TelemetryLeakEvalCase): boolean => {
+        return each.id === id;
+      },
+    )!;
+  }
+
+  /*
+   * A web application's front end (#11395): the two leaks Data Security
+   * finds in a RUM application's session replays - a browser log's
+   * attribute and a session identified by the customer's email - are a
+   * Log point and a Session point on the very line, at the place the
+   * session replays keep them.
+   */
+  test("a browser log's email: a Log point at the logger's line, under the key its browser log keeps it at", () => {
+    const evalCase: TelemetryLeakEvalCase = evalCaseOf(
+      "browser-log-email-found-through-a-source-map",
+    );
+    const finding: RecordedTelemetryLeakFinding = evalCase.findings[0]!;
+    const result: SensitiveDataRulesResult = SensitiveDataRules.find({
+      files: addedFiles(evalCase),
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toMatchObject({
+      path: "src/checkout/payment.js",
+      line: finding.leadsTo[0]!.line,
+      sink: SensitiveDataSink.Log,
+      checkId: "sensitive-data-in-telemetry",
+      subject: "user.email",
+      where: "logger.warn",
+      isBlocking: false,
+      location: "attributes.user.email",
+    });
+    // The browser log's attribute, as the session replay store's finding names it.
+    expect(finding.location).toBe(`logs.${result.candidates[0]!.location}`);
+  });
+
+  test("a session identified by the customer's email: a Session point at the recorder's call, where the sessions keep their user", () => {
+    const evalCase: TelemetryLeakEvalCase = evalCaseOf(
+      "session-identified-by-the-customers-email",
+    );
+    const finding: RecordedTelemetryLeakFinding = evalCase.findings[0]!;
+    const result: SensitiveDataRulesResult = SensitiveDataRules.find({
+      files: addedFiles(evalCase),
+    });
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toMatchObject({
+      path: "src/session.js",
+      line: finding.leadsTo[0]!.line,
+      sink: SensitiveDataSink.Session,
+      checkId: "sensitive-data-in-telemetry",
+      subject: "customer.email",
+      where: "recorder.identify",
+      isBlocking: false,
+      location: finding.location,
+      text: "Identifies a recorded session by an email address: `customer.email`, in `recorder.identify`.",
+      fix: "Identify the session by an opaque id, such as the user's id, never by `customer.email`.",
+    });
+    // The recorder's own module, which only defines identify(), is no point.
+    expect(
+      result.candidates.filter((candidate: SensitiveDataCandidate): boolean => {
+        return candidate.path === "src/recorder.js";
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * No false point: the fix a person would make - the case's solution,
+   * which the code agent's benchmark checks - leaves the RUM cases with
+   * none. The session is identified by the customer's id, and the browser
+   * log keeps only the cart's total.
+   */
+  test.each([
+    "browser-log-email-found-through-a-source-map",
+    "session-identified-by-the-customers-email",
+  ])("%s, fixed as a person would fix it, has no point", (id: string) => {
+    const evalCase: TelemetryLeakEvalCase = evalCaseOf(id);
+
+    expect(
+      SensitiveDataRules.find({
+        files: addedFiles({
+          ...evalCase,
+          files: { ...evalCase.files, ...evalCase.solution },
+        }),
+      }).candidates,
+    ).toEqual([]);
   });
 });

@@ -159,6 +159,28 @@ const TRANSLATED_LABEL_CALL: RegExp =
 
 const SITES: Readonly<Record<string, NounSite>> = {
   // Labels.
+  [`${DASHBOARD}/Components/Cloud/CostGroups/CloudCostGroupWords.ts`]: {
+    asLabel:
+      "A cost rule's field (#11006): an option of the rule editor's picker, its label, and the first words of a condition's sentence (\"{{field}} is {{values}}\").",
+    drawnBy: [
+      {
+        file: `${DASHBOARD}/Components/Cloud/CostGroups/CloudCostGroupWords.ts`,
+        call: TRANSLATED_LABEL_CALL,
+      },
+      {
+        file: `${DASHBOARD}/Components/Cloud/CostGroups/CloudCostRuleEditor.tsx`,
+        call: /label: getFieldLabel\(field, translator\)/,
+      },
+      {
+        file: `${DASHBOARD}/Components/Cloud/CostGroups/CloudCostRuleEditor.tsx`,
+        call: /ariaLabel=\{getFieldLabel\(condition\.field, translator\)\}/,
+      },
+      {
+        file: `${DASHBOARD}/Components/Cloud/CostGroups/CloudCostRuleSummary.tsx`,
+        call: /getFieldLabel\(props\.condition\.field, translator\)/,
+      },
+    ],
+  },
   [`${DASHBOARD}/Components/NetworkTraffic/NetworkTrafficAddressNames.ts`]: {
     asLabel:
       'Where an address\'s name comes from, on the address card: "Cloud resource" beside "Host" and "DNS name".',
@@ -307,6 +329,11 @@ const SITES: Readonly<Record<string, NounSite>> = {
   [`${DASHBOARD}/Pages/Rum/View/Settings.tsx`]: MORE_SETTINGS,
   [`${DASHBOARD}/Pages/Settings/McpServer.tsx`]: LINK_IN_A_SENTENCE,
   [`${DASHBOARD}/Pages/StatusPages/View/Mcp.tsx`]: LINK_IN_A_SENTENCE,
+  // XCP-ng's pools (#10995), as OpenStack's and Proxmox's pages draw theirs.
+  [`${DASHBOARD}/Pages/XcpNg/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/XcpNg/Settings/OwnerRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/XcpNg/View/Owners.tsx`]: OWNERS_CARD,
+  [`${DASHBOARD}/Pages/XcpNg/View/Settings.tsx`]: MORE_SETTINGS,
   [`${DASHBOARD}/Utils/InvestigationEvidenceFormat.ts`]: {
     inSentence: 'The page an evidence row opens, in "Open in {{page}}".',
   },
@@ -325,7 +352,11 @@ const SITES: Readonly<Record<string, NounSite>> = {
   },
   "packages/Common/Types/DataSecurity/BreachLaws.ts": {
     inSentence:
-      'The data a breach law covers, in the words of the sentence that lists them ("It holds {{elements}}."): "Social Security numbers" starts with a capital for the name of the US program, not as a label.',
+      'What an exposed store held, worded for the sentence that lists it (#10377): "It holds Social Security numbers and passport numbers."',
+  },
+  "packages/Common/Types/DataSecurity/ScanWarnings.ts": {
+    inSentence:
+      "A file's format, a scan warning's value translated as a word of its sentence (#10930): \"{{pattern}}: not scanned: {{format}} is not supported yet\".",
   },
   "packages/Common/Types/InstallScripts/InstallScripts.ts": {
     inEnglish:
@@ -342,6 +373,7 @@ const SITES: Readonly<Record<string, NounSite>> = {
   "packages/Common/Types/Monitor/OpenStackAlertTemplates.ts": ALERT_TEMPLATE,
   "packages/Common/Types/Monitor/PodmanAlertTemplates.ts": ALERT_TEMPLATE,
   "packages/Common/Types/Monitor/ProxmoxAlertTemplates.ts": ALERT_TEMPLATE,
+  "packages/Common/Types/Monitor/XcpNgAlertTemplates.ts": ALERT_TEMPLATE,
   "packages/Common/Types/OpenStack/OpenStackBlastRadius.ts": {
     inSentence: 'A count\'s noun, after its number: "3 DNS zones".',
   },
@@ -353,6 +385,11 @@ const SITES: Readonly<Record<string, NounSite>> = {
     inSentence:
       "A rule's resourceSingular and resourcePlural, in Run Rule Now's sentences.",
   },
+  "packages/Common/Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform.ts":
+    {
+      inSentence:
+        "The array's noun (#11001), in the Storage Array Agent guide card's sentences: \"Create a read-only user for the agent on the {{noun}}.\"",
+    },
   "packages/Common/Types/Workflow/Templates.ts": {
     inEnglish:
       "What a Dynamics 365 case's description calls each kind of affected resource (RESOURCE_NOUNS in the create-case script a workflow template writes): English words the script puts into the case, never translated.",

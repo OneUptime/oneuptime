@@ -47,6 +47,7 @@ import {
 } from "./ComplianceFacts";
 import DataSecurityApi from "./DataSecurityApi";
 import AppLink from "../AppLink/AppLink";
+import { PendingEdits } from "../UnsavedChanges/UsePendingEdits";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -104,7 +105,6 @@ import {
   composedValue,
   formatList,
 } from "Common/UI/Utils/TranslateTemplate";
-import { SaveBeforeLeavingFunction } from "Common/UI/Utils/UseLeaveGuard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -216,6 +216,36 @@ function isSameValue(a: RecordFieldValue, b: RecordFieldValue): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+// A field's value as its Save writes it: an empty list or blank words clear the field.
+export function toWrittenRecordValue(
+  edited: RecordFieldValue,
+): RecordFieldValue | null {
+  if (Array.isArray(edited)) {
+    return edited.length === 0 ? null : edited;
+  }
+
+  return edited.trim() ? edited : null;
+}
+
+/*
+ * A field a person is mid-edit on, written as its own Save writes it - for
+ * the page's Save Changes before it is left (usePendingEdits).
+ */
+export async function writeRecordField(data: {
+  dataStoreId: string;
+  field: RecordField;
+  value: RecordFieldValue | null;
+}): Promise<DataSecurityRecordOfProcessingRow> {
+  return (
+    await DataSecurityApi.applyRecordField({
+      dataStoreId: data.dataStoreId,
+      field: data.field,
+      action: RecordFieldAction.Write,
+      value: data.value,
+    })
+  ).row;
+}
+
 // The editor of one field: a sentence, a phrase, a basis or the people.
 const RecordFieldEditor: FunctionComponent<{
   field: RecordField;
@@ -321,12 +351,12 @@ export interface RecordFieldRowProps {
   canEdit: boolean;
   onRowChange: (row: DataSecurityRecordOfProcessingRow) => void;
   /*
-   * Whether a person is mid-edit here, for the page to ask before leaving,
-   * and the save of their edit as it stands - Save's own, which rejects
-   * with why it did not save - for the question's Save Changes.
+   * Whether a person is mid-edit here, with the value its Save would write:
+   * for the page to ask before leaving, and to write it if the reader says
+   * so.
    */
   onEditingChange?:
-    | ((isEditing: boolean, save: SaveBeforeLeavingFunction) => void)
+    | ((isEditing: boolean, written: RecordFieldValue | null) => void)
     | undefined;
 }
 
@@ -436,38 +466,12 @@ export const RecordFieldRow: FunctionComponent<RecordFieldRowProps> = (
   const [pressing, setPressing] = useState<RecordFieldAction | null>(null);
   const [error, setError] = useState<string>("");
 
-  // A press, sent to the record: rejects with why it was not taken.
-  const apply: (
-    action: RecordFieldAction,
-    extra?: {
-      value?: RecordFieldValue | null | undefined;
-      shownDraftedAt?: string | undefined;
-    },
-  ) => Promise<void> = async (
-    action: RecordFieldAction,
-    extra: {
-      value?: RecordFieldValue | null | undefined;
-      shownDraftedAt?: string | undefined;
-    } = {},
-  ): Promise<void> => {
-    setPressing(action);
-
-    try {
-      const result: DataSecurityRecordFieldResult =
-        await DataSecurityApi.applyRecordField({
-          dataStoreId: props.dataStoreId,
-          field: view.field,
-          action,
-          value: extra.value,
-          shownDraftedAt: extra.shownDraftedAt,
-        });
-
-      setIsEditing(false);
-      props.onRowChange(result.row);
-    } finally {
-      setPressing(null);
-    }
-  };
+  useEffect(() => {
+    props.onEditingChange?.(
+      isEditing && !isSameValue(edited, view.value),
+      toWrittenRecordValue(edited),
+    );
+  }, [isEditing, edited]);
 
   const press: (
     action: RecordFieldAction,
@@ -482,48 +486,32 @@ export const RecordFieldRow: FunctionComponent<RecordFieldRowProps> = (
       shownDraftedAt?: string | undefined;
     } = {},
   ): Promise<void> => {
+    setPressing(action);
     setError("");
 
     try {
-      await apply(action, extra);
+      const result: DataSecurityRecordFieldResult =
+        await DataSecurityApi.applyRecordField({
+          dataStoreId: props.dataStoreId,
+          field: view.field,
+          action,
+          value: extra.value,
+          shownDraftedAt: extra.shownDraftedAt,
+        });
+
+      setIsEditing(false);
+      props.onRowChange(result.row);
+      Toast.success(
+        translator.translateText(
+          action === RecordFieldAction.Write ? SAVED : CONFIRMED,
+        ) || "",
+      );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
-      return;
+    } finally {
+      setPressing(null);
     }
-
-    Toast.success(
-      translator.translateText(
-        action === RecordFieldAction.Write ? SAVED : CONFIRMED,
-      ) || "",
-    );
   };
-
-  // What the editor holds, as the record keeps it: nothing written is no value.
-  const editedValue: RecordFieldValue | null =
-    Array.isArray(edited) && edited.length === 0
-      ? null
-      : !Array.isArray(edited) && !edited.trim()
-        ? null
-        : edited;
-
-  // The edit as it stands, saved as Save saves it: rejects with why it was not.
-  const saveEdit: SaveBeforeLeavingFunction = (): Promise<void> => {
-    return apply(RecordFieldAction.Write, { value: editedValue });
-  };
-
-  useEffect(() => {
-    props.onEditingChange?.(
-      isEditing && !isSameValue(edited, view.value),
-      saveEdit,
-    );
-  }, [isEditing, edited]);
-
-  // A field taken off the page (drawn again once pressed) holds nothing unsaved.
-  useEffect(() => {
-    return () => {
-      props.onEditingChange?.(false, saveEdit);
-    };
-  }, []);
 
   const startEditing: (from: RecordFieldValue) => void = (
     from: RecordFieldValue,
@@ -561,7 +549,9 @@ export const RecordFieldRow: FunctionComponent<RecordFieldRowProps> = (
         isLoading={pressing === RecordFieldAction.Write}
         dataTestId={`${testId}-save`}
         onClick={() => {
-          void press(RecordFieldAction.Write, { value: editedValue });
+          void press(RecordFieldAction.Write, {
+            value: toWrittenRecordValue(edited),
+          });
         }}
       />,
       <Button
@@ -904,32 +894,21 @@ export const RecordRecipientsAndTransfers: FunctionComponent<{
 
 /*
  * A store's whole record: its four fields, then its recipients and
- * transfers. `onFieldEditingChange` says which field a person is mid-edit
- * on, with the save of their edit (UseUnsavedParts), for the page to ask
- * before it is left - and to save from its question.
+ * transfers. Each field a person is mid-edit on is kept in the page's
+ * `pending`, by its field, with the value its Save would write: for the
+ * page to ask before it is left, and to write them if the reader says so
+ * (writeRecordField).
  */
 export const StoreRecordFields: FunctionComponent<{
   row: DataSecurityRecordOfProcessingRow;
   canEdit: boolean;
   onRowChange: (row: DataSecurityRecordOfProcessingRow) => void;
-  onFieldEditingChange?:
-    | ((
-        field: RecordField,
-        isEditing: boolean,
-        save: SaveBeforeLeavingFunction,
-      ) => void)
-    | undefined;
+  pending?: PendingEdits<RecordFieldValue | null> | undefined;
 }> = (props: {
   row: DataSecurityRecordOfProcessingRow;
   canEdit: boolean;
   onRowChange: (row: DataSecurityRecordOfProcessingRow) => void;
-  onFieldEditingChange?:
-    | ((
-        field: RecordField,
-        isEditing: boolean,
-        save: SaveBeforeLeavingFunction,
-      ) => void)
-    | undefined;
+  pending?: PendingEdits<RecordFieldValue | null> | undefined;
 }): ReactElement => {
   return (
     <div data-testid={STORE_RECORD_TEST_ID}>
@@ -945,9 +924,9 @@ export const StoreRecordFields: FunctionComponent<{
               onRowChange={props.onRowChange}
               onEditingChange={(
                 isEditing: boolean,
-                save: SaveBeforeLeavingFunction,
+                written: RecordFieldValue | null,
               ) => {
-                props.onFieldEditingChange?.(view.field, isEditing, save);
+                props.pending?.track(view.field, isEditing, written);
               }}
             />
           );

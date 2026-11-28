@@ -7,6 +7,7 @@ import logger from "../../Logger";
 import {
   EntityRecognizer,
   RecognitionMap,
+  recognizeAsWritten,
   UnavailableRecognizer,
 } from "./EntityRecognizer";
 import { BudgetScope, ModelBudget, ModelStoreBudget } from "./ModelBudget";
@@ -103,10 +104,11 @@ export async function recognizeTexts(
   const budget: ModelStoreBudget = context.budget.forStore(storeKey);
 
   try {
+    // Each value as the model reads it: a URL's escapes read (#11034).
     const found: Map<
       string,
       Array<RecognizedEntity>
-    > = await context.recognizer.recognize(unique, budget);
+    > = await recognizeAsWritten(context.recognizer, unique, budget);
 
     return found.size > 0 ? new RecognitionMap(found) : undefined;
   } catch (error) {
@@ -132,7 +134,8 @@ export interface FieldForModel {
 
 /*
  * The model's reading of the fields it reads (getValuesForModel: free-text
- * fields, and those marked readWithModel), within the store's budget.
+ * fields, those named for free text, and those marked readWithModel),
+ * within the store's budget.
  */
 export async function recognizeFields(
   context: ModelScanContext | undefined,
@@ -148,6 +151,7 @@ export async function recognizeFields(
   for (const field of fields) {
     for (const value of getValuesForModel(field.values, {
       readWithModel: field.readWithModel,
+      fieldPath: field.path,
     })) {
       texts.push(value);
     }

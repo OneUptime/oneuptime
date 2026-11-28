@@ -315,13 +315,22 @@ describe("the shared switch", () => {
      * the server checks every column of a write.
      */
     expect(row).toContain(
-      "getSwitchUpdateGate({ model: model, column: props.column, childSwitches: props.childSwitches, })",
+      "getSwitchUpdateGate({ model: model, column: props.column, childSwitches: props.childSwitches, options: recordOptions, })",
     );
     expect(row).toContain(
-      "const ownGate: PermissionGateResult = PermissionGate.checkColumnUpdate( data.model, data.column, ); if (!ownGate.isAllowed) { return ownGate; }",
+      "const ownGate: PermissionGateResult = PermissionGate.checkColumnUpdate( data.model, data.column, data.options, ); if (!ownGate.isAllowed) { return ownGate; }",
     );
     expect(row).toContain(
-      "PermissionGate.checkColumnUpdate( data.model, child.column, )",
+      "PermissionGate.checkColumnUpdate( data.model, child.column, data.options, )",
+    );
+
+    /*
+     * Each column weighed on the record the switch is on (#11259): what the
+     * record's labels leave the reader, as its page's Edit is, so the switch
+     * of a monitor outside the labels a role is limited to is locked too.
+     */
+    expect(row).toContain(
+      "const recordOptions: PermissionGateOptions | undefined = useRecordGateOptions( model, props.modelId, );",
     );
     expect(row).toContain(
       "const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;",

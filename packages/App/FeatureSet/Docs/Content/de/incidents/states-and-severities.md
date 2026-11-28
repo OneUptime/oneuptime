@@ -65,7 +65,7 @@ Drei Status werden mit dem Projekt angelegt, in dieser Reihenfolge. Das Vorbeleg
 
 | Flag                  | Zweck |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | Der Status, den ein Vorfall erhält, wenn niemand einen gewählt hat. Trägt kein Status im Projekt dieses Flag, schlägt das Anlegen eines Vorfalls mit einem Fehler fehl, der Sie auffordert, in den Einstellungen einen Erstellungsstatus für Vorfälle hinzuzufügen. |
+| `isCreatedState`      | Der Status, den ein Vorfall erhält, wenn niemand einen gewählt hat – es sei denn, das Projekt lässt von Hand gemeldete Vorfälle bestätigt beginnen und ein von Hand gemeldeter Vorfall alarmiert über keine Bereitschaftsrichtlinie: siehe [Von Hand gemeldete Vorfälle](#von-hand-gemeldete-vorfälle). Trägt kein Status im Projekt dieses Flag, schlägt das Anlegen eines Vorfalls mit einem Fehler fehl, der Sie auffordert, in den Einstellungen einen Erstellungsstatus für Vorfälle hinzuzufügen. |
 | `isAcknowledgedState` | Kennzeichnet den bestätigten Status des Projekts: den, in den **Bestätigen** einen Vorfall setzt und nach dem die Kennzahlenkachel für die Bestätigung benannt ist. Ein Vorfall in ihm, in einem Status danach oder ein behobener ist bestätigt – **Bestätigen** wird für ihn nicht mehr angeboten, die Bereitschaft alarmiert für ihn nicht mehr, und sein SLA gilt als beantwortet. |
 | `isResolvedState`     | Kennzeichnet den behobenen Status des Projekts: den, in den **Beheben** einen Vorfall setzt und den die Kennzahlenkachel für die Behebung zeigt. Ein Vorfall in ihm oder in einem Status danach ist behoben – er verlässt **Aktive Vorfälle** und den aktiven Bereich einer Statusseite, und sein SLA gilt als behoben. |
 
@@ -75,6 +75,28 @@ Pro Projekt soll jeweils nur ein Status jedes Flag tragen – die Abfragen holen
 - **Sie lassen sich nicht löschen.** Ihr **Löschen** bleibt im Zeilenmenü, gesperrt, mit Begründung. Ein Massenlöschen überspringt sie und listet sie als nicht gelöscht. Auch die API lehnt das Löschen des letzten Erstellungs-, bestätigten oder behobenen Status eines Projekts ab.
 
 Weil die Oberfläche Statusnamen dynamisch liest, ändert eine Umbenennung, was Sie überall sehen – die Kennzahlenkacheln (**Bestätigt nach** und **Behoben nach** mit den vorangelegten Namen), die Bestätigung **Vorfall als … markieren** eines eigenen Status und das Etikett in der Vorfallliste folgen alle dem Namen, den Sie der Zeile gegeben haben.
+
+## Von Hand gemeldete Vorfälle
+
+Jeder neue Vorfall beginnt in Ihrem Erstellungsstatus und wartet dort darauf, bestätigt zu werden. Melden Sie einen selbst, reagieren meist auch Sie darauf: Sie werden schon beim Melden sein Vorfall-Kommandant, und ihn zu bestätigen ist nur ein weiterer Klick. Ein Projekt kann diese Vorfälle stattdessen bestätigt beginnen lassen.
+
+:::steps
+1. Öffnen Sie **Vorfälle → Einstellungen → Vorfallsstatus** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Schalten Sie unter der Liste der Status **Start incidents declared by hand acknowledged** ein. Der Schalter speichert beim Umlegen sofort.
+:::
+
+Er ist in jedem Projekt aus, bis Sie ihn einschalten, sodass ein Upgrade nie ändert, wer alarmiert wird. Nur Projektinhaber und Projektadministratoren können ihn ändern; für alle anderen ist der Schalter gesperrt und nennt die nötige Berechtigung.
+
+Solange er an ist, beginnt ein von Hand gemeldeter Vorfall – mit **Vorfall melden**, wo immer Sie es öffnen, oder mit dem Vorfallformular in Slack oder Microsoft Teams – in Ihrem bestätigten Status, wenn beides zutrifft:
+
+- **Für ihn ist kein Status gewählt**, weder von Ihnen noch von der Vorlage, aus der er gemeldet wird. Ein gewählter Status hat wie immer Vorrang.
+- **Er alarmiert über keine Bereitschaftsrichtlinie**, weder über eine von Ihnen gewählte noch über eine seiner Vorlage. Wählen Sie eine Richtlinie, beginnt der Vorfall wie bisher in Ihrem Erstellungsstatus, damit die Richtlinie ihre Personen alarmiert.
+
+Beginnt er bestätigt, alarmiert er niemanden: Wie bei jedem [bereits bestätigt gemeldeten](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet) Vorfall läuft keine Bereitschaftsrichtlinie, auch keine, die eine Bereitschaftsregel hinzufügt. Sein SLA beginnt bereits als beantwortet, und seine Zeit bis zur Bestätigung ist null – so fließt sie auch in Ihre MTTA ein.
+
+**Vorfall melden** sagt das, bevor Sie melden: unter **Anfangsstatus**, unter **Bereitschaftsrichtlinie**, solange keine gewählt ist, und auf der Zusammenfassung, die dann immer **Anfangsstatus** aufführt. **Anfangsstatus** füllt es nie für Sie aus: Ein dort gewählter Status hat Vorrang, sodass die Bereitschaftsrichtlinien, die Sie im letzten Schritt wählen, niemanden alarmieren würden. Slack und Microsoft Teams sagen es unter ihren Bereitschaftsrichtlinien und in der Nachricht, die das Anlegen des Vorfalls meldet.
+
+Vorfälle, die niemand von Hand meldet – von Monitoren oder Vorfallsregeln für Warnungen geöffnet, über die API, Terraform, Workflows oder Formulare, aus einem Sicherheitsfall oder von OneUptime AI –, beginnen wie bisher in Ihrem Erstellungsstatus. Über die API ist der Schalter das Feld `startIncidentsDeclaredByHandAcknowledged` des Projekts.
 
 ## Eigene Status anlegen
 
@@ -204,7 +226,7 @@ Warnungen und Episoden folgen derselben Regel, mit Ihren Warnungsstatus.
 
 Ein Vorfall wird behoben, wenn er von einem Status über Ihrem behobenen Status in den behobenen Status oder in einen Status danach wechselt – gleich auf welchem der fünf Wege oben. Jedes Beheben:
 
-- **Gibt die Monitore frei, die der Vorfall hält.** Ein offen gemeldeter Vorfall hält seine Monitore: Er hat sie in seinen Status **Monitor-Status ändern in** gesetzt, wenn er einen nennt, und – von Hand gemeldet – ihre Überwachung pausiert. Auch eine Bearbeitung, während er offen ist – Monitore hinzufügen oder diesen Status ändern –, lässt ihn sie halten. Das Beheben setzt ihre Überwachung fort und setzt sie auf betriebsbereit zurück, sofern nicht ein anderer offener Vorfall noch auf ihnen liegt, und ab dann hält der Vorfall nichts mehr. Ein bereits behoben gemeldeter Vorfall gibt also nichts frei, ebenso wenig ein zweites Beheben nach einer Wiedereröffnung: Ein Status, den seine Monitore dazwischen bekamen – von ihren Sonden, durch Wartung oder von Hand gesetzt –, bleibt.
+- **Gibt die Monitore frei, die der Vorfall hält.** Ein offen gemeldeter Vorfall hält seine Monitore: Er hat sie in seinen Status **Monitor-Status ändern in** gesetzt, wenn er einen nennt, und – von Hand gemeldet, mit angehaktem **Überwachung pausieren** – ihre Überwachung pausiert, außer bei Monitoren, die während Vorfällen weiter überwacht werden. Auch eine Bearbeitung, während er offen ist – Monitore hinzufügen oder diesen Status ändern –, lässt ihn sie halten. Das Beheben setzt ihre Überwachung fort und setzt sie auf betriebsbereit zurück, sofern nicht ein anderer offener Vorfall noch auf ihnen liegt, und ab dann hält der Vorfall nichts mehr. Ein Monitor, den ein anderer offener, von Hand gemeldeter Vorfall noch pausiert, bleibt pausiert; ein seit seinem Beheben wieder eröffneter Vorfall hält nichts, er hält also nichts pausiert. Ein bereits behoben gemeldeter Vorfall gibt also nichts frei, ebenso wenig ein zweites Beheben nach einer Wiedereröffnung: Ein Status, den seine Monitore dazwischen bekamen – von ihren Sonden, durch Wartung oder von Hand gesetzt –, bleibt. Siehe [Überwachung, während ein Vorfall offen ist](/docs/incidents/declaring-incidents#überwachung-während-ein-vorfall-offen-ist).
 - **Markiert das SLA als behoben** und entwirft, wenn KI-Postmortem-Entwürfe von OneUptime eingeschaltet sind, ein Postmortem.
 
 Von **Behoben** in einen Status danach zu wechseln – etwa **Closed** – ist kein zweites Beheben: Nichts davon läuft erneut, und kein neues SLA beginnt. Ein Vorfall, der gemeldet wurde, bevor OneUptime dies aufzeichnete, gibt seine Monitore wie bisher beim nächsten Beheben frei.

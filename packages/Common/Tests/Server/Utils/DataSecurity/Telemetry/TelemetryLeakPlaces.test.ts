@@ -250,9 +250,49 @@ describe("a log line", () => {
     expect(
       placeOf(TelemetrySampleSource.Logs, { readScope: "accounts" }, "body"),
     ).toBeNull();
+    // A browser log or span with no page, line, name, file or stack (#10933).
     expect(
-      placeOf(TelemetrySampleSource.RumSessions, { readName: "x" }),
+      placeOf(
+        TelemetrySampleSource.RumLogs,
+        { readServiceVersion: "web-1.4.2" },
+        "logs.attributes.user.email",
+      ),
     ).toBeNull();
+    expect(
+      placeOf(
+        TelemetrySampleSource.RumSpans,
+        {},
+        "spans.attributes.user.email",
+      ),
+    ).toBeNull();
+  });
+
+  test("a session's user details name the session recorder call that gave them, whatever else the row holds (#10933)", () => {
+    for (const location of [
+      "sessions.identifiedUserLabel",
+      "sessions.identifiedUserTraits.email",
+    ]) {
+      expect(
+        placeOf(TelemetrySampleSource.RumSessions, { readName: "x" }, location),
+      ).toEqual({ recordCount: 1, recorderCall: "identify" });
+    }
+  });
+
+  test("a session's own attributes are the host page's, not identify()'s: only the page it started on names them (#10933)", () => {
+    expect(
+      placeOf(
+        TelemetrySampleSource.RumSessions,
+        { readName: "x" },
+        "sessions.attributes.plan",
+      ),
+    ).toBeNull();
+    expect(
+      placeOf(
+        TelemetrySampleSource.RumSessions,
+        { readPage: "https://shop.example.com/pricing?ref=mail" },
+        "sessions.attributes.plan",
+      ),
+    ).toEqual({ recordCount: 1, page: "/pricing" });
   });
 });
 
@@ -340,6 +380,26 @@ describe("a leak's places", () => {
     ).toEqual(["Saved order", "Saved cart"]);
   });
 
+  test("two lines with no code location, masked alike, are one place", () => {
+    const places: Array<TelemetryLeakPlace> = readLeakPlaces({
+      source: TelemetrySampleSource.Logs,
+      rows: [
+        { readScope: "billing", readBody: "Payment declined for Ada Lovelace" },
+        { readScope: "billing", readBody: "Payment declined for Grace Hopper" },
+      ],
+      location: "body",
+      templateOf,
+    });
+
+    expect(places).toEqual([
+      {
+        recordCount: 2,
+        scopeName: "billing",
+        template: "Payment declined for <value>",
+      },
+    ]);
+  });
+
   test("at most five", () => {
     expect(
       readLeakPlaces({
@@ -351,5 +411,286 @@ describe("a leak's places", () => {
         templateOf,
       }),
     ).toHaveLength(MAX_PLACES_PER_TELEMETRY_LEAK);
+  });
+});
+
+/*
+ * A PLACE READ FROM ONE RECORD KEEPS NO WORD NO RECORD PROVES (#11098).
+ *
+ * A line read once - or read only ever alike - tells no word of the code's
+ * from a value no detector names: its template keeps the words code writes
+ * log lines with, and masks the rest. What reaches the plan, the code
+ * agent's request and the pull request is what these places hold.
+ */
+const NAMES: ReadonlyArray<string> = [
+  "Ada",
+  "Lovelace",
+  "Grace",
+  "Hopper",
+  "Tyra",
+  "Banks",
+  "ada_lovelace",
+];
+
+function namesIn(places: Array<TelemetryLeakPlace>): Array<string> {
+  const said: string = JSON.stringify(places);
+
+  return NAMES.filter((name: string): boolean => {
+    return said.includes(name);
+  });
+}
+
+function placesOf(
+  source: TelemetrySampleSource,
+  rows: Array<JSONObject>,
+  location: string = "body",
+): Array<TelemetryLeakPlace> {
+  return readLeakPlaces({ source, rows, location, templateOf });
+}
+
+describe("a place read from one record (#11098)", () => {
+  test("a log line's template: the name no detector names is masked, the code's words kept", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      [
+        {
+          readFile1: "/app/src/payments.js",
+          readLine1: "31",
+          readBody:
+            "Payment declined for Ada Lovelace (jane.doe@northwind-mail.com)",
+        },
+      ],
+    );
+
+    expect(places).toEqual([
+      {
+        recordCount: 1,
+        filePath: "src/payments.js",
+        lineNumber: 31,
+        template: `Payment declined for <value> (<${namer.nameOf("email-address")}>)`,
+      },
+    ]);
+    expect(namesIn(places)).toEqual([]);
+  });
+
+  test("with no code location, its template is still where the code is looked for - masked", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      [{ readScope: "accounts", readBody: "Welcome back Grace Hopper" }],
+    );
+
+    expect(places).toEqual([
+      {
+        recordCount: 1,
+        scopeName: "accounts",
+        template: "Welcome back <value>",
+      },
+    ]);
+  });
+
+  test("records that all read alike prove no more than one", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      [1, 2, 3].map((): JSONObject => {
+        return {
+          readFile1: "/app/src/payments.js",
+          readLine1: "31",
+          readBody: "Payment declined for Tyra Banks",
+        };
+      }),
+    );
+
+    expect(places).toHaveLength(1);
+    expect(places[0]!.template).toBe("Payment declined for <value>");
+    expect(places[0]!.recordCount).toBe(3);
+    expect(namesIn(places)).toEqual([]);
+  });
+
+  test("records that differ only by the values the detectors name prove no more either", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      ["jane.doe@northwind-mail.com", "sam.lee@northwind-mail.com"].map(
+        (email: string): JSONObject => {
+          return {
+            readFile1: "/app/src/payments.js",
+            readLine1: "31",
+            readBody: `Payment declined for Ada Lovelace (${email})`,
+          };
+        },
+      ),
+    );
+
+    expect(places[0]!.template).toBe(
+      `Payment declined for <value> (<${namer.nameOf("email-address")}>)`,
+    );
+    expect(namesIn(places)).toEqual([]);
+  });
+
+  test("aligned reads keep only the code's words: a name every read holds is masked", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      ["insufficient funds", "card expired"].map((reason: string) => {
+        return {
+          readFile1: "/app/src/payments.js",
+          readLine1: "31",
+          readBody: `Payment declined for Ada Lovelace: ${reason}`,
+        };
+      }),
+    );
+
+    expect(places).toEqual([
+      {
+        recordCount: 2,
+        filePath: "src/payments.js",
+        lineNumber: 31,
+        template: "Payment declined for <value>: <value> <value>",
+      },
+    ]);
+  });
+
+  /*
+   * #11204: the records of one line read with different words share a
+   * value as readily as the code's words - one user's session, one
+   * engineer every ticket goes to, one tenant - so a word they all hold
+   * that is not one code writes log lines with is masked, as one read's
+   * would be. The line's file and number say where the code is.
+   */
+  test("aligned reads mask a lower-case value every read shares: a username", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      ["urgent", "normal", "low"].map((priority: string) => {
+        return {
+          readFile1: "/app/src/tickets.js",
+          readLine1: "44",
+          readBody: `Ticket assigned to jdoe with priority ${priority}`,
+        };
+      }),
+    );
+
+    expect(places).toEqual([
+      {
+        recordCount: 3,
+        filePath: "src/tickets.js",
+        lineNumber: 44,
+        template: "Ticket assigned to <value> with priority <value>",
+      },
+    ]);
+  });
+
+  test("aligned reads of one session mask the name, the local part and the tenant they share", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      ["settings", "billing", "invoices", "team"].map((tab: string) => {
+        return {
+          readFile1: "/app/src/session.js",
+          readLine1: "9",
+          readBody: `Opened ${tab} for ottilie quarrington (ottilie.q) at northwind`,
+        };
+      }),
+    );
+
+    expect(places).toHaveLength(1);
+    expect(places[0]!.filePath).toBe("src/session.js");
+    expect(places[0]!.lineNumber).toBe(9);
+    expect(places[0]!.recordCount).toBe(4);
+    expect(JSON.stringify(places)).not.toMatch(
+      /ottilie|quarrington|northwind/i,
+    );
+  });
+
+  test("a line read aligned whose words none are the code's still names its file and line", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Logs,
+      ["jdoe", "asmith"].map((user: string) => {
+        return {
+          readFile1: "/app/src/de/zahlung.js",
+          readLine1: "3",
+          readBody: `Zahlung abgelehnt für ${user}`,
+        };
+      }),
+    );
+
+    expect(places).toEqual([
+      { recordCount: 2, filePath: "src/de/zahlung.js", lineNumber: 3 },
+    ]);
+  });
+
+  test("a span's name read once: a name in it masked", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Traces,
+      [{ readName: "export report for Ada Lovelace" }],
+      "attributes.user.email",
+    );
+
+    expect(places).toEqual([
+      { recordCount: 1, spanName: "export report for <value>" },
+    ]);
+  });
+
+  test("an exception's message read once: a name in it masked", () => {
+    const places: Array<TelemetryLeakPlace> = placesOf(
+      TelemetrySampleSource.Exceptions,
+      [
+        {
+          readExceptionType: "PaymentError",
+          readMessage: "Card declined for Grace Hopper",
+          readFrames: JSON.stringify([
+            {
+              functionName: "charge",
+              fileName: "/usr/src/app/src/payments.js",
+              lineNumber: 12,
+              inApp: true,
+            },
+          ]),
+        },
+      ],
+      "message",
+    );
+
+    expect(places[0]!.template).toBe("Card declined for <value>");
+    expect(places[0]!.exceptionType).toBe("PaymentError");
+    expect(namesIn(places)).toEqual([]);
+  });
+
+  test("a metric's name that is no detector's value: a part no record proves masked", () => {
+    expect(
+      placesOf(
+        TelemetrySampleSource.Metrics,
+        [{ readMetricName: "logins.ada_lovelace.count" }],
+        "attributes.user.email",
+      ),
+    ).toEqual([{ recordCount: 1, metricName: "logins.<value>.count" }]);
+    expect(
+      placesOf(
+        TelemetrySampleSource.Metrics,
+        [{ readMetricName: "checkout.orders.placed" }],
+        "attributes.user.email",
+      ),
+    ).toEqual([{ recordCount: 1, metricName: "checkout.orders.placed" }]);
+  });
+
+  test("a place named by nothing but words no record proves names none", () => {
+    expect(
+      placesOf(TelemetrySampleSource.Logs, [{ readBody: "Ada Lovelace" }]),
+    ).toEqual([]);
+  });
+
+  test("what the code wrote whole stays whole", () => {
+    expect(
+      placesOf(TelemetrySampleSource.Logs, [
+        {
+          readFile1: "/app/src/signup.js",
+          readLine1: "12",
+          readBody: "User jane.doe@northwind-mail.com signed up",
+        },
+      ])[0]!.template,
+    ).toBe(`User <${namer.nameOf("email-address")}> signed up`);
+    expect(
+      placesOf(
+        TelemetrySampleSource.Traces,
+        [{ readName: "POST /signup" }],
+        "attributes.user.email",
+      ),
+    ).toEqual([{ recordCount: 1, spanName: "POST /signup" }]);
   });
 });

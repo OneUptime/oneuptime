@@ -36,6 +36,7 @@ import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -390,6 +391,12 @@ const store = {
     },
   ],
   VMwareResource: estate.vmwareRows,
+  /*
+   * The project's VMware health rules (#11157): none, as the server answers
+   * for a project that has not opened VMware > Settings > Health Rules (it
+   * makes the row there), so the vCenter's map judges by the defaults.
+   */
+  VMwareHealthSetting: [],
   KubernetesCluster: [
     {
       _id: IDS.kubernetes,
@@ -512,7 +519,8 @@ const store = {
   Alert: alerts,
   ScheduledMaintenance: [],
   /*
-   * What the Recommendations menu item reads: no monitors, nothing
+   * What the Recommendations menu item weighs: no monitors (the coverage it
+   * asks the server for, POST /monitor/recommendation-coverage), nothing
    * dismissed, and no connection reading the account - none of its
    * resources names one - so each window is its template's (#10028).
    */
@@ -820,6 +828,17 @@ async function handleApi(method, options) {
       isInvestigationReady: false,
       isRemediationReady: false,
     });
+  }
+
+  // Which recommended monitors a monitor covers, from the project's monitors.
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

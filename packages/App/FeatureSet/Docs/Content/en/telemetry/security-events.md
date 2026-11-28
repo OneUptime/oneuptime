@@ -65,6 +65,7 @@ Open **Products → Security Events**, under **Security**. Its menu has a sectio
 | **Note Templates** | Settings | Ready-made text for the notes your team writes on its cases |
 | **Numbering** | Settings | The text in front of case numbers, and the number the next case gets |
 | **Risk Scoring** | Settings | Whether an entity's risk opens a case, at what risk, and how much each entity matters |
+| **Erasure Requests** | Settings | People erased from Security Events on request, and what each erasure changed |
 
 **Detections**, **AI**, **Connections** and **Settings**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
@@ -205,7 +206,7 @@ Each kind reaches OneUptime as ordinary logs:
 | Kubernetes audit logs | The API server's audit log file, read by the collector's `filelog` receiver |
 | Web attacks | A web server's access log, read by the collector's `filelog` receiver |
 
-On **Your logs**, each kind says when it was last found, and **Check a log line** shows what a line you paste becomes, before any arrives.
+On **Your logs**, each kind says when it was last found, and **Check a log line** shows what a line you paste becomes, before any arrives. OneUptime reads it as the scans read your logs, with your [trusted proxies](#trusted-proxies) and your access logs' settings, so it names the client the stored event will, and saves nothing.
 
 A threat a security product writes in your logs, such as a CEF or LEEF finding or a Palo Alto Networks, FortiGate or Cisco ASA threat, opens a [case](/docs/telemetry/security-cases) as a connected product's alert does, and adds to the risk of the user, host or address it names. **Open cases from**, on **Your logs**, says from which severity: **High and above** unless you choose another, or **Never**. The product's sign-ins and blocked connections stay events, for your rules to read.
 
@@ -246,7 +247,7 @@ Turn on **Network flows**, under **Your OneUptime data** on **Connections**, and
 - the range of each of its discovery scans, while the scan runs;
 - the hosts and ports its monitors check.
 
-It is kept as an Informational event, `oneuptime-probe-traffic`, naming the probe, and no rule reads it. **Network flows** says how many it set aside in the last day, with **See them**. Anything else from a probe's address is counted as anyone's traffic is, and a sweep or scan beyond the probe's work is reported, naming the probe. A probe is known by the address it checks in from and the addresses on its own network interfaces, which it lists each time it checks in.
+It is kept as an Informational event, `oneuptime-probe-traffic`, naming the probe, and no rule reads it. **Network flows** says how many it set aside in the last day, with **See them**. Anything else from a probe's address is counted as anyone's traffic is, and a sweep or scan beyond the probe's work is reported, naming the probe. A probe is known by the address it checks in from and the addresses on its own network interfaces, which it lists each time it checks in. A custom probe without host networking, such as a Kubernetes pod or a container on a Docker bridge network, is known by its host's addresses too, which `PROBE_HOST_IP_ADDRESSES` gives it: until it has them, its polling leaves from an address it is not known by and is reported as sweeps. See [What a probe sends when it checks in](/docs/probe/custom-probe#what-a-probe-sends-when-it-checks-in).
 
 ### Connect a security product
 
@@ -298,6 +299,8 @@ An event names the address a request came from only when the request's sender co
 
 A claimed address is never blocked from a case: anyone can send `X-Forwarded-For: 192.0.2.44`, and a block would cut off whoever 192.0.2.44 is. An event with only a claimed address has a **Response Plan** that tells you to find the real one in your load balancer's or firewall's logs.
 
+An event whose client a proxy you trust forwarded says which proxies it came through, as **Forwarded By**: in the order `X-Forwarded-For` lists them, the connection's own address last. They are in `oneuptime.request.forwarded_by`, and **Check a log line** says why each is trusted.
+
 Record two things on your app's server spans so its addresses are verified: the connection's own address, `network.peer.address`, which OpenTelemetry's HTTP instrumentations set, and, behind a proxy, the `X-Forwarded-For` header, which they record as `http.request.header.x-forwarded-for` once you list it in `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. A JSON access log is read the same way: its client field, such as `remote_addr`, is the connection's address, and its `http_x_forwarded_for` field is the header.
 
 #### Trusted Proxies
@@ -306,18 +309,40 @@ Security Events trusts a proxy to say who its client was when its address is:
 
 | Trusted | Why |
 | --- | --- |
-| Private, loopback or link-local, such as `10.0.0.5` | Always: nobody has it on the internet, so it is a load balancer or an ingress inside your network |
 | Listed under **Trusted Proxies** | You listed it |
 | In the published ranges of an edge you connected, such as [Cloudflare](/docs/integrations/cloudflare) | While the connection exists |
-| One of your own application load balancers | Unless you turn it off |
+| One of your own application load balancers, or a Google Cloud proxy-only subnet only your Application Load Balancers connect from | Unless you turn **Your Load Balancers** off |
+| One of Google's front ends, behind your Google Cloud Application Load Balancer | With your load balancers, unless a TCP or SSL proxy load balancer of yours connects from them too |
+| Private, loopback or link-local, such as `10.0.0.5` | While **Private Addresses** is on |
 
-**Security Events → Connections → More settings** holds **Trusted Proxies**, the list you write, and **Trusted Automatically**, which shows the rest and why. List a proxy under **Trusted Proxies**, one address or range a line, when its address is public and nothing else trusts it: a CDN you have not connected, a load balancer that reaches your app over the internet, or a reverse proxy such as nginx on a server with a public address in front of your app. Until you do, every attack through it is blamed on the proxy. Behind a Google Cloud global external Application Load Balancer, your app's connections come from Google's front ends: list `35.191.0.0/16` and `130.211.0.0/22`.
+Where one of your load balancers that works at the TCP level connects from is never trusted, even listed: see [Proxies that work at the TCP level](#proxies-that-work-at-the-tcp-level).
+
+**Security Events → Connections → More settings** holds **Trusted Proxies**, the list you write, and **Trusted Automatically**, which shows the rest and why. List a proxy under **Trusted Proxies**, one address or range a line, when nothing else trusts it: a CDN you have not connected, a load balancer that reaches your app over the internet, a reverse proxy such as nginx on a server with a public address in front of your app, or, while **Private Addresses** is off, an HTTP proxy inside your network, such as your ingress. Until you do, every attack through it is blamed on the proxy. A range wider than a proxy's, such as `0.0.0.0/0`, is refused: it would trust every address, so anyone could choose the address an attack is blamed on. A Project Owner, Project Admin or Security Admin edits the list, and every change is in the project's [audit log](/docs/configuration/audit-logs).
 
 Your own application load balancers are the ones your [connected cloud accounts](/docs/telemetry/cloud-accounts) list: AWS Application Load Balancers, AWS Classic Load Balancers whose every listener is HTTP or HTTPS, Google Cloud Application Load Balancers and Azure Application Gateways, by their public addresses. Each adds the client it forwards to `X-Forwarded-For`. A Google Cloud load balancer appends its own address after the client's, and an Application Gateway reaches a public backend from its own address, so without them every attack through one would be blamed on the load balancer. **Your Load Balancers**, on **Trusted Automatically**, lists them, and a Project Owner, Project Admin or Security Admin can turn it off.
 
-Nothing else of yours is trusted automatically: not your hosts, Kubernetes nodes, probes or virtual machines, a NAT gateway, or a Network, Gateway or Azure load balancer. They forward nobody, or pass a request on as it came, so whatever runs on them could name any client: a request a monitor sends with headers of its own, a pod, a laptop behind the gateway. If one of them is your proxy, add it to **Trusted Proxies**. A Kubernetes ingress is trusted as the load balancer it is: a GKE ingress is a Google Cloud Application Load Balancer, an AKS Application Gateway ingress an Application Gateway, and an EKS ingress of class `alb` an AWS Application Load Balancer. An ingress controller inside your cluster forwards from a private address, which is always trusted.
+Behind a Google Cloud global external Application Load Balancer, or a classic one, your app's connections come from Google's front ends, not from the load balancer's own address. So while a connected Google Cloud project has one, Security Events trusts the front ends' ranges too: `35.191.0.0/16`, `130.211.0.0/22` and `2600:2d00:1:1::/64`, as Google's [load balancing firewall rules](https://cloud.google.com/load-balancing/docs/firewall-rules) list them. **Your Load Balancers** shows them on the list's last line, with the load balancers that bring them, and its switch turns them off too. Nobody outside Google connects from these ranges, and trusting them never lets anyone name a client: a request through somebody else's load balancer ends its `X-Forwarded-For` with that load balancer's address, which is not yours, so the event names it. But Google's TCP and SSL proxy load balancers connect from the same ranges and pass a request on as the client sent it, so while one of yours exists, or not every load balancer could be listed, the ranges are not trusted, and the line says why. If such a load balancer is in a Google Cloud project you have not connected, connect it, or turn **Your Load Balancers** off. Older versions of these docs said to list `35.191.0.0/16` and `130.211.0.0/22` under **Trusted Proxies**: while a TCP or SSL proxy load balancer of yours connects from them, they are not trusted even listed, and **Trusted Proxies** warns about each range of yours that holds them. You can take them off the list: **Your Load Balancers** trusts them when it's safe to.
+
+Nothing else of yours is trusted automatically: not your hosts, Kubernetes nodes, probes or virtual machines, a NAT gateway, or a Network, Gateway or Azure load balancer. They forward nobody, or pass a request on as it came, so whatever runs on them could name any client: a request a monitor sends with headers of its own, a pod, a laptop behind the gateway. If one of them is your proxy, add it to **Trusted Proxies**. A Kubernetes ingress is trusted as the load balancer it is: a GKE ingress is a Google Cloud Application Load Balancer, an AKS Application Gateway ingress an Application Gateway, and an EKS ingress of class `alb` an AWS Application Load Balancer. An ingress controller inside your cluster forwards from a private address, which is trusted while **Private Addresses** is on; while it's off, list its addresses.
 
 A change to any of these takes effect within a minute, and a new load balancer is trusted within five.
+
+#### Proxies that work at the TCP level
+
+A proxy that works at the TCP level adds nothing to `X-Forwarded-For`: it passes on the header the client wrote, and your app sees the connection come from the proxy. Trusted, it would let a client choose the address an attack is blamed on, and get somebody else's address blocked. Examples are an AWS Network Load Balancer without client IP preservation, Google Cloud's proxy Network Load Balancers, HAProxy in `mode tcp`, nginx's `stream` module, and a Kubernetes Service with `externalTrafficPolicy: Cluster`, which hands your ingress each connection from a node's address.
+
+OneUptime finds the ones your [connected cloud accounts](/docs/telemetry/cloud-accounts) list, and never trusts the addresses they connect from, even where **Trusted Proxies** lists them:
+
+- A Google Cloud regional or cross-region proxy Network Load Balancer: the proxy-only subnet of its region and VPC network, which every load balancer there shares. While only your Application Load Balancers use a proxy-only subnet, nothing else can be in it, and it is trusted as theirs.
+- A Google Cloud global external or classic proxy Network Load Balancer: Google's front ends.
+- An AWS Network Load Balancer that doesn't keep the client's own address, from the subnets it is in: one with a target group of instances or IP addresses, over TCP or TLS, whose client IP preservation is off (IP targets have it off unless you turn it on); a dualstack one, which hands an IPv6 client to IPv4 targets from its own address; or one whose target groups OneUptime couldn't read.
+- An AWS Classic Load Balancer with a TCP or SSL listener, from the subnets it is in.
+
+**Trusted Automatically** lists them under **Not trusted, even if listed**, each with why. Behind one, keep the client's own address on the connection: turn on client IP preservation, or put an Application Load Balancer in front. AWS load balancers are read as your cloud account's inventory is, so a change shows after its next read.
+
+For a proxy OneUptime can't see, turn off **Private Addresses**, on **Trusted Automatically**. Off, a private address is trusted only when it's listed under **Trusted Proxies** or is one of your load balancers', so list your HTTP proxies inside your network first: until you do, every attack through one is blamed on it. An AWS Application Load Balancer and an Azure Application Gateway reach your app from private addresses in their subnets, which OneUptime doesn't list yet: list those subnets too. A new project starts with **Private Addresses** off. A project from before it keeps trusting private addresses as it did, and **Trusted Automatically** says what that risks. A Project Owner, Project Admin or Security Admin flips it, and every change is in the project's audit log.
+
+Whatever you choose, an address is never blocked automatically when it came through a private address that isn't listed or one of your load balancers': [automatic response](/docs/telemetry/security-automatic-response) leaves it for a person, and a playbook's **Block Address** step waits for approval, even one whose approval is turned off, naming the proxy it came through. A person who blocks the address from a case's **Response Plan** decides for themselves. Behind a private HTTP proxy of yours, list it under **Trusted Proxies**, and automatic response acts on what it forwards.
 
 #### Access logs that end with X-Forwarded-For
 
@@ -337,6 +362,25 @@ A line never says what its fields are, so its last field is read as `X-Forwarded
 
 Leave it off when your format ends with another header that holds an address, such as `X-Real-IP`, or when your web server writes headers without escaping their quotes, as Express's `morgan` does: a request's own user agent could then add a field. A JSON access log needs no switch, since its fields are named.
 
+#### Your own log format
+
+If your web servers put `X-Forwarded-For` anywhere but last, give their format: **Log Format**, on **Access Logs** under **More settings**. Paste your nginx `log_format` as your `nginx.conf` writes it, or start from a known one, nginx's `main` or ingress-nginx's `upstreaminfo`. For example, a format that logs how long each request took after the header:
+
+```nginx
+log_format timed '$remote_addr - $remote_user [$time_local] "$request" '
+                 '$status $body_bytes_sent "$http_referer" '
+                 '"$http_user_agent" "$http_x_forwarded_for" $request_time';
+```
+
+Each line in your format is read field by field: the address that connected from `$remote_addr`, and `X-Forwarded-For` from `$http_x_forwarded_for`, wherever the format puts it. It is read as any `X-Forwarded-For` is: only when `$remote_addr` is a proxy you trust, and from the right. No other field is ever taken for either, and a line that is not in your format is read as before, with **Logs End With X-Forwarded-For** deciding its last field.
+
+- nginx escapes the quotes a client sends, as `\x22`, so every quote in a line is one of your format's. A line with more quotes than your format, as a server that does not escape them writes (`escape=none`, Express's `morgan`), is no line of your format, and nothing in it is read as one.
+- **Log Format** refuses a format whose `X-Forwarded-For` or `$remote_addr` cannot be told apart from the fields beside it, such as an unquoted header between two fields a client writes, and says to quote it, as `"$http_x_forwarded_for"`.
+- ingress-nginx's `upstreaminfo` logs no `X-Forwarded-For`, so each line's client is its `$remote_addr`. If an Application Load Balancer or another HTTP proxy is in front of it, add `"$http_x_forwarded_for"` to your `log-format-upstream` to read the client it forwarded. Behind a Network Load Balancer, which passes on the header the client wrote, don't.
+- When nginx sets `$remote_addr` from `X-Forwarded-For` itself, with its realip module or ingress-nginx's `use-forwarded-headers`, it believes whoever `set_real_ip_from` or `proxy-real-ip-cidr` names, and ingress-nginx's default names everyone. Log the address that really connected, `$realip_remote_addr`, beside `$http_x_forwarded_for`: Security Events then reads `$realip_remote_addr` as the connection, `$remote_addr` only as a claim, and decides with your Trusted Proxies.
+
+A Project Owner, Project Admin or Security Admin gives it, and every change is in the project's audit log.
+
 ### Hidden by a scrub rule
 
 An IP Address scrub rule that redacts or masks your logs or traces hides the address an attack came from before Security Events reads them. The event is still stored, with no address, and wherever it would name the address it says a scrub rule hid it:
@@ -352,6 +396,8 @@ A rule that hashes keeps the address for Security Events, so the event names it,
 A detection rule that counts per address should count per `principalIp` or `targetIp`, which name the address behind a hashing rule's token, as the Rule Library's rules do. A format's own address field, such as `openstack.audit.initiator_address` or `asa.src_ip`, holds only an address the log wrote, so it stays empty wherever a scrub rule hid one.
 
 A rule that redacts or masks a user hides them the same way: where the event would name the user, **Principal User** or **Target User** says a scrub rule hid them. Where Security Events reads a user, a rule that hashes keeps the user for it: a request's `enduser.id` or `user.id`, an AI call's user, and a user a log line names, such as a cloud audit log's principal. So the event names the user behind the token, a case about them names the account, and a playbook can act on it as on any other user. What the rule left is in `oneuptime.principal_user_hashed_as` or `oneuptime.target_user_hashed_as`, so you can find the user in your logs and traces, which hold only the token. A token with no user kept for it, such as one made before tokens had a key, stays the event's user: rules count it as one account, and no playbook acts on it.
+
+The event's panel says so under the user it names in **Principal User** and **Target User**: "Hashed in your logs as" the token, or "Hashed in your traces as" it for a user read from your traces. The token is a link that searches your logs or traces for it, from a day before the event to a day after, in the field the user was read from: a log line's body or one of its attributes, or a span's attribute, such as `user.id` or an AI call's user. That field is in `oneuptime.principal_user_hashed_field` or `oneuptime.target_user_hashed_field`. A user erased on request reads **Erased on request** instead, and the event shows their token: see [Erase a person](#erase-a-person).
 
 ## Explore security events
 
@@ -391,9 +437,9 @@ A request for a file that holds secrets, such as `/.env`, `/.git/config`, `/.aws
 - A type that is no web page, such as `text/plain` or `application/octet-stream`: the file itself.
 - A web page, or JSON for a file that is not JSON: your site's own page.
 - Nothing in it: nothing was taken.
-- A size and no type, as a web server's access log records it: the file itself when no other path got that size and your site answers 404 for the paths it does not have, and your site's own page when the same size answered two different paths. When nothing tells, the request is no event.
+- A size and no type, as a web server's access log records it: the file itself when no other path got that size and your site answers 404 for the paths it does not have, and your site's own page when the same size answered two different paths. A request with nothing beside it, such as a scanner's lone `/.env`, is judged by what your site answered in the last day. When nothing tells, the request is no event.
 
-A served file is Critical, and the Rule Library's **Sensitive file served** opens a case on it, with steps to take the file down and rotate what it holds. Every one of these requests counts toward **Scanning for sensitive files** too, a single-page app's included. An admin page your site serves, such as WordPress's, is never one, and `wp-config.php` that WordPress ran is your site's own. Cloudflare's firewall events do not say what your origin sent, so a request Cloudflare let through counts toward scanning only. An event's panel says what your site sent under **What happened next**.
+A served file is Critical, and the Rule Library's **Sensitive file served** opens a case on it, with steps to take the file down and rotate what it holds. Every one of these requests counts toward **Scanning for sensitive files** too, a single-page app's included. An admin page your site serves, such as WordPress's, is never one, and `wp-config.php` that WordPress ran is your site's own. Cloudflare's firewall events do not say what your origin sent, so a request Cloudflare let through counts toward scanning only. An event's panel says what your site sent under **What happened next**. A project that turned on the recommended rules before **Sensitive file served** was one, and runs every other one, got it on upgrade, and **Overview** says so.
 
 ### Campaigns
 
@@ -747,6 +793,33 @@ Everything in Security Events that reads past events reads only the events still
 - A hunt whose **Time Range** is longer than events are kept finds nothing older, and its form says so.
 
 **Project Settings → Telemetry & APM → Data Retention** lists the enabled rules that look back further than its **Default Retention (Days)**. To cover them, keep events longer, with **Change Retention** under a rule, or shorten a rule's timespan to what is kept. OneUptime keeps 15 days unless you change it, because retention sets what your telemetry costs and how long personal data in events, such as addresses and user names, is kept. A new retention applies to events that arrive from then on, so rules see further back as those events age.
+
+## Erase a person
+
+When someone asks you to erase their data, for example under GDPR Article 17, erase them from Security Events in **Security Events → Settings → Erasure Requests**. Select **Erase Person** and enter their user ID or email address as your logs held it before your Hash scrub rule hid it, or the token an event shows in its place. An email address is erased in lower case too. Add your own **Reference**, such as the request's ticket number, never the person's name.
+
+What it does:
+
+- Within a minute, Security Events stops naming the person. The user vault refuses their tokens from then on, so no event, case or playbook names them again, even when a later event carries the same token: that event keeps the token as its user, as for any token with no user kept for it. Keeping a token that comes back would name the person again, which is what they asked you to stop.
+- Within a few minutes, it deletes the vault's entries of them and puts the token back in their place in the events that named them through the vault: **Principal User**, **Target User**, the observables and the attributes. It does the same in the Detection Findings a detection rule or a threat intel feed wrote about them, in their message, observables and attributes, and marks each of those findings with `oneuptime.finding_user_erased`. It takes them out of the titles, entities and kept events of cases and detections, and out of entity risk, also where a correlation joins them with another value, such as `alice@example.com / 203.0.113.7`.
+- The fingerprints of what named them change too. A detection rule or a threat intel feed fingerprints the value it groups on, such as a user, with a key of your project's own, so no one can work out a fingerprint from a guess. The person's fingerprints, in a Detection Finding's event ID, in detections, and in the alerts and incidents a detection opened, become the token's: the fingerprint a rule makes when it next matches them, so an open alert goes on grouping those matches. This includes a correlation that writes no Detection Findings and opens no cases: the erasure reads its values from the titles of the alerts and incidents it opened, and from the risk of the other entities in its group, and keeps only the ones their fingerprints prove.
+- When a threat intel feed lists their email address, nothing OneUptime wrote about the match points at the feed's indicator any more. In the Detection Finding, the events the feed matched, the detection and the case, and the alert or incident the match opened, the indicator's ID becomes `[INDICATOR:…]`, a fingerprint of the token, and the indicator's name goes. The feed, the indicator's type and its confidence stay. The events also lose the address the feed matched, `threat.indicator_value`, which gets the token.
+- A playbook run or an action of OneUptime AI that waits for approval to act on them is withdrawn, and says why.
+
+Each request shows its status, **Queued**, **Erasing**, **Erased** or **Failed**, and what it changed: the vault entries deleted, the events and cases unnamed and the proposals withdrawn. While it reads **Erasing**, a line under it says how far it has got: taking the person out of cases and events, waiting for those changes to be applied, reading the Detection Findings (which pass, and up to which finding's time), when the final check starts, and the final check itself. Erasing starts two minutes after the request is filed, once every OneUptime server has stopped naming the person, and a request reads **Erased** only when every change has been applied and a last read of the project's Detection Findings finds nothing left to change. That read waits until no detection that read the person's name can still be running, so a request usually reads **Erased** about 15 minutes after it is filed. A project with more Detection Findings than one run can read is read over several runs, each going on where the last one stopped. A request that fails is tried again, and after five attempts it reads **Failed** with the reason, and the project's Owners are emailed. Security Events still refuses to name the person, and filing the request again retries it.
+
+What it leaves:
+
+- What people wrote: notes, closing notes, tasks, evidence, custom fields and what OneUptime AI wrote about a case.
+- Events that named the person because your logs, or a product you connected, held them in clear, and your logs and traces themselves, which hold only the token.
+- Notifications already sent, the titles and descriptions of incidents and alerts a detection opened (apart from a threat intel feed's indicator ID), a case's activity, exports, backups and the audit log.
+- A threat intel feed's own indicators. The feed goes on listing the address, and its indicators stay as the feed has them.
+- The risk that a correlation counted for the other entities in its group, when the correlation also groups on a value that carries no risk, such as a process, and opens no alert, incident or case. Nothing left says what that value was, so the fingerprint of the group stays as it was.
+- On a self-hosted OneUptime whose `ENCRYPTION_SECRET` changed, tokens made before the change: erase each one by the token an event shows.
+
+The request keeps who filed it and when, your reference and the person's tokens, which is how the vault goes on refusing them. The user ID or email address, and the names the erasure finds the person under, are stored encrypted, where no page, export or API can read them, and are wiped once the erasure is done; ClickHouse is only ever sent the tokens. Requests can't be edited or deleted: they are your record of the erasure.
+
+Project Owners, Project Admins, Security Admins and anyone with Create Security Erasure Request, such as your privacy officer, can file a request, from the page or through the API's `/security-user-erasure-request`. Every Security role can read them.
 
 ## Troubleshooting
 

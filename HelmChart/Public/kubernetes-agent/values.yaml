@@ -191,18 +191,22 @@ filters:
     # whole feed rather than trim it. Use the OneUptime dashboard's
     # server-side Drop Filters if you need to thin those out.
     #
-    # Severity comes from the log line itself: the agent parses a level out
-    # of the text ("[ERROR]", "WARN:", "level=info", ...). What happens to a
-    # line with no recognisable level differs by log mode, because the two
-    # modes have different information available:
+    # Severity comes from the log line itself: the agent reads the level the
+    # line names ("[ERROR]", "WARN:", "level=info", klog's "I1123 ...",
+    # PostgreSQL's "LOG:", pino's "level":30, ...), and an exception's
+    # traceback counts as ERROR. What happens to a line that names no level
+    # differs by log mode, because the two modes have different information
+    # available:
     #
     #   daemonset — the container runtime records which stream each line came
-    #     from, so an unlabelled line falls back to stderr→ERROR /
-    #     stdout→INFO. An unlabelled stdout line is therefore treated as INFO
-    #     and IS dropped by a WARN threshold.
+    #     from. An unlabelled stdout line is a program's ordinary output: it
+    #     is INFO, and IS dropped by a WARN threshold. An unlabelled stderr
+    #     line has no severity at all (it shows as Unspecified), because
+    #     programs write every level of their diagnostics to stderr, and it
+    #     is KEPT: the filter has no level to compare.
     #
     #   api — the Kubernetes pods/log API merges stdout and stderr into one
-    #     stream with no per-line marker, so that fallback is not available.
+    #     stream with no per-line marker, so the stream is not available.
     #     Rather than guess, unlabelled lines are KEPT. This mode drops
     #     strictly less; it will never silently delete a stack trace it could
     #     not classify.
@@ -515,12 +519,13 @@ logs:
   #     pod's logs twice. If `api.image.tag` pins a version, make sure it is
   #     no older than this chart's release; if a node may have cached a stale
   #     `release` tag, set `api.image.pullPolicy: Always` for the upgrade.
-  #   - `filters.logs.minSeverity` drops lines with NO recognizable severity
+  #   - `filters.logs.minSeverity` treats lines with NO recognizable severity
   #     differently on the two paths: the DaemonSet sees the stdout/stderr
-  #     marker on disk and assigns INFO/ERROR fallbacks (then filters), while
-  #     the log API strips that marker, so the tailer errs toward KEEPING
+  #     marker on disk, so it drops an unlabelled stdout line as INFO (and
+  #     keeps an unlabelled stderr line, which has no severity), while the
+  #     log API strips that marker, so the tailer errs toward KEEPING
   #     unrecognizable lines. Under a severity filter, Windows pods can ship
-  #     more keyword-less lines than Linux pods.
+  #     more unlabelled stdout lines than Linux pods.
   windowsPods:
     enabled: false
   # The OTel memory_limiter (templates/configmap-daemonset.yaml) and the
@@ -574,6 +579,58 @@ logs:
     cloudName: ""
     namespaces:
       - openstack
+  # Collector operators of your own, for a log format the agent does not read
+  # (an in-house one, say). Each is a stanza operator, as the OpenTelemetry
+  # Collector's filelog receiver takes them; they run on every pod log line
+  # after the agent has put the line back together and read its pod and
+  # stream, and before it reads the line's level. To set a line's level, write
+  # it to attributes.severity_text, as a word the agent reads (ERROR, warn,
+  # critical, ...): the agent reads that before any reader of its own, and
+  # stores it as OneUptime's ingest stores the word. Hand a line on to
+  # severity-router, the agent's first step, or let it run on to the next
+  # operator of yours. An operator that sets the line's severity itself (a
+  # severity_parser, a syslog_parser, a parser's severity block) would be
+  # overwritten, so the chart refuses one.
+  #
+  # The chart checks each at install time, against what the collector refuses,
+  # and fails with a message naming it: its type (against the collector of
+  # image.tag), the settings that type needs, its fields, its on_error, its id
+  # (none of the agent's own), where it hands lines on to, its regex, and the
+  # strings of its expressions (in an expression's string a regex's backslash
+  # is written twice: "^\\d+"). The rest of an expression (expr, if) is the
+  # collector's to compile when it starts. It runs in daemonset log mode
+  # only: the API log tailer (logs.mode=api, and the Windows pods of
+  # logs.windowsPods) runs no collector operators, and the chart refuses the
+  # setting with logs.mode=api.
+  #
+  # For lines like "<<E>> payment failed" and "SEV1 checkout is down":
+  #
+  # extraOperators:
+  #   # The letter is the level: D I W E F, which the agent reads.
+  #   - type: regex_parser
+  #     id: inhouse-level
+  #     if: 'body matches "^<<[DIWEF]>> "'
+  #     regex: '^<<(?P<severity_text>[DIWEF])>> '
+  #   # SEV1 and SEV2 are words the agent does not read: name the level.
+  #   - type: router
+  #     id: sev-route
+  #     routes:
+  #       - output: sev-fatal
+  #         expr: 'body matches "^SEV1 "'
+  #       - output: sev-error
+  #         expr: 'body matches "^SEV2 "'
+  #     default: severity-router
+  #   - type: add
+  #     id: sev-fatal
+  #     field: attributes.severity_text
+  #     value: FATAL
+  #     output: severity-router
+  #   - type: add
+  #     id: sev-error
+  #     field: attributes.severity_text
+  #     value: ERROR
+  #     output: severity-router
+  extraOperators: []
 
 # Resource spec collection — pulls full K8s resource objects (pods, nodes,
 # deployments, etc.) for displaying labels, annotations, env vars, status,
@@ -2168,8 +2225,9 @@ compliance:
     # its nodes, so list a group per set of nodes configured alike (an EKS
     # node group, a GKE or AKS node pool). The default runs one pod on any
     # worker node. Each group: a name (lowercase letters, digits and hyphens,
-    # at most 20), and the nodeSelector, affinity and tolerations that put it
-    # on that group's nodes, e.g.
+    # at most 20, and not control-plane, the run on a control plane node's),
+    # and the nodeSelector, affinity and tolerations that put it on that
+    # group's nodes, e.g.
     #   - name: gpu
     #     nodeSelector:
     #       eks.amazonaws.com/nodegroup: gpu

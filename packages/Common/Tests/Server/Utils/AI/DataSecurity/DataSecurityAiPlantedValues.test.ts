@@ -22,6 +22,8 @@ import AIService, {
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceClass,
 } from "../../../../../Server/Services/CodeRepositoryService";
+import DataAssetService from "../../../../../Server/Services/DataAssetService";
+import DataAssetUsageService from "../../../../../Server/Services/DataAssetUsageService";
 import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
 import DataSecurityCustomDataTypeService from "../../../../../Server/Services/DataSecurityCustomDataTypeService";
 import DataSecurityFlowService from "../../../../../Server/Services/DataSecurityFlowService";
@@ -35,6 +37,9 @@ import DataStoreService from "../../../../../Server/Services/DataStoreService";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import LlmLogService from "../../../../../Server/Services/LlmLogService";
 import LogService from "../../../../../Server/Services/LogService";
+import RumApplicationService from "../../../../../Server/Services/RumApplicationService";
+import RumSessionService from "../../../../../Server/Services/RumSessionService";
+import TelemetrySourceMapService from "../../../../../Server/Services/TelemetrySourceMapService";
 import CodeFixOnItsWay from "../../../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
 import ProductionReviewScope from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewScope";
 import LlmProviderService from "../../../../../Server/Services/LlmProviderService";
@@ -53,6 +58,9 @@ import DataSecurityAiEngine from "../../../../../Server/Utils/AI/DataSecurity/Da
 import DataSecurityFindingVerdicts from "../../../../../Server/Utils/AI/DataSecurity/FindingVerdicts";
 import DataTypeDiscovery from "../../../../../Server/Utils/AI/DataSecurity/DataTypeDiscovery";
 import DataTypeFromSentence from "../../../../../Server/Utils/AI/DataSecurity/DataTypeFromSentence";
+import RuleFromSentence from "../../../../../Server/Utils/AI/DataSecurity/RuleFromSentence";
+import LabelService from "../../../../../Server/Services/LabelService";
+import TeamService from "../../../../../Server/Services/TeamService";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
@@ -87,6 +95,7 @@ import {
 import LogScrubField from "../../../../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../../../../Types/Log/LogScrubPatternType";
 import AIInvestigationEngine from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
+import DataSecurityIssueCodeFix from "../../../../../Server/Utils/DataSecurity/DataSecurityIssueCodeFix";
 import DataSecurityIssue from "../../../../../Models/DatabaseModels/DataSecurityIssue";
 import DataTypeNamer from "../../../../../Types/DataSecurity/DataTypeNamer";
 import {
@@ -279,6 +288,10 @@ const CHECKOUT_SERVICE_ID: string = "10365000-0000-4000-8000-0000000000e9";
 // What production knows that a pull request's diff does not: never sent.
 const SCRUB_RULE_NAME: string = "PLANTED-SCRUB-RULE mask checkout emails";
 
+// The database a pull request's migration adds a column to a table of (#10779).
+const ORDERS_DB_ID: string = "10779000-0000-4000-8000-0000000000b1";
+const ORDERS_DB_NAME: string = "PLANTED-STORE-NAME orders-db";
+
 // An analysis of an issue, as OneUptime AI answers one (#10369).
 const ANALYSIS_ANSWER: string = JSON.stringify({
   verdict: "Real",
@@ -293,7 +306,8 @@ const PLANTED: Readonly<Record<string, string>> = {
   sampleRecordLog: "PLANTED-RECORD-LOG-0192f1a0",
   connectionString:
     "postgres://planted_user:PLANTED-PASSWORD@orders-db.internal:5432/orders",
-  logBody: "PLANTED-LOG-BODY user=alice@example.com card=4111111111111111",
+  logBody:
+    "PLANTED-LOG-BODY user=alice@example.com card=4111111111111111 phone=+44 20 7123 4567 ssn=536-22-8731",
   cloudSecret: "PLANTED-CLOUD-SECRET",
   description: "PLANTED-DESCRIPTION a person wrote",
   scanCursor: "PLANTED-SCAN-CURSOR",
@@ -1258,6 +1272,14 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
     return sentToTheModel();
   },
   [DataSecurityAiFeature.FixIssue]: async (): Promise<string> => {
+    /*
+     * No fix on its way yet: a second press returns the first (#10378),
+     * and what that reads is not what this test is about.
+     */
+    jest
+      .spyOn(DataSecurityIssueCodeFix, "read")
+      .mockResolvedValue({ fix: null } as never);
+
     for (const issueId of [BUCKET_ISSUE_ID, TELEMETRY_ISSUE_ID]) {
       const sent: SentRequest = await post(
         DATA_SECURITY_API_ROUTES.fixIssueWithAi(issueId),
@@ -1397,7 +1419,41 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
         provider: "oneuptime",
         serviceId: CHECKOUT_SERVICE_ID,
       }),
+      // The database a migration's table is in (#10779), every column planted.
+      storeRow(ORDERS_DB_ID, {
+        name: ORDERS_DB_NAME,
+        kind: "AWS RDS Instance",
+        providerResourceId: "arn:aws:rds:eu-north-1:123456789012:db:orders",
+        dataTypeIds: ["us-ssn", "date-of-birth"],
+        exposure: "Internet reachable",
+        posture: { readAt: new Date().toISOString(), encryptedAtRest: false },
+      }),
     ]);
+    useInMemoryTable(asService(DataStoreFindingService), [
+      ...findingRows(),
+      {
+        _id: "10779000-0000-4000-8000-0000000000d1",
+        projectId: PROJECT_ID.toString(),
+        dataStoreId: ORDERS_DB_ID,
+        dataTypeId: "date-of-birth",
+        dataTypeName: "Date of birth",
+        sensitivity: "Confidential",
+        location: "public.customers.birthday",
+        locationKind: "Column",
+        confidence: "High",
+        matchCount: 40,
+        valueCount: 50,
+        isScrubbed: false,
+        isSuppressed: false,
+        isConfirmed: false,
+        isAiSuggested: false,
+        lastSeenAt: new Date(),
+        maskedSamples: [PLANTED["maskedSample"]],
+        suppressedReason: PLANTED["suppressedReason"],
+      },
+    ]);
+    useInMemoryTable(asService(DataAssetService), []);
+    useInMemoryTable(asService(DataAssetUsageService), []);
     jest.spyOn(TelemetryScrubCoverage, "getScrubCoverage").mockResolvedValue({
       rules: [
         {
@@ -1445,6 +1501,16 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
           "+}",
         ].join("\n"),
       },
+      {
+        filename: "db/migrations/20261124_add_customer_ssn.sql",
+        status: "added",
+        additions: 1,
+        deletions: 0,
+        patch: [
+          "@@ -0,0 +1,1 @@",
+          "+ALTER TABLE customers ADD COLUMN date_of_birth DATE;",
+        ].join("\n"),
+      },
     ];
 
     const section: ProductionReviewSensitiveDataJSON =
@@ -1462,6 +1528,10 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
         ],
         isFailOn: true,
         now: new Date(),
+        // A private repository's: what Data Security knows of its table too.
+        isRepositoryPrivate: async (): Promise<boolean> => {
+          return true;
+        },
       });
 
     // What production knows is on the section, for the comment and the page.
@@ -1479,6 +1549,21 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
             expect.objectContaining({ location: "attributes.user.email" }),
           ],
           maskedAtIngestBy: SCRUB_RULE_NAME,
+        }),
+        expect.objectContaining({
+          store: expect.objectContaining({
+            name: ORDERS_DB_NAME,
+            exposure: "Internet reachable",
+            isNotEncryptedAtRest: true,
+          }),
+          table: expect.objectContaining({
+            name: "public.customers",
+            sameData: [
+              expect.objectContaining({
+                location: "public.customers.birthday",
+              }),
+            ],
+          }),
         }),
       ]),
     );
@@ -1504,6 +1589,13 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
       SCRUB_RULE_NAME,
       "Card number",
       "Restricted",
+      // A migration's table (#10779): its store, its columns, what it holds.
+      ORDERS_DB_NAME,
+      "public.customers",
+      "birthday",
+      "Internet reachable",
+      "not encrypted at rest",
+      "isNotEncryptedAtRest",
     ]) {
       expect({
         knownOnlyByProduction,
@@ -1685,6 +1777,61 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 
     return sentToTheModel();
   },
+  /*
+   * A rule from a person's sentence (#10378): the sentence, OneUptime's
+   * own catalogs and the names of the project's labels and teams, read as
+   * the person - never a store, a finding or what one holds, and nothing
+   * else a label or a team keeps.
+   */
+  [DataSecurityAiFeature.DraftRuleFromSentence]: async (): Promise<string> => {
+    useInMemoryTable(asService(LabelService), [
+      {
+        _id: "10378000-0000-4000-8000-0000000000e1",
+        projectId: PROJECT_ID.toString(),
+        name: "PCI",
+        description: PLANTED["description"]!,
+      },
+    ]);
+    useInMemoryTable(asService(TeamService), [
+      {
+        _id: "10378000-0000-4000-8000-0000000000e2",
+        projectId: PROJECT_ID.toString(),
+        name: "Payments",
+        description: PLANTED["description"]!,
+      },
+    ]);
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        rule: {
+          kind: "residency",
+          name: "EU personal data stays in the EU",
+          description: "Personal data is kept only in EU regions.",
+          dataCategories: [],
+          subjectCountries: [],
+          allowedRegions: ["eu-*", "europe-*"],
+          nameRegexPattern: null,
+          descriptionRegexPattern: null,
+          cloudTagPattern: null,
+          matchLabels: [],
+          owners: [],
+          labelsToAdd: [],
+        },
+        reason: "The sentence keeps personal data in the EU.",
+      }),
+      usage: { promptTokens: 300, completionTokens: 40, totalTokens: 340 },
+    });
+
+    await RuleFromSentence.draft({
+      projectId: PROJECT_ID,
+      userId: OWNER.userId!,
+      sentence: "EU personal data must stay in the EU",
+      props: OWNER,
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
 };
 
 /*
@@ -1812,6 +1959,12 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
   ],
   // The person's sentence, and their examples' shapes.
   [DataSecurityAiFeature.DescribeDataType]: ["customer numbers", "AA-999999"],
+  // The sentence, and the names a rule may use: a label and a team (#10378).
+  [DataSecurityAiFeature.DraftRuleFromSentence]: [
+    "EU personal data must stay in the EU",
+    "PCI",
+    "Payments",
+  ],
 };
 
 describe("no feature's input carries a value planted where a record keeps one", () => {
@@ -1980,5 +2133,775 @@ describe("and the AI Logs keep none of it", () => {
     expect(plantedIn(kept)).toEqual([]);
     expect(kept).not.toContain("acme-card-exports");
     expect(kept).not.toContain("attributes.user.email");
+  });
+});
+
+/*
+ * A RUM APPLICATION'S LEAKS, FIXED IN ITS FRONT-END CODE (#10933): Fix with
+ * AI on the application's session replay issue, over HTTP - its findings
+ * read, located from the records they were seen in, its browser log's
+ * stack resolved through its source maps, placed and planned - to the Code
+ * task it queues. A value is planted wherever a front end keeps one: the
+ * line a browser log wrote, its page's address (an email in its path, a
+ * coupon in its query), its stack's message, a session's user label and
+ * traits, the page attributes, the replay's recorded DOM text, the source
+ * map's embedded sources and the records' ids. Only the original file, the
+ * page's masked path and the session recorder call may go.
+ */
+const RUM_APP_ID: string = "10933000-0000-4000-8000-0000000000e1";
+const RUM_SOURCE_MAP_SERVICE_ID: string =
+  "10933000-0000-4000-8000-0000000000e2";
+const RUM_STORE_ID: string = "10933000-0000-4000-8000-0000000000b1";
+const RUM_ISSUE_ID: string = "10933000-0000-4000-8000-0000000000a1";
+
+// What is planted in a RUM application's reads, by name: each read of one is a string.
+type RumPlantedName =
+  | "logLine"
+  | "logLineAgain"
+  | "pagePath"
+  | "pageQuery"
+  | "stackMessage"
+  | "sessionLabel"
+  | "sessionTrait"
+  | "sessionAttribute"
+  | "replayDomText"
+  | "sourcesContent"
+  | "sessionId"
+  | "logId";
+
+// Each told apart by its first sixteen characters, as the search reads them.
+const RUM_PLANTED: Readonly<Record<RumPlantedName, string>> = {
+  // One line of code, read with two values: only its words may go.
+  logLine: "PLANTED-LOGLINE-ONE",
+  logLineAgain: "PLANTED-LINETWO-RUM",
+  pagePath: "planted.rum.page@example.com",
+  pageQuery: "PLANTED-COUPON-RUM",
+  stackMessage: "PLANTED-STACKMSG-RUM",
+  sessionLabel: "planted.rum.label@example.com",
+  sessionTrait: "PLANTED-TRAIT-RUM",
+  sessionAttribute: "PLANTED-SESSATTR-RUM",
+  replayDomText: "PLANTED-DOMTEXT-RUM Ada Lovelace, 12 Downing St",
+  sourcesContent: "PLANTED-SRCCONTENT-RUM",
+  sessionId: "PLANTED-SESSIONID-0192f1a0",
+  logId: "PLANTED-LOGID-RUM-7f3c",
+};
+
+function rumPlantedIn(sent: string): Array<string> {
+  return Object.entries(RUM_PLANTED)
+    .filter(([, planted]: [string, string]): boolean => {
+      return sent.includes(planted) || sent.includes(planted.slice(0, 16));
+    })
+    .map(([name]: [string, string]): string => {
+      return name;
+    });
+}
+
+function useRumTables(): void {
+  useInMemoryTable(asService(RumApplicationService), [
+    {
+      _id: RUM_APP_ID,
+      projectId: PROJECT_ID.toString(),
+      name: "Storefront",
+      appIdentifier: "storefront-web",
+    },
+  ]);
+  // The service its builds' source maps were uploaded under, named as it names itself.
+  useInMemoryTable(asService(ServiceService), [
+    {
+      _id: RUM_SOURCE_MAP_SERVICE_ID,
+      projectId: PROJECT_ID.toString(),
+      name: "storefront-web",
+    },
+  ]);
+  useInMemoryTable(asService(DataStoreService), [
+    storeRow(RUM_STORE_ID, {
+      name: "Storefront · Session Replays",
+      kind: "Session Replays",
+      provider: "oneuptime",
+      storeKey: `telemetry:${RUM_APP_ID}:Session Replays`,
+    }),
+  ]);
+  useInMemoryTable(asService(DataSecurityIssueService), [
+    {
+      _id: RUM_ISSUE_ID,
+      projectId: PROJECT_ID.toString(),
+      title: "Sensitive data is reaching your telemetry",
+      checkId: "sensitive-data-in-telemetry",
+      checkGroup: "Telemetry",
+      evidence: "1 kind of sensitive data is not scrubbed: Email address.",
+      severity: "High",
+      status: "Open",
+      riskScore: 80,
+      dataTypeIds: ["email-address"],
+      dataStoreId: RUM_STORE_ID,
+    },
+  ]);
+
+  const finding: (data: {
+    id: string;
+    location: string;
+    record: JSONObject;
+  }) => StoredRow = (data: {
+    id: string;
+    location: string;
+    record: JSONObject;
+  }): StoredRow => {
+    return {
+      _id: data.id,
+      projectId: PROJECT_ID.toString(),
+      dataStoreId: RUM_STORE_ID,
+      dataTypeId: "email-address",
+      dataTypeName: "Email address",
+      location: data.location,
+      locationKind: "Attribute",
+      confidence: "High",
+      matchCount: 12,
+      valueCount: 20,
+      distinctValues: 9,
+      isScrubbed: false,
+      isSuppressed: false,
+      isConfirmed: false,
+      isAiSuggested: false,
+      lastSeenAt: new Date(),
+      maskedSamples: [PLANTED["maskedSample"]],
+      sampleRecords: [{ time: new Date().toISOString(), ...data.record }],
+    };
+  };
+
+  useInMemoryTable(asService(DataStoreFindingService), [
+    finding({
+      id: "10933000-0000-4000-8000-0000000000d1",
+      location: "logs.attributes.user.email",
+      record: { logId: RUM_PLANTED["logId"] },
+    }),
+    finding({
+      id: "10933000-0000-4000-8000-0000000000d2",
+      location: "sessions.identifiedUserLabel",
+      record: { sessionId: RUM_PLANTED["sessionId"] },
+    }),
+  ]);
+  // The application's newest release's source map, its embedded sources planted.
+  useInMemoryTable(asService(TelemetrySourceMapService), [
+    {
+      _id: "10933000-0000-4000-8000-0000000000aa",
+      projectId: PROJECT_ID.toString(),
+      serviceId: RUM_SOURCE_MAP_SERVICE_ID,
+      serviceVersion: "web-1.4.2",
+      bundlePath: "assets/app.3f9c1e.js",
+      sizeInBytes: 512,
+      createdAt: new Date(),
+      content: JSON.stringify({
+        version: 3,
+        sources: [
+          "webpack://storefront-web/./src/checkout/payment.js",
+          "webpack://storefront-web/./src/session.js",
+        ],
+        sourcesContent: [`const coupon = "${RUM_PLANTED["sourcesContent"]}";`],
+        mappings: "AAAA",
+      }),
+    },
+  ]);
+}
+
+/*
+ * A browser log, as the locator's read returns it: every value it keeps
+ * planted - one line of code, read twice with different values.
+ */
+function plantedRumLogRows(): Array<JSONObject> {
+  return [RUM_PLANTED["logLine"]!, RUM_PLANTED["logLineAgain"]!].map(
+    (value: string, index: number): JSONObject => {
+      return {
+        recordTime: 1795000000000 + index,
+        readLogId: RUM_PLANTED["logId"],
+        readBody: `Payment declined for ${value}`,
+        readUrlFull: `https://shop.example.com/checkout/${RUM_PLANTED["pagePath"]}/pay?coupon=${RUM_PLANTED["pageQuery"]}#review`,
+        readStackTrace: [
+          `Error: ${RUM_PLANTED["stackMessage"]}`,
+          "    at e (https://shop.example.com/assets/app.3f9c1e.js:1:1)",
+        ].join("\n"),
+        readServiceVersion: "web-1.4.2",
+      };
+    },
+  );
+}
+
+// A session, as a read of it could return one: its user details and its replay's DOM text planted.
+function plantedRumSessionRows(): Array<JSONObject> {
+  return [
+    {
+      recordTime: 1795000000000,
+      readSessionId: RUM_PLANTED["sessionId"],
+      readPage: `https://shop.example.com/account/${RUM_PLANTED["pagePath"]}/settings?ref=${RUM_PLANTED["pageQuery"]}`,
+      readLabel: RUM_PLANTED["sessionLabel"],
+      readTraits: JSON.stringify({ plan: RUM_PLANTED["sessionTrait"] }),
+      readAttributes: JSON.stringify({ cart: RUM_PLANTED["sessionAttribute"] }),
+      readPayload: RUM_PLANTED["replayDomText"],
+      domText: RUM_PLANTED["replayDomText"],
+    },
+  ];
+}
+
+describe("a RUM application's leaks reach OneUptime AI without a value in them (#10933)", () => {
+  test("Fix with AI on its session replay issue: the original file, the masked page and the recorder call - nothing a record keeps", async () => {
+    useRumTables();
+    jest
+      .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+      .mockResolvedValue({ rules: [] } as never);
+
+    const logReads: SpyInstance<typeof LogService.executeQuery> = jest
+      .spyOn(LogService, "executeQuery")
+      .mockResolvedValue({
+        json: async (): Promise<{ data: Array<JSONObject> }> => {
+          return { data: plantedRumLogRows() };
+        },
+      } as never);
+    const sessionReads: SpyInstance<typeof RumSessionService.executeQuery> =
+      jest.spyOn(RumSessionService, "executeQuery").mockResolvedValue({
+        json: async (): Promise<{ data: Array<JSONObject> }> => {
+          return { data: plantedRumSessionRows() };
+        },
+      } as never);
+    // The application's source maps resolve the bundle's frame to its original file.
+    const resolved: SpyInstance<
+      typeof TelemetrySourceMapService.resolveFramesForService
+    > = jest
+      .spyOn(TelemetrySourceMapService, "resolveFramesForService")
+      .mockImplementation((async (data: { frames: Array<JSONObject> }) => {
+        return {
+          frames: data.frames.map((frame: JSONObject) => {
+            return {
+              ...frame,
+              inApp: true,
+              resolved: true,
+              originalFileName:
+                "webpack://storefront-web/./src/checkout/payment.js",
+              originalLineNumber: 8,
+              originalFunctionName: "pay",
+            };
+          }),
+        };
+      }) as never);
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue([
+        {
+          id: INFRA_ID,
+          name: "web",
+          organizationName: "acme",
+          repositoryName: "web",
+          mainBranchName: "main",
+          gitHubAppInstallationId: null,
+          repositoryHostedAt: CodeRepositoryType.GitHub,
+        },
+      ]);
+    jest
+      .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+      .mockResolvedValue([
+        "package.json",
+        "src/checkout/payment.js",
+        "src/session.js",
+      ]);
+    jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+    jest
+      .spyOn(DataSecurityAiProposalService, "expireWaitingInLane")
+      .mockResolvedValue(0);
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const sent: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(RUM_ISSUE_ID),
+    );
+
+    expect(sent.status).toBe(200);
+    expect(logReads).toHaveBeenCalled();
+    expect(sessionReads).toHaveBeenCalled();
+    expect(resolved).toHaveBeenCalled();
+    // The stack's frames, never its message, are what the source maps were asked.
+    expect(JSON.stringify(resolved.mock.calls)).not.toContain(
+      RUM_PLANTED["stackMessage"],
+    );
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    expect({
+      planted: plantedIn(asked).filter((name: string): boolean => {
+        return !(
+          SENT_ON_PURPOSE[DataSecurityAiFeature.FixTelemetryLeaks] || []
+        ).includes(name);
+      }),
+      rumPlanted: rumPlantedIn(asked),
+    }).toEqual({ planted: [], rumPlanted: [] });
+    // It sent what it is for: the application, where its front-end code writes each leak.
+    for (const fact of [
+      "Storefront",
+      "src/checkout/payment.js",
+      "Payment declined for <value>",
+      "identify",
+      "/checkout/",
+      "/account/",
+      "browser",
+      "FixSensitiveDataInTelemetry",
+    ]) {
+      expect({ fact, sent: asked.includes(fact) }).toEqual({
+        fact,
+        sent: true,
+      });
+    }
+    // A page's host, query and fragment never go; nor a session's identity.
+    expect(asked).not.toContain("shop.example.com");
+    expect(asked).not.toContain("#review");
+    expect(asked).not.toContain("example.com");
+  });
+
+  test("the reads never even select a session's user details, its page attributes or its recording", async () => {
+    useRumTables();
+    jest
+      .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+      .mockResolvedValue({ rules: [] } as never);
+    jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return { data: [] };
+      },
+    } as never);
+    const sessionReads: SpyInstance<typeof RumSessionService.executeQuery> =
+      jest.spyOn(RumSessionService, "executeQuery").mockResolvedValue({
+        json: async (): Promise<{ data: Array<JSONObject> }> => {
+          return { data: [] };
+        },
+      } as never);
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue([]);
+    jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+
+    await post(DATA_SECURITY_API_ROUTES.issueFixPlan(RUM_ISSUE_ID));
+
+    expect(sessionReads).toHaveBeenCalled();
+
+    const selected: string = sessionReads.mock.calls
+      .map((call: Array<unknown>): string => {
+        return JSON.stringify(call[0]);
+      })
+      .join("\n");
+
+    for (const column of [
+      "identifiedUserLabel",
+      "identifiedUserTraits",
+      "attributes",
+      "payload",
+      "chunk",
+    ]) {
+      expect({ column, selected: selected.includes(column) }).toEqual({
+        column,
+        selected: false,
+      });
+    }
+  });
+});
+
+/*
+ * A LINE READ FROM ONE RECORD, A PERSON'S NAME IN IT (#11098): Fix with AI
+ * and the plan before it, over HTTP, for a service's log and a RUM
+ * application's browser log - each finding seen in a single record whose
+ * line holds a name no detector names, and a RUM page whose path holds one.
+ * Nothing aligns one record with another, so only the words code writes
+ * log lines with may go: never the name, in the plan the Dashboard shows or
+ * in the request the code agent is handed (and its pull request is written
+ * from).
+ */
+const ONE_RECORD_NAME: Readonly<Record<string, string>> = {
+  given: "Ottilie",
+  family: "Quarrington",
+  slug: "ottilie-quarrington",
+};
+
+function oneRecordNamesIn(sent: string): Array<string> {
+  return Object.entries(ONE_RECORD_NAME)
+    .filter(([, name]: [string, string]): boolean => {
+      return sent.toLowerCase().includes(name.toLowerCase());
+    })
+    .map(([key]: [string, string]): string => {
+      return key;
+    });
+}
+
+function useOneRecordServiceRead(): void {
+  useInMemoryTable(asService(ServiceService), [
+    {
+      _id: CHECKOUT_SERVICE_ID,
+      projectId: PROJECT_ID.toString(),
+      name: "checkout",
+    },
+  ]);
+  useInMemoryTable(asService(DataStoreService), [
+    storeRow(STORE_ID),
+    storeRow(TELEMETRY_STORE_ID, {
+      name: "checkout · Logs",
+      kind: "Logs",
+      provider: "oneuptime",
+      serviceId: CHECKOUT_SERVICE_ID,
+    }),
+  ]);
+  jest
+    .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+    .mockResolvedValue({ rules: [] } as never);
+  // The one record the finding was seen in: a line with a person's name.
+  jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+    json: async (): Promise<{ data: Array<JSONObject> }> => {
+      return {
+        data: [
+          {
+            recordTime: 1795000000000,
+            readLogId: PLANTED["sampleRecordLog"],
+            readFile1: "/usr/src/app/src/signup.js",
+            readLine1: "12",
+            readFunction1: "signUp",
+            readScope: "checkout",
+            readBody: `Payment declined for ${ONE_RECORD_NAME["given"]} ${ONE_RECORD_NAME["family"]}`,
+          },
+        ],
+      };
+    },
+  } as never);
+  jest
+    .spyOn(CodeRepositoryService, "getResolvableRepositories")
+    .mockResolvedValue([
+      {
+        id: INFRA_ID,
+        name: "infra",
+        organizationName: "acme",
+        repositoryName: "infra",
+        mainBranchName: "main",
+        gitHubAppInstallationId: null,
+        repositoryHostedAt: CodeRepositoryType.GitHub,
+      },
+    ]);
+  jest
+    .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+    .mockResolvedValue(["package.json", "src/signup.js"]);
+  jest
+    .spyOn(ProductionReviewScope, "get")
+    .mockResolvedValue({ services: [] } as never);
+  jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+  jest
+    .spyOn(DataSecurityAiProposalService, "expireWaitingInLane")
+    .mockResolvedValue(0);
+}
+
+describe("a line read from one record never puts a person's name in a plan or a prompt (#11098)", () => {
+  test("a service's log: the plan and the code agent's request say the line's words, never the name", async () => {
+    useOneRecordServiceRead();
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const plan: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(plan.status).toBe(200);
+
+    const shown: string = JSON.stringify(plan.answer);
+
+    expect(shown).toContain("Payment declined for <value>");
+    expect(oneRecordNamesIn(shown)).toEqual([]);
+
+    const fixed: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(fixed.status).toBe(200);
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    expect(asked).toContain("Payment declined for <value>");
+    expect(asked).toContain("src/signup.js");
+    expect(oneRecordNamesIn(asked)).toEqual([]);
+  });
+
+  test("a RUM application's browser log: its line and its page, never the name in either", async () => {
+    useRumTables();
+    jest
+      .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+      .mockResolvedValue({ rules: [] } as never);
+    jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return {
+          data: [
+            {
+              recordTime: 1795000000000,
+              readLogId: RUM_PLANTED["logId"],
+              readBody: `Payment declined for ${ONE_RECORD_NAME["given"]} ${ONE_RECORD_NAME["family"]}`,
+              readUrlFull: `https://shop.example.com/profile/${ONE_RECORD_NAME["slug"]}/settings?tab=billing`,
+              readStackTrace: [
+                "Error: Payment declined",
+                "    at e (https://shop.example.com/assets/app.3f9c1e.js:1:1)",
+              ].join("\n"),
+              readServiceVersion: "web-1.4.2",
+            },
+          ],
+        };
+      },
+    } as never);
+    jest.spyOn(RumSessionService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return { data: [] };
+      },
+    } as never);
+    jest
+      .spyOn(TelemetrySourceMapService, "resolveFramesForService")
+      .mockImplementation((async (data: { frames: Array<JSONObject> }) => {
+        return {
+          frames: data.frames.map((frame: JSONObject) => {
+            return {
+              ...frame,
+              inApp: true,
+              resolved: true,
+              originalFileName:
+                "webpack://storefront-web/./src/checkout/payment.js",
+              originalLineNumber: 8,
+              originalFunctionName: "pay",
+            };
+          }),
+        };
+      }) as never);
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue([
+        {
+          id: INFRA_ID,
+          name: "web",
+          organizationName: "acme",
+          repositoryName: "web",
+          mainBranchName: "main",
+          gitHubAppInstallationId: null,
+          repositoryHostedAt: CodeRepositoryType.GitHub,
+        },
+      ]);
+    jest
+      .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+      .mockResolvedValue(["package.json", "src/checkout/payment.js"]);
+    jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+    jest
+      .spyOn(DataSecurityAiProposalService, "expireWaitingInLane")
+      .mockResolvedValue(0);
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const plan: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(RUM_ISSUE_ID),
+    );
+
+    expect(plan.status).toBe(200);
+    expect(oneRecordNamesIn(JSON.stringify(plan.answer))).toEqual([]);
+
+    const fixed: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(RUM_ISSUE_ID),
+    );
+
+    expect(fixed.status).toBe(200);
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    expect(asked).toContain("Payment declined for <value>");
+    expect(asked).toContain("/profile/<value>/settings");
+    expect(oneRecordNamesIn(asked)).toEqual([]);
+  });
+});
+
+/*
+ * A LINE READ FROM SEVERAL RECORDS, A LOWER-CASE VALUE THEY ALL SHARE
+ * (#11204): Fix with AI and the plan before it, over HTTP, for a service's
+ * log and a RUM application's browser log - each finding seen in records
+ * of one line of code (one file and line) read with different words, so
+ * their templates are aligned, and every one of them holding the same
+ * values no detector names: a username, a name written in lower case, an
+ * email's local part - one user's session, the one engineer every ticket
+ * goes to. A word every record shares is no more the code's than one
+ * record's word is: none of those may go, in the plan the Dashboard shows
+ * or in the request the code agent is handed (and its pull request is
+ * written from).
+ */
+const SHARED_VALUES: Readonly<Record<string, string>> = {
+  username: "oquarrington",
+  given: "ottilie",
+  family: "quarrington",
+  localPart: "ottilie.q",
+};
+
+function sharedValuesIn(sent: string): Array<string> {
+  return Object.entries(SHARED_VALUES)
+    .filter(([, value]: [string, string]): boolean => {
+      return sent.toLowerCase().includes(value.toLowerCase());
+    })
+    .map(([key]: [string, string]): string => {
+      return key;
+    });
+}
+
+// The records of one line, each with other words, all with the same values.
+function sharedValueLogRows(): Array<JSONObject> {
+  return ["urgent", "normal", "low"].map(
+    (priority: string, index: number): JSONObject => {
+      return {
+        recordTime: 1795000000000 + index,
+        readLogId: `${PLANTED["sampleRecordLog"]}-${index}`,
+        readFile1: "/usr/src/app/src/tickets.js",
+        readLine1: "44",
+        readFunction1: "assign",
+        readScope: "checkout",
+        readBody: `Ticket assigned to ${SHARED_VALUES["username"]} (${SHARED_VALUES["given"]} ${SHARED_VALUES["family"]}, mailbox ${SHARED_VALUES["localPart"]}) with priority ${priority}`,
+      };
+    },
+  );
+}
+
+describe("a line read from several records never puts a value they all share in a plan or a prompt (#11204)", () => {
+  test("a service's log: the plan and the code agent's request say the line's words, file and line, never the shared values", async () => {
+    useOneRecordServiceRead();
+    jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return { data: sharedValueLogRows() };
+      },
+    } as never);
+    jest
+      .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+      .mockResolvedValue(["package.json", "src/tickets.js"]);
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const plan: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(plan.status).toBe(200);
+
+    const shown: string = JSON.stringify(plan.answer);
+
+    expect(shown).toContain("Ticket assigned to <value>");
+    expect(sharedValuesIn(shown)).toEqual([]);
+
+    const fixed: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(fixed.status).toBe(200);
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    expect(asked).toContain("Ticket assigned to <value>");
+    // Where the code is, whatever the template keeps: the line's file and number.
+    expect(asked).toContain("src/tickets.js");
+    expect(sharedValuesIn(asked)).toEqual([]);
+  });
+
+  test("a RUM application's browser log: its line and its pages, never the values every record shares", async () => {
+    useRumTables();
+    jest
+      .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+      .mockResolvedValue({ rules: [] } as never);
+    jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return {
+          data: ["cart", "wishlist", "orders"].map(
+            (tab: string, index: number): JSONObject => {
+              return {
+                recordTime: 1795000000000 + index,
+                readLogId: `${RUM_PLANTED["logId"]}-${index}`,
+                readBody: `Opened ${tab} for ${SHARED_VALUES["username"]} (${SHARED_VALUES["given"]} ${SHARED_VALUES["family"]}) from the header`,
+                readUrlFull: `https://shop.example.com/account/${tab}?user=${SHARED_VALUES["username"]}`,
+                readStackTrace: [
+                  "Error: Opened",
+                  "    at e (https://shop.example.com/assets/app.3f9c1e.js:1:1)",
+                ].join("\n"),
+                readServiceVersion: "web-1.4.2",
+              };
+            },
+          ),
+        };
+      },
+    } as never);
+    jest.spyOn(RumSessionService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return { data: [] };
+      },
+    } as never);
+    jest
+      .spyOn(TelemetrySourceMapService, "resolveFramesForService")
+      .mockImplementation((async (data: { frames: Array<JSONObject> }) => {
+        return {
+          frames: data.frames.map((frame: JSONObject) => {
+            return {
+              ...frame,
+              inApp: true,
+              resolved: true,
+              originalFileName:
+                "webpack://storefront-web/./src/account/tabs.js",
+              originalLineNumber: 21,
+              originalFunctionName: "open",
+            };
+          }),
+        };
+      }) as never);
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue([
+        {
+          id: INFRA_ID,
+          name: "web",
+          organizationName: "acme",
+          repositoryName: "web",
+          mainBranchName: "main",
+          gitHubAppInstallationId: null,
+          repositoryHostedAt: CodeRepositoryType.GitHub,
+        },
+      ]);
+    jest
+      .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+      .mockResolvedValue(["package.json", "src/account/tabs.js"]);
+    jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+    jest
+      .spyOn(DataSecurityAiProposalService, "expireWaitingInLane")
+      .mockResolvedValue(0);
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const plan: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(RUM_ISSUE_ID),
+    );
+
+    expect(plan.status).toBe(200);
+    expect(sharedValuesIn(JSON.stringify(plan.answer))).toEqual([]);
+
+    const fixed: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(RUM_ISSUE_ID),
+    );
+
+    expect(fixed.status).toBe(200);
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    expect(asked).toContain("Opened <value> for <value>");
+    expect(asked).toContain("src/account/tabs.js");
+    expect(sharedValuesIn(asked)).toEqual([]);
   });
 });

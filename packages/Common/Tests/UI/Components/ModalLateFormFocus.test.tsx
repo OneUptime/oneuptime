@@ -403,3 +403,124 @@ describe("what never takes the focus late", () => {
     expect(document.activeElement).toBe(document.body);
   });
 });
+
+/*
+ * A FORM WHOSE FIRST FIELD IS STILL ON ITS WAY STARTS THERE ONCE IT ARRIVES.
+ *
+ * A control that is a file of its own - the record picker, a code editor -
+ * draws its place first (LazyControlPlaceholder, data-load-state="loading"),
+ * which takes no focus. Link Existing Monitors' first field is such a
+ * picker, and #11411 added a switch after it: the dialog started on the
+ * switch, the only control there yet, and the picker, once it arrived,
+ * never had the focus. A control after a field still on its way is no place
+ * to start: the dialog starts as for a form that draws late, and the field
+ * takes the focus when it arrives.
+ */
+describe("a form whose first field is still on its way", () => {
+  const fieldHandle: {
+    arrive: () => void;
+    fail: () => void;
+  } = {
+    arrive: (): void => {},
+    fail: (): void => {},
+  };
+
+  const PickerFirst: () => ReactElement = (): ReactElement => {
+    const [state, setState] = useState<"loading" | "arrived" | "failed">(
+      "loading",
+    );
+
+    useEffect(() => {
+      fieldHandle.arrive = (): void => {
+        setState("arrived");
+      };
+      fieldHandle.fail = (): void => {
+        setState("failed");
+      };
+    }, []);
+
+    return (
+      <form>
+        {state === "arrived" ? <input aria-label="Monitors" /> : <></>}
+        {state === "loading" ? (
+          <div data-load-state="loading" role="status">
+            Loading content
+          </div>
+        ) : (
+          <></>
+        )}
+        {/* As LazyControlPlaceholder says so: the field's place, and why. */}
+        {state === "failed" ? (
+          <div data-load-state="failed">
+            <p>This part of the page could not be loaded.</p>
+          </div>
+        ) : (
+          <></>
+        )}
+        <button type="button" role="switch" aria-checked="true">
+          Apply the template&apos;s settings
+        </button>
+      </form>
+    );
+  };
+
+  const settle: (step: () => void) => Promise<void> = async (
+    step: () => void,
+  ): Promise<void> => {
+    await act(async () => {
+      step();
+    });
+    // MutationObserver callbacks are microtasks: let them run.
+    await act(async () => {
+      await Promise.resolve();
+    });
+  };
+
+  test("starts on that field once it arrives, not on the switch after it", async () => {
+    renderDialog(<PickerFirst />);
+
+    // The switch is the only control yet, and is passed over.
+    expect(screen.getByRole("switch")).not.toHaveFocus();
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveFocus();
+
+    await settle(fieldHandle.arrive);
+
+    expect(screen.getByLabelText("Monitors")).toHaveFocus();
+  });
+
+  test("a person who moved the focus while it was on its way keeps their place", async () => {
+    renderDialog(<PickerFirst />);
+
+    act(() => {
+      screen.getByRole("switch").focus();
+    });
+
+    await settle(fieldHandle.arrive);
+
+    expect(screen.getByRole("switch")).toHaveFocus();
+  });
+
+  test("a field whose file does not arrive leaves the form to its next control", async () => {
+    renderDialog(<PickerFirst />);
+
+    await settle(fieldHandle.fail);
+
+    expect(screen.getByRole("switch")).toHaveFocus();
+  });
+
+  test("a field still on its way after the first leaves the first where the dialog starts", () => {
+    renderDialog(
+      <form>
+        <input aria-label="Name" />
+        <div data-load-state="loading" role="status">
+          Loading content
+        </div>
+        <button type="button" role="switch" aria-checked="false">
+          Notify the owners
+        </button>
+      </form>,
+    );
+
+    expect(screen.getByLabelText("Name")).toHaveFocus();
+  });
+});

@@ -40,6 +40,7 @@ import DashboardPodmanVolumeListComponentUtil from "./DashboardPodmanVolumeListC
 import DashboardProxmoxGuestListComponentUtil from "./DashboardProxmoxGuestListComponent";
 import DashboardSecurityEventsFlowComponentUtil from "./DashboardSecurityEventsFlowComponent";
 import DashboardProductAnalyticsFunnelComponentUtil from "./DashboardProductAnalyticsFunnelComponent";
+import DashboardCloudCostComponentUtil from "./DashboardCloudCostComponent";
 import DashboardProductAnalyticsRetentionComponentUtil from "./DashboardProductAnalyticsRetentionComponent";
 import DashboardSecurityEventsListComponentUtil from "./DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "./DashboardSloComponent";
@@ -57,6 +58,8 @@ import DashboardTraceListComponentUtil from "./DashboardTraceListComponent";
 import DashboardValueComponentUtil from "./DashboardValueComponent";
 import DashboardVMwareHostListComponentUtil from "./DashboardVMwareHostListComponent";
 import DashboardVMwareVirtualMachineListComponentUtil from "./DashboardVMwareVirtualMachineListComponent";
+import DashboardXcpNgHostListComponentUtil from "./DashboardXcpNgHostListComponent";
+import DashboardXcpNgVmListComponentUtil from "./DashboardXcpNgVmListComponent";
 
 export default class DashboardComponentsUtil {
   public static getComponentSettingsArguments(
@@ -142,6 +145,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.SecurityEventsFlow) {
       return DashboardSecurityEventsFlowComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.CloudCost) {
+      return DashboardCloudCostComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }
@@ -358,6 +367,18 @@ export default class DashboardComponentsUtil {
       dashboardComponentType === DashboardComponentType.VMwareVirtualMachineList
     ) {
       return DashboardVMwareVirtualMachineListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.XcpNgHostList) {
+      return DashboardXcpNgHostListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.XcpNgVmList) {
+      return DashboardXcpNgVmListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

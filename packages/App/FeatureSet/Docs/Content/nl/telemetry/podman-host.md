@@ -140,6 +140,7 @@ Open **Producten → Infrastructuur → Podman → Alle hosts**. De host verschi
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | De ingestiesleutel uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. |
 | `PODMAN_HOST_NAME` | Nee | De naam van de host in OneUptime. Standaard `podman-host`, dus geef elke host een eigen naam. |
 | `DOCKER_API_VERSION` | Nee | De Docker API-versie die de agent met de Podman-socket spreekt. Standaard leeg: de agent onderhandelt hem met de socket. Stel hem alleen in om een versie vast te zetten (zie [Problemen oplossen](#problemen-oplossen)). |
+| `ONEUPTIME_LOG_OPERATOR_1` tot en met `ONEUPTIME_LOG_OPERATOR_5` | Nee | Eigen collector-operators, één per variabele als JSON, voor een logformaat dat de agent niet leest. Zie [Een eigen logformaat lezen](#een-eigen-logformaat-lezen). |
 
 Om een waarde te wijzigen, verwijder je de agent en voer je zijn commando opnieuw uit (Podman CLI), of bewerk je `docker-compose.yml` en voer je `podman compose up -d` uit (Podman Compose).
 
@@ -150,7 +151,7 @@ Om een waarde te wijzigen, verwijder je de agent en voer je zijn commando opnieu
 | Containermetrics | CPU (gebruik, percentage, throttling), geheugen (gebruik, limiet, percentage), netwerk- en blok-I/O, uptime, herstarts en aantal processen, per container, elke 30 seconden. |
 | Containerlogs | De stdout en stderr van elke container, uit het bestand `ctr.log` dat de logdriver `k8s-file` schrijft. |
 
-De metrics en logs van elke container worden opgeslagen onder een service die naar de container is genoemd. Elke logregel krijgt een severity op basis van het niveau dat hij noemt, zoals `[ERROR]`, `level=warn` of `{"level":"info"}`; een regel die er geen noemt, krijgt die van zijn stream: stderr is `ERROR`, stdout is `INFO`. Regels die beginnen met witruimte of een sluitend haakje worden aan de vorige regel toegevoegd, dus een stacktrace komt binnen als één record. De eigen logs van de agent worden weggelaten.
+De metrics en logs van elke container worden opgeslagen onder een service die naar de container is genoemd. Elke logregel krijgt een severity op basis van het niveau dat hij noemt, zoals `[ERROR]`, `level=warn` of `{"level":"info"}`, en de traceback van een exception telt als `ERROR`. Een regel die er geen noemt, is `INFO` op stdout en heeft geen severity op stderr, waar programma's hun diagnostiek van elk niveau naartoe schrijven. Regels die beginnen met witruimte of een sluitend haakje worden aan de vorige regel toegevoegd, dus een stacktrace komt binnen als één record. De eigen logs van de agent worden weggelaten.
 
 [Podman-monitor](/docs/monitor/podman-monitor#verzamelde-metrieken) toont elke metric en wat die betekent.
 
@@ -200,6 +201,33 @@ log_size_max = 104857600
 ```
 
 Maak daarna de containers opnieuw aan. Een container houdt de logdriver waarmee hij is aangemaakt, dus herstarten is niet genoeg.
+
+## Een eigen logformaat lezen
+
+De agent leest de niveaus van de formaten die de meeste programma's schrijven. Voor een formaat dat hij niet leest, zoals een intern formaat, geef je hem tot vijf eigen collector-operators, elk als JSON in `ONEUPTIME_LOG_OPERATOR_1` tot en met `ONEUPTIME_LOG_OPERATOR_5`. Ze draaien op elke logregel van een container, nadat de agent de container en stream ervan heeft gelezen, en voordat hij het niveau van de regel leest. Om het niveau van een regel in te stellen, schrijf je het naar `attributes.severity_text` als een woord dat de agent leest, zoals `ERROR`, `warn` of `critical`, en geef je de regel door aan `severity-router`, de eerste stap van de agent. Een operator die zelf de severity instelt, zoals een `severity_parser`, wordt overschreven: de agent leest het niveau van elke regel na je operators.
+
+Voor regels zoals `<<E>> payment failed`, waarvan de letter het niveau is:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+De collector start niet met een operator die hij niet kan bouwen, dus controleer de operators voordat de agent ze uitvoert:
+
+- `install.sh` controleert ze, als je het uitvoert met de variabelen ingesteld, met de eigen `validate` van de collector, voordat het de agent aanraakt die je al hebt. Als de collector ze weigert, stopt het script met de melding van de collector, en blijft je agent draaien.
+- Zet ze met Podman Compose in de `.env` naast `docker-compose.yml`, elke waarde tussen enkele aanhalingstekens, en voer `podman compose up -d` uit. De service `oneuptime-podman-agent-config-check` voert eerst dezelfde controle uit. Als `podman compose` Docker Compose uitvoert, start de agent alleen als die slaagt; podman-compose start de agent wat de controle ook zegt, dus lees de uitvoer van de controle met `podman compose logs oneuptime-podman-agent-config-check`.
+- Voer met de Podman CLI de controle zelf uit, met de andere variabelen van de agent, en start de agent daarna met dezelfde `-e`-flags:
+
+```bash
+podman run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e PODMAN_HOST_NAME="my-podman-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/podman-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes-agent](/docs/telemetry/kubernetes-agent#een-eigen-logformaat-lezen) legt de operators van het voorbeeld uit, die de Kubernetes-agent ook accepteert.
 
 ## De agent upgraden
 

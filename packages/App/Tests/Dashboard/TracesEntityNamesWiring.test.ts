@@ -77,13 +77,18 @@ describe("TracesViewer props contract", () => {
 });
 
 describe("TracesViewer resolves entity names with one lookup", () => {
-  test("calls useTelemetryEntityNames exactly once, hinted with the scope type", () => {
+  test("calls useTelemetryEntityLookup exactly once, hinted with the scope type", () => {
     expect(TRACES_VIEWER).toContain(
-      'import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
+      'import { TelemetryEntityLookup, useTelemetryEntityLookup, } from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
     );
-    expect(count(TRACES_VIEWER, "useTelemetryEntityNames(")).toBe(1);
+    expect(count(TRACES_VIEWER, "useTelemetryEntityLookup(")).toBe(1);
+    expect(count(TRACES_VIEWER, "useTelemetryEntityNames(")).toBe(0);
     expect(TRACES_VIEWER).toContain(
-      "useTelemetryEntityNames( entityIdsToResolve, { typeHints: entityTypeHints }, );",
+      "useTelemetryEntityLookup( entityIdsToResolve, { typeHints: entityTypeHints }, );",
+    );
+    // A chip naming a deleted service reads "No longer available" (#11213).
+    expect(TRACES_VIEWER).toContain(
+      "notFoundEntityIds: entityLookup.notFound,",
     );
     expect(TRACES_VIEWER).toContain(
       "buildTraceEntityTypeHints(scopeEntityId, props.scopeEntityType)",
@@ -108,17 +113,40 @@ describe("TracesViewer resolves entity names with one lookup", () => {
     expect(block).toContain(
       'knownNames: [serviceNameMap, facetDisplayNames["primaryEntityId"]]',
     );
-    // Span ids wait for the Service list, which names most of them.
-    expect(block).toContain("includeSpanEntityIds: resourcesLoaded");
+    // Span ids wait for their services' read, which names most of them.
+    expect(block).toContain(
+      "includeSpanEntityIds: spansWithServicesRead === spans",
+    );
   });
 
-  test("resourcesLoaded flips once the resource lists land, even on failure", () => {
+  /*
+   * The spans' and the Service facet's services are read by their ids, never
+   * the project's first 10,000 services by name - nor its hosts and clusters
+   * (#10921). The read settles whether it lands or fails
+   * (TelemetryServicesOnPage keeps a failure to itself).
+   */
+  test("the spans' services are read by their ids, and the span ids wait for that read", () => {
     expect(TRACES_VIEWER).toContain(
-      "const [resourcesLoaded, setResourcesLoaded] = useState<boolean>(false);",
+      "const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();",
     );
     expect(TRACES_VIEWER).toContain(
-      "} catch { } finally { setResourcesLoaded(true); }",
+      "const [spansWithServicesRead, setSpansWithServicesRead] = useState<Array<Span> | null>(null);",
     );
+    expect(TRACES_VIEWER).toContain(
+      "void servicesOnPage.readServicesOf(serviceIdsOnPage).then(() => { if (isCurrent) { setSpansWithServicesRead(spans); } });",
+    );
+    expect(TRACES_VIEWER).toContain(
+      '...(facetData["primaryEntityId"] || []).map( (facet: FacetValue): string => { return facet.value; }, ),',
+    );
+    expect(TRACES_VIEWER).not.toContain("LIMIT_PER_PROJECT");
+    for (const model of [
+      "Host",
+      "DockerHost",
+      "PodmanHost",
+      "KubernetesCluster",
+    ]) {
+      expect(TRACES_VIEWER).not.toContain(`modelType: ${model},`);
+    }
   });
 
   test("server facet display names are indexed for chips", () => {
@@ -275,8 +303,9 @@ describe("TracesViewer resource facets come from the shared catalog", () => {
   });
 
   test("REGRESSION: resource facets are built from the catalog, not hand-written per type", () => {
+    // Every value named by the server's facet displayName (#10921).
     expect(FACET_CONFIGS).toContain(
-      "...buildResourceFacetConfigs({ basePriority: 2, valueDisplayMaps: { hostId: hostNameMap, dockerHostId: dockerHostNameMap, podmanHostId: podmanHostNameMap, kubernetesClusterId: clusterNameMap, }, }),",
+      "...buildResourceFacetConfigs({ basePriority: 2, }),",
     );
     for (const key of [
       "hostId",
@@ -341,8 +370,9 @@ describe("filtering is untouched", () => {
   test("the chip resolver never rewrites facetKey or value", () => {
     expect(ENTITY_DISPLAY).not.toMatch(/facetKey:\s*display/);
     expect(ENTITY_DISPLAY).not.toMatch(/value:\s*display\.value,\s*readOnly/);
+    // Its name, and whether it is gone or archived (#11213): nothing else.
     expect(ENTITY_DISPLAY).toContain(
-      "return { ...chip, displayKey: display.key, displayValue: display.value };",
+      "return withTelemetryEntityChipMarks( { ...chip, displayKey: display.key, displayValue: display.value },",
     );
   });
 });

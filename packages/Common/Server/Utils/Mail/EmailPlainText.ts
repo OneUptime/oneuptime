@@ -768,11 +768,13 @@ export default class EmailPlainText {
         }
       }
 
-      if (element.isLabel) {
-        if (writer.length > element.wordsFromLength) {
-          writer.endLabel();
-        }
-
+      /*
+       * A label's value follows on its line. A label with nothing to read
+       * ends as the block it is: joining, it put the value on the line
+       * before it - the email's header, when nothing came between them.
+       */
+      if (element.isLabel && writer.length > element.wordsFromLength) {
+        writer.endLabel();
         writer.joinNextBlock();
       } else if (PARAGRAPHS.has(element.name)) {
         breakLine(2);

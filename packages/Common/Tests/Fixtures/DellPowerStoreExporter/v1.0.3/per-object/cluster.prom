@@ -1,0 +1,15 @@
+# HELP powerstore_cluster cluster state ,1 is Configured,0 other
+# TYPE powerstore_cluster gauge
+powerstore_cluster{IP="fake-powerstore",global_id="PS4f5c9a3d21e7",management_address="10.20.30.40",master_appliance_id="A1",name="ps-prod-01"} 1
+# HELP powerstore_metro_status Witness state of replication;Initializing - 0 Disengaged - 1 Engaged - 2 Remote_Witness_Invalid_Or_Unavailable - 3 Failed_To_Initialize - 4 Unconfigure_In_Progress - 5
+# TYPE powerstore_metro_status gauge
+powerstore_metro_status{IP="fake-powerstore",id="3d6f2b0e-8a41-4c9e-9b57-2f1a6e0c4d18",metro_type="Metro_Active_Active"} 2
+# HELP powerstore_metro_witness_conn_status Possible witness connection states;OK - 0 Disconnected - 1 Initializing - 2
+# TYPE powerstore_metro_witness_conn_status gauge
+powerstore_metro_witness_conn_status{IP="fake-powerstore",name="witness-dc3",node_id="N1"} 0
+powerstore_metro_witness_conn_status{IP="fake-powerstore",name="witness-dc3",node_id="N2"} 0
+powerstore_metro_witness_conn_status{IP="fake-powerstore",name="witness-dc3",node_id="N3"} 0
+powerstore_metro_witness_conn_status{IP="fake-powerstore",name="witness-dc3",node_id="N4"} 1
+# HELP powerstore_metro_witness_status Possible witness states;OK - 0 Partially_Connected - 1 Disconnected - 2 Deleting - 3 Initializing - 4
+# TYPE powerstore_metro_witness_status gauge
+powerstore_metro_witness_status{IP="fake-powerstore",name="witness-dc3",witness_addr="10.20.99.5"} 1

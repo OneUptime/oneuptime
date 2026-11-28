@@ -1,6 +1,12 @@
 import { DocsHeading, DocsLink, scanMarkdown } from "./DocsContentSupport";
 import { inlineCode } from "./DocsTranslationChecks";
 import { parseYaml } from "Common/Tests/Helpers/Yaml";
+import {
+  ConnectionShares,
+  computeConnectionShares,
+} from "Common/Server/Utils/Database/ConnectionShares";
+import { PROBE_SCHEDULING_METRICS_WINDOW_SECONDS } from "Common/Server/Utils/Probe/ProbeSchedulingMetrics";
+import { aggregateProbeScheduling } from "Common/Server/Utils/Probe/ProbeSchedulingFleetMetrics";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -40,6 +46,9 @@ function flat(text: string): string {
   return text.replace(/\s+/g, " ");
 }
 
+// A section's ```text block: OneUptime's own metrics, one a line.
+const TEXT_BLOCK: RegExp = /```text\n([\s\S]*?)```/;
+
 const CHECKLIST: string = fs.readFileSync(CHECKLIST_FILE, "utf8");
 const CONFIGURATION: string = fs.readFileSync(CONFIGURATION_FILE, "utf8");
 const VALUES_TEXT: string = repoFile("HelmChart/Public/oneuptime/values.yaml");
@@ -66,6 +75,7 @@ const THIRD_PART: Array<string> = [
   "Size the Postgres connections",
   "Autoscale with KEDA",
   "Keep ClickHouse inserts in budget",
+  "Running many monitors",
 ];
 
 /*
@@ -595,6 +605,80 @@ describe("the numbers the checklist quotes", () => {
     expect(text).toContain("at most one pod of each service down at a time");
   });
 
+  // Running many monitors (#10819): the defaults it moves from, and keeps.
+  it("for many monitors, start from the chart's and the app's probe scheduling defaults", () => {
+    expect(valueAt(VALUES, "probes.one.monitorFetchLimit")).toBe(10);
+    expect(text).toContain(
+      "Raise each probe's `monitorFetchLimit` from 10 to 50",
+    );
+    expect(valueAt(VALUES, "probes.one.monitoringWorkers")).toBe(3);
+    expect(text).toContain("150 with 3 workers");
+
+    const shares: ConnectionShares = computeConnectionShares({
+      poolSize: 50,
+      receivesIngressTraffic: true,
+    });
+    expect(shares.probeSchedulingMaxConcurrentRequests).toBe(10);
+    expect(text).toContain("a fifth of a pod's PostgreSQL pool: 10 of 50");
+    expect(shares.probeSchedulingMaxConcurrentMonitorTestRequests).toBe(2);
+    expect(text).toContain(
+      "(`app.probeSchedulingMaxConcurrentMonitorTestRequests`, 2 by default)",
+    );
+    expect(PROBE_SCHEDULING_METRICS_WINDOW_SECONDS).toBe(60);
+    expect(text).toContain("view over the last minute");
+  });
+
+  /*
+   * Running many monitors' table and metrics (#10819, #11392): each field
+   * it names is one /metrics/probe-scheduling answers with, and each of
+   * OneUptime's own metrics it lists is one the app records - how often a
+   * backed-up pod asked its probes' connections to reconnect among them.
+   */
+  it("for many monitors, names the fields /metrics/probe-scheduling answers with, and the metrics the app records", () => {
+    const section: string = sectionOf(CHECKLIST, 3, "Running many monitors");
+    const answered: Array<string> = Object.keys(
+      aggregateProbeScheduling([], true),
+    );
+    const fields: Array<string> = section
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("| `");
+      })
+      .map((line: string): string => {
+        return line.split("|")[1]!.trim().split("`").join("");
+      });
+
+    expect(fields).toContain("reconnectsAskedPerMinute");
+
+    for (const field of fields) {
+      expect({ field, answered: answered.includes(field) }).toEqual({
+        field,
+        answered: true,
+      });
+    }
+
+    const appMetrics: string = repoFile(
+      "packages/Common/Server/Utils/Telemetry/AppMetrics.ts",
+    );
+    const listed: Array<string> = (TEXT_BLOCK.exec(section)?.[1] || "")
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.trim().length > 0;
+      })
+      .map((line: string): string => {
+        return line.trim().split(" ")[0]!;
+      });
+
+    expect(listed).toContain("probe.scheduling.reconnect.count");
+
+    for (const name of listed) {
+      expect({
+        name,
+        recorded: appMetrics.includes(`name: "${name}"`),
+      }).toEqual({ name, recorded: true });
+    }
+  });
+
   it("say which images move by themselves, and which the chart pins", () => {
     // OneUptime's tag moves with every release, and a restart pulls it again.
     expect(valueAt(VALUES, "image.tag")).toBe("release");
@@ -693,7 +777,11 @@ describe("what points at the checklist and its sizing guidance", () => {
       return match[1] as string;
     });
 
-    expect(quoted).toEqual(["Size the Postgres connections"]);
+    expect(quoted).toEqual([
+      "Size the Postgres connections",
+      "Running many monitors",
+      "Running many monitors",
+    ]);
     for (const heading of quoted) {
       expect(anchors).toContain(heading);
     }

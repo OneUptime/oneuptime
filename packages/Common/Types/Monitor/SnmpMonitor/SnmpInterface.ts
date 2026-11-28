@@ -1,3 +1,5 @@
+import { SnmpFibreChannelPort } from "./SnmpFibreChannel";
+
 /*
  * One row of the IF-MIB interface tables (ifTable + ifXTable), walked by the
  * probe when interface monitoring is enabled on an SNMP monitor.
@@ -31,9 +33,21 @@ export default interface SnmpInterface {
   inDiscards?: number | undefined;
   outDiscards?: number | undefined;
 
+  /*
+   * A Fibre Channel port's own state and error counters, read from the
+   * switch vendor's MIB (Brocade's SW-MIB and FCMGMT-MIB, Cisco's
+   * CISCO-FC-FE-MIB) and joined to this interface. Undefined on any other
+   * port, and from probes that predate it.
+   */
+  fibreChannel?: SnmpFibreChannelPort | undefined;
+
   // Computed server-side from the previous check. See note above.
   inBitsPerSecond?: number | undefined;
   outBitsPerSecond?: number | undefined;
   utilizationPercent?: number | undefined;
+  /*
+   * ifInErrors and ifOutErrors per second - and, on a Fibre Channel port,
+   * its error counters' rates (SnmpFibreChannelUtil.sumErrorRates).
+   */
   errorsPerSecond?: number | undefined;
 }

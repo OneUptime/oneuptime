@@ -140,6 +140,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_SERVICE_TOKEN` | Ja | Indtagelsesnøglen fra **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. |
 | `PODMAN_HOST_NAME` | Nej | Værtens navn i OneUptime. Standard er `podman-host`, så giv hver vært sit eget. |
 | `DOCKER_API_VERSION` | Nej | Den Docker API-version, agenten taler med Podman-socketen. Tom som standard: agenten forhandler den med socketen. Sæt den kun for at fastlåse en version (se [Fejlfinding](#fejlfinding)). |
+| `ONEUPTIME_LOG_OPERATOR_1` til `ONEUPTIME_LOG_OPERATOR_5` | Nej | Dine egne collector-operatorer, én pr. variabel som JSON, til et logformat, agenten ikke læser. Se [Læsning af dit eget logformat](#læsning-af-dit-eget-logformat). |
 
 For at ændre en værdi skal du fjerne agenten og køre dens kommando igen (Podman CLI) eller redigere `docker-compose.yml` og køre `podman compose up -d` (Podman Compose).
 
@@ -150,7 +151,7 @@ For at ændre en værdi skal du fjerne agenten og køre dens kommando igen (Podm
 | Containermetrikker | CPU (forbrug, procent, throttling), hukommelse (forbrug, limit, procent), netværks- og blok-I/O, oppetid, genstarter og antal processer, pr. container, hvert 30. sekund. |
 | Containerlogs | stdout og stderr fra hver container, fra filen `ctr.log`, som logdriveren `k8s-file` skriver. |
 
-Hver containers metrikker og logs arkiveres under en tjeneste opkaldt efter containeren. Hver loglinje får en alvorlighed ud fra det niveau, den nævner, såsom `[ERROR]`, `level=warn` eller `{"level":"info"}`; en linje, der ikke nævner noget, får sin strøms: stderr er `ERROR`, stdout er `INFO`. Linjer, der starter med mellemrum eller en lukkende parentes, sættes sammen med linjen før, så en stack trace ankommer som én post. Agentens egne logs udelades.
+Hver containers metrikker og logs arkiveres under en tjeneste opkaldt efter containeren. Hver loglinje får en alvorlighed ud fra det niveau, den nævner, såsom `[ERROR]`, `level=warn` eller `{"level":"info"}`, og en undtagelses traceback tæller som `ERROR`. En linje, der ikke nævner noget, er `INFO` på stdout og har ingen alvorlighed på stderr, hvor programmer skriver deres diagnostik på alle niveauer. Linjer, der starter med mellemrum eller en lukkende parentes, sættes sammen med linjen før, så en stack trace ankommer som én post. Agentens egne logs udelades.
 
 [Podman-monitor](/docs/monitor/podman-monitor#indsamlede-metrikker) viser hver metrik, og hvad den betyder.
 
@@ -200,6 +201,33 @@ log_size_max = 104857600
 ```
 
 Genopret derefter containerne. En container beholder den logdriver, den blev oprettet med, så det er ikke nok at genstarte den.
+
+## Læsning af dit eget logformat
+
+Agenten læser niveauerne i de formater, de fleste programmer skriver. Til et format, den ikke læser, såsom et internt, kan du give den op til fem af dine egne collector-operatorer, hver som JSON i `ONEUPTIME_LOG_OPERATOR_1` til `ONEUPTIME_LOG_OPERATOR_5`. De kører på hver loglinje fra en container, efter at agenten har læst dens container og strøm, og før den læser linjens niveau. For at sætte en linjes niveau skal du skrive det til `attributes.severity_text` som et ord, agenten læser, såsom `ERROR`, `warn` eller `critical`, og sende linjen videre til `severity-router`, agentens første trin. En operator, der selv sætter alvorligheden, såsom en `severity_parser`, bliver overskrevet: agenten læser hver linjes niveau efter dine operatorer.
+
+Til linjer som `<<E>> payment failed`, hvor bogstavet er niveauet:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+Collectoren starter ikke med en operator, den ikke kan bygge, så kontrollér operatorerne, før agenten kører dem:
+
+- `install.sh` kontrollerer dem, når du kører det med variablerne sat, med collectorens egen `validate`, før det rører den agent, du har. Hvis collectoren afviser dem, stopper scriptet med collectorens meddelelse, og din agent kører videre.
+- Med Podman Compose skal du sætte dem i `.env` ved siden af `docker-compose.yml`, hver værdi i enkelte anførselstegn, og køre `podman compose up -d`. Tjenesten `oneuptime-podman-agent-config-check` kører den samme kontrol først. Når `podman compose` kører Docker Compose, starter agenten kun, hvis den består; podman-compose starter agenten, uanset hvad kontrollen siger, så læs kontrollens output med `podman compose logs oneuptime-podman-agent-config-check`.
+- Med Podman CLI skal du selv køre kontrollen med agentens øvrige variabler og derefter starte agenten med de samme `-e`-flag:
+
+```bash
+podman run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e PODMAN_HOST_NAME="my-podman-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/podman-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes-agent](/docs/telemetry/kubernetes-agent#læsning-af-dit-eget-logformat) forklarer operatorerne i eksemplet, som Kubernetes-agenten også tager imod.
 
 ## Opgradering af agenten
 

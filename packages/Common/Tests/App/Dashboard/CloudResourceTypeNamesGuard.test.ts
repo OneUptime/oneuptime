@@ -108,6 +108,26 @@ const SITES: Readonly<Record<string, NameSite>> = {
       },
     ],
   },
+  [`${DASHBOARD}/Components/Cloud/CloudHostLinkCards.tsx`]: {
+    inReadersLanguage:
+      "The type of the VM a host is, in the host's On AWS, On Google Cloud or On Azure card (#11013), through getCloudResourceTypeText into its sentence's slot, drawn as it comes.",
+    drawnBy: [
+      {
+        file: `${DASHBOARD}/Components/Cloud/CloudHostLinkCards.tsx`,
+        call: /getCloudResourceTypeText\(\s*machine\.provider,\s*machine\.type,\s*translator,?\s*\)/,
+      },
+    ],
+  },
+  [`${DASHBOARD}/Components/Cloud/CloudUntaggedResourcesCard.tsx`]: {
+    inReadersLanguage:
+      "The type under a resource's name in Cloud > Tags' list of what lacks a required tag (#11012), through getCloudResourceTypeText, drawn as it comes.",
+    drawnBy: [
+      {
+        file: `${DASHBOARD}/Components/Cloud/CloudUntaggedResourcesCard.tsx`,
+        call: /getCloudResourceTypeText\(\s*resource\.provider,\s*resource\.type,\s*translator,?\s*\)/,
+      },
+    ],
+  },
   [`${DASHBOARD}/Components/Cloud/CloudResourceTypeOptions.ts`]: {
     asOptions:
       "The Type filters' options, an account's and All Resources': the menu draws them as written (isUserContent), as the chip above the table and the rows do.",

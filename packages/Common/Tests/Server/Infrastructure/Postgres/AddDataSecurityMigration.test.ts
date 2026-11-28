@@ -14,6 +14,7 @@ import { AddDataAssetUsage1808991300000 } from "../../../../Server/Infrastructur
 import { AddRuleEmptiedLimits1809182490000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809182490000-AddRuleEmptiedLimits";
 import { AddTableHealthAttemptedAt1809184570000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184570000-AddTableHealthAttemptedAt";
 import { AddTableHealthSkippedTables1809184919541 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184919541-AddTableHealthSkippedTables";
+import { AddDataStoreDataObservabilityRemovalAndAgent1809187741147 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187741147-AddDataStoreDataObservabilityRemovalAndAgent";
 import { AddDataStoreFindingSampleRecords1809184700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809184700000-AddDataStoreFindingSampleRecords";
 import { AddDataSecurityIssueAiAnalysis1809187436369 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187436369-AddDataSecurityIssueAiAnalysis";
 import { AddDataSecurityIssueGroups1809187470370 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187470370-AddDataSecurityIssueGroups";
@@ -185,6 +186,22 @@ const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
     "tableHealthSkippedTables",
     AddTableHealthSkippedTables1809184919541,
   ],
+  /*
+   * When someone removed the database from Data Observability (#11147), and
+   * the database server whose Database Agent reads it, with which of its
+   * databases (#11148).
+   */
+  ...[
+    "tableHealthRemovedAt",
+    "tableHealthDatabaseServerId",
+    "tableHealthDatabaseName",
+  ].map((column: string): [string, string, MigrationClass] => {
+    return [
+      "DataStore",
+      column,
+      AddDataStoreDataObservabilityRemovalAndAgent1809187741147,
+    ];
+  }),
   // Why OneUptime switched a rule off (#9066), on every rule's table.
   ["DataStoreOwnerRule", "emptiedLimits", AddRuleEmptiedLimits1809182490000],
   ["DataStoreLabelRule", "emptiedLimits", AddRuleEmptiedLimits1809182490000],

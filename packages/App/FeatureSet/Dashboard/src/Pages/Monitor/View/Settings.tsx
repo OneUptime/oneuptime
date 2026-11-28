@@ -2,6 +2,7 @@ import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import IncomingEmailAddressSettings from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailAddressSettings";
 import MonitoringCard from "../../../Components/Monitor/MonitoringCard";
+import KeepMonitoringDuringIncidentsCard from "../../../Components/Monitor/KeepMonitoringDuringIncidentsCard";
 import ResponseContentCard from "../../../Components/Monitor/ResponseContentCard";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -33,13 +34,20 @@ import React, {
 } from "react";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import useAsyncEffect from "use-async-effect";
-import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
+import {
+  canSeeMonitorCredential,
+  getReadableMonitorSecretKeySelect,
+  MONITOR_SECRET_KEY_HIDDEN,
+} from "../../../Utils/MonitorSecretKeySelect";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 const MonitorCriteria: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const translator: Translator = useTranslator();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -58,6 +66,11 @@ const MonitorCriteria: FunctionComponent<
         id: modelId,
         select: {
           monitorType: true,
+          /*
+           * Its labels' ids, which tell a key the reader may not see on this
+           * monitor from one it does not have (canSeeMonitorCredential).
+           */
+          labels: { _id: true },
           ...getReadableMonitorSecretKeySelect(),
         },
         requestOptions: {},
@@ -107,6 +120,17 @@ const MonitorCriteria: FunctionComponent<
         )}
 
         {/*
+         * Whether an incident someone declares pauses those checks: right
+         * under the switch that turns them off (issue #11141).
+         */}
+        <div className="mt-5 empty:hidden">
+          <KeepMonitoringDuringIncidentsCard
+            monitorId={modelId}
+            monitorType={monitor.monitorType}
+          />
+        </div>
+
+        {/*
          * What this monitor's incidents and alerts keep of the check that
          * opened them: Website, API and Incoming Request monitors only, whose
          * checks carry a body.
@@ -133,21 +157,27 @@ const MonitorCriteria: FunctionComponent<
               fieldName={"incomingRequestSecretKey"}
               title={"Reset Incoming Request Secret Key"}
               description={
-                <span>
-                  <TranslatedSentence
-                    template="The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender."
-                    slots={{
-                      key: (
-                        <InlineCode
-                          text={
-                            monitor.incomingRequestSecretKey?.toString() ||
-                            "No key generated"
-                          }
-                        />
-                      ),
-                    }}
-                  />
-                </span>
+                canSeeMonitorCredential(monitor, "incomingRequestSecretKey") ? (
+                  <span>
+                    <TranslatedSentence
+                      template="The key in this monitor's URL is {{key}}. Reset it if the URL leaks: the old URL stops working, so update every sender."
+                      slots={{
+                        key: (
+                          <InlineCode
+                            text={
+                              monitor.incomingRequestSecretKey?.toString() ||
+                              "No key generated"
+                            }
+                          />
+                        ),
+                      }}
+                    />
+                  </span>
+                ) : (
+                  <span>
+                    {translator.translateText(MONITOR_SECRET_KEY_HIDDEN)}
+                  </span>
+                )
               }
               modelId={modelId}
             />
@@ -181,21 +211,27 @@ const MonitorCriteria: FunctionComponent<
               fieldName={"serverMonitorSecretKey"}
               title={"Reset Server Monitor Secret Key"}
               description={
-                <span>
-                  <TranslatedSentence
-                    template="The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key."
-                    slots={{
-                      key: (
-                        <InlineCode
-                          text={
-                            monitor.serverMonitorSecretKey?.toString() ||
-                            "No key generated"
-                          }
-                        />
-                      ),
-                    }}
-                  />
-                </span>
+                canSeeMonitorCredential(monitor, "serverMonitorSecretKey") ? (
+                  <span>
+                    <TranslatedSentence
+                      template="The agent on your server signs in with {{key}}. After a reset it stops reporting until you give it the new key."
+                      slots={{
+                        key: (
+                          <InlineCode
+                            text={
+                              monitor.serverMonitorSecretKey?.toString() ||
+                              "No key generated"
+                            }
+                          />
+                        ),
+                      }}
+                    />
+                  </span>
+                ) : (
+                  <span>
+                    {translator.translateText(MONITOR_SECRET_KEY_HIDDEN)}
+                  </span>
+                )
               }
               modelId={modelId}
             />

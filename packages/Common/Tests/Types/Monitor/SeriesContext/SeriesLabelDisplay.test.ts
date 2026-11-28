@@ -177,6 +177,52 @@ describe("SeriesLabelDisplay", () => {
       ).toBe("Service Type: compute | Region: RegionOne");
     });
 
+    test("an XCP-ng alert names the object, then its host, then its UUID, the pool last", () => {
+      const labels: JSONObject = {
+        "resource.xcp_ng.pool.id": "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+        "xcp_ng.scope": "vm",
+        "xcp_ng.id": "b1b2c3d4-0000-4000-8000-000000000011",
+        vm_name: "web-01",
+        host_name: "xcp-host-01",
+      };
+
+      // The title's three: what a person knows the VM by.
+      expect(SeriesLabelDisplay.buildInlineSummary(labels)).toBe(
+        "VM: web-01 | Host: xcp-host-01 | Object UUID: b1b2c3d4-0000-4000-8000-000000000011",
+      );
+      expect(
+        SeriesLabelDisplay.buildInlineSummary(labels, { maxLabels: 5 }),
+      ).toBe(
+        "VM: web-01 | Host: xcp-host-01 | Object UUID: b1b2c3d4-0000-4000-8000-000000000011 | Object Type: vm | XCP-ng Pool UUID: 1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+      );
+      // A host's own series leads with the host, not its UUID.
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "xcp_ng.id": "a1b2c3d4-0000-4000-8000-000000000001",
+          host_name: "xcp-host-01",
+        }),
+      ).toBe(
+        "Host: xcp-host-01 | Object UUID: a1b2c3d4-0000-4000-8000-000000000001",
+      );
+    });
+
+    test("Storage Repository Slow's `sr` label reads as the storage repository it is", () => {
+      // Xen Orchestra's short id of a repository, on a host's disk series.
+      expect(SeriesLabelDisplay.isKnownLabelKey("sr")).toBe(true);
+      expect(SeriesLabelDisplay.getFriendlyLabelName("sr")).toBe(
+        "Storage Repository",
+      );
+      expect(SeriesLabelDisplay.getLabelPriority("sr")).toBeLessThan(
+        SeriesLabelDisplay.getLabelPriority("host_name"),
+      );
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          host_name: "xcp-host-01",
+          sr: "3f2d1c0b",
+        }),
+      ).toBe("Storage Repository: 3f2d1c0b | Host: xcp-host-01");
+    });
+
     test("a failed systemd unit's alert names it Unit, ranked as a mount is", () => {
       // The host Systemd Unit Failed template groups by this resource attribute.
       expect(
@@ -838,6 +884,64 @@ describe("SeriesLabelDisplay", () => {
       expect(
         SeriesLabelDisplay.buildTitleSuffix({ summary: "Controller failed" }),
       ).toBe(" - Alert Summary: Controller failed");
+    });
+
+    /*
+     * NetApp ONTAP's templates (#11001) group by Harvest's labels, and Dell
+     * PowerMax's (#11004) by the probe's: unregistered, a LUN Offline alert
+     * read "Lun: lun7 | Svm: svm1" and an SRP alert "Srp: SRP_1".
+     */
+    test.each([
+      ["aggr", "Aggregate"],
+      ["svm", "SVM"],
+      ["volume", "Volume"],
+      ["lun", "LUN"],
+      ["disk", "Disk"],
+      ["shelf", "Shelf"],
+      ["destination_location", "SnapMirror Destination"],
+      ["message", "Message"],
+      ["srp", "Storage Resource Pool"],
+      ["storage_group", "Storage Group"],
+      ["srdf_group", "SRDF Group"],
+      ["component", "Component"],
+      ["description", "Description"],
+    ])(
+      "ONTAP's and PowerMax's %s is a registered group-by key, named %s",
+      (key: string, name: string) => {
+        expect(SeriesLabelDisplay.isKnownLabelKey(key)).toBe(true);
+        expect(SeriesLabelDisplay.getFriendlyLabelName(key)).toBe(name);
+        // The thing that breached, before the array that scopes it.
+        expect(SeriesLabelDisplay.getLabelPriority(key)).toBeLessThan(
+          SeriesLabelDisplay.getLabelPriority("resource.storage.array.name"),
+        );
+      },
+    );
+
+    test("an ONTAP LUN's alert names the LUN, then its volume, then the storage VM", () => {
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          svm: "svm1",
+          volume: "vol_db",
+          lun: "lun7",
+          "resource.storage.array.name": "ontap-prod",
+        }),
+      ).toBe("LUN: lun7 | Volume: vol_db | SVM: svm1");
+
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          svm: "svm1",
+          volume: "vol_db",
+        }),
+      ).toBe("Volume: vol_db | SVM: svm1");
+    });
+
+    test("a PowerMax pool's alert names the pool, then the array", () => {
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "resource.storage.array.name": "000197900123",
+          srp: "SRP_1",
+        }),
+      ).toBe("Storage Resource Pool: SRP_1 | Storage Array: 000197900123");
     });
   });
 });

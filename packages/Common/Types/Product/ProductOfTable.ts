@@ -44,6 +44,7 @@ export const PRODUCT_OF_TABLE: Readonly<Record<string, ProductKey>> = {
   StorageArray: ProductKey.StorageArrays,
   NetworkDevice: ProductKey.Network,
   IoTFleet: ProductKey.IoT,
+  XcpNgPool: ProductKey.XcpNg,
   CloudConnection: ProductKey.Cloud,
   ServerlessFunction: ProductKey.Serverless,
   Dashboard: ProductKey.Dashboards,

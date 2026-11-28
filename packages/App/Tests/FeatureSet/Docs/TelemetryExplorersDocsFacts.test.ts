@@ -110,6 +110,16 @@ import {
   SERVICE_RECEIVING_DATA_LABEL,
   SERVICE_WAITING_FOR_DATA_LABEL,
 } from "Common/Types/Service/ServiceTelemetryStatus";
+import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
+import ObjectID from "Common/Types/ObjectID";
+import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType";
+import MetricPipelineEngine, {
+  MutableMetricRow,
+} from "Common/Server/Utils/Telemetry/MetricPipelineEngine";
+import {
+  buildMetricScrubFilters,
+  METRIC_REDACT_REPLACEMENT,
+} from "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1752,6 +1762,115 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
     }
   });
 
+  /*
+   * #11031, #11033: the rules that hide data match their regular
+   * expression in a value read as Data Security reads it too; the others,
+   * a Filter rule's among them, as it is written.
+   */
+  it("says which pipeline rules match a regular expression in a value as Data Security reads it", () => {
+    const engine: string = readPackageFile(
+      "Common/Server/Utils/Telemetry/MetricPipelineEngine.ts",
+    );
+
+    const declaration: string =
+      "const HIDING_RULE_TYPES: ReadonlySet<MetricPipelineRuleType> = new Set([";
+
+    expect(engine).toContain(declaration);
+    expect(
+      between(engine, declaration, "]);")
+        .slice(declaration.length)
+        .split(",")
+        .map((entry: string): string => {
+          return entry.trim();
+        })
+        .filter((entry: string): boolean => {
+          return entry.length > 0;
+        }),
+    ).toEqual([
+      "MetricPipelineRuleType.Drop",
+      "MetricPipelineRuleType.RedactAttribute",
+      "MetricPipelineRuleType.RemoveAttribute",
+    ]);
+    expect(engine).toContain("HIDING_RULE_TYPES.has(rule.ruleType");
+    expect(page).toContain(
+      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, as a form writes a URL's query string, with a plus sign for each space, with every script's digits read as ASCII digits, with a number's fullwidth signs and separators and the other dashes between its digits read as ASCII ones, and with fullwidth letters read as ASCII ones. The other rules match the value as it is written.",
+    );
+    // The readings those rules try a value in: a Custom Regex rule's, the query string's, the fullwidth forms' and letters' among them (#11199, #11115, #11385).
+    expect(engine).toContain(
+      "const PATTERN_READINGS: ReadingNeeds = CUSTOM_PATTERN_READINGS;",
+    );
+    const readings: string = between(
+      readPackageFile("Common/Types/Telemetry/ScrubRule.ts"),
+      "export const CUSTOM_PATTERN_READINGS: ReadingNeeds = {",
+      "};",
+    );
+
+    expect(readings).toContain("readsFullwidthLetters: true");
+
+    expect(readings).toContain("readsPercentEncoded: true");
+    expect(readings).toContain("readsPlusAsSpace: true");
+    expect(readings).toContain("readsDigitsOfEveryScript: true");
+    expect(readings).toContain("readsFullwidthForms: true");
+  });
+
+  // #11112: the rule Data Security makes for a phone or a Social Security number matches its Pattern Type too.
+  it("names the types whose Data Security rule matches a Pattern Type, as the code maps them", () => {
+    const coverage: string = readPackageFile(
+      "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage.ts",
+    );
+
+    for (const mapping of [
+      '["ip-address", LogScrubPatternType.IPAddress]',
+      '["email-address", LogScrubPatternType.Email]',
+      '["credit-card-number", LogScrubPatternType.CreditCard]',
+      '["phone-number", LogScrubPatternType.PhoneNumber]',
+      '["us-ssn", LogScrubPatternType.SSN]',
+    ]) {
+      expect(coverage).toContain(mapping);
+    }
+
+    expect(page).toContain(
+      "The **Redact Attribute** rule [Data Security](/docs/data-security/telemetry) makes for an IP address, an email address, a card number, a phone number or a Social Security number in an attribute uses it.",
+    );
+  });
+
+  /*
+   * #11383: a Matches Pattern Type filter reads a value under the
+   * attribute's key, as a scrub rule of that Pattern Type does - a
+   * national number alone under `user.phone` is a phone number, and the
+   * same number under a key that names nothing is not.
+   */
+  it("says a Matches Pattern Type filter reads a value under the attribute's key", () => {
+    expect(page).toContain(
+      "found as a log or trace scrub rule of that **Pattern Type** finds one, under the attribute's key: a national phone number alone under `user.phone` is one.",
+    );
+
+    const leftUnder: (key: string) => unknown = (key: string): unknown => {
+      const rule: MetricPipelineRule = new MetricPipelineRule();
+
+      rule.id = ObjectID.generate();
+      rule.ruleType = MetricPipelineRuleType.RedactAttribute;
+      rule.addAttributeKey = key;
+      // The filter Data Security's Scrub It gives the rule: Matches Pattern Type, on its key.
+      rule.filters = buildMetricScrubFilters("phone-number", key);
+
+      const row: MutableMetricRow | null = MetricPipelineEngine.applyRules(
+        {
+          name: "signups",
+          attributes: { [key]: "02012345678" },
+          attributeKeys: [key],
+        },
+        [rule],
+        [],
+      );
+
+      return (row?.attributes as JSONObject | undefined)?.[key];
+    };
+
+    expect(leftUnder("user.phone")).toBe(METRIC_REDACT_REPLACEMENT);
+    expect(leftUnder("order.id")).toBe("02012345678");
+  });
+
   it("opens the metric list on the past hour", () => {
     expect(
       readDashboardSource("Components/Metrics/MetricsViewer.tsx"),
@@ -3070,7 +3189,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       );
     }
     expect(exceptionUtil).toContain(
-      "await ExceptionUtil.assignPayloadGroupFingerprints(exceptions)",
+      "await ExceptionUtil.assignPayloadGroupFingerprints(occurrences)",
     );
     /*
      * An exception recorded before keeps its first fingerprint: v1's is tried
@@ -3179,11 +3298,144 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
   });
 
   /*
+   * The list's filter for those pairs (#11026): beside Assigned to me, only
+   * while the project has a split exception left to merge, with how many of
+   * them the list holds in its status, time range and filters (#11116);
+   * each pair once, by the one the rule split off; the chart and the
+   * sidebar's counts narrowed with it; kept by saved views and links.
+   */
+  it("lists only the pairs a scrub rule split, beside Assigned to me, while the project has one to merge", () => {
+    const viewer: string = exceptionsViewer.replace(/\s+/g, " ");
+    const splitPairs: string = readDashboardSource(
+      "Utils/ExceptionSplitPairs.ts",
+    ).replace(/\s+/g, " ");
+    const savedView: string = readDashboardSource(
+      "Utils/ExceptionSavedView.ts",
+    );
+    const exceptionService: string = readCommonSource(
+      "Server/Services/TelemetryExceptionService.ts",
+    ).replace(/\s+/g, " ");
+    const troubleshooting: string = section(page, "## Troubleshooting");
+
+    expect(troubleshooting).toContain(
+      "**Unmerge** undoes it.\n\nTo list only those pairs, turn on **Split by a scrub rule** beside **Assigned to me**: it lists each pair once, by the exception the rule split off, and the chart and the sidebar's counts then cover only those exceptions. It appears while the project has a pair left to merge, with how many of them the list holds in its status, time range and filters, and saved views and links keep it.\n\n",
+    );
+
+    // Its words, right after Assigned to me, with how many.
+    expect(viewer).toContain(
+      'translator.translateText("Split by a scrub rule")',
+    );
+    expect(viewer).toContain("{assignedToMeToggle} {splitByScrubRuleToggle}");
+    expect(viewer).toContain("translator.formatNumber(splitExceptionCount)");
+    // While the project has one: counted once, merged ones left out.
+    expect(viewer).toContain(
+      "offersSplitFilter && (splitByScrubRule || projectHasSplitExceptions === true);",
+    );
+    expect(viewer).toContain("setProjectHasSplitExceptions(count > 0);");
+    // How many of them the list holds: its own query, with the filter on.
+    expect(viewer).toContain("void countSplitExceptionsInList(query).then(");
+    expect(splitPairs).toContain(
+      'const query: Query<TelemetryException> = { ...listQuery }; (query as Record<string, unknown>)["splitFromTelemetryExceptionId"] = new NotNull();',
+    );
+    expect(splitPairs).toContain(
+      'const query: Query<TelemetryException> = {}; const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId(); if (projectId) { query.projectId = projectId; } (query as Record<string, unknown>)["splitFromTelemetryExceptionId"] = new NotNull();',
+    );
+    expect(splitPairs).toContain(
+      "return await ModelAPI.count<TelemetryException>({ modelType: TelemetryException, query: getSplitExceptionsQuery(), });",
+    );
+    expect(exceptionService).toContain(
+      "countBy.query = await this.addExceptionScope( Service.hideMergedExceptions(",
+    );
+    // Each pair once, by the exception the rule split off.
+    expect(viewer).toContain(
+      'if (splitByScrubRule) { (q as Record<string, unknown>)["splitFromTelemetryExceptionId"] = new NotNull(); }',
+    );
+    // The chart and the sidebar's counts: the split ones' occurrences only.
+    expect(viewer).toContain(
+      "splitFingerprints: splitByScrubRule ? splitFingerprints || [] : null,",
+    );
+    expect(
+      viewer.match(
+        /if \(occurrenceFingerprints\) \{ payload\["fingerprints"\]/g,
+      ),
+    ).toHaveLength(2);
+    // Saved views and links keep it.
+    expect(savedView).toContain(
+      "exceptionSplitByScrubRule: state.splitByScrubRule,",
+    );
+    expect(viewer).toContain(
+      "[SPLIT_BY_SCRUB_RULE_PARAM]: splitByScrubRule ? SPLIT_BY_SCRUB_RULE_PARAM_VALUE : null,",
+    );
+  });
+
+  /*
    * An exception moved to a private fingerprint (#10619): on its next
    * occurrence a rule changed, when its fingerprint hashes what the rule
    * hid; the occurrences from before keep the old one until their retention
    * ends, and then it is deleted; a folded value moves nothing.
    */
+  /*
+   * #11027: an occurrence whose exception cannot be read is tried again and
+   * held, never filed under a new exception, and a duplicate the earlier
+   * fallback made is merged back into the older one, with no alert.
+   */
+  it("never makes a second exception when it can't read which one an occurrence belongs to, and merges back one an earlier version made", () => {
+    const troubleshooting: string = section(page, "## Troubleshooting");
+    const heal: string = readPackageFile(
+      "Common/Server/Utils/Telemetry/TelemetryExceptionSplitHeal.ts",
+    );
+    const flat: string = exceptionUtil.replace(/\s+/g, " ");
+    const sweep: string = readPackageFile(
+      "App/FeatureSet/Workers/DataMigrations/MergeBackExceptionsSplitByFailedLookups.ts",
+    ).replace(/\s+/g, " ");
+    const migrations: string = readPackageFile(
+      "App/FeatureSet/Workers/DataMigrations/Index.ts",
+    );
+    const workers: string = readPackageFile("App/FeatureSet/Workers/Index.ts");
+
+    expect(troubleshooting).toContain(
+      "When OneUptime can't read which exception an occurrence belongs to, it tries again and counts the occurrence once it can: it never makes a second exception for an error it already has. An exception an earlier version of OneUptime made twice that way, the second one alerting as a new exception, is merged back into the first by its next occurrence, or after an upgrade when its error never happens again: the older one is kept, nothing alerts, and **Unmerge** undoes it. A pair OneUptime can't prove is one error, such as one whose text a scrub rule changed, stays two: merge them from **Similar exceptions**.\n:::",
+    );
+
+    /*
+     * After an upgrade when its error never happens again (#11113): a data
+     * migration, and a job that goes on with it, through the same heal.
+     */
+    expect(migrations).toContain(
+      "new MergeBackExceptionsSplitByFailedLookups(),",
+    );
+    expect(workers).toContain(
+      'import "./Jobs/TelemetryException/MergeBackExceptionsSplitByFailedLookups";',
+    );
+    expect(sweep).toContain("return TelemetryExceptionSplitHeal.heal(pair);");
+    expect(sweep).toContain("ExceptionUtil.splitByFailedLookupOf({");
+    // Proven by its own stored text: its fingerprint is that text's v1.
+    expect(sweep).toContain("ExceptionUtil.getFingerprint({");
+    expect(sweep).toContain("}) !== data.fingerprint");
+    // One it cannot prove stays two: its occurrences leading elsewhere too.
+    expect(sweep).toContain("return OccurrenceVerdict.Disagree;");
+
+    // Tried again, then held: the occurrence's exception unknown, nothing made.
+    expect(flat).toContain(
+      "export const GROUP_FINGERPRINT_LOOKUP_RETRY_DELAYS_MS: ReadonlyArray<number> = [ 200, 1000, ];",
+    );
+    expect(flat).toContain("unknown.set(key, candidate);");
+    expect(flat).toContain("if (resolution.unknown.has(key)) {");
+    expect(flat).toContain("HeldExceptionOccurrences.hold(toHold, now);");
+    // Counted once it can: a later batch takes what was held.
+    expect(flat).toContain(
+      "...HeldExceptionOccurrences.take(Date.now(), projectIds),",
+    );
+    // The older one kept, by the merge a person's Merge goes through, as OneUptime.
+    expect(heal).toContain("duplicateMadeAt <= originalMadeAt");
+    expect(heal.replace(/\s+/g, " ")).toContain(
+      "props: { isRoot: true, tenantId: new ObjectID(data.projectId) },",
+    );
+    expect(heal).toContain("TelemetryExceptionMerge.merge({");
+    // A merge is undone by Unmerge, and a person's unmerge stands.
+    expect(heal).toContain("TelemetryExceptionActivityType.UnmergedFrom");
+  });
+
   it("says why an exception's fingerprint changed: moved to a private one, the old one kept until no occurrence carries it", () => {
     const rekey: string = readCommonSource(
       "Server/Utils/Telemetry/TelemetryExceptionRekey.ts",

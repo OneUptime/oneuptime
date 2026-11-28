@@ -10,9 +10,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import PageSkeleton from "../Page/PageSkeleton";
 import Query from "../../../Types/BaseDatabase/Query";
-import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import Log from "../../../Models/AnalyticsModels/Log";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import Route from "../../../Types/API/Route";
@@ -24,13 +22,7 @@ import API from "../../Utils/API/API";
 import { APP_API_URL } from "../../Config";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import Service from "../../../Models/DatabaseModels/Service";
-import Host from "../../../Models/DatabaseModels/Host";
-import DockerHost from "../../../Models/DatabaseModels/DockerHost";
-import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
-import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import ListResult from "../../../Types/BaseDatabase/ListResult";
 import Dictionary from "../../../Types/Dictionary";
 import LogsFilterCard from "./components/LogsFilterCard";
 import LogsViewerToolbar, {
@@ -99,16 +91,26 @@ import useViewerTimeRangeZoom, {
 } from "../TelemetryViewer/useViewerTimeRangeZoom";
 import { hasLockedTelemetryScope } from "../TelemetryViewer/FacetVisibility";
 import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
-import useTelemetryEntityNames from "../../Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  TelemetryEntityLookup,
+  useTelemetryEntityLookup,
+} from "../../Utils/Telemetry/UseTelemetryEntityNames";
 import ResultTotalUtil, {
   ResultTotal,
 } from "../../Utils/Telemetry/ResultTotal";
 import { TelemetryLoadError } from "../../Utils/Telemetry/TelemetryLoadError";
 import TelemetryLoadErrorMessage from "../TelemetryViewer/components/TelemetryLoadErrorMessage";
+import ErrorSentence from "../ErrorMessage/ErrorSentence";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../../Utils/TelemetryServicesOnPage";
+import { findServiceIdByName } from "../../Utils/TelemetryServiceNameSearch";
 import HashedAddressSearchNote from "../TelemetryViewer/components/HashedAddressSearchNote";
 import { TelemetryEntityNameMap } from "../../Utils/Telemetry/TelemetryEntityNames";
 import {
   collectLogsEntityIdsToResolve,
+  collectLogsServiceIdsToRead,
   enrichLogsActiveFilters,
   LogsEntityLookupMaps,
   LogsEntityResolutionRequest,
@@ -602,20 +604,55 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   const [attributesLoading, setAttributesLoading] = useState<boolean>(true);
   const [attributesFailed, setAttributesFailed] = useState<boolean>(false);
 
-  const [isPageLoading, setIsPageLoading] = useState<boolean>(true);
-  const [pageError, setPageError] = useState<string>("");
+  /*
+   * The services the logs on screen name - their rows', the Service
+   * facet's, the chips' and the `service:` suggestions' - read by their ids
+   * as they land (#11072). The viewer read the project's first 10,000
+   * services, and its first 10,000 hosts, Docker and Podman hosts and
+   * Kubernetes clusters, before it showed anything: a log of a service
+   * past them read as its id, and one failed read left the whole page
+   * saying it could not load. Hosts and clusters are named by the facets'
+   * server displayName and the entity name resolver (entityNameMap, below).
+   */
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
 
-  const [serviceMap, setServiceMap] = useState<Dictionary<Service>>({});
-  const [hostMap, setHostMap] = useState<Dictionary<Host>>({});
-  const [dockerHostMap, setDockerHostMap] = useState<Dictionary<DockerHost>>(
-    {},
+  // Why a typed `service:` name could not be looked up; "" when it could.
+  const [serviceSearchError, setServiceSearchError] = useState<string>("");
+  // What a failed lookup of a typed name does again, on Try again.
+  const retryServiceSearchRef: React.MutableRefObject<(() => void) | null> =
+    useRef<(() => void) | null>(null);
+
+  /*
+   * A typed `service:` name the page has not read, looked up on the server
+   * by that name, past any number of services (#11072): it used to match
+   * only the project's first 10,000 by name, and filtered by the name
+   * itself - no logs - when the service sorted past them. `apply` gets its
+   * service's id, or undefined when no service has that name. A lookup that
+   * fails is said, and nothing is applied: Try again runs `retry`.
+   */
+  const lookUpTypedService: (data: {
+    name: string;
+    apply: (id: string | undefined) => void;
+    retry: () => void;
+  }) => void = useCallback(
+    (data: {
+      name: string;
+      apply: (id: string | undefined) => void;
+      retry: () => void;
+    }): void => {
+      void findServiceIdByName({ name: data.name })
+        .then((id: string | undefined) => {
+          retryServiceSearchRef.current = null;
+          setServiceSearchError("");
+          data.apply(id);
+        })
+        .catch((err: unknown) => {
+          retryServiceSearchRef.current = data.retry;
+          setServiceSearchError(API.getFriendlyErrorMessage(err as Error));
+        });
+    },
+    [],
   );
-  const [podmanHostMap, setPodmanHostMap] = useState<Dictionary<PodmanHost>>(
-    {},
-  );
-  const [kubernetesClusterMap, setKubernetesClusterMap] = useState<
-    Dictionary<KubernetesCluster>
-  >({});
 
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const [focusedRowIndex, setFocusedRowIndex] = useState<number>(-1);
@@ -820,164 +857,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [displayedLogs, selectedLogId]);
 
-  const loadServices: PromiseVoidFunction =
-    useCallback(async (): Promise<void> => {
-      try {
-        setIsPageLoading(true);
-        setPageError("");
-
-        const [
-          telemetryServices,
-          hosts,
-          dockerHosts,
-          podmanHosts,
-          kubernetesClusters,
-        ]: [
-          ListResult<Service>,
-          ListResult<Host>,
-          ListResult<DockerHost>,
-          ListResult<PodmanHost>,
-          ListResult<KubernetesCluster>,
-        ] = await Promise.all([
-          ModelAPI.getList({
-            modelType: Service,
-            query: {},
-            select: {
-              name: true,
-              serviceColor: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          }),
-          ModelAPI.getList({
-            modelType: Host,
-            query: {},
-            select: {
-              name: true,
-              hostIdentifier: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          }),
-          ModelAPI.getList({
-            modelType: DockerHost,
-            query: {},
-            select: {
-              name: true,
-              hostIdentifier: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          }),
-          ModelAPI.getList({
-            modelType: PodmanHost,
-            query: {},
-            select: {
-              name: true,
-              hostIdentifier: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          }),
-          ModelAPI.getList({
-            modelType: KubernetesCluster,
-            query: {},
-            select: {
-              name: true,
-              clusterIdentifier: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          }),
-        ]);
-
-        const services: Dictionary<Service> = {};
-        telemetryServices.data.forEach((service: Service) => {
-          if (!service.id) {
-            return;
-          }
-          services[service.id.toString()] = service;
-        });
-
-        /*
-         * Logs without a service.name are tagged with the projectId
-         * (ServiceType.Unknown) and have no Service row. Register a
-         * synthetic "Unknown Service" keyed by the projectId so the
-         * primaryEntityId -> name resolution and the service facet render
-         * "Unknown Service" instead of a raw id. Harmless when no logs
-         * are unattributed — nothing resolves against it.
-         */
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (projectId) {
-          services[projectId.toString()] =
-            TelemetryServiceUtil.getUnknownService(projectId);
-        }
-
-        const hostsById: Dictionary<Host> = {};
-        hosts.data.forEach((host: Host) => {
-          if (!host.id) {
-            return;
-          }
-          hostsById[host.id.toString()] = host;
-        });
-
-        const dockerHostsById: Dictionary<DockerHost> = {};
-        dockerHosts.data.forEach((dockerHost: DockerHost) => {
-          if (!dockerHost.id) {
-            return;
-          }
-          dockerHostsById[dockerHost.id.toString()] = dockerHost;
-        });
-
-        const podmanHostsById: Dictionary<PodmanHost> = {};
-        podmanHosts.data.forEach((podmanHost: PodmanHost) => {
-          if (!podmanHost.id) {
-            return;
-          }
-          podmanHostsById[podmanHost.id.toString()] = podmanHost;
-        });
-
-        const clustersById: Dictionary<KubernetesCluster> = {};
-        kubernetesClusters.data.forEach((cluster: KubernetesCluster) => {
-          if (!cluster.id) {
-            return;
-          }
-          clustersById[cluster.id.toString()] = cluster;
-        });
-
-        setServiceMap(services);
-        setHostMap(hostsById);
-        setDockerHostMap(dockerHostsById);
-        setPodmanHostMap(podmanHostsById);
-        setKubernetesClusterMap(clustersById);
-      } catch (err) {
-        setPageError(
-          `We couldn't load telemetry resource metadata. ${API.getFriendlyErrorMessage(err as Error)}`,
-        );
-      } finally {
-        setIsPageLoading(false);
-      }
-    }, []);
-
-  useEffect(() => {
-    void loadServices();
-  }, [loadServices]);
-
   useEffect(() => {
     let isCancelled: boolean = false;
 
@@ -1064,6 +943,29 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   }, [props.onPageChange, props.page]);
 
   /*
+   * The services read so far, by id - and the synthetic "Unknown Service"
+   * under the project's own id: logs without a service.name are tagged
+   * with it (ServiceType.Unknown) and have no Service row, so the rows and
+   * the Service facet read "Unknown Service" rather than a raw id.
+   */
+  const serviceMap: Dictionary<Service> = useMemo(() => {
+    const services: Dictionary<Service> = {};
+
+    for (const [id, service] of servicesOnPage.knownServices) {
+      services[id] = service;
+    }
+
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (projectId) {
+      services[projectId.toString()] =
+        TelemetryServiceUtil.getUnknownService(projectId);
+    }
+
+    return services;
+  }, [servicesOnPage.knownServices]);
+
+  /*
    * What the rows, the sidebar and the suggestions read names from: the
    * stand-in for unattributed logs in the reader's language. `serviceMap`
    * keeps its English name, which a typed `service:` search still finds.
@@ -1074,20 +976,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
   }, [serviceMap, translator.language]);
 
   const entityLookupMaps: LogsEntityLookupMaps = useMemo(() => {
-    return {
-      serviceMap: drawnServiceMap,
-      hostMap,
-      dockerHostMap,
-      podmanHostMap,
-      kubernetesClusterMap,
-    };
-  }, [
-    drawnServiceMap,
-    hostMap,
-    dockerHostMap,
-    podmanHostMap,
-    kubernetesClusterMap,
-  ]);
+    return { serviceMap: drawnServiceMap };
+  }, [drawnServiceMap]);
 
   /*
    * primaryEntityId values the `service:` dropdown offers. The lazily
@@ -1101,20 +991,46 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     );
   }, [attributeValueSuggestions, props.valueSuggestions]);
 
+  // The ids on screen that name services, read by their ids as they land.
+  const serviceIdsOnScreen: Array<string> = useMemo(() => {
+    return collectLogsServiceIdsToRead({
+      filters: [
+        ...(props.baseActiveFilters || []),
+        ...(props.activeFilters || []),
+      ],
+      logs: displayedLogs,
+      facetData: props.facetData,
+      suggestionIds: primaryEntitySuggestionIds,
+    });
+  }, [
+    props.baseActiveFilters,
+    props.activeFilters,
+    displayedLogs,
+    props.facetData,
+    primaryEntitySuggestionIds,
+  ]);
+
+  useEffect(() => {
+    void servicesOnPage.readServicesOf(serviceIdsOnScreen);
+  }, [serviceIdsOnScreen]);
+
+  // Those whose service read has not answered yet, as one key.
+  const unansweredServiceIds: string = serviceIdsOnScreen
+    .filter((id: string): boolean => {
+      return !servicesOnPage.isAnswered(id);
+    })
+    .join(",");
+
   /*
-   * One resolver request for every id on screen the preloaded maps cannot
+   * One resolver request for every id on screen the services read cannot
    * name: chips, the Service column / details header of the displayed logs,
-   * `service:` suggestions and sidebar facet rows. A RUM application's or a
-   * serverless function's logs otherwise read as raw UUIDs, because only
-   * Services / hosts / clusters are preloaded. Held back while those maps
-   * load so ids they will name are not looked up twice.
+   * `service:` suggestions and sidebar facet rows - a RUM application's, a
+   * serverless function's, a host's or a cluster's. An id read as a service
+   * is held back until that read answers, so one it names is not looked up
+   * twice.
    */
   const entityResolutionRequest: LogsEntityResolutionRequest = useMemo(() => {
-    if (isPageLoading) {
-      return { ids: [], typeHints: {} };
-    }
-
-    return collectLogsEntityIdsToResolve({
+    const request: LogsEntityResolutionRequest = collectLogsEntityIdsToResolve({
       filters: [
         ...(props.baseActiveFilters || []),
         ...(props.activeFilters || []),
@@ -1124,20 +1040,37 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       suggestionIds: primaryEntitySuggestionIds,
       maps: entityLookupMaps,
     });
+    const waiting: Set<string> = new Set<string>(
+      unansweredServiceIds ? unansweredServiceIds.split(",") : [],
+    );
+
+    return {
+      ids: request.ids.filter((id: string): boolean => {
+        return !waiting.has(id.toLowerCase());
+      }),
+      typeHints: request.typeHints,
+    };
   }, [
-    isPageLoading,
     props.baseActiveFilters,
     props.activeFilters,
     displayedLogs,
     props.facetData,
     primaryEntitySuggestionIds,
     entityLookupMaps,
+    unansweredServiceIds,
   ]);
 
-  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+  /*
+   * The names, and the ids every read answered nothing for: a chip naming
+   * one reads "No longer available" (#11213). An id read as a service is
+   * only asked of the resolver once that read answered without it, so it
+   * is never said to be gone while a read of it is in flight.
+   */
+  const entityLookup: TelemetryEntityLookup = useTelemetryEntityLookup(
     entityResolutionRequest.ids,
     { typeHints: entityResolutionRequest.typeHints },
   );
+  const entityNameMap: TelemetryEntityNameMap = entityLookup.names;
 
   const primaryEntitySuggestions: PrimaryEntitySuggestions = useMemo(() => {
     return resolvePrimaryEntitySuggestions({
@@ -1160,31 +1093,54 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       searchQuery,
     ) as Record<string, unknown>;
 
+    const applySearch: () => void = (): void => {
+      const mergedFilter: Query<Log> = {
+        ...filterData,
+        ...queryFilter,
+      } as Query<Log>;
+
+      setServiceSearchError("");
+      resetPage();
+      setSelectedLogId(null);
+      props.onFilterChanged(mergedFilter);
+    };
+
     // Resolve human-readable service name to UUID if needed
     if (
-      queryFilter["primaryEntityId"] &&
-      typeof queryFilter["primaryEntityId"] === "string"
+      !queryFilter["primaryEntityId"] ||
+      typeof queryFilter["primaryEntityId"] !== "string"
     ) {
-      const serviceName: string = queryFilter["primaryEntityId"] as string;
-      const resolvedId: string | undefined = resolveServiceNameToId(
-        serviceName,
-        serviceMap,
-        primaryEntitySuggestions.labelToId,
-      );
-
-      if (resolvedId) {
-        queryFilter["primaryEntityId"] = resolvedId;
-      }
+      applySearch();
+      return;
     }
 
-    const mergedFilter: Query<Log> = {
-      ...filterData,
-      ...queryFilter,
-    } as Query<Log>;
+    const serviceName: string = queryFilter["primaryEntityId"] as string;
+    const resolvedId: string | undefined = resolveServiceNameToId(
+      serviceName,
+      serviceMap,
+      primaryEntitySuggestions.labelToId,
+    );
 
-    resetPage();
-    setSelectedLogId(null);
-    props.onFilterChanged(mergedFilter);
+    if (resolvedId || ObjectID.isValidUUID(serviceName.trim())) {
+      queryFilter["primaryEntityId"] = resolvedId || serviceName.trim();
+      applySearch();
+      return;
+    }
+
+    // A name the page has not read: looked up on the server.
+    lookUpTypedService({
+      name: serviceName,
+      apply: (id: string | undefined): void => {
+        if (id) {
+          queryFilter["primaryEntityId"] = id;
+        }
+
+        applySearch();
+      },
+      retry: (): void => {
+        handleSearchSubmit();
+      },
+    });
   }, [
     searchQuery,
     serviceMap,
@@ -1401,16 +1357,28 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       props.activeFilters,
       entityLookupMaps,
       entityNameMap,
+      entityLookup.notFound,
     );
-  }, [props.activeFilters, entityLookupMaps, entityNameMap]);
+  }, [
+    props.activeFilters,
+    entityLookupMaps,
+    entityNameMap,
+    entityLookup.notFound,
+  ]);
 
   const enrichedBaseActiveFilters: Array<ActiveFilter> = useMemo(() => {
     return enrichLogsActiveFilters(
       props.baseActiveFilters,
       entityLookupMaps,
       entityNameMap,
+      entityLookup.notFound,
     );
-  }, [props.baseActiveFilters, entityLookupMaps, entityNameMap]);
+  }, [
+    props.baseActiveFilters,
+    entityLookupMaps,
+    entityNameMap,
+    entityLookup.notFound,
+  ]);
 
   /*
    * Replace primaryEntityId UUIDs with human-readable names in value suggestions,
@@ -1454,7 +1422,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       return undefined;
     }
 
-    return (fieldKey: string, value: string): void => {
+    const select: (fieldKey: string, value: string) => void = (
+      fieldKey: string,
+      value: string,
+    ): void => {
       if (fieldKey === "service") {
         const resolvedId: string | undefined = resolveServiceNameToId(
           value,
@@ -1466,11 +1437,32 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           props.onFieldValueSelect!(fieldKey, resolvedId);
           return;
         }
+
+        // A name the page has not read (an id typed in names itself).
+        if (!ObjectID.isValidUUID(value.trim())) {
+          lookUpTypedService({
+            name: value,
+            apply: (id: string | undefined): void => {
+              props.onFieldValueSelect!(fieldKey, id || value);
+            },
+            retry: (): void => {
+              select(fieldKey, value);
+            },
+          });
+          return;
+        }
       }
 
       props.onFieldValueSelect!(fieldKey, value);
     };
-  }, [props.onFieldValueSelect, serviceMap, primaryEntitySuggestions]);
+
+    return select;
+  }, [
+    props.onFieldValueSelect,
+    serviceMap,
+    primaryEntitySuggestions,
+    lookUpTypedService,
+  ]);
 
   const selectedColumns: Array<string> = props.selectedColumns
     ? normalizeLogsTableColumns(props.selectedColumns)
@@ -1507,14 +1499,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
     return [...CORE_LOGS_TABLE_COLUMN_OPTIONS, ...attributeColumns];
   }, [logAttributes]);
-
-  if (isPageLoading) {
-    return <PageSkeleton shape="table" />;
-  }
-
-  if (pageError) {
-    return <ErrorMessage message={pageError} />;
-  }
 
   const currentViewMode: LogsViewMode = props.viewMode ?? internalViewMode;
 
@@ -1626,8 +1610,33 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     searchQuery: searchQuery,
   });
 
+  const servicesError: string = servicesOnPage.error || serviceSearchError;
+
   const viewer: ReactElement = (
     <div className="space-y-2">
+      {servicesError && (
+        <ErrorMessage
+          message={
+            <ErrorSentence
+              template="We couldn't load telemetry services. {{error}}"
+              error={servicesError}
+            />
+          }
+          onRefreshClick={() => {
+            if (serviceSearchError) {
+              const retry: (() => void) | null = retryServiceSearchRef.current;
+
+              retryServiceSearchRef.current = null;
+              setServiceSearchError("");
+              retry?.();
+              return;
+            }
+
+            void servicesOnPage.retry();
+          }}
+        />
+      )}
+
       {props.showFilters && (
         <div>
           <LogsFilterCard
@@ -1713,10 +1722,6 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               onRetryFacets={props.onRetryFacets}
               showCountsNotice={!props.listError}
               serviceMap={drawnServiceMap}
-              hostMap={hostMap}
-              dockerHostMap={dockerHostMap}
-              podmanHostMap={podmanHostMap}
-              kubernetesClusterMap={kubernetesClusterMap}
               entityNameMap={entityNameMap}
               onIncludeFilter={props.onFacetInclude || (() => {})}
               onExcludeFilter={props.onFacetExclude}

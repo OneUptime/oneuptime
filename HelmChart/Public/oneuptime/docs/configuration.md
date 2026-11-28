@@ -212,9 +212,9 @@ Configured per probe under `probes.<key>`.
 | `probes.<key>.existingSecret.name`                | Read this probe's `PROBE_KEY` from a Secret you manage instead. See [Probe and Runner identity keys](#probe-and-runner-identity-keys). | `nil`   |
 | `probes.<key>.existingSecret.passwordKey`         | Key inside that Secret.                                               | `nil`   |
 | `probes.<key>.monitoringWorkers`                  | Number of parallel processes used to monitor resources.               | `3`     |
-| `probes.<key>.monitorFetchLimit`                  | Number of resources monitored in parallel.                            | `10`    |
+| `probes.<key>.monitorFetchLimit`                  | Monitors each worker asks for at a time: the probe checks up to `monitoringWorkers` × this many at once. For tens of thousands of monitors, 50: see [Running many monitors](production-checklist.md#running-many-monitors). | `10`    |
 | `probes.<key>.automountServiceAccountToken`       | Mount a Kubernetes service-account token into Probe pods. Disabled by default because Probes do not require Kubernetes API credentials. | `false` |
-| `probes.<key>.allowPrivateNetworkMonitors`        | Let API, Website, External Status Page and Custom JavaScript Code monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes register as global probes, so this opens those targets to monitors from **every project** on the instance. Loopback, link-local and cloud metadata addresses stay blocked either way. Ignored, with a startup warning, when `billing.enabled` is `true`; deploy a private probe there instead. | `false` |
+| `probes.<key>.allowPrivateNetworkMonitors`        | Let API, Website, External Status Page, Custom JavaScript Code and Synthetic monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes register as global probes, so this opens those targets to monitors from **every project** on the instance. Loopback, link-local and cloud metadata addresses stay blocked either way. Ignored, with a startup warning, when `billing.enabled` is `true`; deploy a private probe there instead. | `false` |
 | `probes.<key>.syntheticMonitorScriptTimeoutInMs`  | Timeout for synthetic monitor scripts in milliseconds (`1`–`2147363647`). The upper bound reserves 120 seconds for browser and worker startup within Node.js's safe timer range. | `60000` |
 | `probes.<key>.syntheticMonitorMaxConcurrency`     | Maximum isolated synthetic browser processes per Probe; extra executions queue FIFO. | `4` |
 | `probes.<key>.syntheticMonitorMaxProcessTreeRssBytes` | Memory ceiling for each isolated worker and all browser descendants together, measured as their proportional set size (pages the browser's processes share count once). | `1610612736` |
@@ -894,6 +894,40 @@ extraEnv:
     value: "0"
 ```
 
+## SMS and calls (Twilio)
+
+The Twilio account the server sends SMS and makes calls with, for projects that
+have no Twilio account of their own, is set up in Admin Dashboard > Settings >
+Call and SMS. These values set it instead, so a new cluster comes up sending:
+once `twilio.accountSid` is set, the account is the one they describe, and the
+Admin Dashboard shows it read-only. The chart refuses the other account values
+without `twilio.accountSid`. `twilio.callVoice` is a setting of its own, read
+with the account's values or without them: it sets the voice the server's calls
+speak with, whoever sets the account, and the chart's schema takes only one of
+OneUptime's voices. A call to someone who reads OneUptime in another language
+speaks it, in a voice of that language of the same kind. See
+[Twilio Integration](https://oneuptime.com/docs/self-hosted/twilio-integration).
+
+| Parameter                      | Description                                                                                       | Default |
+|--------------------------------|---------------------------------------------------------------------------------------------------|---------|
+| `twilio.accountSid`            | The Account SID (it starts with `AC`). Setting it makes OneUptime read the account's other values.  | `nil`   |
+| `twilio.authToken`             | The account's auth token. Or leave it empty and name a Secret in `twilio.existingSecret.name`.   | `nil`   |
+| `twilio.existingSecret.name`   | A Secret of your own that holds the auth token, under `twilio.existingSecret.authTokenKey`.      | `nil`   |
+| `twilio.usedFor`               | `calls-and-sms` (what empty means), `sms-only` or `calls-only`.                                  | `nil`   |
+| `twilio.primaryPhoneNumber`    | The number calls go out from, with its country code, quoted: `"+14155550100"`.                     | `nil`   |
+| `twilio.secondaryPhoneNumbers` | More numbers, comma-separated, used for recipients in their countries.                            | `nil`   |
+| `twilio.smsPhoneNumbers`       | The numbers every SMS goes out from, comma-separated. Required for `sms-only`.                    | `nil`   |
+| `twilio.callVoice`             | The voice calls speak with: `Polly.Joanna-Neural`, `Polly.Matthew-Neural`, `Polly.Amy-Neural`, `Polly.Brian-Neural`, `Google.en-US-Neural2-F` or `Google.en-US-Neural2-J`. Twilio charges the account extra for them. Empty leaves the voice to the Admin Dashboard. | `nil`   |
+
+```yaml
+twilio:
+  accountSid: ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  primaryPhoneNumber: "+14155550100"
+  existingSecret:
+    name: oneuptime-twilio
+  callVoice: Polly.Joanna-Neural
+```
+
 ## Web push notifications
 
 Browsers receive OneUptime's notifications through Web Push, signed with a
@@ -965,6 +999,39 @@ not the only thing guarding the token.
 | `onCallCalendarFeed.rateLimit.windowSeconds` | Length of the fixed rate-limit window.                                                  | `60`    |
 | `onCallCalendarFeed.rateLimit.perTokenPerWindow` | Requests one token may make from one client address per window.                     | `60`    |
 | `onCallCalendarFeed.rateLimit.perIpPerWindow` | Requests one client address may make across all tokens per window.                    | `3000`  |
+
+## Help and Support
+
+Where the server sends its people for help - the Help menu's support address,
+chat and **Give feedback**, the footer's help page, OneUptime's GitHub links,
+the mobile app prompts and what single sign-on says to someone who needs an
+invitation - is set in Admin Dashboard > Settings > Help and Support. These
+values set it for a new server, so a GitOps install needs no clicks after it
+starts. They are read at start only while nothing is saved on that page: from
+then on the page holds the settings, a change made there is kept, and a restart
+never sets it back. A value changed here later is not applied; the server's log
+says so, and the page is where it changes. Each value is checked as the page
+checks it (a link starts with `https://`, `http://` or `mailto:`): one that would
+be refused is left out, and the page and the log say why. See
+[Help and Support](https://oneuptime.com/docs/self-hosted/help-and-support).
+
+| Parameter                     | Description                                                                                           | Default |
+|-------------------------------|-------------------------------------------------------------------------------------------------------|---------|
+| `helpAndSupport.supportEmail` | Help > Support Email, Contact Support on Page not found, the crash screen and account emails: an email address, or `hidden`. | `""` (OneUptime's) |
+| `helpAndSupport.chat`         | Help > Chat on Slack: a Slack, Microsoft Teams or other chat link, or `hidden`. Shown to signed-in people only. | `""` (OneUptime's) |
+| `helpAndSupport.requestDemo`  | Help > Request Demo: `shown` or `hidden` (`true` or `false` work too).                                  | `""` (shown) |
+| `helpAndSupport.giveFeedback` | Help > Give feedback: an email address, a link to a page of your own, or `hidden`.                      | `""` (this server's admins) |
+| `helpAndSupport.helpLink`     | The footer's Help and Support, Contact on the sign-in pages and Support in the API reference: a link, or `hidden`. | `""` (OneUptime's) |
+| `helpAndSupport.gitHub`       | OneUptime's GitHub links, Report a Bug or Request a Feature among them: `shown` or `hidden` (`true` or `false` work too). | `""` (shown) |
+| `helpAndSupport.mobileApp`    | The Get the mobile app prompts: a link to a page of your own, such as your device manager's company portal, or `hidden`. | `""` (the app stores) |
+| `helpAndSupport.inviteMessage`| What single sign-on says to someone who still needs an invitation: plain text, up to 1000 characters.  | `""` (OneUptime's) |
+
+```yaml
+helpAndSupport:
+  supportEmail: it-help@example.com
+  chat: https://example.slack.com/archives/C024BE91L
+  gitHub: hidden
+```
 
 ## OneUptime's own telemetry
 

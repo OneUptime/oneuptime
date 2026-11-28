@@ -7,7 +7,7 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
  * Project Settings -> AI -> External MCP Servers, end to end in a browser,
  * on the real pages (ExternalMcpServers/Fixture/Fixture.js): the MCP servers
  * outside OneUptime - AWS, Azure, GitHub, a team's own - whose tools
- * OneUptime AI may use while it investigates and fixes.
+ * OneUptime AI may use in Ask AI and while it investigates and fixes.
  *
  * The maintainer asked for a way to add them in project settings, as simply
  * as possible. So a server is a name, its address and how OneUptime signs
@@ -34,6 +34,13 @@ const SERVER_IDS: Record<string, string> = {
   azure: "c0000000-0000-4000-8000-000000000e03",
   internal: "c0000000-0000-4000-8000-000000000e04",
   platform: "c0000000-0000-4000-8000-000000000e05",
+  kagent: "c0000000-0000-4000-8000-000000000e07",
+};
+
+// The kAgent server's marks the fixture starts with (servers=kagent, #11081).
+const MARK_IDS: Record<string, string> = {
+  podLogs: "d0000000-0000-4000-8000-000000000f01",
+  events: "d0000000-0000-4000-8000-000000000f02",
 };
 
 const AUTH_CARDS_IN_ORDER: Array<[string, string]> = [
@@ -50,6 +57,8 @@ interface Recorded {
   edits: Array<{ id: string; data: Record<string, unknown> }>;
   updates: Array<{ id: string; data: Record<string, unknown> }>;
   deletes: Array<string>;
+  // Each read-only mark made, as sent (#11081).
+  marks: Array<Record<string, unknown>>;
   tests: Array<{
     path: string;
     body: Record<string, unknown>;
@@ -237,7 +246,7 @@ test.describe("Project Settings > AI > External MCP Servers", () => {
     ).toBeVisible();
     await expect(
       page.getByText(
-        "MCP servers outside OneUptime whose tools OneUptime AI may use while it investigates and fixes, such as AWS, Azure or GitHub.",
+        "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.",
       ),
     ).toBeVisible();
 
@@ -953,6 +962,230 @@ test.describe("In the Project Settings layout", () => {
 
     await toggle.click();
     await expect(tools.getByTestId("external-mcp-server-tool")).toHaveCount(10);
+  });
+});
+
+/*
+ * #11081: kAgent's tool server says nothing about any of its tools, so each
+ * counts as one that may change something. A Project Owner or Admin marks
+ * one read-only, one tool at a time, through a dialog that says what that
+ * means before anything is sent; a marked tool reads only and says who
+ * marked it, a mark the server's change outdated says so, and a tool that
+ * can never be marked says why.
+ */
+test.describe("Marking a kAgent tool read-only", () => {
+  const KAGENT: string = "page=view&server=kagent&servers=kagent";
+
+  function toolRow(scope: Locator, name: string): Locator {
+    return scope
+      .getByTestId("external-mcp-server-tool")
+      .filter({ hasText: name });
+  }
+
+  test("an owner is told what can be marked, and marks one tool through a dialog that says what marking means first", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KAGENT);
+
+    const tools: Locator = page.getByTestId("external-mcp-server-tools-card");
+    await expect(
+      tools.getByTestId("external-mcp-server-tool-mark-hint"),
+    ).toHaveText(
+      "The server doesn't say whether 2 tools only read. Mark the ones you know only read, and OneUptime AI can use them without asking.",
+    );
+
+    const resources: Locator = toolRow(tools, "k8s_get_resources");
+    await expect(resources).toHaveAttribute("data-reads-only", "false");
+    await expect(resources).toContainText("May change things");
+
+    await resources.getByRole("button", { name: "Mark as Read-Only" }).click();
+
+    const markDialog: Locator = page.getByRole("dialog");
+    await expect(markDialog.getByTestId("modal-title")).toHaveText(
+      "Mark k8s_get_resources as read-only?",
+    );
+    await expect(markDialog).toContainText(
+      "List Kubernetes resources with kubectl.",
+    );
+    await expect(markDialog).toContainText(
+      "Its arguments: resource_type, resource_name, namespace, all_namespaces, output",
+    );
+    await expect(markDialog).toContainText(
+      "OneUptime AI will then call it without asking anyone: in investigations, in fixes, in Slack and Microsoft Teams, and at once in Ask AI.",
+    );
+    await expect(markDialog).toContainText(
+      "Mark it only if you know it only reads. If it can change something, OneUptime AI could change it with no one asking.",
+    );
+    await expect(markDialog).toContainText(
+      "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.",
+    );
+    // Nothing is sent before the dialog's own button.
+    expect((await recorded(page)).marks).toEqual([]);
+    await shoot(page, "mark-tool-dialog");
+
+    await markDialog.getByTestId("modal-footer-submit-button").click();
+    await expect(markDialog).toBeHidden();
+
+    // The server and the tool, nothing else: the definition is the server's to take.
+    const sent: Array<Record<string, unknown>> = (await recorded(page)).marks;
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!["toolName"]).toBe("k8s_get_resources");
+    expect(JSON.stringify(sent[0]!["externalMcpServerId"])).toContain(
+      SERVER_IDS["kagent"]!,
+    );
+    expect(sent[0]!["toolFingerprint"]).toBeUndefined();
+    expect(sent[0]!["createdByUserId"]).toBeUndefined();
+
+    await expect(resources).toHaveAttribute("data-reads-only", "true");
+    await expect(resources).toContainText("Reads only");
+    await expect(resources).toContainText(
+      "Marked read-only by Fixture Owner on",
+    );
+    await expect(
+      tools.getByTestId("external-mcp-server-tool-mark-hint"),
+    ).toHaveText(
+      "The server doesn't say whether 1 tool only reads. If you know it does, mark it read-only, and OneUptime AI can use it without asking.",
+    );
+    await shoot(page, "mark-tool-marked");
+  });
+
+  test("a marked tool says who marked it; a lapsed mark says the server changed the tool; one that can never be marked says why; nothing marks several", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KAGENT);
+
+    const tools: Locator = page.getByTestId("external-mcp-server-tools-card");
+
+    const logs: Locator = toolRow(tools, "k8s_get_pod_logs");
+    await expect(logs).toHaveAttribute("data-reads-only", "true");
+    await expect(logs).toContainText("Marked read-only by Jane Doe on");
+    await expect(
+      logs.getByRole("button", { name: "Remove Mark" }),
+    ).toBeVisible();
+    await expect(
+      logs.getByRole("button", { name: "Mark as Read-Only" }),
+    ).toHaveCount(0);
+
+    const events: Locator = toolRow(tools, "k8s_get_events");
+    await expect(events).toHaveAttribute("data-reads-only", "false");
+    await expect(events).toContainText("Ravi Shah marked it read-only on");
+    await expect(events).toContainText(
+      "but the server has changed it since. It may change things until someone marks it again.",
+    );
+    await expect(
+      events.getByRole("button", { name: "Mark Again" }),
+    ).toBeVisible();
+
+    const deletion: Locator = toolRow(tools, "k8s_delete_resource");
+    await expect(deletion).toContainText(
+      "Can't be marked read-only: “delete” in its name says it changes things.",
+    );
+    await expect(deletion.getByRole("button")).toHaveCount(0);
+
+    // One tool at a time: no "mark all", and no boxes to tick several.
+    await expect(page.getByRole("button", { name: /mark all/i })).toHaveCount(
+      0,
+    );
+    await expect(tools.getByRole("checkbox")).toHaveCount(0);
+    await shoot(page, "mark-tool-statuses");
+  });
+
+  test("Remove Mark takes the mark away at once, and the tool may change things again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KAGENT);
+
+    const tools: Locator = page.getByTestId("external-mcp-server-tools-card");
+    const logs: Locator = toolRow(tools, "k8s_get_pod_logs");
+
+    await logs.getByRole("button", { name: "Remove Mark" }).click();
+
+    await expect(logs).toHaveAttribute("data-reads-only", "false");
+    await expect(
+      logs.getByRole("button", { name: "Mark as Read-Only" }),
+    ).toBeVisible();
+    expect((await recorded(page)).deletes).toEqual([MARK_IDS["podLogs"]]);
+  });
+
+  test("Mark Again opens the same dialog, for the tool as the server sends it now", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, KAGENT);
+
+    const events: Locator = toolRow(
+      page.getByTestId("external-mcp-server-tools-card"),
+      "k8s_get_events",
+    );
+    await events.getByRole("button", { name: "Mark Again" }).click();
+
+    const markDialog: Locator = page.getByRole("dialog");
+    await expect(markDialog.getByTestId("modal-title")).toHaveText(
+      "Mark k8s_get_events as read-only?",
+    );
+    await markDialog.getByTestId("modal-footer-submit-button").click();
+    await expect(markDialog).toBeHidden();
+
+    await expect(events).toHaveAttribute("data-reads-only", "true");
+    await expect(events).toContainText("Marked read-only by Fixture Owner on");
+  });
+
+  test("a viewer sees the marks and who made them, and no button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${KAGENT}&role=viewer`);
+
+    const tools: Locator = page.getByTestId("external-mcp-server-tools-card");
+    await expect(toolRow(tools, "k8s_get_pod_logs")).toContainText(
+      "Marked read-only by Jane Doe on",
+    );
+    await expect(
+      tools.getByTestId("external-mcp-server-tool-mark-hint"),
+    ).toHaveCount(0);
+    await expect(
+      tools.getByTestId("external-mcp-server-tool-mark-button"),
+    ).toHaveCount(0);
+    await expect(
+      tools.getByTestId("external-mcp-server-tool-remove-mark-button"),
+    ).toHaveCount(0);
+  });
+
+  test("a phone: the tools, their buttons and the dialog fit the screen; and dark mode", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, KAGENT);
+
+    const tools: Locator = page.getByTestId("external-mcp-server-tools-card");
+    await expect(toolRow(tools, "k8s_get_resources")).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "mark-tool-phone");
+
+    await toolRow(tools, "k8s_get_resources")
+      .getByRole("button", { name: "Mark as Read-Only" })
+      .click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await shoot(page, "mark-tool-dialog-phone");
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await open(page, `${KAGENT}&theme=dark`);
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await expect(
+      page.getByTestId("external-mcp-server-tools-card"),
+    ).toBeVisible();
+    await shoot(page, "mark-tool-statuses-dark");
   });
 });
 

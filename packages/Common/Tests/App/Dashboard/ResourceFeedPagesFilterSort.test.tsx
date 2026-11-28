@@ -76,6 +76,9 @@ import OpenStackCloudFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pag
 import CephClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Feed";
 import StorageArrayFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Feed";
 import VMwareVCenterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Feed";
+import XcpNgPoolFeedPage, {
+  getXcpNgPoolFeedKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Feed";
 import HostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Feed";
 import CloudResourceFeedPage, {
   CLOUD_RESOURCE_FEED_EVENT_TYPES,
@@ -151,6 +154,9 @@ import StorageArrayFeed, {
 import VMwareVCenterFeed, {
   VMwareVCenterFeedEventType,
 } from "../../../Models/DatabaseModels/VMwareVCenterFeed";
+import XcpNgPoolFeed, {
+  XcpNgPoolFeedEventType,
+} from "../../../Models/DatabaseModels/XcpNgPoolFeed";
 import HostFeed, {
   HostFeedEventType,
 } from "../../../Models/DatabaseModels/HostFeed";
@@ -350,6 +356,18 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     resourceIdColumn: "vmwareVCenterId",
     eventTypeColumn: "vmwareVCenterFeedEventType",
     enumObject: VMwareVCenterFeedEventType,
+  },
+  {
+    product: "XCP-ng",
+    file: "Pages/XcpNg/View/Feed.tsx",
+    Page: XcpNgPoolFeedPage,
+    route: RouteMap[PageMap.XCP_NG_POOL_VIEW_FEED] as Route,
+    modelType: XcpNgPoolFeed,
+    resourceIdColumn: "xcpNgPoolId",
+    eventTypeColumn: "xcpNgPoolFeedEventType",
+    enumObject: XcpNgPoolFeedEventType,
+    // What XAPI and Xen Orchestra said: a message, the master, HA, a backup (#10997).
+    getKind: getXcpNgPoolFeedKind,
   },
   {
     product: "Host",

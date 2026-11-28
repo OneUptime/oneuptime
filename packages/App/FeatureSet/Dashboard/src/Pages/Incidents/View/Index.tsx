@@ -24,6 +24,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import BooleanValue from "Common/UI/Components/Detail/BooleanValue";
 import BaseAPI from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -1550,6 +1551,10 @@ const IncidentView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    xcpNgPools: {
+                      name: true,
+                      _id: true,
+                    },
                     cephClusters: {
                       name: true,
                       _id: true,
@@ -1606,6 +1611,7 @@ const IncidentView: FunctionComponent<
                         proxmoxClusters={item.proxmoxClusters || []}
                         openStackClouds={item.openStackClouds || []}
                         vmwareVCenters={item.vmwareVCenters || []}
+                        xcpNgPools={item.xcpNgPools || []}
                         cephClusters={item.cephClusters || []}
                         storageArrays={item.storageArrays || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
@@ -1647,7 +1653,37 @@ const IncidentView: FunctionComponent<
                     );
                   },
                 },
+                /*
+                 * Whether the incident pauses its monitors' checks while it
+                 * is open (#11141), as its Edit asks it. Only for an incident
+                 * declared by hand with monitors: one OneUptime declared
+                 * pauses nothing.
+                 */
+                {
+                  field: {
+                    pauseMonitoring: true,
+                  },
+                  title: "Pause Monitoring",
+                  fieldType: FieldType.Boolean,
+                  showIf: (item: Incident): boolean => {
+                    return (
+                      (item.monitors || []).length > 0 &&
+                      item.isCreatedAutomatically !== true
+                    );
+                  },
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <BooleanValue
+                        value={item.pauseMonitoring !== false}
+                        dataTestId="incident-affected-resources-pause-monitoring"
+                      />
+                    );
+                  },
+                },
               ],
+              selectMoreFields: {
+                isCreatedAutomatically: true,
+              },
               modelId: modelId,
             }}
           />

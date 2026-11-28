@@ -24,7 +24,7 @@ import {
   ConnectedRepository,
   connectRepository,
 } from "../CodeHost/ConnectedRepository";
-import { FakeRoute } from "../CodeHost/FakeCodeHost";
+import { FakeAnswer, FakeRoute } from "../CodeHost/FakeCodeHost";
 import ProductionReviewAI from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewAI";
 import ProductionReviewFindings, {
   ProductionReviewFindingsResult,
@@ -2053,6 +2053,643 @@ describe("ProductionReviewRunner: a merge request on GitLab, a pull request on F
   test("the failure kept after a retry says the host's word", () => {
     expect(getProductionReviewFailedMessage("merge request")).toBe(
       "OneUptime could not finish this production review, even after trying again. A push to the merge request, or Review again, starts a new one.",
+    );
+  });
+});
+
+/*
+ * A LEAK'S SUGGESTED CHANGE ON ITS LINE, ON GITLAB, FORGEJO AND GITEA
+ * (#10777): each host's own review comments, the whole real way - the
+ * repository's connection, the host's API answering as it does. GitLab
+ * gets a diff discussion per point, positioned on the diff the review
+ * read, with a block its author can apply; Forgejo from 18 one review of
+ * suggestion blocks; Gitea, and an older Forgejo, one review of the
+ * changes as diffs. Each point once, however many pushes show it - and one
+ * a host refuses never fails the review: its comment still shows it.
+ */
+describe("ProductionReviewRunner: a leak's suggested change on its line, on GitLab, Forgejo and Gitea (#10777)", () => {
+  const SHA: string = "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766";
+  const DIFF_REFS: Record<string, string> = {
+    base_sha: "1111111111111111111111111111111111111111",
+    start_sha: "2222222222222222222222222222222222222222",
+    head_sha: SHA,
+  };
+  let finish: jest.SpyInstance;
+
+  function hostRun(
+    provider: CodeRepositoryType.GitLab | CodeRepositoryType.Forgejo,
+    change: Partial<NonNullable<CodeFixTaskContext["productionReview"]>> = {},
+  ): AIRun {
+    const made: AIRun = new AIRun();
+    made.id = new ObjectID("a1b2c3d4-4444-4222-8333-444455556666");
+    made.projectId = CONNECTED_PROJECT_ID;
+    made.codeRepositoryId = CONNECTED_REPOSITORY_ID;
+    made.status = AIRunStatus.Running;
+    made.taskContext = {
+      codeHostPullRequest: {
+        codeRepositoryId: CONNECTED_REPOSITORY_ID.toString(),
+        provider,
+        pullRequestNumber: 12,
+        pullRequestUrl: "https://host.example.com/x",
+      },
+      productionReview: {
+        requestNumber: 1,
+        requestedAt: "2026-10-22T09:58:00.000Z",
+        headSha: SHA,
+        trigger: ProductionReviewTrigger.PullRequestChanged,
+        isAuthorTrusted: true,
+        ...change,
+      },
+    };
+    return made;
+  }
+
+  function discussion(status: number = 201): FakeAnswer {
+    return status === 201
+      ? {
+          status,
+          json: {
+            id: "6a9c1750b37d513a43987b574953fceb50b03ce7",
+            notes: [{ id: 1126, type: "DiffNote", position: { new_line: 41 } }],
+          },
+        }
+      : {
+          status,
+          json: {
+            message:
+              '400 Bad request - Note {:line_code=>["must be a valid line code"]}',
+          },
+        };
+  }
+
+  function gitLabRoutes(
+    change: {
+      mergeRequest?: Record<string, unknown>;
+      visibility?: string;
+      discussions?: Array<number>;
+    } = {},
+  ): Array<FakeRoute> {
+    const discussions: Array<number> = [...(change.discussions || [201])];
+
+    return [
+      {
+        method: "GET",
+        path: "/projects/4217/merge_requests/12",
+        answer: () => {
+          return {
+            json: {
+              iid: 12,
+              title: "fix: guard the card",
+              state: "opened",
+              web_url:
+                "https://gitlab.example.com/acme/checkout/-/merge_requests/12",
+              author: { id: 77, username: "dana" },
+              sha: SHA,
+              source_branch: "fix/card",
+              target_branch: "main",
+              source_project_id: 4217,
+              target_project_id: 4217,
+              changes_count: "1",
+              diff_refs: DIFF_REFS,
+              ...(change.mergeRequest || {}),
+            },
+          };
+        },
+      },
+      {
+        method: "GET",
+        path: "/projects/4217/merge_requests/12/diffs",
+        answer: () => {
+          return {
+            json: [
+              {
+                old_path: "src/billing/old-charge.ts",
+                new_path: "src/billing/charge.ts",
+                renamed_file: true,
+                diff: '@@ -40 +40,2 @@\n+  logger.info("charge", { email });\n',
+              },
+            ],
+          };
+        },
+      },
+      {
+        method: "GET",
+        path: "/projects/4217",
+        answer: () => {
+          return {
+            json: { id: 4217, visibility: change.visibility || "private" },
+          };
+        },
+      },
+      {
+        method: "POST",
+        path: "/projects/4217/merge_requests/12/notes",
+        answer: () => {
+          return { status: 201, json: { id: 5150 } };
+        },
+      },
+      {
+        method: "POST",
+        path: "/projects/4217/merge_requests/12/discussions",
+        answer: () => {
+          return discussion(discussions.shift() || 201);
+        },
+      },
+    ];
+  }
+
+  function forgejoRoutes(
+    change: { version?: string; reviewStatus?: number } = {},
+  ): Array<FakeRoute> {
+    return [
+      {
+        method: "GET",
+        path: "/repos/acme/checkout/pulls/12",
+        answer: () => {
+          return {
+            json: {
+              number: 12,
+              title: "fix: guard the card",
+              state: "open",
+              html_url: "https://git.example.com/acme/checkout/pulls/12",
+              user: { id: 77, login: "dana" },
+              head: { ref: "fix/card", sha: SHA, repo: { id: 5 } },
+              base: { ref: "main", repo: { id: 5 } },
+              changed_files: 1,
+              additions: 1,
+              deletions: 0,
+            },
+          };
+        },
+      },
+      {
+        method: "GET",
+        path: "/repos/acme/checkout/pulls/12.diff",
+        answer: () => {
+          return {
+            text: 'diff --git a/src/billing/charge.ts b/src/billing/charge.ts\n--- a/src/billing/charge.ts\n+++ b/src/billing/charge.ts\n@@ -40 +40,2 @@\n+  logger.info("charge", { email });\n',
+          };
+        },
+      },
+      {
+        method: "GET",
+        path: "/repos/acme/checkout",
+        answer: () => {
+          return { json: { id: 5, private: true } };
+        },
+      },
+      {
+        method: "POST",
+        path: "/repos/acme/checkout/issues/12/comments",
+        answer: () => {
+          return {
+            status: 201,
+            json: {
+              id: 9001,
+              html_url:
+                "https://git.example.com/acme/checkout/pulls/12#issuecomment-9001",
+            },
+          };
+        },
+      },
+      {
+        method: "GET",
+        path: "/version",
+        answer: () => {
+          return { json: { version: change.version || "1.24.6" } };
+        },
+      },
+      {
+        method: "POST",
+        path: "/repos/acme/checkout/pulls/12/reviews",
+        answer: () => {
+          return change.reviewStatus
+            ? { status: change.reviewStatus, json: { message: "refused" } }
+            : { status: 200, json: { id: 88, state: "COMMENT" } };
+        },
+      },
+    ];
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers({ now: new Date("2026-10-22T10:00:00.000Z") });
+
+    jest.spyOn(ProductionReviewScope, "get").mockResolvedValue({
+      repository: null,
+      services: [],
+      gap: null,
+    });
+    jest
+      .spyOn(ProductionReviewFindings, "find")
+      .mockResolvedValue(findingsOf(emptyReport()));
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(false);
+    finish = jest
+      .spyOn(ProductionReviewQueue, "finish")
+      .mockResolvedValue("Completed");
+  });
+
+  afterEach(() => {
+    CodeHostAccess.setTransportForTests(null);
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  function finished(): {
+    outcome: CodeTaskOutcome | null;
+    update: Record<string, unknown>;
+  } {
+    return finish.mock.calls[0]![0] as never;
+  }
+
+  function posted(
+    host: ConnectedRepository["host"],
+    path: string,
+  ): Array<Record<string, unknown>> {
+    return host.requests
+      .filter((request: { method: string; url: string }): boolean => {
+        return request.method === "POST" && request.url.endsWith(path);
+      })
+      .map((request: { body?: string | undefined }) => {
+        return JSON.parse(request.body!) as Record<string, unknown>;
+      });
+  }
+
+  test("GitLab: a discussion on the point's line, positioned on the diff the review read, with a block its author can apply", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes(),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    const discussions: Array<Record<string, unknown>> = posted(
+      connected.host,
+      "/merge_requests/12/discussions",
+    );
+
+    expect(discussions).toHaveLength(1);
+    expect(discussions[0]!["position"]).toEqual({
+      position_type: "text",
+      base_sha: DIFF_REFS["base_sha"],
+      start_sha: DIFF_REFS["start_sha"],
+      head_sha: SHA,
+      // The file's name before the merge request renamed it.
+      old_path: "src/billing/old-charge.ts",
+      new_path: "src/billing/charge.ts",
+      new_line: 41,
+    });
+    expect(discussions[0]!["body"]).toContain(
+      '```suggestion:-0+0\n  logger.info("charge");\n```',
+    );
+    expect(discussions[0]!["body"]).toContain("**Sensitive data**");
+    expect(finished().update["suggestedLeakKeys"]).toEqual([
+      "a1b2c3d4e5f60718",
+    ]);
+    // The comment still shows the change as a diff.
+    expect(
+      posted(connected.host, "/merge_requests/12/notes")[0]!["body"],
+    ).toContain('+   logger.info("charge");');
+  });
+
+  test("GitLab: posted once, however many pushes show it", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes(),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(
+      hostRun(CodeRepositoryType.GitLab, {
+        commentId: 5150,
+        suggestedLeakKeys: ["a1b2c3d4e5f60718"],
+      }),
+    );
+
+    expect(
+      posted(connected.host, "/merge_requests/12/discussions"),
+    ).toHaveLength(0);
+    expect(finished().update["suggestedLeakKeys"]).toBeUndefined();
+  });
+
+  test("GitLab: a line it refuses never fails the review, is not remembered - and the next point is still posted", async () => {
+    sensitiveFind.mockResolvedValue(
+      leakSection([
+        leakPoint(),
+        leakPoint({
+          key: "b2c3d4e5f6071829",
+          line: 52,
+          suggestion: {
+            startLine: 52,
+            endLine: 52,
+            original: ['  logger.info("refund", { email });'],
+            replacement: ['  logger.info("refund");'],
+            isByAi: false,
+          },
+        }),
+      ]),
+    );
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes({ discussions: [400, 201] }),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    expect(
+      posted(connected.host, "/merge_requests/12/discussions"),
+    ).toHaveLength(2);
+    expect(finished().outcome!.productionReview!.posting).toBe(
+      ProductionReviewPosting.Review,
+    );
+    expect(finished().update["suggestedLeakKeys"]).toEqual([
+      "b2c3d4e5f6071829",
+    ]);
+  });
+
+  test("GitLab: a token that may not comment there posts none after the first refusal", async () => {
+    sensitiveFind.mockResolvedValue(
+      leakSection([
+        leakPoint(),
+        leakPoint({
+          key: "b2c3d4e5f6071829",
+          line: 52,
+          suggestion: {
+            startLine: 52,
+            endLine: 52,
+            original: ['  logger.info("refund", { email });'],
+            replacement: ['  logger.info("refund");'],
+            isByAi: false,
+          },
+        }),
+      ]),
+    );
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes({ discussions: [403, 201] }),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    expect(
+      posted(connected.host, "/merge_requests/12/discussions"),
+    ).toHaveLength(1);
+    expect(finished().update["suggestedLeakKeys"]).toBeUndefined();
+    expect(finished().outcome!.productionReview).toBeDefined();
+  });
+
+  test("GitLab: a merge request whose diff GitLab does not name gets no discussion, and the comment holds the change", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes({ mergeRequest: { diff_refs: null } }),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    expect(
+      posted(connected.host, "/merge_requests/12/discussions"),
+    ).toHaveLength(0);
+    expect(finished().update["suggestedLeakKeys"]).toBeUndefined();
+    expect(
+      posted(connected.host, "/merge_requests/12/notes")[0]!["body"],
+    ).toContain('+   logger.info("charge");');
+  });
+
+  test("GitLab, a public project: the suggestion is still on its line - the diff's alone, nothing production knows", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes({ visibility: "public" }),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    const body: string = posted(
+      connected.host,
+      "/merge_requests/12/discussions",
+    )[0]!["body"] as string;
+
+    expect(body).toContain("```suggestion:-0+0");
+    expect(body).not.toContain("billing-worker");
+    expect(body).not.toContain("attributes.customer.email");
+  });
+
+  test("a repository that posts only a link posts no suggestion either", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes(),
+      repository: {
+        isProductionReviewEnabled: true,
+        productionReviewPullRequestContent:
+          ProductionReviewPullRequestContent.Link,
+      },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    expect(
+      posted(connected.host, "/merge_requests/12/discussions"),
+    ).toHaveLength(0);
+  });
+
+  test("Forgejo 18: one review of the head the review read, a suggestion block on each line", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.Forgejo,
+      routes: forgejoRoutes({ version: "18.0.1+gitea-1.22.0" }),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.Forgejo));
+
+    const reviews: Array<Record<string, unknown>> = posted(
+      connected.host,
+      "/pulls/12/reviews",
+    );
+
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0]).toMatchObject({
+      commit_id: SHA,
+      event: "COMMENT",
+      body: "**Sensitive data** · OneUptime's production review suggests 1 change on the lines below, each one you can commit.",
+    });
+    expect(reviews[0]!["comments"]).toEqual([
+      {
+        path: "src/billing/charge.ts",
+        new_position: 41,
+        old_position: 0,
+        body: expect.stringContaining(
+          '```suggestion\n  logger.info("charge");\n```',
+        ),
+      },
+    ]);
+    expect(finished().update["suggestedLeakKeys"]).toEqual([
+      "a1b2c3d4e5f60718",
+    ]);
+  });
+
+  test("Gitea, which applies none: the change as a diff on its line", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.Forgejo,
+      routes: forgejoRoutes({ version: "1.24.6" }),
+      repository: { isProductionReviewEnabled: true },
+      connection: { hostProduct: "Gitea" },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.Forgejo));
+
+    const review: Record<string, unknown> = posted(
+      connected.host,
+      "/pulls/12/reviews",
+    )[0]!;
+    const comment: string = (review["comments"] as Array<{ body: string }>)[0]!
+      .body;
+
+    expect(review["body"]).toBe(
+      "**Sensitive data** · OneUptime's production review suggests 1 change on the lines below.",
+    );
+    expect(comment).toContain(
+      '```diff\n-   logger.info("charge", { email });\n+   logger.info("charge");\n```',
+    );
+    expect(comment).not.toContain("```suggestion");
+    expect(finished().update["suggestedLeakKeys"]).toEqual([
+      "a1b2c3d4e5f60718",
+    ]);
+  });
+
+  test("an older Forgejo applies none either", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.Forgejo,
+      routes: forgejoRoutes({ version: "11.0.3+gitea-1.22.0" }),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.Forgejo));
+
+    expect(
+      (
+        posted(connected.host, "/pulls/12/reviews")[0]!["comments"] as Array<{
+          body: string;
+        }>
+      )[0]!.body,
+    ).toContain("```diff");
+  });
+
+  test("a review Forgejo refuses never fails the review, and is tried on the next push", async () => {
+    sensitiveFind.mockResolvedValue(leakSection([leakPoint()]));
+
+    connectRepository({
+      provider: CodeRepositoryType.Forgejo,
+      routes: forgejoRoutes({
+        version: "18.0.0+gitea-1.22.0",
+        reviewStatus: 422,
+      }),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.Forgejo));
+
+    expect(finished().outcome!.productionReview!.posting).toBe(
+      ProductionReviewPosting.Review,
+    );
+    expect(finished().update["suggestedLeakKeys"]).toBeUndefined();
+  });
+
+  test("the repository's visibility is asked once, for the section and the comment alike (#10779)", async () => {
+    sensitiveFind.mockImplementation(
+      async (data: {
+        isRepositoryPrivate?: () => Promise<boolean>;
+      }): Promise<ProductionReviewSensitiveDataJSON> => {
+        // A migration's point asks whether the repository is private.
+        expect(await data.isRepositoryPrivate!()).toBe(true);
+        expect(await data.isRepositoryPrivate!()).toBe(true);
+
+        return leakSection([leakPoint()]);
+      },
+    );
+
+    const connected: ConnectedRepository = connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes(),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    expect(connected.host.urlsTo("/projects/4217")).toHaveLength(1);
+    expect(finished().outcome!.productionReview!.isPublicRepository).toBe(
+      false,
+    );
+  });
+
+  test("a public project is no private repository's, for the section", async () => {
+    let isPrivate: boolean | null = null;
+
+    sensitiveFind.mockImplementation(
+      async (data: {
+        isRepositoryPrivate?: () => Promise<boolean>;
+      }): Promise<ProductionReviewSensitiveDataJSON> => {
+        isPrivate = await data.isRepositoryPrivate!();
+
+        return leakSection([]);
+      },
+    );
+
+    connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes({ visibility: "public" }),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    expect(isPrivate).toBe(false);
+  });
+
+  test("a host that cannot say is no private repository's either, and the section is still read", async () => {
+    let isPrivate: boolean | null = null;
+
+    sensitiveFind.mockImplementation(
+      async (data: {
+        isRepositoryPrivate?: () => Promise<boolean>;
+      }): Promise<ProductionReviewSensitiveDataJSON> => {
+        isPrivate = await data.isRepositoryPrivate!();
+
+        return leakSection([leakPoint()]);
+      },
+    );
+
+    connectRepository({
+      provider: CodeRepositoryType.GitLab,
+      routes: gitLabRoutes({ visibility: "mystery" }),
+      repository: { isProductionReviewEnabled: true },
+    });
+
+    await ProductionReviewRunner.review(hostRun(CodeRepositoryType.GitLab));
+
+    expect(isPrivate).toBe(false);
+    expect(finished().outcome!.productionReview!.unreadSections).not.toContain(
+      "SensitiveData",
     );
   });
 });

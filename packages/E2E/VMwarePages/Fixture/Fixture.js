@@ -39,6 +39,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import VCenterLayout from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Layout";
 import VCenterOverview from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Index";
@@ -476,6 +477,12 @@ const store = {
   Incident: incidents,
   Alert: alerts,
   ScheduledMaintenance: [],
+  /*
+   * The project's VMware health rules (#11157): none, as the server answers
+   * for a project that has not opened VMware > Settings > Health Rules (it
+   * makes the row there), so every page judges by the defaults.
+   */
+  VMwareHealthSetting: [],
   Monitor: monitors,
   RecommendationDismissal: [],
   MonitorStatus: [
@@ -1549,6 +1556,23 @@ async function handleApi(method, options) {
     parsed.pathname.endsWith("/telemetry/logs/get-attributes")
   ) {
     return ok({ attributes: [] });
+  }
+
+  /*
+   * Which recommended alerts a monitor covers already, for the parts' alert
+   * cards, the Recommendations page and its menu count (#11074): answered
+   * from the vCenter's monitors, and refused to a role that may not read
+   * them.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body,
+    monitors: store.Monitor,
+    mayReadMonitors: ALERTS !== "denied",
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

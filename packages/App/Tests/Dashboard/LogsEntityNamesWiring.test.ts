@@ -123,10 +123,17 @@ describe("DashboardLogsViewer entity chips", () => {
   });
 
   test("resolves every entity chip id with ONE generic lookup, hinted by the page's type", () => {
-    expect(count(LOGS_VIEWER, "useTelemetryEntityNames(")).toBe(1);
+    /*
+     * One lookup, for the names and the ids every read answered nothing
+     * for: a chip naming a deleted service reads "No longer available"
+     * (#11213).
+     */
+    expect(count(LOGS_VIEWER, "useTelemetryEntityLookup(")).toBe(1);
+    expect(count(LOGS_VIEWER, "useTelemetryEntityNames(")).toBe(0);
     expect(LOGS_VIEWER).toContain(
-      "useTelemetryEntityNames(entityChipIds,{typeHints:entityTypeHints})",
+      "useTelemetryEntityLookup(entityChipIds,{typeHints:entityTypeHints})",
     );
+    expect(LOGS_VIEWER).toContain("notFound:entityLookup.notFound");
     expect(LOGS_VIEWER).toContain(
       "collectLogsEntityIds({scopeIds:props.serviceIds,appliedFacetFilters})",
     );
@@ -176,8 +183,9 @@ describe("DashboardLogsViewer entity chips", () => {
   });
 
   test("user, URL and saved-view entity chips are named before they reach the shared viewer", () => {
+    // And the ids every read answered nothing for (#11213).
     expect(LOGS_VIEWER).toContain(
-      "returnapplyLogsEntityChipDisplay(filters,{nameMap:entityNameMap,scopeIds:props.serviceIds,scopeEntityType:props.scopeEntityType,knownNames:entityFacetDisplayNames})",
+      "returnapplyLogsEntityChipDisplay(filters,{nameMap:entityNameMap,scopeIds:props.serviceIds,scopeEntityType:props.scopeEntityType,knownNames:entityFacetDisplayNames,notFound:entityLookup.notFound})",
     );
     expect(LOGS_VIEWER).toContain(
       'buildFacetDisplayNames(facetData["primaryEntityId"])',
@@ -187,13 +195,14 @@ describe("DashboardLogsViewer entity chips", () => {
       LOGS_VIEWER.split("constactiveFilters:Array<ActiveFilter>=")[1] || "";
     const deps: string =
       activeMemo
-        .split("knownNames:entityFacetDisplayNames});},[")[1]
+        .split("notFound:entityLookup.notFound});},[")[1]
         ?.split("]);")[0] || "";
 
     expect(deps).not.toBe("");
     expect(deps).toContain("appliedFacetFilters");
 
     expect(deps).toContain("entityNameMap");
+    expect(deps).toContain("entityLookup.notFound");
     expect(deps).toContain("entityFacetDisplayNames");
     expect(deps).toContain("props.scopeEntityType");
   });
@@ -247,22 +256,42 @@ describe("ErrorPatternDetail resource labels", () => {
 });
 
 describe("LogsDashboard resource names", () => {
-  test("one generic lookup for the ids its Service list cannot name", () => {
+  test("one generic lookup for the ids the services read by their ids cannot name", () => {
     expect(count(LOGS_DASHBOARD, "useTelemetryEntityNames(")).toBe(1);
     expect(LOGS_DASHBOARD).toContain(
       "useTelemetryEntityNames(unnamedResourceIds,{typeHints:resourceTypeHints})",
     );
     expect(LOGS_DASHBOARD).toContain("collectLogsInsightsResourceRefs({");
     expect(LOGS_DASHBOARD).toContain(
-      "returnBoolean(serviceById.get(resourceId)?.name);",
+      "returnBoolean(serviceById.get(resourceId.toLowerCase())?.name);",
     );
   });
 
-  test("the scope picker never falls back to the raw id half of its value", () => {
-    expect(LOGS_DASHBOARD).not.toContain('value.split(":")[1]');
-    expect(count(LOGS_DASHBOARD, "labelLogsScopeOption({")).toBe(2);
+  test("REGRESSION: the page's services are read by the ids its logs name, never the project's first 10,000 (#10921)", () => {
+    expect(LOGS_DASHBOARD).not.toContain("LIMIT_PER_PROJECT");
+    expect(LOGS_DASHBOARD).toContain("useTelemetryServicesOnPage()");
     expect(LOGS_DASHBOARD).toContain(
-      "labelLogsScopeOption({id:value.value,nameMap:resourceNames,knownName:serviceById.get(value.value)?.name?.toString(),facetDisplayName:value.displayName})",
+      "constknown:Map<string,Service>=awaitservicesOnPage.readServicesOf(",
+    );
+    // The project's services, counted: one row and the count.
+    expect(LOGS_DASHBOARD).toContain(
+      "modelType:Service,query:{projectId},select:{_id:true},limit:1,",
+    );
+    expect(LOGS_DASHBOARD).toContain("projectServiceCount,reportingServices}");
+  });
+
+  test("the scope picker searches the server and names what it holds itself: never the raw id half of a value", () => {
+    expect(LOGS_DASHBOARD).not.toContain('value.split(":")[1]');
+    // The page no longer builds the picker's options from the facets.
+    expect(LOGS_DASHBOARD).not.toContain("labelLogsScopeOption(");
+    expect(LOGS_DASHBOARD).not.toContain("scopeOptionGroups");
+    expect(LOGS_DASHBOARD).toContain("<TelemetryResourceScopePicker");
+    expect(LOGS_DASHBOARD).toContain("values={selectedScopeValues}");
+    expect(LOGS_DASHBOARD).toContain(
+      "resourceFacetKeys={scopeResourceFacetKeys}",
+    );
+    expect(LOGS_DASHBOARD).toContain(
+      "offersUnknownService={offersUnknownService}",
     );
   });
 
@@ -286,7 +315,7 @@ describe("LogsDashboard resource names", () => {
 describe("LogsDashboard Top errors resource names", () => {
   test("the displayed pattern ids join the page's one lookup, and re-collect when patterns land", () => {
     expect(LOGS_DASHBOARD).toContain(
-      "errorPatterns,scopeFacets,selectedScopeValues});},[resourceBreakdown,errorPatterns,scopeFacets,selectedScopeValues]);",
+      "errorPatterns});},[resourceBreakdown,errorPatterns]);",
     );
   });
 

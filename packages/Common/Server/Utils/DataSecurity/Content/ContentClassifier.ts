@@ -210,14 +210,15 @@ const KEY_VALUE_NAMES: ReadonlySet<string> = new Set([
   ".s3cfg",
 ]);
 
-interface BinarySignature {
+export interface BinarySignature {
+  // As a scan's warning names it: one of SCAN_FORMAT_NAMES (Types/DataSecurity/ScanWarnings).
   format: string;
   bytes: ReadonlyArray<number>;
   offset?: number;
 }
 
 // The magic numbers of formats that are not text.
-const BINARY_SIGNATURES: ReadonlyArray<BinarySignature> = [
+export const BINARY_SIGNATURES: ReadonlyArray<BinarySignature> = [
   { format: "PNG image", bytes: [0x89, 0x50, 0x4e, 0x47] },
   { format: "JPEG image", bytes: [0xff, 0xd8, 0xff] },
   { format: "GIF image", bytes: [0x47, 0x49, 0x46, 0x38] },
@@ -413,7 +414,12 @@ function fingerprintField(data: {
     }
 
     for (const match of findSensitiveValues(value, scanOptions)) {
-      if (data.dataTypeIds.has(match.dataTypeId) && !match.isTestValue) {
+      if (
+        data.dataTypeIds.has(match.dataTypeId) &&
+        !match.isTestValue &&
+        // A name a query parameter names is too common to fingerprint (#11034).
+        !match.fromFieldName
+      ) {
         data.fingerprints.add(
           match.dataTypeId,
           match.normalized,
@@ -640,8 +646,8 @@ export function classifyFreeText(
       linesOf.set(match.dataTypeId, (linesOf.get(match.dataTypeId) || 0) + 1);
     }
 
-    // A name is too common to say two stores hold the same data.
-    if (!match.fromModel) {
+    // A name is too common to say two stores hold the same data: the model's, a query parameter's (#11034).
+    if (!match.fromModel && !match.fromFieldName) {
       fingerprints.addMatch(match);
     }
 

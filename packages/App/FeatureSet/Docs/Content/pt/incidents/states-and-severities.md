@@ -65,7 +65,7 @@ Três estados são criados com o projeto, nesta ordem. A criação é idempotent
 
 | Indicador             | Propósito                                                                                                                                                                                            |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | O estado que um incidente recebe quando ninguém escolheu um. Se nenhum estado do projeto tiver esse indicador, criar um incidente falha com um erro que pede que você adicione um estado de criação de incidentes nas configurações. |
+| `isCreatedState`      | O estado que um incidente recebe quando ninguém escolheu um — a menos que o projeto faça os incidentes declarados manualmente começarem confirmados e um deles não acione nenhuma política de plantão: veja [Incidentes declarados manualmente](#incidentes-declarados-manualmente). Se nenhum estado do projeto tiver esse indicador, criar um incidente falha com um erro que pede que você adicione um estado de criação de incidentes nas configurações. |
 | `isAcknowledgedState` | Marca o estado confirmado do projeto: aquele para o qual **Confirmar** leva um incidente e que dá nome ao bloco de estatística de confirmação. Um incidente nele, em qualquer estado posterior, ou resolvido, está confirmado — **Confirmar** não é mais oferecido para ele, o plantão para de acionar por ele e seu SLA é marcado como respondido. |
 | `isResolvedState`     | Marca o estado resolvido do projeto: aquele para o qual **Resolver** leva um incidente e que o bloco de estatística de resolução mostra. Um incidente nele, ou em qualquer estado posterior, está resolvido — ele sai de **Incidentes ativos** e da seção ativa de uma página de status, e seu SLA é marcado como resolvido. |
 
@@ -75,6 +75,28 @@ Espera-se que só um estado por projeto tenha cada indicador — as buscas pegam
 - **Eles não podem ser excluídos.** O **Excluir** deles continua no menu da linha, bloqueado, com o motivo. Uma exclusão em massa os pula e os lista como não excluídos. A API também se recusa a excluir o último estado de criação, confirmado ou resolvido de um projeto.
 
 Como a interface lê os nomes dos estados de forma dinâmica, renomear um estado muda o que você vê em todo lugar — os blocos de estatísticas (**Confirmado em** e **Resolvido em** com os nomes iniciais), a confirmação **Marcar incidente como …** de um estado personalizado e a etiqueta na lista de incidentes seguem o nome que você deu à linha.
+
+## Incidentes declarados manualmente
+
+Todo incidente novo começa no seu estado de criação e espera ali até ser confirmado. Quando você mesmo declara um, em geral é você quem está respondendo a ele: você se torna o Comandante do incidente ao declará-lo, e confirmá-lo é só mais um clique. Em vez disso, um projeto pode fazer esses incidentes começarem confirmados.
+
+:::steps
+1. Abra **Incidentes → Configurações → Estado do incidente** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Abaixo da lista de estados, ative **Start incidents declared by hand acknowledged**. Ele é salvo assim que você o altera.
+:::
+
+Ele fica desativado em todos os projetos até você ativá-lo, então atualizar o OneUptime nunca muda quem é acionado. Só Proprietários do projeto e Administradores do projeto podem alterá-lo; para todos os outros, o interruptor fica bloqueado e diz qual permissão é necessária.
+
+Enquanto ele está ativado, um incidente declarado manualmente — com **Declarar incidente**, de onde quer que você o abra, ou com o formulário de incidente no Slack ou no Microsoft Teams — começa no seu estado confirmado quando as duas condições a seguir são atendidas:
+
+- **Nenhum estado é escolhido para ele**, nem por você nem pelo modelo a partir do qual ele é declarado. Um estado escolhido prevalece, como sempre.
+- **Ele não aciona nenhuma política de plantão**, nem uma escolhida por você nem uma do modelo dele. Se você escolher uma política, o incidente começa no seu estado de criação, como antes, para que a política acione as pessoas dela.
+
+Como começa confirmado, ele não aciona ninguém: como em qualquer incidente [declarado já confirmado](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido), nenhuma política de plantão é executada, nem mesmo uma que uma regra de plantão adicione. Seu SLA já começa como respondido, e seu tempo até a confirmação é zero, o que entra no cálculo do seu MTTA.
+
+**Declarar incidente** avisa isso antes de você declarar: abaixo de **Estado Inicial**, abaixo de **Política de plantão** enquanto nenhuma estiver escolhida, e no resumo, que então sempre lista **Estado Inicial**. Ele nunca preenche **Estado Inicial** por você: um estado escolhido ali prevalece, e assim as políticas de plantão que você escolhesse na última etapa não acionariam ninguém. O Slack e o Microsoft Teams avisam isso abaixo das políticas de plantão deles e na mensagem que confirma o incidente.
+
+Os incidentes que ninguém declara manualmente — abertos por monitores ou por regras de incidentes dos alertas, pela API, pelo Terraform, por fluxos de trabalho ou formulários, a partir de um caso de segurança ou pelo OneUptime AI — começam no seu estado de criação, como antes. Pela API, o interruptor é o campo `startIncidentsDeclaredByHandAcknowledged` do projeto.
 
 ## Adicionar seus próprios estados
 
@@ -204,7 +226,7 @@ Alertas e episódios seguem a mesma regra, com seus estados de alerta.
 
 Um incidente é resolvido quando passa de um estado acima do seu estado resolvido para o estado resolvido, ou para qualquer estado posterior — qualquer que seja a das cinco formas acima que o mova. Cada resolução:
 
-- **Devolve os monitores que o incidente retém.** Um incidente declarado aberto retém seus monitores: ele os colocou no status de **Alterar status do monitor para**, quando nomeia um, e, declarado manualmente, pausou o monitoramento deles. Uma edição enquanto ele está aberto — adicionar monitores, ou mudar esse status — também faz com que ele os retenha. Resolver retoma o monitoramento deles e os devolve ao estado operacional, a menos que outro incidente aberto ainda esteja sobre eles, e a partir daí o incidente não retém mais nada. Então um incidente declarado já resolvido não devolve nada, nem uma segunda resolução depois de uma reabertura: um status que seus monitores receberam nesse meio-tempo — das sondas deles, de uma manutenção ou definido manualmente — permanece.
+- **Devolve os monitores que o incidente retém.** Um incidente declarado aberto retém seus monitores: ele os colocou no status de **Alterar status do monitor para**, quando nomeia um, e, declarado manualmente com **Pausar o monitoramento** marcado, pausou o monitoramento deles, exceto nos monitores configurados para manter o monitoramento durante incidentes. Uma edição enquanto ele está aberto — adicionar monitores, ou mudar esse status — também faz com que ele os retenha. Resolver retoma o monitoramento deles e os devolve ao estado operacional, a menos que outro incidente aberto ainda esteja sobre eles, e a partir daí o incidente não retém mais nada. Um monitor que outro incidente aberto declarado manualmente ainda pausa continua pausado; um incidente reaberto desde a resolução não retém nada, então não mantém nada pausado. Então um incidente declarado já resolvido não devolve nada, nem uma segunda resolução depois de uma reabertura: um status que seus monitores receberam nesse meio-tempo — das sondas deles, de uma manutenção ou definido manualmente — permanece. Veja [Monitoramento enquanto um incidente está aberto](/docs/incidents/declaring-incidents#monitoramento-enquanto-um-incidente-está-aberto).
 - **Marca o SLA como resolvido** e, quando os rascunhos de post-mortem do OneUptime AI estão ativados, redige um post-mortem.
 
 Passar de **Resolvido** para um estado posterior — **Closed**, por exemplo — não é uma segunda resolução: nada disso é executado de novo, e nenhum SLA novo começa. Um incidente declarado antes de o OneUptime começar a registrar isso devolve seus monitores na próxima resolução, como antes.

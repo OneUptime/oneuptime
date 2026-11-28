@@ -112,6 +112,31 @@ describe("the notification service, when it starts", () => {
     ).toEqual([(reader as ts.ArrowFunction).parameters[0]!.name.getText(source)]);
   });
 
+  /*
+   * The server's own support address (#10941): an account email names it
+   * only if the service hands MailService the reader, which reads it from
+   * Admin Dashboard > Settings > Help and Support's copy.
+   */
+  test("hands MailService the server's own support address, once", () => {
+    const init: ts.Node | null = findInit();
+
+    expect(init).not.toBeNull();
+
+    const registrations: Array<ts.CallExpression> = callsOf(
+      init!,
+      "MailService.nameServerSupportAddressWith",
+    );
+
+    expect(registrations).toHaveLength(1);
+
+    const reader: ts.Expression | undefined = registrations[0]!.arguments[0];
+
+    expect(reader && ts.isArrowFunction(reader)).toBe(true);
+    expect(
+      callsOf(reader!, "HelpAndSupportServerSettings.getOwnSupportEmail"),
+    ).toHaveLength(1);
+  });
+
   test("before any route is mounted, so no email goes out without it", () => {
     const init: ts.Node = findInit()!;
     const registration: ts.CallExpression = callsOf(
@@ -125,6 +150,15 @@ describe("the notification service, when it starts", () => {
 
     expect(firstMount).toBeDefined();
     expect(registration.getStart(source)).toBeLessThan(
+      firstMount!.getStart(source),
+    );
+
+    const supportAddress: ts.CallExpression = callsOf(
+      init,
+      "MailService.nameServerSupportAddressWith",
+    )[0]!;
+
+    expect(supportAddress.getStart(source)).toBeLessThan(
       firstMount!.getStart(source),
     );
   });

@@ -1,0 +1,278 @@
+receivers:
+  # Dell PowerStore: the collector scrapes Dell's powerstore-metrics-exporter,
+  # which docker-compose.yml runs as the `powerstore-exporter` service
+  # (COMPOSE_PROFILES=powerstore). The exporter logs in to the PowerStore
+  # cluster's REST API itself, with the user and password .env gives it (see
+  # README.md for the role), and answers each path below in Prometheus text
+  # with Dell's powerstore_* metrics. The collector holds no credential: it
+  # reaches the exporter over the compose network only, and the exporter's
+  # port is never published. The exporter does not verify the cluster's TLS
+  # certificate (its own default), so STORAGE_ARRAY_INSECURE_SKIP_VERIFY does
+  # not apply here.
+  #
+  # The exporter serves each part of the cluster at
+  # /metrics/<cluster address>/<part>, the address exactly as its config
+  # names it (POWERSTORE_ENDPOINT). PowerStore computes its performance and
+  # space metrics in five-minute samples, so every part but the cluster is
+  # read every 5 minutes; reading them more often only repeats a sample and
+  # loads the cluster's REST API. The cluster's own state is read every
+  # minute: it is the array's heartbeat (powerstore_cluster, on every
+  # answer of a reachable cluster).
+  #
+  # Every job labels its series `scrape_endpoint: <part>`, so OneUptime knows
+  # which kinds of object a batch is the COMPLETE list of. Keep the labels as
+  # shipped.
+  prometheus:
+    config:
+      scrape_configs:
+        # The cluster's name, id and state; Metro sessions and witnesses.
+        - job_name: powerstore-cluster
+          scheme: http
+          metrics_path: /metrics/${env:POWERSTORE_ENDPOINT}/cluster
+          scrape_interval: 60s
+          scrape_timeout: 50s
+          static_configs:
+            - targets: ["powerstore-exporter:9010"]
+              labels:
+                scrape_endpoint: cluster
+
+        # Each appliance: its service tag, latency, IOPS, bandwidth and the
+        # CPU its I/O takes.
+        - job_name: powerstore-appliance
+          scheme: http
+          metrics_path: /metrics/${env:POWERSTORE_ENDPOINT}/appliance
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["powerstore-exporter:9010"]
+              labels:
+                scrape_endpoint: appliance
+
+        # Each appliance's physical and logical space and data reduction.
+        - job_name: powerstore-capacity
+          scheme: http
+          metrics_path: /metrics/${env:POWERSTORE_ENDPOINT}/capacity
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["powerstore-exporter:9010"]
+              labels:
+                scrape_endpoint: capacity
+
+        # Nodes, drives, fans, power supplies and batteries, and each
+        # drive's size and wear.
+        - job_name: powerstore-hardware
+          scheme: http
+          metrics_path: /metrics/${env:POWERSTORE_ENDPOINT}/hardware
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["powerstore-exporter:9010"]
+              labels:
+                scrape_endpoint: hardware
+
+        # Fibre Channel and Ethernet front-end ports: link, speed,
+        # performance and errors.
+        - job_name: powerstore-port
+          scheme: http
+          metrics_path: /metrics/${env:POWERSTORE_ENDPOINT}/port
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["powerstore-exporter:9010"]
+              labels:
+                scrape_endpoint: port
+
+        # Each volume's state, size, space used and performance.
+        - job_name: powerstore-volume
+          scheme: http
+          metrics_path: /metrics/${env:POWERSTORE_ENDPOINT}/volume
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["powerstore-exporter:9010"]
+              labels:
+                scrape_endpoint: volume
+
+        # Each volume group's space and performance.
+        - job_name: powerstore-volume-group
+          scheme: http
+          metrics_path: /metrics/${env:POWERSTORE_ENDPOINT}/volumeGroup
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["powerstore-exporter:9010"]
+              labels:
+                scrape_endpoint: volumegroup
+
+        # Each NAS server's state and performance.
+        - job_name: powerstore-nas
+          scheme: http
+          metrics_path: /metrics/${env:POWERSTORE_ENDPOINT}/nas
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["powerstore-exporter:9010"]
+              labels:
+                scrape_endpoint: nas
+
+        # Each file system's space and performance.
+        - job_name: powerstore-file
+          scheme: http
+          metrics_path: /metrics/${env:POWERSTORE_ENDPOINT}/file
+          scrape_interval: 300s
+          scrape_timeout: 240s
+          static_configs:
+            - targets: ["powerstore-exporter:9010"]
+              labels:
+                scrape_endpoint: file
+
+  # PowerStore's alerts arrive as syslog at the `powerstore-syslog` service
+  # docker-compose.yml runs beside this collector, with its own config
+  # (powerstore-syslog.yaml): it publishes the syslog
+  # port, which this container does not.
+
+processors:
+  # Dell's exporter writes powerstore_hardware_node_state as 0 for every
+  # node, Healthy or not, and names the node's lifecycle state in its
+  # `state` label (dell/powerstore-metrics-exporter#24), although its own
+  # description says "Healthy is 1". Make it say what the description says,
+  # as Dell's drive, fan, power supply and battery states already do: 1 for
+  # a Healthy node, 0 for any other state. The label is kept.
+  transform/powerstore-node-state:
+    error_mode: ignore
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(value_double, 1.0) where metric.name == "powerstore_hardware_node_state" and attributes["state"] == "Healthy"
+
+  # The share of each appliance's physical space, and of each file system's
+  # size, in use. The exporter sends used and total as two series, and a
+  # monitor compares one series with a threshold, so the second metrics
+  # pipeline below divides them: it keeps only those four series, gives
+  # each appliance and each file system a resource of its own
+  # (groupbyattrs), divides within it (metricsgeneration divides by the
+  # first total it finds in a resource, so each resource must hold one),
+  # keeps only the two results and puts the labels back where they were.
+  # What the exporter sent is exported unchanged by the first pipeline.
+  filter/powerstore-space-operands:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "powerstore_cap_last_physical_used" or name == "powerstore_cap_last_physical_total" or name == "powerstore_filesystem_logical_used" or name == "powerstore_filesystem_logical_provisioned")'
+  groupbyattrs/powerstore-space-object:
+    keys: [appliance_id, name]
+  metricsgeneration/powerstore-space-used-percent:
+    rules:
+      - name: powerstore_cap_physical_used_percent
+        unit: "%"
+        type: calculate
+        metric1: powerstore_cap_last_physical_used
+        metric2: powerstore_cap_last_physical_total
+        operation: percent
+      - name: powerstore_filesystem_logical_used_percent
+        unit: "%"
+        type: calculate
+        metric1: powerstore_filesystem_logical_used
+        metric2: powerstore_filesystem_logical_provisioned
+        operation: percent
+  filter/powerstore-space-used-percent:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not (name == "powerstore_cap_physical_used_percent" or name == "powerstore_filesystem_logical_used_percent")'
+  transform/powerstore-space-object-labels:
+    error_mode: ignore
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["appliance_id"], resource.attributes["appliance_id"]) where resource.attributes["appliance_id"] != nil
+          - set(attributes["name"], resource.attributes["name"]) where resource.attributes["name"] != nil
+      - context: resource
+        statements:
+          - delete_key(attributes, "appliance_id")
+          - delete_key(attributes, "name")
+
+  # Stamp every metric with the array's identity. OneUptime auto-registers
+  # the storage array from `storage.array.name`, and every Storage Arrays
+  # page and monitor scopes on it — this attribute is what makes the data
+  # appear under the Storage Arrays section of the dashboard. Keep it
+  # stable: changing it later registers a brand-new array.
+  resource:
+    attributes:
+      - key: storage.array.name
+        value: "${env:STORAGE_ARRAY_NAME}"
+        action: upsert
+      # The platform: dell.powerstore for this config.
+      - key: storage.system
+        value: "${env:STORAGE_SYSTEM}"
+        action: upsert
+      # Shown as the agent version on the array's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.165.1"
+        action: upsert
+      # Optional: promote resource attributes to project labels on the
+      # array — oneuptime.label.<dimension>=<value> becomes the label
+      # <dimension>:<value> (see README.md, "Auto-tag with Project Labels").
+      # - key: oneuptime.label.env
+      #   value: production
+      #   action: upsert
+      # The prometheus receiver synthesizes service.name (= the scrape job
+      # name, e.g. "powerstore-volume") and service.instance.id on every
+      # batch per the Prometheus->OTLP compatibility spec. Drop them:
+      # OneUptime routes batches by service.name first, so leaving them in
+      # would register phantom "powerstore-*" Services instead of routing
+      # this data to the storage array discovered from `storage.array.name`
+      # (which would also break per-array retention settings). Do not remove
+      # these two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    # Large enough to hold a whole scrape of a big cluster. There is
+    # deliberately NO send_batch_max_size: a scrape must never be split
+    # across exports, because OneUptime reads a whole part per request to
+    # rebuild the inventory (volume, port and drive counts, hardware health)
+    # — a split scrape would make objects vanish and counts drop until the
+    # next one.
+    send_batch_size: 8192
+  memory_limiter:
+    check_interval: 5s
+    # A cluster with thousands of volumes returns a large scrape; 512 MiB
+    # leaves ample headroom.
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    # Everything the exporter answers, as it answered it.
+    metrics:
+      receivers: [prometheus]
+      processors: [memory_limiter, transform/powerstore-node-state, resource, batch]
+      exporters: [otlphttp]
+    # The used percent of each appliance and file system, worked out from
+    # the same scrapes (see filter/powerstore-space-operands above).
+    metrics/space-used-percent:
+      receivers: [prometheus]
+      processors:
+        [
+          memory_limiter,
+          filter/powerstore-space-operands,
+          groupbyattrs/powerstore-space-object,
+          metricsgeneration/powerstore-space-used-percent,
+          filter/powerstore-space-used-percent,
+          transform/powerstore-space-object-labels,
+          resource,
+          batch,
+        ]
+      exporters: [otlphttp]

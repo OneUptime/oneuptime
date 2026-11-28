@@ -38,6 +38,7 @@ const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const DASHBOARD: string = `/dashboard/${PROJECT_ID}`;
 const CLOUD: string = `${DASHBOARD}/cloud`;
 const COSTS: string = `${CLOUD}/costs`;
+const COST_GROUPS: string = `${CLOUD}/cost-groups`;
 const SAVINGS: string = `${CLOUD}/savings`;
 const BUDGETS: string = `${CLOUD}/budgets`;
 
@@ -883,9 +884,19 @@ test.describe("the Overview", () => {
       german("Overview"),
     ]);
     await expect(litEntry(page)).toHaveText(german("Overview"));
+    // Costs, and Cost Groups under it: "Kosten" and "Kostengruppen", two pages.
     await expect(
-      desktopMenu(page).getByRole("link", { name: german("Costs") }),
+      desktopMenu(page).getByRole("link", {
+        name: german("Costs"),
+        exact: true,
+      }),
     ).toHaveAttribute("href", COSTS);
+    await expect(
+      desktopMenu(page).getByRole("link", {
+        name: german("Cost Groups"),
+        exact: true,
+      }),
+    ).toHaveAttribute("href", COST_GROUPS);
     await expect(
       desktopMenu(page).getByRole("link", { name: german("Savings") }),
     ).toHaveAttribute("href", SAVINGS);
@@ -1430,7 +1441,10 @@ test.describe("Costs", () => {
     expect(await dailyBars(page)).toEqual({ finished: 29, partlyReported: 1 });
     await expect(breakdownTotal(page)).toHaveText(`${accountSpend} in all`);
 
-    // One account: no breakdown by account, and its card does not offer one.
+    /*
+     * One account: no breakdown by account, and its card does not offer one.
+     * A cost view's groups it does (Cost groups).
+     */
     await expect(dimensions(page).getByRole("radio")).toHaveText([
       "Services",
       "Regions",
@@ -1438,6 +1452,7 @@ test.describe("Costs", () => {
       "Environments",
       "Apps",
       "Tags",
+      "Cost groups",
     ]);
     await expect(
       page.getByText(
@@ -2209,7 +2224,7 @@ test.describe("Budgets", () => {
     await screenshot(page, "cloud-budgets-1280");
   });
 
-  test("a budget is made in two steps, in dollars, alerting at 80% and 100% unless told otherwise", async ({
+  test("a budget is made in four steps - what it counts, what it may cost, when it alerts, who hears - in dollars, alerting at 80% and 100% unless told otherwise", async ({
     page,
   }: {
     page: Page;
@@ -2222,9 +2237,8 @@ test.describe("Budgets", () => {
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
 
-    // The first step: what it is and what a month may cost.
+    // The first step: its name, and what it counts - every account to start with.
     await dialog.getByLabel("Name", { exact: true }).fill("Staging");
-    await dialog.getByLabel("Monthly Amount", { exact: true }).fill("2500");
     // The currency waits under More fields, which says what it holds.
     await expect(dialog.getByTestId("folded-section-header")).toContainText(
       "Currency: USD",
@@ -2235,28 +2249,37 @@ test.describe("Budgets", () => {
     await screenshot(page, "cloud-budgets-1280-create-1");
     await dialog.getByRole("button", { name: "Next", exact: true }).click();
 
-    // The second: when it alerts - 80% and 100% already there.
+    // The second: what a month may cost.
+    await dialog.getByLabel("Amount", { exact: true }).fill("2500");
+    await screenshot(page, "cloud-budgets-1280-create-2");
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
+
+    // The third: when it alerts - 80% and 100% already there.
     const alertAt: Locator = dialog.getByLabel("Alert At", { exact: true });
     await expect(alertAt).toHaveValue("80,100");
-    await screenshot(page, "cloud-budgets-1280-create-2");
 
     /*
      * What is not a list of percents is said before the budget is saved -
      * not taken as 80% and 100% without a word.
      */
     await alertAt.fill("eighty, 100");
-    await dialog.getByTestId("modal-footer-submit-button").click();
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
     await expect(dialog).toContainText(
       "Write each as a percent of the budget from 1 to 1000, such as 80, 100.",
     );
     expect((await recorded(page)).creates).toHaveLength(0);
     await alertAt.fill("80,100");
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
+
+    // The last: who hears. Nobody named: every threshold alerts, as before.
+    await screenshot(page, "cloud-budgets-1280-create-3");
     await dialog.getByTestId("modal-footer-submit-button").click();
     await expect(dialog).toBeHidden();
 
     /*
-     * Over every account, in the currency most accounts are billed in. It
-     * is on: the form leaves the switch to its column's default, which is.
+     * Over every account, for a month, in the currency most accounts are
+     * billed in. It is on: the form leaves the switch to its column's
+     * default, which is.
      */
     const creates: Recorded["creates"] = (await recorded(page)).creates;
     expect(creates).toHaveLength(1);
@@ -2266,12 +2289,12 @@ test.describe("Budgets", () => {
         name: "Staging",
         monthlyAmount: 2500,
         currency: "USD",
-        cloudAccountId: "",
+        scope: "allAccounts",
+        period: "month",
         alertThresholds: "80,100",
         alertOnProjection: true,
         // A day that costs far more than usual alerts too, unless turned off.
         alertOnAnomaly: true,
-        description: "",
       },
     });
     expect(creates[0]!.data["isEnabled"]).not.toBe(false);

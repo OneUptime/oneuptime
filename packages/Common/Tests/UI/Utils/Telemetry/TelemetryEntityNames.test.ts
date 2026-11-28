@@ -49,6 +49,7 @@ import TelemetryEntityNameResolver, {
   TelemetryEntityNameMap,
 } from "../../../../UI/Utils/Telemetry/TelemetryEntityNames";
 import { UNKNOWN_SERVICE_NAME } from "../../../../UI/Utils/TelemetryService";
+import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
@@ -241,6 +242,12 @@ beforeEach(() => {
   getListMock.mockImplementation((...args: Array<unknown>) => {
     return fakeGetList(args[0] as GetListArgs);
   });
+  /*
+   * A member who reads the project's services reads their archive switch
+   * too, so each read asks for it where the table has one
+   * (TelemetryEntityLookup's tests take it away).
+   */
+  jest.spyOn(PermissionGate, "canReadColumn").mockReturnValue(true);
 });
 
 afterEach(() => {
@@ -677,7 +684,8 @@ describe("TelemetryEntityNameResolver.resolve — query plan", () => {
     expect(includedIds(args.query._id)).toEqual([SERVICE_ID, SERVICE_ID_2]);
     expect(args.limit).toBe(2);
     expect(args.skip).toBe(0);
-    expect(args.select).toEqual({ _id: true, name: true });
+    // And whether each is archived, which a chip naming it says (#11213).
+    expect(args.select).toEqual({ _id: true, name: true, isArchived: true });
     expect(args.sort).toEqual({});
   });
 
@@ -691,6 +699,7 @@ describe("TelemetryEntityNameResolver.resolve — query plan", () => {
       _id: true,
       name: true,
       appIdentifier: true,
+      isArchived: true,
     });
 
     getListMock.mockClear();

@@ -1,0 +1,196 @@
+receivers:
+  # NetApp ONTAP (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP and Amazon
+  # FSx for NetApp ONTAP): the collector scrapes NetApp Harvest, which
+  # docker-compose.yml runs as the `netapp-harvest` service
+  # (COMPOSE_PROFILES=netapp-ontap) with netapp-harvest.yml. Harvest logs in
+  # to the cluster's REST API with the read-only user from .env, polls it
+  # (its configuration every 3 minutes, its performance every minute, its EMS
+  # events every 3 minutes) and serves the latest of everything on one
+  # endpoint, every series named netapp_<object>_<counter>. ONTAP has no
+  # metrics endpoint of its own, so Harvest is what reads it: no credential
+  # travels from the collector, and Harvest's port stays on the compose
+  # network.
+  #
+  # The job labels its series `scrape_endpoint: harvest`. One scrape holds
+  # every object Harvest has read; OneUptime learns which objects a batch is
+  # the complete list of from Harvest's own netapp_metadata_* series, so a
+  # deleted volume leaves the inventory and an object Harvest could not read
+  # keeps its last count. Keep the label as shipped.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: netapp-harvest
+          scheme: http
+          metrics_path: /metrics
+          scrape_interval: 60s
+          scrape_timeout: 50s
+          static_configs:
+            - targets: ["netapp-harvest:12990"]
+              labels:
+                scrape_endpoint: harvest
+          metric_relabel_configs:
+            # Harvest's measurements of itself: how long each poll, parse
+            # and plugin took, how much it downloaded, its exporter's
+            # counters and its poller's CPU and memory. OneUptime reads
+            # only which objects Harvest could collect (component status
+            # and instance counts) and whether the cluster answers (target
+            # status); the rest would be a dozen series per object per
+            # minute that no page reads. Delete this rule to keep them.
+            - source_labels: [__name__]
+              regex: netapp_(poller_.*|metadata_(exporter_.*|component_count|target_goroutines|target_ping|collector_(api_time|bytesRx|calc_time|metrics|numCalls|numPartials|parse_time|pluginInstances|plugin_time|poll_time|skips|task_time)))
+              action: drop
+            # The performance of every disk partition, RAID group and plex,
+            # summed per aggregate and node, which RestPerf's disk template
+            # works out besides each shelf's parts (the reason it runs): some
+            # 130 series per disk every minute, which no page reads. Delete
+            # this rule to keep them.
+            - source_labels: [__name__]
+              regex: netapp_(aggr|node|plex|raid)_disk_.*
+              action: drop
+
+  # Optional: receive the syslog the cluster forwards (ONTAP's EMS events and
+  # audit log) — this is what powers the Logs tab of the storage array. Off
+  # by default because it needs a listening port published on this machine.
+  # To enable it:
+  #   1. Uncomment the two `syslog/*` receivers below, the `logs` pipeline at
+  #      the bottom of this file, and the port mapping in docker-compose.yml.
+  #   2. On the cluster, add a syslog destination for udp://<agent-host>:5514
+  #      or tcp://<agent-host>:5514 (see README.md).
+  # The receivers expect ONTAP's legacy-netapp syslog format, which is
+  # RFC 3164; switch `protocol` to rfc5424 for a destination created with
+  # `-syslog-message-format rfc-5424`. RFC 3164 timestamps carry no time
+  # zone: set `location` to the cluster's time zone unless its clock runs on
+  # UTC. The resource processor below
+  # stamps storage.array.name on these logs too, so they land on this
+  # cluster. A syslog receiver honours only one of `tcp:` / `udp:`, so TCP
+  # and UDP are two named receivers — uncomment both to accept either
+  # transport.
+  # syslog/tcp:
+  #   tcp:
+  #     listen_address: "0.0.0.0:5514"
+  #   protocol: rfc3164
+  #   location: UTC
+  # syslog/udp:
+  #   udp:
+  #     listen_address: "0.0.0.0:5514"
+  #   protocol: rfc3164
+  #   location: UTC
+
+processors:
+  # A SnapMirror relationship's lag (netapp_snapmirror_lag_time) carries no
+  # schedule: ONTAP's schedule is a label of netapp_snapmirror_labels only.
+  # So the collector writes each relationship's schedule as a number of
+  # seconds, netapp_snapmirror_schedule_seconds, which OneUptime divides the
+  # lag by: its SnapMirror Behind Schedule alert fires once a relationship is
+  # one and a half intervals behind. ONTAP's own schedules (5min, hourly,
+  # 8hour, daily, weekly, monthly) and the usual custom names are known; a
+  # relationship on any other schedule, or on none (a synchronous or
+  # manually updated one), gets no such series, and only the plain lag
+  # alerts watch it.
+  transform/snapmirror-schedule:
+    error_mode: ignore
+    metric_statements:
+      - context: metric
+        statements:
+          - copy_metric(name="netapp_snapmirror_schedule_seconds") where name == "netapp_snapmirror_labels"
+      - context: datapoint
+        statements:
+          - set(value_double, 300.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "5min"
+          - set(value_double, 600.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "10min"
+          - set(value_double, 900.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "15min"
+          - set(value_double, 1200.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "20min"
+          - set(value_double, 1800.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "30min"
+          - set(value_double, 3600.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "hourly"
+          - set(value_double, 7200.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "2hour"
+          - set(value_double, 14400.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "4hour"
+          - set(value_double, 21600.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "6hour"
+          - set(value_double, 28800.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "8hour"
+          - set(value_double, 43200.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "12hour"
+          - set(value_double, 86400.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "daily"
+          - set(value_double, 604800.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "weekly"
+          - set(value_double, 2592000.0) where metric.name == "netapp_snapmirror_schedule_seconds" and attributes["schedule"] == "monthly"
+  # A relationship whose schedule the statements above do not know still
+  # holds the labels series' 1: it is no number of seconds, so it goes.
+  filter/snapmirror-schedule:
+    error_mode: ignore
+    metrics:
+      datapoint:
+        - metric.name == "netapp_snapmirror_schedule_seconds" and value_double < 60.0
+
+  # Stamp every metric with the cluster's identity. OneUptime auto-registers
+  # the storage array from `storage.array.name`, and every Storage Arrays
+  # page and monitor scopes on it — this attribute is what makes the data
+  # appear under the Storage Arrays section of the dashboard. Keep it
+  # stable: changing it later registers a brand-new array.
+  resource:
+    attributes:
+      - key: storage.array.name
+        value: "${env:STORAGE_ARRAY_NAME}"
+        action: upsert
+      # The platform: netapp.ontap for this config.
+      - key: storage.system
+        value: "${env:STORAGE_SYSTEM}"
+        action: upsert
+      # Shown as the agent version on the array's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.165.1"
+        action: upsert
+      # Optional: promote resource attributes to project labels on the
+      # array — oneuptime.label.<dimension>=<value> becomes the label
+      # <dimension>:<value> (see README.md, "Auto-tag with Project Labels").
+      # - key: oneuptime.label.env
+      #   value: production
+      #   action: upsert
+      # The prometheus receiver synthesizes service.name (= the scrape job
+      # name, "netapp-harvest") and service.instance.id on every batch per
+      # the Prometheus->OTLP compatibility spec. Drop them: OneUptime routes
+      # batches by service.name first, so leaving them in would register a
+      # phantom "netapp-harvest" Service instead of routing this data to the
+      # storage array discovered from `storage.array.name` (which would also
+      # break per-array retention settings). Do not remove these two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    # Large enough to hold a whole scrape of a big cluster. There is
+    # deliberately NO send_batch_max_size: a scrape must never be split
+    # across exports, because OneUptime reads a whole scrape per request to
+    # rebuild the inventory (counts, hardware health, open alerts) — a split
+    # scrape would make objects vanish and counts drop until the next one.
+    send_batch_size: 8192
+  memory_limiter:
+    check_interval: 5s
+    # A cluster with thousands of volumes, LUNs and SnapMirror
+    # relationships returns a large scrape; 512 MiB leaves ample headroom.
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors:
+        [
+          memory_limiter,
+          transform/snapmirror-schedule,
+          filter/snapmirror-schedule,
+          resource,
+          batch,
+        ]
+      exporters: [otlphttp]
+    # Uncomment together with the syslog receivers above to ship the
+    # cluster's syslog (powers the Logs tab of the storage array):
+    # logs:
+    #   receivers: [syslog/tcp, syslog/udp]
+    #   processors: [memory_limiter, resource, batch]
+    #   exporters: [otlphttp]

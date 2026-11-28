@@ -6,7 +6,7 @@ Upgrade a self-hosted OneUptime — Docker Compose, or Kubernetes with Helm — 
 - [How to upgrade](#how-to-upgrade): The procedure, for Docker Compose and Kubernetes.
 - [Notes for each version](#find-the-notes-for-your-version): What each major version asks of you, at a glance.
 - [Community and Enterprise Edition images](#community-and-enterprise-edition-images): Which image to run from 14 on.
-- [Upgrading from OneUptime 16 → 17](#upgrading-from-oneuptime-16-17): The newest major version.
+- [Upgrading from OneUptime 17 → 18](#upgrading-from-oneuptime-17-18): The newest major version.
 :::
 
 ## How to upgrade
@@ -80,6 +80,7 @@ Then check your version again, as in the first step. If you have not reached you
 
 | Upgrade | What you must do |
 | --- | --- |
+| [17 → 18](#upgrading-from-oneuptime-17-18) | Let a probe that runs synthetic monitors of apps inside your network reach private addresses. Change an OpenID Connect provider that says addresses are not verified. Give the API keys, Terraform configurations and workflows that write runbooks, code repositories, Runners or the project's secrets the permissions these take now. |
 | [16 → 17](#upgrading-from-oneuptime-16-17) | In API scripts, move a row with its move request instead of writing its `order`, and add one in the middle of a list by creating it, then moving it. Terraform and OpenTofu need no change. |
 | [15 → 16](#upgrading-from-oneuptime-15-16) | Upgrade the Terraform provider with the server, and take the SCIM bearer tokens, webhook addresses and SNMP credentials 16 no longer gives out of API reads. Update your Runners. Replace every server of 15 soon, and roll back only within a day. |
 | [14 → 15](#upgrading-from-oneuptime-14-15) | Copy the master API key first if you read it from the Admin Dashboard. Upgrade the Terraform provider with the server, and take the credentials 15 no longer gives out of API reads. Behind a proxy, let it reach your identity provider, calendars, MCP servers and backup storage. Check Incoming Request monitors that receive plain text. Replace every server of 14 soon. |
@@ -183,6 +184,105 @@ settings that used to show an upgrade prompt.
 - The SSO and OIDC endpoints (SAML sign-in and ACS URLs, OIDC redirect URIs,
   and the global SSO endpoints) keep their exact paths and are served by both
   editions in every license state.
+
+## Upgrading from OneUptime 17 → 18
+
+OneUptime 18 monitors XCP-ng: an agent beside Xen Orchestra adds each pool's
+hosts, VMs and storage, with their pages, a monitor and alert templates. See
+[XCP-ng](/docs/telemetry/xcp-ng). It also holds more of what a project's
+members do to what their roles allow: the addresses a synthetic monitor's
+browser loads, a sign-in with an address the identity provider has not
+verified, and what a workflow, an API key or Terraform may write to runbooks,
+code repositories, Runners and the project's secrets. Upgrade from 17 — if
+you are still on 16, do 16 → 17 first.
+
+### What you need to do for 18
+
+1. **If a synthetic monitor checks an app inside your network, let its probe
+   reach private addresses.** Set `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`
+   on the probe that runs it, or `probes.<key>.allowPrivateNetworkMonitors`
+   to `true` with the Helm chart, and restart the probe. A page on loopback,
+   on a link-local address or at the cloud metadata endpoint is refused on
+   every probe: point such a monitor at an address of the app its probe can
+   reach.
+2. **If your OpenID Connect provider says an address is not verified, change
+   it before you upgrade.** OneUptime 18 signs nobody in with an address
+   whose `email_verified` is `false`. Change the provider as
+   [Email addresses your identity provider has not verified](/docs/identity/sso#email-addresses-your-identity-provider-has-not-verified)
+   says.
+3. **Give the API keys, Terraform configurations and workflows that write
+   runbooks, code repositories, Runners or the project's secrets the
+   permissions those writes take now.** The other changes below say which.
+
+### Other changes in 18
+
+These change how OneUptime behaves after the upgrade. Read them if a
+synthetic monitor checks a private address, people sign in with OpenID
+Connect, or API keys, Terraform or workflows write runbooks, code
+repositories, Runners or the project's secrets.
+
+:::details Read the other changes in 18
+- **A synthetic monitor's browser reaches a private address only on a probe
+  that allows it, and never loopback, link-local or cloud metadata
+  addresses.** Before 18, a synthetic monitor's browser loaded any address
+  its probe could reach, the cloud metadata endpoint that hands out a cloud
+  VM's credentials among them. Everything the browser loads and every HTTP
+  request of its script now go through the probe, which holds them to the
+  private network policy API and Website monitors are held to: private
+  addresses only where `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` is `true`, and
+  loopback, link-local and cloud metadata addresses never. A navigation the
+  probe refuses fails with its reason as the script's error, and the run's
+  log names the refusal. See
+  [Private Network Access](/docs/self-hosted/private-network-access).
+- **Creating a runbook with steps that run takes the permission to change a
+  runbook's steps.** A runbook's JavaScript, Bash, SSH and kubectl steps run
+  on the project's Runners, an HTTP request step is sent with the secret
+  runbook variables it names, and an AI step asks the project's LLM
+  provider. Saving such steps already took `ProjectOwner`, `ProjectAdmin`,
+  `RunbookAdmin` or `EditRunbook`, and creating a runbook with them now takes
+  one of these too: anyone else's create is refused, and nothing is written.
+  A runbook with manual steps, or none, is created as before. An API key or
+  a Terraform configuration that creates runbooks with such steps needs one
+  of those permissions now.
+- **OpenID Connect sign-in refuses an email address the identity provider says
+  it has not verified.** A global or project OpenID Connect provider that
+  sends `email_verified` as `false`, or as something that is neither true nor
+  false, signs nobody in with that address, on the web and in the mobile app:
+  someone could have put another person's address, a master admin's
+  included, on their own account at the provider. A provider that sends
+  `true`, or no `email_verified` at all, as Microsoft Entra ID does, signs
+  people in as before. authentik 2025.10 and later sends `false` for everyone
+  with its default `email` scope mapping, and Keycloak sends it for people
+  whose address it has not verified: change them as
+  [Email addresses your identity provider has not verified](/docs/identity/sso#email-addresses-your-identity-provider-has-not-verified)
+  says. Master admins with a password can still sign in with it meanwhile.
+- **Workflows that run with the default permissions no longer change runbook
+  variables, monitor secrets, BI tool connections or threat intel feeds.** A
+  Project Member can build a workflow, and its steps act as a Project Admin,
+  so such a step let them change what a runbook runs on your machines, or
+  send a credential they can't read to a server of their choosing. The step
+  is refused now: it takes its Error output, and the run log names the
+  permission the change takes. A workflow that rotates one of these needs
+  more than the default permissions: in its Settings, have it run as Project
+  Owner, or as a custom role that holds that permission. See
+  [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
+- **Only those who may write a runbook's steps that run set a code
+  repository's commands or pick its Runner, and only those who may read a
+  Runner's key choose one.** A repository's setup, build and test commands run
+  on your own Runner, with its access. Setting, changing or removing them, or
+  picking the repository's Runner, now takes `ProjectOwner`, `ProjectAdmin`,
+  `RunbookAdmin` or `EditRunbook` beside the repository's own permissions:
+  anyone else's write is refused, through the API, Terraform or a workflow
+  that runs with the default permissions, and the Runner card in the
+  repository's settings is locked for them. Creating a Runner with a key of
+  your choosing, or changing a Runner's key, takes `ProjectOwner`,
+  `ProjectAdmin` or `RunbookAdmin`, and creating a Runner answers with its key
+  only to them. The commands a Runner runs for a project - Bash and kubectl
+  steps, and a repository's commands - no longer see the Runner's own
+  `ONEUPTIME_RUNNER_` settings. An API key or a Terraform configuration that
+  sets these needs one of those permissions now. See
+  [Code](/docs/ai/ai-agent).
+:::
 
 ## Upgrading from OneUptime 16 → 17
 

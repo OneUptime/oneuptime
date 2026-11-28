@@ -1,10 +1,10 @@
 # Verificações e problemas da Segurança de dados
 
-A Segurança de dados executa 34 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele. Os eventos de segurança, Network Flows e o cofre de endereços de segurança são do próprio OneUptime, guardados para a sua segurança: declarados, nunca varridos nem verificados (veja [Repositórios que o OneUptime guarda para a sua segurança](/docs/data-security/compliance#repositórios-que-o-oneuptime-guarda-para-a-sua-segurança)).
+A Segurança de dados executa 35 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele. Os eventos de segurança, Network Flows e o cofre de endereços de segurança são do próprio OneUptime, guardados para a sua segurança: declarados, nunca varridos nem verificados (veja [Repositórios que o OneUptime guarda para a sua segurança](/docs/data-security/compliance#repositórios-que-o-oneuptime-guarda-para-a-sua-segurança)).
 
 :::cards
 - [Como uma verificação decide](#como-uma-verificação-decide): Passa, falha ou não consegue determinar, e o quão grave é uma falha.
-- [Todas as verificações](#todas-as-verificações): Todas as 34, com o que cada uma verifica e como corrigir.
+- [Todas as verificações](#todas-as-verificações): Todas as 35, com o que cada uma verifica e como corrigir.
 - [Pontuação de risco](#pontuação-de-risco): Como os problemas são ordenados dentro de uma gravidade.
 - [O que acontece com um problema](#o-que-acontece-com-um-problema): Aberto, resolvido, aceito, não é um problema, como cada um foi resolvido e as correções acompanhadas até a produção.
 - [A análise do OneUptime AI](#a-análise-do-oneuptime-ai): Se um problema é real, o que põe em risco, o que a correção quebraria e o caminho mais curto para a correção.
@@ -22,6 +22,8 @@ Cada verificação lê fatos sobre um repositório e responde de uma de quatro f
 | Falha | A verificação encontra o problema e diz o que viu em uma frase: a evidência do problema. | Um problema abre, ou o que está aberto é atualizado. |
 | Não consegue determinar | Um fato não pôde ser lido: uma permissão que a função não tem, uma chamada que falhou. | Nada muda: um problema aberto continua aberto, porque ninguém pode concluir que um problema foi corrigido quando o OneUptime não conseguiu olhar. |
 | Não se aplica | O tipo do repositório não tem essa configuração. | Um problema aberto é resolvido. |
+
+Um fato que não pode ser conhecido a partir de onde foi lido também não é adivinhado: se a internet alcança um repositório consultado de dentro da sua rede, ou se o usuário anônimo de um cluster pode gravar, o que só uma gravação diria. A verificação dele não consegue saber, e essa linha da **Configuração** do repositório indica **Não verificável**.
 
 ### A gravidade acompanha os dados
 
@@ -45,6 +47,7 @@ A gravidade é dada para os dados de sensibilidade Restrito, Confidencial, Inter
 | Um snapshot dele pode ser restaurado por qualquer pessoa (`snapshot-public`) | Banco de dados, Snapshot | Um snapshot de banco de dados está compartilhado publicamente, então qualquer conta de nuvem pode restaurar uma cópia completa. | Crítico / Crítico / Crítico / Alto | Torne o snapshot privado. |
 | Um snapshot dele está compartilhado com outras contas (`snapshot-shared-externally`) | Banco de dados, Snapshot | Um snapshot de banco de dados está compartilhado com contas fora das que você conectou. | Alto / Alto / Médio / Baixo | Pare de compartilhar o snapshot com as contas que não deveriam tê-lo. |
 | Contas fora da sua organização podem acessá-lo (`shared-with-external-accounts`) | Todo repositório, exceto telemetria | A política do repositório concede acesso a contas, locatários ou projetos que não estão conectados ao OneUptime. | Alto / Alto / Médio / Baixo | Revise cada entidade principal externa e remova as que não precisam de acesso. |
+| Qualquer pessoa que o alcance pode lê-lo sem credenciais (`readable-without-credentials`) | Pesquisa | Ele respondeu ao OneUptime sem credenciais: quem conseguir alcançar o endereço dele pode ler os dados dele, e alterá-los se ele não tiver nenhum controle de acesso. | Crítico / Alto / Médio / Baixo | Ative a segurança do cluster, tire todas as funções do usuário anônimo dele, e dê a cada aplicação o próprio usuário somente leitura. Um cluster que aceita gravações sem credenciais é Crítico em dados Restrito e Confidencial, e Alto em qualquer outro. |
 
 ### Criptografia
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Fator | Pontos |
 | --- | --- |
 | Gravidade | 75 para Crítico, 50 para Alto, 25 para Médio, 0 para Baixo |
-| Exposição | 10 para Público, 8 para Outras contas, 6 para Acessível pela internet, 3 para Desconhecido, 0 para Privado |
+| Exposição | 10 para Público, 8 para Outras contas, 6 para Acessível pela internet, 3 para Desconhecido, Ainda não verificado ou Não verificável, 0 para Privado |
 | Volume | Até 6, pelos registros sensíveis estimados do repositório em escala logarítmica: 1 para 10 registros, 3 para 1.000, 5 para um milhão, 6 para dez milhões ou mais |
 | Atividade | 5 quando o Security Operations viu detecções no repositório na última semana |
 | Produção | 4 para um repositório em produção |
@@ -184,11 +187,18 @@ A Visão geral conta os problemas corrigidos na origem separadamente dos vazamen
 Um pull request que o OneUptime AI abriu para um problema (**Corrigir com IA**, ou um só pull request para um [grupo de problemas](#problemas-com-uma-só-causa)) ainda não corrigiu nada quando passa pelo merge. O OneUptime o acompanha até que a produção comprove a correção:
 
 - **Um vazamento no código.** O OneUptime espera um deploy registrado do serviço que contenha o merge e então observa a nova versão dele. Onde uma regra de limpeza oculta os dados, a regra não pode alterar nenhum valor nessa versão; onde nenhuma regra faz isso, nenhuma entrada dessa versão pode conter os dados nos lugares em que foram encontrados. A nova versão também precisa rodar por um dia e enviar pelo menos tantos logs ou spans quanto a antiga enviou na hora em que o vazamento foi visto pela última vez. Então o problema fica **Corrigido no código**. Um único valor alterado, ou uma única entrada que ainda contém os dados, significa que a correção não deteve o vazamento, e de uma versão que envia pouco demais em uma semana não dá para concluir nada. Os deploys são associados pelo commit: registre-os com `oneuptime deploy` ou envie `vcs.ref.head.revision` (veja [Deploys e alterações](/docs/telemetry/change-events)).
+- **Um vazamento em métricas ou replays de sessão.** É comprovado do mesmo jeito, pela versão que escreveu cada registro: os pontos de dados de uma métrica a nomeiam entre os atributos, os registros e spans do navegador de uma aplicação RUM pela versão para a qual os source maps dela foram enviados, e as sessões dela pela versão do app que o gravador de sessões envia. Os dados de uma métrica que uma regra de pipeline remove, ou cujos pontos ela descarta, não deixam nada para ler, então esse vazamento não pode ser avaliado; uma regra **Ocultar Atributo** deixa a substituição dela para ler.
 - **A configuração de um repositório de dados.** Quando o pull request passa pelo merge, os repositórios dele são lidos de novo na hora. Cada problema cuja verificação passa depois disso fica **Corrigido no código de infraestrutura**. Quando um repositório ainda falha na verificação ao ser lido de novo um dia depois do merge, a correção ficou **mesclada, não aplicada**: os proprietários do repositório e a pessoa que pediu o pull request recebem um e-mail, uma única vez, e as linhas do tempo do problema e do repositório registram isso. Geralmente o que falta é um apply.
 - **A regra de limpeza é mantida.** Depois de uma correção de código verificada, a regra de limpeza que conteve o vazamento continua, então uma regressão fica oculta assim que chega. O problema diz que a regra não alterou nada desde a correção e oferece **Remover regra**.
 - **Uma regressão.** Uma correção verificada continua sendo observada depois: quando uma regra mantida volta a alterar valores, ou a varredura encontra os dados de novo, o problema abre de novo e diz qual versão os trouxe de volta. Ele fica aberto até ser corrigido de novo, mesmo enquanto uma regra oculta os dados.
 
 Cada etapa fica na **Linha do tempo** do problema e na do repositório, e Resultados de IA conta as correções verificadas por tipo (veja [Como a OneUptime AI está se saindo](/docs/ai/ai-sre#como-a-oneuptime-ai-está-se-saindo)).
+
+### Vincular seu próprio pull request
+
+Uma correção que você mesmo escreveu é acompanhada do mesmo jeito. Na página do problema, **Vincular pull request** recebe o endereço de um pull request em um repositório conectado em **Código** (no GitHub, GitLab, Forgejo ou Gitea), e o problema o lista em **Pull requests vinculados**, indicando se foi mesclado. O OneUptime o acompanha até a mesclagem, a implantação que o entrega e a prova da produção, como acima, e o problema é resolvido nomeando-o. Cada etapa fica na **Linha do tempo** do problema. Um pull request fechado sem mesclar não é mais acompanhado, e removê-lo do problema encerra o acompanhamento.
+
+Quem pode alterar o problema pode vincular um, em um repositório que possa ler em **Código**. Um problema aceita até 10. Um endereço que não é de nenhum pull request, um repositório que não está conectado ou que a pessoa não pode ler, um pull request fechado sem mesclar ou já vinculado, e um problema cujo risco foi aceito ou que não é um problema são recusados, cada um dizendo por quê.
 
 ## A análise do OneUptime AI
 

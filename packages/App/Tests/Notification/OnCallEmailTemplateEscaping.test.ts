@@ -85,6 +85,8 @@ const HTML_VARIABLES: ReadonlyArray<string> = [
   // OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones.
   "rosterStartsAt",
   "rosterEndsAt",
+  // When a turn of active hours ends (#11270).
+  "rosterTurnEndsAt",
   "callStartedAt",
 ];
 
@@ -95,6 +97,8 @@ const HTML_VARIABLES: ReadonlyArray<string> = [
 const ESCAPING_HELPERS: ReadonlyArray<string> = [
   "tHtml",
   "ttHtml",
+  // Escapes its sentence and values; its one markup is the address's link.
+  "ttMailtoHtml",
   "brandNameHtml",
 ];
 

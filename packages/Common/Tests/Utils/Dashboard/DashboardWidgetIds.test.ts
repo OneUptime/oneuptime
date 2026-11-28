@@ -396,10 +396,17 @@ describe("property: every board reads every id setting as text, in every shape",
     [DashboardComponentType.PodmanVolumeList, ["podmanHostIds"]],
     [DashboardComponentType.ProxmoxGuestList, ["proxmoxClusterIds"]],
     [DashboardComponentType.VMwareHostList, ["vmwareVCenterIds"]],
+    [DashboardComponentType.XcpNgHostList, ["xcpNgPoolIds"]],
+    [DashboardComponentType.XcpNgVmList, ["xcpNgPoolIds"]],
     [DashboardComponentType.CephPoolList, ["cephClusterIds"]],
     [DashboardComponentType.StorageArrayVolumeList, ["storageArrayIds"]],
     [DashboardComponentType.ProductAnalyticsFunnel, ["savedViewId"]],
     [DashboardComponentType.ProductAnalyticsRetention, ["savedViewId"]],
+    // What a Cloud Cost widget covers (#11009).
+    [
+      DashboardComponentType.CloudCost,
+      ["cloudAccountId", "cloudCostGroupId", "cloudCostViewId"],
+    ],
   ];
 
   test("the sweep covers every id setting there is", () => {

@@ -134,6 +134,7 @@ Laat het ingeklapt en het apparaat wordt alleen gepingd: de ingeklapte sectie ze
 | SNMP v3 Authentication Key | De wachtwoordzin voor authenticatie. | Met authenticatie |
 | SNMP v3 Privacy Protocol | DES, AES of AES-256. | Met privacy |
 | SNMP v3 Privacy Key | De wachtwoordzin voor privacy (versleuteling). | Met privacy |
+| SNMP v3 Context | Alleen voor een agent die voor meerdere apparaten op één adres antwoordt, elk in een eigen context: de `VF:128` van een logische Brocade-switch. | Nee |
 :::
 
 Inloggegevens die op het apparaat zijn getypt, gaan voor een inloggegevensprofiel dat ernaast is gekozen, en de locatie van het apparaat kan ook een standaardprofiel hebben. Inloggegevens in een profiel worden versleuteld opgeslagen. Inloggegevens die op een apparaat zijn getypt, worden ook versleuteld opgeslagen en door dezelfde leesrechten beschermd.
@@ -146,11 +147,14 @@ Een discovery-scan van het netwerk van een klant brengt tientallen apparaten bin
 | --- | --- |
 | **Locatie instellen** / **Locatie wissen** | Verplaatst elk geselecteerd apparaat naar de locatie die je kiest, waar het meetelt voor de gezondheid van de locatie; een apparaat zonder eigen sonde neemt de standaardsonde van de locatie over. **Locatie wissen** haalt ze uit hun locaties. Een apparaat dat aan een locatietoewijzingsregel voldoet, gaat bij zijn volgende poll terug naar de locatie van de regel, dus voeg voor apparaten die discovery blijft vinden liever een regel toe onder **Netwerk → Regels → Regels voor locatietoewijzing**; het dialoogvenster **Locatie instellen** linkt ernaar. |
 | **Apparaatrol instellen** / **Apparaatrol wissen** | Geeft elk geselecteerd apparaat dezelfde rol, zoals de twintig switches die allemaal "Access Switch" zijn. Rollen zijn die van het project, onder **Netwerk → Instellingen → Apparaatrollen**, waar het dialoogvenster naar linkt. **Apparaatrol wissen** leidt de rol van elk apparaat opnieuw af uit zijn SNMP-identiteit. |
+| **Monitors aanmaken** | Geeft elk geselecteerd apparaat een monitor van het sjabloon dat je kiest, zoals een import dat doet: de monitor van een netwerkapparaatsjabloon leest de bevragingen van het apparaat, en die van een Ping-, IP-, poort- of NTP-sjabloon controleert het eigen adres van het apparaat. Een apparaat dat al een monitor van dat sjabloon heeft, of een van dezelfde soort die hetzelfde controleert, houdt die en krijgt geen tweede. |
 | **Leverancierssjabloon toepassen** | Voegt de gezondheids-OID's en SNMP-tabellen van een [leverancierssjabloon](#gezondheidssjablonen-van-leveranciers) toe aan elk geselecteerd apparaat. **Per apparaat de leverancier herkennen**, de eerste keuze in het dialoogvenster, kiest het sjabloon van elk apparaat op basis van wat zijn SNMP-walk meldt, zodat een gemengde selectie overal het juiste krijgt; of kies één sjabloon voor allemaal. |
 
 Elke actie is één dialoogvenster en één keer opslaan voor de hele selectie, en elk apparaat doorloopt dezelfde controles als een bewerking op zijn eigen pagina Instellingen: rechten, het label- en eigenaarsbereik van je rol, en de limieten voor wat een apparaat mag verzamelen.
 
 **Leverancierssjabloon toepassen** laat zien wat het gaat doen voordat het iets doet: hoeveel apparaten welk sjabloon krijgen, en hoeveel het met rust laat en waarom. Het voegt toe aan wat elk apparaat al verzamelt en verwijdert niets, en een apparaat dat al alles uit het sjabloon heeft, wordt niet opnieuw weggeschreven. Het laat met rust: een apparaat met een gekoppelde monitor (niets pollt het), een apparaat dat gekoppeld is aan een [OID Collection Template](#sjablonen-voor-oid-verzameling) (het sjabloon bepaalt wat het verzamelt, dus voeg de OID's van de leverancier daar toe) en, bij herkennen, een apparaat dat nog niet via SNMP is gewalkt of waarvan de leverancier geen sjabloon heeft.
+
+**Monitors aanmaken** draait op de server, tot 5.000 apparaten tegelijk, en het dialoogvenster sluiten stopt het niet. Het dialoogvenster telt de monitors terwijl elk ervan wordt aangemaakt, al aanwezig blijkt of mislukt, en **Stoppen** stopt de uitvoering na het apparaat dat nu zijn monitor krijgt. **Opnieuw proberen** probeert alleen de apparaten opnieuw die mislukten, en het nog eens uitvoeren op dezelfde apparaten maakt niets twee keer aan. Een apparaat dat zijn status krijgt van een eraan gekoppelde monitor, krijgt geen netwerkapparaatmonitor, omdat niets het pollt. Elke monitor telt mee voor je abonnement: met een abonnement zonder ruimte start de uitvoering niet, en als het halverwege volloopt, worden de resterende apparaten vermeld als apparaten die geen monitor hebben gekregen, met de reden, om opnieuw te proberen zodra er ruimte is.
 
 Als een actie klaar is, somt ze op hoeveel apparaten zijn gewijzigd, welke mislukten en waarom — een apparaat dat je rol niet mag bewerken, een lijst boven haar limiet — en welke ze niet heeft gewijzigd en waarom: een apparaat dat al in die locatie of rol zat, of een dat het leverancierssjabloon met rust laat.
 
@@ -181,6 +185,8 @@ Een apparaat dat op ping antwoordt maar waarvan de walk mislukt, is **Online**, 
 - Het is SNMP failing omdat zijn interfaces, inventaris en gezondheids-OID's niet meer worden ververst, bijna altijd door inloggegevens, een uitgeschakelde SNMP-agent of een ACL. Niets anders op de pagina zou je vertellen dat de getallen bevroren zijn.
 
 Een apparaat waarvan zowel de ping als de walk mislukt, is gewoon **Offline**, dus de markering staat altijd naast een groene status.
+
+Monitors maken op dezelfde manier onderscheid tussen de twee. **Apparaat is bereikbaar (ICMP)** beoordeelt de ping van de poll op zichzelf, en een nieuwe netwerkapparaatmonitor geeft een waarschuwing, geen incident, en blijft online als SNMP niet werkt op een apparaat dat op ping antwoordt: zie [De criteria van een nieuwe monitor](#de-criteria-van-een-nieuwe-monitor).
 
 ### De status van een apparaat lezen
 
@@ -250,6 +256,12 @@ Selecteer apparaten in de lijst **Apparaten** en gebruik:
 
 De pagina **Apparaten** toont een banner als het project apparaten bevat met de override met gekoppelde monitor waaraan niets is gekoppeld — apparaten die niets pollt en waarover niets rapporteert — en linkt naar de selectie die ze oplost.
 
+### SNMPv3-contexten
+
+Een agent kan voor meerdere apparaten op één adres antwoorden, elk in een eigen SNMPv3-context: een Brocade-chassis met Virtual Fabrics antwoordt voor elke logische switch in de context `VF:` en zijn fabric-ID. Voeg per logische switch een apparaat op dat adres toe, met SNMP v3, en stel voor elk de **SNMP v3-context** in op zijn pagina **Instellingen**; een apparaat zonder context wordt gepolld in de standaardcontext van de agent. De context hoort bij het apparaat, niet bij zijn referenties, en geldt dus met elk referentieprofiel dat het apparaat gebruikt.
+
+Een sonde van vóór de SNMPv3-contexten zou in plaats daarvan de standaardcontext pollen, dus tot hij is bijgewerkt pingt hij zo'n apparaat alleen. Elke SNMPv3-trap noemt ook zijn context en gaat alleen af op het apparaat dat in die context wordt gepolld; een trap in een context waarin geen apparaat wordt gepolld, wordt als niet gekoppeld gelogd.
+
 ## Standaardinstellingen voor monitoring van een locatie
 
 Een [netwerklocatie](/docs/monitor/network-sites#monitoringstandaarden) heeft twee standaarden voor haar apparaten. Haar **Default Probe** wordt gekopieerd naar een apparaat dat in de locatie wordt aangemaakt, of ernaartoe wordt verplaatst, zonder eigen sonde. Haar **Default SNMP Credential Profile** wordt bij elke poll gelezen van een apparaat in de locatie dat geen eigen inloggegevens heeft. Stel beide in op een locatie en een apparaat daar kan met alleen zijn adres worden toegevoegd, en wordt vanaf zijn eerste poll gepingd en gewalkt. De handleiding over locaties vertelt hoe ver elke standaard in de locatieboom omlaag reikt.
@@ -303,9 +315,11 @@ In de editor **Health OIDs** past **Vendor Health Template** een kant-en-klare s
 | --- | --- | --- |
 | Generic (Host Resources MIB) | CPU-belasting, totaal en beschikbaar RAM, load average | CPU-kernen (één rij per kern, hoe het platform ze ook nummert) |
 | Arista EOS | CPU-belasting, load average, totaal en beschikbaar RAM | — |
+| Brocade Fabric OS (SAN switches) | Switchstatus, firmwareversie, CPU, geheugen | Switchstatus, sensoren (temperatuur, ventilatoren, voedingen), vervangbare onderdelen (FRU's) |
 | Cambium Networks cnMatrix | CPU, RAM, flash, temperatuur, voedingsspanning | Ventilatoren, PoE-poorten, redundante voeding |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, vrij geheugen, wifi-clients, verbinding met cnMaestro | Wifi-radio's (band, kanaal, breedte, zendvermogen, clients, ruisvloer, airtime, toestand), SSID's |
 | Cisco IOS / IOS-XE | CPU, gebruikt en vrij geheugen, temperatuur, ventilatortoestand, voedingstoestand | — |
+| Cisco MDS 9000 (SAN switches) | CPU, geheugen | Voedingen, modules, ventilatorladen, VSAN's |
 | Dell Force10 / OS9 | CPU, geheugen | — |
 | Extreme Networks EXOS / Switch Engine | CPU, temperatuur, oververhittingsalarm, voedingstoestand | Voedingen, ventilatoren, geheugen per slot, stackleden |
 | Extreme Networks Fabric Engine / VOSS | vIST-sessie, aantal I-SID's | Fabric-adjacencies (IS-IS) genoemd naar de buur, CPU en geheugen per slot, temperatuursensoren, ventilatoren, voedingen |
@@ -513,6 +527,7 @@ De `sysObjectID` van het apparaat bepaalt waar de metingen vandaan komen: eerst 
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Ja |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), met vlaggen voor signaalverlies en zenderfout | Nee |
 | Cambium Networks cnMatrix (4.5 en later) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | Nee |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), gelezen als tekst: `-inf` betekent geen licht | Nee |
 | Elk ander apparaat | ENTITY-SENSOR-MIB (RFC 3433), aan poorten gekoppeld via ENTITY-MIB | Nee |
 
 De eerste poll leest alles. Latere polls lezen alleen wat verandert — de metingen, en de serienummers die een verwisselde optic verraden — en de rest (drempels, identiteit, welke optic in welke poort zit) wordt opnieuw gelezen als een optic wordt geplaatst, verwijderd of verwisseld, en minstens één keer per uur. Een apparaat zonder een van deze MIB's kost één verzoek per geprobeerde MIB. Het lezen heeft een eigen budget van 20 seconden, en een leesactie die een time-out krijgt of wordt afgebroken, houdt de laatste goede optics van het apparaat in plaats van ze als verdwenen te melden.
@@ -731,7 +746,7 @@ Om de apparaten die je al hebt met de regels in lijn te brengen, druk je op **To
 
 ### Automatisch importeren met auto-importregels
 
-Elke scan met de hand beoordelen schaalt niet voorbij de eerste paar subnetten. **Netwerk → Regels → Regels voor automatisch importeren** is waar je de import één keer vastlegt: een regel zegt welke ontdekte hosts hij claimt (een IP-bereik, en optionele patronen voor systeemnaam, beschrijving en `sysObjectID`) en, optioneel, welk monitorsjabloon en welke [OID Collection Template](#sjablonen-voor-oid-verzameling) de apparaten krijgen die hij importeert. De monitor van een netwerkapparaatsjabloon leest de bevragingen van elk apparaat, die van een Ping-, IP-, poort- of NTP-sjabloon controleert het eigen adres van elk apparaat, en die van een Website-, API- of SSL-certificaatsjabloon controleert de URL van het sjabloon met het adres van elk apparaat als host. Een apparaat krijgt nooit een tweede monitor van dezelfde soort. Een regel die als uitsluiting is gemarkeerd, claimt niets en spreekt een veto uit over de andere: zo worden printers en telefoons uit een brede subnetregel gehaald.
+Elke scan met de hand beoordelen schaalt niet voorbij de eerste paar subnetten. **Netwerk → Regels → Regels voor automatisch importeren** is waar je de import één keer vastlegt: een regel zegt welke ontdekte hosts hij claimt (een IP-bereik, en optionele patronen voor systeemnaam, beschrijving en `sysObjectID`) en, optioneel, welk monitorsjabloon en welke [OID Collection Template](#sjablonen-voor-oid-verzameling) de apparaten krijgen die hij importeert. De monitor van een netwerkapparaatsjabloon leest de bevragingen van elk apparaat, die van een Ping-, IP-, poort- of NTP-sjabloon controleert het eigen adres van elk apparaat, en die van een Website-, API- of SSL-certificaatsjabloon controleert de URL van het sjabloon met het adres van elk apparaat als host. Een apparaat dat het project al heeft, krijgt de monitor van het sjabloon ook, tenzij het er al een heeft: een monitor van hetzelfde sjabloon, of van dezelfde soort die hetzelfde controleert, die ervoor is gemaakt, eraan is toegewezen, eraan is gekoppeld of het bewaakt. Een monitor van een andere soort, of een netwerkapparaatmonitor van een ander sjabloon of zonder sjabloon, houdt dat nooit tegen, dus een apparaat krijgt nooit twee keer dezelfde monitor en mist nooit de monitor die de regel geeft. Een monitor die de regel heeft gemaakt, telt nog steeds mee nadat iemand hem naar een ander sjabloon heeft verplaatst of heeft ontkoppeld, dus de regel maakt hem nooit opnieuw. Een regel die als uitsluiting is gemarkeerd, claimt niets en spreekt een veto uit over de andere: zo worden printers en telefoons uit een brede subnetregel gehaald.
 
 In een regel bepaalt **Controleer elke** hoe vaak de sonde van de scan elk apparaat pollt dat de regel importeert, net als **Controleer elke** bij het importeren vanuit **Resultaten bekijken**; leeg is het elke 5 minuten. Een regel met **Hosts met alleen ping opnemen** aan importeert ook hosts die alleen op ping antwoordden, waaronder elke host die een [ICMP-scan](#icmp-scans) vindt, en geeft ook hun zijn monitorsjabloon: de sonde pingt ze, dus de controles van het sjabloon op of een apparaat bereikbaar is en op de traps die het stuurt, werken meteen voor ze, en zijn controles die een SNMP-walk lezen zodra het apparaat inloggegevens heeft.
 
@@ -792,6 +807,7 @@ OneUptime houdt dan één netwerkapparaat-monitor bij per apparaat dat past, gem
 - **Bereik** is EN tussen soorten en OF binnen een soort: een apparaat moet passen op de locaties en de rollen en de labels, waarbij "in locatie A of locatie B" door elk van beide wordt vervuld. Een lege soort past op alles, dus een beleid met elke soort leeg dekt elk apparaat in het project, en de tabel zet er **Alle apparaten** bij.
 - Alleen door een sonde gepolde apparaten die een sonde hebben, worden gedekt. Een apparaat met de override met gekoppelde monitor heeft al een eigen monitor, en een gearchiveerd apparaat blijft buiten beschouwing.
 - Ingerichte monitors worden naar het apparaat genoemd en gelijk gehouden met het sjabloon: bewerk de criteria van het sjabloon en elke monitor volgt; bewerk een ingerichte monitor met de hand en de volgende synchronisatie overschrijft hem. Een beleid uitschakelen zet zijn monitors stil zonder ze te verwijderen; een beleid verwijderen verwijdert de monitors die het heeft ingericht.
+- Verplaatst iemand een ingerichte monitor naar een ander sjabloon, of ontkoppelt iemand hem van het sjabloon van het beleid, dan is hij vanaf dat moment van jou: het beleid laat hem los, vervangt of verwijdert hem nooit, en geeft zijn apparaat geen andere monitor. Zie [Monitorsjablonen](/docs/monitor/monitor-templates).
 - Een sjabloon kan maar één beleid dragen, en kan niet tegelijk door een auto-importregel worden gekozen, omdat een ingerichte monitor bij één apparaat en één sjabloon hoort. Het formulier weigert die keuzes met een zin. Een beleid overleeft zijn sjabloon: het houdt zijn naam en bereik, richt niets in tot er een ander sjabloon wordt gekozen, en staat zonder sjabloon in de tabel.
 
 > [!IMPORTANT]
@@ -815,7 +831,7 @@ Om er een te maken vanuit **Monitoren**:
 
 Een netwerkapparaat-monitor heeft geen eigen interval: hij wordt beoordeeld telkens als de pollresultaten van het apparaat binnenkomen, en telkens als er een trap van het apparaat binnenkomt.
 
-Als de polls stoppen, wordt de monitor toch beoordeeld. Zodra een apparaat drie pollintervallen, en minstens tien minuten, geen poll heeft gehad, worden zijn monitors één keer, telkens wanneer de polls stoppen, beoordeeld als een poll die het apparaat niet kon bereiken (een controle draait elke vijf minuten): een criterium dat past bij **SNMP-apparaat is online** op False, zoals **Device unreachable**, gaat af, en het incident zegt waarom er geen poll kwam, bijvoorbeeld dat de sonde uitgevallen is of dat het apparaat geen sonde heeft. Een apparaat waarvan het pollen uit staat, of dat de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) gebruikt, blijft buiten beschouwing. De volgende poll beoordeelt de monitor zoals altijd.
+Als de polls stoppen, wordt de monitor toch beoordeeld. Zodra een apparaat drie pollintervallen, en minstens tien minuten, geen poll heeft gehad, worden zijn monitors één keer, telkens wanneer de polls stoppen, beoordeeld als een poll die het apparaat niet kon bereiken (een controle draait elke vijf minuten): een criterium dat past bij **SNMP-apparaat is online** of **Apparaat is bereikbaar (ICMP)** op False, zoals **Device unreachable**, gaat af, en het incident zegt waarom er geen poll kwam, bijvoorbeeld dat de sonde uitgevallen is of dat het apparaat geen sonde heeft. Een apparaat waarvan het pollen uit staat, of dat de [override met gekoppelde monitor](#de-override-met-gekoppelde-monitor) gebruikt, blijft buiten beschouwing. De volgende poll beoordeelt de monitor zoals altijd.
 
 Een monitor die je voor een apparaat maakt, wordt aan dat apparaat toegewezen: een die je vanaf de kaart maakt, en een die je vanuit **Monitoren** maakt op het adres van een apparaat dat zijn sondes kennen, gevonden zoals de hosts van een scan: een apparaat dat ze pollen, en anders het enige met dat adres op een locatie waar ze apparaten pollen of de standaardsonde zijn. Sondes die niets pollen en van geen enkele locatie de standaardsonde zijn, wijzen hem alleen toe aan een apparaat zonder locatie dat als enige in het project dat adres heeft, zodat een monitor nooit op de gok aan het apparaat van een andere locatie wordt toegewezen. In alle andere gevallen kies je het apparaat bij **Netwerkapparaat** onder **Meer velden** in het formulier, of wijzig je het later op de kaart **Details** van de monitor. **Bestaande monitor toevoegen**, op de kaart van het apparaat, wijst er een toe die je eerder hebt gemaakt. Een toegewezen monitor wordt getoond op de pagina's van het apparaat, wat hij veroorzaakt, wordt aan het apparaat gekoppeld, en een import of een regel voor automatisch importeren telt hem mee, zodat het apparaat nooit een tweede monitor van dezelfde soort krijgt. **Verwijderen**, op de rij van een toegewezen monitor, heft de toewijzing op nadat je bevestigt: hij wordt niet meer bij het apparaat getoond, wat hij vanaf dan veroorzaakt, wordt niet aan het apparaat gekoppeld, en imports en regels voor automatisch importeren tellen hem niet meer mee. De monitor zelf blijft ongewijzigd controleren. Een monitor die het apparaat om een andere reden toont, zoals een die een import voor het apparaat heeft gemaakt of de monitor waaraan het gekoppeld is, heeft geen **Verwijderen**. Veranderen de sondes van een monitor, dan bepaalt OneUptime de toewijzing op dezelfde manier opnieuw. Een monitor die aan geen apparaat is toegewezen, wordt toegewezen aan het apparaat dat zijn sondes nu zien. Een toewijzing die OneUptime heeft gemaakt, gaat over naar dat apparaat, of vervalt als ze er geen zien of er twee niet uit elkaar kunnen houden. Een toewijzing die je zelf hebt gemaakt of opgeheven, blijft zoals je hem hebt achtergelaten, net als een die is gemaakt voordat OneUptime bijhield wie hem maakte. Elke wijziging wordt in de feed van de monitor vermeld. Onder de monitoren van het apparaat toont zijn kaart de monitoren die zijn adres controleren maar aan geen apparaat zijn toegewezen. **Toevoegen** wijst er een toe waarvan de sondes dit apparaat zien. Een monitor waarvan de sondes het niet kunnen onderscheiden van een ander apparaat met dat adres, of die geen apparaat pollen en van geen enkele locatie de standaardsonde zijn, zegt waarom en noemt de andere apparaten: controleert hij dit apparaat, wijs hem dan toe met **Bestaande monitor toevoegen**.
 
@@ -844,7 +860,10 @@ Criteria controleren elk pollresultaat en elke trap, en openen incidenten of waa
 
 | Filtertype | Wat het controleert | Bij een poll met alleen ping |
 | --- | --- | --- |
-| SNMP Device Is Online | Of het apparaat bereikbaar is, via ping of SNMP: hetzelfde oordeel als zijn status. | Beoordeeld |
+| SNMP Device Is Online | Of het apparaat bereikbaar is, via ping of SNMP: hetzelfde oordeel als zijn status. Ondanks de naam is een apparaat dat op ping antwoordt online terwijl zijn SNMP niet werkt. | Beoordeeld |
+| Device Is Reachable (ICMP) | Of het apparaat bij deze poll op de ping van zijn sonde antwoordde, wat SNMP ook deed. | Beoordeeld |
+| ICMP Response Time (in ms) | De gemiddelde round-triptijd van de ping van de poll. Geen oordeel bij een poll waarvan de ping geen echo terugkreeg. | Beoordeeld |
+| ICMP Packet Loss (in %) | Het aandeel van de echoverzoeken van de ping waarop het apparaat niet antwoordde. | Beoordeeld |
 | SNMP Walk Is Succeeding | Of de laatste SNMP-walk is gelukt. Onwaar is de toestand "SNMP failing": bereikbaar, maar interfaces en inventaris worden niet meer ververst. | Niet beoordeeld |
 | SNMP Response Time (in ms) | De responstijd van de walk in milliseconden, nooit die van de ping. | Niet beoordeeld |
 | SNMP OID Value | De waarde die één OID teruggaf. | Niet beoordeeld |
@@ -853,6 +872,7 @@ Criteria controleren elk pollresultaat en elke trap, en openen incidenten of waa
 | SNMP Interface Is Down | Waar als een administratief ingeschakelde interface operationeel uitgevallen is. | Niet beoordeeld |
 | SNMP Interface Utilization (in %) | De linkbenutting van de drukste interface. | Niet beoordeeld |
 | SNMP Interface Errors (per second) | Het foutpercentage van de slechtste interface. | Niet beoordeeld |
+| SNMP Fibre Channel Counter (per second) | Eén Fibre Channel-teller van de poorten van een SAN-switch — CRC-fouten, verworpen frames, creditverlies en de rest — per seconde, op de slechtste poort binnen het bereik; `*` geeft één melding per poort. | Niet beoordeeld |
 | SNMP Transceiver Not Detected | Waar als een poort die een optic had, er twee polls op rij geen heeft gemeld, terwijl de poort ingeschakeld is. | Niet beoordeeld |
 | SNMP Transceiver Past Alarm Threshold | Waar als een meting van een optic op of voorbij een alarmdrempel zit die het apparaat meldt, of het apparaat signaalverlies of een zenderfout meldt. | Niet beoordeeld |
 | SNMP Transceiver Past Warning Threshold | Hetzelfde bij de waarschuwingsdrempels; een optic voorbij een alarmdrempel telt ook. | Niet beoordeeld |
@@ -866,11 +886,35 @@ Criteria controleren elk pollresultaat en elke trap, en openen incidenten of waa
 
 Bij een poll waarin geen walk draaide, geven de criteria met "Niet beoordeeld" geen oordeel in plaats van een negatief oordeel. Een criterium dat een incident opent als de SNMP-responstijd te hoog is, kan niet afgaan op een apparaat dat alleen wordt gepingd, dus een apparaat met alleen ping dat door walkgebaseerde criteria wordt bewaakt, geeft nooit vals alarm.
 
+De ICMP-controles lezen de ping die elke poll al vanaf de sonde van het apparaat verstuurt, naast zijn SNMP-walk, dus ze hebben geen Ping-monitor en geen update van de sonde nodig. Ze kunnen over een tijdsperiode worden beoordeeld, zoals de controles op de responstijd. Een poll van een sonde die te oud is om te pingen, geeft er geen oordeel over.
+
 De interfacecontroles hebben **Walk Interfaces** aan nodig in de pollinstellingen van het apparaat, zoals standaard het geval is. De OID-controles lezen de ingestelde gezondheids-OID's van het apparaat. Administratief uitgeschakelde interfaces zijn bewust uitgevallen en tellen nooit als storingen.
+
+**SNMP-interfacegebruik (in %)** neemt ook **Afwijkend hoog**, **Afwijkend laag** en **Afwijkend**, met **Gevoeligheid** en **Baseline-venster** zoals bij een [Metrics-monitor](/docs/monitor/metrics-monitor). Elke interface binnen het bereik wordt vergeleken met haar eigen benutting op hetzelfde uur van de week op eerdere dagen, zoals deze stap van de monitor haar heeft gepolld, dus een back-uplink die elke nacht vol draait, wordt beoordeeld op haar eigen nachten, niet op de rustige poorten ernaast. Het incident of de waarschuwing noemt de interface die het verst buiten haar bereik ligt, en hoeveel andere buiten het hunne liggen. Een interface leert nog, en geeft niets, totdat dat uur van de week twee weken van haar geschiedenis heeft.
+
+Benutting die is gepolld voordat elke stap zijn eigen geschiedenis kreeg, hoort bij geen enkele stap. Een monitor met één stap leest haar als de zijne en hoeft dus niet opnieuw te leren; een monitor met meerdere stappen laat haar weg, en elke stap leert van zijn eigen polls. De geschiedenis van een interface reikt zo ver terug als monitormetrics worden bewaard: 30 dagen, tenzij een zelfgehoste installatie dat wijzigt. Worden ze korter dan twee weken bewaard, dan vergelijkt een monitor met één stap elke interface met het bereik van al zijn interfaces samen, en blijft een monitor met meerdere stappen leren.
 
 Criteria voor SNMP-tabellen kiezen een tabel, een kolom (voor SNMP Table Value) en een rijbereik. Leeg beoordeelt elke rij als één gecombineerde waarschuwing; `*` geeft een aparte waarschuwing voor elke rij, die elk zelfstandig worden opgelost en naar hun rij zijn genoemd; al het andere noemt één rij op naam of index. Getallen worden als getallen vergeleken, en tekst zowel met de ruwe waarde als met haar label, dus Niet gelijk aan `active` en Niet gelijk aan `1` vangen allebei een uitgevallen Sophos-tunnel. Een tabel waarvan de walk bij deze poll mislukte, wordt niet beoordeeld in plaats van als leeg gelezen, en tabelcriteria beoordelen alleen de huidige walk, geen tijdsperiode.
 
 Transceivercriteria hebben een bereik zoals de interfacecontroles: leeg beoordeelt elke optic als één gecombineerde waarschuwing, `*` geeft een aparte waarschuwing voor elke poort met een optic (elk zelfstandig opgelost en naar haar poort genoemd), en al het andere noemt één poort op naam of alias. Ze beoordelen de [transceivers](#transceivers) van het apparaat zoals ze bij deze poll zijn, die hun geschiedenis al meedragen — hoeveel polls een optic al ontbreekt, een maand ontvangstvermogen —, dus ook zij worden niet over een tijdsperiode beoordeeld. Een poll waarvan het lezen van de transceivers mislukte, laat ze de laatste goede meting beoordelen, dus een open waarschuwing wordt niet opgelost bij een poll die niet kon kijken.
+
+### De criteria van een nieuwe monitor
+
+Een nieuwe netwerkapparaatmonitor begint met drie criteria. Ze worden op volgorde gecontroleerd, en het eerste criterium dat overeenkomt, bepaalt de status van de monitor:
+
+| Criterium | Komt overeen als | Status | Geeft |
+| --- | --- | --- | --- |
+| Offline | Het apparaat antwoordt noch op ping noch op SNMP: **SNMP-apparaat is online** staat op Onwaar. | Offline | Een incident |
+| SNMP werkt niet | Het apparaat antwoordt op ping, **Apparaat is bereikbaar (ICMP)** staat op Waar, terwijl zijn walk mislukt, **SNMP-walk slaagt** staat op Onwaar. | Online | Een waarschuwing, met het waarschuwingsniveau van het project |
+| Online | Het apparaat antwoordt op ping of SNMP. | Online | Niets |
+
+Als SNMP niet werkt, is het apparaat niet offline. Een gewijzigde community string, een gestopte SNMP-agent of een ACL stopt de walk op elk apparaat waar die mee te maken heeft, terwijl elk daarvan nog steeds op ping antwoordt en verkeer doorstuurt. Eén probleem met inloggegevens op 3.000 switches betekent 3.000 waarschuwingen die zeggen dat SNMP niet werkt, met één ding om op te lossen, in plaats van 3.000 apparaten die offline staan op je statuspagina's. De waarschuwing wordt opgelost bij de eerste poll waarvan de walk slaagt.
+
+Het criterium "SNMP werkt niet" zet de status zelf op Online, zodat een apparaat dat één poll offline was en terugkwam terwijl SNMP nog steeds niet werkte, bij die poll Online is, met de waarschuwing.
+
+Offline vraagt dat beide mislukken, niet alleen de ping, omdat apparatuur achter een ACL die ICMP van de sonde laat vallen nog steeds op SNMP antwoordt, en online is. Als elk apparaat dat je bewaakt op ping antwoordt, kun je in plaats daarvan **Apparaat is bereikbaar (ICMP)** op Onwaar je Offline maken, en criteria **ICMP-reactietijd (in ms)** of **ICMP-pakketverlies (in %)** toevoegen voor een trage verbinding of een verbinding met pakketverlies. Een apparaat dat alleen wordt gepingd, krijgt nooit te horen dat zijn SNMP niet werkt: zonder walk wordt dat criterium niet beoordeeld.
+
+Monitors die hiervoor zijn gemaakt, houden de criteria die ze hebben. Om er een de nieuwe criteria te geven, voeg je ze toe in het criteriaformulier van de monitor, of in het sjabloon waaruit de monitors worden gemaakt, en gebruik je **Synchroniseren vanuit sjabloon**.
 
 ### Aanbevolen waarschuwingspakket
 
@@ -879,7 +923,7 @@ Klik op **Add Recommended Alerts** in het criteriaformulier om een kant-en-klare
 | Criterium | Gaat af als | Maakt |
 | --- | --- | --- |
 | Device unreachable | Het apparaat stopt met antwoorden op ping en SNMP. | Incident |
-| SNMP walk failing | Het apparaat antwoordt op ping maar zijn SNMP-walk mislukt. | Waarschuwing |
+| SNMP walk failing | Het apparaat antwoordt op ping maar zijn SNMP-walk mislukt. Het houdt de monitor online. | Waarschuwing |
 | Interface down | Een administratief ingeschakelde interface valt operationeel uit. | Incident |
 | Interface saturated | Een interface draait boven 80% benutting. | Waarschuwing |
 | Interface errors | Een interface registreert meer dan 1 fout per seconde. | Waarschuwing |
@@ -889,7 +933,13 @@ Klik op **Add Recommended Alerts** in het criteriaformulier om een kant-en-klare
 
 Als het apparaat [SNMP-tabellen](#snmp-tabellen) walkt die gezonde waarden declareren, voegt het pakket ook één criterium **SNMP-tabelrij is ongezond** toe per zo'n tabel, met Row `*`: een incident per rij voor tunnels, routeringsburen en de access points van een controller ("IPsec Tunnels: row unhealthy", of "Access Points: row unhealthy" voor een access point dat van zijn controller verdwenen is), en een waarschuwing per rij voor hardwaretabellen en radio's.
 
-SNMP walk failing is bewust een waarschuwing en geen incident: het apparaat is niet uitgevallen, dus iemand er om 2 uur 's nachts voor wakker maken zou verkeerd zijn, maar zijn inventaris wordt niet meer ververst en iemand moet de inloggegevens repareren. Het gaat nooit af op een apparaat met alleen ping, omdat het criterium niet wordt beoordeeld als er geen walk draaide.
+SNMP walk failing is bewust een waarschuwing en geen incident: het apparaat is niet uitgevallen, dus iemand er om 2 uur 's nachts voor wakker maken zou verkeerd zijn, maar zijn inventaris wordt niet meer ververst en iemand moet de inloggegevens repareren. Het gaat nooit af op een apparaat met alleen ping, omdat het criterium niet wordt beoordeeld als er geen walk draaide, en ook niet op een apparaat dat nergens op antwoordt, want dat is een zaak voor **Device unreachable**: het controleert ook **Apparaat is bereikbaar (ICMP)**.
+
+Het zet ook de status van de monitor op online als het overeenkomt. Zijn waarschuwing wordt opgelost bij de eerste poll waarvan de walk slaagt.
+
+De andere waarschuwingen van het pakket wijzigen geen status, en een criterium dat geen status wijzigt, beslist er geen: de status komt van de criteria die hem wijzigen, Device unreachable, Interface down en de incidenten van de tabellen, en als geen daarvan overeenkomt, staat de monitor op zijn standaardstatus, online. Een apparaat dat een poll miste en terugkwam met een poort boven 80%, een poort die fouten logt, een optic voorbij zijn drempel of een uitgevallen ventilator, is bij die poll dus online, met de waarschuwing open. Vroeger bleef het offline zolang een van die waarschuwingen bleef overeenkomen, met zijn incident opgelost en zijn statuspagina rood: alleen het eerste criterium dat overeenkwam, bepaalde de status. Monitors die eerder uit het pakket zijn gemaakt, hoeven hiervoor niet te worden gewijzigd. Om **SNMP walk failing** stil te houden op een apparaat dat nergens op antwoordt, voeg je **Apparaat is bereikbaar (ICMP)** op Waar toe aan dat criterium op een sjabloon of monitor die eerder uit het pakket is gemaakt, en gebruik je daarna **Synchroniseren vanuit sjabloon** op de monitors van het sjabloon; de monitors van een waarschuwingsbeleid volgen vanzelf hun sjabloon.
+
+Elk criterium van het pakket controleert iets eigens, dus elk opent zijn eigen waarschuwing of incident, wat er bij dezelfde poll verder ook overeenkomt: een poort boven 80% en een poort die fouten logt bij één poll zijn **Interface saturated** en **Interface errors**, twee waarschuwingen, die elk worden opgelost als hun eigen probleem verdwijnt. Een criterium dat je toevoegt en dat hetzelfde controleert als een van die van het pakket met een andere drempel, zoals een kritiek niveau boven 95% voor **Interface saturated**, is een niveau ervan: het apparaat of de poort krijgt één waarschuwing, van degene van de twee die als eerste in de lijst staat.
 
 De drie transceivercriteria geven één waarschuwing per poort (`*`), en zijn om dezelfde reden waarschuwingen en geen incidenten: een donkere optic haalt zijn interface al onderuit, en Interface down roept daarvoor iemand op, terwijl deze zeggen waarom, of waarschuwen voordat het gebeurt. 2 dB is ongeveer een derde van het licht kwijt: ruim voorbij de paar tienden van een dB waarmee een gezonde verbinding van dag tot dag schommelt, en vroeg genoeg om een connector schoon te maken voordat de verbinding haar marge verliest. Geen van de drie kan afgaan op een apparaat dat geen optics meldt.
 
@@ -897,7 +947,7 @@ Kies na het toevoegen van het pakket zoals gewoonlijk ernstniveaus en dienstroos
 
 ## SNMP-traps
 
-Pollen vangt een probleem bij de volgende poll; traps vangen het binnen seconden. Elke sonde draait een SNMP-trapontvanger die v1- en v2c-traps en -informs aanneemt en ze doorstuurt naar OneUptime.
+Pollen vangt een probleem bij de volgende poll; traps vangen het binnen seconden. Elke sonde draait een SNMP-trapontvanger die v1-, v2c- en v3-traps en -informs aanneemt en ze doorstuurt naar OneUptime. Hij bevestigt elke inform, zodat het apparaat hem niet opnieuw stuurt.
 
 ```mermaid title="Van een trap naar een incident"
 flowchart TB
@@ -921,6 +971,7 @@ De ontvanger staat standaard aan en luistert op UDP 162. Configureer hem op de s
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Zet op `false` om de trapontvanger uit te zetten. | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | De UDP-poort waarop de ontvanger luistert. | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | Hoeveel traps hij per minuut doorstuurt voordat hij de rest laat vallen. | `300` |
+| `PROBE_SNMP_ENGINE_ID` | De SNMPv3-engine-ID van de sonde, in hex (5 tot 32 octetten). Stel hem alleen in om de engine-ID te houden van een ontvanger die deze sonde vervangt. | Afgeleid van de ID van de sonde |
 
 Als de sonde in Docker draait, publiceer dan de UDP-poort zodat traps haar kunnen bereiken:
 
@@ -936,6 +987,54 @@ Richt daarna de trapbestemming van je apparaten op de sonde; op Cisco IOS bijvoo
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### SNMPv3-traps en -informs
+
+Een SNMPv3-trap is ondertekend, en meestal versleuteld, met de sleutels van een gebruiker, dus een sonde neemt er alleen een aan van een gebruiker die ze kent: de SNMPv3-inloggegevens van de apparaten die aan haar zijn toegewezen, en het standaard-inloggegevensprofiel van elke locatie waarvan ze de **Default Probe** is. De eigen SNMP-inloggegevens van elk apparaat, zijn inloggegevensprofiel en de standaard van zijn locatie tellen allemaal, dus een apparaat dat via v2c wordt gepold, kan zijn traps toch als de SNMPv3-gebruiker van de locatie sturen, en een apparaat dat nog niet is toegevoegd, kan zijn traps sturen als die van zijn locatie. Op de sonde stel je niets in:
+
+1. Geef het apparaat, zijn inloggegevensprofiel of zijn locatie de SNMPv3-gebruiker waarmee het apparaat zijn traps stuurt: gebruikersnaam, beveiligingsniveau en de authenticatie- en privacyprotocollen met hun wachtwoordzinnen (zie [SNMP-inloggegevens en inloggegevensprofielen](#snmp-inloggegevens-en-inloggegevensprofielen)).
+2. Richt de SNMPv3-traps van het apparaat op de sonde. Op Cisco IOS bijvoorbeeld:
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime geeft elke sonde elke dertig seconden haar SNMPv3-gebruikers, dus gewijzigde inloggegevens, een gewijzigd profiel of een apparaat dat naar een andere sonde gaat, gelden binnen een minuut, terwijl de ontvanger blijft luisteren. De inloggegevens blijven in rust versleuteld, net als bij het pollen, en de sonde houdt ze alleen in het geheugen en logt ze nooit.
+
+**Welke sleutels welke sonde bereiken.** Een sonde krijgt precies deze SNMPv3-gebruikers, en geen andere:
+
+| Inloggegevens | Gegeven aan |
+| --- | --- |
+| De eigen SNMPv3-inloggegevens van een apparaat | De sonde waaraan het apparaat is toegewezen. |
+| Het inloggegevensprofiel dat een apparaat noemt | De sonde waaraan het apparaat is toegewezen. |
+| Het standaard-inloggegevensprofiel van een locatie | De sonde van elk apparaat op de locatie, en de eigen **Default Probe** van de locatie, al voordat er een apparaat op de locatie is toegevoegd. |
+
+De overige inloggegevensprofielen van een project, de standaard van een andere locatie en de standaard van een locatie die haar sonde alleen van een bovenliggende locatie erft, bereiken geen enkele sonde. De gebruikers van het ene project bereiken nooit de sonde van een ander project. Een globale sonde krijgt de gebruikers van elk project dat haar gebruikt, elk met de projecten die hem hebben, en een trap die met een ervan is ondertekend, wordt alleen bewaard in een project waarvan de eigen inloggegevens hem hebben ondertekend: de apparaten van het ene project krijgen nooit de traps van een ander project, vanaf welk adres ze ook sturen.
+
+De ontvanger neemt de protocollen aan die het pollen gebruikt: MD5-, SHA-1-, SHA-256- en SHA-512-authenticatie, en DES-, AES-128- en AES-256-privacy. Een trap moet binnenkomen met minstens de beveiliging waarvoor zijn gebruiker is ingesteld: traps van een authPriv-gebruiker worden geweigerd als ze ongeauthenticeerd of onversleuteld binnenkomen.
+
+**Traps, informs en de engine-ID van de sonde.** Een trap wordt geauthenticeerd met de eigen SNMP-engine-ID van het apparaat, dus er valt niets in te stellen. Een inform wordt geauthenticeerd met de engine-ID van de sonde, die de meeste apparaten zelf vinden. Sommige hebben hem ingetypt nodig: voer op Cisco IOS `snmp-server engineID remote <probe-ip> <engine-id>` in voordat je de gebruiker aanmaakt. Open **Monitoren → Instellingen → Sondes** en kies de sonde: haar kaart **SNMP-traps** toont de engine-ID om te kopiëren. Die van een globale sonde staat daar in de kolom **SNMPv3-engine-ID** van de lijst **Globale sondes**, en op de pagina **Logboeken** van elk apparaat op die sonde. Hij wordt afgeleid van de ID van de sonde en blijft dus hetzelfde na herstarts, upgrades en tussen replica's van de sonde; stel `PROBE_SNMP_ENGINE_ID` in om een andere te kiezen.
+
+Informs worden bevestigd, bij v2c en v3. Een inform die opnieuw wordt gestuurd omdat zijn bevestiging verloren ging, wordt opnieuw bevestigd en één keer vastgelegd.
+
+**Het tijdvenster.** Net als `snmptrapd` van Net-SNMP weigert de ontvanger een trap waarvan de engine-boots en -tijd meer dan 150 seconden teruggaan ten opzichte van de laatste trap van het apparaat: een herhaalde of vertraagde kopie, of een apparaat dat opnieuw is opgestart zonder die herstart in zijn engine-boots te tellen. Een inform moet binnen 150 seconden van de eigen tijd van de sonde liggen.
+
+**Geweigerde SNMPv3-traps** worden nooit doorgestuurd, en niets van wat ze bevatten wordt bewaard of gelogd: alleen waar ze vandaan kwamen, als welke gebruiker ze zijn gestuurd en waarom. De kaart **SNMP-traps** van de sonde toont die van de afgelopen dag, zoals ‘12 SNMPv3-traps van 10.20.0.5 zijn mislukt: onbekende gebruiker ‘san-monitor’’, elk met wat je moet veranderen. De pagina's **Overzicht** en **Logboeken** van een apparaat zeggen hetzelfde als het adres een van de eigen adressen van het apparaat is: zijn hostnaam, als die een adres is, of een van zijn **Overige adressen**. Daar toont een inform die naar een andere engine-ID is gestuurd de engine-ID van de sonde erbij, om te kopiëren. Een trap die van dat adres als die gebruiker wordt aangenomen, wist het.
+
+Een globale sonde bedient veel projecten, dus heeft ze zo'n kaart niet. Wat ze weigert, wordt bij aankomst per project verdeeld, en elk project ziet alleen de weigeringen van de adressen van zijn eigen apparaten, op de pagina's van die apparaten. Een weigering van een adres dat geen apparaat op de sonde heeft, of dat apparaten van meer dan één project hebben, wordt aan geen enkel project getoond. Een trap die is gestuurd als een gebruikersnaam die je project niet heeft, verschijnt als onbekende gebruiker, wat de sonde verder ook vond, want dat is wat je project zou veranderen.
+
+| Reden | Wat te veranderen |
+| --- | --- |
+| Onbekende gebruiker | Geen apparaat op de sonde heeft een SNMPv3-gebruiker met die naam. Voeg hem toe aan de inloggegevens van het apparaat, zijn inloggegevensprofiel of de standaard van zijn locatie, of corrigeer de naam op het apparaat. |
+| Verkeerde wachtwoordzin of verkeerd protocol voor authenticatie | Maak de wachtwoordzin en het protocol voor authenticatie van het apparaat gelijk aan die van OneUptime voor die gebruiker. |
+| Verkeerde wachtwoordzin of verkeerd protocol voor privacy | Maak de wachtwoordzin en het protocol voor privacy van het apparaat gelijk aan die van OneUptime voor die gebruiker. |
+| Buiten het tijdvenster | De engineklok van het apparaat is teruggegaan. Zijn traps worden weer aangenomen zodra het een herstart in zijn engine-boots telt. |
+| Naar een andere engine-ID gestuurd | Een inform is naar een andere engine-ID dan die van de sonde gestuurd. Geef het apparaat de engine-ID van de sonde. |
+| Minder beveiliging dan voor de gebruiker is ingesteld | Stel het beveiligingsniveau van de traps op het apparaat in op dat wat OneUptime voor de gebruiker heeft. |
+
+In de trapgeschiedenis zegt een SNMPv3-trap wat er binnenkwam, naast zijn OID en zijn varbinds: versie 3, de gebruiker waarmee hij is geauthenticeerd, of hij ook versleuteld was en de engine-ID van het apparaat dat hem stuurde.
+
 ### Hoe traps aan monitors worden gekoppeld
 
 Traps worden gekoppeld via de apparaatinventaris:
@@ -944,7 +1043,11 @@ Traps worden gekoppeld via de apparaatinventaris:
 2. OneUptime zoekt de netwerkapparaten die aan die sonde zijn toegewezen en waarvan de hostnaam, of een van de **Overige adressen**, het bron-IP-adres van de trap is.
 3. De trap wordt vastgelegd in de trapgeschiedenis van het apparaat, en elke netwerkapparaat-monitor op een passend apparaat beoordeelt hem tegen zijn criteria, meestal een filter **SNMP-trap ontvangen (trap-OID)**.
 
-Het koppelen gebeurt op adres, niet op inloggegevens, dus ook een apparaat met alleen ping kan traps ontvangen: een apparaat waarvoor je geen leesrechten hebt, kan ze nog steeds sturen. Registreer het apparaat met het adres waarvandaan het traps stuurt, of voeg dat adres toe aan zijn **Overige adressen** op zijn pagina **Instellingen**. Generieke SNMPv1-traps (coldStart, linkDown, linkUp enzovoort) worden omgezet naar hun standaard-SNMPv2-notificatie-OID's, dus linkDown past op trap-OID `1.3.6.1.6.3.1.1.5.3`, welke SNMP-versie ook.
+Het koppelen gebeurt op adres, niet op inloggegevens, dus ook een apparaat met alleen ping kan v1- en v2c-traps ontvangen: een apparaat waarvoor je geen leesrechten hebt, kan ze nog steeds sturen. Een SNMPv3-trap heeft daarnaast de gebruiker nodig waarmee hij is ondertekend (zie [SNMPv3-traps en -informs](#snmpv3-traps-en-informs)), en wordt dan ook op zijn adres gekoppeld, en op wie hem heeft ondertekend als apparaten het adres delen. Registreer het apparaat met het adres waarvandaan het traps stuurt, of voeg dat adres toe aan zijn **Overige adressen** op zijn pagina **Instellingen**. Generieke SNMPv1-traps (coldStart, linkDown, linkUp enzovoort) worden omgezet naar hun standaard-SNMPv2-notificatie-OID's, dus linkDown past op trap-OID `1.3.6.1.6.3.1.1.5.3`, welke SNMP-versie ook.
+
+**Apparaten die vanaf één adres sturen.** Sommige apparaten sturen hun traps vanaf een adres dat ze delen: blades vanaf het beheeradres van hun chassis, clusterleden vanaf een virtueel adres, apparaten achter een NAT. Een v1- of v2c-trap draagt niets anders dan dat adres, en gaat naar het eerste apparaat dat het heeft. Een SNMPv3-trap is ondertekend, en gaat naar het apparaat waar hij vandaan kwam. Van de apparaten met zijn adres gaat hij alleen naar die van een project waarvan de inloggegevens hem hebben ondertekend, dan naar het apparaat waarvan de SNMPv3-polls de engine-ID lezen waarvandaan hij is gestuurd, dan naar het apparaat dat de inloggegevens draagt die hem hebben ondertekend. Het **Overzicht** van een apparaat toont zijn eigen **SNMPv3-engine-ID** zodra een SNMPv3-poll die leest. Geef dus elk apparaat zijn eigen SNMPv3-gebruiker, of poll ze allemaal via SNMPv3: apparaten die de standaardgebruiker van een locatie delen, worden onderscheiden zodra ze op één na allemaal via SNMPv3 worden gepold. Een trap die door niets wordt onderscheiden, gaat naar het eerste apparaat met het adres, zoals een v2c-trap.
+
+**Een apparaat dat nog niet is toegevoegd.** Een trap van een adres dat van geen enkel apparaat is, wordt bewaard als afkomstig van een onbekende bron, en zijn gebeurtenis op de pagina **Gebeurtenissen** biedt **Toevoegen als apparaat** aan, met het adres en de sonde al ingevuld. Op een eigen sonde van een project wordt elke zo'n trap bewaard. Op een globale sonde wordt alleen een SNMPv3-trap bewaard die met de inloggegevens van één project is ondertekend, in dat project, zolang het een apparaat op de sonde heeft of een locatie waarvan ze de standaardsonde is: een v1-, v2c- of niet-geauthenticeerde trap kan van iedereen zijn, en wordt nergens bewaard. Een trap die met het standaard-inloggegevensprofiel van een locatie is ondertekend, vult ook die locatie in, zodat het nieuwe apparaat door de standaardsonde van de locatie met dat profiel wordt gepold, net als zijn buren.
 
 #### Voorbeeld: een incident openen bij linkDown
 
@@ -987,6 +1090,9 @@ Incident- en waarschuwingssjablonen op een netwerkapparaat-monitor kunnen deze v
 | `{{trapOid}}` | De trap-OID, bij controles die een trap heeft aangestuurd |
 | `{{trapSourceIp}}` | Het adres waar de trap vandaan kwam, bij controles die een trap heeft aangestuurd |
 | `{{trapVarbinds}}` | De varbinds die de trap meedroeg, elk met `oid` en `value` |
+| `{{trapInterface}}` | De interface waar een trap over gaat: de naam die hij meegeeft, of die de walk van het apparaat voor de index vastlegde |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | Bij een RMON-alarm (een MDS-port-monitoralarm) de teller die zijn drempel overschreed, en `rising` of `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | Bij een RMON-alarm de waarde van de teller en de overschreden drempel |
 | `{{tables.<key>.rowCount}}` | De gewalkte rijen in een [SNMP-tabel](#snmp-tabellen), op haar sleutel: `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | De rijen met een status buiten hun gezonde waarden, elk met `name`, `index` en `values.<column>` |
 | `{{tables.<key>.rows}}` | Elke rij (tot 50), elk met `name`, `index` en `values.<column>`, met kolomnamen in kleine letters en spaties als `_` |
@@ -1172,6 +1278,13 @@ Als de apparaten er allemaal zijn maar de monitors niet: apparaten en monitors z
 - Publiceer en sta UDP 162 toe tot aan de sonde, of de poort in `PROBE_SNMP_TRAP_RECEIVER_PORT`.
 - Controleer of de hostnaam van het apparaat, of een van zijn **Overige adressen**, het adres is waarvandaan het traps stuurt: zo worden traps aan apparaten gekoppeld.
 - Controleer de logs van de sonde op bindfouten: de poort al in gebruik, of geen rechten voor een poort onder 1024.
+:::
+
+:::details SNMPv3-traps worden geweigerd
+- Open **Monitoren → Instellingen → Sondes** en kies de sonde: haar kaart **SNMP-traps** toont elke geweigerde bron met de reden en wat je moet veranderen.
+- De SNMPv3-gebruiker moet horen bij een apparaat dat aan die sonde is toegewezen: zijn eigen inloggegevens, zijn inloggegevensprofiel of de standaard van zijn locatie. Een gebruiker van een apparaat dat aan een andere sonde is toegewezen, telt niet.
+- Een inform heeft daarnaast de engine-ID van de sonde nodig, die op dezelfde kaart staat. Een apparaat dat een verkeerde kreeg, staat erbij als sturend naar een andere engine-ID.
+- Na een wijziging neemt de sonde de nieuwe gebruikers binnen een minuut over.
 :::
 
 :::details SNMP testen vanuit het netwerk van de sonde

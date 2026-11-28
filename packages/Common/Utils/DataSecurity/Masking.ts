@@ -3,6 +3,8 @@ import {
   DataTypeInfo,
   getBuiltInDataType,
 } from "../../Types/DataSecurity/DataTypeCatalog";
+import { digitsOnly } from "./Detector";
+import { foldFullwidthLetters } from "./FullwidthForms";
 
 /*
  * MASKED EVIDENCE: ENOUGH OF A VALUE TO RECOGNISE IT, NEVER ENOUGH TO USE IT.
@@ -68,7 +70,13 @@ function maskWord(value: string): string {
   return value.length === 0 ? "" : value[0] + MASK.repeat(4);
 }
 
-export function maskEmail(email: string): string {
+/*
+ * An address typed in fullwidth is read as ASCII first (#11385):
+ * ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ is masked as jane@example.com is,
+ * j***@e*******.com.
+ */
+export function maskEmail(written: string): string {
+  const email: string = foldFullwidthLetters(written);
   const at: number = email.lastIndexOf("@");
 
   if (at < 1) {
@@ -91,8 +99,14 @@ export function maskEmail(email: string): string {
   );
 }
 
+/*
+ * A card's last four digits, each read by its value whatever its script:
+ * a card Data Security finds in fullwidth or Arabic-Indic digits
+ * (４１１１－１１１１－１１１１－１１１１, #10960, #11115) keeps them too, as
+ * ASCII digits.
+ */
 export function maskCardNumber(value: string): string {
-  const digits: string = value.replace(/[^0-9]/g, "");
+  const digits: string = digitsOnly(value);
 
   return "**** **** **** " + digits.slice(-4);
 }

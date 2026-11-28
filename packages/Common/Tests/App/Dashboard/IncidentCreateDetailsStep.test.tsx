@@ -127,6 +127,7 @@ import {
   INCIDENT_DETAILS_STEP_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentCustomFieldDefinitions";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import { INCIDENT_DECLARED_BY_HAND_KEY } from "../../../Types/Incident/IncidentDeclaredByHandStart";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import Route from "../../../Types/API/Route";
@@ -462,7 +463,11 @@ describe("declaring: the Details step's answers", () => {
       },
     );
 
-    expect(miscDataProps).toEqual({ incidentRoles: ["role-1"] });
+    // Beside the roles, only that it is declared by hand (#11137).
+    expect(miscDataProps).toEqual({
+      incidentRoles: ["role-1"],
+      [INCIDENT_DECLARED_BY_HAND_KEY]: true,
+    });
   });
 
   test("no answers and no template: customFields is left unset", async () => {

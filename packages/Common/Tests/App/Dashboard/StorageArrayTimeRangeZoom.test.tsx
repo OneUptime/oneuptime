@@ -283,16 +283,17 @@ jest.mock(
 
 import StorageArrayOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Index";
 import StorageArrayInsights, {
-  FLASHARRAY_INSIGHTS_SECTIONS,
-  FLASHBLADE_INSIGHTS_SECTIONS,
   InsightsSection,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Insights";
+import { FLASHARRAY_INSIGHTS_SECTIONS } from "../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
+import { FLASHBLADE_INSIGHTS_SECTIONS } from "../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
 import StorageArrayVolumeDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/VolumeDetail";
 import StorageArrayFileSystemDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/FileSystemDetail";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { RESET_TIME_RANGE_ZOOM_BUTTON_TEST_ID } from "../../../UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import TimeRange from "../../../Types/Time/TimeRange";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -472,6 +473,14 @@ function sectionMetricView(section: InsightsSection): string {
 }
 
 beforeEach(() => {
+  /*
+   * Which of the array's alerts watch a part is the server's answer
+   * (POST /monitor/recommendation-coverage, #11074): this project has no
+   * monitors, so none does.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
   mockLastParam = "";

@@ -83,6 +83,7 @@ import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import {
   NAME_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
   NAME_TAKEN_REFUSAL_CODE,
+  TAKEN_BY_ID_FIELD,
 } from "Common/Types/Exception/NameTakenException";
 import {
   VALUE_TAKEN_BY_ARCHIVED_REFUSAL_CODE,
@@ -855,6 +856,46 @@ describe("the troubleshooting page", () => {
       readRepoFile("packages/Common/Server/Services/DatabaseService.ts"),
     ).toContain(
       "`${this.model.singularName} with the same name already exists.`",
+    );
+  });
+
+  /*
+   * #11019: where the key may read the record that has the name, the error
+   * names it and gives the line that imports it - into the resource the
+   * apply was creating, or into one of its own on a rename - as the page
+   * says, from the field the server sends.
+   */
+  it("says the error names the record that has the name, with the terraform import line, as the provider writes it", () => {
+    const providerSource: string = readRepoFile(PROVIDER_GENERATOR);
+    const section: string = englishSection(
+      TROUBLESHOOTING,
+      "### Names another record has",
+    );
+
+    // The field the server sends, and only when the key may read the record.
+    expect(TAKEN_BY_ID_FIELD).toBe("takenById");
+    expect(providerSource).toContain(
+      'const takenByIDField = "${TAKEN_BY_ID_FIELD}"',
+    );
+    expect(providerSource).toContain(
+      'command := fmt.Sprintf("  terraform import %s %s", address, taken.takenByID)',
+    );
+    expect(providerSource).toContain(
+      'address = taken.resourceType + ".<name>"',
+    );
+    expect(providerSource).toContain(
+      "or import that record into this resource, at the address Terraform shows with this error:",
+    );
+    expect(providerSource).toContain(
+      "or import that record into a resource of its own and rename it there:",
+    );
+
+    expect(section).toContain(
+      "When your API key may read that record, the error names it and gives the line to run, such as `terraform import oneuptime_monitor.<name> <id>`: into the resource the apply was creating, or into a resource of its own when the apply was renaming one.",
+    );
+    // Without it, the advice as it was: the page's sentence before stays.
+    expect(section).toContain(
+      "Give the resource a name nobody has, or `terraform import` the record that has the name.",
     );
   });
 

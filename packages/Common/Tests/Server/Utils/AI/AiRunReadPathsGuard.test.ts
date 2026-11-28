@@ -307,16 +307,15 @@ const TASK_STATE_READERS: Record<string, Classification> = {
     ],
   },
   /*
-   * A Data Security issue's fix in code, on its page (#10367): where its
-   * task stands - the issue's own, the newest Fix with AI asked, or its
-   * group's - for the person, read only once the rule lets them see the
-   * task.
+   * A Data Security issue's fix in code, on its page (#10367): where the
+   * task stands and its pull request, for the person, read only once the
+   * rule lets them see the task.
    */
   "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueCodeFix.ts": {
     kind: "asksTheRule",
     mustContain: [
-      "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [task.id], reader: data.props, });",
-      'if (hidden.has(idOf(task))) { return { taskId: "", recipe, state: DeclaredCodeChangeState.Hidden,',
+      ": await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [task.id], reader: data.props, });",
+      'return { taskId: "", recipe, state: DeclaredCodeChangeState.Hidden, issueCount: data.issueCount || 1, };',
     ],
   },
   // A finding's Fix with AI: the task already on its way, for the person.

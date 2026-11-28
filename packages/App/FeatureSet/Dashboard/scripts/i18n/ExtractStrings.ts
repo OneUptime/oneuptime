@@ -241,6 +241,40 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a pull request a person links to a Data Security issue is refused
+   * (#10831): the issue holds ten already, was set aside, or has it linked
+   * already. The server refuses in English, and the Link Pull Request
+   * dialog says each in the reader's language; the refusals a security
+   * case's links share are read from Types/SecurityCase. Only the words the
+   * file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataSecurity/DataSecurityIssuePullRequestLink.ts",
+    kind: "keys",
+  },
+  /*
+   * What a Data Security scan could not read (#10930): each warning a
+   * content scan, the telemetry scan and the names-and-addresses model
+   * write, and the formats they name, as a scan's details draw them in the
+   * reader's language. The server writes the same file's English into the
+   * scan. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    kind: "keys",
+  },
+  /*
+   * What OneUptime checks on a kind of store, and what it cannot, and why
+   * (#11140): the lines the form that adds a store, its Settings and its
+   * Overview draw in the reader's language. Only the words the file marks
+   * are read.
+   */
+  {
+    directory: "packages/Common/Utils/DataSecurity/DataStoreCoverage.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -269,6 +303,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * What escalating a page did, in the reader's language: the Escalate
+   * dialog (Components/OnCallPolicy/PassOn) says it, and a page's call in
+   * its person's language says the same words once 2 is pressed (#11066).
+   * Only the words it marks are read: the server words its English pages
+   * with OnCallPagePassOn's own sentences.
+   */
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/OnCallPassOnWords.ts",
+    kind: "keys",
+  },
+  /*
    * The rest of the Enterprise screens the Dashboard draws (#8634): custom
    * roles, the audit log export, the IP allowlists, the license pages, and
    * the status pages' access controls and branding. Every word they draw
@@ -288,6 +333,8 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/Types/VMware", kind: "ui" },
   // What a failed OpenStack collection means and what fixes it (OpenStackCollectionError).
   { directory: "packages/Common/Types/OpenStack", kind: "ui" },
+  // What a failed XCP-ng connection read means and what fixes it (XcpNgCollectionError).
+  { directory: "packages/Common/Types/XcpNg", kind: "ui" },
   /*
    * What a case's verdicts mean, and what each playbook action does: the
    * close dialog and the step editor show them as written there.
@@ -306,6 +353,33 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * show them as written there.
    */
   { directory: "packages/Common/Types/CloudConnection", kind: "ui" },
+  /*
+   * Acting on savings (#11010): each change's name and sentence, how it is
+   * undone, why one is not offered, its status and what the bill showed;
+   * a resource's environment; what an AI rule for savings does and why
+   * OneUptime AI proposed a change - as Cloud > Savings, its dialogs and
+   * the savings rules draw them. Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudSavingsAction.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
+    kind: "keys",
+  },
+  { directory: "packages/Common/Types/Cloud/CloudSavingsAi.ts", kind: "keys" },
+  /*
+   * A scheduled cloud cost report (#11009): what it covers and its period,
+   * as Cloud > Spend > Reports offers them, and every sentence of the
+   * report itself - the page's preview and the email say the same, the
+   * server's locales copying these (DASHBOARD_SHARED_TEXT_SOURCES).
+   */
+  { directory: "packages/Common/Types/Cloud/CloudCostReport.ts", kind: "keys" },
+  {
+    directory: "packages/Common/Types/Cloud/CloudCostReportWords.ts",
+    kind: "keys",
+  },
   /*
    * A managed device's status - Online, Offline, Provisioning and the rest -
    * as Inventory > Managed Devices and a device's Inventory page draw it.
@@ -1088,6 +1162,38 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Billed, amortized and net (#11007): what each is called and counts,
+   * beside the switch on Costs, Overview and an account's Costs, and on
+   * Cloud > Settings > Cost Settings. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCostBasis.ts",
+    kind: "keys",
+  },
+  /*
+   * Cloud budgets and forecasts (#11008): what a budget counts, its period
+   * and how a year is spread, and how a forecast is made and how sure it
+   * is, on Cloud > Spend > Budgets, a budget's page and the Forecast.
+   * Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudBudget.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudCostForecast.ts",
+    kind: "keys",
+  },
+  /*
+   * A commitment's state, scope and payment option (#11011), on Cloud >
+   * Spend > Commitments. Only the words the file marks are read: a
+   * commitment's own name and type are its cloud's words, drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCommitmentInventory.ts",
+    kind: "keys",
+  },
+  /*
    * A resource's right-sizing from OneUptime's own readings: its verdict,
    * what to change and why, on its Overview. Only the words the file marks
    * are read: a size is its cloud's own name, drawn as written.
@@ -1135,6 +1241,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/AI/AIActionWords.ts",
+    kind: "keys",
+  },
+  /*
+   * What Ask AI's Data Security actions say on their cards (#10378): what
+   * each changes, what stops working, what it costs and why it asks in
+   * every mode. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIDataSecurityActionWords.ts",
     kind: "keys",
   },
   /*
@@ -1194,6 +1309,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
     kind: "keys",
   },
+  /*
+   * Each storage platform's catalog and the words its pages say (#11000):
+   * its metric names and descriptions, its Resource Usage cards, its
+   * hardware tables, its monitor filters, its setup guide options and the
+   * words of the kinds only it has. Only the text the files mark is read.
+   */
+  {
+    directory: "packages/Common/Types/StorageArray/Platforms",
+    kind: "keys",
+  },
   {
     directory: "packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
     kind: "keys",
@@ -1248,6 +1373,10 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
     kind: "keys",
   },
+  {
+    directory: "packages/Common/Types/Monitor/XcpNgMetricCatalog.ts",
+    kind: "keys",
+  },
   /*
    * What a monitor's evaluation says, for the Dashboard to word in each
    * reader's language (issue #6542): the sentences the engine stores beside
@@ -1258,6 +1387,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Monitor/CriteriaFilterTerms.ts",
+    kind: "keys",
+  },
+  /*
+   * A SAN switch's Fibre Channel counters and port types - their names and
+   * what each counter means - as the Interfaces page's chart and the
+   * criteria form's counter picker draw them. Only the marked words are
+   * read: the server keeps its own English.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/SnmpMonitor/SnmpFibreChannel.ts",
     kind: "keys",
   },
   {
@@ -1299,6 +1438,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Server/Utils/Monitor/MonitorAlert.ts",
+    kind: "keys",
+  },
+  // What reached a monitor that was not being checked, and why (#11141).
+  {
+    directory: "packages/Common/Server/Utils/Monitor/MonitorNotEvaluated.ts",
     kind: "keys",
   },
   {

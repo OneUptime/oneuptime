@@ -90,7 +90,7 @@ Pour désactiver celui qui est fourni, définissez `GLOBAL_RUNNER_REPLICAS=0` da
 ## Avant de commencer
 
 - **Un hôte avec Docker** dans votre infrastructure, qui joint l'URL de votre OneUptime en HTTPS ainsi que les systèmes sur lesquels agissent vos étapes.
-- **Un rôle qui crée des agents Runbook.** Propriétaire du projet, Administrateur du projet, Membre du projet et Administrateur des runbooks peuvent en créer un. Seuls un Propriétaire du projet, un Administrateur du projet ou un Administrateur des runbooks voient la clé d'un agent, que contient la commande d'installation.
+- **Un rôle qui crée des agents Runbook.** Propriétaire du projet, Administrateur du projet, Membre du projet et Administrateur des runbooks peuvent en créer un. Seuls un Propriétaire du projet, un Administrateur du projet ou un Administrateur des runbooks voient la clé d'un agent, que contient la commande d'installation. Eux seuls peuvent aussi choisir la clé d'un agent : un agent que quelqu'un d'autre crée reçoit une clé que OneUptime génère, et sa création ne lui montre pas la clé.
 
 ## Installer un agent Runbook
 

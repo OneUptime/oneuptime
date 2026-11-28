@@ -42,9 +42,13 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import StorageArrayHealthPill from "../../Components/StorageArray/StorageArrayHealthPill";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "Common/Types/StorageArray/StorageSystem";
+import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  getStorageArrayKindCount,
+  getStorageArrayKindWords,
+} from "./Utils/StorageArrayKindWords";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
 import StorageArrayResourceUtils from "./Utils/StorageArrayResourceUtils";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -55,6 +59,14 @@ import TableEmptyValue, {
 } from "Common/UI/Components/Table/TableEmptyValue";
 import StorageUsageBar from "Common/UI/Components/StorageUsage/StorageUsageBar";
 import { getStorageArrayCapacityUsage } from "./Utils/StorageArrayHealth";
+import StorageArrayConnectOffer, {
+  canConnect,
+  getConnectRoute,
+} from "../../Components/StorageArray/Connection/StorageArrayConnectOffer";
+import StorageArrayProbeCollectors from "Common/Types/StorageArray/Collection/StorageArrayProbeCollectors";
+import { StorageArrayProbeCollector } from "Common/Types/StorageArray/Collection/StorageArrayProbeCollector";
+import Navigation from "Common/UI/Utils/Navigation";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 
 /*
  * Pure raises its own capacity alerts at 80% and 90% used, so the bar turns
@@ -176,11 +188,32 @@ const StorageArrays: FunctionComponent<
   }
 
   /*
+   * The platforms a probe reads from their management server (#11004):
+   * Connect Unisphere opens the Connections page's Connect form, and one
+   * connection adds every array it manages.
+   */
+  const connectButtons: Array<CardButtonSchema> = canConnect()
+    ? StorageArrayProbeCollectors.getAll().map(
+        (collector: StorageArrayProbeCollector): CardButtonSchema => {
+          return {
+            title: collector.words.connectTitle,
+            icon: IconProp.Link,
+            buttonStyle: ButtonStyleType.OUTLINE,
+            onClick: () => {
+              Navigation.navigate(getConnectRoute(collector));
+            },
+          };
+        },
+      )
+    : [];
+
+  /*
    * An array is added by pointing the agent at it (Add Storage Array): the
    * guide asks for the array's name, writes it into the commands, and the
    * array registers itself under it when the agent connects. There is no
    * form: an array typed in by hand would only wait for telemetry that
-   * nothing sends.
+   * nothing sends. A PowerMax is added by connecting the Unisphere that
+   * manages it instead (connectButtons).
    */
   return (
     <Fragment>
@@ -234,6 +267,7 @@ const StorageArrays: FunctionComponent<
                 setIsAddArrayOpen(true);
               },
             },
+            ...connectButtons,
           ],
         }}
         showViewIdButton={true}
@@ -244,6 +278,7 @@ const StorageArrays: FunctionComponent<
           hostCount: true,
           fileSystemCount: true,
           bucketCount: true,
+          countsByKind: true,
           criticalAlertCount: true,
           warningAlertCount: true,
           osName: true,
@@ -395,44 +430,45 @@ const StorageArrays: FunctionComponent<
             headerTooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.arrayInventory,
             type: FieldType.Element,
             hideOnMobile: true,
-            // Volumes on a FlashArray, file systems on a FlashBlade.
+            /*
+             * The counts the array's platform lists here (its
+             * overview.listCounts): volumes and hosts on a FlashArray, file
+             * systems on a FlashBlade. An array whose platform is not known
+             * reads as the default platform.
+             */
             disableSort: true,
             getElement: (item: StorageArray): ReactElement => {
-              if (StorageSystemUtil.isFlashBlade(item.storageSystem)) {
-                if (
-                  item.fileSystemCount === null ||
-                  item.fileSystemCount === undefined
-                ) {
-                  return <TableEmptyValue />;
-                }
-                return (
-                  <span className="text-sm text-gray-700">
-                    {translator.translatePlural(
-                      {
-                        one: "{{count}} file system",
-                        other: "{{count}} file systems",
-                      },
-                      item.fileSystemCount,
-                    )}
-                  </span>
-                );
-              }
-              if (item.volumeCount === null || item.volumeCount === undefined) {
+              const kinds: Array<string> =
+                StorageArrayPlatformRegistry.getPlatformOrDefault(
+                  item.storageSystem,
+                ).overview.listCounts;
+              const first: number | undefined = kinds[0]
+                ? getStorageArrayKindCount(item, kinds[0])
+                : undefined;
+              if (first === null || first === undefined) {
                 return <TableEmptyValue />;
               }
               return (
                 <span className="text-sm text-gray-700">
-                  {translator.translatePlural(
-                    { one: "{{count}} volume", other: "{{count}} volumes" },
-                    item.volumeCount,
-                  )}
-                  <span className="text-gray-400">
-                    <InlineSeparator />
-                  </span>
-                  {translator.translatePlural(
-                    { one: "{{count}} host", other: "{{count}} hosts" },
-                    item.hostCount || 0,
-                  )}
+                  {kinds.map((kind: string, index: number): ReactElement => {
+                    return (
+                      <Fragment key={kind}>
+                        {index > 0 ? (
+                          <span className="text-gray-400">
+                            <InlineSeparator />
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                        {translator.translatePlural(
+                          getStorageArrayKindWords(kind).count,
+                          (index === 0
+                            ? first
+                            : getStorageArrayKindCount(item, kind)) || 0,
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </span>
               );
             },
@@ -548,6 +584,7 @@ const StorageArrays: FunctionComponent<
               setIsAddArrayOpen(true);
             },
           }}
+          actionsNote={<StorageArrayConnectOffer />}
         />
       )}
       {isAddArrayOpen && (

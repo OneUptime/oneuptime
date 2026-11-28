@@ -162,6 +162,8 @@ describe("the start view leads with what people use", () => {
       "Update Zabbix Problem",
       "Execute Workflow",
       "Sleep",
+      // The pictures a record's Markdown shows, for an email to attach (#11256).
+      "Get Files From Markdown",
     ]);
   });
 
@@ -550,8 +552,11 @@ describe("search results", () => {
 
     search("incident");
 
-    // Incident From Another Tool among them, after Incident's own steps.
-    const total: number = 74;
+    /*
+     * Incident From Another Tool among them, after Incident's own steps, and
+     * Get Files From Markdown, whose description names an incident's.
+     */
+    const total: number = 75;
     expect(screen.getAllByRole("option")).toHaveLength(
       SEARCH_RESULTS_PAGE_SIZE,
     );

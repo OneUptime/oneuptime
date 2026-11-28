@@ -1,11 +1,13 @@
 # Guider per nettverksleverandør (Sophos, Extreme, Cambium)
 
-Slik overvåker du tre vanlige miljøer fra start til slutt med OneUptime: en Sophos Firewall (XGS, SFOS) med IPsec-tunnelene, WAN-lenkene og SD-WAN; Extreme Networks-svitsjer (EXOS / Switch Engine og Fabric Engine / VOSS) med fabricen sin; og Cambium Networks cnMatrix-svitsjer og Enterprise Wi-Fi-tilgangspunkter, helt ned til hver radios kanal og sendeeffekt.
+Slik overvåker du tre vanlige miljøer fra start til slutt med OneUptime: en Sophos Firewall (XGS, SFOS) med IPsec-tunnelene, WAN-lenkene og SD-WAN; Extreme Networks-svitsjer (EXOS / Switch Engine og Fabric Engine / VOSS) med fabricen sin; og Cambium Networks cnMatrix-svitsjer og Enterprise Wi-Fi-tilgangspunkter, helt ned til hver radios kanal og sendeeffekt. De dekker også SAN-svitsjer, Brocade Fabric OS og Cisco MDS 9000, helt ned til feilene på hver Fibre Channel-port.
 
 :::cards
 - [Sophos Firewall](#sophos-firewall-xgs-sfos): Tunneler, WAN-lenker, gatewayer og SD-WAN.
 - [Extreme Networks](#extreme-networks-exos-switch-engine-og-fabric-engine-voss): Svitsjer, fabricen og maskinvaren dens.
 - [Cambium Networks](#cambium-networks-enterprise-wi-fi-og-cnmatrix): Tilgangspunkter ned til hver radio, og cnMatrix-svitsjer.
+- [Brocade Fabric OS](#brocade-fabric-os): Fibre Channel-porter, optikk, sensorer og fabric-hendelser.
+- [Cisco MDS 9000](#cisco-mds-9000): Fibre Channel-grensesnitt, VSAN-er, slow drain og port-monitor-alarmer.
 :::
 
 ## Slik fungerer det
@@ -145,6 +147,76 @@ Malen **Cambium Networks cnMatrix** samler inn CPU, RAM, flash, temperatur og fo
 ### cnMaestro-alarmer
 
 cnMaestro kan sende alarmene sine, som et tilgangspunkt som går offline, til en HTTPS-webhook. Pek den mot en [monitor for innkommende forespørsler](/docs/monitor/incoming-request-monitor) for å gjøre de alarmene om til OneUptime-hendelser ved siden av SNMP-dataene.
+
+## Brocade Fabric OS
+
+| Hva du vil se | Hvor det kommer fra |
+| --- | --- |
+| Svitsjens tilstand, fastvare, CPU og minne | SNMP, med leverandørmalen **Brocade Fabric OS (SAN switches)** |
+| Svitsjens status, sensorene og de utskiftbare enhetene (FRU-er), rad for rad | Malens tabeller `switch_status`, `sensors` og `frus` |
+| Hver Fibre Channel-ports type, hvorfor en nede port er nede, og feilene, forkastede rammer og kredittventetider per sekund | SW-MIB og FCMGMT-MIB, på enhetens side **Grensesnitt** |
+| Hver optikks mottatte og sendte effekt, temperatur, spenning og biasstrøm | FA-EXT-MIB, på kortet **Transceivere** |
+| En nede forbindelse mellom svitsjer, en delt eller omkonfigurert fabric, en zoning-endring, et MAPS-varsel, en endret FRU | SNMPv3-traps |
+
+Hver svitsj og director med Fabric OS rapporterer en systemobjekt-ID under `1.3.6.1.4.1.1588.2.1.1`, så malen gjelder for alle og for ingenting annet fra Brocade: VDX- og SLX-svitsjer beholder malen sin.
+
+### Sett opp SNMP på Fabric OS
+
+:::steps
+1. Legg til en SNMPv3-bruker med autentisering og kryptering, SHA og AES: `snmpconfig --set snmpv3` spør om brukeren, protokollene og passfrasene.
+2. Slå på FA-MIB med `snmpconfig --set mibCapability`. Den inneholder hver ports 64-biters feiltellere og optikken; uten den rapporterer en port bare CRC-feil, kodingsfeil, forkastede klasse 3-rammer og kredittventetider, som 32-biters tellere.
+3. Legg til svitsjen i OneUptime med administrasjonsadressen og den brukeren. Med **Auto-Apply Vendor Health Template** på bruker den første avspørringen malen **Brocade Fabric OS (SAN switches)**; ellers bruker du den fra **Vendor Health Template** på enhetens side **Innstillinger**.
+:::
+
+Enhetens side **Grensesnitt** merker deretter hver Fibre Channel-port med typen, som E-Port eller F-Port, og sier hvorfor en nede port er nede, slik `switchshow` sier det: No light, No module, Disabled. Kortet **Fibre Channel-porter** viser per sekund hver ports feil, forkastede rammer og kreditt-tellere.
+
+En ports CRC-feil, ugyldige overføringsord, forbindelsesfeil og tap av synkronisering og av signal er feilene dens: **SNMP-grensesnittfeil (per sekund)** varsler om dem, og de anbefalte varslene inkluderer **Fibre Channel port errors**, ved mer enn én feil på ti sekunder. Forkastede rammer og kredittventetider er ikke feil; varsle om en av dem med **SNMP Fibre Channel-teller (per sekund)**.
+
+### Virtual Fabrics
+
+Et chassis med Virtual Fabrics svarer for hver logisk svitsj i sin egen SNMPv3-kontekst: `VF:` og den logiske svitsjens fabric-ID. Legg til én enhet per logisk svitsj, alle på chassisets administrasjonsadresse, og sett for hver sin **SNMP v3-kontekst** (`VF:128`, `VF:20`); en enhet uten kontekst leser den logiske standardsvitsjen.
+
+### Brocade-traps
+
+Fabric OS sender trapsene sine over SNMPv3. Legg med `snmpconfig --set snmpv3` til sonden som trap-mottaker for brukeren OneUptime spør med, på UDP-port 162: sonden tar imot SNMPv3-traps fra brukerne av enhetene den spør (se [SNMPv3-traps og informs](/docs/monitor/network-device-monitor#snmpv3-traps-og-informs)), og hver logisk svitsjs traps nevner konteksten, så de bare utløses på enheten dens. En oppgradering av Fabric OS kan slå av enkelte traps igjen: sjekk dem med `snmpconfig --show mibCapability` etter en oppgradering, og slå en på igjen med `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn`.
+
+De anbefalte varslene på en Brocade-svitsj inkluderer ett for hver fabric-hendelse som betyr noe: **Inter-switch link down** (en E-Port som går offline), **Fabric segmented**, **Fabric reconfigured**, **Zone configuration changed**, **MAPS alert** og **Field-replaceable unit changed**.
+
+## Cisco MDS 9000
+
+| Hva du vil se | Hvor det kommer fra |
+| --- | --- |
+| CPU og minne | SNMP, med leverandørmalen **Cisco MDS 9000 (SAN switches)** |
+| Strømforsyninger, moduler og vifteskuffer, rad for rad | Malens tabeller `power_supplies`, `modules` og `fan_trays` |
+| Hvert VSAN, med tilstanden | Malens tabell `vsans` |
+| Hvert fc-grensesnitts type, hvorfor et nede grensesnitt er nede, og feilene, forkastede rammer, kredittap og kredittventetider per sekund | CISCO-FC-FE-MIB, på enhetens side **Grensesnitt** |
+| Hver optikks måleverdier og alarmterskler | CISCO-ENTITY-SENSOR-MIB, på kortet **Transceivere** |
+| Port-monitor-alarmer, nede forbindelser, endringer i soner, VSAN-er, fabric og FRU-er | Traps |
+
+En MDS deler Ciscos enterprise-nummer med alle andre Cisco-enheter, så OneUptime gjenkjenner den på modellen eller på en systembeskrivelse som begynner med `Cisco NX-OS(tm) m9`: IOS-, IOS-XE- og Nexus-svitsjer beholder Cisco-malen sin.
+
+### Sett opp SNMP på NX-OS
+
+:::steps
+1. Legg til en SNMPv3-bruker med bare lesetilgang: `snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`. Rollen `network-operator` leser og kan ikke endre noe.
+2. Send traps til sonden som den brukeren: `snmp-server host <probe-address> traps version 3 priv oneuptime`.
+3. Slå på trapsene som er av som standard: `snmp-server enable traps zone`, `snmp-server enable traps vsan`, `snmp-server enable traps fcdomain`, `snmp-server enable traps fspf` og, for optikken, `snmp-server enable traps link cisco-xcvr-mon-status-chg`.
+4. Legg til svitsjen i OneUptime med administrasjonsadressen og den brukeren: malen **Cisco MDS 9000 (SAN switches)** brukes på samme måte.
+:::
+
+De anbefalte varslene på en MDS inkluderer **Credit loss (slow drain)** og **Timeout discards (slow drain)**, én gang per grensesnitt: en vert eller et array som slutter å returnere bufferkreditt, bremser hver flyt bak seg, og disse tellerne viser det først.
+
+### Port-monitor-alarmer
+
+En port-monitor-policy på en MDS utløser en RMON-alarm når en ports teller krysser terskelen sin. De anbefalte varslene inkluderer **Port monitor alarm**, der varselet nevner telleren og grensesnittet, som "Port monitor: Credit loss rising on fc1/5". En policy som følger med på slow drain:
+
+```text
+port-monitor name slow-drain
+  logical-type edge
+  counter credit-loss-reco poll-interval 1 delta rising-threshold 1 event 4 falling-threshold 0 event 4
+  counter timeout-discards poll-interval 60 delta rising-threshold 200 event 4 falling-threshold 10 event 4
+port-monitor activate slow-drain
+```
 
 ## Feilsøking
 

@@ -4,6 +4,8 @@ import {
   AcknowledgementTimeoutCopy,
 } from "../../../Components/OnCallPolicy/AcknowledgementTimeout/AcknowledgementTimeout";
 import EscalationRules from "../../../Components/OnCallPolicy/EscalationRule/EscalationRules";
+import { PagedPeopleIncidentRoleCopy } from "../../../Components/OnCallPolicy/IncidentRole/PagedPeopleIncidentRole";
+import PagedPeopleIncidentRoleCard from "../../../Components/OnCallPolicy/IncidentRole/PagedPeopleIncidentRoleCard";
 import RepeatPolicy from "../../../Components/OnCallPolicy/RepeatPolicy";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
@@ -36,6 +38,14 @@ const OnCallPolicyEscalation: FunctionComponent<
   const [acknowledgementTimeoutMinutes, setAcknowledgementTimeoutMinutes] =
     useState<number | null>(null);
 
+  /*
+   * The name of the incident role the policy gives the people it pages, as
+   * the card under More settings last read or saved it: what the folded
+   * section says it is set to. Null while it gives none; empty for a role
+   * set whose name could not be read.
+   */
+  const [incidentRoleName, setIncidentRoleName] = useState<string | null>(null);
+
   return (
     <Fragment>
       {/*
@@ -54,9 +64,9 @@ const OnCallPolicyEscalation: FunctionComponent<
 
       {/*
        * Paging again when it is acknowledged but not resolved (issue
-       * #5123): most teams never need it, so it waits, folded, under More
-       * settings - which names it, and says what it is set to while it is
-       * on.
+       * #5123), and the incident role the people it pages are given: most
+       * teams never need them, so they wait, folded, under More settings -
+       * which names them, and says what each is set to while it is on.
        */}
       <div className="mt-6">
         <AdvancedPageSection
@@ -76,11 +86,26 @@ const OnCallPolicyEscalation: FunctionComponent<
                     )
                   : undefined,
             }),
+            // At its card's place too (#incident-role).
+            foldedSectionItem(PagedPeopleIncidentRoleCopy.cardTitle, {
+              isSet: incidentRoleName !== null,
+              value: incidentRoleName || undefined,
+            }),
           ]}
         >
+          {/*
+           * Each card a section of its own, a divider between them
+           * (CardSections): a wrapper would sit the card inside More
+           * settings with no divider.
+           */}
           <AcknowledgementTimeoutCard
             onCallDutyPolicyId={modelId}
             onLoaded={setAcknowledgementTimeoutMinutes}
+          />
+
+          <PagedPeopleIncidentRoleCard
+            onCallDutyPolicyId={modelId}
+            onLoaded={setIncidentRoleName}
           />
         </AdvancedPageSection>
       </div>

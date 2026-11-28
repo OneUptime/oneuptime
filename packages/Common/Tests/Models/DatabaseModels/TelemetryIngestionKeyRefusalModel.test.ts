@@ -197,7 +197,27 @@ describe("the refusal reasons it stores", () => {
   test("an ingestion budget refusal is the key's or the project's, by its scope, and a rate or a daily budget, by its kind", () => {
     const answers: Array<[string, string, TelemetryIngestRefusalReason]> = [];
 
-    for (const kind of Object.values(TelemetryIngestionBudgetRefusalKind)) {
+    /*
+     * The kinds a budget refuses with. A queue-backlogged refusal
+     * (TelemetryIngestShedding, #11442) is no budget's: the ingest answers
+     * it 429 before any budget is asked and counts it against no key, as
+     * nothing on the key's page would put it right
+     * (Tests/Server/Middleware/TelemetryIngestShedding.test.ts). Every
+     * other kind is a budget's, and is decided here.
+     */
+    const budgetKinds: Array<TelemetryIngestionBudgetRefusalKind> =
+      Object.values(TelemetryIngestionBudgetRefusalKind).filter(
+        (kind: TelemetryIngestionBudgetRefusalKind): boolean => {
+          return kind !== TelemetryIngestionBudgetRefusalKind.QueueBacklogged;
+        },
+      );
+
+    expect(budgetKinds).toEqual([
+      TelemetryIngestionBudgetRefusalKind.DailyBudgetExhausted,
+      TelemetryIngestionBudgetRefusalKind.RateLimited,
+    ]);
+
+    for (const kind of budgetKinds) {
       for (const scope of Object.values(TelemetryIngestionBudgetScope)) {
         answers.push([
           kind,
@@ -259,7 +279,7 @@ describe("the refusal reasons it stores", () => {
 
     // A team's or a label's reason is one every key of the project shares.
     for (const scope of TELEMETRY_INGESTION_TEAM_LABEL_BUDGET_SCOPES) {
-      for (const kind of Object.values(TelemetryIngestionBudgetRefusalKind)) {
+      for (const kind of budgetKinds) {
         expect(
           PROJECT_WIDE_TELEMETRY_INGEST_REFUSAL_REASONS.has(
             getTelemetryIngestRefusalReasonForBudget({ kind, scope }),

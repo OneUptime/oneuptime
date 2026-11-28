@@ -29,7 +29,10 @@ import * as UncountedCopy from "../../FeatureSet/Dashboard/src/Components/Securi
  * Response Plan. Trusted Proxies, under More settings on Connections, say
  * which proxies may name a client - and what is wrong with a list typed
  * there - and beside them, what is trusted automatically and whether access
- * logs end with X-Forwarded-For (#10546, #10548). Run on Past Events says
+ * logs end with X-Forwarded-For (#10546, #10548), Google's front ends
+ * (#11047) and the format access logs are written in (#11048); and Check a
+ * log line says which proxies a client came through, and why each is
+ * trusted (#11046). Run on Past Events says
  * how many matching events a rule that counts per value could not count,
  * and a rule's row on Detection Rules says it for the last day (#10547). A
  * German, Japanese or Arabic reader meets none of it in English.
@@ -52,8 +55,25 @@ const PLURALS: ReadonlyArray<PluralTemplate> = [
   UncountedCopy.UNCOUNTED_ROW_LINE_NOTHING,
 ];
 
+/*
+ * Plurals that name what they count instead of drawing a number: why
+ * Google's front ends are not trusted, naming the TCP or SSL proxy load
+ * balancer, or the several, that connect from them too (#11047).
+ */
+const NAMED_PLURALS: ReadonlyArray<{ plural: PluralTemplate; names: string }> =
+  [
+    { plural: ProxiesCopy.GOOGLE_FRONT_ENDS_WITHHELD, names: "loadBalancers" },
+    // The target groups of an AWS Network Load Balancer that drop the client's address (#11389).
+    {
+      plural: ProxiesCopy.PASS_ON_CLIENT_IP_NOT_PRESERVED,
+      names: "targetGroups",
+    },
+  ];
+
 const SENTENCES: ReadonlyArray<string> = [
   ...sentencesOf(ClaimedCopy),
+  // Why Check a log line says each proxy is trusted (#11046).
+  ...Object.values(ClaimedCopy.FORWARDED_BY_REASONS),
   ...sentencesOf(ProxiesCopy),
   ...sentencesOf(UncountedCopy),
 ];
@@ -61,15 +81,29 @@ const SENTENCES: ReadonlyArray<string> = [
 // Every key: each sentence, and each plural's general form and its "one".
 const KEYS: ReadonlyArray<string> = [
   ...SENTENCES,
-  ...PLURALS.flatMap((plural: PluralTemplate): Array<string> => {
+  ...[
+    ...PLURALS,
+    ...NAMED_PLURALS.map(
+      (named: { plural: PluralTemplate }): PluralTemplate => {
+        return named.plural;
+      },
+    ),
+  ].flatMap((plural: PluralTemplate): Array<string> => {
     return [plural.other, `${plural.other}_one`];
   }),
 ];
 
 describe("the words for where a request came from, and what a rule could not count", () => {
   test("are each a key the Dashboard's English holds", () => {
-    expect(sentencesOf(ClaimedCopy)).toHaveLength(3);
-    expect(sentencesOf(ProxiesCopy)).toHaveLength(25);
+    // Forwarded By and the edge's reason (#11046), beside the claimed words.
+    expect(sentencesOf(ClaimedCopy)).toHaveLength(5);
+    expect(Object.values(ClaimedCopy.FORWARDED_BY_REASONS)).toHaveLength(4);
+    /*
+     * A range too broad (#11049), Google's front ends (#11047), Log Format
+     * (#11048), and Private Addresses with what is never trusted, even
+     * listed, and the warnings under the list (#11388, #11389).
+     */
+    expect(sentencesOf(ProxiesCopy)).toHaveLength(55);
     expect(sentencesOf(UncountedCopy)).toHaveLength(3);
 
     const english: Record<string, string> = readDashboardLocale("en");
@@ -234,6 +268,62 @@ describe("the words for where a request came from, and what a rule could not cou
             counted: true,
             english: false,
             named: true,
+          });
+        }
+      }
+    }
+  });
+
+  test("why Google's front ends or a Network Load Balancer are not trusted names the load balancers or target groups, one or several, in every language", () => {
+    const english: Translator = dashboardTranslator("en");
+
+    expect(
+      english.translatePlural(ProxiesCopy.GOOGLE_FRONT_ENDS_WITHHELD, 1, {
+        loadBalancers: "tcp-proxy",
+      }),
+    ).toBe(
+      "Not trusted: tcp-proxy is a TCP or SSL proxy load balancer, which passes on what a client writes.",
+    );
+    expect(
+      english.translatePlural(ProxiesCopy.GOOGLE_FRONT_ENDS_WITHHELD, 2, {
+        loadBalancers: "tcp-proxy and ssl-proxy",
+      }),
+    ).toBe(
+      "Not trusted: tcp-proxy and ssl-proxy are TCP or SSL proxy load balancers, which pass on what a client writes.",
+    );
+
+    const cases: Array<{ count: number; loadBalancers: string }> = [
+      { count: 1, loadBalancers: "tcp-proxy" },
+      { count: 2, loadBalancers: "tcp-proxy, ssl-proxy" },
+      { count: 21, loadBalancers: "tcp-proxy-1, tcp-proxy-2" },
+    ];
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const translator: Translator = dashboardTranslator(language);
+
+      for (const { plural, names } of NAMED_PLURALS) {
+        for (const { count, loadBalancers } of cases) {
+          const values: Record<string, string> = { [names]: loadBalancers };
+          const drawn: string = translator.translatePlural(
+            plural,
+            count,
+            values,
+          );
+
+          expect({
+            language,
+            plural: plural.other,
+            count,
+            named: drawn.includes(loadBalancers),
+            english: drawn === english.translatePlural(plural, count, values),
+            unfilled: drawn.includes("{{"),
+          }).toEqual({
+            language,
+            plural: plural.other,
+            count,
+            named: true,
+            english: false,
+            unfilled: false,
           });
         }
       }

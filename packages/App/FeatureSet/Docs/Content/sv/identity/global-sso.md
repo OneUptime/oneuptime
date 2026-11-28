@@ -78,7 +78,7 @@ flowchart TB
 
 - **Inga projekt anslutna (alla projekt / inbjudan först):** Användare kan logga in med leverantören och nå **alla projekt de redan är medlemmar i**. Nya användare skapas **inte** automatiskt — en användare måste först bjudas in till ett projekt. Använd detta för företagsövergripande SSO där medlemskap hanteras på annat håll.
 
-- **Projekt anslutna (automatisk etablering):** Öppna leverantören och använd tabellen **Kopplade projekt** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **etableras automatiskt** i dessa projekt och läggs till i standardteamen vid första inloggningen. Ett projekt som du ansluter börjar med sitt medlemsteam; välj andra team om nya användare ska börja med annan åtkomst. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, ta bort den och lägg till den igen.
+- **Projekt anslutna (automatisk etablering):** Öppna leverantören och använd tabellen **Kopplade projekt** för att ansluta ett eller flera projekt, vart och ett med en uppsättning standardteam. Användare som loggar in **etableras automatiskt** i dessa projekt och läggs till i standardteamen: en ny person vid sin första inloggning, och en person som redan har ett konto, till exempel ett som du har skapat manuellt, vid nästa. Ett projekt som du ansluter börjar med sitt medlemsteam; välj andra team om nya användare ska börja med annan åtkomst. Ett anslutet projekt utan team lägger inte till någon. Lägg till ett projekt + team i taget för att bygga listan; för att ändra en anslutning, ta bort den och lägg till den igen.
 
 Den som redan är medlem i ett anslutet projekt behåller sina team där.
 
@@ -89,7 +89,13 @@ Två frågor på leverantören ändrar detta, hopfällda under **Fler fält**. V
 | **Personer utan konto** | **Får ett vid sin första inloggning**: de går med i de anslutna projekten; är inget anslutet måste de först bjudas in. **Måste bjudas in först**: personer måste vara inbjudna till ett projekt innan de kan logga in med den här leverantören, även när projekt är anslutna. |
 | **Var den här inloggningen räknas som SSO** | **Alla projekt**: projekt som kräver SSO godtar en inloggning med den här leverantören. **Bara anslutna projekt**: inloggning med den här leverantören uppfyller SSO-kravet bara i de projekt som är anslutna till den, så personer som redan är inloggade kan förlora åtkomsten till andra projekt. |
 
-Med **Alla projekt** uppfyller inloggning med leverantören SSO-kravet i alla projekt personen tillhör, och anslutna projekt avgör bara var nya personer läggs till.
+Med **Alla projekt** uppfyller inloggning med leverantören SSO-kravet i alla projekt personen tillhör, och anslutna projekt avgör bara var nya personer läggs till: inget av de två svaren lägger till någon i ett projekt. Så länge inget projekt med team är anslutet står det på leverantörens sida under **Personer utan konto** att inga nya kan logga in än.
+
+## E-postadresser som din identitetsleverantör inte har verifierat
+
+En global OpenID Connect-leverantör hittar kontot som den loggar in utifrån den e-postadress den skickar, precis som ett projekts leverantör, och master admins konton hittas på samma sätt. Därför loggar den inte in någon med en adress som leverantören säger att den inte har verifierat, med ett anspråk `email_verified` som är `false` eller något som varken är true eller false. Annars kunde någon lägga en master admins adress på sitt konto hos leverantören och logga in på hela instansen som hen. En leverantör som skickar `email_verified` som `true`, eller inte skickar det, som Microsoft Entra ID, loggar in folk som förut.
+
+Via authentik 2025.10 och senare loggar ingen in förrän du ändrar dess omfattningsmappning för `email`, och via Keycloak ingen vars adress den inte har verifierat. Vad du ska ändra där, vad som fortfarande loggar in och vad personen ser finns på sidan [SSO](/docs/identity/sso#e-postadresser-som-din-identitetsleverantör-inte-har-verifierat). Master admins med ett lösenord kan logga in med det under tiden, på `/accounts/admin-login` så länge hela instansen kräver SSO.
 
 ## Logga även ut från identitetsleverantören
 
@@ -160,7 +166,7 @@ Två ändringar av vem som kan logga in kontrolleras efter varandra. Sparas en a
 ## Felsökning
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-Personen har ännu inget OneUptime-konto, och leverantören skapar inget: antingen är inga projekt anslutna till den, eller så står **Personer utan konto** på **Måste bjudas in först**. Bjud in personen till ett projekt, eller anslut ett projekt till leverantören.
+Personen har ännu inget OneUptime-konto, och leverantören skapar inget: antingen är inget projekt med team anslutet till den, eller så står **Personer utan konto** på **Måste bjudas in först**. Bjud in personen till ett projekt, eller anslut ett projekt till leverantören, med de team personen går med i. Serverns logg visar vilket av de två skälen det är, utan att nämna personen.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
@@ -183,6 +189,10 @@ För en SAML-leverantör är svarets audience inte leverantörens **Issuer (Enti
 Varje svar från din identitetsleverantör loggar in en enda gång, och bara inom några minuter efter att det utfärdades: därefter avvisas det med "SAML response has expired". Logga in igen. Om svaren fortsätter att gå ut, kontrollera klockorna på den här servern och hos din identitetsleverantör.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect-leverantören skickade `email_verified` som `false`, eller som något som varken är true eller false, så OneUptime loggade inte in någon, inte heller en master admin. Låt verifiera adressen hos din identitetsleverantör, eller markera den som verifierad där, och logga in igen. Se [E-postadresser som din identitetsleverantör inte har verifierat](#e-postadresser-som-din-identitetsleverantör-inte-har-verifierat).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 Hela instansen kräver SSO, och det här var en inloggning med lösenord, passnyckel, en länk via e-post, Google eller Microsoft, eller en registrering. Logga in med en av SSO-knapparna på inloggningssidan i stället. En master admin loggar in med sitt lösenord på `/accounts/admin-login`; för att låta alla logga in med lösenord igen stänger personen av **Kräv SSO för inloggning** på **Enkel inloggning**.
 :::
@@ -193,5 +203,5 @@ Hela instansen kräver SSO, och det här var en inloggning med lösenord, passny
 - [SSO](/docs/identity/sso): Konfigurera ett projekts egen SAML- eller OIDC-leverantör.
 - [SCIM](/docs/identity/scim): Låt din identitetsleverantör lägga till och ta bort personer automatiskt.
 - [Användare, team och behörigheter](/docs/permissions/index): Vad teamen som nya personer går med i låter dem göra.
-- [Hjälp och support](/docs/self-hosted/help-and-support): Tala om för personer som behöver en inbjudan vem de ska fråga.
+- [Hjälp och support](/docs/self-hosted/help-and-support): Berätta för personer som behöver en inbjudan vem de ska fråga.
 :::

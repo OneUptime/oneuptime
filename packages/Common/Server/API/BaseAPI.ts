@@ -29,16 +29,23 @@ import MoveInListUtil, {
   MoveInListRequest,
   MoveInListResult,
 } from "../../Types/Database/MoveInList";
-import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnValue";
-import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
-import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
-import { coerceTextColumnsInJSON } from "../../Types/Database/TextColumnValue";
+import {
+  readCrudCreateItem,
+  readCrudUpdateData,
+} from "../Utils/Database/CrudRouteWrites";
 import ListChangesUtil, { ListChanges } from "../../Types/Database/ListChanges";
 import FieldsLeftOut, {
   FIELDS_LEFT_OUT_HEADER,
 } from "../../Types/API/FieldsLeftOut";
 import ListEntries from "../Utils/Database/ListEntries";
 import RetiredColumns from "../Utils/Database/RetiredColumns";
+import RecordOwnershipRoute from "./RecordOwnershipRoute";
+import KindsWithOwners from "../../Types/Database/AccessControl/KindsWithOwners";
+import MarkdownFiles from "../Utils/File/MarkdownFiles";
+import {
+  MARKDOWN_FILES_ROUTE,
+  MarkdownFilesResult,
+} from "../../Types/File/MarkdownFiles";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
@@ -137,6 +144,50 @@ export default class BaseAPI<
       },
     );
 
+    /*
+     * The pictures a record's Markdown shows - an incident's description, a
+     * Markdown custom field, a note - with their names, types and bytes, for
+     * an API key or a signed-in person (#11256):
+     *
+     *   GET or POST /<path>/:id/markdown-files
+     *
+     * The image's own address opens it only for a person signed in to the
+     * project, whatever records they may read; here the record is read as
+     * the caller, and only what the Markdown they may read shows is handed
+     * out (MarkdownFiles). Only for a model whose records can show files in
+     * Markdown.
+     */
+    if (MarkdownFiles.canShowFiles(new this.entityType())) {
+      const markdownFilesPath: string = `${new this.entityType().getCrudApiPath()?.toString()}/:id${MARKDOWN_FILES_ROUTE}`;
+      const readMarkdownFiles: (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ) => Promise<void> = async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          await this.getMarkdownFiles(req, res);
+        } catch (err) {
+          next(err);
+        }
+      };
+
+      // Each verb by its name, so the routes guard reads both (ProductCustomRoutesGuard).
+      router.get(
+        markdownFilesPath,
+        UserMiddleware.getUserMiddleware,
+        readMarkdownFiles,
+      );
+      router.post(
+        markdownFilesPath,
+        UserMiddleware.getUserMiddleware,
+        readMarkdownFiles,
+      );
+    }
+
     // Update
     router.put(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id`,
@@ -197,6 +248,21 @@ export default class BaseAPI<
      * means, is its own request. A request with no session is answered 401,
      * so an idle tab refreshes it.
      */
+    /*
+     * Who owns the records a page shows, for a kind with owner tables of its
+     * own: POST /<path>/record-ownership { "ids": [...] } (#11436,
+     * Types/RecordAccess/RecordOwnership). A record's page and a list read
+     * it once, and lock the changes a grant scoped to Owned does not reach
+     * with the reason, by the shared rule.
+     */
+    if (KindsWithOwners.hasOwnerTables(new this.entityType().tableName)) {
+      RecordOwnershipRoute.register({
+        router: router,
+        apiPath: `${new this.entityType().getCrudApiPath()?.toString()}`,
+        service: service as unknown as DatabaseService<BaseModel>,
+      });
+    }
+
     if (MoveInListUtil.getListColumn(new this.entityType())) {
       router.post(
         `${new this.entityType().getCrudApiPath()?.toString()}${MOVE_IN_LIST_ROUTE}`,
@@ -527,6 +593,48 @@ export default class BaseAPI<
     });
   }
 
+  /*
+   * The pictures the record's Markdown shows, as the caller may have them
+   * (MarkdownFiles): { files: [...], leftOut: [...] }. Who is asking comes
+   * first: an anonymous request is answered 401, whatever the id. A record
+   * that does not exist, or the caller may not read, is answered 404, as
+   * getItem answers it. Never cached: what comes back is the caller's.
+   */
+  @CaptureSpan()
+  public async getMarkdownFiles(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    CommonAPI.assertCredentialsPresent(props);
+
+    const recordId: string = (req.params["id"] || "").trim().toLowerCase();
+
+    if (!ObjectID.isValidUUID(recordId)) {
+      throw new NotFoundException(
+        MarkdownFiles.getNotFoundMessage(new this.entityType()),
+      );
+    }
+
+    await this.onBeforeGet(req, res);
+
+    const result: MarkdownFilesResult = await MarkdownFiles.readRecordFiles({
+      service: this.service,
+      recordId: new ObjectID(recordId),
+      props: props,
+    });
+
+    Response.setNoCacheHeaders(res);
+
+    return Response.sendJsonObjectResponse(
+      req,
+      res,
+      result as unknown as JSONObject,
+    );
+  }
+
   @CaptureSpan()
   public async deleteItem(
     req: ExpressRequest,
@@ -699,23 +807,15 @@ export default class BaseAPI<
      * holds, as on a create. See Types/Database/TextColumnValue.
      */
 
-    const item: PartialEntity<TBaseModel> = coerceTextColumnsInJSON(
-      coerceBooleanColumnsInJSON(
-        coerceDateColumnsInJSON(
-          coerceNumericColumnsInJSON(
-            JSONFunctions.deserialize(dataInBody as JSONObject),
-            entityModel,
-          ),
-          entityModel,
-        ),
-        entityModel,
-      ),
+    /*
+     * Read as CrudRouteWrites reads every write of a record through the
+     * API, so an action that makes a button's write (#10378) coerces
+     * exactly as this route does.
+     */
+    const item: PartialEntity<TBaseModel> = readCrudUpdateData(
+      dataInBody as JSONObject,
       entityModel,
-    ) as PartialEntity<TBaseModel>;
-
-    delete (item as any)["_id"];
-    delete (item as any)["createdAt"];
-    delete (item as any)["updatedAt"];
+    );
 
     /*
      * An update that carries no columns writes nothing. Saying 200 to that is
@@ -785,12 +885,10 @@ export default class BaseAPI<
     await this.onBeforeCreate(req, res);
     const body: JSONObject = req.body;
 
-    const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
-      body["data"] as JSONObject,
-      this.entityType,
-    ) as TBaseModel;
-
     /*
+     * Read as CrudRouteWrites reads every create through the API, so an
+     * action that makes a button's create (#10378) builds the same row.
+     *
      * A create builds a brand-new row, so it must not carry the row's own
      * primary key. getRepository().save() treats an entity that already has an
      * id as an update of the existing row rather than an insert, so a stray
@@ -822,7 +920,10 @@ export default class BaseAPI<
      * untouched. `id` needs no handling: it is a prototype accessor derived
      * from `_id` (never an own property), and its setter ignores falsy values.
      */
-    (item as any)["_id"] = undefined;
+    const item: TBaseModel = readCrudCreateItem<TBaseModel>(
+      body["data"] as JSONObject,
+      this.entityType,
+    );
 
     const miscDataProps: JSONObject = JSONFunctions.deserialize(
       body["miscDataProps"] as JSONObject,

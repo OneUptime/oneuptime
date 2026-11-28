@@ -52,6 +52,10 @@ import {
   isVMwareHostRunning,
   mergeVMwareSeverities,
 } from "../../../Pages/VMware/Utils/VMwareHealth";
+import {
+  VMwareHealthRules,
+  isPastVMwareHealthThreshold,
+} from "Common/Types/VMware/VMwareHealthRules";
 
 /*
  * A vCenter's topology: vCenter > datacenter > cluster > ESXi host > virtual
@@ -65,8 +69,9 @@ import {
  * so a part is red or amber on the map for exactly the reason its page, its
  * list and the Overview's Needs attention give: an ESXi host vCenter cannot
  * reach is critical, one powered off or in standby is off, a busy one needs
- * attention; a VM the host swaps is critical, one ballooned or waiting for a
- * CPU needs attention; a datastore past 90% is critical and past 80% needs
+ * attention; a VM whose memory the host is swapping out is critical, one
+ * reading swapped memory back, ballooned or waiting for a CPU needs
+ * attention; a datastore past 90% is critical and past 80% needs
  * attention; a cluster with a host that is not responding is critical, one
  * running with hosts that are not effective, or without the memory to lose
  * a host, needs attention; a datacenter's own alarm counts say what no part
@@ -101,6 +106,8 @@ export interface VMwareTopologyInput {
   now: Date;
   /* Rows in the inventory, when more were there than were read. */
   totalRows?: number | undefined;
+  // The project's health rules (VMware > Settings > Health Rules).
+  rules?: VMwareHealthRules | undefined;
 }
 
 /* `vcenter.vm.id` for a VM, `vcenter.host.name` for a host, ...: the URL id. */
@@ -169,6 +176,7 @@ interface VMwareTopologyContext {
   datacenters: Array<VMwareResource>;
   hosts: Array<VMwareResource>;
   now: Date;
+  rules?: VMwareHealthRules | undefined;
 }
 
 function assessDatacenter(
@@ -243,23 +251,34 @@ function assessCluster(
   };
 }
 
-function usageFacts(row: VMwareResource): Array<ResourceTopologyFact> {
+function usageFacts(
+  row: VMwareResource,
+  rules?: VMwareHealthRules | undefined,
+): Array<ResourceTopologyFact> {
   const facts: Array<ResourceTopologyFact> = [];
   const cpu: number | null = toFiniteNumber(row.latestCpuPercent);
   const memory: number | null = toFiniteNumber(row.latestMemoryPercent);
+  const cpuLine: number | null = rules
+    ? rules.hostCpuWarningPercent
+    : VMWARE_HOST_SATURATION_PERCENT;
+  const memoryLine: number | null = rules
+    ? rules.hostMemoryWarningPercent
+    : VMWARE_HOST_SATURATION_PERCENT;
 
   if (cpu !== null) {
     facts.push({
       label: translationKey("CPU"),
       value: formatTopologyPercent(cpu),
-      tone: cpu > VMWARE_HOST_SATURATION_PERCENT ? "warning" : undefined,
+      tone: isPastVMwareHealthThreshold(cpu, cpuLine) ? "warning" : undefined,
     });
   }
   if (memory !== null) {
     facts.push({
       label: translationKey("Memory"),
       value: formatTopologyPercent(memory),
-      tone: memory > VMWARE_HOST_SATURATION_PERCENT ? "warning" : undefined,
+      tone: isPastVMwareHealthThreshold(memory, memoryLine)
+        ? "warning"
+        : undefined,
     });
   }
   return facts;
@@ -283,12 +302,14 @@ function assessHost(
       host: row,
       datacenter: datacenter,
       now: context.now,
+      rules: context.rules,
     }),
   );
   const assessment: VMwareAssessment = assessVMwareHost({
     host: row,
     datacenter: datacenter,
     now: context.now,
+    rules: context.rules,
   });
 
   if (
@@ -309,7 +330,7 @@ function assessHost(
     health: healthOf(assessment.severity),
     status: status,
     reasons: assessment.reasons.map(toTopologyText),
-    facts: isVMwareHostRunning(state) ? usageFacts(row) : [],
+    facts: isVMwareHostRunning(state) ? usageFacts(row, context.rules) : [],
   };
 }
 
@@ -323,6 +344,7 @@ function assessVirtualMachine(
       now: context.now,
       hosts: context.hosts,
       datacenters: context.datacenters,
+      rules: context.rules,
     }),
   );
 
@@ -352,6 +374,7 @@ function assessVirtualMachine(
   const assessment: VMwareAssessment = assessVMwareVirtualMachine({
     vm: row,
     now: context.now,
+    rules: context.rules,
   });
 
   return {
@@ -383,6 +406,7 @@ function assessDatastore(
   const status: ResourcePartStatus = getVMwareDatastoreStatus({
     datastore: row,
     now: context.now,
+    rules: context.rules,
   });
   if (!status.values) {
     // No size reported yet, or not reported lately: nothing to judge.
@@ -397,6 +421,7 @@ function assessDatastore(
   const assessment: VMwareAssessment = assessVMwareDatastore({
     datastore: row,
     now: context.now,
+    rules: context.rules,
   });
 
   return {
@@ -495,6 +520,7 @@ export function buildVMwareTopology(
     datacenters: rowsOf(VMwareResourceKind.Datacenter),
     hosts: rowsOf(VMwareResourceKind.Host),
     now: input.now,
+    rules: input.rules,
   };
 
   const root: Assessment = assessVCenter(input.vcenter, input.rows, input.now);

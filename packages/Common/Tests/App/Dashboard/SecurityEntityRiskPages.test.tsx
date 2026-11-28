@@ -898,8 +898,12 @@ describe("Security Events > Entity Risk", () => {
     expect(cell("Found By", riskRow({ contributions: [] }))).toHaveTextContent(
       QUIET_DASH_TEXT,
     );
-    // Said as every "last seen" in the product says it.
-    expect(cell("Last Finding", riskRow({}))).toHaveTextContent(
+    /*
+     * Said as every "last seen" in the product says it, and read as written:
+     * once the fixed time reads with a number, it holds its unit with a
+     * no-break space (#8669).
+     */
+    expect(cell("Last Finding", riskRow({})).textContent).toContain(
       OneUptimeDate.fromNow(new Date(minutesAgo(9))),
     );
 
@@ -1479,14 +1483,19 @@ describe("an entity's page", () => {
     expect(header()).toHaveTextContent("A case opens at 100");
     expect(header()).toHaveTextContent("3 sources");
     const row: SecurityEntityRisk = rows[0]!;
-    expect(header()).toHaveTextContent(
+    /*
+     * Read as written: a number holds its unit with a no-break space
+     * (#8669), which toHaveTextContent reads as a plain one. The rows' times
+     * are fixed and the page reads them from now, so each one reads with a
+     * number ("2 months ago") sooner or later.
+     */
+    expect(header().textContent).toContain(
       `Counting since ${OneUptimeDate.fromNow(row.firstRiskAt!)}, last finding ${OneUptimeDate.fromNow(row.lastRiskAt!)}`,
     );
-    // Read as written: the number holds its unit with a no-break space (#8669).
     expect(header().textContent).toContain(
       `Falls ${OneUptimeDate.fromNow(row.riskExpiresAt!)}, as its oldest source stops counting`,
     );
-    expect(header()).toHaveTextContent(
+    expect(header().textContent).toContain(
       `Its risk last opened or joined a case ${OneUptimeDate.fromNow(row.riskCaseAt!)}`,
     );
     // Not weighed: no criticality, no sum.

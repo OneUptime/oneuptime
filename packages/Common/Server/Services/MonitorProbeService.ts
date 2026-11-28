@@ -30,14 +30,49 @@ import {
   SET_ASIDE_SPREAD_IN_MINUTES,
 } from "../Utils/Probe/ClaimSetAside";
 import MonitorTieOnProbeChange from "../Utils/NetworkDevice/MonitorTieOnProbeChange";
+import MonitorProbeSchedules, {
+  KnownSchedules,
+  ScheduledRun,
+} from "../Utils/Probe/MonitorProbeSchedules";
+import ProbeSchedulingMetrics, {
+  MonitorHandedOut,
+} from "../Utils/Probe/ProbeSchedulingMetrics";
+import ClaimedMonitor, {
+  ClaimedMonitorRow,
+} from "../Utils/Probe/ClaimedMonitor";
 
 /*
- * How many due rows claimMonitorProbesForProbing reads for each one it may
- * claim: the rows it reads are not locked, so another ingest instance
- * claiming for the same probe at the same moment may take some of them
- * first, and the rest still fill the batch.
+ * The most monitor probes one claim hands out (claimMonitorProbesForProbing),
+ * whatever the probe asks for: far more than a probe's fetch
+ * (PROBE_MONITOR_FETCH_LIMIT) is ever set to, and few enough that one
+ * statement never locks a probe's whole fleet.
  */
-export const CLAIM_CANDIDATES_PER_MONITOR_PROBE: number = 2;
+export const MAX_MONITOR_PROBES_PER_CLAIM: number = 5000;
+
+// A row the claim's statement answers with.
+interface ClaimedMonitorProbeRow extends ClaimedMonitorRow {
+  // Null on the one row answered when nothing was claimed.
+  _id?: string | null;
+  // When its schedule made it due: its nextPingAt before the claim.
+  dueAt?: Date | string | null;
+  monitoringInterval?: string | null;
+  // Whether the statement wrote its next run (its schedule was known).
+  scheduled?: boolean | null;
+  // Whether the read stepped over a due row nothing may probe.
+  steppedOver?: boolean | null;
+}
+
+/*
+ * A monitor probe a claim handed out, with its monitor as the probe is
+ * handed it (ClaimedMonitor): read by the claim's own statement, so a
+ * probe's request for monitors is one round trip (#11120).
+ */
+export interface ClaimedMonitorProbe {
+  // The MonitorProbe row claimed.
+  monitorProbeId: ObjectID;
+  // Its monitor: id, project, type, interval and steps.
+  monitor: Monitor;
+}
 
 /*
  * The most a probe's pending count reports (countMonitorProbesDueForProbing).
@@ -57,6 +92,20 @@ export const PENDING_MONITOR_PROBE_COUNT_CAP: number = 10000;
 export const PROBES_PER_LATE_CHECK_READ: number = 500;
 
 export class Service extends ProjectReferencesService<MonitorProbe> {
+  /*
+   * The schedules this process has handed monitors out on, so a claim
+   * writes their next runs in its own statement (MonitorProbeSchedules).
+   */
+  private readonly schedules: MonitorProbeSchedules = new MonitorProbeSchedules(
+    (data: {
+      monitoringInterval: string;
+      fallback: Date;
+      onUnreadable: () => void;
+    }): Date => {
+      return Service.resolveNextPingAt(data);
+    },
+  );
+
   public constructor() {
     super(MonitorProbe);
   }
@@ -237,26 +286,34 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * SKIP LOCKED keeps horizontally-scaled probe ingest instances (and a
    * probe running as several replicas) from handing one monitor out twice.
    *
-   * Two auto-committed statements, never a transaction (OneUptime issue
-   * #7194, where the network device twin of this claim did the damage). The
-   * claim used to SELECT ... FOR UPDATE up to `limit` rows, work out each
-   * one's next run in Node - a cron read per row - then UPDATE and COMMIT,
-   * so every claimed row stayed locked across those round trips and for as
-   * long as a loaded app took to get back to the connection. A probe
-   * result being stored for one of those monitors (MonitorResource's
-   * lastMonitoringLog write) queued behind the lock, and past lock_timeout
-   * failed its whole job.
+   * ONE auto-committed statement, never a transaction (OneUptime issue
+   * #7194): it reads the probe's due rows oldest first, locks those nobody
+   * else holds (FOR NO KEY UPDATE SKIP LOCKED, the lock its UPDATE takes
+   * anyway), writes each one's lastPingAt and next run, and lets go of them
+   * when it ends - Postgres releases the locks whatever the app does next.
+   * The claim used to SELECT ... FOR UPDATE, work out each next run in Node
+   * and UPDATE, holding every row's lock across those round trips (#7194);
+   * then it became two statements - a read of the due rows without a lock,
+   * and a claim of those still due that nobody held.
    *
-   * Now: (1) the due rows are read without a lock - more of them than
-   * asked for, CLAIM_CANDIDATES_PER_MONITOR_PROBE times `limit`, so a probe
-   * replica racing another one for the same rows still finds rows to
-   * claim; (2) each one's next run is worked out in Node, once per distinct
-   * interval; (3) one statement claims up to `limit` of them - only rows
-   * nobody else holds (FOR NO KEY UPDATE SKIP LOCKED, the lock its UPDATE
-   * takes anyway) and that are still due when it locks them: a row another
-   * instance claimed in between has a nextPingAt in the future by then and
-   * is passed over. Postgres releases the locks when that statement ends,
-   * whatever the app is doing.
+   * Two statements lost work under load (OneUptime issue #10819). Claims for
+   * the same probe made at the same moment - its workers, its replicas, the
+   * App replicas they reach - all read the same oldest rows, so all but one
+   * found them taken by the time they claimed: an empty batch, while
+   * thousands were due. A probe reads a short batch as "nothing more is
+   * due" and waits for its next minute, so its workers stopped one by one:
+   * measured with 39,700 assignments on one probe, 110 monitors handed out
+   * a second against the 1,200 its replicas could check. Now each claim's
+   * read skips what another claim holds and goes on to the next rows: claims
+   * made at once hand out the next rows each, never nothing.
+   *
+   * The next runs are written by the same statement: Postgres cannot read a
+   * cron expression, so they are worked out in Node before it, for every
+   * schedule this process has seen (MonitorProbeSchedules), and bound as
+   * two arrays. A row whose schedule is new to the process is written a
+   * minute on, then given its real next run right after
+   * (scheduleNewIntervals); one whose schedule cannot be read stays at a
+   * minute on, as it always has.
    *
    * The subscription predicate admits a project with no subscription (NULL)
    * or one whose status is in
@@ -275,9 +332,9 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * all until it is unblocked, as ProjectService's
    * getActiveProjectStatusQuery says for every other monitoring path.
    *
-   * The read is a range scan of the (probeId, isEnabled, nextPingAt) index
-   * that stops once it has its candidates: `nextPingAt <= now`, oldest
-   * first, in the index's own order. It used to read
+   * The read is a range scan of the (probeId, isEnabled, nextPingAt,
+   * lastPingAt) index that stops once it has its rows: `nextPingAt <= now`,
+   * oldest first, in the index's own order. It used to read
    * `(nextPingAt IS NULL OR nextPingAt <= now)` ordered `ASC NULLS FIRST`,
    * which no ASC NULLS LAST btree can serve, so every claim read EVERY due
    * row of the probe, joined each to its monitor and project, sorted them
@@ -287,110 +344,258 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * A NULL nextPingAt was only ever a legacy row (a new one is due at
    * creation); setAsideUnprobeable makes any it finds due now.
    *
-   * After the claim, the rows the read had to step over - due, but nothing
-   * may probe them - are set aside (setAsideUnprobeable), so the next claim
-   * does not step over them again. The same probe with its paused monitors
-   * set aside: 163 buffers.
+   * Rows due at the same moment are handed out by when each was last
+   * handed out, oldest first (OneUptime issue #11386): lastPingAt, which
+   * this statement writes. Each claimed row is stamped with its schedule's
+   * next run, a whole minute, so all of a probe's one-minute monitors are
+   * due at the same instant, and a busy probe hands them out over a round of
+   * several claims. Ordered by nextPingAt alone, Postgres answered rows due
+   * at the same instant in the order its index held them - where each
+   * row's last write put it in the table, which moves as these writes move
+   * the rows and vacuum frees their room - so a busy probe checked a
+   * monitor anywhere in its round, somewhere else each minute: a minute
+   * apart give or take the round (16 s of a 19 s round measured, with the
+   * probe's one worker and 300 monitors). Now each round hands them out as
+   * the round before did, so a monitor keeps its place and its checks are a
+   * minute apart. And when a probe falls behind - its round runs past the
+   * next minute, so what it reaches after the minute is stamped with the
+   * minute after and misses one - those go first the next time, having
+   * waited longest: the minutes missed go round the probe's monitors
+   * instead of falling on whichever the table put last, as they would by
+   * any fixed key (an id). A row never handed out (no lastPingAt: only rows
+   * written before it was always set) waits behind the others due with it,
+   * in the same round: NULLS LAST, as the index holds them. The order is the
+   * index's own, so the read still sorts nothing; the wider key costs every
+   * claimed row nothing more, since its index entry is written anyway.
    *
-   * Returns the ids of the MonitorProbe rows it claimed.
+   * The same statement says whether the read stepped over a due row nothing
+   * may probe (a paused monitor, a blocked project) - one of the first
+   * SET_ASIDE_PER_CLAIM due before the first row it claimed, each looked up
+   * by its monitor's and project's primary key (LATERAL ... LIMIT 1, which
+   * the planner cannot turn into a join: joined, the range was planned as a
+   * hash join over the whole Monitor table while other claims held 40
+   * rows, 1,588 pages) - or the probe has a row with no nextPingAt. Only then are
+   * they set aside (setAsideUnprobeable), so the next claim does not step
+   * over them again; a probe with nothing to set aside pays no statement
+   * for it. The same probe with its paused monitors set aside: 163 buffers.
+   *
+   * Each monitor handed out is counted with how late it was, past when its
+   * schedule made it due (ProbeSchedulingMetrics: dispatch lag).
+   *
+   * The same statement hands back each claimed row's monitor as the probe
+   * is handed it - its id, project, type, interval and steps (ClaimedMonitor),
+   * read with the row by the claim's own join - so the probe's answer needs
+   * no second read (OneUptime issue #11120). It used to be read again by
+   * primary key after the claim: a second round trip for every request,
+   * holding the request's probe scheduling slot. With every statement 50 ms
+   * slower, as on a busy database, that read was 52 of a request's 124 ms.
+   *
+   * Returns the MonitorProbe rows it claimed in the order it took them -
+   * oldest due first, then longest ago handed out - each with its monitor.
    */
   public async claimMonitorProbesForProbing(data: {
     probeId: ObjectID;
     limit: number;
-  }): Promise<Array<ObjectID>> {
+  }): Promise<Array<ClaimedMonitorProbe>> {
     const currentDate: Date = OneUptimeDate.getCurrentDate();
-    const activeSubscriptionStatuses: Array<string> =
-      SubscriptionStatusUtil.getActiveSubscriptionStatuses();
-
-    const candidateQuery: string = `
-        SELECT mp."_id", mp."nextPingAt", m."monitoringInterval"
-        FROM "MonitorProbe" mp
-        INNER JOIN "Monitor" m ON mp."monitorId" = m."_id"
-        INNER JOIN "Project" p ON mp."projectId" = p."_id"
-        WHERE mp."probeId" = $1
-          AND mp."isEnabled" = true
-          AND mp."nextPingAt" <= $2
-          AND ${Service.getProbeableSql("$4")}
-        ORDER BY mp."nextPingAt" ASC
-        LIMIT $3
-      `;
-
-    const candidateRows: unknown = await this.getRepository().manager.query(
-      candidateQuery,
-      [
-        data.probeId.toString(),
-        currentDate,
-        data.limit * CLAIM_CANDIDATES_PER_MONITOR_PROBE,
-        activeSubscriptionStatuses,
-      ],
-    );
-
-    const candidates: Array<{
-      _id: string;
-      nextPingAt?: Date | string | null;
-      monitoringInterval: string | null;
-    }> = Array.isArray(candidateRows) ? candidateRows : [];
-
-    const claimed: Array<ObjectID> =
-      candidates.length > 0
-        ? await this.claimCandidates({
-            probeId: data.probeId,
-            limit: data.limit,
-            currentDate: currentDate,
-            candidates: candidates,
-          })
-        : [];
-
-    /*
-     * Everything due before the first candidate was stepped over by the
-     * read, so nothing may probe it right now. With no candidate at all,
-     * everything due was: "before" a millisecond past now is everything
-     * due, the statement asks for `<= now` as well.
-     */
-    const firstCandidateDueAt: Date | null = Service.toDate(
-      candidates[0]?.nextPingAt,
-    );
-
-    await this.setAsideUnprobeableSafely({
-      probeId: data.probeId,
-      currentDate: currentDate,
-      dueBefore: firstCandidateDueAt || new Date(currentDate.getTime() + 1),
-    });
-
-    return claimed;
-  }
-
-  /*
-   * The second half of claimMonitorProbesForProbing: each candidate's next
-   * run worked out in Node, then one statement that claims those still due
-   * that nobody else holds and writes their schedule. Returns what it
-   * claimed.
-   */
-  private async claimCandidates(data: {
-    probeId: ObjectID;
-    limit: number;
-    currentDate: Date;
-    candidates: Array<{ _id: string; monitoringInterval: string | null }>;
-  }): Promise<Array<ObjectID>> {
-    const currentDate: Date = data.currentDate;
-    const candidates: Array<{
-      _id: string;
-      monitoringInterval: string | null;
-    }> = data.candidates;
-
-    const defaultNextPing: Date = OneUptimeDate.addRemoveMinutes(
+    const fallbackNextPing: Date = OneUptimeDate.addRemoveMinutes(
       currentDate,
       1,
     );
+    const known: KnownSchedules =
+      this.schedules.knownSchedules(fallbackNextPing);
+
+    const claimQuery: string = `
+        WITH "claimable" AS (
+          SELECT mp."_id", mp."nextPingAt" AS "dueAt",
+            mp."lastPingAt" AS "lastHandedOutAt", m."monitoringInterval",
+            ${ClaimedMonitor.COLUMNS.join(", ")}
+          FROM "MonitorProbe" mp
+          INNER JOIN "Monitor" m ON mp."monitorId" = m."_id"
+          INNER JOIN "Project" p ON mp."projectId" = p."_id"
+          WHERE mp."probeId" = $1
+            AND mp."isEnabled" = true
+            AND mp."nextPingAt" <= $2
+            AND ${Service.getProbeableSql("$4")}
+          ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC
+          LIMIT $3
+          FOR NO KEY UPDATE OF mp SKIP LOCKED
+        ),
+        "schedule" AS (
+          SELECT * FROM unnest($5::text[], $6::timestamptz[])
+            AS s("monitoringInterval", "nextPingAt")
+        ),
+        "claimed" AS (
+          UPDATE "MonitorProbe" AS mp
+          SET "lastPingAt" = $2,
+              "nextPingAt" = COALESCE(s."nextPingAt", $7::timestamptz)
+          FROM "claimable" c
+          LEFT JOIN "schedule" s
+            ON s."monitoringInterval" = c."monitoringInterval"
+          WHERE mp."_id" = c."_id"
+          RETURNING mp."_id", c."dueAt", c."lastHandedOutAt",
+            c."monitoringInterval",
+            (s."nextPingAt" IS NOT NULL) AS "scheduled",
+            ${ClaimedMonitor.COLUMNS_OF_CLAIMED.join(", ")}
+        ),
+        "flags" AS (
+          SELECT (
+            EXISTS (
+              SELECT 1
+              FROM (
+                SELECT mp."monitorId", mp."projectId", mp."deletedAt"
+                FROM "MonitorProbe" mp
+                WHERE mp."probeId" = $1
+                  AND mp."isEnabled" = true
+                  AND mp."nextPingAt" <= $2
+                  AND mp."nextPingAt" < COALESCE(
+                    (SELECT min("dueAt") FROM "claimable"),
+                    $2 + INTERVAL '1 millisecond'
+                  )
+                ORDER BY mp."nextPingAt" ASC
+                LIMIT $8
+              ) mp
+              LEFT JOIN LATERAL (
+                SELECT * FROM "Monitor" m
+                WHERE m."_id" = mp."monitorId"
+                LIMIT 1
+              ) m ON true
+              LEFT JOIN LATERAL (
+                SELECT * FROM "Project" p
+                WHERE p."_id" = mp."projectId"
+                LIMIT 1
+              ) p ON true
+              WHERE (
+                ${Service.getProbeableSql("$4")}
+              ) IS NOT TRUE
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM "MonitorProbe" mp
+              WHERE mp."probeId" = $1
+                AND mp."isEnabled" = true
+                AND mp."nextPingAt" IS NULL
+            )
+          ) AS "steppedOver"
+        )
+        SELECT c."_id", c."dueAt", c."monitoringInterval", c."scheduled",
+          ${ClaimedMonitor.COLUMNS_OF_CLAIMED.join(", ")},
+          f."steppedOver"
+        FROM "flags" f
+        LEFT JOIN "claimed" c ON true
+        ORDER BY c."dueAt" ASC NULLS FIRST, c."lastHandedOutAt" ASC
+      `;
 
     /*
-     * One cron read per distinct interval, however many monitors share it;
-     * an interval that cannot be read is remembered as such.
+     * A SELECT of the rows the UPDATE wrote, so the answer is those rows:
+     * TypeORM hands a top-level UPDATE ... RETURNING back as
+     * [rows, rowCount] instead. One row with no _id when nothing was
+     * claimed, for the flag.
      */
-    const nextPingByInterval: Map<string, Date | null> = new Map<
-      string,
-      Date | null
-    >();
+    const answer: unknown = await this.getRepository().manager.query(
+      claimQuery,
+      [
+        data.probeId.toString(),
+        currentDate,
+        Service.claimLimit(data.limit),
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        known.intervals,
+        known.nextPingAts,
+        fallbackNextPing,
+        SET_ASIDE_PER_CLAIM,
+      ],
+    );
+
+    const rows: Array<ClaimedMonitorProbeRow> = Array.isArray(answer)
+      ? (answer as Array<ClaimedMonitorProbeRow>)
+      : [];
+    const claimed: Array<ClaimedMonitorProbeRow> = rows.filter(
+      (row: ClaimedMonitorProbeRow): boolean => {
+        return Boolean(row._id);
+      },
+    );
+
+    await this.scheduleNewIntervals({
+      claimed: claimed,
+      currentDate: currentDate,
+      fallbackNextPing: fallbackNextPing,
+    });
+
+    ProbeSchedulingMetrics.recordMonitorsHandedOut({
+      handedOutAt: currentDate,
+      monitors: claimed.map((row: ClaimedMonitorProbeRow): MonitorHandedOut => {
+        return {
+          dueAt: Service.toDate(row.dueAt),
+          intervalInMs: this.schedules.getIntervalInMs(
+            row.monitoringInterval || null,
+          ),
+        };
+      }),
+    });
+
+    const steppedOver: boolean = rows.some(
+      (row: ClaimedMonitorProbeRow): boolean => {
+        return row.steppedOver === true;
+      },
+    );
+
+    if (steppedOver) {
+      /*
+       * Everything due before the first row claimed was stepped over by
+       * the read: nothing may probe it right now, or another claim holds
+       * it (set-aside passes those over). With nothing claimed, everything
+       * due was: "before" a millisecond past now is everything due, the
+       * statement asks for `<= now` as well.
+       */
+      const firstClaimedDueAt: Date | null = Service.toDate(claimed[0]?.dueAt);
+
+      await this.setAsideUnprobeableSafely({
+        probeId: data.probeId,
+        currentDate: currentDate,
+        dueBefore: firstClaimedDueAt || new Date(currentDate.getTime() + 1),
+      });
+    }
+
+    return claimed.map((row: ClaimedMonitorProbeRow): ClaimedMonitorProbe => {
+      return {
+        monitorProbeId: new ObjectID(row._id!),
+        monitor: ClaimedMonitor.fromRow(row),
+      };
+    });
+  }
+
+  /*
+   * How many monitor probes one claim may hand out: what the probe asked
+   * for, as a whole number, at least one and at most
+   * MAX_MONITOR_PROBES_PER_CLAIM - a probe that asks for a million locks no
+   * million rows in one statement.
+   */
+  public static claimLimit(limit: unknown): number {
+    const asked: number = Math.floor(Number(limit));
+
+    if (!Number.isFinite(asked) || asked < 1) {
+      return 1;
+    }
+
+    return Math.min(asked, MAX_MONITOR_PROBES_PER_CLAIM);
+  }
+
+  /*
+   * The second half of a claim, for the rows whose schedule the claim's
+   * statement did not know (new to this process): each one's real next run,
+   * worked out once per schedule, written over the minute the statement
+   * gave it - only where the row still holds exactly what this claim wrote,
+   * so a monitor made due again meanwhile (makeDueNowForMonitors), or
+   * claimed again, keeps what it was given since. A schedule that cannot be
+   * read keeps its minute, and is reported.
+   */
+  private async scheduleNewIntervals(data: {
+    claimed: Array<ClaimedMonitorProbeRow>;
+    currentDate: Date;
+    fallbackNextPing: Date;
+  }): Promise<void> {
+    const ids: Array<string> = [];
+    const nextPingAts: Array<string> = [];
 
     /*
      * Rows whose interval neither cron-parser nor the normalizer could
@@ -403,44 +608,41 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
       monitoringInterval: string;
     }> = [];
 
-    const ids: Array<string> = [];
-    const nextPingAts: Array<string> = [];
+    // One cron read per distinct schedule, however many monitors share it.
+    const runs: Map<string, ScheduledRun> = new Map<string, ScheduledRun>();
 
-    for (const row of candidates) {
-      let nextPing: Date = defaultNextPing;
+    for (const row of data.claimed) {
+      const monitoringInterval: string | null | undefined =
+        row.monitoringInterval;
 
-      if (row.monitoringInterval) {
-        const interval: string = row.monitoringInterval;
-
-        if (!nextPingByInterval.has(interval)) {
-          let isUnreadable: boolean = false;
-
-          const resolved: Date = Service.resolveNextPingAt({
-            monitoringInterval: interval,
-            fallback: defaultNextPing,
-            onUnreadable: () => {
-              isUnreadable = true;
-            },
-          });
-
-          nextPingByInterval.set(interval, isUnreadable ? null : resolved);
-        }
-
-        const known: Date | null | undefined = nextPingByInterval.get(interval);
-
-        if (known) {
-          nextPing = known;
-        } else {
-          unreadableIntervals.push({
-            monitorProbeId: row._id,
-            monitoringInterval: interval,
-          });
-        }
+      if (!monitoringInterval || !row._id) {
+        // No schedule at all: a minute on, as it always has been.
+        continue;
       }
 
-      ids.push(row._id);
-      // ISO strings: an array of them reads as timestamptz[] unambiguously.
-      nextPingAts.push(nextPing.toISOString());
+      if (row.scheduled) {
+        continue;
+      }
+
+      let run: ScheduledRun | undefined = runs.get(monitoringInterval);
+
+      if (!run) {
+        run = this.schedules.nextRun(monitoringInterval, data.fallbackNextPing);
+        runs.set(monitoringInterval, run);
+      }
+
+      if (!run.readable) {
+        unreadableIntervals.push({
+          monitorProbeId: row._id,
+          monitoringInterval: monitoringInterval,
+        });
+        continue;
+      }
+
+      if (run.nextPingAt.getTime() !== data.fallbackNextPing.getTime()) {
+        ids.push(row._id);
+        nextPingAts.push(run.nextPingAt.toISOString());
+      }
     }
 
     /*
@@ -463,49 +665,22 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
       );
     }
 
-    const claimQuery: string = `
-        WITH "claimable" AS (
-          SELECT mp."_id"
-          FROM "MonitorProbe" mp
-          WHERE mp."_id" = ANY($2::uuid[])
-            AND mp."probeId" = $4
-            AND mp."isEnabled" = true
-            AND mp."deletedAt" IS NULL
-            AND (mp."nextPingAt" IS NULL OR mp."nextPingAt" <= $1::timestamptz)
-          ORDER BY mp."nextPingAt" ASC NULLS FIRST
-          LIMIT $5
-          FOR NO KEY UPDATE OF mp SKIP LOCKED
-        ),
-        "claimed" AS (
-          UPDATE "MonitorProbe" AS mp
-          SET "lastPingAt" = $1::timestamptz,
-              "nextPingAt" = schedule."nextPingAt"
-          FROM unnest($2::uuid[], $3::timestamptz[])
-            AS schedule("id", "nextPingAt")
-          WHERE mp."_id" = schedule."id"
-            AND mp."_id" IN (SELECT "_id" FROM "claimable")
-          RETURNING mp."_id"
-        )
-        SELECT "_id" FROM "claimed"
-      `;
-
-    /*
-     * A SELECT of the rows the UPDATE wrote, so the answer is those rows:
-     * TypeORM hands a top-level UPDATE ... RETURNING back as
-     * [rows, rowCount] instead.
-     */
-    const claimedRows: unknown = await this.getRepository().manager.query(
-      claimQuery,
-      [currentDate, ids, nextPingAts, data.probeId.toString(), data.limit],
-    );
-
-    if (!Array.isArray(claimedRows)) {
-      return [];
+    if (ids.length === 0) {
+      return;
     }
 
-    return claimedRows.map((row: { _id: string }) => {
-      return new ObjectID(row._id);
-    });
+    await this.getRepository().manager.query(
+      `
+        UPDATE "MonitorProbe" AS mp
+        SET "nextPingAt" = schedule."nextPingAt"
+        FROM unnest($1::uuid[], $2::timestamptz[])
+          AS schedule("id", "nextPingAt")
+        WHERE mp."_id" = schedule."id"
+          AND mp."lastPingAt" = $3::timestamptz
+          AND mp."nextPingAt" = $4::timestamptz
+      `,
+      [ids, nextPingAts, data.currentDate, data.fallbackNextPing],
+    );
   }
 
   /*
@@ -665,6 +840,14 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * The same index range as the claim's read, stopped at the cap. It was a
    * countBy over a join of all three tables, which visited every due row
    * on every scaling poll - the most when the probe was furthest behind.
+   *
+   * With thousands due, Postgres joins them to their monitors with a hash
+   * join, and the monitors' half of the rule is read from the Monitor
+   * model's partial index of the monitors that may be probed: their ids
+   * alone, 155 pages at 39,700 monitors. Before that index it read the
+   * whole of "Monitor" to do so, 9,925 of the count's 10,689 pages, and
+   * more with every monitor added to the install (OneUptime issue #11119).
+   * A probe with more due than the cap stops at the cap, by the same index.
    */
   public async countMonitorProbesDueForProbing(data: {
     probeId: ObjectID;

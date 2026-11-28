@@ -1,10 +1,13 @@
 # Servidores MCP externos
 
-O OneUptime AI pode usar as ferramentas de servidores MCP fora do OneUptime — os da sua nuvem, do seu host de código ou da sua própria equipe, como AWS, Azure ou GitHub — enquanto investiga e corrige incidentes e alertas. Adicione um servidor uma vez em **Configurações do projeto → IA → Servidores MCP externos**, e o OneUptime AI o usa a partir do próximo incidente.
+O OneUptime AI pode usar as ferramentas de servidores MCP fora do OneUptime — os da sua nuvem, do seu host de código ou da sua própria equipe, como AWS, Azure ou GitHub — no Pergunte à IA, nas respostas que dá no Slack e no Microsoft Teams e enquanto investiga e corrige incidentes e alertas. Adicione um servidor uma vez em **Configurações do projeto → IA → Servidores MCP externos**, e o OneUptime AI o usa a partir da sua próxima pergunta e do próximo incidente.
 
 :::cards
 - [Adicionar um servidor](#adicionar-um-servidor): O endereço dele, e como o OneUptime faz login.
 - [O que o OneUptime AI faz com um servidor](#o-que-o-oneuptime-ai-faz-com-um-servidor): As ferramentas que leem nas investigações, as outras nas correções.
+- [Marcar uma ferramenta como somente leitura](#marcar-uma-ferramenta-como-somente-leitura): Quando o servidor não informa, como acontece com o do kAgent.
+- [No Pergunte à IA](#no-pergunte-à-ia): Peça a ele que liste as ferramentas de um servidor ou use uma; uma alteração espera a sua aprovação.
+- [No Slack e no Microsoft Teams](#no-slack-e-no-microsoft-teams): As ferramentas que leem, para a pessoa que perguntou.
 - [Escolher os servidores que uma regra pode usar](#escolher-os-servidores-que-uma-regra-pode-usar): Todos, a menos que uma regra escolha alguns.
 - [Segurança](#segurança): O que um servidor pode e não pode fazer o OneUptime AI fazer.
 :::
@@ -51,9 +54,9 @@ Nunca coloque um token ou uma senha na **URL**: qualquer pessoa que possa ler o 
 
 ## O que o OneUptime AI faz com um servidor
 
-Cada ferramenta que um servidor oferece ou apenas lê, ou pode alterar algo. O OneUptime segue o que o servidor diz sobre a ferramenta (o `readOnlyHint` dela): uma ferramenta que o servidor não marca como somente leitura conta como uma que pode alterar algo.
+Cada ferramenta que um servidor oferece ou apenas lê, ou pode alterar algo. O OneUptime segue o que o servidor diz sobre a ferramenta (o `readOnlyHint` dela): uma ferramenta que o servidor não marca como somente leitura conta como uma que pode alterar algo, a menos que um Administrador do projeto a marque como somente leitura (veja [Marcar uma ferramenta como somente leitura](#marcar-uma-ferramenta-como-somente-leitura)). Alguns servidores não marcam nenhuma das suas ferramentas: até que alguém marque uma, uma investigação não tem nenhuma ferramenta deles para usar, e no Pergunte à IA cada chamada a uma delas espera a sua aprovação.
 
-```mermaid title="Quais ferramentas o OneUptime AI usa, e quando"
+```mermaid title="Quais ferramentas o OneUptime AI usa por conta própria, e quando"
 flowchart TB
     T["Uma ferramenta do<br/>seu servidor MCP"] --> Q{"Ela só<br/>lê?"}
     Q -->|"sim"| R["Usada em<br/>investigações<br/>e correções"]
@@ -67,6 +70,8 @@ flowchart TB
 | --- | --- | --- |
 | **Investigações** | Usadas, junto com os dados do próprio OneUptime | Nunca usadas: o OneUptime recusa a chamada |
 | **Correções** | Usadas para elaborar a correção | Propostas para aprovação, ou usadas na hora, conforme a **Correção** da regra de IA |
+| **Pergunte à IA** | Usadas quando você pede | Usadas depois que você aprova cada chamada |
+| **Slack e Microsoft Teams** | Usadas quando você pede | Nunca usadas: ali não há cartão de aprovação, então o OneUptime AI direciona você ao Pergunte à IA |
 
 **Numa investigação**, o OneUptime AI lista as ferramentas dos servidores que pode usar e chama as que leem, para ver o que o OneUptime não vê sozinho: a sua conta na nuvem, um deploy, um rastreador de issues. Ele usa o que elas respondem na sua análise de causa raiz. Veja [AI SRE](/docs/ai/ai-sre).
 
@@ -79,6 +84,47 @@ Uma correção faz no máximo 5 alterações. Depois o OneUptime observa os moni
 
 Para o OneUptime AI deixar de usar um servidor, desative **Permitir que o OneUptime AI use este servidor** na página dele. Ele pergunta antes: o servidor deixa de ser usado em qualquer investigação ou correção, e uma correção proposta por meio dele não pode mais ser aprovada.
 
+## Marcar uma ferramenta como somente leitura
+
+Alguns servidores não dizem nada sobre se as suas ferramentas apenas leem. O servidor de ferramentas do kAgent não diz nada sobre nenhuma das suas ferramentas, incluindo `k8s_get_resources`, então o OneUptime AI trata cada uma como uma que pode alterar algo. Quando você sabe que uma ferramenta apenas lê, um Proprietário do projeto ou Administrador do projeto pode marcá-la como somente leitura, e o OneUptime AI passa a usá-la como tal: em investigações e correções, no Slack e no Microsoft Teams, e no Pergunte à IA sem cartão de aprovação.
+
+:::steps
+### Abrir o cartão Ferramentas do servidor
+Vá para **Configurações do projeto → IA → Servidores MCP externos** e abra o servidor. O cartão **Ferramentas** dele diz sobre quantas das suas ferramentas o servidor não diz nada.
+
+### Escolher uma ferramenta
+Clique em **Marcar como somente leitura** ao lado dela. A caixa de diálogo mostra o que o servidor diz que a ferramenta faz e os argumentos que ela aceita, e o que marcá-la significa.
+
+### Marcar a ferramenta
+Clique em **Marcar como somente leitura** na caixa de diálogo. A ferramenta passa a mostrar **Somente leitura**, com quem a marcou e quando.
+:::
+
+- **Uma ferramenta de cada vez.** Nada marca várias ferramentas de uma só vez.
+- **Só uma ferramenta sobre a qual o servidor não diz nada.** Uma ferramenta que o servidor marca como uma que pode alterar algo (`readOnlyHint: false` ou `destructiveHint: true`) não pode ser marcada. Algumas bibliotecas MCP escrevem isso para toda ferramenta que o autor não marcou: o mcp-go faz isso, então o servidor de ferramentas do kAgent na versão 0.2 diz isso de todas as ferramentas. Da versão 0.3 em diante, ele não diz nada, e as ferramentas dele podem ser marcadas.
+- **Nunca uma ferramenta que claramente altera coisas.** Uma ferramenta cujo nome diz que ela altera algo (como `delete`, `apply`, `create`, `update` ou `restart`), uma que executa um comando que recebe e uma com um argumento que pode ativar uma alteração (como `should_install` ou `dry_run`) não podem ser marcadas, e a linha da ferramenta diz por quê. Essas verificações pegam apenas os casos óbvios: leia o que uma ferramenta faz antes de marcá-la.
+- **Uma marcação deixa de valer quando o servidor altera a ferramenta.** Ela guarda o nome, a descrição e o esquema de entrada da ferramenta como o OneUptime os leu. O OneUptime AI lê as ferramentas de novo a cada execução: se o servidor alterou qualquer um deles, depois de uma atualização, por exemplo, a ferramenta volta a contar como uma que pode alterar algo, até que alguém a marque novamente. A linha dela diz que o servidor a alterou, com **Marcar novamente**. O kAgent reescreve a descrição do seu `k8s_generate_resource` cada vez que inicia, então uma marcação nessa ferramenta perde a validade sempre que o kAgent reinicia.
+- **Quem e quando ficam registrados.** Cada ferramenta marcada mostra quem a marcou e quando. Com os [registros de auditoria](/docs/configuration/audit-logs) ativados, marcar uma ferramenta e retirar uma marcação ficam no registro de auditoria do projeto. Com **Remover marcação**, o OneUptime AI volta na hora a perguntar antes de usar a ferramenta.
+
+Membros do projeto e Visualizadores veem quais ferramentas estão marcadas, e por quem.
+
+## No Pergunte à IA
+
+O Pergunte à IA pode usar todos os servidores ativados, para a pessoa que pergunta, assim como a conversa abaixo do cartão **OneUptime AI** de um incidente ou de um alerta. Pergunte "Quais ferramentas a AWS tem?" e o OneUptime AI as lista, cada uma marcada pelo que pode fazer; peça a ele que use uma, pelo servidor e pelo nome dela, e ele a chama e responde com o que voltou.
+
+- **Ferramentas que apenas leem** são executadas na hora, em qualquer modo de permissão: as que o servidor marca como somente leitura e as que um Administrador do projeto marcou.
+- **Qualquer outra ferramenta** espera por você, também em **Execução automática**: o cartão de aprovação nomeia o servidor e a ferramenta e mostra exatamente o que é enviado, e nada chega ao servidor até você permitir. Uma conversa no modo **Somente leitura** nunca oferece uma ferramenta assim.
+- **As suas permissões decidem.** Usar um servidor exige o mesmo que ler os Servidores MCP externos do projeto; aprovar uma alteração por meio de um deles exige a permissão para iniciar execuções de runbooks, como aprovar uma correção por meio de servidores MCP. Uma chamada recusada diz por quê, e não envia nada.
+
+Os servidores que uma regra de IA nomeia são os que o OneUptime AI usa por conta própria, para o que corresponde à regra; no Pergunte à IA, quem escolhe o servidor é você.
+
+## No Slack e no Microsoft Teams
+
+As respostas do OneUptime AI no Slack e no Microsoft Teams também podem usar todos os servidores ativados, para a pessoa que perguntou. Pergunte "Quais ferramentas o Kubernetes tem?" ou "Use o servidor Kubernetes para listar os pods em shop", com o nome do seu servidor, e ele responde com o que as ferramentas do servidor retornam.
+
+- **Só as ferramentas que leem.** As que o servidor marca como somente leitura e as que um Administrador do projeto marcou. Um app de chat não tem cartão de aprovação, então nenhuma outra ferramenta é usada ali: quando você pede uma, o OneUptime AI diz isso e direciona você ao Pergunte à IA, onde você aprova cada chamada.
+- **Como a pessoa que perguntou.** A resposta é executada como a conta do OneUptime à qual a sua conta do Slack ou do Microsoft Teams está conectada, com as permissões dela: alguém cuja conta não pode ler os Servidores MCP externos do projeto não recebe nenhuma ferramenta MCP. Uma conta que não está conectada recebe um pedido para se conectar primeiro, e não recebe resposta até se conectar.
+- **Todos na conversa leem a resposta**, com o que as ferramentas dos servidores retornaram nela. Pergunte em uma mensagem direta sobre qualquer coisa que só você deva ver.
+
 ## Escolher os servidores que uma regra pode usar
 
 Cada regra de IA pode nomear os servidores MCP que o OneUptime AI pode usar para o que corresponde a ela. O campo é **Servidores MCP**, em **Mais campos**. Até você escolher alguns, o OneUptime AI pode usar todos eles, e a seção recolhida diz isso.
@@ -86,14 +132,16 @@ Cada regra de IA pode nomear os servidores MCP que o OneUptime AI pode usar para
 - **Nenhum escolhido** — todos os servidores ativados do projeto.
 - **Alguns escolhidos** — apenas esses. Numa regra de IA que corrige sem perguntar, nomear os seus servidores é também o que permite ao OneUptime AI fazer as alterações deles sem perguntar.
 
-Quando várias regras que investigam correspondem, o OneUptime AI pode usar cada servidor que qualquer uma delas permite; se as regras não puderem ser lidas, a investigação não usa nenhum servidor MCP. Cada regra correspondente que corrige elabora a sua própria correção por meio dos seus servidores, e as regras que não nomeiam nenhum compartilham uma correção por meio de todos.
+Quando várias regras que investigam correspondem, o OneUptime AI pode usar cada servidor que qualquer uma delas permite; se as regras não puderem ser lidas, a investigação não usa nenhum servidor MCP. Uma investigação que alguém inicia num incidente ou alerta ao qual nenhuma regra corresponde pode usar todos eles. Cada regra correspondente que corrige elabora a sua própria correção por meio dos seus servidores, e as regras que não nomeiam nenhum compartilham uma correção por meio de todos.
 
 ## Segurança
 
 - **O que um servidor devolve são dados, nunca instruções.** O OneUptime AI lê as descrições e as respostas das ferramentas dele como texto de fora do OneUptime: elas nunca mudam uma regra, uma aprovação ou o que o OneUptime AI pode fazer.
+- **Uma ferramenta recebe só o que aceita.** O OneUptime envia a uma ferramenta apenas os argumentos que o esquema dela nomeia; tudo o mais que o OneUptime AI escreveu fica no OneUptime.
+- **Desligar a IA interrompe todas as chamadas.** Com **Habilitar IA** desligado, o OneUptime não envia nada a nenhum servidor: nenhuma chamada de uma investigação, de uma correção, do Pergunte à IA, do Slack ou do Microsoft Teams, nem mesmo uma que uma pessoa já aprovou.
 - **O endereço é verificado a cada conexão.** O OneUptime nunca se conecta ao próprio endereço nem a um endereço link-local. No OneUptime Cloud ele também recusa endereços de rede privada: use o endereço público do servidor. Um OneUptime auto-hospedado alcança endereços privados, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` esteja definido. Ele não segue redirecionamentos.
 - **Limites.** Um projeto tem no máximo 20 servidores, e o OneUptime lê no máximo 200 ferramentas de cada um. A conexão expira após 20 segundos, a listagem das ferramentas após 30 e uma chamada de ferramenta após 60. Uma resposta maior que 2 MB é recusada. As chamadas de uma execução a servidores MCP contam para os limites por execução do projeto, quando ele os define.
-- **Cada chamada é registrada.** Cada chamada é uma etapa da execução, mostrada na atividade dela, e cada alteração que uma correção faz aparece na etapa **Remediação** com o que o servidor respondeu. As chamadas ao modelo por trás delas estão em **Configurações do projeto → IA → Registros de IA**.
+- **Cada chamada é registrada.** Cada chamada é uma etapa da execução, mostrada na atividade dela (no Pergunte à IA, entre as etapas da resposta), e cada alteração que uma correção faz aparece na etapa **Remediação** com o que o servidor respondeu. Uma resposta no Slack ou no Microsoft Teams nomeia, entre as suas fontes, cada servidor e cada ferramenta que leu. As chamadas ao modelo por trás delas estão em **Configurações do projeto → IA → Registros de IA**.
 
 ## Solução de problemas
 
@@ -102,7 +150,11 @@ A caixa de diálogo **Testar conexão** diz o que deu errado e o que verificar: 
 :::
 
 :::details O OneUptime AI não usa um servidor
-Verifique se **Permitir que o OneUptime AI use este servidor** está ativado, se a regra que correspondeu ao incidente não nomeia outros servidores em **Mais campos** e se as ferramentas do servidor foram lidas: o cartão **Ferramentas** dele as lista. Uma investigação usa apenas as ferramentas marcadas como **Somente leitura**.
+Verifique se **Permitir que o OneUptime AI use este servidor** está ativado e se as ferramentas do servidor foram lidas: o cartão **Ferramentas** dele as lista, cada uma marcada como **Somente leitura** ou **Pode alterar coisas**, e **Testar conexão** as lê de novo. Depois, pergunte "Quais ferramentas a AWS tem?" no Pergunte à IA, com o nome do seu servidor: ele as lista, ou diz por que não consegue alcançar o servidor ou não pode usá-lo. Para uma investigação, verifique também se a regra que correspondeu ao incidente não nomeia outros servidores em **Mais campos**: uma investigação usa apenas as ferramentas marcadas como **Somente leitura**, então um servidor que não marca nenhuma das suas ferramentas não lhe dá nenhuma para usar até que um Administrador do projeto marque as que apenas leem (veja [Marcar uma ferramenta como somente leitura](#marcar-uma-ferramenta-como-somente-leitura)).
+:::
+
+:::details Uma ferramenta que marquei como somente leitura espera aprovação de novo
+O servidor dela a alterou desde que ela foi marcada: a linha dela no cartão **Ferramentas** diz isso, e **Testar conexão** mostra o que o OneUptime lê agora. Confira o que mudou na caixa de diálogo que **Marcar novamente** abre, e marque-a novamente se ela ainda apenas lê. Uma ferramenta que o servidor agora marca como uma que pode alterar algo não pode ser marcada novamente.
 :::
 
 ## Próximos passos

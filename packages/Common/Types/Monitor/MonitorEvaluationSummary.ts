@@ -31,11 +31,42 @@ export type MonitorEvaluationEventType =
    * which were skipped before this one: more were waiting than a monitor
    * keeps, or evaluating them failed every time (#10582).
    */
-  | "requests-skipped";
+  | "requests-skipped"
+  /*
+   * A request, an email or an agent's report that reached the monitor
+   * while it was not being checked - paused by an incident declared by hand
+   * or by scheduled maintenance, turned off, or archived - and so was not
+   * evaluated: listed in its log rather than dropped without a trace
+   * (MonitorNotEvaluated, #11141).
+   */
+  | "not-evaluated";
+
+/*
+ * Why a "not-evaluated" event's result was not evaluated: the reason the
+ * monitor was not being checked (MonitorPauseState's MonitorPauseReason).
+ */
+export type MonitorEvaluationNotEvaluatedReason =
+  | "Archived"
+  | "Disabled"
+  | "ManualIncident"
+  | "ScheduledMaintenance";
 
 export type MonitorEvaluationCriteriaSkipCause =
   | "disabled"
+  // An earlier criteria matched and set the status: evaluation stopped there.
   | "earlier-criterion-matched"
+  /*
+   * The first criteria that matched changes no status, so a criteria after
+   * it that changes the status was judged for it, matched and set it:
+   * evaluation stopped there (#11238).
+   */
+  | "status-already-set"
+  /*
+   * An earlier criteria matched but changes no status, and this one changes
+   * none either: it has nothing to decide, so it was not judged, while the
+   * criteria that change the status were (#11238).
+   */
+  | "changes-no-status"
   // Judged only during its active hours, and the check was outside them.
   | "outside-active-hours";
 
@@ -139,6 +170,8 @@ export interface MonitorEvaluationEvent {
   seriesFingerprint?: string | undefined;
   // A "grouping" event's note, for the Dashboard to word (see above).
   grouping?: MonitorEvaluationGroupingNote | undefined;
+  // A "not-evaluated" event's reason, for the Dashboard to word and link.
+  notEvaluatedReason?: MonitorEvaluationNotEvaluatedReason | undefined;
 }
 
 /*
@@ -202,8 +235,32 @@ export interface MonitorEvaluationSeries {
   rows: Array<MonitorEvaluationSeriesRow>;
 }
 
+/*
+ * The stretch of telemetry a check judged: from startsAt up to endsAt, the
+ * time the check was due (issue #11248), or where the ingest queue was
+ * while it was more than a minute behind. A late check judges the window it
+ * was due to, not the one before it ran.
+ */
+export interface MonitorEvaluationWindow {
+  startsAt: Date;
+  endsAt: Date;
+  /*
+   * False: the window held its start and not its end, as every check's
+   * window does since #11334 (TelemetryCheckWindow), so a record stamped on
+   * endsAt was the next check's. Absent from windows judged before, which
+   * held both ends.
+   */
+  includesEnd?: boolean | undefined;
+}
+
 export default interface MonitorEvaluationSummary {
   evaluatedAt: Date;
+  /*
+   * The window of telemetry the check judged, for a telemetry monitor's
+   * check (logs, metrics, traces, Kubernetes ...). Absent for a check that
+   * judges no window - a probe's, a request's - and from older summaries.
+   */
+  judgedWindow?: MonitorEvaluationWindow | undefined;
   criteriaResults: Array<MonitorEvaluationCriteriaResult>;
   events: Array<MonitorEvaluationEvent>;
   /*

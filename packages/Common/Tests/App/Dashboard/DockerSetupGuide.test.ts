@@ -31,6 +31,7 @@ import {
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+import { getSetupGuideTableVariables } from "../../Helpers/SetupGuideVariableTable";
 
 /*
  * The Docker agent guide asks how the agent is run — one `docker run`
@@ -850,11 +851,7 @@ describe("the guide matches agents/DockerAgent", () => {
       guideFor("docker-cli").advanced,
       "Environment variables",
     ).markdown;
-    const names: Array<string> = Array.from(
-      table.matchAll(/^\| `([A-Z_]+)` \|/gm),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
+    const names: Array<string> = getSetupGuideTableVariables(table);
     expect(names).toEqual(envNamesOf(repoCollector));
   });
 

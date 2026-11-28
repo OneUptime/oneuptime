@@ -38,6 +38,9 @@ import { TelemetryScanWindow } from "./TelemetryScanStatements";
 import { TelemetryWindowRead } from "./TelemetryScanTypes";
 import TraceSecurityScan from "./TraceSecurityScan";
 import RefusedTelemetryReader from "../RefusedTelemetryReader";
+import SensitiveFileSiteMemoryStore, {
+  SensitiveFileMemoryScan,
+} from "../SensitiveFileSiteMemoryStore";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import {
   RefusedTelemetry,
@@ -419,6 +422,19 @@ export default class SecurityTelemetryScanner {
     let serviceMetadata: TelemetryServiceMetadata | null = null;
     let lastEventFoundAt: Date | null = null;
     let stopped: boolean = false;
+    /*
+     * A trace's requests for sensitive files are judged by what each app
+     * answered in the last day too (#11036): the memory is read once, when
+     * a page first needs it, and kept at the end.
+     */
+    const siteMemory: SensitiveFileSiteMemoryStore | undefined =
+      kind === SecurityTelemetrySourceKind.Traces
+        ? SensitiveFileSiteMemoryStore.forScan({
+            projectId,
+            scan: SensitiveFileMemoryScan.Traces,
+            now,
+          })
+        : undefined;
 
     const hasWindowToRead: () => boolean = (): boolean => {
       return plan.wholeWindowsOnly
@@ -481,6 +497,7 @@ export default class SecurityTelemetryScanner {
               kind,
               events: read.events,
               serviceMetadata,
+              siteMemory,
             },
           );
 
@@ -541,6 +558,9 @@ export default class SecurityTelemetryScanner {
       );
     }
 
+    // What the scan learned of each app's answers, for the next (never throws).
+    await siteMemory?.save();
+
     await SecurityTelemetrySourceService.updateOneById({
       id: source.id!,
       data: {
@@ -566,6 +586,8 @@ export default class SecurityTelemetryScanner {
     kind: SecurityTelemetrySourceKind;
     events: Array<NormalizedSecurityEvent>;
     serviceMetadata: TelemetryServiceMetadata;
+    // The trace scan's memory of what each app answered (#11036).
+    siteMemory?: SensitiveFileSiteMemoryStore | undefined;
   }): Promise<Array<NormalizedSecurityEvent>> {
     let events: Array<NormalizedSecurityEvent> = data.events;
 
@@ -573,6 +595,7 @@ export default class SecurityTelemetryScanner {
       events = await TraceSecurityScan.prepareEvents({
         projectId: data.projectId,
         events,
+        siteMemory: data.siteMemory,
       });
     }
 

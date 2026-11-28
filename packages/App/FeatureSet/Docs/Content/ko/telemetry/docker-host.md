@@ -140,6 +140,7 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_SERVICE_TOKEN` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**의 수집 키. |
 | `DOCKER_HOST_NAME` | 아니요 | OneUptime에서의 호스트 이름. 기본값은 `docker-host`이므로 호스트마다 고유한 이름을 주세요. |
 | `DOCKER_API_VERSION` | 아니요 | 에이전트가 사용하는 Docker Engine API 버전. 기본값은 비어 있으며, 이때 에이전트가 데몬과 버전을 협상하므로 Docker Engine 20.10 이상이면 모두 작동합니다. 버전을 고정할 때만 설정하세요([문제 해결](#문제-해결) 참조). |
+| `ONEUPTIME_LOG_OPERATOR_1`~`ONEUPTIME_LOG_OPERATOR_5` | 아니요 | 에이전트가 읽지 못하는 로그 형식을 위해 직접 만든 Collector 오퍼레이터로, 하나씩 JSON으로 씁니다. [자체 로그 형식 읽기](#자체-로그-형식-읽기)를 참고하세요. |
 
 값을 바꾸려면 에이전트를 제거하고 명령을 다시 실행하거나(Docker CLI), `docker-compose.yml`을 편집하고 `docker compose up -d`를 실행하세요(Docker Compose).
 
@@ -150,7 +151,7 @@ Everything is ready. Begin running and processing data.
 | 컨테이너 메트릭 | 컨테이너별, 30초마다: CPU(사용량, 백분율, 스로틀링), 메모리(사용량, 한도, 백분율), 네트워크 및 블록 I/O, 가동 시간, 재시작 및 프로세스 수. |
 | 컨테이너 로그 | 모든 컨테이너의 stdout과 stderr. `json-file` 로그 파일에서 읽습니다. |
 
-각 컨테이너의 메트릭과 로그는 컨테이너 이름을 딴 서비스 아래에 기록됩니다. 각 로그 줄은 `[ERROR]`, `level=warn`, `{"level":"info"}`처럼 줄에 적힌 레벨에서 심각도를 얻으며, 레벨이 없는 줄은 스트림의 심각도를 따릅니다. stderr는 `ERROR`, stdout은 `INFO`입니다. 공백이나 닫는 괄호로 시작하는 줄은 앞 줄에 합쳐지므로 스택 트레이스는 레코드 하나로 도착합니다. 에이전트 자체의 로그는 제외됩니다.
+각 컨테이너의 메트릭과 로그는 컨테이너 이름을 딴 서비스 아래에 기록됩니다. 각 로그 줄은 `[ERROR]`, `level=warn`, `{"level":"info"}`처럼 줄에 적힌 레벨에서 심각도를 얻으며, 예외의 트레이스백은 `ERROR`로 간주됩니다. 레벨이 없는 줄은 stdout에서는 `INFO`이고, 프로그램이 모든 레벨의 진단 메시지를 쓰는 stderr에서는 심각도가 없습니다. 공백이나 닫는 괄호로 시작하는 줄은 앞 줄에 합쳐지므로 스택 트레이스는 레코드 하나로 도착합니다. 에이전트 자체의 로그는 제외됩니다.
 
 [Docker 모니터](/docs/monitor/docker-monitor#수집되는-메트릭)에 모든 메트릭과 그 의미가 나와 있습니다.
 
@@ -201,6 +202,33 @@ services:
 ```
 
 그런 다음 Docker를 다시 시작하고 컨테이너를 다시 만드세요. 컨테이너는 만들어질 때의 로그 드라이버를 유지하므로 다시 시작하는 것만으로는 충분하지 않습니다.
+
+## 자체 로그 형식 읽기
+
+에이전트는 대부분의 프로그램이 쓰는 형식의 레벨을 읽습니다. 사내 형식처럼 에이전트가 읽지 못하는 형식에는 직접 만든 Collector 오퍼레이터를 최대 다섯 개까지 줄 수 있으며, 각각 JSON으로 `ONEUPTIME_LOG_OPERATOR_1`~`ONEUPTIME_LOG_OPERATOR_5`에 넣습니다. 이 오퍼레이터는 에이전트가 컨테이너와 스트림을 읽은 뒤, 줄의 레벨을 읽기 전에 모든 컨테이너 로그 줄에 대해 실행됩니다. 줄의 레벨을 정하려면 `attributes.severity_text`에 에이전트가 읽는 단어(예: `ERROR`, `warn`, `critical`)로 쓰고, 줄을 에이전트의 첫 단계인 `severity-router`로 넘기세요. `severity_parser`처럼 심각도를 직접 정하는 오퍼레이터는 덮어쓰입니다: 에이전트는 직접 만든 오퍼레이터가 실행된 뒤 모든 줄의 레벨을 읽습니다.
+
+`<<E>> payment failed`처럼 문자가 곧 레벨인 줄의 경우:
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+Collector는 만들 수 없는 오퍼레이터가 있으면 시작하지 않으므로, 에이전트가 실행하기 전에 검사하세요:
+
+- `install.sh`를 이 변수들을 설정한 채 실행하면, 지금 실행 중인 에이전트를 건드리기 전에 Collector 자체의 `validate`로 검사합니다. Collector가 거부하면 스크립트는 Collector의 메시지와 함께 멈추고, 에이전트는 계속 실행됩니다.
+- Docker Compose에서는 `docker-compose.yml` 옆의 `.env`에 각 값을 작은따옴표로 감싸 넣고 `docker compose up -d`를 실행하세요. `oneuptime-docker-agent-config-check` 서비스가 먼저 같은 검사를 실행하며, 검사를 통과해야만 에이전트가 시작됩니다.
+- Docker CLI에서는 에이전트의 다른 변수와 함께 검사를 직접 실행한 다음, 같은 `-e` 플래그로 에이전트를 시작하세요:
+
+```bash
+docker run --rm \
+  -e ONEUPTIME_URL="YOUR_ONEUPTIME_URL" \
+  -e ONEUPTIME_SERVICE_TOKEN="YOUR_TELEMETRY_INGESTION_TOKEN" \
+  -e DOCKER_HOST_NAME="my-docker-host" \
+  -e ONEUPTIME_LOG_OPERATOR_1 \
+  oneuptime/docker-agent:release validate --config=/etc/otelcol-contrib/config.yaml
+```
+
+[Kubernetes 에이전트](/docs/telemetry/kubernetes-agent#자체-로그-형식-읽기)에서 이 예시의 오퍼레이터를 설명하며, Kubernetes 에이전트도 같은 오퍼레이터를 받습니다.
 
 ## 에이전트 업그레이드
 

@@ -53,6 +53,8 @@ import {
   THREAT_INTELLIGENCE,
 } from "./AiObservabilityDocsPages";
 import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
+import { anchorInLanguage } from "./NetworkDocsLabels";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { tables } from "./DocsPageShape";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
@@ -2093,8 +2095,9 @@ describe("the Security Events page", () => {
       "? `[Detection] ${rule.name} — ${matchGroup.groupValue}`",
     );
     expect(evaluator).toContain(": `[Detection] ${rule.name}`;");
+    // The group's keyed fingerprint, and the unkeyed one it is found by too (#11130).
     expect(flat(evaluator)).toContain(
-      "fingerprint: this.buildFingerprint(rule.id!, matchGroup.groupValue),",
+      "...this.buildFingerprints(rule, matchGroup.groupValue),",
     );
     expect(evaluator).toContain("return openDedupedAlerts({");
     expect(evaluator).toContain(
@@ -2225,6 +2228,88 @@ describe("the Security Events page", () => {
       "The **Setup Guide** page, under **Connections**, has these snippets with your own host and key filled in.",
     );
   });
+
+  /*
+   * #10914: since #10633, a custom probe without host networking lists its
+   * host's addresses, given by PROBE_HOST_IP_ADDRESSES, beside its own each
+   * time it checks in, and Security Events knows its work by them. The page
+   * names the setting where it says what a probe is known by, says what
+   * happens until it is set, and links the Custom Probes section that says
+   * what a probe sends when it checks in.
+   */
+  it("says a probe without host networking is known by its host's addresses too, names the setting and links where it is set", () => {
+    const paragraph: string = page.split("\n").find((line: string): boolean => {
+      return line.includes("A probe is known by the address it checks in from");
+    })!;
+
+    expect(paragraph).toContain(
+      "A probe is known by the address it checks in from and the addresses on its own network interfaces, which it lists each time it checks in. A custom probe without host networking, such as a Kubernetes pod or a container on a Docker bridge network, is known by its host's addresses too, which `PROBE_HOST_IP_ADDRESSES` gives it: until it has them, its polling leaves from an address it is not known by and is reported as sweeps. See [What a probe sends when it checks in](/docs/probe/custom-probe#what-a-probe-sends-when-it-checks-in).",
+    );
+
+    // The probe reads the setting, and lists the host's addresses with its own each time it checks in.
+    const probeConfig: string = fs.readFileSync(
+      path.join(REPO_DIR, "packages/Probe/Config.ts"),
+      "utf8",
+    );
+    const alive: string = fs.readFileSync(
+      path.join(REPO_DIR, "packages/Probe/Jobs/Alive.ts"),
+      "utf8",
+    );
+
+    expect(probeConfig).toContain('process.env["PROBE_HOST_IP_ADDRESSES"]');
+    expect(alive).toContain(
+      "hostAddresses: ReadonlyArray<string> = PROBE_HOST_IP_ADDRESSES",
+    );
+
+    // The section it links is there, and says the same of the setting.
+    const customProbe: string = readPage("en", "probe/custom-probe");
+
+    expect(customProbe).toContain("## What a probe sends when it checks in");
+    expect(customProbe).toContain(
+      "| `probeInterfaceAddresses` | Once a minute | Keeps the addresses on the probe's network interfaces, and those `PROBE_HOST_IP_ADDRESSES` gives it.",
+    );
+  });
+});
+
+describe("the Security Events page, in every docs language (#10914)", () => {
+  const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
+    (language: string): boolean => {
+      return language !== "en";
+    },
+  );
+
+  // The English page's line that says what a probe is known by.
+  const line: number = englishPage(SECURITY_EVENTS)
+    .split("\n")
+    .findIndex((text: string): boolean => {
+      return text.includes("A probe is known by the address it checks in from");
+    });
+
+  it("is found on the English page", () => {
+    expect(line).toBeGreaterThan(0);
+    expect(LANGUAGES).toHaveLength(16);
+  });
+
+  it.each(LANGUAGES)(
+    "%s names PROBE_HOST_IP_ADDRESSES on the same line, and links the Custom Probes section by its own anchor",
+    (language: string) => {
+      const translated: string = readPage(language, SECURITY_EVENTS).split(
+        "\n",
+      )[line]!;
+      const anchor: string | null = anchorInLanguage(
+        language,
+        "probe/custom-probe",
+        "what-a-probe-sends-when-it-checks-in",
+      );
+
+      expect(anchor).not.toBeNull();
+      expect(anchor).not.toBe("what-a-probe-sends-when-it-checks-in");
+      expect(translated).toContain("`PROBE_HOST_IP_ADDRESSES`");
+      expect(translated).toContain(`(/docs/probe/custom-probe#${anchor!})`);
+      // Still the same paragraph: the probe's own traffic event it ends.
+      expect(translated).toContain("`oneuptime-probe-traffic`");
+    },
+  );
 });
 
 describe("the Threat Intelligence page", () => {

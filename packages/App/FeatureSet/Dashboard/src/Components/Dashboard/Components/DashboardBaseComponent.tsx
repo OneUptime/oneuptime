@@ -20,14 +20,11 @@ import DashboardDataSourceTableComponent from "./DashboardDataSourceTableCompone
 import DashboardSloComponent from "./DashboardSloComponent";
 import DashboardSloListComponent from "./DashboardSloListComponent";
 import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
-import DashboardLogChartComponent from "./DashboardLogChartComponent";
-import DashboardSecurityEventsListComponent from "./DashboardSecurityEventsListComponent";
-import DashboardSecurityEventsFlowComponent from "./DashboardSecurityEventsFlowComponent";
-import DashboardProductAnalyticsFunnelComponent from "./DashboardProductAnalyticsFunnelComponent";
-import DashboardProductAnalyticsRetentionComponent from "./DashboardProductAnalyticsRetentionComponent";
+import {
+  lazyDashboardWidget,
+  LazyDashboardWidgetShape,
+} from "./LazyDashboardWidget";
 import DashboardTraceListComponent from "./DashboardTraceListComponent";
-import DashboardTraceChartComponent from "./DashboardTraceChartComponent";
-import DashboardTraceTableComponent from "./DashboardTraceTableComponent";
 import DashboardIncidentListComponent from "./DashboardIncidentListComponent";
 import DashboardAlertListComponent from "./DashboardAlertListComponent";
 import DashboardMonitorListComponent from "./DashboardMonitorListComponent";
@@ -54,6 +51,8 @@ import DashboardProxmoxNodeListComponent from "./DashboardProxmoxNodeListCompone
 import DashboardProxmoxGuestListComponent from "./DashboardProxmoxGuestListComponent";
 import DashboardVMwareHostListComponent from "./DashboardVMwareHostListComponent";
 import DashboardVMwareVirtualMachineListComponent from "./DashboardVMwareVirtualMachineListComponent";
+import DashboardXcpNgHostListComponent from "./DashboardXcpNgHostListComponent";
+import DashboardXcpNgVmListComponent from "./DashboardXcpNgVmListComponent";
 import DashboardDockerSwarmNodeListComponent from "./DashboardDockerSwarmNodeListComponent";
 import DashboardDockerSwarmServiceListComponent from "./DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
@@ -189,6 +188,77 @@ export interface ComponentProps extends DashboardBaseComponentProps {
   onEditWidgetClick?: (() => void) | undefined;
 }
 
+/*
+ * The widgets a public dashboard cannot draw - logs, traces, security
+ * events, product analytics and cloud costs
+ * (PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES) - each a file of its own, loaded
+ * the first time a board draws one (LazyDashboardWidget): there, each only
+ * says under its title that it is not available, and a public dashboard's
+ * visitor no longer downloads them, and the models they read, before the
+ * board draws.
+ */
+const DashboardLogChartComponent: ComponentType<any> = lazyDashboardWidget({
+  loadWidget: async (): Promise<ComponentType<any>> => {
+    return (await import("./DashboardLogChartComponent")).default;
+  },
+  shape: LazyDashboardWidgetShape.Chart,
+});
+
+const DashboardSecurityEventsListComponent: ComponentType<any> =
+  lazyDashboardWidget({
+    loadWidget: async (): Promise<ComponentType<any>> => {
+      return (await import("./DashboardSecurityEventsListComponent")).default;
+    },
+    shape: LazyDashboardWidgetShape.Table,
+  });
+
+const DashboardSecurityEventsFlowComponent: ComponentType<any> =
+  lazyDashboardWidget({
+    loadWidget: async (): Promise<ComponentType<any>> => {
+      return (await import("./DashboardSecurityEventsFlowComponent")).default;
+    },
+    shape: LazyDashboardWidgetShape.Chart,
+  });
+
+const DashboardProductAnalyticsFunnelComponent: ComponentType<any> =
+  lazyDashboardWidget({
+    loadWidget: async (): Promise<ComponentType<any>> => {
+      return (await import("./DashboardProductAnalyticsFunnelComponent"))
+        .default;
+    },
+    shape: LazyDashboardWidgetShape.Chart,
+  });
+
+const DashboardProductAnalyticsRetentionComponent: ComponentType<any> =
+  lazyDashboardWidget({
+    loadWidget: async (): Promise<ComponentType<any>> => {
+      return (await import("./DashboardProductAnalyticsRetentionComponent"))
+        .default;
+    },
+    shape: LazyDashboardWidgetShape.Chart,
+  });
+
+const DashboardCloudCostComponent: ComponentType<any> = lazyDashboardWidget({
+  loadWidget: async (): Promise<ComponentType<any>> => {
+    return (await import("./DashboardCloudCostComponent")).default;
+  },
+  shape: LazyDashboardWidgetShape.Chart,
+});
+
+const DashboardTraceChartComponent: ComponentType<any> = lazyDashboardWidget({
+  loadWidget: async (): Promise<ComponentType<any>> => {
+    return (await import("./DashboardTraceChartComponent")).default;
+  },
+  shape: LazyDashboardWidgetShape.Chart,
+});
+
+const DashboardTraceTableComponent: ComponentType<any> = lazyDashboardWidget({
+  loadWidget: async (): Promise<ComponentType<any>> => {
+    return (await import("./DashboardTraceTableComponent")).default;
+  },
+  shape: LazyDashboardWidgetShape.Table,
+});
+
 /**
  * Which concrete widget renders for each component type. Every entry
  * receives the full ComponentProps spread plus its own `component`.
@@ -214,6 +284,7 @@ const WIDGET_BY_TYPE: Partial<
     DashboardSecurityEventsFlowComponent,
   [DashboardComponentType.ProductAnalyticsFunnel]:
     DashboardProductAnalyticsFunnelComponent,
+  [DashboardComponentType.CloudCost]: DashboardCloudCostComponent,
   [DashboardComponentType.ProductAnalyticsRetention]:
     DashboardProductAnalyticsRetentionComponent,
   [DashboardComponentType.TraceList]: DashboardTraceListComponent,
@@ -260,6 +331,8 @@ const WIDGET_BY_TYPE: Partial<
   [DashboardComponentType.VMwareHostList]: DashboardVMwareHostListComponent,
   [DashboardComponentType.VMwareVirtualMachineList]:
     DashboardVMwareVirtualMachineListComponent,
+  [DashboardComponentType.XcpNgHostList]: DashboardXcpNgHostListComponent,
+  [DashboardComponentType.XcpNgVmList]: DashboardXcpNgVmListComponent,
   [DashboardComponentType.DockerSwarmNodeList]:
     DashboardDockerSwarmNodeListComponent,
   [DashboardComponentType.DockerSwarmServiceList]:

@@ -114,6 +114,8 @@ import CommonTraceScrubRuleService from "Common/Server/Services/TraceScrubRuleSe
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import SecurityUserVaultWriter from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
+import SecurityUserErasedTokens from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasedTokens";
+import SecurityUserErasureRequestService from "Common/Server/Services/SecurityUserErasureRequestService";
 import OpenStackAuditJoin from "Common/Server/Utils/SecurityEvent/LogScan/OpenStackAuditJoin";
 import SecurityLogScanner from "Common/Server/Utils/SecurityEvent/LogScan/SecurityLogScanner";
 import RealTimeDetections from "Common/Server/Utils/SecurityEvent/RealTime/RealTimeDetections";
@@ -145,6 +147,7 @@ import SecurityLogParser from "Common/Utils/SecurityEvent/LogParsers/SecurityLog
 import {
   HASHED_USER_ATTRIBUTES,
   ScrubbedUserRole,
+  readHashedUserSource,
   readHiddenEventUser,
 } from "Common/Utils/SecurityEvent/ScrubbedUser";
 
@@ -419,6 +422,11 @@ integration("Security Events' user vault against ClickHouse", () => {
     SecurityEventsReadTelemetry.clearCache();
     SecurityUserVaultWriter.forgetWrites();
     ScrubbedClientAddresses.clearCache();
+    // Nobody erased from the vault on request (#10908): SecurityUserErasureClickhouse's.
+    SecurityUserErasedTokens.clearCache();
+    jest
+      .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+      .mockResolvedValue(new Set<string>());
 
     for (const table of [
       vaultTable,
@@ -826,6 +834,10 @@ integration("Security Events' user vault against ClickHouse", () => {
       expect(
         readHiddenEventUser(events[0]!, ScrubbedUserRole.Principal),
       ).toBeNull();
+      // Where the token is: the span's enduser.id, which its search looks in (#11045).
+      expect(
+        readHashedUserSource(events[0]!, ScrubbedUserRole.Principal),
+      ).toEqual({ signal: "trace", field: "attributes.enduser.id" });
     });
 
     test("with the Traces source off and Your logs off, no vault row is written, and the event's user stays the token", async () => {
@@ -1017,6 +1029,13 @@ integration("Security Events' user vault against ClickHouse", () => {
       expect(stored).toHaveLength(1);
       expect(stored[0]!["principalUser"]).toBe("deploy");
       expect(stored[0]!["principalIp"]).toBe("203.0.113.7");
+      // Where the token is: the line's body, which its search looks in (#11045).
+      expect(
+        readHashedUserSource(
+          { attributes: stored[0]!["attributes"] },
+          ScrubbedUserRole.Principal,
+        ),
+      ).toEqual({ signal: "log", field: "body" });
     });
 
     test("a Google Cloud audit log's principal an Email rule hashed is named; an email in an app's line never reaches the vault", async () => {

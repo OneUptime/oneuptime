@@ -36,6 +36,7 @@ export const DASHBOARD_WIDGET_ID_LIST_SETTINGS: ReadonlyArray<string> = [
   "podmanHostIds",
   "proxmoxClusterIds",
   "vmwareVCenterIds",
+  "xcpNgPoolIds",
   "cephClusterIds",
   "storageArrayIds",
 ];
@@ -50,6 +51,10 @@ export const DASHBOARD_WIDGET_ID_SETTINGS: ReadonlyArray<string> = [
   "serviceLevelObjectiveVariableId",
   "labelVariableId",
   "savedViewId",
+  // What a Cloud Cost widget is over (#11009).
+  "cloudAccountId",
+  "cloudCostGroupId",
+  "cloudCostViewId",
 ];
 
 export default class DashboardWidgetIds {

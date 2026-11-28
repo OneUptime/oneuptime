@@ -39,8 +39,25 @@ jest.mock("../../../Server/Utils/Response", () => {
 jest.mock("../../../Server/Utils/Logger");
 
 import CommonAPI from "../../../Server/API/CommonAPI";
-import "../../../Server/API/SecurityTrustedProxiesAPI";
+import { readCheckedText } from "../../../Server/API/SecurityTrustedProxiesAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import logger from "../../../Server/Utils/Logger";
+import SecurityLogLineCheckReader from "../../../Server/Utils/SecurityEvent/SecurityLogLineCheck";
+import SecurityTrustedProxies from "../../../Server/Utils/SecurityEvent/SecurityTrustedProxies";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
+import {
+  MAX_CHECKED_TEXT_LENGTH,
+  SECURITY_LOG_LINE_CHECK_PATH,
+  readSecurityLogLineCheckResult,
+} from "../../../Types/SecurityEvent/SecurityLogLineCheck";
+import {
+  NO_TRUSTED_PROXY_SOURCES,
+  TrustedProxySource,
+} from "../../../Utils/SecurityEvent/TrustedProxySources";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -59,6 +76,10 @@ import {
   readAutomaticTrustedProxies,
 } from "../../../Types/SecurityEvent/AutomaticTrustedProxies";
 import { OwnLoadBalancerKind } from "../../../Utils/SecurityEvent/OwnLoadBalancers";
+import {
+  PassOnLoadBalancerKind,
+  PassOnReason,
+} from "../../../Utils/SecurityEvent/PassOnLoadBalancers";
 import { getJestSpyOn } from "../../Spy";
 
 type RouterFunction = (
@@ -129,7 +150,12 @@ beforeEach(() => {
   readLoadBalancers = getJestSpyOn(
     SecurityOwnLoadBalancers,
     "read",
-  ).mockResolvedValue({ loadBalancers: [GATEWAY], isComplete: true });
+  ).mockResolvedValue({
+    loadBalancers: [GATEWAY],
+    isComplete: true,
+    googleFrontEnds: null,
+    passOnLoadBalancers: [],
+  });
 });
 
 afterEach(() => {
@@ -167,6 +193,8 @@ describe("POST /security-trusted-proxies/automatic", () => {
           addresses: ["20.50.1.7"],
         },
       ],
+      googleFrontEnds: null,
+      passOnLoadBalancers: [],
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });
@@ -175,6 +203,113 @@ describe("POST /security-trusted-proxies/automatic", () => {
       props: MEMBER,
     });
     expect(Response.setNoCacheHeaders).toHaveBeenCalled();
+  });
+
+  test("Google's front ends, with the load balancers that bring them and what keeps them untrusted (#11047)", async () => {
+    readLoadBalancers.mockResolvedValue({
+      loadBalancers: [GATEWAY],
+      isComplete: true,
+      googleFrontEnds: {
+        ranges: ["35.191.0.0/16", "130.211.0.0/22", "2600:2d00:1:1::/64"],
+        broughtBy: [{ name: "shop-https", where: "Google Cloud shop" }],
+        withheldBy: [{ name: "db", where: "Google Cloud shop" }],
+        isWithheldForIncompleteRead: false,
+        isTrusted: false,
+      },
+      passOnLoadBalancers: [],
+    });
+
+    const { sent } = await ask();
+
+    expect(readAutomaticTrustedProxies(sent as never).googleFrontEnds).toEqual({
+      ranges: ["35.191.0.0/16", "130.211.0.0/22", "2600:2d00:1:1::/64"],
+      broughtBy: [{ name: "shop-https", where: "Google Cloud shop" }],
+      withheldBy: [{ name: "db", where: "Google Cloud shop" }],
+      isWithheldForIncompleteRead: false,
+      isTrusted: false,
+    });
+  });
+
+  test("a reader who may not read cloud resources is told nothing of Google's front ends either", async () => {
+    readLoadBalancers.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to read cloud resources.",
+      ),
+    );
+
+    const { sent } = await ask();
+
+    expect(
+      readAutomaticTrustedProxies(sent as never).googleFrontEnds,
+    ).toBeNull();
+  });
+
+  // #11389: what is never trusted, even listed, each with why and where it connects from.
+  test("the load balancers that pass on what a client wrote, each with why and where it connects from", async () => {
+    readLoadBalancers.mockResolvedValue({
+      loadBalancers: [GATEWAY],
+      isComplete: true,
+      googleFrontEnds: null,
+      passOnLoadBalancers: [
+        {
+          kind: PassOnLoadBalancerKind.AwsNetworkLoadBalancer,
+          name: "tcp-ingress",
+          where: "Production AWS",
+          reasons: [PassOnReason.ClientIpNotPreserved],
+          targetGroups: ["ingress-ip"],
+          ranges: ["10.0.1.0/24", "10.0.2.0/24"],
+          areRangesIncomplete: false,
+        },
+        {
+          kind: PassOnLoadBalancerKind.GoogleCloudProxyNetworkLoadBalancer,
+          name: "db-proxy",
+          where: "Google Cloud shop",
+          reasons: [PassOnReason.ProxyOnlySubnet],
+          targetGroups: [],
+          ranges: ["10.129.0.0/23"],
+          areRangesIncomplete: false,
+        },
+      ],
+    });
+
+    const { sent } = await ask();
+
+    expect(
+      readAutomaticTrustedProxies(sent as never).passOnLoadBalancers,
+    ).toEqual([
+      {
+        kind: PassOnLoadBalancerKind.AwsNetworkLoadBalancer,
+        name: "tcp-ingress",
+        where: "Production AWS",
+        reasons: [PassOnReason.ClientIpNotPreserved],
+        targetGroups: ["ingress-ip"],
+        ranges: ["10.0.1.0/24", "10.0.2.0/24"],
+        areRangesIncomplete: false,
+      },
+      {
+        kind: PassOnLoadBalancerKind.GoogleCloudProxyNetworkLoadBalancer,
+        name: "db-proxy",
+        where: "Google Cloud shop",
+        reasons: [PassOnReason.ProxyOnlySubnet],
+        targetGroups: [],
+        ranges: ["10.129.0.0/23"],
+        areRangesIncomplete: false,
+      },
+    ]);
+  });
+
+  test("a reader who may not read cloud resources is told none of what passes on a client's words either", async () => {
+    readLoadBalancers.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to read cloud resources.",
+      ),
+    );
+
+    const { sent } = await ask();
+
+    expect(
+      readAutomaticTrustedProxies(sent as never).passOnLoadBalancers,
+    ).toEqual([]);
   });
 
   test("never names the cloud resource a load balancer was read from", async () => {
@@ -211,6 +346,8 @@ describe("POST /security-trusted-proxies/automatic", () => {
     expect(sent).toEqual({
       edges: [{ name: "Cloudflare", rangeCount: 2 }],
       loadBalancers: [],
+      googleFrontEnds: null,
+      passOnLoadBalancers: [],
       areLoadBalancersRead: false,
       areLoadBalancersComplete: true,
     });
@@ -220,6 +357,8 @@ describe("POST /security-trusted-proxies/automatic", () => {
     readLoadBalancers.mockResolvedValue({
       loadBalancers: [GATEWAY],
       isComplete: false,
+      googleFrontEnds: null,
+      passOnLoadBalancers: [],
     });
 
     const { sent } = await ask();
@@ -247,6 +386,8 @@ describe("POST /security-trusted-proxies/automatic", () => {
           addresses: ["20.50.1.7"],
         },
       ],
+      googleFrontEnds: null,
+      passOnLoadBalancers: [],
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });
@@ -259,6 +400,8 @@ describe("POST /security-trusted-proxies/automatic", () => {
     readLoadBalancers.mockResolvedValue({
       loadBalancers: [],
       isComplete: true,
+      googleFrontEnds: null,
+      passOnLoadBalancers: [],
     });
 
     const { sent } = await ask();
@@ -266,8 +409,226 @@ describe("POST /security-trusted-proxies/automatic", () => {
     expect(sent).toEqual({
       edges: [],
       loadBalancers: [],
+      googleFrontEnds: null,
+      passOnLoadBalancers: [],
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });
+  });
+});
+
+/*
+ * POST /security-log-lines/check (#11046): what pasted lines become, read
+ * as the scans read the project's logs, with its trusted proxies. A
+ * signed-in member who may read security events; the text is read, never
+ * stored or logged.
+ */
+describe("POST /security-log-lines/check", () => {
+  const LINE: string = `10.0.0.5 - - [10/Oct/2026:13:55:36 +0000] "GET /?id=1' OR '1'='1 HTTP/1.1" 200 512 "-" "curl/8.0" "198.51.100.7"`;
+
+  function permissionRow(permission: Permission): UserPermission {
+    return {
+      _type: "UserPermission",
+      permission,
+      labelIds: [],
+      isBlockPermission: false,
+    };
+  }
+
+  // A member of the project holding `permissions`, as the server reads them.
+  function memberWith(
+    ...permissions: Array<Permission>
+  ): DatabaseCommonInteractionProps {
+    const tenantPermission: UserTenantAccessPermission = {
+      _type: "UserTenantAccessPermission",
+      projectId: PROJECT,
+      permissions: [Permission.ProjectUser, ...permissions].map(permissionRow),
+    };
+
+    return {
+      ...MEMBER,
+      userTenantAccessPermission: {
+        [PROJECT.toString()]: tenantPermission,
+      },
+    } as DatabaseCommonInteractionProps;
+  }
+
+  async function checkAs(
+    props: DatabaseCommonInteractionProps,
+    body: unknown,
+  ): Promise<{ thrown: unknown; sent: unknown }> {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(props as never);
+
+    let thrown: unknown = undefined;
+
+    await (
+      mockRouter.match("POST", SECURITY_LOG_LINE_CHECK_PATH)
+        .handlerFunction as RouterFunction
+    )(
+      { params: {}, query: {}, headers: {}, body } as unknown as ExpressRequest,
+      {} as ExpressResponse,
+      ((error: unknown) => {
+        thrown = error;
+      }) as NextFunction,
+    );
+
+    return {
+      thrown,
+      sent: (Response.sendJsonObjectResponse as unknown as jest.Mock).mock
+        .calls[0]?.[2],
+    };
+  }
+
+  let readSources: ReturnType<typeof getJestSpyOn>;
+
+  beforeEach(() => {
+    readSources = getJestSpyOn(
+      SecurityTrustedProxies,
+      "readSources",
+    ).mockResolvedValue({
+      sources: {
+        ...NO_TRUSTED_PROXY_SOURCES,
+        readsAccessLogForwardedFor: true,
+      },
+      isComplete: true,
+    });
+  });
+
+  test("is at its path, behind the signed-in member's middleware and Security Events' switch", () => {
+    expect(SECURITY_LOG_LINE_CHECK_PATH).toBe("/security-log-lines/check");
+
+    const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
+      "POST",
+      SECURITY_LOG_LINE_CHECK_PATH,
+    );
+
+    expect(route.middlewares[0]).toBe(UserMiddleware.getUserMiddleware);
+    expect(route.middlewares[1]).toBe(UserMiddleware.requireUserAuthentication);
+    expect(route.middlewares).toHaveLength(3);
+  });
+
+  test.each([
+    Permission.SecurityViewer,
+    Permission.SecurityMember,
+    Permission.SecurityAdmin,
+    Permission.ReadSecurityEvent,
+    Permission.ProjectOwner,
+    Permission.ProjectAdmin,
+  ])(
+    "%s, who may read security events, is told what the line becomes with the project's trust",
+    async (permission: Permission) => {
+      const { thrown, sent } = await checkAs(memberWith(permission), {
+        text: LINE,
+      });
+
+      expect(thrown).toBeUndefined();
+      expect(readSources).toHaveBeenCalledWith(PROJECT);
+
+      const answer: ReturnType<typeof readSecurityLogLineCheckResult> =
+        readSecurityLogLineCheckResult(sent as never);
+
+      expect(answer.linesRead).toBe(1);
+      expect(answer.events[0]!.principalIp).toBe("198.51.100.7");
+      expect(answer.trustedProxies).toEqual([
+        {
+          address: "10.0.0.5",
+          source: TrustedProxySource.Private,
+          edgeName: "",
+        },
+      ]);
+      expect(Response.setNoCacheHeaders).toHaveBeenCalled();
+    },
+  );
+
+  test.each([
+    Permission.ProjectMember,
+    Permission.Viewer,
+    Permission.ReadProject,
+    Permission.EditProject,
+  ])(
+    "%s, who may not read security events, is refused before anything is read",
+    async (permission: Permission) => {
+      const check: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+        SecurityLogLineCheckReader,
+        "check",
+      );
+
+      const { thrown, sent } = await checkAs(memberWith(permission), {
+        text: LINE,
+      });
+
+      expect(thrown).toBeInstanceOf(NotAuthorizedException);
+      expect((thrown as Error).message).toBe(
+        "Checking a log line takes a role that can read security events.",
+      );
+      expect(sent).toBeUndefined();
+      expect(check).not.toHaveBeenCalled();
+      expect(readSources).not.toHaveBeenCalled();
+    },
+  );
+
+  test("somebody who is not a member is refused", async () => {
+    jest
+      .spyOn(CommonAPI, "assertAuthenticatedProjectMember")
+      .mockImplementation(() => {
+        throw new NotAuthorizedException("Not a member.");
+      });
+
+    const { thrown, sent } = await checkAs(
+      memberWith(Permission.SecurityAdmin),
+      { text: LINE },
+    );
+
+    expect(thrown).toBeInstanceOf(NotAuthorizedException);
+    expect(sent).toBeUndefined();
+    expect(readSources).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["no body", undefined],
+    ["no text", {}],
+    ["text that is not text", { text: 42 }],
+    ["a list", ["a line"]],
+  ])(
+    "%s is a 400 that says what to send",
+    async (_what: string, body: unknown) => {
+      const { thrown, sent } = await checkAs(
+        memberWith(Permission.SecurityAdmin),
+        body,
+      );
+
+      expect(thrown).toBeInstanceOf(BadDataException);
+      expect((thrown as Error).message).toBe(
+        "Send the log lines to check as text, one line a line.",
+      );
+      expect(sent).toBeUndefined();
+    },
+  );
+
+  test("reads no more of the text than a check reads", () => {
+    expect(
+      readCheckedText({ text: "x".repeat(MAX_CHECKED_TEXT_LENGTH + 10) }),
+    ).toHaveLength(MAX_CHECKED_TEXT_LENGTH);
+    expect(readCheckedText({ text: "" })).toBe("");
+  });
+
+  test("never logs the line it was sent", async () => {
+    const said: Array<string> = [];
+
+    for (const level of ["debug", "info", "warn", "error"]) {
+      getJestSpyOn(logger, level).mockImplementation(
+        (...args: Array<unknown>): void => {
+          said.push(args.map(String).join(" "));
+        },
+      );
+    }
+
+    await checkAs(memberWith(Permission.SecurityAdmin), {
+      text: `${LINE}\nsecret-token-in-a-log-line`,
+    });
+
+    expect(said.join("\n")).not.toContain("secret-token-in-a-log-line");
   });
 });

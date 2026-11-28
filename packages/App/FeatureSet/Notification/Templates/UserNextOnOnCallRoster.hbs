@@ -21,10 +21,18 @@
 {{> DetailBoxField title="More Information:" plainText=reason  }}
 {{> DetailBoxField title="Your On-Call Roster Starts At: " text=rosterStartsAt  }}
 {{> DetailBoxField title="Your On-Call Roster Ends At: " text=rosterEndsAt  }}
+{{!-- A turn of active hours: more windows of it follow that shift (#11270). --}}
+{{#if rosterTurnEndsAt}}
+{{> DetailBoxField title="Your Turn Ends At: " text=rosterTurnEndsAt  }}
+{{/if}}
 
 
 
 {{> DetailBoxEnd this }}
+
+{{#if rosterTurnEndsAt}}
+{{> InfoBlock info="Your turn has active hours: once it starts, you are on call in each of its windows until it ends. You are told once, as it starts, not at every window. To be reminded before each window, choose when on the Remind me before shifts card of your Calendar Feed settings."}}
+{{/if}}
 
 
 {{> InfoBlock info="You can view this on-call policy by clicking on the button below - "}}

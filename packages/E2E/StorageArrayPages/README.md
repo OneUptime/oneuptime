@@ -23,7 +23,7 @@ npm run test-storage-array-pages-ui
 
 ## Dataset
 
-An "Acme Storage" workspace with two arrays:
+An "Acme Storage" workspace with three arrays:
 
 - `fa-prod-01`, a Pure Storage FlashArray: six volumes (one with a long
   name), six hosts in `vsphere-prod` (`esx-06` unused), two pods replicating
@@ -32,6 +32,45 @@ An "Acme Storage" workspace with two arrays:
 - `fb-prod-01`, a Pure Storage FlashBlade: three file systems (`scratch`,
   `home`, `projects`), a bucket (`logs-archive`, in the `analytics`
   account) and four blades and modules.
+- `acme-prod-01`, an array of Acme, a platform that exists only in tests
+  (`Common/Tests/Helpers/StorageArray/AcmePlatform.ts`, which the fixture
+  registers the way a test does, #11000): two volumes and three aggregates,
+  a kind of its own that the Inventory page lists
+  (`View/Inventory.tsx`, at `/inventory/Aggregate`).
+- `ps-prod-01`, a Dell PowerStore cluster of two appliances (`A1`, `A2`),
+  as the agent reads one through Dell's exporter (#11002): six volumes, two
+  volume groups, two NAS servers, three file systems, and on each appliance
+  its two nodes with their fans, power supplies and batteries, five drives
+  and three front-end ports, each part with its appliance. Its appliances,
+  volume groups and NAS servers are kinds of its own, at
+  `/inventory/Appliance`, `/inventory/VolumeGroup` and `/inventory/NasServer`.
+  On the trouble day a drive and a power supply of `A1` failed, a fan and a
+  Fibre Channel port of `A2` are down, `nas-files-02` is not started,
+  `archive-legacy` is not ready and `fs-home` is 94.5% full; it has no open
+  alerts, as a PowerStore sends its own by syslog.
+- `ontap-prod-01`, a NetApp ONTAP cluster, and `fsx-files-eu`, an Amazon
+  FSx for NetApp ONTAP file system (#11001): each the rows the ingest keeps
+  of what the real NetApp Harvest 26.11 served for it
+  (`Fixture/OntapInventory.json`, which `Fixture/MakeOntapInventory.ts`
+  writes from `Common/Tests/Fixtures/NetAppHarvest/26.11.0`; run it again
+  from `packages/Common` when the recordings or the extractor change), and
+  the latency and open problems its Overview reads. The cluster's disk
+  `1.0.7` is broken, its shelf's power supply 2 failed, `e0c` is down,
+  `vol_logs` and `lun_db02` are offline, `svm_test` is stopped and
+  `vol_erp_dr` is three hours behind; a part of a kind only ONTAP has opens
+  its own page (`View/InventoryPart.tsx`, at
+  `/inventory/<kind>/<externalId>`), and the Documentation tab
+  (`View/Documentation.tsx`) is modelled for them.
+
+Dell PowerMax's Unisphere connections (#11004), in the product's own layout
+and side menu (`Pages/StorageArray/{Layout,Connections,ConnectionView}.tsx`):
+`unisphere-fra` collects a PowerMax 8500 on PowerMaxOS 10 (a storage group
+registered for real time), a PowerMax 2000 on 5978 whose performance
+Unisphere does not collect, and sees the SRDF partner in Amsterdam;
+`unisphere-ams` stopped two days ago when its certificate changed. Both run
+on the project's probe `probe-fra-dc1`. Test Connection and Trust this
+certificate are answered in memory (`ModelAPI.create` / `updateById`), and
+recorded in `createRequests` and `updateRequests`.
 
 Any route not listed above renders a "Not modelled" stub
 (`data-testid="stub-page"`).
@@ -47,6 +86,7 @@ Query parameters on any page:
 | `fail`      | `inventory`: every inventory read fails                                                                                                                                                                                                                                                                                       |
 | `lang`      | `de` reads the German locale file, `fa` the Persian one (right to left)                                                                                                                                                                                                                                                       |
 | `theme`     | `dark` adds `html.dark` (server.js)                                                                                                                                                                                                                                                                                           |
+| `test`      | What a Unisphere connection test finds: `ok` (default), `certificate` (self-signed, not trusted yet), `role` (the account has no role on the arrays), `unreachable` (nothing answers on 8443), `perfoff` (no performance collected for one array)                                                                             |
 
 ## What the fixture records
 

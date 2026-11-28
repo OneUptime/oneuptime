@@ -194,20 +194,33 @@ tests:
       - templates/app.yaml
     set:
       openTelemetryExporter.metricsTemporality: Delta
-    asserts: &refusesTemporality
+    asserts:
       - failedTemplate:
-          errorPattern: "openTelemetryExporter.metricsTemporality must be one of the following"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/openTelemetryExporter/metricsTemporality': value must be one of '', 'cumulative', 'delta', <nil>
 
   - it: refuses deltas
     templates:
       - templates/app.yaml
     set:
       openTelemetryExporter.metricsTemporality: deltas
-    asserts: *refusesTemporality
+    asserts:
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/openTelemetryExporter/metricsTemporality': value must be one of '', 'cumulative', 'delta', <nil>
 
   - it: refuses lowmemory, which would send OneUptime's asynchronous counters as running totals
     templates:
       - templates/app.yaml
     set:
       openTelemetryExporter.metricsTemporality: lowmemory
-    asserts: *refusesTemporality
+    asserts:
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/openTelemetryExporter/metricsTemporality': value must be one of '', 'cumulative', 'delta', <nil>

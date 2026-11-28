@@ -5,6 +5,7 @@ import KubernetesCluster from "./KubernetesCluster";
 import DockerHost from "./DockerHost";
 import PodmanHost from "./PodmanHost";
 import ProxmoxCluster from "./ProxmoxCluster";
+import XcpNgPool from "./XcpNgPool";
 import OpenStackCloud from "./OpenStackCloud";
 import VMwareVCenter from "./VMwareVCenter";
 import CephCluster from "./CephCluster";
@@ -195,6 +196,21 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 @Index(["projectId"], {
   where:
     '"disableActiveMonitoring" = true AND "isArchived" = false AND "deletedAt" IS NULL',
+})
+/*
+ * The monitors a probe may check now: not archived, not paused by anyone,
+ * a manual incident or a maintenance event, not deleted - the monitor's
+ * half of MonitorProbeService.getProbeableSql. A probe's pending count, which
+ * its KEDA autoscaler reads every 30 seconds, joins thousands of due monitor
+ * probes to these: without the index Postgres read the whole of "Monitor" to
+ * do it (#11119, 10,689 pages at 39,700 monitors), with it the monitors' ids
+ * alone (155 pages), and fewer still when one probe has more due than the
+ * count's cap. It names no column a frequent write moves; only a pause,
+ * resume, archive or delete writes its entry.
+ */
+@Index(["_id"], {
+  where:
+    '"isArchived" = false AND "disableActiveMonitoring" = false AND "disableActiveMonitoringBecauseOfManualIncident" = false AND "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false AND "deletedAt" IS NULL',
 })
 /*
  * Serves the lookup of a name the project requires to be one of its kind
@@ -1156,6 +1172,61 @@ export default class Monitor extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
+    modelType: XcpNgPool,
+    title: "XCP-ng Pools",
+    description:
+      "XCP-ng pools this monitor watches. Incidents and alerts it creates are linked to them.",
+  })
+  @ManyToMany(
+    () => {
+      return XcpNgPool;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "MonitorXcpNgPool",
+    inverseJoinColumn: {
+      name: "xcpNgPoolId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "monitorId",
+      referencedColumnName: "_id",
+    },
+  })
+  public xcpNgPools?: Array<XcpNgPool> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
     modelType: OpenStackCloud,
     title: "OpenStack Clouds",
     description:
@@ -1647,7 +1718,7 @@ export default class Monitor extends BaseModel {
     modelType: MonitorTemplate,
     title: "Monitor Template",
     description:
-      "Template this monitor was created from. Used to sync configuration changes from the template to monitors created from it.",
+      "The template this monitor is linked to. The template's sync buttons copy its configuration onto the monitors linked to it.",
   })
   @ManyToOne(
     () => {
@@ -1698,7 +1769,7 @@ export default class Monitor extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Monitor Template ID",
     description:
-      "ID of the Monitor Template this monitor was created from. Null for monitors not created from a template.",
+      "ID of the Monitor Template this monitor is linked to. Null for a monitor linked to no template.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1706,6 +1777,67 @@ export default class Monitor extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public monitorTemplateId?: ObjectID = undefined;
+
+  /*
+   * THE TEMPLATE THIS MONITOR WAS CREATED FROM (issues #11260, #11266),
+   * kept when a person links it to another template or unlinks it.
+   *
+   * An import, an auto import rule and a network alert policy each know the
+   * monitor they made for a device by the template they made it from. That
+   * was Monitor Template alone, so moving the monitor to a better template,
+   * or unlinking it, would have had the rule make the old template's monitor
+   * for the device again - a second monitor beside the one moved - and a
+   * policy delete the moved one and make it again. So linking or unlinking
+   * one was refused, and the only way to a new template was to delete every
+   * monitor and lose its history.
+   *
+   * This keeps the answer instead. The shared duplicate rule
+   * (Utils/Monitor/DeviceMonitorDuplicates) counts a device's monitor as
+   * the one from this template too, so nothing makes that template's monitor
+   * for the device again, and nothing undoes what the person chose.
+   *
+   * OneUptime's alone to write: a create from a template stamps it
+   * (MonitorService), and so does the first change of Monitor Template on a
+   * monitor made before it was recorded, with the template it leaves. Empty
+   * on a monitor made from no template, and on one made before this was
+   * recorded that is still linked to the template it was made from - which
+   * Monitor Template then says. No foreign key: a deleted template is named
+   * by no rule, policy or import, so its id here holds nothing back.
+   *
+   * Read on the monitor itself, by its own read, and never through a record
+   * that names the monitor: the rules, policies and imports read it as
+   * OneUptime, on the monitor, and no page draws it beside an incident,
+   * alert or log. So it is no relation's label
+   * (RelationReadsNoWiderThanTheColumn).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Created From Monitor Template ID",
+    description:
+      "ID of the Monitor Template this monitor was created from, kept when it is linked to another template or unlinked. Imports, auto import rules and alert policies never make that template's monitor again for the device this monitor checks. Empty for a monitor made from no template, and for one made before this was recorded that is still linked to its template.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public createdFromMonitorTemplateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -2675,7 +2807,7 @@ export default class Monitor extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Disable Monitoring because of Manual Incident",
     description:
-      "Disable Monitoring because of Incident which is creeated manually by user.",
+      "True while an open incident declared by hand pauses this monitor's checks: one that lists it and pauses monitoring, on a monitor that does not keep monitoring during incidents. Set by OneUptime; it cannot be written.",
     defaultValue: false,
   })
   @Column({
@@ -2684,6 +2816,65 @@ export default class Monitor extends BaseModel {
     default: false,
   })
   public disableActiveMonitoringBecauseOfManualIncident?: boolean = undefined;
+
+  /*
+   * Whether an incident declared by hand leaves this monitor's checks
+   * running (issue #11141). Off - the default, and every monitor from
+   * before it - such an incident pauses them until it is resolved
+   * (disableActiveMonitoringBecauseOfManualIncident), so the status the
+   * incident put the monitor in stays. On, the checks keep running while
+   * the incident is open: they keep setting the monitor's status and
+   * opening its incidents and alerts, and the requests an Incoming Request
+   * monitor receives keep being evaluated. Turned on while an incident
+   * pauses the monitor, the checks resume at once; turned off while one is
+   * open, they pause (MonitorIncidentPause). Incidents OneUptime declares,
+   * and alerts, never pause a monitor.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    isDefaultValueColumn: true,
+    // Read on the monitor itself (its settings, the pause): no relation's label.
+    title: "Keep Monitoring During Incidents",
+    description:
+      "Keep checking this monitor while an incident declared by hand is open on it. Off, such an incident pauses its checks until the incident is resolved.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public keepMonitoringDuringIncidents?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [

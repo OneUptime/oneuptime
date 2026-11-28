@@ -274,7 +274,7 @@ Incident Severity with the same name already exists.
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-这类拒绝还包含 `takenById`，即占用该名称的记录的 ID，前提是你的密钥可以读取该记录。在项目要求名称唯一之前就已同名的记录会保留名称，直到被重命名；一次更新也不能为多条同类记录设置同一个名称。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` 会在你发送之前回答名称是否已被占用，`GET /api/unique-names/duplicates` 按类型列出项目中被多次使用的名称。
+这类拒绝还包含 `takenById`，即占用该名称的记录的 ID，前提是你的密钥可以读取该记录。在项目要求名称唯一之前就已同名的记录会保留名称，直到被重命名；一次更新也不能为多条同类记录设置同一个名称。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` 会在你发送之前回答名称是否已被占用，`GET /api/unique-names/duplicates` 按类型列出项目中被多次使用的名称。`GET /api/shared-names/Monitor`（或该设置涵盖的任何其他类型的表名）会像仪表板中的列表标记它们那样，回答该类型的哪些记录同名：`{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`，每个分组是你的密钥可以读取的两条或更多记录，并附有每条记录的创建时间。已归档的记录与正在使用的记录分开分组。
 
 #### 其他记录已在使用的值
 
@@ -300,6 +300,22 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 以记录现有的值写入的更新不会改变任何东西：它不会启动记录的 **On Update** 工作流，不会发送实时更新，也不会添加审计日志条目。写在 `false` 上的 `false` 算作相同的值，写在 `false` 上的 `"false"`、以文本写入的数字、以另一种格式写入的同一时刻，以及以任意顺序写入的相同标签也都一样。当更新更改了一些值、又把另一些值按原样写回时，其审计日志条目只列出更改了的值，工作流的 **要关注的字段** 也只会收到这些值。
+
+### 以 JSON 编写的值
+
+有些字段保存具有自身结构的 JSON 值，例如值班计划中层的 `rotation` 和 `restrictionTimes`；API 参考在其数据类型中列出了每种结构。OneUptime 只读取该结构中的键，因此一个值如果漏掉了说明其含义的键、用别的拼写写了该键，或给了 OneUptime 不认识的值，就会被拒绝并返回指明该键的 `400`，而不是被保存为一个毫无作用的值：
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+改名的键仍会按旧名读取：层的限制类型写在 `restrictionType` 下，或写在其旧拼写 `restictionType` 下，响应中两者都有。旧拼写在响应中已弃用：响应会一直带有它，直到 2027 年 6 月 1 日当天或之后发布的第一个主要版本。写入时始终会读取它。
+
+值也必须与其所述相符。层的每周时段在其指定的星期几值班，因此按计划的时区，其 `startTime` 和 `endTime` 必须分别落在 `startDay` 和 `endDay` 上。日期落在其他日子的时段会被拒绝，返回的 `400` 会指明该时段，并给出可改为发送的、落在指定那天的时间：
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### 项目的购买渠道
 
@@ -412,6 +428,44 @@ Incident not found.
 ```
 
 它过去会返回 `200` 和空的响应体。列表（`get-list`）和计数仍然以 `200` 和你可以读取的记录作出响应，没有时则为空。Terraform 提供程序会把刷新时的 `404` 当作已不存在的资源，并将其从 state 中移除，因此下一次 plan 会重新创建它：请给它所使用的 API 密钥授予读取它所管理的每个资源的权限和标签。MCP 工具对 `404` 的响应是一个指向相应列表工具的错误，而 CLI 会以代码 `3` 退出。
+
+### 记录的 Markdown 中的图片
+
+粘贴到 Markdown 中的图片，例如事件描述、Markdown 自定义字段或备注中的截图，是一个私有文件。它的地址（`/file/image/access-token/...`）只对已登录项目的人打开，所以 API 密钥改为通过显示它的记录来读取：
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+记录以该密钥的身份读取，和 `get-item` 的读取方式相同：密钥需要读取它的权限，以及它的标签。响应包含记录的 Markdown 显示的每张图片，按显示顺序排列：它的 `name`、`mimeType`、`sizeInBytes`、`base64` 格式的数据、用于邮件内嵌附件的 `contentId`、Markdown 显示它时用的 `urls`，以及它所在的 `fields`。`leftOut` 下是 Markdown 显示但没有交出的文件，每个都带有 `reason`：
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+只交出上传到记录自身所在项目的图片，最多 20 张、总共 10 MB，并且从不交出 SVG。每种带 Markdown 的记录都有同样的请求，例如 `/api/incident-public-note/<id>/markdown-files` 或 `/api/alert/<id>/markdown-files`。不存在的记录，或密钥无权读取的记录，会像 `get-item` 一样返回 `404`；密钥完全不能读取该类记录时返回 `422`。工作流用 [从 Markdown 获取文件](/docs/workflows/components#get-files-from-markdown) 读取同样的图片。
 
 ## 完整的端点参考
 

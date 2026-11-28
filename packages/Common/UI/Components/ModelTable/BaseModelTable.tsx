@@ -20,6 +20,11 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import {
+  getDeleteWhatFailed,
+  getDialogWhatFailed,
+  getLoadWhatFailed,
+} from "../../Utils/DialogWhatFailed";
 import Toast, {
   CHANGES_SAVED,
   getItemCreatedTemplate,
@@ -50,7 +55,7 @@ import PermissionGate, {
   PermissionGateOptions,
 } from "../../Utils/PermissionGate";
 import {
-  usePrivateRecordGateOptions,
+  useListGateOptions,
   withPrivateRecordGateOptions,
 } from "../../Utils/PrivateRecordScope";
 import { HeldPermissions } from "../../../Types/HeldPermissions";
@@ -110,6 +115,14 @@ import {
   getDeleteConsequence,
   joinSentences,
 } from "../DeleteConfirmation/DeleteConsequences";
+import { joinSentences as joinSentencesInOrder } from "../../Utils/SentenceSeparator";
+import {
+  ColumnSortLock,
+  getColumnSortLock,
+  getColumnSortLockSentence,
+  SortLockModel,
+} from "../../Utils/ColumnSortLock";
+import { useLabelNames } from "../../Utils/RecordLabelLock";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
 import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
 import Icon from "../Icon/Icon";
@@ -203,6 +216,7 @@ import {
   isLiveRowsHeld,
 } from "./LiveRows";
 import useLiveRows from "./UseLiveRows";
+import useTwinMarks, { TwinMarks, markTwinsInColumn } from "./TwinMarks";
 import {
   EMPTY_LIST_COUNT,
   ListCountState,
@@ -217,6 +231,7 @@ import {
 import AnalyticsBaseModel, {
   AnalyticsBaseModelType,
 } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import { getUniqueNameWhenRequiredColumn } from "../../../Types/Database/UniqueNameWhenRequired";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -259,6 +274,7 @@ import UserPreferences, {
 import RequestOptions from "../../Utils/API/RequestOptions";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import { ARCHIVED_COLUMN } from "../../../Utils/ArchivableValues";
 import {
   SharedNameFacts,
   SharedNameMark,
@@ -673,6 +689,16 @@ export interface BaseTableProps<
    */
   editFormTitle?: ((item: TBaseModel) => string) | undefined;
   createFormSubmitButtonText?: string | undefined;
+  /*
+   * What the create dialog says over its fields, and how its submit button
+   * looks, for a create that cannot be undone: an erasure request erases a
+   * person for good (#10908), so its dialog says so and its button is the
+   * danger style, the confirmation of what it does. English to look up, or
+   * words already in the reader's language. Left out, the dialog has no
+   * description and its button is the primary one, as before.
+   */
+  createFormDescription?: string | undefined;
+  createFormSubmitButtonStyle?: ButtonStyleType | undefined;
   showAs?: ShowAs | undefined;
   singularName?: string | undefined;
   pluralName?: string | undefined;
@@ -747,6 +773,14 @@ export interface BaseTableProps<
   getDeleteDisabledReason?:
     | ((item: TBaseModel) => string | undefined)
     | undefined;
+  /*
+   * What the two reasons above were last worked out from, when that can
+   * change after the rows are drawn - who owns each row, read once the rows
+   * are (#11436), the names of the labels a lock names (#11259): a change
+   * draws the rows' actions again, so a row's menu says what its lock says
+   * now. Left out, the actions follow the rows and columns alone.
+   */
+  rowLocksKey?: string | undefined;
   /*
    * Supplies the per-row Delete confirmation's wording for the row that was
    * clicked. Runs after onBeforeDelete and before the dialog opens, so it may
@@ -1185,6 +1219,38 @@ const toRecordFilterOption: (
 };
 
 /*
+ * Whether an entity filter marks the archived records it offers or holds,
+ * past the archivable values every filter marks: what the filter says, or
+ * - unsaid - whether its model's records carry an archive switch of their
+ * own (a monitor, a service, a host: ArchivedValuePicker
+ * .hasRecordArchiveSwitch) the reader may read. A resource filter listed an
+ * archived monitor unmarked beside a live one of the same name unless it
+ * opted in (#10921). A reader who may not read the switch is never asked
+ * for it: the server refuses a whole read that selects a column it may not
+ * read.
+ */
+export const isMarkingArchivedRecords: (filter: Filter<any>) => boolean = (
+  filter: Filter<any>,
+): boolean => {
+  if (filter.marksArchivedRecords !== undefined) {
+    return filter.marksArchivedRecords;
+  }
+
+  if (!(filter.filterEntityType?.prototype instanceof BaseModel)) {
+    return false;
+  }
+
+  const modelType: DatabaseBaseModelType =
+    filter.filterEntityType as DatabaseBaseModelType;
+
+  if (!ArchivedValuePicker.hasRecordArchiveSwitch(modelType)) {
+    return false;
+  }
+
+  return PermissionGate.canReadColumn(new modelType(), ARCHIVED_COLUMN);
+};
+
+/*
  * What an entity filter reads of each record it offers or holds: its name
  * and value, its colour, whether it is archived (a filter lists archived
  * values too - the records that have one stay findable by it - and marks
@@ -1219,9 +1285,9 @@ const getEntityFilterSelect: (filter: Filter<any>) => Dictionary<unknown> = (
     ArchivedValuePicker.isArchivableValueModel(
       filter.filterEntityType as DatabaseBaseModelType,
     ) ||
-    filter.marksArchivedRecords
+    isMarkingArchivedRecords(filter)
   ) {
-    select["isArchived"] = true;
+    select[ARCHIVED_COLUMN] = true;
   }
 
   if (filter.filterDropdownField!.label === "name") {
@@ -1280,8 +1346,8 @@ const toEntityFilterOption: (
     (ArchivedValuePicker.isArchivableValueModel(
       filter.filterEntityType as DatabaseBaseModelType,
     ) ||
-      filter.marksArchivedRecords) &&
-    item.getColumnValue("isArchived") === true
+      isMarkingArchivedRecords(filter)) &&
+    item.getColumnValue(ARCHIVED_COLUMN) === true
   ) {
     option.isArchived = true;
   }
@@ -1412,10 +1478,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   /*
    * On a private incident, alert or episode's page, what the reader holds
    * on it: its changes are offered only when a team of theirs that owns it
-   * may make them (PrivateRecordScope).
+   * may make them (PrivateRecordScope). A list of the page's own kind lists
+   * other records, which the page's answer is not about: each row is
+   * weighed by its own labels instead (ModelTable, #11259). A list of one of
+   * the record's parts takes the page's answer for the part only while its
+   * query keeps it to the record's rows (#11435).
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
-    usePrivateRecordGateOptions(model);
+    useListGateOptions(model, props.query);
 
   type GetItemLabelFunction = (item: unknown) => string;
 
@@ -1784,6 +1854,59 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
     return [...declaredColumns, ...attributeColumns];
   }, [declaredColumns, attributeColumns]);
+
+  /*
+   * The labels the columns this reader may not sort by are read on
+   * (#11437, ColumnSortLock): their (i) names them, once read.
+   */
+  const sortLockLabelIds: Array<string> = [];
+
+  for (const column of allColumns) {
+    const field: string | undefined = column.field
+      ? Object.keys(column.field)[0]
+      : undefined;
+    const lock: ColumnSortLock | null =
+      field && !column.selectedProperty
+        ? getColumnSortLock(model as SortLockModel, field)
+        : null;
+
+    for (const labelId of lock?.labelIds || []) {
+      if (!sortLockLabelIds.includes(labelId)) {
+        sortLockLabelIds.push(labelId);
+      }
+    }
+  }
+
+  const sortLockLabelNames: ReadonlyMap<string, string> =
+    useLabelNames(sortLockLabelIds);
+  const sortLockNamesKey: string = Array.from(
+    sortLockLabelNames.entries(),
+  ).join(";");
+
+  /*
+   * A kind Require Unique Names holds marks the records whose name another
+   * of its kind has, beside their name, and says how many above the list
+   * (TwinMarks, #11021): every such list, so a kind marked tomorrow is
+   * marked here too. Only a list that shows the kind's name column reads
+   * them; every other kind reads nothing.
+   */
+  const twinMarks: TwinMarks = useTwinMarks({
+    modelType: props.modelType as unknown as { new (): BaseModel },
+    isShown: allColumns.some(
+      (column: ModelTableColumn<TBaseModel>): boolean => {
+        const twinColumn: string | null =
+          model instanceof BaseModel
+            ? getUniqueNameWhenRequiredColumn(model)
+            : null;
+
+        return Boolean(
+          twinColumn &&
+            column.field &&
+            Object.keys(column.field)[0] === twinColumn,
+        );
+      },
+    ),
+  });
 
   /*
    * Ids are derived over the *whole* declared set, so a column dropping out
@@ -2584,11 +2707,39 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [showModel, setShowModal] = useState<boolean>(false);
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
   const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
-  const [sortBy, setSortBy] = useState<keyof TBaseModel | null>(
-    (initialUrlState.view.sortBy as keyof TBaseModel | undefined) ||
-      props.sortBy ||
-      null,
-  );
+  /*
+   * The sort a link or a saved view asks for, unless the reader may not
+   * order the list by it - a column they read on some labels only, or on
+   * the records they own (#11437, ColumnSortLock): the server would refuse
+   * the list. The list's own sort then, if they may sort by that.
+   */
+  const getSortOfReader: (
+    asked: keyof TBaseModel | null | undefined,
+  ) => keyof TBaseModel | null = (
+    asked: keyof TBaseModel | null | undefined,
+  ): keyof TBaseModel | null => {
+    const isLocked: (column: keyof TBaseModel | null | undefined) => boolean = (
+      column: keyof TBaseModel | null | undefined,
+    ): boolean => {
+      return Boolean(
+        column && getColumnSortLock(model as SortLockModel, String(column)),
+      );
+    };
+
+    if (!asked || !isLocked(asked)) {
+      return asked || null;
+    }
+
+    return props.sortBy && !isLocked(props.sortBy) ? props.sortBy : null;
+  };
+
+  const [sortBy, setSortBy] = useState<keyof TBaseModel | null>(() => {
+    return getSortOfReader(
+      (initialUrlState.view.sortBy as keyof TBaseModel | undefined) ||
+        props.sortBy ||
+        null,
+    );
+  });
   const [sortOrder, setSortOrder] = useState<SortOrder>(
     initialUrlState.view.sortOrder || props.sortOrder || SortOrder.Ascending,
   );
@@ -2741,6 +2892,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [isFilterFetchLoading, setIsFilterFetchLoading] = useState(false);
 
   const [errorModalText, setErrorModalText] = useState<string>("");
+  /*
+   * What the Error dialog's failure was, said first when nobody explained
+   * it (#7680): its title, "Error", names nothing.
+   */
+  const [errorModalWhatFailed, setErrorModalWhatFailed] = useState<string>("");
 
   useEffect(() => {
     const currentQuery: Query<TBaseModel> = propsQueryRef.current;
@@ -2862,6 +3018,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       }
       await fetchItems();
     } catch (err) {
+      setErrorModalWhatFailed(
+        getDeleteWhatFailed(
+          translator,
+          getDeleteLabel(props.singularName, model.singularName),
+        ),
+      );
       setErrorModalText(API.getFriendlyMessage(err));
     }
 
@@ -2902,6 +3064,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       },
     );
 
+    // The first column on the kind's name draws its twins' marks (TwinMarks).
+    let isTwinColumnMarked: boolean = false;
+
     for (const column of columnsToRender) {
       const hasPermission: boolean =
         hasPermissionToReadColumn(column) || User.isMasterAdmin();
@@ -2933,18 +3098,61 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               column.selectedProperty) as keyof TBaseModel)
           : key;
 
-        const disableSort: boolean = Boolean(
+        /*
+         * A column the reader reads on some labels only, or only on the
+         * records they own, is no order of theirs: the server refuses it
+         * (#11437). Not offered, and its (i) says why - where the header
+         * would sort for anyone else.
+         */
+        const sortLock: ColumnSortLock | null =
+          key && !column.selectedProperty
+            ? getColumnSortLock(model as SortLockModel, String(key))
+            : null;
+
+        const sortsForOthers: boolean = !(
           column.disableSort ||
-            shouldDisableSort(column, key) ||
-            isDrawnFromRecordId<TBaseModel>(column, key),
+          shouldDisableSort(column, key) ||
+          isDrawnFromRecordId<TBaseModel>(column, key)
         );
+
+        const disableSort: boolean = !sortsForOthers || Boolean(sortLock);
+
+        const sortLockSentence: string =
+          sortLock && sortsForOthers
+            ? getColumnSortLockSentence({
+                lock: sortLock,
+                pluralName: props.pluralName || model.pluralName || "",
+                labelNames: sortLockLabelNames,
+                translator: translator,
+              })
+            : "";
 
         const relationSort: RelationColumnSort | undefined = columnKey
           ? relationColumnSorts.get(String(columnKey))
           : undefined;
 
-        columns.push({
+        const isTwinColumn: boolean =
+          !isTwinColumnMarked &&
+          Boolean(twinMarks.column) &&
+          columnKey === twinMarks.column;
+
+        if (isTwinColumn) {
+          isTwinColumnMarked = true;
+        }
+
+        const tableColumn: TableColumn<TBaseModel> = {
           ...column,
+          ...(sortLockSentence
+            ? {
+                headerTooltip: joinSentencesInOrder([
+                  column.headerTooltip
+                    ? translator.translateText(column.headerTooltip) ||
+                      column.headerTooltip
+                    : "",
+                  sortLockSentence,
+                ]),
+              }
+            : {}),
           id: columnIdByColumn.get(column),
           /*
            * Nor does a column that draws its own thing from the record's id
@@ -2973,7 +3181,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           }),
           tooltipText,
           getElement: column.getElement,
-        });
+        };
+
+        columns.push(
+          isTwinColumn
+            ? markTwinsInColumn<TBaseModel>({
+                column: tableColumn,
+                marks: twinMarks,
+              })
+            : tableColumn,
+        );
 
         if (key) {
           selectFields[key] = true;
@@ -3096,7 +3313,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               query: (filter.filterQuery || {}) as Record<string, unknown>,
               modelAPI: tableModelAPI,
               notFoundLabel: ENTITY_DROPDOWN_NOT_FOUND_LABEL,
-              marksArchivedRecords: filter.marksArchivedRecords,
+              marksArchivedRecords: isMarkingArchivedRecords(filter),
             });
             continue;
           }
@@ -3636,6 +3853,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       );
       setData(listResult.data);
 
+      // Which of the kind's records share a name, read with the rows (TwinMarks).
+      twinMarks.onRowsRead(listResult.data, { isBackground: isBackground });
+
       /*
        * A live read tints the rows it brought in; a read the reader asked
        * for (another page, a search) draws the rows they asked for, none
@@ -3832,9 +4052,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         model.hasColumn(moreField as string) &&
         model.isEntityColumn(moreField as string)
       ) {
-        (selectFields as Dictionary<boolean>)[moreField as string] = (
-          props.selectMoreFields as any
-        )[moreField];
+        /*
+         * A relation a column selects already keeps what that column reads:
+         * the fields asked for here are added to it. It was replaced, so a
+         * list that also asked for its rows' label ids drew its Labels
+         * column without names.
+         */
+        const selected: unknown = (selectFields as Dictionary<unknown>)[
+          moreField as string
+        ];
+        const more: unknown = (props.selectMoreFields as any)[moreField];
+
+        (selectFields as Dictionary<unknown>)[moreField as string] =
+          selected &&
+          typeof selected === "object" &&
+          more &&
+          typeof more === "object"
+            ? {
+                ...(selected as Dictionary<unknown>),
+                ...(more as Dictionary<unknown>),
+              }
+            : more;
       } else if (model.hasColumn(moreField as string)) {
         (selectFields as Dictionary<boolean>)[moreField as string] = true;
       } else {
@@ -4271,6 +4509,45 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     serializeToTableColumns();
   }, [data]);
 
+  // Which records share a name arrived, or changed: their cells draw it.
+  useEffect(() => {
+    if (twinMarks.version > 0) {
+      serializeToTableColumns();
+    }
+  }, [twinMarks.version]);
+
+  // The labels a locked sort's (i) names arrived (#11437).
+  useEffect(() => {
+    if (sortLockNamesKey) {
+      serializeToTableColumns();
+    }
+  }, [sortLockNamesKey]);
+
+  /*
+   * What the rows' locks are worked out from changed - who owns them landed,
+   * a lock's label names arrived (rowLocksKey): their actions say it now.
+   */
+  useEffect(() => {
+    if (props.rowLocksKey) {
+      serializeToTableColumns();
+    }
+  }, [props.rowLocksKey]);
+
+  /*
+   * The permission snapshot landed after the list chose its sort: a sort the
+   * reader may not order by gives way to the list's own (#11437).
+   */
+  const hasSnapshot: boolean = PermissionGate.hasPermissionSnapshot();
+
+  useEffect(() => {
+    const sortOfReader: keyof TBaseModel | null = getSortOfReader(sortBy);
+
+    if (sortBy && sortOfReader !== sortBy) {
+      setSortBy(sortOfReader);
+      setSortOrder(props.sortOrder || SortOrder.Ascending);
+    }
+  }, [hasSnapshot, sortBy]);
+
   /*
    * Re-serialize whenever the parent passes a new `columns` reference. The
    * column array carries `getElement` closures that capture parent state
@@ -4446,6 +4723,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         },
       )
       .catch((err: Error) => {
+        setErrorModalWhatFailed(
+          getLoadWhatFailed(
+            translator,
+            getDeleteLabel(props.singularName, model.singularName),
+          ),
+        );
         setErrorModalText(API.getFriendlyMessage(err));
       });
   };
@@ -5488,13 +5771,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       );
     };
 
-  // A reorderable list with its messages - saving, failed, paused - above it.
+  /*
+   * A list with its messages above it: a reorderable list's - saving,
+   * failed, paused - and how many of its records share a name with another
+   * of their kind (TwinMarks).
+   */
   const withReorderMessages: (element: ReactElement) => ReactElement = (
     element: ReactElement,
   ): ReactElement => {
     return (
       <>
         {getReorderMessages()}
+        {twinMarks.note}
         {element}
       </>
     );
@@ -7180,6 +7468,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           isLoading={isDeleteAlternativeRunning}
           error={deleteAlternativeError || undefined}
+          /*
+           * What failed is the alternative ("Archive instead"), named as its
+           * button is: the dialog's title names the delete it was offered
+           * in place of (#7680).
+           */
+          errorWhatFailed={
+            deleteConfirmation?.alternative
+              ? getDialogWhatFailed(
+                  translator,
+                  translateString(deleteConfirmation.alternative.title) ||
+                    deleteConfirmation.alternative.title,
+                )
+              : undefined
+          }
           title={
             deleteConfirmation?.title
               ? translator.translateText(deleteConfirmation.title) ||
@@ -7300,6 +7602,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         <ConfirmModal
           title={`Error`}
           description={`${errorModalText}`}
+          errorWhatFailed={errorModalWhatFailed || undefined}
           submitButtonText={"Close"}
           onSubmit={() => {
             setErrorModalText("");

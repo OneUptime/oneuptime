@@ -13,6 +13,7 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -22,6 +23,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import { PacketCaptureCapability } from "../../Types/PacketCapture/PacketCaptureCapability";
+import { SnmpTrapReceiverReport } from "../../Types/Probe/SnmpTrapReceiver";
 import Permission from "../../Types/Permission";
 import Version from "../../Types/Version";
 import {
@@ -40,9 +42,11 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 /*
  * Who reads a project's probes: the project's members who see its monitors or
  * its settings, and Read Project Probe. They read all of a probe but its key
- * (its owners' and admins') and who created it (its owners').
+ * (its owners' and admins') and who created it (its owners'). A project's
+ * share of a global probe's SNMP trap receiver report is read by them too
+ * (GlobalProbeSnmpTrapReport), as a project probe's own report is.
  */
-const PROBE_READERS: Array<Permission> = [
+export const PROBE_READERS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
   Permission.ProjectMember,
@@ -790,6 +794,32 @@ export default class Probe extends BaseModel {
   public checksLastLateAt?: Date = undefined;
 
   /*
+   * How far behind the probe is: when its longest-waiting monitor check was
+   * due, at the latest reading that found one late - so a list can say
+   * "Behind by 15 minutes", not only since when (checksLastLateAt minus
+   * this, Types/Probe/ProbeBehind). Kept and cleared with the two above.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_PICKER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Checks Last Late Due At",
+    description:
+      "When the longest-waiting of this probe's monitor checks was due, at the latest reading that found one waiting more than a minute past its check time: how far behind the probe is. Set by OneUptime.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public checksLastLateDueAt?: Date = undefined;
+
+  /*
    * The same for the network devices the probe polls (OneUptime issue
    * #9499): the first and the latest of the once-a-minute readings that
    * found one of its devices waiting more than a minute past its poll
@@ -836,6 +866,27 @@ export default class Probe extends BaseModel {
   })
   public devicePollsLastLateAt?: Date = undefined;
 
+  // How far behind its device polls are, as checksLastLateDueAt is.
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_PICKER_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    type: TableColumnType.Date,
+    title: "Device Polls Last Late Due At",
+    description:
+      "When the longest-waiting of the network device polls this probe does was due, at the latest reading that found one waiting more than a minute past its poll time: how far behind the probe is. Set by OneUptime.",
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public devicePollsLastLateDueAt?: Date = undefined;
+
   /*
    * What the probe last said about packet capture: whether whoever runs it
    * turned captures on (PROBE_PACKET_CAPTURE_ENABLED), whether tcpdump is
@@ -866,6 +917,44 @@ export default class Probe extends BaseModel {
     nullable: true,
   })
   public packetCaptureCapability?: PacketCaptureCapability = undefined;
+
+  /*
+   * What the probe last said about its SNMP trap receiver (#11005;
+   * Types/Probe/SnmpTrapReceiver): whether it is on and on which port, its
+   * SNMPv3 engine ID - which a device sending informs needs - how many
+   * SNMPv3 users it accepts, and the SNMPv3 traps it refused, counted by
+   * source address, reason and user name. Written by the probe's report,
+   * never by a request; empty for a probe older than SNMPv3 traps. Only
+   * project probes keep one: a global probe's refusals would be other
+   * projects' addresses and user names.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "SNMP Trap Receiver",
+    description:
+      "What the probe last reported about its SNMP trap receiver: whether it is on and its UDP port, its SNMPv3 engine ID, how many SNMPv3 users it accepts traps from, and the SNMPv3 traps it refused in the last day, by source address, reason and user name. Managed by the probe.",
+    /*
+     * A network device's Overview reads its probe's report through the
+     * device (NetworkDevice.probe), to say when the device's own SNMPv3
+     * traps are refused. Every relation holds it to the read list above
+     * (#11234): who reads an alert, an incident, a data store or a monitor
+     * test reads which probe it came from, not the addresses and user names
+     * that probe refused.
+     */
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public snmpTrapReceiver?: SnmpTrapReceiverReport = undefined;
 
   @ColumnAccessControl({
     create: [

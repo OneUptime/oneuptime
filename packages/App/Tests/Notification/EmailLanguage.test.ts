@@ -28,10 +28,12 @@ import MailService, {
 } from "../../FeatureSet/Notification/Services/MailService";
 import {
   EMAIL_LANGUAGE_VARIABLE_NAMES,
+  MAILTO_LINK_STYLE,
   getEmailHtmlValue,
   getEmailLanguageFromRoot,
   getEmailLanguageVariables,
   getEmailValueDirection,
+  getMailtoHref,
   registerEmailLanguageHelpers,
   writeEmailNumber,
 } from "../../FeatureSet/Notification/Utils/EmailLanguage";
@@ -447,6 +449,89 @@ describe("the email language helpers", () => {
         { emailLanguage: "es", name: "<Acme & Co>" },
       ),
     ).toBe("Se ha publicado un nuevo anuncio para &lt;Acme &amp; Co&gt;.");
+  });
+
+  /*
+   * A sentence that names an address people write to, the address a
+   * mailto: link in it (#10941): the server's own support address in an
+   * account email's "Need help? Write to ...".
+   */
+  const LINK: string = `<a href="mailto:it-help@example.com" style="${MAILTO_LINK_STYLE}">it-help@example.com</a>`;
+
+  test("ttMailtoHtml: the sentence in English, the address a mailto: link", () => {
+    expect(
+      render('{{ttMailtoHtml "Need help? Write to {{address}}." address=a}}', {
+        a: "it-help@example.com",
+      }),
+    ).toBe(`Need help? Write to ${LINK}.`);
+  });
+
+  test("ttMailtoHtml: in the email's language, the link where the language puts the address", () => {
+    expect(
+      render('{{ttMailtoHtml "Need help? Write to {{address}}." address=a}}', {
+        a: "it-help@example.com",
+        emailLanguage: "de",
+      }),
+    ).toBe(`Brauchen Sie Hilfe? Schreiben Sie an ${LINK}.`);
+    expect(
+      render('{{ttMailtoHtml "Need help? Write to {{address}}." address=a}}', {
+        a: "it-help@example.com",
+        emailLanguage: "ja",
+      }),
+    ).toBe(`お困りですか？${LINK} までご連絡ください。`);
+  });
+
+  test("ttMailtoHtml: every other value goes in escaped, as written", () => {
+    expect(
+      render(
+        '{{ttMailtoHtml "Need help? Ask {{inviter}}, who invited you, or write to {{address}}." inviter=name address=a}}',
+        { a: "it-help@example.com", name: "<b>Ada</b> & Co" },
+      ),
+    ).toBe(
+      `Need help? Ask &lt;b&gt;Ada&lt;/b&gt; &amp; Co, who invited you, or write to ${LINK}.`,
+    );
+  });
+
+  test("ttMailtoHtml: an address with markup in it is escaped, in the link and in its words", () => {
+    const html: string = render(
+      '{{ttMailtoHtml "Need help? Write to {{address}}." address=a}}',
+      { a: '"><img src=x onerror=alert(1)>@example.com' },
+    );
+
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain('"><');
+    expect(html).toContain("&lt;img");
+    expect(html.match(/<a /g)?.length).toBe(1);
+  });
+
+  test("ttMailtoHtml: printed raw in a slot, it is not escaped twice", () => {
+    expect(
+      render(
+        '{{{ttMailtoHtml "If you did not expect this, contact support at {{address}}." address=a}}}',
+        { a: "it-help@example.com" },
+      ),
+    ).toBe(`If you did not expect this, contact support at ${LINK}.`);
+  });
+
+  test("ttMailtoHtml: no address, no link, and nothing in its place", () => {
+    expect(
+      render(
+        '{{ttMailtoHtml "Need help? Write to {{address}}." address=a}}',
+        {},
+      ),
+    ).toBe("Need help? Write to .");
+  });
+
+  test("a mailto: link's address is encoded either side of its @, so nothing reads as a query", () => {
+    expect(getMailtoHref("it-help@example.com")).toBe(
+      "mailto:it-help@example.com",
+    );
+    expect(getMailtoHref("it+help@example.com")).toBe(
+      "mailto:it%2Bhelp@example.com",
+    );
+    expect(getMailtoHref("it?subject=x@example.com")).toBe(
+      "mailto:it%3Fsubject%3Dx@example.com",
+    );
   });
 
   test("a missing value reads as nothing, never as its placeholder", () => {

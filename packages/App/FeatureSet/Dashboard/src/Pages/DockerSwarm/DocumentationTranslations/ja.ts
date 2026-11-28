@@ -38,6 +38,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `DOCKER_INVENTORY_INTERVAL_SECONDS` | いいえ | ポーラーがインベントリのスナップショットを更新する間隔 (既定値 `300`) |",
   "| `DOCKER_API_VERSION` | No | Docker Engine API version the collector and the inventory poller speak. Empty by default: they use the daemon's own, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |":
     "| `DOCKER_API_VERSION` | いいえ | コレクターとインベントリポーラーが使う Docker Engine API のバージョン。既定では空で、デーモン自身のバージョンを使うので、20.10 以降のどの Docker Engine でも動きます。バージョンを固定したいときだけ設定してください (トラブルシューティング を参照) |",
+  "| `ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5` | No | Collector operators of your own, one each as JSON, for a log format the agent does not read |":
+    "| `ONEUPTIME_LOG_OPERATOR_1`～`ONEUPTIME_LOG_OPERATOR_5` | いいえ | エージェントが読み取らないログ形式のための、独自のコレクターのオペレーター。それぞれ JSON で指定します |",
   "The install script writes the first four to `/opt/oneuptime-docker-swarm-agent/.env`. Add or change any of them there, then run `docker compose up -d` in `/opt/oneuptime-docker-swarm-agent` to recreate the containers with the new values.":
     "インストールスクリプトは最初の 4 つを `/opt/oneuptime-docker-swarm-agent/.env` に書き込みます。そこで追加や変更をしてから、`/opt/oneuptime-docker-swarm-agent` で `docker compose up -d` を実行し、新しい値でコンテナを作り直します。",
   "The agent's docker-compose.yml also runs the OneUptime AI agent, `oneuptime-docker-swarm-ai-agent`. It runs the `docker` commands OneUptime AI asks for while it investigates an incident or alert on this cluster, and it appears on the cluster's **AI → AI agent** page. Like the inventory poller it must run on a manager node — on a worker it runs nothing.":

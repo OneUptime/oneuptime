@@ -189,6 +189,22 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "RepairKubernetesDashboardClusterCpuTile.migrate Dashboard":
         Why.Migration,
     },
+  /*
+   * The schedule layers stored with no restriction type the engine read,
+   * stored with the type they hold, under restrictionType (#11269).
+   */
+  "packages/App/FeatureSet/Workers/DataMigrations/RepairScheduleLayerRestrictionTypes.ts":
+    {
+      "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
+    },
+  /*
+   * The schedule layers' weekly windows stored on other days than they
+   * name, moved onto those days or their days filled in (#11455).
+   */
+  "packages/App/FeatureSet/Workers/DataMigrations/MoveWeeklyWindowsOntoTheirDays.ts":
+    {
+      "(module) OnCallDutyPolicyScheduleLayer": Why.Migration,
+    },
   "packages/App/FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers.ts":
     {
       "recordNotifiedStatusPagesSoFar Incident": Why.Bookkeeping,
@@ -204,10 +220,6 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/App/FeatureSet/Workers/Jobs/IncomingRequestMonitor/CheckHeartbeat.ts":
     {
       "stampStatusCheckedAt Monitor": Why.Bookkeeping,
-    },
-  "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts":
-    {
-      "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
     },
   /*
    * The owner notification jobs' take: a state change marked as told
@@ -225,6 +237,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/API/DataSecurityAPI.ts": {
     "(module) DataStore": Why.Bookkeeping,
     "(module) DataStoreFinding": Why.FollowOn,
+  },
+  /*
+   * Scrub It, which its route and Ask AI's action both press (#10378): the
+   * scrub rule is made through its own service and recorded there, and the
+   * finding marked scrubbed follows from it.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityButtons.ts": {
+    "DataSecurityButtons.scrubFinding DataStoreFinding": Why.FollowOn,
   },
   /*
    * A proposal of OneUptime AI's made or undone (#10364): the scrub rules
@@ -310,6 +330,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/DockerSwarmClusterService.ts": {
     "Service.attachLabels DockerSwarmCluster": Why.Reported,
   },
+  "packages/Common/Server/Services/GlobalProbeSnmpTrapReportService.ts": {
+    /*
+     * Each project's share of the SNMPv3 traps a global probe refused, as
+     * the probe reports every thirty seconds (#11173): nobody made it.
+     */
+    "Service.recordShares GlobalProbeSnmpTrapReport": Why.Reported,
+  },
   "packages/Common/Server/Services/HostService.ts": {
     "Service.attachLabels Host": Why.Reported,
   },
@@ -353,6 +380,20 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
      * records - and when a request kept once is split.
      */
     "Service.rewriteLatestIncomingRequestForReaders Monitor": Why.Derived,
+    /*
+     * When a telemetry monitor is next evaluated, moved onto its new
+     * interval after an edit to the interval - an edit the audit log
+     * records (#11060).
+     */
+    "Service.rescheduleTelemetryMonitor Monitor": Why.Bookkeeping,
+    /*
+     * Which template a monitor was created from, and its network alert
+     * policy let go, stamped beside a person's move of the monitor to
+     * another template or unlink from one (#11260, #11266) - a change the
+     * audit log records. Written row by row, round the hooks, only when the
+     * moved monitors need different stamps.
+     */
+    "Service.keepWhatTheTemplateChangeLeaves Monitor": Why.FollowOn,
   },
   "packages/Common/Server/Services/MonitorTestService.ts": {
     "Service.claimMonitorTestsForProbing MonitorTest": Why.Bookkeeping,
@@ -468,8 +509,18 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/StatusPageSubscriberService.ts": {
     "Service.unsubscribe StatusPageSubscriber": Why.Recorded,
   },
+  /*
+   * A Unisphere connection's server-only columns (#11004) - whether a
+   * password is saved, its next collection, the settings version - written
+   * after the settings change the audit log records.
+   */
+  "packages/Common/Server/Services/StorageArrayConnectionService.ts": {
+    "Service.writeConnectionServerColumns StorageArrayConnection": Why.FollowOn,
+  },
   "packages/Common/Server/Services/StorageArrayService.ts": {
     "Service.attachLabels StorageArray": Why.Reported,
+    // MERGE_COUNTS_BY_KIND_SQL: each kind's count as a batch reports it (#11000).
+    "(module) StorageArray": Why.Reported,
   },
   "packages/Common/Server/Services/VMwareVCenterService.ts": {
     "Service.attachLabels VMwareVCenter": Why.Reported,
@@ -477,6 +528,17 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
+  },
+  "packages/Common/Server/Services/XcpNgConnectionService.ts": {
+    /*
+     * The server-only columns a connection's save decides - which address,
+     * probe and certificate its secrets are bound to, the settings version
+     * probes compare - beside the save the audit log records (#10996).
+     */
+    "Service.writeConnectionServerColumns XcpNgConnection": Why.FollowOn,
+  },
+  "packages/Common/Server/Services/XcpNgPoolService.ts": {
+    "Service.attachLabels XcpNgPool": Why.Reported,
   },
   "packages/Common/Server/Utils/AI/ResourceAccess/AiAgentResetAuditLog.ts": {
     "AiAgentResetAuditLog.record *": Why.Recorded,
@@ -531,6 +593,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/Activation/TelemetryMilestoneBackfill.ts": {
     "(module) ProjectMilestone": Why.Migration,
   },
+  // Each commitment as the provider reports it, kept as each read arrives (#11011).
+  "packages/Common/Server/Utils/CloudConnection/CloudCommitmentWriter.ts": {
+    "CloudCommitmentWriter.write CloudCommitment": Why.Reported,
+  },
   "packages/Common/Server/Utils/CloudConnection/CloudConnectionResourceSync.ts":
     {
       "CloudConnectionResourceSync.archive CloudResource": Why.Reported,
@@ -564,6 +630,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/DataObservability/DataCheckIngest.ts": {
     "DataCheckIngest.recordResults DataCheck": Why.Reported,
   },
+  /*
+   * A database's Settings in Data Observability (#11147): a rename, a new
+   * connection, and Remove from Data Observability, each recorded as the
+   * person who made it.
+   */
+  "packages/Common/Server/Utils/DataObservability/DataObservabilityStoreSettings.ts":
+    {
+      "DataObservabilityStoreSettings.remove DataStore": Why.Recorded,
+      "DataObservabilityStoreSettings.update DataStore": Why.Recorded,
+    },
   "packages/Common/Server/Utils/DataObservability/DataProductCheck.ts": {
     "DataProductCheck.checkProduct DataProduct": Why.Reported,
   },
@@ -577,6 +653,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "TableHealthIngest.recordSnapshot DataStore": Why.Reported,
     "TableHealthIngest.updateAsset DataAsset": Why.Reported,
     "TableHealthIngest.writeNewPersonalDataColumns DataStore": Why.Reported,
+  },
+  /*
+   * What production showed of a person's linked fix of a Data Security
+   * issue (#10831): the production check's verdict and what it measured
+   * before, written as OneUptime AI's fixes' are - a check's result.
+   */
+  "packages/Common/Server/Utils/AI/CodeFix/FixProductionVerifier.ts": {
+    "FixProductionVerifier.writeFix DataSecurityIssuePullRequest": Why.Reported,
   },
   "packages/Common/Server/Utils/DataSecurity/DataSecurityDiscovery.ts": {
     "DataSecurityDiscovery.archiveGone DataStore": Why.Reported,
@@ -603,6 +687,15 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    * fix's watch read in the service's telemetry, noted on the issue for the
    * reconciler, which reopens it with its Timeline line.
    */
+  /*
+   * What the code host says of a pull request a person linked to a Data
+   * Security issue as its fix (#10831): its state and merge commit, and
+   * the production check it waits for once merged. Linking it and taking
+   * it off are on the issue's timeline and audited.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityLinkedFixes.ts": {
+    "(module) DataSecurityIssuePullRequest": Why.Reported,
+  },
   "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueResolutions.ts": {
     "DataSecurityIssueResolutions.markCameBack DataSecurityIssue": Why.Reported,
   },
@@ -664,6 +757,15 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       Why.Bookkeeping,
     "MonitorStatusTimelineReconciler.restoreMissingStatusTimelinesBatch MonitorStatusTimeline":
       Why.Bookkeeping,
+  },
+  /*
+   * The telemetry scheduler's stamps (MonitorTelemetryMonitor): when a
+   * monitor was last queued and is next due, and a monitor made due again
+   * when the queue refused its evaluation.
+   */
+  "packages/Common/Server/Utils/Monitor/TelemetryMonitorStamps.ts": {
+    "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
+    "returnTelemetryMonitorsNotQueued Monitor": Why.Bookkeeping,
   },
   /*
    * The hourly age-out (#6389) forgetting the Hide from map preference of
@@ -800,8 +902,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    */
   "packages/Common/Server/Utils/SecurityCase/SecurityCasePullRequestFollower.ts":
     {
-      "SecurityCasePullRequestFollower.followOne SecurityCasePullRequest":
-        Why.Reported,
+      // Written by the one follower of linked pull requests (LinkedPullRequestFollower).
+      "(module) SecurityCasePullRequest": Why.Reported,
     },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseTargetCheck.ts": {
     "SecurityCaseTargetCheck.checkCase SecurityCase": Why.Bookkeeping,
@@ -818,6 +920,32 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/SecurityEvent/Hunts/SecurityHuntScheduler.ts": {
     "SecurityHuntScheduler.record SecurityHunt": Why.Bookkeeping,
   },
+  /*
+   * An erasure request (#10908) taking a person out of what Security Events
+   * named them in: the request's creation is recorded, and an entry for
+   * each write here would copy the person's name - what the request erases
+   * - into the audit log as the old value. So would rewriting the
+   * fingerprint an alert or an incident a detection opened groups on
+   * (#11130): the old one is a fingerprint of the person. And so would
+   * taking a feed's indicator out of an alert's or an incident's
+   * description (#11230): the old one names the indicator, beside which
+   * the feed keeps the person's address.
+   */
+  "packages/Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureRecords.ts":
+    {
+      "SecurityUserErasureRecords.writeCase SecurityCase": Why.FollowOn,
+      "SecurityUserErasureRecords.deleteEntityRisk SecurityEntityRisk":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.withdrawPlaybookRuns SecurityPlaybookRun":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.rewriteSeriesFingerprints Alert":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.rewriteSeriesFingerprints Incident":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.cutIndicatorFromSeries Alert": Why.FollowOn,
+      "SecurityUserErasureRecords.cutIndicatorFromSeries Incident":
+        Why.FollowOn,
+    },
   "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts": {
     "SecurityPlaybookActions.addCaseLabels SecurityCase": Why.Automation,
     "SecurityPlaybookActions.declareIncidentForCase SecurityCase":
@@ -853,6 +981,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SubscriberNotificationClaim.claim *": Why.Bookkeeping,
     "SubscriberNotificationClaim.failInterrupted *": Why.Bookkeeping,
   },
+  // What a probe found when it read a Unisphere (#11004), as VMware's.
+  "packages/Common/Server/Utils/StorageArray/StorageArrayProbeCollectionStore.ts":
+    {
+      "StorageArrayProbeCollectionStore.recordCollectionReport *": Why.Reported,
+    },
   "packages/Common/Server/Utils/Telemetry/EntityRegistry.ts": {
     "reconcileByNaturalKey *": Why.Reported,
   },
@@ -877,6 +1010,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/VMware/VMwareProbeCollectionStore.ts": {
     "VMwareProbeCollectionStore.recordCollectionReport *": Why.Reported,
+  },
+  // Where reading a pool's alarms and backups stands, from a probe's read (#10997).
+  "packages/Common/Server/Utils/XcpNg/XcpNgPoolEventsIngest.ts": {
+    "(module) XcpNgPool": Why.Reported,
+  },
+  "packages/Common/Server/Utils/XcpNg/XcpNgProbeCollectionStore.ts": {
+    "XcpNgProbeCollectionStore.recordCollectionReport *": Why.Reported,
   },
 };
 

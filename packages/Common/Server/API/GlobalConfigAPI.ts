@@ -17,7 +17,10 @@ import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import ServerEmailLogReader from "../Utils/ServerSending/ServerEmailLogReader";
 import { ServerEmailLogAnswer } from "../../Types/Email/ServerEmailLog";
 import { SERVER_CHANNEL_SETUP_SELECT } from "../Utils/ServerSending/ServerChannelSetup";
-import { getServerTwilioEnvironment } from "../Utils/ServerTwilioConfig";
+import {
+  getServerTwilioCallVoice,
+  getServerTwilioEnvironment,
+} from "../Utils/ServerTwilioConfig";
 import ServerTwilioEnvironment, {
   ServerTwilioEnvironmentAnswer,
 } from "../../Types/CallAndSMS/ServerTwilioEnvironment";
@@ -50,6 +53,7 @@ import {
   DisableUpdateCheck,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
+import ProjectCallVoice from "../../Types/Call/ProjectCallVoice";
 import SecurityAdvisoryMatcher from "../../Utils/SecurityAdvisoryMatcher";
 import UpdateStatusUtil from "../../Types/UpdateCheck/UpdateStatus";
 import EnterpriseLicenseInstanceSummary from "../../Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
@@ -88,6 +92,8 @@ import {
 import { RESOLVED_RECORD_RETENTION_PROJECTS_REACHED_ROUTE } from "../../Types/Retention/ResolvedRecordRetentionAnswers";
 import CommonAPI from "./CommonAPI";
 import HelpAndSupportServerSettings from "../Utils/HelpAndSupport/HelpAndSupportServerSettings";
+import HelpAndSupportSeeding from "../Utils/HelpAndSupport/HelpAndSupportSeeding";
+import { readSeededItems } from "../../Types/HelpAndSupport/HelpAndSupportSeed";
 import {
   HELP_AND_SUPPORT_LINKS_ITEMS,
   HELP_AND_SUPPORT_LINKS_ROUTE,
@@ -172,6 +178,8 @@ export default class GlobalConfigAPI extends BaseAPI<
               select: {
                 disableUserProjectCreation: true,
                 disablePushNotifications: true,
+                // Whether projects choose their call voice (#11065).
+                letProjectsChooseCallVoice: true,
                 // Whether the server can send email: read, never sent on.
                 ...SERVER_CHANNEL_SETUP_SELECT,
                 serverSendingHealth: true,
@@ -844,8 +852,15 @@ export default class GlobalConfigAPI extends BaseAPI<
       MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
+          /*
+           * With the voice GLOBAL_TWILIO_CALL_VOICE sets (#11064), which the
+           * Call Voice card shows in place of the saved one.
+           */
           const answer: ServerTwilioEnvironmentAnswer =
-            ServerTwilioEnvironment.toAnswer(getServerTwilioEnvironment());
+            ServerTwilioEnvironment.toAnswer(
+              getServerTwilioEnvironment(),
+              getServerTwilioCallVoice(),
+            );
 
           return Response.sendJsonObjectResponse(
             req,
@@ -1034,6 +1049,17 @@ export default class GlobalConfigAPI extends BaseAPI<
        * told to master admins only (GET /global-config/sending-status).
        */
       canSendEmail: ServerSendingStatus.canSendEmailPubliclyFrom(globalConfig),
+      /*
+       * Whether a project chooses the voice of its calls through the
+       * server's Twilio account (#11065, Types/Call/ProjectCallVoice): only
+       * once a master admin let projects, and never on OneUptime Cloud. The
+       * Dashboard offers the choice only then; the server refuses it
+       * otherwise.
+       */
+      canProjectsChooseCallVoice: ProjectCallVoice.areOffered({
+        isBillingEnabled: IsBillingEnabled,
+        letProjectsChooseCallVoice: globalConfig?.letProjectsChooseCallVoice,
+      }),
     };
   }
 
@@ -1067,6 +1093,9 @@ export default class GlobalConfigAPI extends BaseAPI<
       isProductRenamed: ProductBrandingUtil.isRenamed(
         EnterpriseEdition.getProductBranding(),
       ),
+      // What came from the server's configuration, and what it set that was refused (#10938).
+      seededItems: readSeededItems(config?.helpAndSupport),
+      seedProblems: HelpAndSupportSeeding.getProblems(),
     };
   }
 

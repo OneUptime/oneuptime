@@ -1,5 +1,6 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
+import TelemetryInsertBackpressure from "Common/Server/Utils/Telemetry/TelemetryInsertBackpressure";
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
@@ -35,7 +36,13 @@ import {
   measureRawTelemetryIngestBody,
   TelemetryIngestBodySize,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestBodySize";
-import { TelemetryIngestionBudgetSignal } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import {
+  TelemetryIngestionBudgetRefusal,
+  TelemetryIngestionBudgetSignal,
+} from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import TelemetryIngestShedding, {
+  TelemetryIngestShedError,
+} from "Common/Server/Utils/Telemetry/TelemetryIngestShedding";
 import {
   ProductAnalyticsParsedEvent,
   ProductAnalyticsParsedMetric,
@@ -104,6 +111,61 @@ export function isKnownProbeIngestJobType(
 
 export function isKnownTelemetryType(type: unknown): type is TelemetryType {
   return Object.values(TelemetryType).includes(type as TelemetryType);
+}
+
+/*
+ * MONITORING WORK GOES AHEAD OF BULK TELEMETRY (OneUptime issue #11131).
+ *
+ * Every job of both kinds is on the one Telemetry queue. Queued in the order
+ * they arrived, a probe's monitor result waited behind every log, trace and
+ * metric batch ahead of it: an installation whose ingest fell 15 million
+ * jobs behind (#11017) had its monitors' statuses, incidents and alerts trail
+ * what its probes saw by hours.
+ *
+ * So the bulk telemetry is queued with TELEMETRY_BULK_JOB_PRIORITY and the
+ * monitoring work with no priority. BullMQ takes every job without a
+ * priority before any job with one (its moveToActive script reads the wait
+ * list before the prioritized set), and keeps each in the order it was
+ * added: monitoring work is taken first, in its own order - a monitor's
+ * results are never reordered - and bulk telemetry in its own, behind it.
+ * Readers that judge how far behind ingest is read both
+ * (TelemetryIngestBacklog). A job a server of an earlier release queued has
+ * no priority, so it waits among the monitoring work, as all jobs did.
+ *
+ * A Record, so a type added to TelemetryType and not here does not compile:
+ * whoever adds one decides which it is.
+ */
+export const TELEMETRY_BULK_JOB_PRIORITY: number = 10;
+
+const IS_BULK_TELEMETRY: Record<TelemetryType, boolean> = {
+  [TelemetryType.Logs]: true,
+  [TelemetryType.Traces]: true,
+  [TelemetryType.Metrics]: true,
+  [TelemetryType.Profiles]: true,
+  [TelemetryType.Syslog]: true,
+  [TelemetryType.FluentLogs]: true,
+  [TelemetryType.SecurityEvents]: true,
+  [TelemetryType.KubernetesCostIngest]: true,
+  [TelemetryType.SessionReplay]: true,
+  [TelemetryType.ProductAnalyticsEvents]: true,
+  // A probe's monitor result or test, SNMP trap, device poll, incoming email.
+  [TelemetryType.ProbeIngest]: false,
+  [TelemetryType.ServerMonitorIngest]: false,
+  // Incoming requests: heartbeats and webhooks a monitor waits for.
+  [TelemetryType.IncomingRequestIngest]: false,
+  [TelemetryType.IncomingRequestPending]: false,
+  [TelemetryType.TelemetryMonitorEvaluation]: false,
+};
+
+export function isBulkTelemetryType(type: TelemetryType): boolean {
+  return IS_BULK_TELEMETRY[type] === true;
+}
+
+// The priority a job of this type is queued with: none for monitoring work.
+export function getTelemetryJobPriority(
+  type: TelemetryType,
+): number | undefined {
+  return isBulkTelemetryType(type) ? TELEMETRY_BULK_JOB_PRIORITY : undefined;
 }
 
 export interface IncomingEmailJobData {
@@ -255,10 +317,24 @@ export interface IncomingRequestPendingJobData {
   secretKeyHash: string;
 }
 
+/*
+ * One telemetry monitor's check, as the scheduler queues it
+ * (MonitorTelemetryMonitor). Its dates arrive as the ISO text the queue
+ * keeps them in.
+ */
 export interface TelemetryMonitorEvaluationJobData {
   monitorId: string;
   projectId?: string | undefined;
-  queuedAt: Date;
+  queuedAt: Date | string;
+  /*
+   * When the check was due: the end of the window it judges, however late
+   * it runs - its workers were busy, a refused job was queued by the next
+   * run, a failed one was tried again - so a monitor's windows follow on
+   * from one another exactly (issue #11248). A job queued before this was
+   * carried has none: its window ends when it was queued (queuedAt), which
+   * the scheduler does at the moment the check is due.
+   */
+  dueAt?: Date | string | undefined;
 }
 
 export interface KubernetesCostIngestJobData {
@@ -864,6 +940,27 @@ export default class TelemetryQueueService {
         getTelemetryIngestionBudgetSignalForTelemetryType(type);
 
       /*
+       * A project far ahead of the workers, or a queue nearly full for
+       * everyone (TelemetryIngestShedding, 2026-11-27): refused before
+       * anything is stored for it, whichever producer made the batch. The
+       * HTTP and gRPC ingest refuse it before it gets here; this is for the
+       * rest - MQTT, the cloud streams, the compatible endpoints,
+       * OneUptime's own collectors - which answer a TooManyRequests as they
+       * answer a queue that cannot take the batch.
+       */
+      if (budgetSignal) {
+        const shed: TelemetryIngestionBudgetRefusal | null =
+          TelemetryIngestShedding.getRefusal({
+            projectId: req.projectId,
+            signal: budgetSignal,
+          });
+
+        if (shed) {
+          throw new TelemetryIngestShedError(shed);
+        }
+      }
+
+      /*
        * Count the batch against its ingestion budget before anything is
        * stored for it, so a batch dropped over a used-up budget costs no
        * Redis body and no job. Measured lazily: a project without a budget
@@ -1047,13 +1144,20 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
       logger.debug(`Added ${type} ingestion job: ${jobId}`);
     } catch (error) {
-      logger.error(`Error adding ${type} ingestion job:`);
-      logger.error(error);
+      /*
+       * A refused batch is not an error of this server's: the flood it is
+       * part of is logged once, where it is decided.
+       */
+      if (!(error instanceof TelemetryIngestShedError)) {
+        logger.error(`Error adding ${type} ingestion job:`);
+        logger.error(error);
+      }
       throw error;
     }
   }
@@ -1138,6 +1242,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1213,6 +1318,7 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1256,6 +1362,7 @@ export default class TelemetryQueueService {
       jobData as unknown as JSONObject,
       {
         skipExistenceCheck: true,
+        priority: getTelemetryJobPriority(jobData.type),
         deduplication: {
           id: TelemetryQueueService.getSnmpTrapDeduplicationId(data),
           keepLastIfActive: true,
@@ -1362,6 +1469,7 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
           ...(canCoalesce
             ? {
                 deduplication: {
@@ -1464,6 +1572,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1512,6 +1621,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1621,6 +1731,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1670,6 +1781,7 @@ export default class TelemetryQueueService {
       jobData as unknown as JSONObject,
       {
         skipExistenceCheck: true,
+        priority: getTelemetryJobPriority(jobData.type),
         ...(data.delayInMs && data.delayInMs > 0
           ? { delayInMs: data.delayInMs }
           : {}),
@@ -1700,6 +1812,8 @@ export default class TelemetryQueueService {
   public static async addTelemetryMonitorEvaluationJob(data: {
     monitorId: ObjectID;
     projectId?: ObjectID | undefined;
+    // When the check was due: the end of the window it judges.
+    dueAt?: Date | undefined;
   }): Promise<void> {
     try {
       const monitorId: string = data.monitorId.toString();
@@ -1708,6 +1822,10 @@ export default class TelemetryQueueService {
         monitorId,
         queuedAt: OneUptimeDate.getCurrentDate(),
       };
+
+      if (data.dueAt) {
+        telemetryMonitorEvaluation.dueAt = data.dueAt;
+      }
 
       const jobData: TelemetryIngestJobData = {
         type: TelemetryType.TelemetryMonitorEvaluation,
@@ -1729,6 +1847,7 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
           /*
            * Serialize evaluations per monitor at enqueue time. If one evaluation
            * is active and another tick arrives, BullMQ keeps the latest waiting
@@ -1780,6 +1899,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1855,6 +1975,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1894,6 +2015,7 @@ export default class TelemetryQueueService {
         {
           /* The random suffix makes the id unique; see the replay job. */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1914,7 +2036,12 @@ export default class TelemetryQueueService {
    * stays active-inclusive for the ingest backpressure checks, where
    * in-flight work genuinely counts against capacity.
    */
+  /*
+   * The Telemetry queue's backlog for its KEDA endpoint: without the bulk
+   * telemetry while ClickHouse is refusing inserts, which more pods could
+   * not store faster (TelemetryInsertBackpressure).
+   */
   public static async getQueueBacklogSize(): Promise<number> {
-    return Queue.getQueueBacklogSize(QueueName.Telemetry);
+    return TelemetryInsertBackpressure.getTelemetryBacklogForScaling();
   }
 }

@@ -19,6 +19,7 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * A cloud resource's Recommendations tab (Pages/Cloud/View/Recommendations,
@@ -234,6 +235,14 @@ beforeEach(() => {
     model._id = ObjectID.generate().toString();
     monitors.push(model);
     return Promise.resolve({});
+  });
+
+  /*
+   * Which recommendations a monitor covers is the server's to say
+   * (#11074): answered from the monitors the project has.
+   */
+  serveCoverageFrom(() => {
+    return monitors;
   });
 
   holding([Permission.ProjectOwner]);

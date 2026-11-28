@@ -1,5 +1,7 @@
 import { buildExceptionLabel } from "../AI/SRE/Insights/Detectors/ExceptionIdentity";
-import ToolResultSerializer from "../AI/Toolbox/Serializer";
+import ToolResultSerializer, {
+  RedactionOptions,
+} from "../AI/Toolbox/Serializer";
 import { sanitizeExceptionMessage } from "../Telemetry/ExceptionSanitizer";
 
 /*
@@ -20,7 +22,8 @@ import { sanitizeExceptionMessage } from "../Telemetry/ExceptionSanitizer";
  *   - anything else: its texts joined, the first line of each.
  *
  * Every name is cut to AUDIT_LOG_RESOURCE_NAME_LIMIT characters, and has
- * whatever still looks like a secret redacted (ToolResultSerializer). A
+ * whatever still looks like a secret redacted (ToolResultSerializer) - but
+ * a call policy's number, named by the number, keeps it (KEPT_BY_TABLE). A
  * value can be megabytes of telemetry, so each is cut to its first line
  * within MAX_VALUE_READ characters - by indexOf, never a regular expression
  * over the whole value - before anything reads it.
@@ -71,8 +74,11 @@ const bound: (text: string, limit: number) => string = (
     : `${characters.slice(0, Math.max(1, limit - 1)).join("")}…`;
 };
 
-const redacted: (text: string) => string = (text: string): string => {
-  return ToolResultSerializer.redact(text).text;
+const redacted: (text: string, options?: RedactionOptions) => string = (
+  text: string,
+  options?: RedactionOptions,
+): string => {
+  return ToolResultSerializer.redact(text, options).text;
 };
 
 const exceptionName: (values: Record<string, unknown>) => string | null = (
@@ -88,6 +94,18 @@ const exceptionName: (values: Record<string, unknown>) => string | null = (
   }
 
   return buildExceptionLabel(type, message, EXCEPTION_MESSAGE_LIMIT);
+};
+
+/*
+ * By table name: what a name keeps that the redaction would otherwise hide.
+ * A call policy's number is named by the number, so buying, attaching and
+ * releasing one says which (AUDIT_LOG_RESOURCE_NAME_COLUMNS, #6301): the
+ * project's own line, which the phone rule written for what reaches a model
+ * (#11384) made "[redacted-phone]". Every other rule still applies to it, and
+ * every other name, an exception's above all, hides phone numbers too.
+ */
+const KEPT_BY_TABLE: Readonly<Record<string, RedactionOptions>> = {
+  IncomingCallPolicyPhoneNumber: { keepPhoneNumbers: true },
 };
 
 // By table name: a name built otherwise than by joining its texts.
@@ -133,7 +151,12 @@ export const getAuditLogResourceName: (data: {
     return null;
   }
 
-  const safe: string = redacted(name).trim();
+  const kept: RedactionOptions | undefined =
+    data.tableName &&
+    Object.prototype.hasOwnProperty.call(KEPT_BY_TABLE, data.tableName)
+      ? KEPT_BY_TABLE[data.tableName]
+      : undefined;
+  const safe: string = redacted(name, kept).trim();
 
   return safe ? bound(safe, AUDIT_LOG_RESOURCE_NAME_LIMIT) : null;
 };

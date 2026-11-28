@@ -1,13 +1,38 @@
 import OneUptimeDate from "../../../Types/Date";
 import { JSONArray, JSONObject, JSONValue } from "../../../Types/JSON";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "../../../Types/StorageArray/StorageArrayResourceKind";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
+import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  STORAGE_ARRAY_COMPONENT_STATUSES,
+  STORAGE_ARRAY_HARDWARE_KINDS,
+  StorageArrayComponentStatuses,
+  StorageArrayPlatform,
+} from "../../../Types/StorageArray/StorageArrayPlatform";
 import logger from "../Logger";
 import { writeOwnValue } from "../../../Utils/LookupTable";
+import {
+  SCRAPE_ENDPOINT_LABEL,
+  StorageArrayExtractor,
+  StorageArrayResourceBufferEntry,
+  StorageArraySeries,
+  StorageArraySnapshotBufferEntry,
+  emptyStorageArrayResourceEntry,
+  getOrCreateStorageArraySnapshot,
+} from "./StorageArray/StorageArrayExtractor";
+import StorageArrayExtractors, {
+  ResolvedStorageArrayExtractor,
+} from "./StorageArray/StorageArrayExtractors";
+
+export {
+  SCRAPE_ENDPOINT_LABEL,
+  emptyStorageArrayResourceEntry,
+  getOrCreateStorageArraySnapshot,
+};
+export type {
+  StorageArrayResourceBufferEntry,
+  StorageArraySnapshotBufferEntry,
+};
 
 /*
  * ------------------------------------------------------------------
@@ -18,11 +43,11 @@ import { writeOwnValue } from "../../../Utils/LookupTable";
  * service owns the I/O: it walks the OTLP payload, calls
  * bufferStorageArraySnapshotMetric per datapoint of a batch whose resource
  * carries `storage.array.name`, and at flush time maps the folded buffers
- * through deriveStorageArraySnapshotExtras / getStorageArrayResourceRows
- * before handing the results to StorageArrayResourceService /
- * StorageArrayService. Everything in this module is pure (Map/object
- * mutation only — no DB, no network), which is what makes the semantics
- * unit-testable:
+ * through deriveStorageArraySnapshotExtras / deriveStorageArrayCountsByKind
+ * / getStorageArrayResourceRows before handing the results to
+ * StorageArrayResourceService / StorageArrayService. Everything in this
+ * module is pure (Map/object mutation only — no DB, no network), which is
+ * what makes the semantics unit-testable:
  *
  *   - identity labels fold first-non-null-wins; status/metric fields fold
  *     newest-observedAt-wins,
@@ -30,161 +55,36 @@ import { writeOwnValue } from "../../../Utils/LookupTable";
  *     batch carried the matching series (never zero a column on a partial
  *     batch — a FlashArray's /metrics/volumes scrape carries no alert or
  *     capacity series),
- *   - metric names outside STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES are skipped.
+ *   - metric names no platform reads are skipped by the ingest
+ *     (isStorageArraySnapshotMetric).
  *
- * Sources: FlashArray series come from Purity//FA's native OpenMetrics
- * endpoint (or the deprecated pure-fa-openmetrics-exporter — same names and
- * labels), FlashBlade series from pure-fb-openmetrics-exporter. Every value
- * is a gauge the array computes itself (usec_per_read_op,
- * reads_per_sec, read_bytes_per_sec), so no rate math happens here.
- * Identity lives in datapoint labels (`name`, `host`, `component_name`),
- * exactly like ceph-mgr's `ceph_daemon`.
+ * What a datapoint MEANS is its platform's: each platform's extractor
+ * (StorageArray/<Vendor>/, listed in StorageArray/StorageArrayExtractors)
+ * reads its own metric names and labels into rows and snapshot state, and
+ * StorageArrayExtractors.resolve picks the extractor - by the batch's
+ * declared `storage.system`, or by the metric's prefix for an agent that
+ * stamps none. This module is what every platform shares: reading a
+ * datapoint, folding rows, the host-volume connection counts, and deriving
+ * the StorageArray columns.
  */
-
-export const STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set(
-  [
-    // FlashArray — array identity, capacity, alerts
-    "purefa_info",
-    "purefa_alerts_open",
-    "purefa_array_space_bytes",
-    "purefa_array_space_utilization",
-    "purefa_array_space_data_reduction_ratio",
-    // FlashArray — hardware
-    "purefa_hw_component_status",
-    "purefa_hw_component_temperature_celsius",
-    "purefa_drive_capacity_bytes",
-    "purefa_hw_controller_info",
-    "purefa_network_interface_speed_bandwidth_bytes",
-    "purefa_network_interface_performance_bandwidth_bytes",
-    "purefa_network_interface_performance_errors",
-    // FlashArray — volumes
-    "purefa_volume_space_bytes",
-    "purefa_volume_space_data_reduction_ratio",
-    "purefa_volume_performance_latency_usec",
-    "purefa_volume_performance_throughput_iops",
-    "purefa_volume_performance_bandwidth_bytes",
-    "purefa_volume_qos_iops_limit",
-    "purefa_volume_qos_bandwidth_bytes_per_sec_limit",
-    // FlashArray — hosts
-    "purefa_host_connectivity_info",
-    "purefa_host_connections_info",
-    "purefa_host_space_bytes",
-    "purefa_host_space_data_reduction_ratio",
-    "purefa_host_performance_latency_usec",
-    "purefa_host_performance_throughput_iops",
-    "purefa_host_performance_bandwidth_bytes",
-    // FlashArray — pods (ActiveCluster / ActiveDR)
-    "purefa_pod_space_bytes",
-    "purefa_pod_space_data_reduction_ratio",
-    "purefa_pod_performance_latency_usec",
-    "purefa_pod_performance_throughput_iops",
-    "purefa_pod_performance_bandwidth_bytes",
-    "purefa_pod_replica_links_lag_max_msec",
-    "purefa_pod_replica_links_lag_average_msec",
-    "purefa_pod_mediator_status",
-    // FlashArray — file directories
-    "purefa_directory_space_bytes",
-    "purefa_directory_space_data_reduction_ratio",
-    "purefa_directory_performance_latency_usec",
-    "purefa_directory_performance_throughput_iops",
-    "purefa_directory_performance_bandwidth_bytes",
-    // FlashBlade — array identity, capacity, alerts, hardware
-    "purefb_info",
-    "purefb_alerts_open",
-    "purefb_array_space_bytes",
-    "purefb_array_space_utilization",
-    "purefb_array_space_data_reduction_ratio",
-    "purefb_hardware_health",
-    // FlashBlade — file systems
-    "purefb_file_systems_space_bytes",
-    "purefb_file_systems_space_data_reduction_ratio",
-    "purefb_file_systems_performance_latency_usec",
-    "purefb_file_systems_performance_throughput_iops",
-    "purefb_file_systems_performance_bandwidth_bytes",
-    // FlashBlade — buckets
-    "purefb_buckets_space_bytes",
-    "purefb_buckets_quota_space_bytes",
-    "purefb_buckets_space_data_reduction_ratio",
-    "purefb_buckets_object_count",
-    "purefb_buckets_performance_latency_usec",
-    "purefb_buckets_performance_throughput_iops",
-    "purefb_buckets_performance_bandwidth_bytes",
-  ],
-);
 
 /*
- * One object of an array (volume, host, pod, hardware component, ...)
- * folded across a batch. Same merge semantics as CephResourceBufferEntry.
+ * The metric names the platforms OneUptime ships read, as the registry held
+ * them when this module loaded. The ingest's gate is
+ * isStorageArraySnapshotMetric, which also knows a platform registered
+ * later (a test's).
  */
-export interface StorageArrayResourceBufferEntry {
-  kind: string;
-  externalId: string;
-  name: string | null;
-  status: string | null;
-  statusDetail: string | null;
-  componentType: string | null;
-  model: string | null;
-  firmwareVersion: string | null;
-  groupName: string | null;
-  capacityBytes: number | null;
-  usedBytes: number | null;
-  dataReductionRatio: number | null;
-  readLatencyUsec: number | null;
-  writeLatencyUsec: number | null;
-  readIops: number | null;
-  writeIops: number | null;
-  readBytesPerSec: number | null;
-  writeBytesPerSec: number | null;
-  temperatureCelsius: number | null;
-  replicationLagMs: number | null;
-  connectionCount: number | null;
-  details: JSONObject;
-  observedAt: Date;
-  /*
-   * True for a Volume row getStorageArrayResourceRows synthesized from
-   * purefa_host_connections_info alone: it exists to carry connectionCount
-   * to a volume the batch never reported through its own series, so it is
-   * upserted (every other column COALESCEs) but never counted — volumeCount
-   * comes only from the volumes endpoint.
-   */
-  fromConnectionsOnly?: boolean | undefined;
-}
+export const STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set(
+  StorageArrayPlatformRegistry.getPlatforms().flatMap(
+    (platform: StorageArrayPlatform): ReadonlyArray<string> => {
+      return platform.snapshotMetricNames;
+    },
+  ),
+);
 
-// Per-array snapshot state — same saw* contract as the Ceph cluster buffer.
-export interface StorageArraySnapshotBufferEntry {
-  // Detected from the metric names the batch carried.
-  storageSystem: StorageSystem | null;
-  reportedName: string | null;
-  systemId: string | null;
-  osName: string | null;
-  osVersion: string | null;
-  /*
-   * The batch carried an open-alert series, or the array endpoint itself
-   * (its space series, or a `scrape_endpoint` label naming it). An array
-   * with no open alerts exports no purefa_alerts_open series at all, so
-   * seeing the array endpoint is what lets the counts fall back to 0.
-   */
-  sawAlerts: boolean;
-  // Alert identity keys, so a batch that holds two scrapes counts each once.
-  openAlertKeys: Set<string>;
-  criticalAlertKeys: Set<string>;
-  warningAlertKeys: Set<string>;
-  capacityBytes: number | null;
-  emptyBytes: number | null;
-  utilizationPercent: number | null;
-  dataReductionRatio: number | null;
-  sawHardware: boolean;
-  sawDrives: boolean;
-  sawControllers: boolean;
-  sawVolumes: boolean;
-  sawHosts: boolean;
-  sawPods: boolean;
-  sawFileSystems: boolean;
-  sawBuckets: boolean;
-  // purefa_host_connections_info: host -> volumes, volume -> hosts.
-  volumesByHost: Map<string, Set<string>>;
-  hostsByVolume: Map<string, Set<string>>;
-  connectionsObservedAt: Date | null;
+// Whether any platform reads this metric into the inventory or snapshot.
+export function isStorageArraySnapshotMetric(metricName: string): boolean {
+  return StorageArrayExtractors.isSnapshotMetric(metricName);
 }
 
 // The StorageArray snapshot columns derived from one folded batch.
@@ -219,52 +119,50 @@ export enum StorageArrayHealthStatus {
 }
 
 /*
- * Hardware, drive and controller statuses, lowercased, as the arrays report
- * them (purefa_hw_component_status component_status, purefa_drive_capacity
- * component_status, purefa_hw_controller_info status, purefb_hardware_health
- * mapped to healthy / unused / unhealthy).
+ * The statuses a platform writes for its parts, by what they mean
+ * (StorageArrayPlatform.componentStatuses); the shared words for an array
+ * whose platform is not known.
  */
-const CRITICAL_COMPONENT_STATUSES: ReadonlySet<string> = new Set([
-  "critical",
-  "failed",
-  "missing",
-  "unhealthy",
-]);
+function getComponentStatuses(
+  system: string | null | undefined,
+): StorageArrayComponentStatuses {
+  return (
+    StorageArrayPlatformRegistry.getPlatform(system)?.componentStatuses ||
+    STORAGE_ARRAY_COMPONENT_STATUSES
+  );
+}
 
-const WARNING_COMPONENT_STATUSES: ReadonlySet<string> = new Set([
-  "degraded",
-  "unknown",
-  "unrecognized",
-  "not ready",
-]);
-
+/*
+ * Whether a part's status says it needs a person (critical or warning), on
+ * its platform's words - or the shared ones, which every platform so far
+ * uses, when no platform is named.
+ */
 export function isUnhealthyComponentStatus(
   status: string | null | undefined,
+  system?: string | null | undefined,
 ): boolean {
   if (!status) {
     return false;
   }
   const normalized: string = status.trim().toLowerCase();
+  const statuses: StorageArrayComponentStatuses = getComponentStatuses(system);
   return (
-    CRITICAL_COMPONENT_STATUSES.has(normalized) ||
-    WARNING_COMPONENT_STATUSES.has(normalized)
+    statuses.critical.includes(normalized) ||
+    statuses.warning.includes(normalized)
   );
 }
 
 export function isCriticalComponentStatus(
   status: string | null | undefined,
+  system?: string | null | undefined,
 ): boolean {
   if (!status) {
     return false;
   }
-  return CRITICAL_COMPONENT_STATUSES.has(status.trim().toLowerCase());
+  return getComponentStatuses(system).critical.includes(
+    status.trim().toLowerCase(),
+  );
 }
-
-const HARDWARE_KINDS: ReadonlySet<string> = new Set([
-  StorageArrayResourceKind.Hardware,
-  StorageArrayResourceKind.Drive,
-  StorageArrayResourceKind.Controller,
-]);
 
 /*
  * Same finite-or-null coercion contract as the ingest service's
@@ -344,249 +242,11 @@ function getStringAttribute(attributes: JSONArray, key: string): string | null {
   return null;
 }
 
-function lowerOrNull(value: string | null): string | null {
-  return value ? value.toLowerCase() : null;
-}
-
 /*
- * The OneUptime Storage Array Agent labels every series with the endpoint
- * its scrape job read (static_configs labels: `scrape_endpoint: volumes`).
- * Every endpoint exports purefa_info / purefb_info, so that one series says
- * which families the batch is the COMPLETE list of — which is how an array
- * whose last volume was just deleted reports volumeCount 0 instead of
- * keeping the old count forever. Custom collector configs without the
- * label fall back to inferring it from the series a batch carried.
- */
-export const SCRAPE_ENDPOINT_LABEL: string = "scrape_endpoint";
-
-function markScrapedEndpoint(
-  array: StorageArraySnapshotBufferEntry,
-  endpoint: string | null,
-  system: StorageSystem | null,
-): void {
-  if (!endpoint) {
-    return;
-  }
-  const value: string = endpoint.trim().toLowerCase();
-  /*
-   * `all` (or a job scraping the bare /metrics path) is the complete list
-   * of every family THIS platform exports. A FlashArray has no file systems
-   * or buckets and a FlashBlade no volumes, hosts or pods, so `all` must not
-   * write a count of 0 for a kind the platform never reports.
-   */
-  const all: boolean = value === "all" || value === "metrics";
-  const allOf: (kind: StorageArrayResourceKind) => boolean = (
-    kind: StorageArrayResourceKind,
-  ) => {
-    return all && StorageArrayResourceKindUtil.isKindForSystem(kind, system);
-  };
-  if (all || value === "array") {
-    array.sawAlerts = true;
-  }
-  if (value === "volumes" || allOf(StorageArrayResourceKind.Volume)) {
-    array.sawVolumes = true;
-  }
-  if (value === "hosts" || allOf(StorageArrayResourceKind.Host)) {
-    array.sawHosts = true;
-  }
-  if (value === "pods" || allOf(StorageArrayResourceKind.Pod)) {
-    array.sawPods = true;
-  }
-  if (value === "filesystems" || allOf(StorageArrayResourceKind.FileSystem)) {
-    array.sawFileSystems = true;
-  }
-  if (value === "objectstore" || allOf(StorageArrayResourceKind.Bucket)) {
-    array.sawBuckets = true;
-  }
-}
-
-export function getOrCreateStorageArraySnapshot(
-  buffer: Map<string, StorageArraySnapshotBufferEntry>,
-  arrayIdStr: string,
-): StorageArraySnapshotBufferEntry {
-  let entry: StorageArraySnapshotBufferEntry | undefined =
-    buffer.get(arrayIdStr);
-  if (!entry) {
-    entry = {
-      storageSystem: null,
-      reportedName: null,
-      systemId: null,
-      osName: null,
-      osVersion: null,
-      sawAlerts: false,
-      openAlertKeys: new Set(),
-      criticalAlertKeys: new Set(),
-      warningAlertKeys: new Set(),
-      capacityBytes: null,
-      emptyBytes: null,
-      utilizationPercent: null,
-      dataReductionRatio: null,
-      sawHardware: false,
-      sawDrives: false,
-      sawControllers: false,
-      sawVolumes: false,
-      sawHosts: false,
-      sawPods: false,
-      sawFileSystems: false,
-      sawBuckets: false,
-      volumesByHost: new Map(),
-      hostsByVolume: new Map(),
-      connectionsObservedAt: null,
-    };
-    buffer.set(arrayIdStr, entry);
-  }
-  return entry;
-}
-
-export function emptyStorageArrayResourceEntry(
-  kind: string,
-  externalId: string,
-  observedAt: Date,
-): StorageArrayResourceBufferEntry {
-  return {
-    kind,
-    externalId,
-    name: null,
-    status: null,
-    statusDetail: null,
-    componentType: null,
-    model: null,
-    firmwareVersion: null,
-    groupName: null,
-    capacityBytes: null,
-    usedBytes: null,
-    dataReductionRatio: null,
-    readLatencyUsec: null,
-    writeLatencyUsec: null,
-    readIops: null,
-    writeIops: null,
-    readBytesPerSec: null,
-    writeBytesPerSec: null,
-    temperatureCelsius: null,
-    replicationLagMs: null,
-    connectionCount: null,
-    details: {},
-    observedAt,
-  };
-}
-
-/*
- * The four performance families every object kind shares — latency, IOPS
- * and bandwidth — keyed by the `dimension` label. Only the read / write
- * dimensions land in columns; the breakdowns (queue_usec_per_*, san_usec_*,
- * mirrored writes) stay in ClickHouse for the charts.
- */
-function applyPerformanceDimension(
-  patch: StorageArrayResourceBufferEntry,
-  family: "latency" | "iops" | "bandwidth",
-  dimension: string | null,
-  value: number,
-): boolean {
-  if (!dimension) {
-    return false;
-  }
-  const positive: number = Math.max(0, value);
-  if (family === "latency") {
-    if (dimension === "usec_per_read_op") {
-      patch.readLatencyUsec = positive;
-      return true;
-    }
-    if (dimension === "usec_per_write_op") {
-      patch.writeLatencyUsec = positive;
-      return true;
-    }
-    return false;
-  }
-  if (family === "iops") {
-    if (dimension === "reads_per_sec") {
-      patch.readIops = positive;
-      return true;
-    }
-    if (dimension === "writes_per_sec") {
-      patch.writeIops = positive;
-      return true;
-    }
-    return false;
-  }
-  if (dimension === "read_bytes_per_sec") {
-    patch.readBytesPerSec = positive;
-    return true;
-  }
-  if (dimension === "write_bytes_per_sec") {
-    patch.writeBytesPerSec = positive;
-    return true;
-  }
-  return false;
-}
-
-function performanceFamily(
-  metricName: string,
-): "latency" | "iops" | "bandwidth" | null {
-  if (metricName.endsWith("_performance_latency_usec")) {
-    return "latency";
-  }
-  if (metricName.endsWith("_performance_throughput_iops")) {
-    return "iops";
-  }
-  if (metricName.endsWith("_performance_bandwidth_bytes")) {
-    return "bandwidth";
-  }
-  return null;
-}
-
-/*
- * The space families: FlashArray objects report `space` dimensions
- * total_provisioned (the size a host sees) and total_physical (what the
- * object occupies after data reduction); FlashBlade file systems and
- * buckets report the same two names.
- */
-function applySpaceDimension(
-  patch: StorageArrayResourceBufferEntry,
-  space: string | null,
-  value: number,
-): boolean {
-  if (space === "total_provisioned") {
-    patch.capacityBytes = Math.max(0, Math.trunc(value));
-    return true;
-  }
-  if (space === "total_physical") {
-    patch.usedBytes = Math.max(0, Math.trunc(value));
-    return true;
-  }
-  return false;
-}
-
-function alertKey(dpAttributes: JSONArray): string {
-  return [
-    "code",
-    "name",
-    "component_name",
-    "component_type",
-    "created",
-    "summary",
-  ]
-    .map((label: string) => {
-      return getStringAttribute(dpAttributes, label) || "";
-    })
-    .join("|");
-}
-
-function recordConnection(
-  map: Map<string, Set<string>>,
-  key: string,
-  value: string,
-): void {
-  let set: Set<string> | undefined = map.get(key);
-  if (!set) {
-    set = new Set();
-    map.set(key, set);
-  }
-  set.add(value);
-}
-
-/*
- * Fold one purefa_* / purefb_* datapoint into the per-array buffers. Callers
- * pre-filter with STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.
+ * Fold one datapoint into the per-array buffers. The ingest pre-filters
+ * with isStorageArraySnapshotMetric; `declaredStorageSystem` is the batch's
+ * `storage.system`, which picks the platform whose extractor reads it
+ * (StorageArrayExtractors.resolve).
  */
 export function bufferStorageArraySnapshotMetric(data: {
   arrayIdStr: string;
@@ -594,6 +254,7 @@ export function bufferStorageArraySnapshotMetric(data: {
   datapoint: JSONObject;
   resourceBuffer: Map<string, Map<string, StorageArrayResourceBufferEntry>>;
   arrayBuffer: Map<string, StorageArraySnapshotBufferEntry>;
+  declaredStorageSystem?: string | null | undefined;
 }): void {
   /*
    * FLAG_NO_RECORDED_VALUE is how the prometheus receiver forwards a
@@ -624,561 +285,45 @@ export function bufferStorageArraySnapshotMetric(data: {
   const array: StorageArraySnapshotBufferEntry =
     getOrCreateStorageArraySnapshot(data.arrayBuffer, data.arrayIdStr);
 
-  const system: StorageSystem | null = StorageSystemUtil.fromMetricName(
-    data.metricName,
-  );
-  if (system && !array.storageSystem) {
-    array.storageSystem = system;
-  }
-
-  const label: (key: string) => string | null = (key: string) => {
-    return getStringAttribute(dpAttributes, key);
-  };
-
-  const fold: (patch: StorageArrayResourceBufferEntry) => void = (
-    patch: StorageArrayResourceBufferEntry,
-  ) => {
-    foldStorageArrayResourceSnapshot({
-      buffer: data.resourceBuffer,
-      arrayIdStr: data.arrayIdStr,
-      patch,
+  const resolved: ResolvedStorageArrayExtractor | null =
+    StorageArrayExtractors.resolve({
+      metricName: data.metricName,
+      declaredStorageSystem: data.declaredStorageSystem,
     });
+  if (!resolved) {
+    return;
+  }
+
+  // The first platform seen wins for the batch.
+  if (!array.storageSystem) {
+    array.storageSystem = resolved.platform.storageSystem;
+  }
+
+  const series: StorageArraySeries = {
+    metricName: data.metricName,
+    value: rawValue,
+    observedAt: observedAt,
+    label: (key: string): string | null => {
+      return getStringAttribute(dpAttributes, key);
+    },
+    attributes: dpAttributes,
+    array: array,
+    newResource: (
+      kind: string,
+      externalId: string,
+    ): StorageArrayResourceBufferEntry => {
+      return emptyStorageArrayResourceEntry(kind, externalId, observedAt);
+    },
+    fold: (patch: StorageArrayResourceBufferEntry): void => {
+      foldStorageArrayResourceSnapshot({
+        buffer: data.resourceBuffer,
+        arrayIdStr: data.arrayIdStr,
+        patch,
+      });
+    },
   };
 
-  const metricName: string = data.metricName;
-
-  // ---------------- Array-level series (no inventory row) ----------------
-
-  if (metricName === "purefa_info" || metricName === "purefb_info") {
-    array.reportedName = array.reportedName || label("array_name");
-    array.systemId = array.systemId || label("system_id");
-    array.osName = array.osName || label("os");
-    array.osVersion = array.osVersion || label("version");
-    markScrapedEndpoint(array, label(SCRAPE_ENDPOINT_LABEL), system);
-    return;
-  }
-
-  if (
-    metricName === "purefa_alerts_open" ||
-    metricName === "purefb_alerts_open"
-  ) {
-    array.sawAlerts = true;
-    const severity: string | null = lowerOrNull(label("severity"));
-    // Hidden alerts are the array's own internal bookkeeping.
-    if (severity === "hidden") {
-      return;
-    }
-    const key: string = alertKey(dpAttributes);
-    array.openAlertKeys.add(key);
-    if (severity === "critical") {
-      array.criticalAlertKeys.add(key);
-    } else if (severity === "warning") {
-      array.warningAlertKeys.add(key);
-    }
-    return;
-  }
-
-  if (
-    metricName === "purefa_array_space_bytes" ||
-    metricName === "purefb_array_space_bytes"
-  ) {
-    /*
-     * FlashBlade reports array, file-system and object-store rows; only
-     * the whole-array row describes the array.
-     */
-    if (
-      metricName === "purefb_array_space_bytes" &&
-      label("type") !== "array"
-    ) {
-      return;
-    }
-    // The array endpoint was scraped: its alert list is complete.
-    array.sawAlerts = true;
-    const space: string | null = label("space");
-    if (space === "capacity") {
-      array.capacityBytes = Math.max(0, rawValue);
-    } else if (space === "empty") {
-      array.emptyBytes = Math.max(0, rawValue);
-    }
-    return;
-  }
-
-  if (
-    metricName === "purefa_array_space_utilization" ||
-    metricName === "purefb_array_space_utilization"
-  ) {
-    if (
-      metricName === "purefb_array_space_utilization" &&
-      label("type") !== "array"
-    ) {
-      return;
-    }
-    array.sawAlerts = true;
-    array.utilizationPercent = Math.max(0, rawValue);
-    return;
-  }
-
-  if (
-    metricName === "purefa_array_space_data_reduction_ratio" ||
-    metricName === "purefb_array_space_data_reduction_ratio"
-  ) {
-    if (
-      metricName === "purefb_array_space_data_reduction_ratio" &&
-      label("type") !== "array"
-    ) {
-      return;
-    }
-    array.dataReductionRatio = Math.max(0, rawValue);
-    return;
-  }
-
-  // ---------------- Hardware ----------------
-
-  if (metricName === "purefa_hw_component_status") {
-    const componentName: string | null = label("component_name");
-    if (!componentName) {
-      return;
-    }
-    array.sawHardware = true;
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Hardware,
-        componentName,
-        observedAt,
-      );
-    patch.name = componentName;
-    patch.status = lowerOrNull(label("component_status"));
-    patch.componentType = label("component_type");
-    fold(patch);
-    return;
-  }
-
-  if (metricName === "purefa_hw_component_temperature_celsius") {
-    const componentName: string | null = label("component_name");
-    if (!componentName) {
-      return;
-    }
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Hardware,
-        componentName,
-        observedAt,
-      );
-    patch.name = componentName;
-    patch.componentType = label("component_type");
-    patch.temperatureCelsius = rawValue;
-    fold(patch);
-    return;
-  }
-
-  if (metricName === "purefa_drive_capacity_bytes") {
-    const componentName: string | null = label("component_name");
-    if (!componentName) {
-      return;
-    }
-    array.sawDrives = true;
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Drive,
-        componentName,
-        observedAt,
-      );
-    patch.name = componentName;
-    patch.status = lowerOrNull(label("component_status"));
-    patch.componentType = label("component_type");
-    patch.capacityBytes = Math.max(0, Math.trunc(rawValue));
-    const protocol: string | null = label("component_protocol");
-    if (protocol) {
-      patch.details["protocol"] = protocol;
-    }
-    fold(patch);
-    return;
-  }
-
-  if (metricName === "purefa_hw_controller_info") {
-    const controllerName: string | null = label("name");
-    if (!controllerName) {
-      return;
-    }
-    array.sawControllers = true;
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Controller,
-        controllerName,
-        observedAt,
-      );
-    patch.name = controllerName;
-    patch.status = lowerOrNull(label("status"));
-    patch.statusDetail = label("mode");
-    patch.model = label("model");
-    patch.firmwareVersion = label("version");
-    patch.componentType = label("type");
-    fold(patch);
-    return;
-  }
-
-  if (metricName === "purefb_hardware_health") {
-    const componentName: string | null = label("name");
-    if (!componentName) {
-      return;
-    }
-    array.sawHardware = true;
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Hardware,
-        componentName,
-        observedAt,
-      );
-    patch.name = componentName;
-    patch.componentType = label("type");
-    // The exporter maps healthy -> 1, unused -> 2 and anything else -> 0.
-    patch.status =
-      rawValue === 1 ? "healthy" : rawValue === 2 ? "unused" : "unhealthy";
-    const slot: string | null = label("slot");
-    if (slot) {
-      patch.details["slot"] = slot;
-    }
-    fold(patch);
-    return;
-  }
-
-  if (metricName.startsWith("purefa_network_interface_")) {
-    const interfaceName: string | null = label("name");
-    if (!interfaceName) {
-      return;
-    }
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.NetworkInterface,
-        interfaceName,
-        observedAt,
-      );
-    patch.name = interfaceName;
-    patch.componentType = label("type");
-    if (metricName === "purefa_network_interface_speed_bandwidth_bytes") {
-      const enabled: string | null = lowerOrNull(label("enabled"));
-      patch.status =
-        enabled === "true"
-          ? "enabled"
-          : enabled === "false"
-            ? "disabled"
-            : null;
-      patch.details["speedBytesPerSec"] = Math.max(0, rawValue);
-      const services: string | null = label("services");
-      if (services) {
-        patch.details["services"] = services;
-      }
-      const ethSubtype: string | null = label("ethsubtype");
-      if (ethSubtype) {
-        patch.details["ethSubtype"] = ethSubtype;
-      }
-    } else if (
-      metricName === "purefa_network_interface_performance_bandwidth_bytes"
-    ) {
-      const dimension: string | null = label("dimension");
-      if (dimension === "received_bytes_per_sec") {
-        patch.details["receivedBytesPerSec"] = Math.max(0, rawValue);
-      } else if (dimension === "transmitted_bytes_per_sec") {
-        patch.details["transmittedBytesPerSec"] = Math.max(0, rawValue);
-      } else {
-        return;
-      }
-    } else if (metricName === "purefa_network_interface_performance_errors") {
-      if (label("dimension") !== "total_errors_per_sec") {
-        return;
-      }
-      patch.details["errorsPerSec"] = Math.max(0, rawValue);
-    } else {
-      return;
-    }
-    fold(patch);
-    return;
-  }
-
-  // ---------------- FlashArray volumes ----------------
-
-  if (metricName.startsWith("purefa_volume_")) {
-    // purefa_volume_group_* series describe volume groups, not volumes.
-    if (metricName.startsWith("purefa_volume_group_")) {
-      return;
-    }
-    const volumeName: string | null = label("name");
-    if (!volumeName) {
-      return;
-    }
-    array.sawVolumes = true;
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Volume,
-        volumeName,
-        observedAt,
-      );
-    patch.name = volumeName;
-    patch.groupName = label("pod") || label("volume_group");
-    const naaId: string | null = label("naa_id");
-    if (naaId) {
-      patch.details["naaId"] = naaId;
-    }
-    const family: "latency" | "iops" | "bandwidth" | null =
-      performanceFamily(metricName);
-    if (family) {
-      if (
-        !applyPerformanceDimension(patch, family, label("dimension"), rawValue)
-      ) {
-        // Still a sighting of the volume — keep it in the inventory.
-        fold(patch);
-        return;
-      }
-    } else if (metricName === "purefa_volume_space_bytes") {
-      applySpaceDimension(patch, label("space"), rawValue);
-    } else if (metricName === "purefa_volume_space_data_reduction_ratio") {
-      patch.dataReductionRatio = Math.max(0, rawValue);
-    } else if (metricName === "purefa_volume_qos_iops_limit") {
-      patch.details["qosIopsLimit"] = Math.max(0, rawValue);
-    } else if (
-      metricName === "purefa_volume_qos_bandwidth_bytes_per_sec_limit"
-    ) {
-      patch.details["qosBandwidthBytesPerSecLimit"] = Math.max(0, rawValue);
-    }
-    fold(patch);
-    return;
-  }
-
-  // ---------------- FlashArray hosts ----------------
-
-  if (metricName.startsWith("purefa_host_")) {
-    const hostName: string | null = label("host");
-    if (!hostName) {
-      return;
-    }
-    array.sawHosts = true;
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Host,
-        hostName,
-        observedAt,
-      );
-    patch.name = hostName;
-
-    if (metricName === "purefa_host_connectivity_info") {
-      patch.status = lowerOrNull(label("status"));
-      patch.statusDetail = label("details");
-    } else if (metricName === "purefa_host_connections_info") {
-      patch.groupName = label("hostgroup");
-      const volumeName: string | null = label("volume");
-      if (volumeName) {
-        recordConnection(array.volumesByHost, hostName, volumeName);
-        recordConnection(array.hostsByVolume, volumeName, hostName);
-      } else if (!array.volumesByHost.has(hostName)) {
-        // A host with no volumes connected still counts as zero.
-        array.volumesByHost.set(hostName, new Set());
-      }
-      if (
-        !array.connectionsObservedAt ||
-        observedAt > array.connectionsObservedAt
-      ) {
-        array.connectionsObservedAt = observedAt;
-      }
-    } else if (metricName === "purefa_host_space_bytes") {
-      // total_provisioned: the size of everything the host is connected to.
-      applySpaceDimension(patch, label("space"), rawValue);
-    } else if (metricName === "purefa_host_space_data_reduction_ratio") {
-      patch.dataReductionRatio = Math.max(0, rawValue);
-    } else {
-      const family: "latency" | "iops" | "bandwidth" | null =
-        performanceFamily(metricName);
-      if (family) {
-        applyPerformanceDimension(patch, family, label("dimension"), rawValue);
-      }
-    }
-    fold(patch);
-    return;
-  }
-
-  // ---------------- FlashArray pods ----------------
-
-  if (metricName.startsWith("purefa_pod_")) {
-    let podName: string | null = null;
-    if (metricName.startsWith("purefa_pod_replica_links_")) {
-      podName = label("local_pod");
-    } else if (metricName === "purefa_pod_mediator_status") {
-      podName = label("pod");
-    } else {
-      podName = label("name");
-    }
-    if (!podName) {
-      return;
-    }
-    array.sawPods = true;
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Pod,
-        podName,
-        observedAt,
-      );
-    patch.name = podName;
-
-    if (metricName === "purefa_pod_replica_links_lag_max_msec") {
-      patch.replicationLagMs = Math.max(0, rawValue);
-      patch.status = lowerOrNull(label("status"));
-      const remote: string | null = label("remote");
-      if (remote) {
-        patch.details["remote"] = remote;
-      }
-      const remotePod: string | null = label("remote_pod");
-      if (remotePod) {
-        patch.details["remotePod"] = remotePod;
-      }
-      const direction: string | null = label("direction");
-      if (direction) {
-        patch.details["direction"] = direction;
-      }
-    } else if (metricName === "purefa_pod_replica_links_lag_average_msec") {
-      patch.details["averageLagMs"] = Math.max(0, rawValue);
-    } else if (metricName === "purefa_pod_mediator_status") {
-      const mediatorStatus: string | null = lowerOrNull(label("status"));
-      if (mediatorStatus) {
-        patch.details["mediatorStatus"] = mediatorStatus;
-      }
-    } else if (metricName === "purefa_pod_space_bytes") {
-      applySpaceDimension(patch, label("space"), rawValue);
-    } else if (metricName === "purefa_pod_space_data_reduction_ratio") {
-      patch.dataReductionRatio = Math.max(0, rawValue);
-    } else {
-      const family: "latency" | "iops" | "bandwidth" | null =
-        performanceFamily(metricName);
-      if (family) {
-        applyPerformanceDimension(patch, family, label("dimension"), rawValue);
-      }
-    }
-    fold(patch);
-    return;
-  }
-
-  // ---------------- FlashArray directories ----------------
-
-  if (metricName.startsWith("purefa_directory_")) {
-    const directoryName: string | null = label("name");
-    if (!directoryName) {
-      return;
-    }
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Directory,
-        directoryName,
-        observedAt,
-      );
-    patch.name = directoryName;
-    if (metricName === "purefa_directory_space_bytes") {
-      applySpaceDimension(patch, label("space"), rawValue);
-    } else if (metricName === "purefa_directory_space_data_reduction_ratio") {
-      patch.dataReductionRatio = Math.max(0, rawValue);
-    } else {
-      const family: "latency" | "iops" | "bandwidth" | null =
-        performanceFamily(metricName);
-      if (family) {
-        applyPerformanceDimension(patch, family, label("dimension"), rawValue);
-      }
-    }
-    fold(patch);
-    return;
-  }
-
-  // ---------------- FlashBlade file systems ----------------
-
-  if (metricName.startsWith("purefb_file_systems_")) {
-    const fileSystemName: string | null = label("name");
-    if (!fileSystemName) {
-      return;
-    }
-    array.sawFileSystems = true;
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.FileSystem,
-        fileSystemName,
-        observedAt,
-      );
-    patch.name = fileSystemName;
-    const nfs: string | null = label("nfs");
-    if (nfs) {
-      patch.details["nfs"] = nfs;
-    }
-    const smb: string | null = label("smb");
-    if (smb) {
-      patch.details["smb"] = smb;
-    }
-    const nfsPolicy: string | null = label("nfspolicy");
-    if (nfsPolicy) {
-      patch.details["nfsPolicy"] = nfsPolicy;
-    }
-    if (metricName === "purefb_file_systems_space_bytes") {
-      const space: string | null = label("space");
-      if (
-        !applySpaceDimension(patch, space, rawValue) &&
-        space === "provisioned"
-      ) {
-        // `provisioned` is the configured size; total_provisioned wins when both arrive.
-        patch.details["provisionedBytes"] = Math.max(0, Math.trunc(rawValue));
-      }
-    } else if (
-      metricName === "purefb_file_systems_space_data_reduction_ratio"
-    ) {
-      patch.dataReductionRatio = Math.max(0, rawValue);
-    } else {
-      const family: "latency" | "iops" | "bandwidth" | null =
-        performanceFamily(metricName);
-      if (family) {
-        applyPerformanceDimension(patch, family, label("dimension"), rawValue);
-      }
-    }
-    fold(patch);
-    return;
-  }
-
-  // ---------------- FlashBlade buckets ----------------
-
-  if (metricName.startsWith("purefb_buckets_")) {
-    const bucketName: string | null = label("name");
-    if (!bucketName) {
-      return;
-    }
-    array.sawBuckets = true;
-    const patch: StorageArrayResourceBufferEntry =
-      emptyStorageArrayResourceEntry(
-        StorageArrayResourceKind.Bucket,
-        bucketName,
-        observedAt,
-      );
-    patch.name = bucketName;
-    patch.groupName = label("account");
-    if (metricName === "purefb_buckets_space_bytes") {
-      const space: string | null = label("space");
-      // A bucket's size is its quota (below); what it holds is total_physical.
-      if (space === "total_physical") {
-        patch.usedBytes = Math.max(0, Math.trunc(rawValue));
-      } else if (space === "virtual") {
-        patch.details["virtualBytes"] = Math.max(0, Math.trunc(rawValue));
-      }
-    } else if (metricName === "purefb_buckets_quota_space_bytes") {
-      patch.capacityBytes = Math.max(0, Math.trunc(rawValue));
-      const hardLimit: string | null = label("hard_limit_enabled");
-      if (hardLimit) {
-        patch.details["hardLimitEnabled"] = hardLimit === "true";
-      }
-    } else if (metricName === "purefb_buckets_space_data_reduction_ratio") {
-      patch.dataReductionRatio = Math.max(0, rawValue);
-    } else if (metricName === "purefb_buckets_object_count") {
-      patch.details["objectCount"] = Math.max(0, Math.trunc(rawValue));
-    } else {
-      const family: "latency" | "iops" | "bandwidth" | null =
-        performanceFamily(metricName);
-      if (family) {
-        applyPerformanceDimension(patch, family, label("dimension"), rawValue);
-      }
-    }
-    fold(patch);
-    return;
-  }
+  resolved.extractor.extract(series);
 }
 
 /*
@@ -1320,11 +465,32 @@ export function foldStorageArrayResourceSnapshot(data: {
 }
 
 /*
+ * A batch's rows once its platform's extractor has finished it
+ * (StorageArrayExtractor.finishBatch): what its series say together, which
+ * no one of them does. A platform without the hook, and a batch no
+ * platform read, keep the rows as folded.
+ */
+export function finishStorageArrayBatch(
+  rows: Array<StorageArrayResourceBufferEntry>,
+  snap: StorageArraySnapshotBufferEntry | undefined,
+): Array<StorageArrayResourceBufferEntry> {
+  if (!snap || !snap.storageSystem) {
+    return rows;
+  }
+  const extractor: StorageArrayExtractor | null =
+    StorageArrayExtractors.getExtractor(snap.storageSystem);
+  if (!extractor || !extractor.finishBatch) {
+    return rows;
+  }
+  return extractor.finishBatch({ rows: rows, array: snap });
+}
+
+/*
  * The inventory rows of one folded batch, with the connection counts from
- * purefa_host_connections_info applied: a host's count is its connected
- * volumes, a volume's count is the hosts it is connected to. That series
- * comes from the hosts endpoint, so the volumes it names are written from
- * the hosts batch too (connectionCount only — every other column COALESCEs
+ * the hosts' connections (recordHostVolumeConnection) applied: a host's
+ * count is its connected volumes, a volume's count is the hosts it is
+ * connected to. Those come with the hosts, so the volumes they name are
+ * written from the hosts batch too (connectionCount only — every other column COALESCEs
  * on upsert, so the volumes batch's values are never blanked). Those rows
  * are marked fromConnectionsOnly so deriveStorageArraySnapshotExtras never
  * counts them as volumes. Nothing is touched when the batch carried no
@@ -1332,9 +498,11 @@ export function foldStorageArrayResourceSnapshot(data: {
  * scrape set.
  */
 export function getStorageArrayResourceRows(
-  entries: Array<StorageArrayResourceBufferEntry>,
+  folded: Array<StorageArrayResourceBufferEntry>,
   snap: StorageArraySnapshotBufferEntry | undefined,
 ): Array<StorageArrayResourceBufferEntry> {
+  const entries: Array<StorageArrayResourceBufferEntry> =
+    finishStorageArrayBatch(folded, snap);
   if (!snap || !snap.connectionsObservedAt) {
     return entries;
   }
@@ -1378,8 +546,8 @@ export function getStorageArrayResourceRows(
  * StorageArrayResourceService.resetVolumeConnectionCounts — or null when the
  * batch cannot tell which volumes are connected, so no count may be reset.
  *
- * purefa_host_connections_info is the only source of a volume's
- * connectionCount and it lists connected volumes only: a volume detached
+ * The hosts' connections are the only source of a volume's
+ * connectionCount, and they list connected volumes only: a volume detached
  * from its last host just stops appearing in it, and without a reset its
  * old count would stand. The batch knows every connection when it carried
  * the hosts endpoint (sawHosts) and either that connections series or no
@@ -1452,13 +620,13 @@ export function getVolumeConnectionCounts(
 }
 
 /*
- * The platform to write for an array. The metric names decide it whenever
- * the batch carried any (purefa_ / purefb_ — a collector config cannot get
- * them wrong); the agent's declared `storage.system` only fills in for a
- * platform OneUptime has no metric catalog for, so an array of another
- * vendor is still labelled. A known platform is never taken from the
- * attribute: a FlashBlade .env without STORAGE_SYSTEM declares the compose
- * default, purestorage.flasharray, and a batch with no Pure series (a
+ * The platform to write for an array. The series decide it whenever the
+ * batch carried any a platform's extractor read (the platform it was read
+ * for); the agent's declared `storage.system` only fills in for a
+ * platform OneUptime has no extractor for, so an array of another vendor
+ * is still labelled. A known platform is never taken from the attribute
+ * alone: a FlashBlade .env without STORAGE_SYSTEM declares the compose
+ * default, purestorage.flasharray, and a batch with none of its series (a
  * failed scrape's `up` alone) would otherwise write it back over the
  * derived value, flipping the column between scrapes.
  */
@@ -1556,8 +724,8 @@ export function deriveStorageArraySnapshotExtras(
    * Only objects the batch reported through their own series count. A
    * volume getStorageArrayResourceRows synthesized from the hosts
    * endpoint's connection list is not a sighting: a volumes scrape that
-   * listed no volumes while purefa_host_connections_info still named two
-   * must report volumeCount 0, not 2.
+   * listed no volumes while the hosts' connections still named two must
+   * report volumeCount 0, not 2.
    */
   const countKind: (kind: StorageArrayResourceKind) => number = (
     kind: StorageArrayResourceKind,
@@ -1588,14 +756,23 @@ export function deriveStorageArraySnapshotExtras(
    * the array endpoint carries — and only when it carried both the alerts
    * and the component status series is health derivable at all.
    */
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(snap.storageSystem);
+  const hardwareKinds: ReadonlyArray<string> =
+    platform?.hardwareKinds || STORAGE_ARRAY_HARDWARE_KINDS;
   const sawAnyHardware: boolean =
-    snap.sawHardware || snap.sawDrives || snap.sawControllers;
+    snap.sawHardware ||
+    snap.sawDrives ||
+    snap.sawControllers ||
+    hardwareKinds.some((kind: string): boolean => {
+      return snap.completeKinds.has(kind);
+    });
   let criticalHardware: boolean = false;
   let unhealthyHardware: number = 0;
   if (sawAnyHardware) {
     const hardware: Array<StorageArrayResourceBufferEntry> = entries.filter(
       (e: StorageArrayResourceBufferEntry) => {
-        return HARDWARE_KINDS.has(e.kind);
+        return hardwareKinds.includes(e.kind);
       },
     );
     /*
@@ -1607,10 +784,10 @@ export function deriveStorageArraySnapshotExtras(
      */
     const unhealthyNames: Set<string> = new Set();
     for (const component of hardware) {
-      if (isUnhealthyComponentStatus(component.status)) {
+      if (isUnhealthyComponentStatus(component.status, snap.storageSystem)) {
         unhealthyNames.add(component.externalId.toLowerCase());
       }
-      if (isCriticalComponentStatus(component.status)) {
+      if (isCriticalComponentStatus(component.status, snap.storageSystem)) {
         criticalHardware = true;
       }
     }
@@ -1625,7 +802,14 @@ export function deriveStorageArraySnapshotExtras(
     extras.unhealthyHardwareCount = unhealthyHardware;
   }
 
-  if (snap.sawAlerts && sawAnyHardware) {
+  /*
+   * A platform that reports its alerts in no metric (a PowerStore's arrive
+   * as syslog: overview.alertMetricName unset) has no alert list a batch
+   * could complete, so its hardware alone decides its health.
+   */
+  const reportsAlertsAsMetrics: boolean =
+    !platform || Boolean(platform.overview.alertMetricName);
+  if ((snap.sawAlerts || !reportsAlertsAsMetrics) && sawAnyHardware) {
     if (snap.criticalAlertKeys.size > 0 || criticalHardware) {
       extras.healthStatus = StorageArrayHealthStatus.Critical;
     } else if (snap.warningAlertKeys.size > 0 || unhealthyHardware > 0) {
@@ -1636,4 +820,34 @@ export function deriveStorageArraySnapshotExtras(
   }
 
   return extras;
+}
+
+/*
+ * The count of each kind whose complete list the batch carried
+ * (StorageArraySnapshotBufferEntry.completeKinds), for
+ * StorageArray.countsByKind: a kind the platform reports counts 0 once its
+ * last object is deleted, and a kind the batch did not list keeps the count
+ * the row holds (StorageArrayService.mergeCountsByKind merges, never
+ * replaces). Null when the batch listed no kind at all. Same counting rule
+ * as the columns: a volume known only from a host's connections is no
+ * sighting.
+ */
+export function deriveStorageArrayCountsByKind(
+  entries: Array<StorageArrayResourceBufferEntry>,
+  snap: StorageArraySnapshotBufferEntry | undefined,
+): Record<string, number> | null {
+  if (!snap || snap.completeKinds.size === 0) {
+    return null;
+  }
+  const counts: Record<string, number> = {};
+  for (const kind of Array.from(snap.completeKinds).sort()) {
+    writeOwnValue(
+      counts,
+      kind,
+      entries.filter((e: StorageArrayResourceBufferEntry): boolean => {
+        return e.kind === kind && !e.fromConnectionsOnly;
+      }).length,
+    );
+  }
+  return counts;
 }

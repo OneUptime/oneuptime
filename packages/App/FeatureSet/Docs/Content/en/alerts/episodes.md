@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > To page once per problem rather than once per alert, put on-call policies on your grouping rules and leave them off the alerts: off the monitor's criteria, the create form and your alert on-call rules.
 
-Episode owners hear about it too: **Alert episode created**, **Alert episode state changed** and **Alert added to alert episode** are on by email by default, under **User Settings → Notification Settings**, on the **Alerts** tab. The rule's **Episode Owners** become owners of every episode it opens, and are notified like any other owner.
+Episode owners hear about it too: **Alert episode created**, **Alert episode state changed** and **Alert added to alert episode** are on by email by default, under **User Settings → Notification Settings**, on the **Alerts** tab. The rule's **Episode Owners** become owners of every episode it opens, and are notified like any other owner. They are in before Slack and Microsoft Teams hear of the episode, so a notification rule that asks who owns an episode posts its created message.
 
 ## Create an episode by hand
 
@@ -166,7 +166,7 @@ On **Episode Details**, fill in the **Title** and, if you like, an **Alert Sever
 
 On **On-Call & Owners**, pick an **On-Call Policy** to run when the episode is created, and its **Owners**. Then click **Create Episode**.
 
-Each team you are a member of is one click away under **Owners**, and the summary lists the owner rules that will add more.
+Each team you are a member of is one click away under **Owners**, and the summary lists the owner rules that will add more. The owners you pick, those the owner rules add and the labels of matching label rules are in before Slack and Microsoft Teams hear of the episode, so a notification rule that asks who owns an episode, or how it is labelled, posts it too.
 
 ### Add the alerts
 

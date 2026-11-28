@@ -21,6 +21,22 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+/*
+ * The resolver also asks PermissionGate whether the reader may read a
+ * table's archive switch (f5f416c04ac); the gate's import chain reads
+ * `window` as well. A member who reads the services reads it too.
+ */
+jest.mock("Common/UI/Utils/PermissionGate", () => {
+  return {
+    __esModule: true,
+    default: {
+      canReadColumn: (): boolean => {
+        return true;
+      },
+    },
+  };
+});
+
 import { describe, expect, test } from "@jest/globals";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -67,7 +83,7 @@ const PRELOADED_KEYS: Array<string> = [
 ];
 
 describe("the catalog the explorers are wired from", () => {
-  test("lists all fifteen non-Service resource types, each once, in sidebar order", () => {
+  test("lists all sixteen non-Service resource types, each once, in sidebar order", () => {
     expect([...RESOURCE_FACET_CATALOG_KEYS]).toEqual([
       "hostId",
       "dockerHostId",
@@ -77,6 +93,8 @@ describe("the catalog the explorers are wired from", () => {
       "proxmoxClusterId",
       "openStackCloudId",
       "vmwareVCenterId",
+      // XCP-ng's pools (#10995).
+      "xcpNgPoolId",
       "cephClusterId",
       "storageArrayId",
       "serverlessFunctionId",

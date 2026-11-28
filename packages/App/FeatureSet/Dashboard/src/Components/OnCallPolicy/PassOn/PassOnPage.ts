@@ -12,13 +12,11 @@ import {
   OnCallPageRecordType,
   OnCallPassOnAnswer,
   OnCallPassOnLevelChoice,
-  OnCallPassOnOutcome,
   OnCallPassOnRefusal,
   OnCallPassOnResult,
   OnCallPassOnRule,
   findOnCallPassOnLevelChoice,
   getOnCallPassOnLevelChoices,
-  getOnCallPassOnLevelCount,
   getOnCallPassOnLevelName,
   getOnCallPassOnPickedResult,
   getOnCallPassOnTimeOfDay,
@@ -28,6 +26,12 @@ import {
   readOnCallPassOnResult,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import {
+  describeOnCallPassOnRefusalInLanguage,
+  describeOnCallPassOnResultInLanguage,
+  getOnCallPassOnLevelLabelInLanguage,
+  getOnCallPassOnLevelValue,
+} from "Common/Types/OnCallDutyPolicy/OnCallPassOnWords";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -379,35 +383,21 @@ function levelValue(
   rule: OnCallPassOnRule | undefined,
   ruleCount: number,
 ): ComposedValue | null {
-  if (!rule || !rule.order) {
-    return null;
-  }
-
-  const name: string | undefined = getOnCallPassOnLevelName(rule);
-
-  return composedValue((sentence: Translator): string => {
-    return levelLabel(sentence, rule, ruleCount, name);
-  });
+  return getOnCallPassOnLevelValue(rule, ruleCount);
 }
 
-// A level's label in the sentence's language, by the name it is given.
+/*
+ * A level's label in the sentence's language, by the name it is given: the
+ * words a page's call says it in too (Common/Types/OnCallDutyPolicy/
+ * OnCallPassOnWords, #11066).
+ */
 function levelLabel(
   sentence: Translator,
   rule: OnCallPassOnRule,
   ruleCount: number,
   name: string | undefined,
 ): string {
-  const place: { order: string; count: string } = {
-    order: sentence.formatNumber(rule.order),
-    count: sentence.formatNumber(getOnCallPassOnLevelCount(rule, ruleCount)),
-  };
-
-  return name
-    ? sentence.translateTemplate("{{name}} (Level {{order}} of {{count}})", {
-        ...place,
-        name: name,
-      })
-    : sentence.translateTemplate("Level {{order}} of {{count}}", place);
+  return getOnCallPassOnLevelLabelInLanguage(sentence, rule, ruleCount, name);
 }
 
 // Stands in for a level's name while its place is read out of its label.
@@ -697,16 +687,6 @@ export function getPassOnLinePieces(
 }
 
 /*
- * "Ana, Bob and Carl", joined in the language of the sentence it goes into
- * (formatNameList).
- */
-function names(list: Array<string>): ComposedValue {
-  return composedValue((sentence: Translator): string => {
-    return formatNameList(list, "and", sentence);
-  });
-}
-
-/*
  * "6:40 PM GMT" - when the policy moves on, on the reader's own clock. A
  * level's wait is minutes away, so on the same day the time says it, and a
  * date in front of it would only stand between the reader and the clock;
@@ -721,122 +701,23 @@ export function formatPassOnTime(at: Date, now?: Date | undefined): string {
 
 /*
  * What escalating a page would do, or did, in the reader's language: the
- * Dashboard's words for the server's sentences (getOnCallPassOnSentence).
- * `now` is when it is read, for whether a time needs its date.
+ * Dashboard's words for the server's sentences (getOnCallPassOnSentence),
+ * which a page's call in its person's language says too (Common/Types/
+ * OnCallDutyPolicy/OnCallPassOnWords, #11066). `now` is when it is read,
+ * for whether a time needs its date.
  */
 export function describePassOnResult(
   result: OnCallPassOnResult,
   translator: Translator,
   now?: Date | undefined,
 ): string {
-  const level: ComposedValue | null = levelValue(result.rule, result.ruleCount);
-
-  switch (result.outcome) {
-    case OnCallPassOnOutcome.NextRulePaged: {
-      if (result.isPreview) {
-        return level
-          ? translator.translateTemplate(
-              "This will immediately page {{level}}, without waiting.",
-              { level: level },
-            )
-          : translator.translateTemplate(
-              "This will immediately page the next level, without waiting.",
-            );
-      }
-
-      if (!level) {
-        return translator.translateTemplate(
-          "The policy is now paging the next level.",
-        );
-      }
-
-      return result.pagedNames.length > 0
-        ? translator.translateTemplate(
-            "The policy is now paging {{level}}: {{names}}.",
-            { level: level, names: names(result.pagedNames) },
-          )
-        : translator.translateTemplate("The policy is now paging {{level}}.", {
-            level: level,
-          });
-    }
-    case OnCallPassOnOutcome.PolicyStartedAgain: {
-      if (result.isPreview) {
-        return level
-          ? translator.translateTemplate(
-              "There is no level after yours, so this will immediately page {{level}} again, without waiting.",
-              { level: level },
-            )
-          : translator.translateTemplate(
-              "There is no level after yours, so this will immediately page the first level again, without waiting.",
-            );
-      }
-
-      return level
-        ? translator.translateTemplate(
-            "There was no level after yours, so the policy started over and is paging {{level}} again.",
-            { level: level },
-          )
-        : translator.translateTemplate(
-            "There was no level after yours, so the policy started over and is paging the first level again.",
-          );
-    }
-    case OnCallPassOnOutcome.OthersStillPaged: {
-      const still: string = translator.translatePlural(
-        {
-          one: "{{names}} is still being paged.",
-          other: "{{names}} are still being paged.",
-        },
-        Math.max(result.stillPagedNames.length, 1),
-        { names: names(result.stillPagedNames) },
-      );
-
-      if (result.isDirectPage || !result.nextStepAt) {
-        return still;
-      }
-
-      const next: ComposedValue | null = levelValue(
-        result.nextRule,
-        result.ruleCount,
-      );
-      const time: string = formatPassOnTime(result.nextStepAt, now);
-
-      const then: string = next
-        ? translator.translateTemplate(
-            "If nobody acknowledges by {{time}}, the policy pages {{level}} next.",
-            { level: next, time: time },
-          )
-        : translator.translateTemplate(
-            "If nobody acknowledges by {{time}}, the policy moves on.",
-            { time: time },
-          );
-
-      return `${still} ${then}`;
-    }
-    case OnCallPassOnOutcome.AlreadyEscalated:
-      return level
-        ? translator.translateTemplate(
-            "The policy has moved on already and is paging {{level}} now.",
-            { level: level },
-          )
-        : translator.translateTemplate(
-            "The policy has moved on already and is paging a later level now.",
-          );
-    case OnCallPassOnOutcome.PagingStopped:
-    default:
-      if (result.isPreview) {
-        return result.isDirectPage
-          ? translator.translateTemplate(
-              "Nobody else is being paged: paging stops, and somebody needs to take it.",
-            )
-          : translator.translateTemplate(
-              "Nobody else is left to page: paging stops, and somebody needs to take it.",
-            );
-      }
-
-      return translator.translateTemplate(
-        "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
-      );
-  }
+  return describeOnCallPassOnResultInLanguage(
+    result,
+    translator,
+    (at: Date): string => {
+      return formatPassOnTime(at, now);
+    },
+  );
 }
 
 // Why a page could not be escalated, in the reader's language.
@@ -844,36 +725,7 @@ export function describePassOnRefusal(
   answer: OnCallPassOnAnswer,
   translator: Translator,
 ): string {
-  switch (answer.refusal) {
-    case OnCallPassOnRefusal.RecordAcknowledged:
-      return (answer.acknowledgedByName || "").trim()
-        ? translator.translateTemplate(
-            "{{name}} acknowledged it already, so there is nothing to escalate.",
-            { name: (answer.acknowledgedByName || "").trim() },
-          )
-        : translator.translateTemplate(
-            "Somebody acknowledged it already, so there is nothing to escalate.",
-          );
-    case OnCallPassOnRefusal.AlreadyPassedOn:
-      return translator.translateTemplate(
-        "You escalated it already, so you will not be paged again for it.",
-      );
-    case OnCallPassOnRefusal.PageOver:
-      return translator.translateTemplate(
-        "This page is over: the on-call policy has stopped paging.",
-      );
-    // The level picked was not there to page: nothing changed.
-    case OnCallPassOnRefusal.LevelNotAvailable:
-      return translator.translateTemplate(
-        "The policy's levels have changed, so nothing was escalated. Escalate again to pick a level.",
-      );
-    case OnCallPassOnRefusal.NotPaged:
-    case OnCallPassOnRefusal.InvalidLink:
-    default:
-      return translator.translateTemplate(
-        "You are not being paged about this right now.",
-      );
-  }
+  return describeOnCallPassOnRefusalInLanguage(answer, translator);
 }
 
 /*

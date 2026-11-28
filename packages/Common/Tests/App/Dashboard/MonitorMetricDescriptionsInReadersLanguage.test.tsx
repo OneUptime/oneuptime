@@ -14,6 +14,7 @@ import KubernetesMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Com
 import OpenStackMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackMetricPicker";
 import PodmanMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/PodmanMonitor/PodmanMetricPicker";
 import ProxmoxMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxMetricPicker";
+import XcpNgMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/XcpNgMonitor/XcpNgMetricPicker";
 import StorageArrayMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/StorageArrayMonitor/StorageArrayMetricPicker";
 import VMwareMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMetricPicker";
 import MetricRow from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricRow";
@@ -42,6 +43,7 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import { getAllOpenStackMetrics } from "../../../Types/Monitor/OpenStackMetricCatalog";
 import { getAllPodmanMetrics } from "../../../Types/Monitor/PodmanMetricCatalog";
 import { getAllProxmoxMetrics } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import { getAllXcpNgMetrics } from "../../../Types/Monitor/XcpNgMetricCatalog";
 import SqlDatabaseType from "../../../Types/Monitor/SqlDatabaseType";
 import { getAllStorageArrayMetrics } from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import { getAllVMwareMetrics } from "../../../Types/Monitor/VMwareMetricCatalog";
@@ -206,6 +208,15 @@ const PICKERS: Array<PickerCase> = [
           selectedMetricId={id}
           onMetricSelected={doNothing}
         />
+      );
+    },
+  },
+  {
+    name: "XCP-ng",
+    metrics: getAllXcpNgMetrics(),
+    draw: (id: string): ReactElement => {
+      return (
+        <XcpNgMetricPicker selectedMetricId={id} onMetricSelected={doNothing} />
       );
     },
   },

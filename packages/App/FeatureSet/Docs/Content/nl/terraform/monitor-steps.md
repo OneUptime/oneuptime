@@ -11,7 +11,7 @@
 
 ## Hoe een controle wordt beoordeeld
 
-Elke controle geeft een resultaat: het antwoord van een sonde, de returnwaarde van een script of de telemetrie die de controle leest. De criteria van de stap beoordelen het daarna op hun volgorde. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt: het kan de status van de monitor wijzigen, incidenten openen en waarschuwingen openen. De criteria erna worden voor die controle niet bekeken.
+Elke controle geeft een resultaat: het antwoord van een sonde, de returnwaarde van een script of de telemetrie die de controle leest. De criteria van de stap beoordelen het daarna op hun volgorde. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt: het kan de status van de monitor wijzigen, incidenten openen en waarschuwingen openen. De criteria erna worden voor die controle niet bekeken, tenzij het geen status wijzigt (`change_monitor_status` uit): dan worden de criteria erna die de status wijzigen alleen voor de status beoordeeld, en de eerste daarvan die overeenkomt, zet hem. Doet geen enkele dat, dan gaat de monitor naar zijn standaardstatus.
 
 ```mermaid title="Hoe elke controle wordt beoordeeld"
 flowchart TB
@@ -177,11 +177,12 @@ Elk item van `monitor_steps` is één ding om te controleren:
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` en `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` en `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Nieuwe pogingen als het script mislukt: `0` voert het één keer uit. |
+| `do_not_sync_fields` | list(string) | Monitorsjablonen | De velden die elke monitor die van het sjabloon is gemaakt als zijn eigen houdt wanneer het sjabloon zijn stappen ernaar synchroniseert, zoals `monitorDestination` of `dnsMonitor.queryName`: die welke de kaart **Instellingen voor sjabloonsynchronisatie** ervan toont. |
 | `criteria` | list (verplicht) | Alle | Hoe elk resultaat wordt beoordeeld: zie [Attributen van een criterium](#attributen-van-een-criterium). |
 
 ### Instellingen per monitortype
 
-Monitortypen waarbij meer in te stellen is dan een adres, bewaren hun instellingen (een logquery, een databaseverbinding, een cluster om te bewaken) in een eigen attribuut, als ruwe JSON geschreven met `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` en `probe_status_monitor`.
+Monitortypen waarbij meer in te stellen is dan een adres, bewaren hun instellingen (een logquery, een databaseverbinding, een cluster om te bewaken) in een eigen attribuut, als ruwe JSON geschreven met `jsonencode()`: `log_monitor`, `security_events_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` en `probe_status_monitor`.
 
 Hun JSON is dezelfde als die van het dashboard, met sleutels in camelCase. Een ID daarin schrijf je zoals de API hem schrijft: `{ _type = "ObjectID", value = "..." }`. Een Logs-monitor die de fouten van één service telt:
 
@@ -254,7 +255,7 @@ Gegroepeerde metriekmonitoren zijn de ene uitzondering. Als de query van een met
 
 ### Incidenten en waarschuwingen
 
-Een item van `incidents` accepteert `title` en `description` (beide verplicht), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page` en `is_private`. Een item van `alerts` accepteert dezelfde, met `alert_severity_id` en `auto_resolve_alert`, en zonder `show_incident_on_status_page`.
+Een item van `incidents` accepteert `title` en `description` (beide verplicht), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `incident_member_roles`, `show_incident_on_status_page` en `is_private`. Een item van `alerts` accepteert dezelfde, met `alert_severity_id` en `auto_resolve_alert`, en zonder `show_incident_on_status_page` en `incident_member_roles`. `incident_member_roles` geeft mensen een rol in elk incident dat de criteria openen, zoals incident commander: één `{ role_id, user_id }` per persoon en rol.
 
 Dit criterium zet de monitor op offline, opent een incident dat het bereikbaarheidsbeleid oproept, en lost het op als de site terug is:
 
@@ -479,6 +480,14 @@ Een controle die met geen enkel criterium overeenkomt, zet de monitor in zijn st
 ## Een monitor zonder stappen
 
 `monitor_steps` is optioneel, maar een monitor die zonder wordt aangemaakt, heeft geen criteria om een resultaat mee te beoordelen: sondes slaan een monitor zonder stappen over, en hij blijft in de status waarin hij begon. Je state houdt het attribuut leeg, en het plan blijft schoon. Een handmatige monitor heeft nooit stappen nodig: je stelt zijn status zelf in. Elk ander type heeft minstens één stap nodig om iets te controleren.
+
+## Wat een apply houdt
+
+Een apply die `monitor_steps` wijzigt, stuurt de hele stappen, en OneUptime vervangt de stappen die het bewaart door die. Een instelling die je configuratie kan schrijven en weglaat, wordt verwijderd, zoals het plan toont. Twee soorten instellingen worden in plaats daarvan gehouden zoals OneUptime ze bewaart, omdat geen plan ze kan tonen. De apply leest eerst de stappen die OneUptime bewaart, en mislukt zonder iets te schrijven als dat niet lukt.
+
+Een instelling waarvoor de provider geen attribuut heeft, zoals de `snmpMonitor` die stappen van het uitgefaseerde SNMP-monitortype nog bewaren, of een die een nieuwere OneUptime heeft en die jouw versie van de provider nog niet kent, blijft op haar stap, criteria, incident of waarschuwing. Elke wordt gekoppeld zoals OneUptime ze koppelt om hun ID's te houden: een stap op zijn positie, criteria op hun naam en een incident of waarschuwing op de titel, anders op positie. Als je configuratie die stap, die criteria, dat incident of die waarschuwing weghaalt, gaat de instelling mee.
+
+Een instelling die je met `jsonencode()` schrijft, zoals `dns_monitor`, `incident_grouping` of de `metric_monitor_options` van een filter, wordt vergeleken op wat ze schrijft. OneUptime kan er meer in bewaren, een eigen standaardwaarde of een sleutel die in het dashboard is gezet: dat is geen wijziging, en een apply houdt het. Een sleutel die je uit de `jsonencode()` haalt, wordt verwijderd. In een lijst wordt wat OneUptime meer bewaart item voor item gehouden, zolang de lijst evenveel items heeft als die van OneUptime.
 
 ## Het transportformaat
 

@@ -6,6 +6,7 @@ A monitor template is a saved monitor configuration (a type, criteria, an interv
 - [Create a template](#create-a-template): Four steps, like Create Monitor.
 - [Create monitors from it](#create-monitors-from-a-template): One click, or link monitors you already have.
 - [Sync changes](#sync-changes-to-linked-monitors): What each sync button copies.
+- [Move monitors to another template](#move-monitors-to-another-template): A better template, and every monitor keeps its history.
 - [Keep values specific to each monitor](#keep-values-specific-to-each-monitor): Protect a destination or headers from a sync.
 :::
 
@@ -55,7 +56,7 @@ The template is added to the list. Open it to see its page, with a card for each
 ## Create monitors from a template
 
 - **New monitor.** Click **Create Monitor** on the template's row in the list, or **Create Monitor from Template** on its page. **Create Monitor** opens with the template's type and settings filled in; change anything you need, then create it. The new monitor is linked to the template.
-- **Monitors you already have.** In **Linked Monitors**, click **Link Existing Monitors** and pick them. They keep their settings until you sync.
+- **Monitors you already have.** In **Linked Monitors**, click **Link Existing Monitors** and pick them. With **Use the template's criteria and interval** on, they take the template's criteria, interval and probe agreement as they are linked; switched off, they keep their settings until you sync. A monitor linked to another template moves to this one.
 
 Custom field values set under **Custom Field Defaults** are written onto every monitor created from the template, including monitors that auto-import rules and alert policies create from it.
 
@@ -70,9 +71,60 @@ Editing a template changes only the template. To copy a change onto the linked m
 | **Sync Labels to Linked Monitors** | The labels, and nothing else | Everything else |
 | **Sync Custom Fields to Linked Monitors** | The custom fields the template has a default for, replacing what each monitor had | Custom fields the template leaves blank, and everything else |
 
-To sync one monitor, click **Sync from Template** on its row in **Linked Monitors**. That copies the criteria and step settings (except protected fields), the monitoring interval, minimum probe agreement and labels, and leaves the monitor's name, description and custom field values alone. **Unlink from Template** disconnects a monitor; it keeps its settings.
+To sync one monitor, click **Sync from Template** on its row in **Linked Monitors**. That copies the criteria and step settings (except protected fields), the monitoring interval, minimum probe agreement and labels, and leaves the monitor's name, description and custom field values alone. To disconnect a monitor, see [Unlink monitors from a template](#unlink-monitors-from-a-template).
 
 After a sync, a summary says how many monitors were updated. **Partially synced** means some linked monitors still have the previous configuration, usually because your permissions do not cover them.
+
+## Move monitors to another template
+
+When a better template replaces one, move its monitors to it instead of deleting them. Each monitor keeps its name, status history, labels, owners and incidents, and takes the new template's criteria.
+
+:::steps
+### Select the monitors
+
+Open the template they are linked to now. In **Linked Monitors**, select the monitors, or all of them. You can also select monitors on the Monitors list, filtered by any column.
+
+### Move them
+
+In **Bulk Actions**, click **Move to Another Template** (on the Monitors list, **Link to Template**). Pick the template.
+
+### Keep the template's settings on
+
+Leave **Use the template's criteria and interval** on, so each monitor takes the template's criteria, step settings, interval and probe agreement now. Switched off, each keeps its own until you sync. Then confirm.
+:::
+
+What the move does:
+
+- The monitors' criteria, interval and probe agreement are replaced by the template's. An open incident or alert their old criteria were set to resolve on their own is resolved, and the new criteria open a new one if the problem is still there. Each Network Device monitor keeps watching its own device, and each address or URL monitor keeps checking its own device's address.
+- Names, descriptions, status history, labels, owners, custom field values and incident links stay as they are.
+- A monitor that an import, an auto import rule or a network alert policy made keeps the template it was created from. That rule never makes it again, and an alert policy lets it go: it no longer deletes or replaces it.
+- A device has one monitor from each template. When a device already has a monitor made for it from the new template, its other monitor is left out, and the change names the one in the way: delete one of the two, then move again.
+- A monitor of another type than the template's is left out.
+
+The change runs on the server, up to 10,000 monitors at a time, and shows its progress: what was moved, what was left out and why, and the open incidents and alerts it resolved. Closing the dialog does not stop it, and the template's page shows a change that is still running. **Stop** stops it before the next monitor, and **Retry** tries again the monitors that failed or were not reached.
+
+> [!TIP]
+> Moving an auto import rule's devices to a new template? Move the monitors first, then point the rule at the new template. In the other order, the rule gives each device a second monitor, from the new template, beside the one it has.
+
+## Unlink monitors from a template
+
+Click **Unlink from Template** on a monitor's row in **Linked Monitors**, or select monitors there or on the Monitors list and use **Unlink from Template** in **Bulk Actions**. Pick what the monitors keep:
+
+| Choice | What the monitors do afterwards |
+| --- | --- |
+| **Keep their settings** | They keep checking and alerting with the criteria they have now, as monitors of their own, and no longer get the template's updates. |
+| **Clear the template's criteria from them** | They keep checking, but raise no incidents or alerts and set no status until you link them to a template again. An open incident or alert their criteria were set to resolve on their own is resolved. |
+
+Either way they keep their names, status history, labels, owners and incidents, and a rule that made them never makes them again.
+
+## Delete a template
+
+A template that a network alert policy or an auto import rule provisions from cannot be deleted: point the policy or the rule at another template first. When monitors are linked to the template, its delete asks what happens to them:
+
+- **Keep their settings** (the default): the delete unlinks them, and they keep checking and alerting with the criteria they have.
+- **Clear this template's criteria from them**: each is unlinked with its criteria cleared, as above, and then the template is deleted. When a monitor stays linked, such as one your permissions do not cover, the template is kept, and the dialog says how many.
+
+To move the monitors to another template instead, use **Move to Another Template** before you delete it.
 
 ## Keep values specific to each monitor
 
@@ -159,7 +211,7 @@ Omit the array or set it to `[]` to sync every supported step setting. Unsupport
 | Logs, Security Events, Traces, AI / LLM, Metrics, Exceptions, Profiles | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (the monitor's whole configuration) |
 | Probe Status | `probeStatusMonitor.probeIds` |
 
-Infrastructure monitors (Kubernetes, Docker Container, Host, Podman Container, Proxmox, OpenStack, Docker Swarm, Ceph, Storage Array, IoT Device) offer their resource selector, filters (every type but Host), metric queries and query time window. Their names are listed in **Template sync settings** on a template of that type.
+Infrastructure monitors (Kubernetes, Docker Container, Host, Podman Container, Proxmox, OpenStack, XCP-ng, Docker Swarm, Ceph, Storage Array, IoT Device) offer their resource selector, filters (every type but Host), metric queries and query time window. Their names are listed in **Template sync settings** on a template of that type.
 :::
 
 ## Troubleshooting
@@ -174,6 +226,14 @@ A protected field could not be matched to a step on one of the monitors, so the 
 
 :::details The sync buttons are greyed out
 No monitor is linked to the template yet. Create a monitor from it, or click **Link Existing Monitors** in **Linked Monitors**.
+:::
+
+:::details A move leaves a monitor out: "The device this monitor was made for already has a monitor linked to this template"
+The device has a monitor made for it from the template you are moving to, usually because an auto import rule was pointed at that template before the move. Delete the one you do not need, the newer one has the least history, then move again.
+:::
+
+:::details After an auto import rule moved to a new template, devices have two monitors
+The rule gave each device the new template's monitor beside the one it had. Delete the new monitors, then move the old ones to the new template: they keep their history, and the rule makes none again.
 :::
 
 :::details Saving fails with "Unsupported do not sync field"

@@ -60,6 +60,7 @@ import OnCallReadinessService, {
   UserReadiness,
 } from "./OnCallReadinessService";
 import UserOnCallLogService from "./UserOnCallLogService";
+import OnCallPolicyIncidentRole from "../Utils/OnCall/OnCallPolicyIncidentRole";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import {
   whenNotificationRequestAnswers,
@@ -133,7 +134,11 @@ import Model from "../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import OnCallPageLinks from "../Utils/OnCall/OnCallPageLinks";
-import { buildOnCallPageCallData } from "../../Utils/Call/OnCallPageCall";
+import {
+  OnCallPageCallInput,
+  buildOnCallPageCallData,
+} from "../../Utils/Call/OnCallPageCall";
+import { hasCallVoiceForLanguage } from "../../Types/Call/CallVoice";
 import {
   getEnglishPageTranslator,
   getOnCallPageAcknowledge,
@@ -154,9 +159,15 @@ import {
   OnCallPageSmsWords,
 } from "../../Types/OnCallDutyPolicy/OnCallPageWords";
 import { StateListType } from "../../Utils/StateOrder";
-import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
+import {
+  DEFAULT_READER_LANGUAGE,
+  toReaderLanguage,
+} from "../../Types/ReaderLanguage";
 import { Translator } from "../../Types/Translator";
-import { getServerTranslator } from "../Utils/ServerTranslation";
+import {
+  getCallTranslator,
+  getServerTranslator,
+} from "../Utils/ServerTranslation";
 import UserLanguage from "../Utils/Notification/UserLanguage";
 import OnCallRuleClaimsInFlight, {
   OnCallRuleClaimInFlight,
@@ -1646,9 +1657,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * The language of the person it pages (Types/UserLanguage): their email,
-     * text, push, Telegram and chat messages are written in it. English
-     * for a person who picked none - and for every call and WhatsApp
-     * message, whose words are spoken in English or approved by Meta.
+     * text, push, Telegram and chat messages are written in it, and so is
+     * their call, beside its English, for a voice of that language to speak
+     * (#11066, buildOnCallPageCallRequest). English for a person who picked
+     * none - and for every WhatsApp message, whose words Meta approved.
      */
     const translator: Translator = getServerTranslator(
       await UserLanguage.getLanguage(notificationRuleItem.userId),
@@ -3063,6 +3075,7 @@ export class Service extends ProjectReferencesService<Model> {
             pageAgain,
             personPage,
             isObserverPage,
+            translator,
           );
 
         // send call.
@@ -3122,6 +3135,7 @@ export class Service extends ProjectReferencesService<Model> {
             pageAgain,
             personPage,
             isObserverPage,
+            translator,
           );
 
         // send call.
@@ -3181,6 +3195,7 @@ export class Service extends ProjectReferencesService<Model> {
             pageAgain,
             isObserverPage,
             personPage,
+            translator,
           );
 
         CallService.makeCall(callRequest, {
@@ -3238,6 +3253,7 @@ export class Service extends ProjectReferencesService<Model> {
             pageAgain,
             isObserverPage,
             personPage,
+            translator,
           );
 
         /*
@@ -5212,10 +5228,12 @@ export class Service extends ProjectReferencesService<Model> {
     personPage?: OnCallPersonPageNotice | undefined,
     // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
     isObserverPage?: boolean | undefined,
+    // The language of the person it pages (#11066); English without one.
+    translator: Translator = getEnglishPageTranslator(),
   ): Promise<CallRequest> {
-    return {
-      to: to,
-      data: buildOnCallPageCallData({
+    return this.buildOnCallPageCallRequest(
+      to,
+      {
         record: {
           noun: "alert",
           number: this.getRecordNumberText(
@@ -5232,8 +5250,9 @@ export class Service extends ProjectReferencesService<Model> {
         responseUrl: await OnCallPageLinks.getCallResponseUrl(
           userOnCallLogTimelineId,
         ),
-      }),
-    };
+      },
+      translator,
+    );
   }
 
   // The call of a page about an incident, as an alert's (generateCallTemplateForAlertCreated).
@@ -5248,10 +5267,12 @@ export class Service extends ProjectReferencesService<Model> {
     personPage?: OnCallPersonPageNotice | undefined,
     // An observer's page (OnCallObserverPage): kept informed, nothing to escalate.
     isObserverPage?: boolean | undefined,
+    // The language of the person it pages (#11066); English without one.
+    translator: Translator = getEnglishPageTranslator(),
   ): Promise<CallRequest> {
-    return {
-      to: to,
-      data: buildOnCallPageCallData({
+    return this.buildOnCallPageCallRequest(
+      to,
+      {
         record: {
           noun: "incident",
           number: this.getRecordNumberText(
@@ -5268,8 +5289,9 @@ export class Service extends ProjectReferencesService<Model> {
         responseUrl: await OnCallPageLinks.getCallResponseUrl(
           userOnCallLogTimelineId,
         ),
-      }),
-    };
+      },
+      translator,
+    );
   }
 
   // The call of a page about an alert episode, as an alert's (generateCallTemplateForAlertCreated).
@@ -5287,10 +5309,12 @@ export class Service extends ProjectReferencesService<Model> {
      * says who started which policy, and why you.
      */
     personPage?: OnCallPersonPageNotice | undefined,
+    // The language of the person it pages (#11066); English without one.
+    translator: Translator = getEnglishPageTranslator(),
   ): Promise<CallRequest> {
-    return {
-      to: to,
-      data: buildOnCallPageCallData({
+    return this.buildOnCallPageCallRequest(
+      to,
+      {
         record: {
           noun: "alert episode",
           number: this.getRecordNumberText(
@@ -5307,8 +5331,9 @@ export class Service extends ProjectReferencesService<Model> {
         responseUrl: await OnCallPageLinks.getCallResponseUrl(
           userOnCallLogTimelineId,
         ),
-      }),
-    };
+      },
+      translator,
+    );
   }
 
   // The call of a page about an incident episode, as an alert's (generateCallTemplateForAlertCreated).
@@ -5326,10 +5351,12 @@ export class Service extends ProjectReferencesService<Model> {
      * says who started which policy, and why you.
      */
     personPage?: OnCallPersonPageNotice | undefined,
+    // The language of the person it pages (#11066); English without one.
+    translator: Translator = getEnglishPageTranslator(),
   ): Promise<CallRequest> {
-    return {
-      to: to,
-      data: buildOnCallPageCallData({
+    return this.buildOnCallPageCallRequest(
+      to,
+      {
         record: {
           noun: "incident episode",
           number: this.getRecordNumberText(
@@ -5346,8 +5373,44 @@ export class Service extends ProjectReferencesService<Model> {
         responseUrl: await OnCallPageLinks.getCallResponseUrl(
           userOnCallLogTimelineId,
         ),
-      }),
+      },
+      translator,
+    );
+  }
+
+  /*
+   * A page's call (Utils/Call/OnCallPageCall): in English, as every call
+   * has - and, for a person who reads another language a call can be spoken
+   * in (Types/Call/CallVoice), in theirs too (#11066, CallRequest's
+   * inLanguage). The Notification service speaks that one, by a voice of
+   * the language, when the Twilio account the call goes out on chose a
+   * voice; English otherwise, so one language's words are never read by
+   * another language's voice. Persian, which no provider has a voice for,
+   * is sent in English only.
+   */
+  private buildOnCallPageCallRequest(
+    to: Phone,
+    input: OnCallPageCallInput,
+    translator: Translator,
+  ): CallRequest {
+    const callRequest: CallRequest = {
+      to: to,
+      data: buildOnCallPageCallData(input),
     };
+
+    const language: string = toReaderLanguage(translator.language);
+
+    if (
+      language !== DEFAULT_READER_LANGUAGE &&
+      hasCallVoiceForLanguage(language)
+    ) {
+      callRequest.inLanguage = {
+        language: language,
+        data: buildOnCallPageCallData(input, getCallTranslator(language)),
+      };
+    }
+
+    return callRequest;
   }
 
   @CaptureSpan()
@@ -7803,6 +7866,64 @@ export class Service extends ProjectReferencesService<Model> {
         userId: userId?.toString(),
       } as LogAttributes);
     });
+
+    // A responder's page, as asked above.
+    this.giveIncidentRoleOfPolicy(userId, options, {
+      isKnownResponderPage: true,
+    });
+  }
+
+  /*
+   * THE ROLE THE PAGING POLICY GIVES THE PEOPLE IT PAGES, on the incident or
+   * the incident episode it paged them about (OnCallPolicyIncidentRole):
+   * "Payments Primary" lists the person it paged as the incident's Service
+   * Owner. Asked once the person's log of the page is written, and never
+   * waited for: the page is what matters, and a role that could not be
+   * given is logged. Never for somebody paged as an observer, who is kept
+   * informed rather than pulled into the response - as the record's
+   * channels do not add them either.
+   */
+  private giveIncidentRoleOfPolicy(
+    userId: ObjectID,
+    options: UserOnCallLogPageOptions,
+    data: {
+      // The caller has asked already whether the page is an observer's.
+      isKnownResponderPage: boolean;
+    },
+  ): void {
+    const onCallDutyPolicyId: ObjectID | undefined = options.onCallPolicyId;
+
+    if (
+      !onCallDutyPolicyId ||
+      (!options.triggeredByIncidentId && !options.triggeredByIncidentEpisodeId)
+    ) {
+      return;
+    }
+
+    const give: () => Promise<void> = async (): Promise<void> => {
+      if (
+        !data.isKnownResponderPage &&
+        (await this.isObserverRun(options.onCallPolicyExecutionLogId))
+      ) {
+        return;
+      }
+
+      await OnCallPolicyIncidentRole.giveRoleToPagedPerson({
+        projectId: options.projectId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
+        userId: userId,
+        incidentId: options.triggeredByIncidentId,
+        incidentEpisodeId: options.triggeredByIncidentEpisodeId,
+      });
+    };
+
+    give().catch((error: unknown) => {
+      logger.error(error, {
+        projectId: options.projectId?.toString(),
+        userId: userId?.toString(),
+        onCallDutyPolicyId: onCallDutyPolicyId.toString(),
+      } as LogAttributes);
+    });
   }
 
   /*
@@ -7839,6 +7960,14 @@ export class Service extends ProjectReferencesService<Model> {
       props: {
         isRoot: true,
       },
+    });
+
+    /*
+     * The policy reached them too, through the page it stands on: they are
+     * given its role, as anybody it pages is - unless it pages observers.
+     */
+    this.giveIncidentRoleOfPolicy(userId, options, {
+      isKnownResponderPage: false,
     });
   }
 

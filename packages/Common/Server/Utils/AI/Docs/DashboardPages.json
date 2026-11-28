@@ -2048,10 +2048,25 @@
     "keywords": [
       "acknowledged",
       "resolved",
-      "incident status"
+      "incident status",
+      "initial state",
+      "starting state",
+      "incidents declared by hand",
+      "manually declared incidents",
+      "auto acknowledge"
     ],
     "path": "/dashboard/:projectId/incidents/settings/state",
     "kind": "page"
+  },
+  {
+    "title": "Start incidents declared by hand acknowledged",
+    "where": [
+      "Incidents",
+      "Settings",
+      "Incident State"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/state",
+    "kind": "setting"
   },
   {
     "title": "Incident Severity",
@@ -5064,6 +5079,23 @@
     "kind": "page"
   },
   {
+    "title": "Erasure Requests",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "erase person",
+      "right to erasure",
+      "gdpr",
+      "forget user",
+      "user vault",
+      "data subject request"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/erasure-requests",
+    "kind": "page"
+  },
+  {
     "title": "Overview",
     "where": [
       "Data Security"
@@ -7605,6 +7637,27 @@
     "kind": "page"
   },
   {
+    "title": "Cost Groups",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "cost allocation",
+      "chargeback",
+      "showback",
+      "cost views",
+      "cost centers",
+      "unallocated",
+      "shared costs",
+      "perspectives",
+      "cost categories",
+      "custom line items"
+    ],
+    "path": "/dashboard/:projectId/cloud/cost-groups",
+    "kind": "page"
+  },
+  {
     "title": "Savings",
     "where": [
       "Cloud",
@@ -7619,9 +7672,72 @@
       "reserved instances",
       "azure advisor",
       "cost optimization hub",
-      "recommender"
+      "recommender",
+      "apply savings",
+      "stop idle instances",
+      "delete unattached volumes",
+      "gp3"
     ],
     "path": "/dashboard/:projectId/cloud/savings",
+    "kind": "page"
+  },
+  {
+    "title": "Reports",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "cost reports",
+      "cloud cost reports",
+      "scheduled reports",
+      "weekly cost report",
+      "monthly cost report",
+      "showback",
+      "chargeback",
+      "finops review",
+      "cost email",
+      "focus export"
+    ],
+    "path": "/dashboard/:projectId/cloud/reports",
+    "kind": "page"
+  },
+  {
+    "title": "Schedules",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "off-hours schedules",
+      "off hours",
+      "instance scheduler",
+      "stop instances at night",
+      "start stop schedule",
+      "non-production",
+      "dev environments",
+      "parking"
+    ],
+    "path": "/dashboard/:projectId/cloud/schedules",
+    "kind": "page"
+  },
+  {
+    "title": "Commitments",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "savings plans",
+      "reserved instances",
+      "reservations",
+      "committed use discounts",
+      "expiring commitments",
+      "commitment renewal",
+      "commitment utilization",
+      "commitment coverage"
+    ],
+    "path": "/dashboard/:projectId/cloud/commitments",
     "kind": "page"
   },
   {
@@ -7635,9 +7751,50 @@
       "spend alerts",
       "budget alerts",
       "spend controls",
-      "cost alerts"
+      "cost alerts",
+      "quarterly budget",
+      "yearly budget",
+      "fiscal year budget",
+      "cost group budget",
+      "budget plan"
     ],
     "path": "/dashboard/:projectId/cloud/budgets",
+    "kind": "page"
+  },
+  {
+    "title": "Forecast",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "cost forecast",
+      "spend forecast",
+      "cloud forecast",
+      "forecasting",
+      "projected spend",
+      "what if",
+      "growth what-if"
+    ],
+    "path": "/dashboard/:projectId/cloud/forecast",
+    "kind": "page"
+  },
+  {
+    "title": "Tags",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "required tags",
+      "tag coverage",
+      "tag compliance",
+      "tag policy",
+      "untagged resources",
+      "cost allocation tags",
+      "labels"
+    ],
+    "path": "/dashboard/:projectId/cloud/tags",
     "kind": "page"
   },
   {
@@ -7664,6 +7821,38 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/cloud/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Cost Settings",
+    "where": [
+      "Cloud",
+      "Settings"
+    ],
+    "keywords": [
+      "cost basis",
+      "amortized costs",
+      "net costs",
+      "billed costs",
+      "commitment alerts"
+    ],
+    "path": "/dashboard/:projectId/cloud/settings/costs",
+    "kind": "page"
+  },
+  {
+    "title": "Savings AI Rules",
+    "where": [
+      "Cloud",
+      "Settings"
+    ],
+    "keywords": [
+      "ai rules for savings",
+      "automatic savings",
+      "act without asking",
+      "savings limit",
+      "auto remediation"
+    ],
+    "path": "/dashboard/:projectId/cloud/settings/savings-ai-rules",
     "kind": "page"
   },
   {
@@ -8090,6 +8279,73 @@
     "kind": "page"
   },
   {
+    "title": "Health Rules",
+    "where": [
+      "VMware",
+      "Settings"
+    ],
+    "keywords": [
+      "vmware thresholds",
+      "health thresholds",
+      "swapped memory",
+      "memory swapping",
+      "cpu ready",
+      "ballooning"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Busy ESXi Hosts",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
+    "title": "Full Datastores",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
+    "title": "VM Swapping",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
+    "title": "VM Ballooning and CPU Ready",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
+    "title": "Resource Pool Swapping",
+    "where": [
+      "VMware",
+      "Settings",
+      "Health Rules"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/health-rules",
+    "kind": "setting"
+  },
+  {
     "title": "Archived",
     "where": [
       "VMware",
@@ -8167,6 +8423,164 @@
       "cursor"
     ],
     "path": "/dashboard/:projectId/vmware/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Pools",
+    "where": [
+      "XCP-ng"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng",
+    "kind": "page"
+  },
+  {
+    "title": "Connections",
+    "where": [
+      "XCP-ng"
+    ],
+    "keywords": [
+      "xen orchestra",
+      "xapi",
+      "pool master",
+      "probe",
+      "without an agent",
+      "agentless",
+      "connect xen orchestra"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/connections",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "XCP-ng"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "XCP-ng",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "XCP-ng",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Audit Logs",
+    "where": [
+      "XCP-ng",
+      "Settings"
+    ],
+    "keywords": [
+      "history",
+      "who changed",
+      "rule changes"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/settings/rules-audit-logs",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "XCP-ng",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "Crossplane",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "crossplane provider",
+      "gitops",
+      "kubernetes manifest"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/crossplane",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "XCP-ng",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/developer/ai-assistants",
     "kind": "page"
   },
   {
@@ -8316,6 +8730,21 @@
       "Storage Arrays"
     ],
     "path": "/dashboard/:projectId/storage-arrays",
+    "kind": "page"
+  },
+  {
+    "title": "Connections",
+    "where": [
+      "Storage Arrays"
+    ],
+    "keywords": [
+      "unisphere",
+      "powermax",
+      "dell",
+      "connect unisphere",
+      "storage connections"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/connections",
     "kind": "page"
   },
   {

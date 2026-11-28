@@ -29,6 +29,19 @@ import Runner from "Common/Models/DatabaseModels/Runner";
  * otherwise leave the request open with no answer at all.
  */
 export default class RunnerAuthorization {
+  /*
+   * The key a request presents, as isAuthorizedAgent reads it: the body's
+   * agentKey, or the x-agent-key header. Once isAuthorizedAgent let the
+   * request through, it is the key of the Runner on the request.
+   */
+  public static getPresentedKey(req: RunnerExpressRequest): string | null {
+    const data: JSONObject = (req.body as JSONObject) || {};
+
+    const agentKeyRaw: unknown = data["agentKey"] ?? req.headers["x-agent-key"];
+
+    return typeof agentKeyRaw === "string" && agentKeyRaw ? agentKeyRaw : null;
+  }
+
   public static async isAuthorizedAgent(
     req: RunnerExpressRequest,
     res: ExpressResponse,
@@ -38,8 +51,8 @@ export default class RunnerAuthorization {
       const data: JSONObject = (req.body as JSONObject) || {};
 
       const agentIdRaw: unknown = data["agentId"] ?? req.headers["x-agent-id"];
-      const agentKeyRaw: unknown =
-        data["agentKey"] ?? req.headers["x-agent-key"];
+      const agentKeyRaw: string | null =
+        RunnerAuthorization.getPresentedKey(req);
 
       if (
         typeof agentIdRaw !== "string" ||

@@ -101,10 +101,10 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "the mustMatch and mustNotMatch patterns of the Data Security AI eval's own cases (DataSecurityEvalCases, written in code), held to the fix a model proposed: no project writes them",
   },
   {
-    file: "packages/Common/Server/Utils/AI/Eval/DataSecurity/TelemetryLeakEvalSet.ts",
+    file: "packages/Common/Server/Utils/AI/Toolbox/Serializer.ts",
     count: 1,
     builtFrom:
-      "the literal words of a log line's template in the telemetry leak eval set's own recorded cases (written in code), each escaped with escapeRegExp to match itself and joined by .*, to find the line of the case's own files a leak leads to: no project writes them",
+      "a copy of one of its own redaction rules' pattern literals (REDACTION_RULES), with their flags, to read a tool result with its percent-escapes read (#11031): no project writes them",
   },
   {
     file: "packages/Common/Server/Utils/AnalyticsDatabase/Statement.ts",
@@ -149,6 +149,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     builtFrom: "a random slot marker of letters and digits",
   },
   {
+    file: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    count: 1,
+    builtFrom:
+      "a scan warning's own template (SCAN_WARNINGS, written in code): its English escaped, each value a pattern of this file's, to read a stored warning back (#10930): no project writes them",
+  },
+  {
     file: "packages/Common/Types/Host/AndroidAgentPermissions.ts",
     count: 1,
     builtFrom:
@@ -170,6 +176,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "the record kinds ON_CALL_POLICY_RUN_RECORD_KINDS lists (incident, alert and their episodes), letters and spaces only, to read back the observer line getOnCallObserverPageSeenMessage writes",
+  },
+  {
+    file: "packages/Common/Types/StorageArray/StorageArrayMetricUnitUtil.ts",
+    count: 1,
+    builtFrom:
+      "the unit rules of the storage platforms OneUptime ships (StorageArrayPlatform.unitRules, such as NetApp ONTAP's ONTAP_UNIT_RULES, pattern strings written in code), run only on a metric name that starts with that platform's own prefix (#11001): no project writes them",
   },
   {
     file: "packages/Common/Types/Telemetry/ScrubRule.ts",
@@ -208,6 +220,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     count: 7,
     builtFrom:
       "the file's JSON string forms, quote marks, tool names and flag letters",
+  },
+  {
+    file: "packages/Common/Utils/AiRemediation/Resource/XcpNgCommandPolicy.ts",
+    count: 1,
+    builtFrom:
+      "a /regular expression/ in an xo-cli filter OneUptime AI writes, at most MAX_XO_FILTER_REGEX_CHARS long and refused by describeUnsafeRegex when a repeated group repeats itself or it holds a back-reference, whose syntax JavaScript checks; it is never run here, and Xen Orchestra runs the filter",
   },
   {
     file: "packages/Common/Utils/Call/CallSpeech.ts",
@@ -309,9 +327,9 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
   },
   {
     file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/MigrationRules.ts",
-    count: 2,
+    count: 5,
     builtFrom:
-      "the column a line of Alembic, Rails or Django declares, read with the patterns the file lists (LINE_PATTERNS), each a pattern literal of bounded quantifiers; and SensitiveNameMatcher's own match method, handed a column's name",
+      "the column a line of Alembic, Rails or Django declares, read with the patterns the file lists (LINE_PATTERNS), each a pattern literal of bounded quantifiers; the table a line opens a block for (#10779), read with the pattern literals of TABLE_HEADERS, DJANGO_MODEL_HEADERS and TABLE_NAMED_BELOW, each of bounded quantifiers; and SensitiveNameMatcher's own match method, handed a column's name",
   },
   {
     file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
@@ -329,13 +347,19 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     file: "packages/Common/Server/Utils/DataSecurity/ExposureAssessmentReader.ts",
     count: 1,
     builtFrom:
-      "nothing: DataStoreChangeMatcher's own match method, handed a cloud change in an exposure's window",
+      "nothing: DataStoreChangeMatcher's own match method, handed a cloud change to the exposed store (#10377)",
   },
   {
     file: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
     count: 1,
     builtFrom:
-      "the breach laws' names and sections LAW_NAMES_IN_TEXT lists, each a global pattern literal of alternatives with nothing repeated, to find a law a draft names that its facts do not",
+      "the law names a draft's text is read for (LAW_NAMES_IN_TEXT), each a pattern literal of words and section numbers (#10377)",
+  },
+  {
+    file: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    count: 1,
+    builtFrom:
+      "a scan warning's own templates' patterns (SCAN_WARNINGS, written in code), handed a stored warning of at most MAX_READ_SCAN_WARNING_LENGTH characters (#10930)",
   },
   {
     file: "packages/Common/Types/NoBreakSpaces.ts",
@@ -368,10 +392,10 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "nothing: the linear-time matcher's own matchAll, built by getLinearRegExp from a custom data type's pattern",
   },
   {
-    file: "packages/Common/Utils/DataSecurity/TextReadings.ts",
+    file: "packages/Common/Utils/Host/AndroidAgentRedactor.ts",
     count: 1,
     builtFrom:
-      "the built-in detectors' patterns its callers hand findDetectorRanges (IP_ADDRESS_DETECTORS, EMAIL_ADDRESS_DETECTORS and CARD_NUMBER_DETECTORS: the IP Address, Email Address and Credit Card scrub rules, and the AI toolbox's email redaction), pattern literals of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
+      "the redactor's own two email address patterns (ASCII_EMAIL_ADDRESS, EMAIL_ADDRESS), pattern literals of bounded parts, as the Android agent's Kotlin writes them",
   },
   {
     file: "packages/Common/Utils/DataSecurity/TextScanner.ts",
@@ -379,11 +403,17 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     builtFrom:
       "the built-in detectors' patterns, each a pattern literal of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
   },
+  /*
+   * The one place the scrub rules built on the detectors match them
+   * (findDetectorRanges, PR #10964): the IP Address rule's detectors, which
+   * ScrubIpAddress matched itself before, and the Email Address and Credit
+   * Card rules' and the toolbox serializer's.
+   */
   {
-    file: "packages/Common/Utils/Host/AndroidAgentRedactor.ts",
+    file: "packages/Common/Utils/DataSecurity/TextReadings.ts",
     count: 1,
     builtFrom:
-      "the two email address patterns the file writes (ASCII_EMAIL_ADDRESS, EMAIL_ADDRESS), global pattern literals as the Android agent's redactor writes them, run on a text cut to REDACTOR_MAX_LENGTH first",
+      "the built-in detectors' patterns its callers hand it (IP_ADDRESS_DETECTORS, EMAIL_ADDRESS_DETECTORS, CARD_NUMBER_DETECTORS), pattern literals of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers; a custom data type's detector runs its own pattern as LinearRegExp (CustomDataTypeDetector)",
   },
   {
     file: "packages/Common/Utils/Markdown/MarkdownDataUrls.ts",

@@ -91,7 +91,7 @@ flowchart TB
 | Art. 25 | データ保護バイデザインとデータ保護バイデフォルト | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | Art. 28 | 処理者 | `sensitive-data-to-ai` |
 | Art. 30 | 処理活動の記録 | データセキュリティ自体が満たす |
-| Art. 32 | 処理のセキュリティ | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`encryption-in-transit-not-enforced`、`weak-tls`、`no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable`、`access-not-logged`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
+| Art. 32 | 処理のセキュリティ | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`not-encrypted-at-rest`、`no-customer-managed-key`、`encryption-in-transit-not-enforced`、`weak-tls`、`no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable`、`access-not-logged`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
 | Arts. 44-49 | 第三国への移転 | `residency-violation` |
 
 ### CCPA
@@ -99,7 +99,7 @@ flowchart TB
 | 要件 | 求めていること | チェック |
 | --- | --- | --- |
 | 1798.100(c) | 必要な範囲に限った収集 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
-| 1798.150 | 合理的なセキュリティ手続き | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| 1798.150 | 合理的なセキュリティ手続き | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 
 ### HIPAA
 
@@ -107,7 +107,7 @@ flowchart TB
 | --- | --- | --- |
 | 164.308(a)(4) | 情報アクセスの管理 | `unused-access` |
 | 164.308(a)(7) | 緊急時対応計画 | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |
-| 164.312(a)(1) | アクセス制御 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| 164.312(a)(1) | アクセス制御 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | 164.312(a)(2)(iv) | 暗号化と復号 | `not-encrypted-at-rest`、`no-customer-managed-key` |
 | 164.312(b) | 監査制御 | `access-not-logged` |
 | 164.312(e)(1) | 伝送のセキュリティ | `encryption-in-transit-not-enforced`、`weak-tls` |
@@ -120,7 +120,7 @@ flowchart TB
 | 3.4.1 | カード番号を表示するときはマスクする | `card-numbers-readable`、`sensitive-data-in-telemetry` |
 | 3.5.1 | カード番号は保存されるすべての場所で読み取れないようにする | `not-encrypted-at-rest`、`no-customer-managed-key`、`card-numbers-readable` |
 | 4.2.1 | 伝送中のカードデータを強力な暗号で保護する | `encryption-in-transit-not-enforced`、`weak-tls` |
-| 7.2 | アクセスを必要に応じて定義し、割り当てる | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| 7.2 | アクセスを必要に応じて定義し、割り当てる | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | 7.2.4 | アカウントとそのアクセスを見直す | `unused-access` |
 | 8.3.2 | 認証要素は保存時に読み取れないようにする | `plaintext-passwords` |
 | 10.2 | 監査ログでカードデータへのアクセスを記録する | `access-not-logged` |
@@ -130,7 +130,7 @@ flowchart TB
 | 要件 | 求めていること | チェック |
 | --- | --- | --- |
 | A1.2 | バックアップと復旧 | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |
-| CC6.1 | 論理アクセスのセキュリティ | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
+| CC6.1 | 論理アクセスのセキュリティ | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
 | CC6.2 | 不要になったアクセスを削除する | `unused-access` |
 | CC6.7 | 情報の伝送 | `encryption-in-transit-not-enforced`、`weak-tls` |
 | CC7.2 | システムコンポーネントの監視 | `access-not-logged` |
@@ -141,7 +141,7 @@ flowchart TB
 | --- | --- | --- |
 | A.5.9 | 情報とその他の関連資産の目録 | `no-owner` |
 | A.5.12 | 情報の分類 | データセキュリティ自体が満たす |
-| A.5.15 | アクセス制御 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| A.5.15 | アクセス制御 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | A.5.18 | アクセス権 | `unused-access` |
 | A.5.34 | プライバシーと PII の保護 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | A.8.11 | データマスキング | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
@@ -155,7 +155,7 @@ flowchart TB
 | 要件 | 求めていること | チェック |
 | --- | --- | --- |
 | ID.AM-07 | データとメタデータの目録が維持されている | `no-owner` |
-| PR.AA-05 | アクセス権限が管理されている | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access` |
+| PR.AA-05 | アクセス権限が管理されている | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access` |
 | PR.DS-01 | 保存されたデータが保護されている | `not-encrypted-at-rest`、`no-customer-managed-key`、`secrets-stored`、`secrets-in-telemetry` |
 | PR.DS-02 | 伝送中のデータが保護されている | `encryption-in-transit-not-enforced`、`weak-tls` |
 | PR.DS-11 | データのバックアップが保持され、テストされている | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |
@@ -167,13 +167,13 @@ flowchart TB
 | --- | --- | --- |
 | Art. 6 | 必要性と目的の限定 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | Art. 33 | データの国際移転 | `residency-violation` |
-| Art. 46 | セキュリティ対策 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| Art. 46 | セキュリティ対策 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 
 ### DPDP
 
 | 要件 | 求めていること | チェック |
 | --- | --- | --- |
-| Sec. 8(5) | 合理的なセキュリティ保護措置 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| Sec. 8(5) | 合理的なセキュリティ保護措置 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`readable-without-credentials`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | Sec. 8(7) | 目的を果たしたときの消去 | `production-data-in-non-production`、`stale-sensitive-data`, `new-personal-data-column`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | Sec. 16 | インド国外への移転 | `residency-violation` |
 
@@ -226,6 +226,8 @@ OneUptime AI は、データセキュリティがデータストアについて�
 それぞれの目的は「ネットワークと情報のセキュリティ (GDPR 前文 49)」です。独自の目的や保持期間を書くには、データストアの **設定** にある **記録を編集** を使います: 空のままのフィールドは OneUptime の内容を保ちます。
 
 データストアは、プロジェクトがそのデータを保持している間、記録に載ります: アドレス保管庫は、有効な IP アドレスのルールがセキュリティイベントの読むログまたはトレースをハッシュしている間、ユーザー保管庫は、ほかのパターンの有効なルールがそうしている間で、どちらもその後 31 日間です ( [機密データをスクラブする](/docs/telemetry/drop-filters-and-scrub-rules#機密データをスクラブする) を参照)。データがなくなるとデータストアはアーカイブされ、データが戻ると、あなたの目的と保持期間とともに戻ります。
+
+「セキュリティユーザー保管庫」から、またそれを通じてその人の名前を示すイベントとケースから 1 人を消去するには、消去リクエストを登録します。[個人を消去する](/docs/telemetry/security-events#個人を消去する) を参照してください。
 
 ## 影響評価
 

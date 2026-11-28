@@ -29,6 +29,14 @@ import {
   MONITOR_STEPS_SERVER_DEFAULTS_CASES_FILE,
   monitorStepsServerDefaultsCasesFile,
 } from "./MonitorStepsServerDefaultsCases";
+import {
+  MONITOR_STEPS_API_KEYS_FILE,
+  MONITOR_STEPS_IDENTITY_CASES_FILE,
+  MONITOR_STEPS_SYNC_FIELDS_GO_FILE,
+  monitorStepsApiKeysFile,
+  monitorStepsIdentityCasesFile,
+  monitorStepsSyncFieldsGoFile,
+} from "./MonitorStepsApiKeys";
 import { PHONE_CASES_FILE, phoneCasesFile } from "./PhoneCases";
 import {
   HANDWRITTEN_RESOURCES,
@@ -677,6 +685,35 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       "internal/provider/testdata",
       MONITOR_STEPS_SERVER_DEFAULTS_CASES_FILE,
       monitorStepsServerDefaultsCasesFile(),
+    );
+    /*
+     * What Terraform cannot write of a monitor's steps (#10984): an apply
+     * that changes the steps keeps it as OneUptime holds it, on the item the
+     * server matches it to (Core/MonitorStepsApiKeys.ts writes how it
+     * matches, from MonitorStepsIdentityUtil), and every key OneUptime's API
+     * schema holds either has an attribute or a decision; the Go test fails
+     * on one that has neither. do_not_sync_fields' values are generated from
+     * MonitorTemplateSyncFieldUtil.
+     */
+    await this.copyStaticFile("monitorstepsunmanaged.go", "internal/provider");
+    await this.copyStaticFile(
+      "monitorstepsunmanaged_test.go",
+      "internal/provider",
+    );
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      MONITOR_STEPS_SYNC_FIELDS_GO_FILE,
+      monitorStepsSyncFieldsGoFile(),
+    );
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider/testdata",
+      MONITOR_STEPS_API_KEYS_FILE,
+      monitorStepsApiKeysFile(),
+    );
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider/testdata",
+      MONITOR_STEPS_IDENTITY_CASES_FILE,
+      monitorStepsIdentityCasesFile(),
     );
     await this.copyStaticFile(
       "provider_schema_smoke_test.go",
@@ -2641,6 +2678,9 @@ ${this.generateResponseMapping(resource, "readResponse", true)}
 
     return `
 func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+    // A name another record has is refused with what to import (see client.go's ForResource).
+    ctx = ForResource(ctx, "${this.providerName}_${resource.name}")
+
     var data ${resourceTypeName}ResourceModel
 
     // Read Terraform plan data into the model
@@ -2864,6 +2904,9 @@ ${this.generateResponseMapping(resource, "readResponse", false)}
 
     return `
 func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+    // A name another record has is refused with what to import (see client.go's ForResource).
+    ctx = ForResource(ctx, "${this.providerName}_${resource.name}")
+
     var data ${resourceTypeName}ResourceModel
     var state ${resourceTypeName}ResourceModel
 
@@ -2886,7 +2929,7 @@ ${this.generateWrittenFromConfig(resource)}${hasRead ? this.generatePlanAndConfi
     ${resourceVarName}Request := map[string]interface{}{
         "data": map[string]interface{}{},
     }
-${this.generateConditionalUpdateRequestBodyWithDeclaration(resource, resourceVarName)}
+${this.generateConditionalUpdateRequestBodyWithDeclaration(resource, resourceVarName, finalReadPath)}
 
     // Only call the API when there are changed fields to send. An empty
     // update body is rejected by the API; state is still refreshed below so
@@ -3291,6 +3334,8 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
   private generateConditionalUpdateRequestBodyWithDeclaration(
     resource: TerraformResource,
     resourceVarName: string,
+    // The read endpoint's path expression, "" when the resource has none.
+    readPath: string = "",
   ): string {
     const updateSchema: any = resource.operationSchemas?.update || {};
     const conditionalAssignments: string[] = [];
@@ -3384,6 +3429,39 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         } else {
             ${valueAssignment}
         }
+    }`,
+        );
+        continue;
+      }
+
+      /*
+       * An update that writes a monitor's steps replaces the steps OneUptime
+       * holds: what of them this provider has no attribute for is read first
+       * and kept as it is (StaticFiles/monitorstepsunmanaged.go, #10984). A
+       * read that fails fails the update, rather than send steps that would
+       * remove it.
+       */
+      if (terraformAttr.isMonitorSteps && readPath) {
+        const value: string = `${StringUtils.toCamelCase(fieldName)}Value`;
+        const held: string = `held${fieldName}`;
+
+        conditionalAssignments.push(
+          `    ${changeCheckCondition} {
+        ${value}, ${StringUtils.toCamelCase(fieldName)}Diags := MonitorStepsToAPI(ctx, data.${fieldName}.ListValue)
+        resp.Diagnostics.Append(${StringUtils.toCamelCase(fieldName)}Diags...)
+        if resp.Diagnostics.HasError() {
+            return
+        }
+        if ${value} != nil {
+            // What OneUptime holds of the steps that this provider cannot write stays as it is (see monitorstepsunmanaged.go).
+            ${held}, heldErr := MonitorStepsHeld(ctx, r.client, ${readPath}, "${apiFieldName}")
+            if heldErr != nil {
+                resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read the steps OneUptime holds of the ${resource.name.replace(/_/g, " ")} before writing its new ones, which keeps the settings this provider cannot write: %s", heldErr))
+                return
+            }
+            ${value} = MonitorStepsKeepUnmanaged(ctx, ${value}, state.${fieldName}.ListValue, ${held})
+        }
+        requestDataMap["${apiFieldName}"] = ${value}
     }`,
         );
         continue;

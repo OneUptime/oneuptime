@@ -9,6 +9,8 @@ import DeviceMonitorLookupUtil, {
 } from "../../../Components/NetworkDevice/DeviceMonitorLookupUtil";
 import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitorsCard";
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
+import DeviceSnmpTrapRefusals from "../../../Components/NetworkDevice/DeviceSnmpTrapRefusals";
+import SnmpEngineIdValue from "../../../Components/Probe/SnmpEngineIdValue";
 import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
 import DeviceDiagnosticsCard from "../../../Components/NetworkDevice/DeviceDiagnosticsCard";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
@@ -205,6 +207,7 @@ const NetworkDeviceView: FunctionComponent<
        */}
       <DeviceStatusHero modelId={modelId} refreshKey={readAgainCount} />
       <DeviceVendorTemplateBanner modelId={modelId} />
+      <DeviceSnmpTrapRefusals modelId={modelId} />
       {/*
        * The device's open incidents and alerts (issue #5341): the ones linked
        * to it by a person, by the monitors that report on it, or by
@@ -414,6 +417,32 @@ const NetworkDeviceView: FunctionComponent<
                 return isDifferentText(
                   effectiveDetail(item, "sysDescr").value,
                   item.description,
+                );
+              },
+            },
+            /*
+             * The engine its agent answered its last SNMPv3 poll as
+             * (#11172): what its SNMPv3 traps are sent as, which tells
+             * them apart from those of devices that share its address.
+             * Hidden until an SNMPv3 poll reads one.
+             */
+            {
+              field: {
+                snmpEngineId: true,
+              },
+              title: "SNMPv3 Engine ID",
+              description:
+                "Read from its SNMPv3 polls. It tells this device's SNMPv3 traps apart from those of devices that send from the same address.",
+              fieldType: FieldType.Element,
+              showIf: (item: NetworkDevice): boolean => {
+                return Boolean(item.snmpEngineId);
+              },
+              getElement: (item: NetworkDevice): ReactElement => {
+                return (
+                  <SnmpEngineIdValue
+                    engineId={item.snmpEngineId || ""}
+                    dataTestId="network-device-details-snmpEngineId"
+                  />
                 );
               },
             },

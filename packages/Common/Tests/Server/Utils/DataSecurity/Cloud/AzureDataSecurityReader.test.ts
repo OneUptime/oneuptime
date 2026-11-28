@@ -45,6 +45,7 @@ import {
   createFakeProviderApi,
   json,
 } from "../../LlmObservability/FakeProviderApi";
+import { strictResourceGraph } from "../../CloudConnection/StrictResourceGraph";
 
 /*
  * Azure's data stores against a fake Resource Graph, Resource Manager and
@@ -508,7 +509,8 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeProviderApi {
       host: management,
       path: "/providers/Microsoft.ResourceGraph/resources",
       method: "POST",
-      respond: (): FakeResponse => {
+      // A query Resource Graph would refuse is refused, as Azure would (#11142).
+      respond: strictResourceGraph((): FakeResponse => {
         return (
           failure("resource-graph") ||
           json({
@@ -516,7 +518,7 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeProviderApi {
             count: (options.rows || []).length,
           })
         );
-      },
+      }),
     },
     {
       host: management,
@@ -684,9 +686,11 @@ describe("the listing", () => {
       "/providers/Microsoft.ResourceGraph/resources",
     );
 
+    const query: string = AZURE_DATA_SECURITY_QUERY.toString();
+
     expect(graph).toHaveLength(1);
     expect(bodyOf(graph[0]!)["subscriptions"]).toEqual([SUB_A]);
-    expect(bodyOf(graph[0]!)["query"]).toBe(AZURE_DATA_SECURITY_QUERY);
+    expect(bodyOf(graph[0]!)["query"]).toBe(query);
     expect(graph[0]!.headers?.["Authorization"]).toBe(`Bearer ${ARM_TOKEN}`);
 
     for (const type of [
@@ -696,13 +700,15 @@ describe("the listing", () => {
       "microsoft.dbforpostgresql/flexibleservers",
       "microsoft.dbformysql/flexibleservers",
     ]) {
-      expect(AZURE_DATA_SECURITY_QUERY).toContain(`'${type}'`);
+      expect(query).toContain(`'${type}'`);
     }
 
-    expect(AZURE_DATA_SECURITY_QUERY).toContain("name =~ 'master'");
+    expect(query).toContain(
+      "| where not(type =~ 'microsoft.sql/servers/databases' and name =~ 'master')",
+    );
     // Field by field: never a resource's whole properties.
-    expect(AZURE_DATA_SECURITY_QUERY).not.toContain("= properties,");
-    expect(AZURE_DATA_SECURITY_QUERY).not.toContain("project properties");
+    expect(query).not.toContain("= properties,");
+    expect(query).not.toContain("project properties");
   });
 
   test("every store, of every kind, carries when it was read; the SQL server is its databases' settings and master is no store", async () => {

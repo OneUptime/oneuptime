@@ -85,6 +85,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   [CRITERIA_AND_STATUSES]: [
     "One at a time.",
     "Closing.",
+    // Which criteria opens what on a check that stops at the first match (#11238).
+    "The criteria that acts.",
     "Several probes.",
     "A parent monitor that is down.",
     "Scheduled maintenance.",

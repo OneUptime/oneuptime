@@ -185,6 +185,19 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       deletedWith: ["AlertEpisodeInternalNote", "AlertEpisodeStateTimeline"],
       stays: ["Alert"],
     },
+    /*
+     * A template's monitors are unlinked by its delete (Monitor's foreign
+     * key sets Monitor Template to null) and keep the criteria and settings
+     * it gave them (issues #11260, #11266): said before the delete, so
+     * nobody deletes a template expecting its criteria to stop firing. The
+     * template's own page also offers to clear them first.
+     */
+    MonitorTemplate: {
+      sentence: translationKey(
+        "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.",
+      ),
+      stays: ["Monitor"],
+    },
     MonitorGroup: {
       sentence: translationKey(
         "Deleting a monitor group takes it off status pages. Its monitors stay.",
@@ -436,6 +449,12 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
         code: "public async findOrCreateByName(",
       },
     },
+    XcpNgPool: {
+      addedBackBy: {
+        service: "XcpNgPoolService",
+        code: "public async findOrCreateByIdentifier(",
+      },
+    },
     CephCluster: {
       addedBackBy: {
         service: "CephClusterService",
@@ -447,6 +466,17 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
         service: "StorageArrayService",
         code: "public async findOrCreateByName(",
       },
+    },
+    /*
+     * A Unisphere's arrays are rows of their own, made from what it sent
+     * (#11004): they stay, and go stale once nothing reads them.
+     */
+    StorageArrayConnection: {
+      sentence: translationKey(
+        "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.",
+      ),
+      deletedWith: ["StorageArrayConnectionTest"],
+      stays: ["StorageArray"],
     },
     ServerlessFunction: {
       addedBackBy: {

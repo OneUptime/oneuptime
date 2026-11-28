@@ -412,8 +412,21 @@ describe("Upgrading from 12 → 13: the cache rename, held to the code", () => {
     expect(`${image["repository"]}:${image["tag"]}`).toBe(
       "valkey/valkey:9.1-alpine",
     );
-    expect(String(valkey["commonConfiguration"])).toContain("appendonly no");
-    expect(String(valkey["commonConfiguration"])).toContain('save ""');
+
+    /*
+     * The chart writes these lines itself, from valkey.master.persistence
+     * (#11421): with persistence off, the default, no append-only file, and
+     * no RDB snapshots either way.
+     */
+    const [withoutPersistence, afterPersistence] = (
+      source(`${CHART}/templates/valkey-configmap.yaml`)
+        .split("{{- if (($valkey.master).persistence).enabled }}")[1]
+        ?.split("{{- else }}")[1] || ""
+    ).split("{{- end }}");
+
+    expect(objectAt(valkey, "master", "persistence")["enabled"]).toBe(false);
+    expect(withoutPersistence).toMatch(/^\s*appendonly no$/m);
+    expect(afterPersistence).toMatch(/^\s*save ""$/m);
   });
 
   it("names the ten settings the update merge knows as renames, and keeps your old values where they are", () => {

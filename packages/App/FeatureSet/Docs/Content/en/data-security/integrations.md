@@ -8,7 +8,7 @@ Data Security does not run a pager or a security queue of its own. It hands what
 - [Alerts and on-call](#alerts-and-on-call): Page whoever is on call when a Critical issue opens.
 - [Incidents](#incidents): Declare an incident for a breach your incident process should run.
 - [Owners](#owners): Who owns each store, set by hand or by rules, and the email they get.
-- [OneUptime AI](#oneuptime-ai): Analyze an issue, open a pull request that fixes it, or ask Ask AI about your data.
+- [OneUptime AI](#oneuptime-ai): Analyze an issue, open a pull request that fixes it, or ask Ask AI about your data and have it act, with your approval.
 - [Close an exposure](#close-an-exposure): Block public access or stop sharing, from an issue or a playbook, and turn on a missing protection from an issue.
 :::
 
@@ -52,12 +52,12 @@ Any security case, whatever opened it, shows the data at risk on its **Impact**:
 A Critical exposure of a store with **Restricted** or **Confidential** data - open to anyone on the internet, shared with accounts outside yours, or a snapshot others can restore - has its case assessed on its own, as the case opens. Any other case about a data store is assessed when a person presses **Assess This Exposure** on its **Overview**. Plain code works the assessment out from what OneUptime recorded, and works it out again each time it is read:
 
 - **How long it was open**: from the change in your cloud's log that exposed the store, when one was logged in the 30 days before it was found, else at least since Data Security found it; until Data Security's own response closed it, a change closed it, or a check found it closed.
-- **Who could read it**: whether the store logged reads. Where it did not, the assessment says "Reads were not logged. Treat the data as read." It counts the accounts outside your company that could read the store, and how many of them used their access while it was open, never naming them.
-- **Whose data it was**: what the store holds, about how many records, who they are about, and where the people live, as the data shows and as a person says.
+- **Who could read it**: whether the store logged reads. Where it did not, the assessment says "Reads were not logged. Treat the data as read." It counts the accounts outside your company that could read the store, and how many of them used their access while it was open, never naming them. Where the store is an S3 bucket that logs its server access, **Read the Access Logs** reads those logs for the window, and Data Security reads them on its own before OneUptime AI writes the assessment up: how many reads came from anyone on the internet, from accounts outside your company and from requesters it cannot place, how many objects they read and how much was sent. A person who may read who can reach the store sees which outside accounts read it; the case, OneUptime AI and an export keep only the counts. Logs read only in part never show that nobody read the data.
+- **Whose data it was**: what the store holds, about how many records, who they are about, and where the people live, as the data shows and as a person says. A person names a region, or each US state, the District of Columbia and Puerto Rico.
 - **The secrets to rotate**: each secret found in the store while it was open, by its type and where it was found, never its value.
 - **The breach laws that may apply**: each row of OneUptime's table of breach laws, with what it asks, of whom, its deadline counted from when Data Security found the exposure, and what a person still checks before it applies.
 
-The table covers GDPR Articles 33 and 34, UK GDPR Articles 33 and 34, HIPAA's Breach Notification Rule, PCI DSS requirement 12.10.1, Brazil's LGPD, India's DPDP Rules and CERT-In directions, and the breach laws of California, Colorado, Florida, New York, Texas and Washington. Each row links to the law's own text, its source, and says the day it was last checked against it. What the table does not cover - another country, another US state, where your organization is established, your contracts - the assessment says in plain words.
+The table covers GDPR Articles 33 and 34, UK GDPR Articles 33 and 34, HIPAA's Breach Notification Rule, PCI DSS requirement 12.10.1 with the card brands' own published rules beside it - Visa's, Mastercard's and American Express's - Brazil's LGPD, India's DPDP Rules and CERT-In directions, and the breach laws of every US state but West Virginia, and of the District of Columbia. For each state there is its notice to the people and, where its statute asks a business for them, its notices to the attorney general or another state office and to the consumer reporting agencies, each read from the statute's own text. Each row links to the law's own text, its source, and says the day it was last checked against it. While nobody has said which states the people live in, the states' laws are drawn together on the card, each state's notices under its name, and OneUptime AI is told only how many may apply. What the table does not cover - another country; West Virginia and Puerto Rico, whose statutes could not be read from an official source; Guam and the US Virgin Islands; the card brands that publish no deadline; where your organization is established; your contracts - the assessment says in plain words.
 
 OneUptime AI writes the assessment up as your Data Security AI rules allow, or when a person asks: what it means, a notice to the regulator, a notice to the people affected and an internal summary (see [OneUptime AI in Data Security](/docs/data-security/ai)). Each draft is held to the assessment's facts: a number or a law none of them holds drops it. Nothing is sent anywhere: a notice is text a person edits and copies, and the assessment and every draft say they are not legal advice.
 
@@ -112,9 +112,9 @@ See [Workflow Triggers](/docs/workflows/triggers) for the fields each trigger pa
 
 ## Pull requests
 
-A leak is cheapest to fix before it merges. In a repository connected under **Code** with production reviews on, each pull request's review has a **Sensitive data** section, read from its diff: code that writes personal data or a secret to telemetry, infrastructure code that makes a store public or turns off its encryption, backups or logging, and migrations that add columns for personal data, passwords or card data. Each point names the Data Security check it would fail once the change ships, and your own data types are read by their name hints, as the scans read them. See [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).
+A leak is cheapest to fix before it merges. In a repository connected under **Code** with production reviews on, each pull request's review has a **Sensitive data** section, read from its diff: code that writes personal data or a secret to telemetry, in a log, a span, a metric, an exception's message, an error tracker's report or a recorded session's user, infrastructure code that makes a store public or turns off its encryption, backups or logging, and migrations that add columns for personal data, passwords or card data. Each point names the Data Security check it would fail once the change ships, and your own data types are read by their name hints, as the scans read them. See [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).
 
-What Data Security knows makes those points sharper, in a private repository's comment and, in Code, for whoever may read Data Security's findings: where the service's telemetry held the same kind of data in the last 7 days, the scrub rule that masks it at ingest, and the store a resource is, with its sensitivity. A store marked **Public By Design** makes no point for being public. A public repository's comment says only what the diff shows.
+What Data Security knows makes those points sharper, in a private repository's comment and, in Code, for whoever may read Data Security's findings: where the service's telemetry held the same kind of data in the last 7 days - or, for a web or mobile app's code, its RUM application's session replays - the scrub rule that masks it at ingest, and the store a resource is, with its sensitivity. For a migration, in a private repository only, it names the store the table is in, what that store holds, whether the store is reachable from outside or not encrypted at rest, and the table's columns already found holding the same kind of data. A store marked **Public By Design** makes no point for being public. A public repository's comment says only what the diff shows.
 
 **Leaks Caught Before Merge**, on **Project Settings → AI → AI Results**, counts the leaks reviews caught in pull requests, fixed there or not yet, beside the issues the scans opened on the same checks after the code shipped.
 
@@ -129,7 +129,7 @@ OneUptime AI also works on each new issue on its own, as your AI rules allow: se
 
 ### Ask AI
 
-**Ask AI** reads Data Security too. On any Data Security page, ask which stores hold card numbers, what to fix first, or which stores a role could reach if it leaked; on a store's or an issue's page it reads that record first. It answers with three read tools, run with your own permissions:
+**Ask AI** reads Data Security, and acts on it with your approval. On any Data Security page, ask which stores hold card numbers, what to fix first, or which stores a role could reach if it leaked; on a store's or an issue's page it reads that record first. It reads with these tools, run with your own permissions:
 
 | Tool | What it reads |
 | --- | --- |
@@ -137,7 +137,22 @@ OneUptime AI also works on each new issue on its own, as your AI rules allow: se
 | `query_data_security_issues` | The issues, riskiest first, by status, severity, store or check - or one issue with its evidence and the fix for its cloud |
 | `query_data_store_access` | Who can reach a store, or every store one principal can reach |
 
-They read data types, locations and counts, never a finding's samples, masked or not. Ask AI changes nothing in Data Security.
+They read data types, locations and counts, never a finding's samples, masked or not. Two more read what OneUptime AI works on: `query_data_security_proposals` lists what it proposes, and the data types it found that scans do not look for yet, each with how it was proven and the fields it is in, never a value; `draft_data_security_rule` drafts a rule from your sentence and says which stores it matches today. It saves nothing.
+
+Ask AI does what Data Security's buttons do, each by making the very change its button makes, as you and with your permissions:
+
+| Action | What it does | Asks you first |
+| --- | --- | --- |
+| `scrub_data_security_finding` | **Scrub It** on a finding in telemetry: its proven, narrow scrub rule | In **Ask to act**, and in every mode when something reads what it hides |
+| `judge_data_security_finding` | **Confirm**, or **Not Sensitive** with your reason, and the same for the findings like it | **Not Sensitive** in every mode; **Confirm** in every mode when a Critical issue pages someone in your project |
+| `change_data_security_issue` | **Accept Risk** with your reason and an end date, **Not an Issue** with your reason, **Reopen** or **Assign** | **Accept Risk** and **Not an Issue** in every mode |
+| `set_data_store_owners` | Adds or removes a store's owners | In every mode |
+| `save_data_security_rule` | Saves a residency, owner or label rule drafted from your sentence, and applies an owner or a label rule to the stores it matches today | In every mode |
+| `respond_on_data_store` | A response action through the store's cloud connection, such as **Block Public Access** | In every mode |
+| `fix_data_security_issue_with_ai` | **Fix with AI**: a pull request for someone to review and merge. A fix already on its way is not started twice | In **Ask to act** |
+| `decide_data_security_proposal` | **Approve** or **Dismiss** on what OneUptime AI proposes. A data type it found is added on its form in **Settings → Data Types**, so here it can only be turned down | In every mode |
+
+Each action first shows a card that says, in plain words, what changes, what stops working and what it costs. In **Ask to act** you allow or skip every action. In **Auto-run**, the actions above that ask in every mode still wait for you: they change who can reach your data, stop a finding or an issue counting, change who is told about a store, or would let OneUptime AI approve its own proposal. Store names, finding locations and evidence come from your clouds and from anyone who writes to them, so Ask AI never acts because such text asks it to, and every action is checked again, with your permissions, when it runs.
 
 ## Close an exposure
 
@@ -158,7 +173,7 @@ Everything Data Security keeps is a record of the OneUptime API, read with the s
 | Records | API path |
 | --- | --- |
 | Data stores, their timelines, their findings, who can reach them and each identity that does | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Issues, their timelines and data flows | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Issues, their timelines, their linked pull requests and data flows | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
 | Custom data types, check settings, compliance settings and residency rules | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | The project's settings | `/data-security-setting` |
@@ -196,7 +211,7 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 
 The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, compliance settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
 
-The [MCP server](/docs/ai/mcp-server) has create, get, list, update, delete and count tools for these records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule and Data Security Setting. An AI assistant can then ask which stores hold card numbers, or what is open on a bucket, with your permissions.
+The [MCP server](/docs/ai/mcp-server) has create, get, list, update, delete and count tools for these records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule and Data Security Setting. An AI assistant can then ask which stores hold card numbers, or what is open on a bucket, with your permissions. It also has [Ask AI's actions](#ask-ai), one call each, each making the very change its button makes, as you. The MCP server cannot show anyone a card, so an action that Ask AI asks about in every mode is refused there: the answer says why, and names the page in OneUptime where you make the change. So is a write of one of these records that makes the same change, such as an issue's `status` set to `Accepted` through `update_data_security_issue`, a data type turned off, or a place left out of a store's scans; every other field changes as before.
 
 ## Next steps
 

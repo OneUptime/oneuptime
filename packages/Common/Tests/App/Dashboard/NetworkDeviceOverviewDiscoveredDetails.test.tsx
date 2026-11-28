@@ -102,6 +102,18 @@ jest.mock(
     };
   },
 );
+// A device's refused SNMPv3 traps read the device and its probe on their own (#11005).
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceSnmpTrapRefusals",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceVendorTemplateBanner",
   () => {
@@ -416,5 +428,52 @@ describe("the device Overview shows what discovery read, and which (issue #5185)
     expect(select["discoveredDetails"]).toBe(true);
     expect(select["lastSnmpSeenAt"]).toBe(true);
     expect(select["isMacAddressLearned"]).toBe(true);
+  });
+});
+
+/*
+ * The engine a device's agent answered its SNMPv3 polls as (#11172): what
+ * its SNMPv3 traps are sent as, and so what tells them apart from those of
+ * devices that send from the same address - a chassis and its blades, a
+ * firewall cluster's members behind one NAT address.
+ */
+describe("the device Overview shows the SNMP engine ID its SNMPv3 polls read (issue #11172)", () => {
+  const ENGINE_ID: string = "80001F8880C71100000A1B2C3D";
+
+  test("a device polled over SNMPv3 shows its engine ID, to copy, and what it is for", async () => {
+    await renderOverview(device({ snmpEngineId: ENGINE_ID }));
+
+    expect(screen.getByText("SNMPv3 Engine ID")).toBeInTheDocument();
+    expect(textOf("network-device-details-snmpEngineId")).toBe(ENGINE_ID);
+    expect(
+      screen.getByText(
+        "Read from its SNMPv3 polls. It tells this device's SNMPv3 traps apart from those of devices that send from the same address.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId("network-device-details-snmpEngineId")
+        .closest("span")
+        ?.querySelector("button"),
+    ).toBeTruthy();
+  });
+
+  test("a device no SNMPv3 poll read shows no row", async () => {
+    await renderOverview(device({}));
+
+    expect(screen.queryByText("SNMPv3 Engine ID")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("network-device-details-snmpEngineId"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the card asks for it", async () => {
+    await renderOverview(device({}));
+
+    const select: Record<string, unknown> = (
+      getItemMock.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["snmpEngineId"]).toBe(true);
   });
 });

@@ -19,6 +19,9 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
+import MonitorRecommendationCoverageApi from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The Recommendations tab and its side-menu badge, rendered for real, for a
@@ -172,11 +175,18 @@ function probeCalls(): Array<{ modelType: unknown }> {
   );
 }
 
+// What was read of the monitors: lists, or the server asked which cover what (#11074).
 function monitorListCalls(): number {
-  return getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
-    return (call[0] as { modelType: unknown }).modelType === Monitor;
-  }).length;
+  return (
+    getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
+      return (call[0] as { modelType: unknown }).modelType === Monitor;
+    }).length + coverageSpy.mock.calls.length
+  );
 }
+
+let coverageSpy: SpyInstance<
+  typeof MonitorRecommendationCoverageApi.findCoveringMonitors
+>;
 
 async function flushEffects(): Promise<void> {
   for (let i: number = 0; i < 10; i++) {
@@ -198,6 +208,12 @@ beforeEach(() => {
       projectList((args as { modelType: unknown }).modelType),
     );
   });
+
+  // No monitor covers a recommendation yet: the server's to say (#11074).
+  coverageSpy = serveCoverageFrom(() => {
+    return [];
+  });
+  coverageSpy.mockClear();
 
   /*
    * The project's owner, whose permission snapshot has landed: the tab's

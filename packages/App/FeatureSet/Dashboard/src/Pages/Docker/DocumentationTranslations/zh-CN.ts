@@ -32,6 +32,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `DOCKER_HOST_NAME` | 否 | 此主机的易记名称。默认为 `docker-host` |",
   "| `DOCKER_API_VERSION` | No | Docker Engine API version the agent speaks. Empty by default: the agent negotiates it with the daemon, so any Docker Engine from 20.10 on works. Set it only to pin a version (see Troubleshooting) |":
     "| `DOCKER_API_VERSION` | 否 | 代理使用的 Docker Engine API 版本。默认为空：代理会与守护进程协商版本，因此 20.10 及以后的任何 Docker Engine 都能使用。仅在需要固定版本时设置（参见 故障排除） |",
+  "| `ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5` | No | Collector operators of your own, one each as JSON, for a log format the agent does not read |":
+    "| `ONEUPTIME_LOG_OPERATOR_1` 到 `ONEUPTIME_LOG_OPERATOR_5` | 否 | 你自己的收集器操作符，每个都以 JSON 形式提供，用于代理读取不了的日志格式 |",
   "Pass each one to `docker run` as `-e NAME=value`. To change one later, remove the agent with `docker rm -f oneuptime-docker-agent` and run the command again with the new value.":
     "将每个变量以 `-e NAME=value` 的形式传给 `docker run`。之后要修改某个变量，请用 `docker rm -f oneuptime-docker-agent` 删除代理，再用新值重新运行命令。",
   "The agent tails `/var/lib/docker/containers/*/*-json.log`, so it only sees logs from containers that use Docker's **`json-file`** log driver. That is Docker's default, but some hosts switch to `local` (binary files the agent cannot parse) or to a remote driver (`journald`, `syslog`, `fluentd`, `gelf`, …), which leave no files to read.":

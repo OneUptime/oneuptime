@@ -1,3 +1,4 @@
+import CloudConnection from "../../../Models/DatabaseModels/CloudConnection";
 import DataSecurityCustomDataType from "../../../Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityIssue from "../../../Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed, {
@@ -20,8 +21,15 @@ import {
   CloudRegionLocation,
   getCloudRegionLocation,
 } from "../../../Types/DataSecurity/CloudRegionCountry";
+import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
+import {
+  ExposureLogRead,
+  ExposureLogUnreadReason,
+  getUnreadLogs,
+} from "../../../Types/DataSecurity/AccessLogReads";
 import { customDataTypeId } from "../../../Types/DataSecurity/CustomDataTypeId";
 import DataCategory from "../../../Types/DataSecurity/DataCategory";
+import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import {
   DataSecurityResponseAction,
   EXPOSURE_RESPONSE_ACTIONS,
@@ -83,6 +91,7 @@ import {
 } from "../../../Utils/Telemetry/ChangeEventFields";
 import { Results } from "../../Services/AnalyticsDatabaseService";
 import ChangeEventService from "../../Services/ChangeEventService";
+import CloudConnectionService from "../../Services/CloudConnectionService";
 import DataSecurityCustomDataTypeService from "../../Services/DataSecurityCustomDataTypeService";
 import DataSecurityIssueFeedService from "../../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
@@ -105,6 +114,16 @@ import {
   readPostureChange,
 } from "./DataSecurityChangeSignals";
 import { readResponseActionOfStoreFeed } from "./DataSecurityResponseFeed";
+import DataSecurityRunner, {
+  getConnectionDataSecurityLevel,
+} from "./DataSecurityRunner";
+import {
+  createAwsS3LogReader,
+  readS3AccessLogsForWindow,
+  S3LogReader,
+  S3LogReadLimitsInTime,
+} from "./Cloud/Aws/AwsS3AccessLogs";
+import { CloudConnectionSettings } from "../CloudConnection/CloudConnectorTypes";
 import { ResponseJSON } from "@clickhouse/client";
 
 /*
@@ -225,6 +244,14 @@ export interface ReadExposure {
   view: ExposureAssessmentView;
 }
 
+// A store's access logs, opened: what reads them, and the company's own accounts.
+export interface OpenedStoreLogs {
+  reader: S3LogReader;
+  ownAccountIds: ReadonlySet<string>;
+  sourceAccountId: string;
+  sourceRegion: string;
+}
+
 function effectiveSensitivity(store: DataStore): DataSensitivity {
   const level: unknown = store.sensitivityOverride || store.sensitivity;
 
@@ -265,12 +292,29 @@ export default class ExposureAssessmentReader {
   }
 
   /*
+   * Whether a reader of the assessment may see who read the store by name
+   * (#10951): one who may read who can reach it (DataStoreAccess), as the
+   * store's Who Can Reach It page decides. Everyone else sees the counts.
+   */
+  public static mayReadAccess(props: DatabaseCommonInteractionProps): boolean {
+    return (
+      props.isRoot === true ||
+      CallerPermission.holdsModelPermission(props, {
+        model: new DataStoreAccess(),
+        operation: "read",
+      })
+    );
+  }
+
+  /*
    * ...and change it: start it, draft it, edit a draft, say where the
-   * people live. Each is a change to the case, so it is decided for the
-   * case's own row, as an update of it is
-   * (SecurityCaseService.findOneUpdatableById): the table's update
-   * permissions and blocks, then whatever of the case limits who may
-   * change it.
+   * people live. One of its readers who may update THIS case, by its own
+   * row, as an update of it through the API would decide
+   * (SecurityCaseService.findOneUpdatableById): the assessment is a column
+   * of the case, written as OneUptime, and holding a case-editing permission
+   * somewhere in the project does not decide a change of one case - a
+   * credential issued for reading only changes none, whatever its roles
+   * (TableHalfWriteGuard).
    */
   public static async mayChange(data: {
     securityCaseId: ObjectID;
@@ -293,11 +337,10 @@ export default class ExposureAssessmentReader {
         }),
       );
     } catch (error) {
-      // No update of cases at all, below their plan, or not this case.
+      // A caller who may not update security cases at all, or not on their plan.
       if (
         error instanceof NotAuthorizedException ||
-        error instanceof PaymentRequiredException ||
-        error instanceof NotFoundException
+        error instanceof PaymentRequiredException
       ) {
         return false;
       }
@@ -433,6 +476,8 @@ export default class ExposureAssessmentReader {
     securityCaseId: ObjectID;
     dataStoreId: ObjectID;
     placesNamed?: ReadonlyArray<BreachPlace> | undefined;
+    // What OneUptime last read of the store's access logs, as the case keeps it (#10951).
+    logRead?: ExposureLogRead | null | undefined;
     now?: Date | undefined;
   }): Promise<ReadExposure> {
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
@@ -515,6 +560,7 @@ export default class ExposureAssessmentReader {
       grants,
       window,
       now,
+      logRead: data.logRead,
     });
     const location: CloudRegionLocation | null = getCloudRegionLocation(
       store.region,
@@ -822,6 +868,164 @@ export default class ExposureAssessmentReader {
         `DataSecurity: could not read the change log around store ${data.store.id?.toString()}'s exposure; its window says "at least since": ${error}`,
       );
       return [];
+    }
+  }
+
+  /*
+   * A store's access logs, opened to read (#10951): an S3 bucket whose reads
+   * are logged, through its connection when that may read objects (its data
+   * security access is "content") - else why they cannot be read. With
+   * them, the company's own AWS accounts: every account the project
+   * connected, and the store's.
+   */
+  public static async openStoreLogs(data: {
+    projectId: ObjectID;
+    store: DataStore;
+  }): Promise<OpenedStoreLogs | ExposureLogUnreadReason> {
+    const store: DataStore = data.store;
+
+    if (store.kind !== DataStoreKind.AwsS3Bucket || !store.name) {
+      return ExposureLogUnreadReason.NotSupported;
+    }
+
+    if (store.posture?.accessLogging !== true) {
+      return ExposureLogUnreadReason.LoggingOff;
+    }
+
+    if (!store.cloudConnectionId) {
+      return ExposureLogUnreadReason.NoContentAccess;
+    }
+
+    const connection: CloudConnection | null =
+      await CloudConnectionService.findOneBy({
+        query: { _id: store.cloudConnectionId, projectId: data.projectId },
+        select: {
+          _id: true,
+          projectId: true,
+          provider: true,
+          config: true,
+          secrets: true,
+        },
+        props: ROOT,
+      });
+
+    if (
+      !connection?.id ||
+      getConnectionDataSecurityLevel(connection.config) !== "content"
+    ) {
+      return ExposureLogUnreadReason.NoContentAccess;
+    }
+
+    const settings: CloudConnectionSettings =
+      await CloudConnectionService.getConnectorSettings(connection);
+    const accountNumber: string = store.cloudAccountNumber || "";
+    const region: string = store.region || "us-east-1";
+
+    return {
+      reader: createAwsS3LogReader(settings, {
+        connectionId: connection.id,
+        sourceBucket: store.name,
+        region,
+        accountNumber,
+      }),
+      ownAccountIds: new Set(
+        [
+          ...(await DataSecurityRunner.connectedAccounts(
+            data.projectId,
+            CloudProvider.AWS,
+          )),
+          accountNumber,
+        ].filter(Boolean),
+      ),
+      sourceAccountId: accountNumber,
+      sourceRegion: region,
+    };
+  }
+
+  /*
+   * What the store's access logs say of the exposure's window (#10951): read
+   * as far as the limits let it, never throwing - a store whose logs cannot
+   * be read says why.
+   */
+  @CaptureSpan()
+  public static async readAccessLogs(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+    window: ExposureWindow | null;
+    limits: S3LogReadLimitsInTime;
+    now?: Date | undefined;
+  }): Promise<ExposureLogRead> {
+    const now: Date = data.now || OneUptimeDate.getCurrentDate();
+    const clock: () => Date = (): Date => {
+      // A fixed moment for a test's sake; the clock otherwise.
+      return data.now ? data.now : OneUptimeDate.getCurrentDate();
+    };
+
+    if (!data.window) {
+      return getUnreadLogs({ reason: ExposureLogUnreadReason.NoWindow, now });
+    }
+
+    const windowStart: string = data.window.start;
+    const windowEnd: string = data.window.end || now.toISOString();
+
+    try {
+      const store: DataStore | null = await DataStoreService.findOneBy({
+        query: { _id: data.dataStoreId, projectId: data.projectId },
+        select: {
+          _id: true,
+          kind: true,
+          name: true,
+          region: true,
+          posture: true,
+          cloudConnectionId: true,
+          cloudAccountNumber: true,
+        },
+        props: ROOT,
+      });
+
+      if (!store) {
+        return getUnreadLogs({
+          reason: ExposureLogUnreadReason.NotSupported,
+          now,
+          windowStart,
+          windowEnd,
+        });
+      }
+
+      const opened: OpenedStoreLogs | ExposureLogUnreadReason =
+        await ExposureAssessmentReader.openStoreLogs({
+          projectId: data.projectId,
+          store,
+        });
+
+      if (typeof opened === "string") {
+        return getUnreadLogs({ reason: opened, now, windowStart, windowEnd });
+      }
+
+      const { timeInMs, ...limits } = data.limits;
+
+      return await readS3AccessLogsForWindow({
+        reader: opened.reader,
+        sourceBucket: store.name || "",
+        sourceAccountId: opened.sourceAccountId,
+        sourceRegion: opened.sourceRegion,
+        windowStart: new Date(windowStart),
+        windowEnd: new Date(windowEnd),
+        ownAccountIds: opened.ownAccountIds,
+        limits: { ...limits, deadlineAt: clock().getTime() + timeInMs },
+        now: clock,
+      });
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not read the access logs of store ${data.dataStoreId.toString()} for its exposure: ${error}`,
+      );
+
+      return getUnreadLogs({
+        reason: ExposureLogUnreadReason.LogsUnreadable,
+        now,
+        windowStart,
+        windowEnd,
+      });
     }
   }
 

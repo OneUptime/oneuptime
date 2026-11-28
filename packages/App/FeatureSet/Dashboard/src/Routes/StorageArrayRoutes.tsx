@@ -15,6 +15,8 @@ import StorageArraysSettingsOwnerRules from "../Pages/StorageArray/Settings/Owne
 import StorageArraysSettingsLabelRules from "../Pages/StorageArray/Settings/LabelRules";
 import StorageArrayRulesAuditLogs from "../Pages/StorageArray/Settings/RulesAuditLogs";
 import StorageArraysArchived from "../Pages/StorageArray/Archived";
+import StorageArrayConnections from "../Pages/StorageArray/Connections";
+import StorageArrayConnectionView from "../Pages/StorageArray/ConnectionView";
 import StorageArrayOverview from "../Pages/StorageArray/View/Index";
 import StorageArrayVolumes from "../Pages/StorageArray/View/Volumes";
 import StorageArrayVolumeDetail from "../Pages/StorageArray/View/VolumeDetail";
@@ -23,6 +25,8 @@ import StorageArrayHostDetail from "../Pages/StorageArray/View/HostDetail";
 import StorageArrayReplication from "../Pages/StorageArray/View/Replication";
 import StorageArrayHardware from "../Pages/StorageArray/View/Hardware";
 import StorageArrayDirectories from "../Pages/StorageArray/View/Directories";
+import StorageArrayInventory from "../Pages/StorageArray/View/Inventory";
+import StorageArrayInventoryPart from "../Pages/StorageArray/View/InventoryPart";
 import StorageArrayFileSystems from "../Pages/StorageArray/View/FileSystems";
 import StorageArrayFileSystemDetail from "../Pages/StorageArray/View/FileSystemDetail";
 import StorageArrayBuckets from "../Pages/StorageArray/View/Buckets";
@@ -167,6 +171,28 @@ const StorageArrayRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTIONS] || ""}
+          element={
+            <StorageArrayConnections
+              {...props}
+              pageRoute={RouteMap[PageMap.STORAGE_ARRAYS_CONNECTIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={
+            StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTION_VIEW] || ""
+          }
+          element={
+            <StorageArrayConnectionView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STORAGE_ARRAYS_CONNECTION_VIEW] as Route
+              }
+            />
+          }
+        />
 
         {getDeveloperDocsRoutes({
           modelType: StorageArray,
@@ -292,6 +318,38 @@ const StorageArrayRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES] as Route
+              }
+            />
+          }
+        />
+
+        {/* A kind a platform has of its own (an aggregate, an SVM) */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STORAGE_ARRAY_VIEW_INVENTORY,
+            2,
+          )}
+          element={
+            <StorageArrayInventory
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STORAGE_ARRAY_VIEW_INVENTORY] as Route
+              }
+            />
+          }
+        />
+
+        {/* One part of such a kind: a NetApp aggregate, SVM or LUN */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART,
+            3,
+          )}
+          element={
+            <StorageArrayInventoryPart
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART] as Route
               }
             />
           }

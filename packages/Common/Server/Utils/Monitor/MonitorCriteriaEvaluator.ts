@@ -44,6 +44,7 @@ import CheckWindowCounts, {
 import PreviousCheckComparison, {
   PreviousCheckReads,
 } from "./Criteria/PreviousCheckComparison";
+import DnsAnswerFingerprint from "./DnsAnswerFingerprint";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
 import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import CriteriaRecovery, {
@@ -110,6 +111,7 @@ import { MonitorStepTraceMonitorUtil } from "../../../Types/Monitor/MonitorStepT
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
+  MonitorEvaluationCriteriaSkipCause,
   MonitorEvaluationEvent,
   MonitorEvaluationFilterResult,
   MonitorEvaluationSeries,
@@ -172,6 +174,8 @@ import MetricMonitorResponse, {
   CephResourceBreakdown,
   StorageArrayAffectedResource,
   StorageArrayResourceBreakdown,
+  XcpNgAffectedResource,
+  XcpNgResourceBreakdown,
   DockerSwarmAffectedResource,
   DockerSwarmResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
@@ -197,6 +201,11 @@ import MonitorStepStorageArrayMonitor, {
   StorageArrayResourceFilters,
 } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
+import MonitorStepXcpNgMonitor, {
+  XcpNgResourceFilters,
+} from "../../../Types/Monitor/MonitorStepXcpNgMonitor";
+import { getXcpNgMetricByMetricName } from "../../../Types/Monitor/XcpNgMetricCatalog";
+import { XcpNgScope } from "../../../Types/XcpNg/XcpNgTelemetry";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
@@ -204,10 +213,11 @@ import { getOpenStackMetricByMetricName } from "../../../Types/Monitor/OpenStack
 import { getVMwareMetricByMetricName } from "../../../Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCatalog";
 import { getStorageArrayMetric } from "../../../Types/Monitor/StorageArrayMetricCatalog";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "../../../Types/StorageArray/StorageArrayResourceKind";
-import { StorageSystemUtil } from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
 import PlatformMetricUnitUtil from "../../../Utils/Monitor/PlatformMetricUnitUtil";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
@@ -219,6 +229,7 @@ import PlatformResourceIdentity, {
   OpenStackResourceIdentity,
   StorageArrayResourceIdentity,
   VMwareResourceIdentity,
+  XcpNgResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
 import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
@@ -229,6 +240,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownValue,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import TelemetryJudgedWindow from "../../../Utils/Monitor/TelemetryJudgedWindow";
 /**
  * A cross-signal deep link into a telemetry explorer, plus the scope
  * fields that could not be carried into that explorer's URL grammar
@@ -290,16 +302,59 @@ interface MatchHistoryContext {
  * check's matches.
  */
 interface GroupedRecoveryOutcome {
-  // The matches that stand, in criteria order: the first sets the status.
+  // The matches that stand, in criteria order: each acts on its series.
   matchedCriteria: Array<MatchedCriteriaResult>;
   /*
+   * The first of them that changes the status, which sets it (#11238).
+   * Undefined when none does: whatever else matched, the status then goes
+   * where a check that matched nothing takes it.
+   */
+  statusMatch: MatchedCriteriaResult | undefined;
+  /*
    * The series behind the status that met no recovery criteria yet: with no
-   * match left, they keep the monitor's status.
+   * match left that changes the status, they keep the monitor's status.
    */
   seriesKeepingStatus: Array<SeriesKeepingStatus>;
   // What is behind the status after the check; undefined: nothing to write.
   seriesBehindStatus: Array<string> | undefined;
 }
+
+/*
+ * The criteria that sets a monitor's status on a check, with the root cause
+ * of its own match (#11238): the first match among the criteria that change
+ * the status.
+ */
+interface StatusMatch {
+  criteriaId: string;
+  rootCause: string;
+}
+
+/*
+ * Why an ungrouped monitor's criteria was not judged once an earlier one
+ * matched: the status was decided by the first match, or by a criteria
+ * judged after a first match that changes no status, or the status is not
+ * decided yet and this criteria changes none, so it has nothing to decide.
+ */
+type NotEvaluatedAfterMatchCause = Extract<
+  MonitorEvaluationCriteriaSkipCause,
+  "earlier-criterion-matched" | "status-already-set" | "changes-no-status"
+>;
+
+const NOT_EVALUATED_AFTER_MATCH_REASONS: Readonly<
+  Record<NotEvaluatedAfterMatchCause, string>
+> = {
+  "earlier-criterion-matched":
+    "An earlier criterion already matched. Criteria are evaluated in order " +
+    "for this monitor, so evaluation stopped at the first match.",
+  "status-already-set":
+    "An earlier criterion already matched and set the monitor's status. " +
+    "Criteria are evaluated in order for this monitor, so evaluation " +
+    "stopped at the first match that changes the status.",
+  "changes-no-status":
+    "An earlier criterion already matched, and this one changes no status, " +
+    "so it was not evaluated. After the first match, only the criteria " +
+    "that change the status are evaluated, until one of them matches.",
+};
 
 // A series a grouped check read, as a sentence names it.
 interface SeriesOfCheck {
@@ -317,7 +372,8 @@ type PlatformName =
   | "vmware"
   | "dockerSwarm"
   | "ceph"
-  | "storageArray";
+  | "storageArray"
+  | "xcpNg";
 
 interface CriteriaMetricTargetComponent {
   alias: string;
@@ -538,21 +594,60 @@ export default class MonitorCriteriaEvaluator {
      */
     const recoveredSeries: Set<string> = new Set<string>();
 
+    /*
+     * The criteria that sets an ungrouped monitor's status on this check:
+     * the first match among the criteria that change the status (#11238).
+     * A grouped monitor picks it from its matches once every criteria is
+     * judged, below.
+     */
+    let statusMatch: StatusMatch | undefined = undefined;
+
+    /*
+     * Whether an ungrouped monitor's evaluation goes on past its first match
+     * for the status: that match changes no status, and a criteria after it
+     * does. Otherwise it stops at the first match, as it always has, and the
+     * criteria after it are said to be passed over for that.
+     */
+    let isJudgingPastFirstMatch: boolean = false;
+
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
       /*
-       * Ungrouped monitors keep the historical semantics exactly: the
-       * first criteria that matches wins and nothing after it is even
-       * looked at. Grouped monitors evaluate every criteria, because
+       * Ungrouped monitors: the first criteria that matches acts on the
+       * check - it opens and resolves the incidents and alerts, as it
+       * always has - and nothing after it is looked at once the status is
+       * decided too. Grouped monitors evaluate every criteria, because
        * different series can legitimately sit in different bands at the
        * same time (host A critical, host B warning) and stopping at the
        * first match silently drops every other band.
+       *
+       * A first match that changes no status - an alert-only criteria -
+       * decides no status (#11238): it used to leave the monitor in
+       * whatever status an earlier check set, for as long as it kept
+       * matching. The criteria after it that change the status are judged
+       * for the status alone, in their order, until one matches; the ones
+       * that change none have nothing to decide and are not judged.
        */
       if (matchedCriteria.length > 0 && !fanOutAcrossCriteria) {
-        MonitorCriteriaEvaluator.pushNotEvaluatedCriteriaResult({
-          criteriaInstance,
-          evaluationSummary: input.evaluationSummary,
-        });
-        continue;
+        const changesMonitorStatus: boolean =
+          MonitorCriteriaInstance.changesMonitorStatus(criteriaInstance.data);
+
+        if (statusMatch || !changesMonitorStatus) {
+          MonitorCriteriaEvaluator.pushNotEvaluatedCriteriaResult({
+            criteriaInstance,
+            evaluationSummary: input.evaluationSummary,
+            /*
+             * Once the status is decided the evaluation stops, as it
+             * always has. Before, only a criteria that changes no status
+             * is passed over, while the ones that change it are judged.
+             */
+            skipCause: !isJudgingPastFirstMatch
+              ? "earlier-criterion-matched"
+              : statusMatch
+                ? "status-already-set"
+                : "changes-no-status",
+          });
+          continue;
+        }
       }
 
       /*
@@ -703,6 +798,15 @@ export default class MonitorCriteriaEvaluator {
       }
 
       /*
+       * Judged after an ungrouped monitor's first match, which changes no
+       * status: this criteria sets the status and acts on nothing else. The
+       * first match opens and resolves the check's incidents and alerts, as
+       * it always has, so this one has no series or payload values to name.
+       */
+      const isJudgedForStatusOnly: boolean =
+        matchedCriteria.length > 0 && !fanOutAcrossCriteria;
+
+      /*
        * An Incoming Request criteria groups by a payload field on its own:
        * whether this one acts once per value, once for the whole monitor or
        * opens nothing new is decided from its own grouping and this request
@@ -713,7 +817,8 @@ export default class MonitorCriteriaEvaluator {
       const incomingRequestGrouping:
         | IncomingRequestGroupingDecision
         | undefined =
-        input.monitor.monitorType === MonitorType.IncomingRequest
+        input.monitor.monitorType === MonitorType.IncomingRequest &&
+        !isJudgedForStatusOnly
           ? IncomingRequestIncidentGrouping.decideForMatchedCriteria({
               dataToProcess: input.dataToProcess,
               criteriaInstance: criteriaInstance,
@@ -755,7 +860,7 @@ export default class MonitorCriteriaEvaluator {
       const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
         incomingRequestGrouping
           ? incomingRequestGrouping.perKeyMatches || []
-          : judgesWholeMonitor
+          : judgesWholeMonitor || isJudgedForStatusOnly
             ? []
             : heldPerSeriesMatches ||
               (await MonitorCriteriaEvaluator.collectPerSeriesMatches({
@@ -895,10 +1000,25 @@ ${incomingRequestGrouping.rootCauseNote}
       }
 
       /*
+       * The window of telemetry a telemetry check judged (#11248): the one
+       * it was due to, however late it ran, so its logs, metrics or spans
+       * are found where the check found them.
+       */
+      const judgedWindow: string | null = TelemetryJudgedWindow.describe(
+        input.evaluationSummary.judgedWindow,
+      );
+
+      if (judgedWindow) {
+        renderedRootCause = mdText`${renderedRootCause}
+**Window Judged**: ${judgedWindow}
+`;
+      }
+
+      /*
        * What this criteria acts on. One that judges the whole monitor on a
        * monitor that alerts per entity acts on the whole monitor as one
        * entity of its own, with the criteria's root cause; the rest act on
-       * the series they matched.
+       * the series they matched, each saying the window judged too.
        */
       const criteriaMatches: Array<PerSeriesCriteriaMatch> =
         judgesWholeMonitor && criteriaInstance.data?.id
@@ -908,12 +1028,42 @@ ${incomingRequestGrouping.rootCauseNote}
                 rootCause: renderedRootCause.toString(),
               }),
             ]
-          : perSeriesMatches;
+          : judgedWindow
+            ? perSeriesMatches.map(
+                (match: PerSeriesCriteriaMatch): PerSeriesCriteriaMatch => {
+                  return {
+                    ...match,
+                    rootCause:
+                      mdText`${FeedMarkdown.asMarkdown(match.rootCause)}
+
+**Window Judged**: ${judgedWindow}`.toString(),
+                  };
+                },
+              )
+            : perSeriesMatches;
 
       /*
-       * The monitor has exactly one status, and the FIRST matching
-       * criteria owns it — unchanged from before this became a list.
-       * `perSeriesMatches` likewise keeps pointing at the first match so
+       * A criteria judged for the status alone sets it, and the evaluation
+       * stops: it is no match of the check's - it opens and resolves
+       * nothing, so it leaves the first match's incidents and alerts as
+       * they are.
+       */
+      if (isJudgedForStatusOnly) {
+        if (criteriaInstance.data?.id) {
+          statusMatch = {
+            criteriaId: criteriaInstance.data.id.toString(),
+            rootCause: renderedRootCause.toString(),
+          };
+        }
+
+        continue;
+      }
+
+      /*
+       * The monitor has exactly one status, and the first matching
+       * criteria that changes it owns it (statusMatch, #11238): the FIRST
+       * matching criteria itself whenever it changes the status, as it
+       * always did. `perSeriesMatches` keeps pointing at the first match so
        * any reader that only knows the scalar fields still behaves the
        * way it always did.
        *
@@ -922,6 +1072,28 @@ ${incomingRequestGrouping.rootCauseNote}
        * the monitor's status is no match (GroupedMonitorRecovery).
        */
       if (isFirstMatch && !fanOutAcrossCriteria) {
+        if (
+          criteriaInstance.data?.id &&
+          MonitorCriteriaInstance.changesMonitorStatus(criteriaInstance.data)
+        ) {
+          statusMatch = {
+            criteriaId: criteriaInstance.data.id.toString(),
+            rootCause: renderedRootCause.toString(),
+          };
+        } else {
+          const criteriaInstances: Array<MonitorCriteriaInstance> =
+            criteria.data.monitorCriteriaInstanceArray;
+
+          isJudgingPastFirstMatch = criteriaInstances
+            .slice(criteriaInstances.indexOf(criteriaInstance) + 1)
+            .some((laterCriteria: MonitorCriteriaInstance): boolean => {
+              return (
+                laterCriteria.data?.isEnabled !== false &&
+                MonitorCriteriaInstance.changesMonitorStatus(laterCriteria.data)
+              );
+            });
+        }
+
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = renderedRootCause.toString();
 
@@ -964,7 +1136,8 @@ ${incomingRequestGrouping.rootCauseNote}
       /*
        * Every criteria is judged: now a recovery criteria that waits for the
        * series behind the monitor's status is set aside, and the first match
-       * that stands sets the status (GroupedMonitorRecovery).
+       * that stands among the criteria that change the status sets it
+       * (GroupedMonitorRecovery, #11238).
        */
       const recovery: GroupedRecoveryOutcome =
         await MonitorCriteriaEvaluator.applyGroupedRecoveryRule({
@@ -993,6 +1166,13 @@ ${incomingRequestGrouping.rootCauseNote}
          */
         input.probeApiIngestResponse.perSeriesMatches =
           firstMatch.perSeriesMatches;
+      }
+
+      if (recovery.statusMatch) {
+        input.probeApiIngestResponse.statusCriteriaId =
+          recovery.statusMatch.criteriaId;
+        input.probeApiIngestResponse.statusRootCause =
+          recovery.statusMatch.rootCause;
       } else if (recovery.seriesKeepingStatus.length > 0) {
         input.probeApiIngestResponse.seriesKeepingStatus =
           recovery.seriesKeepingStatus;
@@ -1036,31 +1216,38 @@ ${incomingRequestGrouping.rootCauseNote}
     }
 
     /*
-     * A monitor that judges no series on its own, on a check no criteria
-     * matched (#10743): its status set by a problem criteria holds until a
-     * recovery criteria of the step brings it back, as a grouped monitor's
-     * does (GroupedMonitorRecovery.judgeWholeMonitor). A recovery criteria
-     * outside its active hours cannot bring it back now, so it is not
-     * waited for.
+     * An ungrouped monitor's status is set by the first match that changes
+     * it - the first match itself, unless that one changes none (#11238).
      */
-    if (!fanOutAcrossCriteria && matchedCriteria.length === 0) {
-      const wholeMonitor: WholeMonitorRecoveryJudgement =
-        GroupedMonitorRecovery.judgeWholeMonitor({
-          criteriaInstances: criteria.data.monitorCriteriaInstanceArray.filter(
-            (criteriaInstance: MonitorCriteriaInstance): boolean => {
-              return CriteriaActiveHours.isActive({
-                criteria: criteriaInstance.data,
-              });
-            },
-          ),
-          defaultMonitorStatusId:
-            input.monitor.monitorSteps?.data?.defaultMonitorStatusId,
-          currentMonitorStatusId: input.monitor.currentMonitorStatusId,
+    if (!fanOutAcrossCriteria && statusMatch) {
+      input.probeApiIngestResponse.statusCriteriaId = statusMatch.criteriaId;
+      input.probeApiIngestResponse.statusRootCause = statusMatch.rootCause;
+    }
+
+    /*
+     * A monitor that judges no series on its own, on a check no criteria
+     * that changes the status matched (#10743, #11238): its status set by a
+     * problem criteria holds until a recovery criteria of the step brings it
+     * back, as a grouped monitor's does
+     * (GroupedMonitorRecovery.judgeWholeMonitor) - whatever matched that
+     * changes no status. A recovery criteria outside its active hours cannot
+     * bring it back now, so it is not waited for.
+     *
+     * Said whatever this check matched: it reads only the monitor's statuses
+     * and its criteria, and the probes can agree that no criteria matched a
+     * check this probe's check matched one on. MonitorResource reads it only
+     * when no criteria that changes the status is to set it.
+     */
+    if (!fanOutAcrossCriteria) {
+      const statusKeptForRecoveryCriteriaIds: Array<string> | undefined =
+        MonitorCriteriaEvaluator.getStatusKeptForRecoveryCriteriaIds({
+          monitor: input.monitor,
+          monitorStep: input.monitorStep,
         });
 
-      if (wholeMonitor.isStatusKept) {
+      if (statusKeptForRecoveryCriteriaIds) {
         input.probeApiIngestResponse.statusKeptForRecoveryCriteriaIds =
-          wholeMonitor.recoveryCriteriaIds;
+          statusKeptForRecoveryCriteriaIds;
       }
     }
 
@@ -1601,6 +1788,14 @@ ${incomingRequestGrouping.rootCauseNote}
       reads: input.matchHistory
         ? PreviousCheckReads.forMatchHistoryReads(input.matchHistory.reads)
         : undefined,
+      // A DNS answer is compared as one, by its fingerprint (#10905).
+      dnsAnswer: CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        input.criteriaFilter.checkOn,
+      )
+        ? DnsAnswerFingerprint.read(
+            (input.dataToProcess as ProbeMonitorResponse).dnsResponse,
+          )
+        : undefined,
       isMetOnThisCheck: async (): Promise<boolean> => {
         const check: CriteriaFilterCheck | undefined =
           input.matchHistory?.checks.get(filterKey);
@@ -1645,6 +1840,41 @@ ${incomingRequestGrouping.rootCauseNote}
       monitorStepId: input.monitorStep.id,
       monitorSteps: input.monitor.monitorSteps,
     });
+  }
+
+  /*
+   * A monitor that judges no series on its own, on a check no criteria that
+   * changes the status matched (#10743): the recovery criteria its status
+   * waits for, when a problem criteria set the status it has and its step
+   * has one to bring it back - else undefined, and the monitor goes to its
+   * default status. Read off the monitor's statuses, the step's criteria
+   * and the clock alone (a recovery criteria outside its active hours is not
+   * waited for), so it is the same for every probe's check, and it is said
+   * whatever this check matched: the probes can agree on a verdict this
+   * probe's check did not reach.
+   */
+  public static getStatusKeptForRecoveryCriteriaIds(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+  }): Array<string> | undefined {
+    const wholeMonitor: WholeMonitorRecoveryJudgement =
+      GroupedMonitorRecovery.judgeWholeMonitor({
+        criteriaInstances: (
+          input.monitorStep.data?.monitorCriteria?.data
+            ?.monitorCriteriaInstanceArray || []
+        ).filter((criteriaInstance: MonitorCriteriaInstance): boolean => {
+          return CriteriaActiveHours.isActive({
+            criteria: criteriaInstance.data,
+          });
+        }),
+        defaultMonitorStatusId:
+          input.monitor.monitorSteps?.data?.defaultMonitorStatusId,
+        currentMonitorStatusId: input.monitor.currentMonitorStatusId,
+      });
+
+    return wholeMonitor.isStatusKept
+      ? wholeMonitor.recoveryCriteriaIds
+      : undefined;
   }
 
   /**
@@ -1737,10 +1967,10 @@ ${incomingRequestGrouping.rootCauseNote}
   private static pushNotEvaluatedCriteriaResult(input: {
     criteriaInstance: MonitorCriteriaInstance;
     evaluationSummary: MonitorEvaluationSummary;
+    skipCause: NotEvaluatedAfterMatchCause;
   }): void {
     const skipReason: string =
-      "An earlier criterion already matched. Criteria are evaluated in order " +
-      "for this monitor, so evaluation stopped at the first match.";
+      NOT_EVALUATED_AFTER_MATCH_REASONS[input.skipCause];
 
     input.evaluationSummary.criteriaResults.push({
       criteriaId: input.criteriaInstance.data?.id,
@@ -1752,7 +1982,7 @@ ${incomingRequestGrouping.rootCauseNote}
       filters: [],
       skipped: true,
       skipReason: skipReason,
-      skipCause: "earlier-criterion-matched",
+      skipCause: input.skipCause,
     });
   }
 
@@ -1807,6 +2037,23 @@ ${incomingRequestGrouping.rootCauseNote}
       }
     }
 
+    /*
+     * The match that sets the status: the first, among those that stand,
+     * that changes it (#11238). A criteria that changes no status - an
+     * alert per port, a warning - acts on its series and decides nothing.
+     */
+    const getStatusMatch: (
+      matches: Array<MatchedCriteriaResult>,
+    ) => MatchedCriteriaResult | undefined = (
+      matches: Array<MatchedCriteriaResult>,
+    ): MatchedCriteriaResult | undefined => {
+      return matches.find((matched: MatchedCriteriaResult): boolean => {
+        return MonitorCriteriaInstance.changesMonitorStatus(
+          criteriaById.get(matched.criteriaId)?.data,
+        );
+      });
+    };
+
     const recoveryCriteria: Array<MonitorCriteriaInstance> =
       input.criteriaInstances.filter(
         (criteriaInstance: MonitorCriteriaInstance): boolean => {
@@ -1824,6 +2071,7 @@ ${incomingRequestGrouping.rootCauseNote}
     if (recoveryCriteria.length === 0) {
       return {
         matchedCriteria: input.matchedCriteria,
+        statusMatch: getStatusMatch(input.matchedCriteria),
         seriesKeepingStatus: [],
         seriesBehindStatus: undefined,
       };
@@ -1930,14 +2178,18 @@ ${incomingRequestGrouping.rootCauseNote}
       },
     );
 
+    const statusMatch: MatchedCriteriaResult | undefined =
+      getStatusMatch(standing);
+
     /*
-     * A recovery criteria that stands and comes first puts the monitor back on
-     * its default status: nothing is behind it any more, but a series that
-     * still meets a problem criteria further down.
+     * A recovery criteria that stands and comes first among those that set
+     * the status puts the monitor back on its default status: nothing is
+     * behind it any more, but a series that still meets a problem criteria
+     * further down. An alert-only criteria above it sets nothing (#11238).
      */
     const isBackOnDefaultStatus: boolean =
-      standing.length > 0 &&
-      getRole(criteriaById.get(standing[0]!.criteriaId)) ===
+      Boolean(statusMatch) &&
+      getRole(criteriaById.get(statusMatch!.criteriaId)) ===
         GroupedCriteriaRole.Recovery;
 
     const seriesBehindStatus: Array<string> = isBackOnDefaultStatus
@@ -1946,21 +2198,25 @@ ${incomingRequestGrouping.rootCauseNote}
 
     return {
       matchedCriteria: standing,
-      seriesKeepingStatus:
-        standing.length === 0
-          ? judgement.seriesKeepingStatus.map(
-              (fingerprint: string): SeriesKeepingStatus => {
-                const series: SeriesOfCheck | undefined =
-                  seriesOfCheck.get(fingerprint);
+      statusMatch: statusMatch,
+      /*
+       * With no match that sets the status, the series behind it that met
+       * no recovery criteria keep it - whatever matched that changes none.
+       */
+      seriesKeepingStatus: !statusMatch
+        ? judgement.seriesKeepingStatus.map(
+            (fingerprint: string): SeriesKeepingStatus => {
+              const series: SeriesOfCheck | undefined =
+                seriesOfCheck.get(fingerprint);
 
-                return {
-                  fingerprint: fingerprint,
-                  labels: series?.labels || {},
-                  ...(series?.context ? { context: series.context } : {}),
-                };
-              },
-            )
-          : [],
+              return {
+                fingerprint: fingerprint,
+                labels: series?.labels || {},
+                ...(series?.context ? { context: series.context } : {}),
+              };
+            },
+          )
+        : [],
       /*
        * Written whenever it was read - an empty list deletes it - and at the
        * default status only once a problem criteria put a series behind it.
@@ -3186,6 +3442,11 @@ ${incomingRequestGrouping.rootCauseNote}
     // Handle Storage Array monitors with array resource context
     if (input.monitor.monitorType === MonitorType.StorageArray) {
       return MonitorCriteriaEvaluator.buildStorageArrayRootCauseContext(input);
+    }
+
+    // Handle XCP-ng monitors with pool resource context
+    if (input.monitor.monitorType === MonitorType.XcpNg) {
+      return MonitorCriteriaEvaluator.buildXcpNgRootCauseContext(input);
     }
 
     // Handle generic Metric monitors with metric identity + breaching series
@@ -4472,6 +4733,8 @@ ${incomingRequestGrouping.rootCauseNote}
       case "storageArray":
         return getStorageArrayMetric(input.metricName, input.attributes)
           ?.friendlyName;
+      case "xcpNg":
+        return getXcpNgMetricByMetricName(input.metricName)?.friendlyName;
       default:
         return undefined;
     }
@@ -7620,39 +7883,20 @@ ${incomingRequestGrouping.rootCauseNote}
 
   /*
    * The kind of object the `name` label of a storage array metric names,
-   * from the metric's family: purefa_volume_* series name volumes,
-   * purefb_file_systems_* file systems, and so on. Null for a family whose
-   * `name` is no inventory object (purefa_volume_group_* names a volume
-   * group) or that OneUptime does not know.
+   * from the metric's family on its platform
+   * (StorageArrayPlatform.metricFamilies): a volume family's series name
+   * volumes, a file system family's file systems, and so on. Null for a
+   * family whose `name` is no inventory object (a volume group) or that
+   * no platform describes.
    */
   private static getStorageArrayObjectKind(
     metricName: string,
+    storageSystem?: string | null | undefined,
   ): StorageArrayResourceKind | null {
-    if (metricName.startsWith("purefa_volume_group_")) {
-      return null;
-    }
-
-    const families: Array<[string, StorageArrayResourceKind]> = [
-      ["purefa_volume_", StorageArrayResourceKind.Volume],
-      ["purefa_host_", StorageArrayResourceKind.Host],
-      ["purefa_pod_", StorageArrayResourceKind.Pod],
-      ["purefa_hw_controller_", StorageArrayResourceKind.Controller],
-      ["purefa_hw_", StorageArrayResourceKind.Hardware],
-      ["purefa_drive_", StorageArrayResourceKind.Drive],
-      ["purefa_network_interface_", StorageArrayResourceKind.NetworkInterface],
-      ["purefa_directory_", StorageArrayResourceKind.Directory],
-      ["purefb_file_systems_", StorageArrayResourceKind.FileSystem],
-      ["purefb_buckets_", StorageArrayResourceKind.Bucket],
-      ["purefb_hardware_", StorageArrayResourceKind.Hardware],
-    ];
-
-    for (const [prefix, kind] of families) {
-      if (metricName.startsWith(prefix)) {
-        return kind;
-      }
-    }
-
-    return null;
+    return StorageArrayPlatformRegistry.getObjectKindForMetricName(
+      metricName,
+      storageSystem,
+    ) as StorageArrayResourceKind | null;
   }
 
   /*
@@ -7699,8 +7943,14 @@ ${incomingRequestGrouping.rootCauseNote}
       );
       name = AffectedResourceList.code(resource.hostName);
     } else if (resource.objectName) {
+      /*
+       * A kind's word, as English reads it: an ONTAP aggregate's label is a
+       * key that names its meaning (Common/Types/MeaningKeys).
+       */
       kind = objectKind
-        ? StorageArrayResourceKindUtil.getSingularLabel(objectKind)
+        ? withMeaningKeyAsItsWord(
+            StorageArrayResourceKindUtil.getSingularLabel(objectKind),
+          )
         : "Object";
       name = AffectedResourceList.code(resource.objectName);
     }
@@ -7832,9 +8082,9 @@ ${incomingRequestGrouping.rootCauseNote}
 
     /*
      * Keep the rows that satisfy the criteria that just matched, worst
-     * first, top 10 — NOT simply the non-zero rows. A FlashBlade component
-     * that stops reporting healthy fires on purefb_hardware_health `< 1`,
-     * so its zero rows are the whole point of the incident.
+     * first, top 10 — NOT simply the non-zero rows. A component whose
+     * health series reads 1 while healthy fires on `< 1` (a FlashBlade's
+     * hardware), so its zero rows are the whole point of the incident.
      */
     const rows: Array<
       PlatformAffectedRow<StorageArrayResourceIdentity>
@@ -7866,7 +8116,7 @@ ${incomingRequestGrouping.rootCauseNote}
 
     /*
      * Skip the list when no row carries any object label (array-wide
-     * series like purefa_array_space_utilization) — it would add nothing.
+     * series like the array's capacity used) — it would add nothing.
      */
     const hasIdentity: boolean = (rows || []).some(
       (row: PlatformAffectedRow<StorageArrayResourceIdentity>) => {
@@ -7917,6 +8167,310 @@ ${incomingRequestGrouping.rootCauseNote}
                           MonitorCriteriaEvaluator.renderAffectedRowValue(row),
                       },
                     );
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<MarkdownText> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            mdText`- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
+      }
+    }
+
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
+  }
+
+  /*
+   * What kind of an XCP-ng pool's object a row is, from the `xcp_ng.scope`
+   * ingest stamps on each of its datapoints, and the name label of that
+   * kind.
+   */
+  private static getXcpNgObjectKind(resource: XcpNgResourceIdentity): {
+    kind: string;
+    name: string | undefined;
+  } {
+    switch (resource.scope) {
+      case XcpNgScope.Host:
+        return { kind: "Host", name: resource.hostName };
+      case XcpNgScope.VM:
+        return { kind: "VM", name: resource.vmName };
+      case XcpNgScope.StorageRepository:
+        return {
+          kind: "Storage Repository",
+          name: resource.storageRepositoryName,
+        };
+      case XcpNgScope.VDI:
+        return { kind: "Virtual Disk", name: resource.vdiName };
+      case XcpNgScope.Xostor:
+        return { kind: "XOSTOR", name: resource.storageRepositoryName };
+      case XcpNgScope.Pool:
+        return { kind: "Pool", name: undefined };
+      default:
+        break;
+    }
+
+    // A monitor grouped by Xen Orchestra's labels names no scope.
+    if (resource.vdiName) {
+      return { kind: "Virtual Disk", name: resource.vdiName };
+    }
+
+    if (resource.vmName) {
+      return { kind: "VM", name: resource.vmName };
+    }
+
+    if (resource.storageRepositoryName) {
+      return {
+        kind: "Storage Repository",
+        name: resource.storageRepositoryName,
+      };
+    }
+
+    if (resource.hostName) {
+      return { kind: "Host", name: resource.hostName };
+    }
+
+    return { kind: "Object", name: undefined };
+  }
+
+  /*
+   * One object of an XCP-ng pool as an "Affected Resources" list item:
+   * what it is (a host, a VM, a storage repository, a virtual disk), its
+   * name next to its UUID, and where it sits.
+   */
+  private static getXcpNgAffectedResourceEntry(input: {
+    resource: XcpNgResourceIdentity;
+    poolIdentifier: string;
+    value: MarkdownValue;
+  }): AffectedResourceListEntry {
+    const resource: XcpNgResourceIdentity = input.resource;
+    const object: { kind: string; name: string | undefined } =
+      MonitorCriteriaEvaluator.getXcpNgObjectKind(resource);
+
+    let kind: string = object.kind;
+    let name: MarkdownText =
+      resource.scope === XcpNgScope.Pool
+        ? FeedMarkdown.empty()
+        : AffectedResourceList.codeWithId({
+            name: object.name,
+            id: resource.objectId,
+          });
+
+    if (name.isEmpty()) {
+      // Nothing narrower than the pool: a series for all of it.
+      kind = "Pool";
+      name = AffectedResourceList.code(input.poolIdentifier);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    // Where a VM runs, and what a virtual disk belongs to.
+    if (resource.hostName && kind !== "Host" && kind !== "Pool") {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostName),
+      });
+    }
+
+    if (resource.vmName && kind !== "VM" && kind !== "Pool") {
+      details.push({
+        label: "VM",
+        value: AffectedResourceList.code(resource.vmName),
+      });
+    }
+
+    if (
+      resource.storageRepositoryName &&
+      kind !== "Storage Repository" &&
+      kind !== "XOSTOR" &&
+      kind !== "Pool"
+    ) {
+      details.push({
+        label: "Storage Repository",
+        value: AffectedResourceList.code(resource.storageRepositoryName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildXcpNgRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): MarkdownText | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    // XCP-ng pool context
+    const xcpNgMonitor: MonitorStepXcpNgMonitor | undefined =
+      input.monitorStep.data?.xcpNgMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: XcpNgResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.xcpNgResourceBreakdowns,
+        target: target,
+      });
+
+    const poolIdentifier: string =
+      breakdown?.poolIdentifier ||
+      (typeof xcpNgMonitor?.poolIdentifier === "string"
+        ? xcpNgMonitor.poolIdentifier.trim()
+        : "") ||
+      "Unknown";
+
+    const sections: Array<MarkdownText> = [];
+
+    if (xcpNgMonitor || breakdown) {
+      const poolDetails: Array<MarkdownText> = [];
+      poolDetails.push(mdText`- Pool: ${poolIdentifier}`);
+      poolDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "xcpNg",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: xcpNgMonitor?.metricViewConfig?.queryConfigs?.[0]
+            ?.metricQueryData?.filterData?.metricName as string | undefined,
+        }),
+      );
+
+      const filterLabels: Record<keyof XcpNgResourceFilters, string> = {
+        scope: "Scope Filter",
+        xcpNgId: "Object Filter",
+        hostName: "Host Filter",
+      };
+
+      for (const filterKey of Object.keys(filterLabels) as Array<
+        keyof XcpNgResourceFilters
+      >) {
+        const filterValue: unknown = xcpNgMonitor?.resourceFilters?.[filterKey];
+
+        if (typeof filterValue === "string" && filterValue.trim()) {
+          // A filter is text the monitor's author typed.
+          poolDetails.push(
+            mdText`- ${filterLabels[filterKey]}: ${filterValue.trim()}`,
+          );
+        }
+      }
+
+      poolDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
+
+      sections.push(
+        mdText`**XCP-ng Pool Details**\n${FeedMarkdown.join(poolDetails, "\n")}`,
+      );
+    }
+
+    // Affected resources: a ranked list of the pool's hosts, VMs and SRs
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * The objects the matched criteria breached, worst first, top 10 - not
+     * simply the non-zero rows. Host Offline fires on
+     * `xcp_ng.host.running < 1`, so the zero rows ARE the halted hosts.
+     */
+    const rows: Array<PlatformAffectedRow<XcpNgResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        XcpNgResourceIdentity,
+        XcpNgAffectedResource
+      >({
+        platform: "xcpNg",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: XcpNgResourceIdentity): boolean => {
+          return Boolean(
+            identity.objectId ||
+              identity.hostName ||
+              identity.vmName ||
+              identity.storageRepositoryName ||
+              identity.vdiName,
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        }),
+        toIdentity: PlatformResourceIdentity.xcpNg,
+        withContext: PlatformResourceIdentity.withXcpNgContext,
+      });
+
+    /*
+     * Skip the list when no row names an object (pool-wide series such as
+     * xcp_pool_connected) - it would add nothing.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<XcpNgResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            row.identity.objectId ||
+            row.identity.hostName ||
+            row.identity.vmName ||
+            row.identity.storageRepositoryName ||
+            row.identity.vdiName,
+        );
+      },
+    );
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<XcpNgResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getXcpNgAffectedResourceEntry({
+                      resource: row.identity,
+                      poolIdentifier: poolIdentifier,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
               },
             ),
         }),

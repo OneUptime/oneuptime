@@ -1,5 +1,6 @@
 import AppLink from "../AppLink/AppLink";
 import { CLAIMED_NOT_VERIFIED } from "./ClaimedClientAddressCopy";
+import EventUserText from "./EventUserText";
 import {
   HIDDEN_BY_A_SCRUB_RULE,
   HIDDEN_BY_THE_SCRUB_RULE,
@@ -129,6 +130,20 @@ export function readFieldValue(
             CLAIMED_NOT_VERIFIED}
         </span>
       </span>
+    );
+  }
+
+  /*
+   * A user Security Events named behind a token, or one an erasure request
+   * took out again: said with what the records hold (#10909, #10908).
+   */
+  if (field.hashedUser || field.isErasedUser) {
+    return (
+      <EventUserText
+        user={field.value}
+        hashedUser={field.hashedUser}
+        isErasedUser={field.isErasedUser}
+      />
     );
   }
 

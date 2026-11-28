@@ -148,24 +148,20 @@ const checkOptions: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
 );
 
 /*
- * Group by cause (#10370): the reader's own choice, kept in this browser for
- * each project - the groups are the project's, and so is when it starts on:
- * unset, it starts on once one of the project's groups holds
- * GROUP_BY_CAUSE_DEFAULT_ON_SIZE issues. Kept under one name for every
- * project, turning it off in one project's tab turned it off in every
- * other's, even where one mistake had made forty issues.
+ * Group by cause (#10370): the reader's own choice, kept in this browser
+ * for each project - unset, it starts on once one of the project's groups
+ * holds GROUP_BY_CAUSE_DEFAULT_ON_SIZE issues, so a choice made in one
+ * project does not decide another's.
  */
-function getGroupByCauseKey(projectId: ObjectID): string {
-  return `data-security-issues-group-by-cause-${projectId.toString()}`;
+function getGroupByCauseKey(): string {
+  return `data-security-issues-group-by-cause-${
+    ProjectUtil.getCurrentProjectId()?.toString() || "none"
+  }`;
 }
 
-function readGroupByCauseChoice(projectId: ObjectID | null): boolean | null {
-  if (!projectId) {
-    return null;
-  }
-
+function readGroupByCauseChoice(): boolean | null {
   try {
-    const value: unknown = LocalStorage.getItem(getGroupByCauseKey(projectId));
+    const value: unknown = LocalStorage.getItem(getGroupByCauseKey());
 
     return value === true || value === "true"
       ? true
@@ -177,19 +173,9 @@ function readGroupByCauseChoice(projectId: ObjectID | null): boolean | null {
   }
 }
 
-function keepGroupByCauseChoice(
-  projectId: ObjectID | null,
-  value: boolean,
-): void {
-  if (!projectId) {
-    return;
-  }
-
+function keepGroupByCauseChoice(value: boolean): void {
   try {
-    LocalStorage.setItem(
-      getGroupByCauseKey(projectId),
-      value ? "true" : "false",
-    );
+    LocalStorage.setItem(getGroupByCauseKey(), value ? "true" : "false");
   } catch {
     // A browser that keeps nothing still switches: for this visit.
   }
@@ -266,9 +252,7 @@ const DataSecurityIssuesPage: FunctionComponent<
     null,
   );
   const [groupByCauseChoice, setGroupByCauseChoice] = useState<boolean | null>(
-    (): boolean | null => {
-      return readGroupByCauseChoice(projectId);
-    },
+    readGroupByCauseChoice,
   );
   const [listQuery, setListQuery] = useState<Query<DataSecurityIssue> | null>(
     null,
@@ -525,7 +509,7 @@ const DataSecurityIssuesPage: FunctionComponent<
               value={isGroupedByCause}
               dataTestId="data-security-issues-group-by-cause"
               onChange={(value: boolean) => {
-                keepGroupByCauseChoice(projectId, value);
+                keepGroupByCauseChoice(value);
                 setGroupByCauseChoice(value);
 
                 if (!value && linkedGroupId) {

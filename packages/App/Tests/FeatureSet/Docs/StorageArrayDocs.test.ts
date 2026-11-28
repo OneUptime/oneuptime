@@ -11,9 +11,10 @@ import {
   getAllStorageArrayMetrics,
 } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import { StorageArrayNameLabelKeys } from "Common/Server/Utils/Monitor/SeriesResourceLabels";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "Common/Types/StorageArray/StorageSystem";
+import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "Common/Types/StorageArray/StorageArrayPlatform";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepStorageArrayMonitor from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import {
@@ -98,7 +99,34 @@ const SHIPPED_CONFIGS: ReadonlyArray<string> = [
   "otel-collector-config.yaml",
   "otel-collector-config.flasharray-exporter.yaml",
   "otel-collector-config.flashblade.yaml",
+  // NetApp ONTAP, through NetApp Harvest (#11001).
+  "otel-collector-config.netapp-ontap.yaml",
 ];
+
+/*
+ * Dell PowerStore's (#11002): its collector config, which scrapes Dell's
+ * exporter at /metrics/<cluster>/<part>, and its syslog collector's.
+ */
+const POWERSTORE_CONFIG: string = "otel-collector-config.powerstore.yaml";
+const POWERSTORE_CONFIGS: ReadonlyArray<string> = [
+  POWERSTORE_CONFIG,
+  "powerstore-syslog.yaml",
+];
+
+/*
+ * The one endpoint NetApp Harvest serves a whole cluster on: its job reads
+ * /metrics and labels the series `harvest`, and ingest learns which
+ * objects a scrape listed from Harvest's own metadata series (#11001).
+ */
+const HARVEST_ENDPOINT: string = "harvest";
+
+// Each platform's heartbeat template: Array Stopped Reporting.
+const HEARTBEAT_TEMPLATE_IDS: ReadonlyArray<string> =
+  StorageArrayPlatformRegistry.getPlatforms().map(
+    (platform: StorageArrayPlatform): string => {
+      return platform.heartbeat.templateId;
+    },
+  );
 
 const FENCE_LINE: RegExp = /^\s*```/;
 /* The opening fence of a mermaid diagram. */
@@ -125,7 +153,10 @@ interface ScrapeJob {
   job_name: string;
   metrics_path: string;
   scrape_interval: string;
-  static_configs: Array<{ labels: { scrape_endpoint: string } }>;
+  static_configs: Array<{
+    targets: Array<string>;
+    labels: { scrape_endpoint: string };
+  }>;
 }
 
 function pageFile(language: string, relative: string): string {
@@ -259,6 +290,59 @@ function pinnedFilters(metric: StorageArrayMetricDefinition): Array<string> {
  * which is what docker-compose.yml passes to the collector (env_file) and
  * reads for itself (the config to mount, the profile to start).
  */
+/*
+ * The variables of install.sh's PLATFORMS table (#11000): each line's
+ * address, token, user and optional settings - its fourth, fifth, tenth and
+ * twelfth |-separated fields, the last two space-separated lists ("-" for
+ * none) - each once, in order, as the script writes them.
+ */
+function platformVariables(): Array<string> {
+  const table: RegExpMatchArray | null = readAgentFile("install.sh").match(
+    /^PLATFORMS="\n([\s\S]*?)\n"$/m,
+  );
+
+  expect(table).not.toBeNull();
+
+  const names: Array<string> = [];
+  for (const line of (table as RegExpMatchArray)[1]!.split("\n")) {
+    const fields: Array<string> = line.split("|");
+    for (const field of [fields[3], fields[4], fields[9], fields[11]]) {
+      for (const name of (field || "").split(" ")) {
+        if (name && name !== "-" && !names.includes(name)) {
+          names.push(name);
+        }
+      }
+    }
+  }
+  return names;
+}
+
+/*
+ * The variables a platform's setup in install.sh writes besides its address
+ * and token (PLATFORM_EXTRA_VARIABLES: a PowerScale's SNMP settings, its
+ * node list and its polls), each once. A node's own address,
+ * POWERSCALE_NODE_<n>, is numbered as the script counts the nodes, so it is
+ * documented as a pattern and left out here.
+ */
+// A whole name: "POWERSCALE_NODE_$count" is a numbered one, not "POWERSCALE_NODE_".
+const VARIABLE_NAME: RegExp = /^[A-Z][A-Z0-9_]*[A-Z0-9]$/;
+
+function platformExtraVariables(): Array<string> {
+  const names: Array<string> = [];
+  for (const match of readAgentFile("install.sh").matchAll(
+    /PLATFORM_EXTRA_VARIABLES="([^"]*)"/g,
+  )) {
+    // "... POWERSCALE_SNMP_RECEIVERS$PLATFORM_EXTRA_VARIABLES": a name, then what came before.
+    for (const word of match[1]!.split(/\s+/)) {
+      const name: string = word.split("$")[0]!;
+      if (VARIABLE_NAME.test(name) && !names.includes(name)) {
+        names.push(name);
+      }
+    }
+  }
+  return names;
+}
+
 function dotenvVariables(): Array<string> {
   const heredoc: RegExpMatchArray | null = readAgentFile("install.sh").match(
     /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
@@ -268,8 +352,12 @@ function dotenvVariables(): Array<string> {
 
   return (heredoc as RegExpMatchArray)[1]!
     .split("\n")
-    .map((line: string): string => {
-      return line.split("=")[0] as string;
+    .flatMap((line: string): Array<string> => {
+      // The table's variables, which one function writes.
+      if (line === "$(platform_env_lines)") {
+        return platformVariables();
+      }
+      return [line.split("=")[0] as string];
     });
 }
 
@@ -659,12 +747,20 @@ describe("Storage Array docs", (): void => {
         }).length;
       };
 
+      // "12 for FlashArray, 8 for FlashBlade, 16 for PowerStore, 31 for ONTAP and 13 for PowerMax": every platform's, in order.
+      const perPlatform: Array<string> = StorageSystemUtil.getAllSystems().map(
+        (system: StorageSystem): string => {
+          return `${count(system)} for ${platformName(system)}`;
+        },
+      );
+      const counted: string =
+        perPlatform.length > 1
+          ? `${perPlatform.slice(0, -1).join(", ")} and ${
+              perPlatform[perPlatform.length - 1]
+            }`
+          : perPlatform.join("");
       expect(intro).toContain(
-        `OneUptime ships ${templates.length} templates — ${count(
-          StorageSystem.PureStorageFlashArray,
-        )} for FlashArray and ${count(
-          StorageSystem.PureStorageFlashBlade,
-        )} for FlashBlade`,
+        `OneUptime ships ${templates.length} templates — ${counted}`,
       );
 
       for (const template of templates) {
@@ -757,8 +853,10 @@ describe("Storage Array docs", (): void => {
         /*
          * Array Stopped Reporting compares a count below 0, which only its
          * Trigger no-data policy can satisfy, so its row says so in words.
+         * (ONTAP's other Availability templates, an aggregate, volume or
+         * LUN offline and an SVM stopped, read a state like any other.)
          */
-        if (template.category === "Availability") {
+        if (HEARTBEAT_TEMPLATE_IDS.includes(template.id)) {
           expect(shape.fire.filterType).toBe(FilterType.LessThan);
           expect(shape.fire.value).toBe(0);
           expect(shape.recover.filterType).toBe(
@@ -835,7 +933,10 @@ describe("Storage Array docs", (): void => {
           return name !== null;
         });
 
-      expect(documented.sort()).toEqual(dotenvVariables().sort());
+      expect(platformExtraVariables().length).toBeGreaterThan(0);
+      expect(documented.sort()).toEqual(
+        [...dotenvVariables(), ...platformExtraVariables()].sort(),
+      );
     });
 
     it("documents every variable the collector configs read", (): void => {
@@ -844,7 +945,7 @@ describe("Storage Array docs", (): void => {
         "## Environment variables",
       );
 
-      for (const config of SHIPPED_CONFIGS) {
+      for (const config of [...SHIPPED_CONFIGS, ...POWERSTORE_CONFIGS]) {
         const variables: Array<string> = Array.from(
           readAgentFile(config).matchAll(/\$\{env:([A-Z0-9_]+)\}/g),
         ).map((match: RegExpMatchArray): string => {
@@ -916,8 +1017,18 @@ describe("Storage Array docs", (): void => {
       expect(unit).toContain(
         "WorkingDirectory=/opt/oneuptime-storage-array-agent",
       );
+      // A second array's agent on the same machine names its own in .env.
       expect(compose).toContain(
-        "container_name: oneuptime-storage-array-agent",
+        "container_name: ${STORAGE_ARRAY_AGENT_CONTAINER_NAME:-oneuptime-storage-array-agent}",
+      );
+      const several: string = section(markdown, "## Monitoring several arrays");
+      expect(several).toContain(
+        "`INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 STORAGE_ARRAY_AGENT_CONTAINER_NAME=oneuptime-storage-array-agent-fa02 bash install.sh`",
+      );
+      // Never an edit of docker-compose.yml, which an upgrade replaces.
+      expect(several).not.toContain("give each its own `container_name`");
+      expect(install).toContain(
+        '\nSTORAGE_ARRAY_AGENT_CONTAINER_NAME=$(compose_env_quote "$STORAGE_ARRAY_AGENT_CONTAINER_NAME")\n',
       );
       expect(compose).toContain(
         "STORAGE_SYSTEM=${STORAGE_SYSTEM:-purestorage.flasharray}",
@@ -928,13 +1039,32 @@ describe("Storage Array docs", (): void => {
       expect(markdown).toContain("Defaults to `purestorage.flasharray`");
       expect(markdown).toContain("Defaults to `true`");
 
-      for (const service of ["pure-fa-exporter", "pure-fb-exporter"]) {
+      for (const service of [
+        "pure-fa-exporter",
+        "pure-fb-exporter",
+        "powerstore-exporter",
+        "powerstore-syslog",
+        "netapp-harvest",
+      ]) {
         expect(compose).toContain(`  ${service}:\n`);
         expect(markdown).toContain(`\`${service}\``);
       }
-      for (const profile of ["flasharray-exporter", "flashblade"]) {
+      for (const profile of [
+        "flasharray-exporter",
+        "flashblade",
+        "powerstore",
+        "netapp-ontap",
+      ]) {
         expect(compose).toContain(`profiles: ["${profile}"]`);
         expect(markdown).toContain(`COMPOSE_PROFILES=${profile}`);
+      }
+      // A PowerStore's files, the ones install.sh downloads beside the configs.
+      for (const file of [
+        POWERSTORE_CONFIG,
+        "powerstore-exporter.Dockerfile",
+        "powerstore-syslog.yaml",
+      ]) {
+        expect(markdown).toContain(`\`${file}\``);
       }
     });
 
@@ -949,8 +1079,16 @@ describe("Storage Array docs", (): void => {
           const endpoint: string =
             job.static_configs[0]!.labels.scrape_endpoint;
 
-          expect(job.metrics_path).toBe(`/metrics/${endpoint}`);
-          expect(scrapes).toContain(`\`/metrics/${endpoint}\``);
+          if (endpoint === HARVEST_ENDPOINT) {
+            // Harvest serves the whole cluster on one path, on the compose network.
+            expect(job.metrics_path).toBe("/metrics");
+            expect(scrapes).toContain(
+              `\`${job.static_configs[0]!.targets[0]}\``,
+            );
+          } else {
+            expect(job.metrics_path).toBe(`/metrics/${endpoint}`);
+            expect(scrapes).toContain(`\`/metrics/${endpoint}\``);
+          }
           expect({
             job: job.job_name,
             stated: scrapes.includes(spokenDuration(job.scrape_interval)),
@@ -960,18 +1098,57 @@ describe("Storage Array docs", (): void => {
 
       expect(scrapes).toContain("`scrape_endpoint: <endpoint>`");
       expect(scrapes).toContain("`send_batch_max_size`");
+
+      // A PowerStore: Dell's exporter names the cluster in every path.
+      expect(scrapes).toContain("`/metrics/<cluster>/<part>`");
+      for (const job of scrapeJobs(POWERSTORE_CONFIG)) {
+        const part: string = job.metrics_path.replace(
+          "/metrics/${env:POWERSTORE_ENDPOINT}/",
+          "",
+        );
+        expect(job.metrics_path).toBe(
+          `/metrics/\${env:POWERSTORE_ENDPOINT}/${part}`,
+        );
+        expect({
+          job: job.job_name,
+          named: scrapes.includes(`\`${part}\``),
+        }).toEqual({ job: job.job_name, named: true });
+        expect({
+          job: job.job_name,
+          stated: scrapes.includes(spokenDuration(job.scrape_interval)),
+        }).toEqual({ job: job.job_name, stated: true });
+      }
     });
 
     it("names every catalog metric's family on the what-gets-collected table", (): void => {
-      const collected: string = section(
-        readPage(TELEMETRY_PAGE),
-        "## What the agent collects",
-      );
-      const families: Array<string> = Array.from(
-        collected.matchAll(/`(pure(?:fa|fb)_[a-z_]+)(\*?)`/g),
-      ).map((match: RegExpMatchArray): string => {
-        return `${match[1]}${match[2]}`;
-      });
+      /*
+       * The agent's platforms under What the agent collects; a platform a
+       * probe reads from its management server (#11004), which no agent
+       * reads, under its own section, named after it (## Dell PowerMax).
+       */
+      const families: Array<string> = [];
+      for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+        // A family is a platform's prefix and more: `purefa_volume_*`, `netapp_health_*`.
+        const prefix: string | undefined = platform.metricPrefix;
+        if (!prefix) {
+          continue;
+        }
+        const collected: string = section(
+          readPage(TELEMETRY_PAGE),
+          platform.agentConfigs.length > 0
+            ? "## What the agent collects"
+            : `## ${platform.displayName}`,
+        );
+        families.push(
+          ...Array.from(collected.matchAll(/`([a-z]+_[A-Za-z_]+)(\*?)`/g))
+            .filter((match: RegExpMatchArray): boolean => {
+              return (match[1] as string).startsWith(prefix);
+            })
+            .map((match: RegExpMatchArray): string => {
+              return `${match[1]}${match[2]}`;
+            }),
+        );
+      }
 
       for (const metric of getAllStorageArrayMetrics()) {
         expect({

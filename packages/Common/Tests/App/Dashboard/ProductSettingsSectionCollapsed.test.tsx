@@ -127,6 +127,7 @@ const COLLAPSED_SETTINGS_PRODUCTS: Array<string> = [
   "Users",
   "VMware",
   "Workflow",
+  "XcpNg",
 ];
 
 /*

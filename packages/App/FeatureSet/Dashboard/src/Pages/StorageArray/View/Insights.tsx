@@ -4,7 +4,6 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import EmbeddedMetricCard from "../../../Components/Metrics/EmbeddedMetricCard";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
-import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Card from "Common/UI/Components/Card/Card";
 import React, {
@@ -25,7 +24,11 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
-import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayInsightsSection,
+  StorageArrayPlatform,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
 import {
   StorageArrayMetricDefinition,
   getStorageArrayMetricById,
@@ -45,164 +48,23 @@ import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/C
  * by value. Explicitly NOT computed recommendations.
  */
 
-export interface InsightsSection {
-  key: string;
-  title: string;
-  description: string;
-  icon: IconProp;
-  // Catalog ids; the ones whose series name an object are split by it.
-  metricIds: Array<string>;
-  groupByObject?: boolean | undefined;
-}
+/*
+ * One card of the page: catalog metric ids drawn together, the per-object
+ * ones split by the label that names the object. Each platform lists its
+ * own (StorageArrayPlatform.insightsSections).
+ */
+export type InsightsSection = StorageArrayInsightsSection;
 
-export const FLASHARRAY_INSIGHTS_SECTIONS: Array<InsightsSection> = [
-  {
-    key: "capacity",
-    title: "Capacity",
-    description:
-      "Share of usable capacity in use, the free space left, the space only snapshots hold and the data reduction ratio.",
-    icon: IconProp.ChartBar,
-    metricIds: [
-      "purefa-array-space-utilization",
-      "purefa-array-space-empty",
-      "purefa-array-space-snapshots",
-      "purefa-array-data-reduction",
-    ],
-  },
-  {
-    key: "performance",
-    title: "Performance",
-    description:
-      "Where time goes for the whole array: latency hosts see, the part of it spent in the SAN, mirrored writes, queue depth and I/O size.",
-    icon: IconProp.Signal,
-    metricIds: [
-      "purefa-array-read-latency",
-      "purefa-array-write-latency",
-      "purefa-array-san-read-latency",
-      "purefa-array-mirrored-write-latency",
-      "purefa-array-queue-depth",
-      "purefa-array-io-size",
-    ],
-  },
-  {
-    key: "volumes",
-    title: "Volumes",
-    description: "The ten volumes with the highest latency and IOPS.",
-    icon: IconProp.Disc,
-    metricIds: [
-      "purefa-volume-read-latency",
-      "purefa-volume-write-latency",
-      "purefa-volume-read-iops",
-      "purefa-volume-write-iops",
-    ],
-    groupByObject: true,
-  },
-  {
-    key: "hosts",
-    title: "Hosts",
-    description: "The ten hosts that see the highest latency.",
-    icon: IconProp.Server,
-    metricIds: ["purefa-host-read-latency", "purefa-host-write-latency"],
-    groupByObject: true,
-  },
-  {
-    key: "replication",
-    title: "Replication",
-    description:
-      "How far each pod's remote copy is behind, per replica link, and the replication traffic.",
-    icon: IconProp.Refresh,
-    metricIds: [
-      "purefa-pod-replica-lag-max",
-      "purefa-pod-replication-bandwidth",
-    ],
-    groupByObject: true,
-  },
-  {
-    key: "hardware",
-    title: "Hardware",
-    description:
-      "Temperature of each sensor and the error rate of each network interface.",
-    icon: IconProp.CPUChip,
-    metricIds: ["purefa-hw-temperature", "purefa-network-interface-errors"],
-    groupByObject: true,
-  },
-];
-
-export const FLASHBLADE_INSIGHTS_SECTIONS: Array<InsightsSection> = [
-  {
-    key: "capacity",
-    title: "Capacity",
-    description:
-      "Share of usable capacity in use, the free space left and the data reduction ratio.",
-    icon: IconProp.ChartBar,
-    metricIds: [
-      "purefb-array-space-utilization",
-      "purefb-array-space-empty",
-      "purefb-array-data-reduction",
-    ],
-  },
-  {
-    key: "performance",
-    title: "Performance",
-    description:
-      "Latency, operations and bandwidth across every protocol the FlashBlade serves.",
-    icon: IconProp.Signal,
-    metricIds: [
-      "purefb-array-read-latency",
-      "purefb-array-write-latency",
-      "purefb-array-read-iops",
-      "purefb-array-write-iops",
-      "purefb-array-read-bandwidth",
-      "purefb-array-write-bandwidth",
-    ],
-  },
-  {
-    key: "file-systems",
-    title: "File Systems",
-    description:
-      "The ten file systems with the highest latency, and the space they use.",
-    icon: IconProp.Folder,
-    metricIds: [
-      "purefb-fs-read-latency",
-      "purefb-fs-write-latency",
-      "purefb-fs-physical",
-    ],
-    groupByObject: true,
-  },
-  {
-    key: "buckets",
-    title: "Buckets",
-    description:
-      "The ten buckets with the highest latency, the space they use and the objects they hold.",
-    icon: IconProp.Archive,
-    metricIds: [
-      "purefb-bucket-read-latency",
-      "purefb-bucket-physical",
-      "purefb-bucket-object-count",
-    ],
-    groupByObject: true,
-  },
-  {
-    key: "hardware",
-    title: "Hardware",
-    description:
-      "Health of each blade, fabric module, power supply and fan: 1 is healthy, 0 needs a person.",
-    icon: IconProp.CPUChip,
-    metricIds: ["purefb-hardware-health"],
-    groupByObject: true,
-  },
-];
-
+/*
+ * The array's platform's cards, in its order; none for an array whose
+ * platform is not known yet.
+ */
 export function getInsightsSections(
   storageSystem: string | null | undefined,
 ): Array<InsightsSection> {
-  if (storageSystem === StorageSystem.PureStorageFlashArray) {
-    return FLASHARRAY_INSIGHTS_SECTIONS;
-  }
-  if (storageSystem === StorageSystem.PureStorageFlashBlade) {
-    return FLASHBLADE_INSIGHTS_SECTIONS;
-  }
-  return [];
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(storageSystem);
+  return platform ? (platform.insightsSections as Array<InsightsSection>) : [];
 }
 
 export function getInsightsQueries(data: {
@@ -218,13 +80,14 @@ export function getInsightsQueries(data: {
         const metric: StorageArrayMetricDefinition | undefined =
           getStorageArrayMetricById(metricId);
         const objectLabel: string | null =
-          data.section.groupByObject && metric
+          data.section.groupByLabel ||
+          (data.section.groupByObject && metric
             ? getStorageArrayObjectLabel(
                 metric.defaultResourceScope,
                 data.storageSystem,
                 metric.metricName,
               )
-            : null;
+            : null);
 
         return {
           metricId: metricId,

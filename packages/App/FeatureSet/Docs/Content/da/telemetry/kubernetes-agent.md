@@ -471,19 +471,66 @@ Kubernetes-hændelser filtreres ikke efter namespace ved agenten: den sender dem
 
 Den accepterer `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` og `FATAL`. `WARN` beholder WARN, ERROR og FATAL og dropper INFO, DEBUG og TRACE; standarden (`""`) beholder alt. Den gælder i begge logtilstande (gennem collectoren i tilstanden `daemonset`, inde i log-taileren i tilstanden `api`), så et preset slår den aldrig fra bag din ryg.
 
-Container-runtimes registrerer ingen alvorlighed, så agenten læser en fra selve logteksten (`[ERROR]`, `WARN:`, `"level":"info"`, …). Hvad der sker med en linje uden genkendeligt niveau, afhænger af logtilstanden, fordi de to tilstande ved forskellige ting:
+Container-runtimes registrerer ingen alvorlighed, så agenten læser det niveau, hver linje nævner: et niveauord (`[ERROR]`, `WARN:`, `"level":"info"`, …), det første bogstav i en klog-linje (`I`, `W`, `E`, `F`), PostgreSQL's `LOG:` eller pinos `"level":30`. En undtagelses traceback eller en panic tæller som ERROR. Hvad der sker med en linje, der ikke nævner noget niveau, afhænger af logtilstanden, fordi de to tilstande ved forskellige ting:
 
 | Tilstand | En linje uden niveau | Hvorfor |
 | --- | --- | --- |
-| `daemonset` | `stderr` tæller som ERROR (beholdes), `stdout` som INFO (droppes af en WARN-tærskel) | Container-runtimen registrerer, hvilken strøm hver linje kom fra. |
+| `daemonset` | `stdout` tæller som INFO (droppes af en WARN-tærskel); `stderr` har ingen alvorlighed, vises som Uspecificeret og beholdes | Container-runtimen registrerer, hvilken strøm hver linje kom fra. stdout er et programs almindelige output, men programmer skriver deres diagnostik på alle niveauer til stderr, så en stderr-linje siger intet om sit niveau. |
 | `api` | Beholdes altid | Kubernetes-API'et `pods/log` fletter stdout og stderr til én strøm uden markør pr. linje, så i stedet for at gætte beholder agenten linjen. |
 
-Så tilstanden `api` dropper med vilje strengt mindre end tilstanden `daemonset`: en Python-traceback eller en `npm ERR!` bærer intet alvorlighedsnøgleord, og at slette den stille er netop den fejl, en tærskel skal beskytte dig mod. I hybridtilstand (`logs.windowsPods.enabled`) gælder begge rækker, efter nodens OS: Linux-pods følger `daemonset`, Windows-pods `api`.
+Så tilstanden `api` dropper med vilje strengt mindre end tilstanden `daemonset`: den kan ikke skelne en stderr-linje, der ikke nævner noget niveau, såsom en `npm ERR!`, fra almindeligt output, og at slette den stille er netop den fejl, en tærskel skal beskytte dig mod. I hybridtilstand (`logs.windowsPods.enabled`) gælder begge rækker, efter nodens OS: Linux-pods følger `daemonset`, Windows-pods `api`.
 
 Hændelser over flere linjer samles igen før filtreringen i begge tilstande, så en Java-stack trace bedømmes ud fra sin første linje og beholdes eller droppes som helhed.
 
 > [!IMPORTANT]
 > Kubernetes-hændelser og ressourcespecifikationer filtreres aldrig af dette. De ankommer fra Kubernetes-API'et uden egen alvorlighed, så en tærskel ville slette hele feedet, inklusive de advarsler `FailedScheduling`, `BackOff` og `OOMKilling`, du mest vil have. De er få og værdifulde, så agenten sender dem altid; for at tynde dem ud skal du bruge **Protokoller → Indstillinger → Drop-filtre** i OneUptime.
+
+### Læsning af dit eget logformat
+
+Agenten læser niveauerne i de formater, de fleste programmer skriver. Til et format, den ikke læser, såsom et internt, tilføjer du dine egne collector-operatorer med `logs.extraOperators`. De kører på hver pod-loglinje i tilstanden `daemonset`, efter at agenten har samlet linjen igen og læst dens pod og strøm, og før den læser linjens niveau.
+
+For at sætte en linjes niveau skal du skrive det til `attributes.severity_text` som et ord, agenten læser, såsom `ERROR`, `warn`, `critical` eller et klog-bogstav. Agenten læser det før nogen af sine egne læsere og gemmer det, som OneUptime gemmer det ord alle andre steder. Send derefter linjen videre til `severity-router`, agentens første trin, eller lad den fortsætte til din næste operator.
+
+Til linjer som `<<E>> payment failed` og `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+Chartet kontrollerer operatorerne, når du installerer eller opgraderer. En værdi, collectoren ville afvise, får `helm install` til at fejle med en meddelelse, der navngiver operatoren, i stedet for at efterlade et DaemonSet, der bliver ved med at genstarte: en type, som collectoren i `image.tag` ikke har, en indstilling, typen kræver, et felt, et id, der allerede er taget, et `output`, der ikke peger på noget, et regex eller en streng i et udtryk. I en streng i et udtryk skrives et regex' backslash to gange, som i `"^\\d+ "`, eller regexet sættes i en rå streng mellem backticks. Resten af et udtryk kompileres af collectoren, når den starter.
+
+Chartet afviser også tre slags operatorer, som collectoren ville køre, og siger hvorfor:
+
+- En, der selv sætter linjens alvorlighed, såsom en `severity_parser`, en `syslog_parser` eller en parsers `severity`-blok. Agenten læser hver linjes niveau efter dine operatorer og ville overskrive den, så skriv i stedet niveauet til `attributes.severity_text`.
+- En router uden `default` eller en rute uden `output`. De linjer, den ikke giver videre til nogen operator, droppes.
+- Parseren `container`. Agenten har allerede læst container-runtimens format, så dine operatorer ser programmets egen linje.
+
+`logs.extraOperators` kræver tilstanden `daemonset`. Log-taileren i tilstanden `api` kører ingen collector-operatorer, så chartet afviser indstillingen der, og Windows-pods i en hybridinstallation (`logs.windowsPods.enabled`) får den ikke.
 
 ### Inkludering eller udelukkelse af metrikker efter navn
 
@@ -789,7 +836,7 @@ Indsættelse af headeren betyder omskrivning af trafik, der allerede er undervej
 
 Når en hændelse eller advarsel rejses på denne klynge, undersøger OneUptime AI den. **Kubernetes-AI-agenten** i chartet giver den en terminal: den kører skrivebeskyttet `kubectl`, som en vagthavende ingeniør ville (beskriver den fejlende pod, læser dens hændelser, følger den crashende containers logs, kontrollerer nodekapacitet), og angiver hver kommando på hændelsessiden.
 
-Agenten er **slået til som standard** og **skrivebeskyttet**: et lille Deployment (`kubernetes-agent-ai-agent`, pod-etiket `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`), hvis ServiceAccount kun må læse. Den registrerer sig med samme `oneuptime.apiKey` og `clusterName`, som collectoren bruger, så der er intet at sætte op i dashboardet: klyngens side **AI-agent** (Kubernetes → klynge → AI → Agent) viser den som forbundet inden for et minut, og **Test forbindelse**, i menuen **⋯** ved siden af den status, kører `kubectl version` og `kubectl auth can-i --list` gennem den. Alt, hvad AI gjorde med den, står på klyngens side **AI-logs** (AI → Logs), og det, der er værd at vide om klyngen — de problemer, der bliver ved med at vende tilbage, og hvorfor, den node eller workload, der står bag de fleste af dem, hvad AI rettede — på siden **AI-indsigter** (AI → Insights). Agenten leveres med et fastlåst kubectl (v1.36.6). Den er ikke en Runner og vises aldrig under Runbooks → Runners: OneUptime giver den aldrig legitimationsoplysninger, kører aldrig runbooks på den, og den accepteres aldrig som kommando-Runner for en AI-regel.
+Agenten er **slået til som standard** og **skrivebeskyttet**: et lille Deployment (`kubernetes-agent-ai-agent`, pod-etiket `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`), hvis ServiceAccount kun må læse. Den registrerer sig med samme `oneuptime.apiKey` og `clusterName`, som collectoren bruger, så der er intet at sætte op i dashboardet: klyngens side **AI-agent** (Kubernetes → klynge → AI → Agent) viser den som forbundet inden for et minut, og **Test forbindelse**, i menuen **⋯** ved siden af den status, kører `kubectl version` og `kubectl auth can-i --list` gennem den. Alt, hvad AI gjorde med den, står på klyngens side **AI-logs** (AI → Logs), og det, der er værd at vide om klyngen — de problemer, der bliver ved med at vende tilbage, og hvorfor, den node eller workload, der står bag de fleste af dem, hvad AI rettede — på siden **AI-indsigter** (AI → Insights). Agenten leveres med et fastlåst kubectl (v1.36.7). Den er ikke en Runner og vises aldrig under Runbooks → Runners: OneUptime giver den aldrig legitimationsoplysninger, kører aldrig runbooks på den, og den accepteres aldrig som kommando-Runner for en AI-regel.
 
 På en agent, der blev installeret, før AI-agenten fandtes, skal du først opdatere dit chart-indeks og derefter opgradere (på en selvhostet OneUptime skal du opgradere OneUptime først — se [Opgradering af agenten](#opgradering-af-agenten)):
 

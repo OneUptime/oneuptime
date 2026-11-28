@@ -65,7 +65,7 @@ Tre tilstande oprettes med projektet, i denne rækkefølge. Oprettelsen er idemp
 
 | Flag                  | Formål                                                                                                                                                                                               |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | Den tilstand, en hændelse får, når ingen har valgt en. Har ingen tilstand i projektet dette flag, fejler oprettelsen af en hændelse med en fejl, der beder dig tilføje en oprettelsestilstand for hændelser fra indstillingerne. |
+| `isCreatedState`      | Den tilstand, en hændelse får, når ingen har valgt en — medmindre projektet lader hændelser erklæret i hånden starte som bekræftede, og en sådan hændelse ikke tilkalder nogen vagtpolitik: se [Hændelser erklæret i hånden](#hændelser-erklæret-i-hånden). Har ingen tilstand i projektet dette flag, fejler oprettelsen af en hændelse med en fejl, der beder dig tilføje en oprettelsestilstand for hændelser fra indstillingerne. |
 | `isAcknowledgedState` | Markerer projektets bekræftede tilstand: den, **Bekræft** flytter en hændelse til, og som nøgletalsfeltet for bekræftelse er opkaldt efter. En hændelse i den, i en senere tilstand, eller løst, er bekræftet — **Bekræft** tilbydes ikke længere for den, vagten holder op med at tilkalde for den, og dens SLA markeres som besvaret. |
 | `isResolvedState`     | Markerer projektets løste tilstand: den, **Løs** flytter en hændelse til, og som nøgletalsfeltet for løsning viser. En hændelse i den, eller i en senere tilstand, er løst — den forsvinder fra **Aktive hændelser** og fra en statussides aktive del, og dens SLA markeres som løst. |
 
@@ -75,6 +75,28 @@ Der forventes kun én tilstand pr. projekt med hvert flag — opslagene henter d
 - **De kan ikke slettes.** Deres **Slet** bliver i rækkens menu, låst, med årsagen. En massesletning springer dem over og nævner dem som ikke slettet. API'et nægter også at slette et projekts sidste oprettelses-, bekræftede eller løste tilstand.
 
 Fordi brugerfladen læser tilstandsnavne dynamisk, ændrer en omdøbning det, du ser overalt — nøgletalsfelterne (**Bekræftet efter** og **Løst efter** med de forudoprettede navne), bekræftelsen **Markér hændelse som …** for en egen tilstand og mærket i listen over hændelser følger alle det navn, du gav rækken.
+
+## Hændelser erklæret i hånden
+
+Hver ny hændelse starter i din oprettelsestilstand og venter der på at blive bekræftet. Når du selv erklærer en, er det som regel dig, der reagerer: du bliver dens Hændelsesleder, når du erklærer den, og at bekræfte den er bare ét klik mere. Et projekt kan i stedet lade sådanne hændelser starte som bekræftede.
+
+:::steps
+1. Åbn **Hændelser → Indstillinger → Hændelsesstatus** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Slå **Start incidents declared by hand acknowledged** til under listen over tilstande. Den gemmes, så snart du slår den om.
+:::
+
+Den er slået fra i alle projekter, indtil du slår den til, så en opgradering ændrer aldrig, hvem der bliver tilkaldt. Kun Projektejere og Projektadministratorer kan ændre den; for alle andre er kontakten låst og siger, hvilken tilladelse den kræver.
+
+Mens den er slået til, starter en hændelse, der erklæres i hånden — med **Erklær hændelse**, uanset hvor du åbner den, eller med hændelsesformularen i Slack eller Microsoft Teams — i din bekræftede tilstand, når begge disse betingelser er opfyldt:
+
+- **Der er ikke valgt nogen tilstand til den**, hverken af dig eller af den skabelon, den erklæres fra. En valgt tilstand vinder, som altid.
+- **Den tilkalder ingen vagtpolitik**, hverken én, du har valgt, eller én fra dens skabelon. Vælger du en politik, starter hændelsen i din oprettelsestilstand som før, så politikken tilkalder sine personer.
+
+Når den starter som bekræftet, tilkalder den ingen: som for enhver hændelse, der [erklæres allerede bekræftet](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst), kører ingen vagtpolitik, heller ikke en, som en vagtregel tilføjer. Dens SLA starter allerede som besvaret, og dens tid til bekræftelse er nul, hvilket tæller med i din MTTA.
+
+**Erklær hændelse** siger det, før du erklærer: under **Indledende tilstand**, under **Vagtpolitik**, så længe ingen er valgt, og i opsummeringen, som så altid nævner **Indledende tilstand**. Den udfylder aldrig **Indledende tilstand** for dig: en tilstand, der er valgt dér, vinder, så de vagtpolitikker, du vælger i det sidste trin, ville ikke tilkalde nogen. Slack og Microsoft Teams siger det under deres vagtpolitikker og i den besked, der bekræfter hændelsen.
+
+Hændelser, som ingen erklærer i hånden — åbnet af monitorer eller af advarslers hændelsesregler, via API'et, Terraform, arbejdsgange eller formularer, fra en sikkerhedssag eller af OneUptime AI — starter i din oprettelsestilstand som før. Via API'et er kontakten projektets `startIncidentsDeclaredByHandAcknowledged`.
 
 ## Tilføj dine egne tilstande
 
@@ -204,7 +226,7 @@ Advarsler og episoder følger samme regel med dine advarselstilstande.
 
 En hændelse er løst, når den går fra en tilstand over din løste tilstand ind i den løste tilstand, eller ind i en senere tilstand — uanset hvilken af de fem måder ovenfor der flytter den. Hver løsning:
 
-- **Giver de monitorer fri, hændelsen holder.** En hændelse, der erklæres åben, holder sine monitorer: den satte dem i sin status fra **Skift monitorstatus til**, når den nævner en, og satte, når den blev erklæret i hånden, deres overvågning på pause. En redigering, mens den er åben — at tilføje monitorer eller ændre den status — får den også til at holde dem. Løsningen genoptager deres overvågning og sætter dem tilbage til driftsklar, medmindre en anden åben hændelse stadig ligger på dem, og fra da af holder hændelsen intet. Så en hændelse, der erklæres allerede løst, giver intet fri, og det gør en anden løsning efter en genåbning heller ikke: en status, dens monitorer fik i mellemtiden — fra deres sonder, fra vedligeholdelse eller sat i hånden — bliver stående.
+- **Giver de monitorer fri, hændelsen holder.** En hændelse, der erklæres åben, holder sine monitorer: den satte dem i sin status fra **Skift monitorstatus til**, når den nævner en, og satte, når den blev erklæret i hånden med kryds i **Sæt overvågning på pause**, deres overvågning på pause, undtagen på monitorer, der er sat til at fortsætte overvågning under hændelser. En redigering, mens den er åben — at tilføje monitorer eller ændre den status — får den også til at holde dem. Løsningen genoptager deres overvågning og sætter dem tilbage til driftsklar, medmindre en anden åben hændelse stadig ligger på dem, og fra da af holder hændelsen intet. En monitor, som en anden åben hændelse, der er erklæret i hånden, stadig holder på pause, forbliver på pause; en hændelse, der er genåbnet siden sin løsning, holder intet, så den holder intet på pause. Så en hændelse, der erklæres allerede løst, giver intet fri, og det gør en anden løsning efter en genåbning heller ikke: en status, dens monitorer fik i mellemtiden — fra deres sonder, fra vedligeholdelse eller sat i hånden — bliver stående. Se [Overvågning, mens en hændelse er åben](/docs/incidents/declaring-incidents#overvågning-mens-en-hændelse-er-åben).
 - **Markerer SLA'en som løst** og skriver, når OneUptime AI's postmortem-udkast er slået til, et udkast til en postmortem.
 
 At gå videre fra **Løst** til en senere tilstand — **Closed** for eksempel — er ikke en anden løsning: intet af dette kører igen, og ingen ny SLA starter. En hændelse, der blev erklæret, før OneUptime begyndte at registrere dette, giver sine monitorer fri ved sin næste løsning, som før.

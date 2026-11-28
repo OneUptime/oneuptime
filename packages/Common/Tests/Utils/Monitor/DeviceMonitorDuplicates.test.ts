@@ -14,6 +14,7 @@ import {
   NTP_DEFAULT_PORT,
   findDuplicateDeviceMonitor,
   getDeviceMonitorCheckKeys,
+  getTemplatesOfDeviceMonitor,
   toDeviceMonitorCandidate,
   toDeviceMonitorFacts,
 } from "../../../Utils/Monitor/DeviceMonitorDuplicates";
@@ -782,5 +783,190 @@ describe("a web monitor in its own right, on purpose", () => {
         monitors: [facts({ monitorType: MonitorType.Ping })],
       }),
     ).toBeNull();
+  });
+});
+
+/*
+ * A MONITOR A PERSON MOVED OFF THE TEMPLATE IT WAS CREATED FROM (issues
+ * #11260, #11266).
+ *
+ * Moving a device's monitor to a better template, or unlinking it, used to
+ * be refused, because the rule that made it knew it only by the template it
+ * is linked to: once moved, the rule would have made the old template's
+ * monitor again. The monitor keeps the template it was created from now
+ * (Monitor.createdFromMonitorTemplateId), and the rule counts it as that
+ * template's monitor too.
+ */
+describe("a monitor moved off the template it was created from", () => {
+  const WAREHOUSE_TEMPLATE: string = "99999999-9999-4999-8999-999999999999";
+  const BETTER_TEMPLATE: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+  function moved(data: {
+    monitorType: MonitorType;
+    createdFrom: string;
+    linkedTo?: string | undefined;
+  }): DeviceMonitorFacts {
+    return {
+      ...facts({
+        monitorType: data.monitorType,
+        monitorTemplateId: data.linkedTo,
+      }),
+      createdFromMonitorTemplateId: data.createdFrom,
+    };
+  }
+
+  it("is still the monitor of the template it was created from, once linked to another", () => {
+    const existing: DeviceMonitorFacts = moved({
+      monitorType: MonitorType.NetworkDevice,
+      createdFrom: WAREHOUSE_TEMPLATE,
+      linkedTo: BETTER_TEMPLATE,
+    });
+
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: candidate({
+          monitorType: MonitorType.NetworkDevice,
+          monitorTemplateId: WAREHOUSE_TEMPLATE,
+        }),
+        monitors: [existing],
+      }),
+    ).toBe(existing);
+  });
+
+  it("is the monitor of the template it is linked to now as well", () => {
+    const existing: DeviceMonitorFacts = moved({
+      monitorType: MonitorType.NetworkDevice,
+      createdFrom: WAREHOUSE_TEMPLATE,
+      linkedTo: BETTER_TEMPLATE,
+    });
+
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: candidate({
+          monitorType: MonitorType.NetworkDevice,
+          monitorTemplateId: BETTER_TEMPLATE,
+        }),
+        monitors: [existing],
+      }),
+    ).toBe(existing);
+  });
+
+  it("is still the monitor of the template it was created from, once unlinked from every template", () => {
+    const existing: DeviceMonitorFacts = moved({
+      monitorType: MonitorType.NetworkDevice,
+      createdFrom: WAREHOUSE_TEMPLATE,
+    });
+
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: candidate({
+          monitorType: MonitorType.NetworkDevice,
+          monitorTemplateId: WAREHOUSE_TEMPLATE,
+        }),
+        monitors: [existing],
+      }),
+    ).toBe(existing);
+  });
+
+  it("matches the template it was created from however its case is written", () => {
+    const existing: DeviceMonitorFacts = moved({
+      monitorType: MonitorType.NetworkDevice,
+      createdFrom: WAREHOUSE_TEMPLATE.toUpperCase(),
+    });
+
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: candidate({
+          monitorType: MonitorType.NetworkDevice,
+          monitorTemplateId: WAREHOUSE_TEMPLATE,
+        }),
+        monitors: [existing],
+      }),
+    ).toBe(existing);
+  });
+
+  it("is no Network Device monitor of a third template: only those two templates are its", () => {
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: candidate({
+          monitorType: MonitorType.NetworkDevice,
+          monitorTemplateId: CPU_TEMPLATE,
+        }),
+        monitors: [
+          moved({
+            monitorType: MonitorType.NetworkDevice,
+            createdFrom: WAREHOUSE_TEMPLATE,
+            linkedTo: BETTER_TEMPLATE,
+          }),
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  it("is preferred, by its template, to one that only checks the same thing", () => {
+    const sameCheck: DeviceMonitorFacts = facts({
+      monitorType: MonitorType.Ping,
+      monitorTemplateId: OTHER_PING_TEMPLATE,
+    });
+    const createdFromIt: DeviceMonitorFacts = moved({
+      monitorType: MonitorType.Ping,
+      createdFrom: KIOSK_PING_TEMPLATE,
+      linkedTo: BETTER_TEMPLATE,
+    });
+
+    expect(
+      findDuplicateDeviceMonitor({
+        candidate: candidate({
+          monitorType: MonitorType.Ping,
+          monitorTemplateId: KIOSK_PING_TEMPLATE,
+        }),
+        monitors: [sameCheck, createdFromIt],
+      }),
+    ).toBe(createdFromIt);
+  });
+
+  it("is read with the template it was created from", () => {
+    const monitor: Monitor = new Monitor();
+    monitor.id = ObjectID.generate();
+    monitor.monitorType = MonitorType.NetworkDevice;
+    monitor.monitorTemplateId = new ObjectID(BETTER_TEMPLATE);
+    monitor.createdFromMonitorTemplateId = new ObjectID(WAREHOUSE_TEMPLATE);
+
+    const read: DeviceMonitorFacts = toDeviceMonitorFacts(monitor);
+
+    expect(read.monitorTemplateId).toBe(BETTER_TEMPLATE);
+    expect(read.createdFromMonitorTemplateId).toBe(WAREHOUSE_TEMPLATE);
+  });
+});
+
+describe("the templates a device's monitor is the monitor of", () => {
+  it("are the one it is linked to, then the one it was created from, as stored", () => {
+    expect(
+      getTemplatesOfDeviceMonitor({
+        monitorTemplateId: CPU_TEMPLATE,
+        createdFromMonitorTemplateId: ALERT_PACK_TEMPLATE,
+      }),
+    ).toEqual([CPU_TEMPLATE, ALERT_PACK_TEMPLATE]);
+  });
+
+  it("name one template once, however its two ids are cased", () => {
+    expect(
+      getTemplatesOfDeviceMonitor({
+        monitorTemplateId: CPU_TEMPLATE,
+        createdFromMonitorTemplateId: CPU_TEMPLATE.toUpperCase(),
+      }),
+    ).toEqual([CPU_TEMPLATE]);
+  });
+
+  it("are the one it was created from alone, once unlinked", () => {
+    expect(
+      getTemplatesOfDeviceMonitor({
+        createdFromMonitorTemplateId: ALERT_PACK_TEMPLATE,
+      }),
+    ).toEqual([ALERT_PACK_TEMPLATE]);
+  });
+
+  it("are none for a monitor made from no template and linked to none", () => {
+    expect(getTemplatesOfDeviceMonitor({})).toEqual([]);
   });
 });

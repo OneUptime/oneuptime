@@ -44,7 +44,11 @@ Press 1 to acknowledge, or 2 to escalate.
 You did not press a key, so this incident is not acknowledged. Good bye.
 ```
 
-Opkaldet nævner dit projekt. Et opkald, der ikke hører til et projekt, for eksempel en bekræftelseskode, nævner OneUptime eller det navn, din selvhostede installation bruger. En titel på mere end cirka 100 tegn afkortes efter et helt ord, og OneUptime gemmer hele titlen. Bogstaverne i et nummer som `INC-42` siges ét ad gangen, så stemmen aldrig læser dem som et ord. Opkald er altid på engelsk.
+Trykker du på en tast, som opkaldet ikke tilbød, for eksempel 3, # eller *, siger opkaldet "That key does nothing." og beder igen om en tast. Det sker højst to gange, lige så mange gange som opkaldet siger tasterne, når du ikke trykker på nogen; derefter afslutter en forkert tast opkaldet, og tilkaldet forbliver ubekræftet. Tasterne 1 og 2 virker, som de altid har gjort.
+
+Opkaldet nævner dit projekt. Et opkald, der ikke hører til et projekt, for eksempel en bekræftelseskode, nævner OneUptime eller det navn, din selvhostede installation bruger. En titel på mere end cirka 100 tegn afkortes efter et helt ord, og OneUptime gemmer hele titlen. Bogstaverne i et nummer som `INC-42` siges ét ad gangen, så stemmen aldrig læser dem som et ord.
+
+Et opkald er på det sprog, du bruger OneUptime på, når den Twilio-konto, det går ud gennem, taler med en af OneUptimes stemmer: alt, hvad det siger, svarene på dine taster medregnet, med en stemme på dit sprog, en kvindestemme, hvis kontoens stemme er en kvindestemme, og en mandsstemme, hvis den er en mandsstemme. Tasterne er de samme: 1 for at bekræfte, 2 for at eskalere. Et opkald gennem en konto, der beholder sin standardstemme, er på engelsk, og det samme er et opkald til en, der bruger OneUptime på persisk, som ingen stemme taler: se [Den stemme, opkaldene taler med](/docs/self-hosted/twilio-integration#den-stemme-opkaldene-taler-med).
 
 ## Én rækkefølge til alt
 

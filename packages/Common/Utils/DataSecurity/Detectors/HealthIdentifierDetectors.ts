@@ -5,6 +5,7 @@ import {
   digitsOnly,
   hasDigit,
   isPlaceholderDigits,
+  withEveryReading,
 } from "../Detector";
 import { digitAt, luhn, weightedDigitSum } from "../Validators";
 
@@ -165,7 +166,7 @@ function isUsDeaNumber(value: string): boolean {
   return sum % 10 === digitAt(value, 8);
 }
 
-export const HEALTH_IDENTIFIER_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+const HEALTH_IDENTIFIERS: ReadonlyArray<DataTypeDetector> = [
   /*
    * UK NHS number: the mod 11 check digit. One ten-digit number in eleven
    * passes, so beside a word.
@@ -294,5 +295,14 @@ export const HEALTH_IDENTIFIER_DETECTORS: ReadonlyArray<DataTypeDetector> = [
     },
   },
 ];
+
+/*
+ * Each read however it is written (withEveryReading): in every script's
+ * digits (#11033), an NHS number in Arabic-Indic digits passes the same mod
+ * 11, and in a URL (#11199), nhs=943+476+5919 is the NHS number its groups
+ * spell.
+ */
+export const HEALTH_IDENTIFIER_DETECTORS: ReadonlyArray<DataTypeDetector> =
+  HEALTH_IDENTIFIERS.map(withEveryReading);
 
 export default HEALTH_IDENTIFIER_DETECTORS;

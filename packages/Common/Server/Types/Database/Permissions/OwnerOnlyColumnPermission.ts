@@ -53,7 +53,10 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
  *
  *   4. A WHERE predicate - `query: { webhookUrl: "https://..." }`. Equality on a
  *      secret is a value oracle: enough queries and the value is read out one
- *      guess at a time, with nothing ever selected. checkQueryPermission().
+ *      guess at a time, with nothing ever selected. checkQueryPermission(),
+ *      and - for a filter that names its columns inside itself, a search
+ *      across fields, a group of filters, a filter by linked records -
+ *      checkColumnsFilteredWithin().
  *
  * FAIL CLOSED. No caller identity, no ownership column on the model, a query
  * shape this code does not recognise, or an ownership predicate that names
@@ -279,6 +282,48 @@ export default class OwnerOnlyColumnPermission {
     columnName: string,
   ): boolean {
     return isOwnerOnlyColumn(new modelType(), columnName);
+  }
+
+  /*
+   * The columns a filter of the query names inside itself, held to what a
+   * filter on the column itself is held to (checkQueryPermission): a marked
+   * column is a predicate only for a read whose own query is pinned to the
+   * caller. QueryPermission asks it of every such filter, since the walk
+   * above reads the query's own keys and never sees inside one:
+   *
+   *   - each group of a FilterGroups (#11211);
+   *   - the fields a MultiSearch reads, whose matches confirm or deny a
+   *     guess at somebody's phone as `{ phone: "+1555..." }` does (#11381);
+   *   - the relations a LinkedTo names (#11381): ids and lists of linked
+   *     records, of which no marked column is one today.
+   *
+   * An order names its columns inside itself too, and is held to the same
+   * rule (SortValidator.checkSortPermission, route 3).
+   */
+  public static checkColumnsFilteredWithin<TBaseModel extends BaseModel>(data: {
+    modelType: DatabaseBaseModelType;
+    query: Query<TBaseModel>;
+    columns: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    if (OwnerOnlyColumnPermission.isPrivilegedInternalRead(data.props)) {
+      return;
+    }
+
+    const model: BaseModel = new data.modelType();
+
+    for (const columnName of data.columns) {
+      if (
+        isOwnerOnlyColumn(model, columnName) &&
+        !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+          data.modelType,
+          data.query,
+          data.props,
+        )
+      ) {
+        throw OwnerOnlyColumnPermission.refusal(model, columnName);
+      }
+    }
   }
 
   public static getOwnerOnlyColumnsOnModel(

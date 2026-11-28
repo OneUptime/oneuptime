@@ -226,6 +226,10 @@ enum Permission {
   ProxmoxMember = "ProxmoxMember",
   ProxmoxViewer = "ProxmoxViewer",
 
+  XcpNgAdmin = "XcpNgAdmin",
+  XcpNgMember = "XcpNgMember",
+  XcpNgViewer = "XcpNgViewer",
+
   OpenStackAdmin = "OpenStackAdmin",
   OpenStackMember = "OpenStackMember",
   OpenStackViewer = "OpenStackViewer",
@@ -459,6 +463,10 @@ enum Permission {
   DeleteSecurityBlocklistFeed = "DeleteSecurityBlocklistFeed",
   EditSecurityBlocklistFeed = "EditSecurityBlocklistFeed",
   ReadSecurityBlocklistFeed = "ReadSecurityBlocklistFeed",
+
+  // Erasure Requests (erasing one person from Security Events' user vault, #10908)
+  CreateSecurityUserErasureRequest = "CreateSecurityUserErasureRequest",
+  ReadSecurityUserErasureRequest = "ReadSecurityUserErasureRequest",
 
   // Data Stores: the buckets, databases, warehouses and telemetry Data Security watches
   CreateDataStore = "CreateDataStore",
@@ -1074,15 +1082,19 @@ enum Permission {
    * Docker Swarm Cluster Owner Rule Permissions
    */
   CreateProxmoxClusterOwnerRule = "CreateProxmoxClusterOwnerRule",
+  CreateXcpNgPoolOwnerRule = "CreateXcpNgPoolOwnerRule",
   CreateOpenStackCloudOwnerRule = "CreateOpenStackCloudOwnerRule",
   CreateDockerSwarmClusterOwnerRule = "CreateDockerSwarmClusterOwnerRule",
   DeleteProxmoxClusterOwnerRule = "DeleteProxmoxClusterOwnerRule",
+  DeleteXcpNgPoolOwnerRule = "DeleteXcpNgPoolOwnerRule",
   DeleteOpenStackCloudOwnerRule = "DeleteOpenStackCloudOwnerRule",
   DeleteDockerSwarmClusterOwnerRule = "DeleteDockerSwarmClusterOwnerRule",
   EditProxmoxClusterOwnerRule = "EditProxmoxClusterOwnerRule",
+  EditXcpNgPoolOwnerRule = "EditXcpNgPoolOwnerRule",
   EditOpenStackCloudOwnerRule = "EditOpenStackCloudOwnerRule",
   EditDockerSwarmClusterOwnerRule = "EditDockerSwarmClusterOwnerRule",
   ReadProxmoxClusterOwnerRule = "ReadProxmoxClusterOwnerRule",
+  ReadXcpNgPoolOwnerRule = "ReadXcpNgPoolOwnerRule",
   ReadOpenStackCloudOwnerRule = "ReadOpenStackCloudOwnerRule",
   ReadDockerSwarmClusterOwnerRule = "ReadDockerSwarmClusterOwnerRule",
 
@@ -1097,15 +1109,19 @@ enum Permission {
    * Docker Swarm Cluster Label Rule Permissions
    */
   CreateProxmoxClusterLabelRule = "CreateProxmoxClusterLabelRule",
+  CreateXcpNgPoolLabelRule = "CreateXcpNgPoolLabelRule",
   CreateOpenStackCloudLabelRule = "CreateOpenStackCloudLabelRule",
   CreateDockerSwarmClusterLabelRule = "CreateDockerSwarmClusterLabelRule",
   DeleteProxmoxClusterLabelRule = "DeleteProxmoxClusterLabelRule",
+  DeleteXcpNgPoolLabelRule = "DeleteXcpNgPoolLabelRule",
   DeleteOpenStackCloudLabelRule = "DeleteOpenStackCloudLabelRule",
   DeleteDockerSwarmClusterLabelRule = "DeleteDockerSwarmClusterLabelRule",
   EditProxmoxClusterLabelRule = "EditProxmoxClusterLabelRule",
+  EditXcpNgPoolLabelRule = "EditXcpNgPoolLabelRule",
   EditOpenStackCloudLabelRule = "EditOpenStackCloudLabelRule",
   EditDockerSwarmClusterLabelRule = "EditDockerSwarmClusterLabelRule",
   ReadProxmoxClusterLabelRule = "ReadProxmoxClusterLabelRule",
+  ReadXcpNgPoolLabelRule = "ReadXcpNgPoolLabelRule",
   ReadOpenStackCloudLabelRule = "ReadOpenStackCloudLabelRule",
   ReadDockerSwarmClusterLabelRule = "ReadDockerSwarmClusterLabelRule",
 
@@ -1570,10 +1586,12 @@ enum Permission {
   ReadPodmanHostFeed = "ReadPodmanHostFeed",
 
   CreateProxmoxClusterFeed = "CreateProxmoxClusterFeed",
+  CreateXcpNgPoolFeed = "CreateXcpNgPoolFeed",
   CreateOpenStackCloudFeed = "CreateOpenStackCloudFeed",
   EditProxmoxClusterFeed = "EditProxmoxClusterFeed",
   EditOpenStackCloudFeed = "EditOpenStackCloudFeed",
   ReadProxmoxClusterFeed = "ReadProxmoxClusterFeed",
+  ReadXcpNgPoolFeed = "ReadXcpNgPoolFeed",
   ReadOpenStackCloudFeed = "ReadOpenStackCloudFeed",
 
   CreateHostFeed = "CreateHostFeed",
@@ -2056,15 +2074,19 @@ enum Permission {
   ReadPodmanHostOwnerUser = "ReadPodmanHostOwnerUser",
 
   CreateProxmoxCluster = "CreateProxmoxCluster",
+  CreateXcpNgPool = "CreateXcpNgPool",
   CreateOpenStackCloud = "CreateOpenStackCloud",
   CreateDockerSwarmCluster = "CreateDockerSwarmCluster",
   DeleteProxmoxCluster = "DeleteProxmoxCluster",
+  DeleteXcpNgPool = "DeleteXcpNgPool",
   DeleteOpenStackCloud = "DeleteOpenStackCloud",
   DeleteDockerSwarmCluster = "DeleteDockerSwarmCluster",
   EditProxmoxCluster = "EditProxmoxCluster",
+  EditXcpNgPool = "EditXcpNgPool",
   EditOpenStackCloud = "EditOpenStackCloud",
   EditDockerSwarmCluster = "EditDockerSwarmCluster",
   ReadProxmoxCluster = "ReadProxmoxCluster",
+  ReadXcpNgPool = "ReadXcpNgPool",
   ReadOpenStackCloud = "ReadOpenStackCloud",
   ReadDockerSwarmCluster = "ReadDockerSwarmCluster",
 
@@ -2106,15 +2128,19 @@ enum Permission {
   ReadDataAssetFeed = "ReadDataAssetFeed",
 
   CreateProxmoxClusterOwnerTeam = "CreateProxmoxClusterOwnerTeam",
+  CreateXcpNgPoolOwnerTeam = "CreateXcpNgPoolOwnerTeam",
   CreateOpenStackCloudOwnerTeam = "CreateOpenStackCloudOwnerTeam",
   CreateDockerSwarmClusterOwnerTeam = "CreateDockerSwarmClusterOwnerTeam",
   DeleteProxmoxClusterOwnerTeam = "DeleteProxmoxClusterOwnerTeam",
+  DeleteXcpNgPoolOwnerTeam = "DeleteXcpNgPoolOwnerTeam",
   DeleteOpenStackCloudOwnerTeam = "DeleteOpenStackCloudOwnerTeam",
   DeleteDockerSwarmClusterOwnerTeam = "DeleteDockerSwarmClusterOwnerTeam",
   EditProxmoxClusterOwnerTeam = "EditProxmoxClusterOwnerTeam",
+  EditXcpNgPoolOwnerTeam = "EditXcpNgPoolOwnerTeam",
   EditOpenStackCloudOwnerTeam = "EditOpenStackCloudOwnerTeam",
   EditDockerSwarmClusterOwnerTeam = "EditDockerSwarmClusterOwnerTeam",
   ReadProxmoxClusterOwnerTeam = "ReadProxmoxClusterOwnerTeam",
+  ReadXcpNgPoolOwnerTeam = "ReadXcpNgPoolOwnerTeam",
   ReadOpenStackCloudOwnerTeam = "ReadOpenStackCloudOwnerTeam",
   ReadDockerSwarmClusterOwnerTeam = "ReadDockerSwarmClusterOwnerTeam",
 
@@ -2124,15 +2150,19 @@ enum Permission {
   ReadIoTFleetOwnerTeam = "ReadIoTFleetOwnerTeam",
 
   CreateProxmoxClusterOwnerUser = "CreateProxmoxClusterOwnerUser",
+  CreateXcpNgPoolOwnerUser = "CreateXcpNgPoolOwnerUser",
   CreateOpenStackCloudOwnerUser = "CreateOpenStackCloudOwnerUser",
   CreateDockerSwarmClusterOwnerUser = "CreateDockerSwarmClusterOwnerUser",
   DeleteProxmoxClusterOwnerUser = "DeleteProxmoxClusterOwnerUser",
+  DeleteXcpNgPoolOwnerUser = "DeleteXcpNgPoolOwnerUser",
   DeleteOpenStackCloudOwnerUser = "DeleteOpenStackCloudOwnerUser",
   DeleteDockerSwarmClusterOwnerUser = "DeleteDockerSwarmClusterOwnerUser",
   EditProxmoxClusterOwnerUser = "EditProxmoxClusterOwnerUser",
+  EditXcpNgPoolOwnerUser = "EditXcpNgPoolOwnerUser",
   EditOpenStackCloudOwnerUser = "EditOpenStackCloudOwnerUser",
   EditDockerSwarmClusterOwnerUser = "EditDockerSwarmClusterOwnerUser",
   ReadProxmoxClusterOwnerUser = "ReadProxmoxClusterOwnerUser",
+  ReadXcpNgPoolOwnerUser = "ReadXcpNgPoolOwnerUser",
   ReadOpenStackCloudOwnerUser = "ReadOpenStackCloudOwnerUser",
   ReadDockerSwarmClusterOwnerUser = "ReadDockerSwarmClusterOwnerUser",
 
@@ -2929,6 +2959,13 @@ export const PRODUCT_LEVEL_PERMISSIONS: ReadonlyArray<ProductLevelPermissions> =
       admin: Permission.VMwareAdmin,
       member: Permission.VMwareMember,
       viewer: Permission.VMwareViewer,
+    },
+    {
+      product: ProductKey.XcpNg,
+      roleName: "XCP-ng",
+      admin: Permission.XcpNgAdmin,
+      member: Permission.XcpNgMember,
+      viewer: Permission.XcpNgViewer,
     },
     {
       product: ProductKey.Ceph,
@@ -5070,6 +5107,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateXcpNgPoolFeed,
+        title: "Create XCP-ng Pool Feed",
+        description:
+          "This permission can create the activity feed of an XCP-ng pool in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateOpenStackCloudFeed,
         title: "Create OpenStack Cloud Feed",
         description:
@@ -5106,6 +5153,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster Feed",
         description:
           "This permission can read the activity feed of a Proxmox cluster in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadXcpNgPoolFeed,
+        title: "Read XCP-ng Pool Feed",
+        description:
+          "This permission can read the activity feed of an XCP-ng pool in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -9920,6 +9977,28 @@ export class PermissionHelper {
         group: PermissionGroup.Security,
       },
 
+      // Erasure Request Permissions (#10908)
+      {
+        permission: Permission.CreateSecurityUserErasureRequest,
+        title: "Create Security Erasure Request",
+        description:
+          "This permission can erase a person from Security Events' user vault, for example to satisfy a right-to-erasure request: the vault never names them again, and the events, cases and proposals it named them in show the token instead.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityUserErasureRequest,
+        title: "Read Security Erasure Request",
+        description:
+          "This permission can read Security Events' erasure requests and what each one changed. They never name the person.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
       // Data Store Permissions
       {
         permission: Permission.CreateDataStore,
@@ -12558,6 +12637,15 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateXcpNgPool,
+        title: "Create XCP-ng Pool",
+        description: "This permission can add XCP-ng pools to this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateOpenStackCloud,
         title: "Create OpenStack Cloud",
         description:
@@ -12582,6 +12670,15 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster",
         description:
           "This permission can delete Proxmox Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteXcpNgPool,
+        title: "Delete XCP-ng Pool",
+        description: "This permission can delete XCP-ng pools of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -12618,6 +12715,15 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditXcpNgPool,
+        title: "Edit XCP-ng Pool",
+        description: "This permission can edit XCP-ng pools of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditOpenStackCloud,
         title: "Edit OpenStack Cloud",
         description:
@@ -12642,6 +12748,15 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster",
         description:
           "This permission can read Proxmox Cluster of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadXcpNgPool,
+        title: "Read XCP-ng Pool",
+        description: "This permission can read XCP-ng pools of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
@@ -13740,6 +13855,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateXcpNgPoolOwnerTeam,
+        title: "Create XCP-ng Pool Team Owner",
+        description:
+          "This permission can create XCP-ng Pool Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateOpenStackCloudOwnerTeam,
         title: "Create OpenStack Cloud Team Owner",
         description:
@@ -13764,6 +13889,16 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster Team Owner",
         description:
           "This permission can delete Proxmox Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteXcpNgPoolOwnerTeam,
+        title: "Delete XCP-ng Pool Team Owner",
+        description:
+          "This permission can delete XCP-ng Pool Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13800,6 +13935,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditXcpNgPoolOwnerTeam,
+        title: "Edit XCP-ng Pool Team Owner",
+        description:
+          "This permission can edit XCP-ng Pool Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditOpenStackCloudOwnerTeam,
         title: "Edit OpenStack Cloud Team Owner",
         description:
@@ -13824,6 +13969,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster Team Owner",
         description:
           "This permission can read Proxmox Cluster Team Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadXcpNgPoolOwnerTeam,
+        title: "Read XCP-ng Pool Team Owner",
+        description:
+          "This permission can read XCP-ng Pool Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13902,6 +14057,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateXcpNgPoolOwnerUser,
+        title: "Create XCP-ng Pool User Owner",
+        description:
+          "This permission can create XCP-ng Pool User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateOpenStackCloudOwnerUser,
         title: "Create OpenStack Cloud User Owner",
         description:
@@ -13926,6 +14091,16 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster User Owner",
         description:
           "This permission can delete Proxmox Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteXcpNgPoolOwnerUser,
+        title: "Delete XCP-ng Pool User Owner",
+        description:
+          "This permission can delete XCP-ng Pool User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -13962,6 +14137,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditXcpNgPoolOwnerUser,
+        title: "Edit XCP-ng Pool User Owner",
+        description:
+          "This permission can edit XCP-ng Pool User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditOpenStackCloudOwnerUser,
         title: "Edit OpenStack Cloud User Owner",
         description:
@@ -13986,6 +14171,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster User Owner",
         description:
           "This permission can read Proxmox Cluster User Owner of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadXcpNgPoolOwnerUser,
+        title: "Read XCP-ng Pool User Owner",
+        description:
+          "This permission can read XCP-ng Pool User Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16769,6 +16964,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateXcpNgPoolOwnerRule,
+        title: "Create XCP-ng Pool Owner Rule",
+        description:
+          "This permission can create XCP-ng Pool Owner Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateOpenStackCloudOwnerRule,
         title: "Create OpenStack Cloud Owner Rule",
         description:
@@ -16793,6 +16998,16 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster Owner Rule",
         description:
           "This permission can delete Proxmox Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteXcpNgPoolOwnerRule,
+        title: "Delete XCP-ng Pool Owner Rule",
+        description:
+          "This permission can delete XCP-ng Pool Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16829,6 +17044,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditXcpNgPoolOwnerRule,
+        title: "Edit XCP-ng Pool Owner Rule",
+        description:
+          "This permission can edit XCP-ng Pool Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditOpenStackCloudOwnerRule,
         title: "Edit OpenStack Cloud Owner Rule",
         description:
@@ -16853,6 +17078,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster Owner Rule",
         description:
           "This permission can read Proxmox Cluster Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadXcpNgPoolOwnerRule,
+        title: "Read XCP-ng Pool Owner Rule",
+        description:
+          "This permission can read XCP-ng Pool Owner Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16936,6 +17171,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.CreateXcpNgPoolLabelRule,
+        title: "Create XCP-ng Pool Label Rule",
+        description:
+          "This permission can create XCP-ng Pool Label Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.CreateOpenStackCloudLabelRule,
         title: "Create OpenStack Cloud Label Rule",
         description:
@@ -16960,6 +17205,16 @@ export class PermissionHelper {
         title: "Delete Proxmox Cluster Label Rule",
         description:
           "This permission can delete Proxmox Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteXcpNgPoolLabelRule,
+        title: "Delete XCP-ng Pool Label Rule",
+        description:
+          "This permission can delete XCP-ng Pool Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -16996,6 +17251,16 @@ export class PermissionHelper {
         group: PermissionGroup.Telemetry,
       },
       {
+        permission: Permission.EditXcpNgPoolLabelRule,
+        title: "Edit XCP-ng Pool Label Rule",
+        description:
+          "This permission can edit XCP-ng Pool Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
         permission: Permission.EditOpenStackCloudLabelRule,
         title: "Edit OpenStack Cloud Label Rule",
         description:
@@ -17020,6 +17285,16 @@ export class PermissionHelper {
         title: "Read Proxmox Cluster Label Rule",
         description:
           "This permission can read Proxmox Cluster Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadXcpNgPoolLabelRule,
+        title: "Read XCP-ng Pool Label Rule",
+        description:
+          "This permission can read XCP-ng Pool Label Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

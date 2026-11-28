@@ -66,6 +66,7 @@ Een nieuwe installatie kan starten met werkende sms en oproepen, zonder iets met
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | Het nummer waarvandaan oproepen vertrekken, met landcode. Niet nodig voor `sms-only` |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Optioneel, gescheiden door komma's: nummers die voor ontvangers in hun land worden gebruikt in plaats van het primaire nummer |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Door komma's gescheiden nummers waarvandaan elke sms vertrekt. Verplicht voor `sms-only` |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Optioneel: de stem waarmee oproepen spreken, een van de stemmen in [De stem waarmee oproepen spreken](#de-stem-waarmee-oproepen-spreken). Ze wordt gelezen met of zonder `GLOBAL_TWILIO_ACCOUNT_SID`, en zolang ze is ingesteld, toont **Stem voor oproepen** in het Admin Dashboard haar alleen-lezen |
 
 Met Helm stelt u ze in onder `twilio` in uw values. Om het auth token buiten de values te houden die Helm bij elke release opslaat, zet u het in een eigen Secret en noemt u die Secret in `twilio.existingSecret.name`:
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Zet telefoonnummers tussen aanhalingstekens in een values-bestand, en geef ze door met `--set-string` in plaats van `--set`: zonder aanhalingstekens is `+14155550100` een getal, dat de chart weigert. De chart weigert ook andere `twilio`-waarden zonder `twilio.accountSid`, een Account SID zonder auth token en een auth token dat zowel in `twilio.authToken` als in een Secret staat. Met Terraform stelt u dezelfde waarden in op een `helm_release`, het auth token als gevoelige waarde.
+Zet telefoonnummers tussen aanhalingstekens in een values-bestand, en geef ze door met `--set-string` in plaats van `--set`: zonder aanhalingstekens is `+14155550100` een getal, dat de chart weigert. De chart weigert ook andere `twilio`-waarden zonder `twilio.accountSid` (alle behalve `twilio.callVoice`, die de stem instelt wie het account ook instelt), een Account SID zonder auth token, een auth token dat zowel in `twilio.authToken` als in een Secret staat, en een `twilio.callVoice` die geen van de stemmen is. Met Terraform stelt u dezelfde waarden in op een `helm_release`, het auth token als gevoelige waarde.
 
 Met Docker Compose stelt u de `GLOBAL_TWILIO_`-instellingen in `config.env` in en voert u daarna `npm run start` uit om de containers opnieuw te maken.
 
-OneUptime leest de variabelen bij het opstarten. Is er een onjuist, zoals een telefoonnummer dat OneUptime niet kan lezen of een ontbrekend auth token, dan verstuurt het account geen sms en belt het niet totdat dat is opgelost; het log van de server, **Admin Dashboard > Instellingen > Oproep en sms** en de checklist op `/admin/setup` noemen de variabele. Het auth token wordt nooit getoond. Wijzig de variabelen en herstart OneUptime om het account te wijzigen: het Admin Dashboard wijzigt het niet.
+OneUptime leest de variabelen bij het opstarten. Is er een onjuist, zoals een telefoonnummer dat OneUptime niet kan lezen of een ontbrekend auth token, dan verstuurt het account geen sms en belt het niet totdat dat is opgelost; het log van de server, **Admin Dashboard > Instellingen > Oproep en sms** en de checklist op `/admin/setup` noemen de variabele. Een `GLOBAL_TWILIO_CALL_VOICE` die geen stem noemt die OneUptime aanbiedt, houdt geen oproep tegen: oproepen spreken met de standaardstem van het account totdat dat is opgelost, en dezelfde drie plekken noemen haar. Het auth token wordt nooit getoond. Wijzig de variabelen en herstart OneUptime om het account te wijzigen: het Admin Dashboard wijzigt het niet.
 
 ### Projectconfiguraties beheren met Terraform
 
@@ -146,6 +147,51 @@ Een project heeft een standaard voor sms en een standaard voor oproepen, en een 
 Wat geen standaard verstuurt, gaat zoals het zonder configuratie zou gaan: zolang de enige standaard op **Alleen sms** staat, lopen oproepen naar de leden van het project via de configuratie voor de hele installatie. Kan geen enkele configuratie een bericht versturen, dan staat in het logboek van het bericht dat de configuratie van het project daar niet voor wordt gebruikt, en wie dat kan wijzigen.
 
 Statuspagina's bieden alleen de configuraties aan die sms versturen, en **Test-sms verzenden** en **Testoproep verzenden** verschijnen alleen voor wat een configuratie verstuurt. Elke bestaande configuratie staat, zoals voorheen, op **Oproepen en sms**. Via de API en Terraform is de keuze het veld `usedFor`, en een configuratie zonder de nummers die haar keuze nodig heeft, wordt geweigerd.
+
+### De stem waarmee oproepen spreken
+
+Oproepen spreken met de stem die uw Twilio-account standaard gebruikt: de gratis Basic-stem van Twilio, tenzij u in de Twilio Console een andere hebt gekozen. Volgens Twilio zijn de Basic-stemmen niet bedoeld voor productie, dus elk account kan in plaats daarvan met een van deze neurale stemmen spreken. Kies die van het account voor de hele installatie in de kaart **Stem voor oproepen** op **Admin Dashboard > Instellingen > Oproep en sms**, en die van een projectconfiguratie bij **Stem voor oproepen** onder **Meer velden**. Om die van het account voor de hele installatie vanuit code in te stellen, gebruikt u `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` met Helm): zie [Het account voor de hele installatie instellen met omgevingsvariabelen](#het-account-voor-de-hele-installatie-instellen-met-omgevingsvariabelen).
+
+| Stem | Gemaakt door | Klinkt als |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Amerikaans-Engels, vrouwelijke stem |
+| `Polly.Matthew-Neural` | Amazon Polly | Amerikaans-Engels, mannelijke stem |
+| `Polly.Amy-Neural` | Amazon Polly | Brits-Engels, vrouwelijke stem |
+| `Polly.Brian-Neural` | Amazon Polly | Brits-Engels, mannelijke stem |
+| `Google.en-US-Neural2-F` | Google | Amerikaans-Engels, vrouwelijke stem |
+| `Google.en-US-Neural2-J` | Google | Amerikaans-Engels, mannelijke stem |
+
+Elke oproep via het account spreekt met die stem: on-call-meldingen en het antwoord op de toets die u indrukt, het bericht dat op de voicemail wordt ingesproken, verificatiecodes, **Testoproep verzenden** en de begroetingen van een beleid voor inkomende oproepen. Met deze stemmen wordt een nummer als `INC-42` met SSML gespeld, wat natuurlijker klinkt dan de losse letters die andere stemmen krijgen. Twilio rekent deze stemmen aan op het account dat de oproep plaatst: $0.0032 per 100 tekens in november 2026, minder dan 3 Amerikaanse cent per oproep voor een melding, in elke taal. Zie [de spraakprijzen van Twilio](https://www.twilio.com/en-us/voice/pricing/us). Laat **Stem voor oproepen** leeg om de standaardstem van het account te houden. Via de API en Terraform is de stem het veld `twilioCallVoice`, en een stem die niet in de tabel staat, wordt geweigerd.
+
+#### Oproepen in andere talen
+
+De oproep voor een on-call-melding aan iemand die OneUptime in een andere taal gebruikt, is in die taal wanneer het account met een van de stemmen hierboven spreekt: de woorden zijn in die taal geschreven, en een stem van die taal spreekt ze uit, een vrouwenstem als het account met een vrouwenstem spreekt en een mannenstem als het met een mannenstem spreekt. De vraag om een toets, de details die worden herhaald als er geen toets wordt ingedrukt, het antwoord op een verkeerde toets en de antwoorden op de toetsen zijn allemaal in die taal, en de toetsen blijven 1 en 2. Dit zijn de stemmen, uit de lijst met neurale stemmen van Twilio, gecontroleerd op 27 november 2026; ze kosten hetzelfde als de stemmen hierboven:
+
+| Taal | Vrouwenstem | Mannenstem |
+| --- | --- | --- |
+| Duits | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| Frans | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Spaans | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italiaans | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Portugees | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Nederlands | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Deens | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Noors | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Zweeds | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Russisch | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Japans | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Koreaans | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Vereenvoudigd Chinees | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Traditioneel Chinees | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Arabisch | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Perzisch | Geen: oproepen zijn in het Engels | Geen: oproepen zijn in het Engels |
+
+Amazon Polly noch Google heeft een Perzische stem, dus een oproep aan iemand die OneUptime in het Perzisch gebruikt, is in het Engels, net als elke oproep via een account dat zijn standaardstem houdt, die alleen Engels spreekt. Het log van een oproep bewaart wat de oproep zei, in de taal waarin hij het zei. Een verificatiecode, **Testoproep verzenden** en de begroetingen van een beleid voor inkomende oproepen zijn in het Engels.
+
+#### Projecten die hun eigen stem kiezen
+
+Op een zelf gehoste installatie kan een hoofdbeheerder elk project de stem van zijn oproepen via het account voor de hele installatie laten kiezen: zet **Projecten de stem voor hun oproepen laten kiezen** aan in de kaart **Stemmen van projecten** op **Admin Dashboard > Instellingen > Oproep en sms**. Een **Projecteigenaar** of **Projectbeheerder** kiest die dan in de kaart **Stem voor oproepen** onder **Meer instellingen** op **Projectinstellingen > Meldingen > Meldingskanalen**, en een project dat er geen kiest, spreekt met de stem van de installatie. Twilio rekent de stem van elk project aan op het account voor de hele installatie, dus de schakelaar staat eerst uit, en wie hem uitzet, zet elk project terug op de stem van de installatie. OneUptime Cloud biedt dit niet: kies een stem met een eigen projectconfiguratie. Via de API is de stem het veld `callVoice` van het project, dat wordt geweigerd zolang de schakelaar uit staat.
 
 ### Voicemail bij oproepen voor dienst
 
@@ -226,7 +272,7 @@ Voor ontwikkeling beschrijft de [handleiding voor het testen van webhooks](https
 1. Controleer van buiten uw bedrijfsnetwerk en VPN dat de callback-hostnaam naar de openbare gateway oplost en een geldig TLS-certificaat aanbiedt. Een GET vanuit de browser test deze POST-callbacks niet.
 2. Gebruik **Test-sms verzenden** en **Testoproep verzenden** op de Twilio-configuratie van het project. Bevestig de ontvangst op de bestemmingstelefoon. Beide vereisen toestemming om Twilio-configuraties toe te voegen: **Projecteigenaar**, **Projectbeheerder**, of **Create Call and SMS** en **Read Call and SMS** in een aangepaste rol.
 3. Stel voor de gebruiker een geverifieerd sms- of oproepcontact en meldingsregels in en activeer daarna een gecontroleerde on-call-melding. Druk op 1 en controleer de bevestiging in OneUptime. Gebruikt u beleid voor inkomende oproepen, bel dan het geconfigureerde nummer en controleer de routering en het oproeplogboek.
-4. Controleer de bezorgstatus van de sms in OneUptime en in de berichtlogboeken van Twilio. Een geaccepteerde verzending bewijst geen bezorging; [Twilio meldt latere statuswijzigingen via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+4. Controleer de bezorgstatus van de sms in OneUptime, onder [Meldingslogboeken](/docs/notifications/notification-logs), en in de berichtlogboeken van Twilio. Een geaccepteerde verzending bewijst geen bezorging; [Twilio meldt latere statuswijzigingen via callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
 | Symptoom | Waar u kijkt |

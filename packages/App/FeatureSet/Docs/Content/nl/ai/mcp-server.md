@@ -41,7 +41,7 @@ De server is stateless: hij geeft geen sessie-id's uit en elk verzoek staat op z
 - **Gepland onderhoud**: onderhoudsgebeurtenissen aanmaken en beheren.
 - **Telemetrie**: logs, metrieken, traces, uitzonderingen, monitorlogs, beveiligingsgebeurtenissen en meer opvragen, alleen lezen.
 
-Er zijn tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor 55 soorten records, tools om op te sommen en te tellen voor 9 soorten telemetrie, en tools speciaal voor incidentrespons. Een soort record zonder veld dat je na het aanmaken kunt wijzigen, zoals de koppeling van een incident aan een waarschuwing, heeft geen tool om bij te werken. Alleen-lezen-tools hebben `readOnlyHint` en elke tool die iets wijzigt heeft `destructiveHint`, zodat een client alleen-lezen-aanroepen zelf kan uitvoeren en je vóór elke wijziging iets kan vragen. `openWorldHint` markeert de tools die verder reiken dan je project: de tools voor openbare statuspagina's; de wijzigingen die op een statuspagina worden getoond en naar de abonnees ervan worden gestuurd, zoals een nieuw incident, een wijziging van de toestand ervan of een openbare notitie; uitnodigingen, die worden gemaild naar mensen die nog niet in je project hoeven te zitten; en de tools die een monitor, een datastore of een BI-tool aanmaken of wijzigen, omdat OneUptime daarna het adres benadert dat je opgeeft. Een mislukte toolaanroep komt terug als toolresultaat (`isError: true`) met een `statusCode`, de details en een suggestie, niet als MCP-protocolfout, zodat de agent de fout kan lezen en zichzelf kan corrigeren.
+Er zijn tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor 60 soorten records, tools om op te sommen en te tellen voor 9 soorten telemetrie, en tools speciaal voor incidentrespons. Een soort record zonder veld dat je na het aanmaken kunt wijzigen, zoals de koppeling van een incident aan een waarschuwing, heeft geen tool om bij te werken. Alleen-lezen-tools hebben `readOnlyHint` en elke tool die iets wijzigt heeft `destructiveHint`, zodat een client alleen-lezen-aanroepen zelf kan uitvoeren en je vóór elke wijziging iets kan vragen. `openWorldHint` markeert de tools die verder reiken dan je project: de tools voor openbare statuspagina's; de wijzigingen die op een statuspagina worden getoond en naar de abonnees ervan worden gestuurd, zoals een nieuw incident, een wijziging van de toestand ervan of een openbare notitie; uitnodigingen, die worden gemaild naar mensen die nog niet in je project hoeven te zitten; en de tools die een monitor, een datastore of een BI-tool aanmaken of wijzigen, omdat OneUptime daarna het adres benadert dat je opgeeft. Een mislukte toolaanroep komt terug als toolresultaat (`isError: true`) met een `statusCode`, de details en een suggestie, niet als MCP-protocolfout, zodat de agent de fout kan lezen en zichzelf kan corrigeren.
 
 ## Voordat je begint
 
@@ -359,6 +359,29 @@ De server heeft ook de instelacties van AI vragen, één aanroep per actie: wat 
 
 Ze handelen als jij, aangemeld met OAuth: een API-sleutel van een project kan de acht die iets maken niet gebruiken. Je client vraagt het je voor elk ervan, en het antwoord zegt wat er is gemaakt. Wat ontbreekt, zoals een recht, een adres of ruimte in het abonnement, wordt gezegd voordat er iets wordt gemaakt.
 
+## Hulpmiddelen voor Gegevensbeveiliging
+
+De server heeft ook [de Gegevensbeveiligingsacties van AI vragen](/docs/data-security/integrations#ai-vragen), elk één aanroep. Elk voert precies de wijziging door die zijn knop in Gegevensbeveiliging doorvoert, als u en met uw rechten, na dezelfde controles:
+
+- **`query_data_security_proposals`**: wat OneUptime AI voorstelt en op een persoon wacht, de riskantste eerst. Met `which: "data-types"` de gegevenstypen die het heeft gevonden en waar scans nog niet naar zoeken: van elk de naam, de categorie en de gevoeligheid, hoe het is aangetoond, en de gegevensopslagen en velden waarin het staat, nooit een waarde. Het verandert niets
+- **`draft_data_security_rule`**: een uit een zin opgestelde residentie-, eigenaars- of labelregel, zoals ‘persoonsgegevens uit de EU moeten in de EU blijven’, met de gegevensopslagen die hij vandaag dekt. Het verandert niets
+- **`scrub_data_security_finding`**: **Opschonen** voor een bevinding in de telemetrie
+- **`judge_data_security_finding`**: **Bevestigen**, of **Niet gevoelig** met een reden, en hetzelfde voor vergelijkbare bevindingen
+- **`change_data_security_issue`**: **Heropenen**, **Toewijzen**, **Risico accepteren** of **Geen probleem**
+- **`set_data_store_owners`**: de eigenaren van een gegevensopslag, toegevoegd of verwijderd
+- **`save_data_security_rule`**: een regel die `draft_data_security_rule` heeft opgesteld
+- **`respond_on_data_store`**: een reactieactie via de cloudverbinding van de gegevensopslag, zoals **Openbare toegang blokkeren**
+- **`fix_data_security_issue_with_ai`**: **Oplossen met AI**, een pull request die iemand beoordeelt en samenvoegt
+- **`decide_data_security_proposal`**: **Goedkeuren** of **Verbergen** voor een voorstel
+
+AI vragen vraagt een persoon vóór sommige hiervan in elke modus, op een kaart die zegt wat er verandert, wat niet meer werkt en wat het kost: reageren op een gegevensopslag, **Niet gevoelig**, **Risico accepteren**, **Geen probleem**, de eigenaren van een gegevensopslag wijzigen, een regel opslaan, over een voorstel beslissen, een opschoning die iets leest, en **Bevestigen** in een project dat iemand alarmeert bij een kritiek probleem. Deze server kan u die kaart niet tonen, dus weigert hij die, zegt waarom en noemt de pagina in OneUptime waar u de wijziging doorvoert. Niets draait ooit zonder die kaart.
+
+Voor de aanmaak-, bijwerk- en verwijdertools geldt hetzelfde, voor een client die met OAuth is aangemeld net zo goed als voor een API-sleutel, welke rechten die ook heeft: een schrijfactie die een van die wijzigingen doorvoert, wordt met dezelfde woorden geweigerd, en het antwoord noemt dezelfde pagina. `update_data_security_issue` zet `status` niet op `Accepted` of `Not an issue`, `update_data_store_finding` zet `isSuppressed` niet aan, en ook `isConfirmed` niet waar iemand wordt gealarmeerd bij een kritiek probleem, en `create_residency_rule` slaat geen regel op. Evenmin voeren ze door wat OneUptime AI pas doet nadat het een persoon heeft gevraagd, wat zijn regels ook zeggen: een gegevenstype dat in `disabledDataTypeIds` wordt uitgezet, een plek die in `scanExclusions` buiten de scans van een gegevensopslag wordt gelaten, of een stap van een beveiligingsplaybook die een dreiging indamt of op een gegevensopslag reageert zonder dat iemand hem goedkeurt. En `update_label` hernoemt een label dat productie zegt, zoals `Production` of `env: prod`, niet naar een naam die dat niet zegt, en `delete_label` verwijdert er geen: zo'n label houdt de cloudresources waarop het staat buiten bereik van buiten-kantoortijdschema's en van AI-regels die zonder te vragen handelen, en de weigering noemt **Projectinstellingen → Basis → Labels**, waar je de wijziging doorvoert.
+
+Elke andere schrijfactie wordt doorgevoerd zoals voorheen: een probleem dat wordt heropend, toegewezen of opgelost, een bevinding die weer als gevoelig wordt gemarkeerd, een regel die wordt hernoemd of uitgezet, een gegevenstype dat weer wordt aangezet, elk ander label dat wordt hernoemd of verwijderd. `oneuptime_describe_resource` zegt welke schrijfacties van een resource worden geweigerd, en de agent krijgt te horen er geen opnieuw te proberen en die ook niet op een andere manier door te voeren.
+
+De andere handelen als u, aangemeld met OAuth: een API-sleutel van een project kan ze niet gebruiken en gebruikt alleen de twee die niets veranderen. Op een zelf gehoste server laat `MCP_READ_ONLY=true` alleen de hulpmiddelen over die niets veranderen, en weigert `MCP_ALLOW_DESTRUCTIVE=false` het verwijderen van de eigenaren van een gegevensopslag, wat ze wist.
+
 ## Telemetrie opvragen
 
 Logs, metrieken, traces (spans), uitzonderingen, monitorlogs en de andere soorten telemetrie komen als alleen-lezen-tools `list_` en `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` en hun `count_`-tegenhangers). Telemetrie komt binnen via OpenTelemetry, dus er zijn geen aanmaaktools.
@@ -509,7 +532,7 @@ De MCP-server is stateless: hij geeft geen sessie-id's uit en houdt ze niet bij,
 | Beveiliging | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Gegevensbeveiliging | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Gegevensobserveerbaarheid | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| Cloud | Cloud Budget |
+| Cloud | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost Report, Cloud Cost View, Required Tag |
 
 | Gebied | Telemetrie met alleen tools om op te sommen en te tellen |
 | --- | --- |

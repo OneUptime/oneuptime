@@ -6,7 +6,10 @@ import RelationSelect from "../RelationSelect";
 import Select from "../Select";
 import SelectUtil from "../SelectUtil";
 import AccessControlPermission from "./AccessControlPermission";
-import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
+import BasePermission, {
+  CheckPermissionBaseInterface,
+  RecordScopeOptions,
+} from "./BasePermission";
 import TablePermission from "./TablePermission";
 import ArrayUtil from "../../../../Utils/Array";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -18,8 +21,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import UserAttribution from "../../../../Types/Database/UserAttribution";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
-import Permission, { UserPermission } from "../../../../Types/Permission";
+import { UserPermission } from "../../../../Types/Permission";
 import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
+import LabelAccess from "../../../../Types/LabelAccess/LabelAccess";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
 import { FindWhereProperty } from "../../../../Types/BaseDatabase/Query";
@@ -50,7 +54,8 @@ export interface LabelledReferences {
  * Plain id columns, by "<table>.<column>", that name a record carrying no
  * labels although their names do not say which: a project's single sign-on
  * provider, an ingestion key, the instance, a digest batch, the discovery
- * import a retry tries again, the AI run that opened a code task, the
+ * import a retry tries again, the monitor template change a retry tries
+ * again (changes carry no labels), the AI run that opened a code task, the
  * playbook (playbooks carry no labels) a security case's AI triage
  * suggested, the audit log entry an audit log export's cursor stands at
  * (entries are kept in ClickHouse and carry no labels), the incident or
@@ -69,6 +74,8 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "GlobalConfig.instanceId",
     "UserNotificationEmailRollupItem.rollupBatchId",
     "NetworkDeviceDiscoveryImport.retryOfImportId",
+    // The template change a retry tries again (#11266): a MonitorTemplateChange, which carries no labels.
+    "MonitorTemplateChange.retryOfChangeId",
     "AIRun.codeTaskId",
     // The code task a postmortem's action item became: an AIRun, which carries no labels.
     "IncidentPostmortemActionItem.codeTaskId",
@@ -188,7 +195,10 @@ export type RecordOperation =
   | DatabaseRequestType.Delete;
 
 export default class ReadPermission {
-  // `sort`: the order the read asked for, held to the caller's read (#8839).
+  /*
+   * `sort`: the order the read asked for, held to the caller's read (#8839).
+   * `options`: how the record rule treats the select (RecordScopeOptions).
+   */
   @CaptureSpan()
   public static async checkReadPermission<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -196,6 +206,7 @@ export default class ReadPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
     sort?: unknown,
+    options?: RecordScopeOptions,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
     // The base permission check adds predicates to the query.
     query = { ...query };
@@ -216,6 +227,7 @@ export default class ReadPermission {
         DatabaseRequestType.Read,
         undefined,
         sort,
+        options,
       );
 
     // upate query
@@ -344,26 +356,25 @@ export default class ReadPermission {
       return [];
     }
 
-    const modelPermissions: Array<string> =
+    /*
+     * By the rule the Dashboard locks a record's changes by too
+     * (LabelAccess.getLabelledBlockRows, #11259).
+     */
+    return LabelAccess.getLabelledBlockRows(
+      LabelAccess.readRows(
+        DatabaseCommonInteractionPropsUtil.getUserPermissions(
+          props,
+          PermissionType.Block,
+        ),
+      ),
       HeldPermissionsUtil.getLabelBlockingPermissions(
         TablePermission.getHeldPermissions(props),
         {
           modelPermissions: TablePermission.getTablePermission(modelType, type),
           wildcard: TablePermission.getModelWildcard(modelType, type),
         },
-      ).map((permission: Permission): string => {
-        return permission.toString();
-      });
-
-    return DatabaseCommonInteractionPropsUtil.getUserPermissions(
-      props,
-      PermissionType.Block,
-    ).filter((row: UserPermission): boolean => {
-      return (
-        Boolean(row.labelIds && row.labelIds.length > 0) &&
-        modelPermissions.includes(row.permission.toString())
-      );
-    });
+      ),
+    );
   }
 
   // The labels the caller's blocks take away for the operation on this model.

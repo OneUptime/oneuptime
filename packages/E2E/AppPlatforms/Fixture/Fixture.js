@@ -34,6 +34,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerRecommendationCoverage } from "../../SuiteHelpers/RecommendationCoverageAnswers";
 import AppPlatformsRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/AppPlatformsRoutes";
 import CloudResourceViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Layout";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -1161,6 +1162,20 @@ async function handleApi(method, options) {
   }
   if (/\/telemetry\/(logs|traces)\/facets$/.test(url.pathname)) {
     return ok({ facets: {}, timedOutFacets: [] });
+  }
+
+  /*
+   * What covers each of an app's recommended monitors, from the monitors
+   * kept so far - none, until its Recommendations tab makes them.
+   */
+  const coverage = answerRecommendationCoverage({
+    method,
+    url,
+    body: options.data,
+    monitors: MONITORS,
+  });
+  if (coverage) {
+    return coverage;
   }
 
   fixture.unhandled.push({ kind: "api", method, url: url.pathname });

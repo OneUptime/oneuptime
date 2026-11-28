@@ -13,7 +13,7 @@ describe("RestrictionTimes", () => {
         typeof RestrictionTimes.getDefaultRestrictonTimeData
       > = RestrictionTimes.getDefaultRestrictonTimeData();
 
-      expect(data.restictionType).toBe(RestrictionType.None);
+      expect(data.restrictionType).toBe(RestrictionType.None);
       expect(data.dayRestrictionTimes).toBeNull();
       expect(data.weeklyRestrictionTimes).toEqual([]);
     });
@@ -282,7 +282,7 @@ describe("RestrictionTimes", () => {
     };
     const accessor: DbAccessor = RestrictionTimes as unknown as DbAccessor;
 
-    test("toDatabase serializes a RestrictionTimes instance to its JSON", () => {
+    test("toDatabase serializes a RestrictionTimes instance to its stored JSON: the type under restrictionType alone (#11269)", () => {
       const restrictionTimes: RestrictionTimes = new RestrictionTimes();
       restrictionTimes.addDefaultWeeklyRestriction();
 
@@ -290,7 +290,8 @@ describe("RestrictionTimes", () => {
 
       expect(db).not.toBeNull();
       expect(db!["_type"]).toBe(ObjectType.RestrictionTimes);
-      expect(db).toEqual(restrictionTimes.toJSON());
+      expect(db).toEqual(restrictionTimes.toDatabaseJSON());
+      expect((db!["value"] as JSONObject)["restictionType"]).toBeUndefined();
     });
 
     test("toDatabase serializes a plain value object when not an instance", () => {

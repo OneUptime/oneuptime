@@ -1635,7 +1635,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the audit log screens, Team Compliance, the SCIM pages, the retention overrides, the Enterprise settings' license notice and the compliance rule catalog, what each of Data Security's AI features sends, OneUptime AI's analysis of an issue, the issues one mistake made, OneUptime AI's verdict on a finding, the compliance paperwork, the breach laws and OneUptime AI's write-up of an exposure, why a team or a label may not take a name, how a picker tells records that share a name apart, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, a managed device's status, the shared monitor helpers, a duration in milliseconds, every dashboard widget's settings, the monitor type cards, a new monitor's default criteria words, the name a guided setup's status page starts with, a monitor template's sync fields, the cron schedule words and its common schedules, a moment's words in a sentence, what an import from Grafana or Datadog says of a file, what each Setup health finding says, why an email was not sent when the server has no email set up, what a project is told of its Amazon SES role, the placeholders of a playbook's message, a case's Response Plan and what its checks say, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, a security connector's Data to import choices, why a block is refused and what protects an address, what each of the traces explorer's span types is, what Give Feedback can be about, what Ask AI's answers rated down drew on that is no product, an audit log entry's action, its session's events and why a sign-in failed, why Confirm It's You refused a confirmation, a workflow run's status, a naming rule's placeholders and what is wrong with its pattern or lookup table, why a discovery scan's Run Again was refused, why Add or Delete is locked on the Global User Overrides page, what a user override overlaps, why an edit of one is refused and why its dialogs offer only your teams' people, why an escalation rule pages a responder once, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, when a claim's or a node's disk needs someone, the controls a cluster's Compliance page scores, kube-bench's on its nodes and the NSA/CISA guide's, and why the agent's own workloads need what they fail, a database's status by its engine's alert lines, what a custom domain's DNS check found, what the server still needs before a custom domain works and why an uploaded certificate was not saved, what an error nobody explained says to do and where to look, why a notification method could not be verified, why an invitation was refused, a feature the plan does not include and a value another record holds, why a data check or a reconciliation was not written, added or set up, why a RUM application's session recordings are missing, the dashboard SLO widgets' labels and lines, the SLO pages' banner and what they say of a request filter they cannot read or a metric they cannot count, what each managed app platform is, a cloud resource's status by its key metrics, the sections its metrics read in, why one of its key metrics did not report, why one of its other metrics cannot be added and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, how an AI remediation round reads, the curated metrics' names, what each monitor metric is, what a monitor's evaluation says and the checks it names, and the checks a table's columns call for", () => {
+  test("cover the Dashboard, the audit log screens, Team Compliance, the SCIM pages, the retention overrides, the Enterprise settings' license notice and the compliance rule catalog, what each of Data Security's AI features sends, OneUptime AI's analysis of an issue, the issues one mistake made, OneUptime AI's verdict on a finding, why a team or a label may not take a name, how a picker tells records that share a name apart, what escalating a page did, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, what acting on a cloud saving says and an AI rule for savings does, a managed device's status, the shared monitor helpers, a duration in milliseconds, every dashboard widget's settings, the monitor type cards, a new monitor's default criteria words, the name a guided setup's status page starts with, a monitor template's sync fields, the cron schedule words and its common schedules, what an import from Grafana or Datadog says of a file, what each Setup health finding says, why an email was not sent when the server has no email set up, what a project is told of its Amazon SES role, the placeholders of a playbook's message, a case's Response Plan and what its checks say, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, the Hunt Library's starters, a security connector's Data to import choices, why a block is refused and what protects an address, what each of the traces explorer's span types is, what Give Feedback can be about, what Ask AI's answers rated down drew on that is no product, an audit log entry's action, its session's events and why a sign-in failed, why Confirm It's You refused a confirmation, a workflow run's status, a naming rule's placeholders and what is wrong with its pattern or lookup table, why a discovery scan's Run Again was refused, why Add or Delete is locked on the Global User Overrides page, what a user override overlaps, why an edit of one is refused and why its dialogs offer only your teams' people, why an escalation rule pages a responder once, what a dashboard template's chart says while it draws its fallback query, how a change OneUptime AI proposes went before, a cloud change in plain words, a Kubernetes object's status by the cluster's rules, when a claim's or a node's disk needs someone, the controls a cluster's Compliance page scores, kube-bench's on its nodes and the NSA/CISA guide's, and why the agent's own workloads need what they fail, a database's status by its engine's alert lines, what a custom domain's DNS check found, what the server still needs before a custom domain works and why an uploaded certificate was not saved, what an error nobody explained says to do and where to look, why a data check or a reconciliation was not written, added or set up, why a RUM application's session recordings are missing, the dashboard SLO widgets' labels and lines, the SLO pages' banner and what they say of a request filter they cannot read or a metric they cannot count, what each managed app platform is, a cloud resource's status by its key metrics, the sections its metrics read in, why one of its key metrics did not report, why one of its other metrics cannot be added and the kinds of saving the clouds recommend, a resource's right-sizing from OneUptime's own readings, what an AI action's approval card says and the kinds of resource it names, what Ask AI's Data Security actions say on their cards, how an AI remediation round reads, the curated metrics' names, what each monitor metric is, what a monitor's evaluation says and the checks it names, a SAN switch's Fibre Channel counters and port types, and the checks a table's columns call for", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1659,20 +1659,25 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts",
       // OneUptime AI's verdict on a finding that waits for a person, and the signs of a wrong match (#10372).
       "keys packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts",
-      // The compliance paperwork: a record of processing, the facts a draft rests on, an impact assessment, audit evidence (#10375).
       "keys packages/Common/Types/DataSecurity/RecordOfProcessing.ts",
       "keys packages/Common/Types/DataSecurity/ComplianceFacts.ts",
       "keys packages/Common/Types/DataSecurity/ImpactAssessment.ts",
       "keys packages/Common/Types/DataSecurity/AuditEvidence.ts",
-      // Was it a breach? The breach laws and OneUptime AI's write-up of an exposure (#10377).
       "keys packages/Common/Types/DataSecurity/BreachLaws.ts",
       "keys packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+      // Why a pull request a person links to a Data Security issue is refused (#10831).
+      "keys packages/Common/Types/DataSecurity/DataSecurityIssuePullRequestLink.ts",
+      "keys packages/Common/Types/DataSecurity/ScanWarnings.ts",
+      // What OneUptime checks on a kind of store, and what it cannot, and why (#11140).
+      "keys packages/Common/Utils/DataSecurity/DataStoreCoverage.ts",
       // What the compliance page says is wrong with a rule, and why a member fails one (#8632).
       "keys packages/Common/Types/Team/TeamComplianceFindings.ts",
       // Why a team or a label may not take a name: another one of the project has it (#9674).
       "keys packages/Common/Types/Database/UniqueName.ts",
       // What a picker says of records that share a name: a twin's pill and its day (#10064, #10314).
       "keys packages/Common/Types/Database/SharedNameMarks.ts",
+      // What escalating a page did, as the Escalate dialog and a page's call in its person's language say it (#11066).
+      "keys packages/Common/Types/OnCallDutyPolicy/OnCallPassOnWords.ts",
       // The rest of the Enterprise screens (#8634).
       "ui ee/Dashboard/CustomRoles",
       "ui ee/Dashboard/AuditLogExport",
@@ -1686,6 +1691,7 @@ describe("the real source roots", () => {
       // What a failed vCenter collection means and what fixes it.
       "ui packages/Common/Types/VMware",
       "ui packages/Common/Types/OpenStack",
+      "ui packages/Common/Types/XcpNg",
       // What a case's verdicts mean and what each playbook action does.
       "ui packages/Common/Types/SecurityCase",
       "ui packages/Common/Types/SecurityPlaybook",
@@ -1693,6 +1699,12 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/LlmObservability",
       // Each cloud's title, its sign in methods, its shell and its fields.
       "ui packages/Common/Types/CloudConnection",
+      // Acting on savings: each change, its undo, status and bill; an AI rule for savings.
+      "keys packages/Common/Types/Cloud/CloudSavingsAction.ts",
+      "keys packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
+      "keys packages/Common/Types/Cloud/CloudSavingsAi.ts",
+      "keys packages/Common/Types/Cloud/CloudCostReport.ts",
+      "keys packages/Common/Types/Cloud/CloudCostReportWords.ts",
       // A managed device's status, as Inventory > Managed Devices draws it - not the server's.
       "keys packages/Common/Types/DeviceManagement/ManagedDeviceStatus.ts",
       // The monitor pages' shared helpers: hero, uptime, metric groups.
@@ -1731,7 +1743,6 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Email/AmazonSesRoleWords.ts",
       // The common schedules a workflow's Schedule trigger offers.
       "ui packages/Common/Utils/CronTab.ts",
-      // A moment's words in a sentence: "at 14:25" today, "on 27 Nov at 14:25" on another day (#10622).
       "keys packages/Common/Utils/MomentPhrases.ts",
       // What each placeholder of a playbook's note or message stands for.
       "ui packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts",
@@ -1817,11 +1828,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/CustomDomain/UploadedCertificateRefusals.ts",
       // An error nobody explained: what happened, what to do, where to look.
       "keys packages/Common/Types/Exception/UnexplainedError.ts",
-      // Why a notification method could not be verified or sent a test (#7272).
       "keys packages/Common/Types/UserNotification/ChannelVerificationMessages.ts",
-      // Why an invitation was refused: the person is in the team, or the Free plan is full (#7271).
       "keys packages/Common/Server/Utils/Errors.ts",
-      // A feature the plan does not include, and a value another record holds (#7276).
       "keys packages/Common/Types/Billing/PlanRequiredRefusal.ts",
       "keys packages/Common/Types/Database/UniqueValueTaken.ts",
       // Why a data check or a reconciliation was not written, added or set up.
@@ -1859,6 +1867,13 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Cloud/CloudCost.ts",
       // What each cloud calls its commitments, on the Commitments card.
       "keys packages/Common/Types/Cloud/CloudCommitments.ts",
+      // Billed, amortized and net: what each is called and counts (#11007).
+      "keys packages/Common/Types/Cloud/CloudCostBasis.ts",
+      // What a budget counts and its period, and how a forecast is made (#11008).
+      "keys packages/Common/Types/Cloud/CloudBudget.ts",
+      "keys packages/Common/Types/Cloud/CloudCostForecast.ts",
+      // A commitment's state, scope and payment option (#11011).
+      "keys packages/Common/Types/Cloud/CloudCommitmentInventory.ts",
       // A resource's right-sizing from OneUptime's own readings: its verdict and why.
       "keys packages/Common/Types/Cloud/CloudRightSizing.ts",
       // A cloud change's title in the reader's language - only its frame.
@@ -1869,6 +1884,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Server/Utils/AI/Toolbox",
       // What an AI action's approval card says, and the kinds of resource it names.
       "keys packages/Common/Types/AI/AIActionWords.ts",
+      // What Ask AI's Data Security actions say on their cards.
+      "keys packages/Common/Types/AI/AIDataSecurityActionWords.ts",
       // What Ask AI's tables and Sources chips say beside their data.
       "keys packages/Common/Types/AI/AIReadTableWords.ts",
       "keys packages/Common/Types/AI/AiAffectedResources.ts",
@@ -1884,6 +1901,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/DatabaseServer/DatabaseServerMetricCatalog.ts",
       "keys packages/Common/Types/MessageQueue/MessageQueueMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
+      // Each storage platform's words: its catalog, kinds and pages (#11000).
+      "keys packages/Common/Types/StorageArray/Platforms",
       "keys packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/OpenStackMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/CephMetricCatalog.ts",
@@ -1896,8 +1915,11 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Monitor/KubernetesMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/PodmanMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
+      "keys packages/Common/Types/Monitor/XcpNgMetricCatalog.ts",
       // What a monitor's evaluation says, worded for each reader (#6542).
       "keys packages/Common/Types/Monitor/CriteriaFilterTerms.ts",
+      // A SAN switch's Fibre Channel counters and port types (#11014, #11015).
+      "keys packages/Common/Types/Monitor/SnmpMonitor/SnmpFibreChannel.ts",
       "keys packages/Common/Server/Utils/Monitor/Criteria/CompareCriteria.ts",
       "keys packages/Common/Server/Utils/Monitor/Criteria/APIRequestCriteria.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorCriteriaExpectationBuilder.ts",
@@ -1907,6 +1929,7 @@ describe("the real source roots", () => {
       "keys packages/Common/Server/Utils/Monitor/MonitorResource.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorIncident.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorAlert.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorNotEvaluated.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorMaintenanceSuppression.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorDependencySuppression.ts",
       "keys packages/Common/Server/Utils/Monitor/LogGroupCriteriaFanOut.ts",

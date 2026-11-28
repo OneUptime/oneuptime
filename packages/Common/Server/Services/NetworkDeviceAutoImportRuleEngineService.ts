@@ -71,6 +71,7 @@ import DeviceMonitorTemplateUtil, {
 import {
   DeviceMonitorFacts,
   findDuplicateDeviceMonitor,
+  getTemplatesOfDeviceMonitor,
   toDeviceMonitorCandidate,
 } from "../../Utils/Monitor/DeviceMonitorDuplicates";
 import DeviceMonitorDuplicateCheck from "../Utils/NetworkDevice/DeviceMonitorDuplicateCheck";
@@ -349,8 +350,14 @@ export type ExistingHostnamesByProjectId = Map<
 >;
 
 export interface ExistingMonitorProvisioningState {
+  /*
+   * (device, template) pairs that have the template's monitor: from the
+   * project's snapshot of monitors made for a device, and from what this run
+   * made. The fast path that settles an established fleet without reading
+   * each device's monitors; a pair not here is asked of the device's own
+   * monitors (DeviceMonitorDuplicateCheck) before anything is made.
+   */
   autoProvisionedKeys: Set<string>;
-  manuallyMonitoredDeviceIds: Set<string>;
   attemptedProvisioningKeys: Set<string>;
   /*
    * Monitor template ids this run has already proved it cannot resolve —
@@ -1198,7 +1205,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   private emptyExistingMonitorProvisioningState(): ExistingMonitorProvisioningState {
     return {
       autoProvisionedKeys: new Set(),
-      manuallyMonitoredDeviceIds: new Set(),
       attemptedProvisioningKeys: new Set(),
       unresolvableTemplateIds: new Set(),
       consecutiveCreateFailures: 0,
@@ -1993,10 +1999,12 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
 
   /*
    * Queryable provenance is the concurrency/idempotency key for monitors
-   * created by this engine. Existing manually-created Network Device
-   * monitors are parsed once and suppress automatic duplicates: an operator
-   * who already chose how to monitor a device must not receive a second,
-   * potentially billable monitor merely because an import rule was edited.
+   * created by this engine: the (device, template) pairs the project's
+   * Network Device monitors were made for, read once per sweep so an
+   * established fleet is settled without a read per device. A device the
+   * snapshot does not settle is asked about its own monitors before any
+   * create (DeviceMonitorDuplicateCheck), so a monitor a person made, from
+   * this template or none, is judged by the shared rule.
    */
   private async loadExistingMonitors(
     projectId: ObjectID,
@@ -2015,6 +2023,7 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
           monitorType: true,
           monitorSteps: true,
           monitorTemplateId: true,
+          createdFromMonitorTemplateId: true,
           autoProvisionedNetworkDeviceId: true,
         },
         sort: {
@@ -2038,11 +2047,15 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
   }
 
   /*
-   * Classify one stored monitor from both its queryable provenance and its
-   * actual step binding. Provenance is trusted only while the monitor still
-   * watches the device it was provisioned for. An orphaned template link or
-   * any legacy drift is treated as an operator-managed monitor on its actual
-   * device(s), which is the conservative no-duplicate behavior.
+   * Record one stored monitor's (device, template) pairs from its queryable
+   * provenance: the template it is linked to, and the one it was created
+   * from when a person has linked it to another since or unlinked it - it is
+   * that template's monitor too, and the rule never makes it again (issues
+   * #11260, #11266, getTemplatesOfDeviceMonitor). Provenance is trusted
+   * only while the monitor still watches the device it was provisioned for:
+   * a drifted row settles nothing here, and the device's own monitors are
+   * read before anything is made for it (DeviceMonitorDuplicateCheck), where
+   * the unique (device, template) index keeps the rest.
    */
   private recordExistingMonitor(
     state: ExistingMonitorProvisioningState,
@@ -2055,65 +2068,24 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       monitor.autoProvisionedNetworkDeviceId?.toString() || "";
 
     if (
-      provenanceDeviceId &&
-      monitor.monitorTemplateId &&
-      referencedDeviceIds.size === 1 &&
-      referencedDeviceIds.has(provenanceDeviceId)
+      !provenanceDeviceId ||
+      referencedDeviceIds.size !== 1 ||
+      !referencedDeviceIds.has(provenanceDeviceId)
     ) {
-      state.autoProvisionedKeys.add(
-        NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
-          provenanceDeviceId,
-          monitor.monitorTemplateId,
-        ),
-      );
       return;
     }
 
-    for (const networkDeviceId of referencedDeviceIds) {
-      state.manuallyMonitoredDeviceIds.add(networkDeviceId);
-    }
-  }
-
-  /*
-   * Close the practical manual-create race left by the project-wide snapshot:
-   * immediately before provisioning a device, search the JSON step payload
-   * for its UUID and classify exact bindings. The automatic (device,template)
-   * partial unique index remains the final concurrent-auto backstop; this
-   * narrow read prevents a monitor a human just created from being ignored by
-   * a long-running sweep.
-   */
-  private async refreshExistingMonitorsForDevice(data: {
-    projectId: ObjectID;
-    networkDeviceId: ObjectID;
-    state: ExistingMonitorProvisioningState;
-  }): Promise<void> {
-    for (let skip: number = 0; ; skip += LIMIT_MAX) {
-      const monitors: Array<Monitor> = await MonitorService.findBy({
-        query: {
-          projectId: data.projectId,
-          monitorType: MonitorType.NetworkDevice,
-          monitorSteps: QueryHelper.search(data.networkDeviceId.toString()),
-        },
-        select: {
-          _id: true,
-          monitorType: true,
-          monitorSteps: true,
-          monitorTemplateId: true,
-          autoProvisionedNetworkDeviceId: true,
-        },
-        sort: { createdAt: SortOrder.Ascending },
-        limit: LIMIT_MAX,
-        skip: skip,
-        props: { isRoot: true },
-      });
-
-      for (const monitor of monitors) {
-        this.recordExistingMonitor(data.state, monitor);
-      }
-
-      if (monitors.length < LIMIT_MAX) {
-        break;
-      }
+    for (const templateId of getTemplatesOfDeviceMonitor({
+      monitorTemplateId: monitor.monitorTemplateId?.toString(),
+      createdFromMonitorTemplateId:
+        monitor.createdFromMonitorTemplateId?.toString(),
+    })) {
+      state.autoProvisionedKeys.add(
+        NetworkDeviceAutoImportRuleEngineServiceClass.monitorProvisioningKey(
+          provenanceDeviceId,
+          templateId,
+        ),
+      );
     }
   }
 
@@ -2939,7 +2911,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     }
 
     const networkDeviceId: ObjectID = data.networkDevice.id;
-    const networkDeviceIdString: string = networkDeviceId.toString();
     const pendingTemplateIds: Array<string> = [];
 
     /*
@@ -2968,21 +2939,6 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     }
 
     if (pendingTemplateIds.length === 0) {
-      return [];
-    }
-
-    /*
-     * The project-wide snapshot already knows this device is monitored by
-     * hand, and that answer outranks any failure below: a device nobody was
-     * going to provision cannot be a monitor this run failed to create. Read
-     * from memory, so it stays ahead of the systemic verdicts.
-     */
-    if (
-      data.existingMonitors.manuallyMonitoredDeviceIds.has(
-        networkDeviceIdString,
-      )
-    ) {
-      data.result.monitorsSkippedAlreadyExisting += pendingTemplateIds.length;
       return [];
     }
 
@@ -3030,8 +2986,8 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     }
 
     /*
-     * Do not run the unindexed JSON race-check after this run's monitor-work
-     * budget is already exhausted. The device remains unreconciled and the
+     * Do not read the device's monitors after this run's monitor-work budget
+     * is already exhausted. The device remains unreconciled and the
      * truncated marker protocol brings it back on the next bounded pass —
      * counted, so the operator is told how many devices are still waiting
      * rather than left to infer it from a total that stopped early.
@@ -3040,23 +2996,38 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       return resolvableTemplateIds;
     }
 
-    if (!data.isDryRun) {
-      await this.refreshExistingMonitorsForDevice({
-        projectId: data.projectId,
-        networkDeviceId: networkDeviceId,
-        state: data.existingMonitors,
-      });
-    }
+    /*
+     * WHETHER THE DEVICE HAS THIS TEMPLATE'S MONITOR ALREADY (issue #10990),
+     * asked of the device's own monitors, as every other path asks it
+     * (DeviceMonitorDuplicateCheck): the ones made for it, tied to it,
+     * watching it in their steps, and the one bound to it. Read once for the
+     * device, as it is now - a monitor a person made a moment ago is seen -
+     * and on a dry run too, so the dry run predicts the skips its real run
+     * makes.
+     *
+     * This used to be "does ANY Network Device monitor watch the device that
+     * an import did not make" - and if one did, every template was skipped:
+     * a device with a hand-made monitor for one OID, or with the monitor of a
+     * template since deleted (deleting a template unlinks its monitors), was
+     * never given the rule's template's monitor, and the run counted it as
+     * already monitored. The shared rule (DeviceMonitorDuplicates) says what
+     * a duplicate is: for a Network Device template, a monitor from the same
+     * template. Two Network Device monitors from two templates are two alert
+     * sets, as an alert policy gives a device one per policy that covers it.
+     */
+    const isAnyTemplateLoaded: boolean = resolvableTemplateIds.some(
+      (templateId: string): boolean => {
+        return data.monitorTemplates.has(templateId);
+      },
+    );
 
-    if (
-      data.existingMonitors.manuallyMonitoredDeviceIds.has(
-        networkDeviceIdString,
-      )
-    ) {
-      data.result.monitorsSkippedAlreadyExisting +=
-        resolvableTemplateIds.length;
-      return [];
-    }
+    // A template that did not load is settled below; nothing to ask for it.
+    const deviceMonitors: Array<DeviceMonitorFacts> = isAnyTemplateLoaded
+      ? await DeviceMonitorDuplicateCheck.readDeviceMonitors({
+          projectId: data.projectId,
+          device: data.networkDevice,
+        })
+      : [];
 
     for (let index: number = 0; index < resolvableTemplateIds.length; index++) {
       const templateId: string = resolvableTemplateIds[index]!;
@@ -3078,8 +3049,32 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
         continue;
       }
 
-      /* The race-check may have found this key after the initial snapshot. */
+      /* Made by this run already, for another row of the same device. */
       if (data.existingMonitors.autoProvisionedKeys.has(key)) {
+        data.result.monitorsSkippedAlreadyExisting++;
+        continue;
+      }
+
+      const knownTemplate: MonitorTemplate | undefined =
+        data.monitorTemplates.get(templateId);
+
+      /*
+       * The device has this template's monitor already, however it came to
+       * have it (see deviceMonitors above): settled for this run, and no
+       * budget spent on it.
+       */
+      if (
+        knownTemplate &&
+        findDuplicateDeviceMonitor({
+          candidate: toDeviceMonitorCandidate({
+            monitorType: knownTemplate.monitorType,
+            monitorTemplateId: knownTemplate.id,
+            monitorSteps: knownTemplate.monitorSteps,
+          }),
+          monitors: deviceMonitors,
+        })
+      ) {
+        data.existingMonitors.attemptedProvisioningKeys.add(key);
         data.result.monitorsSkippedAlreadyExisting++;
         continue;
       }

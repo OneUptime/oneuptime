@@ -241,6 +241,7 @@ Skip this part until your install shows one of these signs:
 | PostgreSQL refuses connections with `sorry, too many clients already` | [Size the Postgres connections](#size-the-postgres-connections) |
 | You want pods to scale with the work waiting for them | [Autoscale with KEDA](#autoscale-with-keda) |
 | ClickHouse refuses queries with `TOO_MANY_SIMULTANEOUS_QUERIES` | [Keep ClickHouse inserts in budget](#keep-clickhouse-inserts-in-budget) |
+| You run tens of thousands of monitors, probes log `busy handing out monitors`, or monitors are checked later than their interval | [Running many monitors](#running-many-monitors) |
 
 ### Run background jobs in their own pods
 
@@ -343,3 +344,99 @@ never scale it on the queue: when it is full it answers 429, the workers retry,
 and the backlog waits in the queue. Batch sizes, the tier's own autoscaling and
 memory, and how durable an insert is:
 [Sizing ClickHouse inserts](configuration.md#sizing-clickhouse-inserts).
+
+### Running many monitors
+
+Each worker of each probe asks the `app` pods for the monitors that are due,
+in batches, and each due monitor is handed to exactly one of them. What to set
+for tens of thousands of monitors, measured with 39,700 (28,200 checked every
+minute and 11,500 every five) on one probe of 20 replicas, every database
+statement made 50 or 100 ms slower than on an idle machine, as on a busy one
+([the benchmark](https://github.com/OneUptime/oneuptime/blob/main/packages/App/scripts/benchmark-probe-dispatch.ts)):
+
+- **Hand monitors out in bigger batches.** Raise each probe's
+  `monitorFetchLimit` from 10 to 50. A request then hands out five times as
+  many monitors for about the same cost. With three `app` pods and
+  statements 50 ms slower, each minute's 28,200 monitors were handed out
+  within 14 to 19 seconds of coming due, against 38 to 44 seconds with 10,
+  and the 39,700 due at once every five minutes within 19 seconds, against
+  57. A probe replica then runs up to `monitoringWorkers` ×
+  `monitorFetchLimit` checks at once, 150 with 3 workers: give its pods the
+  memory for that, or more replicas.
+
+  ```yaml
+  probes:
+    one:
+      monitoringWorkers: 3
+      monitorFetchLimit: 50
+  ```
+
+- **Keep `app.probeSchedulingMaxConcurrentRequests` at its default**, a fifth
+  of a pod's PostgreSQL pool: 10 of 50. It is per `app` pod, so pods you add
+  bring their own slots. With all 39,700 due at once and statements 100 ms
+  slower, one probe was handed 313 monitors a second by one `app` pod, 659 by
+  three and 763 by six, with no busy answers; raising it to 20 added 7%. A
+  probe alone may use every slot of a pod, and probes that compete share
+  them fairly. Raise it only while `/metrics/probe-scheduling` shows requests
+  waiting for a slot (`queueDepth` above 0) with `slotWaitP95Ms` above a
+  second and PostgreSQL has room to spare, and raise
+  `app.databaseMaxOpenConnections` with it: the slots come out of the queue
+  jobs' share of the pod's pool.
+- **Put monitors on the probes they need to check from, not on more probes
+  to share the load.** Each due monitor goes to one replica of its probe
+  however many replicas ask at once, so one probe with many replicas keeps up
+  as well as many probes do. When a probe's monitors are late and no request
+  waits for a slot, the probe is short: add replicas, or let KEDA scale it on
+  its due monitors (`probes.one.keda.enabled`).
+- **Test Monitor runs have a lane of their own**
+  (`app.probeSchedulingMaxConcurrentMonitorTestRequests`, 2 by default): a
+  test is handed to a probe within its ten-second tick, however busy the
+  monitors are. Leave it as it is.
+
+`/metrics/probe-scheduling`, on each `app` pod's port, adds up every `app`
+pod's view over the last minute. Scale the `app` pods on it with KEDA, beside
+CPU and memory:
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+Probes keep their connections to the `app` pods open, and so does the
+ingress, and Kubernetes sends each connection, not each request, to a pod. So
+that the pods KEDA adds get probe requests, an `app` pod with probe requests
+waiting for a slot answers a few of them a second with `Connection: close`
+(at most one every 100 ms in each lane), and the next request on each of
+those connections goes to whichever pod Kubernetes picks. With two pods
+backed up and two added, the added pods ran most of their slots within 10
+seconds and the queue on the others fell to about 1. Before, through the
+ingress, they were sent under 1% of the requests for two minutes.
+`reconnectsAskedPerMinute` counts those answers: a pod that asks some every
+minute has had requests waiting for a slot all that time.
+
+| Field | What it says | Act when |
+| --- | --- | --- |
+| `queueDepth` | Probe requests waiting for a slot now, on every `app` pod | It stays above 0: add `app` pods (the trigger above) |
+| `slotWaitP95Ms` | How long requests waited for a slot, on the busiest pod | Above a second: add `app` pods |
+| `refusalsPerMinute` | Probe requests answered busy | Above 0 for minutes: add `app` pods |
+| `reconnectsAskedPerMinute` | Answers that asked a probe's connection to reconnect (`Connection: close`), so its next request can go to another `app` pod: a few a second on a pod with requests waiting for a slot | Above 0 for minutes: those pods have been backed up all that time; add `app` pods |
+| `dispatchLagP95Seconds` | How late monitors were handed out, past when their interval made them due | Near the interval of your shortest monitors, with no requests waiting: add probe replicas |
+| `monitorsLateByAnIntervalPerMinute` | Monitors handed out a whole interval or more late: checks that were skipped | Above 0: alert |
+| `monitorTestWaitP95Seconds` | How long Test Monitor runs waited for a probe | Above 20 seconds: the probe is down or not asking |
+
+With an OpenTelemetry exporter set, the same go out as OneUptime's own
+metrics, per pod:
+
+```text
+probe.scheduling.waiting          requests waiting for a slot, by lane
+probe.scheduling.running          requests running, by lane
+probe.scheduling.slot_wait        how long each waited for its slot (ms)
+probe.scheduling.refused.count    requests answered busy, by lane and reason
+probe.scheduling.reconnect.count  answers that asked their connection to reconnect, by lane
+probe.dispatch.lag                how late each monitor was handed out (ms)
+probe.monitor_test.wait           how long each Test Monitor run waited (ms)
+```

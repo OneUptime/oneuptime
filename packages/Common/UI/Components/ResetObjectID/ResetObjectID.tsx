@@ -2,9 +2,10 @@ import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import { ButtonStyleType } from "../Button/Button";
 import PermissionGate, {
-  ModelAction,
+  PermissionGateOptions,
   PermissionGateResult,
 } from "../../Utils/PermissionGate";
+import { useRecordGateOptions } from "../../Utils/PrivateRecordScope";
 import Card from "../Card/Card";
 import ConfirmModal from "../Modal/ConfirmModal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -22,6 +23,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getDialogWhatFailed } from "../../Utils/DialogWhatFailed";
 import React, { ReactElement, useState } from "react";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -107,10 +109,21 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
     getColumnTitleKey(tableColumn) || (props.fieldName as string);
   const translator: Translator = useTranslator();
 
-  /* Resetting the id writes to the record, so it is an update. */
-  const updateGate: PermissionGateResult = PermissionGate.check(
+  /*
+   * Resetting the id writes one column of the record: the record's update,
+   * the column's own update list, and - on the record's page - what its
+   * labels leave the reader (#11259): a monitor's secret key is not reset
+   * by someone whose Project Member role reaches other monitors.
+   */
+  const recordOptions: PermissionGateOptions | undefined = useRecordGateOptions(
     model,
-    ModelAction.Update,
+    props.modelId,
+  );
+
+  const updateGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
+    model,
+    props.fieldName as string,
+    recordOptions,
   );
 
   return (
@@ -174,6 +187,13 @@ const ResetObjectID: <TBaseModel extends BaseModel>(
         <ConfirmModal
           description={error}
           title={`Reset Error`}
+          // What failed is the reset its button started (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText(props.buttonTitle || props.title) ||
+              props.buttonTitle ||
+              props.title,
+          )}
           onSubmit={() => {
             setShowErrorModal(false);
             setError("");

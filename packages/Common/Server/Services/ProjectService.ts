@@ -87,6 +87,14 @@ import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  getCallVoice,
+  getCallVoiceError,
+  toStoredCallVoice,
+} from "../../Types/Call/CallVoice";
+import ProjectCallVoice from "../../Types/Call/ProjectCallVoice";
+import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import GlobalConfigService from "./GlobalConfigService";
 import NameTakenException from "../../Types/Exception/NameTakenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import IconProp from "../../Types/Icon/IconProp";
@@ -151,6 +159,10 @@ import {
   getTrustedProxyListError,
   readTrustedProxyList,
 } from "../../Utils/SecurityEvent/ClientAddressTrust";
+import {
+  MAX_ACCESS_LOG_FORMAT_LENGTH,
+  getAccessLogFormatError,
+} from "../../Utils/SecurityEvent/LogParsers/AccessLogFormat";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
   NumberPrefixColumn,
@@ -1007,6 +1019,52 @@ export class ProjectService extends ProjectReferencesService<Model> {
     data.securityTrustedProxies = blocks.length > 0 ? blocks.join("\n") : null;
   }
 
+  /*
+   * The format the project's access logs are written in (#11048, Security
+   * Events > Connections > Access Logs): an nginx log_format OneUptime can
+   * read a line by, kept as given. Refused with the reason when it is not
+   * one - no field, a quote that never closes, no address that connected,
+   * an X-Forwarded-For whose end cannot be told - never stored and read
+   * later as no format. A blank one is none.
+   */
+  public applySecurityAccessLogFormatRules(data: {
+    securityAccessLogFormat?: unknown;
+  }): void {
+    if (
+      data.securityAccessLogFormat === undefined ||
+      data.securityAccessLogFormat === null
+    ) {
+      return;
+    }
+
+    if (typeof data.securityAccessLogFormat !== "string") {
+      throw new BadDataException(
+        "Your access log format must be text: an nginx log_format.",
+      );
+    }
+
+    const format: string = data.securityAccessLogFormat.trim();
+
+    if (!format) {
+      data.securityAccessLogFormat = null;
+      return;
+    }
+
+    if (format.length > MAX_ACCESS_LOG_FORMAT_LENGTH) {
+      throw new BadDataException(
+        getAccessLogFormatError(format) || "Your log format is too long.",
+      );
+    }
+
+    const error: string | null = getAccessLogFormatError(format);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    data.securityAccessLogFormat = format;
+  }
+
   public applyAiContextRules(data: { aiContext?: unknown }): void {
     if (data.aiContext === undefined) {
       return;
@@ -1266,6 +1324,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applySecurityTrustedProxyRules(
       data.data as { securityTrustedProxies?: unknown },
+    );
+    this.applySecurityAccessLogFormatRules(
+      data.data as { securityAccessLogFormat?: unknown },
     );
     this.applyDefaultNetworkTopologyLayoutRules(
       data.data as { defaultNetworkTopologyLayout?: unknown },
@@ -1699,15 +1760,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * On unless the create request set it itself. The column's database
    * default stays false, so a project that existed before opens no case
    * from risk until someone turns it on.
+   *
+   * And it trusts no private address as a proxy unlisted (#11389,
+   * Project.securityTrustPrivateAddresses): a TCP proxy at one would pass on
+   * the X-Forwarded-For a client wrote. Off unless the create request set it
+   * itself. That column's database default stays on, so a project that
+   * existed before keeps trusting its HTTP proxies inside its network as it
+   * did, until someone turns it off.
    */
   public applyNewProjectSecurityDefaults(data: {
     enableSecurityRiskCases?: boolean | null | undefined;
+    securityTrustPrivateAddresses?: boolean | null | undefined;
   }): void {
     if (
       data.enableSecurityRiskCases === undefined ||
       data.enableSecurityRiskCases === null
     ) {
       data.enableSecurityRiskCases = true;
+    }
+
+    if (
+      data.securityTrustPrivateAddresses === undefined ||
+      data.securityTrustPrivateAddresses === null
+    ) {
+      data.securityTrustPrivateAddresses = false;
     }
   }
 
@@ -2023,6 +2099,61 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * The voice the project's calls speak with through the server's Twilio
+   * account (#11065, Types/Call/ProjectCallVoice): one of OneUptime's, or
+   * none - the server's voice - stored as the list writes it, or null. A
+   * voice the list does not hold is refused, as on a Twilio config
+   * (#10948); so is a voice while the server does not let projects choose
+   * one - never on OneUptime Cloud - so a write through the API says it
+   * would change nothing, rather than "saved". OneUptime's own writes
+   * (isRoot) are not asked.
+   */
+  @CaptureSpan()
+  public async applyCallVoiceRules(
+    data: { callVoice?: unknown },
+    props: DatabaseCommonInteractionProps | undefined,
+  ): Promise<void> {
+    /*
+     * Only a write that carries the voice itself is rewritten, so its
+     * caller is held to the column's update list for what they sent: the
+     * test is on the payload's own column, as the hook scan reads it
+     * (Tests/Helpers/HookColumnWriteScan).
+     */
+    if (data.callVoice === undefined) {
+      return;
+    }
+
+    const value: unknown = data.callVoice;
+    const error: string | null = getCallVoiceError(value);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    if (!props?.isRoot && getCallVoice(value)) {
+      const config: GlobalConfig | null = IsBillingEnabled
+        ? null
+        : await GlobalConfigService.findOneById({
+            id: ObjectID.getZeroObjectID(),
+            select: { letProjectsChooseCallVoice: true },
+            props: { isRoot: true },
+          });
+
+      const refusal: string | null = ProjectCallVoice.getWriteError({
+        value: value,
+        isBillingEnabled: IsBillingEnabled,
+        letProjectsChooseCallVoice: config?.letProjectsChooseCallVoice,
+      });
+
+      if (refusal) {
+        throw new BadDataException(refusal);
+      }
+    }
+
+    data.callVoice = toStoredCallVoice(value);
+  }
+
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
@@ -2073,6 +2204,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applySecurityTrustedProxyRules(
       updateBy.data as { securityTrustedProxies?: unknown },
     );
+    this.applySecurityAccessLogFormatRules(
+      updateBy.data as { securityAccessLogFormat?: unknown },
+    );
     this.applyDefaultNetworkTopologyLayoutRules(
       updateBy.data as { defaultNetworkTopologyLayout?: unknown },
     );
@@ -2094,6 +2228,10 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyAuditLogRetentionRules(
       updateBy.data as { auditLogsRetentionInDays?: unknown },
+    );
+    await this.applyCallVoiceRules(
+      updateBy.data as { callVoice?: unknown },
+      updateBy.props,
     );
 
     await this.assertAuditLogSettingsChangeIsLicensed({
@@ -2532,6 +2670,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * columns need Manage Billing), for the projects the update is narrowed to
    * - and still before the write, so a charge that fails (no card, say)
    * refuses the change, as it always has for SMS and calls.
+   *
+   * The charge is the caller's own, as Add to Balance is: a failure is told
+   * to them by the refusal, which the Dashboard's dialog, the API and
+   * Terraform show. The owners are not emailed that Auto Recharge failed -
+   * it is still off, or as it was - and Auto Recharge does not wait an hour
+   * before its next try for it (#11090).
    */
   private async chargeAutoRechargeTurnedOn(
     updateBy: UpdateBy<Model>,
@@ -2560,7 +2704,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       /*
        * Saving Auto Recharge is somebody trying the card on purpose, so it
        * is tried at once, whatever failed before (ignoreRecentFailure), for
-       * both balances alike.
+       * both balances alike - and what fails is theirs (the change given).
        */
       if (updateBy.data.enableAutoRechargeSmsOrCallBalance) {
         await NotificationService.rechargeIfBalanceIsLow(project.id, {

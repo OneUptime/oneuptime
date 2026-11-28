@@ -37,6 +37,9 @@ import RecordOfProcessingDrafter, {
 } from "../Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import RecordOfProcessingReader from "../Utils/DataSecurity/RecordOfProcessingReader";
 import RecordOfProcessingWriter from "../Utils/DataSecurity/RecordOfProcessingWriter";
+import StoreChangeAccess, {
+  STORE_RECORD_CHANGE_REFUSED_MESSAGE,
+} from "../Utils/DataSecurity/StoreChangeAccess";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
 } from "../../Types/DataSecurity/DataCategory";
@@ -83,22 +86,13 @@ import DataStoreService, {
 import DataSecurityIssueService from "../Services/DataSecurityIssueService";
 import DataSecuritySettingService from "../Services/DataSecuritySettingService";
 import { getDataStoreScanNowRefusalSentence } from "../../Utils/DataSecurity/DataStoreContentScanSchedule";
-import { DataSecurityAiCodeRequest } from "../Utils/AI/DataSecurity/DataSecurityAiInput";
-import DataSecurityAiReads from "../Utils/AI/DataSecurity/DataSecurityAiReads";
 import DataSecurityAiSettings from "../Utils/AI/DataSecurity/DataSecurityAiSettings";
-import DataSecurityCodeTask, {
-  DataSecurityFixCode,
-} from "../Utils/AI/DataSecurity/DataSecurityCodeTask";
-import ProjectDataTypeNames from "../Utils/DataSecurity/ProjectDataTypeNames";
-import DataSecurityAiProposal from "../../Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityAiProposals from "../Utils/AI/DataSecurity/DataSecurityAiProposals";
-import { buildDataSecurityFixRequest } from "../Utils/AI/DataSecurity/DataSecurityIssuePrompt";
 import DataSecurityIssueAnalysis, {
   StoredDataSecurityIssueAnalysis,
 } from "../Utils/AI/DataSecurity/DataSecurityIssueAnalysis";
 import DataSecurityIssueAnalysisReader from "../Utils/AI/DataSecurity/DataSecurityIssueAnalysisReader";
 import { DataSecurityIssueAnalysisView } from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
-import { isTelemetryFindingCheck } from "../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DeclaredDataStores from "../Utils/DataSecurity/DeclaredDataStores";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
 import DataSecurityIssueGroups, {
@@ -113,10 +107,6 @@ import DataSecurityIssueGroupFix, {
   GROUP_FIX_HELD_READER_MESSAGE,
   GROUP_PULL_REQUEST_PERMISSIONS,
 } from "../Utils/DataSecurity/DataSecurityIssueGroupFix";
-import {
-  ALL_DATA_SECURITY_RESPONSE_ACTIONS,
-  isDataSecurityResponseAction,
-} from "../../Types/DataSecurity/DataSecurityResponseAction";
 import {
   queueDataSecurityConnectionRead,
   queueDataSecurityEvaluation,
@@ -138,8 +128,6 @@ import {
   CreatedScrubRule,
 } from "../Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { getDropMetricImpact } from "../Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
-import { getScrubItImpact } from "../Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
-import { scrubFindingWithProvenRule } from "../Utils/DataSecurity/Telemetry/TelemetryScrubIt";
 import AnalyticsBaseModel from "../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import AnalyticsModelPermission from "../Types/AnalyticsDatabase/ModelPermission";
 import AnalyticsQuery from "../Types/AnalyticsDatabase/Query";
@@ -159,6 +147,15 @@ import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ResourceDataSecurity from "../Utils/DataSecurity/ResourceDataSecurity";
+import DataSecurityButtons, {
+  DATA_SECURITY_AI_PROPOSAL_PERMISSIONS,
+  DATA_SECURITY_APPLY_TO_SIMILAR_PERMISSIONS,
+  DATA_SECURITY_ISSUE_PERMISSIONS,
+  DATA_SECURITY_OPERATE_PERMISSIONS,
+  DATA_SECURITY_READ_PERMISSIONS,
+  DATA_SECURITY_SCRUB_PERMISSIONS,
+  readTelemetryFindingForCaller,
+} from "../Utils/DataSecurity/DataSecurityButtons";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import {
   DataStoreResourceKind,
@@ -248,37 +245,16 @@ interface TrendCounts {
   contained: number;
 }
 
-const READ_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.SecurityAdmin,
-  Permission.SecurityMember,
-  Permission.SecurityViewer,
-  Permission.ReadDataStore,
-];
-
-const OPERATE_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.SecurityAdmin,
-  Permission.SecurityMember,
-  Permission.EditDataStore,
-];
-
 /*
- * Who may make a scrub rule of any signal - a log or trace scrub rule, or
- * the metric pipeline rule that redacts a metric's attribute; the rule
- * itself is made with the person's own permissions, so a log rule still
- * needs the log permission, a trace rule the trace one and a metric rule
- * the metric pipeline rule one.
+ * Who may press each button: the lists Ask AI's actions that stand in for
+ * them ask for too (DataSecurityButtons, #10378).
  */
-const SCRUB_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.CreateProjectLogScrubRule,
-  Permission.CreateProjectTraceScrubRule,
-  Permission.CreateProjectMetricPipelineRule,
-];
+const READ_PERMISSIONS: Array<Permission> = DATA_SECURITY_READ_PERMISSIONS;
+
+const OPERATE_PERMISSIONS: Array<Permission> =
+  DATA_SECURITY_OPERATE_PERMISSIONS;
+
+const SCRUB_PERMISSIONS: Array<Permission> = DATA_SECURITY_SCRUB_PERMISSIONS;
 
 /*
  * Who may drop the metrics whose names hold a finding's data (#9757): who
@@ -306,13 +282,7 @@ const OCCURRENCE_PERMISSIONS: Array<Permission> = [
   Permission.ReadDataStoreFinding,
 ];
 
-const ISSUE_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.SecurityAdmin,
-  Permission.SecurityMember,
-  Permission.EditDataSecurityIssue,
-];
+const ISSUE_PERMISSIONS: Array<Permission> = DATA_SECURITY_ISSUE_PERMISSIONS;
 
 /*
  * Who may ask OneUptime AI to explain an issue: who may read the issue
@@ -335,9 +305,8 @@ export const EXPLAIN_ISSUE_PERMISSIONS: Array<Permission> = [
  * with what it takes. Its own list, not READ_PERMISSIONS: a press acts, so
  * it is refused while the server has Data Security switched off.
  */
-export const AI_PROPOSAL_PERMISSIONS: Array<Permission> = [
-  ...new DataSecurityAiProposal().readRecordPermissions,
-];
+export const AI_PROPOSAL_PERMISSIONS: Array<Permission> =
+  DATA_SECURITY_AI_PROPOSAL_PERMISSIONS;
 
 /*
  * Who may press a group's fix (#10370): who may make one of its parts - the
@@ -356,9 +325,8 @@ export const ISSUE_GROUP_FIX_PERMISSIONS: Array<Permission> = Array.from(
  * change findings. Each finding is then read and changed with the
  * person's own permissions, store by store.
  */
-export const APPLY_TO_SIMILAR_PERMISSIONS: Array<Permission> = [
-  ...new DataStoreFinding().updateRecordPermissions,
-];
+export const APPLY_TO_SIMILAR_PERMISSIONS: Array<Permission> =
+  DATA_SECURITY_APPLY_TO_SIMILAR_PERMISSIONS;
 
 /*
  * Who may read a security case's exposure assessment (#10377): the readers
@@ -567,6 +535,17 @@ export default class DataSecurityAPI extends BaseAPI<
           projectId,
           props,
           dataStoreId,
+        });
+
+        /*
+         * The drafts are written into the store's record as OneUptime: only
+         * for who may change this store, by its own row - not whoever may
+         * edit some store in the project (TableHalfWriteGuard).
+         */
+        await StoreChangeAccess.assertMayChange({
+          dataStoreId,
+          props,
+          message: STORE_RECORD_CHANGE_REFUSED_MESSAGE,
         });
 
         const outcome: RecordDraftOutcome =
@@ -862,6 +841,23 @@ export default class DataSecurityAPI extends BaseAPI<
       },
     );
 
+    // ...who read the store in the window, from its own access logs (#10951): no body.
+    this.post(
+      DATA_SECURITY_API_ROUTES.readExposureLogs(":id"),
+      EXPOSURE_ASSESSMENT_CHANGE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await ExposureAssessmentDrafter.readLogsForPerson({
+          projectId,
+          securityCaseId: DataSecurityAPI.readId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
     this.post(
       DATA_SECURITY_API_ROUTES.declaredStore(":id"),
       READ_PERMISSIONS,
@@ -974,36 +970,15 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const store: DataStore = await DataSecurityAPI.readStore(
-          projectId,
-          req,
-        );
         const body: JSONObject = (req.body || {}) as JSONObject;
-        const action: unknown = body["action"];
 
-        if (!isDataSecurityResponseAction(action)) {
-          throw new BadDataException(
-            `Choose one of the response actions: ${ALL_DATA_SECURITY_RESPONSE_ACTIONS.map(
-              (name: string): string => {
-                return `"${name}"`;
-              },
-            ).join(", ")}.`,
-          );
-        }
-
-        const issueId: ObjectID | undefined =
-          await DataSecurityAPI.readIssueOfStore(
-            projectId,
-            store.id!,
-            body["dataSecurityIssueId"],
-          );
-
-        return (await DataSecurityResponse.run({
+        // As Ask AI's respond_on_data_store runs it (DataSecurityButtons, #10378).
+        return (await DataSecurityButtons.respond({
           projectId,
-          dataStoreId: store.id!,
-          action,
-          userId: props.userId || undefined,
-          dataSecurityIssueId: issueId,
+          dataStoreId: DataSecurityAPI.readId(req),
+          action: body["action"],
+          dataSecurityIssueId: body["dataSecurityIssueId"],
+          props,
         })) as unknown as JSONObject;
       },
     );
@@ -1016,31 +991,17 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const finding: DataStoreFinding =
-          await DataSecurityAPI.readTelemetryFinding(projectId, req);
-
         /*
          * The proven, narrow rule for the finding (#10366): the one the
-         * dialog showed, proven on the records it was seen in.
+         * dialog showed, proven on the records it was seen in - as Ask
+         * AI's scrub_data_security_finding makes it (DataSecurityButtons).
          */
-        const created: CreatedScrubRule = await scrubFindingWithProvenRule({
-          projectId,
-          userId: props.userId || undefined,
-          findingId: finding.id!.toString(),
-          kind: finding.dataStore!.kind as DataStoreKind,
-          dataTypeId: finding.dataTypeId!,
-          dataTypeName: finding.dataTypeName,
-          location: finding.location!,
-          // The rule is its service's: a metric's always was, a log's or a span's since #10433.
-          serviceId: finding.dataStore!.serviceId || null,
-          storeKey: finding.dataStore!.storeKey || null,
-        });
-
-        await DataStoreFindingService.updateColumnsByIdWithoutHooks({
-          id: finding.id!,
-          data: { isScrubbed: true },
-        });
-        await queueDataSecurityEvaluation(projectId);
+        const created: CreatedScrubRule =
+          await DataSecurityButtons.scrubFinding({
+            projectId,
+            findingId: DataSecurityAPI.readId(req),
+            props,
+          });
 
         return created as unknown as JSONObject;
       },
@@ -1060,18 +1021,9 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const finding: DataStoreFinding =
-          await DataSecurityAPI.readTelemetryFinding(projectId, req);
-
-        return (await getScrubItImpact({
+        return (await DataSecurityButtons.getScrubImpact({
           projectId,
-          kind: finding.dataStore!.kind as DataStoreKind,
-          dataTypeId: finding.dataTypeId!,
-          dataTypeName: finding.dataTypeName,
-          location: finding.location!,
-          serviceId: finding.dataStore!.serviceId || null,
-          storeKey: finding.dataStore!.storeKey || null,
-          findingId: finding.id!.toString(),
+          findingId: DataSecurityAPI.readId(req),
           props,
         })) as unknown as JSONObject;
       },
@@ -1086,8 +1038,11 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const finding: DataStoreFinding =
-          await DataSecurityAPI.readTelemetryFinding(projectId, req);
+        const finding: DataStoreFinding = await readTelemetryFindingForCaller({
+          projectId,
+          findingId: DataSecurityAPI.readId(req),
+          props,
+        });
 
         return (await getDropMetricImpact({
           projectId,
@@ -1121,12 +1076,17 @@ export default class DataSecurityAPI extends BaseAPI<
           );
         }
 
-        const finding: DataStoreFinding =
-          await DataSecurityAPI.readTelemetryFinding(projectId, req);
+        const finding: DataStoreFinding = await readTelemetryFindingForCaller({
+          projectId,
+          findingId: DataSecurityAPI.readId(req),
+          props,
+        });
         const created: { ruleId: string; ruleName: string } =
           await createDropRuleForFinding({
             projectId,
             userId: props.userId || undefined,
+            // A project API key makes the rule with its own props, never as OneUptime.
+            callerProps: props,
             kind: finding.dataStore!.kind as DataStoreKind,
             dataTypeId: finding.dataTypeId!,
             location: finding.location!,
@@ -1326,50 +1286,22 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        const issue: DataSecurityIssue = await DataSecurityAiReads.readIssue({
-          projectId,
-          issueId: DataSecurityAPI.readId(req),
-        });
         const body: JSONObject = (req.body || {}) as JSONObject;
 
         /*
-         * A service's telemetry issue (#10367): one pull request for every
-         * open telemetry leak of the service, from the places its records
-         * name - the plan the person was shown, held to it.
+         * As Ask AI's fix_data_security_issue_with_ai asks it
+         * (DataSecurityButtons, #10378): a service's telemetry issue
+         * (#10367) gets one pull request for every open telemetry leak of
+         * the service - the plan the person was shown, held to it. A RUM
+         * application's front-end leaks are planned the same way (#10933).
          */
-        if (
-          await TelemetryLeakFix.serviceOfIssue({
-            projectId,
-            issue,
-          })
-        ) {
-          return (await TelemetryLeakFix.runForIssue({
-            projectId,
-            issueId: issue.id!,
-            props,
-            codeRepositoryId: body["codeRepositoryId"],
-            expectedPlanFingerprint: body["expectedPlanFingerprint"],
-          })) as unknown as JSONObject;
-        }
-
-        return (await DataSecurityCodeTask.requestFix({
-          props,
+        return await DataSecurityButtons.fixIssueWithAi({
           projectId,
-          issueIds: [issue.id!],
-          // A telemetry issue is fixed in the service's code, any other in infrastructure code.
-          code: isTelemetryFindingCheck(issue.checkId)
-            ? DataSecurityFixCode.Service
-            : DataSecurityFixCode.Infrastructure,
-          requestedRepositoryId: body["codeRepositoryId"],
-          // The request as DataSecurityAiInput builds it (#10365).
-          buildMessage: async (): Promise<DataSecurityAiCodeRequest> => {
-            return buildDataSecurityFixRequest(
-              issue,
-              await DataSecurityAiReads.readPlaces({ projectId, issue }),
-              await ProjectDataTypeNames.read({ projectId }),
-            );
-          },
-        })) as unknown as JSONObject;
+          issueId: DataSecurityAPI.readId(req),
+          props,
+          codeRepositoryId: body["codeRepositoryId"],
+          expectedPlanFingerprint: body["expectedPlanFingerprint"],
+        });
       },
       { startsCodeWork: true },
     );
@@ -1719,48 +1651,6 @@ export default class DataSecurityAPI extends BaseAPI<
     return new ObjectID(id);
   }
 
-  /*
-   * The telemetry finding a route acts on - Scrub It, Drop This Metric -
-   * with its data type, its place and its store's kind and service. Another
-   * project's finding, or one in a data store, is refused.
-   */
-  private static async readTelemetryFinding(
-    projectId: ObjectID,
-    req: ExpressRequest,
-  ): Promise<DataStoreFinding> {
-    const finding: DataStoreFinding | null =
-      await DataStoreFindingService.findOneBy({
-        query: { _id: DataSecurityAPI.readId(req), projectId },
-        select: {
-          _id: true,
-          dataTypeId: true,
-          // What a rule calls the type when the project no longer names it.
-          dataTypeName: true,
-          location: true,
-          dataStoreId: true,
-          // Its key names its service, for a store kept without one (#10433).
-          dataStore: { kind: true, serviceId: true, storeKey: true },
-        },
-        props: { isRoot: true },
-      });
-
-    if (!finding?.dataTypeId || !finding.location || !finding.dataStore?.kind) {
-      throw new BadDataException("Finding not found.");
-    }
-
-    if (
-      !TELEMETRY_DATA_STORE_KINDS.includes(
-        finding.dataStore.kind as DataStoreKind,
-      )
-    ) {
-      throw new BadDataException(
-        "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
-      );
-    }
-
-    return finding;
-  }
-
   private static async readStore(
     projectId: ObjectID,
     req: ExpressRequest,
@@ -1817,38 +1707,6 @@ export default class DataSecurityAPI extends BaseAPI<
   }
 
   /*
-   * The issue a response was run from, when the request names one: one of
-   * this store's, in this project - never another store's, whose timeline
-   * would then claim a change it did not see.
-   */
-  private static async readIssueOfStore(
-    projectId: ObjectID,
-    dataStoreId: ObjectID,
-    value: unknown,
-  ): Promise<ObjectID | undefined> {
-    if (value === undefined || value === null || value === "") {
-      return undefined;
-    }
-
-    if (typeof value !== "string" || !ObjectID.isValidUUID(value)) {
-      throw new BadDataException("Issue not found.");
-    }
-
-    const issue: DataSecurityIssue | null =
-      await DataSecurityIssueService.findOneBy({
-        query: { _id: new ObjectID(value), projectId, dataStoreId },
-        select: { _id: true },
-        props: { isRoot: true },
-      });
-
-    if (!issue?.id) {
-      throw new BadDataException("Issue not found.");
-    }
-
-    return issue.id;
-  }
-
-  /*
    * The records a telemetry finding's data was seen in - the very ones the
    * last scan found it in, when the finding kept them - for a reader who
    * may read the store's telemetry; why there are none to show otherwise.
@@ -1870,6 +1728,7 @@ export default class DataSecurityAPI extends BaseAPI<
           dataStoreId: true,
           sampleRecords: true,
           lastSeenAt: true,
+          isFoundByModel: true,
           dataStore: { kind: true, serviceId: true, storeKey: true },
         },
         props: { isRoot: true },
@@ -1942,6 +1801,8 @@ export default class DataSecurityAPI extends BaseAPI<
         ? OneUptimeDate.fromString(finding.lastSeenAt)
         : null,
       now,
+      // Only the model tells what it found: it reads the records again (#10926).
+      isFoundByModel: finding.isFoundByModel === true,
     });
   }
 

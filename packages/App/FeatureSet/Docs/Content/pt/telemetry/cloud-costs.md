@@ -1,12 +1,19 @@
 # Custos e economias da nuvem
 
-Uma conta de nuvem conectada também diz quanto custa e como poderia custar menos. O OneUptime lê os custos de cada dia do próprio faturamento da sua nuvem e as recomendações do próprio recomendador da sua nuvem, mostra-os em **Nuvem → Gastos → Custos** e **Nuvem → Gastos → Economias**, e alerta antes que um mês custe mais do que o orçamento em **Nuvem → Gastos → Orçamentos**.
+Uma conta de nuvem conectada também diz quanto custa e como poderia custar menos. O OneUptime lê os custos de cada dia do próprio faturamento da sua nuvem e as recomendações do próprio recomendador da sua nuvem, mostra-os em **Nuvem → Gastos → Custos** e **Nuvem → Gastos → Economias**, lista seus Savings Plans, reservas e descontos por compromisso de uso em **Nuvem → Gastos → Compromissos**, avisa você em **Nuvem → Gastos → Orçamentos** antes que um mês, um trimestre ou um ano custe mais do que o orçamento, e prevê os próximos meses em **Nuvem → Gastos → Previsão**. Quando você permite, ele também aplica as economias que um proprietário aprova, para recursos que não são de produção fora do horário de trabalho e confere cada alteração na fatura.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer e Cost Optimization Hub, cada um ativado uma vez.
 - [Microsoft Azure](#microsoft-azure): Cost Management e Azure Advisor, com mais uma função.
 - [Google Cloud](#google-cloud): A sua exportação de faturamento para o BigQuery e o Recommender.
-- [Orçamentos](#orçamentos): Um alerta quando os gastos de um mês ultrapassam uma parte do orçamento.
+- [Faturado, amortizado e líquido](#faturado-amortizado-e-líquido): Cada custo de três formas, para que compromissos e créditos caiam onde o dinheiro foi.
+- [Compromissos e renovações](#compromissos-e-renovações): Cada compromisso, alertas antes que um termine ou enquanto é pouco usado, e o que renovar ou comprar.
+- [Aplicar economias](#aplicar-economias): Aplique uma economia com a aprovação do proprietário, e desfaça-a.
+- [Agendamentos fora do horário](#agendamentos-fora-do-horário): Pare recursos que não são de produção à noite e nos fins de semana.
+- [Regras de IA para economias](#regras-de-ia-para-economias): Propostas para os proprietários, ou alterações dentro de um limite.
+- [Orçamentos](#orçamentos): O orçamento de um mês, de um trimestre ou de um ano para qualquer conta, grupo de custos ou serviço.
+- [Previsões](#previsões): Quanto os próximos 12 meses estão a caminho de custar, e com que certeza.
+- [Tags obrigatórias](#tags-obrigatórias): Quanto dos seus gastos tem as tags que você exige, e os recursos novos sem elas.
 :::
 
 ## Como funciona
@@ -16,11 +23,13 @@ flowchart TB
     bill["Faturamento da nuvem,<br/>lido duas vezes por dia"] --> costs["Custos"]
     rec["Recomendador da nuvem,<br/>lido uma vez por dia"] --> savings["Economias"]
     costs --> budgets["Orçamentos que alertam"]
+    costs --> forecast["Previsões"]
+    forecast --> budgets
     costs --> overview["Visão geral da Nuvem"]
     savings --> overview
 ```
 
-- **Os custos vêm do próprio faturamento da sua nuvem.** AWS Cost Explorer, Azure Cost Management e a exportação de faturamento do Google Cloud para o BigQuery, antes de créditos e reembolsos, na moeda em que a conta é faturada. Cada valor é o de um dia, em dias UTC, como a sua nuvem os fatura.
+- **Os custos vêm do próprio faturamento da sua nuvem.** AWS Cost Explorer, Azure Cost Management e a exportação de faturamento do Google Cloud para o BigQuery, na moeda em que a conta é faturada, cada um guardado faturado, amortizado e líquido: veja [Faturado, amortizado e líquido](#faturado-amortizado-e-líquido). Cada valor é o de um dia, em dias UTC, como a sua nuvem os fatura.
 - **Uma nuvem informa o último dia ou dois com atraso.** Cada leitura retoma a última semana, e o mês passado inteiro nos primeiros dias de um mês, então o custo de um dia se firma à medida que a sua nuvem o fecha. A primeira leitura de uma conexão volta até o início do penúltimo mês.
 - **A projeção do mês segue o ritmo da última semana.** É quanto o mês custou até agora, com cada dia que falta pela média dos últimos sete dias completos.
 - **As economias vêm do próprio recomendador da sua nuvem.** AWS Cost Optimization Hub, Azure Advisor e o Recommender do Google Cloud: um tamanho menor, um recurso ocioso, um compromisso que vale a pena, cada um com quanto economizaria por mês. Uma recomendação que você aplica ou descarta no console da sua nuvem some na leitura seguinte.
@@ -31,7 +40,7 @@ flowchart TB
 
 ## Amazon Web Services
 
-A conexão lê os custos com `ce:GetCostAndUsage`, seus compromissos com `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetReservationCoverage` e `ce:GetReservationUtilization`, e as recomendações com `cost-optimization-hub:ListRecommendations`. O Cost Explorer e o Cost Optimization Hub precisam ser ativados na conta primeiro:
+A conexão lê os custos com `ce:GetCostAndUsage`, seus compromissos com `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetSavingsPlansUtilizationDetails`, `ce:GetReservationCoverage` e `ce:GetReservationUtilization`, os Savings Plans comprados com `savingsplans:DescribeSavingsPlans`, e as recomendações com `cost-optimization-hub:ListRecommendations` e `cost-optimization-hub:GetRecommendation`. O comando de configuração concede as leituras do Cost Explorer como três famílias, `ce:GetCostAndUsage*`, `ce:GetSavingsPlans*` e `ce:GetReservation*`, todas leituras, para que o usuário de uma chave de acesso ainda caiba nos 2.048 caracteres que o IAM permite à política dele. O Cost Explorer e o Cost Optimization Hub precisam ser ativados na conta primeiro:
 
 :::steps
 ### Ativar o Cost Explorer
@@ -43,7 +52,7 @@ Abra o Cost Explorer uma vez no console AWS Billing and Cost Management: a AWS p
 Abra o Cost Optimization Hub no mesmo console e ative-o, para a organização a partir da conta de gerenciamento dela ou só para a conta. As recomendações dele chegam em até um dia.
 :::
 
-O Cost Explorer cobra $0.01 por solicitação: uma leitura dos custos faz algumas, e os compromissos são lidos com quatro por dia. O Cost Optimization Hub é gratuito.
+O Cost Explorer cobra $0.01 por solicitação: uma leitura dos custos faz duas ou algumas mais, uma para faturado e amortizado e uma para líquido, e os compromissos são lidos com quatro por dia para a cobertura e o uso deles, e mais seis a doze por dia para os de cada um. A API do Savings Plans e o Cost Optimization Hub são gratuitos.
 
 ### Custos por recurso
 
@@ -61,7 +70,16 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 O Cost Management responde por cada assinatura, com o recurso a que cada custo se refere, e lê-lo não custa nada. Quando não consegue responder por uma assinatura, os **Custos** da conta dizem por quê.
 
-O Cost Management limita a rapidez com que os custos de um locatário são lidos, igual para todos que os leem: cada consulta custa uma unidade de processamento de consultas (QPU) por mês de dados que lê, e um locatário tem 12 QPU a cada 10 segundos, 60 por minuto e 600 por hora. O OneUptime lê as assinaturas de um locatário uma após a outra dentro de dois terços de cada cota, espera o tempo que o Cost Management pedir quando recusa uma consulta e continua na leitura seguinte de onde parou. Uma assinatura ainda não lida diz **Na fila**, com quando é lida; uma que já tem valores os mantém enquanto isso.
+O Cost Management limita a rapidez com que os custos de um locatário são lidos, igual para todos que os leem: cada consulta custa uma unidade de processamento de consultas (QPU) por mês de dados que lê, e um locatário tem 12 QPU a cada 10 segundos, 60 por minuto e 600 por hora. O OneUptime lê as assinaturas de um locatário uma após a outra dentro de dois terços de cada cota, espera o tempo que o Cost Management pedir quando recusa uma consulta e continua na leitura seguinte de onde parou. Uma assinatura ainda não lida diz **Na fila**, com quando é lida; uma que já tem valores os mantém enquanto isso. O custo amortizado dela é lido a cada leitura e o custo real uma vez por dia, então a primeira leitura de uma assinatura consulta o Cost Management duas vezes e gasta o dobro de unidades de consulta: os primeiros valores de um locatário grande levam algumas leituras a mais.
+
+As reservas e os planos de economia do locatário são lidos com **Reservations Reader** e **Savings plan Reader**, que o Azure concede no escopo do próprio locatário, onde só um administrador global com acesso elevado pode concedê-los. O comando de configuração tenta, e avisa quando não pode. Para concedê-los depois, como administrador global com acesso elevado:
+
+```bash
+az role assignment create --assignee <APP_ID> --role "Reservations Reader" --scope /providers/Microsoft.Capacity
+az role assignment create --assignee <APP_ID> --role "Savings plan Reader" --scope /providers/Microsoft.BillingBenefits
+```
+
+Sem eles, os custos e as recomendações são lidos como antes, e **Nuvem → Gastos → Compromissos** diz qual função conceder.
 
 ## Google Cloud
 
@@ -81,11 +99,29 @@ Dê à conta de serviço da conexão **BigQuery Data Viewer** no conjunto de dad
 Edite a conexão em **Nuvem → Conectar** e, em **Mais campos**, defina **Tabela da exportação de faturamento** com o nome completo da tabela: `<PROJECT_ID>.<DATASET>.gcp_billing_export_resource_v1_<BILLING_ACCOUNT_ID>`.
 :::
 
-A exportação detalhada indica o recurso a que cada custo se refere; a padrão diz só o serviço e a região. O BigQuery cobra a consulta: o primeiro 1 TiB por mês é gratuito, depois $6.25 por TiB, e um mês de uma exportação vai de alguns megabytes a alguns gigabytes. As recomendações de tipo de máquina e de recursos ociosos do Recommender são lidas com **Compute Recommender Viewer**, que o comando de configuração concede, e não custam nada.
+A exportação detalhada indica o recurso a que cada custo se refere; a padrão diz só o serviço e a região. O BigQuery cobra a consulta: o primeiro 1 TiB por mês é gratuito, depois $6.25 por TiB, e um mês de uma exportação vai de alguns megabytes a alguns gigabytes. As recomendações de tipo de máquina e de recursos ociosos do Recommender são lidas com **Compute Recommender Viewer**, que o comando de configuração concede, e não custam nada. Os compromissos do Compute Engine são listados pelo Cloud Asset Inventory com **Cloud Asset Viewer**, que o comando de configuração já concede: nada mais a dar.
+
+## Faturado, amortizado e líquido
+
+Cada custo é guardado de três formas, e **Nuvem → Gastos → Custos**, os **Custos** de uma conta, a visão geral da Nuvem e os orçamentos mostram a que você escolher:
+
+- **Faturado** é cada cobrança no dia em que a sua nuvem a faturou, antes de créditos e reembolsos. Um Savings Plan ou uma reserva pagos adiantado são uma única cobrança grande no dia da compra, e o uso que cobrem parece gratuito pelo resto do prazo.
+- **Amortizado** distribui as taxas de cada compromisso pelos dias e recursos que ele cobre, para que o dinheiro caia onde foi gasto. Ainda antes de créditos e reembolsos. É o que as páginas mostram, a menos que você escolha outra.
+- **Líquido** é o amortizado, menos créditos, reembolsos e descontos: o valor da fatura.
+
+| | Faturado | Amortizado | Líquido |
+|---|---|---|---|
+| AWS | O custo não combinado (unblended) do Cost Explorer | O custo amortizado do Cost Explorer | O custo amortizado líquido do Cost Explorer, com créditos e reembolsos |
+| Azure | O custo real do Cost Management | O custo amortizado do Cost Management | O custo amortizado: o Azure desconta os créditos na conta de cobrança, que a conexão de uma assinatura não lê |
+| Google Cloud | O custo da exportação | O custo menos os créditos dos descontos por compromisso de uso e das assinaturas | O custo menos todos os créditos |
+
+O seletor acima dos valores muda a base na página, e o OneUptime lembra a sua escolha neste projeto, no seu navegador. A base do próprio projeto, com a qual as páginas abrem e que os orçamentos acompanham, fica em **Nuvem → Configurações → Configurações de custos**. Um orçamento pode acompanhar uma base própria: edite-o e defina **Base de custo**.
+
+Os custos lidos antes de os três serem guardados mostram o valor faturado em todas as bases. Cada conexão lê os custos de novo uma vez, tão para trás quanto uma primeira leitura, para que cada base seja preenchida.
 
 ## Formas de gastar menos
 
-**Nuvem → Gastos → Economias** lista cada recomendação, a maior economia primeiro: o que fazer, em qual recurso, o que mudaria e quanto economiza por mês. A faixa acima as soma, no total e por tipo: um tamanho menor, um recurso ocioso, um compromisso. Uma recomendação leva à página do recurso dela quando o OneUptime tem o recurso.
+**Nuvem → Gastos → Economias** lista cada recomendação, a maior economia primeiro: o que fazer, em qual recurso, o que mudaria e quanto economiza por mês. A faixa acima as soma, no total e por tipo: um tamanho menor, um recurso ocioso, um compromisso. Uma recomendação leva à página do recurso dela quando o OneUptime tem o recurso, e uma que o OneUptime pode aplicar tem **Aplicar**: veja [Aplicar economias](#aplicar-economias).
 
 ### Ajuste de tamanho com as leituras do próprio OneUptime
 
@@ -94,7 +130,15 @@ Um recurso de que nenhum recomendador cuida, porque ele não está ativado, não
 - **Superprovisionado** quando o tamanho com metade, ou um quarto, ainda teria folga: no tamanho menor, o percentil 95 da CPU ficaria em no máximo 60%, a leitura de CPU mais alta em no máximo 100% e o pico da memória em no máximo 70%, quando a memória é lida.
 - **Subprovisionado** quando o percentil 95 da CPU fica em 85% ou mais, ou o pico da memória em 90% ou mais: o tamanho com o dobro.
 
-Um recurso é dimensionado assim que tem 6 dias de leituras. A página dele mostra o **Ajuste de tamanho** ao lado de quanto custa, e um superprovisionado aparece em **Nuvem → Gastos → Economias**, com o OneUptime como origem. O que uma mudança economiza é a parte dela no que o recurso custou nos últimos 30 dias, então isso é conhecido assim que sua nuvem fatura o recurso pelo nome: a exportação detalhada do Azure e do Google Cloud faz isso, e a AWS também, depois que Custos por recurso é ativado. Uma instância EC2 informa a memória só com o agente do CloudWatch, e uma VM do Compute Engine só com o Ops Agent: sem ele, é dimensionada apenas pela CPU. Tamanhos com burst, como t3, a série B e e2-micro, nunca são dimensionados.
+Um recurso é dimensionado assim que tem 6 dias de leituras. A página dele mostra o **Ajuste de tamanho** ao lado de quanto custa, e um superprovisionado aparece em **Nuvem → Gastos → Economias**, com o OneUptime como origem. O que uma mudança economiza é a parte dela no que o recurso custou nos últimos 30 dias, então isso é conhecido assim que sua nuvem fatura o recurso pelo nome: a exportação detalhada do Azure e do Google Cloud faz isso, e a AWS também, depois que Custos por recurso é ativado. Tamanhos com burst, como t3, a série B e e2-micro, nunca são dimensionados.
+
+Sua nuvem só lê a memória de uma VM com um agente próprio dentro da VM: o agente do CloudWatch em uma instância EC2, o Ops Agent em uma VM do Compute Engine, e nenhum em uma VM do Azure, que informa a memória livre em vez da memória usada. Uma VM em que roda [o coletor de host do OneUptime](/docs/telemetry/hosts) é dimensionada, em vez disso, pela memória que o coletor de host lê:
+
+- **A VM e o host são a mesma máquina** quando o provedor, a conta, a região e o ID da instância coincidem: o ID da instância EC2, o ID numérico de uma VM do Compute Engine ou o `vmId` de uma VM do Azure. Um nome de host sozinho nunca basta, e uma VM que dois hosts reivindicam, como uma máquina clonada, não é vinculada a nenhum. A página da VM nomeia seu host, e a página do host nomeia sua VM, cada uma com um link para a outra.
+- **A memória é a memória usada do host, sem cache e buffers**, o valor que a página do host mostra no gráfico, nos mesmos 14 dias. Um cache de arquivos cheio nunca é lido como uma máquina cheia. O host também precisa de 6 dias de leituras.
+- **Quando ambos leem a memória**, como em uma VM do Compute Engine com o Ops Agent e o coletor de host, vale o que tem mais leituras. A CPU é sempre a leitura da sua nuvem.
+
+O **Ajuste de tamanho** da VM diz de onde veio a memória dela, e a linha dela em **Nuvem → Gastos → Economias** também. Uma VM dimensionada só pela CPU diz isso, com um link para instalar o coletor de host. O coletor de host marca a identidade da nuvem dele com a etapa `resourcedetection/cloud` que [a configuração do guia de hosts](/docs/telemetry/host-otel-collector) traz. Um host com a configuração padrão do OneUptime recebe a etapa com a próxima versão do OneUptime, e um com uma configuração sua precisa adicioná-la. Os nós do Kubernetes ficam com a [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost), que dimensiona as requisições do que roda neles.
 
 ### Compromissos
 
@@ -104,21 +148,118 @@ Um recurso é dimensionado assim que tem 6 dias de leituras. A página dele most
 - Azure: planos de economia e reservas, pelo Cost Management, em custo amortizado.
 - Google Cloud: descontos por compromisso de uso, pela sua exportação de faturamento. A exportação não diz quanto de um compromisso ficou sem uso, então quanto é usado não é mostrado.
 
-Uma conta sem compromissos mostra o que rodou a preços sob demanda e que um compromisso pagaria por menos. Os valores de cada tipo são os da sua nuvem, e os tipos nunca são somados: uma reserva e um Savings Plan podem contar os dois o gasto da mesma máquina como deles para cobrir.
+Uma conta sem compromissos mostra o que rodou a preços sob demanda e que um compromisso pagaria por menos. Os valores de cada tipo são os da sua nuvem, e os tipos nunca são somados: uma reserva e um Savings Plan podem contar os dois o gasto da mesma máquina como deles para cobrir. Cada compromisso isoladamente é listado em **Nuvem → Gastos → Compromissos**: veja [Compromissos e renovações](#compromissos-e-renovações).
+
+## Compromissos e renovações
+
+**Nuvem → Gastos → Compromissos** lista cada Savings Plan, reserva e desconto por compromisso de uso que as suas conexões conseguem ler, para que nenhum termine sem ser notado:
+
+- **Compromissos ativos**, no topo, conta os ativos e os que terminam em até 90 dias, **Utilização** quanto deles foi usado nos últimos 30 dias e o que ficou sem uso, e **Cobertura** quanto do gasto eles cobrem.
+- **Terminam em breve** lista os que terminam em até 90 dias e não se renovam sozinhos, cada um com o plano de renovação: o que comprar para manter o desconto (o compromisso por hora ou as instâncias, na parte que foi usada), quanto isso custa e economiza por mês, quando se paga e quanto do gasto está coberto agora e depois que ele terminar. **Renovar no console** abre a página em que a sua nuvem o renova.
+- **Todos os compromissos** é a lista completa: o que cada um é e cobre, a conta dele, quando termina, o prazo e a opção de pagamento, quanto dele foi usado nos últimos 30 dias, e o uso que ele pagou e quanto isso economizou.
+- **Planos de compra** são o que o recomendador da sua nuvem sugere comprar, cada um com quanto custaria e economizaria por mês, quando se pagaria e como a cobertura mudaria. **Comprar no console** abre a página para comprá-lo.
+- Abaixo deles, os compromissos de cada conta por tipo, como os **Custos** dela os mostram, e quando os compromissos alertam, com **Alterar alertas**.
+
+O OneUptime só planeja: nunca compra, renova ou devolve um compromisso. Você compra no console da sua nuvem.
+
+| | De onde vêm os compromissos | O que se sabe de cada um |
+|---|---|---|
+| AWS | Os Savings Plans e instâncias reservadas do Cost Explorer, cada um com o próprio uso, e a API do Savings Plans para os planos comprados, incluindo os que estão na fila para começar | O fim, o prazo, a opção de pagamento, o compromisso por hora ou as instâncias, as taxas e o uso nos últimos 30 e 7 dias |
+| Azure | As reservas e os planos de economia do locatário | O fim, o prazo, o plano de cobrança, se ele se renova sozinho, e o uso nos últimos 30 e 7 dias |
+| Google Cloud | Os compromissos do Compute Engine, pelo Cloud Asset Inventory | O fim, o plano, os recursos e se ele se renova sozinho. O Google Cloud não diz quanto de um compromisso é usado |
+
+A conta de gerenciamento de uma organização lista os de cada conta na AWS. Os descontos por compromisso de uso baseados em gastos, que o Google Cloud mantém na conta de faturamento em vez de num projeto, ainda não são listados.
+
+### Alertas de compromissos
+
+Os compromissos geram alertas, acionados pelas políticas de plantão como qualquer alerta. Em **Nuvem → Configurações → Configurações de custos**, **Alertas de compromissos** diz quando:
+
+- **Alertar antes do fim de um compromisso**: 90, 30 e 7 dias antes do fim, para começar. Um alerta no mais próximo desses dias que o compromisso atingiu, cada um mais próximo substituindo o anterior. Um compromisso que se renova sozinho, ou cuja renovação está na fila para começar quando ele terminar, não gera nenhum.
+- **Alertar quando a utilização ficar abaixo de**: 80% para começar, dos últimos 7 dias de um compromisso, depois que ele rodou uma semana. O alerta é resolvido quando o uso volta.
+- **Alertar quando a cobertura cair abaixo de**: 60% para começar, do gasto que os compromissos de um tipo de uma conta poderiam cobrir, depois de terem coberto mais. Ele é resolvido quando a cobertura volta. Vazio, a cobertura não gera alerta.
+
+**Alertar sobre compromissos** desliga todos, e **Severidade do alerta**, **Políticas de plantão** e **Proprietários** dizem quão graves eles são, quem é acionado e de quem são. Cada alerta diz o que o compromisso cobre e o que pagou, e aponta para o plano de renovação. Um alerta é resolvido sozinho quando o compromisso termina, se renova ou deixa de ser listado.
+
+## Aplicar economias
+
+O OneUptime aplica uma economia pela conexão de nuvem da conta assim que a configuração **Ações de economia** dela permite: [Ações de economia](/docs/telemetry/cloud-accounts#ações-de-economia) diz o que cada opção concede. Ele só faz alterações de uma etapa: para uma instância ou um banco de dados ocioso, muda um volume gp2 para gp3, exclui um disco não anexado, um instantâneo antigo ou uma imagem sem uso, libera um endereço sem uso e, quando você permite, redimensiona uma instância ou um banco de dados para o tamanho recomendado. Ele nunca compra um compromisso: **Comprar no console** abre a página da sua nuvem para isso.
+
+:::steps
+### Selecione Aplicar
+
+Em **Nuvem → Gastos → Economias**, selecione **Aplicar** em uma economia. A caixa de diálogo diz o que muda, quanto economiza por mês, como é desfeita ou que não pode ser, e quem a aprova.
+
+### Um proprietário a aprova
+
+Uma pessoa indicada como proprietária do recurso, ou um membro de uma equipe que o possui, que também possa editá-lo, aprova a alteração. Um recurso sem proprietário é aprovado por um Proprietário do projeto ou um Administrador do projeto. Quando você mesmo pode aprová-la, **Aplicar** a faz na hora, em seu nome. Caso contrário, ela aguarda em **Aguardando aprovação** até que um proprietário escolha **Aprovar**, ou **Dispensar** com um motivo.
+
+### O OneUptime a faz
+
+A alteração é feita pela conexão e fica nas linhas do tempo do recurso e da conta, com quem a aprovou. Um disco excluído recebe primeiro um instantâneo final, a menos que você desative **Fazer primeiro um instantâneo final**.
+:::
+
+Cada alteração diz como é desfeita: **Desfazer** em **Alterações feitas** inicia de novo uma instância parada, volta um volume ou um tamanho ao que era, ou recria um disco excluído a partir do instantâneo final. O que exclui para sempre, como um instantâneo, uma imagem ou um endereço liberado, não pode ser desfeito, e a caixa de diálogo diz isso antes de você aplicar. Quando o projeto exige duas aprovações com **Exigir duas aprovações para correções mais arriscadas**, uma alteração que não pode ser desfeita precisa de duas pessoas.
+
+Um recurso cujas tags dizem que é gerenciado como código, por exemplo pelo Terraform ou CloudFormation, é alterado no código: a caixa de diálogo oferece **Abrir pull request** no repositório que o declara, para que o próximo apply não desfaça a economia.
+
+### Comprovado pela fatura
+
+**Economizado neste mês** conta só o que a fatura da sua nuvem mostra. Assim que três dias após uma alteração se assentam na fatura, o custo por dia do recurso é comparado com a semana anterior à alteração: ela fica **Visível na fatura** quando o custo caiu pelo menos um quarto do que foi prometido, **Não visível na fatura** quando não caiu, e **Não pode ser medida** quando sua nuvem não fatura o recurso pelo nome. **Verificando a fatura** conta as alterações que ainda aguardam esses dias.
+
+## Agendamentos fora do horário
+
+Em **Nuvem → Gastos → Agendamentos**, um agendamento para instâncias e bancos de dados que não são de produção fora do horário de trabalho, e os inicia de novo:
+
+:::steps
+### Escolha os recursos
+
+Informe a tag da nuvem que os escolhe, por exemplo `Schedule` = `office-hours`, em uma conta ou em todas.
+
+### Diga quando funcionam
+
+Escolha os dias úteis, o horário em que iniciam e o horário em que param, no formato de 24 horas, e o fuso horário.
+:::
+
+Quando o horário de trabalho termina, um agendamento para, pela conexão da conta dele, cada recurso em execução que a tag dele escolhe e que se sabe que não é produção, e quando começa ele só inicia de novo o que parou: um recurso que alguém parou à mão continua parado. **Ver recursos** lista o que um agendamento escolhe agora e por que deixa algum em execução. Ele para instâncias EC2 e bancos de dados RDS na AWS, máquinas virtuais no Azure e instâncias do Compute Engine no Google Cloud. A AWS inicia de novo, por conta própria, um banco de dados parado há sete dias.
+
+Um agendamento nunca para a produção, nem um recurso cujo ambiente nada indica. Sabe-se que um recurso não é produção quando:
+
+- uma das tags dele diz isso, com uma chave como `environment`, `env`, `stage`, `tier` ou `deployment.environment`, e uma palavra como `dev`, `test`, `qa`, `staging` ou `sandbox`;
+- ou a conta dele está marcada como **Não produção** em **Ambiente** nas **Configurações** da conta.
+
+Um rótulo do OneUptime nunca torna um recurso não produção para um agendamento. Renomear um rótulo muda de uma vez cada recurso que o leva, então um rótulo como `Staging` ou `env: dev` só é lido onde uma pessoa aprova a alteração, como em **Aplicar**. A produção prevalece: uma tag que diz `prod`, `production` ou `live`, uma conta marcada como **Produção**, ou um rótulo como `Production` ou `env: prod` mantém um recurso em execução, diga o que disser o resto. O nome de um recurso nunca é lido para isso. Cada parada lê o recurso de novo logo antes de ser feita. Desative um agendamento e ele não para mais nada, e inicia de novo o que parou quando o horário de trabalho dele começa; exclua-o e o que ele parou é iniciado na hora.
+
+## Regras de IA para economias
+
+Com **Habilitar IA** ativado, o OneUptime AI propõe aos proprietários do recurso cada economia que pode aplicar, após cada leitura das economias da conta, e eles a aprovam ou dispensam em **Aguardando aprovação**. Em **Nuvem → Configurações → Regras de IA para economias**, uma regra diz o que o OneUptime AI faz com as economias que correspondem a ela, pelo tipo de alteração, pelo ambiente do recurso e pela nuvem: **Desativado**, **Propor ao proprietário** ou **Agir sem perguntar**, até um limite mensal. Sem regras, cada economia é proposta e nenhuma é feita; com regras, só o que corresponde a uma regra, e entre as regras que correspondem prevalece a mais cautelosa.
+
+Uma regra só age sem perguntar em um recurso que se sabe que não é produção da forma como um agendamento o lê, pelas tags ou pela conta dele e nunca só pelos rótulos, só para uma alteração que pode ser desfeita, só até o menor limite das regras que correspondem, e no máximo 10 vezes por hora em um projeto: todo o resto é proposto. O recurso é lido de novo logo antes da alteração, e um que até lá já não se sabe que não é produção é proposto em vez disso. Uma alteração feita sem perguntar fica nas linhas do tempo com a regra que a fez, e os proprietários podem desfazê-la. Uma economia dispensada ou desfeita não é proposta de novo por 30 dias.
 
 ## Orçamentos
 
 :::steps
 ### Criar um orçamento
 
-Em **Nuvem → Gastos → Orçamentos**, crie um orçamento: o **Valor mensal** e a **Conta** a que ele se aplica, ou nenhuma para todas as contas.
+Em **Nuvem → Gastos → Orçamentos**, crie um orçamento e escolha a que ele **Aplica-se a**: todas as contas, uma **Conta**, um **Grupo de custos** conforme suas regras distribuem os gastos, ou os serviços, regiões e tags que um **Filtro** nomeia, escrito como as regras de um grupo de custos. Deixe a **Base de custo** em branco para contar a do projeto.
+
+### Diga quanto pode custar
+
+O **Período** é um mês, um trimestre ou um ano, e o **Valor** é quanto um período pode custar. Trimestres e anos começam no **Primeiro mês do ano**: a partir de abril, um ano vai de abril a março. O **Plano do orçamento** de um ano pode dividir o valor igualmente entre os meses, ou dar a cada mês o seu em um **Plano mensal**. Cada mês fica então preso à própria parcela, e um mês tranquilo nunca recebe alerta pelo gasto de um mês movimentado.
 
 ### Escolher quando ele alerta
 
-**Alertar em** recebe as partes do orçamento em que alertar, em porcentagem: 80 e 100 para começar. **Alertar se estiver a caminho de ultrapassar** também alerta, uma vez por mês, quando o ritmo da última semana levaria o mês além do orçamento. **Alertar em dias incomuns** também alerta no dia seguinte a um dia que custou muito mais que o normal: veja [Dias incomuns](#dias-incomuns). **Severidade do alerta** e **Políticas de plantão** dizem quão graves são os alertas e quem é acionado.
+**Alertar em** recebe as parcelas do orçamento em que agir, em porcentagem: 80 e 100 para começar. **Alertar se estiver a caminho de ultrapassar** também alerta, uma vez por período, quando o período está a caminho de custar mais que o orçamento. **Alertar em dias incomuns** também alerta no dia seguinte a um dia que custou muito mais que o normal: consulte [Dias incomuns](#dias-incomuns). **Severidade do alerta** diz a gravidade dos alertas.
+
+### Escolha quem é avisado
+
+As pessoas e equipes em **Notificar** são avisadas por e-mail e chat quando o gasto ultrapassa uma parcela abaixo de 100%, sem alerta, então ninguém é acionado por um gasto dentro do orçamento. **Avisar a equipe do grupo de custos** também avisa a equipe à qual o grupo de custos pertence. A partir de 100%, um alerta é criado, elas são donas dele, e as **Políticas de plantão** são acionadas. Um orçamento sem ninguém para avisar cria um alerta a cada parcela.
 :::
 
-Um orçamento é verificado após cada leitura dos custos e a cada hora. Quando os gastos do mês passam de um limite, um alerta é gerado para ele, o mais alto quando uma leitura passa de vários de uma vez, e um mês novo resolve os alertas do mês passado. Um orçamento conta só as contas faturadas na moeda dele.
+Um orçamento é verificado após cada leitura dos custos e a cada hora. Quando o gasto do período ultrapassa uma parcela, as pessoas a notificar são avisadas, ou a partir de 100% um alerta é criado, uma vez para a mais alta quando uma leitura ultrapassa várias de uma vez, e um novo período resolve os alertas do anterior. Um ano dividido por mês é verificado um mês por vez, contra a parcela daquele mês. Um orçamento só conta as contas faturadas na sua moeda, na sua base: um orçamento amortizado não é disparado por um compromisso comprado antecipadamente, que um orçamento faturado conta no dia da compra.
+
+Um período está a caminho de ultrapassar o orçamento quando o que custou até agora, o restante deste mês no ritmo da última semana completa e os meses seguintes de um trimestre ou de um ano conforme a [previsão](#previsões) somam mais que o orçamento.
+
+A linha de cada orçamento diz o que ele conta, o período e o período até agora: em um ano dividido por mês, este mês contra a sua parcela, com o ano ao lado. A página dele mostra o período mês a mês contra a parcela de cada mês, este mês dia a dia, o que mais custou e quem é avisado. A página de um orçamento anual pode salvar a previsão como o plano dele.
 
 Agentes de IA podem criar e alterar orçamentos pelo [servidor MCP](/docs/ai/mcp-server), e scripts com o comando `oneuptime cloud-budget` da CLI: veja [Operações de recursos](/docs/cli/resource-operations).
 
@@ -126,7 +267,41 @@ Agentes de IA podem criar e alterar orçamentos pelo [servidor MCP](/docs/ai/mcp
 
 Após cada leitura, cada um dos últimos 14 dias completos de uma conta é comparado com os 14 dias anteriores. Um dia é incomum quando um serviço custou o dobro do seu dia habitual ou mais, ou a conta inteira uma vez e meia o seu dia habitual ou mais. Nos dois casos, precisa ser pelo menos 10 a mais que o normal, na moeda da conta, e pelo menos 5% do dia habitual da conta, para que alguns centavos nunca contem como um pico. O valor habitual de um dia é a mediana dos 14 dias anteriores, então um pico isolado o move pouco, e uma conta só é avaliada quando tem uma semana de custos.
 
-**Nuvem → Gastos → Custos** marca os dias incomuns no gasto diário, acima das barras deles, e os lista abaixo. Em todas as contas, cada marca abre os **Custos** da conta dela. Um orçamento que inclui a conta gera um alerta para cada conta e dia, no dia seguinte, nomeando cada serviço que subiu. Um pico que dura vários dias é avisado no dia em que começou, e um dia de mais de uma semana atrás não é avisado. Um orçamento criado antes de esses alertas existirem não os gera até que você o edite e os ative.
+**Nuvem → Gastos → Custos** marca os dias incomuns no gasto diário, acima das barras, e os lista abaixo. Em todas as contas, cada marca abre os **Custos** da sua conta. Um orçamento mensal para todas as contas ou uma cria um alerta para cada conta e dia, no dia seguinte, nomeando cada serviço que subiu. Qualquer outro orçamento compara o que conta com o próprio dia normal da mesma forma. Um pico que dura dias é informado no dia em que começou, e um dia de mais de uma semana atrás não é informado. Um orçamento criado antes desses alertas não os cria até que você o edite e os ative.
+
+## Previsões
+
+**Nuvem → Gastos → Previsão** diz quanto o gasto está a caminho de custar em cada um dos próximos 12 meses, para tudo, uma conta, um grupo de custos ou um serviço, na base de custo que você escolher. Ela diz como cada previsão é feita, a partir dos meses completos de custos que o OneUptime guarda, um ano ou um pouco mais:
+
+- **Este mês** é o que ele custou até agora, com cada dia que falta na média dos últimos sete dias completos, como um orçamento o projeta.
+- **Com menos de 3 meses completos**, cada mês seguinte prolonga esse ritmo, sem faixa provável: foi lido pouco demais para distinguir uma tendência de um ponto fora da curva.
+- **A partir de 3 meses completos**, uma tendência passa pelo dia médio de cada mês: a mediana das inclinações entre cada par de meses, então um mês estranho quase não a move.
+- **A partir de 12 meses completos**, cada mês do calendário também guarda quanto ficou acima ou abaixo da tendência no ano passado, então um pico de dezembro também é previsto para o dezembro seguinte.
+
+Cada mês seguinte tem uma faixa provável, onde ele deve cair 8 vezes em 10, a partir de quanto os meses passados se afastaram da tendência, e nunca mais estreita que 5% para cada lado. Ela se alarga quanto mais distante o mês e quanto menos meses estão por trás da previsão. A partir de 12 meses completos, cada faixa é ainda mais larga, porque um ano mostra cada mês do calendário só uma vez. Uma previsão não é uma promessa: um novo serviço, uma migração ou uma mudança de preço movem os próximos meses de formas que nenhum mês passado mostra.
+
+**Simulação** faz cada mês seguinte crescer ou diminuir a partir do mês que você escolher, pela parcela que digitar, como 20% a partir de janeiro. **Salvar como plano do orçamento** transforma os próximos doze meses no plano de um orçamento anual, em um orçamento novo ou em um que você já tem, com cada mês mantido na parcela prevista.
+
+## Orçamentos e previsões na API
+
+Os orçamentos são um recurso da API (`cloud-budget`), com comandos de CLI e ferramentas MCP como todo recurso. O `scope` de um orçamento é `allAccounts`, `account` (com `cloudAccountId`), `costGroup` (com `cloudCostGroupId`) ou `filter` (com `filterRules`, escrito como as regras de um grupo de custos). O `period` é `month`, `quarter` ou `year`, a partir de `fiscalYearStartMonth`, de 1 a 12. O `planSplit` de um ano é `none`, `equal` ou `byMonth`, com os doze meses em `monthlyPlan`, na ordem do ano fiscal.
+
+Para ler o período de um orçamento mês a mês, os dias deste mês e o que mais custou, como a página dele faz:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+Para prever um escopo, de 1 a 24 meses à frente, com uma simulação opcional:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+O `forecast` da resposta tem o `method` (`pace`, `trend` ou `trendAndSeason`), os meses de onde foi feita e cada mês com o `amount` e, nos seguintes, o `low` e o `high`. Envie `basis` como `billed`, `amortized` ou `net` para prever nessa base; sem ele, a previsão fica na do projeto, e o `basis` da resposta diz qual. O gasto de um orçamento fica na própria base.
 
 ## Para onde vai o dinheiro
 
@@ -138,12 +313,133 @@ Após cada leitura, cada um dos últimos 14 dias completos de uma conta é compa
 
 Abaixo da lista, o card diz quanto deu o restante: o que não está em nenhum ambiente, o que é cobrado de um ambiente como um todo ou o que não tem a tag. Os custos lidos antes de as tags serem mantidas são lidos de novo uma vez, até onde vai uma primeira leitura, para que as tags deles sejam preenchidas.
 
+## Tags obrigatórias
+
+Os gastos só são bem alocados quanto as tags que têm. Em **Nuvem → Gastos → Tags**, diga quais tags todo recurso deve ter, como `team`, `env` e `cost-center`, e veja quanto dos seus gastos e dos seus recursos as tem, quais recursos não têm, e quem criou cada recurso novo sem elas.
+
+:::steps
+### Exigir uma tag
+
+Selecione **Exigir uma tag** e informe a **Chave da tag**. Em **Valores permitidos**, liste os valores que ela pode ter, separados por vírgulas, ou deixe vazio para aceitar qualquer valor. Escolha uma **Conta** para exigir a tag só naquela conta. Uma **Descrição**, em **Mais campos**, diz nos e-mails para que serve a tag.
+
+### Ler a cobertura
+
+A página abre com quanto dos gastos dos últimos 30 dias e dos seus recursos tem todas as tags obrigatórias. Abaixo vêm os recursos aos quais falta uma tag, os mais caros primeiro, depois cada tag sozinha, a tendência das últimas 12 semanas e cada conta.
+
+### Marcar o que falta
+
+Cada recurso ao qual falta uma tag mostra o valor que o OneUptime sugere e o comando que o aplica na sua nuvem. Um recurso declarado em código diz qual código o declara: adicione a tag lá, ou o próximo deploy a remove de novo.
+:::
+
+- **As chaves coincidem sem diferenciar maiúsculas e minúsculas.** `Team`, `team` e `TEAM` são uma só chave, e um recurso tem a tag quando qualquer grafia dela tem um valor permitido. Os valores também coincidem sem diferenciar maiúsculas e minúsculas, e um valor vazio não é valor.
+- **Um valor permitido pode ser um padrão.** `*` representa quaisquer caracteres e `?` um só, então `prod-*` aceita `prod-eu` e `prod-us`. Os padrões não são expressões regulares.
+- **As tags próprias de uma conta.** Uma tag exigida em uma conta substitui nela a tag do projeto com a mesma chave, e uma conta pode exigir uma chave própria. As **Tags** de uma conta mostram as duas.
+- **Nada muda na sua nuvem.** O OneUptime nunca para nem marca um recurso por uma tag ausente. Ele avisa as pessoas e sugere o valor.
+
+### Cobertura
+
+- **Gastos com tags** é a parcela dos custos dos últimos 30 dias que tem todas as tags obrigatórias, pelas tags com que cada custo foi lido. É calculada sempre que você abre a página, então uma tag que você exige hoje também é medida nos últimos 30 dias. Os custos da AWS só têm tags depois que [Custos por recurso](#custos-por-recurso) é ativado: até lá, os gastos de uma conta da AWS mostram **Não medido** em vez de 0%.
+- **Recursos com tags** é a parcela dos recursos listados pelas suas conexões que têm todas as tags obrigatórias, como estão marcados agora.
+- **Cobertura ao longo do tempo** mostra cada uma das últimas 12 semanas: os gastos pelos custos, e os recursos pela contagem que o OneUptime faz todo dia.
+
+### Recursos novos
+
+Um recurso que sua conexão lista depois da primeira listagem completa da conta dele é novo. A conexão lista a cada 30 minutos, então um recurso novo é encontrado dentro da hora em que é criado. Sobre um que não tem uma tag obrigatória se avisa uma vez:
+
+- **Quem é avisado.** A pessoa que o criou, quando o registro de alterações da conta nomeia um membro do seu projeto pelo endereço de e-mail, e os proprietários do recurso, pelas regras de proprietário e pelas equipes. Quando nenhum deles pode ser avisado, os Proprietários do projeto são. Cada um precisa poder ler seus recursos de nuvem.
+- **Com que frequência.** Um e-mail por hora lista tudo o que há de novo para cada pessoa. Em **Mais configurações**, **Um e-mail por recurso** envia cada um sozinho, e **Gerar um alerta** também gera um alerta para cada conta, com a severidade e as políticas de plantão de **Para onde vão os alertas**.
+- **Quando ele recebe as tags.** Um recurso marcado antes do envio do e-mail fica de fora dele, e a lista **Recursos novos** marca cada um como **Com tags** assim que ele as tem.
+
+### Valores sugeridos
+
+O OneUptime só sugere um valor quando a tag o permite:
+
+- **Uma chave de tipo equipe**, como `team`, `owner` ou `squad`: a equipe dona do recurso.
+- **Uma chave de tipo ambiente**, como `env`, `environment` ou `stage`: o ambiente do App Platforms de um app que roda como o recurso, ou, para uma VM, o ambiente de implantação que o host dela informa.
+- **Qualquer chave**: o valor que a maioria dos recursos ao lado tem, na mesma stack do CloudFormation, no mesmo grupo de recursos do Azure ou com o mesmo nome antes do número, como `web-1` e `web-2`. Pelo menos dois precisam concordar.
+- **Uma tag que permite um só valor**: esse valor.
+
+O comando aplica a tag em uma etapa, no próprio shell da sua nuvem: `aws resourcegroupstaggingapi tag-resources` na AWS, `az tag update --operation Merge` no Azure, e `gcloud ... add-labels` ou `--update-labels` para VMs e discos do Compute Engine, buckets do Cloud Storage e instâncias do Cloud SQL no Google Cloud.
+
+## Relatórios e exportações
+
+### Relatórios de custos
+
+**Nuvem → Gastos → Relatórios** envia de forma agendada o que as nuvens custam, por e-mail e para canais do Slack ou do Microsoft Teams, para que quem precisa dos números os receba sem abrir o OneUptime. Um relatório tem:
+
+- **Cobre**: todas as contas, uma conta, um grupo de custos ou uma visão de custos com todos os seus grupos.
+- **Período**: a semana passada (de segunda a domingo), o mês passado ou o mês até hoje. Cada um é comparado com o período anterior: a semana anterior, o mês anterior ou o mês passado até o mesmo dia.
+- **Base de custo**: faturado, amortizado ou líquido. Vazia, é a do projeto, com a qual Custos abre. O relatório sempre diz em que base está.
+- **Agendamento**: toda semana ou todo mês, num dia e horário de um fuso horário, pelas mesmas regras dos resumos do Slack e do Microsoft Teams. Um novo relatório semanal sai na próxima segunda-feira às 09:00 no seu fuso horário, um mensal no dia 1, e os relatórios seguintes mantêm esse dia e horário o ano todo.
+
+O e-mail diz quanto o período custou em relação ao período anterior, os orçamentos que ele consome (cada mês até hoje, na base do próprio orçamento), os serviços que mais subiram e mais caíram, os grupos de uma visão de custos e o que nenhum grupo assume, os dias incomuns, as maiores economias pendentes e quanto dos gastos os compromissos cobrem. Os números vão anexados em CSV. **Abrir Custos** abre **Custos** exatamente nos dias, na base e na visão do relatório, para que os números do relatório e os da página sejam os mesmos. Contas faturadas em outra moeda ficam fora dos números, e o relatório as cita.
+
+Um canal do Slack ou do Microsoft Teams recebe uma mensagem curta: o total e sua variação, o orçamento, as primeiras linhas das listas do relatório e **Abrir Custos**.
+
+### Quem recebe um relatório
+
+- As pessoas e as equipes do projeto o recebem por e-mail, pelas suas configurações de notificação, onde cada pessoa pode desativar os relatórios de custos de nuvem. Cada pessoa recebe os números que pode ler: quem tem acesso limitado por rótulos recebe só as suas contas, e quem não pode mais ler os custos de nuvem do projeto fica de fora.
+- **Endereços de e-mail** fora do projeto, como o do seu contador, e canais do Slack e do Microsoft Teams exigem a permissão Administrador da nuvem, ou Administrador do projeto ou Proprietário do projeto, porque o OneUptime não tem como saber quem os lê. Eles recebem o relatório como a pessoa que os adicionou pode lê-lo, e deixam de recebê-lo se essa pessoa perder a permissão. Uma chave de API não pode defini-los.
+- Quem pode criar os outros registros de Nuvem, a partir de Membro da nuvem, pode criar, alterar e excluir relatórios. Um Visualizador da nuvem pode lê-los.
+
+Um relatório vai para no máximo 200 pessoas, 25 endereços e 10 canais de cada tipo. **Último envio** diz quando ele saiu pela última vez, quem deixou de fora e por quê.
+
+### Uma seção para cada equipe
+
+Um relatório de uma visão de custos pode enviar a cada grupo sua própria seção com **Enviar à equipe de cada grupo sua seção**. Os membros da equipe de cada grupo, indicada no grupo, recebem os gastos do seu grupo em relação ao período anterior, os serviços dele que mais subiram e caíram e seus dias incomuns. Um grupo compartilhado não tem seção própria: seus custos estão nos grupos entre os quais ele é dividido. As próprias pessoas, equipes e endereços do relatório recebem todos os grupos. Quem está nas equipes de dois grupos recebe as duas seções. Um relatório mensal de uma visão de custos assim é o showback do mês.
+
+### Pré-visualização e Enviar uma cópia para mim
+
+**Pré-visualização** mostra o que um relatório diz agora, como você pode lê-lo e como o e-mail o apresenta, e quem o último envio deixou de fora e por quê. **Enviar uma cópia para mim** o envia por e-mail para você agora.
+
+### Baixar CSV
+
+**Baixar CSV** salva o que um cartão mostra: **Para onde vai o dinheiro** em **Custos**, em qualquer detalhamento e em relação ao período anterior, os gastos de cada dia, as recomendações de **Economias** e a página de um grupo de custos. O nome do arquivo diz o que ele contém, pelo que é detalhado, a visão e a conta, a base de custo e os dias, por exemplo `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Os números são números simples, e um texto que uma planilha leria como fórmula começa com um apóstrofo.
+
+### FOCUS
+
+**Exportar FOCUS** em **Custos** baixa cada custo do período como um arquivo FOCUS 1.2, a FinOps Open Cost and Usage Specification na versão 1.2, que as ferramentas financeiras leem. Um arquivo tem no máximo 93 dias, e cada moeda em que as contas são faturadas, cada linha na sua.
+
+O arquivo tem cada coluna que o FOCUS 1.2 torna obrigatória, e as condicionais para as quais o OneUptime tem os dados: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` e `Tags`. Ele tem uma linha para cada custo que o OneUptime guarda: um dia, uma conta, um serviço, uma região e, quando a nuvem o nomeia, um recurso.
+
+- `BilledCost` é o que a nuvem faturou, e `EffectiveCost` o que custou com os compromissos distribuídos sobre o que eles cobrem.
+- O que a nuvem descontou, seus créditos, reembolsos e descontos, é uma linha própria, com uma `ChargeCategory` igual a `Credit`. O `EffectiveCost` do arquivo, somado, é o custo líquido.
+- `ChargeCategory` é `Tax` para os custos que a AWS fatura sob o seu serviço Tax, e `Usage` para o resto.
+- `BillingAccountId` é a conta de onde a conexão lê a fatura: a conta de gerenciamento de uma organização da AWS, uma conta de faturamento do Google Cloud ou a assinatura do Azure, já que a conta de faturamento do Azure não é lida. `SubAccountId` é a conta da AWS, a assinatura do Azure ou o projeto do Google Cloud.
+- As datas são dias UTC inteiros, sem incluir o fim do período da cobrança nem o do período de faturamento. O período de faturamento é o mês do calendário.
+
+O que o FOCUS 1.2 pede e o OneUptime não lê fica vazio ou é igualado como a especificação permite. `PricingQuantity` e `PricingUnit` ficam vazios, porque os custos são lidos por dia, serviço, região e recurso, não por tipo de uso. `ListCost` e `ContractedCost` são iguais a `BilledCost`, como o FOCUS pede quando os preços unitários não são conhecidos. Uma compra, como o pagamento antecipado de uma reserva, é o uso do serviço para o qual foi comprada. Não há colunas de SKU, desconto de compromisso, reserva de capacidade nem fatura. O FOCUS 1.3 e o 1.4 acrescentam colunas que um leitor do 1.2 dispensa.
+
+### Pela API e pela CLI
+
+A API responde com um detalhamento, não só com as linhas dos custos, para que um sistema financeiro possa buscar o rateio do mês:
+
+- `POST /api/cloud-cost/breakdown` com `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` com uma `tagKey`, ou `group` com um `cloudCostViewId`), um `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) ou uma `startDate` e uma `endDate`, e, opcionalmente, `cloudAccountIds`, `currency`, `basis` e `compareWithPrevious`. A resposta traz o total do período e cada parte, com o período anterior ao lado, ou com `"format": "csv"` o CSV que **Baixar CSV** dá.
+- `POST /api/cloud-cost/export` com um `period`, ou uma `startDate` e uma `endDate`, responde com o arquivo FOCUS.
+
+As duas leem como a chave pode ler os custos. Pela [CLI](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### Em um painel
+
+O widget **Custo de nuvem** coloca um total, um detalhamento ou uma tendência dos gastos ao lado dos serviços que os geram. Veja [Widgets do painel](/docs/dashboards/widgets#custos-de-nuvem).
+
 ## O que você vê no OneUptime
 
 - **A visão geral da Nuvem.** **Nuvem → Visão geral** mostra os gastos do mês em relação aos do mês passado até o mesmo dia, os serviços que mais custam e as maiores formas de gastar menos, ao lado do que precisa de atenção.
-- **Os gastos de cada dia.** **Nuvem → Gastos → Custos** desenha cada um dos últimos 30 dias marcando os dias que custaram muito mais que o normal, lista esses dias e detalha um período por serviço, região, conta, recurso, ambiente de plataformas de aplicativos, aplicativo ou tag. As contas cujos custos não são lidos aparecem abaixo, cada uma com o motivo.
+- **Os gastos de cada dia.** **Nuvem → Gastos → Custos** desenha cada um dos últimos 30 dias marcando os dias que custaram muito mais que o normal, lista esses dias e detalha um período por serviço, região, conta, recurso, ambiente de plataformas de aplicativos, aplicativo ou tag, faturado, amortizado ou líquido. As contas cujos custos não são lidos aparecem abaixo, cada uma com o motivo.
+- **Cada compromisso.** **Nuvem → Gastos → Compromissos** lista cada um com quando termina e quanto dele é usado, os que terminam em breve com o que renovar, e o que comprar.
+- **Relatórios.** **Nuvem → Gastos → Relatórios** lista cada relatório agendado com o que ele cobre, quando sai da próxima vez e como foi o seu último envio.
 - **Os custos de uma conta.** Os **Custos** de uma conta mostram o mesmo só para a conta, com os compromissos e as formas de gastar menos dela.
+- **Tags obrigatórias.** **Nuvem → Gastos → Tags** mostra quanto dos gastos e dos recursos tem suas tags obrigatórias, e as **Tags** de uma conta mostram o mesmo só para aquela conta.
 - **O custo de um recurso.** A página de um recurso mostra quanto ele custou este mês e nos últimos 30 dias quando a nuvem dele o fatura pelo nome, com as formas de gastar menos dele e o ajuste de tamanho dele.
+- **Cada orçamento.** **Nuvem → Gastos → Orçamentos** lista cada orçamento com o que ele conta, o período e o período até agora, e cada um abre a sua página.
+- **Os próximos meses.** **Nuvem → Gastos → Previsão** desenha os meses de onde uma previsão foi feita, este mês a caminho e os próximos 12, com como ela foi feita.
+- **O que foi economizado.** **Nuvem → Gastos → Economias** começa pelo que as alterações feitas economizaram neste mês, conforme a fatura, pelas alterações aguardando aprovação e as feitas, e pelas horas em que os agendamentos pararam recursos.
 
 ## Solução de problemas
 
@@ -164,20 +460,49 @@ Os dados no nível do recurso não estão ativados para a conta. Ative-os com gr
 :::
 
 :::details Os compromissos dizem Precisa de permissão
-A conexão ainda não pode ler os Savings Plans e as reservas da conta. Execute o comando de configuração dela de novo em **Nuvem → Conectar**: ele adiciona as quatro ações com que eles são lidos.
+A conexão ainda não pode ler os Savings Plans e as reservas da conta. Execute o comando de configuração dela de novo em **Nuvem → Conectar**: ele adiciona as ações com que eles são lidos. No Azure, um administrador global com acesso elevado concede **Reservations Reader** e **Savings plan Reader**: veja [Microsoft Azure](#microsoft-azure).
+:::
+
+:::details Amortizado e líquido mostram o mesmo que faturado
+Os custos lidos antes de os três serem guardados mostram o valor faturado em todas as bases até a próxima leitura de custos da conexão, que os lê de novo tão para trás quanto a primeira. No Azure, o líquido é sempre o custo amortizado.
+:::
+
+:::details Um compromisso termina e nenhum alerta chegou
+Um compromisso que se renova sozinho, ou cuja renovação está na fila para começar quando ele terminar, não gera nenhum, e nem um de um projeto cujos alertas de compromissos estão desligados em **Nuvem → Configurações → Configurações de custos**. Um alerta também precisa que o projeto tenha uma severidade de alerta.
 :::
 
 :::details Os valores deixam uma conta de fora
 Os valores estão na moeda em que a maioria das suas contas é faturada. Uma conta faturada em outra aparece abaixo com a moeda dela, e um orçamento conta só as contas faturadas na dele.
 :::
 
+:::details Uma economia não tem Aplicar
+O OneUptime só faz alterações de uma etapa: um compromisso, ou uma recomendação que muda mais de uma coisa, é feito no console da sua nuvem. Aplicar abre uma caixa de diálogo que diz por que não pode ser feita daqui quando a conexão da conta não permite: ative as **Ações de economia** dela e execute de novo o comando de configuração dela.
+:::
+
+:::details Um agendamento deixa um recurso em execução
+**Ver recursos** diz por quê: é produção, nada indica que não é produção, só os rótulos dele indicam isso, ou a conexão da conta dele não permite ações de economia. Adicione uma tag na sua nuvem, por exemplo `environment` = `dev`, ou marque a conta dele como **Não produção**.
+:::
+
+:::details Uma regra propõe uma alteração que antes fazia sem perguntar
+O cartão dela diz por quê. Uma regra só faz uma alteração sem perguntar em um recurso que as tags ou a conta dele dizem que não é produção: um que só os rótulos chamam de não produção é proposto aos proprietários em vez disso. Adicione uma tag na sua nuvem, por exemplo `environment` = `dev`, ou marque a conta dele como **Não produção**.
+:::
+
+:::details Uma previsão não tem faixa provável
+Ela foi feita com menos de 3 meses completos de custos, então cada mês seguinte prolonga o ritmo da última semana completa e nenhuma faixa é dada. A faixa chega assim que o terceiro mês completo é lido. A primeira leitura de uma conexão volta ao início do mês retrasado.
+:::
+
+:::details Alguém foi avisado de um orçamento, mas nenhum alerta veio
+Abaixo de 100%, um orçamento que nomeia pessoas ou equipes a notificar as avisa e não cria alerta, então ninguém é acionado. A partir de 100% ele cria um alerta, e as políticas de plantão dele são acionadas. Um orçamento sem ninguém para avisar cria um alerta a cada parcela.
+:::
+
 :::details Este mês está mais baixo do que no console da sua nuvem
-A sua nuvem informa o último dia ou dois com atraso, e os valores são antes de créditos e reembolsos. As leituras seguintes alcançam.
+A sua nuvem informa o último dia ou dois com atraso, e os valores faturados e amortizados são antes de créditos e reembolsos. As leituras seguintes alcançam. Compare com a base que o console da sua nuvem mostra: a AWS abre nos custos não combinados, que são os faturados.
 :::
 
 ## Próximos passos
 
 :::cards
+- [Alocação de custos da nuvem](/docs/telemetry/cloud-cost-allocation): Divida os gastos entre equipes, produtos e centros de custo.
 - [Conectar uma conta de nuvem](/docs/telemetry/cloud-accounts): Conecte outra conta ou execute o comando dela novamente.
 - [Recursos de nuvem](/docs/telemetry/cloud-resources): As métricas de cada recurso, a partir de um coletor seu.
 - [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost): Quanto custa cada carga de trabalho do Kubernetes.

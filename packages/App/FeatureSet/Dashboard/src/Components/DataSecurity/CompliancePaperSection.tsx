@@ -26,7 +26,6 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import API from "Common/UI/Utils/API/API";
 import Toast from "Common/UI/Utils/Toast";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { SaveBeforeLeavingFunction } from "Common/UI/Utils/UseLeaveGuard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -73,13 +72,11 @@ export interface CompliancePaperSectionProps {
   canEdit: boolean;
   onSave: (words: string) => Promise<void>;
   /*
-   * Whether a person is mid-edit here, for the page to ask before it is
-   * left, and the save of their words as they stand - Save's own, which
-   * rejects with why it did not save - for the question's Save Changes.
+   * Whether a person is mid-edit here, with the words not saved yet: for
+   * the page to ask before it is left, and to save them with onSave if the
+   * reader says so (usePendingEdits).
    */
-  onEditingChange?:
-    | ((isEditing: boolean, save: SaveBeforeLeavingFunction) => void)
-    | undefined;
+  onEditingChange?: ((isEditing: boolean, words: string) => void) | undefined;
   /*
    * Folded until opened (#10377): a breach notice is read when a person
    * opens it, so a page of three of them stays short. Its heading, byline
@@ -113,29 +110,17 @@ export const CompliancePaperSection: FunctionComponent<
   // A folded part shows its words, and its editor, only once it is opened.
   const isBodyShown: boolean = isOpen || isEditing;
 
-  // The words as they stand, saved: rejects with why they were not.
-  const saveWords: SaveBeforeLeavingFunction = async (): Promise<void> => {
-    await props.onSave(words);
-    setIsEditing(false);
-  };
-
   useEffect(() => {
-    props.onEditingChange?.(isEditing && words !== props.words, saveWords);
+    props.onEditingChange?.(isEditing && words !== props.words, words);
   }, [isEditing, words]);
-
-  // A part taken off the page (drawn again once saved) holds nothing unsaved.
-  useEffect(() => {
-    return () => {
-      props.onEditingChange?.(false, saveWords);
-    };
-  }, []);
 
   const save: () => Promise<void> = async (): Promise<void> => {
     setIsSaving(true);
     setError("");
 
     try {
-      await saveWords();
+      await props.onSave(words);
+      setIsEditing(false);
       Toast.success(translator.translateText(SAVED) || "");
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -179,14 +164,14 @@ export const CompliancePaperSection: FunctionComponent<
             {props.heading}
           </h3>
           {byline ? (
-            <p className="inline-flex items-center gap-1.5 text-xs text-gray-500">
+            <div className="inline-flex items-center gap-1.5 text-xs text-gray-500">
               {props.isEdited ? (
                 <></>
               ) : (
                 <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
               )}
               <span>{byline}</span>
-            </p>
+            </div>
           ) : (
             <></>
           )}
@@ -243,7 +228,7 @@ export const CompliancePaperSection: FunctionComponent<
             <></>
           )}
           {props.isStale && hasWords && !isEditing ? (
-            <p
+            <div
               className="flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900"
               data-testid={`${props.id}-stale`}
             >
@@ -252,7 +237,7 @@ export const CompliancePaperSection: FunctionComponent<
                 className="mt-0.5 h-4 w-4 flex-none"
               />
               <span>{translator.translateText(FACTS_CHANGED)}</span>
-            </p>
+            </div>
           ) : (
             <></>
           )}

@@ -346,100 +346,160 @@ side with a left-to-right mark; and no README carries an emoji. App's
 
 ### `ContainerAgentLogSeverity.test.js`
 
-Container runtimes record no severity on a log line, so `DockerAgent`,
-`PodmanAgent` and `DockerSwarmAgent` derive one in their baked-in collector
-config. That used to be the stream alone (`stderr -> ERROR, stdout -> INFO`),
-which brands the entire output of any service that logs structured lines to
-stderr — PSR-3/Monolog and Go zap/logrus both do by default — as ERROR. The
-config now reads a level keyword out of the body first and keeps the stream
-mapping as the fallback.
+Container runtimes record no severity on a log line, only the stream it was
+written to, so `DockerAgent`, `PodmanAgent`, `DockerSwarmAgent` and the
+Kubernetes agent's DaemonSet derive one in their collector config. They carry
+one chain of stanza operators: a router that hands each line to the **first**
+reader that knows where its format keeps the level, then a severity parser.
 
-**A keyword counts only where a level actually sits.** The first version of the
-read was an unanchored scan that took the leftmost level word anywhere in the
-recombined body, and it cost more than it looked: `{"status":"ok","error":null}`
-on stdout became Error, `Recovered from panic, continuing` became Fatal, and —
-because `=` was a trailing delimiter but not a leading one — logfmt's
-`level=error` was invisible while a level word later in the same message was
-not, turning a genuine error into Information. The scan is now field-aware, and
-matches exactly two shapes:
+1. **`parse-klog-severity`** — klog and glog put the level in the first letter,
+   glued to the date: `I1123 19:09:25.286486 1 solver.go:104] …`.
+2. **`add-exception-severity`** — what a runtime prints for an exception names
+   no level but is an error: `Traceback (most recent call last):`,
+   `Exception in thread …`, `Caused by: …`, `Unhandled exception.`,
+   `thread 'main' panicked at …`, a line that starts with an exception's class.
+3. **`add-warning-severity`** — Python's warnings module and Node's process
+   warnings name a category: `/app/x.py:3: DeprecationWarning: …`.
+4. **`parse-numeric-severity`** — pino and bunyan write the level as a number
+   among the top-level fields: `{"level":30,…}`.
+5. **The formats that keep the level in a place of their own** (issue
+   #11226), each read there and nowhere else, so a word that is a level only
+   in its own format (`System`, `Fine`, a `#`) is read in no other line:
+   MongoDB's `"s"` (`parse-mongodb-severity`), CloudNativePG's wrapped
+   PostgreSQL record, whose `error_severity` wins over the wrapper's `level`
+   (`parse-cnpg-severity`), Serilog's compact JSON `@l`
+   (`parse-clef-severity`, and `add-clef-information` for the Information it
+   writes no `@l` for), Redis's and Valkey's symbol, NestJS's ConsoleLogger,
+   logrus with colours, MySQL 8's `[System]`, java.util.logging's `FINEST` to
+   `CONFIG`, Sidekiq 7, PHP's error log and Gitea's `[I]`.
+6. **`parse-severity-from-body`** — a level word, believed only where a level
+   sits: in the line's **preamble** (punctuation, digits, word tokens that end
+   on a structural delimiter, colour codes, and a time at the very start, read
+   with its letters: RFC 3339's `T` and `Z`, a zone such as `UTC` or `GMT`,
+   ctime's day and month, zerolog's `3:04PM`), or as the value of a **level
+   field** (`level`, `lvl`, `severity`, `levelname`, `level_name`,
+   `log.level`, hclog's `@level`, Serilog's `@l`, …). Prose is not preamble:
+   `Connection error, retrying` stops at `Connection `. The preamble branch is
+   anchored, so it beats a level field further along the line.
+7. **`parse-slog-severity`** — Go's log/slog between its four names,
+   `level=ERROR+4`, at its level plus 9 as OpenTelemetry's slog bridge numbers
+   it; after the general read, so a line that one reads keeps that level.
+8. **`add-fallback-severity`** — a line nothing read, on stdout: INFO.
 
-1. **Line preamble.** The keyword is on the first line of the record and
-   everything before it is preamble: punctuation, digits, and word tokens that
-   end on a structural delimiter. `[ERROR] …`, `app.INFO: …`,
-   `2026-08-31 07:25:04 INFO …`, `… - myapp - INFO - …`, `level=error …`. Prose
-   is not preamble — `Connection error, retrying` stops dead at `Connection `,
-   because a bare word followed by a space is not a preamble token. The
-   repetition is lazy, so the FIRST keyword in preamble position wins rather
-   than the last.
-2. **Level field.** The keyword is the value of a level-ish key anywhere in the
-   line — `level` / `lvl` / `severity` / `severity_text` / `levelname` /
-   `log.level` / `log_level` — quoted or not, separated by `:` or `=`. That is
-   zap and logrus JSON, and logfmt whose level is not the first field.
+A line nothing read on **stderr** has no severity at all (the router's default,
+`severity-unspecified`). stderr carries every level of a program's diagnostics
+(klog, zap's production config, logrus, hclog, Python's logging and PostgreSQL
+write everything there), so it says nothing about a line's level. It used to be
+ERROR, which is issue #10972: hclog behind a time ending in `Z`, hclog's JSON
+`@level`, klog's letter and PostgreSQL's `LOG` were all unread, so those
+programs' INFO and WARN lines were stored as Errors and
+`filters.logs.minSeverity: ERROR` kept them — while the same misses on stdout
+stored Spring Boot 3's, pino's, .NET's and Traefik's errors as Information, and
+the filter dropped them.
 
-The preamble branch is anchored, so when it matches it is the leftmost match and
-beats a level field further along the same line. Both branches take end of body
-as a trailing delimiter, which is what settles the old Docker/Podman divergence:
-Docker's json-file driver keeps the trailing newline in the `log` field and
-Podman's CRI format does not, so a line ending on its level used to be read
-differently by the two agents.
+The chain is YAML duplicated in four configs, and nothing compiles it; `otelcol
+validate` only proves each operator is well-formed. So the suite holds it to:
 
-The chain is five stanza operators of YAML, duplicated across three agent images
-**and** the Kubernetes agent's DaemonSet ConfigMap
-(`HelmChart/Public/kubernetes-agent/templates/configmap-daemonset.yaml`).
-Nothing compiles it. `otelcol validate` only proves each operator is
-individually well-formed, so the two failure modes that matter are both silent
-and both leave the agent worse than the stream-only behaviour it replaced:
+- **Structure.** Every operator, in order; the router's routes in their order,
+  with `severity-unspecified` as the default and the stdout route as the only
+  one that reads the stream; every reader converging on the severity parser,
+  the cleanup and then the noop. No operator computes a level from the stream.
+- **Escaping.** A route's regex lives inside an expr-lang string literal
+  (`\\s`), its parser's in a bare YAML scalar (`\s`). The suite decodes the
+  route's the way expr-lang does — strictly, since `\s` in a Go string literal
+  is a config the collector refuses — and asserts the two are identical.
+- **Coverage.** Every text a parser can capture (the body reader's keywords,
+  klog's four letters, pino's six numbers) and every level an `add` writes
+  resolves to a real OTel severity number, and survives OneUptime's ingest as a
+  real `LogSeverity`: stanza's built-in preset knows trace/debug/info/warn/
+  warning/error/err/fatal and nothing else, and an unmapped text leaves the
+  record **Unspecified** rather than erroring.
+- **Behaviour.** The corpus in `Utils/LogSeverityCorpus.js` — 311 log lines:
+  162 captured from the programs themselves (Vault, the collector,
+  kube-state-metrics, PostgreSQL, Prometheus, nginx, Python, Node, Logback,
+  java.util.logging, and for #11226 and #11228 MongoDB, Redis, NestJS, logrus,
+  slog, zerolog, MySQL 8.4, Sidekiq 7 and 8, PHP, Gitea, Serilog and
+  CloudNativePG in a kind cluster), the rest in their documented layouts, this
+  suite's corpus from before #10972 among them — goes through each
+  config's own operators the way stanza runs them (`classify` in
+  `Utils/StanzaSeverity.js`), and each line must be read by the reader the
+  corpus names and stored at its level. Prose that merely mentions a level word
+  must reach the stream's answer instead.
+- **Regression.** Each case's `before` is checked against the chain as it
+  shipped in 17.0.0, so each case that changed is a demonstrated regression,
+  and the unanchored keyword scan's old mistakes (escalation of prose,
+  inversion of logfmt, the PSR-3 levels above CRITICAL) stay fixed.
+- **Cost.** The Kubernetes API-mode tailer runs the same patterns through
+  JavaScript's backtracking engine, where a pattern linear in RE2 can be
+  quadratic or exponential. Every reader must stay cheap on thirty-odd
+  pathological shapes at a size where a quadratic one takes seconds.
+- **Lockstep.** The four configs carry one identical chain.
+- **Expansion.** No pattern holds a `$` followed by a name: collector 0.96.0,
+  which `--reuse-values` keeps, still expands a bare `$NAME` as an
+  environment variable, so MongoDB's `\$date` read nothing there. A literal
+  dollar is `[$]`.
 
-- **The router's regex and the parser's regex drift apart.** They are the same
-  pattern written with two different amounts of escaping — the router's lives
-  inside an expr-lang string literal (`\\s`), the parser's is a bare YAML
-  scalar (`\s`). The suite decodes the router's the way expr-lang does and
-  asserts the two are identical. The decode is deliberately strict about unknown
-  escapes, because `\s` in a Go string literal is not "backslash-s", it is a
-  config the collector refuses to start on.
-- **A keyword the regex captures has no severity mapping.** stanza's built-in
-  `default` preset knows trace/debug/info/warn/warning/error/err/fatal and
-  nothing else — `notice`, `crit`, `critical`, `panic`, `alert`, `emerg` and
-  `emergency` are supplied by the config's own `mapping:` block. A keyword
-  without one does not error and does not drop the record: `severity_parser`
-  leaves it **Unspecified**. So the suite walks every alternative in the regex
-  and asserts each resolves to a real OTel severity number, and then that each
-  survives OneUptime's ingest (`OtelLogsIngestService.getSeverityText`, which
-  re-derives severityText from severityNumber) as a real `LogSeverity` rather
-  than Unspecified. It also asserts the list covers all eight PSR-3 levels,
-  which is the hole `ALERT` and `EMERGENCY` used to sit in.
+`agent-log-severity-behaviour.sh` runs the same corpus through the real
+collector, on each agent and on the chart at the collector it pins and at
+`0.96.0`, with and without `filters.logs.minSeverity=ERROR`, and once more
+with the documented `logs.extraOperators` example set (through the chart, and
+through the container agents' `ONEUPTIME_LOG_OPERATOR_<n>` variables): the
+in-house lines it reads (`Utils/ExtraLogOperatorExamples.js`) must leave at
+the levels it names, beside the whole corpus as it leaves without it.
 
-On top of that it pins the operator graph (nothing unreachable, `log.iostream`
-populated before the fallback reads it, both branches converging on the severity
-parser and then the cleanup), runs the real regex over a corpus of Monolog, zap,
-logfmt, nginx, logback, Python, .NET and klog lines, and holds the three agents
-and the Kubernetes ConfigMap to one identical chain.
+### `AgentLogOperators.test.js`
 
-The expectations are not guesses: each config was run through the real
-`otelcol-contrib` 0.165.0 — the version the images are built `FROM` — over a
-fixture log file, and the severity this suite predicts is the severity the
-collector emitted. The pattern is additionally cross-checked against Go's
-`regexp` package, which is the same RE2 implementation stanza's `regex_parser`
-and expr-lang's `matches` both use.
+Log operators of your own (issue #11225), for a log format the agents do not
+read. The container agents take five, `ONEUPTIME_LOG_OPERATOR_1` to `_5`, each
+one collector operator as JSON: in each config, five slots in order, after the
+line is put back together and its stream read and right before the severity
+router, each a `noop` when unset and quoted so YAML keeps the fallback whole;
+in each Compose file, the five named without a value (an empty one would stop
+the collector), and a config check, the collector's own `validate` over the
+same config and settings, which the agent waits on. For the Kubernetes agent's
+`logs.extraOperators`, the chart's check (`kubernetes-agent.validateExtraLogOperators`)
+is held to the agent's own config: the ids it keeps are the pod log
+receiver's, the types of the agent's operators without an id are the ones it
+knows, its types are the schema's enum, the types newer than `0.96.0` are
+the ones it refuses there, the operators render right after the pod's uid
+is moved and before the severity router, the check runs in a template
+nothing else includes, and the example in `values.yaml` is the one the
+chart's suite renders. In the JavaScript model of each chain
+(`Utils/StanzaSeverity.js`), the example's in-house lines are read by no
+reader of the agent's own, and with the example's operators run first each
+leaves at the level it names.
 
-The block **`regression: what the unanchored keyword scan got wrong`** is the
-old characterization block turned the right way up. Every line in it is one the
-unanchored scan got wrong, now asserted in the direction it is supposed to go:
+The chart's helm-unittest suite, `tests/extra-log-operators_test.yaml`, holds
+what the chart renders and every refusal by its whole message, the schema's
+too (`HelmUnittestAssertions.test.js` holds every chart suite to that).
+`validate-collector-configs.sh` holds those verdicts to the collector's own.
 
-- **Escalation.** A benign stdout line that mentions a level word in prose was
-  `Information` and became `Error`, or `Fatal`. Thirty level-free stdout lines
-  (eleven of which were reclassified) are asserted to reach the fallback.
-- **Inversion.** A genuine stderr error whose message contained an earlier level
-  word was `Error` and became `Information` — a real error hidden, the worse of
-  the two.
-- **logfmt.** `level=error` is now read, wherever in the line it sits.
-- **PSR-3 `ALERT` and `EMERGENCY`** are in the keyword list and in the mapping.
+### `LogSeverityOneTable.test.js`
 
-Two more properties are pinned because they are easy to break while widening the
-pattern: only the first line of a recombined body can supply a preamble level,
-and the pattern must stay cheap on pathological input — the Kubernetes API-mode
-tailer runs the same source through JavaScript's backtracking engine rather than
-RE2, where a pattern that is linear in RE2 can still be exponential.
+A level word is turned into a stored severity in more than one place, and the
+same word must land on the same severity in all of them (issue #11228: the
+agents stored `critical` as an Error and `alert` and `panic` as Fatal, while
+OneUptime's ingest did the opposite). The table is `LOG_SEVERITY_NUMBER_BY_TEXT`
+in `packages/Common/Types/Log/LogSeverity.ts`, loaded as the module it is
+(`loadCommonModule` in `Utils/AgentLogSeverityConfigs.js`), and the suite
+holds every copy to it, number for number:
+
+- the four configs' `severity-parser`: every alias of its mapping block, and
+  every text its readers lift;
+- the API-mode tailer's `severityTextToNumber`, which must also number exactly
+  the texts the DaemonSet's readers lift;
+- syslog's eight severities by number, through their RFC 5424 keywords:
+  OneUptime's syslog ingest (`SyslogSeverity.ts`) and the host collector's
+  journald priority mapping;
+- CloudWatch Logs' first-word and RDS database reads.
+
+A text that is no word a sender writes in a level field, only a mark in one
+format's own position (klog's letter, pino's number, PostgreSQL's `LOG` in
+capitals), is a reader token, listed with the number it names; the chain may
+map nothing else the table does not know. Vendor vocabularies whose meaning
+the vendor defines (Datadog's statuses, Google Cloud Logging's severities) are
+read as the vendor says and are not held here. A last block keeps the copies
+as they were before #11228 and shows the words they disagreed on.
 
 ### `validate-collector-configs.sh`
 
@@ -448,7 +508,11 @@ Not part of `npm test`, because it needs docker and helm. It runs
 image over the Docker, Podman, Docker Swarm and VMware agent configs, over the
 Storage Array Agent's three configs (as shipped, and again with their
 commented-out syslog receivers and `logs` pipeline uncommented — and it checks
-that an empty `STORAGE_ARRAY_NAME` stops the collector), over the Database
+that an empty `STORAGE_ARRAY_NAME` stops the collector), over the XCP-ng
+Agent's config (as `install.sh` writes its settings for https, a lab's http,
+an IPv6 Xen Orchestra and a certificate checked against another name, and with
+a secret and a name YAML would read as a list and a map; it checks that no
+component is named by a deprecated alias), over the Database
 Agent's per-receiver configs (as shipped, and again with every optional metric
 their comments list switched on), and over both collector ConfigMaps rendered
 out of the `kubernetes-agent` chart, on its default values and on its OpenShift
@@ -471,6 +535,21 @@ expressions — the Go-side class of error the jest suite structurally cannot se
 a malformed regex, an `output`/`default` naming an operator that does not exist,
 or an expr string one backslash short. It runs on every PR from the
 "Ops Config Test" workflow.
+
+For the Kubernetes agent's `logs.extraOperators` (issue #11225) it also runs
+`Utils/extra-log-operators-agreement.js`: a table of operators, each with the
+chart's verdict (it renders them, or refuses them with a message that
+matches) and the collector's `validate` verdict on the same operators in a
+receiver of their own, written down, so that the chart refuses at install
+time what would stop the collector, and refuses on its own only what it says
+why (a level the agent would overwrite, a router that would drop lines). It
+validates the agent's config with operators of every type the chart takes in
+it, on the pinned collector and, with the types it has, on `0.96.0`; shows,
+by renaming one of them in that config, that an id the chart keeps (one of
+the agent's, or `move`, the name the collector gives the agent's first move)
+is a duplicate the collector refuses and that `move1` is not; and checks
+the messages of what `values.schema.json` refuses, which helm-unittest cannot
+read.
 
 ```sh
 cd Tests/Ops && npm run validate-collector-configs
@@ -632,6 +711,109 @@ per node in `PVE_NODES` (`cluster=0&node=1`) — names a listed node the
 exporter cannot read, warns when the cluster has more nodes than the list,
 falls back to `PVE_HOST` alone as `docker-compose.yml` does, and reports a
 list without its square brackets as the error that stops the collector.
+
+### `XcpNgAgentConfigs.test.js`
+
+The XCP-ng Agent (`agents/XcpNgAgent`) is config-only: a stock collector
+scraping Xen Orchestra's OpenMetrics plugin, which serves every pool that Xen
+Orchestra manages from one endpoint. OneUptime registers each pool from what
+the config sends, so its shape is pinned, against the names the ingest reads
+(`packages/Common/Types/XcpNg/XcpNgTelemetry.ts`, loaded as the module it is)
+and the recorded scrape (`Fixtures/XcpNg/XenOrchestraScrape.js`):
+
+- one job, `https://<XO>/openmetrics/metrics` every 60 seconds with a timeout
+  that leaves room for a slow pool, the plugin's secret as a Bearer token,
+  Xen Orchestra's timestamps kept, and its certificate checked against
+  `/etc/oneuptime/xo-ca.pem` (the file `docker-compose.yml` mounts, in the long
+  form that never creates it) - `insecure_skip_verify` appears nowhere;
+- only `xcp_*` leaves the collector; exactly the eight rate series Xen
+  Orchestra types `counter` become gauges, which are every counter it serves
+  and the ingest's `XCP_NG_RATE_TYPED_AS_COUNTER_SERIES`;
+- `groupbyattrs` on `pool_id` / `pool_name`, then the `resource` processor moves
+  them to `xcp_ng.pool.id` / `xcp_ng.pool.name`, stamps `oneuptime.agent.version`
+  (the compose pin) and deletes `service.name` / `service.instance.id`, and a
+  transform stamps `xen_orchestra.name`; what is left without a pool - in the
+  recorded scrape the IPMI host power alone - is dropped; the batch never
+  splits a scrape; the exporter is `otlp_http`, the type collector 0.165.0
+  knows it by;
+- no value a person types is a `${env:...}` on its own, which collector
+  0.165.0 reads as YAML (measured: an IPv6 address or a secret like `a: b`
+  stopped the config loading, a secret like `TRUE` or `+12` reached Xen
+  Orchestra as another value, a name like `XO: lab` arrived as a map): the
+  address sits behind `xo=` and is relabeled out, the secret is followed by a
+  space HTTP drops, and the name is set inside an OTTL string;
+- `install.sh` keeps every variable the compose file reads plus `XO_URL`,
+  `XO_TLS_FINGERPRINT` and `XO_CA_FILE`, quotes them for Compose and escapes the
+  secret for the collector, shares its `.env` helpers with the VMware and
+  Database installers, never turns certificate checking off, never echoes the
+  secret, and starts the agent once with `--force-recreate`;
+  `troubleshoot.sh` hands the secret and the key to a digest-pinned curl image
+  on stdin and checks the chain in the order data travels it;
+- OneUptime serves every file of the agent but its README at
+  `/install/xcp-ng-agent`.
+
+### `XcpNgAgentScripts.test.js`
+
+Runs the XCP-ng Agent's `install.sh` and `troubleshoot.sh` for real against a
+stand-in Xen Orchestra (`Utils/FakeXenOrchestra.js`: HTTPS behind a
+certificate the suite makes, the plugin's routes, its secret check and 401
+bodies, the recorded scrape), with the real `curl` and `openssl`; only
+`docker` and the agent files' download are stubbed, and `xo.example.test`
+resolves to this machine. It pins:
+
+- `XO_URL` into `XO_SCHEME` and `XO_ADDRESS`: ports, IPv6 in brackets, upper
+  case, no scheme, and the refusals (a path, a user, a bare IPv6 address, a
+  port that is not one);
+- the certificate trusted exactly one way - this machine's CA bundle when it
+  trusts it, `XO_CA_FILE` checked against Xen Orchestra, or Xen Orchestra's own
+  certificate pinned by `XO_TLS_FINGERPRINT` in any spelling - else its
+  fingerprint shown, and pinned only when someone at a terminal confirms it
+  (run under `script(1)`; CI must have it). A fingerprint that does not match,
+  a CA that did not issue it, Xen Orchestra's own self-signed certificate (no
+  subjectAltName) and a name the certificate does not list each stop the
+  install before anything is written, started, or sent the secret; an address
+  the certificate does not list takes the name it does (`XO_TLS_SERVER_NAME`);
+- the secret checked with Xen Orchestra (the plugin's two 401 reasons, its
+  proxy error when the plugin is off, a Xen Orchestra with no pools), never on
+  a command line or in the output, written to a mode-600 `.env` quoted for
+  Compose and with every `$` doubled for the collector, and Compose started
+  from `.env` alone; `http://` works, with its warning;
+- a re-run is the upgrade: nothing asked, the pin checked again (a changed
+  certificate stops it and leaves the agent as it was), an edited config kept
+  as `<file>.bak.<timestamp>`, and a Xen Orchestra that does not answer keeps
+  the certificate already trusted;
+- the doctor names the first step that fails: Xen Orchestra unreachable, its
+  plugin off, a certificate that is not the pinned one (both fingerprints),
+  one that names no host, a CA that no longer issues it, a refused secret, no
+  pools, a missing `xo-ca.pem`, `localhost` - and reads the collector's own log
+  lines for each - and a secret with `$` reaches Xen Orchestra as typed.
+
+### `xcp-ng-agent-scrape-behaviour.sh` and `XcpNgAgentScrapeFixtures.test.js`
+
+Runs the XCP-ng Agent's collector from `agents/XcpNgAgent/docker-compose.yml`,
+exactly as it ships but scraping every 5 seconds, against the stand-in Xen
+Orchestra in a container (the recorded scrape over HTTPS, losing the unnamed
+pool from its third scrape), its own `otlp_http` exporter sending to a
+stand-in OneUptime that logs the path and token and hands each export to an
+OTLP sink (a second collector of the same image with a file exporter). Its
+node half (`Utils/XcpNgAgentScrapeBehaviour.js`) matches each exported
+resource to the scrape it came from and checks, sample for sample, that every
+served `xcp_*` sample of a pool arrives with its value and time and nothing
+else does: one resource per pool with its identity, the eight rate series as
+gauges with the values served (also those that went down), no resource
+without a pool, and one staleness marker - for the lost pool's
+`xcp_pool_connected`. Then a wrong secret, a certificate that is not the pinned
+one and Xen Orchestra's own self-signed certificate must each send nothing,
+with the collector saying why. It needs docker, node and openssl, and runs in
+the Ops workflow.
+
+Its export of the first two scrapes is kept as
+`packages/Common/Tests/Server/Utils/Telemetry/Fixtures/XcpNg/AgentOtlpScrape{1,2}.json`
+(the README there says how they are normalized), which the ingest's tests read:
+every run is held to them, and `--write-fixtures` writes them again after a
+deliberate change. `XcpNgAgentScrapeFixtures.test.js` needs no Docker: it holds
+the committed files to the recorded scrape, the helper to how it matches a
+resource to its scrape, and the script to how it runs.
 
 ### `OpenStackAgentInstallers.test.js`
 
@@ -808,7 +990,15 @@ started — and with the socket off it stops before starting anything, with the
 the daemon's name (`docker info --format '{{.Name}}'`, the hostname
 `docker node ls` shows) into `.env` as `DOCKER_SWARM_NODE_NAME`, keeps one given
 when running it, and keeps only a hostname's characters (the name goes into an
-OTTL string).
+OTTL string). Log operators of your own (`ONEUPTIME_LOG_OPERATOR_1` to `_5`,
+issue #11225): with none set nothing is checked or passed, and an empty one is
+not passed; a set one is run through the collector's `validate` in the agent's
+image, with the agent's settings, before the agent is touched, and then reaches
+the collector alone; one the collector refuses stops the script with its
+message, and the agent is neither removed nor started again. The Swarm
+installer writes them into `.env` single-quoted, checks the new `.env` with the
+Compose file's config check before it replaces the old one, keeps one `.env`
+has when run again without it, and refuses one holding a single quote.
 
 ### `ContainerAgentConfigs.test.js`
 
@@ -833,8 +1023,8 @@ copies in.
 
 ### `AgentTroubleshootTokenCheck.test.js`
 
-Runs the ingestion-key check of the Ceph, Proxmox, OpenStack, VMware, Storage Array and
-Docker Swarm agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
+Runs the ingestion-key check of the Ceph, Proxmox, OpenStack, VMware, Storage Array,
+XCP-ng and Docker Swarm agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
 chart's (with `kubectl`, and the local `curl` and `sleep`, stubbed) against
 each answer a OneUptime server can give (GH#3978). Ingest refuses a bad key
 with 401 (missing, unknown, expired) or 422 (disabled, or a browser key from a
@@ -851,7 +1041,7 @@ The Docker Swarm check has no `/fluentd` fallback, so there an old server that
 does not refuse the key stays inconclusive.
 
 With the collector down there is no container environment to read, and the
-Ceph, Proxmox, OpenStack, VMware and Storage Array checks fall back to the `.env` their
+Ceph, Proxmox, OpenStack, VMware, Storage Array and XCP-ng checks fall back to the `.env` their
 `install.sh` writes quoted for Docker Compose: the suite pins that they read
 it as Compose does, so the probe asks the URL and sends the key without the
 quotes.
@@ -1081,6 +1271,29 @@ body wraps the Event under `object`; the rule used to read the watch's own
 `type` (ADDED, MODIFIED) and marked every warning INFO. It needs docker and
 helm; the "Ops Config Test" workflow runs it after
 `agent-metric-filter-behaviour.sh`.
+
+### `agent-log-severity-behaviour.sh`
+
+The level a pod or container log line leaves the agents with, in the real
+collector (issue #10972). It writes the corpus of `Utils/LogSeverityCorpus.js`
+(and its prose, on both streams) to disk as each runtime does — a Kubernetes
+node's `/var/log/pods` in containerd's CRI lines, Docker's json-file logs,
+Podman's k8s-file logs — one container per case, and runs each config's
+`filelog` receiver exactly as it ships (read from the start of the files) in
+the collector it runs on: the Kubernetes agent's DaemonSet as the chart renders
+it, on the collector the chart pins and on `0.96.0` (which `--reuse-values`
+keeps), each also with `filters.logs.minSeverity=ERROR`; and the Docker, Docker
+Swarm and Podman agents' configs on the collector their images are built
+`FROM`. Every case must leave once, at the corpus's level, with no severity
+text where it has no severity and without the scratch `severity_text`
+attribute; with the filter, everything below ERROR must be dropped and every
+line with no severity kept; and the collector may log no error from the chain
+(a route that admits what its parser cannot parse logs one per record).
+`CONFIG_ROOT` runs it against another checkout's configs, which is how a config
+from before a fix is shown misreading the corpus. `Utils/LogSeverityBehaviour.js`
+does the work, and `ContainerAgentLogSeverity.test.js` checks that its files
+land where each config reads them. It needs docker and helm; the "Ops Config
+Test" workflow runs it after `agent-event-severity-behaviour.sh`.
 
 ### `agent-restarts-increase-behaviour.sh`
 
@@ -1384,6 +1597,34 @@ holds both charts to writing every such value as a quoted string:
   the Altinity installation create are the ones the app connects as and to.
 
 The render needs `helm`, as the OpenShift admission check above does.
+
+### `HelmUnittestAssertions.test.js`
+
+helm-unittest drops what it does not read, without a word: 0.5.1, which the
+harness pinned until #11403, had no `failedTemplate` `errorPattern`, and 72
+tests passed whatever their messages said. 1.2.1, pinned now, decodes an
+assertion with mapstructure, which ignores a key its validator has no field
+for (`errorPatern:`, `vaule:`), and reads `not`, `documentIndex` and
+`template` only as a boolean, an integer and a string. `--strict` holds a
+suite's and a test's own keys, but neither an assertion's nor a test's
+`capabilities`. So this holds every suite file under `HelmChart/` to what
+1.2.1 reads:
+
+- each assertion has one type that version knows, only the keys its validator
+  reads, and the keys it needs to compare anything (an `equal` with no
+  `value`, a `hasDocuments` with no `count`);
+- each test has asserts, a `matchRegex` pattern does not match any text, and a
+  suite and a test carry only the keys they have;
+- a refusal (`failedTemplate`) is held to its whole `errorMessage`: not
+  `errorPattern`, an unanchored regex that passes for any message holding it;
+  not a bare `failedTemplate: {}`, which passes for any failure; and not
+  negated;
+- each is written so `HelmChart/Tests/suites/assertions-can-fail.sh` can plant
+  a wrong message in it, which that suite then requires to fail.
+
+Its tables are read from helm-unittest's source at one version, and it fails
+when the harness pins another until they are read again. Planted mistakes, one
+of each kind, show it reporting them. It needs no `helm`.
 
 ### `KubernetesAgentClusterName.test.js`
 

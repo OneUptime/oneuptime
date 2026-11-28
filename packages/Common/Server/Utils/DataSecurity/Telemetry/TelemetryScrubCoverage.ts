@@ -167,9 +167,10 @@ export type {
  * replaces the attribute's value with [REDACTED] - only the values of the
  * data type's shape, where a pattern can find it (a "Matches Regex"
  * filter of the pattern above, so the label keeps its other values; for an
- * IP address, an email address or a card number a "Matches Pattern Type"
- * filter of the built-in pattern a log or trace rule of the type runs,
- * METRIC_PATTERN_TYPE_OF_DATA_TYPE, #10934), and every value under the key
+ * IP address, an email address, a card number, a phone number or a US
+ * Social Security number a "Matches Pattern Type" filter of the built-in
+ * pattern a log or trace rule of the type runs,
+ * METRIC_PATTERN_TYPE_OF_DATA_TYPE, #10934, #11112), and every value under the key
  * otherwise, since the key's name is what says it is sensitive. Such a rule covers the finding, as does a Redact or
  * Remove Attribute rule of that key for the service or the whole project
  * with no filter. A rule with filters a person wrote never counts, for the
@@ -387,15 +388,26 @@ function ruleScrubsField(
  * (Utils/Telemetry/ScrubBuiltInPatterns), and follows them as they change -
  * the type is read when a value is, not frozen into the rule. Rules made
  * before with the frozen pattern were moved to it (App/FeatureSet/Workers/
- * DataMigrations/MetricScrubRulesMatchTheirPatternType). Every other type
- * keeps its own pattern: the Phone Number and SSN patterns find less than
- * theirs does.
+ * DataMigrations/MetricScrubRulesMatchTheirPatternType).
+ *
+ * A phone number and a US Social Security number too (#11112): their
+ * frozen patterns validated nothing - +51.507217 and +1 2026-11-24 were a
+ * phone number to them, 666.22.8731 an SSN - and read no value encoded, in
+ * another script's digits or typed in fullwidth, while their Pattern Types
+ * hide what the detectors find since #11030, in every reading, a national
+ * number or nine digits beside the word that names them included
+ * (#11114). The rules "Scrub it" made with the frozen patterns were moved
+ * to them (DataMigrations/MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType),
+ * so each covers its finding again. Every other type keeps its own
+ * pattern.
  */
 export const METRIC_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> =
   new Map<string, string>([
     ["ip-address", LogScrubPatternType.IPAddress],
     ["email-address", LogScrubPatternType.Email],
     ["credit-card-number", LogScrubPatternType.CreditCard],
+    ["phone-number", LogScrubPatternType.PhoneNumber],
+    ["us-ssn", LogScrubPatternType.SSN],
   ]);
 
 /*
@@ -1635,15 +1647,25 @@ export function describeRule(data: {
 async function propsFor(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  callerProps?: DatabaseCommonInteractionProps | undefined;
 }): Promise<DatabaseCommonInteractionProps> {
-  if (!data.userId) {
-    return { isRoot: true };
+  if (data.userId) {
+    return await WorkspaceActionAuthorization.getProjectMemberProps({
+      userId: data.userId,
+      projectId: data.projectId,
+    });
   }
 
-  return await WorkspaceActionAuthorization.getProjectMemberProps({
-    userId: data.userId,
-    projectId: data.projectId,
-  });
+  /*
+   * No person asked: a project API key, through the API (#10378). The rule
+   * is made with the key's own props - never as OneUptime, which let a key
+   * that may make one kind of scrub rule make any kind.
+   */
+  if (data.callerProps && !data.callerProps.isRoot) {
+    return data.callerProps;
+  }
+
+  return { isRoot: true };
 }
 
 // Why Scrub It cannot hide a metric's name, in a sentence a person can act on.
@@ -1720,6 +1742,7 @@ export function buildMetricScrubRule(data: {
 async function createMetricScrubRule(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  callerProps?: DatabaseCommonInteractionProps | undefined;
   serviceId?: ObjectID | string | null | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
@@ -1844,6 +1867,8 @@ export function buildMetricDropRule(data: {
 export async function createDropRuleForFinding(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  // The caller's own props, when no person asked (propsFor, #10378).
+  callerProps?: DatabaseCommonInteractionProps | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
   location: string;
@@ -2095,6 +2120,11 @@ export async function planScrubItRule(data: {
 export async function createScrubRuleForFinding(data: {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  /*
+   * The caller's own props, when no person asked - a project API key,
+   * through the API: the rule is made with them (propsFor, #10378).
+   */
+  callerProps?: DatabaseCommonInteractionProps | undefined;
   kind: DataStoreKind;
   dataTypeId: string;
   // The name the finding kept for its type: what the rule calls a type that is gone.

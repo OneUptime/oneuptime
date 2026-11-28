@@ -66,6 +66,7 @@ En ny installasjon kan starte med SMS og anrop som virker, uten noe å sette opp
 | `GLOBAL_TWILIO_PRIMARY_PHONE_NUMBER` | `twilio.primaryPhoneNumber` | Nummeret anrop går ut fra, med landskode. Ikke nødvendig for `sms-only` |
 | `GLOBAL_TWILIO_SECONDARY_PHONE_NUMBERS` | `twilio.secondaryPhoneNumbers` | Valgfritt, kommaseparert: numre som brukes i stedet for primærnummeret for mottakere i sitt land |
 | `GLOBAL_TWILIO_SMS_PHONE_NUMBERS` | `twilio.smsPhoneNumbers` | Kommaseparerte numre som hver SMS sendes fra. Påkrevd for `sms-only` |
+| `GLOBAL_TWILIO_CALL_VOICE` | `twilio.callVoice` | Valgfritt: stemmen anropene bruker, en av stemmene i [Stemmen anropene bruker](#stemmen-anropene-bruker). Den leses med eller uten `GLOBAL_TWILIO_ACCOUNT_SID`, og så lenge den er angitt, viser **Stemme for anrop** i Admin Dashboard den skrivebeskyttet |
 
 Med Helm angir du dem under `twilio` i dine values. For å holde auth-tokenet utenfor de values Helm lagrer med hver release, legger du det i en Secret du selv administrerer, og angir den Secret-en i `twilio.existingSecret.name`:
 
@@ -83,11 +84,11 @@ twilio:
     name: oneuptime-twilio
 ```
 
-Sett telefonnumre i anførselstegn i en values-fil, og send dem med `--set-string` i stedet for `--set`: uten anførselstegn er `+14155550100` et tall, som chartet avviser. Chartet avviser også andre `twilio`-verdier uten `twilio.accountSid`, en Account SID uten auth-token og et auth-token som er angitt både i `twilio.authToken` og i en Secret. Med Terraform angir du de samme verdiene på en `helm_release`, med auth-tokenet som en sensitiv verdi.
+Sett telefonnumre i anførselstegn i en values-fil, og send dem med `--set-string` i stedet for `--set`: uten anførselstegn er `+14155550100` et tall, som chartet avviser. Chartet avviser også andre `twilio`-verdier uten `twilio.accountSid` (alle unntatt `twilio.callVoice`, som angir stemmen uansett hvem som angir kontoen), en Account SID uten auth-token, et auth-token som er angitt både i `twilio.authToken` og i en Secret, og en `twilio.callVoice` som ikke er en av stemmene. Med Terraform angir du de samme verdiene på en `helm_release`, med auth-tokenet som en sensitiv verdi.
 
 Med Docker Compose angir du `GLOBAL_TWILIO_`-innstillingene i `config.env` og kjører deretter `npm run start` for å gjenopprette containerne.
 
-OneUptime leser variablene når den starter. Hvis én av dem er feil, for eksempel et telefonnummer OneUptime ikke kan lese, eller et manglende auth-token, sender kontoen ingen SMS-er og foretar ingen anrop før det er rettet; serverens logg, **Admin Dashboard > Innstillinger > Anrop og SMS** og sjekklisten på `/admin/setup` nevner variabelen. Auth-tokenet vises aldri. For å endre kontoen endrer du variablene og starter OneUptime på nytt: Admin Dashboard endrer den ikke.
+OneUptime leser variablene når den starter. Hvis én av dem er feil, for eksempel et telefonnummer OneUptime ikke kan lese, eller et manglende auth-token, sender kontoen ingen SMS-er og foretar ingen anrop før det er rettet; serverens logg, **Admin Dashboard > Innstillinger > Anrop og SMS** og sjekklisten på `/admin/setup` nevner variabelen. En `GLOBAL_TWILIO_CALL_VOICE` som ikke navngir en stemme OneUptime tilbyr, stopper ingen anrop: anrop bruker kontoens standardstemme til den er rettet, og de samme tre stedene nevner den. Auth-tokenet vises aldri. For å endre kontoen endrer du variablene og starter OneUptime på nytt: Admin Dashboard endrer den ikke.
 
 ### Administrer prosjektkonfigurasjoner med Terraform
 
@@ -146,6 +147,51 @@ Et prosjekt har en standard for SMS og en standard for anrop, og en konfigurasjo
 Det ingen standard sender, går ut slik det ville gjort uten en konfigurasjon: så lenge den eneste standarden er satt til **Bare SMS**, går anrop til prosjektets medlemmer gjennom konfigurasjonen for hele installasjonen. Kan ingen konfigurasjon sende en melding, står det i meldingens logg at prosjektets konfigurasjon ikke brukes til den, og hvem som kan endre det.
 
 Statussider tilbyr bare konfigurasjonene som sender SMS, og **Send test-SMS** og **Send testanrop** vises bare for det en konfigurasjon sender. Alle eksisterende konfigurasjoner er som før satt til **Anrop og SMS**. Gjennom API-et og Terraform er valget feltet `usedFor`, og en konfigurasjon uten numrene valget trenger, blir avvist.
+
+### Stemmen anropene bruker
+
+Anrop bruker stemmen Twilio-kontoen din har som standard: Twilios gratis Basic-stemme, med mindre du har valgt en annen i Twilio Console. Twilio sier at Basic-stemmene ikke er ment for produksjon, så hver konto kan i stedet bruke en av disse nevrale stemmene. For kontoen for hele installasjonen velger du den i kortet **Stemme for anrop** på **Admin Dashboard > Innstillinger > Anrop og SMS**, og for en prosjektkonfigurasjon i **Stemme for anrop** under **Flere felt**. For å angi stemmen for kontoen for hele installasjonen fra kode bruker du `GLOBAL_TWILIO_CALL_VOICE` (`twilio.callVoice` med Helm): se [Angi kontoen for hele installasjonen med miljøvariabler](#angi-kontoen-for-hele-installasjonen-med-miljøvariabler).
+
+| Stemme | Laget av | Hvordan den høres ut |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Amerikansk engelsk, kvinnelig stemme |
+| `Polly.Matthew-Neural` | Amazon Polly | Amerikansk engelsk, mannlig stemme |
+| `Polly.Amy-Neural` | Amazon Polly | Britisk engelsk, kvinnelig stemme |
+| `Polly.Brian-Neural` | Amazon Polly | Britisk engelsk, mannlig stemme |
+| `Google.en-US-Neural2-F` | Google | Amerikansk engelsk, kvinnelig stemme |
+| `Google.en-US-Neural2-J` | Google | Amerikansk engelsk, mannlig stemme |
+
+Alle anrop gjennom kontoen bruker den stemmen: vaktvarslinger og svaret på tasten du trykker på, meldingen som legges igjen i taleposten, bekreftelseskoder, **Send testanrop** og hilsenene i en policy for innkommende anrop. Med disse stemmene staves et nummer som `INC-42` med SSML, som høres mer naturlig ut enn bokstavene med mellomrom som andre stemmer får. Twilio tar betalt for disse stemmene på kontoen som ringer: $0.0032 per 100 tegn i november 2026, under 3 amerikanske cent per varslingsanrop på alle språk. Se [Twilios priser for taleanrop](https://www.twilio.com/en-us/voice/pricing/us). La feltet **Stemme for anrop** stå tomt for å beholde kontoens standardstemme. Gjennom API-et og Terraform er stemmen feltet `twilioCallVoice`, og en stemme som ikke står i tabellen, blir avvist.
+
+#### Anrop på andre språk
+
+Et vaktanrop til noen som bruker OneUptime på et annet språk, er på det språket når kontoen bruker en av stemmene ovenfor: ordene er skrevet på språket, og en stemme på språket sier dem, en kvinnestemme hvis kontoen bruker en kvinnestemme, og en mannsstemme hvis den bruker en mannsstemme. Oppfordringen til å trykke, detaljene som gjentas når ingen tast trykkes, svaret på en feil tast og svarene på tastene er alle på språket, og tastene forblir 1 og 2. Dette er stemmene, fra Twilios liste over nevrale stemmer, sjekket 27. november 2026; de koster det samme som stemmene ovenfor:
+
+| Språk | Kvinnestemme | Mannsstemme |
+| --- | --- | --- |
+| Tysk | `Polly.Vicki-Neural` | `Polly.Daniel-Neural` |
+| Fransk | `Polly.Lea-Neural` | `Polly.Remi-Neural` |
+| Spansk | `Polly.Lucia-Neural` | `Polly.Sergio-Neural` |
+| Italiensk | `Polly.Bianca-Neural` | `Polly.Adriano-Neural` |
+| Portugisisk | `Polly.Camila-Neural` | `Polly.Thiago-Neural` |
+| Nederlandsk | `Polly.Laura-Neural` | `Google.nl-NL-Wavenet-G` |
+| Dansk | `Polly.Sofie-Neural` | `Google.da-DK-Wavenet-G` |
+| Norsk | `Polly.Ida-Neural` | `Google.nb-NO-Wavenet-G` |
+| Svensk | `Polly.Elin-Neural` | `Google.sv-SE-Wavenet-G` |
+| Russisk | `Google.ru-RU-Wavenet-A` | `Google.ru-RU-Wavenet-B` |
+| Japansk | `Polly.Kazuha-Neural` | `Polly.Takumi-Neural` |
+| Koreansk | `Polly.Seoyeon-Neural` | `Google.ko-KR-Neural2-C` |
+| Forenklet kinesisk | `Polly.Zhiyu-Neural` | `Google.cmn-CN-Wavenet-B` |
+| Tradisjonell kinesisk | `Google.cmn-TW-Wavenet-A` | `Google.cmn-TW-Wavenet-B` |
+| Hindi | `Polly.Kajal-Neural` | `Google.hi-IN-Neural2-B` |
+| Arabisk | `Google.ar-XA-Wavenet-A` | `Google.ar-XA-Wavenet-B` |
+| Persisk | Ingen: anrop er på engelsk | Ingen: anrop er på engelsk |
+
+Verken Amazon Polly eller Google har en persisk stemme, så et anrop til noen som bruker OneUptime på persisk, er på engelsk, som alle anrop gjennom en konto som beholder standardstemmen sin, som bare snakker engelsk. Loggen til et anrop tar vare på det anropet sa, på språket det sa det på. En bekreftelseskode, **Send testanrop** og hilsenene i en policy for innkommende anrop er på engelsk.
+
+#### Prosjekter som velger sin egen stemme
+
+På en selvhostet installasjon kan en hovedadministrator la hvert prosjekt velge stemmen for anropene sine gjennom kontoen for hele installasjonen: slå på **La prosjekter velge stemmen for anropene sine** i kortet **Prosjektenes stemmer** på **Admin Dashboard > Innstillinger > Anrop og SMS**. En **Prosjekteier** eller **Prosjektadministrator** velger den deretter i kortet **Stemme for anrop** under **Flere innstillinger** på **Prosjektinnstillinger > Varslinger > Varslingskanaler**, og et prosjekt som ikke velger noen, bruker installasjonens stemme. Twilio tar betalt for hvert prosjekts stemme på kontoen for hele installasjonen, så bryteren starter slått av, og slår du den av, bruker alle prosjekter installasjonens stemme igjen. OneUptime Cloud tilbyr ikke dette: velg en stemme med en egen prosjektkonfigurasjon. Gjennom API-et er stemmen prosjektets felt `callVoice`, som avvises så lenge bryteren er slått av.
 
 ### Talepost ved vaktanrop
 
@@ -226,7 +272,7 @@ For utvikling beskriver Twilios [veiledning for testing av webhooker](https://ww
 1. Kontroller fra utsiden av bedriftsnettverket og VPN at vertsnavnet for tilbakekall slås opp til den offentlige gatewayen og leverer et gyldig TLS-sertifikat. En GET fra nettleseren tester ikke disse POST-tilbakekallene.
 2. Bruk **Send test-SMS** og **Send testanrop** på prosjektets Twilio-konfigurasjon. Bekreft at meldingen kommer fram på mottakertelefonen. Begge krever tillatelse til å legge til Twilio-konfigurasjoner: **Prosjekteier**, **Prosjektadministrator** eller **Create Call and SMS** og **Read Call and SMS** i en egendefinert rolle.
 3. Sett opp brukerens bekreftede SMS- eller anropskontakt og varslingsregler, og utløs så et kontrollert vaktvarsel. Trykk 1, og bekreft kvitteringen i OneUptime. Hvis du bruker policyer for innkommende anrop, ringer du det konfigurerte nummeret og sjekker rutingen og anropsloggen.
-4. Bekreft leveringsstatusen for SMS i OneUptime og i Twilios meldingslogger. En godtatt sending beviser ikke levering; [Twilio rapporterer senere statusendringer gjennom tilbakekall](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
+4. Bekreft leveringsstatusen for SMS i OneUptime, under [Varslingslogger](/docs/notifications/notification-logs), og i Twilios meldingslogger. En godtatt sending beviser ikke levering; [Twilio rapporterer senere statusendringer gjennom tilbakekall](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::
 
 | Symptom | Hvor du ser |

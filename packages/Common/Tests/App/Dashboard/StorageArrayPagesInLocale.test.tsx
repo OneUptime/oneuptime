@@ -24,6 +24,7 @@ import { initReactI18next } from "react-i18next";
 import fs from "fs";
 import path from "path";
 import * as React from "react";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * A STORAGE ARRAY'S PAGES IN THE READER'S LANGUAGE - from the Dashboard's
@@ -438,6 +439,14 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  /*
+   * Which of the array's alerts watch a part is the server's answer
+   * (POST /monitor/recommendation-coverage, #11074): this project has no
+   * monitors, so none does.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   rowNumber = 0;
   mockLastParam = "";
   arrangeArray();
@@ -450,6 +459,13 @@ beforeEach(async () => {
     .mockReturnValue(new ObjectID(ARRAY_ID));
   jest.spyOn(Navigation, "getLastParamAsString").mockImplementation(() => {
     return mockLastParam;
+  });
+  /*
+   * A part's alerts card asks the server which of its recommended alerts a
+   * monitor covers (#11074): none does yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
   });
   window.localStorage.clear();
 });

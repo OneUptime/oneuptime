@@ -1,7 +1,8 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/CodeRepository";
 import ObjectID from "../../Types/ObjectID";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import { CodeHost } from "../../Types/CodeRepository/CodeHost";
 import URL from "../../Types/API/URL";
@@ -34,6 +35,46 @@ import CodeHostAccess, {
 } from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
 import CodeRepositoryConnectionService from "./CodeRepositoryConnectionService";
 import DeleteBy from "../Types/Database/DeleteBy";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import HeldPermissionsUtil from "../../Types/HeldPermissions";
+import Permission, { PermissionHelper } from "../../Types/Permission";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import {
+  getDefaultWorkflowRunnerWorkRefusal,
+  getRunnerWorkRefusal,
+  picksRunner,
+  setsCommand,
+  writesRunnerWork,
+} from "../../Types/CodeRepository/CodeRepositoryRunnerAuthoring";
+import WorkflowPrincipal from "../Utils/Workflow/WorkflowPrincipal";
+import WorkflowSecretChangeRefusedException from "../Types/Database/Permissions/WorkflowSecretChangeRefusedException";
+
+// What a repository a fix may be resolved to is read with.
+const RESOLVABLE_REPOSITORY_SELECT: {
+  _id: true;
+  name: true;
+  organizationName: true;
+  repositoryName: true;
+  mainBranchName: true;
+  gitHubAppInstallationId: true;
+  repositoryHostedAt: true;
+} = {
+  _id: true,
+  name: true,
+  organizationName: true,
+  repositoryName: true,
+  mainBranchName: true,
+  gitHubAppInstallationId: true,
+  repositoryHostedAt: true,
+};
+
+/*
+ * How many repositories one read by id names: a long allowance goes in
+ * several reads, so no statement grows past what Postgres binds.
+ */
+export const RESOLVABLE_REPOSITORIES_READ_BY_ID_AT_ONCE: number = 500;
 
 /*
  * Why a repository may not pick an in-cluster Runner the Kubernetes agent
@@ -94,6 +135,135 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Who may decide what a project's Runner runs for a repository - set its
+   * setup, build or test commands, or pick its Runner: the columns' own
+   * update list, which is Runbook.steps' (Project Owner, Project Admin,
+   * Runbook Admin, Edit Runbook), read as the column check reads it on an
+   * update, its blocks included. CodeRepository is no operational
+   * resource, so no wildcard opens it.
+   */
+  public static mayWriteWhatRunnersRun(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return true;
+    }
+
+    const model: Model = new Model();
+
+    return HeldPermissionsUtil.holdsColumnPermission(
+      TablePermission.getHeldPermissions(props),
+      {
+        isOperationalResource: model.isOperationalResource,
+        operation: DatabaseRequestType.Update,
+        tablePermissions: model.getUpdatePermissions(),
+        columnPermissions: Service.getRunnerWorkWriters(),
+      },
+    );
+  }
+
+  /*
+   * The update list of the columns that decide what a project's Runner runs
+   * for a repository (CODE_REPOSITORY_COMMAND_COLUMNS and
+   * CODE_REPOSITORY_RUNNER_COLUMNS share it): who may write them.
+   */
+  public static getRunnerWorkWriters(): Array<Permission> {
+    return new Model().getColumnAccessControlFor("setupCommand")?.update || [];
+  }
+
+  /*
+   * A NEW REPOSITORY'S COMMANDS AND RUNNER ARE WRITTEN BY THOSE WHO MAY
+   * DECIDE WHAT A PROJECT'S RUNNER RUNS
+   * (Types/CodeRepository/CodeRepositoryRunnerAuthoring).
+   *
+   * The columns' create lists are the table's, so that whoever may connect
+   * a repository may create it with no commands and no Runner of its own -
+   * a client that sends every column it read sends them empty. A create
+   * that sets a command, or picks a Runner, is refused unless the caller may
+   * write those columns on an update (mayWriteWhatRunnersRun), as an update
+   * that writes them is by the columns' own update lists. It is asked once
+   * the project check has answered, as it answers anyone, and before the
+   * Runner a write names is read (onBeforeCreate). OneUptime itself and a
+   * master admin are not asked, as no column check asks them.
+   */
+  public static assertMayWriteWhatRunnersRun(
+    data: Model | Record<string, unknown> | undefined,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (!data || props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const writesCommand: boolean = setsCommand(data);
+    const writesRunner: boolean = picksRunner(data);
+
+    if (!writesCommand && !writesRunner) {
+      return;
+    }
+
+    // A workflow at the default permissions acts as a Project Admin.
+    Service.assertWorkflowDoesNotWriteWhatRunnersRun({
+      data: data,
+      props: props,
+      isCreate: true,
+    });
+
+    if (Service.mayWriteWhatRunnersRun(props)) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      getRunnerWorkRefusal({
+        setsCommand: writesCommand,
+        picksRunner: writesRunner,
+        permissionTitles: PermissionHelper.getPermissionTitles(
+          Service.getRunnerWorkWriters(),
+        ),
+      }),
+    );
+  }
+
+  /*
+   * A WORKFLOW THAT RUNS WITH THE DEFAULT PERMISSIONS WRITES NOTHING A
+   * RUNNER RUNS.
+   *
+   * Such a workflow acts as a Project Admin (WorkflowPrincipal), and a
+   * Project Member may build one, so a step of it lent the columns' update
+   * lists would let its builder set a command, or pick a Runner, that they
+   * may not as a person - the report's chain, through a workflow. Its steps
+   * write none of them - not even to clear one, which still decides where
+   * and what the project's Runners run - as they change none of the
+   * project's secrets (WorkflowPrincipal.assertDoesNotChangeSecrets), and a
+   * create of one is held to a person's rule. One a person gave Project
+   * Owner or a custom role passes on to the checks a person meets, as its
+   * giver is checked on every run.
+   */
+  public static assertWorkflowDoesNotWriteWhatRunnersRun(data: {
+    data: Model | Record<string, unknown> | undefined;
+    props: DatabaseCommonInteractionProps;
+    isCreate: boolean;
+  }): void {
+    if (
+      !WorkflowPrincipal.isWorkflow(data.props) ||
+      WorkflowPrincipal.isRaised(data.props.workflowRunAs)
+    ) {
+      return;
+    }
+
+    const writes: boolean = data.isCreate
+      ? setsCommand(data.data) || picksRunner(data.data)
+      : writesRunnerWork(data.data);
+
+    if (!writes) {
+      return;
+    }
+
+    throw new WorkflowSecretChangeRefusedException(
+      getDefaultWorkflowRunnerWorkRefusal({ isCreate: data.isCreate }),
+    );
+  }
+
+  /*
    * Last line of defence for the installation-to-project binding.
    *
    * gitHubAppInstallationId is already closed to API callers at the column
@@ -112,6 +282,13 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * Who may write what a Runner runs, once the project check has answered
+     * as it answers anyone (an id of another project and one of nothing read
+     * the same), and before the Runner it names is read.
+     */
+    Service.assertMayWriteWhatRunnersRun(createBy.data, createBy.props);
 
     await Service.assertRunnerCanWorkInRepositories(createBy.data);
 
@@ -147,6 +324,17 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    /*
+     * An update's columns are held to their own lists by the column check; a
+     * workflow at the default permissions, which holds Project Admin, is
+     * held here, before the Runner it names is read.
+     */
+    Service.assertWorkflowDoesNotWriteWhatRunnersRun({
+      data: updateBy.data as unknown as Record<string, unknown>,
+      props: updateBy.props,
+      isCreate: false,
+    });
 
     /*
      * The webhook secret is write-only: a change to it is recorded in the
@@ -337,8 +525,13 @@ export class Service extends ProjectReferencesService<Model> {
     const installationRepositories: Array<GitHubRepository> =
       await GitHubUtil.listRepositoriesForInstallation(data.installationId);
 
-    // Fetch existing repositories once so we can skip duplicates and de-dupe display names.
-    const existingRepositories: Array<Model> = await this.findBy({
+    /*
+     * Every repository the project has, once, so duplicates are skipped and
+     * display names de-duped - a page at a time, in an order with no ties
+     * (#11076). The first 10,000 in no order were read: in a project with
+     * more, a repository past them was imported a second time.
+     */
+    const existingRepositories: Array<Model> = await this.findAllBy({
       query: {
         projectId: data.projectId,
       },
@@ -350,8 +543,7 @@ export class Service extends ProjectReferencesService<Model> {
         repositoryHostedAt: true,
         gitHubAppInstallationId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      sort: { _id: SortOrder.Ascending },
       props: {
         isRoot: true,
       },
@@ -534,10 +726,20 @@ export class Service extends ProjectReferencesService<Model> {
      */
     allowance?: CodeRepositoryAllowance | undefined;
   }): Promise<RepoResolution | null> {
+    /*
+     * An allowance that names its repositories - a person's pick, the ones
+     * a rule allows - is read by those ids alone, however many the project
+     * has (#11076).
+     */
     const resolvable: Array<ResolvableRepository> = keepAllowedCodeRepositories(
       {
         allowance: data.allowance,
-        repositories: await this.getResolvableRepositories(data.projectId),
+        repositories: await this.getResolvableRepositories(data.projectId, {
+          repositoryIds:
+            data.allowance && !data.allowance.isEveryRepository
+              ? data.allowance.repositoryIds
+              : undefined,
+        }),
         getId: (repository: ResolvableRepository): string => {
           return repository.id;
         },
@@ -566,30 +768,36 @@ export class Service extends ProjectReferencesService<Model> {
    * (GHSA-xx95-gmcf-7q86). A repository whose files OneUptime does not read
    * (a Git server other than Azure DevOps) is still a candidate: its name,
    * or being the only one, can still pick it.
+   *
+   * Every one of them, however many the project has (#11076): read a page
+   * at a time in an order with no ties (the id), or - `repositoryIds` -
+   * only those, by their ids. The first 10,000 in no order were read, so in
+   * a project with more, which ones a fix could be resolved to was chance:
+   * a repository a person picked past them was never found to work in.
    */
   @CaptureSpan()
   public async getResolvableRepositories(
     projectId: ObjectID,
+    options?: {
+      // Only these (in any letter case), read by their ids. Unset: every one.
+      repositoryIds?: Array<string> | undefined;
+    },
   ): Promise<Array<ResolvableRepository>> {
-    const repositories: Array<Model> = await this.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-        organizationName: true,
-        repositoryName: true,
-        mainBranchName: true,
-        gitHubAppInstallationId: true,
-        repositoryHostedAt: true,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    const repositories: Array<Model> = options?.repositoryIds
+      ? await this.findResolvableCandidatesByIds({
+          projectId,
+          repositoryIds: options.repositoryIds,
+        })
+      : await this.findAllBy({
+          query: {
+            projectId: projectId,
+          },
+          select: RESOLVABLE_REPOSITORY_SELECT,
+          sort: { _id: SortOrder.Ascending },
+          props: {
+            isRoot: true,
+          },
+        });
 
     const reachable: Set<string> =
       await CodeHostAccess.getReachableRepositoryIds({
@@ -620,6 +828,55 @@ export class Service extends ProjectReferencesService<Model> {
           repositoryHostedAt: CodeHost.readType(repository.repositoryHostedAt),
         };
       });
+  }
+
+  // The project's repositories among these ids, in batches, by id.
+  private async findResolvableCandidatesByIds(data: {
+    projectId: ObjectID;
+    repositoryIds: Array<string>;
+  }): Promise<Array<Model>> {
+    const ids: Array<string> = Array.from(
+      new Set<string>(
+        data.repositoryIds
+          .map((id: string): string => {
+            return (id || "").toString().trim().toLowerCase();
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    ).sort();
+
+    const repositories: Array<Model> = [];
+
+    for (
+      let start: number = 0;
+      start < ids.length;
+      start += RESOLVABLE_REPOSITORIES_READ_BY_ID_AT_ONCE
+    ) {
+      const batch: Array<string> = ids.slice(
+        start,
+        start + RESOLVABLE_REPOSITORIES_READ_BY_ID_AT_ONCE,
+      );
+
+      repositories.push(
+        ...(await this.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(batch),
+          },
+          select: RESOLVABLE_REPOSITORY_SELECT,
+          sort: { _id: SortOrder.Ascending },
+          limit: batch.length,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        })),
+      );
+    }
+
+    return repositories;
   }
 
   /*

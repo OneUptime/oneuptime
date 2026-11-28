@@ -363,15 +363,16 @@ describe("a telemetry leak's code fix, by what its new version wrote", () => {
     });
   });
 
-  test("a fix whose issue has no place to watch, or only metrics and replays, cannot be told", () => {
+  test("a fix whose issue has no place to watch, or only places a metric rule removes or drops, cannot be told", () => {
     expect(
       decideTelemetryLeakBaseline({ placeCount: 0, unreadablePlaceCount: 0 })
         ?.status,
     ).toBe(FixProductionStatus.Unverifiable);
+    // Metrics and session replays are read by version now (#10832).
     expect(
       decideTelemetryLeakBaseline({ placeCount: 3, unreadablePlaceCount: 3 })
         ?.summary,
-    ).toContain("a metric or a session replay");
+    ).toContain("A metric pipeline rule removes this data");
     expect(
       decideTelemetryLeakBaseline({ placeCount: 3, unreadablePlaceCount: 1 }),
     ).toBeNull();
@@ -448,7 +449,7 @@ describe("the scrub rule counter, read for a version", () => {
     ).toEqual({ valuesChanged: 32, versions: ["2.5.0", "2.4.1"] });
   });
 
-  test("a store's records are counted in its version, bound as a parameter; a metric's cannot be", () => {
+  test("a store's records are counted in its version, bound as a parameter; a session replay store's in the kind of record given", () => {
     const built: ReturnType<
       typeof TelemetryLeakFixReads.buildRecordCountStatement
     > = TelemetryLeakFixReads.buildRecordCountStatement({
@@ -464,10 +465,21 @@ describe("the scrub rule counter, read for a version", () => {
     expect(JSON.stringify(json)).toContain("resource.service.version");
     // The version is a parameter, never written into the query.
     expect(String(json["query"])).not.toContain("DROP TABLE");
+    // A metric's data points name their version too (#10832).
     expect(
       TelemetryLeakFixReads.buildRecordCountStatement({
         projectId: PROJECT_ID,
         kind: DataStoreKind.TelemetryMetrics,
+        serviceId: SERVICE_ID.toString(),
+        since,
+        until: watchedFor(25),
+      }),
+    ).not.toBeNull();
+    // A session replay store holds three kinds of record: one must be named.
+    expect(
+      TelemetryLeakFixReads.buildRecordCountStatement({
+        projectId: PROJECT_ID,
+        kind: DataStoreKind.TelemetrySessionReplays,
         serviceId: SERVICE_ID.toString(),
         since,
         until: watchedFor(25),
@@ -673,7 +685,8 @@ describe("which check follows a merged pull request", () => {
     expect((taskRead.mock.calls[0]![0] as { query: JSONObject }).query).toEqual(
       { _id: TASK_ID.toString(), projectId: PROJECT_ID },
     );
-    expect(target?.taskId.toString()).toBe(TASK_ID.toString());
+    // A task's run has one; only a person's linked pull request has none.
+    expect(target?.taskId?.toString()).toBe(TASK_ID.toString());
     expect(target?.check).toBe(FixProductionCheck.TelemetryLeak);
   });
 

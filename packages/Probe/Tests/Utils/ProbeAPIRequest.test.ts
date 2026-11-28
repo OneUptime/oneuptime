@@ -43,16 +43,19 @@ describe("getDefaultRequestBody", () => {
        * server says the probe has to be updated to walk them. Only a probe
        * that declares "snmpWalk" is handed SNMP walks, and the device's
        * credentials with them; only one that declares "dataSecurityScan"
-       * is handed databases to scan for Data Security. One that declares
-       * "retryWhenBusy" is answered 429 by a busy scheduling endpoint,
-       * rather than an empty batch, and one that declares
-       * "retryAllWorkWhenBusy" by every other busy work endpoint too.
+       * is handed databases to scan for Data Security, and only one that
+       * declares "dataSecuritySearchScan" Elasticsearch and OpenSearch
+       * clusters (#11140). One that declares "retryWhenBusy" is answered
+       * 429 by a busy scheduling endpoint, rather than an empty batch, and
+       * one that declares "retryAllWorkWhenBusy" by every other busy work
+       * endpoint too.
        */
       probeCapabilities: [
         "networkDevicePing",
         "snmpTables",
         "snmpWalk",
         "dataSecurityScan",
+        "dataSecuritySearchScan",
         "dataObservabilityCollect",
         "retryWhenBusy",
         "retryAllWorkWhenBusy",
@@ -75,6 +78,13 @@ describe("getDefaultRequestBody", () => {
          * line it logs while it runs the step (#10875).
          */
         "hideSecretValuesInLogs",
+        /*
+         * Only a probe that declares "snmpV3Context" is handed a device
+         * polled in an SNMPv3 context of its own (a Brocade logical
+         * switch's "VF:128"); an older probe would poll the default
+         * logical switch in its place, so it only pings that device.
+         */
+        "snmpV3Context",
       ],
       /*
        * The release this probe runs, from APP_VERSION: kept with its
@@ -129,6 +139,16 @@ describe("getDefaultRequestBody", () => {
     expect(
       ProbeAPIRequest.getDefaultRequestBody()["probeCapabilities"],
     ).toContain(ProbeCapability.HideSecretValuesInLogs);
+  });
+
+  // #11140: its scan job samples Elasticsearch and OpenSearch, so it says so.
+  test("declares it scans search clusters, so the server hands this probe Elasticsearch and OpenSearch stores", () => {
+    const declared: unknown =
+      ProbeAPIRequest.getDefaultRequestBody()["probeCapabilities"];
+
+    expect(declared).toContain(ProbeCapability.DataSecuritySearchScan);
+    // A probe that scans search clusters scans databases too.
+    expect(declared).toContain(ProbeCapability.DataSecurityScan);
   });
 
   /*

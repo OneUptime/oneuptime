@@ -112,6 +112,15 @@ export interface FakeRegion {
   classicLoadBalancers?: Array<JSONObject> | undefined;
   classicLoadBalancerError?: FakeResponse | undefined;
   /*
+   * Elastic Load Balancing's 2015-12-01 DescribeTargetGroupAttributes
+   * (#11389): a target group's ARN (any case) -> its attributes, or the
+   * error it is answered with. One not given is answered as AWS answers a
+   * target group it does not have: TargetGroupNotFound.
+   */
+  targetGroupAttributes?:
+    | Record<string, Array<{ Key: string; Value: string }> | FakeResponse>
+    | undefined;
+  /*
    * EKS: each cluster as DescribeCluster answers it (`cluster`), listed by
    * ListClusters in pages of maxResults, or the error both answer with
    * instead. None when absent.
@@ -243,6 +252,9 @@ export interface FakeBucket {
   encryption?: { algorithm: string; kmsKeyId?: string | undefined } | undefined;
   versioning?: "Enabled" | "Suspended" | undefined;
   loggingTarget?: string | undefined;
+  // Where its server access logs go under the target, and how they are keyed (#10951).
+  loggingPrefix?: string | undefined;
+  loggingPartitioned?: boolean | undefined;
   ownership?: string | undefined;
   // The names of the buckets its replication rules copy to.
   replicateTo?: Array<string> | undefined;
@@ -355,11 +367,25 @@ export interface FakeAwsOptions {
   iam?: FakeIam | undefined;
   iamByAccount?: Record<string, FakeIam> | undefined;
   /*
-   * Cost Explorer (GetCostAndUsage, in us-east-1): each request answered by
-   * the next of these pages, the last repeating - or by the error.
+   * Cost Explorer (GetCostAndUsage, in us-east-1): each request of the
+   * billed and amortized read - the one that leaves credits and refunds
+   * out - answered by the next of these pages, the last repeating - or by
+   * the error.
    */
   costPages?: Array<JSONObject> | undefined;
   costError?: FakeResponse | undefined;
+  /*
+   * The net read's pages (GetCostAndUsage of NetAmortizedCost, with no
+   * filter), the same way. None: nothing, as an account that has had no
+   * credit or discount.
+   */
+  netCostPages?: Array<JSONObject> | undefined;
+  /*
+   * The Savings Plans API (DescribeSavingsPlans): the plans as bought, or
+   * the error. None: no plan.
+   */
+  savingsPlansDescribed?: Array<JSONObject> | undefined;
+  savingsPlansDescribeError?: FakeResponse | undefined;
   /*
    * Cost Explorer's resource-level costs (GetCostAndUsageWithResources):
    * each request answered by the next of these pages, the last repeating -
@@ -415,6 +441,8 @@ export interface FakeAws extends FakeProviderApi {
     region: string;
     params: Record<string, string>;
   }>;
+  // DescribeTargetGroupAttributes calls (#11389), by Region and target group ARN.
+  targetGroupAttributeCalls: Array<{ region: string; targetGroupArn: string }>;
   eksCalls: Array<{ region: string; path: string }>;
   beanstalkCalls: Array<{
     region: string;
@@ -1174,7 +1202,15 @@ function bucketAnswer(data: {
       return xml(
         `<BucketLoggingStatus ${S3_XMLNS}>${
           bucket.loggingTarget
-            ? `<LoggingEnabled><TargetBucket>${bucket.loggingTarget}</TargetBucket><TargetPrefix>logs/</TargetPrefix></LoggingEnabled>`
+            ? `<LoggingEnabled><TargetBucket>${bucket.loggingTarget}</TargetBucket><TargetPrefix>${
+                bucket.loggingPrefix === undefined
+                  ? "logs/"
+                  : bucket.loggingPrefix
+              }</TargetPrefix>${
+                bucket.loggingPartitioned
+                  ? "<TargetObjectKeyFormat><PartitionedPrefix><PartitionDateSource>EventTime</PartitionDateSource></PartitionedPrefix></TargetObjectKeyFormat>"
+                  : ""
+              }</LoggingEnabled>`
             : ""
         }</BucketLoggingStatus>`,
       );
@@ -1221,9 +1257,14 @@ function bucketAnswer(data: {
         Number(data.url.searchParams.get("continuation-token") || "0") || 0;
       const encode: boolean =
         data.url.searchParams.get("encoding-type") === "url";
+      // start-after: the keys after it, by key (#10951).
+      const startAfter: string = data.url.searchParams.get("start-after") || "";
       const matching: Array<FakeObject> = (bucket.objects || [])
         .filter((object: FakeObject): boolean => {
-          return object.key.startsWith(prefix);
+          return (
+            object.key.startsWith(prefix) &&
+            (!startAfter || object.key > startAfter)
+          );
         })
         .sort((a: FakeObject, b: FakeObject): number => {
           return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
@@ -1497,6 +1538,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
   const cloudControlCalls: FakeAws["cloudControlCalls"] = [];
   const beanstalkCalls: FakeAws["beanstalkCalls"] = [];
   const classicLoadBalancerCalls: FakeAws["classicLoadBalancerCalls"] = [];
+  const targetGroupAttributeCalls: FakeAws["targetGroupAttributeCalls"] = [];
   const eksCalls: FakeAws["eksCalls"] = [];
   const assumedRoles: Array<string> = [];
   const assumeRoleAnswers: Array<FakeResponse> = [
@@ -1780,13 +1822,19 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
             return options.costError;
           }
 
-          const pages: Array<JSONObject> = options.costPages || [
-            { ResultsByTime: [] },
-          ];
+          // The billed and amortized read leaves credits out; the net read counts them.
+          const isNet: boolean = !body["Filter"];
+          const pages: Array<JSONObject> = (isNet
+            ? options.netCostPages
+            : options.costPages) || [{ ResultsByTime: [] }];
           const costTurn: number =
-            costCalls.filter((call: { action: string }): boolean => {
-              return call.action === "GetCostAndUsage";
-            }).length - 1;
+            costCalls.filter(
+              (call: { action: string; body: JSONObject }): boolean => {
+                const callIsNet: boolean = !call.body["Filter"];
+
+                return call.action === "GetCostAndUsage" && callIsNet === isNet;
+              },
+            ).length - 1;
 
           return json(pages[Math.min(costTurn, pages.length - 1)]!);
         }
@@ -1949,6 +1997,56 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
         }
 
         return json({ Endpoints: fakeRegion.sageMakerEndpoints || [] });
+      }
+
+      // A target group's attributes, over the Query protocol (version 2015-12-01, #11389).
+      if (
+        service === "elasticloadbalancing" &&
+        new URLSearchParams(String(request.body || "")).get("Action") ===
+          "DescribeTargetGroupAttributes"
+      ) {
+        const form: URLSearchParams = new URLSearchParams(
+          String(request.body || ""),
+        );
+        const arn: string = form.get("TargetGroupArn") || "";
+
+        targetGroupAttributeCalls.push({ region, targetGroupArn: arn });
+
+        const answers: Record<
+          string,
+          Array<{ Key: string; Value: string }> | FakeResponse
+        > = fakeRegion.targetGroupAttributes || {};
+        const key: string | undefined = Object.keys(answers).find(
+          (candidate: string): boolean => {
+            return candidate.toLowerCase() === arn.toLowerCase();
+          },
+        );
+        const answer:
+          | Array<{ Key: string; Value: string }>
+          | FakeResponse
+          | undefined = key === undefined ? undefined : answers[key];
+
+        if (answer === undefined) {
+          return {
+            status: 400,
+            body: `<ErrorResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/"><Error><Type>Sender</Type><Code>TargetGroupNotFound</Code><Message>Target groups '${arn}' not found</Message></Error></ErrorResponse>`,
+          };
+        }
+
+        if (!Array.isArray(answer)) {
+          return answer;
+        }
+
+        return {
+          status: 200,
+          body: `<DescribeTargetGroupAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/"><DescribeTargetGroupAttributesResult><Attributes>${answer
+            .map((attribute: { Key: string; Value: string }): string => {
+              return `<member><Value>${attribute.Value}</Value><Key>${attribute.Key}</Key></member>`;
+            })
+            .join(
+              "",
+            )}</Attributes></DescribeTargetGroupAttributesResult><ResponseMetadata><RequestId>a1b2c3d4</RequestId></ResponseMetadata></DescribeTargetGroupAttributesResponse>`,
+        };
       }
 
       // Classic load balancers, over the Query protocol (version 2012-06-01).
@@ -2463,6 +2561,28 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
         return answer;
       }
 
+      /*
+       * The Savings Plans API (REST-JSON): one global endpoint, signed for
+       * us-east-1, the action in the path.
+       */
+      if (labels[0] === "savingsplans") {
+        costCalls.push({
+          service: "savingsplans",
+          action: url.pathname.replace(/^\//, ""),
+          region: signed.region,
+          body: bodyOf(request),
+        });
+
+        if (options.savingsPlansDescribeError) {
+          return options.savingsPlansDescribeError;
+        }
+
+        return json({
+          savingsPlans: (options.savingsPlansDescribed ||
+            []) as unknown as JSONValue,
+        });
+      }
+
       // OpenSearch Service and EFS, at their Region.
       const service: string = labels[0] || "";
       const region: string = labels[1] || "";
@@ -2645,6 +2765,7 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
     cloudControlCalls,
     beanstalkCalls,
     classicLoadBalancerCalls,
+    targetGroupAttributeCalls,
     eksCalls,
     organizationsCalls,
     assumedRoles,

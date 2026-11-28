@@ -1,0 +1,164 @@
+services:
+  oneuptime-xcp-ng-agent:
+    # Upstream collector, pinned. There is no oneuptime/xcp-ng-agent image -
+    # the agent is entirely defined by otel-collector-config.yaml, which
+    # install.sh downloads next to this file, and that config reports this
+    # pin as the agent's version (oneuptime.agent.version). Bump the two
+    # together; Tests/Ops/validate-collector-configs.sh validates the config
+    # against this version.
+    image: otel/opentelemetry-collector-contrib:0.165.0
+    # One agent reads one Xen Orchestra, and every pool it manages. Two
+    # containers cannot share a name, so a second Xen Orchestra's agent on
+    # the same machine, installed into a directory of its own, runs under a
+    # name of its own: XCP_NG_AGENT_CONTAINER_NAME in .env, which install.sh
+    # writes and keeps (see README.md, "Reading several Xen Orchestras").
+    # Leave this line as it is: an upgrade replaces this file, never .env.
+    container_name: ${XCP_NG_AGENT_CONTAINER_NAME:-oneuptime-xcp-ng-agent}
+    # It reads Xen Orchestra and talks to OneUptime, and needs nothing else:
+    # no capabilities and a read-only root filesystem.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # The certificates the collector trusts for Xen Orchestra, and nothing
+      # else (install.sh writes xo-ca.pem: XO's own pinned certificate, the
+      # CA bundle XO_CA_FILE names, or this machine's CA bundle). Written
+      # out in full so that a missing file stops `docker compose up` with
+      # "bind source path does not exist" instead of Docker creating an empty
+      # directory in its place, which the collector cannot read.
+      - type: bind
+        source: ./xo-ca.pem
+        target: /etc/oneuptime/xo-ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      # Xen Orchestra's scheme (https; http only in a lab: the secret then
+      # crosses the network in clear) and host[:port], no scheme. install.sh
+      # derives both from XO_URL.
+      - XO_SCHEME=${XO_SCHEME:-https}
+      - XO_ADDRESS=${XO_ADDRESS}
+      # The OpenMetrics plugin's secret (Settings -> Plugins -> openmetrics).
+      # install.sh writes it to .env with every $ doubled, because the
+      # collector expands $$ and ${...} in it once more.
+      - XO_OPENMETRICS_SECRET=${XO_OPENMETRICS_SECRET}
+      # What to call this Xen Orchestra in OneUptime, stamped as
+      # xen_orchestra.name on every pool it reads. Defaults to its address.
+      - XO_NAME=${XO_NAME:-${XO_ADDRESS:-}}
+      # The name Xen Orchestra's certificate is checked against when XO_URL
+      # uses an address the certificate does not list. Empty: XO_ADDRESS's
+      # host.
+      - XO_TLS_SERVER_NAME=${XO_TLS_SERVER_NAME:-}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # The XCP-ng AI agent: runs the read-only xo-cli rest commands OneUptime AI asks
+  # for while it investigates an incident or alert on a pool this Xen Orchestra
+  # manages, and - only if you allow it - a fix. There is no xo-cli in it: each
+  # command, as the command policy reads it, is one call to Xen Orchestra's REST
+  # API, with a token of a user holding a copy of Xen Orchestra's Read only role
+  # (ONEUPTIME_AI_XO_READ_TOKEN), which it checks is read-only before it runs
+  # anything. Fixes use a second token (ONEUPTIME_AI_XO_WRITE_TOKEN) and nothing
+  # else does. OneUptime never sends it a credential. It serves one pool
+  # (XCP_NG_POOL_ID, or the one pool its token can see) and shows up on that
+  # pool's AI -> AI agent page. COMPOSE_PROFILES=xcp-ng-ai-agent in .env starts
+  # it, which is what install.sh writes when it is given a read token. See
+  # README.md ("OneUptime AI agent").
+  oneuptime-xcp-ng-ai-agent:
+    image: oneuptime/resource-ai-agent:release
+    # A second Xen Orchestra's agent on the same machine runs its AI agent
+    # under a name of its own too: XCP_NG_AI_AGENT_CONTAINER_NAME in .env,
+    # which install.sh writes beside the collector's (see README.md,
+    # "Reading several Xen Orchestras"). Leave this line as it is.
+    container_name: ${XCP_NG_AI_AGENT_CONTAINER_NAME:-oneuptime-xcp-ng-ai-agent}
+    profiles: ["xcp-ng-ai-agent"]
+    # It only talks HTTPS to Xen Orchestra and to OneUptime: no root, no
+    # capabilities, a read-only root filesystem and a tmpfs for /tmp.
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      # The certificates the collector trusts for Xen Orchestra, which the AI
+      # agent trusts too, and nothing else. Written out in full, as the
+      # collector's, so a missing file stops `docker compose up` instead of
+      # Docker creating an empty directory in its place.
+      - type: bind
+        source: ./xo-ca.pem
+        target: /etc/oneuptime/xo-ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      - ONEUPTIME_AI_AGENT_RESOURCE_TYPE=xcp-ng
+      # The XAPI UUID of the pool this agent serves (on the pool's Settings in
+      # OneUptime). Empty: the one pool the read token can see. A Xen
+      # Orchestra with several pools needs one AI agent per pool.
+      - XCP_NG_POOL_ID=${XCP_NG_POOL_ID:-}
+      # Overrides XCP_NG_POOL_ID as the pool the AI agent registers as.
+      - ONEUPTIME_AI_AGENT_RESOURCE_NAME=${ONEUPTIME_AI_AGENT_RESOURCE_NAME:-}
+      # Xen Orchestra, as the collector reads it. HTTPS only: with http the AI
+      # agent runs nothing, since its tokens would cross the network in clear.
+      - XO_SCHEME=${XO_SCHEME:-https}
+      - XO_ADDRESS=${XO_ADDRESS}
+      - XO_TLS_SERVER_NAME=${XO_TLS_SERVER_NAME:-}
+      # A token of a Xen Orchestra user holding a copy of the built-in Read
+      # only role and nothing else: every read uses it. An administrator's
+      # token, or one whose roles allow a change, runs nothing.
+      - ONEUPTIME_AI_XO_READ_TOKEN=${ONEUPTIME_AI_XO_READ_TOKEN:-}
+      # Only for fixes: a token of another user, whose role allows the fixes
+      # README.md lists. Used for the change itself and nothing else.
+      - ONEUPTIME_AI_XO_WRITE_TOKEN=${ONEUPTIME_AI_XO_WRITE_TOKEN:-}
+      # Read-only unless exactly "true" (with the token above). Then fixes may
+      # touch only the VMs, hosts, PBDs and schedules (vm/<uuid>, host/<uuid>,
+      # ...) ONEUPTIME_AI_WRITE_TARGETS matches (all when empty), and never
+      # ONEUPTIME_AI_PROTECTED_TARGETS: put the UUIDs of the VM this agent
+      # runs in, and of Xen Orchestra's own VM, there.
+      # What OneUptime AI may do here, set in .env: ONEUPTIME_AI_INVESTIGATION
+      # (true or false) and ONEUPTIME_AI_FIXES (off, ask-for-approval,
+      # automatic or bypass-approval). Set either and the AI agent page in
+      # OneUptime follows them, read-only; leave both empty for the agent's
+      # defaults (investigation on, fixes Ask for approval when writes are
+      # allowed, else off).
+      - ONEUPTIME_AI_INVESTIGATION=${ONEUPTIME_AI_INVESTIGATION:-}
+      - ONEUPTIME_AI_FIXES=${ONEUPTIME_AI_FIXES:-}
+      - ONEUPTIME_AI_ALLOW_WRITES=${ONEUPTIME_AI_ALLOW_WRITES:-false}
+      - ONEUPTIME_AI_WRITE_TARGETS=${ONEUPTIME_AI_WRITE_TARGETS:-}
+      - ONEUPTIME_AI_PROTECTED_TARGETS=${ONEUPTIME_AI_PROTECTED_TARGETS:-}
+      # The AI agent's log level: debug, info, warn or error.
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "-O",
+          "/dev/null",
+          "http://127.0.0.1:3877/status/live",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

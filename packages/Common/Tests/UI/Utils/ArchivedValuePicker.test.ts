@@ -13,6 +13,17 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import Team from "../../../Models/DatabaseModels/Team";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import DockerHost from "../../../Models/DatabaseModels/DockerHost";
+import Host from "../../../Models/DatabaseModels/Host";
+import DatabaseModels from "../../../Models/DatabaseModels/Index";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import Service from "../../../Models/DatabaseModels/Service";
+import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import Workflow from "../../../Models/DatabaseModels/Workflow";
 import ObjectID from "../../../Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
 
@@ -48,6 +59,84 @@ describe("which models' pickers are narrowed", () => {
     expect(ArchivedValuePicker.isArchivableValueModel(Team)).toBe(false);
     expect(ArchivedValuePicker.isArchivableValueModel(undefined)).toBe(false);
     expect(ArchivedValuePicker.isArchivableValueModel(null)).toBe(false);
+  });
+});
+
+/*
+ * A RESOURCE'S OWN ARCHIVE SWITCH (#10921): records that can be archived
+ * though no record picks them as a value - a monitor, a service, a host, a
+ * status page. A list's filter of one marks the archived ones.
+ */
+describe("which models' records carry an archive switch of their own", () => {
+  test("resources that can be archived: every model with the switch that is no value", () => {
+    for (const modelType of [
+      Monitor,
+      Service,
+      Host,
+      DockerHost,
+      KubernetesCluster,
+      StatusPage,
+      OnCallDutyPolicy,
+      Workflow,
+      Dashboard,
+      ServiceLevelObjective,
+    ]) {
+      expect(ArchivedValuePicker.hasRecordArchiveSwitch(modelType)).toBe(true);
+    }
+  });
+
+  test("never a value - it is marked as a value - nor a model without the switch, nor nothing", () => {
+    for (const modelType of [
+      Label,
+      IncidentState,
+      IncidentSeverity,
+      AlertState,
+      AlertSeverity,
+      MonitorStatus,
+      ScheduledMaintenanceState,
+      IncidentRole,
+    ]) {
+      expect(ArchivedValuePicker.hasRecordArchiveSwitch(modelType)).toBe(false);
+    }
+
+    expect(ArchivedValuePicker.hasRecordArchiveSwitch(Team)).toBe(false);
+    expect(ArchivedValuePicker.hasRecordArchiveSwitch(IncidentTemplate)).toBe(
+      false,
+    );
+    expect(ArchivedValuePicker.hasRecordArchiveSwitch(undefined)).toBe(false);
+    expect(ArchivedValuePicker.hasRecordArchiveSwitch(null)).toBe(false);
+  });
+
+  test("a class that cannot be built for inspection is no resource of them", () => {
+    class Broken extends Monitor {
+      public constructor() {
+        super();
+        throw new Error("not for inspection");
+      }
+    }
+
+    expect(ArchivedValuePicker.hasRecordArchiveSwitch(Broken)).toBe(false);
+  });
+
+  test("every model that declares the switch and is no value is one of them", () => {
+    const declaring: Array<{ new (): BaseModel }> = (
+      DatabaseModels as unknown as Array<{ new (): BaseModel }>
+    ).filter((modelType: { new (): BaseModel }): boolean => {
+      try {
+        return new modelType().hasColumn("isArchived");
+      } catch {
+        return false;
+      }
+    });
+
+    // The resources and the values: dozens of them, not a handful.
+    expect(declaring.length).toBeGreaterThan(30);
+
+    for (const modelType of declaring) {
+      expect(ArchivedValuePicker.hasRecordArchiveSwitch(modelType)).toBe(
+        !ArchivedValuePicker.isArchivableValueModel(modelType),
+      );
+    }
   });
 });
 

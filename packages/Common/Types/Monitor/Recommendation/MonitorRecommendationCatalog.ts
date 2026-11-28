@@ -88,11 +88,24 @@ import {
   getAllStorageArrayAlertTemplates,
   getStorageArrayAlertTemplatesForSystem,
 } from "../StorageArrayAlertTemplates";
-import { StorageSystemUtil } from "../../StorageArray/StorageSystem";
+import {
+  StorageArrayLogAlertTemplate,
+  getAllStorageArrayLogAlertTemplates,
+  getStorageArrayLogAlertTemplatesForSystem,
+} from "../StorageArrayLogAlertTemplates";
+import StorageSystemUtil from "../../StorageArray/StorageSystemUtil";
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
 } from "../VMwareAlertTemplates";
+import {
+  XcpNgAlertTemplate,
+  getAllXcpNgAlertTemplates,
+} from "../XcpNgAlertTemplates";
+import {
+  XcpNgEventAlertTemplate,
+  getAllXcpNgEventAlertTemplates,
+} from "../XcpNgEventAlertTemplates";
 import {
   DataObservabilityAlertTemplate,
   getAllDataObservabilityAlertTemplates,
@@ -155,6 +168,7 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "clusterIdentifier"
     | "cloudIdentifier"
     | "vcenterIdentifier"
+    | "poolIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
     | "arrayIdentifier"
@@ -635,6 +649,62 @@ function getVMwareRecommendations(): Array<MonitorRecommendation> {
   });
 }
 
+/*
+ * Every XCP-ng pool is offered the same templates: what Xen Orchestra's
+ * OpenMetrics plugin reports is the same for every pool. The identifier is
+ * the pool's XAPI UUID (XcpNgPool.poolIdentifier), never its name.
+ */
+function getXcpNgRecommendations(): Array<MonitorRecommendation> {
+  const metricRecommendations: Array<MonitorRecommendation> =
+    getAllXcpNgAlertTemplates().map((template: XcpNgAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.XcpNg,
+        monitorType: MonitorType.XcpNg,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            poolIdentifier: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    });
+
+  /*
+   * What XCP-ng and Xen Orchestra say themselves - a VM that crashed, a host
+   * HA lost, a failed backup job - are logs of the pool once a probe reads
+   * them (XcpNgEventAlertTemplates), so their alerts are Logs monitors
+   * scoped to the pool: offered beside the metric templates, last, under
+   * their own Alarms and Backups headings.
+   */
+  const eventRecommendations: Array<MonitorRecommendation> =
+    getAllXcpNgEventAlertTemplates().map(
+      (template: XcpNgEventAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.XcpNg,
+          monitorType: MonitorType.Logs,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              poolIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
+        });
+      },
+    );
+
+  return [...metricRecommendations, ...eventRecommendations];
+}
+
 function getCephRecommendations(): Array<MonitorRecommendation> {
   return getAllCephAlertTemplates().map((template: CephAlertTemplate) => {
     return normalize({
@@ -658,9 +728,10 @@ function getCephRecommendations(): Array<MonitorRecommendation> {
 /*
  * The storage array adapter — two functions for the same reason as
  * Service's. `getStorageArrayRecommendations` answers "what should THIS
- * array be offered", which depends on its platform (a FlashBlade exports no
- * purefa_* series); `getAllStorageArrayRecommendations` answers "what can an
- * array ever be offered".
+ * array be offered", which depends on its platform (a FlashBlade exports
+ * none of a FlashArray's series); `getAllStorageArrayRecommendations` answers
+ * "what can an array ever be offered". Each platform's templates come from
+ * its own folder (StorageArrayPlatform.alertTemplates).
  */
 function normalizeStorageArrayTemplate(
   template: StorageArrayAlertTemplate,
@@ -684,11 +755,11 @@ function normalizeStorageArrayTemplate(
 
 /*
  * No known platform -> nothing, like a database without an engine. Every
- * template reads one platform's metrics (purefa_* or purefb_*), so offering
- * both sets to an array whose platform is not known yet would put two cards
- * of the same name ("Critical Array Alert") on one array, one of which could
- * never fire — and an array of a platform OneUptime ships no templates for
- * would be offered Pure Storage's. The array reports its platform with its
+ * template reads one platform's metrics, so offering every platform's sets
+ * to an array whose platform is not known yet would put two cards of the
+ * same name ("Critical Array Alert") on one array, one of which could never
+ * fire — and an array of a platform OneUptime ships no templates for would
+ * be offered another vendor's. The array reports its platform with its
  * first batch (the agent stamps `storage.system`; ingest also reads it off
  * the metric names), so the wait is one scrape.
  */
@@ -699,19 +770,59 @@ function getStorageArrayRecommendations(
     return [];
   }
 
-  return getStorageArrayAlertTemplatesForSystem(context?.storageSystem).map(
-    (template: StorageArrayAlertTemplate) => {
-      return normalizeStorageArrayTemplate(template);
-    },
-  );
+  return [
+    ...getStorageArrayAlertTemplatesForSystem(context?.storageSystem).map(
+      (template: StorageArrayAlertTemplate) => {
+        return normalizeStorageArrayTemplate(template);
+      },
+    ),
+    ...getStorageArrayLogAlertTemplatesForSystem(context?.storageSystem).map(
+      (template: StorageArrayLogAlertTemplate) => {
+        return normalizeStorageArrayLogTemplate(template);
+      },
+    ),
+  ];
 }
 
 function getAllStorageArrayRecommendations(): Array<MonitorRecommendation> {
-  return getAllStorageArrayAlertTemplates().map(
-    (template: StorageArrayAlertTemplate) => {
-      return normalizeStorageArrayTemplate(template);
+  return [
+    ...getAllStorageArrayAlertTemplates().map(
+      (template: StorageArrayAlertTemplate) => {
+        return normalizeStorageArrayTemplate(template);
+      },
+    ),
+    ...getAllStorageArrayLogAlertTemplates().map(
+      (template: StorageArrayLogAlertTemplate) => {
+        return normalizeStorageArrayLogTemplate(template);
+      },
+    ),
+  ];
+}
+
+/*
+ * The alerts an array raises itself, when its platform sends them as logs
+ * (StorageArrayLogAlertTemplates, a PowerStore's syslog): Logs monitors
+ * scoped to the array, offered after the metric templates under their own
+ * Array Alerts heading.
+ */
+function normalizeStorageArrayLogTemplate(
+  template: StorageArrayLogAlertTemplate,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.StorageArray,
+    monitorType: MonitorType.Logs,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        arrayIdentifier: args.resourceIdentifier,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
     },
-  );
+  });
 }
 
 function getIoTRecommendations(): Array<MonitorRecommendation> {
@@ -1343,6 +1454,15 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       getRecommendations: getVMwareRecommendations,
     },
     {
+      resourceType: MonitorRecommendationResourceType.XcpNg,
+      // Metric templates, and the Logs monitors over what XCP-ng says.
+      monitorTypes: [MonitorType.XcpNg, MonitorType.Logs],
+      resourceLabel: "XCP-ng Pool",
+      identifierFieldName: "poolIdentifier",
+      icon: IconProp.XcpNg,
+      getRecommendations: getXcpNgRecommendations,
+    },
+    {
       resourceType: MonitorRecommendationResourceType.Ceph,
       monitorTypes: [MonitorType.Ceph],
       resourceLabel: "Ceph Cluster",
@@ -1352,7 +1472,8 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.StorageArray,
-      monitorTypes: [MonitorType.StorageArray],
+      // Metric templates, and the Logs monitors of the alerts an array sends.
+      monitorTypes: [MonitorType.StorageArray, MonitorType.Logs],
       resourceLabel: "Storage Array",
       identifierFieldName: "arrayIdentifier",
       icon: IconProp.StorageArray,

@@ -63,7 +63,7 @@ Cliquez sur **Suivant**. Rien sur cette étape n'est signalé comme manquant ava
 
 ### Comment les critères sont évalués
 
-Le résultat de chaque vérification passe par les critères de haut en bas, et le premier qui correspond décide de ce qui se passe. Ce critère peut changer l'état du moniteur, déclarer un incident, créer une alerte, ou toute combinaison des trois. Quand aucun ne correspond, le moniteur affiche son **État du moniteur par défaut**, défini sous **Plus de champs** sous les critères (**Opérationnel**, sauf si vous en choisissez un autre).
+Le résultat de chaque vérification passe par les critères de haut en bas, et le premier qui correspond décide de ce qui se passe. Ce critère peut changer l'état du moniteur, déclarer un incident, créer une alerte, ou toute combinaison des trois. Un critère qui ne change aucun statut n'en décide aucun : le premier critère en dessous qui correspond et change le statut le fixe. Quand aucun ne correspond, le moniteur affiche son **État du moniteur par défaut**, défini sous **Plus de champs** sous les critères (**Opérationnel**, sauf si vous en choisissez un autre).
 
 ```mermaid title="D'une vérification à un état, un incident ou une alerte"
 flowchart TB
@@ -95,7 +95,7 @@ Choisissez un **Intervalle de surveillance**, de **Chaque minute** à **Chaque s
 
 ### Créer le moniteur
 
-Cliquez sur **Créer un moniteur**. La page du nouveau moniteur s'ouvre. Pour changer ses sondes ou son intervalle plus tard, ouvrez **Configuration → Sondes et intervalle** sur cette page.
+Cliquez sur **Créer un moniteur**. La page du nouveau moniteur s'ouvre. Slack et Microsoft Teams en sont informés une fois ses propriétaires et ses étiquettes ajoutés, si bien qu'une règle de notification qui porte sur le propriétaire ou les étiquettes d'un moniteur publie son message de création, et que son premier état suit ce message. Pour changer ses sondes ou son intervalle plus tard, ouvrez **Configuration → Sondes et intervalle** sur cette page.
 :::
 
 Tous les autres types, sauf Manuel, sont créés depuis l'étape **Critères**.

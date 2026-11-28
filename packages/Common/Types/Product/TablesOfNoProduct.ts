@@ -149,6 +149,10 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
       ["Probe", "ProbeOwnerTeam", "ProbeOwnerUser"],
     ),
     ...noProduct(
+      "A global probe's SNMP trap receiver report, this project's share of it: read by the probe's readers, as a project probe's own report is (#11173).",
+      ["GlobalProbeSnmpTrapReport"],
+    ),
+    ...noProduct(
       "How telemetry reaches the project, for every telemetry product: Project Settings.",
       [
         "TelemetryIngestionKey",
@@ -170,6 +174,7 @@ export const TABLES_OF_NO_PRODUCT: Readonly<Record<string, string>> =
         "AutoRemediationRule",
         "AutoRemediationSuggestion",
         "ExternalMcpServer",
+        "ExternalMcpToolReadOnlyMark",
         "LlmLog",
         "LlmProvider",
         "ResourceAiAgent",

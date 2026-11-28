@@ -761,6 +761,50 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     ],
   },
   {
+    name: "XCP-ng",
+    group: WidgetCategoryGroup.Infrastructure,
+    icon: IconProp.XcpNg,
+    description:
+      "Live inventory from every XCP-ng pool Xen Orchestra manages — read by the OneUptime XCP-ng Agent.",
+    items: [
+      {
+        type: DashboardComponentType.XcpNgHostList,
+        label: "Hosts",
+        name: translationKey("XCP-ng Hosts"),
+        icon: IconProp.ServerStack,
+        description:
+          "Hosts with their power state, maintenance mode and CPU/memory.",
+        keywords: [
+          "xcp-ng",
+          "xen",
+          "xenserver",
+          "xen orchestra",
+          "xo",
+          "host",
+          "hypervisor",
+          "pool",
+        ],
+      },
+      {
+        type: DashboardComponentType.XcpNgVmList,
+        label: "VMs",
+        name: translationKey("XCP-ng VMs"),
+        icon: IconProp.Cube,
+        description: "VMs with their power state, CPU/memory and host.",
+        keywords: [
+          "xcp-ng",
+          "xen",
+          "xenserver",
+          "xen orchestra",
+          "xo",
+          "vm",
+          "virtual machine",
+          "power state",
+        ],
+      },
+    ],
+  },
+  {
     name: "Ceph",
     group: WidgetCategoryGroup.Infrastructure,
     icon: IconProp.Database,
@@ -855,6 +899,37 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
           "store",
           "franchise",
           "wan",
+        ],
+      },
+    ],
+  },
+  {
+    name: "Cloud Costs",
+    group: WidgetCategoryGroup.Infrastructure,
+    icon: IconProp.Billing,
+    /*
+     * Said before the widget is added: its figures are read as the viewer
+     * may read the project's cloud costs, so a public dashboard draws none
+     * of them (#11009).
+     */
+    description:
+      "What your clouds cost, beside the services that spend it. Not available on public dashboards.",
+    items: [
+      {
+        type: DashboardComponentType.CloudCost,
+        label: "Cloud Cost",
+        icon: IconProp.Billing,
+        description:
+          "A total, a breakdown or each day's spend, for any account, cost group or cost view.",
+        keywords: [
+          "cloud cost",
+          "spend",
+          "finops",
+          "cost group",
+          "showback",
+          "aws cost",
+          "azure cost",
+          "gcp cost",
         ],
       },
     ],

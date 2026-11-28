@@ -56,6 +56,8 @@ import ChannelMembersNotAddedNotice, {
 } from "../../../Server/Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import MonitorWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/Monitor";
 import OnCallDutyPolicyWorkspaceMessages from "../../../Server/Utils/Workspace/WorkspaceMessages/OnCallDutyPolicy";
+import WorkspaceCreatedMessageFirst from "../../../Server/Utils/Workspace/WorkspaceCreatedMessageFirst";
+import { WorkspaceRecord } from "../../../Server/Utils/Workspace/WorkspaceRecordPeople";
 import ObjectID from "../../../Types/ObjectID";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
@@ -505,7 +507,7 @@ describe("a scheduled maintenance event's new channel", () => {
     await waitFor(ended);
 
     expectNoteRightAfter("Scheduled Maintenance Created");
-    expect(steps.indexOf("note")).toBeLessThan(steps.indexOf("first state"));
+    expect(steps.indexOf("note")).toBeLessThan(steps.indexOf("runbooks"));
   });
 });
 
@@ -550,6 +552,21 @@ describe("a monitor's and an on-call policy's new channel", () => {
   });
 
   test("an on-call policy: the note comes right after 'On Call Policy Created'", async () => {
+    /*
+     * Announced once its create has returned (#11224): its last step lets
+     * what waited for "On Call Policy Created" go.
+     */
+    const { ended, end } = chainEnd();
+    const postHeld: (record: WorkspaceRecord) => Promise<void> =
+      WorkspaceCreatedMessageFirst.postHeld.bind(WorkspaceCreatedMessageFirst);
+
+    jest
+      .spyOn(WorkspaceCreatedMessageFirst, "postHeld")
+      .mockImplementation(async (record: WorkspaceRecord): Promise<void> => {
+        await postHeld(record);
+        end();
+      });
+
     const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
     policy.id = RECORD_ID;
     policy.projectId = PROJECT_ID;
@@ -597,6 +614,7 @@ describe("a monitor's and an on-call policy's new channel", () => {
       },
       policy,
     );
+    await waitFor(ended);
 
     expectNoteRightAfter("On Call Policy Created");
   });

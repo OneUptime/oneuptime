@@ -503,6 +503,7 @@ describe("NetworkDeviceWalkUtil.processWalkResult — ping-first polling", () =>
     packetsReceived: 0,
     packetLossPercent: 0,
     avgRoundTripTimeInMs: 2.5,
+    isReachable: true,
   };
 
   test("a reachable ping-only poll: no rates, no baseline, inventory and metrics in ping mode with no walk, and the ping carried", async () => {
@@ -598,6 +599,13 @@ describe("NetworkDeviceWalkUtil.processWalkResult — ping-first polling", () =>
     expect(response.isTimeout).toBe(true);
     // The walk's cause is the specific one; the walk-failing alert reads it.
     expect(response.failureCause).toBe("SNMP timed out after 3 attempts");
+    /*
+     * The ping's own verdict, apart from the device's (issue #11071): this
+     * is what an SNMP credential problem looks like - reachable by ICMP,
+     * the walk failing - and what "SNMP is failing" reads.
+     */
+    expect(response.pingResponse?.isReachable).toBe(true);
+    expect(response.snmpResponse?.isOnline).toBe(false);
   });
 
   /*
@@ -624,6 +632,8 @@ describe("NetworkDeviceWalkUtil.processWalkResult — ping-first polling", () =>
     expect(response.responseTimeInMs).toBe(42);
     expect(response.failureCause).toBe("");
     expect(response.pingResponse?.packetLossPercent).toBe(100);
+    // Unreachable by ICMP, and Up: Offline is "neither answered" (#11071).
+    expect(response.pingResponse?.isReachable).toBe(false);
   });
 
   test("snmp mode, both failed: Down, the walk's cause first, the ping's when the walk has none", async () => {
@@ -701,6 +711,7 @@ describe("NetworkDeviceWalkUtil.toPingMonitorResponse", () => {
       packetsReceived: 0,
       packetLossPercent: 0,
       avgRoundTripTimeInMs: 2.5,
+      isReachable: true,
     });
 
     expect(
@@ -714,7 +725,29 @@ describe("NetworkDeviceWalkUtil.toPingMonitorResponse", () => {
       packetsReceived: 2,
       packetLossPercent: 0,
       avgRoundTripTimeInMs: 2.5,
+      isReachable: true,
     });
+  });
+
+  /*
+   * Issue #11071. The device's verdict is ping OR the walk; the ping's own
+   * is carried beside it, so the ICMP criteria judge the ping alone - a
+   * switch with broken SNMP credentials still answers it.
+   */
+  test("carries the ping's own verdict, apart from the device's", () => {
+    expect(
+      NetworkDeviceWalkUtil.toPingMonitorResponse(OK_PING)?.isReachable,
+    ).toBe(true);
+    expect(
+      NetworkDeviceWalkUtil.toPingMonitorResponse(FAILED_PING)?.isReachable,
+    ).toBe(false);
+    // An answered ping that lost an echo still answered.
+    expect(
+      NetworkDeviceWalkUtil.toPingMonitorResponse({
+        isOnline: true,
+        packetLossPercent: 50,
+      })?.isReachable,
+    ).toBe(true);
   });
 
   test("a ping with no measured loss implies it from the verdict", () => {

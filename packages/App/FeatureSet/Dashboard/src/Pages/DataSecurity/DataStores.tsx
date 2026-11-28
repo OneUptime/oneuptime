@@ -7,7 +7,6 @@ import {
 import StoreDataTypeList from "../../Components/DataSecurity/StoreDataTypeList";
 import { getDataStoreEnvironmentTitle } from "../../Components/DataSecurity/DataSecurityCatalogTerms";
 import {
-  SELF_MANAGED_STORE_KIND_OPTIONS,
   STORE_ENVIRONMENT_OPTIONS,
   STORE_EXPOSURE_OPTIONS,
   STORE_KIND_OPTIONS,
@@ -18,12 +17,16 @@ import StoreNameCell, {
   StoreLastCheckedCell,
   getDataStoreRoute,
 } from "../../Components/DataSecurity/StoreNameCell";
+import {
+  getStoreKindField,
+  getStoreScanMethodFields,
+  keepScanFieldsTheKindReads,
+} from "../../Components/DataSecurity/StoreScanMethodFields";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam";
 import DataStoreOwnerUser from "Common/Models/DatabaseModels/DataStoreOwnerUser";
-import Probe from "Common/Models/DatabaseModels/Probe";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DataStoreEnvironment from "Common/Types/DataSecurity/DataStoreEnvironment";
@@ -60,12 +63,16 @@ import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
  * of data are in it, how exposed it is and who owns it, and opens the
  * store's own pages.
  *
- * A database you run yourself - which no cloud lists - is added here: its
+ * A store you run yourself - which no cloud lists - is added here: its
  * name and kind, and, folded under More fields, its environment
- * (Production unless said otherwise), a description and how it is scanned
- * (a read-only connection string for OneUptime's workers, or one of your
- * probes inside your network, which reads the connection string from its
- * own environment so the string never reaches OneUptime).
+ * (Production unless said otherwise), a description and, for a kind
+ * OneUptime samples, how it is scanned (a read-only connection string for
+ * OneUptime's workers, or one of your probes inside your network, which
+ * reads the connection string from its own environment so the string never
+ * reaches OneUptime). Under its kind, the form says what OneUptime will and
+ * will not check on a store of that kind, and why (StoreCoverageList,
+ * #11140), before anyone spends time setting it up; a scanning field shows
+ * only for a kind it does something for (StoreScanMethodFields).
  */
 
 export const DATA_STORES_TABLE_ID: string = "data-security-stores-table";
@@ -94,7 +101,7 @@ const OPEN_ISSUES_ON_STORE: PluralTemplate = {
 const moreFieldsSection: FormFieldCollapsibleSection<DataStore> =
   getAdvancedFormSection<DataStore>({
     description:
-      "Its environment and description, and how OneUptime samples its content. Leave the scanning fields empty to add it without content scans.",
+      "Its environment and description, and, for a kind OneUptime samples, how it is scanned. Leave those empty to add it without scans.",
     getSummary: (values: FormValues<DataStore>): Array<string> | undefined => {
       return !values.environment ||
         values.environment === DataStoreEnvironment.Production
@@ -185,10 +192,15 @@ const DataSecurityDataStores: FunctionComponent<
         cardProps={{
           title: "Data Stores",
           description:
-            "Every bucket, database and telemetry stream Data Security knows, the riskiest first. Add a database you run yourself here.",
+            "Every bucket, database and telemetry stream Data Security knows, the riskiest first. Add a store you run yourself here.",
         }}
-        noItemsMessage="No data stores yet. They appear once a cloud account with Data Security turned on is read, or when you add a database you run yourself."
-        createFormTitle="Add a Database You Run"
+        noItemsMessage="No data stores yet. They appear once a cloud account with Data Security turned on is read, or when you add a store you run yourself."
+        // Marked: the extractor reads no createFormTitle, and the form's title is the reader's.
+        createFormTitle={translationKey("Add a Store You Run")}
+        onBeforeCreate={(item: DataStore): Promise<DataStore> => {
+          // A connection string or probe left behind by a kind picked before is not saved.
+          return Promise.resolve(keepScanFieldsTheKindReads(item, item.kind));
+        }}
         searchableFields={["name", "description"]}
         selectMoreFields={{
           kind: true,
@@ -205,22 +217,14 @@ const DataSecurityDataStores: FunctionComponent<
           {
             field: { name: true },
             title: "Name",
-            description: "What your team calls the database.",
+            description: "What your team calls it.",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "orders-db",
             validation: { minLength: 1 },
           },
-          {
-            field: { kind: true },
-            title: "Kind",
-            // The model's own words name buckets and logs, which nobody adds here.
-            description: "The database engine it runs.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: SELF_MANAGED_STORE_KIND_OPTIONS,
-            required: true,
-            placeholder: "Choose the database engine",
-          },
+          // What it runs, and what OneUptime checks on it once picked (#11140).
+          getStoreKindField({ translator }),
           {
             field: { environment: true },
             title: "Environment",
@@ -240,47 +244,14 @@ const DataSecurityDataStores: FunctionComponent<
             placeholder: "What the database is for",
             collapsibleSection: moreFieldsSection,
           },
-          {
-            field: { scanProbe: true },
-            title: "Scan From Probe",
-            description:
-              "Scan from one of your probes, inside your network. Leave it empty to scan from OneUptime's workers with a connection string.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: Probe,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Scan from OneUptime's workers",
+          // How it is scanned: only the fields its kind reads (#11140).
+          ...getStoreScanMethodFields({
             collapsibleSection: moreFieldsSection,
-          },
-          {
-            field: { probeConnectionVariable: true },
-            title: "Probe Connection Variable",
-            description:
-              "The environment variable on that probe that holds a read-only connection string. The connection string itself never reaches OneUptime.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "ORDERS_DB_URL",
-            collapsibleSection: moreFieldsSection,
-            showIf: (values: FormValues<DataStore>): boolean => {
-              return Boolean(values.scanProbe);
+            kindOf: (values: FormValues<DataStore>): string | undefined => {
+              return values.kind;
             },
-          },
-          {
-            field: { connectionString: true },
-            title: "Connection String",
-            description:
-              "A read-only connection string for PostgreSQL, MySQL or SQL Server. It is encrypted and never shown again.",
-            fieldType: FormFieldSchemaType.Password,
-            required: false,
-            placeholder: "postgresql://reader:password@db.internal:5432/app",
-            collapsibleSection: moreFieldsSection,
-            showIf: (values: FormValues<DataStore>): boolean => {
-              return !values.scanProbe;
-            },
-          },
+            translator,
+          }),
         ]}
         filters={[
           {

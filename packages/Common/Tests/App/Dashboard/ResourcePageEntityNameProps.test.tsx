@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -45,6 +45,34 @@ const exceptionsViewerMock: MockFunction = getJestMockFunction();
  * compiled requires, so the mock variables above are still unassigned when
  * the factory runs.
  */
+// A device's refused SNMPv3 traps read the device and its probe on their own (#11005).
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceSnmpTrapRefusals",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
+/*
+ * And so does the engine ID of the device's probe, on its Logs page (#11173):
+ * these suites count the page's own reads of the device. Its own suite is
+ * SnmpTrapReceiverCards.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceProbeSnmpEngineId",
+  () => {
+    return {
+      __esModule: true,
+      default: () => {
+        return null;
+      },
+    };
+  },
+);
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -708,6 +736,12 @@ describe("Network device Logs page", () => {
 
     renderPage(NetworkDeviceLogs);
     await waitForViewer(logsViewerMock);
+    // Every read the drawn page starts is counted, however late it lands.
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
 
     expect(getItemMock).toHaveBeenCalledTimes(1);
 

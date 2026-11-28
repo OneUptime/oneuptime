@@ -76,6 +76,12 @@ import { AppVersion } from "Common/Server/EnvironmentConfig";
  * Common/Server/Utils/LogSecretValues). The server hands a step's values
  * only to a probe that declares this (issue #10875).
  *
+ * "dataSecuritySearchScan": the Data Security scan job samples
+ * Elasticsearch and OpenSearch clusters too, over their HTTP API with GET
+ * requests only, and asks each without credentials whether it answers
+ * anyone who reaches it (Jobs/DataSecurity/ScanDatabases, #11140). The
+ * server hands a search cluster only to a probe that declares this.
+ *
  * Add to this list only when the code that honours the new capability
  * ships in the same build.
  */
@@ -84,12 +90,14 @@ export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.SnmpTables,
   ProbeCapability.SnmpWalk,
   ProbeCapability.DataSecurityScan,
+  ProbeCapability.DataSecuritySearchScan,
   ProbeCapability.DataObservabilityCollect,
   ProbeCapability.RetryWhenBusy,
   ProbeCapability.RetryAllWorkWhenBusy,
   ProbeCapability.TotpCodes,
   ProbeCapability.AnyRequestBody,
   ProbeCapability.HideSecretValuesInLogs,
+  ProbeCapability.SnmpV3Context,
 ];
 
 /*

@@ -32,6 +32,10 @@ import ModelPermission, {
 import Query from "../Types/AnalyticsDatabase/Query";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import MinuteRollupRange, {
+  MinuteRollupEdge,
+  MinuteRollupSplit,
+} from "../Utils/AnalyticsDatabase/MinuteRollupRange";
 
 /**
  * Columns the proj_hist_by_minute projection can answer with. If a count
@@ -174,10 +178,11 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
    *
    * Trade-off: time bounds get rounded to the minute, so the count can be
    * inflated by spans that started in the same minute as the boundary, and
-   * the projection cannot apply the retention read filter either. That is
-   * fine for a threshold, which is what the projection serves. An exact
+   * the projection cannot apply the retention read filter either. An exact
    * count is a total the traces explorer prints beside its list, where an
    * extra minute of spans reads as a wrong total — so it reads the table.
+   * So is a telemetry check's window (MinuteRollupRange): rounded, a Traces
+   * check counted the minute it shared with the next check twice (#11334).
    */
   public override toCountStatement(countBy: CountBy<Span>): Statement {
     if (countBy.exact) {
@@ -239,20 +244,84 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       return null;
     }
 
+    /*
+     * A check's window is counted exactly (MinuteRollupRange): whole by the
+     * projection when its ends are whole minutes, its whole minutes by the
+     * projection and its partial ones from the rows when it holds some
+     * (#11373), from the rows otherwise.
+     */
+    const split: MinuteRollupSplit | null =
+      MinuteRollupRange.split(startTimeFilter);
+
+    if (!MinuteRollupRange.canServe(startTimeFilter) && !split) {
+      return null;
+    }
+
+    // The projection's own key columns, as it can filter by them.
+    const projectionFilter: Statement | null =
+      SpanService.toProjectionFilter(query);
+
+    if (!projectionFilter) {
+      return null;
+    }
+
+    if (split) {
+      return this.toSplitProjectionCountStatement({
+        databaseName: databaseName,
+        projectId: projectId,
+        query: query,
+        split: split,
+        projectionFilter: projectionFilter,
+      });
+    }
+
     const statement: Statement = SQL`SELECT count() AS count FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
       type: TableColumnType.ObjectID,
       value: projectId,
     }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
       type: TableColumnType.Date,
       value: startValue,
-    }}) AND toStartOfMinute(startTime) <= toStartOfMinute(${{
-      type: TableColumnType.Date,
-      value: endValue,
-    }})`;
+    }}) AND toStartOfMinute(startTime) `;
+    statement.append(MinuteRollupRange.getEndOperator(startTimeFilter));
+    statement.append(
+      SQL` toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: endValue,
+      }})`,
+    );
+    statement.append(projectionFilter);
+
+    /*
+     * optimize_use_projections is on by default in modern ClickHouse but we
+     * set it explicitly to make the intent obvious. The 45s cap is defense
+     * in depth — projection scans should complete in <1s. This is the
+     * default (non-exact) count: 'break' keeps it what its callers have
+     * always read, 0 when the count was broken off (see countBy). A total a
+     * person reads is an exact count, which never takes this path.
+     */
+    statement.append(SpanService.getProjectionCountSettings());
+
+    return statement;
+  }
+
+  /*
+   * The filters a span projection can evaluate beside the project and the
+   * minute - isRootSpan, primaryEntityId, statusCode - as their AND terms,
+   * over the table's columns; null for a form of one it cannot (the generic
+   * path reads it). Scalar = equality, Includes = IN.
+   */
+  private static toProjectionFilter(
+    query: Record<string, unknown>,
+    tableAlias?: string | undefined,
+  ): Statement | null {
+    const column: (name: string) => string = (name: string): string => {
+      return tableAlias ? `${tableAlias}.${name}` : name;
+    };
+    const filter: Statement = new Statement();
 
     if (query["isRootSpan"] !== undefined) {
-      statement.append(
-        SQL` AND isRootSpan = ${{
+      filter.append(` AND ${column("isRootSpan")}`).append(
+        SQL` = ${{
           type: TableColumnType.Boolean,
           value: Boolean(query["isRootSpan"]),
         }}`,
@@ -261,15 +330,15 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
 
     const primaryEntityIdValue: unknown = query["primaryEntityId"];
     if (primaryEntityIdValue instanceof ObjectID) {
-      statement.append(
-        SQL` AND primaryEntityId = ${{
+      filter.append(` AND ${column("primaryEntityId")}`).append(
+        SQL` = ${{
           type: TableColumnType.ObjectID,
           value: primaryEntityIdValue,
         }}`,
       );
     } else if (primaryEntityIdValue instanceof Includes) {
-      statement.append(
-        SQL` AND primaryEntityId IN (${{
+      filter.append(` AND ${column("primaryEntityId")}`).append(
+        SQL` IN (${{
           type: TableColumnType.ObjectID,
           value: primaryEntityIdValue,
         }})`,
@@ -281,15 +350,15 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
 
     const statusCodeValue: unknown = query["statusCode"];
     if (typeof statusCodeValue === "number") {
-      statement.append(
-        SQL` AND statusCode = ${{
+      filter.append(` AND ${column("statusCode")}`).append(
+        SQL` = ${{
           type: TableColumnType.Number,
           value: statusCodeValue,
         }}`,
       );
     } else if (statusCodeValue instanceof Includes) {
-      statement.append(
-        SQL` AND statusCode IN (${{
+      filter.append(` AND ${column("statusCode")}`).append(
+        SQL` IN (${{
           type: TableColumnType.Number,
           value: statusCodeValue,
         }})`,
@@ -298,23 +367,80 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       return null;
     }
 
-    /*
-     * optimize_use_projections is on by default in modern ClickHouse but we
-     * set it explicitly to make the intent obvious. The 45s cap is defense
-     * in depth — projection scans should complete in <1s. This is the
-     * default (non-exact) count: 'break' keeps it what its callers have
-     * always read, 0 when the count was broken off (see countBy). A total a
-     * person reads is an exact count, which never takes this path.
-     */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: 45,
-        timeoutOverflowMode: "break",
-        additionalSettings: { optimize_use_projections: 1 },
-      }),
-    );
+    return filter;
+  }
+
+  private static getProjectionCountSettings(): string {
+    return getQuerySettings({
+      maxExecutionTimeInSeconds: 45,
+      timeoutOverflowMode: "break",
+      additionalSettings: { optimize_use_projections: 1 },
+    });
+  }
+
+  /*
+   * A check's window the projection cannot count whole (issue #11373),
+   * counted in three parts that follow on: its whole minutes by the
+   * projection, and the spans of each partial minute at its ends from the
+   * rows - from its start, up to its end - with the filters the rows' read
+   * of the whole window had. Every span in the window is counted once, and
+   * one starting on its end, which belongs to the next check, by none. A
+   * Traces check over the past hour counts the projection's minutes of its
+   * service and a minute of spans, where it counted the hour's spans.
+   */
+  private toSplitProjectionCountStatement(data: {
+    databaseName: string;
+    projectId: ObjectID;
+    query: Record<string, unknown>;
+    split: MinuteRollupSplit;
+    projectionFilter: Statement;
+  }): Statement {
+    const statement: Statement = SQL`SELECT sum(part) AS count FROM (SELECT count() AS part FROM ${data.databaseName}.${this.model.tableName} WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
+      type: TableColumnType.Date,
+      value: data.split.wholeFrom,
+    }}) AND toStartOfMinute(startTime) < toStartOfMinute(${{
+      type: TableColumnType.Date,
+      value: data.split.wholeTo,
+    }})`;
+    statement.append(data.projectionFilter);
+
+    for (const edge of MinuteRollupRange.getEdges(data.split)) {
+      statement
+        .append(
+          SQL` UNION ALL SELECT count() AS part FROM ${data.databaseName}.${this.model.tableName} WHERE TRUE `,
+        )
+        .append(this.toEdgeWhereStatement(data.query, edge))
+        .append(this.getRetentionReadFilter());
+    }
+
+    statement.append(`)`);
+    statement.append(SpanService.getProjectionCountSettings());
 
     return statement;
+  }
+
+  /*
+   * The rows' read of one partial minute of a split window: the read's own
+   * filters, as the generic path writes them, over that minute's part of
+   * the window, from `from` up to, not including, `to`.
+   */
+  private toEdgeWhereStatement(
+    query: Record<string, unknown>,
+    edge: MinuteRollupEdge,
+    tableAlias?: string | undefined,
+  ): Statement {
+    return this.statementGenerator.toWhereStatement(
+      {
+        ...query,
+        startTime: new InBetween<Date>(edge.from, edge.to, {
+          includesEnd: false,
+        }),
+      } as unknown as Query<Span>,
+      tableAlias ? { tableAlias: tableAlias } : undefined,
+    );
   }
 
   /**
@@ -348,7 +474,8 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
    *
    * Trade-off (same as the count override): window edges round to the
    * minute, so the boundary buckets may include spans from the partial
-   * boundary minute.
+   * boundary minute. A telemetry check's window is never rounded: it is
+   * served here only when its ends are whole minutes (MinuteRollupRange).
    */
   public override toAggregateStatement(aggregateBy: AggregateBy<Span>): {
     statement: Statement;
@@ -473,6 +600,24 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       });
 
     /*
+     * A check's window is read exactly (MinuteRollupRange): whole by the
+     * projection when its ends are whole minutes; in minute buckets, its
+     * whole minutes by the projection and its partial ones from the rows
+     * (#11373), each partial minute a bucket of its own. In a coarser
+     * bucket an edge minute shares the bucket with whole ones, and the
+     * projection's quantile states do not merge into another quantile's,
+     * so such a window is read from the rows, as it was.
+     */
+    const split: MinuteRollupSplit | null =
+      aggregationInterval === AggregationInterval.Minute
+        ? MinuteRollupRange.split(startTimeFilter)
+        : null;
+
+    if (!MinuteRollupRange.canServe(startTimeFilter) && !split) {
+      return null;
+    }
+
+    /*
      * Bucket expression derived from the projection key via the shared
      * interval-expression map (the sub-hour tiers are not valid
      * date_trunc units): bucketing the minute-truncated timestamp
@@ -507,68 +652,92 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
         value: projectId,
       }} AND toStartOfMinute(s.startTime) >= toStartOfMinute(${{
         type: TableColumnType.Date,
-        value: startValue,
-      }}) AND toStartOfMinute(s.startTime) <= toStartOfMinute(${{
+        value: split ? split.wholeFrom : startValue,
+      }}) AND toStartOfMinute(s.startTime) `,
+    );
+    statement.append(
+      split ? "<" : MinuteRollupRange.getEndOperator(startTimeFilter),
+    );
+    statement.append(
+      SQL` toStartOfMinute(${{
         type: TableColumnType.Date,
-        value: endValue,
+        value: split ? split.wholeTo : endValue,
       }})`,
     );
 
-    const primaryEntityIdValue: unknown = query["primaryEntityId"];
-    if (primaryEntityIdValue instanceof ObjectID) {
-      statement.append(
-        SQL` AND s.primaryEntityId = ${{
-          type: TableColumnType.ObjectID,
-          value: primaryEntityIdValue,
-        }}`,
-      );
-    } else if (primaryEntityIdValue instanceof Includes) {
-      statement.append(
-        SQL` AND s.primaryEntityId IN (${{
-          type: TableColumnType.ObjectID,
-          value: primaryEntityIdValue,
-        }})`,
-      );
-    } else if (primaryEntityIdValue !== undefined) {
-      return null;
-    }
-
     /*
-     * Only reachable for Count (the whitelist above rejects these keys for
-     * Avg/P99). Predicate translation mirrors
+     * The filters, in the order the count's are written: primaryEntityId,
+     * and (only reachable for Count: the whitelist above rejects these keys
+     * for Avg/P99) isRootSpan and statusCode. Predicate translation mirrors
      * tryBuildProjectionCountStatement: scalar = equality, Includes = IN,
      * anything else = bail to the generic path.
      */
-    if (query["isRootSpan"] !== undefined) {
-      statement.append(
-        SQL` AND s.isRootSpan = ${{
-          type: TableColumnType.Boolean,
-          value: Boolean(query["isRootSpan"]),
-        }}`,
+    const primaryEntityFilter: Statement | null =
+      SpanService.toProjectionFilter(
+        { primaryEntityId: query["primaryEntityId"] },
+        "s",
       );
-    }
+    const otherFilters: Statement | null = SpanService.toProjectionFilter(
+      {
+        isRootSpan: query["isRootSpan"],
+        statusCode: query["statusCode"],
+      },
+      "s",
+    );
 
-    const statusCodeValue: unknown = query["statusCode"];
-    if (typeof statusCodeValue === "number") {
-      statement.append(
-        SQL` AND s.statusCode = ${{
-          type: TableColumnType.Number,
-          value: statusCodeValue,
-        }}`,
-      );
-    } else if (statusCodeValue instanceof Includes) {
-      statement.append(
-        SQL` AND s.statusCode IN (${{
-          type: TableColumnType.Number,
-          value: statusCodeValue,
-        }})`,
-      );
-    } else if (statusCodeValue !== undefined) {
+    if (!primaryEntityFilter || !otherFilters) {
       return null;
     }
 
+    statement.append(primaryEntityFilter).append(otherFilters);
+
     statement.append(" GROUP BY startTime");
 
+    if (split) {
+      /*
+       * Each partial minute at the window's ends, aggregated from its rows
+       * into a bucket of its own: the same aggregate, by the same minute,
+       * over the read's own filters as the generic path writes them,
+       * through the table's alias (the bucket is aliased startTime).
+       */
+      const parts: Statement = new Statement()
+        .append(`SELECT durationUnixNano, startTime FROM (`)
+        .append(statement);
+
+      for (const edge of MinuteRollupRange.getEdges(split)) {
+        parts
+          .append(
+            ` UNION ALL SELECT ${aggregateExpression} as durationUnixNano, `,
+          )
+          .append(
+            AggregateUtil.buildBucketTimestampStatement(
+              aggregationInterval,
+              "toStartOfMinute(s.startTime)",
+              aggregateBy.timezone,
+            ),
+          )
+          .append(` as startTime`)
+          .append(
+            SQL` FROM ${databaseName}.${this.model.tableName} AS s WHERE TRUE `,
+          )
+          .append(this.toEdgeWhereStatement(query, edge, "s"))
+          .append(this.getRetentionReadFilter())
+          .append(" GROUP BY startTime");
+      }
+
+      parts.append(`)`);
+
+      return this.finishProjectionAggregateStatement(parts, aggregateBy);
+    }
+
+    return this.finishProjectionAggregateStatement(statement, aggregateBy);
+  }
+
+  // A span projection aggregate's order, page and settings.
+  private finishProjectionAggregateStatement(
+    statement: Statement,
+    aggregateBy: AggregateBy<Span>,
+  ): { statement: Statement; columns: Array<string> } {
     const sortOrder: SortOrder | undefined = aggregateBy.sort
       ? (Object.values(aggregateBy.sort)[0] as SortOrder | undefined)
       : undefined;
@@ -711,12 +880,14 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
   }
 
   /*
-   * The groups the monitor's spans were in between `since` and `until`,
-   * the most recently seen first, at most `limit`: what a grouped monitor
-   * expects to keep hearing from (TraceGroupAbsence). A group whose every
-   * value is empty is none - a span that names no install is no install.
-   * With `contextAttributes`, each group carries the last value its spans
-   * gave each of them (a quiet device's name and model, #9925).
+   * The groups the monitor's spans were in from `since` up to `until`, not
+   * included, the most recently seen first, at most `limit`: what a grouped
+   * monitor expects to keep hearing from (TraceGroupAbsence). `until` is
+   * where the check's window starts, and the window holds its start
+   * (TelemetryCheckWindow), so the two never share a span. A group whose
+   * every value is empty is none - a span that names no install is no
+   * install. With `contextAttributes`, each group carries the last value its
+   * spans gave each of them (a quiet device's name and model, #9925).
    */
   @CaptureSpan()
   public async findRecentAttributeGroups(input: {
@@ -731,7 +902,9 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     const query: Query<Span> = await this.readableQuery({
       query: {
         ...input.query,
-        startTime: new InBetween(input.since, input.until),
+        startTime: new InBetween(input.since, input.until, {
+          includesEnd: false,
+        }),
       },
       props: input.props,
     });

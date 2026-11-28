@@ -63,7 +63,7 @@ Click **Next**. Nothing on this step is marked as missing until you click **Next
 
 ### How criteria are evaluated
 
-Each check's result goes through the criteria from top to bottom, and the first one that matches decides what happens. That criteria can change the monitor's status, declare an incident, create an alert, or any mix of the three. When none matches, the monitor shows its **Default Monitor Status**, set under **More fields** below the criteria (**Operational** unless you pick another).
+Each check's result goes through the criteria from top to bottom, and the first one that matches decides what happens. That criteria can change the monitor's status, declare an incident, create an alert, or any mix of the three. One that changes no status decides none: the first criteria below it that matches and changes the status sets it. When none matches, the monitor shows its **Default Monitor Status**, set under **More fields** below the criteria (**Operational** unless you pick another).
 
 ```mermaid title="From a check to a status, an incident or an alert"
 flowchart TB
@@ -95,7 +95,7 @@ Pick a **Monitoring Interval**, from **Every Minute** to **Every Week**. Synthet
 
 ### Create the monitor
 
-Click **Create Monitor**. The new monitor's page opens. To change its probes or its interval later, open **Configuration → Probes & Interval** on that page.
+Click **Create Monitor**. The new monitor's page opens. Slack and Microsoft Teams hear of it once its owners and labels are in, so a notification rule that asks who owns a monitor, or how it is labelled, posts its created message, and its first status follows that message. To change its probes or its interval later, open **Configuration → Probes & Interval** on that page.
 :::
 
 Every other type except Manual is created from the **Criteria** step.

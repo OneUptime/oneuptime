@@ -100,6 +100,9 @@ jest.mock("../../../UI/Utils/Telemetry/UseTelemetryEntityNames", () => {
     default: () => {
       return {};
     },
+    useTelemetryEntityLookup: () => {
+      return { names: {}, notFound: new Set<string>() };
+    },
   };
 });
 
@@ -170,8 +173,37 @@ function fingerprintReads(): Array<ListArgs> {
   return callsOf(analyticsGetListMock, ExceptionInstance);
 }
 
+interface CountCall {
+  modelType: ModelType;
+  query: Record<string, unknown>;
+}
+
+function countCalls(): Array<CountCall> {
+  return countMock.mock.calls.map((call: Array<unknown>): CountCall => {
+    return call[0] as CountCall;
+  });
+}
+
+// The Error Class facet's counts: one per class, each naming its class.
 function errorClassCounts(): number {
-  return countMock.mock.calls.length;
+  return countCalls().filter((call: CountCall): boolean => {
+    return "errorClass" in call.query;
+  }).length;
+}
+
+/*
+ * The count of the project's exceptions a scrub rule split, which offers
+ * the list's Split by a scrub rule (#11026): it reads nothing the reader
+ * set, so it goes out once per page load, held by nothing.
+ */
+function splitPairCounts(): number {
+  return countCalls().filter((call: CountCall): boolean => {
+    return (
+      call.modelType === TelemetryException &&
+      "splitFromTelemetryExceptionId" in call.query &&
+      !("errorClass" in call.query)
+    );
+  }).length;
 }
 
 function postsTo(path: string): Array<Record<string, unknown>> {
@@ -219,6 +251,7 @@ function readCounts(): string {
     histogram: histogramReads().length,
     facets: facetReads().length,
     errorClassCounts: errorClassCounts(),
+    splitPairCounts: splitPairCounts(),
     fingerprints: fingerprintReads().length,
   });
 }
@@ -353,6 +386,30 @@ describe("a page load reads everything once (#4709)", () => {
     await settle();
     expect(errorClassCounts()).toBe(classCounts);
     expect(fingerprintReads()).toHaveLength(0);
+    // And one count of the project's split pairs: every count accounted for.
+    expect(splitPairCounts()).toBe(1);
+    expect(countMock.mock.calls).toHaveLength(classCounts + 1);
+  });
+
+  test("the project's split pairs are counted once per page load, never again for a change of the list", async () => {
+    await openAt("?range=Past%201%20Day");
+    expect(splitPairCounts()).toBe(1);
+
+    await act(async () => {
+      viewerProps.onTimeRangeChange({ range: TimeRange.PAST_ONE_WEEK });
+    });
+    await settle();
+    await act(async () => {
+      viewerProps.onFacetInclude("exceptionType", "TypeError");
+    });
+    await settle();
+    await act(async () => {
+      viewerProps.onPageChange(2);
+    });
+    await settle();
+
+    expect(listReads()).toHaveLength(4);
+    expect(splitPairCounts()).toBe(1);
   });
 
   test("a `@service:` token waits for the service names, then reads once with the real id", async () => {
@@ -360,13 +417,17 @@ describe("a page load reads everything once (#4709)", () => {
 
     await openAt(`?search=${encodeURIComponent("@service:checkout-api")}`);
 
-    // Nothing is read for a token that cannot resolve yet.
+    /*
+     * Nothing is read for a token that cannot resolve yet - but the count
+     * of the project's split pairs, which no token changes.
+     */
     expect(readCounts()).toBe(
       JSON.stringify({
         list: 0,
         histogram: 0,
         facets: 0,
         errorClassCounts: 0,
+        splitPairCounts: 1,
         fingerprints: 0,
       }),
     );
@@ -400,6 +461,8 @@ describe("a page load reads everything once (#4709)", () => {
     expect(JSON.stringify(postMock.mock.calls)).not.toContain(
       NO_MATCH_ENTITY_ID,
     );
+    // And the split pairs were counted once, the names landing or not.
+    expect(splitPairCounts()).toBe(1);
   });
 
   test("an attribute chip waits for its fingerprints, then reads once with them, never the sentinel", async () => {
@@ -416,6 +479,8 @@ describe("a page load reads everything once (#4709)", () => {
     expect(histogramReads()).toHaveLength(0);
     expect(facetReads()).toHaveLength(0);
     expect(errorClassCounts()).toBe(0);
+    // The project's split pairs need no fingerprint: counted already.
+    expect(splitPairCounts()).toBe(1);
     // Reported as loading - not as "no exceptions".
     expect(viewerProps.isLoading).toBe(true);
     expect(viewerProps.histogramLoading).toBe(true);
@@ -463,6 +528,8 @@ describe("an embedded explorer reads once, and only on a real change of its scop
   test("one resolution, then one read each, with the fingerprints", async () => {
     await mount(inventoryExceptions(["key-1"]));
 
+    // An inventory item's exceptions offer no Split by a scrub rule.
+    expect(splitPairCounts()).toBe(0);
     expect(fingerprintReads()).toHaveLength(1);
     expect(listReads()).toHaveLength(1);
     expect(histogramReads()).toHaveLength(1);

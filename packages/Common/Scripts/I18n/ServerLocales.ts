@@ -17,7 +17,8 @@ import path from "path";
  *     translateTemplate("...") call, and a translatePlural({ one: "...",
  *     other: "..." }) call, in double quotes or single ones;
  *   - in an email template, the email language helpers
- *     (Notification/Utils/EmailLanguage): t, tHtml, tt, ttHtml and tp.
+ *     (Notification/Utils/EmailLanguage): t, tHtml, tt, ttHtml, ttMailtoHtml
+ *     and tp.
  *
  * `npm run i18n:server-sync` (SyncServerLocales.ts) writes en.json from them
  * and gives every other language each new sentence in English, to be
@@ -121,6 +122,21 @@ export const DASHBOARD_SHARED_TEXT_SOURCES: ReadonlyArray<string> = [
    * language on the reader's account.
    */
   "packages/Common/Types/Database/SharedNameMarks.ts",
+  /*
+   * A scheduled cloud cost report (#11009): its email, chat message and
+   * text say what the Reports page's preview says, in the language on the
+   * reader's account - and the period's name ("the week before") the
+   * report's own words take.
+   */
+  "packages/Common/Types/Cloud/CloudCostReportWords.ts",
+  "packages/Common/Types/Cloud/CloudCostReport.ts",
+  // The cost basis a report names, as Costs names it (#11007).
+  "packages/Common/Types/Cloud/CloudCostBasis.ts",
+  /*
+   * What escalating a page did (#11066): a page's call in its person's
+   * language says it once 2 is pressed, as the Escalate dialog says it.
+   */
+  "packages/Common/Types/OnCallDutyPolicy/OnCallPassOnWords.ts",
 ];
 
 export const DASHBOARD_LOCALES_DIRECTORY: string = path.join(
@@ -153,6 +169,16 @@ export const SERVER_TEXT_SOURCES: ReadonlyArray<string> = [
   "packages/Common/Types/OnCallDutyPolicy/OnCallObserverPage.ts",
   // A test page (OnCallTestPage), in the language of the person it pages.
   "packages/Common/Types/OnCallDutyPolicy/OnCallTestPageWords.ts",
+  /*
+   * A page's phone call (#11066), in the language of the person it calls:
+   * what it says, its keys' answers and what the keypad route words itself,
+   * a bare number's word and the message it leaves on voicemail.
+   */
+  "packages/Common/Utils/Call/OnCallPageCall.ts",
+  "packages/Common/Utils/Call/CallKeypad.ts",
+  "packages/Common/Utils/Call/CallSpeech.ts",
+  "packages/Common/Server/Utils/OnCall/OnCallPageCallAnswers.ts",
+  "packages/App/FeatureSet/Notification/Utils/AnsweredBy.ts",
   /*
    * The email that tells a person their sign-in settings were cleared
    * (#9818, #9820), in the language on their account.
@@ -272,7 +298,7 @@ const TYPESCRIPT_PLURAL_CALL: RegExp = new RegExp(
 );
 
 const TEMPLATE_KEY_CALL: RegExp = new RegExp(
-  `[({]\\s*(?:t|tHtml|tt|ttHtml)\\s+${STRING_LITERAL_BODY}`,
+  `[({]\\s*(?:t|tHtml|tt|ttHtml|ttMailtoHtml)\\s+${STRING_LITERAL_BODY}`,
   "g",
 );
 

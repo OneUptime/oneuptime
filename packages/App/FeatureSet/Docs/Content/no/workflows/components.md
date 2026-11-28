@@ -26,6 +26,7 @@ Du trenger sjelden å ha den åpen mens du bygger. Innstillingene til hver blokk
 | Omforme data mellom to blokker                                | [JSON](#json) eller [Custom Code](#custom-code)                   |
 | Vente før neste blokk                                         | [Sleep](#sleep)                                                   |
 | Starte en annen arbeidsflyt                                   | [Execute Workflow](#execute-workflow)                             |
+| Legge ved bildene en posts Markdown viser i en e-post | [Hent filer fra Markdown](#get-files-from-markdown) |
 | Lese eller endre hendelser, monitorer og andre poster         | [OneUptime-datakomponenter](#oneuptime-datakomponenter)           |
 | Åpne, bekrefte og løse hendelser eller varsler for et annet verktøys problemer | [Hendelser og varsler fra andre verktøy](#hendelser-og-varsler-fra-andre-verktøy) |
 | Bekrefte eller lukke et Zabbix-problem                        | [Zabbix](#zabbix)                                                 |
@@ -391,6 +392,139 @@ Start en annen arbeidsflyt i samme prosjekt. Arbeidsflyten din fortsetter uten �
 **Ut** utløses så snart den andre arbeidsflyten står i kø. **Feil** utløses når det ikke går: den finnes ikke, er slått av eller arkivert, eller å starte den ville gitt en løkke.
 
 Bruk den til å dele felles logikk: bygg en «post i hendelseskanalen»-arbeidsflyt én gang, og start den fra hver arbeidsflyt som trenger den. En kjede av arbeidsflyter som starter hverandre, kan ikke gå i ring tilbake til seg selv og er høyst 10 ledd dyp. Se [Konfigurasjon og sikkerhet](/docs/workflows/configuration#grense-for-å-kalle-andre-arbeidsflyter).
+
+## Get Files From Markdown
+
+Leser bildene en posts Markdown viser, som skjermbildene noen har limt inn i beskrivelsen av en hendelse, et egendefinert Markdown-felt eller et notat, med navn, type og data for hvert bilde. Bruk den til å legge ved bildene i en e-post, slik at de vises der Markdown plasserer dem.
+
+| Innstilling | Hva den gjør |
+| --- | --- |
+| **Posttype** | Hva slags post Markdown-en som viser bildene hører til: en hendelse, et offentlig eller internt notat for en hendelse, et varsel, en vedlikeholdshendelse og mer. |
+| **Post-ID** | Posten som leses, som regel den som startet arbeidsflyten, som i `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+
+| Utgang | Når |
+| --- | --- |
+| **Suksess** | Posten ble lest, enten den viser bilder eller ikke. |
+| **Feil** | Posten kunne ikke leses: Den finnes ikke, eller arbeidsflyten har ikke lov til å lese den. **Feil** sier hvorfor. |
+
+Den returnerer:
+
+- **Filer**: hvert bilde i den rekkefølgen posten viser det, med:
+  - `name`: filens navn, slik den ble lastet opp;
+  - `mimeType`: typen, som `image/png` eller `image/jpeg`;
+  - `sizeInBytes`: størrelsen i byte;
+  - `base64`: bildets data;
+  - `contentId`: en ID for bildet i en HTML-e-post (`<img src="cid:...">`), den samme for det samme bildet uansett hvilken post som viser det;
+  - `urls`: hver adresse Markdown viser det med;
+  - `fields`: feltene som viser det, som `description` eller navnet på et egendefinert felt.
+- **Antall**: hvor mange bilder **Filer** inneholder.
+- **Utelatt**: filene Markdown viser som ikke er i **Filer**, hver med sitt `name`, sine `urls`, sine `fields`, en `reason` og en `message` som sier hvorfor.
+
+**Filer** inneholder dataene til bildene, så kjøringens logg skjuler det og viser **Antall** og **Utelatt** i stedet. En senere blokk som får bildene, skriver det den får i sin egen oppføring i loggen.
+
+### Hvilke bilder den gir ut
+
+Blokken leser posten slik en Find One-blokk gjør, som arbeidsflyten: i arbeidsflytens eget prosjekt, aldri en privat hendelse, et privat varsel eller en privat episode, og bare det arbeidsflytens tillatelser lar den lese. En post den ikke har lov til å lese, tar **Feil**, akkurat som en som ikke finnes.
+
+Den gir bare ut:
+
+- bilder som postens Markdown-felt viser, som beskrivelsen av en hendelse, rotårsaken, postmortem og utbedringsnotatene, og dens egendefinerte Markdown-felt. Et egendefinert tekstfelt er ikke Markdown, så en adresse skrevet i et slikt leses ikke;
+- bilder som er lastet opp til postens eget prosjekt. En adresse som er kopiert fra en post i et annet prosjekt, står under **Utelatt** som ikke funnet;
+- bilder: PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC og ICO, hvert kontrollert etter hva filen inneholder i tillegg til typen. En SVG kan inneholde skript, så den utelates, og det gjør også en fil som bare utgir seg for å være et bilde;
+- opptil 20 bilder og 10 MB totalt. Det som går over en grense, står under **Utelatt** med grunnen.
+
+Den kan ikke liste opp filer eller lese en ut fra adressen: Den leser bare det posten viser.
+
+### Eksempel: innebygde bilder i en e-post sendt med Microsoft Graph
+
+Denne arbeidsflyten sender hver ny hendelse som e-post med Microsoft Graph, med skjermbildene i beskrivelsen der beskrivelsen plasserer dem.
+
+:::steps
+### Få et token for Microsoft Graph
+
+Registrer en app i Microsoft Entra ID, gi den apptillatelsen `Mail.Send`, og gi administratorsamtykke. Opprett deretter en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokener-som-fornyer-seg-selv) med navnet `GRAPH_TOKEN` for Microsoft, med tildelingstypen **Client Credentials** og omfanget `https://graph.microsoft.com/.default`.
+
+### Start ved en ny hendelse
+
+Legg til utløseren **Ved oppretting: Hendelse**, og send videre dens **Tittel** og **Beskrivelse**.
+
+### Les hendelsens bilder
+
+Legg til **Hent filer fra Markdown** etter utløseren. Sett **Posttype** til **Hendelse** og **Post-ID** til `{{local.components.incident-on-create-1.returnValues.model._id}}`.
+
+### Bygg meldingen
+
+Legg til **Kjør egen JavaScript** på utgangen **Suksess**, med disse **Argumenter**:
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+Koden lar hver adresse til et bilde peke på vedlegget (`cid:` og bildets `contentId`) og legger ved bildet innebygd under samme ID:
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### Send den med Microsoft Graph
+
+Legg til **API-kall POST (JSON)** på kodens utgang **Suksess**:
+
+| Innstilling | Verdi |
+| --- | --- |
+| **URL** | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail` |
+| **Forespørselshoder** | `Authorization`: `Bearer {{global.variables.GRAPH_TOKEN}}` |
+| **Forespørselstekst** | `{{local.components.javascript-1.returnValues.returnValue}}` |
+
+Microsoft Graph svarer `202 Accepted`, og blokken tar **Suksess**.
+:::
+
+Microsoft Graph tar imot et vedlegg på opptil 3 MB i en melding som sendes til den på denne måten. Et større bilde trenger en opplastingsøkt, eller en lenke i stedet for bildet. Bildene til en post kan også leses med en API-nøkkel, utenfor en arbeidsflyt: se [Bilder i en posts Markdown](/docs/api-reference/api-reference#bilder-i-en-posts-markdown).
 
 ## Hendelser og varsler fra andre verktøy
 

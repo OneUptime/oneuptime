@@ -40,7 +40,7 @@ flowchart TB
 | 字段 | 作用 |
 | --- | --- |
 | **每次值班时长** | **1 天** 、 **1 周** 、 **2 周** 或 **1 个月** ，不更改则为 **1 周** 。有人轮流值班时就会询问。每人值班这么长时间，然后在计划创建时的那个时刻由下一个人接替。 |
-| **时区** | 交接时间和值班时段所使用的时区。初始为您的时区。每个时区都遵循其所在地区当前的规则：America/Vancouver（不列颠哥伦比亚省）自 2026 年起全年保持 UTC-7。 |
+| **时区** | 交接时间和值班时段所使用的时区。初始为您的时区。之后再更改时，每个时间都按原样保留：09:00 的交接仍在 09:00，星期一的时段仍在星期一。每个时区都遵循其所在地区当前的规则：America/Vancouver（不列颠哥伦比亚省）自 2026 年起全年保持 UTC-7。 |
 | **描述** | 关于计划的备注。 |
 | **标签** | 用于查找和分组计划的标签。 |
 
@@ -69,7 +69,11 @@ flowchart TB
 | **轮换开始时间** | 该层轮换开始的日期和时间。 |
 | **轮换周期** | 值班多久交给层中的下一个人。 |
 | **首次交接时间** | 第一次交接给下一个人的时间，在开始时或之后。之后的交接按每个轮换间隔进行。 |
-| **限制** | 该层值班的时段：按计划的时区为 **无限制** 、 **一天中的特定时间** 或 **一周中的特定时间** 。在这些时段之外，由下层接替。 |
+| **限制** | 该层值班的时段（**有效时段**）：按计划的时区为 **无限制** 、 **一天中的特定时间** 或 **一周中的特定时间** 。在这些时段之外，由下层接替。 |
+
+**一周中的特定时间** 的时段从 **开始：** 下的日期和时间持续到 **结束：** 下的日期和时间，它显示的日期就是它值班的日期。如果时段的时间落在与保存时不同的日子上，例如通过 API 写入、时间落在其他日子的时段，或在计划的时区更改之前保存的时段，就会在其层上标记为 **待检查的有效时段**，并在下方注明它保存时是哪几天。它仍在所显示的日期值班，**保存层** 也会让它保持在这些日期：保存之前，请选择您想要的日期。
+
+设置了有效时段后，每个时段都是一个单独的班次。17:00 到 07:00 是一个班次，在次日早上 07:00 结束：在 **值班时间线** 、邮件、移动应用以及 Slack 和 Microsoft Teams 中都一样，按计划的时区计算，在时钟调整的夜里也是如此。一个人的轮值是到下一次交接之前的所有时段，每个方向只通知一次：轮值的第一个时段开始时发送 "You are now on-call"，并注明该时段和整个轮值何时结束；最后一个时段结束时发送 "You are no longer on-call"，而不是每个时段都发送。如需在每个时段前收到提醒，请按 [日历订阅源](/docs/on-call/calendar-feeds#提醒和重新分配通知) 的说明在 **班次前提醒我** 中选择时间。如果在两个时段之间由别人值班（通过覆盖或下层），或者层的更改把下一个时段交给了别人，这就是一次交接，并按交接通知。值班时间仍按时段逐个记录，值班策略的频道和动态仍会每次说明谁在值班。
 
 要更改哪一层排在前面，请使用层卡片上的箭头 **上移层（提高优先级）** 或 **下移层（降低优先级）** 。
 
@@ -111,7 +115,13 @@ flowchart TB
 
 - 在 `miscDataProps` 中带 `firstLayerUsers` （按轮换顺序排列的用户 ID 列表）创建计划，会像仪表板一样为它创建第一层：从现在开始全天候值班的 **Layer 1** 。 `firstLayerRotation` 以 `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}` 这样的轮换指定每次值班时长；不提供时为一周。每个用户都必须是项目成员，调用方必须有权创建层，否则不会创建计划。
 - 不带它们创建的计划和以前一样没有层；Terraform 的计划资源不会发送它们。
-- 不带 `rotation` 创建的层和以往一样每天交接。
+- 不带 `rotation` 创建的层每周交接一次，不带 `restrictionTimes` 的层全天候值班，与在控制台中新建的层一样。
+- 层的 `restrictionTimes`（即其有效时段）在 `restrictionType` 中写明类型：`None`（全天候值班）、`Daily` 或 `Weekly`。也会读取 `restictionType`，即少了第二个 "r" 的旧拼写，每个响应都会在两个键下给出类型，因此用任一拼写编写的客户端或 Terraform 配置都能继续使用；层以 `restrictionType` 保存。响应中的 `restictionType` 已弃用：响应会一直带有它，直到 2027 年 6 月 1 日当天或之后发布的第一个主要版本；写入时则始终会读取它。请写入 `restrictionType`。
+- `Weekly` 时段 `{"startDay", "startTime", "endDay", "endTime"}` 在其指定的星期几值班：按计划的时区，其 `startTime` 和 `endTime` 必须分别落在 `startDay` 和 `endDay` 上。时间落在另一天的时段会被拒绝，返回的 `400` 会指明该时段、其时间实际落在星期几，以及可改为发送的、落在指定那天的时间。省略的星期几即为其时间所落的那天。按层中保存的样子原样发回的时段不会再次判定，因此读取层并原样写回的客户端不会因此被拒绝。在没有时区的计划中，时间按服务器的时区读取，只有当某个时间在任何时区都不落在其指定的那天时，才会被拒绝。
+- 升级 OneUptime 时，每个已保存的时段，如果其时间落在与其指定不同的日子上，且在任何时区都不落在指定的日子上，就会以相同的时刻移到其指定的日子，并重新计算谁在值班。时间在另一个时区落在其指定日子上的时段（在另一个时区设置的时段，或在计划的时区更改之前保存的时段可能如此）会保持不变，照旧呼叫，并标记为 **待检查的有效时段**。
+- 将计划的 `timezone` 从一个时区改为另一个时区时，其各层的 `startsAt`、`handOffTime` 和 `restrictionTimes` 会移到新时区的时钟上：每个值在新时区显示的日期、星期几和时刻都与之前相同。首次为计划设置时区，或移除其时区时，各个时间点保持不变。
+- 会让层在任何时刻都不值班的写入会被拒绝，返回指明该键的 `400`：类型缺失、未知或在两种拼写下不同（更新时采用与层当前类型不同的那个）；`startTime` 和 `endTime` 不是日期和时间的 `Daily` 时段（只有 `"09:00"` 会被拒绝）；没有 `weeklyRestrictionTimes` 的 `Weekly` 限制；或者开始和结束于同一时间的时段。`intervalType` 不是 `Hour`、`Day`、`Week`、`Month` 或 `Year` 的 `rotation` 也会以同样方式被拒绝。
+- 在开始拒绝这些写入之前保存的、没有可读取类型的层从未值过班。升级 OneUptime 时，会按每个这样的层所含的时段读取它并照此保存，再重新计算其计划中谁在值班，因此其中的人从此会被呼叫，并收到相应通知。
 - 通过 API 或 Terraform 对计划的层和层中人员所做的更改会作为一次更改通知：在层半分钟内没有再更改后才计算谁在值班，开始值班、结束值班或下一个值班的人只会收到一次通知，而不是每写入一个层或一个人就通知一次。每项更改一保存，呼叫就会发给层所安排的值班人员。
 - 若要像 **层** 页面上的 **保存更改** 那样一次性更改谁在计划的各层中轮值，请用 `GET /api/on-call-duty-policy-schedule/<schedule-id>/layers` 读取各层，修改后再发回 `POST /api/on-call-duty-policy-schedule/<schedule-id>/save-layers` 。其中按优先级从高到低列出计划保留的每一层，每层按轮值顺序列出其中的人员：已在某层中的人用其 `layerUserId` ，新加入的人只用 `userId` 。 `deletedLayerIds` 列出要删除的层。
 - 一次保存要么全部写入，要么完全不写入，谁在值班只计算一次，并且立即计算。在别人更改各层之后才进行的保存会以 409 被拒绝，因为它的 `basedOnVersion` 已不再是各层当前的版本：请重新读取各层，并在现有内容的基础上进行更改。Terraform 的 `oneuptime_on_call_schedule_layers` 资源就是这样保存计划的各层的。
@@ -129,6 +139,47 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-schedule \
     "miscDataProps": {
       "firstLayerUsers": ["<user-id-1>", "<user-id-2>", "<user-id-3>"],
       "firstLayerRotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}
+    }
+  }'
+```
+
+```bash
+curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "name": "Nights",
+      "onCallDutyPolicyScheduleId": "<schedule-id>",
+      "startsAt": "2026-11-23T08:00:00.000Z",
+      "handOffTime": "2026-11-30T08:00:00.000Z",
+      "rotation": {"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": {"_type": "PositiveNumber", "value": 1}}},
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Daily",
+        "dayRestrictionTimes": {
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
+          "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
+        }
+      }}
+    }
+  }'
+```
+
+```bash
+curl -X PUT https://oneuptime.com/api/on-call-duty-schedule-layer/<layer-id> \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Weekly",
+        "weeklyRestrictionTimes": [{
+          "startDay": "Monday",
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T09:00:00+01:00"},
+          "endDay": "Friday",
+          "endTime": {"_type": "DateTime", "value": "2026-01-09T17:00:00+01:00"}
+        }]
+      }}
     }
   }'
 ```

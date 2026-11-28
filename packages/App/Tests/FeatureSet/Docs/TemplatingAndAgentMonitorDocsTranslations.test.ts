@@ -141,7 +141,13 @@ const FORM_NAMES: Array<string> = [
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   // A template's name, as the template picker shows it.
-  [STORAGE]: [...FORM_NAMES, "Array Stopped Reporting", ...UNKEYED_NO_DATA],
+  [STORAGE]: [
+    ...FORM_NAMES,
+    "Array Stopped Reporting",
+    // PowerMax's, named in a troubleshooting note (#11004).
+    "Performance Collection Off",
+    ...UNKEYED_NO_DATA,
+  ],
   [IOT]: [
     ...FORM_NAMES,
     // A template's name.
@@ -275,6 +281,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   ],
   [STORAGE]: [
     "Install the Storage Array Agent",
+    // A PowerMax is connected through Unisphere instead (#11004).
+    "For a Dell PowerMax",
     "Check the array is registered.",
     "one",
     "`dimension`",
@@ -322,7 +330,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "A datastore is filling up:",
     "A cluster lost a host:",
     "Fewer VMs run than expected:",
-    "A VM is being host-swapped:",
+    "A VM holds a lot of memory in host swap:",
   ],
   [OPENSTACK]: [
     "Collect the cloud's metrics",

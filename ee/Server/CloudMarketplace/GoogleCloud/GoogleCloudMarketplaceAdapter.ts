@@ -35,6 +35,11 @@ import GoogleCloudMarketplaceAPI, {
  * (MarketplaceSubscription.externalSubscriptionId), and the entitlement in
  * force is what is billed (externalEntitlementId, usageReportingId).
  *
+ * The account also holds the buyer's orders of the provider's other products
+ * - OneUptime Enterprise's Kubernetes app, which Google bills on its own.
+ * Only this product's orders are OneUptime Cloud's to approve, bill or end
+ * (GoogleCloudEntitlementState.isForProduct).
+ *
  * https://docs.cloud.google.com/marketplace/docs/partners/integrated-saas/manage-entitlements
  */
 
@@ -75,6 +80,27 @@ export class GoogleCloudEntitlementState {
       GoogleCloudEntitlementState.toStatus(state) ===
       MarketplaceSubscriptionStatus.Active
     );
+  }
+
+  /*
+   * Whether an entitlement is an order of this product, whose service is
+   * `serviceName`. Google names an order's product by that service name, or
+   * by the product ID it begins with; an order naming no product, or a
+   * server with no service name, has nothing to tell it by, and the order is
+   * taken as this product's.
+   */
+  public static isForProduct(
+    entitlement: GoogleCloudEntitlement,
+    serviceName: string | null,
+  ): boolean {
+    if (!serviceName || !entitlement.product) {
+      return true;
+    }
+
+    const product: string = entitlement.product.toLowerCase();
+    const service: string = serviceName.toLowerCase();
+
+    return product === service || product === service.split(".")[0];
   }
 
   /*
@@ -198,7 +224,7 @@ export default class GoogleCloudMarketplaceAdapter
     }
 
     const entitlements: Array<GoogleCloudEntitlement> =
-      await api.listEntitlements(accountId);
+      await this.listProductEntitlements(accountId);
 
     for (const entitlement of entitlements) {
       if (entitlement.state !== "ENTITLEMENT_ACTIVATION_REQUESTED") {
@@ -261,13 +287,28 @@ export default class GoogleCloudMarketplaceAdapter
     }
   }
 
+  // The account's orders of this product, leaving out its other products'.
+  public async listProductEntitlements(
+    accountId: string,
+  ): Promise<Array<GoogleCloudEntitlement>> {
+    const entitlements: Array<GoogleCloudEntitlement> =
+      await this.getApi().listEntitlements(accountId);
+
+    return entitlements.filter(
+      (entitlement: GoogleCloudEntitlement): boolean => {
+        return GoogleCloudEntitlementState.isForProduct(
+          entitlement,
+          GoogleCloudMarketplaceServiceName,
+        );
+      },
+    );
+  }
+
   public async fetchStatus(
     subscription: MarketplaceSubscription,
   ): Promise<MarketplaceStatus | null> {
     const entitlements: Array<GoogleCloudEntitlement> =
-      await this.getApi().listEntitlements(
-        subscription.externalSubscriptionId!,
-      );
+      await this.listProductEntitlements(subscription.externalSubscriptionId!);
 
     const current: GoogleCloudEntitlement | null =
       GoogleCloudEntitlementState.pickCurrent(entitlements);

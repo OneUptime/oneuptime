@@ -14,6 +14,7 @@ Ambos usan el mismo tipo de monitor. Lo que los separa son los criterios que con
 - [Enviar un latido](#enviar-un-latido): Desde curl, cron, Node.js, Python o Go.
 - [Alertar cuando cesan las llamadas](#marcar-sin-conexión-si-no-hay-latido-en-10-minutos-un-interruptor-de-hombre-muerto): Convierta el monitor en un interruptor de hombre muerto.
 - [Recibir alertas](#recibir-alertas-de-otro-sistema): Un incidente por cada alerta de Alertmanager o Grafana.
+- [Publicar en Slack sin avisar a nadie](#publicar-en-slack-sin-avisar-a-nadie): Notificar a un canal y avisar solo fuera del horario laboral.
 - [Suscribirse a SNS o Event Grid](#suscribirse-a-amazon-sns-o-azure-event-grid): Confirme la suscripción con un clic.
 :::
 
@@ -422,6 +423,38 @@ La carga útil completa está disponible junto a ella, así que funcionan tanto 
 
 Para una configuración completa de Alertmanager, consulte [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Para Grafana, consulte [Grafana](/docs/integrations/grafana).
 
+### Mantenerlo comprobándose durante los incidentes
+
+Un incidente que alguien declara sobre este monitor —desde una de sus alertas, por ejemplo, con **Declarar incidente**— pausa sus comprobaciones hasta que el incidente se resuelve, así que las solicitudes que llegan mientras tanto no se evalúan: no abren ni resuelven alertas. Cada una aparece igualmente en los **Registros de monitoreo** del monitor, tal como llegó, con el motivo por el que no se evaluó.
+
+Para un monitor al que otros sistemas envían sus alertas, un incidente sobre una alerta no debería impedirle leer la siguiente. Abra los **Ajustes** del monitor y, en **Durante los incidentes**, active **Mantener el monitoreo durante los incidentes**: los incidentes declarados sobre él lo dejan entonces comprobándose, incluidos los que ya están abiertos. Para mantenerlo comprobándose solo durante un incidente, desmarque **Pausar el monitoreo** al declararlo. Consulte [Monitoreo mientras un incidente está abierto](/docs/incidents/declaring-incidents#monitoreo-mientras-un-incidente-está-abierto).
+
+## Publicar en Slack sin avisar a nadie
+
+Un entorno de staging, o un producto cuyos problemas pueden esperar, puede querer que una solicitud se publique en un canal de chat sin avisar a nadie. Una alerta que no nombra ninguna política de guardia lo hace: se publica en Slack, Microsoft Teams o Mattermost mediante las reglas de espacio de trabajo del proyecto, y no inicia ninguna escalada.
+
+:::steps
+1. Abra el criterio y, en **Acciones**, active **Cuando los filtros coinciden, crear una alerta.** Deje vacías sus **Políticas de guardia**.
+2. Escriba en la alerta lo que dice la solicitud, como `{{requestBody.commonAnnotations.summary}}` en su descripción. Consulte [Plantillas de incidentes y alertas](/docs/monitor/incident-alert-templating).
+3. En **Alertas → Espacio de trabajo → Slack**, agregue una regla para las alertas de este monitor y active **Publicar en canales existentes**. Antes, Slack debe estar [conectado al proyecto](/docs/workspace-connections/slack).
+:::
+
+Una alerta que no nombra ninguna política de guardia aún puede avisar a alguien mediante las reglas del proyecto. Compruebe que ninguna regla en **Alertas → Reglas → Reglas de guardia** avise a nadie por estas alertas, y que ninguna regla en **Alertas → Reglas → Reglas de incidentes** declare un incidente a partir de ellas.
+
+Para publicar sin crear una alerta, active solo **Cuando los filtros coinciden, cambiar el estado del monitor.**, y agregue la regla en **Monitores → Espacio de trabajo → Slack** en su lugar. El canal se entera entonces solo de que el estado del monitor cambió, sin nada de la solicitud, y solo cuando cambia: más solicitudes mientras el monitor ya está en ese estado no publican nada.
+
+### Avisar solo fuera del horario laboral
+
+Dos criterios con los mismos filtros se reparten la semana, en este orden:
+
+1. El primero publica durante el horario laboral. En sus **Ajustes**, active **Evaluar este criterio solo ciertos días y a ciertas horas**, y elija los días, las horas y la **Zona horaria**. Su alerta no nombra ninguna política de guardia.
+2. El segundo avisa el resto del tiempo. No tiene horas, y su alerta nombra su política de guardia.
+
+El primer criterio que coincide con una solicitud decide qué pasa. Fuera de sus horas, el primer criterio se omite, así que el segundo coincide de noche y los fines de semana, y solo entonces se avisa a alguien. Consulte [Solo ciertos días y a ciertas horas](/docs/monitor/criteria-and-statuses#solo-ciertos-días-y-a-ciertas-horas).
+
+- Una solicitud se evalúa cuando llega, según las horas de ese momento. Un problema que empieza a las 16:55 avisa a alguien después de las 17:00 solo si el remitente lo vuelve a enviar, como hace Alertmanager una vez cada `repeat_interval`.
+- Una alerta con **Resolver alerta automáticamente** activado se resuelve cuando una solicitud coincide con otro criterio. La primera solicitud tras el inicio del horario laboral coincide con el primer criterio, así que resuelve la alerta de la noche y abre una que no avisa a nadie. Deje **Resolver alerta automáticamente** desactivado en la alerta del segundo criterio para que siga abierta hasta que alguien la resuelva.
+
 ## Servicios que comprueban primero la URL
 
 Algunos servicios comprueban un endpoint nuevo antes de entregarle nada: le envían una solicitud y solo entregan cuando responde como esperan. OneUptime responde a estas comprobaciones por sí mismo, así que basta con pegar la **URL de latido** del monitor en el servicio.
@@ -479,11 +512,16 @@ Event Grid valida un endpoint que le devuelve un código, o cuyo propietario abr
 3. **Use POST con `Content-Type: application/json`**: todo lo que lee dentro del cuerpo depende de ello.
 4. **No mezcle los dos trabajos en un mismo monitor**: un monitor que recibe alertas por eventos no tiene un ritmo regular, así que un criterio "No recibido en minutos" en él oscilaría. Use un monitor aparte para el interruptor de hombre muerto.
 5. **Vigile al vigilante**: asegúrese de que el servicio que envía las solicitudes gestiona bien los errores, para que las solicitudes fallidas no pasen desapercibidas.
+6. **Mantenga comprobándose un receptor de eventos durante los incidentes**: en un monitor que recibe alertas de otro sistema, active **Mantener el monitoreo durante los incidentes** en sus **Ajustes**, para que un incidente declarado sobre él no lo pause. Consulte [Mantenerlo comprobándose durante los incidentes](#mantenerlo-comprobándose-durante-los-incidentes).
 
 ## Solución de problemas
 
 :::details Mi emisor recibe un 200, pero no aparece nada en el monitor
 El `200` se envía antes de validar la solicitud, así que no demuestra que se haya aceptado. Compruebe que la clave secreta de la URL coincide con la **URL de latido** del monitor, y que el monitor no está desactivado. Después, mire la cronología del monitor para ver si llegan solicitudes.
+:::
+
+:::details Llegan solicitudes, pero el monitor no abre alertas mientras hay un incidente abierto
+Un incidente declarado a mano sobre el monitor pausa sus comprobaciones, así que sus solicitudes aparecen en sus **Registros de monitoreo** como **No evaluado: el monitoreo está en pausa por un incidente**, y el banner de sus páginas lo dice. Active **Mantener el monitoreo durante los incidentes** en sus **Ajustes**: sus comprobaciones vuelven a empezar enseguida, y las siguientes solicitudes se evalúan. Las solicitudes que aparecieron mientras estaba en pausa no se evalúan después. Consulte [Mantenerlo comprobándose durante los incidentes](#mantenerlo-comprobándose-durante-los-incidentes).
 :::
 
 :::details Mi remitente recibe un 401

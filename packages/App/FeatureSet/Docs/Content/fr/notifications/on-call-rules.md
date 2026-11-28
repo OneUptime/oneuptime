@@ -44,7 +44,11 @@ Press 1 to acknowledge, or 2 to escalate.
 You did not press a key, so this incident is not acknowledged. Good bye.
 ```
 
-L'appel nomme votre projet. Un appel qui ne concerne aucun projet, comme un code de vérification, nomme OneUptime, ou le nom que porte votre installation auto-hébergée. Un titre de plus d'environ 100 caractères est coupé après un mot entier, et OneUptime conserve le titre complet. Les lettres d'un numéro comme `INC-42` sont prononcées une à une, pour que la voix ne les lise jamais comme un mot. Les appels sont toujours en anglais.
+Si vous appuyez sur une touche que l'appel n'a pas proposée, comme 3, # ou *, l'appel dit « That key does nothing. » et vous redemande une touche. Il le fait au plus deux fois, autant de fois qu'il énonce les touches quand vous n'appuyez sur aucune ; ensuite, une mauvaise touche met fin à l'appel et l'alerte reste non prise en compte. Les touches 1 et 2 fonctionnent comme toujours.
+
+L'appel nomme votre projet. Un appel qui ne concerne aucun projet, comme un code de vérification, nomme OneUptime, ou le nom que porte votre installation auto-hébergée. Un titre de plus d'environ 100 caractères est coupé après un mot entier, et OneUptime conserve le titre complet. Les lettres d'un numéro comme `INC-42` sont prononcées une à une, pour que la voix ne les lise jamais comme un mot.
+
+Un appel est dans la langue dans laquelle vous utilisez OneUptime quand le compte Twilio par lequel il passe parle avec l'une des voix de OneUptime : tout ce qu'il dit, y compris les réponses à vos touches, avec une voix de votre langue, une voix de femme si la voix du compte est une voix de femme, et une voix d'homme si c'est une voix d'homme. Les touches restent les mêmes : 1 pour prendre en compte, 2 pour escalader. Un appel passé par un compte qui garde sa voix par défaut est en anglais, tout comme un appel vers quelqu'un qui utilise OneUptime en persan, qu'aucune voix ne parle : voir [La voix avec laquelle parlent les appels](/docs/self-hosted/twilio-integration#la-voix-avec-laquelle-parlent-les-appels).
 
 ## Une seule séquence pour tout
 

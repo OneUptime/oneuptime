@@ -836,6 +836,12 @@ export default class QueryHelper {
     joinTableName: string;
     ownerColumnName: string;
     relationColumnName: string;
+    /*
+     * The related table, when a link to a deleted row of it should not
+     * count - the exact complement of anyOfEntitiesInManyToMany given the
+     * same table (LinkedTo's NoneOf, #11073).
+     */
+    relatedTable?: ManyToManyRelatedTable | null | undefined;
   }): FindWhereProperty<any> {
     const values: Array<string> = data.values.map(
       (value: string | ObjectID) => {
@@ -855,9 +861,26 @@ export default class QueryHelper {
     const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
     const relationCol: string = data.relationColumnName.replace(/"/g, '""');
 
+    // The related rows named, those not deleted when they can be.
+    let relatedIds: string = `:...${valuesRid}`;
+
+    if (data.relatedTable?.deleteDateColumnName) {
+      const relatedTable: string = QueryHelper.escapeIdentifier(
+        data.relatedTable.tableName,
+      );
+      const relatedColumn: string = QueryHelper.escapeIdentifier(
+        data.relatedTable.columnName,
+      );
+      const deleteDateColumn: string = QueryHelper.escapeIdentifier(
+        data.relatedTable.deleteDateColumnName,
+      );
+
+      relatedIds = `SELECT "${relatedTable}"."${relatedColumn}" FROM "${relatedTable}" WHERE "${relatedTable}"."${relatedColumn}" IN (:...${valuesRid}) AND "${relatedTable}"."${deleteDateColumn}" IS NULL`;
+    }
+
     return Raw(
       (alias: string) => {
-        return `(${alias} NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})))`;
+        return `(${alias} NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (${relatedIds})))`;
       },
       {
         [valuesRid]: values,
@@ -1226,6 +1249,88 @@ export default class QueryHelper {
       },
       (condition as unknown as FindOperator<unknown>).objectLiteralParameters ||
         {},
+    );
+  }
+
+  /**
+   * The records a condition this class writes is not true of: false, or
+   * unknown - NULL, where it compares an empty column (`status = 'x'` of a
+   * row with no status). For "none of these", which keeps the records whose
+   * column is empty, as a list's "is not" does (FilterGroups' NoneOf,
+   * #11211). notCondition's counterpart for a condition that can be NULL:
+   * NOT of NULL is NULL, which drops the row.
+   */
+  public static isNotTrue(
+    condition: FindWhereProperty<any>,
+  ): FindWhereProperty<any> {
+    const getSql: (alias: string) => string = QueryHelper.getRawSql(condition);
+
+    return Raw(
+      (alias: string) => {
+        return `(${getSql(alias)} IS NOT TRUE)`;
+      },
+      (condition as unknown as FindOperator<unknown>).objectLiteralParameters ||
+        {},
+    );
+  }
+
+  /**
+   * THE RECORDS A LINK TABLE LINKS TO ONE OF `values` (LinkedTo, #11211).
+   * Applied to the record's primary id: the ids a row of `tableName` names
+   * in `recordColumnName` beside one of `values` in `linkedColumnName` - a
+   * team, through a TeamMember row naming one of the people picked. A link
+   * row marked deleted links nothing. With `isNoneOf`, the records no such
+   * row names, those with no link rows at all among them.
+   *
+   * One uncorrelated subquery, through the link table's index on the
+   * linked column: it reads the same in a SELECT, an UPDATE and a DELETE,
+   * and joins nothing into the read. A link row naming no record is left
+   * out of it, so NOT IN is never asked about an empty id. No values link
+   * nothing: no record, or (isNoneOf) every record.
+   */
+  public static linkedThroughTable(data: {
+    values: Array<string | ObjectID>;
+    tableName: string;
+    recordColumnName: string;
+    linkedColumnName: string;
+    deleteDateColumnName?: string | null | undefined;
+    isNoneOf?: boolean | undefined;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID): string => {
+        return value.toString();
+      },
+    );
+
+    if (values.length === 0) {
+      return Raw(() => {
+        return data.isNoneOf ? `TRUE = TRUE` : `TRUE = FALSE`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+    const table: string = QueryHelper.escapeIdentifier(data.tableName);
+    // The link table's own alias, so its columns are never read as the outer row's.
+    const linkAlias: string = `link${Text.generateRandomText(10)}`;
+    const recordColumn: string = QueryHelper.escapeIdentifier(
+      data.recordColumnName,
+    );
+    const linkedColumn: string = QueryHelper.escapeIdentifier(
+      data.linkedColumnName,
+    );
+    const notDeleted: string = data.deleteDateColumnName
+      ? ` AND "${linkAlias}"."${QueryHelper.escapeIdentifier(
+          data.deleteDateColumnName,
+        )}" IS NULL`
+      : "";
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} ${data.isNoneOf ? "NOT IN" : "IN"} (SELECT "${linkAlias}"."${recordColumn}" FROM "${table}" "${linkAlias}" WHERE "${linkAlias}"."${linkedColumn}" IN (:...${valuesRid}) AND "${linkAlias}"."${recordColumn}" IS NOT NULL${notDeleted}))`;
+      },
+      {
+        [valuesRid]: values,
+      },
     );
   }
 
@@ -1928,15 +2033,22 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
+  /*
+   * From `startValue` to `endValue`, both held - or the start only, for a
+   * range that leaves out its end (InBetween.includesEnd): a telemetry
+   * check's window, which a record stamped on its end is not in (#11334).
+   */
   public static inBetween<T extends number | Date>(
     startValue: T,
     endValue: T,
+    options?: { includesEnd?: boolean | undefined },
   ): FindWhereProperty<any> {
     const rid1: string = Text.generateRandomText(10);
     const rid2: string = Text.generateRandomText(10);
+    const endOperator: string = options?.includesEnd === false ? "<" : "<=";
     return Raw(
       (alias: string) => {
-        return `(${alias} >= :${rid1} and ${alias} <= :${rid2})`;
+        return `(${alias} >= :${rid1} and ${alias} ${endOperator} :${rid2})`;
       },
       {
         [rid1]: startValue,

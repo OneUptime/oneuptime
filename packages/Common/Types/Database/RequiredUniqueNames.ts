@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { RecordPageFields, readRecordPageFields } from "./RecordPageFields";
 
 /*
  * WHAT THE DASHBOARD ASKS THE SERVER ABOUT NAMES THAT REPEAT IN A PROJECT
@@ -52,6 +53,12 @@ export interface UniqueNameHolder {
   // Its own name, as it was written.
   name: string;
   isArchived: boolean;
+  /*
+   * What its page needs beside its id, for a kind opened under another
+   * record - a budget's OpenStack cloud (Types/Database/RecordPageFields,
+   * #11020). Only what the reader may read.
+   */
+  pageFields?: RecordPageFields | undefined;
 }
 
 export interface UniqueNameCheckAnswer {
@@ -76,6 +83,8 @@ export interface DuplicateNameRecord {
   // When it was made, as the API writes a date.
   createdAt: string | null;
   isArchived: boolean;
+  // What its page needs beside its id, as UniqueNameHolder's (#11020).
+  pageFields?: RecordPageFields | undefined;
 }
 
 // The records of one kind whose names read as one name.
@@ -170,10 +179,15 @@ const readHolder: (value: unknown) => UniqueNameHolder | null = (
     return null;
   }
 
+  const pageFields: RecordPageFields | undefined = readRecordPageFields(
+    holder["pageFields"],
+  );
+
   return {
     id: readText(holder["id"]),
     name: readText(holder["name"]),
     isArchived: holder["isArchived"] === true,
+    ...(pageFields ? { pageFields: pageFields } : {}),
   };
 };
 
@@ -187,6 +201,9 @@ export const toUniqueNameCheckAnswerJSON: (
           id: answer.takenBy.id,
           name: answer.takenBy.name,
           isArchived: answer.takenBy.isArchived,
+          ...(answer.takenBy.pageFields
+            ? { pageFields: answer.takenBy.pageFields }
+            : {}),
         }
       : null,
     isTakenByUnreadable: answer.isTakenByUnreadable,
@@ -227,6 +244,9 @@ export const toDuplicateNamesAnswerJSON: (
                   name: record.name,
                   createdAt: record.createdAt,
                   isArchived: record.isArchived,
+                  ...(record.pageFields
+                    ? { pageFields: record.pageFields }
+                    : {}),
                 };
               },
             ),
@@ -246,11 +266,16 @@ const readRecord: (value: unknown) => DuplicateNameRecord | null = (
     return null;
   }
 
+  const pageFields: RecordPageFields | undefined = readRecordPageFields(
+    record["pageFields"],
+  );
+
   return {
     id: readText(record["id"]),
     name: readText(record["name"]),
     createdAt: readText(record["createdAt"]) || null,
     isArchived: record["isArchived"] === true,
+    ...(pageFields ? { pageFields: pageFields } : {}),
   };
 };
 

@@ -1,11 +1,13 @@
 # 네트워크 공급업체별 가이드(Sophos, Extreme, Cambium)
 
-OneUptime으로 흔한 세 가지 환경을 처음부터 끝까지 모니터링하는 방법입니다. IPsec 터널, WAN 링크, SD-WAN이 있는 Sophos Firewall(XGS, SFOS), 패브릭이 있는 Extreme Networks 스위치(EXOS / Switch Engine과 Fabric Engine / VOSS), 그리고 무선마다 채널과 송신 전력까지 보는 Cambium Networks cnMatrix 스위치와 Enterprise Wi-Fi 액세스 포인트입니다.
+OneUptime으로 흔한 세 가지 환경을 처음부터 끝까지 모니터링하는 방법입니다. IPsec 터널, WAN 링크, SD-WAN이 있는 Sophos Firewall(XGS, SFOS), 패브릭이 있는 Extreme Networks 스위치(EXOS / Switch Engine과 Fabric Engine / VOSS), 그리고 무선마다 채널과 송신 전력까지 보는 Cambium Networks cnMatrix 스위치와 Enterprise Wi-Fi 액세스 포인트입니다. SAN 스위치(Brocade Fabric OS와 Cisco MDS 9000)도 각 Fibre Channel 포트의 오류까지 다룹니다.
 
 :::cards
 - [Sophos Firewall](#sophos-firewall-xgs-sfos): 터널, WAN 링크, 게이트웨이, SD-WAN.
 - [Extreme Networks](#extreme-networks-exos-switch-engine-및-fabric-engine-voss): 스위치, 패브릭, 하드웨어.
 - [Cambium Networks](#cambium-networks-enterprise-wi-fi-및-cnmatrix): 무선 하나하나까지 보는 액세스 포인트와 cnMatrix 스위치.
+- [Brocade Fabric OS](#brocade-fabric-os): Fibre Channel 포트, 광 모듈, 센서와 패브릭 이벤트.
+- [Cisco MDS 9000](#cisco-mds-9000): Fibre Channel 인터페이스, VSAN, 슬로 드레인과 포트 모니터 경보.
 :::
 
 ## 작동 방식
@@ -145,6 +147,76 @@ Cambium은 펌웨어 6.5.3부터만 전체 클라이언트 수를 보고하며, 
 ### cnMaestro 알람
 
 cnMaestro는 액세스 포인트가 오프라인이 되는 것 같은 알람을 HTTPS 웹후크로 보낼 수 있습니다. 이를 [Incoming Request 모니터](/docs/monitor/incoming-request-monitor)로 향하게 하면 그 알람이 SNMP 데이터 옆에서 OneUptime 인시던트가 됩니다.
+
+## Brocade Fabric OS
+
+| 보고 싶은 것 | 출처 |
+| --- | --- |
+| 스위치 상태, 펌웨어, CPU와 메모리 | SNMP, 벤더 템플릿 **Brocade Fabric OS (SAN switches)** |
+| 스위치의 상태, 센서, 교체 가능 장치(FRU)를 행별로 | 템플릿의 테이블 `switch_status`, `sensors`, `frus` |
+| 각 Fibre Channel 포트의 유형, 다운된 포트가 다운된 이유, 초당 오류, 폐기된 프레임과 크레딧 대기 | SW-MIB와 FCMGMT-MIB, 장치의 **인터페이스** 페이지 |
+| 각 광 모듈의 수신·송신 전력, 온도, 전압과 바이어스 전류 | FA-EXT-MIB, **트랜시버** 카드 |
+| 스위치 간 링크 다운, 패브릭 분할이나 재구성, 조닝 변경, MAPS 경고, FRU 변경 | SNMPv3 트랩 |
+
+Fabric OS를 실행하는 모든 스위치와 디렉터는 `1.3.6.1.4.1.1588.2.1.1` 아래의 시스템 객체 ID를 보고하므로, 템플릿은 이들 모두에 적용되고 Brocade의 다른 제품에는 적용되지 않습니다. VDX와 SLX 스위치는 기존 템플릿을 유지합니다.
+
+### Fabric OS에서 SNMP 설정
+
+:::steps
+1. 인증과 암호화(SHA와 AES)를 사용하는 SNMPv3 사용자를 추가합니다. `snmpconfig --set snmpv3`가 사용자, 프로토콜과 암호 문구를 묻습니다.
+2. `snmpconfig --set mibCapability`로 FA-MIB를 켭니다. 각 포트의 64비트 오류 카운터와 광 모듈이 여기에 있습니다. 끄면 포트는 CRC 오류, 인코딩 오류, 클래스 3 폐기 프레임과 크레딧 대기만 32비트 카운터로 보고합니다.
+3. OneUptime에서 관리 주소와 그 사용자로 스위치를 추가합니다. **Auto-Apply Vendor Health Template** 설정이 켜져 있으면 첫 폴링에서 **Brocade Fabric OS (SAN switches)** 템플릿이 적용되고, 아니면 장치의 **설정** 페이지에 있는 **Vendor Health Template** 항목에서 적용합니다.
+:::
+
+그러면 장치의 **인터페이스** 페이지가 각 Fibre Channel 포트에 E-Port나 F-Port 같은 유형을 표시하고, 다운된 포트가 다운된 이유를 `switchshow`와 같은 말(No light, No module, Disabled)로 알려 줍니다. **Fibre Channel 포트** 카드는 각 포트의 오류, 폐기된 프레임과 크레딧 카운터를 초당으로 차트에 그립니다.
+
+포트의 CRC 오류, 잘못된 전송 워드, 링크 장애, 동기화와 신호 손실이 그 포트의 오류입니다. **SNMP 인터페이스 오류(초당)** 조건이 이를 경고하고, 권장 경고에는 10초에 한 번을 넘는 오류에서 발생하는 **Fibre Channel port errors** 경고가 포함됩니다. 폐기된 프레임과 크레딧 대기는 오류가 아닙니다. 그중 하나로 경고하려면 **SNMP Fibre Channel 카운터(초당)** 조건을 사용합니다.
+
+### Virtual Fabrics
+
+Virtual Fabrics를 쓰는 섀시는 논리 스위치마다 자체 SNMPv3 컨텍스트(`VF:`와 논리 스위치의 패브릭 ID)로 응답합니다. 논리 스위치마다 장치를 하나씩, 모두 섀시의 관리 주소로 추가하고, 각각 **SNMP v3 컨텍스트** 값(`VF:128`, `VF:20`)을 설정합니다. 컨텍스트가 없는 장치는 기본 논리 스위치를 읽습니다.
+
+### Brocade 트랩
+
+Fabric OS는 트랩을 SNMPv3로 보냅니다. `snmpconfig --set snmpv3`로 OneUptime이 폴링에 쓰는 사용자의 트랩 수신자로 UDP 포트 162의 프로브를 추가합니다. 프로브는 자신이 폴링하는 장치의 사용자가 보낸 SNMPv3 트랩을 받습니다([SNMPv3 트랩과 inform](/docs/monitor/network-device-monitor#snmpv3-트랩과-inform) 참고). 각 논리 스위치의 트랩은 그 컨텍스트를 밝히므로 그 장치에서만 발생합니다. Fabric OS 업그레이드로 개별 트랩이 다시 꺼질 수 있습니다. 업그레이드 후 `snmpconfig --show mibCapability`로 확인하고, `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn`으로 다시 켭니다.
+
+Brocade 스위치의 권장 경고에는 중요한 패브릭 이벤트마다 하나씩 포함됩니다. **Inter-switch link down** (E-Port가 오프라인이 됨), **Fabric segmented**, **Fabric reconfigured**, **Zone configuration changed**, **MAPS alert**, **Field-replaceable unit changed**입니다.
+
+## Cisco MDS 9000
+
+| 보고 싶은 것 | 출처 |
+| --- | --- |
+| CPU와 메모리 | SNMP, 벤더 템플릿 **Cisco MDS 9000 (SAN switches)** |
+| 전원 공급 장치, 모듈과 팬 트레이를 행별로 | 템플릿의 테이블 `power_supplies`, `modules`, `fan_trays` |
+| 모든 VSAN과 그 상태 | 템플릿의 테이블 `vsans` |
+| 각 fc 인터페이스의 유형, 다운된 인터페이스가 다운된 이유, 초당 오류, 폐기된 프레임, 크레딧 손실과 크레딧 대기 | CISCO-FC-FE-MIB, 장치의 **인터페이스** 페이지 |
+| 각 광 모듈의 측정값과 경보 임계값 | CISCO-ENTITY-SENSOR-MIB, **트랜시버** 카드 |
+| 포트 모니터 경보, 링크 다운, 존, VSAN, 패브릭과 FRU 변경 | 트랩 |
+
+MDS는 Cisco의 엔터프라이즈 번호를 다른 모든 Cisco 장치와 공유하므로, OneUptime은 모델이나 `Cisco NX-OS(tm) m9`로 시작하는 시스템 설명으로 MDS를 알아봅니다. IOS, IOS-XE, Nexus 스위치는 기존 Cisco 템플릿을 유지합니다.
+
+### NX-OS에서 SNMP 설정
+
+:::steps
+1. 읽기 전용 SNMPv3 사용자를 추가합니다: `snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`. `network-operator` 역할은 읽기만 하고 아무것도 바꿀 수 없습니다.
+2. 그 사용자로 트랩을 프로브에 보냅니다: `snmp-server host <probe-address> traps version 3 priv oneuptime`.
+3. 기본으로 꺼져 있는 트랩을 켭니다: `snmp-server enable traps zone`, `snmp-server enable traps vsan`, `snmp-server enable traps fcdomain`, `snmp-server enable traps fspf`, 그리고 광 모듈용 `snmp-server enable traps link cisco-xcvr-mon-status-chg`.
+4. OneUptime에서 관리 주소와 그 사용자로 스위치를 추가합니다. **Cisco MDS 9000 (SAN switches)** 템플릿도 같은 방식으로 적용됩니다.
+:::
+
+MDS의 권장 경고에는 인터페이스마다 한 번씩 **Credit loss (slow drain)** 경고와 **Timeout discards (slow drain)** 경고가 포함됩니다. 버퍼 크레딧을 돌려주지 않는 호스트나 어레이는 그 뒤의 모든 흐름을 느리게 하고, 이 카운터들이 가장 먼저 그것을 보여 줍니다.
+
+### 포트 모니터 경보
+
+MDS 포트 모니터 정책은 포트의 카운터가 임계값을 넘으면 RMON 경보를 발생시킵니다. 권장 경고에는 **Port monitor alarm** 경고가 포함되며, 그 경고는 "Port monitor: Credit loss rising on fc1/5"처럼 카운터와 인터페이스를 밝힙니다. 슬로 드레인을 감시하는 정책의 예입니다:
+
+```text
+port-monitor name slow-drain
+  logical-type edge
+  counter credit-loss-reco poll-interval 1 delta rising-threshold 1 event 4 falling-threshold 0 event 4
+  counter timeout-discards poll-interval 60 delta rising-threshold 200 event 4 falling-threshold 10 event 4
+port-monitor activate slow-drain
+```
 
 ## 문제 해결
 

@@ -59,6 +59,12 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const CHECKOUT: ObjectID = new ObjectID("0192f1a0-0000-7000-8000-0000000d8101");
 const PAYMENTS: ObjectID = new ObjectID("0192f1a0-0000-7000-8000-0000000d8102");
 
+// A made-up GitHub token, put together where it is used.
+const GITHUB_TOKEN: string = [
+  "ghp",
+  "Zx8Kq2Lm9Pw4Rt6Hy3Nc8Vb5Jm1Df7Gs0AeQ",
+].join("_");
+
 function scrubRule(location: string, dataTypeId: string): MetricPipelineRule {
   const target: ScrubTarget | null = getScrubTarget(
     DataStoreKind.TelemetryMetrics,
@@ -197,6 +203,20 @@ describe("the rule Scrub It makes for a metric's attribute", () => {
     ["credit-card-number", "card", "４５３２ ０１５１ １２８３ ０３６６"],
     ["credit-card-number", "card", "٤٥٣٢٠١٥١١٢٨٣٠٣٦٦"],
     ["credit-card-number", "card", "3782 822463 10005"],
+    /*
+     * #11031, #11033: a rule of the type's own pattern (Matches Regex)
+     * hides what Data Security finds with a value's escapes read and in
+     * every script's digits.
+     */
+    [
+      "github-token",
+      "url.full",
+      `https://app.example.com/cb?next=%2Fhome%3Ftoken%3D${GITHUB_TOKEN}`,
+    ],
+    ["github-token", "oauth.state", GITHUB_TOKEN.replace(/_/g, "%5F")],
+    ["iban", "payout.iban", "DE٤٧٣٧٠٤٠٠٤٤٠٥٣٢٠١٣٠٧٧"],
+    ["br-cpf", "customer.cpf", "４７１.３９２.８６５-８２"],
+    ["tr-tckn", "customer.tckn", "۱۷۴۹۲۶۳۸۵۵۰"],
   ])(
     "the rule for %s redacts %s holding %s",
     (dataTypeId: string, key: string, value: string) => {
@@ -207,6 +227,60 @@ describe("the rule Scrub It makes for a metric's attribute", () => {
       expect(
         attributesAfter(point({ [key]: value, region: "eu" }), CHECKOUT, rules),
       ).toEqual({ [key]: METRIC_REDACT_REPLACEMENT, region: "eu" });
+    },
+  );
+
+  /*
+   * #11112: Scrub It's rule for a phone number or a Social Security number
+   * froze the detectors' shapes into a Matches Regex filter; it matches
+   * the Phone Number or SSN pattern type now, as a log or trace rule of
+   * the type does, so it hides what Data Security finds: encoded, in
+   * another script's digits, typed wholly in fullwidth (#11115) and beside
+   * the word that names it (#11114).
+   */
+  test.each([
+    ["phone-number", "caller", "+44 20 7946 0958"],
+    ["phone-number", "caller", "+44 (0)20 8123 4567"],
+    ["phone-number", "callback", "/callback?phone=%2B44%2020%207946%200958"],
+    ["phone-number", "callback", "/callback?phone=%2B44+20+7946+0958"],
+    ["phone-number", "caller", "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨"],
+    ["phone-number", "caller", "＋８１ ３－１２３４－５６７８"],
+    ["phone-number", "contact", "tel 02012345678"],
+    ["us-ssn", "customer.ssn", "536-22-8731"],
+    ["us-ssn", "customer.ssn", "536.22.8731"],
+    ["us-ssn", "customer.ssn", "٥٣٦-٢٢-٨٧٣١"],
+    ["us-ssn", "customer.ssn", "５３６－２２－８７３１"],
+    ["us-ssn", "applicant", "SSN 536221234"],
+  ])(
+    "the rule for %s redacts %s holding %s (#11112)",
+    (dataTypeId: string, key: string, value: string) => {
+      const rules: MetricRulesForProject = rulesOf(
+        scrubRule(`attributes.${key}`, dataTypeId),
+      );
+
+      expect(
+        attributesAfter(point({ [key]: value, region: "eu" }), CHECKOUT, rules),
+      ).toEqual({ [key]: METRIC_REDACT_REPLACEMENT, region: "eu" });
+    },
+  );
+
+  test.each([
+    ["phone-number", "delta", "+51.507217"],
+    ["phone-number", "tz", "UTC +1 2026-11-24"],
+    ["phone-number", "build", "v1.2.3+build.5"],
+    ["phone-number", "order", "order 02012345678"],
+    ["us-ssn", "customer.ssn", "666.22.8731"],
+    ["us-ssn", "ref", "ref 536221234"],
+  ])(
+    "the rule for %s keeps %s holding what is none, which the frozen pattern took for one or no rule hides: %s (#11112)",
+    (dataTypeId: string, key: string, value: string) => {
+      const rules: MetricRulesForProject = rulesOf(
+        scrubRule(`attributes.${key}`, dataTypeId),
+      );
+
+      expect(
+        attributesAfter(point({ [key]: value, region: "eu" }), CHECKOUT, rules),
+      ).toEqual({ [key]: value, region: "eu" });
     },
   );
 

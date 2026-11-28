@@ -283,7 +283,7 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
       "Common/Server/Services/MonitorProbeService.ts",
     );
     expect(monitorProbeService).toContain(
-      '          AND ${Service.getProbeableSql("$4")}\n        ORDER BY mp."nextPingAt" ASC',
+      '            AND ${Service.getProbeableSql("$4")}\n          ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC\n          LIMIT $3\n          FOR NO KEY UPDATE OF mp SKIP LOCKED',
     );
     expect(monitorProbeService).toContain(
       '`m."disableActiveMonitoring" = false`,',
@@ -450,9 +450,12 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
   );
 
   test("a disabled probe stops checking the monitor: a probe fetches only the rows enabled for it", () => {
+    // The rows the claim's one statement takes (#10819).
     expect(
       readSource("Common/Server/Services/MonitorProbeService.ts"),
-    ).toContain('WHERE mp."probeId" = $1\n          AND mp."isEnabled" = true');
+    ).toContain(
+      'WHERE mp."probeId" = $1\n            AND mp."isEnabled" = true\n            AND mp."nextPingAt" <= $2\n            AND ${Service.getProbeableSql("$4")}\n          ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC\n          LIMIT $3\n          FOR NO KEY UPDATE OF mp SKIP LOCKED',
+    );
   });
 
   test("an unsubscribed subscriber gets nothing more, and stays in the list for its Edit form", () => {

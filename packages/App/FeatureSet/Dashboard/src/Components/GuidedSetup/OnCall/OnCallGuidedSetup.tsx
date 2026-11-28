@@ -87,9 +87,9 @@ import {
 import VerificationCodeModal from "../../NotificationMethods/VerificationCodeModal";
 import { VerificationCodeChannel } from "../../NotificationMethods/VerificationCodeChannels";
 import {
-  BROWSER_PUSH_PROBLEM_MESSAGES,
   BrowserPushError,
   BrowserPushProblem,
+  getBrowserPushProblemMessage,
 } from "../../NotificationMethods/BrowserPushRegistration";
 import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
 import {
@@ -113,8 +113,14 @@ import {
   canAddProjectBalance,
   getAddToBalanceAmountDescription,
   getCurrentProjectBillingMarketplace,
+  isPaymentMethodNeededFirst,
 } from "../../ProjectBalance/ProjectBalanceAccess";
 import { ADD_TO_BALANCE_AMOUNT_TITLE } from "../../ProjectBalance/ProjectBalanceCopy";
+import AddPaymentMethodFirstModal from "../../ProjectBalance/AddPaymentMethodFirstModal";
+import {
+  ProjectPaymentMethodsState,
+  useProjectPaymentMethods,
+} from "../../../Utils/ProjectPaymentMethods";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageMap from "../../../Utils/PageMap";
@@ -330,6 +336,14 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const [showRecharge, setShowRecharge] = useState<boolean>(false);
   const [isRecharging, setIsRecharging] = useState<boolean>(false);
   const [rechargeError, setRechargeError] = useState<string>("");
+  /*
+   * Add to Balance pressed on a project with no payment method: what it
+   * needs first, before any amount (#11053). Whether it has one is the
+   * count the Dashboard already made, so the step asks nothing more.
+   */
+  const [showAddPaymentMethodFirst, setShowAddPaymentMethodFirst] =
+    useState<boolean>(false);
+  const paymentMethods: ProjectPaymentMethodsState = useProjectPaymentMethods();
 
   // Step 2: you, to start with.
   const [people, setPeople] = useState<PeoplePickerValue>({
@@ -896,8 +910,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           <p className="text-sm text-amber-700">
             {translator.translateText(
               serverEmail.isMasterAdmin
-                ? ON_CALL_SETUP_COPY.serverNoTwilioForAdmin
-                : ON_CALL_SETUP_COPY.serverNoTwilio,
+                ? mobileAppOffer
+                  ? ON_CALL_SETUP_COPY.serverNoTwilioForAdmin
+                  : ON_CALL_SETUP_COPY.serverNoTwilioForAdminWithoutApp
+                : mobileAppOffer
+                  ? ON_CALL_SETUP_COPY.serverNoTwilio
+                  : ON_CALL_SETUP_COPY.serverNoTwilioWithoutApp,
             )}
           </p>
           {serverEmail.isMasterAdmin ? (
@@ -985,6 +1003,17 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                 buttonStyle={ButtonStyleType.NORMAL}
                 dataTestId="on-call-setup-add-balance"
                 onClick={() => {
+                  // No payment method yet: say so before asking for an amount.
+                  if (
+                    isPaymentMethodNeededFirst({
+                      paymentMethods: paymentMethods,
+                      marketplace: getCurrentProjectBillingMarketplace(),
+                    })
+                  ) {
+                    setShowAddPaymentMethodFirst(true);
+                    return;
+                  }
+
                   setRechargeError("");
                   setShowRecharge(true);
                 }}
@@ -1128,7 +1157,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
               data-problem={browserPushProblem}
             >
               {translator.translateText(
-                BROWSER_PUSH_PROBLEM_MESSAGES[browserPushProblem],
+                getBrowserPushProblemMessage(
+                  browserPushProblem,
+                  mobileAppOffer !== null,
+                ),
               )}
             </p>
           ) : (
@@ -1173,7 +1205,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             >
               {browserPushError.problem ? (
                 translator.translateText(
-                  BROWSER_PUSH_PROBLEM_MESSAGES[browserPushError.problem],
+                  getBrowserPushProblemMessage(
+                    browserPushError.problem,
+                    mobileAppOffer !== null,
+                  ),
                 )
               ) : (
                 <ErrorInSentence
@@ -1293,7 +1328,9 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         })}
         {reachRow({
           key: "push",
-          title: ON_CALL_SETUP_COPY.pushRow,
+          title: mobileAppOffer
+            ? ON_CALL_SETUP_COPY.pushRow
+            : ON_CALL_SETUP_COPY.pushRowWithoutApp,
           value:
             pushes.length > 0
               ? describeMethods(pushes)
@@ -1331,6 +1368,16 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           }}
         />
       </div>
+      {showAddPaymentMethodFirst ? (
+        <AddPaymentMethodFirstModal
+          balance={ProjectBalanceType.SmsOrCall}
+          onClose={() => {
+            setShowAddPaymentMethodFirst(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
       {showRecharge ? (
         <BasicFormModal
           title={ON_CALL_SETUP_COPY.addBalance}
@@ -2703,7 +2750,11 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       {showNotReceivedHelp && !isAcknowledged ? (
         <div className="space-y-2" data-testid="on-call-setup-not-received">
           <p className="text-sm text-gray-700">
-            {translator.translateText(ON_CALL_SETUP_COPY.testDidNotGetItHelp)}
+            {translator.translateText(
+              mobileAppOffer
+                ? ON_CALL_SETUP_COPY.testDidNotGetItHelp
+                : ON_CALL_SETUP_COPY.testDidNotGetItHelpWithoutApp,
+            )}
           </p>
           <AppLink
             to={routeOf(PageMap.USER_SETTINGS_NOTIFICATION_METHODS)}

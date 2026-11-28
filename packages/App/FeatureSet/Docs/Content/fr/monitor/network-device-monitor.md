@@ -134,6 +134,7 @@ Laissez-le replié et l'équipement est seulement pingué : la section repliée 
 | SNMP v3 Authentication Key | La phrase secrète d'authentification. | Avec authentification |
 | SNMP v3 Privacy Protocol | DES, AES ou AES-256. | Avec chiffrement |
 | SNMP v3 Privacy Key | La phrase secrète de chiffrement. | Avec chiffrement |
+| SNMP v3 Context | Uniquement pour un agent qui répond pour plusieurs appareils à une même adresse, chacun dans son propre contexte : le `VF:128` d'un commutateur logique Brocade. | Non |
 :::
 
 Les identifiants saisis sur l'équipement l'emportent sur un profil d'identifiants choisi à côté, et le site de l'équipement peut aussi porter un profil par défaut. Les identifiants d'un profil sont chiffrés au repos. Les identifiants saisis sur un équipement sont eux aussi chiffrés au repos, et protégés par les mêmes permissions de lecture.
@@ -146,11 +147,14 @@ Une analyse de découverte du réseau d'un client fait entrer des dizaines d'éq
 | --- | --- |
 | **Définir le site** / **Retirer du site** | Déplace chaque équipement sélectionné dans le site choisi, où il compte pour la santé du site ; un équipement sans sonde propre reprend la sonde par défaut du site. **Retirer du site** les sort de leurs sites. Un équipement qu'une règle d'affectation de site reconnaît revient au site de la règle à sa prochaine interrogation ; pour les équipements que la découverte retrouve sans cesse, ajoutez donc plutôt une règle sous **Réseau → Règles → Règles d'attribution des sites** ; la boîte de dialogue **Définir le site** y renvoie. |
 | **Définir le rôle de l'appareil** / **Effacer le rôle de l'appareil** | Donne un même rôle à chaque équipement sélectionné, comme les vingt commutateurs qui sont tous « Access Switch ». Les rôles sont ceux du projet, sous **Réseau → Paramètres → Rôles d'équipement**, vers lesquels renvoie la boîte de dialogue. **Effacer le rôle de l'appareil** recalcule le rôle de chaque équipement à partir de son identité SNMP. |
+| **Créer des moniteurs** | Donne à chaque équipement sélectionné un moniteur issu du modèle choisi, comme le fait un import : le moniteur d'un modèle Équipement réseau lit les interrogations de l'équipement, et celui d'un modèle Ping, IP, Port ou NTP vérifie l'adresse propre de l'équipement. Un équipement qui a déjà un moniteur issu de ce modèle, ou un moniteur du même type qui vérifie la même chose, le garde et n'en reçoit pas de second. |
 | **Appliquer le modèle constructeur** | Ajoute les OID de santé et les tables SNMP d'un [modèle constructeur](#modèles-de-santé-des-constructeurs) à chaque équipement sélectionné. **Selon le constructeur de chaque appareil**, le premier choix de la boîte de dialogue, choisit le modèle propre à chaque équipement d'après ce que rapporte son parcours SNMP, pour qu'une sélection mélangée obtienne le bon partout ; ou choisissez un modèle pour tous. |
 
 Chaque action est une boîte de dialogue et un enregistrement pour toute la sélection, et chaque équipement passe par les mêmes vérifications qu'une modification sur sa propre page Paramètres : les permissions, la portée d'étiquettes et de propriétaire de votre rôle, et les limites de ce qu'un équipement peut collecter.
 
 **Appliquer le modèle constructeur** montre ce qu'il va faire avant de faire quoi que ce soit : combien d'équipements reçoivent quel modèle, combien il laisse inchangés et pourquoi. Il s'ajoute à ce que chaque équipement collecte déjà et ne retire rien, et un équipement qui a déjà tout le contenu du modèle n'est pas réécrit. Il laisse inchangé un équipement adossé à un moniteur (rien ne l'interroge), un équipement lié à un [modèle de collecte d'OID](#modèles-de-collecte-doid) (le modèle décide de ce qu'il collecte, ajoutez donc les OID du constructeur là-bas) et, lors de la correspondance, un équipement pas encore interrogé par SNMP ou dont le constructeur n'a pas de modèle.
+
+**Créer des moniteurs** s'exécute sur le serveur, jusqu'à 5 000 équipements à la fois, et fermer sa boîte de dialogue ne l'arrête pas. La boîte de dialogue compte les moniteurs à mesure que chacun est créé, s'avère déjà présent ou échoue, et **Arrêter** arrête l'exécution après l'équipement qui reçoit son moniteur. **Réessayer** retente seulement les équipements qui ont échoué, et relancer l'action sur les mêmes équipements ne crée rien deux fois. Un équipement qui tient son état d'un moniteur qui lui est lié ne reçoit pas de moniteur Équipement réseau, car rien ne l'interroge. Chaque moniteur compte dans votre forfait : un forfait sans place restante refuse de démarrer, et quand il se remplit en cours de route, les équipements restants sont listés comme n'ayant reçu aucun moniteur, avec la raison, pour réessayer une fois qu'il y a de la place.
 
 Quand une action se termine, elle indique combien d'équipements ont changé, lesquels ont échoué et pourquoi — un équipement que votre rôle ne peut pas modifier, une liste au-delà de sa limite — et lesquels elle n'a pas changés et pourquoi : un équipement déjà dans ce site ou ce rôle, ou un que le modèle constructeur laisse inchangé.
 
@@ -181,6 +185,8 @@ Un équipement qui répond au ping mais dont le parcours échoue est **En servic
 - SNMP échoue parce que ses interfaces, son inventaire et ses OID de santé ne sont plus actualisés, presque toujours à cause des identifiants, d'un agent SNMP désactivé ou d'une ACL. Rien d'autre sur la page ne vous dirait que les chiffres sont figés.
 
 Un équipement dont le ping et le parcours échouent tous les deux est simplement **Hors service**, si bien que la marque n'apparaît jamais qu'à côté d'un statut vert.
+
+Les moniteurs distinguent les deux de la même façon. **Appareil joignable (ICMP)** juge le ping de l'interrogation à lui seul, et un nouveau moniteur Équipement réseau déclenche une alerte, pas un incident, et reste en ligne quand SNMP échoue sur un équipement qui répond au ping : voir [Les critères d'un nouveau moniteur](#les-critères-dun-nouveau-moniteur).
 
 ### Lire le statut d'un équipement
 
@@ -250,6 +256,12 @@ Sélectionnez des équipements dans la liste **Appareils** et utilisez :
 
 La page **Appareils** affiche une bannière quand le projet contient des équipements en remplacement par un moniteur lié sans moniteur lié — des équipements que rien n'interroge et dont rien ne rend compte — et renvoie vers la sélection qui les corrige.
 
+### Contextes SNMPv3
+
+Un agent peut répondre pour plusieurs appareils à une même adresse, chacun dans son propre contexte SNMPv3 : un châssis Brocade avec Virtual Fabrics répond pour chaque commutateur logique dans le contexte `VF:` suivi de son identifiant de fabric. Ajoutez un appareil par commutateur logique à cette adresse, en SNMP v3, et renseignez pour chacun le **Contexte SNMP v3** sur sa page **Paramètres** ; un appareil sans contexte est relevé dans le contexte par défaut de l'agent. Le contexte appartient à l'appareil, pas à ses identifiants, et vaut donc quel que soit le profil d'identifiants qu'il utilise.
+
+Une sonde antérieure aux contextes SNMPv3 relèverait le contexte par défaut à la place : tant qu'elle n'est pas mise à jour, elle ne fait que pinguer un tel appareil. Chaque trap SNMPv3 nomme aussi son contexte et ne se déclenche que sur l'appareil relevé dans ce contexte ; un trap dans un contexte où aucun appareil n'est relevé est journalisé comme non associé.
+
 ## Valeurs par défaut de surveillance du site
 
 Un [site réseau](/docs/monitor/network-sites#valeurs-par-défaut-de-surveillance) porte deux valeurs par défaut pour ses équipements. Sa **Sonde par défaut** est copiée sur un équipement créé dans le site, ou déplacé dedans, sans sonde propre. Son **Profil d'identifiants SNMP par défaut** est lu à chaque interrogation d'un équipement du site qui n'a pas d'identifiants propres. Définissez les deux sur un site et un équipement de ce site peut être ajouté par sa seule adresse, puis pingué et interrogé dès sa première interrogation. Le guide des sites indique jusqu'où chaque valeur par défaut descend dans l'arborescence des sites.
@@ -303,9 +315,11 @@ Dans l'éditeur **OID de santé**, **Vendor Health Template** applique un jeu d'
 | --- | --- | --- |
 | Generic (Host Resources MIB) | Charge CPU, RAM totale et disponible, charge moyenne | Cœurs CPU (une ligne par cœur, quelle que soit la numérotation de la plateforme) |
 | Arista EOS | Charge CPU, charge moyenne, RAM totale et disponible | — |
+| Brocade Fabric OS (SAN switches) | État du commutateur, version du firmware, CPU, mémoire | État du commutateur, capteurs (température, ventilateurs, alimentations), unités remplaçables (FRU) |
 | Cambium Networks cnMatrix | CPU, RAM, flash, température, tension d'alimentation | Ventilateurs, ports PoE, alimentation redondante |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, mémoire libre, clients Wi-Fi, connexion cnMaestro | Radios Wi-Fi (bande, canal, largeur, puissance d'émission, clients, bruit de fond, temps d'antenne, état), SSID |
 | Cisco IOS / IOS-XE | CPU, mémoire utilisée et libre, température, état des ventilateurs, état des alimentations | — |
+| Cisco MDS 9000 (SAN switches) | CPU, mémoire | Alimentations, modules, tiroirs de ventilation, VSAN |
 | Dell Force10 / OS9 | CPU, mémoire | — |
 | Extreme Networks EXOS / Switch Engine | CPU, température, alarme de surchauffe, état de l'alimentation | Alimentations, ventilateurs, mémoire par emplacement, membres de la pile |
 | Extreme Networks Fabric Engine / VOSS | Session vIST, nombre d'I-SID | Adjacences de fabric (IS-IS) nommées par voisin, CPU et mémoire par emplacement, capteurs de température, ventilateurs, alimentations |
@@ -513,6 +527,7 @@ Le `sysObjectID` de l'équipement choisit d'où viennent les mesures : la table 
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Oui |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), avec indicateurs de perte de signal et de défaut d'émetteur | Non |
 | Cambium Networks cnMatrix (4.5 et suivantes) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | Non |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), lu comme du texte : `-inf` signifie aucune lumière | Non |
 | Tout autre équipement | ENTITY-SENSOR-MIB (RFC 3433), associé aux ports via ENTITY-MIB | Non |
 
 La première interrogation lit tout. Les suivantes ne lisent que ce qui change — les mesures, et les numéros de série qui distinguent une optique remplacée —, et le reste (seuils, identité, quelle optique est dans quel port) est relu quand une optique est insérée, retirée ou remplacée, et au moins une fois par heure. Un équipement sans aucune de ces MIB coûte une requête par MIB essayée. La lecture a son propre budget de 20 secondes, et une lecture qui dépasse le délai ou est interrompue garde les dernières bonnes optiques de l'équipement au lieu de les déclarer disparues.
@@ -731,7 +746,7 @@ Pour mettre en conformité les équipements que vous avez déjà, cliquez sur **
 
 ### Importer automatiquement avec les règles d'import automatique
 
-Revoir chaque analyse à la main ne passe pas l'échelle au-delà des premiers sous-réseaux. **Réseau → Règles → Règles d'import automatique** est l'endroit où vous écrivez l'import une fois pour toutes : une règle dit quels hôtes découverts elle revendique (une plage d'IP, et des motifs facultatifs de nom système, de description et de `sysObjectID`) et, en option, quel modèle de moniteur et quel [modèle de collecte d'OID](#modèles-de-collecte-doid) reçoivent les équipements qu'elle importe. Le moniteur d'un modèle Équipement réseau lit les interrogations de chaque équipement, celui d'un modèle Ping, IP, Port ou NTP vérifie l'adresse propre de chaque équipement, et celui d'un modèle Site web, API ou Certificat SSL vérifie l'URL du modèle avec l'adresse de chaque équipement comme hôte. Un équipement ne reçoit jamais un deuxième moniteur du même type. Une règle marquée comme exclusion ne revendique rien et oppose son veto aux autres : c'est ainsi qu'on écarte imprimantes et téléphones d'une règle de sous-réseau large.
+Revoir chaque analyse à la main ne passe pas l'échelle au-delà des premiers sous-réseaux. **Réseau → Règles → Règles d'import automatique** est l'endroit où vous écrivez l'import une fois pour toutes : une règle dit quels hôtes découverts elle revendique (une plage d'IP, et des motifs facultatifs de nom système, de description et de `sysObjectID`) et, en option, quel modèle de moniteur et quel [modèle de collecte d'OID](#modèles-de-collecte-doid) reçoivent les équipements qu'elle importe. Le moniteur d'un modèle Équipement réseau lit les interrogations de chaque équipement, celui d'un modèle Ping, IP, Port ou NTP vérifie l'adresse propre de chaque équipement, et celui d'un modèle Site web, API ou Certificat SSL vérifie l'URL du modèle avec l'adresse de chaque équipement comme hôte. Un équipement que le projet a déjà reçoit lui aussi le moniteur du modèle, sauf s'il en a déjà un : un moniteur issu du même modèle, ou du même type et qui vérifie la même chose, créé pour lui, rattaché à lui, lié à lui ou qui le surveille. Un moniteur d'un autre type, ou un moniteur Équipement réseau issu d'un autre modèle ou d'aucun, ne l'en empêche jamais : un équipement ne reçoit donc jamais deux fois le même moniteur, et ne manque jamais celui que donne la règle. Un moniteur que la règle a créé compte toujours après que quelqu'un l'a déplacé vers un autre modèle ou dissocié, si bien que la règle ne le recrée jamais. Une règle marquée comme exclusion ne revendique rien et oppose son veto aux autres : c'est ainsi qu'on écarte imprimantes et téléphones d'une règle de sous-réseau large.
 
 Dans une règle, **Vérifier toutes les** fixe à quelle fréquence la sonde de l'analyse interroge chaque équipement que la règle importe, comme **Vérifier toutes les** quand vous importez depuis **Examiner les résultats** ; laissé vide, c'est toutes les 5 minutes. Une règle avec **Inclure les hôtes en ping uniquement** activé importe aussi les hôtes qui n'ont répondu qu'au ping, dont chaque hôte qu'une [analyse ICMP](#analyses-icmp) trouve, et leur donne aussi son modèle de moniteur : la sonde les pingue, donc les vérifications du modèle sur la disponibilité d'un équipement et sur les traps qu'il envoie fonctionnent pour eux tout de suite, et ses vérifications qui lisent un parcours SNMP dès que l'équipement a des identifiants.
 
@@ -792,6 +807,7 @@ OneUptime maintient alors un moniteur Équipement réseau par équipement corres
 - **Portée** : ET entre les types et OU au sein d'un type : un équipement doit correspondre aux sites et aux rôles et aux étiquettes, où « dans le site A ou le site B » est satisfait par l'un ou l'autre. Un type vide correspond à tout, si bien qu'une politique dont tous les types sont vides couvre chaque équipement du projet, et le tableau affiche **Tous les appareils** en face.
 - Seuls les équipements interrogés par sonde qui ont une sonde sont couverts. Un équipement en remplacement par un moniteur lié a déjà son propre moniteur, et un équipement archivé est laissé de côté.
 - Les moniteurs provisionnés sont nommés d'après l'équipement et maintenus en phase avec le modèle : modifiez les critères du modèle et chaque moniteur suit ; modifiez un moniteur provisionné à la main et la prochaine synchronisation l'écrase. Désactiver une politique met ses moniteurs en pause sans les supprimer ; supprimer une politique supprime les moniteurs qu'elle a provisionnés.
+- Un moniteur provisionné que quelqu'un déplace vers un autre modèle, ou dissocie du modèle de la politique, lui appartient désormais : la politique le libère, ne le remplace ni ne le supprime jamais, et ne donne aucun autre moniteur à son équipement. Voir [Modèles de moniteur](/docs/monitor/monitor-templates).
 - Un modèle ne peut porter qu'une politique, et ne peut pas être choisi en même temps par une règle d'import automatique, car un moniteur provisionné appartient à un équipement et à un modèle. Le formulaire refuse ces choix avec une phrase. Une politique survit à son modèle : elle garde son nom et sa portée, ne provisionne rien tant qu'un autre modèle n'est pas choisi, et apparaît dans le tableau sans modèle.
 
 > [!IMPORTANT]
@@ -815,7 +831,7 @@ Pour en créer un depuis **Moniteurs** à la place :
 
 Un moniteur Équipement réseau n'a pas d'intervalle propre : il est évalué chaque fois que les résultats d'interrogation de l'équipement arrivent, et chaque fois qu'un trap de l'équipement arrive.
 
-Quand les interrogations s'arrêtent, le moniteur est toujours évalué. Dès qu'un équipement a passé trois intervalles d'interrogation, et au moins dix minutes, sans interrogation, ses moniteurs sont évalués une fois, à chaque arrêt des interrogations, comme une interrogation qui n'a pas pu le joindre (une vérification a lieu toutes les cinq minutes) : un critère qui correspond à **Appareil SNMP en ligne** à False, comme **Device unreachable**, se déclenche, et l'incident indique pourquoi aucune interrogation n'est arrivée, par exemple que la sonde est hors service ou que l'équipement n'a pas de sonde. Un équipement dont l'interrogation est désactivée, ou qui utilise le [remplacement par un moniteur lié](#le-remplacement-par-un-moniteur-lié), n'est pas concerné. L'interrogation suivante évalue le moniteur comme d'habitude.
+Quand les interrogations s'arrêtent, le moniteur est toujours évalué. Dès qu'un équipement a passé trois intervalles d'interrogation, et au moins dix minutes, sans interrogation, ses moniteurs sont évalués une fois, à chaque arrêt des interrogations, comme une interrogation qui n'a pas pu le joindre (une vérification a lieu toutes les cinq minutes) : un critère qui correspond à **Appareil SNMP en ligne** ou **Appareil joignable (ICMP)** à False, comme **Device unreachable**, se déclenche, et l'incident indique pourquoi aucune interrogation n'est arrivée, par exemple que la sonde est hors service ou que l'équipement n'a pas de sonde. Un équipement dont l'interrogation est désactivée, ou qui utilise le [remplacement par un moniteur lié](#le-remplacement-par-un-moniteur-lié), n'est pas concerné. L'interrogation suivante évalue le moniteur comme d'habitude.
 
 Un moniteur que vous créez pour un équipement lui est rattaché : celui que vous créez depuis la carte, comme celui que vous créez depuis **Moniteurs** pour l'adresse d'un équipement que ses sondes connaissent, trouvé comme les hôtes d'une analyse : un équipement qu'elles interrogent, ou sinon le seul équipement à cette adresse dans un site où elles interrogent des équipements ou dont elles sont la sonde par défaut. Des sondes qui n'interrogent rien et ne sont la sonde par défaut d'aucun site ne le rattachent qu'à un équipement sans site, seul du projet à avoir cette adresse : un moniteur n'est jamais rattaché au hasard à l'équipement d'un autre site. Dans tous les autres cas, choisissez l'équipement sous **Équipement réseau** dans la section **Plus de champs** du formulaire, ou changez-le plus tard dans la carte **Détails** du moniteur. **Ajouter un moniteur existant**, dans la carte de l'équipement, rattache un moniteur que vous avez créé auparavant. Un moniteur rattaché est listé sur les pages de l'équipement, ce qu'il déclenche est lié à l'équipement, et un import ou une règle d'import automatique le compte, si bien que l'équipement ne reçoit jamais un deuxième moniteur semblable. **Supprimer**, sur la ligne d'un moniteur rattaché, le détache une fois que vous confirmez : il n'est plus listé sur l'équipement, ce qu'il déclenche ensuite n'est plus lié à l'équipement, et les imports et les règles d'import automatique cessent de le compter. Le moniteur lui-même continue de vérifier, sans changement. Un moniteur que l'équipement liste pour une autre raison, comme celui qu'un import a créé pour lui ou le moniteur auquel il est lié, n'a pas de bouton **Supprimer**. Quand les sondes d'un moniteur changent, OneUptime recalcule son rattachement de la même façon. Un moniteur rattaché à aucun équipement est rattaché à l'équipement que ses sondes voient désormais. Un rattachement fait par OneUptime passe à cet équipement, ou est retiré quand elles n'en voient aucun ou ne peuvent pas en distinguer deux. Un rattachement que vous avez fait ou retiré reste tel que vous l'avez laissé, de même qu'un rattachement fait avant que OneUptime n'enregistre qui l'a fait. Chaque changement est noté dans le fil d'activité du moniteur. Sous les moniteurs de l'équipement, sa carte liste les moniteurs qui vérifient son adresse mais ne sont rattachés à aucun équipement. **Ajouter** rattache celui dont les sondes voient cet équipement. Celui dont les sondes ne peuvent pas le distinguer d'un autre équipement à cette adresse, ou n'interrogent aucun équipement et ne sont la sonde par défaut d'aucun site, dit pourquoi et nomme les autres équipements : s'il vérifie cet équipement, rattachez-le avec **Ajouter un moniteur existant**.
 
@@ -844,7 +860,10 @@ Les critères examinent chaque résultat d'interrogation et chaque trap, et ouvr
 
 | Type de filtre | Ce qu'il vérifie | Lors d'une interrogation par ping seulement |
 | --- | --- | --- |
-| SNMP Device Is Online | Si l'équipement est joignable, par ping ou SNMP : le même verdict que son statut. | Évalué |
+| SNMP Device Is Online | Si l'équipement est joignable, par ping ou SNMP : le même verdict que son statut. Contrairement à ce que suggère son nom, un équipement qui répond au ping est en ligne même quand son SNMP échoue. | Évalué |
+| Device Is Reachable (ICMP) | Si l'équipement a répondu au ping de sa sonde lors de cette interrogation, quoi qu'ait fait SNMP. | Évalué |
+| ICMP Response Time (in ms) | Le temps d'aller-retour moyen du ping de l'interrogation. Aucun verdict lors d'une interrogation dont le ping n'a reçu aucun écho. | Évalué |
+| ICMP Packet Loss (in %) | La part des échos du ping auxquels l'équipement n'a pas répondu. | Évalué |
 | SNMP Walk Is Succeeding | Si le dernier parcours SNMP a réussi. Faux correspond à l'état « SNMP failing » : joignable, mais les interfaces et l'inventaire ne sont plus actualisés. | Non évalué |
 | SNMP Response Time (in ms) | Le temps de réponse du parcours en millisecondes, jamais celui du ping. | Non évalué |
 | SNMP OID Value | La valeur qu'un OID a renvoyée. | Non évalué |
@@ -853,6 +872,7 @@ Les critères examinent chaque résultat d'interrogation et chaque trap, et ouvr
 | SNMP Interface Is Down | Vrai quand une interface activée administrativement est hors service opérationnellement. | Non évalué |
 | SNMP Interface Utilization (in %) | L'utilisation du lien de l'interface la plus chargée. | Non évalué |
 | SNMP Interface Errors (per second) | Le taux d'erreurs de la pire interface. | Non évalué |
+| SNMP Fibre Channel Counter (per second) | Un compteur Fibre Channel des ports d'un commutateur SAN — erreurs CRC, trames rejetées, perte de crédit et les autres — par seconde, sur le pire port du périmètre ; `*` déclenche une alerte par port. | Non évalué |
 | SNMP Transceiver Not Detected | Vrai quand un port qui avait une optique n'en a pas rapporté pendant deux interrogations de suite, alors que le port est activé. | Non évalué |
 | SNMP Transceiver Past Alarm Threshold | Vrai quand une mesure d'une optique atteint ou dépasse un seuil d'alarme que l'équipement rapporte, ou que l'équipement signale une perte de signal ou un défaut d'émetteur. | Non évalué |
 | SNMP Transceiver Past Warning Threshold | La même chose pour les seuils d'avertissement ; une optique au-delà d'un seuil d'alarme compte aussi. | Non évalué |
@@ -866,11 +886,35 @@ Les critères examinent chaque résultat d'interrogation et chaque trap, et ouvr
 
 Lors d'une interrogation sans parcours, les critères marqués « Non évalué » ne rendent aucun verdict plutôt qu'un verdict d'échec. Un critère qui ouvre un incident quand le temps de réponse SNMP est trop élevé ne peut pas se déclencher sur un équipement seulement pingué, si bien qu'un équipement seulement pingué surveillé par des critères basés sur le parcours ne déclenche jamais de fausse alerte.
 
+Les vérifications ICMP lisent le ping que chaque interrogation envoie déjà depuis la sonde de l'équipement, à côté de son parcours SNMP : elles n'ont donc besoin ni d'un moniteur Ping ni d'une mise à jour de la sonde. Elles peuvent être jugées sur une période, comme les vérifications du temps de réponse. Une interrogation venant d'une sonde trop ancienne pour pinguer ne rend aucun verdict sur elles.
+
 Les vérifications d'interfaces demandent **Walk Interfaces** activé dans les paramètres d'interrogation de l'équipement, ce qui est le cas par défaut. Les vérifications d'OID lisent les OID de santé configurés de l'équipement. Les interfaces désactivées administrativement sont hors service à dessein et ne comptent jamais comme des pannes.
+
+**Utilisation de l'interface SNMP (en %)** accepte aussi **Anormalement élevé**, **Anormalement bas** et **Anormal**, avec **Sensibilité** et **Fenêtre de référence** comme pour la [Surveillance des métriques](/docs/monitor/metrics-monitor). Chaque interface concernée est comparée à sa propre utilisation à la même heure de la semaine les jours précédents, telle que cette étape du moniteur l'a interrogée : un lien de secours saturé chaque nuit est jugé sur ses propres nuits, et non sur les ports calmes d'à côté. L'incident ou l'alerte nomme l'interface la plus éloignée de sa plage, et combien d'autres sortent de la leur. Une interface est encore en apprentissage, et ne déclenche rien, tant que cette heure de la semaine n'a pas deux semaines de son historique.
+
+L'utilisation interrogée avant que chaque étape ait son propre historique n'appartient à aucune étape. Un moniteur à une seule étape la lit comme la sienne et n'a donc pas à réapprendre ; un moniteur à plusieurs étapes la laisse de côté, et chaque étape apprend de ses propres interrogations. L'historique d'une interface remonte aussi loin que les métriques des moniteurs sont conservées : 30 jours, sauf si une installation auto-hébergée le change. Si elles sont conservées moins de deux semaines, un moniteur à une seule étape compare chaque interface à la plage de toutes ses interfaces ensemble, et un moniteur à plusieurs étapes reste en apprentissage.
 
 Les critères de table SNMP choisissent une table, une colonne (pour SNMP Table Value) et une portée de lignes. Vide juge chaque ligne comme une seule alerte combinée ; `*` déclenche une alerte distincte pour chaque ligne, qui se résout d'elle-même et porte le nom de sa ligne ; tout le reste désigne une ligne par son nom ou son index. Les nombres se comparent comme des nombres, et le texte à la fois à la valeur brute et à son libellé, si bien que Différent de `active` et Différent de `1` attrapent tous deux un tunnel Sophos hors service. Une table dont le parcours a échoué lors de cette interrogation n'est pas évaluée au lieu d'être lue comme vide, et les critères de table ne jugent que le parcours en cours, pas une période.
 
 Les critères d'émetteurs-récepteurs ont une portée comme les vérifications d'interfaces : vide juge chaque optique comme une seule alerte combinée, `*` déclenche une alerte distincte pour chaque port doté d'une optique (qui se résout d'elle-même et porte le nom de son port), et tout le reste désigne un port par son nom ou son alias. Ils jugent les [émetteurs-récepteurs](#émetteurs-récepteurs) de l'équipement à l'état de cette interrogation, qui portent déjà leur historique — combien d'interrogations une optique a manqué, un mois de puissance reçue —, ils ne sont donc pas évalués sur une période non plus. Une interrogation dont la lecture des émetteurs-récepteurs a échoué les laisse juger la dernière bonne lecture, si bien qu'une alerte ouverte ne se résout pas lors d'une interrogation qui n'a pas pu regarder.
+
+### Les critères d'un nouveau moniteur
+
+Un nouveau moniteur Équipement réseau démarre avec trois critères. Ils sont vérifiés dans l'ordre, et le premier qui correspond fixe le statut du moniteur :
+
+| Critère | Correspond quand | Statut | Déclenche |
+| --- | --- | --- | --- |
+| Hors ligne | L'équipement ne répond ni au ping ni au SNMP : **Appareil SNMP en ligne** est à Faux. | Hors ligne | Un incident |
+| SNMP échoue | L'équipement répond au ping, **Appareil joignable (ICMP)** est à Vrai, alors que son parcours échoue, **Parcours SNMP réussi** est à Faux. | En ligne | Une alerte, avec la gravité d'avertissement du projet |
+| En ligne | L'équipement répond au ping ou au SNMP. | En ligne | Rien |
+
+SNMP en échec ne veut pas dire hors ligne. Une communauté modifiée, un agent SNMP arrêté ou une ACL arrête le parcours sur chaque équipement concerné, alors que chacun d'eux répond toujours au ping et achemine le trafic. Un seul problème d'identifiants sur 3 000 commutateurs, ce sont 3 000 alertes qui disent que SNMP échoue, avec une seule chose à corriger, plutôt que 3 000 équipements hors service sur vos pages de statut. L'alerte se résout à la première interrogation dont le parcours réussit.
+
+Le critère « SNMP échoue » fixe lui-même le statut à En ligne, si bien qu'un équipement hors ligne le temps d'une interrogation, revenu avec SNMP toujours en échec, est En ligne à cette interrogation, avec l'alerte.
+
+Hors ligne exige que les deux échouent, pas le ping seul, car un matériel derrière une ACL qui rejette l'ICMP venant de la sonde répond toujours au SNMP, et est en service. Si tous les équipements que vous surveillez répondent au ping, vous pouvez plutôt prendre **Appareil joignable (ICMP)** à Faux comme critère Hors ligne, et ajouter des critères **Temps de réponse ICMP (en ms)** ou **Perte de paquets ICMP (en %)** pour un lien lent ou qui perd des paquets. Un équipement seulement pingué ne se voit jamais signaler que son SNMP échoue : sans parcours, ce critère n'est pas évalué.
+
+Les moniteurs créés avant cela gardent leurs critères. Pour donner les nouveaux critères à l'un d'eux, ajoutez-les dans le formulaire de critères du moniteur, ou dans le modèle à partir duquel les moniteurs sont créés, puis utilisez **Synchroniser depuis le modèle**.
 
 ### Pack d'alertes recommandé
 
@@ -879,7 +923,7 @@ Cliquez sur **Ajouter les alertes recommandées** dans le formulaire de critère
 | Critère | Se déclenche quand | Crée |
 | --- | --- | --- |
 | Device unreachable | L'équipement ne répond plus ni au ping ni au SNMP. | Incident |
-| SNMP walk failing | L'équipement répond au ping mais son parcours SNMP échoue. | Alerte |
+| SNMP walk failing | L'équipement répond au ping mais son parcours SNMP échoue. Il garde le moniteur en ligne. | Alerte |
 | Interface down | Une interface activée administrativement tombe hors service opérationnellement. | Incident |
 | Interface saturated | Une interface tourne au-dessus de 80% d'utilisation. | Alerte |
 | Interface errors | Une interface enregistre plus de 1 erreur par seconde. | Alerte |
@@ -889,7 +933,13 @@ Cliquez sur **Ajouter les alertes recommandées** dans le formulaire de critère
 
 Quand l'équipement parcourt des [tables SNMP](#tables-snmp) qui déclarent des valeurs saines, le pack ajoute aussi un critère **Ligne de table SNMP défaillante** par table de ce genre, avec Row `*` : un incident par ligne pour les tunnels, les voisins de routage et les points d'accès d'un contrôleur (« IPsec Tunnels: row unhealthy », ou « Access Points: row unhealthy » pour un point d'accès disparu de son contrôleur), et une alerte par ligne pour les tables de matériel et les radios.
 
-SNMP walk failing est une alerte plutôt qu'un incident à dessein : l'équipement n'est pas hors service, réveiller quelqu'un à 2 h du matin pour cela serait donc une erreur, mais son inventaire n'est plus actualisé et quelqu'un devrait réparer les identifiants. Il ne se déclenche jamais sur un équipement seulement pingué, car le critère n'est pas évalué quand aucun parcours n'a eu lieu.
+SNMP walk failing est une alerte plutôt qu'un incident à dessein : l'équipement n'est pas hors service, réveiller quelqu'un à 2 h du matin pour cela serait donc une erreur, mais son inventaire n'est plus actualisé et quelqu'un devrait réparer les identifiants. Il ne se déclenche jamais sur un équipement seulement pingué, car le critère n'est pas évalué quand aucun parcours n'a eu lieu, ni sur un équipement qui ne répond à rien, ce qui relève de **Device unreachable** : il vérifie aussi **Appareil joignable (ICMP)**.
+
+Il fixe aussi le statut du moniteur à en ligne quand il correspond. Son alerte se résout à la première interrogation dont le parcours réussit.
+
+Les autres alertes du pack ne changent aucun statut, et un critère qui ne change aucun statut n'en décide aucun : le statut vient des critères qui le changent, Device unreachable, Interface down et les incidents des tables, et quand aucun d'eux ne correspond, le moniteur est à son statut par défaut, en ligne. Un équipement qui a manqué une interrogation et revient avec un port au-dessus de 80 %, un port qui enregistre des erreurs, une optique au-delà de son seuil ou un ventilateur en panne est donc en ligne à cette interrogation, avec l'alerte ouverte. Il restait auparavant hors ligne tant que l'une de ces alertes continuait de correspondre, son incident résolu et sa page de statut au rouge : seul le premier critère qui correspondait décidait du statut. Les moniteurs créés auparavant à partir du pack n'ont rien à changer pour cela. Pour que **SNMP walk failing** reste silencieux sur un équipement qui ne répond à rien, ajoutez **Appareil joignable (ICMP)** à Vrai à ce critère sur un modèle ou un moniteur créé auparavant à partir du pack, puis utilisez **Synchroniser depuis le modèle** sur les moniteurs du modèle ; les moniteurs d'une politique d'alerte suivent son modèle d'eux-mêmes.
+
+Chaque critère du pack vérifie quelque chose qui lui est propre, donc chacun ouvre sa propre alerte ou son propre incident, quels que soient les autres critères qui correspondent à la même interrogation : un port au-dessus de 80 % et un port qui enregistre des erreurs lors d'une même interrogation sont **Interface saturated** et **Interface errors**, deux alertes, chacune résolue quand son propre problème disparaît. Un critère que vous ajoutez et qui vérifie la même chose que l'un de ceux du pack avec un autre seuil, comme un palier critique au-dessus de 95 % pour **Interface saturated**, en est un palier : l'équipement ou le port reçoit une seule alerte, celle de celui des deux qui vient en premier dans la liste.
 
 Les trois critères d'émetteurs-récepteurs déclenchent une alerte par port (`*`), et sont des alertes plutôt que des incidents pour la même raison : une optique éteinte fait déjà tomber son interface, et Interface down alerte pour cela, tandis que ceux-ci disent pourquoi, ou préviennent avant que cela arrive. 2 dB, c'est environ un tiers de la lumière perdue : bien au-delà des quelques dixièmes de dB dont un lien sain varie d'un jour à l'autre, et assez tôt pour nettoyer un connecteur avant que le lien perde sa marge. Aucun d'eux ne peut se déclencher sur un équipement qui ne rapporte aucune optique.
 
@@ -897,7 +947,7 @@ Après avoir ajouté le pack, choisissez les niveaux de gravité et les politiqu
 
 ## Traps SNMP
 
-L'interrogation détecte un problème à la prochaine interrogation ; les traps le détectent en quelques secondes. Chaque sonde exécute un récepteur de traps SNMP qui accepte les traps et informs v1 et v2c et les transmet à OneUptime.
+L'interrogation détecte un problème à la prochaine interrogation ; les traps le détectent en quelques secondes. Chaque sonde exécute un récepteur de traps SNMP qui accepte les traps et informs v1, v2c et v3 et les transmet à OneUptime. Il accuse réception de chaque inform, pour que l'équipement cesse de le renvoyer.
 
 ```mermaid title="D'un trap à un incident"
 flowchart TB
@@ -921,6 +971,7 @@ Le récepteur est activé par défaut et écoute sur UDP 162. Configurez-le sur 
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Mettez `false` pour désactiver le récepteur de traps. | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | Le port UDP sur lequel écoute le récepteur. | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | Combien de traps il transmet par minute avant d'abandonner le reste. | `300` |
+| `PROBE_SNMP_ENGINE_ID` | L'identifiant de moteur SNMPv3 de la sonde, en hexadécimal (5 à 32 octets). Ne le définissez que pour garder l'identifiant de moteur d'un récepteur que cette sonde remplace. | Dérivé de l'identifiant de la sonde |
 
 Si la sonde tourne dans Docker, publiez le port UDP pour que les traps puissent l'atteindre :
 
@@ -936,6 +987,54 @@ Pointez ensuite la destination des traps de vos équipements vers la sonde ; sur
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### Traps et informs SNMPv3
+
+Un trap SNMPv3 est signé, et généralement chiffré, avec les clés d'un utilisateur : une sonde n'en accepte donc que d'un utilisateur qu'elle connaît, c'est-à-dire des identifiants SNMPv3 des équipements qui lui sont affectés et du profil d'identifiants par défaut de chaque site dont elle est la **Sonde par défaut**. Les identifiants SNMP propres à chaque équipement, son profil d'identifiants et le profil par défaut de son site comptent tous : un équipement interrogé en v2c peut donc quand même envoyer ses traps en tant qu'utilisateur SNMPv3 du site, et un équipement pas encore ajouté peut envoyer les siens en tant que celui de son site. Rien n'est à configurer sur la sonde :
+
+1. Donnez à l'équipement, à son profil d'identifiants ou à son site l'utilisateur SNMPv3 sous lequel l'équipement envoie ses traps : nom d'utilisateur, niveau de sécurité, et protocoles et phrases secrètes d'authentification et de chiffrement (voir [Identifiants SNMP et profils d'identifiants](#identifiants-snmp-et-profils-didentifiants)).
+2. Dirigez les traps SNMPv3 de l'équipement vers la sonde. Sous Cisco IOS, par exemple :
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime remet à chaque sonde ses utilisateurs SNMPv3 toutes les trente secondes : un identifiant modifié, un profil modifié ou un équipement déplacé vers une autre sonde est pris en compte en moins d'une minute, pendant que le récepteur continue d'écouter. Les identifiants restent chiffrés au repos, comme pour l'interrogation, et la sonde ne les garde qu'en mémoire et ne les journalise jamais.
+
+**Quelles clés atteignent quelle sonde.** Une sonde reçoit exactement ces utilisateurs SNMPv3, et aucun autre :
+
+| Identifiants | Remis à |
+| --- | --- |
+| Les identifiants SNMPv3 propres à un équipement | La sonde à laquelle l'équipement est affecté. |
+| Le profil d'identifiants que désigne un équipement | La sonde à laquelle l'équipement est affecté. |
+| Le profil d'identifiants par défaut d'un site | La sonde de chaque équipement du site, et la **Sonde par défaut** du site lui-même, avant même qu'un équipement du site soit ajouté. |
+
+Les autres profils d'identifiants d'un projet, le profil par défaut d'un autre site et celui d'un site qui ne fait qu'hériter sa sonde d'un site parent n'atteignent aucune sonde. Les utilisateurs d'un projet n'atteignent jamais la sonde d'un autre projet. Une sonde globale reçoit les utilisateurs de chaque projet qui l'utilise, chacun avec les projets qui le détiennent, et un trap signé avec l'un d'eux n'est conservé que dans un projet dont les propres identifiants l'ont signé : les équipements d'un projet ne reçoivent jamais les traps d'un autre projet, quelle que soit l'adresse depuis laquelle ils envoient.
+
+Le récepteur accepte les protocoles de l'interrogation : authentification MD5, SHA-1, SHA-256 et SHA-512, et chiffrement DES, AES-128 et AES-256. Un trap doit arriver avec au moins la sécurité prévue pour son utilisateur : les traps d'un utilisateur authPriv sont refusés s'ils arrivent non authentifiés ou non chiffrés.
+
+**Traps, informs et identifiant de moteur de la sonde.** Un trap est authentifié avec l'identifiant de moteur SNMP de l'équipement lui-même : il n'y a donc rien à configurer. Un inform est authentifié avec l'identifiant de moteur de la sonde, que la plupart des équipements découvrent d'eux-mêmes. Certains ont besoin qu'on le saisisse : sous Cisco IOS, saisissez `snmp-server engineID remote <probe-ip> <engine-id>` avant de créer l'utilisateur. Ouvrez **Moniteurs → Paramètres → Sondes** et choisissez la sonde : sa carte **Traps SNMP** affiche l'identifiant de moteur à copier. Celui d'une sonde globale figure dans la colonne **Identifiant de moteur SNMPv3** de la liste **Sondes globales**, au même endroit, et sur la page **Journaux** de chaque équipement de cette sonde. Il est dérivé de l'identifiant de la sonde et reste donc le même après les redémarrages, les mises à jour et entre les répliques de la sonde ; définissez `PROBE_SNMP_ENGINE_ID` pour en choisir un autre.
+
+Les informs sont acquittés, en v2c comme en v3. Un inform renvoyé parce que son accusé de réception s'est perdu est acquitté de nouveau, et enregistré une seule fois.
+
+**La fenêtre de temps.** Comme `snmptrapd` de Net-SNMP, le récepteur refuse un trap dont les boots et le temps du moteur reculent de plus de 150 secondes par rapport au dernier trap de l'équipement : une copie rejouée ou retardée, ou un équipement qui a redémarré sans compter ce redémarrage dans ses boots de moteur. Un inform doit se situer à moins de 150 secondes du temps de la sonde elle-même.
+
+**Les traps SNMPv3 refusés** ne sont jamais transmis, et rien de ce qu'ils contenaient n'est conservé ni journalisé : seulement leur provenance, l'utilisateur sous lequel ils ont été envoyés et la raison. La carte **Traps SNMP** de la sonde liste ceux du dernier jour, par exemple « 12 traps SNMPv3 de 10.20.0.5 ont échoué : utilisateur inconnu « san-monitor » », chacun avec ce qu'il faut changer. Les pages **Vue d'ensemble** et **Journaux** d'un équipement disent la même chose quand l'adresse est l'une des siennes : son nom d'hôte, quand c'est une adresse, ou l'une de ses **Autres adresses**. Là, un inform envoyé à un autre identifiant de moteur affiche avec lui l'identifiant de moteur de la sonde, à copier. Un trap accepté depuis cette adresse sous cet utilisateur l'efface.
+
+Une sonde globale sert de nombreux projets : elle n'a donc pas de telle carte. Ce qu'elle refuse est réparti par projet à l'arrivée, et chaque projet ne voit que les refus venant des adresses de ses propres équipements, sur les pages de ces équipements. Un refus venant d'une adresse qu'aucun équipement de la sonde n'a, ou que des équipements de plusieurs projets ont, n'est montré à aucun projet. Un trap envoyé sous un nom d'utilisateur que votre projet n'a pas apparaît comme un utilisateur inconnu, quoi que la sonde ait constaté d'autre, car c'est ce que votre projet changerait.
+
+| Raison | Ce qu'il faut changer |
+| --- | --- |
+| Utilisateur inconnu | Aucun équipement de la sonde n'a d'utilisateur SNMPv3 de ce nom. Ajoutez-le aux identifiants de l'équipement, à son profil d'identifiants ou au profil par défaut de son site, ou corrigez le nom sur l'équipement. |
+| Mauvaise phrase secrète ou mauvais protocole d'authentification | Rendez la phrase secrète et le protocole d'authentification de l'équipement identiques à ceux que OneUptime a pour cet utilisateur. |
+| Mauvaise phrase secrète ou mauvais protocole de chiffrement | Rendez la phrase secrète et le protocole de chiffrement de l'équipement identiques à ceux que OneUptime a pour cet utilisateur. |
+| Hors de la fenêtre de temps | L'horloge du moteur de l'équipement a reculé. Ses traps sont de nouveau acceptés dès qu'il compte un redémarrage dans ses boots de moteur. |
+| Envoyé à un autre identifiant de moteur | Un inform a été envoyé à un autre identifiant de moteur que celui de la sonde. Donnez à l'équipement l'identifiant de moteur de la sonde. |
+| Moins de sécurité que prévu pour l'utilisateur | Réglez le niveau de sécurité des traps de l'équipement sur celui que OneUptime a pour l'utilisateur. |
+
+Dans l'historique des traps, un trap SNMPv3 dit ce qui est arrivé, à côté de son OID et de ses varbinds : la version 3, l'utilisateur sous lequel il a été authentifié, s'il était aussi chiffré, et l'identifiant de moteur de l'équipement qui l'a envoyé.
+
 ### Comment les traps sont associés aux moniteurs
 
 Les traps sont associés via l'inventaire des équipements :
@@ -944,7 +1043,11 @@ Les traps sont associés via l'inventaire des équipements :
 2. OneUptime cherche les équipements réseau assignés à cette sonde dont le nom d'hôte, ou l'une des **Autres adresses**, est l'adresse IP source du trap.
 3. Le trap est journalisé dans l'historique des traps de l'équipement, et chaque moniteur Équipement réseau d'un équipement correspondant l'évalue au regard de ses critères, généralement un filtre **Trap SNMP reçu (OID du trap)**.
 
-L'association se fait par adresse et non par identifiants, si bien qu'un équipement seulement pingué peut quand même recevoir des traps : un équipement pour lequel vous n'avez pas d'identifiants de lecture peut quand même en envoyer. Enregistrez l'équipement avec l'adresse depuis laquelle il envoie ses traps, ou ajoutez cette adresse à ses **Autres adresses** sur sa page **Paramètres**. Les traps génériques SNMPv1 (coldStart, linkDown, linkUp, etc.) sont convertis en leurs OID de notification SNMPv2 standard, si bien que linkDown correspond à l'OID de trap `1.3.6.1.6.3.1.1.5.3` quelle que soit la version SNMP.
+L'association se fait par adresse et non par identifiants, si bien qu'un équipement seulement pingué peut quand même recevoir des traps v1 et v2c : un équipement pour lequel vous n'avez pas d'identifiants de lecture peut quand même en envoyer. Un trap SNMPv3 a aussi besoin de l'utilisateur avec lequel il est signé (voir [Traps et informs SNMPv3](#traps-et-informs-snmpv3)), puis il est associé par son adresse lui aussi, et par celui qui l'a signé quand des équipements partagent l'adresse. Enregistrez l'équipement avec l'adresse depuis laquelle il envoie ses traps, ou ajoutez cette adresse à ses **Autres adresses** sur sa page **Paramètres**. Les traps génériques SNMPv1 (coldStart, linkDown, linkUp, etc.) sont convertis en leurs OID de notification SNMPv2 standard, si bien que linkDown correspond à l'OID de trap `1.3.6.1.6.3.1.1.5.3` quelle que soit la version SNMP.
+
+**Des équipements qui envoient depuis une même adresse.** Certains équipements envoient leurs traps depuis une adresse qu'ils partagent : des lames depuis l'adresse de gestion de leur châssis, des membres d'un cluster depuis une adresse virtuelle, des équipements derrière un NAT. Un trap v1 ou v2c ne porte rien d'autre que cette adresse, et va au premier équipement qui l'a. Un trap SNMPv3 est signé, et va à l'équipement dont il vient. Parmi les équipements qui ont son adresse, il ne va qu'à ceux d'un projet dont les identifiants l'ont signé, puis à celui dont les interrogations SNMPv3 lisent l'identifiant de moteur depuis lequel il a été envoyé, puis à celui qui porte les identifiants qui l'ont signé. La **Vue d'ensemble** d'un équipement affiche son propre **Identifiant de moteur SNMPv3** dès qu'une interrogation SNMPv3 le lit. Donnez donc à chaque équipement son propre utilisateur SNMPv3, ou interrogez chacun en SNMPv3 : des équipements qui partagent l'utilisateur par défaut d'un site sont distingués dès que tous sauf un sont interrogés en SNMPv3. Un trap que rien ne distingue va au premier équipement qui a l'adresse, comme un trap v2c.
+
+**Un équipement pas encore ajouté.** Un trap venant d'une adresse qui n'est celle d'aucun équipement est conservé comme venant d'une source inconnue, et son événement sur la page **Événements** propose **Ajouter comme appareil**, avec l'adresse et la sonde déjà remplies. Sur la propre sonde d'un projet, chacun de ces traps est conservé. Sur une sonde globale, seul un trap SNMPv3 signé avec les identifiants d'un projet est conservé, dans ce projet, tant qu'il a un équipement sur la sonde ou un site dont elle est la sonde par défaut : un trap v1, v2c ou non authentifié pourrait venir de n'importe qui, et n'est conservé nulle part. Un trap signé avec le profil d'identifiants par défaut d'un site remplit aussi ce site, si bien que le nouvel équipement est interrogé par la sonde par défaut du site avec ce profil, comme ses voisins.
 
 #### Exemple : déclencher un incident sur linkDown
 
@@ -987,6 +1090,9 @@ Les modèles d'incident et d'alerte d'un moniteur Équipement réseau peuvent ut
 | `{{trapOid}}` | L'OID du trap, pour les vérifications déclenchées par un trap |
 | `{{trapSourceIp}}` | L'adresse d'où vient le trap, pour les vérifications déclenchées par un trap |
 | `{{trapVarbinds}}` | Les varbinds que portait le trap, chacune avec `oid` et `value` |
+| `{{trapInterface}}` | L'interface dont parle un trap : le nom qu'il porte, ou celui que le parcours de l'appareil a relevé pour son index |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | Sur une alarme RMON (une alarme de port-monitor MDS), le compteur qui a franchi son seuil, et `rising` ou `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | Sur une alarme RMON, la valeur du compteur et le seuil franchi |
 | `{{tables.<key>.rowCount}}` | Les lignes parcourues dans une [table SNMP](#tables-snmp), par sa clé : `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | Les lignes dont le statut est hors de leurs valeurs saines, chacune avec `name`, `index` et `values.<column>` |
 | `{{tables.<key>.rows}}` | Chaque ligne (jusqu'à 50), chacune avec `name`, `index` et `values.<column>`, avec les noms de colonnes en minuscules et les espaces remplacés par `_` |
@@ -1172,6 +1278,13 @@ Si les équipements sont tous là mais pas les moniteurs : les équipements et l
 - Publiez et autorisez UDP 162 jusqu'à la sonde, ou le port de `PROBE_SNMP_TRAP_RECEIVER_PORT`.
 - Vérifiez que le nom d'hôte de l'équipement, ou l'une de ses **Autres adresses**, est l'adresse depuis laquelle il envoie ses traps : c'est ainsi que les traps sont associés aux équipements.
 - Cherchez dans les journaux de la sonde des erreurs de liaison : port déjà utilisé, ou pas de privilèges pour un port inférieur à 1024.
+:::
+
+:::details Les traps SNMPv3 sont refusés
+- Ouvrez **Moniteurs → Paramètres → Sondes** et choisissez la sonde : sa carte **Traps SNMP** liste chaque source refusée avec sa raison et ce qu'il faut changer.
+- L'utilisateur SNMPv3 doit appartenir à un équipement affecté à cette sonde : ses propres identifiants, son profil d'identifiants ou le profil par défaut de son site. Un utilisateur d'un équipement affecté à une autre sonde ne compte pas.
+- Un inform a aussi besoin de l'identifiant de moteur de la sonde, affiché sur la même carte. Un équipement qui en a reçu un mauvais est listé comme envoyant à un autre identifiant de moteur.
+- Après une modification, la sonde prend en compte les nouveaux utilisateurs en moins d'une minute.
 :::
 
 :::details Tester SNMP depuis le réseau de la sonde

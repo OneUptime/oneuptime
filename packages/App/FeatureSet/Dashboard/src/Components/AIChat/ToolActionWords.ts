@@ -1,5 +1,6 @@
 import {
   AI_ACTION_CODE_CHANGE_LINES,
+  AIActionEffects,
   AIActionSentence,
   AIActionWords,
   describeAIActionSentence,
@@ -15,6 +16,7 @@ import {
   AIChatWidget,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
+import { CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME } from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import { JSONObject } from "Common/Types/JSON";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
 import { translationKey, Translator } from "Common/Types/Translator";
@@ -175,6 +177,68 @@ export function getToolActionDescription(
 }
 
 /*
+ * What the action does, as its card says it under the title (#10378): what
+ * changes, what stops working and what it costs - each section's sentences
+ * in the reader's language, a section with none left empty - and why it
+ * asks in every mode, or null. All empty for an action that says none, and
+ * for one saved before its words: it reads as its title and line, as it
+ * always did.
+ */
+export interface DrawnActionEffects {
+  changes: Array<DrawnActionSentence>;
+  stopsWorking: Array<DrawnActionSentence>;
+  costs: Array<DrawnActionSentence>;
+  asksBecause: DrawnActionSentence | null;
+}
+
+export function getToolActionEffects(
+  action: AIChatToolAction,
+  translator: Translator,
+): DrawnActionEffects {
+  const effects: AIActionEffects | undefined = getKnownWords(action)?.effects;
+  const draw: (
+    sentences: Array<AIActionSentence> | undefined,
+  ) => Array<DrawnActionSentence> = (
+    sentences: Array<AIActionSentence> | undefined,
+  ): Array<DrawnActionSentence> => {
+    const drawn: Array<DrawnActionSentence> = [];
+    let previous: string = "";
+
+    for (const sentence of sentences || []) {
+      const next: DrawnActionSentence = drawActionSentence(
+        sentence,
+        translator,
+        previous,
+      );
+
+      drawn.push(next);
+      previous = next.text;
+    }
+
+    return drawn;
+  };
+
+  return {
+    changes: draw(effects?.changes),
+    stopsWorking: draw(effects?.stopsWorking),
+    costs: draw(effects?.costs),
+    asksBecause: effects?.asksBecause
+      ? drawActionSentence(effects.asksBecause, translator, "")
+      : null,
+  };
+}
+
+// Whether the card has any effect to say (getToolActionEffects).
+export function hasToolActionEffects(effects: DrawnActionEffects): boolean {
+  return (
+    effects.changes.length > 0 ||
+    effects.stopsWorking.length > 0 ||
+    effects.costs.length > 0 ||
+    effects.asksBecause !== null
+  );
+}
+
+/*
  * Whether the action's line names what its lists stand for, so that the
  * card's line of arguments leaves them out (leaveOutLists): the resources
  * a new incident links, a workflow's steps. A code change's lines say
@@ -281,6 +345,15 @@ export const TOOL_ARGUMENT_LABELS: {
 } = {
   post_incident_status_update: {
     note: translationKey("Status update"),
+  },
+  /*
+   * A call of an external MCP server's tool (#10879): what the server is
+   * sent, and why the call is made - which never leaves OneUptime. The
+   * title names the server and the tool.
+   */
+  [CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME]: {
+    arguments: translationKey("Sent to the server"),
+    rationale: translationKey("Why"),
   },
 };
 

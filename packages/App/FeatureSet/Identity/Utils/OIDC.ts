@@ -11,6 +11,10 @@ import DataSourceEgressGuard, {
 } from "Common/Server/Utils/DataSource/EgressGuard";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import net, { LookupFunction } from "net";
+import OidcEmailVerification, {
+  EMAIL_VERIFIED_CLAIM,
+  ProviderEmailVerification,
+} from "./OidcEmailVerification";
 
 const OIDC_EGRESS_LABEL: string = "OIDC provider";
 
@@ -31,14 +35,13 @@ const GOOGLE_AUTH_TIME_CLAIMS_REQUEST: string = JSON.stringify({
  * Government and Microsoft Entra China operated by 21Vianet ("Microsoft
  * Entra authentication & national clouds",
  * learn.microsoft.com/entra/identity-platform/authentication-national-cloud),
- * each with the aliases Microsoft's own instance discovery names for it
- * (discovery/instance?api-version=1.1 under the global service's common
- * authority, whose address only Sign in with Microsoft spells out:
- * MicrosoftCommonEndpointGuard), and the issuers their v1.0 discovery
- * documents name: sts.windows.net, globally and for US Government, and
- * sts.chinacloudapi.cn for 21Vianet. Azure Germany's host is still listed
- * there, though that cloud closed in 2021. Sign In Again sends none of them
- * max_age (generateAuthorizationUrl, #10529).
+ * each with the aliases Microsoft's own instance discovery document names
+ * for it (discovery/instance, api-version 1.1, on the global host), and
+ * the issuers their v1.0 discovery documents name: sts.windows.net,
+ * globally and for US Government, and sts.chinacloudapi.cn for 21Vianet.
+ * Azure Germany's host is still listed there, though that cloud closed in
+ * 2021. Sign In Again sends none of them max_age (generateAuthorizationUrl,
+ * #10529).
  */
 export const MICROSOFT_IDENTITY_PLATFORM_HOSTNAMES: ReadonlyArray<string> = [
   "login.microsoftonline.com",
@@ -164,6 +167,12 @@ export interface OidcClientConfig {
 
 export interface OidcCallbackResult {
   email: Email;
+  /*
+   * What the provider says of the address (email_verified), from the claims
+   * the address came from: a sign-in that finds or makes an account by it
+   * refuses one the provider has not verified (./OidcEmailVerification).
+   */
+  emailVerification: ProviderEmailVerification;
   name: Name | null;
   issuer: string;
   rawClaims: JSONObject;
@@ -360,6 +369,11 @@ export default class OIDCUtil {
 
     let emailValue: unknown = claims[data.emailClaimName];
     let nameValue: unknown = claims[data.nameClaimName];
+    /*
+     * Whether the provider verified the address, from where the address
+     * came: the ID token, or userinfo below.
+     */
+    let emailVerifiedValue: unknown = claims[EMAIL_VERIFIED_CLAIM];
 
     // If email/name not in ID token claims, fall back to userinfo endpoint.
     if (!emailValue || !nameValue) {
@@ -376,6 +390,7 @@ export default class OIDCUtil {
 
         if (!emailValue) {
           emailValue = userInfo[data.emailClaimName];
+          emailVerifiedValue = userInfo[EMAIL_VERIFIED_CLAIM];
         }
 
         if (!nameValue) {
@@ -411,6 +426,10 @@ export default class OIDCUtil {
 
     return {
       email,
+      emailVerification: OidcEmailVerification.read({
+        emailClaimName: data.emailClaimName,
+        emailVerified: emailVerifiedValue,
+      }),
       name,
       issuer: claims["iss"] as string,
       rawClaims: claims,

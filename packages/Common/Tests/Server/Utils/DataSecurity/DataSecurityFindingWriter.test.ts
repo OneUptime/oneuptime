@@ -41,6 +41,10 @@ import DataCategory from "../../../../Types/DataSecurity/DataCategory";
 import DataConfidence from "../../../../Types/DataSecurity/DataConfidence";
 import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
 import {
+  DataStorePostureFacts,
+  DataStorePostureReadFrom,
+} from "../../../../Types/DataSecurity/DataStorePosture";
+import {
   FindingSampleRecord,
   MAX_FINDING_SAMPLE_RECORDS,
 } from "../../../../Types/DataSecurity/FindingSampleRecord";
@@ -370,6 +374,33 @@ describe("recordContentScan: findings", () => {
     expect(
       (createSpy.mock.calls[0]![0] as CreateBy<DataStoreFinding>).props,
     ).toEqual({ isRoot: true });
+    // Patterns found every one of them, not the names-and-addresses model.
+    expect(finding.isFoundByModel).toBe(false);
+  });
+
+  // The scanner's names-and-addresses model, run on free text (#10373).
+  test("a finding the names-and-addresses model made says so", async () => {
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.tickets.body", [
+            classification("person-name", {
+              isFreeText: true,
+              nameHinted: false,
+              foundByModel: true,
+            }),
+          ]),
+        ],
+      }),
+    });
+
+    const finding: DataStoreFinding = findingAt(
+      "person-name",
+      "public.tickets.body",
+    );
+
+    expect(finding.isFoundByModel).toBe(true);
+    expect(finding.isFreeText).toBe(true);
   });
 
   test("a custom data type is named and graded as its project defined it; an unknown one by its id", async () => {
@@ -467,7 +498,7 @@ describe("recordContentScan: findings", () => {
       isFreeText: false,
       isNameHinted: true,
       isFoundByName: false,
-      // A pattern found it, not the names-and-addresses model.
+      // A pattern found it, not the names-and-addresses model (#10373).
       isFoundByModel: false,
       locationKind: DataStoreLocationKind.Column,
       lastSeenAt: clock,
@@ -937,6 +968,36 @@ describe("recordContentScan: the store", () => {
       tables: ["users"],
       plaintextPasswordFields: fields.slice(0, 50),
     });
+  });
+
+  /*
+   * A store you run, asked at its own address with its scan (#11140): what
+   * it answered is its posture, read now, so the evaluation the scan queues
+   * works out its exposure from it.
+   */
+  test("what a store you run answered without credentials is its posture, read now", async () => {
+    const posture: DataStorePostureFacts = {
+      readAt: "2026-11-27T08:00:00.000Z",
+      readFrom: DataStorePostureReadFrom.Network,
+      anonymousRead: false,
+      anonymousWrite: false,
+      publicNetworkAccess: null,
+      unknowableFacts: ["publicNetworkAccess"],
+    };
+
+    await record({ result: resultOf({ posture }) });
+
+    expect(storeWrite()["posture"]).toEqual(posture);
+    expect(storeWrite()["configurationReadAt"]).toEqual(NOW);
+    // Read before the evaluation that works its exposure out.
+    expect(queueSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a scan that asked nothing leaves the store's posture, and when it was read, as they were", async () => {
+    await record();
+
+    expect(Object.keys(storeWrite())).not.toContain("posture");
+    expect(Object.keys(storeWrite())).not.toContain("configurationReadAt");
   });
 
   test("a store that is gone is not written", async () => {

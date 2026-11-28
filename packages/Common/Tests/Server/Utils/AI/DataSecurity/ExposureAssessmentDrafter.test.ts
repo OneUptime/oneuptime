@@ -28,6 +28,15 @@ import ExposureAssessmentReader, {
   NOT_ABOUT_A_STORE_MESSAGE,
   READ_REFUSED_MESSAGE,
 } from "../../../../../Server/Utils/DataSecurity/ExposureAssessmentReader";
+import { S3LogReader } from "../../../../../Server/Utils/DataSecurity/Cloud/Aws/AwsS3AccessLogs";
+import DataStore from "../../../../../Models/DatabaseModels/DataStore";
+import {
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  ExposureLogUnreadReason,
+  getReadsFromOutside,
+  S3LoggingTarget,
+} from "../../../../../Types/DataSecurity/AccessLogReads";
 import FeedPersonName from "../../../../../Server/Utils/Feed/FeedPersonName";
 import ProjectLanguage from "../../../../../Server/Utils/Notification/ProjectLanguage";
 import UserLanguage from "../../../../../Server/Utils/Notification/UserLanguage";
@@ -43,10 +52,12 @@ import {
 import { DataSecurityAiFeature } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
 import { DataSecurityExposureAssessmentResponse } from "../../../../../Types/DataSecurity/DataSecurityApiTypes";
 import {
+  BreachCheckKind,
   BreachObligation,
   BreachObligationStatus,
   ExposureAssessmentStarter,
   ExposureDraftPart,
+  ExposureReads,
   ExposureReadsLogged,
   ExposureSecret,
   ExposureWindowEndKind,
@@ -670,6 +681,356 @@ describe("who read it, with and without logs", () => {
   });
 });
 
+/*
+ * WHO READ IT, FROM THE STORE'S OWN ACCESS LOGS (#10951). The bucket logs
+ * its reads to acme-logs/logs/; S3 is stood in for by a reader of log
+ * files in memory, the rest is the product's own: the window worked out,
+ * the log files listed and read, the reads added up by who made them, kept
+ * on the case, the breach laws' check answered, the timeline written - and
+ * who read it named only for a reader who may see who can reach the store,
+ * never to OneUptime AI.
+ */
+describe("who read it, from the store's own access logs", () => {
+  const OUTSIDE: string = PLANTED["principal"]!;
+  const OWN_ACCOUNT: string = "123456789012";
+  const OBJECT_KEY: string = "exports/PLANTED-OBJECT-customers.csv";
+  let opened: SpyInstance<typeof ExposureAssessmentReader.openStoreLogs>;
+
+  function logLine(data: {
+    time: string;
+    requester?: string;
+    ip?: string;
+  }): string {
+    return `79a59df900b949e55d96a1e698fbacedfd6e09d98eacf8f8d5218e7cd47ef2be eu-customer-exports [${data.time}] ${data.ip || "203.0.113.77"} ${data.requester || "-"} 3E57427F3EXAMPLE REST.GET.OBJECT ${OBJECT_KEY} "GET /eu-customer-exports/${OBJECT_KEY} HTTP/1.1" 200 - 1048576 1048576 12 10 "-" "curl/8.4.0" - hostid= SigV4 ECDHE-RSA-AES128-GCM-SHA256 AuthHeader eu-customer-exports.s3.eu-west-1.amazonaws.com TLSv1.2 - -`;
+  }
+
+  // The log bucket's files: three reads by anyone, two by an outside account, one of the company's own.
+  const LOG_FILES: Record<string, string> = {
+    "logs/2026-11-03-10-00-00-AAAA": [
+      logLine({ time: "03/Nov/2026:09:30:00 +0000" }),
+      logLine({ time: "03/Nov/2026:09:31:00 +0000", ip: "198.51.100.9" }),
+      logLine({ time: "03/Nov/2026:09:32:00 +0000", requester: OUTSIDE }),
+    ].join("\n"),
+    "logs/2026-11-07-10-00-00-BBBB": [
+      logLine({ time: "07/Nov/2026:09:30:00 +0000" }),
+      logLine({ time: "07/Nov/2026:09:40:00 +0000", requester: OUTSIDE }),
+      logLine({
+        time: "07/Nov/2026:09:50:00 +0000",
+        requester: `arn:aws:iam::${OWN_ACCOUNT}:role/exports-job`,
+      }),
+    ].join("\n"),
+  };
+
+  function memoryReader(files: Record<string, string>): S3LogReader {
+    return {
+      readLoggingTarget: async (): Promise<S3LoggingTarget | null> => {
+        return { bucket: "acme-logs", prefix: "logs/", isPartitioned: false };
+      },
+      listLogObjects: async (data: {
+        bucket: string;
+        prefix: string;
+        startAfter?: string | undefined;
+      }): Promise<{ keys: Array<string> }> => {
+        return {
+          keys: Object.keys(files)
+            .filter((key: string): boolean => {
+              return (
+                key.startsWith(data.prefix) &&
+                (!data.startAfter || key > data.startAfter)
+              );
+            })
+            .sort(),
+        };
+      },
+      readLogObject: async (data: { key: string }): Promise<Uint8Array> => {
+        return new TextEncoder().encode(files[data.key] || "");
+      },
+    };
+  }
+
+  async function readLogs(
+    props: DatabaseCommonInteractionProps = OWNER,
+  ): Promise<DataSecurityExposureAssessmentResponse> {
+    return await ExposureAssessmentDrafter.readLogsForPerson({
+      projectId: PROJECT_ID,
+      securityCaseId: new ObjectID(CASE_ID),
+      props,
+      now: NOW,
+    });
+  }
+
+  // A reader of the case, the store and its findings - not of who can reach the store.
+  const NARROW: DatabaseCommonInteractionProps = caller([
+    Permission.ReadSecurityCase,
+    Permission.ReadDataStore,
+    Permission.ReadDataStoreFinding,
+  ]);
+
+  beforeEach(() => {
+    useTables({
+      stores: [storeRow({ posture: { accessLogging: true } })],
+      cases: [caseRow({ exposureAssessment: startedAssessment() })],
+    });
+    opened = jest
+      .spyOn(ExposureAssessmentReader, "openStoreLogs")
+      .mockResolvedValue({
+        reader: memoryReader(LOG_FILES),
+        ownAccountIds: new Set([OWN_ACCOUNT]),
+        sourceAccountId: OWN_ACCOUNT,
+        sourceRegion: "eu-west-1",
+      });
+  });
+
+  test("a person reads them for the window: the case keeps the counts, and the data counts as read", async () => {
+    const answer: DataSecurityExposureAssessmentResponse = await readLogs();
+    const reads: ExposureReads = answer.view!.reads;
+
+    expect(reads.logged).toBe(ExposureReadsLogged.Logged);
+    expect(reads.fromLogs?.status).toBe(ExposureLogReadStatus.Read);
+    expect(reads.isFromLogsCurrent).toBe(true);
+    expect(reads.isReadFromOutside).toBe(true);
+    expect(reads.isTreatedAsRead).toBe(true);
+    expect(getReadsFromOutside(reads.fromLogs!)).toEqual({
+      reads: 5,
+      bytes: 5 * 1048576,
+      objects: 2,
+    });
+    expect(reads.fromLogs?.anonymous.addresses).toBe(2);
+    expect(reads.fromLogs?.outside.accounts).toBe(1);
+    expect(reads.fromLogs?.own.reads).toBe(1);
+    expect(reads.fromLogs?.logFilesRead).toBe(2);
+    expect(reads.fromLogs?.isComplete).toBe(true);
+    // Read for the window the case's timeline and response give it.
+    expect(reads.fromLogs?.windowStart).toBe(answer.view!.window!.start);
+    expect(reads.fromLogs?.windowEnd).toBe(answer.view!.window!.end);
+    expect(opened).toHaveBeenCalledTimes(1);
+
+    expect(kept()!.logRead?.outside.reads).toBe(2);
+    expect(kept()!.logRead?.anonymous.reads).toBe(3);
+    expectNothingSent();
+  });
+
+  test("reads from outside answer the breach laws' question of whether it was read, so nobody is asked it", async () => {
+    const before: DataSecurityExposureAssessmentResponse = await read();
+    const after: DataSecurityExposureAssessmentResponse = await readLogs();
+    const checksOf: (
+      answer: DataSecurityExposureAssessmentResponse,
+    ) => Array<string> = (
+      answer: DataSecurityExposureAssessmentResponse,
+    ): Array<string> => {
+      return answer
+        .view!.obligations.find((obligation: BreachObligation): boolean => {
+          return obligation.ruleId === BreachLawId.GdprAuthority;
+        })!
+        .checks.map((check: { kind: string }): string => {
+          return check.kind;
+        });
+    };
+
+    expect(checksOf(before)).toContain(BreachCheckKind.ReadFromOutside);
+    expect(checksOf(after)).not.toContain(BreachCheckKind.ReadFromOutside);
+  });
+
+  test("the timeline says what the logs show, counted, never who", async () => {
+    await readLogs();
+
+    const line: string = timelineLines().join("\n");
+
+    expect(line).toContain(
+      "read the store's access logs for the exposure's window",
+    );
+    expect(line).toContain("5 reads from outside your accounts");
+    expectNoPlantedValue(line);
+    expect(line).not.toContain("203.0.113.77");
+    expect(line).not.toContain(OBJECT_KEY);
+  });
+
+  test("who read it is named only for a reader who may see who can reach the store", async () => {
+    await readLogs();
+
+    const owner: DataSecurityExposureAssessmentResponse = await read(OWNER);
+
+    expect(
+      owner.view!.reads.fromLogs!.outsidePrincipals.map(
+        (principal: { principal: string }): string => {
+          return principal.principal;
+        },
+      ),
+    ).toEqual([OUTSIDE]);
+    expect(owner.assessment!.logRead!.outsidePrincipals).toHaveLength(1);
+
+    const narrow: DataSecurityExposureAssessmentResponse = await read(NARROW);
+
+    expect(narrow.view!.reads.fromLogs!.outsidePrincipals).toEqual([]);
+    expect(narrow.assessment!.logRead!.outsidePrincipals).toEqual([]);
+    // Counted all the same.
+    expect(narrow.view!.reads.fromLogs!.outside.reads).toBe(2);
+    expect(JSON.stringify(narrow)).not.toContain(OUTSIDE);
+    // A reader with who-can-reach-it reads them by name too.
+    expect(
+      (
+        await read(
+          caller([
+            Permission.ReadSecurityCase,
+            Permission.ReadDataStore,
+            Permission.ReadDataStoreFinding,
+            Permission.ReadDataStoreAccess,
+          ]),
+        )
+      ).view!.reads.fromLogs!.outsidePrincipals,
+    ).toHaveLength(1);
+  });
+
+  test("no object's name, address or line of the log is kept, or answered to anyone", async () => {
+    const answer: DataSecurityExposureAssessmentResponse = await readLogs();
+    const keptText: string = JSON.stringify(
+      tables.cases.get(CASE_ID)!["exposureAssessment"],
+    );
+
+    for (const text of [keptText, JSON.stringify(answer)]) {
+      expect(text).not.toContain(OBJECT_KEY);
+      expect(text).not.toContain("203.0.113.77");
+      expect(text).not.toContain("198.51.100.9");
+      expect(text).not.toContain("curl/8.4.0");
+    }
+  });
+
+  test("OneUptime AI is told the counts, never who read it", async () => {
+    await readLogs();
+    answerOf = (): string => {
+      return "{}";
+    };
+
+    await refusalOf(() => {
+      return draftForPerson(OWNER);
+    });
+
+    const prompt: string = JSON.stringify(promptAsked());
+
+    expect(prompt).toContain('"logsRead":true');
+    expect(prompt).toContain('"readsFromOutside":5');
+    expect(prompt).toContain('"anonymousReads":3');
+    expect(prompt).toContain('"outsideAccountReads":2');
+    expect(prompt).toContain('"outsideAccountsThatRead":1');
+    expectNoPlantedValue(prompt);
+    expect(prompt).not.toContain(OBJECT_KEY);
+    expect(prompt).not.toContain("203.0.113.77");
+  });
+
+  test("a Security viewer may not read them: reading them changes the case", async () => {
+    const refusal: Error = await refusalOf(() => {
+      return readLogs(SECURITY_VIEWER);
+    });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect(refusal.message).toBe(CHANGE_REFUSED_MESSAGE);
+    expect(opened).not.toHaveBeenCalled();
+    expect(kept()!.logRead).toBeUndefined();
+  });
+
+  test("a case not assessed yet has no window to read them for", async () => {
+    useTables({ stores: [storeRow({ posture: { accessLogging: true } })] });
+
+    const refusal: Error = await refusalOf(() => {
+      return readLogs();
+    });
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect(refusal.message).toBe(NOT_ASSESSED_MESSAGE);
+  });
+
+  test("logs the store's connection may not read are said so, and the data is not counted as read or unread by them", async () => {
+    opened.mockResolvedValue(ExposureLogUnreadReason.NoContentAccess);
+
+    const answer: DataSecurityExposureAssessmentResponse = await readLogs();
+
+    expect(answer.view!.reads.fromLogs?.status).toBe(
+      ExposureLogReadStatus.NotReadable,
+    );
+    expect(answer.view!.reads.fromLogs?.reason).toBe(
+      ExposureLogUnreadReason.NoContentAccess,
+    );
+    expect(answer.view!.reads.isReadFromOutside).toBeUndefined();
+    expect(answer.view!.reads.isTreatedAsRead).toBe(false);
+    expect(timelineLines().join("\n")).toContain("they could not be read");
+  });
+
+  test("a read that fails is a read that could not be made, never an error", async () => {
+    opened.mockRejectedValue(new Error("The connection's secret is gone."));
+
+    const answer: DataSecurityExposureAssessmentResponse = await readLogs();
+
+    expect(answer.view!.reads.fromLogs?.reason).toBe(
+      ExposureLogUnreadReason.LogsUnreadable,
+    );
+  });
+
+  test("on its own, as Data Security assesses a case, it reads the logs of a store that logs its reads - and of no other", async () => {
+    const read: ExposureLogRead | null =
+      await ExposureAssessmentDrafter.readLogsOnItsOwn({
+        projectId: PROJECT_ID,
+        securityCaseId: new ObjectID(CASE_ID),
+        now: NOW,
+      });
+
+    expect(read?.status).toBe(ExposureLogReadStatus.Read);
+    expect(kept()!.logRead?.anonymous.reads).toBe(3);
+    expect(timelineLines().join("\n")).toContain(
+      "Data Security read the store's access logs",
+    );
+
+    opened.mockClear();
+    useTables({
+      stores: [storeRow({ posture: { accessLogging: false } })],
+      cases: [caseRow({ exposureAssessment: startedAssessment() })],
+    });
+
+    expect(
+      await ExposureAssessmentDrafter.readLogsOnItsOwn({
+        projectId: PROJECT_ID,
+        securityCaseId: new ObjectID(CASE_ID),
+        now: NOW,
+      }),
+    ).toBeNull();
+    expect(opened).not.toHaveBeenCalled();
+    expect(kept()!.logRead).toBeUndefined();
+  });
+
+  test("the logs of a store OneUptime cannot read them for are not opened: another kind, logging off, no connection", async () => {
+    opened.mockRestore();
+
+    const open: (data: {
+      kind?: string;
+      accessLogging: boolean;
+    }) => Promise<unknown> = async (data: {
+      kind?: string;
+      accessLogging: boolean;
+    }): Promise<unknown> => {
+      const store: DataStore = new DataStore();
+
+      store.kind = (data.kind || "AWS S3 Bucket") as never;
+      store.name = "eu-customer-exports";
+      store.posture = { accessLogging: data.accessLogging } as never;
+
+      return await ExposureAssessmentReader.openStoreLogs({
+        projectId: PROJECT_ID,
+        store,
+      });
+    };
+
+    expect(await open({ kind: "AWS RDS Instance", accessLogging: true })).toBe(
+      ExposureLogUnreadReason.NotSupported,
+    );
+    expect(await open({ accessLogging: false })).toBe(
+      ExposureLogUnreadReason.LoggingOff,
+    );
+    // A bucket no cloud connection reads: nothing reads its objects.
+    expect(await open({ accessLogging: true })).toBe(
+      ExposureLogUnreadReason.NoContentAccess,
+    );
+  });
+});
+
 describe("who sees it: the case's readers who may read the store and its findings", () => {
   beforeEach(async () => {
     useTables({
@@ -837,6 +1198,45 @@ describe("who sees it: the case's readers who may read the store and its finding
         props,
       }),
     ).toBe(false);
+  });
+
+  /*
+   * A change is decided by the case's own row, as an update of it through
+   * the API would decide (SecurityCaseService.findOneUpdatableById) - not by
+   * holding a case-editing permission somewhere in the project.
+   */
+  test("a credential issued for reading only may not change it, whatever its roles", async () => {
+    const readOnly: DatabaseCommonInteractionProps = {
+      ...OWNER,
+      isReadOnlyCredential: true,
+    };
+    const answer: DataSecurityExposureAssessmentResponse = await read(readOnly);
+
+    expect(answer.canChange).toBe(false);
+    expect(answer.canDraft).toBe(false);
+
+    const refusal: Error = await refusalOf(() => {
+      return assess(readOnly);
+    });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect(refusal.message).toBe(CHANGE_REFUSED_MESSAGE);
+    expect(tables.cases.updates).toHaveLength(0);
+  });
+
+  test("a case in another project is not changed: it answers as one the caller may not change", async () => {
+    const refusal: Error = await refusalOf(() => {
+      return ExposureAssessmentDrafter.assess({
+        projectId: PROJECT_ID,
+        securityCaseId: ObjectID.generate(),
+        props: OWNER,
+        now: NOW,
+      });
+    });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect(refusal.message).toBe(CHANGE_REFUSED_MESSAGE);
+    expect(tables.cases.updates).toHaveLength(0);
   });
 
   test("a case in another project is not found", async () => {

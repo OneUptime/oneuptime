@@ -27,6 +27,7 @@ Start med spørsmålet flisen skal svare på:
 | Kommer folk gjennom en flyt, og kommer de tilbake? | **Trakt** eller **Brukerlojalitet** |
 | Hvilken tilstand er klyngene og vertene våre i? | En widget fra gruppen Infrastruktur |
 | Hvor i verden er nettverket vårt, og hva er nede? | **Nettverkskart** |
+| Hva koster skyene våre, og hvilket team bruker pengene? | **Skykostnad** |
 | En overskrift, et notat, klokka på et annet kontor? | **Tekst** eller **Klokke** |
 | Data som ligger utenfor OneUptime? | En widget fra gruppen Eksterne datakilder |
 | Noe ingen widget dekker? | **HTML**, når du er sikker på at ingen annen widget gjør det |
@@ -197,10 +198,12 @@ Hver av disse widgetene viser ressursene som en agent eller en collector rapport
 | **Podman** | **Verter**, **Containere**, **Bilder**, **Nettverk**, **Volumer** | Podman-agenten |
 | **Proxmox** | **Noder**, **Gjester** | Proxmox-agenten |
 | **VMware** | **Verter**, **Virtuelle maskiner** | VMware-agenten, eller et vCenter du kobler til |
+| **XCP-ng** | **Verter**, **VM-er** | XCP-ng-agenten |
 | **Ceph** | **OSD-er**, som en vegg farget etter tilstand, og **Pools** | Ceph-agenten |
 | **Lagringsarrayer** | **Volumer**, og **Maskinvare** som en vegg farget etter status | Lagringsarray-agenten |
+| **Skykostnader** | **Skykostnad**, en sum, en oppdeling eller en trend for forbruket | Kostnadene [skykontoene](/docs/telemetry/cloud-accounts) dine rapporterer |
 
-Bruk dem til én side som blander tilstanden til infrastrukturen din med telemetrien fra arbeidslastene som kjører på den.
+Bruk dem til én side som blander tilstanden til infrastrukturen din med telemetrien fra arbeidslastene som kjører på den. Widgeten Skykostnad er ingen liste: se [Skykostnader](#skykostnader).
 
 ### Network Map
 
@@ -213,6 +216,19 @@ Over kartet står det hvor mange lokasjoner som er nede, fordi en rød prikk på
 **Innstillinger**: tittel, kart- eller listevisning, høyeste antall tegnede lokasjoner, om lokasjonsnavn skal skrives, og filtre etter lokasjonstype og etter status. Lokasjonsnavn forsvinner automatisk når kartet blir for fullt til at de kan leses; verktøytipset navngir fortsatt hver markør.
 
 En lokasjon vises bare hvis den har koordinater. Legg til breddegrad og lengdegrad på lokasjonen (eller importer dem fra en CSV) for å feste den.
+
+## Skykostnader
+
+### Skykostnad
+
+Hva skyene dine koster, ved siden av tjenestene som bruker pengene, for dashbordets tidsrom. Den leser de samme tallene som **Sky → Forbruk → Kostnader** og siden til en kostnadsgruppe, for de samme dagene.
+
+- **Dekker**: alle kontoer, én **Konto**, en **Kostnadsgruppe** eller en **Kostnadsvisning**. Velg kontoen, gruppen eller visningen i innstillingen under.
+- **Vis**: en sum mot perioden før, en oppdeling av de største delene eller en trend for hver dags forbruk.
+- **Del opp etter**: tjenester, regioner, kontoer eller ressurser. Oppdelingen av en kostnadsvisning viser gruppene og det ingen gruppe tar.
+- **Kostnadsgrunnlag**: fakturert, amortisert eller netto. Tomt er det prosjektets, som Kostnader åpner med.
+
+Tallene er i valutaen de fleste av kontoene dine faktureres i. Å se den krever det samme som å se Kostnader: hver leser ser det de kan lese. Et offentlig dashbord viser bare tittelen. Se [Skykostnader og besparelser](/docs/telemetry/cloud-costs#rapporter-og-eksporter) for rapporter og eksporter av de samme tallene.
 
 ## Eksterne datakilder
 
@@ -249,7 +265,7 @@ Gjennom API-et og Terraform er rekkefølgen widgetens `arguments.sort`: en kolon
 
 Et [offentlig dashbord](/docs/dashboards/sharing) tegner de fleste widgets for de besøkende, og hver viser bare det den er satt opp til å vise. Noen få kan ikke vises uten en pålogget økt:
 
-- **Loggdiagram**, **Spordiagram**, **Sportabell**, **Sikkerhetshendelser**, **Flyt av sikkerhetshendelser**, **Trakt** og **Brukerlojalitet** sier på sin plass at de ikke er tilgjengelige på offentlige dashbord.
+- **Loggdiagram**, **Spordiagram**, **Sportabell**, **Sikkerhetshendelser**, **Flyt av sikkerhetshendelser**, **Trakt**, **Brukerlojalitet** og **Skykostnad** sier på sin plass at de ikke er tilgjengelige på offentlige dashbord.
 - Widgetene fra Eksterne datakilder viser dataene sine når de leser **Målingene i dette prosjektet (PromQL)**, aldri spørringene sine. En widget med en ekstern datakilde utelates helt fra et offentlig dashbord.
 
 ## Når en widget ikke kan vises

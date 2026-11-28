@@ -3,14 +3,25 @@ import AIService from "../../../Server/Services/AIService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import SpanService from "../../../Server/Services/SpanService";
 import FixPerformanceTaskTrigger from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import CodeFixPersonRepository from "../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
 import SubjectCodeFixRun from "../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import CodeFixStartGate, {
   CodeFixStart,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import CodeTaskAccess from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import { CODE_TASK_PLAN_REQUIRED_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import CodeHostAccess from "../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
+import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
+import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
+import {
+  CodeRepositoryAllowance,
+  EVERY_CODE_REPOSITORY,
+} from "../../../Types/CodeRepository/CodeRepositoryAllowance";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion";
 import {
@@ -32,6 +43,11 @@ import {
   parseTracePerformanceFixSuggestion,
   TracePerformanceFixSuggestion,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import {
+  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
 import { AnalyzableSpan } from "../../../Utils/Traces/SpanTreeAnalyzer";
 import {
   HEALTH_CHECK,
@@ -81,6 +97,10 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const SERVICE_ID: string = "33333333-3333-4333-8333-333333333333";
 const TRACE_ID: string = "4bf92f3577b34da6a3ce929d0e0e4736";
+// The project's connected repositories, by what the member may do in them.
+const CHECKOUT_REPOSITORY_ID: string = "11075000-0000-4000-8000-0000000000a1";
+const LEDGER_REPOSITORY_ID: string = "11075000-0000-4000-8000-0000000000a2";
+const VAULT_REPOSITORY_ID: string = "11075000-0000-4000-8000-0000000000a3";
 
 function memberProps(): DatabaseCommonInteractionProps {
   return {
@@ -174,6 +194,27 @@ beforeEach(() => {
   jest
     .spyOn(CodeTaskThread, "findTasksHiddenFrom")
     .mockResolvedValue(new Set<string>());
+  /*
+   * The member may use the project's one connected repository in Code,
+   * unless a test says otherwise: who may start a trace's fix has its own
+   * tests below (#11075).
+   */
+  jest
+    .spyOn(CodeFixPersonRepository, "getUsableRepositories")
+    .mockResolvedValue({
+      connectedCount: 1,
+      usable: [
+        {
+          id: CHECKOUT_REPOSITORY_ID,
+          name: "checkout",
+          organizationName: "acme",
+          repositoryName: "checkout",
+          mainBranchName: "main",
+          gitHubAppInstallationId: "1234",
+        },
+      ],
+      allowance: EVERY_CODE_REPOSITORY,
+    });
 });
 
 afterEach(() => {
@@ -217,7 +258,8 @@ describe("POST /ai-investigation/performance-fix-suggestion", () => {
     expect(findBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { traceId: TRACE_ID },
-        props: memberProps(),
+        // The user's own, read in the request's project (see below).
+        props: { ...memberProps(), isMultiTenantRequest: false },
       }),
     );
 
@@ -450,6 +492,11 @@ describe("POST /ai-investigation/create-performance-fix-task", () => {
         traceId: TRACE_ID,
         serviceName: "checkout-service",
         userId: USER_ID,
+        /*
+         * Whose repositories the fix may use: the caller's own (#11075),
+         * in the request's project (see below).
+         */
+        props: { ...memberProps(), isMultiTenantRequest: false },
       }),
     );
     expect(
@@ -582,6 +629,345 @@ describe("POST /ai-investigation/create-performance-fix-task", () => {
 
     expect((call.thrown as Error).message).toMatch(
       /^OneUptime AI already worked on a fix for this trace\./,
+    );
+  });
+});
+
+/*
+ * WHO MAY START A TRACE'S FIX: THE ROUTE HOLDS THE REPOSITORY TO THE
+ * CALLER'S OWN PERMISSIONS IN CODE (#11075).
+ *
+ * The route took any repository the project connected, checked as
+ * OneUptime, so a request could name one the caller may not read, or may
+ * not ask OneUptime AI to work in - the page's picker was all that held it
+ * back. These drive the real route and the real trigger, with only the
+ * reads below Code's permission checks stubbed: the member reads
+ * checkout and may ask AI in it, reads ledger but may not ask in it, and
+ * may not read vault at all.
+ */
+describe("POST /ai-investigation/create-performance-fix-task holds the repository to the caller (#11075)", () => {
+  // Whose permissions each check of the member's repositories was asked under.
+  let asked: Array<DatabaseCommonInteractionProps> = [];
+
+  const mayRead: (id: string) => boolean = (id: string): boolean => {
+    return id !== VAULT_REPOSITORY_ID;
+  };
+  const mayAsk: (id: string) => boolean = (id: string): boolean => {
+    return id === CHECKOUT_REPOSITORY_ID;
+  };
+
+  const rowOf: (id: string) => CodeRepository = (
+    id: string,
+  ): CodeRepository => {
+    const repository: CodeRepository = new CodeRepository();
+    repository.id = new ObjectID(id);
+    return repository;
+  };
+
+  beforeEach(() => {
+    asked = [];
+    // The real weighing of the member's repositories, below the outer default.
+    jest.mocked(CodeFixPersonRepository.getUsableRepositories).mockRestore();
+
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue(
+        [CHECKOUT_REPOSITORY_ID, LEDGER_REPOSITORY_ID, VAULT_REPOSITORY_ID].map(
+          (id: string) => {
+            return {
+              id,
+              name: `repository-${id.slice(-2)}`,
+              organizationName: "acme",
+              repositoryName: `repository-${id.slice(-2)}`,
+              mainBranchName: "main",
+              gitHubAppInstallationId: "1234",
+            };
+          },
+        ),
+      );
+    // Every one of them is connected.
+    jest
+      .spyOn(CodeHostAccess, "getReachableRepositoryIds")
+      .mockImplementation(async (data: { repositoryIds: Array<ObjectID> }) => {
+        return new Set<string>(
+          data.repositoryIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        );
+      });
+    jest
+      .spyOn(CodeTaskAccess, "findReadableRepository")
+      .mockImplementation(
+        async (data: {
+          props: DatabaseCommonInteractionProps;
+          repositoryId: ObjectID;
+        }): Promise<CodeRepository | null> => {
+          asked.push(data.props);
+          const id: string = data.repositoryId.toString();
+          return mayRead(id) ? rowOf(id) : null;
+        },
+      );
+    jest
+      .spyOn(CodeTaskAccess, "canAskInRepository")
+      .mockImplementation(
+        async (data: {
+          props: DatabaseCommonInteractionProps;
+          repositoryId: ObjectID;
+        }): Promise<boolean> => {
+          asked.push(data.props);
+          return mayAsk(data.repositoryId.toString());
+        },
+      );
+    jest
+      .spyOn(CodeTaskAccess, "listReadableRepositoriesByIds")
+      .mockImplementation(
+        async (data: {
+          props: DatabaseCommonInteractionProps;
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Array<CodeRepository>> => {
+          asked.push(data.props);
+          return data.repositoryIds
+            .map((id: ObjectID | string): string => {
+              return id.toString();
+            })
+            .filter(mayRead)
+            .map(rowOf);
+        },
+      );
+    jest
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+      .mockImplementation(
+        async (data: {
+          props: DatabaseCommonInteractionProps;
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Set<string>> => {
+          asked.push(data.props);
+          return new Set<string>(
+            data.repositoryIds
+              .map((id: ObjectID | string): string => {
+                return id.toString();
+              })
+              .filter(mayAsk),
+          );
+        },
+      );
+  });
+
+  test("a pick the caller may read but not ask OneUptime AI to work in: refused, in a sentence that says so, as a 403 - nothing queued", async () => {
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    const call: Call = await post(CREATE_ROUTE, {
+      traceId: TRACE_ID,
+      repositoryId: LEDGER_REPOSITORY_ID,
+    });
+
+    expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((call.thrown as Error).message).toBe(
+      PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+    );
+    expect(call.json).toBeUndefined();
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("a pick the caller may not read: refused as not found, as a 404 - never said to exist - nothing queued", async () => {
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    const call: Call = await post(CREATE_ROUTE, {
+      traceId: TRACE_ID,
+      repositoryId: VAULT_REPOSITORY_ID,
+    });
+
+    expect(call.thrown).toBeInstanceOf(NotFoundException);
+    expect((call.thrown as Error).message).toBe(
+      PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("a pick the caller may use: taken, and the fix is made in it - checked under the caller's own permissions", async () => {
+    jest.spyOn(CodeFixStartGate, "check").mockResolvedValue({
+      codeRepositoryId: new ObjectID(CHECKOUT_REPOSITORY_ID),
+      blocker: null,
+    });
+    const runId: ObjectID = ObjectID.generate();
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue({ id: runId } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, {
+      traceId: TRACE_ID,
+      repositoryId: CHECKOUT_REPOSITORY_ID,
+    });
+
+    expect(call.thrown).toBeUndefined();
+    expect(call.json).toEqual({ aiRunId: runId.toString() });
+    const queued: {
+      codeRepositoryId?: ObjectID | null;
+      taskContext: { pickedCodeRepositoryId?: string };
+    } = enqueue.mock.calls[0]![0];
+    expect(queued.codeRepositoryId?.toString()).toBe(CHECKOUT_REPOSITORY_ID);
+    expect(queued.taskContext.pickedCodeRepositoryId).toBe(
+      CHECKOUT_REPOSITORY_ID,
+    );
+    expect(asked.length).toBeGreaterThan(0);
+    for (const props of asked) {
+      // The caller's own, in the request's project (see below).
+      expect(props).toEqual({ ...memberProps(), isMultiTenantRequest: false });
+    }
+  });
+
+  test("no pick, and the trace's facts would find the repository the caller may not ask in: the fix is held to theirs", async () => {
+    const gate: jest.SpyInstance = jest
+      .spyOn(CodeFixStartGate, "check")
+      .mockResolvedValue({
+        codeRepositoryId: new ObjectID(CHECKOUT_REPOSITORY_ID),
+        blocker: null,
+      });
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    // Resolved among checkout alone, the one repository the member may use.
+    expect(
+      (gate.mock.calls[0]![0] as { allowance: CodeRepositoryAllowance })
+        .allowance,
+    ).toEqual({
+      isEveryRepository: false,
+      repositoryIds: [CHECKOUT_REPOSITORY_ID],
+    });
+    expect(
+      (
+        enqueue.mock.calls[0]![0] as {
+          taskContext: { pickedCodeRepositoryId?: string };
+        }
+      ).taskContext.pickedCodeRepositoryId,
+    ).toBe(CHECKOUT_REPOSITORY_ID);
+  });
+
+  test("no pick, and none of the connected repositories is the caller's to ask in: refused, saying why and who can help - nothing queued", async () => {
+    jest
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+      .mockResolvedValue(new Set<string>());
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((call.thrown as Error).message).toBe(
+      NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("the suggestion the page draws for that caller offers nothing, so the page never shows a fix the route refuses", async () => {
+    jest
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+      .mockResolvedValue(new Set<string>());
+
+    const call: Call = await post(SUGGESTION_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(
+      parseTracePerformanceFixSuggestion(call.json as JSONObject).offer,
+    ).toBe(SuggestionOffer.None);
+  });
+});
+
+/*
+ * A request across the caller's projects (the is-multi-tenant-query
+ * header) has the span store answer from every project the person belongs
+ * to. Both routes make the fix in the request's own project, in one of its
+ * repositories, so they read the trace in that project only - else a trace
+ * of another project the person can read would become a fix here: its
+ * spans in the run and the pull request, read by everyone with access to
+ * this project's repository. Every other Fix with AI route reads so
+ * (pinPropsToTenant).
+ */
+describe("a request across the caller's projects reads the trace in the request's own project only", () => {
+  type PropsOf = { props: DatabaseCommonInteractionProps };
+
+  function acrossProjects(): DatabaseCommonInteractionProps {
+    return { ...memberProps(), isMultiTenantRequest: true };
+  }
+
+  function pinned(): DatabaseCommonInteractionProps {
+    return { ...memberProps(), isMultiTenantRequest: false };
+  }
+
+  test("the suggestion reads the trace's spans in the request's project", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(acrossProjects());
+    const findBy: jest.SpyInstance = jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+
+    const call: Call = await post(SUGGESTION_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect((findBy.mock.calls[0]![0] as PropsOf).props).toEqual(pinned());
+  });
+
+  test("a trace only another of the caller's projects has is not found, and nothing is made", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(acrossProjects());
+    // The span store as it answers: across projects only when asked to.
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockImplementation(async (data: unknown): Promise<Array<Span>> => {
+        return (data as PropsOf).props.isMultiTenantRequest
+          ? storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE)
+          : [];
+      });
+    const create: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromTrace")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(create).not.toHaveBeenCalled();
+    expect((call.thrown as Error).message).toBe(
+      "Trace not found (or you do not have access to it).",
+    );
+  });
+
+  test("the fix reads the spans in the request's project, and weighs the repository under the same props", async () => {
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(acrossProjects());
+    const findBy: jest.SpyInstance = jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    const runId: ObjectID = ObjectID.generate();
+    const create: jest.SpyInstance = jest
+      .spyOn(FixPerformanceTaskTrigger, "createPerformanceFixTaskFromTrace")
+      .mockResolvedValue({ id: runId } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(call.json).toEqual({ aiRunId: runId.toString() });
+    expect((findBy.mock.calls[0]![0] as PropsOf).props).toEqual(pinned());
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: PROJECT_ID, props: pinned() }),
     );
   });
 });

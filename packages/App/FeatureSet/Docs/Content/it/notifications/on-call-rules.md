@@ -44,7 +44,11 @@ Press 1 to acknowledge, or 2 to escalate.
 You did not press a key, so this incident is not acknowledged. Good bye.
 ```
 
-La telefonata nomina il vostro progetto. Una telefonata che non riguarda un progetto, come un codice di verifica, nomina OneUptime, o il nome con cui è nota la vostra installazione self-hosted. Un titolo più lungo di circa 100 caratteri viene tagliato dopo una parola intera, e OneUptime conserva il titolo completo. Le lettere di un numero come `INC-42` vengono pronunciate una alla volta, così la voce non le legge mai come una parola. Le telefonate sono sempre in inglese.
+Se premete un tasto che la telefonata non ha proposto, come 3, # o *, la telefonata dice «That key does nothing.» e vi chiede di nuovo un tasto. Lo fa al massimo due volte, tante volte quante elenca i tasti quando non premete nulla; dopo, un tasto sbagliato chiude la telefonata e la chiamata resta non riconosciuta. I tasti 1 e 2 funzionano come sempre.
+
+La telefonata nomina il vostro progetto. Una telefonata che non riguarda un progetto, come un codice di verifica, nomina OneUptime, o il nome con cui è nota la vostra installazione self-hosted. Un titolo più lungo di circa 100 caratteri viene tagliato dopo una parola intera, e OneUptime conserva il titolo completo. Le lettere di un numero come `INC-42` vengono pronunciate una alla volta, così la voce non le legge mai come una parola.
+
+Una telefonata è nella lingua in cui usate OneUptime quando l'account Twilio da cui parte parla con una delle voci di OneUptime: tutto ciò che dice, comprese le risposte ai vostri tasti, con una voce della vostra lingua, femminile se la voce dell'account è femminile e maschile se è maschile. I tasti restano gli stessi: 1 per riconoscere, 2 per escalare. Una telefonata tramite un account che mantiene la sua voce predefinita è in inglese, e lo è anche una telefonata a chi usa OneUptime in persiano, lingua che nessuna voce parla: vedete [La voce con cui parlano le chiamate](/docs/self-hosted/twilio-integration#la-voce-con-cui-parlano-le-chiamate).
 
 ## Una sola sequenza per tutto
 

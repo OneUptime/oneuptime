@@ -14,6 +14,7 @@ Båda använder samma monitortyp. Det som skiljer dem åt är kriterierna du kon
 - [Skicka ett heartbeat](#skicka-ett-heartbeat): Från curl, cron, Node.js, Python eller Go.
 - [Larma när anropen slutar](#markera-som-offline-om-inget-heartbeat-kommit-på-10-minuter-ett-dödmansgrepp): Gör monitorn till ett dödmansgrepp.
 - [Ta emot larm](#ta-emot-larm-från-ett-annat-system): En incident per larm från Alertmanager eller Grafana.
+- [Publicera i Slack utan att kalla in någon](#publicera-i-slack-utan-att-kalla-in-någon): Meddela en kanal, och kalla in jouren bara utanför arbetstid.
 - [Prenumerera på SNS eller Event Grid](#prenumerera-på-amazon-sns-eller-azure-event-grid): Bekräfta prenumerationen med ett klick.
 :::
 
@@ -422,6 +423,38 @@ Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{
 
 En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). För Grafana, se [Grafana](/docs/integrations/grafana).
 
+### Håll den kontrollerad under incidenter
+
+En incident som någon deklarerar på den här monitorn — från ett av dess larm, till exempel, med **Deklarera incident** — pausar dess kontroller tills incidenten är löst, så förfrågningarna som kommer under tiden utvärderas inte: de öppnar och löser inga larm. Var och en listas ändå i monitorns **Övervakningsloggar**, som den kom, med anledningen till att den inte utvärderades.
+
+För en monitor som andra system skickar sina larm till bör en incident om ett larm inte hindra den från att läsa nästa. Öppna monitorns **Inställningar** och slå under **Under incidenter** på reglaget **Fortsätt övervaka under incidenter**: incidenter som deklareras på den låter den då fortsätta kontrolleras, även de som redan är öppna. För att hålla den kontrollerad under bara en incident kryssar du ur **Pausa övervakningen** när du deklarerar den. Se [Övervakning medan en incident är öppen](/docs/incidents/declaring-incidents#övervakning-medan-en-incident-är-öppen).
+
+## Publicera i Slack utan att kalla in någon
+
+En stagingmiljö, eller en produkt vars problem kan vänta, kan vilja få en förfrågan publicerad i en chattkanal utan att kalla in någon. Ett larm som inte nämner någon jourpolicy gör just det: det publiceras i Slack, Microsoft Teams eller Mattermost via projektets arbetsyteregler och startar ingen eskalering.
+
+:::steps
+1. Öppna kriteriet och slå på **När filter matchar, skapa ett larm.** under **Åtgärder**. Lämna dess **Jourpolicyer** tomma.
+2. Skriv in det förfrågan säger i larmet, till exempel `{{requestBody.commonAnnotations.summary}}` i dess beskrivning. Se [Incident- och larmmallar](/docs/monitor/incident-alert-templating).
+3. Lägg till en regel för den här monitorns larm under **Larm → Arbetsyta → Slack** och slå på **Publicera i befintliga kanaler**. Slack måste först vara [anslutet till projektet](/docs/workspace-connections/slack).
+:::
+
+Ett larm som inte nämner någon jourpolicy kan ändå kalla in någon via projektets regler. Kontrollera att ingen regel under **Larm → Regler → Jourregler** kallar in någon för de här larmen, och att ingen regel under **Larm → Regler → Incidentregler** deklarerar en incident utifrån dem.
+
+För att publicera utan att skapa ett larm slår du bara på **När filter matchar, ändra monitorstatus.** och lägger regeln under **Monitorer → Arbetsyta → Slack** i stället. Kanalen får då bara veta att monitorns status ändrades, utan något från förfrågan, och bara när den ändras: fler förfrågningar medan monitorn redan har den statusen publicerar ingenting.
+
+### Kalla in jouren bara utanför arbetstid
+
+Två kriterier med samma filter delar veckan mellan sig, i den här ordningen:
+
+1. Det första publicerar under arbetstid. Slå på **Utvärdera det här kriteriet bara vissa dagar och tider** under dess **Inställningar**, och välj dagarna, tiderna och **Tidszon**. Dess larm nämner ingen jourpolicy.
+2. Det andra kallar in jouren resten av tiden. Det har inga tider, och dess larm nämner din jourpolicy.
+
+Det första kriteriet som matchar en förfrågan avgör vad som händer. Utanför sina tider hoppas det första kriteriet över, så det andra matchar på natten och under helger, och bara då kallas någon in. Se [Bara vissa dagar och tider](/docs/monitor/criteria-and-statuses#bara-vissa-dagar-och-tider).
+
+- En förfrågan bedöms när den kommer, efter tiderna som de är då. Ett problem som börjar kl. 16:55 kallar in någon efter kl. 17:00 bara om avsändaren skickar det igen, som Alertmanager gör en gång per `repeat_interval`.
+- Ett larm med **Lös larm automatiskt** påslaget löses när en förfrågan matchar ett annat kriterium. Den första förfrågan efter att arbetstiden börjat matchar det första kriteriet, så den löser nattens larm och öppnar ett som inte kallar in någon. Låt **Lös larm automatiskt** vara avslaget på det andra kriteriets larm för att hålla det öppet tills någon löser det.
+
 ## Tjänster som kontrollerar URL:en först
 
 Vissa tjänster kontrollerar en ny slutpunkt innan de levererar något till den: de skickar den en förfrågan och levererar först när den svarar som de väntar sig. OneUptime besvarar själv dessa kontroller, så du behöver bara klistra in monitorns **Heartbeat URL** i tjänsten.
@@ -479,11 +512,16 @@ Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller va
 3. **Använd POST med `Content-Type: application/json`** — allt som läser i kroppen är beroende av det.
 4. **Blanda inte de två uppgifterna på en monitor** — en monitor som tar emot händelsestyrda larm har ingen fast rytm, så ett kriterium "Inte mottaget inom (minuter)" på den kommer att slå fram och tillbaka. Använd en separat monitor för dödmansgreppet.
 5. **Övervaka övervakningen** — Se till att tjänsten som skickar förfrågningarna hanterar fel ordentligt, så att misslyckade förfrågningar inte går obemärkta förbi.
+6. **Håll en mottagare av händelser kontrollerad under incidenter** — Slå på **Fortsätt övervaka under incidenter** i dess **Inställningar** på en monitor som tar emot larm från ett annat system, så att en incident som deklareras på den inte pausar den. Se [Håll den kontrollerad under incidenter](#håll-den-kontrollerad-under-incidenter).
 
 ## Felsökning
 
 :::details Min avsändare får en 200, men ingenting visas på monitorn
 `200` skickas innan förfrågan valideras, så den bevisar inte att förfrågan godtogs. Kontrollera att den hemliga nyckeln i URL:en stämmer med monitorns **Heartbeat URL**, och att monitorn inte är inaktiverad. Titta sedan på monitorns tidslinje för att se om förfrågningarna kommer fram.
+:::
+
+:::details Förfrågningar kommer in, men monitorn öppnar inga larm medan en incident är öppen
+En incident som deklarerats för hand på monitorn pausar dess kontroller, så dess förfrågningar listas i dess **Övervakningsloggar** som **Inte utvärderad: övervakningen är pausad av en incident**, och bannern på dess sidor säger det. Slå på **Fortsätt övervaka under incidenter** i dess **Inställningar**: dess kontroller startar igen direkt, och nästa förfrågningar utvärderas. Förfrågningarna som listades medan den var pausad utvärderas inte i efterhand. Se [Håll den kontrollerad under incidenter](#håll-den-kontrollerad-under-incidenter).
 :::
 
 :::details Min avsändare får 401

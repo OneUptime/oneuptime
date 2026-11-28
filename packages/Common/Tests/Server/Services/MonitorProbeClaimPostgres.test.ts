@@ -1,13 +1,21 @@
 import Entities from "../../../Models/DatabaseModels/Index";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
-import MonitorProbeService from "../../../Server/Services/MonitorProbeService";
+import MonitorProbeService, {
+  ClaimedMonitorProbe,
+} from "../../../Server/Services/MonitorProbeService";
 import {
   SET_ASIDE_FOR_MINUTES,
   SET_ASIDE_PER_CLAIM,
   SET_ASIDE_ROUNDS_PER_CLAIM,
   SET_ASIDE_SPREAD_IN_MINUTES,
 } from "../../../Server/Utils/Probe/ClaimSetAside";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import logger from "../../../Server/Utils/Logger";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import {
   afterAll,
@@ -111,10 +119,14 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
       entities: Entities,
       schema,
       synchronize: false,
-      // Several connections, so claims made at once are made at once.
+      /*
+       * Several connections, so claims made at once are made at once - and a
+       * test that takes them all fails in seconds, not at the run's timeout.
+       */
       extra: {
         options: `-c search_path=${schema} -c lock_timeout=${LOCK_TIMEOUT_MS}`,
         max: 8,
+        connectionTimeoutMillis: 20000,
       },
     });
     await database.initialize();
@@ -275,15 +287,15 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
     limit: number = 50,
     probeId: ObjectID = PROBE_ID,
   ): Promise<Array<string>> {
-    const claimed: Array<ObjectID> =
+    const claimed: Array<ClaimedMonitorProbe> =
       await MonitorProbeService.claimMonitorProbesForProbing({
         probeId: probeId,
         limit: limit,
       });
 
     return claimed
-      .map((id: ObjectID) => {
-        return id.toString();
+      .map((claimedMonitorProbe: ClaimedMonitorProbe) => {
+        return claimedMonitorProbe.monitorProbeId.toString();
       })
       .sort();
   }
@@ -329,12 +341,26 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
   async function holdRow(
     id: ObjectID,
   ): Promise<{ release: () => Promise<void> }> {
+    return await holdRows([id]);
+  }
+
+  /*
+   * Rows held in one transaction, on one connection: the pool has eight, and
+   * the claim under test needs one of its own.
+   */
+  async function holdRows(
+    ids: Array<ObjectID>,
+  ): Promise<{ release: () => Promise<void> }> {
     const holder: QueryRunner = database.createQueryRunner();
     await holder.connect();
     await holder.startTransaction();
     await holder.query(
-      `SELECT "_id" FROM "${schema}"."MonitorProbe" WHERE "_id" = $1 FOR UPDATE`,
-      [id.toString()],
+      `SELECT "_id" FROM "${schema}"."MonitorProbe" WHERE "_id" = ANY($1::uuid[]) FOR UPDATE`,
+      [
+        ids.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ],
     );
 
     return {
@@ -589,16 +615,76 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
   });
 
   /*
-   * The read of the due rows takes no lock, so another instance can claim
-   * one of them before this claim's statement runs. By then that row's
-   * nextPingAt is in the future, and the statement re-checks it.
+   * Issue #10819. The claim used to read the due rows without a lock and
+   * claim them in a second statement, so claims for the same probe made at
+   * the same moment read the same rows and all but one came back empty - a
+   * probe reads an empty batch as "nothing is due" and waits a minute. Now
+   * each claim's one statement skips the rows another claim holds and goes
+   * on to the next ones: held here, in a transaction of its own, the oldest
+   * rows are passed over and the next ones handed out, never nothing.
    */
-  test("a row another instance claimed between this claim's read and its claim is not handed out again", async () => {
-    const taken: ObjectID = await insertMonitorProbe({
-      nextPingAt: minutesAgo(10),
-    });
-    const free: ObjectID = await insertMonitorProbe({
-      nextPingAt: minutesAgo(5),
+  test("a claim made while another holds the oldest rows hands out the next ones, never an empty batch", async () => {
+    const oldest: Array<ObjectID> = [];
+    const next: Array<ObjectID> = [];
+
+    // Two batches' worth held: as many as the old read looked at.
+    for (let index: number = 0; index < 10; index++) {
+      oldest.push(
+        await insertMonitorProbe({ nextPingAt: minutesAgo(30 + index) }),
+      );
+    }
+
+    for (let index: number = 0; index < 5; index++) {
+      next.push(
+        await insertMonitorProbe({ nextPingAt: minutesAgo(10 + index) }),
+      );
+    }
+
+    const holder: { release: () => Promise<void> } = await holdRows(oldest);
+
+    try {
+      expect(await claim(5)).toEqual(sorted(next));
+    } finally {
+      await holder.release();
+    }
+
+    // What was held is still due, for the next claim.
+    expect(await claim(10)).toEqual(sorted(oldest));
+  });
+
+  test("claims for the same probe made at once each hand out a full batch while enough is due", async () => {
+    const ids: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 120; index++) {
+      ids.push(await insertMonitorProbe({ nextPingAt: minutesAgo(index + 1) }));
+    }
+
+    // Eight at once, on eight connections: each asks for 10 of the 120 due.
+    const rounds: Array<Array<string>> = await Promise.all(
+      [1, 2, 3, 4, 5, 6, 7, 8].map((): Promise<Array<string>> => {
+        return claim(10);
+      }),
+    );
+
+    for (const round of rounds) {
+      expect(round).toHaveLength(10);
+    }
+
+    const handedOut: Array<string> = rounds.flat();
+    expect(new Set<string>(handedOut).size).toBe(80);
+  });
+
+  /*
+   * A schedule new to the process is written a minute on by the claim's
+   * statement and given its real next run right after, but only where the
+   * row still holds what the claim wrote: a monitor made due again in
+   * between (makeDueNowForMonitorProbes) stays due.
+   */
+  test("a monitor made due again between the claim and its schedule's next run stays due", async () => {
+    const madeDue: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(3),
+      // A schedule no earlier claim of this process has seen.
+      monitoringInterval: "*/7 * * * *",
     });
 
     const realQuery: (
@@ -613,27 +699,71 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
           sql: string,
           params?: Array<unknown>,
         ): Promise<unknown> => {
-          const result: unknown = await realQuery(sql, params);
           statements++;
 
-          if (statements === 1) {
-            // The other instance's claim lands now.
-            await database.query(
-              `UPDATE "${schema}"."MonitorProbe"
-               SET "nextPingAt" = now() + interval '5 minutes', "lastPingAt" = now()
-               WHERE "_id" = $1`,
-              [taken.toString()],
-            );
+          if (statements === 2) {
+            // Turned back on, say, right after its claim.
+            await MonitorProbeService.makeDueNowForMonitorProbes({
+              monitorProbeIds: [madeDue],
+            });
           }
 
-          return result;
+          return await realQuery(sql, params);
         },
       },
     } as never);
 
-    expect(await claim()).toEqual([free.toString()]);
-    // The read, the claim, and the set-aside after them.
-    expect(statements).toBe(3);
+    const before: number = Date.now();
+    expect(await claim()).toEqual(sorted([madeDue]));
+    jest.restoreAllMocks();
+
+    const { nextPingAt } = await scheduleOf(madeDue);
+    expect(nextPingAt!.getTime()).toBeLessThanOrEqual(Date.now());
+    expect(nextPingAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
+  });
+
+  /*
+   * Once the process has seen a schedule, the claim's own statement writes
+   * it: one statement hands monitors out and schedules them.
+   */
+  test("a schedule the process has seen is written by the claim's statement alone", async () => {
+    const first: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(3),
+      monitoringInterval: "*/11 * * * *",
+    });
+    expect(await claim()).toEqual(sorted([first]));
+
+    const second: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(2),
+      monitoringInterval: "*/11 * * * *",
+    });
+
+    const realQuery: (
+      sql: string,
+      params?: Array<unknown>,
+    ) => Promise<unknown> = database.manager.query.bind(database.manager);
+    let statements: number = 0;
+
+    jest.spyOn(MonitorProbeService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (
+          sql: string,
+          params?: Array<unknown>,
+        ): Promise<unknown> => {
+          statements++;
+          return await realQuery(sql, params);
+        },
+      },
+    } as never);
+
+    expect(await claim()).toEqual(sorted([second]));
+    expect(statements).toBe(1);
+    jest.restoreAllMocks();
+
+    const { nextPingAt } = await scheduleOf(second);
+    expect(nextPingAt!.getUTCSeconds()).toBe(0);
+    expect(nextPingAt!.getUTCMinutes() % 11).toBe(0);
+    expect(nextPingAt!.getTime()).toBeGreaterThan(Date.now());
   });
 
   /*
@@ -1236,5 +1366,340 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
         dueAt: minutesAgo(2),
       }),
     ).resolves.toBe(1);
+  });
+
+  /*
+   * WHAT THE CLAIM HANDS BACK WITH EACH ROW (#11120): the row's monitor, as
+   * the probe is handed it, read by the claim's own statement. The route
+   * used to read it again after the claim (MonitorProbeService.findBy by
+   * _id, selecting the monitor's steps, type, interval and project): what
+   * the claim hands back must be to the byte what that read handed out.
+   */
+  describe("each claimed row's monitor, read by the claim itself", () => {
+    // A monitor of `monitorType`, its steps as the Dashboard makes them, on the probe.
+    async function insertMonitorWithSteps(data: {
+      monitorType: MonitorType;
+      monitoringInterval: string | null;
+      steps: "default" | "none" | "unreadable";
+      nextPingAt: Date;
+      projectId?: ObjectID;
+    }): Promise<{ id: ObjectID; monitorId: ObjectID }> {
+      const monitorId: ObjectID = ObjectID.generate();
+      const projectId: ObjectID = data.projectId || PROJECT_ID;
+      let stored: unknown = null;
+
+      if (data.steps === "default") {
+        stored = MonitorSteps.getDatabaseTransformer().to(
+          MonitorSteps.getDefaultMonitorSteps({
+            defaultMonitorStatusId: ObjectID.generate(),
+            monitorType: data.monitorType,
+            monitorName: `${data.monitorType} monitor`,
+            onlineMonitorStatusId: ObjectID.generate(),
+            offlineMonitorStatusId: ObjectID.generate(),
+            defaultIncidentSeverityId: ObjectID.generate(),
+            defaultAlertSeverityId: ObjectID.generate(),
+          }),
+        );
+      } else if (data.steps === "unreadable") {
+        stored = { not: "monitor steps" };
+      }
+
+      await database.query(
+        `INSERT INTO "${schema}"."Monitor"
+           ("_id", "projectId", "name", "monitorType", "monitoringInterval",
+            "monitorSteps", "isArchived", "disableActiveMonitoring",
+            "disableActiveMonitoringBecauseOfManualIncident",
+            "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent")
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb, false, false, false, false)`,
+        [
+          monitorId.toString(),
+          projectId.toString(),
+          `${data.monitorType} monitor`,
+          data.monitorType,
+          data.monitoringInterval,
+          stored === null ? null : JSON.stringify(stored),
+        ],
+      );
+
+      const id: ObjectID = ObjectID.generate();
+
+      await database.query(
+        `INSERT INTO "${schema}"."MonitorProbe"
+           ("_id", "projectId", "probeId", "monitorId", "isEnabled", "nextPingAt",
+            "createdAt", "updatedAt", "version")
+         VALUES ($1, $2, $3, $4, true, $5, now(), now(), 1)`,
+        [
+          id.toString(),
+          projectId.toString(),
+          PROBE_ID.toString(),
+          monitorId.toString(),
+          data.nextPingAt,
+        ],
+      );
+
+      return { id, monitorId };
+    }
+
+    // What the read after the claim handed the probe, as main ran it.
+    async function readAsMainDid(
+      ids: Array<ObjectID>,
+    ): Promise<Map<string, string>> {
+      const read: Array<MonitorProbe> = await MonitorProbeService.findBy({
+        query: { _id: QueryHelper.any(ids) },
+        select: {
+          nextPingAt: true,
+          probeId: true,
+          monitorId: true,
+          monitor: {
+            monitorSteps: true,
+            monitorType: true,
+            monitoringInterval: true,
+            projectId: true,
+          },
+        },
+        limit: ids.length,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      return new Map(
+        read.map((monitorProbe: MonitorProbe): [string, string] => {
+          return [
+            monitorProbe.id!.toString(),
+            JSON.stringify(BaseModel.toJSON(monitorProbe.monitor!, Monitor)),
+          ];
+        }),
+      );
+    }
+
+    function sentAs(claimed: ClaimedMonitorProbe): string {
+      return JSON.stringify(BaseModel.toJSON(claimed.monitor, Monitor));
+    }
+
+    test("each monitor is to the byte what the read after the claim used to hand the probe, whatever its type, schedule and steps", async () => {
+      const otherProject: ObjectID = ObjectID.generate();
+      await insertProject(otherProject, {});
+
+      const rows: Array<{ id: ObjectID; monitorId: ObjectID }> = [
+        await insertMonitorWithSteps({
+          monitorType: MonitorType.Website,
+          monitoringInterval: "* * * * *",
+          steps: "default",
+          nextPingAt: minutesAgo(9),
+        }),
+        await insertMonitorWithSteps({
+          monitorType: MonitorType.API,
+          monitoringInterval: "*/5 * * * *",
+          steps: "default",
+          nextPingAt: minutesAgo(8),
+          projectId: otherProject,
+        }),
+        await insertMonitorWithSteps({
+          monitorType: MonitorType.Ping,
+          monitoringInterval: "*/10 * * * *",
+          steps: "default",
+          nextPingAt: minutesAgo(7),
+        }),
+        await insertMonitorWithSteps({
+          monitorType: MonitorType.SSLCertificate,
+          monitoringInterval: "0 * * * *",
+          steps: "default",
+          nextPingAt: minutesAgo(6),
+        }),
+        // No steps, and no interval: NULL, as stored.
+        await insertMonitorWithSteps({
+          monitorType: MonitorType.Port,
+          monitoringInterval: null,
+          steps: "none",
+          nextPingAt: minutesAgo(5),
+        }),
+        // Steps that do not read as steps: read as the column reads them.
+        await insertMonitorWithSteps({
+          monitorType: MonitorType.Website,
+          monitoringInterval: "* * * * *",
+          steps: "unreadable",
+          nextPingAt: minutesAgo(4),
+        }),
+      ];
+
+      const claimed: Array<ClaimedMonitorProbe> =
+        await MonitorProbeService.claimMonitorProbesForProbing({
+          probeId: PROBE_ID,
+          limit: 50,
+        });
+
+      // Every row, oldest due first, each with its own monitor.
+      expect(
+        claimed.map((one: ClaimedMonitorProbe): string => {
+          return one.monitorProbeId.toString();
+        }),
+      ).toEqual(
+        rows.map((row: { id: ObjectID }): string => {
+          return row.id.toString();
+        }),
+      );
+      expect(
+        claimed.map((one: ClaimedMonitorProbe): string => {
+          return one.monitor.id!.toString();
+        }),
+      ).toEqual(
+        rows.map((row: { monitorId: ObjectID }): string => {
+          return row.monitorId.toString();
+        }),
+      );
+
+      const before: Map<string, string> = await readAsMainDid(
+        rows.map((row: { id: ObjectID }): ObjectID => {
+          return row.id;
+        }),
+      );
+
+      /*
+       * Steps that do not read as steps are read as new steps, whose ids
+       * are made afresh at every read (MonitorSteps.fromDatabase): two reads
+       * of that row agree on everything but those ids.
+       */
+      const withoutIds: (sent: string | undefined) => string = (
+        sent: string | undefined,
+      ): string => {
+        return String(sent).replace(
+          /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g,
+          "<id>",
+        );
+      };
+
+      for (let index: number = 0; index < claimed.length; index++) {
+        const one: ClaimedMonitorProbe = claimed[index]!;
+        const asBefore: string | undefined = before.get(
+          one.monitorProbeId.toString(),
+        );
+
+        if (index === 5) {
+          expect(withoutIds(sentAs(one))).toBe(withoutIds(asBefore));
+          continue;
+        }
+
+        expect({ index, sent: sentAs(one) }).toEqual({
+          index,
+          sent: asBefore,
+        });
+      }
+
+      // The NULLs reach the probe as NULLs, as they always did.
+      const bare: Monitor = claimed[4]!.monitor;
+      expect(bare.monitoringInterval).toBeNull();
+      expect(bare.monitorSteps).toBeNull();
+      expect(bare.monitorType).toBe(MonitorType.Port);
+    });
+
+    test("a claim made while another holds the oldest rows hands out the next ones, each with its own monitor", async () => {
+      const rows: Array<{ id: ObjectID; monitorId: ObjectID }> = [];
+
+      for (let index: number = 0; index < 6; index++) {
+        rows.push(
+          await insertMonitorWithSteps({
+            monitorType: MonitorType.Website,
+            monitoringInterval: "* * * * *",
+            steps: "default",
+            nextPingAt: minutesAgo(10 - index),
+          }),
+        );
+      }
+
+      const held: { release: () => Promise<void> } = await holdRows([
+        rows[0]!.id,
+        rows[1]!.id,
+      ]);
+
+      try {
+        const claimed: Array<ClaimedMonitorProbe> =
+          await MonitorProbeService.claimMonitorProbesForProbing({
+            probeId: PROBE_ID,
+            limit: 3,
+          });
+
+        expect(
+          claimed.map((one: ClaimedMonitorProbe): Array<string> => {
+            return [one.monitorProbeId.toString(), one.monitor.id!.toString()];
+          }),
+        ).toEqual(
+          rows
+            .slice(2, 5)
+            .map(
+              (row: { id: ObjectID; monitorId: ObjectID }): Array<string> => {
+                return [row.id.toString(), row.monitorId.toString()];
+              },
+            ),
+        );
+      } finally {
+        await held.release();
+      }
+    });
+
+    test("two claims for the same probe at once hand out each monitor once, each with its own", async () => {
+      const rows: Array<{ id: ObjectID; monitorId: ObjectID }> = [];
+
+      for (let index: number = 0; index < 20; index++) {
+        rows.push(
+          await insertMonitorWithSteps({
+            monitorType: MonitorType.Website,
+            monitoringInterval: "* * * * *",
+            steps: "default",
+            nextPingAt: minutesAgo(30 - index),
+          }),
+        );
+      }
+
+      const [first, second] = await Promise.all([
+        MonitorProbeService.claimMonitorProbesForProbing({
+          probeId: PROBE_ID,
+          limit: 10,
+        }),
+        MonitorProbeService.claimMonitorProbesForProbing({
+          probeId: PROBE_ID,
+          limit: 10,
+        }),
+      ]);
+
+      const monitorOfRow: Map<string, string> = new Map(
+        rows.map((row: { id: ObjectID; monitorId: ObjectID }) => {
+          return [row.id.toString(), row.monitorId.toString()];
+        }),
+      );
+      const handed: Array<ClaimedMonitorProbe> = [...first!, ...second!];
+
+      expect(first).toHaveLength(10);
+      expect(second).toHaveLength(10);
+      expectEachOnce(
+        handed.map((one: ClaimedMonitorProbe): string => {
+          return one.monitorProbeId.toString();
+        }),
+        rows.map((row: { id: ObjectID }): string => {
+          return row.id.toString();
+        }),
+      );
+
+      for (const one of handed) {
+        expect(one.monitor.id!.toString()).toBe(
+          monitorOfRow.get(one.monitorProbeId.toString()),
+        );
+      }
+    });
+
+    test("nothing due hands back nothing: the one row the statement answers for its flag carries no monitor", async () => {
+      await insertMonitorWithSteps({
+        monitorType: MonitorType.Website,
+        monitoringInterval: "* * * * *",
+        steps: "default",
+        nextPingAt: minutesAgo(-5),
+      });
+
+      await expect(
+        MonitorProbeService.claimMonitorProbesForProbing({
+          probeId: PROBE_ID,
+          limit: 10,
+        }),
+      ).resolves.toEqual([]);
+    });
   });
 });

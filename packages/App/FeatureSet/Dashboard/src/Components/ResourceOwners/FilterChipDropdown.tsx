@@ -12,6 +12,7 @@ import {
   FilterChipDropdownOption,
   FilterOperator,
   FILTER_OPERATOR_LABELS,
+  getFilterChipOptionLabel,
 } from "./FilterChipDropdownTypes";
 import {
   FILTER_CHIP_PLACE_CLASSES,
@@ -430,16 +431,16 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
       return "";
     }
     if (selectedOptions.length === 1) {
-      return selectedOptions[0]!.label;
+      return getFilterChipOptionLabel(selectedOptions[0]!, translator);
     }
     const visible: Array<string> = selectedOptions
       .slice(0, 2)
       .map((o: FilterChipDropdownOption) => {
-        return o.label;
+        return getFilterChipOptionLabel(o, translator);
       });
     const extra: number = selectedOptions.length - visible.length;
     return `${visible.join(", ")}${extra > 0 ? ` +${extra}` : ""}`;
-  }, [selectedOptions]);
+  }, [selectedOptions, translator.language]);
 
   // In async mode, the server already filtered — don't re-filter client-side.
   const filteredOptions: Array<FilterChipDropdownOption> =
@@ -832,7 +833,10 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                                       className="block min-w-0 truncate font-medium"
                                       onMouseEnter={showFullValueWhenCutShort}
                                     >
-                                      {option.label}
+                                      {getFilterChipOptionLabel(
+                                        option,
+                                        translator,
+                                      )}
                                     </span>
                                     <SharedNamePill mark={sharedNameMark} />
                                   </span>
@@ -846,7 +850,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                                   className="block truncate font-medium"
                                   onMouseEnter={showFullValueWhenCutShort}
                                 >
-                                  {option.label}
+                                  {getFilterChipOptionLabel(option, translator)}
                                 </span>
                               )}
                               {option.sublabel && (

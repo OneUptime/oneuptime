@@ -86,7 +86,9 @@ const STORED_DATA_USES: Record<string, string> = {
   "packages/Common/Server/Utils/Telemetry/ScrubHashToken.ts":
     "keys each project's Hash scrub tokens, which telemetry stores in place of a value, so no one without it can hash a guess to compare (#10394)",
   "packages/Common/Server/Utils/Telemetry/KeyedExceptionFingerprint.ts":
-    "keys each project's stored fingerprints of exceptions a scrub rule hid part of, which their occurrences are grouped by, so no one without it can hash a guess of what the rule hid to compare (#10434)",
+    "keys each project's fingerprints of exceptions a scrub rule hid part of, which are stored and read beside the scrubbed text, so no one without it can hash a guess of what the rule hid to compare (#10434)",
+  "packages/Common/Server/Utils/SecurityEvent/DetectionFingerprint.ts":
+    "keys each project's Security Events detection fingerprints, stored in event ids, alert and incident fingerprints, case detections and entity risk, so no one without it can hash a guessed user or indicator to compare (#11130)",
 };
 
 /*

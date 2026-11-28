@@ -471,19 +471,66 @@ Kubernetes-Ereignisse werden am Agent nicht nach Namespace gefiltert: Er sendet 
 
 Es akzeptiert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` und `FATAL`. `WARN` behält WARN, ERROR und FATAL und verwirft INFO, DEBUG und TRACE; der Standard (`""`) behält alles. Es gilt in beiden Log-Modi (über den Collector im Modus `daemonset`, im Log-Tailer im Modus `api`), daher schaltet ein Preset es nie hinter Ihrem Rücken ab.
 
-Container-Laufzeiten erfassen keinen Schweregrad, daher liest der Agent ihn aus dem Logtext selbst (`[ERROR]`, `WARN:`, `"level":"info"`, …). Was mit einer Zeile ohne erkennbare Stufe geschieht, hängt vom Log-Modus ab, weil die beiden Modi Unterschiedliches wissen:
+Container-Laufzeiten erfassen keinen Schweregrad, daher liest der Agent die Stufe, die jede Zeile nennt: ein Level-Wort (`[ERROR]`, `WARN:`, `"level":"info"`, …), den ersten Buchstaben einer klog-Zeile (`I`, `W`, `E`, `F`), das `LOG:` von PostgreSQL oder das `"level":30` von pino. Der Traceback einer Exception oder eine Panic zählt als ERROR. Was mit einer Zeile geschieht, die keine Stufe nennt, hängt vom Log-Modus ab, weil die beiden Modi Unterschiedliches wissen:
 
 | Modus | Eine Zeile ohne Stufe | Warum |
 | --- | --- | --- |
-| `daemonset` | `stderr` zählt als ERROR (behalten), `stdout` als INFO (von einer WARN-Schwelle verworfen) | Die Container-Laufzeit erfasst, aus welchem Stream jede Zeile kam. |
+| `daemonset` | `stdout` zählt als INFO (von einer WARN-Schwelle verworfen); `stderr` hat keinen Schweregrad, wird als Nicht angegeben angezeigt und behalten | Die Container-Laufzeit erfasst, aus welchem Stream jede Zeile kam. stdout ist die gewöhnliche Ausgabe eines Programms, aber Programme schreiben ihre Diagnosen jeder Stufe nach stderr, daher sagt eine stderr-Zeile nichts über ihre Stufe. |
 | `api` | Wird immer behalten | Die Kubernetes-API `pods/log` führt stdout und stderr ohne Markierung pro Zeile in einem Stream zusammen; statt zu raten, behält der Agent die Zeile. |
 
-Der Modus `api` verwirft also bewusst strikt weniger als der Modus `daemonset`: Ein Python-Traceback oder ein `npm ERR!` trägt kein Schweregrad-Schlüsselwort, und es stillschweigend zu löschen, ist genau der Fehler, vor dem eine Schwelle schützen soll. Im Hybridmodus (`logs.windowsPods.enabled`) gelten beide Zeilen, je nach Betriebssystem des Knotens: Linux-Pods folgen `daemonset`, Windows-Pods `api`.
+Der Modus `api` verwirft also bewusst strikt weniger als der Modus `daemonset`: Er kann eine stderr-Zeile, die keine Stufe nennt, etwa ein `npm ERR!`, nicht von gewöhnlicher Ausgabe unterscheiden, und sie stillschweigend zu löschen, ist genau der Fehler, vor dem eine Schwelle schützen soll. Im Hybridmodus (`logs.windowsPods.enabled`) gelten beide Zeilen, je nach Betriebssystem des Knotens: Linux-Pods folgen `daemonset`, Windows-Pods `api`.
 
 Mehrzeilige Ereignisse werden in beiden Modi vor dem Filtern wieder zusammengesetzt, daher wird ein Java-Stacktrace nach seiner ersten Zeile beurteilt und als Ganzes behalten oder verworfen.
 
 > [!IMPORTANT]
 > Kubernetes-Ereignisse und Ressourcenspezifikationen werden dadurch nie gefiltert. Sie kommen ohne eigenen Schweregrad aus der Kubernetes-API, daher würde eine Schwelle den ganzen Feed löschen, einschließlich der Warnungen `FailedScheduling`, `BackOff` und `OOMKilling`, die Sie am dringendsten brauchen. Sie sind wenige und wertvoll, deshalb sendet der Agent sie immer; um sie auszudünnen, verwenden Sie **Protokolle → Einstellungen → Drop-Filter** in OneUptime.
+
+### Ein eigenes Log-Format lesen
+
+Der Agent liest die Stufen der Formate, die die meisten Programme schreiben. Für ein Format, das er nicht liest, etwa ein hauseigenes, fügen Sie mit `logs.extraOperators` eigene Collector-Operators hinzu. Sie laufen im Modus `daemonset` auf jeder Pod-Logzeile, nachdem der Agent die Zeile wieder zusammengesetzt und ihren Pod und Stream gelesen hat, und bevor er die Stufe der Zeile liest.
+
+Um die Stufe einer Zeile zu setzen, schreiben Sie sie nach `attributes.severity_text`, als ein Wort, das der Agent liest, etwa `ERROR`, `warn`, `critical` oder ein klog-Buchstabe. Der Agent liest das vor jedem seiner eigenen Leser und speichert es so, wie OneUptime dieses Wort überall sonst speichert. Geben Sie die Zeile dann an `severity-router` weiter, den ersten Schritt des Agents, oder lassen Sie sie zu Ihrem nächsten Operator weiterlaufen.
+
+Für Zeilen wie `<<E>> payment failed` und `SEV1 checkout is down`:
+
+```yaml
+logs:
+  extraOperators:
+    # The letter is the level: D I W E F, which the agent reads.
+    - type: regex_parser
+      id: inhouse-level
+      if: 'body matches "^<<[DIWEF]>> "'
+      regex: '^<<(?P<severity_text>[DIWEF])>> '
+    # SEV1 and SEV2 are words the agent does not read: name the level.
+    - type: router
+      id: sev-route
+      routes:
+        - output: sev-fatal
+          expr: 'body matches "^SEV1 "'
+        - output: sev-error
+          expr: 'body matches "^SEV2 "'
+      default: severity-router
+    - type: add
+      id: sev-fatal
+      field: attributes.severity_text
+      value: FATAL
+      output: severity-router
+    - type: add
+      id: sev-error
+      field: attributes.severity_text
+      value: ERROR
+      output: severity-router
+```
+
+Das Chart prüft die Operators, wenn Sie installieren oder aktualisieren. Ein Wert, den der Collector ablehnen würde, lässt `helm install` mit einer Meldung fehlschlagen, die den Operator nennt, statt ein DaemonSet zu hinterlassen, das immer wieder neu startet: ein Typ, den der Collector von `image.tag` nicht hat, eine Einstellung, die der Typ braucht, ein Feld, eine bereits vergebene ID, ein `output`, das auf nichts verweist, eine Regex oder ein String in einem Ausdruck. In einem String eines Ausdrucks wird der Backslash einer Regex doppelt geschrieben, wie in `"^\\d+ "`, oder die Regex steht in einem Raw-String zwischen Backticks. Den Rest eines Ausdrucks kompiliert der Collector erst, wenn er startet.
+
+Das Chart lehnt außerdem drei Arten von Operators ab, die der Collector ausführen würde, und sagt, warum:
+
+- Einen, der den Schweregrad der Zeile selbst setzt, etwa einen `severity_parser`, einen `syslog_parser` oder den `severity`-Block eines Parsers. Der Agent liest die Stufe jeder Zeile nach Ihren Operators und würde ihn überschreiben; schreiben Sie die Stufe daher stattdessen nach `attributes.severity_text`.
+- Einen Router ohne `default` oder eine Route ohne `output`. Die Zeilen, die er an keinen Operator weitergibt, werden verworfen.
+- Den Parser `container`. Der Agent hat das Format der Container-Laufzeit bereits gelesen, daher sehen Ihre Operators die eigene Zeile des Programms.
+
+`logs.extraOperators` braucht den Modus `daemonset`. Der Log-Tailer des Modus `api` führt keine Collector-Operators aus, daher lehnt das Chart die Einstellung dort ab, und die Windows-Pods einer Hybridinstallation (`logs.windowsPods.enabled`) erhalten sie nicht.
 
 ### Metriken nach Namen ein- oder ausschließen
 
@@ -789,7 +836,7 @@ Das Einfügen des Headers bedeutet, Verkehr umzuschreiben, der bereits unterwegs
 
 Wird auf diesem Cluster ein Vorfall oder eine Warnung ausgelöst, untersucht OneUptime AI ihn. Der **Kubernetes-KI-Agent** des Charts gibt ihr ein Terminal: Er führt lesendes `kubectl` aus, so wie es ein Bereitschaftsingenieur tun würde (den ausfallenden Pod beschreiben, seine Ereignisse lesen, die Logs des abstürzenden Containers verfolgen, die Knotenkapazität prüfen), und nennt jeden Befehl auf der Seite des Vorfalls.
 
-Der Agent ist **standardmäßig aktiv** und **schreibgeschützt**: ein kleines Deployment (`kubernetes-agent-ai-agent`, Pod-Label `component=ai-agent`, Image `oneuptime/kubernetes-ai-agent`), dessen ServiceAccount nur lesen darf. Er registriert sich mit demselben `oneuptime.apiKey` und `clusterName` wie der Collector, daher ist im Dashboard nichts einzurichten: Die Seite **KI-Agent** des Clusters (Kubernetes → Cluster → KI → Agent) zeigt ihn innerhalb einer Minute als verbunden an, und **Verbindung testen**, im Menü **⋯** neben diesem Status, führt `kubectl version` und `kubectl auth can-i --list` über ihn aus. Alles, was die KI damit getan hat, steht auf der Seite **KI-Protokolle** des Clusters (KI → Protokolle), und was über den Cluster wissenswert ist — die Probleme, die immer wiederkehren, und warum, der Knoten oder Workload hinter den meisten davon, was die KI behoben hat — auf der Seite **KI-Einblicke** (KI → Einblicke). Der Agent bringt ein festgelegtes kubectl mit (v1.36.6). Er ist kein Runner und erscheint nie unter Runbooks → Runners: OneUptime übergibt ihm nie Zugangsdaten, führt nie Runbooks auf ihm aus, und er wird nie als Befehls-Runner einer KI-Regel akzeptiert.
+Der Agent ist **standardmäßig aktiv** und **schreibgeschützt**: ein kleines Deployment (`kubernetes-agent-ai-agent`, Pod-Label `component=ai-agent`, Image `oneuptime/kubernetes-ai-agent`), dessen ServiceAccount nur lesen darf. Er registriert sich mit demselben `oneuptime.apiKey` und `clusterName` wie der Collector, daher ist im Dashboard nichts einzurichten: Die Seite **KI-Agent** des Clusters (Kubernetes → Cluster → KI → Agent) zeigt ihn innerhalb einer Minute als verbunden an, und **Verbindung testen**, im Menü **⋯** neben diesem Status, führt `kubectl version` und `kubectl auth can-i --list` über ihn aus. Alles, was die KI damit getan hat, steht auf der Seite **KI-Protokolle** des Clusters (KI → Protokolle), und was über den Cluster wissenswert ist — die Probleme, die immer wiederkehren, und warum, der Knoten oder Workload hinter den meisten davon, was die KI behoben hat — auf der Seite **KI-Einblicke** (KI → Einblicke). Der Agent bringt ein festgelegtes kubectl mit (v1.36.7). Er ist kein Runner und erscheint nie unter Runbooks → Runners: OneUptime übergibt ihm nie Zugangsdaten, führt nie Runbooks auf ihm aus, und er wird nie als Befehls-Runner einer KI-Regel akzeptiert.
 
 Bei einem Agent, der installiert wurde, bevor es den KI-Agent gab, aktualisieren Sie zuerst Ihren Chart-Index und führen dann das Upgrade aus (auf einem selbst gehosteten OneUptime aktualisieren Sie zuerst OneUptime — siehe [Agent aktualisieren](#agent-aktualisieren)):
 

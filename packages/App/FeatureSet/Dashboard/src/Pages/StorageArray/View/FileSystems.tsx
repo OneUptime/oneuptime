@@ -7,6 +7,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
+import { StorageArrayKindPage } from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayPlatformState,
+  getKindPageFor,
+  useStorageArrayPlatform,
+} from "../Utils/UseStorageArrayPlatform";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { loadFileSystemAvailableRatios } from "../Utils/StorageArrayReadings";
@@ -33,13 +40,23 @@ import TableEmptyValue, {
 } from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
- * FlashBlade file systems (kind=FileSystem), from
- * purefb_file_systems_space_bytes / _performance_* via the inventory.
+ * FlashBlade file systems (kind=FileSystem), from its file system space
+ * and performance series via the inventory.
  */
+
+// What the list says on a platform that says nothing of the kind.
+const FILE_SYSTEMS_DESCRIPTION: string = translationKey(
+  "File systems on this array with the protocols they are shared over, their size, the space they use and their latest performance.",
+);
+const FILE_SYSTEMS_NO_ITEMS: string = translationKey(
+  "No file systems in the inventory yet. File systems appear here a few minutes after the Storage Array Agent starts scraping the array.",
+);
+
 const StorageArrayFileSystems: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const platform: StorageArrayPlatformState = useStorageArrayPlatform(modelId);
 
   /*
    * Each file system's latest available share of its provisioned size (the
@@ -73,6 +90,15 @@ const StorageArrayFileSystems: FunctionComponent<
     };
   }, [modelId.toString()]);
 
+  if (platform.isLoading) {
+    return <PageSkeleton shape="table" />;
+  }
+
+  const kindPage: StorageArrayKindPage | null = getKindPageFor(
+    platform.storageSystem,
+    StorageArrayResourceKind.FileSystem,
+  );
+
   return (
     <StorageArrayResourceTable
       storageArrayId={modelId}
@@ -82,8 +108,8 @@ const StorageArrayFileSystems: FunctionComponent<
       singularName="File System"
       pluralName="File Systems"
       title="File Systems"
-      description="File systems on this FlashBlade with the protocols they are shared over, their size, the flash they use and their latest performance."
-      noItemsMessage="No file systems in the inventory yet. File systems appear here a few minutes after the Storage Array Agent starts scraping the FlashBlade."
+      description={kindPage?.description || FILE_SYSTEMS_DESCRIPTION}
+      noItemsMessage={kindPage?.noItemsMessage || FILE_SYSTEMS_NO_ITEMS}
       getDetailRoute={(item: StorageArrayResource): Route => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL] as Route,

@@ -1,6 +1,6 @@
 # Conectar una base de datos
 
-Observabilidad de datos lee cada base de datos con un usuario que solo lee su catálogo: qué tablas y vistas contiene, sus columnas, filas y tamaño, y cuándo cambiaron. Esta página indica lo mínimo que necesita cada motor, y cómo mantener la cadena de conexión dentro de tu red con una sonda.
+Observabilidad de datos lee cada base de datos con un usuario que solo lee su catálogo: qué tablas y vistas contiene, sus columnas, filas y tamaño, y cuándo cambiaron. Esta página indica lo mínimo que necesita cada motor, cómo mantener la cadena de conexión dentro de tu red con una sonda o con el Database Agent que ya ejecutas, y cómo cambiar, quitar o eliminar una base de datos más adelante.
 
 ## Antes de empezar
 
@@ -13,12 +13,21 @@ En **Observabilidad de datos > Bases de datos**, elige **Conectar una base de da
 
 - **OneUptime se conecta**: pega una cadena de conexión. Se guarda cifrada, solo la usan los workers de OneUptime y no se vuelve a mostrar nunca.
 - **Una sonda de mi red se conecta**: elige una de tus sondas e indica la variable de entorno de la sonda que contiene la cadena de conexión, como `ORDERS_DB_URL`. La cadena de conexión nunca sale de tu red. Consulta [Sondas personalizadas](/docs/probe/custom-probe).
+- **Mi agente de bases de datos se conecta**: elige el servidor de bases de datos junto al que ya se ejecuta su [Database Agent](/docs/telemetry/databases) e indica la base de datos que se leerá en él. El agente la lee con usuarios de su propio entorno, así que no se guarda ningún usuario en OneUptime. Consulta [A través de un Database Agent](#a-través-de-un-database-agent).
 
 Una base de datos ya conectada para Seguridad de datos también se vigila, sin nada que conectar, igual que cada conjunto de datos de BigQuery que encontró tu [conexión a la nube](/docs/telemetry/cloud-accounts).
 
 ## Bases de datos que podrías conectar
 
 **Bases de datos que podrías conectar**, en **Bases de datos**, muestra lo que tu proyecto ya conoce y nadie ha conectado: bases de datos con las que hablan tus trazas, las de tus cuentas en la nube y las que vigila Database Monitoring. **Conectar** abre el formulario a partir de lo que se sabe de cada una, con una cadena de conexión que debes rellenar. **Descartar** evita que una vuelva a aparecer. No se lee nada hasta que la conectes.
+
+## A través de un Database Agent
+
+Un Database Agent ya llega a su servidor de bases de datos y envía sus métricas. También puede leer las bases de datos PostgreSQL, MySQL y MariaDB de ese servidor para Observabilidad de datos, en cuanto su responsable lo active: añade `ONEUPTIME_DATA_OBSERVABILITY=true` al `.env` del agente y ejecuta `docker compose up -d`. Hasta entonces, el agente aparece con **Observabilidad de datos desactivada**, y una base de datos conectada a través de él indica qué hacer.
+
+OneUptime le dice al agente qué base de datos leer y qué comprobaciones tocan, cada una con su tipo y la tabla y las columnas que lee. Nunca envía una sentencia ni un usuario. El agente construye cada sentencia él mismo, a partir de las mismas formas fijas que usan los colectores de OneUptime, y ejecuta cada una en una transacción de solo lectura con un límite de 30 segundos. Solo ejecuta una comprobación cuando cada tabla y columna que nombra está en el catálogo que acaba de leer, vincula cada valor con el que compara la comprobación y devuelve un número por comprobación, nunca una fila. Las comprobaciones **SQL personalizado** y **Filas con error** solo se ejecutan donde el responsable del agente define `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true`; en los demás casos lo indican, y todas las demás comprobaciones se ejecutan.
+
+El agente lee el catálogo con `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME`, o con el usuario del colector, y ejecuta las comprobaciones con `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME`, o con el usuario del catálogo: concede a cada uno solo lo que indican para él las pestañas de abajo. El README del agente enumera todas las variables.
 
 ## Un usuario de solo lectura por motor
 
@@ -162,6 +171,18 @@ Las comprobaciones se ejecutan como SQL de solo lectura en el endpoint TDS del e
 
 Cada sentencia se ejecuta en solo lectura, con un tiempo de espera de sentencia y de bloqueo donde el motor los tiene. Si Snowflake, Databricks, BigQuery, Athena, ClickHouse o Dataverse rechaza una solicitud o falla por un momento, con un 429, un 503 o su propia respuesta de que está demasiado ocupado, la solicitud se vuelve a enviar, dos veces como máximo y con un minuto de espera como mucho por recopilación, y nunca de forma que una sentencia pueda ejecutarse dos veces. La cadena de conexión nunca se registra y se elimina de cada error. Una estadística que el usuario no puede leer se omite con una advertencia en la base de datos, nunca con una recopilación fallida. Las conexiones a direcciones privadas se rechazan en OneUptime Cloud: usa una sonda.
 
+## Gestionar una base de datos
+
+Cada base de datos tiene una página **Ajustes**: elige **Ajustes** en su fila de **Bases de datos** o en su menú.
+
+- **Editar detalles** le cambia el nombre. Seguridad de datos muestra el mismo nombre.
+- **Cambiar conexión** le da un usuario nuevo, otra sonda o un Database Agent. Una cadena de conexión guardada no se vuelve a mostrar nunca: deja el campo vacío para conservarla. Pasar una base de datos a un Database Agent elimina su cadena de conexión guardada, salvo que Seguridad de datos tome muestras del contenido de la base de datos con ella.
+- **Dejar de vigilar**, en su **Vista general**, deja de leerla durante un tiempo y conserva sus tablas y su historial. **Volver a vigilar** la reanuda.
+- **Quitar de Observabilidad de datos** deja de leerla y olvida sus tablas, sus comprobaciones y su historial. Seguridad de datos conserva la base de datos, su conexión y lo que encontraron sus escaneos, y se vuelve a ofrecer en **Bases de datos que podrías conectar**.
+- **Eliminar base de datos** la elimina de OneUptime, junto con lo que Observabilidad de datos y Seguridad de datos guardan de ella. La confirmación enumera antes lo que se va.
+
+Una base de datos aquí es también un almacén de datos de Seguridad de datos. Mientras Seguridad de datos dependa de ella (encontró la base de datos, alguien la añadió allí, o tiene hallazgos, problemas, escaneos, propietarios o un registro de tratamiento suyos), solo puede eliminarla alguien con permiso para eliminar almacenes de datos de Seguridad de datos, y solo alguien con permiso para editarlos puede cambiar la conexión con la que Seguridad de datos toma muestras del contenido. Ajustes lo indica junto a su botón. Los monitores que vigilan una base de datos se conservan cuando esta desaparece: elimínalos en **Monitores**.
+
 ## Réplicas de lectura
 
 Una réplica de lectura de PostgreSQL o SQL Server no mueve sus contadores de escritura, así que una tabla allí puede parecer sin cambios mientras cambia. OneUptime detecta que es una réplica, deja fuera los contadores, lo indica en la base de datos y recurre al tamaño y las filas de la tabla. Conecta la primaria siempre que puedas, o indica una [columna de frescura](/docs/data-observability/table-health) para las tablas que importan.
@@ -174,6 +195,7 @@ Cada ruta aparece entonces en **Tablas**: su objeto más reciente es cuándo cam
 
 ## Solución de problemas
 
+- **La base de datos muestra el estado Agente de bases de datos no listo.** El agente no puede leerla ahora, y la página de la base de datos dice por qué: su servidor no tiene ningún Database Agent conectado, o el agente está desactivado para Observabilidad de datos (`ONEUPTIME_DATA_OBSERVABILITY=true` lo activa), no da señales de vida, es demasiado antiguo (vuelve a ejecutar su `install.sh`) o está en un servidor que no es PostgreSQL ni MySQL.
 - **La base de datos muestra el estado Fallido.** Su mensaje dice por qué: un host al que OneUptime no llega, un usuario rechazado, un modo TLS que el servidor no acepta. Si la base de datos está dentro de tu red, conéctala a través de una sonda. En Snowflake, Databricks, BigQuery, Athena, ClickHouse y Dataverse, el mensaje indica qué se estaba leyendo, el código y el mensaje de error del propio servicio, y el ID de solicitud o de consulta que su soporte puede rastrear, cuando el servicio lo proporciona. **Recopilar ahora** lo vuelve a intentar de inmediato, y la página muestra cómo ha ido.
 - **Las tablas no muestran ningún último cambio.** El usuario no puede leer las estadísticas del motor: concede lo que indica la pestaña de tu motor, o espera a que las filas de una tabla cambien dos veces.
 - **Falta una tabla.** Está en un esquema que el usuario no puede usar, o está excluida en la base de datos. Concede `USAGE` sobre su esquema o quita la exclusión.

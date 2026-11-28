@@ -63,7 +63,7 @@ No se envía nada hasta que eliges una página de estado: un evento que no apare
 | **Propietarios**                     | **Detalles del mantenimiento**         | Nadie                           | Personas y equipos a los que pertenece el evento y que reciben avisos sobre él.  |
 | **Etiquetas**                        | **Detalles del mantenimiento**         | Ninguna                         | Etiquetas que las reglas y los filtros pueden usar.                              |
 | **Monitores**                        | **Recursos afectados** | Ninguno                     | Los monitores que no se comprueban mientras el evento está en curso.             |
-| **Cambiar el estado del monitor a**  | **Recursos afectados** | Sin cambio                  | El estado que muestran esos monitores durante el evento. Se pide en cuanto se elige un monitor. |
+| **Cambiar el estado del monitor a**  | **Recursos afectados** | Sin cambio                  | El estado que muestran esos monitores durante el evento, y que cuenta su tiempo de actividad. Si no se elige ninguno, conservan su estado y su tiempo de actividad excluye ese tiempo. Se pide en cuanto se elige un monitor. |
 | **Otros recursos afectados**         | **Recursos afectados** | Ninguno                     | Hosts, clústeres, bases de datos, sitios de red, servicios y más.                |
 | **Mostrar evento en estas páginas de estado** | **Recursos afectados** | Ninguna            | Las únicas páginas de estado que pueden mostrar el evento o avisar a sus suscriptores. |
 | **Notificaciones a suscriptores**    | **Recursos afectados** | Publicado de inmediato, los tres momentos activados, sin recordatorios | Cuándo se muestra el evento en esas páginas y cuándo se avisa a sus suscriptores. |
@@ -75,7 +75,7 @@ Hay dos cosas que rellenan el formulario por ti sobre la marcha:
 
 ## Empezar desde un recurso o una plantilla
 
-En la pestaña **Mantenimiento programado** de un host, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, una nube OpenStack, una cabina de almacenamiento, una flota IoT, una base de datos, un recurso en la nube, un servicio o un sitio de red, **Crear evento de mantenimiento** abre el mismo formulario con ese recurso ya elegido en **Otros recursos afectados**, y la pestaña lista los eventos que lo afectan. La pestaña de un elemento de inventario elige el host, el servicio o el clúster de Kubernetes al que apunta el elemento.
+En la pestaña **Mantenimiento programado** de un host, un clúster de Kubernetes, Proxmox, Ceph o Docker Swarm, un host de Docker o Podman, un vCenter, un pool de XCP-ng, una nube OpenStack, una cabina de almacenamiento, una flota IoT, una base de datos, un recurso en la nube, un servicio o un sitio de red, **Crear evento de mantenimiento** abre el mismo formulario con ese recurso ya elegido en **Otros recursos afectados**, y la pestaña lista los eventos que lo afectan. La pestaña de un elemento de inventario elige el host, el servicio o el clúster de Kubernetes al que apunta el elemento.
 
 **Crear desde plantilla**, junto al botón de crear, te pide **Seleccionar plantilla de mantenimiento programado** y luego abre el formulario relleno a partir de la plantilla. Consulta [Plantillas y eventos recurrentes](/docs/scheduled-maintenance/templates).
 
@@ -84,9 +84,9 @@ En la pestaña **Mantenimiento programado** de un host, un clúster de Kubernete
 En el momento en que haces clic en **Crear evento de mantenimiento**, OneUptime recorre estos pasos, en este orden:
 
 1. **Recibe un número y un estado.** El número sale de un contador por proyecto y se muestra con tu prefijo (`SM-42`). El evento empieza en tu estado programado, sea cual sea el estado que indique una solicitud.
-2. **Tus herramientas de chat se enteran.** Las reglas de Slack y Microsoft Teams de **Espacio de trabajo** lo publican en sus canales, y una regla puede crear un canal para el evento. Su feed registra que se creó.
-3. **Empieza su cronología de estados.** La primera fila de su **Cronología de estados** es tu estado programado.
-4. **Se añaden propietarios y etiquetas**: los que elegiste y después los de las reglas de propietario y de etiquetas que coinciden.
+2. **Empieza su cronología de estados.** La primera fila de su **Cronología de estados** es tu estado programado.
+3. **Se añaden propietarios y etiquetas**: los que elegiste y después los de las reglas de propietario y de etiquetas que coinciden.
+4. **Tus herramientas de chat se enteran.** Las reglas de Slack y Microsoft Teams de **Espacio de trabajo** lo publican en sus canales, y una regla puede crear un canal para el evento. Su feed registra que se creó. Las reglas ven los propietarios y las etiquetas con los que se creó el evento, así que una regla que pregunta quién es el propietario de un evento, o cómo está etiquetado, también lo publica. Lo que se haya dicho del evento mientras tanto, como los propietarios recién añadidos, lo sigue en esos canales.
 5. **Las reglas de runbook inician** los runbooks que coinciden con el evento.
 6. **Se programan recordatorios**, cuando coincide una regla de recordatorio, para sus propietarios.
 

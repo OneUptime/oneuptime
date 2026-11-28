@@ -547,4 +547,81 @@ describe("deleting a feed", () => {
 
     expect(reconcileSpy).toHaveBeenCalledWith(PROJECT_ID);
   });
+
+  /*
+   * The feeds a delete removes are the ones its hook reads, and the delete
+   * is held to them (findRowsAndHoldDeleteToThem): every project that loses
+   * a feed has its blocks reconciled, and no other. A teammate's delete was
+   * kept to the feeds they may delete before the hook already. One made as
+   * OneUptime was read by its bare query, every project's: a delete in one
+   * project naming another's feed removed nothing, yet queued that
+   * project's blocks to be reconciled.
+   */
+  const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+    "5c1e7a40-5c2d-4e8f-9a61-7d0c2b4e6f02",
+  );
+  const THEIR_FEED: ObjectID = new ObjectID(
+    "5c1e7a40-5c2d-4e8f-9a61-7d0c2b4e6fa2",
+  );
+
+  function storeTheirFeed(): void {
+    table.rows.push({
+      _id: THEIR_FEED.toString(),
+      projectId: OTHER_PROJECT_ID.toString(),
+      name: "Their feed",
+      firewall: SecurityBlocklistFeedFirewall.PaloAlto,
+      version: 1,
+    });
+  }
+
+  test.each([
+    [
+      "a Security Admin's",
+      (): DatabaseCommonInteractionProps => {
+        return caller(Permission.SecurityAdmin);
+      },
+    ],
+    [
+      "OneUptime's, in one project,",
+      (): DatabaseCommonInteractionProps => {
+        return { isRoot: true, tenantId: PROJECT_ID };
+      },
+    ],
+  ])(
+    "%s delete naming another project's feed removes it not, and reconciles no project's blocks",
+    async (_who: string, props: () => DatabaseCommonInteractionProps) => {
+      storeTheirFeed();
+      reconcileSpy.mockClear();
+
+      await SecurityBlocklistFeedService.deleteBy({
+        query: { _id: THEIR_FEED.toString() } as never,
+        limit: 10,
+        skip: 0,
+        props: props(),
+      });
+
+      expect(table.deletes).toEqual([]);
+      expect(stored(THEIR_FEED)["deletedAt"] ?? null).toBeNull();
+      expect(reconcileSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a delete of several feeds reconciles their project's blocks once", async () => {
+    const first: SecurityBlocklistFeed = await makeFeed({ name: "Edge" });
+    const second: SecurityBlocklistFeed = await makeFeed({ name: "Branch" });
+    reconcileSpy.mockClear();
+
+    await SecurityBlocklistFeedService.deleteBy({
+      query: { projectId: PROJECT_ID } as never,
+      limit: 10,
+      skip: 0,
+      props: caller(Permission.SecurityAdmin),
+    });
+
+    expect([...table.deletes].sort()).toEqual(
+      [first.id!.toString(), second.id!.toString()].sort(),
+    );
+    expect(reconcileSpy).toHaveBeenCalledTimes(1);
+    expect(reconcileSpy).toHaveBeenCalledWith(PROJECT_ID);
+  });
 });

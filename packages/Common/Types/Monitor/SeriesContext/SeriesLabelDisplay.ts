@@ -200,6 +200,53 @@ const FriendlyLabelNames: Record<string, string> = {
   cpu_reservation_type: "CPU Reservation Type",
   cpu_state: "CPU State",
 
+  /*
+   * --- XCP-ng ---
+   *
+   * The XCP-ng Agent stamps the pool (`xcp_ng.pool.id`, its UUID, and
+   * `xcp_ng.pool.name`) and the Xen Orchestra it reads on the resource;
+   * ingest stamps `xcp_ng.scope` and `xcp_ng.id` on every datapoint
+   * (XcpNgSeriesNormalizer), which the shipped templates group by. The rest
+   * are Xen Orchestra's own DATAPOINT labels. `uuid`, `power_state`,
+   * `network_name` and `device` are named above.
+   */
+  "xcp_ng.pool.id": "XCP-ng Pool UUID",
+  "xcp_ng.pool.name": "XCP-ng Pool",
+  "xen_orchestra.name": "Xen Orchestra",
+  "xcp_ng.scope": "Object Type",
+  "xcp_ng.id": "Object UUID",
+  /*
+   * #10997: what the pool's alarm and backup records carry, which the
+   * XcpNgEventAlertTemplates group by - the object or the job by name
+   * first, the UUIDs after.
+   */
+  "xcp_ng.object.name": "Object",
+  "xcp_ng.object.uuid": "Object UUID",
+  "xcp_ng.object.type": "Object Type",
+  "xcp_ng.message.name": "Message",
+  "xcp_ng.alarm.variable": "Alarm",
+  "xcp_ng.backup.job.name": "Backup Job",
+  "xcp_ng.backup.failed_vms": "Failed VMs",
+  "xcp_ng.backup.job.id": "Backup Job ID",
+  host_name: "Host",
+  host_id: "Host UUID",
+  vm_name: "VM",
+  vm_uuid: "VM UUID",
+  sr_name: "Storage Repository",
+  // Xen Orchestra's short id of a storage repository, on a host's disk series.
+  sr: "Storage Repository",
+  sr_uuid: "Storage Repository UUID",
+  sr_type: "Storage Repository Type",
+  vdi_name: "Virtual Disk",
+  vdi_uuid: "Virtual Disk UUID",
+  content_type: "Content Type",
+  is_control_domain: "Control Domain",
+  enabled: "Enabled",
+  vif: "VIF",
+  interface: "Interface",
+  core: "Core",
+  tags: "Tags",
+
   // --- Ceph ---
   "ceph.cluster.name": "Ceph Cluster",
   ceph_daemon: "Ceph Daemon",
@@ -214,7 +261,8 @@ const FriendlyLabelNames: Record<string, string> = {
    * labels (stored unprefixed): `name` on volumes, pods, directories and
    * every FlashBlade object, `host` on FlashArray hosts, `component_name`
    * on FlashArray hardware and drives, `local_pod` on pod replica links,
-   * `summary` on open alerts. The agent stamps `storage.array.name` and
+   * `summary` on open alerts; a Dell PowerStore names its appliances by
+   * `appliance_id`. The agent stamps `storage.array.name` and
    * `storage.system` on the resource.
    */
   "storage.array.name": "Storage Array",
@@ -224,6 +272,41 @@ const FriendlyLabelNames: Record<string, string> = {
   component_name: "Component",
   local_pod: "Pod",
   summary: "Alert Summary",
+  appliance_id: "Appliance",
+  /*
+   * Dell PowerScale names a node by `node` (above), a drive bay by
+   * `drive` ("ps-prod-2 bay 5"), a quota by `quota` (its path, and whose
+   * quota it is) and a protocol's figures by `protocol` (nfs3, smb2, ...).
+   */
+  drive: "Drive",
+  quota: "Quota",
+  protocol: "Protocol",
+  /*
+   * NetApp ONTAP, as NetApp Harvest labels its series: an aggregate by
+   * `aggr`, a storage VM by `svm`, a volume, a LUN, a disk and a disk
+   * shelf by their own names, a SnapMirror relationship by the
+   * `destination_location` it copies to, and an EMS event by its
+   * `message` (callhome.battery.low, ...). `message`, `component` and
+   * `description` keep names that read right for any series that has them.
+   */
+  aggr: "Aggregate",
+  svm: "SVM",
+  volume: "Volume",
+  lun: "LUN",
+  disk: "Disk",
+  shelf: "Shelf",
+  destination_location: "SnapMirror Destination",
+  message: "Message",
+  /*
+   * Dell PowerMax, as the probe's Unisphere reads label them: a storage
+   * resource pool by `srp`, a storage group, an SRDF group, a director or
+   * a port by `component`, and an open alert by its `description`.
+   */
+  srp: "Storage Resource Pool",
+  storage_group: "Storage Group",
+  srdf_group: "SRDF Group",
+  component: "Component",
+  description: "Description",
 
   // --- IoT ---
   "iot.fleet.name": "Fleet",
@@ -388,6 +471,29 @@ const LabelPriority: Record<string, number> = {
   component_name: 25,
   local_pod: 25,
   summary: 25,
+  appliance_id: 25,
+  drive: 25,
+  quota: 25,
+  protocol: 25,
+  /*
+   * ONTAP: a LUN, then the volume it is in, then the storage VM that
+   * scopes them both; an aggregate, a disk, a shelf, a SnapMirror
+   * destination or an EMS event is the thing itself.
+   */
+  lun: 25,
+  volume: 27,
+  svm: 35,
+  aggr: 25,
+  disk: 25,
+  shelf: 25,
+  destination_location: 25,
+  message: 25,
+  // PowerMax: the pool, the group, the director or port, or the open alert.
+  srp: 25,
+  storage_group: 25,
+  srdf_group: 25,
+  component: 25,
+  description: 25,
   host: 30,
   "device.id": 25,
   "device.name": 25,
@@ -414,6 +520,30 @@ const LabelPriority: Record<string, number> = {
   "networkDevice.name": 40,
   "proxmox.vm.name": 25,
   vmid: 25,
+  /*
+   * XCP-ng: the object that breached by its name (a VM, a virtual disk, a
+   * storage repository), then the host - a host's own name, or the host a
+   * VM runs on - then the object's UUID, then the pool and the Xen
+   * Orchestra that merely scope it.
+   */
+  vm_name: 25,
+  vdi_name: 25,
+  sr_name: 26,
+  sr: 27,
+  host_name: 30,
+  "xcp_ng.id": 31,
+  "xcp_ng.object.name": 25,
+  "xcp_ng.backup.job.name": 25,
+  "xcp_ng.backup.failed_vms": 26,
+  "xcp_ng.message.name": 27,
+  "xcp_ng.alarm.variable": 28,
+  "xcp_ng.object.uuid": 32,
+  "xcp_ng.backup.job.id": 33,
+  "xcp_ng.object.type": 55,
+  "xcp_ng.scope": 55,
+  "xcp_ng.pool.name": 75,
+  "xen_orchestra.name": 80,
+  "xcp_ng.pool.id": 95,
   /*
    * OpenStack: the part that breached, by the name people know it by, then the
    * region that scopes it. `uuid`, `network_id` and `tenant_id` keep the default

@@ -63,7 +63,9 @@ flowchart LR
 
 Den är påslagen i ett nytt projekt. Ett projekt som fanns sedan tidigare behåller den avslagen, eftersom projektets API-klienter och Terraform-konfigurationer kan räkna med namn som upprepas: slå på den när du är redo.
 
-Under brytaren listar kortet varje namn som projektet redan har mer än en gång, slag för slag, med en länk till varje post och dagen den skapades. Att slå på brytaren avvisar inget som redan finns: de posterna fortsätter att fungera tills någon byter namn på dem, och bara en ny post eller ett namnbyte behöver ett eget namn. Att spara en post med sitt eget namn igen, oavsett versaler, är inget namnbyte.
+Under brytaren listar kortet varje namn som projektet redan har mer än en gång, slag för slag, med en länk till varje post och dagen den skapades. En OpenStack-budget öppnas på sitt molns sida **Utgifter**, och en sammanfattning för en arbetsyta på fliken **Sammanfattning** på dess Slack-, Microsoft Teams- eller Mattermost-sida. AI-agenter har ingen sida i instrumentpanelen, så kortet nämner dem utan länk och säger det. Att slå på brytaren avvisar inget som redan finns: de posterna fortsätter att fungera tills någon byter namn på dem, och bara en ny post eller ett namnbyte behöver ett eget namn. Att spara en post med sitt eget namn igen, oavsett versaler, är inget namnbyte.
+
+Listan för varje slag märker också de posterna, med **Samma namn som en annan post av typen monitor** (eller mall, nyckel och så vidare) och dagen var och en skapades, och säger ovanför listan hur många de är. En lista märker bara de poster som du kan öppna.
 
 Vad brytaren än säger varnar ett formulär medan du skriver ett namn som en annan post av samma slag redan har, och länkar till den posten. Så länge brytaren är påslagen säger varningen också att det skulle avvisas att spara.
 
@@ -118,7 +120,7 @@ En etikett som har samma namn som en annan etikett, från tiden innan namn behö
 **Projektinställningar → Aviseringar** innehåller hur projektet skickar aviseringar:
 
 - **Aviseringskanaler**: kortet **Aviseringskanaler** slår på eller av SMS, telefonsamtal, WhatsApp och Telegram för projektet. Alla fyra är avstängda från början. En Projektägare, en **Faktureringsadministratör** eller någon med **Manage Billing** slår på dem. Sidan innehåller också, hopfällda under **Fler inställningar**, hur medlemmar larmas som standard, i **Standardordning för nya medlemmar** och **Telefon för personer i jour** (se [Standardordningen](/docs/notifications/on-call-rules#standardordningen)), om joursamtal skiljer röstbrevlådan från en person, i **Röstbrevlåda vid joursamtal** (se [Röstbrevlåda vid joursamtal](/docs/self-hosted/twilio-integration#röstbrevlåda-vid-joursamtal)), projektets egna e-postservrar i **Anpassade SMTP-konfigurationer** (se [SMTP](/docs/emails/smtp)) och dess eget Twilio-konto (se [Twilio-integration](/docs/self-hosted/twilio-integration)). I OneUptime Cloud innehåller den saldot som de här meddelandena betalas från: se [Förbetalda saldon](/docs/configuration/billing#förbetalda-saldon).
-- **Aviseringsloggar**: varje avisering som projektet har skickat, med en flik per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** och **Arbetsyta**. Fliken **Webhook** behåller bara schemat och värden i varje adress: resten är webhookens hemlighet.
+- **Aviseringsloggar**: varje avisering som projektet har skickat, med en flik per kanal: **E-post**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Anrop**, **Push** och **Arbetsyta**. Fliken **Webhook** behåller bara schemat och värden i varje adress: resten är webhookens hemlighet. Vad varje status betyder: [Aviseringsloggar](/docs/notifications/notification-logs).
 - **Mobilappar**: var du hämtar apparna för iOS och Android. Se [Appar – Översikt](/docs/mobile-desktop-apps/index).
 
 ## Ta bort projektet

@@ -199,6 +199,8 @@ export const WEBSITE_DOWN_COPY: {
   whoOwnerOnlyHelpNotOwner: string;
   noEmail: string;
   noEmailForAdmin: string;
+  noEmailWithoutApp: string;
+  noEmailForAdminWithoutApp: string;
   setUpEmail: string;
   testTitle: string;
   testHelp: string;
@@ -206,6 +208,7 @@ export const WEBSITE_DOWN_COPY: {
   testSendAnother: string;
   testDidNotGetIt: string;
   testDidNotGetItHelp: string;
+  testDidNotGetItHelpWithoutApp: string;
   testMethodsLink: string;
   statusPageTitle: string;
   statusPageOutcome: string;
@@ -380,6 +383,17 @@ export const WEBSITE_DOWN_COPY: {
   noEmailForAdmin: translationKey(
     "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS, a phone call or the mobile app once you add one to your notification methods, or set up email now.",
   ),
+  /*
+   * The same two, where the server's admins took the mobile app away
+   * (Admin Dashboard > Settings > Help and Support, #10945): the phone
+   * only.
+   */
+  noEmailWithoutApp: translationKey(
+    "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS or a phone call once you add your phone to your notification methods. Ask your server's admin to set up email.",
+  ),
+  noEmailForAdminWithoutApp: translationKey(
+    "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS or a phone call once you add your phone to your notification methods, or set up email now.",
+  ),
   setUpEmail: translationKey("Set up email"),
   testTitle: translationKey("Send a test"),
   testHelp: translationKey(
@@ -390,6 +404,10 @@ export const WEBSITE_DOWN_COPY: {
   testDidNotGetIt: translationKey("I did not get it"),
   testDidNotGetItHelp: translationKey(
     "Each message above says whether it was sent, and why not. Check your spam folder, and that your email, phone number or the mobile app is added and verified in your notification methods.",
+  ),
+  // The same, where the server does not offer the mobile app (#10945).
+  testDidNotGetItHelpWithoutApp: translationKey(
+    "Each message above says whether it was sent, and why not. Check your spam folder, and that your email or phone number is added and verified in your notification methods.",
   ),
   testMethodsLink: translationKey("Open my notification methods"),
   /*

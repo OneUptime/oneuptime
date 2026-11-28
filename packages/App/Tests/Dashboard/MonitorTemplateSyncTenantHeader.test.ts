@@ -3,9 +3,14 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The Monitor Template view drives sync / link / unlink through raw
- * `API.post` calls rather than ModelAPI, because those endpoints are custom
- * routes rather than model CRUD. `BaseAPI.getHeaders()` does NOT add a
+ * The Monitor Template view drives its syncs through raw `API.post` calls
+ * rather than ModelAPI, because those endpoints are custom routes rather
+ * than model CRUD. Its links and unlinks did too, until #11411 moved them
+ * into Components/Monitor/TemplateChange/MonitorTemplateChangeApi.ts: Link
+ * Existing Monitors now starts one change the server runs, and Unlink from
+ * Template posts through that module, whose every call carries the project's
+ * headers (MonitorTemplateChangeApi.test.ts, and ProjectScopedApiTenantHeader
+ * reads its raw calls). `BaseAPI.getHeaders()` does NOT add a
  * `tenantid` header — `ModelAPI.getCommonHeaders()` is the only thing in the
  * codebase that does. So a raw post that omits it reaches the server with no
  * project scope at all.
@@ -50,8 +55,13 @@ const MONITOR_TEMPLATES_VIEW: string = path.join(
 const MONITOR_TEMPLATE_ROUTES: Array<string> = [
   "/sync-to-linked-monitors",
   "/sync-to-monitor/",
+];
+
+// The routes the page reaches only through the template change module.
+const ROUTES_THROUGH_THE_CHANGE_MODULE: Array<string> = [
   "/link-monitor/",
   "/unlink-monitor/",
+  "/monitor-template-change/",
 ];
 
 /*
@@ -281,12 +291,12 @@ describe("Monitor Template sync/link endpoints send the tenant header", () => {
   /*
    * The per-route pass says the same thing from the other side: it is not
    * enough that the calls this suite happened to find all carry the header —
-   * each of the four endpoints has to still be reachable from a call that
-   * does. A route left with no attributable call means either the feature was
-   * removed or its URL is now built somewhere this file cannot follow, and
-   * both deserve a look.
+   * each of the page's sync endpoints has to still be reachable from a call
+   * that does. A route left with no attributable call means either the
+   * feature was removed or its URL is now built somewhere this file cannot
+   * follow, and both deserve a look.
    */
-  test("each of the four monitor-template routes is covered", () => {
+  test("each of the page's sync routes is covered", () => {
     const code: string = readCode();
     const calls: Array<string> = getApiPostArguments(code);
 
@@ -301,5 +311,26 @@ describe("Monitor Template sync/link endpoints send the tenant header", () => {
         expect(call).toContain("ModelAPI.getCommonHeaders(");
       }
     }
+  });
+
+  /*
+   * Linking and unlinking (#11411) are the module's: the page starts a change
+   * through it and posts none of those routes itself, so no raw post of the
+   * page's own can reach them without the header.
+   */
+  test("links and unlinks go through the template change module, never a raw post of the page's own", () => {
+    const code: string = readCode();
+
+    for (const route of ROUTES_THROUGH_THE_CHANGE_MODULE) {
+      expect({ route, onThePage: code.includes(route) }).toEqual({
+        route,
+        onThePage: false,
+      });
+    }
+
+    expect(code).toContain(
+      'startMonitorTemplateChange, } from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangeApi";',
+    );
+    expect(code).toContain("await startMonitorTemplateChange({");
   });
 });

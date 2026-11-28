@@ -1,10 +1,10 @@
 # Controlli e problemi di Sicurezza dei dati
 
-Sicurezza dei dati esegue 34 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita. Eventi di sicurezza, Network Flows e Cassaforte indirizzi di sicurezza sono di OneUptime, che li conserva per la tua sicurezza: dichiarati, mai scansionati né controllati (vedi [Archivi che OneUptime conserva per la tua sicurezza](/docs/data-security/compliance#archivi-che-oneuptime-conserva-per-la-tua-sicurezza)).
+Sicurezza dei dati esegue 35 controlli su ogni archivio, in nove gruppi. Un controllo legge ciò che si sa di un archivio - come è configurato, cosa vi è stato trovato, chi può raggiungerlo, dove si trova - e viene superato, non viene superato o non può stabilirlo. Un controllo non superato apre un problema su quell'archivio, e il problema si chiude da solo quando il controllo viene superato. Questa pagina elenca ogni controllo, come si calcolano la gravità e il punteggio di rischio di un problema, e cosa succede a un problema nel corso della sua vita. Eventi di sicurezza, Network Flows e Cassaforte indirizzi di sicurezza sono di OneUptime, che li conserva per la tua sicurezza: dichiarati, mai scansionati né controllati (vedi [Archivi che OneUptime conserva per la tua sicurezza](/docs/data-security/compliance#archivi-che-oneuptime-conserva-per-la-tua-sicurezza)).
 
 :::cards
 - [Come decide un controllo](#come-decide-un-controllo): Superato, non superato o non può stabilirlo, e quanto è grave un fallimento.
-- [Tutti i controlli](#tutti-i-controlli): Tutti i 34, con cosa verifica ciascuno e come correggerlo.
+- [Tutti i controlli](#tutti-i-controlli): Tutti i 35, con cosa verifica ciascuno e come correggerlo.
 - [Punteggio di rischio](#punteggio-di-rischio): Come vengono ordinati i problemi all'interno di una gravità.
 - [Cosa succede a un problema](#cosa-succede-a-un-problema): Aperto, risolto, accettato, non è un problema, come è stato risolto ciascuno e le correzioni seguite fino in produzione.
 - [L'analisi di OneUptime AI](#lanalisi-di-oneuptime-ai): Se un problema è reale, cosa mette a rischio, cosa romperebbe la correzione e la via più breve verso la correzione.
@@ -22,6 +22,8 @@ Ogni controllo legge delle informazioni su un archivio e risponde in uno di quat
 | Non superato | Il controllo trova il problema, e dice in una frase cosa ha visto: la prova del problema. | Si apre un problema, oppure quello aperto viene aggiornato. |
 | Non può stabilirlo | Non è stato possibile leggere un'informazione: un permesso che il ruolo non ha, una chiamata non riuscita. | Non cambia nulla: un problema aperto resta aperto, perché nessuno può concludere che un problema sia risolto quando OneUptime non ha potuto guardare. |
 | Non si applica | Il tipo di archivio non ha un'impostazione del genere. | Un problema aperto viene risolto. |
+
+Un fatto che non si può conoscere da dove è stato letto non viene nemmeno indovinato: se Internet raggiunge un archivio interrogato dall'interno della tua rete, o se l'utente anonimo di un cluster può scrivere, cosa che solo una scrittura direbbe. Il suo controllo non può stabilirlo, e quella riga della **Configurazione** dell'archivio indica **Non verificabile**.
 
 ### La gravità segue i dati
 
@@ -45,6 +47,7 @@ La gravità è indicata per i dati di livello Ristretto, Confidenziale, Interno 
 | Un suo snapshot può essere ripristinato da chiunque (`snapshot-public`) | Database, Snapshot | Uno snapshot del database è condiviso pubblicamente, quindi qualsiasi account cloud può ripristinarne una copia completa. | Critico / Critico / Critico / Alto | Rendi privato lo snapshot. |
 | Un suo snapshot è condiviso con altri account (`snapshot-shared-externally`) | Database, Snapshot | Uno snapshot del database è condiviso con account esterni a quelli collegati. | Alto / Alto / Medio / Basso | Interrompi la condivisione dello snapshot con gli account che non dovrebbero averlo. |
 | Account esterni alla tua organizzazione possono raggiungerlo (`shared-with-external-accounts`) | Ogni archivio tranne la telemetria | La policy dell'archivio concede l'accesso ad account, tenant o progetti che non sono collegati a OneUptime. | Alto / Alto / Medio / Basso | Esamina ogni principal esterno, e rimuovi quelli che non hanno bisogno di accesso. |
+| Chiunque lo raggiunga può leggerlo senza credenziali (`readable-without-credentials`) | Ricerca | Ha risposto a OneUptime senza credenziali: chiunque possa raggiungere il suo indirizzo può leggerne i dati, e modificarli se non ha alcun controllo degli accessi. | Critico / Alto / Medio / Basso | Attiva la sicurezza del cluster, togli ogni ruolo al suo utente anonimo e dai a ogni applicazione il suo utente in sola lettura. Un cluster che accetta scritture senza credenziali è Critico su dati Ristretto e Confidenziale, e Alto su qualsiasi altro. |
 
 ### Cifratura
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Fattore | Punti |
 | --- | --- |
 | Gravità | 75 per Critico, 50 per Alto, 25 per Medio, 0 per Basso |
-| Esposizione | 10 per Pubblico, 8 per Altri account, 6 per Raggiungibile da Internet, 3 per Sconosciuto, 0 per Privato |
+| Esposizione | 10 per Pubblico, 8 per Altri account, 6 per Raggiungibile da Internet, 3 per Sconosciuto, Non ancora verificato o Non verificabile, 0 per Privato |
 | Volume | Fino a 6, in base ai record sensibili stimati dell'archivio su scala logaritmica: 1 per 10 record, 3 per 1.000, 5 per un milione, 6 per dieci milioni o più |
 | Attività | 5 quando Security Operations ha visto rilevamenti sull'archivio nell'ultima settimana |
 | Produzione | 4 per un archivio in produzione |
@@ -184,11 +187,18 @@ La Panoramica conta i problemi corretti alla fonte separatamente dalle fughe sol
 Una pull request che OneUptime AI ha aperto per un problema (**Correggi con l'IA**, o una sola pull request per un [gruppo di problemi](#problemi-con-una-sola-causa)) non ha ancora corretto nulla quando viene unita. OneUptime la segue finché la produzione non lo dimostra:
 
 - **Una fuga nel codice.** OneUptime attende un deploy registrato del servizio che contenga l'unione, poi osserva la sua nuova versione. Dove una regola di pulizia nasconde i dati, la regola non deve modificare alcun valore in quella versione; dove nessuna regola lo fa, nessun record di quella versione può contenere i dati nei punti in cui sono stati trovati. La nuova versione deve anche restare in esecuzione per un giorno e inviare almeno tanti log o span quanti ne ha inviati la vecchia nell'ora in cui la fuga è stata vista l'ultima volta. A quel punto il problema è **Corretto nel codice**. Un solo valore modificato, o un solo record che contiene ancora i dati, significa che la correzione non ha fermato la fuga, e su una versione che invia troppo poco in una settimana non si può dire nulla. I deploy vengono abbinati in base al loro commit: registrali con `oneuptime deploy`, oppure invia `vcs.ref.head.revision` (vedi [Deploy e modifiche](/docs/telemetry/change-events)).
+- **Una fuga nelle metriche o nei Session Replay.** Si dimostra allo stesso modo, dalla versione che ha scritto ogni record: i punti dati di una metrica la indicano tra i loro attributi, i log e gli span del browser di un'applicazione RUM dalla release per cui sono state caricate le sue source map, e le sue sessioni dalla versione dell'app che invia il registratore delle sessioni. I dati di una metrica che una regola della pipeline rimuove, o di cui scarta i punti, non lasciano nulla da leggere, quindi quella fuga non si può valutare; una regola **Oscura attributo** lascia da leggere il suo valore sostitutivo.
 - **La configurazione di un archivio.** Quando la pull request viene unita, i suoi archivi vengono riletti subito. Ogni problema il cui controllo viene superato dopo è **Corretto nel codice dell'infrastruttura**. Se un archivio non supera ancora il suo controllo quando viene riletto un giorno dopo l'unione, la correzione è stata **unita, non applicata**: i proprietari dell'archivio e la persona che ha chiesto la pull request ricevono un'email, una sola volta, e le cronologie del problema e dell'archivio lo riportano. Di solito manca un apply.
 - **La regola di pulizia resta.** Dopo una correzione del codice verificata, la regola di pulizia che ha contenuto la fuga rimane, così una regressione viene nascosta appena arriva. Il problema indica che la regola non ha cambiato nulla dalla correzione, e offre **Rimuovi regola**.
 - **Una regressione.** Una correzione verificata continua a essere osservata: quando una regola mantenuta torna a modificare valori, o la scansione ritrova i dati, il problema si riapre e indica quale versione li ha riportati. Resta aperto finché non viene corretto di nuovo, anche mentre una regola nasconde i dati.
 
 Ogni passaggio compare nella **Cronologia** del problema e in quella dell'archivio, e Risultati IA conta le correzioni verificate per tipo (vedi [Come se la cava OneUptime AI](/docs/ai/ai-sre#come-se-la-cava-oneuptime-ai)).
+
+### Collegare la tua pull request
+
+Una correzione che hai scritto tu viene seguita allo stesso modo. Nella pagina del problema, **Collega pull request** prende l'indirizzo di una pull request in un repository collegato in **Codice** (su GitHub, GitLab, Forgejo o Gitea), e il problema la elenca in **Pull request collegate**, indicando se è stata unita. OneUptime la segue fino all'unione, al deploy che la rilascia e alla prova della produzione, come sopra, e il problema si risolve nominandola. Ogni passaggio compare nella **Cronologia** del problema. Una pull request chiusa senza unione non viene più seguita, e rimuoverla dal problema ne ferma il monitoraggio.
+
+Chi può modificare il problema può collegarne una, in un repository che può leggere in **Codice**. Un problema ne accetta fino a 10. Un indirizzo che non è di nessuna pull request, un repository non collegato o che non può leggere, una pull request chiusa senza unione o già collegata, e un problema il cui rischio è stato accettato o che non è un problema vengono rifiutati, ciascuno spiegando perché.
 
 ## L'analisi di OneUptime AI
 

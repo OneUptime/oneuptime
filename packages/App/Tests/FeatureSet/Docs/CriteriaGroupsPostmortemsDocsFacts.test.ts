@@ -778,25 +778,38 @@ describe("how criteria decide", () => {
     "if (fanOutAcrossCriteria) {",
   );
 
-  it("judges the criteria from the top of the list down, and none after the first match", () => {
+  it("judges the criteria from the top of the list down: the first match acts, and none after it once the status is decided", () => {
     expect(loop).toContain(
       "if (matchedCriteria.length > 0 && !fanOutAcrossCriteria) {",
     );
     expect(loop).toContain(
       "MonitorCriteriaEvaluator.pushNotEvaluatedCriteriaResult({",
     );
-    expect(criteriaPage).toContain(
-      "Each time a monitor is checked, its criteria judge the result from the top of the list down. The first criteria whose filters match decides what happens, and the criteria below it are not looked at for that check.",
+    // The first match is what acts: the incidents and alerts of the check.
+    expect(loop).toContain(
+      "input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;",
     );
     expect(criteriaPage).toContain(
-      "- [How criteria decide](#how-criteria-decide): Top to bottom, and the first match wins.",
+      "Each time a monitor is checked, its criteria judge the result from the top of the list down. The first criteria whose filters match decides what happens: it declares its incidents, creates its alerts and, when it is set to, changes the monitor's status. The criteria below it are looked at only when it changes no status, and then only for the status.",
+    );
+    expect(criteriaPage).toContain(
+      "- [How criteria decide](#how-criteria-decide): Top to bottom: the first match acts, and the first that changes the status sets it.",
     );
   });
 
-  it("lets a criteria that matches decide the check whether or not it changes the status", () => {
-    // A match is a match: nothing in the loop asks whether it changes the status.
-    expect(loop).not.toContain("changeMonitorStatus");
+  it("lets only a criteria that changes the status decide it: the criteria after a first match that changes none are judged for it (#11238)", () => {
+    // Whether a criteria changes the status is asked of each one past the first match.
+    expect(loop).toContain(
+      "MonitorCriteriaInstance.changesMonitorStatus(criteriaInstance.data);",
+    );
+    expect(loop).toContain("if (isJudgedForStatusOnly) {");
+    expect(loop).toContain("statusMatch = {");
     expect(loop).toContain("matchedCriteria.push({");
+    expect(
+      readCommonSource("Types/Monitor/MonitorCriteriaInstance.ts"),
+    ).toContain(
+      "return Boolean(criteria?.changeMonitorStatus && criteria.monitorStatusId);",
+    );
 
     // The warning a certificate monitor starts with changes no status, above the online one.
     const certificate: Array<MonitorCriteriaInstance> = defaultCriteria(
@@ -805,8 +818,15 @@ describe("how criteria decide", () => {
 
     expect(certificate[1]?.data?.changeMonitorStatus).toBe(false);
     expect(certificate[1]?.data?.createAlerts).toBe(true);
+    expect(
+      MonitorCriteriaInstance.changesMonitorStatus(certificate[2]?.data),
+    ).toBe(true);
     expect(criteriaPage).toContain(
-      "A criteria that matches but changes no status still decides the check: the monitor keeps the status it has, and the criteria below it wait for the next check.",
+      "A criteria that matches but changes no status, such as a warning that only creates an alert, decides no status. Its alert opens and resolves as any criteria's does, and the criteria below it that change the status are judged for the status alone, in their order: the first of them that matches sets the status, and opens nothing on that check.",
+    );
+    // What changed for monitors made before, said plainly.
+    expect(criteriaPage).toContain(
+      "> A criteria that matched first and changed no status used to leave the monitor in the status it had, for as long as it kept matching:",
     );
   });
 
@@ -815,7 +835,11 @@ describe("how criteria decide", () => {
       "No criteria met. Change to default status.",
     );
     expect(MONITOR_RESOURCE).toContain(
-      "monitorStatusTimeline.monitorStatusId =\n            monitorSteps.data.defaultMonitorStatusId!;",
+      "monitorStatusTimeline.monitorStatusId = input.defaultMonitorStatusId;",
+    );
+    // And when only criteria that change no status matched (#11238).
+    expect(MONITOR_RESOURCE).toContain(
+      "because: DefaultStatusBecause.NoStatusCriteriaMet,",
     );
     expect(MONITOR_RESOURCE).toContain(
       "monitorStatusTimeline.isOwnerNotified = true; // no need to notify owner as this is default status.",
@@ -834,7 +858,7 @@ describe("how criteria decide", () => {
       "!response.criteriaMetId &&\n        !isSnmpTrapEvent &&\n        (response.statusKeptForRecoveryCriteriaIds || []).length > 0 &&",
     );
     expect(criteriaPage).toContain(
-      "The **Default Monitor Status** applies only when no criteria matches.",
+      "When none of them matches, the monitor goes to its **Default Monitor Status**, as when no criteria matches.",
     );
     expect(criteriaPage).toContain(
       "A monitor that goes back to its **Default Monitor Status** because no criteria matched notifies nobody.",
@@ -1045,10 +1069,22 @@ describe("how criteria decide", () => {
     expect(evaluator).toContain(
       "const isInEffect: boolean = await input.criteriaInEffect.isInEffect({",
     );
-    // The margin, for a monitor that judges no series on its own (#10743).
+    /*
+     * The margin, for a monitor that judges no series on its own (#10743):
+     * judged on every check, and read when no criteria that changes the
+     * status matched (#11238).
+     */
     expect(evaluator).toContain("GroupedMonitorRecovery.judgeWholeMonitor({");
     expect(evaluator).toContain(
-      "if (!fanOutAcrossCriteria && matchedCriteria.length === 0) {",
+      "MonitorCriteriaEvaluator.getStatusKeptForRecoveryCriteriaIds({",
+    );
+    expect(
+      readCommonSource("Server/Utils/Monitor/MonitorResource.ts"),
+    ).toContain(
+      "const recoveryCriteriaIds: Array<string> =\n      input.response.statusKeptForRecoveryCriteriaIds || [];",
+    );
+    expect(criteriaPage).toContain(
+      "When no criteria that changes the status matches, a monitor that a criteria moved off its **Default Monitor Status** keeps the status it has",
     );
 
     const wholeMonitor: string = between(
@@ -1123,8 +1159,13 @@ describe("how criteria decide", () => {
       readCommonSource("Server/Utils/Monitor/MonitorResource.ts"),
     ).toContain("await MonitorResourceUtil.keepStatusForSeriesBehindIt({");
 
+    // The status from the first match that stands among those that change it (#11238).
+    expect(EVALUATOR).toContain(
+      "statusMatch: getStatusMatch(input.matchedCriteria),",
+    );
+
     expect(criteriaPage).toContain(
-      "> Such a monitor still has one status, set by the first criteria that matches. A criteria that only brings it back to its **Default Monitor Status**, opening no incident or alert, waits for the hosts that met a criteria setting another status: it matches once each of them meets it, whatever the other hosts do. Until then the monitor keeps its status, even when no criteria matches, while each host's incidents and alerts still resolve on their own.",
+      "> Such a monitor still has one status, set by the first criteria that matches among those that change the status. A criteria that only brings it back to its **Default Monitor Status**, opening no incident or alert, waits for the hosts that met a criteria setting another status: it matches once each of them meets it, whatever the other hosts do. Until then the monitor keeps its status, even when no criteria that changes the status matches, while each host's incidents and alerts still resolve on their own.",
     );
   });
 });
@@ -1690,10 +1731,11 @@ describe("when a criteria's incidents and alerts open and close", () => {
     /*
      * The probes' claim hands out only the monitor probes its one rule
      * (MonitorProbeService.getProbeableSql) says may be probed, and the
-     * maintenance pause flag is in it.
+     * maintenance pause flag is in it: the rows its one statement takes
+     * (#10819) are read under that rule.
      */
     expect(MONITOR_PROBE_SERVICE).toContain(
-      '          AND ${Service.getProbeableSql("$4")}\n        ORDER BY mp."nextPingAt" ASC',
+      '            AND ${Service.getProbeableSql("$4")}\n          ORDER BY mp."nextPingAt" ASC, mp."lastPingAt" ASC\n          LIMIT $3\n          FOR NO KEY UPDATE OF mp SKIP LOCKED',
     );
     expect(MONITOR_PROBE_SERVICE).toContain(
       '`m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false`,',

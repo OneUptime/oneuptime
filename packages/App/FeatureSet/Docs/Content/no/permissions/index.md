@@ -90,7 +90,7 @@ Opprett så mange ekstra team du vil — «Frontend-vakt», «Support», «Skriv
 | --- | --- |
 | Prosjektadministrator | Opprette, endre og slette alt i prosjektet, også innstillingene. Ikke fakturering, og ikke sletting av prosjektet. |
 | Prosjektmedlem | Opprette, endre og slette monitorer, hendelser, statussider og prosjektets andre ressurser. |
-| Viser | Lese alt i prosjektet og ikke endre noe. |
+| Leser | Lese alt i prosjektet og ikke endre noe. |
 | Velg tillatelser senere | Ingenting ennå. Valgt fra start. |
 
 :::steps
@@ -228,6 +228,10 @@ Et teams tillatelse med omfanget Eide rekker til det teamet eier, ikke til det p
 
 **Etiketter** er den mer manuelle varianten av samme idé: merk ressurser, og gi så tillatelser begrenset til de merkene.
 
+En opplysning som bare de som kan endre en ressurs, kan lese, for eksempel en monitors hemmelige nøkler, en Runners nøkkel, en arbeidsflyts webhook-URL eller en nettverksenhets SNMP-legitimasjon, følger også etikettene. Med `Viewer` for hele prosjektet og `ProjectMember` begrenset til etiketten Production åpner du alle monitorer, og ser de hemmelige nøklene bare for monitorene med etiketten Production. Et filter på en slik opplysning når bare ressursene der du kan se den, og sortering etter den avvises: en liste tilbyr ikke å sortere etter den, og (i) ved siden av navnet dens forteller hvorfor. I et redigeringsskjema er en slik opplysning som du ikke kan se på denne ressursen, tom til å begynne med, og lar du den stå tom, beholdes det som er lagret. Det samme gjelder når OneUptime viser ressurser fra alle prosjektene dine, hvert prosjekt etter tillatelsene dine der, og når en opplysning leses gjennom en annen ressurs, for eksempel rapporten som en sonde fører over SNMP-trapmottakeren sin, og som en nettverksenhets **Oversikt** viser: du ser den bare der tillatelsen din til å lese den rekker.
+
+**Dashboard låser det tillatelsen din ikke når, og sier hvorfor.** På en ressurs utenfor den er **Rediger** og **Slett** låst, med beskjed om hvilke etiketter tillatelsen din er begrenset til, at den er begrenset til ressursene du eller teamene dine eier, eller begge deler. Det samme gjelder det som hører til ressursen, for eksempel eierne: på en monitor utenfor etikettene dine, eller en som verken du eller teamene dine eier når tillatelsen din har omfanget Eide, er **Legg til eier** låst, og eiere kan ikke fjernes. Det som hører til en monitor, men også nevner en annen ressurs med egne etiketter, for eksempel sondene som sjekker den, låses etter monitorens etiketter bare der en blokkering tar det bort: en tillatelse begrenset til etiketter kan likevel nå det gjennom sondens etiketter, så OneUptime avgjør når du lagrer. For å vite om du eier en ressurs, spør ressursens side OneUptime én gang om hvem som eier den, og tilbyr knappene som svaret avgjør, når det har kommet; en liste spør én gang for radene på skjermen. Lister låser hver rad på samme måte, og sletting av flere rader samtidig utelater dem du ikke kan slette, med beskjed om hvorfor.
+
 **Å handle på hele prosjektet krever en tillatelse som når det.** **Kjør nå** for en regel bruker regelen på alle ressursene i prosjektet, og et nettverks regler for tildeling av steder, enhetsetiketter og automatisk import på alle nettverksenheter eller skanninger, så det krever tillatelser med omfang over alle ressursene i prosjektet: en tillatelse begrenset til etiketter eller til eide ressurser er ikke nok, og en blokkering med etiketter på ressursene en kjøring endrer, avviser kjøringen, fordi den også ville endret ressursene med de etikettene. En global brukeroverstyring gjelder for alle vaktpolicyer, så å legge til eller slette en krever på samme måte tillatelsen for overstyringer med omfang over alle ressursene i prosjektet; et team med omfang over sine egne policyer, eller over noen etiketter, legger til overstyringer på de policyene. Se [Hvem som kan legge til overstyringer](/docs/on-call/user-overrides#hvem-som-kan-legge-til-overstyringer).
 
 Noen roller gjelder per definisjon hele prosjektet og tilbyr ikke noe omfang i det hele tatt, fordi en avgrensning ville vært meningsløs — «Faktureringsadministrator, men bare for faktureringen jeg eier» beskriver ingenting:
@@ -295,7 +299,7 @@ API-nøkler får tillatelser direkte, på selve nøkkelen, eller gjennom de egen
 | --- | --- |
 | Prosjektadministrator | Opprette, endre og slette alt i prosjektet, også innstillingene. Ikke fakturering, og ikke sletting av prosjektet. |
 | Prosjektmedlem | Opprette, endre og slette monitorer, hendelser, statussider og prosjektets andre ressurser, slik et prosjektmedlem kan. |
-| Viser | Lese alt i prosjektet og ikke endre noe. |
+| Leser | Lese alt i prosjektet og ikke endre noe. |
 | En egendefinert rolle | Alt rollen tillater, unntatt det den begrenser til ressurser noen eier. Vises når prosjektet ditt har en du kunne gitt. |
 | Velg tillatelser senere | Ingenting ennå. Valgt fra start. |
 
@@ -404,7 +408,7 @@ Hvert teams tillatelse rekker til reglene som teamet eier. Den som er med i to t
 
 ## Oppskrifter
 
-**Et team som bare ser på.** Opprett teamet med **Viser** under **Tilgang**. For bare noen områder velger du **Velg tillatelser senere** og legger til de områdevise `*Viewer`-rollene teamet skal se.
+**Et team som bare ser på.** Opprett teamet med **Leser** under **Tilgang**. For bare noen områder velger du **Velg tillatelser senere** og legger til de områdevise `*Viewer`-rollene teamet skal se.
 
 **Vaktingeniører som drifter sine egne tjenester.** Gi teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Eide**, og legg så til teamet som eier av monitorene, vaktpolicyene og vaktplanene det drifter. Det personene dets oppretter med disse tillatelsene, eier de allerede.
 

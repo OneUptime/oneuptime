@@ -343,7 +343,8 @@ describe("LokiPush - levels", () => {
     ["a critical level label", { level: "critical" }, "x", 21],
     ["a crit level label", { level: "crit" }, "x", 18],
     ["a verbose level label", { level: "verbose" }, "x", 5],
-    ["a panic level label", { level: "panic" }, "x", 19],
+    // A panic is a crash: Fatal, as everywhere (issue #11228).
+    ["a panic level label", { level: "panic" }, "x", 21],
     ["a Serilog short level label", { level: "WRN" }, "x", 13],
     ["a numbered step", { level: "ERROR3" }, "x", 19],
     ["a level named like an Object member", { level: "constructor" }, "x", 0],

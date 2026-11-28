@@ -365,6 +365,7 @@ describe("ChatInfrastructureAccess.getAiResourceType", () => {
             AIResourceType.KubernetesCluster,
             AIResourceType.OpenStackCloud,
             AIResourceType.StorageArray,
+            AIResourceType.XcpNgPool,
             AIResourceType.ServerlessFunction,
             AIResourceType.CloudResource,
             AIResourceType.IoTFleet,

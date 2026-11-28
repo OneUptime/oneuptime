@@ -235,6 +235,18 @@ router.post(
         probeCapabilities.includes(NETWORK_DEVICE_PING_CAPABILITY);
 
       /*
+       * Whether this probe polls in the SNMPv3 context a device names. An
+       * older one ignores it and polls the agent's default context - on a
+       * Brocade chassis another logical switch altogether, whose ports
+       * would be stored as this one's - so a device that names a context is
+       * only pinged by it, until the probe is updated.
+       */
+      const probeSupportsV3Context: boolean = ProbeCapabilityUtil.has(
+        ProbeCapabilityUtil.parse(probeCapabilities),
+        ProbeCapability.SnmpV3Context,
+      );
+
+      /*
        * This is where an OID Collection Template becomes real. Nothing is
        * ever copied onto a device: the template's OIDs are read here, fresh,
        * and merged with the device's own, so editing a template changes what
@@ -328,6 +340,7 @@ router.post(
       const devicePollConfigs: Array<JSONObject> = [];
       let pingModeDevicesWithheld: number = 0;
       let credentialLookupDevicesSkipped: number = 0;
+      let contextDevicesNotWalked: number = 0;
 
       for (const device of devices) {
         if (!device.id || !device.hostname) {
@@ -351,7 +364,20 @@ router.post(
           continue;
         }
 
-        const pollMode: NetworkDevicePollMode = resolved.pollMode;
+        let pollMode: NetworkDevicePollMode = resolved.pollMode;
+
+        // A device in an SNMPv3 context, on a probe that would ignore it.
+        if (
+          pollMode === "snmp" &&
+          !probeSupportsV3Context &&
+          NetworkDeviceHydrationUtil.getSnmpV3ContextName({
+            snmpVersion: resolved.carrier.snmpVersion,
+            snmpV3ContextName: device.snmpV3ContextName,
+          })
+        ) {
+          contextDevicesNotWalked++;
+          pollMode = "ping";
+        }
 
         if (pollMode === "ping") {
           /*
@@ -497,6 +523,8 @@ router.post(
             oids: oids,
             monitorInterfaces: monitorInterfaces,
             tables: SnmpTableListUtil.toWalkRequests(effectiveTables.tables),
+            // So is which context on the agent: a logical switch, say.
+            snmpV3ContextName: device.snmpV3ContextName,
           }) as unknown as JSONObject,
         });
       }
@@ -504,6 +532,12 @@ router.post(
       if (credentialLookupDevicesSkipped > 0) {
         logger.warn(
           `Probe ${probeId.toString()}: ${credentialLookupDevicesSkipped} network device(s) in this batch use an SNMP Credential Profile that could not be read this cycle, so they were not handed out. Polling them without their credentials would report them as failing their walk. They are polled again next interval.`,
+        );
+      }
+
+      if (contextDevicesNotWalked > 0) {
+        logger.warn(
+          `Probe ${probeId.toString()} does not advertise the "${ProbeCapability.SnmpV3Context}" capability, so ${contextDevicesNotWalked} network device(s) polled in an SNMPv3 context in this batch were only pinged, not walked: an older probe would poll the agent's default context instead, which on a Brocade chassis is another logical switch. Update the probe to the latest version.`,
         );
       }
 

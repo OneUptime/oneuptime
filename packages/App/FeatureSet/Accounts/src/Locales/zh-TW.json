@@ -643,6 +643,8 @@
   "The {{itemName}} was not created.": "{{itemName}}未建立。",
   "The {{itemName}} was not saved.": "{{itemName}}未儲存。",
   "This did not finish.": "操作未完成。",
+  "The {{itemName}} was not deleted.": "{{itemName}}未刪除。",
+  "“{{action}}” did not finish.": "「{{action}}」操作未完成。",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "此頁面遇到了問題，因此操作未完成。請重新載入頁面，然後再試一次。",
   "This page ran into a problem.": "此頁面遇到了問題。",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "要查看失敗原因，請在伺服器的 oneuptime 資料夾中執行 npm run doctor -- --logs，並尋找這個參考編號。",

@@ -4,11 +4,13 @@ import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ServerTwilioEnvironment, {
+  SERVER_TWILIO_CALL_VOICE_VARIABLE,
   SERVER_TWILIO_ENVIRONMENT_VARIABLES,
   SERVER_TWILIO_USED_FOR_VALUES,
   ServerTwilioEnvironmentVariable,
 } from "Common/Types/CallAndSMS/ServerTwilioEnvironment";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import { CALL_VOICE_VALUES } from "Common/Types/Call/CallVoice";
 import TwilioConfigDefaults, {
   TwilioConfigDefaultFlags,
 } from "Common/Types/CallAndSMS/TwilioConfigDefaults";
@@ -47,6 +49,11 @@ import MicrosoftTeamsCloudUtil, {
   MicrosoftTeamsCloud,
   MicrosoftTeamsCloudHosts,
 } from "Common/Types/Workspace/MicrosoftTeamsCloud";
+import {
+  ConnectionShares,
+  computeConnectionShares,
+} from "Common/Server/Utils/Database/ConnectionShares";
+import { aggregateProbeScheduling } from "Common/Server/Utils/Probe/ProbeSchedulingFleetMetrics";
 import { describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -146,6 +153,9 @@ const SOURCES: Record<string, string> = {
   postgresDataSource: `${COMMON_SERVER}/Infrastructure/Postgres/DataSourceOptions.ts`,
   chartValues: `${CHART}/values.yaml`,
   chartHelpers: `${CHART}/templates/_helpers.tpl`,
+  chartValkeyConfig: `${CHART}/templates/valkey-configmap.yaml`,
+  chartApp: `${CHART}/templates/app.yaml`,
+  chartProbe: `${CHART}/templates/probe.yaml`,
   chartManifest: `${CHART}/Chart.yaml`,
   cnpgScheduledBackup: `${CHART}/templates/postgresql-cnpg-scheduledbackup.yaml`,
   logModel: "packages/Common/Models/AnalyticsModels/Log.ts",
@@ -651,6 +661,19 @@ function valueAt(root: unknown, dottedPath: string): unknown {
   }
 
   return node;
+}
+
+// The dotted path of every value a parsed YAML document sets.
+function leafPaths(node: unknown, prefix: string = ""): Array<string> {
+  if (!node || typeof node !== "object" || Array.isArray(node)) {
+    return prefix ? [prefix] : [];
+  }
+
+  return Object.entries(node as Record<string, unknown>).flatMap(
+    ([key, child]: [string, unknown]): Array<string> => {
+      return leafPaths(child, prefix ? `${prefix}.${key}` : key);
+    },
+  );
 }
 
 // A step of a GitHub Actions job, as far as the Node.js check reads it.
@@ -2210,7 +2233,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
   const page: string = english(SIZING);
   const values: Record<string, unknown> = yamlOf("chartValues");
 
-  it("the services the chart runs by default set no resources, and PostgreSQL and ClickHouse get 25 Gi", () => {
+  it("the services the chart runs by default set no resources but Valkey, and PostgreSQL and ClickHouse get 25 Gi", () => {
     const runByDefault: Array<[string, string]> = [
       ["app", "app.resources"],
       ["nginx", "nginx.resources"],
@@ -2218,7 +2241,6 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
       ["probes.one", "probes.one.resources"],
       ["postgresql", "postgresql.primary.resources"],
       ["clickhouse", "clickhouse.resources"],
-      ["valkey", "valkey.master.resources"],
     ];
 
     for (const [service, resources] of runByDefault) {
@@ -2229,10 +2251,19 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
       }).toEqual({ service, enabled: true, noResources: true });
     }
 
+    /*
+     * Valkey ships its resources since #11421: a limit its maxmemory is
+     * derived from, and no CPU limit (the Valkey test below holds the cap).
+     */
+    expect(valueAt(values, "valkey.enabled")).toBe(true);
+    expect(isEmptySetting(valueAt(values, "valkey.master.resources"))).toBe(
+      false,
+    );
+
     expect(valueAt(values, "postgresql.primary.persistence.size")).toBe("25Gi");
     expect(valueAt(values, "clickhouse.persistence.size")).toBe("25Gi");
     expect(page).toContain(
-      "The services it runs by default set **no CPU or memory requests or limits**, and PostgreSQL and ClickHouse get small **25 Gi** volumes",
+      "Except for Valkey, the services it runs by default set **no CPU or memory requests or limits**, and PostgreSQL and ClickHouse get small **25 Gi** volumes",
     );
   });
 
@@ -2329,13 +2360,50 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     );
   });
 
-  it("Valkey keeps nothing on disk by default, and never evicts", () => {
-    expect(valueAt(values, "valkey.master.persistence.enabled")).toBe(false);
-    expect(valueAt(values, "valkey.commonConfiguration")).toMatch(
-      /^maxmemory-policy noeviction$/m,
+  it("Valkey keeps nothing on disk by default, never evicts, and refuses writes at its cap", () => {
+    /*
+     * The chart writes these valkey.conf lines itself, from the values
+     * (#11421); valkey.commonConfiguration only adds lines after them.
+     */
+    const valkeyConf: string = readSource("chartValkeyConfig");
+    const persistence: string = valkeyConf.slice(
+      valkeyConf.indexOf("{{- if (($valkey.master).persistence).enabled }}"),
+      valkeyConf.indexOf("{{- with $valkey.commonConfiguration }}"),
     );
+
+    // Off by default: no append-only file, and no RDB snapshot either way.
+    const [withoutPersistence, afterPersistence] = (
+      persistence.split("{{- else }}")[1] || ""
+    ).split("{{- end }}");
+
+    expect(valueAt(values, "valkey.master.persistence.enabled")).toBe(false);
+    expect(withoutPersistence).toMatch(/^\s*appendonly no$/m);
+    expect(afterPersistence).toMatch(/^\s*save ""$/m);
+    expect(valkeyConf).toMatch(/^\s*maxmemory-policy noeviction$/m);
     expect(page).toContain("persistence is **off by default**");
     expect(page).toContain("Its eviction policy is `noeviction`");
+
+    /*
+     * The cap: valkey.maxmemory, or by default 75% of the memory limit (60%
+     * with persistence on) - 3 GiB of the 4Gi the chart ships.
+     */
+    expect(valueAt(values, "valkey.master.resources.limits.memory")).toBe(
+      "4Gi",
+    );
+    expect(valueAt(values, "valkey.master.resources.limits.cpu")).toBe(
+      undefined,
+    );
+    expect(valueAt(values, "valkey.maxmemory")).toBe("");
+    expect(valueAt(values, "valkey.maxmemoryPercentOfMemoryLimit")).toBe(null);
+    expect(readSource("chartHelpers")).toContain(
+      "{{- $percent = ternary 60 75 (not (not ((($valkey).master).persistence).enabled)) -}}",
+    );
+    expect(valkeyConf).toContain(
+      '{{- with (include "oneuptime.valkey.maxmemory" .) }}\n    maxmemory {{ . }}',
+    );
+    expect(page).toContain(
+      "The chart gives it a 4 Gi memory limit and caps its data at 75% of that, 3 GiB (`valkey.maxmemory`), where it refuses writes.",
+    );
   });
 
   it("the chart bundles KEDA, and each service that scales on its queue has its own switch", () => {
@@ -2505,6 +2573,76 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     expect(page).toContain(
       "(16 GB of memory, 8 cores and 400 GB of disk recommended)",
     );
+  });
+
+  /*
+   * Running many monitors (#10819): the settings it names are the chart's,
+   * the defaults it moves from or keeps are the chart's and the app's, and
+   * its table is what /metrics/probe-scheduling answers with.
+   */
+  it("for many monitors, names the chart's settings and defaults, and the fields /metrics/probe-scheduling answers with", () => {
+    const section: string = sectionOf(page, "## Running many monitors");
+
+    // The fetch limit it raises, and the workers it multiplies.
+    expect(valueAt(values, "probes.one.monitorFetchLimit")).toBe(10);
+    expect(valueAt(values, "probes.one.monitoringWorkers")).toBe(3);
+    expect(readSource("chartProbe")).toMatch(
+      /- name: PROBE_MONITOR_FETCH_LIMIT\s+value: \{\{ \$val\.monitorFetchLimit \| squote \}\}/,
+    );
+    expect(section).toContain(
+      "(`monitorFetchLimit` in the Helm chart, `PROBE_MONITOR_FETCH_LIMIT` elsewhere) from 10 to 50",
+    );
+    expect(section).toContain("150 with 3 workers");
+
+    // The limit it keeps: a fifth of a pod's pool of 50; the Test Monitor lane's 2.
+    const shares: ConnectionShares = computeConnectionShares({
+      poolSize: 50,
+      receivesIngressTraffic: true,
+    });
+
+    expect(shares.probeSchedulingMaxConcurrentRequests).toBe(10);
+    expect(shares.probeSchedulingMaxConcurrentMonitorTestRequests).toBe(2);
+    expect(readSource("chartApp")).toMatch(
+      /- name: PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS\s+value: \{\{ \$\.Values\.app\.probeSchedulingMaxConcurrentRequests \| squote \}\}/,
+    );
+    expect(section).toContain(
+      "`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`)",
+    );
+    expect(section).toContain("a fifth of its database pool, 10 of 50");
+    expect(section).toContain("Test Monitor runs have 2 slots of their own");
+
+    // Every value its YAML sets is one the chart has.
+    const blocks: Array<string> = fencedBlocks(section, "yaml");
+
+    expect(blocks).toHaveLength(2);
+
+    for (const block of blocks) {
+      for (const valuePath of leafPaths(jsYaml.load(block))) {
+        expect({
+          valuePath,
+          inChart: valueAt(values, valuePath) !== undefined,
+        }).toEqual({ valuePath, inChart: true });
+      }
+    }
+
+    // Each field of its table is one the endpoint answers with.
+    const answered: Array<string> = Object.keys(
+      aggregateProbeScheduling([], true),
+    );
+    const fields: Array<string> = tableRows(section)
+      .slice(1)
+      .map((cells: Array<string>): string => {
+        return unwrap(cells[0] as string);
+      });
+
+    expect(fields).toHaveLength(7);
+
+    for (const field of fields) {
+      expect({ field, answered: answered.includes(field) }).toEqual({
+        field,
+        answered: true,
+      });
+    }
   });
 });
 
@@ -3538,12 +3676,16 @@ describe("Twilio Integration, against the notification server and the forms", ()
       );
     });
 
+    // The account's, in their order, then the call voice's of its own (#11064).
     it("lists every variable the server reads, in its order, and no other", () => {
       expect(
         rows.map((row: Array<string>): string => {
           return unwrap(row[0] as string);
         }),
-      ).toEqual([...SERVER_TWILIO_ENVIRONMENT_VARIABLES]);
+      ).toEqual([
+        ...SERVER_TWILIO_ENVIRONMENT_VARIABLES,
+        SERVER_TWILIO_CALL_VOICE_VARIABLE,
+      ]);
     });
 
     it("each variable is set by the chart from the Helm value its row names, which ships empty", () => {
@@ -3585,7 +3727,10 @@ describe("Twilio Integration, against the notification server and the forms", ()
       const compose: string = readSource("baseCompose");
       const settings: Map<string, string> = configExample();
 
-      for (const variable of SERVER_TWILIO_ENVIRONMENT_VARIABLES) {
+      for (const variable of [
+        ...SERVER_TWILIO_ENVIRONMENT_VARIABLES,
+        SERVER_TWILIO_CALL_VOICE_VARIABLE,
+      ]) {
         expect({
           variable,
           passedOn: compose.includes(`  ${variable}: \${${variable}:-}\n`),
@@ -3639,8 +3784,24 @@ describe("Twilio Integration, against the notification server and the forms", ()
       const helpers: string = readSource("chartHelpers");
 
       expect(section).toContain(
-        "The chart also refuses other `twilio` values without `twilio.accountSid`, an Account SID without an auth token, and an auth token given both in `twilio.authToken` and in a Secret.",
+        "The chart also refuses other `twilio` values without `twilio.accountSid` (all but `twilio.callVoice`, which sets the voice whoever sets the account), an Account SID without an auth token, an auth token given both in `twilio.authToken` and in a Secret, and a `twilio.callVoice` that is not one of the voices.",
       );
+      // The voice is never counted among the values nothing reads (#11064)...
+      expect(helpers).toContain(
+        '{{- range $key := list "authToken" "usedFor" "primaryPhoneNumber" "secondaryPhoneNumbers" "smsPhoneNumbers" }}',
+      );
+      // ...and the schema takes only OneUptime's voices.
+      expect(
+        valueAt(
+          JSON.parse(
+            fs.readFileSync(
+              path.join(REPO_DIR, CHART, "values.schema.json"),
+              "utf8",
+            ),
+          ),
+          "properties.twilio.properties.callVoice.enum",
+        ),
+      ).toEqual([null, "", ...CALL_VOICE_VALUES]);
 
       for (const refusal of [
         "twilio.accountSid is empty, so OneUptime reads none of the other twilio values",

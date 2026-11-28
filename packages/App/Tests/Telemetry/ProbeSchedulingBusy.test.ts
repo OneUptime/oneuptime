@@ -1,5 +1,6 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import Response from "Common/Server/Utils/Response";
+import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
@@ -12,6 +13,7 @@ import ProbeSchedulingLimiterInstance, {
   probeSchedulingLimits,
 } from "Common/Server/Utils/Probe/ProbeSchedulingLimiter";
 import { KeyedConcurrencyRelease } from "Common/Server/Utils/KeyedConcurrencyLimiter";
+import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -184,6 +186,8 @@ const responseUtil: {
 const cache: { getString: AnyMock; setString: AnyMock } =
   GlobalCache as unknown as { getString: AnyMock; setString: AnyMock };
 
+const loggerError: AnyMock = (logger as unknown as { error: AnyMock }).error;
+
 const monitorProbeService: {
   claimMonitorProbesForProbing: AnyMock;
   countMonitorProbesDueForProbing: AnyMock;
@@ -200,12 +204,17 @@ const deviceService: { claimDevicesForPolling: AnyMock } =
 
 const PROBE_ID: ObjectID = new ObjectID("1f7e3c2a-9b4d-4e6f-8a0c-2d4b6f8a0c11");
 
-// An HTTP response: answers once, then says it finished and closed.
+/*
+ * An HTTP response: answers once, then says it finished and closed. As
+ * Node's does, it says it is destroyed and closed from its "close" on.
+ */
 class FakeResponse extends EventEmitter {
   public statusCode: number = 200;
   public headers: Record<string, string> = {};
   public body: unknown = undefined;
   public writableFinished: boolean = false;
+  public destroyed: boolean = false;
+  public closed: boolean = false;
 
   public status(code: number): this {
     this.statusCode = code;
@@ -226,11 +235,17 @@ class FakeResponse extends EventEmitter {
   public finish(): void {
     this.writableFinished = true;
     this.emit("finish");
-    this.emit("close");
+    this.close();
   }
 
   // The client hangs up before an answer.
   public hangUp(): void {
+    this.close();
+  }
+
+  private close(): void {
+    this.destroyed = true;
+    this.closed = true;
     this.emit("close");
   }
 }
@@ -425,6 +440,94 @@ describe("ProbeSchedulingMiddleware", () => {
     expect(next).not.toHaveBeenCalled();
     expect(res.body).toBeUndefined();
     expect(limiter.runningCount()).toBe(0);
+  });
+
+  /*
+   * The probe gave up on its own deadline while its request was still being
+   * authenticated (ProbeAuthorization, on a slow database or Valkey): its
+   * "close" has been and gone, so nothing would give a slot taken now back.
+   */
+  test("a probe that hung up before its request reached the limit takes no slot, and its request never runs", async () => {
+    const res: FakeResponse = new FakeResponse();
+    res.hangUp();
+
+    const next: AnyMock = jest.fn() as unknown as AnyMock;
+    await limit(makeRequest({}), asExpress(res), next as NextFunction);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(emptyAnswer).not.toHaveBeenCalled();
+    expect(res.body).toBeUndefined();
+    expect(limiter.runningCount()).toBe(0);
+    expect(limiter.waitingCount()).toBe(0);
+  });
+
+  test("a request handed its slot as its probe hangs up gives the slot straight back, and never runs", async () => {
+    const held: KeyedConcurrencyRelease = await limiter.acquire("other");
+    const res: FakeResponse = new FakeResponse();
+    const next: AnyMock = jest.fn() as unknown as AnyMock;
+    const waiting: Promise<void> = limit(
+      makeRequest({}),
+      asExpress(res),
+      next as NextFunction,
+    );
+    await settle();
+    expect(limiter.waitingCount()).toBe(1);
+
+    // Gone, with the "close" that would have taken it out of the queue missed.
+    res.destroyed = true;
+    res.closed = true;
+    held();
+    await waiting;
+
+    expect(next).not.toHaveBeenCalled();
+    expect(limiter.runningCount()).toBe(0);
+  });
+
+  test("a slot neither answered nor hung up on is given back after its longest hold, and the log says so", async () => {
+    const holdLimit: ProbeSchedulingMiddlewareFunction =
+      ProbeSchedulingMiddleware.limit(emptyAnswer, {
+        limiter,
+        maxSlotHoldMs: 20,
+      });
+    const res: FakeResponse = new FakeResponse();
+    const next: AnyMock = jest.fn() as unknown as AnyMock;
+
+    await holdLimit(makeRequest({}), asExpress(res), next as NextFunction);
+    expect(next).toHaveBeenCalledWith();
+    expect(limiter.runningCount()).toBe(1);
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 80);
+    });
+
+    expect(limiter.runningCount()).toBe(0);
+    expect(loggerError).toHaveBeenCalledTimes(1);
+    expect(String(loggerError.mock.calls[0]![0])).toContain(
+      `probe ${PROBE_ID.toString()}`,
+    );
+
+    // An answer that comes after all gives nothing more back.
+    res.send([]);
+    expect(limiter.runningCount()).toBe(0);
+  });
+
+  test("an answered request's longest hold is called off with its answer", async () => {
+    const holdLimit: ProbeSchedulingMiddlewareFunction =
+      ProbeSchedulingMiddleware.limit(emptyAnswer, {
+        limiter,
+        maxSlotHoldMs: 20,
+      });
+    const res: FakeResponse = new FakeResponse();
+
+    await holdLimit(makeRequest({}), asExpress(res), jest.fn() as NextFunction);
+    res.send([]);
+    expect(limiter.runningCount()).toBe(0);
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 80);
+    });
+
+    expect(loggerError).not.toHaveBeenCalled();
   });
 
   test("a probe declares retryWhenBusy only with the capability in its body", () => {
@@ -777,5 +880,122 @@ describe("the probe scheduling endpoints when the server is busy", () => {
 
       expect(next).toHaveBeenCalledWith(failure);
     });
+  });
+});
+
+/*
+ * Test Monitor runs have a lane of their own (issue #10819): a probe's test
+ * fetch used to wait in the same queue as every monitor fetch of the same
+ * probe, and a fleet catching up had it answered busy again and again, so a
+ * test was created and never run.
+ */
+describe("the lane each scheduling endpoint asks for", () => {
+  const ROUTES: Array<{ uri: string; lane: ProbeSchedulingLane }> = [
+    { uri: "/monitor/list", lane: ProbeSchedulingLane.Work },
+    { uri: "/monitor-test/list", lane: ProbeSchedulingLane.MonitorTests },
+    { uri: "/probe/network-device/list", lane: ProbeSchedulingLane.Work },
+  ];
+
+  for (const route of ROUTES) {
+    test(`POST ${route.uri} asks for a slot of the ${route.lane} lane`, async () => {
+      const acquire: AnyMock = jest
+        .spyOn(ProbeSchedulingLimiterInstance, "acquire")
+        .mockRejectedValue(
+          new ProbeSchedulingBusyError() as never,
+        ) as unknown as AnyMock;
+
+      await (
+        mockRouter.match("post", route.uri)
+          .middlewares[1] as ProbeSchedulingMiddlewareFunction
+      )(
+        makeRequest({ capabilities: RETRYING_PROBE }),
+        asExpress(new FakeResponse()),
+        jest.fn() as NextFunction,
+      );
+
+      expect(acquire).toHaveBeenCalledTimes(1);
+      const options: { lane?: ProbeSchedulingLane } = acquire.mock
+        .calls[0]![1] as { lane?: ProbeSchedulingLane };
+      expect(options.lane || ProbeSchedulingLane.Work).toBe(route.lane);
+    });
+  }
+
+  test("a Test Monitor fetch goes on to its handler while every work slot is held and the work queue is full", async () => {
+    const work: number = ProbeSchedulingLimiterInstance.limits.maxRunning;
+    const waiting: number =
+      ProbeSchedulingLimiterInstance.limits.maxWaitingPerKey;
+    const held: Array<KeyedConcurrencyRelease> = [];
+    const queued: Array<Promise<KeyedConcurrencyRelease>> = [];
+
+    for (let slot: number = 0; slot < work; slot++) {
+      held.push(
+        await ProbeSchedulingLimiterInstance.acquire(PROBE_ID.toString()),
+      );
+    }
+
+    for (let place: number = 0; place < waiting; place++) {
+      queued.push(
+        ProbeSchedulingLimiterInstance.acquire(PROBE_ID.toString()).catch(
+          (): KeyedConcurrencyRelease => {
+            return (): void => {
+              return undefined;
+            };
+          },
+        ),
+      );
+    }
+
+    try {
+      await settle();
+      // A monitor fetch of the same probe is answered busy now.
+      const monitorRes: FakeResponse = new FakeResponse();
+      const monitorNext: AnyMock = jest.fn() as unknown as AnyMock;
+      await (
+        mockRouter.match("post", "/monitor/list")
+          .middlewares[1] as ProbeSchedulingMiddlewareFunction
+      )(
+        makeRequest({ capabilities: RETRYING_PROBE }),
+        asExpress(monitorRes),
+        monitorNext as NextFunction,
+      );
+      expect(monitorRes.statusCode).toBe(429);
+      expect(monitorNext).not.toHaveBeenCalled();
+
+      // Its Test Monitor fetch goes on at once.
+      const testRes: FakeResponse = new FakeResponse();
+      const testNext: AnyMock = jest.fn() as unknown as AnyMock;
+      await (
+        mockRouter.match("post", "/monitor-test/list")
+          .middlewares[1] as ProbeSchedulingMiddlewareFunction
+      )(
+        makeRequest({ capabilities: RETRYING_PROBE }),
+        asExpress(testRes),
+        testNext as NextFunction,
+      );
+      expect(testNext).toHaveBeenCalledWith();
+      expect(
+        ProbeSchedulingLimiterInstance.runningCount(
+          PROBE_ID.toString(),
+          ProbeSchedulingLane.MonitorTests,
+        ),
+      ).toBe(1);
+
+      testRes.send([]);
+      expect(
+        ProbeSchedulingLimiterInstance.runningCount(
+          undefined,
+          ProbeSchedulingLane.MonitorTests,
+        ),
+      ).toBe(0);
+    } finally {
+      for (const release of held) {
+        release();
+      }
+      for (const waiter of queued) {
+        (await waiter)();
+      }
+    }
+
+    expect(ProbeSchedulingLimiterInstance.runningCount()).toBe(0);
   });
 });

@@ -44,7 +44,11 @@ Press 1 to acknowledge, or 2 to escalate.
 You did not press a key, so this incident is not acknowledged. Good bye.
 ```
 
-The call names your project. A call that is not for a project, such as a verification code, names OneUptime, or the name your self-hosted installation goes by. A title longer than about 100 characters is cut after a whole word, and OneUptime keeps the full title. The letters of a number such as `INC-42` are said one at a time, so the voice never reads them as a word. Calls are always in English.
+If you press a key the call did not offer, such as 3, # or *, the call says "That key does nothing." and asks for the keys again. It asks again at most twice, as often as it says the keys when you press none; after that, a wrong key ends the call and the page stays unacknowledged. Keys 1 and 2 work as they always have.
+
+The call names your project. A call that is not for a project, such as a verification code, names OneUptime, or the name your self-hosted installation goes by. A title longer than about 100 characters is cut after a whole word, and OneUptime keeps the full title. The letters of a number such as `INC-42` are said one at a time, so the voice never reads them as a word.
+
+A call is in the language you read OneUptime in when the Twilio account it goes out on speaks with one of OneUptime's voices: everything it says, the answers to your keys included, in a voice of your language, a woman's if the account's voice is a woman's and a man's if it is a man's. The keys stay the same: 1 to acknowledge, 2 to escalate. A call through an account that keeps its default voice is in English, and so is a call to someone who reads OneUptime in Persian, which no voice speaks: see [The voice calls speak with](/docs/self-hosted/twilio-integration#the-voice-calls-speak-with).
 
 ## One ladder for everything
 

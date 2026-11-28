@@ -2349,6 +2349,7 @@ describe("the OpenTelemetry collector pin", () => {
     "agents/OpenStackAgent/docker-compose.yml",
     "agents/OpenStackAgent/docker-compose.traces.yml",
     "agents/OpenStackAgent/docker-compose.logs.yml",
+    "agents/XcpNgAgent/docker-compose.yml",
     // The journald wrapper image the Proxmox README and guide build.
     "agents/ProxmoxAgent/README.md",
     "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown.ts",
@@ -2439,30 +2440,75 @@ describe("the OpenTelemetry collector pin", () => {
     expect(isFilesVersionOf("0.161", "0.161.0")).toBe(false);
   });
 
-  test("the Swarm, VMware, Database, Proxmox, Ceph, OpenStack and Storage Array compose files run the pinned collector", () => {
-    for (const file of [
-      "agents/DockerSwarmAgent/docker-compose.yml",
-      "agents/VMwareAgent/docker-compose.yml",
-      "agents/DatabaseAgent/docker-compose.yml",
-      "agents/ProxmoxAgent/docker-compose.yml",
-      "agents/CephAgent/docker-compose.yml",
-      "agents/OpenStackAgent/docker-compose.yml",
-      "agents/OpenStackAgent/docker-compose.traces.yml",
-      "agents/OpenStackAgent/docker-compose.logs.yml",
-      "agents/StorageArrayAgent/docker-compose.yml",
-    ]) {
+  /*
+   * Each file's collector services, by name, so a new one is named here, and each
+   * runs the pin. The Storage Array Agent runs two: the agent, and PowerStore's
+   * syslog receiver (powerstore-syslog), which runs the agent's own image through
+   * the *collector-image alias so the two cannot drift apart. The Docker Swarm
+   * agent runs two too: the agent, and the check of its config with your log
+   * operators (#11225), the collector's own validate, which runs once first.
+   */
+  test("the Swarm, VMware, Database, Proxmox, Ceph, OpenStack, Storage Array and XCP-ng compose files run the pinned collector", () => {
+    const pinned = `otel/opentelemetry-collector-contrib:${pinsIn("agents/DockerAgent/Dockerfile.tpl")[0]}`;
+    const collectorServicesOf = {
+      "agents/DockerSwarmAgent/docker-compose.yml": [
+        "oneuptime-docker-swarm-agent",
+        "oneuptime-docker-swarm-agent-config-check",
+      ],
+      "agents/VMwareAgent/docker-compose.yml": ["oneuptime-vmware-agent"],
+      "agents/DatabaseAgent/docker-compose.yml": ["oneuptime-database-agent"],
+      "agents/ProxmoxAgent/docker-compose.yml": ["oneuptime-proxmox-agent"],
+      "agents/CephAgent/docker-compose.yml": ["oneuptime-ceph-agent"],
+      "agents/OpenStackAgent/docker-compose.yml": ["oneuptime-openstack-agent"],
+      "agents/OpenStackAgent/docker-compose.traces.yml": [
+        "oneuptime-openstack-traces",
+      ],
+      "agents/OpenStackAgent/docker-compose.logs.yml": [
+        "oneuptime-openstack-logs",
+      ],
+      "agents/StorageArrayAgent/docker-compose.yml": [
+        "oneuptime-storage-array-agent",
+        "powerstore-syslog",
+      ],
+      "agents/XcpNgAgent/docker-compose.yml": ["oneuptime-xcp-ng-agent"],
+    };
+    for (const [file, services] of Object.entries(collectorServicesOf)) {
       const compose = yaml.load(read(file));
-      const images = Object.values(compose.services)
-        .map((service) => {
-          return service.image;
-        })
-        .filter((image) => {
-          return /opentelemetry-collector-contrib/.test(image || "");
-        });
-      expect(images).toEqual([
-        `otel/opentelemetry-collector-contrib:${pinsIn("agents/DockerAgent/Dockerfile.tpl")[0]}`,
-      ]);
+      const collectors = Object.entries(compose.services).filter(
+        ([, service]) => {
+          return /opentelemetry-collector-contrib/.test(service.image || "");
+        },
+      );
+      expect({
+        file,
+        collectors: Object.fromEntries(
+          collectors.map(([name, service]) => {
+            return [name, service.image];
+          }),
+        ),
+      }).toEqual({
+        file,
+        collectors: Object.fromEntries(
+          services.map((name) => {
+            return [name, pinned];
+          }),
+        ),
+      });
     }
+  });
+
+  test("PowerStore's syslog receiver runs the Storage Array Agent's own collector image, through the alias", () => {
+    const text = read("agents/StorageArrayAgent/docker-compose.yml");
+    const compose = yaml.load(text);
+    expect(compose.services["powerstore-syslog"].image).toBe(
+      compose.services["oneuptime-storage-array-agent"].image,
+    );
+    // Written once: the agent anchors it and the syslog receiver aliases it.
+    expect(text.match(/opentelemetry-collector-contrib:/g)).toHaveLength(1);
+    expect(text).toMatch(
+      /\n {4}image: &collector-image otel\/opentelemetry-collector-contrib:/,
+    );
+    expect(text).toMatch(/\n {2}powerstore-syslog:\n {4}image: \*collector-image\n/);
   });
 
   /*
@@ -2627,7 +2673,8 @@ describe("the OpenTelemetry collector pin", () => {
    * what tells OneUptime the agent's version: it must stamp exactly the pin
    * the compose file beside it runs, or the version sign on the resource's
    * page compares the wrong number. The Storage Array agent runs one of
-   * three configs (the kind of array decides which), so each stamps it.
+   * three configs (the kind of array decides which), so each stamps it. The
+   * XCP-ng agent's stamps it on every pool it reports.
    */
   test.each([
     ["ProxmoxAgent", "otel-collector-config.yaml"],
@@ -2640,6 +2687,7 @@ describe("the OpenTelemetry collector pin", () => {
     ["StorageArrayAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.flasharray-exporter.yaml"],
     ["StorageArrayAgent", "otel-collector-config.flashblade.yaml"],
+    ["XcpNgAgent", "otel-collector-config.yaml"],
   ])(
     "agents/%s/%s stamps the pin as oneuptime.agent.version",
     (agent, file) => {

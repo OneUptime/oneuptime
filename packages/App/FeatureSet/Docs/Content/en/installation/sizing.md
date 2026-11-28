@@ -3,7 +3,7 @@
 Plan the CPU, memory and disk for a self-hosted OneUptime on Kubernetes with the [Helm chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime). Size the three datastores — **ClickHouse**, **PostgreSQL** and **Valkey** — and the application separately, start from one of the tiers below, and adjust once you have real numbers.
 
 > [!IMPORTANT]
-> The chart's defaults are not production sizing. The services it runs by default set **no CPU or memory requests or limits**, and PostgreSQL and ClickHouse get small **25 Gi** volumes, so that the chart installs on any cluster. For anything beyond a trial, set resources and storage yourself, using the numbers on this page.
+> The chart's defaults are not production sizing. Except for Valkey, the services it runs by default set **no CPU or memory requests or limits**, and PostgreSQL and ClickHouse get small **25 Gi** volumes, so that the chart installs on any cluster. For anything beyond a trial, set resources and storage yourself, using the numbers on this page.
 
 Running the single-server Docker Compose install instead? Its sizing is simpler: see the [requirements](/docs/installation/docker-compose#requirements) (16 GB of memory, 8 cores and 400 GB of disk recommended).
 
@@ -88,7 +88,7 @@ With many app, worker and probe replicas, database connections can run out befor
 
 ## Valkey — cache, queues, and sessions
 
-The cache tier runs [Valkey](https://valkey.io), the BSD-licensed fork of Redis 7.2, as a cache, a work queue and a session store. Any Redis-protocol server can stand in for it, and the sizing below applies either way. It is **memory-bound**, and persistence is **off by default**: it is not a source of truth and can be rebuilt. Size it by queue depth and concurrent sessions; 2–8 GB of memory covers most deployments. Its eviction policy is `noeviction`, so watch its memory if queues back up under sustained load.
+The cache tier runs [Valkey](https://valkey.io), the BSD-licensed fork of Redis 7.2, as a cache, a work queue and a session store. Any Redis-protocol server can stand in for it, and the sizing below applies either way. It is **memory-bound**, and persistence is **off by default**: it is not a source of truth and can be rebuilt. Size it by queue depth and concurrent sessions; 2–8 GB of memory covers most deployments. The chart gives it a 4 Gi memory limit and caps its data at 75% of that, 3 GiB (`valkey.maxmemory`), where it refuses writes. Its eviction policy is `noeviction`, so watch its memory if queues back up under sustained load.
 
 ## Application compute
 
@@ -105,6 +105,52 @@ Beyond the datastores, size the stateless workloads. Each runs with **no resourc
 Each runs Node.js, which sizes its heap to the memory limit of its container (`resources.limits.memory`): 75% of the limit, at least 256 MB and at most 8096 MB. Without a limit, the heap can grow to 8096 MB. The rest of the limit is for the memory Node.js uses outside its heap. To choose the heap yourself, set `NODE_OPTIONS` to `--max-old-space-size=` followed by a size in MB, in the service's `extraEnv` (with Docker Compose, in the service's `environment`, in an override file). It takes precedence over the size the limit gives.
 
 The chart bundles **KEDA**, so the app, workers, probes and the global Runner can scale on their queue backlog. Turn on `keda.enabled` together with each service's own `keda.enabled` (`app.keda.enabled`, for example). On a cluster that has no KEDA yet, the first install takes an extra pass: see the chart's [KEDA guide](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md). Services that KEDA does not manage can use a CPU or memory autoscaler instead (`autoscaling`).
+
+## Running many monitors
+
+Every worker of every probe asks the app pods for the monitors that are due, a batch at a time, and each due monitor goes to exactly one of them. All the one-minute monitors come due together at the start of each minute, so what matters is how quickly a whole minute's worth is handed out. The numbers below were measured with 39,700 monitors (28,200 checked every minute and 11,500 every five minutes) on one probe of 20 replicas, every database statement made 50 or 100 ms slower than on an idle machine, as on a busy one.
+
+### Hand monitors out in bigger batches
+
+Raise each probe's fetch limit (`monitorFetchLimit` in the Helm chart, `PROBE_MONITOR_FETCH_LIMIT` elsewhere) from 10 to 50. Each request then hands out five times as many monitors at about the same cost. With three app pods and statements 50 ms slower, each minute's 28,200 monitors were handed out within 19 seconds, against 44 with a limit of 10, and the 39,700 due every five minutes within 19 seconds, against 57. A probe replica then runs up to workers × fetch limit checks at once, 150 with 3 workers: give it the memory for them, or add replicas.
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### Leave the scheduling limit at its default
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) is how many probe requests each app pod runs at once: a fifth of its database pool, 10 of 50. Each pod has its own, so the app pods you add bring theirs. With all 39,700 due at once and statements 100 ms slower, one probe was handed 313 monitors a second by one app pod, 659 by three and 763 by six, and raising the limit to 20 added 7%. A probe alone may use every slot of a pod, and probes that compete share them fairly. Test Monitor runs have 2 slots of their own, so a test reaches a probe within its ten-second tick however busy the monitors are. Raise the limit only if probe requests keep waiting for a slot while the database has room to spare, and raise the pod's database pool with it.
+
+### One probe or many
+
+Put each monitor on the probes it needs to check from. Each due monitor goes to one replica of its probe, however many replicas ask at once, so one probe with many replicas keeps up as well as many probes do. When monitors are late and no request waits for a slot, the probes are short: add replicas, or let KEDA scale each probe on the monitors it has due.
+
+### Autoscale on what probes wait for
+
+`/metrics/probe-scheduling`, on the app's port, adds up every app pod's view of the last minute. Scale the app pods on its `queueDepth` with KEDA, beside CPU and memory, and alert when monitors are handed out late:
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| Field | What it says |
+| --- | --- |
+| `queueDepth` | Probe requests waiting for a slot now, on every app pod. Above 0 for minutes: add app pods. |
+| `slotWaitP95Ms` | How long requests waited for a slot, on the busiest app pod. |
+| `refusalsPerMinute` | Probe requests answered busy. |
+| `reconnectsAskedPerMinute` | Answers that asked a probe's connection to reconnect, so its next request can go to another app pod: a few a second while an app pod is backed up. Above 0 for minutes: add app pods. |
+| `dispatchLagP95Seconds` | How late monitors were handed out, past the moment their interval made them due. Close to your shortest interval while no request waits: add probe replicas. |
+| `monitorsLateByAnIntervalPerMinute` | Monitors handed out a whole interval late: checks that were skipped. |
+| `monitorTestWaitP95Seconds` | How long Test Monitor runs waited for a probe. |
 
 ## Starting tiers
 

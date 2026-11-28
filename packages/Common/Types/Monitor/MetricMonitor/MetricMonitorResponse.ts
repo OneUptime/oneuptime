@@ -225,7 +225,7 @@ export interface StorageArrayAffectedResource {
   componentType?: string | undefined;
   /** `local_pod` label — FlashArray pod replica-link series. */
   podName?: string | undefined;
-  /** `summary` label — one open alert (purefa_alerts_open / purefb_alerts_open). */
+  /** `summary` label — one open alert (the platform's open alert series). */
   alertSummary?: string | undefined;
   metricValue: number;
   /**
@@ -243,6 +243,45 @@ export interface StorageArrayResourceBreakdown
   metricName: string;
   metricFriendlyName: string;
   affectedResources: Array<StorageArrayAffectedResource>;
+  attributes: Dictionary<string>;
+}
+
+/**
+ * One object of an XCP-ng pool in an XCP-ng monitor's per-series
+ * breakdown. Xen Orchestra keeps object identity in DATAPOINT labels
+ * (stored unprefixed in ClickHouse), and ingest stamps `xcp_ng.scope` and
+ * `xcp_ng.id` on every datapoint (XcpNgSeriesNormalizer); which of the
+ * name labels are present depends on the series.
+ */
+export interface XcpNgAffectedResource {
+  /** `xcp_ng.scope` — pool | host | vm | sr | vdi | xostor. */
+  scope?: string | undefined;
+  /** `xcp_ng.id` — the object's XAPI UUID, lower-cased at ingest. */
+  objectId?: string | undefined;
+  /** `host_name` — a host's own name, or the host a VM runs on. */
+  hostName?: string | undefined;
+  /** `vm_name` — VM series, and a virtual disk's VM. */
+  vmName?: string | undefined;
+  /** `sr_name` — storage repository series, and a virtual disk's SR. */
+  storageRepositoryName?: string | undefined;
+  /** `vdi_name` — virtual disk series. */
+  vdiName?: string | undefined;
+  metricValue: number;
+  /**
+   * Lowest sample seen for this object in the monitoring window — what a
+   * criteria that fires when the metric FALLS breached on (a host's
+   * xcp_ng.host.running = 0). See KubernetesAffectedResource.lowestMetricValue.
+   */
+  lowestMetricValue?: number | undefined;
+}
+
+export interface XcpNgResourceBreakdown
+  extends PlatformResourceBreakdownSource {
+  /** The pool's XAPI UUID (`xcp_ng.pool.id`) the step is scoped to. */
+  poolIdentifier: string;
+  metricName: string;
+  metricFriendlyName: string;
+  affectedResources: Array<XcpNgAffectedResource>;
   attributes: Dictionary<string>;
 }
 
@@ -347,6 +386,8 @@ export default interface MetricMonitorResponse {
   storageArrayResourceBreakdowns?:
     | Array<StorageArrayResourceBreakdown>
     | undefined;
+  // Plural only, as storage arrays': XCP-ng shipped after them.
+  xcpNgResourceBreakdowns?: Array<XcpNgResourceBreakdown> | undefined;
   dockerSwarmResourceBreakdowns?:
     | Array<DockerSwarmResourceBreakdown>
     | undefined;

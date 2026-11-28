@@ -19,7 +19,9 @@ import {
   MAX_TELEMETRY_LEAKS_PER_FIX,
   TelemetryLeakFixIssue,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
+  isTelemetryLeakFixOwnerKind,
   isTelemetryLeakFixStrategy,
   readTelemetryLeakFixIssue,
   readTelemetryLeakFixLeak,
@@ -489,6 +491,12 @@ export function getInfrastructureFixFolder(
  * masked templates only - never a value, a sample, a record or an excerpt.
  */
 export interface TelemetryLeakFixTaskContext {
+  /*
+   * Whose code it changes: a service's, or a RUM application's front end
+   * (#10933) - left out, a service's. serviceId and serviceName carry the
+   * owner's id and name either way.
+   */
+  ownerKind?: TelemetryLeakFixOwnerKind | undefined;
   serviceId: string;
   serviceName: string;
   // What the pull request is called: "Stop checkout writing sensitive data to its telemetry".
@@ -554,6 +562,10 @@ export function getTelemetryLeakFixTaskContext(
   );
 
   return {
+    ...(isTelemetryLeakFixOwnerKind(raw["ownerKind"]) &&
+    raw["ownerKind"] !== TelemetryLeakFixOwnerKind.Service
+      ? { ownerKind: raw["ownerKind"] }
+      : {}),
     serviceId,
     serviceName,
     title:
@@ -704,12 +716,17 @@ export interface CodeFixTaskContext {
    */
   allowedCodeRepositoryIds?: Array<string> | undefined;
   /*
-   * A FixPerformance run a person asked for from a trace whose code no
-   * connected repository was found to hold for certain: the repository
-   * they picked (TracePerformanceFixSuggestion.repositories). The run works
-   * in it, when it is queued and again when it starts
-   * (getRunRepositoryAllowance). Absent: the repository is resolved from
-   * the run's facts, as for every other run.
+   * A fix a person asked for outside Code - a trace's FixPerformance
+   * (#11075), an incident's or alert's FixFromIncident, a service's
+   * ImproveLogging or ImproveTracing (#11209): the repository it works in,
+   * decided when it was queued (CodeFixPersonRepository) - the one they
+   * picked (the suggestion's `repositories`) when no connected repository
+   * was found to hold the code for certain, or the one the run's facts
+   * resolved to among the repositories the person may use in Code. The run
+   * works in it, when it is queued and again when it starts
+   * (getRunRepositoryAllowance), so it is never made in one the person may
+   * not use. Absent - on an automatic run, and on runs queued before - the
+   * repository is resolved from the run's facts, as for every other run.
    */
   pickedCodeRepositoryId?: string | undefined;
 }

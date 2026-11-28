@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/common",
-  "version": "17.3.0",
+  "version": "18.0.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -16,6 +16,7 @@
   "scripts": {
     "test": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node --max-old-space-size=4096 node_modules/.bin/jest ./Tests --forceExit --maxWorkers=2",
     "test-file": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node node_modules/.bin/jest --runInBand $1 --detectOpenHandles",
+    "test-clickhouse": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node --max-old-space-size=4096 node_modules/.bin/jest ClickhouseIntegration.test.ts --forceExit --maxWorkers=2 --passWithNoTests",
     "coverage": "jest --detectOpenHandles --coverage",
     "compile": "export NODE_OPTIONS=\"--max-old-space-size=8192${NODE_OPTIONS:+ $NODE_OPTIONS}\" && tsc",
     "compile-tests": "node Scripts/compile-tests.js",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.5.0",
+    "@kusto/language-service-next": "^12.4.1",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^14.4.3",

@@ -18,6 +18,7 @@ import {
 } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import {
   CALL_MCP_TOOL_TOOL_NAME,
+  CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
   LIST_MCP_TOOLS_TOOL_NAME,
 } from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import {
@@ -398,6 +399,87 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Data security",
     },
   ],
+  // Data Security's buttons as actions, made as the person once allowed (#10378).
+  [
+    "scrub_data_security_finding",
+    {
+      description: "Scrubbed a finding",
+      icon: IconProp.EyeSlash,
+      category: "Data security",
+    },
+  ],
+  [
+    "judge_data_security_finding",
+    {
+      description: "Decided on a finding",
+      icon: IconProp.CheckCircle,
+      category: "Data security",
+    },
+  ],
+  [
+    "change_data_security_issue",
+    {
+      description: "Changed a data security issue",
+      icon: IconProp.ShieldExclamation,
+      category: "Data security",
+    },
+  ],
+  [
+    "set_data_store_owners",
+    {
+      description: "Changed a data store's owners",
+      icon: IconProp.User,
+      category: "Data security",
+    },
+  ],
+  [
+    "draft_data_security_rule",
+    {
+      description: "Drafted a rule from your words",
+      icon: IconProp.Sparkles,
+      category: "Data security",
+    },
+  ],
+  [
+    "save_data_security_rule",
+    {
+      description: "Saved a data security rule",
+      icon: IconProp.Filter,
+      category: "Data security",
+    },
+  ],
+  [
+    "respond_on_data_store",
+    {
+      description: "Changed a data store through its cloud connection",
+      icon: IconProp.Lock,
+      category: "Data security",
+    },
+  ],
+  [
+    "fix_data_security_issue_with_ai",
+    {
+      description: "Asked OneUptime AI for a fix",
+      icon: IconProp.Code,
+      category: "Data security",
+    },
+  ],
+  [
+    "query_data_security_proposals",
+    {
+      description: "Read what OneUptime AI proposes",
+      icon: IconProp.Sparkles,
+      category: "Data security",
+    },
+  ],
+  [
+    "decide_data_security_proposal",
+    {
+      description: "Decided on a proposal of OneUptime AI's",
+      icon: IconProp.CheckCircle,
+      category: "Data security",
+    },
+  ],
   // Data Observability: whether a watched table is fresh, and why not.
   [
     "get_data_table_freshness",
@@ -618,6 +700,18 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     CALL_MCP_TOOL_TOOL_NAME,
     {
       description: "Used a tool of an MCP server",
+      icon: IconProp.PuzzlePiece,
+      category: "MCP servers",
+    },
+  ],
+  /*
+   * Ask AI and an incident's or alert's conversation: a tool that may
+   * change something, called once a person approved it (#10879).
+   */
+  [
+    CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
+    {
+      description: "Used a tool of an MCP server that may change something",
       icon: IconProp.PuzzlePiece,
       category: "MCP servers",
     },

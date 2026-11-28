@@ -102,7 +102,13 @@ const IS_KEY_SCOPE: Record<TelemetryIngestionBudgetScope, boolean> = {
   [TelemetryIngestionBudgetScope.Label]: false,
 };
 
-// The reason an ingestion budget refusal is counted under.
+/*
+ * The reason an ingestion budget refusal is counted under: a daily budget's
+ * or a rate's. A refusal of the queue's (QueueBacklogged,
+ * TelemetryIngestShedding) is no budget's and is never handed here: the
+ * ingest answers it before any budget is asked, and counts it against no
+ * key.
+ */
 export function getTelemetryIngestRefusalReasonForBudget(refusal: {
   kind: TelemetryIngestionBudgetRefusalKind;
   scope: TelemetryIngestionBudgetScope;

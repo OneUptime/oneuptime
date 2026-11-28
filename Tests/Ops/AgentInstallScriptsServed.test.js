@@ -122,6 +122,35 @@ function assignment(block, name) {
  * Storage Array agent's AGENT_FILES list, the Database agent's
  * configs/<engine>.yaml.
  */
+/*
+ * One |-separated field of each line of the Storage Array agent's PLATFORMS
+ * table (#11000): one line per platform, its collector config the first
+ * field, the other files it runs with the eleventh (space-separated, "-"
+ * for none).
+ */
+function platformTableField(script, index) {
+  const table = /^PLATFORMS="\n([\s\S]*?)\n"$/m.exec(script);
+  expect(table).not.toBeNull();
+  return table[1]
+    .split("\n")
+    .filter((line) => {
+      return line.trim() !== "";
+    })
+    .map((line) => {
+      return line.split("|")[index];
+    });
+}
+
+function platformTableConfigs(script) {
+  return platformTableField(script, 0);
+}
+
+function platformTableOtherFiles(script) {
+  return platformTableField(script, 10).flatMap((field) => {
+    return field === "-" ? [] : field.split(" ");
+  });
+}
+
 function fetchedFiles(entry) {
   const script = readScript(entry.directory);
   const files = new Set();
@@ -136,9 +165,22 @@ function fetchedFiles(entry) {
        * download_agent_file handing its own argument on.
        */
       const list = /^AGENT_FILES="([^"]+)"$/m.exec(script);
+      const names = list ? list[1].split(" ") : [];
 
-      for (const file of list ? list[1].split(" ") : []) {
-        files.add(file);
+      for (const file of names) {
+        if (file === "$PLATFORM_CONFIGS") {
+          // Its PLATFORMS table's collector configs: each line's first field.
+          for (const config of platformTableConfigs(script)) {
+            files.add(config);
+          }
+        } else if (file === "$PLATFORM_FILES") {
+          // The other files a platform runs with: each line's eleventh.
+          for (const other of platformTableOtherFiles(script)) {
+            files.add(other);
+          }
+        } else {
+          files.add(file);
+        }
       }
     } else if (name.includes("$AGENT_CONFIG")) {
       for (const file of entry.files) {

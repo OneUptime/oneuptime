@@ -41,6 +41,9 @@ import { formatSloPolicyTierThreshold } from "../../../Utils/Slo/SloErrorBudgetP
 import CloudBudgetEvaluator from "../../../Server/Utils/CloudConnection/CloudBudgetEvaluator";
 import PerSeriesResolutionRootCause from "../../../Server/Utils/Monitor/PerSeriesResolutionRootCause";
 import MonitorTurnedOff from "../../../Server/Utils/Monitor/MonitorTurnedOff";
+import MonitorCriteriaReplaced, {
+  CriteriaReplacedBecause,
+} from "../../../Server/Utils/Monitor/MonitorCriteriaReplaced";
 import DeviceManagementConnectionAlerts from "../../../Server/Utils/DeviceManagement/DeviceManagementConnectionAlerts";
 import { LOG_GROUP_RESOLVED_ROOT_CAUSE } from "../../../Server/Utils/Monitor/LogGroupCriteriaFanOut";
 import { getRestoredStatusEventRootCause } from "../../../Server/Utils/Monitor/MonitorStatusTimelineReconciler";
@@ -351,6 +354,33 @@ const WRITTEN: ReadonlyArray<Written> = [
       ];
     },
   ),
+  // A template's criteria taken off a monitor (#11260, #11266).
+  ...(["incident", "alert"] as const).flatMap(
+    (kind: "incident" | "alert"): Array<Written> => {
+      return [
+        {
+          writer: `MonitorCriteriaReplaced (${kind}, linked to a template)`,
+          stored: MonitorCriteriaReplaced.getRootCause({
+            kind: kind,
+            because: CriteriaReplacedBecause.LinkedToTemplate,
+            monitorName: "WB1500KSK02",
+            templateName: "WB Ping Monitor Template v2",
+          }),
+          keeps: ["WB1500KSK02", "WB Ping Monitor Template v2"],
+        },
+        {
+          writer: `MonitorCriteriaReplaced (${kind}, cleared on unlink)`,
+          stored: MonitorCriteriaReplaced.getRootCause({
+            kind: kind,
+            because: CriteriaReplacedBecause.ClearedOnUnlink,
+            monitorName: "WB1500KSK02",
+            templateName: "WB Ping Monitor Template - No Alert",
+          }),
+          keeps: ["WB1500KSK02", "WB Ping Monitor Template - No Alert"],
+        },
+      ];
+    },
+  ),
   // A device management connection turned off or deleted (#10286).
   {
     writer: "DeviceManagementConnectionAlerts (turned off, nobody named)",
@@ -476,12 +506,13 @@ const WRITTEN: ReadonlyArray<Written> = [
     stored:
       mdText`The SLO no longer has ${1440} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`.toString(),
   },
-  // A budget's month.
-  {
-    writer: "CloudBudgetEvaluator",
-    stored:
-      "Resolved by OneUptime: the month this cloud budget alert was raised in is over.",
-  },
+  // A budget's month, or a cloud budget's quarter or year (#11008).
+  ...["month", "quarter", "year"].map((window: string): Written => {
+    return {
+      writer: `CloudBudgetEvaluator (its ${window})`,
+      stored: `Resolved by OneUptime: the ${window} this cloud budget alert was raised in is over.`,
+    };
+  }),
   {
     writer: "OpenStackBudgetEvaluator",
     stored:
@@ -857,12 +888,22 @@ const MONITOR_STATUS_TEMPLATES: ReadonlyArray<string> = [
   "Status was changed because Incident {{incident}} was updated.",
   "Changed because of maintenance event: {{maintenanceEventId}}",
   "No monitoring criteria met. Change to default status.",
+  "No monitoring criteria that changes the status met. Change to default status.",
   "This status was created when the monitor was created.",
   "This status was changed when the monitor was updated.",
   "Monitoring is off. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
   "Monitoring was turned back on. Uptime, status pages and SLOs count the monitor's time again from here.",
   "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
+  // MonitorIncidentPause's, read in MonitorPauseNotesInEveryLanguage.test.ts.
+  "Monitoring is paused by {{incidents}}, declared by hand without a status for this monitor. Nothing checks the monitor until the incident is resolved, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "Monitoring is paused by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until the maintenance ends, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "Monitoring is paused by {{incidents}}, declared by hand, and by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until both are over, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "Scheduled maintenance ({{events}}) puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.",
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.",
+  "Monitoring resumed. Uptime, status pages and SLOs count the monitor's time again from here.",
+  "Scheduled maintenance is over, and {{incident}} is still open, so the monitor is back in the status the incident puts it in.",
+  "Scheduled maintenance ({{event}}) is still in progress, so the monitor is back in the status it puts it in.",
   "Something this project uses has an incident.",
   "What this project uses is back.",
 ];
@@ -1506,10 +1547,12 @@ describe("the server still writes each note as it is read (#9959)", () => {
       "packages/App/FeatureSet/Workers/Jobs/Slo/EvaluateSlos.ts",
       "mdText`The SLO no longer has ${rule.longWindowInMinutes} minutes of monitoring history, so this burn rate rule can no longer justify an open alert or incident.`",
     ],
-    [
-      "packages/Common/Server/Utils/CloudConnection/CloudBudgetEvaluator.ts",
-      '"Resolved by OneUptime: the month this cloud budget alert was raised in is over."',
-    ],
+    ...["month", "quarter", "year"].map((window: string): [string, string] => {
+      return [
+        "packages/Common/Server/Utils/CloudConnection/CloudBudgetEvaluator.ts",
+        `"Resolved by OneUptime: the ${window} this cloud budget alert was raised in is over."`,
+      ];
+    }),
     [
       "packages/Common/Server/Utils/OpenStack/OpenStackBudgetEvaluator.ts",
       '"Resolved by OneUptime: the month this OpenStack budget alert was raised in is over."',

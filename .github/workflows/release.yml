@@ -1657,6 +1657,23 @@ jobs:
       - name: Generate and publish Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"
 
+  # What registry.terraform.io read for the version just published, against
+  # what its release serves, as terraform init checks it, for every platform;
+  # and OpenTofu's registry's, once it lists it (#11016). A registry reads a
+  # version once, so a release whose assets change after that fails init for
+  # everyone: this says so the day it happens, not when a customer's init
+  # fails. It waits up to half an hour for the registry to list the version,
+  # and passes when the provider had no changes to publish. It publishes
+  # nothing, and reads with the run's token only.
+  check-terraform-provider-registries:
+    needs: [read-version, publish-terraform-provider]
+    if: github.ref == 'refs/heads/release'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/terraform-provider-registry-checksums.yml
+    with:
+      version: ${{ needs.read-version.outputs.major_minor }}
+
   # Gate: the Crossplane provider's package must pass its e2e suite (installed
   # by Crossplane in a kind cluster, managing a running OneUptime) before it is
   # published.

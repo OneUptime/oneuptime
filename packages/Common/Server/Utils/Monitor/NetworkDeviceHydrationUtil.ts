@@ -29,6 +29,7 @@ import {
   readsLegacySnmpV3Auth,
 } from "../../../Utils/NetworkDevice/SnmpCredentialUtil";
 import DnsResolutionCache from "./DnsResolutionCache";
+import { SnmpTrapSourceTiers } from "./SnmpTrapDeviceSelection";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import logger from "../Logger";
 
@@ -57,6 +58,25 @@ interface SourceMatchedDevice {
   id: string;
   projectId: string;
   name: string | undefined;
+  /*
+   * The SNMPv3 context the device is polled in, which tells apart devices
+   * that share an address (a Brocade chassis' logical switches) when a
+   * trap names its context (SnmpTrapContextRouting).
+   */
+  snmpV3ContextName: string | undefined;
+  /*
+   * The engine ID its agent answered its last SNMPv3 poll with, which tells
+   * apart devices that send SNMPv3 traps from one address (#11172). Read
+   * only by findDeviceTiersByProbeAndSource.
+   */
+  snmpEngineId?: string | undefined;
+}
+
+// findDeviceTiersByProbeAndSource's answer, as the cache keeps it.
+interface SourceMatchedTiers {
+  hostname: Array<SourceMatchedDevice>;
+  otherAddress: Array<SourceMatchedDevice>;
+  dns: Array<SourceMatchedDevice>;
 }
 
 /*
@@ -140,6 +160,26 @@ export interface ResolvedSnmpCredentialsForBatch {
   unresolvedDeviceIds: Set<string>;
 }
 
+/*
+ * The profiles a batch of devices may inherit credentials from, by ID, and
+ * the profile each of their sites names.
+ */
+interface InheritedCredentialProfiles {
+  profilesById: Map<string, NetworkSnmpCredentialProfile>;
+  siteProfileIdBySiteId: Map<string, string>;
+}
+
+/*
+ * What names a credential profile, for the tenancy check: a device (its
+ * own, or through its site) or a site (its default). Its project is the one
+ * the profile must belong to.
+ */
+interface CredentialProfileOwner {
+  kind: "device" | "site";
+  id: string | undefined;
+  projectId: string | undefined;
+}
+
 export default class NetworkDeviceHydrationUtil {
   /*
    * The poll-time decision: walk the device over SNMP, or only ping it?
@@ -186,6 +226,7 @@ export default class NetworkDeviceHydrationUtil {
     snmpV3AuthKey: true;
     snmpV3PrivProtocol: true;
     snmpV3PrivKey: true;
+    snmpV3ContextName: true;
   } = {
     _id: true,
     projectId: true,
@@ -202,6 +243,8 @@ export default class NetworkDeviceHydrationUtil {
     snmpV3AuthKey: true,
     snmpV3PrivProtocol: true,
     snmpV3PrivKey: true,
+    // The device's, not a credential's: which logical switch it is.
+    snmpV3ContextName: true,
   };
 
   /*
@@ -310,94 +353,13 @@ export default class NetworkDeviceHydrationUtil {
       };
     }
 
-    const profilesById: Map<string, NetworkSnmpCredentialProfile> = new Map();
-    const siteProfileIdBySiteId: Map<string, string> = new Map();
+    let inherited: InheritedCredentialProfiles;
 
     try {
-      const deviceProfileIds: Array<string> = Array.from(
-        new Set(
-          devicesNeedingLookup.flatMap(
-            (device: NetworkDevice): Array<string> => {
-              return device.snmpCredentialProfileId
-                ? [device.snmpCredentialProfileId.toString()]
-                : [];
-            },
-          ),
-        ),
-      );
-
-      const siteIds: Array<string> = Array.from(
-        new Set(
-          devicesNeedingLookup.flatMap(
-            (device: NetworkDevice): Array<string> => {
-              return device.siteId ? [device.siteId.toString()] : [];
-            },
-          ),
-        ),
-      );
-
-      /*
-       * Round one: the profiles the devices name, and the sites they sit in
-       * (for the profile those sites name). Issued together because neither
-       * depends on the other.
-       */
-      const [deviceProfiles, sites]: [
-        Array<NetworkSnmpCredentialProfile>,
-        Array<NetworkSite>,
-      ] = await Promise.all([
-        NetworkDeviceHydrationUtil.loadCredentialProfiles(deviceProfileIds),
-        siteIds.length === 0
-          ? Promise.resolve([])
-          : NetworkSiteService.findBy({
-              query: {
-                _id: QueryHelper.any(siteIds),
-              },
-              select: {
-                _id: true,
-                projectId: true,
-                snmpCredentialProfileId: true,
-              },
-              limit: LIMIT_MAX,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            }),
-      ]);
-
-      for (const profile of deviceProfiles) {
-        if (profile.id) {
-          profilesById.set(profile.id.toString(), profile);
-        }
-      }
-
-      for (const site of sites) {
-        if (site.id && site.snmpCredentialProfileId) {
-          siteProfileIdBySiteId.set(
-            site.id.toString(),
-            site.snmpCredentialProfileId.toString(),
-          );
-        }
-      }
-
-      /*
-       * Round two: the profiles the sites name that were not already loaded
-       * as a device's own. Only ever one extra statement, and only when a
-       * site actually carries a profile.
-       */
-      const siteProfileIdsToLoad: Array<string> = Array.from(
-        new Set(siteProfileIdBySiteId.values()),
-      ).filter((profileId: string) => {
-        return !profilesById.has(profileId);
-      });
-
-      for (const profile of await NetworkDeviceHydrationUtil.loadCredentialProfiles(
-        siteProfileIdsToLoad,
-      )) {
-        if (profile.id) {
-          profilesById.set(profile.id.toString(), profile);
-        }
-      }
+      inherited =
+        await NetworkDeviceHydrationUtil.loadInheritedCredentialProfiles(
+          devicesNeedingLookup,
+        );
     } catch (err) {
       /*
        * Skip these devices this cycle rather than polling them without the
@@ -430,22 +392,8 @@ export default class NetworkDeviceHydrationUtil {
     for (const device of devicesNeedingLookup) {
       const deviceId: string = device.id!.toString();
 
-      const candidates: Array<NetworkSnmpCredentialProfile | undefined> = [
-        NetworkDeviceHydrationUtil.sameProjectProfile({
-          device: device,
-          profileId: device.snmpCredentialProfileId?.toString(),
-          profilesById: profilesById,
-          referencedBy: "device",
-        }),
-        NetworkDeviceHydrationUtil.sameProjectProfile({
-          device: device,
-          profileId: device.siteId
-            ? siteProfileIdBySiteId.get(device.siteId.toString())
-            : undefined,
-          profilesById: profilesById,
-          referencedBy: "site",
-        }),
-      ];
+      const candidates: Array<NetworkSnmpCredentialProfile | undefined> =
+        NetworkDeviceHydrationUtil.getInheritedProfiles(device, inherited);
 
       const winner: NetworkSnmpCredentialProfile | undefined = candidates.find(
         (candidate: NetworkSnmpCredentialProfile | undefined) => {
@@ -464,6 +412,260 @@ export default class NetworkDeviceHydrationUtil {
     }
 
     return { byDeviceId: byDeviceId, unresolvedDeviceIds: unresolvedDeviceIds };
+  }
+
+  /*
+   * Every SNMPv3 credential a batch of devices carries, for their probe's
+   * trap receiver (OneUptime issue #11005): the device's own, its credential
+   * profile's and its site's default - each one that is SNMPv3 with a user
+   * name, in that order, not only the one resolveSnmpCredentials picks to
+   * poll with. A device polled over v2c may well send its traps as the
+   * site's SNMPv3 user, and a trap from it must not be refused for that.
+   *
+   * The same loading and the same tenancy check as resolveSnmpCredentials:
+   * a profile of another project is dropped, loudly. Unlike it, a failed
+   * lookup throws: the probe then keeps the users it has rather than being
+   * handed a set with some missing, which would refuse their traps.
+   */
+  public static async resolveSnmpV3Carriers(
+    devices: Array<NetworkDevice>,
+  ): Promise<Map<string, Array<SnmpConnectionCredentials>>> {
+    const inherited: InheritedCredentialProfiles =
+      await NetworkDeviceHydrationUtil.loadInheritedCredentialProfiles(
+        devices.filter((device: NetworkDevice): boolean => {
+          return Boolean(device.snmpCredentialProfileId || device.siteId);
+        }),
+      );
+
+    const carriersByDeviceId: Map<
+      string,
+      Array<SnmpConnectionCredentials>
+    > = new Map();
+
+    for (const device of devices) {
+      if (!device.id) {
+        continue;
+      }
+
+      const layers: Array<SnmpConnectionCredentials | undefined> = [
+        device,
+        ...NetworkDeviceHydrationUtil.getInheritedProfiles(device, inherited),
+      ];
+
+      const carriers: Array<SnmpConnectionCredentials> = layers.filter(
+        (
+          carrier: SnmpConnectionCredentials | undefined,
+        ): carrier is SnmpConnectionCredentials => {
+          return (
+            carrier !== undefined &&
+            SnmpVersionUtil.isV3(carrier.snmpVersion) &&
+            hasUsableCredentials(carrier)
+          );
+        },
+      );
+
+      carriersByDeviceId.set(device.id.toString(), carriers);
+    }
+
+    return carriersByDeviceId;
+  }
+
+  /*
+   * The SNMPv3 credential of each site's own default credential profile,
+   * by site ID, for the probe that is those sites' Default Probe (OneUptime
+   * issue #11174): what a device added to the site is polled with - and
+   * sends its traps as - before anyone has added it. A site whose profile is
+   * not SNMPv3 with a user name has none.
+   *
+   * The same profile read and the same tenancy check as a device's
+   * (loadCredentialProfiles, sameProjectProfile): a profile of another
+   * project is dropped, loudly. A failed read throws, so the probe keeps the
+   * users it has rather than being handed a set with some missing.
+   */
+  public static async resolveSiteDefaultSnmpV3Carriers(
+    sites: Array<NetworkSite>,
+  ): Promise<Map<string, SnmpConnectionCredentials>> {
+    const profileIds: Array<string> = Array.from(
+      new Set(
+        sites.flatMap((site: NetworkSite): Array<string> => {
+          return site.id && site.snmpCredentialProfileId
+            ? [site.snmpCredentialProfileId.toString()]
+            : [];
+        }),
+      ),
+    );
+
+    const profilesById: Map<string, NetworkSnmpCredentialProfile> = new Map();
+
+    for (const profile of await NetworkDeviceHydrationUtil.loadCredentialProfiles(
+      profileIds,
+    )) {
+      if (profile.id) {
+        profilesById.set(profile.id.toString(), profile);
+      }
+    }
+
+    const carriersBySiteId: Map<string, SnmpConnectionCredentials> = new Map();
+
+    for (const site of sites) {
+      if (!site.id) {
+        continue;
+      }
+
+      const profile: NetworkSnmpCredentialProfile | undefined =
+        NetworkDeviceHydrationUtil.sameProjectProfile({
+          owner: {
+            kind: "site",
+            id: site.id.toString(),
+            projectId: site.projectId?.toString(),
+          },
+          profileId: site.snmpCredentialProfileId?.toString(),
+          profilesById: profilesById,
+          referencedBy: "site",
+        });
+
+      if (
+        profile &&
+        SnmpVersionUtil.isV3(profile.snmpVersion) &&
+        hasUsableCredentials(profile)
+      ) {
+        carriersBySiteId.set(site.id.toString(), profile);
+      }
+    }
+
+    return carriersBySiteId;
+  }
+
+  /*
+   * The profiles a batch of devices may inherit credentials from: the ones
+   * the devices name, and the ones their sites name. Two rounds at most, and
+   * none for devices that name neither. Throws when a lookup fails; each
+   * caller decides what that means for its devices.
+   */
+  private static async loadInheritedCredentialProfiles(
+    devices: Array<NetworkDevice>,
+  ): Promise<InheritedCredentialProfiles> {
+    const profilesById: Map<string, NetworkSnmpCredentialProfile> = new Map();
+    const siteProfileIdBySiteId: Map<string, string> = new Map();
+
+    const deviceProfileIds: Array<string> = Array.from(
+      new Set(
+        devices.flatMap((device: NetworkDevice): Array<string> => {
+          return device.snmpCredentialProfileId
+            ? [device.snmpCredentialProfileId.toString()]
+            : [];
+        }),
+      ),
+    );
+
+    const siteIds: Array<string> = Array.from(
+      new Set(
+        devices.flatMap((device: NetworkDevice): Array<string> => {
+          return device.siteId ? [device.siteId.toString()] : [];
+        }),
+      ),
+    );
+
+    /*
+     * Round one: the profiles the devices name, and the sites they sit in
+     * (for the profile those sites name). Issued together because neither
+     * depends on the other.
+     */
+    const [deviceProfiles, sites]: [
+      Array<NetworkSnmpCredentialProfile>,
+      Array<NetworkSite>,
+    ] = await Promise.all([
+      NetworkDeviceHydrationUtil.loadCredentialProfiles(deviceProfileIds),
+      siteIds.length === 0
+        ? Promise.resolve([])
+        : NetworkSiteService.findBy({
+            query: {
+              _id: QueryHelper.any(siteIds),
+            },
+            select: {
+              _id: true,
+              projectId: true,
+              snmpCredentialProfileId: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          }),
+    ]);
+
+    for (const profile of deviceProfiles) {
+      if (profile.id) {
+        profilesById.set(profile.id.toString(), profile);
+      }
+    }
+
+    for (const site of sites) {
+      if (site.id && site.snmpCredentialProfileId) {
+        siteProfileIdBySiteId.set(
+          site.id.toString(),
+          site.snmpCredentialProfileId.toString(),
+        );
+      }
+    }
+
+    /*
+     * Round two: the profiles the sites name that were not already loaded
+     * as a device's own. Only ever one extra statement, and only when a
+     * site actually carries a profile.
+     */
+    const siteProfileIdsToLoad: Array<string> = Array.from(
+      new Set(siteProfileIdBySiteId.values()),
+    ).filter((profileId: string) => {
+      return !profilesById.has(profileId);
+    });
+
+    for (const profile of await NetworkDeviceHydrationUtil.loadCredentialProfiles(
+      siteProfileIdsToLoad,
+    )) {
+      if (profile.id) {
+        profilesById.set(profile.id.toString(), profile);
+      }
+    }
+
+    return {
+      profilesById: profilesById,
+      siteProfileIdBySiteId: siteProfileIdBySiteId,
+    };
+  }
+
+  /*
+   * A device's inherited profiles, in resolution order: the one it names,
+   * then its site's - each only when it exists and is the device's own
+   * project's (sameProjectProfile).
+   */
+  private static getInheritedProfiles(
+    device: NetworkDevice,
+    inherited: InheritedCredentialProfiles,
+  ): Array<NetworkSnmpCredentialProfile | undefined> {
+    const owner: CredentialProfileOwner = {
+      kind: "device",
+      id: device.id?.toString(),
+      projectId: device.projectId?.toString(),
+    };
+
+    return [
+      NetworkDeviceHydrationUtil.sameProjectProfile({
+        owner: owner,
+        profileId: device.snmpCredentialProfileId?.toString(),
+        profilesById: inherited.profilesById,
+        referencedBy: "device",
+      }),
+      NetworkDeviceHydrationUtil.sameProjectProfile({
+        owner: owner,
+        profileId: device.siteId
+          ? inherited.siteProfileIdBySiteId.get(device.siteId.toString())
+          : undefined,
+        profilesById: inherited.profilesById,
+        referencedBy: "site",
+      }),
+    ];
   }
 
   private static async loadCredentialProfiles(
@@ -496,7 +698,7 @@ export default class NetworkDeviceHydrationUtil {
    * credential leak, not a degraded poll.
    */
   private static sameProjectProfile(data: {
-    device: NetworkDevice;
+    owner: CredentialProfileOwner;
     profileId: string | undefined;
     profilesById: Map<string, NetworkSnmpCredentialProfile>;
     referencedBy: "device" | "site";
@@ -522,13 +724,15 @@ export default class NetworkDeviceHydrationUtil {
      */
     const isSameProject: boolean = Boolean(
       profile.projectId &&
-        data.device.projectId &&
-        profile.projectId.toString() === data.device.projectId.toString(),
+        data.owner.projectId &&
+        profile.projectId.toString() === data.owner.projectId,
     );
 
     if (!isSameProject) {
       logger.error(
-        `Network device ${data.device.id?.toString()} resolves (via its ${data.referencedBy}) to SNMP Credential Profile ${data.profileId}, whose project does not match the device's. Dropping the profile: the device is pinged only until the reference is corrected.`,
+        data.owner.kind === "device"
+          ? `Network device ${data.owner.id} resolves (via its ${data.referencedBy}) to SNMP Credential Profile ${data.profileId}, whose project does not match the device's. Dropping the profile: the device is pinged only until the reference is corrected.`
+          : `Network site ${data.owner.id} names SNMP Credential Profile ${data.profileId} as its default, whose project does not match the site's. Dropping the profile: no probe is handed it for the site until the reference is corrected.`,
       );
       return undefined;
     }
@@ -567,20 +771,60 @@ export default class NetworkDeviceHydrationUtil {
     monitorInterfaces: boolean;
     // The device's effective SNMP tables, already reduced to walk requests.
     tables?: Array<SnmpTableWalkRequest> | undefined;
+    /*
+     * The SNMPv3 context the device is polled in (NetworkDevice
+     * .snmpV3ContextName): WHERE on the agent, like the hostname, so it
+     * comes from the device whichever row the credentials came from.
+     */
+    snmpV3ContextName?: string | null | undefined;
   }): MonitorStepSnmpMonitor {
-    return {
-      snmpVersion: NetworkDeviceHydrationUtil.parseSnmpVersion(
+    const snmpVersion: SnmpVersion =
+      NetworkDeviceHydrationUtil.parseSnmpVersion(
         data.credentials.snmpVersion || undefined,
-      ),
+      );
+    const snmpV3Auth: SnmpV3Auth | undefined =
+      NetworkDeviceHydrationUtil.buildSnmpV3Auth(data.credentials);
+    const contextName: string | undefined =
+      NetworkDeviceHydrationUtil.getSnmpV3ContextName({
+        snmpVersion: snmpVersion,
+        snmpV3ContextName: data.snmpV3ContextName,
+      });
+
+    return {
+      snmpVersion: snmpVersion,
       hostname: data.hostname,
       port: data.credentials.snmpPort || 161,
       communityString: data.credentials.snmpCommunityString || undefined,
-      snmpV3Auth: NetworkDeviceHydrationUtil.buildSnmpV3Auth(data.credentials),
+      snmpV3Auth:
+        snmpV3Auth && contextName
+          ? { ...snmpV3Auth, contextName: contextName }
+          : snmpV3Auth,
       oids: data.oids,
       timeout: 5000,
       monitorInterfaces: data.monitorInterfaces,
       ...(data.tables && data.tables.length > 0 ? { tables: data.tables } : {}),
     };
+  }
+
+  /*
+   * The context a device is polled in, or undefined: only over SNMPv3 (v1
+   * and v2c have none), and only when the device names one.
+   */
+  public static getSnmpV3ContextName(data: {
+    snmpVersion: SnmpVersion | string | null | undefined;
+    snmpV3ContextName: string | null | undefined;
+  }): string | undefined {
+    const version: SnmpVersion = NetworkDeviceHydrationUtil.parseSnmpVersion(
+      data.snmpVersion || undefined,
+    );
+
+    if (version !== SnmpVersion.V3) {
+      return undefined;
+    }
+
+    const contextName: string = (data.snmpV3ContextName || "").trim();
+
+    return contextName || undefined;
   }
 
   /*
@@ -707,6 +951,7 @@ export default class NetworkDeviceHydrationUtil {
             oids: step.data.networkDeviceMonitor?.oids || [],
             monitorInterfaces:
               step.data.networkDeviceMonitor?.monitorInterfaces !== false,
+            snmpV3ContextName: device.snmpV3ContextName,
           });
       }
     }
@@ -732,8 +977,11 @@ export default class NetworkDeviceHydrationUtil {
    * would defeat that by folding an unreadable value into undefined, which the
    * probe cannot tell from "never configured" — and would therefore poll with
    * a silently defaulted algorithm.
+   *
+   * Public for the probe's trap receiver users (SnmpTrapReceiverUsers), so a
+   * trap is authenticated with exactly the credential a poll would use.
    */
-  private static buildSnmpV3Auth(
+  public static buildSnmpV3Auth(
     credentials: SnmpConnectionCredentials,
   ): SnmpV3Auth | undefined {
     /*
@@ -793,15 +1041,21 @@ export default class NetworkDeviceHydrationUtil {
    * once per trap. Concurrent asks for an address not yet cached share one
    * lookup, so a burst of traps from one sender costs one read.
    *
-   * The devices handed back carry `_id`, `projectId` and `name` (traps log
-   * the name), and are the caller's own: changing one changes no other
-   * caller's. `select` is accepted for the callers that still pass it;
-   * `name` is always read.
+   * The devices handed back carry `_id`, `projectId`, `name` (traps log
+   * the name) and `snmpV3ContextName` (a trap's context picks among
+   * devices that share an address), and are the caller's own: changing one
+   * changes no other caller's. `select` is accepted for the callers that
+   * still pass it; both are always read.
    */
   public static async findDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
-    select?: { name?: boolean | undefined } | undefined;
+    select?:
+      | {
+          name?: boolean | undefined;
+          snmpV3ContextName?: boolean | undefined;
+        }
+      | undefined;
   }): Promise<Array<NetworkDevice>> {
     const address: string = data.sourceIpAddress.trim();
     const key: string = `${data.probeId.toString()}|${address}`;
@@ -829,10 +1083,246 @@ export default class NetworkDeviceHydrationUtil {
     return NetworkDeviceHydrationUtil.toSourceMatchedModels(await lookup);
   }
 
+  /*
+   * Every device on a probe that has a trap's source address, by how it has
+   * it (OneUptime issue #11172): its hostname, one of its Other Addresses,
+   * or a DNS name that resolves to it. What an SNMPv3 trap the probe
+   * authenticated is matched by (SnmpTrapDeviceSelection), which tells apart
+   * devices that share an address - so, unlike findDevicesByProbeAndSource,
+   * it reads the devices that list the address among their Other Addresses
+   * even when one has it as its hostname: a NAT gateway registered at the
+   * address and the devices behind it, or a chassis and its blades.
+   *
+   * Two reads by the address - the hostname, and the Other Addresses that
+   * hold it - and, when neither finds a device, the fallback the trap path
+   * has always had (an IPv6 hostname written another way, a DNS name).
+   * Cached as findDevicesByProbeAndSource is, for as long, each device with
+   * its SNMP engine ID besides; a lookup that fails is not cached.
+   */
+  public static async findDeviceTiersByProbeAndSource(data: {
+    probeId: ObjectID;
+    sourceIpAddress: string;
+  }): Promise<SnmpTrapSourceTiers> {
+    const address: string = data.sourceIpAddress.trim();
+    const key: string = `${data.probeId.toString()}|${address}`;
+
+    const cached: SourceMatchedTiers | undefined =
+      NetworkDeviceHydrationUtil.sourceTierCache.get(key);
+
+    if (cached) {
+      return NetworkDeviceHydrationUtil.toSourceMatchedTiers(cached);
+    }
+
+    let lookup: Promise<SourceMatchedTiers> | undefined =
+      NetworkDeviceHydrationUtil.sourceTiersInFlight.get(key);
+
+    if (!lookup) {
+      lookup = NetworkDeviceHydrationUtil.lookupAndCacheSourceTiers({
+        key: key,
+        probeId: data.probeId,
+        sourceIpAddress: address,
+      });
+
+      NetworkDeviceHydrationUtil.sourceTiersInFlight.set(key, lookup);
+    }
+
+    return NetworkDeviceHydrationUtil.toSourceMatchedTiers(await lookup);
+  }
+
   // Forget every cached source-address answer (tests; SyslogDeviceMatcher).
   public static clearSourceMatchCache(): void {
     NetworkDeviceHydrationUtil.sourceMatchCache.clear();
     NetworkDeviceHydrationUtil.sourceMatchesInFlight.clear();
+    NetworkDeviceHydrationUtil.sourceTierCache.clear();
+    NetworkDeviceHydrationUtil.sourceTiersInFlight.clear();
+  }
+
+  private static async lookupAndCacheSourceTiers(data: {
+    key: string;
+    probeId: ObjectID;
+    sourceIpAddress: string;
+  }): Promise<SourceMatchedTiers> {
+    try {
+      const found: SnmpTrapSourceTiers =
+        await NetworkDeviceHydrationUtil.lookupDeviceTiersByProbeAndSource({
+          probeId: data.probeId,
+          sourceIpAddress: data.sourceIpAddress,
+        });
+
+      const tiers: SourceMatchedTiers = {
+        hostname: NetworkDeviceHydrationUtil.toSourceMatched(found.hostname),
+        otherAddress: NetworkDeviceHydrationUtil.toSourceMatched(
+          found.otherAddress,
+        ),
+        dns: NetworkDeviceHydrationUtil.toSourceMatched(found.dns),
+      };
+
+      NetworkDeviceHydrationUtil.sourceTierCache.set(
+        data.key,
+        tiers,
+        SOURCE_MATCH_CACHE_TTL_MS,
+      );
+
+      return tiers;
+    } finally {
+      NetworkDeviceHydrationUtil.sourceTiersInFlight.delete(data.key);
+    }
+  }
+
+  // Reads the database every time; findDeviceTiersByProbeAndSource caches it.
+  public static async lookupDeviceTiersByProbeAndSource(data: {
+    probeId: ObjectID;
+    sourceIpAddress: string;
+  }): Promise<SnmpTrapSourceTiers> {
+    const select: {
+      _id: true;
+      projectId: true;
+      name: true;
+      snmpV3ContextName: true;
+      snmpEngineId: true;
+    } = {
+      _id: true,
+      projectId: true,
+      name: true,
+      snmpV3ContextName: true,
+      snmpEngineId: true,
+    };
+
+    const canonicalSource: string = IP.isIP(data.sourceIpAddress)
+      ? IpCanonicalUtil.canonicalize(data.sourceIpAddress)
+      : "";
+
+    const [hostnameMatches, listingTheAddress]: [
+      Array<NetworkDevice>,
+      Array<NetworkDevice>,
+    ] = await Promise.all([
+      NetworkDeviceService.findBy({
+        query: {
+          probeId: data.probeId,
+          hostname: data.sourceIpAddress,
+        },
+        select: select,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      }),
+      canonicalSource
+        ? NetworkDeviceService.findBy({
+            query: {
+              probeId: data.probeId,
+              otherAddresses: QueryHelper.search(canonicalSource),
+            },
+            select: {
+              ...select,
+              otherAddresses: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const hostnameIds: Set<string> = new Set(
+      hostnameMatches.map((device: NetworkDevice): string => {
+        return device.id?.toString() || "";
+      }),
+    );
+
+    // The text search finds 10.0.0.50 for 10.0.0.5: each address is compared whole.
+    const otherAddressMatches: Array<NetworkDevice> = listingTheAddress.filter(
+      (device: NetworkDevice): boolean => {
+        return (
+          !hostnameIds.has(device.id?.toString() || "") &&
+          Boolean(device.otherAddresses) &&
+          NetworkDeviceOtherAddressesUtil.includes(
+            device.otherAddresses!,
+            canonicalSource,
+          )
+        );
+      },
+    );
+
+    if (hostnameMatches.length > 0 || otherAddressMatches.length > 0) {
+      return {
+        hostname: hostnameMatches,
+        otherAddress: otherAddressMatches,
+        dns: [],
+      };
+    }
+
+    /*
+     * Neither: an IPv6 hostname written another way than the datagram's
+     * address, or a DNS name that resolves to it - what the trap path's
+     * fallback has always found, told apart by whether the hostname is an
+     * address.
+     */
+    const fallback: Array<NetworkDevice> =
+      await NetworkDeviceHydrationUtil.lookupDevicesByProbeAndSource({
+        probeId: data.probeId,
+        sourceIpAddress: data.sourceIpAddress,
+        select: {
+          name: true,
+          snmpV3ContextName: true,
+          snmpEngineId: true,
+        },
+      });
+
+    return {
+      hostname: fallback.filter((device: NetworkDevice): boolean => {
+        return IP.isIP((device.hostname || "").trim());
+      }),
+      otherAddress: [],
+      dns: fallback.filter((device: NetworkDevice): boolean => {
+        return !IP.isIP((device.hostname || "").trim());
+      }),
+    };
+  }
+
+  private static toSourceMatched(
+    devices: Array<NetworkDevice>,
+  ): Array<SourceMatchedDevice> {
+    const matched: Array<SourceMatchedDevice> = [];
+
+    for (const device of devices) {
+      if (!device.id || !device.projectId) {
+        continue;
+      }
+
+      matched.push({
+        id: device.id.toString(),
+        projectId: device.projectId.toString(),
+        name: typeof device.name === "string" ? device.name : undefined,
+        snmpV3ContextName:
+          typeof device.snmpV3ContextName === "string"
+            ? device.snmpV3ContextName
+            : undefined,
+        snmpEngineId:
+          typeof device.snmpEngineId === "string"
+            ? device.snmpEngineId
+            : undefined,
+      });
+    }
+
+    return matched;
+  }
+
+  private static toSourceMatchedTiers(
+    tiers: SourceMatchedTiers,
+  ): SnmpTrapSourceTiers {
+    return {
+      hostname: NetworkDeviceHydrationUtil.toSourceMatchedModels(
+        tiers.hostname,
+      ),
+      otherAddress: NetworkDeviceHydrationUtil.toSourceMatchedModels(
+        tiers.otherAddress,
+      ),
+      dns: NetworkDeviceHydrationUtil.toSourceMatchedModels(tiers.dns),
+    };
   }
 
   private static async lookupAndCacheSourceMatches(data: {
@@ -847,22 +1337,12 @@ export default class NetworkDeviceHydrationUtil {
           sourceIpAddress: data.sourceIpAddress,
           select: {
             name: true,
+            snmpV3ContextName: true,
           },
         });
 
-      const matched: Array<SourceMatchedDevice> = [];
-
-      for (const device of found) {
-        if (!device.id || !device.projectId) {
-          continue;
-        }
-
-        matched.push({
-          id: device.id.toString(),
-          projectId: device.projectId.toString(),
-          name: typeof device.name === "string" ? device.name : undefined,
-        });
-      }
+      const matched: Array<SourceMatchedDevice> =
+        NetworkDeviceHydrationUtil.toSourceMatched(found);
 
       /*
        * A lookup that failed is not cached (it throws past this), so the
@@ -893,6 +1373,14 @@ export default class NetworkDeviceHydrationUtil {
         device.name = entry.name;
       }
 
+      if (entry.snmpV3ContextName !== undefined) {
+        device.snmpV3ContextName = entry.snmpV3ContextName;
+      }
+
+      if (entry.snmpEngineId !== undefined) {
+        device.snmpEngineId = entry.snmpEngineId;
+      }
+
       return device;
     });
   }
@@ -910,17 +1398,30 @@ export default class NetworkDeviceHydrationUtil {
   public static async lookupDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
-    // Extra columns callers need (syslog attribution wants `name`).
-    select?: { name?: boolean | undefined } | undefined;
+    /*
+     * Extra columns callers need (syslog attribution wants `name`; trap
+     * routing `snmpV3ContextName`, and an SNMPv3 trap `snmpEngineId`).
+     */
+    select?:
+      | {
+          name?: boolean | undefined;
+          snmpV3ContextName?: boolean | undefined;
+          snmpEngineId?: boolean | undefined;
+        }
+      | undefined;
   }): Promise<Array<NetworkDevice>> {
     const select: {
       _id: boolean;
       projectId: boolean;
       name?: boolean | undefined;
+      snmpV3ContextName?: boolean | undefined;
+      snmpEngineId?: boolean | undefined;
     } = {
       _id: true,
       projectId: true,
       ...(data.select?.name ? { name: true } : {}),
+      ...(data.select?.snmpV3ContextName ? { snmpV3ContextName: true } : {}),
+      ...(data.select?.snmpEngineId ? { snmpEngineId: true } : {}),
     };
 
     const exactMatches: Array<NetworkDevice> =
@@ -1063,4 +1564,11 @@ export default class NetworkDeviceHydrationUtil {
     string,
     Promise<Array<SourceMatchedDevice>>
   > = new Map();
+
+  // findDeviceTiersByProbeAndSource's answers, by "probeId|address".
+  private static sourceTierCache: InMemoryTTLCache<SourceMatchedTiers> =
+    new InMemoryTTLCache(SOURCE_MATCH_CACHE_MAX_ENTRIES);
+
+  private static sourceTiersInFlight: Map<string, Promise<SourceMatchedTiers>> =
+    new Map();
 }

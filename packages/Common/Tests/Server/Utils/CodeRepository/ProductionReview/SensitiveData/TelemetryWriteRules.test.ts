@@ -2,10 +2,14 @@ import { SensitiveDataCandidate } from "../../../../../../Server/Utils/CodeRepos
 import { SensitiveNameMatcher } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataNames";
 import { readPatchLines } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataPatch";
 import {
+  findMetricInstruments,
   findTelemetryWrites,
   getSink,
+  isExceptionClassName,
+  readSink,
   withoutEntry,
 } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules";
+import { getCodeLanguage } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataCode";
 import {
   SensitiveDataLeakKind,
   SensitiveDataSink,
@@ -474,5 +478,1513 @@ describe("time in line with the change, whatever it holds", () => {
     });
 
     expect(run.inMs).toBeLessThan(3000);
+  });
+});
+
+/*
+ * AN EXCEPTION IS TELEMETRY TOO (#10778): the message an error is made
+ * with reaches the service's exceptions, as a log line does its logs - and
+ * so does what an error tracker or a span is handed to report one. Each
+ * language the section reads makes and throws its errors its own way.
+ */
+describe("an exception's message (#10778)", () => {
+  test("throw new Error(`no account for ${email}`): an email address in the message, its line, its fix", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/accounts.ts", [
+      "export function find(email: string): Account {",
+      "  throw new Error(`no account for ${email}`);",
+      "}",
+    ]);
+
+    expect(point).toMatchObject({
+      kind: SensitiveDataLeakKind.Telemetry,
+      checkId: "sensitive-data-in-telemetry",
+      sink: SensitiveDataSink.Exception,
+      path: "src/accounts.ts",
+      line: 2,
+      subject: "email",
+      where: "Error",
+      sensitivity: DataSensitivity.Confidential,
+      isBlocking: false,
+      location: "message",
+      text: "Writes an email address to an exception's message: `email`, in `Error`.",
+      fix: "Leave `email` out of the exception: name the field it is about, never what it holds.",
+    });
+    // A message's interpolation is no entry a line can lose whole.
+    expect(point.suggestion).toBeUndefined();
+  });
+
+  test('raise ValueError(f"bad card {card_number}"): a card number, Restricted, so it can fail the check', () => {
+    const point: SensitiveDataCandidate = onlyPoint("app/payments/cards.py", [
+      "def charge(card_number: str) -> None:",
+      '    raise ValueError(f"bad card {card_number}")',
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      subject: "card_number",
+      where: "ValueError",
+      sensitivity: DataSensitivity.Restricted,
+      isBlocking: true,
+      location: "message",
+      text: "Writes a card number to an exception's message: `card_number`, in `ValueError`.",
+    });
+  });
+
+  test("a secret in a message is a secret: its own check, and its own fix", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/payments.js", [
+      "throw new Error(`Payment provider refused the charge for key ${apiKey}`);",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      checkId: "secrets-in-telemetry",
+      subject: "apiKey",
+      isBlocking: true,
+      fix: "Leave `apiKey` out: everyone who reads the telemetry could read the secret.",
+    });
+  });
+
+  test.each([
+    [
+      "TypeScript, a template literal",
+      "src/accounts.ts",
+      ["throw new Error(`no account for ${email}`);"],
+      "Error",
+    ],
+    [
+      "JavaScript, Error without new",
+      "src/accounts.js",
+      ["throw Error('no account for ' + email);"],
+      "Error",
+    ],
+    [
+      "JavaScript, an error made by a factory and thrown",
+      "src/accounts.js",
+      ["throw createError(404, `no account for ${email}`);"],
+      "createError",
+    ],
+    [
+      "JavaScript, an error handed to a callback",
+      "src/accounts.js",
+      ["return next(new NotFoundError(`no account for ${email}`));"],
+      "NotFoundError",
+    ],
+    [
+      "Python, an f-string",
+      "app/accounts.py",
+      ['raise LookupError(f"no account for {email}")'],
+      "LookupError",
+    ],
+    [
+      "Python, a keyword argument",
+      "app/views.py",
+      [
+        'raise HTTPException(status_code=404, detail=f"no account for {email}")',
+      ],
+      "HTTPException",
+    ],
+    [
+      "Python, Flask's abort",
+      "app/views.py",
+      ['abort(404, description=f"no account for {email}")'],
+      "abort",
+    ],
+    [
+      "Go, fmt.Errorf",
+      "pkg/accounts/find.go",
+      ['return nil, fmt.Errorf("no account for %s", email)'],
+      "fmt.Errorf",
+    ],
+    [
+      "Go, errors.New",
+      "pkg/accounts/find.go",
+      ['return errors.New("no account for " + email)'],
+      "errors.New",
+    ],
+    [
+      "Go, a gRPC status",
+      "pkg/accounts/find.go",
+      ['return nil, status.Errorf(codes.NotFound, "no account for %s", email)'],
+      "status.Errorf",
+    ],
+    [
+      "Go, panic",
+      "pkg/accounts/find.go",
+      ['panic(fmt.Sprintf("no account for %s", email))'],
+      "panic",
+    ],
+    [
+      "Java",
+      "src/main/java/Accounts.java",
+      ['throw new IllegalArgumentException("No account for " + email);'],
+      "IllegalArgumentException",
+    ],
+    [
+      "Kotlin",
+      "src/main/kotlin/Accounts.kt",
+      ['throw IllegalStateException("No account for $email")'],
+      "IllegalStateException",
+    ],
+    [
+      "Scala",
+      "src/main/scala/Accounts.scala",
+      ['throw new IllegalArgumentException(s"No account for $email")'],
+      "IllegalArgumentException",
+    ],
+    [
+      "C#",
+      "src/Accounts.cs",
+      [
+        'throw new ArgumentException($"No account for {email}", nameof(email));',
+      ],
+      "ArgumentException",
+    ],
+    [
+      "PHP, the root namespace",
+      "src/Accounts.php",
+      ['throw new \\InvalidArgumentException("No account for {$email}");'],
+      "InvalidArgumentException",
+    ],
+    [
+      "Ruby, raise with no parentheses",
+      "app/models/account.rb",
+      ['raise ArgumentError, "no account for #{email}"'],
+      "raise ArgumentError",
+    ],
+    [
+      "Ruby, a message alone",
+      "app/models/account.rb",
+      ['raise "no account for #{email}"'],
+      "raise",
+    ],
+    [
+      "Ruby, fail",
+      "app/models/account.rb",
+      ['fail AccountMissing, "no account for #{email}"'],
+      "fail AccountMissing",
+    ],
+    [
+      "Elixir",
+      "lib/accounts.ex",
+      ['raise ArgumentError, message: "no account for #{email}"'],
+      "raise ArgumentError",
+    ],
+    [
+      "Rust, bail!",
+      "src/accounts.rs",
+      ['bail!("no account for {}", email);'],
+      "bail",
+    ],
+    [
+      "Rust, anyhow! with the value in the string",
+      "src/accounts.rs",
+      ['return Err(anyhow!("no account for {email}"));'],
+      "anyhow",
+    ],
+    [
+      "Swift",
+      "Sources/Accounts.swift",
+      ['throw AccountError.missing("no account for \\(email)")'],
+      "AccountError.missing",
+    ],
+    [
+      "Dart, a single-quoted string",
+      "lib/accounts.dart",
+      ["throw ArgumentError('no account for $email');"],
+      "ArgumentError",
+    ],
+  ])(
+    "%s",
+    (_language: string, path: string, lines: Array<string>, where: string) => {
+      const point: SensitiveDataCandidate = onlyPoint(path, lines);
+
+      expect({
+        sink: point.sink,
+        subject: point.subject,
+        where: point.where,
+        location: point.location,
+        text: point.text,
+      }).toEqual({
+        sink: SensitiveDataSink.Exception,
+        subject: "email",
+        where,
+        location: "message",
+        text: `Writes an email address to an exception's message: \`email\`, in \`${where}\`.`,
+      });
+    },
+  );
+
+  test("handed to the error under a key, it is in the exception, not only its message", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/accounts.ts", [
+      "throw new AccountError({ email: customer.email, code: 404 });",
+    ]);
+
+    expect(point).toMatchObject({
+      subject: "email",
+      location: "message",
+      text: "Writes an email address to an exception: `email`, in `AccountError`.",
+    });
+  });
+
+  test("an error made where it is thrown across lines is read to its end", () => {
+    expect(
+      subjectsIn("src/accounts.ts", [
+        "throw new HttpError(",
+        "  404,",
+        "  `no account for ${customer.email}`,",
+        ");",
+      ]),
+    ).toEqual(["customer.email"]);
+  });
+
+  test("Ruby's statement modifier ends a call with no parentheses: what follows is only asked about", () => {
+    expect(
+      subjectsIn("app/services/customer_lookup.rb", [
+        'raise ArgumentError, "unknown customer #{email}" unless customer',
+      ]),
+    ).toEqual(["email"]);
+    // A log call with none, the same: `current_user` is a whole record only when written.
+    expect(
+      subjectsIn("app/controllers/sessions_controller.rb", [
+        'logger.info "signed in #{email}" if current_user',
+      ]),
+    ).toEqual(["email"]);
+    // Inside the call's own brackets, a word like `if` is the call's.
+    expect(
+      subjectsIn("app/services/customer_lookup.rb", [
+        'raise ArgumentError, format("unknown %s", email) if strict',
+      ]),
+    ).toEqual(["email"]);
+  });
+
+  test("a log of an error made on the same line is the log's point, once", () => {
+    const points: Array<SensitiveDataCandidate> = writesIn("src/accounts.ts", [
+      "logger.error(new Error(`no account for ${email}`));",
+    ]);
+
+    expect(points).toHaveLength(1);
+    expect(points[0]!.sink).toBe(SensitiveDataSink.Log);
+  });
+});
+
+describe("an error tracker's report, and a span's recorded exception (#10778)", () => {
+  test("Sentry.captureException(error, { extra: { email } }): an email address in the report, under its key", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/checkout.ts", [
+      "Sentry.captureException(error, { extra: { email } });",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      checkId: "sensitive-data-in-telemetry",
+      subject: "email",
+      where: "Sentry.captureException",
+      location: "attributes.email",
+      text: "Writes an email address to an error report: `email`, in `Sentry.captureException`.",
+      fix: "Leave `email` out of the error report, or send a hash of it when you need to tell values apart.",
+    });
+  });
+
+  test("Sentry.setUser({ email, id }): every report after it carries it, and the line can lose it", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/session.ts", [
+      "Sentry.setUser({ email, id: user.id });",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      subject: "email",
+      where: "Sentry.setUser",
+      suggestion: {
+        startLine: 1,
+        endLine: 1,
+        original: ["Sentry.setUser({ email, id: user.id });"],
+        replacement: ["Sentry.setUser({ id: user.id });"],
+        isByAi: false,
+      },
+    });
+  });
+
+  test('scope.setTag("ssn", ssn): its key is its first string, and Restricted data can fail the check', () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/applicants.ts", [
+      "Sentry.withScope((scope) => {",
+      '  scope.setTag("ssn", ssn);',
+      "});",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      subject: "ssn",
+      where: "scope.setTag",
+      sensitivity: DataSensitivity.Restricted,
+      isBlocking: true,
+      location: "attributes.ssn",
+    });
+  });
+
+  test.each([
+    [
+      "Python, sentry_sdk.set_user",
+      "app/session.py",
+      ['sentry_sdk.set_user({"email": email})'],
+      "email",
+      "sentry_sdk.set_user",
+    ],
+    [
+      "Python, set_user imported on its own",
+      "app/session.py",
+      ['set_user({"email": email})'],
+      "email",
+      "set_user",
+    ],
+    [
+      "Python, a scope's extra",
+      "app/session.py",
+      ['    scope.set_extra("email", email)'],
+      "email",
+      "scope.set_extra",
+    ],
+    [
+      "Python, a span's recorded exception and its attributes",
+      "app/session.py",
+      ['span.record_exception(error, attributes={"user.email": email})'],
+      "user.email",
+      "span.record_exception",
+    ],
+    [
+      "Ruby, Sentry with keywords",
+      "app/controllers/sessions_controller.rb",
+      ["Sentry.set_user(email: user.email)"],
+      "email",
+      "Sentry.set_user",
+    ],
+    [
+      "Go, a scope's user",
+      "pkg/session/session.go",
+      ["scope.SetUser(sentry.User{Email: email})"],
+      "Email",
+      "scope.SetUser",
+    ],
+    [
+      "Java, Sentry's extra",
+      "src/main/java/Session.java",
+      ['Sentry.setExtra("email", email);'],
+      "email",
+      "Sentry.setExtra",
+    ],
+    [
+      "C#, Application Insights",
+      "src/Session.cs",
+      [
+        'telemetryClient.TrackException(ex, new Dictionary<string, string> { { "email", email } });',
+      ],
+      "email",
+      "telemetryClient.TrackException",
+    ],
+    [
+      "PHP, a scope's user",
+      "src/Session.php",
+      ["$scope->setUser(['email' => $email]);"],
+      "email",
+      "scope.setUser",
+    ],
+    [
+      "Bugsnag's metadata on its event",
+      "src/session.ts",
+      [
+        'Bugsnag.notify(error, (event) => { event.addMetadata("user", { email }); });',
+      ],
+      "user.email",
+      "Bugsnag.notify",
+    ],
+    [
+      "Rollbar",
+      "src/session.ts",
+      ['rollbar.error("sign-in failed", { email });'],
+      "email",
+      "rollbar.error",
+    ],
+    [
+      "Honeybadger",
+      "src/session.ts",
+      ["Honeybadger.setContext({ email });"],
+      "email",
+      "Honeybadger.setContext",
+    ],
+    [
+      "New Relic",
+      "src/session.ts",
+      ["newrelic.noticeError(error, { email });"],
+      "email",
+      "newrelic.noticeError",
+    ],
+    [
+      "a span's recorded exception made on its line",
+      "src/session.ts",
+      ["span.recordException(new Error(`sign-in failed for ${email}`));"],
+      "email",
+      "span.recordException",
+    ],
+  ])(
+    "%s",
+    (
+      _what: string,
+      path: string,
+      lines: Array<string>,
+      subject: string,
+      where: string,
+    ) => {
+      const point: SensitiveDataCandidate = onlyPoint(path, lines);
+
+      expect({
+        sink: point.sink,
+        subject: point.subject,
+        where: point.where,
+        text: point.text,
+      }).toEqual({
+        sink: SensitiveDataSink.Exception,
+        subject,
+        where,
+        text: `Writes an email address to an error report: \`${subject}\`, in \`${where}\`.`,
+      });
+    },
+  );
+});
+
+describe("an exception that is no leak (#10778)", () => {
+  test.each([
+    [
+      "a message that names only a field",
+      ['throw new Error("email is required");'],
+    ],
+    [
+      "a message that names only a field, under a check of it",
+      ['if (!email) throw new Error("email is required");'],
+    ],
+    [
+      "a field's name and what is wrong with it",
+      ['throw new ValidationError("email", "is required");'],
+    ],
+    [
+      "a field's name as a value",
+      [
+        'throw new ValidationError({ field: "email", message: "is required" });',
+      ],
+    ],
+    [
+      "a password's rule, not the password",
+      ['throw new Error("password must be at least 8 characters");'],
+    ],
+    [
+      "something else in the message",
+      ["throw new Error(`no format ${format}`);"],
+    ],
+    ["an id", ["throw new Error(`no account ${user.id}`);"]],
+    ["a yes or no", ["throw new Error(`verified: ${user.emailVerified}`);"]],
+    [
+      "only asked about",
+      ['throw new Error(`${email ? "an" : "no"} address`);'],
+    ],
+    ["a hash of it", ["throw new Error(`no account for ${hash(email)}`);"]],
+    ["an error thrown again", ["throw error;"]],
+    [
+      "an error reported with nothing else",
+      ["Sentry.captureException(error);"],
+    ],
+    ["a span's recorded exception alone", ["span.recordException(error);"]],
+    ["a list of errors", ["errors.push(email);"]],
+    [
+      "a form's error, shown to the person",
+      ['setError("email", { message: "Invalid" });'],
+    ],
+    [
+      "a component's state named like a tracker's setter",
+      ["setUser({ email: value });"],
+    ],
+    ["a class's own setter", ["this.setUser({ email });"]],
+    ["a store's setter", ["store.setUser({ email });"]],
+    ["a scope that is no tracker's", ["scope.render({ email });"]],
+    ["an object that is no error", ["const customer = new Customer(email);"]],
+    ["a controller's abort", ["controller.abort(email);"]],
+    [
+      "a line marked not sensitive",
+      [
+        "throw new Error(`no account for ${email}`); // oneuptime:not-sensitive",
+      ],
+    ],
+  ])("%s", (_what: string, lines: Array<string>) => {
+    expect(writesIn("src/accounts.ts", lines)).toEqual([]);
+  });
+
+  test.each([
+    [
+      "Python, a password's rule",
+      "app/accounts.py",
+      ['raise ValueError("password must be at least 8 characters")'],
+    ],
+    ["Python, a bare raise", "app/accounts.py", ["raise"]],
+    ["Ruby, a bare raise", "app/models/account.rb", ["raise"]],
+    [
+      "Go, an id and the error it wraps",
+      "pkg/accounts/find.go",
+      ['return fmt.Errorf("decode account %s: %w", accountID, err)'],
+    ],
+    [
+      "Go, another package's New",
+      "pkg/accounts/find.go",
+      ["validationErrors.New(email)"],
+    ],
+    [
+      "C#, a model's validation error, shown to the person",
+      "src/Accounts.cs",
+      ['ModelState.AddModelError("Email", $"{email} is taken");'],
+    ],
+  ])("%s", (_what: string, path: string, lines: Array<string>) => {
+    expect(writesIn(path, lines)).toEqual([]);
+  });
+});
+
+describe("what a call writes to: exceptions (#10778)", () => {
+  test.each([
+    ["fmt.Errorf", SensitiveDataSink.Exception],
+    ["status.Errorf", SensitiveDataSink.Exception],
+    ["errors.New", SensitiveDataSink.Exception],
+    ["pkgerrors.Wrapf", SensitiveDataSink.Exception],
+    ["Sentry.captureException", SensitiveDataSink.Exception],
+    ["Sentry.captureMessage", SensitiveDataSink.Exception],
+    ["Sentry.setUser", SensitiveDataSink.Exception],
+    ["Sentry.Context.set_user_context", SensitiveDataSink.Exception],
+    ["sentry_sdk.set_tag", SensitiveDataSink.Exception],
+    ["scope.setTag", SensitiveDataSink.Exception],
+    ["hub.captureException", SensitiveDataSink.Exception],
+    ["Bugsnag.notify", SensitiveDataSink.Exception],
+    ["rollbar.error", SensitiveDataSink.Exception],
+    ["Honeybadger.notify", SensitiveDataSink.Exception],
+    ["newrelic.noticeError", SensitiveDataSink.Exception],
+    ["span.recordException", SensitiveDataSink.Exception],
+    ["activity.AddException", SensitiveDataSink.Exception],
+    ["telemetryClient.TrackException", SensitiveDataSink.Exception],
+    ["captureException", SensitiveDataSink.Exception],
+    ["set_user", SensitiveDataSink.Exception],
+    ["panic", SensitiveDataSink.Exception],
+    // A logger's own error methods are its logs.
+    ["log.Errorf", SensitiveDataSink.Log],
+    ["logger.Errorf", SensitiveDataSink.Log],
+    ["logger.error", SensitiveDataSink.Log],
+    // A tag on a span is the span's; a tracer's user is on its trace.
+    ["span.setTag", SensitiveDataSink.Span],
+    ["tracer.setUser", SensitiveDataSink.Span],
+  ])("%s writes to %s", (name: string, sink: SensitiveDataSink) => {
+    expect(getSink({ name, isMacro: false, isConstructor: false })).toBe(sink);
+  });
+
+  test.each([
+    "setUser",
+    "this.setUser",
+    "store.setContext",
+    "scope.render",
+    "errors.push",
+    "ModelState.AddModelError",
+    "handleError",
+    "controller.abort",
+  ])("%s writes to no telemetry", (name: string) => {
+    expect(getSink({ name, isMacro: false, isConstructor: false })).toBeNull();
+  });
+
+  test("an error made with new is an exception; another class is not", () => {
+    expect(
+      getSink({ name: "Error", isMacro: false, isConstructor: true }),
+    ).toBe(SensitiveDataSink.Exception);
+    expect(
+      getSink({
+        name: "errors.NotFoundException",
+        isMacro: false,
+        isConstructor: true,
+      }),
+    ).toBe(SensitiveDataSink.Exception);
+    expect(
+      getSink({ name: "Customer", isMacro: false, isConstructor: true }),
+    ).toBeNull();
+  });
+
+  test("whatever is thrown or raised where it is made is an exception", () => {
+    for (const name of ["createError", "Boom.notFound", "ValueError"]) {
+      expect(
+        getSink({ name, isMacro: false, isConstructor: false, isThrown: true }),
+      ).toBe(SensitiveDataSink.Exception);
+    }
+  });
+
+  test("Rust's error macros, beside its log macros", () => {
+    for (const name of ["bail", "anyhow", "panic", "ensure", "eyre"]) {
+      expect(getSink({ name, isMacro: true, isConstructor: false })).toBe(
+        SensitiveDataSink.Exception,
+      );
+    }
+
+    expect(
+      getSink({ name: "error", isMacro: true, isConstructor: false }),
+    ).toBe(SensitiveDataSink.Log);
+    expect(
+      getSink({ name: "vec", isMacro: true, isConstructor: false }),
+    ).toBeNull();
+  });
+
+  test("a report is told from a message: a tracker's or a span's, not an error made", () => {
+    expect(
+      readSink({
+        name: "Sentry.setUser",
+        isMacro: false,
+        isConstructor: false,
+      }),
+    ).toEqual({ sink: SensitiveDataSink.Exception, isErrorReport: true });
+    expect(
+      readSink({ name: "fmt.Errorf", isMacro: false, isConstructor: false }),
+    ).toEqual({ sink: SensitiveDataSink.Exception, isErrorReport: false });
+    expect(
+      readSink({ name: "Error", isMacro: false, isConstructor: true }),
+    ).toEqual({ sink: SensitiveDataSink.Exception, isErrorReport: false });
+  });
+
+  test.each([
+    ["Error", true],
+    ["TypeError", true],
+    ["IllegalArgumentException", true],
+    ["errors.NotFoundException", true],
+    ["handleError", false],
+    ["ErrorBoundary", false],
+    ["ValidationErrors", false],
+    ["error", false],
+  ])("%s is a class of error: %s", (name: string, isClass: boolean) => {
+    expect(isExceptionClassName(name)).toBe(isClass);
+  });
+});
+
+/*
+ * A metric's instrument named for what it counts, found by the cross-check
+ * with what Data Security locates after code ships (#10367's eval set):
+ * `const ordersPlaced = meter.createCounter(...)` makes
+ * `ordersPlaced.add(1, {...})` a metric's write, which its name alone
+ * does not say.
+ */
+describe("a metric's instrument, by where the file makes it", () => {
+  test("an OpenTelemetry counter named for what it counts", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/metrics.js", [
+      'const ordersPlaced = meter.createCounter("orders.placed");',
+      "",
+      "function countOrder(order) {",
+      '  ordersPlaced.add(1, { "order.channel": order.channel, "user.email": order.email });',
+      "}",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Metric,
+      subject: "user.email",
+      where: "ordersPlaced.add",
+      line: 4,
+    });
+  });
+
+  test("an instrument made above the hunk, shown as context, still names its writes", () => {
+    const points: Array<SensitiveDataCandidate> = findTelemetryWrites({
+      path: "src/metrics.js",
+      lines: readPatchLines(
+        [
+          "@@ -5,4 +5,5 @@",
+          ' const ordersPlaced = meter.createCounter("orders.placed");',
+          " ",
+          " function countOrder(order) {",
+          '+  ordersPlaced.add(1, { "user.email": order.email });',
+          " }",
+        ].join("\n"),
+      ),
+      matcher,
+    });
+
+    expect(
+      points.map((point: SensitiveDataCandidate): string | undefined => {
+        return point.sink;
+      }),
+    ).toEqual([SensitiveDataSink.Metric]);
+  });
+
+  test.each([
+    [
+      "JavaScript, OpenTelemetry",
+      "ts",
+      'const ordersPlaced = meter.createCounter("orders.placed");',
+      "ordersplaced",
+    ],
+    [
+      "Python, OpenTelemetry on self",
+      "py",
+      'self._orders_placed = meter.create_counter("orders.placed")',
+      "orders_placed",
+    ],
+    ["Go", "go", 'placed := meter.Int64Counter("orders.placed")', "placed"],
+    [
+      "Go, with its error",
+      "go",
+      'placed, err := meter.Int64Counter("orders.placed")',
+      "placed",
+    ],
+    [
+      "C#, a generic counter",
+      "cs",
+      'private readonly Counter<long> _placed = meter.CreateCounter<long>("orders.placed");',
+      "placed",
+    ],
+    [
+      "Python, Prometheus",
+      "py",
+      'ORDERS = Counter("orders_total", "Orders placed", ["channel"])',
+      "orders",
+    ],
+    [
+      "JavaScript, Prometheus",
+      "js",
+      "const orders = new client.Counter({ name: 'orders_total', help: 'Orders' });",
+      "orders",
+    ],
+  ])(
+    "%s",
+    (_language: string, extension: string, line: string, name: string) => {
+      expect(
+        Array.from(findMetricInstruments([line], getCodeLanguage(extension))),
+      ).toEqual([name]);
+    },
+  );
+
+  test("a set is no instrument, nor is a lower-case counter()", () => {
+    expect(
+      Array.from(
+        findMetricInstruments(
+          ["const seen = new Set();", "const count = counter(items);"],
+          getCodeLanguage("ts"),
+        ),
+      ),
+    ).toEqual([]);
+    expect(
+      writesIn("src/words.ts", ["const seen = new Set();", "seen.add(email);"]),
+    ).toEqual([]);
+  });
+});
+
+describe("Dart's single-quoted strings interpolate", () => {
+  test("a log's message, as a double-quoted one does", () => {
+    expect(
+      subjectsIn("lib/signup.dart", ["log.info('signup $email');"]),
+    ).toEqual(["email"]);
+    expect(
+      subjectsIn("lib/signup.dart", ['log.info("signup ${user.email}");']),
+    ).toEqual(["user.email"]);
+  });
+});
+
+/*
+ * A RECORDED SESSION'S IDENTITY (#11395): who a web or mobile app's front
+ * end tells its session recorder or product analytics SDK the session's
+ * user is - each SDK called as its own documentation calls it. An email,
+ * or another sensitive value, as the user or among the user's traits is a
+ * point, where a RUM application's sessions keep it; an opaque id - the
+ * user's id, a hash - is none, as the other rules read ids.
+ */
+describe("a recorded session's identity (#11395)", () => {
+  test("recorder.identify(customer.email, { plan }): the session is identified by an email address, at its line, with its fix", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/session.js", [
+      "function startSession(customer) {",
+      "  recorder.identify(customer.email, { plan: customer.plan });",
+      "}",
+    ]);
+
+    expect(point).toMatchObject({
+      kind: SensitiveDataLeakKind.Telemetry,
+      checkId: "sensitive-data-in-telemetry",
+      sink: SensitiveDataSink.Session,
+      path: "src/session.js",
+      line: 2,
+      subject: "customer.email",
+      where: "recorder.identify",
+      sensitivity: DataSensitivity.Confidential,
+      isBlocking: false,
+      location: "sessions.identifiedUserLabel",
+      text: "Identifies a recorded session by an email address: `customer.email`, in `recorder.identify`.",
+      fix: "Identify the session by an opaque id, such as the user's id, never by `customer.email`.",
+    });
+    // Which id the record has is the author's to say: no change is guessed.
+    expect(point.suggestion).toBeUndefined();
+  });
+
+  test("a trait: written to the session's user under its key, and the line can lose it", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/session.ts", [
+      "LogRocket.identify(user.id, { name: user.name, email: user.email });",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      subject: "email",
+      where: "LogRocket.identify",
+      location: "sessions.identifiedUserTraits.email",
+      text: "Writes an email address to a recorded session's user: `email`, in `LogRocket.identify`.",
+      fix: "Leave `email` out of the session's user details, or send a hash of it when you need to tell users apart.",
+      suggestion: {
+        startLine: 1,
+        endLine: 1,
+        original: [
+          "LogRocket.identify(user.id, { name: user.name, email: user.email });",
+        ],
+        replacement: ["LogRocket.identify(user.id, { name: user.name });"],
+        isByAi: false,
+      },
+    });
+  });
+
+  // Each SDK's call that says who the user is, as its documentation writes it.
+  test.each([
+    [
+      "OneUptime's browser SDK",
+      ["OneUptimeReplay.identify(user.email, { plan: user.plan });"],
+      "user.email",
+      "OneUptimeReplay.identify",
+    ],
+    [
+      "OneUptime's browser SDK, on window",
+      ["window.OneUptimeReplay.identify(currentUser.email);"],
+      "currentUser.email",
+      "window.OneUptimeReplay.identify",
+    ],
+    [
+      "OneUptime's React Native SDK, through its hook",
+      [
+        "const replay = useOneUptimeReplay();",
+        "replay.identify(account.email);",
+      ],
+      "account.email",
+      "replay.identify",
+    ],
+    [
+      "OneUptime's command queue, on one line",
+      [
+        'window.OneUptimeReplayQueue.push(["identify", user.email, { plan: "pro" }]);',
+      ],
+      "user.email",
+      'window.OneUptimeReplayQueue.push(["identify"])',
+    ],
+    [
+      "OneUptime's command queue, as its docs write it, before the recorder loads",
+      [
+        "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+        '  "identify",',
+        "  user.email,",
+        '  { plan: "pro", tenant: "acme" },',
+        "]);",
+      ],
+      "user.email",
+      'window.OneUptimeReplayQueue.push(["identify"])',
+    ],
+    [
+      "OneUptime's command queue, among other commands",
+      [
+        "window.OneUptimeReplayQueue.push(",
+        '  ["grantConsent"],',
+        '  ["identify", user.email, { plan: "pro" }],',
+        '  ["setTags", { build: "1.4.2" }],',
+        ");",
+      ],
+      "user.email",
+      'window.OneUptimeReplayQueue.push(["identify"])',
+    ],
+    [
+      "LogRocket",
+      ["LogRocket.identify(user.email);"],
+      "user.email",
+      "LogRocket.identify",
+    ],
+    [
+      "FullStory's browser API v1",
+      ["FS.identify(user.email, { displayName: user.name });"],
+      "user.email",
+      "FS.identify",
+    ],
+    [
+      "FullStory's browser API v2",
+      [
+        'FS("setIdentity", { uid: user.email, properties: { displayName: user.name } });',
+      ],
+      "user.email",
+      'FS("setIdentity")',
+    ],
+    [
+      "FullStory's npm package",
+      ['FullStory("setIdentity", { uid: user.email });'],
+      "user.email",
+      'FullStory("setIdentity")',
+    ],
+    [
+      "PostHog",
+      ["posthog.identify(user.email, { plan: user.plan });"],
+      "user.email",
+      "posthog.identify",
+    ],
+    [
+      "PostHog, an alias of the user",
+      ["posthog.alias(user.email);"],
+      "user.email",
+      "posthog.alias",
+    ],
+    [
+      "PostHog, from React's hook",
+      ["const posthog = usePostHog();", "posthog?.identify(session.email);"],
+      "session.email",
+      "posthog.identify",
+    ],
+    [
+      "Datadog RUM, its user's id",
+      ["datadogRum.setUser({ id: user.email, name: user.name });"],
+      "user.email",
+      "datadogRum.setUser",
+    ],
+    [
+      "Datadog RUM from its CDN",
+      ["window.DD_RUM && window.DD_RUM.setUser({ id: user.email });"],
+      "user.email",
+      "window.DD_RUM.setUser",
+    ],
+    [
+      "OpenReplay",
+      ["tracker.setUserID(user.email); // after tracker.start()"],
+      "user.email",
+      "tracker.setUserID",
+    ],
+    [
+      "OpenReplay's snippet",
+      ["OpenReplay.setUserID(user.email);"],
+      "user.email",
+      "OpenReplay.setUserID",
+    ],
+    [
+      "Hotjar's snippet",
+      ['hj("identify", user.email, { plan: user.plan });'],
+      "user.email",
+      'hj("identify")',
+    ],
+    [
+      "Hotjar's npm package",
+      ["Hotjar.identify(user.email, { color: user.favoriteColor });"],
+      "user.email",
+      "Hotjar.identify",
+    ],
+    [
+      "Smartlook's snippet",
+      ['smartlook("identify", user.email, { plan: user.plan });'],
+      "user.email",
+      'smartlook("identify")',
+    ],
+    [
+      "Smartlook's API",
+      ["smartlook.identify(user.email);"],
+      "user.email",
+      "smartlook.identify",
+    ],
+    [
+      "Mixpanel",
+      ["mixpanel.identify(user.email);"],
+      "user.email",
+      "mixpanel.identify",
+    ],
+    [
+      "Amplitude",
+      ["amplitude.setUserId(user.email);"],
+      "user.email",
+      "amplitude.setUserId",
+    ],
+    ["Heap", ["heap.identify(user.email);"], "user.email", "heap.identify"],
+    [
+      "a template literal as the user",
+      ["posthog.identify(`${user.email}`);"],
+      "user.email",
+      "posthog.identify",
+    ],
+  ])(
+    "%s: who the session is",
+    (_what: string, lines: Array<string>, subject: string, where: string) => {
+      const point: SensitiveDataCandidate = onlyPoint(
+        "web/src/session.ts",
+        lines,
+      );
+
+      expect({
+        sink: point.sink,
+        checkId: point.checkId,
+        subject: point.subject,
+        where: point.where,
+        location: point.location,
+        text: point.text,
+      }).toEqual({
+        sink: SensitiveDataSink.Session,
+        checkId: "sensitive-data-in-telemetry",
+        subject,
+        where,
+        location: "sessions.identifiedUserLabel",
+        text: `Identifies a recorded session by an email address: \`${subject}\`, in \`${where}\`.`,
+      });
+    },
+  );
+
+  // Each SDK's call that hands the user's traits, as its documentation writes it.
+  test.each([
+    [
+      "OneUptime's traits",
+      ["OneUptimeReplay.identify(user.id, { email: user.email });"],
+      "email",
+      "OneUptimeReplay.identify",
+    ],
+    [
+      "OneUptime's command queue's traits",
+      [
+        'window.OneUptimeReplayQueue.push(["identify", user.id, { email: user.email }]);',
+      ],
+      "email",
+      'window.OneUptimeReplayQueue.push(["identify"])',
+    ],
+    [
+      "FullStory's browser API v1, its user vars",
+      ["FS.setUserVars({ email: user.email });"],
+      "email",
+      "FS.setUserVars",
+    ],
+    [
+      "FullStory's browser API v2, the identity's properties",
+      [
+        'FS("setIdentity", { uid: user.id, properties: { email: user.email } });',
+      ],
+      "email",
+      'FS("setIdentity")',
+    ],
+    [
+      "FullStory's browser API v2, the user's properties",
+      [
+        'FS("setProperties", { type: "user", properties: { email: user.email } });',
+      ],
+      "email",
+      'FS("setProperties")',
+    ],
+    [
+      "FullStory's npm package, the user's properties",
+      ['Fullstory("setProperties", { type: "user", properties: { email } });'],
+      "email",
+      'Fullstory("setProperties")',
+    ],
+    [
+      "PostHog's person properties, with the identity",
+      ["posthog.identify(user.id, { email: user.email });"],
+      "email",
+      "posthog.identify",
+    ],
+    [
+      "PostHog's person properties, on their own",
+      ["posthog.setPersonProperties({ email: user.email });"],
+      "email",
+      "posthog.setPersonProperties",
+    ],
+    [
+      "PostHog's people",
+      ["posthog.people.set({ email: user.email });"],
+      "email",
+      "posthog.people.set",
+    ],
+    [
+      "Datadog RUM's user",
+      ["datadogRum.setUser({ id: user.id, email: user.email });"],
+      "email",
+      "datadogRum.setUser",
+    ],
+    [
+      "Datadog RUM's user property",
+      ['datadogRum.setUserProperty("email", user.email);'],
+      "email",
+      "datadogRum.setUserProperty",
+    ],
+    [
+      "OpenReplay's metadata",
+      ['tracker.setMetadata("email", user.email);'],
+      "email",
+      "tracker.setMetadata",
+    ],
+    [
+      "Hotjar's attributes",
+      ['hj("identify", user.id, { email: user.email });'],
+      "email",
+      'hj("identify")',
+    ],
+    [
+      "Hotjar's npm package's attributes",
+      ["Hotjar.identify(user.id, { email: user.email });"],
+      "email",
+      "Hotjar.identify",
+    ],
+    [
+      "Smartlook's properties",
+      ['smartlook("identify", user.id, { email: user.email });'],
+      "email",
+      'smartlook("identify")',
+    ],
+    [
+      "Mixpanel's profile",
+      ["mixpanel.people.set({ email: user.email });"],
+      "email",
+      "mixpanel.people.set",
+    ],
+    [
+      "Mixpanel's profile, set once",
+      ["mixpanel.people.set_once({ email: user.email });"],
+      "email",
+      "mixpanel.people.set_once",
+    ],
+    [
+      "Heap's user properties",
+      ["heap.addUserProperties({ email });"],
+      "email",
+      "heap.addUserProperties",
+    ],
+  ])(
+    "%s: one of the user's traits",
+    (_what: string, lines: Array<string>, subject: string, where: string) => {
+      const point: SensitiveDataCandidate = onlyPoint(
+        "web/src/session.ts",
+        lines,
+      );
+
+      expect({
+        sink: point.sink,
+        subject: point.subject,
+        where: point.where,
+        location: point.location,
+        text: point.text,
+      }).toEqual({
+        sink: SensitiveDataSink.Session,
+        subject,
+        where,
+        location: `sessions.identifiedUserTraits.${subject}`,
+        text: `Writes an email address to a recorded session's user: \`${subject}\`, in \`${where}\`.`,
+      });
+    },
+  );
+
+  // An opaque id, or what holds no data: no point, as the other rules read ids.
+  test.each([
+    [
+      "the customer's id, as the eval's fix has it",
+      ["recorder.identify(customer.id, { plan: customer.plan });"],
+    ],
+    ["OneUptime's user id", ["OneUptimeReplay.identify(user.id);"]],
+    [
+      "OneUptime's reference, and a trait of no data",
+      ['OneUptimeReplay.identify(userRef, { plan: "pro" });'],
+    ],
+    [
+      "OneUptime's queue, with an id",
+      [
+        'window.OneUptimeReplayQueue.push(["identify", user.id, { plan: "pro" }]);',
+      ],
+    ],
+    [
+      "OneUptime's queue, as its docs write it",
+      [
+        "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+        '  "identify",',
+        '  "user-123",',
+        '  { plan: "pro", tenant: "acme" },',
+        "]);",
+      ],
+    ],
+    ["LogRocket's UUID", ["LogRocket.identify(user.uuid);"]],
+    [
+      "LogRocket's documented literals",
+      ['LogRocket.identify("123456", { name: "John Smith" });'],
+    ],
+    [
+      "FullStory v1's id and display name",
+      ["FS.identify(user.id, { displayName: user.displayName });"],
+    ],
+    ["FullStory v2's id", ['FS("setIdentity", { uid: user.id });']],
+    ["PostHog's distinct id", ["posthog.identify(distinctId);"]],
+    [
+      "PostHog's id and a plan",
+      ["posthog.identify(user.id, { plan: user.plan });"],
+    ],
+    ["a hash of the email", ["posthog.identify(hash(user.email));"]],
+    ["a SHA-256 of the email", ["posthog.identify(sha256(user.email));"]],
+    ["an email's hash, by its name", ["posthog.identify(user.emailHash);"]],
+    ["a hashed email, by its name", ["LogRocket.identify(hashedEmail);"]],
+    [
+      "a masked email among the traits",
+      ["posthog.identify(user.id, { email: maskEmail(user.email) });"],
+    ],
+    [
+      "Datadog RUM's id and plan",
+      ["datadogRum.setUser({ id: user.id, plan: user.plan });"],
+    ],
+    [
+      "a key that only names the field",
+      ["datadogRum.setUser({ id: user.id, email: user.emailId });"],
+    ],
+    ["OpenReplay's user id", ["tracker.setUserID(user.id);"]],
+    ["Hotjar's user id", ['hj("identify", user.id, { plan: user.plan });']],
+    ["Smartlook's user id", ['smartlook("identify", user.id);']],
+    ["Mixpanel's user id", ["mixpanel.identify(user.id);"]],
+    ["Amplitude's user id", ["amplitude.setUserId(user.id);"]],
+    ["Heap's user id", ["heap.identify(user.id);"]],
+    [
+      "Datadog RUM's plan property",
+      ['datadogRum.setUserProperty("plan", user.plan);'],
+    ],
+    ["OpenReplay's plan metadata", ['tracker.setMetadata("plan", user.plan);']],
+    [
+      "only asked about",
+      ["recorder.identify(user.email ? user.id : anonymousId);"],
+    ],
+  ])("%s: no point", (_what: string, lines: Array<string>) => {
+    expect(writesIn("web/src/session.ts", lines)).toEqual([]);
+  });
+
+  // Calls named like an identity's that tell no session who its user is.
+  test.each([
+    ["a function called on nothing: the app's own", ["identify(user.email);"]],
+    [
+      "a component's state named like an SDK's setter",
+      ["setUserId(user.email);"],
+    ],
+    ["a component's user, in state", ["setUser({ email: user.email });"]],
+    ["a class's own user", ["this.setUser({ email: user.email });"]],
+    ["an auth module's identify", ["auth.identify(user.email);"]],
+    ["a strategy's identify", ["passport.identify(user.email);"]],
+    [
+      "Microsoft Clarity, which hashes the id in the browser",
+      ['window.clarity("identify", user.email);'],
+    ],
+    [
+      "Segment, which carries traits on to other tools by design",
+      ["analytics.identify(user.id, { email: user.email });"],
+    ],
+    ["Hotjar's other commands", ['hj("event", user.email);']],
+    [
+      "FullStory's events",
+      [
+        'FS("trackEvent", { name: "checkout", properties: { email: user.email } });',
+      ],
+    ],
+    [
+      "OneUptime's queue's other commands",
+      [
+        'window.OneUptimeReplayQueue.push(["track", "checkout_failed", { plan: user.plan }]);',
+      ],
+    ],
+    ["another queue", ['events.push(["identify", user.email]);']],
+    ["Node's file system", ["fs.writeFile(path, user.email);"]],
+    ["a session recorder started", ["recorder.start({ email: user.email });"]],
+    ["a profile's people, of no SDK", ["people.set({ email: user.email });"]],
+  ])("%s: no point", (_what: string, lines: Array<string>) => {
+    expect(writesIn("web/src/session.ts", lines)).toEqual([]);
+  });
+
+  test("a whole record of a person as the session's user: every field of it is written", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "datadogRum.setUser(currentUser);",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      subject: "currentUser",
+      isWholeObject: true,
+      location: "sessions.identifiedUserLabel",
+      text: "Identifies a recorded session by a whole record of a person: `currentUser`, in `datadogRum.setUser`. Every field of it is written, personal data too.",
+      fix: "Write only the fields you need, by name, and none that holds personal data.",
+    });
+  });
+
+  test("a secret as the session's user: its own check, and it can fail the check", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "posthog.identify(session.accessToken);",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      checkId: "secrets-in-telemetry",
+      subject: "session.accessToken",
+      isBlocking: true,
+      fix: "Leave `session.accessToken` out: everyone who reads the telemetry could read the secret.",
+    });
+  });
+
+  test("Restricted personal data among the traits can fail the check", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "LogRocket.identify(patient.id, { ssn: patient.ssn });",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      subject: "ssn",
+      sensitivity: DataSensitivity.Restricted,
+      isBlocking: true,
+      location: "sessions.identifiedUserTraits.ssn",
+    });
+  });
+
+  test("a call over several lines is read to its end", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "LogRocket.identify(user.id, {",
+      "  plan: user.plan,",
+      "  email: user.email,",
+      "});",
+    ]);
+
+    expect(point).toMatchObject({
+      line: 3,
+      subject: "email",
+      location: "sessions.identifiedUserTraits.email",
+    });
+  });
+
+  test("OneUptime's queue as its docs write it: the point is on the user's own line", () => {
+    const point: SensitiveDataCandidate = onlyPoint("web/src/session.ts", [
+      "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+      '  "identify",',
+      "  user.email,",
+      '  { plan: "pro" },',
+      "]);",
+    ]);
+
+    expect(point.line).toBe(3);
+  });
+
+  test("Python's server-side PostHog: its distinct id is who the user is", () => {
+    const point: SensitiveDataCandidate = onlyPoint("app/analytics.py", [
+      "posthog.identify(distinct_id=user.email)",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Session,
+      subject: "user.email",
+      location: "sessions.identifiedUserLabel",
+    });
+  });
+
+  test("a web app's component files are read: Vue, Svelte, JSX", () => {
+    for (const path of [
+      "web/src/App.vue",
+      "web/src/Session.svelte",
+      "web/src/Session.jsx",
+    ]) {
+      expect(subjectsIn(path, ["LogRocket.identify(user.email);"])).toEqual([
+        "user.email",
+      ]);
+    }
+  });
+
+  test("a line marked not sensitive, or under a comment that marks it", () => {
+    expect(
+      writesIn("web/src/session.ts", [
+        "recorder.identify(testUser.email); // oneuptime:not-sensitive",
+        "// oneuptime:not-sensitive",
+        "posthog.identify(demo.email);",
+      ]),
+    ).toEqual([]);
+  });
+
+  test("the same data as the user and as a trait on one line: two points, each where the session keeps it", () => {
+    expect(
+      subjectsIn("web/src/session.ts", [
+        "posthog.identify(user.email, { email: user.email });",
+      ]),
+    ).toEqual(["user.email", "email"]);
+  });
+});
+
+describe("what a call writes to: a recorded session's identity (#11395)", () => {
+  test.each([
+    ["recorder.identify", true],
+    ["sessionRecorder.identify", true],
+    ["OneUptimeReplay.identify", true],
+    ["window.OneUptimeReplay.identify", true],
+    ["replay.identify", true],
+    ["this._posthog.identify", true],
+    ["LogRocket.identify", true],
+    ["FS.identify", true],
+    ["FS.setUserVars", false],
+    ["posthog.identify", true],
+    ["posthog.alias", true],
+    ["posthog.setPersonProperties", false],
+    ["posthog.people.set", false],
+    ["mixpanel.people.set_once", false],
+    ["datadogRum.setUser", true],
+    ["window.DD_RUM.setUser", true],
+    ["datadogRum.setUserProperty", false],
+    ["tracker.setUserID", true],
+    ["OpenReplay.setUserID", true],
+    ["tracker.setMetadata", false],
+    ["Hotjar.identify", true],
+    ["smartlook.identify", true],
+    ["mixpanel.identify", true],
+    ["amplitude.setUserId", true],
+    ["heap.identify", true],
+    ["heap.addUserProperties", false],
+  ])(
+    "%s is a recorded session's: who its user is, %s",
+    (name: string, isIdentity: boolean) => {
+      expect(readSink({ name, isMacro: false, isConstructor: false })).toEqual({
+        sink: SensitiveDataSink.Session,
+        isErrorReport: false,
+        isIdentity,
+      });
+    },
+  );
+
+  test.each([
+    "identify",
+    "setUserId",
+    "setUserID",
+    "auth.identify",
+    "user.identify",
+    "people.set",
+    "posthog.capture",
+    "LogRocket.track",
+    "recorder.start",
+    "fs.readFile",
+    "analytics.identify",
+    "clarity.identify",
+  ])("%s gives no session its user", (name: string) => {
+    expect(getSink({ name, isMacro: false, isConstructor: false })).toBeNull();
+  });
+
+  test("an error tracker's user stays an error report's, and a tracer's a span's", () => {
+    expect(
+      readSink({
+        name: "Sentry.setUser",
+        isMacro: false,
+        isConstructor: false,
+      }),
+    ).toEqual({ sink: SensitiveDataSink.Exception, isErrorReport: true });
+    expect(
+      getSink({ name: "tracer.setUser", isMacro: false, isConstructor: false }),
+    ).toBe(SensitiveDataSink.Span);
+    expect(
+      subjectsIn("web/src/session.ts", [
+        "tracer.setUser({ email: user.email });",
+      ]),
+    ).toEqual(["email"]);
+    expect(
+      writesIn("web/src/session.ts", [
+        "tracer.setUser({ email: user.email });",
+      ])[0]!.sink,
+    ).toBe(SensitiveDataSink.Span);
+  });
+
+  test("a session's user made with new is no call that gives it one", () => {
+    expect(
+      getSink({
+        name: "LogRocket.identify",
+        isMacro: false,
+        isConstructor: true,
+      }),
+    ).toBeNull();
   });
 });

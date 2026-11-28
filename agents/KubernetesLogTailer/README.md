@@ -22,9 +22,14 @@ EKS Fargate, and any other restricted Kubernetes environment.
 - Watches pods across all allowed namespaces via a Kubernetes informer.
 - For each running container (main, init, and ephemeral), opens a follow
   stream to the Kubernetes API log endpoint.
-- Parses RFC3339Nano timestamps and derives log severity from the message
-  body (`ERROR`, `WARN`, `INFO`, etc.) with a fallback to the stderr/stdout
-  marker when no severity keyword is present.
+- Parses RFC3339Nano timestamps and reads log severity off the message body
+  with the same readers as the DaemonSet's collector chain (level words such
+  as `ERROR`, `WARN` and `INFO`, klog's letter, pino's number, an exception's
+  traceback). The pods/log API carries no stdout/stderr marker, so a line
+  with no level is sent as `INFO` and is never dropped by `MIN_SEVERITY`.
+  It runs no collector operators, so the chart's `logs.extraOperators`
+  (operators of your own, for a format no reader knows) does not apply here:
+  the chart refuses the setting when this tailer reads the pod logs.
 - Batches records and exports via OTLP-HTTP JSON to `<oneuptime>/otlp/v1/logs`
   with the `x-oneuptime-token` authentication header.
 - Reconnects streams with exponential backoff when connections drop or the

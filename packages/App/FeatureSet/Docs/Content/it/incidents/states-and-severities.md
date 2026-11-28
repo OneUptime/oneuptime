@@ -65,7 +65,7 @@ Con il progetto vengono creati tre stati, in quest'ordine. La creazione è idemp
 
 | Flag                  | Scopo                                                                                                                                                                                                |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | Lo stato che riceve un incidente quando nessuno ne ha scelto uno. Se nessuno stato del progetto porta questo flag, la creazione di un incidente fallisce con un errore che vi chiede di aggiungere uno stato di creazione dell'incidente dalle impostazioni. |
+| `isCreatedState`      | Lo stato che riceve un incidente quando nessuno ne ha scelto uno — a meno che il progetto non faccia partire riconosciuti gli incidenti dichiarati a mano e uno dichiarato a mano non attivi alcuna policy di reperibilità: vedete [Incidenti dichiarati a mano](#incidenti-dichiarati-a-mano). Se nessuno stato del progetto porta questo flag, la creazione di un incidente fallisce con un errore che vi chiede di aggiungere uno stato di creazione dell'incidente dalle impostazioni. |
 | `isAcknowledgedState` | Contrassegna lo stato riconosciuto del progetto: quello in cui **Riconosci** porta un incidente e da cui prende nome il riquadro statistico del riconoscimento. Un incidente in questo stato, in qualsiasi stato successivo, o risolto, è riconosciuto — **Riconosci** non gli viene più offerto, la reperibilità smette di avvisare per lui e il suo SLA viene segnato come con risposta. |
 | `isResolvedState`     | Contrassegna lo stato risolto del progetto: quello in cui **Risolvi** porta un incidente e che mostra il riquadro statistico della risoluzione. Un incidente in questo stato, o in qualsiasi stato successivo, è risolto — esce da **Incidenti attivi** e dalla sezione attiva di una pagina di stato, e il suo SLA viene segnato come risolto. |
 
@@ -75,6 +75,28 @@ Ci si aspetta che un solo stato per progetto abbia ciascun flag — le ricerche 
 - **Non possono essere eliminati.** Il loro **Elimina** resta nel menu della riga, bloccato, con il motivo. Un'eliminazione di massa li salta e li elenca come non eliminati. Anche l'API si rifiuta di eliminare l'ultimo stato di creazione, riconosciuto o risolto di un progetto.
 
 Poiché l'interfaccia legge i nomi degli stati in modo dinamico, rinominare uno stato cambia ciò che vedete ovunque — i riquadri statistici (**Riconosciuto dopo** e **Risolto dopo** con i nomi predefiniti), la conferma **Segna l'incidente come …** di uno stato personalizzato e l'etichetta nell'elenco degli incidenti seguono il nome che avete dato alla riga.
+
+## Incidenti dichiarati a mano
+
+Ogni nuovo incidente parte nel vostro stato di creazione e lì aspetta di essere riconosciuto. Quando ne dichiarate uno voi stessi, di solito siete voi a rispondere: ne diventate il Comandante dell'incidente mentre lo dichiarate, e riconoscerlo è solo un clic in più. Un progetto può invece far partire quegli incidenti già riconosciuti.
+
+:::steps
+1. Aprite **Incidenti → Impostazioni → Stato incidente** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Sotto l'elenco degli stati, attivate **Start incidents declared by hand acknowledged**. L'interruttore si salva non appena lo cambiate.
+:::
+
+È disattivato in ogni progetto finché non lo attivate, quindi un aggiornamento non cambia mai chi viene avvisato. Solo i Proprietari del progetto e gli Amministratori del progetto possono cambiarlo; per tutti gli altri l'interruttore è bloccato e dice quale permesso serve.
+
+Finché è attivo, un incidente dichiarato a mano — con **Dichiara incidente**, ovunque lo apriate, o con il modulo dell'incidente in Slack o Microsoft Teams — parte nel vostro stato riconosciuto quando valgono entrambe queste condizioni:
+
+- **Non gli viene scelto alcuno stato**, né da voi né dal modello da cui viene dichiarato. Uno stato scelto ha la precedenza, come sempre.
+- **Non attiva alcuna policy di reperibilità**, né scelta da voi né proveniente dal suo modello. Scegliete una policy e l'incidente parte nel vostro stato di creazione, come prima, così la policy avvisa le sue persone.
+
+Partendo riconosciuto, non avvisa nessuno: come per ogni incidente [dichiarato già riconosciuto](/docs/incidents/declaring-incidents#dichiarato-già-riconosciuto-o-risolto), non viene eseguita alcuna policy di reperibilità, nemmeno una aggiunta da una regola di reperibilità. Il suo SLA parte già segnato come con risposta, e il suo tempo di riconoscimento è zero, un valore che rientra anche nel vostro MTTA.
+
+**Dichiara incidente** lo dice prima che dichiariate: sotto **Stato iniziale**, sotto **Policy di reperibilità** finché non ne è scelta nessuna, e nel riepilogo, che allora elenca sempre **Stato iniziale**. Non compila mai **Stato iniziale** al posto vostro: uno stato scelto lì ha la precedenza, quindi le policy di reperibilità che scegliete nell'ultimo passaggio non avviserebbero nessuno. Slack e Microsoft Teams lo dicono sotto le loro policy di reperibilità, e nel messaggio che conferma l'incidente.
+
+Gli incidenti che nessuno dichiara a mano — aperti da monitor o da regole di incidente degli avvisi, tramite l'API, Terraform, flussi di lavoro o moduli, da un caso di sicurezza, o da OneUptime AI — partono nel vostro stato di creazione, come prima. Tramite l'API, l'interruttore è il campo `startIncidentsDeclaredByHandAcknowledged` del progetto.
 
 ## Aggiungere i vostri stati
 
@@ -204,7 +226,7 @@ Avvisi ed episodi seguono la stessa regola, con i vostri stati degli avvisi.
 
 Un incidente viene risolto quando passa da uno stato sopra il vostro stato risolto allo stato risolto, o a qualsiasi stato successivo — in qualunque dei cinque modi sopra venga spostato. Ogni risoluzione:
 
-- **Restituisce i monitor che l'incidente trattiene.** Un incidente dichiarato aperto trattiene i suoi monitor: li ha messi nel suo stato **Cambia lo stato del monitor in**, quando ne nomina uno, e, se dichiarato a mano, ne ha sospeso il monitoraggio. Una modifica mentre è aperto — aggiungere monitor, o cambiare quello stato — gli fa trattenere anche quelli. La risoluzione riprende il loro monitoraggio e li riporta a operativi, a meno che un altro incidente aperto li riguardi ancora, e da quel momento l'incidente non trattiene più nulla. Quindi un incidente dichiarato già risolto non restituisce nulla, e nemmeno una seconda risoluzione dopo una riapertura: uno stato che i suoi monitor hanno ricevuto nel frattempo — dalle loro sonde, da una manutenzione o impostato a mano — resta.
+- **Restituisce i monitor che l'incidente trattiene.** Un incidente dichiarato aperto trattiene i suoi monitor: li ha messi nel suo stato **Cambia lo stato del monitor in**, quando ne nomina uno, e, se dichiarato a mano con **Metti in pausa il monitoraggio** spuntato, ne ha sospeso il monitoraggio, tranne sui monitor impostati per continuare il monitoraggio durante gli incidenti. Una modifica mentre è aperto — aggiungere monitor, o cambiare quello stato — gli fa trattenere anche quelli. La risoluzione riprende il loro monitoraggio e li riporta a operativi, a meno che un altro incidente aperto li riguardi ancora, e da quel momento l'incidente non trattiene più nulla. Un monitor che un altro incidente aperto dichiarato a mano mette ancora in pausa resta in pausa; un incidente riaperto dopo la sua risoluzione non trattiene nulla, quindi non tiene nulla in pausa. Quindi un incidente dichiarato già risolto non restituisce nulla, e nemmeno una seconda risoluzione dopo una riapertura: uno stato che i suoi monitor hanno ricevuto nel frattempo — dalle loro sonde, da una manutenzione o impostato a mano — resta. Vedete [Monitoraggio mentre un incidente è aperto](/docs/incidents/declaring-incidents#monitoraggio-mentre-un-incidente-è-aperto).
 - **Segna lo SLA come risolto** e, quando le bozze di post-mortem di OneUptime AI sono attive, stende un post-mortem.
 
 Passare da **Risolto** a uno stato successivo — **Closed**, ad esempio — non è una seconda risoluzione: nulla di tutto ciò viene eseguito di nuovo, e non parte alcuno SLA nuovo. Un incidente dichiarato prima che OneUptime iniziasse a registrare questo restituisce i suoi monitor alla prossima risoluzione, come prima.

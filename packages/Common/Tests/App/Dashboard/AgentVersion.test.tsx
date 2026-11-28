@@ -65,6 +65,7 @@ import {
   DATABASE_AGENT_VERSION,
   DOCKER_SWARM_AGENT_VERSION,
   PROXMOX_AGENT_VERSION,
+  STORAGE_ARRAY_AGENT_VERSION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import {
   getKubernetesAgentChartUpgradeCommand,
@@ -104,6 +105,11 @@ import {
   getStorageArrayAgentDownloadCommand,
   getStorageArrayAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import {
+  XCP_NG_AGENT_RECREATE_COMMAND,
+  getXcpNgAgentDownloadCommand,
+  getXcpNgAgentUpgradeCommand,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
 import Route from "../../../Types/API/Route";
 
 /*
@@ -714,13 +720,15 @@ describe("the hero chip", () => {
 });
 
 /*
- * Hosts, Proxmox, Ceph, VMware and storage arrays: their agents now report
+ * Hosts, Proxmox, Ceph, VMware, storage arrays and XCP-ng pools: their agents now report
  * the release their files pin, so an older one gets the sign, compared with
  * the pin whatever the server's own version is, and the dialog shows that
  * agent's own upgrade, taken from its setup guide. The pin is the collector's
- * release, except Proxmox's: its files changed on the same collector (#5428),
- * so they report a release of their own, as the Docker Swarm agent's do -
- * AgentFilesVersion tells a cluster on the older files to upgrade.
+ * release, except Proxmox's and the Storage Array agent's: their files
+ * changed on the same collector (#5428; NetApp ONTAP, Dell PowerStore and
+ * Dell PowerScale, #11189, #11227, #11233), so they report a release of
+ * their own, as the Docker Swarm agent's do - AgentFilesVersion tells an
+ * agent on the older files to upgrade.
  */
 describe("the agents that report the collector they pin", () => {
   // The collector every agent runs since #9828.
@@ -737,7 +745,8 @@ describe("the agents that report the collector they pin", () => {
     [AgentKind.ProxmoxAgent, PROXMOX_AGENT_VERSION],
     [AgentKind.CephAgent, COLLECTOR_RELEASE],
     [AgentKind.VMwareAgent, COLLECTOR_RELEASE],
-    [AgentKind.StorageArrayAgent, COLLECTOR_RELEASE],
+    [AgentKind.StorageArrayAgent, STORAGE_ARRAY_AGENT_VERSION],
+    [AgentKind.XcpNgAgent, COLLECTOR_RELEASE],
   ];
 
   test.each(PINS)(
@@ -773,6 +782,7 @@ describe("the agents that report the collector they pin", () => {
     [AgentKind.CephAgent],
     [AgentKind.VMwareAgent],
     [AgentKind.StorageArrayAgent],
+    [AgentKind.XcpNgAgent],
   ])(
     "%s: an install from before the pin reports nothing, which reads Not reported, never outdated",
     (kind: AgentKind) => {
@@ -811,6 +821,14 @@ describe("the agents that report the collector they pin", () => {
       getCephAgentUpgradeCommand(READER_URL),
       getCephAgentDownloadCommand(READER_URL),
       CEPH_AGENT_RECREATE_COMMAND,
+    ],
+    [
+      AgentKind.XcpNgAgent,
+      COLLECTOR_RELEASE,
+      "Upgrade the OneUptime XCP-ng Agent",
+      getXcpNgAgentUpgradeCommand(READER_URL),
+      getXcpNgAgentDownloadCommand(READER_URL),
+      XCP_NG_AGENT_RECREATE_COMMAND,
     ],
   ])(
     "%s: the install script again, which keeps the .env, or the files and a recreate",
@@ -999,7 +1017,9 @@ describe("the agents that report the collector they pin", () => {
     render(
       <AgentVersion kind={AgentKind.StorageArrayAgent} version="0.154.0" />,
     );
-    const dialog: HTMLElement = await openDialog(OUTDATED_COLLECTOR);
+    const dialog: HTMLElement = await openDialog(
+      outdatedName(STORAGE_ARRAY_AGENT_VERSION),
+    );
 
     expect(
       within(dialog).getByRole("heading", {
@@ -1008,7 +1028,7 @@ describe("the agents that report the collector they pin", () => {
     ).toBeInTheDocument();
     expect(
       within(dialog).getByText(
-        "This agent runs version 0.154.0. Version 0.165.0 is available.",
+        `This agent runs version 0.154.0. Version ${STORAGE_ARRAY_AGENT_VERSION} is available.`,
       ),
     ).toBeInTheDocument();
     expect(

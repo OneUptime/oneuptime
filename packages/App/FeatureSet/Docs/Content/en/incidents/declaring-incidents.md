@@ -45,7 +45,7 @@ Only the first step has required fields, plus any custom field your admins marke
 **From a resource's own page.** **Declare Incident** on the **Incidents** tab of a monitor, a host, a service, a cluster or most other resources opens the same form with that resource already picked on **Resources Affected**, so a title and a severity are all it takes, and the incident shows on the tab you started from.
 
 :::details Which resource pages offer it, and what they pick
-**Declare Incident** on the **Incidents** tab of a monitor, a host, a network device, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database or a service opens the same wizard with that resource already picked on **Resources Affected** (a monitor under **Monitors**, anything else under **Other Affected Resources**), ahead of anything a template adds. **Create from Template** on that tab keeps the resource too. The breadcrumbs go back through the resource's tab, and once declared you land on the new incident, as from the incidents list.
+**Declare Incident** on the **Incidents** tab of a monitor, a host, a network device, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an XCP-ng pool, an OpenStack cloud, a storage array, an IoT fleet, a database or a service opens the same wizard with that resource already picked on **Resources Affected** (a monitor under **Monitors**, anything else under **Other Affected Resources**), ahead of anything a template adds. **Create from Template** on that tab keeps the resource too. The breadcrumbs go back through the resource's tab, and once declared you land on the new incident, as from the incidents list.
 
 An inventory item's **Incidents** tab picks the host, service or Kubernetes cluster the item points at, and the breadcrumbs go back through that resource's tab. **Create Alert** on a resource's **Alerts** tab works the same way: from a monitor it fills in the alert's **Monitor**, from anything else **Other Affected Resources**.
 
@@ -61,7 +61,7 @@ The resource is looked up with your own permissions: if you cannot read it, or i
 Under **More fields**:
 
 - **Declared At** — starts at the moment you opened the page. This is the timestamp every duration on the incident is measured from, so back-date it if you are recording something that started earlier.
-- **Initial State** — optional, and empty to start with. Left empty, the incident starts in the state flagged `isCreatedState`, which new projects seed as **Identified** — or in the template's initial state, when you declare from a template. Pick a later state only when you are recording an incident that was already past that point, acknowledged or resolved. Such an incident pages no one — see [Declared already acknowledged or resolved](#declared-already-acknowledged-or-resolved).
+- **Initial State** — optional, and empty to start with. Left empty, the incident starts in the state flagged `isCreatedState`, which new projects seed as **Identified** — or in the template's initial state, when you declare from a template. Pick a later state only when you are recording an incident that was already past that point, acknowledged or resolved. Such an incident pages no one — see [Declared already acknowledged or resolved](#declared-already-acknowledged-or-resolved). A project can start the incidents you declare acknowledged when you leave this empty and page no on-call policy: then the help under it says so, and the summary always lists where the incident will start. See [Incidents declared by hand](/docs/incidents/states-and-severities#incidents-declared-by-hand).
 - **Labels** — optional. Labels group related incidents so you can filter by them, and a team whose permissions are restricted to labels only sees the incidents that carry one of its labels.
 - **Private Incident** — checkbox, off by default (`isPrivate`). A private incident is visible only to its owner users, the members of its owner teams, Project Admins and Project Owners — and it is hidden from every status page, regardless of any other setting, including the status pages it is limited to. The incidents list marks these with a red **Private** pill.
 - **Owners** — optional. You become an owner of the incident you declare whatever you pick here; add the people and teams who should own it with you. Under the picker, each team you are a member of is one click away, and **Add all** adds them all: nothing is picked for you. Declaring from a template starts it with the template's owners, which you can change.
@@ -85,6 +85,7 @@ The monitors come first, on their own, because status pages see an incident thro
 
 - **Monitors** — a search box that attaches the monitors the incident affects; its **Labels** tab adds every monitor with a label at once. A status page shows an incident, and notifies its subscribers about it, when it lists one of the incident's monitors, so these are what decide which status pages hear about it (`monitors` on the incident).
 - **Change Monitor Status to** — optional, and shown only once at least one monitor is picked. Picks a monitor status that is applied to every monitor attached to this incident, so declaring the incident and marking the monitors degraded is one action rather than two. Declaring from a template that sets one starts with the template's status, shown as soon as you pick a monitor. With no monitor picked no status is saved, the template's included; remove the last monitor and the field goes away until you pick another, which brings your choice back. A monitor's status is shared by every status page that lists it, so with status pages picked under **More fields**, the form reminds you that the change also shows on the pages you did not pick.
+- **Pause Monitoring** — shown once at least one monitor is picked, and ticked. Ticked, the incident pauses its monitors' checks until it is resolved, so the status above stays on them. Untick it to keep them checked while the incident is open: their checks keep setting their status, and keep opening incidents and alerts. A monitor set to keep monitoring during incidents is never paused, ticked or not (`pauseMonitoring` on the incident). See [Monitoring while an incident is open](#monitoring-while-an-incident-is-open).
 - **Other Affected Resources** — a second search box for everything else the incident affects: hosts, network devices, Kubernetes clusters, Docker and Podman hosts, Proxmox, Ceph and Docker Swarm clusters, vCenters, storage arrays, IoT fleets, databases, cloud resources and services — everything besides monitors that the incident's own **Affected Resources** card offers. Under the hood these are separate relations on the incident (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` and more), but the form collapses them into one picker.
 
 **Other Affected Resources** searches every kind it offers at once. A resource is found by its name or description, a network device also by the address it is polled at or its DNS name, and a host by the name its agent reports or one of its IP addresses. The results are grouped under their kind, a device's address beside its name. Once they hold more than one kind, a row above them narrows the list to one kind and says how many of each match, and a kind with more matches than fit offers to show more of them. Archived resources are not offered. When the search matches monitors too, a line under the results says how many, and that monitors are picked under **Monitors**.
@@ -122,7 +123,7 @@ This step appears only when at least one incident custom field has **Show on Cre
 - **On-Call Policy** — a multi-select of the on-call policies to page as soon as the incident is declared. This maps to `onCallDutyPolicies` on the incident.
 - **Assign Incident Roles** — who takes each role your project defines, one card per role. A role tagged **Primary** that you leave empty is yours: you take it when the incident is declared, and the summary says so. A role that takes one person says so once it has one; a role that takes several keeps its picker.
 
-This is the only place an on-call policy is attached to an incident directly. Severities do not carry an on-call policy — severity is a label, and it only influences paging as a *match criterion* inside an on-call rule. Rules configured at **Incidents → Rules → On-Call Rules** add their policies on top of whatever you pick here; the final set that runs is the deduplicated union of both. An incident declared in a later state runs none of them — see [Declared already acknowledged or resolved](#declared-already-acknowledged-or-resolved).
+This is the only place an on-call policy is attached to an incident directly. Severities do not carry an on-call policy — severity is a label, and it only influences paging as a *match criterion* inside an on-call rule. Rules configured at **Incidents → Rules → On-Call Rules** add their policies on top of whatever you pick here; the final set that runs is the deduplicated union of both. An incident declared in a later state runs none of them — see [Declared already acknowledged or resolved](#declared-already-acknowledged-or-resolved). In a project that starts incidents declared by hand acknowledged, picking no policy here is what starts yours acknowledged, and a line under the field says so while none is picked: pick one to have its people paged.
 
 Roles themselves are configured at **Incidents → Settings → Incident Roles**. A new project has one, Incident Commander; add Responder, Communications Lead or whatever else your process needs there. If you pick nobody for Incident Commander, you become it when the incident is declared.
 
@@ -171,7 +172,7 @@ A few quick rules:
 - The **Details** step follows the template's **Custom Fields on Create**, as [described above](#details-your-incident-custom-fields).
 - Custom field values merge one field at a time. A template's values fill in the custom fields the incident is declared without; a value set on the **Details** step, or sent in the request's `customFields`, always wins — `0`, `false` and `null` included. A field copied from a monitor custom field still takes the monitor's value.
 - An existing template's custom field values are on its **Custom Fields** card, next to its other cards.
-- The template's **Owners** are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the Project Owners.
+- The template's **Owners** are added before the incident's Slack and Microsoft Teams channels are created, so a notification rule that asks who owns the incident matches them, and one that invites incident owners to a new channel invites them too. Declaring from a template in the dashboard adds them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added, so it goes to them rather than to the Project Owners.
 
 ## Declaring automatically from monitor criteria
 
@@ -280,11 +281,11 @@ In order:
 9. **Subscribers are queued**, if **Notify Status Page Subscribers** was left on and the incident is visible on the status page. Delivery is handled by a background job, not inline with your request, and goes to the status pages the incident reaches: the ones that list its monitors, narrowed by **Limit to these status pages**, and without the pages that only show incidents limited to them when it is not limited. An archived status page sends nothing. Its progress shows as **Subscriber Notification Status** on the incident's **Overview**: what was sent and what failed on each status page, and **Retry** or **Resend** once it has settled. See [Checking what was sent](/docs/status-pages/subscribers#checking-what-was-sent).
 10. **Workflows fire.** The **On Create Incident** trigger starts any workflow built on it. See [Workflows Overview](/docs/workflows/index).
 
-From there the incident is live: it counts toward the **Active Incidents** badge in the Incidents side menu (any state above your resolved state counts as active), it appears on the status pages that carry one of its monitors (only the picked ones, if you limited it), and its **State Timeline** starts recording.
+From there the incident is live: it counts toward the **Active Incidents** badge in the Incidents side menu (any state above your resolved state counts as active), it appears on the status pages that carry one of its monitors (only the picked ones, if you limited it), and its **State Timeline** starts recording. Its monitors are put in its **Change Monitor Status to** status and, declared by hand, their checks are paused until it is resolved: see [Monitoring while an incident is open](#monitoring-while-an-incident-is-open).
 
 ### Declared already acknowledged or resolved
 
-Picking a later **Initial State** — on the form, through a template's **Initial Incident State**, with `currentIncidentStateId` from the API, Terraform or a workflow, or by asking [Ask AI](/docs/ai/ask-ai) for an incident already acknowledged or resolved — records an incident that someone is already handling, or that is already over. It is not treated as a new emergency:
+Picking a later **Initial State** — on the form, through a template's **Initial Incident State**, with `currentIncidentStateId` from the API, Terraform or a workflow, or by asking [Ask AI](/docs/ai/ask-ai) for an incident already acknowledged or resolved — records an incident that someone is already handling, or that is already over. So does declaring one by hand that pages no one, in a project that starts those acknowledged ([Incidents declared by hand](/docs/incidents/states-and-severities#incidents-declared-by-hand)). It is not treated as a new emergency:
 
 ```mermaid title="What a new incident sets off, by the state it starts in"
 flowchart TB
@@ -306,10 +307,43 @@ flowchart TB
 
 Alerts, alert episodes and incident episodes follow the same rule: one created already acknowledged pages no one, and one created resolved is also not grouped, remediated or investigated by AI, and gets no channel of its own. An incident or alert in the created state — the default, and every one a monitor opens — sets off everything as before.
 
+## Monitoring while an incident is open
+
+An incident declared by hand pauses the checks of the monitors it lists, until it is resolved. That keeps the status it put them in from being changed by their next check while people work on it. Declared by hand means anything but OneUptime itself: **Declare Incident** in the dashboard (from an alert, from a monitor's **Incidents** tab, or from scratch), Slack, Microsoft Teams, the API, Terraform, a workflow, [Ask AI](/docs/ai/ask-ai), the mobile app and a form. Adding a monitor to such an incident while it is open pauses that monitor too.
+
+Nothing else pauses a monitor's checks this way. An incident a monitor's criteria declare, one an alert's incident rule declares and one an SLO declares leave their monitors checked, and so does every alert, created by a monitor or by hand.
+
+```mermaid title="Whether an open incident pauses a monitor's checks"
+flowchart TB
+    declared{"Declared by hand?"} -->|No| checked["Checks keep running"]
+    declared -->|Yes| ticked{"Pause Monitoring<br/>ticked?"}
+    ticked -->|No| checked
+    ticked -->|Yes| setting{"Monitor set to keep<br/>monitoring during incidents?"}
+    setting -->|Yes| checked
+    setting -->|No| paused["Checks paused<br/>until it is resolved"]
+```
+
+**Keep a monitor checked.** Two switches decide, and either keeps it checked:
+
+- **Keep monitoring during incidents**, on the monitor's **Settings** page, under **During Incidents**. Turn it on for a monitor that receives events, such as an [Incoming Request monitor](/docs/monitor/incoming-request-monitor) that another system posts its alerts to: an incident about one event then no longer stops it from reading the next. It applies at once, to incidents already open too: turned on while an incident pauses the monitor, its checks start again right away. Off by default.
+- **Pause Monitoring**, where the incident is declared, under **Change Monitor Status to**. Untick it to keep all of the incident's monitors checked. It can be changed while the incident is open, on its **Affected Resources** card: unticked, the monitors are checked again at once.
+
+A monitor kept checked keeps setting its own status: its next check replaces the status the incident put it in, and its criteria keep opening and resolving their own incidents and alerts.
+
+**What a paused monitor still does.** Its checks stop: probes stop checking it, a heartbeat, email or agent that stops sending is not noticed, and a telemetry monitor is not evaluated. What is sent to it from outside is still received: each request an [Incoming Request monitor](/docs/monitor/incoming-request-monitor) gets, each email an Incoming Email monitor gets and each report a Server monitor's agent sends is listed in its **Monitoring Logs**, as it came, with **Not evaluated: monitoring is paused by an incident**. Nothing a paused monitor receives opens or resolves an incident or an alert, or changes its status, and the sender is answered as usual. A banner on the monitor's pages says it is paused, and how to keep it checked.
+
+**What paused time counts as.** A paused monitor keeps the status it holds, and its uptime, status pages and SLOs count that status when an incident put the monitor in it with **Change Monitor Status to**: that is the status someone declared. When no pausing incident set a status, the status is only what the monitor's last check saw before the pause, so that time is left out of its uptime, status pages and SLOs, as time with monitoring turned off is. Its **Status Timeline** marks where that time starts and ends, and the uptime on its **Overview** says it leaves paused time out. A maintenance event pauses its monitors the same way, and their time counts the same way: as the status the event puts them in, or left out when it puts them in none. A monitor paused by both counts its time while either of them puts it in a status. When the event ends while an incident that puts the monitor in a status is still open, the monitor goes back to that status, not to operational. See [What an event affects](/docs/scheduled-maintenance/index#what-an-event-affects).
+
+**When the pause ends.** Resolving the incident, taking the monitor off it or deleting it resumes the monitor's checks and returns it to operational, unless another open incident is still on it, whose checks then set its status. A monitor that another open incident declared by hand still pauses stays paused. An incident resolved and reopened since holds nothing, so it pauses nothing and keeps nothing paused.
+
 ## Troubleshooting
 
 :::details Declaring fails and asks for a created incident state
 If your project has no state carrying the `isCreatedState` flag, the create call fails and tells you to add a created incident state from settings. That normally only happens on a project whose states were edited heavily — see [Incident States & Severities](/docs/incidents/states-and-severities).
+:::
+
+:::details A monitor stopped opening alerts once an incident was declared on it
+An incident declared by hand pauses the checks of its monitors until it is resolved, so what reaches them meanwhile is listed in their **Monitoring Logs** but not evaluated. Turn on **Keep monitoring during incidents** in the monitor's **Settings** to keep it checked during this incident and the next ones, or untick **Pause Monitoring** on the incident's **Affected Resources** card for this incident's monitors. See [Monitoring while an incident is open](#monitoring-while-an-incident-is-open).
 :::
 
 :::details The incident was declared, but no status page subscriber heard about it

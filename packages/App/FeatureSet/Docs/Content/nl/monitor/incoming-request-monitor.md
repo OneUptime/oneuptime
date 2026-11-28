@@ -14,6 +14,7 @@ Beide gebruiken hetzelfde monitortype. Wat ze onderscheidt, zijn de criteria die
 - [Een heartbeat sturen](#een-heartbeat-sturen): Vanuit curl, cron, Node.js, Python of Go.
 - [Waarschuwen als aanroepen uitblijven](#als-offline-markeren-als-er-10-minuten-geen-heartbeat-komt-een-dodemansknop): Maak van de monitor een dodemansknop.
 - [Waarschuwingen ontvangen](#waarschuwingen-uit-een-ander-systeem-ontvangen): Eén incident per waarschuwing uit Alertmanager of Grafana.
+- [In Slack plaatsen zonder iemand op te roepen](#in-slack-plaatsen-zonder-iemand-op-te-roepen): Een kanaal informeren, en alleen buiten werktijd oproepen.
 - [Abonneren op SNS of Event Grid](#abonneren-op-amazon-sns-of-azure-event-grid): Bevestig het abonnement met één klik.
 :::
 
@@ -422,6 +423,38 @@ De volledige payload is ernaast beschikbaar, dus zowel een incidenttitel `{{aler
 
 Een volledige Alertmanager-configuratie vindt u onder [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Voor Grafana, zie [Grafana](/docs/integrations/grafana).
 
+### Gecontroleerd houden tijdens incidenten
+
+Een incident dat iemand op deze monitor meldt — vanuit een van zijn waarschuwingen bijvoorbeeld, met **Incident melden** — pauzeert zijn controles tot het incident is opgelost, dus de verzoeken die in de tussentijd binnenkomen, worden niet getoetst: ze openen en sluiten geen waarschuwingen. Elk ervan staat nog steeds in de **Monitoringlogboeken** van de monitor, zoals het binnenkwam, met de reden waarom het niet is getoetst.
+
+Voor een monitor waar andere systemen hun waarschuwingen naartoe sturen, zou een incident over één waarschuwing hem niet moeten tegenhouden de volgende te lezen. Open de **Instellingen** van de monitor en zet op de kaart **Tijdens incidenten** de schakelaar **Bewaking voortzetten tijdens incidenten** aan: incidenten die op hem worden gemeld, laten hem dan gecontroleerd, ook die al open zijn. Om hem voor één incident gecontroleerd te houden, vinkt u **Bewaking pauzeren** uit wanneer u het meldt. Zie [Bewaking terwijl een incident open is](/docs/incidents/declaring-incidents#bewaking-terwijl-een-incident-open-is).
+
+## In Slack plaatsen zonder iemand op te roepen
+
+Een stagingomgeving, of een product waarvan de problemen kunnen wachten, wil een verzoek misschien in een chatkanaal plaatsen zonder iemand op te roepen. Een waarschuwing die geen bereikbaarheidsbeleid noemt doet dat: ze wordt via de werkruimteregels van het project in Slack, Microsoft Teams of Mattermost geplaatst en start geen escalatie.
+
+:::steps
+1. Open het criterium en zet onder **Acties** de optie **Wanneer filters overeenkomen, maak een waarschuwing aan.** aan. Laat het **Bereikbaarheidsbeleid** ervan leeg.
+2. Schrijf in de waarschuwing wat het verzoek zegt, zoals `{{requestBody.commonAnnotations.summary}}` in de beschrijving. Zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
+3. Voeg in **Waarschuwingen → Werkruimte → Slack** een regel toe voor de waarschuwingen van deze monitor en zet **In bestaande kanalen plaatsen** aan. Slack moet eerst [met het project verbonden](/docs/workspace-connections/slack) zijn.
+:::
+
+Een waarschuwing die geen bereikbaarheidsbeleid noemt, kan toch iemand oproepen via de regels van het project. Controleer dat geen regel in **Waarschuwingen → Regels → Bereikbaarheidsregels** iemand oproept voor deze waarschuwingen, en dat geen regel in **Waarschuwingen → Regels → Incidentregels** er een incident van verklaart.
+
+Om te plaatsen zonder een waarschuwing aan te maken, zet u alleen **Wanneer filters overeenkomen, wijzig de monitorstatus.** aan en voegt u de regel in plaats daarvan toe in **Monitoren → Werkruimte → Slack**. Het kanaal hoort dan alleen dat de status van de monitor is veranderd, zonder iets uit het verzoek, en alleen wanneer die verandert: meer verzoeken terwijl de monitor al in die status is, plaatsen niets.
+
+### Alleen buiten werktijd oproepen
+
+Twee criteria met dezelfde filters verdelen de week onder elkaar, in deze volgorde:
+
+1. Het eerste plaatst tijdens werktijd. Zet in de **Instellingen** ervan **Dit criterium alleen op bepaalde dagen en tijden beoordelen** aan, en kies de dagen, de uren en de **Tijdzone**. De waarschuwing ervan noemt geen bereikbaarheidsbeleid.
+2. Het tweede roept de rest van de tijd op. Het heeft geen uren, en de waarschuwing ervan noemt uw bereikbaarheidsbeleid.
+
+Het eerste criterium dat bij een verzoek past, bepaalt wat er gebeurt. Buiten de uren ervan wordt het eerste criterium overgeslagen, dus past 's nachts en in het weekend het tweede, en alleen dan wordt iemand opgeroepen. Zie [Alleen op bepaalde dagen en tijden](/docs/monitor/criteria-and-statuses#alleen-op-bepaalde-dagen-en-tijden).
+
+- Een verzoek wordt beoordeeld wanneer het binnenkomt, naar de uren van dat moment. Een probleem dat om 16:55 begint, roept na 17:00 alleen iemand op als de afzender het opnieuw stuurt, zoals Alertmanager eenmaal per `repeat_interval` doet.
+- Een waarschuwing met **Waarschuwing automatisch oplossen** aan wordt opgelost wanneer een verzoek bij een ander criterium past. Het eerste verzoek nadat de werktijd begint, past bij het eerste criterium, lost dus de waarschuwing van de nacht op en opent er een die niemand oproept. Laat **Waarschuwing automatisch oplossen** uit bij de waarschuwing van het tweede criterium om die open te houden tot iemand haar oplost.
+
 ## Diensten die eerst de URL controleren
 
 Sommige diensten controleren een nieuw endpoint voordat ze er iets aan afleveren: ze sturen het een verzoek, en leveren pas af als het antwoordt zoals zij verwachten. OneUptime beantwoordt deze controles zelf, dus u plakt alleen de **Heartbeat URL** van de monitor in de dienst.
@@ -479,11 +512,16 @@ Event Grid valideert een endpoint dat een code naar Event Grid terugstuurt, of w
 3. **Gebruik POST met `Content-Type: application/json`**: alles wat in de body leest, hangt daarvan af.
 4. **Meng de twee taken niet op één monitor**: een monitor die gebeurtenisgestuurde waarschuwingen ontvangt, heeft geen vast ritme, dus een criterium "Niet ontvangen in minuten" daarop zou steeds omslaan. Gebruik een aparte monitor voor de dodemansknop.
 5. **Bewaak de bewaker**: zorg dat de service die de verzoeken stuurt, fouten goed afhandelt, zodat mislukte verzoeken niet onopgemerkt blijven.
+6. **Houd een ontvanger van gebeurtenissen gecontroleerd tijdens incidenten**: zet bij een monitor die waarschuwingen van een ander systeem ontvangt **Bewaking voortzetten tijdens incidenten** aan in zijn **Instellingen**, zodat een incident dat erop wordt gemeld hem niet pauzeert. Zie [Gecontroleerd houden tijdens incidenten](#gecontroleerd-houden-tijdens-incidenten).
 
 ## Probleemoplossing
 
 :::details Mijn afzender krijgt een 200, maar op de monitor verschijnt niets
 De `200` wordt verstuurd voordat het verzoek wordt gecontroleerd, dus hij bewijst niet dat het verzoek is aanvaard. Controleer of de geheime sleutel in de URL overeenkomt met de **Heartbeat URL** van de monitor, en of de monitor niet is uitgeschakeld. Kijk daarna in de tijdlijn van de monitor of er verzoeken aankomen.
+:::
+
+:::details Er komen verzoeken binnen, maar de monitor opent geen waarschuwingen terwijl een incident open is
+Een incident dat met de hand op de monitor is gemeld, pauzeert zijn controles, dus zijn verzoeken staan in zijn **Monitoringlogboeken** als **Niet geëvalueerd: monitoring is gepauzeerd door een incident**, en de banner op zijn pagina's zegt het. Zet **Bewaking voortzetten tijdens incidenten** aan in zijn **Instellingen**: zijn controles starten meteen weer, en de volgende verzoeken worden getoetst. De verzoeken die werden vermeld terwijl hij gepauzeerd was, worden achteraf niet getoetst. Zie [Gecontroleerd houden tijdens incidenten](#gecontroleerd-houden-tijdens-incidenten).
 :::
 
 :::details Mijn afzender krijgt een 401

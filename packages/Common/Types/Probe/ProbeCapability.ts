@@ -41,6 +41,16 @@ enum ProbeCapability {
    */
   DataSecurityScan = "dataSecurityScan",
   /*
+   * The probe samples Elasticsearch and OpenSearch clusters for Data
+   * Security too (#11140): it reads a cluster's address from the variable
+   * the store names, reads its documents over its HTTP API with GET
+   * requests only (SearchStoreSampler), and asks it without credentials
+   * whether it answers anyone who reaches it. The server hands a search
+   * cluster only to a probe that declares this: an older probe refuses
+   * work of an engine it does not know, and the store would sit claimed.
+   */
+  DataSecuritySearchScan = "dataSecuritySearchScan",
+  /*
    * The probe collects table health for Data Observability (Jobs/
    * DataObservability/CollectTableHealth): it reads each store's connection
    * string from the environment variable the store names and reads the
@@ -106,6 +116,16 @@ enum ProbeCapability {
    * wrote to its own log: at LOG_LEVEL=DEBUG, each step's whole result.
    */
   HideSecretValuesInLogs = "hideSecretValuesInLogs",
+  /*
+   * The probe polls a device in the SNMPv3 context the device names
+   * (SnmpV3Auth.contextName): each logical switch of a Brocade Virtual
+   * Fabric answers only in its own ("VF:128"). An older probe ignores the
+   * context and polls the agent's default context - another logical switch
+   * altogether, whose ports would be stored as this one's. So the server
+   * walks a device that names a context only on a probe that declares
+   * this, and only pings it on any other until the probe is updated.
+   */
+  SnmpV3Context = "snmpV3Context",
 }
 
 // The first probe release that walks SNMP tables.

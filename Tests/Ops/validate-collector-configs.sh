@@ -180,6 +180,27 @@ ENV_ARGS=(
   -e "PURE_FB_ENDPOINT=flashblade.example.com"
   -e "PURE_FB_API_TOKEN=validate-only"
   -e "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true"
+  # A PowerStore's address names the cluster in every path its config scrapes.
+  -e "POWERSTORE_ENDPOINT=powerstore.example.com"
+  # Dell PowerScale (the snmp receiver, one per node): the endpoint parses as
+  # udp://host:161, and the pipeline runs the receivers install.sh lists -
+  # here the cluster's, the quotas' and three nodes'.
+  -e "POWERSCALE_ENDPOINT=10.20.0.11"
+  -e "POWERSCALE_SNMP_COMMUNITY=validate-only"
+  -e "POWERSCALE_NODE_1=10.20.0.11"
+  -e "POWERSCALE_NODE_2=10.20.0.12"
+  -e "POWERSCALE_NODE_3=[fd00::13]"
+  -e "POWERSCALE_SNMP_RECEIVERS=[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]"
+  # The XCP-ng Agent (a prometheus receiver scraping Xen Orchestra's
+  # OpenMetrics plugin). The scheme has to be http or https and the target
+  # parse as host:port - so give them the shapes install.sh writes. Its
+  # xo-ca.pem is mounted where the config reads it (XCP_NG_AGENT_MOUNTS
+  # below).
+  -e "XO_SCHEME=https"
+  -e "XO_ADDRESS=xo.example.com:443"
+  -e "XO_OPENMETRICS_SECRET=validate-only"
+  -e "XO_NAME=validate-only"
+  -e "XO_TLS_SERVER_NAME="
   # The Database Agent (one config per engine under agents/DatabaseAgent/
   # configs). The postgresql receiver splits the endpoint as host:port and
   # refuses an empty username or password, the TLS flags and the two event
@@ -356,18 +377,87 @@ fi
 
 # The Storage Array Agent ships one config per way of reading an array:
 # docker-compose.yml mounts the one STORAGE_ARRAY_COLLECTOR_CONFIG names (the
-# FlashArray's native endpoint, or Pure's FlashArray / FlashBlade exporter).
-# Every one of them is validated.
+# FlashArray's native endpoint, Pure's FlashArray / FlashBlade exporter, or
+# NetApp Harvest for an ONTAP cluster). Every one of them is validated.
 STORAGE_ARRAY_AGENT_CONFIGS=(
   otel-collector-config.yaml
   otel-collector-config.flasharray-exporter.yaml
   otel-collector-config.flashblade.yaml
+  otel-collector-config.netapp-ontap.yaml
+  otel-collector-config.powerscale.yaml
 )
 
 for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
   cp "${REPO_ROOT}/agents/StorageArrayAgent/${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
   validate "StorageArrayAgent / ${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
 done
+
+# The configs above that ship the syslog option commented out, for the
+# syslog the array forwards (uncommented and validated once more further
+# down): every one but PowerScale's, which polls the cluster's nodes over
+# SNMP and offers no syslog (#11003). PowerStore's syslog has a collector of
+# its own, below. Tests/Ops/StorageArrayAgentConfigs.test.js holds this list
+# to the configs that carry the option, so a config that gains or drops it
+# is named here.
+STORAGE_ARRAY_AGENT_SYSLOG_CONFIGS=(
+  otel-collector-config.yaml
+  otel-collector-config.flasharray-exporter.yaml
+  otel-collector-config.flashblade.yaml
+  otel-collector-config.netapp-ontap.yaml
+)
+
+# Dell PowerStore (#11002): its collector config, which scrapes Dell's
+# exporter, and the config of its syslog collector (the powerstore-syslog
+# service), which publishes the syslog port itself - so neither carries the
+# commented-out syslog option the loop further down uncomments. The syslog
+# config's TLS receiver ships commented out instead: uncommented as the
+# config says, with a certificate made here where the compose file mounts
+# one, it must start too.
+for config in otel-collector-config.powerstore.yaml powerstore-syslog.yaml; do
+  cp "${REPO_ROOT}/agents/StorageArrayAgent/${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
+  validate "StorageArrayAgent / ${config}" "${WORK_DIR}/StorageArrayAgent-${config}" \
+    -e "STORAGE_SYSTEM=dell.powerstore"
+done
+openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=validate-only" \
+  -keyout "${WORK_DIR}/powerstore-syslog-tls.key" \
+  -out "${WORK_DIR}/powerstore-syslog-tls.crt" >/dev/null 2>&1
+chmod 0644 "${WORK_DIR}/powerstore-syslog-tls.key" "${WORK_DIR}/powerstore-syslog-tls.crt"
+# js-yaml is a devDependency of Tests/Ops, so this runs there, as the
+# extraction below does: from the repository's root it is not installed.
+(cd "${REPO_ROOT}/Tests/Ops" && node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [source, out] = process.argv.slice(1);
+const lines = [];
+let inBlock = false;
+for (const line of fs.readFileSync(source, "utf8").split("\n")) {
+  if (line === "  # syslog/tls:") {
+    inBlock = true;
+    lines.push("  syslog/tls:");
+    continue;
+  }
+  if (inBlock && line.startsWith("  #   ")) {
+    lines.push("  " + line.slice(4));
+    continue;
+  }
+  inBlock = false;
+  lines.push(line);
+}
+const config = yaml.load(lines.join("\n"));
+const tls = config.receivers["syslog/tls"];
+if (!tls || !tls.tcp || !tls.tcp.tls || tls.tcp.listen_address !== "0.0.0.0:6514") {
+  throw new Error(`${source}: uncommenting found no syslog/tls receiver`);
+}
+config.service.pipelines.logs.receivers.push("syslog/tls");
+fs.writeFileSync(out, yaml.dump(config));
+' "${REPO_ROOT}/agents/StorageArrayAgent/powerstore-syslog.yaml" \
+  "${WORK_DIR}/StorageArrayAgent-powerstore-syslog-tls.yaml")
+validate "StorageArrayAgent / powerstore-syslog.yaml, with its TLS receiver uncommented" \
+  "${WORK_DIR}/StorageArrayAgent-powerstore-syslog-tls.yaml" \
+  -e "STORAGE_SYSTEM=dell.powerstore" \
+  -v "${WORK_DIR}/powerstore-syslog-tls.crt":/etc/otelcol-contrib/powerstore-syslog-tls.crt:ro \
+  -v "${WORK_DIR}/powerstore-syslog-tls.key":/etc/otelcol-contrib/powerstore-syslog-tls.key:ro
 
 # STORAGE_ARRAY_NAME is stamped as storage.array.name by the resource
 # processor, which refuses to start on an empty value — so an agent whose
@@ -381,6 +471,33 @@ if docker run --rm "${ENV_ARGS[@]}" -e "STORAGE_ARRAY_NAME=" "${STUB_MOUNTS[@]}"
 else
   echo "==> StorageArrayAgent refuses an empty STORAGE_ARRAY_NAME: ok"
 fi
+
+# The XCP-ng Agent: one config, and the certificates it trusts for Xen
+# Orchestra mounted where it reads them, as install.sh and docker-compose.yml
+# leave them (`validate` does not read the file, the collector started below
+# to look for aliases does; any certificate the Go x509 parser accepts will
+# do, nothing connects).
+XCP_NG_AGENT_MOUNTS=(-v "${WORK_DIR}/serviceaccount/ca.crt":/etc/oneuptime/xo-ca.pem:ro)
+cp "${REPO_ROOT}/agents/XcpNgAgent/otel-collector-config.yaml" "${WORK_DIR}/XcpNgAgent.yaml"
+validate "XcpNgAgent" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}"
+# A lab's http://, an IPv6 Xen Orchestra, and a certificate checked against
+# another name than the address (XO_TLS_SERVER_NAME): the shapes install.sh
+# writes for each.
+validate "XcpNgAgent / http:// in a lab" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}" \
+  -e "XO_SCHEME=http" -e "XO_ADDRESS=xo.example.com:80"
+validate "XcpNgAgent / an IPv6 address" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}" \
+  -e "XO_ADDRESS=[fd00::5]:443"
+validate "XcpNgAgent / XO_TLS_SERVER_NAME" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}" \
+  -e "XO_ADDRESS=10.0.0.5:8443" -e "XO_TLS_SERVER_NAME=xo.example.com"
+# It names its exporter otlp_http, not the otlphttp alias collector 0.165.0
+# warns about on every start (and a later release refuses).
+check_no_deprecated_alias "XcpNgAgent" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}"
+# Values a person types, which the collector would read as YAML were they a
+# ${env:...} on their own (XcpNgAgentConfigs.test.js): the config must load
+# with each of them.
+validate "XcpNgAgent / a secret and a name YAML reads as a list and a map" \
+  "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}" \
+  -e "XO_OPENMETRICS_SECRET=[x] a: b {c}" -e "XO_NAME=XO: lab [2026]"
 
 # The Database Agent ships one config per receiver; install.sh downloads the
 # chosen one as otel-collector-config.yaml. Every one of them is validated.
@@ -604,6 +721,196 @@ fs.writeFileSync(out, config);
 validate "kubernetes-agent / node collector DaemonSet, logs.openStack.cloudName" \
   "${WORK_DIR}/k8s-daemonset-openstack-logs.yaml"
 
+# logs.extraOperators (issue #11225): collector operators of the user's own,
+# which the chart renders into the DaemonSet's pod log receiver, after a line
+# is put back together and its pod and stream are read and before the agent's
+# severity chain, and checks at install time
+# (templates/extra-log-operators-check.yaml). Held here, where the collector
+# runs:
+#
+#   1. the chart's verdict on each of a table of operators, beside this
+#      collector's own (Utils/extra-log-operators-agreement.js);
+#   2. the agent's config with operators of every type the chart takes in it,
+#      so each is built beside the agent's own (and on the collector
+#      --reuse-values keeps, below, with the types that one has);
+#   3. why the chart keeps the agent's ids, and move, the name the collector
+#      gives the first of the agent's moves: in that config, one of the
+#      user's operators named so is the duplicate the collector refuses;
+#   4. what values.schema.json refuses, with the message of the Helm this
+#      runs: before 3.18 Helm words it one way, from 3.18 another. The
+#      extra-log-operators suite holds the message of the Helm helm-unittest
+#      is built on, whole.
+echo "==> logs.extraOperators: the chart's verdicts beside ${COLLECTOR_IMAGE}'s"
+if node "${REPO_ROOT}/Tests/Ops/Utils/extra-log-operators-agreement.js" \
+  "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+  "${WORK_DIR}/extra-log-operators-agreement" \
+  "${COLLECTOR_IMAGE}"; then
+  echo "    ok"
+else
+  echo "    FAILED: logs.extraOperators: the chart's verdicts beside the collector's"
+  failures=$((failures + 1))
+fi
+
+# extra_operators <set>...: the operator sets of Utils/ExtraLogOperatorExamples.js
+# named, one after the other, as JSON.
+extra_operators() {
+  node -e '
+const examples = require(process.argv[1]);
+process.stdout.write(JSON.stringify(process.argv.slice(2).flatMap((name) => {
+  return examples[name];
+})));
+' "${REPO_ROOT}/Tests/Ops/Utils/ExtraLogOperatorExamples.js" "$@"
+}
+
+# render_extra_operators <name> <operators JSON> [helm flags...]: the chart
+# rendered with those operators, and the DaemonSet's collector config lifted
+# to ${WORK_DIR}/<name>.yaml, once the operators are found as given, in their
+# order, between the agent's last move and its severity router.
+render_extra_operators() {
+  local name="$1"
+  local operators="$2"
+  shift 2
+  helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+    --set clusterName=validate-only \
+    --set oneuptime.url=https://oneuptime.example.com \
+    --set oneuptime.apiKey=validate-only \
+    --set logs.enabled=true \
+    --set logs.mode=daemonset \
+    --set-json "logs.extraOperators=${operators}" \
+    "$@" \
+    >"${WORK_DIR}/${name}.rendered.yaml"
+  node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [rendered, out, given] = process.argv.slice(1);
+// Key order aside: the chart writes an operator with its keys sorted.
+const canonical = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(canonical);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map((key) => {
+      return [key, canonical(value[key])];
+    }));
+  }
+  return value;
+};
+const wanted = JSON.parse(given);
+const configMap = yaml.loadAll(fs.readFileSync(rendered, "utf8")).find((doc) => {
+  return doc && doc.kind === "ConfigMap" && doc.metadata.name === "validate-kubernetes-agent-daemonset";
+});
+const config = configMap.data["otel-collector-config.yaml"];
+const receivers = yaml.load(config).receivers;
+const operators = (receivers.file_log || receivers.filelog).operators;
+const router = operators.findIndex((operator) => {
+  return operator.id === "severity-router";
+});
+const theirs = operators.slice(router - wanted.length, router);
+const before = operators[router - wanted.length - 1];
+if (JSON.stringify(canonical(theirs)) !== JSON.stringify(canonical(wanted))) {
+  throw new Error(`${rendered}: the operators before severity-router are not the ones given:\n${JSON.stringify(theirs)}`);
+}
+if (!before || before.type !== "move" || before.to !== "resource[\"k8s.pod.uid\"]") {
+  throw new Error(`${rendered}: the operators given do not come right after the agent moves the pod uid: ${JSON.stringify(before)}`);
+}
+fs.writeFileSync(out, config);
+' "${WORK_DIR}/${name}.rendered.yaml" "${WORK_DIR}/${name}.yaml" "${operators}"
+}
+
+echo "==> rendering kubernetes-agent chart with logs.extraOperators of every type it takes"
+render_extra_operators k8s-daemonset-extra-operators \
+  "$(extra_operators ONE_OF_EACH DOCUMENTED_EXAMPLE)"
+validate "kubernetes-agent / node collector DaemonSet, logs.extraOperators of every type the chart takes" \
+  "${WORK_DIR}/k8s-daemonset-extra-operators.yaml"
+
+# validate_refused <label> <config> <what the collector says>: the collector
+# must refuse the config, saying so.
+validate_refused() {
+  local label="$1"
+  local config="$2"
+  local says="$3"
+  local output
+
+  echo "==> ${label}"
+  chmod 0644 "${config}"
+  if output="$(docker run --rm \
+    "${ENV_ARGS[@]}" \
+    "${STUB_MOUNTS[@]}" \
+    -v "$(dirname "${config}")":/validate:ro \
+    "${VALIDATE_IMAGE}" \
+    validate --config "/validate/$(basename "${config}")" 2>&1)"; then
+    echo "    FAILED: ${label}: the collector took it"
+    failures=$((failures + 1))
+  elif ! printf '%s\n' "${output}" | grep -qF -- "${says}"; then
+    echo "    FAILED: ${label}: the collector refused it, but did not say: ${says}"
+    printf '%s\n' "${output}" | tail -n 3 | sed 's/^/      /'
+    failures=$((failures + 1))
+  else
+    echo "    ok, refused: ${says}"
+  fi
+}
+
+# The documented example's first operator, renamed in the rendered config to
+# what the chart refuses as an id: one of the agent's own, or move. Renamed
+# move1, which the chart takes, the collector steps around it.
+for id in move-stream severity-router severity-parser parse-klog-severity move; do
+  sed "s/- id: inhouse-level\$/- id: ${id}/" \
+    "${WORK_DIR}/k8s-daemonset-extra-operators.yaml" \
+    >"${WORK_DIR}/k8s-daemonset-extra-operators-as-${id}.yaml"
+  if ! grep -q -- "- id: ${id}\$" "${WORK_DIR}/k8s-daemonset-extra-operators-as-${id}.yaml"; then
+    echo "    FAILED: no operator of the user's renamed ${id}"
+    failures=$((failures + 1))
+  fi
+  validate_refused "kubernetes-agent / a user's operator named ${id}, as the chart refuses" \
+    "${WORK_DIR}/k8s-daemonset-extra-operators-as-${id}.yaml" \
+    "operator with id '${id}' already exists in pipeline"
+done
+sed "s/- id: inhouse-level\$/- id: move1/" \
+  "${WORK_DIR}/k8s-daemonset-extra-operators.yaml" \
+  >"${WORK_DIR}/k8s-daemonset-extra-operators-as-move1.yaml"
+validate "kubernetes-agent / a user's operator named move1, as the chart takes" \
+  "${WORK_DIR}/k8s-daemonset-extra-operators-as-move1.yaml"
+
+# schema_refuses <label> <operators JSON> <pattern>: Helm refuses the value by
+# values.schema.json, with a message that matches the pattern, which says
+# where (Helm 3.18 on writes /logs/extraOperators/0/type, before it
+# logs.extraOperators.0.type).
+schema_refuses() {
+  local label="$1"
+  local operators="$2"
+  local pattern="$3"
+  local output
+
+  echo "==> logs.extraOperators: the schema refuses ${label}"
+  if output="$(helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+    --set clusterName=validate-only \
+    --set oneuptime.url=https://oneuptime.example.com \
+    --set oneuptime.apiKey=validate-only \
+    --set-json "logs.extraOperators=${operators}" 2>&1 >/dev/null)"; then
+    echo "    FAILED: Helm took it"
+    failures=$((failures + 1))
+  elif ! printf '%s\n' "${output}" | grep -q "don't meet the specifications of the schema"; then
+    echo "    FAILED: refused, but not by the schema:"
+    printf '%s\n' "${output}" | sed 's/^/      /'
+    failures=$((failures + 1))
+  elif ! printf '%s\n' "${output}" | grep -Eq -- "${pattern}"; then
+    echo "    FAILED: the schema's message does not match ${pattern}:"
+    printf '%s\n' "${output}" | sed 's/^/      /'
+    failures=$((failures + 1))
+  else
+    echo "    ok"
+  fi
+}
+schema_refuses "a value that is not a list" '"inhouse"' "logs[./]extraOperators('|:).*array"
+schema_refuses "an item that is not a map" '["regex_parser"]' "logs[./]extraOperators[./]0('|:).*object"
+schema_refuses "an operator with no type" '[{"id":"inhouse"}]' "logs[./]extraOperators[./]0('|:).*type"
+schema_refuses "a type the collector has no operator for" '[{"type":"regex_parse"}]' "logs[./]extraOperators[./]0[./]type('|:).*one of"
+schema_refuses "an input operator" '[{"type":"file_input"}]' "logs[./]extraOperators[./]0[./]type('|:).*one of"
+schema_refuses "an output operator" '[{"type":"stdout"}]' "logs[./]extraOperators[./]0[./]type('|:).*one of"
+schema_refuses "an id that is not a string" '[{"type":"noop","id":7}]' "logs[./]extraOperators[./]0[./]id('|:).*string"
+schema_refuses "an empty id" '[{"type":"noop","id":""}]' "logs[./]extraOperators[./]0[./]id('|:)"
+
 # The OpenShift presets run the collector's openshift resource detector right
 # after the resource processor in both collectors' pipelines
 # (kubernetes-agent.openshiftDetector), which the renders above leave out. A
@@ -790,6 +1097,13 @@ for (const role of ["deployment", "daemonset"]) {
 VALIDATE_IMAGE="${REUSE_VALUES_COLLECTOR_IMAGE}"
 validate "kubernetes-agent / collector DaemonSet on ${REUSE_VALUES_COLLECTOR_IMAGE}" \
   "${WORK_DIR}/k8s-reuse-values-daemonset.yaml"
+# And with logs.extraOperators of every type this collector has, which the
+# chart takes for that image.tag (it refuses the newer ones there).
+render_extra_operators k8s-reuse-values-daemonset-extra-operators \
+  "$(extra_operators ONE_OF_EACH_ON_0_96_0 DOCUMENTED_EXAMPLE)" \
+  --set image.tag="${REUSE_VALUES_COLLECTOR_IMAGE##*:}"
+validate "kubernetes-agent / collector DaemonSet on ${REUSE_VALUES_COLLECTOR_IMAGE}, logs.extraOperators of every type it has" \
+  "${WORK_DIR}/k8s-reuse-values-daemonset-extra-operators.yaml"
 validate "kubernetes-agent / collector Deployment on ${REUSE_VALUES_COLLECTOR_IMAGE}, without k8sobjects" \
   "${WORK_DIR}/k8s-reuse-values-deployment.yaml"
 VALIDATE_IMAGE="${COLLECTOR_IMAGE}"
@@ -824,14 +1138,14 @@ console.log(listed.join(" "));
 validate "VMwareAgent, every optional metric its config lists enabled" \
   "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
 
-# Each Storage Array Agent config ships the syslog option commented out — a
-# `syslog/tcp` / `syslog/udp` receiver pair and a `logs` pipeline — and tells
-# users to uncomment it. Do exactly that (drop the `# ` each of those lines
+# Each Storage Array Agent config of STORAGE_ARRAY_AGENT_SYSLOG_CONFIGS ships
+# the syslog option commented out — a `syslog/tcp` / `syslog/udp` receiver
+# pair and a `logs` pipeline — and tells users to uncomment it. Do exactly that (drop the `# ` each of those lines
 # carries) and validate every config once more, so the option a user turns
 # on is a config that starts. The YAML is checked to really carry both
 # receivers and the pipeline, so an uncomment that matched nothing fails
 # here instead of validating the config as shipped a second time.
-for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
+for config in "${STORAGE_ARRAY_AGENT_SYSLOG_CONFIGS[@]}"; do
   node -e '
 const fs = require("fs");
 const yaml = require("js-yaml");

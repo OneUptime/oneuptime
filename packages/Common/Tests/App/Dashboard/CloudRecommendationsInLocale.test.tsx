@@ -25,6 +25,7 @@ import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * A CLOUD ACCOUNT'S RECOMMENDATIONS IN THE READER'S LANGUAGE - from the
@@ -210,6 +211,11 @@ beforeEach(async () => {
     }
 
     return Promise.resolve(projectList(modelType));
+  });
+
+  // No monitor covers a recommendation yet: the server's to say (#11074).
+  serveCoverageFrom(() => {
+    return [];
   });
 });
 

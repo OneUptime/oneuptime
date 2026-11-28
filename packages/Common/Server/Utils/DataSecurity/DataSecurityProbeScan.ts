@@ -1,8 +1,14 @@
 import { isDataConfidence } from "../../../Types/DataSecurity/DataConfidence";
 import {
   DataStoreKind,
+  isSearchEngineDataStoreKind,
   PROBE_SCANNABLE_DATA_STORE_KINDS,
+  PROBE_SCANNABLE_DATABASE_KINDS,
 } from "../../../Types/DataSecurity/DataStoreKind";
+import {
+  DataStorePostureFacts,
+  DataStorePostureReadFrom,
+} from "../../../Types/DataSecurity/DataStorePosture";
 import { JSONObject } from "../../../Types/JSON";
 import {
   ALL_CUSTOM_DATA_TYPE_VALIDATORS,
@@ -33,6 +39,7 @@ import {
   MAX_READ_LOG_ENTRIES,
 } from "./DataSecurityScanTypes";
 import { isFingerprint, MAX_FINGERPRINTED_DATA_TYPES } from "./Fingerprint";
+import { readModelResumeAt, withModelResumeAt } from "./Model/ModelTurns";
 
 /*
  * A DATABASE ONLY A CUSTOMER'S PROBE CAN REACH, SCANNED FROM THAT PROBE.
@@ -97,7 +104,7 @@ export function isValidProbeConnectionVariable(name: unknown): name is string {
   );
 }
 
-// The engine a self-managed store of this kind is sampled with.
+// The engine a self-managed database of this kind is sampled with.
 export function getDatabaseEngineOfKind(
   kind: string | undefined | null,
 ): DatabaseEngine | null {
@@ -113,9 +120,51 @@ export function getDatabaseEngineOfKind(
   }
 }
 
+/*
+ * What a probe samples a store with: a database driver (DatabaseSampler),
+ * or, for an Elasticsearch or OpenSearch cluster, its HTTP API
+ * (SearchStoreSampler, #11140) - handed only to a probe that declares it
+ * reads one (ProbeCapability.DataSecuritySearchScan).
+ */
+type SearchProbeEngine = "search";
+
+export const SEARCH_PROBE_ENGINE: SearchProbeEngine = "search" as const;
+
+export type DataSecurityProbeEngine =
+  | DatabaseEngine
+  | typeof SEARCH_PROBE_ENGINE;
+
+const PROBE_ENGINES: ReadonlyArray<string> = [
+  "postgresql",
+  "mysql",
+  "sqlserver",
+  SEARCH_PROBE_ENGINE,
+];
+
+export function getProbeEngineOfKind(
+  kind: string | undefined | null,
+): DataSecurityProbeEngine | null {
+  return isSearchEngineDataStoreKind(kind)
+    ? SEARCH_PROBE_ENGINE
+    : getDatabaseEngineOfKind(kind);
+}
+
 // The kinds a probe samples: one list, which a store's page reads too.
 export const PROBE_SCANNABLE_KINDS: ReadonlyArray<DataStoreKind> =
   PROBE_SCANNABLE_DATA_STORE_KINDS;
+
+/*
+ * The kinds a probe's claim hands out, by what the probe declares: a
+ * search cluster only to one whose build reads it. A probe from before
+ * search clusters would refuse the work and leave the store claimed.
+ */
+export function getProbeClaimableKinds(data: {
+  readsSearchClusters: boolean;
+}): ReadonlyArray<DataStoreKind> {
+  return data.readsSearchClusters
+    ? PROBE_SCANNABLE_KINDS
+    : PROBE_SCANNABLE_DATABASE_KINDS;
+}
 
 export interface DataSecurityProbeLimits {
   maxRowsPerTable: number;
@@ -128,7 +177,7 @@ export interface DataSecurityProbeLimits {
 export interface DataSecurityProbeStoreWork {
   dataStoreId: string;
   kind: string;
-  engine: DatabaseEngine;
+  engine: DataSecurityProbeEngine;
   probeConnectionVariable: string;
   limits: DataSecurityProbeLimits;
   exclusions: Array<string>;
@@ -146,6 +195,12 @@ export interface DataSecurityProbeStoreWork {
    * when a server older than the model says nothing.
    */
   findNamesAndAddresses: boolean;
+  /*
+   * The table the model's turn starts at in this scan: where the store's
+   * last scan's model stopped (Model/ModelTurns.ts, #10928). Absent to
+   * start at the first, and from a server older than the turns.
+   */
+  modelResumeAt?: string | undefined;
   /*
    * The data types OneUptime AI drafted from this store's fields, run in
    * shadow (#10371): counted, never found. A probe older than them leaves
@@ -268,8 +323,17 @@ export function readProbeStoreWork(
 
   if (
     typeof work["dataStoreId"] !== "string" ||
-    (engine !== "postgresql" && engine !== "mysql" && engine !== "sqlserver") ||
+    typeof engine !== "string" ||
+    !PROBE_ENGINES.includes(engine) ||
     typeof work["probeConnectionVariable"] !== "string"
+  ) {
+    return null;
+  }
+
+  // A search cluster is read as its kind says: Elasticsearch or OpenSearch.
+  if (
+    engine === SEARCH_PROBE_ENGINE &&
+    !isSearchEngineDataStoreKind(work["kind"] as string)
   ) {
     return null;
   }
@@ -293,7 +357,7 @@ export function readProbeStoreWork(
   return {
     dataStoreId: work["dataStoreId"] as string,
     kind: typeof work["kind"] === "string" ? (work["kind"] as string) : "",
-    engine: engine as DatabaseEngine,
+    engine: engine as DataSecurityProbeEngine,
     probeConnectionVariable: work["probeConnectionVariable"] as string,
     limits: {
       maxRowsPerTable: readWholeNumber(
@@ -325,6 +389,13 @@ export function readProbeStoreWork(
         ? (work["fingerprintKey"] as string)
         : "",
     findNamesAndAddresses: work["findNamesAndAddresses"] === true,
+    ...(readModelResumeAt({ model: { resumeAt: work["modelResumeAt"] } })
+      ? {
+          modelResumeAt: readModelResumeAt({
+            model: { resumeAt: work["modelResumeAt"] },
+          })!,
+        }
+      : {}),
     shadowDataTypes: (Array.isArray(work["shadowDataTypes"])
       ? (work["shadowDataTypes"] as Array<unknown>)
       : []
@@ -425,6 +496,8 @@ export function buildProbeScanOptions(
     exclusions: work.exclusions,
     fingerprintKey: work.fingerprintKey,
     shadowDetectors: compileShadowDetectors(work.shadowDataTypes || []),
+    // Where the model's turn starts: the server keeps it between scans.
+    previousState: withModelResumeAt(undefined, work.modelResumeAt || null),
   };
 }
 
@@ -512,6 +585,11 @@ export function readProbeScanResult(
   isExpectedShadowKey: (key: string) => boolean = (): boolean => {
     return false;
   },
+  /*
+   * A search cluster's scan says how exposed it is, too (#11140): read only
+   * for a store whose endpoint a scan checks, as of when the server heard.
+   */
+  posture?: { readAt: Date } | undefined,
 ): ContentScanResult | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -611,6 +689,8 @@ export function readProbeScanResult(
         ? Math.min(Math.round(estimatedRecords), Number.MAX_SAFE_INTEGER)
         : undefined,
     isComplete: raw["isComplete"] === true,
+    // Where the next scan's model starts: a table's name, nothing else of the state.
+    ...readProbeModelTurn(raw["nextState"]),
     // Shapes and names only: each shape is read again (isValueShape).
     unplacedFields: readUnplacedFields(
       raw["unplacedFields"],
@@ -619,7 +699,107 @@ export function readProbeScanResult(
       },
     ),
     ...readProbeShadowCounts(raw["shadowCounts"], isExpectedShadowKey),
+    ...(posture ? readProbePosture(raw["posture"], posture.readAt) : {}),
   };
+}
+
+// The facts a probe's endpoint check may say, each true, false or null.
+const PROBE_POSTURE_FACTS: ReadonlyArray<
+  "anonymousRead" | "anonymousWrite" | "encryptionInTransitEnforced"
+> = ["anonymousRead", "anonymousWrite", "encryptionInTransitEnforced"];
+
+// The facts a probe may say it cannot know, when they are null.
+const PROBE_UNKNOWABLE_FACTS: ReadonlySet<string> = new Set([
+  "anonymousWrite",
+  "publicRead",
+  "publicWrite",
+  "publicNetworkAccess",
+  "openToAllAddresses",
+  "minimumTlsVersion",
+]);
+
+function readFact(value: unknown): boolean | null | undefined {
+  return value === true
+    ? true
+    : value === false
+      ? false
+      : value === null
+        ? null
+        : undefined;
+}
+
+/*
+ * How exposed a search cluster is, as a probe found it (#11140), read
+ * without trusting it. A probe sees the cluster from inside the customer's
+ * network, whatever it says, so it never says the internet reaches the
+ * cluster, or that anyone on the internet reads it: only whether whoever
+ * reaches it does, and nobody without credentials can mean nobody on the
+ * internet either. Every other fact is the server's to say.
+ */
+export function readProbePosture(
+  value: unknown,
+  readAt: Date,
+): { posture?: DataStorePostureFacts } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const raw: JSONObject = value as JSONObject;
+  const facts: DataStorePostureFacts = {
+    readAt: readAt.toISOString(),
+    readFrom: DataStorePostureReadFrom.Network,
+  };
+
+  for (const key of PROBE_POSTURE_FACTS) {
+    const fact: boolean | null | undefined = readFact(raw[key]);
+
+    if (fact !== undefined) {
+      facts[key] = fact;
+    }
+  }
+
+  facts.publicRead = facts.anonymousRead === false ? false : null;
+  facts.publicWrite = facts.anonymousWrite === false ? false : null;
+  facts.publicNetworkAccess = null;
+  facts.openToAllAddresses = null;
+
+  if (raw["minimumTlsVersion"] === null) {
+    facts.minimumTlsVersion = null;
+  }
+
+  const unknowable: Set<string> = new Set([
+    "publicNetworkAccess",
+    "openToAllAddresses",
+  ]);
+
+  for (const key of Array.isArray(raw["unknowableFacts"])
+    ? (raw["unknowableFacts"] as Array<unknown>)
+    : []) {
+    if (
+      typeof key === "string" &&
+      PROBE_UNKNOWABLE_FACTS.has(key) &&
+      (facts as Record<string, unknown>)[key] === null
+    ) {
+      unknowable.add(key);
+    }
+  }
+
+  facts.unknowableFacts = [...unknowable];
+
+  return { posture: facts };
+}
+
+/*
+ * The model's turn a probe's scan ended at (#10928): a table's name, and
+ * nothing else a probe could put in a store's state.
+ */
+function readProbeModelTurn(value: unknown): { nextState?: JSONObject } {
+  const resumeAt: string | null =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? readModelResumeAt(value as JSONObject)
+      : null;
+
+  return resumeAt ? { nextState: withModelResumeAt(undefined, resumeAt) } : {};
 }
 
 // A probe's shadow counts (#10371): counts only, of the drafts it was handed.

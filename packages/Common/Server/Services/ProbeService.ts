@@ -21,6 +21,9 @@ import Dictionary from "../../Types/Dictionary";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import { ProbeVersionReport } from "../../Types/Probe/ProbeReportedVersion";
 import ProbeInterfaceAddressesUtil from "../../Types/Probe/ProbeInterfaceAddresses";
+import SnmpTrapReceiverUtil, {
+  SnmpTrapReceiverReport,
+} from "../../Types/Probe/SnmpTrapReceiver";
 import NetworkAddressBlockUtil from "../../Utils/NetworkTraffic/NetworkAddressBlock";
 import OneUptimeDate from "../../Types/Date";
 import UserNotificationSettingService from "./UserNotificationSettingService";
@@ -694,6 +697,66 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return true;
+  }
+
+  /*
+   * Keeps what a probe last said about its SNMP trap receiver (#11005;
+   * Types/Probe/SnmpTrapReceiver), already sanitized by the route. A probe
+   * reports every thirty seconds, so one statement that writes only when
+   * what is kept changed:
+   *
+   *   - a project's own probe keeps the report whole: its engine ID, its
+   *     users count and the SNMPv3 traps it refused, all its project's own;
+   *   - a global probe keeps only what belongs to no project (#11173,
+   *     SnmpTrapReceiverUtil.toSharedReport): whether its receiver is on,
+   *     its port and its engine ID, which every project that uses it may
+   *     read. Its refusals name its projects' addresses and user names, and
+   *     are kept for each project apart (SnmpTrapReceiverReports).
+   *
+   * Says whether the probe keeps a report, and whether it is a global one.
+   */
+  @CaptureSpan()
+  public async recordSnmpTrapReceiverReport(data: {
+    probeId: ObjectID;
+    report: SnmpTrapReceiverReport;
+  }): Promise<{ isKept: boolean; isGlobalProbe: boolean }> {
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        WITH probe AS (
+          SELECT "_id",
+            CASE WHEN "isGlobalProbe" = true THEN $3::jsonb ELSE $2::jsonb END AS "kept",
+            "isGlobalProbe" = true AS "isGlobalProbe"
+          FROM "Probe"
+          WHERE "_id" = $1
+            AND ("isGlobalProbe" = true OR "projectId" IS NOT NULL)
+            AND "deletedAt" IS NULL
+        ),
+        written AS (
+          UPDATE "Probe"
+          SET "snmpTrapReceiver" = probe."kept"
+          FROM probe
+          WHERE "Probe"."_id" = probe."_id"
+            AND "Probe"."snmpTrapReceiver" IS DISTINCT FROM probe."kept"
+          RETURNING "Probe"."_id"
+        )
+        SELECT (SELECT count(*) FROM probe)::int AS "isKept",
+          coalesce((SELECT bool_or("isGlobalProbe") FROM probe), false) AS "isGlobalProbe"
+      `,
+      [
+        data.probeId.toString(),
+        JSON.stringify(data.report),
+        JSON.stringify(SnmpTrapReceiverUtil.toSharedReport(data.report)),
+      ],
+    );
+
+    const first: { isKept?: unknown; isGlobalProbe?: unknown } | undefined = (
+      Array.isArray(rows) ? rows[0] : undefined
+    ) as { isKept?: unknown; isGlobalProbe?: unknown } | undefined;
+
+    return {
+      isKept: Number(first?.isKept) > 0,
+      isGlobalProbe: first?.isGlobalProbe === true,
+    };
   }
 
   // Best-effort: on failure the throttle simply expires on its own.

@@ -23,10 +23,15 @@ import {
   OPENSTACK_PROJECT_USES_BACK,
   OPENSTACK_PROJECT_USES_INCIDENT,
   STATUS_CHANGED_TO_DEFAULT,
+  STATUS_CHANGED_TO_DEFAULT_NO_STATUS_CRITERIA,
   STATUS_CHANGED_WITH_MONITOR,
   STATUS_CREATED_WITH_MONITOR,
   wordStatusChangeNote,
 } from "../../../Utils/Monitor/StatusChangeNotes";
+import {
+  DEFAULT_STATUS_ROOT_CAUSES,
+  DefaultStatusBecause,
+} from "../../../Server/Utils/Monitor/MonitorResource";
 import { Service as MonitorStatusTimelineServiceClass } from "../../../Server/Services/MonitorStatusTimelineService";
 import MonitorCriteriaEvaluator from "../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
@@ -93,6 +98,8 @@ const GERMAN_WORDS: Record<string, string> = {
   "Changed by a maintenance event.": "Durch eine Wartung geändert.",
   [STATUS_CHANGED_TO_DEFAULT]:
     "Kein Kriterium traf zu, daher wechselte der Monitor zu seinem Standardstatus.",
+  [STATUS_CHANGED_TO_DEFAULT_NO_STATUS_CRITERIA]:
+    "Kein Kriterium, das den Status ändert, traf zu, daher wechselte der Monitor zu seinem Standardstatus.",
   [STATUS_CREATED_WITH_MONITOR]:
     "Dieser Status wurde beim Erstellen des Monitors angelegt.",
   [STATUS_CHANGED_WITH_MONITOR]:
@@ -465,6 +472,46 @@ describe("OneUptime's own status-change notes", () => {
     );
   });
 
+  test("no criteria matched, as MonitorResource writes it: the note it always was", () => {
+    const stored: string =
+      DEFAULT_STATUS_ROOT_CAUSES[DefaultStatusBecause.NoCriteriaMet];
+
+    expect(stored).toBe(
+      "No monitoring criteria met. Change to default status. ",
+    );
+    expect(word({ rootCause: stored, translator: GERMAN })).toBe(
+      GERMAN_WORDS[STATUS_CHANGED_TO_DEFAULT],
+    );
+  });
+
+  // #11238: a criteria matched, but none that changes the status.
+  test("no criteria that changes the status matched: said plainly, in English too", () => {
+    const stored: string =
+      DEFAULT_STATUS_ROOT_CAUSES[DefaultStatusBecause.NoStatusCriteriaMet];
+
+    expect(word({ rootCause: stored, translator: GERMAN })).toBe(
+      GERMAN_WORDS[STATUS_CHANGED_TO_DEFAULT_NO_STATUS_CRITERIA],
+    );
+    expect(word({ rootCause: stored, translator: ENGLISH })).toBe(
+      STATUS_CHANGED_TO_DEFAULT_NO_STATUS_CRITERIA,
+    );
+    // Its own words, never the note of a check where nothing matched.
+    expect(word({ rootCause: stored, translator: GERMAN })).not.toBe(
+      GERMAN_WORDS[STATUS_CHANGED_TO_DEFAULT],
+    );
+  });
+
+  test("no criteria that changes the status matched: read with or without the space a note may end with", () => {
+    const stored: string =
+      DEFAULT_STATUS_ROOT_CAUSES[DefaultStatusBecause.NoStatusCriteriaMet];
+
+    for (const note of [stored, `${stored} `, ` ${stored}`]) {
+      expect(word({ rootCause: note, translator: GERMAN })).toBe(
+        GERMAN_WORDS[STATUS_CHANGED_TO_DEFAULT_NO_STATUS_CRITERIA],
+      );
+    }
+  });
+
   test("a monitor's first status, and a status set on its page", () => {
     expect(
       word({
@@ -536,6 +583,7 @@ describe("OneUptime's own status-change notes", () => {
   test("the monitor's hero says each note the same way", () => {
     for (const note of [
       "No monitoring criteria met. Change to default status. ",
+      DEFAULT_STATUS_ROOT_CAUSES[DefaultStatusBecause.NoStatusCriteriaMet],
       "This status was created when the monitor was created.",
       OPENSTACK_PROJECT_USES_BACK,
     ]) {

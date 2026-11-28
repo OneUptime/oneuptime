@@ -1429,8 +1429,8 @@ describe("every page heading, side menu title, tooltip and metric card title wri
     expect(states(keyed)).toEqual(allLookedUpAndSaid(keyed));
 
     /*
-     * Settings' menu: its 15 entries (Push Notifications too, #9134, and Help
-     * and Support, #10864). The Subscribe menu: its five.
+     * Settings' menu: its 15 entries (Push Notifications too, #9134, and
+     * Help and Support, #10887). The Subscribe menu: its five.
      */
     expect(
       sitesIn(

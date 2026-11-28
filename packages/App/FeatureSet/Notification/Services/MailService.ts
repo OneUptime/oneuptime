@@ -5,6 +5,7 @@ import {
   getGlobalSMTPConfig,
   getSendgridConfig,
 } from "../Config";
+import FileAttachments from "./MailProviders/FileAttachments";
 import InlineImageAttachments from "./MailProviders/InlineImageAttachments";
 import InlineImageRefusal from "./MailProviders/InlineImageRefusal";
 import MicrosoftGraphMailProvider from "./MailProviders/MicrosoftGraphMailProvider";
@@ -99,6 +100,7 @@ import {
 import {
   SERVER_KIND_VARIABLE_NAMES,
   getCurrentEmailServerKindVariables,
+  isCurrentServerSelfHosted,
 } from "../Utils/EmailServerKind";
 import {
   EMAIL_SENT_STATUS_MESSAGE,
@@ -116,6 +118,12 @@ export interface RenderedEmail {
   subject: string;
   body: string;
 }
+
+/*
+ * Reads the server's own support address, or null where it has none
+ * (MailService.nameServerSupportAddressWith, #10941).
+ */
+export type ServerSupportEmailReader = () => Promise<string | null>;
 
 interface PooledTransporter {
   transporter: Transporter<SMTPSentMessageInfo>;
@@ -1142,6 +1150,44 @@ export default class MailService {
   }
 
   /*
+   * Where render() reads the server's own support address (#10941, Admin
+   * Dashboard > Settings > Help and Support > Support Email), for an
+   * account email to name it: set by the notification service when it
+   * starts (Notification/Index.ts), for the same reason as the logos'
+   * reader. Unset, or answering null, an email says what it always did.
+   */
+  private static serverSupportEmailReader: ServerSupportEmailReader | null =
+    null;
+
+  public static nameServerSupportAddressWith(
+    reader: ServerSupportEmailReader | null,
+  ): void {
+    this.serverSupportEmailReader = reader;
+  }
+
+  /*
+   * The server's own support address, on a self-hosted server that set one:
+   * never read on OneUptime Cloud, whose emails name OneUptime's support.
+   * An email is never held up by it: a read that fails names no address,
+   * and the email says what it always did.
+   */
+  private static async readServerSupportEmail(): Promise<string | null> {
+    if (!this.serverSupportEmailReader || !isCurrentServerSelfHosted()) {
+      return null;
+    }
+
+    try {
+      return (await this.serverSupportEmailReader()) || null;
+    } catch (err) {
+      logger.warn(
+        "Could not read this server's own support address; the email names its admin instead.",
+      );
+      logger.warn(err);
+      return null;
+    }
+  }
+
+  /*
    * The logo an image's address shows, as the email carries it inside
    * itself: the installation's own (EmailBranding), or a status page's -
    * or null, and the image keeps its address.
@@ -1206,7 +1252,10 @@ export default class MailService {
       delete vars[name];
     }
 
-    Object.assign(vars, getCurrentEmailServerKindVariables());
+    Object.assign(
+      vars,
+      getCurrentEmailServerKindVariables(await this.readServerSupportEmail()),
+    );
 
     /*
      * The language the email's own words are in, and the way it reads
@@ -1367,10 +1416,17 @@ export default class MailService {
               html: mail.body,
               /*
                * An attachment with a cid is "related" to the HTML: nodemailer
-               * sends both in one multipart/related part.
+               * sends both in one multipart/related part. The files the email
+               * carries (a cost report's CSV, FileAttachments) have none, and
+               * go as attachments of their own.
                */
-              ...(inlineImages.length > 0
-                ? { attachments: InlineImageAttachments.forSmtp(inlineImages) }
+              ...(inlineImages.length > 0 || FileAttachments.of(mail).length > 0
+                ? {
+                    attachments: [
+                      ...InlineImageAttachments.forSmtp(inlineImages),
+                      ...FileAttachments.forSmtp(FileAttachments.of(mail)),
+                    ],
+                  }
                 : {}),
             });
 

@@ -2,6 +2,14 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
+import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
+import { StorageArrayKindPage } from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayPlatformState,
+  getKindPageFor,
+  useStorageArrayPlatform,
+} from "../Utils/UseStorageArrayPlatform";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -14,13 +22,32 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
 
 /*
  * The hosts defined on a FlashArray (kind=Host): connectivity as the array
- * sees it (purefa_host_connectivity_info), the volumes connected to each
- * (purefa_host_connections_info) and the performance the host gets.
+ * sees it (its connectivity series), the volumes connected to each (its
+ * connections series) and the performance the host gets.
  */
+
+// What the list says on a platform that says nothing of the kind.
+const HOSTS_DESCRIPTION: string = translationKey(
+  "The hosts defined on this array: whether the array sees them on all their paths, the volumes connected to them and the performance they get.",
+);
+const HOSTS_NO_ITEMS: string = translationKey(
+  "No hosts in the inventory yet. Hosts appear here a few minutes after the Storage Array Agent starts scraping the array.",
+);
+
 const StorageArrayHosts: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const platform: StorageArrayPlatformState = useStorageArrayPlatform(modelId);
+
+  if (platform.isLoading) {
+    return <PageSkeleton shape="table" />;
+  }
+
+  const kindPage: StorageArrayKindPage | null = getKindPageFor(
+    platform.storageSystem,
+    StorageArrayResourceKind.Host,
+  );
 
   return (
     <StorageArrayResourceTable
@@ -31,8 +58,8 @@ const StorageArrayHosts: FunctionComponent<
       singularName="Host"
       pluralName="Hosts"
       title="Hosts"
-      description="The hosts defined on this FlashArray: whether the array sees them on all their paths, the volumes connected to them and the performance they get."
-      noItemsMessage="No hosts in the inventory yet. Hosts appear here a few minutes after the Storage Array Agent starts scraping the array."
+      description={kindPage?.description || HOSTS_DESCRIPTION}
+      noItemsMessage={kindPage?.noItemsMessage || HOSTS_NO_ITEMS}
       getDetailRoute={(item: StorageArrayResource): Route => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.STORAGE_ARRAY_VIEW_HOST_DETAIL] as Route,

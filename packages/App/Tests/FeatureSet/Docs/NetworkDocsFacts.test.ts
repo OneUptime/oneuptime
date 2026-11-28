@@ -902,7 +902,14 @@ describe("the Network Device Monitor page: receivers on the probe", () => {
         "How many traps it forwards per minute before dropping the rest.",
         `\`${probeDefault("PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE")}\``,
       ],
+      [
+        "`PROBE_SNMP_ENGINE_ID`",
+        "The probe's SNMPv3 engine ID, in hex (5 to 32 octets). Set it only to keep the engine ID of a receiver this probe replaces.",
+        "Derived from the probe's ID",
+      ],
     ]);
+    // Unset, the SNMPv3 engine ID is derived from the probe's ID (#11005).
+    expect(PROBE_CONFIG).toContain('process.env["PROBE_SNMP_ENGINE_ID"]');
   });
 
   it("names the ports the probe takes traps, syslog and flows on, syslog over UDP and TCP on one port", () => {
@@ -1182,6 +1189,8 @@ describe("the Network Vendor Guides page", () => {
     ["extreme-fabric-engine", ["isis_adjacencies"]],
     ["cambium-wifi-ap", ["wifi_radios"]],
     ["cambium-cnmatrix", []],
+    ["brocade-fos", ["switch_status", "sensors", "frus"]],
+    ["cisco-mds", ["power_supplies", "modules", "fan_trays", "vsans"]],
   ])(
     "names the %s template as the dropdown does, and the tables it quotes by key",
     (templateId: string, keys: Array<string>) => {
@@ -1235,5 +1244,92 @@ describe("the Network Vendor Guides page", () => {
       readSource("Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate.ts"),
     ).toContain("number their processors from 196608");
     expect(VENDORS).toContain("SFOS numbers its cores from 196608");
+  });
+});
+
+/*
+ * The SAN switch sections (#11014, #11015): every alert they name is one the
+ * switch's pack recommends, the threshold they state is the pack's, and the
+ * system object ID and description they say a switch is matched by are what
+ * the template matches.
+ */
+describe("the Network Vendor Guides page: SAN switches", () => {
+  function section(heading: string): string {
+    const start: number = VENDORS.indexOf(`\n${heading}\n`);
+    const end: number = VENDORS.indexOf("\n## ", start + 1);
+
+    expect(start).toBeGreaterThan(0);
+    return VENDORS.substring(start, end < 0 ? undefined : end);
+  }
+
+  it.each([
+    [
+      "## Brocade Fabric OS",
+      "brocade-fos",
+      [
+        "Fibre Channel port errors",
+        "Inter-switch link down",
+        "Fabric segmented",
+        "Fabric reconfigured",
+        "Zone configuration changed",
+        "MAPS alert",
+        "Field-replaceable unit changed",
+      ],
+    ],
+    [
+      "## Cisco MDS 9000",
+      "cisco-mds",
+      [
+        "Credit loss (slow drain)",
+        "Timeout discards (slow drain)",
+        "Port monitor alarm",
+      ],
+    ],
+  ])(
+    "%s names alerts its pack recommends, by their names",
+    (heading: string, templateId: string, named: Array<string>) => {
+      const recommended: Array<string> = (
+        NetworkDeviceAlertPackUtil.getVendorAlerts(templateId)?.items || []
+      ).map((item: NetworkDeviceAlertPackItem): string => {
+        return item.name;
+      });
+      const text: string = section(heading);
+
+      for (const name of named) {
+        expect({ name, recommended: recommended.includes(name) }).toEqual({
+          name,
+          recommended: true,
+        });
+        expect(text).toContain(`**${name}**`);
+      }
+    },
+  );
+
+  it("states the Fibre Channel errors threshold the pack sets: one error in ten seconds", () => {
+    const errors: NetworkDeviceAlertPackItem | undefined = (
+      NetworkDeviceAlertPackUtil.getVendorAlerts("brocade-fos")?.items || []
+    ).find((item: NetworkDeviceAlertPackItem): boolean => {
+      return item.name === "Fibre Channel port errors";
+    });
+
+    expect(errors?.filters[0]?.value).toBe(0.1);
+    expect(VENDORS).toContain("at more than one error in ten seconds");
+  });
+
+  it("matches the switches by what the sections say", () => {
+    expect(VENDORS).toContain("`1.3.6.1.4.1.1588.2.1.1`");
+    expect(
+      SnmpVendorTemplateUtil.matchDevice({
+        sysObjectId: "1.3.6.1.4.1.1588.2.1.1.1",
+      })?.id,
+    ).toBe("brocade-fos");
+
+    expect(VENDORS).toContain("`Cisco NX-OS(tm) m9`");
+    expect(
+      SnmpVendorTemplateUtil.matchDevice({
+        sysObjectId: "1.3.6.1.4.1.9.12.3.1.3.9999",
+        sysDescr: "Cisco NX-OS(tm) m9100, Software (m9100-s6ek9-mz)",
+      })?.id,
+    ).toBe("cisco-mds");
   });
 });

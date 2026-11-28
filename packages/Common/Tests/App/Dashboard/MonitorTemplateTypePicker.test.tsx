@@ -30,6 +30,11 @@ import Navigation from "../../../UI/Utils/Navigation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import MonitorTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplates";
 import MonitorTemplatesView from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplatesView";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
+import API from "../../../UI/Utils/API/API";
+import { MONITOR_TEMPLATE_CHANGE_ROUTES } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/TemplateChange/MonitorTemplateChangeApi";
 import { MONITOR_TYPE_CATALOG } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/MonitorTypeFormField";
 
 /*
@@ -179,6 +184,28 @@ beforeEach(() => {
     .mockReturnValue(new ObjectID(TEMPLATE_ID));
   jest.spyOn(ModelAPI, "count").mockResolvedValue(0);
   jest.spyOn(ModelAPI, "getItem").mockResolvedValue(null);
+
+  /*
+   * The page asks which change of the template's monitors still runs
+   * (#11260, #11266: MonitorTemplateChangeAPI); none does. Any other read
+   * goes on to the real client, which Tests/jest.setup.ts refuses.
+   */
+  const get: typeof API.get = API.get;
+  jest.spyOn(API, "get").mockImplementation(((args: {
+    url: { toString: () => string };
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+    if (
+      args.url
+        .toString()
+        .endsWith(MONITOR_TEMPLATE_CHANGE_ROUTES.activeOfTemplate(TEMPLATE_ID))
+    ) {
+      return Promise.resolve(
+        new HTTPResponse<JSONObject>(200, { changes: [] }, {}),
+      );
+    }
+
+    return get.call(API, args as never) as never;
+  }) as never);
 });
 
 afterEach(() => {

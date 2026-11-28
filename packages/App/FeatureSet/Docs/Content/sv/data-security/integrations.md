@@ -7,7 +7,7 @@ Datasäkerhet har ingen egen personsökning eller säkerhetskö. Den lämnar det
 - [Var det ett dataintrång?](#var-det-ett-dataintrång): Varje kritisk exponering bedöms: hur länge, vem som kunde läsa data, vems data det var och vilka lagar om dataintrång som kan gälla.
 - [Larm och jour](#larm-och-jour): Larma den som har jour när ett kritiskt problem öppnas.
 - [Incidenter](#incidenter): Deklarera en incident för ett intrång som din incidentprocess ska hantera.
-- [Ägare](#ägare): Vem som äger varje datalager, angivet för hand eller via regler, och e-postmeddelandet de får.
+- [Ägare](#ägare): Analysera ett problem, öppna en pull request som åtgärdar det, eller fråga Fråga AI om dina data och låt det agera, med ditt godkännande.
 - [OneUptime AI](#oneuptime-ai): Förklara ett problem, öppna en pull request som åtgärdar det, eller ställ frågor om dina data till Fråga AI.
 - [Stäng en exponering](#stäng-en-exponering): Blockera offentlig åtkomst eller sluta dela, från ett problem eller en playbook, och slå på ett skydd som saknas från ett problem.
 :::
@@ -52,12 +52,12 @@ Varje säkerhetsärende, oavsett vad som öppnade det, visar data i riskzonen un
 En kritisk exponering av ett datalager med känsligheten **Begränsad** eller **Konfidentiell** - datalagret är öppet för vem som helst på internet, delat med konton utanför dina, eller en ögonblicksbild som andra kan återställa - får sitt ärende bedömt på egen hand när ärendet öppnas. Alla andra ärenden om ett datalager bedöms när en person trycker på **Bedöm denna exponering** på ärendets **Översikt**. Vanlig kod räknar ut bedömningen utifrån det som OneUptime har registrerat, och räknar ut den på nytt varje gång den läses:
 
 - **Hur länge det var öppet**: från den ändring i molnets logg som exponerade datalagret, när en sådan loggades under de 30 dagarna innan det hittades, annars åtminstone sedan Datasäkerhet hittade det; tills Datasäkerhets egen åtgärd stängde det, en ändring stängde det eller en kontroll fann det stängt.
-- **Vem som kunde läsa det**: om datalagret loggade läsningar. Där det inte gjorde det säger bedömningen ”Läsningar loggades inte. Behandla data som lästa.” Den räknar de konton utanför ditt företag som kunde läsa datalagret, och hur många av dem som använde sin åtkomst medan det var öppet, utan att någonsin nämna dem vid namn.
-- **Vems data det var**: vad datalagret innehåller, ungefär hur många poster, vilka de gäller och var personerna bor, så som data visar och så som en person anger.
+- **Vem som kunde läsa det**: om datalagret loggade läsningar. Där det inte gjorde det säger bedömningen ”Läsningar loggades inte. Behandla data som lästa.” Den räknar de konton utanför ditt företag som kunde läsa datalagret, och hur många av dem som använde sin åtkomst medan det var öppet, utan att någonsin nämna dem vid namn. Är datalagret en S3-bucket som loggar sina serveråtkomster läser **Läs åtkomstloggarna** de loggarna för perioden, och Data Security läser dem själv innan OneUptime AI skriver bedömningen: hur många läsningar som kom från vem som helst på internet, från konton utanför ditt företag och från begärare som den inte kan placera, hur många objekt som lästes och hur mycket som skickades. Den som får se vem som når datalagret ser vilka externa konton som läste det; ärendet, OneUptime AI och en export behåller bara siffrorna. Loggar som bara lästs delvis visar aldrig att ingen läste uppgifterna.
+- **Vems data det var**: vad datalagret innehåller, ungefär hur många poster, vilka de gäller och var personerna bor, så som data visar och så som en person anger. En person anger en region, eller varje amerikansk delstat, District of Columbia och Puerto Rico.
 - **Hemligheterna att byta ut**: varje hemlighet som hittades i datalagret medan det var öppet, efter typ och var den hittades, aldrig dess värde.
 - **Lagarna om dataintrång som kan gälla**: varje rad i OneUptimes tabell över lagar om dataintrång, med vad den kräver, av vem, dess tidsfrist räknad från när Datasäkerhet hittade exponeringen och vad en person fortfarande kontrollerar innan den gäller.
 
-Tabellen täcker GDPR artikel 33 och 34, UK GDPR artikel 33 och 34, HIPAA:s Breach Notification Rule, krav 12.10.1 i PCI DSS, Brasiliens LGPD, Indiens DPDP Rules och CERT-In:s direktiv, samt lagarna om dataintrång i Kalifornien, Colorado, Florida, New York, Texas och Washington. Varje rad länkar till lagens egen text, dess källa, och anger vilken dag den senast kontrollerades mot den. Det som tabellen inte täcker - ett annat land, en annan amerikansk delstat, var din organisation är etablerad, dina avtal - säger bedömningen i klartext.
+Tabellen omfattar artikel 33 och 34 i GDPR, artikel 33 och 34 i UK GDPR, HIPAA:s Breach Notification Rule, PCI DSS-krav 12.10.1 med kortmärkenas egna publicerade regler bredvid - Visas, Mastercards och American Express -, Brasiliens LGPD, Indiens DPDP Rules och CERT-In:s direktiv samt lagarna om överträdelser i alla amerikanska delstater utom West Virginia, och i District of Columbia. För varje delstat finns dess meddelande till personerna och, där dess lag kräver dem av ett företag, dess meddelanden till justitieministern (attorney general) eller ett annat delstatligt kontor och till kreditupplysningsföretagen, vart och ett läst ur lagens egen text. Varje rad länkar till lagens egen text, källan, och anger dagen den senast kontrollerades. Så länge ingen har sagt vilka delstater personerna bor i står delstaternas lagar samlade på kortet, varje delstats meddelanden under dess namn, och OneUptime AI får bara veta hur många som kan gälla. Det tabellen inte omfattar - ett annat land; West Virginia och Puerto Rico, vars lagar inte gick att läsa från en officiell källa; Guam och Amerikanska Jungfruöarna; kortmärkena som inte publicerar någon frist; var din organisation är etablerad; dina avtal - säger bedömningen i klartext.
 
 OneUptime AI sammanställer bedömningen så som dina AI-regler för Datasäkerhet tillåter, eller när en person ber om det: vad den betyder, ett meddelande till tillsynsmyndigheten, ett meddelande till de berörda personerna och en intern sammanfattning (se [OneUptime AI i Datasäkerhet](/docs/data-security/ai)). Varje utkast håller sig till bedömningens fakta: ett utkast med ett tal eller en lag som inget av dem innehåller kasseras. Inget skickas någonstans: ett meddelande är text som en person redigerar och kopierar, och bedömningen och varje utkast säger att de inte är juridisk rådgivning.
 
@@ -112,9 +112,9 @@ Se [Utlösare för arbetsflöden](/docs/workflows/triggers) för de fält som va
 
 ## Pull requests
 
-En läcka är billigast att rätta innan den mergas. I ett repository som är anslutet under **Kod** med produktionsgranskningar påslagna har granskningen av varje pull request ett avsnitt **Känsliga data**, läst från dess diff: kod som skriver personuppgifter eller en hemlighet till telemetri, infrastrukturkod som gör ett datalager offentligt eller stänger av dess kryptering, säkerhetskopior eller loggning, och migreringar som lägger till kolumner för personuppgifter, lösenord eller kortdata. Varje punkt nämner den datasäkerhetskontroll som ändringen skulle misslyckas med när den väl rullats ut, och dina egna datatyper läses utifrån sina namntips, så som skanningarna läser dem. Se [Produktionsgranskning av pull requests](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests).
+En läcka är billigast att rätta innan den mergas. I ett repository som är anslutet under **Kod** med produktionsgranskningar påslagna har granskningen av varje pull request ett avsnitt **Känsliga data**, läst från dess diff: kod som skriver personuppgifter eller en hemlighet till telemetri, i en logg, ett span, ett mätvärde, ett undantags meddelande, en felspårares rapport eller en inspelad sessions användare, infrastrukturkod som gör ett datalager offentligt eller stänger av dess kryptering, säkerhetskopior eller loggning, och migreringar som lägger till kolumner för personuppgifter, lösenord eller kortdata. Varje punkt nämner den datasäkerhetskontroll som ändringen skulle misslyckas med när den väl rullats ut, och dina egna datatyper läses utifrån sina namntips, så som skanningarna läser dem. Se [Produktionsgranskning av pull requests](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests).
 
-Det som Datasäkerhet vet gör de punkterna skarpare, i ett privat repositorys kommentar och, i Kod, för dem som får läsa Datasäkerhets fynd: var tjänstens telemetri innehöll samma typ av data de senaste 7 dagarna, den rensningsregel som maskerar dem vid inmatning, och det datalager som en resurs är, med dess känslighet. Ett datalager markerat **Offentlig avsiktligt** ger ingen punkt för att det är offentligt. Ett offentligt repositorys kommentar säger bara vad diffen visar.
+Det som Datasäkerhet vet gör de punkterna skarpare, i ett privat repositorys kommentar och, i Kod, för dem som får läsa Datasäkerhets fynd: var tjänstens telemetri innehöll samma typ av data de senaste 7 dagarna - eller, för en webb- eller mobilapps kod, dess RUM-applikations sessionsuppspelningar - den rensningsregel som maskerar dem vid inmatning, och det datalager som en resurs är, med dess känslighet. För en migrering, bara i ett privat repository, nämner granskningen det datalager som tabellen finns i, vad det datalagret innehåller, om datalagret kan nås utifrån eller inte är krypterat i vila, och de kolumner i tabellen där samma typ av data redan har hittats. Ett datalager markerat **Offentlig avsiktligt** ger ingen punkt för att det är offentligt. Ett offentligt repositorys kommentar säger bara vad diffen visar.
 
 **Läckor fångade före merge** på **Projektinställningar → AI → AI-resultat** räknar de läckor som granskningar fångade i pull requests, rättade där eller ännu inte, bredvid de problem som skanningarna öppnade för samma kontroller efter att koden rullats ut.
 
@@ -129,7 +129,7 @@ OneUptime AI arbetar också på egen hand med varje nytt problem, som dina AI-re
 
 ### Fråga AI
 
-**Fråga AI** läser också Datasäkerhet. På vilken sida i Datasäkerhet som helst kan du fråga vilka datalager som innehåller kortnummer, vad du ska åtgärda först, eller vilka datalager en roll skulle kunna nå om den läckte; på ett datalagers eller ett problems sida läser den den posten först. Den svarar med tre läsverktyg, som körs med dina egna behörigheter:
+**Fråga AI** läser Datasäkerhet och agerar i den med ditt godkännande. På vilken sida som helst i Datasäkerhet kan du fråga vilka datalager som innehåller kortnummer, vad du ska åtgärda först eller vilka datalager en roll kunde nå om den läckte; på ett datalagers eller ett problems sida läser det först den posten. Det läser med de här verktygen, som körs med dina egna behörigheter:
 
 | Verktyg | Vad det läser |
 | --- | --- |
@@ -137,7 +137,22 @@ OneUptime AI arbetar också på egen hand med varje nytt problem, som dina AI-re
 | `query_data_security_issues` | Problemen, de mest riskfyllda först, efter status, allvarlighetsgrad, datalager eller kontroll – eller ett problem med dess bevis och åtgärden för dess moln |
 | `query_data_store_access` | Vem som kan nå ett datalager, eller varje datalager som ett huvudkonto kan nå |
 
-De läser datatyper, platser och antal, aldrig ett fynds prov, maskerade eller inte. Fråga AI ändrar ingenting i Datasäkerhet.
+De läser datatyper, platser och antal, aldrig ett fynds prov, maskerade eller inte. Två till läser det som OneUptime AI arbetar med: `query_data_security_proposals` listar vad det föreslår, och de datatyper det har hittat som genomsökningar ännu inte letar efter, var och en med hur den bevisades och fälten den finns i, aldrig ett värde; `draft_data_security_rule` skriver ett regelutkast utifrån din mening och säger vilka datalager den träffar i dag. Det sparar ingenting.
+
+Fråga AI gör det som Datasäkerhetens knappar gör, var och en genom att göra exakt den ändring som dess knapp gör, som du och med dina behörigheter:
+
+| Åtgärd | Vad den gör | Frågar dig först |
+| --- | --- | --- |
+| `scrub_data_security_finding` | **Rensa** för ett fynd i telemetrin: dess bevisade, snäva rensningsregel | I **Fråga före åtgärd**, och i alla lägen när något läser det den döljer |
+| `judge_data_security_finding` | **Bekräfta**, eller **Inte känsligt** med din motivering, och detsamma för liknande fynd | **Inte känsligt** i alla lägen; **Bekräfta** i alla lägen när ett kritiskt problem larmar någon i ditt projekt |
+| `change_data_security_issue` | **Acceptera risk** med din motivering och ett slutdatum, **Inte ett problem** med din motivering, **Öppna igen** eller **Tilldela** | **Acceptera risk** och **Inte ett problem** i alla lägen |
+| `set_data_store_owners` | Lägger till eller tar bort ett datalagers ägare | I alla lägen |
+| `save_data_security_rule` | Sparar en hemvist-, ägar- eller etikettregel skriven utifrån din mening, och tillämpar en ägar- eller etikettregel på de datalager den träffar i dag | I alla lägen |
+| `respond_on_data_store` | En responsåtgärd via datalagrets molnanslutning, som **Blockera offentlig åtkomst** | I alla lägen |
+| `fix_data_security_issue_with_ai` | **Åtgärda med AI**: en pull request som någon granskar och slår ihop. En åtgärd som redan är på väg startas inte två gånger | I **Fråga före åtgärd** |
+| `decide_data_security_proposal` | **Godkänn** eller **Dölj** för det OneUptime AI föreslår. En hittad datatyp läggs till via dess formulär i **Inställningar → Datatyper**, så här kan den bara avvisas | I alla lägen |
+
+Varje åtgärd visar först ett kort som med enkla ord säger vad som ändras, vad som slutar fungera och vad det kostar. I **Fråga före åtgärd** tillåter eller hoppar du över varje åtgärd. I **Kör automatiskt** väntar åtgärderna ovan som frågar i alla lägen fortfarande på dig: De ändrar vem som kan nå dina data, gör att ett fynd eller ett problem slutar räknas, ändrar vem som får veta om ett datalager eller skulle låta OneUptime AI godkänna sitt eget förslag. Namn på datalager, platser för fynd och bevis kommer från dina moln och från alla som skriver till dem, så Fråga AI agerar aldrig för att sådan text ber om det, och varje åtgärd kontrolleras igen, med dina behörigheter, när den körs.
 
 ## Stäng en exponering
 
@@ -158,7 +173,7 @@ Allt som Datasäkerhet sparar är en post i OneUptimes API, som läses med samma
 | Poster | API-sökväg |
 | --- | --- |
 | Datalager, deras tidslinjer, deras fynd, vem som kan nå dem och varje identitet som kan det | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Problem, deras tidslinjer och dataflöden | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Problem, deras tidslinjer, deras länkade pull requests och dataflöden | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Skanningar | `/data-security-scan` |
 | Anpassade datatyper, kontrollinställningar, efterlevnadsinställningar och hemvistregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Projektets inställningar | `/data-security-setting` |
@@ -196,7 +211,7 @@ Några svar räknas ut på begäran i stället för att lagras. Vart och ett är
 
 [Terraform-providern](/docs/terraform/index) har en resurs för varje sorts post som du skapar – datalager som du lägger till själv, anpassade datatyper, kontrollinställningar, efterlevnadsinställningar, hemvistregler, ägar- och etikettregler – uppkallad efter posten, till exempel `oneuptime_residency_rule`.
 
-[MCP-servern](/docs/ai/mcp-server) har verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för de här posterna: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule och Data Security Setting. En AI-assistent kan då fråga vilka datalager som innehåller kortnummer, eller vad som är öppet på en bucket, med dina behörigheter.
+[MCP-servern](/docs/ai/mcp-server) har verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för de här posterna: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule och Data Security Setting. En AI-assistent kan då fråga vilka datalager som innehåller kortnummer, eller vad som är öppet på en bucket, med dina behörigheter. Den har också [Fråga AI:s åtgärder](#fråga-ai), ett anrop var, och var och en gör exakt den ändring som dess knapp gör, som du. MCP-servern kan inte visa någon ett kort, så en åtgärd som Fråga AI frågar om i alla lägen avvisas där: Svaret säger varför och nämner sidan i OneUptime där du gör ändringen. Detsamma gäller en skrivning till en av de här posterna som gör samma ändring, till exempel att ett problems `status` sätts till `Accepted` via `update_data_security_issue`, att en datatyp stängs av eller att en plats utesluts från ett datalagers skanningar; alla andra fält ändras som tidigare.
 
 ## Nästa steg
 

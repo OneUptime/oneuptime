@@ -880,8 +880,8 @@ export default class InventoryItem {
      * `storage.system` (the platform, e.g. purestorage.flasharray) is
      * descriptive, not identity: the typed Postgres row (StorageArray) and
      * the read side (`EntityKey.keyForStorageArray`) are name-based, and an
-     * agent may omit the platform (ingest also detects it from the
-     * purefa_ / purefb_ metric names). Volumes, hosts and the other objects
+     * agent may omit the platform (ingest also detects it from a
+     * platform's metric prefix). Volumes, hosts and the other objects
      * inside an array are StorageArrayResource inventory rows, not entities.
      */
     (attrs: EntityAttributes) => {
@@ -893,6 +893,26 @@ export default class InventoryItem {
         ? {
             entityType: EntityType.StorageArray,
             id: { "storage.array.name": name },
+          }
+        : null;
+    },
+
+    /*
+     * xcp_ng.pool — xcp_ng.pool.id only: the pool's XAPI UUID, which the
+     * XCP-ng Agent moves from Xen Orchestra's pool_id label to the
+     * resource (one resource per pool). Its name (xcp_ng.pool.name) and the
+     * Xen Orchestra it is read from (xen_orchestra.name) are descriptive,
+     * never identity: the typed XcpNgPool row and the read side
+     * (`EntityKey.keyForXcpNgPool`) are UUID-based, so a rename in Xen
+     * Orchestra never forks the pool. Hosts, VMs and storage repositories
+     * are XcpNgResource inventory rows, not entities.
+     */
+    (attrs: EntityAttributes) => {
+      const poolId: string | null = InventoryItem.str(attrs, "xcp_ng.pool.id");
+      return poolId
+        ? {
+            entityType: EntityType.XcpNgPool,
+            id: { "xcp_ng.pool.id": poolId.toLowerCase() },
           }
         : null;
     },
@@ -1250,13 +1270,33 @@ export default class InventoryItem {
       "container.image.tag",
       "container.image.tags",
     ],
+    /*
+     * The virtualization and storage kinds keep their own name here too,
+     * beside the identity that holds it trimmed and lowercased: Inventory
+     * names each item by its own name (InventoryItemService's
+     * INVENTORY_DISPLAY_NAME_RULES, #11254) and reads it from here first, so
+     * "DC-NORTH-Cluster" reads as vCenter spells it and as the VMware pages
+     * show it, not as "dc-north-cluster".
+     */
+    [EntityType.ProxmoxCluster]: ["proxmox.cluster.name"],
+    [EntityType.ProxmoxNode]: ["proxmox.node.name"],
     [EntityType.ProxmoxGuest]: ["proxmox.guest.name", "proxmox.guest.type"],
+    [EntityType.OpenStackCloud]: ["openstack.cloud.name"],
+    [EntityType.OpenStackHypervisor]: ["openstack.hypervisor.name"],
+    /*
+     * The hypervisor an instance runs on is where it is, not what it is: a
+     * live migration moves it (see the openstack.instance resolver).
+     */
     [EntityType.OpenStackInstance]: [
       "openstack.instance.name",
       "openstack.instance.flavor",
+      "openstack.hypervisor.name",
     ],
-    [EntityType.CephCluster]: ["ceph.cluster.fsid"],
-    [EntityType.StorageArray]: ["storage.system"],
+    [EntityType.CephCluster]: ["ceph.cluster.name", "ceph.cluster.fsid"],
+    [EntityType.StorageArray]: ["storage.array.name", "storage.system"],
+    // The Xen Orchestra a pool is read from, as the XCP-ng agent stamps it.
+    [EntityType.XcpNgPool]: ["xcp_ng.pool.name", "xen_orchestra.name"],
+    [EntityType.DockerSwarmCluster]: ["docker.swarm.cluster.name"],
     /*
      * VMware: the cluster an ESXi host sits in and the host / name / pool a
      * VM currently has are exactly the things vSphere moves or renames
@@ -1264,7 +1304,9 @@ export default class InventoryItem {
      * they ride along as descriptive metadata and never enter the key — see
      * the vmware.host / vmware.vm resolvers.
      */
-    [EntityType.VMwareHost]: ["vcenter.cluster.name"],
+    [EntityType.VMwareVCenter]: ["vmware.vcenter.name"],
+    [EntityType.VMwareCluster]: ["vcenter.cluster.name"],
+    [EntityType.VMwareHost]: ["vcenter.host.name", "vcenter.cluster.name"],
     [EntityType.VMwareVirtualMachine]: [
       "vcenter.vm.name",
       "vcenter.vm_template.name",
@@ -1273,6 +1315,7 @@ export default class InventoryItem {
       "vcenter.datacenter.name",
       "vcenter.resource_pool.name",
     ],
+    [EntityType.VMwareDatastore]: ["vcenter.datastore.name"],
   };
 
   /*

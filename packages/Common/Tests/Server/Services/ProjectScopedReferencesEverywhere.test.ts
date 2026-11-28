@@ -210,6 +210,16 @@ const SERVICES_WITH_THEIR_OWN_CHECKS: Record<string, string> = {
     "VMwareVCenterConnection.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
   "VMwareVCenterConnectionTestService.ts":
     "VMwareVCenterConnectionTestService.test.ts (the probe as a vCenter's collection probe; the vCenter read within the test's project, a foreign and a missing one answered alike)",
+  // Storage array connections a probe reads (Dell PowerMax, #11004), as a vCenter's.
+  "StorageArrayConnectionService.ts":
+    "StorageArrayConnectionRules.test.ts (the collection probe through assertProbeCanCollect) and StorageArrayConnectionTestService.test.ts (that check run for real: the project's own probe, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
+  "StorageArrayConnectionTestService.ts":
+    "StorageArrayConnectionTestService.test.ts (the probe as a connection's collection probe; the connection read within the test's project, a foreign and a missing one answered alike)",
+  // XCP-ng connections (#10996, #10999), held to a vCenter's rules.
+  "XcpNgConnectionService.ts":
+    "XcpNgConnectionRules.test.ts (the collection probe: the project's own, or one of a self-hosted instance's global probes; another project's refused, a missing one not found)",
+  "XcpNgConnectionTestService.ts":
+    "XcpNgConnectionTestService.test.ts (the probe as a connection's collection probe; the connection read within the test's project, a foreign and a missing one answered alike, its saved secrets only for the address and probe they were saved for)",
   /*
    * A team or label budget's team and label (#6386): read pinned to the
    * budget's project for every caller, root included, another project's
@@ -263,6 +273,7 @@ const SERVICES_TRUSTING_SERVER_WRITES: Array<string> = [
   "WebhookLogService.ts",
   "WhatsAppLogService.ts",
   "WorkspaceNotificationLogService.ts",
+  "XcpNgPoolFeedService.ts",
 ];
 
 const PROJECT_ID: ObjectID = new ObjectID(

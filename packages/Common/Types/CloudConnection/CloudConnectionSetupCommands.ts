@@ -11,15 +11,28 @@ import {
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  SAVINGS_ACTIONS_FIELD_KEY,
   SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   doesCloudConnectionWafBlocklistAddRule,
   getCloudConnectionDataSecurityLevel,
+  getCloudConnectionSavingsActions,
   getCloudConnectionWafBlocklist,
   isCloudConnectionDataSecurityResponseOn,
+  isCloudConnectionSavingsActionsOn,
   isCloudConnectionSecurityCaseChecksOn,
   isCloudConnectionWafBlocklistOn,
 } from "./CloudConnectionCatalog";
+import { CloudSavingsActionsAccess } from "../Cloud/CloudSavingsAction";
+import {
+  AWS_SAVINGS_ACTIONS_GROUP_NAME,
+  AWS_SAVINGS_ACTIONS_POLICY_NAME,
+  GCP_SAVINGS_ACTIONS_ROLE_ID,
+  getAwsSavingsActionsPolicy,
+  getAwsSavingsActionsPolicyDocument,
+  getAzureSavingsActionsRoleLines,
+  getGcpSavingsActionsRoleLines,
+} from "./CloudSavingsActionsAccess";
 import { getAzureWafBlocklistRoleLines } from "./AzureWafBlocklist";
 import {
   GCP_CLOUD_ARMOR_BLOCKLIST_ROLE_ID,
@@ -68,8 +81,9 @@ import {
  * the writes a command grants, each on a setting of its own: closing a
  * data store's exposure (dataSecurityResponse, "DATA SECURITY RESPONSE"
  * below), and keeping the blocklist's IP sets and rule in AWS WAF
- * (wafBlocklist, "THE BLOCKLIST IN AWS WAF" below). And so is what a
- * security case reads of the IAM users an attack changed
+ * (wafBlocklist, "THE BLOCKLIST IN AWS WAF" below), and acting on the
+ * savings an owner approves (savingsActions, CloudSavingsActionsAccess).
+ * And so is what a security case reads of the IAM users an attack changed
  * (securityCaseChecks, "SECURITY CASE CHECKS" below).
  *
  * The dashboard shows these, written from the settings its form holds
@@ -223,26 +237,35 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
   },
   /*
    * What the account costs and how to spend less: Cost Explorer's daily
-   * costs ($0.01 a request, a few requests twice a day) - each resource's
-   * too, for a connection that turns Costs per resource on - and how much
-   * of them its Savings Plans and Reserved Instances cover and how much of
-   * those is used (four requests a day), and Cost Optimization Hub's
-   * recommendations (free).
+   * costs, billed, amortized and net ($0.01 a request, a few requests
+   * twice a day) - each resource's too, for a connection that turns Costs
+   * per resource on - how much of them its Savings Plans and Reserved
+   * Instances cover and how much of those is used, and each plan and
+   * reservation with its own use (#11011: a few requests a day); the
+   * Savings Plans bought, queued ones included (free); and Cost
+   * Optimization Hub's recommendations with what each commitment it
+   * suggests would buy (free).
+   *
+   * Each Cost Explorer family is granted by its prefix - GetCostAndUsage*,
+   * GetSavingsPlans*, GetReservation* - all of them reads: the access
+   * key's user holds its inline policy to IAM's 2,048 characters, and the
+   * names written out one by one no longer fit beside the rest.
    */
   {
     purpose: "Read what the account costs, from Cost Explorer",
     actions: [
-      "ce:GetCostAndUsage",
-      "ce:GetCostAndUsageWithResources",
-      "ce:GetSavingsPlansCoverage",
-      "ce:GetSavingsPlansUtilization",
-      "ce:GetReservationCoverage",
-      "ce:GetReservationUtilization",
+      "ce:GetCostAndUsage*",
+      "ce:GetSavingsPlans*",
+      "ce:GetReservation*",
+      "savingsplans:DescribeSavingsPlans",
     ],
   },
   {
     purpose: "Read the ways to spend less, from Cost Optimization Hub",
-    actions: ["cost-optimization-hub:ListRecommendations"],
+    actions: [
+      "cost-optimization-hub:ListRecommendations",
+      "cost-optimization-hub:GetRecommendation",
+    ],
   },
   {
     purpose:
@@ -381,6 +404,34 @@ export const GCP_READ_ONLY_ROLES: Array<string> = [
  * Compute Viewer, for the machine type and idle resource recommendations.
  */
 export const AZURE_COST_ROLE: string = "Cost Management Reader";
+
+/*
+ * What lists a tenant's reservations and savings plans (#11011): each is a
+ * tenant resource that takes no role from a subscription, so the app is
+ * given its reader role at the tenant's provider scope. Only a Global
+ * Administrator with elevated access may grant one there, so the command
+ * tries and, when refused, says how to grant it later - the rest of the
+ * connection works without it, and Cloud > Spend > Commitments says what is
+ * missing.
+ */
+export const AZURE_COMMITMENT_READER_ROLES: ReadonlyArray<{
+  role: string;
+  scope: string;
+}> = [
+  { role: "Reservations Reader", scope: "/providers/Microsoft.Capacity" },
+  {
+    role: "Savings plan Reader",
+    scope: "/providers/Microsoft.BillingBenefits",
+  },
+];
+
+export function getAzureCommitmentRoleLines(): Array<string> {
+  return AZURE_COMMITMENT_READER_ROLES.map(
+    (entry: { role: string; scope: string }): string => {
+      return `az role assignment create --assignee "$APP" --role "${entry.role}" --scope "${entry.scope}" > /dev/null 2>&1 || echo "${entry.role} was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2`;
+    },
+  );
+}
 export const GCP_COST_QUERY_ROLE: string = "roles/bigquery.jobUser";
 export const GCP_RECOMMENDER_ROLE: string = "roles/recommender.computeViewer";
 export const GCP_COST_ROLES: Array<string> = [
@@ -973,11 +1024,11 @@ export function getAwsWafBlocklistPolicyDocument(
 }
 
 /*
- * SECURITY CASE CHECKS (#10900): what a connection whose "Security case
- * checks" is on may read, on a setting of its own (securityCaseChecks) -
- * exactly the reads the Fix step "Undo what changed on the account" makes
- * of an IAM user its case's CloudTrail events name, each a change an
- * attack can make (AttackAccountChanges):
+ * SECURITY CASE CHECKS (#10900, #11038): what a connection whose "Security
+ * case checks" is on may read, on a setting of its own (securityCaseChecks)
+ * - exactly the reads the Fix step "Undo what changed on the account" makes
+ * of an IAM user or role its case's CloudTrail events name, each a change
+ * an attack can make (AttackAccountChanges):
  *
  *   iam:GetUser                    the user is still there (CreateUser)
  *   iam:ListAccessKeys             the key is still there and active
@@ -994,13 +1045,26 @@ export function getAwsWafBlocklistPolicyDocument(
  *                                  (AddUserToGroup)
  *   iam:ListMFADevices             the MFA device is still the user's
  *                                  (EnableMFADevice)
+ *   iam:GetRole                    the role is still there (CreateRole),
+ *                                  and whom its trust policy trusts now
+ *                                  (UpdateAssumeRolePolicy)
+ *   iam:ListAttachedRolePolicies   a managed policy is still attached to
+ *                                  the role (AttachRolePolicy)
+ *   iam:ListRolePolicies           the role's inline policy is still
+ *                                  there, by its name (PutRolePolicy)
  *
  * A fifth inline policy, OneUptimeSecurityCaseChecks, on every resource:
- * each action acts on an IAM user and nothing else, so "*" grants no more
- * than every user's ARN would, in every partition. Nothing reads a role,
- * a group's or a policy's own settings, or anything IAM writes. The access
- * key's user, whose inline policies are full, takes it through a group of
- * the same name, as it takes Data Security's.
+ * each action acts on an IAM user or role and nothing else, so "*" grants
+ * no more than every user's and role's ARN would, in every partition.
+ * Nothing reads a policy's own document, a group's settings, or anything
+ * IAM writes, and OneUptime never deletes or edits a user or a role: the
+ * undoing is a person's. The access key's user, whose inline policies are
+ * full, takes it through a group of the same name, as it takes Data
+ * Security's.
+ *
+ * A connection set up before the role reads were added grants only the
+ * user's: its command, run again, grants them, and until it is the step
+ * says to run it (CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN).
  *
  * "off" adds nothing, so it leaves what an earlier command granted until
  * it is removed (aws iam delete-role-policy --policy-name
@@ -1021,6 +1085,9 @@ export const AWS_SECURITY_CASE_CHECKS_ACTIONS: ReadonlyArray<string> = [
   "iam:ListUserPolicies",
   "iam:ListGroupsForUser",
   "iam:ListMFADevices",
+  "iam:GetRole",
+  "iam:ListAttachedRolePolicies",
+  "iam:ListRolePolicies",
 ];
 
 // The policy, or null when Security case checks are off.
@@ -1156,6 +1223,8 @@ export function getAwsRoleSetupCommand(data: {
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
   // Security case checks' IAM reads, a fifth; none unless on.
   securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
+  // Savings actions' policy, a sixth; none unless on.
+  savingsActions?: CloudSavingsActionsAccess | undefined;
 }): string {
   const role: string = getAwsRoleNameForExternalId(data.externalId);
   const trust: string = getAwsTrustPolicyDocument(data);
@@ -1185,6 +1254,11 @@ export function getAwsRoleSetupCommand(data: {
           `aws iam put-role-policy --role-name "$ROLE" --policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME} --policy-document '${getAwsSecurityCaseChecksPolicyDocument(data.securityCaseChecks)}'`,
         ]
       : []),
+    ...(isCloudConnectionSavingsActionsOn(data.savingsActions)
+      ? [
+          `aws iam put-role-policy --role-name "$ROLE" --policy-name ${AWS_SAVINGS_ACTIONS_POLICY_NAME} --policy-document '${getAwsSavingsActionsPolicyDocument(data.savingsActions)}'`,
+        ]
+      : []),
     `aws iam get-role --role-name "$ROLE" --query Role.Arn --output text`,
   ].join("\n");
 }
@@ -1205,7 +1279,11 @@ export function getAwsReadOnlyRoleTemplate(data: {
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
   // Security case checks' IAM reads, a fifth; none unless on.
   securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
+  // Savings actions' policy, a sixth; none unless on.
+  savingsActions?: CloudSavingsActionsAccess | undefined;
 }): string {
+  const savings: ReturnType<typeof getAwsSavingsActionsPolicy> =
+    getAwsSavingsActionsPolicy(data.savingsActions);
   const dataSecurity: ReturnType<typeof getAwsDataSecurityPolicy> =
     getAwsDataSecurityPolicy(data.dataSecurity);
   const response: ReturnType<typeof getAwsDataSecurityResponsePolicy> =
@@ -1222,7 +1300,7 @@ export function getAwsReadOnlyRoleTemplate(data: {
         : "";
   // Which of each, never a key's secret or a password.
   const iamUsers: string = caseChecks
-    ? "which keys, console passwords, policies, groups and MFA devices its IAM users have"
+    ? "which keys, console passwords, policies, groups and MFA devices its IAM users have, and which policies its IAM roles have and whom they trust"
     : "";
   const reads: string = [dataStores, iamUsers]
     .filter((what: string): boolean => {
@@ -1248,6 +1326,13 @@ export function getAwsReadOnlyRoleTemplate(data: {
           doesCloudConnectionWafBlocklistAddRule(data.wafBlocklist)
             ? "keep OneUptime's IP sets in AWS WAF and its rule in web ACLs"
             : "keep OneUptime's IP sets in AWS WAF",
+        ]
+      : []),
+    ...(savings
+      ? [
+          data.savingsActions === CloudSavingsActionsAccess.Resize
+            ? "act on the savings an owner approves, resizing included"
+            : "act on the savings an owner approves",
         ]
       : []),
   ];
@@ -1301,6 +1386,14 @@ export function getAwsReadOnlyRoleTemplate(data: {
                   },
                 ]
               : []),
+            ...(savings
+              ? [
+                  {
+                    PolicyName: AWS_SAVINGS_ACTIONS_POLICY_NAME,
+                    PolicyDocument: savings,
+                  },
+                ]
+              : []),
           ],
         },
       },
@@ -1332,6 +1425,8 @@ export function getAwsOrganizationSetupCommand(data: {
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
   // Security case checks' IAM reads in every account's role; none unless on.
   securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
+  // Savings actions' policy in every account's role; none unless on.
+  savingsActions?: CloudSavingsActionsAccess | undefined;
 }): string {
   const stackSet: string = getAwsOrganizationStackSetName(data.externalId);
 
@@ -1366,6 +1461,8 @@ export function getAwsAccessKeySetupCommand(
     externalId?: string | undefined;
     // Security case checks' IAM reads, in a group of their own; none unless on.
     securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
+    // Savings actions' policy, in a group of its own; none unless on.
+    savingsActions?: CloudSavingsActionsAccess | undefined;
   } = {},
 ): string {
   const user: string = CLOUD_CONNECTION_READ_ONLY_NAME;
@@ -1423,6 +1520,13 @@ export function getAwsAccessKeySetupCommand(
           `aws iam add-user-to-group --user-name ${user} --group-name ${caseChecksGroup}`,
         ]
       : []),
+    ...(isCloudConnectionSavingsActionsOn(options.savingsActions)
+      ? [
+          `aws iam create-group --group-name ${AWS_SAVINGS_ACTIONS_GROUP_NAME} > /dev/null 2>&1 || true`,
+          `aws iam put-group-policy --group-name ${AWS_SAVINGS_ACTIONS_GROUP_NAME} --policy-name ${AWS_SAVINGS_ACTIONS_POLICY_NAME} --policy-document '${getAwsSavingsActionsPolicyDocument(options.savingsActions)}'`,
+          `aws iam add-user-to-group --user-name ${user} --group-name ${AWS_SAVINGS_ACTIONS_GROUP_NAME}`,
+        ]
+      : []),
     `aws iam create-access-key --user-name ${user}`,
   ].join("\n");
 }
@@ -1445,6 +1549,11 @@ export function getAzureSetupCommand(
    * one policy alone, for a connection set up without it.
    */
   wafBlocklist: CloudConnectionWafBlocklist = "off",
+  /*
+   * On adds Savings actions' custom role (#11010), OneUptime Savings
+   * Actions, made for and assigned on the same scope.
+   */
+  savingsActions: CloudSavingsActionsAccess = CloudSavingsActionsAccess.Off,
 ): string {
   const scopeLine: string =
     scope === CloudConnectionSetupScope.Organization
@@ -1467,6 +1576,9 @@ export function getAzureSetupCommand(
     ...(isCloudConnectionWafBlocklistOn(wafBlocklist)
       ? getAzureWafBlocklistRoleLines()
       : []),
+    ...getAzureSavingsActionsRoleLines(savingsActions),
+    // Last of the roles: the two only a Global Administrator may grant, which may be refused.
+    ...getAzureCommitmentRoleLines(),
     `END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)`,
     `echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'`,
   ].join("\n");
@@ -1489,6 +1601,12 @@ export function getGcpSetupCommand(
    * roles, and turns on the Compute and Network Security APIs it calls.
    */
   wafBlocklist: CloudConnectionWafBlocklist = "off",
+  /*
+   * On adds Savings actions' custom role (#11010), oneuptimeSavingsActions,
+   * made and bound where the command binds roles, and turns on the
+   * Compute Engine API it calls.
+   */
+  savingsActions: CloudSavingsActionsAccess = CloudSavingsActionsAccess.Off,
 ): string {
   const member: string = `${GCP_SERVICE_ACCOUNT_ID}@$PROJECT_ID.iam.gserviceaccount.com`;
   const organization: boolean =
@@ -1553,6 +1671,14 @@ export function getGcpSetupCommand(
     ...(content ? GCP_DATA_SECURITY_CONTENT_ROLES.map(bind) : []),
     ...responseLines,
     ...wafLines,
+    ...getGcpSavingsActionsRoleLines({
+      access: savingsActions,
+      roleHome,
+      roleName: organization
+        ? `organizations/$ORG_ID/roles/${GCP_SAVINGS_ACTIONS_ROLE_ID}`
+        : `projects/$PROJECT_ID/roles/${GCP_SAVINGS_ACTIONS_ROLE_ID}`,
+      bind,
+    }),
     `gcloud iam service-accounts keys create oneuptime-key.json --iam-account "${member}"`,
     "cat oneuptime-key.json && rm oneuptime-key.json",
   ].join("\n");
@@ -1572,6 +1698,8 @@ export interface CloudConnectionCommandContext {
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
   // AWS: whether security cases may read IAM users back (securityCaseChecks). Off when absent.
   securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
+  // Whether OneUptime may act on savings (savingsActions). Off when absent.
+  savingsActions?: CloudSavingsActionsAccess | undefined;
 }
 
 /*
@@ -1598,6 +1726,8 @@ export function getCloudConnectionSetupCommand(
     isCloudConnectionSecurityCaseChecksOn(context.securityCaseChecks)
       ? "on"
       : "off";
+  const savingsActions: CloudSavingsActionsAccess =
+    getCloudConnectionSavingsActions(context.savingsActions);
 
   if (provider === CloudProvider.AWS) {
     if (method === CloudConnectionAuthMethod.AwsRole) {
@@ -1612,6 +1742,7 @@ export function getCloudConnectionSetupCommand(
         dataSecurityResponse: CloudConnectionDataSecurityResponse;
         wafBlocklist: CloudConnectionWafBlocklist;
         securityCaseChecks: CloudConnectionSecurityCaseChecks;
+        savingsActions: CloudSavingsActionsAccess;
       } = {
         trustedPrincipalArn: context.trustedPrincipalArn,
         externalId: context.externalId,
@@ -1619,6 +1750,7 @@ export function getCloudConnectionSetupCommand(
         dataSecurityResponse,
         wafBlocklist,
         securityCaseChecks,
+        savingsActions,
       };
 
       return scope === CloudConnectionSetupScope.Organization
@@ -1636,6 +1768,7 @@ export function getCloudConnectionSetupCommand(
       wafBlocklist,
       externalId: context.externalId,
       securityCaseChecks,
+      savingsActions,
     });
   }
 
@@ -1645,6 +1778,7 @@ export function getCloudConnectionSetupCommand(
       dataSecurity,
       dataSecurityResponse,
       wafBlocklist,
+      savingsActions,
     );
   }
 
@@ -1653,6 +1787,7 @@ export function getCloudConnectionSetupCommand(
     dataSecurity,
     dataSecurityResponse,
     wafBlocklist,
+    savingsActions,
   );
 }
 
@@ -1664,7 +1799,8 @@ export function getCloudConnectionSetupCommand(
  * Security may read (dataSecurity), whether it may close an exposure
  * (dataSecurityResponse) and, for AWS, whether the blocklist may block
  * addresses in AWS WAF (wafBlocklist) and whether security cases may read
- * IAM users back (securityCaseChecks) - the catalog's fields marked
+ * IAM users back (securityCaseChecks), and whether OneUptime may act on
+ * savings (savingsActions) - the catalog's fields marked
  * changesSetupCommand. They are read here the way the server reads them
  * (the connectors' readCloudSetting for the scope, DataSecurityRunner's
  * level, DataSecurityResponse's opt-in, the AWS WAF destinations' choice),
@@ -1678,6 +1814,7 @@ export interface CloudConnectionCommandSettings {
   dataSecurityResponse: CloudConnectionDataSecurityResponse;
   wafBlocklist: CloudConnectionWafBlocklist;
   securityCaseChecks: CloudConnectionSecurityCaseChecks;
+  savingsActions: CloudSavingsActionsAccess;
 }
 
 export function getCloudConnectionCommandSettings(
@@ -1708,6 +1845,9 @@ export function getCloudConnectionCommandSettings(
     )
       ? "on"
       : "off",
+    savingsActions: getCloudConnectionSavingsActions(
+      settings[SAVINGS_ACTIONS_FIELD_KEY],
+    ),
   };
 }
 
@@ -1727,7 +1867,10 @@ export function getCloudConnectionCommandSettings(
  *   - the blocklist's rule: OneUptime may add its rule to the web ACLs
  *     picked, which writes those web ACLs;
  *   - Azure WAF and Cloud Armor (#10348, #10349): OneUptime may keep its own
- *     rules in the policies picked, which writes those policies.
+ *     rules in the policies picked, which writes those policies;
+ *   - Savings actions (#11010): OneUptime may stop, start and clean up what
+ *     a saving names once an owner approves it, and resize it when that is
+ *     picked too.
  * A command that takes one is shown with words of its own instead, and a
  * line for each of these (CloudSetupCommand), so nothing beside a command
  * says it grants less than it does. In the order the lines are drawn.
@@ -1738,6 +1881,8 @@ export enum CloudConnectionAccessExtra {
   WafIpSets = "waf-ip-sets",
   WafRule = "waf-rule",
   WafPolicyRules = "waf-policy-rules",
+  SavingsActions = "savings-actions",
+  SavingsResize = "savings-resize",
 }
 
 export function getCloudConnectionAccessExtras(settings: {
@@ -1746,6 +1891,7 @@ export function getCloudConnectionAccessExtras(settings: {
   wafBlocklist?: CloudConnectionWafBlocklist | undefined;
   // The cloud whose command it is: AWS when absent, as the setting was AWS's alone.
   provider?: CloudProvider | undefined;
+  savingsActions?: CloudSavingsActionsAccess | undefined;
 }): Array<CloudConnectionAccessExtra> {
   const isAws: boolean =
     !settings.provider || settings.provider === CloudProvider.AWS;
@@ -1765,6 +1911,13 @@ export function getCloudConnectionAccessExtras(settings: {
       : []),
     ...(!isAws && isCloudConnectionWafBlocklistOn(settings.wafBlocklist)
       ? [CloudConnectionAccessExtra.WafPolicyRules]
+      : []),
+    ...(isCloudConnectionSavingsActionsOn(settings.savingsActions)
+      ? [CloudConnectionAccessExtra.SavingsActions]
+      : []),
+    ...(getCloudConnectionSavingsActions(settings.savingsActions) ===
+    CloudSavingsActionsAccess.Resize
+      ? [CloudConnectionAccessExtra.SavingsResize]
       : []),
   ];
 }

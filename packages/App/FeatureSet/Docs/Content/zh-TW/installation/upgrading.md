@@ -6,7 +6,7 @@
 - [如何升級](#如何升級): 適用於 Docker Compose 和 Kubernetes 的步驟。
 - [各版本的說明](#查找您的版本的說明): 每個主要版本需要您做什麼，一目了然。
 - [Community Edition 與 Enterprise Edition 映像檔](#community-edition-與-enterprise-edition-映像檔): 從 14 起應執行哪個映像檔。
-- [從 OneUptime 16 → 17 升級](#從-oneuptime-16-17-升級): 最新的主要版本。
+- [從 OneUptime 17 → 18 升級](#從-oneuptime-17-18-升級): 最新的主要版本。
 :::
 
 ## 如何升級
@@ -80,6 +80,7 @@ kubectl get pods -n <namespace>
 
 | 升級 | 您需要做什麼 |
 | --- | --- |
+| [17 → 18](#從-oneuptime-17-18-升級) | 讓為您網路內的應用程式執行合成監測器的探測器能夠存取私有位址。修改表示地址未經驗證的 OpenID Connect 提供者。為寫入運行手冊、程式碼儲存庫、Runner 或專案機密的 API 金鑰、Terraform 設定和工作流程授予這些寫入現在所需的權限。 |
 | [16 → 17](#從-oneuptime-16-17-升級) | 在 API 指令碼中，用移動請求來移動一列，而不是寫入它的 `order`；要在清單中間新增一列，先建立它，再移動它。Terraform 和 OpenTofu 無需任何變更。 |
 | [15 → 16](#從-oneuptime-15-16-升級) | 將 Terraform 提供者與伺服器一起升級，並從 API 讀取中移除 16 不再提供的 SCIM Bearer 權杖、Webhook 地址和 SNMP 憑證。更新您的 Runner。盡快替換每台 15 的伺服器，並且只在一天之內回復版本。 |
 | [14 → 15](#從-oneuptime-14-15-升級) | 如果您在管理員儀表板上查看主 API 金鑰，請先複製它。將 Terraform 提供者與伺服器一起升級，並從 API 讀取中移除 15 不再提供的憑證。位於代理伺服器之後時，讓代理伺服器能夠連線到您的身分提供者、行事曆、MCP 伺服器和備份儲存空間。檢查接收純文字的傳入請求監測器。盡快替換每台 14 的伺服器。 |
@@ -125,6 +126,28 @@ Enterprise Edition 現在會檢查自己的授權：
 - 自行託管的安裝不再提供 `/api/enterprise-license/` 下的授權伺服器端點。只有 oneuptime.com 使用它們。
 - SCIM 端點在 Enterprise Edition 上保持完全相同的路徑，因此身分提供者的設定無需變更。在 Community Edition 上它們會傳回 `404`。在 Enterprise Edition 上，授權到期期間（試用期或寬限期之後）它們會拒絕請求，一旦啟用授權就會再次回應。
 - SSO 和 OIDC 端點（SAML 登入和 ACS URL、OIDC 重新導向 URI，以及全域 SSO 端點）保持完全相同的路徑，並且無論授權處於什麼狀態，兩個版本都會提供它們。
+
+## 從 OneUptime 17 → 18 升級
+
+OneUptime 18 可以監控 XCP-ng：在 Xen Orchestra 旁執行的代理程式會新增每個資源池的主機、虛擬機器和儲存空間，以及它們的頁面、一個監測器和警示範本。請參閱 [XCP-ng](/docs/telemetry/xcp-ng)。它也會把專案成員所做的更多事情限制在其角色允許的範圍內：合成監測器的瀏覽器載入的位址、使用身分提供者未驗證的電子郵件地址登入，以及工作流程、API 金鑰或 Terraform 可以寫入運行手冊、程式碼儲存庫、Runner 和專案機密的內容。請從 17 升級——如果您仍在 16，請先完成 16 → 17。
+
+### 您需要為 18 做什麼
+
+1. **如果合成監測器檢查您網路內的應用程式，請讓它的探測器能夠存取私有位址。** 在執行該監測器的探測器上設定 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true`，或者在 Helm chart 中把 `probes.<key>.allowPrivateNetworkMonitors` 設為 `true`，然後重新啟動探測器。位於回送位址、連結本機位址或雲端中繼資料端點上的頁面在每個探測器上都會被拒絕：請把這樣的監測器指向其探測器能夠存取的應用程式位址。
+2. **如果您的 OpenID Connect 提供者表示某個地址未經驗證，請在升級前修改它。** OneUptime 18 不會讓任何人使用 `email_verified` 為 `false` 的地址登入。請依照 [身分提供者未驗證的電子郵件地址](/docs/identity/sso#身分提供者未驗證的電子郵件地址) 的說明修改該提供者。
+3. **為寫入運行手冊、程式碼儲存庫、Runner 或專案機密的 API 金鑰、Terraform 設定和工作流程授予這些寫入現在所需的權限。** 下面的其他變更說明了需要哪些權限。
+
+### 18 中的其他變更
+
+這些變更會改變升級後 OneUptime 的行為。如果有合成監測器檢查私有位址、有人使用 OpenID Connect 登入，或者 API 金鑰、Terraform 或工作流程會寫入運行手冊、程式碼儲存庫、Runner 或專案機密，請閱讀它們。
+
+:::details 閱讀 18 中的其他變更
+- **合成監測器的瀏覽器只在允許它的探測器上才能存取私有位址，而且永遠不能存取回送、連結本機或雲端中繼資料位址。** 在 18 之前，合成監測器的瀏覽器會載入其探測器能夠存取的任何位址，其中包括會發放雲端虛擬機器憑證的雲端中繼資料端點。現在，瀏覽器載入的所有內容和其指令碼的每個 HTTP 請求都會經過探測器，探測器會對它們套用與 API 和 Website 監測器相同的私有網路政策：只有在 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` 為 `true` 的地方才允許私有位址，而回送、連結本機和雲端中繼資料位址始終不允許。被探測器拒絕的導覽會失敗，並以其原因作為指令碼的錯誤，執行日誌也會記下這次拒絕。請參閱 [私有網路存取](/docs/self-hosted/private-network-access)。
+- **建立帶有會執行內容之步驟的運行手冊，需要變更運行手冊步驟的權限。** 運行手冊的 JavaScript、Bash、SSH 和 kubectl 步驟在專案的 Runner 上執行，HTTP request 步驟會連同它引用的機密 Runbook 變數一起傳送，AI 步驟會向專案的 LLM 提供商發出請求。儲存這樣的步驟本來就需要 `ProjectOwner`、`ProjectAdmin`、`RunbookAdmin` 或 `EditRunbook`，現在建立帶有這些步驟的運行手冊也需要其中之一：其他任何人的建立都會被拒絕，而且不會寫入任何內容。只有 Manual 步驟或沒有步驟的運行手冊仍像以前一樣建立。建立帶有這類步驟之運行手冊的 API 金鑰或 Terraform 設定現在需要其中一項權限。
+- **OpenID Connect 登入會拒絕身分提供者表示未驗證的電子郵件地址。** 把 `email_verified` 傳送為 `false`，或既不是 true 也不是 false 的值的全域或專案 OpenID Connect 提供者，無論在網頁上還是在行動應用程式中，都不會讓任何人用該地址登入：有人可能已在提供者處自己的帳戶上填入了別人的地址，包括主管理員的地址。傳送 `true` 或根本不傳送 `email_verified` 的提供者，例如 Microsoft Entra ID，會像以前一樣讓人登入。authentik 2025.10 及更新版本使用預設的 `email` 範圍對應時會為所有人傳送 `false`，Keycloak 也會對地址未經驗證的人這樣傳送：請依照 [身分提供者未驗證的電子郵件地址](/docs/identity/sso#身分提供者未驗證的電子郵件地址) 的說明修改它們。有密碼的主管理員在此期間仍可以用密碼登入。
+- **以預設權限執行的工作流程不再變更 Runbook 變數、監測器密鑰、BI 工具連線或威脅情報來源。** 專案成員可以建構工作流程，而工作流程的步驟以專案管理員身分執行，所以這樣的步驟曾讓他們能夠變更 Runbook 在您的機器上執行的內容，或把自己無法讀取的憑證傳送到自己選擇的伺服器。現在這樣的步驟會被拒絕：它會走其錯誤輸出，執行日誌會寫明這項變更需要的權限。輪替其中任何一項的工作流程需要超出預設的權限：請在它的設定中，讓它以專案擁有者身分執行，或以擁有該權限的自訂角色執行。請參閱[工作流程步驟可以做什麼](/docs/workflows/configuration#工作流程步驟可以做什麼)。
+- **只有能撰寫會執行內容的運行手冊步驟的人，才能設定程式碼儲存庫的命令或選擇它的 Runner；只有能讀取 Runner 金鑰的人，才能為其選擇金鑰。** 儲存庫的設定、建置與測試命令以 Runner 的存取權限在你自己的 Runner 上執行。現在，設定、變更或移除這些命令，或選擇儲存庫的 Runner，除了儲存庫本身的權限外，還需要 `ProjectOwner` 、 `ProjectAdmin` 、 `RunbookAdmin` 或 `EditRunbook` ：其他任何人的寫入都會被拒絕，無論是透過 API、Terraform 還是以預設權限執行的工作流程，而且儲存庫設定中的 Runner 卡片對他們是鎖定的。使用自己選擇的金鑰建立 Runner，或變更 Runner 的金鑰，需要 `ProjectOwner` 、 `ProjectAdmin` 或 `RunbookAdmin` ，而且建立 Runner 時只有他們會在回應中收到其金鑰。Runner 為專案執行的命令（Bash 與 kubectl 步驟，以及儲存庫的命令）不再能看到 Runner 自己的 `ONEUPTIME_RUNNER_` 設定。設定這些內容的 API 金鑰或 Terraform 設定現在需要其中一項權限。請參閱 [Code](/docs/ai/ai-agent)。
+:::
 
 ## 從 OneUptime 16 → 17 升級
 

@@ -6,6 +6,23 @@ import { subscribeToModelHeaderChanged } from "./ModelHeaderEvents";
 import { nameRecordInTrail } from "./RecordNameInTrail";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import RecordLocks, { ModelRecordLock } from "../../Utils/RecordLocks";
+import {
+  RecordAccessScope,
+  RecordAccessScopeContext,
+  useRecordAccessScope,
+} from "../../Utils/RecordAccessScope";
+import {
+  getRecordLabelAccessScope,
+  getRecordLabelIds,
+  mergeRecordAccessScopes,
+  useLabelNames,
+} from "../../Utils/RecordLabelLock";
+import {
+  isRecordOwnershipWanted,
+  RecordOwnershipState,
+  useRecordOwnership,
+} from "../../Utils/RecordOwnershipRead";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import Link from "../../../Types/Link";
@@ -20,6 +37,7 @@ import React, {
   MutableRefObject,
   ReactElement,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -70,6 +88,12 @@ interface LoadedModelHeader {
    */
   recordNumber?: string | undefined;
   labels: Array<Label>;
+  /*
+   * The ids of the labels the record was read with, or null when it was
+   * read without them: a model with no labels, or a reader the server
+   * leaves them out for. What its labels lock is said only of these.
+   */
+  labelIds?: Array<string> | null | undefined;
   error: string;
 }
 
@@ -243,6 +267,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
         header = {
           ...header,
           labels: loadedLabels,
+          labelIds: labelsColumn ? getRecordLabelIds(item, labelsColumn) : null,
           headingName: `${recordName as string}`,
           recordName: typeof recordName === "string" ? recordName : undefined,
           recordNumber: getRecordNumber(item, numberColumns),
@@ -395,6 +420,82 @@ const ModelPage: <TBaseModel extends BaseModel>(
     recordNumber: shownHeader ? shownHeader.recordNumber : undefined,
   });
 
+  /*
+   * WHAT THE RECORD'S LABELS, AND WHO OWNS IT, LOCK ON ITS PAGES (#11259,
+   * #11435, #11436): a reader whose permission to change or delete records
+   * of this kind is limited to some labels, blocked on some, or scoped to
+   * the records they or their teams own, sees the record's Edit and Delete -
+   * and every other gate on its pages that asks about the record or one of
+   * its parts, its owners' Add and Remove among them
+   * (usePrivateRecordGateOptions) - locked where the server would refuse
+   * them, with why (Utils/RecordLabelLock). The labels are read with the
+   * header; who owns the record is asked of the server once, for a reader
+   * with a grant scoped to Owned (RecordOwnershipRead), and while it is read
+   * what the owners decide is held back. Both are asked again when the
+   * record's labels or owners are saved (ModelHeaderEvents). An answer the
+   * server gave for the record (RecordAccessScopeProvider, around an
+   * incident's pages) stands for the tables it answers.
+   */
+  const pageModel: TBaseModel = new props.modelType();
+  const recordLock: ModelRecordLock | null =
+    RecordLocks.getRecordLock(pageModel);
+  const lockLabelNames: ReadonlyMap<string, string> = useLabelNames(
+    RecordLocks.getSnapshotLabelIds(),
+  );
+  const outerRecordAccess: RecordAccessScope | null = useRecordAccessScope();
+
+  const ownership: RecordOwnershipState = useRecordOwnership({
+    modelType: props.modelType,
+    ids: isCurrentModelLoaded && shownHeader ? [modelIdString] : [],
+    isWanted: isRecordOwnershipWanted(props.modelType),
+    refresh: headerChangeCount + (props.refreshToken || 0),
+  });
+
+  // The record's labels as it was read; a kind that carries none, none.
+  const recordLabelIds: Array<string> | null = shownHeader
+    ? pageModel.getAccessControlColumn()
+      ? shownHeader.labelIds || null
+      : []
+    : null;
+
+  const labelAccess: RecordAccessScope | null = getRecordLabelAccessScope({
+    tableName: pageModel.tableName,
+    recordId: modelIdString,
+    lock: recordLock,
+    recordLabelIds: recordLabelIds,
+    nouns: {
+      singularName: pageModel.singularName || "",
+      pluralName: pageModel.pluralName || "",
+    },
+    labelNames: lockLabelNames,
+    translator: translator,
+    recordModel: pageModel,
+    ownership: ownership,
+  });
+
+  /*
+   * The same object while what it says stays the same, so a gate that keeps
+   * what it worked out from it (usePrivateRecordGateOptions) keeps it: what
+   * the record's own gates are told, and what its parts' answers are worked
+   * out from - its labels, who owns it, the names, the reader's language and
+   * their permissions.
+   */
+  const labelAccessKey: string = labelAccess
+    ? JSON.stringify({
+        tables: labelAccess.tables,
+        labels: recordLabelIds,
+        ownership: ownership.result,
+        isOwnershipRead: ownership.isRead,
+        names: Array.from(lockLabelNames.entries()),
+        language: translator.language,
+        permissions: RecordLocks.getSnapshotKey(),
+      })
+    : "";
+
+  const recordAccess: RecordAccessScope | null = useMemo(() => {
+    return mergeRecordAccessScopes(outerRecordAccess, labelAccess);
+  }, [outerRecordAccess, labelAccessKey]);
+
   return (
     <Page
       {...props}
@@ -406,7 +507,11 @@ const ModelPage: <TBaseModel extends BaseModel>(
       isTitleTranslated={pageTitle.isTitleTranslated}
       recordHeading={recordHeading}
       recordTitle={recordTitle}
-    />
+    >
+      <RecordAccessScopeContext.Provider value={recordAccess}>
+        {props.children}
+      </RecordAccessScopeContext.Provider>
+    </Page>
   );
 };
 

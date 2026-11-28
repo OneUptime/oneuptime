@@ -23,7 +23,7 @@
 
 **설정** 섹션에는 [유지 관리 상태](/docs/scheduled-maintenance/states) 에서 다루는 **유지 관리 상태**, [템플릿 및 반복 이벤트](/docs/scheduled-maintenance/templates) 에서 다루는 **유지 관리 템플릿**, 그리고 **노트 템플릿**, **공개 메모 승인**, **사용자 정의 필드**, **측정**, **캘린더 설정**, **번호 매기기** 가 있습니다. **캘린더 설정** 은 [유지 관리 캘린더](/docs/scheduled-maintenance/calendar#외부-캘린더) 에서, 나머지는 아래에서 다룹니다.
 
-**워크스페이스** 섹션에는 이벤트를 채널에 게시하는 Slack 및 Microsoft Teams 규칙이 있습니다. [Slack](/docs/workspace-connections/slack#알림-규칙) 과 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#알림-규칙) 를 참조하세요.
+**워크스페이스** 섹션에는 이벤트를 채널에 게시하는 Slack 및 Microsoft Teams 규칙이 있습니다. 각 규칙은 이벤트가 생성될 때 이를 게시하고, 그 뒤에는 상태 변경, 노트, 추가 및 제거된 소유자, 리마인더 가운데 **업데이트** 단계에서 고른 것을 게시합니다. [Slack](/docs/workspace-connections/slack#알림-규칙) 과 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#알림-규칙) 를 참조하세요.
 
 ## 새 이벤트가 거치는 규칙
 

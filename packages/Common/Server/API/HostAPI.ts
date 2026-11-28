@@ -15,6 +15,16 @@ import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import ServerSetColumns from "../Utils/Database/ServerSetColumns";
 import { TRY_COLLECTOR_CONFIG_AGAIN_ROUTE } from "../../Types/HostCollector/HostCollectorRoutes";
+import {
+  CloudHostMachineJSON,
+  CloudVmHostJSON,
+  HOST_CLOUD_MACHINE_ROUTE,
+  HOST_OF_CLOUD_RESOURCE_ROUTE,
+} from "../../Types/Cloud/CloudHostLink";
+import CloudHostLinks, {
+  CloudLinkedHost,
+  CloudLinkedVm,
+} from "../Utils/CloudConnection/CloudHostLinks";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
 import {
@@ -43,6 +53,13 @@ import {
  * would. Like the list it reads no more than a few hundred hosts per
  * condition, and says when there were more.
  *
+ *   POST /host/:id/cloud-machine
+ *   POST /host/of-cloud-resource/:cloudResourceId
+ *     The cloud VM a host is, and the host a cloud VM is (#11013): their
+ *     provider, account, Region and instance ID all agree, and nothing
+ *     else claims them (CloudHostLinks). Read as the caller, so neither
+ *     page names a record its reader may not read.
+ *
  *   POST /host/:id/try-collector-config-again
  *     Try again on a host's collector card: sends the host the config that
  *     failed on it again, by clearing the failed config's hash
@@ -62,6 +79,35 @@ export default class HostAPI extends BaseAPI<Host, HostServiceType> {
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getNeedsAttention(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Which cloud VM a host is, and which host a cloud VM is (#11013): a
+     * read each, as the caller, for the two pages that link to each other
+     * (CloudHostLinks).
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/${HOST_CLOUD_MACHINE_ROUTE}`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getCloudMachine(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/${HOST_OF_CLOUD_RESOURCE_ROUTE}/:cloudResourceId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getHostOfCloudResource(req, res);
         } catch (err) {
           next(err);
         }
@@ -121,6 +167,80 @@ export default class HostAPI extends BaseAPI<Host, HostServiceType> {
     return Response.sendEmptySuccessResponse(req, res);
   }
 
+  // The cloud VM a host is, or null: as the caller may read both.
+  private async getCloudMachine(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    if (!props.tenantId) {
+      throw new BadDataException(
+        "This request names no project. Send the project's ID in the tenantid header.",
+      );
+    }
+
+    const idParam: string = req.params["id"] as string;
+    ObjectID.validateUUID(idParam);
+
+    const machine: CloudLinkedVm | null = await CloudHostLinks.vmOfHost({
+      projectId: props.tenantId,
+      hostId: new ObjectID(idParam),
+      props,
+    });
+    const json: CloudHostMachineJSON | null = machine
+      ? {
+          cloudResourceId: machine.id.toString(),
+          name: machine.name,
+          provider: machine.provider,
+          type: machine.type,
+          accountId: machine.accountId,
+          region: machine.region,
+          instanceId: machine.instanceId,
+        }
+      : null;
+
+    return Response.sendJsonObjectResponse(req, res, {
+      machine: json as unknown as JSONObject,
+    });
+  }
+
+  // The host a cloud VM is, or null: as the caller may read both.
+  private async getHostOfCloudResource(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    if (!props.tenantId) {
+      throw new BadDataException(
+        "This request names no project. Send the project's ID in the tenantid header.",
+      );
+    }
+
+    const idParam: string = req.params["cloudResourceId"] as string;
+    ObjectID.validateUUID(idParam);
+
+    const host: CloudLinkedHost | null = await CloudHostLinks.hostOfVm({
+      projectId: props.tenantId,
+      cloudResourceId: new ObjectID(idParam),
+      props,
+    });
+    const json: CloudVmHostJSON | null = host
+      ? {
+          hostId: host.id.toString(),
+          name: host.name,
+          hostIdentifier: host.hostIdentifier,
+        }
+      : null;
+
+    return Response.sendJsonObjectResponse(req, res, {
+      host: json as unknown as JSONObject,
+    });
+  }
+
   private async getNeedsAttention(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -129,7 +249,9 @@ export default class HostAPI extends BaseAPI<Host, HostServiceType> {
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
     if (!props.tenantId) {
-      throw new BadDataException("Project ID is required");
+      throw new BadDataException(
+        "This request names no project. Send the project's ID in the tenantid header.",
+      );
     }
 
     const found: HostsThatMayNeedAttention =

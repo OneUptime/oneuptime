@@ -163,6 +163,9 @@ import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
 import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopiesForHashedAddresses";
 import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import MetricScrubRulesMatchTheirPatternType from "./MetricScrubRulesMatchTheirPatternType";
+import MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType from "./MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType";
+import RepairScheduleLayerRestrictionTypes from "./RepairScheduleLayerRestrictionTypes";
+import MoveWeeklyWindowsOntoTheirDays from "./MoveWeeklyWindowsOntoTheirDays";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -192,6 +195,7 @@ import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSla
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
 import AddTagsColumnToCloudCost from "./AddTagsColumnToCloudCost";
+import AddAmortizedAndNetCostColumnsToCloudCost from "./AddAmortizedAndNetCostColumnsToCloudCost";
 import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
@@ -220,6 +224,11 @@ import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevic
 import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNamesInSecurityEvents";
 import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppRequestMonitorTotals";
 import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResourcesThatShowNothing";
+import EndOnCallTimeLogsOfDeletedPolicies from "./EndOnCallTimeLogsOfDeletedPolicies";
+import WorkOutMonitorsPausedByIncidents from "./WorkOutMonitorsPausedByIncidents";
+import LeaveTimeOfMonitorsPausedForMaintenanceOutOfUptime from "./LeaveTimeOfMonitorsPausedForMaintenanceOutOfUptime";
+import AddSensitiveFileServedToRecommendedRules from "./AddSensitiveFileServedToRecommendedRules";
+import MergeBackExceptionsSplitByFailedLookups from "./MergeBackExceptionsSplitByFailedLookups";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -924,6 +933,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new AddTagsColumnToCloudCost(),
+  /*
+   * Cloud costs keep their amortized and net figures
+   * (CloudCostV1.amortizedCost, netCost; #11007), so Cloud > Costs shows
+   * the spend billed, amortized or net. Metadata-only and idempotent; rows
+   * written before read their billed figure in both (DEFAULT cost). No
+   * ordering requirement, so it sits above the runbook moves, which keep
+   * their places before the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new AddAmortizedAndNetCostColumnsToCloudCost(),
   /*
    * Postmortem statuses (Incidents > Postmortems): every project from before
    * them gets the four a new project starts with, then every incident the
@@ -1669,6 +1688,88 @@ const DataMigrations: Array<DataMigrationBase> = [
    * kept last.
    */
   new MetricScrubRulesMatchTheirPatternType(),
+  /*
+   * Ends the on-call time logs that on-call policies deleted before #10983
+   * left open, which User On-Call Time counted as on call around the clock
+   * ever since (#11023): each when the audit log says its policy was
+   * deleted, else at the last time an on-call stint started on the policy,
+   * else at its own start. Postgres, and a read of the audit log; paged,
+   * idempotent; no ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new EndOnCallTimeLogsOfDeletedPolicies(),
+  /*
+   * Works out every monitor an incident declared by hand paused, as its
+   * open incidents now say (MonitorIncidentPause, #11141): resumes the ones
+   * a reopened incident left paused for good, and leaves out of uptime,
+   * from now, the time of those paused with no status of their own. After
+   * the schema migration that adds Incident.pauseMonitoring and
+   * Monitor.keepMonitoringDuringIncidents; Postgres; idempotent.
+   */
+  new WorkOutMonitorsPausedByIncidents(),
+  /*
+   * Sensitive file served (#10912) for each project that runs every other
+   * recommended rule and has no rule of it (#11037), on and opening cases,
+   * as Turn on recommended would have added it, marked as added by
+   * OneUptime so the Overview says so. After the schema migration that adds
+   * DetectionRule.addedByOneUptimeAt; Postgres only, idempotent; before the
+   * two slots kept last.
+   */
+  new AddSensitiveFileServedToRecommendedRules(),
+  /*
+   * Merges back the duplicates a failed fingerprint lookup made before
+   * #11027 whose error never happened again (#11113): an exception made
+   * since grouping v2 under the grouping v1 fingerprint of its own stored
+   * text, after the exception that text's later fingerprints find, is
+   * merged into that one as its next occurrence would merge it
+   * (TelemetryExceptionSplitHeal), when every occurrence ClickHouse keeps
+   * agrees. Postgres, and a bounded read of ClickHouse per pair; paged,
+   * resumable, idempotent; a couple of minutes at most, the
+   * TelemetryException:MergeBackExceptionsSplitByFailedLookups job doing
+   * the rest. No ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new MergeBackExceptionsSplitByFailedLookups(),
+  /*
+   * The metric rules Scrub It made for a phone number or a US Social
+   * Security number match the data type's pattern type instead of its
+   * frozen pattern (#11112), as MetricScrubRulesMatchTheirPatternType moved
+   * the three types before them: each hides what Data Security finds, in
+   * every reading, and covers its finding again. Postgres only,
+   * idempotent; no ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType(),
+  /*
+   * Leaves out of uptime, from now, the time of every monitor a scheduled
+   * maintenance event in progress pauses with no status set for it
+   * (MonitorIncidentPause, #11301), as an event's start does from the
+   * upgrade on; earlier history counts as it did. Postgres; idempotent; no
+   * ordering requirement of its own; before the two slots kept last.
+   */
+  new LeaveTimeOfMonitorsPausedForMaintenanceOutOfUptime(),
+  /*
+   * The on-call schedule layers stored with no restriction type the engine
+   * read - written with restrictionType, the key's natural spelling, or
+   * another key - which put nobody on call, are stored with the type they
+   * hold, and rotations written as "Weekly" with the interval they name
+   * (#11269); each schedule whose paging changes is told the change and has
+   * who is on call worked out again. After the schema migration that adds
+   * OnCallDutyPolicySchedule.rosterTurnKey, which the refresh writes.
+   * Postgres only, paged and idempotent; before the two slots kept last.
+   */
+  new RepairScheduleLayerRestrictionTypes(),
+  /*
+   * The weekly windows of on-call schedule layers whose times fall on other
+   * days than they name (#11455): a day left out is filled in; a time that
+   * falls on its day in no time zone - a Monday dated on a Wednesday - is
+   * moved onto its day at the same time of day, and its schedule told; one
+   * a time zone could explain is left as it pages, and logged, for the
+   * schedule's Layers page to mark. After RepairScheduleLayerRestrictionTypes,
+   * which stores every layer's type under restrictionType. Postgres only,
+   * paged and idempotent; before the two slots kept last.
+   */
+  new MoveWeeklyWindowsOntoTheirDays(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

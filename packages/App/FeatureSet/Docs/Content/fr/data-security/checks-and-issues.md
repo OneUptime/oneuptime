@@ -1,10 +1,10 @@
 # Contrôles et problèmes de Sécurité des données
 
-Sécurité des données exécute 34 contrôles sur chaque magasin de données, en neuf groupes. Un contrôle lit ce que l'on sait d'un magasin de données - sa configuration, ce qui y a été trouvé, qui peut y accéder, où il se trouve - et réussit, échoue ou ne peut pas trancher. Un contrôle en échec ouvre un problème sur ce magasin de données, et le problème se ferme de lui-même dès que le contrôle réussit. Cette page liste chaque contrôle, la façon dont la gravité et le score de risque d'un problème sont calculés, et ce qu'il advient d'un problème au cours de sa vie. Événements de sécurité, Flux réseau et Coffre d'adresses de sécurité appartiennent à OneUptime, qui les conserve pour votre sécurité : déclarés, jamais analysés ni contrôlés (voir [Magasins de données que OneUptime conserve pour votre sécurité](/docs/data-security/compliance#magasins-de-données-que-oneuptime-conserve-pour-votre-sécurité)).
+Sécurité des données exécute 35 contrôles sur chaque magasin de données, en neuf groupes. Un contrôle lit ce que l'on sait d'un magasin de données - sa configuration, ce qui y a été trouvé, qui peut y accéder, où il se trouve - et réussit, échoue ou ne peut pas trancher. Un contrôle en échec ouvre un problème sur ce magasin de données, et le problème se ferme de lui-même dès que le contrôle réussit. Cette page liste chaque contrôle, la façon dont la gravité et le score de risque d'un problème sont calculés, et ce qu'il advient d'un problème au cours de sa vie. Événements de sécurité, Flux réseau et Coffre d'adresses de sécurité appartiennent à OneUptime, qui les conserve pour votre sécurité : déclarés, jamais analysés ni contrôlés (voir [Magasins de données que OneUptime conserve pour votre sécurité](/docs/data-security/compliance#magasins-de-données-que-oneuptime-conserve-pour-votre-sécurité)).
 
 :::cards
 - [Comment un contrôle décide](#comment-un-contrôle-décide): Réussit, échoue ou ne peut pas trancher, et la gravité d'un échec.
-- [Chaque contrôle](#chaque-contrôle): Les 34, avec ce que chacun contrôle et comment corriger.
+- [Chaque contrôle](#chaque-contrôle): Les 35, avec ce que chacun contrôle et comment corriger.
 - [Score de risque](#score-de-risque): Comment les problèmes sont ordonnés au sein d'une même gravité.
 - [Ce qu'il advient d'un problème](#ce-quil-advient-dun-problème): Ouvert, résolu, accepté, pas un problème, comment chacun a été résolu, et les correctifs suivis jusqu'en production.
 - [L'analyse d'OneUptime AI](#lanalyse-doneuptime-ai): Si un problème est réel, ce qu'il met en danger, ce que la correction casserait et le chemin le plus court vers la correction.
@@ -22,6 +22,8 @@ Chaque contrôle lit des faits sur un magasin de données et répond de l'une de
 | Échoue | Le contrôle trouve le problème, et dit en une phrase ce qu'il a vu : la preuve du problème. | Un problème s'ouvre, ou celui qui est ouvert est mis à jour. |
 | Ne peut pas trancher | Un fait n'a pas pu être lu : une autorisation que le rôle n'a pas, un appel qui a échoué. | Rien ne change : un problème ouvert reste ouvert, car personne ne peut conclure qu'un problème est corrigé quand OneUptime n'a pas pu regarder. |
 | Ne s'applique pas | Le type du magasin de données n'a pas ce paramètre. | Un problème ouvert est résolu. |
+
+Un fait qu'on ne peut pas connaître depuis l'endroit où il a été lu n'est pas deviné non plus : si Internet atteint un magasin de données interrogé depuis votre réseau, ou si l'utilisateur anonyme d'un cluster peut écrire, ce que seule une écriture dirait. Son contrôle ne peut pas le déterminer, et cette ligne de la **Configuration** du magasin de données indique **Impossible à vérifier**.
 
 ### La gravité suit les données
 
@@ -45,6 +47,7 @@ La gravité est donnée pour les données de niveau Restreint, Confidentiel, Int
 | Un instantané peut en être restauré par n'importe qui (`snapshot-public`) | Base de données, Instantané | Un instantané de base de données est partagé publiquement, donc n'importe quel compte cloud peut en restaurer une copie complète. | Critique / Critique / Critique / Élevé | Rendez l'instantané privé. |
 | Un instantané en est partagé avec d'autres comptes (`snapshot-shared-externally`) | Base de données, Instantané | Un instantané de base de données est partagé avec des comptes extérieurs à vos comptes connectés. | Élevé / Élevé / Moyen / Faible | Cessez de partager l'instantané avec les comptes qui ne devraient pas l'avoir. |
 | Des comptes extérieurs à votre organisation peuvent y accéder (`shared-with-external-accounts`) | Tous les magasins de données sauf la télémétrie | La stratégie du magasin de données accorde l'accès à des comptes, locataires ou projets qui ne sont pas connectés à OneUptime. | Élevé / Élevé / Moyen / Faible | Examinez chaque principal extérieur, et retirez ceux qui n'ont pas besoin d'accès. |
+| Quiconque y accède peut le lire sans identifiants (`readable-without-credentials`) | Recherche | Il a répondu à OneUptime sans identifiants : quiconque peut atteindre son adresse peut lire ses données, et les modifier s'il n'a aucun contrôle d'accès. | Critique / Élevé / Moyen / Faible | Activez la sécurité du cluster, retirez tout rôle à son utilisateur anonyme, et donnez à chaque application son propre utilisateur en lecture seule. Un cluster qui accepte des écritures sans identifiants est Critique sur des données Restreint et Confidentiel, et Élevé sur toutes les autres. |
 
 ### Chiffrement
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Facteur | Points |
 | --- | --- |
 | Gravité | 75 pour Critique, 50 pour Élevé, 25 pour Moyen, 0 pour Faible |
-| Exposition | 10 pour Public, 8 pour Autres comptes, 6 pour Accessible depuis Internet, 3 pour Inconnu, 0 pour Privé |
+| Exposition | 10 pour Public, 8 pour Autres comptes, 6 pour Accessible depuis Internet, 3 pour Inconnu, Pas encore vérifié ou Impossible à vérifier, 0 pour Privé |
 | Volume | Jusqu'à 6, selon le nombre estimé d'enregistrements sensibles du magasin de données sur une échelle logarithmique : 1 pour 10 enregistrements, 3 pour 1 000, 5 pour un million, 6 pour dix millions ou plus |
 | Activité | 5 quand Opérations de sécurité a relevé des détections sur le magasin de données au cours de la dernière semaine |
 | Production | 4 pour un magasin de données en production |
@@ -184,11 +187,18 @@ La Vue d'ensemble compte les problèmes corrigés à la source séparément des 
 Une pull request qu'OneUptime AI a ouverte pour un problème (**Corriger avec l'IA**, ou une seule pull request pour un [groupe de problèmes](#problèmes-dune-même-cause)) n'a encore rien corrigé quand elle est fusionnée. OneUptime la suit jusqu'à ce que la production le prouve :
 
 - **Une fuite dans le code.** OneUptime attend un déploiement enregistré du service qui contient la fusion, puis surveille sa nouvelle version. Là où une règle de nettoyage masque les données, la règle ne doit modifier aucune valeur dans cette version ; là où aucune règle ne le fait, aucun enregistrement de cette version ne doit contenir les données aux endroits où elles ont été trouvées. La nouvelle version doit aussi tourner une journée et envoyer au moins autant de journaux ou de spans que l'ancienne dans l'heure où la fuite a été vue pour la dernière fois. Le problème est alors **Corrigé dans le code**. Une seule valeur modifiée, ou un seul enregistrement qui contient encore les données, signifie que le correctif n'a pas arrêté la fuite, et une version qui envoie trop peu en une semaine ne permet pas de conclure. Les déploiements sont rapprochés par leur commit : enregistrez-les avec `oneuptime deploy`, ou envoyez `vcs.ref.head.revision` (voir [Déploiements et changements](/docs/telemetry/change-events)).
+- **Une fuite dans des métriques ou des relectures de session.** Elle est prouvée de la même façon, par la version qui a écrit chaque enregistrement : les points de données d'une métrique la nomment parmi leurs attributs, les journaux et spans du navigateur d'une application RUM par la version pour laquelle ses source maps ont été envoyées, et ses sessions par la version d'application qu'envoie l'enregistreur de sessions. Les données d'une métrique qu'une règle de pipeline retire, ou dont elle abandonne les points, ne laissent rien à lire : cette fuite ne peut donc pas être jugée ; une règle **Masquer l'attribut** laisse sa valeur de remplacement à lire.
 - **La configuration d'un magasin de données.** Quand la pull request est fusionnée, ses magasins de données sont aussitôt relus. Chaque problème dont le contrôle réussit ensuite est **Corrigé dans le code d'infrastructure**. Quand un magasin échoue encore à son contrôle lorsqu'il est relu un jour après la fusion, le correctif a été **fusionné, non appliqué** : les propriétaires du magasin et la personne qui a demandé la pull request reçoivent un e-mail, une seule fois, et les chronologies du problème et du magasin l'indiquent. C'est généralement un apply qui manque.
 - **La règle de nettoyage est conservée.** Après un correctif de code vérifié, la règle de nettoyage qui a confiné la fuite reste en place, si bien qu'une régression est masquée dès son arrivée. Le problème indique que la règle n'a rien modifié depuis le correctif, et propose **Supprimer la règle**.
 - **Une régression.** Un correctif vérifié reste surveillé ensuite : quand une règle conservée modifie de nouveau des valeurs, ou que l'analyse retrouve les données, le problème s'ouvre à nouveau et indique quelle version les a ramenées. Il reste ouvert jusqu'à ce qu'il soit de nouveau corrigé, même tant qu'une règle masque les données.
 
 Chaque étape figure dans la **Chronologie** du problème et dans celle du magasin de données, et Résultats IA compte les correctifs vérifiés par type (voir [Comment OneUptime AI s'en sort](/docs/ai/ai-sre#comment-oneuptime-ai-sen-sort)).
+
+### Lier votre propre pull request
+
+Un correctif que vous avez écrit vous-même est suivi de la même façon. Sur la page du problème, **Lier une pull request** prend l'adresse d'une pull request dans un dépôt connecté sous **Code** – sur GitHub, GitLab, Forgejo ou Gitea – et le problème la liste sous **Pull requests liées**, en indiquant si elle a été fusionnée. OneUptime la suit jusqu'à sa fusion, au déploiement qui la livre et à la preuve de la production, comme ci-dessus, et le problème est résolu en la nommant. Chaque étape figure dans la **Chronologie** du problème. Une pull request fermée sans fusion n'est plus suivie, et la retirer du problème arrête son suivi.
+
+Qui peut modifier le problème peut en lier une, dans un dépôt qu'il peut lire sous **Code**. Un problème en accepte jusqu'à 10. Une adresse qui n'est celle d'aucune pull request, un dépôt non connecté ou qu'il ne peut pas lire, une pull request fermée sans fusion ou déjà liée, et un problème dont le risque a été accepté ou qui n'est pas un problème sont refusés, chacun en disant pourquoi.
 
 ## L'analyse d'OneUptime AI
 

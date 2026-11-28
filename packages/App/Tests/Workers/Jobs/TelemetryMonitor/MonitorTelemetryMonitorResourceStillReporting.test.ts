@@ -18,6 +18,7 @@ import { MonitorStepPodmanMonitorUtil } from "Common/Types/Monitor/MonitorStepPo
 import { MonitorStepOpenStackMonitorUtil } from "Common/Types/Monitor/MonitorStepOpenStackMonitor";
 import { MonitorStepProxmoxMonitorUtil } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
+import { MonitorStepXcpNgMonitorUtil } from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
 import { MonitorStepVMwareMonitorUtil } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import MonitorType, {
   MonitorTypeHelper,
@@ -325,8 +326,38 @@ const WITH_A_HEARTBEAT: Partial<Record<MonitorType, HeartbeatCase>> = {
         rollingTime: ROLLING_TIME,
       });
     },
-    metricNames: ["purefa_info", "purefb_info"],
+    /*
+     * Each platform's heartbeat series, in the order the platforms are
+     * registered: Pure's FlashArray and FlashBlade, Dell PowerStore's
+     * cluster (#11227), NetApp ONTAP's cluster status (#11189), Dell
+     * PowerMax's array (#11242) and Dell PowerScale's cluster health
+     * (#11233).
+     */
+    metricNames: [
+      "purefa_info",
+      "purefb_info",
+      "powerstore_cluster",
+      "netapp_cluster_new_status",
+      "powermax_array_info",
+      "powerscale_cluster_health",
+    ],
     scope: { "resource.storage.array.name": "array-01" },
+  },
+  [MonitorType.XcpNg]: {
+    step: (view: MetricsViewConfig): MonitorStep => {
+      return new MonitorStep().setXcpNgMonitor({
+        ...MonitorStepXcpNgMonitorUtil.getDefault(),
+        // Written in capitals: read as ingest stores it, lower-cased.
+        poolIdentifier: "1E8B7C4A-3F2D-4B6E-9A1C-0D5E7F9B2A3C",
+        metricViewConfig: view,
+        rollingTime: ROLLING_TIME,
+      });
+    },
+    // Xen Orchestra's own heartbeat for the pool, sent every scrape.
+    metricNames: ["xcp_pool_connected"],
+    scope: {
+      "resource.xcp_ng.pool.id": "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+    },
   },
 };
 
@@ -447,9 +478,12 @@ beforeEach(() => {
   metricAggregateBy.mockReset().mockResolvedValue({ data: [] });
   metricFindBy.mockReset().mockResolvedValue([]);
   metricTypeFindBy.mockReset().mockResolvedValue([]);
-  jest
-    .spyOn(ReceivingCoverage, "planTelemetryEvaluation")
-    .mockResolvedValue({ evaluate: true, isIngestBehind: false } as never);
+  jest.spyOn(ReceivingCoverage, "planTelemetryEvaluation").mockResolvedValue({
+    evaluate: true,
+    // The window ends where the real plan ends it: now, or when the check was due.
+    evaluateUntil: new Date(),
+    isIngestBehind: false,
+  });
   jest
     .spyOn(InfrastructureResourceBinding, "resolveForEvaluation")
     .mockImplementation(async (data: unknown) => {

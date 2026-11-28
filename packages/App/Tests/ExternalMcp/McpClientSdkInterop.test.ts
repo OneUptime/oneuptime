@@ -451,8 +451,13 @@ describe.each([
           properties: { region: { type: "string" } },
         },
         readsOnly: true,
+        saysWhetherItReads: true,
+        serverMarksAsChange: false,
       });
       expect(list.tools[1]!.readsOnly).toBe(false);
+      expect(list.tools[1]!.saysWhetherItReads).toBe(true);
+      // The SDK's readOnlyHint false: never marked read-only by an admin (#11081).
+      expect(list.tools[1]!.serverMarksAsChange).toBe(true);
     });
 
     test("calls a tool and hands its result on as the SDK sent it", async () => {

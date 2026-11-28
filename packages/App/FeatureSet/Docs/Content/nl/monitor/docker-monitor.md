@@ -203,7 +203,7 @@ De agent volgt ook het bestand `*-json.log` van elke container en stuurt elke re
 | `resource.container.id` | De volledige container-ID. |
 | `resource.container.runtime` | Altijd `docker`. |
 | `attributes["log.iostream"]` | `stdout` of `stderr`. |
-| `severityText` / `severityNumber` | Gelezen uit een niveausleutelwoord waar in de regel een niveau staat (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). Een regel zonder niveau valt terug op zijn stream: `stderr` is `ERROR`, `stdout` is `INFO`. |
+| `severityText` / `severityNumber` | Gelezen uit het niveau dat de regel noemt, waar er een niveau in staat (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); de traceback van een exception is `ERROR`. Een regel zonder niveau is `INFO` op `stdout` en heeft geen severity (Niet gespecificeerd) op `stderr`. |
 | `body` | De regel die de container schreef. Regels die met witruimte of een sluitend haakje beginnen, zoals regels van een stacktrace, worden aan de vorige regel toegevoegd. |
 | `time` | Het tijdstempel van de Docker-daemon voor de regel. |
 

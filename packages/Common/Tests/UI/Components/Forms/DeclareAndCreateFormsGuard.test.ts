@@ -115,8 +115,16 @@ const INCIDENT_CREATE: FormShape = {
     {
       id: "resources-affected",
       title: "Resources Affected",
-      // The monitors, the status they change to, and the other resources.
-      open: ["monitors", "changeMonitorStatusTo", "hosts"],
+      /*
+       * The monitors, the status they change to, whether their checks pause
+       * until the incident is resolved, and the other resources. Pause
+       * Monitoring stays out of More fields on purpose (#11141): it is asked
+       * only once a monitor is picked, like Change Monitor Status to, and a
+       * pause folded away was the one the person declaring never saw - an
+       * Incoming Request monitor's webhook events dropped while the incident
+       * was open.
+       */
+      open: ["monitors", "changeMonitorStatusTo", "pauseMonitoring", "hosts"],
       folded: [
         "statusPages",
         "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
@@ -516,6 +524,15 @@ describe("the state a record starts in", () => {
     );
   });
 
+  /*
+   * Declare Incident's help says what empty means in the project it is in
+   * (#11137, IncidentDeclaredByHandStartCopy): the same sentence as always,
+   * unless the project starts incidents declared by hand acknowledged. So
+   * it is written once, in the copy, as the help the other three forms
+   * write in their source.
+   */
+  const INCIDENT_INITIAL_STATE_COPY: string = `${DASHBOARD}/Components/Incident/IncidentDeclaredByHandStartCopy.ts`;
+
   test.each(STATE_FIELDS)(
     "$shape.label: the state is optional, folded, and says what empty means",
     ({ shape, key, help }: { shape: FormShape; key: string; help: string }) => {
@@ -525,7 +542,17 @@ describe("the state a record starts in", () => {
       );
 
       expect(field).toContain('title: "Initial State",');
-      expect(field).toContain(`description: "${help}",`);
+
+      if (shape === INCIDENT_CREATE) {
+        expect(field).toContain(
+          "description: getInitialStateDescription( declareDefaults.isDeclaredByHandAcknowledged, ),",
+        );
+        expect(dense(INCIDENT_INITIAL_STATE_COPY)).toContain(
+          `export const INITIAL_STATE_DESCRIPTION: string = translationKey( "${help}", );`,
+        );
+      } else {
+        expect(field).toContain(`description: "${help}",`);
+      }
       expect(field).toContain("required: false,");
       expect(field).toContain("collapsibleSection: advancedSection,");
       // What the review step says when it is left empty.
@@ -707,9 +734,14 @@ describe("the monitors apart, and the status they change to right under them", (
     expect(
       keysOf(shownOn(formFor(INCIDENT_CREATE), "resources-affected")).slice(
         0,
-        3,
+        4,
       ),
-    ).toEqual(["monitors", "changeMonitorStatusTo", "hosts"]);
+    ).toEqual([
+      "monitors",
+      "changeMonitorStatusTo",
+      "pauseMonitoring",
+      "hosts",
+    ]);
 
     const status: string = fieldObjectAround(
       incident,
@@ -727,6 +759,23 @@ describe("the monitors apart, and the status they change to right under them", (
     expect(incident).toContain(
       "const hasMonitors: IncidentFormPredicate = ( values: FormValues<Incident>, ): boolean => { return hasPickedMonitors(values); };",
     );
+  });
+
+  test("Pause Monitoring is open, under the status, ticked, and asked only once a monitor is picked (#11141)", () => {
+    const pause: string = fieldObjectAround(
+      incident,
+      "field: { pauseMonitoring: true, }",
+    );
+
+    expect(pause).toContain('title: "Pause Monitoring",');
+    expect(pause).toContain('stepId: "resources-affected",');
+    expect(pause).toContain("showIf: hasMonitors,");
+    // Open on its step: a pause folded away is one nobody sees.
+    expect(pause).not.toContain("collapsibleSection");
+    // Ticked, as every incident declared by hand always paused its monitors.
+    expect(pause).toContain("defaultValue: true,");
+    // And always says what was picked on the review.
+    expect(pause).toContain("getSummaryElement");
   });
 
   test("Declare Incident never sends a monitor status without a monitor", () => {
@@ -763,10 +812,10 @@ describe("the monitors apart, and the status they change to right under them", (
      * unless the project turned that off - and its question says so.
      */
     expect(notify).toContain(
-      "defaultValue: newIncidentNotifyDefault.isTickedByDefault,",
+      "defaultValue: declareDefaults.isNotifyTickedByDefault,",
     );
     expect(notify).toContain(
-      "description: getNotifyBoxDescription( newIncidentNotifyDefault.isTickedByDefault, ),",
+      "description: getNotifyBoxDescription( declareDefaults.isNotifyTickedByDefault, ),",
     );
     // Who is emailed, and a preview, on the review even while it is folded.
     expect(notify).toContain("alwaysInSummary: true,");

@@ -446,7 +446,7 @@ export default class SecurityPlaybookIssueGroupFix {
         if (answer.aiRunId) {
           data.lines.started.push(
             declared.paths.length > 0
-              ? mdText`one pull request that fixes ${storeName}, in the ${declared.codeKind} code in ${declared.repositoryName} (${FeedMarkdown.join(declared.paths, ", ")})`
+              ? mdText`one pull request that fixes ${storeName}, in the ${declared.codeKind} code in ${declared.repositoryName} (${FeedMarkdown.join(declared.paths)})`
               : mdText`one pull request that fixes ${storeName}, in the ${declared.codeKind} code in ${declared.repositoryName}`,
           );
         } else {

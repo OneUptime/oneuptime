@@ -916,6 +916,37 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       isCategoryTranslated: true,
     },
     {
+      key: ProductKey.XcpNg,
+      title: t("navbar.items.xcpNgTitle", "XCP-ng"),
+      isTitleTranslated: true,
+      // The words people who run XCP-ng (or XenServer) search for.
+      keywords: [
+        "xen",
+        "xenserver",
+        "xen orchestra",
+        "xo",
+        "xcp",
+        "pool",
+        "virtualization",
+        "virtual machines",
+        "hypervisor",
+        "storage repositories",
+      ],
+      description: t(
+        "navbar.items.xcpNgDescription",
+        "Monitor XCP-ng pools, hosts, VMs and storage repositories.",
+      ),
+      isDescriptionTranslated: true,
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.XCP_NG_POOLS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.XCP_NG_POOLS],
+      icon: IconProp.XcpNg,
+      iconColor: "blue",
+      category: infrastructureCategory,
+      isCategoryTranslated: true,
+    },
+    {
       key: ProductKey.Ceph,
       title: t("navbar.items.cephTitle", "Ceph"),
       isTitleTranslated: true,

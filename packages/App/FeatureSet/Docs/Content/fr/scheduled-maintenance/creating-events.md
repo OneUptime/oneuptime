@@ -63,7 +63,7 @@ Rien n'est envoyé tant que vous ne choisissez pas de page de statut : un évén
 | **Propriétaires**                    | **Détails de la maintenance**      | Personne                        | Les personnes et équipes à qui appartient l'événement et qui en sont informées. |
 | **Étiquettes**                       | **Détails de la maintenance**      | Aucune                          | Des étiquettes que les règles et les filtres peuvent cibler.                     |
 | **Moniteurs**                        | **Ressources affectées** | Aucun                     | Les moniteurs qui ne sont pas vérifiés pendant que l'événement est en cours.     |
-| **Changer le statut du moniteur en** | **Ressources affectées** | Aucun changement          | Le statut que ces moniteurs affichent pendant l'événement. Demandé dès qu'un moniteur est choisi. |
+| **Changer le statut du moniteur en** | **Ressources affectées** | Aucun changement          | Le statut que ces moniteurs affichent pendant l'événement, et que leur disponibilité compte. Si aucun n'est choisi, ils gardent leur statut et leur disponibilité exclut ce temps. Demandé dès qu'un moniteur est choisi. |
 | **Autres ressources affectées**      | **Ressources affectées** | Aucune                    | Hôtes, clusters, bases de données, sites réseau, services et plus.               |
 | **Afficher l'événement sur ces pages de statut** | **Ressources affectées** | Aucune    | Les seules pages de statut qui peuvent afficher l'événement ou prévenir leurs abonnés. |
 | **Notifications aux abonnés**        | **Ressources affectées** | Publié immédiatement, les trois moments activés, aucun rappel | Quand l'événement s'affiche sur ces pages, et quand leurs abonnés sont prévenus. |
@@ -75,7 +75,7 @@ Deux choses remplissent le formulaire pour vous en cours de route :
 
 ## Partir d'une ressource ou d'un modèle
 
-Dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, d'un hôte Docker ou Podman, d'un vCenter, d'un cloud OpenStack, d'une baie de stockage, d'une flotte IoT, d'une base de données, d'une ressource cloud, d'un service ou d'un site réseau, **Créer un événement de maintenance** ouvre le même formulaire avec cette ressource déjà choisie sous **Autres ressources affectées**, et l'onglet liste les événements qui l'affectent. L'onglet d'un élément d'inventaire choisit l'hôte, le service ou le cluster Kubernetes vers lequel pointe l'élément.
+Dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster Kubernetes, Proxmox, Ceph ou Docker Swarm, d'un hôte Docker ou Podman, d'un vCenter, d'un pool XCP-ng, d'un cloud OpenStack, d'une baie de stockage, d'une flotte IoT, d'une base de données, d'une ressource cloud, d'un service ou d'un site réseau, **Créer un événement de maintenance** ouvre le même formulaire avec cette ressource déjà choisie sous **Autres ressources affectées**, et l'onglet liste les événements qui l'affectent. L'onglet d'un élément d'inventaire choisit l'hôte, le service ou le cluster Kubernetes vers lequel pointe l'élément.
 
 **Créer à partir d'un modèle**, à côté du bouton de création, vous demande de **Sélectionner le modèle de maintenance planifiée**, puis ouvre le formulaire rempli à partir du modèle. Voir [Modèles et événements récurrents](/docs/scheduled-maintenance/templates).
 
@@ -84,9 +84,9 @@ Dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster Kubernetes, Pr
 Au moment où vous cliquez sur **Créer un événement de maintenance**, OneUptime enchaîne ces étapes, dans cet ordre :
 
 1. **Il reçoit un numéro et un état.** Le numéro vient d'un compteur par projet, affiché avec votre préfixe (`SM-42`). L'événement commence dans votre état planifié, quel que soit l'état indiqué par une requête.
-2. **Vos outils de chat en sont informés.** Les règles Slack et Microsoft Teams sous **Espace de travail** le publient dans leurs canaux, et une règle peut créer un canal pour l'événement. Son fil d'activité enregistre sa création.
-3. **Sa chronologie d'état commence.** La première ligne de sa **Chronologie d'état** est votre état planifié.
-4. **Les propriétaires et étiquettes sont ajoutés** : ceux que vous avez choisis, puis ceux des règles de propriétaire et d'étiquettes qui correspondent.
+2. **Sa chronologie d'état commence.** La première ligne de sa **Chronologie d'état** est votre état planifié.
+3. **Les propriétaires et étiquettes sont ajoutés** : ceux que vous avez choisis, puis ceux des règles de propriétaire et d'étiquettes qui correspondent.
+4. **Vos outils de chat en sont informés.** Les règles Slack et Microsoft Teams sous **Espace de travail** le publient dans leurs canaux, et une règle peut créer un canal pour l'événement. Son fil d'activité enregistre sa création. Les règles voient les propriétaires et les étiquettes avec lesquels l'événement a été créé, si bien qu'une règle qui porte sur le propriétaire ou les étiquettes d'un événement le publie aussi. Tout ce qui a été dit sur l'événement entre-temps, comme les propriétaires tout juste ajoutés, le suit dans ces canaux.
 5. **Les règles de runbook démarrent** les runbooks qui correspondent à l'événement.
 6. **Les rappels sont planifiés**, quand une règle de rappel correspond, pour ses propriétaires.
 

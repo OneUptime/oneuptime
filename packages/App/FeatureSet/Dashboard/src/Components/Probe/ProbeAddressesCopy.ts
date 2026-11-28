@@ -29,7 +29,12 @@ export const PROBE_ADDRESSES_COPY: {
     "Where OneUptime sees this probe check in from. The blocklist never blocks it.",
   ),
   interfacesTitle: translationKey("Interface Addresses"),
+  /*
+   * One short sentence, as a detail's description is (ShortDescriptionsGuard):
+   * that its host's addresses are listed too, and which of the probe's
+   * checks Security Events sets aside, is the Custom Probes page's to say.
+   */
   interfacesDescription: translationKey(
-    "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.",
+    "The addresses this probe lists each time it checks in. Security Events knows the probe's own checks by them, and the blocklist never blocks them.",
   ),
 };

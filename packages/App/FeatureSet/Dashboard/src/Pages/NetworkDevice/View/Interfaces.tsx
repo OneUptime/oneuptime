@@ -1,6 +1,10 @@
 import PageComponentProps from "../../PageComponentProps";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import TransceiverHealthCard from "../../../Components/NetworkDevice/TransceiverHealthCard";
+import FibreChannelPortsCard from "../../../Components/NetworkDevice/FibreChannelPortsCard";
+import SnmpFibreChannelUtil from "Common/Types/Monitor/SnmpMonitor/SnmpFibreChannel";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -156,6 +160,42 @@ const NetworkDeviceInterfaces: FunctionComponent<
     item: NetworkInterface,
   ) => ReactElement;
 
+  /*
+   * Why a port is down, in the switch's own words, under its status: a
+   * SAN switch says it ("No light", "SFP not present", "Link failure or
+   * not-connected"), and nothing else does. Left out when it only repeats
+   * the status.
+   */
+  type GetDownReasonElementFunction = (
+    item: NetworkInterface,
+    statusWord: string,
+  ) => ReactElement;
+
+  const getDownReasonElement: GetDownReasonElementFunction = (
+    item: NetworkInterface,
+    statusWord: string,
+  ): ReactElement => {
+    const reason: string = (item.downReason || "").trim();
+
+    if (
+      !reason ||
+      reason.toLowerCase() === statusWord.toLowerCase() ||
+      reason.toLowerCase() ===
+        (translator.translateText(statusWord) || statusWord).toLowerCase()
+    ) {
+      return <></>;
+    }
+
+    return (
+      <div
+        className="mt-0.5 text-xs text-gray-500"
+        data-testid="interface-down-reason"
+      >
+        {reason}
+      </div>
+    );
+  };
+
   const getInterfaceStatusElement: GetInterfaceStatusElementFunction = (
     item: NetworkInterface,
   ): ReactElement => {
@@ -164,11 +204,14 @@ const NetworkDeviceInterfaces: FunctionComponent<
 
     if (!isAdminUp) {
       return (
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-gray-400" />
-          <span className="text-sm font-medium text-gray-500">
-            {translator.translateText("Disabled")}
-          </span>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-gray-400" />
+            <span className="text-sm font-medium text-gray-500">
+              {translator.translateText("Disabled")}
+            </span>
+          </div>
+          {getDownReasonElement(item, "Disabled")}
         </div>
       );
     }
@@ -185,12 +228,47 @@ const NetworkDeviceInterfaces: FunctionComponent<
     }
 
     return (
-      <div className="flex items-center gap-2">
-        <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
-        <span className="text-sm font-medium text-red-700">
-          {translator.translateText("Down")}
-        </span>
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+          <span className="text-sm font-medium text-red-700">
+            {translator.translateText("Down")}
+          </span>
+        </div>
+        {getDownReasonElement(item, "Down")}
       </div>
+    );
+  };
+
+  /*
+   * A Fibre Channel port's type beside its name: E-Port (an inter-switch
+   * link, drawn as worth knowing), F-Port (a host or an array) and the rest.
+   */
+  type GetPortTypeElementFunction = (item: NetworkInterface) => ReactElement;
+
+  const getPortTypeElement: GetPortTypeElementFunction = (
+    item: NetworkInterface,
+  ): ReactElement => {
+    const title: string | undefined = SnmpFibreChannelUtil.getPortTypeTitle(
+      item.fibreChannelPortType,
+    );
+
+    if (!title) {
+      return <></>;
+    }
+
+    // The type's English name, which the badge looks up once.
+    return (
+      <Pill
+        text={title}
+        tone={
+          SnmpFibreChannelUtil.isInterSwitchLink(item.fibreChannelPortType)
+            ? PillTone.Info
+            : PillTone.Neutral
+        }
+        isDotHidden={true}
+        size={PillSize.Small}
+      />
     );
   };
 
@@ -257,6 +335,11 @@ const NetworkDeviceInterfaces: FunctionComponent<
        * that reports no transceivers.
        */}
       <TransceiverHealthCard networkDeviceId={modelId} />
+      {/*
+       * A SAN switch's Fibre Channel errors, discards and credit counters,
+       * port by port. Draws nothing on a device with no Fibre Channel ports.
+       */}
+      <FibreChannelPortsCard networkDeviceId={modelId} />
       <ModelTable<NetworkInterface>
         modelType={NetworkInterface}
         id="network-interfaces-table"
@@ -341,6 +424,8 @@ const NetworkDeviceInterfaces: FunctionComponent<
           isAdministrativelyUp: true,
           outRateMbps: true,
           alias: true,
+          fibreChannelPortType: true,
+          downReason: true,
         }}
         columns={[
           {
@@ -363,8 +448,11 @@ const NetworkDeviceInterfaces: FunctionComponent<
             getElement: (item: NetworkInterface): ReactElement => {
               return (
                 <div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {item.name}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {item.name}
+                    </span>
+                    {getPortTypeElement(item)}
                   </div>
                   {item.alias && (
                     <div className="text-xs text-gray-500">{item.alias}</div>

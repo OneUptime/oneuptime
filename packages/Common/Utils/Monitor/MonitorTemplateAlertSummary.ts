@@ -39,6 +39,10 @@ import ObjectID from "../../Types/ObjectID";
  */
 export const PING_ONLY_EVALUATED_CHECKS: ReadonlyArray<CheckOn> = [
   CheckOn.SnmpIsOnline,
+  // The device's ping on its own (issue #11071): what a ping-only poll is.
+  CheckOn.IcmpIsReachable,
+  CheckOn.IcmpResponseTime,
+  CheckOn.IcmpPacketLossPercent,
   CheckOn.SnmpTrapReceived,
   CheckOn.SnmpTrapVarbindValue,
 ];

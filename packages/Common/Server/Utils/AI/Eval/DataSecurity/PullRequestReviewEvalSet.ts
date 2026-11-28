@@ -17,6 +17,8 @@
  * what it must leave alone.
  */
 
+import { SensitiveDataSink } from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
+
 export interface EvalDiffFile {
   filename: string;
   status: string;
@@ -28,6 +30,10 @@ export interface EvalExpectedPoint {
   subject: string;
   checkId: string;
   isBlocking: boolean;
+  // Telemetry: where the value goes, when the diff says (#10778's exceptions).
+  sink?: SensitiveDataSink | undefined;
+  // A migration's table, when the diff names it (#10779): what production is asked of.
+  where?: string | undefined;
 }
 
 export interface PullRequestEvalDiff {
@@ -499,6 +505,378 @@ const INFRASTRUCTURE: Array<PullRequestEvalDiff> = [
   },
 ];
 
+/*
+ * EXCEPTIONS (#10778): the message an error is made with, and what an
+ * error tracker is handed, reach the service's exceptions in telemetry.
+ * A message that names only the field it is about holds nothing.
+ */
+const EXCEPTIONS: Array<PullRequestEvalDiff> = [
+  {
+    id: "exception-message-with-email",
+    title: "Say which account was not found",
+    files: [
+      changedFile("services/accounts/src/find.ts", 18, [
+        "   const account = await accounts.findOne({ email });",
+        "   if (!account) {",
+        "-    throw new NotFoundError();",
+        "+    throw new NotFoundError(`no account for ${email}`);",
+        "   }",
+      ]),
+    ],
+    points: [
+      {
+        subject: "email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Exception,
+      },
+    ],
+    ai: {
+      keeps: { email: true },
+      fixMentions: [["leave", "remove", "omit", "out", "field"]],
+    },
+  },
+  {
+    id: "exception-message-names-only-the-field",
+    title: "Validate the sign-up form",
+    files: [
+      changedFile("services/accounts/src/signup.ts", 4, [
+        " export function validate(email: string, password: string): void {",
+        '+  if (!email) throw new ValidationError("email is required");',
+        '+  if (password.length < 12) throw new ValidationError("password", "is too short");',
+        " }",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "python-raise-with-card-number",
+    title: "Reject cards the processor declines",
+    isFailOn: true,
+    files: [
+      changedFile("billing/cards.py", 30, [
+        "     if not result.approved:",
+        '+        raise ValueError(f"card {card_number} was declined")',
+        "     return result",
+      ]),
+    ],
+    points: [
+      {
+        subject: "card_number",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: true,
+        sink: SensitiveDataSink.Exception,
+      },
+    ],
+    ai: {
+      keeps: { card_number: true },
+    },
+  },
+  {
+    id: "go-errorf-with-email",
+    title: "Wrap lookup errors",
+    files: [
+      changedFile("internal/users/store.go", 52, [
+        " \tif err != nil {",
+        '+\t\treturn nil, fmt.Errorf("find user %s: %w", email, err)',
+        " \t}",
+      ]),
+    ],
+    points: [
+      {
+        subject: "email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Exception,
+      },
+    ],
+  },
+  {
+    id: "go-errorf-with-an-id",
+    title: "Wrap lookup errors by id",
+    files: [
+      changedFile("internal/users/store.go", 52, [
+        " \tif err != nil {",
+        '+\t\treturn nil, fmt.Errorf("find user %s: %w", userID, err)',
+        " \t}",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "java-exception-with-ssn",
+    title: "Explain rejected tax forms",
+    files: [
+      changedFile("src/main/java/com/acme/tax/TaxForms.java", 40, [
+        "         if (!validator.isValid(form)) {",
+        '+            throw new IllegalArgumentException("Invalid tax form for " + ssn);',
+        "         }",
+      ]),
+    ],
+    points: [
+      {
+        subject: "ssn",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: true,
+        sink: SensitiveDataSink.Exception,
+      },
+    ],
+  },
+  {
+    id: "ruby-raise-with-email",
+    title: "Fail loudly on unknown customers",
+    files: [
+      changedFile("app/services/customer_lookup.rb", 12, [
+        "     customer = Customer.find_by(email: email)",
+        '+    raise ArgumentError, "unknown customer #{email}" unless customer',
+        "     customer",
+      ]),
+    ],
+    points: [
+      {
+        subject: "email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Exception,
+      },
+    ],
+  },
+  {
+    id: "sentry-user-and-extra",
+    title: "Report checkout failures to Sentry",
+    files: [
+      changedFile("web/src/checkout/pay.ts", 60, [
+        "   } catch (error) {",
+        "+    Sentry.setUser({ id: customer.id, email: customer.email });",
+        "+    Sentry.captureException(error, { extra: { cardNumber } });",
+        "     throw error;",
+      ]),
+    ],
+    points: [
+      {
+        subject: "email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Exception,
+      },
+      {
+        subject: "cardNumber",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: true,
+        sink: SensitiveDataSink.Exception,
+      },
+    ],
+    ai: {
+      keeps: { email: true, cardNumber: true },
+    },
+  },
+  {
+    id: "sentry-scope-tag-ssn",
+    title: "Tag applicant errors",
+    files: [
+      changedFile("api/applicants.js", 8, [
+        " Sentry.withScope((scope) => {",
+        '+  scope.setTag("ssn", applicant.ssn);',
+        "   Sentry.captureException(error);",
+        " });",
+      ]),
+    ],
+    points: [
+      {
+        subject: "ssn",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: true,
+        sink: SensitiveDataSink.Exception,
+      },
+    ],
+  },
+  {
+    id: "sentry-capture-alone",
+    title: "Report payment failures",
+    files: [
+      changedFile("web/src/checkout/pay.ts", 60, [
+        "   } catch (error) {",
+        "+    Sentry.captureException(error);",
+        "     throw error;",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "span-record-exception-with-attribute",
+    title: "Record failed sign-ins on the span",
+    files: [
+      changedFile("auth/signin.py", 22, [
+        "     except AuthError as error:",
+        '+        span.record_exception(error, attributes={"user.email": email})',
+        "         raise",
+      ]),
+    ],
+    points: [
+      {
+        subject: "user.email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Exception,
+      },
+    ],
+  },
+  {
+    id: "react-state-named-like-a-tracker",
+    title: "Keep the signed-in user in state",
+    files: [
+      changedFile("web/src/profile/Profile.tsx", 14, [
+        "   const [user, setUser] = useState<User | null>(null);",
+        "+  const save = (email: string): void => setUser({ ...user, email });",
+      ]),
+    ],
+    points: [],
+  },
+];
+
+/*
+ * A web application's front end (#11395): who it tells its session
+ * recorder or product analytics SDK the session's user is, and what its
+ * browser logs. An email as the user, or among the user's traits, is a
+ * point; an opaque id - the user's id, a hash - is none.
+ */
+const FRONT_END: Array<PullRequestEvalDiff> = [
+  {
+    id: "session-identified-by-email",
+    title: "Identify recorded sessions",
+    files: [
+      changedFile("web/src/session.ts", 12, [
+        " export function startSession(customer: Customer): void {",
+        "+  OneUptimeReplay.identify(customer.email, { plan: customer.plan });",
+        " }",
+      ]),
+    ],
+    points: [
+      {
+        subject: "customer.email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "session-identified-by-user-id",
+    title: "Identify recorded sessions by the user's id",
+    files: [
+      changedFile("web/src/session.ts", 12, [
+        " export function startSession(customer: Customer): void {",
+        "+  OneUptimeReplay.identify(customer.id, { plan: customer.plan });",
+        " }",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "datadog-rum-user-with-email",
+    title: "Tell Datadog RUM who the user is",
+    files: [
+      addedFile("web/src/rum.ts", [
+        'import { datadogRum } from "@datadog/browser-rum";',
+        "",
+        "export function identifyUser(user: User): void {",
+        "  datadogRum.setUser({ id: user.id, name: user.name, email: user.email });",
+        "}",
+      ]),
+    ],
+    points: [
+      {
+        subject: "email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "fullstory-identity-with-email",
+    title: "Identify FullStory sessions",
+    files: [
+      addedFile("web/src/fullstory.js", [
+        "export function identifyForFullStory(user) {",
+        '  FS("setIdentity", { uid: user.id, properties: { displayName: user.name, email: user.email } });',
+        "}",
+      ]),
+    ],
+    points: [
+      {
+        subject: "email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "replay-queue-identified-by-email",
+    title: "Identify the session before the recorder loads",
+    files: [
+      addedFile("web/public/identify.js", [
+        "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+        '  "identify",',
+        "  window.currentUser.email,",
+        "  { plan: window.currentUser.plan },",
+        "]);",
+      ]),
+    ],
+    points: [
+      {
+        subject: "window.currentUser.email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Session,
+      },
+    ],
+  },
+  {
+    id: "posthog-identified-by-a-hash",
+    title: "Identify product analytics users by a hash",
+    files: [
+      changedFile("web/src/analytics.ts", 30, [
+        "   if (user) {",
+        "+    posthog.identify(sha256(user.email), { plan: user.plan });",
+        "   }",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "react-state-named-like-an-identify",
+    title: "Keep the signed-in user's id in state",
+    files: [
+      changedFile("web/src/profile/Account.tsx", 8, [
+        "   const [userId, setUserId] = useState<string | null>(null);",
+        "+  useEffect(() => setUserId(account.email), [account]);",
+      ]),
+    ],
+    points: [],
+  },
+  {
+    id: "browser-log-with-email",
+    title: "Log declined payments in the browser",
+    files: [
+      changedFile("web/src/checkout/payment.js", 6, [
+        "   if (cart.total > customer.limit) {",
+        '+    logger.warn("Payment declined", { "user.email": customer.email, "cart.total": cart.total });',
+        "     return { paid: false };",
+      ]),
+    ],
+    points: [
+      {
+        subject: "user.email",
+        checkId: "sensitive-data-in-telemetry",
+        isBlocking: false,
+        sink: SensitiveDataSink.Log,
+      },
+    ],
+  },
+];
+
 const MIGRATIONS: Array<PullRequestEvalDiff> = [
   {
     id: "migration-customer-ssn",
@@ -513,12 +891,176 @@ const MIGRATIONS: Array<PullRequestEvalDiff> = [
         subject: "customer_ssn",
         checkId: "new-personal-data-column",
         isBlocking: false,
+        where: "customers",
       },
     ],
     ai: {
       keeps: { customer_ssn: true },
       fixMentions: [["encrypt", "token", "need", "must"]],
     },
+  },
+  /*
+   * The table a column is added to, in each ORM's own way of naming it
+   * (#10779): what a private repository's review asks Data Security of.
+   */
+  {
+    id: "rails-create-table-with-ssn",
+    title: "Keep customers' SSNs for tax forms",
+    files: [
+      addedFile("db/migrate/20261124090000_create_tax_profiles.rb", [
+        "class CreateTaxProfiles < ActiveRecord::Migration[7.1]",
+        "  def change",
+        "    create_table :tax_profiles do |t|",
+        "      t.references :customer",
+        "      t.string :customer_ssn",
+        "      t.timestamps",
+        "    end",
+        "  end",
+        "end",
+      ]),
+    ],
+    points: [
+      {
+        subject: "customer_ssn",
+        checkId: "new-personal-data-column",
+        isBlocking: false,
+        where: "tax_profiles",
+      },
+    ],
+  },
+  {
+    id: "django-add-field-date-of-birth",
+    title: "Ask for a date of birth at sign-up",
+    files: [
+      addedFile("accounts/migrations/0007_customer_date_of_birth.py", [
+        "from django.db import migrations, models",
+        "",
+        "",
+        "class Migration(migrations.Migration):",
+        '    dependencies = [("accounts", "0006_customer_plan")]',
+        "",
+        "    operations = [",
+        "        migrations.AddField(",
+        '            model_name="customer",',
+        '            name="date_of_birth",',
+        "            field=models.DateField(null=True),",
+        "        ),",
+        "    ]",
+      ]),
+    ],
+    points: [
+      {
+        subject: "date_of_birth",
+        checkId: "new-personal-data-column",
+        isBlocking: false,
+        where: "accounts_customer",
+      },
+    ],
+  },
+  {
+    id: "knex-alter-table-billing-email",
+    title: "Send invoices to a billing address",
+    files: [
+      addedFile("migrations/20261124_billing_email.js", [
+        "exports.up = async (knex) => {",
+        '  await knex.schema.alterTable("orders", (table) => {',
+        '    table.string("billing_email");',
+        "  });",
+        "};",
+        "",
+        "exports.down = async (knex) => {",
+        '  await knex.schema.alterTable("orders", (table) => {',
+        '    table.dropColumn("billing_email");',
+        "  });",
+        "};",
+      ]),
+    ],
+    points: [
+      {
+        subject: "billing_email",
+        checkId: "new-personal-data-column",
+        isBlocking: false,
+        where: "orders",
+      },
+    ],
+  },
+  {
+    id: "ecto-alter-table-ssn",
+    title: "Store SSNs for payroll",
+    files: [
+      addedFile(
+        "priv/repo/migrations/20261124100000_add_ssn_to_employees.exs",
+        [
+          "defmodule Payroll.Repo.Migrations.AddSsnToEmployees do",
+          "  use Ecto.Migration",
+          "",
+          "  def change do",
+          "    alter table(:employees) do",
+          "      add :ssn, :string",
+          "    end",
+          "  end",
+          "end",
+        ],
+      ),
+    ],
+    points: [
+      {
+        subject: "ssn",
+        checkId: "new-personal-data-column",
+        isBlocking: false,
+        where: "employees",
+      },
+    ],
+  },
+  {
+    id: "liquibase-add-column-phone",
+    title: "Call customers about failed deliveries",
+    files: [
+      addedFile("db/changelog/2026-11-24-add-phone.xml", [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        "<databaseChangeLog>",
+        '  <changeSet id="42" author="dana">',
+        '    <addColumn tableName="customers">',
+        '      <column name="phone_number" type="varchar(20)"/>',
+        "    </addColumn>",
+        "  </changeSet>",
+        "</databaseChangeLog>",
+      ]),
+    ],
+    points: [
+      {
+        subject: "phone_number",
+        checkId: "new-personal-data-column",
+        isBlocking: false,
+        where: "customers",
+      },
+    ],
+  },
+  {
+    id: "entity-framework-add-column-ssn",
+    title: "Store SSNs for tax forms",
+    files: [
+      addedFile("src/Acme.Data/Migrations/20261124_AddCustomerSsn.cs", [
+        "public partial class AddCustomerSsn : Migration",
+        "{",
+        "    protected override void Up(MigrationBuilder migrationBuilder)",
+        "    {",
+        "        migrationBuilder.AddColumn<string>(",
+        '            name: "Ssn",',
+        '            table: "Customers",',
+        "            nullable: true);",
+        "    }",
+        "}",
+      ]),
+    ],
+    points: [
+      {
+        subject: "Ssn",
+        checkId: "new-personal-data-column",
+        isBlocking: false,
+        where: "Customers",
+      },
+    ],
   },
   {
     id: "migration-password-hash-with-bcrypt",
@@ -647,6 +1189,8 @@ const MIGRATIONS: Array<PullRequestEvalDiff> = [
 
 export const PULL_REQUEST_EVAL_DIFFS: ReadonlyArray<PullRequestEvalDiff> = [
   ...TELEMETRY,
+  ...EXCEPTIONS,
+  ...FRONT_END,
   ...INFRASTRUCTURE,
   ...MIGRATIONS,
 ];

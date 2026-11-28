@@ -2,6 +2,8 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import CallAndSmsGatewayCard from "./CallAndSmsGatewayCard";
+import CallVoiceCard from "./CallVoiceCard";
+import ProjectCallVoicesCard from "./ProjectCallVoicesCard";
 import ServerTwilioEnvironmentCard, {
   ServerTwilioEnvironmentLoadingCard,
   ServerTwilioEnvironmentUnusedAlert,
@@ -427,6 +429,22 @@ const Settings: FunctionComponent = (): ReactElement => {
           {getSavedAccountCard()}
         </>
       )}
+
+      {/*
+       * The voice the account's calls speak with (#10948): chosen here
+       * however the account is set, by this page or by the environment -
+       * unless GLOBAL_TWILIO_CALL_VOICE sets the voice too (#11064).
+       */}
+      <CallVoiceCard
+        onSaveSuccess={onSettingsSaved}
+        environment={twilioEnvironment}
+      />
+
+      {/*
+       * Whether projects choose their own voice through this account
+       * (#11065): the owner's consent to pay for it. Not on OneUptime Cloud.
+       */}
+      <ProjectCallVoicesCard />
     </Page>
   );
 };

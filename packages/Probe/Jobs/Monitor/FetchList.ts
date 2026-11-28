@@ -20,7 +20,7 @@ import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
-import NumberUtil from "Common/Utils/Number";
+import ProbeFetchMoments from "Common/Utils/Probe/ProbeFetchMoments";
 import Sleep from "Common/Types/Sleep";
 
 /*
@@ -28,10 +28,21 @@ import Sleep from "Common/Types/Sleep";
  *
  * Every minute, each of PROBE_MONITORING_WORKERS workers asks the server
  * for up to PROBE_MONITOR_FETCH_LIMIT of the monitors that are due, and
- * starts checking them. While the server hands it a full batch, more may be
- * due, so the worker asks again as soon as there is room; once a batch comes
- * back short, everything that was due has been handed out, and the worker
- * waits for the next minute.
+ * starts checking them. Each asks at its own moment of the minute, the same
+ * every minute (ProbeFetchMoments, issue #11333). The probe's workers are
+ * spread over the first MONITOR_FETCH_STAGGER_MAX_MS of the minute, so they,
+ * and the probes of a server, never all ask at once. While the server hands
+ * it a full batch, more may be due, so the worker asks again as soon as
+ * there is room; once a batch comes back short, everything that was due has
+ * been handed out, and the worker waits for the next minute.
+ *
+ * So a monitor checked every minute is checked a minute apart. The round,
+ * from a minute's first ask to its last, lasts as long as the probe takes to
+ * get through what is due: a few seconds unless it is busy. The server hands
+ * out the monitors due at the same moment in the order it handed them out
+ * the minute before, so each keeps its place in the round (issue #11386);
+ * when a round runs past the next minute, the ones it reaches after the
+ * minute miss one, and go first the next time.
  *
  * It used to ask once a minute and wait for the whole batch to finish, so a
  * probe checked at most PROBE_MONITORING_WORKERS x PROBE_MONITOR_FETCH_LIMIT
@@ -82,8 +93,31 @@ export const MONITOR_ROOM_TO_ASK: number = Math.max(
 export const MONITOR_WAIT_WARNING_AFTER_MS: number = 60 * 1000;
 export const MONITOR_WAIT_WARNING_EVERY_MS: number = 10 * 60 * 1000;
 
-// The longest a worker waits before its first fetch of a minute.
+// How far into the minute a worker's first fetch of it may be.
 export const MONITOR_FETCH_STAGGER_MAX_MS: number = 45 * 1000;
+
+/*
+ * Each worker's moment of the minute, in ms from its start, worker 1 first:
+ * drawn once, as the probe starts, and the same every minute after
+ * (ProbeFetchMoments). A replica of a probe shares its id, so the draw is
+ * the replica's own.
+ */
+const workerFetchOffsetsMs: Array<number> =
+  ProbeFetchMoments.getWorkerOffsetsMs({
+    workers: PROBE_MONITORING_WORKERS,
+    spreadMs: MONITOR_FETCH_STAGGER_MAX_MS,
+    random: Math.random(),
+  });
+
+// Exported for tests: each worker's moment of the minute, worker 1 first.
+export function getWorkerFetchOffsetsMs(): Array<number> {
+  return [...workerFetchOffsetsMs];
+}
+
+// Worker `workerNumber`'s moment of the minute (the first's, for any other).
+export function getWorkerFetchOffsetMs(workerNumber: number): number {
+  return workerFetchOffsetsMs[workerNumber - 1] ?? workerFetchOffsetsMs[0] ?? 0;
+}
 
 const monitorCheckSlots: MonitorCheckSlots = new MonitorCheckSlots(
   MONITOR_CHECKS_AT_ONCE,
@@ -213,7 +247,7 @@ const InitJob: VoidFunction = (): void => {
           logger.debug(`Starting worker ${currentWorker}`);
 
           try {
-            new FetchListAndProbe("Worker " + currentWorker)
+            new FetchListAndProbe("Worker " + currentWorker, currentWorker)
               .run()
               .catch((err: unknown) => {
                 logger.error(`Worker ${currentWorker} failed: `);
@@ -246,9 +280,12 @@ const InitJob: VoidFunction = (): void => {
 // Exported for tests: one worker's fetching for one tick.
 export class FetchListAndProbe {
   private workerName: string = "";
+  // Which of the probe's workers this is, from 1: its moment of the minute.
+  private workerNumber: number = 1;
 
-  public constructor(workerName: string) {
+  public constructor(workerName: string, workerNumber: number = 1) {
     this.workerName = workerName;
+    this.workerNumber = workerNumber;
   }
 
   /*
@@ -270,17 +307,21 @@ export class FetchListAndProbe {
 
   private async fetchListAndProbe(): Promise<void> {
     /*
-     * Workers start at random moments in the minute, so the probes of a
-     * server, and the workers of a probe, do not all ask at once.
+     * Each worker asks at its own moment of the minute, the same every
+     * minute, so the monitors it is handed are checked a minute apart; and
+     * the probes of a server, and the workers of a probe, do not all ask at
+     * once (ProbeFetchMoments, issue #11333). It used to wait a new random
+     * moment every minute, which put a one-minute monitor's checks 15 to 105
+     * seconds apart.
      */
-    const sleepTime: number = NumberUtil.getRandomNumber(
-      0,
-      MONITOR_FETCH_STAGGER_MAX_MS,
-    );
+    const waitMs: number = ProbeFetchMoments.getWaitMs({
+      offsetMs: getWorkerFetchOffsetMs(this.workerNumber),
+      nowMs: Date.now(),
+    });
     logger.debug(
-      `Sleeping for ${sleepTime} ms, just to give probe API's some time to load balance between different workers`,
+      `${this.workerName} waits ${waitMs} ms for its moment of the minute.`,
     );
-    await Sleep.sleep(sleepTime);
+    await Sleep.sleep(waitMs);
 
     let isMoreDue: boolean = false;
 

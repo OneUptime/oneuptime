@@ -63,7 +63,7 @@ Klicka på **Nästa**. Inget på det här steget markeras som saknat förrän du
 
 ### Så utvärderas kriterier
 
-Resultatet av varje kontroll går igenom kriterierna uppifrån och ned, och det första som matchar avgör vad som händer. Det kriteriet kan ändra monitorns status, deklarera en incident, skapa ett larm eller valfri kombination av de tre. När inget matchar visar monitorn sin **Standardstatus för övervakning**, som ställs in under **Fler fält** under kriterierna (**Fungerar**, om du inte väljer en annan).
+Resultatet av varje kontroll går igenom kriterierna uppifrån och ned, och det första som matchar avgör vad som händer. Det kriteriet kan ändra monitorns status, deklarera en incident, skapa ett larm eller valfri kombination av de tre. Ett som inte ändrar någon status avgör ingen: det första kriteriet under det som matchar och ändrar statusen sätter den. När inget matchar visar monitorn sin **Standardstatus för övervakning**, som ställs in under **Fler fält** under kriterierna (**Fungerar**, om du inte väljer en annan).
 
 ```mermaid title="Från en kontroll till en status, en incident eller ett larm"
 flowchart TB
@@ -95,7 +95,7 @@ Välj ett **Övervakningsintervall**, från **Varje minut** till **Varje vecka**
 
 ### Skapa monitorn
 
-Klicka på **Skapa monitor**. Den nya monitorns sida öppnas. För att ändra dess sonder eller intervall senare öppnar du **Konfiguration → Sonder och intervall** på den sidan.
+Klicka på **Skapa monitor**. Den nya monitorns sida öppnas. Slack och Microsoft Teams får veta om monitorn när dess ägare och etiketter är på plats, så att en aviseringsregel som frågar vem som äger en monitor, eller vilka etiketter den har, publicerar dess skapandemeddelande, och dess första status kommer efter det meddelandet. För att ändra dess sonder eller intervall senare öppnar du **Konfiguration → Sonder och intervall** på den sidan.
 :::
 
 Alla andra typer utom Manual skapas från steget **Kriterier**.

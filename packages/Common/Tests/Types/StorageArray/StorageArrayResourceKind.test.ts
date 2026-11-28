@@ -1,9 +1,11 @@
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "../../../Types/StorageArray/StorageArrayResourceKind";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
+import { getSharedKindLabels } from "../../../Types/StorageArray/StorageArrayResourceKindLabels";
+import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
+import { StorageArrayKindDefinition } from "../../../Types/StorageArray/StorageArrayPlatform";
+import { OntapKind } from "../../../Types/StorageArray/Platforms/NetApp/NetApp";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -29,6 +31,31 @@ const FLASHBLADE_KINDS: Array<StorageArrayResourceKind> = [
   StorageArrayResourceKind.Hardware,
   StorageArrayResourceKind.FileSystem,
   StorageArrayResourceKind.Bucket,
+];
+
+// Dell PowerStore's: three of its own (Appliance, VolumeGroup, NasServer).
+const POWERSTORE_KINDS: Array<string> = [
+  "Appliance",
+  StorageArrayResourceKind.Volume,
+  "VolumeGroup",
+  StorageArrayResourceKind.FileSystem,
+  "NasServer",
+  StorageArrayResourceKind.Hardware,
+  StorageArrayResourceKind.Drive,
+  StorageArrayResourceKind.NetworkInterface,
+];
+
+// The shared kinds ONTAP has, and the four only it has (#11001).
+const ONTAP_KINDS: Array<string> = [
+  StorageArrayResourceKind.Volume,
+  OntapKind.Aggregate,
+  OntapKind.Svm,
+  OntapKind.Lun,
+  OntapKind.SnapMirror,
+  StorageArrayResourceKind.Controller,
+  StorageArrayResourceKind.Drive,
+  StorageArrayResourceKind.Hardware,
+  StorageArrayResourceKind.NetworkInterface,
 ];
 
 describe("StorageArrayResourceKind enum", () => {
@@ -92,27 +119,92 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
     ).toEqual(FLASHBLADE_KINDS);
   });
 
+  test("an ONTAP cluster reports its volumes and hardware, and its aggregates, SVMs, LUNs and SnapMirror relationships", () => {
+    expect(
+      StorageArrayResourceKindUtil.getKindsForSystem(StorageSystem.NetAppOntap),
+    ).toEqual(ONTAP_KINDS);
+  });
+
+  test("a PowerStore reports appliances, volumes, volume groups, file systems, NAS servers, hardware, drives and ports", () => {
+    expect(
+      StorageArrayResourceKindUtil.getKindsForSystem(
+        StorageSystem.DellPowerStore,
+      ),
+    ).toEqual(POWERSTORE_KINDS);
+  });
+
   test("every known platform reports at least one kind, and every kind belongs to a platform", () => {
-    const covered: Set<StorageArrayResourceKind> = new Set();
+    // The shared kinds, and the ones a platform defines for itself, by name.
+    const covered: Set<string> = new Set();
     for (const system of StorageSystemUtil.getAllSystems()) {
-      const kinds: Array<StorageArrayResourceKind> =
+      const kinds: Array<string> =
         StorageArrayResourceKindUtil.getKindsForSystem(system);
       expect(kinds.length).toBeGreaterThan(0);
       expect(new Set(kinds).size).toBe(kinds.length);
       for (const kind of kinds) {
         covered.add(kind);
+        if (
+          !(
+            StorageArrayResourceKindUtil.getAllKinds() as Array<string>
+          ).includes(kind)
+        ) {
+          expect({
+            system,
+            kind,
+            defined: Boolean(
+              StorageArrayPlatformRegistry.getKindDefinition(kind, system),
+            ),
+          }).toEqual({ system, kind, defined: true });
+        }
       }
     }
+    /*
+     * Every shared kind, and each kind a platform defines for itself (a
+     * PowerStore's appliances, a PowerMax's storage groups), which no other
+     * platform reports.
+     */
+    const own: Array<string> = StorageArrayPlatformRegistry.getPlatforms()
+      .flatMap(
+        (platform: {
+          kindDefinitions?:
+            | ReadonlyArray<StorageArrayKindDefinition>
+            | undefined;
+        }) => {
+          return [...(platform.kindDefinitions || [])];
+        },
+      )
+      .map((definition: StorageArrayKindDefinition): string => {
+        return definition.kind;
+      });
     expect([...covered].sort()).toEqual(
-      [...StorageArrayResourceKindUtil.getAllKinds()].sort(),
+      [...StorageArrayResourceKindUtil.getAllKinds(), ...own].sort(),
     );
+    // Every shared kind is some platform's...
+    const shared: Set<string> = new Set(
+      Object.values(StorageArrayResourceKind) as Array<string>,
+    );
+    expect(
+      [...covered]
+        .filter((kind: string): boolean => {
+          return shared.has(kind);
+        })
+        .sort(),
+    ).toEqual([...StorageArrayResourceKindUtil.getAllKinds()].sort());
+    // ... and a kind only a platform has comes with its words.
+    for (const kind of covered) {
+      if (!shared.has(kind)) {
+        expect(StorageArrayPlatformRegistry.getKindDefinition(kind)).not.toBe(
+          null,
+        );
+      }
+    }
   });
 
   test.each([
     ["null", null],
     ["undefined", undefined],
     ["the empty string", ""],
-    ["an unknown platform", "netapp.ontap"],
+    ["an unknown platform", "hitachi.vsp"],
     ["an alias (only canonical values are keyed)", "purefa"],
   ])("%s reports no kinds", (_: string, system: string | null | undefined) => {
     expect(StorageArrayResourceKindUtil.getKindsForSystem(system)).toEqual([]);
@@ -227,4 +319,28 @@ describe("StorageArrayResourceKindUtil labels", () => {
       "constructor",
     );
   });
+});
+
+/*
+ * The shared kinds' words without the platform registry, for a reader that
+ * words only those (the dashboard's Storage Array widgets): the same words
+ * StorageArrayResourceKindUtil gives every shared kind.
+ */
+describe("getSharedKindLabels", () => {
+  test.each(StorageArrayResourceKindUtil.getAllKinds())(
+    "%s reads as StorageArrayResourceKindUtil words it",
+    (kind: StorageArrayResourceKind) => {
+      expect(getSharedKindLabels(kind)).toEqual({
+        singular: StorageArrayResourceKindUtil.getSingularLabel(kind),
+        plural: StorageArrayResourceKindUtil.getPluralLabel(kind),
+      });
+    },
+  );
+
+  test.each(["QuotaPolicy", "", "constructor", "toString", "__proto__"])(
+    "%p is no shared kind, and has no words here",
+    (kind: string) => {
+      expect(getSharedKindLabels(kind)).toBeUndefined();
+    },
+  );
 });

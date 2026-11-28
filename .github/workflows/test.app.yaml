@@ -60,8 +60,16 @@ jobs:
       # Six since 2026-11-16, of two workers each where four shards had
       # jest's three (the test step below says why): the same twelve workers,
       # so each shard keeps about the time it had.
+      #
+      # Eight since 2026-11-28, of two workers each as before. The six had
+      # taken 14 to 22 minutes on the 17.3.0 release branch; on 18.0.0's,
+      # with 101 more test files (3,524), they took 16 to 26 minutes, and
+      # shard 3 of 6 reached the cap after 27 minutes of tests, with Common's
+      # ClickHouse suites still to run. No one file the cause: the slowest,
+      # Tests/Telemetry/IngestKeyBeforeBodyOverHttp.test.ts, took five
+      # minutes in each run.
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}
@@ -141,6 +149,17 @@ jobs:
       # at 4 GB keep the ceiling at 8 GB, as Common Test's pool is held
       # (test.common.yaml).
       - run: cd packages/App && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      # Common's suites that run their SQL against a real ClickHouse
+      # (*ClickhouseIntegration.test.ts: the monitor windows of each step, the
+      # SNMP baselines of each step, DNS answers against the previous check,
+      # LogQL, telemetry scrubbing...), on this job's server. Common Test has
+      # none, so they skipped there and ran nowhere (#10985). Spread over the
+      # shards as App's own tests are; runs even when those failed, so one
+      # run reports both (Tests/Ops/ClickhouseSuitesRunInCi.test.js).
+      - name: Run Common's ClickHouse suites
+        if: ${{ !cancelled() }}
+        working-directory: packages/Common
+        run: npm run test-clickhouse -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
   session-replay-ui:
     name: Session Replay UI
@@ -361,7 +380,10 @@ jobs:
           # minutes, past group 5's 22, so it moved to group 13 too: group 5
           # 21.3 minutes, group 13 8.6. The RUM setup suite (#6379, 2.8
           # minutes: 2.2 locally with its bundle built, times 1.26) joined
-          # group 13 the same day.
+          # group 13 the same day. On 2026-11-27 Dell PowerMax's Unisphere
+          # connections (#11004, eight tests: 39 s locally, times 1.26) took
+          # the storage array pages suite from 1.4 to 2.2 minutes, past group
+          # 1's 22, so it moved to group 13.
           - group: 1
             event_overview_shard: 1/3
             suites: >-
@@ -374,7 +396,6 @@ jobs:
               test-dashboard-table-thresholds-ui
               test-openshift-pages-ui
               test-archivable-values-ui
-              test-storage-array-pages-ui
               test-runbook-variables-ui
               test-first-on-call-policy-ui
           - group: 2
@@ -537,6 +558,8 @@ jobs:
               test-product-analytics-saved-views-ui
               test-feedback-questions-ui
               test-side-by-side-pages-ui
+              test-xcp-ng-pages-ui
+              test-storage-array-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -815,6 +838,8 @@ jobs:
             output/playwright/resource-overviews-ui/test-results
             output/playwright/proxmox-pages-ui/*.png
             output/playwright/proxmox-pages-ui/test-results
+            output/playwright/xcp-ng-pages-ui/*.png
+            output/playwright/xcp-ng-pages-ui/test-results
             output/playwright/openstack-pages-ui/*.png
             output/playwright/openstack-pages-ui/test-results
             output/playwright/kubernetes-pages-ui/*.png

@@ -10,6 +10,7 @@ import NetworkSiteService from "./NetworkSiteService";
 import ProbeService from "./ProbeService";
 import Model from "../../Models/DatabaseModels/NetworkDevice";
 import Monitor from "../../Models/DatabaseModels/Monitor";
+import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteAssignmentRule from "../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
@@ -176,6 +177,15 @@ const MINUTE_IN_MS: number = 60 * 1000;
  * them in a few statements a minute.
  */
 export const PROBES_PER_LATE_POLL_READ: number = 500;
+
+/*
+ * findDevicesAtAddressesOnProbe: how many addresses one read asks about
+ * (a report carries at most 50 refused sources) and how many devices it
+ * reads back - devices sharing one address are a few, and past this many a
+ * split would be told nothing more.
+ */
+export const MAX_ADDRESSES_PER_PROBE_ADDRESS_READ: number = 100;
+export const MAX_DEVICES_PER_PROBE_ADDRESS_READ: number = 5000;
 
 /*
  * Null, undefined and "  Core-SW " all mean the same thing to a
@@ -4106,6 +4116,365 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return oldest;
+  }
+
+  /*
+   * The devices whose SNMPv3 users a probe's trap receiver takes (OneUptime
+   * issue #11005): the devices assigned to the probe - held to the claim's
+   * tenancy backstop and to a project that is served, as polling is - that
+   * carry an SNMPv3 credential anywhere: their own, the credential profile
+   * they name, or their site's. Only their IDs: the credentials themselves
+   * are read through the service, which decrypts them, and only for these
+   * devices, so a fleet polled over v2c costs one statement and decrypts
+   * nothing.
+   *
+   * Polling switched off or a monitor-backed device still counts: neither
+   * stops a device's traps from being matched to it. A profile of another
+   * project is let through here and dropped by the hydration's tenancy check
+   * (NetworkDeviceHydrationUtil.resolveSnmpV3Carriers), loudly.
+   *
+   * The version columns are free text: "V3" as forms write it, "3" as the
+   * enum spells it (SnmpVersionUtil.parse reads both).
+   */
+  @CaptureSpan()
+  public async findDeviceIdsWithSnmpV3OnProbe(data: {
+    probeId: ObjectID;
+    limit: number;
+  }): Promise<Array<ObjectID>> {
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        SELECT nd."_id"::text AS "id"
+        FROM "NetworkDevice" nd
+        INNER JOIN "Probe" pr ON nd."probeId" = pr."_id"
+        INNER JOIN "Project" p ON nd."projectId" = p."_id"
+        LEFT JOIN "NetworkSnmpCredentialProfile" dp
+          ON dp."_id" = nd."snmpCredentialProfileId" AND dp."deletedAt" IS NULL
+        LEFT JOIN "NetworkSite" s
+          ON s."_id" = nd."siteId" AND s."deletedAt" IS NULL
+        LEFT JOIN "NetworkSnmpCredentialProfile" sp
+          ON sp."_id" = s."snmpCredentialProfileId" AND sp."deletedAt" IS NULL
+        WHERE nd."probeId" = $1
+          AND nd."deletedAt" IS NULL
+          AND ${Service.getTrapReceiverTenancySql("nd", "$2")}
+          AND (
+            lower(btrim(coalesce(nd."snmpVersion", ''))) IN ('3', 'v3')
+            OR lower(btrim(coalesce(dp."snmpVersion", ''))) IN ('3', 'v3')
+            OR lower(btrim(coalesce(sp."snmpVersion", ''))) IN ('3', 'v3')
+          )
+        ORDER BY nd."_id"
+        LIMIT $3
+      `,
+      [
+        data.probeId.toString(),
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        Math.max(0, Math.floor(data.limit)),
+      ],
+    );
+
+    return Service.readIds(rows);
+  }
+
+  /*
+   * The sites whose default credential profile a probe's trap receiver
+   * takes (OneUptime issue #11174): the sites whose own Default Probe it
+   * is, with a default credential profile that is SNMPv3 - so a device not
+   * added yet is taken as its neighbours are, and its first trap kept as
+   * from an unknown source. Held to the tenancy the devices' read is: a
+   * project's own probe only for its own project's sites, a global probe
+   * for the sites that name it, and only sites of a project that is
+   * served. A site that only inherits its probe from a parent site names
+   * none, and is not one: its default profile reaches no probe until a
+   * device is added to it, as Add Device fills in the site's own Default
+   * Probe.
+   *
+   * IDs only, with the profile each names: the profile is read through the
+   * hydration, which drops one of another project loudly
+   * (NetworkDeviceHydrationUtil.resolveSiteDefaultSnmpV3Carriers).
+   */
+  @CaptureSpan()
+  public async findSitesWithSnmpV3DefaultOnProbe(data: {
+    probeId: ObjectID;
+    limit: number;
+  }): Promise<Array<NetworkSite>> {
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        SELECT s."_id"::text AS "id",
+          s."projectId"::text AS "projectId",
+          s."snmpCredentialProfileId"::text AS "snmpCredentialProfileId"
+        FROM "NetworkSite" s
+        INNER JOIN "Probe" pr ON s."probeId" = pr."_id"
+        INNER JOIN "Project" p ON s."projectId" = p."_id"
+        INNER JOIN "NetworkSnmpCredentialProfile" cp
+          ON cp."_id" = s."snmpCredentialProfileId" AND cp."deletedAt" IS NULL
+        WHERE s."probeId" = $1
+          AND s."deletedAt" IS NULL
+          AND ${Service.getTrapReceiverTenancySql("s", "$2")}
+          AND lower(btrim(coalesce(cp."snmpVersion", ''))) IN ('3', 'v3')
+        ORDER BY s."_id"
+        LIMIT $3
+      `,
+      [
+        data.probeId.toString(),
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        Math.max(0, Math.floor(data.limit)),
+      ],
+    );
+
+    const sites: Array<NetworkSite> = [];
+
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const record: {
+        id?: unknown;
+        projectId?: unknown;
+        snmpCredentialProfileId?: unknown;
+      } = row as {
+        id?: unknown;
+        projectId?: unknown;
+        snmpCredentialProfileId?: unknown;
+      };
+      const id: string = String(record.id || "");
+      const projectId: string = String(record.projectId || "");
+      const profileId: string = String(record.snmpCredentialProfileId || "");
+
+      if (
+        !ObjectID.isValidUUID(id) ||
+        !ObjectID.isValidUUID(projectId) ||
+        !ObjectID.isValidUUID(profileId)
+      ) {
+        continue;
+      }
+
+      const site: NetworkSite = new NetworkSite(new ObjectID(id));
+      site.projectId = new ObjectID(projectId);
+      site.snmpCredentialProfileId = new ObjectID(profileId);
+      sites.push(site);
+    }
+
+    return sites;
+  }
+
+  /*
+   * The devices on a probe at any of a set of addresses, with the columns
+   * that say which addresses are theirs: their hostname, when it is one,
+   * and their Other Addresses. What a global probe's refused SNMPv3 traps
+   * are split by (#11173, SnmpTrapRefusalShares): each goes to the one
+   * project whose device has its source address. Held to the same tenancy
+   * and served projects as the users a probe takes.
+   *
+   * The SQL narrows by the address as typed (an exact hostname, an IPv6
+   * hostname of any spelling, an Other Addresses text that contains it),
+   * and the caller compares canonical forms, as a device's page does.
+   */
+  @CaptureSpan()
+  public async findDevicesAtAddressesOnProbe(data: {
+    probeId: ObjectID;
+    addresses: Array<string>;
+  }): Promise<Array<Model>> {
+    const addresses: Array<string> = Array.from(
+      new Set(
+        data.addresses
+          .map((address: string): string => {
+            return (address || "").trim();
+          })
+          .filter((address: string): boolean => {
+            return address.length > 0;
+          }),
+      ),
+    ).slice(0, MAX_ADDRESSES_PER_PROBE_ADDRESS_READ);
+
+    if (addresses.length === 0) {
+      return [];
+    }
+
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        SELECT nd."_id"::text AS "id",
+          nd."projectId"::text AS "projectId",
+          nd."hostname" AS "hostname",
+          nd."otherAddresses" AS "otherAddresses"
+        FROM "NetworkDevice" nd
+        INNER JOIN "Probe" pr ON nd."probeId" = pr."_id"
+        INNER JOIN "Project" p ON nd."projectId" = p."_id"
+        WHERE nd."probeId" = $1
+          AND nd."deletedAt" IS NULL
+          AND ${Service.getTrapReceiverTenancySql("nd", "$2")}
+          AND (
+            nd."hostname" = ANY($3::text[])
+            OR (strpos(nd."hostname", ':') > 0)
+            OR nd."otherAddresses" LIKE ANY($4::text[])
+          )
+        ORDER BY nd."_id"
+        LIMIT $5
+      `,
+      [
+        data.probeId.toString(),
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        addresses,
+        addresses.map((address: string): string => {
+          // Addresses are digits, hex, dots and colons: nothing LIKE reads as a wildcard.
+          return `%${address.replace(/[%_\\]/g, "")}%`;
+        }),
+        MAX_DEVICES_PER_PROBE_ADDRESS_READ,
+      ],
+    );
+
+    const devices: Array<Model> = [];
+
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const record: {
+        id?: unknown;
+        projectId?: unknown;
+        hostname?: unknown;
+        otherAddresses?: unknown;
+      } = row as {
+        id?: unknown;
+        projectId?: unknown;
+        hostname?: unknown;
+        otherAddresses?: unknown;
+      };
+      const id: string = String(record.id || "");
+      const projectId: string = String(record.projectId || "");
+
+      if (!ObjectID.isValidUUID(id) || !ObjectID.isValidUUID(projectId)) {
+        continue;
+      }
+
+      const device: Model = new Model(new ObjectID(id));
+      device.projectId = new ObjectID(projectId);
+
+      if (typeof record.hostname === "string") {
+        device.hostname = record.hostname;
+      }
+
+      if (typeof record.otherAddresses === "string") {
+        device.otherAddresses = record.otherAddresses;
+      }
+
+      devices.push(device);
+    }
+
+    return devices;
+  }
+
+  /*
+   * Whether a project uses a probe - has a device on it, or a site whose
+   * Default Probe it is - held to the tenancy and the served projects above,
+   * and which of `siteIds` are that project's sites whose Default Probe the
+   * probe is. What a global probe's SNMPv3 trap from an address no device
+   * has is checked by before it is kept in the project whose credential
+   * signed it (#11174, SnmpTrapUnmatchedHome): the probe only says whose
+   * credential it was, and is held to the projects that use it.
+   */
+  @CaptureSpan()
+  public async findProbeUseByProject(data: {
+    probeId: ObjectID;
+    projectId: ObjectID;
+    siteIds: Array<string>;
+  }): Promise<{ isUsed: boolean; siteIds: Array<string> }> {
+    const siteIds: Array<string> = data.siteIds
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      })
+      .slice(0, MAX_ADDRESSES_PER_PROBE_ADDRESS_READ);
+
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        SELECT
+          (
+            EXISTS (
+              SELECT 1
+              FROM "NetworkDevice" nd
+              INNER JOIN "Probe" pr ON nd."probeId" = pr."_id"
+              INNER JOIN "Project" p ON nd."projectId" = p."_id"
+              WHERE nd."probeId" = $1
+                AND nd."projectId" = $2
+                AND nd."deletedAt" IS NULL
+                AND ${Service.getTrapReceiverTenancySql("nd", "$3")}
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM "NetworkSite" s
+              INNER JOIN "Probe" pr ON s."probeId" = pr."_id"
+              INNER JOIN "Project" p ON s."projectId" = p."_id"
+              WHERE s."probeId" = $1
+                AND s."projectId" = $2
+                AND s."deletedAt" IS NULL
+                AND ${Service.getTrapReceiverTenancySql("s", "$3")}
+            )
+          ) AS "isUsed",
+          coalesce(
+            (
+              SELECT array_agg(s."_id"::text ORDER BY s."_id")
+              FROM "NetworkSite" s
+              INNER JOIN "Probe" pr ON s."probeId" = pr."_id"
+              INNER JOIN "Project" p ON s."projectId" = p."_id"
+              WHERE s."_id" = ANY($4::uuid[])
+                AND s."probeId" = $1
+                AND s."projectId" = $2
+                AND s."deletedAt" IS NULL
+                AND ${Service.getTrapReceiverTenancySql("s", "$3")}
+            ),
+            ARRAY[]::text[]
+          ) AS "siteIds"
+      `,
+      [
+        data.probeId.toString(),
+        data.projectId.toString(),
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        siteIds,
+      ],
+    );
+
+    const first: { isUsed?: unknown; siteIds?: unknown } | undefined = (
+      Array.isArray(rows) ? rows[0] : undefined
+    ) as { isUsed?: unknown; siteIds?: unknown } | undefined;
+
+    const verifiedSiteIds: unknown = first?.siteIds;
+
+    return {
+      isUsed: first?.isUsed === true,
+      siteIds: (Array.isArray(verifiedSiteIds) ? verifiedSiteIds : [])
+        .map((id: unknown): string => {
+          return String(id || "").toLowerCase();
+        })
+        .filter((id: string): boolean => {
+          return ObjectID.isValidUUID(id);
+        }),
+    };
+  }
+
+  /*
+   * Whose records a probe's trap receiver may be handed, and its refusals
+   * kept for: the poll claim's tenancy backstop - a project's own probe only
+   * its own project's, a global probe any project's - and only a project
+   * that is served (not deleted, not blocked, its subscriptions active).
+   * `alias` is the table read, joined to its probe as `pr` and its project
+   * as `p`; `statusesParameter` binds the active subscription statuses.
+   */
+  private static getTrapReceiverTenancySql(
+    alias: string,
+    statusesParameter: string,
+  ): string {
+    return [
+      `(pr."isGlobalProbe" = true OR pr."projectId" = ${alias}."projectId")`,
+      `p."deletedAt" IS NULL`,
+      `p."isBlocked" = false`,
+      `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+      `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+    ].join("\n          AND ");
+  }
+
+  private static readIds(rows: unknown): Array<ObjectID> {
+    return (Array.isArray(rows) ? rows : [])
+      .map((row: unknown): string => {
+        return String((row as { id?: unknown }).id || "");
+      })
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      })
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
   }
 
   private static toDate(value: Date | string | null | undefined): Date | null {

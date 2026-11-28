@@ -74,6 +74,7 @@ podman compose up -d
 | `ONEUPTIME_SERVICE_TOKEN` | Yes | Telemetry ingestion service token (Settings → API Keys) |
 | `PODMAN_HOST_NAME` | No | Friendly name for this host (default: `podman-host`) |
 | `DOCKER_API_VERSION` | No | Docker API version the agent speaks to the socket. Empty by default: the agent negotiates it with the socket. Set it only to pin one |
+| `ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5` | No | Collector (stanza) operators of your own, one each as JSON, for a log format the agent does not read; see Log formats of your own below. Unset: none. |
 
 ## Image Tags
 
@@ -102,7 +103,23 @@ These metrics come from the `docker_stats` receiver, which works against Podman'
 
 ## Collected Logs
 
-Container logs are automatically collected from `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log` (the k8s-file log driver's location) and enriched with container metadata (container id, image, runtime, host name) plus a derived severity. The severity is read from a level keyword in the line itself (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`, `level=error`); only lines with no recognisable level fall back to the stream, where stderr becomes `ERROR` and stdout becomes `INFO`. The keyword is only believed where a level actually sits — in the line's leading preamble, or as the value of a level field (`level`, `lvl`, `severity`, `levelname`, `log.level`) anywhere in the line — so an ordinary message that merely mentions "error" or "panic" in passing is not classified by it and keeps the stream default. Logs are shipped in the native OpenTelemetry log record format, so `severityText`, `severityNumber`, `body`, `attributes`, `traceId`, and `spanId` are all populated.
+Container logs are automatically collected from `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log` (the k8s-file log driver's location) and enriched with container metadata (container id, image, runtime, host name) plus a derived severity. The severity is the level the line names: a level word (`app.INFO:`, `{"level":"warn"}`, `[ERROR]`, `level=error`, `2026-11-23T18:58:14.670Z [INFO]`, PostgreSQL's `LOG:`), klog's `I`/`W`/`E`/`F` prefix, or pino's numeric `"level":30`; an exception's traceback or panic counts as `ERROR`, and a Python or Node warning category as `WARN`. A level word is only believed where a level actually sits — in the line's leading preamble, or as the value of a level field (`level`, `lvl`, `severity`, `levelname`, `log.level`, `@level`) anywhere in the line — so an ordinary message that merely mentions "error" or "panic" in passing is not classified by it. A line that names no level is `INFO` on stdout, and has no severity on stderr (it shows as Unspecified): programs write every level of their diagnostics to stderr, so the stream says nothing about a line's level. Logs are shipped in the native OpenTelemetry log record format, so `severityText`, `severityNumber`, `body`, `attributes`, `traceId`, and `spanId` are all populated.
+
+### Log formats of your own
+
+For a log format the agent does not read, give it up to five collector (stanza) operators of your own, each as JSON in `ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5`. They run on every container log line after the agent has read its container and stream, and before it reads the line's level. To set a level, write it to `attributes.severity_text` as a word the agent reads (`ERROR`, `warn`, `critical`, ...), and hand the line on to `severity-router`: the agent reads that first, through the one severity parser, so the word means what it means everywhere else in OneUptime. An operator that sets the severity itself (a `severity_parser`) is overwritten, as the agent reads every line's level after yours. An unset variable is a `noop`.
+
+```bash
+export ONEUPTIME_LOG_OPERATOR_1='{"type":"regex_parser","id":"inhouse-level","if":"body matches \"^<<[DIWEF]>> \"","regex":"^<<(?P<severity_text>[DIWEF])>> "}'
+```
+
+The collector does not start on an operator it cannot build, so each way of running the agent checks them with the collector's own `validate` first:
+
+- `install.sh`, run with them set, validates the agent's config with them in the agent's image before it touches the agent you have, and stops with the collector's message if it refuses them.
+- Podman Compose: put them in `.env`, single-quoted. The Compose file's `oneuptime-podman-agent-config-check` service runs the same check first. When `podman compose` runs Docker Compose, the agent starts only if it passes; podman-compose (1.6.0, the latest) starts the agent whatever the check says, so read `podman compose logs oneuptime-podman-agent-config-check`.
+- `podman run`: run the check yourself with the agent's variables, `podman run --rm -e ONEUPTIME_LOG_OPERATOR_1 ... oneuptime/podman-agent:release validate --config=/etc/otelcol-contrib/config.yaml`, before you start the agent with them.
+
+`Tests/Ops/agent-log-severity-behaviour.sh` runs the documented example through this agent's real collector, and the docs' "Reading a log format of your own" explains it.
 
 ### Log Driver Requirement
 

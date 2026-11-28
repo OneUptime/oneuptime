@@ -63,7 +63,7 @@ Nichts wird gesendet, bis Sie eine Statusseite wählen: Ein Ereignis, das auf ke
 | **Eigentümer**                       | **Wartungsdetails**       | Niemand                         | Personen und Teams, denen das Ereignis gehört und die darüber informiert werden. |
 | **Beschriftungen**                   | **Wartungsdetails**       | Keine                           | Beschriftungen, nach denen Regeln und Filter suchen können.                      |
 | **Monitore**                         | **Betroffene Ressourcen** | Keine                    | Die Monitore, die nicht geprüft werden, solange das Ereignis läuft.              |
-| **Monitor-Status ändern in**         | **Betroffene Ressourcen** | Keine Änderung           | Der Status, den diese Monitore während des Ereignisses zeigen. Wird abgefragt, sobald ein Monitor gewählt ist. |
+| **Monitor-Status ändern in**         | **Betroffene Ressourcen** | Keine Änderung           | Der Status, den diese Monitore während des Ereignisses zeigen und den ihre Verfügbarkeit zählt. Ist keiner gewählt, behalten sie ihren Status, und ihre Verfügbarkeit lässt die Zeit heraus. Wird abgefragt, sobald ein Monitor gewählt ist. |
 | **Andere betroffene Ressourcen**     | **Betroffene Ressourcen** | Keine                    | Hosts, Cluster, Datenbanken, Netzwerkstandorte, Dienste und mehr.                |
 | **Ereignis auf diesen Status-Seiten anzeigen** | **Betroffene Ressourcen** | Keine          | Die einzigen Statusseiten, die das Ereignis zeigen oder ihre Abonnenten informieren können. |
 | **Abonnentenbenachrichtigungen**     | **Betroffene Ressourcen** | Sofort veröffentlicht, alle drei Momente an, keine Erinnerungen | Wann das Ereignis auf diesen Seiten erscheint und wann ihre Abonnenten informiert werden. |
@@ -75,7 +75,7 @@ Zwei Dinge füllen das Formular unterwegs für Sie aus:
 
 ## Von einer Ressource oder einer Vorlage aus beginnen
 
-Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, einer OpenStack-Cloud, eines Speicherarrays, einer IoT-Flotte, einer Datenbank, einer Cloud-Ressource, eines Dienstes oder eines Netzwerkstandorts öffnet **Wartungsereignis erstellen** dasselbe Formular, mit dieser Ressource bereits unter **Andere betroffene Ressourcen** ausgewählt, und der Tab listet die Ereignisse auf, die sie betreffen. Der Tab eines Inventarelements wählt den Host, den Dienst oder den Kubernetes-Cluster, auf den das Element verweist.
+Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph- oder Docker-Swarm-Clusters, eines Docker- oder Podman-Hosts, eines vCenters, eines XCP-ng-Pools, einer OpenStack-Cloud, eines Speicherarrays, einer IoT-Flotte, einer Datenbank, einer Cloud-Ressource, eines Dienstes oder eines Netzwerkstandorts öffnet **Wartungsereignis erstellen** dasselbe Formular, mit dieser Ressource bereits unter **Andere betroffene Ressourcen** ausgewählt, und der Tab listet die Ereignisse auf, die sie betreffen. Der Tab eines Inventarelements wählt den Host, den Dienst oder den Kubernetes-Cluster, auf den das Element verweist.
 
 **Aus Vorlage erstellen**, neben der Schaltfläche zum Erstellen, fragt nach **Vorlage für geplante Wartung auswählen** und öffnet dann das Formular, aus der Vorlage ausgefüllt. Siehe [Vorlagen & wiederkehrende Ereignisse](/docs/scheduled-maintenance/templates).
 
@@ -84,9 +84,9 @@ Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph-
 In dem Moment, in dem Sie auf **Wartungsereignis erstellen** klicken, arbeitet OneUptime diese Schritte in dieser Reihenfolge ab:
 
 1. **Es erhält eine Nummer und einen Status.** Die Nummer stammt aus einem Zähler pro Projekt und wird mit Ihrem Präfix angezeigt (`SM-42`). Das Ereignis beginnt in Ihrem geplanten Status, egal welchen Status eine Anfrage nennt.
-2. **Ihre Chat-Tools erfahren davon.** Die Slack- und Microsoft-Teams-Regeln unter **Arbeitsbereich** posten es in ihre Kanäle, und eine Regel kann einen Kanal für das Ereignis erstellen. Sein Feed hält fest, dass es erstellt wurde.
-3. **Seine Zustands-Zeitachse beginnt.** Die erste Zeile seiner **Zustands-Zeitachse** ist Ihr geplanter Status.
-4. **Eigentümer und Beschriftungen werden hinzugefügt**: die, die Sie gewählt haben, dann die der passenden Eigentümer- und Beschriftungsregeln.
+2. **Seine Zustands-Zeitachse beginnt.** Die erste Zeile seiner **Zustands-Zeitachse** ist Ihr geplanter Status.
+3. **Eigentümer und Beschriftungen werden hinzugefügt**: die, die Sie gewählt haben, dann die der passenden Eigentümer- und Beschriftungsregeln.
+4. **Ihre Chat-Tools erfahren davon.** Die Slack- und Microsoft-Teams-Regeln unter **Arbeitsbereich** posten es in ihre Kanäle, und eine Regel kann einen Kanal für das Ereignis erstellen. Sein Feed hält fest, dass es erstellt wurde. Die Regeln sehen die Eigentümer und Beschriftungen, mit denen das Ereignis erstellt wurde, sodass auch eine Regel, die nach den Eigentümern oder Beschriftungen eines Ereignisses fragt, es postet. Was in der Zwischenzeit über das Ereignis gesagt wurde, etwa die gerade hinzugefügten Eigentümer, folgt ihm in diesen Kanälen.
 5. **Runbook-Regeln starten** die Runbooks, die zum Ereignis passen.
 6. **Erinnerungen werden geplant**, wenn eine Erinnerungsregel passt, für seine Eigentümer.
 

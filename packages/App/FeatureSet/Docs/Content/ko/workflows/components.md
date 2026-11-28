@@ -26,6 +26,7 @@
 | 두 블록 사이에서 데이터 모양 바꾸기                           | [JSON](#json) 또는 [Custom Code](#custom-code)                    |
 | 다음 블록 전에 기다리기                                       | [Sleep](#sleep)                                                   |
 | 다른 워크플로 시작하기                                        | [Execute Workflow](#execute-workflow)                             |
+| 레코드의 Markdown이 보여 주는 이미지를 이메일에 첨부하기 | [Markdown에서 파일 가져오기](#get-files-from-markdown) |
 | 인시던트, 모니터 등 레코드를 읽거나 바꾸기                    | [OneUptime 데이터 구성 요소](#oneuptime-데이터-구성-요소)          |
 | 다른 도구의 문제에 대해 인시던트나 경고를 열고, 확인하고, 해결하기 | [다른 도구에서 온 인시던트와 경고](#다른-도구에서-온-인시던트와-경고) |
 | Zabbix 문제를 확인하거나 닫기                                  | [Zabbix](#zabbix)                                                 |
@@ -391,6 +392,139 @@ return { proceed: true, title: args.title.toUpperCase() };
 **송신**은 다른 워크플로가 대기열에 들어가는 즉시 발생합니다. **오류**는 그럴 수 없을 때 발생합니다. 존재하지 않거나, 꺼져 있거나 보관되었거나, 시작하면 루프가 생기는 경우입니다.
 
 공통 로직을 공유하는 데 사용하세요. "인시던트 채널에 게시하기" 워크플로를 한 번 만들고, 그것이 필요한 모든 워크플로에서 시작합니다. 서로를 시작하는 워크플로의 사슬은 자기 자신으로 되돌아올 수 없으며, 최대 10단계까지만 깊어질 수 있습니다. [설정 및 보안](/docs/workflows/configuration#다른-워크플로-호출-제한)을 참조하세요.
+
+## Get Files From Markdown
+
+레코드의 Markdown이 보여 주는 이미지(인시던트 설명, Markdown 사용자 정의 필드, 노트에 붙여 넣은 스크린샷 등)를 이미지마다 이름, 유형, 데이터와 함께 읽습니다. 이미지를 이메일에 첨부해 Markdown이 둔 자리에 보이게 할 때 씁니다.
+
+| 설정 | 하는 일 |
+| --- | --- |
+| **레코드 유형** | 이미지를 보여 주는 Markdown이 있는 레코드의 종류입니다. 인시던트, 인시던트의 공개 노트나 내부 노트, 경고, 유지 관리 이벤트 등이 있습니다. |
+| **레코드 ID** | 읽을 레코드입니다. 보통 워크플로를 시작한 레코드이며, `{{local.components.incident-on-create-1.returnValues.model._id}}`처럼 씁니다. |
+
+| 출력 | 시점 |
+| --- | --- |
+| **성공** | 레코드를 읽었습니다. 이미지를 보여 주는지는 상관없습니다. |
+| **오류** | 레코드를 읽지 못했습니다. 레코드가 없거나, 워크플로에 읽을 권한이 없습니다. 이유는 **오류**에 있습니다. |
+
+반환하는 값은 다음과 같습니다.
+
+- **파일**: 레코드가 보여 주는 순서대로, 각 이미지에 다음이 있습니다.
+  - `name`: 업로드할 때의 파일 이름.
+  - `mimeType`: `image/png`나 `image/jpeg` 같은 유형.
+  - `sizeInBytes`: 바이트 단위 크기.
+  - `base64`: 이미지 데이터.
+  - `contentId`: HTML 이메일에서 이미지의 ID(`<img src="cid:...">`). 어떤 레코드가 보여 주든 같은 이미지는 같은 ID입니다.
+  - `urls`: Markdown이 이미지를 보여 줄 때 쓰는 모든 주소.
+  - `fields`: 이미지를 보여 주는 필드. `description`이나 사용자 정의 필드의 이름 같은 것입니다.
+- **개수**: **파일**에 들어 있는 이미지 수.
+- **제외됨**: Markdown이 보여 주지만 **파일**에 없는 파일. 각각 `name`, `urls`, `fields`, `reason`, 그리고 이유를 말해 주는 `message`가 있습니다.
+
+**파일**에는 이미지 데이터가 들어 있어 실행 로그에서는 숨겨지고, 대신 **개수**와 **제외됨**이 보입니다. 이미지를 넘겨받은 이후 블록은 넘겨받은 내용을 로그의 자기 항목에 씁니다.
+
+### 넘겨주는 이미지
+
+이 블록은 Find One 블록처럼 워크플로로서 레코드를 읽습니다. 워크플로 자신의 프로젝트에서만 읽고, 비공개 인시던트, 경고, 에피소드는 읽지 않으며, 워크플로의 권한이 허락하는 것만 읽습니다. 읽을 수 없는 레코드는 없는 레코드와 마찬가지로 **오류**로 이어집니다.
+
+넘겨주는 것은 다음뿐입니다.
+
+- 레코드의 Markdown 필드가 보여 주는 이미지. 인시던트의 설명, 근본 원인, 포스트모템, 복구 노트, 그리고 Markdown 사용자 정의 필드 등입니다. 텍스트 사용자 정의 필드는 Markdown이 아니므로, 거기 적힌 주소는 읽지 않습니다.
+- 레코드 자신의 프로젝트에 업로드된 이미지. 다른 프로젝트의 레코드에서 복사한 주소는 찾을 수 없는 것으로 **제외됨**에 들어갑니다.
+- PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC, ICO 그림. 유형뿐 아니라 파일 내용으로도 확인합니다. SVG는 스크립트를 담을 수 있어 제외되고, 그림이라고 주장하기만 하는 파일도 제외됩니다.
+- 최대 20개, 모두 합쳐 10 MB까지. 한도를 넘는 것은 이유와 함께 **제외됨**에 들어갑니다.
+
+파일 목록을 만들거나 주소로 파일을 읽을 수는 없습니다. 레코드가 보여 주는 것만 읽습니다.
+
+### 예: Microsoft Graph로 보내는 이메일의 인라인 이미지
+
+이 워크플로는 새 인시던트마다 Microsoft Graph로 이메일을 보내며, 설명에 있는 스크린샷을 설명이 둔 자리에 보여 줍니다.
+
+:::steps
+### Microsoft Graph 토큰 받기
+
+Microsoft Entra ID에 애플리케이션을 등록하고, 애플리케이션 권한 `Mail.Send`를 주고, 관리자 동의를 부여합니다. 그런 다음 Microsoft용으로 `GRAPH_TOKEN`이라는 [OAuth 2.0 변수](/docs/workflows/variables#oauth-20-변수스스로-갱신되는-토큰)를 부여 유형 **Client Credentials**, 범위 `https://graph.microsoft.com/.default`로 만듭니다.
+
+### 새 인시던트에서 시작하기
+
+트리거 **인시던트 생성 시**를 추가하고, **제목**과 **설명**을 넘기도록 합니다.
+
+### 인시던트의 이미지 읽기
+
+트리거 다음에 **Markdown에서 파일 가져오기**를 추가합니다. **레코드 유형**을 **인시던트**로, **레코드 ID**를 `{{local.components.incident-on-create-1.returnValues.model._id}}`로 설정합니다.
+
+### 메시지 만들기
+
+그 **성공** 출력에 **사용자 지정 JavaScript 실행**을 추가하고, **인수**를 다음과 같이 씁니다.
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+코드는 이미지의 모든 주소가 첨부 파일(`cid:`와 이미지의 `contentId`)을 가리키게 하고, 이미지를 같은 ID로 인라인 첨부합니다.
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### Microsoft Graph로 보내기
+
+코드의 **성공** 출력에 **API 호출 POST (JSON)**을 추가합니다.
+
+| 설정 | 값 |
+| --- | --- |
+| **URL** | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail` |
+| **요청 헤더** | `Authorization`: `Bearer {{global.variables.GRAPH_TOKEN}}` |
+| **요청 본문** | `{{local.components.javascript-1.returnValues.returnValue}}` |
+
+Microsoft Graph는 `202 Accepted`로 응답하고, 블록은 **성공**으로 이어집니다.
+:::
+
+이렇게 보내는 메시지에서 Microsoft Graph가 받는 첨부 파일은 3 MB까지입니다. 더 큰 이미지는 업로드 세션이 필요하거나, 이미지 대신 링크를 넣어야 합니다. 레코드의 이미지는 워크플로 밖에서 API 키로도 읽을 수 있습니다. [레코드의 Markdown에 있는 이미지](/docs/api-reference/api-reference#레코드의-markdown에-있는-이미지)를 참조하세요.
 
 ## 다른 도구에서 온 인시던트와 경고
 

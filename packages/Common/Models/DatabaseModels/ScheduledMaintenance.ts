@@ -11,6 +11,7 @@ import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
 import ProxmoxCluster from "./ProxmoxCluster";
+import XcpNgPool from "./XcpNgPool";
 import OpenStackCloud from "./OpenStackCloud";
 import { OpenStackMaintenancePart } from "../../Types/OpenStack/OpenStackMaintenancePart";
 import VMwareVCenter from "./VMwareVCenter";
@@ -743,6 +744,60 @@ export default class ScheduledMaintenance extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: XcpNgPool,
+    title: "XCP-ng Pools",
+    description: "List of XCP-ng pools affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return XcpNgPool;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceXcpNgPool",
+    inverseJoinColumn: {
+      name: "xcpNgPoolId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public xcpNgPools?: Array<XcpNgPool> = undefined;
 
   @ColumnAccessControl({
     create: [

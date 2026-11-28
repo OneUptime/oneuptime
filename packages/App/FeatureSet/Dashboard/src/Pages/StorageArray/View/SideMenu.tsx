@@ -29,9 +29,9 @@ import React, {
   useState,
 } from "react";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
+import { getStorageArrayKindWords } from "../Utils/StorageArrayKindWords";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
@@ -45,6 +45,11 @@ export interface ResourceCounts {
   // Hardware components, drives, controllers and network interfaces.
   hardware?: number | undefined;
   unhealthyHardware?: number | undefined;
+  /*
+   * Every kind's count, by kind (the inventory summary's countsByKind):
+   * what a platform's own kinds' tabs show.
+   */
+  byKind?: Record<string, number> | undefined;
 }
 
 export interface ComponentProps {
@@ -65,12 +70,15 @@ export interface ComponentProps {
  * StorageArrayResourceKindUtil so the menu offers exactly the pages whose
  * objects the platform reports.
  */
+// The counts a page of its own shows: every one but the per-kind map.
+export type ResourceCountKey = Exclude<keyof ResourceCounts, "byKind">;
+
 export interface InventoryMenuItem {
   kind: StorageArrayResourceKind;
   pageKey: PageMap;
   title: string;
   icon: IconProp;
-  countKey: keyof ResourceCounts;
+  countKey: ResourceCountKey;
 }
 
 export const INVENTORY_MENU_ITEMS: ReadonlyArray<InventoryMenuItem> = [
@@ -134,6 +142,52 @@ export function getInventoryMenuItems(
   return INVENTORY_MENU_ITEMS.filter((item: InventoryMenuItem): boolean => {
     return kinds.includes(item.kind);
   });
+}
+
+/*
+ * The kinds that share the Hardware page: a platform reporting any of them
+ * reports hardware.
+ */
+const HARDWARE_PAGE_KINDS: ReadonlyArray<string> = [
+  StorageArrayResourceKind.Hardware,
+  StorageArrayResourceKind.Drive,
+  StorageArrayResourceKind.Controller,
+  StorageArrayResourceKind.NetworkInterface,
+];
+
+/*
+ * A tab for each kind of the array's platform that has no page of its own
+ * above - a kind only that platform has, which it declares with its words
+ * (StorageArrayPlatform.kindDefinitions): NetApp's aggregates and SVMs,
+ * say. Each opens the inventory page, which lists any kind.
+ */
+export interface PlatformKindMenuItem {
+  kind: string;
+  title: string;
+  icon: IconProp;
+}
+
+export function getPlatformKindMenuItems(
+  storageSystem: string | null | undefined,
+): Array<PlatformKindMenuItem> {
+  const paged: Array<string> = [
+    ...INVENTORY_MENU_ITEMS.map((item: InventoryMenuItem): string => {
+      return item.kind;
+    }),
+    ...HARDWARE_PAGE_KINDS,
+  ];
+
+  return StorageArrayResourceKindUtil.getKindsForSystem(storageSystem)
+    .filter((kind: string): boolean => {
+      return !paged.includes(kind);
+    })
+    .map((kind: string): PlatformKindMenuItem => {
+      return {
+        kind: kind,
+        title: StorageArrayResourceKindUtil.getPluralLabel(kind, storageSystem),
+        icon: getStorageArrayKindWords(kind, storageSystem).icon,
+      };
+    });
 }
 
 const StorageArraySideMenu: FunctionComponent<ComponentProps> = (
@@ -205,7 +259,7 @@ const StorageArraySideMenu: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-  const inventoryItems: Array<ReactElement> = getInventoryMenuItems(
+  const pagedItems: Array<ReactElement> = getInventoryMenuItems(
     props.storageSystem,
   ).map((item: InventoryMenuItem): ReactElement => {
     /*
@@ -232,6 +286,47 @@ const StorageArraySideMenu: FunctionComponent<ComponentProps> = (
       />
     );
   });
+
+  const platformKindItems: Array<ReactElement> = getPlatformKindMenuItems(
+    props.storageSystem,
+  ).map((item: PlatformKindMenuItem): ReactElement => {
+    return (
+      <SideMenuItem
+        key={`kind-${item.kind}`}
+        link={{
+          title: item.title,
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.STORAGE_ARRAY_VIEW_INVENTORY] as Route,
+            {
+              modelId: props.modelId,
+              // The kind, as the inventory page reads it back.
+              subModelId: encodeURIComponent(item.kind),
+            },
+          ),
+        }}
+        icon={item.icon}
+        badge={counts.byKind?.[item.kind]}
+      />
+    );
+  });
+
+  /*
+   * The platform's own kinds' tabs come before Hardware, which closes the
+   * section on every platform.
+   */
+  const hardwareIndex: number = pagedItems.findIndex(
+    (element: ReactElement): boolean => {
+      return element.key === PageMap.STORAGE_ARRAY_VIEW_HARDWARE;
+    },
+  );
+  const inventoryItems: Array<ReactElement> =
+    hardwareIndex === -1
+      ? [...pagedItems, ...platformKindItems]
+      : [
+          ...pagedItems.slice(0, hardwareIndex),
+          ...platformKindItems,
+          ...pagedItems.slice(hardwareIndex),
+        ];
 
   return (
     <SideMenu>

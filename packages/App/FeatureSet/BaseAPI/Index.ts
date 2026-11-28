@@ -14,6 +14,7 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import SetupActionAPI from "Common/Server/API/SetupActionAPI";
+import DataSecurityActionAPI from "Common/Server/API/DataSecurityActionAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
@@ -222,6 +223,7 @@ import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
 import DockerSwarmResourceAPI from "Common/Server/API/DockerSwarmResourceAPI";
 import CephResourceAPI from "Common/Server/API/CephResourceAPI";
 import StorageArrayResourceAPI from "Common/Server/API/StorageArrayResourceAPI";
+import XcpNgResourceAPI from "Common/Server/API/XcpNgResourceAPI";
 import KubernetesContainer from "Common/Models/DatabaseModels/KubernetesContainer";
 import KubernetesContainerService, {
   Service as KubernetesContainerServiceType,
@@ -488,6 +490,9 @@ import OpenStackCloudLabelRuleService, {
 import VMwareVCenterLabelRuleService, {
   Service as VMwareVCenterLabelRuleServiceType,
 } from "Common/Server/Services/VMwareVCenterLabelRuleService";
+import VMwareHealthSettingService, {
+  Service as VMwareHealthSettingServiceType,
+} from "Common/Server/Services/VMwareHealthSettingService";
 import IoTFleetLabelRuleService, {
   Service as IoTFleetLabelRuleServiceType,
 } from "Common/Server/Services/IoTFleetLabelRuleService";
@@ -510,6 +515,12 @@ import StorageArrayOwnerRuleService, {
 import StorageArrayLabelRuleService, {
   Service as StorageArrayLabelRuleServiceType,
 } from "Common/Server/Services/StorageArrayLabelRuleService";
+import XcpNgPoolOwnerRuleService, {
+  Service as XcpNgPoolOwnerRuleServiceType,
+} from "Common/Server/Services/XcpNgPoolOwnerRuleService";
+import XcpNgPoolLabelRuleService, {
+  Service as XcpNgPoolLabelRuleServiceType,
+} from "Common/Server/Services/XcpNgPoolLabelRuleService";
 
 import RunbookOwnerRuleService, {
   Service as RunbookOwnerRuleServiceType,
@@ -671,6 +682,14 @@ import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectio
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import CloudBudgetAPI from "Common/Server/API/CloudBudgetAPI";
+import CloudCostGroupAPI from "Common/Server/API/CloudCostGroupAPI";
+import CloudCostViewAPI from "Common/Server/API/CloudCostViewAPI";
+import CloudCostReportAPI from "Common/Server/API/CloudCostReportAPI";
+import CloudCostLineItem from "Common/Models/DatabaseModels/CloudCostLineItem";
+import CloudCostLineItemService, {
+  Service as CloudCostLineItemServiceType,
+} from "Common/Server/Services/CloudCostLineItemService";
 import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import DeviceManagementConnectionAPI from "Common/Server/API/DeviceManagementConnectionAPI";
 import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
@@ -682,6 +701,10 @@ import ManagedDeviceAppService, {
   Service as ManagedDeviceAppServiceType,
 } from "Common/Server/Services/ManagedDeviceAppService";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
+import ExternalMcpToolReadOnlyMark from "Common/Models/DatabaseModels/ExternalMcpToolReadOnlyMark";
+import ExternalMcpToolReadOnlyMarkService, {
+  Service as ExternalMcpToolReadOnlyMarkServiceType,
+} from "Common/Server/Services/ExternalMcpToolReadOnlyMarkService";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import AuditLogExportService, {
   Service as AuditLogExportServiceType,
@@ -726,6 +749,9 @@ import SecurityCaseAiActionService, {
 import SecurityCasePullRequestService, {
   Service as SecurityCasePullRequestServiceType,
 } from "Common/Server/Services/SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService, {
+  Service as DataSecurityIssuePullRequestServiceType,
+} from "Common/Server/Services/DataSecurityIssuePullRequestService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -733,6 +759,7 @@ import SecurityPlaybookService, {
   Service as SecurityPlaybookServiceType,
 } from "Common/Server/Services/SecurityPlaybookService";
 import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
+import SecurityUserErasureRequestAPI from "Common/Server/API/SecurityUserErasureRequestAPI";
 import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
 import SecurityAutomaticResponsePolicyAPI from "Common/Server/API/SecurityAutomaticResponsePolicyAPI";
 import SecurityAutomaticResponseActionService, {
@@ -1097,6 +1124,21 @@ import CephClusterService, {
 import StorageArrayService, {
   Service as StorageArrayServiceType,
 } from "Common/Server/Services/StorageArrayService";
+import StorageArrayConnectionService, {
+  Service as StorageArrayConnectionServiceType,
+} from "Common/Server/Services/StorageArrayConnectionService";
+import StorageArrayConnectionTestService, {
+  Service as StorageArrayConnectionTestServiceType,
+} from "Common/Server/Services/StorageArrayConnectionTestService";
+import XcpNgPoolService, {
+  Service as XcpNgPoolServiceType,
+} from "Common/Server/Services/XcpNgPoolService";
+import XcpNgConnectionService, {
+  Service as XcpNgConnectionServiceType,
+} from "Common/Server/Services/XcpNgConnectionService";
+import XcpNgConnectionTestService, {
+  Service as XcpNgConnectionTestServiceType,
+} from "Common/Server/Services/XcpNgConnectionTestService";
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
@@ -1139,6 +1181,12 @@ import StorageArrayOwnerTeamService, {
 import StorageArrayOwnerUserService, {
   Service as StorageArrayOwnerUserServiceType,
 } from "Common/Server/Services/StorageArrayOwnerUserService";
+import XcpNgPoolOwnerTeamService, {
+  Service as XcpNgPoolOwnerTeamServiceType,
+} from "Common/Server/Services/XcpNgPoolOwnerTeamService";
+import XcpNgPoolOwnerUserService, {
+  Service as XcpNgPoolOwnerUserServiceType,
+} from "Common/Server/Services/XcpNgPoolOwnerUserService";
 import DatabaseServerService, {
   Service as DatabaseServerServiceType,
 } from "Common/Server/Services/DatabaseServerService";
@@ -1580,6 +1628,9 @@ import RunbookVariableService, {
 import ProbeOwnerTeamService, {
   Service as ProbeOwnerTeamServiceType,
 } from "Common/Server/Services/ProbeOwnerTeamService";
+import GlobalProbeSnmpTrapReportService, {
+  Service as GlobalProbeSnmpTrapReportServiceType,
+} from "Common/Server/Services/GlobalProbeSnmpTrapReportService";
 
 import ProbeOwnerUserService, {
   Service as ProbeOwnerUserServiceType,
@@ -1603,9 +1654,8 @@ import ExceptionInstanceService, {
 import KubernetesCostAllocationService, {
   KubernetesCostAllocationService as KubernetesCostAllocationServiceType,
 } from "Common/Server/Services/KubernetesCostAllocationService";
-import CloudCostService, {
-  CloudCostService as CloudCostServiceType,
-} from "Common/Server/Services/CloudCostService";
+import CloudCostService from "Common/Server/Services/CloudCostService";
+import CloudCostAPI from "Common/Server/API/CloudCostAPI";
 import AcmeChallengeAPI from "Common/Server/API/AcmeChallengeAPI";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
@@ -1699,12 +1749,15 @@ import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwar
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
 import OpenStackCloudLabelRule from "Common/Models/DatabaseModels/OpenStackCloudLabelRule";
 import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
+import VMwareHealthSetting from "Common/Models/DatabaseModels/VMwareHealthSetting";
 import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
 import CephClusterLabelRule from "Common/Models/DatabaseModels/CephClusterLabelRule";
 import StorageArrayOwnerRule from "Common/Models/DatabaseModels/StorageArrayOwnerRule";
 import StorageArrayLabelRule from "Common/Models/DatabaseModels/StorageArrayLabelRule";
+import XcpNgPoolOwnerRule from "Common/Models/DatabaseModels/XcpNgPoolOwnerRule";
+import XcpNgPoolLabelRule from "Common/Models/DatabaseModels/XcpNgPoolLabelRule";
 import RunbookOwnerRule from "Common/Models/DatabaseModels/RunbookOwnerRule";
 import RunbookLabelRule from "Common/Models/DatabaseModels/RunbookLabelRule";
 import ScheduledMaintenanceOwnerRule from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
@@ -1822,8 +1875,15 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
 import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import StorageArrayConnection from "Common/Models/DatabaseModels/StorageArrayConnection";
+import StorageArrayConnectionTest from "Common/Models/DatabaseModels/StorageArrayConnectionTest";
 import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
+import XcpNgConnection from "Common/Models/DatabaseModels/XcpNgConnection";
+import XcpNgConnectionTest from "Common/Models/DatabaseModels/XcpNgConnectionTest";
+import XcpNgPoolOwnerTeam from "Common/Models/DatabaseModels/XcpNgPoolOwnerTeam";
+import XcpNgPoolOwnerUser from "Common/Models/DatabaseModels/XcpNgPoolOwnerUser";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
 import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServerOwnerTeam";
@@ -1954,13 +2014,13 @@ import TeamOwnerTeam from "Common/Models/DatabaseModels/TeamOwnerTeam";
 import TeamOwnerUser from "Common/Models/DatabaseModels/TeamOwnerUser";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
+import GlobalProbeSnmpTrapReport from "Common/Models/DatabaseModels/GlobalProbeSnmpTrapReport";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
-import CloudCost from "Common/Models/AnalyticsModels/CloudCost";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
 } from "Common/Server/Services/WorkspaceNotificationLogService";
@@ -1996,6 +2056,7 @@ import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseAiAction from "Common/Models/DatabaseModels/SecurityCaseAiAction";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import DataSecurityIssuePullRequest from "Common/Models/DatabaseModels/DataSecurityIssuePullRequest";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
@@ -2120,6 +2181,10 @@ import StorageArrayFeed from "Common/Models/DatabaseModels/StorageArrayFeed";
 import StorageArrayFeedService, {
   Service as StorageArrayFeedServiceType,
 } from "Common/Server/Services/StorageArrayFeedService";
+import XcpNgPoolFeed from "Common/Models/DatabaseModels/XcpNgPoolFeed";
+import XcpNgPoolFeedService, {
+  Service as XcpNgPoolFeedServiceType,
+} from "Common/Server/Services/XcpNgPoolFeedService";
 import DatabaseServerFeed from "Common/Models/DatabaseModels/DatabaseServerFeed";
 import DatabaseServerFeedService, {
   Service as DatabaseServerFeedServiceType,
@@ -2149,14 +2214,36 @@ import CloudAccountFeed from "Common/Models/DatabaseModels/CloudAccountFeed";
 import CloudAccountFeedService, {
   Service as CloudAccountFeedServiceType,
 } from "Common/Server/Services/CloudAccountFeedService";
-import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
-import CloudBudgetService, {
-  Service as CloudBudgetServiceType,
-} from "Common/Server/Services/CloudBudgetService";
+import CloudRequiredTagAPI from "Common/Server/API/CloudRequiredTagAPI";
+import CloudTagCoverageDay from "Common/Models/DatabaseModels/CloudTagCoverageDay";
+import CloudTagCoverageDayService, {
+  Service as CloudTagCoverageDayServiceType,
+} from "Common/Server/Services/CloudTagCoverageDayService";
+import CloudTagFinding from "Common/Models/DatabaseModels/CloudTagFinding";
+import CloudTagFindingService, {
+  Service as CloudTagFindingServiceType,
+} from "Common/Server/Services/CloudTagFindingService";
+import CloudTagSetting from "Common/Models/DatabaseModels/CloudTagSetting";
+import CloudTagSettingService, {
+  Service as CloudTagSettingServiceType,
+} from "Common/Server/Services/CloudTagSettingService";
+import CloudCommitment from "Common/Models/DatabaseModels/CloudCommitment";
+import CloudCommitmentService, {
+  Service as CloudCommitmentServiceType,
+} from "Common/Server/Services/CloudCommitmentService";
+import CloudCostSetting from "Common/Models/DatabaseModels/CloudCostSetting";
+import CloudCostSettingService, {
+  Service as CloudCostSettingServiceType,
+} from "Common/Server/Services/CloudCostSettingService";
 import CloudCostRecommendation from "Common/Models/DatabaseModels/CloudCostRecommendation";
 import CloudCostRecommendationService, {
   Service as CloudCostRecommendationServiceType,
 } from "Common/Server/Services/CloudCostRecommendationService";
+import CloudOffHoursSchedule from "Common/Models/DatabaseModels/CloudOffHoursSchedule";
+import CloudOffHoursScheduleService, {
+  Service as CloudOffHoursScheduleServiceType,
+} from "Common/Server/Services/CloudOffHoursScheduleService";
+import CloudSavingsAPI from "Common/Server/API/CloudSavingsAPI";
 import CloudResourceFeedService, {
   Service as CloudResourceFeedServiceType,
 } from "Common/Server/Services/CloudResourceFeedService";
@@ -2196,6 +2283,7 @@ import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import MonitorTemplateChangeAPI from "Common/Server/API/MonitorTemplateChangeAPI";
 import NetworkDeviceDiscoveryScanRunAPI from "Common/Server/API/NetworkDeviceDiscoveryScanRunAPI";
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
@@ -2861,6 +2949,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StorageArrayFeed, StorageArrayFeedServiceType>(
         StorageArrayFeed,
         StorageArrayFeedService,
+      ).getRouter(),
+    );
+
+    // XCP-ng pool feed
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolFeed, XcpNgPoolFeedServiceType>(
+        XcpNgPoolFeed,
+        XcpNgPoolFeedService,
       ).getRouter(),
     );
 
@@ -3650,6 +3747,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Where a project's VMware health rules mark a part as needing attention.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareHealthSetting, VMwareHealthSettingServiceType>(
+        VMwareHealthSetting,
+        VMwareHealthSettingService,
+      ).getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<IoTFleetLabelRule, IoTFleetLabelRuleServiceType>(
@@ -3698,6 +3804,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StorageArrayLabelRule, StorageArrayLabelRuleServiceType>(
         StorageArrayLabelRule,
         StorageArrayLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolOwnerRule, XcpNgPoolOwnerRuleServiceType>(
+        XcpNgPoolOwnerRule,
+        XcpNgPoolOwnerRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolLabelRule, XcpNgPoolLabelRuleServiceType>(
+        XcpNgPoolLabelRule,
+        XcpNgPoolLabelRuleService,
       ).getRouter(),
     );
 
@@ -3920,12 +4042,94 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // Monthly budgets for what the connected clouds cost, and their alerts.
+    /*
+     * Budgets for what the connected clouds cost, and their alerts: a
+     * budget's page and the forecasts of any scope too (#11008).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<CloudBudget, CloudBudgetServiceType>(
-        CloudBudget,
-        CloudBudgetService,
+      new CloudBudgetAPI().getRouter(),
+    );
+
+    // The connected clouds' commitments and what they cover: read only.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCommitment, CloudCommitmentServiceType>(
+        CloudCommitment,
+        CloudCommitmentService,
+      ).getRouter(),
+    );
+
+    // How Cloud shows a project's costs, and when its commitments alert.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCostSetting, CloudCostSettingServiceType>(
+        CloudCostSetting,
+        CloudCostSettingService,
+      ).getRouter(),
+    );
+
+    /*
+     * Cost views and their groups: the spend sorted into teams, products
+     * and cost centers, read through /cloud-cost-view/:id/allocation and
+     * /cloud-cost-group/:id/spend; and the custom line items added to it.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostViewAPI().getRouter(),
+    );
+
+    // Scheduled cloud cost reports, with Preview and Send Me a Copy (#11009).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostReportAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostGroupAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCostLineItem, CloudCostLineItemServiceType>(
+        CloudCostLineItem,
+        CloudCostLineItemService,
+      ).getRouter(),
+    );
+
+    /*
+     * Required tags (#11012): the tags the clouds' resources must carry,
+     * how the project is told about a new resource without one, the new
+     * resources found, and each account's daily count. The last two are
+     * the watcher's: read only.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudRequiredTagAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudTagSetting, CloudTagSettingServiceType>(
+        CloudTagSetting,
+        CloudTagSettingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudTagFinding, CloudTagFindingServiceType>(
+        CloudTagFinding,
+        CloudTagFindingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudTagCoverageDay, CloudTagCoverageDayServiceType>(
+        CloudTagCoverageDay,
+        CloudTagCoverageDayService,
       ).getRouter(),
     );
 
@@ -3935,6 +4139,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudCostRecommendation, CloudCostRecommendationServiceType>(
         CloudCostRecommendation,
         CloudCostRecommendationService,
+      ).getRouter(),
+    );
+
+    /*
+     * The changes OneUptime proposes and makes for savings (#11010): read
+     * here, and asked for, approved, dismissed and undone through the
+     * savings routes; written only by those and the workers.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudSavingsAPI().getRouter(),
+    );
+
+    // Off-hours schedules that stop non-production resources (#11010).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudOffHoursSchedule, CloudOffHoursScheduleServiceType>(
+        CloudOffHoursSchedule,
+        CloudOffHoursScheduleService,
       ).getRouter(),
     );
 
@@ -3974,6 +4197,18 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ExternalMcpServerAPI().getRouter(),
+    );
+
+    // A Project Admin's word that a server's tool only reads (#11081).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ExternalMcpToolReadOnlyMark,
+        ExternalMcpToolReadOnlyMarkServiceType
+      >(
+        ExternalMcpToolReadOnlyMark,
+        ExternalMcpToolReadOnlyMarkService,
+      ).getRouter(),
     );
 
     // LlmModelPrice
@@ -4121,12 +4356,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(KubernetesCostAllocation, KubernetesCostAllocationService).getRouter(),
     );
 
+    /*
+     * Cloud costs: the analytics reads, and a breakdown and a FOCUS export
+     * of their own (#11009).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<CloudCost, CloudCostServiceType>(
-        CloudCost,
-        CloudCostService,
-      ).getRouter(),
+      new CloudCostAPI(CloudCostService).getRouter(),
     );
 
     app.use(
@@ -4183,6 +4419,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new StorageArrayResourceAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new XcpNgResourceAPI().getRouter(),
     );
 
     app.use(
@@ -4416,6 +4657,21 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<ProbeOwnerTeam, ProbeOwnerTeamServiceType>(
         ProbeOwnerTeam,
         ProbeOwnerTeamService,
+      ).getRouter(),
+    );
+
+    /*
+     * A project's share of a global probe's SNMP trap receiver report
+     * (#11173): read on its devices' pages, written only by OneUptime.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        GlobalProbeSnmpTrapReport,
+        GlobalProbeSnmpTrapReportServiceType
+      >(
+        GlobalProbeSnmpTrapReport,
+        GlobalProbeSnmpTrapReportService,
       ).getRouter(),
     );
 
@@ -4875,6 +5131,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityCasePullRequest, SecurityCasePullRequestServiceType>(
         SecurityCasePullRequest,
         SecurityCasePullRequestService,
+      ).getRouter(),
+    );
+
+    /*
+     * A person's own pull request, linked to a Data Security issue as its
+     * fix (#10831): linked and taken off by who may change the issue, read
+     * by its readers - the issue's Linked pull requests. What it says of
+     * the pull request, and how production proved it, is OneUptime's.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestServiceType
+      >(
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestService,
       ).getRouter(),
     );
 
@@ -6257,6 +6530,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(RumSessionErasureRequest, RumSessionErasureRequestService).getRouter(),
     );
 
+    /*
+     * Erasing one person from Security Events' user vault (#10908), and how
+     * far each open request has got (#11232).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityUserErasureRequestAPI().getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<RumSessionPin, RumSessionPinServiceType>(
@@ -6589,6 +6871,25 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayConnection, StorageArrayConnectionServiceType>(
+        StorageArrayConnection,
+        StorageArrayConnectionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        StorageArrayConnectionTest,
+        StorageArrayConnectionTestServiceType
+      >(
+        StorageArrayConnectionTest,
+        StorageArrayConnectionTestService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<StorageArrayOwnerTeam, StorageArrayOwnerTeamServiceType>(
         StorageArrayOwnerTeam,
         StorageArrayOwnerTeamService,
@@ -6600,6 +6901,46 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StorageArrayOwnerUser, StorageArrayOwnerUserServiceType>(
         StorageArrayOwnerUser,
         StorageArrayOwnerUserService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPool, XcpNgPoolServiceType>(
+        XcpNgPool,
+        XcpNgPoolService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgConnection, XcpNgConnectionServiceType>(
+        XcpNgConnection,
+        XcpNgConnectionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgConnectionTest, XcpNgConnectionTestServiceType>(
+        XcpNgConnectionTest,
+        XcpNgConnectionTestService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolOwnerTeam, XcpNgPoolOwnerTeamServiceType>(
+        XcpNgPoolOwnerTeam,
+        XcpNgPoolOwnerTeamService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgPoolOwnerUser, XcpNgPoolOwnerUserServiceType>(
+        XcpNgPoolOwnerUser,
+        XcpNgPoolOwnerUserService,
       ).getRouter(),
     );
 
@@ -7085,6 +7426,16 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
     );
+
+    /*
+     * Changing many monitors' template (a template's Linked Monitors, the
+     * Monitors list's Link to Template, a template's Delete that clears its
+     * criteria first: issues #11260, #11266). A bare router for the same
+     * reason as the discovery import's: its changes are internal rows with
+     * no CRUD API, so the router's own checks are the whole gate, and the
+     * change itself acts as the person who asked for it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, MonitorTemplateChangeAPI);
 
     /*
      * Running a discovery scan again, on demand (Network > Discovery > Run
@@ -7937,6 +8288,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * server's outcome-level tools (#7241).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupActionAPI);
+
+    /*
+     * Ask AI's Data Security actions, one call each, outside the chat: the
+     * MCP server's scrub, judge, accept, owners, rule and response tools
+     * (#10378).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, DataSecurityActionAPI);
 
     // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);

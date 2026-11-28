@@ -459,7 +459,7 @@ describe("Declare Incident", () => {
      * its question says so.
      */
     expect(source).toContain(
-      'title: "Notify Status Page Subscribers", stepId: "resources-affected", description: getNotifyBoxDescription( newIncidentNotifyDefault.isTickedByDefault, ), fieldType: FormFieldSchemaType.Checkbox, defaultValue: newIncidentNotifyDefault.isTickedByDefault,',
+      'title: "Notify Status Page Subscribers", stepId: "resources-affected", description: getNotifyBoxDescription( declareDefaults.isNotifyTickedByDefault, ), fieldType: FormFieldSchemaType.Checkbox, defaultValue: declareDefaults.isNotifyTickedByDefault,',
     );
 
     const copy: string = readDashboardSource(
@@ -484,7 +484,7 @@ describe("Declare Incident", () => {
       "{canTickNotifyOnReview(item) ? ( <NotifySubscribersChangeToYes onClick={tickNotifyOnReview} /> ) : ( <></> )} </div> {getAudienceSummary(item)} </> ); },",
     );
     expect(source).toContain(
-      'return ( !newIncidentNotifyDefault.isTickedByDefault && !isNotifyTicked(values) && (values as Record<string, unknown>)["isPrivate"] !== true );',
+      'return ( !declareDefaults.isNotifyTickedByDefault && !isNotifyTicked(values) && (values as Record<string, unknown>)["isPrivate"] !== true );',
     );
     expect(source).not.toContain(
       "Status page subscribers will not be notified",

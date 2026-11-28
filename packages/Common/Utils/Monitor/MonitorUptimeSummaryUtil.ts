@@ -47,7 +47,13 @@ export type MonitorUptimeCaveat =
   | "paused"
   | "not-checking"
   | "no-results"
-  | "monitoring-off";
+  | "monitoring-off"
+  /*
+   * Paused by an incident declared by hand or by scheduled maintenance that
+   * put the monitor in no status: that time is left out, as with monitoring
+   * off (issues #11141 and #11301).
+   */
+  | "paused-left-out";
 
 /*
  * What each caveat adds to a window's description, as a phrase of its own
@@ -58,6 +64,7 @@ const CAVEAT_TEXT: Record<MonitorUptimeCaveat, string> = {
   "not-checking": translationKey("includes time with no checks running"),
   "no-results": translationKey("no check has completed yet"),
   "monitoring-off": translationKey("leaves out time with monitoring off"),
+  "paused-left-out": translationKey("leaves out paused time"),
 };
 
 // English, word for word as the windows always read: no lookup.

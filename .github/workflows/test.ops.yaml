@@ -186,9 +186,10 @@ jobs:
       # collector binary the agent images are built FROM.
       #
       # Runs the pinned collector image over the Docker, Podman, Docker Swarm,
-      # VMware, Proxmox and Ceph agent configs, the Storage Array agent's three
-      # configs (also with their syslog receivers uncommented), every Database
-      # agent config,
+      # VMware, Proxmox and Ceph agent configs, the Storage Array agent's
+      # configs (Pure's also with their syslog receivers uncommented, the
+      # PowerStore syslog collector's also with its TLS receiver), every
+      # Database agent config,
       # and both collector ConfigMaps rendered out of the kubernetes-agent chart
       # (the Deployment's also with the opt-in ebpf.dropUnlinkedClientCalls on,
       # and both again on collector 0.96.0, which an upgrade with
@@ -218,6 +219,18 @@ jobs:
       # namespaces) must leave as WARN, Normal Events and resource specs as
       # INFO, none dropped.
       - run: bash Tests/Ops/agent-event-severity-behaviour.sh
+      # And for pod and container logs (issue #10972): the severity chain of
+      # the Kubernetes agent's DaemonSet (on the collector the chart pins and
+      # on 0.96.0, with and without filters.logs.minSeverity=ERROR) and of the
+      # Docker, Docker Swarm and Podman agents, each config exactly as it
+      # ships, over the log lines of Tests/Ops/Utils/LogSeverityCorpus.js
+      # written as each runtime writes them to disk. Every line must leave at
+      # the level it names (hclog behind a time ending in Z, klog's letter,
+      # PostgreSQL's LOG, Spring Boot 3, pino's numbers, an exception's
+      # header), a line that names none on stderr with no severity rather
+      # than ERROR, none dropped or doubled, nothing below ERROR kept under
+      # the filter, and no error logged by the chain.
+      - run: bash Tests/Ops/agent-log-severity-behaviour.sh
       # And for a host's journal (issue #9748): the journald operators of
       # OneUptime's default host collector config, as the server sends it,
       # on the release the host installers pin, fed entries as journalctl
@@ -319,6 +332,42 @@ jobs:
       # following within an interval each time - with the token never on a
       # command line. Its stand-ins run on the node image warmed above.
       - run: bash Tests/Ops/proxmox-agent-failover-behaviour.sh
+      # And for the Storage Array agent on a Dell PowerStore (#11002): its
+      # compose file under the powerstore profile exactly as it ships (scraping
+      # every 15 seconds instead of every 1 and 5 minutes), building Dell's
+      # real powerstore-metrics-exporter release into the image the agent
+      # runs, against a stand-in PowerStore REST API on the node image warmed
+      # above. The exporter must log in with the password .env holds, byte for
+      # byte, and never log it; every part of the cluster must reach a
+      # stand-in OneUptime stamped as the array, with a healthy node reading
+      # 1 and each used percent used / total; and PowerStore's syslog over TCP
+      # and UDP must arrive as logs of the array with Dell's severities.
+      - run: bash Tests/Ops/storage-array-agent-powerstore-behaviour.sh
+      # And for the Storage Array Agent's NetApp ONTAP chain (#11001): NetApp
+      # Harvest and the collector from agents/StorageArrayAgent/docker-compose.yml
+      # exactly as they ship (scraping every 10 seconds instead of 60), against a
+      # stand-in ONTAP 9.16.1 cluster and a stand-in Amazon FSx file system that
+      # refuses fsxadmin what Amazon does (Tests/Ops/Fixtures/NetAppOntap). What
+      # reaches OneUptime must carry the array's identity and no service.name,
+      # be named netapp_* and labelled scrape_endpoint=harvest, and hold every
+      # object with its values (KeyPerf and RestPerf rates, EMS events, SnapMirror
+      # schedules in seconds) and none of Harvest's self-timing; the password
+      # O'ne "up" #time: \ $HOME must reach the cluster exactly and be in no log.
+      - run: bash Tests/Ops/storage-array-agent-netapp-behaviour.sh
+      # And for the XCP-ng Agent's scrape of Xen Orchestra (#10995): its
+      # collector exactly as it ships (scraping every 5 seconds instead of 60)
+      # against a stand-in Xen Orchestra serving the recorded OpenMetrics
+      # scrape over HTTPS, exporting through a stand-in OneUptime into an
+      # OTLP sink. Each pool must arrive as one resource carrying its
+      # identity, every served sample with its value and the second Xen
+      # Orchestra served, the eight rate series it types counter as gauges,
+      # nothing without a pool and nothing but xcp_*; a wrong secret, a
+      # certificate that is not the pinned one, and Xen Orchestra's own
+      # self-signed certificate (which names no host) must each send
+      # nothing. The run is also held to the OTLP fixtures the ingest tests
+      # read (packages/Common/Tests/Server/Utils/Telemetry/Fixtures/XcpNg).
+      # Its stand-ins run on the node image warmed above.
+      - run: bash Tests/Ops/xcp-ng-agent-scrape-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a

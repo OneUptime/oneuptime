@@ -34,6 +34,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `PODMAN_HOST_NAME` | خیر | نامی آشنا برای این میزبان. پیش‌فرض `podman-host` است |",
   "| `DOCKER_API_VERSION` | No | Docker API version the agent speaks to the Podman socket. Empty by default: the agent negotiates it with the socket. Set it only to pin a version (see Troubleshooting) |":
     "| `DOCKER_API_VERSION` | خیر | نسخه API موتور Docker که عامل با سوکت Podman به کار می‌برد. به‌طور پیش‌فرض خالی است: عامل آن را با سوکت توافق می‌کند. فقط برای ثابت کردن یک نسخه تنظیمش کنید (عیب‌یابی را ببینید) |",
+  "| `ONEUPTIME_LOG_OPERATOR_1` to `ONEUPTIME_LOG_OPERATOR_5` | No | Collector operators of your own, one each as JSON, for a log format the agent does not read |":
+    "| `ONEUPTIME_LOG_OPERATOR_1` تا `ONEUPTIME_LOG_OPERATOR_5` | خیر | عملگرهای کالکتور خودتان، هر کدام به‌صورت JSON، برای قالب لاگی که عامل نمی‌خواند |",
   "Pass each one to `podman run` as `-e NAME=value`. To change one later, remove the agent with `podman rm -f oneuptime-podman-agent` and run the command again with the new value.":
     "هر کدام را به شکل `-e NAME=value` به `podman run` بدهید. برای تغییر یکی در آینده، عامل را با `podman rm -f oneuptime-podman-agent` حذف کنید و فرمان را با مقدار تازه دوباره اجرا کنید.",
   "The agent reads the files Podman's **`k8s-file`** log driver writes — `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log` — so it only sees logs from containers that use it (or `json-file`, which Podman treats as the same file-based driver). Rootful Podman's default is **`journald`**, which it cannot read, and neither can it read a remote driver such as `syslog`.":

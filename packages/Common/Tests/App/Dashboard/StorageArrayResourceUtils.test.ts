@@ -31,12 +31,12 @@ import {
   getGoldenChartQueries,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Index";
 import {
-  FLASHARRAY_INSIGHTS_SECTIONS,
-  FLASHBLADE_INSIGHTS_SECTIONS,
   InsightsSection,
   getInsightsQueries,
   getInsightsSections,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Insights";
+import { FLASHARRAY_INSIGHTS_SECTIONS } from "../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
+import { FLASHBLADE_INSIGHTS_SECTIONS } from "../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
 import {
   INVENTORY_MENU_ITEMS,
   InventoryMenuItem,
@@ -516,6 +516,15 @@ describe("charts are built from the metric catalog", () => {
         ids.add(match[1]!);
       }
     }
+    // The Resource Usage page's sections are each platform's data (#11000).
+    for (const section of [
+      ...FLASHARRAY_INSIGHTS_SECTIONS,
+      ...FLASHBLADE_INSIGHTS_SECTIONS,
+    ]) {
+      for (const id of section.metricIds) {
+        ids.add(id);
+      }
+    }
 
     expect(ids.size).toBeGreaterThan(20);
     for (const id of ids) {
@@ -577,7 +586,7 @@ describe("charts are built from the metric catalog", () => {
       getGoldenChartQueries({ storageSystem: undefined, arrayName: "a" }),
     ).toEqual([]);
     expect(
-      getGoldenChartQueries({ storageSystem: "netapp.ontap", arrayName: "a" }),
+      getGoldenChartQueries({ storageSystem: "hitachi.vsp", arrayName: "a" }),
     ).toEqual([]);
   });
 
@@ -588,9 +597,14 @@ describe("charts are built from the metric catalog", () => {
     expect(getAlertMetricNames(StorageSystem.PureStorageFlashBlade)).toEqual([
       "purefb_alerts_open",
     ]);
+    expect(getAlertMetricNames(StorageSystem.DellPowerMax)).toEqual([
+      "powermax_alert_open",
+    ]);
+    // An array whose platform is not known yet: every platform's (#11004).
     expect(getAlertMetricNames(undefined)).toEqual([
       "purefa_alerts_open",
       "purefb_alerts_open",
+      "powermax_alert_open",
     ]);
   });
 });
@@ -697,7 +711,7 @@ describe("the array side menu", () => {
   test("an array without a known platform lists no inventory page", () => {
     expect(pagesFor(undefined)).toEqual([]);
     expect(pagesFor("")).toEqual([]);
-    expect(pagesFor("netapp.ontap")).toEqual([]);
+    expect(pagesFor("hitachi.vsp")).toEqual([]);
   });
 
   test("every inventory page appears once", () => {

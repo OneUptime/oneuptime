@@ -178,10 +178,17 @@ import {
   SecurityBlockSource,
   SecurityBlockState,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
+import {
+  TWIN_MARKS_NOTE_TEST_ID,
+  TWIN_MARK_CREATED_TEST_ID,
+  TWIN_MARK_PILL_TEST_ID,
+} from "../../../UI/Components/ModelTable/TwinMarkWords";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import Toast from "../../../UI/Utils/Toast";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
+import { getJestSpyOn } from "../../Spy";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -310,6 +317,7 @@ function overview(
 let mayChange: boolean;
 let toastSuccess: MockedFn;
 let toastError: MockedFn;
+let readSharedNames: jest.SpyInstance;
 
 beforeEach(() => {
   forms = [];
@@ -349,6 +357,12 @@ beforeEach(() => {
   api.createOwnPolicy.mockResolvedValue(undefined as never);
   api.deleteOwnPolicy.mockResolvedValue(undefined as never);
   api.readDetectionRuleChoices.mockResolvedValue([] as never);
+
+  // No two policies share a name, unless a test says so (#11021).
+  readSharedNames = getJestSpyOn(
+    UniqueNamesApi,
+    "readSharedNames",
+  ).mockResolvedValue({ groups: [], createdAt: {} });
 });
 
 afterEach(() => {
@@ -502,6 +516,7 @@ describe("the three ready policies", () => {
             sparedSignedIn: 1,
             sparedProtected: 0,
             sparedCannotTell: 0,
+            sparedUnvouchedProxy: 0,
             wouldHaveStopped: 0,
           },
         }),
@@ -560,6 +575,7 @@ describe("the three ready policies", () => {
             sparedSignedIn: 0,
             sparedProtected: 0,
             sparedCannotTell: 0,
+            sparedUnvouchedProxy: 0,
             wouldHaveStopped: 0,
           },
         }),
@@ -1021,5 +1037,96 @@ describe("a policy's block, elsewhere", () => {
     expect(plain(line)).toMatch(
       /^Challenged at Cloudflare .+ by the Scanners policy, 41s after its first request, until .+\.$/,
     );
+  });
+});
+
+/*
+ * Policies that share a name (#11021): the page draws its cards itself,
+ * not through the shared list, so it marks them itself, with the same
+ * pieces - a pill beside each one's name, the day it was made, and one
+ * note above the cards - from the twins the server names.
+ */
+describe("policies that share a name", () => {
+  const OWN_SCANNERS: SecurityAutomaticResponseOverviewPolicy = policy({
+    id: OWN_ID,
+    kind: SecurityAutomaticResponsePolicyKind.Custom,
+    name: "Scanners",
+    description: "Ours.",
+  });
+
+  test("each is marked beside its name, with the day it was made; the note above counts them", async () => {
+    api.readAutomaticResponseOverview.mockResolvedValue(
+      overview({ policies: [...readyPolicies(), OWN_SCANNERS] }) as never,
+    );
+    readSharedNames.mockResolvedValue({
+      groups: [[SCANNERS_ID, OWN_ID]],
+      createdAt: {
+        [SCANNERS_ID]: "2026-03-02T10:00:00.000Z",
+        [OWN_ID]: "2026-09-14T08:30:00.000Z",
+      },
+    });
+
+    await renderPage();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Asked once, of policies, after the page read them.
+    expect(readSharedNames).toHaveBeenCalledWith(
+      "SecurityAutomaticResponsePolicy",
+    );
+
+    const scanners: HTMLElement = cardOf(
+      SecurityAutomaticResponsePolicyKind.Scanners,
+    );
+    const own: HTMLElement = cardOf(SecurityAutomaticResponsePolicyKind.Custom);
+
+    for (const card of [scanners, own]) {
+      expect(
+        within(card).getByTestId(TWIN_MARK_PILL_TEST_ID),
+      ).toHaveTextContent("Same name as another automatic response policy");
+    }
+    expect(
+      within(own).getByTestId(TWIN_MARK_CREATED_TEST_ID),
+    ).toHaveTextContent("Created");
+
+    // The policy no other shares its name with is drawn as it was.
+    for (const kind of [
+      SecurityAutomaticResponsePolicyKind.PasswordGuessing,
+      SecurityAutomaticResponsePolicyKind.KnownBadAddresses,
+    ]) {
+      expect(
+        within(cardOf(kind)).queryByTestId(TWIN_MARK_PILL_TEST_ID),
+      ).toBeNull();
+    }
+
+    expect(screen.getByTestId(TWIN_MARKS_NOTE_TEST_ID)).toHaveTextContent(
+      "2 automatic response policies have the same name as another automatic response policy",
+    );
+  });
+
+  test("no two share a name: nothing is marked, and nothing is said", async () => {
+    await renderPage();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(readSharedNames).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId(TWIN_MARK_PILL_TEST_ID)).toBeNull();
+    expect(screen.queryByTestId(TWIN_MARKS_NOTE_TEST_ID)).toBeNull();
+  });
+
+  test("the twins could not be read: the page works as ever, marking nothing", async () => {
+    readSharedNames.mockRejectedValue(new Error("Network down"));
+
+    await renderPage();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(
+      screen.getAllByTestId(AUTOMATIC_RESPONSE_TEST_IDS.card),
+    ).toHaveLength(3);
+    expect(screen.queryByTestId(TWIN_MARK_PILL_TEST_ID)).toBeNull();
   });
 });

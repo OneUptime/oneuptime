@@ -6,9 +6,11 @@ import {
   digitsOnly,
   hasDigit,
   isPlaceholderDigits,
+  withEveryReading,
 } from "../Detector";
 import { isRealDate } from "../Validators";
 import { isTestStreetAddress } from "../Model/RecognizedEntity";
+import PercentDecodedText from "../PercentDecodedText";
 import IpCanonicalUtil from "../../IpCanonicalUtil";
 
 /*
@@ -125,9 +127,14 @@ export function isTestEmail(email: string): boolean {
   });
 }
 
-// An address in one spelling: lower case, and its accents composed (é as one character, not e and a mark).
+/*
+ * An address in one spelling: its percent-escapes read (jos%C3%A9 is josé,
+ * #11032), lower case, and its accents composed (é as one character, not e
+ * and a mark) - so an encoded address and the same address written plainly
+ * are one value, to a fingerprint, an allowed value and a test value alike.
+ */
 function normalizeEmail(value: string): string {
-  return value.normalize("NFC").toLowerCase();
+  return PercentDecodedText.readableOf(value).normalize("NFC").toLowerCase();
 }
 
 const emailDetector: DataTypeDetector = {
@@ -150,6 +157,14 @@ const emailDetector: DataTypeDetector = {
    * what an Email Address rule hides - is the encoded address whole.
    */
   readsPercentEncoded: true,
+  /*
+   * An address typed in fullwidth, as an input method in fullwidth mode
+   * types one (#11385): ｊａｎｅ＠ｅｘａｍｐｌｅ．ｃｏｍ, and jane＠example.com
+   * with its "@" alone in fullwidth. Read with the fullwidth ASCII block
+   * read as ASCII, it is jane@example.com, found on the characters it is
+   * typed with.
+   */
+  readsFullwidthLetters: true,
 };
 
 /*
@@ -472,12 +487,19 @@ const PHONE_KEYWORDS: ReadonlyArray<string> = [
   "contact",
 ];
 
-// "+44 20 7946 0958", "+1 (415) 555-2671": a calling code and 7 to 14 digits.
+/*
+ * "+44 20 7946 0958", "+1 (415) 555-2671": a calling code and 7 to 14
+ * digits, set apart by spaces - a no-break space too, as typeset text writes
+ * them (#11025) - hyphens, dots and parentheses.
+ */
 const INTERNATIONAL_PHONE_PATTERN: RegExp =
-  /(?<![A-Za-z0-9+])\+[1-9][0-9 ().-]{6,22}[0-9](?![0-9])/g;
+  /(?<![A-Za-z0-9+])\+[1-9][0-9 \u00A0().-]{6,22}[0-9](?![0-9])/g;
+
+// A calling code in parentheses, "(+44) 20 7946 0958": its ")" closes the "(" before the "+".
+const CALLING_CODE_IN_PARENTHESES: RegExp = /^\+[1-9][0-9]{0,2}\)/;
 
 function hasSaneSeparators(raw: string): boolean {
-  let open: number = 0;
+  let open: number = CALLING_CODE_IN_PARENTHESES.test(raw) ? 1 : 0;
   let separatorRun: number = 0;
 
   for (const character of raw) {
@@ -491,7 +513,12 @@ function hasSaneSeparators(raw: string): boolean {
       }
     }
 
-    if (character === " " || character === "-" || character === ".") {
+    if (
+      character === " " ||
+      character === "\u00A0" ||
+      character === "-" ||
+      character === "."
+    ) {
       separatorRun++;
 
       if (separatorRun > 2) {
@@ -505,6 +532,100 @@ function hasSaneSeparators(raw: string): boolean {
   return open === 0;
 }
 
+// A run of digits of a "+" number, and whether it is in parentheses.
+interface PhoneGroup {
+  digits: number;
+  inParentheses: boolean;
+  // The value of its digits, while it has at most three.
+  value: number;
+}
+
+function phoneGroupsOf(raw: string): Array<PhoneGroup> {
+  const groups: Array<PhoneGroup> = [];
+  let inParentheses: boolean = CALLING_CODE_IN_PARENTHESES.test(raw);
+  let current: PhoneGroup | null = null;
+
+  for (const character of raw) {
+    if (character >= "0" && character <= "9") {
+      if (!current) {
+        current = { digits: 0, inParentheses, value: 0 };
+        groups.push(current);
+      }
+
+      current.digits++;
+      current.value =
+        current.digits <= 3 ? current.value * 10 + Number(character) : 1000;
+      continue;
+    }
+
+    current = null;
+
+    if (character === "(") {
+      inParentheses = true;
+    } else if (character === ")") {
+      inParentheses = false;
+    }
+  }
+
+  return groups;
+}
+
+// "+192.168.10.20": a plus sign, then digits set apart by dots and nothing else.
+const DIGITS_AND_DOTS_ONLY: RegExp = /^\+[0-9.]+$/;
+
+// A date in its ISO order, 2026-11-24: what a time zone's offset is written beside.
+const ISO_DATE_PATTERN: RegExp =
+  /(?<![0-9])(?:19|20)[0-9]{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])(?![0-9])/;
+
+/*
+ * WHETHER A "+" NUMBER IS WRITTEN AS A PHONE NUMBER IS (#11025).
+ *
+ * A Phone Number scrub rule hides what this detector finds, wherever the
+ * rule runs and with no word around the value to weigh (Utils/Telemetry/
+ * ScrubBuiltInPatterns.ts), so what it finds is held to the shapes people
+ * write a phone number in - as grouping v4 holds the numbers it folds out of
+ * an exception's message (Server/Utils/Telemetry/ExceptionSanitizer.ts,
+ * foldSeparatedNumbersV4) - and the numbers that only look like one are
+ * left alone:
+ *
+ *  - its groups are set apart by spaces, hyphens and parentheses, or by
+ *    dots - two or more, beside no hyphen: one dot is a decimal or a
+ *    coordinate (+51.507217), and dots beside a hyphen are a coordinate
+ *    pair (+40.6894-074.0447). Four groups of at most three digits up to
+ *    255, by dots alone, are an IPv4 address;
+ *  - a group of one digit comes right after the calling code
+ *    (+33 1 23 45 67 89) or in parentheses (+44 (0)20 7946 0958), and
+ *    nowhere else: +1 2 3 4 5 6 7 8 is a count;
+ *  - no date is in it: +1 2026-11-24 is a time zone's offset and a date.
+ */
+function isWrittenAsPhoneNumber(raw: string): boolean {
+  const dots: number = raw.split(".").length - 1;
+
+  if (dots === 1 || (dots > 1 && raw.includes("-"))) {
+    return false;
+  }
+
+  const groups: Array<PhoneGroup> = phoneGroupsOf(raw);
+
+  if (
+    DIGITS_AND_DOTS_ONLY.test(raw) &&
+    groups.length === 4 &&
+    groups.every((group: PhoneGroup) => {
+      return group.digits <= 3 && group.value <= 255;
+    })
+  ) {
+    return false;
+  }
+
+  for (let index: number = 2; index < groups.length; index++) {
+    if (groups[index]!.digits === 1 && !groups[index]!.inParentheses) {
+      return false;
+    }
+  }
+
+  return !ISO_DATE_PATTERN.test(raw);
+}
+
 const internationalPhoneDetector: DataTypeDetector = {
   dataTypeId: "phone-number",
   quickCheck: containsAny(["+"]),
@@ -516,13 +637,31 @@ const internationalPhoneDetector: DataTypeDetector = {
       digits.length <= 15 &&
       hasCountryCallingCode(digits) &&
       !isPlaceholderDigits(digits.slice(1)) &&
-      hasSaneSeparators(raw)
+      hasSaneSeparators(raw) &&
+      isWrittenAsPhoneNumber(raw)
     );
   },
   keywords: PHONE_KEYWORDS,
   confidenceWithoutContext: DataConfidence.Medium,
   specificity: 2,
   isTestValue: isTestPhoneNumber,
+  /*
+   * In a percent-encoded URL too - /callback?phone=%2B44%2020%207946%200958
+   * - and in every script's digits (#11030), as a query string writes it, a
+   * "+" for each space and its own "+" escaped (#11199):
+   * phone=%2B44+20+7946+0958, and typed wholly in fullwidth, as Japanese
+   * and Chinese text writes one, its plus sign, hyphens, parentheses and
+   * ideographic spaces too (#11115): ＋８１ ３－１２３４－５６７８ - its groups
+   * set apart by another dash as well, ＋８１ ３ー１２３４ー５６７８ or
+   * +44 20 7946‑0958, and the words beside it typed in fullwidth, ＴＥＬ
+   * (#11385). What a Phone Number rule hides, it finds in every reading
+   * (ScrubBuiltInPatterns).
+   */
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
+  readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
 
 /*
@@ -562,6 +701,12 @@ const nanpFormattedDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Medium,
   specificity: 2,
   isTestValue: isTestPhoneNumber,
+  // In every reading, as internationalPhoneDetector.
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
+  readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
 
 // A UK mobile: 07 and nine more digits, often as 07xxx xxxxxx.
@@ -580,6 +725,12 @@ const ukMobileDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Low,
   specificity: 1,
   isTestValue: isTestPhoneNumber,
+  // In every reading, as internationalPhoneDetector.
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
+  readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
 
 // Any national number of 9 to 12 digits, only next to phone words.
@@ -602,7 +753,32 @@ const nationalPhoneDetector: DataTypeDetector = {
   specificity: 1,
   isTestValue: isTestPhoneNumber,
   fieldValuePattern: /^\+?[0-9][0-9 ().-]{6,22}[0-9]$/,
+  // In every reading, as internationalPhoneDetector: phone+number=... is its words.
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
+  readsFullwidthForms: true,
+  readsFullwidthLetters: true,
 };
+
+/*
+ * WHAT DATA SECURITY CALLS A PHONE NUMBER: an international number, a
+ * North American one written as people write it, and a UK mobile, each on
+ * its own - and a national number of 9 to 12 digits of no other shape,
+ * beside a word that names it ("tel 02012345678", nationalPhoneDetector).
+ * A Phone Number scrub rule hides what these find, as well as what its
+ * own pattern does (Utils/Telemetry/ScrubBuiltInPatterns.ts, #11030), in
+ * every reading they ask for: the national number only with one of its
+ * words near it in the value the rule reads, as the scanner judges it
+ * (TextReadings.findDetectorRanges, #11114), so "order 02012345678" keeps
+ * its digits.
+ */
+export const PHONE_NUMBER_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  internationalPhoneDetector,
+  nanpFormattedDetector,
+  ukMobileDetector,
+  nationalPhoneDetector,
+];
 
 /*
  * A street address in the English-speaking style: a house number, a street
@@ -1188,6 +1364,15 @@ const vinDetector: DataTypeDetector = {
   specificity: 2,
 };
 
+/*
+ * A postal code and a date of birth read however they are written
+ * (withEveryReading), as a phone number is: in every script's digits
+ * (#11200) - ١٩٨٥-٠٣-١٢ beside "date of birth" is the date it is, a UK
+ * postcode's digits in fullwidth ones its own - and in a URL (#11199):
+ * postcode=SW1A+2AA, dob=12%2F03%2F1985, date+of+birth=... And a street
+ * address, whose words a URL writes apart by %20 or "+" too:
+ * address=10+Downing+Street.
+ */
 export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   emailDetector,
   unicodeEmailDetector,
@@ -1195,12 +1380,16 @@ export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   nanpFormattedDetector,
   ukMobileDetector,
   nationalPhoneDetector,
-  streetAddressDetector,
-  ukPostcodeDetector,
-  canadaPostalCodeDetector,
-  usZipDetector,
-  numericBirthDateDetector,
-  writtenBirthDateDetector,
+  {
+    ...streetAddressDetector,
+    readsPercentEncoded: true,
+    readsPlusAsSpace: true,
+  },
+  withEveryReading(ukPostcodeDetector),
+  withEveryReading(canadaPostalCodeDetector),
+  withEveryReading(usZipDetector),
+  withEveryReading(numericBirthDateDetector),
+  withEveryReading(writtenBirthDateDetector),
   ipv4Detector,
   ipv6Detector,
   macDetector,

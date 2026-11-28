@@ -27,6 +27,12 @@ enum DashboardComponentType {
    */
   ProductAnalyticsFunnel = `ProductAnalyticsFunnel`,
   ProductAnalyticsRetention = `ProductAnalyticsRetention`,
+  /*
+   * What the clouds cost (#11009): a total, a breakdown or a trend of the
+   * spend of every account, one account, a cost group or a cost view, for
+   * the dashboard's time range. Not available on public dashboards.
+   */
+  CloudCost = `CloudCost`,
   TraceList = `TraceList`,
   TraceChart = `TraceChart`,
   TraceTable = `TraceTable`,
@@ -58,6 +64,8 @@ enum DashboardComponentType {
   ProxmoxGuestList = `ProxmoxGuestList`,
   VMwareHostList = `VMwareHostList`,
   VMwareVirtualMachineList = `VMwareVirtualMachineList`,
+  XcpNgHostList = `XcpNgHostList`,
+  XcpNgVmList = `XcpNgVmList`,
   DockerSwarmNodeList = `DockerSwarmNodeList`,
   DockerSwarmServiceList = `DockerSwarmServiceList`,
   CephOsdList = `CephOsdList`,

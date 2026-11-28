@@ -10,7 +10,7 @@ import DataSecurityCustomDataTypeService from "../../Services/DataSecurityCustom
 import DataSecurityScanService from "../../Services/DataSecurityScanService";
 import DataSecuritySettingService from "../../Services/DataSecuritySettingService";
 import ChangeEventService from "../../Services/ChangeEventService";
-import { EncryptionSecret } from "../../EnvironmentConfig";
+import { EncryptionSecret, IsBillingEnabled } from "../../EnvironmentConfig";
 import { CloudConnectionSettings } from "../CloudConnection/CloudConnectorTypes";
 import {
   readAwsDataSecurity,
@@ -30,8 +30,17 @@ import {
   CloudDataSecurityReadResult,
   ObjectStoreReader,
 } from "./Cloud/DataSecurityCloudTypes";
-import { sampleObjectStore } from "./Content/ObjectStoreSampler";
+import {
+  capObjectStoreState,
+  MAX_STATE_ENTRIES,
+  sampleObjectStore,
+} from "./Content/ObjectStoreSampler";
 import { DatabaseConnection, sampleDatabase } from "./Content/DatabaseSampler";
+import { sampleSearchStore } from "./Content/SearchStoreSampler";
+import {
+  createSearchTransport,
+  getWorkersPostureReadFrom,
+} from "./Content/SearchStoreHttp";
 import { assertDatabaseConnectionAllowed } from "../DataObservability/DatabaseConnectionGuard";
 import DataSecurityDiscovery from "./DataSecurityDiscovery";
 import { queueDataStoreOwnerProposals } from "./DataSecurityJobs";
@@ -56,6 +65,12 @@ import {
   recognizeFields,
 } from "./Model/ModelScan";
 import { ModelRecognitions } from "../../../Utils/DataSecurity/Model/RecognizedEntity";
+import {
+  ModelTurnTracker,
+  readModelResumeAt,
+  rotateForModel,
+  withModelResumeAt,
+} from "./Model/ModelTurns";
 import {
   claimDueDataStoresForWorkers,
   isDataStoreContentScannableByWorkers,
@@ -103,6 +118,7 @@ import {
   DataStoreKindInfo,
   DataStoreProvider,
   getDataStoreKindInfo,
+  isSearchEngineDataStoreKind,
 } from "../../../Types/DataSecurity/DataStoreKind";
 import {
   compileCustomDataType,
@@ -155,6 +171,20 @@ export const CONFIGURATION_READ_INTERVAL_IN_HOURS: number = 24;
 
 // The most containers of one Azure storage account one scan samples.
 const MAX_CONTAINERS_PER_ACCOUNT: number = 10;
+
+// Where a storage account's state keeps each of its containers' (sampleStorageAccount).
+export const CONTAINER_STATES_KEY: string = "containers";
+
+// Each container's state as an account's last scan kept it, by container.
+export function readContainerStates(state: JSONObject | undefined): JSONObject {
+  const containers: unknown = state?.[CONTAINER_STATES_KEY];
+
+  return containers &&
+    typeof containers === "object" &&
+    !Array.isArray(containers)
+    ? (containers as JSONObject)
+    : {};
+}
 
 /*
  * Cloud audit operations that change a store's exposure, encryption or
@@ -772,7 +802,7 @@ export default class DataSecurityRunner {
           startedAt,
           status: DataSecurityScanStatus.Skipped,
           errorMessage:
-            "Content scanning needs the connection's content permission, or a connection string for a database.",
+            "Content scanning needs the connection's content permission, or a connection string for a store you run.",
         });
         return;
       }
@@ -817,6 +847,22 @@ export default class DataSecurityRunner {
     if (info.provider === DataStoreProvider.SelfManaged) {
       if (!store.connectionString) {
         return null;
+      }
+
+      /*
+       * A search cluster, over its HTTP API (#11140): every request
+       * guarded as a data source's is, and its exposure checked from
+       * where the workers run.
+       */
+      if (isSearchEngineDataStoreKind(store.kind)) {
+        return await sampleSearchStore(
+          { kind: store.kind!, connectionString: store.connectionString },
+          options,
+          {
+            transport: createSearchTransport(),
+            readFrom: getWorkersPostureReadFrom(IsBillingEnabled),
+          },
+        );
       }
 
       const connection: DatabaseConnection = {
@@ -891,28 +937,18 @@ export default class DataSecurityRunner {
           accountName: name,
         },
       );
-      const merged: ContentScanResult = emptyContentScanResult();
 
-      for (const containerName of containers.slice(
-        0,
-        MAX_CONTAINERS_PER_ACCOUNT,
-      )) {
-        const part: ContentScanResult = await sampleObjectStore(
-          createAzureBlobObjectStoreReader(settings, {
+      return this.sampleStorageAccount({
+        containers,
+        options,
+        readerOf: (containerName: string): ObjectStoreReader => {
+          return createAzureBlobObjectStoreReader(settings, {
             connectionId: connection.id!.toString(),
             accountName: name,
             containerName,
-          }),
-          options,
-        );
-
-        this.mergeInto(merged, part, `${containerName}/`);
-      }
-
-      merged.isComplete =
-        merged.isComplete && containers.length <= MAX_CONTAINERS_PER_ACCOUNT;
-
-      return merged;
+          });
+        },
+      });
     }
 
     if (store.kind === DataStoreKind.GcpBigQueryDataset) {
@@ -925,6 +961,96 @@ export default class DataSecurityRunner {
     }
 
     return null;
+  }
+
+  /*
+   * A storage account's containers, each sampled as a bucket is, as one
+   * store's result. Each container keeps its own state - what it read and
+   * when, what the model had no time for - which used to be lost, so every
+   * scan of an account read the same newest objects again. With the model
+   * on, the containers take turns at its time as tables do (#10928): the
+   * first is the one it stopped in.
+   */
+  public static async sampleStorageAccount(data: {
+    containers: ReadonlyArray<string>;
+    options: ContentScanOptions;
+    readerOf: (containerName: string) => ObjectStoreReader;
+    sample?: typeof sampleObjectStore | undefined;
+  }): Promise<ContentScanResult> {
+    const merged: ContentScanResult = emptyContentScanResult();
+    const previous: JSONObject | undefined = data.options.previousState;
+    const previousContainers: JSONObject = readContainerStates(previous);
+    const resumeAt: string | null = readModelResumeAt(previous);
+    const turn: ModelTurnTracker = new ModelTurnTracker({
+      model: data.options.model,
+      previous: resumeAt,
+    });
+    const sampled: Array<string> = data.containers.slice(
+      0,
+      MAX_CONTAINERS_PER_ACCOUNT,
+    );
+    const ordered: Array<string> = turn.isTurning
+      ? rotateForModel(
+          sampled,
+          (containerName: string): string => {
+            return containerName;
+          },
+          resumeAt,
+        )
+      : sampled;
+    // Every container's state together no larger than one bucket's.
+    const entriesPerContainer: number = Math.max(
+      1,
+      Math.floor(MAX_STATE_ENTRIES / Math.max(1, ordered.length)),
+    );
+    const nextContainers: JSONObject = {};
+
+    for (const [index, containerName] of ordered.entries()) {
+      const containerState: unknown = previousContainers[containerName];
+
+      turn.begin();
+
+      const part: ContentScanResult = await (data.sample || sampleObjectStore)(
+        data.readerOf(containerName),
+        {
+          ...data.options,
+          previousState:
+            containerState &&
+            typeof containerState === "object" &&
+            !Array.isArray(containerState)
+              ? (containerState as JSONObject)
+              : undefined,
+        },
+      );
+
+      turn.end(containerName, ordered[(index + 1) % ordered.length] || null);
+      this.mergeInto(merged, part, `${containerName}/`);
+
+      const capped: JSONObject | undefined = capObjectStoreState(
+        part.nextState,
+        entriesPerContainer,
+      );
+
+      if (capped) {
+        nextContainers[containerName] = capped;
+      }
+    }
+
+    merged.isComplete =
+      merged.isComplete && data.containers.length <= MAX_CONTAINERS_PER_ACCOUNT;
+
+    // An account with no container keeps nothing: there is nothing to skip next time.
+    if (ordered.length === 0) {
+      return merged;
+    }
+
+    merged.nextState = { [CONTAINER_STATES_KEY]: nextContainers };
+
+    if (turn.isTurning) {
+      merged.nextState = withModelResumeAt(merged.nextState, turn.nextResumeAt);
+    }
+
+    return merged;
   }
 
   private static mergeInto(
@@ -1011,8 +1137,26 @@ export default class DataSecurityRunner {
     const highConfidence: Map<string, Array<string>> = new Map();
     const unplacedFields: Array<UnplacedField> = [];
     const shadowCounts: ShadowCounts = {};
+    /*
+     * With the model on, the dataset's tables take turns at its time
+     * (#10928): read from the one it stopped at last scan.
+     */
+    const resumeAt: string | null = readModelResumeAt(options.previousState);
+    const turn: ModelTurnTracker = new ModelTurnTracker({
+      model: options.model,
+      previous: resumeAt,
+    });
+    const tables: typeof sample.tables = turn.isTurning
+      ? rotateForModel(
+          sample.tables,
+          (table: { table: string }): string => {
+            return table.table;
+          },
+          resumeAt,
+        )
+      : sample.tables;
 
-    for (const table of sample.tables) {
+    for (const [index, table] of tables.entries()) {
       const collector: FieldCollector = new FieldCollector();
 
       for (const row of table.rows) {
@@ -1025,11 +1169,15 @@ export default class DataSecurityRunner {
       const locations: Array<LocationFindings> = [];
 
       // The names-and-addresses model reads the table's free-text columns.
+      turn.begin();
+
       const recognitions: ModelRecognitions | undefined = await recognizeFields(
         options.model,
         CONTENT_STORE_KEY,
         collector.getFields(),
       );
+
+      turn.end(table.table, tables[(index + 1) % tables.length]?.table || null);
 
       for (const field of collector.getFields()) {
         // The drafts run in shadow, each alone: counted, never found (#10371).
@@ -1100,6 +1248,10 @@ export default class DataSecurityRunner {
 
     result.warnings.push(...sample.warnings);
     result.isComplete = sample.tables.length < options.limits.maxTables;
+
+    if (turn.isTurning) {
+      result.nextState = withModelResumeAt(result.nextState, turn.nextResumeAt);
+    }
 
     return result;
   }

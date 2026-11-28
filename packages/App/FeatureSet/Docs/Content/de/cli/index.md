@@ -107,6 +107,7 @@ Die Liste zeigt jede Art von Datensatz, mit der Sie arbeiten können, und ihren 
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Arbeitet mit einer Art von Datensatz | [Ressourcenoperationen](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Listet die Felder einer Ressource auf und die Flags, die sie setzen | [Ressourcenoperationen](/docs/cli/resource-operations#die-felder-einer-ressource-sehen) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Tut, was die Schaltflächen des Dashboards bei Vorfällen, Warnungen und geplanten Wartungen tun | [Ressourcenoperationen](/docs/cli/resource-operations#bestätigen-beheben-und-notizen-hinzufügen) |
+| `oneuptime <resource> breakdown`, `export` | Schlüsselt die Cloud-Ausgaben eines Zeitraums auf oder exportiert sie als FOCUS-1.2-Datei, für `cloud-cost` | [Berichte und Exporte](/docs/telemetry/cloud-costs#berichte-und-exporte) |
 | `oneuptime resources` | Listet die Arten von Datensätzen mit ihren Befehlen auf | [Befehlsreferenz](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Gibt die Version der CLI aus | [Befehlsreferenz](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Zeigt die Hilfe eines Befehls | [Hilfe erhalten](#hilfe-erhalten) |

@@ -17,8 +17,18 @@ import {
 import ScheduleResolution, {
   NextInRotation,
 } from "../../Types/OnCallDutyPolicy/ScheduleResolution";
-import { RestrictionType } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
+import RestrictionTimes, {
+  RestrictionType,
+} from "../../Types/OnCallDutyPolicy/RestrictionTimes";
+import WeeklyWindowDays from "../../Types/OnCallDutyPolicy/WeeklyWindowDays";
+import WorkingHours from "../../Types/OnCallDutyPolicy/WorkingHours";
+import TimezoneAlias from "../../Types/TimezoneAlias";
+import ScheduleRoster, {
+  ScheduleRosterState,
+} from "../../Types/OnCallDutyPolicy/ScheduleRoster";
 import Recurring from "../../Types/Events/Recurring";
+import EventInterval from "../../Types/Events/EventInterval";
+import { JSONObject } from "../../Types/JSON";
 import UserOverrideUtil, {
   OverrideEventMeta,
   UserOverrideRecord,
@@ -119,6 +129,56 @@ export interface ScheduleLayerProps {
  * kept as long as the map is.
  */
 export type ScheduleLayerReads = Map<string, Promise<ScheduleLayerProps>>;
+
+/*
+ * Who is on call in a schedule now and next, since and until when, as its
+ * roster stores and states them (getCurrrentUserIdAndHandoffTimeInSchedule,
+ * ScheduleRoster): from the shifts the schedule timeline shows.
+ */
+export interface ScheduleRosterInformation {
+  currentUserId: ObjectID | null;
+  // When the shift on call began, and when it ends.
+  rosterStartAt: Date | null;
+  handOffTimeAt: Date | null;
+  nextUserId: ObjectID | null;
+  nextRosterStartAt: Date | null;
+  nextHandOffTimeAt: Date | null;
+  /*
+   * The rotation turn of the shift on call, and of the next one
+   * (ScheduleRoster.RosterShift.turnKey): how a turn of active hours is
+   * told once (#11270). Left out, as by callers from before them: none.
+   */
+  currentTurnKey?: string | null | undefined;
+  nextTurnKey?: string | null | undefined;
+  /*
+   * When the turn of the shift on call, and of the next, ends, when more of
+   * its windows follow that shift; null when that shift is its last.
+   */
+  currentTurnEndsAt?: Date | null | undefined;
+  nextTurnEndsAt?: Date | null | undefined;
+}
+
+/*
+ * What a roster refresh knows of the turn of active hours it moved in
+ * (ScheduleRoster, #11270), for the hand-off it tells:
+ *
+ *   - isResuming: the person on call now is resuming the turn they were on
+ *     call for before its last window closed, nobody on call since - they
+ *     are not told "You are now on-call" again;
+ *   - isPausing: whoever was on call is only between two windows of their
+ *     turn, the next shift theirs again - they are not told "You are no
+ *     longer on-call";
+ *   - when the turn of the shift on call, and of the next, ends, when more
+ *     of its windows follow that shift: the emails say so.
+ *
+ * Their on-call time logs start and end with every window all the same.
+ */
+export interface OnCallHandoffTurn {
+  isResuming: boolean;
+  isPausing: boolean;
+  currentTurnEndsAt: Date | null;
+  nextTurnEndsAt: Date | null;
+}
 
 /*
  * Who is on call in a schedule at a moment (getCurrentOnCallInSchedule).
@@ -251,6 +311,14 @@ interface ScheduleResolutionInputs {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
   layerUsers: Array<OnCallDutyPolicyScheduleLayerUser>;
   attachments: Array<OnCallDutyPolicyEscalationRuleSchedule>;
+}
+
+// A schedule moved from one time zone to another (onBeforeUpdate).
+export interface ScheduleTimezoneMove {
+  scheduleId: ObjectID;
+  projectId: ObjectID | null;
+  fromTimezone: string;
+  toTimezone: string;
 }
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> {
@@ -551,6 +619,225 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     });
   }
 
+  /*
+   * A NEW TIME ZONE KEEPS EVERY TIME ON THE CLOCK (#11455).
+   *
+   * A layer's times are moments: its rotation start, its first hand-off,
+   * and the windows of its active hours. The engine reads each one on the
+   * clock of the schedule's time zone, so a new zone read them as other
+   * hours - a 09:00 hand-off in Europe/Warsaw became a 03:00 one in
+   * America/New_York - and a window near midnight as another day than it
+   * names: a Monday 01:00 window became a Sunday 19:00 one, while the
+   * Dashboard still showed it under Monday. The Dashboard says the opposite
+   * ("Changing it keeps each time as it reads, in the new timezone: a 09:00
+   * hand-off stays at 09:00"), and an on-call rule's working hours already
+   * do so when their zone changes (WorkingHours.moveToTimezone).
+   *
+   * So a schedule moved from one zone to another has every time of its
+   * layers moved with it, once the move is saved: each reads the same date,
+   * day of the week and time of day in the new zone as it did in the old
+   * one (WeeklyWindowDays.moveMomentToTimezone, moveWindowsToTimezone), and
+   * a window keeps the days it names. A schedule given a zone for the first
+   * time, or none any more, keeps its moments: they were set in the zone of
+   * whoever set them, and read in the server's, so no one zone held them.
+   *
+   * The schedules the update moves are read here, as the rows it writes,
+   * with the zone each is in now.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<OnCallDutyPolicySchedule>,
+  ): Promise<OnUpdate<OnCallDutyPolicySchedule>> {
+    // The project's reference checks first, as every service's update runs them.
+    await super.onBeforeUpdate(updateBy);
+
+    const onUpdate: OnUpdate<OnCallDutyPolicySchedule> = {
+      updateBy: updateBy,
+      carryForward: null,
+    };
+
+    const written: unknown = (
+      onUpdate.updateBy.data as unknown as Record<string, unknown>
+    )["timezone"];
+
+    if (written === undefined) {
+      return onUpdate;
+    }
+
+    const toTimezone: string | null =
+      typeof written === "string" && written.trim() ? written.trim() : null;
+
+    if (!toTimezone || !WorkingHours.isKnownTimezone(toTimezone)) {
+      return onUpdate;
+    }
+
+    const schedules: Array<OnCallDutyPolicySchedule> =
+      await this.findRowsAndHoldUpdateToThem(onUpdate.updateBy, {
+        _id: true,
+        projectId: true,
+        timezone: true,
+      });
+
+    const moves: Array<ScheduleTimezoneMove> = [];
+
+    for (const schedule of schedules) {
+      const fromTimezone: string | null =
+        schedule.timezone?.toString().trim() || null;
+
+      if (
+        !schedule.id ||
+        !fromTimezone ||
+        !WorkingHours.isKnownTimezone(fromTimezone) ||
+        TimezoneAlias.getCanonicalTimezone(fromTimezone) ===
+          TimezoneAlias.getCanonicalTimezone(toTimezone)
+      ) {
+        continue;
+      }
+
+      moves.push({
+        scheduleId: schedule.id,
+        projectId: schedule.projectId || null,
+        fromTimezone: fromTimezone,
+        toTimezone: toTimezone,
+      });
+    }
+
+    return {
+      updateBy: onUpdate.updateBy,
+      carryForward: {
+        ...(onUpdate.carryForward || {}),
+        timezoneMoves: moves,
+      },
+    };
+  }
+
+  /*
+   * Every layer of a schedule moved to its new zone's clock
+   * (onBeforeUpdate). Written as OneUptime, hook-free: the move is the
+   * schedule's change, made once its zone is saved, and who is on call is
+   * worked out for the whole schedule after it (onUpdateSuccess).
+   */
+  public async moveLayersToTimezone(move: ScheduleTimezoneMove): Promise<void> {
+    const layers: Array<OnCallDutyPolicyScheduleLayer> =
+      await OnCallDutyPolicyScheduleLayerService.findBy({
+        query: {
+          onCallDutyPolicyScheduleId: move.scheduleId,
+        },
+        select: {
+          _id: true,
+          startsAt: true,
+          handOffTime: true,
+          restrictionTimes: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const layer of layers) {
+      if (!layer.id) {
+        continue;
+      }
+
+      const data: Record<string, unknown> = {};
+
+      if (layer.startsAt) {
+        data["startsAt"] = WeeklyWindowDays.moveMomentToTimezone(
+          OneUptimeDate.fromString(layer.startsAt),
+          move.fromTimezone,
+          move.toTimezone,
+        );
+      }
+
+      if (layer.handOffTime) {
+        data["handOffTime"] = WeeklyWindowDays.moveMomentToTimezone(
+          OneUptimeDate.fromString(layer.handOffTime),
+          move.fromTimezone,
+          move.toTimezone,
+        );
+      }
+
+      if (layer.restrictionTimes) {
+        try {
+          data["restrictionTimes"] = WeeklyWindowDays.moveWindowsToTimezone(
+            RestrictionTimes.fromJSON(
+              layer.restrictionTimes as RestrictionTimes | JSONObject,
+            ),
+            move.fromTimezone,
+            move.toTimezone,
+          );
+        } catch (err) {
+          // A restriction nothing reads: kept as it is.
+          logger.error(err);
+        }
+      }
+
+      if (Object.keys(data).length === 0) {
+        continue;
+      }
+
+      await OnCallDutyPolicyScheduleLayerService.updateOneById({
+        id: layer.id,
+        data: data as never,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+  }
+
+  /*
+   * The schedules an update moved to another zone (onBeforeUpdate), once it
+   * is saved: their layers moved to the new zone's clock, and who is on
+   * call worked out again, as after a layer edit. Best effort, each schedule
+   * on its own: the zone is saved already, and a schedule whose layers
+   * could not be moved now reads them as moments, as before this.
+   */
+  private async keepLayersOnTheClock(data: {
+    moves: Array<ScheduleTimezoneMove>;
+    updatedItemIds: Array<ObjectID>;
+  }): Promise<void> {
+    const updated: Set<string> = new Set<string>(
+      data.updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    for (const move of data.moves) {
+      if (!updated.has(move.scheduleId.toString())) {
+        continue;
+      }
+
+      try {
+        await this.moveLayersToTimezone(move);
+      } catch (err) {
+        logger.error(
+          `Could not move the layers of schedule ${move.scheduleId.toString()} from ${move.fromTimezone} to ${move.toTimezone}.`,
+          {
+            projectId: move.projectId?.toString(),
+            onCallDutyPolicyScheduleId: move.scheduleId.toString(),
+          } as LogAttributes,
+        );
+        logger.error(err);
+        continue;
+      }
+
+      try {
+        await this.refreshCurrentUserIdAndHandoffTimeInSchedule(
+          move.scheduleId,
+        );
+      } catch (err) {
+        logger.error(
+          "Error refreshing the schedule roster after a timezone change (best-effort).",
+        );
+        logger.error(err);
+      }
+    }
+  }
+
   protected override async onCreateSuccess(
     _onCreate: OnCreate<OnCallDutyPolicySchedule>,
     createdItem: OnCallDutyPolicySchedule,
@@ -769,6 +1056,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       return onUpdate;
     }
 
+    await this.keepLayersOnTheClock({
+      moves: (onUpdate.carryForward?.timezoneMoves ||
+        []) as Array<ScheduleTimezoneMove>,
+      updatedItemIds: updatedItemIds,
+    });
+
     try {
       const schedules: Array<OnCallDutyPolicySchedule> = await this.findBy({
         query: {
@@ -867,7 +1160,16 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       rosterStartAt: Date | null;
       nextRosterStartAt: Date | null;
     };
+    // The turn of active hours the roster moved in (#11270). Left out: none.
+    turn?: OnCallHandoffTurn | undefined;
   }): Promise<void> {
+    const turn: OnCallHandoffTurn = data.turn || {
+      isResuming: false,
+      isPausing: false,
+      currentTurnEndsAt: null,
+      nextTurnEndsAt: null,
+    };
+
     // Before we send any notification, we need to check if this schedule is attached to any on-call policy.
 
     const escalationRulesAttachedToSchedule: Array<OnCallDutyPolicyEscalationRuleSchedule> =
@@ -1050,10 +1352,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
            * ending here is no news of the policy. Someone only invited, or
            * who has left, is told nothing either. Their shift's time log
            * ends all the same, below.
+           *
+           * Nor while their turn is only between two windows of its active
+           * hours, the next shift theirs again in the same turn (#11270):
+           * they hear it when the turn ends, not every morning of it.
            */
           const isToldNoLongerOnCall: boolean =
             handoffReach.isMember(sendEmailToUserId) &&
-            !handoffReach.isStillPagedBy(onCallPolicyId);
+            !handoffReach.isStillPagedBy(onCallPolicyId) &&
+            !turn.isPausing;
 
           if (isToldNoLongerOnCall) {
             const userTimezone: Timezone | null =
@@ -1176,90 +1483,111 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           // send email to the new current user.
           const sendEmailToUserId: ObjectID =
             newInformation.currentUserIdOnRoster;
-          const userTimezone: Timezone | null =
-            await UserService.getTimezoneForUser(sendEmailToUserId);
 
-          const vars: Dictionary<string> = {
-            onCallPolicyName: onCallPolicyName || "No name provided",
-            ...ruleVars,
-            reason:
-              "You are now on-call for the policy " +
-              onCallPolicyName +
-              " because your on-call roster on schedule " +
-              onCallScheduleName,
-            rosterStartsAt:
-              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-                date: newInformation.rosterStartAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              }),
-            rosterEndsAt:
-              OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-                date: newInformation.rosterHandoffAt!,
-                timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
-              }),
-            onCallPolicyViewLink: (
-              await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-                projectId,
-                onCallPolicyId,
-              )
-            ).toString(),
-          };
+          /*
+           * Not again while they resume their own turn after its active
+           * hours closed, nobody else on call since (#11270): they were
+           * told when the turn started, with when it ends. Their time log
+           * starts all the same, below: it is the record of when they were
+           * on call.
+           */
+          if (!turn.isResuming) {
+            const userTimezone: Timezone | null =
+              await UserService.getTimezoneForUser(sendEmailToUserId);
 
-          const emailMessage: EmailEnvelope = {
-            templateType: EmailTemplateType.UserCurrentlyOnOnCallRoster,
-            vars: vars,
-            subject: "You are now on-call for " + onCallPolicyName,
-            isSubjectLiteral: true,
-          };
+            const vars: Dictionary<string> = {
+              onCallPolicyName: onCallPolicyName || "No name provided",
+              ...ruleVars,
+              reason:
+                "You are now on-call for the policy " +
+                onCallPolicyName +
+                " because your on-call roster on schedule " +
+                onCallScheduleName,
+              rosterStartsAt:
+                OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                  date: newInformation.rosterStartAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                }),
+              rosterEndsAt:
+                OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                  date: newInformation.rosterHandoffAt!,
+                  timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                }),
+              ...(turn.currentTurnEndsAt
+                ? {
+                    rosterTurnEndsAt:
+                      OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                        date: turn.currentTurnEndsAt,
+                        timezones: userTimezone
+                          ? [userTimezone]
+                          : [Timezone.GMT],
+                      }),
+                  }
+                : {}),
+              onCallPolicyViewLink: (
+                await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+                  projectId,
+                  onCallPolicyId,
+                )
+              ).toString(),
+            };
 
-          const sms: SMSMessage = {
-            message: buildNotificationSms(
-              `You are now on-call for ${onCallPolicyName} because you are now on the roster for schedule ${onCallScheduleName}.`,
-            ),
-          };
+            const emailMessage: EmailEnvelope = {
+              templateType: EmailTemplateType.UserCurrentlyOnOnCallRoster,
+              vars: vars,
+              subject: "You are now on-call for " + onCallPolicyName,
+              isSubjectLiteral: true,
+            };
 
-          const callMessage: CallRequestMessage = {
-            data: [
-              {
-                sayMessage: `This is a message from OneUptime. You are now on-call for ${onCallPolicyName} because you are now on the roster for schedule ${onCallScheduleName}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
-              },
-            ],
-          };
+            const sms: SMSMessage = {
+              message: buildNotificationSms(
+                `You are now on-call for ${onCallPolicyName} because you are now on the roster for schedule ${onCallScheduleName}.`,
+              ),
+            };
 
-          const pushMessage: PushNotificationMessage =
-            PushNotificationUtil.createGenericNotification({
-              title: "On-Call Shift Started",
-              body: `You are now on-call for ${onCallPolicyName} on schedule ${onCallScheduleName}.`,
-              tag: "on-call-duty-started",
-              requireInteraction: true,
-            });
+            const callMessage: CallRequestMessage = {
+              data: [
+                {
+                  sayMessage: `This is a message from OneUptime. You are now on-call for ${onCallPolicyName} because you are now on the roster for schedule ${onCallScheduleName}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+                },
+              ],
+            };
 
-          const eventType: NotificationSettingEventType =
-            NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER;
+            const pushMessage: PushNotificationMessage =
+              PushNotificationUtil.createGenericNotification({
+                title: "On-Call Shift Started",
+                body: `You are now on-call for ${onCallPolicyName} on schedule ${onCallScheduleName}.`,
+                tag: "on-call-duty-started",
+                requireInteraction: true,
+              });
 
-          const whatsAppMessage: WhatsAppMessagePayload =
-            createWhatsAppMessageFromTemplate({
+            const eventType: NotificationSettingEventType =
+              NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER;
+
+            const whatsAppMessage: WhatsAppMessagePayload =
+              createWhatsAppMessageFromTemplate({
+                eventType,
+                templateVariables: {
+                  on_call_policy_name: onCallPolicyName,
+                  schedule_name: onCallScheduleName,
+                  schedule_link: vars["onCallPolicyViewLink"] || "",
+                },
+              });
+
+            await UserNotificationSettingService.sendUserNotification({
+              userId: sendEmailToUserId,
+              projectId: projectId,
+              emailEnvelope: emailMessage,
+              smsMessage: sms,
+              callRequestMessage: callMessage,
+              pushNotificationMessage: pushMessage,
+              whatsAppMessage,
               eventType,
-              templateVariables: {
-                on_call_policy_name: onCallPolicyName,
-                schedule_name: onCallScheduleName,
-                schedule_link: vars["onCallPolicyViewLink"] || "",
-              },
+              onCallPolicyId: onCallPolicyId,
+              onCallPolicyEscalationRuleId: firstRuleId,
+              onCallScheduleId: data.scheduleId,
             });
-
-          await UserNotificationSettingService.sendUserNotification({
-            userId: sendEmailToUserId,
-            projectId: projectId,
-            emailEnvelope: emailMessage,
-            smsMessage: sms,
-            callRequestMessage: callMessage,
-            pushNotificationMessage: pushMessage,
-            whatsAppMessage,
-            eventType,
-            onCallPolicyId: onCallPolicyId,
-            onCallPolicyEscalationRuleId: firstRuleId,
-            onCallScheduleId: data.scheduleId,
-          });
+          }
 
           // add start log for user, for each rule.
           this.startTimeLogsForUserOnHandoff({
@@ -1319,6 +1647,16 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
                 date: newInformation.nextHandOffTimeAt!,
                 timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
               }),
+            // When their turn ends, when more windows of it follow that shift (#11270).
+            ...(turn.nextTurnEndsAt
+              ? {
+                  rosterTurnEndsAt:
+                    OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+                      date: turn.nextTurnEndsAt,
+                      timezones: userTimezone ? [userTimezone] : [Timezone.GMT],
+                    }),
+                }
+              : {}),
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
@@ -1551,6 +1889,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           rosterNextHandoffAt: true,
           rosterStartAt: true,
           rosterNextStartAt: true,
+          rosterTurnKey: true,
         },
         props: {
           isRoot: true,
@@ -1580,6 +1919,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       nextHandOffTimeAt: Date | null;
       rosterStartAt: Date | null;
       nextRosterStartAt: Date | null;
+      rosterTurnKey: string | null;
     } = {
       currentUserIdOnRoster: onCallSchedule.currentUserIdOnRoster || null,
       rosterHandoffAt: onCallSchedule.rosterHandoffAt || null,
@@ -1587,6 +1927,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       nextHandOffTimeAt: onCallSchedule.rosterNextHandoffAt || null,
       rosterStartAt: onCallSchedule.rosterStartAt || null,
       nextRosterStartAt: onCallSchedule.rosterNextStartAt || null,
+      rosterTurnKey: onCallSchedule.rosterTurnKey || null,
     };
 
     logger.debug(previousInformation, {
@@ -1611,20 +1952,51 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     const singleAttachedPolicyId: ObjectID | undefined =
       await this.getSingleAttachedPolicyId(scheduleId);
 
-    const newInformation: {
-      currentUserId: ObjectID | null;
-      handOffTimeAt: Date | null;
-      nextUserId: ObjectID | null;
-      nextHandOffTimeAt: Date | null;
-      rosterStartAt: Date | null;
-      nextRosterStartAt: Date | null;
-    } = await this.getCurrrentUserIdAndHandoffTimeInSchedule(scheduleId, {
-      onCallDutyPolicyId: singleAttachedPolicyId,
-    });
+    const newInformation: ScheduleRosterInformation =
+      await this.getCurrrentUserIdAndHandoffTimeInSchedule(scheduleId, {
+        onCallDutyPolicyId: singleAttachedPolicyId,
+      });
 
     logger.debug(newInformation, {
       onCallDutyPolicyScheduleId: scheduleId.toString(),
     } as LogAttributes);
+
+    /*
+     * The turn the roster is in, kept through the hours between a turn's
+     * windows of active hours (ScheduleRoster.getRosterTurnKey): whether the
+     * person on call now is resuming it, and whether whoever was on call is
+     * only between two of its windows (#11270).
+     */
+    // Somebody on call with no turn said is on call all the same: no turn of theirs is kept.
+    const currentShiftTurn: { turnKey: string } | null =
+      newInformation.currentUserId
+        ? { turnKey: newInformation.currentTurnKey || "" }
+        : null;
+    const nextShiftTurn: { turnKey: string } | null = newInformation.nextUserId
+      ? { turnKey: newInformation.nextTurnKey || "" }
+      : null;
+
+    const rosterTurnKey: string | null = ScheduleRoster.getRosterTurnKey({
+      previousTurnKey: previousInformation.rosterTurnKey,
+      current: currentShiftTurn,
+      next: nextShiftTurn,
+    });
+
+    const turn: OnCallHandoffTurn = {
+      isResuming: ScheduleRoster.isTurnResuming({
+        previousUserId: previousInformation.currentUserIdOnRoster?.toString(),
+        previousTurnKey: previousInformation.rosterTurnKey,
+        current: currentShiftTurn,
+      }),
+      isPausing: ScheduleRoster.isTurnPausing({
+        previousUserId: previousInformation.currentUserIdOnRoster?.toString(),
+        previousTurnKey: previousInformation.rosterTurnKey,
+        current: currentShiftTurn,
+        next: nextShiftTurn,
+      }),
+      currentTurnEndsAt: newInformation.currentTurnEndsAt || null,
+      nextTurnEndsAt: newInformation.nextTurnEndsAt || null,
+    };
 
     logger.debug(
       "Updating schedule with new information for scheduleId: " +
@@ -1647,6 +2019,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         nextHandOffTimeAt: newInformation.nextHandOffTimeAt,
         rosterStartAt: newInformation.rosterStartAt,
         nextRosterStartAt: newInformation.nextRosterStartAt,
+        rosterTurnKey: rosterTurnKey,
       })
     ) {
       logger.debug(
@@ -1689,6 +2062,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         rosterStartAt: newInformation.rosterStartAt,
         nextRosterStartAt: newInformation.nextRosterStartAt,
       },
+      turn: turn,
     });
 
     logger.debug(
@@ -1706,6 +2080,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         rosterNextHandoffAt: newInformation.nextHandOffTimeAt,
         rosterStartAt: newInformation.rosterStartAt,
         rosterNextStartAt: newInformation.nextRosterStartAt,
+        rosterTurnKey: rosterTurnKey,
       },
       props: {
         isRoot: true,
@@ -1741,177 +2116,105 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     return newInformation;
   }
 
+  /*
+   * WHO IS ON CALL IN THE SCHEDULE NOW AND NEXT, SINCE AND UNTIL WHEN - AS
+   * ITS ROSTER STORES AND STATES THEM (#11268).
+   *
+   * Read from the shifts the schedule timeline shows (ScheduleRoster): the
+   * engine's segments of one person, layer and rotation turn folded into the
+   * shift they are, so a window of active hours from 17:00 to 07:00 ends at
+   * 07:00 the next morning, not at the midnight the engine splits it at, in
+   * the schedule's zone and across daylight saving time. The window resolved
+   * starts two rotation periods back, so the shift on call is read from its
+   * true start (the engine cuts a segment at the window's start), and ends
+   * where the next shift is held (computeResolutionWindowEnd).
+   *
+   * Each shift says the rotation turn it is part of, and when the turn's
+   * last window ends when more of them follow it: what the hand-off tells a
+   * person about a turn of active hours, once (#11270).
+   *
+   * Who is on call and next, and since when, come from one read of the
+   * layers: a save of them landing between two reads would otherwise give
+   * the roster a person from the layers as they were and a start from the
+   * layers as saved (#9316).
+   */
   public async getCurrrentUserIdAndHandoffTimeInSchedule(
     scheduleId: ObjectID,
     options?: { onCallDutyPolicyId?: ObjectID | undefined } | undefined,
-  ): Promise<{
-    rosterStartAt: Date | null;
-    currentUserId: ObjectID | null;
-    handOffTimeAt: Date | null;
-    nextUserId: ObjectID | null;
-    nextHandOffTimeAt: Date | null;
-    nextRosterStartAt: Date | null;
-  }> {
+  ): Promise<ScheduleRosterInformation> {
     logger.debug(
       "getCurrrentUserIdAndHandoffTimeInSchedule called with scheduleId: " +
         scheduleId.toString(),
       { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
     );
 
-    const resultReturn: {
-      rosterStartAt: Date | null;
-      currentUserId: ObjectID | null;
-      handOffTimeAt: Date | null;
-      nextUserId: ObjectID | null;
-      nextHandOffTimeAt: Date | null;
-      nextRosterStartAt: Date | null;
-    } = {
+    const resultReturn: ScheduleRosterInformation = {
       currentUserId: null,
       handOffTimeAt: null,
       nextUserId: null,
       nextHandOffTimeAt: null,
       rosterStartAt: null,
       nextRosterStartAt: null,
+      currentTurnKey: null,
+      nextTurnKey: null,
+      currentTurnEndsAt: null,
+      nextTurnEndsAt: null,
     };
 
-    /*
-     * Who is on call and next, and since when, from one read of the layers:
-     * a save of them landing between two reads would otherwise give the
-     * roster a person from the layers as they were and a start from the
-     * layers as saved (#9316).
-     */
-    const layerReads: ScheduleLayerReads = new Map<
-      string,
-      Promise<ScheduleLayerProps>
-    >();
+    const { layerProps, projectId, scheduleUserIds } =
+      await this.readScheduleLayerProps(scheduleId);
 
-    logger.debug("Fetching events for scheduleId: " + scheduleId.toString(), {
-      onCallDutyPolicyScheduleId: scheduleId.toString(),
-    } as LogAttributes);
-    const events: Array<CalendarEvent> | null =
-      await this.getEventByIndexInSchedule({
-        scheduleId: scheduleId,
-        getNumberOfEvents: 2,
-        onCallDutyPolicyId: options?.onCallDutyPolicyId,
-        layerReads: layerReads,
-      });
-
-    logger.debug("Events fetched: " + JSON.stringify(events), {
-      onCallDutyPolicyScheduleId: scheduleId.toString(),
-    } as LogAttributes);
-
-    let currentEvent: CalendarEvent | null = events[0] || null;
-    let nextEvent: CalendarEvent | null = events[1] || null;
-
-    logger.debug("Current event: " + JSON.stringify(currentEvent), {
-      onCallDutyPolicyScheduleId: scheduleId.toString(),
-    } as LogAttributes);
-    logger.debug("Next event: " + JSON.stringify(nextEvent), {
-      onCallDutyPolicyScheduleId: scheduleId.toString(),
-    } as LogAttributes);
-
-    // if the current event start time in the future then the current event is the next event.
-    if (currentEvent && OneUptimeDate.isInTheFuture(currentEvent.start)) {
-      logger.debug(
-        "Current event is in the future, treating it as next event.",
-        { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
-      );
-      nextEvent = currentEvent;
-      currentEvent = null;
-    }
-
-    if (currentEvent) {
-      logger.debug(
-        "Processing current event: " + JSON.stringify(currentEvent),
-        { onCallDutyPolicyScheduleId: scheduleId.toString() } as LogAttributes,
-      );
-      const userId: string | undefined = currentEvent?.title; // this is user id in string.
-
-      if (userId) {
-        logger.debug("Current userId: " + userId, {
-          onCallDutyPolicyScheduleId: scheduleId.toString(),
-        } as LogAttributes);
-        resultReturn.currentUserId = new ObjectID(userId);
-      }
-
-      // get handOffTime
-      const handOffTime: Date | undefined = currentEvent?.end; // this is user id in string.
-      if (handOffTime) {
-        logger.debug("Current handOffTime: " + handOffTime.toISOString(), {
-          onCallDutyPolicyScheduleId: scheduleId.toString(),
-        } as LogAttributes);
-        resultReturn.handOffTimeAt = handOffTime;
-      }
-
-      // get start time
-      const startTime: Date | undefined = currentEvent?.start; // this is user id in string.
-      if (startTime) {
-        logger.debug(
-          "Current rosterStartAt (clamped): " + startTime.toISOString(),
-          {
-            onCallDutyPolicyScheduleId: scheduleId.toString(),
-          } as LogAttributes,
-        );
-
-        /*
-         * currentEvent.start is clamped to the resolution window start (now).
-         * Recover the true start of the current coverage window so the
-         * persisted/displayed "on call since" reflects when the shift actually
-         * began, not ~now (audit F12). Best-effort with a fallback to the
-         * clamped value.
-         */
-        if (resultReturn.currentUserId) {
-          resultReturn.rosterStartAt = await this.getTrueRosterStartAt({
-            scheduleId: scheduleId,
-            currentUserId: resultReturn.currentUserId,
-            now: OneUptimeDate.getCurrentDate(),
-            onCallDutyPolicyId: options?.onCallDutyPolicyId,
-            fallbackStart: startTime,
-            layerReads: layerReads,
-          });
-        } else {
-          resultReturn.rosterStartAt = startTime;
-        }
-      }
-    }
-
-    // do the same for next event.
-
-    if (nextEvent) {
-      logger.debug("Processing next event: " + JSON.stringify(nextEvent), {
+    if (layerProps.length === 0) {
+      logger.debug("No layers found for scheduleId: " + scheduleId.toString(), {
         onCallDutyPolicyScheduleId: scheduleId.toString(),
       } as LogAttributes);
-      const userId: string | undefined = nextEvent?.title; // this is user id in string.
+      return resultReturn;
+    }
 
-      if (userId) {
-        logger.debug("Next userId: " + userId, {
-          onCallDutyPolicyScheduleId: scheduleId.toString(),
-        } as LogAttributes);
-        resultReturn.nextUserId = new ObjectID(userId);
-      }
+    const now: Date = OneUptimeDate.getCurrentDate();
 
-      // get handOffTime
-      const handOffTime: Date | undefined = nextEvent?.end; // this is user id in string.
-      if (handOffTime) {
-        logger.debug("Next handOffTime: " + handOffTime.toISOString(), {
-          onCallDutyPolicyScheduleId: scheduleId.toString(),
-        } as LogAttributes);
-        resultReturn.nextHandOffTimeAt = handOffTime;
-      }
+    const windowStart: Date = this.computeResolutionWindowStart(
+      layerProps,
+      now,
+      2,
+    );
+    const windowEnd: Date = this.computeResolutionWindowEnd(layerProps, now, 2);
 
-      // get start time
-      const startTime: Date | undefined = nextEvent?.start; // this is user id in string.
-      if (startTime) {
-        logger.debug("Next rosterStartAt: " + startTime.toISOString(), {
-          onCallDutyPolicyScheduleId: scheduleId.toString(),
-        } as LogAttributes);
-        resultReturn.nextRosterStartAt = startTime;
-      }
+    const segments: Array<CalendarEvent> = await this.resolveSchedule({
+      layerProps,
+      projectId,
+      scheduleUserIds,
+      windowStart,
+      windowEnd,
+      onCallDutyPolicyId: options?.onCallDutyPolicyId,
+    });
+
+    const roster: ScheduleRosterState = ScheduleRoster.getRoster({
+      segments: segments,
+      now: now,
+      windowEnd: windowEnd,
+    });
+
+    if (roster.current) {
+      resultReturn.currentUserId = new ObjectID(roster.current.userId);
+      resultReturn.rosterStartAt = roster.current.start;
+      resultReturn.handOffTimeAt = roster.current.end;
+      resultReturn.currentTurnKey = roster.current.turnKey;
+      resultReturn.currentTurnEndsAt = roster.current.turnEndsAt;
+    }
+
+    if (roster.next) {
+      resultReturn.nextUserId = new ObjectID(roster.next.userId);
+      resultReturn.nextRosterStartAt = roster.next.start;
+      resultReturn.nextHandOffTimeAt = roster.next.end;
+      resultReturn.nextTurnKey = roster.next.turnKey;
+      resultReturn.nextTurnEndsAt = roster.next.turnEndsAt;
     }
 
     logger.debug("Returning result: " + JSON.stringify(resultReturn), {
       onCallDutyPolicyScheduleId: scheduleId.toString(),
     } as LogAttributes);
+
     return resultReturn;
   }
 
@@ -2886,8 +3189,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
 
   /*
    * Whether two rosters are the same: the same people on call and next, at
-   * the same times. Nobody and nobody are the same; so are no time and no
-   * time.
+   * the same times, in the same turn (rosterTurnKey, #11270). Nobody and
+   * nobody are the same; so are no time and no time, and no turn and no
+   * turn - a turn left out is none.
    */
   public static isSameRoster(
     a: {
@@ -2897,6 +3201,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       nextHandOffTimeAt: Date | null;
       rosterStartAt: Date | null;
       nextRosterStartAt: Date | null;
+      rosterTurnKey?: string | null | undefined;
     },
     b: {
       currentUserIdOnRoster: ObjectID | null;
@@ -2905,6 +3210,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       nextHandOffTimeAt: Date | null;
       rosterStartAt: Date | null;
       nextRosterStartAt: Date | null;
+      rosterTurnKey?: string | null | undefined;
     },
   ): boolean {
     return (
@@ -2913,7 +3219,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       Service.isSameRosterTime(a.rosterHandoffAt, b.rosterHandoffAt) &&
       Service.isSameRosterTime(a.nextHandOffTimeAt, b.nextHandOffTimeAt) &&
       Service.isSameRosterTime(a.rosterStartAt, b.rosterStartAt) &&
-      Service.isSameRosterTime(a.nextRosterStartAt, b.nextRosterStartAt)
+      Service.isSameRosterTime(a.nextRosterStartAt, b.nextRosterStartAt) &&
+      (a.rosterTurnKey || null) === (b.rosterTurnKey || null)
     );
   }
 
@@ -3217,17 +3524,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
         anyLayerRestricted = true;
       }
 
-      if (!layer.rotation) {
-        continue;
-      }
+      const recurring: Recurring | null = this.readSteppableRotation(layer);
 
-      let recurring: Recurring;
-      try {
-        recurring =
-          layer.rotation instanceof Recurring
-            ? layer.rotation
-            : Recurring.fromJSON(layer.rotation as any);
-      } catch {
+      if (!recurring) {
         continue;
       }
 
@@ -3270,25 +3569,59 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
 
   /*
    * True when the layer carries an active (non-None) restriction. Handles both a
-   * hydrated RestrictionTimes instance (exposes `restictionType`) and the raw
-   * serialized JSON form ({ _type, value: { restictionType } }) so it is safe
-   * regardless of where the LayerProps came from.
+   * hydrated RestrictionTimes instance and the raw serialized JSON form
+   * ({ _type, value: { restrictionType } }), read as the engine reads it -
+   * either spelling of the key (#11269) - so it is safe regardless of where
+   * the LayerProps came from.
    */
   private isLayerRestricted(layer: LayerProps): boolean {
     const rt: unknown = layer.restrictionTimes;
     if (!rt) {
       return false;
     }
-    const anyRt: {
-      restictionType?: RestrictionType | string;
-      value?: { restictionType?: RestrictionType | string };
-    } = rt as {
-      restictionType?: RestrictionType | string;
-      value?: { restictionType?: RestrictionType | string };
-    };
-    const type: RestrictionType | string | undefined =
-      anyRt.restictionType || anyRt.value?.restictionType;
-    return Boolean(type) && type !== RestrictionType.None;
+
+    try {
+      return (
+        RestrictionTimes.fromJSON(rt as JSONObject | RestrictionTimes)
+          .restrictionType !== RestrictionType.None
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /*
+   * A layer's rotation as the window sizing steps it: as the engine steps
+   * it, which reads an interval type it does not know as days. Stepped
+   * through Recurring.getNextDateInterval, such a type threw, and the
+   * roster refresh failed every minute for the schedule - nobody told who
+   * was on call - while pages went out (#11269). Null for no rotation, or
+   * one that cannot be read.
+   */
+  private readSteppableRotation(layer: LayerProps): Recurring | null {
+    if (!layer.rotation) {
+      return null;
+    }
+
+    let recurring: Recurring;
+
+    try {
+      recurring =
+        layer.rotation instanceof Recurring
+          ? layer.rotation
+          : Recurring.fromJSON(layer.rotation as any);
+    } catch {
+      return null;
+    }
+
+    if (Recurring.isIntervalType(recurring.intervalType)) {
+      return recurring;
+    }
+
+    const asDays: Recurring = new Recurring();
+    asDays.intervalType = EventInterval.Day;
+    asDays.intervalCount = recurring.intervalCount;
+    return asDays;
   }
 
   /*
@@ -3305,17 +3638,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     let windowStart: Date = OneUptimeDate.addRemoveDurationInDays(from, -1);
 
     for (const layer of layerProps) {
-      if (!layer.rotation) {
-        continue;
-      }
+      const recurring: Recurring | null = this.readSteppableRotation(layer);
 
-      let recurring: Recurring;
-      try {
-        recurring =
-          layer.rotation instanceof Recurring
-            ? layer.rotation
-            : Recurring.fromJSON(layer.rotation as any);
-      } catch {
+      if (!recurring) {
         continue;
       }
 
@@ -3347,17 +3672,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     let windowEnd: Date = OneUptimeDate.addRemoveDurationInDays(from, 1);
 
     for (const layer of layerProps) {
-      if (!layer.rotation) {
-        continue;
-      }
+      const recurring: Recurring | null = this.readSteppableRotation(layer);
 
-      let recurring: Recurring;
-      try {
-        recurring =
-          layer.rotation instanceof Recurring
-            ? layer.rotation
-            : Recurring.fromJSON(layer.rotation as any);
-      } catch {
+      if (!recurring) {
         continue;
       }
 
@@ -3372,71 +3689,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     }
 
     return windowEnd;
-  }
-
-  /*
-   * Recover the TRUE start of the current on-call coverage window for
-   * `currentUserId`. getEventByIndexInSchedule always expands from `now`, and
-   * LayerUtil clamps the first event's start to the window start, so the current
-   * event's start reads ~now rather than when the shift actually began. We
-   * re-expand over a bounded lookback window and return the start of the segment
-   * that covers `now` for the current user. Best-effort: any failure (or no
-   * covering segment found) falls back to the clamped value, so the who-is-paged
-   * path is never affected (audit F12).
-   */
-  private async getTrueRosterStartAt(data: {
-    scheduleId: ObjectID;
-    currentUserId: ObjectID;
-    now: Date;
-    onCallDutyPolicyId?: ObjectID | undefined;
-    fallbackStart: Date;
-    // The read of the layers who is on call was worked out from.
-    layerReads?: ScheduleLayerReads | undefined;
-  }): Promise<Date> {
-    try {
-      const { layerProps, projectId, scheduleUserIds } =
-        await this.readScheduleLayerProps(data.scheduleId, data.layerReads);
-
-      if (layerProps.length === 0) {
-        return data.fallbackStart;
-      }
-
-      const windowStart: Date = this.computeResolutionWindowStart(
-        layerProps,
-        data.now,
-        2,
-      );
-      const windowEnd: Date = OneUptimeDate.addRemoveSeconds(data.now, 1);
-
-      const events: Array<CalendarEvent> = await this.resolveSchedule({
-        layerProps,
-        projectId,
-        scheduleUserIds,
-        windowStart,
-        windowEnd,
-        onCallDutyPolicyId: data.onCallDutyPolicyId,
-      });
-
-      const currentUserIdStr: string = data.currentUserId.toString();
-
-      for (const event of events) {
-        if (!event) {
-          continue;
-        }
-
-        if (
-          event.title === currentUserIdStr &&
-          OneUptimeDate.isOnOrBefore(event.start, data.now) &&
-          OneUptimeDate.isOnOrAfter(event.end, data.now)
-        ) {
-          return event.start;
-        }
-      }
-    } catch (err) {
-      logger.error(err);
-    }
-
-    return data.fallbackStart;
   }
 
   public async getEventByIndexInSchedule(data: {

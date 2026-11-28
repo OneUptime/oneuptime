@@ -136,7 +136,7 @@ The incident links open in a new tab, so you can check the existing incident wit
 
 **On-call policies are not copied.** The alerts ran their own on-call policies when they were created, so copying them onto the incident would page the same people a second time. The incident's on-call policies are whatever you pick on the **On-Call & Roles** step plus whatever your incident on-call rules add — exactly as for any other incident.
 
-**The alerts' monitors are prefilled as affected monitors.** As with any incident declared by hand, active monitoring on the incident's monitors pauses until the incident is resolved. Remove a monitor from **Monitors** on the **Resources Affected** step before you submit if it should keep being checked.
+**The alerts' monitors are prefilled as affected monitors.** As with any incident declared by hand, active monitoring on the incident's monitors pauses until the incident is resolved, so the monitor that raised the alerts stops raising more. To keep it checked, untick **Pause Monitoring** on the **Resources Affected** step before you submit, or turn on **Keep monitoring during incidents** in the monitor's **Settings**: the incident still lists the monitor, and its status pages still show it. See [Monitoring while an incident is open](/docs/incidents/declaring-incidents#monitoring-while-an-incident-is-open).
 
 **A private alert makes a private incident.** If any of the alerts is private, **Private Incident** starts switched on, and the banner listing the alerts says so. A private incident is visible only to its owners, Project Owners and Project Admins — and the alerts' owners start as its owners, so the people who could see the alerts can see the incident, unless you take them out. You are an owner as well, as with any incident you declare.
 
@@ -155,7 +155,7 @@ sequenceDiagram
 
 When you submit, the server checks the alerts before it creates anything: at most 50 of them, each an alert in this project that you are allowed to see, and you must be allowed to link alerts to incidents. If any check fails, the request is rejected and no incident is created — so a bad alert id never uses up an incident number. Once the incident exists — and once its privacy rules have run, so the links know whether it is private — every alert is linked before the request returns, so the incident's **Linked Alerts** page already lists them. If a single link fails — say, because the alert was deleted a moment earlier — the incident is still declared and the other alerts are still linked.
 
-The incident's feed gets one **Alert Linked** entry listing the alerts, written after **Incident Created**, rather than one per alert — see [The feed, Slack and Microsoft Teams](#the-feed-slack-and-microsoft-teams).
+The incident's feed gets one **Alert Linked** entry listing the alerts, rather than one per alert, and it is the feed's first entry, before **Incident Created** — see [The feed, Slack and Microsoft Teams](#the-feed-slack-and-microsoft-teams).
 
 ### The alerts' owners own the incident
 
@@ -312,7 +312,7 @@ This holds even when both are private, because a private alert and a private inc
 
 **Only the incident's entries reach Slack and Microsoft Teams.** **Alert Linked** and **Alert Unlinked** are posted wherever the incident's other feed updates go. The alert-side entries stay in the dashboard, so a link produces one message rather than two. See [Slack](/docs/workspace-connections/slack) and [Microsoft Teams](/docs/workspace-connections/microsoft-teams) for setting up those channels.
 
-**Declaring an incident from alerts writes one entry, not one per alert.** The links made as the incident is declared write no **Alert Linked** entries of their own. Instead, once the incident's **Incident Created** entry is out — and the incident's own Slack and Microsoft Teams channels, if you use them, have been created — the incident gets a single **Alert Linked** entry: "Declared from 3 alerts:", followed by one line per alert with its number and title (a private alert without its title). That is the one message posted to Slack and Microsoft Teams. Each alert still gets its own **Linked to Incident** entry.
+**Declaring an incident from alerts writes one entry, not one per alert.** The links made as the incident is declared write no **Alert Linked** entries of their own. Instead, the incident gets a single **Alert Linked** entry: "Declared from 3 alerts:", followed by one line per alert with its number and title (a private alert without its title). Declaring the incident from the alerts is what made it, so this is the first entry of its feed, before **Incident Created** and before the owners and roles it gets as it is declared. That is the one message posted to Slack and Microsoft Teams, where it follows **Incident Created**. Each alert still gets its own **Linked to Incident** entry.
 
 Both feeds' **Filter by event type** dialogs, in the **⋯** menu of each feed, list these event types, so you can show or hide link activity like any other kind of entry. More on the incident feed in [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed).
 

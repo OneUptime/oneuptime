@@ -274,7 +274,7 @@ Et projekt, der kræver unikke navne, som et nyt projekt gør, holder de fleste 
 Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
 ```
 
-Sådan en afvisning har også `takenById`, ID'et på den post, der har navnet, når din nøgle må læse den. Poster, der delte et navn, før projektet krævede unikke navne, beholder det, indtil de omdøbes, og én opdatering kan ikke give flere poster af samme slags det samme navn. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` svarer på, om et navn er taget, før du sender det, og `GET /api/unique-names/duplicates` viser de navne, projektet har mere end én gang, slags for slags.
+Sådan en afvisning har også `takenById`, ID'et på den post, der har navnet, når din nøgle må læse den. Poster, der delte et navn, før projektet krævede unikke navne, beholder det, indtil de omdøbes, og én opdatering kan ikke give flere poster af samme slags det samme navn. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` svarer på, om et navn er taget, før du sender det, og `GET /api/unique-names/duplicates` viser de navne, projektet har mere end én gang, slags for slags. `GET /api/shared-names/Monitor`, eller tabelnavnet for enhver anden slags, indstillingen gælder for, svarer på, hvilke af dens poster der deler et navn, sådan som dashboardets lister markerer dem: `{"groups": [["<id>", "<id>"]], "createdAt": {"<id>": "<date>"}}`, hvor hver gruppe er to eller flere poster, din nøgle må læse, med hvornår hver blev oprettet. Arkiverede poster grupperes for sig, adskilt fra posterne i drift.
 
 #### Værdier, som en anden post allerede har
 
@@ -300,6 +300,22 @@ isVisibleOnStatusPage must be true or false.
 ```
 
 En opdatering, der skriver en posts værdier, som de allerede er, ændrer intet: den starter ikke postens **On Update**-arbejdsgange, sender ikke liveopdateringer og tilføjer ikke en post i auditloggen. `false` skrevet over `false` tæller som den samme værdi, og det samme gør `"false"` skrevet over `false`, et tal skrevet som tekst, et tidspunkt skrevet som samme øjeblik i et andet format og etiketter skrevet som de samme etiketter i vilkårlig rækkefølge. Når en opdatering ændrer nogle værdier og skriver andre tilbage, som de er, viser dens auditlogpost kun de værdier, der ændrede sig, og en arbejdsgangs **Felter, der holdes øje med** hører kun dem.
+
+### Værdier skrevet som JSON
+
+Nogle felter indeholder en JSON-værdi med sin egen form, såsom et vagtplanlags `rotation` og `restrictionTimes`; API-referencen viser hver form under sine datatyper. OneUptime læser kun nøglerne i den form, så en værdi, der udelader nøglen, der siger, hvad den betyder, staver den nøgle på en anden måde eller giver den en værdi, OneUptime ikke kender, afvises med en `400`, der nævner nøglen, i stedet for at blive gemt som en værdi, der intet gør:
+
+```text
+restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
+```
+
+En nøgle, der omdøbes, læses fortsat under sit gamle navn: et lags begrænsningstype skrives under `restrictionType` eller under den ældre stavemåde `restictionType`, og et svar angiver begge. Den ældre stavemåde er forældet i svar: de angiver den indtil den første hovedversion, der udgives den 1. juni 2027 eller senere. Skrivninger læser den altid.
+
+En værdi bliver også taget på ordet. Et lags ugentlige tidsrum har vagt de dage, det nævner, så dets `startTime` og `endTime` skal falde på dets `startDay` og `endDay` i vagtplanens tidszone. Et tidsrum, der er dateret på andre dage, afvises med en `400`, der nævner tidsrummet og giver et tidspunkt på den nævnte dag, der kan sendes i stedet:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Hvor et projekt blev købt
 
@@ -412,6 +428,44 @@ Incident not found.
 ```
 
 Tidligere svarede den `200` med en tom body. En liste (`get-list`) og en optælling svarer stadig `200` med de poster, du må læse, ingen når der ikke er nogen. Terraform-provideren læser en `404` ved opdatering som en ressource, der er væk, og fjerner den fra state, så næste plan opretter den igen: giv den API-nøgle, den bruger, tilladelserne og etiketterne til at læse hver ressource, den styrer. MCP-værktøjerne svarer på en `404` med en fejl, der peger på det tilsvarende listeværktøj, og CLI'en afslutter med koden `3`.
+
+### Billeder i en posts Markdown
+
+Et billede, der er indsat i Markdown, som et skærmbillede i en hændelses beskrivelse, et brugerdefineret Markdown-felt eller en note, er en privat fil. Dets adresse (`/file/image/access-token/...`) åbner det kun for en person, der er logget ind i projektet, så en API-nøgle læser det i stedet gennem den post, der viser det:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Posten læses som nøglen, sådan som `get-item` læser den: Nøglen skal have tilladelse til at læse den og dens etiketter. Svaret indeholder hvert billede, postens Markdown viser, i den rækkefølge det viser dem: dets `name`, `mimeType`, `sizeInBytes`, dets data i `base64`, et `contentId` til en indlejret vedhæftning i en e-mail, de `urls`, Markdown viser det med, og de `fields`, det står i. Under `leftOut` står de filer, Markdown viser, som ikke udleveres, hver med en `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Kun billeder, der er uploadet til postens eget projekt, udleveres, op til 20 og 10 MB i alt, og aldrig en SVG. Hver slags post med Markdown har den samme anmodning, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post, der ikke findes, eller som nøglen ikke må læse, svarer `404`, som `get-item` gør, og `422`, når nøglen slet ikke må læse den slags post. En arbejdsgang læser de samme billeder med [Hent filer fra Markdown](/docs/workflows/components#get-files-from-markdown).
 
 ## Den fulde endpoint-reference
 

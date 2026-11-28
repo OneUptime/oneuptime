@@ -40,7 +40,7 @@ OneUptime 使用的每个词，都用一两句话解释，并附上它的其他�
 
 ### 标准
 
-监视器的规则：每个检查结果意味着什么。它们按顺序检查，第一个匹配的规则可以改变监视器的状态、声明事件、创建警报，或三者都做。
+监视器的规则：每个检查结果意味着什么。它们按顺序检查，第一个匹配的规则可以改变监视器的状态、声明事件、创建警报，或三者都做。不改变状态的规则会把状态留给下一个匹配且会改变状态的规则。
 
 也称为：**监控条件**、**监视器条件**、**Monitor Steps**。参见 [条件与状态](/docs/monitor/criteria-and-statuses)。
 
@@ -162,7 +162,7 @@ OneUptime 在项目中可以联系到你的地址：邮箱地址、用于短信�
 
 ### 基础设施
 
-菜单中汇集你所运行的机器和平台的一组：主机、Kubernetes、Docker、Docker Swarm、Podman、Proxmox、OpenStack、VMware、Ceph、存储阵列、网络和 IoT。每一项都由代理或连接填充，并显示其中每台机器、每个集群或每台设备的运行状况。
+菜单中汇集你所运行的机器和平台的一组：主机、Kubernetes、Docker、Docker Swarm、Podman、Proxmox、OpenStack、VMware、XCP-ng、Ceph、存储阵列、网络和 IoT。每一项都由代理或连接填充，并显示其中每台机器、每个集群或每台设备的运行状况。
 
 参见 [主机](/docs/telemetry/hosts)。
 

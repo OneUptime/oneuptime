@@ -207,7 +207,7 @@ const valueMultiSelect: ValueMultiSelectFunction = (): HTMLElement => {
  * Open the criteria form, open More fields and add one attribute filter row
  * keyed on `logtype` — the state the reporter's screenshot was in.
  */
-function openFormWithAttributeRow(): Recorder {
+async function openFormWithAttributeRow(): Promise<Recorder> {
   const recorder: Recorder = { closeCount: 0, latestLogMonitor: null };
 
   render(<LogHarness recorder={recorder} />);
@@ -224,7 +224,15 @@ function openFormWithAttributeRow(): Recorder {
 
   fireEvent.click(moreFields);
 
-  fireEvent.click(screen.getByText("Add Filter by Attributes"));
+  /*
+   * The key/value list is a file of its own, which the form loads as it is
+   * drawn (LazyDictionary): until it has arrived, its place draws its Add
+   * button, which cannot be pressed yet. It is pressed once the list is
+   * there, as a person presses it.
+   */
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Add Filter by Attributes" }),
+  );
 
   const keyBox: HTMLInputElement = document.querySelector<HTMLInputElement>(
     'input[aria-controls^="autocomplete-suggestions-"]',
@@ -263,8 +271,8 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     cleanup();
   });
 
-  test("choosing 'is any of' emits a filter the preview can render — the reported crash, end to end", () => {
-    const recorder: Recorder = openFormWithAttributeRow();
+  test("choosing 'is any of' emits a filter the preview can render — the reported crash, end to end", async () => {
+    const recorder: Recorder = await openFormWithAttributeRow();
 
     selectOption(operatorSelect(), "is any of");
 
@@ -284,8 +292,8 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     expect(document.body.textContent).not.toContain("[object Object]");
   });
 
-  test("choosing 'contains' and typing a value shows the filter as text", () => {
-    const recorder: Recorder = openFormWithAttributeRow();
+  test("choosing 'contains' and typing a value shows the filter as text", async () => {
+    const recorder: Recorder = await openFormWithAttributeRow();
 
     selectOption(operatorSelect(), "contains");
     fireEvent.change(valueInput(), { target: { value: "web" } });
@@ -330,8 +338,8 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     ["is not empty", "none", "is not empty"],
   ])(
     "the '%s' operator survives the round trip to a chip",
-    (optionText: string, mode: string, expectedText: string) => {
-      const recorder: Recorder = openFormWithAttributeRow();
+    async (optionText: string, mode: string, expectedText: string) => {
+      const recorder: Recorder = await openFormWithAttributeRow();
 
       selectOption(operatorSelect(), optionText);
 
@@ -357,14 +365,14 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     },
   );
 
-  test("a value-less operator really does render no usable value box", () => {
+  test("a value-less operator really does render no usable value box", async () => {
     /*
      * Guards the "none" rows above: those cases type nothing, so if `is empty`
      * ever grew a working value input they would silently stop covering the
      * value-less path. The row does render an input, but a disabled one
      * labelled with the operator instead of "Value"/"Number".
      */
-    const recorder: Recorder = openFormWithAttributeRow();
+    const recorder: Recorder = await openFormWithAttributeRow();
 
     selectOption(operatorSelect(), "is empty");
 
@@ -381,7 +389,7 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     );
   });
 
-  test("a populated multi-select reaches the chip as its selection, not as an empty filter", () => {
+  test("a populated multi-select reaches the chip as its selection, not as an empty filter", async () => {
     /*
      * `is any of` is the operator from the bug report, and an EMPTY Includes
      * is the documented "All" no-op on both sides — so a test that only ever
@@ -389,7 +397,7 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
      * plumbing selections through, while a saved monitor silently stopped
      * filtering.
      */
-    const recorder: Recorder = openFormWithAttributeRow();
+    const recorder: Recorder = await openFormWithAttributeRow();
 
     selectOption(operatorSelect(), "is any of");
     selectOption(valueMultiSelect(), "web");
@@ -414,12 +422,12 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     );
   });
 
-  test("a numeric operator carries the typed threshold, not a coerced zero", () => {
+  test("a numeric operator carries the typed threshold, not a coerced zero", async () => {
     /*
      * `Number("")` is 0, so an operator picked but never filled would compile
      * to a real `> 0` predicate. Pin that the typed value is what travels.
      */
-    const recorder: Recorder = openFormWithAttributeRow();
+    const recorder: Recorder = await openFormWithAttributeRow();
 
     selectOption(operatorSelect(), ">");
     fireEvent.change(valueInput(), { target: { value: "1.5" } });
@@ -434,7 +442,7 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     );
   });
 
-  test("picking an operator does not disturb the criteria form itself", () => {
+  test("picking an operator does not disturb the criteria form itself", async () => {
     /*
      * Companion to the chip tests above rather than a second guard on the
      * crash: the preview is stubbed here, so this half of the chain cannot
@@ -442,7 +450,7 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
      * and the modal alone — the failure mode reported separately against this
      * screen, where interacting with a filter row dismissed the dialog.
      */
-    const recorder: Recorder = openFormWithAttributeRow();
+    const recorder: Recorder = await openFormWithAttributeRow();
 
     // The logs the filters match, folded until opened.
     fireEvent.click(screen.getByRole("button", { name: "Matching logs" }));
@@ -454,8 +462,8 @@ describe("Log monitor criteria — attribute filter operators reach the preview"
     expect(recorder.closeCount).toBe(0);
   });
 
-  test("plain equality still produces the chip it always did", () => {
-    const recorder: Recorder = openFormWithAttributeRow();
+  test("plain equality still produces the chip it always did", async () => {
+    const recorder: Recorder = await openFormWithAttributeRow();
 
     fireEvent.change(valueInput(), { target: { value: "web" } });
 

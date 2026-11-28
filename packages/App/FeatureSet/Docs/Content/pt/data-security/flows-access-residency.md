@@ -60,7 +60,9 @@ A partir do que ela lê, todo repositório recebe uma exposição:
 | **Outras contas** | Contas fora das que você conectou podem acessá-lo. |
 | **Acessível pela internet** | O endpoint de rede dele aceita conexões da internet. |
 | **Privado** | Só as suas próprias contas e redes o acessam. |
-| **Desconhecido** | O OneUptime não conseguiu ler o suficiente da configuração dele para saber. |
+| **Desconhecido** | O OneUptime o verificou, mas não conseguiu saber com o que conseguiu ler. |
+| **Ainda não verificado** | O OneUptime ainda não verificou como ele pode ser alcançado. |
+| **Não verificável** | O OneUptime não tem como verificar como este tipo de repositório pode ser alcançado. |
 
 Público prevalece sobre compartilhado, e compartilhado prevalece sobre acessível: um bucket público que também está compartilhado com outra conta é Público. A exposição soma pontos à [pontuação de risco](/docs/data-security/checks-and-issues#pontuação-de-risco) de um problema.
 

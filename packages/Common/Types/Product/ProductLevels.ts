@@ -226,6 +226,81 @@ export const SHARED_TABLE_DECISIONS: Readonly<
   },
 };
 
+/*
+ * THE COLUMNS OF A PRODUCT'S TABLE THAT A CHANGE OF TAKES NO LEVEL, BY
+ * OPERATION, WITH WHY.
+ *
+ * A column's list takes a product's levels where its table's does (the
+ * rule, below). A few columns of a product's table decide something beyond
+ * the product, which its levels must not reach: their lists for these
+ * operations are written out by hand for the roles that may, and take no
+ * level. Reading them still does, as the rest of the table's columns.
+ * Every such column is decided here, with why (ProductLevels.test.ts).
+ */
+export interface ColumnKeptFromLevels {
+  operations: ReadonlyArray<ProductLevelOperation>;
+  reason: string;
+}
+
+/*
+ * A code repository's commands run on a Runner of the project's own, as the
+ * Runner's user, and its Runner setting decides which Runner that is: what
+ * a Runner runs is written by those who write a runbook's steps that run
+ * (Types/CodeRepository/CodeRepositoryRunnerAuthoring). A command on a
+ * Runner reads what the Runner can read - its key among it, which claims its
+ * jobs with their secrets and which no level reads (the Runner decision
+ * below) - so Code's levels change none of them. A create that sets one is
+ * held to the same people (CodeRepositoryService).
+ */
+const runnerWork: ColumnKeptFromLevels = {
+  operations: ["update"],
+  reason:
+    "What a project's Runner runs for a repository, and which Runner runs it, is written by those who write a runbook's steps that run - Runbooks' and Project Admin's - never a Code level: a command on a Runner reads what the Runner reads, its key among it.",
+};
+
+export const COLUMNS_KEPT_FROM_LEVELS: Readonly<
+  Record<string, Readonly<Record<string, ColumnKeptFromLevels>>>
+> = {
+  CodeRepository: {
+    setupCommand: runnerWork,
+    buildCommand: runnerWork,
+    testCommand: runnerWork,
+    runner: runnerWork,
+    runnerId: runnerWork,
+    isGlobalRunnerPicked: runnerWork,
+  },
+};
+
+// Whether a column's list for an operation takes no level (above).
+export const isColumnKeptFromLevels: (data: {
+  tableName: string | null | undefined;
+  column: string | null | undefined;
+  operation: ProductLevelOperation;
+}) => boolean = (data: {
+  tableName: string | null | undefined;
+  column: string | null | undefined;
+  operation: ProductLevelOperation;
+}): boolean => {
+  if (!data.tableName || !data.column) {
+    return false;
+  }
+
+  const columns: Readonly<Record<string, ColumnKeptFromLevels>> | undefined =
+    Object.prototype.hasOwnProperty.call(
+      COLUMNS_KEPT_FROM_LEVELS,
+      data.tableName,
+    )
+      ? COLUMNS_KEPT_FROM_LEVELS[data.tableName]
+      : undefined;
+
+  const kept: ColumnKeptFromLevels | undefined =
+    columns && Object.prototype.hasOwnProperty.call(columns, data.column)
+      ? columns[data.column]
+      : undefined;
+
+  return Boolean(kept && kept.operations.includes(data.operation));
+};
+
 // The levels of every product that has them, by product.
 const LEVELS_BY_PRODUCT: ReadonlyMap<ProductKey, ProductLevelPermissions> =
   new Map<ProductKey, ProductLevelPermissions>(
@@ -531,13 +606,29 @@ export const withProductLevels: (data: {
    * role must be on too for the column to take the role's level.
    */
   tableList?: ReadonlyArray<Permission> | undefined;
+  /*
+   * For a column's list: the column, whose list for the operation may take
+   * no level at all (COLUMNS_KEPT_FROM_LEVELS).
+   */
+  column?: string | undefined;
 }) => Array<Permission> = (data: {
   tableName: string | null | undefined;
   operation: ProductLevelOperation;
   permissions: Array<Permission>;
   tableList?: ReadonlyArray<Permission> | undefined;
+  column?: string | undefined;
 }): Array<Permission> => {
   if (!data.tableName || !Array.isArray(data.permissions)) {
+    return data.permissions;
+  }
+
+  if (
+    isColumnKeptFromLevels({
+      tableName: data.tableName,
+      column: data.column,
+      operation: data.operation,
+    })
+  ) {
     return data.permissions;
   }
 
@@ -615,10 +706,13 @@ export const withProductLevelsOnLists: <T extends PermissionLists>(
   lists: T,
   // For a column's lists: its table's, which a role must be on too.
   tableLists?: PermissionLists | undefined,
+  // For a column's lists: the column (COLUMNS_KEPT_FROM_LEVELS).
+  column?: string | undefined,
 ) => T = <T extends PermissionLists>(
   tableName: string | null | undefined,
   lists: T,
   tableLists?: PermissionLists | undefined,
+  column?: string | undefined,
 ): T => {
   if (!lists || !tableName || !LEVELS_ON_TABLE.has(tableName)) {
     return lists;
@@ -638,6 +732,7 @@ export const withProductLevelsOnLists: <T extends PermissionLists>(
       operation: operation,
       permissions: declared,
       tableList: tableLists ? tableLists[operation] || [] : undefined,
+      column: column,
     });
 
     if (withLevels !== declared) {

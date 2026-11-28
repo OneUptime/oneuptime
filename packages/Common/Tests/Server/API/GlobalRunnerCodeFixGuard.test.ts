@@ -254,10 +254,9 @@ describe("the code-fix route files", () => {
 
   test("the routes that hand a repository to a worker hand its commands through getRepositoryCommands", () => {
     /*
-     * Six hand one over: the code repositories of an exception's fix, and
-     * the task details of an instrumentation improvement, an infrastructure
-     * fix (#10370), a telemetry leak fix (#10367), a fix from trace evidence
-     * and an incident's or an alert's fix.
+     * Six: the four it had before, and the task details of Data Security's
+     * two recipes - the infrastructure code a group of stores shares
+     * (#10370) and a service's telemetry leaks (#10367).
      */
     expect(
       codeOf("Server/API/AIAgentDataAPI.ts").split(

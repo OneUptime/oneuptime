@@ -380,6 +380,18 @@ export function toPresentationInput(data: {
       byScheduledMaintenance: Boolean(
         monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent,
       ),
+      /*
+       * Paused by an incident or by scheduled maintenance that put it in no
+       * status: the newest status event marks its time left out
+       * (MonitorIncidentPause, #11141, #11301).
+       */
+      isLeftOutOfUptime:
+        (Boolean(monitor.disableActiveMonitoringBecauseOfManualIncident) ||
+          Boolean(
+            monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent,
+          )) &&
+        !monitor.disableActiveMonitoring &&
+        data.statusRows.value?.[0]?.isMonitoringOff === true,
     },
     probeFlags: {
       isNoProbeEnabled: Boolean(monitor.isNoProbeEnabledOnThisMonitor),

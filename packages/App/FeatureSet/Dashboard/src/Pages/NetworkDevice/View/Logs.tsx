@@ -1,6 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
+import DeviceSnmpTrapRefusals from "../../../Components/NetworkDevice/DeviceSnmpTrapRefusals";
+import DeviceProbeSnmpEngineId from "../../../Components/NetworkDevice/DeviceProbeSnmpEngineId";
+import { DEVICE_SNMPV3_TRAPS_HELP } from "../../../Components/Probe/SnmpTrapReceiverCopy";
 import {
   buildSavedViewScope,
   SavedViewScopeKind,
@@ -115,6 +118,11 @@ const NetworkDeviceLogs: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * Its SNMPv3 traps the probe refused (#11005): why they are not in
+       * the list below, and what to change.
+       */}
+      <DeviceSnmpTrapRefusals modelId={modelId} />
       <DashboardLogsViewer
         id={`network-device-logs-${modelId.toString()}`}
         savedViewScope={buildSavedViewScope(
@@ -151,6 +159,14 @@ const NetworkDeviceLogs: FunctionComponent<
                 "On most routers and switches this is two steps: add a remote syslog server pointing at the probe, then add the probe as an SNMP trap receiver. Messages are matched to this device by the address they come from: its hostname, or one of its Other Addresses.",
               )}
             </p>
+            <p className="text-gray-500">
+              {translator.translateText(DEVICE_SNMPV3_TRAPS_HELP)}
+            </p>
+            {/*
+             * The engine ID SNMPv3 informs are sent to: the one place a
+             * device on a global probe can read it (#11173).
+             */}
+            <DeviceProbeSnmpEngineId modelId={modelId} />
             <p className="text-gray-500">
               <TranslatedSentence
                 template="What OneUptime reads out of these messages as events - a link going down, a tunnel, a restart - is on this device's {{events}} page, with each vendor's set-up steps."

@@ -117,7 +117,7 @@ Finish verifying the way the email tells you to.
 If another email has arrived since, the card no longer shows the verification email. Open **Monitoring Logs**, find the verification email by its subject in the **Email** column, and click **View Summary** on that row.
 
 > [!IMPORTANT]
-> **Your criteria see it too.** The verification email is evaluated like any other email. Wording such as "if you received this in error" matches the default `error` criteria and marks the monitor offline. To avoid that, turn off **Check this monitor** in the **Monitoring** card on the monitor's **Settings** page while you verify (it asks you to confirm). A monitor with monitoring off still records the email, and the **Monitor Summary** card still shows it. It evaluates nothing, though, so the email gets no row in **Monitoring Logs**: read it before another email arrives. When you're done, press **Turn monitoring on** in the banner at the top of the monitor's pages, or turn the switch back on.
+> **Your criteria see it too.** The verification email is evaluated like any other email. Wording such as "if you received this in error" matches the default `error` criteria and marks the monitor offline. To avoid that, turn off **Check this monitor** in the **Monitoring** card on the monitor's **Settings** page while you verify (it asks you to confirm). A monitor with monitoring off still records the email, and the **Monitor Summary** card still shows it. It evaluates nothing, though: the email's row in **Monitoring Logs** says it was not evaluated, and **View Summary** on it shows the whole email. When you're done, press **Turn monitoring on** in the banner at the top of the monitor's pages, or turn the switch back on.
 
 **Verification belongs to the address.** If you [reset or customize the address](#resetting-or-customizing-the-email-address), the service sees a new recipient, and you have to verify again.
 
@@ -312,7 +312,9 @@ Click **Show More Details** to see the rest of it:
 
 ### Earlier Emails
 
-The card only shows the newest email. Every email the monitor evaluates is also written to **Monitoring Logs**: the **Email** column shows its subject and sender, and **View Summary** on its row shows the whole email the same way the card does. A monitor with monitoring turned off evaluates nothing, so the emails it receives get no rows. If one of your criteria checks **Email Received**, the monitor also writes a row each time it checks for missing email. The **Email** column says "Scheduled check" on those rows, and their **View Summary** shows the newest email as of the check, or "No email yet" if none had arrived. Monitoring logs are kept for one day by default. On a self-hosted server, an administrator can change that with **Monitor Log Retention (Days)** in the Admin Dashboard's settings.
+The card only shows the newest email. Every email the monitor evaluates is also written to **Monitoring Logs**: the **Email** column shows its subject and sender, and **View Summary** on its row shows the whole email the same way the card does. A monitor that is not being checked - its monitoring turned off, or paused by an incident or a maintenance event - evaluates nothing, so each email it receives gets a row that says it was not evaluated, and why. If one of your criteria checks **Email Received**, the monitor also writes a row each time it checks for missing email. The **Email** column says "Scheduled check" on those rows, and their **View Summary** shows the newest email as of the check, or "No email yet" if none had arrived.
+
+Monitoring logs are kept for one day by default. On a self-hosted server, an administrator can change that with **Monitor Log Retention (Days)** in the Admin Dashboard's settings.
 
 ## Self-Hosted Setup
 

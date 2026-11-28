@@ -199,7 +199,10 @@ describe("Code's words are complete", () => {
         "OneUptime does not read this repository's branches: only your Runner reaches its Git server. A task starts from its main branch.",
       branchesSearchToFindMore:
         "Type a branch's name to find one that is not listed.",
-      // Under the first repositories a picker lists, when the project has more (#10764).
+      /*
+       * Under the repository picker's first repositories, when the project
+       * has more than it lists: the server finds the rest by name (#10764).
+       */
       repositoriesSearchToFindMore:
         "Type a repository's name to find one that is not listed.",
     });

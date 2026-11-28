@@ -41,7 +41,7 @@ Serveren er tilstandsløs: den udsteder ingen sessions-id'er, og hver anmodning 
 - **Planlagt vedligeholdelse**: opret og administrer vedligeholdelseshændelser.
 - **Telemetri**: forespørg logs, metrikker, spor, undtagelser, monitorlogs, sikkerhedshændelser og mere, kun læsning.
 
-Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 55 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. En slags post uden et felt, du kan ændre, når den er oprettet, som en hændelses kobling til en advarsel, har intet opdateringsværktøj. Skrivebeskyttede værktøjer har `readOnlyHint`, og alle værktøjer, der ændrer noget, har `destructiveHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. `openWorldHint` markerer de værktøjer, der rækker ud over dit projekt: værktøjerne til offentlige statussider; de ændringer, der vises på en statusside og sendes til dens abonnenter, som en ny hændelse, en ændring af dens tilstand eller en offentlig note; invitationer, som sendes på e-mail til personer, der endnu ikke behøver at være med i dit projekt; og de værktøjer, der opretter eller ændrer en monitor, et datalager eller et BI-værktøj, da OneUptime derefter kontakter den adresse, du angiver. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
+Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 60 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. En slags post uden et felt, du kan ændre, når den er oprettet, som en hændelses kobling til en advarsel, har intet opdateringsværktøj. Skrivebeskyttede værktøjer har `readOnlyHint`, og alle værktøjer, der ændrer noget, har `destructiveHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. `openWorldHint` markerer de værktøjer, der rækker ud over dit projekt: værktøjerne til offentlige statussider; de ændringer, der vises på en statusside og sendes til dens abonnenter, som en ny hændelse, en ændring af dens tilstand eller en offentlig note; invitationer, som sendes på e-mail til personer, der endnu ikke behøver at være med i dit projekt; og de værktøjer, der opretter eller ændrer en monitor, et datalager eller et BI-værktøj, da OneUptime derefter kontakter den adresse, du angiver. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
 
 ## Før du begynder
 
@@ -359,6 +359,29 @@ Serveren har også Spørg AI's opsætningshandlinger, ét kald hver: det, du sæ
 
 De handler som dig, logget ind med OAuth: en API-nøgle til et projekt kan ikke bruge de otte, der opretter noget. Din klient spørger dig før hver af dem, og dens svar siger, hvad der blev oprettet. Det, der mangler, for eksempel en tilladelse, en adresse eller plads i abonnementet, siges, før noget oprettes.
 
+## Værktøjer til Datasikkerhed
+
+Serveren har også [Spørg AI's handlinger i Datasikkerhed](/docs/data-security/integrations#spørg-ai), ét kald hver. Hver foretager præcis den ændring, dens knap foretager i Datasikkerhed, som dig og med dine tilladelser, efter de samme tjek:
+
+- **`query_data_security_proposals`**: hvad OneUptime AI foreslår og venter på en person med, de mest risikable først. Med `which: "data-types"` de datatyper, det har fundet, og som scanninger endnu ikke leder efter: hver enkelts navn, kategori og følsomhed, hvordan den blev bevist, og de datalagre og felter, den står i, aldrig en værdi. Den ændrer intet
+- **`draft_data_security_rule`**: en residens-, ejer- eller etiketregel lavet ud fra en sætning, som »personoplysninger fra EU skal blive i EU«, med de datalagre, den rammer i dag. Den ændrer intet
+- **`scrub_data_security_finding`**: **Rens** på et fund i telemetrien
+- **`judge_data_security_finding`**: **Bekræft**, eller **Ikke følsom** med en begrundelse, og det samme for lignende fund
+- **`change_data_security_issue`**: **Genåbn**, **Tildel**, **Accepter risiko** eller **Ikke et problem**
+- **`set_data_store_owners`**: et datalagers ejere, tilføjet eller fjernet
+- **`save_data_security_rule`**: en regel, som `draft_data_security_rule` har lavet
+- **`respond_on_data_store`**: en reaktionshandling gennem datalagerets cloudforbindelse, som **Bloker offentlig adgang**
+- **`fix_data_security_issue_with_ai`**: **Ret med AI**, en pull request, som nogen gennemgår og fletter
+- **`decide_data_security_proposal`**: **Godkend** eller **Skjul** på et forslag
+
+Spørg AI spørger en person før nogle af disse i alle tilstande, på et kort, der siger, hvad der ændres, hvad der holder op med at virke, og hvad det koster: at reagere på et datalager, **Ikke følsom**, **Accepter risiko**, **Ikke et problem**, at ændre et datalagers ejere, at gemme en regel, at beslutte om et forslag, en rensning, som noget læser, og **Bekræft** i et projekt, der kalder nogen ved et kritisk problem. Denne server kan ikke vise dig det kort, så den afviser dem, siger hvorfor og nævner den side i OneUptime, hvor du foretager ændringen. Intet køres nogensinde uden det.
+
+Det samme gælder værktøjerne til at oprette, opdatere og slette, både for en klient, der er logget ind med OAuth, og for en API-nøgle, uanset dens tilladelser: En skriveoperation, der foretager en af de ændringer, afvises med de samme ord, og svaret nævner den samme side. `update_data_security_issue` sætter ikke `status` til `Accepted` eller `Not an issue`, `update_data_store_finding` slår ikke `isSuppressed` til, og heller ikke `isConfirmed`, hvor nogen kaldes ved et kritisk problem, og `create_residency_rule` gemmer ingen regel. De foretager heller ikke det, som OneUptime AI spørger en person om først, uanset hvad dens regler siger: en datatype, der slås fra i `disabledDataTypeIds`, en placering, der udelades fra et datalagers scanninger i `scanExclusions`, eller et trin i en sikkerhedsplaybook, der inddæmmer en trussel eller reagerer på et datalager, uden at nogen har godkendt det. Og `update_label` omdøber ikke en etiket, der siger produktion, som `Production` eller `env: prod`, til et navn, der ikke gør, og `delete_label` sletter ingen sådan: En sådan etiket holder de cloudressourcer, den sidder på, fri af tidsplaner uden for arbejdstid og af AI-regler, der handler uden at spørge, og afvisningen nævner **Projektindstillinger → Grundlæggende → Etiketter**, hvor du foretager ændringen.
+
+Alle andre skriveoperationer foretages som før: et problem, der genåbnes, tildeles eller løses, et fund, der markeres som følsomt igen, en regel, der omdøbes eller slås fra, en datatype, der slås til igen, enhver anden etiket, der omdøbes eller slettes. `oneuptime_describe_resource` siger, hvilke skriveoperationer på en ressource der afvises, og agenten får besked om ikke at prøve en af dem igen og heller ikke at foretage den på en anden måde.
+
+De andre handler som dig, logget ind med OAuth: En projekt-API-nøgle kan ikke bruge dem og bruger kun de to, der ikke ændrer noget. På en selvhostet server efterlader `MCP_READ_ONLY=true` kun de værktøjer, der ikke ændrer noget, og `MCP_ALLOW_DESTRUCTIVE=false` afviser at fjerne et datalagers ejere, hvilket sletter dem.
+
 ## Forespørgsel på telemetri
 
 Logs, metrikker, spor (spans), undtagelser, monitorlogs og de andre slags telemetri findes som skrivebeskyttede værktøjer `list_` og `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` og deres `count_`-modstykker). Telemetri kommer ind gennem OpenTelemetry, så der er ingen oprettelsesværktøjer.
@@ -509,7 +532,7 @@ MCP-serveren er tilstandsløs: den hverken udsteder eller sporer sessions-id'er,
 | Sikkerhed | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Datasikkerhed | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Dataobservabilitet | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| Cloud | Cloud Budget |
+| Cloud | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost Report, Cloud Cost View, Required Tag |
 
 | Område | Telemetri med kun værktøjer til at liste og tælle |
 | --- | --- |

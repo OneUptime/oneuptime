@@ -498,7 +498,13 @@ describe("Cloud environment overview tooltips", () => {
     }
   });
 
-  test("the Top instances card title carries an (i) and keeps its translation", () => {
+  /*
+   * Its (i) follows the title's last word (WordsWithInfoTooltip), never the
+   * flex sibling that stood at the card's far edge once the title wrapped
+   * (#10922): the translated words, and the English title for the (i)'s
+   * spoken name, which InfoTooltip words in the reader's language.
+   */
+  test("the Top instances card title carries an (i) after its last word and keeps its translation", () => {
     const title: string = between(
       code,
       "export const TopInstancesByCpuTitle: FunctionComponent",
@@ -509,10 +515,14 @@ describe("Cloud environment overview tooltips", () => {
       'const TOP_INSTANCES_TITLE: string = "Top instances by CPU";',
     );
     expect(title).toContain("translateString(TOP_INSTANCES_TITLE)");
-    expect(title).toContain("<InfoTooltip label={title}");
+    expect(title).toContain("<WordsWithInfoTooltip");
+    expect(title).toContain("text={title}");
+    expect(title).toContain("label={TOP_INSTANCES_TITLE}");
     expect(title).toContain(
-      "text={CLOUD_METRIC_DESCRIPTIONS.topInstancesByCpu}",
+      "description={CLOUD_METRIC_DESCRIPTIONS.topInstancesByCpu}",
     );
+    expect(title).not.toContain("<InfoTooltip");
+    expect(title).not.toContain("inline-flex");
 
     expect(code).toContain("title={<TopInstancesByCpuTitle />}");
     expect(code).not.toContain('title="Top instances by CPU"');
