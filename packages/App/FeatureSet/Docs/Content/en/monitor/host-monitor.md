@@ -237,7 +237,7 @@ One Host monitor covers every disk the host reports. The High Filesystem Usage a
 Each criteria is checked for each disk:
 
 - While a disk's incident is open, the criteria that opened it opens no other for that disk. Another disk that meets it opens its own.
-- A disk that meets two criteria, such as one above 98% and one above 90%, gets one incident, from the first of them in the list. Put the stricter one first.
+- A disk that meets two criteria on the same metric, such as one above 98% and one above 90%, gets one incident, from the first of them in the list. Put the stricter one first. Criteria on different metrics each open their own for the disk.
 - A disk's incident resolves when that disk stops meeting the criteria that opened it, whatever the other disks do.
 - The monitor has one status. A criteria that changes it to another status, such as **Offline**, sets it as soon as one disk meets it. The criteria that brings the monitor back to its **Default Monitor Status** waits for the disks that met such a criteria, and matches once each of them meets it, whatever the other disks do. So a disk that drops from 96% to 89% keeps the monitor **Offline** until it is at or below 81%, the 10% recovery margin, even though its incident resolves once it is no longer above 90%. **Series** shows that disk as **Keeps the status**. A disk that is no longer reported stops keeping the status.
 

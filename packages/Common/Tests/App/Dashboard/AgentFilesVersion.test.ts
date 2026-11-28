@@ -161,7 +161,9 @@ const AGENT_FILES: Array<AgentFilesPin> = [
   /*
    * 0.165.1: Dell's PowerStore exporter and PowerStore's syslog (#11002),
    * NetApp Harvest for an ONTAP cluster (#11001) and a PowerScale cluster's
-   * nodes over SNMP (#11003) beside Pure Storage's three ways (#11422).
+   * nodes over SNMP (#11003) beside Pure Storage's three ways (#11422), and
+   * the collector's container name read from .env, so a second agent on the
+   * same machine keeps a name of its own when it is upgraded (#11168).
    */
   {
     kind: AgentKind.StorageArrayAgent,
@@ -182,12 +184,14 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "agents/StorageArrayAgent/otel-collector-config.powerscale.yaml",
     ],
     version: "0.165.1",
-    digest: "6cad6e2619b35b985a72a3390a2060369ae3c489d76f92f750e7ebac12a5cebd",
+    digest: "bb81c6b9720516d41dd1f72cbb53ef71504c2e26791bd68c289abbfdcda896cc",
   },
   /*
    * 0.165.1: the AI agent the compose file can start beside the collector
-   * (#10998), and a compose file that no longer warns that XO_ADDRESS is not
-   * set (#11422).
+   * (#10998), a compose file that no longer warns that XO_ADDRESS is not
+   * set (#11422), and both containers' names read from .env, so a second
+   * agent on the same machine keeps names of its own when it is upgraded
+   * (#11168).
    */
   {
     kind: AgentKind.XcpNgAgent,
@@ -197,7 +201,7 @@ const AGENT_FILES: Array<AgentFilesPin> = [
       "agents/XcpNgAgent/otel-collector-config.yaml",
     ],
     version: "0.165.1",
-    digest: "b61528fe33f20dc29054508f9dfd860b1cba20036c9b1789f6dafa5b4864d4ee",
+    digest: "44f97554d3617e3f48fe7ca6de069913518a98358b6deb8f268e5667a0c198a7",
   },
 ];
 

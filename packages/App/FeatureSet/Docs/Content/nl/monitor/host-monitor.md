@@ -237,7 +237,7 @@ Eén Host-monitor bewaakt elke schijf die de host meldt. De sjablonen High Files
 Elk criterium wordt voor elke schijf gecontroleerd:
 
 - Zolang het incident van een schijf open is, opent het criterium dat het opende, geen ander incident voor die schijf. Een andere schijf die eraan voldoet, opent een eigen incident.
-- Een schijf die aan twee criteria voldoet, zoals één boven 98% en één boven 90%, krijgt één incident, van het eerste van de twee in de lijst. Zet het strengere vooraan.
+- Een schijf die aan twee criteria op dezelfde metriek voldoet, zoals één boven 98% en één boven 90%, krijgt één incident, van het eerste van de twee in de lijst. Zet het strengere vooraan. Criteria op verschillende metrieken openen elk hun eigen incident voor de schijf.
 - Het incident van een schijf wordt opgelost zodra die schijf niet meer voldoet aan het criterium dat het opende, wat de andere schijven ook doen.
 - De monitor heeft één status. Een criterium dat hem naar een andere status zet, zoals **Offline**, bepaalt die zodra één schijf eraan voldoet. Het criterium dat de monitor terugbrengt naar zijn **Standaard monitorstatus** wacht op de schijven die aan zo'n criterium voldeden, en komt overeen zodra elk van hen eraan voldoet, wat de andere schijven ook doen. Een schijf die van 96% naar 89% zakt, houdt de monitor dus **Offline** tot hij op of onder 81% zit, de herstelmarge van 10%, ook al wordt zijn incident opgelost zodra hij niet meer boven 90% zit. **Reeksen** toont die schijf als **Houdt de status vast**. Een schijf die niet meer wordt gemeld, houdt de status niet meer vast.
 

@@ -109,6 +109,7 @@ XO_ADDRESS=xo.example.com
 XO_OPENMETRICS_SECRET='your-plugin-secret'
 XO_NAME='Xen Orchestra'
 XO_TLS_SERVER_NAME=
+XCP_NG_AGENT_CONTAINER_NAME=oneuptime-xcp-ng-agent
 ```
 
 `XO_ADDRESS`는 Xen Orchestra의 `host` 또는 `host:port`이며, `https://`는 붙이지 않습니다. 플러그인의 시크릿은 작은따옴표로 감싸고, 그 안의 모든 `$`는 `$$`로 씁니다. 수집기가 값을 한 번 더 읽기 때문에 `$`를 변수의 시작으로 오해합니다. `'`가 들어 있는 시크릿은 작은따옴표로 감쌀 수 없습니다. 설치 스크립트가 쓰게 하거나 Xen Orchestra에서 다른 시크릿을 고르세요.
@@ -208,6 +209,8 @@ key = '/etc/ssl/xo/key.pem'
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | 아니요 | 같은 형식으로, 누가 승인하든 OneUptime AI가 절대 변경하면 안 되는 것: AI 에이전트가 실행되는 VM과 Xen Orchestra 자체의 VM. |
 | `LOG_LEVEL` | 아니요 | AI 에이전트의 로그 수준: `debug`, `info`(기본값), `warn` 또는 `error`. |
 | `COMPOSE_PROFILES` | 아니요 | `xcp-ng-ai-agent`이면 AI 에이전트가 시작됩니다. 설치 스크립트는 읽기 토큰이 설정되어 있으면 이 값을 쓰고, 그렇지 않으면 뺍니다. |
+| `XCP_NG_AGENT_CONTAINER_NAME` | 아니요 | 에이전트의 컨테이너 이름입니다. 기본값은 `oneuptime-xcp-ng-agent`입니다. 같은 머신에 있는 두 번째 Xen Orchestra의 에이전트에는 고유한 이름이 필요합니다. [여러 Xen Orchestra 읽기](#여러-xen-orchestra-읽기)를 참고하세요. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다. |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름입니다. 기본값은 `oneuptime-xcp-ng-ai-agent`입니다. 이 값을 설정하지 않으면 설치 스크립트는 두 번째 Xen Orchestra의 AI 에이전트 이름을 그 수집기 이름에 맞춰 짓고(예: `oneuptime-xcp-ng-ai-agent-lab`, 수집기 `oneuptime-xcp-ng-agent-lab`과 나란히), 스크립트를 다시 실행해도 그 이름을 유지합니다. |
 
 ## 에이전트가 수집하는 것
 
@@ -304,7 +307,7 @@ processors:
 
 ## 여러 Xen Orchestra 읽기
 
-에이전트 하나는 Xen Orchestra 하나와 그것이 관리하는 모든 풀을 읽습니다. 같은 머신에서 두 번째 Xen Orchestra를 읽으려면 두 번째 에이전트를 별도 폴더에 별도 `.env`로 설치하고(예: `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh`), 고유한 `container_name`을 그 `docker-compose.yml`에서 지정하세요(예: `oneuptime-xcp-ng-agent-lab`). 두 컨테이너는 이름을 공유할 수 없습니다. 각각 고유한 `XO_NAME`을 주면 각 풀의 **설정** 에 어느 Xen Orchestra가 읽는지 표시되며, 진단 스크립트에는 `-d`로 폴더를 넘깁니다.
+에이전트 하나는 Xen Orchestra 하나와 그것이 관리하는 모든 풀을 읽습니다. 같은 머신에서 두 번째 Xen Orchestra를 읽으려면 두 컨테이너는 이름을 공유할 수 없으므로 두 번째 에이전트를 별도 `.env`와 별도 컨테이너 이름으로 별도 폴더에 설치하세요(예: `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab XCP_NG_AGENT_CONTAINER_NAME=oneuptime-xcp-ng-agent-lab bash install.sh`). `XCP_NG_AGENT_CONTAINER_NAME`을 지정하지 않으면 스크립트가 폴더 이름을 따서 컨테이너 이름을 짓는데, 이 예에서는 같은 이름이 됩니다. 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로 에이전트를 업그레이드하려고 스크립트를 다시 실행해도 이름이 유지되며, `container_name`을 예전에 `docker-compose.yml`에서 직접 수정한 에이전트도 그 이름을 유지합니다. Docker Compose를 쓴다면 대신 `XCP_NG_AGENT_CONTAINER_NAME`을 각 에이전트의 `.env`에 설정하세요. 각각 고유한 `XO_NAME`을 주면 각 풀의 **설정** 에 어느 Xen Orchestra가 읽는지 표시되며, 진단 스크립트에는 `-d`로 폴더를 넘깁니다.
 
 같은 풀을 관리하는 두 Xen Orchestra를 통해 두 에이전트가 같은 풀을 읽게 하지 마세요. OneUptime에서는 UUID로 하나의 풀이 되어 두 번 보고됩니다.
 
@@ -335,7 +338,7 @@ sudo systemctl enable --now oneuptime-xcp-ng-agent
 
 에이전트는 파일이 고정한 수집기 버전을 각 풀의 **개요** 와 **설정** 에 **에이전트 버전** 으로 보고합니다. 이 OneUptime 릴리스가 고정한 버전보다 오래되면 그 옆에 경고 표시가 나타납니다. 선택하면 아래 명령을 볼 수 있습니다.
 
-수집기 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, pull만으로는 에이전트가 업데이트되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(다시 묻는 것은 없습니다), Xen Orchestra의 인증서를 같은 방식으로 검사하고, `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치고(편집한 파일은 `<file>.bak.<timestamp>`로 보관됩니다), 이미지를 pull해 에이전트를 다시 만들므로 수집기가 새 구성을 읽습니다. `/opt/oneuptime-xcp-ng-agent` 밖에 설치한 에이전트에는 그 폴더를 지정하세요: `INSTALL_DIR=<folder> bash install.sh`.
+수집기 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, pull만으로는 에이전트가 업데이트되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(다시 묻는 것은 없습니다), Xen Orchestra의 인증서를 같은 방식으로 검사하고, `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치고(편집한 파일은 `<file>.bak.<timestamp>`로 보관됩니다), 이미지를 pull해 에이전트를 다시 만들므로 수집기가 새 구성을 읽습니다. `/opt/oneuptime-xcp-ng-agent` 밖에 설치한 에이전트에는 그 폴더를 지정하세요: `INSTALL_DIR=<folder> bash install.sh`. 에이전트의 컨테이너 이름은 그대로 유지됩니다.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/xcp-ng-agent -o install.sh

@@ -1037,20 +1037,63 @@ describe("what an event affects", () => {
       ),
     );
 
+    // The flag written back, on one line or two.
+    const flagWritten: number = release.search(
+      /disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:\s*false/,
+    );
+    const heldChecked: number = release.indexOf("if (isHeldByAnotherEvent) {");
+
     expect(release).toContain("isOperationalState: true,");
     expect(release).toContain(
       "await this.isMonitorHeldInMaintenanceByAnyEvent(",
     );
-    expect(release.indexOf("if (isHeldByAnotherEvent) {")).toBeLessThan(
-      release.indexOf(
-        "disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:\n                  false",
-      ),
-    );
+    expect(heldChecked).toBeGreaterThan(-1);
+    expect(flagWritten).toBeGreaterThan(heldChecked);
     expect(EVENT_SERVICE).toContain(
       "protected override async onDeleteSuccess(",
     );
     expect(affects).toContain(
       "When the event ends, or is deleted, checks resume and each monitor goes back to operational, unless another event in progress still holds it.",
+    );
+  });
+
+  it("gives a monitor an incident declared by hand still pauses the incident's status, and one an incident lets go during the event the event's", () => {
+    const release: string = TIMELINE_SERVICE.slice(
+      TIMELINE_SERVICE.indexOf(
+        "public async enableActiveMonitoringForMonitors(",
+      ),
+    );
+
+    // The event ends: the status of the incidents still pausing it, if any.
+    expect(release).toContain(
+      "await MonitorIncidentPause.getStatusOfIncidentsStillPausing(pause)",
+    );
+    // An incident resolved: the status of the events still holding it.
+    expect(readCommonSource("Server/Services/IncidentService.ts")).toContain(
+      "await MonitorIncidentPause.getStatusOfMaintenanceStillHolding(pause);",
+    );
+    expect(affects).toContain(
+      "A monitor that an incident declared by hand still pauses goes back to the status that incident puts it in instead, and an incident that lets go of a monitor while the event still holds it puts the monitor back in the event's status, when the event sets one.",
+    );
+  });
+
+  it("leaves the time of monitors it puts in no status out of uptime, status pages and SLOs, and counts the status it picks", () => {
+    // Its start, and the edits of an event in progress, mark that time.
+    expect(TIMELINE_SERVICE).toContain(
+      "await this.markUptimeOfMonitors(scheduledMaintenanceEvent);",
+    );
+    expect(EVENT_SERVICE).toContain(
+      "await ScheduledMaintenanceStateTimelineService.markUptimeOfMonitors(",
+    );
+    // An event that picks a status counts it.
+    expect(
+      readCommonSource("Server/Utils/Monitor/MonitorIncidentPause.ts"),
+    ).toContain("public static getStatusSettingMaintenanceEvents(");
+    expect(affects).toContain(
+      "If you picked a **Change Monitor Status to**, the monitors show that status, on your status pages too, and their uptime counts it. If you did not, each monitor keeps the status its last check saw, and its uptime, status pages and SLOs leave the time out, as they leave out time with monitoring turned off",
+    );
+    expect(affects).toContain(
+      "Its **Status Timeline** marks where that time starts and ends.",
     );
   });
 

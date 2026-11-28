@@ -14,7 +14,8 @@ import {
  * HOW A CALL ENDED, AS TWILIO TELLS IT.
  *
  * A call is placed the moment Twilio accepts it (CallService), long before
- * anybody picks up. When it ends, Twilio calls the call's status callback
+ * anybody picks up: its log says Calling until Twilio says how it ended
+ * (#11138). When it ends, Twilio calls the call's status callback
  * (API/Call.ts) with its final CallStatus: completed (it was answered, and
  * has ended), no-answer (it rang out), busy (the line was busy - which is
  * also what many phones answer when the call is declined), failed (it could
@@ -37,8 +38,13 @@ export enum TwilioCallStatus {
 }
 
 export interface CallOutcome {
-  // What the call log's status becomes. Null keeps it: an answered call stays Success.
-  callStatus: CallStatus | null;
+  /*
+   * What the call log's status becomes: Success for an answered call -
+   * whose log said Calling until then, or Success already, placed before
+   * Calling was written - and Missed Call, Busy or Error for one that was
+   * not.
+   */
+  callStatus: CallStatus;
   /*
    * What the on-call notification the call was made for becomes, while it
    * is only sent. Null keeps its status: an answered call is still a sent
@@ -90,7 +96,7 @@ export function getCallOutcome(data: {
         durationText !== "" && Number.isInteger(duration) && duration >= 0;
 
       return {
-        callStatus: null,
+        callStatus: CallStatus.Success,
         notificationStatus: null,
         /*
          * The sentences are written from OnCallSentLine, where the on-call

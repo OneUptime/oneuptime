@@ -7,7 +7,9 @@ import {
   DEFAULT_XCP_NG_CONNECT_METHOD,
   XCP_NG_AGENT_CA_FILE,
   XCP_NG_AGENT_CONTAINER,
+  XCP_NG_AGENT_CONTAINER_NAME_VARIABLE,
   XCP_NG_AGENT_INSTALL_DIR,
+  XCP_NG_AI_AGENT_CONTAINER_NAME_VARIABLE,
   XCP_NG_AGENT_INSTALL_NAME,
   XCP_NG_AGENT_RECREATE_COMMAND,
   XCP_NG_CONNECT_METHODS,
@@ -271,8 +273,9 @@ const composeFile: () => Record<string, any> = (): Record<string, any> => {
 
 /*
  * Variables the compose file's services read from .env: `${NAME}` and
- * `${NAME:-x}` - the collector's, and the XCP-ng AI agent's (#10998), which
- * read the ones they share with the same default.
+ * `${NAME:-x}` - each one's container name's, the collector's, and the
+ * XCP-ng AI agent's (#10998), which read the ones they share with the same
+ * default.
  */
 const composeVariables: () => Map<string, string | null> = (): Map<
   string,
@@ -280,8 +283,17 @@ const composeVariables: () => Map<string, string | null> = (): Map<
 > => {
   const variables: Map<string, string | null> = new Map();
   for (const service of Object.values(
-    composeFile()["services"] as Record<string, { environment: Array<string> }>,
+    composeFile()["services"] as Record<
+      string,
+      { container_name?: string; environment: Array<string> }
+    >,
   )) {
+    const containerName: RegExpMatchArray | null = String(
+      service.container_name || "",
+    ).match(/^\$\{([A-Z0-9_]+):-(.*)\}$/);
+    if (containerName) {
+      variables.set(containerName[1]!, containerName[2]!);
+    }
     for (const entry of service.environment) {
       // The outer reference of `${XO_NAME:-${XO_ADDRESS:-}}` is XO_NAME.
       const match: RegExpMatchArray | null = entry.match(
@@ -1107,9 +1119,10 @@ describe("the Docker Compose install", () => {
       }
     }
     /*
-     * XO_TLS_SERVER_NAME is left out: empty, it is XO_ADDRESS's host. So is
-     * what the XCP-ng AI agent alone reads (#10998): it starts only once a
-     * read token and its profile are set, and each has a default.
+     * XO_TLS_SERVER_NAME is left out: empty, it is XO_ADDRESS's host. So
+     * are the containers' names (a first agent's defaults are the right
+     * ones), and what the XCP-ng AI agent alone reads (#10998): it starts
+     * only once a read token and its profile are set, and each has a default.
      */
     const aiAgentOnly: Array<string> = composeVariablesOf(AI_AGENT_SERVICE)
       .filter((name: string): boolean => {
@@ -1129,7 +1142,14 @@ describe("the Docker Compose install", () => {
           return !names.includes(name);
         })
         .sort(),
-    ).toEqual(["XO_TLS_SERVER_NAME", ...aiAgentOnly].sort());
+    ).toEqual(
+      [
+        "XO_TLS_SERVER_NAME",
+        XCP_NG_AGENT_CONTAINER_NAME_VARIABLE,
+        XCP_NG_AI_AGENT_CONTAINER_NAME_VARIABLE,
+        ...aiAgentOnly,
+      ].sort(),
+    );
   });
 
   test("shows the placeholder, and where to pick a key, until one is picked", () => {
@@ -1217,7 +1237,7 @@ describe("the Docker Compose install", () => {
       }),
     ).toEqual([
       // Only a second Xen Orchestra's agent, in a folder of its own.
-      "INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh\n",
+      `INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab ${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=${XCP_NG_AGENT_CONTAINER}-lab bash install.sh\n`,
     ]);
   });
 });
@@ -1265,14 +1285,23 @@ describe("the environment variables table", () => {
     expect(rows.get("XO_NAME")!.description).toContain(
       "(default: its address)",
     );
+    expect(composeVariables().get(XCP_NG_AGENT_CONTAINER_NAME_VARIABLE)).toBe(
+      XCP_NG_AGENT_CONTAINER,
+    );
+    expect(
+      rows.get(XCP_NG_AGENT_CONTAINER_NAME_VARIABLE)!.description,
+    ).toContain(`(default: \`${XCP_NG_AGENT_CONTAINER}\`)`);
   });
 
   test("the install script writes every variable of the table to .env, quoted for Compose", () => {
     const script: string = readAgentFile("install.sh");
     const rows: Map<string, { required: string; description: string }> =
       envTableRows(guideFor("install-script"));
-    // The collector's ten, and the AI agent's eleven (#10998).
-    expect(rows.size).toBe(21);
+    /*
+     * The collector's ten, the AI agent's eleven (#10998), and the two
+     * containers' names.
+     */
+    expect(rows.size).toBe(23);
     for (const name of rows.keys()) {
       if (name === "XO_SCHEME") {
         // A validated shape (https or http), so it stays bare.
@@ -1342,8 +1371,12 @@ describe("drift guards against agents/XcpNgAgent", () => {
       XCP_NG_AGENT_CONTAINER,
       AI_AGENT_SERVICE,
     ]);
+    // Each named by .env, the default the guide's name.
+    expect(services[AI_AGENT_SERVICE]!["container_name"]).toBe(
+      `\${${XCP_NG_AI_AGENT_CONTAINER_NAME_VARIABLE}:-${AI_AGENT_SERVICE}}`,
+    );
     expect(services[XCP_NG_AGENT_CONTAINER]!["container_name"]).toBe(
-      XCP_NG_AGENT_CONTAINER,
+      `\${${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}:-${XCP_NG_AGENT_CONTAINER}}`,
     );
     // A plain `docker compose up -d` starts the collector alone.
     expect(services[XCP_NG_AGENT_CONTAINER]!["profiles"]).toBeUndefined();
@@ -1461,7 +1494,7 @@ describe("drift guards against agents/XcpNgAgent", () => {
     expect(script).toContain(`DIR="${XCP_NG_AGENT_INSTALL_DIR}"`);
   });
 
-  test("a second Xen Orchestra's agent installs into a folder of its own", () => {
+  test("a second Xen Orchestra's agent installs into a folder of its own, with a container name of its own that .env keeps", () => {
     const topic: string = topicTitled(
       guideFor("install-script").advanced,
       "Reading several Xen Orchestras",
@@ -1469,14 +1502,25 @@ describe("drift guards against agents/XcpNgAgent", () => {
     expect(topic).toContain(
       codeBlock(
         "bash",
-        "INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh",
+        `INSTALL_DIR=${XCP_NG_AGENT_INSTALL_DIR}-lab ${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=${XCP_NG_AGENT_CONTAINER}-lab bash install.sh`,
       ),
     );
-    expect(topic).toContain(
+    // Nothing tells anyone to edit docker-compose.yml, which an upgrade replaces.
+    expect(topic).not.toContain(
       "with its own `container_name` in its `docker-compose.yml`",
     );
-    // install.sh says the same when the name is taken.
-    expect(readAgentFile("install.sh")).toContain(
+    expect(topic).toContain(
+      `With Docker Compose, set \`${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}\` in each agent's \`.env\` instead.`,
+    );
+    // install.sh writes the variable, and names it when the name is taken.
+    const script: string = readAgentFile("install.sh");
+    expect(script).toContain(
+      `\n${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=$(compose_env_quote "$${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}")\n`,
+    );
+    expect(script).toContain(
+      `  ${XCP_NG_AGENT_CONTAINER_NAME_VARIABLE}=$DEFAULT_CONTAINER_NAME-<name> INSTALL_DIR=$INSTALL_DIR bash install.sh`,
+    );
+    expect(script).not.toContain(
       "give this one its own container_name in $INSTALL_DIR/docker-compose.yml",
     );
   });

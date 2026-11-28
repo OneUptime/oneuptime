@@ -1,4 +1,9 @@
-import { getCallStatusPill } from "../../FeatureSet/Dashboard/src/Components/NotificationLogs/CallStatusPill";
+import {
+  getNotificationLogStatusWords,
+  NOTIFICATION_LOG_STATUS_TONES,
+  NotificationLogKind,
+  NotificationLogStatusWords,
+} from "../../FeatureSet/Dashboard/src/Components/NotificationLogs/NotificationLogStatus";
 import {
   NOT_ANSWERED_STATUS_LABEL,
   withNotAnsweredStatusLabel,
@@ -7,8 +12,8 @@ import {
   LOCALES_DIRECTORY,
   TRANSLATED_LOCALES,
 } from "../../FeatureSet/Dashboard/scripts/i18n/LocaleFiles";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import CallStatus from "Common/Types/Call/CallStatus";
+import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { describe, expect, test } from "@jest/globals";
@@ -28,7 +33,8 @@ import path from "path";
  *
  * An on-call call that voicemail answered (Twilio's answering machine
  * detection, #6594) is logged "Voicemail", in yellow too: it reached the
- * phone, and nobody picked up.
+ * phone, and nobody picked up. A call still ringing is "Calling", in blue
+ * (#11138): it is on its way, never a green Success before anybody picks up.
  */
 
 function readLocale(language: string): Record<string, unknown> {
@@ -37,42 +43,63 @@ function readLocale(language: string): Record<string, unknown> {
   ) as Record<string, unknown>;
 }
 
+// A call log's pill: its word, and the tone it is drawn in.
+function pillOf(status: CallStatus): { text: string; tone: PillTone } {
+  const words: NotificationLogStatusWords | null =
+    getNotificationLogStatusWords({
+      kind: NotificationLogKind.Call,
+      status: status,
+    });
+
+  return {
+    text: words!.text,
+    tone: NOTIFICATION_LOG_STATUS_TONES[words!.meaning],
+  };
+}
+
 describe("a call's status in the call logs", () => {
-  test("placed: green", () => {
-    expect(getCallStatusPill(CallStatus.Success)).toEqual({
-      color: Green,
+  test("ringing: Calling, in blue - on its way, not yet green", () => {
+    expect(pillOf(CallStatus.Calling)).toEqual({
+      tone: PillTone.Info,
+      text: "Calling",
+    });
+  });
+
+  test("answered, or placed and never told more: green", () => {
+    expect(pillOf(CallStatus.Success)).toEqual({
+      tone: PillTone.Success,
       text: "Success",
     });
   });
 
   test("rang out: a missed call, in yellow, in the words the other call lists use", () => {
-    expect(getCallStatusPill(CallStatus.MissedCall)).toEqual({
-      color: Yellow,
+    expect(pillOf(CallStatus.MissedCall)).toEqual({
+      tone: PillTone.Warning,
       text: "Missed call",
     });
   });
 
   test("busy - or declined: yellow", () => {
-    expect(getCallStatusPill(CallStatus.Busy)).toEqual({
-      color: Yellow,
+    expect(pillOf(CallStatus.Busy)).toEqual({
+      tone: PillTone.Warning,
       text: "Busy",
     });
   });
 
   test("answered by voicemail: yellow, not red - it is no failure", () => {
-    expect(getCallStatusPill(CallStatus.Voicemail)).toEqual({
-      color: Yellow,
+    expect(pillOf(CallStatus.Voicemail)).toEqual({
+      tone: PillTone.Warning,
       text: "Voicemail",
     });
   });
 
   test("could not be placed, or connected, or no balance: red, as before", () => {
-    expect(getCallStatusPill(CallStatus.Error)).toEqual({
-      color: Red,
+    expect(pillOf(CallStatus.Error)).toEqual({
+      tone: PillTone.Danger,
       text: "Error",
     });
-    expect(getCallStatusPill(CallStatus.LowBalance)).toEqual({
-      color: Red,
+    expect(pillOf(CallStatus.LowBalance)).toEqual({
+      tone: PillTone.Danger,
       text: "Low Balance",
     });
   });

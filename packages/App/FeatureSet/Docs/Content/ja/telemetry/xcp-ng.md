@@ -109,6 +109,7 @@ XO_ADDRESS=xo.example.com
 XO_OPENMETRICS_SECRET='your-plugin-secret'
 XO_NAME='Xen Orchestra'
 XO_TLS_SERVER_NAME=
+XCP_NG_AGENT_CONTAINER_NAME=oneuptime-xcp-ng-agent
 ```
 
 `XO_ADDRESS` は Xen Orchestra の `host` または `host:port` で、`https://` は付けません。プラグインのシークレットは一重引用符で囲み、その中の `$` はすべて `$$` と書きます。コレクターは値をもう一度読み取るため、`$` を変数の始まりと見なしてしまいます。`'` を含むシークレットは一重引用符で囲めません。インストールスクリプトに書かせるか、Xen Orchestra で別のシークレットを選んでください。
@@ -208,6 +209,8 @@ key = '/etc/ssl/xo/key.pem'
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | いいえ | 同様に、誰が承認しても OneUptime AI が決して変更してはならないもの: AI エージェントが動作する VM と、Xen Orchestra 自身の VM。 |
 | `LOG_LEVEL` | いいえ | AI エージェントのログレベル: `debug`、`info` (既定)、`warn`、`error`。 |
 | `COMPOSE_PROFILES` | いいえ | `xcp-ng-ai-agent` で AI エージェントが起動します。インストールスクリプトは、読み取りトークンが設定されているとこれを書き込み、設定されていないと取り除きます。 |
+| `XCP_NG_AGENT_CONTAINER_NAME` | いいえ | エージェントのコンテナ名。既定は `oneuptime-xcp-ng-agent` です。同じマシン上で別の Xen Orchestra を読み取るエージェントには専用の名前が必要です ([複数の Xen Orchestra を読み取る](#複数の-xen-orchestra-を読み取る) を参照)。設定しない場合、インストールスクリプトは新しいエージェントにそのフォルダーにちなんだ名前を付け、スクリプトを再実行してもその名前を維持します。 |
+| `XCP_NG_AI_AGENT_CONTAINER_NAME` | いいえ | AI エージェントのコンテナ名。既定は `oneuptime-xcp-ng-ai-agent` です。設定しない場合、インストールスクリプトは別の Xen Orchestra の AI エージェントにそのコレクターにちなんだ名前を付け (たとえば `oneuptime-xcp-ng-ai-agent-lab` を `oneuptime-xcp-ng-agent-lab` の隣に置きます)、スクリプトを再実行してもその名前を維持します。 |
 
 ## エージェントが収集するもの
 
@@ -304,7 +307,7 @@ processors:
 
 ## 複数の Xen Orchestra を読み取る
 
-1 つのエージェントは 1 つの Xen Orchestra と、それが管理するすべてのプールを読み取ります。同じマシンから 2 つ目の Xen Orchestra を読み取るには、2 つ目のエージェントを別のフォルダーに別の `.env` でインストールし (`INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh` など)、独自の `container_name` をその `docker-compose.yml` で付けます (`oneuptime-xcp-ng-agent-lab` など)。2 つのコンテナは同じ名前を共有できません。それぞれに別の `XO_NAME` を付けると、各プールの **設定** にどの Xen Orchestra が読み取っているかが表示されます。診断スクリプトには `-d` でフォルダーを渡します。
+1 つのエージェントは 1 つの Xen Orchestra と、それが管理するすべてのプールを読み取ります。同じマシンから 2 つ目の Xen Orchestra を読み取るには、2 つのコンテナは同じ名前を共有できないため、2 つ目のエージェントを別の `.env` と別のコンテナ名で別のフォルダーにインストールします (`INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab XCP_NG_AGENT_CONTAINER_NAME=oneuptime-xcp-ng-agent-lab bash install.sh` など)。`XCP_NG_AGENT_CONTAINER_NAME` を指定しない場合、スクリプトはフォルダーにちなんでコンテナに名前を付けます。この例では同じ名前になります。スクリプトはその名前をそのエージェントの `.env` に保存するため、エージェントをアップグレードするためにスクリプトを再実行しても名前は維持されます。また、`container_name` を以前 `docker-compose.yml` で編集したエージェントも、その名前を維持します。Docker Compose の場合は、代わりに `XCP_NG_AGENT_CONTAINER_NAME` を各エージェントの `.env` で設定します。それぞれに別の `XO_NAME` を付けると、各プールの **設定** にどの Xen Orchestra が読み取っているかが表示されます。診断スクリプトには `-d` でフォルダーを渡します。
 
 同じプールを管理する 2 つの Xen Orchestra を通じて、2 つのエージェントに同じプールを読み取らせないでください。OneUptime では UUID によって 1 つのプールになり、二重に報告されてしまいます。
 
@@ -335,7 +338,7 @@ sudo systemctl enable --now oneuptime-xcp-ng-agent
 
 エージェントは、ファイルで固定されたコレクターのバージョンを **エージェントバージョン** として、各プールの **概要** と **設定** に報告します。この OneUptime リリースが固定するバージョンより古い場合は、その横に警告マークが表示されます。マークを選ぶと次のコマンドが表示されます。
 
-コレクターのイメージは `docker-compose.yml` で固定され、その設定は隣のファイルにあるため、pull だけではエージェントは更新されません。`install.sh` をもう一度実行してください。既存の `.env` のすべての値を再利用し (何も聞き直しません)、Xen Orchestra の証明書を同じ方法で検証し、`docker-compose.yml` と `otel-collector-config.yaml` を更新し (編集したファイルは `<file>.bak.<timestamp>` として保持されます)、イメージを pull してエージェントを再作成するので、コレクターは新しい設定を読み込みます。`/opt/oneuptime-xcp-ng-agent` 以外にインストールしたエージェントには、そのフォルダーを指定します: `INSTALL_DIR=<folder> bash install.sh`。
+コレクターのイメージは `docker-compose.yml` で固定され、その設定は隣のファイルにあるため、pull だけではエージェントは更新されません。`install.sh` をもう一度実行してください。既存の `.env` のすべての値を再利用し (何も聞き直しません)、Xen Orchestra の証明書を同じ方法で検証し、`docker-compose.yml` と `otel-collector-config.yaml` を更新し (編集したファイルは `<file>.bak.<timestamp>` として保持されます)、イメージを pull してエージェントを再作成するので、コレクターは新しい設定を読み込みます。`/opt/oneuptime-xcp-ng-agent` 以外にインストールしたエージェントには、そのフォルダーを指定します: `INSTALL_DIR=<folder> bash install.sh`。コンテナ名はそのまま維持されます。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/xcp-ng-agent -o install.sh
