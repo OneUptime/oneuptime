@@ -75,6 +75,8 @@ Para sincronizar un solo monitor, haga clic en **Sincronizar desde la plantilla*
 
 Después de una sincronización, un resumen indica cuántos monitores se actualizaron. **Sincronizado parcialmente** significa que algunos monitores vinculados todavía tienen la configuración anterior, normalmente porque sus permisos no los cubren.
 
+Una sincronización que quita los criterios que abrieron un incidente o una alerta abiertos los resuelve si estaban configurados para resolverse automáticamente, ya que nada podría resolverlos una vez desaparecidos esos criterios: su cronología indica por qué, y el resumen indica cuántos se resolvieron. Un incidente o una alerta cuyos criterios la plantilla todavía tiene sigue abierto, y el que debe resolverse a mano queda en sus manos. Editar usted mismo los criterios de un monitor, en el panel, mediante la API o con Terraform, hace lo mismo.
+
 ## Mover monitores a otra plantilla
 
 Cuando una plantilla mejor sustituye a otra, mueva sus monitores a ella en lugar de eliminarlos. Cada monitor conserva su nombre, su historial de estado, sus etiquetas, sus propietarios y sus incidentes, y toma los criterios de la nueva plantilla.
@@ -101,10 +103,10 @@ Lo que hace el traslado:
 - Un dispositivo tiene un monitor de cada plantilla. Cuando un dispositivo ya tiene un monitor creado para él a partir de la nueva plantilla, su otro monitor se omite, y el cambio nombra el que estorba: elimine uno de los dos y vuelva a moverlo.
 - Se omite un monitor de un tipo distinto al de la plantilla.
 
-El cambio se ejecuta en el servidor, hasta 10 000 monitores a la vez, y muestra su progreso: qué se movió, qué se omitió y por qué, y los incidentes y alertas abiertos que resolvió. Cerrar el cuadro de diálogo no lo detiene, y la página de la plantilla muestra un cambio que sigue en curso. **Detener** lo detiene antes del siguiente monitor, y **Reintentar** vuelve a intentarlo con los monitores que fallaron o no se alcanzaron.
+El cambio se ejecuta en el servidor, hasta 10 000 monitores a la vez, y muestra su progreso: qué se movió, qué se omitió y por qué, y los incidentes y alertas abiertos que resolvió. Cerrar el cuadro de diálogo no lo detiene: la página de la plantilla y la lista de monitores muestran un cambio que sigue en curso, con hasta dónde ha llegado, y la lista de monitores muestra durante una hora uno terminado que omitió monitores o en el que fallaron. Haga clic en su línea para volver a abrirlo, con **Mostrar progreso** mientras se ejecuta y **Mostrar qué pasó** cuando termina. **Detener** lo detiene antes del siguiente monitor, y **Reintentar** vuelve a intentarlo con los monitores que fallaron o no se alcanzaron.
 
 > [!TIP]
-> ¿Mueve los dispositivos de una regla de importación automática a una plantilla nueva? Mueva primero los monitores y luego apunte la regla a la nueva plantilla. En el orden inverso, la regla da a cada dispositivo un segundo monitor, de la nueva plantilla, junto al que ya tiene.
+> Apuntar una regla de importación automática a otra plantilla del mismo tipo ofrece mover primero allí los monitores de sus dispositivos, y la regla usa la nueva plantilla cuando ya se han movido, así que ningún dispositivo recibe un segundo monitor. **Guardar sin mover** apunta la regla a ella ahora: cada dispositivo conserva su monitor y recibe el de la nueva plantilla a su lado.
 
 ## Desvincular monitores de una plantilla
 
@@ -119,7 +121,7 @@ En ambos casos conservan sus nombres, su historial de estado, sus etiquetas, sus
 
 ## Eliminar una plantilla
 
-No se puede eliminar una plantilla a partir de la cual aprovisiona una política de alertas de red o una regla de importación automática: apunte primero la política o la regla a otra plantilla. Cuando hay monitores vinculados a la plantilla, su eliminación pregunta qué pasa con ellos:
+No se puede eliminar una plantilla a partir de la cual aprovisiona una política de alertas de red o una regla de importación automática: apunte primero la política o la regla a otra plantilla. Los monitores de una política se mueven con ella, y el formulario de una regla ofrece mover los monitores de sus dispositivos. Cuando hay monitores vinculados a la plantilla, su eliminación pregunta qué pasa con ellos:
 
 - **Conservar su configuración** (la opción predeterminada): la eliminación los desvincula, y siguen comprobando y generando alertas con los criterios que tienen.
 - **Quitarles los criterios de esta plantilla**: cada uno se desvincula y se le quitan los criterios, como arriba, y luego se elimina la plantilla. Cuando un monitor sigue vinculado, como uno que sus permisos no cubren, la plantilla se conserva, y el cuadro de diálogo indica cuántos.
@@ -233,7 +235,7 @@ El dispositivo tiene un monitor creado para él a partir de la plantilla a la qu
 :::
 
 :::details Después de que una regla de importación automática pasara a una plantilla nueva, los dispositivos tienen dos monitores
-La regla dio a cada dispositivo el monitor de la nueva plantilla junto al que tenía. Elimine los monitores nuevos y luego mueva los antiguos a la nueva plantilla: conservan su historial, y la regla no vuelve a crear ninguno.
+La regla se guardó con **Guardar sin mover**, o se apuntó a la plantilla antes de que su formulario ofreciera moverlos, y dio a cada dispositivo el monitor de la nueva plantilla junto al que tenía. Elimine los monitores nuevos y luego mueva los antiguos a la nueva plantilla: conservan su historial, y la regla no vuelve a crear ninguno.
 :::
 
 :::details Guardar falla con «Unsupported do not sync field»

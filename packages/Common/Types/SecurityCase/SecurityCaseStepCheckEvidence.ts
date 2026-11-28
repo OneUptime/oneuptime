@@ -40,7 +40,9 @@ export const STEP_CHECK_MAX_LINKS: number = 6;
  * step that reads back several things - the changes an attack made to
  * accounts (#10603) - marks each as undone, still there, or a person's to
  * confirm, and the line that says how to let OneUptime read what it could
- * not (#10900, #10901). A fact with no mark is drawn as a plain line.
+ * not (#10900, #10901), and a line under a change that says it leaves a
+ * way in open to anyone (#11378). A fact with no mark is drawn as a plain
+ * line.
  */
 export enum StepCheckFactMark {
   // OneUptime read it back, done: an attack's change undone.
@@ -51,11 +53,29 @@ export enum StepCheckFactMark {
   Confirm = "Confirm",
   // Why OneUptime could not read something back, and how to let it.
   HowToCheck = "HowToCheck",
+  /*
+   * Said under a change, of a way in it leaves open to anyone (#11378): a
+   * role every AWS account may assume, or one an identity provider lets
+   * in every organization's tokens - or every token of a provider of the
+   * account's own - for. It says more of the line above it, and goes with
+   * that line wherever it goes.
+   */
+  Exposed = "Exposed",
 }
 
 const STEP_CHECK_FACT_MARKS: ReadonlyArray<string> = Object.values(
   StepCheckFactMark,
 ) as Array<string>;
+
+/*
+ * The marks of a line that says more of the one above it, and goes with
+ * it: the step keeps or leaves out the two together (#11378).
+ */
+export function isStepCheckFactMarkUnderLine(
+  mark: StepCheckFactMark | undefined,
+): boolean {
+  return !mark || mark === StepCheckFactMark.Exposed;
+}
 
 const MAX_TEXT_LENGTH: number = 1000;
 const MAX_KEYS: number = 24;

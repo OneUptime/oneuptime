@@ -32,8 +32,15 @@ const ACCOUNTS: string = path.join(APP, "FeatureSet", "Accounts");
 const ACCOUNTS_SOURCE: string = path.join(ACCOUNTS, "src");
 const COMMON_UI: string = path.resolve(APP, "..", "Common", "UI");
 
-// The public form: its owner's page, drawn light.
-const ALWAYS_LIGHT_PAGES: ReadonlyArray<string> = ["Pages/Form.tsx"];
+/*
+ * The public form: its owner's page, drawn light - with the view of its
+ * follow-ups it draws in its own card in place of the form
+ * (Types/Form/FormFollowUp).
+ */
+const ALWAYS_LIGHT_PAGES: ReadonlyArray<string> = [
+  "Pages/Form.tsx",
+  "Components/FormFollowUp/FormFollowUpView.tsx",
+];
 
 // Shared pieces only the sign-in pages draw.
 const SIGN_IN_PIECES: ReadonlyArray<string> = [

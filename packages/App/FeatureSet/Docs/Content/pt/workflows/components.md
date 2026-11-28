@@ -27,6 +27,7 @@ Raramente você vai precisar dela aberta enquanto monta. As configurações de c
 | Esperar antes do próximo bloco                                | [Sleep](#sleep)                                                   |
 | Iniciar outro workflow                                        | [Execute Workflow](#execute-workflow)                             |
 | Anexar a um e-mail as imagens que o Markdown de um registro mostra | [Obter arquivos do Markdown](#get-files-from-markdown) |
+| Anexar a um e-mail os anexos de uma nota, ou os campos personalizados de arquivo de um registro | [Obter anexos do registro](#get-attachments-from-record) |
 | Ler ou alterar incidentes, monitores e outros registros       | [Componentes de dados do OneUptime](#componentes-de-dados-do-oneuptime)   |
 | Abrir, reconhecer e resolver incidentes ou alertas para os problemas de outra ferramenta | [Incidentes e alertas de outras ferramentas](#incidentes-e-alertas-de-outras-ferramentas) |
 | Reconhecer ou fechar um problema do Zabbix | [Zabbix](#zabbix) |
@@ -420,7 +421,7 @@ Ele devolve:
 - **Contagem**: quantas imagens **Arquivos** contém.
 - **Deixados de fora**: os arquivos que o Markdown mostra e que não estão em **Arquivos**, cada um com o seu `name`, `urls`, `fields`, um `reason` e uma `message` que diz por quê.
 
-**Arquivos** contém os dados das imagens, por isso o log da execução o oculta e mostra **Contagem** e **Deixados de fora** no lugar. Um bloco posterior que recebe as imagens escreve o que recebe na sua própria entrada do log.
+**Arquivos** contém os dados das imagens, por isso o log da execução o oculta e mostra **Contagem** e **Deixados de fora** no lugar. Um bloco posterior que recebe as imagens também as mostra ocultas, no que recebeu e no que devolveu (veja [Execuções](/docs/workflows/runs-and-logs#a-aba-etapas)).
 
 ### Quais imagens ele entrega
 
@@ -525,6 +526,61 @@ O Microsoft Graph responde `202 Accepted`, e o bloco segue por **Sucesso**.
 :::
 
 O Microsoft Graph aceita um anexo de até 3 MB numa mensagem enviada assim. Uma imagem maior precisa de uma sessão de upload, ou de um link no lugar da imagem. As imagens de um registro também podem ser lidas com uma chave de API, fora de um fluxo de trabalho: veja [Imagens no Markdown de um registro](/docs/api-reference/api-reference#imagens-no-markdown-de-um-registro).
+
+## Get Attachments From Record
+
+Lê os arquivos que um registro contém, com o nome, o tipo e os dados de cada arquivo: os anexos de uma nota, os anexos do post-mortem de um incidente, os anexos de um anúncio e os arquivos dos campos personalizados **Arquivo** e **Vários arquivos** do registro. Use-o para anexá-los a um e-mail. Para anexar também as imagens que o Markdown de um registro mostra, adicione [Obter arquivos do Markdown](#get-files-from-markdown) para o mesmo registro.
+
+| Configuração | O que faz |
+| --- | --- |
+| **Tipo de Registro** | O tipo de registro que contém os arquivos: um incidente, uma nota interna ou pública de um incidente, um alerta, uma manutenção programada e mais. |
+| **ID do registro** | O registro a ler, normalmente o que iniciou o fluxo de trabalho, como `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`. |
+
+| Saída | Quando |
+| --- | --- |
+| **Sucesso** | O registro foi lido, contenha ele arquivos ou não. |
+| **Erro** | Não foi possível ler o registro: ele não existe, ou o fluxo de trabalho não pode lê-lo. **Erro** diz por quê. |
+
+Ele devolve:
+
+- **Arquivos**: cada arquivo, primeiro os anexos do próprio registro, depois os seus campos personalizados de arquivo na ordem em que foram criados, com:
+  - `name`: o nome do arquivo, como foi enviado;
+  - `mimeType`: o tipo dele, como `application/pdf` ou `image/png`;
+  - `sizeInBytes`: o tamanho dele em bytes;
+  - `base64`: os dados do arquivo;
+  - `contentId`: um ID para o arquivo num e-mail, o mesmo para o mesmo arquivo, seja qual for o registro que o contém;
+  - `fields`: onde o registro o guarda: `attachments`, `postmortemAttachments` ou o nome de um campo personalizado.
+- **Contagem**: quantos arquivos **Arquivos** contém.
+- **Deixados de fora**: os arquivos que o registro contém e que não estão em **Arquivos**, cada um com o seu `name`, `fields`, um `reason` e uma `message` que diz por quê.
+
+**Arquivos** contém os dados dos arquivos, por isso o log da execução o oculta e mostra **Contagem** e **Deixados de fora** no lugar, e um bloco posterior que recebe os arquivos também os mostra ocultos.
+
+### Quais arquivos ele entrega
+
+O bloco lê o registro como um bloco Find One faz, como o fluxo de trabalho: no projeto do fluxo de trabalho, nunca um incidente, alerta ou episódio privado, e só o que as permissões do fluxo de trabalho deixam ler. Um registro que ele não pode ler segue por **Erro**, assim como um que não existe. Uma função de “Executar como” que pode ler incidentes, mas não as notas internas deles, não pode ler os anexos de uma nota.
+
+Ele entrega apenas:
+
+- arquivos que o registro contém agora: os seus próprios anexos e os arquivos dos seus campos personalizados **Arquivo** e **Vários arquivos**. Um campo personalizado de texto não é lido. Para anexar os arquivos das notas de um incidente, leia cada nota: o bloco não lê os registros que ficam sob outro;
+- arquivos do projeto do próprio registro. Um arquivo de outro projeto aparece em **Deixados de fora** como não encontrado;
+- documentos, planilhas, apresentações, imagens, arquivos de texto e de dados, arquivos compactados e capturas de pacotes: os tipos de arquivo que um campo personalizado **Arquivo** aceita, cada um verificado pelo que o arquivo contém e também pelo tipo. Um SVG pode conter script, por isso fica de fora, assim como um arquivo que apenas diz ser o que o seu tipo indica;
+- até 20 arquivos, e 10 MB no total, como faz **Obter arquivos do Markdown**. O que passar de um limite aparece em **Deixados de fora**, com o motivo.
+
+Ele não pode listar arquivos nem ler um pelo ID: lê só o que o registro contém.
+
+Para anexar os arquivos ao e-mail enviado pelo Microsoft Graph do [exemplo acima](#exemplo-imagens-incorporadas-num-e-mail-enviado-pelo-microsoft-graph), adicione **Obter anexos do registro** depois de **Obter arquivos do Markdown**, adicione `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}` aos **Argumentos** do código e inclua cada um deles com `isInline: false`:
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## Incidentes e alertas de outras ferramentas
 

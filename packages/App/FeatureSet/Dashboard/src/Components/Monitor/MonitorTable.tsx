@@ -153,6 +153,11 @@ export interface ComponentProps {
    * #11266).
    */
   linkedToTemplate?: MonitorTemplateChangeDialogTemplate | undefined;
+  /*
+   * A dialog of the template bulk actions closed: a change it started may
+   * still run, and the page shows it (MonitorTemplateChangesNotice, #11454).
+   */
+  onTemplateChangeDialogClosed?: (() => void) | undefined;
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
@@ -547,6 +552,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           return toggle + 1;
         });
       },
+      onDialogClosed: props.onTemplateChangeDialogClosed,
     });
 
   const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =

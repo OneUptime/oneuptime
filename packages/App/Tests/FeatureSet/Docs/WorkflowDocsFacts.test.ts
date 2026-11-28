@@ -33,6 +33,10 @@ import {
   MAX_TRACE_VALUE_LENGTH,
   TRUNCATED_VALUE_SUFFIX,
 } from "Common/Types/Workflow/StepTrace";
+import {
+  getLeftOutMarker,
+  MAX_LOG_VALUE_LENGTH,
+} from "Common/Types/Workflow/RunLogValues";
 import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
 import { FormValidationMessage } from "Common/UI/Components/Forms/Utils/FormValidationMessages";
 import { describeUnresolvedIdReference } from "Common/Server/Types/Workflow/Components/BaseModel/UnresolvedIdReference";
@@ -1420,6 +1424,17 @@ describe("the runs page", () => {
       `a value longer than ${withThousands(MAX_TRACE_VALUE_LENGTH)} characters is cut short with "${TRUNCATED_VALUE_SUFFIX}"`,
     );
     expect(page).toContain(`A run keeps its last ${MAX_TRACE_STEPS} steps`);
+  });
+
+  it("cuts each value of the full log as the runner does, saying how much was left out (#11476)", () => {
+    const page: string = section(RUNS, "### The Full Log tab");
+
+    expect(page).toContain(
+      `is cut to its first ${withThousands(MAX_LOG_VALUE_LENGTH)} characters and ends with how many were left out, such as \`${getLeftOutMarker(10_420_113)}\``,
+    );
+    expect(page).toContain(
+      "Secrets and sensitive values are redacted before a value is cut",
+    );
   });
 
   it("keeps runs 30 days where billing is on, as both run lists say", () => {

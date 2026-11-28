@@ -40,8 +40,9 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  *     is connected but whose monitors are checked later than their interval
  *     (Types/Probe/ProbeBehind);
  *   - the probe's page keeps Connection Status for the connection, and says
- *     under Monitor Checks whether it keeps up: On Time, or Behind with since
- *     when, why it matters, what to do, and the guide;
+ *     under Monitor Checks whether it keeps up: On Time, or Behind - by how
+ *     far, once a due time is kept - with since when, why it matters, what
+ *     to do, and the guide;
  *   - in every language the Dashboard speaks.
  *
  * And the same of the network devices it polls (#9499): the list says
@@ -575,6 +576,127 @@ describe("Network Device Polls, on the probe's page (#9499)", () => {
   });
 });
 
+describe("how far behind, on the probe's page", () => {
+  // Each field draws one status bubble: its words, without isolate marks.
+  function statusText(): string {
+    return withoutIsolateMarks(screen.getByRole("status").textContent || "");
+  }
+
+  test("Monitor Checks says how far behind the monitors run, in amber, with since when under it", async () => {
+    await draw(
+      <ProbeChecksElement
+        probe={connectedProbe({ lateFor: 5 * MINUTE, behindBy: 15 * MINUTE })}
+      />,
+    );
+
+    // The figure is held to its word by a no-break space.
+    expect(statusText()).toMatch(/^Behind by 15\sminutes$/);
+    expect(dotColor()).toBe("rgb(255, 191, 83)");
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("probe-checks-behind").textContent || "",
+      ),
+    ).toMatch(
+      /Since .+, its monitors have waited more than a minute past their check time/,
+    );
+  });
+
+  test("each field says how far behind its own work runs, not the further of the two", async () => {
+    const probe: Probe = connectedProbe({
+      lateFor: 5 * MINUTE,
+      behindBy: 15 * MINUTE,
+      devicesLateFor: 4 * 60 * MINUTE,
+      // 2026-11-27: handed nothing from 04:09:46, read at 16:00.
+      devicesBehindBy: 11 * 60 * MINUTE + 50 * MINUTE,
+    });
+
+    await draw(<ProbeChecksElement probe={probe} />);
+    expect(statusText()).toMatch(/^Behind by 15\sminutes$/);
+    cleanup();
+
+    await draw(
+      <ProbeChecksElement probe={probe} work={ProbeBehindWork.DevicePolls} />,
+    );
+    expect(statusText()).toMatch(/^Behind by 11\shours$/);
+  });
+
+  test.each([
+    [61 * 1000, /^Behind by 1\sminute$/],
+    [60 * MINUTE, /^Behind by 1\shour$/],
+    [3 * 24 * 60 * MINUTE, /^Behind by 3\sdays$/],
+  ])(
+    "Network Device Polls late by %d ms reads %s",
+    async (devicesBehindBy: number, reads: RegExp) => {
+      await draw(
+        <ProbeChecksElement
+          probe={connectedProbe({
+            devicesLateFor: 5 * MINUTE,
+            devicesBehindBy,
+          })}
+          work={ProbeBehindWork.DevicePolls}
+        />,
+      );
+
+      expect(statusText()).toMatch(reads);
+    },
+  );
+
+  test("plain Behind while no due time is kept yet - the probe's first reading after an upgrade", async () => {
+    await draw(
+      <ProbeChecksElement probe={connectedProbe({ lateFor: 5 * MINUTE })} />,
+    );
+    expect(statusText()).toBe("Behind");
+    cleanup();
+
+    await draw(
+      <ProbeChecksElement
+        probe={connectedProbe({ devicesLateFor: 5 * MINUTE })}
+        work={ProbeBehindWork.DevicePolls}
+      />,
+    );
+    expect(statusText()).toBe("Behind");
+  });
+
+  test("a due time kept from a late reading says nothing while the probe keeps up", async () => {
+    const probe: Probe = connectedProbe({ lateFor: 0, behindBy: 15 * MINUTE });
+
+    await draw(<ProbeChecksElement probe={probe} />);
+
+    expect(statusText()).toBe("On Time");
+  });
+
+  test.each(["de", "fa", "ja"])(
+    "how far behind reads in %s",
+    async (language: string) => {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+
+      await draw(
+        <ProbeChecksElement
+          probe={connectedProbe({
+            devicesLateFor: 5 * MINUTE,
+            devicesBehindBy: 3 * 60 * MINUTE,
+          })}
+          work={ProbeBehindWork.DevicePolls}
+        />,
+      );
+
+      const locale: Record<string, string> = readDashboardLocale(language);
+      const text: string = statusText();
+
+      for (const words of locale[PROBE_BEHIND_BY.hour.other]!.split(
+        "{{count}}",
+      )) {
+        expect(text).toContain(words.trim());
+      }
+      // The count in the language's own digits ("۳" in Persian).
+      expect(text).toContain(new Intl.NumberFormat(language).format(3));
+      expect(text).not.toContain("Behind by");
+    },
+  );
+});
+
 describe("in every language the Dashboard speaks", () => {
   const WORDS: Array<string> = [
     PROBE_CHECKS_COPY.title,
@@ -663,6 +785,10 @@ describe("the pages", () => {
 
     expect(source).toContain("checksLastLateAt: true");
     expect(source).toContain("checksLateSince: true");
+    // And how far behind it is.
+    expect(source).toMatch(
+      /selectMoreFields: \{\s*checksLastLateAt: true,\s*checksLastLateDueAt: true,/,
+    );
     expect(source).toContain("<ProbeChecksElement probe={item} />");
     expect(source).toMatch(
       /showIf: \(item: Probe\): boolean => \{\s*return \(\s*item\.connectionStatus === ProbeConnectionStatus\.Connected\s*\);/,
@@ -684,6 +810,9 @@ describe("the pages", () => {
 
     expect(source).toContain("devicePollsLastLateAt: true");
     expect(source).toContain("devicePollsLateSince: true");
+    expect(source).toMatch(
+      /selectMoreFields: \{[^}]*devicePollsLastLateAt: true,\s*devicePollsLastLateDueAt: true,\s*\}/,
+    );
     expect(source).toMatch(
       /item\.connectionStatus === ProbeConnectionStatus\.Connected &&\s*ProbeBehindUtil\.isDevicePollsBehind\(item\)/,
     );

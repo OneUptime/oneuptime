@@ -70,7 +70,7 @@ import {
 import URL from "../../Types/API/URL";
 import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import CallRequest from "../../Types/Call/CallRequest";
+import CallRequest, { CallInLanguage } from "../../Types/Call/CallRequest";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -138,7 +138,6 @@ import {
   OnCallPageCallInput,
   buildOnCallPageCallData,
 } from "../../Utils/Call/OnCallPageCall";
-import { hasCallVoiceForLanguage } from "../../Types/Call/CallVoice";
 import {
   getEnglishPageTranslator,
   getOnCallPageAcknowledge,
@@ -159,15 +158,10 @@ import {
   OnCallPageSmsWords,
 } from "../../Types/OnCallDutyPolicy/OnCallPageWords";
 import { StateListType } from "../../Utils/StateOrder";
-import {
-  DEFAULT_READER_LANGUAGE,
-  toReaderLanguage,
-} from "../../Types/ReaderLanguage";
+import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
 import { Translator } from "../../Types/Translator";
-import {
-  getCallTranslator,
-  getServerTranslator,
-} from "../Utils/ServerTranslation";
+import { getServerTranslator } from "../Utils/ServerTranslation";
+import getCallInLanguage from "../Utils/Call/CallInLanguage";
 import UserLanguage from "../Utils/Notification/UserLanguage";
 import OnCallRuleClaimsInFlight, {
   OnCallRuleClaimInFlight,
@@ -5380,13 +5374,14 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * A page's call (Utils/Call/OnCallPageCall): in English, as every call
-   * has - and, for a person who reads another language a call can be spoken
-   * in (Types/Call/CallVoice), in theirs too (#11066, CallRequest's
-   * inLanguage). The Notification service speaks that one, by a voice of
-   * the language, when the Twilio account the call goes out on chose a
-   * voice; English otherwise, so one language's words are never read by
-   * another language's voice. Persian, which no provider has a voice for,
-   * is sent in English only.
+   * has - and, for a person who reads another language, in theirs too
+   * (#11066, CallRequest's inLanguage; Utils/Call/CallInLanguage). Through
+   * Twilio the Notification service speaks that one by a voice of the
+   * language when the account the call goes out on chose a voice, English
+   * otherwise, so one language's words are never read by another
+   * language's voice; Persian, which no Twilio voice speaks, is said in
+   * English there. A call and SMS gateway is handed both, Persian too, and
+   * picks its own voice (#11459).
    */
   private buildOnCallPageCallRequest(
     to: Phone,
@@ -5398,16 +5393,15 @@ export class Service extends ProjectReferencesService<Model> {
       data: buildOnCallPageCallData(input),
     };
 
-    const language: string = toReaderLanguage(translator.language);
+    const inLanguage: CallInLanguage | undefined = getCallInLanguage(
+      translator.language,
+      (callTranslator: Translator): CallRequest["data"] => {
+        return buildOnCallPageCallData(input, callTranslator);
+      },
+    );
 
-    if (
-      language !== DEFAULT_READER_LANGUAGE &&
-      hasCallVoiceForLanguage(language)
-    ) {
-      callRequest.inLanguage = {
-        language: language,
-        data: buildOnCallPageCallData(input, getCallTranslator(language)),
-      };
+    if (inLanguage) {
+      callRequest.inLanguage = inLanguage;
     }
 
     return callRequest;

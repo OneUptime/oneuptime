@@ -156,7 +156,14 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: { loadRules: jest.fn(), scrubEvents: jest.fn() },
+      default: {
+        loadRules: jest.fn(),
+        scrubEvents: jest.fn(),
+        // A session's tags as no rule changes them (#11458).
+        scrubTags: jest.fn((data: { tags: Record<string, string> }) => {
+          return data.tags;
+        }),
+      },
     };
   },
 );

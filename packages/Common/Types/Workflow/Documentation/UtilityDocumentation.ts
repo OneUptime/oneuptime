@@ -329,7 +329,7 @@ export const getGetFilesFromMarkdownDocumentation: UtilityDocumentationFunction 
         {
           title: "Why Files is hidden in the run's log",
           paragraphs: [
-            "**Files** holds every image's data, so the run's log shows **Count** and **Left Out** instead. A later step that is handed the images writes what it is handed to its own entry in the log.",
+            "**Files** holds every image's data, so the run's log shows **Count** and **Left Out** instead. A later step that is handed the images shows them hidden too: in its settings, in what it returns and in what it logs.",
           ],
         },
       ],
@@ -337,6 +337,58 @@ export const getGetFilesFromMarkdownDocumentation: UtilityDocumentationFunction 
         docsLink(
           "Get Files From Markdown guide",
           WorkflowDocsPaths.getFilesFromMarkdown,
+        ),
+      ],
+    };
+  };
+
+export const getGetAttachmentsFromRecordDocumentation: UtilityDocumentationFunction =
+  (context: ComponentDocumentationContext): ComponentDocumentation => {
+    return {
+      summary:
+        "Reads the files a record holds, such as a note's attachments, with each one's name, type and data, ready to attach to an email.",
+      steps: [
+        "Pick the **Record Type**: the kind of record that holds the files, such as Incident or Incident Internal Note.",
+        "Put the record's ID in **Record ID** with { }. Usually it is the ID of the record that started this workflow.",
+        "Connect **Success** to the step that sends the email, and hand it **Files**.",
+      ],
+      examples: [
+        {
+          title: "Every file, for a later step",
+          code: ownReference(context, "files"),
+          description:
+            "Each file has `name`, `mimeType`, `sizeInBytes`, `base64`, `contentId` and `fields`.",
+        },
+      ],
+      notes: [
+        {
+          type: ComponentDocumentationNoteType.Tip,
+          text: "To attach a record's images too, add **Get Files From Markdown** for the same record: it hands out the pictures its Markdown shows.",
+        },
+        {
+          type: ComponentDocumentationNoteType.Warning,
+          text: "Documents, pictures, text, data and archives are handed out, up to 20 files and 10 MB in all. An SVG, a file that is not what its type says, or anything past the limits, is listed under **Left Out** with the reason.",
+        },
+      ],
+      learnMore: [
+        {
+          title: "Which files it reads",
+          paragraphs: [
+            "The step reads the record as the workflow, as a Find One step does: a record of another project, a private incident or a record the workflow may not read is not read, and the step takes **Error**.",
+            "It hands out the files of the record's File and Multiple files custom fields, and its own attachments: a note's attachments, an incident's postmortem attachments, an announcement's attachments. Only files the record holds now, of its own project. It cannot list files, or read the attachments of another record, such as an incident's notes: read the note itself.",
+          ],
+        },
+        {
+          title: "Why Files is hidden in the run's log",
+          paragraphs: [
+            "**Files** holds every file's data, so the run's log shows **Count** and **Left Out** instead, and a later step that is handed the files shows them hidden too.",
+          ],
+        },
+      ],
+      links: [
+        docsLink(
+          "Get Attachments From Record guide",
+          WorkflowDocsPaths.getAttachmentsFromRecord,
         ),
       ],
     };

@@ -50,6 +50,20 @@ export const SOURCE_MATCH_CACHE_TTL_MS: number = 60 * 1000;
 export const SOURCE_MATCH_CACHE_MAX_ENTRIES: number = 50_000;
 
 /*
+ * resolveHostnames' bounds (#11406). It runs while a probe waits for its
+ * SNMPv3 users, every thirty seconds, so it asks about at most this many
+ * names, this many at a time - dns.lookup runs on libuv's small threadpool,
+ * which the file system and crypto share - and answers within this long.
+ * As many names as a report reads devices (MAX_DNS_NAMED_DEVICES_PER_REPORT):
+ * the names come in a stable order, and a cached one answers at once, so
+ * each report gets further down a long list than the one before rather
+ * than asking about its first names forever.
+ */
+export const MAX_HOSTNAMES_PER_RESOLVE: number = 5000;
+export const HOSTNAME_RESOLVE_CONCURRENCY: number = 8;
+export const HOSTNAME_RESOLVE_BUDGET_MS: number = 3000;
+
+/*
  * A device a source address matched, as the cache keeps it: the columns the
  * trap and syslog paths read of it, as plain values, so nothing a caller does
  * to the devices it is handed can reach the next caller.
@@ -1549,6 +1563,120 @@ export default class NetworkDeviceHydrationUtil {
         return IpCanonicalUtil.canonicalize(address) === canonicalSource;
       });
     });
+  }
+
+  /*
+   * The addresses DNS names resolve to, the way trap matching resolves a
+   * device's DNS name (lookupDevicesByProbeAndSource): through the same
+   * cache, five minutes for an answer and for a failure alike, so a probe
+   * that reports every thirty seconds asks the resolver about each name
+   * about once in five minutes. What a probe's refused SNMPv3 traps are
+   * matched to their devices by (#11406).
+   *
+   * Bounded, as it runs while a probe waits: at most
+   * MAX_HOSTNAMES_PER_RESOLVE names, the first in the order given;
+   * HOSTNAME_RESOLVE_CONCURRENCY lookups at a time; and an answer within
+   * `budgetInMs`. A name not answered by then is left out of this answer -
+   * as a name that does not resolve is - and its lookup still lands in the
+   * cache for the next one.
+   *
+   * By name in lower case, each address canonical; a name that resolved to
+   * nothing maps to no addresses. Never throws.
+   */
+  public static async resolveHostnames(data: {
+    hostnames: Array<string>;
+    budgetInMs?: number | undefined;
+  }): Promise<Map<string, Array<string>>> {
+    const hostnames: Array<string> = Array.from(
+      new Set(
+        data.hostnames
+          .map((hostname: string): string => {
+            return (hostname || "").trim().toLowerCase();
+          })
+          .filter((hostname: string): boolean => {
+            return hostname.length > 0 && !IP.isIP(hostname);
+          }),
+      ),
+    ).slice(0, MAX_HOSTNAMES_PER_RESOLVE);
+
+    const resolved: Map<string, Array<string>> = new Map();
+
+    if (hostnames.length === 0) {
+      return resolved;
+    }
+
+    let next: number = 0;
+    let isAnswered: boolean = false;
+
+    const work: () => Promise<void> = async (): Promise<void> => {
+      while (!isAnswered && next < hostnames.length) {
+        const hostname: string = hostnames[next]!;
+        next++;
+
+        let addresses: Array<string> = [];
+
+        try {
+          addresses =
+            await NetworkDeviceHydrationUtil.dnsCache.resolve(hostname);
+        } catch {
+          // The cache answers failures as no addresses; so does this.
+        }
+
+        if (isAnswered) {
+          return;
+        }
+
+        resolved.set(
+          hostname,
+          Array.from(
+            new Set(
+              addresses
+                .filter((address: string): boolean => {
+                  return IP.isIP((address || "").trim());
+                })
+                .map((address: string): string => {
+                  return IpCanonicalUtil.canonicalize(address.trim());
+                }),
+            ),
+          ),
+        );
+      }
+    };
+
+    let spendBudget: () => void = (): void => {};
+
+    const budget: Promise<void> = new Promise<void>(
+      (resolve: () => void): void => {
+        spendBudget = resolve;
+      },
+    );
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(
+      (): void => {
+        spendBudget();
+      },
+      Math.max(0, data.budgetInMs ?? HOSTNAME_RESOLVE_BUDGET_MS),
+    );
+
+    // Never keep the process alive just for this timer.
+    timer.unref?.();
+
+    const workers: Array<Promise<void>> = [];
+
+    for (
+      let index: number = 0;
+      index < Math.min(HOSTNAME_RESOLVE_CONCURRENCY, hostnames.length);
+      index++
+    ) {
+      workers.push(work());
+    }
+
+    await Promise.race([Promise.all(workers), budget]);
+
+    isAnswered = true;
+    clearTimeout(timer);
+
+    return resolved;
   }
 
   // Shared across trap and syslog ingest; 5-minute TTL, failure-cached.

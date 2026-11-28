@@ -1,6 +1,7 @@
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
 import ColumnPermissions from "../../Types/Database/Permissions/ColumnPermission";
 import Query from "../../Types/Database/Query";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import DatabaseService from "../../Services/DatabaseService";
 import FileService, { ProjectImageFacts } from "../../Services/FileService";
@@ -25,10 +26,13 @@ import {
   MarkdownFilesResult,
   MarkdownFilesTally,
   MarkdownSource,
+  readImageTokens,
 } from "../../../Types/File/MarkdownFiles";
 import {
+  canShowImages,
   canShowMarkdownFiles,
   CUSTOM_FIELDS_COLUMN,
+  getImageColumns,
   getMarkdownColumns,
   getMarkdownCustomFieldKind,
 } from "../../../Types/File/MarkdownRecords";
@@ -243,13 +247,157 @@ export default class MarkdownFiles {
     });
   }
 
+  /**
+   * The inline images each of these records shows, as `props` - the
+   * caller's - may read them (#11478): what the image's address is decided
+   * by for a person (FileViewerAccess). The records are read as the caller,
+   * through the table's own service, so a record they may not read is not
+   * in the answer; of each record, only the columns of getImageColumns
+   * they may read are read - its Markdown columns, the Markdown it keeps in
+   * JSON, and its Markdown custom fields - and each column's image tokens
+   * are taken from what was read. A table the caller may not read at all
+   * throws, as the read refuses it.
+   *
+   * Keyed by record id in lower case; a record read that shows no image
+   * holds an empty set.
+   */
+  public static async readShownTokens(data: {
+    service: DatabaseService<BaseModel>;
+    recordIds: Array<ObjectID>;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Map<string, Set<string>>> {
+    const shown: Map<string, Set<string>> = new Map();
+    const model: BaseModel = data.service.getModel();
+    const tenantColumn: string | null = model.getTenantColumn();
+
+    const ids: Array<string> = Array.from(
+      new Set(
+        data.recordIds
+          .map((id: ObjectID): string => {
+            return normalizeFileId(id);
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    );
+
+    if (!tenantColumn || ids.length === 0 || !canShowImages(model)) {
+      return shown;
+    }
+
+    const readable: Set<string> = this.getReadableColumns(data);
+
+    const columns: Array<string> = getImageColumns(model).filter(
+      (column: string): boolean => {
+        return readable.has(column);
+      },
+    );
+
+    if (columns.length === 0) {
+      return shown;
+    }
+
+    const select: JSONObject = { _id: true, [tenantColumn]: true };
+
+    for (const column of columns) {
+      select[column] = true;
+    }
+
+    // As the caller: what they may not read is not there for them.
+    const records: Array<BaseModel> = await data.service.findBy({
+      query: {
+        _id: QueryHelper.any(
+          ids.map((id: string): ObjectID => {
+            return new ObjectID(id);
+          }),
+        ),
+        [tenantColumn]: data.projectId,
+      } as Query<BaseModel>,
+      select: select as Select<BaseModel>,
+      skip: 0,
+      limit: ids.length,
+      props: data.props,
+    });
+
+    const customFieldKind: CustomFieldRecordKind | undefined = columns.includes(
+      this.CUSTOM_FIELDS_COLUMN,
+    )
+      ? this.getCustomFieldKind(model)
+      : undefined;
+
+    const markdownCustomFields: Array<string> =
+      customFieldKind && records.length > 0
+        ? await this.getMarkdownCustomFieldNames({
+            kind: customFieldKind,
+            projectId: data.projectId,
+            query: async (
+              sql: string,
+              parameters: Array<unknown>,
+            ): Promise<unknown> => {
+              return await data.service
+                .getRepository()
+                .manager.query(sql, parameters);
+            },
+          })
+        : [];
+
+    for (const record of records) {
+      const id: string = normalizeFileId(record._id || record.id);
+
+      // Of the project it was read in, and no other.
+      if (
+        !id ||
+        normalizeFileId(record.getValue<ObjectID>(tenantColumn)) !==
+          normalizeFileId(data.projectId)
+      ) {
+        continue;
+      }
+
+      const tokens: Set<string> = new Set<string>();
+      // The record's columns as it was read, by name.
+      const values: Record<string, unknown> = record as unknown as Record<
+        string,
+        unknown
+      >;
+
+      for (const column of columns) {
+        if (column === this.CUSTOM_FIELDS_COLUMN) {
+          const customFields: unknown = values[column];
+
+          if (customFields && typeof customFields === "object") {
+            for (const name of markdownCustomFields) {
+              for (const token of readImageTokens(
+                (customFields as Record<string, unknown>)[name],
+              )) {
+                tokens.add(token);
+              }
+            }
+          }
+
+          continue;
+        }
+
+        for (const token of readImageTokens(values[column])) {
+          tokens.add(token);
+        }
+      }
+
+      shown.set(id, tokens);
+    }
+
+    return shown;
+  }
+
   /*
    * The columns of the record's table the caller may read: all of them for
    * OneUptime itself and server admins, whose reads are never held to
    * columns; otherwise the ones their permission rows open
-   * (ColumnPermissions), exactly as the read below checks its select.
+   * (ColumnPermissions), exactly as the read below checks its select. Read
+   * the same way for a record's attachments (RecordAttachments).
    */
-  private static getReadableColumns(data: {
+  public static getReadableColumns(data: {
     service: DatabaseService<BaseModel>;
     props: DatabaseCommonInteractionProps;
   }): Set<string> {

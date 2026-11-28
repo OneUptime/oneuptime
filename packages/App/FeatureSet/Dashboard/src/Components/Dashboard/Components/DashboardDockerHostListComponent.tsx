@@ -104,8 +104,13 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
     }
 
     try {
+      /*
+       * Archived Docker hosts are left out, as Infrastructure → Docker leaves them out: archiving
+       * one there takes it off this list too (issue #11257).
+       */
       const baseQuery: Record<string, unknown> = {
         projectId: projectId,
+        isArchived: false,
       };
 
       if (statusFilter === "connected") {

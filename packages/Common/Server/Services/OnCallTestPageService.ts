@@ -14,6 +14,7 @@ import OnCallTestPageAcknowledge, {
 } from "../Utils/OnCall/OnCallTestPageAcknowledge";
 import AlertSeverityService from "./AlertSeverityService";
 import BaseService from "./BaseService";
+import CallLogService from "./CallLogService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleService, {
@@ -42,6 +43,7 @@ import UserNotificationRuleService, {
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
+import WhatsAppLogService from "./WhatsAppLogService";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -52,7 +54,6 @@ import OnCallDutyPolicyEscalationRuleUser from "../../Models/DatabaseModels/OnCa
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimeline from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import Project from "../../Models/DatabaseModels/Project";
-import SmsLog from "../../Models/DatabaseModels/SmsLog";
 import User from "../../Models/DatabaseModels/User";
 import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
@@ -65,6 +66,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
+import {
+  NotificationLogKind,
+  NotificationLogStatusLine,
+  NotificationLogStatusReading,
+  readNotificationLogStatusLine,
+  readPageNotificationLogStatus,
+} from "../../Types/Notification/NotificationLogStatus";
+import { getWhoWasToldDeliveryStatus } from "../../Types/Notification/WhoWasTold";
 import ObjectID from "../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
@@ -84,6 +93,7 @@ import {
   ON_CALL_TEST_PAGE_PROJECT_LIMIT_MESSAGE,
   OnCallTestPageCost,
   OnCallTestPageDelivery,
+  OnCallTestPageDeliveryStatus,
   OnCallTestPageKind,
   OnCallTestPageNotPaged,
   OnCallTestPageNotPagedCode,
@@ -122,7 +132,6 @@ import {
   readOnCallTestPageStepLine,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPageLine";
 import Permission from "../../Types/Permission";
-import SmsStatus from "../../Types/SmsStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
 import {
   ProjectNotificationChannel,
@@ -1747,8 +1756,8 @@ export class OnCallTestPageService extends BaseService {
         },
       });
 
-    const deliveredSmsIds: Set<string> =
-      await this.readDeliveredSms(deliveries);
+    const deliveryLogs: Map<string, NotificationLogStatusReading> =
+      await this.readDeliveryLogs(deliveries);
 
     const severityName: string = await this.readSeverityNameOf(run);
 
@@ -1784,7 +1793,7 @@ export class OnCallTestPageService extends BaseService {
               );
             },
           ),
-          deliveredSmsIds: deliveredSmsIds,
+          deliveryLogs: deliveryLogs,
           withheld: withheld,
         });
       },
@@ -2018,56 +2027,128 @@ export class OnCallTestPageService extends BaseService {
     }
   }
 
-  // The SMS of a test whose provider said they reached the phone.
-  private async readDeliveredSms(
+  /*
+   * WHAT A TEST'S SMS, CALLS AND WHATSAPP MESSAGES SAY IN THEIR OWN LOGS
+   * (#11416), by the page's message each was sent for. The page's message
+   * says Sent of a call still ringing and of one that was answered, of an
+   * SMS waiting for its carrier's receipt and of one delivered; their logs
+   * tell them apart, and the result draws each as its log does. Only the
+   * log's status is read, and what its message says that changes what the
+   * status means (NotificationLogStatusLine) - never the message, which
+   * can name a provider's id. A log that cannot be read leaves its message
+   * as the page's message says it.
+   */
+  private async readDeliveryLogs(
     deliveries: Array<UserOnCallLogTimeline>,
-  ): Promise<Set<string>> {
-    const smsIds: Array<ObjectID> = deliveries
-      .filter((delivery: UserOnCallLogTimeline): boolean => {
-        return Boolean(delivery.userSmsId && delivery.id);
-      })
-      .map((delivery: UserOnCallLogTimeline): ObjectID => {
-        return delivery.id!;
-      });
+  ): Promise<Map<string, NotificationLogStatusReading>> {
+    const readings: Map<string, NotificationLogStatusReading> = new Map<
+      string,
+      NotificationLogStatusReading
+    >();
 
-    if (smsIds.length === 0) {
-      return new Set<string>();
+    const idsBy: (
+      method: "userSmsId" | "userCallId" | "userWhatsAppId",
+    ) => Array<ObjectID> = (
+      method: "userSmsId" | "userCallId" | "userWhatsAppId",
+    ): Array<ObjectID> => {
+      return deliveries
+        .filter((delivery: UserOnCallLogTimeline): boolean => {
+          return Boolean(delivery[method] && delivery.id);
+        })
+        .map((delivery: UserOnCallLogTimeline): ObjectID => {
+          return delivery.id!;
+        });
+    };
+
+    const readers: Array<{
+      kind: NotificationLogKind;
+      ids: Array<ObjectID>;
+      read: (ids: Array<ObjectID>) => Promise<Array<DeliveryLogRow>>;
+    }> = [
+      {
+        kind: NotificationLogKind.SMS,
+        ids: idsBy("userSmsId"),
+        read: (ids: Array<ObjectID>): Promise<Array<DeliveryLogRow>> => {
+          return SmsLogService.findBy({
+            query: { userOnCallLogTimelineId: QueryHelper.any(ids) },
+            select: DELIVERY_LOG_SELECT,
+            sort: { createdAt: SortOrder.Descending },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          });
+        },
+      },
+      {
+        kind: NotificationLogKind.Call,
+        ids: idsBy("userCallId"),
+        read: (ids: Array<ObjectID>): Promise<Array<DeliveryLogRow>> => {
+          return CallLogService.findBy({
+            query: { userOnCallLogTimelineId: QueryHelper.any(ids) },
+            select: DELIVERY_LOG_SELECT,
+            sort: { createdAt: SortOrder.Descending },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          });
+        },
+      },
+      {
+        kind: NotificationLogKind.WhatsApp,
+        ids: idsBy("userWhatsAppId"),
+        read: (ids: Array<ObjectID>): Promise<Array<DeliveryLogRow>> => {
+          return WhatsAppLogService.findBy({
+            query: { userOnCallLogTimelineId: QueryHelper.any(ids) },
+            select: DELIVERY_LOG_SELECT,
+            sort: { createdAt: SortOrder.Descending },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            props: { isRoot: true },
+          });
+        },
+      },
+    ];
+
+    for (const reader of readers) {
+      if (reader.ids.length === 0) {
+        continue;
+      }
+
+      try {
+        const rows: Array<DeliveryLogRow> = await reader.read(reader.ids);
+
+        // Latest first: a message sent twice says what became of the last try.
+        for (const row of rows) {
+          const id: string = row.userOnCallLogTimelineId?.toString() || "";
+          const status: string = row.status?.toString() || "";
+
+          if (!id || !status || readings.has(id)) {
+            continue;
+          }
+
+          readings.set(
+            id,
+            toDeliveryLogReading({
+              kind: reader.kind,
+              status: status,
+              statusMessage: row.statusMessage,
+            }),
+          );
+        }
+      } catch (err) {
+        logger.error(err as Error);
+      }
     }
 
-    try {
-      const logs: Array<SmsLog> = await SmsLogService.findBy({
-        query: {
-          userOnCallLogTimelineId: QueryHelper.any(smsIds),
-          status: SmsStatus.Delivered,
-        },
-        select: {
-          userOnCallLogTimelineId: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      return new Set<string>(
-        logs
-          .map((log: SmsLog): string => {
-            return log.userOnCallLogTimelineId?.toString() || "";
-          })
-          .filter(Boolean),
-      );
-    } catch (err) {
-      logger.error(err as Error);
-      return new Set<string>();
-    }
+    return readings;
   }
 
   // One line of the chain, with its messages.
   private toStep(data: {
     line: OnCallDutyPolicyExecutionLogTimeline;
     deliveries: Array<UserOnCallLogTimeline>;
-    deliveredSmsIds: Set<string>;
+    // What each SMS, call and WhatsApp message says in its own log (#11416).
+    deliveryLogs: Map<string, NotificationLogStatusReading>;
     // Who of its people is only invited to the project (#9823).
     withheld: Map<string, WithheldProfile>;
   }): OnCallTestPageStep {
@@ -2081,9 +2162,7 @@ export class OnCallTestPageService extends BaseService {
         (delivery: UserOnCallLogTimeline): OnCallTestPageDelivery => {
           return toDelivery({
             delivery: delivery,
-            isDelivered: data.deliveredSmsIds.has(
-              delivery.id?.toString() || "",
-            ),
+            log: data.deliveryLogs.get(delivery.id?.toString() || ""),
           });
         },
       ),
@@ -2268,21 +2347,81 @@ export function getStepStatus(
   }
 }
 
-// One message of the test, as its result shows it.
+// The columns of a message's own log the result reads: never its words.
+const DELIVERY_LOG_SELECT: {
+  userOnCallLogTimelineId: true;
+  status: true;
+  statusMessage: true;
+  createdAt: true;
+} = {
+  userOnCallLogTimelineId: true,
+  status: true,
+  statusMessage: true,
+  createdAt: true,
+};
+
+// A row of a message's own log, as the result reads it.
+interface DeliveryLogRow {
+  userOnCallLogTimelineId?: ObjectID | undefined;
+  status?: string | undefined;
+  statusMessage?: string | undefined;
+}
+
+/*
+ * A message's own log, as the result carries it: which log, its status, and
+ * what its message says that changes what the status means - never the
+ * message itself.
+ */
+export function toDeliveryLogReading(data: {
+  kind: NotificationLogKind;
+  status: string;
+  statusMessage?: string | null | undefined;
+}): NotificationLogStatusReading {
+  const line: NotificationLogStatusLine | null =
+    readNotificationLogStatusLine(data);
+
+  return {
+    kind: data.kind,
+    status: data.status,
+    ...(line ? { line: line } : {}),
+  };
+}
+
+/*
+ * One message of the test, as its result shows it - what became of it read
+ * from its own log where it keeps one (`log`: an SMS, a call, a WhatsApp
+ * message), or from what the page's message says of its log for certain
+ * (an email, a push, a Telegram or a workspace message, a webhook, an SMS
+ * or a call the server's own gateway took), so it reads as the notification
+ * logs draw it (#11416). Acknowledged from it, it says so first.
+ */
 export function toDelivery(data: {
   delivery: UserOnCallLogTimeline;
-  isDelivered: boolean;
+  log?: NotificationLogStatusReading | undefined;
 }): OnCallTestPageDelivery {
   const delivery: UserOnCallLogTimeline = data.delivery;
   const channel: OnCallPageChannel | null =
     getOnCallPageChannelsOf(delivery)[0] || null;
 
-  const status: ReturnType<typeof getOnCallTestPageDeliveryStatus> =
-    getOnCallTestPageDeliveryStatus({
+  const logStatus: NotificationLogStatusReading | null =
+    data.log ||
+    readPageNotificationLogStatus({
+      channel: channel,
       status: delivery.status,
-      isAcknowledged: delivery.isAcknowledged,
-      isDelivered: data.isDelivered,
+      statusMessage: delivery.statusMessage,
     });
+
+  const isAcknowledged: boolean =
+    Boolean(delivery.isAcknowledged) ||
+    delivery.status === UserNotificationStatus.Acknowledged;
+
+  const status: OnCallTestPageDeliveryStatus =
+    logStatus && !isAcknowledged
+      ? getWhoWasToldDeliveryStatus(logStatus)
+      : getOnCallTestPageDeliveryStatus({
+          status: delivery.status,
+          isAcknowledged: delivery.isAcknowledged,
+        });
 
   const result: OnCallTestPageDelivery = {
     id: delivery.id?.toString() || "",
@@ -2294,6 +2433,10 @@ export function toDelivery(data: {
       ? OneUptimeDate.fromString(delivery.createdAt).toISOString()
       : "",
   };
+
+  if (logStatus) {
+    result.logStatus = logStatus;
+  }
 
   const address: string | undefined = getDeliveryAddress(delivery);
 

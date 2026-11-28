@@ -97,7 +97,7 @@ Alle sonder lytter efter syslog på port 5140, over UDP og over TCP. Over TCP er
 
 1. en enhed, som sonden poller, hvis værtsnavn er den adresse (eller slås op til den), eller som har den under **Andre adresser** på sin **Indstillinger**-side;
 2. på din egen (brugerdefinerede) sonde en hvilken som helst enhed i projektet med den adresse, eller med det værtsnavn, beskeden bærer, når præcis én enhed har det navn;
-3. ellers gemmes beskeden på din egen sonde til netværkets Begivenheder-side under **Sender syslog, endnu ikke en enhed**, indtil du siger, hvilken enhed den hører til. En global sonde smider den væk.
+3. ellers gemmes beskeden på din egen sonde til netværkets Begivenheder-side under **Sender syslog eller SNMP-traps, endnu ikke en enhed**, indtil du siger, hvilken enhed den hører til. En global sonde smider den væk.
 
 En linje fra en ukendt adresse, som ikke har nogen syslog-prioritet og ikke er en begivenhed, regnes for støj og smides væk.
 
@@ -223,10 +223,10 @@ Fra en enheds **Begivenheder**-fane overvåger monitorerne kun den enhed. For en
 
 ## Adresser, der ikke er enheder endnu
 
-Syslog kan ankomme, før den enhed, der sender det, er føjet til OneUptime. På din egen sonde gemmes det, dets begivenheder står på netværkets Begivenheder-side med det navn, enheden giver sig selv, og adressen står under **Sender syslog, endnu ikke en enhed**:
+Syslog og SNMP-traps kan ankomme, før den enhed, der sender dem, er føjet til OneUptime. På din egen sonde gemmes de, og på en global sonde gælder det også en SNMPv3-trap, der er signeret med dit projekts egne loginoplysninger. Deres begivenheder står på netværkets Begivenheder-side med det navn, enheden giver sig selv, og adressen står under **Sender syslog eller SNMP-traps, endnu ikke en enhed** med det, den sender: syslog, SNMP-traps eller begge dele. En leverandørs egen trap, der ikke er en begivenhed, er kun i Protokoller, og dens afsender står der alligevel:
 
-- **Tilføj som enhed** åbner **Tilføj enhed** med adressen og sonden udfyldt. De beskeder, der allerede er ankommet, bliver på netværkets side; nye går til enheden.
-- **Det er en af mine enheder** føjer adressen til en enheds **Andre adresser**: brug den, når en enhed, du allerede har tilføjet, sender fra en anden adresse, f.eks. en loopback. Dens beskeder går til den enhed fra det næste minut.
+- **Tilføj som enhed** åbner **Tilføj enhed** med adressen og sonden udfyldt og også lokationen, når dens traps blev signeret med lokationens standard-SNMPv3-loginoplysninger. Det, der allerede er ankommet, bliver, hvor det er; det, der kommer bagefter, går til enheden.
+- **Det er en af mine enheder** føjer adressen til en enheds **Andre adresser**: brug den, når en enhed, du allerede har tilføjet, sender fra en anden adresse, f.eks. en loopback. Dens syslog og SNMP-traps går til den enhed fra det næste minut.
 
 Flere enheder bag én NAT-adresse deler den adresse, så deres beskeder går til den ene enhed, der har den, medmindre en besked nævner sin egen enhed.
 
@@ -254,7 +254,7 @@ En pipeline hører til sit projekt. For at bruge en i et andet projekt opretter 
 
 Hvis en Begivenheder-side stadig viser sine opsætningstrin:
 
-- **Modtager sonden overhovedet noget?** Netværkets Begivenheder-side viser under **Sender syslog, endnu ikke en enhed** alle adresser, der har sendt syslog i tidsrummet. Står enheden der, sender den fra en adresse, der ikke er dens værtsnavn: føj den adresse til dens **Andre adresser**.
+- **Modtager sonden overhovedet noget?** Netværkets Begivenheder-side viser under **Sender syslog eller SNMP-traps, endnu ikke en enhed** alle adresser, der har sendt syslog eller SNMP-traps i tidsrummet. Står enheden der, sender den fra en adresse, der ikke er dens værtsnavn: føj den adresse til dens **Andre adresser**.
 - **Firewalls og Docker.** Tillad port 5140 fra enheden til sonden, og publicer porten, hvis sonden kører i Docker. Mange enheder sender til port 514, medmindre de får andet at vide.
 - **Sondens log.** Ved opstart logger sonden den port, den lytter på, eller at den ikke kunne åbne den. Når den smider beskeder væk over `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`, logger den hvor mange, én gang i minuttet.
 - **En global sonde.** En enhed, der polles af en global sonde, kan ikke sende syslog til den fra et privat netværk. Kør en brugerdefineret sonde på enhedens netværk, og vælg den i enhedens indstillinger.

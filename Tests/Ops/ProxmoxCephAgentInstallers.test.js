@@ -419,6 +419,11 @@ describe("agents/ProxmoxAgent/install.sh", () => {
       ONEUPTIME_AI_PROTECTED_TARGETS: "''",
       ONEUPTIME_AI_AGENT_RESOURCE_NAME: "''",
       LOG_LEVEL: "''",
+      // Named after its directory, agent/ (ProxmoxAgentContainerNames.test.js).
+      PROXMOX_AGENT_CONTAINER_NAME: "'oneuptime-proxmox-agent-agent'",
+      PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME: "'oneuptime-pve-api-failover-agent'",
+      PROXMOX_PVE_EXPORTER_CONTAINER_NAME: "'oneuptime-pve-exporter-agent'",
+      PROXMOX_AI_AGENT_CONTAINER_NAME: "'oneuptime-proxmox-ai-agent-agent'",
     });
     expect(composeReadAll(run.envFile).PVE_API_TOKEN_SECRET).toBe(TOKEN_SECRET);
     // It holds the token secret.
@@ -566,6 +571,11 @@ describe("agents/ProxmoxAgent/install.sh", () => {
       ONEUPTIME_AI_PROTECTED_TARGETS: "",
       ONEUPTIME_AI_AGENT_RESOURCE_NAME: "",
       LOG_LEVEL: "debug",
+      // An .env without the names: the directory's.
+      PROXMOX_AGENT_CONTAINER_NAME: "oneuptime-proxmox-agent-agent",
+      PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME: "oneuptime-pve-api-failover-agent",
+      PROXMOX_PVE_EXPORTER_CONTAINER_NAME: "oneuptime-pve-exporter-agent",
+      PROXMOX_AI_AGENT_CONTAINER_NAME: "oneuptime-proxmox-ai-agent-agent",
     });
     // ... and is told how to add the other nodes.
     expect(run.output).toContain(
@@ -881,6 +891,9 @@ describe("agents/CephAgent/install.sh", () => {
       ONEUPTIME_AI_PROTECTED_TARGETS: "''",
       ONEUPTIME_AI_AGENT_RESOURCE_NAME: "''",
       LOG_LEVEL: "''",
+      // Named after its directory, agent/ (CephAgentContainerNames.test.js).
+      CEPH_AGENT_CONTAINER_NAME: "'oneuptime-ceph-agent-agent'",
+      CEPH_AI_AGENT_CONTAINER_NAME: "'oneuptime-ceph-ai-agent-agent'",
     });
     expect(fs.statSync(path.join(run.installDir, ".env")).mode & 0o777).toBe(
       0o600,
@@ -941,6 +954,9 @@ describe("agents/CephAgent/install.sh", () => {
       ONEUPTIME_AI_PROTECTED_TARGETS: "cluster",
       ONEUPTIME_AI_AGENT_RESOURCE_NAME: "ceph-prod-ai",
       LOG_LEVEL: "warn",
+      // An .env without the names: the directory's.
+      CEPH_AGENT_CONTAINER_NAME: "oneuptime-ceph-agent-agent",
+      CEPH_AI_AGENT_CONTAINER_NAME: "oneuptime-ceph-ai-agent-agent",
     });
   });
 
@@ -1441,11 +1457,14 @@ describe.each([["proxmox"], ["ceph"]])("%s install.sh, statically", (agent) => {
     }
   });
 
+  // And says what to do when Docker refuses a container's name.
   test("starts the agent once, recreating it, so a re-run runs the files it downloaded", () => {
     const starts = script.split("\n").filter((line) => {
-      return /^\s*docker compose up\b/.test(line);
+      return /^\s*(if ! )?docker compose up\b/.test(line);
     });
-    expect(starts).toEqual(["docker compose up -d --force-recreate"]);
+    expect(starts).toEqual([
+      "if ! docker compose up -d --force-recreate; then",
+    ]);
   });
 
   test("installs where the systemd unit and the doctor script look", () => {

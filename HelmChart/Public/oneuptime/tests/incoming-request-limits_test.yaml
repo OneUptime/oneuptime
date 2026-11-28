@@ -175,7 +175,11 @@ tests:
     set:
       incomingRequests.maxPendingRequestsPerMonitor: 9
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/incomingRequests/maxPendingRequestsPerMonitor': minimum: got 9, want 10
 
   - it: refuses more than 100000 waiting requests
     templates:
@@ -183,7 +187,11 @@ tests:
     set:
       incomingRequests.maxPendingRequestsPerMonitor: 100001
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/incomingRequests/maxPendingRequestsPerMonitor': maximum: got 100,001, want 100,000
 
   - it: refuses less than a megabyte of waiting requests
     templates:
@@ -191,7 +199,11 @@ tests:
     set:
       incomingRequests.maxPendingMegabytesPerMonitor: 0
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/incomingRequests/maxPendingMegabytesPerMonitor': minimum: got 0, want 1
 
   - it: refuses more than 512 megabytes of waiting requests
     templates:
@@ -199,7 +211,11 @@ tests:
     set:
       incomingRequests.maxPendingMegabytesPerMonitor: 513
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/incomingRequests/maxPendingMegabytesPerMonitor': maximum: got 513, want 512
 
   - it: refuses a job that evaluates no request
     templates:
@@ -207,7 +223,11 @@ tests:
     set:
       incomingRequests.maxRequestsPerJob: 0
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/incomingRequests/maxRequestsPerJob': minimum: got 0, want 1
 
   - it: refuses a job that evaluates more than 1000 requests
     templates:
@@ -215,7 +235,11 @@ tests:
     set:
       incomingRequests.maxRequestsPerJob: 1001
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/incomingRequests/maxRequestsPerJob': maximum: got 1,001, want 1,000
 
   - it: refuses a limit that is not a whole number
     templates:
@@ -223,7 +247,11 @@ tests:
     set:
       incomingRequests.maxPendingMegabytesPerMonitor: 2.5
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/incomingRequests/maxPendingMegabytesPerMonitor': got number, want integer
 
   - it: refuses a setting it does not know
     templates:
@@ -231,4 +259,8 @@ tests:
     set:
       incomingRequests.maxPendingRequests: 5000
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/incomingRequests': additional properties 'maxPendingRequests' not allowed

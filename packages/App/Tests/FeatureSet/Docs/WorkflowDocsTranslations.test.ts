@@ -564,6 +564,7 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
   "log",
   "executeWorkflow",
   "getFilesFromMarkdown",
+  "getAttachmentsFromRecord",
 ];
 
 const STEP_HELP_LINKS_TO_TRANSLATED: Array<StepHelpLink> = [

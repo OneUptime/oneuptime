@@ -309,7 +309,13 @@ Manche Felder enthalten einen JSON-Wert mit eigener Form, etwa `rotation` und `r
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Ein umbenannter Schlüssel wird weiterhin unter seinem alten Namen gelesen: Die Art der Einschränkung einer Ebene wird unter `restrictionType` geschrieben oder unter der älteren Schreibweise `restictionType`, und eine Antwort enthält beide.
+Ein umbenannter Schlüssel wird weiterhin unter seinem alten Namen gelesen: Die Art der Einschränkung einer Ebene wird unter `restrictionType` geschrieben oder unter der älteren Schreibweise `restictionType`, und eine Antwort enthält beide. Die ältere Schreibweise ist in Antworten veraltet: Antworten enthalten sie bis zur ersten Hauptversion, die am oder nach dem 1. Juni 2027 erscheint. Schreibvorgänge lesen sie immer.
+
+Ein Wert wird außerdem beim Wort genommen. Das wöchentliche Zeitfenster einer Ebene hat an den Tagen Bereitschaft, die es nennt, daher müssen seine `startTime` und `endTime` in der Zeitzone des Plans auf seinen `startDay` und `endDay` fallen. Ein Fenster, das auf andere Tage datiert ist, wird mit einem `400` abgelehnt, der das Fenster nennt und eine Zeit am genannten Tag angibt, die stattdessen gesendet werden kann:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Wo ein Projekt gekauft wurde
 
@@ -425,7 +431,7 @@ Früher antwortete es mit `200` und einem leeren Body. Eine Liste (`get-list`) u
 
 ### Bilder im Markdown eines Datensatzes
 
-Ein Bild, das in Markdown eingefügt wurde, etwa ein Screenshot in der Beschreibung eines Vorfalls, einem benutzerdefinierten Markdown-Feld oder einer Notiz, ist eine private Datei. Seine Adresse (`/file/image/access-token/...`) öffnet es nur für eine Person, die im Projekt angemeldet ist, daher liest ein API-Schlüssel es stattdessen über den Datensatz, der es zeigt:
+Ein Bild, das in Markdown eingefügt wurde, etwa ein Screenshot in der Beschreibung eines Vorfalls, einem benutzerdefinierten Markdown-Feld oder einer Notiz, ist eine private Datei. Seine Adresse (`/file/image/access-token/...`) öffnet es nur für eine Person, die im Projekt angemeldet ist und einen Datensatz lesen darf, der es zeigt, oder die es hinzugefügt hat, daher liest ein API-Schlüssel es stattdessen über den Datensatz, der es zeigt:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +465,7 @@ Der Datensatz wird als der Schlüssel gelesen, so wie `get-item` ihn liest: Der 
 }
 ```
 
-Herausgegeben werden nur Bilder, die in das eigene Projekt des Datensatzes hochgeladen wurden, bis zu 20 und insgesamt 10 MB, und nie ein SVG. Jede Art von Datensatz mit Markdown hat dieselbe Anfrage, etwa `/api/incident-public-note/<id>/markdown-files` oder `/api/alert/<id>/markdown-files`. Ein Datensatz, der nicht existiert oder den der Schlüssel nicht lesen darf, antwortet `404`, wie `get-item`, und `422`, wenn der Schlüssel diese Art von Datensatz überhaupt nicht lesen darf. Ein Workflow liest dieselben Bilder mit [Dateien aus Markdown abrufen](/docs/workflows/components#get-files-from-markdown).
+Herausgegeben werden nur Bilder, die in das eigene Projekt des Datensatzes hochgeladen wurden, bis zu 20 und insgesamt 10 MB, und nie ein SVG. Jede Art von Datensatz mit Markdown hat dieselbe Anfrage, etwa `/api/incident-public-note/<id>/markdown-files` oder `/api/alert/<id>/markdown-files`. Ein Datensatz, der nicht existiert oder den der Schlüssel nicht lesen darf, antwortet `404`, wie `get-item`, und `422`, wenn der Schlüssel diese Art von Datensatz überhaupt nicht lesen darf. Ein Workflow liest dieselben Bilder mit [Dateien aus Markdown abrufen](/docs/workflows/components#get-files-from-markdown) und die Dateien, die ein Datensatz enthält, etwa die Anhänge einer Notiz und ihre benutzerdefinierten Dateifelder, mit [Anhänge aus Datensatz abrufen](/docs/workflows/components#get-attachments-from-record).
 
 ## Die vollständige Endpunkt-Referenz
 

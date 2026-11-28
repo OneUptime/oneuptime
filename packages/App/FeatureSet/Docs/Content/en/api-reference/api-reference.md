@@ -309,7 +309,13 @@ Some fields hold a JSON value with a shape of its own, such as an on-call schedu
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-A key that is renamed keeps being read under its old name: a layer's restriction type is written under `restrictionType`, or under its older spelling `restictionType`, and an answer carries both.
+A key that is renamed keeps being read under its old name: a layer's restriction type is written under `restrictionType`, or under its older spelling `restictionType`, and an answer carries both. The older spelling is deprecated in answers: they carry it until the first major version released on or after 1 June 2027. Writes always read it.
+
+A value is also held to what it says. A layer's weekly window is on call on the days it names, so its `startTime` and `endTime` must fall on its `startDay` and `endDay` in the schedule's time zone. A window dated on other days is refused with a `400` that names the window, and gives a time on the named day to send instead:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Where a project was bought
 
@@ -425,7 +431,7 @@ It used to answer `200` with an empty body. A list (`get-list`) and a count stil
 
 ### Images in a record's Markdown
 
-An image pasted into Markdown, such as a screenshot in an incident's description, a Markdown custom field or a note, is a private file. Its address (`/file/image/access-token/...`) opens it only for a person signed in to the project, so an API key reads it through the record that shows it instead:
+An image pasted into Markdown, such as a screenshot in an incident's description, a Markdown custom field or a note, is a private file. Its address (`/file/image/access-token/...`) opens it only for a person signed in to the project who may read a record that shows it, or who added it, so an API key reads it through the record that shows it instead:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +465,7 @@ The record is read as the key, as `get-item` reads it: the key needs the permiss
 }
 ```
 
-Only pictures uploaded to the record's own project are handed out, up to 20 of them and 10 MB in all, and never an SVG. Every kind of record with Markdown has the same request, such as `/api/incident-public-note/<id>/markdown-files` or `/api/alert/<id>/markdown-files`. A record that doesn't exist, or that the key may not read, answers `404` as `get-item` does, and `422` when the key may not read that kind of record at all. A workflow reads the same images with [Get Files From Markdown](/docs/workflows/components#get-files-from-markdown).
+Only pictures uploaded to the record's own project are handed out, up to 20 of them and 10 MB in all, and never an SVG. Every kind of record with Markdown has the same request, such as `/api/incident-public-note/<id>/markdown-files` or `/api/alert/<id>/markdown-files`. A record that doesn't exist, or that the key may not read, answers `404` as `get-item` does, and `422` when the key may not read that kind of record at all. A workflow reads the same images with [Get Files From Markdown](/docs/workflows/components#get-files-from-markdown), and the files a record holds, such as a note's attachments and its file custom fields, with [Get Attachments From Record](/docs/workflows/components#get-attachments-from-record).
 
 ## The full endpoint reference
 

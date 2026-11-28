@@ -17,6 +17,11 @@ import {
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
 import {
+  AgentContainerNames,
+  getAgentContainerNameRows,
+  getSeveralAgentsTopic,
+} from "../../../Components/SetupGuide/AgentContainerNames";
+import {
   OPENSTACK_DATABASE_PATH_HYPERVISOR_LIMIT,
   OPENSTACK_DATABASE_PATH_INSTANCE_LIMIT,
   OPENSTACK_SUMMARY_MODE_INSTANCE_LIMIT,
@@ -88,6 +93,57 @@ export const OPENSTACK_AGENT_INSTALL_DIR: string =
 export const OPENSTACK_AGENT_CONTAINER: string = "oneuptime-openstack-agent";
 export const OPENSTACK_EXPORTER_CONTAINER: string =
   "oneuptime-openstack-exporter";
+export const OPENSTACK_QUOTA_EXPORTER_CONTAINER: string =
+  "oneuptime-openstack-quota-exporter";
+export const OPENSTACK_DATABASE_EXPORTER_CONTAINER: string =
+  "oneuptime-openstack-database-exporter";
+export const OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER: string =
+  "oneuptime-openstack-worker-state-exporter";
+export const OPENSTACK_AI_AGENT_CONTAINER: string =
+  "oneuptime-openstack-ai-agent";
+
+/*
+ * Each container's name, from .env (#11434): a second cloud's agent on the
+ * same machine needs names of its own. In install.sh's order: the collector,
+ * then COMPANION_CONTAINERS.
+ */
+export const OPENSTACK_AGENT_CONTAINER_NAMES: AgentContainerNames = {
+  names: [
+    {
+      variable: "OPENSTACK_AGENT_CONTAINER_NAME",
+      container: OPENSTACK_AGENT_CONTAINER,
+      role: "collector",
+    },
+    {
+      variable: "OPENSTACK_EXPORTER_CONTAINER_NAME",
+      container: OPENSTACK_EXPORTER_CONTAINER,
+      role: "bundled exporter",
+    },
+    {
+      variable: "OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME",
+      container: OPENSTACK_QUOTA_EXPORTER_CONTAINER,
+      role: "quota exporter",
+    },
+    {
+      variable: "OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME",
+      container: OPENSTACK_DATABASE_EXPORTER_CONTAINER,
+      role: "database exporter",
+    },
+    {
+      variable: "OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME",
+      container: OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER,
+      role: "worker state exporter",
+    },
+    {
+      variable: "OPENSTACK_AI_AGENT_CONTAINER_NAME",
+      container: OPENSTACK_AI_AGENT_CONTAINER,
+      role: "AI agent",
+    },
+  ],
+  noun: "cloud",
+  installDir: OPENSTACK_AGENT_INSTALL_DIR,
+  suffix: "cloud2",
+};
 
 // The name the guide suggests when it is not installing for a known cloud.
 export const OPENSTACK_EXAMPLE_CLOUD_NAME: string = "my-openstack-cloud";
@@ -692,6 +748,7 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`OPENSTACK_CONTROL_PLANE_REGION\` | No | The region of a target above that does not say its own. A target can: \`RegionTwo@10.1.0.11:15692\` |
 | \`OPENSTACK_LIBVIRT_EXPORTER_TARGETS\` | No | The same exporter, for what each instance is really doing. Per-instance series multiply fast |
 | \`OPENSTACK_CEILOMETER_EXPORTER_TARGETS\` | No | Ceilometer's exporter on each compute node, usually on \`9101\`, for the same |
+${getAgentContainerNameRows(OPENSTACK_AGENT_CONTAINER_NAMES, context.method === "install-script")}
 
 \`clouds.yaml\` alone holds the credential.
 
@@ -921,6 +978,18 @@ Then delete ${agentFolder(context.method)}, which holds the credential, and the 
   };
 }
 
+function getSeveralCloudsTopic(context: GuideContext): SetupGuideTopic {
+  return getSeveralAgentsTopic(
+    OPENSTACK_AGENT_CONTAINER_NAMES,
+    context.method === "install-script",
+    {
+      title: "Monitoring several clouds",
+      summary:
+        "One agent per cloud, each in a folder of its own with container names of its own.",
+    },
+  );
+}
+
 function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
   return [
     getAccessLevelsTopic(),
@@ -933,6 +1002,7 @@ function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
     getWithoutDockerTopic(context),
     getCollectorConfigTopic(context),
     getLabelsTopic(context),
+    getSeveralCloudsTopic(context),
     getUpgradeTopic(context),
   ];
 }

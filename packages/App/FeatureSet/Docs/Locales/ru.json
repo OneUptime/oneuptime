@@ -257,6 +257,7 @@
     "Forms Overview": "Обзор форм",
     "Building a Form": "Создание формы",
     "What a Submission Creates": "Что создаёт отправка",
+    "Following Up on a Submission": "Отслеживание отправки",
     "Sharing & Security": "Доступ и безопасность",
     "Workflows Overview": "Обзор рабочих процессов",
     "Authoring a Workflow": "Создание рабочего процесса",
@@ -511,6 +512,7 @@
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
     "Cloudflare": "Cloudflare",
+    "CrowdSec": "CrowdSec",
     "Global SSO": "Глобальный SSO",
     "Import and Export Label Rules": "Импорт и экспорт правил меток",
     "Run Rules on Existing Resources": "Применение правил к существующим ресурсам"

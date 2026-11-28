@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-जिस कुंजी का नाम बदला जाता है, वह अपने पुराने नाम से भी पढ़ी जाती रहती है: परत का प्रतिबंध प्रकार `restrictionType` के नीचे, या उसकी पुरानी वर्तनी `restictionType` के नीचे लिखा जाता है, और जवाब में दोनों होते हैं।
+जिस कुंजी का नाम बदला जाता है, वह अपने पुराने नाम से भी पढ़ी जाती रहती है: परत का प्रतिबंध प्रकार `restrictionType` के नीचे, या उसकी पुरानी वर्तनी `restictionType` के नीचे लिखा जाता है, और जवाब में दोनों होते हैं। पुरानी वर्तनी जवाबों में अप्रचलित है: जवाब इसे 1 जून 2027 को या उसके बाद जारी होने वाले पहले मेजर संस्करण तक देते हैं। लेखन इसे हमेशा पढ़ते हैं।
+
+कोई मान जो कहता है, उसे उस पर भी परखा जाता है। किसी परत की साप्ताहिक अवधि उन दिनों में ऑन-कॉल रहती है जिनका वह नाम लेती है, इसलिए उसके `startTime` और `endTime` शेड्यूल के टाइमज़ोन में उसके `startDay` और `endDay` पर पड़ने चाहिए। दूसरे दिनों की तारीख़ वाली अवधि एक `400` के साथ अस्वीकार होती है, जो उस अवधि का नाम बताता है और नाम लिए गए दिन का वह समय देता है जिसे इसके बजाय भेजा जा सकता है:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### प्रोजेक्ट कहाँ से ख़रीदा गया
 
@@ -425,7 +431,7 @@ Incident not found.
 
 ### किसी रिकॉर्ड के Markdown में छवियाँ
 
-Markdown में चिपकाई गई छवि, जैसे किसी घटना के विवरण, Markdown कस्टम फ़ील्ड या नोट में स्क्रीनशॉट, एक निजी फ़ाइल है। उसका पता (`/file/image/access-token/...`) उसे सिर्फ़ प्रोजेक्ट में साइन इन किए हुए व्यक्ति के लिए खोलता है, इसलिए API कुंजी उसे उस रिकॉर्ड के ज़रिए पढ़ती है जो उसे दिखाता है:
+Markdown में चिपकाई गई छवि, जैसे किसी घटना के विवरण, Markdown कस्टम फ़ील्ड या नोट में स्क्रीनशॉट, एक निजी फ़ाइल है। उसका पता (`/file/image/access-token/...`) उसे सिर्फ़ प्रोजेक्ट में साइन इन किए हुए उस व्यक्ति के लिए खोलता है जो उसे दिखाने वाला कोई रिकॉर्ड पढ़ सकता है, या जिसने उसे जोड़ा, इसलिए API कुंजी उसे उस रिकॉर्ड के ज़रिए पढ़ती है जो उसे दिखाता है:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +465,7 @@ curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
 }
 ```
 
-सिर्फ़ रिकॉर्ड के अपने प्रोजेक्ट में अपलोड किए गए चित्र दिए जाते हैं, अधिकतम 20 और कुल 10 MB, और कभी कोई SVG नहीं। Markdown वाले हर रिकॉर्ड प्रकार का यही अनुरोध है, जैसे `/api/incident-public-note/<id>/markdown-files` या `/api/alert/<id>/markdown-files`। जो रिकॉर्ड मौजूद नहीं है, या जिसे कुंजी नहीं पढ़ सकती, वह `get-item` की तरह `404` लौटाता है, और `422` तब जब कुंजी उस तरह का रिकॉर्ड पढ़ ही नहीं सकती। वर्कफ़्लो यही छवियाँ [Markdown से फ़ाइलें प्राप्त करें](/docs/workflows/components#get-files-from-markdown) से पढ़ता है।
+सिर्फ़ रिकॉर्ड के अपने प्रोजेक्ट में अपलोड किए गए चित्र दिए जाते हैं, अधिकतम 20 और कुल 10 MB, और कभी कोई SVG नहीं। Markdown वाले हर रिकॉर्ड प्रकार का यही अनुरोध है, जैसे `/api/incident-public-note/<id>/markdown-files` या `/api/alert/<id>/markdown-files`। जो रिकॉर्ड मौजूद नहीं है, या जिसे कुंजी नहीं पढ़ सकती, वह `get-item` की तरह `404` लौटाता है, और `422` तब जब कुंजी उस तरह का रिकॉर्ड पढ़ ही नहीं सकती। वर्कफ़्लो यही छवियाँ [Markdown से फ़ाइलें प्राप्त करें](/docs/workflows/components#get-files-from-markdown) से पढ़ता है, और किसी रिकॉर्ड में रखी फ़ाइलें, जैसे किसी नोट के अनुलग्नक और उसके फ़ाइल कस्टम फ़ील्ड, [रिकॉर्ड से अनुलग्नक प्राप्त करें](/docs/workflows/components#get-attachments-from-record) से।
 
 ## पूरा एंडपॉइंट संदर्भ
 

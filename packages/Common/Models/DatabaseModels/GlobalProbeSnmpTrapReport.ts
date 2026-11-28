@@ -155,9 +155,10 @@ export default class GlobalProbeSnmpTrapReport extends BaseModel {
   /*
    * The project's refused SNMPv3 traps, in the report's shape
    * (SnmpTrapRefusal): source address, reason, user name, how many and
-   * when, the most recent first. Read by the project's own reads only,
-   * never through a relation: what a relation drags along is read by whoever
-   * may read the record that names it.
+   * when, the most recent first, each with the project's own devices it came
+   * from (#11406) - never another project's. Read by the project's own reads
+   * only, never through a relation: what a relation drags along is read by
+   * whoever may read the record that names it.
    */
   @ColumnAccessControl({
     create: [],
@@ -169,7 +170,7 @@ export default class GlobalProbeSnmpTrapReport extends BaseModel {
     type: TableColumnType.JSON,
     title: "Refused SNMPv3 Traps",
     description:
-      "The SNMPv3 traps the global probe refused in the last day from this project's network devices, by source address, reason and user name. Written by OneUptime.",
+      "The SNMPv3 traps the global probe refused in the last day from this project's network devices, by source address, reason and user name, each with the devices it came from. Written by OneUptime.",
     serverOwned: ServerOwned.Always,
     canReadOnRelationQuery: false,
   })

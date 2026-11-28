@@ -13,6 +13,9 @@ import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import ScrubAction from "Common/Server/Utils/Telemetry/ScrubAction";
 import { getScrubRulesOfRecord } from "Common/Types/Telemetry/ScrubRuleScope";
 import { getHintsOfKey } from "Common/Utils/Telemetry/ScrubBuiltInPatterns";
+import { CompiledScrubRule as EngineCompiledScrubRule } from "Common/Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
+import LogScrubEngine from "Common/Server/Utils/Telemetry/ScrubEngine/LogScrubEngine";
+import { SessionReplayCustomEventTag } from "Common/Types/Rum/SessionReplayCustomEvents";
 
 /*
  * Server-side second net over a decoded rrweb event tree.
@@ -44,16 +47,17 @@ import { getHintsOfKey } from "Common/Utils/Telemetry/ScrubBuiltInPatterns";
  */
 
 /*
- * Structurally identical to the (unexported) CompiledRule in
- * LogScrubRuleService, so the array that method returns assigns to this
- * without a cast. Loading is delegated there deliberately: the pattern
- * table, the custom-regex compilation and the 60s cache all stay in one
- * place, and only the walker and the action application are new here.
+ * A rule as LogScrubRuleService compiles it - the one log engine's own
+ * type - so the array that method returns is this, keys and all. Loading
+ * is delegated there deliberately: the pattern table, the custom-regex
+ * compilation and the 60s cache all stay in one place, and only the walker
+ * and the action application are new here. A session's tags are run
+ * through that engine itself (scrubTags), as a log's attributes are.
  */
-export interface CompiledScrubRule {
-  rule: LogScrubRule;
-  regex: ScrubRegExp;
-}
+export type CompiledScrubRule = EngineCompiledScrubRule<LogScrubRule>;
+
+// rrweb's custom event: what the recorders' markers are, a tag and a payload.
+const RRWEB_CUSTOM_EVENT_TYPE: number = 5;
 
 /*
  * Depth ceiling, counted in JSON nesting levels rather than DOM levels.
@@ -324,6 +328,170 @@ export default class SessionReplayScrubService {
   }
 
   /*
+   * A session's tags (setTags(), addTag()) as the project's rules leave
+   * them (#11458). The tags are the one host-supplied string the recorder
+   * never masks - they exist to be searched - and everyone who can list
+   * sessions reads them, so a tag holding an email is a leak Data Security
+   * finds (sessions.tags.<key>), and Scrub It's rule for it must reach it.
+   *
+   * So the tags are read as a log record's attributes are, by the one log
+   * engine (Common/Server/Utils/Telemetry/ScrubEngine/LogScrubEngine): a
+   * pattern rule whose fields reach attributes finds its matches in their
+   * values, a Sensitive Attribute Keys rule hides every tag under a key
+   * that looks secret, and a Named Attributes rule the whole value of each
+   * tag it names - exactly what Data Security's coverage says a rule does
+   * to a tag (TelemetryScrubCoverage, through TelemetryScrubTarget). Only
+   * the application's own rules, those for every service and app
+   * (loadRules).
+   *
+   * Each value a rule changes is counted under the application and the
+   * session's app version (`appVersion`), the version the fix watch reads
+   * sessions in (#10832), so a code fix is never proven by a rule hiding
+   * what the code still writes. `countValues` false counts nothing: the
+   * recording's own copy of the same tags (scrubTagMarkers). A copy - the
+   * map handed in is left as it is - and the keys stay as the page wrote
+   * them.
+   */
+  public static scrubTags(data: {
+    tags: Record<string, string>;
+    compiledRules: Array<CompiledScrubRule>;
+    rumApplicationId: ObjectID | string;
+    appVersion?: string | undefined;
+    countValues?: boolean | undefined;
+  }): Record<string, string> {
+    const keys: Array<string> = Object.keys(data.tags);
+
+    if (data.compiledRules.length === 0 || keys.length === 0) {
+      return data.tags;
+    }
+
+    const attributes: JSONObject = {};
+
+    for (const key of keys) {
+      attributes[key] = data.tags[key]!;
+    }
+
+    const record: JSONObject = {
+      primaryEntityId: data.rumApplicationId.toString(),
+      attributes,
+    };
+
+    LogScrubEngine.scrubLog(record, data.compiledRules, null, {
+      countValues: data.countValues !== false,
+      serviceVersion: data.appVersion || "",
+    });
+
+    const left: JSONObject = record["attributes"] as JSONObject;
+    const scrubbed: Record<string, string> = {};
+
+    for (const key of keys) {
+      const value: JSONValue | undefined = left[key];
+
+      scrubbed[key] = typeof value === "string" ? value : data.tags[key]!;
+    }
+
+    return scrubbed;
+  }
+
+  /*
+   * The recording's own copy of a session's tags (#11458): each
+   * oneuptime.tags marker the recorders write when setTags() or addTag()
+   * changes the map - the browser's { tags: {...} }, React Native's the
+   * map itself - given what scrubTags leaves of it, in place. The walker
+   * already ran each value past the pattern and key rules; this adds what
+   * only the log engine does, a Named Attributes rule's keys, so the
+   * recording never keeps a tag its session's tags no longer do. Counts
+   * nothing: the session's tags were counted. Returns the tags it changed.
+   */
+  public static scrubTagMarkers(
+    events: Array<JSONValue>,
+    compiledRules: Array<CompiledScrubRule>,
+  ): number {
+    if (compiledRules.length === 0) {
+      return 0;
+    }
+
+    let changed: number = 0;
+
+    for (const event of events) {
+      const data: JSONObject | null = this.tagMarkerDataOf(event);
+
+      if (!data) {
+        continue;
+      }
+
+      const payload: unknown = data["payload"];
+      const nested: unknown =
+        payload && typeof payload === "object" && !Array.isArray(payload)
+          ? (payload as JSONObject)["tags"]
+          : undefined;
+      // The browser's payload holds the map under `tags`; React Native's is the map.
+      const map: unknown = this.isStringMap(nested) ? nested : payload;
+
+      if (!this.isStringMap(map)) {
+        continue;
+      }
+
+      const tags: Record<string, string> = map as Record<string, string>;
+      const scrubbed: Record<string, string> = this.scrubTags({
+        tags,
+        compiledRules,
+        rumApplicationId: "",
+        countValues: false,
+      });
+
+      for (const key of Object.keys(tags)) {
+        if (scrubbed[key] !== tags[key]) {
+          tags[key] = scrubbed[key]!;
+          changed++;
+        }
+      }
+    }
+
+    return changed;
+  }
+
+  // An rrweb custom event's data, when the event is a oneuptime.tags marker.
+  private static tagMarkerDataOf(
+    event: JSONValue | undefined,
+  ): JSONObject | null {
+    if (!event || typeof event !== "object" || Array.isArray(event)) {
+      return null;
+    }
+
+    const record: JSONObject = event as JSONObject;
+    const data: unknown = record["data"];
+
+    if (
+      record["type"] !== RRWEB_CUSTOM_EVENT_TYPE ||
+      !data ||
+      typeof data !== "object" ||
+      Array.isArray(data) ||
+      (data as JSONObject)["tag"] !== SessionReplayCustomEventTag.Tags
+    ) {
+      return null;
+    }
+
+    return data as JSONObject;
+  }
+
+  // A map of texts with at least one entry, as a recorder writes a session's tags.
+  private static isStringMap(value: unknown): boolean {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
+    }
+
+    const values: Array<unknown> = Object.values(value as JSONObject);
+
+    return (
+      values.length > 0 &&
+      values.every((entry: unknown): boolean => {
+        return typeof entry === "string";
+      })
+    );
+  }
+
+  /*
    * Scrub an rrweb event array in place.
    *
    * In place, rather than returning a copy, because the tree is already the
@@ -359,6 +527,11 @@ export default class SessionReplayScrubService {
     await this.walkArray(events, compiledRules, 0, state, {
       isAttributeMap: false,
     });
+
+    // A session's tags in the recording too, as its tags column has them (#11458).
+    if (state.isComplete) {
+      state.stringsScrubbed += this.scrubTagMarkers(events, compiledRules);
+    }
 
     return state;
   }

@@ -378,6 +378,39 @@ const WRITTEN: ReadonlyArray<Written> = [
           }),
           keeps: ["WB1500KSK02", "WB Ping Monitor Template - No Alert"],
         },
+        // A template's sync, and any other change of criteria (#11453).
+        {
+          writer: `MonitorCriteriaReplaced (${kind}, synced from its template)`,
+          stored: MonitorCriteriaReplaced.getRootCause({
+            kind: kind,
+            because: CriteriaReplacedBecause.SyncedFromTemplate,
+            monitorName: "WB1500KSK02",
+            templateName: "WB Ping Monitor Template v3",
+          }),
+          keeps: ["WB1500KSK02", "WB Ping Monitor Template v3"],
+        },
+        {
+          writer: `MonitorCriteriaReplaced (${kind}, criteria changed by a person)`,
+          stored: MonitorCriteriaReplaced.getRootCause({
+            kind: kind,
+            because: CriteriaReplacedBecause.CriteriaChanged,
+            monitorName: "Checkout API",
+            templateName: "",
+            changedBy: FeedMarkdown.asMarkdown(USER_LINK),
+          }),
+          keeps: ["Checkout API", "Jane Doe"],
+        },
+        {
+          writer: `MonitorCriteriaReplaced (${kind}, criteria changed, nobody named)`,
+          stored: MonitorCriteriaReplaced.getRootCause({
+            kind: kind,
+            because: CriteriaReplacedBecause.CriteriaChanged,
+            monitorName: "Checkout API",
+            templateName: "",
+            changedBy: FeedMarkdown.empty(),
+          }),
+          keeps: ["Checkout API"],
+        },
       ];
     },
   ),

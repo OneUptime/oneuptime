@@ -620,6 +620,14 @@ function request(
   };
 }
 
+/*
+ * Test data as a RegExp literal: every metacharacter escaped, the backslash
+ * included, so a container name or glob is matched exactly as written.
+ */
+function escapeRegExp(text: string): string {
+  return text.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+}
+
 function expectRefused(prepared: PrepareResult, pattern: RegExp): string {
   assert.notStrictEqual(prepared.refusal, null, "the command was refused");
   const refusal: string = String(prepared.refusal);
@@ -786,6 +794,19 @@ const SERVICES_KEY_PATTERN: RegExp = /^services:\s*$/;
 // A container_name read from .env: ${VARIABLE:-default}.
 const CONTAINER_NAME_FROM_ENV_PATTERN: RegExp = /^\$\{/;
 
+/*
+ * Whether the Docker AI agent refuses to change a container of this name: its
+ * protected names are names and globs (*oneuptime-ceph-*), as prepare()
+ * matches them, not entries of the list.
+ */
+const PROTECTS_PATTERN: RegExp = /which the Docker AI agent protects/;
+function protects(name: string): boolean {
+  const prepared: PrepareResult = build({ config: WRITES }).executor.prepare(
+    request(`docker stop ${name}`),
+  );
+  return PROTECTS_PATTERN.test(String(prepared.refusal));
+}
+
 // ---- prepare(): what the agent protects ----------------------------------------------------
 
 describe("prepare: what the agent never changes", () => {
@@ -828,6 +849,27 @@ describe("prepare: what the agent never changes", () => {
       "oneuptime-xcp-ng-agent-lab",
       "oneuptime-xcp-ng-ai-agent-lab",
       "oneuptime-xcp-ng-ai-agent-lab-pool",
+      /*
+       * A second Ceph cluster's, Proxmox cluster's, vCenter's or OpenStack
+       * cloud's agent, its AI agent and sidecars, named after its folder by
+       * install.sh (#11434).
+       */
+      "oneuptime-ceph-agent-cluster2",
+      "oneuptime-ceph-ai-agent-cluster2",
+      "oneuptime-proxmox-agent-cluster2",
+      "oneuptime-pve-api-failover-cluster2",
+      "oneuptime-pve-exporter-cluster2",
+      "oneuptime-proxmox-ai-agent-cluster2",
+      "oneuptime-vmware-agent-vcenter2",
+      "oneuptime-vmware-ai-agent-vcenter2",
+      "oneuptime-openstack-agent-cloud2",
+      "oneuptime-openstack-exporter-cloud2",
+      "oneuptime-openstack-quota-exporter-cloud2",
+      "oneuptime-openstack-database-exporter-cloud2",
+      "oneuptime-openstack-worker-state-exporter-cloud2",
+      "oneuptime-openstack-ai-agent-cloud2",
+      "oneuptime-openstack-logs-node2",
+      "oneuptime-openstack-traces-node2",
       "oneuptime-storage-array-agent",
       // A second array's agent, named after its folder by install.sh.
       "oneuptime-storage-array-agent-fb",
@@ -1404,10 +1446,123 @@ describe("run: a protected object named by its id is still protected", () => {
         "com.docker.compose.service": "web",
       },
     },
+    /*
+     * A second Ceph cluster's, Proxmox cluster's, vCenter's or OpenStack
+     * cloud's agent, its AI agent and its sidecars, under names of their own
+     * from .env (#11434).
+     */
+    {
+      kind: "container",
+      id: "8a3d8a3d8a3d".padEnd(64, "d"),
+      name: "ceph-east",
+      labels: {
+        "com.docker.compose.project": "ceph-east",
+        "com.docker.compose.service": "oneuptime-ceph-agent",
+      },
+    },
+    {
+      kind: "container",
+      id: "8b4e8b4e8b4e".padEnd(64, "e"),
+      name: "ceph-east-ai",
+      labels: {
+        "com.docker.compose.project": "ceph-east",
+        "com.docker.compose.service": "oneuptime-ceph-ai-agent",
+      },
+    },
+    {
+      kind: "container",
+      id: "8c5f8c5f8c5f".padEnd(64, "f"),
+      name: "pve-lab-failover",
+      labels: {
+        "com.docker.compose.project": "pve-lab",
+        "com.docker.compose.service": "pve-api-failover",
+      },
+    },
+    {
+      kind: "container",
+      id: "8d608d608d60".padEnd(64, "0"),
+      name: "pve-lab-exporter",
+      labels: {
+        "com.docker.compose.project": "pve-lab",
+        "com.docker.compose.service": "pve-exporter",
+      },
+    },
+    {
+      kind: "container",
+      id: "8e718e718e71".padEnd(64, "1"),
+      name: "pve-lab-ai",
+      labels: {
+        "com.docker.compose.project": "pve-lab",
+        "com.docker.compose.service": "oneuptime-proxmox-ai-agent",
+      },
+    },
+    {
+      kind: "container",
+      id: "8f828f828f82".padEnd(64, "2"),
+      name: "vcenter-2",
+      labels: {
+        "com.docker.compose.project": "vcenter-2",
+        "com.docker.compose.service": "oneuptime-vmware-agent",
+      },
+    },
+    {
+      kind: "container",
+      id: "90939093909a".padEnd(64, "a"),
+      name: "cloud2-exporter",
+      labels: {
+        "com.docker.compose.project": "cloud2",
+        "com.docker.compose.service": "openstack-exporter",
+      },
+    },
+    {
+      kind: "container",
+      id: "91a491a491a4".padEnd(64, "4"),
+      name: "cloud2-quotas",
+      labels: {
+        "com.docker.compose.project": "cloud2",
+        "com.docker.compose.service": "openstack-quota-exporter",
+      },
+    },
+    {
+      kind: "container",
+      id: "92b592b592b5".padEnd(64, "5"),
+      name: "cloud2-db",
+      labels: {
+        "com.docker.compose.project": "cloud2",
+        "com.docker.compose.service": "openstack-database-exporter",
+      },
+    },
+    {
+      kind: "container",
+      id: "93c693c693c6".padEnd(64, "6"),
+      name: "cloud2-workers",
+      labels: {
+        "com.docker.compose.project": "cloud2",
+        "com.docker.compose.service": "openstack-worker-state-exporter",
+      },
+    },
+    {
+      kind: "container",
+      id: "94d794d794d7".padEnd(64, "7"),
+      name: "cloud2-ai",
+      labels: {
+        "com.docker.compose.project": "cloud2",
+        "com.docker.compose.service": "oneuptime-openstack-ai-agent",
+      },
+    },
+    {
+      kind: "container",
+      id: "95e895e895e8".padEnd(64, "8"),
+      name: "node2-logs",
+      labels: {
+        "com.docker.compose.project": "node2",
+        "com.docker.compose.service": "oneuptime-openstack-logs",
+      },
+    },
   ];
 
   test("an agent's container given a name of its own is protected by the Compose service it was made for", async () => {
-    for (const [command, shown, service] of [
+    for (const [command, shown, service, protectingPattern] of [
       [
         "docker restart storage-fb",
         "the container storage-fb \\(5f0a5f0a5f0a\\)",
@@ -1428,11 +1583,92 @@ describe("run: a protected object named by its id is still protected", () => {
         "the container xen-lab \\(6e1b6e1b6e1b\\)",
         "oneuptime-xcp-ng-agent",
       ],
-    ] as Array<[string, string, string]>) {
+      [
+        "docker restart ceph-east",
+        "the container ceph-east \\(8a3d8a3d8a3d\\)",
+        "oneuptime-ceph-agent",
+        "*oneuptime-ceph-*",
+      ],
+      [
+        "docker restart ceph-east-ai",
+        "the container ceph-east-ai \\(8b4e8b4e8b4e\\)",
+        "oneuptime-ceph-ai-agent",
+        "*oneuptime-ceph-*",
+      ],
+      [
+        "docker restart pve-lab-failover",
+        "the container pve-lab-failover \\(8c5f8c5f8c5f\\)",
+        "pve-api-failover",
+        "pve-api-failover",
+      ],
+      [
+        "docker restart pve-lab-exporter",
+        "the container pve-lab-exporter \\(8d608d608d60\\)",
+        "pve-exporter",
+        "pve-exporter",
+      ],
+      [
+        "docker restart pve-lab-ai",
+        "the container pve-lab-ai \\(8e718e718e71\\)",
+        "oneuptime-proxmox-ai-agent",
+        "*oneuptime-proxmox-*",
+      ],
+      [
+        "docker restart vcenter-2",
+        "the container vcenter-2 \\(8f828f828f82\\)",
+        "oneuptime-vmware-agent",
+        "*oneuptime-vmware-*",
+      ],
+      [
+        "docker restart cloud2-exporter",
+        "the container cloud2-exporter \\(90939093909a\\)",
+        "openstack-exporter",
+        "openstack-*exporter",
+      ],
+      [
+        "docker restart cloud2-quotas",
+        "the container cloud2-quotas \\(91a491a491a4\\)",
+        "openstack-quota-exporter",
+        "openstack-*exporter",
+      ],
+      [
+        "docker restart cloud2-db",
+        "the container cloud2-db \\(92b592b592b5\\)",
+        "openstack-database-exporter",
+        "openstack-*exporter",
+      ],
+      [
+        "docker restart cloud2-workers",
+        "the container cloud2-workers \\(93c693c693c6\\)",
+        "openstack-worker-state-exporter",
+        "openstack-*exporter",
+      ],
+      [
+        "docker restart cloud2-ai",
+        "the container cloud2-ai \\(94d794d794d7\\)",
+        "oneuptime-openstack-ai-agent",
+        "*oneuptime-openstack-*",
+      ],
+      [
+        "docker restart node2-logs",
+        "the container node2-logs \\(95e895e895e8\\)",
+        "oneuptime-openstack-logs",
+        "*oneuptime-openstack-*",
+      ],
+      // By an id prefix, too.
+      [
+        "docker stop 8d608d60",
+        "the container pve-lab-exporter \\(8d608d608d60\\)",
+        "pve-exporter",
+        "pve-exporter",
+      ],
+    ] as Array<[string, string, string, string?]>) {
       const built: Built = build({
         config: WRITES,
         responder: engine(RENAMED_AGENTS),
       });
+      // The name or glob of the list that protects the service.
+      const protectedBy: string = escapeRegExp(protectingPattern || service);
 
       // The words name nothing protected: only the engine can tell.
       expectPrepared(built.executor.prepare(request(command)));
@@ -1440,7 +1676,7 @@ describe("run: a protected object named by its id is still protected", () => {
         built,
         await runCommand(built, command),
         new RegExp(
-          `^Refused by the Docker AI agent: docker resolves \\S+ to ${shown}\\. .*would change ${service}, which the Docker AI agent protects \\(${service}\\)`,
+          `^Refused by the Docker AI agent: docker resolves \\S+ to ${shown}\\. .*would change ${escapeRegExp(service)}, which the Docker AI agent protects \\(${protectedBy}\\)`,
         ),
       );
     }
@@ -3533,10 +3769,6 @@ describe("pure helpers", () => {
 
   test("every OneUptime agent container any agent's compose file or install script names is protected", () => {
     const repoAgents: string = path.resolve(__dirname, "..", "..", "..", "..");
-    const protectedNames: Array<string> = [
-      ...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
-      ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
-    ];
     const named: Set<string> = new Set<string>();
 
     for (const agent of fs.readdirSync(repoAgents)) {
@@ -3574,7 +3806,7 @@ describe("pure helpers", () => {
       assert.ok(named.has(name), `${name} is not read from the agents' files`);
     }
     for (const name of named) {
-      assert.ok(protectedNames.includes(name), `${name} is not protected`);
+      assert.ok(protects(name), `${name} is not protected`);
     }
 
     // The database agent's containers are named by Compose after its services.
@@ -3728,19 +3960,89 @@ describe("pure helpers", () => {
         return CONTAINER_NAME_FROM_ENV_PATTERN.test(entry.containerName || "");
       },
     );
-    const protectedNames: Array<string> = [
-      ...ONEUPTIME_DOCKER_AGENT_CONTAINER_NAMES,
-      ...ONEUPTIME_OTHER_AGENT_CONTAINER_NAMES,
-    ];
 
-    // Each service, and the .env variable its container's name comes from.
-    const variables: Record<string, string> = {
-      "StorageArrayAgent/docker-compose.yml: oneuptime-storage-array-agent":
+    /*
+     * Each service, the .env variable its container's name comes from, and
+     * the name it falls back to: the service's own, but for the sidecars
+     * whose services do not start with oneuptime- (pve-exporter).
+     */
+    const variables: Record<string, [string, string]> = {
+      "CephAgent/docker-compose.yml: oneuptime-ceph-agent": [
+        "CEPH_AGENT_CONTAINER_NAME",
+        "oneuptime-ceph-agent",
+      ],
+      "CephAgent/docker-compose.yml: oneuptime-ceph-ai-agent": [
+        "CEPH_AI_AGENT_CONTAINER_NAME",
+        "oneuptime-ceph-ai-agent",
+      ],
+      "OpenStackAgent/docker-compose.logs.yml: oneuptime-openstack-logs": [
+        "OPENSTACK_LOGS_CONTAINER_NAME",
+        "oneuptime-openstack-logs",
+      ],
+      "OpenStackAgent/docker-compose.traces.yml: oneuptime-openstack-traces": [
+        "OPENSTACK_TRACES_CONTAINER_NAME",
+        "oneuptime-openstack-traces",
+      ],
+      "OpenStackAgent/docker-compose.yml: oneuptime-openstack-agent": [
+        "OPENSTACK_AGENT_CONTAINER_NAME",
+        "oneuptime-openstack-agent",
+      ],
+      "OpenStackAgent/docker-compose.yml: openstack-exporter": [
+        "OPENSTACK_EXPORTER_CONTAINER_NAME",
+        "oneuptime-openstack-exporter",
+      ],
+      "OpenStackAgent/docker-compose.yml: openstack-quota-exporter": [
+        "OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME",
+        "oneuptime-openstack-quota-exporter",
+      ],
+      "OpenStackAgent/docker-compose.yml: openstack-database-exporter": [
+        "OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME",
+        "oneuptime-openstack-database-exporter",
+      ],
+      "OpenStackAgent/docker-compose.yml: openstack-worker-state-exporter": [
+        "OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME",
+        "oneuptime-openstack-worker-state-exporter",
+      ],
+      "OpenStackAgent/docker-compose.yml: oneuptime-openstack-ai-agent": [
+        "OPENSTACK_AI_AGENT_CONTAINER_NAME",
+        "oneuptime-openstack-ai-agent",
+      ],
+      "ProxmoxAgent/docker-compose.yml: oneuptime-proxmox-agent": [
+        "PROXMOX_AGENT_CONTAINER_NAME",
+        "oneuptime-proxmox-agent",
+      ],
+      "ProxmoxAgent/docker-compose.yml: pve-api-failover": [
+        "PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME",
+        "oneuptime-pve-api-failover",
+      ],
+      "ProxmoxAgent/docker-compose.yml: pve-exporter": [
+        "PROXMOX_PVE_EXPORTER_CONTAINER_NAME",
+        "oneuptime-pve-exporter",
+      ],
+      "ProxmoxAgent/docker-compose.yml: oneuptime-proxmox-ai-agent": [
+        "PROXMOX_AI_AGENT_CONTAINER_NAME",
+        "oneuptime-proxmox-ai-agent",
+      ],
+      "StorageArrayAgent/docker-compose.yml: oneuptime-storage-array-agent": [
         "STORAGE_ARRAY_AGENT_CONTAINER_NAME",
-      "XcpNgAgent/docker-compose.yml: oneuptime-xcp-ng-agent":
+        "oneuptime-storage-array-agent",
+      ],
+      "VMwareAgent/docker-compose.yml: oneuptime-vmware-agent": [
+        "VMWARE_AGENT_CONTAINER_NAME",
+        "oneuptime-vmware-agent",
+      ],
+      "VMwareAgent/docker-compose.yml: oneuptime-vmware-ai-agent": [
+        "VMWARE_AI_AGENT_CONTAINER_NAME",
+        "oneuptime-vmware-ai-agent",
+      ],
+      "XcpNgAgent/docker-compose.yml: oneuptime-xcp-ng-agent": [
         "XCP_NG_AGENT_CONTAINER_NAME",
-      "XcpNgAgent/docker-compose.yml: oneuptime-xcp-ng-ai-agent":
+        "oneuptime-xcp-ng-agent",
+      ],
+      "XcpNgAgent/docker-compose.yml: oneuptime-xcp-ng-ai-agent": [
         "XCP_NG_AI_AGENT_CONTAINER_NAME",
+        "oneuptime-xcp-ng-ai-agent",
+      ],
     };
 
     assert.deepStrictEqual(
@@ -3750,16 +4052,16 @@ describe("pure helpers", () => {
       Object.keys(variables),
     );
     for (const entry of services) {
+      const [variable, fallback] =
+        variables[`${entry.file}: ${entry.service}`]!;
       // run() holds the container's com.docker.compose.service to the list.
       assert.ok(
-        protectedNames.includes(entry.service),
+        protects(entry.service),
         `${entry.service} is not protected by its name`,
       );
-      // ...and the default name it falls back to is that service's.
-      assert.strictEqual(
-        entry.containerName,
-        `\${${variables[`${entry.file}: ${entry.service}`]}:-${entry.service}}`,
-      );
+      // ...and so is the default name it falls back to.
+      assert.strictEqual(entry.containerName, `\${${variable}:-${fallback}}`);
+      assert.ok(protects(fallback), `${fallback} is not protected`);
     }
   });
 });

@@ -8,6 +8,7 @@
 - [첫 양식 만들기](#첫-양식-만들기): 빈 양식에서 공유할 수 있는 링크까지.
 - [양식 만들기](/docs/forms/building): 질문, 답변 유형, 숨겨진 질문, 템플릿, 브랜딩.
 - [제출로 만들어지는 항목](/docs/forms/on-submit): 답변과 설정이 인시던트나 유지 관리 이벤트가 되는 과정.
+- [제출 후속 조치](/docs/forms/follow-ups): 보낸 사람이 자신의 요청을 팔로우하고, 팀에 메시지를 쓰고, 다른 사람을 추가합니다.
 - [공유 및 보안](/docs/forms/sharing-and-security): 링크, IP 허용 목록, 속도 제한, 문제 해결.
 :::
 
@@ -290,6 +291,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 :::cards
 - [양식 만들기](/docs/forms/building): 질문, 답변 유형, 연결된 필드, 사용자 지정 필드, 미리 보기.
 - [제출로 만들어지는 항목](/docs/forms/on-submit): 답변과 제출 시 설정이 인시던트나 유지 관리 이벤트가 되는 과정.
+- [제출 후속 조치](/docs/forms/follow-ups): 보낸 사람이 자신의 요청을 팔로우하고, 팀에 메시지를 쓰고, 다른 사람을 추가합니다.
 - [공유 및 보안](/docs/forms/sharing-and-security): 링크, IP 허용 목록, 속도 제한, 캡차, 문제 해결.
 - [인시던트 선언](/docs/incidents/declaring-incidents): 인시던트를 선언하는 다른 방법.
 :::

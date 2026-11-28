@@ -42,10 +42,16 @@ flowchart TB
 ```
 
 - `agents/InfrastructureAgent/.goreleaser.yaml` builds the `.deb` and `.rpm`
-  packages (nfpm) and writes the Homebrew cask (`homebrew_casks`) and the
-  winget manifests (`winget`). GoReleaser runs with `--snapshot`, so it
-  publishes none of them. GoReleaser OSS cannot publish from an earlier run,
-  and nothing can be published before the release it downloads from exists.
+  packages (with the nfpm GoReleaser is built with) and writes the Homebrew
+  cask (`homebrew_casks`) and the winget manifests (`winget`). GoReleaser runs
+  with `--snapshot`, so it publishes none of them. GoReleaser OSS cannot
+  publish from an earlier run, and nothing can be published before the release
+  it downloads from exists.
+- The packages, archives and checksums each of these record are the same
+  bytes whenever the same commit is built again (#11466), with Go, GoReleaser
+  and syft at the versions `.github/actions/setup-release-toolchain` pins
+  (#11464). A published release's files are never uploaded again: see
+  [agents/InfrastructureAgent/RELEASING.md](../../agents/InfrastructureAgent/RELEASING.md#7-a-release-built-again-is-the-same-bytes).
 - The three `publish-infrastructure-agent-*` jobs in
   `.github/workflows/release.yml` run after `finalize-github-release`, so only
   for a release that passed its e2e jobs and was published. Each skips a

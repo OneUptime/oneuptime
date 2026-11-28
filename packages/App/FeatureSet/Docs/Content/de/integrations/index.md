@@ -62,6 +62,7 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | Eingehend | Bringt Anmeldungen und Verzeichnisänderungen aus Microsoft Entra ID sowie das Microsoft 365-Audit-Protokoll in die Sicherheitsereignisse. |
 | [Google Workspace](/docs/integrations/google-workspace) | Eingehend | Bringt Google Workspace-Anmeldungen, Admin-Änderungen und Googles eigene Erkennungen in die Sicherheitsereignisse. |
 | [Cloudflare](/docs/integrations/cloudflare) | Eingehend | Bringt, was die Firewall von Cloudflare blockiert, mit einer Challenge geprüft und protokolliert hat, in die Sicherheitsereignisse, neben das, was Ihre App erreicht hat. |
+| [CrowdSec](/docs/integrations/crowdsec) | Eingehend | Bringt CrowdSec-Warnungen in die Sicherheitsereignisse und bannt in CrowdSec die Adressen, die Sie sperren. |
 
 ### Ticket- und IT-Service-Management-Werkzeuge
 

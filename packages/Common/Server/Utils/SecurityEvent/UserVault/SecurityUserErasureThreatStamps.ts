@@ -15,6 +15,7 @@ import Includes from "../../../../Types/BaseDatabase/Includes";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
+  ENRICHMENT_CONFIDENCE_ATTRIBUTE,
   ENRICHMENT_INDICATOR_ID_ATTRIBUTE,
   ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE,
 } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
@@ -55,9 +56,13 @@ import { getEventUserColumn } from "./SecurityUserErasureEvents";
  * the person's stamps gets what the Hash rule left in the value's place,
  * and the erased indicator id in the indicator's: the fingerprint the feed's
  * finding, alert and case detection carry for the same match
- * (DetectionFingerprint.erasedIndicatorIdOf). The feed, the indicator's
- * type and its confidence stay. A stamp about anything else the event names
- * - an address, a domain, another person - stays as it is.
+ * (DetectionFingerprint.erasedIndicatorIdOf). The feed and the
+ * indicator's type stay; the indicator's confidence, threat.confidence,
+ * goes (#11447): the feed keeps the score beside the address, and in a
+ * small feed whose addresses each have their own, it could point back at
+ * one. A stamp an earlier erasure left with its score - it holds a token
+ * already - loses it the same way. A stamp about anything else the event
+ * names - an address, a domain, another person - stays as it is.
  *
  * NEVER THE PERSON IN A STATEMENT. The read names the project, attribute
  * keys and the tokens; the rewrite names the events by their _id, in the
@@ -98,6 +103,8 @@ export interface StampedEventRow {
   time: string;
   // The value the indicator matched, as the enricher stamped it.
   indicatorValue: string;
+  // The indicator's score the stamp holds, "" for none (#11447).
+  confidence?: string | undefined;
   roles: Record<ScrubbedUserRole, RoleOfStampedEvent>;
 }
 
@@ -208,8 +215,27 @@ export function planStampRewrite(
 ): StampRewrite | null {
   const stamp: string = canonical(row.indicatorValue);
 
-  if (!row.id || !stamp || holdsAnyToken(row.indicatorValue, context.tokens)) {
+  if (!row.id || !stamp) {
     return null;
+  }
+
+  /*
+   * A stamp an earlier erasure took the person out of holds their token,
+   * and may still hold the indicator's score (#11447): it loses that, and
+   * keeps what it says - the token, the erased indicator id it is made of.
+   */
+  if (holdsAnyToken(row.indicatorValue, context.tokens)) {
+    return row.confidence
+      ? {
+          id: row.id,
+          time: row.time,
+          value: row.indicatorValue,
+          indicatorId: DetectionFingerprint.erasedIndicatorIdOf({
+            projectId: context.projectId,
+            value: row.indicatorValue,
+          }),
+        }
+      : null;
   }
 
   for (const role of SCRUBBED_USER_ROLES) {
@@ -314,9 +340,10 @@ export default class SecurityUserErasureThreatStamps {
    * A page of the project's events that carry a threat intel stamp holding
    * no token yet, and one of the tokens as a user's: named by the vault, or
    * un-named by an erasure with a stamp that is none of the event's
-   * observables any more (the person's name was one). In the order they
-   * happened, after `after`. Names the project, attribute keys and the
-   * tokens, never anybody.
+   * observables any more (the person's name was one) - or a stamp holding
+   * one of the tokens already that still holds the indicator's score
+   * (#11447). In the order they happened, after `after`. Names the project,
+   * attribute keys and the tokens, never anybody.
    */
   public static toStampedEventsStatement(data: {
     projectId: ObjectID;
@@ -324,7 +351,7 @@ export default class SecurityUserErasureThreatStamps {
     after?: StampedEventsCursor | null | undefined;
     limit: number;
   }): Statement {
-    const statement: Statement = SQL`SELECT _id AS stampedEventId, toString(toUnixTimestamp64Nano(time)) AS stampedEventTime, attributes[${text(ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE)}] AS stampedValue`;
+    const statement: Statement = SQL`SELECT _id AS stampedEventId, toString(toUnixTimestamp64Nano(time)) AS stampedEventTime, attributes[${text(ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE)}] AS stampedValue, attributes[${text(ENRICHMENT_CONFIDENCE_ATTRIBUTE)}] AS stampedConfidence`;
 
     for (const role of SCRUBBED_USER_ROLES) {
       statement.append(`, ${getEventUserColumn(role)} AS ${role}StampedUser, `);
@@ -346,7 +373,17 @@ export default class SecurityUserErasureThreatStamps {
       SQL` WHERE projectId = ${{
         type: TableColumnType.ObjectID,
         value: data.projectId,
-      }} AND attributes[${text(ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE)}] != '' AND NOT `,
+      }} AND attributes[${text(ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE)}] != '' AND ((`,
+    );
+
+    // Left by an earlier erasure with the indicator's score (#11447).
+    this.appendHoldsToken({
+      statement,
+      attribute: ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE,
+      tokens: data.tokens,
+    });
+    statement.append(
+      SQL` AND attributes[${text(ENRICHMENT_CONFIDENCE_ATTRIBUTE)}] != '') OR (NOT `,
     );
     this.appendHoldsToken({
       statement,
@@ -387,7 +424,7 @@ export default class SecurityUserErasureThreatStamps {
     );
 
     statement.append(
-      SQL`) AND NOT has(arrayMap(observable -> lowerUTF8(observable), observables), lowerUTF8(attributes[${text(ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE)}]))))`,
+      SQL`) AND NOT has(arrayMap(observable -> lowerUTF8(observable), observables), lowerUTF8(attributes[${text(ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE)}]))))))`,
     );
 
     if (data.after) {
@@ -437,6 +474,7 @@ export default class SecurityUserErasureThreatStamps {
           id: readText(row["stampedEventId"]),
           time: readText(row["stampedEventTime"]),
           indicatorValue: readText(row["stampedValue"]),
+          confidence: readText(row["stampedConfidence"]),
           roles: {
             [ScrubbedUserRole.Principal]: roleOf(ScrubbedUserRole.Principal),
             [ScrubbedUserRole.Target]: roleOf(ScrubbedUserRole.Target),
@@ -510,16 +548,17 @@ export default class SecurityUserErasureThreatStamps {
   /*
    * The mutation that gives a batch of events their stamp once the person is
    * out: what the Hash rule left in the value's place, the erased indicator
-   * id in the indicator's. On the local table, ON CLUSTER, as every write to
-   * an analytics table that already holds rows is; matches the events by
-   * their _id, in the stretch of time they happened in.
+   * id in the indicator's, and no indicator's score (#11447). On the local
+   * table, ON CLUSTER, as every write to an analytics table that already
+   * holds rows is; matches the events by their _id, in the stretch of time
+   * they happened in.
    */
   public static toRewriteStampsStatement(data: {
     projectId: ObjectID;
     mutation: StampsMutation;
   }): Statement {
     const stamp: () => Statement = (): Statement => {
-      return SQL`mapUpdate(attributes, map(${text(ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE)}, ${text(data.mutation.value)}, ${text(ENRICHMENT_INDICATOR_ID_ATTRIBUTE)}, ${text(data.mutation.indicatorId)}))`;
+      return SQL`mapFilter((stampKey, stampValue) -> stampKey != ${text(ENRICHMENT_CONFIDENCE_ATTRIBUTE)}, mapUpdate(attributes, map(${text(ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE)}, ${text(data.mutation.value)}, ${text(ENRICHMENT_INDICATOR_ID_ATTRIBUTE)}, ${text(data.mutation.indicatorId)})))`;
     };
     const statement: Statement = SQL`ALTER TABLE `;
 

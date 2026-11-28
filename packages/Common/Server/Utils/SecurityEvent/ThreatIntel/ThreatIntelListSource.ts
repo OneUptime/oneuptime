@@ -160,9 +160,21 @@ export default class ThreatIntelListSource {
     }
   }
 
+  /*
+   * The list, downloaded. A list behind a sign-in - CrowdSec's Console
+   * serves the blocklists a team subscribes to as a "Raw IP List" behind
+   * HTTP Basic Auth (#11158) - is asked for with the feed's user name and
+   * password, which never appear in its address.
+   */
   public static async download(
     url: string,
     fetchImplementation?: ListFetchLike | undefined,
+    credentials?:
+      | {
+          username?: string | undefined;
+          password?: string | undefined;
+        }
+      | undefined,
   ): Promise<string> {
     const fetch: ListFetchLike =
       fetchImplementation ||
@@ -170,11 +182,19 @@ export default class ThreatIntelListSource {
         return DataSourceHttpFetch.fetch(request);
       });
 
+    const username: string = credentials?.username || "";
+    const password: string = credentials?.password || "";
+
     const response: DataSourceHttpResponse = await fetch({
       method: "GET",
       url,
       headers: {
         Accept: "text/plain, text/csv;q=0.9, */*;q=0.5",
+        ...(username || password
+          ? {
+              Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`,
+            }
+          : {}),
       },
       timeoutInMs: THREAT_INTEL_LIST_REQUEST_TIMEOUT_IN_MS,
       egressOptions: {
@@ -202,6 +222,10 @@ export default class ThreatIntelListSource {
     const text: string = await this.download(
       feed.listUrl,
       options.fetchImplementation,
+      {
+        username: feed.basicAuthUsername,
+        password: feed.basicAuthPassword,
+      },
     );
 
     if (looksLikeWebPage(text)) {

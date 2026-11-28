@@ -282,6 +282,13 @@ export interface InstallationHealthProbeBehind {
    * before #9499, which read monitor checks only.
    */
   work?: ProbeBehindWork | undefined;
+  /*
+   * How far behind that work runs, in milliseconds: how long its
+   * longest-waiting check, or poll, had waited past its time at the latest
+   * reading (ProbeBehindUtil.getBehindByMs). Left out while no due time is
+   * kept yet, and by a reader from before it was kept.
+   */
+  behindByMs?: number | undefined;
 }
 
 // The facts the server reads to answer.

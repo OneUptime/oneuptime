@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-改名的鍵仍會依舊名讀取：層的限制類型寫在 `restrictionType` 下，或寫在其舊拼法 `restictionType` 下，回應中兩者都有。
+改名的鍵仍會依舊名讀取：層的限制類型寫在 `restrictionType` 下，或寫在其舊拼法 `restictionType` 下，回應中兩者都有。舊拼法在回應中已淘汰：回應會一直帶有它，直到 2027 年 6 月 1 日當天或之後發布的第一個主要版本。寫入時一律會讀取它。
+
+值也必須與其所述相符。層的每週時段在其指定的星期幾待命，因此依排程的時區，其 `startTime` 和 `endTime` 必須分別落在 `startDay` 和 `endDay` 上。日期落在其他日子的時段會被拒絕，回傳的 `400` 會指明該時段，並提供可改為傳送的、落在指定那天的時間：
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### 專案的購買管道
 
@@ -425,7 +431,7 @@ Incident not found.
 
 ### 記錄的 Markdown 中的圖片
 
-貼到 Markdown 中的圖片，例如事件描述、Markdown 自訂欄位或備註中的螢幕截圖，是一個私人檔案。它的位址（`/file/image/access-token/...`）只對已登入專案的人開啟，所以 API 金鑰改為透過顯示它的記錄來讀取：
+貼到 Markdown 中的圖片，例如事件描述、Markdown 自訂欄位或備註中的螢幕截圖，是一個私人檔案。它的位址（`/file/image/access-token/...`）只對已登入專案、且能讀取顯示它的某筆記錄的人或新增它的人開啟，所以 API 金鑰改為透過顯示它的記錄來讀取：
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +465,7 @@ curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
 }
 ```
 
-只交出上傳到記錄自身所在專案的圖片，最多 20 張、總共 10 MB，而且從不交出 SVG。每種帶 Markdown 的記錄都有同樣的請求，例如 `/api/incident-public-note/<id>/markdown-files` 或 `/api/alert/<id>/markdown-files`。不存在的記錄，或金鑰無權讀取的記錄，會像 `get-item` 一樣回應 `404`；金鑰完全不能讀取該類記錄時回應 `422`。工作流程用 [從 Markdown 取得檔案](/docs/workflows/components#get-files-from-markdown) 讀取同樣的圖片。
+只交出上傳到記錄自身所在專案的圖片，最多 20 張、總共 10 MB，而且從不交出 SVG。每種帶 Markdown 的記錄都有同樣的請求，例如 `/api/incident-public-note/<id>/markdown-files` 或 `/api/alert/<id>/markdown-files`。不存在的記錄，或金鑰無權讀取的記錄，會像 `get-item` 一樣回應 `404`；金鑰完全不能讀取該類記錄時回應 `422`。工作流程用 [從 Markdown 取得檔案](/docs/workflows/components#get-files-from-markdown) 讀取同樣的圖片，並用 [從記錄取得附件](/docs/workflows/components#get-attachments-from-record) 讀取記錄所含的檔案，例如備註的附件和它的檔案類型自訂欄位。
 
 ## 完整的端點參考
 

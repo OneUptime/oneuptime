@@ -2001,6 +2001,62 @@ describe("ChunkLoader signal extraction", () => {
     expect(byKind.get("route")?.routeKind).toBe("pushState");
   });
 
+  /*
+   * The React Native recorder writes its tags marker as the flat map of the
+   * session's tags (MobileReplayRecorder's setTags() and addTag()), the
+   * browser recorder as { tags }. Read as the browser's only, a mobile
+   * session's tag changes showed no tags (found with #11458).
+   */
+  it("reads a mobile session's tags marker, the flat map of its tags, as it reads the browser's", () => {
+    const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
+      makeEntry(0),
+      [
+        { type: 2, timestamp: CUSTOM_BASE_TS, data: {} },
+        // setTags() on mobile, then addTag().
+        custom(
+          "oneuptime.tags",
+          { build: "2026.09.13", experiment: "checkout-b" },
+          CUSTOM_BASE_TS + 10,
+        ),
+        custom(
+          "oneuptime.tags",
+          { build: "2026.09.13", experiment: "checkout-b", region: "eu-west" },
+          CUSTOM_BASE_TS + 20,
+        ),
+        // The browser's.
+        custom(
+          "oneuptime.tags",
+          { tags: { tenant: "acme" } },
+          CUSTOM_BASE_TS + 30,
+        ),
+        // A mobile tag named "tags" is a string, so it is a tag like any other.
+        custom(
+          "oneuptime.tags",
+          { tags: "beta", build: "7" },
+          CUSTOM_BASE_TS + 40,
+        ),
+        // setTags({}) on mobile: no tags left.
+        custom("oneuptime.tags", {}, CUSTOM_BASE_TS + 50),
+      ],
+    );
+
+    expect(
+      rows
+        .filter((row: ReplayTimelineEvent): boolean => {
+          return row.kind === "tags";
+        })
+        .map((row: ReplayTimelineEvent): unknown => {
+          return row.tags;
+        }),
+    ).toEqual([
+      { build: "2026.09.13", experiment: "checkout-b" },
+      { build: "2026.09.13", experiment: "checkout-b", region: "eu-west" },
+      { tenant: "acme" },
+      { tags: "beta", build: "7" },
+      {},
+    ]);
+  });
+
   it("places a performance row when the entry happened, not when the recorder emitted it", () => {
     /*
      * Performance entries are delivered late by design: a buffered LCP

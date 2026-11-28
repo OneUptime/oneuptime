@@ -6,6 +6,7 @@ import {
   computeConnectionShares,
 } from "Common/Server/Utils/Database/ConnectionShares";
 import { PROBE_SCHEDULING_METRICS_WINDOW_SECONDS } from "Common/Server/Utils/Probe/ProbeSchedulingMetrics";
+import { aggregateProbeScheduling } from "Common/Server/Utils/Probe/ProbeSchedulingFleetMetrics";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -44,6 +45,9 @@ function repoFile(relativePath: string): string {
 function flat(text: string): string {
   return text.replace(/\s+/g, " ");
 }
+
+// A section's ```text block: OneUptime's own metrics, one a line.
+const TEXT_BLOCK: RegExp = /```text\n([\s\S]*?)```/;
 
 const CHECKLIST: string = fs.readFileSync(CHECKLIST_FILE, "utf8");
 const CONFIGURATION: string = fs.readFileSync(CONFIGURATION_FILE, "utf8");
@@ -622,6 +626,57 @@ describe("the numbers the checklist quotes", () => {
     );
     expect(PROBE_SCHEDULING_METRICS_WINDOW_SECONDS).toBe(60);
     expect(text).toContain("view over the last minute");
+  });
+
+  /*
+   * Running many monitors' table and metrics (#10819, #11392): each field
+   * it names is one /metrics/probe-scheduling answers with, and each of
+   * OneUptime's own metrics it lists is one the app records - how often a
+   * backed-up pod asked its probes' connections to reconnect among them.
+   */
+  it("for many monitors, names the fields /metrics/probe-scheduling answers with, and the metrics the app records", () => {
+    const section: string = sectionOf(CHECKLIST, 3, "Running many monitors");
+    const answered: Array<string> = Object.keys(
+      aggregateProbeScheduling([], true),
+    );
+    const fields: Array<string> = section
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("| `");
+      })
+      .map((line: string): string => {
+        return line.split("|")[1]!.trim().split("`").join("");
+      });
+
+    expect(fields).toContain("reconnectsAskedPerMinute");
+
+    for (const field of fields) {
+      expect({ field, answered: answered.includes(field) }).toEqual({
+        field,
+        answered: true,
+      });
+    }
+
+    const appMetrics: string = repoFile(
+      "packages/Common/Server/Utils/Telemetry/AppMetrics.ts",
+    );
+    const listed: Array<string> = (TEXT_BLOCK.exec(section)?.[1] || "")
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.trim().length > 0;
+      })
+      .map((line: string): string => {
+        return line.trim().split(" ")[0]!;
+      });
+
+    expect(listed).toContain("probe.scheduling.reconnect.count");
+
+    for (const name of listed) {
+      expect({
+        name,
+        recorded: appMetrics.includes(`name: "${name}"`),
+      }).toEqual({ name, recorded: true });
+    }
   });
 
   it("say which images move by themselves, and which the chart pins", () => {

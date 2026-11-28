@@ -520,7 +520,7 @@ describe("the settings dialog's badge", () => {
 });
 
 describe("the badge on a widget while the board is edited", () => {
-  test("a selected widget: its name, cut at its end, no longer capitalized by its class", () => {
+  test("a selected widget: its name, cut at its end, no longer capitalized by its class", async () => {
     renderCard(DashboardComponentType.ProductAnalyticsFunnel);
 
     expect(cardBadge().textContent).toBe("Funnel");
@@ -531,7 +531,11 @@ describe("the badge on a widget while the board is edited", () => {
     expect(cardBadge().parentElement).toHaveStyle({
       maxWidth: "calc(100% - 12px)",
     });
-    expect(screen.getByTestId("widget-stub")).toBeInTheDocument();
+    /*
+     * Under it, the widget - a Funnel is a file of its own, which the board
+     * loads the first time it draws one (LazyDashboardWidget).
+     */
+    expect(await screen.findByTestId("widget-stub")).toBeInTheDocument();
   });
 
   test("under the drag bar at the line's end: by classes a page read from the right turns round, no physical side of its own", () => {

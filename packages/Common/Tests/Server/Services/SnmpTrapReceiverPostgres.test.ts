@@ -5,17 +5,27 @@ import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase
 import GlobalProbeSnmpTrapReportService from "../../../Server/Services/GlobalProbeSnmpTrapReportService";
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import ProbeService from "../../../Server/Services/ProbeService";
+import NetworkDeviceHydrationUtil from "../../../Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import SnmpTrapReceiverReports from "../../../Server/Utils/Monitor/SnmpTrapReceiverReports";
 import SnmpTrapReceiverUsers from "../../../Server/Utils/Monitor/SnmpTrapReceiverUsers";
 import logger from "../../../Server/Utils/Logger";
 import ObjectID from "../../../Types/ObjectID";
 import SnmpSecurityLevel from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
-import {
+import SnmpTrapReceiverUtil, {
   SnmpTrapReceiverReport,
   SnmpTrapReceiverUser,
   SnmpTrapRefusal,
   SnmpTrapRefusalReason,
 } from "../../../Types/Probe/SnmpTrapReceiver";
+import {
+  DNS_NAMED_ACME_PROJECT_ID,
+  DNS_NAMED_DEVICES,
+  DNS_NAMED_RECEIVER_USERS,
+  DnsNamedDevice,
+  DnsNamedDeviceKey,
+  dnsNamedProbeReport,
+  resolveDnsNamedDevice,
+} from "../../Helpers/Snmp/DnsNamedDeviceSnmpV3Traps";
 import {
   afterAll,
   afterEach,
@@ -1115,11 +1125,11 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
     });
 
     test("end to end: a global probe's report, split as it arrives, with no project reading another's", async () => {
-      await addDevice({
+      const acmes: ObjectID = await addDevice({
         probeId: GLOBAL_PROBE.toString(),
         hostname: "203.0.113.10",
       });
-      await addDevice({
+      const globexs: ObjectID = await addDevice({
         probeId: GLOBAL_PROBE.toString(),
         projectId: OTHER_PROJECT.toString(),
         hostname: "10.0.0.20",
@@ -1178,15 +1188,22 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
         }),
       );
 
+      // Each naming its own project's device (#11406).
       expect(byProject.get(PROJECT.toString())).toEqual([
-        refusal({ userName: "acme-user" }),
+        {
+          ...refusal({ userName: "acme-user" }),
+          deviceIds: [acmes.toString().toLowerCase()],
+        },
       ]);
       expect(byProject.get(OTHER_PROJECT.toString())).toEqual([
-        refusal({
-          sourceAddress: "198.51.100.20",
-          userName: "globex-user",
-          reason: SnmpTrapRefusalReason.WrongDigest,
-        }),
+        {
+          ...refusal({
+            sourceAddress: "198.51.100.20",
+            userName: "globex-user",
+            reason: SnmpTrapRefusalReason.WrongDigest,
+          }),
+          deviceIds: [globexs.toString().toLowerCase()],
+        },
       ]);
 
       const acmeText: string = JSON.stringify(
@@ -1209,6 +1226,301 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
         engineId: "8000B98380A1B2C3D4E5F60718293A4B",
         refusals: [],
       });
+    });
+  });
+
+  describe("devices added by their DNS names (#11406)", () => {
+    type DnsCache = { resolve: (hostname: string) => Promise<Array<string>> };
+
+    beforeEach(() => {
+      // As the names resolve: the recorded devices' own (DnsNamedDeviceSnmpV3Traps).
+      jest
+        .spyOn(
+          (NetworkDeviceHydrationUtil as unknown as { dnsCache: DnsCache })
+            .dnsCache,
+          "resolve",
+        )
+        .mockImplementation(async (hostname: string) => {
+          try {
+            return resolveDnsNamedDevice(hostname);
+          } catch {
+            return [];
+          }
+        });
+    });
+
+    async function addRecorded(
+      key: DnsNamedDeviceKey,
+      probeId: ObjectID,
+    ): Promise<void> {
+      const recorded: DnsNamedDevice = DNS_NAMED_DEVICES[key];
+
+      await insert("NetworkDevice", {
+        _id: recorded.id,
+        projectId:
+          recorded.projectId === DNS_NAMED_ACME_PROJECT_ID
+            ? PROJECT.toString()
+            : OTHER_PROJECT.toString(),
+        probeId: probeId.toString(),
+        name: recorded.name,
+        hostname: recorded.hostname,
+      });
+    }
+
+    /*
+     * The fixture's projects are this suite's: Acme is PROJECT, Globex
+     * OTHER_PROJECT.
+     */
+    function asThisSuite(projectId: string): string {
+      return projectId === DNS_NAMED_ACME_PROJECT_ID
+        ? PROJECT.toString()
+        : OTHER_PROJECT.toString();
+    }
+
+    test("the read: those on the probe whose hostname is a DNS name, held to the tenancy and served projects, in a stable order", async () => {
+      const named: ObjectID = await addDevice({
+        probeId: GLOBAL_PROBE.toString(),
+        hostname: "core-sw-01.acme.example",
+        otherAddresses: "10.0.0.5",
+      });
+      const otherProjects: ObjectID = await addDevice({
+        probeId: GLOBAL_PROBE.toString(),
+        projectId: OTHER_PROJECT.toString(),
+        hostname: " Edge.Globex.Example ",
+      });
+
+      // Not names: addresses of both families, however written.
+      await addDevice({
+        probeId: GLOBAL_PROBE.toString(),
+        hostname: "203.0.113.10",
+      });
+      await addDevice({
+        probeId: GLOBAL_PROBE.toString(),
+        hostname: "2001:DB8::1",
+      });
+      await addDevice({ probeId: GLOBAL_PROBE.toString(), hostname: "" });
+      // Elsewhere: another probe, deleted, a blocked or an unpaid project.
+      await addDevice({
+        probeId: SECOND_GLOBAL_PROBE.toString(),
+        hostname: "elsewhere.example",
+      });
+      await addDevice({
+        probeId: GLOBAL_PROBE.toString(),
+        hostname: "deleted.example",
+        deletedAt: new Date(),
+      });
+      await addDevice({
+        probeId: GLOBAL_PROBE.toString(),
+        hostname: "blocked.example",
+        projectId: BLOCKED_PROJECT.toString(),
+      });
+      await addDevice({
+        probeId: GLOBAL_PROBE.toString(),
+        hostname: "unpaid.example",
+        projectId: UNPAID_PROJECT.toString(),
+      });
+
+      const found: Array<NetworkDevice> =
+        await NetworkDeviceService.findDnsNamedDevicesOnProbe({
+          probeId: GLOBAL_PROBE,
+          limit: 100,
+        });
+
+      expect(
+        found.map((device: NetworkDevice) => {
+          return device.id!.toString();
+        }),
+      ).toEqual(
+        [named, otherProjects]
+          .map((id: ObjectID) => {
+            return id.toString();
+          })
+          .sort(),
+      );
+
+      const withOther: NetworkDevice = found.find((device: NetworkDevice) => {
+        return device.id!.toString() === named.toString();
+      })!;
+      expect(withOther.hostname).toBe("core-sw-01.acme.example");
+      expect(withOther.otherAddresses).toBe("10.0.0.5");
+      expect(withOther.projectId!.toString()).toBe(PROJECT.toString());
+
+      expect(
+        await NetworkDeviceService.findDnsNamedDevicesOnProbe({
+          probeId: GLOBAL_PROBE,
+          limit: 1,
+        }),
+      ).toHaveLength(1);
+    });
+
+    test("a project's own probe reads only its own project's DNS-named devices, whatever points another's there", async () => {
+      const own: ObjectID = await addDevice({
+        probeId: PROBE.toString(),
+        hostname: "own.acme.example",
+      });
+      await addDevice({
+        probeId: PROBE.toString(),
+        projectId: OTHER_PROJECT.toString(),
+        hostname: "intruder.globex.example",
+      });
+
+      expect(
+        (
+          await NetworkDeviceService.findDnsNamedDevicesOnProbe({
+            probeId: PROBE,
+            limit: 100,
+          })
+        ).map((device: NetworkDevice) => {
+          return device.id!.toString();
+        }),
+      ).toEqual([own.toString()]);
+    });
+
+    test("end to end on a global probe: the recorded refusals, each to the project whose DNS name resolves to its address, and a shared address to nobody", async () => {
+      for (const key of Object.keys(
+        DNS_NAMED_DEVICES,
+      ) as Array<DnsNamedDeviceKey>) {
+        await addRecorded(key, GLOBAL_PROBE);
+      }
+
+      expect(
+        await SnmpTrapReceiverReports.record({
+          probeId: GLOBAL_PROBE,
+          report: dnsNamedProbeReport(),
+          users: DNS_NAMED_RECEIVER_USERS.map(
+            (user: SnmpTrapReceiverUser): SnmpTrapReceiverUser => {
+              return {
+                ...user,
+                heldBy: {
+                  projectIds: [asThisSuite(user.heldBy!.projectIds[0]!)],
+                },
+              };
+            },
+          ),
+        }),
+      ).toBe(true);
+
+      const rows: Array<{ projectId: string; refusals: unknown }> =
+        await database.query(
+          `SELECT "projectId"::text AS "projectId", "refusals" FROM "GlobalProbeSnmpTrapReport" WHERE "probeId" = $1 ORDER BY "projectId"`,
+          [GLOBAL_PROBE.toString()],
+        );
+      const byProject: Map<string, Array<SnmpTrapRefusal>> = new Map(
+        rows.map((row: { projectId: string; refusals: unknown }) => {
+          return [row.projectId, row.refusals as Array<SnmpTrapRefusal>];
+        }),
+      );
+
+      const acme: Array<SnmpTrapRefusal> =
+        byProject.get(PROJECT.toString()) || [];
+      const globex: Array<SnmpTrapRefusal> =
+        byProject.get(OTHER_PROJECT.toString()) || [];
+
+      expect(
+        acme
+          .map((kept: SnmpTrapRefusal) => {
+            return [
+              kept.sourceAddress,
+              kept.userName,
+              kept.reason,
+              kept.deviceIds,
+            ];
+          })
+          .sort(),
+      ).toEqual([
+        [
+          "127.0.11.6",
+          "acme-core",
+          SnmpTrapRefusalReason.UnknownUser,
+          [DNS_NAMED_DEVICES.acmeCore.id],
+        ],
+        [
+          "127.0.11.7",
+          "acme-edge",
+          SnmpTrapRefusalReason.WrongDigest,
+          [DNS_NAMED_DEVICES.acmeEdge.id],
+        ],
+      ]);
+
+      expect(
+        globex.map((kept: SnmpTrapRefusal) => {
+          return [kept.sourceAddress, kept.userName, kept.deviceIds];
+        }),
+      ).toEqual([
+        ["127.0.11.8", "globex-dist", [DNS_NAMED_DEVICES.globexDist.id]],
+      ]);
+
+      // Nothing of one project's in the other's row.
+      expect(JSON.stringify(globex)).not.toContain("acme-");
+      expect(JSON.stringify(acme)).not.toContain("globex-");
+      expect(JSON.stringify(acme)).not.toContain(
+        DNS_NAMED_DEVICES.globexDist.id,
+      );
+
+      // An address Acme typed in that Globex's name resolves to, one both names resolve to, and the scanner's: nobody's.
+      for (const nobodys of ["127.0.11.9", "127.0.11.10", "nat-member"]) {
+        expect(JSON.stringify(rows)).not.toContain(nobodys);
+      }
+
+      // The global probe's own row: no refusal, no device.
+      const probeRow: Array<{ snmpTrapReceiver: unknown }> =
+        await database.query(
+          `SELECT "snmpTrapReceiver" FROM "Probe" WHERE "_id" = $1`,
+          [GLOBAL_PROBE.toString()],
+        );
+      expect(
+        (probeRow[0]!.snmpTrapReceiver as SnmpTrapReceiverReport).refusals,
+      ).toEqual([]);
+      expect(JSON.stringify(probeRow)).not.toContain(
+        DNS_NAMED_DEVICES.acmeCore.id,
+      );
+    });
+
+    test("end to end on a project's own probe: the whole report kept, each refusal naming the DNS-named device it came from", async () => {
+      for (const key of [
+        "acmeCore",
+        "acmeEdge",
+        "acmeBranch",
+        "acmeLab",
+      ] as Array<DnsNamedDeviceKey>) {
+        await addRecorded(key, PROBE);
+      }
+
+      await SnmpTrapReceiverReports.record({
+        probeId: PROBE,
+        report: dnsNamedProbeReport(),
+        users: [],
+      });
+
+      const probeRow: Array<{ snmpTrapReceiver: SnmpTrapReceiverReport }> =
+        await database.query(
+          `SELECT "snmpTrapReceiver" FROM "Probe" WHERE "_id" = $1`,
+          [PROBE.toString()],
+        );
+
+      expect(
+        probeRow[0]!.snmpTrapReceiver.refusals.map((kept: SnmpTrapRefusal) => {
+          return [kept.sourceAddress, kept.deviceIds];
+        }),
+      ).toEqual([
+        ["127.0.11.6", [DNS_NAMED_DEVICES.acmeCore.id]],
+        ["127.0.11.7", [DNS_NAMED_DEVICES.acmeEdge.id]],
+        ["127.0.11.8", undefined],
+        ["127.0.11.9", [DNS_NAMED_DEVICES.acmeBranch.id]],
+        ["127.0.11.10", [DNS_NAMED_DEVICES.acmeLab.id]],
+      ]);
+
+      // As the device's pages read it.
+      const report: SnmpTrapReceiverReport | null =
+        SnmpTrapReceiverUtil.parseReport(probeRow[0]!.snmpTrapReceiver);
+      expect(
+        SnmpTrapReceiverUtil.getRefusalsOfDevice(report, {
+          deviceId: DNS_NAMED_DEVICES.acmeCore.id,
+          addresses: [DNS_NAMED_DEVICES.acmeCore.hostname],
+        }).map((kept: SnmpTrapRefusal) => {
+          return kept.userName;
+        }),
+      ).toEqual(["acme-core"]);
     });
   });
 });

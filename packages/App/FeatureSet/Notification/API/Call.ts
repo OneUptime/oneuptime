@@ -42,8 +42,11 @@ import CallStatus, {
 } from "Common/Types/Call/CallStatus";
 import CallLogService from "Common/Server/Services/CallLogService";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
-import CallRequest from "Common/Types/Call/CallRequest";
-import { ONEUPTIME_PRODUCT_NAME } from "Common/Types/Branding/ProductBranding";
+import CallRequest, { CallInLanguage } from "Common/Types/Call/CallRequest";
+import getCallInLanguage from "Common/Server/Utils/Call/CallInLanguage";
+import UserLanguage from "Common/Server/Utils/Notification/UserLanguage";
+import { Translator } from "Common/Types/Translator";
+import { getProjectTestCallData } from "Common/Utils/Call/TestCall";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
 import TwilioPhoneNumbers, {
@@ -817,16 +820,26 @@ router.post(
 
         /*
          * "OneUptime", which an installation that goes by its own name says
-         * instead (ProductBrandingText), said as two words (CallSpeech).
+         * instead (ProductBrandingText), said as two words (CallSpeech). In
+         * English as it always was, and - for a member who reads another
+         * language - in theirs too (#11461, Utils/Call/TestCall), by a voice
+         * of it where the project's account has one.
          */
         const testCallRequest: CallRequest = {
-          data: [
-            {
-              sayMessage: `This is a test call from ${ONEUPTIME_PRODUCT_NAME}.`,
-            },
-          ],
+          data: getProjectTestCallData(),
           to: toPhone,
         };
+
+        const inLanguage: CallInLanguage | undefined = getCallInLanguage(
+          await UserLanguage.getLanguage(caller.userId),
+          (translator: Translator): CallRequest["data"] => {
+            return getProjectTestCallData(translator);
+          },
+        );
+
+        if (inLanguage) {
+          testCallRequest.inLanguage = inLanguage;
+        }
 
         /*
          * The number it calls from - the one a real call to this phone

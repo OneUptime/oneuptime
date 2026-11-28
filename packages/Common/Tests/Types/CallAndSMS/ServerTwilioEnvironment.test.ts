@@ -492,6 +492,9 @@ describe("what the Admin Dashboard is told", () => {
       isCallVoiceSetByEnvironment: false,
       callVoice: null,
       callVoiceProblem: null,
+      isLetProjectsChooseCallVoiceSetByEnvironment: false,
+      letProjectsChooseCallVoice: false,
+      letProjectsChooseCallVoiceProblem: null,
     });
 
     const unused: ServerTwilioEnvironmentReading = ServerTwilioEnvironment.read(
@@ -530,6 +533,9 @@ describe("what the Admin Dashboard is told", () => {
       isCallVoiceSetByEnvironment: false,
       callVoice: null,
       callVoiceProblem: null,
+      isLetProjectsChooseCallVoiceSetByEnvironment: false,
+      letProjectsChooseCallVoice: false,
+      letProjectsChooseCallVoiceProblem: null,
     });
     expect(JSON.stringify(answer)).not.toContain(TOKEN);
     expect(Object.keys(answer)).not.toContain("authToken");
@@ -589,6 +595,9 @@ describe("what the Admin Dashboard is told", () => {
         isCallVoiceSetByEnvironment: false,
         callVoice: null,
         callVoiceProblem: null,
+        isLetProjectsChooseCallVoiceSetByEnvironment: false,
+        letProjectsChooseCallVoice: false,
+        letProjectsChooseCallVoiceProblem: null,
       });
     },
   );
@@ -618,6 +627,9 @@ describe("what the Admin Dashboard is told", () => {
       isCallVoiceSetByEnvironment: false,
       callVoice: null,
       callVoiceProblem: null,
+      isLetProjectsChooseCallVoiceSetByEnvironment: false,
+      letProjectsChooseCallVoice: false,
+      letProjectsChooseCallVoiceProblem: null,
     });
   });
 });

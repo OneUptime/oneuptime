@@ -44,6 +44,7 @@ import {
   RunOptions,
   RunReturnType,
 } from "Common/Server/Types/Workflow/ComponentCode";
+import Components from "Common/Server/Types/Workflow/Components/Index";
 import GetFilesFromMarkdown from "Common/Server/Types/Workflow/Components/MarkdownFiles/GetFilesFromMarkdown";
 import MarkdownFiles from "Common/Server/Utils/File/MarkdownFiles";
 import logger from "Common/Server/Utils/Logger";
@@ -130,6 +131,12 @@ interface RunResult {
   persisted: JSONObject;
   trace: WorkflowStepTrace;
   logs: string;
+  /*
+   * What JSON to Text built from what it was handed, as it returned it: the
+   * run's log and trace hide the pictures' data in every step after the one
+   * that returned it (#11476), what the step ran with does not.
+   */
+  builtText: string | null;
 }
 
 const PNG_SIGNATURE: Array<number> = [
@@ -439,6 +446,15 @@ describePostgres(
         variables: [],
       });
 
+      // The real JSON to Text, watched: what it returns is what it built.
+      const jsonToText: { mock: { results: Array<{ value: unknown }> } } =
+        jest.spyOn(
+          Components[ComponentID.JsonToText] as unknown as {
+            run: (...args: Array<unknown>) => Promise<RunReturnType>;
+          },
+          "run",
+        ) as unknown as { mock: { results: Array<{ value: unknown }> } };
+
       await runner.runWorkflow({
         arguments: data.arguments,
         workflowId: WORKFLOW_ID,
@@ -451,10 +467,15 @@ describePostgres(
         calls[calls.length - 1]?.[0] as { data: JSONObject }
       ).data;
 
+      const built: RunReturnType | undefined = jsonToText.mock.results[0]
+        ? ((await jsonToText.mock.results[0].value) as RunReturnType)
+        : undefined;
+
       return {
         persisted: persisted,
         trace: parseTrace(persisted["stepTrace"] as never),
         logs: String(persisted["logs"] || ""),
+        builtText: built ? String(built.returnValues["text"]) : null,
       };
     };
 
@@ -641,12 +662,21 @@ describePostgres(
           "attachments-1",
         ]);
 
-        const text: string = String(
-          stepOf(result.trace, "attachments-1").returnValues["text"],
-        );
+        const text: string = String(result.builtText);
         const message: JSONObject = (JSON.parse(text) as JSONObject)[
           "message"
         ] as JSONObject;
+
+        // The next step's own entry hides the pictures it was handed (#11476).
+        expect(
+          String(stepOf(result.trace, "attachments-1").returnValues["text"]),
+        ).toContain(WORKFLOW_LOG_REDACTED_VALUE);
+
+        for (const key of ["screenshot", "impact"]) {
+          expect(result.logs).not.toContain(
+            images[key]!.bytes.toString("base64"),
+          );
+        }
         const attachments: Array<MarkdownFile> = message[
           "attachments"
         ] as unknown as Array<MarkdownFile>;
@@ -730,13 +760,9 @@ describePostgres(
         expect(result.persisted["workflowStatus"]).toBe(WorkflowStatus.Success);
 
         const attachments: JSONArray = (
-          (
-            JSON.parse(
-              String(
-                stepOf(result.trace, "attachments-1").returnValues["text"],
-              ),
-            ) as JSONObject
-          )["message"] as JSONObject
+          (JSON.parse(String(result.builtText)) as JSONObject)[
+            "message"
+          ] as JSONObject
         )["attachments"] as JSONArray;
 
         expect(

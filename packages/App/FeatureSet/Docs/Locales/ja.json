@@ -257,6 +257,7 @@
     "Forms Overview": "フォームの概要",
     "Building a Form": "フォームの作成",
     "What a Submission Creates": "送信で作成されるもの",
+    "Following Up on a Submission": "送信のフォローアップ",
     "Sharing & Security": "共有とセキュリティ",
     "Workflows Overview": "ワークフロー 概要",
     "Authoring a Workflow": "ワークフローを作成する",
@@ -511,6 +512,7 @@
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
     "Cloudflare": "Cloudflare",
+    "CrowdSec": "CrowdSec",
     "Global SSO": "グローバル SSO",
     "Import and Export Label Rules": "ラベルルールのインポートとエクスポート",
     "Run Rules on Existing Resources": "既存のリソースに対してルールを実行する"

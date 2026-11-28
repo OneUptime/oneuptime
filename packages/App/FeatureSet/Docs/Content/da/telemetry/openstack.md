@@ -292,6 +292,12 @@ ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
 COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
+OPENSTACK_AGENT_CONTAINER_NAME=oneuptime-openstack-agent
+OPENSTACK_EXPORTER_CONTAINER_NAME=oneuptime-openstack-exporter
+OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME=oneuptime-openstack-quota-exporter
+OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-database-exporter
+OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-worker-state-exporter
+OPENSTACK_AI_AGENT_CONTAINER_NAME=oneuptime-openstack-ai-agent
 ```
 
 `OPENSTACK_EXPORTER_CLOUDS` lister hver region, i firkantede parenteser, og `COMPOSE_PROFILES` starter den medfølgende exporter og [AI-agenten](#ai-agent). Begge filer indeholder hemmeligheder. Exporteren kører som uid 65532 og skal være den ene konto, der kan læse `clouds.yaml`. Start agenten:
@@ -380,6 +386,12 @@ Installationsscriptet skriver dem til `/opt/oneuptime-openstack-agent/.env`; en 
 | `OPENSTACK_AGENT_SERVICES` | Nej | Hvilke tjenester denne agent læser, til [deling af en cloud mellem agenter](/docs/telemetry/openstack-very-large-clouds#deling-af-en-cloud-mellem-indsamlere), såsom `compute\|placement`. Er som standard dem alle. |
 | `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | Nej | Hvad collectoren må holde i hukommelsen. Indsamlingen fra en meget stor cloud tager mere end standarden på `512`. |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | Nej | `openstack_database_exporter`, til [databasestien](/docs/telemetry/openstack-very-large-clouds#databasestien): `[openstack-database-exporter:9180]`. Er som standard ingen. Den stis øvrige indstillinger står opført der. |
+| `OPENSTACK_AGENT_CONTAINER_NAME` | Nej | Collectorens containernavn. Er som standard `oneuptime-openstack-agent`. En anden clouds agent på samme maskine skal have sine egne navne: se [Overvågning af flere clouds](#overvågning-af-flere-clouds). Installationsscriptet navngiver en ny agents containere efter dens mappe, medmindre du angiver dem, og beholder dem, når du kører scriptet igen. |
+| `OPENSTACK_EXPORTER_CONTAINER_NAME` | Nej | Den medfølgende exporters containernavn. Er som standard `oneuptime-openstack-exporter`, og for en anden agent et navn ved siden af dens collectors, fx `oneuptime-openstack-exporter-cloud2`. |
+| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | Nej | Kvote-exporterens containernavn. Er som standard `oneuptime-openstack-quota-exporter`, og for en anden agent et navn ved siden af dens collectors, fx `oneuptime-openstack-quota-exporter-cloud2`. |
+| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | Nej | Database-exporterens containernavn. Er som standard `oneuptime-openstack-database-exporter`, og for en anden agent et navn ved siden af dens collectors, fx `oneuptime-openstack-database-exporter-cloud2`. |
+| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | Nej | Workerstatus-exporterens containernavn. Er som standard `oneuptime-openstack-worker-state-exporter`, og for en anden agent et navn ved siden af dens collectors, fx `oneuptime-openstack-worker-state-exporter-cloud2`. |
+| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | Nej | AI-agentens containernavn. Er som standard `oneuptime-openstack-ai-agent`, og for en anden agent et navn ved siden af dens collectors, fx `oneuptime-openstack-ai-agent-cloud2`. |
 
 Installationsscriptet læser også legitimationen fra miljøet for at springe sine spørgsmål over: `OPENSTACK_APPLICATION_CREDENTIAL_ID` og `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, eller `OPENSTACK_USERNAME`, `OPENSTACK_PASSWORD`, `OPENSTACK_PROJECT_NAME`, `OPENSTACK_USER_DOMAIN_NAME` og `OPENSTACK_PROJECT_DOMAIN_NAME`. De har egne navne i stedet for de `OS_*`, en openrc-fil sætter, så en admins indlæste openrc aldrig bliver agentens legitimation uden at nogen bliver spurgt. En applikationslegitimation er bedre end et brugernavn og en adgangskode: den kan begrænses til læsning og kan udløbe.
 
@@ -1025,6 +1037,7 @@ Uden argument kigger scriptet på maskinen og spørger, hvis det ikke kan se det
 | `OPENSTACK_LOGS_DIRECTORY` | Hvor Kolla-Ansibles logs er, hvis ikke i dens sædvanlige Docker-volumen |
 | `OPENSTACK_LOGS_TIMEZONE` | Den zone, oslo.log skriver sine tider i. Er som standard `UTC` |
 | `OPENSTACK_LOGS_UNITS` | Journalens units, der skal læses, i firkantede parenteser. Er som standard hver OpenStack-tjenestes |
+| `OPENSTACK_LOGS_CONTAINER_NAME` | Collectorens containernavn, med Docker. Er som standard `oneuptime-openstack-logs`. Når du kører scriptet igen, beholdes det |
 
 Filprofilen læser OpenStacks tjenester ved navn, så RabbitMQ, MariaDB, HAProxy og libvirt i den samme mappe lades i fred. En collector genstartet senere fortsætter fra den linje, den var nået til.
 
@@ -1645,6 +1658,20 @@ Cloudens side **AI-agent** tilbyder en runbook for hver af disse, som du kan til
 
 En arbejdsgang kan starte fra en OpenStack-advarsel og foreslå en rettelse: trinnet **Foreslå en OpenStack-rettelse** tager advarslen eller hændelsen og kommandoen. Det går gennem den samme policy, det samme skriveomfang og den samme læsning af, hvad en ændring rører, som en rettelse OneUptime AI foreslår, det kræver ingen AI-model, og en person godkender det på advarslen. En arbejdsgang kan ikke selv foretage ændringen eller godkende det, den foreslår, uanset cloudens rettelsestilstand. Skabelonen **Propose taking a failing OpenStack compute service out of scheduling** er et sted at begynde.
 
+## Overvågning af flere clouds
+
+Én agent læser én cloud. For at overvåge flere fra den samme maskine skal du installere hver i sin egen mappe, med sin egen `.env` og sine egne containernavne, for to containere kan ikke dele et navn:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-openstack-agent-cloud2 bash install.sh
+```
+
+Scriptet navngiver agentens containere efter mappen: `oneuptime-openstack-agent-cloud2`, `oneuptime-openstack-exporter-cloud2`, `oneuptime-openstack-quota-exporter-cloud2`, `oneuptime-openstack-database-exporter-cloud2`, `oneuptime-openstack-worker-state-exporter-cloud2` og `oneuptime-openstack-ai-agent-cloud2`. For at vælge dem selv skal du sætte `OPENSTACK_AGENT_CONTAINER_NAME` og de øvrige i tabellen ovenfor, når du kører det. Det gemmer navnene i den agents `.env`, så når du kører scriptet igen for at opgradere agenten, beholdes navnene, og en agent, hvis `container_name` du engang redigerede i `docker-compose.yml`, beholder det navn. Giv hver mappe sit eget navn: Docker Compose navngiver et projekt efter dets mappe alene, så scriptet afviser en mappe, der hedder det samme som en, der allerede kører en agent et andet sted. Med Docker Compose sætter du i stedet navnene i hver agents `.env`.
+
+Navnene gælder med Docker: en installation uden Docker kører ingen container. Collectorerne til logs og spor læser deres egne navne fra `.env` på samme måde: `OPENSTACK_LOGS_CONTAINER_NAME` og `OPENSTACK_TRACES_CONTAINER_NAME`.
+
+Agentens systemd-unit antager `/opt/oneuptime-openstack-agent`: til en anden mappe skal du gemme den under et andet navn, fx `oneuptime-openstack-agent-cloud2.service`, og ændre dens `WorkingDirectory`. Giv mappen til diagnosescriptet med `-d`.
+
 ## Kør som en systemd-tjeneste
 
 For at starte agenten sammen med maskinen og genstarte den, når den fejler, skal du installere dens systemd-unit. Den antager, at agenten ligger i `/opt/oneuptime-openstack-agent`, hvor installationsscriptet lægger den. En installation uden Docker er allerede en systemd-tjeneste.
@@ -1659,7 +1686,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 Agenten rapporterer versionen af sine filer som sin **Agentversion**: den collectorversion, de låser fast, hvor det sidste tal hæves, hver gang filerne ændres på den collector. Når den er ældre end den version, denne OneUptime-udgave låser fast, vises et advarselstegn ved siden af den. Vælg det for at se disse kommandoer.
 
-Collector-imaget er låst fast i `docker-compose.yml`, og dens konfiguration er en fil ved siden af, så at hente alene flytter ikke agenten frem. Kør `install.sh` igen, med `sudo` hvis du installerede uden Docker: det genbruger hver værdi i din eksisterende `.env` og legitimationen i `clouds.yaml` (intet spørges om igen), tjekker legitimationen hos Keystone, opdaterer agentens filer (en fil, du har redigeret, beholdes som `<file>.bak.<timestamp>`), henter imagene og genskaber agenten, så collectoren læser sin nye konfiguration.
+Collector-imaget er låst fast i `docker-compose.yml`, og dens konfiguration er en fil ved siden af, så at hente alene flytter ikke agenten frem. Kør `install.sh` igen, med `sudo` hvis du installerede uden Docker: det genbruger hver værdi i din eksisterende `.env` og legitimationen i `clouds.yaml` (intet spørges om igen), tjekker legitimationen hos Keystone, opdaterer agentens filer (en fil, du har redigeret, beholdes som `<file>.bak.<timestamp>`), henter imagene og genskaber agenten, så collectoren læser sin nye konfiguration. En agent, der er installeret uden for `/opt/oneuptime-openstack-agent`, skal have sin mappe, `INSTALL_DIR=<folder> bash install.sh`, og beholder sine containernavne.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh

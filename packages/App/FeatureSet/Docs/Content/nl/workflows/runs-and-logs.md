@@ -87,9 +87,13 @@ De ID onder de titel van elke stap is precies wat er in een `{{local.components.
 
 De getoonde waarden zijn wat het blok ontving, nadat de variabelen waren ingevuld en voordat het blok er iets mee deed, met twee uitzonderingen: geheimen en velden die het blok als gevoelig markeert, worden afgeschermd, en een waarde langer dan 4.000 tekens wordt ingekort met "… (truncated)". Een uitvoering bewaart haar laatste 100 stappen; een lange of vaak hervatte uitvoering toont een oranje notitie waar de eerdere zijn weggevallen. Uitvoeringen die zijn vastgelegd voordat de namen van uitgangen werden bewaard, tonen de uitgang met haar ID, zonder waar ze naartoe leidde.
 
+Een waarde die een blok als gevoelig markeert, zoals de afbeeldingen die **Bestanden uit Markdown ophalen** teruggeeft, blijft afgeschermd in elk blok daarna, ook na een **Pauze**. Een later blok dat haar krijgt, toont haar afgeschermd in wat het ontving en in wat het teruggaf, en haar tekst wordt afgeschermd overal waar die voorkomt in wat de uitvoering vastlegt: een bericht dat haar bevat, of een fout die haar citeert. Korte stukken ervan die zeggen wat er werd doorgegeven, zoals de naam of het type van een bestand, blijven staan. De blokken zelf krijgen nog steeds de echte waarde.
+
 ### Het tabblad Full Log
 
 Het ruwe logboek, regel voor regel, dat de uitvoerder schreef, inclusief alles wat de blokken zelf logden, zoals de waarde van een **Logboek**-blok of de `console.log` van een script. Gebruik het als het tabblad Stappen de fout niet verklaart.
+
+Elke waarde die het logboek schrijft, of het nu gaat om wat een blok ontving, wat het teruggaf of wat het logde, wordt ingekort tot de eerste 65.536 tekens en eindigt met hoeveel er zijn weggelaten, zoals `… (10,420,113 more characters left out)`. De ontvangen en de teruggegeven waarden van een blok worden elk apart ingekort, zodat één lange waarde de andere niet verbergt. Geheimen en gevoelige waarden worden afgeschermd voordat een waarde wordt ingekort, zodat een waarde die door de snede zou worden gesplitst toch helemaal afgeschermd blijft.
 
 ## Een uitvoering kopiëren en downloaden
 

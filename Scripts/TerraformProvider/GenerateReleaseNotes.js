@@ -1086,7 +1086,13 @@ function sectionOfEntries(section, entries) {
  * read); `oneUptime` is { from, to, entries } or, when GitHub could not be
  * read, { from, to, entries: null }, and null when there was no range.
  */
-function renderReleaseNotes({ version, previous, comparison, oneUptime }) {
+function renderReleaseNotes({
+  version,
+  previous,
+  comparison,
+  oneUptime,
+  toolchain,
+}) {
   const entries = oneUptime ? oneUptime.entries : null;
   const schemaBreaking = comparison ? breakingLines(comparison) : [];
   const breakingEntries = entriesOf(entries, "breaking");
@@ -1150,6 +1156,7 @@ function renderReleaseNotes({ version, previous, comparison, oneUptime }) {
         : `**OneUptime's changes:** ${comparisonLink} (its pull requests could not be read for these notes)`,
     );
   }
+  closing.push(renderToolchain(toolchain));
 
   return assembleNotes({
     changes: changes.filter(Boolean),
@@ -1158,15 +1165,28 @@ function renderReleaseNotes({ version, previous, comparison, oneUptime }) {
   });
 }
 
+/*
+ * What the provider was built with, so anyone can build this tag again the
+ * same way and get the same zips (#11464); nothing without it.
+ */
+function renderToolchain(toolchain) {
+  return toolchain
+    ? `**Built with:** ${toolchain}. The zips, built from this tag with them, are the same bytes.`
+    : "";
+}
+
 // The notes of a release that publishes another's provider again.
-function renderRepublishNotes({ version, republishOf }) {
+function renderRepublishNotes({ version, republishOf, toolchain }) {
   const original = linkToRelease(republishOf);
   return [
     `This is ${original}'s provider, published again as v${version}, unchanged: it is built from the same commit.`,
     `${original}'s assets were built again and uploaded over the published ones after the Terraform and OpenTofu registries had read them, so \`terraform init\` and \`tofu init\` refuse ${republishOf} with \`checksum list has unexpected SHA-256 hash\` (#20). A published release is never changed, so use v${version} instead: ${original}'s notes say what it changed.`,
     installSection(version),
     `**Full changelog:** https://github.com/${PROVIDER_REPOSITORY}/compare/${republishOf}...v${version}`,
-  ].join("\n\n");
+    renderToolchain(toolchain),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 /*
@@ -1189,6 +1209,7 @@ function parseArguments(argumentList) {
     republishOf: null,
     oneUptimeTo: null,
     output: null,
+    toolchain: null,
     fallbackOnError: false,
   };
   const withValue = new Map([
@@ -1199,6 +1220,10 @@ function parseArguments(argumentList) {
     ["--republish-of", "republishOf"],
     ["--oneuptime-to", "oneUptimeTo"],
     ["--output", "output"],
+    // What it was built with (publish-terraform-provider.sh reads it from
+    // the go and goreleaser it builds with): "Go 1.27.4 and GoReleaser
+    // v2.20.3".
+    ["--toolchain", "toolchain"],
   ]);
 
   for (let index = 0; index < argumentList.length; index += 1) {
@@ -1252,7 +1277,13 @@ async function run(options, tools = {}) {
   const { version } = options;
 
   if (options.republishOf) {
-    write(renderRepublishNotes({ version, republishOf: options.republishOf }));
+    write(
+      renderRepublishNotes({
+        version,
+        republishOf: options.republishOf,
+        toolchain: options.toolchain,
+      }),
+    );
     return;
   }
 
@@ -1306,7 +1337,15 @@ async function run(options, tools = {}) {
     }
   }
 
-  write(renderReleaseNotes({ version, previous, comparison, oneUptime }));
+  write(
+    renderReleaseNotes({
+      version,
+      previous,
+      comparison,
+      oneUptime,
+      toolchain: options.toolchain,
+    }),
+  );
 }
 
 function oneUptimeCommitOfOrNull(directory, ref) {

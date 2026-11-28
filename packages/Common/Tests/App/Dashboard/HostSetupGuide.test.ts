@@ -1233,33 +1233,45 @@ describe("the guide's claims match ingest", () => {
     expect(reported).toContain("`host.id` is the instance's UUID");
   });
 
-  test("a host needs host.name plus os.type, container.runtime or host metrics", () => {
+  test("a host needs host.name plus os.type or host metrics", () => {
     expect(reported).toContain("carries `host.name` also carries any of");
     expect(reported).toContain(
-      "an `os.type` or `container.runtime` resource attribute",
+      "- an `os.type` resource attribute, on metrics, logs or traces",
     );
     expect(ingest).toContain(
       'const hostName: string | null = this.getStringAttribute( data.attributes, "host.name", ); if (!hostName) { return null; }',
     );
     expect(ingest).toContain(
-      "const hasResourceSignal: boolean = Boolean(osType || containerRuntime); if (!hasResourceSignal && !data.hasInfraSignal) { return null; }",
+      "if (!osType && !data.hasInfraSignal) { return null; }",
     );
     expect(ingest).toContain(
       'if (name.startsWith("system.") || name.startsWith("process.")) { result.hasInfraSignal = true; }',
     );
   });
 
-  test("Kubernetes identities never register a host", () => {
+  /*
+   * One rule keeps telemetry that is not a host's own off Hosts (#11257):
+   * Common/Utils/Telemetry/HostResource, which the gate reads.
+   */
+  test("a Kubernetes identity, a container runtime, a container or an app's SDK never registers a host", () => {
     expect(reported).toContain("is filed under its Kubernetes cluster instead");
+    expect(reported).toContain("never registers a host");
     expect(ingest).toContain(
-      "if (this.hasKubernetesIdentity(data.attributes)) { return null; }",
+      "if (this.getNotAHostReason(data.attributes)) { return null; }",
     );
-    const entity: string = squash(
-      readRepoFile("packages/Common/Server/Utils/Telemetry/TelemetryEntity.ts"),
+    const rule: string = squash(
+      readRepoFile("packages/Common/Utils/Telemetry/HostResource.ts"),
     );
-    for (const key of ["k8s.cluster.name", "k8s.node.name", "k8s.pod.name"]) {
+    for (const key of [
+      "k8s.cluster.name",
+      "k8s.node.name",
+      "k8s.pod.name",
+      "container.runtime",
+      "container.id",
+      "telemetry.sdk.name",
+    ]) {
       expect(reported).toContain(`\`${key}\``);
-      expect(entity).toContain(`"${key}",`);
+      expect(rule).toContain(`"${key}"`);
     }
   });
 

@@ -531,7 +531,11 @@ tests:
     set:
       ebpf.routes.unmatched: guess
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/routes/unmatched': value must be one of '', 'heuristic', 'low-cardinality', 'wildcard', 'path', 'unset'
 
   - it: keeps the log enricher selector out of the config unless log correlation is on
     templates:
@@ -700,7 +704,10 @@ tests:
       ebpf.extraSpanAttributes: [""]
     asserts:
       - failedTemplate:
-          errorPattern: "ebpf.extraSpanAttributes.0: String length must be greater than or equal to 1"
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            kubernetes-agent:
+            - at '/ebpf/extraSpanAttributes/0': minLength: got 0, want 1
 
   # The log enricher owns the file's one top-level `ebpf:` key. yaml.v3, which
   # OBI decodes the file with, refuses a repeated key, so a second `ebpf:` or

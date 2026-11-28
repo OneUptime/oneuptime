@@ -87,9 +87,13 @@ ID:t under varje stegs titel är exakt det som ska stå i en `{{local.components
 
 Värdena som visas är det blocket tog emot, efter att variablerna fyllts i och innan blocket gjorde något med dem, med två undantag: hemligheter och fält som blocket markerar som känsliga döljs, och ett värde på mer än 4 000 tecken kapas med "… (truncated)". En körning behåller sina senaste 100 steg; en lång eller ofta återupptagen körning visar en orange notering där de tidigare släpptes. Körningar som registrerades innan utgångarnas namn sparades visar utgången med dess ID, utan vart den ledde.
 
+Ett värde som ett block markerar som känsligt, som bilderna som **Hämta filer från Markdown** returnerar, förblir dolt i varje block efter det, även efter en **Paus**. Ett senare block som får det visar det dolt i det som det tog emot och i det som det returnerade, och dess text döljs överallt där den förekommer i det som körningen registrerar: ett meddelande som innehåller det eller ett fel som citerar det. Korta delar av det som säger vad som lämnades vidare, som en fils namn eller typ, finns kvar. Blocken själva får fortfarande det verkliga värdet.
+
 ### Fliken Full Log
 
 Den råa loggen rad för rad som körmotorn skrev den, inklusive allt blocken loggade själva, som ett **Logg**-blocks värde eller ett skripts `console.log`. Använd den när fliken Steg inte förklarar felet.
+
+Varje värde som loggen skriver, oavsett om det är det som ett block tog emot, det som det returnerade eller det som det loggade, kapas till sina första 65 536 tecken och slutar med hur många som utelämnades, som `… (10,420,113 more characters left out)`. Ett blocks mottagna värden och returnerade värden kapas var för sig, så att ett långt värde inte döljer de andra. Hemligheter och känsliga värden döljs innan ett värde kapas, så att ett värde som kapningen skulle dela ändå döljs helt.
 
 ## Kopiera och ladda ner en körning
 

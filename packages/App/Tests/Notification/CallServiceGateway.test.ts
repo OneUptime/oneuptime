@@ -457,6 +457,8 @@ describe("a call through the server's own gateway", () => {
       isSensitive: false,
       project: { id: PROJECT_ID.toString(), name: "Acme" },
       actions: null,
+      // A call in English only carries no words in another language (#11459).
+      inLanguage: null,
     });
     expect(ObjectID.isValidUUID(request.data["id"] as string)).toBe(true);
     expect(request.headers["X-OneUptime-Event"]).toBe("call");

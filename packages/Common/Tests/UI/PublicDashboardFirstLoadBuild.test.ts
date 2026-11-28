@@ -197,6 +197,53 @@ describe("a public dashboard's first load", () => {
     ).toBe(1);
   });
 
+  /*
+   * A public dashboard cannot draw logs, traces, security events, product
+   * analytics or cloud costs (PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES): such a
+   * widget only says under its title that it is not available. The board's
+   * registry imported them statically, and with them the models they read -
+   * every cloud cost model since the Cloud Cost widget, a RUM
+   * application's, a security event's - some 250 KiB before gzip (53 KiB
+   * gzipped). Each is a file of its own now, loaded the first time a board
+   * draws one (LazyDashboardWidget).
+   */
+  test("has the loader of the widgets it cannot draw, which the board draws them through", () => {
+    expect(
+      inputsUnder(
+        built!.firstLoad,
+        `${DASHBOARD}/Dashboard/Components/LazyDashboardWidget.tsx`,
+      ).length,
+    ).toBe(1);
+  });
+
+  test.each([
+    ["the Log Chart widget", "DashboardLogChartComponent.tsx"],
+    ["the Trace Chart widget", "DashboardTraceChartComponent.tsx"],
+    ["the Trace Table widget", "DashboardTraceTableComponent.tsx"],
+    [
+      "the Security Events List widget",
+      "DashboardSecurityEventsListComponent.tsx",
+    ],
+    [
+      "the Security Events Flow widget",
+      "DashboardSecurityEventsFlowComponent.tsx",
+    ],
+    ["the Funnel widget", "DashboardProductAnalyticsFunnelComponent.tsx"],
+    [
+      "the User Retention widget",
+      "DashboardProductAnalyticsRetentionComponent.tsx",
+    ],
+    ["the Cloud Cost widget", "DashboardCloudCostComponent.tsx"],
+  ])(
+    "leaves out %s, which a public dashboard cannot draw, until a board draws one",
+    (_name: string, file: string) => {
+      const widget: string = `${DASHBOARD}/Dashboard/Components/${file}`;
+
+      expect(inputsUnder(built!.firstLoad, widget)).toEqual([]);
+      expect(inputsUnder(built!.loadedLater, widget).length).toBe(1);
+    },
+  );
+
   test.each([
     [
       "the storage platforms' registry",

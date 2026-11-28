@@ -6,7 +6,8 @@ import React, {
 } from "react";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import HashedString from "Common/Types/HashedString";
-import { JSONObject, JSONValue } from "Common/Types/JSON";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import { SecurityConnectorTestReport } from "Common/Types/SecurityEvent/Connectors/ConnectorDiagnostics";
 import {
   ConnectorAlertingOnlyControl,
@@ -15,6 +16,7 @@ import {
   SecurityEventConnectorCategories,
   SecurityEventConnectorCategory,
   SecurityEventConnectorDefinition,
+  areSecurityEventConnectorAlertsPushed,
   getSecurityEventConnectorDefinition,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventConnectorProvider, {
@@ -60,6 +62,13 @@ export const PROVIDER_STEP_ID: string = "provider";
 export const CONNECTION_STEP_ID: string = "connection";
 export const CREDENTIALS_STEP_ID: string = "credentials";
 export const POLLING_STEP_ID: string = "polling";
+/*
+ * The last step of a product that sends its alerts (alertsArePushed,
+ * CrowdSec, #11158), in place of Polling: it is never polled, so the step
+ * asks its name, which of its alerts open cases and its own options, with
+ * no poll interval.
+ */
+export const ALERTS_STEP_ID: string = "alerts";
 
 /*
  * The last step's settings most people leave as they are - a description,
@@ -70,6 +79,43 @@ export const POLLING_STEP_ID: string = "polling";
  */
 const pollingAdvancedSection: FormFieldCollapsibleSection<JSONObject> =
   getAdvancedFormSection<JSONObject>();
+
+// The Alerts step's: a description, and whether the connection opens cases.
+const alertsAdvancedSection: FormFieldCollapsibleSection<JSONObject> =
+  getAdvancedFormSection<JSONObject>();
+
+/*
+ * The last step a form walks, and what it holds: Polling for a product
+ * OneUptime polls, Alerts for one that sends its alerts. A create form
+ * holds both, each shown while its kind of product is picked; an edit
+ * form, the one its provider's.
+ */
+export interface LastFormStep {
+  id: string;
+  isForPushedAlerts: boolean;
+}
+
+export const POLLING_LAST_STEP: LastFormStep = {
+  id: POLLING_STEP_ID,
+  isForPushedAlerts: false,
+};
+
+export const ALERTS_LAST_STEP: LastFormStep = {
+  id: ALERTS_STEP_ID,
+  isForPushedAlerts: true,
+};
+
+export function getLastFormSteps(
+  lockedProvider: string | undefined,
+): Array<LastFormStep> {
+  if (!getSecurityEventConnectorDefinition(lockedProvider)) {
+    return [POLLING_LAST_STEP, ALERTS_LAST_STEP];
+  }
+
+  return areSecurityEventConnectorAlertsPushed(lockedProvider)
+    ? [ALERTS_LAST_STEP]
+    : [POLLING_LAST_STEP];
+}
 
 /*
  * The product's settings most people leave as they are
@@ -816,7 +862,12 @@ export interface ComponentProps {
    */
   initialProvider?: SecurityEventConnectorProvider | undefined;
   onClose: () => void;
-  onSaved: () => void;
+  /*
+   * After a save. A create hands over the connection it made, its id set,
+   * so the page can say what comes next: a CrowdSec connection's Send
+   * alerts (#11158).
+   */
+  onSaved: (created?: SecurityEventConnection | undefined) => void;
 }
 
 const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
@@ -870,8 +921,39 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
 
   steps.push({ id: CREDENTIALS_STEP_ID, title: "Credentials" });
 
+  /*
+   * Whether the product picked sends its alerts, and so which last step
+   * the form walks: Polling, or Alerts in its place.
+   */
+  const isPushedChoice: (values: FormValues<JSONObject>) => boolean = (
+    values: FormValues<JSONObject>,
+  ): boolean => {
+    return areSecurityEventConnectorAlertsPushed(
+      lockedProvider || readString(values["provider"] as JSONValue),
+    );
+  };
+
+  const lastSteps: Array<LastFormStep> = getLastFormSteps(lockedProvider);
+
+  // Whether a field of a last step is on the one the form walks.
+  const isOnLastStep: (
+    lastStep: LastFormStep,
+  ) => (values: FormValues<JSONObject>) => boolean = (
+    lastStep: LastFormStep,
+  ) => {
+    return (values: FormValues<JSONObject>): boolean => {
+      return isPushedChoice(values) === lastStep.isForPushedAlerts;
+    };
+  };
+
   if (!credentialsOnly) {
-    steps.push({ id: POLLING_STEP_ID, title: "Polling" });
+    for (const lastStep of lastSteps) {
+      steps.push({
+        id: lastStep.id,
+        title: lastStep.isForPushedAlerts ? "Alerts" : "Polling",
+        ...(lastSteps.length > 1 ? { showIf: isOnLastStep(lastStep) } : {}),
+      });
+    }
   }
 
   const fields: Array<Field<JSONObject>> = [];
@@ -927,10 +1009,12 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
                     "{{product}} settings",
                     { product: definition.title },
                   ),
-                  sectionDescription: translator.translateTemplate(
-                    "Values from your {{vendor}} console. The setup guide explains where each one lives.",
-                    { vendor: definition.vendorName },
-                  ),
+                  sectionDescription: definition.settingsDescription
+                    ? translator.translateText(definition.settingsDescription)
+                    : translator.translateTemplate(
+                        "Values from your {{vendor}} console. The setup guide explains where each one lives.",
+                        { vendor: definition.vendorName },
+                      ),
                   sideLink: {
                     text: translator.translateTemplate(
                       "{{product}} setup guide",
@@ -1100,37 +1184,38 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
   });
 
   if (!credentialsOnly) {
-    fields.push(
-      {
+    for (const lastStep of lastSteps) {
+      fields.push({
         field: { name: true },
         title: "Name",
         description: "How this connection appears in the list and on events.",
-        stepId: POLLING_STEP_ID,
+        stepId: lastStep.id,
         fieldType: FormFieldSchemaType.Text,
         required: true,
         placeholder: "e.g. Production tenant",
         validation: { minLength: 2 },
-      },
-      {
-        field: { alertingOnly: true },
-        title: "Alerts only",
-        description:
-          "On: import only records the provider marks as alerting. Off: import every matching record.",
-        stepId: POLLING_STEP_ID,
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        showIf: (values: FormValues<JSONObject>): boolean => {
-          const selected: SecurityEventConnectorDefinition | undefined =
-            getSecurityEventConnectorDefinition(
-              lockedProvider || readString(values["provider"] as JSONValue),
-            );
-          return Boolean(
-            selected?.supportsAlertingOnlyToggle &&
-              !selected.alertingOnlyControl,
+        ...(lastSteps.length > 1 ? { showIf: isOnLastStep(lastStep) } : {}),
+      });
+    }
+
+    fields.push({
+      field: { alertingOnly: true },
+      title: "Alerts only",
+      description:
+        "On: import only records the provider marks as alerting. Off: import every matching record.",
+      stepId: POLLING_STEP_ID,
+      fieldType: FormFieldSchemaType.Toggle,
+      required: false,
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        const selected: SecurityEventConnectorDefinition | undefined =
+          getSecurityEventConnectorDefinition(
+            lockedProvider || readString(values["provider"] as JSONValue),
           );
-        },
+        return Boolean(
+          selected?.supportsAlertingOnlyToggle && !selected.alertingOnlyControl,
+        );
       },
-    );
+    });
 
     /*
      * A provider with its own presentation of alertingOnly gets that instead
@@ -1173,29 +1258,34 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
       });
     }
 
-    fields.push({
-      field: { caseMinimumSeverity: true },
-      title: "Open Cases From",
-      description:
-        "Alerts at or above this severity open security cases, grouped by user, host or address.",
-      stepId: POLLING_STEP_ID,
-      fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: CASE_SEVERITY_CHOICES.map(
-        (choice: string): DropdownOption => {
-          return {
-            label: CASE_SEVERITY_LABELS[choice] || choice,
-            value: choice,
-          };
+    for (const lastStep of lastSteps) {
+      fields.push({
+        field: { caseMinimumSeverity: true },
+        title: "Open Cases From",
+        description:
+          "Alerts at or above this severity open security cases, grouped by user, host or address.",
+        stepId: lastStep.id,
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: CASE_SEVERITY_CHOICES.map(
+          (choice: string): DropdownOption => {
+            return {
+              label: CASE_SEVERITY_LABELS[choice] || choice,
+              value: choice,
+            };
+          },
+        ),
+        required: true,
+        // Not asked of a provider none of whose records is an alert.
+        showIf: (values: FormValues<JSONObject>): boolean => {
+          return (
+            isOnLastStep(lastStep)(values) &&
+            !getSecurityEventConnectorDefinition(
+              lockedProvider || readString(values["provider"] as JSONValue),
+            )?.importsNoAlerts
+          );
         },
-      ),
-      required: true,
-      // Not asked of a provider none of whose records is an alert.
-      showIf: (values: FormValues<JSONObject>): boolean => {
-        return !getSecurityEventConnectorDefinition(
-          lockedProvider || readString(values["provider"] as JSONValue),
-        )?.importsNoAlerts;
-      },
-    });
+      });
+    }
 
     /*
      * Each provider's own options (ConnectorField.isOption), last: what
@@ -1212,7 +1302,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
           field: { [configFieldName(definition.provider, field.key)]: true },
           title: field.title,
           description: field.description,
-          stepId: POLLING_STEP_ID,
+          stepId: definition.alertsArePushed ? ALERTS_STEP_ID : POLLING_STEP_ID,
           fieldType: fieldTypeFor(field),
           required: field.required,
           showIf: isSelected(definition),
@@ -1221,6 +1311,44 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
     }
 
     // More fields closes the step: what most people leave as it is.
+    if (lastSteps.includes(ALERTS_LAST_STEP)) {
+      fields.push(
+        {
+          field: { description: true },
+          title: "Description",
+          stepId: ALERTS_STEP_ID,
+          fieldType: FormFieldSchemaType.LongText,
+          required: false,
+          collapsibleSection: alertsAdvancedSection,
+          ...(lastSteps.length > 1
+            ? { showIf: isOnLastStep(ALERTS_LAST_STEP) }
+            : {}),
+        },
+        {
+          field: { isEnabled: true },
+          title: "Enabled",
+          description:
+            "On, its alerts open cases as Open Cases From says. Off, they are kept as events alone.",
+          stepId: ALERTS_STEP_ID,
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+          // On unless paused: the fold names it only when it is off.
+          defaultValue: true,
+          collapsibleSection: alertsAdvancedSection,
+          ...(lastSteps.length > 1
+            ? { showIf: isOnLastStep(ALERTS_LAST_STEP) }
+            : {}),
+        },
+      );
+    }
+  }
+
+  if (!credentialsOnly && lastSteps.includes(POLLING_LAST_STEP)) {
+    const isOnPollingStep:
+      | ((values: FormValues<JSONObject>) => boolean)
+      | undefined =
+      lastSteps.length > 1 ? isOnLastStep(POLLING_LAST_STEP) : undefined;
+
     fields.push(
       {
         field: { description: true },
@@ -1229,6 +1357,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         fieldType: FormFieldSchemaType.LongText,
         required: false,
         collapsibleSection: pollingAdvancedSection,
+        ...(isOnPollingStep ? { showIf: isOnPollingStep } : {}),
       },
       {
         field: { pollIntervalInMinutes: true },
@@ -1247,6 +1376,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
          */
         defaultValue: 5,
         collapsibleSection: pollingAdvancedSection,
+        ...(isOnPollingStep ? { showIf: isOnPollingStep } : {}),
       },
       {
         field: { isEnabled: true },
@@ -1259,6 +1389,7 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         // On unless paused: the fold names it only when it is off.
         defaultValue: true,
         collapsibleSection: pollingAdvancedSection,
+        ...(isOnPollingStep ? { showIf: isOnPollingStep } : {}),
       },
     );
   }
@@ -1418,10 +1549,27 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
             model.alertingOnly = submission.alertingOnly;
             model.caseMinimumSeverity = submission.caseMinimumSeverity;
 
-            await ModelAPI.create<SecurityEventConnection>({
+            const response: HTTPResponse<
+              | JSONObject
+              | JSONArray
+              | SecurityEventConnection
+              | Array<SecurityEventConnection>
+            > = await ModelAPI.create<SecurityEventConnection>({
               model,
               modelType: SecurityEventConnection,
             });
+            const created: { _id?: unknown } | undefined = response.data as
+              | { _id?: unknown }
+              | undefined;
+
+            if (created?._id) {
+              model._id = String(created._id);
+            }
+
+            setIsLoading(false);
+            props.onSaved(model._id ? model : undefined);
+
+            return;
           }
 
           setIsLoading(false);

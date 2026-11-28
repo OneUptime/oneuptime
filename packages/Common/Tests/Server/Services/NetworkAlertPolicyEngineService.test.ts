@@ -12,8 +12,10 @@
  * behaviour that would otherwise fail silently and expensively:
  *
  *   - TWO POLICIES ON ONE DEVICE each get their own monitor, and neither
- *     pass touches the other's row. Ownership is the PAIR (policy,
- *     template), not the device.
+ *     pass touches the other's row. A policy has ONE monitor per device: the
+ *     one on its template, or - once it is pointed at another template - the
+ *     one it made from the old one, on its way to the new one (#11452). It is
+ *     moved by a change on the server, never deleted and made again.
  *   - A SCOPE THAT SHRINKS deletes only monitors stamped with THAT policy.
  *     A hand-made Network Device monitor on the same device, and an
  *     auto-import rule's, carry no networkAlertPolicyId and are therefore
@@ -67,6 +69,7 @@ jest.mock("../../../Server/Services/MonitorService", () => {
       create: jest.fn(),
       findBy: jest.fn(),
       findOneBy: jest.fn(),
+      countBy: jest.fn(),
       deleteBy: jest.fn(),
       updateBy: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
@@ -164,6 +167,7 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import NetworkAlertPolicyScope from "../../../Types/NetworkDevice/NetworkAlertPolicyScope";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { SpyInstance } from "jest-mock";
 
@@ -204,6 +208,8 @@ const monitorFindByMock: jest.Mock =
   MonitorService.findBy as unknown as jest.Mock;
 const monitorFindOneByMock: jest.Mock =
   MonitorService.findOneBy as unknown as jest.Mock;
+const monitorCountByMock: jest.Mock =
+  MonitorService.countBy as unknown as jest.Mock;
 /*
  * The project's active monitors, as the plan's limit counts them
  * (ActiveMonitorLimit) - the one count every monitor create is held to.
@@ -370,6 +376,21 @@ function installFakeTables(): void {
           );
         }),
         findBy as unknown as FindBy<never>,
+      );
+    },
+  );
+
+  monitorCountByMock.mockImplementation(
+    async (countBy: {
+      query: Record<string, unknown>;
+    }): Promise<PositiveNumber> => {
+      return new PositiveNumber(
+        monitorTable.filter((monitor: Monitor): boolean => {
+          return matchesQuery(
+            monitor as unknown as Record<string, unknown>,
+            countBy.query,
+          );
+        }).length,
       );
     },
   );
@@ -1219,13 +1240,16 @@ describe("a disabled policy", () => {
 });
 
 /*
- * Re-pointing a policy at a different template is a re-clone: the monitors
- * from the old template are the old alerting configuration and must go, and
- * new ones are provisioned from the template the policy names now. This is
- * why ownership is the pair, not the policy id alone.
+ * Re-pointing a policy at a different template MOVES its monitors (#11452):
+ * deleting them and making new ones lost every monitor's status history,
+ * labels, owners and incident links. The policy keeps its monitor on each
+ * device - the one on its old template is on its way to the new one - and a
+ * change on the server moves it (MonitorTemplateChangeRunner
+ * .startForAlertPolicy); the engine neither deletes it nor gives the device a
+ * second beside it in the meantime, on any pass.
  */
 describe("a policy re-pointed at a different template", () => {
-  it("replaces the monitors made from the old template", async () => {
+  it("keeps its monitor on each device, on its way to the new template: neither deleted nor made again", async () => {
     deviceTable = [device()];
     policyTable = [policy()];
 
@@ -1235,6 +1259,7 @@ describe("a policy re-pointed at a different template", () => {
     });
 
     const originalMonitorId: string = monitorsOfDevice()[0]!.id!.toString();
+    monitorCreateMock.mockClear();
 
     policyTable[0]!.monitorTemplateId = OTHER_TEMPLATE_ID;
 
@@ -1246,10 +1271,287 @@ describe("a policy re-pointed at a different template", () => {
     const survivors: Array<Monitor> = monitorsOfDevice();
 
     expect(survivors).toHaveLength(1);
-    expect(survivors[0]!.id!.toString()).not.toBe(originalMonitorId);
-    expect(survivors[0]!.monitorTemplateId?.toString()).toBe(
-      OTHER_TEMPLATE_ID.toString(),
+    expect(survivors[0]!.id!.toString()).toBe(originalMonitorId);
+    expect(survivors[0]!.networkAlertPolicyId?.toString()).toBe(
+      POLICY_ID.toString(),
     );
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+    expect(monitorDeleteByMock).not.toHaveBeenCalled();
+  });
+
+  it("is the same on the policy's whole-fleet sync: no device's monitor is deleted, none is made", async () => {
+    deviceTable = [device(), device({}, OTHER_DEVICE_ID)];
+    monitorTable = [
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+      monitorRow({
+        autoProvisionedNetworkDeviceId: OTHER_DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+    ];
+    policyTable = [policy({ monitorTemplateId: OTHER_TEMPLATE_ID })];
+
+    const context: PolicyRunContext | null =
+      await NetworkAlertPolicyEngineService.syncPolicy({
+        policyId: POLICY_ID,
+        stampTemplateSyncedOnCleanPass: true,
+      });
+
+    expect(context?.monitorsCreated).toBe(0);
+    expect(context?.monitorsDeleted).toBe(0);
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+    expect(monitorDeleteByMock).not.toHaveBeenCalled();
+    expect(monitorTable).toHaveLength(2);
+  });
+
+  it("still deletes the one on the old template of a device that left the scope", async () => {
+    deviceTable = [device({ siteId: OTHER_SITE_ID })];
+    monitorTable = [
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+    ];
+    policyTable = [
+      policy({
+        monitorTemplateId: OTHER_TEMPLATE_ID,
+        scope: { siteIds: [SITE_ID.toString()] } as NetworkAlertPolicyScope,
+      }),
+    ];
+
+    await NetworkAlertPolicyEngineService.reconcileDevice({
+      projectId: PROJECT_ID,
+      deviceId: DEVICE_ID,
+    });
+
+    expect(monitorsOfDevice()).toHaveLength(0);
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the one on the template when a lost race left the device two of the policy's, and deletes the other", async () => {
+    const onNewTemplate: Monitor = monitorRow({
+      autoProvisionedNetworkDeviceId: DEVICE_ID,
+      monitorTemplateId: OTHER_TEMPLATE_ID,
+      networkAlertPolicyId: POLICY_ID,
+    });
+    deviceTable = [device()];
+    monitorTable = [
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+      onNewTemplate,
+    ];
+    policyTable = [policy({ monitorTemplateId: OTHER_TEMPLATE_ID })];
+
+    await NetworkAlertPolicyEngineService.reconcileDevice({
+      projectId: PROJECT_ID,
+      deviceId: DEVICE_ID,
+    });
+
+    expect(
+      monitorsOfDevice().map((monitor: Monitor): string => {
+        return monitor.id!.toString();
+      }),
+    ).toEqual([onNewTemplate.id!.toString()]);
+    expect(monitorCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("pauses a disabled policy's monitor on its old template rather than deleting it: it moves too", async () => {
+    deviceTable = [device()];
+    monitorTable = [
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+    ];
+    policyTable = [
+      policy({ monitorTemplateId: OTHER_TEMPLATE_ID, isEnabled: false }),
+    ];
+
+    await NetworkAlertPolicyEngineService.reconcileDevice({
+      projectId: PROJECT_ID,
+      deviceId: DEVICE_ID,
+    });
+
+    expect(monitorsOfDevice()).toHaveLength(1);
+    expect(monitorsOfDevice()[0]!.disableActiveMonitoring).toBe(true);
+  });
+
+  it("finds the policy's monitors to move: those on another template, of the devices it still covers", async () => {
+    const moving: Monitor = monitorRow({
+      autoProvisionedNetworkDeviceId: DEVICE_ID,
+      monitorTemplateId: TEMPLATE_ID,
+      networkAlertPolicyId: POLICY_ID,
+    });
+    deviceTable = [
+      device(),
+      device({ siteId: OTHER_SITE_ID }, OTHER_DEVICE_ID),
+    ];
+    monitorTable = [
+      moving,
+      // Its device left the scope: the policy's pass deletes it, nothing moves it.
+      monitorRow({
+        autoProvisionedNetworkDeviceId: OTHER_DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+      // On the template already.
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: OTHER_TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+      // Another policy's.
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: OTHER_POLICY_ID,
+      }),
+    ];
+
+    const found: Array<string> =
+      await NetworkAlertPolicyEngineService.findMonitorsToMoveToPolicyTemplate({
+        policy: policy({
+          monitorTemplateId: OTHER_TEMPLATE_ID,
+          scope: {
+            siteIds: [SITE_ID.toString()],
+          } as NetworkAlertPolicyScope,
+        }),
+        limit: 100,
+      });
+
+    expect(found).toEqual([moving.id!.toString()]);
+  });
+
+  it("finds no more than the limit it is given", async () => {
+    deviceTable = [device()];
+    monitorTable = [0, 1, 2].map((): Monitor => {
+      return monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      });
+    });
+
+    const found: Array<string> =
+      await NetworkAlertPolicyEngineService.findMonitorsToMoveToPolicyTemplate({
+        policy: policy({ monitorTemplateId: OTHER_TEMPLATE_ID }),
+        limit: 2,
+      });
+
+    expect(found).toHaveLength(2);
+  });
+});
+
+describe("Template Synced, once a policy pointed at another template has its monitors moved", () => {
+  it("is not stamped by the policy's pass while a monitor is still on the old template", async () => {
+    deviceTable = [device()];
+    monitorTable = [
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+    ];
+    policyTable = [policy({ monitorTemplateId: OTHER_TEMPLATE_ID })];
+
+    await NetworkAlertPolicyEngineService.syncPolicy({
+      policyId: POLICY_ID,
+      stampTemplateSyncedOnCleanPass: true,
+    });
+
+    const stamped: Record<string, unknown> = (
+      policyStampMock.mock.calls[0]![0] as { data: Record<string, unknown> }
+    ).data;
+
+    expect(stamped["templateSyncedAt"]).toBeUndefined();
+  });
+
+  it("is stamped once the change moved them all", async () => {
+    monitorTable = [
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: OTHER_TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+    ];
+    policyTable = [policy({ monitorTemplateId: OTHER_TEMPLATE_ID })];
+
+    await NetworkAlertPolicyEngineService.onPolicyMonitorsMoved({
+      projectId: PROJECT_ID,
+      policyId: POLICY_ID,
+      monitorTemplateId: OTHER_TEMPLATE_ID,
+    });
+
+    expect(policyStampMock).toHaveBeenCalledTimes(1);
+    expect(
+      (policyStampMock.mock.calls[0]![0] as { data: Record<string, unknown> })
+        .data["templateSyncedAt"],
+    ).toBeInstanceOf(Date);
+  });
+
+  it("is not stamped when one is still left on another template", async () => {
+    monitorTable = [
+      monitorRow({
+        autoProvisionedNetworkDeviceId: DEVICE_ID,
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+    ];
+    policyTable = [policy({ monitorTemplateId: OTHER_TEMPLATE_ID })];
+
+    await NetworkAlertPolicyEngineService.onPolicyMonitorsMoved({
+      projectId: PROJECT_ID,
+      policyId: POLICY_ID,
+      monitorTemplateId: OTHER_TEMPLATE_ID,
+    });
+
+    expect(policyStampMock).not.toHaveBeenCalled();
+  });
+
+  it("is not stamped for a template the policy no longer names", async () => {
+    policyTable = [policy({ monitorTemplateId: TEMPLATE_ID })];
+
+    await NetworkAlertPolicyEngineService.onPolicyMonitorsMoved({
+      projectId: PROJECT_ID,
+      policyId: POLICY_ID,
+      monitorTemplateId: OTHER_TEMPLATE_ID,
+    });
+
+    expect(policyStampMock).not.toHaveBeenCalled();
+  });
+
+  it("counts the policy's monitors still on their way", async () => {
+    monitorTable = [
+      monitorRow({
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+      monitorRow({
+        monitorTemplateId: OTHER_TEMPLATE_ID,
+        networkAlertPolicyId: POLICY_ID,
+      }),
+      monitorRow({
+        monitorTemplateId: TEMPLATE_ID,
+        networkAlertPolicyId: OTHER_POLICY_ID,
+      }),
+    ];
+
+    expect(
+      await NetworkAlertPolicyEngineService.countPolicyMonitorsOffTemplate({
+        projectId: PROJECT_ID,
+        policyId: POLICY_ID,
+        monitorTemplateId: OTHER_TEMPLATE_ID,
+      }),
+    ).toBe(1);
   });
 });
 

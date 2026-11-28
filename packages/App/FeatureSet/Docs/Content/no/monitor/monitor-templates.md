@@ -75,6 +75,8 @@ For å synkronisere én monitor klikker du på **Synkroniser fra mal** i raden d
 
 Etter en synkronisering sier et sammendrag hvor mange monitorer som ble oppdatert. **Delvis synkronisert** betyr at noen tilkoblede monitorer fortsatt har den forrige konfigurasjonen, som regel fordi tillatelsene dine ikke dekker dem.
 
+En synkronisering som fjerner kriteriene som åpnet en åpen hendelse eller et åpent varsel, løser den eller det når den var satt til å løses av seg selv, for ingenting kan løse den når de kriteriene er borte: tidslinjen sier hvorfor, og sammendraget sier hvor mange som ble løst. En hendelse eller et varsel som malen fortsatt har kriteriene til, forblir åpen, og en som skal løses manuelt, overlates til deg. Redigerer du selv kriteriene til en monitor, i dashbordet, gjennom API-et eller med Terraform, skjer det samme.
+
 ## Flytt monitorer til en annen mal
 
 Når en bedre mal tar over for en annen, flytter du monitorene til den i stedet for å slette dem. Hver monitor beholder navnet, statushistorikken, etikettene, eierne og hendelsene sine, og får den nye malens kriterier.
@@ -101,10 +103,10 @@ Dette gjør flyttingen:
 - En enhet har én monitor fra hver mal. Når en enhet allerede har en monitor som er opprettet for den fra den nye malen, utelates den andre monitoren dens, og endringen navngir den som står i veien: slett én av de to, og flytt så på nytt.
 - En monitor av en annen type enn malens utelates.
 
-Endringen kjører på serveren, opptil 10 000 monitorer om gangen, og viser fremdriften: hva som ble flyttet, hva som ble utelatt og hvorfor, og de åpne hendelsene og varslene den løste. Å lukke dialogen stopper den ikke, og malens side viser en endring som fortsatt pågår. **Stopp** stopper den før neste monitor, og **Prøv på nytt** prøver monitorene som mislyktes eller ikke ble nådd, på nytt.
+Endringen kjører på serveren, opptil 10 000 monitorer om gangen, og viser fremdriften: hva som ble flyttet, hva som ble utelatt og hvorfor, og de åpne hendelsene og varslene den løste. Å lukke dialogen stopper den ikke: malens side og monitorlisten viser en endring som fortsatt pågår, med hvor langt den har kommet, og monitorlisten viser i en time også en avsluttet endring som utelot monitorer eller der monitorer mislyktes. Klikk på linjen dens for å åpne den igjen, med **Vis fremdrift** mens den pågår og **Vis hva som skjedde** når den er ferdig. **Stopp** stopper den før neste monitor, og **Prøv på nytt** prøver monitorene som mislyktes eller ikke ble nådd, på nytt.
 
 > [!TIP]
-> Flytter du enhetene til en regel for automatisk import til en ny mal? Flytt monitorene først, og pek deretter regelen mot den nye malen. I motsatt rekkefølge gir regelen hver enhet en monitor til, fra den nye malen, ved siden av den den har.
+> Peker du en regel for automatisk import mot en annen mal av samme slag, tilbyr skjemaet først å flytte enhetenes monitorer dit, og regelen bruker den nye malen når de er flyttet, så ingen enhet får en monitor til. **Lagre uten å flytte** peker regelen mot den med en gang: hver enhet beholder monitoren sin og får den nye malens ved siden av.
 
 ## Koble monitorer fra en mal
 
@@ -119,7 +121,7 @@ Uansett beholder de navnene, statushistorikken, etikettene, eierne og hendelsene
 
 ## Slett en mal
 
-En mal som en varslingspolicy for nettverket eller en regel for automatisk import oppretter monitorer fra, kan ikke slettes: pek først policyen eller regelen mot en annen mal. Når monitorer er koblet til malen, spør slettingen hva som skal skje med dem:
+En mal som en varslingspolicy for nettverket eller en regel for automatisk import oppretter monitorer fra, kan ikke slettes: pek først policyen eller regelen mot en annen mal. Monitorene til en policy flytter med, og skjemaet til en regel tilbyr å flytte enhetenes monitorer. Når monitorer er koblet til malen, spør slettingen hva som skal skje med dem:
 
 - **Behold innstillingene deres** (standard): slettingen kobler dem fra, og de fortsetter å sjekke og varsle med kriteriene de har.
 - **Fjern denne malens kriterier fra dem**: hver kobles fra med kriteriene fjernet, som ovenfor, og deretter slettes malen. Når en monitor forblir koblet til, for eksempel en som tillatelsene dine ikke dekker, beholdes malen, og dialogen sier hvor mange.
@@ -233,7 +235,7 @@ Enheten har en monitor som er opprettet for den fra malen du flytter til, som re
 :::
 
 :::details Etter at en regel for automatisk import er flyttet til en ny mal, har enhetene to monitorer
-Regelen ga hver enhet den nye malens monitor ved siden av den den hadde. Slett de nye monitorene, og flytt deretter de gamle til den nye malen: de beholder historikken sin, og regelen oppretter ingen på nytt.
+Regelen ble lagret med **Lagre uten å flytte**, eller pekt mot malen før skjemaet tilbød å flytte dem, og ga hver enhet den nye malens monitor ved siden av den den hadde. Slett de nye monitorene, og flytt deretter de gamle til den nye malen: de beholder historikken sin, og regelen oppretter ingen på nytt.
 :::
 
 :::details Lagring feiler med "Unsupported do not sync field"

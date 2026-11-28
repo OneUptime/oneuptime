@@ -114,7 +114,11 @@ tests:
     set:
       nginx.service.externalTrafficPolicy: local
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/nginx/service/externalTrafficPolicy': value must be one of '', 'Cluster', 'Local', <nil>
 
   - it: says so on install and upgrade while the LoadBalancer Service's policy is Kubernetes' default
     templates:

@@ -113,6 +113,7 @@ import {
   applyBasePortMapping,
   toMacAddressString,
 } from "../../Snmp/EndpointTableParsers";
+import SnmpEngineIdReader from "../../Snmp/SnmpEngineIdReader";
 import snmp from "net-snmp";
 import { writeProbeTimeoutFailureCause } from "Common/Utils/Monitor/ProbeFailureReading";
 
@@ -349,6 +350,14 @@ export interface SnmpQueryOptions {
    * identity, entity tree) is read once and reused between polls.
    */
   transceiverCacheKey?: string | undefined;
+  /*
+   * Read the agent's SNMP engine ID on a v1 or v2c walk too (#11405): what
+   * tells a device's SNMPv3 traps from its neighbours' at one address.
+   * Network device polls set it, the poll whose result keeps it
+   * (NetworkDevice.snmpEngineId); a monitor's walk does not, so no
+   * monitor's response time changes. An SNMPv3 walk reads it either way.
+   */
+  readEngineId?: boolean | undefined;
 }
 
 export default class SnmpMonitor {
@@ -1477,14 +1486,31 @@ export default class SnmpMonitor {
       }
 
       /*
-       * The agent's SNMPv3 engine ID, which net-snmp learned answering this
-       * walk's first request (#11172): what the device's SNMPv3 traps are
-       * sent as, so OneUptime can tell it from devices that send from the
-       * same address. Read when the walk is done, never asked for: a v1 or
-       * v2c session has none.
+       * The agent's SNMPv3 engine ID (#11172): what the device's SNMPv3
+       * traps are sent as, so OneUptime can tell it from devices that send
+       * from the same address. An SNMPv3 walk learned it answering its
+       * first request, and it is read when the walk is done. A v1 or v2c
+       * session learns none: for a network device's poll it is read from
+       * the device's own agent, over its community or by SNMPv3 discovery
+       * at its polling address (SnmpEngineIdReader, #11405).
        */
-      const snmpEngineId: string | undefined =
+      let snmpEngineId: string | undefined =
         SnmpMonitor.readDiscoveredEngineId(session);
+
+      if (
+        !snmpEngineId &&
+        options.readEngineId === true &&
+        config.snmpVersion !== SnmpVersion.V3
+      ) {
+        snmpEngineId = await SnmpEngineIdReader.readForCommunityPoll({
+          session: session,
+          target: {
+            host: config.hostname,
+            port: config.port || 161,
+            timeoutMs: options.timeout || config.timeout || 5000,
+          },
+        });
+      }
 
       if (systemInfo && snmpEngineId) {
         systemInfo.snmpEngineId = snmpEngineId;

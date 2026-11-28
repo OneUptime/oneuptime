@@ -1,5 +1,14 @@
 import TelemetryIngestionKeyService from "../../Services/TelemetryIngestionKeyService";
+import TelemetryIngestionKeyRefusalService from "../../Services/TelemetryIngestionKeyRefusalService";
+import TelemetryIngestionKeyRefusal from "../../../Models/DatabaseModels/TelemetryIngestionKeyRefusal";
+import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
+import {
+  QUEUE_TELEMETRY_INGEST_REFUSAL_REASONS,
+  TelemetryIngestQueueRefusalRow,
+  summarizeTelemetryQueueRefusals,
+} from "../../../Types/Telemetry/TelemetryIngestRefusal";
 import logger from "../Logger";
 import TelemetryIngestionBudgetCounter, {
   TelemetryIngestionBudgetDayCounters,
@@ -35,6 +44,8 @@ import {
   TelemetryIngestionBudgetState,
   TelemetryIngestionBudgetStatus,
   TelemetryIngestionBudgetStoredSettings,
+  TELEMETRY_INGESTION_QUEUE_REFUSAL_LOOKBACK_MS,
+  TelemetryIngestionQueueRefusalStatus,
 } from "../../../Types/Telemetry/TelemetryIngestionBudget";
 
 /*
@@ -219,6 +230,12 @@ export default class TelemetryIngestionBudgetStatusReader {
      * keys', teams' and labels' budgets are read as ever.
      */
     readsSettingsAsIngestDoes?: boolean | undefined;
+    /*
+     * Tell what the telemetry queue refused of each signal in the past day
+     * (#11440): for the person reading the project's usage and its
+     * explorers, not for Security Events' scans, which ask about budgets.
+     */
+    includesQueueRefusals?: boolean | undefined;
   }): Promise<TelemetryIngestionBudgetStatus> {
     const now: Date = data.now || new Date();
 
@@ -289,8 +306,15 @@ export default class TelemetryIngestionBudgetStatusReader {
       }
     }
 
-    const counters: Array<TelemetryIngestionBudgetDayCounters> | null =
-      await TelemetryIngestionBudgetCounter.readDayCounters(dayKeys);
+    const [counters, queueRefusals]: [
+      Array<TelemetryIngestionBudgetDayCounters> | null,
+      Array<TelemetryIngestionQueueRefusalStatus>,
+    ] = await Promise.all([
+      TelemetryIngestionBudgetCounter.readDayCounters(dayKeys),
+      data.includesQueueRefusals
+        ? this.readQueueRefusals({ projectId: data.projectId, now: now })
+        : Promise.resolve([]),
+    ]);
 
     let index: number = 0;
 
@@ -361,7 +385,75 @@ export default class TelemetryIngestionBudgetStatusReader {
       project: statuses[0]!,
       ingestionKeys: statuses.slice(1, 1 + keys.length),
       teamsAndLabels: statuses.slice(1 + keys.length),
+      queueRefusals: queueRefusals,
     };
+  }
+
+  /*
+   * What the telemetry queue refused of the project's signals in the past
+   * day (#11440), every key's rows added up by signal
+   * (summarizeTelemetryQueueRefusals). A notice: a read that fails tells
+   * of nothing rather than failing the budgets beside it.
+   */
+  public static async readQueueRefusals(data: {
+    projectId: ObjectID;
+    now: Date;
+  }): Promise<Array<TelemetryIngestionQueueRefusalStatus>> {
+    try {
+      const rows: Array<TelemetryIngestionKeyRefusal> =
+        await TelemetryIngestionKeyRefusalService.findBy({
+          query: {
+            projectId: data.projectId,
+            reason: new Includes(
+              Array.from(QUEUE_TELEMETRY_INGEST_REFUSAL_REASONS),
+            ),
+            lastRefusedAt: new GreaterThan(
+              new Date(
+                data.now.getTime() -
+                  TELEMETRY_INGESTION_QUEUE_REFUSAL_LOOKBACK_MS,
+              ),
+            ),
+          },
+          select: {
+            reason: true,
+            surface: true,
+            refusedCount: true,
+            firstRefusedAt: true,
+            lastRefusedAt: true,
+          },
+          skip: 0,
+          limit: LIMIT_MAX,
+          props: { isRoot: true },
+        });
+
+      return summarizeTelemetryQueueRefusals(
+        rows.map(
+          (
+            row: TelemetryIngestionKeyRefusal,
+          ): TelemetryIngestQueueRefusalRow => {
+            const lastRefusedAt: Date = new Date(
+              row.lastRefusedAt as Date | string,
+            );
+
+            return {
+              reason: String(row.reason || ""),
+              surface: String(row.surface || ""),
+              count: Number(row.refusedCount),
+              firstRefusedAt: row.firstRefusedAt
+                ? new Date(row.firstRefusedAt as Date | string)
+                : lastRefusedAt,
+              lastRefusedAt: lastRefusedAt,
+            };
+          },
+        ),
+      );
+    } catch (err) {
+      logger.warn(
+        `TelemetryIngestionBudgetStatusReader: could not read what the telemetry queue refused of project ${data.projectId.toString()}`,
+      );
+      logger.warn(err);
+      return [];
+    }
   }
 
   // Whether any signal of a status is past its warning or used up.

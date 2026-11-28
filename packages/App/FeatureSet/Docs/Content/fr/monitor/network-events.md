@@ -97,7 +97,7 @@ Chaque sonde écoute le syslog sur le port 5140, en UDP et en TCP. En TCP, un me
 
 1. un appareil que la sonde interroge et dont le nom d'hôte est cette adresse (ou se résout vers elle), ou qui la liste sous **Autres adresses** sur sa page **Paramètres** ;
 2. sur votre propre sonde (personnalisée), tout appareil du projet ayant cette adresse, ou ayant le nom d'hôte que porte le message lorsqu'un seul appareil porte ce nom ;
-3. sinon, sur votre propre sonde, le message est conservé pour la page Événements du réseau, sous **Envoie du syslog, pas encore un appareil**, jusqu'à ce que vous disiez à quel appareil il appartient. Une sonde globale le rejette.
+3. sinon, sur votre propre sonde, le message est conservé pour la page Événements du réseau, sous **Envoie du syslog ou des traps SNMP, pas encore un appareil**, jusqu'à ce que vous disiez à quel appareil il appartient. Une sonde globale le rejette.
 
 Une ligne provenant d'une adresse inconnue, sans priorité syslog et qui n'est pas un événement, est tenue pour du bruit et rejetée.
 
@@ -223,10 +223,10 @@ Depuis l'onglet **Événements** d'un appareil, les moniteurs ne surveillent que
 
 ## Adresses qui ne sont pas encore des appareils
 
-Du syslog peut arriver avant que l'appareil qui l'envoie ne soit ajouté à OneUptime. Sur votre propre sonde, il est conservé, ses événements sont sur la page Événements du réseau avec le nom que l'appareil se donne, et son adresse est listée sous **Envoie du syslog, pas encore un appareil** :
+Du syslog et des traps SNMP peuvent arriver avant que l'appareil qui les envoie ne soit ajouté à OneUptime. Sur votre propre sonde, ils sont conservés, et sur une sonde globale, un trap SNMPv3 signé avec les identifiants propres à votre projet l'est aussi. Leurs événements sont sur la page Événements du réseau avec le nom que l'appareil se donne, et l'adresse est listée sous **Envoie du syslog ou des traps SNMP, pas encore un appareil**, avec ce qu'elle envoie : syslog, traps SNMP ou les deux. Un trap propre à un fabricant qui n'est pas un événement ne figure que dans Journaux, et son émetteur est listé tout de même :
 
-- **Ajouter comme appareil** ouvre **Ajouter l'équipement** avec l'adresse et la sonde déjà renseignées. Les messages déjà arrivés restent sur la page du réseau ; les nouveaux vont à l'appareil.
-- **C'est l'un de mes appareils** ajoute l'adresse à un appareil sous **Autres adresses** : utilisez-le lorsqu'un appareil déjà ajouté envoie depuis une autre adresse, comme une loopback. Ses messages vont à cet appareil à partir de la minute suivante.
+- **Ajouter comme appareil** ouvre **Ajouter l'équipement** avec l'adresse et la sonde déjà renseignées, et le site aussi quand ses traps ont été signés avec les identifiants SNMPv3 par défaut de ce site. Ce qui est déjà arrivé reste où il est ; ce qui arrive ensuite va à l'appareil.
+- **C'est l'un de mes appareils** ajoute l'adresse à un appareil sous **Autres adresses** : utilisez-le lorsqu'un appareil déjà ajouté envoie depuis une autre adresse, comme une loopback. Son syslog et ses traps SNMP vont à cet appareil à partir de la minute suivante.
 
 Plusieurs appareils derrière une même adresse NAT partagent cette adresse : leurs messages vont donc au seul appareil qui la porte, sauf si un message nomme son propre appareil.
 
@@ -254,7 +254,7 @@ Un pipeline appartient à son projet. Pour en utiliser un dans un autre projet, 
 
 Si une page Événements affiche encore ses étapes de mise en place :
 
-- **La sonde reçoit-elle quelque chose ?** La page Événements du réseau liste sous **Envoie du syslog, pas encore un appareil** chaque adresse qui a envoyé du syslog sur la période. Si l'appareil s'y trouve, il envoie depuis une adresse qui n'est pas son nom d'hôte : ajoutez-lui cette adresse sous **Autres adresses**.
+- **La sonde reçoit-elle quelque chose ?** La page Événements du réseau liste sous **Envoie du syslog ou des traps SNMP, pas encore un appareil** chaque adresse qui a envoyé du syslog ou des traps SNMP sur la période. Si l'appareil s'y trouve, il envoie depuis une adresse qui n'est pas son nom d'hôte : ajoutez-lui cette adresse sous **Autres adresses**.
 - **Pare-feu et Docker.** Autorisez le port 5140 de l'appareil vers la sonde, et publiez le port si la sonde tourne dans Docker. Beaucoup d'appareils envoient vers le port 514 si on ne leur dit pas autre chose.
 - **Le journal de la sonde.** Au démarrage, la sonde note dans son journal le port sur lequel elle écoute, ou qu'elle n'a pas pu l'ouvrir. Lorsqu'elle rejette des messages au-delà de `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`, elle note combien, une fois par minute.
 - **Une sonde globale.** Un appareil interrogé par une sonde globale ne peut pas lui envoyer de syslog depuis un réseau privé. Exécutez une sonde personnalisée sur le réseau de l'appareil et choisissez-la dans les paramètres de l'appareil.

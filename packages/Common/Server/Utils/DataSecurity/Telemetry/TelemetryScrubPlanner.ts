@@ -429,6 +429,38 @@ export function planScrubRuleCandidates(data: {
   return candidates;
 }
 
+/*
+ * The rule made where no record proves one - a session replay's, whose
+ * records are never read for a proof, or a finding kept without its
+ * records: the narrowest candidate, as Scrub It always made it - but for a
+ * secret in an attribute, the rule that hides the attribute whole. A
+ * secret's shapes are many, and the scan may have told this one apart by
+ * the key it sits under: a pattern no record proved can miss the very value
+ * it was found as, and coverage would still count it scrubbed (#11458).
+ * With records to prove them on, the narrowest proven rule wins as ever.
+ */
+export function pickUnprovenScrubRuleCandidate(data: {
+  candidates: ReadonlyArray<ScrubRuleCandidate>;
+  finding: Pick<
+    ScrubPlanFinding,
+    "dataTypeId" | "dataCategory" | "projectType"
+  >;
+}): ScrubRuleCandidate | null {
+  if (isSecretFinding(data.finding)) {
+    const whole: ScrubRuleCandidate | undefined = data.candidates.find(
+      (candidate: ScrubRuleCandidate): boolean => {
+        return candidate.source === ScrubRuleSource.NamedKeys;
+      },
+    );
+
+    if (whole) {
+      return whole;
+    }
+  }
+
+  return data.candidates[0] || null;
+}
+
 // Whether a candidate names the attribute it reads: a Named Attributes rule, or a pattern in one attribute.
 export function isNarrowedToAttributes(candidate: ScrubRuleCandidate): boolean {
   return (candidate.attributeKeys || []).length > 0;

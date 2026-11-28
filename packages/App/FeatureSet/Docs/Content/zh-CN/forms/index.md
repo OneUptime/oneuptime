@@ -8,6 +8,7 @@
 - [创建您的第一个表单](#创建您的第一个表单): 从空白表单到可以分享的链接。
 - [构建表单](/docs/forms/building): 问题、答案类型、隐藏的问题、模板和品牌。
 - [提交会创建什么](/docs/forms/on-submit): 答案和设置如何变成事件或维护事件。
+- [跟进提交](/docs/forms/follow-ups): 提交者可关注自己的请求、给您的团队写信并添加其他人。
 - [分享与安全](/docs/forms/sharing-and-security): 链接、IP 允许列表、速率限制和故障排查。
 :::
 
@@ -290,6 +291,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 :::cards
 - [构建表单](/docs/forms/building): 问题、答案类型、关联字段、自定义字段和预览。
 - [提交会创建什么](/docs/forms/on-submit): 答案和提交时设置如何变成事件或维护事件。
+- [跟进提交](/docs/forms/follow-ups): 提交者可关注自己的请求、给您的团队写信并添加其他人。
 - [分享与安全](/docs/forms/sharing-and-security): 链接、IP 允许列表、速率限制、验证码和故障排查。
 - [声明事件](/docs/incidents/declaring-incidents): 声明事件的其他方式。
 :::

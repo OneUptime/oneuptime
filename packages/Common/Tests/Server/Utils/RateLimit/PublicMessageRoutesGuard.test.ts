@@ -67,6 +67,7 @@ const DASHBOARD_PRIVATE_USER_AUTHENTICATION: string =
   "packages/App/FeatureSet/Identity/API/DashboardPrivateUserAuthentication.ts";
 const FORM_PRIVATE_USER_AUTHENTICATION: string =
   "packages/App/FeatureSet/Identity/API/FormPrivateUserAuthentication.ts";
+const FORM_API: string = "packages/Common/Server/API/FormAPI.ts";
 
 const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
   {
@@ -233,6 +234,19 @@ const PUBLIC_MESSAGE_ROUTES: Array<PublicMessageRoute> = [
         "MailService.sendMail(",
       ],
     ],
+  },
+  {
+    /*
+     * Somebody following a form submission adds another person to it
+     * (Types/Form/FormFollowUp), on the form's link and on its own domain:
+     * one handler for both. Asked for the address added before the request
+     * is read at all, and given back when nobody was added
+     * (FormFollowUpRoutes.test.ts).
+     */
+    file: FORM_API,
+    method: "addFollowUpPerson",
+    kind: PublicMessageKind.FormFollowUpInvite,
+    branches: [["FormFollowUp.addPerson("]],
   },
 ];
 

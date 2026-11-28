@@ -274,4 +274,5 @@ Ett formulärs incident kör de jourpolicyer som dess inställningar och dess ma
 - [Formulär – översikt](/docs/forms/index): Vad formulär är till för, behörigheter och API:et.
 - [Bygga ett formulär](/docs/forms/building): Frågorna, dolda frågor och mallar.
 - [Vad en inlämning skapar](/docs/forms/on-submit): Den incident eller händelse som varje inlämning skapar.
+- [Följa upp en inlämning](/docs/forms/follow-ups): Den som skickar följer sin förfrågan, skriver till ditt team och lägger till andra.
 :::

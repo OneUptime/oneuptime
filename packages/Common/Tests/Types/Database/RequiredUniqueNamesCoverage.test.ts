@@ -108,6 +108,8 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
   OpenStackProjectUsage: LeftOut.EventOrRecord,
   // A charge or credit, as a bill line: "Support contract share" each year.
   CloudCostLineItem: LeftOut.EventOrRecord,
+  // A submission keeps the title its record was created with (Types/Form/FormFollowUp).
+  FormSubmission: LeftOut.EventOrRecord,
 
   // Discovered, and named by their source.
   CephResource: LeftOut.Discovered,
@@ -143,6 +145,8 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
   AIConversation: LeftOut.PersonalOrOnePage,
   AlertVideoCall: LeftOut.PartOfAnotherRecord,
   IncidentVideoCall: LeftOut.PartOfAnotherRecord,
+  // A person following a form submission, by the name they or others gave.
+  FormSubmissionFollower: LeftOut.PartOfAnotherRecord,
   IncidentPostmortemActionItem: LeftOut.PartOfAnotherRecord,
   IncomingCallPolicyEscalationRule: LeftOut.PartOfAnotherRecord,
   IoTDeviceCredential: LeftOut.PartOfAnotherRecord,

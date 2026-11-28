@@ -149,6 +149,15 @@ describe("records with no labels of their own", () => {
        */
       SecurityBlockEnforcement: ["connectionId"],
       /*
+       * The record that shows an inline image (recordId), of the kind its
+       * recordTableName column names: an incident, a note, a monitor... -
+       * any record that can show images (#11478). Only OneUptime reads the
+       * table (every access list is empty, and it has no API), so no read
+       * of it runs under a block: the image route reads each record again
+       * as the person, through its own service.
+       */
+      ShownImage: ["recordId"],
+      /*
        * The record an import created, of the kind its `kind` column names
        * (a monitor, a policy, a team...), so of any kind. Only OneUptime
        * reads the table (every access list is empty, and it has no API),

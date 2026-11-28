@@ -97,7 +97,7 @@ Every probe listens for syslog on port 5140, over UDP and over TCP. Over TCP a m
 
 1. a device the probe polls whose hostname is that address (or resolves to it), or that lists it under **Other Addresses** on its **Settings** page;
 2. on your own (custom) probe, any device in the project with that address, or with the hostname the message carries when exactly one device has that name;
-3. otherwise, on your own probe, the message is kept for the network's Events page, under **Sending syslog, not a device yet**, until you say which device it belongs to. A global probe drops it.
+3. otherwise, on your own probe, the message is kept for the network's Events page, under **Sending syslog or SNMP traps, not a device yet**, until you say which device it belongs to. A global probe drops it.
 
 A line from an unknown address that has no syslog priority and is no event is taken for noise, and dropped.
 
@@ -223,10 +223,10 @@ From a device's **Events** tab the monitors watch that device only. For any othe
 
 ## Addresses that are not devices yet
 
-Syslog can arrive before the device that sends it is added to OneUptime. On your own probe it is kept, its events are on the network's Events page with the name the device gives itself, and its address is listed under **Sending syslog, not a device yet**:
+Syslog and SNMP traps can arrive before the device that sends them is added to OneUptime. On your own probe they are kept, and on a global probe so is an SNMPv3 trap signed with your project's own credentials. Their events are on the network's Events page with the name the device gives itself, and the address is listed under **Sending syslog or SNMP traps, not a device yet**, with what it sends: syslog, SNMP traps or both. A vendor's own trap that is no event is in Logs only, and its sender is listed all the same:
 
-- **Add as device** opens **Add Device** with the address and the probe filled in. The messages that already arrived stay on the network's page; new ones go to the device.
-- **It is one of my devices** adds the address to a device's **Other Addresses**: use it when a device you already added sends from another address, such as a loopback. Its messages go to that device from the next minute on.
+- **Add as device** opens **Add Device** with the address and the probe filled in, and the site too when its traps were signed with that site's default SNMPv3 credentials. What already arrived stays where it is; what comes next goes to the device.
+- **It is one of my devices** adds the address to a device's **Other Addresses**: use it when a device you already added sends from another address, such as a loopback. Its syslog and SNMP traps go to that device from the next minute on.
 
 Several devices behind one NAT address share that address, so their messages go to the one device that has it, unless a message names its own device.
 
@@ -254,7 +254,7 @@ A pipeline belongs to its project. To use one in another project, create it ther
 
 If an Events page still shows its set-up steps:
 
-- **Is the probe receiving anything?** The network's Events page lists every address that sent syslog in the time range under **Sending syslog, not a device yet**. If the device is there, it sends from an address that is not its hostname: add that address to its **Other Addresses**.
+- **Is the probe receiving anything?** The network's Events page lists every address that sent syslog or SNMP traps in the time range under **Sending syslog or SNMP traps, not a device yet**. If the device is there, it sends from an address that is not its hostname: add that address to its **Other Addresses**.
 - **Firewalls and Docker.** Allow port 5140 from the device to the probe, and publish the port if the probe runs in Docker. Many devices send to port 514 unless told otherwise.
 - **The probe's log.** At startup the probe logs the port it listens on, or that it could not open it. When it drops messages over `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`, it logs how many, once a minute.
 - **A global probe.** A device polled by a global probe cannot send syslog to it from a private network. Run a custom probe on the device's network and pick it in the device's settings.

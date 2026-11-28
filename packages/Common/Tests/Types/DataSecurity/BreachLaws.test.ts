@@ -8,6 +8,7 @@ import {
   BREACH_PLACES,
   CARD_BRAND_RULE_IDS,
   CARD_BRAND_RULES_CHECKED_ON,
+  FOLLOW_UP_LAWS_CHECKED_ON,
   BreachCondition,
   BreachDataElement,
   BreachDeadlineStart,
@@ -97,14 +98,21 @@ function whose(data: {
 }
 
 function facts(
-  data: Parameters<typeof whose>[0] & { logged?: ExposureReadsLogged },
+  data: Parameters<typeof whose>[0] & {
+    logged?: ExposureReadsLogged;
+    // When the exposure was found, when not FOUND_AT: which text of a law applies (#11425).
+    foundAt?: Date;
+    // Whether a person said the data is held for another (#11427); undefined while nobody did.
+    holdsForAnother?: boolean | undefined;
+  },
   now: Date = NOW,
 ): BreachLawFacts {
   return {
     whose: whose(data),
     reads: reads(data.logged || ExposureReadsLogged.NotLogged),
-    foundAt: FOUND_AT,
+    foundAt: data.foundAt || FOUND_AT,
     now,
+    holdsForAnother: data.holdsForAnother,
   };
 }
 
@@ -147,6 +155,7 @@ const TABLE_CHECK_DAYS: ReadonlyArray<string> = [
   BREACH_LAWS_CHECKED_ON,
   CARD_BRAND_RULES_CHECKED_ON,
   US_STATE_LAWS_CHECKED_ON,
+  FOLLOW_UP_LAWS_CHECKED_ON,
 ];
 
 /*
@@ -209,10 +218,11 @@ describe("every row of the table", () => {
     },
   );
 
-  test("each batch of rows was checked on its day: #10377's on 24 November 2026, the card brands' and the other US states' on 27 November", () => {
+  test("each batch of rows was checked on its day: #10377's on 24 November 2026, the card brands' and the other US states' on 27 November, and #11424-#11427's on 28 November", () => {
     expect(BREACH_LAWS_CHECKED_ON).toBe("2026-11-24");
     expect(CARD_BRAND_RULES_CHECKED_ON).toBe("2026-11-27");
     expect(US_STATE_LAWS_CHECKED_ON).toBe("2026-11-27");
+    expect(FOLLOW_UP_LAWS_CHECKED_ON).toBe("2026-11-28");
 
     for (const id of CARD_BRAND_RULE_IDS) {
       expect(getBreachLawRule(id).checkedOn).toBe(CARD_BRAND_RULES_CHECKED_ON);
@@ -220,13 +230,23 @@ describe("every row of the table", () => {
 
     for (const rule of BREACH_LAW_RULES) {
       if (isUsStateRule(rule)) {
+        // Each later row's own day is held by its line in UsStateBreachLaws.test.ts.
         expect({ id: rule.id, checkedOn: rule.checkedOn }).toEqual({
           id: rule.id,
           checkedOn: FIRST_STATE_ROWS.includes(rule.id)
             ? BREACH_LAWS_CHECKED_ON
-            : US_STATE_LAWS_CHECKED_ON,
+            : [US_STATE_LAWS_CHECKED_ON, FOLLOW_UP_LAWS_CHECKED_ON].includes(
+                  rule.checkedOn,
+                )
+              ? rule.checkedOn
+              : US_STATE_LAWS_CHECKED_ON,
         });
       }
+    }
+
+    // The processors' notices were read with #11427.
+    for (const id of [BreachLawId.GdprProcessor, BreachLawId.UkGdprProcessor]) {
+      expect(getBreachLawRule(id).checkedOn).toBe(FOLLOW_UP_LAWS_CHECKED_ON);
     }
 
     // Every day a row was read is a day some row was read: none left over.
@@ -275,6 +295,21 @@ describe("every row of the table", () => {
 
       if (rule.inForceFrom) {
         expect(rule.inForceFrom).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      }
+
+      // A row replaced by a newer text ends the day a row of the same notice starts (#11425).
+      if (rule.inForceUntil) {
+        expect(rule.inForceUntil).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(
+          BREACH_LAW_RULES.some((other: BreachLawRule): boolean => {
+            return (
+              other.id !== rule.id &&
+              other.family === rule.family &&
+              other.provision === rule.provision &&
+              other.inForceFrom === rule.inForceUntil
+            );
+          }),
+        ).toBe(true);
       }
     },
   );
@@ -332,6 +367,10 @@ describe("where the people live", () => {
     expect(getBreachPlaceOfCountry("BR")).toBe(BreachPlace.Brazil);
     expect(getBreachPlaceOfCountry("IN")).toBe(BreachPlace.India);
     expect(getBreachPlaceOfCountry("JP")).toBe(BreachPlace.Elsewhere);
+    // Puerto Rico, Guam and the US Virgin Islands have codes of their own, and laws the table holds (#11424, #11426).
+    expect(getBreachPlaceOfCountry("pr")).toBe(BreachPlace.PuertoRico);
+    expect(getBreachPlaceOfCountry("GU")).toBe(BreachPlace.Guam);
+    expect(getBreachPlaceOfCountry("VI")).toBe(BreachPlace.UsVirginIslands);
   });
 
   test("every place has its words and its choice, and the states are states", () => {
@@ -631,6 +670,112 @@ describe("HIPAA 164.410: a business associate tells the covered entity", () => {
       BreachCondition.HipaaBusinessAssociate,
     ]);
   });
+
+  test("is a notice a business that holds the data for another owes, so it waits on that answer (#11427)", () => {
+    const rule: BreachLawRule = getBreachLawRule(
+      BreachLawId.HipaaBusinessAssociate,
+    );
+    const held: (holdsForAnother?: boolean) => boolean = (
+      holdsForAnother?: boolean,
+    ): boolean => {
+      return applyBreachLaws(
+        facts({ dataTypeIds: ["health-information"], holdsForAnother }),
+      ).some((obligation: BreachObligation): boolean => {
+        return obligation.ruleId === rule.id;
+      });
+    };
+
+    expect(rule.forDataHolders).toBe(true);
+    expect(held()).toBe(false);
+    expect(held(false)).toBe(false);
+    expect(held(true)).toBe(true);
+  });
+});
+
+describe("GDPR and UK GDPR Article 33(2): a processor tells its controller without undue delay (#11427)", () => {
+  const ROWS: ReadonlyArray<[BreachLawId, BreachPlace, BreachLawFamily]> = [
+    [BreachLawId.GdprProcessor, BreachPlace.Eea, BreachLawFamily.Gdpr],
+    [
+      BreachLawId.UkGdprProcessor,
+      BreachPlace.UnitedKingdom,
+      BreachLawFamily.UkGdpr,
+    ],
+  ];
+
+  test.each(ROWS)(
+    "%s says what Article 33(2) says, read on 28 November 2026",
+    (id: BreachLawId, place: BreachPlace, family: BreachLawFamily) => {
+      const rule: BreachLawRule = getBreachLawRule(id);
+
+      expect({
+        family: rule.family,
+        provision: rule.provision,
+        places: rule.places,
+        dataElements: rule.dataElements,
+        needsName: rule.needsName,
+        conditions: rule.conditions,
+        deadline: rule.deadline,
+        forDataHolders: rule.forDataHolders,
+      }).toEqual({
+        family,
+        provision: "Article 33(2)",
+        places: [place],
+        dataElements: [BreachDataElement.PersonalData],
+        needsName: false,
+        // No risk test: the controller weighs the risk; the processor tells it either way.
+        conditions: [],
+        deadline: {
+          unit: BreachDeadlineUnit.WithoutUndueDelay,
+          start: BreachDeadlineStart.Found,
+        },
+        forDataHolders: true,
+      });
+      expect(rule.action).toBe("Notify the controller");
+      expect(rule.recipient).toBe("The controller you process the data for");
+      expect(rule.sourceTitle).toContain("Article 33(2)");
+      expect(rule.checkedOn).toBe(FOLLOW_UP_LAWS_CHECKED_ON);
+    },
+  );
+
+  test.each(ROWS)(
+    "%s may apply to its people's personal data once the data is held for another, and is left out until then",
+    (id: BreachLawId, place: BreachPlace) => {
+      const example: Parameters<typeof facts>[0] = {
+        dataTypeIds: ["email-address", "person-name"],
+        places: [place],
+      };
+      const find: (
+        holdsForAnother?: boolean,
+      ) => BreachObligation | undefined = (
+        holdsForAnother?: boolean,
+      ): BreachObligation | undefined => {
+        return applyBreachLaws(facts({ ...example, holdsForAnother })).find(
+          (obligation: BreachObligation): boolean => {
+            return obligation.ruleId === id;
+          },
+        );
+      };
+
+      expect(find()).toBeUndefined();
+      expect(find(false)).toBeUndefined();
+
+      const held: BreachObligation = find(true)!;
+
+      expect(held.status).toBe(BreachObligationStatus.MayApply);
+      expect(held.isPlaceKnown).toBe(true);
+      // Without undue delay: no due moment to count to.
+      expect(held.dueAt).toBeUndefined();
+      expect(conditions(held)).toEqual([]);
+      // Nothing personal, no notice.
+      expect(
+        apply(id, {
+          dataTypeIds: ["aws-secret-access-key"],
+          places: [place],
+          holdsForAnother: true,
+        }).status,
+      ).toBe(BreachObligationStatus.NotTriggered);
+    },
+  );
 });
 
 describe("California Civil Code 1798.82(a): residents within 30 calendar days", () => {
@@ -709,9 +854,14 @@ describe("California Civil Code 1798.82(a): residents within 30 calendar days", 
       }).status,
     ).toBe(BreachObligationStatus.NotTriggered);
 
+    // Found on the last evening of 2025, and assessed then: not yet in force.
     const before: BreachObligation = apply(
       BreachLawId.CaliforniaResidents,
-      { dataTypeIds: ["us-ssn"], places: [BreachPlace.California] },
+      {
+        dataTypeIds: ["us-ssn"],
+        places: [BreachPlace.California],
+        foundAt: new Date("2025-12-31T23:00:00.000Z"),
+      },
       new Date("2025-12-31T23:00:00.000Z"),
     );
 
@@ -720,6 +870,35 @@ describe("California Civil Code 1798.82(a): residents within 30 calendar days", 
       kind: BreachReasonKind.NotInForce,
       date: "2026-01-01",
     });
+
+    // Found then, and assessed once it took effect: the day it was found decides (#11425).
+    const assessedLater: BreachObligation = apply(
+      BreachLawId.CaliforniaResidents,
+      {
+        dataTypeIds: ["us-ssn"],
+        places: [BreachPlace.California],
+        foundAt: new Date("2025-12-31T23:00:00.000Z"),
+      },
+      new Date("2026-02-01T00:00:00.000Z"),
+    );
+
+    expect(assessedLater.status).toBe(BreachObligationStatus.NotTriggered);
+    expect(assessedLater.reasons).toEqual([
+      { kind: BreachReasonKind.InForceAfterFound, date: "2026-01-01" },
+    ]);
+
+    // Found once it took effect, it may apply.
+    expect(
+      apply(
+        BreachLawId.CaliforniaResidents,
+        {
+          dataTypeIds: ["us-ssn", "person-name"],
+          places: [BreachPlace.California],
+          foundAt: new Date("2026-01-01T00:00:00.000Z"),
+        },
+        new Date("2026-01-02T00:00:00.000Z"),
+      ).status,
+    ).toBe(BreachObligationStatus.MayApply);
   });
 });
 
@@ -1009,7 +1188,7 @@ describe("DPDP Rules 2025, Rule 7: the people and the Board, from 13 May 2027", 
     }
   });
 
-  test("is not in force today, and is once its day comes", () => {
+  test("is not in force today, and is for an exposure found once its day comes", () => {
     const today: BreachObligation = apply(BreachLawId.DpdpBoard, {
       dataTypeIds: ["in-aadhaar"],
       countries: ["IN"],
@@ -1018,14 +1197,31 @@ describe("DPDP Rules 2025, Rule 7: the people and the Board, from 13 May 2027", 
     expect(today.status).toBe(BreachObligationStatus.NotYetInForce);
     expect(today.dueAt).toBeUndefined();
 
+    const foundThatDay: Date = new Date("2027-05-13T00:00:00.000Z");
     const later: BreachObligation = apply(
       BreachLawId.DpdpBoard,
-      { dataTypeIds: ["in-aadhaar"], countries: ["IN"] },
-      new Date("2027-05-13T00:00:00.000Z"),
+      { dataTypeIds: ["in-aadhaar"], countries: ["IN"], foundAt: foundThatDay },
+      foundThatDay,
     );
 
     expect(later.status).toBe(BreachObligationStatus.MayApply);
-    expect(later.dueAt).toBe(after(72 * HOUR));
+    expect(later.dueAt).toBe(
+      new Date(foundThatDay.getTime() + 72 * HOUR).toISOString(),
+    );
+  });
+
+  test("an exposure found before its day follows the law of that day, though it is assessed later (#11425)", () => {
+    const foundBefore: BreachObligation = apply(
+      BreachLawId.DpdpBoard,
+      { dataTypeIds: ["in-aadhaar"], countries: ["IN"] },
+      new Date("2027-06-01T00:00:00.000Z"),
+    );
+
+    expect(foundBefore.status).toBe(BreachObligationStatus.NotTriggered);
+    expect(foundBefore.reasons).toEqual([
+      { kind: BreachReasonKind.InForceAfterFound, date: "2027-05-13" },
+    ]);
+    expect(foundBefore.dueAt).toBeUndefined();
   });
 });
 

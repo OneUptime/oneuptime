@@ -27,6 +27,7 @@ Beim Bauen brauchen Sie sie selten offen. Die Einstellungen jedes Bausteins ende
 | Vor dem nächsten Baustein zu warten                      | [Sleep](#sleep)                                                   |
 | Einen anderen Workflow zu starten                        | [Execute Workflow](#execute-workflow)                             |
 | Die Bilder, die das Markdown eines Datensatzes zeigt, an eine E-Mail anzuhängen | [Dateien aus Markdown abrufen](#get-files-from-markdown) |
+| Die Anhänge einer Notiz oder die benutzerdefinierten Dateifelder eines Datensatzes an eine E-Mail anzuhängen | [Anhänge aus Datensatz abrufen](#get-attachments-from-record) |
 | Vorfälle, Monitore und andere Datensätze zu lesen oder zu ändern | [OneUptime-Datenkomponenten](#oneuptime-datenkomponenten) |
 | Vorfälle oder Warnungen zu den Problemen eines anderen Tools zu öffnen, zu bestätigen und zu lösen | [Vorfälle und Warnungen aus anderen Tools](#vorfälle-und-warnungen-aus-anderen-tools) |
 | Ein Zabbix-Problem zu bestätigen oder zu schließen | [Zabbix](#zabbix) |
@@ -420,7 +421,7 @@ Er gibt zurück:
 - **Anzahl**: wie viele Bilder **Dateien** enthält.
 - **Ausgelassen**: die Dateien, die das Markdown zeigt, die aber nicht in **Dateien** sind, jeweils mit `name`, `urls`, `fields`, einem `reason` und einer `message`, die sagt, warum.
 
-**Dateien** enthält die Daten der Bilder, daher blendet das Protokoll des Laufs es aus und zeigt stattdessen **Anzahl** und **Ausgelassen**. Ein späterer Baustein, dem die Bilder übergeben werden, schreibt, was er bekommt, in seinen eigenen Eintrag im Protokoll.
+**Dateien** enthält die Daten der Bilder, daher blendet das Protokoll des Laufs es aus und zeigt stattdessen **Anzahl** und **Ausgelassen**. Ein späterer Baustein, dem die Bilder übergeben werden, zeigt sie ebenfalls ausgeblendet, in dem, was er empfangen, und in dem, was er zurückgegeben hat (siehe [Ausführungen](/docs/workflows/runs-and-logs#der-reiter-schritte)).
 
 ### Welche Bilder er herausgibt
 
@@ -525,6 +526,61 @@ Microsoft Graph antwortet `202 Accepted`, und der Baustein nimmt **Erfolg**.
 :::
 
 Microsoft Graph nimmt in einer Nachricht, die ihm so geschickt wird, einen Anhang von bis zu 3 MB an. Ein größeres Bild braucht eine Upload-Sitzung oder einen Link anstelle des Bildes. Die Bilder eines Datensatzes lassen sich auch mit einem API-Schlüssel von außerhalb eines Workflows lesen: siehe [Bilder im Markdown eines Datensatzes](/docs/api-reference/api-reference#bilder-im-markdown-eines-datensatzes).
+
+## Get Attachments From Record
+
+Liest die Dateien, die ein Datensatz enthält, mit Namen, Typ und Daten jeder Datei: die Anhänge einer Notiz, die Postmortem-Anhänge eines Vorfalls, die Anhänge einer Ankündigung und die Dateien in den benutzerdefinierten Feldern vom Typ **Datei** und **Mehrere Dateien** des Datensatzes. Verwenden Sie ihn, um sie an eine E-Mail anzuhängen. Um auch die Bilder anzuhängen, die das Markdown eines Datensatzes zeigt, fügen Sie für denselben Datensatz [Dateien aus Markdown abrufen](#get-files-from-markdown) hinzu.
+
+| Einstellung | Was sie tut |
+| --- | --- |
+| **Eintragstyp** | Die Art des Datensatzes, der die Dateien enthält: ein Vorfall, eine interne oder öffentliche Notiz eines Vorfalls, eine Warnung, eine geplante Wartung und mehr. |
+| **Datensatz-ID** | Der Datensatz, der gelesen wird, meist der, der den Workflow gestartet hat, etwa `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`. |
+
+| Ausgang | Wann |
+| --- | --- |
+| **Erfolg** | Der Datensatz wurde gelesen, ob er Dateien enthält oder nicht. |
+| **Fehler** | Der Datensatz konnte nicht gelesen werden: Er existiert nicht, oder der Workflow darf ihn nicht lesen. **Fehler** sagt, warum. |
+
+Er gibt zurück:
+
+- **Dateien**: jede Datei, zuerst die eigenen Anhänge des Datensatzes, dann seine benutzerdefinierten Dateifelder in der Reihenfolge, in der sie angelegt wurden, mit:
+  - `name`: dem Namen der Datei, wie sie hochgeladen wurde;
+  - `mimeType`: ihrem Typ, etwa `application/pdf` oder `image/png`;
+  - `sizeInBytes`: ihrer Größe in Bytes;
+  - `base64`: den Daten der Datei;
+  - `contentId`: einer ID für die Datei in einer E-Mail, für dieselbe Datei dieselbe, welcher Datensatz sie auch enthält;
+  - `fields`: wo der Datensatz sie führt: `attachments`, `postmortemAttachments` oder dem Namen eines benutzerdefinierten Felds.
+- **Anzahl**: wie viele Dateien **Dateien** enthält.
+- **Ausgelassen**: die Dateien, die der Datensatz enthält, die aber nicht in **Dateien** sind, jeweils mit `name`, `fields`, einem `reason` und einer `message`, die sagt, warum.
+
+**Dateien** enthält die Daten der Dateien, daher blendet das Protokoll des Laufs es aus und zeigt stattdessen **Anzahl** und **Ausgelassen**, und ein späterer Baustein, dem die Dateien übergeben werden, zeigt sie ebenfalls ausgeblendet.
+
+### Welche Dateien er herausgibt
+
+Der Baustein liest den Datensatz so, wie ein Find-One-Baustein es tut, als der Workflow: im eigenen Projekt des Workflows, nie einen privaten Vorfall, eine private Warnung oder Episode, und nur, was die Berechtigungen des Workflows zu lesen erlauben. Ein Datensatz, den er nicht lesen darf, nimmt **Fehler**, genau wie einer, der nicht existiert. Eine Rolle unter „Ausführen als“, die Vorfälle lesen darf, ihre internen Notizen aber nicht, kann die Anhänge einer Notiz nicht lesen.
+
+Er gibt nur heraus:
+
+- Dateien, die der Datensatz jetzt enthält: seine eigenen Anhänge und die Dateien seiner benutzerdefinierten Felder vom Typ **Datei** und **Mehrere Dateien**. Ein benutzerdefiniertes Textfeld wird nicht gelesen. Um die Dateien der Notizen eines Vorfalls anzuhängen, lesen Sie jede Notiz: Der Baustein liest nicht die Datensätze, die unter einem anderen stehen;
+- Dateien des eigenen Projekts des Datensatzes. Eine Datei eines anderen Projekts steht unter **Ausgelassen** als nicht gefunden;
+- Dokumente, Tabellen, Präsentationen, Bilder, Text- und Datendateien, Archive und Paketmitschnitte: die Dateiarten, die ein benutzerdefiniertes Feld vom Typ **Datei** annimmt, jede geprüft an dem, was die Datei enthält, wie an ihrem Typ. Ein SVG kann Skript enthalten und wird daher ausgelassen, ebenso eine Datei, die nur vorgibt, das zu sein, was ihr Typ sagt;
+- bis zu 20 Dateien und insgesamt 10 MB, wie bei **Dateien aus Markdown abrufen**. Was über eine Grenze hinausgeht, steht mit dem Grund unter **Ausgelassen**.
+
+Er kann keine Dateien auflisten und keine über ihre ID lesen: Er liest nur, was der Datensatz enthält.
+
+Um die Dateien an die E-Mail über Microsoft Graph aus dem [Beispiel oben](#beispiel-eingebettete-bilder-in-einer-e-mail-über-microsoft-graph) anzuhängen, fügen Sie **Anhänge aus Datensatz abrufen** nach **Dateien aus Markdown abrufen** hinzu, ergänzen Sie die **Argumente** des Codes um `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}` und hängen Sie jede Datei mit `isInline: false` an:
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## Vorfälle und Warnungen aus anderen Tools
 

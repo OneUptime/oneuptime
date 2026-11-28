@@ -190,6 +190,23 @@ const KNOWN_FILES: Record<string, KnownFile> = {
     role: "other",
     why: "that migration's repair, on the template's own stored shape",
   },
+  "App/FeatureSet/Workers/DataMigrations/ScopeTemplateDashboardVariablesToTheirResources.ts":
+    {
+      role: "other",
+      why: "a data migration finding the template variables by their exact stored JSON (#11258)",
+    },
+  "Common/Utils/Dashboard/TemplateVariableResourceScopeRepair.ts": {
+    role: "other",
+    why: "that migration's repair, on the templates' own stored variables and widgets",
+  },
+  "App/FeatureSet/Workers/DataMigrations/GroupHostsDashboardChartsByHost.ts": {
+    role: "other",
+    why: "a data migration finding the Hosts template's charts by their exact stored JSON (#11258)",
+  },
+  "Common/Utils/Dashboard/HostsDashboardChartGroupingRepair.ts": {
+    role: "other",
+    why: "that migration's repair, on the Hosts template's own stored charts",
+  },
 };
 
 function toKey(absolutePath: string): string {

@@ -71,6 +71,7 @@ import {
   getDataStoreKindInfo,
 } from "../../../../Types/DataSecurity/DataStoreKind";
 import DataTypeNamer from "../../../../Types/DataSecurity/DataTypeNamer";
+import { getRumSessionPart } from "../../../../Types/DataSecurity/RumSessionPlaces";
 import {
   getRumTelemetryLeakSignal,
   TelemetryLeakFixOwnerKind,
@@ -94,7 +95,8 @@ import SecuritySeverity from "../../../../Types/SecuritySeverity";
  *     web or mobile app's front-end code (#11395), on its RUM
  *     application's session replays - a browser log's
  *     `logs.attributes.user.email`, a session's user
- *     `sessions.identifiedUserLabel` (ProductionReviewScope says which
+ *     `sessions.identifiedUserLabel`, a session's tag
+ *     `sessions.tags.customer` (#11458; ProductionReviewScope says which
  *     code is a front end's); and whether a scrub rule already masks it
  *     at ingest, which is still a point: the code writes it, and every
  *     place that reads it before ingest - the collector, a log file,
@@ -1372,8 +1374,16 @@ export default class ProductionReviewSensitiveData {
             typeIds.has(finding.dataTypeId || "") &&
             // A session replay's finding of the candidate's own kind of record alone.
             (place.signal === null ||
-              getRumTelemetryLeakSignal(place.store.kind, finding.location) ===
-                place.signal),
+              (getRumTelemetryLeakSignal(place.store.kind, finding.location) ===
+                place.signal &&
+                /*
+                 * And of a session, its own part (#11458): a tag's point is
+                 * told of what the sessions' tags held, a user's of what
+                 * their users' details held - two audiences apart.
+                 */
+                (place.signal !== TelemetryLeakSignal.RumSessions ||
+                  getRumSessionPart(finding.location) ===
+                    getRumSessionPart(place.location)))),
         );
       },
     );
@@ -1442,8 +1452,8 @@ export default class ProductionReviewSensitiveData {
 
     /*
      * A front end's records are no service's: only a rule of every
-     * service reaches its browser logs and spans (#11395), and none a
-     * session's user.
+     * service reaches its browser logs and spans (#11395), and of a
+     * session's details its tags alone (#11458) - none a session's user.
      */
     if (
       replayPlace &&

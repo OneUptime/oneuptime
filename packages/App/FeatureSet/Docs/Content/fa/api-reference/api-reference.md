@@ -309,7 +309,13 @@ isVisibleOnStatusPage must be true or false.
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-کلیدی که نامش عوض شود همچنان با نام قدیمی‌اش هم خوانده می‌شود: نوع محدودیت یک لایه زیر `restrictionType` یا زیر املای قدیمی‌تر آن `restictionType` نوشته می‌شود و یک پاسخ هر دو را دارد.
+کلیدی که نامش عوض شود همچنان با نام قدیمی‌اش هم خوانده می‌شود: نوع محدودیت یک لایه زیر `restrictionType` یا زیر املای قدیمی‌تر آن `restictionType` نوشته می‌شود و یک پاسخ هر دو را دارد. املای قدیمی‌تر در پاسخ‌ها منسوخ شده است: پاسخ‌ها آن را تا نخستین نسخهٔ اصلی‌ای که در 1 ژوئن 2027 یا پس از آن منتشر شود دارند. نوشتن‌ها همیشه آن را می‌خوانند.
+
+یک مقدار به آنچه می‌گوید هم پایبند نگه داشته می‌شود. بازه هفتگی یک لایه در روزهایی که نام می‌برد آنکال است، پس `startTime` و `endTime` آن باید در منطقه زمانی زمان‌بندی بر `startDay` و `endDay` آن بیفتند. بازه‌ای که تاریخش در روزهای دیگری باشد با یک `400` رد می‌شود که بازه را نام می‌برد و زمانی در روز نام‌برده می‌دهد که می‌توان به‌جای آن فرستاد:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### پروژه از کجا خریده شده
 
@@ -425,7 +431,7 @@ Incident not found.
 
 ### تصویرهای Markdown یک رکورد
 
-تصویری که در Markdown چسبانده شده، مثل یک نماگرفت در توضیحات یک حادثه، یک فیلد سفارشی Markdown یا یک یادداشت، یک فایل خصوصی است. نشانی‌اش (`/file/image/access-token/...`) آن را فقط برای کسی باز می‌کند که به پروژه وارد شده است، برای همین یک کلید API آن را از راه رکوردی می‌خواند که نشانش می‌دهد:
+تصویری که در Markdown چسبانده شده، مثل یک نماگرفت در توضیحات یک حادثه، یک فیلد سفارشی Markdown یا یک یادداشت، یک فایل خصوصی است. نشانی‌اش (`/file/image/access-token/...`) آن را فقط برای کسی باز می‌کند که به پروژه وارد شده است و اجازهٔ خواندن رکوردی را دارد که آن را نشان می‌دهد، یا آن را افزوده است، برای همین یک کلید API آن را از راه رکوردی می‌خواند که نشانش می‌دهد:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +465,7 @@ curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
 }
 ```
 
-فقط عکس‌هایی داده می‌شوند که در پروژهٔ خود رکورد بارگذاری شده‌اند، حداکثر 20 تا و روی هم 10 MB، و هرگز یک SVG. هر نوع رکوردی که Markdown دارد همین درخواست را دارد، مثل `/api/incident-public-note/<id>/markdown-files` یا `/api/alert/<id>/markdown-files`. رکوردی که وجود ندارد، یا کلید اجازهٔ خواندنش را ندارد، مثل `get-item` با `404` پاسخ می‌دهد، و با `422` وقتی کلید اصلاً اجازهٔ خواندن آن نوع رکورد را ندارد. یک گردش کاری همین تصویرها را با [دریافت فایل‌ها از Markdown](/docs/workflows/components#get-files-from-markdown) می‌خواند.
+فقط عکس‌هایی داده می‌شوند که در پروژهٔ خود رکورد بارگذاری شده‌اند، حداکثر 20 تا و روی هم 10 MB، و هرگز یک SVG. هر نوع رکوردی که Markdown دارد همین درخواست را دارد، مثل `/api/incident-public-note/<id>/markdown-files` یا `/api/alert/<id>/markdown-files`. رکوردی که وجود ندارد، یا کلید اجازهٔ خواندنش را ندارد، مثل `get-item` با `404` پاسخ می‌دهد، و با `422` وقتی کلید اصلاً اجازهٔ خواندن آن نوع رکورد را ندارد. یک گردش کاری همین تصویرها را با [دریافت فایل‌ها از Markdown](/docs/workflows/components#get-files-from-markdown) می‌خواند، و فایل‌هایی را که یک رکورد نگه می‌دارد، مثل پیوست‌های یک یادداشت و فیلدهای سفارشی فایل آن، با [دریافت پیوست‌ها از رکورد](/docs/workflows/components#get-attachments-from-record).
 
 ## مرجع کامل نقطه‌های پایانی
 

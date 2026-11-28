@@ -16,7 +16,9 @@ import ObjectID from "../../Types/ObjectID";
  *     before the column existed. Recorded once and never moved after: a
  *     monitor counts for the template it was created from and the one it is
  *     linked to (DeviceMonitorDuplicates), so the rule that made it never
- *     makes it again beside it;
+ *     makes it again beside it. The one exception is an alert policy's own
+ *     move of its monitor to the template it was pointed at (#11452): the
+ *     monitor is the policy's monitor from that template then;
  *   - its alert policy lets it go (Monitor.networkAlertPolicyId): the policy
  *     owns the monitors it made from its template, and would delete one a
  *     person moved to another template and make it again. Let go, the monitor
@@ -78,6 +80,33 @@ export default class MonitorTemplateChangeProvenance {
     }
 
     const patch: TemplateChangeProvenancePatch = {};
+
+    /*
+     * A network alert policy moving its own monitor to the template it names
+     * now (#11452): OneUptime's own write, the monitor staying the policy's.
+     * It is the policy's monitor from that template then, as if the policy
+     * had made it from it - so a person who later moves it off it has moved
+     * the policy's monitor, which the policy lets go and gives its device no
+     * other for (NetworkAlertPolicyEngineService.isPolicyMonitorMovedByAPerson).
+     */
+    if (
+      data.isOneUptimesOwnWrite &&
+      toKey(data.stored.networkAlertPolicyId) &&
+      toKey(data.writtenMonitorTemplateId)
+    ) {
+      if (
+        !this.isSameTemplate(
+          data.stored.createdFromMonitorTemplateId,
+          data.writtenMonitorTemplateId,
+        )
+      ) {
+        patch.createdFromMonitorTemplateId = new ObjectID(
+          data.writtenMonitorTemplateId!.toString(),
+        );
+      }
+
+      return patch;
+    }
 
     if (
       !toKey(data.stored.createdFromMonitorTemplateId) &&

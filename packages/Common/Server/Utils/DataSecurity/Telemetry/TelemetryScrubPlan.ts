@@ -34,6 +34,7 @@ import {
   ScrubProofRowReader,
 } from "./TelemetryScrubProof";
 import {
+  pickUnprovenScrubRuleCandidate,
   planScrubRuleCandidates,
   ProjectDataTypePattern,
   ScrubPlanFinding,
@@ -397,9 +398,29 @@ export async function planProvenScrubRule(data: {
     return { chosen: proven, isProven: true, tried };
   }
 
-  // Nothing could be proven at all: the narrowest candidate, as Scrub It always made it.
+  /*
+   * Nothing could be proven at all: the narrowest candidate, as Scrub It
+   * always made it - for a secret in an attribute, the attribute whole
+   * (pickUnprovenScrubRuleCandidate, #11458).
+   */
   if (cannotProve && tried.length > 0) {
-    return { chosen: tried[0]!, isProven: false, tried };
+    const unproven: ScrubRuleCandidate | null = pickUnprovenScrubRuleCandidate({
+      candidates: tried.map(
+        (each: ProvenScrubCandidate): ScrubRuleCandidate => {
+          return each.candidate;
+        },
+      ),
+      finding: planFinding,
+    });
+
+    return {
+      chosen:
+        tried.find((each: ProvenScrubCandidate): boolean => {
+          return each.candidate === unproven;
+        }) || tried[0]!,
+      isProven: false,
+      tried,
+    };
   }
 
   return { chosen: null, isProven: false, tried };

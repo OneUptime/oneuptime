@@ -274,4 +274,5 @@ L'incident d'un formulaire exécute les politiques d'astreinte que nomment ses p
 - [Vue d'ensemble des formulaires](/docs/forms/index): À quoi servent les formulaires, les autorisations et l'API.
 - [Créer un formulaire](/docs/forms/building): Les questions, les questions masquées et les modèles.
 - [Ce que crée une soumission](/docs/forms/on-submit): L'incident ou l'événement que crée chaque soumission.
+- [Suivre une soumission](/docs/forms/follow-ups): Les personnes qui envoient suivent leur demande, écrivent à votre équipe et ajoutent d'autres personnes.
 :::

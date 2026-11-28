@@ -8,6 +8,25 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
   };
 });
 
+/*
+ * Billing per test: CI's config.env turns it on, a local run has it off,
+ * and whether projects choose their call voice is never set from the
+ * environment on OneUptime Cloud (#11462).
+ */
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  const flag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
+
+  return flag.withLiveBillingFlag(
+    jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
+
 jest.mock("../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -29,8 +48,10 @@ import {
   SERVER_TWILIO_ENVIRONMENT_ROUTE,
   SERVER_TWILIO_CALL_VOICE_VARIABLE,
   SERVER_TWILIO_ENVIRONMENT_VARIABLES,
+  SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE,
   ServerTwilioEnvironmentVariable,
 } from "../../../Types/CallAndSMS/ServerTwilioEnvironment";
+import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { TwilioConfigUse } from "../../../Types/CallAndSMS/TwilioConfigUse";
 import Email from "../../../Types/Email";
 import { JSONObject } from "../../../Types/JSON";
@@ -129,10 +150,14 @@ function session(isMasterAdmin: boolean): JSONWebTokenData {
 
 const before: Record<string, string | undefined> = {};
 
-// The account's variables, and the voice's (#11064), which the route says too.
+/*
+ * The account's variables, the voice's (#11064) and the switch's that lets
+ * projects choose theirs (#11462), which the route says too.
+ */
 const VARIABLES: Array<string> = [
   ...SERVER_TWILIO_ENVIRONMENT_VARIABLES,
   SERVER_TWILIO_CALL_VOICE_VARIABLE,
+  SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE,
 ];
 
 function setEnvironment(
@@ -173,6 +198,8 @@ describe("the server's Twilio account from environment variables, over HTTP", ()
   });
 
   beforeEach(() => {
+    setTestBillingEnabled(false);
+
     for (const variable of VARIABLES) {
       before[variable] = process.env[variable];
       delete process.env[variable];
@@ -272,6 +299,9 @@ describe("the server's Twilio account from environment variables, over HTTP", ()
         isCallVoiceSetByEnvironment: false,
         callVoice: null,
         callVoiceProblem: null,
+        isLetProjectsChooseCallVoiceSetByEnvironment: false,
+        letProjectsChooseCallVoice: false,
+        letProjectsChooseCallVoiceProblem: null,
       });
       expect(result.raw).not.toContain(TOKEN);
     });
@@ -315,6 +345,9 @@ describe("the server's Twilio account from environment variables, over HTTP", ()
         isCallVoiceSetByEnvironment: false,
         callVoice: null,
         callVoiceProblem: null,
+        isLetProjectsChooseCallVoiceSetByEnvironment: false,
+        letProjectsChooseCallVoice: false,
+        letProjectsChooseCallVoiceProblem: null,
       });
     });
 
@@ -360,6 +393,92 @@ describe("the server's Twilio account from environment variables, over HTTP", ()
           /^GLOBAL_TWILIO_CALL_VOICE: "Polly\.Joanna" is not a voice OneUptime offers/,
         ),
       );
+    });
+
+    test("whether projects choose their call voice, as GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE sets it beside the account (#11462)", async () => {
+      process.env[SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE] =
+        "true";
+
+      const result: HttpResult = await request({ port: port });
+
+      expect(result.status).toBe(200);
+      expect(result.body?.["isSetByEnvironment"]).toBe(true);
+      expect(result.body?.["problems"]).toEqual([]);
+      expect(
+        result.body?.["isLetProjectsChooseCallVoiceSetByEnvironment"],
+      ).toBe(true);
+      expect(result.body?.["letProjectsChooseCallVoice"]).toBe(true);
+      expect(result.body?.["letProjectsChooseCallVoiceProblem"]).toBe(null);
+      // The voice's variable is its own: not set by this one.
+      expect(result.body?.["isCallVoiceSetByEnvironment"]).toBe(false);
+      expect(result.raw).not.toContain(TOKEN);
+    });
+
+    test("false is as much the switch as true: set, and off", async () => {
+      process.env[SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE] =
+        "FALSE";
+
+      const result: HttpResult = await request({ port: port });
+
+      expect(
+        result.body?.["isLetProjectsChooseCallVoiceSetByEnvironment"],
+      ).toBe(true);
+      expect(result.body?.["letProjectsChooseCallVoice"]).toBe(false);
+      expect(result.body?.["letProjectsChooseCallVoiceProblem"]).toBe(null);
+    });
+
+    test("the switch without the account: no account, and the switch", async () => {
+      for (const variable of SERVER_TWILIO_ENVIRONMENT_VARIABLES) {
+        delete process.env[variable];
+      }
+      process.env[SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE] =
+        "true";
+
+      const result: HttpResult = await request({ port: port });
+
+      expect(result.status).toBe(200);
+      expect(result.body?.["isSetByEnvironment"]).toBe(false);
+      expect(result.body?.["problems"]).toEqual([]);
+      expect(
+        result.body?.["isLetProjectsChooseCallVoiceSetByEnvironment"],
+      ).toBe(true);
+      expect(result.body?.["letProjectsChooseCallVoice"]).toBe(true);
+    });
+
+    test("a value that is neither true nor false: set, off, and the problem by the variable's name - the account's problems untouched", async () => {
+      process.env[SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE] =
+        "yes";
+
+      const result: HttpResult = await request({ port: port });
+
+      expect(result.status).toBe(200);
+      expect(result.body?.["problems"]).toEqual([]);
+      expect(
+        result.body?.["isLetProjectsChooseCallVoiceSetByEnvironment"],
+      ).toBe(true);
+      expect(result.body?.["letProjectsChooseCallVoice"]).toBe(false);
+      expect(result.body?.["letProjectsChooseCallVoiceProblem"]).toEqual(
+        expect.stringMatching(
+          /^GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE: "yes" is neither true nor false/,
+        ),
+      );
+    });
+
+    test("on OneUptime Cloud the variable is never the switch, and the answer says it is ignored", async () => {
+      setTestBillingEnabled(true);
+      process.env[SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE] =
+        "true";
+
+      const result: HttpResult = await request({ port: port });
+
+      expect(result.status).toBe(200);
+      expect(
+        result.body?.["isLetProjectsChooseCallVoiceSetByEnvironment"],
+      ).toBe(false);
+      expect(result.body?.["letProjectsChooseCallVoice"]).toBe(false);
+      expect(
+        String(result.body?.["letProjectsChooseCallVoiceProblem"]),
+      ).toContain("is ignored");
     });
 
     test("variables set without the account SID: no account, and that nothing reads them", async () => {

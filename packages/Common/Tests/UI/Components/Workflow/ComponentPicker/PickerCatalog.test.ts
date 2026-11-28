@@ -170,6 +170,7 @@ describe("what the picker leads with", () => {
       "Execute Workflow",
       "Sleep",
       "Get Files From Markdown",
+      "Get Attachments From Record",
     ]);
 
     for (const title of titlesOf(ACTIONS.popular)) {

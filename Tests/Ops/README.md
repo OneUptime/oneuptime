@@ -470,8 +470,8 @@ reader of the agent's own, and with the example's operators run first each
 leaves at the level it names.
 
 The chart's helm-unittest suite, `tests/extra-log-operators_test.yaml`, holds
-what the chart renders and every refusal by its whole message (helm-unittest
-0.5.1, which CI pins, has no `errorPattern`: it reads one as no assertion).
+what the chart renders and every refusal by its whole message, the schema's
+too (`HelmUnittestAssertions.test.js` holds every chart suite to that).
 `validate-collector-configs.sh` holds those verdicts to the collector's own.
 
 ### `LogSeverityOneTable.test.js`
@@ -1597,6 +1597,34 @@ holds both charts to writing every such value as a quoted string:
   the Altinity installation create are the ones the app connects as and to.
 
 The render needs `helm`, as the OpenShift admission check above does.
+
+### `HelmUnittestAssertions.test.js`
+
+helm-unittest drops what it does not read, without a word: 0.5.1, which the
+harness pinned until #11403, had no `failedTemplate` `errorPattern`, and 72
+tests passed whatever their messages said. 1.2.1, pinned now, decodes an
+assertion with mapstructure, which ignores a key its validator has no field
+for (`errorPatern:`, `vaule:`), and reads `not`, `documentIndex` and
+`template` only as a boolean, an integer and a string. `--strict` holds a
+suite's and a test's own keys, but neither an assertion's nor a test's
+`capabilities`. So this holds every suite file under `HelmChart/` to what
+1.2.1 reads:
+
+- each assertion has one type that version knows, only the keys its validator
+  reads, and the keys it needs to compare anything (an `equal` with no
+  `value`, a `hasDocuments` with no `count`);
+- each test has asserts, a `matchRegex` pattern does not match any text, and a
+  suite and a test carry only the keys they have;
+- a refusal (`failedTemplate`) is held to its whole `errorMessage`: not
+  `errorPattern`, an unanchored regex that passes for any message holding it;
+  not a bare `failedTemplate: {}`, which passes for any failure; and not
+  negated;
+- each is written so `HelmChart/Tests/suites/assertions-can-fail.sh` can plant
+  a wrong message in it, which that suite then requires to fail.
+
+Its tables are read from helm-unittest's source at one version, and it fails
+when the harness pins another until they are read again. Planted mistakes, one
+of each kind, show it reporting them. It needs no `helm`.
 
 ### `KubernetesAgentClusterName.test.js`
 

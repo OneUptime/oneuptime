@@ -23,7 +23,7 @@ flowchart TB
 
 ## Before you begin
 
-- For a list, an `https` address that downloads a text file with one indicator a line.
+- For a list, an `https` address that downloads a text file with one indicator a line, freely or with a username and password.
 - For a TAXII feed, a TAXII 2.1 server that publishes STIX 2.1 `indicator` objects, and the ID of the collection to poll. A TAXII feed signs in anonymously, with a bearer token, or with HTTP basic auth.
 - For a Google SecOps feed, a [Google SecOps connection](/docs/integrations/google-secops#set-up-the-managed-connector) whose service account can search indicator matches: the `roles/chronicle.viewer` role can.
 - Servers that require a TLS client certificate (mutual TLS), such as CISA AIS, are not supported. MITRE's public ATT&CK server publishes techniques and groups rather than indicators, so a feed pointed at it stays empty.
@@ -50,7 +50,7 @@ Open **Products → Security Events → Detections → Threat Intel**.
 
 ### Create the feed
 
-Click **Create Threat Intel Feed** and pick its **Source**: **List of indicators**, **TAXII collection** or **Google SecOps**. The next step asks for that source alone: a list's **List URL**, a collection's **TAXII Server** and **Sign-in**, or the **Google SecOps Connection**. **On Match** comes last. The fields are in the table below.
+Click **Create Threat Intel Feed** and pick its **Source**: **List of indicators**, **TAXII collection** or **Google SecOps**. The next step asks for that source alone: a list's **List URL** and **Sign-in**, a collection's **TAXII Server** and **Sign-in**, or the **Google SecOps Connection**. **On Match** comes last. The fields are in the table below.
 
 ### Check the first poll
 
@@ -67,7 +67,7 @@ Within a minute or two the feed's row shows **Last Polled**, and **Last Poll Sum
 | **Collection ID** | The collection that publishes the indicators. |
 | **Poll Interval (Minutes)** | How often to read the source: 1 to 1440 minutes, 60 by default. A list is read every 15 minutes at most. |
 | **Minimum Confidence** | For a TAXII collection or Google SecOps: indicators with a lower confidence are skipped, 0 to 100, 0 keeps everything. Indicators with no confidence always pass. |
-| **Sign-in** | How OneUptime signs in: **No sign-in** for a public collection, **Bearer token** for a token the server's operator gave you, or **Username and password** for HTTP basic auth. |
+| **Sign-in** | How OneUptime signs in: **No sign-in** for a public list or collection, **Bearer token** for a token a collection's operator gave you, or **Username and password** for HTTP basic auth. |
 | **API Token**, **Basic Auth Username** and **Basic Auth Password** | Asked only for the sign-in picked. |
 | **Open a Case on Match** | On by default: each event that names an indicator opens a [case](/docs/telemetry/security-cases) about it, or joins the open case already about it. |
 | **Alerts and Incidents** | **Create an alert** by default: each matched indicator opens an alert. |
@@ -76,7 +76,7 @@ Within a minute or two the feed's row shows **Last Polled**, and **Last Poll Sum
 | **Incident Severity** | Like **Alert Severity**, for incidents. |
 | **Write Detection Finding on Match** | On by default: each match writes a finding into the event stream. |
 
-A TAXII feed's tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.
+A feed's tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round. A list offers no token.
 
 ### How a feed is polled
 
@@ -92,6 +92,7 @@ A disabled feed is neither polled nor matched. The indicators it already has kee
 - A value stays an active indicator for 2 days after the poll that last read it, and a value the list drops stops matching at the next poll. A list that has not changed is written again once a day.
 - A list holds at most 50,000 indicators. **Last Poll Summary** says how many were read, how many lines were skipped and how many were left out.
 - The address must use `https` and is held to the same outbound rules as a connection: on OneUptime Cloud a private address is refused.
+- A list behind a sign-in is asked for with its **Username and password**, as HTTP basic auth, never in its address. CrowdSec's Console serves the blocklists you subscribe to that way: see [Read CrowdSec's blocklists](/docs/integrations/crowdsec#read-crowdsecs-blocklists).
 
 ### How Google SecOps is read
 

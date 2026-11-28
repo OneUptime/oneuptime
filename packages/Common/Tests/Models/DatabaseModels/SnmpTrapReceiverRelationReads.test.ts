@@ -12,7 +12,12 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import SnmpTrapReceiverUtil, {
+  SnmpTrapRefusalReason,
+} from "../../../Types/Probe/SnmpTrapReceiver";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * WHAT A RELATION MAY READ OF A PROBE'S SNMP TRAP RECEIVER (#11173, #11194,
@@ -31,7 +36,11 @@ import { describe, expect, test } from "@jest/globals";
  *     relation could reach it.
  *   - NetworkDevice.snmpEngineId, the engine ID a device's polls read: the
  *     device's own pages read it; a relation that reaches a device (an
- *     alert's, a monitor's) does not.
+ *     alert's, a monitor's) does not. Since #11405 a v1 or v2c poll reads
+ *     it too, and it is held the same way.
+ *
+ * And, since #11406, the devices each refusal names (SnmpTrapRefusal
+ * .deviceIds): kept only in the two columns above, so held as they are.
  */
 
 const PROJECT: ObjectID = ObjectID.generate();
@@ -210,6 +219,127 @@ describe("a probe's own report (#11194, kept)", () => {
         as([Permission.ProjectMember]),
       );
     }).not.toThrow();
+  });
+});
+
+describe("the devices a refusal names (#11406)", () => {
+  /*
+   * Each refusal OneUptime keeps names the devices it came from
+   * (SnmpTrapRefusal.deviceIds). They are kept only where the refusals
+   * themselves are, and travel no further than the addresses and user
+   * names beside them.
+   */
+  const MODELS_DIR: string = path.resolve(
+    __dirname,
+    "../../../Models/DatabaseModels",
+  );
+
+  // Every column of every model typed to keep refusals, as Model.column.
+  function columnsKeepingRefusals(): Array<string> {
+    const columns: Array<string> = [];
+
+    for (const file of fs.readdirSync(MODELS_DIR)) {
+      if (!file.endsWith(".ts")) {
+        continue;
+      }
+
+      const source: string = fs.readFileSync(
+        path.join(MODELS_DIR, file),
+        "utf8",
+      );
+      const declaration: RegExp =
+        /public\s+(\w+)\?\s*:\s*(?:SnmpTrapReceiverReport(?!\w)|Array<SnmpTrapRefusal>)/g;
+
+      for (const match of source.matchAll(declaration)) {
+        columns.push(`${file.replace(/\.ts$/, "")}.${match[1]}`);
+      }
+    }
+
+    return columns.sort();
+  }
+
+  test("are kept in exactly two columns: a project probe's report, and a project's share of a global probe's", () => {
+    expect(columnsKeepingRefusals()).toEqual([
+      "GlobalProbeSnmpTrapReport.refusals",
+      "Probe.snmpTrapReceiver",
+    ]);
+  });
+
+  test("each is read by the probe's readers only, and written by nobody but OneUptime", () => {
+    for (const [model, column] of [
+      [new Probe(), "snmpTrapReceiver"],
+      [new GlobalProbeSnmpTrapReport(), "refusals"],
+    ] as Array<[BaseModel, string]>) {
+      expect({
+        column: column,
+        read: [...(model.getColumnAccessControlFor(column)?.read || [])].sort(),
+        create: model.getColumnAccessControlFor(column)?.create,
+        update: model.getColumnAccessControlFor(column)?.update,
+      }).toEqual({
+        column: column,
+        read: [...PROBE_READERS].sort(),
+        create: [],
+        update: [],
+      });
+    }
+  });
+
+  test("through a relation, a share is never read, and a probe's report only by the probe's readers", () => {
+    expect(
+      new GlobalProbeSnmpTrapReport().getTableColumnMetadata("refusals")
+        .canReadOnRelationQuery,
+    ).toBe(false);
+
+    const report: TableColumnMetadata = new Probe().getTableColumnMetadata(
+      "snmpTrapReceiver",
+    );
+    expect(report.relationReaders).toBe(RelationReaders.ColumnReaders);
+
+    const reachingAProbe: Array<Relation> = RELATIONS.filter(
+      (relation: Relation): boolean => {
+        return relation.relatedModelType === Probe;
+      },
+    );
+
+    // Alerts, incidents, monitors, devices, scans and the rest name probes.
+    expect(reachingAProbe.length).toBeGreaterThan(5);
+
+    // A device reader who is not a probe reader cannot read them through the device.
+    expect(() => {
+      relationSelect(
+        NetworkDevice,
+        {
+          probe: { _id: true, snmpTrapReceiver: true },
+        } as Select<NetworkDevice>,
+        as([Permission.ReadNetworkDevice]),
+      );
+    }).toThrow();
+  });
+
+  test("a probe never sets them: what it posts is read with no devices, and a global probe's own row keeps no refusal", () => {
+    const named: unknown = {
+      isEnabled: true,
+      refusals: [
+        {
+          sourceAddress: "10.20.0.5",
+          reason: SnmpTrapRefusalReason.UnknownUser,
+          userName: "san-monitor",
+          count: 1,
+          firstSeenAt: "2026-11-28T09:00:00.000Z",
+          lastSeenAt: "2026-11-28T09:00:00.000Z",
+          deviceIds: ["11406000-0000-4000-8000-000000000a01"],
+        },
+      ],
+    };
+
+    expect(
+      JSON.stringify(SnmpTrapReceiverUtil.sanitizeReport(named)),
+    ).not.toContain("deviceIds");
+    expect(
+      SnmpTrapReceiverUtil.toSharedReport(
+        SnmpTrapReceiverUtil.parseReport(named)!,
+      ).refusals,
+    ).toEqual([]);
   });
 });
 

@@ -257,6 +257,7 @@
     "Forms Overview": "Formularer – overblik",
     "Building a Form": "Byg en formular",
     "What a Submission Creates": "Hvad en indsendelse opretter",
+    "Following Up on a Submission": "Opfølgning på en indsendelse",
     "Sharing & Security": "Deling & sikkerhed",
     "Workflows Overview": "Arbejdsgange – Oversigt",
     "Authoring a Workflow": "Opret en arbejdsgang",
@@ -511,6 +512,7 @@
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
     "Cloudflare": "Cloudflare",
+    "CrowdSec": "CrowdSec",
     "Global SSO": "Global SSO",
     "Import and Export Label Rules": "Import og eksport af etiketregler",
     "Run Rules on Existing Resources": "Kør regler på eksisterende ressourcer"

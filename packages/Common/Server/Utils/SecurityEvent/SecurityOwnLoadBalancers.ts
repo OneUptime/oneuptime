@@ -14,6 +14,15 @@ import {
   readGoogleFrontEndUse,
   readOwnLoadBalancer,
 } from "../../../Utils/SecurityEvent/OwnLoadBalancers";
+import {
+  GCP_SUBNETWORK_TYPE,
+  GoogleProxyOnlyReading,
+  PassOnLoadBalancerReading,
+  PassOnRecord,
+  readAwsPassOnLoadBalancer,
+  readGoogleFrontEndPassOnLoadBalancer,
+  readGoogleProxyOnlySubnetUses,
+} from "../../../Utils/SecurityEvent/PassOnLoadBalancers";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import CloudResourceService from "../../Services/CloudResourceService";
 import QueryHelper from "../../Types/Database/QueryHelper";
@@ -54,6 +63,38 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 
 // The most rows one read takes: load balancers, forwarding rules and Azure public IP addresses together.
 export const OWN_LOAD_BALANCER_ROWS_READ: number = 1000;
+
+// The most Google Cloud proxy-only subnets each of its two searches takes (#11389).
+export const OWN_PROXY_ONLY_SUBNET_ROWS_READ: number = 500;
+
+/*
+ * What a proxy-only subnet's purpose holds (#11389): REGIONAL_MANAGED_PROXY
+ * and GLOBAL_MANAGED_PROXY, and INTERNAL_HTTPS_LOAD_BALANCER, its name
+ * before them. Read whole by PassOnLoadBalancers.readGoogleProxyOnlySubnet.
+ */
+const PROXY_ONLY_SUBNET_SEARCHES: ReadonlyArray<string> = [
+  "MANAGED_PROXY",
+  "INTERNAL_HTTPS_LOAD_BALANCER",
+];
+
+// A row as the pass-on readers read it, with the cloud account it is in.
+function toPassOnRecord(row: CloudResource): PassOnRecord {
+  return {
+    cloudResourceType: row.cloudResourceType,
+    providerResourceId: row.providerResourceId,
+    name: row.name,
+    cloudProperties: row.cloudProperties,
+    cloudEndpoints: row.cloudEndpoints,
+    cloudRelationships: row.cloudRelationships,
+    where: row.cloudConnection?.name || "",
+  };
+}
+
+function isReading(
+  reading: PassOnLoadBalancerReading | null,
+): reading is PassOnLoadBalancerReading {
+  return reading !== null;
+}
 
 // The most AWS load balancer names one read looks up.
 export const OWN_LOAD_BALANCER_NAMES_RESOLVED: number = 200;
@@ -118,14 +159,29 @@ export interface SecurityOwnLoadBalancersRead {
    * project's connects from them (#11047); null when none does.
    */
   googleFrontEnds: SecurityGoogleFrontEnds | null;
+  /*
+   * The project's load balancers that pass on what a client wrote (#11389,
+   * Utils/SecurityEvent/PassOnLoadBalancers), each with the ranges it
+   * connects from: never trusted, whatever lists them, and whether or not
+   * Your Load Balancers is on.
+   */
+  passOnLoadBalancers: Array<PassOnLoadBalancerReading>;
 }
 
 // What the scans trust of the project's own load balancers, kept apart so a check can say which is which.
 export interface SecurityOwnLoadBalancerBlocks {
-  // Their own public addresses.
+  /*
+   * Their own addresses, public and private, and the proxy-only subnets
+   * only their Application Load Balancers connect from (#11389).
+   */
   loadBalancers: Array<NetworkAddressBlock>;
   // Google's front ends, while trusted (SecurityGoogleFrontEnds.isTrusted).
   googleFrontEnds: Array<NetworkAddressBlock>;
+  /*
+   * Where the project's load balancers that pass on what a client wrote
+   * connect from (#11389): never trusted.
+   */
+  untrusted: Array<NetworkAddressBlock>;
 }
 
 const trustedCache: InMemoryTTLCache<SecurityOwnLoadBalancerBlocks> =
@@ -314,10 +370,121 @@ export default class SecurityOwnLoadBalancers {
       }
     }
 
+    /*
+     * The load balancers that pass on what a client wrote, and the
+     * proxy-only subnets the project's Google Cloud load balancers connect
+     * from (#11389): one only Application Load Balancers use is theirs.
+     */
+    const subnets: { rows: Array<CloudResource>; isCut: boolean } =
+      await this.readProxyOnlySubnets(data);
+
+    isComplete = isComplete && !subnets.isCut;
+
+    const records: Array<PassOnRecord> = [...read, ...subnets.rows].map(
+      toPassOnRecord,
+    );
+    const google: GoogleProxyOnlyReading = readGoogleProxyOnlySubnetUses({
+      records,
+    });
+
+    for (const use of google.uses) {
+      if (
+        use.passedOnBy.length === 0 &&
+        use.forwardedBy.length > 0 &&
+        use.subnet.ranges.length > 0
+      ) {
+        loadBalancers.push({
+          kind: OwnLoadBalancerKind.GoogleCloudProxyOnlySubnet,
+          name: use.subnet.name,
+          recordId: "",
+          where: use.subnet.where,
+          addresses: [...use.subnet.ranges],
+        });
+      }
+    }
+
+    const passOnLoadBalancers: Array<PassOnLoadBalancerReading> = [
+      ...records
+        .map((record: PassOnRecord): PassOnLoadBalancerReading | null => {
+          return readAwsPassOnLoadBalancer(record);
+        })
+        .filter(isReading),
+      ...google.passOn,
+      ...records
+        .map((record: PassOnRecord): PassOnLoadBalancerReading | null => {
+          return readGoogleFrontEndPassOnLoadBalancer(record);
+        })
+        .filter(isReading),
+    ];
+
     return {
       loadBalancers,
       isComplete,
       googleFrontEnds: readGoogleFrontEnds({ rows: read, isCut }),
+      passOnLoadBalancers,
+    };
+  }
+
+  /*
+   * The project's Google Cloud proxy-only subnets, read as `props` reads:
+   * each of its subnets whose purpose names one, in two bounded queries (the
+   * purposes of today and the one before them). Cut when there are more
+   * than one read takes.
+   */
+  private static async readProxyOnlySubnets(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<{ rows: Array<CloudResource>; isCut: boolean }> {
+    const read: (purpose: string) => Promise<Array<CloudResource>> = (
+      purpose: string,
+    ): Promise<Array<CloudResource>> => {
+      return CloudResourceService.findBy({
+        query: {
+          projectId: data.projectId,
+          isArchived: false,
+          cloudResourceType: GCP_SUBNETWORK_TYPE,
+          cloudProperties: QueryHelper.search(purpose) as never,
+        },
+        select: {
+          _id: true,
+          name: true,
+          cloudResourceType: true,
+          providerResourceId: true,
+          cloudProperties: true,
+          cloudRelationships: true,
+          cloudConnection: { name: true },
+        },
+        skip: 0,
+        limit: OWN_PROXY_ONLY_SUBNET_ROWS_READ + 1,
+        props: data.props,
+      });
+    };
+
+    const answers: Array<Array<CloudResource>> = await Promise.all(
+      PROXY_ONLY_SUBNET_SEARCHES.map((purpose: string) => {
+        return read(purpose);
+      }),
+    );
+    const rows: Array<CloudResource> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const answer of answers) {
+      for (const row of answer.slice(0, OWN_PROXY_ONLY_SUBNET_ROWS_READ)) {
+        const id: string = row.id?.toString() || row.providerResourceId || "";
+
+        // A subnet, each once: both searches can find the same one.
+        if (row.cloudResourceType === GCP_SUBNETWORK_TYPE && !seen.has(id)) {
+          seen.add(id);
+          rows.push(row);
+        }
+      }
+    }
+
+    return {
+      rows,
+      isCut: answers.some((answer: Array<CloudResource>): boolean => {
+        return answer.length > OWN_PROXY_ONLY_SUBNET_ROWS_READ;
+      }),
     };
   }
 
@@ -375,9 +542,26 @@ export default class SecurityOwnLoadBalancers {
           )
       : [];
 
+    // Where the load balancers that pass on what a client wrote connect from (#11389).
+    const untrusted: Array<NetworkAddressBlock> = [];
+    const untrustedSeen: Set<string> = new Set<string>();
+
+    for (const loadBalancer of read.passOnLoadBalancers) {
+      for (const range of loadBalancer.ranges) {
+        const block: NetworkAddressBlock | null =
+          NetworkAddressBlockUtil.parse(range);
+
+        if (block && !untrustedSeen.has(block.text)) {
+          untrustedSeen.add(block.text);
+          untrusted.push(block);
+        }
+      }
+    }
+
     const trusted: SecurityOwnLoadBalancerBlocks = {
       loadBalancers: blocks,
       googleFrontEnds,
+      untrusted,
     };
 
     trustedCache.set(key, trusted, OWN_LOAD_BALANCERS_CACHE_TTL_MS);

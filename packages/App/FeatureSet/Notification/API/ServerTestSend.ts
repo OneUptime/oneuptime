@@ -17,6 +17,8 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import { ServerTestSendAnswer } from "Common/Types/ServerSetup/ServerTestSend";
+import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import UserLanguage from "Common/Server/Utils/Notification/UserLanguage";
 
 /*
  * POST /server-test/email, /server-test/sms and /server-test/call - a master
@@ -26,6 +28,10 @@ import { ServerTestSendAnswer } from "Common/Types/ServerSetup/ServerTestSend";
  * refused and why, or not set up and what is missing - with 200 every time:
  * a refused test is an answer, not an error. Only an address or number that
  * is not one is refused (400).
+ *
+ * "Make test call" is said in the language of the master admin who pressed
+ * it, beside its English (#11461), by a voice of it where the server's
+ * account has one.
  *
  * POST /server-test/push - "Send test push" (#7028): to the master admin
  * who pressed it, on their own registered phones and browsers. It takes no
@@ -49,6 +55,30 @@ export const readSignedInUserId: (
   }
 
   return new ObjectID(session.session.userId.toString());
+};
+
+/*
+ * The language of who is signed in (Types/UserLanguage), for a test call in
+ * their language: English for no one, and for a read that fails - a test
+ * call is never refused for the language it would be said in.
+ */
+export const readSignedInUserLanguage: (
+  req: ExpressRequest,
+) => Promise<string> = async (req: ExpressRequest): Promise<string> => {
+  try {
+    const session: RequestSession =
+      await UserMiddleware.readRequestSession(req);
+
+    if (session.kind !== "user" || !session.session.userId) {
+      return DEFAULT_READER_LANGUAGE;
+    }
+
+    return await UserLanguage.getLanguage(
+      new ObjectID(session.session.userId.toString()),
+    );
+  } catch {
+    return DEFAULT_READER_LANGUAGE;
+  }
 };
 
 const router: ExpressRouter = Express.getRouter();
@@ -134,9 +164,32 @@ router.post(
 router.post(
   "/call",
   MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
-  send(async (body: JSONObject): Promise<ServerTestSendAnswer> => {
-    return await ServerTestSendService.makeCall(readTestPhone(body["toPhone"]));
-  }),
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      // The number first: one that is not one is refused before anything is read.
+      const to: Phone = readTestPhone(
+        ((req.body || {}) as JSONObject)["toPhone"],
+      );
+
+      // In the language of the admin who pressed it, beside its English (#11461).
+      const answer: ServerTestSendAnswer = await ServerTestSendService.makeCall(
+        to,
+        await readSignedInUserLanguage(req),
+      );
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        answer as unknown as JSONObject,
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
 );
 
 router.post(

@@ -39,7 +39,12 @@ describe("Get Files From Markdown's Record Type", () => {
     expect(field.fieldType).toBe(FormFieldSchemaType.Dropdown);
     expect(field.dropdownOptions).toEqual(
       RECORD_TYPES.map((model: BaseModel): DropdownOption => {
-        return { label: model.singularName!, value: model.tableName! };
+        // The product's name for a kind, looked up in the reader's language.
+        return {
+          label: model.singularName!,
+          value: model.tableName!,
+          isUserContent: false,
+        };
       }),
     );
   });

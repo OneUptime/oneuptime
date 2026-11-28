@@ -57,14 +57,41 @@ import {
   MonitorTemplateLinkResult,
 } from "../../Types/Monitor/MonitorTemplateChange";
 import MonitorCriteriaReplaced, {
+  CriteriaChangeResolved,
   CriteriaReplacedBecause,
 } from "../Utils/Monitor/MonitorCriteriaReplaced";
-import { MonitorTurnedOffResult } from "../Utils/Monitor/MonitorTurnedOff";
-import logger, { LogAttributes } from "../Utils/Logger";
 
 export interface SyncLinkedMonitorsResult {
   totalLinkedMonitors: number;
   syncedMonitors: number;
+  /*
+   * The open incidents and alerts resolved because the template no longer
+   * has the criteria that opened them (MonitorCriteriaReplaced, #11453):
+   * said only when the sync resolved any, so a sync that resolved nothing
+   * answers as it always did.
+   */
+  resolvedIncidentCount?: number | undefined;
+  resolvedAlertCount?: number | undefined;
+}
+
+// What a sync of one monitor resolved, as a sync of them all says it.
+export interface SyncToMonitorResult {
+  resolvedIncidentCount?: number | undefined;
+  resolvedAlertCount?: number | undefined;
+}
+
+// The counts a sync says, each only when it is not zero.
+function getResolvedCounts(
+  resolved: CriteriaChangeResolved,
+): SyncToMonitorResult {
+  return {
+    ...(resolved.resolvedIncidentCount > 0
+      ? { resolvedIncidentCount: resolved.resolvedIncidentCount }
+      : {}),
+    ...(resolved.resolvedAlertCount > 0
+      ? { resolvedAlertCount: resolved.resolvedAlertCount }
+      : {}),
+  };
 }
 
 /**
@@ -724,6 +751,7 @@ export class Service extends ProjectReferencesService<Model> {
         _id: true,
         projectId: true,
         monitorType: true,
+        templateName: true,
         monitorSteps: true,
         monitoringInterval: true,
         minimumProbeAgreement: true,
@@ -877,13 +905,27 @@ export class Service extends ProjectReferencesService<Model> {
         };
       });
 
-      for (const update of updates) {
-        syncedMonitors += await MonitorService.updateOneById({
-          id: update.monitor.id!,
-          data: update.data as any,
-          props: data.props,
-        });
-      }
+      /*
+       * One change of criteria (MonitorCriteriaReplaced, #11453): a criteria
+       * the template no longer has is taken off every monitor, and what it
+       * opened and would have resolved on its own is resolved and counted.
+       */
+      const resolvedOfPerMonitorSync: CriteriaChangeResolved =
+        await MonitorCriteriaReplaced.withinChange(
+          {
+            because: CriteriaReplacedBecause.SyncedFromTemplate,
+            templateName: template.templateName || "",
+          },
+          async (): Promise<void> => {
+            for (const update of updates) {
+              syncedMonitors += await MonitorService.updateOneById({
+                id: update.monitor.id!,
+                data: update.data as any,
+                props: data.props,
+              });
+            }
+          },
+        );
 
       await this.stampPolicyTemplateSync({
         monitorTemplateId: template.id!,
@@ -892,7 +934,11 @@ export class Service extends ProjectReferencesService<Model> {
         syncedMonitors,
       });
 
-      return { totalLinkedMonitors, syncedMonitors };
+      return {
+        totalLinkedMonitors,
+        syncedMonitors,
+        ...getResolvedCounts(resolvedOfPerMonitorSync),
+      };
     }
 
     /*
@@ -935,34 +981,44 @@ export class Service extends ProjectReferencesService<Model> {
 
     let syncedMonitors: number = 0;
 
-    for (
-      let batchStart: number = 0;
-      batchStart < linkedMonitorIds.length;
-      batchStart += LIMIT_MAX
-    ) {
-      const batch: Array<ObjectID> = linkedMonitorIds.slice(
-        batchStart,
-        batchStart + LIMIT_MAX,
-      );
-
-      /*
-       * Still scoped by template and project, so a stale id from the paging
-       * read above cannot widen the write beyond this template's fleet.
-       * props stays the caller's — updateBy narrows each batch to what they
-       * may actually update.
-       */
-      syncedMonitors += await MonitorService.updateBy({
-        query: {
-          _id: new Includes(batch),
-          monitorTemplateId: template.id!,
-          projectId: template.projectId,
+    // One change of criteria, as on the per-monitor path above.
+    const resolvedOfBulkSync: CriteriaChangeResolved =
+      await MonitorCriteriaReplaced.withinChange(
+        {
+          because: CriteriaReplacedBecause.SyncedFromTemplate,
+          templateName: template.templateName || "",
         },
-        data: updateData as any,
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: data.props,
-      });
-    }
+        async (): Promise<void> => {
+          for (
+            let batchStart: number = 0;
+            batchStart < linkedMonitorIds.length;
+            batchStart += LIMIT_MAX
+          ) {
+            const batch: Array<ObjectID> = linkedMonitorIds.slice(
+              batchStart,
+              batchStart + LIMIT_MAX,
+            );
+
+            /*
+             * Still scoped by template and project, so a stale id from the
+             * paging read above cannot widen the write beyond this template's
+             * fleet. props stays the caller's — updateBy narrows each batch
+             * to what they may actually update.
+             */
+            syncedMonitors += await MonitorService.updateBy({
+              query: {
+                _id: new Includes(batch),
+                monitorTemplateId: template.id!,
+                projectId: template.projectId!,
+              },
+              data: updateData as any,
+              limit: LIMIT_MAX,
+              skip: 0,
+              props: data.props,
+            });
+          }
+        },
+      );
 
     await this.stampPolicyTemplateSync({
       monitorTemplateId: template.id!,
@@ -974,6 +1030,7 @@ export class Service extends ProjectReferencesService<Model> {
     return {
       totalLinkedMonitors,
       syncedMonitors,
+      ...getResolvedCounts(resolvedOfBulkSync),
     };
   }
 
@@ -1024,7 +1081,7 @@ export class Service extends ProjectReferencesService<Model> {
     monitorId: ObjectID;
     props: DatabaseCommonInteractionProps;
     fields?: Array<string>;
-  }): Promise<void> {
+  }): Promise<SyncToMonitorResult> {
     const fields: Array<SyncableTemplateField> = this.validateSyncableFields(
       data.fields,
     );
@@ -1035,6 +1092,7 @@ export class Service extends ProjectReferencesService<Model> {
         _id: true,
         projectId: true,
         monitorType: true,
+        templateName: true,
         monitorSteps: true,
         monitoringInterval: true,
         minimumProbeAgreement: true,
@@ -1103,14 +1161,26 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return;
+      return {};
     }
 
-    await MonitorService.updateOneById({
-      id: data.monitorId,
-      data: updateData as any,
-      props: data.props,
-    });
+    // A change of criteria, as a sync of every linked monitor is (#11453).
+    const resolved: CriteriaChangeResolved =
+      await MonitorCriteriaReplaced.withinChange(
+        {
+          because: CriteriaReplacedBecause.SyncedFromTemplate,
+          templateName: template.templateName || "",
+        },
+        async (): Promise<void> => {
+          await MonitorService.updateOneById({
+            id: data.monitorId,
+            data: updateData as any,
+            props: data.props,
+          });
+        },
+      );
+
+    return getResolvedCounts(resolved);
   }
 
   /*
@@ -1253,26 +1323,33 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    await MonitorService.updateOneById({
-      id: data.monitorId,
-      data: updateData as any,
-      props: data.props,
-    });
-
-    const resolved: { incidents: number; alerts: number } =
-      data.applyTemplateSettings
-        ? await this.resolveWhatRemovedCriteriaLeftOpen({
-            monitor: monitor,
-            stepsAfter: updateData.monitorSteps,
-            templateName: template.templateName || "",
-            because: CriteriaReplacedBecause.LinkedToTemplate,
-          })
-        : { incidents: 0, alerts: 0 };
+    /*
+     * A change of criteria (MonitorCriteriaReplaced, #11453): the template's
+     * criteria replace the monitor's, or are synced to it again when it is
+     * linked to the template already, and what its old ones opened and
+     * would have resolved on their own is resolved and counted.
+     */
+    const resolved: CriteriaChangeResolved =
+      await MonitorCriteriaReplaced.withinChange(
+        {
+          because: isLinkedAlready
+            ? CriteriaReplacedBecause.SyncedFromTemplate
+            : CriteriaReplacedBecause.LinkedToTemplate,
+          templateName: template.templateName || "",
+        },
+        async (): Promise<void> => {
+          await MonitorService.updateOneById({
+            id: data.monitorId,
+            data: updateData as any,
+            props: data.props,
+          });
+        },
+      );
 
     return {
       outcome: MonitorTemplateChangeOutcome.Changed,
-      resolvedIncidentCount: resolved.incidents,
-      resolvedAlertCount: resolved.alerts,
+      resolvedIncidentCount: resolved.resolvedIncidentCount,
+      resolvedAlertCount: resolved.resolvedAlertCount,
     };
   }
 
@@ -1365,25 +1442,30 @@ export class Service extends ProjectReferencesService<Model> {
       ? data.templateName ?? (await this.readTemplateName(templateId))
       : "";
 
-    await MonitorService.updateOneById({
-      id: data.monitorId,
-      data: updateData as any,
-      props: data.props,
-    });
-
-    const resolved: { incidents: number; alerts: number } = isClearing
-      ? await this.resolveWhatRemovedCriteriaLeftOpen({
-          monitor: monitor,
-          stepsAfter: updateData.monitorSteps,
-          templateName: templateName,
+    /*
+     * A change of criteria when the template's are cleared
+     * (MonitorCriteriaReplaced, #11453): what they opened and would have
+     * resolved on their own is resolved and counted.
+     */
+    const resolved: CriteriaChangeResolved =
+      await MonitorCriteriaReplaced.withinChange(
+        {
           because: CriteriaReplacedBecause.ClearedOnUnlink,
-        })
-      : { incidents: 0, alerts: 0 };
+          templateName: templateName,
+        },
+        async (): Promise<void> => {
+          await MonitorService.updateOneById({
+            id: data.monitorId,
+            data: updateData as any,
+            props: data.props,
+          });
+        },
+      );
 
     return {
       outcome: MonitorTemplateChangeOutcome.Changed,
-      resolvedIncidentCount: resolved.incidents,
-      resolvedAlertCount: resolved.alerts,
+      resolvedIncidentCount: resolved.resolvedIncidentCount,
+      resolvedAlertCount: resolved.resolvedAlertCount,
     };
   }
 
@@ -1396,50 +1478,6 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     return template?.templateName || "";
-  }
-
-  /*
-   * Once a link brought a template's criteria, or an unlink cleared them:
-   * what the criteria the monitor lost would have resolved on their own
-   * (MonitorCriteriaReplaced). Never fails the change already written.
-   */
-  private async resolveWhatRemovedCriteriaLeftOpen(data: {
-    monitor: Monitor;
-    stepsAfter: MonitorSteps | undefined;
-    templateName: string;
-    because: CriteriaReplacedBecause;
-  }): Promise<{ incidents: number; alerts: number }> {
-    if (!data.monitor.id || !data.monitor.projectId) {
-      return { incidents: 0, alerts: 0 };
-    }
-
-    try {
-      const result: MonitorTurnedOffResult =
-        await MonitorCriteriaReplaced.resolveWhatRemovedCriteriaLeftOpen({
-          monitorId: data.monitor.id,
-          projectId: data.monitor.projectId,
-          monitorName: data.monitor.name || "",
-          templateName: data.templateName,
-          stepsBefore: data.monitor.monitorSteps,
-          stepsAfter: data.stepsAfter,
-          because: data.because,
-        });
-
-      return {
-        incidents: result.resolvedIncidentIds.length,
-        alerts: result.resolvedAlertIds.length,
-      };
-    } catch (error) {
-      logger.error(
-        `Monitor template: resolving what monitor ${data.monitor.id.toString()}'s old criteria left open failed: ${error}`,
-        {
-          projectId: data.monitor.projectId.toString(),
-          monitorId: data.monitor.id.toString(),
-        } as LogAttributes,
-      );
-
-      return { incidents: 0, alerts: 0 };
-    }
   }
 }
 export default new Service();

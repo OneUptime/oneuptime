@@ -369,6 +369,8 @@ function writtenNames(script) {
     ...namesIn(script, "TARGET_LIST_NAMES"),
     ...namesIn(script, "VERY_LARGE_CLOUD_NAMES"),
     ...namesIn(script, "AI_AGENT_NAMES"),
+    // With Docker: the containers' names (OpenStackAgentContainerNames.test.js).
+    ...namesIn(script, "CONTAINER_NAME_NAMES"),
   ];
 }
 
@@ -482,6 +484,13 @@ describe("agents/OpenStackAgent/install.sh, a fresh install", () => {
       OPENSTACK_LIBVIRT_HEALTH_TARGETS: "'[]'",
       OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "'[]'",
       OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "'[]'",
+      // Named after its directory, agent/ (OpenStackAgentContainerNames.test.js).
+      OPENSTACK_AGENT_CONTAINER_NAME: "'oneuptime-openstack-agent-agent'",
+      OPENSTACK_EXPORTER_CONTAINER_NAME: "'oneuptime-openstack-exporter-agent'",
+      OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME: "'oneuptime-openstack-quota-exporter-agent'",
+      OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME: "'oneuptime-openstack-database-exporter-agent'",
+      OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME: "'oneuptime-openstack-worker-state-exporter-agent'",
+      OPENSTACK_AI_AGENT_CONTAINER_NAME: "'oneuptime-openstack-ai-agent-agent'",
     });
     expect(mode(path.join(run.installDir, ".env"))).toBe(0o600);
     expect(run.output).not.toContain("reusing it");
@@ -2671,6 +2680,13 @@ describe("install.sh, as the upgrade", () => {
       OPENSTACK_LIBVIRT_HEALTH_TARGETS: "[]",
       OPENSTACK_LIBVIRT_EXPORTER_TARGETS: "[]",
       OPENSTACK_CEILOMETER_EXPORTER_TARGETS: "[]",
+      // An .env without the names: the directory's.
+      OPENSTACK_AGENT_CONTAINER_NAME: "oneuptime-openstack-agent-agent",
+      OPENSTACK_EXPORTER_CONTAINER_NAME: "oneuptime-openstack-exporter-agent",
+      OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME: "oneuptime-openstack-quota-exporter-agent",
+      OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME: "oneuptime-openstack-database-exporter-agent",
+      OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME: "oneuptime-openstack-worker-state-exporter-agent",
+      OPENSTACK_AI_AGENT_CONTAINER_NAME: "oneuptime-openstack-ai-agent-agent",
     });
   });
 
@@ -3129,11 +3145,14 @@ describe("agents/OpenStackAgent/install.sh, statically", () => {
     }
   });
 
+  // And says what to do when Docker refuses a container's name.
   test("starts the agent once, recreating it, so a re-run runs the files it downloaded", () => {
     const starts = script.split("\n").filter((line) => {
-      return /^\s*docker compose up\b/.test(line);
+      return /^\s*(if ! )?docker compose up\b/.test(line);
     });
-    expect(starts).toEqual(["    docker compose up -d --force-recreate"]);
+    expect(starts).toEqual([
+      "    if ! docker compose up -d --force-recreate; then",
+    ]);
   });
 
   test("installs where the systemd unit and the doctor script look", () => {

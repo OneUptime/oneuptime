@@ -585,6 +585,41 @@ const MONITOR_CRITERIA_REPLACED_NOTES: ReadonlyArray<StatusChangeNote> = [
       "The monitor **{{monitor}}** was unlinked from the template **{{template}}**, and the template's criteria were cleared from it. This alert was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now.",
     ),
   },
+  /*
+   * #11453: a sync of the template's criteria that no longer has the
+   * criteria, and any other change of a monitor's criteria that removes it -
+   * a person's edit, the API, Terraform - by the person, when one made it.
+   */
+  {
+    written: translationKey(
+      "The criteria of the template **{{template}}** were synced to the monitor **{{monitor}}**, and the template no longer has the criteria that opened this incident. This incident was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there and the monitor's criteria still check for it, they open a new incident.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The criteria of the template **{{template}}** were synced to the monitor **{{monitor}}**, and the template no longer has the criteria that opened this alert. This alert was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there and the monitor's criteria still check for it, they open a new alert.",
+    ),
+  },
+  {
+    written: translationKey(
+      "{{user}} changed the criteria of the monitor **{{monitor}}** and removed the ones that opened this incident. This incident was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there and the monitor's criteria still check for it, they open a new incident.",
+    ),
+  },
+  {
+    written: translationKey(
+      "{{user}} changed the criteria of the monitor **{{monitor}}** and removed the ones that opened this alert. This alert was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there and the monitor's criteria still check for it, they open a new alert.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The criteria of the monitor **{{monitor}}** were changed, and the ones that opened this incident were removed. This incident was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there and the monitor's criteria still check for it, they open a new incident.",
+    ),
+  },
+  {
+    written: translationKey(
+      "The criteria of the monitor **{{monitor}}** were changed, and the ones that opened this alert were removed. This alert was set to resolve on its own once the monitor recovered, and nothing can resolve it now that those criteria are gone, so it was resolved now. If the problem is still there and the monitor's criteria still check for it, they open a new alert.",
+    ),
+  },
 ];
 
 /*

@@ -75,6 +75,8 @@ For at synkronisere en enkelt monitor klikker du på **Synkronisér fra skabelon
 
 Efter en synkronisering siger en opsummering, hvor mange monitorer der blev opdateret. **Delvist synkroniseret** betyder, at nogle tilknyttede monitorer stadig har den tidligere konfiguration, som regel fordi dine tilladelser ikke dækker dem.
 
+En synkronisering, der fjerner de kriterier, som åbnede en åben hændelse eller advarsel, løser den, hvis den var sat til at blive løst af sig selv, for intet kunne løse den, når de kriterier var væk: dens tidslinje siger hvorfor, og opsummeringen siger, hvor mange der blev løst. En hændelse eller advarsel, hvis kriterier skabelonen stadig har, forbliver åben, og en, der skal løses manuelt, overlades til dig. Redigerer du selv en monitors kriterier, i dashboardet, via API'et eller med Terraform, sker det samme.
+
 ## Flyt monitorer til en anden skabelon
 
 Når en bedre skabelon afløser en anden, så flyt dens monitorer til den i stedet for at slette dem. Hver monitor beholder sit navn, sin statushistorik, sine etiketter, ejere og hændelser og får den nye skabelons kriterier.
@@ -101,10 +103,10 @@ Det gør flytningen:
 - En enhed har én monitor fra hver skabelon. Når en enhed allerede har en monitor, der er oprettet til den fra den nye skabelon, udelades dens anden monitor, og ændringen nævner den, der står i vejen: slet en af de to, og flyt derefter igen.
 - En monitor af en anden type end skabelonens udelades.
 
-Ændringen kører på serveren, op til 10.000 monitorer ad gangen, og viser sit fremskridt: hvad der blev flyttet, hvad der blev udeladt og hvorfor, og de åbne hændelser og advarsler, den løste. Den stopper ikke, når du lukker dialogen, og skabelonens side viser en ændring, der stadig kører. **Stands** standser den før næste monitor, og **Prøv igen** prøver igen med de monitorer, der mislykkedes eller ikke blev nået.
+Ændringen kører på serveren, op til 10.000 monitorer ad gangen, og viser sit fremskridt: hvad der blev flyttet, hvad der blev udeladt og hvorfor, og de åbne hændelser og advarsler, den løste. Den stopper ikke, når du lukker dialogen: skabelonens side og monitorlisten viser en ændring, der stadig kører, med hvor langt den er nået, og monitorlisten viser i en time også en afsluttet ændring, der udelod monitorer, eller hvor monitorer mislykkedes. Klik på dens linje for at åbne den igen, med **Vis fremskridt**, mens den kører, og **Vis, hvad der skete**, når den er færdig. **Stands** standser den før næste monitor, og **Prøv igen** prøver igen med de monitorer, der mislykkedes eller ikke blev nået.
 
 > [!TIP]
-> Flytter du enhederne fra en regel for automatisk import til en ny skabelon? Flyt monitorerne først, og peg derefter reglen på den nye skabelon. I den modsatte rækkefølge giver reglen hver enhed endnu en monitor fra den nye skabelon ved siden af den, den har.
+> Peger du en regel for automatisk import på en anden skabelon af samme slags, tilbyder formularen først at flytte dens enheders monitorer derhen, og reglen bruger den nye skabelon, når de er flyttet, så ingen enhed får en ekstra monitor. **Gem uden at flytte** peger reglen på den med det samme: hver enhed beholder sin monitor og får den nye skabelons ved siden af.
 
 ## Frakobl monitorer fra en skabelon
 
@@ -119,7 +121,7 @@ Uanset valget beholder de deres navne, statushistorik, etiketter, ejere og hænd
 
 ## Slet en skabelon
 
-En skabelon, som en netværksadvarselspolitik eller en regel for automatisk import opretter monitorer ud fra, kan ikke slettes: peg først politikken eller reglen på en anden skabelon. Når monitorer er tilknyttet skabelonen, spørger sletningen, hvad der skal ske med dem:
+En skabelon, som en netværksadvarselspolitik eller en regel for automatisk import opretter monitorer ud fra, kan ikke slettes: peg først politikken eller reglen på en anden skabelon. En politiks monitorer flytter med, og en regels formular tilbyder at flytte dens enheders monitorer. Når monitorer er tilknyttet skabelonen, spørger sletningen, hvad der skal ske med dem:
 
 - **Behold deres indstillinger** (standard): sletningen frakobler dem, og de bliver ved med at tjekke og advare med de kriterier, de har.
 - **Ryd denne skabelons kriterier fra dem**: hver monitor frakobles, og dens kriterier ryddes, som ovenfor, og derefter slettes skabelonen. Når en monitor forbliver tilknyttet, som en, dine tilladelser ikke dækker, bevares skabelonen, og dialogen siger, hvor mange.
@@ -233,7 +235,7 @@ Enheden har en monitor, der er oprettet til den fra den skabelon, du flytter til
 :::
 
 :::details Efter at en regel for automatisk import er flyttet til en ny skabelon, har enheder to monitorer
-Reglen gav hver enhed den nye skabelons monitor ved siden af den, den havde. Slet de nye monitorer, og flyt derefter de gamle til den nye skabelon: de beholder deres historik, og reglen opretter ingen igen.
+Reglen blev gemt med **Gem uden at flytte**, eller peget på skabelonen, før dens formular tilbød at flytte dem, og gav hver enhed den nye skabelons monitor ved siden af den, den havde. Slet de nye monitorer, og flyt derefter de gamle til den nye skabelon: de beholder deres historik, og reglen opretter ingen igen.
 :::
 
 :::details Gem fejler med "Unsupported do not sync field"

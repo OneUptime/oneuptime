@@ -26,8 +26,10 @@ import {
   getDescriptionNameTexts,
   getErasedRiskKeys,
   getGroupValueCandidates,
+  getIndicatorConfidenceTexts,
   getStixIndicatorIdOf,
   getTitleValueCandidates,
+  isThreatIntelMatchOf,
   unnameDescription,
   unnameGroupValue,
   unnameGroupingKey,
@@ -38,8 +40,13 @@ import {
   unnameTitle,
   unnameValue,
   withErasedStixIndicator,
+  withoutIndicatorConfidence,
 } from "../../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
-import { toErasedIndicatorId } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
+import {
+  ENRICHMENT_CONFIDENCE_ATTRIBUTE,
+  ERASED_THREAT_INTEL_SEVERITY,
+  toErasedIndicatorId,
+} from "../../../../Types/SecurityEvent/ThreatIntelConstants";
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 import {
   DetectionFingerprintKind,
@@ -95,7 +102,12 @@ import logger from "../../Logger";
  * stamp), and the description of an alert or an incident the match opened
  * with the feed items that copied it - it says the erased indicator id
  * instead (Types/SecurityEvent/ThreatIntelConstants), and the indicator's
- * name goes. The feed stays named.
+ * name goes - and its confidence too (#11447): "(email-addr, confidence
+ * 80)" reads "(email-addr)", a kept event's stamp loses threat.confidence,
+ * and the detection about the match takes the severity a match on an
+ * unscored indicator reads (ERASED_THREAT_INTEL_SEVERITY). The feed and
+ * the indicator's type stay named. A case's priority, and an alert's or an
+ * incident's severity, stay as people were paged and triaged by them.
  *
  * What it does not change: what people wrote (notes, closing notes,
  * tasks, evidence, custom fields, watchlists, protected entities),
@@ -513,13 +525,16 @@ function jsonSearchNamesOf(names: ReadonlyArray<ErasedName>): Array<string> {
 }
 
 /*
- * The lines of a threat intel match's description that name the feed's
- * indicator (#11230), as the read finds them: a STIX indicator's id, and the
- * indicator's own name.
+ * What a threat intel match's description says of the feed's indicator, as
+ * the read finds it: a STIX indicator's id, and the indicator's own name
+ * (#11230) - and its confidence (#11447), "(email-addr, confidence 80)".
  */
+const INDICATOR_CONFIDENCE_STATED: string = ", confidence ";
+
 const INDICATOR_DESCRIPTION_LINES: ReadonlyArray<string> = [
   `\n\n${THREAT_INTEL_STIX_INDICATOR_PREFIX}\`indicator--`,
   `\n\n${THREAT_INTEL_INDICATOR_NAME_PREFIX}`,
+  INDICATOR_CONFIDENCE_STATED,
 ];
 
 // What the rule left of each name, as a JSON column's text holds it.
@@ -534,10 +549,14 @@ function jsonHashedOf(names: ReadonlyArray<ErasedName>): Array<string> {
 }
 
 /*
- * A STIX indicator's id as a kept event's stamp holds it in a JSON column's
- * text (#11230): the start of a string value.
+ * What a kept event's stamp an earlier erasure left may still hold, in a
+ * JSON column's text: a STIX indicator's id, the start of a string value
+ * (#11230), and the indicator's confidence, a key (#11447).
  */
-const KEPT_STIX_INDICATOR_TEXT: string = '"indicator--';
+const KEPT_INDICATOR_TEXTS: ReadonlyArray<string> = [
+  '"indicator--',
+  JSON.stringify(ENRICHMENT_CONFIDENCE_ATTRIBUTE),
+];
 
 // What the rule left of each name, as a description writes it as inline code.
 function hashedCodesOf(names: ReadonlyArray<ErasedName>): Array<string> {
@@ -996,7 +1015,7 @@ export default class SecurityUserErasureRecords {
   }): Promise<UnnamedDetections> {
     const ids: Array<ObjectID> = idsOf(
       await this.query(
-        `SELECT "_id" FROM "SecurityDetection" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupValue" = ANY($2::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0 OR strpos(COALESCE("matchedEvents"::text, ''), erased.name) > 0) OR ${descriptionNamesCondition({ codes: "$4", texts: "$5", prefix: "$6" })} OR ${indicatorLinesCondition({ lines: "$7", hashed: "$8" })} OR (strpos(COALESCE("matchedEvents"::text, ''), $10) > 0 AND EXISTS (SELECT 1 FROM unnest($9::text[]) AS hashed(value) WHERE strpos("matchedEvents"::text, hashed.value) > 0))) LIMIT ${MAX_ROWS_PER_KIND}`,
+        `SELECT "_id" FROM "SecurityDetection" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("groupValue" = ANY($2::text[]) OR EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) OR EXISTS (SELECT 1 FROM unnest($3::text[]) AS erased(name) WHERE strpos(COALESCE("entities"::text, ''), erased.name) > 0 OR strpos(COALESCE("matchedEvents"::text, ''), erased.name) > 0) OR ${descriptionNamesCondition({ codes: "$4", texts: "$5", prefix: "$6" })} OR ${indicatorLinesCondition({ lines: "$7", hashed: "$8" })} OR (EXISTS (SELECT 1 FROM unnest($10::text[]) AS kept(text) WHERE strpos(COALESCE("matchedEvents"::text, ''), kept.text) > 0) AND EXISTS (SELECT 1 FROM unnest($9::text[]) AS hashed(value) WHERE strpos("matchedEvents"::text, hashed.value) > 0))) LIMIT ${MAX_ROWS_PER_KIND}`,
         [
           data.projectId.toString(),
           namesOf(data.names),
@@ -1007,7 +1026,7 @@ export default class SecurityUserErasureRecords {
           INDICATOR_DESCRIPTION_LINES,
           hashedCodesOf(data.names),
           jsonHashedOf(data.names),
-          KEPT_STIX_INDICATOR_TEXT,
+          KEPT_INDICATOR_TEXTS,
         ],
       ),
     );
@@ -1027,6 +1046,7 @@ export default class SecurityUserErasureRecords {
           groupValue: true,
           entities: true,
           matchedEvents: true,
+          severity: true,
         },
         skip: 0,
         limit: ids.length,
@@ -1107,6 +1127,18 @@ export default class SecurityUserErasureRecords {
 
       if (matchedEvents.changed) {
         changes["matchedEvents"] = matchedEvents.value;
+      }
+
+      /*
+       * A threat intel match on the person: the severity a match on an
+       * unscored indicator reads, so it says nothing of the indicator's
+       * score (#11447).
+       */
+      if (
+        isThreatIntelMatchOf(detection.description, data.names) &&
+        detection.severity !== ERASED_THREAT_INTEL_SEVERITY
+      ) {
+        changes["severity"] = ERASED_THREAT_INTEL_SEVERITY;
       }
 
       if (Object.keys(changes).length === 0 || !detection.id) {
@@ -1541,11 +1573,14 @@ export default class SecurityUserErasureRecords {
    * as an erasure leaves them, and its fingerprint is rewritten first), and
    * where its description says "STIX indicator: indicator--...", it says the
    * erased indicator id instead - the token in the fingerprint it now has,
-   * the same as the finding's and the case detection's. So does every item
-   * of its feed that copied the description (the one that announced it).
-   * The feed items first: a run that stops in between still finds the id
-   * in the description. With SQL of its own, as the fingerprints are, and
-   * nothing else about the record changes. Returns how many records.
+   * the same as the finding's and the case detection's - and where it says
+   * the indicator's confidence, "(email-addr, confidence 80)", it reads
+   * "(email-addr)" (#11447). So does every item of its feed that copied the
+   * description (the one that announced it). The feed items first: a run
+   * that stops in between still finds them in the description. With SQL of
+   * its own, as the fingerprints are, and nothing else about the record
+   * changes - its severity stays, as people were paged by it. Returns how
+   * many records.
    */
   public static async cutIndicatorFromSeries(data: {
     projectId: ObjectID;
@@ -1570,8 +1605,8 @@ export default class SecurityUserErasureRecords {
     // Each table's statements in full, so the audit guard reads what they write.
     const read: string =
       data.table === "Alert"
-        ? `SELECT "_id", "description", "seriesFingerprint" FROM "Alert" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 3) = ANY($3::text[]) AND split_part("seriesFingerprint", ':', 4) = '' AND strpos(COALESCE("description", ''), $4) > 0 LIMIT ${MAX_ROWS_PER_KIND}`
-        : `SELECT "_id", "description", "seriesFingerprint" FROM "Incident" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 3) = ANY($3::text[]) AND split_part("seriesFingerprint", ':', 4) = '' AND strpos(COALESCE("description", ''), $4) > 0 LIMIT ${MAX_ROWS_PER_KIND}`;
+        ? `SELECT "_id", "description", "seriesFingerprint" FROM "Alert" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 3) = ANY($3::text[]) AND split_part("seriesFingerprint", ':', 4) = '' AND (strpos(COALESCE("description", ''), $4) > 0 OR strpos(COALESCE("description", ''), $5) > 0) LIMIT ${MAX_ROWS_PER_KIND}`
+        : `SELECT "_id", "description", "seriesFingerprint" FROM "Incident" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 3) = ANY($3::text[]) AND split_part("seriesFingerprint", ':', 4) = '' AND (strpos(COALESCE("description", ''), $4) > 0 OR strpos(COALESCE("description", ''), $5) > 0) LIMIT ${MAX_ROWS_PER_KIND}`;
     const feedWrite: string =
       data.table === "Alert"
         ? `UPDATE "AlertFeed" SET "feedInfoInMarkdown" = replace("feedInfoInMarkdown", $3, $4) WHERE "projectId" = $1 AND "alertId" = $2 AND strpos(COALESCE("feedInfoInMarkdown", ''), $3) > 0 RETURNING "_id"`
@@ -1594,6 +1629,7 @@ export default class SecurityUserErasureRecords {
         DetectionFingerprintKind.ThreatIntel,
         Array.from(nextOf.keys()),
         STIX_INDICATOR_STATED,
+        INDICATOR_CONFIDENCE_STATED,
       ])) as unknown as Array<SeriesDescriptionRow>;
       let fresh: number = 0;
 
@@ -1612,22 +1648,40 @@ export default class SecurityUserErasureRecords {
         );
         const stixId: string | null = getStixIndicatorIdOf(row.description);
 
-        if (!next || !stixId) {
+        if (!next) {
           continue;
         }
 
         const erasedId: string = toErasedIndicatorId(next);
-        const description: string | undefined | null = withErasedStixIndicator(
-          row.description,
-          { stixId, erasedId },
-        );
+        // The id where the description states one, and the confidence wherever it does.
+        const description: string | undefined | null =
+          withoutIndicatorConfidence(
+            stixId
+              ? withErasedStixIndicator(row.description, { stixId, erasedId })
+              : row.description,
+          );
+        const replacements: Array<[string, string]> =
+          getIndicatorConfidenceTexts(row.description).map(
+            (stated: string): [string, string] => {
+              return [stated, withoutIndicatorConfidence(stated) || ""];
+            },
+          );
 
-        await this.write(feedWrite, [
-          data.projectId.toString(),
-          id,
-          `${THREAT_INTEL_STIX_INDICATOR_PREFIX}${stixId}`,
-          `${THREAT_INTEL_STIX_INDICATOR_PREFIX}${erasedId}`,
-        ]);
+        if (stixId) {
+          replacements.unshift([
+            `${THREAT_INTEL_STIX_INDICATOR_PREFIX}${stixId}`,
+            `${THREAT_INTEL_STIX_INDICATOR_PREFIX}${erasedId}`,
+          ]);
+        }
+
+        for (const [stated, cut] of replacements) {
+          await this.write(feedWrite, [
+            data.projectId.toString(),
+            id,
+            stated,
+            cut,
+          ]);
+        }
 
         if (description === row.description) {
           continue;

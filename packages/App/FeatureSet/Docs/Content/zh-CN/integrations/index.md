@@ -62,6 +62,7 @@ flowchart TB
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | 入站 | 把 Microsoft Entra ID 登录和目录变更以及 Microsoft 365 审计日志导入安全事件。 |
 | [Google Workspace](/docs/integrations/google-workspace) | 入站 | 把 Google Workspace 登录、管理员变更和 Google 自身的检测导入安全事件。 |
 | [Cloudflare](/docs/integrations/cloudflare) | 入站 | 把 Cloudflare 防火墙拦截、质询和记录的请求导入安全事件，与到达你的应用的请求并排。 |
+| [CrowdSec](/docs/integrations/crowdsec) | 入站 | 把 CrowdSec 警报导入安全事件，并在 CrowdSec 中封禁你封禁的地址。 |
 
 ### 工单与 IT 服务管理
 

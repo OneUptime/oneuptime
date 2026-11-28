@@ -87,9 +87,13 @@ L'ID sous le titre de chaque étape est exactement ce qui va dans une référenc
 
 Les valeurs affichées sont ce que le bloc a reçu, après le remplissage des variables et avant que le bloc en fasse quoi que ce soit, avec deux exceptions : les secrets et les champs que le bloc marque comme sensibles sont masqués, et une valeur de plus de 4 000 caractères est raccourcie avec "… (truncated)". Une exécution garde ses 100 dernières étapes ; une exécution longue ou souvent reprise affiche une note orange là où les plus anciennes ont été retirées. Les exécutions enregistrées avant que les noms des sorties soient conservés montrent la sortie par son ID, sans indiquer où elle a mené.
 
+Une valeur qu'un bloc marque comme sensible, comme les images que renvoie **Récupérer les fichiers du Markdown**, reste masquée dans tous les blocs qui le suivent, après une **Pause** aussi. Un bloc suivant à qui on la passe la montre masquée dans ce qu'il a reçu et dans ce qu'il a renvoyé, et son texte est masqué partout où il apparaît dans ce que l'exécution enregistre : un message qui l'inclut, ou une erreur qui la cite. Les courts morceaux qui disent ce qui a été transmis, comme le nom ou le type d'un fichier, restent visibles. Les blocs eux-mêmes reçoivent toujours la vraie valeur.
+
 ### L'onglet Full Log
 
 Le journal brut, ligne par ligne, écrit par le moteur d'exécution, y compris tout ce que les blocs ont journalisé eux-mêmes, comme la valeur d'un bloc **Journal** ou le `console.log` d'un script. Utilisez-le quand l'onglet Étapes n'explique pas l'échec.
+
+Chaque valeur qu'écrit le journal, qu'il s'agisse de ce qu'un bloc a reçu, de ce qu'il a renvoyé ou de ce qu'il a journalisé, est coupée à ses 65 536 premiers caractères et se termine par le nombre de caractères laissés de côté, comme `… (10,420,113 more characters left out)`. Les valeurs reçues et les valeurs renvoyées d'un bloc sont coupées chacune de leur côté, pour qu'une longue valeur ne cache pas les autres. Les secrets et les valeurs sensibles sont masqués avant qu'une valeur soit coupée, si bien qu'une valeur que la coupe partagerait reste masquée en entier.
 
 ## Copier et télécharger une exécution
 

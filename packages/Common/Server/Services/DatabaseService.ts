@@ -41,6 +41,7 @@ import UpdateScopePermission from "../Types/Database/Permissions/UpdateScopePerm
 import OwnedScopePermission from "../Types/Database/Permissions/OwnedScopePermission";
 import AccessControlPermission, {
   ColumnKeptToLabels,
+  RelatedColumnsKeptToLabels,
 } from "../Types/Database/Permissions/AccessControlPermission";
 import SortValidator from "../Types/Database/Permissions/SortValidator";
 import RuleOwningTeams from "../Utils/Rules/RuleOwningTeams";
@@ -259,6 +260,7 @@ import RelatedFileAccess, {
   RelatedFileReader,
 } from "../Utils/File/RelatedFileAccess";
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
+import ShownImages from "../Utils/File/ShownImages";
 import AttachedFiles, { hasAttachedFiles } from "../Utils/File/AttachedFiles";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
@@ -292,6 +294,17 @@ const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
     RuleCriteriaOperator.HasAllOf,
     RuleCriteriaOperator.HasNoneOf,
   ]);
+
+/*
+ * The columns a read leaves out of the rows their grants do not reach,
+ * beside its own project's (columnsKeptToLabels): a read across projects'
+ * by project, and those of the records its relations reach (#11438).
+ */
+interface KeptColumnsOfRead {
+  byProject: Map<string, Array<ColumnKeptToLabels>>;
+  related: Array<RelatedColumnsKeptToLabels>;
+  relatedByProject: Map<string, Array<RelatedColumnsKeptToLabels>>;
+}
 
 // An update or a delete whose rows keepRowsCallerMayWrite reads.
 interface WriteOfRows {
@@ -7983,6 +7996,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
 
       /*
+       * The images it shows, recorded against it: their addresses open them
+       * for the people who may read it (#11478). See ShownImages.
+       */
+      await ShownImages.afterCreate({
+        model: this.model,
+        row: createBy.data,
+      });
+
+      /*
        * A product's first record: the products menu stops saying "Not set
        * up" on it at once, on every server (#7465). See ProjectUsageCache.
        */
@@ -11619,6 +11641,67 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * The ids, in lower case, of the records of `relatedModelType` - a model a
+   * read's relation reaches - that `query` finds, read as OneUptime: for a
+   * read that asks only which of the related records it read a grant's
+   * condition keeps (AccessControlPermission
+   * .withholdRelatedColumnsKeptToLabels, #11438).
+   */
+  private async findRelatedIdsAsOneUptime(
+    relatedModelType: { new (): BaseModel },
+    query: Query<BaseModel>,
+  ): Promise<Array<string>> {
+    if (!PostgresAppInstance.isConnected()) {
+      throw new DatabaseNotConnectedException();
+    }
+
+    const dataSource: DataSource | null = PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      throw new DatabaseNotConnectedException();
+    }
+
+    const rows: Array<BaseModel> = await dataSource
+      .getRepository<BaseModel>(relatedModelType.name)
+      .find({
+        where: QueryUtil.serializeQuery(relatedModelType, query) as any,
+        select: { _id: true } as any,
+      });
+
+    return DatabaseService.getRowIds(rows).map((id: string): string => {
+      return id.toLowerCase();
+    });
+  }
+
+  /*
+   * Adds the table's project column to a read's select when `isNeeded` and
+   * the select does not name it, and returns it so `_findBy` strips it from
+   * the rows again: a read across projects whose rows are weighed by their
+   * own project's grants needs each row's project (#11438). Like the sort
+   * columns, after the read's permission check, and never seen by the
+   * caller.
+   */
+  private addTenantColumnToSelect(
+    findBy: FindBy<TBaseModel>,
+    isNeeded: boolean,
+  ): string | null {
+    const tenantColumn: string | null = this.getModel().getTenantColumn();
+
+    if (
+      !isNeeded ||
+      !tenantColumn ||
+      !findBy.select ||
+      (findBy.select as Dictionary<unknown>)[tenantColumn] !== undefined
+    ) {
+      return null;
+    }
+
+    (findBy.select as Dictionary<unknown>)[tenantColumn] = true;
+
+    return tenantColumn;
+  }
+
+  /*
    * The ids, in lower case, of the rows `query` finds, read as OneUptime with
    * no hook: for a read that has decided already which rows its caller
    * reads, and asks only which of them a grant's condition keeps
@@ -11677,6 +11760,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     asker: DatabaseCommonInteractionProps;
     // The columns the rows are read with only where their grants reach.
     columnsKeptToLabels: Array<ColumnKeptToLabels>;
+    // The same, of a read across projects and through its relations (#11438).
+    keptElsewhere: KeptColumnsOfRead;
   }> {
     findBy.props = await this.checkCallerBeforeHooks(
       findBy.props,
@@ -11754,6 +11839,54 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
     /*
+     * The same for a read across projects, a project at a time (#11438):
+     * each project's query reads every record its grants reach, and each
+     * row's column is left out where its own project's grant does not reach
+     * it - rather than the read narrowed, as it was, project by project.
+     */
+    const columnsKeptToLabelsByProject: Map<
+      string,
+      Array<ColumnKeptToLabels>
+    > = AccessControlPermission.getColumnsKeptToLabelsByProject(
+      this.modelType,
+      onBeforeFind.select,
+      onBeforeFind.props,
+    );
+
+    /*
+     * And the columns of related records it selects through a relation that
+     * are held to their own read there, for a caller who reads them on some
+     * labels only (#11438): left out of the related records their grant
+     * does not reach. They narrow nothing - a relation's select never did -
+     * and were read on every related record.
+     */
+    const relatedColumnsKeptToLabels: Array<RelatedColumnsKeptToLabels> =
+      AccessControlPermission.getRelatedColumnsKeptToLabels(
+        this.modelType,
+        onBeforeFind.select,
+        onBeforeFind.props,
+      );
+    const relatedColumnsKeptToLabelsByProject: Map<
+      string,
+      Array<RelatedColumnsKeptToLabels>
+    > = AccessControlPermission.getRelatedColumnsKeptToLabelsByProject(
+      this.modelType,
+      onBeforeFind.select,
+      onBeforeFind.props,
+    );
+
+    const columnsWithheldPerRecord: Array<string> = Array.from(
+      new Set<string>(
+        [
+          ...columnsKeptToLabels,
+          ...Array.from(columnsKeptToLabelsByProject.values()).flat(),
+        ].map((kept: ColumnKeptToLabels): string => {
+          return kept.column;
+        }),
+      ),
+    );
+
+    /*
      * The order the caller asked for is held to their read of each column
      * it names, as the select is (#8839): an order says what a column holds.
      */
@@ -11768,11 +11901,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       onBeforeFind.props,
       askedSort,
       {
-        columnsWithheldPerRecord: columnsKeptToLabels.map(
-          (kept: ColumnKeptToLabels): string => {
-            return kept.column;
-          },
-        ),
+        columnsWithheldPerRecord: columnsWithheldPerRecord,
       },
     );
 
@@ -11800,6 +11929,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       fileReader: fileReader,
       asker: asker,
       columnsKeptToLabels: columnsKeptToLabels,
+      keptElsewhere: {
+        byProject: columnsKeptToLabelsByProject,
+        related: relatedColumnsKeptToLabels,
+        relatedByProject: relatedColumnsKeptToLabelsByProject,
+      },
     };
   }
 
@@ -11904,6 +12038,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         fileReader: RelatedFileReader | null;
         asker: DatabaseCommonInteractionProps;
         columnsKeptToLabels: Array<ColumnKeptToLabels>;
+        keptElsewhere: KeptColumnsOfRead;
       } = await this.narrowRead(findBy);
 
       const onBeforeFind: FindBy<TBaseModel> = narrowed.findBy;
@@ -11923,6 +12058,19 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
       const sortColumnsAddedToSelect: Array<string> =
         this.addSortColumnsToSelect(onBeforeFind);
+
+      /*
+       * A read across projects whose rows are withheld a project at a time
+       * (#11438) reads each row's project with it, to weigh the row by that
+       * project's grants; the column is stripped again below, unless the
+       * caller asked for it.
+       */
+      const tenantColumnAddedToSelect: string | null =
+        this.addTenantColumnToSelect(
+          onBeforeFind,
+          narrowed.keptElsewhere.byProject.size > 0 ||
+            narrowed.keptElsewhere.relatedByProject.size > 0,
+        );
 
       if (!(onBeforeFind.skip instanceof PositiveNumber)) {
         onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
@@ -12051,6 +12199,46 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         });
 
       /*
+       * A read across projects: each row's columns kept to labels in its own
+       * project, left out where that project's grant does not reach the row
+       * (#11438, AccessControlPermission.getColumnsKeptToLabelsByProject).
+       */
+      decryptedItems =
+        await AccessControlPermission.withholdColumnsKeptToLabelsByProject({
+          modelType: this.modelType,
+          rows: decryptedItems,
+          keptByProject: narrowed.keptElsewhere.byProject,
+          props: onBeforeFind.props,
+          findIds: async (query: Query<TBaseModel>): Promise<Array<string>> => {
+            return await this.findIdsAsOneUptime(query, withDeleted || false);
+          },
+        });
+
+      /*
+       * The columns of related records read through a relation that are
+       * held to their own read there, left out of the related records the
+       * caller's grant to read them does not reach (#11438,
+       * AccessControlPermission.getRelatedColumnsKeptToLabels).
+       */
+      decryptedItems =
+        await AccessControlPermission.withholdRelatedColumnsKeptToLabels({
+          modelType: this.modelType,
+          rows: decryptedItems,
+          kept: narrowed.keptElsewhere.related,
+          keptByProject: narrowed.keptElsewhere.relatedByProject,
+          props: onBeforeFind.props,
+          findRelatedIds: async (
+            relatedModelType: { new (): BaseModel },
+            query: Query<BaseModel>,
+          ): Promise<Array<string>> => {
+            return await this.findRelatedIdsAsOneUptime(
+              relatedModelType,
+              query,
+            );
+          },
+        });
+
+      /*
        * A record's files only for someone who may see them; anyone else
        * gets the record without them. See RelatedFileAccess.
        */
@@ -12090,6 +12278,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       for (const item of decryptedItems) {
         for (const sortColumn of sortColumnsAddedToSelect) {
           delete (item as any)[sortColumn];
+        }
+
+        if (tenantColumnAddedToSelect) {
+          delete (item as any)[tenantColumnAddedToSelect];
         }
       }
 
@@ -13334,6 +13526,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         rowsBefore: rowsBeforeForImages,
         written: data,
         rowsAfter: rowsAsWritten,
+      });
+
+      /*
+       * The images the write puts in each record, recorded against it: their
+       * addresses open them for the people who may read it (#11478). See
+       * ShownImages.
+       */
+      await ShownImages.afterUpdate({
+        model: this.model,
+        written: data,
+        rows: affectedItems,
       });
 
       /*

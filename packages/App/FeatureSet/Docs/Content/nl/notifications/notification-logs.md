@@ -25,6 +25,8 @@ Elke status is een label waarvan de kleur zegt waar het bericht is:
 
 Wijs een status aan, tik erop of ga er met de Tab-toets naartoe, en hij zegt wat hij betekent en wat er daarna komt. **Statusbericht bekijken**, in het menu van de rij, toont wat de provider antwoordde, zoals de ID van het bericht of waarom het mislukte. Het filter **Status** van elk tabblad toont elke status die het tabblad kan laten zien, in de volgorde waarin een bericht ze doorloopt.
 
+De kaart **Wie bericht kreeg**, in het overzicht van een incident of een waarschuwing, en het resultaat van een testoproep tonen de status van elk bericht op dezelfde manier, in dezelfde kleuren: een gesprek dat nog overgaat, staat daar ook op **Bezig met bellen**, nooit op **Verzonden**.
+
 ## Sms
 
 ```mermaid title="De statussen van een sms, van OneUptime tot de telefoon"
@@ -40,7 +42,7 @@ flowchart TB
 | **Bezig met verzenden** | OneUptime heeft de sms aan Twilio overgedragen, dat hem doorgeeft aan de provider. |
 | **Verzonden** | De provider heeft de sms geaccepteerd. Hij gaat naar **Afgeleverd** of **Niet afgeleverd** zodra de provider terugmeldt. |
 | **Afgeleverd** | De provider heeft bevestigd dat de sms de telefoon heeft bereikt. Dit is de laatste status van een sms die is aangekomen. |
-| **Niet afgeleverd** | De provider kon hem niet afleveren. **Foutcode** vertelt waarom: `30003` is een telefoon die uit staat of onbereikbaar is, `30005` een nummer dat niet bestaat, `30006` een vaste lijn, en `30007` een bericht dat de provider heeft gefilterd. |
+| **Niet afgeleverd** | De provider kon hem niet afleveren. **Foutcode** vertelt waarom, en wat de code betekent. |
 | **Mislukt** | Twilio kon hem niet verzenden. **Foutcode** vertelt waarom. |
 | **Fout** | Hij is niet verzonden, bijvoorbeeld omdat sms uit staat voor het project, of omdat Twilio het nummer weigerde. **Statusbericht bekijken** vertelt waarom. |
 | **Saldo te laag** | Hij is niet verzonden: het saldo van het project was te laag om ervoor te betalen. |
@@ -49,6 +51,33 @@ flowchart TB
 Een sms die de eigen sms- en belgateway van de server heeft aangenomen, blijft op **Verzonden** staan, in het groen: de gateway meldt geen aflevering, dus dat is zijn laatste status.
 
 Twilio meldt elke wijziging aan OneUptime zodra die gebeurt, ondertekend met het auth-token van het account waarmee de sms is verzonden, en OneUptime weigert elke melding die niet van Twilio komt. Daarvoor moet Twilio je server kunnen bereiken: zie [Twilio-integratie](/docs/self-hosted/twilio-integration).
+
+### Foutcodes
+
+Elke code onder **Foutcode** opent de pagina van Twilio over die code, met wat hem kan veroorzaken. Onder de codes waarmee een sms het vaakst mislukt, zegt het logboek in één regel wat ze betekenen:
+
+| Code | Wat het betekent |
+| --- | --- |
+| `20003` | Twilio heeft de inloggegevens van het account niet geaccepteerd. |
+| `21211` | Het nummer is geen geldig telefoonnummer. |
+| `21408` | Het Twilio-account mag geen sms-berichten naar dit land verzenden. |
+| `21606` | Het afzendernummer kan geen sms verzenden voor dit Twilio-account. |
+| `21608` | Een Twilio-proefaccount kan alleen verzenden naar nummers die erin zijn geverifieerd. |
+| `21610` | De ontvanger heeft STOP geantwoord, dus Twilio stuurt deze persoon vanaf dit nummer geen sms meer. |
+| `21612` | Het afzendernummer kan dit nummer niet bereiken. |
+| `21614` | Het nummer is geen mobiel nummer, maar bijvoorbeeld een vaste lijn. |
+| `30001` | Er zijn te veel sms-berichten tegelijk verzonden, en de wachtrij van Twilio is overgelopen. |
+| `30002` | Het Twilio-account is opgeschort voordat de sms werd verzonden. |
+| `30003` | De telefoon staat uit of is onbereikbaar. |
+| `30004` | Het nummer is geblokkeerd voor het ontvangen van de sms. |
+| `30005` | Het nummer is onbekend en bestaat misschien niet meer. |
+| `30006` | Het nummer kan geen sms ontvangen, bijvoorbeeld omdat het een vaste lijn is. |
+| `30007` | Twilio of de provider heeft de sms als spam gefilterd. |
+| `30008` | De provider kon de sms niet afleveren en zei niet waarom. |
+| `30032` | Het gratis afzendernummer is nog niet geverifieerd. |
+| `30034` | Het afzendernummer is niet geregistreerd voor A2P 10DLC, wat providers in de VS vereisen. |
+
+Een code die niet van Twilio is, zoals de HTTP-status waarmee je sms- en belgateway antwoordde, wordt getoond zoals hij is.
 
 ## Gesprekken
 

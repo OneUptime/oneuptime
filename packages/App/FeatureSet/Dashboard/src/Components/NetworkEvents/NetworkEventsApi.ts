@@ -7,9 +7,11 @@ import {
   NetworkEventSource,
   NetworkEventsFilters,
   NetworkEventsScope,
+  SNMP_TRAP_SOURCE_IP_ATTRIBUTE,
   buildNetworkEventAttributes,
   buildNetworkEventFacetsRequest,
   buildNetworkEventSourcesAttributes,
+  buildNetworkEventTrapSourcesAttributes,
   parseNetworkEventCounts,
   toNetworkEventRows,
   toNetworkEventSources,
@@ -147,10 +149,16 @@ export async function fetchNetworkEvents(data: {
   };
 }
 
+// What a probe stamps on every log it heard: a syslog's sender, a trap's.
+const RECEIVED_LOG_FACET_KEYS: Array<string> = [
+  SyslogAttribute.SourceIp,
+  SNMP_TRAP_SOURCE_IP_ATTRIBUTE,
+];
+
 /*
  * What a page with no events in its range needs to know to say something
  * useful instead of nothing: when the last event was, and whether syslog
- * is arriving at all.
+ * or SNMP traps are arriving at all.
  */
 export interface NetworkEventsBackground {
   // The newest event of the scope in the last week, if there was one.
@@ -197,42 +205,70 @@ export async function fetchNetworkEventsBackground(
   }
 
   /*
-   * The network: any log a probe heard as syslog. A facet is asked for
-   * because it counts the logs that HAVE the attribute, whatever its value.
+   * The network: any log a probe heard as syslog or as an SNMP trap - a
+   * project whose devices send traps only, enterprise traps that are no
+   * event, is receiving all the same (#11407). A facet is asked for because
+   * it counts the logs that HAVE the attribute, whatever its value.
    */
   const facets: HTTPResponse<JSONObject> = await postApi(
     NETWORK_EVENTS_FACETS_PATH,
     buildNetworkEventFacetsRequest({
       window: window,
       attributes: {},
-      facetKeys: [SyslogAttribute.SourceIp],
+      facetKeys: RECEIVED_LOG_FACET_KEYS,
       limit: 1,
     }),
   );
 
-  const senders: unknown = ((facets.data["facets"] as JSONObject | undefined) ||
-    {})[SyslogAttribute.SourceIp];
+  const facetsByKey: JSONObject =
+    (facets.data["facets"] as JSONObject | undefined) || {};
 
   return {
     lastEventAt: null,
-    isReceivingLogs: Array.isArray(senders) && senders.length > 0,
+    isReceivingLogs: RECEIVED_LOG_FACET_KEYS.some((key: string): boolean => {
+      const senders: unknown = facetsByKey[key];
+      return Array.isArray(senders) && senders.length > 0;
+    }),
   };
 }
 
 /*
- * The addresses that sent syslog in the window without being a device:
- * what the network's page offers to make devices of.
+ * The addresses that sent syslog or SNMP traps in the window without being
+ * a device (#11407): what the network's page offers to make devices of.
+ * Each kind is read on its own, the newest of each, so a busy syslog sender
+ * never hides a trap sender; and each read that fails leaves out only what
+ * it would have found.
  */
 export async function fetchNetworkEventSources(
   window: InBetween<Date>,
 ): Promise<Array<NetworkEventSource>> {
-  const logs: Array<Log> = (
-    await listLogs({
-      window: window,
-      attributes: buildNetworkEventSourcesAttributes(),
-      limit: NETWORK_EVENT_SOURCES_LOG_LIMIT,
-    })
-  ).data;
+  const reads: Array<Promise<Array<Log>>> = [
+    buildNetworkEventSourcesAttributes(),
+    buildNetworkEventTrapSourcesAttributes(),
+  ].map(async (attributes: Dictionary<string>): Promise<Array<Log>> => {
+    return (
+      await listLogs({
+        window: window,
+        attributes: attributes,
+        limit: NETWORK_EVENT_SOURCES_LOG_LIMIT,
+      })
+    ).data;
+  });
 
-  return toNetworkEventSources(logs);
+  const answers: Array<PromiseSettledResult<Array<Log>>> =
+    await Promise.allSettled(reads);
+
+  if (
+    answers.every((answer: PromiseSettledResult<Array<Log>>): boolean => {
+      return answer.status === "rejected";
+    })
+  ) {
+    throw (answers[0] as PromiseRejectedResult).reason;
+  }
+
+  return toNetworkEventSources(
+    answers.flatMap((answer: PromiseSettledResult<Array<Log>>): Array<Log> => {
+      return answer.status === "fulfilled" ? answer.value : [];
+    }),
+  );
 }

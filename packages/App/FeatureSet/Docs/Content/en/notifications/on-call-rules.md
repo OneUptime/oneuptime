@@ -50,6 +50,8 @@ The call names your project. A call that is not for a project, such as a verific
 
 A call is in the language you read OneUptime in when the Twilio account it goes out on speaks with one of OneUptime's voices: everything it says, the answers to your keys included, in a voice of your language, a woman's if the account's voice is a woman's and a man's if it is a man's. The keys stay the same: 1 to acknowledge, 2 to escalate. A call through an account that keeps its default voice is in English, and so is a call to someone who reads OneUptime in Persian, which no voice speaks: see [The voice calls speak with](/docs/self-hosted/twilio-integration#the-voice-calls-speak-with).
 
+The call that verifies your phone number is in your language too: it says its code one digit at a time, with a pause between digits, three times. A call through your installation's own [SMS and Call Gateway](/docs/self-hosted/sms-and-call-gateway) is handed its words in your language, and the gateway chooses the voice.
+
 ## One ladder for everything
 
 **User Settings → How to Reach Me** opens on your ladder: numbered steps that every page tries in turn, for incidents, alerts and episodes of every severity. Each step is a time, such as at once or after 5 minutes, and the verified methods that go out together then. A later step goes out only if nobody has acknowledged the page by then.

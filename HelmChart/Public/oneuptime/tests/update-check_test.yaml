@@ -141,4 +141,8 @@ tests:
     set:
       updateCheck.securityAdvisoryUrl: https://typo.example
     asserts:
-      - failedTemplate: {}
+      - failedTemplate:
+          errorMessage: |
+            values don't meet the specifications of the schema(s) in the following chart(s):
+            oneuptime:
+            - at '/updateCheck': additional properties 'securityAdvisoryUrl' not allowed

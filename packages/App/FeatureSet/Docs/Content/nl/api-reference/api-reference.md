@@ -309,7 +309,13 @@ Sommige velden bevatten een JSON-waarde met een eigen vorm, zoals `rotation` en 
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-Een sleutel die een andere naam krijgt, wordt ook onder zijn oude naam gelezen: het beperkingstype van een laag wordt geschreven onder `restrictionType` of onder de oudere spelling `restictionType`, en een antwoord bevat beide.
+Een sleutel die een andere naam krijgt, wordt ook onder zijn oude naam gelezen: het beperkingstype van een laag wordt geschreven onder `restrictionType` of onder de oudere spelling `restictionType`, en een antwoord bevat beide. De oudere spelling is verouderd in antwoorden: ze bevatten die tot de eerste hoofdversie die op of na 1 juni 2027 uitkomt. Schrijfacties lezen die altijd.
+
+Een waarde wordt ook aan haar woord gehouden. Het wekelijkse venster van een laag heeft dienst op de dagen die het noemt, dus zijn `startTime` en `endTime` moeten in de tijdzone van het schema op zijn `startDay` en `endDay` vallen. Een venster dat op andere dagen is gedateerd, wordt geweigerd met een `400` die het venster noemt en een tijd op de genoemde dag geeft om in plaats daarvan te sturen:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Waar een project is gekocht
 
@@ -425,7 +431,7 @@ Vroeger antwoordde het `200` met een lege body. Een lijst (`get-list`) en een te
 
 ### Afbeeldingen in de Markdown van een record
 
-Een afbeelding die in Markdown is geplakt, zoals een schermafbeelding in de beschrijving van een incident, een aangepast Markdown-veld of een notitie, is een privébestand. Het adres ervan (`/file/image/access-token/...`) opent het alleen voor iemand die in het project is aangemeld, dus een API-sleutel leest het in plaats daarvan via het record dat het toont:
+Een afbeelding die in Markdown is geplakt, zoals een schermafbeelding in de beschrijving van een incident, een aangepast Markdown-veld of een notitie, is een privébestand. Het adres ervan (`/file/image/access-token/...`) opent het alleen voor iemand die in het project is aangemeld en een record mag lezen dat het toont, of die het heeft toegevoegd, dus een API-sleutel leest het in plaats daarvan via het record dat het toont:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +465,7 @@ Het record wordt gelezen als de sleutel, zoals `get-item` het leest: de sleutel 
 }
 ```
 
-Alleen afbeeldingen die in het eigen project van het record zijn geüpload worden afgegeven, tot 20 en 10 MB in totaal, en nooit een SVG. Elk soort record met Markdown heeft dezelfde aanvraag, zoals `/api/incident-public-note/<id>/markdown-files` of `/api/alert/<id>/markdown-files`. Een record dat niet bestaat, of dat de sleutel niet mag lezen, antwoordt `404` zoals `get-item` doet, en `422` wanneer de sleutel dat soort record helemaal niet mag lezen. Een workflow leest dezelfde afbeeldingen met [Bestanden uit Markdown ophalen](/docs/workflows/components#get-files-from-markdown).
+Alleen afbeeldingen die in het eigen project van het record zijn geüpload worden afgegeven, tot 20 en 10 MB in totaal, en nooit een SVG. Elk soort record met Markdown heeft dezelfde aanvraag, zoals `/api/incident-public-note/<id>/markdown-files` of `/api/alert/<id>/markdown-files`. Een record dat niet bestaat, of dat de sleutel niet mag lezen, antwoordt `404` zoals `get-item` doet, en `422` wanneer de sleutel dat soort record helemaal niet mag lezen. Een workflow leest dezelfde afbeeldingen met [Bestanden uit Markdown ophalen](/docs/workflows/components#get-files-from-markdown), en de bestanden die een record bevat, zoals de bijlagen van een notitie en zijn aangepaste bestandsvelden, met [Bijlagen uit record ophalen](/docs/workflows/components#get-attachments-from-record).
 
 ## De volledige endpointreferentie
 

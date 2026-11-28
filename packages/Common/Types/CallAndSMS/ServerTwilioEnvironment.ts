@@ -89,6 +89,66 @@ export interface ServerTwilioCallVoiceReading {
  */
 export const SERVER_TWILIO_CALL_VOICE_SET_BY_ENVIRONMENT_MESSAGE: string = `This server's call voice is set by the ${SERVER_TWILIO_CALL_VOICE_VARIABLE} environment variable, so it cannot be changed in the Admin Dashboard. Change it - twilio.callVoice in the Helm chart's values, or config.env with Docker Compose - and restart OneUptime.`;
 
+/*
+ * WHETHER PROJECTS CHOOSE THEIR CALL VOICE, SET BY AN ENVIRONMENT VARIABLE
+ * (#11462).
+ *
+ * A master admin lets projects choose the voice of their calls through the
+ * server's Twilio account with a switch, Let projects choose their call
+ * voice (Admin Dashboard > Settings > Call and SMS > Project Call Voices,
+ * GlobalConfig.letProjectsChooseCallVoice, Types/Call/ProjectCallVoice):
+ * the owner's consent to pay for each project's voice. An installation kept
+ * entirely in code gives it with GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_
+ * VOICE instead - twilio.letProjectsChooseCallVoice in the Helm chart's
+ * values, config.env with Docker Compose - read like the voice is: once it
+ * is set, it is the switch, the Admin Dashboard shows the switch locked
+ * with the variable's name, and the server refuses a write to the saved one
+ * (GlobalConfigService). Unset or empty, the switch saved in the Admin
+ * Dashboard applies again.
+ *
+ * It is true or false, in any case. Any other value is a problem the server
+ * names - when it starts, on the Project Call Voices card and on
+ * /admin/setup - by the variable's name, and projects speak with the
+ * server's voice meanwhile: a consent to a bill is never read into a typo,
+ * and never taken from the saved switch nobody set the variable to.
+ *
+ * Never on OneUptime Cloud, whose account OneUptime pays for at one price
+ * per minute: there projects never choose a voice through it, so the
+ * variable is ignored, and the server says so as it starts.
+ */
+export const SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE: string =
+  "GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE";
+
+// What the switch's variable says, read.
+export interface ServerTwilioProjectCallVoicesReading {
+  /*
+   * Whether GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE is the switch: set,
+   * on a self-hosted server. On OneUptime Cloud it never is.
+   */
+  isSet: boolean;
+  /*
+   * Whether it lets projects choose: true only for "true". False for
+   * "false", for a value that is neither, and whenever it is not the switch.
+   */
+  letProjectsChoose: boolean;
+  /*
+   * What is wrong with it, by the variable's name: a value that is neither
+   * true nor false, or one set on OneUptime Cloud, where it is ignored.
+   * Null when it reads, or is not set.
+   */
+  problem: string | null;
+}
+
+// The values the switch's variable takes, in any case, as the docs write them.
+export const SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VALUES: ReadonlyArray<string> =
+  ["true", "false"];
+
+/*
+ * Said when someone tries to change a switch the variable sets: the server
+ * refuses the write (GlobalConfigService), and says where it is changed.
+ */
+export const SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_SET_BY_ENVIRONMENT_MESSAGE: string = `Whether projects choose their call voice is set by the ${SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE} environment variable on this server, so it cannot be changed in the Admin Dashboard. Change it - twilio.letProjectsChooseCallVoice in the Helm chart's values, or config.env with Docker Compose - and restart OneUptime.`;
+
 // Every variable, the one that turns them on first.
 export const SERVER_TWILIO_ENVIRONMENT_VARIABLES: ReadonlyArray<ServerTwilioEnvironmentVariable> =
   [
@@ -179,6 +239,17 @@ export interface ServerTwilioEnvironmentAnswer {
   isCallVoiceSetByEnvironment: boolean;
   callVoice: string | null;
   callVoiceProblem: string | null;
+  /*
+   * GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE (#11462), set apart too:
+   * whether it is the switch, whether it lets projects choose - false for a
+   * value that is neither true nor false - and what is wrong with it. Left
+   * out by a server of the release before, and read then as not set: the
+   * switch is the saved one, and the server still refuses a write it must
+   * not take.
+   */
+  isLetProjectsChooseCallVoiceSetByEnvironment: boolean;
+  letProjectsChooseCallVoice: boolean;
+  letProjectsChooseCallVoiceProblem: string | null;
 }
 
 export type ServerTwilioEnvironmentValues = Readonly<
@@ -213,6 +284,9 @@ const NO_ACCOUNT_ANSWER: ServerTwilioEnvironmentAnswer = {
   isCallVoiceSetByEnvironment: false,
   callVoice: null,
   callVoiceProblem: null,
+  isLetProjectsChooseCallVoiceSetByEnvironment: false,
+  letProjectsChooseCallVoice: false,
+  letProjectsChooseCallVoiceProblem: null,
 };
 
 // GLOBAL_TWILIO_CALL_VOICE not set: the voice saved in the Admin Dashboard applies.
@@ -220,6 +294,39 @@ const NO_CALL_VOICE: ServerTwilioCallVoiceReading = {
   isSet: false,
   voice: undefined,
   problem: null,
+};
+
+/*
+ * GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE not set: the switch saved in
+ * the Admin Dashboard applies.
+ */
+const NO_PROJECT_CALL_VOICES: ServerTwilioProjectCallVoicesReading = {
+  isSet: false,
+  letProjectsChoose: false,
+  problem: null,
+};
+
+// The switch's part of the answer.
+const projectCallVoicesAnswer: (
+  reading: ServerTwilioProjectCallVoicesReading,
+) => Pick<
+  ServerTwilioEnvironmentAnswer,
+  | "isLetProjectsChooseCallVoiceSetByEnvironment"
+  | "letProjectsChooseCallVoice"
+  | "letProjectsChooseCallVoiceProblem"
+> = (
+  reading: ServerTwilioProjectCallVoicesReading,
+): Pick<
+  ServerTwilioEnvironmentAnswer,
+  | "isLetProjectsChooseCallVoiceSetByEnvironment"
+  | "letProjectsChooseCallVoice"
+  | "letProjectsChooseCallVoiceProblem"
+> => {
+  return {
+    isLetProjectsChooseCallVoiceSetByEnvironment: reading.isSet,
+    letProjectsChooseCallVoice: reading.isSet && reading.letProjectsChoose,
+    letProjectsChooseCallVoiceProblem: reading.problem,
+  };
 };
 
 // The call voice's part of the answer.
@@ -438,6 +545,76 @@ export default class ServerTwilioEnvironment {
     return reading.problem;
   }
 
+  /*
+   * Whether GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE lets projects
+   * choose the voice of their calls (#11462) - process.env on the server,
+   * read again on every call - without the whitespace around it, true or
+   * false in any case. Empty is not set. Any other value is a problem, and
+   * no: projects speak with the server's voice until it is fixed. On
+   * OneUptime Cloud (isBillingEnabled) it is never the switch, whatever it
+   * says: a value set there is a problem too, and ignored.
+   */
+  public static readLetProjectsChooseCallVoice(
+    environment: ServerTwilioEnvironmentValues,
+    options: { isBillingEnabled: boolean },
+  ): ServerTwilioProjectCallVoicesReading {
+    const raw: unknown =
+      environment[SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE];
+    const written: string = typeof raw === "string" ? raw.trim() : "";
+
+    if (!written) {
+      return { ...NO_PROJECT_CALL_VOICES };
+    }
+
+    if (options.isBillingEnabled) {
+      return {
+        isSet: false,
+        letProjectsChoose: false,
+        problem: `${SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE} is set, but this server bills its projects for calls, as OneUptime Cloud does: projects never choose the voice of their calls through its Twilio account, so the variable is ignored. Remove it.`,
+      };
+    }
+
+    const value: string = written.toLowerCase();
+
+    if (value === "true" || value === "false") {
+      return {
+        isSet: true,
+        letProjectsChoose: value === "true",
+        problem: null,
+      };
+    }
+
+    return {
+      isSet: true,
+      letProjectsChoose: false,
+      problem: `${SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE}: "${refusedValue(written)}" is neither true nor false, so projects speak with the server's voice until it is fixed. Set it to true or false, or leave it empty to set Let projects choose their call voice in the Admin Dashboard.`,
+    };
+  }
+
+  /*
+   * What the server says as it starts when GLOBAL_TWILIO_LET_PROJECTS_
+   * CHOOSE_CALL_VOICE sets the switch; null when it does not, or is wrong
+   * (getLetProjectsChooseCallVoiceStartupWarning says that).
+   */
+  public static getLetProjectsChooseCallVoiceStartupNotice(
+    reading: ServerTwilioProjectCallVoicesReading,
+  ): string | null {
+    if (!reading.isSet || reading.problem) {
+      return null;
+    }
+
+    return reading.letProjectsChoose
+      ? `Projects choose the voice of their calls through the server's Twilio account: ${SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE} is true. The switch in the Admin Dashboard is not used.`
+      : `Projects do not choose the voice of their calls through the server's Twilio account: ${SERVER_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE_VARIABLE} is false. The switch in the Admin Dashboard is not used.`;
+  }
+
+  // What is wrong with GLOBAL_TWILIO_LET_PROJECTS_CHOOSE_CALL_VOICE, as the server says it when it starts.
+  public static getLetProjectsChooseCallVoiceStartupWarning(
+    reading: ServerTwilioProjectCallVoicesReading,
+  ): string | null {
+    return reading.problem;
+  }
+
   // Whether the account the variables set can send: set, with nothing wrong.
   public static isUsable(reading: ServerTwilioEnvironmentReading): boolean {
     return (
@@ -448,17 +625,21 @@ export default class ServerTwilioEnvironment {
   /*
    * What the Admin Dashboard is told: never the auth token. With the voice
    * GLOBAL_TWILIO_CALL_VOICE sets, read on its own (readCallVoice): it sets
-   * the voice whoever sets the account.
+   * the voice whoever sets the account - and the switch GLOBAL_TWILIO_LET_
+   * PROJECTS_CHOOSE_CALL_VOICE sets (readLetProjectsChooseCallVoice), on its
+   * own too.
    */
   public static toAnswer(
     reading: ServerTwilioEnvironmentReading,
     callVoice: ServerTwilioCallVoiceReading = NO_CALL_VOICE,
+    projectCallVoices: ServerTwilioProjectCallVoicesReading = NO_PROJECT_CALL_VOICES,
   ): ServerTwilioEnvironmentAnswer {
     if (!reading.isSet || !reading.account) {
       return {
         ...NO_ACCOUNT_ANSWER,
         problems: [...reading.problems],
         ...callVoiceAnswer(callVoice),
+        ...projectCallVoicesAnswer(projectCallVoices),
       };
     }
 
@@ -476,6 +657,7 @@ export default class ServerTwilioEnvironment {
       smsPhoneNumbers: account.twilioSmsPhoneNumbers || null,
       problems: [...reading.problems],
       ...callVoiceAnswer(callVoice),
+      ...projectCallVoicesAnswer(projectCallVoices),
     };
   }
 
@@ -523,6 +705,19 @@ export default class ServerTwilioEnvironment {
       isCallVoiceSetByEnvironment: data["isCallVoiceSetByEnvironment"] === true,
       callVoice: toCallVoiceValue(data["callVoice"]) || null,
       callVoiceProblem: text("callVoiceProblem"),
+      /*
+       * Only true is true, and only while the variable is the switch: a
+       * server of the release before says neither, and the switch is the
+       * saved one.
+       */
+      isLetProjectsChooseCallVoiceSetByEnvironment:
+        data["isLetProjectsChooseCallVoiceSetByEnvironment"] === true,
+      letProjectsChooseCallVoice:
+        data["isLetProjectsChooseCallVoiceSetByEnvironment"] === true &&
+        data["letProjectsChooseCallVoice"] === true,
+      letProjectsChooseCallVoiceProblem: text(
+        "letProjectsChooseCallVoiceProblem",
+      ),
     };
   }
 

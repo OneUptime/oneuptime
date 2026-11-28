@@ -62,6 +62,7 @@ flowchart TB
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | ورودی | ورودها و تغییرات دایرکتوری Microsoft Entra ID و لاگ ممیزی Microsoft 365 را به رویدادهای امنیتی می‌آورد. |
 | [Google Workspace](/docs/integrations/google-workspace) | ورودی | ورودها، تغییرات مدیران و تشخیص‌های خود Google در Google Workspace را به رویدادهای امنیتی می‌آورد. |
 | [Cloudflare](/docs/integrations/cloudflare) | ورودی | آنچه فایروال Cloudflare مسدود کرد، به چالش کشید و ثبت کرد را، کنار آنچه به برنامهٔ شما رسید، به رویدادهای امنیتی می‌آورد. |
+| [CrowdSec](/docs/integrations/crowdsec) | ورودی | هشدارهای CrowdSec را به رویدادهای امنیتی می‌آورد و نشانی‌هایی را که مسدود می‌کنید در CrowdSec ممنوع می‌کند. |
 
 ### تیکت و مدیریت خدمات فناوری اطلاعات
 

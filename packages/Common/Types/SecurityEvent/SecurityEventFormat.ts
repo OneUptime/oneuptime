@@ -16,6 +16,13 @@ enum SecurityEventFormat {
    */
   GoogleSecOpsAlert = "google-secops-alert",
 
+  /*
+   * CrowdSec alerts, as its http notification plugin sends them with its
+   * default format ({{.|toJson}}), or as `cscli alerts list -o json`
+   * prints them (#11158).
+   */
+  CrowdSec = "crowdsec",
+
   // Anything else — best-effort field mapping.
   Generic = "generic",
 }

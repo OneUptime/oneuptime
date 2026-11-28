@@ -52,7 +52,9 @@ import {
 } from "./TelemetryScrubPlan";
 import { ScrubProofRowReader } from "./TelemetryScrubProof";
 import {
+  pickUnprovenScrubRuleCandidate,
   planScrubRuleCandidates,
+  ScrubPlanFinding,
   ScrubRuleCandidate,
   ScrubRuleSource,
 } from "./TelemetryScrubPlanner";
@@ -195,19 +197,20 @@ export async function planProvenScrubItRule(data: {
           })
         : null;
 
+    const finding: ScrubPlanFinding = {
+      dataTypeId: data.dataTypeId,
+      dataCategory: record?.dataCategory || null,
+      location: data.location,
+      target: data.target,
+      projectType:
+        record?.projectType ||
+        (await readProjectDataTypePattern({
+          projectId: data.projectId,
+          dataTypeId: data.dataTypeId,
+        })),
+    };
     const candidates: Array<ScrubRuleCandidate> = planScrubRuleCandidates({
-      finding: {
-        dataTypeId: data.dataTypeId,
-        dataCategory: record?.dataCategory || null,
-        location: data.location,
-        target: data.target,
-        projectType:
-          record?.projectType ||
-          (await readProjectDataTypePattern({
-            projectId: data.projectId,
-            dataTypeId: data.dataTypeId,
-          })),
-      },
+      finding,
       securityEventsSources: sources?.isChecked ? sources.sources : [],
       serviceId: scope.serviceId?.toString().toLowerCase() || null,
     });
@@ -215,7 +218,9 @@ export async function planProvenScrubItRule(data: {
      * The narrowest that hides what the finding found, as coverage reads
      * it (#11502): a pattern of the type's shapes keeps what was found only
      * beside its words or under the key's name, and the rule that names the
-     * attribute does not - the narrowest of all where none does.
+     * attribute does not - the narrowest of all where none does. Among
+     * them, a secret in an attribute is hidden whole: no record proves a
+     * pattern (#11458).
      */
     const foundBy: FindingFoundBy = record
       ? readFoundByOf(record)
@@ -231,11 +236,14 @@ export async function planProvenScrubItRule(data: {
     };
 
     candidate =
-      candidates.find((planned: ScrubRuleCandidate): boolean => {
-        return doesScrubRuleCover(planned, reference);
-      }) ||
-      candidates[0] ||
-      null;
+      pickUnprovenScrubRuleCandidate({
+        candidates: candidates.filter(
+          (planned: ScrubRuleCandidate): boolean => {
+            return doesScrubRuleCover(planned, reference);
+          },
+        ),
+        finding,
+      }) || pickUnprovenScrubRuleCandidate({ candidates, finding });
 
     if (!candidate) {
       // Throws, saying why no rule can hide this data.

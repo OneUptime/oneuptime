@@ -309,7 +309,13 @@ Nogle felter indeholder en JSON-værdi med sin egen form, såsom et vagtplanlags
 restrictionTimes.value.restrictionType is missing. Set it to None (on call around the clock), Daily or Weekly.
 ```
 
-En nøgle, der omdøbes, læses fortsat under sit gamle navn: et lags begrænsningstype skrives under `restrictionType` eller under den ældre stavemåde `restictionType`, og et svar angiver begge.
+En nøgle, der omdøbes, læses fortsat under sit gamle navn: et lags begrænsningstype skrives under `restrictionType` eller under den ældre stavemåde `restictionType`, og et svar angiver begge. Den ældre stavemåde er forældet i svar: de angiver den indtil den første hovedversion, der udgives den 1. juni 2027 eller senere. Skrivninger læser den altid.
+
+En værdi bliver også taget på ordet. Et lags ugentlige tidsrum har vagt de dage, det nævner, så dets `startTime` og `endTime` skal falde på dets `startDay` og `endDay` i vagtplanens tidszone. Et tidsrum, der er dateret på andre dage, afvises med en `400`, der nævner tidsrummet og giver et tidspunkt på den nævnte dag, der kan sendes i stedet:
+
+```text
+restrictionTimes.value.weeklyRestrictionTimes[0].startTime is 2026-01-07T08:00:00.000Z, a Wednesday in Europe/Warsaw, the schedule's time zone, but its startDay is Monday. A window is on call on the days it names: date its startTime on a Monday, such as 2026-01-05T08:00:00.000Z, or set its startDay to Wednesday.
+```
 
 ### Hvor et projekt blev købt
 
@@ -425,7 +431,7 @@ Tidligere svarede den `200` med en tom body. En liste (`get-list`) og en optæll
 
 ### Billeder i en posts Markdown
 
-Et billede, der er indsat i Markdown, som et skærmbillede i en hændelses beskrivelse, et brugerdefineret Markdown-felt eller en note, er en privat fil. Dets adresse (`/file/image/access-token/...`) åbner det kun for en person, der er logget ind i projektet, så en API-nøgle læser det i stedet gennem den post, der viser det:
+Et billede, der er indsat i Markdown, som et skærmbillede i en hændelses beskrivelse, et brugerdefineret Markdown-felt eller en note, er en privat fil. Dets adresse (`/file/image/access-token/...`) åbner det kun for en person, der er logget ind i projektet og må læse en post, der viser det, eller som tilføjede det, så en API-nøgle læser det i stedet gennem den post, der viser det:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +465,7 @@ Posten læses som nøglen, sådan som `get-item` læser den: Nøglen skal have t
 }
 ```
 
-Kun billeder, der er uploadet til postens eget projekt, udleveres, op til 20 og 10 MB i alt, og aldrig en SVG. Hver slags post med Markdown har den samme anmodning, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post, der ikke findes, eller som nøglen ikke må læse, svarer `404`, som `get-item` gør, og `422`, når nøglen slet ikke må læse den slags post. En arbejdsgang læser de samme billeder med [Hent filer fra Markdown](/docs/workflows/components#get-files-from-markdown).
+Kun billeder, der er uploadet til postens eget projekt, udleveres, op til 20 og 10 MB i alt, og aldrig en SVG. Hver slags post med Markdown har den samme anmodning, som `/api/incident-public-note/<id>/markdown-files` eller `/api/alert/<id>/markdown-files`. En post, der ikke findes, eller som nøglen ikke må læse, svarer `404`, som `get-item` gør, og `422`, når nøglen slet ikke må læse den slags post. En arbejdsgang læser de samme billeder med [Hent filer fra Markdown](/docs/workflows/components#get-files-from-markdown) og de filer, en post indeholder, som en notes vedhæftninger og dens brugerdefinerede filfelter, med [Hent vedhæftninger fra post](/docs/workflows/components#get-attachments-from-record).
 
 ## Den fulde endpoint-reference
 

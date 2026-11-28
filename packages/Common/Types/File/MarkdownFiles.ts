@@ -14,10 +14,11 @@ import MimeType from "./MimeType";
  *
  *     ![screenshot.png](https://oneuptime.example/file/image/access-token/<token>)
  *
- * That address opens the image only for a person signed in to the project
- * (FileViewerAccess): a browser drawing the page. A workflow has no session,
- * and the address does not take an API key, so neither could read the image
- * to put it in an email.
+ * That address opens the image only for a person signed in to the project -
+ * its uploader, or someone who may read a record that shows it
+ * (FileViewerAccess, #11478): a browser drawing the page. A workflow has no
+ * session, and the address does not take an API key, so neither could read
+ * the image to put it in an email.
  *
  * Opening the address to API keys and workflows would let any of them read
  * any private image of its project whose address it learnt, whatever records
@@ -158,8 +159,8 @@ export const MARKDOWN_FILE_LEFT_OUT_MESSAGES: Readonly<
     "No file of this project has this address. It may have been deleted, or copied from another project.",
   [MarkdownFileLeftOutReason.NotAPicture]:
     "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out.",
-  [MarkdownFileLeftOutReason.TooLarge]: `It is larger than ${MARKDOWN_FILE_MAX_SIZE_IN_BYTES / (1024 * 1024)} MB, the most one file may be.`,
-  [MarkdownFileLeftOutReason.OverTotalSize]: `With the files before it, it would come to more than ${MARKDOWN_FILES_MAX_TOTAL_SIZE_IN_BYTES / (1024 * 1024)} MB, the most one read hands out.`,
+  [MarkdownFileLeftOutReason.TooLarge]: `It is larger than ${MARKDOWN_FILE_MAX_SIZE_IN_BYTES / (1024 * 1024)}\u00A0MB, the most one file may be.`,
+  [MarkdownFileLeftOutReason.OverTotalSize]: `With the files before it, it would come to more than ${MARKDOWN_FILES_MAX_TOTAL_SIZE_IN_BYTES / (1024 * 1024)}\u00A0MB, the most one read hands out.`,
   [MarkdownFileLeftOutReason.TooMany]: `The record shows more than ${MARKDOWN_FILES_MAX_COUNT} files. Only the first ${MARKDOWN_FILES_MAX_COUNT} pictures are handed out.`,
 };
 
@@ -212,6 +213,47 @@ export const readMarkdownImageReferences: ReadMarkdownImageReferencesFunction =
 
     return references;
   };
+
+// What every inline image's address holds, before its token.
+export const IMAGE_ADDRESS_SEGMENT: string = "/file/image/access-token/";
+
+export type ReadImageTokensFunction = (value: unknown) => Array<string>;
+
+/*
+ * The inline image tokens a stored value names, each once, in the order
+ * written: Markdown text, or JSON that holds Markdown - a custom field's
+ * value, a monitor's criteria, a playbook's steps - read as its text. A
+ * value that names none is read no further than one search for the address.
+ */
+export const readImageTokens: ReadImageTokensFunction = (
+  value: unknown,
+): Array<string> => {
+  let text: string = "";
+
+  if (typeof value === "string") {
+    text = value;
+  } else if (value !== undefined && value !== null) {
+    try {
+      text = JSON.stringify(value) || "";
+    } catch {
+      text = "";
+    }
+  }
+
+  if (!text || !text.includes(IMAGE_ADDRESS_SEGMENT)) {
+    return [];
+  }
+
+  const tokens: Array<string> = [];
+
+  for (const reference of readMarkdownImageReferences(text)) {
+    if (!tokens.includes(reference.token)) {
+      tokens.push(reference.token);
+    }
+  }
+
+  return tokens;
+};
 
 // One field of a record and the Markdown it holds.
 export interface MarkdownSource {
