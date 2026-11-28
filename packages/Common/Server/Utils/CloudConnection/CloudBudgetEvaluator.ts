@@ -1936,11 +1936,16 @@ export default class CloudBudgetEvaluator {
     previousWindowKey?: string | undefined;
   }): Promise<void> {
     const key: string = data.previousWindowKey || "";
-    const noun: string = key.endsWith("/3")
-      ? "quarter"
+    /*
+     * Each a whole sentence, so the alert's timeline reads it in the
+     * reader's language (Utils/Monitor/StatusChangeNotes): a window's noun
+     * put into one sentence would be read in English on every page.
+     */
+    const rootCause: string = key.endsWith("/3")
+      ? "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over."
       : key.endsWith("/12")
-        ? "year"
-        : "month";
+        ? "Resolved by OneUptime: the year this cloud budget alert was raised in is over."
+        : "Resolved by OneUptime: the month this cloud budget alert was raised in is over.";
 
     try {
       const timeline: AlertStateTimeline = new AlertStateTimeline();
@@ -1950,7 +1955,7 @@ export default class CloudBudgetEvaluator {
         await AlertStateTimelineService.getResolvedStateIdForProject(
           data.projectId,
         );
-      timeline.rootCause = `Resolved by OneUptime: the ${noun} this cloud budget alert was raised in is over.`;
+      timeline.rootCause = rootCause;
 
       await AlertStateTimelineService.create({
         data: timeline,
