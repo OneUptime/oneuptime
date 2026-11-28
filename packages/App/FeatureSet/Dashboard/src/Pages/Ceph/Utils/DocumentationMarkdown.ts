@@ -17,6 +17,11 @@ import {
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
+import {
+  AgentContainerNames,
+  getAgentContainerNameRows,
+  getSeveralAgentsTopic,
+} from "../../../Components/SetupGuide/AgentContainerNames";
 
 /*
  * The in-app install guide for the OneUptime Ceph agent (agents/CephAgent):
@@ -68,6 +73,29 @@ export const CEPH_AGENT_INSTALL_DIR: string = "/opt/oneuptime-ceph-agent";
 // The containers docker-compose.yml runs (their container_name).
 export const CEPH_AGENT_CONTAINER: string = "oneuptime-ceph-agent";
 export const CEPH_AI_AGENT_CONTAINER: string = "oneuptime-ceph-ai-agent";
+
+/*
+ * Each container's name, from .env (#11434): a second cluster's agent on the
+ * same machine needs names of its own. In install.sh's order: the collector,
+ * then COMPANION_CONTAINERS.
+ */
+export const CEPH_AGENT_CONTAINER_NAMES: AgentContainerNames = {
+  names: [
+    {
+      variable: "CEPH_AGENT_CONTAINER_NAME",
+      container: CEPH_AGENT_CONTAINER,
+      role: "collector",
+    },
+    {
+      variable: "CEPH_AI_AGENT_CONTAINER_NAME",
+      container: CEPH_AI_AGENT_CONTAINER,
+      role: "AI agent",
+    },
+  ],
+  noun: "cluster",
+  installDir: CEPH_AGENT_INSTALL_DIR,
+  suffix: "cluster2",
+};
 
 // The name the guide suggests when it is not installing for a known cluster.
 export const CEPH_EXAMPLE_CLUSTER_NAME: string = "my-ceph-cluster";
@@ -464,6 +492,7 @@ function getEnvironmentVariablesTopic(context: GuideContext): SetupGuideTopic {
 | \`ONEUPTIME_TELEMETRY_INGESTION_KEY\` | Yes | Telemetry ingestion key — the one picked in step 1 |
 | \`CEPH_CLUSTER_NAME\` | Yes | Cluster identifier shown in OneUptime. Stamped on every metric as the \`ceph.cluster.name\` resource attribute. Keep it stable — changing it registers a new cluster (default: \`ceph\`) |
 | \`CEPH_MGR_ENDPOINTS\` | Yes | Comma-separated \`host:port\` list of **all** mgr daemons, wrapped in square brackets, e.g. \`[ceph-mon-1:9283,ceph-mon-2:9283]\`${bracketsNote} |
+${getAgentContainerNameRows(CEPH_AGENT_CONTAINER_NAMES, context.method === "install-script")}
 
 The OneUptime AI agent's own settings are under **OneUptime AI agent**.`,
   };
@@ -618,6 +647,18 @@ If you created the AI agent's Ceph client, remove it on an admin node: \`ceph au
   };
 }
 
+function getSeveralClustersTopic(context: GuideContext): SetupGuideTopic {
+  return getSeveralAgentsTopic(
+    CEPH_AGENT_CONTAINER_NAMES,
+    context.method === "install-script",
+    {
+      title: "Monitoring several clusters",
+      summary:
+        "One agent per cluster, each in a folder of its own with container names of its own.",
+    },
+  );
+}
+
 function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
   return [
     getEnvironmentVariablesTopic(context),
@@ -626,6 +667,7 @@ function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
     getLabelsTopic(context),
     getCollectedDataTopic(),
     getAiAgentTopic(context),
+    getSeveralClustersTopic(context),
     getUpgradeTopic(context),
   ];
 }

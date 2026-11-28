@@ -1,0 +1,2003 @@
+{
+ "workerMetrics": {
+  "signal": "resourceMetrics",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-worker"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.30.1"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "shop-worker-6748887dc-2wr95"
+      }
+     },
+     {
+      "key": "host.arch",
+      "value": {
+       "stringValue": "amd64"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "os.version",
+      "value": {
+       "stringValue": "7.0.0-1017-azure"
+      }
+     },
+     {
+      "key": "process.pid",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "process.executable.name",
+      "value": {
+       "stringValue": "node"
+      }
+     },
+     {
+      "key": "process.executable.path",
+      "value": {
+       "stringValue": "/usr/local/bin/node"
+      }
+     },
+     {
+      "key": "process.command_args",
+      "value": {
+       "arrayValue": {
+        "values": [
+         {
+          "stringValue": "/usr/local/bin/node"
+         },
+         {
+          "stringValue": "/app/app.js"
+         }
+        ]
+       }
+      }
+     },
+     {
+      "key": "process.runtime.version",
+      "value": {
+       "stringValue": "26.13.1"
+      }
+     },
+     {
+      "key": "process.runtime.name",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "process.runtime.description",
+      "value": {
+       "stringValue": "Node.js"
+      }
+     },
+     {
+      "key": "process.command",
+      "value": {
+       "stringValue": "/app/app.js"
+      }
+     },
+     {
+      "key": "process.owner",
+      "value": {
+       "stringValue": "root"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "@opentelemetry/instrumentation-http",
+      "version": "0.57.2"
+     },
+     "metrics": [
+      {
+       "name": "http.server.duration",
+       "description": "Measures the duration of inbound HTTP requests.",
+       "unit": "ms",
+       "histogram": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "http.scheme",
+            "value": {
+             "stringValue": "http"
+            }
+           },
+           {
+            "key": "http.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "net.host.name",
+            "value": {
+             "stringValue": "127.0.0.1"
+            }
+           },
+           {
+            "key": "http.flavor",
+            "value": {
+             "stringValue": "1.1"
+            }
+           },
+           {
+            "key": "http.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           },
+           {
+            "key": "net.host.port",
+            "value": {
+             "intValue": "8080"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795850166520000000",
+          "timeUnixNano": "1795850175493000000",
+          "count": "9",
+          "sum": 10.800070999999999,
+          "bucketCounts": [
+           "0",
+           "8",
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0,
+           5,
+           10,
+           25,
+           50,
+           75,
+           100,
+           250,
+           500,
+           750,
+           1000,
+           2500,
+           5000,
+           7500,
+           10000
+          ],
+          "min": 0.617147,
+          "max": 5.118699
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      },
+      {
+       "name": "http.client.duration",
+       "description": "Measures the duration of outbound HTTP requests.",
+       "unit": "ms",
+       "histogram": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "http.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "net.peer.name",
+            "value": {
+             "stringValue": "127.0.0.1"
+            }
+           },
+           {
+            "key": "net.peer.port",
+            "value": {
+             "intValue": "8080"
+            }
+           },
+           {
+            "key": "http.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           },
+           {
+            "key": "http.flavor",
+            "value": {
+             "stringValue": "1.1"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795850166522000000",
+          "timeUnixNano": "1795850175493000000",
+          "count": "9",
+          "sum": 37.547794,
+          "bucketCounts": [
+           "0",
+           "8",
+           "0",
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0,
+           5,
+           10,
+           25,
+           50,
+           75,
+           100,
+           250,
+           500,
+           750,
+           1000,
+           2500,
+           5000,
+           7500,
+           10000
+          ],
+          "min": 1.745021,
+          "max": 19.434225
+         },
+         {
+          "attributes": [
+           {
+            "key": "http.method",
+            "value": {
+             "stringValue": "POST"
+            }
+           },
+           {
+            "key": "net.peer.name",
+            "value": {
+             "stringValue": "otlp-sink.otlp-sink.svc.cluster.local"
+            }
+           },
+           {
+            "key": "net.peer.port",
+            "value": {
+             "intValue": "4318"
+            }
+           },
+           {
+            "key": "http.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           },
+           {
+            "key": "http.flavor",
+            "value": {
+             "stringValue": "1.1"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795850171530000000",
+          "timeUnixNano": "1795850175493000000",
+          "count": "2",
+          "sum": 11.297821,
+          "bucketCounts": [
+           "0",
+           "1",
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0,
+           5,
+           10,
+           25,
+           50,
+           75,
+           100,
+           250,
+           500,
+           750,
+           1000,
+           2500,
+           5000,
+           7500,
+           10000
+          ],
+          "min": 3.586688,
+          "max": 7.711133
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "apiMetrics": {
+  "signal": "resourceMetrics",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.30.1"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "aks-nodepool1-vm0"
+      }
+     },
+     {
+      "key": "host.arch",
+      "value": {
+       "stringValue": "amd64"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "os.version",
+      "value": {
+       "stringValue": "24.04.202610250"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "a02c057f-4439-49b6-87ee-2eb83aeb3902"
+      }
+     },
+     {
+      "key": "process.pid",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "process.executable.name",
+      "value": {
+       "stringValue": "node"
+      }
+     },
+     {
+      "key": "process.executable.path",
+      "value": {
+       "stringValue": "/usr/local/bin/node"
+      }
+     },
+     {
+      "key": "process.command_args",
+      "value": {
+       "arrayValue": {
+        "values": [
+         {
+          "stringValue": "/usr/local/bin/node"
+         },
+         {
+          "stringValue": "/app/app.js"
+         }
+        ]
+       }
+      }
+     },
+     {
+      "key": "process.runtime.version",
+      "value": {
+       "stringValue": "26.13.1"
+      }
+     },
+     {
+      "key": "process.runtime.name",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "process.runtime.description",
+      "value": {
+       "stringValue": "Node.js"
+      }
+     },
+     {
+      "key": "process.command",
+      "value": {
+       "stringValue": "/app/app.js"
+      }
+     },
+     {
+      "key": "process.owner",
+      "value": {
+       "stringValue": "root"
+      }
+     },
+     {
+      "key": "azure.vm.scaleset.name",
+      "value": {
+       "stringValue": ""
+      }
+     },
+     {
+      "key": "azure.vm.sku",
+      "value": {
+       "stringValue": "server"
+      }
+     },
+     {
+      "key": "cloud.platform",
+      "value": {
+       "stringValue": "azure_vm"
+      }
+     },
+     {
+      "key": "cloud.provider",
+      "value": {
+       "stringValue": "azure"
+      }
+     },
+     {
+      "key": "cloud.region",
+      "value": {
+       "stringValue": "eastus"
+      }
+     },
+     {
+      "key": "cloud.resource_id",
+      "value": {
+       "stringValue": "/subscriptions/7c2a5e10-3b4d-4f6a-9e8b-1d2c3b4a5f60/resourceGroups/shop-prod/providers/Microsoft.Compute/virtualMachines/aks-nodepool1-vm0"
+      }
+     },
+     {
+      "key": "host.id",
+      "value": {
+       "stringValue": "4e1b9c7d-2a3f-4b5c-8d6e-9f0a1b2c3d4e"
+      }
+     },
+     {
+      "key": "host.type",
+      "value": {
+       "stringValue": "Standard_D32as_v7"
+      }
+     }
+    ]
+   },
+   "scopeMetrics": [
+    {
+     "scope": {
+      "name": "@opentelemetry/instrumentation-http",
+      "version": "0.57.2"
+     },
+     "metrics": [
+      {
+       "name": "http.server.duration",
+       "description": "Measures the duration of inbound HTTP requests.",
+       "unit": "ms",
+       "histogram": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "http.scheme",
+            "value": {
+             "stringValue": "http"
+            }
+           },
+           {
+            "key": "http.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "net.host.name",
+            "value": {
+             "stringValue": "127.0.0.1"
+            }
+           },
+           {
+            "key": "http.flavor",
+            "value": {
+             "stringValue": "1.1"
+            }
+           },
+           {
+            "key": "http.status_code",
+            "value": {
+             "intValue": "200"
+            }
+           },
+           {
+            "key": "net.host.port",
+            "value": {
+             "intValue": "8080"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795850166523000000",
+          "timeUnixNano": "1795850175507000000",
+          "count": "9",
+          "sum": 9.686871,
+          "bucketCounts": [
+           "0",
+           "9",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0,
+           5,
+           10,
+           25,
+           50,
+           75,
+           100,
+           250,
+           500,
+           750,
+           1000,
+           2500,
+           5000,
+           7500,
+           10000
+          ],
+          "min": 0.547459,
+          "max": 4.281712
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      },
+      {
+       "name": "http.client.duration",
+       "description": "Measures the duration of outbound HTTP requests.",
+       "unit": "ms",
+       "histogram": {
+        "dataPoints": [
+         {
+          "attributes": [
+           {
+            "key": "http.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "net.peer.name",
+            "value": {
+             "stringValue": "metadata.google.internal."
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795850165539000000",
+          "timeUnixNano": "1795850175507000000",
+          "count": "1",
+          "sum": 17.428221,
+          "bucketCounts": [
+           "0",
+           "0",
+           "0",
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0,
+           5,
+           10,
+           25,
+           50,
+           75,
+           100,
+           250,
+           500,
+           750,
+           1000,
+           2500,
+           5000,
+           7500,
+           10000
+          ],
+          "min": 17.428221,
+          "max": 17.428221
+         },
+         {
+          "attributes": [
+           {
+            "key": "http.method",
+            "value": {
+             "stringValue": "GET"
+            }
+           },
+           {
+            "key": "net.peer.name",
+            "value": {
+             "stringValue": "169.254.169.254"
+            }
+           },
+           {
+            "key": "net.peer.port",
+            "value": {
+             "intValue": "80"
+            }
+           },
+           {
+            "key": "http.status_code",
+            "value": {
+             "intValue": "404"
+            }
+           },
+           {
+            "key": "http.flavor",
+            "value": {
+             "stringValue": "1.1"
+            }
+           }
+          ],
+          "startTimeUnixNano": "1795850165544000000",
+          "timeUnixNano": "1795850175507000000",
+          "count": "1",
+          "sum": 26.211406,
+          "bucketCounts": [
+           "0",
+           "0",
+           "0",
+           "0",
+           "1",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0",
+           "0"
+          ],
+          "explicitBounds": [
+           0,
+           5,
+           10,
+           25,
+           50,
+           75,
+           100,
+           250,
+           500,
+           750,
+           1000,
+           2500,
+           5000,
+           7500,
+           10000
+          ],
+          "min": 26.211406,
+          "max": 26.211406
+         }
+        ],
+        "aggregationTemporality": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "apiLogs": {
+  "signal": "resourceLogs",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.30.1"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "aks-nodepool1-vm0"
+      }
+     },
+     {
+      "key": "host.arch",
+      "value": {
+       "stringValue": "amd64"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "os.version",
+      "value": {
+       "stringValue": "24.04.202610250"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "33d03fd2-7297-498a-be55-b01a951d1838"
+      }
+     },
+     {
+      "key": "process.pid",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "process.executable.name",
+      "value": {
+       "stringValue": "node"
+      }
+     },
+     {
+      "key": "process.executable.path",
+      "value": {
+       "stringValue": "/usr/local/bin/node"
+      }
+     },
+     {
+      "key": "process.command_args",
+      "value": {
+       "arrayValue": {
+        "values": [
+         {
+          "stringValue": "/usr/local/bin/node"
+         },
+         {
+          "stringValue": "/app/app.js"
+         }
+        ]
+       }
+      }
+     },
+     {
+      "key": "process.runtime.version",
+      "value": {
+       "stringValue": "26.13.1"
+      }
+     },
+     {
+      "key": "process.runtime.name",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "process.runtime.description",
+      "value": {
+       "stringValue": "Node.js"
+      }
+     },
+     {
+      "key": "process.command",
+      "value": {
+       "stringValue": "/app/app.js"
+      }
+     },
+     {
+      "key": "process.owner",
+      "value": {
+       "stringValue": "root"
+      }
+     },
+     {
+      "key": "azure.vm.scaleset.name",
+      "value": {
+       "stringValue": ""
+      }
+     },
+     {
+      "key": "azure.vm.sku",
+      "value": {
+       "stringValue": "server"
+      }
+     },
+     {
+      "key": "cloud.platform",
+      "value": {
+       "stringValue": "azure_vm"
+      }
+     },
+     {
+      "key": "cloud.provider",
+      "value": {
+       "stringValue": "azure"
+      }
+     },
+     {
+      "key": "cloud.region",
+      "value": {
+       "stringValue": "eastus"
+      }
+     },
+     {
+      "key": "cloud.resource_id",
+      "value": {
+       "stringValue": "/subscriptions/7c2a5e10-3b4d-4f6a-9e8b-1d2c3b4a5f60/resourceGroups/shop-prod/providers/Microsoft.Compute/virtualMachines/aks-nodepool1-vm0"
+      }
+     },
+     {
+      "key": "host.id",
+      "value": {
+       "stringValue": "4e1b9c7d-2a3f-4b5c-8d6e-9f0a1b2c3d4e"
+      }
+     },
+     {
+      "key": "host.type",
+      "value": {
+       "stringValue": "Standard_D32as_v7"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "shop-app"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1795849974644000000",
+       "observedTimeUnixNano": "1795849974644000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "served GET /orders (1)"
+       },
+       "flags": 1,
+       "traceId": "5e91abfa23513bdb67011abcc8062e8b",
+       "spanId": "50dbb7e01f4bff4a"
+      },
+      {
+       "timeUnixNano": "1795849975640000000",
+       "observedTimeUnixNano": "1795849975640000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "served GET /orders (2)"
+       },
+       "flags": 1,
+       "traceId": "7bc24f7e581ca6c4288a13870f66007e",
+       "spanId": "d018922e4609aef5"
+      },
+      {
+       "timeUnixNano": "1795849976640000000",
+       "observedTimeUnixNano": "1795849976640000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "served GET /orders (3)"
+       },
+       "flags": 1,
+       "traceId": "94ed1e0cdb552be9ba29f9066994a4d9",
+       "spanId": "d278c42aff1c6eb4"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "workerLogsBeforeRollout": {
+  "signal": "resourceLogs",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-worker"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.30.1"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "shop-worker-6b6c997fd5-sb5l2"
+      }
+     },
+     {
+      "key": "host.arch",
+      "value": {
+       "stringValue": "amd64"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "os.version",
+      "value": {
+       "stringValue": "7.0.0-1017-azure"
+      }
+     },
+     {
+      "key": "process.pid",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "process.executable.name",
+      "value": {
+       "stringValue": "node"
+      }
+     },
+     {
+      "key": "process.executable.path",
+      "value": {
+       "stringValue": "/usr/local/bin/node"
+      }
+     },
+     {
+      "key": "process.command_args",
+      "value": {
+       "arrayValue": {
+        "values": [
+         {
+          "stringValue": "/usr/local/bin/node"
+         },
+         {
+          "stringValue": "/app/app.js"
+         }
+        ]
+       }
+      }
+     },
+     {
+      "key": "process.runtime.version",
+      "value": {
+       "stringValue": "26.13.1"
+      }
+     },
+     {
+      "key": "process.runtime.name",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "process.runtime.description",
+      "value": {
+       "stringValue": "Node.js"
+      }
+     },
+     {
+      "key": "process.command",
+      "value": {
+       "stringValue": "/app/app.js"
+      }
+     },
+     {
+      "key": "process.owner",
+      "value": {
+       "stringValue": "root"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "shop-app"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1795849974642000000",
+       "observedTimeUnixNano": "1795849974642000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "served GET /orders (1)"
+       },
+       "flags": 1,
+       "traceId": "09f7fce7c136d5755ace95b9e1a42f8f",
+       "spanId": "9a57b156cb48f65d"
+      },
+      {
+       "timeUnixNano": "1795849975634000000",
+       "observedTimeUnixNano": "1795849975634000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "served GET /orders (2)"
+       },
+       "flags": 1,
+       "traceId": "7edb9a86a7968b8a2beaea07bb2c8582",
+       "spanId": "049fcf069c1f14a6"
+      },
+      {
+       "timeUnixNano": "1795849976634000000",
+       "observedTimeUnixNano": "1795849976634000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "served GET /orders (3)"
+       },
+       "flags": 1,
+       "traceId": "b8a9c260b34a7fba8fe52d483d85053e",
+       "spanId": "3bc422e395937cce"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "workerLogs": {
+  "signal": "resourceLogs",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-worker"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.30.1"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "shop-worker-6748887dc-2wr95"
+      }
+     },
+     {
+      "key": "host.arch",
+      "value": {
+       "stringValue": "amd64"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "os.version",
+      "value": {
+       "stringValue": "7.0.0-1017-azure"
+      }
+     },
+     {
+      "key": "process.pid",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "process.executable.name",
+      "value": {
+       "stringValue": "node"
+      }
+     },
+     {
+      "key": "process.executable.path",
+      "value": {
+       "stringValue": "/usr/local/bin/node"
+      }
+     },
+     {
+      "key": "process.command_args",
+      "value": {
+       "arrayValue": {
+        "values": [
+         {
+          "stringValue": "/usr/local/bin/node"
+         },
+         {
+          "stringValue": "/app/app.js"
+         }
+        ]
+       }
+      }
+     },
+     {
+      "key": "process.runtime.version",
+      "value": {
+       "stringValue": "26.13.1"
+      }
+     },
+     {
+      "key": "process.runtime.name",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "process.runtime.description",
+      "value": {
+       "stringValue": "Node.js"
+      }
+     },
+     {
+      "key": "process.command",
+      "value": {
+       "stringValue": "/app/app.js"
+      }
+     },
+     {
+      "key": "process.owner",
+      "value": {
+       "stringValue": "root"
+      }
+     }
+    ]
+   },
+   "scopeLogs": [
+    {
+     "scope": {
+      "name": "shop-app"
+     },
+     "logRecords": [
+      {
+       "timeUnixNano": "1795850166516000000",
+       "observedTimeUnixNano": "1795850166516000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "served GET /orders (1)"
+       },
+       "flags": 1,
+       "traceId": "67f81665e8e2c4eb365ad0582b2c213a",
+       "spanId": "e70c7622e58f8250"
+      },
+      {
+       "timeUnixNano": "1795850167503000000",
+       "observedTimeUnixNano": "1795850167503000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "served GET /orders (2)"
+       },
+       "flags": 1,
+       "traceId": "dee8f5d78a952fcfa1673bd2cfcff075",
+       "spanId": "0a5965c7290ad1d8"
+      },
+      {
+       "timeUnixNano": "1795850168504000000",
+       "observedTimeUnixNano": "1795850168504000000",
+       "severityNumber": 9,
+       "severityText": "INFO",
+       "body": {
+        "stringValue": "served GET /orders (3)"
+       },
+       "flags": 1,
+       "traceId": "72d03224dd964d52162470a8a4980ac8",
+       "spanId": "ec1638c30075586e"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "apiSpans": {
+  "signal": "resourceSpans",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-api"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.30.1"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "aks-nodepool1-vm0"
+      }
+     },
+     {
+      "key": "host.arch",
+      "value": {
+       "stringValue": "amd64"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "os.version",
+      "value": {
+       "stringValue": "24.04.202610250"
+      }
+     },
+     {
+      "key": "service.instance.id",
+      "value": {
+       "stringValue": "33d03fd2-7297-498a-be55-b01a951d1838"
+      }
+     },
+     {
+      "key": "process.pid",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "process.executable.name",
+      "value": {
+       "stringValue": "node"
+      }
+     },
+     {
+      "key": "process.executable.path",
+      "value": {
+       "stringValue": "/usr/local/bin/node"
+      }
+     },
+     {
+      "key": "process.command_args",
+      "value": {
+       "arrayValue": {
+        "values": [
+         {
+          "stringValue": "/usr/local/bin/node"
+         },
+         {
+          "stringValue": "/app/app.js"
+         }
+        ]
+       }
+      }
+     },
+     {
+      "key": "process.runtime.version",
+      "value": {
+       "stringValue": "26.13.1"
+      }
+     },
+     {
+      "key": "process.runtime.name",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "process.runtime.description",
+      "value": {
+       "stringValue": "Node.js"
+      }
+     },
+     {
+      "key": "process.command",
+      "value": {
+       "stringValue": "/app/app.js"
+      }
+     },
+     {
+      "key": "process.owner",
+      "value": {
+       "stringValue": "root"
+      }
+     },
+     {
+      "key": "azure.vm.scaleset.name",
+      "value": {
+       "stringValue": ""
+      }
+     },
+     {
+      "key": "azure.vm.sku",
+      "value": {
+       "stringValue": "server"
+      }
+     },
+     {
+      "key": "cloud.platform",
+      "value": {
+       "stringValue": "azure_vm"
+      }
+     },
+     {
+      "key": "cloud.provider",
+      "value": {
+       "stringValue": "azure"
+      }
+     },
+     {
+      "key": "cloud.region",
+      "value": {
+       "stringValue": "eastus"
+      }
+     },
+     {
+      "key": "cloud.resource_id",
+      "value": {
+       "stringValue": "/subscriptions/7c2a5e10-3b4d-4f6a-9e8b-1d2c3b4a5f60/resourceGroups/shop-prod/providers/Microsoft.Compute/virtualMachines/aks-nodepool1-vm0"
+      }
+     },
+     {
+      "key": "host.id",
+      "value": {
+       "stringValue": "4e1b9c7d-2a3f-4b5c-8d6e-9f0a1b2c3d4e"
+      }
+     },
+     {
+      "key": "host.type",
+      "value": {
+       "stringValue": "Standard_D32as_v7"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "@opentelemetry/instrumentation-http",
+      "version": "0.57.2"
+     },
+     "spans": [
+      {
+       "traceId": "afd216a8a466d87d28e9dc74b2a1265b",
+       "spanId": "4abaab3a2cee6688",
+       "name": "GET",
+       "kind": 3,
+       "startTimeUnixNano": "1795849973641000000",
+       "endTimeUnixNano": "1795849973660371199",
+       "attributes": [
+        {
+         "key": "http.url",
+         "value": {
+          "stringValue": "http://169.254.169.254/computeMetadata/v1/instance"
+         }
+        },
+        {
+         "key": "http.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.target",
+         "value": {
+          "stringValue": "/computeMetadata/v1/instance"
+         }
+        },
+        {
+         "key": "net.peer.name",
+         "value": {
+          "stringValue": "169.254.169.254"
+         }
+        },
+        {
+         "key": "http.host",
+         "value": {
+          "stringValue": "169.254.169.254:80"
+         }
+        },
+        {
+         "key": "net.peer.ip",
+         "value": {
+          "stringValue": "169.254.169.254"
+         }
+        },
+        {
+         "key": "net.peer.port",
+         "value": {
+          "intValue": "80"
+         }
+        },
+        {
+         "key": "http.response_content_length_uncompressed",
+         "value": {
+          "intValue": "320"
+         }
+        },
+        {
+         "key": "http.status_code",
+         "value": {
+          "intValue": "404"
+         }
+        },
+        {
+         "key": "http.status_text",
+         "value": {
+          "stringValue": "NOT FOUND"
+         }
+        },
+        {
+         "key": "http.flavor",
+         "value": {
+          "stringValue": "1.1"
+         }
+        },
+        {
+         "key": "net.transport",
+         "value": {
+          "stringValue": "ip_tcp"
+         }
+        }
+       ],
+       "status": {
+        "code": 2
+       }
+      },
+      {
+       "traceId": "43e7d3e2a0fdf115df381af38e5c545f",
+       "spanId": "d953ab9f302a7c23",
+       "name": "GET",
+       "kind": 3,
+       "startTimeUnixNano": "1795849973644000000",
+       "endTimeUnixNano": "1795849973666068142",
+       "attributes": [
+        {
+         "key": "http.url",
+         "value": {
+          "stringValue": "http://metadata.google.internal./computeMetadata/v1/instance"
+         }
+        },
+        {
+         "key": "http.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.target",
+         "value": {
+          "stringValue": "/computeMetadata/v1/instance"
+         }
+        },
+        {
+         "key": "net.peer.name",
+         "value": {
+          "stringValue": "metadata.google.internal."
+         }
+        },
+        {
+         "key": "http.host",
+         "value": {
+          "stringValue": "metadata.google.internal.:80"
+         }
+        },
+        {
+         "key": "http.error_name",
+         "value": {
+          "stringValue": "Error"
+         }
+        },
+        {
+         "key": "http.error_message",
+         "value": {
+          "stringValue": "getaddrinfo ENOTFOUND metadata.google.internal."
+         }
+        }
+       ],
+       "events": [
+        {
+         "timeUnixNano": "1795849973666048723",
+         "name": "exception",
+         "attributes": [
+          {
+           "key": "exception.type",
+           "value": {
+            "stringValue": "ENOTFOUND"
+           }
+          },
+          {
+           "key": "exception.message",
+           "value": {
+            "stringValue": "getaddrinfo ENOTFOUND metadata.google.internal."
+           }
+          },
+          {
+           "key": "exception.stacktrace",
+           "value": {
+            "stringValue": "Error: getaddrinfo ENOTFOUND metadata.google.internal.\n    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)"
+           }
+          }
+         ]
+        }
+       ],
+       "status": {
+        "message": "getaddrinfo ENOTFOUND metadata.google.internal.",
+        "code": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "workerSpans": {
+  "signal": "resourceSpans",
+  "block": {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "shop-worker"
+      }
+     },
+     {
+      "key": "telemetry.sdk.language",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "telemetry.sdk.name",
+      "value": {
+       "stringValue": "opentelemetry"
+      }
+     },
+     {
+      "key": "telemetry.sdk.version",
+      "value": {
+       "stringValue": "1.30.1"
+      }
+     },
+     {
+      "key": "host.name",
+      "value": {
+       "stringValue": "shop-worker-6748887dc-2wr95"
+      }
+     },
+     {
+      "key": "host.arch",
+      "value": {
+       "stringValue": "amd64"
+      }
+     },
+     {
+      "key": "os.type",
+      "value": {
+       "stringValue": "linux"
+      }
+     },
+     {
+      "key": "os.version",
+      "value": {
+       "stringValue": "7.0.0-1017-azure"
+      }
+     },
+     {
+      "key": "process.pid",
+      "value": {
+       "intValue": "1"
+      }
+     },
+     {
+      "key": "process.executable.name",
+      "value": {
+       "stringValue": "node"
+      }
+     },
+     {
+      "key": "process.executable.path",
+      "value": {
+       "stringValue": "/usr/local/bin/node"
+      }
+     },
+     {
+      "key": "process.command_args",
+      "value": {
+       "arrayValue": {
+        "values": [
+         {
+          "stringValue": "/usr/local/bin/node"
+         },
+         {
+          "stringValue": "/app/app.js"
+         }
+        ]
+       }
+      }
+     },
+     {
+      "key": "process.runtime.version",
+      "value": {
+       "stringValue": "26.13.1"
+      }
+     },
+     {
+      "key": "process.runtime.name",
+      "value": {
+       "stringValue": "nodejs"
+      }
+     },
+     {
+      "key": "process.runtime.description",
+      "value": {
+       "stringValue": "Node.js"
+      }
+     },
+     {
+      "key": "process.command",
+      "value": {
+       "stringValue": "/app/app.js"
+      }
+     },
+     {
+      "key": "process.owner",
+      "value": {
+       "stringValue": "root"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "@opentelemetry/instrumentation-http",
+      "version": "0.57.2"
+     },
+     "spans": [
+      {
+       "traceId": "67f81665e8e2c4eb365ad0582b2c213a",
+       "spanId": "e70c7622e58f8250",
+       "parentSpanId": "5c084a66f9278efc",
+       "name": "GET",
+       "kind": 2,
+       "startTimeUnixNano": "1795850166515000000",
+       "endTimeUnixNano": "1795850166519212598",
+       "attributes": [
+        {
+         "key": "http.url",
+         "value": {
+          "stringValue": "http://127.0.0.1:8080/orders"
+         }
+        },
+        {
+         "key": "http.host",
+         "value": {
+          "stringValue": "127.0.0.1:8080"
+         }
+        },
+        {
+         "key": "net.host.name",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "http.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.scheme",
+         "value": {
+          "stringValue": "http"
+         }
+        },
+        {
+         "key": "http.target",
+         "value": {
+          "stringValue": "/orders"
+         }
+        },
+        {
+         "key": "http.flavor",
+         "value": {
+          "stringValue": "1.1"
+         }
+        },
+        {
+         "key": "net.transport",
+         "value": {
+          "stringValue": "ip_tcp"
+         }
+        },
+        {
+         "key": "net.host.ip",
+         "value": {
+          "stringValue": "::ffff:127.0.0.1"
+         }
+        },
+        {
+         "key": "net.host.port",
+         "value": {
+          "intValue": "8080"
+         }
+        },
+        {
+         "key": "net.peer.ip",
+         "value": {
+          "stringValue": "::ffff:127.0.0.1"
+         }
+        },
+        {
+         "key": "net.peer.port",
+         "value": {
+          "intValue": "51600"
+         }
+        },
+        {
+         "key": "http.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        },
+        {
+         "key": "http.status_text",
+         "value": {
+          "stringValue": "OK"
+         }
+        }
+       ],
+       "status": {}
+      },
+      {
+       "traceId": "67f81665e8e2c4eb365ad0582b2c213a",
+       "spanId": "5c084a66f9278efc",
+       "name": "GET",
+       "kind": 3,
+       "startTimeUnixNano": "1795850166504000000",
+       "endTimeUnixNano": "1795850166521996955",
+       "attributes": [
+        {
+         "key": "http.url",
+         "value": {
+          "stringValue": "http://127.0.0.1:8080/orders"
+         }
+        },
+        {
+         "key": "http.method",
+         "value": {
+          "stringValue": "GET"
+         }
+        },
+        {
+         "key": "http.target",
+         "value": {
+          "stringValue": "/orders"
+         }
+        },
+        {
+         "key": "net.peer.name",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "http.host",
+         "value": {
+          "stringValue": "127.0.0.1:8080"
+         }
+        },
+        {
+         "key": "net.peer.ip",
+         "value": {
+          "stringValue": "127.0.0.1"
+         }
+        },
+        {
+         "key": "net.peer.port",
+         "value": {
+          "intValue": "8080"
+         }
+        },
+        {
+         "key": "http.status_code",
+         "value": {
+          "intValue": "200"
+         }
+        },
+        {
+         "key": "http.status_text",
+         "value": {
+          "stringValue": "OK"
+         }
+        },
+        {
+         "key": "http.flavor",
+         "value": {
+          "stringValue": "1.1"
+         }
+        },
+        {
+         "key": "net.transport",
+         "value": {
+          "stringValue": "ip_tcp"
+         }
+        }
+       ],
+       "status": {}
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

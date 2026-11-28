@@ -41,6 +41,7 @@ import PermissionGate, {
   PermissionGateOptions,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import RecordLocks from "Common/UI/Utils/RecordLocks";
 import { useRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { getRecordLabelIds } from "Common/UI/Utils/RecordLabelLock";
 import WorkflowStatusBar, {
@@ -618,7 +619,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         setCanSeeWebhookSecretKey(
           Boolean(webhookSecretKeySelect.webhookSecretKey) &&
             !lock.change &&
-            PermissionGate.mayReadColumnOnRecord(
+            RecordLocks.mayReadColumnOnRecord(
               new WorkflowModel(),
               "webhookSecretKey",
               workflowLabelIds,
@@ -628,7 +629,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         setCanSeeIncomingEmailSecretKey(
           Boolean(incomingEmailSecretKeySelect.incomingEmailSecretKey) &&
             !lock.change &&
-            PermissionGate.mayReadColumnOnRecord(
+            RecordLocks.mayReadColumnOnRecord(
               new WorkflowModel(),
               "incomingEmailSecretKey",
               workflowLabelIds,

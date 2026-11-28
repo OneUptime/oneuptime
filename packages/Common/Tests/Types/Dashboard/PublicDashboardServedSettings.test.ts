@@ -665,7 +665,11 @@ describe("every field of a variable is decided, for every type of it", () => {
     [DashboardVariableType.CustomList, ["customListValues"]],
     [DashboardVariableType.TextInput, ["customListValues"]],
     [DashboardVariableType.Query, ["customListValues"]],
-    [DashboardVariableType.TelemetryAttribute, ["attributeKey"]],
+    // Its kind of resource too, which its "All" means (#11258).
+    [
+      DashboardVariableType.TelemetryAttribute,
+      ["attributeKey", "resourceScope"],
+    ],
     [DashboardVariableType.ProjectLabel, ["labelOptions"]],
     ["Some type from the future", ["customListValues"]],
     [" Custom List ", ["customListValues"]],

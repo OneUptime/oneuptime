@@ -226,7 +226,9 @@ describe.each(AGENTS)("the $name agent's docs", (agent: Agent) => {
     );
     expect(script).toContain('backup="$dest.bak.$(date +%Y%m%d%H%M%S)"');
     expect(script).toContain("if ! docker compose pull; then");
-    expect(script).toMatch(/^docker compose up -d --force-recreate$/m);
+    expect(script).toMatch(
+      /^if ! docker compose up -d --force-recreate; then$/m,
+    );
     expect(script).toContain('chmod 600 "$ENV_FILE"');
   });
 });

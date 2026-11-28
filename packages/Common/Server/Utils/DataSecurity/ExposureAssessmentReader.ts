@@ -476,6 +476,8 @@ export default class ExposureAssessmentReader {
     securityCaseId: ObjectID;
     dataStoreId: ObjectID;
     placesNamed?: ReadonlyArray<BreachPlace> | undefined;
+    // Whether a person said the organization holds the data for another (#11427).
+    holdsForAnother?: boolean | undefined;
     // What OneUptime last read of the store's access logs, as the case keeps it (#10951).
     logRead?: ExposureLogRead | null | undefined;
     now?: Date | undefined;
@@ -618,6 +620,7 @@ export default class ExposureAssessmentReader {
         whose,
         secretsToRotate: rotate.found,
         hasMoreSecrets: rotate.hasMore,
+        holdsForAnother: data.holdsForAnother,
         now,
       }),
     };

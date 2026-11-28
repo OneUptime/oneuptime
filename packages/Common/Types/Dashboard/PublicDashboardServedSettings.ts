@@ -635,9 +635,10 @@ export const PUBLIC_DASHBOARD_VARIABLE_TYPE_FIELDS: Readonly<
   [DashboardVariableType.Query]: ["customListValues"],
   /*
    * The attribute its choices are the values of (/attribute-values), and
-   * its pick filters every widget on.
+   * its pick filters every widget on; and the kind of resource it picks
+   * among, which its "All" means and its widgets read (issue #11258).
    */
-  [DashboardVariableType.TelemetryAttribute]: ["attributeKey"],
+  [DashboardVariableType.TelemetryAttribute]: ["attributeKey", "resourceScope"],
   // The labels it offers, by their names.
   [DashboardVariableType.ProjectLabel]: ["labelOptions"],
 };

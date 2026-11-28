@@ -274,4 +274,5 @@ OneUptime 自带的 ClamAV 在启动时从 `database.clamav.net` 下载特征库
 - [表单概览](/docs/forms/index): 表单的用途、权限和 API。
 - [构建表单](/docs/forms/building): 问题、隐藏的问题和模板。
 - [提交会创建什么](/docs/forms/on-submit): 每次提交所创建的事件或活动。
+- [跟进提交](/docs/forms/follow-ups): 提交者可关注自己的请求、给您的团队写信并添加其他人。
 :::

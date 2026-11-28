@@ -35,7 +35,10 @@ import {
   isTelemetryIngestionBudgetSignal,
 } from "Common/Types/Telemetry/TelemetryIngestionBudget";
 import TelemetryIngestShedding from "Common/Server/Utils/Telemetry/TelemetryIngestShedding";
-import { getTelemetryIngestRefusalReasonForBudget } from "Common/Types/Telemetry/TelemetryIngestRefusal";
+import {
+  QUEUE_REFUSAL_SURFACE_FOR_SIGNAL,
+  getTelemetryIngestRefusalReasonForBudget,
+} from "Common/Types/Telemetry/TelemetryIngestRefusal";
 import TelemetryIngestRefusalRecorder, {
   recordTelemetryIngestBillingRefusal,
 } from "Common/Server/Utils/Telemetry/TelemetryIngestRefusalRecorder";
@@ -522,7 +525,9 @@ export async function handleExport(
       /*
        * A project far ahead of the workers, or a queue nearly full for
        * everyone (TelemetryIngestShedding): refused with a RetryInfo before
-       * its budget is asked, decided in memory.
+       * its budget is asked, decided in memory. Counted against the key
+       * under the signal's own surface (#11440): this one port carries
+       * every signal, and the project's pages tell the refusals by signal.
        */
       const shed: TelemetryIngestionBudgetRefusal | null =
         TelemetryIngestShedding.getRefusal({
@@ -531,6 +536,13 @@ export async function handleExport(
         });
 
       if (shed) {
+        TelemetryIngestRefusalRecorder.record({
+          projectId: projectId,
+          ingestionKeyId: authentication.policy.ingestionKeyId,
+          reason: getTelemetryIngestRefusalReasonForBudget(shed),
+          surface: QUEUE_REFUSAL_SURFACE_FOR_SIGNAL[productType],
+        });
+
         callback(buildIngestionBudgetServiceError(shed));
         return;
       }

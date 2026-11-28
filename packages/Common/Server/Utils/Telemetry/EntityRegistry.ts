@@ -255,6 +255,21 @@ export async function reconcileEntityRegistryThrottled(data: {
          */
         return (
           !entity.membershipOnly &&
+          !entity.linkOnly &&
+          REGISTRY_PROMOTED_TYPES.has(entity.entityType)
+        );
+      },
+    );
+    /*
+     * Entities the resource only names (`ExtractedEntity.linkOnly`): an
+     * app's host, a Docker agent's machine. Never created or refreshed from
+     * here; linked to when the registry already holds them.
+     */
+    const linkOnly: Array<ExtractedEntity> = data.entities.filter(
+      (entity: ExtractedEntity) => {
+        return (
+          !entity.membershipOnly &&
+          Boolean(entity.linkOnly) &&
           REGISTRY_PROMOTED_TYPES.has(entity.entityType)
         );
       },
@@ -270,13 +285,20 @@ export async function reconcileEntityRegistryThrottled(data: {
       return entity.entityType === EntityType.Host;
     });
 
-    if (promoted.length === 0 && retiredHosts.length === 0) {
+    if (
+      promoted.length === 0 &&
+      linkOnly.length === 0 &&
+      retiredHosts.length === 0
+    ) {
       return;
     }
 
     const fenceMembers: Array<string> = [
       ...promoted.map((entity: ExtractedEntity) => {
         return entity.entityKey;
+      }),
+      ...linkOnly.map((entity: ExtractedEntity) => {
+        return `link:${entity.entityType}:${entity.entityKey}`;
       }),
       ...retiredHosts.map((entity: RetiredEntityIdentity) => {
         return `retire:${entity.entityType}:${entity.entityKey}`;
@@ -301,13 +323,24 @@ export async function reconcileEntityRegistryThrottled(data: {
     }
 
     /*
+     * After the retirement above, so a legacy row this observation just
+     * proved obsolete is never linked to.
+     */
+    const linked: Array<ExtractedEntity> = await findRegisteredLinkOnlyEntities(
+      {
+        projectId: data.projectId,
+        entities: linkOnly,
+      },
+    );
+
+    /*
      * Topology (phase 5): the co-occurrence edges derive from the same
      * entity set, so they reconcile under the same fence — no extra
      * Redis check. A stable resource bumps both the registry and the
      * graph once per window; a changed set re-derives both.
      */
     const edges: Array<EntityRelationshipEdge> = deriveRelationships(
-      promoted.map((entity: ExtractedEntity) => {
+      [...promoted, ...linked].map((entity: ExtractedEntity) => {
         return {
           entityType: entity.entityType,
           entityKey: entity.entityKey,
@@ -323,6 +356,57 @@ export async function reconcileEntityRegistryThrottled(data: {
   } catch (err) {
     logger.error("Entity registry reconciliation failed:");
     logger.error(err as Error);
+  }
+}
+
+/*
+ * The link-only entities (`ExtractedEntity.linkOnly`) the registry already
+ * holds - registered by an observation that proves them, a host's own
+ * collector for a Host - so an app on that machine is drawn running on it.
+ * One read per fenced reconcile. Best effort: a failed read links nothing
+ * this window, which costs a topology edge, never a row.
+ */
+async function findRegisteredLinkOnlyEntities(data: {
+  projectId: ObjectID;
+  entities: Array<ExtractedEntity>;
+}): Promise<Array<ExtractedEntity>> {
+  if (data.entities.length === 0) {
+    return [];
+  }
+
+  try {
+    const keys: Array<string> = data.entities.map(
+      (entity: ExtractedEntity): string => {
+        return entity.entityKey;
+      },
+    );
+
+    const rows: Array<{ entityType?: EntityType; entityKey?: string }> =
+      await InventoryItemService.findBy({
+        query: {
+          projectId: data.projectId,
+          entityKey: QueryHelper.any(keys),
+        },
+        select: { entityType: true, entityKey: true },
+        limit: keys.length,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const registered: Set<string> = new Set<string>(
+      rows.map((row: { entityType?: EntityType; entityKey?: string }) => {
+        return `${row.entityType || ""}:${row.entityKey || ""}`;
+      }),
+    );
+
+    return data.entities.filter((entity: ExtractedEntity): boolean => {
+      return registered.has(`${entity.entityType}:${entity.entityKey}`);
+    });
+  } catch (err) {
+    logger.error(
+      `Entity registry: failed to read the registered items link-only entities name; linking none this window: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return [];
   }
 }
 
@@ -380,10 +464,16 @@ export async function retireEntityRegistryIdentitiesBestEffort(data: {
     }
 
     try {
+      /*
+       * An archived Host is one somebody filed as not a host (or the
+       * repair of issue #11257 did, for a Docker host or a pod), so it no
+       * longer vouches for the registry row.
+       */
       const typedHost: Host | null = await HostService.findOneBy({
         query: {
           projectId: data.projectId,
           hostIdentifier: QueryHelper.findWithSameText(hostName),
+          isArchived: false,
         },
         select: { _id: true },
         props: { isRoot: true },
@@ -393,7 +483,8 @@ export async function retireEntityRegistryIdentitiesBestEffort(data: {
         /*
          * A real Host with this canonical identifier makes the discovered
          * registry Host legitimate, even when this particular observation is
-         * Kubernetes telemetry. Preserve it and cache that safe resolution.
+         * Kubernetes, a container's or an application's telemetry. Preserve
+         * it and cache that safe resolution.
          */
         await markLegacyHostRetirementCompletedBestEffort({
           retirementCacheKey,

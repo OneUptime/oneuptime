@@ -623,12 +623,12 @@ function runGithubScript(
  * on a commit merged two minutes before it), and the tag and the release
  * page's source archives were not the code the release was built from.
  *
- * Every step that can create the release names the run's commit:
+ * The one step that creates the release names the run's commit:
  * ncipollo/release-action as `commit` (it sends it when it updates a draft,
- * too), softprops/action-gh-release as `target_commitish` - before
- * publication it always creates a draft of its own, and keeps it if it
- * cannot find draft-github-release's. The publish names the commit once
- * more, so the tag is right whichever draft it publishes.
+ * too). Nothing else can create one: the files are attached to that draft by
+ * its id (Scripts/Release/AttachReleaseAssets.js, #11466), as
+ * softprops/action-gh-release, by the tag, used to, and the publish names the
+ * draft by its id, and the commit once more.
  */
 describe(`${RELEASE}: the release is tagged on the commit the run built`, () => {
   const workflow = readYaml(RELEASE);
@@ -646,7 +646,17 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
   }
 
   const draftSteps = stepsUsing("ncipollo/release-action");
-  const uploadSteps = stepsUsing("softprops/action-gh-release");
+  const uploadSteps = Object.entries(workflow.jobs).flatMap(
+    ([jobName, job]) => {
+      return (job.steps || [])
+        .filter((step) => {
+          return /AttachReleaseAssets\.js/.test(step.run || "");
+        })
+        .map((step) => {
+          return [`${jobName}: ${step.name}`, step];
+        });
+    },
+  );
   const publish = (workflow.jobs["finalize-github-release"].steps || []).find(
     (step) => {
       return /^actions\/github-script@/.test(step.uses || "");
@@ -656,8 +666,9 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
   test("finds the steps that create, fill and publish the release (the checks below are not vacuous)", () => {
     // The draft step is written out three times, as retries.
     expect(draftSteps.length).toBeGreaterThanOrEqual(3);
-    // SBOMs, the infrastructure agent, and the Android and iOS apps.
-    expect(uploadSteps.length).toBeGreaterThanOrEqual(4);
+    // SBOMs, the reports, the infrastructure agent, the Android agent, and
+    // the Android and iOS apps.
+    expect(uploadSteps.length).toBeGreaterThanOrEqual(6);
     expect(publish).toBeDefined();
   });
 
@@ -668,29 +679,43 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
     },
   );
 
+  test("nothing writes the release by its tag: softprops/action-gh-release is gone", () => {
+    expect(stepsUsing("softprops/action-gh-release")).toEqual([]);
+  });
+
   test.each(uploadSteps)(
-    "%s passes target_commitish: ${{ github.sha }}, for a draft it creates",
+    "%s attaches to draft-github-release's release, by its id, and creates none",
     (_label, step) => {
-      expect(step.with.target_commitish).toBe("${{ github.sha }}");
+      expect(step.run).toContain(
+        'node Scripts/Release/AttachReleaseAssets.js --repository "$GITHUB_REPOSITORY" --release-id "$RELEASE_ID" --tag "$VERSION"',
+      );
+      expect(step.env).toEqual({
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}",
+        RELEASE_ID: "${{ needs.draft-github-release.outputs.release_id }}",
+        VERSION: "${{ needs.read-version.outputs.major_minor }}",
+      });
     },
   );
 
   describe("finalize-github-release", () => {
     const sha = "5a55eface9b1d6f0c2e8a4b7d3c9e1f2a6b8c0d4";
 
-    // Runs the publish script for 9.9.9, whose draft is release 42.
-    async function runPublish(updateRelease, waits = jest.fn()) {
+    /*
+     * Runs the publish script for 9.9.9, whose draft is release 42
+     * (draft-github-release's release_id), as GitHub answers for `release`.
+     */
+    async function runPublish(
+      updateRelease,
+      waits = jest.fn(),
+      {
+        release = { id: 42, tag_name: "9.9.9", draft: true },
+        releaseId = "42",
+      } = {},
+    ) {
+      const getRelease = jest.fn().mockResolvedValue({ data: release });
       const github = {
-        paginate: jest.fn().mockResolvedValue([
-          { id: 41, tag_name: "9.9.8", draft: false },
-          {
-            id: 42,
-            tag_name: "9.9.9",
-            draft: true,
-            target_commitish: "main",
-          },
-        ]),
-        rest: { repos: { listReleases: jest.fn(), updateRelease } },
+        paginate: jest.fn(),
+        rest: { repos: { getRelease, listReleases: jest.fn(), updateRelease } },
       };
       const log = jest.spyOn(console, "log").mockImplementation(() => {
         return undefined;
@@ -700,7 +725,10 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
         await runGithubScript(publish, {
           github,
           context: { repo: { owner: "OneUptime", repo: "oneuptime" }, sha },
-          expressions: { "needs.read-version.outputs.major_minor": "9.9.9" },
+          expressions: {
+            "needs.read-version.outputs.major_minor": "9.9.9",
+            "needs.draft-github-release.outputs.release_id": releaseId,
+          },
           // The back-off between attempts returns at once, recorded in
           // `waits`, so a retry shows up as calls rather than minutes.
           setTimeout: (resolve, ms) => {
@@ -712,11 +740,57 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
         log.mockRestore();
       }
 
-      expect(github.paginate).toHaveBeenCalledWith(
-        github.rest.repos.listReleases,
-        expect.objectContaining({ owner: "OneUptime", repo: "oneuptime" }),
-      );
+      // By its id: never listed, never found by its tag.
+      expect(github.paginate).not.toHaveBeenCalled();
+      return { getRelease, log };
     }
+
+    test("reads the release by the id draft-github-release gave, never by its tag", async () => {
+      const updateRelease = jest.fn().mockResolvedValue({ data: {} });
+      const { getRelease } = await runPublish(updateRelease);
+
+      expect(getRelease).toHaveBeenCalledWith({
+        owner: "OneUptime",
+        repo: "oneuptime",
+        release_id: 42,
+      });
+    });
+
+    test("leaves a release that is published already as it is", async () => {
+      const updateRelease = jest.fn().mockResolvedValue({ data: {} });
+      await runPublish(updateRelease, jest.fn(), {
+        release: { id: 42, tag_name: "9.9.9", draft: false },
+      });
+
+      expect(updateRelease).not.toHaveBeenCalled();
+    });
+
+    test("publishes no release that is another version's, and does not try again", async () => {
+      const updateRelease = jest.fn().mockResolvedValue({ data: {} });
+      const waits = jest.fn();
+
+      await expect(
+        runPublish(updateRelease, waits, {
+          release: { id: 42, tag_name: "9.9.8", draft: true },
+        }),
+      ).rejects.toThrow(
+        "Release 42 is 9.9.8's, not 9.9.9's: it is not published.",
+      );
+      expect(updateRelease).not.toHaveBeenCalled();
+      expect(waits).not.toHaveBeenCalled();
+    });
+
+    test.each(["", "none", "0"])(
+      "publishes nothing when draft-github-release named no release (%j)",
+      async (releaseId) => {
+        const updateRelease = jest.fn().mockResolvedValue({ data: {} });
+
+        await expect(
+          runPublish(updateRelease, jest.fn(), { releaseId }),
+        ).rejects.toThrow("draft-github-release named no release for 9.9.9");
+        expect(updateRelease).not.toHaveBeenCalled();
+      },
+    );
 
     test("publishes the draft with target_commitish set to the run's commit", async () => {
       const updateRelease = jest.fn().mockResolvedValue({ data: {} });
@@ -816,7 +890,9 @@ describe(`${RELEASE}: nothing writes the release once it is published`, () => {
     return (
       /^(softprops\/action-gh-release|ncipollo\/release-action)@/.test(
         step.uses || "",
-      ) || /\bgh release (create|upload|edit)\b/.test(commandOf(step))
+      ) ||
+      /\bgh release (create|upload|edit)\b/.test(commandOf(step)) ||
+      /\bAttachReleaseAssets\.js\b/.test(commandOf(step))
     );
   }
 

@@ -5,6 +5,8 @@ import Probe, {
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { InstallationHealthProbeBehind } from "../../../Types/InstallationHealth/InstallationHealth";
 import ProbeBehindUtil, {
+  ProbeBehindBy,
+  ProbeBehindByUnit,
   ProbeBehindWork,
 } from "../../../Types/Probe/ProbeBehind";
 import { ServerAlertChannel } from "../../../Types/ServerSending/ServerAlerts";
@@ -22,6 +24,16 @@ const WORK_WORDS: Record<ProbeBehindWork, string> = {
   [ProbeBehindWork.DevicePolls]: "network device polls",
 };
 
+// How far behind, in the alarm's words: "11 hours".
+const BEHIND_BY_WORDS: Record<
+  ProbeBehindByUnit,
+  { one: string; other: string }
+> = {
+  minute: { one: "minute", other: "minutes" },
+  hour: { one: "hour", other: "hours" },
+  day: { one: "day", other: "days" },
+};
+
 // The channels the master admins' outage notifications go by, in words.
 const CHANNEL_WORDS: Record<ServerAlertChannel, string> = {
   [ServerAlertChannel.Push]: "push",
@@ -36,10 +48,11 @@ const CHANNEL_WORDS: Record<ServerAlertChannel, string> = {
  *
  * Read by what Probe:UpdateBehind keeps on each connected global probe
  * (Types/Probe/ProbeBehind): one entry a probe for each kind of work it is
- * behind on, with since when. OneUptime Health lists them as findings
- * (App/API/AdminHealth), and the master admins are told when one falls
- * behind and when they all keep up again (Workers' ServerAlerts, #9500):
- * one reader, so the two never disagree about which probe is behind.
+ * behind on, with since when and how far. OneUptime Health lists them as
+ * findings (App/API/AdminHealth), and the master admins are told when one
+ * falls behind and when they all keep up again (Workers' ServerAlerts,
+ * #9500): one reader, so the two never disagree about which probe is
+ * behind.
  *
  * A probe that is not connected is never behind - Disconnected says more,
  * and the job keeps nothing for it. Global probes are few, so every
@@ -64,8 +77,10 @@ export default class GlobalProbesBehind {
         name: true,
         checksLateSince: true,
         checksLastLateAt: true,
+        checksLastLateDueAt: true,
         devicePollsLateSince: true,
         devicePollsLastLateAt: true,
+        devicePollsLastLateDueAt: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -96,11 +111,17 @@ export default class GlobalProbesBehind {
           continue;
         }
 
+        const behindByMs: number | null =
+          work === ProbeBehindWork.DevicePolls
+            ? ProbeBehindUtil.getDevicePollsBehindByMs(probe)
+            : ProbeBehindUtil.getBehindByMs(probe);
+
         behind.push({
           id: probe.id.toString(),
           name: probe.name || "",
           since: since.toISOString(),
           work: work,
+          behindByMs: behindByMs ?? undefined,
         });
       }
     }
@@ -129,6 +150,28 @@ export default class GlobalProbesBehind {
   }
 
   /*
+   * How far behind an entry is, after its since when: ", behind by 11
+   * hours", in the unit the dashboards say it in (getBehindByAmount), or
+   * nothing while it is not known.
+   */
+  public static getBehindByText(entry: InstallationHealthProbeBehind): string {
+    if (
+      typeof entry.behindByMs !== "number" ||
+      !Number.isFinite(entry.behindByMs) ||
+      entry.behindByMs <= 0
+    ) {
+      return "";
+    }
+
+    const amount: ProbeBehindBy = ProbeBehindUtil.getBehindByAmount(
+      entry.behindByMs,
+    );
+    const words: { one: string; other: string } = BEHIND_BY_WORDS[amount.unit];
+
+    return `, behind by ${amount.count} ${amount.count === 1 ? words.one : words.other}`;
+  }
+
+  /*
    * The alarm's words, without the prefix ProbeAlarmLog puts before them, or
    * null while no global probe has been behind long enough. `channels`: the
    * ones the master admins' outage notifications about it can go by now
@@ -152,7 +195,7 @@ export default class GlobalProbesBehind {
         const work: string =
           WORK_WORDS[entry.work || ProbeBehindWork.MonitorChecks];
 
-        return `${name} on ${work} since ${entry.since}`;
+        return `${name} on ${work} since ${entry.since}${GlobalProbesBehind.getBehindByText(entry)}`;
       })
       .join("; ");
 

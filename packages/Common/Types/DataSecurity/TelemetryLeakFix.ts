@@ -1,5 +1,6 @@
 import { sha256Hex } from "../AutoRemediation/RemediationPlanFingerprint";
 import { DataStoreKind } from "./DataStoreKind";
+import { RUM_SESSION_TAGS_PREFIX } from "./RumSessionPlaces";
 import { toStableJsonText } from "./DataSecurityAi";
 
 /*
@@ -186,12 +187,14 @@ export function getTelemetryLeakSignalOf(
 
 /*
  * The key a session holds the data under (#10933): a trait of its user
- * details, as the session recorder's identify() call names it, or an
- * attribute the host page attached to it. None for any other place - its
- * user's label has no key.
+ * details, as the session recorder's identify() call names it, a tag the
+ * page gave it with setTags() or addTag() (#11458), or an attribute the
+ * recorder attached to it. None for any other place - its user's label has
+ * no key.
  */
 const RUM_SESSION_KEY_PREFIXES: ReadonlyArray<string> = [
   "sessions.identifiedUserTraits.",
+  RUM_SESSION_TAGS_PREFIX,
   "sessions.attributes.",
 ];
 

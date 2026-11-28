@@ -234,6 +234,46 @@ const composeVariables: (serviceName: string) => Map<string, string | null> = (
   return variables;
 };
 
+/*
+ * The containers' names a compose file reads from .env, with their defaults:
+ * each service runs as `container_name: ${NAME:-default}`, so a second
+ * cluster's agent on the same machine runs under names of its own (#11434).
+ */
+const containerNameVariables: () => Map<string, string | null> = (): Map<
+  string,
+  string | null
+> => {
+  const compose: Record<string, any> = yaml.load(
+    readAgentFile("docker-compose.yml"),
+  ) as Record<string, any>;
+  const variables: Map<string, string | null> = new Map();
+  for (const service of Object.values(
+    compose["services"] as Record<string, Record<string, string>>,
+  )) {
+    const match: RegExpMatchArray | null = (
+      service["container_name"] || ""
+    ).match(/^\$\{([A-Z0-9_]+):-([^}]+)\}$/);
+    if (!match) {
+      throw new Error(
+        `A container whose name is not read from .env: ${service["container_name"]}`,
+      );
+    }
+    variables.set(match[1]!, match[2]!);
+  }
+  return variables;
+};
+
+// What the environment table documents: the collector's settings, and every container's name.
+const documentedVariables: () => Map<string, string | null> = (): Map<
+  string,
+  string | null
+> => {
+  return new Map([
+    ...composeVariables(CEPH_AGENT_CONTAINER),
+    ...containerNameVariables(),
+  ]);
+};
+
 // The rows of the guide's environment variable table.
 const envTableRows: (
   guide: SetupGuideContent,
@@ -372,7 +412,7 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
     }
   });
 
-  test("has Advanced topics for settings, config, logs, labels, data, AI and upgrades", () => {
+  test("has Advanced topics for settings, config, logs, labels, data, AI, several clusters and upgrades", () => {
     expect(topicTitles(guide.advanced)).toEqual([
       "Environment variables",
       "How the agent scrapes, and its collector config",
@@ -380,6 +420,7 @@ describe.each(METHOD_KEYS)("the %s guide", (method: CephInstallMethod) => {
       "Tag the cluster with project labels",
       "What the agent collects",
       "OneUptime AI agent",
+      "Monitoring several clusters",
       "Upgrade or uninstall the agent",
     ]);
   });
@@ -1003,9 +1044,12 @@ describe("drift guards against agents/CephAgent", () => {
     });
   });
 
-  test("the environment table documents exactly what the collector reads", () => {
-    const collector: Map<string, string | null> =
-      composeVariables(CEPH_AGENT_CONTAINER);
+  test("the environment table documents exactly what the collector reads, and every container's name", () => {
+    const collector: Map<string, string | null> = documentedVariables();
+    expect(Array.from(containerNameVariables().keys())).toEqual([
+      "CEPH_AGENT_CONTAINER_NAME",
+      "CEPH_AI_AGENT_CONTAINER_NAME",
+    ]);
     for (const method of METHOD_KEYS) {
       const rows: Map<string, { required: string; description: string }> =
         envTableRows(guideFor(method));
@@ -1016,8 +1060,7 @@ describe("drift guards against agents/CephAgent", () => {
   });
 
   test("the defaults the table gives are the compose file's", () => {
-    const collector: Map<string, string | null> =
-      composeVariables(CEPH_AGENT_CONTAINER);
+    const collector: Map<string, string | null> = documentedVariables();
     const rows: Map<string, { required: string; description: string }> =
       envTableRows(guideFor("docker-compose"));
     let checked: number = 0;
@@ -1033,7 +1076,8 @@ describe("drift guards against agents/CephAgent", () => {
         checked++;
       }
     }
-    expect(checked).toBeGreaterThan(0);
+    // The cluster name's, and each container name's.
+    expect(checked).toBe(3);
   });
 
   test("the .env block sets only variables the collector reads", () => {
@@ -1054,7 +1098,8 @@ describe("drift guards against agents/CephAgent", () => {
     const script: string = readAgentFile("install.sh");
     const rows: Map<string, { required: string; description: string }> =
       envTableRows(guideFor("install-script"));
-    expect(rows.size).toBe(4);
+    // The four the collector reads, and the two containers' names.
+    expect(rows.size).toBe(6);
     for (const name of rows.keys()) {
       expect(script).toContain(`\n${name}=$(compose_env_quote "$${name}")\n`);
     }
@@ -1114,14 +1159,10 @@ describe("drift guards against agents/CephAgent", () => {
   });
 
   test("the containers the guide names are the compose file's", () => {
-    const compose: Record<string, any> = yaml.load(
-      readAgentFile("docker-compose.yml"),
-    ) as Record<string, any>;
-    const containers: Array<string> = Object.values(
-      compose["services"] as Record<string, Record<string, string>>,
-    ).map((service: Record<string, string>): string => {
-      return service["container_name"]!;
-    });
+    // A first agent's: the default of each name .env may set.
+    const containers: Array<string | null> = Array.from(
+      containerNameVariables().values(),
+    );
     expect(containers).toContain(CEPH_AGENT_CONTAINER);
     expect(containers).toContain(CEPH_AI_AGENT_CONTAINER);
   });
@@ -1147,7 +1188,7 @@ describe("drift guards against agents/CephAgent", () => {
 
   test("the install script recreates the containers, so a re-run starts the new config", () => {
     expect(readAgentFile("install.sh")).toMatch(
-      /^docker compose up -d --force-recreate$/m,
+      /^if ! docker compose up -d --force-recreate; then$/m,
     );
   });
 

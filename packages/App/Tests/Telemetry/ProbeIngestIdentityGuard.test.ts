@@ -580,6 +580,8 @@ describe("probe ingest: the request is the authenticated probe's", () => {
   });
 
   test("a route that names its probe reads it from the authenticated request", () => {
+    let authenticatedRoutes: number = 0;
+
     for (const file of probeIngestRouteFiles()) {
       const source: string = fs.readFileSync(file, "utf8");
 
@@ -588,6 +590,8 @@ describe("probe ingest: the request is the authenticated probe's", () => {
       ) {
         continue;
       }
+
+      authenticatedRoutes++;
 
       const readsProbe: boolean =
         source.includes("ProbeRequest.getProbeId(req)") ||
@@ -598,6 +602,13 @@ describe("probe ingest: the request is the authenticated probe's", () => {
         readsProbe: true,
       });
     }
+
+    /*
+     * 16 of the 18 route files when this was written. The middleware
+     * renamed, or imported under another name, would skip every one of
+     * them and leave this checking nothing (#11403).
+     */
+    expect(authenticatedRoutes).toBeGreaterThan(10);
   });
 });
 

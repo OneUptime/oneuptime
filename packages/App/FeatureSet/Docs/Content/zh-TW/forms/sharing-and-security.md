@@ -274,4 +274,5 @@ OneUptime 隨附的 ClamAV 在啟動時從 `database.clamav.net` 下載病毒碼
 - [表單概覽](/docs/forms/index): 表單的用途、權限和 API。
 - [建構表單](/docs/forms/building): 問題、隱藏的問題和範本。
 - [提交會建立什麼](/docs/forms/on-submit): 每次提交所建立的事件或活動。
+- [追蹤提交](/docs/forms/follow-ups): 提交者可追蹤自己的請求、寫信給您的團隊並新增其他人。
 :::

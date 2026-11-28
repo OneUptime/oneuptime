@@ -79,6 +79,16 @@ Jede OneUptime-Instanz stellt ihre eigenen Installer bereit, sodass eine selbst 
 Der letzte Schritt des Dialogs zeigt an, wann sich der Host verbindet, mit einem Link zu ihm. In der Liste erscheint er als **Wird gestartet**, bis seine ersten Metriken eintreffen, meist innerhalb einer Minute, danach mit seiner Integrität, **Fehlerfrei**, wenn nichts an ihm geprüft werden muss, und dem Collector im Zustand **Wird ausgeführt**. Die Seite **Topologie** des Hosts zeichnet als eine Karte, was auf ihm läuft, was ihn aufruft und was er aufruft: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
 :::
 
+## Was als Host zählt
+
+Die Liste **Hosts** zeigt die Rechner, die ihre eigene Telemetrie über einen Collector auf dem Rechner senden. Auch andere Telemetrie nennt einen Rechner in `host.name`, fügt aber nie einen Host hinzu:
+
+- die eines Docker- oder Podman-Hosts, die `container.runtime` trägt: Sie steht unter **Docker** oder **Podman**;
+- die eines Kubernetes-Clusters, -Knotens oder -Pods, die `k8s.cluster.name`, `k8s.node.name` oder `k8s.pod.name` trägt: Sie steht unter **Kubernetes**;
+- die eigene eines Containers, die `container.id` trägt, und die einer Anwendung, die `telemetry.sdk.name` trägt: Sie steht unter dem Dienst der Anwendung.
+
+Frühere Versionen haben einige dieser Rechner als Hosts hinzugefügt: Docker- und Podman-Hosts, Kubernetes-Knoten und -Pods sowie einen Host für jeden Pod einer App, die direkt an OneUptime exportiert, mit jedem Rollout einen mehr. Das Upgrade hat sie archiviert, jeden mit einem Eintrag in seinem Feed, der den Grund nennt. Es hat jeden Host behalten, den Sie selbst hinzugefügt haben, jeden Host, dessen Collector OneUptime verwaltet, und jeden Host, der die eigenen Werte eines Hosts gesendet hat. Die archivierten finden Sie unter **Erweitert → Archiviert** in der Liste **Hosts**, wo **Aus dem Archiv holen** einen davon zurückbringt.
+
 ## Sehen, welche Hosts Aufmerksamkeit erfordern
 
 Die Liste **Hosts** beginnt mit **Erfordert Aufmerksamkeit**: jeder Host, der defekt ist oder geprüft werden sollte, das Dringendste zuerst, jeder mit dem Grund und einem Schritt zu seiner Seite. Ein Host, der nicht mehr meldet, sagt, wann er zuletzt gemeldet hat. Erfordert nichts Aufmerksamkeit, gibt es keine Karte.

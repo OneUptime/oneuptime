@@ -17,22 +17,36 @@ missing (helm, helm-unittest, kubectl, kind), and gives the cluster-backed
 suites one shared KinD cluster that it deletes at the end. A failing suite does
 not stop the others, so one run tells you everything that is broken.
 
-When helm-unittest is missing, the harness installs it without
-`helm plugin install`, whose install hook downloads the plugin from GitHub's
-release CDN with no retry (that remains the fallback on a platform with no
-pin). It takes the release tarball whose sha256 is pinned in
-[`Tests/lib/harness.sh`](Tests/lib/harness.sh), keeps it in
-`${XDG_CACHE_HOME:-~/.cache}/oneuptime/helm-unittest` (or
-`HELM_UNITTEST_CACHE_DIR`), and unpacks it into helm's plugin directory, so
-only the first run downloads anything; CI keeps that directory in the Actions
-cache. To bump `HELM_UNITTEST_VERSION`, add the new version's digests to
-`harness_unittest_sha256` in the same change — the helm-test job fails until
-you do, and so does the unit suite anywhere it has to install the plugin.
+The suites run the helm-unittest version pinned in
+[`Tests/lib/harness.sh`](Tests/lib/harness.sh), and only that one: what an
+assertion checks differs between versions (0.5.1 ignored `errorPattern`, and
+could not check a `values.schema.json` refusal's message at all). The harness
+installs it without `helm plugin install`, whose install hook downloads the
+plugin from GitHub's release CDN with no retry (that remains the fallback on a
+platform with no pin). It takes the release tarball whose sha256 is pinned in
+the harness, keeps it in `${XDG_CACHE_HOME:-~/.cache}/oneuptime/helm-unittest`
+(or `HELM_UNITTEST_CACHE_DIR`), and unpacks it into a plugin directory of its
+own there, so only the first run downloads anything and a helm-unittest you
+installed yourself is never used or touched; CI keeps that directory in the
+Actions cache. It runs with `--strict`, so a misspelt key in a suite or a test
+fails the run. To bump `HELM_UNITTEST_VERSION`, add the new version's digests
+to `harness_unittest_sha256` in the same change — the helm-test job fails
+until you do, and so does the unit suite anywhere it has to install the
+plugin — and check the keys each assertion reads in
+[`Tests/Ops/HelmUnittestAssertions.test.js`](../Tests/Ops/HelmUnittestAssertions.test.js),
+which fails until it is told about the new version.
+
+A test that expects the render to fail holds the whole message with
+`failedTemplate: errorMessage:`, a `values.schema.json` refusal's too (Helm's
+message, every line of it). Never `errorPattern`, which passes for any message
+that merely contains it, and never a bare `failedTemplate: {}`, which passes
+for any failure at all; `HelmUnittestAssertions.test.js` refuses both.
 
 | Suite               | Needs a cluster | What it covers                                                                       |
 | ------------------- | --------------- | ------------------------------------------------------------------------------------ |
 | `lint`              | no              | `helm lint` over the `oneuptime` and `kubernetes-agent` charts                        |
-| `unit`              | no              | the helm-unittest suites in [`Public/oneuptime/tests`](Public/oneuptime/tests)        |
+| `unit`              | no              | the helm-unittest suites in [`Public/oneuptime/tests`](Public/oneuptime/tests) and [`Public/kubernetes-agent/tests`](Public/kubernetes-agent/tests) |
+| `assertions-can-fail` | no            | the pinned helm-unittest fails a wrong `errorMessage` and a wrong `errorPattern`, for a template's `fail` and a schema refusal alike, and `--strict` refuses a misspelt key; and with a wrong message planted in every refusal of both charts' suites, each test that holds one fails, and no other |
 | `extra-values`      | no              | `extraEnv`/`extraVolumes`/`extraVolumeMounts` reach every workload the chart renders, and no more |
 | `vapid-existing-secret` | no          | with `vapid.existingSecret`, every workload given the VAPID private key reads it from that Secret and none as a plain value; without it the render does not change |
 | `twilio-environment` | no             | with `twilio.accountSid`, every workload that runs the server's code gets the server's Twilio account as the `GLOBAL_TWILIO_` variables, its auth token from the values or from `twilio.existingSecret` and never both; without it the render does not change; a block nothing would read, an account without its token and a wrong shape are refused |
@@ -53,8 +67,9 @@ bash HelmChart/Tests/run.sh lint unit
 KEEP_CLUSTER=true bash HelmChart/Tests/run.sh secrets-lifecycle
 ```
 
-`npm run test-helm-chart` still runs just the helm-unittest suites — they need
-no cluster and no Docker, so they are the quick loop while editing templates.
+`npm run test-helm-chart` runs just the `unit` suite, on the pinned
+helm-unittest — it needs no cluster and no Docker, so it is the quick loop
+while editing templates.
 The cluster-backed suites exist because those unit tests render without an API
 server. `secrets-lifecycle` needs one because `lookup` always comes back empty
 without it, so only the "regenerate" leg of `templates/secrets.yaml` is

@@ -114,12 +114,12 @@ export const readSimpleWorkingHours: (
 
   const hours: RestrictionTimes | null = WorkingHours.toRestrictionTimes(value);
 
-  if (!hours || hours.restictionType === RestrictionType.None) {
+  if (!hours || hours.restrictionType === RestrictionType.None) {
     return { ...DEFAULT_SIMPLE_WORKING_HOURS };
   }
 
   if (
-    hours.restictionType !== RestrictionType.Weekly ||
+    hours.restrictionType !== RestrictionType.Weekly ||
     WorkingHours.getSpans({ hours: hours, timezone: zone }).length > 0
   ) {
     return null;

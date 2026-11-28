@@ -274,4 +274,5 @@ L'incidente di un modulo esegue le policy di reperibilità indicate dalle sue im
 - [Panoramica dei moduli](/docs/forms/index): A cosa servono i moduli, i permessi e l'API.
 - [Creare un modulo](/docs/forms/building): Le domande, le domande nascoste e i modelli.
 - [Cosa crea un invio](/docs/forms/on-submit): L'incidente o l'evento che crea ogni invio.
+- [Seguire un invio](/docs/forms/follow-ups): Chi invia segue la propria richiesta, scrive al tuo team e aggiunge altre persone.
 :::

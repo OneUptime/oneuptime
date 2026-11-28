@@ -10,6 +10,7 @@ import {
   TelemetryIngestionBudgetSignalStatus,
   TelemetryIngestionBudgetState,
   TelemetryIngestionBudgetStatus,
+  TelemetryIngestionQueueRefusalStatus,
 } from "../../../../Types/Telemetry/TelemetryIngestionBudget";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
@@ -129,6 +130,8 @@ export function status(data: {
   teamsAndLabels?: Array<TelemetryIngestionBudgetScopeStatus>;
   countersAvailable?: boolean;
   timezone?: string;
+  // What the telemetry queue refused (#11440), the latest first.
+  queueRefusals?: Array<TelemetryIngestionQueueRefusalStatus>;
 }): TelemetryIngestionBudgetStatus {
   return {
     dayStartsAt: "2026-11-09T00:00:00.000Z",
@@ -140,6 +143,31 @@ export function status(data: {
     project: scope(data.project || []),
     ingestionKeys: data.ingestionKeys || [],
     teamsAndLabels: data.teamsAndLabels || [],
+    queueRefusals: data.queueRefusals || [],
+  };
+}
+
+/*
+ * A queue refusal of a signal (#11440): `minutesAgo` its latest, and its
+ * stretch begun an hour before that.
+ */
+export function queueRefusal(data: {
+  signal: TelemetryIngestionBudgetSignal;
+  kind?: TelemetryIngestionQueueRefusalStatus["kind"];
+  refusedRequests?: number;
+  now: Date;
+  minutesAgo: number;
+}): TelemetryIngestionQueueRefusalStatus {
+  const lastAt: number = data.now.getTime() - data.minutesAgo * 60 * 1000;
+
+  return {
+    signal: data.signal,
+    kind:
+      data.kind ||
+      ("queue-backlogged" as TelemetryIngestionQueueRefusalStatus["kind"]),
+    refusedRequests: data.refusedRequests ?? 4210,
+    firstRefusedAt: new Date(lastAt - 60 * 60 * 1000).toISOString(),
+    lastRefusedAt: new Date(lastAt).toISOString(),
   };
 }
 

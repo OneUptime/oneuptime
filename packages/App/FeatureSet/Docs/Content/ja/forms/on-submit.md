@@ -201,5 +201,6 @@ flowchart TB
 - [フォームの作成](/docs/forms/building): これらのフィールドに入る質問、非表示の質問、テンプレート。
 - [インシデントの設定と自動化](/docs/incidents/settings): インシデントテンプレートとカスタムフィールド。
 - [インシデントのメモ、オーナー、フィード](/docs/incidents/notes-owners-and-feed): 非公開メモ、公開メモ、所有者。
+- [送信のフォローアップ](/docs/forms/follow-ups): 送信した人が自分のリクエストをフォローし、チームに連絡し、ほかの人を追加できます。
 - [共有とセキュリティ](/docs/forms/sharing-and-security): 誰がどのくらいの頻度で送信できるか。
 :::

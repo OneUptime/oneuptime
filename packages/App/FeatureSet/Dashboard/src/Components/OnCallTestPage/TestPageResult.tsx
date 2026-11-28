@@ -17,6 +17,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   OnCallTestPageDelivery,
+  OnCallTestPageDeliveryStatus,
   OnCallTestPageLine,
   OnCallTestPageResult,
   OnCallTestPageStatus,
@@ -25,6 +26,7 @@ import {
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ResultLine from "./ResultLine";
+import NotificationLogStatusPill from "../NotificationLogs/NotificationLogStatusPill";
 import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -208,6 +210,10 @@ export function getResultSentenceWords(
   return sentence;
 }
 
+// A message's status, as its log draws it.
+export const TEST_PAGE_DELIVERY_STATUS_TEST_ID: string =
+  "test-page-delivery-status";
+
 const DeliveryLine: FunctionComponent<{
   delivery: OnCallTestPageDelivery;
 }> = (props: { delivery: OnCallTestPageDelivery }): ReactElement => {
@@ -223,6 +229,9 @@ const DeliveryLine: FunctionComponent<{
     ? getFixLink({ fix: delivery.fix, channel: delivery.channel })
     : null;
   const isFailed: boolean = delivery.status === "Failed";
+  // Acknowledged from it: the test's own word, before anything its log says.
+  const isAcknowledged: boolean =
+    delivery.status === OnCallTestPageDeliveryStatus.Acknowledged;
 
   return (
     <li
@@ -247,7 +256,24 @@ const DeliveryLine: FunctionComponent<{
         ) : (
           <></>
         )}
-        <Pill text={status.text} color={status.color} size={PillSize.Small} />
+        {delivery.logStatus && !isAcknowledged ? (
+          /*
+           * As its log draws it (#11416): a call still ringing is Calling
+           * and an answered one Success, an SMS waiting for its carrier's
+           * receipt a blue Sent and one the gateway took a green one - with
+           * what it means on hover, tap or focus.
+           */
+          <NotificationLogStatusPill
+            kind={delivery.logStatus.kind}
+            status={delivery.logStatus.status}
+            line={delivery.logStatus.line}
+            isAwayFromItsLog={true}
+            size={PillSize.Small}
+            dataTestId={TEST_PAGE_DELIVERY_STATUS_TEST_ID}
+          />
+        ) : (
+          <Pill text={status.text} color={status.color} size={PillSize.Small} />
+        )}
       </div>
       {isFailed && delivery.statusMessage ? (
         <CodedLine

@@ -105,6 +105,10 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 | `ONEUPTIME_AI_WRITE_TARGETS` | No | Comma-separated globs of the guests (VMIDs, e.g. `101,2*`) and node services (`pve1/pveproxy`, `*/pveproxy`) fixes may touch (default: all) |
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | No | Comma-separated globs of guests and node services OneUptime AI must never change — at least the VMID of the VM the agent runs in, if it runs on this cluster |
 | `COMPOSE_PROFILES` | No | Set to `pve-exporter` to start the bundled exporter container |
+| `PROXMOX_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-proxmox-agent`). A second cluster's agent on the same machine needs names of its own ([Monitoring several clusters](#monitoring-several-clusters)): `install.sh` names a new agent's containers after its directory unless you set them, and keeps them on every re-run |
+| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | No | The API failover sidecar's container name (default: `oneuptime-pve-api-failover`; beside the collector's for a second agent, e.g. `oneuptime-pve-api-failover-cluster2`) |
+| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | No | The bundled exporter's container name (default: `oneuptime-pve-exporter`; beside the collector's for a second agent, e.g. `oneuptime-pve-exporter-cluster2`) |
+| `PROXMOX_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-proxmox-ai-agent`; beside the collector's for a second agent, e.g. `oneuptime-proxmox-ai-agent-cluster2`) |
 
 ## OneUptime AI agent
 
@@ -291,6 +295,18 @@ processors:
 ```
 
 The cluster shows up tagged `team:platform` and `env:production`. Labels are matched case-insensitively, so an existing manually-created `Production` label is reused rather than duplicated; labels added manually in the OneUptime UI are never removed by the agent.
+
+## Monitoring several clusters
+
+One agent reads one cluster. To monitor several from the same machine, install each into its own directory, with its own `.env` and container names of its own — two containers cannot share a name:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-proxmox-agent-cluster2 bash install.sh
+```
+
+`install.sh` names the agent's containers after the directory (`oneuptime-proxmox-agent-cluster2`, `oneuptime-pve-api-failover-cluster2`, `oneuptime-pve-exporter-cluster2` and `oneuptime-proxmox-ai-agent-cluster2`); set `PROXMOX_AGENT_CONTAINER_NAME` and the other `*_CONTAINER_NAME` variables when you run it to choose them yourself. It keeps them in that agent's `.env`, so a re-run (the upgrade) keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name. Give each directory a name of its own: Compose names a project after its directory alone, so `install.sh` refuses a directory named like one that already runs an agent elsewhere, before it changes anything. With Docker Compose, set the names in each agent's `.env` instead.
+
+The systemd unit assumes `/opt/oneuptime-proxmox-agent`: copy it under another name for another directory and change its `WorkingDirectory`. Pass the directory to the doctor script with `-d`.
 
 ## Run as a systemd Service
 

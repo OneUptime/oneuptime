@@ -193,6 +193,25 @@ jobs:
           Tests/Server/Services/TelemetryUsageExceptionsPostgres.test.ts
           --forceExit
 
+      # #11440: what the telemetry queue refused while OneUptime caught up
+      # is counted per key in TelemetryIngestionKeyRefusal, and each row of
+      # its reasons tells the latest stretch: the one upsert, executed, starts
+      # a row's count and first refusal again after the gap and adds every
+      # other reason's batches as before, on tables made as the migration
+      # made them, in a schema of their own.
+      - name: Test telemetry refusal counts by stretch, on Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TELEMETRY_INGEST_REFUSAL_STRETCH_TESTS: "true"
+          TELEMETRY_INGEST_REFUSAL_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TELEMETRY_INGEST_REFUSAL_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TELEMETRY_INGEST_REFUSAL_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/TelemetryIngestRefusalStretchPostgres.test.ts
+          --forceExit
+
       # Block 43, "remediation never runs although it is on": the production
       # rule engine writes down each reason fixing stopped (Enable AI, the
       # record kind's switch, linked to nothing, AI rules), Try again decides
@@ -3692,6 +3711,49 @@ jobs:
           Tests/Server/API/LabelScopedRolesPostgres.test.ts
           --forceExit
 
+      # Clones the migrated monitor, owner, probe, label, team and permission
+      # tables into an isolated schema and holds the Dashboard's locks to the
+      # server's answers for twelve role sets (Owned, labels, labels with
+      # Owned beside, blocks), seven monitors and every change: the Dashboard
+      # reads its permission snapshot and who owns each monitor (POST
+      # /monitor/record-ownership) over HTTP, through the real user
+      # middleware, and locks a monitor's Edit and Delete and its owners'
+      # Add and Remove exactly where the server refuses them, and a probe's
+      # never where the server allows it.
+      - name: Test the Dashboard's locks against the server's answers, on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SCOPED_ROLE_LOCKS_TESTS: "true"
+          SCOPED_ROLE_LOCKS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SCOPED_ROLE_LOCKS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SCOPED_ROLE_LOCKS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/ScopedRoleLocksPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated maintenance template, network device, probe,
+      # label, team and permission tables into an isolated schema and reads
+      # them as the services do, with the props the real user middleware
+      # builds: a read across projects keeps every record each project's
+      # grants reach and leaves a column read on some labels out of the rows
+      # of the projects whose grant does not reach them, and a probe's SNMP
+      # trap report read through a network device is left out of the probes
+      # outside the grant's labels.
+      - name: Test reads across projects and through relations withhold per record, on migrated Postgres
+        if: matrix.shard == 5
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_READS_WITHHOLD_PER_RECORD_TESTS: "true"
+          READS_WITHHOLD_PER_RECORD_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          READS_WITHHOLD_PER_RECORD_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          READS_WITHHOLD_PER_RECORD_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ReadsWithholdPerRecordPostgres.test.ts
+          --forceExit
+
       # Clones the migrated incident on-call rule and owning team tables,
       # with the user, project, team, label and permission ones, into an
       # isolated schema and sends reads, changes, deletes and creates of
@@ -5365,6 +5427,69 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/EndOnCallTimeLogsOfDeletedPoliciesPostgres.test.ts
+          --forceExit
+
+      # #11257: the Hosts earlier releases registered from a Docker or Podman
+      # host's, a Kubernetes node's or pod's, or an app's telemetry,
+      # archived on upgrade with a feed item saying why - and every Host a
+      # machine or a person vouches for kept, the container runtime cleared
+      # off it; more rows than a page; a second run, or two at once, changes
+      # nothing more. Clones the migrated Host, HostFeed, DockerHost and
+      # PodmanHost tables into an isolated schema. An App suite, so in shard
+      # 3, which installs App.
+      - name: Test archiving the Hosts registered from telemetry that is not a host's on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_NON_HOST_TELEMETRY_HOSTS_TESTS: "true"
+          NON_HOST_TELEMETRY_HOSTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NON_HOST_TELEMETRY_HOSTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NON_HOST_TELEMETRY_HOSTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/ArchiveHostsRegisteredFromNonHostTelemetryPostgres.test.ts
+          --forceExit
+
+      # #11258: the dashboards made from an infrastructure template before
+      # its variable named a kind of resource get that kind on upgrade -
+      # every template's board, a pick and a person's own widget kept - and
+      # no other board is touched: a person's own, a renamed variable, one
+      # already scoped, the whole-project templates; a save made while it
+      # runs is kept; a second run, or two at once, changes nothing more.
+      # Clones the migrated Dashboard table into an isolated schema. An App
+      # suite, so in shard 3, which installs App.
+      - name: Test scoping the template dashboards people already have on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_TEMPLATE_DASHBOARD_SCOPES_TESTS: "true"
+          TEMPLATE_DASHBOARD_SCOPES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TEMPLATE_DASHBOARD_SCOPES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TEMPLATE_DASHBOARD_SCOPES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/ScopeTemplateDashboardVariablesToTheirResourcesPostgres.test.ts
+          --forceExit
+
+      # #11258: the Hosts Dashboards made before the template's charts by
+      # host grouped by resource.host.name get that grouping on upgrade, so
+      # each draws a line per host - and comes out as the template makes it
+      # now, after the variable's kind; a person's own chart grouped by
+      # host.name and every other dashboard are left as they are; a second
+      # run, or two at once, changes nothing more. Clones the migrated
+      # Dashboard table into an isolated schema. An App suite, so in shard 3,
+      # which installs App.
+      - name: Test grouping the Hosts Dashboards' charts by host on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_HOSTS_DASHBOARD_GROUPING_TESTS: "true"
+          HOSTS_DASHBOARD_GROUPING_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          HOSTS_DASHBOARD_GROUPING_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          HOSTS_DASHBOARD_GROUPING_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/GroupHostsDashboardChartsByHostPostgres.test.ts
           --forceExit
 
       # #11037: Sensitive file served, added on upgrade to each project that

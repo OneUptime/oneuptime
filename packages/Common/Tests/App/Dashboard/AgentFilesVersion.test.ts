@@ -17,21 +17,28 @@ import {
   VMWARE_AGENT_VERSION,
   getAgentVersionState,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
+import {
+  INSTALL_SCRIPTS,
+  INSTALL_SCRIPT_FILE,
+  InstallScriptEntry,
+  TROUBLESHOOT_SCRIPT_FILE,
+} from "../../../Types/InstallScripts/InstallScripts";
 import { AgentVersionStatus } from "../../../Utils/AgentVersionUtil";
 import VersionUtil, { ParsedVersion } from "../../../Utils/VersionUtil";
 
 /*
  * A PINNED-COLLECTOR AGENT'S FILES AND THE VERSION THEY REPORT MOVE TOGETHER.
  *
- * The Docker Swarm, Database, Proxmox, Ceph, VMware, Storage Array and XCP-ng
- * agents are the upstream OpenTelemetry Collector plus OneUptime's files: a
- * compose file, collector configs, a script. They report a version, and the
- * Dashboard puts a sign beside an agent that reports less than this
- * release's files do (AgentKind.ts). They used to report the collector's
- * version alone, so a change to the files that left the collector where it
- * was - #5076's CPU processors in the Swarm agent's config, which fixed a
- * flat CPU line - changed nothing they reported: every Swarm kept the old
- * config, and none showed a sign (the follow-up of #5076).
+ * The Docker Swarm, Database, Proxmox, OpenStack, Ceph, VMware, Storage
+ * Array and XCP-ng agents are the upstream OpenTelemetry Collector plus
+ * OneUptime's files: a compose file, collector configs, a script. They
+ * report a version, and the Dashboard puts a sign beside an agent that
+ * reports less than this release's files do (AgentKind.ts). They used to
+ * report the collector's version alone, so a change to the files that left
+ * the collector where it was - #5076's CPU processors in the Swarm agent's
+ * config, which fixed a flat CPU line - changed nothing they reported: every
+ * Swarm kept the old config, and none showed a sign (the follow-up of
+ * #5076).
  *
  * The version is the files' own now: the collector release they pin, with
  * its last number raised whenever the files change on the same collector.
@@ -41,6 +48,15 @@ import VersionUtil, { ParsedVersion } from "../../../Utils/VersionUtil";
  * raise the agent's version (the constant in AgentKind.ts and the stamp in
  * its files), then pin the digest the failure prints. A collector bump
  * changes the files too, and its version starts again at the collector's.
+ *
+ * A pin names each file by its path in the repository, so a search for a
+ * file a change touches finds this test. And it names every file the agent
+ * runs: every file its install serves (Common/Types/InstallScripts) but the
+ * scripts that install and diagnose it, its systemd units and OpenStack's
+ * credential aids. The Storage Array agent's pin used to name only Pure
+ * Storage's four files, so PowerStore's, ONTAP's and PowerScale's configs
+ * changed outside any digest, and a second test here holds the two lists
+ * together now (#11422).
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -51,7 +67,10 @@ interface AgentFilesPin {
   kind: AgentKind;
   // The agent's folder under agents/.
   directory: string;
-  // What the running agent is made of; a folder stands for every file in it.
+  /*
+   * What the running agent is made of, each by its path in the repository
+   * (agents/<directory>/...); a folder stands for every file in it.
+   */
   files: Array<string>;
   // The version these files report.
   version: string;
@@ -64,81 +83,114 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     kind: AgentKind.DockerSwarmAgent,
     directory: "DockerSwarmAgent",
     files: [
-      "docker-compose.yml",
-      "otel-collector-config.yaml",
-      "inventory-snapshot.sh",
+      "agents/DockerSwarmAgent/docker-compose.yml",
+      "agents/DockerSwarmAgent/otel-collector-config.yaml",
+      "agents/DockerSwarmAgent/inventory-snapshot.sh",
     ],
     version: "0.165.1",
     digest: "f755745b739b42b607f26468e7845875241f78b173f75bb6ca0f78026262182f",
   },
+  /*
+   * 0.165.1: the compose file hands the AI agent beside the collector its
+   * Data Observability settings (#11251).
+   */
   {
     kind: AgentKind.DatabaseAgent,
     directory: "DatabaseAgent",
-    files: ["docker-compose.yml", "configs"],
+    files: [
+      "agents/DatabaseAgent/docker-compose.yml",
+      "agents/DatabaseAgent/configs",
+    ],
     version: "0.165.1",
     digest: "039fd2c14810d1715f0745b79f8eaf139deef10ed21a57182bba8d3f43203df4",
   },
+  /*
+   * The Proxmox, OpenStack, Ceph and VMware agents' compose files (and
+   * OpenStack's logs and traces ones) read every container's name from
+   * .env since 0.165.0 shipped, each with its old name as the default, so
+   * a second agent on the same machine keeps names of its own when it is
+   * upgraded (#11434). Pinned again on 0.165.0: an installed agent runs
+   * under the same names, with the same collector and config, and reports
+   * the same data, so there is nothing to tell it to upgrade for, and a
+   * second agent gets the new files from its own install.
+   */
   {
     kind: AgentKind.ProxmoxAgent,
     directory: "ProxmoxAgent",
-    files: ["docker-compose.yml", "otel-collector-config.yaml"],
+    files: [
+      "agents/ProxmoxAgent/docker-compose.yml",
+      "agents/ProxmoxAgent/otel-collector-config.yaml",
+    ],
     version: "0.165.0",
-    digest: "d74cf6d1bd7008db727eed8e24db2414fc55d8ae2e9b7488cec4d17a60cb027f",
+    digest: "6dc41d1494ae445b5771157c38a5f0b909d1442b057b05e077417bfbbe308f54",
   },
+  /*
+   * The logs and traces profiles' compose files and collector configs, on
+   * the controllers, compute nodes and traced machines, joined the pin on
+   * 0.165.0 itself: they are as 0.165.0 shipped them, each stamps it, and
+   * the pin had named only the main collector's two files.
+   */
   {
     kind: AgentKind.OpenStackAgent,
     directory: "OpenStackAgent",
-    files: ["docker-compose.yml", "otel-collector-config.yaml"],
+    files: [
+      "agents/OpenStackAgent/docker-compose.yml",
+      "agents/OpenStackAgent/otel-collector-config.yaml",
+      "agents/OpenStackAgent/docker-compose.logs.yml",
+      "agents/OpenStackAgent/otel-collector-logs-files.yaml",
+      "agents/OpenStackAgent/otel-collector-logs-journald.yaml",
+      "agents/OpenStackAgent/docker-compose.traces.yml",
+      "agents/OpenStackAgent/otel-collector-traces.yaml",
+    ],
     version: "0.165.0",
-    digest: "2579e7a76c7406939f002757f33d0222738cfa547f79614726996c64ec1bbb31",
+    digest: "c4592a501b9093088b58b7b0d4bea48020670c8aa9b2eaa0f015905d9f67af9c",
   },
   {
     kind: AgentKind.CephAgent,
     directory: "CephAgent",
-    files: ["docker-compose.yml", "otel-collector-config.yaml"],
+    files: [
+      "agents/CephAgent/docker-compose.yml",
+      "agents/CephAgent/otel-collector-config.yaml",
+    ],
     version: "0.165.0",
-    digest: "266612e94e52a236925092813d6de67f86d2e0ca539207de1154fecb659c04e3",
+    digest: "99d650c2e41e7c6b0aa8ced03d19889fda875bde3ac90ee2001366b2c435b202",
   },
   {
     kind: AgentKind.VMwareAgent,
     directory: "VMwareAgent",
-    files: ["docker-compose.yml", "otel-collector-config.yaml"],
+    files: [
+      "agents/VMwareAgent/docker-compose.yml",
+      "agents/VMwareAgent/otel-collector-config.yaml",
+    ],
     version: "0.165.0",
-    digest: "b46cd85d6dd36b0f33a2387094b9f2b065978db1b56e83c4ac8778e0c0ae11db",
+    digest: "7c407ea3f2f25449fbca9ea499409618e46c46d0b0a05ab52237fea8f66a015e",
   },
   /*
-   * The Storage Array and XCP-ng agents' docker-compose.yml read the
-   * collector's container name from .env since 0.165.0 shipped, so that a
-   * second agent on the same machine keeps a name of its own when it is
-   * upgraded (#11168), the XCP-ng AI agent's included; the Storage Array
-   * agent's gained the PowerStore and NetApp ONTAP services, which only those
-   * platforms' agents start, and the XCP-ng agent's gained the XCP-ng AI
-   * agent, which only its profile starts, and stopped warning about
-   * XO_ADDRESS. Pinned again on 0.165.0:
-   * an installed agent still runs the same collector with the same config
-   * and reports the same data, so there is nothing to tell it to upgrade
-   * for, and whenever it next is, the upgrade keeps a second agent's name.
+   * 0.165.1: NetApp ONTAP, Dell PowerStore and Dell PowerScale beside Pure
+   * Storage's three ways, and the collector's container name read from .env,
+   * so a second agent on the same machine keeps a name of its own when it is
+   * upgraded (#11168).
    */
   {
     kind: AgentKind.StorageArrayAgent,
     directory: "StorageArrayAgent",
     files: [
-      "docker-compose.yml",
-      "otel-collector-config.yaml",
-      "otel-collector-config.flasharray-exporter.yaml",
-      "otel-collector-config.flashblade.yaml",
+      "agents/StorageArrayAgent/docker-compose.yml",
+      "agents/StorageArrayAgent/otel-collector-config.yaml",
+      "agents/StorageArrayAgent/otel-collector-config.flasharray-exporter.yaml",
+      "agents/StorageArrayAgent/otel-collector-config.flashblade.yaml",
       // NetApp ONTAP's collector and the Harvest poller it reads (#11189).
-      "otel-collector-config.netapp-ontap.yaml",
-      "netapp-harvest.yml",
-      "netapp-harvest-rest.yaml",
-      "netapp-harvest-keyperf.yaml",
-      "netapp-harvest-restperf.yaml",
+      "agents/StorageArrayAgent/otel-collector-config.netapp-ontap.yaml",
+      "agents/StorageArrayAgent/netapp-harvest.yml",
+      "agents/StorageArrayAgent/netapp-harvest-rest.yaml",
+      "agents/StorageArrayAgent/netapp-harvest-keyperf.yaml",
+      "agents/StorageArrayAgent/netapp-harvest-restperf.yaml",
       // Dell PowerStore's: Dell's exporter, built here, and its syslog (#11227).
-      "otel-collector-config.powerstore.yaml",
-      "powerstore-exporter.Dockerfile",
-      "powerstore-syslog.yaml",
+      "agents/StorageArrayAgent/otel-collector-config.powerstore.yaml",
+      "agents/StorageArrayAgent/powerstore-exporter.Dockerfile",
+      "agents/StorageArrayAgent/powerstore-syslog.yaml",
       // Dell PowerScale's, over SNMP (#11233).
-      "otel-collector-config.powerscale.yaml",
+      "agents/StorageArrayAgent/otel-collector-config.powerscale.yaml",
     ],
     version: "0.165.1",
     digest: "bb81c6b9720516d41dd1f72cbb53ef71504c2e26791bd68c289abbfdcda896cc",
@@ -153,11 +205,48 @@ const AGENT_FILES: Array<AgentFilesPin> = [
   {
     kind: AgentKind.XcpNgAgent,
     directory: "XcpNgAgent",
-    files: ["docker-compose.yml", "otel-collector-config.yaml"],
+    files: [
+      "agents/XcpNgAgent/docker-compose.yml",
+      "agents/XcpNgAgent/otel-collector-config.yaml",
+    ],
     version: "0.165.0",
     digest: "9dd74fde038db1905332bad77727731fa9dea223de6e95911fa357aa3c9d5440",
   },
 ];
+
+/*
+ * The files an agent's install serves that the running agent is not made
+ * of, so changing one is no new agent: the scripts that install, upgrade
+ * and diagnose it (OpenStack's logs and traces profiles have installers of
+ * their own), its systemd units, which only start the compose file or the
+ * collector with the files above, and OpenStack's aids for whoever makes
+ * its credential and lists its control plane, run once by hand.
+ */
+function isServedButNotRun(directory: string, file: string): boolean {
+  if (
+    file === INSTALL_SCRIPT_FILE ||
+    file === TROUBLESHOOT_SCRIPT_FILE ||
+    file.startsWith("systemd/")
+  ) {
+    return true;
+  }
+  if (directory === "OpenStackAgent") {
+    return (
+      file === "install-logs.sh" ||
+      file === "install-traces.sh" ||
+      file === "control-plane-targets.py" ||
+      file.startsWith("access/")
+    );
+  }
+  return false;
+}
+
+// The install that serves an agent's files: the entry of its folder.
+function installOf(pin: AgentFilesPin): InstallScriptEntry | undefined {
+  return INSTALL_SCRIPTS.find((entry: InstallScriptEntry): boolean => {
+    return entry.sourceDirectory === `agents/${pin.directory}`;
+  });
+}
 
 // A file's content as the agent runs it: no comment lines, no blank lines.
 function withoutComments(text: string): string {
@@ -172,19 +261,30 @@ function withoutComments(text: string): string {
     .join("\n");
 }
 
-// Every file a pin names, a folder expanded to its files, sorted.
+/*
+ * Every file a pin names, a folder expanded to its files, each relative to
+ * the agent's folder, sorted. Relative, so the digest of a file is the same
+ * whichever way a pin spells it.
+ */
 function filesOf(pin: AgentFilesPin): Array<string> {
   const files: Array<string> = [];
+  const prefix: string = `agents/${pin.directory}/`;
 
   for (const entry of pin.files) {
-    const full: string = path.join(REPO_ROOT, "agents", pin.directory, entry);
+    if (!entry.startsWith(prefix)) {
+      throw new Error(
+        `${entry} is not in agents/${pin.directory}: name each file of the pin by its path in the repository.`,
+      );
+    }
+    const relative: string = entry.slice(prefix.length);
+    const full: string = path.join(REPO_ROOT, entry);
 
     if (fs.statSync(full).isDirectory()) {
       for (const name of fs.readdirSync(full).sort()) {
-        files.push(path.join(entry, name).split(path.sep).join("/"));
+        files.push(path.join(relative, name).split(path.sep).join("/"));
       }
     } else {
-      files.push(entry);
+      files.push(relative);
     }
   }
 
@@ -207,6 +307,16 @@ function digestOf(pin: AgentFilesPin): string {
   }
 
   return hash.digest("hex");
+}
+
+// A collector config an agent ships: otel-collector-config.yaml and kin.
+const COLLECTOR_CONFIG_FILE: RegExp = /^otel-collector-config.*\.yaml$/;
+
+// The version a config stamps as oneuptime.agent.version.
+function stampOf(config: string): string | undefined {
+  return config.match(
+    /- key: oneuptime\.agent\.version\s+value: "([^"]+)"/,
+  )?.[1];
 }
 
 describe("a pinned-collector agent's files report the version they shipped as", () => {
@@ -255,6 +365,50 @@ describe("a pinned-collector agent's files report the version they shipped as", 
       }
 
       expect(digest).toBe(pin.digest);
+    },
+  );
+
+  test.each(AGENT_FILES)(
+    "agents/$directory: every file its install serves is in the pin, or one the running agent is not made of",
+    (pin: AgentFilesPin) => {
+      const install: InstallScriptEntry | undefined = installOf(pin);
+      expect(install).toBeDefined();
+
+      const pinned: Array<string> = filesOf(pin);
+      const outside: Array<string> = install!.files.filter(
+        (file: string): boolean => {
+          return (
+            !pinned.includes(file) && !isServedButNotRun(pin.directory, file)
+          );
+        },
+      );
+
+      if (outside.length > 0) {
+        throw new Error(
+          `agents/${pin.directory}'s install serves ${outside.join(", ")}, which its pin here does not name, so a change there would never tell an installed agent to upgrade. ` +
+            `Add each file the running agent is made of to the pin by its path in the repository (its digest changes, so raise its version too), and name a file it never runs in isServedButNotRun.`,
+        );
+      }
+
+      expect(outside).toEqual([]);
+    },
+  );
+
+  /*
+   * A file the agent runs reaches an installed agent only by its install:
+   * install.sh downloads what OneUptime serves, and so does the upgrade
+   * dialog's Docker Compose tab (AgentUpgradeGuides).
+   */
+  test.each(AGENT_FILES)(
+    "agents/$directory: every file in the pin is one its install serves, so an upgrade brings it",
+    (pin: AgentFilesPin) => {
+      const served: ReadonlyArray<string> = installOf(pin)?.files || [];
+
+      expect(
+        filesOf(pin).filter((file: string): boolean => {
+          return !served.includes(file);
+        }),
+      ).toEqual([]);
     },
   );
 
@@ -476,6 +630,25 @@ describe("the Database agent after its readings of Galera and Data Observability
     ).toContain("image: otel/opentelemetry-collector-contrib:0.165.0");
   });
 
+  test("the compose file 0.165.1 is about hands the AI agent every Data Observability setting", () => {
+    const compose: string = fs.readFileSync(
+      path.join(REPO_ROOT, "agents", "DatabaseAgent", "docker-compose.yml"),
+      "utf8",
+    );
+
+    for (const variable of [
+      "ONEUPTIME_DATA_OBSERVABILITY",
+      "ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME",
+      "ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD",
+      "ONEUPTIME_DATA_OBSERVABILITY_CHECKS",
+      "ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME",
+      "ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD",
+      "ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL",
+    ]) {
+      expect(compose).toContain(`- ${variable}=\${${variable}:-}`);
+    }
+  });
+
   test("an agent on any files of the 0.161 line - 0.161.0 to 0.161.2 - or on 0.165.0's is told to upgrade", () => {
     for (const agentVersion of ["0.161.0", "0.161.1", "0.161.2", "0.165.0"]) {
       expect(
@@ -531,6 +704,45 @@ describe("the Storage Array agent after NetApp ONTAP, Dell PowerStore and Dell P
     ).toContain(
       `otel/opentelemetry-collector-contrib:${STORAGE_ARRAY_AGENT_COLLECTOR_VERSION}`,
     );
+  });
+
+  /*
+   * Its configs were outside the pin until #11422, so the change went by
+   * without a new version: every config stamps the one version, whichever
+   * platform's runs.
+   */
+  test("every collector config it ships stamps 0.165.1, PowerStore's syslog collector's too", () => {
+    const agentDirectory: string = path.join(
+      REPO_ROOT,
+      "agents",
+      "StorageArrayAgent",
+    );
+    const configs: Array<string> = fs
+      .readdirSync(agentDirectory)
+      .filter((name: string): boolean => {
+        return (
+          COLLECTOR_CONFIG_FILE.test(name) || name === "powerstore-syslog.yaml"
+        );
+      })
+      .sort();
+
+    expect(configs).toEqual([
+      "otel-collector-config.flasharray-exporter.yaml",
+      "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.netapp-ontap.yaml",
+      "otel-collector-config.powerscale.yaml",
+      "otel-collector-config.powerstore.yaml",
+      "otel-collector-config.yaml",
+      "powerstore-syslog.yaml",
+    ]);
+    for (const name of configs) {
+      expect({
+        name,
+        stamp: stampOf(
+          fs.readFileSync(path.join(agentDirectory, name), "utf8"),
+        ),
+      }).toEqual({ name, stamp: STORAGE_ARRAY_AGENT_VERSION });
+    }
   });
 
   test("an agent on collector 0.161.0's files or on 0.165.0's is told to upgrade", () => {

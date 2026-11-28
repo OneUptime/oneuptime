@@ -334,6 +334,15 @@ export const LABELS_DRAWN_BY_OWN_KEY: Readonly<
   "notifications/notification-logs": {
     Read: "Read (message status)",
   },
+  /*
+   * The Notification Logs' Call and Push tabs: a phone call and a push
+   * notification, never the bare words a function call reads as in Chinese
+   * (调用), Korean (호출) and Russian (Вызов) (#11418).
+   */
+  "configuration/project-settings": {
+    Call: "Call (phone call)",
+    Push: "Push (push notification)",
+  },
 };
 
 /*

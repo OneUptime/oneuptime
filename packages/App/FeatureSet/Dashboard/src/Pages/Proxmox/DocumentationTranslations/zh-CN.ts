@@ -288,6 +288,32 @@ const TRANSLATION: SetupGuideTranslation = {
     "此集群在 OneUptime 中是 **`pve-1`**。如果这不是该 Proxmox 集群自己的名称，请在指标服务器的 *Resource Attributes* 下把 `proxmox.cluster.name` 设置为 `pve-1`，否则推送会注册一个新集群。",
   "Needs Proxmox VE 8.3 or later. The first command adds a webhook target named `oneuptime`, which sends each notification to OneUptime as a log of this cluster and keeps the key and the cluster's name in its secrets. The second sends every notification to it. Replace `my-proxmox-cluster` with the name the cluster appears under in OneUptime: its Proxmox cluster name, or a standalone node's own name.":
     "需要 Proxmox VE 8.3 或更高版本。第一条命令会添加一个名为 `oneuptime` 的 Webhook 目标，它把每条通知作为此集群的一条日志发送到 OneUptime，并把密钥和集群名称保存在它的机密（secrets）中。第二条命令把所有通知都发送给它。请把 `my-proxmox-cluster` 替换为集群在 OneUptime 中显示的名称：它的 Proxmox 集群名称，或独立节点自己的名称。",
+  "| `PROXMOX_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-proxmox-agent`). A second cluster's agent on the same machine needs names of its own: the install script names a new agent's containers after its folder unless you set them, and keeps them when you run the script again |":
+    "| `PROXMOX_AGENT_CONTAINER_NAME` | 否 | 收集器的容器名称（默认：`oneuptime-proxmox-agent`）。同一台机器上第二个集群的代理需要自己的容器名称：除非你自行设置，否则安装脚本会按新代理的文件夹为其容器命名，并在你再次运行脚本时保留这些名称 |",
+  "| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | No | The API failover sidecar's container name (default: `oneuptime-pve-api-failover`). The install script names a second cluster's API failover sidecar after its collector (`oneuptime-pve-api-failover-cluster2` beside `oneuptime-proxmox-agent-cluster2`) unless you set it, and keeps it when you run the script again |":
+    "| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | 否 | API 故障转移 sidecar 的容器名称（默认：`oneuptime-pve-api-failover`）。除非你自行设置，否则安装脚本会按第二个集群的收集器为其 API 故障转移 sidecar 命名（`oneuptime-pve-api-failover-cluster2` 与 `oneuptime-proxmox-agent-cluster2` 并列），并在你再次运行脚本时保留该名称 |",
+  "| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | No | The bundled exporter's container name (default: `oneuptime-pve-exporter`). The install script names a second cluster's bundled exporter after its collector (`oneuptime-pve-exporter-cluster2` beside `oneuptime-proxmox-agent-cluster2`) unless you set it, and keeps it when you run the script again |":
+    "| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | 否 | 随附的导出器的容器名称（默认：`oneuptime-pve-exporter`）。除非你自行设置，否则安装脚本会按第二个集群的收集器为其随附的导出器命名（`oneuptime-pve-exporter-cluster2` 与 `oneuptime-proxmox-agent-cluster2` 并列），并在你再次运行脚本时保留该名称 |",
+  "| `PROXMOX_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-proxmox-ai-agent`). The install script names a second cluster's AI agent after its collector (`oneuptime-proxmox-ai-agent-cluster2` beside `oneuptime-proxmox-agent-cluster2`) unless you set it, and keeps it when you run the script again |":
+    "| `PROXMOX_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理的容器名称（默认：`oneuptime-proxmox-ai-agent`）。除非你自行设置，否则安装脚本会按第二个集群的收集器为其 AI 代理命名（`oneuptime-proxmox-ai-agent-cluster2` 与 `oneuptime-proxmox-agent-cluster2` 并列），并在你再次运行脚本时保留该名称 |",
+  "One agent reads one cluster. For a second cluster, install a second agent in a folder of its own, with container names of its own — two containers cannot share a name:":
+    "一个代理读取一个集群。对于第二个集群，请在单独的文件夹中安装第二个代理，并使用它自己的容器名称——两个容器不能共用一个名称：",
+  "The script names the containers after the folder, such as `oneuptime-proxmox-agent-cluster2`, unless you set their variables, such as `PROXMOX_AGENT_CONTAINER_NAME`. It keeps the names in that agent's `.env`, so running the script again with the same `INSTALL_DIR` to upgrade the agent keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name.":
+    "除非你设置它们的变量（例如 `PROXMOX_AGENT_CONTAINER_NAME`），否则脚本会按文件夹为容器命名，例如 `oneuptime-proxmox-agent-cluster2`。它会把名称保存在该代理的 `.env` 中，所以用同一个 `INSTALL_DIR` 再次运行脚本来升级代理时会保留这些名称；而你曾在 `docker-compose.yml` 中编辑过 `container_name` 的代理，也会保留那个名称。",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so the script refuses a folder named like one that already runs an agent elsewhere. Pass the folder to the diagnostic script with `-d`.":
+    "请为每个文件夹取一个独有的名称：Docker Compose 只按文件夹为项目命名，因此如果某个文件夹与别处已在运行代理的文件夹同名，脚本会拒绝它。用 `-d` 把文件夹传给诊断脚本。",
+  "| `PROXMOX_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-proxmox-agent`). A second cluster's agent on the same machine needs one of its own |":
+    "| `PROXMOX_AGENT_CONTAINER_NAME` | 否 | 收集器的容器名称（默认：`oneuptime-proxmox-agent`）。同一台机器上第二个集群的代理需要自己的容器名称 |",
+  "| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | No | The API failover sidecar's container name (default: `oneuptime-pve-api-failover`). A second cluster's agent on the same machine needs one of its own |":
+    "| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | 否 | API 故障转移 sidecar 的容器名称（默认：`oneuptime-pve-api-failover`）。同一台机器上第二个集群的代理需要自己的容器名称 |",
+  "| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | No | The bundled exporter's container name (default: `oneuptime-pve-exporter`). A second cluster's agent on the same machine needs one of its own |":
+    "| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | 否 | 随附的导出器的容器名称（默认：`oneuptime-pve-exporter`）。同一台机器上第二个集群的代理需要自己的容器名称 |",
+  "| `PROXMOX_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-proxmox-ai-agent`). A second cluster's agent on the same machine needs one of its own |":
+    "| `PROXMOX_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理的容器名称（默认：`oneuptime-proxmox-ai-agent`）。同一台机器上第二个集群的代理需要自己的容器名称 |",
+  "One agent reads one cluster. For a second cluster, set up a second agent in a folder of its own, with container names of its own — two containers cannot share a name. Set them in that agent's `.env`:":
+    "一个代理读取一个集群。对于第二个集群，请在单独的文件夹中设置第二个代理，并使用它自己的容器名称——两个容器不能共用一个名称。请在该代理的 `.env` 中设置这些名称：",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so a second folder of the same name would replace the first agent's containers. Keep the names out of `docker-compose.yml`, which an upgrade replaces.":
+    "请为每个文件夹取一个独有的名称：Docker Compose 只按文件夹为项目命名，因此同名的第二个文件夹会替换第一个代理的容器。不要把这些名称写进 `docker-compose.yml`，升级会替换该文件。",
 };
 
 export default TRANSLATION;

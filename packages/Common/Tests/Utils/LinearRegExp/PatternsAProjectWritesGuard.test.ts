@@ -281,6 +281,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "a Unicode property escape, \\p{gc=...} or \\p{sc=...}, of a category or script name the file lists (Go's tables), never a pattern's text; run on one character at a time, to read which characters the table holds",
   },
   {
+    file: "packages/Common/Utils/SecurityEvent/SecurityUserErasureUnnaming.ts",
+    count: 1,
+    builtFrom:
+      "the indicator types ThreatIntelIndicatorType lists, and the word indicator, each escaped with escapeRegExp to match itself, to read a threat intel match's (type, confidence N) (#11447)",
+  },
+  {
     file: "packages/Common/Utils/Telemetry/LogErrorPattern.ts",
     count: 1,
     builtFrom: "the rules LOG_ERROR_PATTERN_RULES lists",

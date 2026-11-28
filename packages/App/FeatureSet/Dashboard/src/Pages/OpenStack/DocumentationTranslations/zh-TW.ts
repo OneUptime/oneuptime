@@ -549,6 +549,40 @@ const TRANSLATION: SetupGuideTranslation = {
     "稽核篩選器放在每個 API 的 paste 檔案中，位於每個管線裡 `authtoken` 及其後的內容篩選器之後，並搭配 pyCADF 為該服務提供的對應檔，該檔案位於服務執行所在 Python 環境下的 `etc/pycadf` 中。不要放在管線末端：Neutron 的 `extensions` 篩選器會直接回應它的路由器與安全性群組，稽核篩選器將永遠看不到它們。",
   "[Who did what](/docs/telemetry/openstack#who-did-what) says what reaches Security Events, and [each tool's guide](/docs/telemetry/openstack-deployment-tools) says where these go on it.":
     "[誰做了什麼](/docs/telemetry/openstack#who-did-what) 說明了什麼會進入安全事件，[每個工具的指南](/docs/telemetry/openstack-deployment-tools) 說明了這些設定在各工具上放在哪裡。",
+  "| `OPENSTACK_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-openstack-agent`). A second cloud's agent on the same machine needs names of its own: the install script names a new agent's containers after its folder unless you set them, and keeps them when you run the script again |":
+    "| `OPENSTACK_AGENT_CONTAINER_NAME` | 否 | 收集器的容器名稱（預設：`oneuptime-openstack-agent`）。同一台機器上第二個雲端的代理程式需要自己的容器名稱：除非你自行設定，否則安裝指令碼會依新代理程式的資料夾為其容器命名，並在你再次執行指令碼時保留這些名稱 |",
+  "| `OPENSTACK_EXPORTER_CONTAINER_NAME` | No | The bundled exporter's container name (default: `oneuptime-openstack-exporter`). The install script names a second cloud's bundled exporter after its collector (`oneuptime-openstack-exporter-cloud2` beside `oneuptime-openstack-agent-cloud2`) unless you set it, and keeps it when you run the script again |":
+    "| `OPENSTACK_EXPORTER_CONTAINER_NAME` | 否 | 內建匯出器的容器名稱（預設：`oneuptime-openstack-exporter`）。除非你自行設定，否則安裝指令碼會依第二個雲端的收集器為其內建匯出器命名（`oneuptime-openstack-exporter-cloud2` 與 `oneuptime-openstack-agent-cloud2` 並列），並在你再次執行指令碼時保留該名稱 |",
+  "| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | No | The quota exporter's container name (default: `oneuptime-openstack-quota-exporter`). The install script names a second cloud's quota exporter after its collector (`oneuptime-openstack-quota-exporter-cloud2` beside `oneuptime-openstack-agent-cloud2`) unless you set it, and keeps it when you run the script again |":
+    "| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | 否 | 配額匯出器的容器名稱（預設：`oneuptime-openstack-quota-exporter`）。除非你自行設定，否則安裝指令碼會依第二個雲端的收集器為其配額匯出器命名（`oneuptime-openstack-quota-exporter-cloud2` 與 `oneuptime-openstack-agent-cloud2` 並列），並在你再次執行指令碼時保留該名稱 |",
+  "| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | No | The database exporter's container name (default: `oneuptime-openstack-database-exporter`). The install script names a second cloud's database exporter after its collector (`oneuptime-openstack-database-exporter-cloud2` beside `oneuptime-openstack-agent-cloud2`) unless you set it, and keeps it when you run the script again |":
+    "| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | 否 | 資料庫匯出器的容器名稱（預設：`oneuptime-openstack-database-exporter`）。除非你自行設定，否則安裝指令碼會依第二個雲端的收集器為其資料庫匯出器命名（`oneuptime-openstack-database-exporter-cloud2` 與 `oneuptime-openstack-agent-cloud2` 並列），並在你再次執行指令碼時保留該名稱 |",
+  "| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | No | The worker state exporter's container name (default: `oneuptime-openstack-worker-state-exporter`). The install script names a second cloud's worker state exporter after its collector (`oneuptime-openstack-worker-state-exporter-cloud2` beside `oneuptime-openstack-agent-cloud2`) unless you set it, and keeps it when you run the script again |":
+    "| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | 否 | 工作程序狀態匯出器的容器名稱（預設：`oneuptime-openstack-worker-state-exporter`）。除非你自行設定，否則安裝指令碼會依第二個雲端的收集器為其工作程序狀態匯出器命名（`oneuptime-openstack-worker-state-exporter-cloud2` 與 `oneuptime-openstack-agent-cloud2` 並列），並在你再次執行指令碼時保留該名稱 |",
+  "| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-openstack-ai-agent`). The install script names a second cloud's AI agent after its collector (`oneuptime-openstack-ai-agent-cloud2` beside `oneuptime-openstack-agent-cloud2`) unless you set it, and keeps it when you run the script again |":
+    "| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理程式的容器名稱（預設：`oneuptime-openstack-ai-agent`）。除非你自行設定，否則安裝指令碼會依第二個雲端的收集器為其 AI 代理程式命名（`oneuptime-openstack-ai-agent-cloud2` 與 `oneuptime-openstack-agent-cloud2` 並列），並在你再次執行指令碼時保留該名稱 |",
+  "One agent reads one cloud. For a second cloud, install a second agent in a folder of its own, with container names of its own — two containers cannot share a name:":
+    "一個代理程式讀取一個雲端。若要讀取第二個雲端，請在獨立的資料夾中安裝第二個代理程式，並使用它自己的容器名稱——兩個容器不能共用一個名稱：",
+  "The script names the containers after the folder, such as `oneuptime-openstack-agent-cloud2`, unless you set their variables, such as `OPENSTACK_AGENT_CONTAINER_NAME`. It keeps the names in that agent's `.env`, so running the script again with the same `INSTALL_DIR` to upgrade the agent keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name.":
+    "除非你設定它們的變數（例如 `OPENSTACK_AGENT_CONTAINER_NAME`），否則指令碼會依資料夾為容器命名，例如 `oneuptime-openstack-agent-cloud2`。它會把名稱保存在該代理程式的 `.env` 中，所以用同一個 `INSTALL_DIR` 再次執行指令碼來升級代理程式時會保留這些名稱；而你曾在 `docker-compose.yml` 中編輯過 `container_name` 的代理程式，也會保留那個名稱。",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so the script refuses a folder named like one that already runs an agent elsewhere. Pass the folder to the diagnostic script with `-d`.":
+    "請為每個資料夾取一個獨有的名稱：Docker Compose 只依資料夾為專案命名，因此如果某個資料夾與別處已在執行代理程式的資料夾同名，指令碼會拒絕它。用 `-d` 把資料夾傳給診斷指令碼。",
+  "| `OPENSTACK_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-openstack-agent`). A second cloud's agent on the same machine needs one of its own |":
+    "| `OPENSTACK_AGENT_CONTAINER_NAME` | 否 | 收集器的容器名稱（預設：`oneuptime-openstack-agent`）。同一台機器上第二個雲端的代理程式需要自己的容器名稱 |",
+  "| `OPENSTACK_EXPORTER_CONTAINER_NAME` | No | The bundled exporter's container name (default: `oneuptime-openstack-exporter`). A second cloud's agent on the same machine needs one of its own |":
+    "| `OPENSTACK_EXPORTER_CONTAINER_NAME` | 否 | 內建匯出器的容器名稱（預設：`oneuptime-openstack-exporter`）。同一台機器上第二個雲端的代理程式需要自己的容器名稱 |",
+  "| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | No | The quota exporter's container name (default: `oneuptime-openstack-quota-exporter`). A second cloud's agent on the same machine needs one of its own |":
+    "| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | 否 | 配額匯出器的容器名稱（預設：`oneuptime-openstack-quota-exporter`）。同一台機器上第二個雲端的代理程式需要自己的容器名稱 |",
+  "| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | No | The database exporter's container name (default: `oneuptime-openstack-database-exporter`). A second cloud's agent on the same machine needs one of its own |":
+    "| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | 否 | 資料庫匯出器的容器名稱（預設：`oneuptime-openstack-database-exporter`）。同一台機器上第二個雲端的代理程式需要自己的容器名稱 |",
+  "| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | No | The worker state exporter's container name (default: `oneuptime-openstack-worker-state-exporter`). A second cloud's agent on the same machine needs one of its own |":
+    "| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | 否 | 工作程序狀態匯出器的容器名稱（預設：`oneuptime-openstack-worker-state-exporter`）。同一台機器上第二個雲端的代理程式需要自己的容器名稱 |",
+  "| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-openstack-ai-agent`). A second cloud's agent on the same machine needs one of its own |":
+    "| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理程式的容器名稱（預設：`oneuptime-openstack-ai-agent`）。同一台機器上第二個雲端的代理程式需要自己的容器名稱 |",
+  "One agent reads one cloud. For a second cloud, set up a second agent in a folder of its own, with container names of its own — two containers cannot share a name. Set them in that agent's `.env`:":
+    "一個代理程式讀取一個雲端。若要讀取第二個雲端，請在獨立的資料夾中設定第二個代理程式，並使用它自己的容器名稱——兩個容器不能共用一個名稱。請在該代理程式的 `.env` 中設定這些名稱：",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so a second folder of the same name would replace the first agent's containers. Keep the names out of `docker-compose.yml`, which an upgrade replaces.":
+    "請為每個資料夾取一個獨有的名稱：Docker Compose 只依資料夾為專案命名，因此同名的第二個資料夾會取代第一個代理程式的容器。不要把這些名稱寫進 `docker-compose.yml`，升級會取代該檔案。",
 };
 
 export default TRANSLATION;

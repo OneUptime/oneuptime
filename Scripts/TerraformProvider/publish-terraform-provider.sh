@@ -81,6 +81,11 @@ REPOSITORY="$GITHUB_ORG/$PROVIDER_REPO"
 # (GenerateReleaseNotes.js): plain Node.js, with nothing to install.
 RELEASE_HELPER="$SCRIPT_DIR/ProviderRelease.js"
 NOTES_GENERATOR="$SCRIPT_DIR/GenerateReleaseNotes.js"
+# The toolchain release builds are pinned to (ReleaseToolchain.js, #11464).
+TOOLCHAIN_HELPER="$PROJECT_ROOT/Scripts/Release/ReleaseToolchain.js"
+# What this run builds with, which the release's notes name: "Go 1.27.4 and
+# GoReleaser v2.20.3" (describe_toolchain).
+TOOLCHAIN=""
 VERSION=""
 TEST_RELEASE=false
 SKIP_TESTS=false
@@ -1139,7 +1144,33 @@ write_fallback_notes() {
         else
             echo "**Changes:** https://github.com/$REPOSITORY/commits/v$VERSION"
         fi
+        if [[ -n "$TOOLCHAIN" ]]; then
+            echo ""
+            echo "**Built with:** $TOOLCHAIN. The zips, built from this tag with them, are the same bytes."
+        fi
     } > "$NOTES_FILE"
+}
+
+# What this run builds the provider with, in TOOLCHAIN, which the release's
+# notes name so that anyone can build the tag again the same way, and get the
+# same zips (#11464): the go and goreleaser on PATH. Release runs install the
+# pinned ones (.github/actions/setup-release-toolchain, which checks them);
+# a build with others makes other bytes, which is said here, and the notes
+# name what it was built with all the same.
+describe_toolchain() {
+    TOOLCHAIN=""
+    local go_version goreleaser_version pinned
+    go_version="$(go version 2>/dev/null | sed -n 's/^go version go\([0-9][0-9.]*\)[[:space:]].*$/\1/p')"
+    goreleaser_version="$(goreleaser --version 2>/dev/null | sed -n 's/^GitVersion:[[:space:]]*\([0-9][0-9.]*\).*$/\1/p' | head -n 1)"
+    if [[ -z "$go_version" || -z "$goreleaser_version" ]]; then
+        print_warning "Could not tell which Go and GoReleaser build v$VERSION, so its notes do not name them"
+        return 0
+    fi
+    TOOLCHAIN="Go $go_version and GoReleaser v$goreleaser_version"
+    pinned="$(node "$TOOLCHAIN_HELPER" describe 2>/dev/null || true)"
+    if [[ -n "$pinned" && "$pinned" != "$TOOLCHAIN" ]]; then
+        print_warning "v$VERSION is built with $TOOLCHAIN, and release builds use $pinned (.github/actions/setup-release-toolchain/versions.env): a release run's build of it is other bytes"
+    fi
 }
 
 # The release notes (GenerateReleaseNotes.js): what changed in the provider's
@@ -1152,11 +1183,13 @@ write_release_notes() {
 
     NOTES_FILE="$WORK_DIR/release-notes.md"
     PREVIOUS_TAG=""
+    describe_toolchain
     local -a args=(
         --version "$VERSION"
         --provider-dir "$PROVIDER_FRAMEWORK_DIR"
         --ref "v$VERSION"
         --output "$NOTES_FILE"
+        --toolchain "$TOOLCHAIN"
         --fallback-on-error
     )
 

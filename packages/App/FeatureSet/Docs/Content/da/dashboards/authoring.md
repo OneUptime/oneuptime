@@ -43,6 +43,8 @@ Skabelonerne, efter den kategori, vælgeren viser dem under:
 
 **Anbefalet** rummer Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard og Metrics Dashboard. En skabelon er et udgangspunkt, ikke et link: når dashboardet er oprettet, ændrer du det, som du vil. Skabelonen opdaterer det ikke senere.
 
+Hver infrastrukturskabelon viser kun sin egen slags ressource gennem sin variabels [Ressourcetype](/docs/dashboards/variables#telemetry-attribute): et Docker Swarm Dashboard i et projekt uden swarm forbliver tomt og siger det i stedet for at vise containere og logs fra alt andet.
+
 ## Rediger og gem
 
 Et dashboard åbner i visningstilstand, til læsning. For at ændre det åbner du menuen **⋯** i dets værktøjslinje og vælger **Rediger dashboard**. Værktøjslinjen viser **Redigerer** ved siden af navnet og bytter tidsintervallet og de andre kontroller ud med **Tilføj widget**, **Variabler**, **Annuller** og **Gem ændringer**, med en række nedenunder til dashboardets **Standardtidsrum** og **Standard automatisk opdatering**.

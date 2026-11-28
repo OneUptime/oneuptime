@@ -26,7 +26,8 @@ for chart in "$HELM_CHART_DIR" "$KUBERNETES_AGENT_CHART_DIR"; do
         continue
     fi
 
-    if helm unittest "$chart"; then
+    # The pinned helm-unittest, with --strict (harness_helm_unittest says why).
+    if harness_helm_unittest "$chart"; then
         pass "helm unittest (${chart_name})"
     else
         fail "helm unittest reported failing assertions for ${chart_name} (see the output above)"

@@ -201,5 +201,6 @@ Une question de fichiers garde dans le navigateur les fichiers que choisit la pe
 - [Créer un formulaire](/docs/forms/building): Les questions qui remplissent ces champs, les questions masquées et les modèles.
 - [Paramètres et automatisation des incidents](/docs/incidents/settings): Modèles d'incident et champs personnalisés.
 - [Notes, propriétaires et fil d'incident](/docs/incidents/notes-owners-and-feed): Notes privées, notes publiques et propriétaires.
+- [Suivre une soumission](/docs/forms/follow-ups): Les personnes qui envoient suivent leur demande, écrivent à votre équipe et ajoutent d'autres personnes.
 - [Partage et sécurité](/docs/forms/sharing-and-security): Qui peut soumettre, et à quelle fréquence.
 :::

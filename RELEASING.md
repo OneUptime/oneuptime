@@ -260,6 +260,26 @@ Keep `PrioritizeReleaseRuns.sh` running through it. The release is out when
 - Never re-run a release run from before 17.3.0: a re-run runs its own commit's
   scripts, and before 17.3.0 the provider's publish script uploaded a rebuild
   over a published release, which is how 14.3.0 to 17.2.0 broke (#11016).
+- A job re-run after the GitHub release was published changes nothing on the
+  release (#11466). A new run for the version, and "Re-run all jobs", stop at
+  `read-version`, which refuses a published version. But re-running one job
+  re-runs every job after it too, and so do `--failed` re-runs:
+  `infrastructure-agent-build`, `draft-github-release` and
+  `finalize-github-release` can run again against the published release. Then
+  `draft-github-release` warns that it is published and makes no draft, and
+  `finalize-github-release` attaches nothing and checks that the
+  infrastructure agent the run built is the one published: the checksums file
+  and every file it lists, byte for byte. A second build of the same commit is
+  the same bytes, so it is, and the `publish-infrastructure-agent-*` jobs go on
+  and publish only what apt, yum, Homebrew and winget lack. When the files
+  differ, `finalize-github-release` fails, and nothing is published anywhere
+  else with checksums the release does not hold.
+- Never re-run a job of a release run of 18.0.0 or earlier once its version
+  is published: that run's own `draft-github-release` turns the published
+  release back into a draft, and its `finalize-github-release` uploads the
+  run's build over the release's files, whose SHA-256s the package managers
+  recorded. A run whose `draft-github-release` has the step "Look for this
+  version's published release" is safe to re-run.
 - `docs-screens / Draw every docs screenshot again` failed: a docs screenshot
   no longer shows its page, and `push-release-tags` waits for it. Its log names
   the shots. That is a failure in the code: draw them again in the release

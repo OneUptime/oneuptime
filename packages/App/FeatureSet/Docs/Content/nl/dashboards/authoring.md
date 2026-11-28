@@ -43,6 +43,8 @@ De sjablonen, per categorie waaronder de kiezer ze toont:
 
 **Aanbevolen** bevat Monitor Dashboard, Incident Dashboard, Alert Dashboard, Kubernetes Dashboard, Hosts Dashboard en Metrics Dashboard. Een sjabloon is een beginpunt, geen koppeling: zodra het dashboard is gemaakt, pas je het aan zoals je wilt. Het sjabloon werkt het later niet meer bij.
 
+Elk infrastructuursjabloon toont alleen zijn eigen soort resource, via het [Resourcetype](/docs/dashboards/variables#telemetry-attribute) van zijn variabele: een Docker Swarm Dashboard in een project zonder swarm blijft leeg, en zegt dat, in plaats van de containers en logs van al het andere te tonen.
+
 ## Bewerken en opslaan
 
 Een dashboard opent in leesmodus. Om het te wijzigen, open je het menu **⋯** in de werkbalk en kies je **Dashboard bewerken**. De werkbalk toont **Bewerken** naast de naam, en vervangt het tijdsbereik en de andere bedieningselementen door **Widget toevoegen**, **Variabelen**, **Annuleren** en **Wijzigingen opslaan**, met daaronder een rij voor de **Standaardperiode** en **Standaard automatisch vernieuwen** van het dashboard.

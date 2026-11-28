@@ -40,7 +40,7 @@ Alles andere liegt unter **Weitere Felder**, eingeklappt, bis Sie es öffnen:
 | Feld | Was es bewirkt |
 | --- | --- |
 | **Jede Schicht dauert** | **1 Tag**, **1 Woche**, **2 Wochen** oder **1 Monat**, und **1 Woche**, solange Sie nichts ändern. Gefragt wird danach, sobald sich jemand abwechselt. Jede Person hat so lange Bereitschaft, dann übernimmt die nächste, zu der Uhrzeit, zu der der Plan angelegt wurde. |
-| **Zeitzone** | Die Zeitzone, in der Übergabezeiten und Bereitschaftsstunden gelten. Sie beginnt mit Ihrer eigenen. Jede Zeitzone folgt den aktuellen Regeln ihrer Region: America/Vancouver (British Columbia) bleibt ab 2026 das ganze Jahr auf UTC-7. |
+| **Zeitzone** | Die Zeitzone, in der Übergabezeiten und Bereitschaftsstunden gelten. Sie beginnt mit Ihrer eigenen. Wird sie später geändert, bleibt jede Uhrzeit, wie sie dasteht: Eine Übergabe um 09:00 bleibt um 09:00, und ein Zeitfenster am Montag bleibt am Montag. Jede Zeitzone folgt den aktuellen Regeln ihrer Region: America/Vancouver (British Columbia) bleibt ab 2026 das ganze Jahr auf UTC-7. |
 | **Beschreibung** | Notizen zum Plan. |
 | **Beschriftungen** | Beschriftungen, um den Plan zu finden und zu gruppieren. |
 
@@ -70,6 +70,8 @@ flowchart TB
 | **Rotieren alle** | Wie oft die Bereitschaft an die nächste Person der Ebene übergeht. |
 | **Erste Übergabezeit** | Die erste Übergabe an die nächste Person, zum Beginn oder danach. Spätere Übergaben folgen in jedem Rotationsintervall. |
 | **Einschränkungen** | Die Stunden, in denen die Ebene Bereitschaft hat (**Aktive Stunden**): **Keine Einschränkungen**, **Bestimmte Tageszeiten** oder **Bestimmte Zeiten der Woche**, in der Zeitzone des Plans. Außerhalb davon übernehmen die unteren Ebenen. |
+
+Ein Zeitfenster unter **Bestimmte Zeiten der Woche** reicht vom Tag und der Uhrzeit unter **Von:** bis zum Tag und der Uhrzeit unter **Bis:**, und die Tage, die es anzeigt, sind die Tage seiner Bereitschaft. Ein Zeitfenster, dessen Zeiten auf andere Tage fallen als die, mit denen es gespeichert wurde, etwa eines, das über die API mit auf andere Tage datierten Zeiten geschrieben wurde, oder eines, das gespeichert wurde, bevor sich die Zeitzone seines Plans geändert hat, ist auf seiner Ebene mit **Aktive Stunden zu prüfen** markiert und nennt darunter, mit welchen Tagen es gespeichert wurde. Es bleibt an den angezeigten Tagen in Bereitschaft, und **Ebene speichern** belässt es dort: Wählen Sie die gemeinten Tage, bevor Sie speichern.
 
 Mit aktiven Stunden ist jedes Zeitfenster eine eigene Schicht. Von 17:00 bis 07:00 ist eine Schicht, die um 07:00 am nächsten Morgen endet: in der **Zeitachse der Bereitschaftspläne**, in den E-Mails, in der mobilen App und in Slack und Microsoft Teams gleichermaßen, in der Zeitzone des Plans und auch in den Nächten der Zeitumstellung. Der Dienst einer Person umfasst alle ihre Zeitfenster bis zur nächsten Übergabe, und sie erfährt es je einmal: "You are now on-call", wenn das erste Zeitfenster ihres Dienstes beginnt, mit dem Ende dieses Fensters und dem Ende ihres Dienstes, und "You are no longer on-call", wenn sein letztes Zeitfenster endet, nicht bei jedem Zeitfenster. Um vor jedem Zeitfenster erinnert zu werden, wählen Sie eine Zeit unter **Vor Schichten erinnern**, wie [Kalender-Feeds](/docs/on-call/calendar-feeds#erinnerungen-und-neuzuweisungs-hinweise) beschreibt. Hat zwischen zwei ihrer Zeitfenster jemand anderes Bereitschaft, durch eine Überschreibung oder eine untere Ebene, oder gibt eine Änderung der Ebenen das nächste Zeitfenster jemand anderem, ist das eine Übergabe und wird als solche gemeldet. Ihre Bereitschaftszeit wird weiterhin Zeitfenster für Zeitfenster erfasst, und die Kanäle und der Feed der Bereitschaftsrichtlinie nennen weiterhin jedes Mal, wer Bereitschaft hat.
 
@@ -114,7 +116,10 @@ Bereitschaftspläne sind die Ressource `/api/on-call-duty-policy-schedule`; ihre
 - Wird ein Plan mit `firstLayerUsers` (einer Liste von Benutzer-IDs in der Reihenfolge, in der sie sich abwechseln) in seinen `miscDataProps` angelegt, erhält er seine erste Ebene wie im Dashboard: **Layer 1**, ab sofort in Bereitschaft, rund um die Uhr. `firstLayerRotation` gibt an, wie lange jede Schicht dauert, als Rotation wie `{"_type": "Recurring", "value": {"intervalType": "Week", "intervalCount": 1}}`; ohne sie eine Woche. Jeder Benutzer muss Mitglied des Projekts sein und der Aufrufer muss Ebenen anlegen dürfen, sonst wird der Plan nicht angelegt.
 - Ein Plan, der ohne sie angelegt wird, hat wie bisher keine Ebenen; die Plan-Ressource von Terraform sendet sie nicht.
 - Eine Ebene, die ohne `rotation` angelegt wird, übergibt jede Woche, und eine ohne `restrictionTimes` hat rund um die Uhr Bereitschaft, so wie eine neue Ebene im Dashboard beginnt.
-- Die `restrictionTimes` einer Ebene, ihre aktiven Stunden, nennen ihre Art unter `restrictionType`: `None` (rund um die Uhr Bereitschaft), `Daily` oder `Weekly`. `restictionType`, die ältere Schreibweise ohne das zweite "r", wird ebenfalls gelesen, und jede Antwort enthält die Art unter beiden, sodass ein Client oder eine Terraform-Konfiguration mit einer der beiden weiter funktioniert; gespeichert wird die Ebene mit `restrictionType`.
+- Die `restrictionTimes` einer Ebene, ihre aktiven Stunden, nennen ihre Art unter `restrictionType`: `None` (rund um die Uhr Bereitschaft), `Daily` oder `Weekly`. `restictionType`, die ältere Schreibweise ohne das zweite "r", wird ebenfalls gelesen, und jede Antwort enthält die Art unter beiden, sodass ein Client oder eine Terraform-Konfiguration mit einer der beiden weiter funktioniert; gespeichert wird die Ebene mit `restrictionType`. `restictionType` in Antworten ist veraltet: Antworten enthalten es bis zur ersten Hauptversion, die am oder nach dem 1. Juni 2027 erscheint, und Schreibvorgänge lesen es auch künftig immer. Schreiben Sie `restrictionType`.
+- Ein `Weekly`-Fenster, `{"startDay", "startTime", "endDay", "endTime"}`, hat an den Tagen Bereitschaft, die es nennt: Seine `startTime` und `endTime` müssen in der Zeitzone des Plans auf seinen `startDay` und `endDay` fallen. Ein Fenster, dessen Zeit auf einen anderen Tag fällt, wird mit einem `400` abgelehnt, der das Fenster nennt, den Tag, auf den seine Zeit fällt, und eine Zeit am genannten Tag, die stattdessen gesendet werden kann. Ein weggelassener Tag ist der Tag, auf den seine Zeit fällt. Ein Fenster, das genau so zurückgesendet wird, wie die Ebene es enthält, wird nicht erneut geprüft, sodass ein Client, der eine Ebene liest und zurückschreibt, deswegen nicht abgelehnt wird. In einem Plan ohne Zeitzone, dessen Zeiten in der des Servers gelesen werden, wird eine Zeit nur abgelehnt, wenn sie in keiner Zeitzone auf ihren Tag fällt.
+- Ein Upgrade von OneUptime verschiebt jedes gespeicherte Fenster, dessen Zeiten auf andere Tage fallen als die, die es nennt, und in keiner Zeitzone auf diese Tage, zur selben Uhrzeit auf die Tage, die es nennt, und ermittelt erneut, wer Bereitschaft hat. Ein Fenster, dessen Zeiten in einer anderen Zeitzone auf seine Tage fallen, wie es bei einem in einer anderen Zone festgelegten oder vor der Änderung der Zeitzone seines Plans gespeicherten Fenster sein kann, bleibt unverändert, sodass es weiter wie bisher alarmiert, und wird mit **Aktive Stunden zu prüfen** markiert.
+- Wird die `timezone` eines Plans von einer Zone in eine andere geändert, werden `startsAt`, `handOffTime` und `restrictionTimes` seiner Ebenen auf die Uhr der neuen Zone übertragen: Jeder dieser Werte zeigt dort dasselbe Datum, denselben Tag und dieselbe Uhrzeit wie zuvor. Erhält ein Plan seine erste Zeitzone oder wird sie ihm genommen, bleiben die Zeitpunkte, wie sie sind.
 - Ein Schreiben, das eine Ebene zu keiner Zeit in Bereitschaft ließe, wird mit einem `400` abgelehnt, der den Schlüssel nennt: eine Art, die fehlt, unbekannt ist oder unter den beiden Schreibweisen verschieden ist (eine Aktualisierung nimmt die, die von der aktuellen Art der Ebene abweicht); ein `Daily`-Fenster, dessen `startTime` und `endTime` keine Datums- und Uhrzeitangaben sind (`"09:00"` allein wird abgelehnt); eine `Weekly`-Einschränkung ohne `weeklyRestrictionTimes`; oder ein Fenster, das zur selben Zeit beginnt und endet. Eine `rotation`, deren `intervalType` nicht `Hour`, `Day`, `Week`, `Month` oder `Year` ist, wird ebenso abgelehnt.
 - Eine Ebene, die gespeichert wurde, bevor solche Schreibvorgänge abgelehnt wurden, und keine gelesene Art hatte, hatte nie Bereitschaft. Ein Upgrade von OneUptime liest jede solche Ebene nach den Stunden, die sie enthält, speichert sie so und ermittelt erneut, wer in ihrem Plan Bereitschaft hat, sodass ihre Personen von da an alarmiert und darüber benachrichtigt werden.
 - Eine Änderung an den Ebenen eines Plans und an den Personen darin, die über die API oder Terraform vorgenommen wird, wird als eine Änderung mitgeteilt: Wer Bereitschaft hat, wird ermittelt, sobald die Ebenen eine halbe Minute lang nicht geändert wurden, und wer in die Bereitschaft kommt, sie abgibt oder als Nächstes dran ist, erfährt es einmal, nicht einmal pro geschriebener Ebene oder Person. Alarme gehen an die Person, die die Ebenen in Bereitschaft setzen, sobald jede Änderung gespeichert ist.
@@ -155,6 +160,25 @@ curl -X POST https://oneuptime.com/api/on-call-duty-schedule-layer \
           "startTime": {"_type": "DateTime", "value": "2026-01-05T17:00:00+01:00"},
           "endTime": {"_type": "DateTime", "value": "2026-01-05T07:00:00+01:00"}
         }
+      }}
+    }
+  }'
+```
+
+```bash
+curl -X PUT https://oneuptime.com/api/on-call-duty-schedule-layer/<layer-id> \
+  -H "apikey: $ONEUPTIME_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "restrictionTimes": {"_type": "RestrictionTimes", "value": {
+        "restrictionType": "Weekly",
+        "weeklyRestrictionTimes": [{
+          "startDay": "Monday",
+          "startTime": {"_type": "DateTime", "value": "2026-01-05T09:00:00+01:00"},
+          "endDay": "Friday",
+          "endTime": {"_type": "DateTime", "value": "2026-01-09T17:00:00+01:00"}
+        }]
       }}
     }
   }'

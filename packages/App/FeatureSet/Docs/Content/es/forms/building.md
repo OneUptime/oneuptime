@@ -256,6 +256,7 @@ Un envío que supera un límite, omite una respuesta obligatoria o da una respue
 
 :::cards
 - [Lo que crea un envío](/docs/forms/on-submit): Cómo las respuestas y los ajustes Al enviar se convierten en un incidente o un evento de mantenimiento.
+- [Seguimiento de un envío](/docs/forms/follow-ups): Quienes envían siguen su solicitud, escriben a tu equipo y añaden a otras personas.
 - [Compartir y seguridad](/docs/forms/sharing-and-security): Compartir el enlace, un enlace para cada plantilla, y lo que los protege.
 - [Configuración y automatización de incidentes](/docs/incidents/settings): Campos personalizados y plantillas de incidente.
 :::

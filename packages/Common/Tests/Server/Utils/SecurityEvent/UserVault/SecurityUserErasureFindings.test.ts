@@ -29,11 +29,14 @@ import {
   DETECTION_SUMMARY_ATTRIBUTE,
 } from "../../../../../Types/SecurityEvent/DetectionFindingConstants";
 import {
+  ERASED_THREAT_INTEL_SEVERITY,
+  THREAT_CONFIDENCE_ATTRIBUTE,
   THREAT_FEED_NAME_ATTRIBUTE,
   THREAT_INDICATOR_ID_ATTRIBUTE,
   THREAT_INDICATOR_VALUE_ATTRIBUTE,
   isErasedIndicatorId,
 } from "../../../../../Types/SecurityEvent/ThreatIntelConstants";
+import { OcsfSeverityId } from "../../../../../Types/SecurityEvent/OcsfSeverity";
 import {
   getFindingUidPlaces,
   putFingerprintAt,
@@ -685,7 +688,7 @@ describe("the feed's indicator, out of a threat intel finding about the person (
     });
   });
 
-  test("the update sets both id places and the feed's own name, from the finding's own attribute", () => {
+  test("the update sets both id places and the feed's own name, from the finding's own attribute - and drops the indicator's score (#11447)", () => {
     const statement: Statement =
       SecurityUserErasureFindings.toUnnameFindingsStatement({
         projectId: PROJECT_ID,
@@ -695,15 +698,18 @@ describe("the feed's indicator, out of a threat intel finding about the person (
       });
 
     expect(statement.query).toMatch(
-      /, attributes = mapUpdate\(mapApply\(.*\), attributes\), map\(\{p\d+:String\}, \{p\d+:String\}, \{p\d+:String\}, \{p\d+:String\}\)\), attributeKeys = mapKeys\(mapUpdate\(/,
+      /, attributes = mapFilter\(\(keptKey, keptValue\) -> keptKey != \{p\d+:String\}, mapUpdate\(mapApply\(.*\), attributes\), map\(\{p\d+:String\}, \{p\d+:String\}, \{p\d+:String\}, \{p\d+:String\}\)\)\), attributeKeys = mapKeys\(mapFilter\(/,
     );
     expect(statement.query).toMatch(
-      /, ruleId = \{p\d+:String\}, ruleName = attributes\[\{p\d+:String\}\], eventUid = arrayStringConcat\(/,
+      /, ruleId = \{p\d+:String\}, ruleName = attributes\[\{p\d+:String\}\], severityName = \{p\d+:String\}, severityId = \{p\d+:Int32\}, eventUid = arrayStringConcat\(/,
     );
     expect(parameterValues(statement)).toEqual(
       expect.arrayContaining([
         THREAT_INDICATOR_ID_ATTRIBUTE,
         THREAT_FEED_NAME_ATTRIBUTE,
+        THREAT_CONFIDENCE_ATTRIBUTE,
+        ERASED_THREAT_INTEL_SEVERITY,
+        OcsfSeverityId[ERASED_THREAT_INTEL_SEVERITY],
         ERASED_ID,
       ]),
     );
@@ -724,7 +730,7 @@ describe("the feed's indicator, out of a threat intel finding about the person (
 
     expect(statement.query).toMatch(
       new RegExp(
-        `^ALTER TABLE \\S+\\.${EVENTS}Local ON CLUSTER '[^']+' UPDATE attributes = mapUpdate\\(attributes, map\\(\\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}\\)\\), attributeKeys = mapKeys\\(mapUpdate\\(attributes, map\\(`,
+        `^ALTER TABLE \\S+\\.${EVENTS}Local ON CLUSTER '[^']+' UPDATE attributes = mapFilter\\(\\(keptKey, keptValue\\) -> keptKey != \\{p\\d+:String\\}, mapUpdate\\(attributes, map\\(\\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}, \\{p\\d+:String\\}\\)\\)\\), attributeKeys = mapKeys\\(mapFilter\\(\\(keptKey, keptValue\\) -> keptKey != \\{p\\d+:String\\}, mapUpdate\\(attributes, map\\(`,
       ),
     );
     expect(statement.query).not.toContain("observables =");
@@ -732,6 +738,9 @@ describe("the feed's indicator, out of a threat intel finding about the person (
     expect(statement.query).not.toContain("eventUid =");
     expect(statement.query).toContain("ruleId = ");
     expect(statement.query).toContain("ruleName = attributes[");
+    // The score's severity, as an unscored indicator's match reads it (#11447).
+    expect(statement.query).toContain("severityName = ");
+    expect(statement.query).toContain("severityId = ");
   });
 
   test("never the indicator's id, its name, nor the person in what is sent", () => {
@@ -800,6 +809,169 @@ describe("the feed's indicator, out of a threat intel finding about the person (
     });
 
     jest.restoreAllMocks();
+  });
+
+  /*
+   * #11447: the feed keeps each indicator's score beside the address too,
+   * and the severity a match takes from it is a band of it: in a small feed
+   * whose addresses each have their own, either could point back at one.
+   */
+  describe("and the indicator's confidence (#11447)", () => {
+    // A finding #11230's erasure left: un-named, its indicator cut, its score and severity kept.
+    function cutBefore(
+      overrides: Partial<ErasureFindingRow> = {},
+    ): ErasureFindingRow {
+      return feedFinding({
+        observables: [TOKEN],
+        eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(TOKEN, DetectionFingerprintKind.ThreatIntel)}:1764000000123456789`,
+        indicatorValue: TOKEN,
+        isMarkedErased: true,
+        ruleId: ERASED_ID,
+        indicatorId: ERASED_ID,
+        ruleName: FEED_NAME,
+        confidence: "80",
+        severityName: "High",
+        ...overrides,
+      });
+    }
+
+    test("a finding about the person, erased now, loses the score with the indicator", () => {
+      const rewrite: FindingRewrite = planFindingRewrite(
+        feedFinding({ confidence: "80", severityName: "High" }),
+        NAMES,
+        CONTEXT,
+      )!;
+
+      expect(rewrite.indicator).toEqual({ id: ERASED_ID });
+      expect(rewrite.replacements).toHaveLength(1);
+    });
+
+    test("one an earlier erasure cut the indicator from, its score left, loses the score: filed again, the request finishes it", () => {
+      const rewrite: FindingRewrite | null = planFindingRewrite(
+        cutBefore(),
+        NAMES,
+        CONTEXT,
+      );
+
+      expect(rewrite).toEqual({
+        id: "a",
+        time: "1764000000000000001",
+        replacements: [],
+        indicator: { id: ERASED_ID },
+      });
+    });
+
+    test("its score alone, or its severity alone, is still a change", () => {
+      expect(
+        planFindingRewrite(
+          cutBefore({ severityName: ERASED_THREAT_INTEL_SEVERITY }),
+          NAMES,
+          CONTEXT,
+        )?.indicator,
+      ).toEqual({ id: ERASED_ID });
+      expect(
+        planFindingRewrite(cutBefore({ confidence: "" }), NAMES, CONTEXT)
+          ?.indicator,
+      ).toEqual({ id: ERASED_ID });
+      // An unscored indicator's "0" is a score the feed gave: it goes too.
+      expect(
+        planFindingRewrite(
+          cutBefore({
+            confidence: "0",
+            severityName: ERASED_THREAT_INTEL_SEVERITY,
+          }),
+          NAMES,
+          CONTEXT,
+        )?.indicator,
+      ).toEqual({ id: ERASED_ID });
+    });
+
+    test("one with neither left needs nothing more: running it again changes nothing", () => {
+      expect(
+        planFindingRewrite(
+          cutBefore({
+            confidence: "",
+            severityName: ERASED_THREAT_INTEL_SEVERITY,
+          }),
+          NAMES,
+          CONTEXT,
+        ),
+      ).toBeNull();
+      // A read that did not say its severity is no reason to change it.
+      expect(
+        planFindingRewrite(
+          cutBefore({ confidence: "", severityName: undefined }),
+          NAMES,
+          CONTEXT,
+        ),
+      ).toBeNull();
+    });
+
+    test("the feed's finding about another indicator keeps its score and severity, though the person is out of it", () => {
+      const address: string = "198.51.100.4";
+      const rewrite: FindingRewrite | null = planFindingRewrite(
+        feedFinding({
+          observables: [address, ALICE],
+          indicatorValue: address,
+          eventUid: `threat-intel:${FEED_ID}:threat-intel:${FEED_ID}:${keyed(address, DetectionFingerprintKind.ThreatIntel)}:1`,
+          ruleName: "Botnet node",
+          confidence: "95",
+          severityName: "Critical",
+        }),
+        NAMES,
+        CONTEXT,
+      );
+
+      expect(rewrite?.indicator).toBeUndefined();
+      expect(rewrite?.replacements).toHaveLength(1);
+    });
+
+    test("the read takes each finding's score and severity: constants of the finding, nothing of anybody", async () => {
+      jest.spyOn(SecurityEventService, "executeQuery").mockResolvedValue({
+        json: async () => {
+          return {
+            data: [
+              {
+                findingId: "a",
+                findingTime: "1764000000000000001",
+                observables: [TOKEN],
+                findingConfidence: "80",
+                findingSeverity: "High",
+              },
+            ],
+          };
+        },
+      } as never);
+
+      const rows: Array<ErasureFindingRow> =
+        await SecurityUserErasureFindings.readFindingsPage({
+          projectId: PROJECT_ID,
+          limit: 10,
+        });
+
+      expect(rows[0]).toMatchObject({ confidence: "80", severityName: "High" });
+
+      jest.restoreAllMocks();
+    });
+
+    test("a finding's score is dropped by key and its severity set to constants: the statement holds no score", () => {
+      const statement: Statement =
+        SecurityUserErasureFindings.toUnnameFindingsStatement({
+          projectId: PROJECT_ID,
+          mutation: batchFindingRewrites([
+            planFindingRewrite(cutBefore(), NAMES, CONTEXT)!,
+          ])[0]!,
+        });
+      const values: Array<unknown> = parameterValues(statement);
+
+      expect(values).toContain(THREAT_CONFIDENCE_ATTRIBUTE);
+      expect(values).toContain(ERASED_THREAT_INTEL_SEVERITY);
+      expect(values).toContain(OcsfSeverityId[ERASED_THREAT_INTEL_SEVERITY]);
+      // Nothing of the score: not the 80, not the High it earned.
+      expect(values).not.toContain("80");
+      expect(values).not.toContain("High");
+      expect(ERASED_THREAT_INTEL_SEVERITY).toBe("Medium");
+    });
   });
 });
 
@@ -932,7 +1104,7 @@ describe("what the erasure sends ClickHouse about the findings", () => {
 
     expect(first.query).toMatch(
       new RegExp(
-        `^SELECT _id AS findingId, toString\\(toUnixTimestamp64Nano\\(time\\)\\) AS findingTime, observables, eventUid AS findingUid, attributes\\[\\{p\\d+:String\\}\\] AS findingGroupValue, attributes\\[\\{p\\d+:String\\}\\] AS findingIndicatorValue, attributes\\[\\{p\\d+:String\\}\\] AS findingErased, ruleId AS findingRuleId, ruleName AS findingRuleName, attributes\\[\\{p\\d+:String\\}\\] AS findingIndicatorId, attributes\\[\\{p\\d+:String\\}\\] AS findingFeedName FROM \\S+\\.${EVENTS} WHERE projectId = \\{p\\d+:String\\} AND className = \\{p\\d+:String\\} AND vendorName = \\{p\\d+:String\\} ORDER BY time, _id LIMIT \\{p\\d+:Int32\\}$`,
+        `^SELECT _id AS findingId, toString\\(toUnixTimestamp64Nano\\(time\\)\\) AS findingTime, observables, eventUid AS findingUid, attributes\\[\\{p\\d+:String\\}\\] AS findingGroupValue, attributes\\[\\{p\\d+:String\\}\\] AS findingIndicatorValue, attributes\\[\\{p\\d+:String\\}\\] AS findingErased, ruleId AS findingRuleId, ruleName AS findingRuleName, attributes\\[\\{p\\d+:String\\}\\] AS findingIndicatorId, attributes\\[\\{p\\d+:String\\}\\] AS findingFeedName, attributes\\[\\{p\\d+:String\\}\\] AS findingConfidence, severityName AS findingSeverity FROM \\S+\\.${EVENTS} WHERE projectId = \\{p\\d+:String\\} AND className = \\{p\\d+:String\\} AND vendorName = \\{p\\d+:String\\} ORDER BY time, _id LIMIT \\{p\\d+:Int32\\}$`,
       ),
     );
     expect(first.query).not.toContain(`${EVENTS}Local`);

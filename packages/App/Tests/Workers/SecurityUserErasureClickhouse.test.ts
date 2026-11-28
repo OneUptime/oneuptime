@@ -89,6 +89,7 @@ jest.mock("Common/Server/Utils/AnalyticsDatabase/ClusterConfig", () => {
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import SecurityUserVault from "Common/Models/AnalyticsModels/SecurityUserVault";
+import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
@@ -157,6 +158,8 @@ import {
   THREAT_INDICATOR_ID_ATTRIBUTE,
   THREAT_INDICATOR_TYPE_ATTRIBUTE,
   THREAT_INDICATOR_VALUE_ATTRIBUTE,
+  ERASED_THREAT_INTEL_SEVERITY,
+  ocsfSeverityForConfidence,
 } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import ThreatIntelEnricher from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
 import SecurityUserVaultService, {
@@ -340,6 +343,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
   const vaultTable: string = `${database}.${new SecurityUserVault().tableName}`;
   const eventsTable: string = `${database}.${new SecurityEvent().tableName}`;
+  const indicatorsTable: string = `${database}.${new ThreatIntelIndicator().tableName}`;
 
   async function rowsOf(query: string): Promise<Array<JSONObject>> {
     const result: { json: () => Promise<unknown> } = await client.query({
@@ -767,8 +771,17 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       engine: "AggregatingMergeTree",
     });
     await createTable({ modelType: SecurityEvent, engine: "MergeTree" });
+    // A feed's indicators, which the enricher and the matcher read (#11447).
+    await createTable({
+      modelType: ThreatIntelIndicator,
+      engine: "ReplacingMergeTree",
+    });
 
-    for (const service of [SecurityUserVaultService, SecurityEventService]) {
+    for (const service of [
+      SecurityUserVaultService,
+      SecurityEventService,
+      ThreatIntelIndicatorService,
+    ]) {
       useTestDatabase(service as unknown as ServiceConnection);
     }
   });
@@ -794,7 +807,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
     SecurityUserVaultWriter.forgetWrites();
     SecurityEventsReadTelemetry.clearCache();
 
-    for (const table of [vaultTable, eventsTable]) {
+    for (const table of [vaultTable, eventsTable, indicatorsTable]) {
       await client.command({ query: `TRUNCATE TABLE ${table}` });
     }
 
@@ -3895,7 +3908,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
       async function feedFindingOf(value: string): Promise<JSONObject> {
         const rows: Array<JSONObject> = await rowsOf(
-          `SELECT ruleId, ruleName, eventUid, message, observables, attributes FROM ${eventsTable} WHERE className = '${DETECTION_FINDING_CLASS_NAME}' AND attributes['${THREAT_FEED_ID_ATTRIBUTE}'] = '${FEED_ID.toString()}' AND has(observables, '${value}')`,
+          `SELECT ruleId, ruleName, eventUid, message, observables, attributes, severityName, severityId FROM ${eventsTable} WHERE className = '${DETECTION_FINDING_CLASS_NAME}' AND attributes['${THREAT_FEED_ID_ATTRIBUTE}'] = '${FEED_ID.toString()}' AND has(observables, '${value}')`,
         );
 
         expect(rows).toHaveLength(1);
@@ -3951,7 +3964,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         );
       });
 
-      test("after it, nothing stored links the person to the feed's indicator: its id, its name and the address are out of every record of theirs", async () => {
+      test("after it, nothing stored links the person to the feed's indicator: its id, its name, its score and the address are out of every record of theirs", async () => {
         await seedFeedAboutPerson();
 
         const request: SecurityUserErasureRequest = await eraseAlice();
@@ -3972,10 +3985,15 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
             [THREAT_FEED_ID_ATTRIBUTE]: FEED_ID.toString(),
             [THREAT_FEED_NAME_ATTRIBUTE]: FEED_NAME,
             [THREAT_INDICATOR_TYPE_ATTRIBUTE]: "email-addr",
-            [THREAT_CONFIDENCE_ATTRIBUTE]: "80",
             [FINDING_USER_ERASED_ATTRIBUTE]: USER_ERASED_ON_REQUEST,
           }),
         );
+        // Nor the indicator's score, nor the severity it gave the finding (#11447).
+        expect(
+          attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE],
+        ).toBeUndefined();
+        expect(finding["severityName"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
+        expect(Number(finding["severityId"])).toBe(3);
         // The same token its id's fingerprint is: the finding still points at its alert.
         expect(String(finding["eventUid"])).toContain(
           erasedIdOf(ALICE_TOKEN).slice("[INDICATOR:".length, -1),
@@ -3992,9 +4010,11 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
             [ENRICHMENT_FEED_ATTRIBUTE]: FEED_NAME,
             [ENRICHMENT_FEED_ID_ATTRIBUTE]: FEED_ID.toString(),
             [ENRICHMENT_INDICATOR_TYPE_ATTRIBUTE]: "email-addr",
-            [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "80",
           }),
         );
+        expect(
+          attributesOf(named)[ENRICHMENT_CONFIDENCE_ATTRIBUTE],
+        ).toBeUndefined();
 
         const actedOn: JSONObject = await stampedEventOf(
           "alice-acted-on-stamped",
@@ -4020,16 +4040,26 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
           }),
         );
 
-        // Somebody else's finding and stamp keep the feed's indicator.
+        // Somebody else's finding and stamp keep the feed's indicator, and its score.
         const bobFinding: JSONObject = await feedFindingOf(BOB);
 
         expect(bobFinding["ruleId"]).toBe(BOB_STIX_ID);
+        expect(attributesOf(bobFinding)[THREAT_CONFIDENCE_ATTRIBUTE]).toBe(
+          "60",
+        );
         expect(attributesOf(await stampedEventOf("bob-stamped"))).toEqual(
           expect.objectContaining({
             [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: BOB,
             [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: BOB_STIX_ID,
+            [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "60",
           }),
         );
+        // So does the worse address's stamp on the person's event.
+        expect(
+          attributesOf(await stampedEventOf("alice-from-a-bad-address"))[
+            ENRICHMENT_CONFIDENCE_ATTRIBUTE
+          ],
+        ).toBe("90");
 
         // Nowhere: the person's indicator, its name, the address.
         const after: string = await everything();
@@ -4138,7 +4168,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
               return (
                 command.includes("ruleId =") ||
                 command.startsWith(
-                  "UPDATE attributes = mapUpdate(attributes, map(",
+                  "UPDATE attributes = mapFilter((stampKey, stampValue)",
                 )
               );
             }).length;
@@ -4174,6 +4204,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
           [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: STIX_ID,
           [ENRICHMENT_FEED_ATTRIBUTE]: FEED_NAME,
           [ENRICHMENT_FEED_ID_ATTRIBUTE]: FEED_ID.toString(),
+          [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "80",
         };
 
         await writeEvents([
@@ -4192,6 +4223,19 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
               ...erasedAttributes,
               [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: BAD_ADDRESS,
               [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: ADDRESS_STIX_ID,
+              [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "90",
+            },
+          },
+          // As #11230's erasure left a stamp: the token, the erased id, and the score (#11447).
+          {
+            uid: "alice-erased-by-11230",
+            principalUser: ALICE_TOKEN,
+            observables: [ALICE_TOKEN, ADDRESS],
+            attributes: {
+              ...erasedAttributes,
+              [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: ALICE_TOKEN,
+              [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: erasedIdOf(ALICE_TOKEN),
+              [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "80",
             },
           },
         ]);
@@ -4210,6 +4254,11 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         expect(attributesOf(finding)[THREAT_INDICATOR_ID_ATTRIBUTE]).toBe(
           erasedIdOf(ALICE_TOKEN),
         );
+        // And the score and severity an earlier erasure left (#11447).
+        expect(
+          attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE],
+        ).toBeUndefined();
+        expect(finding["severityName"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
 
         expect(
           attributesOf(await stampedEventOf("alice-erased-before")),
@@ -4225,8 +4274,23 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
           expect.objectContaining({
             [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: BAD_ADDRESS,
             [ENRICHMENT_INDICATOR_ID_ATTRIBUTE]: ADDRESS_STIX_ID,
+            // The address's own score stays: it is no score of the person's.
+            [ENRICHMENT_CONFIDENCE_ATTRIBUTE]: "90",
           }),
         );
+
+        // The stamps of hers lose the score: the one in clear, and the one #11230 cut (#11447).
+        for (const uid of ["alice-erased-before", "alice-erased-by-11230"]) {
+          const stamp: Record<string, string> = attributesOf(
+            await stampedEventOf(uid),
+          );
+
+          expect(stamp[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]).toBe(ALICE_TOKEN);
+          expect(stamp[ENRICHMENT_INDICATOR_ID_ATTRIBUTE]).toBe(
+            erasedIdOf(ALICE_TOKEN),
+          );
+          expect(stamp[ENRICHMENT_CONFIDENCE_ATTRIBUTE]).toBeUndefined();
+        }
 
         const after: string = await everything();
 
@@ -4256,7 +4320,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
               losing.isOn &&
               query.startsWith("ALTER TABLE") &&
               query.includes(
-                "UPDATE attributes = mapUpdate(attributes, map(",
+                "UPDATE attributes = mapFilter((stampKey, stampValue)",
               ) &&
               query.includes(" _id IN ") &&
               !query.includes("className")
@@ -4313,6 +4377,459 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
             ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE
           ],
         ).toBe(ALICE_TYPED_TOKEN);
+      });
+    });
+
+    /*
+     * #11447: an internal STIX feed of a handful of accounts, each with a
+     * score of its own, one in each band a score gives - the feed's own
+     * rows, in ClickHouse. The real enricher stamps the accounts' events
+     * from those rows, the real matcher's join finds the matches and
+     * writes the findings, and the real worker erases two of the people.
+     *
+     * Whoever may read the feed's indicators may read its findings. So
+     * what a finding keeps of the feed is put to the feed's rows, as such
+     * a reader would: before the erasure, the score names one address, and
+     * so does the band of it the finding's severity is - a band is no
+     * safer than the score here. After it, the finding keeps the feed and
+     * the indicator's type, and no score: those name every address the
+     * feed lists, and two erased people's findings say the same.
+     */
+    describe("the indicator's confidence, in a small feed whose addresses each have their own (#11447)", () => {
+      const SMALL_FEED_ID: ObjectID = new ObjectID(
+        "11447000-0000-4000-8000-0000000000f1",
+      );
+      const SMALL_FEED_NAME: string = "Acme Internal Watchlist";
+      const CAROL_TOKEN: string = tokenOf(CAROL);
+      // Each account's own score: Critical, High and Medium as a severity reads them.
+      const LISTED: ReadonlyArray<{
+        address: string;
+        token: string;
+        stixId: string;
+        confidence: number;
+      }> = [
+        {
+          address: ALICE,
+          token: ALICE_TOKEN,
+          stixId: "indicator--a11ce000-0000-4000-8000-000000011447",
+          confidence: 95,
+        },
+        {
+          address: BOB,
+          token: BOB_TOKEN,
+          stixId: "indicator--b0b00000-0000-4000-8000-000000011447",
+          confidence: 75,
+        },
+        {
+          address: CAROL,
+          token: CAROL_TOKEN,
+          stixId: "indicator--ca401000-0000-4000-8000-000000011447",
+          confidence: 45,
+        },
+      ];
+
+      // The band a score falls in, as a finding's severity is it (ocsfSeverityForConfidence).
+      const BAND_OF_CONFIDENCE: string =
+        "multiIf(confidence >= 90, 'Critical', confidence >= 70, 'High', confidence >= 40, 'Medium', 'Low')";
+
+      function smallFeed(): ThreatIntelFeed {
+        const threatIntelFeed: ThreatIntelFeed = new ThreatIntelFeed();
+
+        threatIntelFeed.id = SMALL_FEED_ID;
+        threatIntelFeed.projectId = PROJECT_ID;
+        threatIntelFeed.name = SMALL_FEED_NAME;
+
+        return threatIntelFeed;
+      }
+
+      // The feed's own rows, as its poller keeps them: each address in clear beside its score.
+      async function listTheAccounts(): Promise<void> {
+        const listedFrom: Date = OneUptimeDate.addRemoveDays(new Date(), -7);
+        const listedUntil: Date = OneUptimeDate.addRemoveDays(new Date(), 30);
+
+        await client.insert({
+          table: indicatorsTable,
+          format: "JSONEachRow",
+          values: LISTED.map((listed: (typeof LISTED)[number]): JSONObject => {
+            return {
+              projectId: PROJECT_ID.toString(),
+              feedId: SMALL_FEED_ID.toString(),
+              feedName: SMALL_FEED_NAME,
+              stixId: listed.stixId,
+              indicatorType: "email-addr",
+              indicatorValue: listed.address,
+              indicatorName: "",
+              confidence: listed.confidence,
+              stixLabels: ["watchlist"],
+              validFrom: OneUptimeDate.toClickhouseDateTime64(listedFrom),
+              validUntil: OneUptimeDate.toClickhouseDateTime64(listedUntil),
+              revoked: false,
+              version: 1,
+              retentionDate: OneUptimeDate.toClickhouseDateTime(
+                OneUptimeDate.addRemoveDays(listedUntil, 1),
+              ).slice(0, 10),
+            };
+          }),
+          clickhouse_settings: { wait_for_async_insert: 1 },
+        });
+      }
+
+      /*
+       * Each account's sign-ins, as a scan stores them: the vault names the
+       * user behind the token, and the real enricher stamps the event from
+       * the feed's rows.
+       */
+      async function signIns(): Promise<void> {
+        await writeVault(
+          PROJECT_ID,
+          LISTED.map((listed: (typeof LISTED)[number]) => {
+            return { token: listed.token, user: listed.address };
+          }),
+        );
+        ThreatIntelEnricher.clearCaches();
+
+        const normalized: Array<NormalizedSecurityEvent> = LISTED.map(
+          (listed: (typeof LISTED)[number]): NormalizedSecurityEvent => {
+            const stored: {
+              principalUser?: string;
+              observables: Array<string>;
+              attributes: JSONObject;
+            } = {
+              principalUser: listed.token,
+              observables: [listed.token, ADDRESS],
+              attributes: {
+                [SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal].hidden]:
+                  USER_HIDDEN_BY_SCRUB_RULE,
+                [SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal].scrubbed]:
+                  listed.token,
+                [SCRUBBED_USER_ATTRIBUTES[ScrubbedUserRole.Principal].in]:
+                  "log",
+              },
+            };
+
+            nameHashedEventUser(stored, {
+              role: ScrubbedUserRole.Principal,
+              hashed: listed.token,
+              named: listed.address,
+            });
+
+            return stored as unknown as NormalizedSecurityEvent;
+          },
+        );
+
+        await ThreatIntelEnricher.enrichNormalizedEvents({
+          projectId: PROJECT_ID,
+          events: normalized,
+        });
+
+        await writeEvents(
+          normalized.map(
+            (event: NormalizedSecurityEvent, index: number): EventSeed => {
+              return {
+                uid: `small-feed-${index}`,
+                principalUser: event.principalUser,
+                observables: event.observables,
+                attributes: event.attributes as Record<string, string>,
+              };
+            },
+          ),
+        );
+      }
+
+      // The real matcher's join over the events and the feed's rows, and its findings.
+      async function matchTheFeed(): Promise<void> {
+        const matchedGroups: Array<IndicatorMatchGroup> =
+          await ThreatIntelIndicatorService.findIndicatorMatches({
+            projectId: PROJECT_ID,
+            feedId: SMALL_FEED_ID,
+            startTime: OneUptimeDate.addRemoveMinutes(new Date(), -60),
+            endTime: OneUptimeDate.addRemoveMinutes(new Date(), 1),
+            maxGroups: 100,
+          });
+
+        expect(
+          matchedGroups
+            .map((group: IndicatorMatchGroup): string => {
+              return `${group.indicatorValue}:${group.confidence}`;
+            })
+            .sort(),
+        ).toEqual([`${ALICE}:95`, `${BOB}:75`, `${CAROL}:45`].sort());
+
+        await matcher.writeThreatIntelFindings({
+          feed: smallFeed(),
+          matchedGroups,
+        });
+        await findingsWritten(LISTED.length);
+      }
+
+      async function smallFeedFindingOf(value: string): Promise<JSONObject> {
+        const rows: Array<JSONObject> = await rowsOf(
+          `SELECT ruleId, attributes, severityName, severityId FROM ${eventsTable} WHERE className = '${DETECTION_FINDING_CLASS_NAME}' AND attributes['${THREAT_FEED_ID_ATTRIBUTE}'] = '${SMALL_FEED_ID.toString()}' AND has(observables, '${value}')`,
+        );
+
+        expect(rows).toHaveLength(1);
+
+        return rows[0]!;
+      }
+
+      /*
+       * The addresses the feed lists that fit what a finding keeps of it, as
+       * a reader of the feed's indicators would put it to them: the feed, the
+       * indicator's type and - where the finding keeps one - its score, or
+       * the band its severity is.
+       */
+      async function addressesFitting(data: {
+        finding: JSONObject;
+        by: "confidence" | "band" | "kept";
+      }): Promise<Array<string>> {
+        const attributes: Record<string, string> = attributesOf(data.finding);
+        const conditions: Array<string> = [
+          `projectId = '${PROJECT_ID.toString()}'`,
+          `feedId = '${attributes[THREAT_FEED_ID_ATTRIBUTE]}'`,
+          `indicatorType = '${attributes[THREAT_INDICATOR_TYPE_ATTRIBUTE]}'`,
+        ];
+        const confidence: string | undefined =
+          attributes[THREAT_CONFIDENCE_ATTRIBUTE];
+
+        if (data.by === "confidence") {
+          conditions.push(`confidence = ${Number(confidence)}`);
+        }
+
+        if (data.by === "band") {
+          conditions.push(
+            `${BAND_OF_CONFIDENCE} = '${String(data.finding["severityName"])}'`,
+          );
+        }
+
+        // What it keeps: its score where it has one; its band where it is the score's.
+        if (data.by === "kept" && confidence !== undefined) {
+          conditions.push(`confidence = ${Number(confidence)}`);
+        }
+
+        return (
+          await rowsOf(
+            `SELECT indicatorValue FROM ${indicatorsTable} WHERE ${conditions.join(" AND ")} ORDER BY indicatorValue`,
+          )
+        ).map((row: JSONObject): string => {
+          return String(row["indicatorValue"]);
+        });
+      }
+
+      async function erase(user: string): Promise<SecurityUserErasureRequest> {
+        const filedAt: Date = new Date();
+        const request: SecurityUserErasureRequest = fileRequest({
+          user,
+          requestedAt: filedAt,
+        });
+
+        await SecurityUserErasure.processOpenRequests(
+          new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 1000),
+        );
+        await mutationsApplied();
+        await runUntilChecked(
+          filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000,
+        );
+
+        return request;
+      }
+
+      async function seedTheSmallFeed(): Promise<void> {
+        await listTheAccounts();
+        await signIns();
+        await matchTheFeed();
+      }
+
+      test("before the erasure, the person's finding names one address the feed lists, by its score and by the band its severity is", async () => {
+        await seedTheSmallFeed();
+
+        const finding: JSONObject = await smallFeedFindingOf(ALICE);
+
+        expect(attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE]).toBe("95");
+        expect(finding["severityName"]).toBe(ocsfSeverityForConfidence(95));
+        expect(await addressesFitting({ finding, by: "confidence" })).toEqual([
+          ALICE,
+        ]);
+        expect(await addressesFitting({ finding, by: "band" })).toEqual([
+          ALICE,
+        ]);
+
+        // The enricher stamped the person's event from the feed's row, score and all.
+        const stamped: JSONObject = await eventOf("small-feed-0");
+
+        expect(attributesOf(stamped)[ENRICHMENT_CONFIDENCE_ATTRIBUTE]).toBe(
+          "95",
+        );
+      });
+
+      test("a band is no safer than the score: each address's score is in a band of its own, so each band names one address", async () => {
+        await seedTheSmallFeed();
+
+        for (const listed of LISTED) {
+          const finding: JSONObject = await smallFeedFindingOf(listed.address);
+
+          expect(finding["severityName"]).toBe(
+            ocsfSeverityForConfidence(listed.confidence),
+          );
+          expect(await addressesFitting({ finding, by: "band" })).toEqual([
+            listed.address,
+          ]);
+        }
+      });
+
+      test("after it, the person's finding and stamps keep the feed and the type, no score, and the severity every erased match reads: they fit every address the feed lists", async () => {
+        await seedTheSmallFeed();
+
+        const request: SecurityUserErasureRequest = await erase(ALICE);
+
+        expect(stored(request).status).toBe(
+          SecurityUserErasureRequestStatus.Completed,
+        );
+
+        const finding: JSONObject = await smallFeedFindingOf(ALICE_TOKEN);
+
+        expect(attributesOf(finding)).toEqual(
+          expect.objectContaining({
+            [THREAT_FEED_ID_ATTRIBUTE]: SMALL_FEED_ID.toString(),
+            [THREAT_FEED_NAME_ATTRIBUTE]: SMALL_FEED_NAME,
+            [THREAT_INDICATOR_TYPE_ATTRIBUTE]: "email-addr",
+            [FINDING_USER_ERASED_ATTRIBUTE]: USER_ERASED_ON_REQUEST,
+          }),
+        );
+        expect(
+          attributesOf(finding)[THREAT_CONFIDENCE_ATTRIBUTE],
+        ).toBeUndefined();
+        expect(finding["severityName"]).toBe(ERASED_THREAT_INTEL_SEVERITY);
+        expect(await addressesFitting({ finding, by: "kept" })).toEqual(
+          [ALICE, BOB, CAROL].sort(),
+        );
+
+        // The event the enricher stamped: the feed and the type, no score.
+        const stamped: JSONObject = await eventOf("small-feed-0");
+
+        expect(attributesOf(stamped)).toEqual(
+          expect.objectContaining({
+            [ENRICHMENT_FEED_ID_ATTRIBUTE]: SMALL_FEED_ID.toString(),
+            [ENRICHMENT_INDICATOR_TYPE_ATTRIBUTE]: "email-addr",
+            [ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE]: ALICE_TOKEN,
+          }),
+        );
+        expect(
+          attributesOf(stamped)[ENRICHMENT_CONFIDENCE_ATTRIBUTE],
+        ).toBeUndefined();
+
+        // The others the feed lists keep theirs: their own matches, never erased.
+        for (const other of [BOB, CAROL]) {
+          const kept: JSONObject = await smallFeedFindingOf(other);
+
+          expect(attributesOf(kept)[THREAT_CONFIDENCE_ATTRIBUTE]).toBe(
+            String(
+              LISTED.find((listed: (typeof LISTED)[number]): boolean => {
+                return listed.address === other;
+              })!.confidence,
+            ),
+          );
+        }
+
+        // No value of the person's says 95, nor the Critical it earned.
+        const values: Array<string> = [
+          ...Object.values(attributesOf(finding)),
+          ...Object.values(attributesOf(stamped)),
+          String(finding["severityName"]),
+        ];
+
+        expect(values).not.toContain("95");
+        expect(values).not.toContain("Critical");
+      });
+
+      test("two erased people's findings say the same of the feed: nothing tells them apart", async () => {
+        await seedTheSmallFeed();
+        await erase(ALICE);
+        await erase(CAROL);
+
+        // What a finding keeps of the feed's indicator, beside the person's token.
+        const keptOf: (finding: JSONObject) => JSONObject = (
+          finding: JSONObject,
+        ): JSONObject => {
+          const attributes: Record<string, string> = attributesOf(finding);
+
+          return {
+            feedId: attributes[THREAT_FEED_ID_ATTRIBUTE],
+            feedName: attributes[THREAT_FEED_NAME_ATTRIBUTE],
+            indicatorType: attributes[THREAT_INDICATOR_TYPE_ATTRIBUTE],
+            confidence: attributes[THREAT_CONFIDENCE_ATTRIBUTE],
+            severityName: finding["severityName"],
+            severityId: Number(finding["severityId"]),
+          };
+        };
+        const alice: JSONObject = keptOf(await smallFeedFindingOf(ALICE_TOKEN));
+        const carol: JSONObject = keptOf(await smallFeedFindingOf(CAROL_TOKEN));
+
+        expect(alice).toEqual(carol);
+        expect(alice).toEqual({
+          feedId: SMALL_FEED_ID.toString(),
+          feedName: SMALL_FEED_NAME,
+          indicatorType: "email-addr",
+          confidence: undefined,
+          severityName: ERASED_THREAT_INTEL_SEVERITY,
+          severityId: 3,
+        });
+      });
+
+      test("erasing again changes nothing more, and nothing the erasure sends holds a score, a band or the person", async () => {
+        await seedTheSmallFeed();
+        await erase(ALICE);
+
+        const once: string = JSON.stringify(
+          await rowsOf(
+            `SELECT * FROM ${eventsTable} WHERE projectId = '${PROJECT_ID.toString()}' ORDER BY _id`,
+          ),
+        );
+        const windowStart: Date = new Date();
+
+        await erase(ALICE);
+
+        expect(
+          JSON.stringify(
+            await rowsOf(
+              `SELECT * FROM ${eventsTable} WHERE projectId = '${PROJECT_ID.toString()}' ORDER BY _id`,
+            ),
+          ),
+        ).toBe(once);
+
+        const mutations: Array<JSONObject> = await rowsOf(
+          `SELECT command FROM system.mutations WHERE database = '${database}'`,
+        );
+        const scoreDrops: Array<string> = mutations
+          .map((row: JSONObject): string => {
+            return String(row["command"]);
+          })
+          .filter((command: string): boolean => {
+            return command.includes("mapFilter(");
+          });
+
+        // The finding's and the stamps': by the score's key, to constants.
+        expect(scoreDrops.length).toBeGreaterThan(0);
+
+        for (const command of scoreDrops) {
+          // The score as a number of its own - a time's nanoseconds may hold its digits.
+          expect(command).not.toMatch(/(^|[^0-9])95([^0-9]|$)/);
+          expect(command).not.toContain("Critical");
+          expect(command.toLowerCase()).not.toContain("alice");
+          expect(command).not.toContain("indicator--");
+        }
+
+        await client.command({ query: "SYSTEM FLUSH LOGS" });
+
+        const logged: Array<JSONObject> = await rowsOf(
+          `SELECT query FROM system.query_log WHERE event_time_microseconds >= fromUnixTimestamp64Micro(toInt64(${windowStart.getTime() * 1000})) AND has(databases, '${database}')`,
+        );
+
+        for (const row of logged) {
+          const text: string = String(row["query"]).toLowerCase();
+
+          expect(text).not.toContain("alice");
+          expect(text).not.toContain("indicator--a11ce");
+        }
       });
     });
   });
