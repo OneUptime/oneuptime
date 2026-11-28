@@ -67357,7 +67357,7 @@
   "Connect Xen Orchestra": "Connecter Xen Orchestra",
   "Delta": "Delta",
   "Event Read Status": "État de lecture des événements",
-  "Event State": "État des événements",
+  "Alarm and Backup Reading Progress": "Progression de la lecture des alarmes et des sauvegardes",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "Tout ce qui est arrivé à ce pool XCP-ng - comment et pourquoi il a été créé, à qui il appartient, ce que XAPI et Xen Orchestra en ont dit, et chaque modification depuis.",
   "External authentication did not start on a host": "L'authentification externe n'a pas démarré sur un hôte",
   "External authentication differs across the pool": "L'authentification externe diffère au sein du pool",
@@ -67789,8 +67789,8 @@
   "{{rule}} could not be turned off": "Impossible de désactiver {{rule}}",
   "{{rule}} is off.": "La règle {{rule}} est désactivée.",
   "{{rule}} is on.": "La règle {{rule}} est activée.",
-  "A Project Admin marked {{tool}} read-only, but {{server}} has changed it since, so OneUptime asks first.": "Un administrateur du projet a marqué {{tool}} en lecture seule, mais {{server}} l'a modifié depuis, donc OneUptime demande d'abord.",
-  "A Project Admin's word that one tool of an external MCP server only reads, when the server does not say. OneUptime AI then calls the tool without asking, until the server changes it.": "L'assurance donnée par un administrateur du projet qu'un outil d'un serveur MCP externe ne fait que lire, quand le serveur ne le précise pas. OneUptime AI appelle alors l'outil sans demander, jusqu'à ce que le serveur le modifie.",
+  "A Project Admin marked {{tool}} read-only, but {{server}} has changed it since, so OneUptime asks first.": "Un Administrateur du projet a marqué {{tool}} en lecture seule, mais {{server}} l'a modifié depuis, donc OneUptime demande d'abord.",
+  "A Project Admin's word that one tool of an external MCP server only reads, when the server does not say. OneUptime AI then calls the tool without asking, until the server changes it.": "L'assurance donnée par un Administrateur du projet qu'un outil d'un serveur MCP externe ne fait que lire, quand le serveur ne le précise pas. OneUptime AI appelle alors l'outil sans demander, jusqu'à ce que le serveur le modifie.",
   "Can't be marked read-only: it runs whatever its {{word}} argument says.": "Ne peut pas être marqué en lecture seule : il exécute tout ce que dit son argument {{word}}.",
   "Can't be marked read-only: its {{argument}} argument can ask it to “{{word}}”.": "Ne peut pas être marqué en lecture seule : son argument {{argument}} peut lui demander « {{word}} ».",
   "Can't be marked read-only: its {{word}} argument can make it change things.": "Ne peut pas être marqué en lecture seule : son argument {{word}} peut l'amener à modifier des éléments.",
@@ -67823,7 +67823,7 @@
   "You do not have permission to mark tools read-only.": "Vous n'avez pas l'autorisation de marquer des outils en lecture seule.",
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Votre nom et l'heure sont enregistrés. Si le serveur modifie cet outil, le marquage cesse de s'appliquer jusqu'à ce que quelqu'un le marque de nouveau.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} l'a marqué en lecture seule le {{date}}, mais le serveur l'a modifié depuis. Jusqu'à ce que quelqu'un le marque de nouveau, il compte comme un outil qui peut modifier des éléments.",
-  "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} n'indique pas si {{tool}} modifie quelque chose, et aucun administrateur du projet ne l'a marqué en lecture seule, donc OneUptime demande d'abord.",
+  "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} n'indique pas si {{tool}} modifie quelque chose, et aucun Administrateur du projet ne l'a marqué en lecture seule, donc OneUptime demande d'abord.",
   "{{tool}} marked read-only": "{{tool}} marqué en lecture seule",
   "AI agents have no page in the dashboard: rename one with the API or Terraform.": "Les agents IA n'ont pas de page dans le tableau de bord : renommez-en un via l'API ou Terraform.",
   "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Un autre élément de type {{kind}} de ce projet porte ce nom, si bien que les sélecteurs ne permettent pas de les distinguer. Ouvrez chacun d'eux pour voir lequel est lequel, puis renommez-en un.",
@@ -67831,5 +67831,7 @@
   "Same name as another {{kind}}": "Même nom qu'un autre élément de type {{kind}}",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} portent le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
   "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
-  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un."
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} porte le même nom qu'un autre élément de type {{kind}}, et les sélecteurs ne permettent pas de les distinguer. Ouvrez chaque élément pour voir lequel est lequel, puis renommez-en un.",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "Résolue par OneUptime : le trimestre au cours duquel cette alerte de budget cloud a été déclenchée est terminé.",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "Résolue par OneUptime : l'année au cours de laquelle cette alerte de budget cloud a été déclenchée est terminée."
 }

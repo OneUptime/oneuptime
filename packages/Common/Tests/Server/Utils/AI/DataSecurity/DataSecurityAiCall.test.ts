@@ -13,6 +13,7 @@ import AIService, {
   AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
   AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
   AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE,
+  AI_DATA_SECURITY_RULE_DRAFT_FEATURE,
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogRequest,
@@ -317,6 +318,12 @@ describe("what every Data Security call keeps", () => {
       [DataSecurityAiFeature.DescribeDataType]:
         AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
       /*
+       * A residency, owner or label rule from a person's sentence, through
+       * Ask AI or the MCP server (#10378): asked for, so not autonomous.
+       */
+      [DataSecurityAiFeature.DraftRuleFromSentence]:
+        AI_DATA_SECURITY_RULE_DRAFT_FEATURE,
+      /*
        * An exposure's write-up (#10377): on its own it is autonomous, so
        * budgeted; when a person asks, a label of its own.
        */
@@ -522,6 +529,8 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.ProjectProvider,
       // The company's own data types (#10371), drafted and described: the one call.
       DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      // A rule from a person's sentence (#10378): the one call too.
       DataSecurityAiModelSource.ProjectProvider,
       // A service's telemetry leaks (#10367): the coding agent, as Fix with AI's.
       DataSecurityAiModelSource.CodeAgent,

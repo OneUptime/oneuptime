@@ -45,6 +45,7 @@ import UnisphereClient, {
   toText,
 } from "./UnisphereClient";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import StorageArrayCollectionErrorCode from "Common/Types/StorageArray/Collection/StorageArrayCollectionErrorCode";
 import {
   STORAGE_ARRAY_COLLECTION_MAX_PAYLOAD_BYTES,
@@ -226,7 +227,11 @@ export const VOLUME_METRICS: ReadonlyArray<string> = [
  * oldest out first; keyed by the server, since an alert id is Unisphere's.
  */
 const MAX_CACHED_ALERTS: number = 5000;
-const alertCache: Map<string, JSONObject> = new Map();
+// Full, it lets its oldest go (OldestKeyMap), in constant time however it churns.
+const alertCache: OldestKeyMap<string, JSONObject> = new OldestKeyMap<
+  string,
+  JSONObject
+>();
 
 function cacheAlert(key: string, alert: JSONObject): void {
   if (alertCache.has(key)) {
@@ -234,7 +239,7 @@ function cacheAlert(key: string, alert: JSONObject): void {
   }
   alertCache.set(key, alert);
   while (alertCache.size > MAX_CACHED_ALERTS) {
-    const oldest: string | undefined = alertCache.keys().next().value;
+    const oldest: string | undefined = alertCache.oldestKey();
     if (oldest === undefined) {
       break;
     }

@@ -110,8 +110,7 @@ const XcpNgMissingPatchesCard: FunctionComponent<ComponentProps> = (
           <p className="text-sm text-gray-500">
             {translator.translateText(
               "Xen Orchestra counted them without naming them: its Patches tab lists each one.",
-            ) ||
-              "Xen Orchestra counted them without naming them: its Patches tab lists each one."}
+            )}
           </p>
         )}
       </Card>

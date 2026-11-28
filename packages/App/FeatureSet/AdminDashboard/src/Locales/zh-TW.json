@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "刪除 IoT 裝置群也會刪除其裝置登錄，已登錄的裝置將無法再登入。",
   "Deleting a database also deletes the endpoints it is reached at.": "刪除資料庫也會刪除連線到它所用的端點。",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "刪除雲端連線後，OneUptime 會停止讀取該帳戶。其資源及指標會保留。",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "刪除儲存陣列連線後，OneUptime 將停止讀取其背後的陣列，並刪除其已儲存的密碼和連線測試。其陣列及指標會保留。",
   "True": "是",
   "False": "否",
   "Key": "鍵",
@@ -4631,5 +4632,10 @@
   "Only XCP-ng pools that match conditions": "僅符合條件的 XCP-ng 資源池",
   "All savings": "所有節省",
   "Only savings that match conditions": "僅符合條件的節省",
-  "XCP-ng Pool": "XCP-ng 資源池"
+  "XCP-ng Pool": "XCP-ng 資源池",
+  "Same name as another {{kind}}": "與另一個 {{kind}} 同名",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "此專案中另有一個 {{kind}} 使用此名稱，因此在選擇器中無法區分它們。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 個 {{kinds}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。"
 }
