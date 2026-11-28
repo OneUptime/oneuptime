@@ -55,6 +55,18 @@ export const CARD_BRAND_RULES_CHECKED_ON: string = "2026-11-27";
 export const US_STATE_LAWS_CHECKED_ON: string = "2026-11-27";
 
 /*
+ * The day the rows of #11424 to #11427 that were not read on
+ * US_STATE_LAWS_CHECKED_ON were read: Vermont's text in force from
+ * 1 January 2027 and the act that made it (#11425); Puerto Rico's law,
+ * from the Legislative Assembly's copies of its act and of the act that
+ * amended it, in Spanish (#11424); Guam's, from the Compiler of Laws, and
+ * the US Virgin Islands', from the Legislature's copy of its act (#11426);
+ * and the notices to the data's owner (#11427) whose text was read that
+ * day: California's, New York's and the processor's under GDPR and UK GDPR.
+ */
+export const FOLLOW_UP_LAWS_CHECKED_ON: string = "2026-11-28";
+
+/*
  * Where the people a store's data is about live, as the table covers
  * places. Stored on an assessment when a person says where the people
  * live: never rename one.
@@ -67,8 +79,9 @@ export enum BreachPlace {
   UnitedStates = "US",
   /*
    * Each state, the District of Columbia and Puerto Rico, by its ISO
-   * 3166-2:US code (#10952): every one is a place a person can say the
-   * people live in, whether or not the table has rows for its law yet.
+   * 3166-2:US code (#10952), and Guam and the US Virgin Islands (#11426):
+   * every one is a place a person can say the people live in, whether or
+   * not the table has rows for its law yet.
    */
   Alabama = "US-AL",
   Alaska = "US-AK",
@@ -81,6 +94,7 @@ export enum BreachPlace {
   DistrictOfColumbia = "US-DC",
   Florida = "US-FL",
   Georgia = "US-GA",
+  Guam = "US-GU",
   Hawaii = "US-HI",
   Idaho = "US-ID",
   Illinois = "US-IL",
@@ -115,6 +129,7 @@ export enum BreachPlace {
   SouthDakota = "US-SD",
   Tennessee = "US-TN",
   Texas = "US-TX",
+  UsVirginIslands = "US-VI",
   Utah = "US-UT",
   Vermont = "US-VT",
   Virginia = "US-VA",
@@ -136,7 +151,10 @@ export enum BreachPlace {
 export const BREACH_PLACES: ReadonlyArray<BreachPlace> =
   Object.values(BreachPlace);
 
-// Every US state, the District of Columbia and Puerto Rico, in alphabetical order.
+/*
+ * Every US state, the District of Columbia, Puerto Rico, Guam and the US
+ * Virgin Islands, in alphabetical order.
+ */
 export const US_JURISDICTION_PLACES: ReadonlyArray<BreachPlace> = [
   BreachPlace.Alabama,
   BreachPlace.Alaska,
@@ -149,6 +167,7 @@ export const US_JURISDICTION_PLACES: ReadonlyArray<BreachPlace> = [
   BreachPlace.DistrictOfColumbia,
   BreachPlace.Florida,
   BreachPlace.Georgia,
+  BreachPlace.Guam,
   BreachPlace.Hawaii,
   BreachPlace.Idaho,
   BreachPlace.Illinois,
@@ -183,6 +202,7 @@ export const US_JURISDICTION_PLACES: ReadonlyArray<BreachPlace> = [
   BreachPlace.SouthDakota,
   BreachPlace.Tennessee,
   BreachPlace.Texas,
+  BreachPlace.UsVirginIslands,
   BreachPlace.Utah,
   BreachPlace.Vermont,
   BreachPlace.Virginia,
@@ -225,6 +245,7 @@ export const BREACH_PLACE_WORDS: Readonly<Record<BreachPlace, string>> = {
   [BreachPlace.DistrictOfColumbia]: translationKey("the District of Columbia"),
   [BreachPlace.Florida]: translationKey("Florida"),
   [BreachPlace.Georgia]: translationKey("Georgia (US state)"),
+  [BreachPlace.Guam]: translationKey("Guam"),
   [BreachPlace.Hawaii]: translationKey("Hawaii"),
   [BreachPlace.Idaho]: translationKey("Idaho"),
   [BreachPlace.Illinois]: translationKey("Illinois"),
@@ -259,6 +280,7 @@ export const BREACH_PLACE_WORDS: Readonly<Record<BreachPlace, string>> = {
   [BreachPlace.SouthDakota]: translationKey("South Dakota"),
   [BreachPlace.Tennessee]: translationKey("Tennessee"),
   [BreachPlace.Texas]: translationKey("Texas"),
+  [BreachPlace.UsVirginIslands]: translationKey("the US Virgin Islands"),
   [BreachPlace.Utah]: translationKey("Utah"),
   [BreachPlace.Vermont]: translationKey("Vermont"),
   [BreachPlace.Virginia]: translationKey("Virginia"),
@@ -288,6 +310,7 @@ export const BREACH_PLACE_CHOICES: Readonly<Record<BreachPlace, string>> = {
   [BreachPlace.DistrictOfColumbia]: translationKey("District of Columbia"),
   [BreachPlace.Florida]: translationKey("Florida"),
   [BreachPlace.Georgia]: translationKey("Georgia (US state)"),
+  [BreachPlace.Guam]: translationKey("Guam"),
   [BreachPlace.Hawaii]: translationKey("Hawaii"),
   [BreachPlace.Idaho]: translationKey("Idaho"),
   [BreachPlace.Illinois]: translationKey("Illinois"),
@@ -322,6 +345,7 @@ export const BREACH_PLACE_CHOICES: Readonly<Record<BreachPlace, string>> = {
   [BreachPlace.SouthDakota]: translationKey("South Dakota"),
   [BreachPlace.Tennessee]: translationKey("Tennessee"),
   [BreachPlace.Texas]: translationKey("Texas"),
+  [BreachPlace.UsVirginIslands]: translationKey("US Virgin Islands"),
   [BreachPlace.Utah]: translationKey("Utah"),
   [BreachPlace.Vermont]: translationKey("Vermont"),
   [BreachPlace.Virginia]: translationKey("Virginia"),
@@ -386,7 +410,9 @@ export const EEA_COUNTRY_CODES: ReadonlyArray<string> = [
 /*
  * The place a country is, as the table covers places: an ISO 3166-1
  * alpha-2 code, as a store's subjectCountries hold it. A country the table
- * does not cover is Elsewhere.
+ * does not cover is Elsewhere. Puerto Rico, Guam and the US Virgin Islands
+ * have codes of their own, and laws the table holds (#11424, #11426): data
+ * that places its people there places them in that territory.
  */
 export function getBreachPlaceOfCountry(country: string): BreachPlace {
   const code: string = country.trim().toUpperCase();
@@ -401,6 +427,12 @@ export function getBreachPlaceOfCountry(country: string): BreachPlace {
       return BreachPlace.UnitedKingdom;
     case "US":
       return BreachPlace.UnitedStates;
+    case "PR":
+      return BreachPlace.PuertoRico;
+    case "GU":
+      return BreachPlace.Guam;
+    case "VI":
+      return BreachPlace.UsVirginIslands;
     case "BR":
       return BreachPlace.Brazil;
     case "IN":
@@ -620,6 +652,20 @@ export enum BreachCondition {
   NoMaterialRiskOfIdentityTheft = "NoMaterialRiskOfIdentityTheft",
   // Wyoming: an investigation finds misuse has occurred or is reasonably likely.
   InvestigationFindsMisuse = "InvestigationFindsMisuse",
+  /*
+   * The notices an organization that holds the data for another owes the
+   * data's owner (#11427), where a statute puts a test of its own on them.
+   */
+  // Colorado, Idaho, Nebraska and Utah: misuse of the data has occurred or is likely.
+  MisuseOccurredOrLikely = "MisuseOccurredOrLikely",
+  // Mississippi: the data was acquired by someone not allowed to, for fraudulent purposes.
+  AcquiredForFraud = "AcquiredForFraud",
+  // Georgia: the data is held for an information broker, or for a state or local agency.
+  HeldForBrokerOrAgency = "HeldForBrokerOrAgency",
+  // Wisconsin: the organization has no contract with the data's owner.
+  NoContractWithOwner = "NoContractWithOwner",
+  // Puerto Rico: the organization resells, or provides access to, the databases that hold the data.
+  ResellsOrProvidesAccess = "ResellsOrProvidesAccess",
 }
 
 export const BREACH_CONDITION_WORDS: Readonly<Record<BreachCondition, string>> =
@@ -738,6 +784,21 @@ export const BREACH_CONDITION_WORDS: Readonly<Record<BreachCondition, string>> =
     [BreachCondition.InvestigationFindsMisuse]: translationKey(
       "If an investigation finds the data was, or is reasonably likely to be, misused.",
     ),
+    [BreachCondition.MisuseOccurredOrLikely]: translationKey(
+      "If the data was misused, or its misuse is likely.",
+    ),
+    [BreachCondition.AcquiredForFraud]: translationKey(
+      "If the data was, or is reasonably believed to have been, acquired by someone not allowed to, for fraudulent purposes.",
+    ),
+    [BreachCondition.HeldForBrokerOrAgency]: translationKey(
+      "If you hold the data for an information broker, or for a state or local agency: the law covers no other owner's data.",
+    ),
+    [BreachCondition.NoContractWithOwner]: translationKey(
+      "If you have no contract with the data's owner.",
+    ),
+    [BreachCondition.ResellsOrProvidesAccess]: translationKey(
+      "If you resell, or provide access to, the digital databases that hold the data.",
+    ),
   };
 
 export enum BreachDeadlineUnit {
@@ -753,6 +814,12 @@ export enum BreachDeadlineUnit {
    * time possible and without unreasonable delay" (#10952).
    */
   WithoutUnreasonableDelay = "WithoutUnreasonableDelay",
+  /*
+   * No length of time, as the notices to the data's owner word it (#11427):
+   * "immediately following discovery", and "as soon as practicable".
+   */
+  Immediately = "Immediately",
+  AsSoonAsPracticable = "AsSoonAsPracticable",
 }
 
 // Whether a deadline has no length of time: it sets no due moment.
@@ -760,7 +827,9 @@ export function isDeadlineWithoutLength(unit: BreachDeadlineUnit): boolean {
   return (
     unit === BreachDeadlineUnit.WithoutUndueDelay ||
     unit === BreachDeadlineUnit.WithoutUnreasonableDelay ||
-    unit === BreachDeadlineUnit.NoFixedTime
+    unit === BreachDeadlineUnit.NoFixedTime ||
+    unit === BreachDeadlineUnit.Immediately ||
+    unit === BreachDeadlineUnit.AsSoonAsPracticable
   );
 }
 
@@ -936,6 +1005,77 @@ export enum BreachLawId {
   ColoradoConsumerReportingAgencies = "co-6-1-716-2-d-consumer-reporting-agencies",
   MassachusettsConsumerReportingAgencies = "ma-93h-3-b-consumer-reporting-agencies",
   TexasConsumerReportingAgencies = "tx-521-053-h-consumer-reporting-agencies",
+  /*
+   * Vermont's text in force from 1 January 2027 (#11425), beside the rows
+   * of the text in force until then, which stay for exposures found before.
+   */
+  VermontResidentsFrom2027 = "vt-9-2435-b-1-residents-2027",
+  VermontAttorneyGeneralFrom2027 = "vt-9-2435-b-3-attorney-general-2027",
+  VermontConsumerReportingAgenciesFrom2027 = "vt-9-2435-c-consumer-reporting-agencies-2027",
+  // Puerto Rico (#11424), Guam and the US Virgin Islands (#11426).
+  PuertoRicoResidents = "pr-act-111-2005-3-residents",
+  PuertoRicoConsumerAffairs = "pr-act-111-2005-3-consumer-affairs",
+  GuamResidents = "gu-9-gca-48-30-a-residents",
+  UsVirginIslandsResidents = "vi-14-vic-2209-a-residents",
+  /*
+   * The notice an organization that holds the data for another owes the
+   * data's owner (#11427): a processor's to its controller, and each US
+   * jurisdiction's whose statute asks for one.
+   */
+  GdprProcessor = "gdpr-art-33-2-processor",
+  UkGdprProcessor = "uk-gdpr-art-33-2-processor",
+  AlabamaDataOwner = "al-8-38-8-data-owner",
+  AlaskaDataOwner = "ak-45-48-070-data-owner",
+  ArizonaDataOwner = "az-18-552-c-data-owner",
+  ArkansasDataOwner = "ar-4-110-105-b-data-owner",
+  CaliforniaDataOwner = "ca-civ-1798-82-b-data-owner",
+  ColoradoDataOwner = "co-6-1-716-2-b-data-owner",
+  ConnecticutDataOwner = "ct-36a-701b-c-data-owner",
+  DelawareDataOwner = "de-12b-102-b-data-owner",
+  DistrictOfColumbiaDataOwner = "dc-28-3852-b-data-owner",
+  FloridaDataOwner = "fl-501-171-6-data-owner",
+  GeorgiaDataOwner = "ga-10-1-912-b-data-owner",
+  GuamDataOwner = "gu-9-gca-48-30-c-data-owner",
+  HawaiiDataOwner = "hi-487n-2-b-data-owner",
+  IdahoDataOwner = "id-28-51-105-2-data-owner",
+  IllinoisDataOwner = "il-530-10-b-data-owner",
+  IndianaDataOwner = "in-24-4-9-3-2-data-owner",
+  IowaDataOwner = "ia-715c-2-2-data-owner",
+  KansasDataOwner = "ks-50-7a02-b-data-owner",
+  KentuckyDataOwner = "ky-365-732-3-data-owner",
+  LouisianaDataOwner = "la-51-3074-d-data-owner",
+  MaineDataOwner = "me-10-1348-2-data-owner",
+  MarylandDataOwner = "md-cl-14-3504-c-data-owner",
+  MassachusettsDataOwner = "ma-93h-3-a-data-owner",
+  MichiganDataOwner = "mi-445-72-2-data-owner",
+  MinnesotaDataOwner = "mn-325e-61-1-b-data-owner",
+  MississippiDataOwner = "ms-75-24-29-4-data-owner",
+  MissouriDataOwner = "mo-407-1500-2-2-data-owner",
+  MontanaDataOwner = "mt-30-14-1704-2-data-owner",
+  NebraskaDataOwner = "ne-87-803-3-data-owner",
+  NevadaDataOwner = "nv-603a-220-2-data-owner",
+  NewHampshireDataOwner = "nh-359-c-20-i-c-data-owner",
+  NewJerseyDataOwner = "nj-56-8-163-b-data-owner",
+  NewMexicoDataOwner = "nm-57-12c-6-c-data-owner",
+  NewYorkDataOwner = "ny-gbl-899-aa-3-data-owner",
+  NorthCarolinaDataOwner = "nc-75-65-b-data-owner",
+  NorthDakotaDataOwner = "nd-51-30-03-data-owner",
+  OhioDataOwner = "oh-1349-19-c-data-owner",
+  OklahomaDataOwner = "ok-24-163-c-data-owner",
+  OregonDataOwner = "or-646a-604-2-data-owner",
+  PennsylvaniaDataOwner = "pa-act-94-3-c-data-owner",
+  PuertoRicoDataOwner = "pr-act-111-2005-3-data-owner",
+  SouthCarolinaDataOwner = "sc-39-1-90-b-data-owner",
+  TennesseeDataOwner = "tn-47-18-2107-c-data-owner",
+  TexasDataOwner = "tx-521-053-c-data-owner",
+  UsVirginIslandsDataOwner = "vi-14-vic-2209-b-data-owner",
+  UtahDataOwner = "ut-13-44-202-3-data-owner",
+  VermontDataOwner = "vt-9-2435-b-2-data-owner",
+  VermontDataOwnerFrom2027 = "vt-9-2435-b-2-data-owner-2027",
+  VirginiaDataOwner = "va-18-2-186-6-d-data-owner",
+  WashingtonDataOwner = "wa-19-255-010-2-data-owner",
+  WisconsinDataOwner = "wi-134-98-2-bm-data-owner",
+  WyomingDataOwner = "wy-40-12-502-g-data-owner",
 }
 
 /*
@@ -1004,6 +1144,10 @@ export enum BreachLawFamily {
   Virginia = "Virginia",
   Wisconsin = "Wisconsin",
   Wyoming = "Wyoming",
+  // Puerto Rico (#11424), Guam and the US Virgin Islands (#11426).
+  PuertoRico = "Puerto Rico",
+  Guam = "Guam",
+  UsVirginIslands = "US Virgin Islands",
 }
 
 export interface BreachLawRule {
@@ -1043,6 +1187,21 @@ export interface BreachLawRule {
   checkedOn: string;
   // The day it takes effect, YYYY-MM-DD, when that is still to come or recent.
   inForceFrom?: string | undefined;
+  /*
+   * The day a newer text replaced it, YYYY-MM-DD (#11425): the first day
+   * the row of the newer text is in force. Which text an exposure follows
+   * is decided by the day it was found (ExposureAssessment.applyBreachLaws):
+   * a row applies to exposures found from its inForceFrom up to the day
+   * before this.
+   */
+  inForceUntil?: string | undefined;
+  /*
+   * A notice an organization that holds the data for another owes the
+   * data's owner (#11427): applied only once a person says the organization
+   * holds this data for another (BreachLawFacts.holdsForAnother), and left
+   * out of the assessment otherwise.
+   */
+  forDataHolders?: boolean | undefined;
 }
 
 const GDPR_SOURCE: string = "https://eur-lex.europa.eu/eli/reg/2016/679/oj";
@@ -1186,6 +1345,39 @@ const COLORADO_STATUTE_SOURCE: string =
   "https://content.leg.colorado.gov/sites/default/files/images/olls/crs2024-title-06.pdf";
 const TEXAS_STATUTE_SOURCE: string =
   "https://tcss.legis.texas.gov/resources/BC/htm/BC.521.htm";
+// Alabama's third-party agent's notice (#11427) is a section of its own, on the same site.
+const ALABAMA_THIRD_PARTY_AGENT_SOURCE: string =
+  "https://alison.legislature.state.al.us/code-of-alabama?section=8-38-8";
+/*
+ * Puerto Rico (#11424). The Laws of Puerto Rico Annotated are published
+ * only by a vendor, and the Oficina de Gerencia y Presupuesto's library
+ * refused every connection, so the law is read from the Legislative
+ * Assembly's own copies, in Spanish, its official text, on the Sistema
+ * Único de Trámite Legislativo: the act (Ley Núm. 111 de 7 de septiembre de
+ * 2005) and the act that amended it (Ley Núm. 97 de 19 de junio de 2008),
+ * the only amendment the Assembly's records and the OGP's compilation
+ * (revised 15 April 2024) list.
+ */
+const PUERTO_RICO_ACT_111_SOURCE: string =
+  "https://sutra.oslpr.org/SutraFiles/anejos_conv/od/files/docs/%7BDC284477-FFA1-457B-880E-14B9444D80F2%7D.doc";
+const PUERTO_RICO_ACT_97_SOURCE: string =
+  "https://sutra.oslpr.org/SutraFiles/anejos_conv/od/files/docs/%7BD055CA3B-83AB-4F82-89FA-E9E802705CD9%7D.doc";
+/*
+ * Guam (#11426): 9 GCA Chapter 48 as the Judiciary of Guam's Compiler of
+ * Laws publishes it; Title 9's contents, updated through P.L. 38-136
+ * (28 August 2026), still list the chapter as P.L. 30-004 enacted it.
+ */
+const GUAM_SOURCE: string =
+  "https://col.guamcourts.gov/sites/default/files/9gc048.pdf";
+/*
+ * The US Virgin Islands (#11426). The Virgin Islands Code is published
+ * only by a vendor, so it is read from the Legislature's own copy of the
+ * act that enacted it, Act No. 6789 of 2005 (Bill No. 26-0091), approved
+ * on 17 October 2005: a scan, read page by page. The Legislature's bill
+ * records list no later act amending 14 V.I.C. § 2209.
+ */
+const US_VIRGIN_ISLANDS_SOURCE: string =
+  "https://billtracking.legvi.org/pdf/?file_name=RTpcaW5ldHB1Ylx3d3dyb290XEJpbGxUcmFja2luZzIwMnhCYWNrZW5kXEJpbGxUcmFja2luZ1BERlxBY3RcNjc4OS5wZGY=";
 
 // The data elements most US state laws name, held with a person's name.
 const US_STATE_IDS: ReadonlyArray<BreachDataElement> = [
@@ -1486,6 +1678,24 @@ const WYOMING_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   BreachDataElement.OnlineCredentials,
 ];
 
+/*
+ * Puerto Rico's personal information file (Ley 111-2005, Article 2(a)): a
+ * Social Security number; a driver's license, voter card "u otra
+ * Identificación Oficial" number, which a passport's is; a bank or
+ * financial account number, with or without its codes; a user name with its
+ * password; medical information HIPAA protects, as HIPAA's rows read it;
+ * "información contributiva", which a taxpayer number is; and employment
+ * evaluations, which no data type of the catalog is.
+ */
+const PUERTO_RICO_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_IDS,
+  BreachDataElement.TaxIdNumber,
+  BreachDataElement.OtherGovernmentId,
+  BreachDataElement.FinancialAccount,
+  ...HEALTH_DATA,
+  BreachDataElement.OnlineCredentials,
+];
+
 // Shared words of the rows.
 const TELL_THE_PEOPLE: string = translationKey("Tell the people affected");
 const THE_PEOPLE: string = translationKey("The people the data is about");
@@ -1539,6 +1749,42 @@ const AFTER_THE_PEOPLE_ARE_TOLD: string = translationKey(
 );
 const WITHOUT_DELAYING_THE_PEOPLE: string = translationKey(
   "Without delaying the notice to the people, with its timing, content and distribution.",
+);
+const IN_THE_MOST_EXPEDIENT_TIME_WITHIN: string = translationKey(
+  "In the most expedient time possible, and within that time after the breach was discovered.",
+);
+// Vermont's notices, in its text until 1 January 2027 and in its text from then (#11425).
+const VERMONT_ATTORNEY_GENERAL: string = translationKey(
+  "The Vermont Attorney General or, for an organization the Department of Financial Regulation regulates, the Department",
+);
+const VERMONT_PRELIMINARY_DESCRIPTION: string = translationKey(
+  "First a preliminary description, sooner if the people are told sooner; then the number of residents told and a copy of their notice, when they are told.",
+);
+const VERMONT_SWORN_STATEMENT: string = translationKey(
+  "An organization that swore its security policies to the attorney general before the breach sends the preliminary description before the people are told instead.",
+);
+const VERMONT_NOT_FOR_TITLE_8_LICENSEES: string = translationKey(
+  "Not owed by a person the Department of Financial Regulation licenses or registers under Title 8.",
+);
+const VERMONT_NAME_NOT_NEEDED: string = translationKey(
+  "Without a name, the data the law lists counts where it is enough to attempt identity theft against the person.",
+);
+// The notices to the data's owner (#11427).
+const THE_CONTROLLER: string = translationKey(
+  "The controller you process the data for",
+);
+const AFTER_BECOMING_AWARE: string = translationKey(
+  "Counted from when you became aware of the breach.",
+);
+const TELL_THE_DATA_OWNER: string = translationKey("Tell the data's owner");
+const THE_DATA_OWNER: string = translationKey(
+  "The organization that owns the data, or licensed it to you",
+);
+const AS_SOON_AS_PRACTICABLE_WITHIN: string = translationKey(
+  "As soon as practicable, and no later than that after the breach was discovered.",
+);
+const AFTER_DISCOVERY_NO_TIME: string = translationKey(
+  "After the breach is discovered: the law sets no time for it.",
 );
 
 export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
@@ -1641,6 +1887,60 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     sourceUrl: "https://www.legislation.gov.uk/eur/2016/679/article/34",
     sourceTitle: "UK GDPR, Article 34(1)",
     checkedOn: BREACH_LAWS_CHECKED_ON,
+  },
+  /*
+   * ---- A processor's notice to its controller (#11427) ----
+   *
+   * GDPR's and UK GDPR's Article 33(2), word for word the same: "The
+   * processor shall notify the controller without undue delay after
+   * becoming aware of a personal data breach." GDPR's was read from the
+   * Official Journal text the Publications Office serves (EUR-Lex refused
+   * automated readers), UK GDPR's from legislation.gov.uk. No risk test:
+   * the controller weighs the risk, the processor tells it either way.
+   */
+  {
+    id: BreachLawId.GdprProcessor,
+    family: BreachLawFamily.Gdpr,
+    law: "GDPR",
+    provision: "Article 33(2)",
+    places: [BreachPlace.Eea],
+    dataElements: [BreachDataElement.PersonalData],
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [],
+    action: translationKey("Notify the controller"),
+    recipient: THE_CONTROLLER,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUndueDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: AFTER_BECOMING_AWARE,
+    sourceUrl: GDPR_SOURCE,
+    sourceTitle: "Regulation (EU) 2016/679, Article 33(2)",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.UkGdprProcessor,
+    family: BreachLawFamily.UkGdpr,
+    law: "UK GDPR",
+    provision: "Article 33(2)",
+    places: [BreachPlace.UnitedKingdom],
+    dataElements: [BreachDataElement.PersonalData],
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [],
+    action: translationKey("Notify the controller"),
+    recipient: THE_CONTROLLER,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUndueDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: AFTER_BECOMING_AWARE,
+    sourceUrl: "https://www.legislation.gov.uk/eur/2016/679/article/33",
+    sourceTitle: "UK GDPR, Article 33(2)",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    forDataHolders: true,
   },
   // ---- HIPAA (45 CFR 164.400-414) ----
   {
@@ -1769,6 +2069,8 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     sourceUrl: HIPAA_SOURCE,
     sourceTitle: "45 CFR 164.410(b)",
     checkedOn: BREACH_LAWS_CHECKED_ON,
+    // A business associate holds the health information for the covered entity (#11427).
+    forDataHolders: true,
   },
   // ---- California (Civil Code 1798.82, as SB 446 amended it) ----
   {
@@ -2002,9 +2304,7 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
       amount: 30,
       start: BreachDeadlineStart.Found,
     },
-    deadlineNote: translationKey(
-      "In the most expedient time possible, and within that time after the breach was discovered.",
-    ),
+    deadlineNote: IN_THE_MOST_EXPEDIENT_TIME_WITHIN,
     sourceUrl: NEW_YORK_SOURCE,
     sourceTitle: "New York General Business Law 899-aa(2)",
     checkedOn: BREACH_LAWS_CHECKED_ON,
@@ -4437,7 +4737,22 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     sourceTitle: "Utah Code 13-44-202(1)(d)",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
   },
-  // ---- Vermont (Vermont Statutes, Title 9, 2435) ----
+  /*
+   * ---- Vermont (Vermont Statutes, Title 9, 2435) ----
+   *
+   * Two texts (#11425): the one in force until 1 January 2027, and the one
+   * 2025, No. 138 (Adj. Sess.), § 1 puts in force from that day, read from
+   * the act and from the statute's own page, which sets out both. An
+   * exposure follows the text in force on the day it was found. What the
+   * new text changes for these notices: the data the law lists counts
+   * without a name too, where it is enough to attempt identity theft
+   * (2430(13)(C)), so - as for Georgia - no name is needed; biometric data
+   * is defined anew (2430(2)), still biometric data; and a HIPAA covered
+   * entity deemed in compliance still sends the attorney general its notice,
+   * with a written certification (2435(e)(3)). The deadlines, the agencies'
+   * threshold and the exception where misuse is not reasonably possible
+   * stay as they were.
+   */
   {
     id: BreachLawId.VermontResidents,
     family: BreachLawFamily.Vermont,
@@ -4463,6 +4778,7 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     sourceTitle:
       "Vermont Statutes, Title 9, 2430 and 2435(b)(1) and (d), as in force until 1 January 2027",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
+    inForceUntil: "2027-01-01",
   },
   {
     id: BreachLawId.VermontAttorneyGeneral,
@@ -4475,23 +4791,19 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     nameFreeElements: [BreachDataElement.OnlineCredentials],
     conditions: [BreachCondition.MisuseNotPossibleTellAg],
     action: TELL_THE_ATTORNEY_GENERAL,
-    recipient: translationKey(
-      "The Vermont Attorney General or, for an organization the Department of Financial Regulation regulates, the Department",
-    ),
+    recipient: VERMONT_ATTORNEY_GENERAL,
     deadline: {
       unit: BreachDeadlineUnit.BusinessDays,
       amount: 14,
       start: BreachDeadlineStart.Found,
     },
-    deadlineNote: translationKey(
-      "First a preliminary description, sooner if the people are told sooner; then the number of residents told and a copy of their notice, when they are told.",
-    ),
-    note: translationKey(
-      "An organization that swore its security policies to the attorney general before the breach sends the preliminary description before the people are told instead.",
-    ),
+    deadlineNote: VERMONT_PRELIMINARY_DESCRIPTION,
+    note: VERMONT_SWORN_STATEMENT,
     sourceUrl: VERMONT_SOURCE,
-    sourceTitle: "Vermont Statutes, Title 9, 2435(b)(3)",
+    sourceTitle:
+      "Vermont Statutes, Title 9, 2435(b)(3), as in force until 1 January 2027",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
+    inForceUntil: "2027-01-01",
   },
   {
     id: BreachLawId.VermontConsumerReportingAgencies,
@@ -4510,12 +4822,89 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
       unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
       start: BreachDeadlineStart.Found,
     },
+    note: VERMONT_NOT_FOR_TITLE_8_LICENSEES,
+    sourceUrl: VERMONT_SOURCE,
+    sourceTitle:
+      "Vermont Statutes, Title 9, 2435(c), as in force until 1 January 2027",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    inForceUntil: "2027-01-01",
+  },
+  {
+    id: BreachLawId.VermontResidentsFrom2027,
+    family: BreachLawFamily.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(1)",
+    places: [BreachPlace.Vermont],
+    dataElements: VERMONT_ELEMENTS,
+    // Without a name too, where the data is enough to attempt identity theft.
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: WITHIN_THE_DAYS_OF_DISCOVERY,
+    note: VERMONT_NAME_NOT_NEEDED,
+    sourceUrl: VERMONT_SOURCE,
+    sourceTitle:
+      "Vermont Statutes, Title 9, 2430(13) and 2435(b)(1) and (d), as 2025, No. 138 (Adj. Sess.) amended them, in force from 1 January 2027",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    inForceFrom: "2027-01-01",
+  },
+  {
+    id: BreachLawId.VermontAttorneyGeneralFrom2027,
+    family: BreachLawFamily.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(3)",
+    places: [BreachPlace.Vermont],
+    dataElements: VERMONT_ELEMENTS,
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: VERMONT_ATTORNEY_GENERAL,
+    deadline: {
+      unit: BreachDeadlineUnit.BusinessDays,
+      amount: 14,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: VERMONT_PRELIMINARY_DESCRIPTION,
     note: translationKey(
-      "Not owed by a person the Department of Financial Regulation licenses or registers under Title 8.",
+      "An organization that swore its security policies to the attorney general before the breach sends the preliminary description before the people are told instead. A HIPAA covered entity whose breach touched only health information sends it too, with a written certification that it followed HIPAA's breach notification rule.",
     ),
     sourceUrl: VERMONT_SOURCE,
-    sourceTitle: "Vermont Statutes, Title 9, 2435(c)",
-    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    sourceTitle:
+      "Vermont Statutes, Title 9, 2435(b)(3) and (e), as 2025, No. 138 (Adj. Sess.) amended them, in force from 1 January 2027",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    inForceFrom: "2027-01-01",
+  },
+  {
+    id: BreachLawId.VermontConsumerReportingAgenciesFrom2027,
+    family: BreachLawFamily.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(c)",
+    places: [BreachPlace.Vermont],
+    dataElements: VERMONT_ELEMENTS,
+    needsName: false,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    note: VERMONT_NOT_FOR_TITLE_8_LICENSEES,
+    sourceUrl: VERMONT_SOURCE,
+    sourceTitle:
+      "Vermont Statutes, Title 9, 2435(c), as 2025, No. 138 (Adj. Sess.) amended it, in force from 1 January 2027",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    inForceFrom: "2027-01-01",
   },
   // ---- Virginia (Code of Virginia 18.2-186.6) ----
   {
@@ -4656,6 +5045,1348 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     sourceTitle:
       "Wyoming Statutes 40-12-501(a)(i) and (vii), 40-12-502(a), and 6-3-901(b)",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  /*
+   * ---- Puerto Rico (Ley 111-2005, as Ley 97-2008 amended it) ----
+   *
+   * In Spanish, the official text (#11424). Article 3: an entity that owns
+   * the database or keeps it in custody ("propietaria o custodia") tells the
+   * citizens resident in Puerto Rico "de la manera más expedita posible",
+   * allowing for law enforcement's need to secure evidence and for
+   * restoring the system's security; and the responsible parties tell the
+   * Department of Consumer Affairs "dentro de un plazo improrrogable de diez
+   * (10) días de detectarse" the breach - unlabelled days, counted as
+   * calendar days - which announces it publicly within 24 hours. No test of
+   * harm and no threshold. The notice to the Office of the Citizen's
+   * Ombudsman (Article 7, from Ley 97-2008) is asked of government agencies
+   * and public corporations alone, so it is no row.
+   */
+  {
+    id: BreachLawId.PuertoRicoResidents,
+    family: BreachLawFamily.PuertoRico,
+    law: "Puerto Rico Citizen Information on Data Banks Security Act",
+    provision: "Section 3",
+    places: [BreachPlace.PuertoRico],
+    dataElements: PUERTO_RICO_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_PEOPLE,
+    recipient: translationKey("Each affected Puerto Rico resident"),
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "As quickly as possible, allowing for law enforcement's need to secure evidence and for restoring the system's security.",
+    ),
+    note: translationKey(
+      "Owed by an organization that keeps the data in its custody for another too, not only by the data's owner.",
+    ),
+    sourceUrl: PUERTO_RICO_ACT_97_SOURCE,
+    sourceTitle:
+      "Ley Núm. 111 de 7 de septiembre de 2005, Artículos 2 y 3, según enmendada por la Ley Núm. 97 de 19 de junio de 2008",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.PuertoRicoConsumerAffairs,
+    family: BreachLawFamily.PuertoRico,
+    law: "Puerto Rico Citizen Information on Data Banks Security Act",
+    provision: "Section 3 (Department of Consumer Affairs)",
+    places: [BreachPlace.PuertoRico],
+    dataElements: PUERTO_RICO_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: translationKey(
+      "Tell Puerto Rico's Department of Consumer Affairs",
+    ),
+    recipient: translationKey(
+      "The Department of Consumer Affairs (DACO), which announces the breach publicly within 24 hours",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 10,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "Counted from detecting the breach; the law says this time cannot be extended.",
+    ),
+    sourceUrl: PUERTO_RICO_ACT_111_SOURCE,
+    sourceTitle:
+      "Ley Núm. 111 de 7 de septiembre de 2005, Artículos 2 y 3, tercer párrafo",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  },
+  /*
+   * ---- Guam (9 GCA Chapter 48) ----
+   *
+   * As the Compiler of Laws publishes it (#11426), unchanged since P.L.
+   * 30-004 (2009). A breach is one that "causes, or the individual or entity
+   * reasonably believes has caused or will cause, identity theft or other
+   * fraud to any resident of Guam" (48.20(a)); its residents are told
+   * "without unreasonable delay" (48.30(a)). No notice to a government
+   * office or to the consumer reporting agencies. The chapter applies to a
+   * breach discovered on or after it took effect (48.60): the day of
+   * discovery decides which text applies, as it does for every row.
+   */
+  {
+    id: BreachLawId.GuamResidents,
+    family: BreachLawFamily.Guam,
+    law: "Guam Code Annotated, Title 9",
+    provision: "48.30(a)",
+    places: [BreachPlace.Guam],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_PEOPLE,
+    recipient: translationKey("Each affected Guam resident"),
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: GUAM_SOURCE,
+    sourceTitle: "Guam Code Annotated, Title 9, 48.20 and 48.30(a)",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  },
+  /*
+   * ---- The US Virgin Islands (14 V.I.C. 2209) ----
+   *
+   * From the act that enacted it, Act No. 6789 of 2005 (#11426): a person or
+   * business that conducts business in the Virgin Islands tells its
+   * residents "in the most expedient time possible and without unreasonable
+   * delay" (2209(a)). No test of harm, and no notice to a government office
+   * or to the consumer reporting agencies. 2208 asks the same of the
+   * territory's own agencies, so it is no row.
+   */
+  {
+    id: BreachLawId.UsVirginIslandsResidents,
+    family: BreachLawFamily.UsVirginIslands,
+    law: "Virgin Islands Code, Title 14",
+    provision: "2209(a)",
+    places: [BreachPlace.UsVirginIslands],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_PEOPLE,
+    recipient: translationKey("Each affected US Virgin Islands resident"),
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: US_VIRGIN_ISLANDS_SOURCE,
+    sourceTitle:
+      "Virgin Islands Code, Title 14, 2209(a), (d) and (e), as Act No. 6789 (2005) enacted them",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+  },
+  /*
+   * ---- The notice to the data's owner (#11427) ----
+   *
+   * Almost every US jurisdiction's statute puts a duty on an organization
+   * that holds data it does not own - a vendor, a service provider, a
+   * third-party agent: tell the data's owner, which then tells the people.
+   * Each row is that subsection, read from the same text as its
+   * jurisdiction's other rows, with its deadline as the statute states it
+   * and the data its personal information covers. A test of harm that is
+   * part of the statute's definition of a breach, or an exception written
+   * for the whole section, holds for this notice too; one that only excuses
+   * the notice to the people does not. Rhode Island's and South Dakota's
+   * statutes have no such notice - Rhode Island's asks whoever stores the
+   * data to tell the people itself - and West Virginia's text could not be
+   * read. Applied only once a person says the organization holds this data
+   * for another (forDataHolders).
+   */
+  {
+    id: BreachLawId.AlabamaDataOwner,
+    family: BreachLawFamily.Alabama,
+    law: "Code of Alabama 1975",
+    provision: "8-38-8",
+    places: [BreachPlace.Alabama],
+    dataElements: ALABAMA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 10,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: AS_SOON_AS_PRACTICABLE_WITHIN,
+    note: translationKey(
+      "You and the data's owner may agree, by contract, that you send the notices the law asks of it.",
+    ),
+    sourceUrl: ALABAMA_THIRD_PARTY_AGENT_SOURCE,
+    sourceTitle: "Code of Alabama 1975, 8-38-2(7) and 8-38-8",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.AlaskaDataOwner,
+    family: BreachLawFamily.Alaska,
+    law: "Alaska Statutes",
+    provision: "45.48.070(a)",
+    places: [BreachPlace.Alaska],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    note: translationKey(
+      "You need not tell the people yourself: the data's owner does, as if the breach were its own.",
+    ),
+    sourceUrl: ALASKA_SOURCE,
+    sourceTitle: "Alaska Statutes 45.48.070(a) and (b) and 45.48.090",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.ArizonaDataOwner,
+    family: BreachLawFamily.Arizona,
+    law: "Arizona Revised Statutes",
+    provision: "18-552(C)",
+    places: [BreachPlace.Arizona],
+    dataElements: ARIZONA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.AsSoonAsPracticable,
+      start: BreachDeadlineStart.Found,
+    },
+    note: translationKey(
+      "You tell the people yourself only if your agreement with the data's owner says you do.",
+    ),
+    sourceUrl: ARIZONA_SOURCE,
+    sourceTitle: "Arizona Revised Statutes 18-552(C)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.ArkansasDataOwner,
+    family: BreachLawFamily.Arkansas,
+    law: "Arkansas Code",
+    provision: "4-110-105(b)(1)",
+    places: [BreachPlace.Arkansas],
+    dataElements: ARKANSAS_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Its exception covers every notification "under this section" ((d)).
+    conditions: [BreachCondition.LikelyHarm],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    note: KEEP_THE_DETERMINATION_FIVE_YEARS,
+    sourceUrl: ARKANSAS_ACT_1030_SOURCE,
+    sourceTitle:
+      "Arkansas Code 4-110-105(b)(1), as Act 1030 of 2019 amended it, and 4-110-105(d), as Act 1526 of 2005 enacted it",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  /*
+   * California's subsection (b), as SB 446 left it, read from the
+   * Legislative Counsel's own data (its pubinfo_2025 download, the law
+   * section table of 2 October 2026): the section's page refuses automated
+   * readers.
+   */
+  {
+    id: BreachLawId.CaliforniaDataOwner,
+    family: BreachLawFamily.California,
+    law: "California Civil Code",
+    provision: "1798.82(b)",
+    places: [BreachPlace.California],
+    dataElements: CALIFORNIA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: CALIFORNIA_SOURCE,
+    sourceTitle:
+      "California Civil Code 1798.82(b), as amended by SB 446 (Ch. 319, Stats. 2025)",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.ColoradoDataOwner,
+    family: BreachLawFamily.Colorado,
+    law: "Colorado Revised Statutes",
+    provision: "6-1-716(2)(b)",
+    places: [BreachPlace.Colorado],
+    dataElements: COLORADO_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [
+      BreachDataElement.OnlineCredentials,
+      BreachDataElement.FinancialAccount,
+    ],
+    conditions: [BreachCondition.MisuseOccurredOrLikely],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: COLORADO_STATUTE_SOURCE,
+    sourceTitle: "Colorado Revised Statutes 2024, 6-1-716(1)(i) and (2)(b)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.ConnecticutDataOwner,
+    family: BreachLawFamily.Connecticut,
+    law: "General Statutes of Connecticut",
+    provision: "36a-701b(c)",
+    places: [BreachPlace.Connecticut],
+    dataElements: CONNECTICUT_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: CONNECTICUT_SOURCE,
+    sourceTitle: "General Statutes of Connecticut 36a-701b(c)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.DelawareDataOwner,
+    family: BreachLawFamily.Delaware,
+    law: "Delaware Code, Title 6",
+    provision: "12B-102(b)",
+    places: [BreachPlace.Delaware],
+    dataElements: DELAWARE_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: DELAWARE_SOURCE,
+    sourceTitle: "Delaware Code, Title 6, 12B-102(b)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.DistrictOfColumbiaDataOwner,
+    family: BreachLawFamily.DistrictOfColumbia,
+    law: "D.C. Code",
+    provision: "28-3852(b)",
+    places: [BreachPlace.DistrictOfColumbia],
+    dataElements: DISTRICT_OF_COLUMBIA_ELEMENTS,
+    needsName: false,
+    nameFreeElements: [],
+    // Part of the definition of a breach (28-3851(1)(B)(iii)).
+    conditions: [BreachCondition.LikelyHarmAfterConsulting],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: DISTRICT_OF_COLUMBIA_SOURCE,
+    sourceTitle: "D.C. Code 28-3852(b) and 28-3851(1)(B)(iii)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.FloridaDataOwner,
+    family: BreachLawFamily.Florida,
+    law: "Florida Statutes",
+    provision: "501.171(6)(a)",
+    places: [BreachPlace.Florida],
+    dataElements: FLORIDA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 10,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: AS_SOON_AS_PRACTICABLE_WITHIN,
+    sourceUrl: FLORIDA_HTTPS_SOURCE,
+    sourceTitle: "Florida Statutes 501.171(6)(a)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.GeorgiaDataOwner,
+    family: BreachLawFamily.Georgia,
+    law: "Official Code of Georgia",
+    provision: "10-1-912(b)",
+    places: [BreachPlace.Georgia],
+    dataElements: US_STATE_CORE,
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [BreachCondition.HeldForBrokerOrAgency],
+    action: TELL_THE_DATA_OWNER,
+    recipient: translationKey(
+      "The information broker or agency you hold the data for",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.Hours,
+      amount: 24,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: GEORGIA_SOURCE,
+    sourceTitle:
+      "Official Code of Georgia 10-1-911 and 10-1-912(b), as 2007 SB 236 (Act 241) restates them",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.GuamDataOwner,
+    family: BreachLawFamily.Guam,
+    law: "Guam Code Annotated, Title 9",
+    provision: "48.30(c)",
+    places: [BreachPlace.Guam],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a breach (48.20(a)).
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.AsSoonAsPracticable,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: GUAM_SOURCE,
+    sourceTitle: "Guam Code Annotated, Title 9, 48.20(a) and 48.30(c)",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.HawaiiDataOwner,
+    family: BreachLawFamily.Hawaii,
+    law: "Hawaii Revised Statutes",
+    provision: "487N-2(b)",
+    places: [BreachPlace.Hawaii],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a security breach (487N-1).
+    conditions: [BreachCondition.LikelyIllegalUse],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: HAWAII_SOURCE,
+    sourceTitle: "Hawaii Revised Statutes 487N-1 and 487N-2(b)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.IdahoDataOwner,
+    family: BreachLawFamily.Idaho,
+    law: "Idaho Code",
+    provision: "28-51-105(2)",
+    places: [BreachPlace.Idaho],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.MisuseOccurredOrLikely],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: IDAHO_SOURCE,
+    sourceTitle: "Idaho Code 28-51-105(2)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.IllinoisDataOwner,
+    family: BreachLawFamily.Illinois,
+    law: "815 ILCS 530",
+    provision: "10(b)",
+    places: [BreachPlace.Illinois],
+    dataElements: ILLINOIS_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: ILLINOIS_SOURCE,
+    sourceTitle: "Personal Information Protection Act, 815 ILCS 530/10(b)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.IndianaDataOwner,
+    family: BreachLawFamily.Indiana,
+    law: "Indiana Code",
+    provision: "24-4.9-3-2",
+    places: [BreachPlace.Indiana],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.SocialSecurityNumber],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: WITHIN_THE_DAYS_OF_DISCOVERY,
+    sourceUrl: INDIANA_SOURCE,
+    sourceTitle:
+      "Indiana Code 24-4.9-3-2 and 24-4.9-3-3(a) (Indiana Code 2026)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.IowaDataOwner,
+    family: BreachLawFamily.Iowa,
+    law: "Iowa Code",
+    provision: "715C.2(2)",
+    places: [BreachPlace.Iowa],
+    dataElements: IOWA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: IOWA_SOURCE,
+    sourceTitle: "Iowa Code 715C.2(2)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.KansasDataOwner,
+    family: BreachLawFamily.Kansas,
+    law: "Kansas Statutes Annotated",
+    provision: "50-7a02(b)",
+    places: [BreachPlace.Kansas],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a security breach (50-7a01(h)): identity theft caused, or believed caused.
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.NoFixedTime,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: AFTER_DISCOVERY_NO_TIME,
+    sourceUrl: KANSAS_SOURCE,
+    sourceTitle: "Kansas Statutes Annotated 50-7a01 and 50-7a02(b)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.KentuckyDataOwner,
+    family: BreachLawFamily.Kentucky,
+    law: "Kentucky Revised Statutes",
+    provision: "365.732(3)",
+    places: [BreachPlace.Kentucky],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a breach (365.732(1)(a)).
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.AsSoonAsPracticable,
+      start: BreachDeadlineStart.Found,
+    },
+    note: NOT_FOR_GLBA_OR_HIPAA,
+    sourceUrl: KENTUCKY_SOURCE,
+    sourceTitle: "Kentucky Revised Statutes 365.732(1) and (3)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.LouisianaDataOwner,
+    family: BreachLawFamily.Louisiana,
+    law: "Louisiana Revised Statutes",
+    provision: "51:3074(D)",
+    places: [BreachPlace.Louisiana],
+    dataElements: LOUISIANA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Its exception covers every notification "as provided in this Section" ((I)).
+    conditions: [BreachCondition.LikelyHarm],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 60,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: WITHIN_THE_DAYS_OF_DISCOVERY,
+    note: KEEP_THE_DETERMINATION_FIVE_YEARS,
+    sourceUrl: LOUISIANA_SOURCE,
+    sourceTitle: "Louisiana Revised Statutes 51:3074(D), (E) and (I)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.MaineDataOwner,
+    family: BreachLawFamily.Maine,
+    law: "Maine Revised Statutes, Title 10",
+    provision: "1348(2)",
+    places: [BreachPlace.Maine],
+    dataElements: US_STATE_CORE,
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: MAINE_SOURCE,
+    sourceTitle: "Maine Revised Statutes, Title 10, 1348(2)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.MarylandDataOwner,
+    family: BreachLawFamily.Maryland,
+    law: "Maryland Code, Commercial Law",
+    provision: "14-3504(c)",
+    places: [BreachPlace.Maryland],
+    dataElements: MARYLAND_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 10,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: AS_SOON_AS_PRACTICABLE_WITHIN,
+    sourceUrl: MARYLAND_SOURCE,
+    sourceTitle: "Maryland Code, Commercial Law, 14-3504(c)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.MassachusettsDataOwner,
+    family: BreachLawFamily.Massachusetts,
+    law: "General Laws of Massachusetts, chapter 93H",
+    provision: "3(a)",
+    places: [BreachPlace.Massachusetts],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    // The same two triggers as the people's notice: a breach of security, or data acquired or used without right.
+    conditions: [BreachCondition.SubstantialRiskOfIdentityTheft],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.AsSoonAsPracticable,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: MASSACHUSETTS_SOURCE,
+    sourceTitle:
+      "General Laws of Massachusetts, chapter 93H, sections 1 and 3(a)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.MichiganDataOwner,
+    family: BreachLawFamily.Michigan,
+    law: "Michigan Compiled Laws",
+    provision: "445.72(2)",
+    places: [BreachPlace.Michigan],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.SubstantialLossOrIdentityTheft],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: MICHIGAN_SOURCE,
+    sourceTitle: "Michigan Compiled Laws 445.72(2) and (4)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.MinnesotaDataOwner,
+    family: BreachLawFamily.Minnesota,
+    law: "Minnesota Statutes",
+    provision: "325E.61, subdivision 1(b)",
+    places: [BreachPlace.Minnesota],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: MINNESOTA_SOURCE,
+    sourceTitle: "Minnesota Statutes 2026, 325E.61, subdivision 1(b)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.MississippiDataOwner,
+    family: BreachLawFamily.Mississippi,
+    law: "Mississippi Code",
+    provision: "75-24-29(4)",
+    places: [BreachPlace.Mississippi],
+    dataElements: MISSISSIPPI_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.AcquiredForFraud],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.AsSoonAsPracticable,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: MISSISSIPPI_SOURCE,
+    sourceTitle:
+      "Mississippi Code 75-24-29(4), as 2021 HB 277 (Laws 2021, ch. 378) restates it",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.MissouriDataOwner,
+    family: BreachLawFamily.Missouri,
+    law: "Revised Statutes of Missouri",
+    provision: "407.1500.2(2)",
+    places: [BreachPlace.Missouri],
+    dataElements: MISSOURI_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Its exception covers subdivisions (1) and (2) alike (407.1500.2(5)).
+    conditions: [BreachCondition.IdentityTheftOrFraudInWriting],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: MISSOURI_SOURCE,
+    sourceTitle: "Revised Statutes of Missouri 407.1500.2(2) and (5)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.MontanaDataOwner,
+    family: BreachLawFamily.Montana,
+    law: "Montana Code Annotated",
+    provision: "30-14-1704(2)",
+    places: [BreachPlace.Montana],
+    dataElements: MONTANA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a breach (30-14-1704(4)).
+    conditions: [BreachCondition.LossOrInjury],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: MONTANA_SOURCE,
+    sourceTitle: "Montana Code Annotated 2025, 30-14-1704(2) and (4)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.NebraskaDataOwner,
+    family: BreachLawFamily.Nebraska,
+    law: "Nebraska Revised Statutes",
+    provision: "87-803(3)",
+    places: [BreachPlace.Nebraska],
+    dataElements: NEBRASKA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    conditions: [BreachCondition.MisuseOccurredOrLikely],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey("When you become aware of the breach."),
+    sourceUrl: NEBRASKA_SOURCE,
+    sourceTitle: "Nebraska Revised Statutes 87-803(3)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.NevadaDataOwner,
+    family: BreachLawFamily.Nevada,
+    law: "Nevada Revised Statutes",
+    provision: "603A.220(2)",
+    places: [BreachPlace.Nevada],
+    dataElements: NEVADA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NEVADA_SOURCE,
+    sourceTitle: "Nevada Revised Statutes 603A.220(2)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.NewHampshireDataOwner,
+    family: BreachLawFamily.NewHampshire,
+    law: "New Hampshire Revised Statutes",
+    provision: "359-C:20, I(c)",
+    places: [BreachPlace.NewHampshire],
+    dataElements: NEW_HAMPSHIRE_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NEW_HAMPSHIRE_SOURCE,
+    sourceTitle: "New Hampshire Revised Statutes 359-C:20, I(c)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.NewJerseyDataOwner,
+    family: BreachLawFamily.NewJersey,
+    law: "New Jersey Statutes",
+    provision: "56:8-163(b)",
+    places: [BreachPlace.NewJersey],
+    dataElements: NEW_JERSEY_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NEW_JERSEY_SOURCE,
+    sourceTitle: "New Jersey Statutes 56:8-163(b)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.NewMexicoDataOwner,
+    family: BreachLawFamily.NewMexico,
+    law: "New Mexico Statutes Annotated 1978",
+    provision: "57-12C-6(C)",
+    places: [BreachPlace.NewMexico],
+    dataElements: NEW_MEXICO_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.SignificantRiskOfIdentityTheft],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: IN_THE_MOST_EXPEDIENT_TIME_WITHIN,
+    note: NOT_FOR_GLBA_OR_HIPAA,
+    sourceUrl: NEW_MEXICO_SOURCE,
+    sourceTitle: "New Mexico Statutes Annotated 1978, 57-12C-6(C)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.NewYorkDataOwner,
+    family: BreachLawFamily.NewYork,
+    law: "New York General Business Law",
+    provision: "899-aa(3)",
+    places: [BreachPlace.NewYork],
+    dataElements: NEW_YORK_ELEMENTS,
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 30,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "Immediately, and no later than that after the breach was discovered.",
+    ),
+    sourceUrl: NEW_YORK_SOURCE,
+    sourceTitle: "New York General Business Law 899-aa(3)",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.NorthCarolinaDataOwner,
+    family: BreachLawFamily.NorthCarolina,
+    law: "North Carolina General Statutes",
+    provision: "75-65(b)",
+    places: [BreachPlace.NorthCarolina],
+    dataElements: NORTH_CAROLINA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a security breach (75-61(14)).
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NORTH_CAROLINA_SOURCE,
+    sourceTitle: "North Carolina General Statutes 75-61 and 75-65(b)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.NorthDakotaDataOwner,
+    family: BreachLawFamily.NorthDakota,
+    law: "North Dakota Century Code",
+    provision: "51-30-03",
+    places: [BreachPlace.NorthDakota],
+    dataElements: NORTH_DAKOTA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NORTH_DAKOTA_SOURCE,
+    sourceTitle: "North Dakota Century Code 51-30-03",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.OhioDataOwner,
+    family: BreachLawFamily.Ohio,
+    law: "Ohio Revised Code",
+    provision: "1349.19(C)",
+    places: [BreachPlace.Ohio],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.MaterialRiskOfIdentityTheft],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.AsSoonAsPracticable,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey("In an expeditious manner, the law says."),
+    sourceUrl: OHIO_SOURCE,
+    sourceTitle: "Ohio Revised Code 1349.19(C)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.OklahomaDataOwner,
+    family: BreachLawFamily.Oklahoma,
+    law: "Oklahoma Statutes, Title 24",
+    provision: "163(C)",
+    places: [BreachPlace.Oklahoma],
+    dataElements: OKLAHOMA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a breach (162(1)).
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.AsSoonAsPracticable,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: OKLAHOMA_SOURCE,
+    sourceTitle:
+      "Oklahoma Statutes, Title 24, 162 and 163(C), as Laws 2025, c. 406 (SB 626) amended them",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.OregonDataOwner,
+    family: BreachLawFamily.Oregon,
+    law: "Oregon Revised Statutes",
+    provision: "646A.604(2)",
+    places: [BreachPlace.Oregon],
+    dataElements: OREGON_ELEMENTS,
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: translationKey(
+      "The covered entity, or the vendor, whose contract you hold the data under",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 10,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: AS_SOON_AS_PRACTICABLE_WITHIN,
+    note: translationKey(
+      "A vendor also tells the attorney general when more than 250 consumers, or a number it cannot determine, were affected, unless the covered entity has.",
+    ),
+    sourceUrl: OREGON_SOURCE,
+    sourceTitle: "Oregon Revised Statutes 646A.602 and 646A.604(2)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.PennsylvaniaDataOwner,
+    family: BreachLawFamily.Pennsylvania,
+    law: "Pennsylvania Breach of Personal Information Notification Act",
+    provision: "Section 3(c)",
+    places: [BreachPlace.Pennsylvania],
+    dataElements: PENNSYLVANIA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a breach (section 2).
+    conditions: [BreachCondition.LossOrInjury],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.NoFixedTime,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: AFTER_DISCOVERY_NO_TIME,
+    note: translationKey(
+      "The organization you hold the data for makes the law's determinations, and sends the other notices it asks for.",
+    ),
+    sourceUrl: PENNSYLVANIA_SOURCE,
+    sourceTitle:
+      "Pennsylvania Breach of Personal Information Notification Act (Act 94 of 2005), Sections 2 and 3(c), as amended",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.PuertoRicoDataOwner,
+    family: BreachLawFamily.PuertoRico,
+    law: "Puerto Rico Citizen Information on Data Banks Security Act",
+    provision: "Section 3 (resellers and access providers)",
+    places: [BreachPlace.PuertoRico],
+    dataElements: PUERTO_RICO_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.ResellsOrProvidesAccess],
+    action: TELL_THE_DATA_OWNER,
+    recipient: translationKey("The data's owner, custodian or holder"),
+    deadline: {
+      unit: BreachDeadlineUnit.NoFixedTime,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey("The law sets no time for this notice."),
+    sourceUrl: PUERTO_RICO_ACT_111_SOURCE,
+    sourceTitle:
+      "Ley Núm. 111 de 7 de septiembre de 2005, Artículo 3, segundo párrafo",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.SouthCarolinaDataOwner,
+    family: BreachLawFamily.SouthCarolina,
+    law: "Code of Laws of South Carolina",
+    provision: "39-1-90(B)",
+    places: [BreachPlace.SouthCarolina],
+    dataElements: SOUTH_CAROLINA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a breach (39-1-90(D)(1)).
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: SOUTH_CAROLINA_SOURCE,
+    sourceTitle: "Code of Laws of South Carolina 39-1-90(B) and (D)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.TennesseeDataOwner,
+    family: BreachLawFamily.Tennessee,
+    law: "Tennessee Code Annotated",
+    provision: "47-18-2107(c)",
+    places: [BreachPlace.Tennessee],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    note: NOT_FOR_GLBA_OR_HIPAA,
+    sourceUrl: TENNESSEE_SOURCE,
+    sourceTitle:
+      "Tennessee Code Annotated 47-18-2107(c), as 2017 Public Chapter 91 (SB 547, with Senate Amendment 1) replaced the section",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.TexasDataOwner,
+    family: BreachLawFamily.Texas,
+    law: "Texas Business and Commerce Code",
+    provision: "521.053(c)",
+    places: [BreachPlace.Texas],
+    dataElements: TEXAS_ELEMENTS,
+    needsName: true,
+    nameFreeElements: HEALTH_DATA,
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: TEXAS_STATUTE_SOURCE,
+    sourceTitle: "Texas Business and Commerce Code 521.053(c)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.UsVirginIslandsDataOwner,
+    family: BreachLawFamily.UsVirginIslands,
+    law: "Virgin Islands Code, Title 14",
+    provision: "2209(b)",
+    places: [BreachPlace.UsVirginIslands],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: US_VIRGIN_ISLANDS_SOURCE,
+    sourceTitle:
+      "Virgin Islands Code, Title 14, 2209(b), as Act No. 6789 (2005) enacted it",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.UtahDataOwner,
+    family: BreachLawFamily.Utah,
+    law: "Utah Code",
+    provision: "13-44-202(3)",
+    places: [BreachPlace.Utah],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.MisuseOccurredOrLikely],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: UTAH_SOURCE,
+    sourceTitle: "Utah Code 13-44-202(3)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.VermontDataOwner,
+    family: BreachLawFamily.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(2)",
+    places: [BreachPlace.Vermont],
+    dataElements: VERMONT_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    // Its exception covers every notice under subsection (b) ((d)(1)).
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: VERMONT_SOURCE,
+    sourceTitle:
+      "Vermont Statutes, Title 9, 2435(b)(2) and (d), as in force until 1 January 2027",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    inForceUntil: "2027-01-01",
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.VermontDataOwnerFrom2027,
+    family: BreachLawFamily.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(2)",
+    places: [BreachPlace.Vermont],
+    dataElements: VERMONT_ELEMENTS,
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    note: VERMONT_NAME_NOT_NEEDED,
+    sourceUrl: VERMONT_SOURCE,
+    sourceTitle:
+      "Vermont Statutes, Title 9, 2430(13) and 2435(b)(2) and (d), as 2025, No. 138 (Adj. Sess.) amended them, in force from 1 January 2027",
+    checkedOn: FOLLOW_UP_LAWS_CHECKED_ON,
+    inForceFrom: "2027-01-01",
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.VirginiaDataOwner,
+    family: BreachLawFamily.Virginia,
+    law: "Code of Virginia",
+    provision: "18.2-186.6(D)",
+    places: [BreachPlace.Virginia],
+    dataElements: VIRGINIA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a breach (18.2-186.6(A)).
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: VIRGINIA_SOURCE,
+    sourceTitle: "Code of Virginia 18.2-186.6(A) and (D)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.WashingtonDataOwner,
+    family: BreachLawFamily.Washington,
+    law: "Revised Code of Washington",
+    provision: "19.255.010(2)",
+    places: [BreachPlace.Washington],
+    dataElements: WASHINGTON_ELEMENTS,
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.Immediately,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: WASHINGTON_SOURCE,
+    sourceTitle: "Revised Code of Washington 19.255.010(2)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.WisconsinDataOwner,
+    family: BreachLawFamily.Wisconsin,
+    law: "Wisconsin Statutes",
+    provision: "134.98(2)(bm)",
+    places: [BreachPlace.Wisconsin],
+    dataElements: WISCONSIN_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Its exception covers (bm) too ((2)(cm)).
+    conditions: [
+      BreachCondition.NoContractWithOwner,
+      BreachCondition.NoMaterialRiskOfIdentityTheft,
+    ],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.AsSoonAsPracticable,
+      start: BreachDeadlineStart.Found,
+    },
+    note: WISCONSIN_EXEMPTIONS,
+    sourceUrl: WISCONSIN_SOURCE,
+    sourceTitle: "Wisconsin Statutes 134.98(2)(bm) and (2)(cm)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
+  },
+  {
+    id: BreachLawId.WyomingDataOwner,
+    family: BreachLawFamily.Wyoming,
+    law: "Wyoming Statutes",
+    provision: "40-12-502(g)",
+    places: [BreachPlace.Wyoming],
+    dataElements: WYOMING_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    // Part of the definition of a breach (40-12-501(a)(i)).
+    conditions: [BreachCondition.LossOrInjury],
+    action: TELL_THE_DATA_OWNER,
+    recipient: THE_DATA_OWNER,
+    deadline: {
+      unit: BreachDeadlineUnit.AsSoonAsPracticable,
+      start: BreachDeadlineStart.Found,
+    },
+    note: translationKey(
+      "You and the business you hold the data for may agree which of you tells the people: one notice is owed, not two.",
+    ),
+    sourceUrl: WYOMING_SOURCE,
+    sourceTitle: "Wyoming Statutes 40-12-501(a)(i) and 40-12-502(g)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    forDataHolders: true,
   },
   // ---- Brazil (LGPD Art. 48, ANPD Resolution 15/2024) ----
   {

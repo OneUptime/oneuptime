@@ -967,7 +967,18 @@ export enum BreachReasonKind {
   ReadsUnknown = "ReadsUnknown",
   // The store's access logs show reads from outside the company (#10951): its count of them.
   ReadFromOutsideLogged = "ReadFromOutsideLogged",
+  // Not in force yet, on the day it was found or now: its date is when it takes effect.
   NotInForce = "NotInForce",
+  /*
+   * In force now, but it took effect after the exposure was found (#11425):
+   * the text in force that day applies. Its date is when it took effect.
+   */
+  InForceAfterFound = "InForceAfterFound",
+  /*
+   * A newer text replaced it before the exposure was found (#11425): the
+   * newer text's row applies. Its date is the day the newer text took effect.
+   */
+  ReplacedBeforeFound = "ReplacedBeforeFound",
 }
 
 export interface BreachReason {
@@ -1082,22 +1093,48 @@ export function getBreachDueAt(data: {
   }
 }
 
-// Whether a row is in force on a day.
-export function isBreachLawInForce(rule: BreachLawRule, now: Date): boolean {
-  if (!rule.inForceFrom) {
-    return true;
-  }
+// A row's day (YYYY-MM-DD) as its first moment, in UTC; null for none.
+function toDayStart(day: string | undefined): number | null {
+  return day ? toTime(`${day}T00:00:00.000Z`) : null;
+}
 
-  const from: number | null = toTime(`${rule.inForceFrom}T00:00:00.000Z`);
+/*
+ * Whether a row is in force on a day: from its inForceFrom, and until a
+ * newer text replaces it on its inForceUntil (#11425), in UTC.
+ */
+export function isBreachLawInForce(rule: BreachLawRule, on: Date): boolean {
+  const from: number | null = toDayStart(rule.inForceFrom);
+  const until: number | null = toDayStart(rule.inForceUntil);
 
-  return from === null || now.getTime() >= from;
+  return (
+    (from === null || on.getTime() >= from) &&
+    (until === null || on.getTime() < until)
+  );
+}
+
+// Whether a newer text had replaced a row by a day (#11425): from then on the newer text's row applies.
+export function isBreachLawReplacedOn(rule: BreachLawRule, on: Date): boolean {
+  const until: number | null = toDayStart(rule.inForceUntil);
+
+  return until !== null && on.getTime() >= until;
 }
 
 export interface BreachLawFacts {
   whose: ExposureWhoseData;
   reads: ExposureReads;
+  /*
+   * When the exposure was found: its deadlines count from it, and it picks
+   * which text of a law applies (#11425) - a notice law's duty arises when
+   * the breach is discovered.
+   */
   foundAt: Date;
   now: Date;
+  /*
+   * Whether a person said the organization holds this data for another
+   * organization (#11427): only then are the notices it owes the data's
+   * owner applied. False, or nobody said, leaves them out.
+   */
+  holdsForAnother?: boolean | undefined;
 }
 
 // Whether a set of places meets a row's: one of the people is known to live where it applies.
@@ -1155,12 +1192,43 @@ export function applyBreachLaw(
     foundAt,
   };
 
-  if (!isBreachLawInForce(rule, facts.now)) {
-    reasons.push({ kind: BreachReasonKind.NotInForce, date: rule.inForceFrom });
+  /*
+   * The text in force on the day the exposure was found applies (#11425).
+   * A row that takes effect after that day is not yet in force while its
+   * day is still to come, and does not apply once it has come; a row a
+   * newer text replaced before that day does not apply either.
+   */
+  if (!isBreachLawInForce(rule, facts.foundAt)) {
+    const from: number | null = toDayStart(rule.inForceFrom);
+
+    if (from !== null && facts.foundAt.getTime() < from) {
+      if (facts.now.getTime() < from) {
+        reasons.push({
+          kind: BreachReasonKind.NotInForce,
+          date: rule.inForceFrom,
+        });
+
+        return {
+          ...base,
+          status: BreachObligationStatus.NotYetInForce,
+          isPlaceKnown: false,
+        };
+      }
+
+      reasons.push({
+        kind: BreachReasonKind.InForceAfterFound,
+        date: rule.inForceFrom,
+      });
+    } else {
+      reasons.push({
+        kind: BreachReasonKind.ReplacedBeforeFound,
+        date: rule.inForceUntil,
+      });
+    }
 
     return {
       ...base,
-      status: BreachObligationStatus.NotYetInForce,
+      status: BreachObligationStatus.NotTriggered,
       isPlaceKnown: false,
     };
   }
@@ -1300,11 +1368,28 @@ const STATUS_ORDER: Readonly<Record<BreachObligationStatus, number>> = {
 };
 
 /*
- * Every row of the table applied to the facts: what may apply first, the
- * soonest deadline first - those whose place is known before those that
- * depend on where the people live - then what has no length of time, what
- * is not in force yet, and what the facts rule out, each in the table's
- * order.
+ * Whether a row is one of this exposure's: not one a newer text replaced
+ * before it was found (#11425) - the newer text's row stands in its place -
+ * and a notice to the data's owner only once a person says the
+ * organization holds the data for another (#11427).
+ */
+export function isBreachLawForFacts(
+  rule: BreachLawRule,
+  facts: Pick<BreachLawFacts, "foundAt" | "holdsForAnother">,
+): boolean {
+  if (isBreachLawReplacedOn(rule, facts.foundAt)) {
+    return false;
+  }
+
+  return !rule.forDataHolders || facts.holdsForAnother === true;
+}
+
+/*
+ * The table's rows of this exposure (isBreachLawForFacts) applied to the
+ * facts: what may apply first, the soonest deadline first - those whose
+ * place is known before those that depend on where the people live - then
+ * what has no length of time, what is not in force yet, and what the facts
+ * rule out, each in the table's order.
  */
 export function applyBreachLaws(
   facts: BreachLawFacts,
@@ -1312,9 +1397,14 @@ export function applyBreachLaws(
 ): Array<BreachObligation> {
   const dueAtOf: Map<BreachLawId, Date> = new Map();
   const obligations: Array<BreachObligation> = [];
+  const applied: Array<BreachLawRule> = rules.filter(
+    (rule: BreachLawRule): boolean => {
+      return isBreachLawForFacts(rule, facts);
+    },
+  );
 
   // A notice counted from another comes after it: two passes over the table.
-  for (const rule of rules) {
+  for (const rule of applied) {
     if (rule.deadline.start === BreachDeadlineStart.PeopleNotified) {
       continue;
     }
@@ -1328,7 +1418,7 @@ export function applyBreachLaws(
     obligations.push(obligation);
   }
 
-  for (const rule of rules) {
+  for (const rule of applied) {
     if (rule.deadline.start === BreachDeadlineStart.PeopleNotified) {
       obligations.push(applyBreachLaw(rule, facts, dueAtOf));
     }
@@ -1397,16 +1487,24 @@ export enum UncoveredLawKind {
   OtherCountries = "OtherCountries",
   // A person said some of the people live elsewhere.
   PeopleElsewhere = "PeopleElsewhere",
-  // The US states whose statutes the table has no rows for (#10952): named in `states`.
+  /*
+   * The US jurisdictions whose statutes the table has no rows for (#10952):
+   * named in `states`. Guam and the US Virgin Islands were a line of their
+   * own until their laws were read (#11426).
+   */
   OtherUsStates = "OtherUsStates",
-  // Guam and the US Virgin Islands, which have breach laws of their own.
-  UsTerritories = "UsTerritories",
   // Where the organization is established can bring in a law whatever the people's countries.
   Establishment = "Establishment",
   // Contracts, sector rules and other obligations.
   ContractsAndSectors = "ContractsAndSectors",
   // The card brands that publish no deadline of their own (#10953).
   OtherCardBrands = "OtherCardBrands",
+  /*
+   * Nobody said whether the organization holds this data for another
+   * (#11427): the notices it would owe the data's owner are left out until
+   * a person says.
+   */
+  DataHeldForAnother = "DataHeldForAnother",
 }
 
 export interface UncoveredLaw {
@@ -1448,6 +1546,8 @@ export function getUncoveredLaws(
   whose: ExposureWhoseData,
   // The US states the table has no rows for: the table's own, but for a test.
   uncoveredStates: ReadonlyArray<BreachPlace> = UNCOVERED_US_STATES,
+  // Whether a person said the organization holds the data for another (#11427); undefined while nobody did.
+  holdsForAnother?: boolean | undefined,
 ): Array<UncoveredLaw> {
   const uncovered: Array<UncoveredLaw> = [];
   const elsewhere: Array<string> = whose.countriesFromData.filter(
@@ -1468,10 +1568,11 @@ export function getUncoveredLaws(
   }
 
   /*
-   * The US states the table has no rows for: every one while the state is
-   * not known, or those a person named; then the territories while the
-   * state is not known. Each state's notice to the consumer reporting
-   * agencies is a row of its own (#10952), so it is never left out here.
+   * The US jurisdictions the table has no rows for: every one while the
+   * state is not known, or those a person named. Each state's notice to the
+   * consumer reporting agencies is a row of its own (#10952), so it is never
+   * left out here, and so are Guam's and the US Virgin Islands' laws now
+   * (#11426).
    */
   const isStateUnknown: boolean = isUsStateUnknown(whose);
   const statesLeftOut: Array<BreachPlace> = uncoveredStates.filter(
@@ -1487,13 +1588,18 @@ export function getUncoveredLaws(
     });
   }
 
-  if (isStateUnknown) {
-    uncovered.push({ kind: UncoveredLawKind.UsTerritories });
-  }
-
   // Card data: the brands whose rules are only in their agreements.
   if (whose.elements.includes(BreachDataElement.CardData)) {
     uncovered.push({ kind: UncoveredLawKind.OtherCardBrands });
+  }
+
+  /*
+   * The notices to the data's owner (#11427), while nobody said whether the
+   * organization holds this data for another: only data a breach law covers
+   * can owe one.
+   */
+  if (holdsForAnother === undefined && whose.elements.length > 0) {
+    uncovered.push({ kind: UncoveredLawKind.DataHeldForAnother });
   }
 
   uncovered.push({ kind: UncoveredLawKind.Establishment });
@@ -1512,9 +1618,6 @@ export const UNCOVERED_LAW_WORDS: Readonly<Record<UncoveredLawKind, string>> = {
   [UncoveredLawKind.OtherUsStates]: translationKey(
     "It does not cover the breach laws of {{states}}, whose statutes could not be read from an official source: check them yourself.",
   ),
-  [UncoveredLawKind.UsTerritories]: translationKey(
-    "Guam and the US Virgin Islands have breach laws of their own, which it does not cover.",
-  ),
   [UncoveredLawKind.Establishment]: translationKey(
     "Where your organization is established can bring in GDPR, UK GDPR or another law, whatever the people's countries.",
   ),
@@ -1523,6 +1626,9 @@ export const UNCOVERED_LAW_WORDS: Readonly<Record<UncoveredLawKind, string>> = {
   ),
   [UncoveredLawKind.OtherCardBrands]: translationKey(
     "Of the card brands, it covers Visa, Mastercard and American Express, which publish their deadlines. Discover, JCB and UnionPay set theirs in agreements they do not publish: ask your acquirer.",
+  ),
+  [UncoveredLawKind.DataHeldForAnother]: translationKey(
+    "If your organization holds this data for another, the law may ask you to tell the data's owner. Say whose data it is on the Was It a Breach? card to see those notices.",
   ),
 };
 
@@ -1642,6 +1748,19 @@ export interface ExposurePeoplePlaces {
   saidByUserId?: string | undefined;
 }
 
+/*
+ * Whether the organization holds this data for another organization - as a
+ * vendor, processor or service provider - as a person said on the Was It a
+ * Breach? card (#11427), and who said it. It is how the assessment knows to
+ * show the notices such an organization owes the data's owner: no scan can
+ * tell whose data a store holds for whom.
+ */
+export interface ExposureDataHeldFor {
+  forAnother: boolean;
+  saidAt: string;
+  saidByUserId?: string | undefined;
+}
+
 // What a case keeps (SecurityCase.exposureAssessment).
 export interface StoredExposureAssessment {
   version: number;
@@ -1650,6 +1769,8 @@ export interface StoredExposureAssessment {
   startedBy: ExposureAssessmentStarter;
   startedByUserId?: string | undefined;
   peopleLiveIn?: ExposurePeoplePlaces | undefined;
+  // Whether a person said the organization holds the data for another (#11427).
+  dataHeldFor?: ExposureDataHeldFor | undefined;
   // The language its drafted parts are written in.
   language: string;
   sections: Partial<Record<ExposureDraftPart, ExposureDraftSection>>;
@@ -1740,6 +1861,18 @@ function readPeoplePlaces(value: unknown): ExposurePeoplePlaces | undefined {
   };
 }
 
+function readDataHeldFor(value: unknown): ExposureDataHeldFor | undefined {
+  if (!isRecord(value) || typeof value["forAnother"] !== "boolean") {
+    return undefined;
+  }
+
+  return {
+    forAnother: value["forAnother"],
+    saidAt: readText(value["saidAt"], 40),
+    saidByUserId: readText(value["saidByUserId"], 40) || undefined,
+  };
+}
+
 // An assessment as a case keeps it, or null: none, or one this build cannot read.
 export function readStoredExposureAssessment(
   value: unknown,
@@ -1780,6 +1913,7 @@ export function readStoredExposureAssessment(
         : ExposureAssessmentStarter.DataSecurity,
     startedByUserId: readText(value["startedByUserId"], 40) || undefined,
     peopleLiveIn: readPeoplePlaces(value["peopleLiveIn"]),
+    dataHeldFor: readDataHeldFor(value["dataHeldFor"]),
     language: readText(value["language"], 20) || "en",
     sections,
     facts: readComplianceFacts(value["facts"]),
@@ -1987,6 +2121,21 @@ const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   {
     pattern: /\bWyoming\b|\b40-12-50\d\b/gi,
     family: BreachLawFamily.Wyoming,
+  },
+  // Puerto Rico (#11424), Guam and the US Virgin Islands (#11426), by name and by their acts' or sections' numbers.
+  {
+    pattern: /\bPuerto Rico\b|\b111-2005\b/gi,
+    family: BreachLawFamily.PuertoRico,
+  },
+  { pattern: /\bGuam\b|\b9 GCA\b/gi, family: BreachLawFamily.Guam },
+  /*
+   * The US Virgin Islands, never the British ones: a place the table does
+   * not cover, read past like any other.
+   */
+  { pattern: /\bBritish Virgin Islands\b/gi, family: null, isPlace: true },
+  {
+    pattern: /\b(?:U\.?S\.? )?Virgin Islands\b|\bUSVI\b|\bV\.I\.C\./gi,
+    family: BreachLawFamily.UsVirginIslands,
   },
   { pattern: /\bLGPD\b|\bANPD\b/gi, family: BreachLawFamily.Lgpd },
   {
@@ -2343,6 +2492,30 @@ export function setExposurePeoplePlaces(data: {
 }
 
 /*
+ * Whether a person says the organization holds this data for another
+ * (#11427): true or false, and who said it; anything else takes the answer
+ * back.
+ */
+export function setExposureDataHeldFor(data: {
+  assessment: StoredExposureAssessment;
+  forAnother: unknown;
+  userId?: string | undefined;
+  now: Date;
+}): StoredExposureAssessment {
+  return {
+    ...data.assessment,
+    dataHeldFor:
+      typeof data.forAnother === "boolean"
+        ? {
+            forAnother: data.forAnother,
+            saidAt: data.now.toISOString(),
+            saidByUserId: data.userId,
+          }
+        : undefined,
+  };
+}
+
+/*
  * ---------------------------------------------------------------------------
  * The assessment as plain code worked it out
  * ---------------------------------------------------------------------------
@@ -2384,6 +2557,12 @@ export interface ExposureAssessmentView {
   mostUrgent: BreachObligation | null;
   uncovered: Array<UncoveredLaw>;
   isPlaceUnknown: boolean;
+  /*
+   * Whether a person said the organization holds this data for another
+   * (#11427): the notices to the data's owner are among the obligations
+   * only when true; undefined while nobody said.
+   */
+  holdsForAnother?: boolean | undefined;
   // When this was worked out.
   now: string;
 }
@@ -2396,6 +2575,7 @@ export function buildExposureAssessmentView(data: {
   whose: ExposureWhoseData;
   secretsToRotate: ReadonlyArray<ExposureSecret>;
   hasMoreSecrets: boolean;
+  holdsForAnother?: boolean | undefined;
   now: Date;
 }): ExposureAssessmentView {
   const foundAt: Date = data.window ? new Date(data.window.foundAt) : data.now;
@@ -2404,6 +2584,7 @@ export function buildExposureAssessmentView(data: {
     reads: data.reads,
     foundAt,
     now: data.now,
+    holdsForAnother: data.holdsForAnother,
   });
 
   return {
@@ -2416,8 +2597,13 @@ export function buildExposureAssessmentView(data: {
     hasMoreSecrets: data.hasMoreSecrets,
     obligations,
     mostUrgent: getMostUrgentObligation(obligations),
-    uncovered: getUncoveredLaws(data.whose),
+    uncovered: getUncoveredLaws(
+      data.whose,
+      UNCOVERED_US_STATES,
+      data.holdsForAnother,
+    ),
     isPlaceUnknown: isPlaceUnknown(data.whose),
+    holdsForAnother: data.holdsForAnother,
     now: data.now.toISOString(),
   };
 }
@@ -2472,6 +2658,11 @@ export function describeBreachDeadlineInEnglish(rule: BreachLawRule): string {
       return "without undue delay";
     case BreachDeadlineUnit.WithoutUnreasonableDelay:
       return "in the most expedient time possible and without unreasonable delay";
+    // The notices to the data's owner (#11427).
+    case BreachDeadlineUnit.Immediately:
+      return "immediately";
+    case BreachDeadlineUnit.AsSoonAsPracticable:
+      return "as soon as practicable";
     default:
       return "no fixed time";
   }

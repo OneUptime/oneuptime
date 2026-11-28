@@ -31,6 +31,7 @@ import {
   holdExposureDraftsToFacts,
   mergeExposureDrafts,
   readStoredExposureAssessment,
+  setExposureDataHeldFor,
   setExposurePeoplePlaces,
   startExposureAssessment,
   StoredExposureAssessment,
@@ -585,6 +586,73 @@ export default class ExposureAssessmentDrafter {
   }
 
   /*
+   * Whether a person says the organization holds the exposed data for
+   * another organization (#11427): when it does, the assessment adds the
+   * notices such an organization owes the data's owner. Neither true nor
+   * false takes the answer back.
+   */
+  @CaptureSpan()
+  public static async setDataHeldFor(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    forAnother: unknown;
+    now?: Date | undefined;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    if (
+      !(await ExposureAssessmentReader.mayChange({
+        securityCaseId: data.securityCaseId,
+        props: data.props,
+      }))
+    ) {
+      throw new NotAuthorizedException(CHANGE_REFUSED_MESSAGE);
+    }
+
+    const now: Date = data.now || OneUptimeDate.getCurrentDate();
+    const scope: ExposureCaseScope =
+      await ExposureAssessmentReader.readScope(data);
+
+    if (!scope.stored) {
+      throw new BadDataException(NOT_ASSESSED_MESSAGE);
+    }
+
+    const updated: StoredExposureAssessment = setExposureDataHeldFor({
+      assessment: scope.stored,
+      forAnother: data.forAnother,
+      userId: data.props.userId?.toString(),
+      now,
+    });
+    const forAnother: boolean | undefined = updated.dataHeldFor?.forAnother;
+
+    await this.save(data.securityCaseId, updated);
+    await this.writeTimeline({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      userId: data.props.userId || undefined,
+      color: Gray500,
+      line: async (byWhom: MarkdownText | null): Promise<MarkdownText> => {
+        if (forAnother === undefined) {
+          return byWhom
+            ? mdText`**${byWhom}** took back the answer to whose data the exposed store holds.`
+            : mdText`The answer to whose data the exposed store holds was taken back.`;
+        }
+
+        if (forAnother) {
+          return byWhom
+            ? mdText`**${byWhom}** said the organization holds the exposed data for another organization. The exposure assessment adds the notices owed to the data's owner.`
+            : mdText`The organization holds the exposed data for another organization, as was said. The exposure assessment adds the notices owed to the data's owner.`;
+        }
+
+        return byWhom
+          ? mdText`**${byWhom}** said the exposed data is the organization's own.`
+          : mdText`The exposed data is the organization's own, as was said.`;
+      },
+    });
+
+    return await this.read({ ...data, now });
+  }
+
+  /*
    * A person asks OneUptime to read the store's own access logs for the
    * exposure's window (#10951): as far as a request's time lets it, kept on
    * the case, the timeline saying what they show - counted, never who.
@@ -789,6 +857,7 @@ export default class ExposureAssessmentDrafter {
       placesNamed: data.stored.peopleLiveIn?.places as
         | Array<BreachPlace>
         | undefined,
+      holdsForAnother: data.stored.dataHeldFor?.forAnother,
       logRead: data.stored.logRead,
       now: data.now,
     });
@@ -1004,6 +1073,7 @@ export default class ExposureAssessmentDrafter {
             },
           ),
           stored?.peopleLiveIn?.saidByUserId || "",
+          stored?.dataHeldFor?.saidByUserId || "",
           stored?.startedByUserId || "",
         ].filter((id: string): boolean => {
           return ObjectID.isValidUUID(id);
