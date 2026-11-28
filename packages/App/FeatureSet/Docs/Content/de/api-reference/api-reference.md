@@ -413,6 +413,44 @@ Incident not found.
 
 Früher antwortete es mit `200` und einem leeren Body. Eine Liste (`get-list`) und eine Zählung antworten weiterhin mit `200` und den Datensätzen, die Sie lesen dürfen, ohne Datensätze, wenn es keine gibt. Der Terraform-Provider liest ein `404` beim Aktualisieren als eine Ressource, die weg ist, und entfernt sie aus dem State, sodass der nächste Plan sie wieder anlegt: Geben Sie dem API-Schlüssel, den er verwendet, die Berechtigungen und die Labels, um jede Ressource zu lesen, die er verwaltet. Die MCP-Tools beantworten ein `404` mit einem Fehler, der auf das passende Listen-Tool verweist, und die CLI endet mit dem Code `3`.
 
+### Bilder im Markdown eines Datensatzes
+
+Ein Bild, das in Markdown eingefügt wurde, etwa ein Screenshot in der Beschreibung eines Vorfalls, einem benutzerdefinierten Markdown-Feld oder einer Notiz, ist eine private Datei. Seine Adresse (`/file/image/access-token/...`) öffnet es nur für eine Person, die im Projekt angemeldet ist, daher liest ein API-Schlüssel es stattdessen über den Datensatz, der es zeigt:
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+Der Datensatz wird als der Schlüssel gelesen, so wie `get-item` ihn liest: Der Schlüssel braucht die Berechtigung, ihn zu lesen, und seine Labels. Die Antwort enthält jedes Bild, das das Markdown des Datensatzes zeigt, in der Reihenfolge, in der es sie zeigt: `name`, `mimeType`, `sizeInBytes`, die Daten in `base64`, eine `contentId` für einen eingebetteten E-Mail-Anhang, die `urls`, unter denen das Markdown es zeigt, und die `fields`, in denen es steht. Unter `leftOut` stehen die Dateien, die das Markdown zeigt, die aber nicht herausgegeben werden, jeweils mit einem `reason`:
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+Herausgegeben werden nur Bilder, die in das eigene Projekt des Datensatzes hochgeladen wurden, bis zu 20 und insgesamt 10 MB, und nie ein SVG. Jede Art von Datensatz mit Markdown hat dieselbe Anfrage, etwa `/api/incident-public-note/<id>/markdown-files` oder `/api/alert/<id>/markdown-files`. Ein Datensatz, der nicht existiert oder den der Schlüssel nicht lesen darf, antwortet `404`, wie `get-item`, und `422`, wenn der Schlüssel diese Art von Datensatz überhaupt nicht lesen darf. Ein Workflow liest dieselben Bilder mit [Dateien aus Markdown abrufen](/docs/workflows/components#get-files-from-markdown).
+
 ## Die vollständige Endpunkt-Referenz
 
 Jede Ressource, jeder Endpunkt und jedes Feld steht in der [OneUptime-API-Referenz](/reference). Sie ist in mehreren Sprachen verfügbar: Ihre Sprache wird aus Ihrem Browser übernommen, und Sie können sie jederzeit mit der Auswahl oben auf der Seite wechseln.

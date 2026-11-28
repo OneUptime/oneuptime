@@ -413,6 +413,44 @@ Incident not found.
 
 它過去會傳回 `200` 和空的回應本文。清單（`get-list`）和計數仍然以 `200` 和你可以讀取的記錄回應，沒有時則為空。Terraform 提供者會把重新整理時的 `404` 當作已不存在的資源，並將其從 state 中移除，因此下一次 plan 會重新建立它：請給它所使用的 API 金鑰授予讀取它所管理之每個資源的權限和標籤。MCP 工具對 `404` 的回應是一個指向對應清單工具的錯誤，而 CLI 會以代碼 `3` 結束。
 
+### 記錄的 Markdown 中的圖片
+
+貼到 Markdown 中的圖片，例如事件描述、Markdown 自訂欄位或備註中的螢幕截圖，是一個私人檔案。它的位址（`/file/image/access-token/...`）只對已登入專案的人開啟，所以 API 金鑰改為透過顯示它的記錄來讀取：
+
+```bash
+curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
+  -H "ApiKey: $ONEUPTIME_API_KEY"
+```
+
+記錄以該金鑰的身分讀取，和 `get-item` 的讀取方式相同：金鑰需要讀取它的權限，以及它的標籤。回應包含記錄的 Markdown 顯示的每張圖片，依顯示順序排列：它的 `name`、`mimeType`、`sizeInBytes`、`base64` 格式的資料、用於電子郵件內嵌附件的 `contentId`、Markdown 顯示它時所用的 `urls`，以及它所在的 `fields`。`leftOut` 下是 Markdown 顯示但沒有交出的檔案，每個都帶有 `reason`：
+
+```json
+{
+  "files": [
+    {
+      "name": "screenshot.png",
+      "mimeType": "image/png",
+      "sizeInBytes": 48213,
+      "base64": "iVBORw0KGgoAAAANSUhEUgAA...",
+      "contentId": "image-3f9a1c0d5e7b2a4c6d8e0f12",
+      "urls": ["https://oneuptime.com/file/image/access-token/9e1c..."],
+      "fields": ["description"]
+    }
+  ],
+  "leftOut": [
+    {
+      "name": "diagram.svg",
+      "urls": ["https://oneuptime.com/file/image/access-token/4b7d..."],
+      "fields": ["description"],
+      "reason": "NotAPicture",
+      "message": "Only pictures such as PNG, JPEG, GIF and WebP are handed out. An SVG can carry script, so it is left out."
+    }
+  ]
+}
+```
+
+只交出上傳到記錄自身所在專案的圖片，最多 20 張、總共 10 MB，而且從不交出 SVG。每種帶 Markdown 的記錄都有同樣的請求，例如 `/api/incident-public-note/<id>/markdown-files` 或 `/api/alert/<id>/markdown-files`。不存在的記錄，或金鑰無權讀取的記錄，會像 `get-item` 一樣回應 `404`；金鑰完全不能讀取該類記錄時回應 `422`。工作流程用 [從 Markdown 取得檔案](/docs/workflows/components#get-files-from-markdown) 讀取同樣的圖片。
+
 ## 完整的端點參考
 
 每個資源、端點和欄位都列在 [OneUptime API 參考](/reference) 中。它提供多種語言：語言會依你的瀏覽器選擇，你也可以隨時用頁面頂端的選擇器切換。

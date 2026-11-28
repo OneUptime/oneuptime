@@ -563,6 +563,7 @@ const STEP_HELP_LINKS_TO_STEPS: Array<StepHelpLink> = [
   "sleep",
   "log",
   "executeWorkflow",
+  "getFilesFromMarkdown",
 ];
 
 const STEP_HELP_LINKS_TO_TRANSLATED: Array<StepHelpLink> = [

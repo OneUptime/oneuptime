@@ -26,6 +26,7 @@ Je hebt haar zelden open nodig tijdens het bouwen. De instellingen van elk blok 
 | Gegevens tussen twee blokken om te vormen                     | [JSON](#json) of [Custom Code](#custom-code)                      |
 | Te wachten vóór het volgende blok                             | [Sleep](#sleep)                                                   |
 | Een andere workflow te starten                                | [Execute Workflow](#execute-workflow)                             |
+| De afbeeldingen die de Markdown van een record toont aan een e-mail toe te voegen | [Bestanden uit Markdown ophalen](#get-files-from-markdown) |
 | Incidenten, monitoren en andere records te lezen of te wijzigen | [OneUptime-datacomponenten](#oneuptime-datacomponenten)         |
 | Incidenten of waarschuwingen voor de problemen van een ander hulpmiddel te openen, te bevestigen en op te lossen | [Incidenten en waarschuwingen uit andere hulpmiddelen](#incidenten-en-waarschuwingen-uit-andere-hulpmiddelen) |
 | Een Zabbix-probleem te bevestigen of te sluiten | [Zabbix](#zabbix) |
@@ -391,6 +392,139 @@ Start een andere workflow van hetzelfde project. Je workflow gaat door zonder te
 **Uitgaand** gaat af zodra de andere workflow in de wachtrij staat. **Fout** gaat af als dat niet lukt: hij wordt niet gevonden, staat uit of is gearchiveerd, of hem starten zou een lus maken.
 
 Gebruik het om gemeenschappelijke logica te delen: bouw één keer een workflow «posten in het incidentkanaal» en start die vanuit elke workflow die hem nodig heeft. Een keten van workflows die elkaar starten, kan niet bij zichzelf terugkomen en is hooguit 10 diep. Zie [Configuratie en veiligheid](/docs/workflows/configuration#limiet-op-het-aanroepen-van-andere-workflows).
+
+## Get Files From Markdown
+
+Leest de afbeeldingen die de Markdown van een record toont, zoals de schermafbeeldingen die iemand in de beschrijving van een incident, een aangepast Markdown-veld of een notitie plakte, met de naam, het type en de gegevens van elke afbeelding. Gebruik het om de afbeeldingen aan een e-mail toe te voegen, zodat ze staan waar de Markdown ze zet.
+
+| Instelling | Wat het doet |
+| --- | --- |
+| **Recordtype** | Het soort record waarvan de Markdown de afbeeldingen toont: een incident, een openbare of interne notitie van een incident, een waarschuwing, gepland onderhoud en meer. |
+| **Record-ID** | Het record dat gelezen wordt, meestal het record waarmee de workflow begon, zoals `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+
+| Uitgang | Wanneer |
+| --- | --- |
+| **Succes** | Het record is gelezen, of het nu afbeeldingen toont of niet. |
+| **Fout** | Het record kon niet gelezen worden: het bestaat niet, of de workflow mag het niet lezen. **Fout** zegt waarom. |
+
+Het geeft terug:
+
+- **Bestanden**: elke afbeelding, in de volgorde waarin het record haar toont, met:
+  - `name`: de naam van het bestand, zoals het is geüpload;
+  - `mimeType`: het type, zoals `image/png` of `image/jpeg`;
+  - `sizeInBytes`: de grootte in bytes;
+  - `base64`: de gegevens van de afbeelding;
+  - `contentId`: een ID voor de afbeelding in een HTML-e-mail (`<img src="cid:...">`), hetzelfde voor dezelfde afbeelding, welk record haar ook toont;
+  - `urls`: elk adres waarmee de Markdown haar toont;
+  - `fields`: de velden die haar tonen, zoals `description` of de naam van een aangepast veld.
+- **Aantal**: hoeveel afbeeldingen **Bestanden** bevat.
+- **Weggelaten**: de bestanden die de Markdown toont maar die niet in **Bestanden** staan, elk met zijn `name`, `urls`, `fields`, een `reason` en een `message` die zegt waarom.
+
+**Bestanden** bevat de gegevens van de afbeeldingen, dus het logboek van de run verbergt het en toont in plaats daarvan **Aantal** en **Weggelaten**. Een later blok dat de afbeeldingen krijgt, schrijft wat het krijgt in zijn eigen regel in het logboek.
+
+### Welke afbeeldingen het afgeeft
+
+Het blok leest het record zoals een Find One-blok dat doet, als de workflow: in het eigen project van de workflow, nooit een privé-incident, -waarschuwing of -episode, en alleen wat de rechten van de workflow laten lezen. Een record dat het niet mag lezen neemt **Fout**, net als een record dat niet bestaat.
+
+Het geeft alleen af:
+
+- afbeeldingen die de Markdown-velden van het record tonen, zoals de beschrijving van een incident, de hoofdoorzaak, de postmortem en de herstelnotities, en zijn aangepaste Markdown-velden. Een aangepast tekstveld is geen Markdown, dus een adres dat erin staat wordt niet gelezen;
+- afbeeldingen die in het eigen project van het record zijn geüpload. Een adres dat uit een record van een ander project is gekopieerd, staat onder **Weggelaten** als niet gevonden;
+- afbeeldingen: PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC en ICO, elk gecontroleerd op wat het bestand bevat en op het type. Een SVG kan script bevatten, dus die wordt weggelaten, net als een bestand dat alleen beweert een afbeelding te zijn;
+- tot 20 afbeeldingen, en 10 MB in totaal. Wat over een grens gaat, staat onder **Weggelaten**, met de reden.
+
+Het kan geen bestanden opsommen en er geen via het adres lezen: het leest alleen wat het record toont.
+
+### Voorbeeld: ingesloten afbeeldingen in een e-mail via Microsoft Graph
+
+Deze workflow mailt elk nieuw incident via Microsoft Graph, met de schermafbeeldingen uit de beschrijving op de plek waar de beschrijving ze zet.
+
+:::steps
+### Een token voor Microsoft Graph krijgen
+
+Registreer een toepassing in Microsoft Entra ID, geef haar de toepassingsmachtiging `Mail.Send` en verleen beheerderstoestemming. Maak dan een [OAuth 2.0-variabele](/docs/workflows/variables#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen) met de naam `GRAPH_TOKEN` voor Microsoft, met het toekenningstype **Client Credentials** en het bereik `https://graph.microsoft.com/.default`.
+
+### Bij een nieuw incident beginnen
+
+Voeg de trigger **Bij aanmaken: Incident** toe en geef zijn **Titel** en **Beschrijving** door.
+
+### De afbeeldingen van het incident lezen
+
+Voeg **Bestanden uit Markdown ophalen** toe na de trigger. Zet **Recordtype** op **Incident** en **Record-ID** op `{{local.components.incident-on-create-1.returnValues.model._id}}`.
+
+### Het bericht opbouwen
+
+Voeg **Eigen JavaScript uitvoeren** toe aan zijn uitgang **Succes**, met deze **Argumenten**:
+
+```json title="Arguments"
+{
+  "subject": "{{local.components.incident-on-create-1.returnValues.model.title}}",
+  "description": "{{local.components.incident-on-create-1.returnValues.model.description}}",
+  "files": {{local.components.get-files-from-markdown-1.returnValues.files}}
+}
+```
+
+De code laat elk adres van een afbeelding naar haar bijlage wijzen (`cid:` en haar `contentId`) en voegt de afbeelding ingesloten toe onder hetzelfde ID:
+
+```javascript title="JavaScript Code"
+const escapeHtml = (text) =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// The description, a paragraph at a time.
+let html = escapeHtml(args.description || "")
+  .split(/\n{2,}/)
+  .map((paragraph) => `<p>${paragraph}</p>`)
+  .join("\n");
+
+const attachments = [];
+
+for (const file of args.files) {
+  for (const url of file.urls) {
+    html = html.split(url).join(`cid:${file.contentId}`);
+  }
+
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    contentId: file.contentId,
+    isInline: true,
+  });
+}
+
+// ![alt](cid:...) becomes an <img>, where the Markdown put the image.
+html = html.replace(/!\[([^\]]*)\]\((cid:[^)\s]+)\)/g, '<img src="$2" alt="$1">');
+
+return {
+  message: {
+    subject: args.subject,
+    body: { contentType: "HTML", content: html },
+    toRecipients: [{ emailAddress: { address: "oncall@example.com" } }],
+    attachments: attachments,
+  },
+  saveToSentItems: false,
+};
+```
+
+### Versturen met Microsoft Graph
+
+Voeg **API-aanroep POST (JSON)** toe aan de uitgang **Succes** van de code:
+
+| Instelling | Waarde |
+| --- | --- |
+| **URL** | `https://graph.microsoft.com/v1.0/users/alerts@example.com/sendMail` |
+| **Aanvraagheaders** | `Authorization`: `Bearer {{global.variables.GRAPH_TOKEN}}` |
+| **Verzoeklichaam** | `{{local.components.javascript-1.returnValues.returnValue}}` |
+
+Microsoft Graph antwoordt `202 Accepted`, en het blok neemt **Succes**.
+:::
+
+Microsoft Graph neemt in een bericht dat het zo krijgt een bijlage van hoogstens 3 MB aan. Een grotere afbeelding heeft een uploadsessie nodig, of een link in plaats van de afbeelding. De afbeeldingen van een record zijn ook met een API-sleutel te lezen, buiten een workflow om: zie [Afbeeldingen in de Markdown van een record](/docs/api-reference/api-reference#afbeeldingen-in-de-markdown-van-een-record).
 
 ## Incidenten en waarschuwingen uit andere hulpmiddelen
 
