@@ -281,7 +281,8 @@ export function estimateQueuedBatches(data: {
 export function decideRefusedProjects(data: {
   estimates: Array<QueuedBatchesEstimate>;
   limit: number;
-  refusedBefore: ReadonlyMap<string, number>;
+  // Who the last read refused, by key; only whether a key is in it counts.
+  refusedBefore: ReadonlyMap<string, unknown>;
 }): Map<string, QueuedBatchesEstimate> {
   const refused: Map<string, QueuedBatchesEstimate> = new Map();
 
