@@ -161,6 +161,24 @@ const TRANSLATION: SetupGuideTranslation = {
     "- これは **`ceph-1`** 用のエージェントをインストールします。`CEPH_CLUSTER_NAME` は正確にそのままにしてください。変えると、データは新しいクラスターとして登録されます。",
   "The cluster's identity comes from `CEPH_CLUSTER_NAME`, stamped on every metric as `ceph.cluster.name`. This cluster is **`ceph-1`**. Fix it in `.env` and apply it with `docker compose up -d` in the folder with `docker-compose.yml` — note that a new name registers a new cluster.":
     "クラスターの識別は `CEPH_CLUSTER_NAME` から来ており、すべてのメトリクスに `ceph.cluster.name` として付きます。このクラスターは **`ceph-1`** です。`.env` で修正し、`docker-compose.yml` のあるフォルダーで `docker compose up -d` を実行して適用します。新しい名前は新しいクラスターとして登録されることに注意してください。",
+  "| `CEPH_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-ceph-agent`). A second cluster's agent on the same machine needs names of its own: the install script names a new agent's containers after its folder unless you set them, and keeps them when you run the script again |":
+    "| `CEPH_AGENT_CONTAINER_NAME` | いいえ | コレクターのコンテナー名 (既定: `oneuptime-ceph-agent`)。同じマシン上の 2 つ目のクラスターのエージェントには専用の名前が必要です。設定しない場合、インストールスクリプトは新しいエージェントのコンテナーにそのフォルダーにちなんだ名前を付け、スクリプトを再実行してもその名前を維持します |",
+  "| `CEPH_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-ceph-ai-agent`). The install script names a second cluster's AI agent after its collector (`oneuptime-ceph-ai-agent-cluster2` beside `oneuptime-ceph-agent-cluster2`) unless you set it, and keeps it when you run the script again |":
+    "| `CEPH_AI_AGENT_CONTAINER_NAME` | いいえ | AI エージェントのコンテナー名 (既定: `oneuptime-ceph-ai-agent`)。設定しない場合、インストールスクリプトは 2 つ目のクラスターの AI エージェントにそのコレクターにちなんだ名前を付け (`oneuptime-ceph-ai-agent-cluster2` を `oneuptime-ceph-agent-cluster2` の隣に)、スクリプトを再実行してもその名前を維持します |",
+  "One agent reads one cluster. For a second cluster, install a second agent in a folder of its own, with container names of its own — two containers cannot share a name:":
+    "1 つのエージェントは 1 つのクラスターを読み取ります。2 つ目のクラスターには、専用のフォルダーに専用のコンテナー名で 2 つ目のエージェントをインストールします。2 つのコンテナーが同じ名前を使うことはできません:",
+  "The script names the containers after the folder, such as `oneuptime-ceph-agent-cluster2`, unless you set their variables, such as `CEPH_AGENT_CONTAINER_NAME`. It keeps the names in that agent's `.env`, so running the script again with the same `INSTALL_DIR` to upgrade the agent keeps them, and an agent whose `container_name` you once edited in `docker-compose.yml` keeps that name.":
+    "変数 (`CEPH_AGENT_CONTAINER_NAME` など) を設定しない場合、スクリプトはフォルダーにちなんでコンテナーに `oneuptime-ceph-agent-cluster2` のような名前を付けます。その名前はそのエージェントの `.env` に保存されるため、同じ `INSTALL_DIR` でスクリプトを再実行してエージェントをアップグレードしても維持されます。また、`docker-compose.yml` で `container_name` を以前編集したエージェントも、その名前を維持します。",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so the script refuses a folder named like one that already runs an agent elsewhere. Pass the folder to the diagnostic script with `-d`.":
+    "フォルダーにはそれぞれ専用の名前を付けてください。Docker Compose はプロジェクトにフォルダー名だけにちなんだ名前を付けるため、別の場所ですでにエージェントを実行しているフォルダーと同じ名前のフォルダーはスクリプトが拒否します。フォルダーは `-d` で診断スクリプトに渡します。",
+  "| `CEPH_AGENT_CONTAINER_NAME` | No | The collector's container name (default: `oneuptime-ceph-agent`). A second cluster's agent on the same machine needs one of its own |":
+    "| `CEPH_AGENT_CONTAINER_NAME` | いいえ | コレクターのコンテナー名 (既定: `oneuptime-ceph-agent`)。同じマシン上の 2 つ目のクラスターのエージェントには専用の名前が必要です |",
+  "| `CEPH_AI_AGENT_CONTAINER_NAME` | No | The AI agent's container name (default: `oneuptime-ceph-ai-agent`). A second cluster's agent on the same machine needs one of its own |":
+    "| `CEPH_AI_AGENT_CONTAINER_NAME` | いいえ | AI エージェントのコンテナー名 (既定: `oneuptime-ceph-ai-agent`)。同じマシン上の 2 つ目のクラスターのエージェントには専用の名前が必要です |",
+  "One agent reads one cluster. For a second cluster, set up a second agent in a folder of its own, with container names of its own — two containers cannot share a name. Set them in that agent's `.env`:":
+    "1 つのエージェントは 1 つのクラスターを読み取ります。2 つ目のクラスターには、専用のフォルダーに専用のコンテナー名で 2 つ目のエージェントを用意します。2 つのコンテナーが同じ名前を使うことはできません。名前はそのエージェントの `.env` で設定します:",
+  "Give each folder a name of its own: Docker Compose names a project after its folder alone, so a second folder of the same name would replace the first agent's containers. Keep the names out of `docker-compose.yml`, which an upgrade replaces.":
+    "フォルダーにはそれぞれ専用の名前を付けてください。Docker Compose はプロジェクトにフォルダー名だけにちなんだ名前を付けるため、同じ名前の 2 つ目のフォルダーは最初のエージェントのコンテナーを置き換えてしまいます。名前は `docker-compose.yml` に書かないでください。このファイルはアップグレードで置き換えられます。",
 };
 
 export default TRANSLATION;

@@ -68501,5 +68501,11 @@
   "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "Telemetri avvist det siste døgnet fordi for mye av den ventet på å bli lagret, ikke på grunn av et budsjett. Avsendere prøver på nytt med det som avvises, så det kommer sent, med mindre en avsender gir opp først.",
   "Too much waiting to be stored": "For mye venter på å bli lagret",
   "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime holder fortsatt på å lagre dataene dette prosjektet allerede har sendt, så nye data avvises foreløpig. Avsendere prøver på nytt med det som avvises, så det kommer sent, med mindre en avsender gir opp først.",
-  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptimes telemetrikø er nesten full, så nye data fra alle prosjekter avvises foreløpig. Avsendere prøver på nytt med det som avvises, så det kommer sent, med mindre en avsender gir opp først."
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptimes telemetrikø er nesten full, så nye data fra alle prosjekter avvises foreløpig. Avsendere prøver på nytt med det som avvises, så det kommer sent, med mindre en avsender gir opp først.",
+  "Monitoring several clouds": "Overvåke flere skyer",
+  "Monitoring several clusters": "Overvåke flere klynger",
+  "Monitoring several vCenters": "Overvåke flere vCenter",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "Én agent per sky, hver i sin egen mappe med sine egne containernavn.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "Én agent per klynge, hver i sin egen mappe med sine egne containernavn.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "Én agent per vCenter, hver i sin egen mappe med sine egne containernavn."
 }

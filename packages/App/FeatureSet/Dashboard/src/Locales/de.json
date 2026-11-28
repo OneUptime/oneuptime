@@ -68501,5 +68501,11 @@
   "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "Telemetrie, die in den letzten 24 Stunden abgelehnt wurde, weil zu viel davon auf die Speicherung wartete, nicht wegen eines Budgets. Sender wiederholen abgelehnte Anfragen, sodass sie verspätet eintreffen, es sei denn, ein Sender gibt vorher auf.",
   "Too much waiting to be stored": "Zu viel wartet auf Speicherung",
   "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime speichert noch die Daten, die dieses Projekt bereits gesendet hat, daher werden vorerst neue Daten abgelehnt. Sender wiederholen abgelehnte Anfragen, sodass sie verspätet eintreffen, es sei denn, ein Sender gibt vorher auf.",
-  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: Die Telemetrie-Warteschlange von OneUptime ist fast voll, daher werden vorerst neue Daten von allen Projekten abgelehnt. Sender wiederholen abgelehnte Anfragen, sodass sie verspätet eintreffen, es sei denn, ein Sender gibt vorher auf."
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: Die Telemetrie-Warteschlange von OneUptime ist fast voll, daher werden vorerst neue Daten von allen Projekten abgelehnt. Sender wiederholen abgelehnte Anfragen, sodass sie verspätet eintreffen, es sei denn, ein Sender gibt vorher auf.",
+  "Monitoring several clouds": "Mehrere Clouds überwachen",
+  "Monitoring several clusters": "Mehrere Cluster überwachen",
+  "Monitoring several vCenters": "Mehrere vCenter überwachen",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "Ein Agent pro Cloud, jeder in einem eigenen Ordner mit eigenen Containernamen.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "Ein Agent pro Cluster, jeder in einem eigenen Ordner mit eigenen Containernamen.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "Ein Agent pro vCenter, jeder in einem eigenen Ordner mit eigenen Containernamen."
 }

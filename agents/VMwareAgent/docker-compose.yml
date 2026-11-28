@@ -8,7 +8,11 @@ services:
     # validates the config against, and the one the config reports as the
     # agent's version (oneuptime.agent.version); bump the three together.
     image: otel/opentelemetry-collector-contrib:0.165.0
-    container_name: oneuptime-vmware-agent
+    # The container's name, from .env: a second vCenter's agent on this
+    # machine, in a directory of its own, has names of its own, which
+    # install.sh writes there and an upgrade keeps (README.md, "Monitoring
+    # several vCenters").
+    container_name: ${VMWARE_AGENT_CONTAINER_NAME:-oneuptime-vmware-agent}
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
     # Uncomment (together with the syslog receivers and the logs pipeline
@@ -54,7 +58,8 @@ services:
   # ("OneUptime AI agent"). Remove this service if you do not use OneUptime AI.
   oneuptime-vmware-ai-agent:
     image: oneuptime/resource-ai-agent:release
-    container_name: oneuptime-vmware-ai-agent
+    # Named beside the collector, from .env (see above).
+    container_name: ${VMWARE_AI_AGENT_CONTAINER_NAME:-oneuptime-vmware-ai-agent}
     # It only talks HTTPS to vCenter and OneUptime: no root, no capabilities,
     # a read-only root filesystem, and its private per-command directories
     # on a tmpfs.

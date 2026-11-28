@@ -64,20 +64,11 @@ jobs:
         with:
           node-version: '26'
 
-      # No Go cache: setup-go keys it on a go.sum the repository does not have
-      # at its root (Tests/Ops/TerraformProviderPublishOnce.test.js).
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
-          cache: false
-
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v6.1.0
-        with:
-          install-only: true
-          # v2.x, as release.yml pins it.
-          version: '~> v2'
+      # Go and GoReleaser at the versions every release build uses, as
+      # release.yml installs them (#11464): the version published again is
+      # built the way its notes say.
+      - name: Set up the release toolchain
+        uses: ./.github/actions/setup-release-toolchain
 
       # As release.yml imports it, and why: see there.
       - name: Import GPG key

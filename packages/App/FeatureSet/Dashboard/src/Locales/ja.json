@@ -68501,5 +68501,11 @@
   "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "過去 1 日間に、予算ではなく、保存待ちのデータが多すぎたために拒否されたテレメトリです。送信元は拒否されたものを再試行するので、送信元が先に諦めない限り、遅れて届きます。",
   "Too much waiting to be stored": "保存待ちのデータが多すぎる",
   "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime はこのプロジェクトがすでに送信したデータをまだ保存しているため、新しいデータを一時的に拒否しています。送信元は拒否されたものを再試行するので、送信元が先に諦めない限り、遅れて届きます。",
-  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime のテレメトリキューがほぼ満杯のため、すべてのプロジェクトからの新しいデータを一時的に拒否しています。送信元は拒否されたものを再試行するので、送信元が先に諦めない限り、遅れて届きます。"
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime のテレメトリキューがほぼ満杯のため、すべてのプロジェクトからの新しいデータを一時的に拒否しています。送信元は拒否されたものを再試行するので、送信元が先に諦めない限り、遅れて届きます。",
+  "Monitoring several clouds": "複数のクラウドを監視する",
+  "Monitoring several clusters": "複数のクラスターを監視する",
+  "Monitoring several vCenters": "複数の vCenter を監視する",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "クラウドごとに 1 つのエージェントを使い、それぞれを専用のフォルダーに専用のコンテナー名で置きます。",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "クラスターごとに 1 つのエージェントを使い、それぞれを専用のフォルダーに専用のコンテナー名で置きます。",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "vCenter ごとに 1 つのエージェントを使い、それぞれを専用のフォルダーに専用のコンテナー名で置きます。"
 }

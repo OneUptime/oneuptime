@@ -68501,5 +68501,11 @@
   "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "지난 하루 동안 예산 때문이 아니라 저장 대기 중인 데이터가 너무 많아서 거부된 텔레메트리입니다. 거부된 데이터는 발신자가 다시 보내므로, 발신자가 먼저 포기하지 않는 한 늦게 도착합니다.",
   "Too much waiting to be stored": "저장 대기 중인 데이터가 너무 많음",
   "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: 이 프로젝트가 이미 보낸 데이터를 OneUptime이 아직 저장하고 있어 새 데이터를 일시적으로 거부하고 있습니다. 거부된 데이터는 발신자가 다시 보내므로, 발신자가 먼저 포기하지 않는 한 늦게 도착합니다.",
-  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime의 텔레메트리 큐가 거의 가득 차서 모든 프로젝트의 새 데이터를 일시적으로 거부하고 있습니다. 거부된 데이터는 발신자가 다시 보내므로, 발신자가 먼저 포기하지 않는 한 늦게 도착합니다."
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime의 텔레메트리 큐가 거의 가득 차서 모든 프로젝트의 새 데이터를 일시적으로 거부하고 있습니다. 거부된 데이터는 발신자가 다시 보내므로, 발신자가 먼저 포기하지 않는 한 늦게 도착합니다.",
+  "Monitoring several clouds": "여러 클라우드 모니터링",
+  "Monitoring several clusters": "여러 클러스터 모니터링",
+  "Monitoring several vCenters": "여러 vCenter 모니터링",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "클라우드당 에이전트 하나를 사용하며, 각 에이전트는 전용 폴더에 고유한 컨테이너 이름을 가집니다.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "클러스터당 에이전트 하나를 사용하며, 각 에이전트는 전용 폴더에 고유한 컨테이너 이름을 가집니다.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "vCenter당 에이전트 하나를 사용하며, 각 에이전트는 전용 폴더에 고유한 컨테이너 이름을 가집니다."
 }

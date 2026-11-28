@@ -68501,5 +68501,11 @@
   "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "بيانات القياس عن بُعد التي رُفضت خلال اليوم الماضي لأن ما كان ينتظر التخزين منها أكثر من اللازم، لا بسبب ميزانية. يعيد المرسلون محاولة إرسال ما يُرفض، فيصل متأخرًا، ما لم يتوقف مرسله عن المحاولة قبل ذلك.",
   "Too much waiting to be stored": "بيانات أكثر من اللازم بانتظار التخزين",
   "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: لا يزال OneUptime يخزّن البيانات التي أرسلها هذا المشروع بالفعل، لذا تُرفض البيانات الجديدة حاليًا. يعيد المرسلون محاولة إرسال ما يُرفض، فيصل متأخرًا، ما لم يتوقف مرسله عن المحاولة قبل ذلك.",
-  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: قائمة انتظار القياس عن بُعد في OneUptime شبه ممتلئة، لذا تُرفض البيانات الجديدة من كل مشروع حاليًا. يعيد المرسلون محاولة إرسال ما يُرفض، فيصل متأخرًا، ما لم يتوقف مرسله عن المحاولة قبل ذلك."
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: قائمة انتظار القياس عن بُعد في OneUptime شبه ممتلئة، لذا تُرفض البيانات الجديدة من كل مشروع حاليًا. يعيد المرسلون محاولة إرسال ما يُرفض، فيصل متأخرًا، ما لم يتوقف مرسله عن المحاولة قبل ذلك.",
+  "Monitoring several clouds": "مراقبة عدة سحابات",
+  "Monitoring several clusters": "مراقبة عدة عناقيد",
+  "Monitoring several vCenters": "مراقبة عدة نسخ من vCenter",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "وكيل واحد لكل سحابة، كلٌّ في مجلد خاص به بأسماء حاويات خاصة به.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "وكيل واحد لكل عنقود، كلٌّ في مجلد خاص به بأسماء حاويات خاصة به.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "وكيل واحد لكل vCenter، كلٌّ في مجلد خاص به بأسماء حاويات خاصة به."
 }

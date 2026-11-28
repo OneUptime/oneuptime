@@ -112,6 +112,10 @@ PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
+PROXMOX_AGENT_CONTAINER_NAME=oneuptime-proxmox-agent
+PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME=oneuptime-pve-api-failover
+PROXMOX_PVE_EXPORTER_CONTAINER_NAME=oneuptime-pve-exporter
+PROXMOX_AI_AGENT_CONTAINER_NAME=oneuptime-proxmox-ai-agent
 ```
 
 `PVE_NODES` हर नोड को उसके अपने पते से वर्गाकार कोष्ठकों में सूचीबद्ध करता है, और `COMPOSE_PROFILES=pve-exporter` बंडल किया गया एक्सपोर्टर भी शुरू करता है। एजेंट शुरू करें:
@@ -161,6 +165,10 @@ Everything is ready. Begin running and processing data.
 | `PVE_API_TOKEN_SECRET` | बंडल किया गया एक्सपोर्टर या AI एजेंट | Proxmox API टोकन सीक्रेट। |
 | `PVE_VERIFY_SSL` | नहीं | Proxmox API का TLS प्रमाणपत्र सत्यापित करें (एक्सपोर्टर और AI एजेंट)। डिफ़ॉल्ट `false` है, क्योंकि Proxmox स्व-हस्ताक्षरित प्रमाणपत्रों के साथ आता है। |
 | `COMPOSE_PROFILES` | नहीं | बंडल किया गया एक्सपोर्टर कंटेनर शुरू करने के लिए `pve-exporter` पर सेट करें। |
+| `PROXMOX_AGENT_CONTAINER_NAME` | नहीं | कलेक्टर के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-proxmox-agent` है। उसी मशीन पर दूसरे क्लस्टर के एजेंट को अपने अलग नाम चाहिए: देखें [कई क्लस्टर की निगरानी](#कई-क्लस्टर-की-निगरानी)। अगर आप इन्हें सेट नहीं करते, तो इंस्टॉल स्क्रिप्ट नए एजेंट के कंटेनरों के नाम उसके फ़ोल्डर पर रखती है, और स्क्रिप्ट फिर से चलाने पर उन्हें बनाए रखती है। |
+| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | नहीं | API फ़ेलओवर sidecar के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-pve-api-failover` है, और दूसरे एजेंट के लिए उसके कलेक्टर के नाम के बगल वाला नाम, जैसे `oneuptime-pve-api-failover-cluster2`। |
+| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | नहीं | बंडल किए गए एक्सपोर्टर के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-pve-exporter` है, और दूसरे एजेंट के लिए उसके कलेक्टर के नाम के बगल वाला नाम, जैसे `oneuptime-pve-exporter-cluster2`। |
+| `PROXMOX_AI_AGENT_CONTAINER_NAME` | नहीं | AI एजेंट के कंटेनर का नाम। डिफ़ॉल्ट `oneuptime-proxmox-ai-agent` है, और दूसरे एजेंट के लिए उसके कलेक्टर के नाम के बगल वाला नाम, जैसे `oneuptime-proxmox-ai-agent-cluster2`। |
 
 ## एजेंट क्या इकट्ठा करता है
 
@@ -336,6 +344,18 @@ OneUptime इंजेशन बंद होने के बाद, हाल 
 
 बैकअप परिणाम, फ़ेंस किए गए नोड और विफल रेप्लिकेशन फिर भी OneUptime तक पहुँचते हैं: [Proxmox VE की सूचनाएँ भेजें](#proxmox-ve-की-सूचनाएँ-भेजें), जो मूल पुश के साथ भी काम करती हैं।
 
+## कई क्लस्टर की निगरानी
+
+एक एजेंट एक क्लस्टर पढ़ता है। एक ही मशीन से कई क्लस्टर की निगरानी के लिए, हर एजेंट को उसकी अपनी `.env` और उसके अपने कंटेनर नामों के साथ उसके अपने फ़ोल्डर में इंस्टॉल करें, क्योंकि दो कंटेनर एक नाम साझा नहीं कर सकते:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-proxmox-agent-cluster2 bash install.sh
+```
+
+स्क्रिप्ट एजेंट के कंटेनरों के नाम फ़ोल्डर पर रखती है: `oneuptime-proxmox-agent-cluster2`, `oneuptime-pve-api-failover-cluster2`, `oneuptime-pve-exporter-cluster2` और `oneuptime-proxmox-ai-agent-cluster2`। इन्हें ख़ुद चुनने के लिए, स्क्रिप्ट चलाते समय `PROXMOX_AGENT_CONTAINER_NAME` और ऊपर की तालिका के बाकी वेरिएबल सेट करें। स्क्रिप्ट ये नाम उस एजेंट की `.env` में सहेज लेती है, इसलिए एजेंट अपग्रेड करने के लिए स्क्रिप्ट फिर से चलाने पर भी नाम बने रहते हैं, और जिस एजेंट का `container_name` आपने कभी `docker-compose.yml` में बदला था, वह वही नाम रखता है। हर फ़ोल्डर को अपना अलग नाम दें: Docker Compose किसी प्रोजेक्ट का नाम सिर्फ़ उसके फ़ोल्डर पर रखता है, इसलिए स्क्रिप्ट ऐसे फ़ोल्डर को अस्वीकार करती है जिसका नाम उस फ़ोल्डर जैसा हो जो पहले से कहीं और एजेंट चला रहा है। Docker Compose के साथ, इसके बजाय नाम हर एजेंट की `.env` में सेट करें।
+
+systemd यूनिट मानती है कि एजेंट `/opt/oneuptime-proxmox-agent` में है: किसी दूसरे फ़ोल्डर के लिए उसे किसी दूसरे नाम से सहेजें, जैसे `oneuptime-proxmox-agent-cluster2.service`, और उसकी `WorkingDirectory` बदलें। फ़ोल्डर को डायग्नोस्टिक स्क्रिप्ट को `-d` से दें।
+
 ## systemd सेवा के रूप में चलाएँ
 
 एजेंट को मशीन के साथ शुरू करने और विफल होने पर फिर से शुरू करने के लिए उसकी systemd यूनिट इंस्टॉल करें। यह मानती है कि एजेंट `/opt/oneuptime-proxmox-agent` में है, जहाँ इंस्टॉल स्क्रिप्ट उसे रखती है:
@@ -350,7 +370,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 एजेंट अपनी फ़ाइलों में पिन किया गया कलेक्टर संस्करण अपने **एजेंट संस्करण** के रूप में बताता है। जब वह इस OneUptime रिलीज़ के पिन किए संस्करण से पुराना हो, तो क्लस्टर के **अवलोकन** पर उसके बगल में एक चेतावनी चिह्न दिखता है। ये कमांड देखने के लिए उसे चुनें। जो एजेंट उसकी फ़ाइलों के संस्करण बताने से पहले इंस्टॉल हुआ था, वह इस तरह अपग्रेड होने तक कोई संस्करण नहीं दिखाता।
 
-कलेक्टर इमेज `docker-compose.yml` में पिन है और उसका कॉन्फ़िगरेशन उसके बगल की एक फ़ाइल है, इसलिए सिर्फ़ पुल करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml` और `otel-collector-config.yaml` ताज़ा करती है (आपकी संपादित फ़ाइल `<file>.bak.<timestamp>` के रूप में रखी जाती है), इमेज पुल करती है और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े। `PVE_NODES` से पहले की `.env` सिर्फ़ `PVE_HOST` पढ़ती रहती है, और स्क्रिप्ट बताती है कि उसमें कौन से नोड जोड़ने हैं।
+कलेक्टर इमेज `docker-compose.yml` में पिन है और उसका कॉन्फ़िगरेशन उसके बगल की एक फ़ाइल है, इसलिए सिर्फ़ पुल करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml` और `otel-collector-config.yaml` ताज़ा करती है (आपकी संपादित फ़ाइल `<file>.bak.<timestamp>` के रूप में रखी जाती है), इमेज पुल करती है और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े। `PVE_NODES` से पहले की `.env` सिर्फ़ `PVE_HOST` पढ़ती रहती है, और स्क्रिप्ट बताती है कि उसमें कौन से नोड जोड़ने हैं। `/opt/oneuptime-proxmox-agent` के बाहर इंस्टॉल किए गए एजेंट को उसका फ़ोल्डर चाहिए, `INSTALL_DIR=<folder> bash install.sh`, और वह अपने कंटेनर नाम बनाए रखता है।
 
 ```bash
 curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh

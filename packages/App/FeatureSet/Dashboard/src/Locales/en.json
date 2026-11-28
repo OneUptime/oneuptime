@@ -68501,5 +68501,11 @@
   "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.",
   "Too much waiting to be stored": "Too much waiting to be stored",
   "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.",
-  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first."
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.",
+  "Monitoring several clouds": "Monitoring several clouds",
+  "Monitoring several clusters": "Monitoring several clusters",
+  "Monitoring several vCenters": "Monitoring several vCenters",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "One agent per cloud, each in a folder of its own with container names of its own.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "One agent per cluster, each in a folder of its own with container names of its own.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "One agent per vCenter, each in a folder of its own with container names of its own."
 }

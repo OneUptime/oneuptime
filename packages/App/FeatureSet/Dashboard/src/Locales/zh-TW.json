@@ -68501,5 +68501,11 @@
   "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "過去一天內被拒絕的遙測，原因是等待儲存的資料過多，而不是預算。傳送方會重試被拒絕的內容，因此這些遙測會延遲到達，除非傳送方先放棄重試。",
   "Too much waiting to be stored": "等待儲存的資料過多",
   "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}：OneUptime 仍在儲存此專案已傳送的資料，因此暫時拒絕接收新資料。傳送方會重試被拒絕的內容，因此資料會延遲到達，除非傳送方先放棄重試。",
-  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}：OneUptime 的遙測佇列幾乎已滿，因此暫時拒絕接收所有專案的新資料。傳送方會重試被拒絕的內容，因此資料會延遲到達，除非傳送方先放棄重試。"
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}：OneUptime 的遙測佇列幾乎已滿，因此暫時拒絕接收所有專案的新資料。傳送方會重試被拒絕的內容，因此資料會延遲到達，除非傳送方先放棄重試。",
+  "Monitoring several clouds": "監控多個雲端",
+  "Monitoring several clusters": "監控多個叢集",
+  "Monitoring several vCenters": "監控多個 vCenter",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "每個雲端一個代理程式，各自使用獨立的資料夾和容器名稱。",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "每個叢集一個代理程式，各自使用獨立的資料夾和容器名稱。",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "每個 vCenter 一個代理程式，各自使用獨立的資料夾和容器名稱。"
 }

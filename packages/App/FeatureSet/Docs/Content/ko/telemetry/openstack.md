@@ -292,6 +292,12 @@ ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
 COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
+OPENSTACK_AGENT_CONTAINER_NAME=oneuptime-openstack-agent
+OPENSTACK_EXPORTER_CONTAINER_NAME=oneuptime-openstack-exporter
+OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME=oneuptime-openstack-quota-exporter
+OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-database-exporter
+OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-worker-state-exporter
+OPENSTACK_AI_AGENT_CONTAINER_NAME=oneuptime-openstack-ai-agent
 ```
 
 `OPENSTACK_EXPORTER_CLOUDS`에는 모든 리전을 대괄호 안에 나열하고, `COMPOSE_PROFILES`는 번들 exporter와 [AI 에이전트](#ai-에이전트)를 시작합니다. 두 파일 모두 비밀 값을 담고 있습니다. exporter는 uid 65532로 실행되며, `clouds.yaml`을 읽을 수 있는 유일한 계정이어야 합니다. 에이전트를 시작하세요.
@@ -380,6 +386,12 @@ Docker 없이 설치했다면 `systemctl status oneuptime-openstack-agent oneupt
 | `OPENSTACK_AGENT_SERVICES` | 아니요 | [에이전트 간 클라우드 분담](/docs/telemetry/openstack-very-large-clouds#수집기-간-클라우드-분담)을 위해 이 에이전트가 읽을 서비스. 예: `compute\|placement`. 기본값은 모든 서비스입니다. |
 | `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | 아니요 | collector가 메모리에 보관할 수 있는 크기. 매우 큰 클라우드의 스크레이프는 기본값 `512`보다 많이 필요합니다. |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | 아니요 | [데이터베이스 경로](/docs/telemetry/openstack-very-large-clouds#데이터베이스-경로)용 `openstack_database_exporter`: `[openstack-database-exporter:9180]`. 기본값은 없음입니다. 해당 경로의 나머지 설정은 그 페이지에 있습니다. |
+| `OPENSTACK_AGENT_CONTAINER_NAME` | 아니요 | collector의 컨테이너 이름입니다. 기본값은 `oneuptime-openstack-agent`입니다. 같은 머신에 있는 두 번째 클라우드의 에이전트에는 고유한 이름이 필요합니다. [여러 클라우드 모니터링](#여러-클라우드-모니터링)을 참고하세요. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 컨테이너 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다. |
+| `OPENSTACK_EXPORTER_CONTAINER_NAME` | 아니요 | 번들 exporter의 컨테이너 이름입니다. 기본값은 `oneuptime-openstack-exporter`이고, 두 번째 에이전트에서는 `oneuptime-openstack-exporter-cloud2`처럼 collector 이름과 나란한 이름이 됩니다. |
+| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | 아니요 | 할당량 exporter의 컨테이너 이름입니다. 기본값은 `oneuptime-openstack-quota-exporter`이고, 두 번째 에이전트에서는 `oneuptime-openstack-quota-exporter-cloud2`처럼 collector 이름과 나란한 이름이 됩니다. |
+| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | 아니요 | 데이터베이스 exporter의 컨테이너 이름입니다. 기본값은 `oneuptime-openstack-database-exporter`이고, 두 번째 에이전트에서는 `oneuptime-openstack-database-exporter-cloud2`처럼 collector 이름과 나란한 이름이 됩니다. |
+| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | 아니요 | 워커 상태 exporter의 컨테이너 이름입니다. 기본값은 `oneuptime-openstack-worker-state-exporter`이고, 두 번째 에이전트에서는 `oneuptime-openstack-worker-state-exporter-cloud2`처럼 collector 이름과 나란한 이름이 됩니다. |
+| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름입니다. 기본값은 `oneuptime-openstack-ai-agent`이고, 두 번째 에이전트에서는 `oneuptime-openstack-ai-agent-cloud2`처럼 collector 이름과 나란한 이름이 됩니다. |
 
 설치 스크립트는 질문을 건너뛰도록 환경에서 자격 증명도 읽습니다. `OPENSTACK_APPLICATION_CREDENTIAL_ID`와 `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`, 또는 `OPENSTACK_USERNAME`, `OPENSTACK_PASSWORD`, `OPENSTACK_PROJECT_NAME`, `OPENSTACK_USER_DOMAIN_NAME`, `OPENSTACK_PROJECT_DOMAIN_NAME`입니다. openrc 파일이 설정하는 `OS_*` 변수가 아니라 별도의 이름을 쓰므로, admin이 source한 openrc가 아무에게도 묻지 않고 에이전트의 자격 증명이 되는 일은 없습니다. 사용자 이름과 비밀번호보다 애플리케이션 자격 증명이 낫습니다. 읽기로 제한할 수 있고 만료되게 할 수 있기 때문입니다.
 
@@ -1025,6 +1037,7 @@ sudo bash install-logs.sh
 | `OPENSTACK_LOGS_DIRECTORY` | Kolla-Ansible의 로그가 일반적인 Docker 볼륨에 있지 않은 경우의 위치 |
 | `OPENSTACK_LOGS_TIMEZONE` | oslo.log가 시간을 기록하는 시간대. 기본값은 `UTC`입니다 |
 | `OPENSTACK_LOGS_UNITS` | 읽을 저널 유닛을 대괄호 안에 지정합니다. 기본값은 모든 OpenStack 서비스입니다 |
+| `OPENSTACK_LOGS_CONTAINER_NAME` | Docker를 쓸 때 collector의 컨테이너 이름. 기본값은 `oneuptime-openstack-logs`입니다. 스크립트를 다시 실행해도 유지됩니다 |
 
 files 프로필은 OpenStack 서비스를 이름으로 읽으므로, 같은 폴더의 RabbitMQ, MariaDB, HAProxy, libvirt는 건드리지 않습니다. 나중에 재시작된 collector는 도달했던 줄부터 이어서 진행합니다.
 
@@ -1645,6 +1658,20 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 워크플로는 OpenStack 경고에서 시작해 수정을 제안할 수 있습니다. **OpenStack 수정 제안** 단계는 경고 또는 인시던트와 명령을 받습니다. OneUptime AI가 제안하는 수정과 같은 정책, 같은 쓰기 범위, 변경이 건드리는 대상에 대한 같은 읽기를 거치며, AI 모델이 필요 없고, 사람이 경고에서 승인합니다. 클라우드의 수정 모드가 무엇이든 워크플로가 직접 변경하거나 제안한 것을 승인할 수는 없습니다. **Propose taking a failing OpenStack compute service out of scheduling** 템플릿에서 시작할 수 있습니다.
 
+## 여러 클라우드 모니터링
+
+에이전트 하나는 클라우드 하나를 읽습니다. 같은 머신에서 여러 클라우드를 모니터링하려면 두 컨테이너가 같은 이름을 가질 수는 없으므로 각 에이전트를 전용 `.env`와 고유한 컨테이너 이름을 가진 전용 폴더에 설치하세요.
+
+```bash
+INSTALL_DIR=/opt/oneuptime-openstack-agent-cloud2 bash install.sh
+```
+
+스크립트는 폴더 이름을 따서 에이전트의 컨테이너 이름을 `oneuptime-openstack-agent-cloud2`, `oneuptime-openstack-exporter-cloud2`, `oneuptime-openstack-quota-exporter-cloud2`, `oneuptime-openstack-database-exporter-cloud2`, `oneuptime-openstack-worker-state-exporter-cloud2`, `oneuptime-openstack-ai-agent-cloud2`로 짓습니다. 직접 정하려면 스크립트를 실행할 때 `OPENSTACK_AGENT_CONTAINER_NAME`과 위 표의 나머지 변수를 설정하세요. 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로 에이전트를 업그레이드하려고 스크립트를 다시 실행해도 이름이 유지되며, `container_name`을 예전에 `docker-compose.yml`에서 직접 수정한 에이전트도 그 이름을 유지합니다. 폴더마다 고유한 이름을 붙이세요. Docker Compose는 폴더 이름만으로 프로젝트 이름을 짓기 때문에, 스크립트는 다른 곳에서 이미 에이전트를 실행 중인 폴더와 같은 이름의 폴더를 거부합니다. Docker Compose를 쓴다면 대신 각 에이전트의 `.env`에 이름을 설정하세요.
+
+이 이름은 Docker에서 적용되며, Docker 없는 설치는 컨테이너를 실행하지 않습니다. 로그 collector와 트레이스 collector도 같은 방식으로 `.env`에서 자체 이름을 읽습니다. 바로 `OPENSTACK_LOGS_CONTAINER_NAME`과 `OPENSTACK_TRACES_CONTAINER_NAME`입니다.
+
+systemd 유닛은 `/opt/oneuptime-openstack-agent`를 가정합니다. 다른 폴더라면 `oneuptime-openstack-agent-cloud2.service`처럼 다른 이름으로 저장하고 `WorkingDirectory`를 바꾸세요. 진단 스크립트에는 `-d`로 폴더를 넘기세요.
+
 ## systemd 서비스로 실행
 
 머신과 함께 에이전트를 시작하고 실패하면 재시작하려면 systemd 유닛을 설치하세요. 설치 스크립트가 에이전트를 두는 `/opt/oneuptime-openstack-agent`에 에이전트가 있다고 가정합니다. Docker 없는 설치는 이미 systemd 서비스입니다.
@@ -1659,7 +1686,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 에이전트는 파일의 버전을 **에이전트 버전**으로 보고합니다. 이는 파일이 고정한 collector 버전이며, 해당 collector에서 파일이 바뀔 때마다 마지막 숫자가 올라갑니다. 이 버전이 이 OneUptime 릴리스가 고정한 버전보다 오래되면 그 옆에 경고 표시가 나타납니다. 이를 선택하면 다음 명령이 표시됩니다.
 
-collector 이미지는 `docker-compose.yml`에 고정되어 있고 설정은 그 옆의 파일이므로, pull만으로는 에이전트가 앞으로 나아가지 않습니다. `install.sh`를 다시 실행하세요(Docker 없이 설치했다면 `sudo`로). 기존 `.env`의 모든 값과 `clouds.yaml`의 자격 증명을 재사용하고(다시 묻지 않음), Keystone으로 자격 증명을 확인하고, 에이전트의 파일을 새로 고치고(수정한 파일은 `<file>.bak.<timestamp>`로 보관됨), 이미지를 pull하고, collector가 새 설정을 읽도록 에이전트를 다시 만듭니다.
+collector 이미지는 `docker-compose.yml`에 고정되어 있고 설정은 그 옆의 파일이므로, pull만으로는 에이전트가 앞으로 나아가지 않습니다. `install.sh`를 다시 실행하세요(Docker 없이 설치했다면 `sudo`로). 기존 `.env`의 모든 값과 `clouds.yaml`의 자격 증명을 재사용하고(다시 묻지 않음), Keystone으로 자격 증명을 확인하고, 에이전트의 파일을 새로 고치고(수정한 파일은 `<file>.bak.<timestamp>`로 보관됨), 이미지를 pull하고, collector가 새 설정을 읽도록 에이전트를 다시 만듭니다. `/opt/oneuptime-openstack-agent` 밖에 설치한 에이전트에는 폴더를 지정해야 하며(`INSTALL_DIR=<folder> bash install.sh`), 컨테이너 이름은 유지됩니다.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh

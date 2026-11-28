@@ -68501,5 +68501,11 @@
   "Telemetry refused in the past day because too much of it was waiting to be stored, not because of a budget. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "تله‌متری‌ای که در یک روز گذشته رد شد، چون حجم بیش از حدی از آن در انتظار ذخیره بود، نه به دلیل بودجه. فرستنده‌ها آنچه را که رد می‌شود دوباره می‌فرستند، بنابراین دیر می‌رسد، مگر اینکه فرستنده‌اش پیش از آن دست بکشد.",
   "Too much waiting to be stored": "حجم بیش از حد در انتظار ذخیره",
   "{{signal}}: OneUptime is still storing the data this project already sent, so it is refusing new data for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: OneUptime هنوز در حال ذخیره داده‌هایی است که این پروژه از قبل فرستاده، پس فعلاً داده تازه را رد می‌کند. فرستنده‌ها آنچه را که رد می‌شود دوباره می‌فرستند، بنابراین دیر می‌رسد، مگر اینکه فرستنده‌اش پیش از آن دست بکشد.",
-  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: صف تله‌متری OneUptime تقریباً پر است، پس فعلاً داده تازه از همه پروژه‌ها رد می‌شود. فرستنده‌ها آنچه را که رد می‌شود دوباره می‌فرستند، بنابراین دیر می‌رسد، مگر اینکه فرستنده‌اش پیش از آن دست بکشد."
+  "{{signal}}: OneUptime's telemetry queue is nearly full, so it is refusing new data from every project for now. Senders retry what is refused, so it arrives late, unless a sender gives up first.": "{{signal}}: صف تله‌متری OneUptime تقریباً پر است، پس فعلاً داده تازه از همه پروژه‌ها رد می‌شود. فرستنده‌ها آنچه را که رد می‌شود دوباره می‌فرستند، بنابراین دیر می‌رسد، مگر اینکه فرستنده‌اش پیش از آن دست بکشد.",
+  "Monitoring several clouds": "پایش چند ابر",
+  "Monitoring several clusters": "پایش چند خوشه",
+  "Monitoring several vCenters": "پایش چند vCenter",
+  "One agent per cloud, each in a folder of its own with container names of its own.": "یک عامل برای هر ابر، هر کدام در پوشه خودش با نام‌های کانتینر خودش.",
+  "One agent per cluster, each in a folder of its own with container names of its own.": "یک عامل برای هر خوشه، هر کدام در پوشه خودش با نام‌های کانتینر خودش.",
+  "One agent per vCenter, each in a folder of its own with container names of its own.": "یک عامل برای هر vCenter، هر کدام در پوشه خودش با نام‌های کانتینر خودش."
 }

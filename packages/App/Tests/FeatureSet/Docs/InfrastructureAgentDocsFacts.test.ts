@@ -542,7 +542,10 @@ describe("the Proxmox agent page, against the agent", () => {
     ) as YamlNode;
     const script: string = String((failover["command"] as Array<unknown>)[0]);
 
-    expect(failover["container_name"]).toBe("oneuptime-pve-api-failover");
+    // Read from .env, so a second cluster's agent names its own (#11434).
+    expect(failover["container_name"]).toBe(
+      "${PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME:-oneuptime-pve-api-failover}",
+    );
     expect(section).toContain(
       "Every 15 seconds its `oneuptime-pve-api-failover` container checks that node",
     );
