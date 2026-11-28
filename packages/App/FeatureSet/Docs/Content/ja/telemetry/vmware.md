@@ -101,6 +101,8 @@ VCENTER_USERNAME=oneuptime@vsphere.local
 VCENTER_PASSWORD=a-strong-password
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
+VMWARE_AGENT_CONTAINER_NAME=oneuptime-vmware-agent
+VMWARE_AI_AGENT_CONTAINER_NAME=oneuptime-vmware-ai-agent
 ```
 
 `$`、`#`、空白、引用符を含むパスワードは単一引用符で囲みます ([vCenter がログインを拒否する](#トラブルシューティング) を参照)。エージェントを起動します:
@@ -202,6 +204,8 @@ Docker Compose はこれらを `.env` (`docker-compose.yml` の横にあるも�
 | `VCENTER_PASSWORD` | はい | そのユーザーのパスワード。`$`、`#`、空白、引用符を含む場合は、Docker でのインストールの `.env` では単一引用符で囲み (`install.sh` が自動で行います)、systemd でのインストールのものでは二重引用符で囲みます ([トラブルシューティング](#トラブルシューティング) を参照)。 |
 | `VCENTER_INSECURE_SKIP_VERIFY` | いいえ | `true` は vCenter 既定の自己署名 (VMCA) 証明書を受け入れます。`false` は TLS 検証を有効なままにします。既定は `false` です。 |
 | `VCENTER_COLLECTION_INTERVAL` | いいえ | インベントリ全体を読み取る間隔。非常に大きな vCenter では `5m` か `10m` に上げます。既定は `2m` です。 |
+| `VMWARE_AGENT_CONTAINER_NAME` | いいえ | Collector のコンテナー名。既定は `oneuptime-vmware-agent` です。同じマシン上で別の vCenter のエージェントには専用の名前が必要です ([複数の vCenter を監視する](#複数の-vcenter-を監視する) を参照)。設定しない場合、インストールスクリプトは新しいエージェントのコンテナーにそのフォルダーにちなんだ名前を付け、スクリプトを再実行してもその名前を維持します。 |
+| `VMWARE_AI_AGENT_CONTAINER_NAME` | いいえ | AI エージェントのコンテナー名。既定は `oneuptime-vmware-ai-agent` で、別のエージェントでは `oneuptime-vmware-ai-agent-vcenter2` のように Collector の名前と並ぶ名前になります。 |
 
 AI エージェント自身の設定は [AI エージェント](#ai-エージェント) にあります。
 
@@ -346,6 +350,20 @@ processors:
 
 Collector は起動時にしか設定を読み込みません。`docker compose restart oneuptime-vmware-agent` を実行するか、systemd の場合は `sudo systemctl restart oneuptime-vmware-agent` を実行してください。すると、vCenter に `team:platform` と `env:production` のラベルが表示されます。ラベルは大文字と小文字を区別せずに照合されるため、既存の `Production` ラベルは重複せずに再利用されます。また、OneUptime で誰かが追加したラベルをエージェントが削除することはありません。
 
+## 複数の vCenter を監視する
+
+1 つのエージェントが読み取るのは 1 つの vCenter です。同じマシンから複数を監視するには、2 つのコンテナーが同じ名前を持つことはできないため、それぞれを専用の `.env` と専用のコンテナー名を持つ専用のフォルダーにインストールします:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-vmware-agent-vcenter2 bash install.sh
+```
+
+スクリプトは、フォルダーにちなんでエージェントのコンテナーに `oneuptime-vmware-agent-vcenter2` と `oneuptime-vmware-ai-agent-vcenter2` という名前を付けます。自分で選ぶには、スクリプトの実行時に `VMWARE_AGENT_CONTAINER_NAME` と `VMWARE_AI_AGENT_CONTAINER_NAME` を設定します。スクリプトはその名前をそのエージェントの `.env` に保存するため、エージェントをアップグレードするためにスクリプトを再実行しても名前は維持されます。また、`container_name` を以前 `docker-compose.yml` で編集したエージェントも、その名前を維持します。フォルダーにはそれぞれ専用の名前を付けてください。Docker Compose はプロジェクトにフォルダー名だけにちなんだ名前を付けるため、別の場所ですでにエージェントを実行しているフォルダーと同じ名前のフォルダーはスクリプトが拒否します。Docker Compose の場合は、代わりに各エージェントの `.env` で名前を設定します。
+
+systemd ユニットは `/opt/oneuptime-vmware-agent` を前提としています。別のフォルダーの場合は、`oneuptime-vmware-agent-vcenter2.service` のような別の名前で保存し、その `WorkingDirectory` を変更します。フォルダーは `-d` で診断スクリプトに渡します。
+
+最初のエージェントが [syslog](#オプション-esxi-の-syslog-を送信する) のポートを公開している場合は、2 つ目のエージェントのポートを `5515:5514` のように別のポートで公開し、その vCenter のホストをそこに向けます。Docker なしのインストールではコンテナーを実行しません。そこでの 2 つ目のエージェントは、別の名前で保存した 2 つ目のユニットで、その `EnvironmentFile` と `ExecStart` が自身のフォルダーを指し、その Collector は自身のメトリクスを `8890` 以外のポートで報告します。
+
 ## systemd サービスとして実行する
 
 Docker でのインストールも systemd の下で実行でき、マシンの起動時に開始し、失敗時に再起動するようにできます。そのユニットは Docker Compose をラップし、インストールスクリプトが配置する `/opt/oneuptime-vmware-agent` にエージェントがあることを前提としています:
@@ -366,7 +384,7 @@ Collector は `docker-compose.yml` で (Docker なしの場合はダウンロー
 
 :::tabs
 @tab install.sh
-`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と `otel-collector-config.yaml` を更新し、エージェントを作り直すため、Collector は新しい設定を読み込みます。
+`install.sh` を再実行してください。既存の `.env` のすべての値を再利用し (何も尋ねられません)、`docker-compose.yml` と `otel-collector-config.yaml` を更新し、エージェントを作り直すため、Collector は新しい設定を読み込みます。`/opt/oneuptime-vmware-agent` の外にインストールしたエージェントには、`INSTALL_DIR=<folder> bash install.sh` のようにそのフォルダーを指定する必要があり、コンテナー名はそのまま維持されます。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh

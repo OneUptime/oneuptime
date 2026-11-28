@@ -101,6 +101,8 @@ VCENTER_USERNAME=oneuptime@vsphere.local
 VCENTER_PASSWORD=a-strong-password
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
+VMWARE_AGENT_CONTAINER_NAME=oneuptime-vmware-agent
+VMWARE_AI_AGENT_CONTAINER_NAME=oneuptime-vmware-ai-agent
 ```
 
 包含 `$`、`#`、空格或引號的密碼要放在單引號中（請參閱 [vCenter 拒絕登入](#疑難排解)）。啟動代理程式：
@@ -202,6 +204,8 @@ Docker Compose 從 `.env`（位於 `docker-compose.yml` 旁邊）中讀取這些
 | `VCENTER_PASSWORD` | 是 | 該使用者的密碼。如果其中包含 `$`、`#`、空格或引號，在 Docker 安裝的 `.env` 中要用單引號括起來（`install.sh` 會替你完成），在 systemd 安裝的檔案中則用雙引號括起來（請參閱 [疑難排解](#疑難排解)）。 |
 | `VCENTER_INSECURE_SKIP_VERIFY` | 否 | `true` 會接受 vCenter 預設的自我簽署（VMCA）憑證；`false` 會保持 TLS 驗證開啟。預設為 `false`。 |
 | `VCENTER_COLLECTION_INTERVAL` | 否 | 讀取整個清單的頻率。對於非常大的 vCenter，請調高到 `5m` 或 `10m`。預設為 `2m`。 |
+| `VMWARE_AGENT_CONTAINER_NAME` | 否 | Collector 的容器名稱。預設為 `oneuptime-vmware-agent`。同一台機器上第二個 vCenter 的代理程式需要自己的容器名稱：請參閱 [監控多個 vCenter](#監控多個-vcenter)。除非你自行設定，否則安裝指令碼會依新代理程式的資料夾為其容器命名，並在你再次執行指令碼時保留這些名稱。 |
+| `VMWARE_AI_AGENT_CONTAINER_NAME` | 否 | AI 代理程式的容器名稱。預設為 `oneuptime-vmware-ai-agent`，第二個代理程式則預設使用與其 Collector 名稱並列的名稱，例如 `oneuptime-vmware-ai-agent-vcenter2`。 |
 
 AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。
 
@@ -346,6 +350,20 @@ processors:
 
 Collector 只在啟動時讀取其設定：請執行 `docker compose restart oneuptime-vmware-agent`，使用 systemd 時則執行 `sudo systemctl restart oneuptime-vmware-agent`。之後 vCenter 會顯示標籤 `team:platform` 和 `env:production`。標籤比對不區分大小寫，因此現有的 `Production` 標籤會被重複使用而不是重複建立，而且代理程式絕不會移除別人在 OneUptime 中新增的標籤。
 
+## 監控多個 vCenter
+
+一個代理程式讀取一個 vCenter。要從同一台機器監控多個 vCenter，請把每個代理程式安裝到各自的資料夾中，並使用各自的 `.env` 和各自的容器名稱，因為兩個容器不能同名：
+
+```bash
+INSTALL_DIR=/opt/oneuptime-vmware-agent-vcenter2 bash install.sh
+```
+
+指令碼會依資料夾為代理程式的容器命名：`oneuptime-vmware-agent-vcenter2` 和 `oneuptime-vmware-ai-agent-vcenter2`。若要自行選擇名稱，請在執行指令碼時設定 `VMWARE_AGENT_CONTAINER_NAME` 和 `VMWARE_AI_AGENT_CONTAINER_NAME`。它會把名稱保存在該代理程式的 `.env` 中，所以再次執行指令碼來升級代理程式時會保留這些名稱；而若代理程式的 `container_name` 曾由你在 `docker-compose.yml` 中編輯過，它也會保留那個名稱。請為每個資料夾取一個獨有的名稱：Docker Compose 只依資料夾為專案命名，因此如果某個資料夾與別處已在執行代理程式的資料夾同名，指令碼會拒絕它。使用 Docker Compose 時，請改為在每個代理程式的 `.env` 中設定這些名稱。
+
+systemd 單元假設代理程式位於 `/opt/oneuptime-vmware-agent`：若使用其他資料夾，請以另一個名稱儲存它，例如 `oneuptime-vmware-agent-vcenter2.service`，並修改它的 `WorkingDirectory`。用 `-d` 把資料夾傳給診斷指令碼。
+
+如果第一個代理程式發布了 [syslog](#選用-傳送-esxi-syslog) 連接埠，請把第二個代理程式的連接埠發布到另一個連接埠上，例如 `5515:5514`，並讓該 vCenter 的主機指向它。不使用 Docker 的安裝不執行容器：在那裡，第二個代理程式是以另一個名稱儲存的第二個單元，其 `EnvironmentFile` 和 `ExecStart` 指向它自己的資料夾，其 Collector 在 `8890` 以外的連接埠上回報自己的指標。
+
 ## 以 systemd 服務執行
 
 Docker 安裝也可以在 systemd 下執行，使其隨機器啟動並在失敗時重新啟動。它的單元會包裝 Docker Compose，並假設代理程式位於 `/opt/oneuptime-vmware-agent`，也就是安裝指令碼放置它的位置：
@@ -366,7 +384,7 @@ Collector 固定在 `docker-compose.yml` 中（不使用 Docker 時則由你下�
 
 :::tabs
 @tab install.sh
-請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和 `otel-collector-config.yaml`，並重新建立代理程式，讓 Collector 讀取新的設定。
+請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和 `otel-collector-config.yaml`，並重新建立代理程式，讓 Collector 讀取新的設定。安裝在 `/opt/oneuptime-vmware-agent` 之外的代理程式需要指定它的資料夾，也就是 `INSTALL_DIR=<folder> bash install.sh`，並會保留它的容器名稱。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh

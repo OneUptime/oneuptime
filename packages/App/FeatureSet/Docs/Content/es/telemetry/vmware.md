@@ -101,6 +101,8 @@ VCENTER_USERNAME=oneuptime@vsphere.local
 VCENTER_PASSWORD=a-strong-password
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
+VMWARE_AGENT_CONTAINER_NAME=oneuptime-vmware-agent
+VMWARE_AI_AGENT_CONTAINER_NAME=oneuptime-vmware-ai-agent
 ```
 
 Una contraseña con `$`, `#`, espacios o comillas va entre comillas simples (consulta [vCenter rechaza el inicio de sesión](#solución-de-problemas)). Inicia el agente:
@@ -202,6 +204,8 @@ Docker Compose las lee del `.env` que está junto a `docker-compose.yml`; la ins
 | `VCENTER_PASSWORD` | Sí | La contraseña de ese usuario. Si contiene `$`, `#`, espacios o comillas, ponla entre comillas simples en el `.env` de la instalación con Docker (`install.sh` lo hace por ti), y entre comillas dobles en el de la instalación con systemd (consulta [Solución de problemas](#solución-de-problemas)). |
 | `VCENTER_INSECURE_SKIP_VERIFY` | No | `true` acepta el certificado autofirmado (VMCA) predeterminado de vCenter; `false` mantiene activada la verificación TLS. Su valor predeterminado es `false`. |
 | `VCENTER_COLLECTION_INTERVAL` | No | Cada cuánto se lee todo el inventario. Súbelo a `5m` o `10m` para vCenters muy grandes. Su valor predeterminado es `2m`. |
+| `VMWARE_AGENT_CONTAINER_NAME` | No | El nombre del contenedor del colector. Su valor predeterminado es `oneuptime-vmware-agent`. El agente de un segundo vCenter en la misma máquina necesita nombres propios: consulta [Supervisar varios vCenters](#supervisar-varios-vcenters). El script de instalación nombra los contenedores de un agente nuevo según su carpeta, salvo que los establezcas tú, y los conserva cuando vuelves a ejecutar el script. |
+| `VMWARE_AI_AGENT_CONTAINER_NAME` | No | El nombre del contenedor del agente de IA. Su valor predeterminado es `oneuptime-vmware-ai-agent` y, para un segundo agente, un nombre junto al de su colector, como `oneuptime-vmware-ai-agent-vcenter2`. |
 
 Los ajustes propios del agente de IA están en [Agente de IA](#agente-de-ia).
 
@@ -346,6 +350,20 @@ processors:
 
 El colector lee su configuración solo al iniciarse: ejecuta `docker compose restart oneuptime-vmware-agent`, o `sudo systemctl restart oneuptime-vmware-agent` con systemd. El vCenter muestra entonces las etiquetas `team:platform` y `env:production`. Las etiquetas se comparan sin distinguir mayúsculas de minúsculas, así que una etiqueta `Production` existente se reutiliza en lugar de duplicarse, y el agente nunca quita una etiqueta que alguien añadió en OneUptime.
 
+## Supervisar varios vCenters
+
+Un agente lee un vCenter. Para supervisar varios desde la misma máquina, instala cada agente en su propia carpeta, con su propio `.env` y sus propios nombres de contenedor, ya que dos contenedores no pueden compartir nombre:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-vmware-agent-vcenter2 bash install.sh
+```
+
+El script nombra los contenedores del agente según la carpeta: `oneuptime-vmware-agent-vcenter2` y `oneuptime-vmware-ai-agent-vcenter2`. Para elegirlos tú, establece `VMWARE_AGENT_CONTAINER_NAME` y `VMWARE_AI_AGENT_CONTAINER_NAME` al ejecutarlo. Guarda los nombres en el `.env` de ese agente, así que volver a ejecutar el script para actualizar el agente los conserva, y un agente cuyo `container_name` editaste alguna vez en `docker-compose.yml` conserva ese nombre. Da a cada carpeta un nombre propio: Docker Compose nombra un proyecto solo según su carpeta, así que el script rechaza una carpeta que se llame como otra que ya ejecuta un agente en otro lugar. Con Docker Compose, establece en su lugar los nombres en el `.env` de cada agente.
+
+La unidad de systemd supone `/opt/oneuptime-vmware-agent`: para otra carpeta, guárdala con otro nombre, como `oneuptime-vmware-agent-vcenter2.service`, y cambia su `WorkingDirectory`. Pasa la carpeta al script de diagnóstico con `-d`.
+
+Si el primer agente publica el puerto de [syslog](#opcional-enviar-el-syslog-de-esxi), publica el del segundo en otro, como `5515:5514`, y apunta a él los hosts de ese vCenter. La instalación sin Docker no ejecuta ningún contenedor: allí un segundo agente es una segunda unidad, guardada con otro nombre, cuyos `EnvironmentFile` y `ExecStart` nombran su propia carpeta, y cuyo colector expone sus propias métricas en un puerto distinto de `8890`.
+
 ## Ejecutar como servicio de systemd
 
 La instalación con Docker también puede ejecutarse bajo systemd, para que arranque con la máquina y se reinicie cuando falle. Su unidad envuelve Docker Compose y supone que el agente está en `/opt/oneuptime-vmware-agent`, donde lo pone el script de instalación:
@@ -366,7 +384,7 @@ El colector está fijado en `docker-compose.yml` (o, sin Docker, por la versión
 
 :::tabs
 @tab install.sh
-Vuelve a ejecutar `install.sh`: reutiliza todos los valores de tu `.env` existente (no se vuelve a preguntar nada), renueva `docker-compose.yml` y `otel-collector-config.yaml`, y vuelve a crear el agente para que el colector lea su nueva configuración.
+Vuelve a ejecutar `install.sh`: reutiliza todos los valores de tu `.env` existente (no se vuelve a preguntar nada), renueva `docker-compose.yml` y `otel-collector-config.yaml`, y vuelve a crear el agente para que el colector lea su nueva configuración. Un agente instalado fuera de `/opt/oneuptime-vmware-agent` necesita su carpeta, `INSTALL_DIR=<folder> bash install.sh`, y conserva sus nombres de contenedor.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh

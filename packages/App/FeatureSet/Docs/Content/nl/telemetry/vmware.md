@@ -101,6 +101,8 @@ VCENTER_USERNAME=oneuptime@vsphere.local
 VCENTER_PASSWORD=a-strong-password
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
+VMWARE_AGENT_CONTAINER_NAME=oneuptime-vmware-agent
+VMWARE_AI_AGENT_CONTAINER_NAME=oneuptime-vmware-ai-agent
 ```
 
 Een wachtwoord met `$`, `#`, spaties of aanhalingstekens hoort tussen enkele aanhalingstekens (zie [vCenter weigert de aanmelding](#problemen-oplossen)). Start de agent:
@@ -202,6 +204,8 @@ Docker Compose leest deze uit de `.env` naast `docker-compose.yml`; de systemd-i
 | `VCENTER_PASSWORD` | Ja | Het wachtwoord van die gebruiker. Bevat het `$`, `#`, spaties of aanhalingstekens, zet het dan in de `.env` van de Docker-installatie tussen enkele aanhalingstekens (`install.sh` doet dit voor je), en in die van de systemd-installatie tussen dubbele (zie [Problemen oplossen](#problemen-oplossen)). |
 | `VCENTER_INSECURE_SKIP_VERIFY` | Nee | `true` accepteert het standaard zelfondertekende (VMCA-)certificaat van vCenter; `false` laat de TLS-verificatie aan. Standaard `false`. |
 | `VCENTER_COLLECTION_INTERVAL` | Nee | Hoe vaak de hele inventaris wordt gelezen. Verhoog het naar `5m` of `10m` voor zeer grote vCenters. Standaard `2m`. |
+| `VMWARE_AGENT_CONTAINER_NAME` | Nee | De containernaam van de collector. Standaard `oneuptime-vmware-agent`. De agent van een tweede vCenter op dezelfde machine heeft eigen namen nodig: zie [Meerdere vCenters bewaken](#meerdere-vcenters-bewaken). Het installatiescript noemt de containers van een nieuwe agent naar zijn map, tenzij je ze instelt, en behoudt ze wanneer je het script opnieuw uitvoert. |
+| `VMWARE_AI_AGENT_CONTAINER_NAME` | Nee | De containernaam van de AI-agent. Standaard `oneuptime-vmware-ai-agent`, en voor een tweede agent een naam naast die van zijn collector, zoals `oneuptime-vmware-ai-agent-vcenter2`. |
 
 De eigen instellingen van de AI-agent staan onder [AI-agent](#ai-agent).
 
@@ -346,6 +350,20 @@ processors:
 
 De collector leest zijn configuratie alleen bij het starten: voer `docker compose restart oneuptime-vmware-agent` uit, of `sudo systemctl restart oneuptime-vmware-agent` met systemd. Het vCenter toont dan de labels `team:platform` en `env:production`. Labels worden zonder onderscheid tussen hoofd- en kleine letters vergeleken, dus een bestaand label `Production` wordt hergebruikt in plaats van gedupliceerd, en de agent verwijdert nooit een label dat iemand in OneUptime heeft toegevoegd.
 
+## Meerdere vCenters bewaken
+
+Eén agent leest één vCenter. Om er meerdere vanaf dezelfde machine te bewaken, installeer je elk in een eigen map, met een eigen `.env` en eigen containernamen, want twee containers kunnen geen naam delen:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-vmware-agent-vcenter2 bash install.sh
+```
+
+Het script noemt de containers van de agent naar de map: `oneuptime-vmware-agent-vcenter2` en `oneuptime-vmware-ai-agent-vcenter2`. Om ze zelf te kiezen, stel je `VMWARE_AGENT_CONTAINER_NAME` en `VMWARE_AI_AGENT_CONTAINER_NAME` in wanneer je het uitvoert. Het bewaart de namen in de `.env` van die agent, dus als je het script opnieuw uitvoert om de agent te upgraden, blijven de namen behouden, en een agent waarvan je de `container_name` ooit in `docker-compose.yml` hebt bewerkt, behoudt die naam. Geef elke map een eigen naam: Docker Compose noemt een project alleen naar zijn map, dus het script weigert een map die net zo heet als een map waarin elders al een agent draait. Stel met Docker Compose in plaats daarvan de namen in de `.env` van elke agent in.
+
+De systemd-unit gaat uit van `/opt/oneuptime-vmware-agent`: sla hem voor een andere map onder een andere naam op, zoals `oneuptime-vmware-agent-vcenter2.service`, en wijzig zijn `WorkingDirectory`. Geef de map met `-d` door aan het diagnosescript.
+
+Als de eerste agent de poort voor [syslog](#optioneel-esxi-syslog-versturen) publiceert, publiceer die van de tweede dan op een andere, zoals `5515:5514`, en richt de hosts van dat vCenter erop. De installatie zonder Docker draait geen container: een tweede agent is daar een tweede unit, onder een andere naam opgeslagen, waarvan `EnvironmentFile` en `ExecStart` zijn eigen map noemen en waarvan de collector zijn eigen metrics op een andere poort dan `8890` meldt.
+
 ## Draaien als systemd-service
 
 Ook de Docker-installatie kan onder systemd draaien, zodat ze met de machine start en herstart als ze faalt. Haar unit omhult Docker Compose en gaat ervan uit dat de agent in `/opt/oneuptime-vmware-agent` staat, waar het installatiescript hem neerzet:
@@ -366,7 +384,7 @@ De collector ligt vast in `docker-compose.yml` (of, zonder Docker, via de releas
 
 :::tabs
 @tab install.sh
-Voer `install.sh` opnieuw uit: het hergebruikt elke waarde in je bestaande `.env` (er wordt niets opnieuw gevraagd), vernieuwt `docker-compose.yml` en `otel-collector-config.yaml` en maakt de agent opnieuw aan zodat de collector zijn nieuwe configuratie leest.
+Voer `install.sh` opnieuw uit: het hergebruikt elke waarde in je bestaande `.env` (er wordt niets opnieuw gevraagd), vernieuwt `docker-compose.yml` en `otel-collector-config.yaml` en maakt de agent opnieuw aan zodat de collector zijn nieuwe configuratie leest. Een agent die buiten `/opt/oneuptime-vmware-agent` is geïnstalleerd, heeft zijn map nodig, `INSTALL_DIR=<folder> bash install.sh`, en behoudt zijn containernamen.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh

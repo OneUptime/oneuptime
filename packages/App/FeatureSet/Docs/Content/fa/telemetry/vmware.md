@@ -101,6 +101,8 @@ VCENTER_USERNAME=oneuptime@vsphere.local
 VCENTER_PASSWORD=a-strong-password
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
+VMWARE_AGENT_CONTAINER_NAME=oneuptime-vmware-agent
+VMWARE_AI_AGENT_CONTAINER_NAME=oneuptime-vmware-ai-agent
 ```
 
 گذرواژه‌ای با `$`، `#`، فاصله یا نقل‌قول درون نقل‌قول تکی می‌رود ([vCenter ورود را رد می‌کند](#رفع-اشکال) را ببینید). عامل را راه بیندازید:
@@ -202,6 +204,8 @@ Docker Compose این‌ها را از `.env` کنار `docker-compose.yml` می
 | `VCENTER_PASSWORD` | بله | گذرواژه آن کاربر. اگر `$`، `#`، فاصله یا نقل‌قول دارد، در `.env` نصب Docker آن را درون نقل‌قول تکی بگذارید (`install.sh` این کار را برایتان می‌کند)، و در فایل نصب systemd درون نقل‌قول دوتایی ([رفع اشکال](#رفع-اشکال) را ببینید). |
 | `VCENTER_INSECURE_SKIP_VERIFY` | خیر | `true` گواهی خودامضای پیش‌فرض vCenter (VMCA) را می‌پذیرد؛ `false` اعتبارسنجی TLS را روشن نگه می‌دارد. پیش‌فرض آن `false` است. |
 | `VCENTER_COLLECTION_INTERVAL` | خیر | اینکه کل موجودی هر چند وقت خوانده شود. برای vCenterهای بسیار بزرگ آن را به `5m` یا `10m` افزایش دهید. پیش‌فرض آن `2m` است. |
+| `VMWARE_AGENT_CONTAINER_NAME` | خیر | نام کانتینر کالکتور. پیش‌فرض آن `oneuptime-vmware-agent` است. عامل vCenter دوم روی همان ماشین به نام‌های خودش نیاز دارد: [پایش چند vCenter](#پایش-چند-vcenter) را ببینید. اسکریپت نصب، اگر آن‌ها را تنظیم نکنید، کانتینرهای عامل تازه را به نام پوشه‌اش می‌نامد و وقتی اسکریپت را دوباره اجرا می‌کنید آن‌ها را نگه می‌دارد. |
+| `VMWARE_AI_AGENT_CONTAINER_NAME` | خیر | نام کانتینر عامل هوش مصنوعی. پیش‌فرض آن `oneuptime-vmware-ai-agent` است، و برای عامل دوم نامی کنار نام کالکتورش، مثلاً `oneuptime-vmware-ai-agent-vcenter2`. |
 
 تنظیمات ویژه عامل هوش مصنوعی زیر [عامل هوش مصنوعی](#عامل-هوش-مصنوعی) آمده است.
 
@@ -346,6 +350,20 @@ processors:
 
 کالکتور پیکربندی‌اش را فقط هنگام راه‌اندازی می‌خواند: `docker compose restart oneuptime-vmware-agent` را اجرا کنید، یا با systemd `sudo systemctl restart oneuptime-vmware-agent` را. سپس vCenter برچسب‌های `team:platform` و `env:production` را نشان می‌دهد. برچسب‌ها بدون توجه به بزرگی و کوچکی حروف مقایسه می‌شوند، پس برچسب موجود `Production` به‌جای تکرار دوباره به کار می‌رود، و عامل هرگز برچسبی را که کسی در OneUptime افزوده است برنمی‌دارد.
 
+## پایش چند vCenter
+
+یک عامل یک vCenter را می‌خواند. برای پایش چند vCenter از یک ماشین، هر عامل را در پوشه خودش با `.env` خودش و نام‌های کانتینر خودش نصب کنید، چون دو کانتینر نمی‌توانند یک نام داشته باشند:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-vmware-agent-vcenter2 bash install.sh
+```
+
+اسکریپت کانتینرهای عامل را به نام پوشه می‌نامد: `oneuptime-vmware-agent-vcenter2` و `oneuptime-vmware-ai-agent-vcenter2`. برای انتخاب آن‌ها توسط خودتان، هنگام اجرای اسکریپت `VMWARE_AGENT_CONTAINER_NAME` و `VMWARE_AI_AGENT_CONTAINER_NAME` را تنظیم کنید. اسکریپت نام‌ها را در `.env` همان عامل نگه می‌دارد، پس اجرای دوباره اسکریپت برای به‌روزرسانی عامل آن‌ها را حفظ می‌کند، و عاملی که `container_name` آن را زمانی در `docker-compose.yml` ویرایش کرده‌اید همان نام را نگه می‌دارد. به هر پوشه نامی از آن خودش بدهید: Docker Compose هر پروژه را فقط به نام پوشه‌اش می‌نامد، پس اسکریپت پوشه‌ای را که هم‌نام پوشه‌ای باشد که در جای دیگری عاملی را اجرا می‌کند نمی‌پذیرد. با Docker Compose، به‌جای آن نام‌ها را در `.env` هر عامل تنظیم کنید.
+
+واحد systemd فرض می‌کند عامل در `/opt/oneuptime-vmware-agent` است: برای پوشه‌ای دیگر، آن را با نامی دیگر ذخیره کنید، مثلاً `oneuptime-vmware-agent-vcenter2.service`، و `WorkingDirectory` آن را تغییر دهید. پوشه را با `-d` به اسکریپت تشخیصی بدهید.
+
+اگر عامل اول پورت [syslog](#اختیاری-ارسال-syslog-در-esxi) را منتشر می‌کند، پورت عامل دوم را روی پورت دیگری منتشر کنید، مثلاً `5515:5514`، و میزبان‌های آن vCenter را به آن هدایت کنید. نصب بدون Docker هیچ کانتینری اجرا نمی‌کند: آنجا عامل دوم یک واحد دوم است که با نامی دیگر ذخیره شده، و `EnvironmentFile` و `ExecStart` آن پوشه خودش را نام می‌برند، و کالکتورش متریک‌های خودش را روی پورتی غیر از `8890` گزارش می‌کند.
+
 ## اجرا به‌صورت یک سرویس systemd
 
 نصب Docker هم می‌تواند زیر systemd اجرا شود، تا همراه ماشین شروع شود و اگر از کار افتاد دوباره راه‌اندازی شود. واحد آن Docker Compose را دربرمی‌گیرد و فرض می‌کند عامل در `/opt/oneuptime-vmware-agent` است، جایی که اسکریپت نصب آن را می‌گذارد:
@@ -366,7 +384,7 @@ sudo systemctl enable --now oneuptime-vmware-agent
 
 :::tabs
 @tab install.sh
-`install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و `otel-collector-config.yaml` را تازه می‌کند و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند.
+`install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و `otel-collector-config.yaml` را تازه می‌کند و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. عاملی که بیرون از `/opt/oneuptime-vmware-agent` نصب شده به پوشه‌اش نیاز دارد، `INSTALL_DIR=<folder> bash install.sh`، و نام‌های کانتینرش را نگه می‌دارد.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh

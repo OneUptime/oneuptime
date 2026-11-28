@@ -292,6 +292,12 @@ ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
 OPENSTACK_CLOUD_NAME=my-cloud
 OPENSTACK_EXPORTER_CLOUDS=[RegionOne,RegionTwo]
 COMPOSE_PROFILES=openstack-exporter,openstack-ai-agent
+OPENSTACK_AGENT_CONTAINER_NAME=oneuptime-openstack-agent
+OPENSTACK_EXPORTER_CONTAINER_NAME=oneuptime-openstack-exporter
+OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME=oneuptime-openstack-quota-exporter
+OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-database-exporter
+OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME=oneuptime-openstack-worker-state-exporter
+OPENSTACK_AI_AGENT_CONTAINER_NAME=oneuptime-openstack-ai-agent
 ```
 
 `OPENSTACK_EXPORTER_CLOUDS` には、すべてのリージョンを角括弧の中に列挙します。`COMPOSE_PROFILES` は、同梱のエクスポーターと [AI エージェント](#ai-エージェント)を起動します。どちらのファイルにも機密情報が含まれます。エクスポーターは uid 65532 で動作し、`clouds.yaml` を読み取れる唯一のアカウントでなければなりません。エージェントを起動します。
@@ -380,6 +386,12 @@ Docker なしの場合は、`systemctl status oneuptime-openstack-agent oneuptim
 | `OPENSTACK_AGENT_SERVICES` | いいえ | このエージェントが読み取るサービス。`compute\|placement` のように指定し、[複数のエージェントでクラウドを分担する](/docs/telemetry/openstack-very-large-clouds#収集元間でクラウドを分担する)場合に使います。既定値はすべて。 |
 | `OPENSTACK_AGENT_MEMORY_LIMIT_MIB` | いいえ | Collector がメモリに保持できる量。非常に大きなクラウドのスクレイプには、既定の `512` を超える量が必要です。 |
 | `OPENSTACK_DATABASE_EXPORTER_TARGETS` | いいえ | [データベース経路](/docs/telemetry/openstack-very-large-clouds#データベース経由)のための `openstack_database_exporter`: `[openstack-database-exporter:9180]`。既定値はなし。この経路のその他の設定は、そちらに一覧があります。 |
+| `OPENSTACK_AGENT_CONTAINER_NAME` | いいえ | Collector のコンテナー名。既定値は `oneuptime-openstack-agent`。同じマシン上で別のクラウドのエージェントには専用の名前が必要です（[複数のクラウドを監視する](#複数のクラウドを監視する) を参照）。設定しない場合、インストールスクリプトは新しいエージェントのコンテナーにそのフォルダーにちなんだ名前を付け、スクリプトを再実行してもその名前を維持します。 |
+| `OPENSTACK_EXPORTER_CONTAINER_NAME` | いいえ | 同梱のエクスポーターのコンテナー名。既定値は `oneuptime-openstack-exporter` で、別のエージェントでは `oneuptime-openstack-exporter-cloud2` のように Collector の名前と並ぶ名前になります。 |
+| `OPENSTACK_QUOTA_EXPORTER_CONTAINER_NAME` | いいえ | クォータのエクスポーターのコンテナー名。既定値は `oneuptime-openstack-quota-exporter` で、別のエージェントでは `oneuptime-openstack-quota-exporter-cloud2` のように Collector の名前と並ぶ名前になります。 |
+| `OPENSTACK_DATABASE_EXPORTER_CONTAINER_NAME` | いいえ | データベースのエクスポーターのコンテナー名。既定値は `oneuptime-openstack-database-exporter` で、別のエージェントでは `oneuptime-openstack-database-exporter-cloud2` のように Collector の名前と並ぶ名前になります。 |
+| `OPENSTACK_WORKER_STATE_EXPORTER_CONTAINER_NAME` | いいえ | ワーカーの状態のエクスポーターのコンテナー名。既定値は `oneuptime-openstack-worker-state-exporter` で、別のエージェントでは `oneuptime-openstack-worker-state-exporter-cloud2` のように Collector の名前と並ぶ名前になります。 |
+| `OPENSTACK_AI_AGENT_CONTAINER_NAME` | いいえ | AI エージェントのコンテナー名。既定値は `oneuptime-openstack-ai-agent` で、別のエージェントでは `oneuptime-openstack-ai-agent-cloud2` のように Collector の名前と並ぶ名前になります。 |
 
 インストールスクリプトは、質問を省略するために、認証情報を環境変数からも読み取ります。`OPENSTACK_APPLICATION_CREDENTIAL_ID` と `OPENSTACK_APPLICATION_CREDENTIAL_SECRET`、または `OPENSTACK_USERNAME`、`OPENSTACK_PASSWORD`、`OPENSTACK_PROJECT_NAME`、`OPENSTACK_USER_DOMAIN_NAME`、`OPENSTACK_PROJECT_DOMAIN_NAME` です。これらは、openrc ファイルが設定する `OS_*` ではなく独自の名前になっています。そのため、管理者が読み込んだ openrc が、誰にも尋ねられないままエージェントの認証情報になることはありません。ユーザー名とパスワードよりもアプリケーション認証情報をお勧めします。読み取りだけに制限でき、有効期限も設定できるためです。
 
@@ -1025,6 +1037,7 @@ sudo bash install-logs.sh
 | `OPENSTACK_LOGS_DIRECTORY` | Kolla-Ansible のログが、通常の Docker ボリューム以外にある場合の場所 |
 | `OPENSTACK_LOGS_TIMEZONE` | oslo.log が時刻を書き込むタイムゾーン。既定値は `UTC` |
 | `OPENSTACK_LOGS_UNITS` | 読み取るジャーナルのユニット。角括弧の中に指定します。既定値はすべての OpenStack サービスのもの |
+| `OPENSTACK_LOGS_CONTAINER_NAME` | Docker で使う Collector のコンテナー名。既定値は `oneuptime-openstack-logs`。スクリプトを再実行しても維持されます |
 
 ファイルプロファイルは OpenStack のサービスを名前で読み取るため、同じフォルダーにある RabbitMQ、MariaDB、HAProxy、libvirt には手を付けません。後で再起動された Collector は、到達していた行から続行します。
 
@@ -1645,6 +1658,20 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ワークフローは OpenStack のアラートから開始して修正を提案できます。**OpenStack の修正を提案** ステップは、アラートまたはインシデントと、コマンドを受け取ります。OneUptime AI が提案する修正と同じポリシー、同じ書き込み範囲、変更が触れるものの同じ読み取りを通り、AI モデルは不要で、人がアラート上で承認します。ワークフロー自身が変更を行ったり、提案したものを承認したりすることはできません。クラウドの修正モードがどうであってもです。**Propose taking a failing OpenStack compute service out of scheduling** テンプレートが出発点になります。
 
+## 複数のクラウドを監視する
+
+1 つのエージェントが読み取るのは 1 つのクラウドです。同じマシンから複数を監視するには、2 つのコンテナーが同じ名前を持つことはできないため、それぞれを専用の `.env` と専用のコンテナー名を持つ専用のフォルダーにインストールします。
+
+```bash
+INSTALL_DIR=/opt/oneuptime-openstack-agent-cloud2 bash install.sh
+```
+
+スクリプトは、フォルダーにちなんでエージェントのコンテナーに `oneuptime-openstack-agent-cloud2`、`oneuptime-openstack-exporter-cloud2`、`oneuptime-openstack-quota-exporter-cloud2`、`oneuptime-openstack-database-exporter-cloud2`、`oneuptime-openstack-worker-state-exporter-cloud2`、`oneuptime-openstack-ai-agent-cloud2` という名前を付けます。自分で選ぶには、スクリプトの実行時に `OPENSTACK_AGENT_CONTAINER_NAME` と、上の表にあるほかの変数を設定します。スクリプトはその名前をそのエージェントの `.env` に保存するため、エージェントをアップグレードするためにスクリプトを再実行しても名前は維持されます。また、`container_name` を以前 `docker-compose.yml` で編集したエージェントも、その名前を維持します。フォルダーにはそれぞれ専用の名前を付けてください。Docker Compose はプロジェクトにフォルダー名だけにちなんだ名前を付けるため、別の場所ですでにエージェントを実行しているフォルダーと同じ名前のフォルダーはスクリプトが拒否します。Docker Compose の場合は、代わりに各エージェントの `.env` で名前を設定します。
+
+名前は Docker を使う場合に適用され、Docker なしのインストールではコンテナーを実行しません。ログとトレースの Collector も、同じように `.env` から自身の名前を読み取ります。`OPENSTACK_LOGS_CONTAINER_NAME` と `OPENSTACK_TRACES_CONTAINER_NAME` です。
+
+systemd ユニットは `/opt/oneuptime-openstack-agent` を前提としています。別のフォルダーの場合は、`oneuptime-openstack-agent-cloud2.service` のような別の名前で保存し、その `WorkingDirectory` を変更します。フォルダーは `-d` で診断スクリプトに渡します。
+
 ## systemd サービスとして動かす
 
 マシンの起動時にエージェントを起動し、失敗したときに再起動するには、その systemd ユニットをインストールします。エージェントが、インストールスクリプトの配置先である `/opt/oneuptime-openstack-agent` にあることを前提としています。Docker なしのインストールは、すでに systemd サービスです。
@@ -1659,7 +1686,7 @@ sudo systemctl enable --now oneuptime-openstack-agent
 
 エージェントは、そのファイルのバージョンを**エージェントバージョン**として報告します。これは、固定している Collector のバージョンに、その Collector 上でファイルが変わるたびに末尾の数字を 1 つ上げたものです。それがこの OneUptime のリリースが固定するバージョンより古いと、その横に警告マークが表示されます。それを選択すると、これらのコマンドが表示されます。
 
-Collector のイメージは `docker-compose.yml` で固定され、その設定は隣のファイルにあるため、pull するだけではエージェントは先に進みません。`install.sh` をもう一度実行してください。Docker なしでインストールした場合は `sudo` を付けます。既存の `.env` のすべての値と `clouds.yaml` の認証情報が再利用され（何も改めて尋ねられません）、認証情報が Keystone で確認され、エージェントのファイルが更新され（編集したファイルは `<file>.bak.<timestamp>` として保持されます）、イメージが pull され、Collector が新しい設定を読み取るようにエージェントが再作成されます。
+Collector のイメージは `docker-compose.yml` で固定され、その設定は隣のファイルにあるため、pull するだけではエージェントは先に進みません。`install.sh` をもう一度実行してください。Docker なしでインストールした場合は `sudo` を付けます。既存の `.env` のすべての値と `clouds.yaml` の認証情報が再利用され（何も改めて尋ねられません）、認証情報が Keystone で確認され、エージェントのファイルが更新され（編集したファイルは `<file>.bak.<timestamp>` として保持されます）、イメージが pull され、Collector が新しい設定を読み取るようにエージェントが再作成されます。`/opt/oneuptime-openstack-agent` の外にインストールしたエージェントには、`INSTALL_DIR=<folder> bash install.sh` のようにそのフォルダーを指定する必要があり、コンテナー名はそのまま維持されます。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/openstack-agent -o install.sh
