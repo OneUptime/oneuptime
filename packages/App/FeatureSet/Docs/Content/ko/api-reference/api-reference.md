@@ -425,7 +425,7 @@ Incident not found.
 
 ### 레코드의 Markdown에 있는 이미지
 
-Markdown에 붙여 넣은 이미지(인시던트 설명, Markdown 사용자 정의 필드, 노트에 있는 스크린샷 등)는 비공개 파일입니다. 그 주소(`/file/image/access-token/...`)로는 프로젝트에 로그인한 사람만 열 수 있으므로, API 키는 이미지를 보여 주는 레코드를 통해 읽습니다.
+Markdown에 붙여 넣은 이미지(인시던트 설명, Markdown 사용자 정의 필드, 노트에 있는 스크린샷 등)는 비공개 파일입니다. 그 주소(`/file/image/access-token/...`)로는 프로젝트에 로그인한 사람 중 이미지를 보여 주는 레코드를 읽을 수 있는 사람이나 이미지를 추가한 사람만 열 수 있으므로, API 키는 이미지를 보여 주는 레코드를 통해 읽습니다.
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +459,7 @@ curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
 }
 ```
 
-넘겨주는 것은 레코드 자신의 프로젝트에 업로드된 그림뿐이며, 최대 20개, 모두 합쳐 10 MB까지이고, SVG는 넘겨주지 않습니다. Markdown이 있는 모든 종류의 레코드에 같은 요청이 있으며, `/api/incident-public-note/<id>/markdown-files`나 `/api/alert/<id>/markdown-files`처럼 씁니다. 없는 레코드나 키가 읽을 수 없는 레코드는 `get-item`처럼 `404`로 응답하고, 키가 그 종류의 레코드를 아예 읽을 수 없으면 `422`로 응답합니다. 워크플로는 같은 이미지를 [Markdown에서 파일 가져오기](/docs/workflows/components#get-files-from-markdown)로 읽습니다.
+넘겨주는 것은 레코드 자신의 프로젝트에 업로드된 그림뿐이며, 최대 20개, 모두 합쳐 10 MB까지이고, SVG는 넘겨주지 않습니다. Markdown이 있는 모든 종류의 레코드에 같은 요청이 있으며, `/api/incident-public-note/<id>/markdown-files`나 `/api/alert/<id>/markdown-files`처럼 씁니다. 없는 레코드나 키가 읽을 수 없는 레코드는 `get-item`처럼 `404`로 응답하고, 키가 그 종류의 레코드를 아예 읽을 수 없으면 `422`로 응답합니다. 워크플로는 같은 이미지를 [Markdown에서 파일 가져오기](/docs/workflows/components#get-files-from-markdown)로 읽고, 노트의 첨부 파일이나 파일 사용자 정의 필드처럼 레코드에 있는 파일은 [레코드에서 첨부 파일 가져오기](/docs/workflows/components#get-attachments-from-record)로 읽습니다.
 
 ## 전체 엔드포인트 참조
 

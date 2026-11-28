@@ -425,7 +425,7 @@ Früher antwortete es mit `200` und einem leeren Body. Eine Liste (`get-list`) u
 
 ### Bilder im Markdown eines Datensatzes
 
-Ein Bild, das in Markdown eingefügt wurde, etwa ein Screenshot in der Beschreibung eines Vorfalls, einem benutzerdefinierten Markdown-Feld oder einer Notiz, ist eine private Datei. Seine Adresse (`/file/image/access-token/...`) öffnet es nur für eine Person, die im Projekt angemeldet ist, daher liest ein API-Schlüssel es stattdessen über den Datensatz, der es zeigt:
+Ein Bild, das in Markdown eingefügt wurde, etwa ein Screenshot in der Beschreibung eines Vorfalls, einem benutzerdefinierten Markdown-Feld oder einer Notiz, ist eine private Datei. Seine Adresse (`/file/image/access-token/...`) öffnet es nur für eine Person, die im Projekt angemeldet ist und einen Datensatz lesen darf, der es zeigt, oder die es hinzugefügt hat, daher liest ein API-Schlüssel es stattdessen über den Datensatz, der es zeigt:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +459,7 @@ Der Datensatz wird als der Schlüssel gelesen, so wie `get-item` ihn liest: Der 
 }
 ```
 
-Herausgegeben werden nur Bilder, die in das eigene Projekt des Datensatzes hochgeladen wurden, bis zu 20 und insgesamt 10 MB, und nie ein SVG. Jede Art von Datensatz mit Markdown hat dieselbe Anfrage, etwa `/api/incident-public-note/<id>/markdown-files` oder `/api/alert/<id>/markdown-files`. Ein Datensatz, der nicht existiert oder den der Schlüssel nicht lesen darf, antwortet `404`, wie `get-item`, und `422`, wenn der Schlüssel diese Art von Datensatz überhaupt nicht lesen darf. Ein Workflow liest dieselben Bilder mit [Dateien aus Markdown abrufen](/docs/workflows/components#get-files-from-markdown).
+Herausgegeben werden nur Bilder, die in das eigene Projekt des Datensatzes hochgeladen wurden, bis zu 20 und insgesamt 10 MB, und nie ein SVG. Jede Art von Datensatz mit Markdown hat dieselbe Anfrage, etwa `/api/incident-public-note/<id>/markdown-files` oder `/api/alert/<id>/markdown-files`. Ein Datensatz, der nicht existiert oder den der Schlüssel nicht lesen darf, antwortet `404`, wie `get-item`, und `422`, wenn der Schlüssel diese Art von Datensatz überhaupt nicht lesen darf. Ein Workflow liest dieselben Bilder mit [Dateien aus Markdown abrufen](/docs/workflows/components#get-files-from-markdown) und die Dateien, die ein Datensatz enthält, etwa die Anhänge einer Notiz und ihre benutzerdefinierten Dateifelder, mit [Anhänge aus Datensatz abrufen](/docs/workflows/components#get-attachments-from-record).
 
 ## Die vollständige Endpunkt-Referenz
 

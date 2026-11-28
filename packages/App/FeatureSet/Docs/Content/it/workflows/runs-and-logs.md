@@ -87,9 +87,13 @@ L'ID sotto il titolo di ogni passaggio è esattamente ciò che va in un riferime
 
 I valori mostrati sono quelli che il blocco ha ricevuto, dopo la compilazione delle variabili e prima che il blocco ne facesse qualcosa, con due eccezioni: i segreti e i campi che il blocco contrassegna come sensibili sono nascosti, e un valore più lungo di 4.000 caratteri viene accorciato con "… (truncated)". Un'esecuzione conserva i suoi ultimi 100 passaggi; un'esecuzione lunga o ripresa spesso mostra una nota ambra dove i più vecchi sono stati scartati. Le esecuzioni registrate prima che venissero conservati i nomi delle uscite mostrano l'uscita con il suo ID, senza dove ha portato.
 
+Un valore che un blocco contrassegna come sensibile, come le immagini che restituisce **Ottieni i file dal Markdown**, resta nascosto in ogni blocco successivo, anche dopo una **Pausa**. Un blocco successivo a cui viene passato lo mostra nascosto in ciò che ha ricevuto e in ciò che ha restituito, e il suo testo viene nascosto ovunque compaia in ciò che l'esecuzione registra: un messaggio che lo include o un errore che lo cita. Le parti brevi che dicono che cosa è stato passato, come il nome o il tipo di un file, restano visibili. I blocchi stessi ricevono comunque il valore reale.
+
 ### La scheda Full Log
 
 Il log grezzo, riga per riga, scritto dall'esecutore, compreso ciò che i blocchi hanno registrato da soli, come il valore di un blocco **Log** o il `console.log` di uno script. Usalo quando la scheda Passaggi non spiega l'errore.
+
+Ogni valore che il log scrive, che sia ciò che un blocco ha ricevuto, ciò che ha restituito o ciò che ha registrato, viene tagliato ai suoi primi 65.536 caratteri e termina con quanti ne sono stati esclusi, come `… (10,420,113 more characters left out)`. I valori ricevuti e quelli restituiti da un blocco vengono tagliati ciascuno per conto proprio, così un valore lungo non nasconde gli altri. I segreti e i valori sensibili vengono nascosti prima che un valore sia tagliato, quindi uno che il taglio dividerebbe resta comunque nascosto per intero.
 
 ## Copiare e scaricare un'esecuzione
 

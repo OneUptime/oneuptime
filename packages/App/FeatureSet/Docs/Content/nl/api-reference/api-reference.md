@@ -425,7 +425,7 @@ Vroeger antwoordde het `200` met een lege body. Een lijst (`get-list`) en een te
 
 ### Afbeeldingen in de Markdown van een record
 
-Een afbeelding die in Markdown is geplakt, zoals een schermafbeelding in de beschrijving van een incident, een aangepast Markdown-veld of een notitie, is een privébestand. Het adres ervan (`/file/image/access-token/...`) opent het alleen voor iemand die in het project is aangemeld, dus een API-sleutel leest het in plaats daarvan via het record dat het toont:
+Een afbeelding die in Markdown is geplakt, zoals een schermafbeelding in de beschrijving van een incident, een aangepast Markdown-veld of een notitie, is een privébestand. Het adres ervan (`/file/image/access-token/...`) opent het alleen voor iemand die in het project is aangemeld en een record mag lezen dat het toont, of die het heeft toegevoegd, dus een API-sleutel leest het in plaats daarvan via het record dat het toont:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +459,7 @@ Het record wordt gelezen als de sleutel, zoals `get-item` het leest: de sleutel 
 }
 ```
 
-Alleen afbeeldingen die in het eigen project van het record zijn geüpload worden afgegeven, tot 20 en 10 MB in totaal, en nooit een SVG. Elk soort record met Markdown heeft dezelfde aanvraag, zoals `/api/incident-public-note/<id>/markdown-files` of `/api/alert/<id>/markdown-files`. Een record dat niet bestaat, of dat de sleutel niet mag lezen, antwoordt `404` zoals `get-item` doet, en `422` wanneer de sleutel dat soort record helemaal niet mag lezen. Een workflow leest dezelfde afbeeldingen met [Bestanden uit Markdown ophalen](/docs/workflows/components#get-files-from-markdown).
+Alleen afbeeldingen die in het eigen project van het record zijn geüpload worden afgegeven, tot 20 en 10 MB in totaal, en nooit een SVG. Elk soort record met Markdown heeft dezelfde aanvraag, zoals `/api/incident-public-note/<id>/markdown-files` of `/api/alert/<id>/markdown-files`. Een record dat niet bestaat, of dat de sleutel niet mag lezen, antwoordt `404` zoals `get-item` doet, en `422` wanneer de sleutel dat soort record helemaal niet mag lezen. Een workflow leest dezelfde afbeeldingen met [Bestanden uit Markdown ophalen](/docs/workflows/components#get-files-from-markdown), en de bestanden die een record bevat, zoals de bijlagen van een notitie en zijn aangepaste bestandsvelden, met [Bijlagen uit record ophalen](/docs/workflows/components#get-attachments-from-record).
 
 ## De volledige endpointreferentie
 

@@ -425,7 +425,7 @@ Prima rispondeva `200` con un corpo vuoto. Un elenco (`get-list`) e un conteggio
 
 ### Immagini nel Markdown di un record
 
-Un'immagine incollata nel Markdown, come uno screenshot nella descrizione di un incidente, in un campo personalizzato Markdown o in una nota, è un file privato. Il suo indirizzo (`/file/image/access-token/...`) la apre solo per una persona che ha effettuato l'accesso al progetto, quindi una chiave API la legge invece attraverso il record che la mostra:
+Un'immagine incollata nel Markdown, come uno screenshot nella descrizione di un incidente, in un campo personalizzato Markdown o in una nota, è un file privato. Il suo indirizzo (`/file/image/access-token/...`) la apre solo per una persona che ha effettuato l'accesso al progetto e può leggere un record che la mostra, o che l'ha aggiunta, quindi una chiave API la legge invece attraverso il record che la mostra:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +459,7 @@ Il record viene letto come la chiave, come lo legge `get-item`: la chiave ha bis
 }
 ```
 
-Vengono consegnate solo immagini caricate nel progetto del record stesso, fino a 20 e 10 MB in tutto, e mai un SVG. Ogni tipo di record con Markdown ha la stessa richiesta, come `/api/incident-public-note/<id>/markdown-files` o `/api/alert/<id>/markdown-files`. Un record che non esiste, o che la chiave non può leggere, risponde `404` come fa `get-item`, e `422` quando la chiave non può leggere affatto quel tipo di record. Un flusso di lavoro legge le stesse immagini con [Ottieni i file dal Markdown](/docs/workflows/components#get-files-from-markdown).
+Vengono consegnate solo immagini caricate nel progetto del record stesso, fino a 20 e 10 MB in tutto, e mai un SVG. Ogni tipo di record con Markdown ha la stessa richiesta, come `/api/incident-public-note/<id>/markdown-files` o `/api/alert/<id>/markdown-files`. Un record che non esiste, o che la chiave non può leggere, risponde `404` come fa `get-item`, e `422` quando la chiave non può leggere affatto quel tipo di record. Un flusso di lavoro legge le stesse immagini con [Ottieni i file dal Markdown](/docs/workflows/components#get-files-from-markdown), e i file che un record contiene, come gli allegati di una nota e i suoi campi personalizzati di tipo file, con [Ottieni gli allegati dal record](/docs/workflows/components#get-attachments-from-record).
 
 ## Il riferimento completo degli endpoint
 

@@ -425,7 +425,7 @@ Antes respondía `200` con un cuerpo vacío. Una lista (`get-list`) y un recuent
 
 ### Imágenes en el Markdown de un registro
 
-Una imagen pegada en Markdown, como una captura de pantalla en la descripción de un incidente, en un campo personalizado de Markdown o en una nota, es un archivo privado. Su dirección (`/file/image/access-token/...`) solo la abre para una persona que ha iniciado sesión en el proyecto, así que una clave de API la lee a través del registro que la muestra:
+Una imagen pegada en Markdown, como una captura de pantalla en la descripción de un incidente, en un campo personalizado de Markdown o en una nota, es un archivo privado. Su dirección (`/file/image/access-token/...`) solo la abre para una persona que ha iniciado sesión en el proyecto y puede leer un registro que la muestra, o que la añadió, así que una clave de API la lee a través del registro que la muestra:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +459,7 @@ El registro se lee como la clave, igual que lo lee `get-item`: la clave necesita
 }
 ```
 
-Solo se entregan imágenes subidas al proyecto del propio registro, hasta 20 y 10 MB en total, y nunca un SVG. Cada tipo de registro con Markdown tiene la misma solicitud, como `/api/incident-public-note/<id>/markdown-files` o `/api/alert/<id>/markdown-files`. Un registro que no existe, o que la clave no puede leer, responde `404` como hace `get-item`, y `422` cuando la clave no puede leer ese tipo de registro en absoluto. Un flujo de trabajo lee las mismas imágenes con [Obtener archivos del Markdown](/docs/workflows/components#get-files-from-markdown).
+Solo se entregan imágenes subidas al proyecto del propio registro, hasta 20 y 10 MB en total, y nunca un SVG. Cada tipo de registro con Markdown tiene la misma solicitud, como `/api/incident-public-note/<id>/markdown-files` o `/api/alert/<id>/markdown-files`. Un registro que no existe, o que la clave no puede leer, responde `404` como hace `get-item`, y `422` cuando la clave no puede leer ese tipo de registro en absoluto. Un flujo de trabajo lee las mismas imágenes con [Obtener archivos del Markdown](/docs/workflows/components#get-files-from-markdown), y los archivos que contiene un registro, como los adjuntos de una nota y sus campos personalizados de archivo, con [Obtener adjuntos del registro](/docs/workflows/components#get-attachments-from-record).
 
 ## La referencia completa de endpoints
 

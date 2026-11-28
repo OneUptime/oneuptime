@@ -425,7 +425,7 @@ Incident not found.
 
 ### 記錄的 Markdown 中的圖片
 
-貼到 Markdown 中的圖片，例如事件描述、Markdown 自訂欄位或備註中的螢幕截圖，是一個私人檔案。它的位址（`/file/image/access-token/...`）只對已登入專案的人開啟，所以 API 金鑰改為透過顯示它的記錄來讀取：
+貼到 Markdown 中的圖片，例如事件描述、Markdown 自訂欄位或備註中的螢幕截圖，是一個私人檔案。它的位址（`/file/image/access-token/...`）只對已登入專案、且能讀取顯示它的某筆記錄的人或新增它的人開啟，所以 API 金鑰改為透過顯示它的記錄來讀取：
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +459,7 @@ curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
 }
 ```
 
-只交出上傳到記錄自身所在專案的圖片，最多 20 張、總共 10 MB，而且從不交出 SVG。每種帶 Markdown 的記錄都有同樣的請求，例如 `/api/incident-public-note/<id>/markdown-files` 或 `/api/alert/<id>/markdown-files`。不存在的記錄，或金鑰無權讀取的記錄，會像 `get-item` 一樣回應 `404`；金鑰完全不能讀取該類記錄時回應 `422`。工作流程用 [從 Markdown 取得檔案](/docs/workflows/components#get-files-from-markdown) 讀取同樣的圖片。
+只交出上傳到記錄自身所在專案的圖片，最多 20 張、總共 10 MB，而且從不交出 SVG。每種帶 Markdown 的記錄都有同樣的請求，例如 `/api/incident-public-note/<id>/markdown-files` 或 `/api/alert/<id>/markdown-files`。不存在的記錄，或金鑰無權讀取的記錄，會像 `get-item` 一樣回應 `404`；金鑰完全不能讀取該類記錄時回應 `422`。工作流程用 [從 Markdown 取得檔案](/docs/workflows/components#get-files-from-markdown) 讀取同樣的圖片，並用 [從記錄取得附件](/docs/workflows/components#get-attachments-from-record) 讀取記錄所含的檔案，例如備註的附件和它的檔案類型自訂欄位。
 
 ## 完整的端點參考
 

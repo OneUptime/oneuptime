@@ -425,7 +425,7 @@ Incident not found.
 
 ### レコードの Markdown にある画像
 
-Markdown に貼り付けた画像 (インシデントの説明、Markdown のカスタムフィールド、メモにあるスクリーンショットなど) は非公開のファイルです。そのアドレス (`/file/image/access-token/...`) で開けるのはプロジェクトにサインインしている人だけなので、API キーは画像を表示しているレコードを通して読み取ります。
+Markdown に貼り付けた画像 (インシデントの説明、Markdown のカスタムフィールド、メモにあるスクリーンショットなど) は非公開のファイルです。そのアドレス (`/file/image/access-token/...`) で開けるのは、プロジェクトにサインインしている人のうち、画像を表示しているレコードを読める人か、画像を追加した人だけなので、API キーは画像を表示しているレコードを通して読み取ります。
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +459,7 @@ curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
 }
 ```
 
-渡されるのは、レコード自身のプロジェクトにアップロードされた画像だけで、最大 20 枚、合計 10 MB までです。SVG は渡されません。Markdown を持つレコードの種類にはどれも同じリクエストがあり、`/api/incident-public-note/<id>/markdown-files` や `/api/alert/<id>/markdown-files` のようになります。存在しないレコードや、キーが読めないレコードには `get-item` と同じく `404` が返り、キーがその種類のレコードをまったく読めないときは `422` が返ります。ワークフローは同じ画像を [Markdown からファイルを取得](/docs/workflows/components#get-files-from-markdown) で読み取ります。
+渡されるのは、レコード自身のプロジェクトにアップロードされた画像だけで、最大 20 枚、合計 10 MB までです。SVG は渡されません。Markdown を持つレコードの種類にはどれも同じリクエストがあり、`/api/incident-public-note/<id>/markdown-files` や `/api/alert/<id>/markdown-files` のようになります。存在しないレコードや、キーが読めないレコードには `get-item` と同じく `404` が返り、キーがその種類のレコードをまったく読めないときは `422` が返ります。ワークフローは同じ画像を [Markdown からファイルを取得](/docs/workflows/components#get-files-from-markdown) で読み取り、メモの添付ファイルやファイル型のカスタムフィールドなど、レコードが持っているファイルを [レコードから添付ファイルを取得](/docs/workflows/components#get-attachments-from-record) で読み取ります。
 
 ## エンドポイントのリファレンス全体
 

@@ -27,6 +27,7 @@
 | 在下一个块之前等待                                            | [Sleep](#sleep)                                                   |
 | 启动另一个工作流                                              | [Execute Workflow](#execute-workflow)                             |
 | 把记录的 Markdown 显示的图片附加到邮件 | [从 Markdown 获取文件](#get-files-from-markdown) |
+| 把备注的附件，或记录的文件类型自定义字段，附加到邮件 | [从记录获取附件](#get-attachments-from-record) |
 | 读取或更改事件、监视器和其他记录                              | [OneUptime 数据组件](#oneuptime-数据组件)                  |
 | 为其他工具的问题打开、确认和解决事件或警报                     | [来自其他工具的事件和警报](#来自其他工具的事件和警报) |
 | 确认或关闭 Zabbix 问题                                         | [Zabbix](#zabbix)                                                 |
@@ -420,7 +421,7 @@ return { proceed: true, title: args.title.toUpperCase() };
 - **计数**：**文件** 中有多少张图片。
 - **未包括**：Markdown 显示但不在 **文件** 中的文件，每个都带有 `name`、`urls`、`fields`、`reason`，以及说明原因的 `message`。
 
-**文件** 包含图片的数据，所以运行日志会隐藏它，改为显示 **计数** 和 **未包括**。拿到图片的后续块会把拿到的内容写进日志中它自己的条目。
+**文件** 包含图片的数据，所以运行日志会隐藏它，改为显示 **计数** 和 **未包括**。拿到图片的后续块也会隐藏它们，无论是在它收到的内容中还是在它返回的内容中（参见 [运行记录](/docs/workflows/runs-and-logs#步骤选项卡)）。
 
 ### 它会交出哪些图片
 
@@ -525,6 +526,61 @@ Microsoft Graph 返回 `202 Accepted`，块走 **成功**。
 :::
 
 以这种方式发送的消息中，Microsoft Graph 接受的附件最大为 3 MB。更大的图片需要上传会话，或用链接代替图片。也可以在工作流之外用 API 密钥读取记录的图片：参见 [记录的 Markdown 中的图片](/docs/api-reference/api-reference#记录的-markdown-中的图片)。
+
+## Get Attachments From Record
+
+读取记录所含的文件，并带上每个文件的名称、类型和数据：备注的附件、事件的事后分析附件、公告的附件，以及记录的 **文件** 和 **多个文件** 自定义字段中的文件。用它把这些文件附加到邮件中。如果还要附加记录的 Markdown 显示的图片，请为同一条记录添加 [从 Markdown 获取文件](#get-files-from-markdown)。
+
+| 设置 | 作用 |
+| --- | --- |
+| **记录类型** | 含有这些文件的记录类型：事件、事件的内部备注或公开备注、警报、计划维护等。 |
+| **记录 ID** | 要读取的记录，通常是启动工作流的那条记录，例如 `{{local.components.incident-internal-note-on-create-1.returnValues.model._id}}`。 |
+
+| 输出 | 何时 |
+| --- | --- |
+| **成功** | 已读取记录，无论它是否含有文件。 |
+| **错误** | 无法读取记录：记录不存在，或工作流无权读取它。原因见 **错误**。 |
+
+它返回：
+
+- **文件**：每个文件，先是记录自身的附件，再是它的文件类型自定义字段（按创建顺序），包含：
+  - `name`：文件上传时的名称；
+  - `mimeType`：它的类型，例如 `application/pdf` 或 `image/png`；
+  - `sizeInBytes`：以字节为单位的大小；
+  - `base64`：文件的数据；
+  - `contentId`：文件在邮件中的 ID，无论哪条记录含有它，同一个文件的 ID 都相同；
+  - `fields`：记录把它放在哪里：`attachments`、`postmortemAttachments` 或某个自定义字段的名称。
+- **计数**：**文件** 中有多少个文件。
+- **未包括**：记录所含但不在 **文件** 中的文件，每个都带有 `name`、`fields`、`reason`，以及说明原因的 `message`。
+
+**文件** 包含文件的数据，所以运行日志会隐藏它，改为显示 **计数** 和 **未包括**；拿到这些文件的后续块也会隐藏它们。
+
+### 它会交出哪些文件
+
+这个块像 Find One 块一样，以工作流的身份读取记录：只在工作流自己的项目中读取，从不读取私有的事件、警报或剧集，并且只读取工作流的权限允许它读取的内容。它无权读取的记录会走 **错误**，和不存在的记录一样。如果“运行身份”的角色能读取事件但不能读取其内部备注，就无法读取备注的附件。
+
+它只交出：
+
+- 记录现在含有的文件：它自己的附件，以及它的 **文件** 和 **多个文件** 自定义字段中的文件。文本自定义字段不会被读取。要附加事件备注中的文件，请逐条读取备注：这个块不会读取另一条记录下面的记录；
+- 记录自身所在项目的文件。其他项目的文件会作为未找到列在 **未包括** 下；
+- 文档、电子表格、演示文稿、图片、文本和数据文件、压缩包以及数据包捕获：即 **文件** 自定义字段接受的文件类型，每个都按文件内容和类型一起检查。SVG 可以携带脚本，因此会被排除，只是声称自己是其类型所说内容的文件也会被排除；
+- 与 **从 Markdown 获取文件** 一样，最多 20 个文件，总共 10 MB。超出限制的内容会连同原因列在 **未包括** 下。
+
+它不能列出文件，也不能按 ID 读取文件：它只读取记录所含的内容。
+
+要把这些文件附加到 [上面示例](#示例通过-microsoft-graph-发送的邮件中的内嵌图片) 中通过 Microsoft Graph 发送的邮件，请在 **从 Markdown 获取文件** 之后添加 **从记录获取附件**，在代码的 **参数** 中加上 `"attachments": {{local.components.get-attachments-from-record-1.returnValues.files}}`，并用 `isInline: false` 逐个加入它们：
+
+```javascript title="JavaScript Code"
+for (const file of args.attachments) {
+  attachments.push({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.name,
+    contentType: file.mimeType,
+    contentBytes: file.base64,
+    isInline: false,
+  });
+}
+```
 
 ## 来自其他工具的事件和警报
 

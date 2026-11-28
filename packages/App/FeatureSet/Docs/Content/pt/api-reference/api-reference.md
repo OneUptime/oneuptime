@@ -425,7 +425,7 @@ Antes respondia `200` com um corpo vazio. Uma lista (`get-list`) e uma contagem 
 
 ### Imagens no Markdown de um registro
 
-Uma imagem colada no Markdown, como uma captura de tela na descrição de um incidente, num campo personalizado de Markdown ou numa nota, é um arquivo privado. O endereço dela (`/file/image/access-token/...`) só a abre para uma pessoa conectada ao projeto, por isso uma chave de API a lê pelo registro que a mostra:
+Uma imagem colada no Markdown, como uma captura de tela na descrição de um incidente, num campo personalizado de Markdown ou numa nota, é um arquivo privado. O endereço dela (`/file/image/access-token/...`) só a abre para uma pessoa conectada ao projeto que pode ler um registro que a mostra, ou que a adicionou, por isso uma chave de API a lê pelo registro que a mostra:
 
 ```bash
 curl 'https://oneuptime.com/api/incident/<incident ID>/markdown-files' \
@@ -459,7 +459,7 @@ O registro é lido como a chave, como `get-item` o lê: a chave precisa da permi
 }
 ```
 
-Só são entregues imagens enviadas para o projeto do próprio registro, até 20 e 10 MB no total, e nunca um SVG. Todo tipo de registro com Markdown tem a mesma requisição, como `/api/incident-public-note/<id>/markdown-files` ou `/api/alert/<id>/markdown-files`. Um registro que não existe, ou que a chave não pode ler, responde `404`, como `get-item` faz, e `422` quando a chave não pode ler aquele tipo de registro de forma alguma. Um fluxo de trabalho lê as mesmas imagens com [Obter arquivos do Markdown](/docs/workflows/components#get-files-from-markdown).
+Só são entregues imagens enviadas para o projeto do próprio registro, até 20 e 10 MB no total, e nunca um SVG. Todo tipo de registro com Markdown tem a mesma requisição, como `/api/incident-public-note/<id>/markdown-files` ou `/api/alert/<id>/markdown-files`. Um registro que não existe, ou que a chave não pode ler, responde `404`, como `get-item` faz, e `422` quando a chave não pode ler aquele tipo de registro de forma alguma. Um fluxo de trabalho lê as mesmas imagens com [Obter arquivos do Markdown](/docs/workflows/components#get-files-from-markdown), e os arquivos que um registro contém, como os anexos de uma nota e os seus campos personalizados de arquivo, com [Obter anexos do registro](/docs/workflows/components#get-attachments-from-record).
 
 ## A referência completa de endpoints
 

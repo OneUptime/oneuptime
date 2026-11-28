@@ -87,9 +87,13 @@ ID-en under tittelen til hvert trinn er nøyaktig det som skal stå i en `{{loca
 
 Verdiene som vises, er det blokken mottok etter at variablene ble fylt ut, og før blokken gjorde noe med dem, med to unntak: hemmeligheter og felt som blokken merker som sensitive, skjules, og en verdi på mer enn 4000 tegn kuttes med "… (truncated)". En kjøring beholder de siste 100 trinnene sine; en lang eller ofte gjenopptatt kjøring viser en oransje merknad der de tidligere ble droppet. Kjøringer som ble registrert før navnene på utgangene ble lagret, viser utgangen med ID-en, uten hvor den førte.
 
+En verdi som en blokk merker som sensitiv, som bildene **Hent filer fra Markdown** returnerer, forblir skjult i hver blokk etter den, også etter en **Pause**. En senere blokk som får den, viser den skjult i det den mottok og i det den returnerte, og teksten skjules overalt der den dukker opp i det kjøringen registrerer: en melding som inneholder den, eller en feil som siterer den. Korte deler av den som sier hva som ble gitt videre, som navnet eller typen til en fil, beholdes. Blokkene selv får fortsatt den virkelige verdien.
+
 ### Fanen Full Log
 
 Den rå loggen linje for linje, slik kjøreren skrev den, inkludert alt blokkene logget selv, som verdien til en **Logg**-blokk eller et skripts `console.log`. Bruk den når fanen Trinn ikke forklarer feilen.
+
+Hver verdi loggen skriver, enten det er det en blokk mottok, det den returnerte eller det den logget, kuttes til de første 65 536 tegnene og slutter med hvor mange som ble utelatt, som `… (10,420,113 more characters left out)`. En blokks mottatte verdier og returnerte verdier kuttes hver for seg, så én lang verdi ikke skjuler de andre. Hemmeligheter og sensitive verdier skjules før en verdi kuttes, så en verdi som kuttet ville dele, likevel skjules i sin helhet.
 
 ## Kopier og last ned en kjøring
 
