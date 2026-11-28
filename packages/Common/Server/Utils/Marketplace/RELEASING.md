@@ -827,6 +827,7 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-28 | Google Cloud | Told on the case: the integration goes in once the test's first usage report reaches billing                          | Agent      |
 | 2026-11-28 | Google Cloud | Technical integration submitted for review, with the go-ahead, before usage billing could be tested                   | Agent      |
 | 2026-11-28 | Google Cloud | Test purchase found on the Kubernetes app's order (same account); other products' orders now ignored (#11472)         | Agent      |
+| 2026-11-28 | Google Cloud | Told on the case: the integration is in review; the first usage report is confirmed there after 3 December            | Agent      |
 
 ## Notes for agents driving the browser
 
