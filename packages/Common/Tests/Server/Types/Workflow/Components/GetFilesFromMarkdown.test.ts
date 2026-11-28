@@ -143,7 +143,7 @@ describe("Get Files From Markdown, run", () => {
   test("reads the record as the workflow, in its project, never as root, and hands on what it found", async () => {
     let props: DatabaseCommonInteractionProps | undefined;
     let recordId: string | undefined;
-    let tableName: string | undefined;
+    let tableName: string | null | undefined;
 
     getJestSpyOn(MarkdownFiles, "readRecordFiles").mockImplementation(
       (async (data: {
