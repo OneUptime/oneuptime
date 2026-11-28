@@ -831,9 +831,15 @@ const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
       onSave={savePlaces}
     />
   );
-  // Whether the organization holds the data for another (#11427), and who said it.
+  /*
+   * Whether the organization holds the data for another (#11427), and who
+   * said it: asked where the data holds what a breach law lists - only such
+   * data can owe its owner a notice - or once someone has answered.
+   */
   const dataHeldFor: ExposureDataHeldFor | undefined =
     props.answer.assessment?.dataHeldFor;
+  const isDataOwnerAsked: boolean =
+    view.whose.elements.length > 0 || Boolean(dataHeldFor);
   const heldForSaidBy: string | undefined = dataHeldFor?.saidByUserId
     ? props.answer.editors[dataHeldFor.saidByUserId]
     : undefined;
@@ -1071,14 +1077,18 @@ const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
           <div className={SECTION_CLASS_NAME}>{places}</div>
         )}
 
-        <div className={SECTION_CLASS_NAME}>
-          <ExposureDataOwner
-            said={dataHeldFor}
-            saidByName={heldForSaidBy}
-            canChange={props.answer.canChange}
-            onSave={saveDataHeldFor}
-          />
-        </div>
+        {isDataOwnerAsked ? (
+          <div className={SECTION_CLASS_NAME}>
+            <ExposureDataOwner
+              said={dataHeldFor}
+              saidByName={heldForSaidBy}
+              canChange={props.answer.canChange}
+              onSave={saveDataHeldFor}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
 
         <section
           className={SECTION_CLASS_NAME}

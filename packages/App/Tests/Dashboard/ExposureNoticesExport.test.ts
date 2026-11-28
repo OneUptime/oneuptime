@@ -607,6 +607,22 @@ describe("a case's breach notices, exported", () => {
     expect(states).toContain(
       "- **District of Columbia:** D.C. Code 28-3852(a): Tell the people affected",
     );
+    // Puerto Rico, Guam and the US Virgin Islands, whose laws the table holds (#11424, #11426).
+    expect(states).toContain(
+      "- **Puerto Rico:** Puerto Rico Citizen Information on Data Banks Security Act Section 3: Tell the people affected (in the most expedient time possible and without unreasonable delay); Puerto Rico Citizen Information on Data Banks Security Act Section 3 (Department of Consumer Affairs): Tell Puerto Rico's Department of Consumer Affairs (10 calendar days from when it was found).",
+    );
+    expect(states).toContain(
+      "- **Guam:** Guam Code Annotated, Title 9 48.30(a): Tell the people affected (in the most expedient time possible and without unreasonable delay).",
+    );
+    expect(states).toContain(
+      "- **US Virgin Islands:** Virgin Islands Code, Title 14 2209(a): Tell the people affected (in the most expedient time possible and without unreasonable delay).",
+    );
+    // Vermont's line is the text in force when the exposure was found: its residents' 45 days, not 2027's.
+    expect(states).toContain(
+      "- **Vermont:** Vermont Statutes, Title 9 2435(b)(1): Tell the people affected (45 calendar days from when it was found); Vermont Statutes, Title 9 2435(b)(3): Tell the state's attorney general (14 business days from when it was found);",
+    );
+    // Nobody said the data is held for another: no notice to its owner is a line (#11427).
+    expect(states).not.toContain("Tell the data's owner");
     // No state's notice is drawn in full: those are the card's.
     for (const rule of BREACH_LAW_RULES.filter(isUsStateRule)) {
       expect(markdown).not.toContain(`### ${getBreachLawName(rule.id)}`);
@@ -648,16 +664,143 @@ describe("a case's breach notices, exported", () => {
       "What This Does Not Cover",
     );
 
-    expect(uncovered).toContain(
-      "- Guam and the US Virgin Islands have breach laws of their own, which it does not cover.",
-    );
+    // Puerto Rico's, Guam's and the US Virgin Islands' laws are rows now (#11424, #11426).
+    expect(uncovered).not.toContain("Guam");
+    expect(uncovered).not.toContain("Virgin Islands");
+    expect(uncovered).not.toContain("Puerto Rico");
     // Each state's notice to the consumer reporting agencies is a row of its own.
     expect(uncovered).not.toContain("consumer reporting agencies");
     expect(uncovered).toContain("West Virginia");
-    expect(uncovered).toContain("Puerto Rico");
     expect(uncovered.includes("It does not cover the breach laws of")).toBe(
       UNCOVERED_US_STATES.length > 0,
     );
+    // Nobody said whose data it is: the notices to its owner wait on the answer (#11427).
+    expect(uncovered).toContain(
+      "- If your organization holds this data for another, the law may ask you to tell the data's owner. Say whose data it is on the Was It a Breach? card to see those notices.",
+    );
+  });
+
+  test("data held for another: Texas's notice to the owner is due first, immediately - the export gives it no moment of its own (#11427)", () => {
+    const markdown: string = markdownOf(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          dataTypeIds: ["us-ssn", "person-name"],
+          countries: ["US"],
+          places: [BreachPlace.Texas],
+          holdsForAnother: true,
+        }),
+      }),
+    );
+    const due: string = sectionOf(markdown, "Due First");
+    const laws: string = sectionOf(markdown, "Breach Laws That May Apply");
+    const owner: string = laws.slice(
+      laws.indexOf(`### ${getBreachLawName(BreachLawId.TexasDataOwner)}`),
+      laws.indexOf(
+        "\n### ",
+        laws.indexOf(`### ${getBreachLawName(BreachLawId.TexasDataOwner)}`) +
+          4,
+      ),
+    );
+
+    expect(due).toContain(
+      "**Texas Business and Commerce Code 521.053(c): Tell the data's owner.** The organization that owns the data, or licensed it to you.",
+    );
+    expect(due).toContain(
+      "Due immediately, counted from 2026-11-02 09:00 UTC, when Data Security found the exposure.",
+    );
+    expect(due).not.toContain("Due  ");
+    expect(due).not.toContain("UTC:");
+    expect(laws).toContain(
+      `### ${getBreachLawName(BreachLawId.TexasDataOwner)} (due first)`,
+    );
+    expect(owner).toContain("- **What it asks:** Tell the data's owner.");
+    expect(owner).toContain(
+      "- **Who is told:** The organization that owns the data, or licensed it to you.",
+    );
+    expect(owner).toContain("- **Deadline:** Immediately.");
+    expect(owner).toContain(
+      "- **Source:** Texas Business and Commerce Code 521.053(c), https://",
+    );
+    // The attorney general's 30 days come after it, no longer first.
+    expect(laws).toContain(
+      `### ${getBreachLawName(BreachLawId.TexasAttorneyGeneral)}\n`,
+    );
+    expect(laws).not.toContain(
+      `### ${getBreachLawName(BreachLawId.TexasAttorneyGeneral)} (due first)`,
+    );
+    // Answered: the table no longer says the notices wait on it.
+    expect(sectionOf(markdown, "What This Does Not Cover")).not.toContain(
+      "If your organization holds this data for another",
+    );
+  });
+
+  test("whose data says what a person said of whose it is, and nothing while nobody has (#11427)", () => {
+    expect(
+      describeWhoseInEnglish(exposureViewOf({ holdsForAnother: true })),
+    ).toContain(
+      "A person said your organization holds this data for another organization: the notices owed to the data's owner are among the laws below.",
+    );
+    expect(
+      describeWhoseInEnglish(exposureViewOf({ holdsForAnother: false })),
+    ).toContain("A person said this data is your organization's own.");
+
+    const unsaid: string = describeWhoseInEnglish(exposureViewOf()).join(" ");
+
+    expect(unsaid).not.toContain("holds this data for another");
+    expect(unsaid).not.toContain("your organization's own");
+  });
+
+  test("EU emails held for a client: GDPR's processor's notice is a law that may apply, without undue delay, and the controller's 72 hours are still due first (#11427)", () => {
+    const markdown: string = markdownOf(
+      exposureAnswerOf({
+        view: exposureViewOf({ holdsForAnother: true }),
+      }),
+    );
+    const laws: string = sectionOf(markdown, "Breach Laws That May Apply");
+
+    expect(laws).toContain(`### ${getBreachLawName(BreachLawId.GdprProcessor)}`);
+    expect(laws).toContain(
+      `### ${getBreachLawName(BreachLawId.GdprAuthority)} (due first)`,
+    );
+    expect(laws).toContain(
+      `- **Who is told:** ${getBreachLawRule(BreachLawId.GdprProcessor).recipient}.`,
+    );
+    expect(laws).toContain("- **Deadline:** Without undue delay.");
+  });
+
+  test("Vermont's two texts: an exposure found in 2026 owes the text in force then, and says the newer takes effect in 2027 (#11425)", () => {
+    const markdown: string = markdownOf(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          dataTypeIds: ["us-ssn", "person-name"],
+          countries: ["US"],
+          places: [BreachPlace.Vermont],
+        }),
+      }),
+    );
+    const laws: string = sectionOf(markdown, "Breach Laws That May Apply");
+
+    const residents: string = `### ${getBreachLawName(BreachLawId.VermontResidents)}`;
+
+    // The same section's two texts share its name: only the one in force when it was found may apply.
+    expect(getBreachLawName(BreachLawId.VermontResidentsFrom2027)).toBe(
+      getBreachLawName(BreachLawId.VermontResidents),
+    );
+    expect(laws.split(residents).length - 1).toBe(1);
+    expect(laws).toContain(
+      `### ${getBreachLawName(BreachLawId.VermontAttorneyGeneral)} (due first)`,
+    );
+    expect(laws).toContain(
+      `- **Source:** ${getBreachLawRule(BreachLawId.VermontResidents).sourceTitle}, `,
+    );
+    expect(laws).toContain(
+      "Vermont Statutes, Title 9, 2435(b)(3), as in force until 1 January 2027",
+    );
+    // The text from 1 January 2027 is not in force yet: not a law that may apply, and not cited.
+    expect(laws).not.toContain(
+      getBreachLawRule(BreachLawId.VermontResidentsFrom2027).sourceTitle,
+    );
+    expect(laws).not.toContain("in force from 1 January 2027");
   });
 
   test("each part as a person last saved it: who wrote it and when, its words, and the facts a draft rests on", () => {
