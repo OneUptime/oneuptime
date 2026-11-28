@@ -1,6 +1,7 @@
 import Entities from "../../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Services from "../../../../../Server/Services/Index";
+import ProjectService from "../../../../../Server/Services/ProjectService";
 import {
   RunOptions,
   RunReturnType,
@@ -9,6 +10,7 @@ import GetFilesFromMarkdown from "../../../../../Server/Types/Workflow/Component
 import Components from "../../../../../Server/Types/Workflow/Components/Index";
 import MarkdownFiles from "../../../../../Server/Utils/File/MarkdownFiles";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
 import NotFoundException from "../../../../../Types/Exception/NotFoundException";
@@ -23,7 +25,14 @@ import UserType from "../../../../../Types/UserType";
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import MarkdownFilesComponents from "../../../../../Types/Workflow/Components/MarkdownFiles";
 import { getJestSpyOn } from "../../../../Spy";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 jest.mock("../../../../../Server/Utils/Logger");
 
@@ -136,6 +145,17 @@ describe("the record types the step reads", () => {
 });
 
 describe("Get Files From Markdown, run", () => {
+  beforeEach(() => {
+    /*
+     * The project's plan, which a step's props carry (WorkflowPrincipal):
+     * read with billing on, as on OneUptime Cloud and in Common's CI.
+     */
+    getJestSpyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Enterprise,
+      isSubscriptionUnpaid: false,
+    });
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
