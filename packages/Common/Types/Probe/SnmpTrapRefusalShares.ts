@@ -244,20 +244,26 @@ export default class SnmpTrapRefusalShares {
       : SnmpTrapRefusalReason.UnknownUser;
   }
 
-  // Each device under every address it has, each device once per address.
+  /*
+   * Each device under every address it has, each device once per address.
+   * A device with no ID still says whose the address is - so two projects'
+   * addresses never read as one's - and is only never named.
+   */
   private static getDevicesByAddress(
     devices: Array<SnmpTrapRefusalShareDevice>,
   ): Map<string, Array<SnmpTrapRefusalShareDevice>> {
-    const devicesByAddress: Map<string, Array<SnmpTrapRefusalShareDevice>> =
-      new Map();
+    const devicesByAddress: Map<
+      string,
+      Array<SnmpTrapRefusalShareDevice>
+    > = new Map();
 
     for (const device of devices) {
-      if (!device.projectId || !device.id) {
+      if (!device.projectId) {
         continue;
       }
 
       const normalized: SnmpTrapRefusalShareDevice = {
-        id: device.id.toLowerCase(),
+        id: (device.id || "").toLowerCase(),
         projectId: device.projectId.toLowerCase(),
         addresses: device.addresses,
       };
@@ -273,6 +279,7 @@ export default class SnmpTrapRefusalShares {
           devicesByAddress.get(canonical) || [];
 
         if (
+          !normalized.id ||
           !atAddress.some((known: SnmpTrapRefusalShareDevice): boolean => {
             return known.id === normalized.id;
           })

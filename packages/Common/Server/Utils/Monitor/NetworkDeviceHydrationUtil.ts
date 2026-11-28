@@ -1612,9 +1612,8 @@ export default class NetworkDeviceHydrationUtil {
         let addresses: Array<string> = [];
 
         try {
-          addresses = await NetworkDeviceHydrationUtil.dnsCache.resolve(
-            hostname,
-          );
+          addresses =
+            await NetworkDeviceHydrationUtil.dnsCache.resolve(hostname);
         } catch {
           // The cache answers failures as no addresses; so does this.
         }

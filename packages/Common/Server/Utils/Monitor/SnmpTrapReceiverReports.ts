@@ -130,26 +130,27 @@ export default class SnmpTrapReceiverReports {
       ),
     );
 
-    const [atAddresses, dnsNamed]: [Array<NetworkDevice>, Array<NetworkDevice>] =
-      await Promise.all([
-        NetworkDeviceService.findDevicesAtAddressesOnProbe({
-          probeId: data.probeId,
-          addresses: sources,
-        }),
-        NetworkDeviceService.findDnsNamedDevicesOnProbe({
-          probeId: data.probeId,
-          limit: MAX_DNS_NAMED_DEVICES_PER_REPORT,
-        }),
-      ]);
+    const [atAddresses, dnsNamed]: [
+      Array<NetworkDevice>,
+      Array<NetworkDevice>,
+    ] = await Promise.all([
+      NetworkDeviceService.findDevicesAtAddressesOnProbe({
+        probeId: data.probeId,
+        addresses: sources,
+      }),
+      NetworkDeviceService.findDnsNamedDevicesOnProbe({
+        probeId: data.probeId,
+        limit: MAX_DNS_NAMED_DEVICES_PER_REPORT,
+      }),
+    ]);
 
-    const addressesByHostname: Map<string, Array<string>> =
-      dnsNamed.length > 0
-        ? await NetworkDeviceHydrationUtil.resolveHostnames({
-            hostnames: dnsNamed.map((device: NetworkDevice): string => {
-              return device.hostname || "";
-            }),
-          })
-        : new Map();
+    const addressesByHostname: Map<string, Array<string>> = dnsNamed.length > 0
+      ? await NetworkDeviceHydrationUtil.resolveHostnames({
+          hostnames: dnsNamed.map((device: NetworkDevice): string => {
+            return device.hostname || "";
+          }),
+        })
+      : new Map();
 
     const sourceSet: Set<string> = new Set(sources);
     const devicesById: Map<string, SnmpTrapRefusalShareDevice> = new Map();
@@ -190,9 +191,8 @@ export default class SnmpTrapReceiverReports {
 
     for (const device of dnsNamed) {
       const resolved: Array<string> = (
-        addressesByHostname.get(
-          (device.hostname || "").trim().toLowerCase(),
-        ) || []
+        addressesByHostname.get((device.hostname || "").trim().toLowerCase()) ||
+        []
       ).filter((address: string): boolean => {
         return sourceSet.has(address);
       });

@@ -923,10 +923,11 @@ export default class Probe extends BaseModel {
    * Types/Probe/SnmpTrapReceiver): whether it is on and on which port, its
    * SNMPv3 engine ID - which a device sending informs needs - how many
    * SNMPv3 users it accepts, and the SNMPv3 traps it refused, counted by
-   * source address, reason and user name. Written by the probe's report,
-   * never by a request; empty for a probe older than SNMPv3 traps. Only
-   * project probes keep one: a global probe's refusals would be other
-   * projects' addresses and user names.
+   * source address, reason and user name, each with the devices OneUptime
+   * found it came from (#11406). Written by the probe's report, never by a
+   * request; empty for a probe older than SNMPv3 traps. Only project probes
+   * keep their refusals: a global probe's would be other projects'
+   * addresses, user names and devices.
    */
   @ColumnAccessControl({
     create: [],
@@ -938,7 +939,7 @@ export default class Probe extends BaseModel {
     type: TableColumnType.JSON,
     title: "SNMP Trap Receiver",
     description:
-      "What the probe last reported about its SNMP trap receiver: whether it is on and its UDP port, its SNMPv3 engine ID, how many SNMPv3 users it accepts traps from, and the SNMPv3 traps it refused in the last day, by source address, reason and user name. Managed by the probe.",
+      "What the probe last reported about its SNMP trap receiver: whether it is on and its UDP port, its SNMPv3 engine ID, how many SNMPv3 users it accepts traps from, and the SNMPv3 traps it refused in the last day, by source address, reason and user name, each with the devices it came from. Managed by the probe.",
     /*
      * A network device's Overview reads its probe's report through the
      * device (NetworkDevice.probe), to say when the device's own SNMPv3
