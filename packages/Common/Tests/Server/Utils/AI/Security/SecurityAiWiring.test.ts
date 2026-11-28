@@ -308,8 +308,30 @@ describe("the security tools keep the observables, and only them", () => {
     expect(SECURITY_OBSERVABLE_RULE_NAMES).toEqual([
       "email",
       "ip-address",
+      "phone-number",
       "hex-secret",
     ]);
+  });
+
+  /*
+   * #11384: a phone number names the account a one-time code is sent to,
+   * as an email names the one a sign-in uses - kept for a security
+   * question. A Social Security number names no account a sign-in uses,
+   * and is Restricted: hidden there too.
+   */
+  test("a security result keeps a phone number and hides a Social Security number", () => {
+    const signIn: string =
+      "OTP sent to +44 20 7123 4567 for applicant SSN 536221234 from 203.0.113.9";
+
+    expect(ToolResultSerializer.redact(signIn).text).toBe(
+      "OTP sent to [redacted-phone] for applicant SSN [redacted-ssn] from [redacted-ip]",
+    );
+    expect(
+      ToolResultSerializer.redact(signIn, { keepSecurityObservables: true })
+        .text,
+    ).toBe(
+      "OTP sent to +44 20 7123 4567 for applicant SSN [redacted-ssn] from 203.0.113.9",
+    );
   });
 });
 

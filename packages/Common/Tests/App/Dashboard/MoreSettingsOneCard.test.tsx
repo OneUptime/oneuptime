@@ -92,7 +92,9 @@ import {
   getFoldedSectionItemsShown,
 } from "../../../UI/Components/FoldedSection/FoldedSectionItem";
 import API from "../../../UI/Utils/API/API";
-import GlobalConfigUtil from "../../../UI/Utils/GlobalConfig";
+import GlobalConfigUtil, {
+  GlobalConfigVars,
+} from "../../../UI/Utils/GlobalConfig";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -313,6 +315,12 @@ interface MoreSettingsPage {
     sectionTitles: Array<string>;
     tableCount: number;
   };
+  /*
+   * What the server's public settings say for this page, beside what an
+   * answer that says nothing reads as: a card the server offers only on
+   * some servers (a project's own call voice, #11065).
+   */
+  vars?: Partial<GlobalConfigVars> | undefined;
 }
 
 type NamedSectionTitlesFunction = (page: MoreSettingsPage) => Array<string>;
@@ -570,6 +578,29 @@ const PAGES: Array<MoreSettingsPage> = [
     tableCount: 2,
   },
   /*
+   * On a server whose master admin lets projects choose their call voice
+   * (#11065): the project's own Call Voice too, after the voicemail switch.
+   */
+  {
+    name: "Project Settings -> Notifications -> Notification Settings, where projects choose their call voice",
+    path: `/dashboard/${PROJECT_ID}/settings/notification-settings`,
+    element: (): ReactElement => {
+      return <NotificationSettings {...PAGE_PROPS} />;
+    },
+    sectionTestId: NOTIFICATION_SETTINGS_MORE_TEST_ID,
+    sectionTitles: [
+      "Default Ladder for New Members",
+      "Phone for People on Call",
+      "Voicemail on On-Call Calls",
+      "Call Voice",
+      "Custom SMTP Configs",
+      "Twilio Config",
+    ],
+    namesSectionsByTitle: true,
+    tableCount: 2,
+    vars: { canProjectsChooseCallVoice: true },
+  },
+  /*
    * A telemetry product's AI -> Settings - the Profiler's here; every lane
    * draws the same page (TelemetryAiSettingsPage) - folds its AI rules.
    */
@@ -628,6 +659,13 @@ const FRAME_TOKENS: Array<string> = CARD_FRAME_CLASS_NAME.split(" ").filter(
 
 function openPage(page: MoreSettingsPage): void {
   goTo(page.path);
+
+  if (page.vars) {
+    jest.spyOn(GlobalConfigUtil, "fetchVars").mockResolvedValue({
+      ...GlobalConfigUtil.readVars({}),
+      ...page.vars,
+    });
+  }
 
   render(
     <MemoryRouter initialEntries={[page.path]}>{page.element()}</MemoryRouter>,

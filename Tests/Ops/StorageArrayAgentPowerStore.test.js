@@ -34,6 +34,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const yaml = require("js-yaml");
 const { agentFilesCurlStub } = require("./Utils/AgentFilesCurlStub");
+const { agentKindVersion } = require("./Utils/AgentKindVersion");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = path.join(REPO_ROOT, "agents", "StorageArrayAgent");
@@ -52,7 +53,7 @@ const SYSLOG_CONFIG = "powerstore-syslog.yaml";
 const DOCKERFILE = "powerstore-exporter.Dockerfile";
 const INGESTION_KEY = "0b6a4e39-1f0e-4a7c-9d57-6c0f2a8a3b11";
 // Every character .env quoting and the exporter's YAML have to carry.
-const PASSWORD = "O'ne \"up\" #time: \\ $HOME";
+const PASSWORD = 'O\'ne "up" #time: \\ $HOME';
 
 const scratchDirs = [];
 
@@ -250,15 +251,20 @@ describe("docker-compose.yml: Dell's PowerStore exporter", () => {
  * `dir`.
  */
 function exporterCommand(dir, stub) {
-  const command = compose()
-    .services["powerstore-exporter"].command[0].replace(/\$\$/g, "$");
+  const command = compose().services["powerstore-exporter"].command[0].replace(
+    /\$\$/g,
+    "$",
+  );
   expect(command).toContain("dir=/tmp/powerstore-exporter\n");
   expect(command).toContain(
     'exec /powerstore-exporter/powerstore-metrics-exporter -c "$dir/config.yml"',
   );
   return command
     .replace("dir=/tmp/powerstore-exporter\n", `dir='${dir}'\n`)
-    .replace("exec /powerstore-exporter/powerstore-metrics-exporter", `exec '${stub}'`);
+    .replace(
+      "exec /powerstore-exporter/powerstore-metrics-exporter",
+      `exec '${stub}'`,
+    );
 }
 
 /* Run the exporter's command under sh with `env`, as its container does. */
@@ -640,8 +646,8 @@ describe("powerstore-syslog.yaml", () => {
       fs.readFileSync(path.join(FIXTURES_DIR, "event-codes.json"), "utf8"),
     );
     const statements =
-      parsed.processors["transform/powerstore-alert-severity"]
-        .log_statements[0].statements;
+      parsed.processors["transform/powerstore-alert-severity"].log_statements[0]
+        .statements;
     const listed = (severity) => {
       const statement = statements.find((candidate) => {
         return candidate.startsWith(
@@ -673,9 +679,10 @@ describe("powerstore-syslog.yaml", () => {
       "utf8",
     );
     // The object's values, after its type.
-    const block = /POWERSTORE_LOG_ATTRIBUTES: \{[\s\S]*?\} = \{([\s\S]*?)\n\};/.exec(
-      syslog,
-    );
+    const block =
+      /POWERSTORE_LOG_ATTRIBUTES: \{[\s\S]*?\} = \{([\s\S]*?)\n\};/.exec(
+        syslog,
+      );
     expect(block).not.toBeNull();
     const names = [...block[1].matchAll(/"(powerstore\.[a-z._]+)"/g)].map(
       (match) => {
@@ -684,7 +691,10 @@ describe("powerstore-syslog.yaml", () => {
     );
     expect(names).toHaveLength(9);
     for (const name of names) {
-      expect({ name, written: text.includes(`set(attributes["${name}"],`) }).toEqual({
+      expect({
+        name,
+        written: text.includes(`set(attributes["${name}"],`),
+      }).toEqual({
         name,
         written: true,
       });
@@ -719,7 +729,9 @@ describe("PowerStore's syslog, as the shipped collector sends it", () => {
       expect(record.resource).toEqual({
         "storage.array.name": "ps-prod-01",
         "storage.system": "dell.powerstore",
-        "oneuptime.agent.version": "0.165.0",
+        "oneuptime.agent.version": agentKindVersion(
+          "STORAGE_ARRAY_AGENT_VERSION",
+        ),
       });
       // PowerStore's record is read out; nothing raw is left behind.
       expect(record.attributes).not.toHaveProperty("powerstore");
@@ -781,9 +793,9 @@ describe("PowerStore's syslog, as the shipped collector sends it", () => {
     });
     expect(up.attributes).not.toHaveProperty("powerstore.alert.severity");
     // The same alert id as the line that raised it, which it resolves.
-    expect(
-      byBody("Port link is down.").attributes["powerstore.alert.id"],
-    ).toBe(up.attributes["powerstore.alert.id"]);
+    expect(byBody("Port link is down.").attributes["powerstore.alert.id"]).toBe(
+      up.attributes["powerstore.alert.id"],
+    );
   });
 
   test("an audit event carries who did what, and is no alert", () => {
@@ -819,9 +831,7 @@ describe("PowerStore's syslog, as the shipped collector sends it", () => {
     const operators = yaml.load(agentText(SYSLOG_CONFIG)).receivers[
       "syslog/tcp"
     ].operators;
-    const pattern = new RegExp(
-      operators[0].regex.replace(/\(\?P</g, "(?<"),
-    );
+    const pattern = new RegExp(operators[0].regex.replace(/\(\?P</g, "(?<"));
     const samples = fs
       .readFileSync(path.join(FIXTURES_DIR, "syslog-samples.txt"), "utf8")
       .split("\n")
@@ -829,7 +839,10 @@ describe("PowerStore's syslog, as the shipped collector sends it", () => {
     const read = samples.map((line) => {
       // What the rfc3164 parser hands the operators: the message after the
       // header (<pri>timestamp host).
-      const message = line.replace(/^<\d+>\w{3} [ \d]\d \d{2}:\d{2}:\d{2} \S+ /, "");
+      const message = line.replace(
+        /^<\d+>\w{3} [ \d]\d \d{2}:\d{2}:\d{2} \S+ /,
+        "",
+      );
       const match = pattern.exec(message);
       return match ? match.groups.sdid : null;
     });
@@ -856,7 +869,10 @@ describe("otel-collector-config.powerstore.yaml", () => {
   test("scrapes each part Dell's exporter serves, and only those", () => {
     const parts = parsed.receivers.prometheus.config.scrape_configs.map(
       (job) => {
-        return job.metrics_path.replace("/metrics/${env:POWERSTORE_ENDPOINT}/", "");
+        return job.metrics_path.replace(
+          "/metrics/${env:POWERSTORE_ENDPOINT}/",
+          "",
+        );
       },
     );
     expect([...parts].sort()).toEqual(
@@ -898,7 +914,8 @@ describe("otel-collector-config.powerstore.yaml", () => {
 
   test("divides each appliance's and each file system's used space by its own total", () => {
     const rules =
-      parsed.processors["metricsgeneration/powerstore-space-used-percent"].rules;
+      parsed.processors["metricsgeneration/powerstore-space-used-percent"]
+        .rules;
     expect(rules).toEqual([
       {
         name: "powerstore_cap_physical_used_percent",
@@ -1092,11 +1109,9 @@ function composeValue(raw) {
   }
   if (raw.startsWith('"')) {
     expect(raw.endsWith('"')).toBe(true);
-    return raw
-      .slice(1, -1)
-      .replace(/\$\$|\\(.)/g, (match, escaped) => {
-        return match === "$$" ? "$" : escaped;
-      });
+    return raw.slice(1, -1).replace(/\$\$|\\(.)/g, (match, escaped) => {
+      return match === "$$" ? "$" : escaped;
+    });
   }
   return raw;
 }
@@ -1189,7 +1204,12 @@ describe("agents/StorageArrayAgent/install.sh for a PowerStore", () => {
     });
 
     expect(run.status).toBe(0);
-    for (const file of ["docker-compose.yml", CONFIG, DOCKERFILE, SYSLOG_CONFIG]) {
+    for (const file of [
+      "docker-compose.yml",
+      CONFIG,
+      DOCKERFILE,
+      SYSLOG_CONFIG,
+    ]) {
       expect(fs.readFileSync(path.join(run.installDir, file), "utf8")).toBe(
         agentText(file),
       );
@@ -1518,7 +1538,12 @@ describe("the real containers' run", () => {
   });
 
   test("it runs the shipped files, changing only how often the collector scrapes", () => {
-    for (const file of ["docker-compose.yml", CONFIG, DOCKERFILE, SYSLOG_CONFIG]) {
+    for (const file of [
+      "docker-compose.yml",
+      CONFIG,
+      DOCKERFILE,
+      SYSLOG_CONFIG,
+    ]) {
       expect(script).toContain(file);
     }
     expect(script).toContain("scrape_interval");
@@ -1527,7 +1552,10 @@ describe("the real containers' run", () => {
   test("it passes bash -n", () => {
     const result = spawnSync(
       "bash",
-      ["-n", path.join(__dirname, "storage-array-agent-powerstore-behaviour.sh")],
+      [
+        "-n",
+        path.join(__dirname, "storage-array-agent-powerstore-behaviour.sh"),
+      ],
       { encoding: "utf8" },
     );
     expect(result.stderr).toBe("");

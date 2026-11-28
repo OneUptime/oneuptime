@@ -417,16 +417,22 @@ describe("the Security category, in the catalog", () => {
     expect(titlesIn(catalog, "Observability")).not.toContain("Data Security");
   });
 
-  test("moved the two products and lost none: 47 products, each listed once", () => {
-    const titles: Array<string> = readCatalog().moreMenuItems.map(
+  test("moved the two products and lost none: 48 products, each listed once, XCP-ng the newest", () => {
+    const catalog: DashboardNavigationItems = readCatalog();
+    const titles: Array<string> = catalog.moreMenuItems.map(
       (item: MoreMenuItem): string => {
         return item.title;
       },
     );
 
-    // 45 when #5592 moved them; Data Observability (#5647) is the 46th, OpenStack (#5676) the 47th.
-    expect(titles).toHaveLength(47);
-    expect(new Set(titles).size).toBe(47);
+    /*
+     * 45 when #5592 moved them; Data Observability (#5647) is the 46th,
+     * OpenStack (#5676) the 47th, XCP-ng (#11093) the 48th, in
+     * Infrastructure.
+     */
+    expect(titles).toHaveLength(48);
+    expect(new Set(titles).size).toBe(48);
+    expect(titlesIn(catalog, "Infrastructure")).toContain("XCP-ng");
   });
 
   test("folds like every category but Essentials: the menu does not open on it", () => {

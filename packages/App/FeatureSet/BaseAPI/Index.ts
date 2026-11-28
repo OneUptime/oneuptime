@@ -490,6 +490,9 @@ import OpenStackCloudLabelRuleService, {
 import VMwareVCenterLabelRuleService, {
   Service as VMwareVCenterLabelRuleServiceType,
 } from "Common/Server/Services/VMwareVCenterLabelRuleService";
+import VMwareHealthSettingService, {
+  Service as VMwareHealthSettingServiceType,
+} from "Common/Server/Services/VMwareHealthSettingService";
 import IoTFleetLabelRuleService, {
   Service as IoTFleetLabelRuleServiceType,
 } from "Common/Server/Services/IoTFleetLabelRuleService";
@@ -756,6 +759,7 @@ import SecurityPlaybookService, {
   Service as SecurityPlaybookServiceType,
 } from "Common/Server/Services/SecurityPlaybookService";
 import SecurityProtectedEntityAPI from "Common/Server/API/SecurityProtectedEntityAPI";
+import SecurityUserErasureRequestAPI from "Common/Server/API/SecurityUserErasureRequestAPI";
 import SecurityBlockAPI from "Common/Server/API/SecurityBlockAPI";
 import SecurityAutomaticResponsePolicyAPI from "Common/Server/API/SecurityAutomaticResponsePolicyAPI";
 import SecurityAutomaticResponseActionService, {
@@ -1045,9 +1049,6 @@ import RumSessionReplayViewService, {
 import RumSessionErasureRequestService, {
   Service as RumSessionErasureRequestServiceType,
 } from "Common/Server/Services/RumSessionErasureRequestService";
-import SecurityUserErasureRequestService, {
-  Service as SecurityUserErasureRequestServiceType,
-} from "Common/Server/Services/SecurityUserErasureRequestService";
 import RumSessionPinService, {
   Service as RumSessionPinServiceType,
 } from "Common/Server/Services/RumSessionPinService";
@@ -1748,6 +1749,7 @@ import DockerSwarmClusterOwnerRule from "Common/Models/DatabaseModels/DockerSwar
 import ProxmoxClusterLabelRule from "Common/Models/DatabaseModels/ProxmoxClusterLabelRule";
 import OpenStackCloudLabelRule from "Common/Models/DatabaseModels/OpenStackCloudLabelRule";
 import VMwareVCenterLabelRule from "Common/Models/DatabaseModels/VMwareVCenterLabelRule";
+import VMwareHealthSetting from "Common/Models/DatabaseModels/VMwareHealthSetting";
 import IoTFleetLabelRule from "Common/Models/DatabaseModels/IoTFleetLabelRule";
 import DockerSwarmClusterLabelRule from "Common/Models/DatabaseModels/DockerSwarmClusterLabelRule";
 import CephClusterOwnerRule from "Common/Models/DatabaseModels/CephClusterOwnerRule";
@@ -1836,7 +1838,6 @@ import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
-import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
@@ -2282,6 +2283,7 @@ import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
+import MonitorTemplateChangeAPI from "Common/Server/API/MonitorTemplateChangeAPI";
 import NetworkDeviceDiscoveryScanRunAPI from "Common/Server/API/NetworkDeviceDiscoveryScanRunAPI";
 import NetworkDeviceNamingAPI from "Common/Server/API/NetworkDeviceNamingAPI";
 import NetworkDiscoveredDeviceAPI from "Common/Server/API/NetworkDiscoveredDeviceAPI";
@@ -3742,6 +3744,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<VMwareVCenterLabelRule, VMwareVCenterLabelRuleServiceType>(
         VMwareVCenterLabelRule,
         VMwareVCenterLabelRuleService,
+      ).getRouter(),
+    );
+
+    // Where a project's VMware health rules mark a part as needing attention.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<VMwareHealthSetting, VMwareHealthSettingServiceType>(
+        VMwareHealthSetting,
+        VMwareHealthSettingService,
       ).getRouter(),
     );
 
@@ -6519,16 +6530,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(RumSessionErasureRequest, RumSessionErasureRequestService).getRouter(),
     );
 
-    // Erasing one person from Security Events' user vault (#10908).
+    /*
+     * Erasing one person from Security Events' user vault (#10908), and how
+     * far each open request has got (#11232).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        SecurityUserErasureRequest,
-        SecurityUserErasureRequestServiceType
-      >(
-        SecurityUserErasureRequest,
-        SecurityUserErasureRequestService,
-      ).getRouter(),
+      new SecurityUserErasureRequestAPI().getRouter(),
     );
 
     app.use(
@@ -7418,6 +7426,16 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       NetworkDeviceDiscoveryImportAPI,
     );
+
+    /*
+     * Changing many monitors' template (a template's Linked Monitors, the
+     * Monitors list's Link to Template, a template's Delete that clears its
+     * criteria first: issues #11260, #11266). A bare router for the same
+     * reason as the discovery import's: its changes are internal rows with
+     * no CRUD API, so the router's own checks are the whole gate, and the
+     * change itself acts as the person who asked for it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, MonitorTemplateChangeAPI);
 
     /*
      * Running a discovery scan again, on demand (Network > Discovery > Run

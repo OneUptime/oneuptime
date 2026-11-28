@@ -94,6 +94,7 @@ describe("Forgot password, once answered", () => {
           disableUserProjectCreation: false,
           disablePushNotifications: false,
           canSendEmail: true,
+          canProjectsChooseCallVoice: false,
         };
       });
 

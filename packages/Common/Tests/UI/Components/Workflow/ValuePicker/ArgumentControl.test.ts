@@ -41,6 +41,8 @@ const EXPECTED: Record<ComponentInputType, ArgumentControl> = {
   [ComponentInputType.AlertSeveritySelect]: ArgumentControl.Plain,
   [ComponentInputType.IncidentSeveritySelect]: ArgumentControl.Plain,
   [ComponentInputType.CronTab]: ArgumentControl.Plain,
+  // Get Files From Markdown's record types, a dropdown of them.
+  [ComponentInputType.MarkdownRecordType]: ArgumentControl.Plain,
   // A choice of a few answers, each with a line saying what it means.
   [ComponentInputType.Choice]: ArgumentControl.ChoiceRows,
   // Who a Page step pages: the people picker, with a chip per value.

@@ -60,6 +60,7 @@ import RumApplicationClientService from "Common/Server/Services/RumApplicationCl
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
 import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import XcpNgPoolService from "Common/Server/Services/XcpNgPoolService";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 /*
@@ -171,6 +172,17 @@ const FENCE_CASES: Array<FenceCase> = [
       stringAttribute("vmware.vcenter.name", "vcsa-prod"),
     ] as JSONArray,
     gated: { service: VMwareVCenterService, method: "updateLastSeen" },
+  },
+  {
+    // A pool is found by its XAPI UUID, never by its name (#10995).
+    name: "autoDiscoverXcpNgPool",
+    method: "autoDiscoverXcpNgPool",
+    scope: "xcp-ng-pool",
+    attributes: [
+      stringAttribute("xcp_ng.pool.id", "c0ffee00-1111-4222-8333-444455556666"),
+      stringAttribute("xcp_ng.pool.name", "pool-prod"),
+    ] as JSONArray,
+    gated: { service: XcpNgPoolService, method: "updateAgentLastSeen" },
   },
   {
     name: "autoDiscoverIoTFleet",

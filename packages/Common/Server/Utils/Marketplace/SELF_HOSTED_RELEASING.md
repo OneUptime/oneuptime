@@ -386,7 +386,11 @@ review again, and the case was told that the exception is no longer
 needed. **Left**: the review, then **Publish** again (step 10), which also
 answers the security notice; Google's answer on the evidence and the
 listing made public; then the test cluster deleted and the test order
-cancelled (step 9).
+cancelled (step 9). Cancel the order only once production runs
+[#11472](https://github.com/OneUptime/oneuptime/pull/11472): the same test
+billing account holds OneUptime Cloud's test purchase, and before that fix
+OneUptime Cloud takes the cancellation as its own
+([RELEASING.md](RELEASING.md#google-cloud-marketplace), step 9).
 Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the

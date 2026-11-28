@@ -289,7 +289,9 @@ function markdown(blocks: Array<WorkspaceMessageBlock>): string {
     .join("\n");
 }
 
-function sayMessages(call: CallRequest): Array<string> {
+function sayMessages(
+  call: Pick<CallRequest, "data"> | CallRequest,
+): Array<string> {
   return call.data
     .map((step: unknown): string => {
       return String((step as { sayMessage?: string }).sayMessage || "");
@@ -527,10 +529,21 @@ describe("a delivery writes each channel in the language of the person it pages"
       "On-call notification: incident created.",
     );
 
-    // The call is spoken in English, and WhatsApp's template is Meta's.
+    /*
+     * The call carries its English, as every call has, and its German for a
+     * German voice to speak (#11066); WhatsApp's template is Meta's.
+     */
     expect(sayMessages(delivered.call)[1]).toBe(
       "A new Sev 1 incident has been created: INC-42.",
     );
+    expect(delivered.call.inLanguage?.language).toBe("de");
+    expect(sayMessages(delivered.call.inLanguage!)).toEqual([
+      "Dies ist ein Anruf von Acme.",
+      "Ein neuer Vorfall wurde erstellt.",
+      // The project's own severity, as written.
+      "Vorfall INC-42 (Sev 1).",
+      "Checkout is down",
+    ]);
     expect(delivered.whatsApp.templateLanguageCode).toBe(
       WhatsAppTemplateLanguage[WhatsAppTemplateIds.IncidentCreated],
     );
@@ -596,10 +609,24 @@ describe("a delivery writes each channel in the language of the person it pages"
       expect(text).toContain("Checkout is down");
     }
 
-    // The call is spoken in English, as every page's call is.
+    /*
+     * The call's English, and its Arabic for an Arabic voice (#11066): a
+     * call is heard, so no value is set apart with isolate marks in it.
+     */
     expect(sayMessages(delivered.call)[1]).toBe(
       "A new Sev 1 incident has been created: INC-42.",
     );
+    expect(delivered.call.inLanguage?.language).toBe("ar");
+
+    const arabic: Array<string> = sayMessages(delivered.call.inLanguage!);
+
+    expect(arabic[0]).toBe("هذه مكالمة من Acme.");
+    expect(arabic[1]).toBe("أُنشئت حادثة جديدة.");
+
+    for (const sentence of arabic) {
+      expect(sentence).not.toContain(FIRST_STRONG_ISOLATE);
+      expect(sentence).not.toContain(POP_DIRECTIONAL_ISOLATE);
+    }
   });
 
   test("German, paged again: every message says it is still not resolved, in German", async () => {
@@ -623,9 +650,12 @@ describe("a delivery writes each channel in the language of the person it pages"
     expect(delivered.telegram).toContain(
       "Sie erhalten diese Nachricht, weil das Problem 30\u00A0Minuten nach der Bestätigung noch immer nicht behoben ist.",
     );
-    // The call says so in English, as a call always has.
+    // The call says so in English, as a call always has, and in German.
     expect(sayMessages(delivered.call)[1]).toBe(
       "An incident is still not resolved 30 minutes after it was acknowledged: Sev 1 incident INC-42.",
+    );
+    expect(sayMessages(delivered.call.inLanguage!)[1]).toBe(
+      "Ein Vorfall ist 30\u00A0Minuten nach der Bestätigung noch immer nicht behoben.",
     );
   });
 
@@ -655,6 +685,11 @@ describe("a delivery writes each channel in the language of the person it pages"
     expect(markdown(delivered.slack.messageBlocks)).toContain(
       "[Can't take it? Escalate](",
     );
+    // The call is English only: it carries no words in another language.
+    expect(sayMessages(delivered.call)[1]).toBe(
+      "A new Sev 1 incident has been created: INC-42.",
+    );
+    expect(delivered.call.inLanguage).toBeUndefined();
   });
 
   test("a person whose language cannot be read is paged in English, and the page goes out", async () => {
@@ -1523,7 +1558,7 @@ describe("an observer's page, in the language of the person it pages", () => {
     );
   });
 
-  test("a call stays in English, as every page's call does", async () => {
+  test("a call without a translator is English only, as every page's call was", async () => {
     const call: CallRequest =
       await service.generateCallTemplateForIncidentCreated(
         TO_PHONE,
@@ -1537,5 +1572,47 @@ describe("an observer's page, in the language of the person it pages", () => {
     expect(sayMessages(call)[1]).toBe(
       "You are paged as an observer about an incident: Sev 1 incident INC-42.",
     );
+    expect(call.inLanguage).toBeUndefined();
+  });
+
+  test("a call to a German observer carries its English and its German (#11066)", async () => {
+    const call: CallRequest =
+      await service.generateCallTemplateForIncidentCreated(
+        TO_PHONE,
+        incident(),
+        NOTIFICATION,
+        undefined,
+        undefined,
+        true,
+        GERMAN,
+      );
+
+    expect(sayMessages(call)[1]).toBe(
+      "You are paged as an observer about an incident: Sev 1 incident INC-42.",
+    );
+    expect(call.inLanguage?.language).toBe("de");
+    expect(sayMessages(call.inLanguage!).slice(1, 4)).toEqual([
+      "Sie wurden wegen eines Vorfalls als Beobachter alarmiert.",
+      "Vorfall INC-42 (Sev 1).",
+      "Sie bleiben informiert: Die Zuständigen kümmern sich weiter um diesen Vorfall.",
+    ]);
+  });
+
+  test("a call to a person who reads Persian is English only: no voice speaks Persian", async () => {
+    const call: CallRequest =
+      await service.generateCallTemplateForIncidentCreated(
+        TO_PHONE,
+        incident(),
+        NOTIFICATION,
+        undefined,
+        undefined,
+        false,
+        getServerTranslator("fa"),
+      );
+
+    expect(sayMessages(call)[1]).toBe(
+      "A new Sev 1 incident has been created: INC-42.",
+    );
+    expect(call.inLanguage).toBeUndefined();
   });
 });

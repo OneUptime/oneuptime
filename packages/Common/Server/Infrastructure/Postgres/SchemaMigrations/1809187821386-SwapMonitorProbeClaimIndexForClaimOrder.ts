@@ -19,10 +19,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * the time. The new index is built before the old one goes, so the claim
  * always has one. Safe to run again after a stop part way.
  */
-export class SwapMonitorProbeClaimIndexForClaimOrder1809187791386
+export class SwapMonitorProbeClaimIndexForClaimOrder1809187821386
   implements MigrationInterface
 {
-  public name: string = "SwapMonitorProbeClaimIndexForClaimOrder1809187791386";
+  public name: string = "SwapMonitorProbeClaimIndexForClaimOrder1809187821386";
 
   // CREATE / DROP INDEX CONCURRENTLY run outside a transaction.
   public transaction: boolean = false;

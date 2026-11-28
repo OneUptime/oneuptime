@@ -396,6 +396,23 @@ function stubSources(sources: {
   );
 }
 
+/*
+ * Once every step that says where a source stands has read it. The empty
+ * state reads its sources in effects, which React runs a task after it
+ * draws the page whenever that render outlasts its frame - after the test
+ * has found the page - so what was read is counted once no step is still
+ * "reading": each source it reads has been asked for, and has answered.
+ */
+async function afterSourcesRead(): Promise<void> {
+  await waitFor(() => {
+    expect(
+      screen
+        .getByTestId(RESOURCE_SECURITY_EVENTS_EMPTY_STATE_ID)
+        .querySelectorAll('[data-state="reading"]'),
+    ).toHaveLength(0);
+  });
+}
+
 // The project's telemetry sources the page read, by kind.
 function telemetrySourceKindsRead(): Array<unknown> {
   return modelListMock.mock.calls
@@ -662,6 +679,7 @@ describe("a service's empty state", () => {
     stubSources({});
 
     await renderedSteps();
+    await afterSourcesRead();
 
     const tracesRead: unknown = modelListMock.mock.calls
       .map((call: Array<unknown>): unknown => {
@@ -694,6 +712,8 @@ describe("a service's empty state", () => {
     render(<MemoryRouter>{RECORD_PAGES[0]![1].draw()}</MemoryRouter>);
 
     await screen.findByTestId("security-events-viewer-stub");
+    // Its Your logs step has read its source: the empty state read all it reads.
+    await afterSourcesRead();
 
     expect(
       modelListMock.mock.calls.some((call: Array<unknown>): boolean => {
@@ -847,6 +867,7 @@ describe("a cloud resource's Security Events page", () => {
 
   test("reads the project's Cloud audit logs source for the step, and no Traces", async () => {
     await renderedEmptyState();
+    await afterSourcesRead();
 
     expect(telemetrySourceKindsRead()).toEqual([
       SecurityTelemetrySourceKind.CloudAudit,
@@ -898,6 +919,7 @@ describe("a cloud resource's Security Events page", () => {
     expect(stepIds(within(empty).getAllByRole("listitem"))).toEqual([
       stepId("your-logs"),
     ]);
+    await afterSourcesRead();
     expect(telemetrySourceKindsRead()).toEqual([]);
   });
 
@@ -1049,6 +1071,7 @@ describe("a serverless function's Security Events page", () => {
         { exact: false },
       ),
     ).toBeInTheDocument();
+    await afterSourcesRead();
     expect(telemetrySourceKindsRead().sort()).toEqual(
       [
         SecurityTelemetrySourceKind.Traces,
@@ -1075,6 +1098,7 @@ describe("a serverless function's Security Events page", () => {
     ]);
     expect(steps[2]).toHaveTextContent(FUNCTION_ACCOUNT_STEP);
     // Its audit log cannot name it yet: Cloud audit logs is not read.
+    await afterSourcesRead();
     expect(telemetrySourceKindsRead()).toEqual([
       SecurityTelemetrySourceKind.Traces,
     ]);

@@ -28,10 +28,16 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
   return {
     __esModule: true,
     ...jest.requireActual("Common/Server/EnvironmentConfig"),
+    GoogleCloudMarketplaceServiceName:
+      "oneuptime.endpoints.oneuptime-public.cloud.goog",
     GoogleCloudMarketplaceUsageMetric:
       "oneuptime.gcpmarketplace.oneuptime.com/usage_units",
   };
 });
+
+// The provider's other product, bought on the same account: its Kubernetes app.
+const OTHER_PRODUCT: string =
+  "oneuptime-enterprise.endpoints.oneuptime-public.cloud.goog";
 
 interface FakeGoogleApi {
   getAccount: jest.Mock;
@@ -173,6 +179,47 @@ describe("GoogleCloudEntitlementState", () => {
     ).toBe("newer");
 
     expect(GoogleCloudEntitlementState.pickCurrent([])).toBeNull();
+  });
+
+  it("tells this product's orders by their service name or the product ID it begins with", () => {
+    const service: string = "oneuptime.endpoints.oneuptime-public.cloud.goog";
+
+    for (const product of [
+      "oneuptime.endpoints.oneuptime-public.cloud.goog",
+      "oneuptime",
+      "OneUptime.Endpoints.OneUptime-Public.Cloud.Goog",
+    ]) {
+      expect(
+        GoogleCloudEntitlementState.isForProduct(
+          entitlement({ product: product }),
+          service,
+        ),
+      ).toBe(true);
+    }
+
+    for (const product of [OTHER_PRODUCT, "oneuptime-enterprise", "other"]) {
+      expect(
+        GoogleCloudEntitlementState.isForProduct(
+          entitlement({ product: product }),
+          service,
+        ),
+      ).toBe(false);
+    }
+  });
+
+  it("takes an order as this product's when there is nothing to tell it by", () => {
+    expect(
+      GoogleCloudEntitlementState.isForProduct(
+        entitlement({ product: null }),
+        "oneuptime.endpoints.oneuptime-public.cloud.goog",
+      ),
+    ).toBe(true);
+    expect(
+      GoogleCloudEntitlementState.isForProduct(
+        entitlement({ product: OTHER_PRODUCT }),
+        null,
+      ),
+    ).toBe(true);
   });
 
   it("writes the entitlement's plan, product and usage reporting ID onto the purchase", () => {
@@ -352,6 +399,61 @@ describe("GoogleCloudMarketplaceAdapter", () => {
       );
     });
 
+    it("approves and bills only this product's orders, not the account's orders of another product", async () => {
+      api.getAccount.mockResolvedValue({
+        id: "acct-1",
+        state: "ACCOUNT_ACTIVE",
+        approvals: { signup: "APPROVED" },
+      });
+      api.listEntitlements.mockResolvedValue([
+        entitlement({
+          id: "ent-1",
+          state: "ENTITLEMENT_ACTIVATION_REQUESTED",
+          createTime: "2026-11-19T11:15:32Z",
+        }),
+        entitlement({
+          id: "ent-k8s-waiting",
+          state: "ENTITLEMENT_ACTIVATION_REQUESTED",
+          product: OTHER_PRODUCT,
+          plan: "enterprise",
+          createTime: "2026-11-20T22:20:34Z",
+        }),
+        entitlement({
+          id: "ent-k8s",
+          product: OTHER_PRODUCT,
+          plan: "enterprise",
+          createTime: "2026-11-21T09:00:00Z",
+        }),
+      ]);
+
+      const status: MarketplaceStatus = await adapter.activate(purchase());
+
+      expect(api.approveEntitlement).toHaveBeenCalledTimes(1);
+      expect(api.approveEntitlement).toHaveBeenCalledWith("ent-1");
+      expect(status).toMatchObject({
+        status: MarketplaceSubscriptionStatus.Active,
+        externalEntitlementId: "ent-1",
+        externalPlanId: "pay-as-you-go",
+        externalOfferId: "oneuptime.endpoints.oneuptime-public.cloud.goog",
+      });
+    });
+
+    it("tells the buyer to wait when the account has only another product's orders", async () => {
+      api.getAccount.mockResolvedValue({
+        id: "acct-1",
+        state: "ACCOUNT_ACTIVE",
+        approvals: { signup: "APPROVED" },
+      });
+      api.listEntitlements.mockResolvedValue([
+        entitlement({ id: "ent-k8s", product: OTHER_PRODUCT }),
+      ]);
+
+      await expect(adapter.activate(purchase())).rejects.toThrow(
+        /not finished creating/,
+      );
+      expect(api.approveEntitlement).not.toHaveBeenCalled();
+    });
+
     it("refuses to activate an order that is no longer in force", async () => {
       api.getAccount.mockResolvedValue({
         id: "acct-1",
@@ -379,6 +481,51 @@ describe("GoogleCloudMarketplaceAdapter", () => {
         externalState: "ENTITLEMENT_SUSPENDED",
       });
       expect(api.listEntitlements).toHaveBeenCalledWith("acct-1");
+    });
+
+    it("reads this product's order, not a newer order of another product on the account", async () => {
+      // A buyer of both products: the Kubernetes app's order, newer, is in force too.
+      api.listEntitlements.mockResolvedValue([
+        entitlement({ id: "ent-1", createTime: "2026-11-19T11:15:32Z" }),
+        entitlement({
+          id: "ent-k8s",
+          product: OTHER_PRODUCT,
+          plan: "enterprise",
+          usageReportingId: "project:k8s-consumer",
+          createTime: "2026-11-20T22:20:34Z",
+        }),
+      ]);
+
+      await expect(adapter.fetchStatus(purchase())).resolves.toMatchObject({
+        status: MarketplaceSubscriptionStatus.Active,
+        externalEntitlementId: "ent-1",
+        externalPlanId: "pay-as-you-go",
+        usageReportingId: "project_number:ent-1",
+      });
+
+      // ... and the other product's order ending leaves this one billing.
+      api.listEntitlements.mockResolvedValue([
+        entitlement({ id: "ent-1", createTime: "2026-11-19T11:15:32Z" }),
+        entitlement({
+          id: "ent-k8s",
+          product: OTHER_PRODUCT,
+          state: "ENTITLEMENT_CANCELLED",
+          createTime: "2026-11-20T22:20:34Z",
+        }),
+      ]);
+
+      await expect(adapter.fetchStatus(purchase())).resolves.toMatchObject({
+        status: MarketplaceSubscriptionStatus.Active,
+        externalEntitlementId: "ent-1",
+      });
+    });
+
+    it("is null when the account has only another product's orders", async () => {
+      api.listEntitlements.mockResolvedValue([
+        entitlement({ id: "ent-k8s", product: OTHER_PRODUCT }),
+      ]);
+
+      await expect(adapter.fetchStatus(purchase())).resolves.toBeNull();
     });
 
     it("is null with no entitlement, or one in a state it does not know", async () => {

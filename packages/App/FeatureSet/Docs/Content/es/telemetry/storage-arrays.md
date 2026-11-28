@@ -35,12 +35,12 @@ Un clúster **Dell PowerScale** se lee de otra manera: el agente consulta cada u
 ```mermaid title="De la cabina a OneUptime"
 flowchart TB
     collector["Colector"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["La cabina,<br/>puerto 443"]
-    collector -->|"FlashArray anterior,<br/>FlashBlade"| exporter["Exportador de Pure"]
+    collector -->|"FlashArray anterior,<br/>FlashBlade"| exporter["Exportador<br/>de Pure"]
     exporter -->|"Token de API"| array
-    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    collector -->|"ONTAP"| harvest["NetApp<br/>Harvest"]
     harvest -->|"usuario de solo lectura,<br/>API REST"| cluster["El clúster,<br/>puerto 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
-    collector -->|"PowerStore"| dell["Dell's exporter"]
+    collector -->|"PowerStore"| dell["Dell's<br/>exporter"]
     dell -->|"user and password"| array
     array -->|"syslog, port 5514"| syslog["Syslog collector"]
     syslog -->|"OTLP"| oneuptime

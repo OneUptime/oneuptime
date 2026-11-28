@@ -6,6 +6,7 @@ Recorded on 26 November 2026 with `bash Tests/Ops/storage-array-agent-powerstore
 
 - **Dell's exporter**: [dell/powerstore-metrics-exporter](https://github.com/dell/powerstore-metrics-exporter), release `powerstore-metrics-exporter_v1.0.3` (commit `564df4d`, 5 February 2026, Apache-2.0). It is Dell's own release binary, checked against its SHA-256 (`1b7996e1…`; Dell publishes the SHA-1 `c2524cc7…`), in the image the Dockerfile builds. It ran with the config the compose service writes: bulk metrics on, API v3, 16 requests at a time.
 - **The collector**: `otel/opentelemetry-collector-contrib:0.165.0`, the image the compose file pins.
+- **The agent's version**: the files stamped `oneuptime.agent.version` `0.165.0` when they were recorded. They stamp `0.165.1` since NetApp ONTAP, Dell PowerStore and Dell PowerScale changed the agent's files on that collector, and that one value was changed in `collector/metrics.jsonl` and `collector/syslog.jsonl` to match. Nothing else the files send changed.
 
 ## What it was run against
 

@@ -86,6 +86,9 @@ import {
   TILE_TITLE_LONG_WORDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/TileTitleWords";
 import { translatableTerm } from "../../../UI/Utils/TranslateTemplate";
+import { getStorageArrayInventoryTileWords } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayKindWords";
+import { StorageArrayPlatform } from "../../../Types/StorageArray/StorageArrayPlatform";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
@@ -113,6 +116,18 @@ const TITLES_FROM_A_TABLE: ReadonlyArray<string> = [
   "Pages/OpenStack/View/Capacity.tsx",
   "Components/OpenStack/Part/OpenStackServiceOverview.tsx",
 ];
+/*
+ * A storage array's Overview ends with a tile of its platform's main kind
+ * (StorageArrayPlatform.overview.inventoryTile, #11000) - a FlashArray's
+ * volumes, a FlashBlade's file systems - titled by that kind's words
+ * (StorageArrayKindWords), so a platform added to the registry needs no
+ * tile of its own. That one tile is let through by its title; the title
+ * each platform gives it is held to every rule a literal one is.
+ */
+const PLATFORM_TILE: { file: string; title: RegExp } = {
+  file: "Pages/StorageArray/View/Index.tsx",
+  title: /^<GoldenMetricTile\s+title=\{tileWords\.title\}/,
+};
 const LITERAL_SUBLABEL: RegExp = /\bsublabel="([^"]+)"/g;
 const LOOKED_UP_PROP: RegExp =
   /\b(title|sublabel)=\{\s*(tx|translator\.translateText|translateText)\(/;
@@ -195,9 +210,30 @@ function pageTiles(): Array<PageTile> {
   return tiles;
 }
 
-// Every English title and line a page hands a tile as a literal.
+function isPlatformTile(tile: PageTile): boolean {
+  return (
+    tile.file === PLATFORM_TILE.file && PLATFORM_TILE.title.test(tile.element)
+  );
+}
+
+// The title each registered storage platform gives its Overview's last tile.
+function platformTileTitles(): Array<string> {
+  return StorageArrayPlatformRegistry.getPlatforms().flatMap(
+    (platform: StorageArrayPlatform): Array<string> => {
+      const tile: StorageArrayPlatform["overview"]["inventoryTile"] =
+        platform.overview.inventoryTile;
+
+      return tile ? [getStorageArrayInventoryTileWords(tile.kind).title] : [];
+    },
+  );
+}
+
+/*
+ * Every English title and line a page hands a tile as a literal, and the
+ * titles the storage platforms give theirs.
+ */
 function handedWords(): { titles: Set<string>; sublabels: Set<string> } {
-  const titles: Set<string> = new Set<string>();
+  const titles: Set<string> = new Set<string>(platformTileTitles());
   const sublabels: Set<string> = new Set<string>();
 
   for (const tile of pageTiles()) {
@@ -307,6 +343,7 @@ describe("the pages hand their tiles English", () => {
       .filter((tile: PageTile): boolean => {
         return (
           !LITERAL_TITLE.test(tile.element) &&
+          !isPlatformTile(tile) &&
           !TITLES_FROM_A_TABLE.some((table: string): boolean => {
             return tile.file.endsWith(table);
           })
@@ -317,6 +354,15 @@ describe("the pages hand their tiles English", () => {
       });
 
     expect(withoutLiteral).toEqual([]);
+  });
+
+  test("the storage array Overview's platform tile is one tile, titled by each platform as a literal would be", () => {
+    expect(pageTiles().filter(isPlatformTile)).toHaveLength(1);
+
+    // A FlashArray counts its volumes, a FlashBlade its file systems.
+    expect(platformTileTitles()).toEqual(
+      expect.arrayContaining(["Volumes", "File Systems"]),
+    );
   });
 
   test("every title and literal line is a key of the English locale", () => {

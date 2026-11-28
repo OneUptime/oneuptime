@@ -236,6 +236,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Monitors],
     leftAlone: {},
   },
+  // Changing many monitors' template at once (#11260, #11266): writes.
+  "packages/Common/Server/API/MonitorTemplateChangeAPI.ts": {
+    products: [ProductKey.Monitors],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/IncidentAPI.ts": {
     products: [ProductKey.Incidents],
     leftAlone: {
@@ -857,6 +862,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
    * Proxies.
    */
   "packages/Common/Server/API/SecurityTrustedProxiesAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
+  // How far each open erasure request has got (#11232).
+  "packages/Common/Server/API/SecurityUserErasureRequestAPI.ts": {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },

@@ -416,6 +416,7 @@ export default class StorageArrayConnection extends BaseModel {
     title: "Collection Status",
     description:
       "Where collection stands: Pending (the probe has not tried the current settings yet), Succeeded or Failed. Written by the server and the probe.",
+    allowedValues: Object.values(StorageArrayCollectionStatus),
     example: StorageArrayCollectionStatus.Succeeded,
   })
   @Column({
@@ -436,6 +437,7 @@ export default class StorageArrayConnection extends BaseModel {
     title: "Collection Error Code",
     description:
       "Why the last collection failed, as a code the dashboard turns into a next step (InvalidLogin, UntrustedCertificate, MissingRole, ...). Written by the probe.",
+    allowedValues: Object.values(StorageArrayCollectionErrorCode),
     example: StorageArrayCollectionErrorCode.InvalidLogin,
   })
   @Column({

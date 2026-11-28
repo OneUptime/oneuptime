@@ -91,12 +91,14 @@ describe("GlobalConfigUtil's canSendEmail", () => {
       disableUserProjectCreation: true,
       disablePushNotifications: true,
       canSendEmail: false,
+      canProjectsChooseCallVoice: false,
     });
 
     expect(GlobalConfigUtil.readVars(null)).toStrictEqual({
       disableUserProjectCreation: false,
       disablePushNotifications: false,
       canSendEmail: true,
+      canProjectsChooseCallVoice: false,
     });
   });
 });

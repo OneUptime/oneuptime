@@ -1,6 +1,6 @@
 import MonitorProbe from "../../../../Models/DatabaseModels/MonitorProbe";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { SwapMonitorProbeClaimIndexForClaimOrder1809187791386 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187791386-SwapMonitorProbeClaimIndexForClaimOrder";
+import { SwapMonitorProbeClaimIndexForClaimOrder1809187821386 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187821386-SwapMonitorProbeClaimIndexForClaimOrder";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import {
   DefaultNamingStrategy,
@@ -78,15 +78,15 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("SwapMonitorProbeClaimIndexForClaimOrder1809187791386", () => {
+describe("SwapMonitorProbeClaimIndexForClaimOrder1809187821386", () => {
   test("the indexes it builds and drops are the ones TypeORM names for their columns", () => {
     expect(CLAIM_ORDER_INDEX).toBe("IDX_d9a0169b03234c77c5c66d0217");
     expect(OLD_INDEX).toBe("IDX_4bf4109d325af5e5b5a5665bc7");
   });
 
   test("builds the claim order's index, then drops the old one, both online and outside a transaction - and nothing else", async () => {
-    const migration: SwapMonitorProbeClaimIndexForClaimOrder1809187791386 =
-      new SwapMonitorProbeClaimIndexForClaimOrder1809187791386();
+    const migration: SwapMonitorProbeClaimIndexForClaimOrder1809187821386 =
+      new SwapMonitorProbeClaimIndexForClaimOrder1809187821386();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -106,7 +106,7 @@ describe("SwapMonitorProbeClaimIndexForClaimOrder1809187791386", () => {
     expect(
       await statementsOf(
         (runner: QueryRunner) => {
-          return new SwapMonitorProbeClaimIndexForClaimOrder1809187791386().down(
+          return new SwapMonitorProbeClaimIndexForClaimOrder1809187821386().down(
             runner,
           );
         },
@@ -128,20 +128,22 @@ describe("SwapMonitorProbeClaimIndexForClaimOrder1809187791386", () => {
     expect(
       registered.filter((candidate: unknown): boolean => {
         return (
-          candidate === SwapMonitorProbeClaimIndexForClaimOrder1809187791386
+          candidate === SwapMonitorProbeClaimIndexForClaimOrder1809187821386
         );
       }),
     ).toHaveLength(1);
     expect(
-      names.indexOf("SwapMonitorProbeClaimIndexForClaimOrder1809187791386"),
+      names.indexOf("SwapMonitorProbeClaimIndexForClaimOrder1809187821386"),
     ).toBeGreaterThan(
-      names.indexOf(
-        "AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds1809187791201",
-      ),
+      names.indexOf("AddVMwareHealthSettingsAndSwapRates1809187811157"),
+    );
+    // The newest of the registry: it runs after every migration before it.
+    expect(names[names.length - 1]).toBe(
+      "SwapMonitorProbeClaimIndexForClaimOrder1809187821386",
     );
     expect(
-      new SwapMonitorProbeClaimIndexForClaimOrder1809187791386().name,
-    ).toBe("SwapMonitorProbeClaimIndexForClaimOrder1809187791386");
+      new SwapMonitorProbeClaimIndexForClaimOrder1809187821386().name,
+    ).toBe("SwapMonitorProbeClaimIndexForClaimOrder1809187821386");
   });
 });
 

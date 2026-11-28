@@ -185,6 +185,19 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       deletedWith: ["AlertEpisodeInternalNote", "AlertEpisodeStateTimeline"],
       stays: ["Alert"],
     },
+    /*
+     * A template's monitors are unlinked by its delete (Monitor's foreign
+     * key sets Monitor Template to null) and keep the criteria and settings
+     * it gave them (issues #11260, #11266): said before the delete, so
+     * nobody deletes a template expecting its criteria to stop firing. The
+     * template's own page also offers to clear them first.
+     */
+    MonitorTemplate: {
+      sentence: translationKey(
+        "Deleting a monitor template unlinks its monitors. They keep the criteria and settings it gave them, and keep checking and alerting.",
+      ),
+      stays: ["Monitor"],
+    },
     MonitorGroup: {
       sentence: translationKey(
         "Deleting a monitor group takes it off status pages. Its monitors stay.",

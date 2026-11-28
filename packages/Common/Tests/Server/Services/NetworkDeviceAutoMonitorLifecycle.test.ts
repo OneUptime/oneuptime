@@ -37,6 +37,10 @@ import { getMetadataArgsStorage } from "typeorm";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import {
+  DEVICE_HAS_HIDDEN_MONITOR_OF_TEMPLATE_REFUSAL,
+  getDeviceHasMonitorOfTemplateRefusal,
+} from "../../../Utils/Monitor/MonitorTemplateLinkRefusal";
+import {
   stubRowsCallerMayDeleteLikeFindBy,
   stubRowsCallerMayWriteLikeFindBy,
 } from "../TestingUtils/RowsCallerMayWrite";
@@ -210,10 +214,29 @@ describe("auto-provisioned Monitor lifecycle", () => {
     ).rejects.toThrow("monitor steps are required");
   });
 
-  it("rejects relinking or unlinking an automatic monitor's template", async () => {
+  /*
+   * Issues #11260 and #11266: a monitor an import, an auto import rule or
+   * an alert policy made used to be refused any move off its template ("An
+   * auto-provisioned monitor cannot be relinked or unlinked from its
+   * template. Delete it..."), so "851 of 851 monitors could not be linked"
+   * to a better template, and the only way out lost every monitor's
+   * history. It moves now, and keeps the template it was created from.
+   */
+  function networkDeviceTemplateInProject(): void {
+    const template: MonitorTemplate = new MonitorTemplate();
+    template.id = OTHER_TEMPLATE_ID;
+    template.projectId = PROJECT_ID;
+    template.monitorType = MonitorType.NetworkDevice;
+    jest.spyOn(MonitorTemplateService, "findOneBy").mockResolvedValue(template);
+  }
+
+  it("moves an automatic monitor to another template (#11260)", async () => {
     jest
       .spyOn(MonitorService, "findBy")
       .mockResolvedValue([automaticMonitor()]);
+    networkDeviceTemplateInProject();
+    // The device has no other monitor made for it from that template.
+    jest.spyOn(MonitorService, "findOneBy").mockResolvedValue(null);
 
     await expect(
       (MonitorService as any).onBeforeUpdate({
@@ -223,7 +246,120 @@ describe("auto-provisioned Monitor lifecycle", () => {
         skip: 0,
         props: { isRoot: true, tenantId: PROJECT_ID },
       }),
-    ).rejects.toThrow("cannot be relinked or unlinked");
+    ).resolves.toBeDefined();
+  });
+
+  it("unlinks an automatic monitor from its template (#11266)", async () => {
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([automaticMonitor()]);
+    const findOtherSpy: SpyInstance<typeof MonitorService.findOneBy> = jest
+      .spyOn(MonitorService, "findOneBy")
+      .mockResolvedValue(null);
+
+    await expect(
+      (MonitorService as any).onBeforeUpdate({
+        query: { _id: ObjectID.generate() },
+        data: { monitorTemplateId: null },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).resolves.toBeDefined();
+
+    // An unlink names no template, so no device can have its monitor.
+    expect(findOtherSpy).not.toHaveBeenCalled();
+  });
+
+  it("refuses a move to a template the device has a monitor of, naming that monitor", async () => {
+    const monitor: Monitor = automaticMonitor();
+    jest.spyOn(MonitorService, "findBy").mockResolvedValue([monitor]);
+    networkDeviceTemplateInProject();
+    const other: Monitor = new Monitor();
+    other.id = ObjectID.generate();
+    other.name = "core-sw-01 - Interfaces";
+    const findOtherSpy: SpyInstance<typeof MonitorService.findOneBy> = jest
+      .spyOn(MonitorService, "findOneBy")
+      .mockResolvedValue(other);
+
+    await expect(
+      (MonitorService as any).onBeforeUpdate({
+        query: { _id: monitor.id },
+        data: { monitorTemplateId: OTHER_TEMPLATE_ID },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      getDeviceHasMonitorOfTemplateRefusal("core-sw-01 - Interfaces"),
+    );
+
+    /*
+     * Asked of the device's monitors linked to that template, leaving this
+     * one out: Monitor's unique (device, template) index would refuse the
+     * write with a database error otherwise.
+     */
+    const query: Record<string, unknown> = (
+      findOtherSpy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+
+    expect(String(query["autoProvisionedNetworkDeviceId"])).toBe(
+      DEVICE_ID.toString(),
+    );
+    expect(String(query["monitorTemplateId"])).toBe(
+      OTHER_TEMPLATE_ID.toString(),
+    );
+    expect(rawSqlOf(query["_id"])).toContain("!=");
+  });
+
+  it("refuses it without the other monitor's name when the caller may not read that monitor", async () => {
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([automaticMonitor()]);
+    networkDeviceTemplateInProject();
+    const other: Monitor = new Monitor();
+    other.id = ObjectID.generate();
+    other.name = "hidden-by-label-scope";
+    jest
+      .spyOn(MonitorService, "findOneBy")
+      .mockResolvedValueOnce(other)
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      (MonitorService as any).onBeforeUpdate({
+        query: { _id: ObjectID.generate() },
+        data: { monitorTemplateId: OTHER_TEMPLATE_ID },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(DEVICE_HAS_HIDDEN_MONITOR_OF_TEMPLATE_REFUSAL);
+  });
+
+  it("asks nothing of the device when the automatic monitor stays on its template", async () => {
+    jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([automaticMonitor()]);
+    const template: MonitorTemplate = new MonitorTemplate();
+    template.id = TEMPLATE_ID;
+    template.projectId = PROJECT_ID;
+    template.monitorType = MonitorType.NetworkDevice;
+    jest.spyOn(MonitorTemplateService, "findOneBy").mockResolvedValue(template);
+    const findOtherSpy: SpyInstance<typeof MonitorService.findOneBy> = jest
+      .spyOn(MonitorService, "findOneBy")
+      .mockResolvedValue(null);
+
+    await expect(
+      (MonitorService as any).onBeforeUpdate({
+        query: { _id: ObjectID.generate() },
+        data: { monitorTemplateId: TEMPLATE_ID },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).resolves.toBeDefined();
+
+    expect(findOtherSpy).not.toHaveBeenCalled();
   });
 
   it("validates project and type when a regular monitor is linked directly through CRUD", async () => {
@@ -944,5 +1080,269 @@ describe("Network Device deletion with automatic monitors", () => {
         props: { tenantId: PROJECT_ID },
       }),
     ).rejects.toThrow("Could not delete every auto-provisioned monitor");
+  });
+});
+
+/*
+ * WHAT A MOVE OFF A TEMPLATE KEEPS ON THE MONITOR (issues #11260, #11266),
+ * written once the write has passed every check (onUpdatePermitted): the
+ * template it was created from, when it is not recorded yet, and - for a
+ * person's write - the monitor taken from the alert policy that owned it,
+ * which would otherwise delete it for carrying another template.
+ */
+describe("what a move to another template keeps", () => {
+  const POLICY_ID: ObjectID = new ObjectID(
+    "66666666-6666-4666-8666-666666666666",
+  );
+
+  function personProps(): DatabaseCommonInteractionProps {
+    return { tenantId: PROJECT_ID, userId: ObjectID.generate() };
+  }
+
+  function rowsTheWriteMoves(
+    monitors: Array<Monitor>,
+  ): SpyInstance<typeof MonitorService.findBy> {
+    const findBySpy: SpyInstance<typeof MonitorService.findBy> = jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue(monitors as never);
+    stubRowsCallerMayWriteLikeFindBy(MonitorService, findBySpy as never);
+    return findBySpy;
+  }
+
+  /*
+   * The update of the monitors it moves: one named by its id, as a form's
+   * or a change's write is; several by their project, as a bulk write is.
+   */
+  function updateOf(
+    data: Record<string, unknown>,
+    props: DatabaseCommonInteractionProps,
+    monitors: Array<Monitor>,
+  ): {
+    query: Record<string, unknown>;
+    data: Record<string, unknown>;
+    limit: number;
+    skip: number;
+    props: DatabaseCommonInteractionProps;
+  } {
+    return {
+      query:
+        monitors.length === 1
+          ? { _id: monitors[0]!.id!.toString() }
+          : { projectId: PROJECT_ID },
+      data: data,
+      limit: monitors.length,
+      skip: 0,
+      props: props,
+    };
+  }
+
+  it("stamps the template a monitor made before it was recorded leaves, and takes it from its policy, in the same write", async () => {
+    const monitor: Monitor = automaticMonitor();
+    monitor.networkAlertPolicyId = POLICY_ID;
+    rowsTheWriteMoves([monitor]);
+    const hookFree: SpyInstance<
+      typeof MonitorService.updateColumnsByIdWithoutHooks
+    > = jest
+      .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+
+    const updateBy: ReturnType<typeof updateOf> = updateOf(
+      { monitorTemplateId: OTHER_TEMPLATE_ID },
+      personProps(),
+      [monitor],
+    );
+
+    await (MonitorService as any).onUpdatePermitted(updateBy);
+
+    expect(String(updateBy.data["createdFromMonitorTemplateId"])).toBe(
+      TEMPLATE_ID.toString(),
+    );
+    expect(updateBy.data["networkAlertPolicyId"]).toBeNull();
+    expect(hookFree).not.toHaveBeenCalled();
+  });
+
+  it("stamps it on an unlink too", async () => {
+    const monitor: Monitor = automaticMonitor();
+    rowsTheWriteMoves([monitor]);
+
+    const updateBy: ReturnType<typeof updateOf> = updateOf(
+      { monitorTemplateId: null },
+      personProps(),
+      [monitor],
+    );
+
+    await (MonitorService as any).onUpdatePermitted(updateBy);
+
+    expect(String(updateBy.data["createdFromMonitorTemplateId"])).toBe(
+      TEMPLATE_ID.toString(),
+    );
+    expect("networkAlertPolicyId" in updateBy.data).toBe(false);
+  });
+
+  it("never moves a template it was created from that is recorded already", async () => {
+    const monitor: Monitor = automaticMonitor();
+    monitor.monitorTemplateId = OTHER_TEMPLATE_ID;
+    monitor.createdFromMonitorTemplateId = TEMPLATE_ID;
+    rowsTheWriteMoves([monitor]);
+
+    const updateBy: ReturnType<typeof updateOf> = updateOf(
+      { monitorTemplateId: null },
+      personProps(),
+      [monitor],
+    );
+
+    await (MonitorService as any).onUpdatePermitted(updateBy);
+
+    expect("createdFromMonitorTemplateId" in updateBy.data).toBe(false);
+  });
+
+  it("keeps the policy on OneUptime's own write", async () => {
+    const monitor: Monitor = automaticMonitor();
+    monitor.networkAlertPolicyId = POLICY_ID;
+    jest.spyOn(MonitorService, "findBy").mockResolvedValue([monitor]);
+
+    const updateBy: ReturnType<typeof updateOf> = updateOf(
+      { monitorTemplateId: OTHER_TEMPLATE_ID },
+      { isRoot: true, tenantId: PROJECT_ID },
+      [monitor],
+    );
+
+    await (MonitorService as any).onUpdatePermitted(updateBy);
+
+    expect(String(updateBy.data["createdFromMonitorTemplateId"])).toBe(
+      TEMPLATE_ID.toString(),
+    );
+    expect("networkAlertPolicyId" in updateBy.data).toBe(false);
+  });
+
+  it("keeps each of several monitors' own template by itself first, when they differ", async () => {
+    const first: Monitor = automaticMonitor();
+    const second: Monitor = automaticMonitor();
+    second.monitorTemplateId = OTHER_TEMPLATE_ID;
+    second.networkAlertPolicyId = POLICY_ID;
+    rowsTheWriteMoves([first, second]);
+    const hookFree: SpyInstance<
+      typeof MonitorService.updateColumnsByIdWithoutHooks
+    > = jest
+      .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+
+    const thirdTemplate: ObjectID = ObjectID.generate();
+    const updateBy: ReturnType<typeof updateOf> = updateOf(
+      { monitorTemplateId: thirdTemplate },
+      personProps(),
+      [first, second],
+    );
+
+    await (MonitorService as any).onUpdatePermitted(updateBy);
+
+    expect("createdFromMonitorTemplateId" in updateBy.data).toBe(false);
+    expect("networkAlertPolicyId" in updateBy.data).toBe(false);
+    expect(
+      hookFree.mock.calls.map((call: Array<unknown>) => {
+        const arg: { id: ObjectID; data: Record<string, unknown> } =
+          call[0] as {
+            id: ObjectID;
+            data: Record<string, unknown>;
+          };
+        return {
+          id: arg.id.toString(),
+          createdFrom: String(arg.data["createdFromMonitorTemplateId"]),
+          releasesPolicy: arg.data["networkAlertPolicyId"] === null,
+        };
+      }),
+    ).toEqual([
+      {
+        id: first.id!.toString(),
+        createdFrom: TEMPLATE_ID.toString(),
+        releasesPolicy: false,
+      },
+      {
+        id: second.id!.toString(),
+        createdFrom: OTHER_TEMPLATE_ID.toString(),
+        releasesPolicy: true,
+      },
+    ]);
+  });
+
+  it("keeps the same for several monitors in the one write, when they share it", async () => {
+    const pair: Array<Monitor> = [automaticMonitor(), automaticMonitor()];
+    rowsTheWriteMoves(pair);
+    const hookFree: SpyInstance<
+      typeof MonitorService.updateColumnsByIdWithoutHooks
+    > = jest
+      .spyOn(MonitorService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+
+    const updateBy: ReturnType<typeof updateOf> = updateOf(
+      { monitorTemplateId: OTHER_TEMPLATE_ID },
+      personProps(),
+      pair,
+    );
+
+    await (MonitorService as any).onUpdatePermitted(updateBy);
+
+    expect(String(updateBy.data["createdFromMonitorTemplateId"])).toBe(
+      TEMPLATE_ID.toString(),
+    );
+    expect(hookFree).not.toHaveBeenCalled();
+  });
+
+  it("reads nothing for a write that names no template", async () => {
+    const monitor: Monitor = automaticMonitor();
+    const findBySpy: SpyInstance<typeof MonitorService.findBy> =
+      rowsTheWriteMoves([monitor]);
+
+    const updateBy: ReturnType<typeof updateOf> = updateOf(
+      { name: "core-sw-01" },
+      personProps(),
+      [monitor],
+    );
+
+    await (MonitorService as any).onUpdatePermitted(updateBy);
+
+    expect(findBySpy).not.toHaveBeenCalled();
+    expect(updateBy.data).toEqual({ name: "core-sw-01" });
+  });
+
+  it("a create from a template stamps it as the one the monitor was created from", async () => {
+    const monitor: Monitor = new Monitor();
+    monitor.monitorType = MonitorType.NetworkDevice;
+    monitor.monitorTemplateId = TEMPLATE_ID;
+
+    await (MonitorService as any).onCreatePermitted({
+      createBy: { data: monitor, props: personProps() },
+      carryForward: {},
+    });
+
+    expect(monitor.createdFromMonitorTemplateId?.toString()).toBe(
+      TEMPLATE_ID.toString(),
+    );
+  });
+
+  it("a create from no template stamps none, and OneUptime's own value is kept", async () => {
+    const fromNone: Monitor = new Monitor();
+    fromNone.monitorType = MonitorType.NetworkDevice;
+
+    await (MonitorService as any).onCreatePermitted({
+      createBy: { data: fromNone, props: personProps() },
+      carryForward: {},
+    });
+
+    expect(fromNone.createdFromMonitorTemplateId).toBeUndefined();
+
+    const copied: Monitor = new Monitor();
+    copied.monitorType = MonitorType.NetworkDevice;
+    copied.monitorTemplateId = OTHER_TEMPLATE_ID;
+    copied.createdFromMonitorTemplateId = TEMPLATE_ID;
+
+    await (MonitorService as any).onCreatePermitted({
+      createBy: { data: copied, props: { isRoot: true, tenantId: PROJECT_ID } },
+      carryForward: {},
+    });
+
+    expect(copied.createdFromMonitorTemplateId?.toString()).toBe(
+      TEMPLATE_ID.toString(),
+    );
   });
 });

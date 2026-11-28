@@ -9,6 +9,8 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { isTranslatableTerm, TemplateValues } from "../../../Types/Translator";
 import {
+  DEVICE_HAS_HIDDEN_MONITOR_OF_TEMPLATE_REFUSAL,
+  DEVICE_HAS_MONITOR_OF_TEMPLATE_REFUSAL,
   MONITOR_IN_ANOTHER_PROJECT_REFUSAL,
   MONITOR_NOT_FOUND_REFUSAL,
   MONITOR_NOT_LINKED_REFUSAL,
@@ -106,8 +108,8 @@ async function refusalOf(run: () => Promise<void>): Promise<Error> {
   return refusal as Error;
 }
 
-const link: () => Promise<void> = (): Promise<void> => {
-  return MonitorTemplateService.linkMonitor({
+const link: () => Promise<void> = async (): Promise<void> => {
+  await MonitorTemplateService.linkMonitor({
     monitorTemplateId: TEMPLATE_ID,
     monitorId: MONITOR_ID,
     props: { isRoot: true },
@@ -123,8 +125,8 @@ const sync: () => Promise<void> = (): Promise<void> => {
   });
 };
 
-const unlink: () => Promise<void> = (): Promise<void> => {
-  return MonitorTemplateService.unlinkMonitor({
+const unlink: () => Promise<void> = async (): Promise<void> => {
+  await MonitorTemplateService.unlinkMonitor({
     monitorTemplateId: TEMPLATE_ID,
     monitorId: MONITOR_ID,
     props: { isRoot: true },
@@ -249,6 +251,9 @@ describe("MonitorTemplateService's link, sync and unlink refusals", () => {
       MONITOR_IN_ANOTHER_PROJECT_REFUSAL,
       MONITOR_NOT_LINKED_REFUSAL,
       MONITOR_TYPE_MISMATCH_REFUSAL.template,
+      // A device's monitor in the way of a move (#11260, #11266), named or not.
+      DEVICE_HAS_MONITOR_OF_TEMPLATE_REFUSAL.template,
+      DEVICE_HAS_HIDDEN_MONITOR_OF_TEMPLATE_REFUSAL,
     ];
 
     for (const language of DASHBOARD_LANGUAGES) {
