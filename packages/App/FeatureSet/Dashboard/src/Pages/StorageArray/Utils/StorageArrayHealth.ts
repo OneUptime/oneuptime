@@ -29,6 +29,15 @@ import {
   sameName,
 } from "../../../Components/ResourceTopology/ResourceTopologyIssues";
 import { ResourceTopologyHealth } from "../../../Components/ResourceTopology/ResourceTopologyModel";
+import { getKnownStorageArrayStatusKey } from "./StorageArrayStatusWords";
+
+/*
+ * The key of a status word the rules know. It lives with the words in
+ * StorageArrayStatusWords.ts, which the dashboard's widgets read without
+ * these rules, and is re-exported here, where the pages have always
+ * imported it from.
+ */
+export { getKnownStorageArrayStatusKey };
 
 /*
  * WHAT ON A STORAGE ARRAY NEEDS SOMEONE, AND HOW BAD IT IS.
@@ -142,34 +151,6 @@ const HEALTHY_STATUSES: ReadonlyArray<string> = [
   "online",
   "replicating",
 ];
-
-/*
- * The array's status words as each language says them. A word the array
- * writes and this list lacks is drawn as the array writes it - a replica
- * link's Replicating, Baselining or Paused among them, as its tooltip
- * names them.
- */
-const STATUS_WORDS: Record<string, string> = {
-  ok: translationKey("OK"),
-  healthy: translationKey("Healthy"),
-  ready: translationKey("Ready"),
-  enabled: translationKey("Enabled"),
-  online: translationKey("Online"),
-  critical: translationKey("Critical"),
-  failed: translationKey("Failed"),
-  missing: translationKey("Missing"),
-  unhealthy: translationKey("Unhealthy"),
-  degraded: translationKey("Degraded"),
-  unknown: translationKey("Unknown"),
-  unrecognized: translationKey("Unrecognized"),
-  "not ready": translationKey("Not Ready"),
-  not_installed: translationKey("Not Installed"),
-  device_off: translationKey("Device Off"),
-  identifying: translationKey("Identifying"),
-  empty: translationKey("Empty"),
-  unused: translationKey("Unused"),
-  disabled: translationKey("Disabled"),
-};
 
 // Why a part needs attention, by the status the array reports for it.
 const STATUS_REASONS: Record<string, string> = {
@@ -433,27 +414,6 @@ export function toStorageArrayNumber(value: unknown): number | null {
 
 function normalizeStatus(status: string | null | undefined): string {
   return (status || "").trim().toLowerCase();
-}
-
-/*
- * The key of a status word the rules know - "degraded" is "Degraded",
- * however the array cases or pads it - or undefined for a word this list
- * lacks, which is drawn as the array writes it. The dashboard's storage
- * array widgets word a component's status by this list too (#7521), so a
- * part reads the same on a board as on its array's pages. Only the list's
- * own words count: "constructor" or "toString" from an array is a word it
- * does not know, never a function of the object the list is kept in.
- */
-export function getKnownStorageArrayStatusKey(
-  status: unknown,
-): string | undefined {
-  if (typeof status !== "string") {
-    return undefined;
-  }
-  const normalized: string = normalizeStatus(status);
-  return Object.prototype.hasOwnProperty.call(STATUS_WORDS, normalized)
-    ? STATUS_WORDS[normalized]
-    : undefined;
 }
 
 /*
