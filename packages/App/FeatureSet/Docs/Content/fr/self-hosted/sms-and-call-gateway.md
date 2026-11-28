@@ -5,6 +5,7 @@ OneUptime peut envoyer ses SMS et ses appels par une passerelle que vous exploit
 :::cards
 - [Configurer la passerelle](#configurer-la-passerelle): Une URL, et un secret de signature créé pour vous.
 - [Ce que reçoit votre passerelle](#ce-que-reçoit-votre-passerelle): Une requête JSON signée par SMS ou par appel.
+- [Appels dans d'autres langues](#appels-dans-dautres-langues): Faire parler chaque appel dans la langue dans laquelle la personne utilise OneUptime.
 - [Agir sur une alerte](#agir-sur-une-alerte): Prendre en compte, escalader ou résoudre depuis un appel ou une réponse.
 - [Livraison et nouvelles tentatives](#livraison-et-nouvelles-tentatives): Ce qui se passe quand votre passerelle est indisponible.
 :::
@@ -63,7 +64,8 @@ Chaque SMS et chaque appel est une requête `POST` avec un corps JSON et ces en-
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ Chaque SMS et chaque appel est une requête `POST` avec un corps JSON et ces en-
 | `sentAt` | Quand OneUptime l'a envoyé, en ISO 8601. |
 | `to` | Le numéro de téléphone, au format E.164. `null` dans un test. |
 | `message` | Le SMS, ou ce que dit l'appel. Un SMS fait au plus 1 600 caractères, et le texte d'un appel au plus 16 384. Un texte plus long est coupé et se termine par une note indiquant que la suite se trouve dans OneUptime. |
-| `isSensitive` | `true` pour un code de vérification. Gardez le message hors de vos propres logs. |
+| `isSensitive` | `true` pour un code de vérification. Gardez le message, et celui de `inLanguage`, hors de vos propres logs. |
 | `project` | L'`id` et le `name` du projet, ou `null` quand aucun projet ne l'a envoyé. |
 | `actions` | Pour une alerte d'astreinte, les liens qui agissent dessus. `null` sinon. |
+| `inLanguage` | Pour un appel vers quelqu'un qui utilise OneUptime dans une autre langue que l'anglais : `language`, le code de cette langue, et `message`, ce que l'appel dit dans cette langue. `null` sinon, et pour tout SMS, qui est déjà dans la langue de la personne. Voir [Appels dans d'autres langues](#appels-dans-dautres-langues). |
 
 Un appel est décrit plutôt que scénarisé : `message` est ce qu'il dit, sans le « appuyez sur 1 pour prendre en compte » de Twilio. Proposez les actions à votre façon, par exemple par des touches, et appelez le lien correspondant.
+
+### Appels dans d'autres langues
+
+Un appel vers quelqu'un qui utilise OneUptime dans une autre langue porte ses mots deux fois : en anglais, dans `message`, comme tout appel, et dans la langue de la personne, dans `inLanguage`. Votre passerelle choisit la voix, donc OneUptime ne peut pas savoir quelles langues elle parle. Quand votre passerelle a une voix de la langue `inLanguage.language`, faites dire `inLanguage.message` par cette voix. Quand elle n'en a aucune, faites dire `message` en anglais à la place. Ne donnez jamais les mots d'une langue à la voix d'une autre langue : ils ne seraient pas compris. Une passerelle qui ne lit que `message` continue de fonctionner comme avant et parle anglais.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+Le code de la langue est une étiquette BCP 47, l'une des langues dans lesquelles OneUptime est écrit : `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa` et `ar`. `es` est l'espagnol d'Espagne, `pt` le portugais du Brésil, `no` le norvégien bokmål, `ar` l'arabe standard moderne, et les deux codes chinois sont du mandarin, en caractères simplifiés et en caractères traditionnels. Le persan en fait partie : Twilio n'a aucune voix persane, donc par Twilio un appel vers quelqu'un qui utilise OneUptime en persan est en anglais, mais votre passerelle en a peut-être une. Un code de vérification est écrit chiffre par chiffre, avec deux espaces entre les chiffres : faites lire les chiffres à votre voix un par un, lentement, plutôt que comme un nombre.
 
 ### Vérifier la signature
 
@@ -116,7 +137,7 @@ Le journal des SMS ou des appels, et pour une alerte d'astreinte le journal d'as
 
 ## Requêtes de test
 
-**Vérifier la passerelle** envoie une requête avec `event` à `test`, et `to`, `project` et `actions` à `null`. Répondez-y avec un statut 2xx et n'envoyez rien.
+**Vérifier la passerelle** envoie une requête avec `event` à `test`, et `to`, `project`, `actions` et `inLanguage` à `null`. Répondez-y avec un statut 2xx et n'envoyez rien.
 
 ## Étapes suivantes
 

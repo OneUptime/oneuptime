@@ -71,6 +71,8 @@ const OCSF_CLASSES_BY_PROVIDER: Record<
     "File Hosting Activity",
   ],
   [SecurityEventConnectorProvider.Cloudflare]: ["HTTP Activity"],
+  // What CrowdSec's notification plugin sends it (#11158).
+  [SecurityEventConnectorProvider.CrowdSec]: ["Detection Finding"],
   [SecurityEventConnectorProvider.GoogleSecOps]: ["Detection Finding"],
 };
 

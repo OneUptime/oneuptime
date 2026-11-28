@@ -274,4 +274,5 @@ A form's incident executes the on-call policies its settings and its template na
 - [Forms Overview](/docs/forms/index): What forms are for, permissions and the API.
 - [Building a Form](/docs/forms/building): The questions, hidden questions and templates.
 - [What a Submission Creates](/docs/forms/on-submit): The incident or event each submission creates.
+- [Following Up on a Submission](/docs/forms/follow-ups): Let submitters follow what they sent, write to your team and add others.
 :::

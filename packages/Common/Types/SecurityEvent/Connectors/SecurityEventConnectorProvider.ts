@@ -22,6 +22,12 @@ enum SecurityEventConnectorProvider {
   MicrosoftEntraId = "microsoft-entra-id",
   GoogleWorkspace = "google-workspace",
   Cloudflare = "cloudflare",
+  /*
+   * CrowdSec (#11158): its alerts arrive through its http notification
+   * plugin rather than a poll, and blocking bans addresses through its
+   * Local API.
+   */
+  CrowdSec = "crowdsec",
 }
 
 export default SecurityEventConnectorProvider;
@@ -38,6 +44,7 @@ export const AllSecurityEventConnectorProviders: Array<SecurityEventConnectorPro
     SecurityEventConnectorProvider.MicrosoftEntraId,
     SecurityEventConnectorProvider.GoogleWorkspace,
     SecurityEventConnectorProvider.Cloudflare,
+    SecurityEventConnectorProvider.CrowdSec,
     SecurityEventConnectorProvider.GoogleSecOps,
   ];
 

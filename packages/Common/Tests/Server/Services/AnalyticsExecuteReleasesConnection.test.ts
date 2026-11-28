@@ -392,10 +392,9 @@ describe("AnalyticsDatabaseService.insertJsonRows", () => {
         table: "MutableMetricItem",
         values: ROWS,
         format: "JSONEachRow",
+        // A token makes the insert synchronous (#11536).
         clickhouse_settings: {
-          async_insert: 1,
-          wait_for_async_insert: 0,
-          async_insert_deduplicate: 1,
+          async_insert: 0,
           insert_deduplication_token: "fanin:MutableMetricItem:1",
           distributed_foreground_insert: 1,
         },
@@ -418,6 +417,22 @@ describe("AnalyticsDatabaseService.insertJsonRows", () => {
         return JSON.stringify(row) + "\n";
       }).join(""),
     );
+    expect(poolState()).toEqual({ inUse: 0, free: 1, queued: 0 });
+  });
+
+  test("an insert asked to be async is sent without its token, as the fan-in writer's are (#11536)", async () => {
+    await within(
+      5_000,
+      service.insertJsonRows(ROWS as never, {
+        dedupToken: "fanin:MutableMetricItem:2",
+        clickhouseSettings: { async_insert: 1 },
+      }),
+    );
+
+    expect(received).toHaveLength(1);
+    expect(received[0]!.params["async_insert"]).toBe("1");
+    expect(received[0]!.params["insert_deduplication_token"]).toBeUndefined();
+    expect(received[0]!.params["async_insert_deduplicate"]).toBeUndefined();
     expect(poolState()).toEqual({ inUse: 0, free: 1, queued: 0 });
   });
 

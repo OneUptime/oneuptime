@@ -12,6 +12,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import timers from "timers";
 
 /*
  * THE CREATED NOTIFICATION WAITS FOR EVERY OWNER (#7210).
@@ -472,6 +473,51 @@ describe("who is still adding owners to a create", () => {
       expect(jest.getTimerCount()).toBe(0);
     } finally {
       jest.useRealTimers();
+    }
+  });
+
+  /*
+   * Its cap is a Node timer on a server, and only a cap: it never keeps the
+   * process alive on its own, so a server shutting down need not sit out a
+   * create whose owners never come in (the Created job's backstop tells
+   * them). Common's tests run on jsdom, whose timers are numbers, so Node's
+   * own are swapped in here, as GracefulShutdown.test.ts does.
+   */
+  test("waits on a timer that keeps no process alive", async () => {
+    const jsdomSetTimeout: typeof globalThis.setTimeout = globalThis.setTimeout;
+    const jsdomClearTimeout: typeof globalThis.clearTimeout =
+      globalThis.clearTimeout;
+    const started: Array<NodeJS.Timeout> = [];
+
+    globalThis.setTimeout = ((
+      callback: () => void,
+      ms?: number,
+    ): NodeJS.Timeout => {
+      const timer: NodeJS.Timeout = timers.setTimeout(callback, ms);
+      started.push(timer);
+      return timer;
+    }) as unknown as typeof globalThis.setTimeout;
+    globalThis.clearTimeout =
+      timers.clearTimeout as typeof globalThis.clearTimeout;
+
+    try {
+      const create: CreateBy<Incident> = monitorCreate(newRelease());
+      const waiting: Promise<boolean> = CreatedNotificationHold.whenOwnersAreIn(
+        create,
+        OUTSIDE_THE_CHAIN,
+        10 * 1000,
+      );
+
+      expect(started).toHaveLength(1);
+      expect(started[0]!.hasRef()).toBe(false);
+
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Create);
+      await CreatedNotificationHold.ownersAreIn(create, OwnersAddedBy.Caller);
+
+      expect(await waiting).toBe(true);
+    } finally {
+      globalThis.setTimeout = jsdomSetTimeout;
+      globalThis.clearTimeout = jsdomClearTimeout;
     }
   });
 

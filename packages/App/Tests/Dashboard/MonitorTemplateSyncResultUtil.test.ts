@@ -2,6 +2,9 @@ import fs from "fs";
 import path from "path";
 import {
   buildSyncResultSummary,
+  getResolvedSentence,
+  readResolvedCounts,
+  RESOLVED_BY_SYNC,
   SyncResultSummary,
 } from "../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateSyncResultUtil";
 import { createTranslator, Translator } from "Common/Types/Translator";
@@ -574,5 +577,202 @@ describe("Monitor template result modal title wiring", () => {
       expect(messages["Done"]).toBeTruthy();
       expect(messages["Partially synced"]).toBeTruthy();
     }
+  });
+});
+
+/*
+ * A criteria sync that takes away the criteria behind an open incident or
+ * alert set to resolve on its own resolves it (#11453): nothing could
+ * resolve it once those criteria were gone. The result says how many, so
+ * the operator is not left wondering why incidents closed after a sync.
+ */
+describe("what a sync resolved (#11453)", () => {
+  it("reads the counts the sync answers with, and none from an answer without them", () => {
+    expect(
+      readResolvedCounts({ resolvedIncidentCount: 3, resolvedAlertCount: 2 }),
+    ).toEqual({ resolvedIncidentCount: 3, resolvedAlertCount: 2 });
+
+    // Older servers, and the interval, labels and custom field syncs, say none.
+    expect(readResolvedCounts({ syncedCount: 12 })).toEqual({
+      resolvedIncidentCount: 0,
+      resolvedAlertCount: 0,
+    });
+
+    for (const answer of [undefined, null, "12", 12, []]) {
+      expect(readResolvedCounts(answer)).toEqual({
+        resolvedIncidentCount: 0,
+        resolvedAlertCount: 0,
+      });
+    }
+  });
+
+  it("never reads a negative, a fraction or a word as a count", () => {
+    expect(
+      readResolvedCounts({
+        resolvedIncidentCount: -4,
+        resolvedAlertCount: "many",
+      }),
+    ).toEqual({ resolvedIncidentCount: 0, resolvedAlertCount: 0 });
+    expect(
+      readResolvedCounts({
+        resolvedIncidentCount: 2.9,
+        resolvedAlertCount: "5",
+      }),
+    ).toEqual({ resolvedIncidentCount: 2, resolvedAlertCount: 5 });
+  });
+
+  it("says nothing when nothing was resolved, and incidents and alerts together otherwise", () => {
+    expect(
+      getResolvedSentence({
+        resolvedIncidentCount: 0,
+        resolvedAlertCount: 0,
+        translator: ENGLISH,
+      }),
+    ).toBeNull();
+    expect(getResolvedSentence({ translator: ENGLISH })).toBeNull();
+    expect(
+      getResolvedSentence({
+        resolvedIncidentCount: 1,
+        resolvedAlertCount: 0,
+        translator: ENGLISH,
+      }),
+    ).toBe(
+      "1 open incident or alert that only the removed criteria could resolve was resolved.",
+    );
+    expect(
+      getResolvedSentence({
+        resolvedIncidentCount: 1200,
+        resolvedAlertCount: 34,
+        translator: ENGLISH,
+      }),
+    ).toBe(
+      "1,234 open incidents and alerts that only the removed criteria could resolve were resolved.",
+    );
+  });
+
+  it("a complete sync says what it resolved after what it synced", () => {
+    const summary: SyncResultSummary = buildSyncResultSummary({
+      subject: "criteria",
+      syncedMonitors: 12,
+      totalLinkedMonitors: 12,
+      resolvedIncidentCount: 2,
+      resolvedAlertCount: 1,
+      translator: ENGLISH,
+    });
+
+    expect(summary).toEqual({
+      title: "Done",
+      message:
+        "Synced criteria onto 12 monitors (12 linked to this template). 3 open incidents and alerts that only the removed criteria could resolve were resolved.",
+      isIncomplete: false,
+    });
+  });
+
+  it("a short sync says it too, before what is left to do", () => {
+    const summary: SyncResultSummary = buildSyncResultSummary({
+      subject: "criteria",
+      syncedMonitors: 10,
+      totalLinkedMonitors: 12,
+      resolvedIncidentCount: 1,
+      resolvedAlertCount: 0,
+      translator: ENGLISH,
+    });
+
+    expect(summary.isIncomplete).toBe(true);
+    expect(summary.message).toBe(
+      [
+        "Synced criteria onto 10 monitors (12 linked to this template).",
+        "1 open incident or alert that only the removed criteria could resolve was resolved.",
+        "2 linked monitors still use the previous configuration — usually because your permissions do not cover them. Run the sync again as a user who can update every linked monitor.",
+      ].join(" "),
+    );
+  });
+
+  it("a sync that resolved nothing reads as it always did", () => {
+    expect(
+      buildSyncResultSummary({
+        subject: "criteria",
+        syncedMonitors: 12,
+        totalLinkedMonitors: 12,
+        resolvedIncidentCount: 0,
+        resolvedAlertCount: 0,
+        translator: ENGLISH,
+      }).message,
+    ).toBe("Synced criteria onto 12 monitors (12 linked to this template).");
+  });
+
+  it("every bulk sync and the one-monitor sync read the counts their answer carries", () => {
+    const reads: number = (
+      TEMPLATES_VIEW_CODE.match(
+        /readResolvedCounts\(\s*response\.data\s*\)/g,
+      ) || []
+    ).length;
+
+    // One per bulk sync, and one for the sync of one monitor.
+    expect(reads).toBe(BULK_SYNC_SUBJECTS.length + 1);
+  });
+
+  it("is worded in every language, for one and for many", () => {
+    const localeDir: string = path.join(
+      __dirname,
+      "..",
+      "..",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Locales",
+    );
+
+    const languages: Array<string> = fs
+      .readdirSync(localeDir)
+      .filter((file: string) => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+
+    expect(languages.length).toBe(17);
+
+    // English carries both forms, each under its own key.
+    const english: Record<string, string> = JSON.parse(
+      fs.readFileSync(path.join(localeDir, "en.json"), "utf8"),
+    );
+
+    expect(english[RESOLVED_BY_SYNC.other]).toBe(RESOLVED_BY_SYNC.other);
+    expect(english[`${RESOLVED_BY_SYNC.other}_one`]).toBe(RESOLVED_BY_SYNC.one);
+
+    const inEnglish: Array<string> = [];
+
+    for (const language of languages) {
+      const messages: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(localeDir, `${language}.json`), "utf8"),
+      );
+      const translator: Translator = createTranslator(
+        (text: string): string | undefined => {
+          return messages[text];
+        },
+        language,
+      );
+
+      for (const count of [1, 3, 21]) {
+        const said: string | null = getResolvedSentence({
+          resolvedIncidentCount: count,
+          resolvedAlertCount: 0,
+          translator: translator,
+        });
+
+        // English's words, whatever digits the language writes the count in.
+        if (
+          said === null ||
+          said.includes("removed criteria") ||
+          said.includes("{{")
+        ) {
+          inEnglish.push(`${language} at ${count}: ${said}`);
+        }
+      }
+    }
+
+    expect(inEnglish).toEqual([]);
   });
 });

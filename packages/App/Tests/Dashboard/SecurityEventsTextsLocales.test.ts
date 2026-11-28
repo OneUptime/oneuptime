@@ -490,7 +490,11 @@ describe("the Security Events texts in every language", () => {
          * is a key.
          */
         if (field.placeholder !== undefined) {
-          if (VALUE_TO_TYPE.test(field.placeholder)) {
+          // Or a name to type as the product shows it: CrowdSec's machine, oneuptime.
+          if (
+            VALUE_TO_TYPE.test(field.placeholder) ||
+            CODE.test(field.placeholder)
+          ) {
             asWritten.push(field.placeholder);
           } else {
             words.add(field.placeholder);
@@ -519,6 +523,7 @@ describe("the Security Events texts in every language", () => {
     expect(asWritten).toContain("US-1 (api.crowdstrike.com)");
     expect(asWritten).toContain("europe-west2");
     expect(asWritten).toContain("00000000-0000-0000-0000-000000000000");
+    expect(asWritten).toContain("oneuptime");
 
     // Each is marked in the catalog, so the extractor reads it into en.json.
     const unmarked: Array<string> = [...words].filter(

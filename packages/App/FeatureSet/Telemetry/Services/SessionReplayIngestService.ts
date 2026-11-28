@@ -1320,6 +1320,7 @@ export default class SessionReplayIngestService {
           policy: policy,
           envelope: envelope,
           cache: headerCarryCache,
+          compiledRules: compiledRules,
         });
 
         headerRows.push(
@@ -1646,6 +1647,8 @@ export default class SessionReplayIngestService {
     policy: SessionReplayGatePolicy;
     envelope: SessionReplayChunkEnvelope;
     cache: Map<string, SessionHeaderCarry>;
+    // The project's rules for the application, which a session's tags go through.
+    compiledRules: Array<CompiledScrubRule>;
   }): Promise<SessionHeaderCarry> {
     const envelope: SessionReplayChunkEnvelope = data.envelope;
 
@@ -1694,7 +1697,17 @@ export default class SessionReplayIngestService {
       identifiedUserKey: identity.identifiedUserKey,
       identifiedUserLabel: identity.identifiedUserLabel,
       identifiedUserTraits: identity.identifiedUserTraits,
-      tags: this.deriveChunkTags(envelope),
+      /*
+       * Scrubbed before they reach the carry, Redis or a row (#11458): the
+       * project's rules hide what they find in a session's tags as they do
+       * in a log's attributes, so a rule Scrub It made for a tag reaches it.
+       */
+      tags: SessionReplayScrubService.scrubTags({
+        tags: this.deriveChunkTags(envelope),
+        compiledRules: data.compiledRules,
+        rumApplicationId: data.policy.rumApplicationId,
+        appVersion: envelope.meta?.appVersion,
+      }),
     };
 
     const key: string = `${SESSION_CARRY_KEY_PREFIX}${data.projectId.toString()}:${envelope.sessionId}`;

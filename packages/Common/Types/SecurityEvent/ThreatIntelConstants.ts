@@ -146,6 +146,28 @@ export function ocsfSeverityForConfidence(confidence: number): OcsfSeverity {
 }
 
 /*
+ * WHAT AN ERASED PERSON'S THREAT INTEL MATCH KEEPS OF THE INDICATOR'S
+ * CONFIDENCE (#11447): nothing.
+ *
+ * A feed scores each of its indicators, and keeps the score beside the
+ * address it lists in clear. In a small feed whose few email addresses
+ * each have their own score - an internal STIX feed of a handful of
+ * accounts - the feed, the indicator's type and the score left an erased
+ * person's match pointing at one address. A coarser band of the score
+ * (low, medium, high) does the same whenever each address's score falls in
+ * a band of its own, and the severity a match takes from its score is
+ * exactly such a band (ocsfSeverityForConfidence). So an erasure drops the
+ * score from the person's records - the Detection Finding's
+ * oneuptime.threat.confidence, the events' threat.confidence stamp, the
+ * "confidence 80" of a description - and gives the person's finding and
+ * detection the severity a match on an unscored indicator reads: the same
+ * for every erased match, so it narrows nothing. The feed and the
+ * indicator's type stay.
+ */
+export const ERASED_THREAT_INTEL_SEVERITY: OcsfSeverity =
+  ocsfSeverityForConfidence(0);
+
+/*
  * Save-time bounds for ThreatIntelFeed.minimumConfidence — one home for
  * the server validator and the dashboard form, so the two ranges cannot
  * drift apart. 0 disables the filter (and unscored indicators always

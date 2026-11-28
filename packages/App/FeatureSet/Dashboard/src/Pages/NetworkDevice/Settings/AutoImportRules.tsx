@@ -1,4 +1,29 @@
 import EnabledPill from "Common/UI/Components/Pill/EnabledPill";
+import {
+  AutoImportRuleMonitorsToMove,
+  getAutoImportRuleMonitorsToMove,
+  startMonitorTemplateChange,
+} from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangeApi";
+import { RuleMoveChoice } from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangeModel";
+import MonitorTemplateChangesNotice from "../../../Components/Monitor/TemplateChange/MonitorTemplateChangesNotice";
+import {
+  isPointedAtAnotherTemplate,
+  readRelationId,
+  readTemplateIdOfRecord,
+  readTemplateNameAndType,
+} from "../../../Components/Monitor/TemplateChange/TemplateRepoint";
+import useMonitorTemplateMoveConfirmation, {
+  MonitorTemplateMoveConfirmation,
+} from "../../../Components/Monitor/TemplateChange/useMonitorTemplateMoveConfirmation";
+import {
+  MonitorTemplateChangeKind,
+  MonitorTemplateChangeView,
+} from "Common/Types/Monitor/MonitorTemplateChange";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
+import FormSubmitCancelled from "Common/UI/Components/Forms/Types/FormSubmitCancelled";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import API from "Common/UI/Utils/API/API";
+import Toast from "Common/UI/Utils/Toast";
 import PageComponentProps from "../../PageComponentProps";
 import RunAutoImportRuleModal from "../../../Components/NetworkAutomation/RunAutoImportRuleModal";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -34,6 +59,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useRef,
   useState,
 } from "react";
 import { Blue, Red } from "Common/Types/BrandColors";
@@ -86,7 +112,7 @@ Pick a **Monitor Template** to give each imported device a monitor too, made fro
 - A monitor is named after the device (its sysName, or its address). A template's **Default Monitor Name** is added after it (\`UN0660WANRTR01 - Unit Router\`), which tells two templates apart on one device.
 - A device never gets a second monitor of the same kind. A device that already has a monitor from the template, or a monitor of the template's kind that checks the same thing - a Ping or IP monitor, a Port or NTP monitor on the same port, a Website or API monitor of the same scheme, port, path and query, an SSL Certificate monitor on the same port - from another template, bound to it, or made by hand and tied to it, is counted as already monitored. A monitor of another kind is still added: a Ping monitor beside a Network Device one.
 - Running a rule again adds a missing monitor, even for a device an earlier scan added or someone added by hand. A monitor the device already has is never changed, and only one like the template's counts as the template's: a Network Device monitor made by hand, or from another template, does not stop a rule giving the device its template's monitor. Rules that pick the same template make one monitor; different Network Device templates make one each.
-- Changing a rule's template never deletes or rewrites the monitors it made before. Delete the old monitor and let the rule make the new one.
+- Pointing a rule at another template of the same kind offers to move its devices' monitors there first. Each keeps its name, history, labels, owners and incidents, and the rule uses the new template once they are moved, so no device gets a second monitor. Saved without moving them, each device keeps its old monitor and gets the new template's beside it.
 
 SNMP health OIDs, interface walking and endpoint collection stay settings of the device itself.
 
@@ -125,6 +151,163 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
   );
 
   const translator: Translator = useTranslator();
+
+  /*
+   * Pointing a rule at another template can move its devices' monitors there
+   * first (#11451): the form asks as it saves (moveConfirmation). Moved
+   * first, the rule's other changes save now and its template stays as it
+   * was; the move then runs on the server and points the rule at the new
+   * template once every monitor is on it - so the rule never gives a device
+   * a second monitor while they move. The page shows the move running.
+   */
+  const moveConfirmation: MonitorTemplateMoveConfirmation =
+    useMonitorTemplateMoveConfirmation();
+  // The template each rule the Edit form opened on is on, by rule id.
+  const templateOfRule: React.MutableRefObject<Map<string, string>> = useRef<
+    Map<string, string>
+  >(new Map<string, string>());
+  // The move the save asked for, started once the save is done.
+  const moveAfterSave: React.MutableRefObject<{
+    ruleId: string;
+    templateId: string;
+    oldTemplateName: string;
+  } | null> = useRef<{
+    ruleId: string;
+    templateId: string;
+    oldTemplateName: string;
+  } | null>(null);
+  const [changesToggle, setChangesToggle] = useState<string>("");
+  const [openChangeId, setOpenChangeId] = useState<string | undefined>(
+    undefined,
+  );
+  const [tableRefreshToggle, setTableRefreshToggle] = useState<string>("");
+
+  /*
+   * Before a save points a rule at another template: whether its devices
+   * have monitors from the one it uses, and if so, what to do with them. A
+   * template of another kind moves nothing - its monitor is another kind of
+   * monitor, which no device has twice. "Cancel" calls the save back.
+   */
+  const askAboutMonitors: (
+    rule: NetworkDeviceAutoImportRule,
+  ) => Promise<NetworkDeviceAutoImportRule> = async (
+    rule: NetworkDeviceAutoImportRule,
+  ): Promise<NetworkDeviceAutoImportRule> => {
+    // What an earlier save that did not go through asked for is not this one's.
+    moveAfterSave.current = null;
+
+    const ruleId: string | null = readRelationId(rule._id || rule.id);
+    const writtenTemplateId: string | null = readTemplateIdOfRecord(rule);
+    const storedTemplateId: string | undefined = ruleId
+      ? templateOfRule.current.get(ruleId)
+      : undefined;
+
+    if (
+      !ruleId ||
+      !isPointedAtAnotherTemplate({
+        storedTemplateId: storedTemplateId,
+        writtenTemplateId: writtenTemplateId,
+      })
+    ) {
+      return rule;
+    }
+
+    let toMove: AutoImportRuleMonitorsToMove;
+
+    try {
+      toMove = await getAutoImportRuleMonitorsToMove(ruleId);
+    } catch {
+      // Nothing can be told: the rule is saved as it was asked.
+      return rule;
+    }
+
+    if (toMove.count === 0 || toMove.isMoveRunning) {
+      return rule;
+    }
+
+    const written: { name: string; monitorType: string | undefined } =
+      await readTemplateNameAndType(writtenTemplateId!);
+
+    if (
+      toMove.monitorType &&
+      written.monitorType &&
+      toMove.monitorType !== written.monitorType
+    ) {
+      return rule;
+    }
+
+    const oldTemplateName: string =
+      toMove.monitorTemplateName ||
+      (translator.translateText("its template") as string);
+
+    const choice: RuleMoveChoice | null = await moveConfirmation.askRuleMove({
+      templateName:
+        written.name || (translator.translateText("the template") as string),
+      oldTemplateName: oldTemplateName,
+      count: toMove.count,
+    });
+
+    if (choice === null) {
+      throw new FormSubmitCancelled();
+    }
+
+    if (choice === RuleMoveChoice.Leave) {
+      return rule;
+    }
+
+    // The rule keeps the template it uses until its monitors are moved.
+    moveAfterSave.current = {
+      ruleId: ruleId,
+      templateId: writtenTemplateId!,
+      oldTemplateName: oldTemplateName,
+    };
+    delete rule.monitorTemplate;
+    rule.monitorTemplateId = new ObjectID(storedTemplateId!);
+
+    return rule;
+  };
+
+  // Once the save is done: the move it asked for, started, its dialog opened.
+  const startMoveAfterSave: () => Promise<void> = async (): Promise<void> => {
+    const move: {
+      ruleId: string;
+      templateId: string;
+      oldTemplateName: string;
+    } | null = moveAfterSave.current;
+    moveAfterSave.current = null;
+
+    if (!move) {
+      return;
+    }
+
+    try {
+      const started: MonitorTemplateChangeView =
+        await startMonitorTemplateChange({
+          monitorTemplateId: move.templateId,
+          settings: {
+            kind: MonitorTemplateChangeKind.Link,
+            applyTemplateSettings: true,
+            clearTemplateSettings: false,
+            deleteTemplateWhenDone: false,
+          },
+          autoImportRuleId: move.ruleId,
+        });
+
+      setOpenChangeId(started.id);
+    } catch (err) {
+      Toast.error(
+        joinSentences([
+          translator.translateTemplate(
+            "The rule was saved, but its monitors did not move, so it still uses {{templateName}}.",
+            { templateName: move.oldTemplateName },
+          ),
+          API.getFriendlyMessage(err),
+        ]),
+      );
+    }
+
+    setChangesToggle(ObjectID.generate().toString());
+  };
 
   /*
    * Every template a device's monitor can be made from (issue #9510): a
@@ -233,6 +416,19 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
 
   return (
     <Fragment>
+      {moveConfirmation.confirmation}
+      <div className="mb-5 empty:mb-0">
+        <MonitorTemplateChangesNotice
+          filter={(view: MonitorTemplateChangeView): boolean => {
+            return Boolean(view.autoImportRuleId);
+          }}
+          refreshToggle={changesToggle}
+          openChangeId={openChangeId}
+          onChanged={(): void => {
+            setTableRefreshToggle(ObjectID.generate().toString());
+          }}
+        />
+      </div>
       <ModelTable<NetworkDeviceAutoImportRule>
         modelType={NetworkDeviceAutoImportRule}
         // Enable or Disable in each row's ⋯ menu: the one that changes the row.
@@ -247,6 +443,36 @@ const NetworkDeviceAutoImportRulesPage: FunctionComponent<
         isEditable={true}
         isCreateable={true}
         createEditModalWidth={ModalWidth.Large}
+        refreshToggle={tableRefreshToggle}
+        onEditFormItemFetched={async (
+          item: NetworkDeviceAutoImportRule,
+        ): Promise<NetworkDeviceAutoImportRule> => {
+          const ruleId: string | null = readRelationId(item._id || item.id);
+
+          if (ruleId) {
+            templateOfRule.current.set(
+              ruleId,
+              readTemplateIdOfRecord(item) || "",
+            );
+          }
+
+          return item;
+        }}
+        onBeforeUpdate={async (
+          item: NetworkDeviceAutoImportRule,
+        ): Promise<NetworkDeviceAutoImportRule> => {
+          return await askAboutMonitors(item);
+        }}
+        onCreateSuccess={async (
+          item: NetworkDeviceAutoImportRule,
+          modalType?: ModalType,
+        ): Promise<NetworkDeviceAutoImportRule> => {
+          if (modalType === ModalType.Edit) {
+            await startMoveAfterSave();
+          }
+
+          return item;
+        }}
         cardProps={{
           title: "Network Device Auto Import Rules",
           description:

@@ -6,7 +6,14 @@
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * Both previews render a live telemetry viewer that lists logs/spans over the
@@ -48,6 +55,7 @@ import MonitorStepTraceMonitor, {
 import Modal from "../../../UI/Components/Modal/Modal";
 import BasicForm from "../../../UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import { loadAllFormFieldControls } from "../../../UI/Components/Forms/Fields/FormFieldControls";
 
 /*
  * Reported as: "when I try to filter the criteria by attributes it just closes
@@ -274,6 +282,15 @@ const renderLogHarness: RenderLogHarnessFunction = (): Recorder => {
 };
 
 describe("Monitoring criteria — Filter by Attributes", () => {
+  /*
+   * The key/value list is a file of its own, which a form loads as it is
+   * drawn (LazyDictionary). Loaded first, so it is there as the filter is
+   * added, as every test here types in its Key box at once.
+   */
+  beforeAll(async () => {
+    await loadAllFormFieldControls();
+  });
+
   afterEach(() => {
     cleanup();
   });

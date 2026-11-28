@@ -101,6 +101,8 @@ VCENTER_USERNAME=oneuptime@vsphere.local
 VCENTER_PASSWORD=a-strong-password
 VCENTER_INSECURE_SKIP_VERIFY=true
 VCENTER_COLLECTION_INTERVAL=2m
+VMWARE_AGENT_CONTAINER_NAME=oneuptime-vmware-agent
+VMWARE_AI_AGENT_CONTAINER_NAME=oneuptime-vmware-ai-agent
 ```
 
 `$`, `#`, 공백, 따옴표가 들어간 암호는 작은따옴표로 감쌉니다([vCenter가 로그인을 거부함](#문제-해결) 참고). 에이전트를 시작하세요:
@@ -202,6 +204,8 @@ Docker Compose는 이 값들을 `.env`(`docker-compose.yml` 옆의 파일)에서
 | `VCENTER_PASSWORD` | 예 | 그 사용자의 암호. `$`, `#`, 공백, 따옴표가 들어 있으면 Docker 설치의 `.env`에서는 작은따옴표로 감싸고(`install.sh`가 대신 해 줍니다), systemd 설치의 파일에서는 큰따옴표로 감쌉니다([문제 해결](#문제-해결) 참고). |
 | `VCENTER_INSECURE_SKIP_VERIFY` | 아니요 | `true`는 vCenter의 기본 자체 서명(VMCA) 인증서를 받아들입니다. `false`는 TLS 검증을 켠 상태로 둡니다. 기본값은 `false`입니다. |
 | `VCENTER_COLLECTION_INTERVAL` | 아니요 | 인벤토리 전체를 읽는 간격. 매우 큰 vCenter에서는 `5m`이나 `10m`으로 늘리세요. 기본값은 `2m`입니다. |
+| `VMWARE_AGENT_CONTAINER_NAME` | 아니요 | Collector의 컨테이너 이름입니다. 기본값은 `oneuptime-vmware-agent`입니다. 같은 머신에 있는 두 번째 vCenter의 에이전트에는 고유한 이름이 필요합니다. [여러 vCenter 모니터링](#여러-vcenter-모니터링)을 참고하세요. 설치 스크립트는 이 값을 설정하지 않으면 새 에이전트의 컨테이너 이름을 폴더 이름을 따서 짓고, 스크립트를 다시 실행해도 그 이름을 유지합니다. |
+| `VMWARE_AI_AGENT_CONTAINER_NAME` | 아니요 | AI 에이전트의 컨테이너 이름입니다. 기본값은 `oneuptime-vmware-ai-agent`이고, 두 번째 에이전트에서는 `oneuptime-vmware-ai-agent-vcenter2`처럼 Collector 이름과 나란한 이름이 됩니다. |
 
 AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있습니다.
 
@@ -377,6 +381,20 @@ processors:
 
 Collector는 시작할 때만 구성을 읽습니다. `docker compose restart oneuptime-vmware-agent`를 실행하거나, systemd라면 `sudo systemctl restart oneuptime-vmware-agent`를 실행하세요. 그러면 vCenter에 `team:platform`과 `env:production` 레이블이 표시됩니다. 레이블은 대소문자를 구분하지 않고 비교되므로 기존 `Production` 레이블은 중복되지 않고 재사용되며, 에이전트는 누군가 OneUptime에서 추가한 레이블을 절대 제거하지 않습니다.
 
+## 여러 vCenter 모니터링
+
+에이전트 하나는 vCenter 하나를 읽습니다. 같은 머신에서 여러 vCenter를 모니터링하려면 두 컨테이너가 같은 이름을 가질 수는 없으므로 각 에이전트를 전용 `.env`와 고유한 컨테이너 이름을 가진 전용 폴더에 설치하세요:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-vmware-agent-vcenter2 bash install.sh
+```
+
+스크립트는 폴더 이름을 따서 에이전트의 컨테이너 이름을 `oneuptime-vmware-agent-vcenter2`와 `oneuptime-vmware-ai-agent-vcenter2`로 짓습니다. 직접 정하려면 스크립트를 실행할 때 `VMWARE_AGENT_CONTAINER_NAME`과 `VMWARE_AI_AGENT_CONTAINER_NAME`을 설정하세요. 스크립트는 그 이름을 해당 에이전트의 `.env`에 보관하므로 에이전트를 업그레이드하려고 스크립트를 다시 실행해도 이름이 유지되며, `container_name`을 예전에 `docker-compose.yml`에서 직접 수정한 에이전트도 그 이름을 유지합니다. 폴더마다 고유한 이름을 붙이세요. Docker Compose는 폴더 이름만으로 프로젝트 이름을 짓기 때문에, 스크립트는 다른 곳에서 이미 에이전트를 실행 중인 폴더와 같은 이름의 폴더를 거부합니다. Docker Compose를 쓴다면 대신 각 에이전트의 `.env`에 이름을 설정하세요.
+
+systemd 유닛은 `/opt/oneuptime-vmware-agent`를 가정합니다. 다른 폴더라면 `oneuptime-vmware-agent-vcenter2.service`처럼 다른 이름으로 저장하고 `WorkingDirectory`를 바꾸세요. 진단 스크립트에는 `-d`로 폴더를 넘기세요.
+
+첫 번째 에이전트가 [syslog](#선택-사항-esxi-syslog-보내기) 포트를 게시한다면 두 번째 에이전트의 포트는 `5515:5514`처럼 다른 포트로 게시하고, 그 vCenter의 호스트가 그 포트를 가리키게 하세요. Docker 없는 설치는 컨테이너를 실행하지 않습니다. 그 경우 두 번째 에이전트는 다른 이름으로 저장한 두 번째 유닛이며, 그 `EnvironmentFile`과 `ExecStart`는 자체 폴더를 가리키고, 그 Collector는 `8890`이 아닌 다른 포트에서 자체 메트릭을 보고합니다.
+
 ## systemd 서비스로 실행
 
 Docker 설치도 systemd에서 실행해 머신과 함께 시작하고 실패하면 다시 시작하게 할 수 있습니다. 그 유닛은 Docker Compose를 감싸며, 설치 스크립트가 에이전트를 두는 `/opt/oneuptime-vmware-agent`에 에이전트가 있다고 가정합니다:
@@ -397,7 +415,7 @@ Collector는 `docker-compose.yml`에(Docker 없이 설치했다면 내려받은 
 
 :::tabs
 @tab install.sh
-`install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치고, 에이전트를 다시 만들어 Collector가 새 구성을 읽게 합니다.
+`install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치고, 에이전트를 다시 만들어 Collector가 새 구성을 읽게 합니다. `/opt/oneuptime-vmware-agent` 밖에 설치한 에이전트에는 폴더를 지정해야 하며(`INSTALL_DIR=<folder> bash install.sh`), 컨테이너 이름은 유지됩니다.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh

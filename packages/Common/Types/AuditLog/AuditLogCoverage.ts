@@ -206,6 +206,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   DatabaseServerFeed: AuditLogExemptionKind.ActivityFeed,
   DockerHostFeed: AuditLogExemptionKind.ActivityFeed,
   DockerSwarmClusterFeed: AuditLogExemptionKind.ActivityFeed,
+  FormSubmissionMessage: AuditLogExemptionKind.ActivityFeed,
   HostFeed: AuditLogExemptionKind.ActivityFeed,
   IncidentEpisodeFeed: AuditLogExemptionKind.ActivityFeed,
   IncidentFeed: AuditLogExemptionKind.ActivityFeed,

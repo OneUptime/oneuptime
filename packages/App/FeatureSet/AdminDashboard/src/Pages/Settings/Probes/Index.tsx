@@ -126,11 +126,13 @@ const Settings: FunctionComponent = (): ReactElement => {
         selectMoreFields={{
           key: true,
           iconFileId: true,
-          // Whether it is behind (GlobalProbeStatus).
+          // Whether it is behind, and how far (GlobalProbeStatus).
           checksLateSince: true,
           checksLastLateAt: true,
+          checksLastLateDueAt: true,
           devicePollsLateSince: true,
           devicePollsLastLateAt: true,
+          devicePollsLastLateDueAt: true,
         }}
         actionButtons={[
           {
@@ -201,7 +203,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Status",
             type: FieldType.Text,
 
-            // As OneUptime Health shows it: Connected, Behind (#9488) or Disconnected.
+            // As OneUptime Health shows it: Connected, Behind by how far (#9488) or Disconnected.
             getElement: (item: Probe): ReactElement => {
               return <GlobalProbeStatusElement probe={item} />;
             },

@@ -12,6 +12,10 @@ import {
   SecurityEventConnectionRunOptions,
   SecurityEventConnectionRunResult,
 } from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectionDiagnostics";
+import {
+  PUSHED_ALERTS_NOTHING_TO_POLL,
+  areSecurityEventConnectorAlertsPushed,
+} from "../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import Queue, { QueueName } from "../../../Infrastructure/Queue";
 import Semaphore, {
   SemaphoreLockTimeoutError,
@@ -296,6 +300,14 @@ export default class SecurityEventConnectionRunExecutor {
           );
         }
 
+        // Only a test, for a product that sends its alerts (CrowdSec, #11158).
+        if (
+          options.type !== "test" &&
+          areSecurityEventConnectorAlertsPushed(connection.provider)
+        ) {
+          throw new BadDataException(PUSHED_ALERTS_NOTHING_TO_POLL);
+        }
+
         const recordedResult: SecurityEventConnectionRunResult | null =
           this.getRecordedPollResult(run, connection);
 
@@ -477,6 +489,7 @@ export default class SecurityEventConnectionRunExecutor {
         select: {
           _id: true,
           projectId: true,
+          provider: true,
           pollIntervalInMinutes: true,
           lastPolledAt: true,
         },
@@ -488,6 +501,8 @@ export default class SecurityEventConnectionRunExecutor {
       if (
         !connection.id ||
         !connection.projectId ||
+        // A product that sends its alerts (CrowdSec, #11158) is never polled.
+        areSecurityEventConnectorAlertsPushed(connection.provider) ||
         (connection.lastPolledAt &&
           connection.lastPolledAt.getTime() +
             Math.max(1, connection.pollIntervalInMinutes || 5) * 60_000 >

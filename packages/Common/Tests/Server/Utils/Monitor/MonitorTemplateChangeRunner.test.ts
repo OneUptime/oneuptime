@@ -1,4 +1,5 @@
 import MonitorTemplateChangeRunner, {
+  MAX_AUTO_IMPORT_RULE_APPEND_ROUNDS,
   MAX_CONSECUTIVE_IDENTICAL_CHANGE_FAILURES,
   MAX_MONITOR_TEMPLATE_CHANGE_RESUMES,
   MONITOR_NOT_REACHED_FAILED,
@@ -12,6 +13,11 @@ import Semaphore from "../../../../Server/Infrastructure/Semaphore";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorTemplateChangeService from "../../../../Server/Services/MonitorTemplateChangeService";
 import MonitorTemplateService from "../../../../Server/Services/MonitorTemplateService";
+import NetworkAlertPolicyEngineService from "../../../../Server/Services/NetworkAlertPolicyEngineService";
+import NetworkAlertPolicyService from "../../../../Server/Services/NetworkAlertPolicyService";
+import NetworkAlertPolicy from "../../../../Models/DatabaseModels/NetworkAlertPolicy";
+import NetworkDeviceAutoImportRule from "../../../../Models/DatabaseModels/NetworkDeviceAutoImportRule";
+import NetworkDeviceAutoImportRuleService from "../../../../Server/Services/NetworkDeviceAutoImportRuleService";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../../Models/DatabaseModels/MonitorTemplate";
@@ -22,6 +28,7 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import { JSONObject } from "../../../../Types/JSON";
 import {
   MAX_MONITORS_PER_TEMPLATE_CHANGE,
+  MONITOR_NO_LONGER_THE_POLICYS,
   MONITOR_TEMPLATE_CHANGE_VIEW_LINE_LIMIT,
   MonitorTemplateChangeKind,
   MonitorTemplateChangeLine,
@@ -81,9 +88,41 @@ jest.mock("../../../../Server/Services/MonitorTemplateService", () => {
     default: {
       readTemplateToLinkOrUnlink: jest.fn(),
       assertNothingProvisionsFrom: jest.fn(),
+      findOneById: jest.fn(),
       linkMonitor: jest.fn(),
       unlinkMonitor: jest.fn(),
       deleteOneById: jest.fn(),
+    },
+  };
+});
+
+jest.mock(
+  "../../../../Server/Services/NetworkDeviceAutoImportRuleService",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        findOneBy: jest.fn(),
+        findBy: jest.fn(),
+        updateOneById: jest.fn(),
+      },
+    };
+  },
+);
+
+jest.mock("../../../../Server/Services/NetworkAlertPolicyService", () => {
+  return {
+    __esModule: true,
+    default: { findOneBy: jest.fn() },
+  };
+});
+
+jest.mock("../../../../Server/Services/NetworkAlertPolicyEngineService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findMonitorsToMoveToPolicyTemplate: jest.fn(),
+      onPolicyMonitorsMoved: jest.fn(),
     },
   };
 });
@@ -198,6 +237,8 @@ interface FakeDatabase {
   stillLinkedCount: number;
   deletedTemplates: Array<string>;
   monitorNames: Map<string, string>;
+  // The network alert policy each monitor carries, by id.
+  policyOf: Map<string, string>;
 }
 
 let db: FakeDatabase;
@@ -259,14 +300,18 @@ function installFakes(): void {
     );
   }) as never);
 
-  changeService["findBy"]!.mockImplementation((async (): Promise<
-    Array<MonitorTemplateChange>
-  > => {
+  changeService["findBy"]!.mockImplementation((async (data: {
+    query: Record<string, unknown>;
+  }): Promise<Array<MonitorTemplateChange>> => {
     return Array.from(db.changes.values()).filter(
       (row: MonitorTemplateChange): boolean => {
+        const policyId: unknown = data.query?.["networkAlertPolicyId"];
+
         return (
-          row.status === MonitorTemplateChangeStatus.Queued ||
-          row.status === MonitorTemplateChangeStatus.Running
+          (row.status === MonitorTemplateChangeStatus.Queued ||
+            row.status === MonitorTemplateChangeStatus.Running) &&
+          (!policyId ||
+            row.networkAlertPolicyId?.toString() === String(policyId))
         );
       },
     );
@@ -290,10 +335,27 @@ function installFakes(): void {
     MonitorTemplateService as unknown as Record<string, jest.Mock>;
 
   templateService["readTemplateToLinkOrUnlink"]!.mockImplementation(
-    (async (): Promise<MonitorTemplate> => {
+    (async (data: {
+      monitorTemplateId: ObjectID;
+    }): Promise<MonitorTemplate> => {
       if (!db.template) {
         throw new BadDataException("This monitor template does not exist.");
       }
+
+      // Another template of the project, as asked for by its id.
+      if (
+        data.monitorTemplateId &&
+        data.monitorTemplateId.toString() !== db.template.id?.toString()
+      ) {
+        const other: MonitorTemplate = new MonitorTemplate(
+          data.monitorTemplateId,
+        );
+        other.projectId = db.template.projectId!;
+        other.monitorType = db.template.monitorType!;
+        other.templateName = "Another template";
+        return other;
+      }
+
       return db.template;
     }) as never,
   );
@@ -371,6 +433,12 @@ function installFakes(): void {
 
     const monitor: Monitor = new Monitor(data.id);
     monitor.name = name;
+    const policyId: string | undefined = db.policyOf.get(data.id.toString());
+
+    if (policyId) {
+      monitor.networkAlertPolicyId = new ObjectID(policyId);
+    }
+
     return monitor;
   }) as never);
 
@@ -415,6 +483,7 @@ beforeEach(() => {
     stillLinkedCount: 0,
     deletedTemplates: [],
     monitorNames: new Map<string, string>(),
+    policyOf: new Map<string, string>(),
   };
 
   personProps = propsWith(MONITOR_EDITOR);
@@ -1063,5 +1132,694 @@ describe("a change as the Dashboard draws it", () => {
     expect(
       MonitorTemplateChangeRunner.toView({ row: row, allLines: true }).lines,
     ).toHaveLength(ids.length);
+  });
+});
+
+/*
+ * A NETWORK ALERT POLICY POINTED AT ANOTHER TEMPLATE MOVES ITS MONITORS THERE
+ * (issue #11452): a change of the policy's own, started by its save, run as
+ * OneUptime so every monitor stays the policy's, whoever saved it.
+ */
+describe("a network alert policy's change", () => {
+  const POLICY_ID: ObjectID = new ObjectID(
+    "dd000000-0000-4000-8000-000000000001",
+  );
+  const OTHER_TEMPLATE_ID: ObjectID = new ObjectID(
+    "cc000000-0000-4000-8000-000000000002",
+  );
+
+  let toMove: Array<string>;
+
+  function policyRow(templateId: ObjectID = TEMPLATE_ID): NetworkAlertPolicy {
+    const policy: NetworkAlertPolicy = new NetworkAlertPolicy(POLICY_ID);
+    policy.projectId = PROJECT_ID;
+    policy.name = "Warehouse switches";
+    policy.monitorTemplateId = templateId;
+    return policy;
+  }
+
+  beforeEach(() => {
+    toMove = monitorIds(3);
+
+    for (const [index, id] of toMove.entries()) {
+      db.monitorNames.set(id, `WHSW0${index + 1}`);
+      db.policyOf.set(id, POLICY_ID.toString());
+    }
+
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow() as never);
+    (
+      NetworkAlertPolicyEngineService.findMonitorsToMoveToPolicyTemplate as unknown as jest.Mock
+    )
+      .mockReset()
+      .mockImplementation((async (): Promise<Array<string>> => {
+        return toMove;
+      }) as never);
+    (
+      NetworkAlertPolicyEngineService.onPolicyMonitorsMoved as unknown as jest.Mock
+    )
+      .mockReset()
+      .mockResolvedValue(undefined as never);
+  });
+
+  async function startForPolicy(
+    userId: ObjectID | null = PERSON_ID,
+  ): Promise<MonitorTemplateChange | null> {
+    return await MonitorTemplateChangeRunner.startForAlertPolicy({
+      projectId: PROJECT_ID,
+      policyId: POLICY_ID,
+      userId: userId,
+    });
+  }
+
+  test("records a change of the policy's monitors to move, with the template's settings, as the policy's, and queues it", async () => {
+    const row: MonitorTemplateChange | null = await startForPolicy();
+
+    expect(row!.status).toBe(MonitorTemplateChangeStatus.Queued);
+    expect(row!.monitorIds).toEqual(toMove);
+    expect(row!.monitorTemplateId?.toString()).toBe(TEMPLATE_ID.toString());
+    expect(row!.networkAlertPolicyId?.toString()).toBe(POLICY_ID.toString());
+    expect(row!.networkAlertPolicyName).toBe("Warehouse switches");
+    // Who to show as having asked: the person who saved the policy.
+    expect(row!.createdByUserId?.toString()).toBe(PERSON_ID.toString());
+    expect(row!.settings).toEqual({
+      kind: MonitorTemplateChangeKind.Link,
+      applyTemplateSettings: true,
+      clearTemplateSettings: false,
+      deleteTemplateWhenDone: false,
+    });
+    expect(Queue.addJob).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        NetworkAlertPolicyEngineService.findMonitorsToMoveToPolicyTemplate as unknown as jest.Mock
+      ).mock.calls[0]![0],
+    ).toEqual({
+      policy: expect.objectContaining({ id: POLICY_ID }),
+      limit: MAX_MONITORS_PER_TEMPLATE_CHANGE,
+    });
+  });
+
+  test("is started for a save no person made too: an API key, Terraform", async () => {
+    const row: MonitorTemplateChange | null = await startForPolicy(null);
+
+    expect(row!.createdByUserId).toBeUndefined();
+    expect(row!.networkAlertPolicyId?.toString()).toBe(POLICY_ID.toString());
+  });
+
+  test("is not started when nothing is to move, or the policy names no template", async () => {
+    toMove = [];
+
+    expect(await startForPolicy()).toBeNull();
+
+    const noTemplate: NetworkAlertPolicy = policyRow();
+    delete noTemplate.monitorTemplateId;
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(noTemplate as never);
+
+    expect(await startForPolicy()).toBeNull();
+    expect(db.changes.size).toBe(0);
+  });
+
+  test("is not started twice: a change of the policy to the same template still running covers it", async () => {
+    await startForPolicy();
+
+    expect(await startForPolicy()).toBeNull();
+    expect(db.changes.size).toBe(1);
+  });
+
+  test("stops a change of the policy to the template it named before, whose monitors are the new one's", async () => {
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow(OTHER_TEMPLATE_ID) as never);
+    const earlier: MonitorTemplateChange = (await startForPolicy())!;
+
+    // The earlier one got going before the policy was pointed elsewhere.
+    earlier.status = MonitorTemplateChangeStatus.Running;
+
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow(TEMPLATE_ID) as never);
+    const later: MonitorTemplateChange | null = await startForPolicy();
+
+    expect(later!.monitorTemplateId?.toString()).toBe(TEMPLATE_ID.toString());
+    expect(
+      db.changes.get(earlier.id!.toString())!.stopRequestedAt,
+    ).toBeTruthy();
+  });
+
+  test("stops a queued one at once, every monitor not reached", async () => {
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow(OTHER_TEMPLATE_ID) as never);
+    const earlier: MonitorTemplateChange = (await startForPolicy())!;
+
+    (NetworkAlertPolicyService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValue(policyRow(TEMPLATE_ID) as never);
+    await startForPolicy();
+
+    const stopped: MonitorTemplateChange = db.changes.get(
+      earlier.id!.toString(),
+    )!;
+
+    expect(stopped.status).toBe(MonitorTemplateChangeStatus.Stopped);
+    expect(progressOf(stopped).notReached).toBe(3);
+  });
+
+  test("moves each monitor as OneUptime, with the template's settings, and never reads a person's permissions", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    const memberProps: jest.Mock =
+      WorkspaceActionAuthorization.getProjectMemberProps as unknown as jest.Mock;
+    memberProps.mockClear();
+
+    expect(await run(row.id!)).toBe("done");
+
+    expect(
+      db.linked.map((link: { monitorId: string }): string => {
+        return link.monitorId;
+      }),
+    ).toEqual(toMove);
+
+    for (const link of db.linked) {
+      expect(link.props).toEqual({ isRoot: true, tenantId: PROJECT_ID });
+      expect(link.apply).toBe(true);
+    }
+
+    expect(memberProps).not.toHaveBeenCalled();
+    expect(row.status).toBe(MonitorTemplateChangeStatus.Completed);
+    expect(progressOf(row)).toMatchObject({ total: 3, changed: 3 });
+  });
+
+  test("leaves out a monitor someone moved or unlinked since: it is theirs, and the policy let it go", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    db.policyOf.delete(toMove[1]!);
+
+    await run(row.id!);
+
+    expect(
+      db.linked.map((link: { monitorId: string }): string => {
+        return link.monitorId;
+      }),
+    ).toEqual([toMove[0], toMove[2]]);
+    expect(resultsOf(row).lines).toEqual([
+      {
+        monitorId: toMove[1],
+        monitorName: "WHSW02",
+        outcome: MonitorTemplateChangeOutcome.Skipped,
+        reason: MONITOR_NO_LONGER_THE_POLICYS,
+      },
+    ]);
+  });
+
+  test("tells the policy its fleet runs the template once every monitor moved", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+
+    await run(row.id!);
+
+    expect(
+      NetworkAlertPolicyEngineService.onPolicyMonitorsMoved,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      policyId: POLICY_ID,
+      monitorTemplateId: TEMPLATE_ID,
+    });
+  });
+
+  test("tells it nothing while a monitor failed or was left out", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    db.outcomeOf = (monitorId: string): MonitorTemplateLinkResult | Error => {
+      return monitorId === toMove[2]
+        ? new Error("Postgres went away")
+        : changed();
+    };
+
+    await run(row.id!);
+
+    expect(progressOf(row)).toMatchObject({ changed: 2, failed: 1 });
+    expect(
+      NetworkAlertPolicyEngineService.onPolicyMonitorsMoved,
+    ).not.toHaveBeenCalled();
+  });
+
+  test("a retry is the policy's too, and runs as OneUptime", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    db.outcomeOf = (monitorId: string): MonitorTemplateLinkResult | Error => {
+      return monitorId === toMove[0]
+        ? new Error("Postgres went away")
+        : changed();
+    };
+
+    await run(row.id!);
+
+    db.outcomeOf = (): MonitorTemplateLinkResult => {
+      return changed();
+    };
+    db.linked = [];
+
+    const retried: MonitorTemplateChange =
+      await MonitorTemplateChangeRunner.retry({
+        projectId: PROJECT_ID,
+        props: personProps,
+        changeId: row.id!,
+      });
+
+    expect(retried.networkAlertPolicyId?.toString()).toBe(POLICY_ID.toString());
+    expect(retried.networkAlertPolicyName).toBe("Warehouse switches");
+    expect(retried.monitorIds).toEqual([toMove[0]]);
+
+    await run(retried.id!);
+
+    expect(db.linked).toEqual([
+      {
+        monitorId: toMove[0],
+        props: { isRoot: true, tenantId: PROJECT_ID },
+        apply: true,
+      },
+    ]);
+  });
+
+  test("says whose it is in its view", async () => {
+    const row: MonitorTemplateChange = (await startForPolicy())!;
+    const view: MonitorTemplateChangeView = MonitorTemplateChangeRunner.toView({
+      row: row,
+    });
+
+    expect(view).toMatchObject({
+      networkAlertPolicyId: POLICY_ID.toString(),
+      networkAlertPolicyName: "Warehouse switches",
+      isAutoImportRulePointed: false,
+    });
+  });
+});
+
+/*
+ * AN AUTO IMPORT RULE POINTED AT ANOTHER TEMPLATE CAN MOVE ITS DEVICES'
+ * MONITORS THERE FIRST (issue #11451): a person's change of the rule's
+ * devices' monitors, after which the rule is pointed at the template, once
+ * every one of them is on it - so the rule makes nothing new beside them.
+ */
+describe("an auto import rule's change", () => {
+  const RULE_ID: ObjectID = new ObjectID(
+    "ee000000-0000-4000-8000-000000000001",
+  );
+  const OLD_TEMPLATE_ID: ObjectID = new ObjectID(
+    "cc000000-0000-4000-8000-000000000009",
+  );
+  const RULE_EDITOR: Array<Permission> = [
+    ...MONITOR_EDITOR,
+    Permission.ReadNetworkDeviceAutoImportRule,
+    Permission.EditNetworkDeviceAutoImportRule,
+  ];
+
+  let ruleRow: NetworkDeviceAutoImportRule | null;
+  // What each read of the rule's devices' monitors answers, in turn.
+  let ruleMonitorReads: Array<Array<string>>;
+  let ruleMonitorProps: Array<DatabaseCommonInteractionProps>;
+  let oldTemplateType: MonitorType;
+  let pointed: Array<{ id: string; data: unknown; props: unknown }>;
+
+  function rule(
+    overrides: Partial<NetworkDeviceAutoImportRule> = {},
+  ): NetworkDeviceAutoImportRule {
+    const row: NetworkDeviceAutoImportRule = new NetworkDeviceAutoImportRule(
+      RULE_ID,
+    );
+    row.projectId = PROJECT_ID;
+    row.name = "Import core switches";
+    row.isEnabled = true;
+    row.isExclusion = false;
+    row.ipMatchTarget = "10.20.0.0/16";
+    row.monitorTemplateId = OLD_TEMPLATE_ID;
+    Object.assign(row, overrides);
+    return row;
+  }
+
+  beforeEach(() => {
+    personProps = propsWith(RULE_EDITOR);
+    ruleRow = rule();
+    ruleMonitorReads = [];
+    ruleMonitorProps = [];
+    oldTemplateType = MonitorType.NetworkDevice;
+    pointed = [];
+
+    for (const [index, id] of monitorIds(3).entries()) {
+      db.monitorNames.set(id, `CORESW0${index + 1}`);
+    }
+
+    const ruleService: Record<string, jest.Mock> =
+      NetworkDeviceAutoImportRuleService as unknown as Record<
+        string,
+        jest.Mock
+      >;
+
+    ruleService["findOneBy"]!.mockReset().mockImplementation(
+      (async (): Promise<NetworkDeviceAutoImportRule | null> => {
+        return ruleRow;
+      }) as never,
+    );
+    ruleService["findBy"]!.mockReset().mockResolvedValue([] as never);
+    ruleService["updateOneById"]!.mockReset().mockImplementation((async (data: {
+      id: ObjectID;
+      data: { monitorTemplateId: ObjectID };
+      props: unknown;
+    }): Promise<number> => {
+      pointed.push({
+        id: data.id.toString(),
+        data: data.data,
+        props: data.props,
+      });
+      if (ruleRow) {
+        ruleRow.monitorTemplateId = data.data.monitorTemplateId;
+      }
+      return 1;
+    }) as never);
+
+    (
+      MonitorTemplateService.findOneById as unknown as jest.Mock
+    ).mockImplementation((async (): Promise<MonitorTemplate> => {
+      const old: MonitorTemplate = new MonitorTemplate(OLD_TEMPLATE_ID);
+      old.monitorType = oldTemplateType;
+      old.templateName = "WB Ping Monitor Template";
+      return old;
+    }) as never);
+
+    jest
+      .spyOn(MonitorTemplateChangeRunner, "readAutoImportRuleMonitorIds")
+      .mockImplementation((async (data: {
+        props: DatabaseCommonInteractionProps;
+      }): Promise<Array<string>> => {
+        ruleMonitorProps.push(data.props);
+        return ruleMonitorReads.shift() || [];
+      }) as never);
+  });
+
+  async function startForRule(
+    overrides: Record<string, unknown> = {},
+  ): Promise<MonitorTemplateChange> {
+    return await MonitorTemplateChangeRunner.start({
+      projectId: PROJECT_ID,
+      props: personProps,
+      monitorTemplateId: TEMPLATE_ID.toString(),
+      settings: {
+        kind: MonitorTemplateChangeKind.Link,
+        applyTemplateSettings: true,
+      },
+      monitorIds: undefined,
+      autoImportRuleId: RULE_ID.toString(),
+      ...overrides,
+    });
+  }
+
+  test("records a change of the rule's devices' monitors, named for the rule, with the template's settings", async () => {
+    const ids: Array<string> = monitorIds(3);
+    ruleMonitorReads = [ids];
+
+    const row: MonitorTemplateChange = await startForRule();
+
+    expect(row.monitorIds).toEqual(ids);
+    expect(row.networkDeviceAutoImportRuleId?.toString()).toBe(
+      RULE_ID.toString(),
+    );
+    expect(row.networkDeviceAutoImportRuleName).toBe("Import core switches");
+    expect(row.networkAlertPolicyId).toBeUndefined();
+    expect(row.createdByUserId?.toString()).toBe(PERSON_ID.toString());
+    // The monitors are read as the person: one they may not see is not theirs to move.
+    expect(ruleMonitorProps[0]).toBe(personProps);
+  });
+
+  test("picks no monitors of its own: the monitors sent are not the rule's", async () => {
+    ruleMonitorReads = [["only-the-rules"]];
+
+    const row: MonitorTemplateChange = await startForRule({
+      monitorIds: monitorIds(2),
+    });
+
+    expect(row.monitorIds).toEqual(["only-the-rules"]);
+  });
+
+  test("is refused to someone who may not edit auto import rules", async () => {
+    personProps = propsWith(MONITOR_EDITOR);
+
+    await expect(startForRule()).rejects.toThrow(
+      "You may not edit auto import rules in this project, so you cannot move a rule's monitors to another template. Ask a Project Owner or Project Admin.",
+    );
+    expect(db.changes.size).toBe(0);
+  });
+
+  test.each([
+    [
+      "a rule not found",
+      (): NetworkDeviceAutoImportRule | null => {
+        return null;
+      },
+      "The auto import rule was not found. Reload the page, then try again.",
+    ],
+    [
+      "an exclusion rule",
+      (): NetworkDeviceAutoImportRule | null => {
+        return rule({ isExclusion: true });
+      },
+      "This rule gives its devices no monitor, so none of its monitors can move.",
+    ],
+    [
+      "a rule with no monitor template",
+      (): NetworkDeviceAutoImportRule | null => {
+        return rule({ monitorTemplateId: undefined as never });
+      },
+      "This rule gives its devices no monitor, so none of its monitors can move.",
+    ],
+    [
+      "a rule on the template already",
+      (): NetworkDeviceAutoImportRule | null => {
+        return rule({ monitorTemplateId: TEMPLATE_ID });
+      },
+      "The rule uses this template already, so its monitors are on it.",
+    ],
+  ])(
+    "is refused for %s",
+    async (
+      _name: string,
+      makeRule: () => NetworkDeviceAutoImportRule | null,
+      message: string,
+    ) => {
+      ruleRow = makeRule();
+
+      await expect(startForRule()).rejects.toThrow(message);
+      expect(db.changes.size).toBe(0);
+    },
+  );
+
+  test("is refused when the rule's monitors are of another type than the template", async () => {
+    oldTemplateType = MonitorType.Ping;
+
+    await expect(startForRule()).rejects.toThrow(
+      "The rule's monitors are of another type than this template, so they cannot move to it. Save the rule without moving them.",
+    );
+  });
+
+  test("is refused while a move of the rule's monitors is running already", async () => {
+    ruleMonitorReads = [monitorIds(2)];
+    await startForRule();
+
+    await expect(startForRule()).rejects.toThrow(
+      "A move of this rule's monitors is running already. Wait for it to finish, or stop it, then try again.",
+    );
+  });
+
+  test("is refused for an unlink, or a link with no template", async () => {
+    await expect(
+      startForRule({
+        settings: { kind: MonitorTemplateChangeKind.Unlink },
+        monitorTemplateId: undefined,
+      }),
+    ).rejects.toThrow(
+      "Only a change that links monitors to a template can move an auto import rule's monitors.",
+    );
+  });
+
+  test("moves the rule's monitors as the person, then points the rule at the template, as the person", async () => {
+    const ids: Array<string> = monitorIds(3);
+    // The start's read, then none made meanwhile, then none left.
+    ruleMonitorReads = [ids, [], []];
+
+    const row: MonitorTemplateChange = await startForRule();
+    await run(row.id!);
+
+    expect(
+      db.linked.map((link: { monitorId: string }): string => {
+        return link.monitorId;
+      }),
+    ).toEqual(ids);
+    expect(pointed).toEqual([
+      {
+        id: RULE_ID.toString(),
+        data: { monitorTemplateId: TEMPLATE_ID },
+        props: personProps,
+      },
+    ]);
+    // Whether any is left is OneUptime's to see, every one of them.
+    expect(ruleMonitorProps[2]).toEqual({ isRoot: true });
+    expect(resultsOf(row).isAutoImportRulePointed).toBe(true);
+    expect(MonitorTemplateChangeRunner.toView({ row: row })).toMatchObject({
+      autoImportRuleId: RULE_ID.toString(),
+      autoImportRuleName: "Import core switches",
+      isAutoImportRulePointed: true,
+    });
+  });
+
+  test("moves a monitor the rule made while the change ran too, before it points the rule", async () => {
+    const ids: Array<string> = monitorIds(2);
+    const madeMeanwhile: Array<string> = monitorIds(1);
+    ruleMonitorReads = [ids, [...ids, ...madeMeanwhile], [], []];
+
+    const row: MonitorTemplateChange = await startForRule();
+    await run(row.id!);
+
+    expect(
+      db.linked.map((link: { monitorId: string }): string => {
+        return link.monitorId;
+      }),
+    ).toEqual([...ids, ...madeMeanwhile]);
+    expect(row.monitorIds).toEqual([...ids, ...madeMeanwhile]);
+    expect(progressOf(row)).toMatchObject({ total: 3, changed: 3 });
+    expect(pointed).toHaveLength(1);
+  });
+
+  test("adds what the rule made meanwhile only so many times, then says how many are left", async () => {
+    ruleMonitorReads = [monitorIds(1)];
+
+    // A sweep that keeps importing: every round finds one more.
+    for (
+      let round: number = 0;
+      round < MAX_AUTO_IMPORT_RULE_APPEND_ROUNDS;
+      round++
+    ) {
+      ruleMonitorReads.push(monitorIds(1));
+    }
+
+    // And what OneUptime sees left on the old template at the end.
+    ruleMonitorReads.push(monitorIds(4));
+
+    const row: MonitorTemplateChange = await startForRule();
+    await run(row.id!);
+
+    expect(db.linked).toHaveLength(1 + MAX_AUTO_IMPORT_RULE_APPEND_ROUNDS);
+    expect(pointed).toEqual([]);
+    expect(resultsOf(row)).toMatchObject({
+      autoImportRuleMonitorsLeftCount: 4,
+    });
+  });
+
+  test("keeps the rule on its template while any of its devices' monitors is not moved, and says how many", async () => {
+    const ids: Array<string> = monitorIds(3);
+    // Nothing made meanwhile; one still on the old template at the end.
+    ruleMonitorReads = [ids, [], [ids[1]!]];
+    db.outcomeOf = (monitorId: string): MonitorTemplateLinkResult | Error => {
+      return monitorId === ids[1]
+        ? new BadDataException("You may not edit this monitor.")
+        : changed();
+    };
+
+    const row: MonitorTemplateChange = await startForRule();
+    await run(row.id!);
+
+    expect(pointed).toEqual([]);
+    expect(resultsOf(row)).toMatchObject({
+      autoImportRuleMonitorsLeftCount: 1,
+    });
+    expect(MonitorTemplateChangeRunner.toView({ row: row })).toMatchObject({
+      isAutoImportRulePointed: false,
+      autoImportRuleMonitorsLeftCount: 1,
+    });
+  });
+
+  test("says why when the rule could not be pointed, or was deleted meanwhile", async () => {
+    ruleMonitorReads = [monitorIds(1), [], []];
+    (
+      NetworkDeviceAutoImportRuleService.updateOneById as unknown as jest.Mock
+    ).mockRejectedValue(
+      new BadDataException(
+        "This Monitor Template is used by a network alert policy; pick a different template.",
+      ) as never,
+    );
+
+    const refused: MonitorTemplateChange = await startForRule();
+    await run(refused.id!);
+
+    expect(resultsOf(refused).autoImportRuleError).toBe(
+      "This Monitor Template is used by a network alert policy; pick a different template.",
+    );
+
+    ruleMonitorReads = [monitorIds(1)];
+    const deleted: MonitorTemplateChange = await startForRule();
+    ruleRow = null;
+    await run(deleted.id!);
+
+    expect(resultsOf(deleted).autoImportRuleError).toBe(
+      "The rule was deleted while its monitors moved, so no rule was pointed at the template.",
+    );
+  });
+
+  test("takes a rule someone pointed at the template meanwhile as pointed, and writes nothing", async () => {
+    ruleMonitorReads = [monitorIds(1)];
+    const row: MonitorTemplateChange = await startForRule();
+    ruleRow!.monitorTemplateId = TEMPLATE_ID;
+
+    await run(row.id!);
+
+    expect(pointed).toEqual([]);
+    expect(resultsOf(row).isAutoImportRulePointed).toBe(true);
+  });
+
+  test("points nothing when the change is stopped", async () => {
+    ruleMonitorReads = [monitorIds(3)];
+    const row: MonitorTemplateChange = await startForRule();
+
+    await MonitorTemplateChangeRunner.stop({
+      projectId: PROJECT_ID,
+      props: personProps,
+      changeId: row.id!,
+    });
+    await run(row.id!);
+
+    expect(row.status).toBe(MonitorTemplateChangeStatus.Stopped);
+    expect(pointed).toEqual([]);
+  });
+
+  test("a retry is the rule's too, and points it once the rest are moved", async () => {
+    const ids: Array<string> = monitorIds(2);
+    ruleMonitorReads = [ids, [], [ids[0]!]];
+    db.outcomeOf = (monitorId: string): MonitorTemplateLinkResult | Error => {
+      return monitorId === ids[0] ? new Error("Postgres went away") : changed();
+    };
+
+    const row: MonitorTemplateChange = await startForRule();
+    await run(row.id!);
+
+    expect(pointed).toEqual([]);
+
+    db.outcomeOf = (): MonitorTemplateLinkResult => {
+      return changed();
+    };
+    ruleMonitorReads = [[], []];
+
+    const retried: MonitorTemplateChange =
+      await MonitorTemplateChangeRunner.retry({
+        projectId: PROJECT_ID,
+        props: personProps,
+        changeId: row.id!,
+      });
+
+    expect(retried.networkDeviceAutoImportRuleId?.toString()).toBe(
+      RULE_ID.toString(),
+    );
+    expect(retried.monitorIds).toEqual([ids[0]]);
+
+    await run(retried.id!);
+
+    expect(pointed).toHaveLength(1);
+    expect(resultsOf(retried).isAutoImportRulePointed).toBe(true);
   });
 });

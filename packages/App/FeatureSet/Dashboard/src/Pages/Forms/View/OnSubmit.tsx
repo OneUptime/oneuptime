@@ -1,6 +1,7 @@
 import FormMappingCard from "../../../Components/FormBuilder/OnSubmit/FormMappingCard";
 import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton";
 import FormTargetCard from "../../../Components/FormBuilder/OnSubmit/FormTargetCard";
+import FormFollowUpsCard from "../../../Components/FormBuilder/OnSubmit/FormFollowUpsCard";
 import FormsCopy from "../../../Components/FormBuilder/FormsCopy";
 import PageComponentProps from "../../PageComponentProps";
 import Form from "Common/Models/DatabaseModels/Form";
@@ -25,7 +26,8 @@ import useAsyncEffect from "use-async-effect";
  * A form's On Submit page: what each submission creates, and how its
  * answers and the form's settings become that record - the "map it to an
  * incident" step. Both cards read the form as it is now, and read it again
- * after either changes it.
+ * after either changes it. Last, what happens after: whether the people
+ * who submit can follow what they sent (FormFollowUpsCard).
  */
 const FormOnSubmit: FunctionComponent<
   PageComponentProps
@@ -105,6 +107,7 @@ const FormOnSubmit: FunctionComponent<
         targetSettings={form.targetSettings}
         onSaved={reload}
       />
+      <FormFollowUpsCard formId={formId} />
     </Fragment>
   );
 };

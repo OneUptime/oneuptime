@@ -50,6 +50,8 @@ La telefonata nomina il vostro progetto. Una telefonata che non riguarda un prog
 
 Una telefonata è nella lingua in cui usate OneUptime quando l'account Twilio da cui parte parla con una delle voci di OneUptime: tutto ciò che dice, comprese le risposte ai vostri tasti, con una voce della vostra lingua, femminile se la voce dell'account è femminile e maschile se è maschile. I tasti restano gli stessi: 1 per riconoscere, 2 per escalare. Una telefonata tramite un account che mantiene la sua voce predefinita è in inglese, e lo è anche una telefonata a chi usa OneUptime in persiano, lingua che nessuna voce parla: vedete [La voce con cui parlano le chiamate](/docs/self-hosted/twilio-integration#la-voce-con-cui-parlano-le-chiamate).
 
+Anche la telefonata che verifica il vostro numero di telefono è nella vostra lingua: dice il suo codice una cifra alla volta, con una pausa tra le cifre, tre volte. Una telefonata tramite il [Gateway per SMS e chiamate](/docs/self-hosted/sms-and-call-gateway) proprio della vostra installazione riceve le sue parole nella vostra lingua, e la voce la sceglie il gateway.
+
 ## Una sola sequenza per tutto
 
 **Impostazioni utente → Come contattarmi** si apre sulla tua sequenza: passaggi numerati che ogni chiamata prova a turno, per incidenti, avvisi ed episodi di qualsiasi gravità. Ogni passaggio è un momento, ad esempio subito o dopo 5 minuti, con i metodi verificati che partono insieme in quel momento. Un passaggio successivo parte solo se nessuno ha ancora confermato la chiamata.

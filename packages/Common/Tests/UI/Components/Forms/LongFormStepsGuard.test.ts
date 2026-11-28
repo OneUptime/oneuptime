@@ -397,6 +397,12 @@ export const UNCOUNTABLE_FORMS: Array<ListedForm> = [
       "A public form whose questions are the customer's own design in Forms (an incident report or a maintenance request: title, description, their custom fields, the submitter's details, a CAPTCHA). Someone reporting an outage fills it in one go, in two columns on a wide screen; a Next before the submitter's details and the CAPTCHA would only slow that down.",
   },
   {
+    file: "packages/App/FeatureSet/Accounts/src/Components/FormFollowUp/FormFollowUpView.tsx",
+    form: "BasicForm: form-request-reply",
+    reason:
+      "The reply box under a request's conversation, built by the public form's own builder from the questions the server checks a reply with (getFormFollowUpReplyFields, buildPublicFormFields): a message and its files, two fields under the messages they answer. A Next between writing and attaching would split one message in two.",
+  },
+  {
     file: `${DASHBOARD}/Components/FormBuilder/Builder/FormPreviewModal.tsx`,
     form: "BasicForm: form-preview-form",
     reason:

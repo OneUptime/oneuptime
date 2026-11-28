@@ -257,6 +257,7 @@
     "Forms Overview": "Formulare – Übersicht",
     "Building a Form": "Ein Formular erstellen",
     "What a Submission Creates": "Was eine Einreichung erstellt",
+    "Following Up on a Submission": "Eine Einreichung nachverfolgen",
     "Sharing & Security": "Teilen & Sicherheit",
     "Workflows Overview": "Workflows – Übersicht",
     "Authoring a Workflow": "Einen Workflow erstellen",
@@ -511,6 +512,7 @@
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
     "Cloudflare": "Cloudflare",
+    "CrowdSec": "CrowdSec",
     "Global SSO": "Globales SSO",
     "Import and Export Label Rules": "Beschriftungsregeln importieren und exportieren",
     "Run Rules on Existing Resources": "Regeln für bestehende Ressourcen ausführen"

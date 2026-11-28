@@ -50,6 +50,8 @@ L'appel nomme votre projet. Un appel qui ne concerne aucun projet, comme un code
 
 Un appel est dans la langue dans laquelle vous utilisez OneUptime quand le compte Twilio par lequel il passe parle avec l'une des voix de OneUptime : tout ce qu'il dit, y compris les réponses à vos touches, avec une voix de votre langue, une voix de femme si la voix du compte est une voix de femme, et une voix d'homme si c'est une voix d'homme. Les touches restent les mêmes : 1 pour prendre en compte, 2 pour escalader. Un appel passé par un compte qui garde sa voix par défaut est en anglais, tout comme un appel vers quelqu'un qui utilise OneUptime en persan, qu'aucune voix ne parle : voir [La voix avec laquelle parlent les appels](/docs/self-hosted/twilio-integration#la-voix-avec-laquelle-parlent-les-appels).
 
+L'appel qui vérifie votre numéro de téléphone est lui aussi dans votre langue : il dit son code chiffre par chiffre, avec une pause entre les chiffres, trois fois. Un appel passé par la [Passerelle SMS et appels](/docs/self-hosted/sms-and-call-gateway) propre à votre installation reçoit ses mots dans votre langue, et la passerelle choisit la voix.
+
 ## Une seule séquence pour tout
 
 **Paramètres utilisateur → Comment me joindre** s'ouvre sur votre séquence : des étapes numérotées que chaque appel essaie tour à tour, pour les incidents, les alertes et les épisodes de toute gravité. Chaque étape est un moment, par exemple tout de suite ou après 5 minutes, avec les méthodes vérifiées qui partent ensemble à ce moment-là. Une étape suivante ne part que si personne n'a encore pris l'appel en compte.

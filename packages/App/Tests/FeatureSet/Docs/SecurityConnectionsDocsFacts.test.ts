@@ -104,6 +104,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Permission from "Common/Types/Permission";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
 import {
+  areSecurityEventConnectorAlertsPushed,
   BLOCK_INDICATORS_KEY,
   ConnectorField,
   ENTRA_BACKGROUND_SIGN_INS_KEY,
@@ -212,6 +213,24 @@ const CONNECTION_PAGES: Array<ConnectionPage> = [
     messagePrefix: "Cloudflare",
   },
 ];
+
+/*
+ * The connection pages of the products OneUptime polls: every page but
+ * those of a product that sends its alerts (alertsArePushed, CrowdSec),
+ * which has no poll, no preview and no import of its own.
+ */
+const POLLED_CONNECTION_PAGES: Array<string> = SECURITY_CONNECTION_PAGES.filter(
+  (page: string): boolean => {
+    const definition: SecurityEventConnectorDefinition | undefined =
+      SecurityEventConnectorCatalog.find(
+        (candidate: SecurityEventConnectorDefinition): boolean => {
+          return candidate.docsPath === `/docs/${page}`;
+        },
+      );
+
+    return !areSecurityEventConnectorAlertsPushed(definition?.provider);
+  },
+);
 
 const TOKEN: DataSourceHttpResponse = json(200, {
   token_type: "Bearer",
@@ -1792,9 +1811,14 @@ describe("Google SecOps", () => {
     expect(page).toContain(
       '"https://oneuptime.com/security-events/v1/ingest?format=udm"',
     );
-    expect(Object.values(SecurityEventFormat).sort()).toEqual(
-      ["udm", "ocsf", "google-secops-alert", "generic"].sort(),
-    );
+    // Every format but CrowdSec's, which its own notification names (#11158).
+    expect(
+      Object.values(SecurityEventFormat)
+        .filter((format: SecurityEventFormat): boolean => {
+          return format !== SecurityEventFormat.CrowdSec;
+        })
+        .sort(),
+    ).toEqual(["udm", "ocsf", "google-secops-alert", "generic"].sort());
     expect(page).toContain(
       "`format` can be `udm`, `ocsf`, `google-secops-alert` or `generic`.",
     );
@@ -1826,7 +1850,8 @@ describe("every connection page in every language: the labels built from a sente
   const PREVIEW: string = "Preview {{records}}";
 
   it("each page's Preview button names the records its connector imports, as the diagnostics fill the sentence", () => {
-    for (const page of SECURITY_CONNECTION_PAGES) {
+    // A product that sends its alerts (CrowdSec) has nothing to preview.
+    for (const page of POLLED_CONNECTION_PAGES) {
       const definition: SecurityEventConnectorDefinition =
         SecurityEventConnectorCatalog.find(
           (candidate: SecurityEventConnectorDefinition): boolean => {
@@ -1947,13 +1972,17 @@ describe("every connection page together", () => {
         },
       ).sort(),
     );
-    // Every page but Google SecOps's is read by the tests every page shares.
+    /*
+     * Every page but Google SecOps's is read by the tests every polled
+     * page shares; CrowdSec's, whose alerts are sent, by its own
+     * (CrowdSecDocsFacts).
+     */
     expect(
       CONNECTION_PAGES.map((entry: ConnectionPage): string => {
         return entry.page;
       }).sort(),
     ).toEqual(
-      SECURITY_CONNECTION_PAGES.filter((page: string): boolean => {
+      POLLED_CONNECTION_PAGES.filter((page: string): boolean => {
         return page !== GOOGLE_SECOPS;
       }).sort(),
     );

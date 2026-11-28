@@ -127,9 +127,15 @@ function snapshotMetricNames() {
   const source = fs.readFileSync(PLATFORM_PATH, "utf8");
   const block = source.match(/snapshotMetricNames: \[([\s\S]*?)\n {2}\],/);
   expect(block).not.toBeNull();
-  return [...block[1].matchAll(/"(powerscale_[a-z0-9_]+)"/g)].map((match) => {
-    return match[1];
-  });
+  const names = [...block[1].matchAll(/"(powerscale_[a-z0-9_]+)"/g)].map(
+    (match) => {
+      return match[1];
+    },
+  );
+  // Names written another way (single quotes, constants) would read as none,
+  // and "every series the platform reads" would check nothing (#11403).
+  expect(names.length).toBeGreaterThan(0);
+  return names;
 }
 
 // The metric names the config sends: its receivers' and the transform's copies.
@@ -524,6 +530,9 @@ describe("install.sh for a PowerScale cluster", () => {
       // An IPv6 address in brackets, as udp://[...]:161 needs it.
       POWERSCALE_NODE_4: "'[fd00::14]'",
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
+      // Named after its directory, <scratch>/agent, as every second array's agent is (#11168).
+      STORAGE_ARRAY_AGENT_CONTAINER_NAME:
+        "'oneuptime-storage-array-agent-agent'",
     });
     // The community was read without echo, and no TLS question was asked.
     expect(run.output).not.toContain(COMMUNITY);

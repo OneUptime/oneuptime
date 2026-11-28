@@ -201,6 +201,8 @@ const FORM_COLUMNS: Array<string> = [
   "templates",
   "targetSettings",
   "successMessage",
+  // Whether its submitters can follow what they sent (Types/Form/FormFollowUp).
+  "enableFollowUps",
   "ipWhitelist",
   // Its branding (AddFormBranding1797700000000).
   "logoFile",
@@ -225,6 +227,7 @@ const FORM_SETTINGS_COLUMNS: Array<string> = [
   "templates",
   "targetSettings",
   "successMessage",
+  "enableFollowUps",
   "ipWhitelist",
   "logoFile",
   "logoFileId",
@@ -241,6 +244,8 @@ const SUBMISSION_COLUMNS: Array<string> = [
   "form",
   "formId",
   "answers",
+  // The title its record was created with (Types/Form/FormFollowUp).
+  "title",
   "submitterName",
   "submitterEmail",
   "targetType",

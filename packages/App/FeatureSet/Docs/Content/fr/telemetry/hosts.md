@@ -79,6 +79,16 @@ Chaque instance de OneUptime sert ses propres programmes d'installation, si bien
 La dernière étape de la boîte de dialogue indique quand l'hôte se connecte, avec un lien vers lui. Dans la liste, il apparaît en **Démarrage** jusqu'à l'arrivée de ses premières métriques, en général dans la minute, puis avec sa santé, **Sain** quand rien sur lui ne mérite un coup d'œil, et son collecteur **En cours d'exécution**. La page **Topologie** de l'hôte dessine sur une seule carte ce qui tourne dessus, ce qui l'appelle et ce qu'il appelle : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource).
 :::
 
+## Ce qui compte comme hôte
+
+La liste **Hôtes** répertorie les machines qui envoient leur propre télémétrie depuis un collecteur installé sur la machine. La télémétrie d'autres sources nomme aussi une machine dans `host.name`, sans jamais ajouter d'hôte :
+
+- celle d'un hôte Docker ou Podman, qui porte `container.runtime` : elle figure sous **Docker** ou **Podman** ;
+- celle d'un cluster, d'un nœud ou d'un pod Kubernetes, qui porte `k8s.cluster.name`, `k8s.node.name` ou `k8s.pod.name` : elle figure sous **Kubernetes** ;
+- celle d'un conteneur lui-même, qui porte `container.id`, et celle d'une application, qui porte `telemetry.sdk.name` : elle figure sous le service de l'application.
+
+Les versions précédentes ajoutaient certaines de ces machines comme hôtes : les hôtes Docker et Podman, les nœuds et les pods Kubernetes, et un hôte pour chaque pod d'une application qui exporte directement vers OneUptime, un de plus à chaque déploiement. La mise à niveau les a archivés, chacun avec une entrée dans son fil d'activité qui dit pourquoi. Elle a gardé chaque hôte que vous avez ajouté vous-même, chaque hôte dont OneUptime gère le collecteur et chaque hôte qui a envoyé les mesures propres à un hôte. Les hôtes archivés se trouvent sous **Avancé → Archivé** dans la liste **Hôtes**, où **Désarchiver** en ramène un.
+
 ## Voir quels hôtes requièrent attention
 
 La liste **Hôtes** commence par **Attention requise** : chaque hôte en panne ou qui mérite un coup d'œil, le plus urgent d'abord, chacun avec la raison et une étape vers sa page. Un hôte qui ne remonte plus de données indique quand il l'a fait pour la dernière fois. Quand rien ne requiert attention, il n'y a pas de carte.

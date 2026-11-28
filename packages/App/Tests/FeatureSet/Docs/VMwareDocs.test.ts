@@ -258,6 +258,30 @@ function composeEnvironmentVariables(): Array<string> {
   return names;
 }
 
+/*
+ * The containers' names the compose file reads from .env: every service
+ * runs as `container_name: ${NAME:-default}`, so a second vCenter's agent
+ * on the same machine runs under names of its own (#11434).
+ */
+function composeContainerNameVariables(): Array<string> {
+  const compose: string = fs.readFileSync(
+    path.join(AGENT_DIR, "docker-compose.yml"),
+    "utf8",
+  );
+  const names: Array<string> = Array.from(
+    compose.matchAll(/^ {4}container_name: \$\{([A-Z][A-Z0-9_]+):-[^}]+\}$/gm),
+  ).map((match: RegExpMatchArray): string => {
+    return match[1] as string;
+  });
+
+  expect(names).toEqual([
+    "VMWARE_AGENT_CONTAINER_NAME",
+    "VMWARE_AI_AGENT_CONTAINER_NAME",
+  ]);
+
+  return names;
+}
+
 function navGroup(title: string): NavGroup {
   const group: NavGroup | undefined = DocsNav.find(
     (item: NavGroup): boolean => {
@@ -653,7 +677,7 @@ describe("VMware docs", (): void => {
   });
 
   describe("telemetry page", (): void => {
-    it("documents every environment variable the agent's docker-compose.yml passes, and nothing else", (): void => {
+    it("documents every environment variable the agent's docker-compose.yml passes, and every container's name, and nothing else", (): void => {
       const table: string = section(
         readPage(TELEMETRY_PAGE),
         "## Environment variables",
@@ -670,7 +694,12 @@ describe("VMware docs", (): void => {
           return name !== null;
         });
 
-      expect(documented.sort()).toEqual(composeEnvironmentVariables().sort());
+      expect(documented.sort()).toEqual(
+        [
+          ...composeEnvironmentVariables(),
+          ...composeContainerNameVariables(),
+        ].sort(),
+      );
     });
 
     it("uses the same .env example the compose quick start and the E2E spec expect", (): void => {

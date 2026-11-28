@@ -257,6 +257,7 @@
     "Forms Overview": "نمای کلی فرم‌ها",
     "Building a Form": "ساختن فرم",
     "What a Submission Creates": "ارسال چه چیزی ایجاد می‌کند",
+    "Following Up on a Submission": "پیگیری یک ارسال",
     "Sharing & Security": "اشتراک‌گذاری و امنیت",
     "Workflows Overview": "نمای کلی گردش‌های کاری",
     "Authoring a Workflow": "نوشتن یک گردش کاری",
@@ -511,6 +512,7 @@
     "Microsoft Entra ID": "Microsoft Entra ID",
     "Google Workspace": "Google Workspace",
     "Cloudflare": "Cloudflare",
+    "CrowdSec": "CrowdSec",
     "Global SSO": "SSO سراسری",
     "Import and Export Label Rules": "وارد کردن و صادر کردن قواعد برچسب",
     "Run Rules on Existing Resources": "اجرای قواعد روی منابع موجود"

@@ -93,6 +93,7 @@ import {
 import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface from "../../../Types/Telemetry/TelemetryIngestSurface";
+import { TelemetryIngestRefusalReason } from "../../../Types/Telemetry/TelemetryIngestRefusal";
 
 type MockFn = jest.Mock;
 
@@ -232,10 +233,73 @@ describe("a project far ahead of the workers", () => {
     expect((asked["projectId"] as ObjectID).toString()).toBe(PROJECT_ID);
     expect(asked["signal"]).toBe(ProductType.Metrics);
 
-    // Not a refusal of the key: nothing to put right on its page.
-    expect(TelemetryIngestRefusalRecorder.record).not.toHaveBeenCalled();
+    /*
+     * Counted against the key (#11440), under the signal's own surface and
+     * a reason of the queue's own, so the project's pages say OneUptime
+     * refused it while catching up. The key is not in use for it.
+     */
+    expect(TelemetryIngestRefusalRecorder.record).toHaveBeenCalledTimes(1);
+    expect(TelemetryIngestRefusalRecorder.record).toHaveBeenCalledWith({
+      projectId: policy.projectId,
+      ingestionKeyId: policy.ingestionKeyId,
+      reason: TelemetryIngestRefusalReason.QueueBacklogged,
+      surface: TelemetryIngestSurface.OtelMetrics,
+    });
     expect(TelemetryIngestionKeyService.markUsed).not.toHaveBeenCalled();
   });
+
+  test("the queue nearly full for everyone is counted under a reason of its own", async () => {
+    getRefusal.mockReturnValue({
+      ...shed(ProductType.Traces),
+      kind: TelemetryIngestionBudgetRefusalKind.QueueFull,
+    });
+
+    const result: RunResult = await run(TelemetryIngestSurface.OtelTraces, {
+      headers: { "content-type": "application/json" },
+    });
+
+    // Retryable, as a backlog is.
+    expect(result.sent.status).toBe(429);
+    expect(result.sent.headers["Retry-After"]).toBe("30");
+    expect(TelemetryIngestRefusalRecorder.record).toHaveBeenCalledWith({
+      projectId: policy.projectId,
+      ingestionKeyId: policy.ingestionKeyId,
+      reason: TelemetryIngestRefusalReason.QueueFull,
+      surface: TelemetryIngestSurface.OtelTraces,
+    });
+  });
+
+  test.each([
+    [TelemetryIngestSurface.Syslog, TelemetryIngestSurface.OtelLogs],
+    [TelemetryIngestSurface.Fluent, TelemetryIngestSurface.OtelLogs],
+    [TelemetryIngestSurface.Loki, TelemetryIngestSurface.OtelLogs],
+    [
+      TelemetryIngestSurface.PrometheusRemoteWrite,
+      TelemetryIngestSurface.OtelMetrics,
+    ],
+    [TelemetryIngestSurface.Pyroscope, TelemetryIngestSurface.OtelProfiles],
+    [
+      TelemetryIngestSurface.SecurityEvents,
+      TelemetryIngestSurface.SecurityEvents,
+    ],
+  ])(
+    "a refusal on %s is counted under its signal's own surface, %s",
+    async (
+      surface: TelemetryIngestSurface,
+      countedUnder: TelemetryIngestSurface,
+    ) => {
+      getRefusal.mockReturnValue(shed(ProductType.Logs));
+
+      await run(surface);
+
+      expect(
+        (
+          (TelemetryIngestRefusalRecorder.record as unknown as MockFn).mock
+            .calls[0]![0] as Record<string, unknown>
+        )["surface"],
+      ).toBe(countedUnder);
+    },
+  );
 
   test("OTLP over JSON: 429 with the Status as JSON", async () => {
     getRefusal.mockReturnValue(shed(ProductType.Logs));
@@ -302,6 +366,8 @@ describe("everyone else", () => {
     expect(admit).toHaveBeenCalledTimes(1);
     expect(result.next).toHaveBeenCalledWith();
     expect(result.sent.status).toBeNull();
+    // Nothing refused, nothing counted.
+    expect(TelemetryIngestRefusalRecorder.record).not.toHaveBeenCalled();
   });
 
   test.each([

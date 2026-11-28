@@ -1251,6 +1251,123 @@ const RUM_SESSION_IDENTIFY: TelemetryLeakEvalCase = {
   },
 };
 
+/*
+ * ---------------------------------------------------------------------------
+ * 8. A web application tags its sessions with the customer's email: found by
+ *    the session recorder call that gave the tag, setTags() (#11458). A tag
+ *    is stored as sent and read by everyone who can list sessions.
+ * ---------------------------------------------------------------------------
+ */
+
+const TAGS_JS: string = [
+  '"use strict";',
+  "",
+  'const recorder = require("./recorder");',
+  "",
+  "// Tags the signed-in customer's recorded session, for support to find it.",
+  "function tagSession(customer) {",
+  "  recorder.setTags({ customer: customer.email, plan: customer.plan });",
+  "}",
+  "",
+  "module.exports = { tagSession };",
+  "",
+].join("\n");
+
+// The session recorder as the page loads it: the tags each session carries.
+const TAGGING_RECORDER_JS: string = [
+  '"use strict";',
+  "",
+  "const sessions = [];",
+  "",
+  "function setTags(tags) {",
+  "  sessions.push({ tags: { ...(tags || {}) } });",
+  "}",
+  "",
+  "function reset() {",
+  "  sessions.length = 0;",
+  "}",
+  "",
+  "module.exports = { setTags, sessions, reset };",
+  "",
+].join("\n");
+
+const RUM_SESSION_TAGS: TelemetryLeakEvalCase = {
+  id: "session-tagged-with-the-customers-email",
+  title:
+    "A web application tags the customer's recorded session with their email",
+  ownerKind: TelemetryLeakFixOwnerKind.RumApplication,
+  serviceId: "5e000000-0000-4000-8000-000000000008",
+  serviceName: "storefront-web",
+  files: {
+    "package.json": PACKAGE_JSON("storefront-web"),
+    "src/tags.js": TAGS_JS,
+    "src/recorder.js": TAGGING_RECORDER_JS,
+    "test/tags.test.js": [
+      '"use strict";',
+      "",
+      'const test = require("node:test");',
+      'const assert = require("node:assert");',
+      'const recorder = require("../src/recorder");',
+      'const { tagSession } = require("../src/tags");',
+      "",
+      'test("a signed-in session is tagged", () => {',
+      "  recorder.reset();",
+      '  tagSession({ id: "c-1", email: "a@example.org", plan: "pro" });',
+      "  assert.strictEqual(recorder.sessions.length, 1);",
+      "});",
+      "",
+    ].join("\n"),
+  },
+  findings: [
+    {
+      findingId: "f1000000-0000-4000-8000-00000000000a",
+      issueId: "15000000-0000-4000-8000-000000000801",
+      dataStoreId: "51000000-0000-4000-8000-000000000801",
+      storeKind: DataStoreKind.TelemetrySessionReplays,
+      checkId: SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+      location: "sessions.tags.customer",
+      dataTypeId: "email-address",
+      rows: [
+        {
+          recordTime: at(800),
+          readSessionId: "s-9a1b",
+          readPage:
+            "https://shop.example.com/orders/ada.l@example.com/receipt?ref=mail",
+        },
+      ],
+      leadsTo: [
+        {
+          file: "src/tags.js",
+          line: lineOf(TAGS_JS, "recorder.setTags"),
+        },
+      ],
+      values: ["ada.l@example.com"],
+    },
+  ],
+  expectStrategy: TelemetryLeakFixStrategy.CallSites,
+  expect: [
+    {
+      path: "src/tags.js",
+      mustMatch: ["setTags\\("],
+      mustNotMatch: ["customer\\.email"],
+    },
+  ],
+  check: [
+    'const recorder = load("src/recorder.js");',
+    'const { tagSession } = load("src/tags.js");',
+    "recorder.reset();",
+    'tagSession({ id: "c-4821", email: "ada.l@example.com", plan: "pro" });',
+    'assert.strictEqual(recorder.sessions.length, 1, "the session is no longer tagged");',
+    'assert.ok(!JSON.stringify(recorder.sessions).includes("ada.l@example.com"), "the email address is still a tag of the session");',
+  ].join("\n"),
+  solution: {
+    "src/tags.js": TAGS_JS.replace(
+      "customer: customer.email,",
+      "customer: customer.id,",
+    ),
+  },
+};
+
 export const TELEMETRY_LEAK_EVAL_SET: ReadonlyArray<TelemetryLeakEvalCase> = [
   SPAN_AND_LOG,
   TWENTY_PLACES,
@@ -1259,6 +1376,7 @@ export const TELEMETRY_LEAK_EVAL_SET: ReadonlyArray<TelemetryLeakEvalCase> = [
   TEMPLATE_ONLY,
   RUM_LOG_STACK,
   RUM_SESSION_IDENTIFY,
+  RUM_SESSION_TAGS,
 ];
 
 // The source a telemetry store's records are read from: what the locator reads a row as.

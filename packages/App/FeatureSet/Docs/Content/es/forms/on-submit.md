@@ -201,5 +201,6 @@ Una pregunta de archivos guarda en el navegador los archivos que elige quien rel
 - [Crear un formulario](/docs/forms/building): Las preguntas que alimentan estos campos, las preguntas ocultas y las plantillas.
 - [Configuración y automatización de incidentes](/docs/incidents/settings): Plantillas de incidente y campos personalizados.
 - [Notas, responsables y actividad de incidentes](/docs/incidents/notes-owners-and-feed): Notas privadas, notas públicas y propietarios.
+- [Seguimiento de un envío](/docs/forms/follow-ups): Quienes envían siguen su solicitud, escriben a tu equipo y añaden a otras personas.
 - [Compartir y seguridad](/docs/forms/sharing-and-security): Quién puede enviar, y con qué frecuencia.
 :::

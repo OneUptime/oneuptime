@@ -191,7 +191,7 @@ Var och en av de här widgetarna listar resurserna som en agent eller en collect
 
 | Grupp | Widgetar | Fylls i av |
 | --- | --- | --- |
-| **Värdar** | **Värdar**, med deras anslutningsstatus, OS, CPU och minne | Valfri OpenTelemetry-collector som skickar `host.name` |
+| **Värdar** | **Värdar**, med deras anslutningsstatus, OS, CPU och minne | Insamlaren på varje värd: se [Vad som räknas som en värd](/docs/telemetry/hosts#vad-som-räknas-som-en-värd) |
 | **Kubernetes** | **Poddar**, **Noder**, **Namnrymder**, **Distributioner**, **StatefulSets**, **DaemonSets**, **Jobb**, **CronJobs** | [Kubernetes-agent](/docs/monitor/kubernetes-agent) |
 | **Docker** | **Värdar**, **Behållare**, **Avbildningar**, **Nätverk**, **Volymer** | Docker-agenten |
 | **Docker Swarm** | **Noder**, **Tjänster** | Docker Swarm-agenten |

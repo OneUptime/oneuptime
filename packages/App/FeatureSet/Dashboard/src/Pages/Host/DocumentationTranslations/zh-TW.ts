@@ -49,10 +49,10 @@ const TRANSLATION: SetupGuideTranslation = {
     "- `hostmetrics` 接收器的指標（CPU、記憶體、磁碟、檔案系統、網路、負載、處理程序），或",
   "- `process` scraper metrics (per-process CPU/memory/threads), OR":
     "- `process` 擷取器的指標（每個處理程序的 CPU/記憶體/執行緒），或",
-  "- an `os.type` or `container.runtime` resource attribute, on metrics, logs or traces":
-    "- 指標、日誌或追蹤上的 `os.type` 或 `container.runtime` 資源屬性",
-  "…and starts populating the Overview, Metrics, Processes, and Logs tabs. `host.id` or `host.arch` alone do not register a host, and telemetry that carries a Kubernetes identity (`k8s.cluster.name`, `k8s.node.name`, `k8s.pod.name`, …) is filed under its Kubernetes cluster instead.":
-    "……並開始填入概覽、指標、處理程序與日誌索引標籤。只有 `host.id` 或 `host.arch` 不會註冊主機，而帶有 Kubernetes 身分（`k8s.cluster.name`、`k8s.node.name`、`k8s.pod.name`、…）的遙測會改為歸入其 Kubernetes 叢集。",
+  "- an `os.type` resource attribute, on metrics, logs or traces":
+    "- 指標、日誌或追蹤上的 `os.type` 資源屬性",
+  "…and starts populating the Overview, Metrics, Processes, and Logs tabs. `host.id` or `host.arch` alone do not register a host. Telemetry that carries a Kubernetes identity (`k8s.cluster.name`, `k8s.node.name`, `k8s.pod.name`, …) is filed under its Kubernetes cluster instead, and telemetry that names a container runtime (`container.runtime`), a container (`container.id`) or an application's OpenTelemetry SDK (`telemetry.sdk.name`) never registers a host: it is a Docker or Podman host's, a container's or an app's, not the host's own.":
+    "……並開始填入概覽、指標、處理程序與日誌索引標籤。只有 `host.id` 或 `host.arch` 不會註冊主機。帶有 Kubernetes 身分（`k8s.cluster.name`、`k8s.node.name`、`k8s.pod.name`、…）的遙測會改為歸入其 Kubernetes 叢集；指明容器執行階段（`container.runtime`）、容器（`container.id`）或應用程式 OpenTelemetry SDK（`telemetry.sdk.name`）的遙測絕不會註冊主機：它來自 Docker 或 Podman 主機、容器或應用程式，而不是主機本身。",
   "**Running on OpenStack?** Use `detectors: [nova, system, env]`, so `host.id` is the instance's UUID and OneUptime links this host to its instance, and set `host.name` to `enabled: false` under `nova: resource_attributes:` so its name stays the one `system` reports.":
     "**在 OpenStack 上執行？** 使用 `detectors: [nova, system, env]`，這樣 `host.id` 就是執行個體的 UUID，OneUptime 會把這台主機連結到它的執行個體；並在 `nova: resource_attributes:` 下把 `host.name` 設為 `enabled: false`，讓它的名稱維持為 `system` 回報的名稱。",
   "The same resource attributes become the machine's **Inventory** item, which is what a CMDB export reads. `host.ip`, `host.mac`, `host.arch`, `host.id`, `os.type`, `os.description` and `os.version` all come from the `resourcedetection` processor; serial number, make, model and firmware version have no detector and are stamped on separately (see **Record the serial number, make, model and firmware version**).":

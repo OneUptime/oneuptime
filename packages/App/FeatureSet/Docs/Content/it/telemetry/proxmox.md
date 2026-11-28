@@ -112,6 +112,10 @@ PVE_NODES=[192.168.1.10,192.168.1.11,192.168.1.12]
 PVE_API_TOKEN_ID=monitoring@pam!oneuptime
 PVE_API_TOKEN_SECRET=your-token-secret
 COMPOSE_PROFILES=pve-exporter
+PROXMOX_AGENT_CONTAINER_NAME=oneuptime-proxmox-agent
+PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME=oneuptime-pve-api-failover
+PROXMOX_PVE_EXPORTER_CONTAINER_NAME=oneuptime-pve-exporter
+PROXMOX_AI_AGENT_CONTAINER_NAME=oneuptime-proxmox-ai-agent
 ```
 
 `PVE_NODES` elenca ogni nodo al suo indirizzo, tra parentesi quadre, e `COMPOSE_PROFILES=pve-exporter` avvia anche l'exporter incluso. Avvia l'agent:
@@ -161,6 +165,10 @@ Lo script di installazione le scrive in `/opt/oneuptime-proxmox-agent/.env`; un'
 | `PVE_API_TOKEN_SECRET` | Exporter incluso o agente IA | Il secret del token API di Proxmox. |
 | `PVE_VERIFY_SSL` | No | Verifica il certificato TLS dell'API di Proxmox (l'exporter e l'agente IA). Il valore predefinito è `false`, perché Proxmox viene fornito con certificati autofirmati. |
 | `COMPOSE_PROFILES` | No | Impostalo su `pve-exporter` per avviare il container dell'exporter incluso. |
+| `PROXMOX_AGENT_CONTAINER_NAME` | No | Il nome del container del collector. Il valore predefinito è `oneuptime-proxmox-agent`. L'agent di un secondo cluster sulla stessa macchina ha bisogno di nomi propri: vedi [Monitorare più cluster](#monitorare-più-cluster). Lo script di installazione dà ai container di un nuovo agent il nome della sua cartella, a meno che tu non li imposti, e li mantiene quando esegui di nuovo lo script. |
+| `PROXMOX_PVE_API_FAILOVER_CONTAINER_NAME` | No | Il nome del container del sidecar di failover dell'API. Il valore predefinito è `oneuptime-pve-api-failover` e, per un secondo agent, un nome accanto a quello del suo collector, come `oneuptime-pve-api-failover-cluster2`. |
+| `PROXMOX_PVE_EXPORTER_CONTAINER_NAME` | No | Il nome del container dell'exporter incluso. Il valore predefinito è `oneuptime-pve-exporter` e, per un secondo agent, un nome accanto a quello del suo collector, come `oneuptime-pve-exporter-cluster2`. |
+| `PROXMOX_AI_AGENT_CONTAINER_NAME` | No | Il nome del container dell'agente IA. Il valore predefinito è `oneuptime-proxmox-ai-agent` e, per un secondo agent, un nome accanto a quello del suo collector, come `oneuptime-proxmox-ai-agent-cluster2`. |
 
 ## Cosa raccoglie l'agent
 
@@ -336,6 +344,18 @@ Se ti servono, esegui invece l'agent e rimuovi il server delle metriche: eseguir
 
 I risultati dei backup, i nodi isolati e le repliche fallite arrivano comunque a OneUptime: [invia le notifiche di Proxmox VE](#invia-le-notifiche-di-proxmox-ve), che funzionano anche con il push nativo.
 
+## Monitorare più cluster
+
+Un agent legge un cluster. Per monitorarne diversi dalla stessa macchina, installa ciascuno nella propria cartella, con il proprio `.env` e nomi di container propri, perché due container non possono condividere un nome:
+
+```bash
+INSTALL_DIR=/opt/oneuptime-proxmox-agent-cluster2 bash install.sh
+```
+
+Lo script dà ai container dell'agent nomi ricavati dalla cartella: `oneuptime-proxmox-agent-cluster2`, `oneuptime-pve-api-failover-cluster2`, `oneuptime-pve-exporter-cluster2` e `oneuptime-proxmox-ai-agent-cluster2`. Per sceglierli tu, imposta `PROXMOX_AGENT_CONTAINER_NAME`, e gli altri della tabella qui sopra, quando lo esegui. Lo script salva i nomi nel `.env` di quell'agent, quindi i nomi restano quando esegui di nuovo lo script per aggiornare l'agent, e un agent di cui hai modificato una volta il `container_name` in `docker-compose.yml` mantiene quel nome. Dai a ogni cartella un nome proprio: Docker Compose dà a un progetto il nome della sua sola cartella, quindi lo script rifiuta una cartella che si chiama come un'altra in cui gira già un agent altrove. Con Docker Compose, imposta invece i nomi nel `.env` di ciascun agent.
+
+L'unità systemd presuppone `/opt/oneuptime-proxmox-agent`: per un'altra cartella, salvala con un altro nome, come `oneuptime-proxmox-agent-cluster2.service`, e cambia il suo `WorkingDirectory`. Passa la cartella allo script di diagnostica con `-d`.
+
 ## Eseguire come servizio systemd
 
 Per avviare l'agent insieme alla macchina e riavviarlo quando si blocca, installa la sua unità systemd. Presuppone che l'agent si trovi in `/opt/oneuptime-proxmox-agent`, dove lo mette lo script di installazione:
@@ -350,7 +370,7 @@ sudo systemctl enable --now oneuptime-proxmox-agent
 
 L'agent riporta come sua **Versione dell'agente** la versione del collector fissata dai suoi file. Quando è più vecchia della versione fissata da questa release di OneUptime, compare un segnale di avviso accanto a essa nella **Panoramica** del cluster. Selezionalo per vedere questi comandi. Un agent installato prima che i suoi file riportassero una versione non ne mostra nessuna finché non viene aggiornato in questo modo.
 
-L'immagine del collector è fissata in `docker-compose.yml` e la sua configurazione è un file accanto, quindi scaricare le immagini da solo non porta avanti l'agent. Esegui di nuovo `install.sh`: riutilizza ogni valore del tuo `.env` esistente (non viene chiesto nulla di nuovo), aggiorna `docker-compose.yml` e `otel-collector-config.yaml` (un file che hai modificato viene conservato come `<file>.bak.<timestamp>`), scarica le immagini e ricrea l'agent così che il collector legga la sua nuova configurazione. Un `.env` precedente a `PVE_NODES` continua a leggere solo `PVE_HOST`, e lo script indica i nodi da aggiungere.
+L'immagine del collector è fissata in `docker-compose.yml` e la sua configurazione è un file accanto, quindi scaricare le immagini da solo non porta avanti l'agent. Esegui di nuovo `install.sh`: riutilizza ogni valore del tuo `.env` esistente (non viene chiesto nulla di nuovo), aggiorna `docker-compose.yml` e `otel-collector-config.yaml` (un file che hai modificato viene conservato come `<file>.bak.<timestamp>`), scarica le immagini e ricrea l'agent così che il collector legga la sua nuova configurazione. Un `.env` precedente a `PVE_NODES` continua a leggere solo `PVE_HOST`, e lo script indica i nodi da aggiungere. Un agent installato fuori da `/opt/oneuptime-proxmox-agent` ha bisogno della sua cartella, `INSTALL_DIR=<folder> bash install.sh`, e mantiene i suoi nomi di container.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/proxmox-agent -o install.sh

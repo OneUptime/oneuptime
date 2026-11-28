@@ -1,5 +1,6 @@
 import { DataSecurityScrubSignal } from "./DataSecurityApiTypes";
 import { DataStoreKind } from "./DataStoreKind";
+import { RUM_SESSION_TAGS_PREFIX } from "./RumSessionPlaces";
 
 /*
  * WHICH RULE OF INGEST REACHES A TELEMETRY FINDING'S PLACE.
@@ -7,15 +8,19 @@ import { DataStoreKind } from "./DataStoreKind";
  * A finding in telemetry names a data type and a location: body,
  * attributes.user.email, events.login.token, message, a prompt's key, a
  * metric's attribute or name. Ingest hides data before it is stored with
- * rules of three kinds: log scrub rules (logs, and a RUM application's
- * logs), trace scrub rules (spans, exceptions - each a copy of its span's
- * exception event - and AI calls), and metric pipeline rules, which redact
- * a metric attribute's value by its key. This says which kind reaches a
- * location, and which part of the record the location is - or why none
- * does:
+ * rules of three kinds: log scrub rules (logs, a RUM application's logs,
+ * and its sessions' tags), trace scrub rules (spans, exceptions - each a
+ * copy of its span's exception event - and AI calls), and metric pipeline
+ * rules, which redact a metric attribute's value by its key. This says
+ * which kind reaches a location, and which part of the record the location
+ * is - or why none does:
  *
- *  - a session's own details (sessions.*) are written by session replay
- *    ingest, which runs no rule;
+ *  - a session's tags (sessions.tags.<key>, #11458) are scrubbed by session
+ *    replay ingest as a log's attributes are, by the same log rules - the
+ *    rules for every service and app, since a session is no service's;
+ *  - a session's other details (sessions.*: its user's label and traits,
+ *    the recorder's attributes) are written by session replay ingest,
+ *    which runs no rule over them;
  *  - a metric's name is set where the code creates the metric: a pipeline
  *    rule renames a metric whole, and cannot take the data out of a name.
  *
@@ -51,7 +56,10 @@ export interface ScrubTarget {
 
 // Why no rule of ingest reaches a telemetry finding's place.
 export enum TelemetryScrubUnavailableReason {
-  // A session's own details (sessions.*): session replay ingest runs no rule.
+  /*
+   * A session's own details (sessions.*) but its tags: session replay
+   * ingest runs no rule over them.
+   */
   SessionDetails = "SessionDetails",
   // A metric's name: set by the code that creates the metric.
   MetricName = "MetricName",
@@ -180,6 +188,13 @@ export function getScrubTarget(
           location,
           RUM_SPANS_PREFIX,
           "trace",
+          ScrubbedField.Attributes,
+        ) ||
+        // A session's tags: its log rules, as a log's attributes (#11458).
+        attributeTarget(
+          location,
+          RUM_SESSION_TAGS_PREFIX,
+          "log",
           ScrubbedField.Attributes,
         )
       );

@@ -232,3 +232,80 @@ export const getFormSubmissionNote: GetFormSubmissionNoteFunction = (data: {
 
   return FeedMarkdown.join(parts, "\n\n").toString();
 };
+
+export type GetFormFollowUpNoteFunction = (data: {
+  formName?: string | null | undefined;
+  authorName?: string | null | undefined;
+  authorEmail?: string | null | undefined;
+  // Markdown, as the person wrote it.
+  message?: string | null | undefined;
+}) => string;
+
+/**
+ * The private note a message from somebody following a submission leaves
+ * on its record (Utils/Form/FormFollowUp): one sentence naming them and the
+ * form, then what they wrote - Markdown written outside, made inert as a
+ * Markdown answer is. A message that is files alone says so; its files are
+ * the note's attachments.
+ */
+export const getFormFollowUpNote: GetFormFollowUpNoteFunction = (data: {
+  formName?: string | null | undefined;
+  authorName?: string | null | undefined;
+  authorEmail?: string | null | undefined;
+  message?: string | null | undefined;
+}): string => {
+  const formName: string = line(data.formName);
+  const form: MarkdownText = formName
+    ? mdText`the form **${formName}**`
+    : mdText`a form`;
+
+  const authorName: string = line(data.authorName);
+  const authorEmail: MarkdownText = FeedMarkdown.asMarkdown(
+    getFormSubmitterEmailText({ email: data.authorEmail }),
+  );
+
+  let sentence: MarkdownText = mdText`Somebody following this request wrote through ${form}:`;
+
+  if (authorName && !authorEmail.isEmpty()) {
+    sentence = mdText`${authorName} (${authorEmail}) wrote on this request through ${form}:`;
+  } else if (authorName) {
+    sentence = mdText`${authorName} wrote on this request through ${form}:`;
+  } else if (!authorEmail.isEmpty()) {
+    sentence = mdText`${authorEmail} wrote on this request through ${form}:`;
+  }
+
+  const message: MarkdownText = FeedMarkdown.writtenOutside(
+    String(data.message ?? ""),
+  ).trim();
+
+  if (message.isEmpty()) {
+    return FeedMarkdown.join(
+      [sentence, mdText`They sent the attached files.`],
+      "\n\n",
+    ).toString();
+  }
+
+  return FeedMarkdown.join([sentence, message], "\n\n").toString();
+};
+
+export type GetFormFollowUpReplyNoteFunction = (data: {
+  // Markdown, as the responder wrote it.
+  message: string;
+}) => string;
+
+/**
+ * The private note a responder's reply is written as on the record
+ * (Utils/Form/FormFollowUp): the reply, under a line that says everybody
+ * following the request was sent it. The note is the responder's own, so
+ * the record's notes name who sent it.
+ */
+export const getFormFollowUpReplyNote: GetFormFollowUpReplyNoteFunction =
+  (data: { message: string }): string => {
+    return FeedMarkdown.join(
+      [
+        mdText`**Sent to the people following this request:**`,
+        FeedMarkdown.asMarkdown(data.message.trim()),
+      ],
+      "\n\n",
+    ).toString();
+  };

@@ -62,6 +62,7 @@ Empieza por arriba de la tabla: cuanto más arriba está una forma, menos hay qu
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | De entrada | Trae los inicios de sesión y los cambios de directorio de Microsoft Entra ID, y el registro de auditoría de Microsoft 365, a Eventos de seguridad. |
 | [Google Workspace](/docs/integrations/google-workspace) | De entrada | Trae los inicios de sesión, los cambios de administración y las detecciones de Google Workspace a Eventos de seguridad. |
 | [Cloudflare](/docs/integrations/cloudflare) | De entrada | Trae lo que el firewall de Cloudflare bloqueó, desafió y registró a Eventos de seguridad, junto a lo que llegó a tu aplicación. |
+| [CrowdSec](/docs/integrations/crowdsec) | De entrada | Trae las alertas de CrowdSec a Eventos de seguridad, y banea en CrowdSec las direcciones que bloqueas. |
 
 ### Tickets y gestión de servicios de TI
 

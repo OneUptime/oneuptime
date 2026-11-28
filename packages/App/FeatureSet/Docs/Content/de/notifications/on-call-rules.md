@@ -50,6 +50,8 @@ Der Anruf nennt Ihr Projekt. Ein Anruf, der zu keinem Projekt gehört, etwa ein 
 
 Ein Anruf ist in der Sprache, in der Sie OneUptime nutzen, wenn das Twilio-Konto, über das er läuft, mit einer der Stimmen von OneUptime spricht: alles, was er sagt, die Antworten auf Ihre Tasten eingeschlossen, mit einer Stimme Ihrer Sprache, einer Frauenstimme, wenn die Stimme des Kontos eine Frauenstimme ist, und einer Männerstimme, wenn sie eine Männerstimme ist. Die Tasten bleiben dieselben: 1 zum Bestätigen, 2 zum Eskalieren. Ein Anruf über ein Konto, das seine Standardstimme behält, ist auf Englisch, ebenso ein Anruf an jemanden, der OneUptime auf Persisch nutzt, das keine Stimme spricht: siehe [Die Stimme, mit der Anrufe sprechen](/docs/self-hosted/twilio-integration#die-stimme-mit-der-anrufe-sprechen).
 
+Auch der Anruf, der Ihre Telefonnummer verifiziert, ist in Ihrer Sprache: Er sagt seinen Code dreimal, Ziffer für Ziffer, mit einer Pause zwischen den Ziffern. Ein Anruf über das eigene [SMS- und Anruf-Gateway](/docs/self-hosted/sms-and-call-gateway) Ihrer Installation erhält seine Worte in Ihrer Sprache, und das Gateway wählt die Stimme.
+
 ## Ein Ablauf für alles
 
 **Benutzereinstellungen → Wie ich erreichbar bin** öffnet sich mit Ihrem Ablauf: nummerierten Schritten, die jede Warnung der Reihe nach versucht, für Vorfälle, Warnungen und Episoden jedes Schweregrads. Jeder Schritt ist ein Zeitpunkt, etwa sofort oder nach 5 Minuten, mit den verifizierten Methoden, die dann zusammen hinausgehen. Ein späterer Schritt geht nur hinaus, wenn bis dahin noch niemand die Warnung bestätigt hat.

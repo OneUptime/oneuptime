@@ -50,6 +50,8 @@ Het gesprek noemt je project. Een gesprek dat niet bij een project hoort, zoals 
 
 Een gesprek is in de taal waarin je OneUptime gebruikt wanneer het Twilio-account waarlangs het gaat met een van de stemmen van OneUptime spreekt: alles wat het zegt, de antwoorden op je toetsen inbegrepen, met een stem van jouw taal, een vrouwenstem als de stem van het account een vrouwenstem is en een mannenstem als het een mannenstem is. De toetsen blijven hetzelfde: 1 om te bevestigen, 2 om te escaleren. Een gesprek via een account dat zijn standaardstem houdt, is in het Engels, net als een gesprek met iemand die OneUptime in het Perzisch gebruikt, dat geen enkele stem spreekt: zie [De stem waarmee oproepen spreken](/docs/self-hosted/twilio-integration#de-stem-waarmee-oproepen-spreken).
 
+Ook het gesprek dat je telefoonnummer verifieert, is in jouw taal: het zegt zijn code cijfer voor cijfer, met een pauze tussen de cijfers, drie keer. Een gesprek via de eigen [Sms- en belgateway](/docs/self-hosted/sms-and-call-gateway) van je installatie krijgt zijn woorden in jouw taal, en de gateway kiest de stem.
+
 ## Eén reeks voor alles
 
 **Gebruikersinstellingen → Hoe ik bereikbaar ben** opent met uw reeks: genummerde stappen die elke oproep op volgorde probeert, voor incidenten, waarschuwingen en episodes van elk ernstniveau. Elke stap is een moment, zoals meteen of na 5 minuten, met de geverifieerde methoden die dan samen uitgaan. Een latere stap gaat alleen uit als niemand de oproep tegen die tijd heeft bevestigd.

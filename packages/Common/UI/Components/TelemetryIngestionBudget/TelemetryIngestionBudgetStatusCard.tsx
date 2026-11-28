@@ -46,6 +46,7 @@ import React, {
   useState,
 } from "react";
 import TableEmptyValue from "../Table/TableEmptyValue";
+import TelemetryQueueRefusalsCard from "./TelemetryQueueRefusalsCard";
 
 /*
  * Today's telemetry ingestion budgets: for each signal with a budget or a
@@ -563,11 +564,6 @@ const TelemetryIngestionBudgetStatusCard: FunctionComponent<ComponentProps> = (
         : !hasTelemetryIngestionBudgets(status)),
   );
 
-  // Quiet where a budget is the exception: nothing at all while none is set.
-  if (props.hideWhenUnbudgeted && (isUnbudgeted || (!status && !error))) {
-    return <></>;
-  }
-
   const refreshButtons: ReturnType<typeof getTableHeaderButtons> =
     getTableHeaderButtons([
       {
@@ -579,6 +575,27 @@ const TelemetryIngestionBudgetStatusCard: FunctionComponent<ComponentProps> = (
         },
       },
     ]);
+
+  /*
+   * What the telemetry queue refused of the project in the past day while
+   * OneUptime caught up (#11440), above its budgets: no budget of the
+   * project's refused it, so it is told on a page with no budget too. Not
+   * on a key's own page, whose Refused Telemetry card lists the key's.
+   */
+  const queueRefusals: ReactElement =
+    !props.ingestionKeyId && status && !error ? (
+      <TelemetryQueueRefusalsCard
+        refusals={status.queueRefusals || []}
+        buttons={refreshButtons}
+      />
+    ) : (
+      <></>
+    );
+
+  // Quiet where a budget is the exception: nothing at all while none is set.
+  if (props.hideWhenUnbudgeted && (isUnbudgeted || (!status && !error))) {
+    return queueRefusals;
+  }
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading && !status) {
@@ -651,6 +668,8 @@ const TelemetryIngestionBudgetStatusCard: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid={TELEMETRY_INGESTION_BUDGET_STATUS_TEST_ID}>
+      {queueRefusals}
+
       <Card
         title={props.ingestionKeyId ? THIS_KEY_CARD_TITLE : BUDGETS_CARD_TITLE}
         description={

@@ -8,6 +8,7 @@ import {
   MonitorTemplateChangeKind,
   MonitorTemplateChangeOutcome,
   MonitorTemplateChangeStatus,
+  MonitorTemplateChangeView,
 } from "Common/Types/Monitor/MonitorTemplateChange";
 
 /*
@@ -50,8 +51,12 @@ jest.mock("Common/UI/Utils/API/API", () => {
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
+  AutoImportRuleMonitorsToMove,
+  MONITOR_TEMPLATE_CHANGE_ROUTES,
   getActiveMonitorTemplateChanges,
+  getAutoImportRuleMonitorsToMove,
   getMonitorTemplateChange,
+  getProjectMonitorTemplateChanges,
   retryMonitorTemplateChange,
   startMonitorTemplateChange,
   stopMonitorTemplateChange,
@@ -70,6 +75,9 @@ const TENANT_HEADERS: Dictionary<string> = {
 const TEMPLATE_ID: string = "50000000-0000-4000-8000-000000000001";
 const MONITOR_ID: string = "60000000-0000-4000-8000-000000000001";
 const CHANGE_ID: string = "70000000-0000-4000-8000-000000000001";
+const OTHER_CHANGE_ID: string = "70000000-0000-4000-8000-000000000002";
+const POLICY_ID: string = "80000000-0000-4000-8000-000000000001";
+const RULE_ID: string = "90000000-0000-4000-8000-000000000001";
 
 interface CallOptions {
   url: URL;
@@ -326,5 +334,250 @@ describe("one monitor's Unlink from Template, at once", () => {
       resolvedIncidentCount: 0,
       resolvedAlertCount: 0,
     });
+  });
+});
+
+describe("the project's changes, for the Monitors list (#11454)", () => {
+  test("reads the project's running and recently finished changes, with the project's headers, leaving out what it cannot read", async () => {
+    getMock.mockResolvedValue(
+      ok({
+        changes: [
+          CHANGE,
+          { id: 7 },
+          {
+            ...CHANGE,
+            id: OTHER_CHANGE_ID,
+            status: MonitorTemplateChangeStatus.Completed,
+          },
+        ],
+      }),
+    );
+
+    const changes: Array<MonitorTemplateChangeView> =
+      await getProjectMonitorTemplateChanges();
+
+    expect(lastCall(getMock).url.toString()).toBe(
+      "http://localhost/api/monitor-template-change/project/active",
+    );
+    expect(lastCall(getMock).headers).toEqual(TENANT_HEADERS);
+    expect(
+      changes.map((change: MonitorTemplateChangeView): Array<string> => {
+        return [change.id, change.status];
+      }),
+    ).toEqual([
+      [CHANGE_ID, MonitorTemplateChangeStatus.Queued],
+      [OTHER_CHANGE_ID, MonitorTemplateChangeStatus.Completed],
+    ]);
+  });
+
+  test("a policy's and a rule's change come with the policy and the rule they move", async () => {
+    getMock.mockResolvedValue(
+      ok({
+        changes: [
+          {
+            ...CHANGE,
+            networkAlertPolicyId: POLICY_ID,
+            networkAlertPolicyName: "Core switches",
+          },
+          {
+            ...CHANGE,
+            id: OTHER_CHANGE_ID,
+            status: MonitorTemplateChangeStatus.Completed,
+            autoImportRuleId: RULE_ID,
+            autoImportRuleName: "Warehouse switches",
+            autoImportRuleMonitorsLeftCount: 3,
+          },
+        ],
+      }),
+    );
+
+    const changes: Array<MonitorTemplateChangeView> =
+      await getProjectMonitorTemplateChanges();
+
+    expect(
+      changes.map((change: MonitorTemplateChangeView) => {
+        return {
+          policy: [change.networkAlertPolicyId, change.networkAlertPolicyName],
+          rule: [change.autoImportRuleId, change.autoImportRuleName],
+          isPointed: change.isAutoImportRulePointed,
+          left: change.autoImportRuleMonitorsLeftCount,
+        };
+      }),
+    ).toEqual([
+      {
+        policy: [POLICY_ID, "Core switches"],
+        rule: [undefined, undefined],
+        isPointed: false,
+        left: undefined,
+      },
+      {
+        policy: [undefined, undefined],
+        rule: [RULE_ID, "Warehouse switches"],
+        isPointed: false,
+        left: 3,
+      },
+    ]);
+  });
+
+  test("an answer with no list is no change, never an error", async () => {
+    getMock.mockResolvedValue(ok({}));
+    expect(await getProjectMonitorTemplateChanges()).toEqual([]);
+
+    getMock.mockResolvedValue(ok({ changes: "none" }));
+    expect(await getProjectMonitorTemplateChanges()).toEqual([]);
+  });
+
+  test("a refusal is thrown as it came, for the page to leave the list as it was", async () => {
+    const refusal: HTTPErrorResponse = new HTTPErrorResponse(
+      403,
+      { message: "You do not have permission to read monitors." },
+      {},
+    );
+    getMock.mockResolvedValue(refusal);
+
+    await expect(getProjectMonitorTemplateChanges()).rejects.toBe(refusal);
+  });
+});
+
+describe("what an auto import rule's move would move (#11451)", () => {
+  test("asks the rule's route, and reads how many monitors, from which template, and whether a move runs", async () => {
+    getMock.mockResolvedValue(
+      ok({
+        count: 120,
+        monitorTemplateId: TEMPLATE_ID,
+        monitorTemplateName: "Switches (old)",
+        monitorType: "SNMP",
+        isMoveRunning: false,
+      }),
+    );
+
+    const toMove: AutoImportRuleMonitorsToMove =
+      await getAutoImportRuleMonitorsToMove(RULE_ID);
+
+    expect(lastCall(getMock).url.toString()).toBe(
+      `http://localhost/api/monitor-template-change/auto-import-rule/${RULE_ID}/monitors`,
+    );
+    expect(lastCall(getMock).headers).toEqual(TENANT_HEADERS);
+    expect(toMove).toEqual({
+      count: 120,
+      monitorTemplateId: TEMPLATE_ID,
+      monitorTemplateName: "Switches (old)",
+      monitorType: "SNMP",
+      isMoveRunning: false,
+    });
+  });
+
+  test("the rule's id goes into the path escaped", () => {
+    expect(MONITOR_TEMPLATE_CHANGE_ROUTES.autoImportRuleMonitors("a/b c")).toBe(
+      "/monitor-template-change/auto-import-rule/a%2Fb%20c/monitors",
+    );
+    expect(MONITOR_TEMPLATE_CHANGE_ROUTES.ofProject).toBe(
+      "/monitor-template-change/project/active",
+    );
+  });
+
+  test("a move already running is said, so the form does not ask for a second", async () => {
+    getMock.mockResolvedValue(ok({ count: 40, isMoveRunning: true }));
+
+    expect(await getAutoImportRuleMonitorsToMove(RULE_ID)).toEqual({
+      count: 40,
+      monitorTemplateId: undefined,
+      monitorTemplateName: undefined,
+      monitorType: undefined,
+      isMoveRunning: true,
+    });
+  });
+
+  test("a count that is not a whole positive number reads as none, a fraction as the monitors it counts, and anything but true as no move running", async () => {
+    const read: Array<number> = [];
+
+    for (const count of [-3, "x", null, 4.7, Number.POSITIVE_INFINITY]) {
+      getMock.mockResolvedValue(
+        ok({
+          count: count as unknown as number,
+          monitorTemplateName: "",
+          isMoveRunning: "yes",
+        }),
+      );
+
+      const toMove: AutoImportRuleMonitorsToMove =
+        await getAutoImportRuleMonitorsToMove(RULE_ID);
+
+      read.push(toMove.count);
+      expect(toMove.monitorTemplateName).toBeUndefined();
+      expect(toMove.isMoveRunning).toBe(false);
+    }
+
+    expect(read).toEqual([0, 0, 0, 4, 0]);
+  });
+
+  test("a refusal is thrown as it came, for the form to save as it was asked", async () => {
+    const refusal: HTTPErrorResponse = new HTTPErrorResponse(
+      400,
+      {
+        message:
+          "The auto import rule was not found. Reload the page, then try again.",
+      },
+      {},
+    );
+    getMock.mockResolvedValue(refusal);
+
+    await expect(getAutoImportRuleMonitorsToMove(RULE_ID)).rejects.toBe(
+      refusal,
+    );
+  });
+});
+
+describe("starting an auto import rule's move (#11451)", () => {
+  test("posts the rule and the template it moves to, and no monitors: the server finds the rule's", async () => {
+    postMock.mockResolvedValue(
+      ok({ change: { ...CHANGE, autoImportRuleId: RULE_ID } }),
+    );
+
+    const started: MonitorTemplateChangeView = await startMonitorTemplateChange(
+      {
+        monitorTemplateId: TEMPLATE_ID,
+        settings: {
+          kind: MonitorTemplateChangeKind.Link,
+          applyTemplateSettings: true,
+          clearTemplateSettings: false,
+          deleteTemplateWhenDone: false,
+        },
+        autoImportRuleId: RULE_ID,
+      },
+    );
+
+    expect(started.autoImportRuleId).toBe(RULE_ID);
+    expect(lastCall(postMock).url.toString()).toBe(
+      "http://localhost/api/monitor-template-change/start",
+    );
+    expect(lastCall(postMock).data).toEqual({
+      monitorTemplateId: TEMPLATE_ID,
+      settings: {
+        kind: MonitorTemplateChangeKind.Link,
+        applyTemplateSettings: true,
+        clearTemplateSettings: false,
+        deleteTemplateWhenDone: false,
+      },
+      autoImportRuleId: RULE_ID,
+    });
+  });
+
+  test("a change that is not a rule's names none", async () => {
+    postMock.mockResolvedValue(ok({ change: CHANGE }));
+
+    await startMonitorTemplateChange({
+      monitorTemplateId: TEMPLATE_ID,
+      settings: {
+        kind: MonitorTemplateChangeKind.Link,
+        applyTemplateSettings: true,
+        clearTemplateSettings: false,
+        deleteTemplateWhenDone: false,
+      },
+      monitorIds: [MONITOR_ID],
+      autoImportRuleId: "",
+    });
+
+    expect(lastCall(postMock).data).not.toHaveProperty("autoImportRuleId");
   });
 });

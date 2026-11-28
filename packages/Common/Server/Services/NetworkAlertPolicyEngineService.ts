@@ -64,11 +64,17 @@ import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceM
  *
  * WHAT THE ENGINE WILL NOT DO, ever:
  *
- *   - Touch a monitor another policy owns. Ownership is the PAIR
- *     (networkAlertPolicyId, monitorTemplateId): a monitor is policy P's
- *     current monitor only while it carries P's id AND the template P names
- *     right now. A monitor stamped with a different policy's id is left
- *     exactly where it is.
+ *   - Touch a monitor another policy owns. A monitor is policy P's while it
+ *     carries P's id, and P has ONE monitor per device: the one on the
+ *     template P names, or - once P is pointed at another template - the one
+ *     it made from the template it named before, which a change on the
+ *     server moves to the new one, keeping its history (issue #11452,
+ *     MonitorTemplateChangeRunner.startForAlertPolicy). A monitor stamped
+ *     with a different policy's id is left exactly where it is.
+ *   - Replace a policy's monitors because the policy was pointed at another
+ *     template. Deleting them and making new ones lost every monitor's
+ *     status history, labels, owners and incident links; now the policy
+ *     keeps its monitor on each device and the change moves it.
  *   - Delete a hand-made monitor. A Network Device monitor with no
  *     `networkAlertPolicyId` is not in ACTUAL at all, so a scope that shrinks
  *     away from a device deletes only the rows stamped with the policy that
@@ -219,17 +225,19 @@ export interface PolicyRunContext {
 const MAX_RECORDED_FAILURES_PER_RUN: number = 20;
 
 /*
- * What a policy's monitors are keyed by, everywhere in this file: the policy
- * that owns them AND the template that policy names right now. A monitor
- * carrying the policy's id but a template the policy no longer names is a
- * leftover from the policy's previous template and is removed — that is how
- * "re-point a policy at a different template" re-clones the fleet.
+ * Whether a monitor is on the template a policy names: the policy's monitor
+ * of the device as it should be, rather than one on its way there.
  */
-function ownershipKey(
-  policyId: ObjectID | string,
-  monitorTemplateId: ObjectID | string,
-): string {
-  return `${policyId.toString()}:${monitorTemplateId.toString()}`;
+function isOnPolicyTemplate(
+  monitor: Monitor,
+  policy: NetworkAlertPolicy,
+): boolean {
+  return Boolean(
+    policy.monitorTemplateId &&
+      monitor.monitorTemplateId &&
+      policy.monitorTemplateId.toString() ===
+        monitor.monitorTemplateId.toString(),
+  );
 }
 
 /*
@@ -416,6 +424,11 @@ class NetworkAlertPolicyEngineServiceClass {
         monitorTemplateId: true,
         disableActiveMonitoring: true,
       },
+      // Oldest first: of two a policy has on one device, the first has the most history.
+      sort: {
+        createdAt: SortOrder.Ascending,
+        _id: SortOrder.Ascending,
+      },
       limit: LIMIT_MAX,
       skip: 0,
       props: {
@@ -490,7 +503,7 @@ class NetworkAlertPolicyEngineServiceClass {
     } = this.toScopeDevice(device);
 
     // DESIRED: enabled, template-carrying policies whose scope covers this device.
-    const desiredByOwnershipKey: Map<
+    const desiredByPolicyId: Map<
       string,
       { policy: NetworkAlertPolicy; monitorTemplateId: ObjectID }
     > = new Map<
@@ -509,48 +522,79 @@ class NetworkAlertPolicyEngineServiceClass {
         continue;
       }
 
-      desiredByOwnershipKey.set(
-        ownershipKey(policy.id, policy.monitorTemplateId),
-        {
-          policy: policy,
-          monitorTemplateId: policy.monitorTemplateId,
-        },
-      );
+      desiredByPolicyId.set(policy.id.toString(), {
+        policy: policy,
+        monitorTemplateId: policy.monitorTemplateId,
+      });
     }
 
-    const satisfiedOwnershipKeys: Set<string> = new Set<string>();
+    // ACTUAL, by the policy each monitor carries.
+    const monitorsByPolicyId: Map<string, Array<Monitor>> = new Map<
+      string,
+      Array<Monitor>
+    >();
+
+    for (const monitor of actualMonitors) {
+      // The query asked for NOT NULL; belt and braces against a stale row.
+      if (!monitor.networkAlertPolicyId) {
+        continue;
+      }
+
+      const key: string = monitor.networkAlertPolicyId.toString();
+      monitorsByPolicyId.set(key, [
+        ...(monitorsByPolicyId.get(key) || []),
+        monitor,
+      ]);
+    }
+
+    const satisfiedPolicyIds: Set<string> = new Set<string>();
     const monitorsToDelete: Array<Monitor> = [];
     const monitorsToPause: Array<Monitor> = [];
 
-    for (const monitor of actualMonitors) {
-      const policyId: ObjectID | undefined = monitor.networkAlertPolicyId;
-
-      if (!policyId) {
-        // The query asked for NOT NULL; belt and braces against a stale row.
-        continue;
-      }
-
-      const owner: NetworkAlertPolicy | undefined = policiesById.get(
-        policyId.toString(),
-      );
+    for (const [policyId, monitors] of monitorsByPolicyId) {
+      const owner: NetworkAlertPolicy | undefined = policiesById.get(policyId);
 
       /*
-       * The owning policy is gone (deleted, and this monitor outlived the
-       * delete's own cleanup). Nothing owns it any more, and nobody will
-       * ever tear it down if this pass does not.
+       * The owning policy is gone (deleted, and these monitors outlived the
+       * delete's own cleanup). Nothing owns them any more, and nobody will
+       * ever tear them down if this pass does not.
        */
       if (!owner) {
-        monitorsToDelete.push(monitor);
+        monitorsToDelete.push(...monitors);
         continue;
       }
 
-      const key: string = monitor.monitorTemplateId
-        ? ownershipKey(policyId, monitor.monitorTemplateId)
-        : "";
-
-      if (key && desiredByOwnershipKey.has(key)) {
-        satisfiedOwnershipKeys.add(key);
+      /*
+       * The scope shrank away from the device: the policy wants no monitor
+       * on it. Stamped with THIS policy's id, which is the only thing that
+       * makes them safe to delete.
+       */
+      if (
+        !NetworkAlertPolicyScopeUtil.matchesDevice(owner.scope, deviceScope)
+      ) {
+        monitorsToDelete.push(...monitors);
         continue;
+      }
+
+      /*
+       * The policy's monitor of the device: the one on the template it names,
+       * or - after it was pointed at another template - the one it made from
+       * the template it named before, on its way to the new one (issue
+       * #11452): a change on the server moves it, keeping its history,
+       * labels, owners and incidents. It is never replaced, and the device
+       * gets no second beside it. Two of the policy's on one device - only a
+       * lost race leaves that - keep the one on the template, else the
+       * oldest, and the other goes.
+       */
+      const kept: Monitor =
+        monitors.find((monitor: Monitor): boolean => {
+          return isOnPolicyTemplate(monitor, owner);
+        }) || monitors[0]!;
+
+      for (const monitor of monitors) {
+        if (monitor !== kept) {
+          monitorsToDelete.push(monitor);
+        }
       }
 
       /*
@@ -568,46 +612,22 @@ class NetworkAlertPolicyEngineServiceClass {
        * treated identically: there is nothing to provision from, so nothing
        * is provisioned and nothing is destroyed.
        */
-      const isPausedOwner: boolean =
-        !owner.isEnabled || !owner.monitorTemplateId;
-
-      const stillMatchesOwnerScope: boolean =
-        NetworkAlertPolicyScopeUtil.matchesDevice(owner.scope, deviceScope);
-
-      const carriesOwnerTemplate: boolean = Boolean(
-        owner.monitorTemplateId &&
-          monitor.monitorTemplateId &&
-          owner.monitorTemplateId.toString() ===
-            monitor.monitorTemplateId.toString(),
-      );
-
-      if (
-        isPausedOwner &&
-        stillMatchesOwnerScope &&
-        (carriesOwnerTemplate || !owner.monitorTemplateId)
-      ) {
-        if (!monitor.disableActiveMonitoring) {
-          monitorsToPause.push(monitor);
+      if (!owner.isEnabled || !owner.monitorTemplateId) {
+        if (!kept.disableActiveMonitoring) {
+          monitorsToPause.push(kept);
         }
 
         continue;
       }
 
-      /*
-       * What is left is a monitor this policy no longer wants on this
-       * device: the scope shrank away from it, or the policy was re-pointed
-       * at a different template and this row is the old template's. Either
-       * way it is stamped with THIS policy's id, which is the only thing
-       * that makes it safe to delete.
-       */
-      monitorsToDelete.push(monitor);
+      satisfiedPolicyIds.add(policyId);
     }
 
     await this.deleteMonitors({
       projectId: data.projectId,
       monitors: monitorsToDelete,
       context: context,
-      reason: `device ${device.id?.toString()} is no longer covered by the owning policy`,
+      reason: `device ${device.id?.toString()} is no longer covered by the owning policy, or has another of its monitors`,
     });
 
     await this.pauseMonitors({
@@ -616,17 +636,12 @@ class NetworkAlertPolicyEngineServiceClass {
       context: context,
     });
 
-    for (const desired of desiredByOwnershipKey.values()) {
+    for (const [policyId, desired] of desiredByPolicyId) {
       if (context.isStopped) {
         return;
       }
 
-      const key: string = ownershipKey(
-        desired.policy.id!,
-        desired.monitorTemplateId,
-      );
-
-      if (satisfiedOwnershipKeys.has(key)) {
+      if (satisfiedPolicyIds.has(policyId)) {
         continue;
       }
 
@@ -1020,6 +1035,24 @@ class NetworkAlertPolicyEngineServiceClass {
       !context.isStopped &&
       context.failures.length === 0;
 
+    /*
+     * Monitors of the policy still on the template it named before, on their
+     * way to the one it names now (#11452): the fleet does not run the
+     * template yet, whatever this pass made. The change that moves them
+     * stamps it once they are all moved (onPolicyMonitorsMoved). Asked only
+     * when the pass would stamp it.
+     */
+    const isAnyMonitorOffTemplate: boolean =
+      data.stampTemplateSyncedOnCleanPass &&
+      isCleanCompletePass &&
+      context.monitorsAdopted === 0
+        ? (await this.countPolicyMonitorsOffTemplate({
+            projectId: policy.projectId,
+            policyId: policy.id,
+            monitorTemplateId: policy.monitorTemplateId,
+          })) > 0
+        : false;
+
     await this.stampPolicy({
       policyId: policy.id,
       lastSyncAt: OneUptimeDate.getCurrentDate(),
@@ -1042,7 +1075,8 @@ class NetworkAlertPolicyEngineServiceClass {
       templateSyncedAt:
         data.stampTemplateSyncedOnCleanPass &&
         isCleanCompletePass &&
-        context.monitorsAdopted === 0
+        context.monitorsAdopted === 0 &&
+        !isAnyMonitorOffTemplate
           ? OneUptimeDate.getCurrentDate()
           : undefined,
     });
@@ -1161,9 +1195,10 @@ class NetworkAlertPolicyEngineServiceClass {
   }
 
   /*
-   * Which of these devices do NOT already carry this policy's current
-   * monitor. One statement for the whole page; only the answers get the
-   * per-device lock and the full difference.
+   * Which of these devices do NOT already carry a monitor of this policy -
+   * on the template it names, or on its way there from the one it named
+   * before (#11452). One statement for the whole page; only the answers get
+   * the per-device lock and the full difference.
    */
   private async findDevicesMissingPolicyMonitor(data: {
     projectId: ObjectID;
@@ -1185,7 +1220,6 @@ class NetworkAlertPolicyEngineServiceClass {
       query: {
         projectId: data.projectId,
         networkAlertPolicyId: data.policyId,
-        monitorTemplateId: data.monitorTemplateId,
         autoProvisionedNetworkDeviceId: QueryHelper.any(deviceIds),
       },
       select: {
@@ -1274,6 +1308,8 @@ class NetworkAlertPolicyEngineServiceClass {
     confirmedDeviceIds: Set<string> | null;
   }): Promise<void> {
     let cursor: ObjectID | null = null;
+    // How many of the policy's monitors each device has, across the pages.
+    const monitorsPerDevice: Map<string, number> = new Map<string, number>();
 
     for (;;) {
       if (data.context.isStopped || data.context.isTruncated) {
@@ -1316,6 +1352,7 @@ class NetworkAlertPolicyEngineServiceClass {
           context: data.context,
           monitors: monitors,
           confirmedDeviceIds: data.confirmedDeviceIds,
+          monitorsPerDevice: monitorsPerDevice,
         });
 
       for (const deviceId of deviceIdsToRecheck) {
@@ -1341,8 +1378,9 @@ class NetworkAlertPolicyEngineServiceClass {
     context: PolicyRunContext;
     monitors: Array<Monitor>;
     confirmedDeviceIds: Set<string> | null;
+    // Counted across the reverse pass's pages: a second monitor is a recheck.
+    monitorsPerDevice: Map<string, number>;
   }): Promise<Array<ObjectID>> {
-    const monitorTemplateId: string = data.policy.monitorTemplateId!.toString();
     const candidates: Map<string, ObjectID> = new Map<string, ObjectID>();
 
     for (const monitor of data.monitors) {
@@ -1366,16 +1404,18 @@ class NetworkAlertPolicyEngineServiceClass {
       }
 
       /*
-       * A monitor from the policy's PREVIOUS template always needs the full
-       * per-device difference, even for a device the forward pass confirmed:
-       * the forward pass only asked whether the CURRENT template's monitor
-       * exists.
+       * A monitor on the policy's PREVIOUS template is the policy's monitor
+       * of its device too, on its way to the template it names now (#11452):
+       * a device the forward pass confirmed needs nothing more for it. A
+       * device with a second monitor of the policy does - the difference
+       * keeps one - and so does one the forward pass did not confirm.
        */
-      const carriesCurrentTemplate: boolean =
-        monitor.monitorTemplateId?.toString() === monitorTemplateId;
+      const seen: number =
+        (data.monitorsPerDevice.get(deviceId.toString()) || 0) + 1;
+      data.monitorsPerDevice.set(deviceId.toString(), seen);
 
       if (
-        carriesCurrentTemplate &&
+        seen === 1 &&
         data.confirmedDeviceIds &&
         data.confirmedDeviceIds.has(deviceId.toString())
       ) {
@@ -1392,7 +1432,8 @@ class NetworkAlertPolicyEngineServiceClass {
     /*
      * When the forward pass was exhaustive its set is the whole answer:
      * anything not in it has already failed the scope or provisionability
-     * test, so it goes straight to reconcileDevice without a second read.
+     * test, so it goes straight to reconcileDevice without a second read -
+     * and so does a device with a second monitor of the policy.
      */
     if (data.confirmedDeviceIds) {
       return Array.from(candidates.values());
@@ -1431,12 +1472,224 @@ class NetworkAlertPolicyEngineServiceClass {
     const needsRecheck: Array<ObjectID> = [];
 
     for (const [deviceIdString, deviceId] of candidates) {
-      if (!stillCovered.has(deviceIdString)) {
+      if (
+        !stillCovered.has(deviceIdString) ||
+        (data.monitorsPerDevice.get(deviceIdString) || 0) > 1
+      ) {
         needsRecheck.push(deviceId);
       }
     }
 
     return needsRecheck;
+  }
+
+  /*
+   * The policy's monitors to move to the template it names (#11452): those
+   * on another template - the one it named before - whose device the policy
+   * still covers, oldest first, up to `limit`. A monitor whose device left
+   * the scope is not moved: the policy's next pass deletes it.
+   * A disabled policy's monitors are moved too, and stay paused.
+   */
+  @CaptureSpan()
+  public async findMonitorsToMoveToPolicyTemplate(data: {
+    policy: NetworkAlertPolicy;
+    limit: number;
+  }): Promise<Array<string>> {
+    const policy: NetworkAlertPolicy = data.policy;
+
+    if (!policy.id || !policy.projectId || !policy.monitorTemplateId) {
+      return [];
+    }
+
+    const monitorIds: Array<string> = [];
+    let cursor: ObjectID | null = null;
+
+    for (;;) {
+      const baseQuery: Query<Monitor> = {
+        projectId: policy.projectId,
+        networkAlertPolicyId: policy.id,
+        monitorTemplateId: QueryHelper.notEqualsOrNull(
+          policy.monitorTemplateId,
+        ),
+      };
+
+      const monitors: Array<Monitor> = await MonitorService.findBy({
+        query: cursor
+          ? { ...baseQuery, _id: QueryHelper.greaterThan(cursor) }
+          : baseQuery,
+        select: {
+          _id: true,
+          autoProvisionedNetworkDeviceId: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        limit: POLICY_SYNC_PAGE_SIZE,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (monitors.length === 0) {
+        return monitorIds;
+      }
+
+      cursor = monitors[monitors.length - 1]!.id;
+
+      const deviceIds: Array<ObjectID> = Array.from(
+        new Map<string, ObjectID>(
+          monitors.flatMap((monitor: Monitor): Array<[string, ObjectID]> => {
+            return monitor.autoProvisionedNetworkDeviceId
+              ? [
+                  [
+                    monitor.autoProvisionedNetworkDeviceId.toString(),
+                    monitor.autoProvisionedNetworkDeviceId,
+                  ],
+                ]
+              : [];
+          }),
+        ).values(),
+      );
+
+      const devices: Array<NetworkDevice> =
+        deviceIds.length > 0
+          ? await NetworkDeviceService.findBy({
+              query: {
+                projectId: policy.projectId,
+                _id: QueryHelper.any(deviceIds),
+              },
+              select: RECONCILE_DEVICE_SELECT,
+              limit: LIMIT_MAX,
+              skip: 0,
+              props: {
+                isRoot: true,
+              },
+            })
+          : [];
+
+      const coveredDeviceIds: Set<string> = new Set<string>(
+        devices
+          .filter((device: NetworkDevice): boolean => {
+            return Boolean(
+              device.id &&
+                this.isDeviceProvisionable(device) &&
+                NetworkAlertPolicyScopeUtil.matchesDevice(
+                  policy.scope,
+                  this.toScopeDevice(device),
+                ),
+            );
+          })
+          .map((device: NetworkDevice): string => {
+            return device.id!.toString();
+          }),
+      );
+
+      for (const monitor of monitors) {
+        if (
+          monitor.id &&
+          monitor.autoProvisionedNetworkDeviceId &&
+          coveredDeviceIds.has(
+            monitor.autoProvisionedNetworkDeviceId.toString(),
+          )
+        ) {
+          monitorIds.push(monitor.id.toString());
+
+          if (monitorIds.length >= data.limit) {
+            return monitorIds;
+          }
+        }
+      }
+
+      if (monitors.length < POLICY_SYNC_PAGE_SIZE) {
+        return monitorIds;
+      }
+    }
+  }
+
+  /*
+   * How many of the policy's monitors are on another template than the one
+   * it names: on their way there (#11452). None, and every monitor the
+   * policy owns runs the template - what Template Synced claims.
+   */
+  @CaptureSpan()
+  public async countPolicyMonitorsOffTemplate(data: {
+    projectId: ObjectID;
+    policyId: ObjectID;
+    monitorTemplateId: ObjectID;
+  }): Promise<number> {
+    return (
+      await MonitorService.countBy({
+        query: {
+          projectId: data.projectId,
+          networkAlertPolicyId: data.policyId,
+          monitorTemplateId: QueryHelper.notEqualsOrNull(
+            data.monitorTemplateId,
+          ),
+        },
+        props: {
+          isRoot: true,
+        },
+      })
+    ).toNumber();
+  }
+
+  /*
+   * A change that moved the policy's monitors to the template it names has
+   * finished with every one of them moved (#11452): with the template's
+   * criteria, interval and probe agreement on each, the fleet runs the
+   * template, so Template Synced is stamped - once the policy still names
+   * it, and none of its monitors is left on another. Never throws.
+   */
+  @CaptureSpan()
+  public async onPolicyMonitorsMoved(data: {
+    projectId: ObjectID;
+    policyId: ObjectID;
+    monitorTemplateId: ObjectID;
+  }): Promise<void> {
+    try {
+      const policy: NetworkAlertPolicy | null =
+        await NetworkAlertPolicyService.findOneBy({
+          query: {
+            _id: data.policyId,
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+            monitorTemplateId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (
+        !policy?.monitorTemplateId ||
+        policy.monitorTemplateId.toString() !==
+          data.monitorTemplateId.toString()
+      ) {
+        return;
+      }
+
+      if (
+        (await this.countPolicyMonitorsOffTemplate({
+          projectId: data.projectId,
+          policyId: data.policyId,
+          monitorTemplateId: data.monitorTemplateId,
+        })) > 0
+      ) {
+        return;
+      }
+
+      await this.stampPolicy({
+        policyId: data.policyId,
+        templateSyncedAt: OneUptimeDate.getCurrentDate(),
+      });
+    } catch (error) {
+      logger.error(
+        `NetworkAlertPolicy engine: could not stamp templateSyncedAt for policy ${data.policyId.toString()} once its monitors moved: ${error}`,
+      );
+    }
   }
 
   /**

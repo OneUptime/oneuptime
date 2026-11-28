@@ -2,6 +2,7 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import MonitorTemplateService, {
   Service as MonitorTemplateServiceType,
   SyncLinkedMonitorsResult,
+  SyncToMonitorResult,
 } from "../Services/MonitorTemplateService";
 import {
   ExpressRequest,
@@ -126,14 +127,18 @@ export default class MonitorTemplateAPI extends BaseAPI<
 
           const fields: Array<string> | undefined = readSyncFields(req);
 
-          await MonitorTemplateService.syncToMonitor({
-            monitorTemplateId,
-            monitorId,
-            props,
-            ...(fields !== undefined ? { fields } : {}),
-          });
+          // What the sync resolved, said only when it resolved any (#11453).
+          const result: SyncToMonitorResult =
+            await MonitorTemplateService.syncToMonitor({
+              monitorTemplateId,
+              monitorId,
+              props,
+              ...(fields !== undefined ? { fields } : {}),
+            });
 
-          return Response.sendEmptySuccessResponse(req, res);
+          return Response.sendJsonObjectResponse(req, res, {
+            ...result,
+          });
         } catch (e) {
           next(e);
         }

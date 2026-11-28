@@ -63,6 +63,72 @@ export function readRumClientKind(clientType: unknown): RumClientKind | null {
 }
 
 /*
+ * How a reader of one resource's attributes answers the client test below:
+ * a scalar attribute as text (null when absent or blank), a list attribute's
+ * values, and whether the resource names a machine of its own - `host.name`,
+ * `k8s.node.name` or `host.id`.
+ */
+export interface RumClientResourceReader {
+  read: (key: string) => string | null;
+  readList: (key: string) => Array<string>;
+  hasHostIdentity: () => boolean;
+}
+
+/*
+ * The kind of RUM client a resource is the telemetry of, or null for any
+ * other resource - the one reading of a resource that ingest files a RUM
+ * application by (OtelIngestBaseService.getRumClientType) and that the
+ * Inventory's Host resolver keeps a device's own name by
+ * (Server/Utils/Telemetry/TelemetryEntity), so the two never disagree on
+ * what a client is:
+ *
+ *   1. the kind a public ingestion key stamped (RUM_CLIENT_KIND_RESOURCE_
+ *      ATTRIBUTE), first, whatever else the resource carried;
+ *   2. browser: `browser.platform`, `browser.language` or `browser.brands`,
+ *      which only the browser SDK's browserDetector sets;
+ *   3. mobile: `device.id` or `device.model.identifier`, which only a client
+ *      SDK sets;
+ *   4. mobile: `device.manufacturer` on a resource that names no machine.
+ *      On its own it is no proof of a phone: an operator stamps a machine's
+ *      make and model onto its collector's resource (issue #3866), often
+ *      machine-wide through OTEL_RESOURCE_ATTRIBUTES, and a genuine mobile
+ *      resource carries no host identity.
+ */
+export function getRumClientKindOfResource(
+  reader: RumClientResourceReader,
+): RumClientKind | null {
+  const stampedClientKind: string | null = reader.read(
+    RUM_CLIENT_KIND_RESOURCE_ATTRIBUTE,
+  );
+
+  if (stampedClientKind === RUM_CLIENT_KIND_MOBILE) {
+    return RUM_CLIENT_KIND_MOBILE;
+  }
+
+  if (stampedClientKind === RUM_CLIENT_KIND_BROWSER) {
+    return RUM_CLIENT_KIND_BROWSER;
+  }
+
+  if (
+    reader.read("browser.platform") ||
+    reader.read("browser.language") ||
+    reader.readList("browser.brands").length > 0
+  ) {
+    return RUM_CLIENT_KIND_BROWSER;
+  }
+
+  if (reader.read("device.id") || reader.read("device.model.identifier")) {
+    return RUM_CLIENT_KIND_MOBILE;
+  }
+
+  if (reader.read("device.manufacturer") && !reader.hasHostIdentity()) {
+    return RUM_CLIENT_KIND_MOBILE;
+  }
+
+  return null;
+}
+
+/*
  * The kind to draw an application as: browser until ingest has said it is a
  * mobile app. Every RUM application was drawn as a browser one before mobile
  * apps had pages of their own, and most are, so an application nothing has

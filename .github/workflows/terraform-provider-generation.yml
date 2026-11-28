@@ -41,17 +41,17 @@ jobs:
           node-version: 26
           cache: 'npm'
 
-      # No Go cache. setup-go keys it on a go.sum, and the repository has none
-      # at its root: the provider's is generated, after this step, with the
-      # newest modules each time. So the cache restored nothing and only
-      # warned "Dependencies file is not found". A cache that worked would come
-      # to several GB, in the cache space the npm caches share
-      # (crossplane-provider.yml says the same).
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
-          cache: false
+      # Go and GoReleaser at the versions every release build uses
+      # (.github/actions/setup-release-toolchain), so the provider is
+      # generated, vetted and built twice here as a release builds it
+      # (#11464). No Go cache. setup-go keys it on a go.sum, and the
+      # repository has none at its root: the provider's is generated, after
+      # this step, with the newest modules each time. So the cache restored
+      # nothing and only warned "Dependencies file is not found". A cache that
+      # worked would come to several GB, in the cache space the npm caches
+      # share (crossplane-provider.yml says the same).
+      - name: Set up the release toolchain
+        uses: ./.github/actions/setup-release-toolchain
 
       - name: Install Common dependencies
         uses: ./.github/actions/npm-install
@@ -73,14 +73,8 @@ jobs:
 
       # The unit tests build a provider twice with the generator's
       # .goreleaser.yml and hold the zips to being the same bytes
-      # (Tests/GoReleaserConfig.test.ts, #11016), with the GoReleaser the
-      # release builds with: release.yml's publish-terraform-provider
-      # installs the same, and the Go set up above is its too.
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v6.1.0
-        with:
-          install-only: true
-          version: '~> v2'
+      # (Tests/GoReleaserConfig.test.ts, #11016), with the Go and GoReleaser
+      # the release builds with, set up above.
 
       # Type-checks the generator - Core/, Tests/, GenerateProvider.ts - and
       # all it imports: ../OpenAPI/GenerateSpec.ts and, through the Common/*

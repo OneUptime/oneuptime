@@ -201,12 +201,14 @@ const ACCOUNTS_ENGLISH_LOCALE_FILE: string = path.join(
 const OVERVIEW_PAGE: string = "forms/index";
 const BUILDING_PAGE: string = "forms/building";
 const ON_SUBMIT_PAGE: string = "forms/on-submit";
+const FOLLOW_UPS_PAGE: string = "forms/follow-ups";
 const SHARING_PAGE: string = "forms/sharing-and-security";
 
 const FORMS_PAGES: ReadonlyArray<string> = [
   OVERVIEW_PAGE,
   BUILDING_PAGE,
   ON_SUBMIT_PAGE,
+  FOLLOW_UPS_PAGE,
   SHARING_PAGE,
 ];
 
@@ -215,6 +217,10 @@ const NAV_LINKS: ReadonlyArray<NavLink> = [
   { title: "Forms Overview", url: `/docs/${OVERVIEW_PAGE}` },
   { title: "Building a Form", url: `/docs/${BUILDING_PAGE}` },
   { title: "What a Submission Creates", url: `/docs/${ON_SUBMIT_PAGE}` },
+  {
+    title: "Following Up on a Submission",
+    url: `/docs/${FOLLOW_UPS_PAGE}`,
+  },
   { title: "Sharing & Security", url: `/docs/${SHARING_PAGE}` },
 ];
 
@@ -581,7 +587,7 @@ describe("Forms docs", () => {
     });
 
     it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
-      "has the section and its four pages in %s",
+      "has the section and its five pages in %s",
       (language: string) => {
         const group: LocalizedNavGroup | undefined = getLocalizedNav(
           language,

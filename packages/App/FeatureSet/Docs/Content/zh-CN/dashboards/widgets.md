@@ -191,7 +191,7 @@ SLO 小部件可以在 [公开仪表板](/docs/dashboards/sharing) 上使用。�
 
 | 分组 | 小部件 | 数据来源 |
 | --- | --- | --- |
-| **主机** | **主机**，含连接状态、操作系统、CPU 和内存 | 任何发送 `host.name` 的 OpenTelemetry 采集器 |
+| **主机** | **主机**，含连接状态、操作系统、CPU 和内存 | 每台主机上的采集器：参见 [什么算作主机](/docs/telemetry/hosts#什么算作主机) |
 | **Kubernetes** | **Pod**、**节点**、**命名空间**、**部署**、**StatefulSets**、**DaemonSets**、**任务**、**CronJobs** | [Kubernetes 代理](/docs/monitor/kubernetes-agent) |
 | **Docker** | **主机**、**容器**、**镜像**、**网络**、**卷** | Docker 代理 |
 | **Docker Swarm** | **节点**、**服务** | Docker Swarm 代理 |

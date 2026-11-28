@@ -5,6 +5,7 @@ O OneUptime pode enviar seus SMS e chamadas por um gateway que você mesmo mant�
 :::cards
 - [Configurar o gateway](#configurar-o-gateway): Uma URL e um segredo de assinatura criado para você.
 - [O que o seu gateway recebe](#o-que-o-seu-gateway-recebe): Uma solicitação JSON assinada por SMS ou chamada.
+- [Chamadas em outros idiomas](#chamadas-em-outros-idiomas): Fazer cada chamada falar o idioma em que a pessoa usa o OneUptime.
 - [Agir sobre um acionamento](#agir-sobre-um-acionamento): Confirmar, escalonar ou resolver a partir de uma chamada ou de uma resposta.
 - [Entrega e novas tentativas](#entrega-e-novas-tentativas): O que acontece quando o seu gateway está fora do ar.
 :::
@@ -63,7 +64,8 @@ Cada SMS e cada chamada é uma solicitação `POST` com um corpo JSON e estes ca
     "acknowledge": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/acknowledge?token=…",
     "escalate": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/escalate?token=…",
     "resolve": "https://oneuptime.example.com/api/custom-notification-channel/page/5f2c…/resolve?token=…"
-  }
+  },
+  "inLanguage": null
 }
 ```
 
@@ -75,11 +77,30 @@ Cada SMS e cada chamada é uma solicitação `POST` com um corpo JSON e estes ca
 | `sentAt` | Quando o OneUptime a enviou, em ISO 8601. |
 | `to` | O número de telefone, no formato E.164. `null` em um teste. |
 | `message` | O SMS, ou o que a chamada diz. Um SMS tem no máximo 1.600 caracteres, e o texto de uma chamada no máximo 16.384. Um texto mais longo é cortado e termina com uma nota de que o restante está no OneUptime. |
-| `isSensitive` | `true` para um código de verificação. Mantenha a mensagem fora dos seus próprios logs. |
+| `isSensitive` | `true` para um código de verificação. Mantenha a mensagem, e a de `inLanguage`, fora dos seus próprios logs. |
 | `project` | O `id` e o `name` do projeto, ou `null` quando nenhum projeto a enviou. |
 | `actions` | Para um acionamento de plantão, os links que agem sobre ele. `null` nos outros casos. |
+| `inLanguage` | Para uma chamada para quem usa o OneUptime em um idioma que não é o inglês: `language`, o código do idioma, e `message`, o que a chamada diz nesse idioma. `null` nos outros casos, e em todo SMS, que já está no idioma da pessoa. Veja [Chamadas em outros idiomas](#chamadas-em-outros-idiomas). |
 
 Uma chamada é descrita, não roteirizada: `message` é o que ela diz, sem o "pressione 1 para confirmar" do Twilio. Ofereça as ações do seu jeito, como teclas pressionadas, e chame o link correspondente.
+
+### Chamadas em outros idiomas
+
+Uma chamada para quem usa o OneUptime em outro idioma leva as palavras dela duas vezes: em inglês, em `message`, como toda chamada, e no idioma da pessoa, em `inLanguage`. O seu gateway escolhe a voz, então o OneUptime não tem como saber quais idiomas ele fala. Quando o seu gateway tiver uma voz de `inLanguage.language`, faça essa voz dizer `inLanguage.message`. Quando não tiver nenhuma, faça-o dizer `message` em inglês em vez disso. Nunca dê as palavras de um idioma à voz de outro idioma: elas não seriam entendidas. Um gateway que lê só `message` continua funcionando como antes e fala inglês.
+
+```json title="A call to someone who reads German"
+{
+  "event": "call",
+  "message": "This is a call from OneUptime. Your verification code is 4  8  2  9  1  3. …",
+  "isSensitive": true,
+  "inLanguage": {
+    "language": "de",
+    "message": "Dies ist ein Anruf von OneUptime. Ihr Bestätigungscode lautet 4  8  2  9  1  3. …"
+  }
+}
+```
+
+O código do idioma é uma tag BCP 47, um dos idiomas em que o OneUptime é escrito: `de`, `fr`, `es`, `it`, `pt`, `nl`, `da`, `no`, `sv`, `ru`, `ja`, `ko`, `zh-CN`, `zh-TW`, `hi`, `fa` e `ar`. `es` é o espanhol da Espanha, `pt` o português do Brasil, `no` o norueguês bokmål, `ar` o árabe padrão moderno, e os dois códigos chineses são mandarim, em caracteres simplificados e em caracteres tradicionais. O persa está entre eles: o Twilio não tem voz em persa, então pelo Twilio uma chamada para quem usa o OneUptime em persa é em inglês, mas o seu gateway pode ter uma. Um código de verificação é escrito dígito por dígito, com dois espaços entre os dígitos: faça a sua voz ler os dígitos um de cada vez, devagar, e não como um número.
 
 ### Verificar a assinatura
 
@@ -116,7 +137,7 @@ O registro de SMS ou de chamadas, e para um acionamento de plantão o registro d
 
 ## Solicitações de teste
 
-**Verificar gateway** envia uma solicitação com `event` definido como `test`, e `to`, `project` e `actions` definidos como `null`. Responda com um status 2xx e não envie nada.
+**Verificar gateway** envia uma solicitação com `event` definido como `test`, e `to`, `project`, `actions` e `inLanguage` definidos como `null`. Responda com um status 2xx e não envie nada.
 
 ## Próximos passos
 

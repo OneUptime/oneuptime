@@ -50,6 +50,15 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  * MB on 11,397 fields); and who deleted a record, which no record ever
  * held, is gone from every resource (#10469). This leaves room for about
  * 5% more.
+ *
+ * Kept on 2026-11-28, when the spec had reached 25,069,344 bytes: two new
+ * resources, cloud cost reports and VMware health settings, and new
+ * settings of cloud budgets, XCP-ng pools and probes took it 218,595 bytes
+ * further. The five columns every record has - its ID, when it was
+ * created, updated and deleted, and its version - are now described once,
+ * as schemas of their own every resource refers to
+ * (ModelSchema.BASE_COLUMN_SCHEMA_NAMES), where they were written out 5,321
+ * times: 24,467,439 bytes. This leaves room for about 2.2% more.
  */
 const MAX_SPEC_BYTES: number = 25_000_000;
 
@@ -64,6 +73,10 @@ const MAX_SPEC_BYTES: number = 25_000_000;
  * Lowered on 2026-11-23, from 1,300,000: the same three changes (#10527,
  * above) took it from 1,284,511 bytes to 1,110,163, with those columns
  * documented. This leaves room for about 8% more.
+ *
+ * Kept on 2026-11-28: 1,185,619 bytes gzipped, and 1,164,060 with the
+ * columns every record has described once (above). This leaves room for
+ * about 3.1% more.
  */
 const MAX_SPEC_GZIP_BYTES: number = 1_200_000;
 

@@ -22,11 +22,12 @@ import DataSecurityAiInput, {
  * the leaks as data: never a value or a record.
  *
  * A RUM application's leaks are in its front-end code (#10933): the call
- * site is where the browser code sets the attribute, logs the line or
+ * site is where the browser code sets the attribute, logs the line,
  * identifies the user to the session recorder (an opaque reference,
- * never an email); the redaction step is where the browser sets up its
- * telemetry (a span or log record processor of the OpenTelemetry web SDK)
- * or its session recorder.
+ * never an email) or tags the session (setTags() and addTag(), #11458);
+ * the redaction step is where the browser sets up its telemetry (a span or
+ * log record processor of the OpenTelemetry web SDK) or its session
+ * recorder.
  */
 
 /*
@@ -41,9 +42,9 @@ const CALL_SITE_STEPS: string = `For each leak whose "fix" is "CallSite", change
 const REDACTION_STEP_STEPS: string = `For the leaks whose "fix" is "RedactionStep", do not edit each place that writes them. Add one redaction step where the service sets up its telemetry - a span processor, a log processor, a log formatter or the logger's configuration - that removes or masks the attribute keys in "redactionStep.keys", and the values of the data types in "redactionStep.dataTypesInText" in log lines and messages, before any record leaves the service, so every exporter and every log output gets the redacted record. Add a test that a record carrying such a value comes out of the step without it.`;
 
 // A RUM application's front end (#10933): the same two ways, in the browser's words.
-const BROWSER_CALL_SITE_STEPS: string = `For each leak whose "fix" is "CallSite", change the browser code at the places listed in "writtenAt" so the value is no longer sent: leave the attribute, the argument or the part of the message out where the code sets a span attribute or logs it, or replace the value with a masked or hashed form. Where a session's user details hold it ("recorderCall": "identify"), call the session recorder's identify() with an opaque reference to the user - an id, never an email, a name or a phone number - and leave such traits out; where an attribute the page attaches to the session holds it, stop attaching it. Find each place by its file and line (the application's original source, as its source maps name it), its function, its span name, its log line's template (each <...> in it stands for a value), the page it was written on, or its attribute key, which the code usually writes as a literal. Change only those places.`;
+const BROWSER_CALL_SITE_STEPS: string = `For each leak whose "fix" is "CallSite", change the browser code at the places listed in "writtenAt" so the value is no longer sent: leave the attribute, the argument or the part of the message out where the code sets a span attribute or logs it, or replace the value with a masked or hashed form. Where a session's user details hold it ("recorderCall": "identify"), call the session recorder's identify() with an opaque reference to the user - an id, never an email, a name or a phone number - and leave such traits out; where a session's tags hold it ("recorderCall": "setTags"), leave it out of the tags the page gives the session recorder with setTags() and addTag(), under the key in "key", or tag the session with an opaque value instead, such as an id; where an attribute the page attaches to the session holds it, stop attaching it. Find each place by its file and line (the application's original source, as its source maps name it), its function, its span name, its log line's template (each <...> in it stands for a value), the page it was written on, or its attribute key, which the code usually writes as a literal. Change only those places.`;
 
-const BROWSER_REDACTION_STEP_STEPS: string = `For the leaks whose "fix" is "RedactionStep", do not edit each place that writes them. Add one redaction step where the web application sets up its browser telemetry - a span processor or a log record processor of the OpenTelemetry web SDK - that removes or masks the attribute keys in "redactionStep.keys", and the values of the data types in "redactionStep.dataTypesInText" in log lines and span names, before any record is exported. Where a session's user details hold it, identify the user to the session recorder with an opaque reference instead, and mark an element that shows such data with the session recorder's \`oneuptime-mask\` class. Add a test that a record carrying such a value comes out of the step without it.`;
+const BROWSER_REDACTION_STEP_STEPS: string = `For the leaks whose "fix" is "RedactionStep", do not edit each place that writes them. Add one redaction step where the web application sets up its browser telemetry - a span processor or a log record processor of the OpenTelemetry web SDK - that removes or masks the attribute keys in "redactionStep.keys", and the values of the data types in "redactionStep.dataTypesInText" in log lines and span names, before any record is exported. Where a session's user details hold it, identify the user to the session recorder with an opaque reference instead; where a session's tags hold it, leave it out of the tags the page gives the session recorder with setTags() and addTag(), or tag the session with an opaque value instead; and mark an element that shows such data with the session recorder's \`oneuptime-mask\` class. Add a test that a record carrying such a value comes out of the step without it.`;
 
 const TEST_STEP: string =
   "Where the repository has tests, add or update one that proves the value is no longer written.";

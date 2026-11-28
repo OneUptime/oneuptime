@@ -231,6 +231,22 @@ describe("every job that generates the Terraform provider", () => {
     expect(rootGoSum).toBe(false);
   });
 
+  /*
+   * A job's steps, with each of this repository's composite actions it uses
+   * (./.github/actions/<name>) read for the steps it runs: the release
+   * toolchain sets Go up inside one (#11464).
+   */
+  function stepsRun(steps) {
+    return (steps || []).flatMap((step) => {
+      const uses = String(step.uses || "");
+      if (!uses.startsWith("./.github/actions/")) {
+        return [step];
+      }
+      const action = yaml.load(read(path.join(uses, "action.yml")));
+      return [step, ...stepsRun(action.runs.steps)];
+    });
+  }
+
   test.each(
     jobs.map(({ name }) => {
       return name;
@@ -239,7 +255,7 @@ describe("every job that generates the Terraform provider", () => {
     const { job } = jobs.find((entry) => {
       return entry.name === name;
     });
-    const setupGo = (job.steps || []).filter((step) => {
+    const setupGo = stepsRun(job.steps).filter((step) => {
       return String(step.uses || "").startsWith("actions/setup-go@");
     });
 

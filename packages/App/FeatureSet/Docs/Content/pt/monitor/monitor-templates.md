@@ -75,6 +75,8 @@ Para sincronizar um único monitor, clique em **Sincronizar a partir do Modelo**
 
 Depois de uma sincronização, um resumo informa quantos monitores foram atualizados. **Sincronizado parcialmente** significa que alguns monitores vinculados ainda têm a configuração anterior, geralmente porque as suas permissões não os cobrem.
 
+Uma sincronização que retira os critérios que abriram um incidente ou alerta aberto o resolve quando ele estava configurado para se resolver sozinho, já que nada poderia resolvê-lo depois que esses critérios sumissem: a linha do tempo dele diz por quê, e o resumo diz quantos foram resolvidos. Um incidente ou alerta cujos critérios o modelo ainda tem continua aberto, e um configurado para ser resolvido manualmente fica a seu cargo. Editar você mesmo os critérios de um monitor, no painel, pela API ou com o Terraform, faz o mesmo.
+
 ## Mover monitores para outro modelo
 
 Quando um modelo melhor substitui outro, mova os monitores dele para o novo em vez de excluí-los. Cada monitor mantém o nome, o histórico de status, os rótulos, os proprietários e os incidentes, e recebe os critérios do novo modelo.
@@ -101,10 +103,10 @@ O que a movimentação faz:
 - Um dispositivo tem um monitor de cada modelo. Quando um dispositivo já tem um monitor criado para ele a partir do novo modelo, o outro monitor dele fica de fora, e a alteração indica o que está atrapalhando: exclua um dos dois e mova de novo.
 - Um monitor de um tipo diferente do tipo do modelo fica de fora.
 
-A alteração é executada no servidor, até 10.000 monitores por vez, e mostra o progresso: o que foi movido, o que ficou de fora e por quê, e os incidentes e alertas abertos que ela resolveu. Fechar a caixa de diálogo não a interrompe, e a página do modelo mostra uma alteração que ainda está em andamento. **Parar** a interrompe antes do próximo monitor, e **Tentar novamente** tenta de novo os monitores que falharam ou não foram alcançados.
+A alteração é executada no servidor, até 10.000 monitores por vez, e mostra o progresso: o que foi movido, o que ficou de fora e por quê, e os incidentes e alertas abertos que ela resolveu. Fechar a caixa de diálogo não a interrompe: a página do modelo e a lista de monitores mostram uma alteração que ainda está em andamento, com até onde ela chegou, e a lista de monitores mostra durante uma hora uma concluída que deixou monitores de fora ou teve falhas. Clique na linha dela para abri-la de novo, com **Mostrar progresso** enquanto ela é executada e **Mostrar o que aconteceu** quando termina. **Parar** a interrompe antes do próximo monitor, e **Tentar novamente** tenta de novo os monitores que falharam ou não foram alcançados.
 
 > [!TIP]
-> Vai mover os dispositivos de uma regra de importação automática para um novo modelo? Mova os monitores primeiro e depois aponte a regra para o novo modelo. Na ordem inversa, a regra dá a cada dispositivo um segundo monitor, do novo modelo, ao lado do que ele já tem.
+> Apontar uma regra de importação automática para outro modelo do mesmo tipo oferece mover para lá primeiro os monitores dos dispositivos dela, e a regra passa a usar o novo modelo quando eles forem movidos, então nenhum dispositivo recebe um segundo monitor. **Salvar sem mover** aponta a regra para ele agora: cada dispositivo mantém o seu monitor e recebe o do novo modelo ao lado.
 
 ## Desvincular monitores de um modelo
 
@@ -119,7 +121,7 @@ Em ambos os casos eles mantêm os nomes, o histórico de status, os rótulos, os
 
 ## Excluir um modelo
 
-Um modelo a partir do qual uma política de alertas de rede ou uma regra de importação automática provisiona monitores não pode ser excluído: aponte primeiro a política ou a regra para outro modelo. Quando há monitores vinculados ao modelo, a exclusão pergunta o que acontece com eles:
+Um modelo a partir do qual uma política de alertas de rede ou uma regra de importação automática provisiona monitores não pode ser excluído: aponte primeiro a política ou a regra para outro modelo. Os monitores de uma política vão junto com ela, e o formulário de uma regra oferece mover os monitores dos dispositivos dela. Quando há monitores vinculados ao modelo, a exclusão pergunta o que acontece com eles:
 
 - **Manter as configurações deles** (o padrão): a exclusão os desvincula, e eles continuam verificando e alertando com os critérios que têm.
 - **Remover deles os critérios deste modelo**: cada um é desvinculado com os critérios removidos, como acima, e depois o modelo é excluído. Quando um monitor continua vinculado, como um que as suas permissões não cobrem, o modelo é mantido, e a caixa de diálogo diz quantos.
@@ -233,7 +235,7 @@ O dispositivo tem um monitor criado para ele a partir do modelo para o qual voc�
 :::
 
 :::details Depois que uma regra de importação automática passou para um novo modelo, os dispositivos têm dois monitores
-A regra deu a cada dispositivo o monitor do novo modelo ao lado do que ele tinha. Exclua os monitores novos e depois mova os antigos para o novo modelo: eles mantêm o histórico, e a regra não cria nenhum de novo.
+A regra foi salva com **Salvar sem mover**, ou apontada para o modelo antes de o formulário dela oferecer movê-los, e deu a cada dispositivo o monitor do novo modelo ao lado do que ele tinha. Exclua os monitores novos e depois mova os antigos para o novo modelo: eles mantêm o histórico, e a regra não cria nenhum de novo.
 :::
 
 :::details Salvar falha com "Unsupported do not sync field"

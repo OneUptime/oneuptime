@@ -36,6 +36,11 @@
  *   --repo <owner/name>  the repository (default: GITHUB_REPOSITORY, else
  *                        OneUptime/oneuptime)
  *   --output <path>      where to write the notes (default: standard output)
+ *   --toolchain <text>   what the infrastructure agent was built with, as
+ *                        Scripts/Release/ReleaseToolchain.js describes it
+ *                        ("Go 1.27.4, GoReleaser v2.20.3 and syft v1.57.2"):
+ *                        the notes name it, so the release can be built again
+ *                        the same way (#11464). Left out when empty
  *   --fallback-on-error  when GitHub cannot be read, warn and write notes that
  *                        link to the changes, rather than fail. The release
  *                        job passes this: a release that has spent 90 minutes
@@ -663,6 +668,16 @@ function renderUpgrade(version) {
 }
 
 /*
+ * What the infrastructure agent was built with, so anyone can build this tag
+ * again the same way and get the same bytes (#11464); nothing without it.
+ */
+function renderToolchain(toolchain) {
+  return toolchain
+    ? `**Built with:** ${toolchain}. The infrastructure agent's archives, packages and SBOMs, built from this tag with them, are the same bytes.`
+    : "";
+}
+
+/*
  * Keeps the notes within what GitHub takes. Maintenance goes first, since
  * nobody reads it for what changed for them; only then are the changes cut,
  * and what closes the notes (the way to the full list) always stays.
@@ -690,7 +705,14 @@ function assembleNotes({ changes, folded, closing }) {
   return `${start.slice(0, start.lastIndexOf("\n"))}\n\n${end}`;
 }
 
-function renderNotes({ version, previous, repository, entries, contributors }) {
+function renderNotes({
+  version,
+  previous,
+  repository,
+  entries,
+  contributors,
+  toolchain,
+}) {
   const sectionsWithEntries = SECTIONS.map((section) => {
     return {
       section,
@@ -735,17 +757,24 @@ function renderNotes({ version, previous, repository, entries, contributors }) {
             })
             .join(", ")}`
         : "",
+      renderToolchain(toolchain),
     ],
   });
 }
 
 // What a release gets when GitHub could not be read: never an empty page.
-function renderFallbackNotes({ version, previous, repository }) {
+function renderFallbackNotes({ version, previous, repository, toolchain }) {
   const changes = previous
     ? `https://github.com/${repository}/compare/${previous}...${version}`
     : `https://github.com/${repository}/commits/${version}`;
 
-  return `**Full changelog:** ${changes}\n\n${renderUpgrade(version)}`;
+  return [
+    `**Full changelog:** ${changes}`,
+    renderUpgrade(version),
+    renderToolchain(toolchain),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function sleepFor(milliseconds) {
@@ -938,6 +967,7 @@ async function generateReleaseNotes({
   version,
   previous,
   to,
+  toolchain,
 }) {
   const commits = await listCommits(github, repository, previous, to);
   const changes = sortChanges(
@@ -951,6 +981,7 @@ async function generateReleaseNotes({
     repository,
     entries: buildEntries(changes, repository),
     contributors: findContributors(changes),
+    toolchain,
   });
 }
 
@@ -966,6 +997,7 @@ function parseArguments(argumentList, environment = process.env) {
     to: environment.GITHUB_SHA || null,
     repository: environment.GITHUB_REPOSITORY || DEFAULT_REPOSITORY,
     output: null,
+    toolchain: null,
     fallbackOnError: false,
   };
   const withValue = new Map([
@@ -974,6 +1006,7 @@ function parseArguments(argumentList, environment = process.env) {
     ["--to", "to"],
     ["--repo", "repository"],
     ["--output", "output"],
+    ["--toolchain", "toolchain"],
   ]);
 
   for (let index = 0; index < argumentList.length; index += 1) {
@@ -982,7 +1015,12 @@ function parseArguments(argumentList, environment = process.env) {
       options.fallbackOnError = true;
     } else if (withValue.has(argument) && index + 1 < argumentList.length) {
       index += 1;
-      options[withValue.get(argument)] = argumentList[index];
+      // An empty --toolchain is one left out: the release job passes it so
+      // when the pins could not be read.
+      options[withValue.get(argument)] =
+        argument === "--toolchain"
+          ? argumentList[index].trim() || null
+          : argumentList[index];
     } else {
       throw new Error(`Unknown or incomplete option: ${argument}`);
     }
@@ -1031,6 +1069,7 @@ async function run(options, tools = {}) {
         version,
         previous,
         to: options.to || version,
+        toolchain: options.toolchain,
       }),
     );
   } catch (error) {
@@ -1046,6 +1085,7 @@ async function run(options, tools = {}) {
         version,
         previous,
         repository: options.repository,
+        toolchain: options.toolchain,
       }),
     );
   }

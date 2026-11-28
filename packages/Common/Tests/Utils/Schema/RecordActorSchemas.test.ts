@@ -266,9 +266,12 @@ describe("a read-only field's description", () => {
   test("is its own words, with no permissions sentence; a writable one keeps its permissions", () => {
     const monitor: Record<string, JSONObject> =
       propertiesOf("MonitorReadSchema");
+    // Described once, for every record (BaseColumnSchemas).
+    const createdAt: JSONObject = schemas["RecordCreatedAt"]!;
 
-    expect(monitor["createdAt"]!["readOnly"]).toBe(true);
-    expect(monitor["createdAt"]!["description"]).toBe(
+    expect(monitor["createdAt"]).toEqual(refTo("RecordCreatedAt"));
+    expect(createdAt["readOnly"]).toBe(true);
+    expect(createdAt["description"]).toBe(
       "Date and Time when the object was created.",
     );
     expect(String(monitor["name"]!["description"])).toContain(

@@ -260,6 +260,11 @@ export interface PublicForm {
    * out for a form with none.
    */
   templates?: Array<PublicFormTemplate> | undefined;
+  /*
+   * The form's follow-ups are on (Types/Form/FormFollowUp): its page can
+   * offer My requests to a signed-in visitor. Left out when they are off.
+   */
+  isFollowUpOn?: boolean | undefined;
 }
 
 /*
@@ -287,6 +292,26 @@ export interface PublicFormSubmissionResult {
   reference?: string | undefined;
   // The form's thank-you text, as Markdown.
   successMessage?: string | undefined;
+  /*
+   * On a form with follow-ups on (Types/Form/FormFollowUp), where the
+   * submitter can open what they sent. Left out when nobody can follow it:
+   * follow-ups are off, or the submitter gave no address.
+   */
+  followUp?: PublicFormSubmissionFollowUp | undefined;
+}
+
+/*
+ * What a submission's thank-you screen is told about following it, on a
+ * form with follow-ups on (Types/Form/FormFollowUp): where to open the
+ * request, and who was emailed a link to it.
+ */
+export interface PublicFormSubmissionFollowUp {
+  // The credential to open it with, on a form anybody can open.
+  credential?: string | undefined;
+  // The submission's id, on a form that asks its visitors to sign in.
+  submissionId?: string | undefined;
+  // Who was emailed the link: the address the submitter gave or signed in with.
+  emailedTo?: string | undefined;
 }
 
 /*
