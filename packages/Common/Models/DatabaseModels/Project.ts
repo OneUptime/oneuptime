@@ -3301,11 +3301,15 @@ export default class Project extends TenantModel {
    * trusted only when it is listed under Trusted Proxies or is one of the
    * project's own load balancers'.
    *
-   * Off for a new project, the safe start; on for every project from before
-   * the switch, so none of them names its HTTP proxies as attackers
-   * overnight (the migration sets them on, then makes off the default). An
-   * address forwarded through a private address nothing vouches for is
-   * never blocked automatically, either way
+   * Off for a new project, the safe start: ProjectService.onBeforeCreate
+   * turns it off when the create request leaves it unset
+   * (applyNewProjectSecurityDefaults). The column's own default stays on,
+   * so every project from before the switch keeps trusting private
+   * addresses as it did - none names its HTTP proxies as attackers
+   * overnight - and the generated Terraform provider's static default never
+   * flips a Terraform-managed project on its next apply. An address
+   * forwarded through a private address nothing vouches for is never
+   * blocked automatically, either way
    * (Utils/SecurityEvent/ClientAddressTrust.readUnvouchedForwarding). Set
    * as the switches beside it are, by a Project Owner, a Project Admin or a
    * Security Admin.
@@ -3334,13 +3338,13 @@ export default class Project extends TenantModel {
     title: "Trust Private Addresses",
     description:
       "Whether Security Events trusts private, loopback and link-local addresses as proxies without your listing them. Off for a new project.",
-    defaultValue: false,
+    defaultValue: true,
     example: false,
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
-    default: false,
+    default: true,
   })
   public securityTrustPrivateAddresses?: boolean = undefined;
 

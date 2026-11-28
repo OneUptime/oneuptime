@@ -8,13 +8,12 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
 /*
  * AddProjectSecurityTrustPrivateAddresses (#11389): Private Addresses, the
  * switch that says whether Security Events trusts private, loopback and
- * link-local addresses as proxies unlisted. Off for a new project - the
- * safe start - and on for every project already here, so none behind an
- * ordinary HTTP proxy starts naming the proxy as the attacker overnight.
- *
- * Done as two catalog changes: the column added with a constant default of
- * true, which every row there is takes, then its default set to false for
- * the rows to come. Postgres rewrites no row of "Project" for either.
+ * link-local addresses as proxies unlisted. On for every project already
+ * here - the column's default - so none behind an ordinary HTTP proxy
+ * starts naming the proxy as the attacker overnight; a new project starts
+ * with it off (ProjectService.applyNewProjectSecurityDefaults). A boolean
+ * with a constant default: Postgres adds it without rewriting a row of
+ * "Project".
  */
 
 const MIGRATION_TIMESTAMP: RegExp = /(\d{13})$/;
@@ -48,10 +47,9 @@ function up(): Promise<Array<string>> {
 }
 
 describe("AddProjectSecurityTrustPrivateAddresses1809187791240", () => {
-  test("adds the column on for every project there is, then makes off the default for the projects to come", async () => {
+  test("adds the column to Project, on for every project there is, as generated, and nothing else", async () => {
     expect(await up()).toEqual([
       `ALTER TABLE "Project" ADD "securityTrustPrivateAddresses" boolean NOT NULL DEFAULT true`,
-      `ALTER TABLE "Project" ALTER COLUMN "securityTrustPrivateAddresses" SET DEFAULT false`,
     ]);
   });
 
@@ -60,19 +58,11 @@ describe("AddProjectSecurityTrustPrivateAddresses1809187791240", () => {
       expect(statement).not.toMatch(
         /CREATE (UNIQUE )?INDEX|FOREIGN KEY|UPDATE |now\(\)|USING /i,
       );
-      expect(statement).toMatch(/DEFAULT (true|false)$/);
+      expect(statement).toMatch(/DEFAULT true$/);
     }
   });
 
-  test("the existing rows are filled before the default turns: true is added first, false set after", async () => {
-    const statements: Array<string> = await up();
-
-    expect(statements[0]).toContain("ADD");
-    expect(statements[0]).toMatch(/DEFAULT true$/);
-    expect(statements[1]).toContain("SET DEFAULT false");
-  });
-
-  test("the column ends as the model declares it: a required boolean, off by default", () => {
+  test("the column is the model's: a required boolean, on by default for the projects there are", () => {
     const metadata: ReturnType<Project["getTableColumnMetadata"]> =
       new Project().getTableColumnMetadata("securityTrustPrivateAddresses");
 
@@ -80,7 +70,8 @@ describe("AddProjectSecurityTrustPrivateAddresses1809187791240", () => {
     expect(metadata.type).toBe(TableColumnType.Boolean);
     expect(metadata.required).toBe(true);
     expect(metadata.isDefaultValueColumn).toBe(true);
-    expect(metadata.defaultValue).toBe(false);
+    expect(metadata.defaultValue).toBe(true);
+    expect(metadata.description?.length).toBeLessThanOrEqual(150);
   });
 
   test("down drops what up added", async () => {
@@ -95,7 +86,7 @@ describe("AddProjectSecurityTrustPrivateAddresses1809187791240", () => {
     ]);
   });
 
-  test("registered once, last, numbered after every migration before it", () => {
+  test("registered once, numbered after every migration before it", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
 
     expect(

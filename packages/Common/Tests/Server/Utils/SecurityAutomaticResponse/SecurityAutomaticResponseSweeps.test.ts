@@ -802,6 +802,7 @@ describe("the trial run's end", () => {
         sparedSignedIn: 3,
         sparedProtected: 1,
         sparedCannotTell: 4,
+        sparedUnvouchedProxy: 5,
         wouldHaveStopped: 1,
       },
       link: null,
@@ -813,9 +814,52 @@ describe("the trial run's end", () => {
     );
     expect(text).toContain("so it would have lifted those blocks");
     expect(text).toContain("left them for a person");
+    // #11389: through a private proxy nothing vouches for.
+    expect(text).toContain(
+      "It left 5 addresses for a person: they came through a private address you haven't listed as a proxy, which may have passed on what the client wrote.",
+    );
     expect(text).toContain("in an hour once, and paged your security owners");
     expect(text).toContain(
       "Turn it on from Security Events -> Playbooks -> Automatic Response.",
     );
+  });
+
+  test("one address spared for its proxy is said in the singular, and none says nothing of proxies", () => {
+    const summary: {
+      wouldActOn: number;
+      wouldHaveLifted: number;
+      sparedSignedIn: number;
+      sparedProtected: number;
+      sparedCannotTell: number;
+      sparedUnvouchedProxy: number;
+      wouldHaveStopped: number;
+    } = {
+      wouldActOn: 10,
+      wouldHaveLifted: 0,
+      sparedSignedIn: 0,
+      sparedProtected: 0,
+      sparedCannotTell: 0,
+      sparedUnvouchedProxy: 1,
+      wouldHaveStopped: 0,
+    };
+
+    expect(
+      describeTrialFinished({
+        policyName: "Scanners",
+        blockAction: SecurityBlockAction.Challenge,
+        summary,
+        link: null,
+      }),
+    ).toContain(
+      "It left 1 address for a person: it came through a private address you haven't listed as a proxy",
+    );
+    expect(
+      describeTrialFinished({
+        policyName: "Scanners",
+        blockAction: SecurityBlockAction.Challenge,
+        summary: { ...summary, sparedUnvouchedProxy: 0 },
+        link: null,
+      }),
+    ).not.toContain("listed as a proxy");
   });
 });

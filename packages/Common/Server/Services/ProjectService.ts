@@ -1752,15 +1752,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
    * On unless the create request set it itself. The column's database
    * default stays false, so a project that existed before opens no case
    * from risk until someone turns it on.
+   *
+   * And it trusts no private address as a proxy unlisted (#11389,
+   * Project.securityTrustPrivateAddresses): a TCP proxy at one would pass on
+   * the X-Forwarded-For a client wrote. Off unless the create request set it
+   * itself. That column's database default stays on, so a project that
+   * existed before keeps trusting its HTTP proxies inside its network as it
+   * did, until someone turns it off.
    */
   public applyNewProjectSecurityDefaults(data: {
     enableSecurityRiskCases?: boolean | null | undefined;
+    securityTrustPrivateAddresses?: boolean | null | undefined;
   }): void {
     if (
       data.enableSecurityRiskCases === undefined ||
       data.enableSecurityRiskCases === null
     ) {
       data.enableSecurityRiskCases = true;
+    }
+
+    if (
+      data.securityTrustPrivateAddresses === undefined ||
+      data.securityTrustPrivateAddresses === null
+    ) {
+      data.securityTrustPrivateAddresses = false;
     }
   }
 
