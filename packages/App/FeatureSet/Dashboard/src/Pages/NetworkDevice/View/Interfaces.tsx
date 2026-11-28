@@ -257,9 +257,10 @@ const NetworkDeviceInterfaces: FunctionComponent<
       return <></>;
     }
 
+    // The type's English name, which the badge looks up once.
     return (
       <Pill
-        text={translator.translateText(title) || title}
+        text={title}
         tone={
           SnmpFibreChannelUtil.isInterSwitchLink(item.fibreChannelPortType)
             ? PillTone.Info
