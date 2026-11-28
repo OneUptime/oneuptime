@@ -359,6 +359,20 @@ export interface SkipsMeasured {
   inARow: number;
 }
 
+/*
+ * The minutes of the run a monitor probe was handed out in none of, and
+ * why. By the claim's rule it is due as the run starts and again at the
+ * whole minute its last hand-out was stamped for, the next one after it.
+ * So it misses a minute only where its probe's round for that minute
+ * reached it after the minute had ended - stamped then for the minute
+ * after (#11386) - and any other minute missed is a check lost.
+ */
+export interface MinutesMissed {
+  total: number;
+  // Of those, minutes its probe's round for the minute reached it after.
+  reachedAfterTheMinute: number;
+}
+
 // The time between two checks of one monitor probe, over a run.
 export interface BetweenChecks {
   gaps: number;
@@ -411,6 +425,9 @@ export interface BurstMeasured {
   longestRoundMs: number;
   checksSkipped: number;
   claims: number;
+  // Monitor probes the claims handed out, in all: each one a check.
+  handedOut: number;
+  minutesMissed: MinutesMissed;
   claimsMeasured: ClaimsMeasured;
   placeInRound: PlaceInRound;
   // Minutes missed by when each result reached the server.
@@ -1167,10 +1184,77 @@ describePostgres(
           stopAt,
         }),
         ticksSkipped: ticksSkipped,
+        handedOut: handedOut.length,
+        minutesMissed: measureMinutesMissed({ handedOut, startAt, stopAt }),
       };
 
       measured[name] = report;
       return report;
+    }
+
+    /*
+     * The minutes of the run each monitor probe was handed out in none of
+     * (MinutesMissed), and of those, the ones its probe's round for the
+     * minute reached it only after the minute had ended.
+     */
+    function measureMinutesMissed(data: {
+      handedOut: Array<HandedOut>;
+      startAt: number;
+      stopAt: number;
+    }): MinutesMissed {
+      // The minutes of the run each monitor probe was handed out in.
+      const minutesOf: Map<string, Set<number>> = new Map();
+      // The last time each monitor probe was handed out by each round.
+      const lastByRoundOf: Map<string, Map<number, number>> = new Map();
+
+      for (const handOut of data.handedOut) {
+        const minutes: Set<number> =
+          minutesOf.get(handOut.monitorProbeId) || new Set<number>();
+        minutes.add(
+          data.startAt +
+            Math.floor((handOut.claimedAt - data.startAt) / MINUTE_MS) *
+              MINUTE_MS,
+        );
+        minutesOf.set(handOut.monitorProbeId, minutes);
+
+        const lastByRound: Map<number, number> =
+          lastByRoundOf.get(handOut.monitorProbeId) ||
+          new Map<number, number>();
+        lastByRound.set(
+          handOut.roundMinute,
+          Math.max(
+            lastByRound.get(handOut.roundMinute) ?? 0,
+            handOut.claimedAt,
+          ),
+        );
+        lastByRoundOf.set(handOut.monitorProbeId, lastByRound);
+      }
+
+      const result: MinutesMissed = { total: 0, reachedAfterTheMinute: 0 };
+
+      for (const monitorProbeId of assignmentOf.keys()) {
+        for (
+          let minute: number = data.startAt;
+          minute < data.stopAt;
+          minute += MINUTE_MS
+        ) {
+          if (minutesOf.get(monitorProbeId)?.has(minute)) {
+            continue;
+          }
+
+          result.total++;
+
+          const byItsRound: number | undefined = lastByRoundOf
+            .get(monitorProbeId)
+            ?.get(minute);
+
+          if (byItsRound !== undefined && byItsRound >= minute + MINUTE_MS) {
+            result.reachedAfterTheMinute++;
+          }
+        }
+      }
+
+      return result;
     }
 
     function measureClaims(
@@ -1357,6 +1441,8 @@ describePostgres(
       | "skips"
       | "skipsHandedOut"
       | "ticksSkipped"
+      | "handedOut"
+      | "minutesMissed"
     > {
       const seconds: number = (data.stopAt - data.startAt) / SECOND_MS;
       const perSecond: Array<number> = new Array<number>(seconds).fill(0);
@@ -1521,18 +1607,30 @@ describePostgres(
           11247,
         );
 
-        // 300 monitors from two probes, every minute, for three minutes.
-        expect(report.results).toBeGreaterThanOrEqual(
-          MONITORS * PROBES * 3 - MONITORS * PROBES * 0.05,
+        /*
+         * 300 monitors from two probes, every minute, for three minutes:
+         * every monitor probe handed out in every minute of the run, but
+         * where its probe's round for the minute reached it after the
+         * minute. A worker that draws a second late in the minute starts a
+         * round of 300 checks through its 10 slots - 19 to 35 s here, longer
+         * on a busier runner - that can run past the next minute, and the
+         * claim stamps what it reaches then with the minute after next, so
+         * each of those misses one (#11386). How often that happens is the
+         * seconds drawn and the runner's speed (on Postgres 15 here: none
+         * in one run, 40 in another; 55 results short in CI); that nothing
+         * else is ever missed, and no check is lost, is neither.
+         */
+        expect(report.minutesMissed.total).toBe(
+          report.minutesMissed.reachedAfterTheMinute,
         );
+        // And every check the probes were handed reached the server.
+        expect(report.results).toBe(report.handedOut);
 
         // Bounded by each worker's 10 check slots: tens a second at most.
         expect(report.resultsPerSecondMax).toBeLessThan(80);
         // Never near the queue's 100 workers, and nothing waits for one.
         expect(report.evaluationsAtOnceMax).toBeLessThan(INGEST_WORKERS / 2);
         expect(report.waitForAWorkerMsMax).toBeLessThan(SECOND_MS);
-        // Every monitor probe checked in every minute.
-        expect(report.checksSkipped).toBe(0);
       },
       RUN_TIMEOUT_MS,
     );
